@@ -65,7 +65,7 @@ export const TaskPatchSchema = z.object({
   urgent: z.boolean().optional(),
   fileIds: fileIdsField.optional(),
   /** `updatedAt` of the version being edited; a stale value answers 409 `task_changed`. */
-  updatedAt: z.string(),
+  updatedAt: z.iso.datetime({ offset: true }),
 });
 export type TaskPatch = z.output<typeof TaskPatchSchema>;
 

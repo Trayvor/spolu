@@ -51,6 +51,9 @@ export async function ensureBoard(db: Db, groupId: string): Promise<void> {
 /**
  * Locks the given bucket rows (`select … for update`, ordered by id so two writers never
  * deadlock). Every write that computes a position locks its buckets first.
+ *
+ * Lock order rule: a transaction locks bucket rows (by id) BEFORE any task row, never the
+ * other way round. Writes that lock a task row (edit, delete) take no bucket lock afterwards.
  */
 export async function lockBuckets(tx: Tx, ids: string[]): Promise<BucketRow[]> {
   if (ids.length === 0) return [];

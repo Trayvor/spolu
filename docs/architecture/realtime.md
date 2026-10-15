@@ -42,8 +42,10 @@ Pushed to the `group:<id>` room after the write commits, by `modules/tasks/event
 | event                | payload                                             | when                                                  |
 | -------------------- | --------------------------------------------------- | ----------------------------------------------------- |
 | `board:buckets`      | `{ groupId, buckets }` (the full list, by position) | a custom bucket is created, renamed, moved or deleted |
-| `board:task`         | `{ task, actor }`                                   | a task is created or changed (Task 3)                 |
-| `board:task_deleted` | `{ groupId, taskId }`                               | a task is deleted (Task 3)                            |
+| `board:task`         | `{ task, actor }`                                   | a task is created or edited (`task` is a `TaskDto`)   |
+| `board:task_deleted` | `{ groupId, taskId }`                               | a task is deleted                                     |
+
+`actor` (`{ id, name }`) is who made the change, so a client can skip its own echo or say who changed a card. The board has no `seq`: after a reconnect (a new `useGroupRoomJoins()` value) the web refetches `GET /api/groups/:id/board` instead of catching up event by event; boards are small.
 
 After a bucket is deleted its tasks moved to To do without a `board:task` event; a client that sees a task whose bucket is missing from the new list should refetch the board.
 

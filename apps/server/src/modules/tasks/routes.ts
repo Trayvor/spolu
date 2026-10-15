@@ -6,6 +6,7 @@ import { requireUser } from '../auth/session.js';
 import { getGroup, getMembershipGroupId } from '../groups/service.js';
 import { emitBuckets } from './events.js';
 import { canManageBuckets, canUseBoard } from './policy.js';
+import { taskRoutes } from './task-routes.js';
 import {
   createBucket,
   deleteBucket,
@@ -37,13 +38,15 @@ export const tasksRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { 
       return reply.code(429).send({ error: ErrorCodes.rateLimited });
     }
   };
-  /** Reused by the task routes (Task 3). */
+  /** Shared with the task routes. */
   const writeGuard: WriteGuard = [anyUser, limitWrites];
 
   /** True when the actor may open the board of `groupId` and the group exists. */
   const canOpenGroup = async (actor: SessionUser, groupId: string): Promise<boolean> =>
     canUseBoard(actor, groupId, await getMembershipGroupId(db, actor.id)) &&
     (await getGroup(db, groupId)) !== null;
+
+  await app.register(taskRoutes, { deps, writeGuard, canOpenGroup });
 
   app.get<GroupParams>('/groups/:id/board', { preHandler: anyUser }, async (request, reply) => {
     // Group check first: ensureBoard must never run for an unknown group.
