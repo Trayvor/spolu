@@ -1,15 +1,33 @@
 import type { FastifyInstance, FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify';
 import { fromNodeHeaders } from 'better-auth/node';
-import { ErrorCodes, NameBodySchema, type Me } from '@spolu/shared';
+import {
+  EmailChangeConfirmSchema,
+  EmailChangeRequestSchema,
+  ErrorCodes,
+  LanguageBodySchema,
+  NameBodySchema,
+  type Me,
+} from '@spolu/shared';
 import type { AppDeps } from '../../deps.js';
+import { createRateLimiter } from '../../infra/http/rate-limit.js';
 import type { Auth } from './auth.js';
-import { getSessionFromHeaders, toSessionUser } from './session.js';
+import {
+  confirmEmailChange,
+  InvalidCodeError,
+  requestEmailChange,
+  SameEmailError,
+} from './email-change.js';
+import { getSessionFromHeaders, requireUser, toSessionUser } from './session.js';
 import { getMembershipGroupId } from '../groups/service.js';
-import { updateUserName } from '../users/service.js';
+import { EmailTakenError, setUserLanguage, updateUserName } from '../users/service.js';
 import { sessionRoom } from '../../infra/realtime/rooms.js';
 
-export const authRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { deps: { db } }) => {
+export const authRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { deps }) => {
+  const { db } = deps;
   const { auth } = app;
+  const preHandler = requireUser(auth);
+  // Per user, the same 10 a minute as the login code's plugin limit.
+  const allowEmailChange = createRateLimiter({ windowMs: 60_000, max: 10 });
 
   // better-auth's own endpoints, in a child plugin so its raw-body parser stays local.
   await app.register(async (child) => registerAuthHandler(child, auth));
@@ -43,6 +61,50 @@ export const authRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { d
     if (!body.success) return reply.code(400).send({ error: ErrorCodes.validationFailed });
     await updateUserName(db, current.user.id, body.data.name);
     return { ...current.user, name: body.data.name };
+  });
+
+  // Email change and language act on the session's user only; no route names another user.
+  app.post('/me/email-change', { preHandler }, async (request, reply) => {
+    const user = request.user!;
+    if (!allowEmailChange(user.id)) return reply.code(429).send({ error: ErrorCodes.rateLimited });
+    const body = EmailChangeRequestSchema.safeParse(request.body);
+    if (!body.success) return reply.code(400).send({ error: ErrorCodes.validationFailed });
+    try {
+      await requestEmailChange(deps, user, body.data.newEmail);
+    } catch (error) {
+      if (error instanceof SameEmailError) {
+        return reply.code(400).send({ error: ErrorCodes.validationFailed });
+      }
+      throw error;
+    }
+    return reply.code(204).send();
+  });
+
+  app.post('/me/email-change/confirm', { preHandler }, async (request, reply) => {
+    const user = request.user!;
+    const body = EmailChangeConfirmSchema.safeParse(request.body);
+    if (!body.success) return reply.code(400).send({ error: ErrorCodes.validationFailed });
+    try {
+      await confirmEmailChange(deps, user, body.data.newEmail, body.data.code);
+    } catch (error) {
+      if (error instanceof InvalidCodeError) {
+        return reply.code(400).send({ error: ErrorCodes.invalidCode });
+      }
+      if (error instanceof EmailTakenError) {
+        return reply.code(409).send({ error: ErrorCodes.emailTaken });
+      }
+      throw error;
+    }
+    const groupId = user.role === 'client' ? await getMembershipGroupId(db, user.id) : null;
+    const me: Me = { ...user, email: body.data.newEmail, groupId };
+    return me;
+  });
+
+  app.put('/me/language', { preHandler }, async (request, reply) => {
+    const body = LanguageBodySchema.safeParse(request.body);
+    if (!body.success) return reply.code(400).send({ error: ErrorCodes.validationFailed });
+    await setUserLanguage(db, request.user!.id, body.data.language);
+    return reply.code(204).send();
   });
 };
 

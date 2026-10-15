@@ -11,8 +11,13 @@ import { loginCodeEmail } from './emails.js';
 import { pickLanguage } from './language.js';
 import { account, session, verification } from './schema.js';
 
+/** How long a login code (and an email-change code) stays valid. */
+export const LOGIN_CODE_TTL_SECONDS = 300;
+/** Wrong tries a code allows before it is used up. */
+export const CODE_ATTEMPTS = 3;
+
 /** Same as the code's life (300 s) or shorter; finished jobs, and their payload, go quickly. */
-const LOGIN_CODE_JOB_OPTIONS = {
+export const LOGIN_CODE_JOB_OPTIONS = {
   expireInSeconds: 240,
   retentionSeconds: 240,
   deleteAfterSeconds: 60,
@@ -73,8 +78,8 @@ export function createAuth({ config, db, jobs }: AppDeps) {
     plugins: [
       emailOTP({
         otpLength: 6,
-        expiresIn: 300,
-        allowedAttempts: 3,
+        expiresIn: LOGIN_CODE_TTL_SECONDS,
+        allowedAttempts: CODE_ATTEMPTS,
         // Colleagues behind one office IP share the limit (default 3 per minute); the brute-force
         // guard is allowedAttempts. Plugin rules win over the library's /sign-in special rule.
         rateLimit: { window: 60, max: 10 },

@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { adminAddedEmail, loginCodeEmail } from './emails.js';
+import {
+  adminAddedEmail,
+  emailChangeCodeEmail,
+  emailChangedNoticeEmail,
+  loginCodeEmail,
+} from './emails.js';
 import { pickLanguage } from './language.js';
 
 describe('pickLanguage', () => {
@@ -61,5 +66,39 @@ describe('adminAddedEmail', () => {
     expect(msg.html).not.toContain('<b>Eva</b>');
     expect(msg.html).toContain('Jana &amp; &quot;&lt;script&gt;&quot;');
     expect(msg.html).toContain('&lt;b&gt;Eva&lt;/b&gt;');
+  });
+});
+
+describe('emailChangeCodeEmail', () => {
+  it('puts the code first and names the new address, in English', () => {
+    const msg = emailChangeCodeEmail('new@example.com', '123456', 'en');
+    expect(msg.to).toEqual(['new@example.com']);
+    expect(msg.subject).toBe('Your Spolu email change code: 123456');
+    expect(msg.text).toContain('Your code is 123456.');
+    expect(msg.text).toContain('new@example.com');
+    expect(msg.text).toContain('valid for 5 minutes');
+  });
+
+  it('is in Slovak', () => {
+    const msg = emailChangeCodeEmail('new@example.com', '654321', 'sk');
+    expect(msg.subject).toBe('Kód na zmenu e-mailu v Spolu: 654321');
+    expect(msg.text).toContain('Váš kód je 654321.');
+    expect(msg.text).toContain('Platí 5 minút.');
+  });
+});
+
+describe('emailChangedNoticeEmail', () => {
+  it('tells the old address the new one, in English', () => {
+    const msg = emailChangedNoticeEmail('old@example.com', 'new@example.com', 'en');
+    expect(msg.to).toEqual(['old@example.com']);
+    expect(msg.subject).toBe('Your Spolu email was changed');
+    expect(msg.text).toContain('changed to new@example.com');
+  });
+
+  it('is in Slovak and escapes HTML', () => {
+    const msg = emailChangedNoticeEmail('old@example.com', '<b>@example.com', 'sk');
+    expect(msg.subject).toBe('Váš e-mail v Spolu bol zmenený');
+    expect(msg.text).toContain('bol zmenený na <b>@example.com');
+    expect(msg.html).toContain('&lt;b&gt;@example.com');
   });
 });
