@@ -38,6 +38,15 @@ export function validateTaskDraft(value: TaskDraft): TaskFormErrors {
       errors.description = i18n.t('tasks.form.errors.descriptionTooLong');
     } else if (field === 'assigneeIds' && !errors.assigneeIds) {
       errors.assigneeIds = i18n.t('tasks.form.errors.tooManyAssignees');
+    } else if (field !== 'title' && field !== 'description' && field !== 'assigneeIds') {
+      // Fields without an input of their own (files, deadline) report through the form error.
+      errors.form ??= i18n.t(
+        field === 'fileIds'
+          ? 'tasks.form.errors.tooManyFiles'
+          : field === 'dueDate'
+            ? 'tasks.form.errors.invalidDate'
+            : 'tasks.form.errors.invalid',
+      );
     }
   }
   return errors;
@@ -62,7 +71,7 @@ export function TaskForm({
   onChange,
   groupId,
   errors = {},
-  files = [],
+  files,
   onFilesChange,
   knownPeople,
 }: {
@@ -71,8 +80,8 @@ export function TaskForm({
   groupId: string;
   errors?: TaskFormErrors;
   /** Details of the files in `value.fileIds`; new uploads are added through `onFilesChange`. */
-  files?: FileInfo[];
-  onFilesChange?: (next: FileInfo[]) => void;
+  files: FileInfo[];
+  onFilesChange: (next: FileInfo[]) => void;
   /** Assignees who may no longer be group people; shown as "Name (removed)". */
   knownPeople?: TaskPerson[];
 }) {
@@ -162,17 +171,24 @@ export function TaskForm({
           fileIds={value.fileIds}
           files={files}
           onAdd={(file) => {
+            // The ref is updated here, not only after render, so two uploads finishing together both land.
             const cur = latest.current;
-            cur.onFilesChange?.([...cur.files.filter((f) => f.id !== file.id), file]);
-            cur.onChange({ ...cur.value, fileIds: [...cur.value.fileIds, file.id] });
+            const nextFiles = [...cur.files.filter((f) => f.id !== file.id), file];
+            const nextValue = { ...cur.value, fileIds: [...cur.value.fileIds, file.id] };
+            latest.current = { ...cur, value: nextValue, files: nextFiles };
+            cur.onFilesChange(nextFiles);
+            cur.onChange(nextValue);
           }}
           onRemove={(fileId) => {
             const cur = latest.current;
-            cur.onFilesChange?.(cur.files.filter((f) => f.id !== fileId));
-            cur.onChange({
+            const nextFiles = cur.files.filter((f) => f.id !== fileId);
+            const nextValue = {
               ...cur.value,
               fileIds: cur.value.fileIds.filter((f) => f !== fileId),
-            });
+            };
+            latest.current = { ...cur, value: nextValue, files: nextFiles };
+            cur.onFilesChange(nextFiles);
+            cur.onChange(nextValue);
           }}
         />
       </div>

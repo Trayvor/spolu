@@ -142,8 +142,12 @@
         "titleTooLong": "Použite najviac 200 znakov.",
         "descriptionTooLong": "Použite najviac 10 000 znakov.",
         "tooManyAssignees": "Vyberte najviac 10 ľudí.",
-        "invalidAssignee": "Niekto z vybraných už nie je v tejto skupine."
-      }
+        "invalidAssignee": "Niekto z vybraných už nie je v tejto skupine.",
+        "tooManyFiles": "Priložte najviac 20 súborov.",
+        "invalidDate": "Zadajte platný termín.",
+        "invalid": "Skontrolujte polia a skúste to znova."
+      },
+      "unknownFile": "Súbor"
     }
   },
   "groups": {

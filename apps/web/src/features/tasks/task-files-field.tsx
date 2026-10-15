@@ -37,9 +37,6 @@ export function TaskFilesField({
   const [pending, setPending] = useState<Pending[]>([]);
   const [errors, setErrors] = useState<string[]>([]);
 
-  const attached = fileIds
-    .map((id) => files.find((f) => f.id === id))
-    .filter((f): f is FileInfo => !!f);
   const full = fileIds.length + pending.length >= MAX_TASK_FILES;
 
   const upload = async (file: File) => {
@@ -73,23 +70,33 @@ export function TaskFilesField({
 
   return (
     <div className="space-y-3">
-      {attached.length > 0 && (
+      {fileIds.length > 0 && (
         <ul className="space-y-2">
-          {attached.map((file) => (
-            <li key={file.id} className="flex items-start gap-2">
-              <div className="min-w-0 flex-1">
-                <ImagePreview file={file} maxWidth={240} />
-              </div>
-              <button
-                type="button"
-                aria-label={t('tasks.form.removeFile', { name: file.name })}
-                onClick={() => onRemove(file.id)}
-                className="rounded-full p-2 hover:bg-secondary"
-              >
-                <CloseIcon />
-              </button>
-            </li>
-          ))}
+          {fileIds.map((id) => {
+            const file = files.find((f) => f.id === id);
+            const name = file?.name ?? t('tasks.form.unknownFile');
+            return (
+              <li key={id} className="flex items-start gap-2">
+                <div className="min-w-0 flex-1">
+                  {file ? (
+                    <ImagePreview file={file} maxWidth={240} />
+                  ) : (
+                    <span className="inline-flex rounded-lg bg-secondary px-3 py-2 text-button font-semibold">
+                      {name}
+                    </span>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  aria-label={t('tasks.form.removeFile', { name })}
+                  onClick={() => onRemove(id)}
+                  className="rounded-full p-2 hover:bg-secondary"
+                >
+                  <CloseIcon />
+                </button>
+              </li>
+            );
+          })}
         </ul>
       )}
       {pending.map((p) => (
