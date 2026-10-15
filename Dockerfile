@@ -4,9 +4,10 @@ ARG NODE_IMAGE=node:24-bookworm-slim
 
 # Stage 1: download dependencies. Only the lockfile and manifests are copied, so this layer is cached until they change.
 FROM ${NODE_IMAGE} AS deps
-RUN npm install -g pnpm@12.11.2
 WORKDIR /repo
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json .npmrc ./
+# pnpm version comes from "packageManager" in the root package.json.
+RUN npm install -g "pnpm@$(node -p "require('./package.json').packageManager.split('@')[1]")"
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store pnpm fetch
 
 # Stage 2: install, build, and extract the server with production dependencies only.

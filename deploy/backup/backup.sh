@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # Nightly pg_dump loop. Runs forever in the backup container.
-# Env: PGHOST, PGUSER, PGDATABASE, PGPASSWORD (libpq), BACKUP_HOUR (HH:MM, container time, default 02:30),
+# Env: PGHOST, PGUSER, PGDATABASE, PGPASSWORD (libpq), BACKUP_HOUR (HH:MM, container time, default 03:30),
 # BACKUP_KEEP (default 14), BACKUP_DIR (default /backups), TZ.
 set -euo pipefail
 
-BACKUP_HOUR="${BACKUP_HOUR:-02:30}"
+BACKUP_HOUR="${BACKUP_HOUR:-03:30}"
 BACKUP_KEEP="${BACKUP_KEEP:-14}"
 BACKUP_DIR="${BACKUP_DIR:-/backups}"
 
@@ -26,17 +26,31 @@ run_backup() {
   fi
 }
 
+# Seconds until the next BACKUP_HOUR. Never fails: if date cannot resolve the time (for example a
+# local time skipped by a DST change), it logs and falls back to 24 hours so the loop keeps running.
 seconds_until_next() {
   local now target
   now=$(date +%s)
-  target=$(date -d "today $BACKUP_HOUR" +%s)
-  if [ "$target" -le "$now" ]; then
-    target=$(date -d "tomorrow $BACKUP_HOUR" +%s)
+  if ! target=$(date -d "today $BACKUP_HOUR" +%s 2>/dev/null) || [ "$target" -le "$now" ]; then
+    if ! target=$(date -d "tomorrow $BACKUP_HOUR" +%s 2>/dev/null); then
+      log "cannot resolve $BACKUP_HOUR in $(date +%Z) (DST gap?), retrying in 24h" >&2
+      echo 86400
+      return 0
+    fi
   fi
   echo $((target - now))
 }
 
+if ! [[ "$BACKUP_HOUR" =~ ^([01][0-9]|2[0-3]):[0-5][0-9]$ ]]; then
+  log "invalid BACKUP_HOUR '$BACKUP_HOUR', expected HH:MM (00:00-23:59)"
+  exit 1
+fi
+
 mkdir -p "$BACKUP_DIR"
+if compgen -G "$BACKUP_DIR/*.partial" >/dev/null; then
+  log "removing leftover partial dumps"
+  rm -f "$BACKUP_DIR"/*.partial
+fi
 log "started, daily at $BACKUP_HOUR ($(date +%Z)), keeping $BACKUP_KEEP"
 
 # BACKUP_ONCE=1 takes one dump and exits (manual or test run).

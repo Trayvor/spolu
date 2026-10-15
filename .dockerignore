@@ -7,8 +7,9 @@ docs
 e2e
 test-results
 playwright-report
-.env
-.env.*
+**/.env
+**/.env.*
+!**/.env.example
 deploy
 data
 coverage

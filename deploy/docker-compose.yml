@@ -2,6 +2,8 @@
 # Run from this directory with: docker compose --env-file .env up -d
 # .env holds IMAGE, TAG, DOMAIN, POSTGRES_PASSWORD and the app settings (see test.env.example).
 
+name: spolu # fixed project name so volumes never fork under another one
+
 x-logging: &logging
   driver: json-file
   options:
@@ -33,10 +35,11 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U spolu -d spolu"]
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U spolu -d spolu"]
       interval: 5s
       timeout: 5s
       retries: 10
+      start_period: 30s
     restart: unless-stopped
     logging: *logging
 
@@ -66,7 +69,7 @@ services:
       PGDATABASE: spolu
       PGPASSWORD: ${POSTGRES_PASSWORD}
       TZ: ${BACKUP_TZ:-Europe/Bratislava}
-      BACKUP_HOUR: ${BACKUP_HOUR:-02:30}
+      BACKUP_HOUR: ${BACKUP_HOUR:-03:30}
     volumes:
       - ./backup/backup.sh:/backup.sh:ro
       - backups:/backups
