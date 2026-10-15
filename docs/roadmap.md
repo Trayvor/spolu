@@ -18,7 +18,7 @@ Requirements per module: [product/](product/README.md). Phases after 1 get their
 | 9 | [Task attachments & task chat](#phase-9--task-attachments--task-chat) | planned | 5, 6, 8 | - |
 | 10 | [Message to task](#phase-10--message-to-task) | planned | 5, 8 | - |
 | 11 | [AI split into tasks](#phase-11--ai-split-into-tasks) | planned | 10 | - |
-| 12 | [Tickets: intake from eGrant](#phase-12--tickets-intake-from-egrant) | planned | 3 | - |
+| 12 | [Tickets: intake from eGrant](#phase-12--tickets-intake-from-egrant) | planned | 3, 6 | - |
 | 13 | [Tickets: replies](#phase-13--tickets-replies) | planned | 12 | - |
 | 14 | [Contracts](#phase-14--contracts) | planned | 3 | - |
 | 15 | [Contract reminders](#phase-15--contract-reminders) | planned | 6, 14 | - |
@@ -26,7 +26,7 @@ Requirements per module: [product/](product/README.md). Phases after 1 get their
 
 Phases 8, 12 and 14 do not depend on each other, so their order can change by priority.
 
-## Phase 0 - AI workflow & knowledge base
+## Phase 0 — AI workflow & knowledge base
 
 Scope:
 - Git repository, `.gitignore`, private GitHub repo.
@@ -37,7 +37,7 @@ Scope:
 
 Done when: a fresh AI session, given only the repo, can explain the architecture and the next phase from `docs/`; the owner can read `docs/README.md` then `architecture/overview.md` and understand the system. No product code.
 
-## Phase 1 - Skeleton & delivery
+## Phase 1 — Skeleton & delivery
 
 Scope:
 - Monorepo (pnpm workspaces), shared TS config, lint, format, `packages/shared` with zod.
@@ -45,13 +45,13 @@ Scope:
 - Design extraction from egrant.sk via `frontend-design` into theme tokens and `docs/design/`.
 - `apps/web`: Vite, React, TanStack Router/Query, Tailwind, shadcn/ui, SK/EN switcher, PWA shell.
 - Local dev with Docker Compose (Postgres, Mailpit); tests (Vitest, Playwright smoke).
-- Production: multi-arch Dockerfile, `docker-compose.prod.yml` (app, postgres, caddy), `.env.example`.
+- Production: multi-arch Dockerfile, `deploy/docker-compose.yml` (app, postgres, caddy + backup with nightly `pg_dump`), `deploy/Caddyfile`, `deploy/test.env.example`.
 - Scripts (`ci.sh`, `build-image.sh`, `deploy.sh`, `server-setup.sh`) and a thin GitHub Actions workflow.
 - Runbooks filled in (server setup, deploy, rollback, backup).
 
 Done when: a push to `main` deploys automatically; the HTTPS shell shows DB health OK and a live socket connection, switches SK/EN, visibly matches the egrant.sk look, and can be installed as an app on phone and desktop.
 
-## Phase 2 - Login & users
+## Phase 2 — Login & users
 
 Requirements: [auth](product/auth.md), [roles-and-access](product/roles-and-access.md).
 
@@ -62,7 +62,7 @@ Scope:
 
 Done when: the superadmin logs in by email code and creates another admin who can log in.
 
-## Phase 3 - Groups & invites
+## Phase 3 — Groups & invites
 
 Requirements: [groups](product/groups.md), [auth](product/auth.md), [roles-and-access](product/roles-and-access.md).
 
@@ -74,7 +74,7 @@ Scope:
 
 Done when: an admin creates a group with a logo and copies the invite; a client registers by email and sees only their group; the admin can remove the client.
 
-## Phase 4 - Group chat: core
+## Phase 4 — Group chat: core
 
 Requirements: [chat](product/chat.md).
 
@@ -86,7 +86,7 @@ Scope:
 
 Done when: realtime messages work, catch-up after reconnect works, own messages can be edited and deleted, unread indicator shows.
 
-## Phase 5 - Chat: threads, mentions, files
+## Phase 5 — Chat: threads, mentions, files
 
 Requirements: [chat](product/chat.md).
 
@@ -97,7 +97,7 @@ Scope:
 
 Done when: a client chats with thread replies, mentions and files without reloading the page.
 
-## Phase 6 - Notifications
+## Phase 6 — Notifications
 
 Requirements: [notifications](product/notifications.md), [profile](product/profile.md).
 
@@ -109,7 +109,7 @@ Scope:
 
 Done when: a client gets a push about a new message according to their mode, and with email on, also an email.
 
-## Phase 7 - Direct messages
+## Phase 7 — Direct messages
 
 Requirements: [direct-messages](product/direct-messages.md).
 
@@ -120,7 +120,7 @@ Scope:
 
 Done when: a client writes to an admin and to a colleague from their organization, and does not see people from other organizations.
 
-## Phase 8 - Task board: core
+## Phase 8 — Task board: core
 
 Requirements: [task-board](product/task-board.md).
 
@@ -134,7 +134,7 @@ Scope:
 
 Done when: an admin and a client work on the board at the same time and see each other's changes live.
 
-## Phase 9 - Task attachments & task chat
+## Phase 9 — Task attachments & task chat
 
 Requirements: [task-board](product/task-board.md).
 
@@ -145,7 +145,7 @@ Scope:
 
 Done when: a task can be discussed with threads and files can be attached.
 
-## Phase 10 - Message to task
+## Phase 10 — Message to task
 
 Requirements: [task-board](product/task-board.md), [chat](product/chat.md).
 
@@ -156,7 +156,7 @@ Scope:
 
 Done when: a task can be created from any message in 2 clicks.
 
-## Phase 11 - AI split into tasks
+## Phase 11 — AI split into tasks
 
 Requirements: [ai-task-split](product/ai-task-split.md), [integrations](product/integrations.md).
 
@@ -168,7 +168,7 @@ Scope:
 
 Done when: a message with 5 jobs becomes 5 cards after the user reviews them.
 
-## Phase 12 - Tickets: intake from eGrant
+## Phase 12 — Tickets: intake from eGrant
 
 Requirements: [tickets](product/tickets.md), [integrations](product/integrations.md).
 
@@ -185,7 +185,7 @@ Scope:
 
 Done when: eGrant sends an error and the ticket appears in the right group, or in the global list as "no group".
 
-## Phase 13 - Tickets: replies
+## Phase 13 — Tickets: replies
 
 Requirements: [tickets](product/tickets.md).
 
@@ -196,7 +196,7 @@ Scope:
 
 Done when: the client receives an email with the reply and the conversation is visible in the ticket.
 
-## Phase 14 - Contracts
+## Phase 14 — Contracts
 
 Requirements: [contracts](product/contracts.md), [roles-and-access](product/roles-and-access.md).
 
@@ -208,7 +208,7 @@ Scope:
 
 Done when: an admin keeps the contracts of all clients and sees them in one list.
 
-## Phase 15 - Contract reminders
+## Phase 15 — Contract reminders
 
 Requirements: [contracts](product/contracts.md), [notifications](product/notifications.md).
 
@@ -219,7 +219,7 @@ Scope:
 
 Done when: on the set day the admins receive a reminder about the contract.
 
-## Phase 16 - Password & polish
+## Phase 16 — Password & polish
 
 Requirements: [profile](product/profile.md), [auth](product/auth.md), [non-functional](product/non-functional.md).
 
@@ -227,6 +227,6 @@ Scope:
 - Optional password in the profile as an alternative to code login.
 - Profile: name, avatar, language.
 - Search over group messages.
-- Database and file backups (including off-site), error monitoring.
+- Database and file backups (including off-site), error monitoring. (A nightly DB backup exists since Phase 1; this adds off-site and file backups.)
 
 Done when: the system is ready for the team to move fully from Teams.

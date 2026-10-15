@@ -3,6 +3,7 @@
 Terms used across the docs and code, in alphabetical order.
 
 - **admin**: an eGrant team member. Sees all groups and can manage them. Created by the superadmin.
+- **ADR**: architecture decision record, a short file in `docs/decisions/` that records one decision and why it was made.
 - **API key**: a secret token that eGrant sends with each ticket request to prove who it is.
 - **bucket**: a column on a task board (for example "To do"). Tasks live in buckets and can be reordered.
 - **channel**: a place where messages are posted. In eHub: a group chat, a direct message chat or a task chat.
@@ -15,14 +16,19 @@ Terms used across the docs and code, in alphabetical order.
 - **member**: a user who belongs to a group.
 - **mention**: tagging a user with @ in a message so they are notified.
 - **message**: one post in a channel. Can have attachments, a thread and mentions.
+- **module**: a self-contained feature area of the server (for example chat or tasks) that owns its routes, policies and tables.
 - **OTP code**: the one-time code sent by email that is used to log in.
+- **owner walkthrough**: the final check of a phase, where the owner tries the "Done when" items by hand before the phase is marked done.
+- **policy function**: a server function that decides whether a user may see or change a resource; written test-first.
 - **PWA**: progressive web app. The web app can be installed on a phone or desktop and receive push notifications.
 - **read state**: what a user has already read in a channel; used for the unread indicator.
 - **reminder**: a scheduled notification to admins that a contract is about to need attention.
+- **room**: a Socket.IO room; users join rooms to receive live events for a group, DM or task channel.
 - **seq**: a per-channel increasing number on each message. Clients use it to find and load messages missed during a disconnect.
 - **session**: a long-lived login on one device, kept after the code is entered.
 - **superadmin**: the first admin, created automatically at first start from `SUPERADMIN_EMAIL`. Cannot be deleted or demoted; creates other admins.
 - **task**: a card on the task board with title, description, assignee, deadline, priority and labels.
 - **task chat**: the discussion inside one task, with threads, mentions and attachments.
+- **test environment**: the Oracle Cloud VM where eHub is deployed for checks before real use; environment name `test`.
 - **thread**: replies grouped under one message.
 - **ticket**: a support request sent from eGrant, with a status (New / In progress / Resolved), shown in the matching group or in the global list.

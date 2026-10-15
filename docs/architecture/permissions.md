@@ -20,6 +20,6 @@ Permissions are enforced on the server, in one place per module. Each module exp
 
 Client-side hiding of buttons and pages is cosmetic. The server never trusts the client.
 
-Policy functions are written test-first. Default to confirm in the Phase 3 design: a forbidden access returns an error that does not reveal whether the resource exists.
+Policy functions are written test-first. To confirm in the Phase 3 design: a forbidden access returns an error that does not reveal whether the resource exists.
 
 See [realtime.md](realtime.md) for room joins and [overview.md](overview.md) for module boundaries.

@@ -12,6 +12,6 @@ The original spec used MinIO (S3-compatible object storage) for files. At our sc
 - MinIO is dropped.
 
 ## Consequences
-- Fewer containers; files are backed up with a simple volume copy.
+- Fewer containers; files can be backed up by a volume copy (Phase 16).
 - Feature code only sees the interface, so moving to S3-compatible storage later means writing one new implementation.
 - Files are tied to one server's disk until that switch happens.

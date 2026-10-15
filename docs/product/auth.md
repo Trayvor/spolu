@@ -6,7 +6,7 @@ A client joins a group through an invite link and only needs to enter an email. 
 
 - Registration:
   1. The administrator copies the group's **invite link** and sends it to the client.
-  2. The client opens the link, enters an **email** and lands in the group. Nothing else needs to be filled in.
+  2. The client opens the link, enters an **email**, confirms a one-time code sent to that email, and then lands in the group. Nothing else needs to be filled in.
 - Later logins:
   - by a **one-time code sent to email** (default);
   - **optionally** the user can set a password in settings (phase 16).

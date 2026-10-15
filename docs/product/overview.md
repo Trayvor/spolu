@@ -4,7 +4,6 @@ eHub is an internal platform for communicating with clients. It replaces Microso
 
 ## Requirements
 
-- eHub is an internal platform for communication with clients and replaces Teams.
 - It is a web application (PWA) that can be installed on a phone and on a computer as an app.
 - All changes (messages, tasks, tickets) appear without reloading the page (WebSocket).
 - Minimum friction for the client: registration by link, only an email is needed.
@@ -13,8 +12,7 @@ eHub is an internal platform for communicating with clients. It replaces Microso
 - Only two roles exist: Administrator and Client (see `roles-and-access.md`).
 - A client is an organization. One group can have many users from the same client.
 - Main areas, each described in its own file: auth, groups, chat, direct messages, task board, AI task split, tickets, contracts, notifications, profile, integrations.
-- All open questions from the original specification are closed; there are none.
 
 ## Phase
 
-Applies to all phases (1-16). See `docs/roadmap.md` for the phase list.
+Applies to all phases (0-16). See `docs/roadmap.md` for the phase list.

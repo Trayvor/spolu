@@ -12,4 +12,4 @@ The user profile holds name, avatar and language, the notification channel setti
 
 ## Phase
 
-Phase 16.
+Phase 16 (profile, search, password). Notification channel settings (push/email) ship in Phase 6.

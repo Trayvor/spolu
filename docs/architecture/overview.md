@@ -1,6 +1,6 @@
 # Architecture overview
 
-eHub runs as three containers: `app`, `postgres` and `caddy`. A single Node process (`app`) does all the work: API, realtime, background jobs and serving the web build. Phase 1 adds a small backup job. Redis, BullMQ and MinIO are not used (see [ADR 0002](../decisions/0002-postgres-job-queue-no-redis.md) and [ADR 0003](../decisions/0003-disk-storage-behind-interface.md)).
+eHub runs as `app`, `postgres` and `caddy`, plus a small `backup` container (nightly `pg_dump`). A single Node process (`app`) does all the work: API, realtime, background jobs and serving the web build. Redis, BullMQ and MinIO are not used (see [ADR 0002](../decisions/0002-postgres-job-queue-no-redis.md) and [ADR 0003](../decisions/0003-disk-storage-behind-interface.md)).
 
 ```mermaid
 flowchart TD
@@ -17,6 +17,7 @@ flowchart TD
     WS --> P
     W --> P
     S --> D[/"/data/files volume"/]
+    K["backup container<br/>nightly pg_dump"] --> P
 ```
 
 ## The boxes

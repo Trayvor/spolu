@@ -93,7 +93,7 @@
 ### Task 4: Local dev services and database layer
 
 **Files:**
-- Create: `docker-compose.dev.yml`, `apps/server/drizzle.config.ts`, `src/infra/db/client.ts`, `src/infra/db/schema.ts`, `src/infra/db/migrate.ts`, `src/infra/db/migrations/0000_*.sql` (generated), `src/infra/db/db.test.ts`, `apps/server/test/setup-db.ts`
+- Create: `docker-compose.dev.yml`, `apps/server/drizzle.config.ts` (with `schema: './src/**/schema.ts'` so module-owned tables, e.g. from the new-module skill, are picked up), `src/infra/db/client.ts`, `src/infra/db/schema.ts`, `src/infra/db/migrate.ts`, `src/infra/db/migrations/0000_*.sql` (generated), `src/infra/db/db.test.ts`, `apps/server/test/setup-db.ts`
 
 **Interfaces:**
 - Produces: `createDb(databaseUrl: string): { db: Db; close(): Promise<void> }` (drizzle over postgres.js); `runMigrations(databaseUrl: string): Promise<void>`; `pingDb(db: Db): Promise<boolean>` (runs `select 1`, false on error, 2s timeout).
@@ -304,7 +304,7 @@
 
 **Interfaces:**
 - `ci.yml`: on `pull_request` → checkout (fetch-depth 0), setup Node 24 + pnpm, `CI_BASE_REF=origin/${{ github.base_ref }} scripts/ci.sh`.
-- `deploy-test.yml`: on push to `main` → job `ci` (same as above) → job `deploy` (needs ci, `environment: test`): setup buildx + QEMU, login to GHCR with `GITHUB_TOKEN` (`packages: write`), `scripts/build-image.sh ${{ github.sha }}`, write secrets `TEST_SSH_KEY` and `TEST_ENV_FILE` to temp files, `scripts/deploy.sh test ${{ github.sha }}` with `DEPLOY_HOST`/`DEPLOY_USER`/`DOMAIN` from environment variables. Concurrency group `deploy-test`.
+- `deploy-test.yml`: on push to `main` and on `workflow_dispatch` with a `ref` input (branch/SHA to deploy, so any branch can be deployed to the test env before merge; checkout uses `inputs.ref` when set) → job `ci` (same as above) → job `deploy` (needs ci, `environment: test`): setup buildx + QEMU, login to GHCR with `GITHUB_TOKEN` (`packages: write`), `scripts/build-image.sh ${{ github.sha }}`, write secrets `TEST_SSH_KEY` and `TEST_ENV_FILE` to temp files, `scripts/deploy.sh test ${{ github.sha }}` with `DEPLOY_HOST`/`DEPLOY_USER`/`DOMAIN` from environment variables. Concurrency group `deploy-test`.
 - No logic in YAML beyond env wiring.
 
 - [ ] **Step 1:** Write workflows. **Step 2:** Push a branch + open PR → `ci` green. **Step 3:** Commit `ci: github actions wrappers`.
@@ -319,7 +319,7 @@
 - [ ] **Step 1:** Ask the owner for: VM public IP, OS, SSH access, the temporary domain, DNS control, Elastic Email API key + verified sender address (`MAIL_FROM`), `SUPERADMIN_EMAIL`. Have them add the Oracle Console Security List ingress rules for 80/tcp, 443/tcp, 443/udp.
 - [ ] **Step 2:** Run `server-setup.sh` on the VM; point the domain's A record at the VM.
 - [ ] **Step 3:** Create GitHub environment `test` with secrets `TEST_SSH_KEY`, `TEST_ENV_FILE` and variables `DEPLOY_HOST`, `DEPLOY_USER`, `DOMAIN`, `IMAGE`.
-- [ ] **Step 4:** Merge to `main` → `deploy-test` green. Verify: `curl https://<domain>/api/health` → `"status":"ok"` and `version` = merge SHA.
+- [ ] **Step 4:** Deploy the phase branch BEFORE merging: run `deploy-test` via `workflow_dispatch` with `ref` = the phase branch (or `scripts/deploy.sh test <sha>`). Verify: `curl https://<domain>/api/health` → `"status":"ok"` and `version` = that SHA. Merge to `main` only after the Step 6 owner walkthrough; the push-to-main deploy then re-runs and is verified the same way.
 - [ ] **Step 5:** Write the runbooks (exact commands from Tasks 15–18, incl. the Security List step, rollback = `scripts/deploy.sh test <previous-sha>`, restore = `pg_restore` from the `backups` volume). Run `update-kb` for the whole phase; set Phase 1 status `done` only after Step 6.
 - [ ] **Step 6: Done-when walkthrough with the owner** (`superpowers:verification-before-completion`): HTTPS page opens; DB OK and realtime connected; SK/EN switch persists; looks like egrant.sk (owner judges); installs as an app on phone and desktop; a trivial push to `main` redeploys automatically.
 - [ ] **Step 7:** Commit `docs: runbooks and phase 1 completion`, push.

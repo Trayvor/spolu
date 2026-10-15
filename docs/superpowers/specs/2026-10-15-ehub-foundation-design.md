@@ -2,6 +2,8 @@
 
 Date: 2026-10-15 · Status: draft for approval
 
+> Note: the requirements from `SPEC.md` were migrated to `docs/product/` and the roadmap from `ROADMAP.md` to `docs/roadmap.md` (both old files are deleted). Deployment file naming (`deploy/docker-compose.yml`, `deploy/Caddyfile`, `deploy/test.env.example`) follows the Phase 1 plan.
+
 Product requirements live in `SPEC.md` (what the product must do). This document
 decides **how** it is built and details the first two phases. Where this document
 and the "Technical base" section of `SPEC.md` disagree, this document wins.

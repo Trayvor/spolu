@@ -11,7 +11,7 @@ Socket.IO runs in the same process as the API, as a single instance (no Redis ad
 
 | room | who joins | carries |
 |---|---|---|
-| per group channel | members of that group, and admins | new, edited, deleted messages, read state |
+| per group channel | members of that group, and admins | new, edited, deleted messages; read state (assumed; per-user room likely, settle in Phase 4 design) |
 | per DM channel | the two participants | the same, for direct messages |
 | per task channel | users who can see the task's group | task chat events |
 | per group (board) | members of that group, and admins | task and ticket changes |
