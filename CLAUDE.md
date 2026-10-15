@@ -48,6 +48,7 @@ App commands (`pnpm test`, `pnpm test:e2e`, dev, build) arrive in Phase 1.
 - `.claude/` — project settings, hooks and skills (`.claude/skills/<name>/SKILL.md`).
 - `apps/` — `server` (Fastify API, Socket.IO, jobs) and `web` (React PWA). Arrives in Phase 1.
 - `packages/` — `shared` (zod schemas and types used by server and web). Arrives in Phase 1.
+- `.env.example` — every environment variable with dev defaults; copy to `.env`.
 - `scripts/` — shell scripts that hold all CI/CD logic; CI only calls them. Starts with `check-docs.sh` (Phase 0).
 - `deploy/` — Docker Compose, Caddyfile and env examples for servers. Arrives in Phase 1.
 - `e2e/` — Playwright end-to-end tests. Arrives in Phase 1.

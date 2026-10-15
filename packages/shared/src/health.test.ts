@@ -11,7 +11,9 @@ describe('HealthResponseSchema', () => {
   });
 
   it('rejects an unknown status', () => {
-    expect(() => HealthResponseSchema.parse({ status: 'fine', db: 'ok', version: 'abc' })).toThrow();
+    expect(() =>
+      HealthResponseSchema.parse({ status: 'fine', db: 'ok', version: 'abc' }),
+    ).toThrow();
   });
 
   it('rejects a missing version', () => {

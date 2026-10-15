@@ -58,4 +58,6 @@ Each module owns its routes, service logic, DB tables, socket events and tests.
 
 **Writes via HTTP, sockets push.** Every change goes through the HTTP API (validation, permissions, transaction). After the commit the server emits an event to the right room. Sockets never accept writes. This keeps one write path to test.
 
+**Configuration.** The server reads all settings from environment variables once at boot (`apps/server/src/infra/config/config.ts`). `loadConfig(env)` validates them with zod and throws a `ConfigError` naming every invalid variable, so a bad deployment fails at startup, not later. Every variable is listed in `.env.example` at the repo root.
+
 See also: [permissions.md](permissions.md), [roadmap](../roadmap.md), [glossary](../glossary.md).
