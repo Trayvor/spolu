@@ -11,7 +11,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { signOut } from './api';
-import { ADMINS_PATH, isAdmin } from './roles';
+import { isAdmin } from './roles';
 import { clearSession } from './use-session';
 
 /** First letters of the first two words of the name, upper-case ("Jana Nováková" gives "JN"). */
@@ -44,26 +44,36 @@ export function UserMenu({ user }: { user: SessionUser }) {
   });
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger
-        aria-label={t('user.menu')}
-        className="inline-flex size-[38px] items-center justify-center rounded-full bg-secondary text-tiny font-semibold text-secondary-foreground transition-colors duration-(--duration-fast) hover:bg-surface-3 data-[state=open]:bg-surface-3"
-      >
-        {initials(user.name, user.email)}
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="max-w-[min(320px,calc(100vw-24px))]">
-        <DropdownMenuLabel className="flex flex-col gap-0.5 font-medium">
-          <span className="truncate text-button font-semibold text-foreground">{user.name}</span>
-          <span className="truncate">{user.email}</span>
-        </DropdownMenuLabel>
-        {isAdmin(user) && (
-          <DropdownMenuItem asChild className="min-[641px]:hidden">
-            <Link to={ADMINS_PATH}>{t('nav.admins')}</Link>
-          </DropdownMenuItem>
-        )}
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onSelect={() => logout.mutate()}>{t('user.logout')}</DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <div className="relative">
+      <DropdownMenu onOpenChange={(open) => open && logout.reset()}>
+        <DropdownMenuTrigger
+          aria-label={t('user.menu')}
+          className="inline-flex size-[38px] items-center justify-center rounded-full bg-secondary text-tiny font-semibold text-secondary-foreground transition-colors duration-(--duration-fast) hover:bg-surface-3 data-[state=open]:bg-surface-3"
+        >
+          {initials(user.name, user.email)}
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="max-w-[min(320px,calc(100vw-24px))]">
+          <DropdownMenuLabel className="flex flex-col gap-0.5 font-medium">
+            <span className="truncate text-button font-semibold text-foreground">{user.name}</span>
+            <span className="truncate">{user.email}</span>
+          </DropdownMenuLabel>
+          {isAdmin(user) && (
+            <DropdownMenuItem asChild className="min-[641px]:hidden">
+              <Link to="/admins">{t('nav.admins')}</Link>
+            </DropdownMenuItem>
+          )}
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onSelect={() => logout.mutate()}>{t('user.logout')}</DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      {logout.isError && (
+        <p
+          role="alert"
+          className="absolute top-full right-0 z-10 mt-2 w-max max-w-[240px] rounded-lg bg-card p-3 text-micro text-error-ink shadow-lift"
+        >
+          {t('errors.generic')}
+        </p>
+      )}
+    </div>
   );
 }

@@ -4,10 +4,12 @@ import {
   createRoute,
   createRouter,
   lazyRouteComponent,
+  notFound,
   redirect,
   type RouterHistory,
 } from '@tanstack/react-router';
 import { safeRedirect } from '@/features/auth/redirect';
+import { isAdmin } from '@/features/auth/roles';
 import { sessionQuery } from '@/features/auth/use-session';
 import { RootError } from '@/routes/root-error';
 import { RootLayout } from '@/routes/root';
@@ -47,6 +49,17 @@ const settingsRoute = createRoute({
   component: lazyRouteComponent(() => import('@/routes/settings'), 'SettingsPage'),
 });
 
+const adminsRoute = createRoute({
+  getParentRoute: () => authedRoute,
+  path: '/admins',
+  // Cosmetic guard: the server answers 403 to a client anyway.
+  beforeLoad: async ({ context }) => {
+    const user = await context.queryClient.ensureQueryData(sessionQuery);
+    if (!isAdmin(user)) throw notFound();
+  },
+  component: lazyRouteComponent(() => import('@/features/admins/admins-page'), 'AdminsPage'),
+});
+
 const loginRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/login',
@@ -60,7 +73,7 @@ const loginRoute = createRoute({
 });
 
 const routeTree = rootRoute.addChildren([
-  authedRoute.addChildren([homeRoute, settingsRoute]),
+  authedRoute.addChildren([homeRoute, settingsRoute, adminsRoute]),
   loginRoute,
 ]);
 

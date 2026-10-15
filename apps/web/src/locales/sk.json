@@ -58,6 +58,26 @@
       "disabled": "Tento účet už nemá prístup."
     }
   },
+  "admins": {
+    "title": "Administrátori",
+    "add": "Pridať administrátora",
+    "name": "Meno",
+    "email": "E-mail",
+    "submit": "Pridať a poslať e-mail",
+    "cancel": "Zrušiť",
+    "added": "{{name}} bol(a) pridaný(á).",
+    "remove": "Odobrať",
+    "confirmRemove": "Odobrať {{name}}? Okamžite stratí prístup.",
+    "badge": {
+      "superadmin": "Superadmin",
+      "you": "Vy"
+    },
+    "errors": {
+      "emailTakenAdmin": "Tento e-mail už patrí administrátorovi.",
+      "emailTakenClient": "Tento e-mail patrí klientovi.",
+      "nameRequired": "Zadajte meno."
+    }
+  },
   "errors": {
     "generic": "Niečo sa pokazilo. Skúste to znova.",
     "retry": "Skúsiť znova"

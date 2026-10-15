@@ -40,7 +40,7 @@ const USER = { id: 'u1', name: 'Jana Nováková', email: 'jana@example.com', rol
 
 /** Fake `fetch`: `/api/me` answers from `state`, sign-out flips it to anonymous. */
 function mockApi(initial: Partial<typeof USER> | null = {}) {
-  const state = { user: initial === null ? null : { ...USER, ...initial }, meStatus: 200 };
+  const state = { user: initial === null ? null : { ...USER, ...initial }, meStatus: 200, signOutStatus: 200 };
   const fetchMock = vi.fn(async (url: string) => {
     if (url === '/api/me') {
       if (state.meStatus === 401 || !state.user) {
@@ -49,6 +49,7 @@ function mockApi(initial: Partial<typeof USER> | null = {}) {
       return new Response(JSON.stringify(state.user), { status: 200 });
     }
     if (url === '/api/auth/sign-out') {
+      if (state.signOutStatus !== 200) return new Response('{}', { status: state.signOutStatus });
       state.user = null;
       return new Response('{}', { status: 200 });
     }
@@ -128,6 +129,29 @@ describe('logged-in shell', () => {
     expect(queryClient.getQueryData(['session'])).toBeNull();
     expect(fake.disconnect).toHaveBeenCalled();
     expect(screen.queryByRole('button', { name: t('user.menu') })).not.toBeInTheDocument();
+  });
+
+  it('a failed Log out shows a generic error and keeps the user signed in', async () => {
+    const { state } = mockApi();
+    state.signOutStatus = 500;
+    const { router, user } = renderAt();
+    await user.click(await screen.findByRole('button', { name: t('user.menu') }));
+    await user.click(await screen.findByRole('menuitem', { name: t('user.logout') }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(t('errors.generic'));
+    expect(router.state.location.pathname).toBe('/');
+  });
+
+  it('a 401 is not retried', async () => {
+    const { state, fetchMock } = mockApi();
+    const { router, queryClient } = renderAt();
+    await screen.findByRole('heading', { name: /Welcome/ });
+
+    state.meStatus = 401;
+    fetchMock.mockClear();
+    await act(() => queryClient.invalidateQueries({ queryKey: ['health'] }));
+    await waitFor(() => expect(router.state.location.pathname).toBe('/login'));
+    expect(fetchMock.mock.calls.filter(([url]) => url === '/api/health')).toHaveLength(1);
   });
 
   it('the Admins link is shown to admins only', async () => {

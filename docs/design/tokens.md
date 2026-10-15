@@ -154,6 +154,14 @@ egrant.sk spacing presets are 4, 8, 12, 16, 20, 24, 32, 40, 48, 54, 64px — all
 - "Send again" (disabled with a "Send again in N s" countdown) and "Change email" are `link` buttons (`size sm`, no side padding) on one row, left and right.
 - No logo, illustration or animation in the card; the header pill above already carries the brand.
 
+### Admins page (as built, `src/features/admins/admins-page.tsx`)
+
+- Column `max-w-[720px]`, 24px gap. Title `text-medium` weight 600 with the primary "Add admin" button on the right (full width under the title below 641px); the button hides while the form is open.
+- Inline add form: one `Card`, padding 20px, 16px gap: Name and Email fields (label 10px above, errors in `text-micro text-error-ink` under the field), then primary "Add and send email" and ghost "Cancel" (stacked on mobile, in a row from 641px). Success closes the form and shows a `text-button` status line "{name} was added." above the list.
+- List: one `Card` with `py-2`, one `li` per admin, `px-5 py-3`, a `border-border` line between rows. Name weight 600 with badges after it (`secondary` "Superadmin", `outline` "You"), email under it `text-button text-muted-foreground`, truncated. Ghost `sm` "Remove" on the right (under the name on mobile); none on the superadmin and on yourself.
+- Inline remove confirmation: the row content is replaced by "Remove {name}? They lose access at once." with a destructive `sm` "Remove" and a ghost `sm` "Cancel". No modal.
+- Signed-in header: a failed log out shows a small `bg-card shadow-lift` message "Something went wrong. Try again." under the user menu button.
+
 ### Link
 
 - Inherits color, no underline; hover color `neutral` (`#5E5E5E`). In long text (manuals) links are underlined and lose the underline on hover.

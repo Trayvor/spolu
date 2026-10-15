@@ -1,7 +1,7 @@
 import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { LanguageSwitcher } from '@/components/language-switcher';
-import { ADMINS_PATH, isAdmin } from '@/features/auth/roles';
+import { isAdmin } from '@/features/auth/roles';
 import { UserMenu } from '@/features/auth/user-menu';
 import { useSession } from '@/features/auth/use-session';
 
@@ -36,7 +36,7 @@ export function AppHeader() {
       <div className="ml-auto flex items-center gap-2">
         {isAdmin(user) && (
           <Link
-            to={ADMINS_PATH}
+            to="/admins"
             className="hidden h-[38px] items-center rounded-full px-4 text-tiny font-semibold transition-colors duration-(--duration-fast) hover:bg-accent min-[641px]:inline-flex"
           >
             {t('nav.admins')}
