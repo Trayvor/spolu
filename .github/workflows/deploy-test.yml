@@ -1,0 +1,93 @@
+# Deploys to the test environment: on every push to main, or by hand for any branch or SHA.
+# Logic lives in scripts/ci.sh, scripts/build-image.sh and scripts/deploy.sh; this file only
+# prepares the runner and passes settings in. Settings live in the "test" GitHub environment:
+#   secrets TEST_SSH_KEY, TEST_ENV_FILE; variables DEPLOY_HOST, DEPLOY_USER, DOMAIN, IMAGE,
+#   optional DEPLOY_KNOWN_HOSTS. See docs/runbooks/deploy.md.
+name: Deploy test
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Branch, tag or SHA to deploy (empty = the branch selected above)
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-test
+  cancel-in-progress: false
+
+jobs:
+  ci:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.ref }}
+          fetch-depth: 0 # the docs check diffs against main
+      - uses: pnpm/action-setup@v6 # version from "packageManager" in package.json
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: bash scripts/ci.sh
+        env:
+          CI_BASE_REF: origin/main
+
+  deploy:
+    needs: ci
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    environment: test
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.ref }}
+      # The tag is the SHA actually checked out; github.sha is wrong when inputs.ref is set.
+      - id: commit
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      - uses: docker/setup-qemu-action@v4
+      - uses: docker/setup-buildx-action@v4
+      # Exposes the Actions cache credentials to "docker buildx build" (BUILDX_CACHE=gha).
+      - uses: crazy-max/ghaction-github-runtime@v4
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - run: bash scripts/build-image.sh "${{ steps.commit.outputs.sha }}"
+        env:
+          IMAGE: ${{ vars.IMAGE }}
+          EXTRA_TAG: test
+          BUILDX_CACHE: gha
+      - name: Write deploy secrets to files
+        run: |
+          umask 077
+          printf '%s\n' "$TEST_SSH_KEY" > "$RUNNER_TEMP/deploy_key"
+          printf '%s\n' "$TEST_ENV_FILE" > "$RUNNER_TEMP/deploy.env"
+        env:
+          TEST_SSH_KEY: ${{ secrets.TEST_SSH_KEY }}
+          TEST_ENV_FILE: ${{ secrets.TEST_ENV_FILE }}
+      - run: bash scripts/deploy.sh test "${{ steps.commit.outputs.sha }}"
+        env:
+          DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ vars.DEPLOY_USER }}
+          DEPLOY_KNOWN_HOSTS: ${{ vars.DEPLOY_KNOWN_HOSTS }}
+          DEPLOY_SSH_KEY: ${{ runner.temp }}/deploy_key
+          DEPLOY_ENV_FILE: ${{ runner.temp }}/deploy.env
+          DOMAIN: ${{ vars.DOMAIN }}
+          IMAGE: ${{ vars.IMAGE }}
+          REGISTRY_USER: ${{ github.actor }}
+          REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Remove deploy secrets
+        if: always()
+        run: rm -f "$RUNNER_TEMP/deploy_key" "$RUNNER_TEMP/deploy.env"

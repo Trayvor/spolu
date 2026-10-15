@@ -30,6 +30,27 @@ All logic lives in `scripts/` ([ADR 0004](../decisions/0004-scripts-first-ci.md)
 
 Secrets are never printed. The SSH settings use a per-run `known_hosts` file, never the runner's `~/.ssh`.
 
+## GitHub Actions
+
+The workflows in `.github/workflows/` only check out, set up tools, pass settings and call the scripts. Actions are pinned to major versions.
+
+- `ci.yml` — on every pull request: Node 24, pnpm (version from `packageManager`), then `scripts/ci.sh` with `CI_BASE_REF=origin/<base branch>`.
+- `deploy-test.yml` — on every push to `main`, or by hand (**Actions → Deploy test → Run workflow**, optional `ref` = branch, tag or SHA, so a branch can be tried on test before merge). Job `ci` runs `scripts/ci.sh` on that ref; job `deploy` (needs `ci`, GitHub environment `test`) sets up QEMU and buildx, logs in to `ghcr.io` with `GITHUB_TOKEN`, runs `scripts/build-image.sh <sha>` (`EXTRA_TAG=test`, `BUILDX_CACHE=gha`), writes the secrets to files with umask 077 and runs `scripts/deploy.sh test <sha>`. `<sha>` is `git rev-parse HEAD` of the checkout, so a manual run with a `ref` deploys that ref's SHA. Concurrency group `deploy-test`: deploys queue, never cancel each other.
+
+Settings of the GitHub environment `test` (**Settings → Environments → test**):
+
+| kind | name | value |
+|---|---|---|
+| secret | `TEST_SSH_KEY` | private key of the `deploy` user (from [server-setup.md](server-setup.md)) |
+| secret | `TEST_ENV_FILE` | full content of the server env file, filled from `deploy/test.env.example` |
+| variable | `DEPLOY_HOST` | server hostname or IP |
+| variable | `DEPLOY_USER` | `deploy` |
+| variable | `DOMAIN` | test domain, same as `DOMAIN` in the env file |
+| variable | `IMAGE` | `ghcr.io/trayvor/spolu` (lowercase) |
+| variable | `DEPLOY_KNOWN_HOSTS` | optional, output of `ssh-keyscan <host>`; recommended |
+
+The image is private (private repository), so the server logs in to GHCR with the job's `GITHUB_TOKEN` for the pull and logs out right after. Moving to another CI (GitLab + Jenkins) means writing these few steps again with the same variables; the scripts stay.
+
 ## Manual deploy from a laptop
 
 Use it when CI is down, or to redeploy an older SHA (see [rollback.md](rollback.md)).
