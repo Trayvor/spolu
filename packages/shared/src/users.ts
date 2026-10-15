@@ -48,5 +48,7 @@ export const ErrorCodes = {
   fileTooLarge: 'file_too_large',
   invalidAttachment: 'invalid_attachment',
   invalidPreview: 'invalid_preview',
+  // Phase 5 — chat
+  invalidMention: 'invalid_mention',
 } as const;
 export type ErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes];
