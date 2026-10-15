@@ -364,6 +364,159 @@ describe('useChannelMessages', () => {
     expect(result.current.window.hasNewer).toBe(false);
   });
 
+  it('catch-up starts from the seq before the disconnect, not from a live event after it', async () => {
+    const { result, rejoin } = setup();
+    await waitFor(() => expect(result.current.window.loaded).toBe(true));
+    act(() => socket.fire('disconnect'));
+    // Back online: the room is joined and a live event lands before the counter reaches React.
+    act(() => socket.fire('connect'));
+    act(() => socket.fire('chat:message', event(msg(9))));
+    rejoin(2);
+    await waitFor(() => expect(changesCalls()).toEqual(['/api/channels/c1/changes?afterSeq=3']));
+  });
+
+  it('older pages never move the catch-up seq', async () => {
+    fetchMock.mockImplementationOnce(async () =>
+      json(200, { messages: [msg(3), msg(2)], hasMore: true, lastSeq: 3, lastReadAt: null }),
+    );
+    const { result, rejoin } = setup({ joins: 0 });
+    await waitFor(() => expect(result.current.window.loaded).toBe(true));
+    // The older page is read after an edit at seq 11 that this client has not seen.
+    fetchMock.mockImplementationOnce(async () =>
+      json(200, { messages: [msg(1)], hasMore: false, lastSeq: 11, lastReadAt: null }),
+    );
+    await act(() => result.current.loadOlder());
+    expect(ids(result.current.window.messages)).toEqual(['m1', 'm2', 'm3']);
+    rejoin(1);
+    await waitFor(() => expect(changesCalls()).toHaveLength(1));
+    expect(changesCalls()[0]).toBe('/api/channels/c1/changes?afterSeq=3');
+  });
+
+  it('a page answer of the window replaced by jumpToLatest is dropped', async () => {
+    let releaseOlder!: (r: Response) => void;
+    fetchMock.mockImplementationOnce(async () =>
+      json(200, {
+        messages: [msg(40), msg(41)],
+        hasOlder: true,
+        hasNewer: true,
+        targetId: 'm41',
+        lastSeq: 3,
+        lastReadAt: null,
+      }),
+    );
+    const queryClient = new QueryClient();
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={queryClient}>
+        <GroupRoomProvider joins={1}>{children}</GroupRoomProvider>
+      </QueryClientProvider>
+    );
+    const { result } = renderHook(
+      () => useChannelMessages('c1', { groupId: 'g1', aroundMessageId: 'm41' }),
+      { wrapper },
+    );
+    await waitFor(() => expect(result.current.window.loaded).toBe(true));
+    fetchMock.mockImplementationOnce(
+      () => new Promise<Response>((resolve) => (releaseOlder = resolve)),
+    );
+    let older!: Promise<void>;
+    act(() => {
+      older = result.current.loadOlder();
+    });
+    await act(() => result.current.jumpToLatest());
+    expect(ids(result.current.window.messages)).toEqual(['m1', 'm2', 'm3']);
+    await act(async () => {
+      releaseOlder(json(200, { messages: [msg(39)], hasMore: true, lastSeq: 3, lastReadAt: null }));
+      await older;
+    });
+    expect(ids(result.current.window.messages)).toEqual(['m1', 'm2', 'm3']);
+    expect(result.current.window.hasOlder).toBe(false);
+  });
+
+  describe('with fake timers', () => {
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('a failed catch-up keeps its seq and retries with backoff until it succeeds', async () => {
+      const { result, rejoin, unmount } = setup();
+      await waitFor(() => expect(result.current.window.loaded).toBe(true));
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+      const original = fetchMock.getMockImplementation()!;
+      let failures = 2;
+      fetchMock.mockImplementation(async (url, init) => {
+        if (url.includes('/changes?') && failures > 0) {
+          failures -= 1;
+          return json(503, { error: 'unavailable' });
+        }
+        return original(url, init);
+      });
+      act(() => socket.fire('disconnect'));
+      act(() => socket.fire('connect'));
+      rejoin(2);
+      await act(() => vi.advanceTimersByTimeAsync(0));
+      expect(changesCalls()).toHaveLength(1);
+      // A live event while the retry waits must not move the retry's start.
+      act(() => socket.fire('chat:message', event(msg(9))));
+      await act(() => vi.advanceTimersByTimeAsync(999));
+      expect(changesCalls()).toHaveLength(1);
+      await act(() => vi.advanceTimersByTimeAsync(1));
+      expect(changesCalls()).toHaveLength(2);
+      await act(() => vi.advanceTimersByTimeAsync(2000));
+      expect(changesCalls()).toEqual([
+        '/api/channels/c1/changes?afterSeq=3',
+        '/api/channels/c1/changes?afterSeq=3',
+        '/api/channels/c1/changes?afterSeq=3',
+      ]);
+      // Succeeded: the next rejoin starts from the window's seq again.
+      rejoin(3);
+      await act(() => vi.advanceTimersByTimeAsync(0));
+      expect(changesCalls().at(-1)).toBe('/api/channels/c1/changes?afterSeq=9');
+      unmount();
+    });
+
+    it('a failed reload after a truncated catch-up retries the catch-up', async () => {
+      const { result, rejoin } = setup();
+      await waitFor(() => expect(result.current.window.loaded).toBe(true));
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+      const original = fetchMock.getMockImplementation()!;
+      let reloadFailures = 1;
+      fetchMock.mockImplementation(async (url, init) => {
+        if (url === '/api/channels/c1/messages' && reloadFailures > 0) {
+          reloadFailures -= 1;
+          return json(503, { error: 'unavailable' });
+        }
+        return original(url, init);
+      });
+      server.latest = [msg(600), msg(601)];
+      server.lastSeq = 700;
+      const truncated = { messages: [msg(4)], lastSeq: 4, truncated: true };
+      server.changes.push(truncated, truncated);
+      rejoin(2);
+      await act(() => vi.advanceTimersByTimeAsync(0));
+      expect(changesCalls()).toHaveLength(1);
+      expect(ids(result.current.window.messages)).toEqual(['m1', 'm2', 'm3', 'm4']);
+      await act(() => vi.advanceTimersByTimeAsync(1000));
+      expect(changesCalls()).toEqual([
+        '/api/channels/c1/changes?afterSeq=3',
+        '/api/channels/c1/changes?afterSeq=3',
+      ]);
+      expect(ids(result.current.window.messages)).toEqual(['m600', 'm601']);
+    });
+
+    it('stops retrying on unmount', async () => {
+      const { result, rejoin, unmount } = setup();
+      await waitFor(() => expect(result.current.window.loaded).toBe(true));
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+      fetchMock.mockImplementation(async () => json(503, { error: 'unavailable' }));
+      rejoin(2);
+      await act(() => vi.advanceTimersByTimeAsync(0));
+      expect(changesCalls()).toHaveLength(1);
+      unmount();
+      await act(() => vi.advanceTimersByTimeAsync(60_000));
+      expect(changesCalls()).toHaveLength(1);
+    });
+  });
+
   it('unsubscribes on unmount', async () => {
     const { result, unmount } = setup();
     await waitFor(() => expect(result.current.window.loaded).toBe(true));

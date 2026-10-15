@@ -38,8 +38,8 @@ export type SendInput = Omit<SendMessageInput, 'clientId'>;
  * `useGroupRoomJoins()` grows while the window is loaded (never on a raw socket `connect`, which
  * comes before the room is joined), so it must be rendered under a `GroupRoomProvider`.
  *
- * `error` is the error of the last first-page (or around) load; a failed older/newer page or catch-up is simply asked for
- * again by the next scroll or rejoin. Clearing `aroundMessageId` keeps the window where it is.
+ * `error` is the error of the last first-page (or around) load. A failed older/newer page is
+ * asked for again by the next scroll; a failed catch-up retries with backoff. Clearing `aroundMessageId` keeps the window where it is.
  */
 export function useChannelMessages(
   channelId: string,
@@ -48,7 +48,7 @@ export function useChannelMessages(
   const { groupId, aroundMessageId } = opts;
   const queryClient = useQueryClient();
   const joins = useGroupRoomJoins();
-  const [window, dispatch] = useReducer(windowReducer, initialWindow);
+  const [win, dispatch] = useReducer(windowReducer, initialWindow);
   // Tagged with the channel, so a switch never shows the previous chat's error.
   const [failure, setFailure] = useState<{ channelId: string; error: unknown } | null>(null);
   const setError = useCallback(
@@ -57,22 +57,34 @@ export function useChannelMessages(
   );
   const error = failure?.channelId === channelId ? failure.error : null;
 
-  // Mirrors for async callbacks. `lastSeqRef` follows `window.lastSeq` synchronously, so a page
-  // that raced a live event can be told apart (see `afterPage`).
-  const windowRef = useRef(window);
+  // Mirrors for async callbacks. `lastSeqRef` is the authority for catch-up (it moves
+  // synchronously); `win.lastSeq` is the same value as rendered state.
+  const windowRef = useRef(win);
   const joinsRef = useRef(joins);
   const lastSeqRef = useRef(0);
+  /** A full page (latest or around) has arrived for this channel, so `lastSeqRef` means something. */
+  const seqKnownRef = useRef(false);
+  /**
+   * The open gap after a socket disconnect: catch-up must start at `from` (null: at the next
+   * full page's seq), whatever live events arrive meanwhile. Cleared by a successful rejoin
+   * catch-up that started with the same `epoch` (a newer disconnect opens a new epoch).
+   */
+  const gapRef = useRef<{ from: number | null; epoch: number } | null>(null);
+  const epochRef = useRef(0);
   /** The channel the window holds; null until the first load starts and after unmount. */
   const channelRef = useRef<string | null>(null);
-  /** Bumped by every window reset or reload; answers of older requests are dropped. */
+  /** Bumped on a channel switch and on unmount: catch-ups and their retries stop. */
+  const sessionRef = useRef(0);
+  /** Bumped whenever the window is replaced; page answers of an older window are dropped. */
   const genRef = useRef(0);
   /** The join counter the window is current with. */
   const handledJoinsRef = useRef(0);
   const catchUpChain = useRef<Promise<void>>(Promise.resolve());
+  const retryTimers = useRef(new Set<ReturnType<typeof setTimeout>>());
   const busy = useRef({ older: false, newer: false });
 
   useEffect(() => {
-    windowRef.current = window;
+    windowRef.current = win;
     joinsRef.current = joins;
   });
 
@@ -88,7 +100,12 @@ export function useChannelMessages(
         lastSeqRef.current = Math.max(lastSeqRef.current, m.changeSeq);
         const { queryKey } = threadQuery(m.parentId ?? m.id);
         const thread = queryClient.getQueryData(queryKey);
-        if (thread) queryClient.setQueryData(queryKey, upsertIntoThread(thread, m));
+        if (thread) {
+          queryClient.setQueryData(queryKey, upsertIntoThread(thread, m));
+        } else if (queryClient.getQueryState(queryKey)?.fetchStatus === 'fetching') {
+          // The answer being fetched may predate this message: ask again.
+          void queryClient.invalidateQueries({ queryKey });
+        }
         if (m.parentId === null && m.deletedAt !== null) {
           unreadDeleted ||= readUpTo === null || m.createdAt > readUpTo;
         }
@@ -102,11 +119,15 @@ export function useChannelMessages(
   );
 
   /**
-   * Records the seq of a page that just arrived. True when a live event newer than the page came
-   * in meanwhile: the page may then hold an older version of a row (its event was ignored or
-   * overwritten), so everything after the page's seq has to be asked for again.
+   * Records the seq of a full page (latest or around) that just arrived. True when a live event
+   * newer than the page came in meanwhile: the page may then hold an older version of a row (its
+   * event was ignored or overwritten), so everything after the page's seq is asked for again.
+   * Older and newer pages never record their seq (it says nothing about the other rows); they
+   * only make the same check.
    */
-  const pageIsBehind = (pageSeq: number): boolean => {
+  const fullPageIsBehind = (pageSeq: number): boolean => {
+    seqKnownRef.current = true;
+    if (gapRef.current?.from === null) gapRef.current.from = pageSeq;
     if (lastSeqRef.current > pageSeq) return true;
     lastSeqRef.current = pageSeq;
     return false;
@@ -114,7 +135,7 @@ export function useChannelMessages(
 
   /** Replaces the window with the newest page. Its seq, or null when the answer came too late. */
   const loadLatest = useCallback(async (): Promise<number | null> => {
-    const gen = genRef.current;
+    const gen = ++genRef.current;
     const page = await fetchPage(channelId);
     if (gen !== genRef.current) return null;
     dispatch({ type: 'loadedLatest', page });
@@ -124,32 +145,59 @@ export function useChannelMessages(
     return page.lastSeq;
   }, [channelId, queryClient, setError]);
 
-  /** Applies what changed after `afterSeq` (default: the window's seq). Runs one at a time. */
-  const catchUp = useCallback(
-    (afterSeq?: number): Promise<void> => {
-      const run = async (from: number): Promise<void> => {
-        const gen = genRef.current;
-        const changes = await fetchChanges(channelId, from);
-        if (gen !== genRef.current) return;
-        apply(changes.messages);
-        if (!changes.truncated) return;
-        // More than one catch-up answer missed: the newest page is cheaper than paging through.
-        const pageSeq = await loadLatest();
-        if (pageSeq !== null && pageIsBehind(pageSeq)) await run(pageSeq);
+  /**
+   * Applies what changed after `from`, one run at a time. A failure (of the changes request or
+   * of the truncated reload) retries from the same `from` after 1 s, 2 s, 4 s … at most 30 s,
+   * until it succeeds or the channel changes. A run that closes `gapEpoch` clears the gap.
+   */
+  const runCatchUp = useCallback(
+    function run(from: number, gapEpoch: number | null, attempt = 0): Promise<void> {
+      const session = sessionRef.current;
+      const once = async () => {
+        if (session !== sessionRef.current) return;
+        let after = from;
+        for (;;) {
+          const changes = await fetchChanges(channelId, after);
+          if (session !== sessionRef.current) return;
+          apply(changes.messages);
+          if (!changes.truncated) break;
+          // More than one catch-up answer missed: the newest page is cheaper than paging through.
+          const pageSeq = await loadLatest();
+          if (session !== sessionRef.current || pageSeq === null) return;
+          if (!fullPageIsBehind(pageSeq)) break;
+          after = pageSeq;
+        }
+        if (gapEpoch !== null && gapRef.current?.epoch === gapEpoch) gapRef.current = null;
       };
-      catchUpChain.current = catchUpChain.current
-        .then(() => run(afterSeq ?? lastSeqRef.current))
-        .catch(() => undefined);
+      const retry = () => {
+        if (session !== sessionRef.current) return;
+        const timer = setTimeout(
+          () => {
+            retryTimers.current.delete(timer);
+            if (session === sessionRef.current) void run(from, gapEpoch, attempt + 1);
+          },
+          Math.min(1000 * 2 ** attempt, 30_000),
+        );
+        retryTimers.current.add(timer);
+      };
+      catchUpChain.current = catchUpChain.current.then(once).catch(retry);
       return catchUpChain.current;
     },
     [channelId, apply, loadLatest],
   );
 
-  const afterPage = useCallback(
+  /** After an older or newer page: catch up from it when a live event overtook it. */
+  const afterPartialPage = useCallback(
     (pageSeq: number) => {
-      if (pageIsBehind(pageSeq)) void catchUp(pageSeq);
+      if (lastSeqRef.current > pageSeq) void runCatchUp(pageSeq, null);
     },
-    [catchUp],
+    [runCatchUp],
+  );
+  const afterFullPage = useCallback(
+    (pageSeq: number) => {
+      if (fullPageIsBehind(pageSeq)) void runCatchUp(pageSeq, null);
+    },
+    [runCatchUp],
   );
 
   // First page; again when the channel changes or a new message is to be shown.
@@ -158,7 +206,10 @@ export function useChannelMessages(
     const gen = ++genRef.current;
     if (channelRef.current !== channelId) {
       channelRef.current = channelId;
+      sessionRef.current += 1;
       lastSeqRef.current = 0;
+      seqKnownRef.current = false;
+      gapRef.current = null;
       dispatch({ type: 'reset' });
     }
     handledJoinsRef.current = joinsRef.current;
@@ -170,22 +221,26 @@ export function useChannelMessages(
         if (gen !== genRef.current) return;
         dispatch(action);
         setError(null);
-        afterPage(action.page.lastSeq);
+        afterFullPage(action.page.lastSeq);
       },
       (err: unknown) => {
         if (gen === genRef.current) setError(err);
       },
     );
-  }, [channelId, aroundMessageId, afterPage, setError]);
+  }, [channelId, aroundMessageId, afterFullPage, setError]);
 
-  // Unmount (and StrictMode's rehearsal of it): drop pending answers, load afresh on remount.
-  useEffect(
-    () => () => {
+  // Unmount (and StrictMode's rehearsal of it): drop pending answers and retries, load afresh
+  // on remount.
+  useEffect(() => {
+    const timers = retryTimers.current;
+    return () => {
       genRef.current += 1;
+      sessionRef.current += 1;
       channelRef.current = null;
-    },
-    [],
-  );
+      timers.forEach(clearTimeout);
+      timers.clear();
+    };
+  }, []);
 
   useEffect(() => {
     const socket = getSocket();
@@ -194,18 +249,28 @@ export function useChannelMessages(
       if (event.groupId !== groupId || event.channelId !== channelId) return;
       apply([event.message]);
     };
+    // Events stop here; catch-up after the rejoin starts from this seq, not from a live event
+    // that may arrive between the rejoin and the catch-up request.
+    const onDisconnect = () => {
+      if (channelRef.current !== channelId) return;
+      const from = gapRef.current?.from ?? (seqKnownRef.current ? lastSeqRef.current : null);
+      gapRef.current = { from, epoch: ++epochRef.current };
+    };
     socket.on(ChatEvents.message, onMessage);
+    socket.on('disconnect', onDisconnect);
     return () => {
       socket.off(ChatEvents.message, onMessage);
+      socket.off('disconnect', onDisconnect);
     };
   }, [groupId, channelId, apply]);
 
   // Catch-up after every rejoin of the group room, once the window is loaded.
   useEffect(() => {
-    if (!window.loaded || joins === 0 || joins === handledJoinsRef.current) return;
+    if (!win.loaded || joins === 0 || joins === handledJoinsRef.current) return;
     handledJoinsRef.current = joins;
-    void catchUp();
-  }, [joins, window.loaded, catchUp]);
+    const gap = gapRef.current;
+    void runCatchUp(gap?.from ?? lastSeqRef.current, gap?.epoch ?? null);
+  }, [joins, win.loaded, runCatchUp]);
 
   const loadPage = useCallback(
     async (side: 'older' | 'newer') => {
@@ -223,14 +288,14 @@ export function useChannelMessages(
         );
         if (gen !== genRef.current) return;
         dispatch({ type: side === 'older' ? 'loadedOlder' : 'loadedNewer', page });
-        afterPage(page.lastSeq);
+        afterPartialPage(page.lastSeq);
       } catch {
         // The next scroll to the edge asks again.
       } finally {
         busy.current[side] = false;
       }
     },
-    [channelId, afterPage],
+    [channelId, afterPartialPage],
   );
   const loadOlder = useCallback(() => loadPage('older'), [loadPage]);
   const loadNewer = useCallback(() => loadPage('newer'), [loadPage]);
@@ -241,11 +306,11 @@ export function useChannelMessages(
     if (w.loaded && !w.hasNewer) return;
     try {
       const pageSeq = await loadLatest();
-      if (pageSeq !== null) afterPage(pageSeq);
+      if (pageSeq !== null) afterFullPage(pageSeq);
     } catch (err) {
       if (!w.loaded) setError(err);
     }
-  }, [loadLatest, afterPage, setError]);
+  }, [loadLatest, afterFullPage, setError]);
 
   const post = useCallback(
     async (input: SendMessageInput) => {
@@ -290,14 +355,14 @@ export function useChannelMessages(
   );
 
   return {
-    window,
+    window: win,
     loadOlder,
     loadNewer,
     jumpToLatest,
     send,
     retry,
     markRead,
-    isLoading: !window.loaded && error === null,
+    isLoading: !win.loaded && error === null,
     error,
   };
 }
