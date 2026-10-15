@@ -67,7 +67,21 @@ describe('recordNotifications', () => {
   it('with no recipients does nothing', async () => {
     await expect(
       recordNotifications(db, { kind: 'chat.mention', groupId: null, recipients: [], payload: {} }),
-    ).resolves.toBeUndefined();
+    ).resolves.toEqual([]);
+  });
+
+  it('records once per user and dedupe key and returns the new recipients', async () => {
+    const { group, a, b } = await setup();
+    const input = {
+      kind: 'task.deadline' as const,
+      groupId: group.id,
+      payload: {},
+      dedupeKey: `k:${randomUUID()}`,
+    };
+    expect(await recordNotifications(db, { ...input, recipients: [a.id] })).toEqual([a.id]);
+    const second = await recordNotifications(db, { ...input, recipients: [a.id, b.id] });
+    expect(second).toEqual([b.id]);
+    expect(await rowsFor([a.id, b.id])).toHaveLength(2);
   });
 });
 

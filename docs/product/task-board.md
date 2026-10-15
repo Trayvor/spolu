@@ -29,8 +29,8 @@ Each group has a Kanban board with four fixed buckets (columns) and custom bucke
   - **task chat**: the same chat as the group chat (threads, @mentions of anyone in the group and admins, @all, attachments).
 - **Notifications** (delivered from Phase 6):
   - when a task moves to another bucket, its creator and its assignees are notified (not the person who moved it);
-  - every assignee is reminded 3, 2 and 1 days before the deadline, at 09:00 (Europe/Bratislava), while the task is not in Completed;
-  - an **urgent** task reminds its assignees every 3 hours between 08:00 and 20:00 (Europe/Bratislava) until it is in Completed or no longer urgent;
+  - every assignee is reminded 3, 2 and 1 days before the deadline, at 09:00 (Europe/Bratislava), while the task is not in Completed. The job `tasks.deadline-reminders` runs daily and records a `task.deadline` event per assignee, at most one per task and day, counted in Bratislava days (so daylight saving changes do not shift it);
+  - an **urgent** task reminds its assignees every 3 hours between 08:00 and 20:00 (Europe/Bratislava) until it is in Completed or no longer urgent. The job `tasks.urgent-reminders` runs at 08, 11, 14, 17 and 20 and records a `task.urgent` event per assignee, at most one per task and Bratislava hour slot. A task without assignees reminds nobody;
   - task chat messages notify like the group chat.
 - **Creating tasks from a chat message** (with AI): see `ai-task-split.md`.
 
