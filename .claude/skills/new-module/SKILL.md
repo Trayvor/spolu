@@ -63,6 +63,15 @@ apps/web/src/features/<name>/      api.ts (queries + writes), <name>-page.tsx, t
 - **Cached files:** serve with `Cache-Control: private` and an `ETag`; when the file can change under the same URL, expose `updatedAt` in the shared schema and have the web append `?v=<updatedAt>`.
 - **One-statement races:** prefer one upsert (`onConflictDoUpdate`) or a unique-violation catch over check-then-write (`joinWithEmail`).
 
+## Patterns from files
+
+Second example module: `apps/server/src/modules/files/` with `apps/web/src/features/files/`.
+
+- **Streaming raw-body upload scope:** a large non-JSON body (`POST /api/groups/:id/files`) is its own plugin with a catch-all `addContentTypeParser('*', { parseAs: 'stream' })`, so the body is never buffered and the parser does not leak to other routes. Check the cheap things first (policy, rate limit, `content-length`), then stream into storage; on any failure remove what was stored. Small bodies (the 300 KB preview) use a second scope with `parseAs: 'buffer'` and a small `bodyLimit`. Web side: `XMLHttpRequest` for upload progress, `apiSendRaw` (with extra headers) for small PUTs.
+- **Service called inside the caller's transaction:** a module that owns a row referencing files (a message, a task) calls `attachFiles(tx, groupId, fileIds, userId)` in its own transaction; it throws `InvalidAttachmentError` and the transaction rolls back. After commit it calls `deleteFiles` when rows were removed. Same shape for `recordNotifications(tx, ...)`.
+- **`emitToGroup` after commit:** the HTTP route emits with `emitToGroup(io, groupId, event, payload)` only after the transaction has committed; sockets stay push-only. Web consumers listen with `getSocket().on(...)` and refetch when `useGroupRoomJoins()` changes.
+- **One conditional UPDATE for races:** "set once" fields (`setFilePreview`) are decided by `UPDATE ... where <still unset>` and its row count, not by a read before.
+
 ## Rules
 
 | Rule | Wrong | Right |
