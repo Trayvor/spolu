@@ -27,10 +27,17 @@ describe('AI API', () => {
   const stub: TaskSplitProvider = { split: (_, signal) => answer(signal) };
   let test: TestApp;
   let off: TestApp;
+  /** The JSON log lines of `test`. */
+  const logLines: Record<string, unknown>[] = [];
+  const logStream = { write: (line: string) => void logLines.push(JSON.parse(line)) };
 
   beforeAll(async () => {
-    [test, off] = await Promise.all([buildTestApp({ ai: stub }), buildTestApp()]);
+    [test, off] = await Promise.all([buildTestApp({ ai: stub, logStream }), buildTestApp()]);
   });
+  const aiLogs = (messageId: string) =>
+    logLines.filter(
+      (l) => l.msg === 'ai task split' && (l.ai as { messageId: string }).messageId === messageId,
+    );
   afterAll(async () => {
     await Promise.all([test.app.close(), off.app.close()]);
     await Promise.all([test.close(), off.close()]);
@@ -146,6 +153,26 @@ describe('AI API', () => {
     expect(res.json<{ tasks: { title: string }[] }>().tasks[0]!.title).toBe('From the task chat');
   });
 
+  it("answers 404 for another group's client asking about a task-chat message", async () => {
+    const s = await setup();
+    const task = (
+      await call(test, 'POST', `/api/groups/${s.group.id}/tasks`, s.admin.cookie, { title: 'T' })
+    ).json<{ id: string }>();
+    const chat = (await call(test, 'GET', `/api/tasks/${task.id}/chat`, s.admin.cookie)).json<{
+      id: string;
+    }>();
+    const sent = await call(test, 'POST', `/api/channels/${chat.id}/messages`, s.admin.cookie, {
+      body: '- secret job',
+      clientId: randomUUID(),
+    });
+    answer = () => ok();
+    const other = await createGroup(test.deps.db, { name: 'Other', egrantUrl: newUrl() });
+    const stranger = await clientIn(other.id, 'Stranger');
+    const res = await split(test, sent.json<{ id: string }>().id, stranger.cookie);
+    expect(res.statusCode).toBe(404);
+    expect(res.json()).toEqual({ error: 'not_found' });
+  });
+
   it('answers 503 ai_unavailable without a provider', async () => {
     const email = newEmail();
     await addAdmin(off.deps.db, { email, name: 'Admin' });
@@ -221,6 +248,66 @@ describe('AI API', () => {
     expect((await split(test, s.messageId, s.admin.cookie)).statusCode).toBe(502);
     answer = () => Promise.reject(new AiTimeoutError());
     expect((await split(test, s.messageId, s.admin.cookie)).statusCode).toBe(502);
+  });
+
+  it('logs every provider call at info with user, message, duration, outcome and usage', async () => {
+    const s = await setup();
+    answer = () => ok();
+    await split(test, s.messageId, s.client.cookie);
+    answer = () => Promise.resolve({ tasks: [], usage: { promptTokens: 7, completionTokens: 0 } });
+    await split(test, s.messageId, s.client.cookie);
+    answer = () => Promise.reject(new AiTimeoutError());
+    await split(test, s.messageId, s.client.cookie);
+    answer = () => Promise.reject(new AiFailedError('OpenAI answered 401'));
+    await split(test, s.messageId, s.client.cookie);
+
+    const lines = aiLogs(s.messageId);
+    expect(lines.map((l) => [l.level, l.ai])).toEqual([
+      [
+        30,
+        {
+          userId: s.client.id,
+          messageId: s.messageId,
+          durationMs: expect.any(Number),
+          outcome: 'ok',
+          usage: { promptTokens: 1, completionTokens: 1 },
+        },
+      ],
+      [
+        30,
+        {
+          userId: s.client.id,
+          messageId: s.messageId,
+          durationMs: expect.any(Number),
+          outcome: 'no_tasks',
+          usage: { promptTokens: 7, completionTokens: 0 },
+        },
+      ],
+      [
+        30,
+        {
+          userId: s.client.id,
+          messageId: s.messageId,
+          durationMs: expect.any(Number),
+          outcome: 'timeout',
+          usage: null,
+        },
+      ],
+      [
+        30,
+        {
+          userId: s.client.id,
+          messageId: s.messageId,
+          durationMs: expect.any(Number),
+          outcome: 'failed',
+          usage: null,
+        },
+      ],
+    ]);
+    // A request that never reaches the provider is not logged as an AI call.
+    const count = logLines.filter((l) => l.msg === 'ai task split').length;
+    expect((await split(test, randomUUID(), s.client.cookie)).statusCode).toBe(404);
+    expect(logLines.filter((l) => l.msg === 'ai task split')).toHaveLength(count);
   });
 
   it('answers 422 ai_no_tasks when nothing usable comes back', async () => {

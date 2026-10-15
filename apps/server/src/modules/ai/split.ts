@@ -94,6 +94,9 @@ const isCalendarDate = (value: string): boolean => {
   return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
 };
 
+/** The first `max` code points (never half of a surrogate pair). */
+const cut = (text: string, max: number): string => Array.from(text).slice(0, max).join('');
+
 const allowedIds = (ids: string[], allowed: Set<string>) =>
   [...new Set(ids)].filter((id) => allowed.has(id));
 
@@ -107,11 +110,11 @@ export function sanitizeProposals(
 ): TaskProposal[] {
   const out: TaskProposal[] = [];
   for (const task of raw) {
-    const title = task.title.trim().slice(0, AI_TITLE_MAX).trim();
+    const title = cut(task.title.trim(), AI_TITLE_MAX).trim();
     if (title === '') continue;
     out.push({
       title,
-      description: task.description.trim().slice(0, AI_DESCRIPTION_MAX),
+      description: cut(task.description.trim(), AI_DESCRIPTION_MAX),
       assigneeIds: allowedIds(task.assigneeIds, allowed.peopleIds).slice(0, ASSIGNEES_MAX),
       dueDate: task.deadline !== null && isCalendarDate(task.deadline) ? task.deadline : null,
       urgent: task.urgent,

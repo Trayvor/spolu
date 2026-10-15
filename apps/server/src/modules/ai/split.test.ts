@@ -83,6 +83,16 @@ describe('sanitizeProposals', () => {
     });
   });
 
+  it('cuts by code points, never splitting an emoji', () => {
+    const [task] = sanitizeProposals(
+      [raw({ title: `${'a'.repeat(199)}😀😀`, description: '😀'.repeat(5001) })],
+      allowed,
+    );
+    expect(task!.title).toBe(`${'a'.repeat(199)}😀`);
+    expect(Array.from(task!.description)).toHaveLength(5000);
+    expect(task!.description.endsWith('😀')).toBe(true);
+  });
+
   it('keeps at most 10 assignees', () => {
     const ids = Array.from({ length: 12 }, (_, i) => `p${i}`);
     const [task] = sanitizeProposals([raw({ assigneeIds: ids })], {

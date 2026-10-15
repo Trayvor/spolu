@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { AI_DESCRIPTION_MAX, AI_MAX_TASKS, AI_TITLE_MAX } from '@spolu/shared';
 import { AiFailedError, type SplitRequest, type TaskSplitProvider } from './provider.js';
 
+const MAX_COMPLETION_TOKENS = 8000;
 const OPENAI_URL = 'https://api.openai.com/v1/chat/completions';
 
 export const SYSTEM_PROMPT =
@@ -102,6 +103,8 @@ export function createOpenAiProvider(options: {
           },
           body: JSON.stringify({
             model: options.model,
+            // Ten full cards fit well within this; it caps the cost of a runaway answer.
+            max_completion_tokens: MAX_COMPLETION_TOKENS,
             messages: [
               { role: 'system', content: SYSTEM_PROMPT },
               { role: 'user', content: renderSplitPrompt(request) },
@@ -113,8 +116,11 @@ export function createOpenAiProvider(options: {
           }),
           signal,
         });
-        // The error body is not kept: an auth error echoes part of the key.
-        if (!response.ok) throw new AiFailedError(`OpenAI answered ${response.status}`);
+        if (!response.ok) {
+          // The error body is not read (an auth error echoes part of the key), only released.
+          await response.body?.cancel();
+          throw new AiFailedError(`OpenAI answered ${response.status}`);
+        }
         payload = await response.json();
       } catch (error) {
         if (error instanceof AiFailedError) throw error;

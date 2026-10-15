@@ -24,10 +24,9 @@ const completion = (message: object, usage: object | undefined = undefined) => (
   ...(usage ? { usage } : {}),
 });
 
-function stubFetch(response: Response | (() => Promise<Response>)) {
-  return vi.fn<typeof fetch>(async () =>
-    typeof response === 'function' ? response() : response.clone(),
-  );
+/** A fetch that answers `response` (each test calls it once; a clone's body would be a tee). */
+function stubFetch(response: Response) {
+  return vi.fn<typeof fetch>(async () => response);
 }
 
 const json = (body: unknown, status = 200) =>
@@ -58,6 +57,7 @@ describe('OpenAI provider', () => {
     const body = JSON.parse(init!.body as string);
     expect(body.model).toBe('gpt-5-mini');
     expect(body).not.toHaveProperty('temperature');
+    expect(body.max_completion_tokens).toBe(8000);
     expect(body.messages[0]).toEqual({ role: 'system', content: SYSTEM_PROMPT });
     expect(body.messages[1].role).toBe('user');
     const user: string = body.messages[1].content;
@@ -105,6 +105,16 @@ describe('OpenAI provider', () => {
     await expect(
       provider(stubFetch(response)).split(request, new AbortController().signal),
     ).rejects.toBeInstanceOf(AiFailedError);
+  });
+
+  it('releases the body of an error answer', async () => {
+    const response = json({ error: { message: 'Incorrect API key provided: sk-te***st' } }, 401);
+    const error = await provider(vi.fn<typeof fetch>(async () => response))
+      .split(request, new AbortController().signal)
+      .catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(AiFailedError);
+    expect((error as Error).message).not.toContain('sk-te');
+    expect(response.bodyUsed || response.body?.locked).toBe(true);
   });
 
   it('turns a network error or an abort into AiFailedError without the key', async () => {

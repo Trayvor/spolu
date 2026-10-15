@@ -12,8 +12,10 @@ const base = {
   FILES_DIR: z.string().default('./data/files'),
   WEB_DIST_DIR: z.string().optional(),
   MAIL_FROM: z.string().min(1),
-  // `fake` is for local development and e2e only, never on a server.
+  // `fake` is for local development and e2e only, never on a server: in production it needs
+  // AI_ALLOW_FAKE=1 (set only by the e2e web server).
   AI_PROVIDER: z.enum(['openai', 'fake']).default('openai'),
+  AI_ALLOW_FAKE: z.enum(['1']).optional(),
   OPENAI_API_KEY: z.string().min(1).optional(),
   OPENAI_MODEL: z.string().min(1).default('gpt-5-mini'),
 };
@@ -89,6 +91,9 @@ export function loadConfig(env: NodeJS.ProcessEnv): Config {
     throw new ConfigError([...names]);
   }
   const e = result.data;
+  if (e.NODE_ENV === 'production' && e.AI_PROVIDER === 'fake' && e.AI_ALLOW_FAKE !== '1') {
+    throw new ConfigError(['AI_PROVIDER']);
+  }
   return {
     nodeEnv: e.NODE_ENV,
     port: e.PORT,

@@ -19,7 +19,12 @@ import { testConfig } from './test-config.js';
  * unless `overrides.ai` gives a provider.
  */
 export async function buildTestApp(
-  overrides: { config?: Partial<Config>; ai?: TaskSplitProvider | null } = {},
+  overrides: {
+    config?: Partial<Config>;
+    ai?: TaskSplitProvider | null;
+    /** Receives the app's info log as JSON lines (otherwise the app does not log). */
+    logStream?: { write(line: string): void };
+  } = {},
 ): Promise<{ app: FastifyInstance; deps: AppDeps; close(): Promise<void> }> {
   const config = testConfig(overrides.config);
   const { db, close: closeDb } = createDb(config.databaseUrl);
@@ -38,7 +43,8 @@ export async function buildTestApp(
     }),
     ai: overrides.ai ?? null,
   };
-  const app = await buildApp(deps, { logger: false }); // quiet even with nodeEnv 'production'
+  // Quiet even with nodeEnv 'production', unless a test captures the log.
+  const app = await buildApp(deps, { logger: false, logStream: overrides.logStream });
   return {
     app,
     deps,

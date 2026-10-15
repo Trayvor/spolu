@@ -46,6 +46,9 @@ export default defineConfig({
       SMTP_HOST: '127.0.0.1',
       SMTP_PORT: '1025',
       MAIL_FROM: 'Spolu <noreply@localhost>',
+      // The canned task splitter; production mode refuses it without AI_ALLOW_FAKE=1.
+      AI_PROVIDER: 'fake',
+      AI_ALLOW_FAKE: '1',
     },
   },
 });

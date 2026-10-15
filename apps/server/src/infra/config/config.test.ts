@@ -142,6 +142,16 @@ describe('loadConfig', () => {
     });
   });
 
+  it('refuses the fake provider in production unless AI_ALLOW_FAKE=1', () => {
+    const prod = { ...validEnv, NODE_ENV: 'production', AI_PROVIDER: 'fake' };
+    expect(errorOf(prod).variables).toEqual(['AI_PROVIDER']);
+    expect(errorOf({ ...prod, AI_ALLOW_FAKE: 'yes' }).message).toContain('AI_ALLOW_FAKE');
+    expect(loadConfig({ ...prod, AI_ALLOW_FAKE: '1' }).ai).toEqual({ provider: 'fake' });
+    expect(loadConfig({ ...validEnv, NODE_ENV: 'development', AI_PROVIDER: 'fake' }).ai).toEqual({
+      provider: 'fake',
+    });
+  });
+
   it('rejects an unknown AI_PROVIDER without echoing the key', () => {
     const error = errorOf({ ...validEnv, AI_PROVIDER: 'claude', OPENAI_API_KEY: 'sk-secret' });
     expect(error.message).toContain('AI_PROVIDER');
