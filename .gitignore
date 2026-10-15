@@ -1,0 +1,16 @@
+node_modules/
+dist/
+build/
+.env
+.env.*
+!.env.example
+deploy/*.env
+!deploy/*.env.example
+coverage/
+playwright-report/
+test-results/
+.DS_Store
+*.log
+.claude/settings.local.json
+data/
+.superpowers/
