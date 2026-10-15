@@ -33,7 +33,15 @@ test('admin creates a group, a client joins by invite and is removed', async ({
     .toBeGreaterThan(0);
   await row.click();
   await expect(page.getByRole('heading', { name })).toBeVisible();
-  const groupUrl = page.url();
+  // /groups/:id redirects to the chat tab.
+  await expect(page).toHaveURL(/\/groups\/[^/]+\/chat$/);
+  const groupUrl = page.url().replace(/\/chat$/, '');
+  await expect(page.getByText('Chat pribudne v ďalšej aktualizácii.')).toBeVisible();
+  await page.getByRole('link', { name: 'Úlohy' }).click();
+  await expect(page).toHaveURL(/\/tasks$/);
+  await expect(page.getByText('Nástenka úloh pribudne v ďalšej aktualizácii.')).toBeVisible();
+  await page.getByRole('link', { name: 'Členovia' }).click();
+  await expect(page).toHaveURL(/\/members$/);
 
   // The clipboard is unreliable in headless: read the read-only field instead.
   const inviteUrl = await page.getByRole('textbox', { name: 'Pozvánka' }).inputValue();
@@ -44,7 +52,7 @@ test('admin creates a group, a client joins by invite and is removed', async ({
   await page.goto('/groups');
   await page.getByRole('link', { name: new RegExp(`${name} other`) }).click();
   await expect(page.getByRole('heading', { name: `${name} other` })).toBeVisible();
-  const otherUrl = page.url();
+  const otherUrl = page.url().replace(/\/chat$/, '');
 
   // The client joins in a separate browser context.
   const clientContext = await browser.newContext({ locale: 'sk-SK', storageState: undefined });
@@ -63,16 +71,24 @@ test('admin creates a group, a client joins by invite and is removed', async ({
   await client.getByLabel('Vaše meno').fill('E2E Client');
   await client.getByRole('button', { name: 'Pokračovať' }).click();
 
-  await expect(client).toHaveURL(new RegExp(`${new URL(groupUrl).pathname}$`));
+  await expect(client).toHaveURL(new RegExp(`${new URL(groupUrl).pathname}/chat$`));
   await expect(client.getByRole('heading', { name })).toBeVisible();
   await expect(client.getByRole('link', { name: 'Skupiny' })).toHaveCount(0);
+  await expect(client.getByText('Chat pribudne v ďalšej aktualizácii.')).toBeVisible();
+  await client.getByRole('link', { name: 'Úlohy' }).click();
+  await expect(client).toHaveURL(/\/tasks$/);
+  await expect(client.getByText('Nástenka úloh pribudne v ďalšej aktualizácii.')).toBeVisible();
+  await client.getByRole('link', { name: 'Členovia' }).click();
+  await expect(client).toHaveURL(/\/members$/);
+  await client.getByRole('link', { name: 'Chat' }).click();
+  await expect(client).toHaveURL(/\/chat$/);
 
   // Another group's page is not found for the client.
   await client.goto(new URL(otherUrl).pathname);
   await expect(client.getByRole('heading', { name: 'Stránka sa nenašla' })).toBeVisible();
 
   // The admin sees the client and removes them (Remove, then confirm).
-  await page.goto(groupUrl);
+  await page.goto(`${groupUrl}/members`);
   const member = page.getByRole('listitem').filter({ hasText: email });
   await expect(member).toBeVisible();
   await member.getByRole('button', { name: 'Odobrať' }).click();
