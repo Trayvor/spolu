@@ -34,13 +34,55 @@ const authedRoute = createRoute({
   beforeLoad: async ({ context, location }) => {
     const user = await context.queryClient.ensureQueryData(sessionQuery);
     if (!user) throw redirect({ to: '/login', search: { redirect: location.href } });
+    // An invited client who closed the tab on the name step gets it again before anything else.
+    if (!user.name.trim() && location.pathname !== '/welcome') {
+      throw redirect({ to: '/welcome', search: { redirect: location.href } });
+    }
   },
 });
 
 const homeRoute = createRoute({
   getParentRoute: () => authedRoute,
   path: '/',
-  component: lazyRouteComponent(() => import('@/routes/home'), 'HomePage'),
+  // No screen of its own: a client goes to their group, an admin to the groups list.
+  beforeLoad: async ({ context }) => {
+    const user = await context.queryClient.ensureQueryData(sessionQuery);
+    if (!user) throw redirect({ to: '/login' });
+    if (isAdmin(user)) throw redirect({ to: '/groups' });
+    if (user.groupId) throw redirect({ to: '/groups/$groupId', params: { groupId: user.groupId } });
+    throw redirect({ to: '/settings' });
+  },
+});
+
+const groupsRoute = createRoute({
+  getParentRoute: () => authedRoute,
+  path: '/groups',
+  component: lazyRouteComponent(() => import('@/routes/groups-placeholder'), 'GroupsPage'),
+});
+
+const groupRoute = createRoute({
+  getParentRoute: () => authedRoute,
+  path: '/groups/$groupId',
+  component: lazyRouteComponent(() => import('@/routes/groups-placeholder'), 'GroupPage'),
+});
+
+const welcomeRoute = createRoute({
+  getParentRoute: () => authedRoute,
+  path: '/welcome',
+  validateSearch: (search: Record<string, unknown>): { redirect?: string } =>
+    typeof search.redirect === 'string' ? { redirect: safeRedirect(search.redirect) } : {},
+  component: lazyRouteComponent(() => import('@/features/auth/welcome-page'), 'WelcomeRoute'),
+});
+
+const joinRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/join/$token',
+  // Public, but someone already signed in has nothing to join.
+  beforeLoad: async ({ context }) => {
+    const user = await context.queryClient.ensureQueryData(sessionQuery);
+    if (user) throw redirect({ to: '/' });
+  },
+  component: lazyRouteComponent(() => import('@/features/join/join-page'), 'JoinRoute'),
 });
 
 const settingsRoute = createRoute({
@@ -73,8 +115,16 @@ const loginRoute = createRoute({
 });
 
 const routeTree = rootRoute.addChildren([
-  authedRoute.addChildren([homeRoute, settingsRoute, adminsRoute]),
+  authedRoute.addChildren([
+    homeRoute,
+    settingsRoute,
+    adminsRoute,
+    groupsRoute,
+    groupRoute,
+    welcomeRoute,
+  ]),
   loginRoute,
+  joinRoute,
 ]);
 
 export function createAppRouter(queryClient: QueryClient, history?: RouterHistory) {

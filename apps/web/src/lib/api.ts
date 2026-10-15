@@ -34,7 +34,7 @@ async function readJson(res: Response): Promise<unknown> {
  * (undefined without one); any other status rejects with ApiError carrying the parsed body.
  */
 export async function apiSend<T>(
-  method: 'POST' | 'DELETE',
+  method: 'POST' | 'PATCH' | 'DELETE',
   path: string,
   body?: unknown,
   schema?: ZodType<T>,

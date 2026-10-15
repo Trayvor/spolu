@@ -1,3 +1,4 @@
+import { MeSchema, type Me } from '@spolu/shared';
 import { apiSend } from '@/lib/api';
 
 /** Ask for a login code. The server answers 200 for unknown emails too. */
@@ -12,4 +13,9 @@ export async function verifyCode(email: string, otp: string): Promise<void> {
 
 export async function signOut(): Promise<void> {
   await apiSend('POST', '/auth/sign-out', {});
+}
+
+/** Save the caller's display name; answers the updated profile. */
+export async function updateName(name: string): Promise<Me> {
+  return (await apiSend('PATCH', '/me', { name }, MeSchema)) as Me;
 }

@@ -36,7 +36,13 @@ vi.mock('@/lib/socket', () => ({
   disconnectSocket: () => fake.disconnect(),
 }));
 
-const USER = { id: 'u1', name: 'Jana Nováková', email: 'jana@example.com', role: 'admin' };
+const USER = {
+  id: 'u1',
+  name: 'Jana Nováková',
+  email: 'jana@example.com',
+  role: 'admin',
+  groupId: null,
+};
 
 /** Fake `fetch`: `/api/me` answers from `state`, sign-out flips it to anonymous. */
 function mockApi(initial: Partial<typeof USER> | null = {}) {
@@ -71,7 +77,7 @@ function mockApi(initial: Partial<typeof USER> | null = {}) {
   return { state, fetchMock };
 }
 
-function renderAt(path = '/') {
+function renderAt(path = '/settings') {
   const holder: { router?: ReturnType<typeof createAppRouter> } = {};
   const queryClient = createQueryClient(() => {
     if (holder.router) void redirectToLogin(holder.router);
@@ -112,10 +118,10 @@ describe('logged-in shell', () => {
     expect(screen.getByRole('menuitem', { name: t('user.logout') })).toBeInTheDocument();
   });
 
-  it('greets the user on the home page and connects the socket', async () => {
+  it('shows the settings page and connects the socket', async () => {
     mockApi();
     renderAt();
-    expect(await screen.findByRole('heading', { name: 'Welcome, Jana Nováková' })).toBeVisible();
+    expect(await screen.findByRole('heading', { name: t('nav.settings') })).toBeVisible();
     expect(fake.connect).toHaveBeenCalledTimes(1);
   });
 
@@ -145,13 +151,13 @@ describe('logged-in shell', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(t('errors.generic'));
     // Writes are never retried.
     expect(fetchMock.mock.calls.filter(([url]) => url === '/api/auth/sign-out')).toHaveLength(1);
-    expect(router.state.location.pathname).toBe('/');
+    expect(router.state.location.pathname).toBe('/settings');
   });
 
   it('a 401 is not retried', async () => {
     const { state, fetchMock } = mockApi();
     const { router, queryClient } = renderAt();
-    await screen.findByRole('heading', { name: /Welcome/ });
+    await screen.findByRole('heading', { name: t('nav.settings') });
 
     state.meStatus = 401;
     fetchMock.mockClear();
@@ -179,7 +185,7 @@ describe('logged-in shell', () => {
   it('a 401 from any query sends the user to /login', async () => {
     const { state } = mockApi();
     const { router, queryClient } = renderAt();
-    await screen.findByRole('heading', { name: /Welcome/ });
+    await screen.findByRole('heading', { name: t('nav.settings') });
 
     state.meStatus = 401; // from now on every call answers 401, including /api/health
     await act(() => queryClient.invalidateQueries({ queryKey: ['health'] }));
@@ -191,7 +197,7 @@ describe('logged-in shell', () => {
   it('socket connect_error unauthorized sends the user to /login and does not reconnect', async () => {
     mockApi();
     const { router, queryClient } = renderAt();
-    await screen.findByRole('heading', { name: /Welcome/ });
+    await screen.findByRole('heading', { name: t('nav.settings') });
 
     act(() => fake.fire('connect_error', new Error('unauthorized')));
 
@@ -204,18 +210,18 @@ describe('logged-in shell', () => {
   it('socket connect_error server_error keeps the user signed in', async () => {
     mockApi();
     const { router } = renderAt();
-    await screen.findByRole('heading', { name: /Welcome/ });
+    await screen.findByRole('heading', { name: t('nav.settings') });
 
     act(() => fake.fire('connect_error', new Error('server_error')));
 
-    expect(router.state.location.pathname).toBe('/');
+    expect(router.state.location.pathname).toBe('/settings');
     expect(fake.disconnect).not.toHaveBeenCalled();
   });
 
   it('a server-side socket disconnect with the session gone sends the user to /login', async () => {
     const { state } = mockApi();
     const { router, queryClient } = renderAt();
-    await screen.findByRole('heading', { name: /Welcome/ });
+    await screen.findByRole('heading', { name: t('nav.settings') });
 
     state.meStatus = 401; // the admin was removed
     act(() => fake.fire('disconnect', 'io server disconnect'));
@@ -227,13 +233,13 @@ describe('logged-in shell', () => {
   it('a server-side socket disconnect with the session intact keeps the user signed in', async () => {
     const { fetchMock } = mockApi();
     const { router } = renderAt();
-    await screen.findByRole('heading', { name: /Welcome/ });
+    await screen.findByRole('heading', { name: t('nav.settings') });
     const before = fetchMock.mock.calls.length;
 
     act(() => fake.fire('disconnect', 'io server disconnect'));
     await waitFor(() => expect(fetchMock.mock.calls.length).toBe(before + 1)); // re-checked
 
-    expect(router.state.location.pathname).toBe('/');
+    expect(router.state.location.pathname).toBe('/settings');
     // Other reasons (transport close, ...) are Socket.IO's to retry: no re-check.
     act(() => fake.fire('disconnect', 'transport close'));
     expect(fetchMock.mock.calls.length).toBe(before + 1);
@@ -246,6 +252,6 @@ describe('logged-in shell', () => {
     expect(await screen.findByText(t('errors.generic'))).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: t('errors.retry') }));
-    expect(await screen.findByRole('heading', { name: /Welcome/ })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: t('nav.settings') })).toBeInTheDocument();
   });
 });

@@ -81,5 +81,24 @@
   "errors": {
     "generic": "Niečo sa pokazilo. Skúste to znova.",
     "retry": "Skúsiť znova"
+  },
+  "groups": {
+    "title": "Skupiny"
+  },
+  "join": {
+    "title": "Pridajte sa ku skupine {{group}}",
+    "intro": "Zadajte svoj pracovný e-mail. Pošleme vám prihlasovací kód.",
+    "invalid": "Tento odkaz už neplatí. Požiadajte eGrant o nový.",
+    "errors": {
+      "rateLimited": "Príliš veľa pokusov. Skúste to znova o minútu."
+    }
+  },
+  "welcome": {
+    "title": "Ako vás máme oslovovať?",
+    "name": "Vaše meno",
+    "submit": "Pokračovať",
+    "errors": {
+      "nameRequired": "Zadajte svoje meno."
+    }
   }
 }
