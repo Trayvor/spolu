@@ -4,7 +4,7 @@ import en from '@/locales/en.json';
 import sk from '@/locales/sk.json';
 import { detectInitialLanguage, type Language } from './detect';
 
-export const LANGUAGE_STORAGE_KEY = 'ehub.lang';
+export const LANGUAGE_STORAGE_KEY = 'spolu.lang';
 
 // Storage can throw (private mode, blocked site data), so every access is guarded.
 function readStored(): string | null {

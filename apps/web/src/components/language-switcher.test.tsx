@@ -32,7 +32,7 @@ describe('LanguageSwitcher', () => {
     await user.click(await screen.findByRole('menuitemradio', { name: 'English' }));
 
     expect(screen.getByTestId('probe')).toHaveTextContent('Settings');
-    expect(localStorage.getItem('ehub.lang')).toBe('en');
+    expect(localStorage.getItem('spolu.lang')).toBe('en');
     expect(document.documentElement.lang).toBe('en');
     expect(i18n.language).toBe('en');
   });

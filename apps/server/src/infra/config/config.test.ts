@@ -4,13 +4,13 @@ import { ConfigError, loadConfig } from './config.js';
 const validEnv = {
   NODE_ENV: 'test',
   PUBLIC_URL: 'http://localhost:3000',
-  DATABASE_URL: 'postgres://ehub:ehub@localhost:5432/ehub',
+  DATABASE_URL: 'postgres://spolu:spolu@localhost:5432/spolu',
   SUPERADMIN_EMAIL: 'admin@example.com',
   APP_SECRET: 'x'.repeat(32),
   EMAIL_DRIVER: 'smtp',
   SMTP_HOST: 'localhost',
   SMTP_PORT: '1025',
-  MAIL_FROM: 'eHub <noreply@example.com>',
+  MAIL_FROM: 'Spolu <noreply@example.com>',
 };
 
 function errorOf(env: NodeJS.ProcessEnv): ConfigError {
@@ -30,7 +30,7 @@ describe('loadConfig', () => {
       driver: 'smtp',
       host: 'localhost',
       port: 1025,
-      from: 'eHub <noreply@example.com>',
+      from: 'Spolu <noreply@example.com>',
     });
     expect(config.port).toBe(3000);
     expect(config.appVersion).toBe('dev');
@@ -47,7 +47,7 @@ describe('loadConfig', () => {
     expect(config.email).toEqual({
       driver: 'elastic',
       apiKey: 'key',
-      from: 'eHub <noreply@example.com>',
+      from: 'Spolu <noreply@example.com>',
     });
   });
 

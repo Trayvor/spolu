@@ -1,17 +1,18 @@
+name: spolu
 # Local development services: PostgreSQL and Mailpit (catches all outgoing email).
 services:
   postgres:
     image: postgres:17
     environment:
-      POSTGRES_USER: ehub
-      POSTGRES_PASSWORD: ehub
-      POSTGRES_DB: ehub
+      POSTGRES_USER: spolu
+      POSTGRES_PASSWORD: spolu
+      POSTGRES_DB: spolu
     ports:
       - '5432:5432'
     volumes:
-      - ehub-dev-pgdata:/var/lib/postgresql/data
+      - spolu-dev-pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U ehub -d ehub']
+      test: ['CMD-SHELL', 'pg_isready -U spolu -d spolu']
       interval: 2s
       timeout: 3s
       retries: 30
@@ -23,4 +24,4 @@ services:
       - '8025:8025'
 
 volumes:
-  ehub-dev-pgdata:
+  spolu-dev-pgdata:

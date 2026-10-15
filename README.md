@@ -1,4 +1,4 @@
-# eHub
+# Spolu
 
 Internal communication platform between our company and eGrant client organizations
 (group chat, task boards, support tickets, contracts). Replaces Microsoft Teams.

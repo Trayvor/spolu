@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import { EmailSendError, createEmailSender } from './index.js';
 
-const from = 'eHub <noreply@example.com>';
+const from = 'Spolu <noreply@example.com>';
 const msg = (subject: string) => ({
   to: ['a@example.com'],
   cc: ['b@example.com'],

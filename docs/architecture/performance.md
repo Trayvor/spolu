@@ -1,8 +1,8 @@
 # Performance
 
-eHub must feel instant: faster than Microsoft Teams on a cheap phone over mobile data, served from a small server. Performance is a top priority (see [product/non-functional.md](../product/non-functional.md)), but **readable code comes first**. A rule here is never a reason to write clever or obscure code.
+Spolu must feel instant: faster than Microsoft Teams on a cheap phone over mobile data, served from a small server. Performance is a top priority (see [product/non-functional.md](../product/non-functional.md)), but **readable code comes first**. A rule here is never a reason to write clever or obscure code.
 
-## Why eHub can be fast
+## Why Spolu can be fast
 
 - A plain web app (PWA), not a desktop wrapper. Code loads once, then runs from the browser cache.
 - Each screen is its own lazy-loaded chunk: opening the chat never downloads the task board.
@@ -45,5 +45,5 @@ Lazy chunks for individual screens have no hard budget. Keep them reasonable and
 
 ## How to check
 
-- `pnpm --filter @ehub/web build` prints every chunk with its gzip size.
+- `pnpm --filter @spolu/web build` prints every chunk with its gzip size.
 - Lighthouse in Chrome DevTools (mobile, throttled) on the test server: aim for Performance 90+ on the home screen.

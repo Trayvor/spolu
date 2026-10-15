@@ -1,6 +1,6 @@
 # Integrations
 
-eHub talks to three external systems: eGrant (incoming error reports), Elastic Email (all outgoing email) and an LLM API (task splitting).
+Spolu talks to three external systems: eGrant (incoming error reports), Elastic Email (all outgoing email) and an LLM API (task splitting).
 
 ## Requirements
 

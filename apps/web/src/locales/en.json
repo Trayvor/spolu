@@ -1,5 +1,5 @@
 {
-  "app": { "name": "eHub" },
+  "app": { "name": "Spolu" },
   "nav": { "home": "Home", "settings": "Settings" },
   "language": { "label": "Language", "sk": "Slovenčina", "en": "English" },
   "system": {

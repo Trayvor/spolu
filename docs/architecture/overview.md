@@ -1,6 +1,6 @@
 # Architecture overview
 
-eHub runs as `app`, `postgres` and `caddy`, plus a small `backup` container (nightly `pg_dump`). A single Node process (`app`) does all the work: API, realtime, background jobs and serving the web build. Redis, BullMQ and MinIO are not used (see [ADR 0002](../decisions/0002-postgres-job-queue-no-redis.md) and [ADR 0003](../decisions/0003-disk-storage-behind-interface.md)).
+Spolu runs as `app`, `postgres` and `caddy`, plus a small `backup` container (nightly `pg_dump`). A single Node process (`app`) does all the work: API, realtime, background jobs and serving the web build. Redis, BullMQ and MinIO are not used (see [ADR 0002](../decisions/0002-postgres-job-queue-no-redis.md) and [ADR 0003](../decisions/0003-disk-storage-behind-interface.md)).
 
 ```mermaid
 flowchart TD
@@ -26,7 +26,7 @@ flowchart TD
 
 The scaffold is built (`apps/web`): Vite, React, Tailwind v4 with the egrant theme (`src/styles/theme.css`), shadcn/ui components in `src/components/ui/` (button, card, badge, dropdown-menu; see [ADR 0009](../decisions/0009-web-client-stack.md)), TanStack Router with a code-based route tree in `src/router.tsx` (every screen is lazy-loaded, so each route is its own chunk) and TanStack Query (one `QueryClient`, `staleTime` 30 s, no refetch on window focus because realtime events keep data fresh). `src/lib/api.ts` has `apiGet(path, schema)`: it fetches `/api<path>` with cookies and parses the body with a zod schema whatever the status (so a 503 health body is returned), and rejects with `ApiError` on non-JSON or a mismatching body. `src/lib/socket.ts` has `getSocket()`, the single same-origin Socket.IO connection. Routes so far: `/` and `/settings`, both placeholders.
 
-**i18n (web).** All UI strings come from `i18next` keys in `src/locales/en.json` and `sk.json` (nested by feature, e.g. `nav.settings`; a test fails when the two key sets differ). `src/i18n/detect.ts` has the pure `detectInitialLanguage(stored, navigatorLanguages)`: a stored choice wins, otherwise `sk` if the browser prefers Slovak, else `en`. `src/i18n/index.ts` initialises i18next at startup (both locale files are bundled, they are small), sets `<html lang>` and exports `setLanguage(lang)`, which switches the language, stores it in `localStorage` under `ehub.lang` and updates `<html lang>`. `LanguageSwitcher` (shadcn dropdown, language names always shown in their own language) is lazy-loaded from the root layout so the Radix dropdown stays out of the entry chunk.
+**i18n (web).** All UI strings come from `i18next` keys in `src/locales/en.json` and `sk.json` (nested by feature, e.g. `nav.settings`; a test fails when the two key sets differ). `src/i18n/detect.ts` has the pure `detectInitialLanguage(stored, navigatorLanguages)`: a stored choice wins, otherwise `sk` if the browser prefers Slovak, else `en`. `src/i18n/index.ts` initialises i18next at startup (both locale files are bundled, they are small), sets `<html lang>` and exports `setLanguage(lang)`, which switches the language, stores it in `localStorage` under `spolu.lang` and updates `<html lang>`. `LanguageSwitcher` (shadcn dropdown, language names always shown in their own language) is lazy-loaded from the root layout so the Radix dropdown stays out of the entry chunk.
 
 **Caddy.** The front door. It gets and renews HTTPS certificates automatically and forwards traffic to the app. Nothing else is exposed to the internet.
 
@@ -46,7 +46,7 @@ The scaffold is built (`apps/web`): Vite, React, Tailwind v4 with the egrant the
 
 Splitting workers into their own container later is a config change, not a rewrite. See [ADR 0005](../decisions/0005-single-process-deployment.md).
 
-**Boot and shutdown.** `apps/server/src/main.ts` runs: `loadConfig` (a `ConfigError` prints its message and exits 1) -> `runMigrations` -> `createDb` -> `startJobs` -> `buildApp` -> `registerStatic` (if `WEB_DIST_DIR`) -> `attachSocket` -> listen on `0.0.0.0:PORT`. On SIGTERM or SIGINT it closes Socket.IO and the HTTP server, stops pg-boss and closes the database pool; a second signal forces exit 1. `pnpm --filter @ehub/server build` bundles `src/main.ts` with tsup into `dist/main.js` (ESM, node24; `@ehub/shared` inlined, npm dependencies external) and copies the SQL migrations to `dist/migrations`, which is where `runMigrations` looks relative to the running file in both layouts. Run with `node dist/main.js`.
+**Boot and shutdown.** `apps/server/src/main.ts` runs: `loadConfig` (a `ConfigError` prints its message and exits 1) -> `runMigrations` -> `createDb` -> `startJobs` -> `buildApp` -> `registerStatic` (if `WEB_DIST_DIR`) -> `attachSocket` -> listen on `0.0.0.0:PORT`. On SIGTERM or SIGINT it closes Socket.IO and the HTTP server, stops pg-boss and closes the database pool; a second signal forces exit 1. `pnpm --filter @spolu/server build` bundles `src/main.ts` with tsup into `dist/main.js` (ESM, node24; `@spolu/shared` inlined, npm dependencies external) and copies the SQL migrations to `dist/migrations`, which is where `runMigrations` looks relative to the running file in both layouts. Run with `node dist/main.js`.
 
 ## Where code lives
 
@@ -57,7 +57,7 @@ apps/server/src/
     auth/ users/ groups/ chat/
     (later) dm/ tasks/ tickets/ contracts/ notifications/
   infra/              db/ email/ storage/ jobs/ realtime/ config/
-packages/shared/      zod schemas and types used by both sides (source-only: server and web import `@ehub/shared` straight from `src/`; health response schema and socket event names live here)
+packages/shared/      zod schemas and types used by both sides (source-only: server and web import `@spolu/shared` straight from `src/`; health response schema and socket event names live here)
 ```
 
 Each module owns its routes, service logic, DB tables, socket events and tests.

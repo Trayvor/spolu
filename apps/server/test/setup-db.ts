@@ -1,8 +1,8 @@
 import postgres from 'postgres';
 import { runMigrations } from '../src/infra/db/migrate.js';
 
-const adminUrl = process.env.ADMIN_DATABASE_URL ?? 'postgres://ehub:ehub@localhost:5432/ehub';
-const testUrl = process.env.TEST_DATABASE_URL ?? 'postgres://ehub:ehub@localhost:5432/ehub_test';
+const adminUrl = process.env.ADMIN_DATABASE_URL ?? 'postgres://spolu:spolu@localhost:5432/spolu';
+const testUrl = process.env.TEST_DATABASE_URL ?? 'postgres://spolu:spolu@localhost:5432/spolu_test';
 
 // Vitest globalSetup: create the test database if missing, then migrate it.
 export default async function setup(): Promise<void> {

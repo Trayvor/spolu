@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { HealthResponseSchema } from '@ehub/shared';
+import { HealthResponseSchema } from '@spolu/shared';
 import { ApiError, apiGet } from './api';
 
 function mockFetch(status: number, body: string) {

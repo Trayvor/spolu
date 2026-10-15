@@ -4,7 +4,7 @@ Date: 2026-10-15
 Status: accepted
 
 ## Context
-eHub holds client conversations, files and contracts. Storing client data in third-party SaaS databases or storage is unacceptable for us.
+Spolu holds client conversations, files and contracts. Storing client data in third-party SaaS databases or storage is unacceptable for us.
 
 ## Decision
 - All data (database, files, job queue) lives on infrastructure we run: Docker Compose on our own server (test: Oracle Cloud Free Tier VM).

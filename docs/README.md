@@ -1,6 +1,6 @@
-# eHub documentation
+# Spolu documentation
 
-eHub is the eGrant team's internal web app for working with clients: group chat, direct messages, task boards, support tickets from eGrant, and contracts. It replaces Teams for client communication. These docs are the source of truth for requirements, architecture and decisions, written for AI agents first and readable by the owner.
+Spolu is the eGrant team's internal web app for working with clients: group chat, direct messages, task boards, support tickets from eGrant, and contracts. It replaces Teams for client communication. These docs are the source of truth for requirements, architecture and decisions, written for AI agents first and readable by the owner.
 
 ## Reading order for a newcomer
 

@@ -4,7 +4,7 @@ Date: 2026-10-15
 Status: accepted
 
 ## Context
-eHub is built and maintained by one person working with AI agents. The stack must be one that agents write reliably, and the compiler should catch breakage between client and server.
+Spolu is built and maintained by one person working with AI agents. The stack must be one that agents write reliably, and the compiler should catch breakage between client and server.
 
 ## Decision
 - One git repo with pnpm workspaces: `apps/web`, `apps/server`, `packages/shared`.

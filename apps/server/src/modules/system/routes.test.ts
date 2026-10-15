@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { FastifyInstance } from 'fastify';
-import { HealthResponseSchema } from '@ehub/shared';
+import { HealthResponseSchema } from '@spolu/shared';
 import { buildApp } from '../../app.js';
 import { createDb } from '../../infra/db/client.js';
 import { testConfig, testDatabaseUrl } from '../../../test/test-config.js';

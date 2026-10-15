@@ -4,7 +4,7 @@ import { createDb, pingDb } from './client.js';
 import { runMigrations } from './migrate.js';
 import { appMeta } from './schema.js';
 
-const testUrl = process.env.TEST_DATABASE_URL ?? 'postgres://ehub:ehub@localhost:5432/ehub_test';
+const testUrl = process.env.TEST_DATABASE_URL ?? 'postgres://spolu:spolu@localhost:5432/spolu_test';
 
 describe('database layer', () => {
   const { db, close } = createDb(testUrl);

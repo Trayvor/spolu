@@ -8,7 +8,7 @@ import { registerStatic } from './static.js';
 import { createDb } from './infra/db/client.js';
 import { testConfig, testDatabaseUrl } from '../test/test-config.js';
 
-const INDEX = '<!doctype html><title>eHub</title>';
+const INDEX = '<!doctype html><title>Spolu</title>';
 
 describe('static web serving', () => {
   const { db, close } = createDb(testDatabaseUrl);
@@ -17,7 +17,7 @@ describe('static web serving', () => {
   let plain: FastifyInstance;
 
   beforeAll(async () => {
-    dir = await mkdtemp(join(tmpdir(), 'ehub-web-'));
+    dir = await mkdtemp(join(tmpdir(), 'spolu-web-'));
     await mkdir(join(dir, 'assets'));
     await writeFile(join(dir, 'index.html'), INDEX);
     await writeFile(join(dir, 'assets', 'a.js'), 'console.log(1)');

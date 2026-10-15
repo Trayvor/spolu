@@ -1,5 +1,5 @@
 {
-  "name": "@ehub/shared",
+  "name": "@spolu/shared",
   "private": true,
   "type": "module",
   "exports": {

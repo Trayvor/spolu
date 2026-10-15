@@ -16,7 +16,7 @@ describe('disk storage', () => {
   let dir: string;
   let storage: Storage;
   beforeEach(async () => {
-    dir = await mkdtemp(join(tmpdir(), 'ehub-storage-'));
+    dir = await mkdtemp(join(tmpdir(), 'spolu-storage-'));
     storage = createDiskStorage(dir, 'test-secret');
   });
   afterEach(async () => {

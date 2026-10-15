@@ -1,10 +1,10 @@
 # Product requirements
 
-Requirements for eHub, one topic per file. Written for AI agents and the product owner. Phase numbers follow `docs/roadmap.md`.
+Requirements for Spolu, one topic per file. The product name is "Spolu" (full brand "Spolu by eGrant"), formerly the working title eHub. Written for AI agents and the product owner. Phase numbers follow `docs/roadmap.md`.
 
 | file | what it covers | phase(s) |
 |---|---|---|
-| `overview.md` | what eHub is, general principles, out of scope | all |
+| `overview.md` | what Spolu is, general principles, out of scope | all |
 | `roles-and-access.md` | Administrator and Client roles, what each sees | 2, 3, 14 |
 | `auth.md` | invite registration, email-code login, superadmin, admins, optional password | 2, 3, 16 |
 | `groups.md` | groups, fields, invite links, members, removing a client | 3 |

@@ -2,7 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import type { Server as SocketIOServer } from 'socket.io';
 import { io as connect, type Socket } from 'socket.io-client';
-import { SocketEvents, type PingAck } from '@ehub/shared';
+import { SocketEvents, type PingAck } from '@spolu/shared';
 import { buildApp } from '../../app.js';
 import { createDb } from '../db/client.js';
 import { attachSocket } from './socket.js';

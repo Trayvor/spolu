@@ -1,5 +1,5 @@
 {
-  "name": "@ehub/server",
+  "name": "@spolu/server",
   "private": true,
   "type": "module",
   "scripts": {
@@ -12,7 +12,7 @@
     "db:generate": "drizzle-kit generate"
   },
   "dependencies": {
-    "@ehub/shared": "workspace:*",
+    "@spolu/shared": "workspace:*",
     "@fastify/static": "^10.1.6",
     "drizzle-orm": "^0.45.4",
     "fastify": "^5.12.7",

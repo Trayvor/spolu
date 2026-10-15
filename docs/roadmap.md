@@ -191,7 +191,7 @@ Requirements: [tickets](product/tickets.md).
 
 Scope:
 - An admin replies to a ticket from the UI.
-- The reply is stored in the ticket (visible in eHub).
+- The reply is stored in the ticket (visible in Spolu).
 - Email via Elastic Email to the client (email from the ticket) with the manager in copy, so "Reply all" reaches the manager.
 
 Done when: the client receives an email with the reply and the conversation is visible in the ticket.

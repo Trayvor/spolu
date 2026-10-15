@@ -8,7 +8,7 @@ export default defineConfig({
   platform: 'node',
   clean: true,
   // Workspace packages are TypeScript source, so they are bundled; npm dependencies stay external.
-  noExternal: ['@ehub/shared'],
+  noExternal: ['@spolu/shared'],
   // runMigrations resolves ./migrations next to the running file: src/infra/db/ in dev, dist/ in the bundle.
   onSuccess: async () => {
     await cp('src/infra/db/migrations', 'dist/migrations', { recursive: true });

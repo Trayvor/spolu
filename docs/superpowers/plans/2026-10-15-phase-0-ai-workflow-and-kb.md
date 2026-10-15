@@ -43,7 +43,7 @@
 - [ ] **Step 3:** Write `.gitattributes` with `* text=auto eol=lf` and `*.sh text eol=lf`.
 - [ ] **Step 4:** Write a 10-line `README.md`: one-sentence purpose, "Start here: docs/README.md", "Working with AI: CLAUDE.md".
 - [ ] **Step 5:** Commit: `git add -A && git commit -m "chore: initialize repository with spec and design"` (includes current `SPEC.md`, `ROADMAP.md`, `docs/superpowers/**`, `.claude/settings.json`).
-- [ ] **Step 6:** Ask the owner for the GitHub owner/repo name (default `ehub`, private). Run `gh auth status`; if not logged in, ask the owner to run `! gh auth login`. Then `gh repo create <owner>/<name> --private --source . --remote origin --push`.
+- [ ] **Step 6:** Ask the owner for the GitHub owner/repo name (default `spolu`, private). Run `gh auth status`; if not logged in, ask the owner to run `! gh auth login`. Then `gh repo create <owner>/<name> --private --source . --remote origin --push`.
 - [ ] **Step 7:** Verify: `git remote -v` shows origin; `gh repo view --json visibility` returns `PRIVATE`.
 
 ---
@@ -84,7 +84,7 @@
 - [ ] **Step 2:** `docs/glossary.md`: alphabetical terms with one-line definitions — admin, superadmin, client, group, member, invite link, channel, message, thread, mention, seq, read state, bucket, task, task chat, ticket, contract, draft contract, reminder, egrant URL (and normalization), API key, PWA, OTP code, session.
 - [ ] **Step 3:** `docs/design/README.md`: the design rule (Global Constraints wording), how to use `frontend-design` for each kind of work, and "Tokens: filled in Phase 1 — will live in `apps/web/src/styles/theme.css` and `docs/design/tokens.md`".
 - [ ] **Step 4:** Runbook stubs: each file has a title, one sentence of purpose, and `> To be written in Phase 1.` `docs/runbooks/README.md` lists them.
-- [ ] **Step 5:** `docs/README.md`: what eHub is (3 sentences), reading order for a newcomer (README → product/overview → architecture/overview → roadmap), a directory map table for every folder in `docs/`, and "How docs are maintained" (every change updates docs in the same commit via the `update-kb` skill).
+- [ ] **Step 5:** `docs/README.md`: what Spolu is (3 sentences), reading order for a newcomer (README → product/overview → architecture/overview → roadmap), a directory map table for every folder in `docs/`, and "How docs are maintained" (every change updates docs in the same commit via the `update-kb` skill).
 - [ ] **Step 6:** `git rm ROADMAP.md`; commit `docs: add roadmap, glossary, design rule, runbook stubs`.
 
 ---
@@ -160,7 +160,7 @@
 
 ### Task 7: Phase verification
 
-- [ ] **Step 1:** Dispatch a fresh general-purpose subagent with only: "Using only files in this repository, answer: (1) what eHub is and who uses it, (2) the runtime architecture and why there is no Redis, (3) what Phase 1 delivers and how it is verified, (4) the rule for UI design, (5) what you must do after changing code. Cite file paths." Expected: all five correct and consistent with the design doc; fix docs where the answers are wrong or missing.
+- [ ] **Step 1:** Dispatch a fresh general-purpose subagent with only: "Using only files in this repository, answer: (1) what Spolu is and who uses it, (2) the runtime architecture and why there is no Redis, (3) what Phase 1 delivers and how it is verified, (4) the rule for UI design, (5) what you must do after changing code. Cite file paths." Expected: all five correct and consistent with the design doc; fix docs where the answers are wrong or missing.
 - [ ] **Step 2:** `grep -rn "[А-Яа-яІіЇїЄєҐґ]" docs CLAUDE.md .claude/skills README.md --include=*.md | grep -v docs/superpowers` → no output (English everywhere; the brainstorm-era files under `docs/superpowers` are exempt).
 - [ ] **Step 3:** Set Phase 0 status `done` in `docs/roadmap.md`, commit `docs: complete phase 0`, `git push`.
 - [ ] **Step 4:** Tell the owner to read `docs/README.md` → `docs/architecture/overview.md` and confirm they understand the system (Phase 0 "Done when").

@@ -1,4 +1,4 @@
-# eHub — Foundation Design (Phase 0 & Phase 1, plus target architecture)
+# Spolu — Foundation Design (Phase 0 & Phase 1, plus target architecture)
 
 Date: 2026-10-15 · Status: draft for approval
 
@@ -12,7 +12,7 @@ and the "Technical base" section of `SPEC.md` disagree, this document wins.
 
 ## 1. Intent
 
-eHub replaces Microsoft Teams for communication between our company (admins) and
+Spolu replaces Microsoft Teams for communication between our company (admins) and
 our clients (organizations using eGrant). Each client organization gets a group
 with chat, task board, support tickets; admins additionally manage contracts.
 
@@ -87,7 +87,7 @@ this scale; each can be introduced later behind the existing interfaces).
 
 ## 4a. Visual design
 
-- **eHub must look like https://egrant.sk** — our company website. Colors, typography,
+- **Spolu must look like https://egrant.sk** — our company website. Colors, typography,
   spacing, buttons, form controls, cards, icons style, logo usage: replicate that
   design, adapted to an app (chat, boards, lists) where the website has no equivalent.
 - **All design work goes through the `frontend-design` plugin skill — mandatory.**
@@ -226,7 +226,7 @@ Each phase after 1 gets its own short design/plan when it starts.
 4. Project skills in `.claude/skills/`. They **build on the superpowers plugin**
    (enabled in the project's `.claude/settings.json`, so every fresh session has it):
    brainstorming, writing-plans, TDD, code review come from superpowers; project
-   skills add eHub-specific steps. Per-phase designs and plans live in
+   skills add Spolu-specific steps. Per-phase designs and plans live in
    `docs/superpowers/specs/` and `docs/superpowers/plans/`, linked from `docs/roadmap.md`.
    - `update-kb` — after a change: find affected docs (product, architecture,
      data model, runbooks, roadmap status), update them, add an ADR if a decision was made.

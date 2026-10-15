@@ -6,7 +6,7 @@ Terms used across the docs and code, in alphabetical order.
 - **ADR**: architecture decision record, a short file in `docs/decisions/` that records one decision and why it was made.
 - **API key**: a secret token that eGrant sends with each ticket request to prove who it is.
 - **bucket**: a column on a task board (for example "To do"). Tasks live in buckets and can be reordered.
-- **channel**: a place where messages are posted. In eHub: a group chat, a direct message chat or a task chat.
+- **channel**: a place where messages are posted. In Spolu: a group chat, a direct message chat or a task chat.
 - **client**: a person from a customer organization. Sees only their own group.
 - **contract**: a record of an agreement with a client (dates, amount, files, notes). Admin-only.
 - **draft contract**: the prepared next contract for a client, with the same fields as a contract.
@@ -26,9 +26,10 @@ Terms used across the docs and code, in alphabetical order.
 - **room**: a Socket.IO room; users join rooms to receive live events for a group, DM or task channel.
 - **seq**: a per-channel increasing number on each message. Clients use it to find and load messages missed during a disconnect.
 - **session**: a long-lived login on one device, kept after the code is entered.
+- **Spolu**: the product name (Slovak for "together"); full brand "Spolu by eGrant". Formerly the working title eHub.
 - **superadmin**: the first admin, created automatically at first start from `SUPERADMIN_EMAIL`. Cannot be deleted or demoted; creates other admins.
 - **task**: a card on the task board with title, description, assignee, deadline, priority and labels.
 - **task chat**: the discussion inside one task, with threads, mentions and attachments.
-- **test environment**: the Oracle Cloud VM where eHub is deployed for checks before real use; environment name `test`.
+- **test environment**: the Oracle Cloud VM where Spolu is deployed for checks before real use; environment name `test`.
 - **thread**: replies grouped under one message.
 - **ticket**: a support request sent from eGrant, with a status (New / In progress / Resolved), shown in the matching group or in the global list.

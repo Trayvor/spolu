@@ -1,7 +1,7 @@
 import type { Config } from '../src/infra/config/config.js';
 
 export const testDatabaseUrl =
-  process.env.TEST_DATABASE_URL ?? 'postgres://ehub:ehub@localhost:5432/ehub_test';
+  process.env.TEST_DATABASE_URL ?? 'postgres://spolu:spolu@localhost:5432/spolu_test';
 
 /** A valid Config for tests; override fields as needed. */
 export function testConfig(overrides: Partial<Config> = {}): Config {
@@ -15,7 +15,7 @@ export function testConfig(overrides: Partial<Config> = {}): Config {
     appVersion: 'test-sha',
     filesDir: './data/files',
     webDistDir: undefined,
-    email: { driver: 'smtp', host: 'localhost', port: 1025, from: 'eHub <noreply@example.com>' },
+    email: { driver: 'smtp', host: 'localhost', port: 1025, from: 'Spolu <noreply@example.com>' },
     ...overrides,
   };
 }

@@ -1,6 +1,6 @@
-# eHub
+# Spolu
 
-eHub is the eGrant team's internal web app for client communication: group chat, direct messages, task boards, support tickets and contracts.
+Spolu is the eGrant team's internal web app for client communication: group chat, direct messages, task boards, support tickets and contracts.
 It replaces Microsoft Teams. TypeScript monorepo (Fastify + PostgreSQL + Socket.IO server, React PWA client), self-hosted.
 
 ## Read first
@@ -40,9 +40,9 @@ Available now:
 - `bash scripts/tests/docs-reminder.test.sh` — tests for the Stop hook.
 - `bash scripts/check-docs.sh <base-ref>` — warns when code changed without docs.
 - `docker compose -f docker-compose.dev.yml up -d --wait` — local PostgreSQL 17 (5432) and Mailpit (SMTP 1025, UI 8025). Server tests need it running.
-- `pnpm --filter @ehub/server dev` — run the server with reload, reading the root `.env`; `... build` bundles it to `dist/`.
-- `pnpm --filter @ehub/web dev` — Vite dev server on :5173, proxying `/api` and `/socket.io` to the server on :3000; `... build` writes `apps/web/dist`; `... test` runs Vitest (jsdom).
-- `pnpm --filter @ehub/server db:generate` — generate a migration after changing a `schema.ts`.
+- `pnpm --filter @spolu/server dev` — run the server with reload, reading the root `.env`; `... build` bundles it to `dist/`.
+- `pnpm --filter @spolu/web dev` — Vite dev server on :5173, proxying `/api` and `/socket.io` to the server on :3000; `... build` writes `apps/web/dist`; `... test` runs Vitest (jsdom).
+- `pnpm --filter @spolu/server db:generate` — generate a migration after changing a `schema.ts`.
 
 App commands (`pnpm test`, `pnpm test:e2e`, dev, build) arrive in Phase 1.
 

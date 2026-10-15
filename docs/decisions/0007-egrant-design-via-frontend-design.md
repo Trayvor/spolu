@@ -4,7 +4,7 @@ Date: 2026-10-15
 Status: accepted
 
 ## Context
-We do not want to invent a visual identity. eHub should look like our company website https://egrant.sk, adapted to an app (chat, boards, lists).
+We do not want to invent a visual identity. Spolu should look like our company website https://egrant.sk, adapted to an app (chat, boards, lists).
 
 ## Decision
 - Replicate the egrant.sk look: colors, typography, spacing, buttons, forms, cards, icons, logo usage.

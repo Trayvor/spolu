@@ -1,13 +1,13 @@
 ---
 name: update-kb
-description: Use when you have changed code, config, infra or behavior in eHub and are about to commit, when a phase or task finishes, or when a hook says "Run the update-kb skill". Applies to every change, including small fixes, refactors and dependency bumps.
+description: Use when you have changed code, config, infra or behavior in Spolu and are about to commit, when a phase or task finishes, or when a hook says "Run the update-kb skill". Applies to every change, including small fixes, refactors and dependency bumps.
 ---
 
 # Update the knowledge base
 
 ## Overview
 
-`docs/` is the source of truth for eHub. The code and the docs that describe it change in the **same commit**. A later agent reads only `docs/` to understand the system, so stale docs are a bug.
+`docs/` is the source of truth for Spolu. The code and the docs that describe it change in the **same commit**. A later agent reads only `docs/` to understand the system, so stale docs are a bug.
 
 Run this after any change to code, config, infra or behavior, before committing.
 

@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { Server as SocketIOServer } from 'socket.io';
-import { SocketEvents, type PingAck } from '@ehub/shared';
+import { SocketEvents, type PingAck } from '@spolu/shared';
 import type { Config } from '../config/config.js';
 
 /** Attaches Socket.IO to the Fastify HTTP server. Sockets only push; writes go through HTTP. */

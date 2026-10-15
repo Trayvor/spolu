@@ -54,7 +54,7 @@
 ### Task 2: `packages/shared`
 
 **Files:**
-- Create: `packages/shared/package.json` (name `@ehub/shared`), `tsconfig.json`, `src/index.ts`, `src/health.ts`, `src/socket.ts`, `src/health.test.ts`
+- Create: `packages/shared/package.json` (name `@spolu/shared`), `tsconfig.json`, `src/index.ts`, `src/health.ts`, `src/socket.ts`, `src/health.test.ts`
 
 **Interfaces:**
 - Produces:
@@ -63,7 +63,7 @@
 - Consumed as source by server and web (`"exports": {".": "./src/index.ts"}`; server bundles it at build).
 
 - [ ] **Step 1: Failing test** `health.test.ts`: `HealthResponseSchema.parse({status:'ok',db:'ok',version:'abc'})` succeeds; `{status:'fine',...}` throws; missing `version` throws.
-- [ ] **Step 2:** `pnpm --filter @ehub/shared test` → FAIL.
+- [ ] **Step 2:** `pnpm --filter @spolu/shared test` → FAIL.
 - [ ] **Step 3:** Implement `health.ts`, `socket.ts`, re-export from `index.ts`.
 - [ ] **Step 4:** Test → PASS. Commit `feat(shared): add health schema and socket event names`.
 
@@ -72,7 +72,7 @@
 ### Task 3: Server config
 
 **Files:**
-- Create: `apps/server/package.json` (name `@ehub/server`), `tsconfig.json`, `vitest.config.ts`, `src/infra/config/config.ts`, `src/infra/config/config.test.ts`, `.env.example` (repo root)
+- Create: `apps/server/package.json` (name `@spolu/server`), `tsconfig.json`, `vitest.config.ts`, `src/infra/config/config.ts`, `src/infra/config/config.test.ts`, `.env.example` (repo root)
 
 **Interfaces:**
 - Produces `loadConfig(env: NodeJS.ProcessEnv): Config` (throws `ConfigError` whose message lists every invalid variable name) and `type Config`:
@@ -85,7 +85,7 @@
   - missing `DATABASE_URL` and short `APP_SECRET` → one error naming both;
   - `SUPERADMIN_EMAIL=not-an-email` → throws naming it.
 - [ ] **Step 2:** Run → FAIL. **Step 3:** Implement with a zod schema + discriminated union on `EMAIL_DRIVER`. **Step 4:** Run → PASS.
-- [ ] **Step 5:** `.env.example` documents every variable above plus `DOMAIN` and `POSTGRES_PASSWORD` (used by compose/Caddy), each with a one-line comment and dev defaults (`DATABASE_URL=postgres://ehub:ehub@localhost:5432/ehub`, `SMTP_HOST=localhost`, `SMTP_PORT=1025`).
+- [ ] **Step 5:** `.env.example` documents every variable above plus `DOMAIN` and `POSTGRES_PASSWORD` (used by compose/Caddy), each with a one-line comment and dev defaults (`DATABASE_URL=postgres://spolu:spolu@localhost:5432/spolu`, `SMTP_HOST=localhost`, `SMTP_PORT=1025`).
 - [ ] **Step 6:** Commit `feat(server): validated env config`.
 
 ---
@@ -98,9 +98,9 @@
 **Interfaces:**
 - Produces: `createDb(databaseUrl: string): { db: Db; close(): Promise<void> }` (drizzle over postgres.js); `runMigrations(databaseUrl: string): Promise<void>`; `pingDb(db: Db): Promise<boolean>` (runs `select 1`, false on error, 2s timeout).
 - `schema.ts` defines `appMeta` table (`key text primary key`, `value text not null`) — baseline migration only.
-- Test DB: `ehub_test` on the dev Postgres; `setup-db.ts` (Vitest globalSetup) creates it if missing and runs migrations. Env `TEST_DATABASE_URL` default `postgres://ehub:ehub@localhost:5432/ehub_test`.
+- Test DB: `spolu_test` on the dev Postgres; `setup-db.ts` (Vitest globalSetup) creates it if missing and runs migrations. Env `TEST_DATABASE_URL` default `postgres://spolu:spolu@localhost:5432/spolu_test`.
 
-- [ ] **Step 1:** `docker-compose.dev.yml`: `postgres:17` (user/pass/db `ehub`, port 5432, named volume, healthcheck `pg_isready`), `axllent/mailpit` (ports 1025, 8025). Verify `docker compose -f docker-compose.dev.yml up -d --wait` succeeds.
+- [ ] **Step 1:** `docker-compose.dev.yml`: `postgres:17` (user/pass/db `spolu`, port 5432, named volume, healthcheck `pg_isready`), `axllent/mailpit` (ports 1025, 8025). Verify `docker compose -f docker-compose.dev.yml up -d --wait` succeeds.
 - [ ] **Step 2: Failing tests** `db.test.ts`: after migrations, `insert into app_meta` + select round-trips; `pingDb` true on the test DB; `pingDb` false for `postgres://x:x@localhost:1/x`.
 - [ ] **Step 3:** Run → FAIL. **Step 4:** Implement; generate migration with `drizzle-kit generate`; `runMigrations` uses `drizzle-orm/postgres-js/migrator` with the migrations folder resolved relative to the file (works in `dist` too — copy migrations in build).
 - [ ] **Step 5:** Run → PASS. Commit `feat(server): database client, migrations, dev compose`.
@@ -172,11 +172,11 @@
 
 **Interfaces:**
 - Produces: `startJobs(databaseUrl: string): Promise<PgBoss>`; `registerStatic(app: FastifyInstance, webDistDir: string): Promise<void>` — serves files, falls back to `index.html` for non-`/api`, non-`/socket.io`, non-file GET requests; `main.ts` order: `loadConfig(process.env)` (on error: print message, exit 1) → `runMigrations` → `createDb` → `startJobs` → `buildApp` → `registerStatic` if `webDistDir` → `attachSocket` → listen `0.0.0.0:port`; SIGTERM/SIGINT → close app, boss, db.
-- Server scripts: `dev` (`tsx watch src/main.ts`, loads root `.env`), `build` (bundle to `dist/main.js` incl. `@ehub/shared`, copy migrations), `start`, `test`.
+- Server scripts: `dev` (`tsx watch src/main.ts`, loads root `.env`), `build` (bundle to `dist/main.js` incl. `@spolu/shared`, copy migrations), `start`, `test`.
 
 - [ ] **Step 1: Failing tests:** jobs — `startJobs` then `boss.send('test-job',{a:1})` + `boss.work` receives `{a:1}` within 5s; static — temp dir with `index.html` + `assets/a.js`: `GET /` and `GET /settings` → index.html (200, text/html), `GET /assets/a.js` → the file, `GET /api/nope` → JSON 404 (not index.html).
 - [ ] **Step 2:** FAIL → **Step 3:** implement → **Step 4:** PASS.
-- [ ] **Step 5:** Manual: `cp .env.example .env`, `pnpm --filter @ehub/server dev`; `curl localhost:3000/api/health` → `{"status":"ok",...}`. Unset `DATABASE_URL` → process exits 1 printing `DATABASE_URL`.
+- [ ] **Step 5:** Manual: `cp .env.example .env`, `pnpm --filter @spolu/server dev`; `curl localhost:3000/api/health` → `{"status":"ok",...}`. Unset `DATABASE_URL` → process exits 1 printing `DATABASE_URL`.
 - [ ] **Step 6:** Commit `feat(server): entrypoint with jobs and static serving`.
 
 ---
@@ -200,15 +200,15 @@
 ### Task 11: Web app scaffold
 
 **Files:**
-- Create: `apps/web/package.json` (name `@ehub/web`), `vite.config.ts`, `tsconfig.json`, `index.html`, `components.json` (shadcn), `src/main.tsx`, `src/router.tsx`, `src/routes/root.tsx`, `src/routes/home.tsx`, `src/lib/api.ts`, `src/lib/socket.ts`, `src/styles/index.css`, `vitest.config.ts`, `src/test/setup.ts`
+- Create: `apps/web/package.json` (name `@spolu/web`), `vite.config.ts`, `tsconfig.json`, `index.html`, `components.json` (shadcn), `src/main.tsx`, `src/router.tsx`, `src/routes/root.tsx`, `src/routes/home.tsx`, `src/lib/api.ts`, `src/lib/socket.ts`, `src/styles/index.css`, `vitest.config.ts`, `src/test/setup.ts`
 
 **Interfaces:**
-- Consumes: `theme.css` (Task 10), `@ehub/shared`.
+- Consumes: `theme.css` (Task 10), `@spolu/shared`.
 - Produces: `apiGet<T>(path: string, schema: ZodType<T>): Promise<T>` (fetch `/api${path}`, credentials `include`, parses with schema; health 503 still returns parsed body); `getSocket(): Socket` (singleton, same origin); routes `/` (home) and a placeholder `/settings`; Vite dev proxy `/api` and `/socket.io` (ws) → `http://localhost:3000`.
 
 - [ ] **Step 1:** Scaffold Vite React-TS, Tailwind v4 (`@tailwindcss/vite`), shadcn init using the CSS variables from `theme.css`; add shadcn `button`, `card`, `badge`, `dropdown-menu`.
 - [ ] **Step 2: Failing test** `api.test.ts`: `apiGet('/health', HealthResponseSchema)` with mocked fetch returning 503 + degraded body resolves to the degraded object; returning malformed JSON rejects.
-- [ ] **Step 3:** FAIL → implement → PASS. `pnpm --filter @ehub/web build` succeeds.
+- [ ] **Step 3:** FAIL → implement → PASS. `pnpm --filter @spolu/web build` succeeds.
 - [ ] **Step 4:** Commit `feat(web): scaffold vite react app with router, query, shadcn`.
 
 ---
@@ -219,9 +219,9 @@
 - Create: `src/i18n/index.ts`, `src/i18n/detect.ts`, `src/i18n/detect.test.ts`, `src/locales/en.json`, `src/locales/sk.json`, `src/components/language-switcher.tsx`, `src/components/language-switcher.test.tsx`
 
 **Interfaces:**
-- Produces: `detectInitialLanguage(stored: string | null, navigatorLanguages: readonly string[]): 'sk' | 'en'`; storage key `ehub.lang`; `<LanguageSwitcher />` (dropdown with "Slovenčina" / "English"), sets `i18n.changeLanguage`, `localStorage`, and `document.documentElement.lang`.
+- Produces: `detectInitialLanguage(stored: string | null, navigatorLanguages: readonly string[]): 'sk' | 'en'`; storage key `spolu.lang`; `<LanguageSwitcher />` (dropdown with "Slovenčina" / "English"), sets `i18n.changeLanguage`, `localStorage`, and `document.documentElement.lang`.
 
-- [ ] **Step 1: Failing tests:** `detectInitialLanguage('en', ['sk-SK'])` → `'en'`; `(null, ['sk-SK','en'])` → `'sk'`; `(null, ['de-DE'])` → `'en'`; `('xx', ['sk'])` → `'sk'` (invalid stored ignored). Switcher test: choosing English updates rendered text from the SK string to the EN string and writes `ehub.lang=en`.
+- [ ] **Step 1: Failing tests:** `detectInitialLanguage('en', ['sk-SK'])` → `'en'`; `(null, ['sk-SK','en'])` → `'sk'`; `(null, ['de-DE'])` → `'en'`; `('xx', ['sk'])` → `'sk'` (invalid stored ignored). Switcher test: choosing English updates rendered text from the SK string to the EN string and writes `spolu.lang=en`.
 - [ ] **Step 2:** FAIL → implement → PASS.
 - [ ] **Step 3:** Add a key-parity test: `en.json` and `sk.json` have identical key sets.
 - [ ] **Step 4:** Commit `feat(web): i18n sk/en with persisted switcher`.
@@ -236,13 +236,13 @@
 
 **Interfaces:**
 - Consumes: `apiGet`, `getSocket`, `SocketEvents`, `LanguageSwitcher`, theme tokens.
-- Produces: home page = header (eHub logo/wordmark in egrant.sk style + language switcher) and a status card showing: server version, DB status badge (ok/down), socket status (`connected` after successful `system:ping` round-trip, `disconnected` otherwise, with last ping time).
+- Produces: home page = header (Spolu logo/wordmark in egrant.sk style + language switcher) and a status card showing: server version, DB status badge (ok/down), socket status (`connected` after successful `system:ping` round-trip, `disconnected` otherwise, with last ping time).
 
 - [ ] **Step 1:** Invoke `frontend-design:frontend-design` for the header and status card, using `docs/design/tokens.md`.
 - [ ] **Step 2: Failing test** `status-card.test.tsx`: mocked `apiGet` returning ok + a fake socket whose ping acks → shows translated "Database: OK" and "Realtime: connected"; health degraded → shows "Database: unavailable" with destructive badge.
 - [ ] **Step 3:** FAIL → implement → PASS.
-- [ ] **Step 4:** PWA: `registerType: 'autoUpdate'`, manifest `name: "eHub"`, `short_name: "eHub"`, `display: "standalone"`, `start_url: "/"`, `theme_color`/`background_color` from tokens, icons from `public/icons`; `navigateFallbackDenylist: [/^\/api/, /^\/socket\.io/]`. `generate-icons.mjs` builds icons from the brand asset with sharp.
-- [ ] **Step 5:** `pnpm --filter @ehub/web build` → `dist/manifest.webmanifest` and `dist/sw.js` exist.
+- [ ] **Step 4:** PWA: `registerType: 'autoUpdate'`, manifest `name: "Spolu by eGrant"`, `short_name: "Spolu"`, `display: "standalone"`, `start_url: "/"`, `theme_color`/`background_color` from tokens, icons from `public/icons`; `navigateFallbackDenylist: [/^\/api/, /^\/socket\.io/]`. `generate-icons.mjs` builds icons from the brand asset with sharp.
+- [ ] **Step 5:** `pnpm --filter @spolu/web build` → `dist/manifest.webmanifest` and `dist/sw.js` exist.
 - [ ] **Step 6:** Commit `feat(web): shell page with status card, installable pwa`.
 
 ---
@@ -256,7 +256,7 @@
 **Interfaces:**
 - Root `pnpm dev` → server + web in parallel (web on 5173 proxying to 3000). `pnpm test:e2e` → Playwright against a production-like run: build all, start `node apps/server/dist/main.js` with `WEB_DIST_DIR=apps/web/dist` on port 3000 (Playwright `webServer`).
 
-- [ ] **Step 1: Write** `smoke.spec.ts`: open `/` → status card shows DB OK and realtime connected within 10s; switch to English → header text changes to EN and persists after reload; `GET /settings` directly renders the app (no 404); `/manifest.webmanifest` returns JSON with `name: "eHub"`.
+- [ ] **Step 1: Write** `smoke.spec.ts`: open `/` → status card shows DB OK and realtime connected within 10s; switch to English → header text changes to EN and persists after reload; `GET /settings` directly renders the app (no 404); `/manifest.webmanifest` returns JSON with `name: "Spolu by eGrant"`.
 - [ ] **Step 2:** `pnpm test:e2e` → PASS (dev compose running).
 - [ ] **Step 3:** `CLAUDE.md` Commands: `docker compose -f docker-compose.dev.yml up -d`, `pnpm dev`, `pnpm test`, `pnpm test:e2e`, `pnpm lint`, `pnpm typecheck`, Mailpit UI `http://localhost:8025`.
 - [ ] **Step 4:** Commit `test: e2e smoke and dev command`.
@@ -286,9 +286,9 @@
 
 **Interfaces:**
 - `ci.sh` — `pnpm install --frozen-lockfile`, start `docker-compose.dev.yml` (`--wait`), `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm exec playwright install --with-deps chromium`, `pnpm test:e2e`, `scripts/check-docs.sh "${CI_BASE_REF:-origin/main}"`; tears down compose on exit (trap).
-- `build-image.sh <tag>` — env `IMAGE` (e.g. `ghcr.io/<owner>/ehub`), registry login done by caller; `docker buildx build --platform linux/amd64,linux/arm64 --build-arg APP_VERSION=<tag> -t $IMAGE:<tag> --push .`
-- `deploy.sh <env> <tag>` — needs `DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_SSH_KEY` (path), `IMAGE`, and the env file content in `DEPLOY_ENV_FILE` (path); copies `deploy/docker-compose.yml`, `Caddyfile`, `backup/`, env file → `/opt/ehub/<env>/`; remote: `docker login` (if `REGISTRY_TOKEN` set), `TAG=<tag> docker compose pull && up -d --remove-orphans`; then polls `https://$DOMAIN/api/health` up to 120s until `version == <tag>`; non-zero exit on timeout.
-- `server-setup.sh` — run once as root on the VM: detects Ubuntu vs Oracle Linux; installs Docker Engine + compose plugin; opens 80/tcp, 443/tcp, 443/udp in iptables/firewalld and persists rules; creates `deploy` user in `docker` group with the provided public key; creates `/opt/ehub`. Idempotent.
+- `build-image.sh <tag>` — env `IMAGE` (e.g. `ghcr.io/<owner>/spolu`), registry login done by caller; `docker buildx build --platform linux/amd64,linux/arm64 --build-arg APP_VERSION=<tag> -t $IMAGE:<tag> --push .`
+- `deploy.sh <env> <tag>` — needs `DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_SSH_KEY` (path), `IMAGE`, and the env file content in `DEPLOY_ENV_FILE` (path); copies `deploy/docker-compose.yml`, `Caddyfile`, `backup/`, env file → `/opt/spolu/<env>/`; remote: `docker login` (if `REGISTRY_TOKEN` set), `TAG=<tag> docker compose pull && up -d --remove-orphans`; then polls `https://$DOMAIN/api/health` up to 120s until `version == <tag>`; non-zero exit on timeout.
+- `server-setup.sh` — run once as root on the VM: detects Ubuntu vs Oracle Linux; installs Docker Engine + compose plugin; opens 80/tcp, 443/tcp, 443/udp in iptables/firewalld and persists rules; creates `deploy` user in `docker` group with the provided public key; creates `/opt/spolu`. Idempotent.
 - All scripts: `set -euo pipefail`, usage message on missing args, `shellcheck` clean.
 
 - [ ] **Step 1:** Write scripts; `shellcheck scripts/*.sh` → no errors.

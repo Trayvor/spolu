@@ -1,5 +1,5 @@
 import type { FastifyPluginAsync } from 'fastify';
-import type { HealthResponse } from '@ehub/shared';
+import type { HealthResponse } from '@spolu/shared';
 import type { Config } from '../../infra/config/config.js';
 import { pingDb, type Db } from '../../infra/db/client.js';
 

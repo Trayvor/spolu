@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
-import { HealthResponseSchema } from '@ehub/shared';
+import { HealthResponseSchema } from '@spolu/shared';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { apiGet } from '@/lib/api';

@@ -187,12 +187,12 @@ importers:
 
   apps/server:
     dependencies:
-      '@ehub/shared':
-        specifier: workspace:*
-        version: link:../../packages/shared
       '@fastify/static':
         specifier: ^10.1.6
         version: 10.1.6
+      '@spolu/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
       drizzle-orm:
         specifier: ^0.45.4
         version: 0.45.4(@opentelemetry/api@1.9.1)(pg@8.23.1)(postgres@3.4.9)
@@ -239,7 +239,7 @@ importers:
 
   apps/web:
     dependencies:
-      '@ehub/shared':
+      '@spolu/shared':
         specifier: workspace:*
         version: link:../../packages/shared
       '@tanstack/react-query':

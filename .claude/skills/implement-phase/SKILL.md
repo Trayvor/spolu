@@ -1,13 +1,13 @@
 ---
 name: implement-phase
-description: Use when starting, resuming or finishing a phase from docs/roadmap.md in eHub — for example "implement Phase 3", "start the next phase", "continue the chat phase", or when asked what to build next.
+description: Use when starting, resuming or finishing a phase from docs/roadmap.md in Spolu — for example "implement Phase 3", "start the next phase", "continue the chat phase", or when asked what to build next.
 ---
 
 # Implement a phase
 
 ## Overview
 
-Every eHub phase follows the same cycle: design, plan, test-driven implementation, docs, verification, roadmap status, then merge. The superpowers skills do the heavy lifting; this skill says which one to use when and adds the eHub-specific steps. Do not skip or reorder steps, and do not start code before steps 1–4 are done.
+Every Spolu phase follows the same cycle: design, plan, test-driven implementation, docs, verification, roadmap status, then merge. The superpowers skills do the heavy lifting; this skill says which one to use when and adds the Spolu-specific steps. Do not skip or reorder steps, and do not start code before steps 1–4 are done.
 
 To resume a phase, find the first unchecked step whose output is missing (no spec in `docs/superpowers/specs/`, no plan in `docs/superpowers/plans/`, status not `in progress`, and so on) and continue from there.
 

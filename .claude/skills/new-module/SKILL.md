@@ -1,13 +1,13 @@
 ---
 name: new-module
-description: Use when adding a new feature area to eHub — a server module under apps/server/src/modules/, a web feature under apps/web/src/features/, or new tables, routes or socket events that belong to no existing module (for example groups, chat, tasks, tickets, contracts).
+description: Use when adding a new feature area to Spolu — a server module under apps/server/src/modules/, a web feature under apps/web/src/features/, or new tables, routes or socket events that belong to no existing module (for example groups, chat, tasks, tickets, contracts).
 ---
 
 # Add a module
 
 ## Overview
 
-eHub's server is organised as modules by feature. Each module owns its routes, service logic, permission policy, DB tables, socket events and tests. The architecture is in `docs/architecture/overview.md`; this skill is the hands-on template.
+Spolu's server is organised as modules by feature. Each module owns its routes, service logic, permission policy, DB tables, socket events and tests. The architecture is in `docs/architecture/overview.md`; this skill is the hands-on template.
 
 **The folder layout below is authoritative from Phase 1; adjust this skill if Phase 1 changes it.**
 

@@ -1,6 +1,6 @@
 # Design tokens
 
-The eHub theme, extracted from https://egrant.sk on 2026-10-15. The values live in `apps/web/src/styles/theme.css`; this page says where each one came from and how components use them.
+The Spolu theme, extracted from https://egrant.sk on 2026-10-15. The values live in `apps/web/src/styles/theme.css`; this page says where each one came from and how components use them.
 
 ## Source and method
 
@@ -16,7 +16,7 @@ Reference screenshots (Playwright, Chromium, PNG compressed with pngquant) are i
 | `contact-desktop.png` | `/kontakt/` at 1440×900 | form fields, labels, accent-border contact block |
 | `demo-desktop.png` | `/demo/` at 1440×900 | form with submit button, screenshot of the eGrant app itself |
 
-egrant.sk has **no dark mode** (no `prefers-color-scheme` rule anywhere). eHub has none either; `theme.css` has no `.dark` block. Add one only if the owner asks.
+egrant.sk has **no dark mode** (no `prefers-color-scheme` rule anywhere). Spolu has none either; `theme.css` has no `.dark` block. Add one only if the owner asks.
 
 ## Colors
 
@@ -70,7 +70,7 @@ There is one family; no separate heading font, so no `--font-heading`.
 
 Font files are self-hosted in `apps/web/public/fonts/` (copied from `https://egrant.sk/app/themes/egrant/assets/fonts/`), about 56 KB each, `font-display: swap`. Each file contains latin and latin-ext; all Slovak diacritics are present (checked with fontTools). They do not contain Cyrillic.
 
-**License (open question for the owner):** Saans is a commercial font by Displaay Type Foundry; the files' license field forbids storing them on publicly accessible servers or redistributing them without a license. The owner must confirm that eGrant's Saans web license covers eHub (another domain and app). If it does not, delete the two files and the `@font-face` rules: the stack falls back to the system UI font with no other change.
+**License (open question for the owner):** Saans is a commercial font by Displaay Type Foundry; the files' license field forbids storing them on publicly accessible servers or redistributing them without a license. The owner must confirm that eGrant's Saans web license covers Spolu (another domain and app). If it does not, delete the two files and the `@font-face` rules: the stack falls back to the system UI font with no other change.
 
 Type scale (Tailwind `text-*` utilities; desktop value, then the value under 900px):
 
@@ -98,7 +98,7 @@ For the app, page titles should normally use `text-medium` or `text-large`; `tex
 | `rounded-nav` | 32px | `radius.nav` | header pill `.egrant-header__bar` |
 | `rounded-full` | pill | `radius.pill` / `80px` | every button, filter pill, language toggle (circle) |
 
-Dropdown panels use 20px and their items 14px; in eHub use `rounded-xl` and `rounded-lg` for those.
+Dropdown panels use 20px and their items 14px; in Spolu use `rounded-xl` and `rounded-lg` for those.
 
 ## Shadow
 
@@ -126,12 +126,12 @@ egrant.sk spacing presets are 4, 8, 12, 16, 20, 24, 32, 40, 48, 54, 64px — all
 - Secondary: `bg-secondary`, hover `bg-surface-3` (`.egrant-header__lang-toggle`, "Odoberať výzvy").
 - Icon button: 38×38 circle, `bg-secondary` (language toggle) or `bg-primary` (modal close/back).
 - Full-width submit: primary, `w-full` (`.egrant-modal__submit`).
-- shadcn's default button uses `rounded-md`; eHub's `src/components/ui/button.tsx` is already `rounded-full` with these variants (default, outline, secondary, ghost, link, destructive) and sizes (default 38px, sm, lg, icon). Badge is a pill too (extra `success` variant). Dropdown menu: `rounded-xl` panel, `rounded-lg` items, `shadow-lift`, no open/close animation.
+- shadcn's default button uses `rounded-md`; Spolu's `src/components/ui/button.tsx` is already `rounded-full` with these variants (default, outline, secondary, ghost, link, destructive) and sizes (default 38px, sm, lg, icon). Badge is a pill too (extra `success` variant). Dropdown menu: `rounded-xl` panel, `rounded-lg` items, `shadow-lift`, no open/close animation.
 
 ### Input
 
 - `bg-card`, `border-2 border-input`, `rounded-md`, padding `13px 18px`, `text-button` weight 500, text and placeholder `text-muted-foreground`.
-- Focus, or once filled: border and text turn `ink`. egrant.sk removes the outline (`.egrant-field__input:focus { outline: none }`), but eHub **keeps the global `:focus-visible` ring** on inputs as well (accessibility); do not remove it.
+- Focus, or once filled: border and text turn `ink`. egrant.sk removes the outline (`.egrant-field__input:focus { outline: none }`), but Spolu **keeps the global `:focus-visible` ring** on inputs as well (accessibility); do not remove it.
 - Label above the field, gap 10px: `text-micro` weight 600 `text-muted-foreground`; turns `ink` when the field is focused or filled.
 - Error: border `destructive`, text and placeholder `error-ink`, message 8px under the field in `text-nano`/`text-micro`.
 - Select and search look the same as the input (2px border, 8px radius, chevron or search icon inside).
@@ -154,7 +154,7 @@ egrant.sk spacing presets are 4, 8, 12, 16, 20, 24, 32, 40, 48, 54, 64px — all
 - Right side: outline pill ("Výzvy" with a live dot and count), primary pill CTA, circular language toggle showing the code ("SK"), hamburger icon. Gap 12px.
 - The menu opens inside the same pill: background turns `card`, large 22px weight-600 links.
 - Language dropdown: `bg-popover`, `shadow-lift`, 20px radius, items with check mark for the active language, hover `bg-accent`.
-- eHub header (Task 13): the egrant logo on the left, followed by the product name "eHub" set in `--font-sans` weight 600, `text-medium`, `ink`, separated from the logo by 12px — in the spot where the website shows its tagline. No separate eHub wordmark is drawn; ask the owner if they want one.
+- Spolu header (Task 13): the egrant logo on the left, followed by the product name "Spolu" set in `--font-sans` weight 600, `text-medium`, `ink`, separated from the logo by 12px — in the spot where the website shows its tagline. No separate Spolu wordmark is drawn; ask the owner if they want one.
 
 ### Footer (reference only)
 
@@ -177,9 +177,9 @@ The PWA manifest should use `theme_color: #140700` and `background_color: #F5F3F
 
 These egrant.sk effects are deliberately left out (owner rule "Keep it light", see [README.md](README.md)):
 
-- The multicolor gradient that fades in on button hover (`.wp-element-button:before`) and the gradient border on the outline pill hover. eHub uses a flat `ink-hover` background and a plain border.
+- The multicolor gradient that fades in on button hover (`.wp-element-button:before`) and the gradient border on the outline pill hover. Spolu uses a flat `ink-hover` background and a plain border.
 - The animated gradient stripe in the modal (`egrant-modal-drift`, 20 s infinite animation, cross-fades).
-- The hiding/showing header on scroll and the height animation of the opening nav pill (0.45 s cubic-bezier). eHub's header stays put; menus may fade in.
+- The hiding/showing header on scroll and the height animation of the opening nav pill (0.45 s cubic-bezier). Spolu's header stays put; menus may fade in.
 - The scrolling logo marquee, gallery and screenshot sliders.
-- Transition lengths: egrant.sk uses 180–350 ms; eHub uses one `--duration-fast` of 150 ms, for color/opacity changes only. Under `prefers-reduced-motion: reduce` all transitions and animations are off (global rule in `theme.css`).
+- Transition lengths: egrant.sk uses 180–350 ms; Spolu uses one `--duration-fast` of 150 ms, for color/opacity changes only. Under `prefers-reduced-motion: reduce` all transitions and animations are off (global rule in `theme.css`).
 - Only two font weights (500, 600) are loaded, the same two the site uses.

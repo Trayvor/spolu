@@ -1,6 +1,6 @@
 # Product overview
 
-eHub is an internal platform for communicating with clients. It replaces Microsoft Teams for our team. Each client organization gets a group with a chat, a task board and a technical-support (ticket) section. Administrators (our staff) see everything and also manage contracts, which clients never see.
+Spolu is an internal platform for communicating with clients. It replaces Microsoft Teams for our team. Each client organization gets a group with a chat, a task board and a technical-support (ticket) section. Administrators (our staff) see everything and also manage contracts, which clients never see.
 
 ## Requirements
 
