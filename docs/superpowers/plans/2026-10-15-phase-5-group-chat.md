@@ -42,6 +42,7 @@ These override any conflicting text below.
 2. **`NotificationKind`:** Phase 4 already defines all five kinds (`chat.message`, `chat.mention`, `chat.thread_reply`, `task.moved`, `task.assigned`). Do not edit `packages/shared/src/notifications.ts`.
 3. **People list:** Phase 4 exports `listGroupPeople(db, groupId)` from the groups service. Use it for mention validation and notification recipients.
 4. **Catch-up after rejoin:** Phase 4 exports `useGroupRoomJoins(): number` (grows after every acknowledged `group:join`, including the client's implicit room on connect). Run catch-up when it changes, not on raw socket `connect`.
+6. **Foreign events:** every live socket handler ignores payloads whose `groupId` is not the group currently open (a socket can briefly sit in two group rooms during navigation).
 5. **Shared files edited by both parallel branches:** new error codes go at the end of `ErrorCodes` under a `// Phase 5 — chat` comment; `router.tsx` and `en.json`/`sk.json` only get additions. The branch merged second resolves these trivial conflicts and regenerates its migration and renumbers its ADR if needed.
 
 ---
