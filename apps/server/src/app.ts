@@ -5,6 +5,7 @@ import { attachSocket } from './infra/realtime/socket.js';
 import { createAuth, type Auth } from './modules/auth/auth.js';
 import { authRoutes } from './modules/auth/routes.js';
 import { systemRoutes } from './modules/system/routes.js';
+import { usersRoutes } from './modules/users/routes.js';
 
 /** Builds the HTTP app and attaches Socket.IO (`app.io`); `app.close()` closes both. */
 export async function buildApp(
@@ -31,6 +32,7 @@ export async function buildApp(
 
   await app.register(systemRoutes, { prefix: '/api', deps });
   await app.register(authRoutes, { prefix: '/api', deps });
+  await app.register(usersRoutes, { prefix: '/api', deps });
 
   registerNotFound(app);
   return app;
