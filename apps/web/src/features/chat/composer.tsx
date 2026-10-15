@@ -70,6 +70,8 @@ type Upload = {
 const COUNTER_FROM = 9_000;
 const MAX_LINES = 8;
 const REPLY_EXCERPT = 80;
+// A transparent 44 px tap area around a 32 px control (6px above and below, 4px at the sides).
+const HIT = "before:absolute before:-inset-x-1 before:-inset-y-1.5 before:content-['']";
 
 const isTouch = () =>
   typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches;
@@ -348,7 +350,6 @@ export function Composer({
           />
         )}
         <div className="rounded-lg border-2 border-input bg-card focus-within:border-foreground">
-          <FormatToolbar onFormat={format} />
           <textarea
             ref={textarea}
             autoFocus={mode === 'edit'}
@@ -369,6 +370,45 @@ export function Composer({
             onPaste={onPaste}
             className="block w-full resize-none overflow-y-auto bg-transparent px-3 py-2 text-body outline-none placeholder:text-muted-foreground"
           />
+          <FormatToolbar onFormat={format} className="border-b-0 border-t">
+            {storedLength > COUNTER_FROM && (
+              <span
+                className={cn(
+                  'shrink-0 whitespace-nowrap text-micro',
+                  tooLong ? 'text-error-ink' : 'text-muted-foreground',
+                )}
+              >
+                {t('chat.composer.tooLong', { count: storedLength.toLocaleString(i18n.language) })}
+              </span>
+            )}
+            {mode !== 'edit' && (
+              <>
+                <input ref={fileInput} type="file" multiple hidden onChange={onPickFiles} />
+                <button
+                  type="button"
+                  aria-label={t('chat.composer.attach')}
+                  title={t('chat.composer.attach')}
+                  onClick={() => fileInput.current?.click()}
+                  className={cn(iconButton, 'relative shrink-0', HIT)}
+                >
+                  <PaperclipIcon />
+                </button>
+              </>
+            )}
+            {mode === 'edit' && (
+              <Button size="sm" variant="ghost" onClick={onCancel} className={cn('relative', HIT)}>
+                {t('chat.cancel')}
+              </Button>
+            )}
+            <Button
+              size="sm"
+              disabled={!canSend}
+              onClick={() => void submit()}
+              className={cn('relative', HIT)}
+            >
+              {mode === 'edit' ? t('chat.composer.save') : t('chat.composer.send')}
+            </Button>
+          </FormatToolbar>
         </div>
       </div>
       {uploads.length > 0 && (
@@ -429,37 +469,6 @@ export function Composer({
           {failed ? t('errors.generic') : notice}
         </p>
       )}
-      <div className="flex items-center gap-2">
-        {mode !== 'edit' && (
-          <>
-            <input ref={fileInput} type="file" multiple hidden onChange={onPickFiles} />
-            <button
-              type="button"
-              aria-label={t('chat.composer.attach')}
-              title={t('chat.composer.attach')}
-              onClick={() => fileInput.current?.click()}
-              className={iconButton}
-            >
-              <PaperclipIcon />
-            </button>
-          </>
-        )}
-        {storedLength > COUNTER_FROM && (
-          <span className={cn('text-micro', tooLong ? 'text-error-ink' : 'text-muted-foreground')}>
-            {t('chat.composer.tooLong', { count: storedLength.toLocaleString(i18n.language) })}
-          </span>
-        )}
-        <div className="ml-auto flex gap-2">
-          {mode === 'edit' && (
-            <Button size="sm" variant="ghost" onClick={onCancel}>
-              {t('chat.cancel')}
-            </Button>
-          )}
-          <Button size="sm" disabled={!canSend} onClick={() => void submit()}>
-            {mode === 'edit' ? t('chat.composer.save') : t('chat.composer.send')}
-          </Button>
-        </div>
-      </div>
     </div>
   );
 }

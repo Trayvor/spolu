@@ -1,11 +1,12 @@
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { FileInfo, GroupPerson, MessageDto } from '@spolu/shared';
 import { setLanguage } from '@/i18n';
 import { groupPeopleQuery } from '@/features/groups/api';
 import { Composer, type ComposerProps } from './composer';
+import { FormatToolbar } from './format-toolbar';
 
 const upload = vi.hoisted(() => ({ uploadFile: vi.fn() }));
 vi.mock('@/features/files/upload', () => upload);
@@ -49,6 +50,33 @@ beforeEach(() => {
 });
 
 describe('Composer', () => {
+  it('Send and attach sit inside the bordered box, on the formatting row', () => {
+    renderComposer();
+    const inside = within(box().parentElement!);
+    const attach = inside.getByRole('button', { name: 'Attach files' });
+    expect(inside.getByRole('button', { name: 'Send' })).toBeInTheDocument();
+    const toolbar = inside.getByRole('toolbar');
+    expect(toolbar.parentElement).toBe(attach.parentElement);
+    expect(toolbar.parentElement).toBe(inside.getByRole('button', { name: 'Send' }).parentElement);
+  });
+
+  it('edit mode keeps Save and Cancel in the box, without the paperclip', () => {
+    renderComposer({ mode: 'edit', initialBody: 'a', onCancel: vi.fn() });
+    const inside = within(box().parentElement!);
+    expect(inside.getByRole('button', { name: 'Save' })).toBeInTheDocument();
+    expect(inside.getByRole('button', { name: 'Cancel' })).toBeInTheDocument();
+    expect(inside.queryByRole('button', { name: 'Attach files' })).toBeNull();
+  });
+
+  it('uploaded files are listed under the box, not in it', async () => {
+    const user = userEvent.setup();
+    upload.uploadFile.mockReturnValue(new Promise(() => undefined));
+    const { container } = renderComposer();
+    await user.upload(fileInput(container), [txt('a.txt')]);
+    expect(within(box().parentElement!).queryByText('a.txt')).toBeNull();
+    expect(screen.getByText('a.txt')).toBeInTheDocument();
+  });
+
   it('Enter sends, Shift+Enter adds a line', async () => {
     const user = userEvent.setup();
     const { onSubmit } = renderComposer();
@@ -352,5 +380,14 @@ describe('Composer', () => {
     expect(box()).toHaveValue('a\nb');
     // @ts-expect-error restore the jsdom default (no matchMedia)
     delete window.matchMedia;
+  });
+});
+
+describe('FormatToolbar alone (task description)', () => {
+  it('has no Send and no attach', () => {
+    render(<FormatToolbar onFormat={vi.fn()} />);
+    expect(screen.queryByRole('button', { name: 'Send' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Attach files' })).toBeNull();
+    expect(screen.getAllByRole('button')).toHaveLength(8);
   });
 });

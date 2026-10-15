@@ -1,5 +1,6 @@
 import type { KeyboardEvent, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import { cn } from '@/lib/utils';
 import type { FormatKind } from './composer-text';
 import {
   BoldIcon,
@@ -47,31 +48,46 @@ export function formatShortcut(e: KeyboardEvent): FormatKind | null {
 /**
  * The formatting toolbar of the chat composer: one button per Markdown mark, each named and
  * titled with its shortcut. Used by the composer and by the task description.
+ *
+ * The marks sit in an inner `toolbar` that scrolls sideways when the row is too narrow. `children`
+ * are extra controls at the row's end (the composer's attach and Send); `className` places the row
+ * (the default 1px line underneath, for a row above the field).
  */
-export function FormatToolbar({ onFormat }: { onFormat: (kind: FormatKind) => void }) {
+export function FormatToolbar({
+  onFormat,
+  children,
+  className,
+}: {
+  onFormat: (kind: FormatKind) => void;
+  children?: ReactNode;
+  className?: string;
+}) {
   const { t } = useTranslation();
   const modKey = isMac() ? 'Cmd+' : 'Ctrl+';
   return (
-    <div
-      role="toolbar"
-      aria-label={t('chat.composer.formatting')}
-      className="flex items-center gap-0.5 border-b border-border px-1.5 py-1"
-    >
-      {FORMATS.map(({ kind, key, icon, shortcut }) => {
-        const label = t(`chat.format.${key}`);
-        return (
-          <button
-            key={kind}
-            type="button"
-            aria-label={label}
-            title={shortcut ? `${label} (${modKey}${shortcut})` : label}
-            onClick={() => onFormat(kind)}
-            className={iconButton}
-          >
-            {icon}
-          </button>
-        );
-      })}
+    <div className={cn('flex items-center gap-1 border-b border-border px-1.5 py-1', className)}>
+      <div
+        role="toolbar"
+        aria-label={t('chat.composer.formatting')}
+        className="flex min-w-0 flex-1 items-center gap-0.5 overflow-x-auto"
+      >
+        {FORMATS.map(({ kind, key, icon, shortcut }) => {
+          const label = t(`chat.format.${key}`);
+          return (
+            <button
+              key={kind}
+              type="button"
+              aria-label={label}
+              title={shortcut ? `${label} (${modKey}${shortcut})` : label}
+              onClick={() => onFormat(kind)}
+              className={iconButton}
+            >
+              {icon}
+            </button>
+          );
+        })}
+      </div>
+      {children}
     </div>
   );
 }
