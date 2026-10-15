@@ -116,6 +116,7 @@ Cards have **no shadow** (`.egrant-challenge-card { box-shadow: none }`): a whit
 egrant.sk spacing presets are 4, 8, 12, 16, 20, 24, 32, 40, 48, 54, 64px — all on Tailwind's default 4px grid (`1, 2, 3, 4, 5, 6, 8, 10, 12, 16`) except 54. Use Tailwind's default spacing; no custom spacing tokens.
 
 - Block gap between sections: 32px (`gap-8`).
+- App shell vertical rhythm (every signed-in page): header pill to page `pt-3` (12px; `pt-4`, 16px, from 641px), page bottom `pb-3` (12px; `pb-8`, 32px, from 641px). On a group page: group header to tabs `gap-2` (8px), tabs to content `gap-3` (12px). Tighter than the site's 32px block gap on purpose: a work screen gives its height to the content. The tab pills are 32px high, unchanged.
 - Page side padding: `clamp(20px, 4vw, 40px)`.
 - Content width: 1280px; text measure 552px.
 - Breakpoints the site uses: 640px (mobile nav), 900px (type scale), 1024px (header tagline hides).
