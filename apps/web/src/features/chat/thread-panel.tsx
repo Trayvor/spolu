@@ -194,7 +194,7 @@ export function ThreadPanel({
       <div
         ref={scroller}
         onScroll={onScroll}
-        className="relative min-h-0 flex-1 overflow-y-auto overscroll-contain pb-3"
+        className="relative min-h-0 flex-1 overflow-y-auto overscroll-contain pt-9 pb-3"
       >
         {isError && !thread && (
           <div className="flex flex-col items-center gap-3 px-6 py-10 text-center" role="alert">

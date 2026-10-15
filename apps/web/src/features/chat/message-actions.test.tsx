@@ -70,8 +70,9 @@ describe('message actions: touch and desktop', () => {
     expect(touchButton()).toHaveClass(touchOnly);
     const bar = screen.getByRole('toolbar', { name: t('chat.actions.label') });
     expect(bar).toHaveClass('hidden', '[@media(hover:hover)_and_(min-width:641px)]:flex');
-    // The desktop bar sits on the boundary above the message, not over the name and time.
-    expect(bar).toHaveClass('-top-4');
+    // The desktop bar sits just above the message, so it never reaches the name or time.
+    expect(bar).toHaveClass('bottom-full');
+    expect(bar).not.toHaveClass('-top-4');
   });
 
   it('"⋯" opens a sheet with the same actions as the menu, in order; Delete is red', async () => {

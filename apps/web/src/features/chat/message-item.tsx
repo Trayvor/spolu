@@ -384,7 +384,7 @@ export const MessageItem = memo(function MessageItem({
       className={cn(
         'group relative flex gap-3 border-l-2 px-4 pb-1',
         // content-visibility clips overflow: the editing row must show the mention list above it,
-        // and a hovered or focused row its toolbar, which sits on the boundary above it.
+        // and a hovered or focused row its toolbar, which sits just above it.
         mode !== 'edit' &&
           '[contain-intrinsic-size:auto_64px] [content-visibility:auto] hover:[content-visibility:visible] focus-within:[content-visibility:visible] has-[[data-state=open]]:[content-visibility:visible]',
         showHeader ? 'pt-3' : 'pt-0.5',
@@ -498,8 +498,8 @@ export const MessageItem = memo(function MessageItem({
           role="toolbar"
           aria-label={t('chat.actions.label')}
           className={cn(
-            // On the boundary above the message (Slack style), never over the name or time.
-            'absolute -top-4 right-3 z-10 items-center rounded-lg border border-border bg-card p-0.5 opacity-0',
+            // Just above the message (4px overlap into its top padding), never over the name or time. The scroll containers reserve pt-9 for it.
+            'absolute right-3 bottom-full z-10 translate-y-1 items-center rounded-lg border border-border bg-card p-0.5 opacity-0',
             'group-focus-within:opacity-100 group-hover:opacity-100 has-[[data-state=open]]:opacity-100',
             DESKTOP_ONLY,
           )}
