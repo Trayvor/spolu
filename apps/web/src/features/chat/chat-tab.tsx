@@ -1,10 +1,11 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Outlet, useParams } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { groupChatQuery } from './api';
 import { Conversation } from './conversation';
+import { renderMessageTasks } from './message-tasks';
 import { useChatSearch } from './use-chat-search';
 
 /**
@@ -22,6 +23,7 @@ export function ChatTab() {
     ...groupChatQuery(groupId ?? ''),
     enabled: groupId !== undefined,
   });
+  const renderFooter = useMemo(() => renderMessageTasks(groupId ?? ''), [groupId]);
   const { unscoped, adopt } = useChatSearch(data?.id);
   const claim = unscoped && data !== undefined;
   useEffect(() => {
@@ -33,7 +35,13 @@ export function ChatTab() {
       <div data-testid="chat-card" className="relative min-h-[360px] flex-1">
         <div className="absolute inset-0">
           {data && groupId
-            ? !unscoped && <Conversation channelId={data.id} groupId={groupId} />
+            ? !unscoped && (
+                <Conversation
+                  channelId={data.id}
+                  groupId={groupId}
+                  renderMessageFooter={renderFooter}
+                />
+              )
             : isError && (
                 <div
                   className="flex h-full flex-col items-center justify-center gap-3 rounded-xl bg-card px-6 text-center"

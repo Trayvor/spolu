@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import {
   ChatEvents,
   type ChatMessageEvent,
+  type ChatMessageTasksEvent,
   type MessageDto,
   type SendMessageInput,
 } from '@spolu/shared';
@@ -23,6 +24,7 @@ import {
 } from './api';
 import {
   initialWindow,
+  setTasksInThread,
   upsertIntoThread,
   windowReducer,
   type WindowAction,
@@ -330,13 +332,24 @@ export function useChannelMessages(
       const from = gapRef.current?.from ?? (seqKnownRef.current ? lastSeqRef.current : null);
       gapRef.current = { from, epoch: ++epochRef.current };
     };
+    const onMessageTasks = (event: ChatMessageTasksEvent) => {
+      if (event.groupId !== groupId || event.channelId !== channelId) return;
+      dispatch({ type: 'tasksChanged', messageId: event.messageId, tasks: event.tasks });
+      const { queryKey } = threadQuery(event.parentId ?? event.messageId);
+      const thread = queryClient.getQueryData(queryKey);
+      if (thread) {
+        queryClient.setQueryData(queryKey, setTasksInThread(thread, event.messageId, event.tasks));
+      }
+    };
     socket.on(ChatEvents.message, onMessage);
+    socket.on(ChatEvents.messageTasks, onMessageTasks);
     socket.on('disconnect', onDisconnect);
     return () => {
       socket.off(ChatEvents.message, onMessage);
+      socket.off(ChatEvents.messageTasks, onMessageTasks);
       socket.off('disconnect', onDisconnect);
     };
-  }, [groupId, channelId, apply]);
+  }, [groupId, channelId, apply, queryClient]);
 
   // Catch-up after every rejoin of the group room, once the window is loaded.
   useEffect(() => {

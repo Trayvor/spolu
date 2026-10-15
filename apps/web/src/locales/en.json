@@ -176,7 +176,8 @@
     },
     "unread_other": "{{count}} unread messages",
     "unread_one": "{{count}} unread message",
-    "loadError": "The chat could not be loaded."
+    "loadError": "The chat could not be loaded.",
+    "turnedIntoTasks": "Turned into tasks:"
   },
   "tasks": {
     "buckets": {
@@ -225,7 +226,8 @@
       "files_other": "{{count}} files",
       "moreAssignees": "+{{count}}",
       "markDone": "Mark as done",
-      "markNotDone": "Mark as not done"
+      "markNotDone": "Mark as not done",
+      "completed": "Completed"
     },
     "form": {
       "title": "Title",
