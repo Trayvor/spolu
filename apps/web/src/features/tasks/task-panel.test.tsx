@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { RouterProvider, createMemoryHistory } from '@tanstack/react-router';
+import { RouterProvider, createBrowserHistory, createMemoryHistory } from '@tanstack/react-router';
 import { BoardEvents, type BucketDto, type TaskDetailDto, type TaskDto } from '@spolu/shared';
 import { i18n, setLanguage } from '@/i18n';
 import { createAppRouter } from '@/router';
@@ -241,5 +241,53 @@ describe('TaskPanel', () => {
     const { router } = renderPanel();
     await waitFor(() => expect(router.state.location.pathname).toBe('/groups/g1/tasks'));
     expect(await screen.findByText(t('tasks.board.taskDeleted'))).toBeInTheDocument();
+  });
+
+  it('moves the focus to the panel heading on open and back to the card on close', async () => {
+    const { user, router } = renderPanel();
+    const heading = await screen.findByRole('heading', { name: 'Task t1' });
+    await waitFor(() => expect(heading).toHaveFocus());
+    const card = await screen.findByRole('link', { name: /Task t1/ });
+    await user.click(screen.getByRole('button', { name: t('tasks.panel.close') }));
+    await waitFor(() => expect(router.state.location.pathname).toBe('/groups/g1/tasks'));
+    await waitFor(() => expect(card).toHaveFocus());
+  });
+
+  it('Escape asks first when there are unsaved changes', async () => {
+    const { user, router } = renderPanel();
+    await user.type(await titleField(), '!');
+    await user.keyboard('{Escape}');
+    expect(await screen.findByText(t('tasks.panel.unsaved'))).toBeInTheDocument();
+    expect(router.state.location.pathname).toBe('/groups/g1/tasks/t1');
+    await user.click(screen.getByRole('button', { name: t('tasks.panel.discard') }));
+    await waitFor(() => expect(router.state.location.pathname).toBe('/groups/g1/tasks'));
+  });
+
+  it('Escape closes a clean panel at once', async () => {
+    const { user, router } = renderPanel();
+    await titleField();
+    await user.keyboard('{Escape}');
+    await waitFor(() => expect(router.state.location.pathname).toBe('/groups/g1/tasks'));
+  });
+
+  it('asks the browser before unloading only with unsaved changes', async () => {
+    window.history.pushState({}, '', '/groups/g1/tasks/t1');
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const router = createAppRouter(queryClient, createBrowserHistory());
+    const user = userEvent.setup();
+    render(
+      <QueryClientProvider client={queryClient}>
+        <RouterProvider router={router} />
+      </QueryClientProvider>,
+    );
+    const input = await titleField();
+    const unload = () => {
+      const event = new Event('beforeunload', { cancelable: true });
+      window.dispatchEvent(event);
+      return event.defaultPrevented;
+    };
+    expect(unload()).toBe(false);
+    await user.type(input, '!');
+    expect(unload()).toBe(true);
   });
 });

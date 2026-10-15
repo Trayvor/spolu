@@ -210,7 +210,13 @@ describe('boardCollisions', () => {
   }
 
   it('a card under the pointer beats its column', () => {
-    expect(over({ x: 400, y: 200 })).toBe('e2');
+    expect(over({ x: 400, y: 190 })).toBe('e2');
+  });
+
+  it('below the middle of the last card in another bucket is the end of that bucket', () => {
+    expect(over({ x: 400, y: 220 })).toBe('bucket:egrant');
+    // The last card of the dragged card's own bucket stays a card (the list swaps with it).
+    expect(over({ x: 100, y: 275 })).toBe('t3');
   });
 
   it('the gap between cards in another bucket is the lower card', () => {

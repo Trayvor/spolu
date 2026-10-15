@@ -121,25 +121,38 @@ export function resolveColumnHit(
 export const boardCollisions: CollisionDetection = (args) => {
   const dataOf = (id: string | number) =>
     args.droppableContainers.find((c) => c.id === id)?.data.current as DragData | undefined;
+  const slotsOf = (bucketId: string): CardSlot[] =>
+    args.droppableContainers
+      .flatMap((container) => {
+        const data = container.data.current as DragData | undefined;
+        const rect = args.droppableRects.get(container.id);
+        return data?.type === 'task' && data.bucketId === bucketId && rect
+          ? [{ id: String(container.id), top: rect.top, height: rect.height }]
+          : [];
+      })
+      .sort((a, b) => a.top - b.top);
+  const active = args.active.data.current as DragData | undefined;
+  const y = args.pointerCoordinates?.y ?? args.collisionRect.top;
+
   const hits = pointerWithin(args);
   const cards = hits.filter((hit) => dataOf(hit.id)?.type === 'task');
   const found = cards.length > 0 ? cards : hits.length > 0 ? hits : closestCorners(args);
   const target = found[0] && dataOf(found[0].id);
+
+  if (target?.type === 'task') {
+    // In another bucket, everything below the last card's middle means "last place".
+    const slots = slotsOf(target.bucketId);
+    const last = slots.at(-1);
+    const ownBucket = active?.type === 'task' && active.bucketId === target.bucketId;
+    if (!ownBucket && last && last.id === found[0]!.id && y >= last.top + last.height / 2) {
+      return [{ id: columnDropId(target.bucketId) }];
+    }
+    return found;
+  }
   if (target?.type !== 'column') return found;
 
-  const slots = args.droppableContainers
-    .flatMap((container) => {
-      const data = container.data.current as DragData | undefined;
-      const rect = args.droppableRects.get(container.id);
-      return data?.type === 'task' && data.bucketId === target.bucketId && rect
-        ? [{ id: String(container.id), top: rect.top, height: rect.height }]
-        : [];
-    })
-    .sort((a, b) => a.top - b.top);
-  const active = args.active.data.current as DragData | undefined;
   const ownBucket = active?.type === 'task' && active.bucketId === target.bucketId;
-  const y = args.pointerCoordinates?.y ?? args.collisionRect.top;
-  return [{ id: resolveColumnHit(target.bucketId, slots, y, ownBucket) }];
+  return [{ id: resolveColumnHit(target.bucketId, slotsOf(target.bucketId), y, ownBucket) }];
 };
 
 /** Cancels a board fetch in flight (it would undo an optimistic write); true when one was. */

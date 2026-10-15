@@ -1,4 +1,11 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type ReactNode,
+} from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useBlocker, useNavigate, useParams } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
@@ -84,6 +91,35 @@ export function TaskPanel({
     void navigate({ to: '/groups/$groupId/tasks', params: { groupId }, replace: true });
   }, [gone, groupId, navigate, queryClient]);
 
+  // Closing hands the focus back to the card that opened the panel (or the board if it is gone).
+  const panel = useRef<HTMLElement>(null);
+  useLayoutEffect(() => {
+    const element = panel.current;
+    return () => {
+      if (!element?.contains(document.activeElement)) return;
+      const card = document.querySelector<HTMLElement>(`[data-task-id="${CSS.escape(taskId)}"] a`);
+      const board = document.querySelector<HTMLElement>('[data-bucket-id]')?.parentElement;
+      if (card) card.focus();
+      else if (board) {
+        board.tabIndex = -1;
+        board.focus();
+      }
+    };
+  }, [taskId]);
+
+  // Escape closes, through the unsaved-changes guard; open menus and lists handle their own.
+  function onKeyDown(event: KeyboardEvent) {
+    const target = event.target as HTMLElement;
+    if (
+      event.key !== 'Escape' ||
+      event.defaultPrevented ||
+      target.closest('[role="menu"],[role="listbox"]') ||
+      target.getAttribute('aria-expanded') === 'true'
+    )
+      return;
+    void navigate({ to: '/groups/$groupId/tasks', params: { groupId } });
+  }
+
   let body: ReactNode = null;
   if (task && !gone) {
     body = (
@@ -91,7 +127,10 @@ export function TaskPanel({
         key={taskId}
         groupId={groupId}
         initial={task}
-        reload={async () => (await query.refetch()).data}
+        reload={async () => {
+          const result = await query.refetch();
+          return result.isError ? undefined : result.data;
+        }}
       >
         {children}
       </TaskEditor>
@@ -117,6 +156,8 @@ export function TaskPanel({
 
   return (
     <aside
+      ref={panel}
+      onKeyDown={onKeyDown}
       aria-label={t('tasks.panel.label')}
       className="fixed inset-0 z-40 flex flex-col bg-background lg:left-auto lg:w-[560px] lg:border-l-2 lg:border-border"
     >
@@ -152,6 +193,7 @@ function TaskEditor({
   const [busy, setBusy] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [moveFailed, setMoveFailed] = useState(false);
+  const [moving, setMoving] = useState(false);
 
   const dirty = !sameDraft(draft, toDraft(base));
   const latest = useRef({ dirty, base });
@@ -162,8 +204,13 @@ function TaskEditor({
 
   const blocker = useBlocker({
     shouldBlockFn: () => latest.current.dirty && !leaving.current,
+    enableBeforeUnload: () => latest.current.dirty && !leaving.current,
     withResolver: true,
   });
+
+  // The panel's heading takes the focus when it opens.
+  const heading = useRef<HTMLHeadingElement>(null);
+  useEffect(() => heading.current?.focus(), []);
 
   const applyVersion = (next: TaskDetailDto) => {
     setBase(next);
@@ -172,9 +219,15 @@ function TaskEditor({
     setErrors({});
     setStale(null);
   };
-  const doReload = async () => {
+  const doReload = async (silent = false) => {
     const fresh = await reload();
-    if (fresh) applyVersion(fresh);
+    if (!fresh) {
+      setErrors({ form: t('tasks.panel.loadFailed') });
+      return;
+    }
+    // Typing during a silent reload must not be lost: ask instead.
+    if (silent && latest.current.dirty) setStale({ by: null });
+    else applyVersion(fresh);
   };
 
   const backToBoard = (replace = false) => {
@@ -190,7 +243,7 @@ function TaskEditor({
       if (task.groupId !== groupId || task.id !== latest.current.base.id) return;
       if (actor.id === me?.id || task.updatedAt === latest.current.base.updatedAt) return;
       if (latest.current.dirty) setStale({ by: actor.name });
-      else void doReload();
+      else void doReload(true);
     };
     const onDeleted = (event: BoardTaskDeletedEvent) => {
       if (event.groupId !== groupId || event.taskId !== latest.current.base.id) return;
@@ -242,6 +295,7 @@ function TaskEditor({
   async function onBucket(bucketId: string) {
     if (!board || bucketId === bucketOf?.id) return;
     setMoveFailed(false);
+    setMoving(true);
     const last = tasksByBucket(board).get(bucketId)?.at(-1);
     try {
       const moved = await moveTask(base.id, { bucketId, afterTaskId: last?.id ?? null });
@@ -249,8 +303,13 @@ function TaskEditor({
         boardQuery(groupId).queryKey,
         (b) => b && upsertTask(b, moved),
       );
-    } catch {
-      setMoveFailed(true);
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 404) {
+        showBoardNotice(queryClient, groupId, 'taskDeleted');
+        backToBoard(true);
+      } else setMoveFailed(true);
+    } finally {
+      setMoving(false);
     }
   }
 
@@ -293,7 +352,7 @@ function TaskEditor({
           <select
             id="task-bucket"
             value={bucketOf?.id ?? ''}
-            disabled={!board || !bucketOf}
+            disabled={!board || !bucketOf || moving}
             onChange={(event) => void onBucket(event.target.value)}
             className="h-[38px] max-w-52 rounded-full border-2 border-input bg-card px-4 text-button font-semibold text-foreground focus:border-foreground"
           >
@@ -324,50 +383,50 @@ function TaskEditor({
         </div>
       </header>
 
-      <div className="flex-1 space-y-5 overflow-y-auto p-6">
+      <div className="shrink-0 space-y-2 px-6 pt-3 empty:hidden">
         {blocker.status === 'blocked' && (
-          <div
-            role="alert"
-            className="flex flex-wrap items-center gap-3 rounded-lg bg-secondary p-3"
-          >
-            <p className="mr-auto text-button font-semibold">{t('tasks.panel.unsaved')}</p>
+          <PanelNotice text={t('tasks.panel.unsaved')}>
             <Button size="sm" variant="destructive" onClick={blocker.proceed}>
               {t('tasks.panel.discard')}
             </Button>
             <Button size="sm" variant="outline" onClick={blocker.reset}>
               {t('tasks.panel.keepEditing')}
             </Button>
-          </div>
+          </PanelNotice>
         )}
         {confirmDelete && (
-          <div
-            role="alert"
-            className="flex flex-wrap items-center gap-3 rounded-lg bg-secondary p-3"
-          >
-            <p className="mr-auto text-button font-semibold">{t('tasks.panel.deleteConfirm')}</p>
+          <PanelNotice text={t('tasks.panel.deleteConfirm')}>
             <Button size="sm" variant="destructive" disabled={busy} onClick={() => void remove()}>
               {t('tasks.panel.delete')}
             </Button>
             <Button size="sm" variant="outline" onClick={() => setConfirmDelete(false)}>
               {t('tasks.panel.cancel')}
             </Button>
-          </div>
+          </PanelNotice>
         )}
         {stale && (
-          <div
-            role="alert"
-            className="flex flex-wrap items-center gap-3 rounded-lg bg-secondary p-3"
-          >
-            <p className="mr-auto text-button font-semibold">
-              {stale.by
+          <PanelNotice
+            text={
+              stale.by
                 ? t('tasks.panel.changedBy', { name: stale.by })
-                : t('tasks.panel.changedBySomeone')}
-            </p>
+                : t('tasks.panel.changedBySomeone')
+            }
+          >
             <Button size="sm" variant="outline" onClick={() => void doReload()}>
               {t('tasks.panel.reload')}
             </Button>
-          </div>
+          </PanelNotice>
         )}
+      </div>
+
+      <div className="flex-1 space-y-5 overflow-y-auto p-6">
+        <h2
+          ref={heading}
+          tabIndex={-1}
+          className="break-words text-medium leading-tight font-semibold outline-none"
+        >
+          {base.title}
+        </h2>
         {moveFailed && (
           <p role="alert" className="text-button text-error-ink">
             {t('tasks.board.moveFailed')}
@@ -414,5 +473,15 @@ function TaskEditor({
         })}
       </footer>
     </>
+  );
+}
+
+/** An inline bar above the form: a question or a warning with its actions. */
+function PanelNotice({ text, children }: { text: string; children: ReactNode }) {
+  return (
+    <div role="alert" className="flex flex-wrap items-center gap-3 rounded-lg bg-secondary p-3">
+      <p className="mr-auto text-button font-semibold">{text}</p>
+      {children}
+    </div>
   );
 }

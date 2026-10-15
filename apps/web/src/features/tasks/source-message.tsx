@@ -15,9 +15,10 @@ export function SourceMessage({
   message: SourceMessageDto;
 }) {
   const { t } = useTranslation();
+  const letters = Array.from(message.excerpt); // whole characters, never half an emoji
   const text =
-    message.excerpt.length > EXCERPT_LENGTH
-      ? `${message.excerpt.slice(0, EXCERPT_LENGTH)}…`
+    letters.length > EXCERPT_LENGTH
+      ? `${letters.slice(0, EXCERPT_LENGTH).join('')}…`
       : message.excerpt;
   return (
     <section aria-label={t('tasks.panel.fromMessage')} className="rounded-lg bg-secondary p-4">
