@@ -118,7 +118,27 @@
       "done": "Hotové"
     },
     "board": {
-      "taskDeleted": "Táto úloha bola odstránená."
+      "taskDeleted": "Táto úloha bola odstránená.",
+      "addTask": "Pridať úlohu",
+      "taskTitle": "Názov úlohy",
+      "addBucket": "Pridať stĺpec",
+      "bucketName": "Názov stĺpca",
+      "empty": "Zatiaľ tu nič nie je.",
+      "emptyBoard": "Pridajte prvú úlohu pre túto skupinu.",
+      "count": "Počet úloh: {{count}}",
+      "more": "Viac",
+      "rename": "Premenovať",
+      "delete": "Odstrániť",
+      "deleteBucketConfirm": "Odstrániť tento stĺpec? Jeho úlohy sa presunú do Na spracovanie.",
+      "cancel": "Zrušiť",
+      "error": "Nepodarilo sa uložiť. Skúste to znova."
+    },
+    "card": {
+      "urgent": "Urgentné",
+      "due": "Termín {{date}}",
+      "overdue": "Po termíne",
+      "files": "Súbory: {{count}}",
+      "moreAssignees": "+{{count}}"
     },
     "form": {
       "title": "Názov",

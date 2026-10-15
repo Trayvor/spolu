@@ -118,7 +118,27 @@
       "done": "Completed"
     },
     "board": {
-      "taskDeleted": "This task was deleted."
+      "taskDeleted": "This task was deleted.",
+      "addTask": "Add task",
+      "taskTitle": "Task title",
+      "addBucket": "Add bucket",
+      "bucketName": "Bucket name",
+      "empty": "Nothing here yet.",
+      "emptyBoard": "Add the first task for this group.",
+      "count": "{{count}} tasks",
+      "more": "More",
+      "rename": "Rename",
+      "delete": "Delete",
+      "deleteBucketConfirm": "Delete this bucket? Its tasks move to To do.",
+      "cancel": "Cancel",
+      "error": "Could not save. Try again."
+    },
+    "card": {
+      "urgent": "Urgent",
+      "due": "Deadline {{date}}",
+      "overdue": "Overdue",
+      "files": "Files: {{count}}",
+      "moreAssignees": "+{{count}}"
     },
     "form": {
       "title": "Title",

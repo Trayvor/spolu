@@ -129,8 +129,7 @@ describe('group layout', () => {
     expect(within(link('group.tabs.chat')).getByText('badge-g1')).toBeInTheDocument();
 
     await user.click(link('group.tabs.tasks'));
-    expect(await screen.findByText(t('tasks.placeholder'))).toBeInTheDocument();
-    expect(link('group.tabs.tasks')).toHaveAttribute('aria-current', 'page');
+    await waitFor(() => expect(link('group.tabs.tasks')).toHaveAttribute('aria-current', 'page'));
     expect(link('group.tabs.chat')).not.toHaveAttribute('aria-current');
     expect(link('group.tabs.tasks')).toHaveClass('bg-primary');
     expect(link('group.tabs.chat')).toHaveClass('bg-secondary');

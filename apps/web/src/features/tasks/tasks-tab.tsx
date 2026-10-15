@@ -1,12 +1,12 @@
-import { Outlet } from '@tanstack/react-router';
-import { useTranslation } from 'react-i18next';
+import { Outlet, useParams } from '@tanstack/react-router';
+import { Board } from './board';
 
-/** Placeholder until the task board arrives; the outlet is for the task panel route. */
+/** The Tasks tab: the board, with the task panel route rendering over it through the outlet. */
 export function TasksTab() {
-  const { t } = useTranslation();
+  const { groupId } = useParams({ strict: false });
   return (
     <>
-      <p className="py-10 text-center text-body text-muted-foreground">{t('tasks.placeholder')}</p>
+      {groupId && <Board groupId={groupId} />}
       <Outlet />
     </>
   );
