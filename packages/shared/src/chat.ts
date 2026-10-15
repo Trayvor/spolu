@@ -113,17 +113,48 @@ export interface ChatReadEvent {
   lastReadAt: string;
 }
 
-const MENTION_RE = /<@([\w-]+)>/g;
-const CODE_RE = /```[\s\S]*?(?:```|$)|`[^`\n]*`/g;
+/** Global regexes: use them only with `matchAll`/`replace`, never `exec`/`test` (shared `lastIndex`). */
+export const MENTION_RE = /<@([\w-]+)>/g;
+export const CODE_RE = /```[\s\S]*?(?:```|$)|`[^`\n]*`/g;
+
+export type MentionPart = { type: 'text'; text: string } | { type: 'mention'; id: string };
+
+/** Splits a body into text and mention parts (`id` is `'all'` for @all); code fences and spans stay text. */
+export function splitMentionTokens(body: string): MentionPart[] {
+  const parts: MentionPart[] = [];
+  const pushText = (text: string) => {
+    if (!text) return;
+    const last = parts[parts.length - 1];
+    if (last?.type === 'text') last.text += text;
+    else parts.push({ type: 'text', text });
+  };
+  const scan = (chunk: string) => {
+    let at = 0;
+    for (const m of chunk.matchAll(MENTION_RE)) {
+      pushText(chunk.slice(at, m.index));
+      parts.push({ type: 'mention', id: m[1] as string });
+      at = m.index + m[0].length;
+    }
+    pushText(chunk.slice(at));
+  };
+  let at = 0;
+  for (const code of body.matchAll(CODE_RE)) {
+    scan(body.slice(at, code.index));
+    pushText(code[0]);
+    at = code.index + code[0].length;
+  }
+  scan(body.slice(at));
+  return parts;
+}
 
 /** Unique mentioned user ids (order of first appearance) and whether `<@all>` appears; code is ignored. */
 export function extractMentions(body: string): { userIds: string[]; all: boolean } {
   const userIds = new Set<string>();
   let all = false;
-  for (const m of body.replace(CODE_RE, ' ').matchAll(MENTION_RE)) {
-    const id = m[1] as string;
-    if (id === 'all') all = true;
-    else userIds.add(id);
+  for (const part of splitMentionTokens(body)) {
+    if (part.type !== 'mention') continue;
+    if (part.id === 'all') all = true;
+    else userIds.add(part.id);
   }
   return { userIds: [...userIds], all };
 }

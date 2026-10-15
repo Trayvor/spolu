@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { extractMentions, mentionToken, plainExcerpt, SendMessageInputSchema } from './chat.js';
+import {
+  extractMentions,
+  mentionToken,
+  plainExcerpt,
+  SendMessageInputSchema,
+  splitMentionTokens,
+} from './chat.js';
 
 describe('extractMentions', () => {
   it('finds users and @all, deduplicated', () => {
@@ -14,6 +20,24 @@ describe('extractMentions', () => {
       all: false,
     });
     expect(extractMentions('```\n<@u1>')).toEqual({ userIds: [], all: false });
+  });
+});
+
+describe('splitMentionTokens', () => {
+  it('splits text and mentions, keeping code as text', () => {
+    expect(splitMentionTokens('hi <@u1>, <@all>!')).toEqual([
+      { type: 'text', text: 'hi ' },
+      { type: 'mention', id: 'u1' },
+      { type: 'text', text: ', ' },
+      { type: 'mention', id: 'all' },
+      { type: 'text', text: '!' },
+    ]);
+    expect(splitMentionTokens('a `<@u1>` b ```\n<@u2>\n``` <@u3>')).toEqual([
+      { type: 'text', text: 'a `<@u1>` b ```\n<@u2>\n``` ' },
+      { type: 'mention', id: 'u3' },
+    ]);
+    expect(splitMentionTokens('')).toEqual([]);
+    expect(splitMentionTokens('<@u1><@u2>')).toHaveLength(2);
   });
 });
 
