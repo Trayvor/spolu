@@ -289,6 +289,18 @@ describe('taskChatSummaries', () => {
     });
   });
 
+  it('a task chat whose only message by someone else was deleted is not unread', async () => {
+    const s = await setup();
+    const task = await newTask(s.group.id, s.a.id);
+    const chat = await ensureTaskChannel(deps.db, task);
+    await send(chat, s.a);
+    const gone = await send(chat, s.b);
+    await deleteMessage(deps, { channel: chat, message: (await getMessage(deps.db, gone.id))! });
+    expect(await taskChatSummaries(deps.db, s.a.id, s.group.id)).toEqual({
+      [task.id]: { count: 1, unread: false },
+    });
+  });
+
   it('never counts task chats in the group chat badge', async () => {
     const s = await setup();
     const task = await newTask(s.group.id, s.a.id);

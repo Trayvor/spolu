@@ -121,6 +121,8 @@ export async function markRead(db: Db, userId: string, channelId: string, at: Da
  * throws `ChannelGoneError`.
  */
 export async function markAllRead(db: Db, userId: string, channelId: string): Promise<Date> {
+  // now() is the transaction's start time, not the moment of the write; markRead's least(at, now())
+  // has the same behaviour.
   try {
     return await db.transaction(async (tx) => {
       const [row] = await tx
@@ -167,6 +169,38 @@ export async function getLastReadAt(
 export const UNREAD_CAP = 100;
 
 /**
+ * The unread top-level messages of channel `c` for the user: by others, not deleted, after the
+ * channel's read mark (`rs`, the user's `read_states` row joined by the caller). A `from ... where`
+ * fragment: the caller selects from it.
+ */
+const topLevelUnread = (userId: string) => sql`
+  from messages m
+  where m.channel_id = c.id
+    and m.parent_id is null
+    and m.deleted_at is null
+    and m.author_id <> ${userId}
+    and m.created_at > coalesce(rs.last_read_at, '-infinity'::timestamptz)
+`;
+
+/**
+ * The unread replies of channel `c` for the user: by others, not deleted, after the thread's read
+ * mark, in the threads the user is one of the people of. Only threads with a reply after the mark
+ * are looked at (`thread_read_states_unread_idx`). A `from ... where` fragment.
+ */
+const threadUnread = (userId: string) => sql`
+  from thread_read_states t
+  join messages m
+    on m.channel_id = t.channel_id
+    and m.parent_id = t.root_id
+    and m.created_at > t.last_read_at
+  where t.user_id = ${userId}
+    and t.channel_id = c.id
+    and t.last_reply_at > t.last_read_at
+    and m.deleted_at is null
+    and m.author_id <> ${userId}
+`;
+
+/**
  * The unread messages of channel `c` for the user, at most `UNREAD_CAP`: top-level messages by
  * others after the channel's read mark (`rs`), plus replies by others after the thread's read
  * mark in the threads the user is one of the people of. Only threads with a reply after the mark
@@ -176,31 +210,9 @@ export const UNREAD_CAP = 100;
 const unreadIn = (userId: string) => sql`
   select count(*)::int as n
   from (
-    (
-      select 1
-      from messages m
-      where m.channel_id = c.id
-        and m.parent_id is null
-        and m.deleted_at is null
-        and m.author_id <> ${userId}
-        and m.created_at > coalesce(rs.last_read_at, '-infinity'::timestamptz)
-      limit ${UNREAD_CAP}
-    )
+    (select 1 ${topLevelUnread(userId)} limit ${UNREAD_CAP})
     union all
-    (
-      select 1
-      from thread_read_states t
-      join messages m
-        on m.channel_id = t.channel_id
-        and m.parent_id = t.root_id
-        and m.created_at > t.last_read_at
-      where t.user_id = ${userId}
-        and t.channel_id = c.id
-        and t.last_reply_at > t.last_read_at
-        and m.deleted_at is null
-        and m.author_id <> ${userId}
-      limit ${UNREAD_CAP}
-    )
+    (select 1 ${threadUnread(userId)} limit ${UNREAD_CAP})
     limit ${UNREAD_CAP}
   ) capped
 `;
@@ -241,8 +253,8 @@ export async function unreadByGroup(
 /**
  * The chat of every task of the group that has one, for the board, in one statement: `count` is
  * its live messages (replies included), `unread` whether it has anything unread for the user by
- * the same rules as `unreadIn` (each part stops at the first hit). Tasks without a chat are
- * absent. Checks no permissions.
+ * the same predicates as `unreadIn` (`topLevelUnread`, `threadUnread`), each in an `exists` that
+ * stops at the first hit. Tasks without a chat are absent. Checks no permissions.
  */
 export async function taskChatSummaries(
   db: Db,
@@ -259,28 +271,8 @@ export async function taskChatSummaries(
           and m.deleted_at is null
       ) as count,
       (
-        exists (
-          select 1
-          from messages m
-          where m.channel_id = c.id
-            and m.parent_id is null
-            and m.deleted_at is null
-            and m.author_id <> ${userId}
-            and m.created_at > coalesce(rs.last_read_at, '-infinity'::timestamptz)
-        )
-        or exists (
-          select 1
-          from thread_read_states t
-          join messages m
-            on m.channel_id = t.channel_id
-            and m.parent_id = t.root_id
-            and m.created_at > t.last_read_at
-          where t.user_id = ${userId}
-            and t.channel_id = c.id
-            and t.last_reply_at > t.last_read_at
-            and m.deleted_at is null
-            and m.author_id <> ${userId}
-        )
+        exists (select 1 ${topLevelUnread(userId)})
+        or exists (select 1 ${threadUnread(userId)})
       ) as unread
     from channels c
     left join read_states rs on rs.channel_id = c.id and rs.user_id = ${userId}
