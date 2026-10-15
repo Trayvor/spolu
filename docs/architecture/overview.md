@@ -52,6 +52,8 @@ Splitting workers into their own container later is a config change, not a rewri
 
 **Boot and shutdown.** `apps/server/src/main.ts` runs: `loadConfig` (a `ConfigError` prints its message and exits 1) -> `runMigrations` -> `createDb` -> `startJobs` -> `buildApp` -> `registerStatic` (if `WEB_DIST_DIR`) -> `attachSocket` -> listen on `0.0.0.0:PORT`. On SIGTERM or SIGINT it closes Socket.IO and the HTTP server, stops pg-boss and closes the database pool; a second signal forces exit 1. `pnpm --filter @spolu/server build` bundles `src/main.ts` with tsup into `dist/main.js` (ESM, node24; `@spolu/shared` inlined, npm dependencies external) and copies the SQL migrations to `dist/migrations`, which is where `runMigrations` looks relative to the running file in both layouts. Run with `node dist/main.js`.
 
+**Dev and e2e runs.** `pnpm dev` runs the server (tsx watch) and Vite in parallel; the browser uses :5173 and Vite proxies `/api` and `/socket.io` to :3000. `pnpm test:e2e` (Playwright, Chromium, root `playwright.config.ts`, specs in `e2e/`) builds all packages and starts `node apps/server/dist/main.js` with an absolute `WEB_DIST_DIR=apps/web/dist` on :3000 against the dev PostgreSQL and Mailpit, so it tests the same layout as production. The browser locale is fixed to `sk-SK`, so the default language is Slovak. The smoke suite covers status card (DB and realtime), the language switch and its persistence, a deep link falling back to the SPA, and the web manifest. An already running server on :3000 is reused outside CI.
+
 ## Where code lives
 
 ```

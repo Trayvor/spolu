@@ -34,18 +34,18 @@ The docs are the source of truth. This file only holds rules and pointers; do no
 
 ## Commands
 
-Available now:
+One-time setup: `pnpm install`, `cp .env.example .env`, `pnpm exec playwright install chromium`.
 
-- `bash scripts/tests/check-docs.test.sh` — tests for the docs check script.
-- `bash scripts/tests/docs-reminder.test.sh` — tests for the Stop hook.
-- `bash scripts/check-docs.sh <base-ref>` — warns when code changed without docs.
-- `docker compose -f docker-compose.dev.yml up -d --wait` — local PostgreSQL 17 (5432) and Mailpit (SMTP 1025, UI 8025). Server tests need it running.
-- `pnpm --filter @spolu/server dev` — run the server with reload, reading the root `.env`; `... build` bundles it to `dist/`.
-- `pnpm --filter @spolu/web dev` — Vite dev server on :5173, proxying `/api` and `/socket.io` to the server on :3000; `... build` writes `apps/web/dist`; `... test` runs Vitest (jsdom).
+- `docker compose -f docker-compose.dev.yml up -d --wait` — local PostgreSQL 17 (5432) and Mailpit (SMTP 1025). Server tests and e2e need it running.
+- `pnpm dev` — server (:3000, reload, reads the root `.env`) and web (Vite on :5173, proxies `/api` and `/socket.io`) in parallel. Open http://localhost:5173.
+- `pnpm test` — unit and integration tests (Vitest) in every package.
+- `pnpm test:e2e` — Playwright smoke tests (Chromium) against a production-like run: builds all, starts `apps/server/dist/main.js` serving `apps/web/dist` on :3000.
+- `pnpm lint`, `pnpm typecheck`, `pnpm build` — checks and production build for every package.
+- Mailpit UI (catches all dev email): http://localhost:8025.
 - `pnpm --filter @spolu/web icons` — regenerate the PWA icons in `apps/web/public/icons/` from the egrant mark (commit the PNGs).
 - `pnpm --filter @spolu/server db:generate` — generate a migration after changing a `schema.ts`.
-
-App commands (`pnpm test`, `pnpm test:e2e`, dev, build) arrive in Phase 1.
+- `bash scripts/check-docs.sh <base-ref>` — warns when code changed without docs.
+- `bash scripts/tests/check-docs.test.sh`, `bash scripts/tests/docs-reminder.test.sh` — tests for the docs scripts.
 
 ## Where things live
 
@@ -57,4 +57,4 @@ App commands (`pnpm test`, `pnpm test:e2e`, dev, build) arrive in Phase 1.
 - `.env.example` — every environment variable with dev defaults; copy to `.env`.
 - `scripts/` — shell scripts that hold all CI/CD logic; CI only calls them. Starts with `check-docs.sh` (Phase 0).
 - `deploy/` — Docker Compose, Caddyfile and env examples for servers. Arrives in Phase 1.
-- `e2e/` — Playwright end-to-end tests. Arrives in Phase 1.
+- `e2e/` — Playwright end-to-end tests; config in the root `playwright.config.ts`.
