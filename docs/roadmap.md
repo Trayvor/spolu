@@ -15,7 +15,7 @@ Requirements per module: [product/](product/README.md). Phases after 1 get their
 | 6 | [Notifications](#phase-6--notifications) | planned | 5 | - |
 | 7 | [Direct messages](#phase-7--direct-messages) | planned | 3, 6 | - |
 | 8 | [Task board: core](#phase-8--task-board-core) | planned | 3 | - |
-| 9 | [Task attachments & task chat](#phase-9--task-attachments--task-chat) | planned | 8 | - |
+| 9 | [Task attachments & task chat](#phase-9--task-attachments--task-chat) | planned | 5, 6, 8 | - |
 | 10 | [Message to task](#phase-10--message-to-task) | planned | 5, 8 | - |
 | 11 | [AI split into tasks](#phase-11--ai-split-into-tasks) | planned | 10 | - |
 | 12 | [Tickets: intake from eGrant](#phase-12--tickets-intake-from-egrant) | planned | 3 | - |
