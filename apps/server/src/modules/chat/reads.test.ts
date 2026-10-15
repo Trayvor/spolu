@@ -80,6 +80,10 @@ describe('cursor', () => {
     expect(parsed.id).toBe('abc');
     expect(parseCursor('nope')).toBeNull();
     expect(parseCursor('not-a-date,abc')).toBeNull();
+    expect(parseCursor('1,abc')).toBeNull();
+    expect(parseCursor('0000-01-01T00:00:00.000Z,abc')).toBeNull();
+    expect(parseCursor('2026-02-31T00:00:00.000Z,abc')).toBeNull();
+    expect(parseCursor('2026-01-01T00:00:00.000Z,a\u0000b')).toBeNull();
     expect(parseCursor('2026-01-01T00:00:00.000Z,')).toBeNull();
   });
 
@@ -249,7 +253,51 @@ describe('changesAfter', () => {
     const changes = await changesAfter(deps.db, await fresh(s.channel), 0);
     expect(changes.messages).toHaveLength(500);
     expect(changes.truncated).toBe(true);
-    expect(changes.lastSeq).toBe(501);
+    expect(changes.lastSeq).toBe(500);
     expect(changes.messages.at(-1)!.changeSeq).toBe(500);
+  });
+
+  it('never ends a truncated page inside a seq shared by a reply and its root', async () => {
+    const s = await setup();
+    const base = new Date('2026-03-01T10:00:00.000Z');
+    const row = (seq: number, i: number) => ({
+      id: randomUUID(),
+      channelId: s.channel.id,
+      authorId: s.a.id,
+      body: 'x',
+      clientId: randomUUID(),
+      changeSeq: seq,
+      createdAt: new Date(base.getTime() + i),
+    });
+    const rows = Array.from({ length: 499 }, (_, i) => row(i + 1, i));
+    rows.push(row(500, 499), row(500, 500));
+    await deps.db.insert(messages).values(rows);
+    await deps.db.update(channels).set({ lastSeq: 500 }).where(eq(channels.id, s.channel.id));
+    const first = await changesAfter(deps.db, await fresh(s.channel), 0);
+    expect(first.truncated).toBe(true);
+    expect(first.messages).toHaveLength(499);
+    expect(first.lastSeq).toBe(499);
+    const next = await changesAfter(deps.db, s.channel, first.lastSeq);
+    expect(next.truncated).toBe(false);
+    expect(next.messages).toHaveLength(2);
+  });
+
+  it('returns a whole seq even when it exceeds the cap', async () => {
+    const s = await setup();
+    const base = new Date('2026-03-01T10:00:00.000Z');
+    await deps.db.insert(messages).values(
+      Array.from({ length: 501 }, (_, i) => ({
+        id: randomUUID(),
+        channelId: s.channel.id,
+        authorId: s.a.id,
+        body: 'x',
+        clientId: randomUUID(),
+        changeSeq: 7,
+        createdAt: new Date(base.getTime() + i),
+      })),
+    );
+    const changes = await changesAfter(deps.db, s.channel, 0);
+    expect(changes.messages).toHaveLength(501);
+    expect(changes.lastSeq).toBe(7);
   });
 });

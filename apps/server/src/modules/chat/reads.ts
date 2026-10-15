@@ -1,5 +1,5 @@
 import { and, asc, desc, eq, gt, isNull, lt, or, type SQL } from 'drizzle-orm';
-import type { AroundPage, Changes, MessageDto, MessagePage, Thread } from '@spolu/shared';
+import type { AroundPage, Changes, MessagePage, Thread } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
 import { selectMessages, toMessageDtos } from './dto.js';
 import { channels, messages } from './schema.js';
@@ -12,12 +12,20 @@ export function encodeCursor(m: { createdAt: string; id: string }): string {
   return `${m.createdAt},${m.id}`;
 }
 
+const CURSOR_DATE_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
+const CURSOR_ID_RE = /^[\w-]{1,64}$/;
+
 export function parseCursor(s: string): { createdAt: Date; id: string } | null {
   const at = s.indexOf(',');
   if (at < 0) return null;
-  const createdAt = new Date(s.slice(0, at));
+  const iso = s.slice(0, at);
   const id = s.slice(at + 1);
-  if (Number.isNaN(createdAt.getTime()) || id === '') return null;
+  if (!CURSOR_DATE_RE.test(iso) || !CURSOR_ID_RE.test(id)) return null;
+  const createdAt = new Date(iso);
+  // The round trip rejects impossible dates such as 2026-02-31; the year bound keeps it inside
+  // what Postgres timestamptz compares sanely.
+  if (Number.isNaN(createdAt.getTime()) || createdAt.toISOString() !== iso) return null;
+  if (createdAt.getUTCFullYear() < 1970) return null;
   return { createdAt, id };
 }
 
@@ -159,27 +167,50 @@ export async function getThread(
 ): Promise<Thread | null> {
   const root = await findRoot(db, channel.id, messageId);
   if (!root) return null;
-  const replies = await selectMessages(db, eq(messages.parentId, root.id), [
-    asc(messages.createdAt),
-    asc(messages.id),
-  ]);
+  const replies = await selectMessages(
+    db,
+    and(eq(messages.channelId, channel.id), eq(messages.parentId, root.id)),
+    [asc(messages.createdAt), asc(messages.id)],
+  );
   const [rootDto, ...replyDtos] = await toMessageDtos(db, channel.groupId, [root, ...replies]);
   return { root: rootDto!, replies: replyDtos };
 }
 
-/** Every message (replies included) changed after `afterSeq`, ascending, at most 500. */
+/**
+ * Every message (replies included) changed after `afterSeq`, ascending by `(change_seq, id)`, at
+ * most 500. A reply and its root share a seq, so a truncated page never ends inside a seq: the
+ * rows of the last, possibly incomplete, seq are dropped and `lastSeq` is the last complete seq,
+ * which the client passes as the next `afterSeq`. If one seq alone exceeds the cap, all of its
+ * rows are returned (progress beats the cap).
+ */
 export async function changesAfter(
   db: Db,
   channel: ChannelRow,
   afterSeq: number,
 ): Promise<Changes> {
   const lastSeq = await readLastSeq(db, channel.id);
+  const order = [asc(messages.changeSeq), asc(messages.id)];
+  const inChannel = eq(messages.channelId, channel.id);
   const rows = await selectMessages(
     db,
-    and(eq(messages.channelId, channel.id), gt(messages.changeSeq, afterSeq)),
-    [asc(messages.changeSeq)],
+    and(inChannel, gt(messages.changeSeq, afterSeq)),
+    order,
     CHANGES_LIMIT + 1,
   );
-  const dtos: MessageDto[] = await toMessageDtos(db, channel.groupId, rows.slice(0, CHANGES_LIMIT));
-  return { messages: dtos, lastSeq, truncated: rows.length > CHANGES_LIMIT };
+  if (rows.length <= CHANGES_LIMIT) {
+    return { messages: await toMessageDtos(db, channel.groupId, rows), lastSeq, truncated: false };
+  }
+  const boundary = rows[CHANGES_LIMIT - 1]!.changeSeq;
+  let kept = rows.slice(0, CHANGES_LIMIT);
+  if (rows[CHANGES_LIMIT]!.changeSeq === boundary) {
+    kept = kept.filter((r) => r.changeSeq < boundary);
+    if (kept.length === 0) {
+      kept = await selectMessages(db, and(inChannel, eq(messages.changeSeq, boundary)), order);
+    }
+  }
+  return {
+    messages: await toMessageDtos(db, channel.groupId, kept),
+    lastSeq: kept.at(-1)!.changeSeq,
+    truncated: true,
+  };
 }
