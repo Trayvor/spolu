@@ -13,5 +13,6 @@ describe('dates', () => {
 
   it('formatDue shows day and short month', () => {
     expect(formatDue('2026-10-18', 'en')).toBe('18 Oct');
+    expect(formatDue('2026-10-18', 'en-US')).toBe('18 Oct');
   });
 });

@@ -15,7 +15,7 @@ export function isOverdue(dueDate: string | null, bucketKind: BucketKind, today:
 /** A due date as "18 Oct" in the interface language (English day-first, like Slovak). */
 export function formatDue(dueDate: string, language: string): string {
   return new Date(`${dueDate}T00:00:00Z`).toLocaleDateString(
-    language === 'en' ? 'en-GB' : language,
+    /^en\b/.test(language) ? 'en-GB' : language,
     {
       day: 'numeric',
       month: 'short',

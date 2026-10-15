@@ -25,11 +25,20 @@ export function useBoardEvents(groupId: string): void {
   useEffect(() => {
     const socket = getSocket();
     const key = boardQuery(groupId).queryKey;
+    // Events that arrive before the board is cached are dropped; the initial fetch or the
+    // rejoin refetch covers them.
     const update = (apply: (board: BoardDto) => BoardDto) =>
       queryClient.setQueryData<BoardDto>(key, (board) => board && apply(board));
 
     const onTask = ({ task }: BoardTaskEvent) => {
-      if (task.groupId === groupId) update((board) => upsertTask(board, task));
+      if (task.groupId !== groupId) return;
+      let unknownBucket = false;
+      update((board) => {
+        unknownBucket = !board.buckets.some((b) => b.id === task.bucketId);
+        return upsertTask(board, task);
+      });
+      // A card in a bucket we do not know would not render: reload the board.
+      if (unknownBucket) void queryClient.invalidateQueries({ queryKey: key, exact: true });
     };
     const onTaskDeleted = (event: BoardTaskDeletedEvent) => {
       if (event.groupId === groupId) update((board) => removeTask(board, event.taskId));

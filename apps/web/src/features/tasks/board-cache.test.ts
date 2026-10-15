@@ -50,6 +50,12 @@ describe('board cache', () => {
     expect(next.tasks).toHaveLength(2);
   });
 
+  it('tasksByBucket sorts each bucket and skips tasks of unknown buckets', () => {
+    const b = upsertTask(board(), task('t3', 'gone', 'a0'));
+    expect(ids(b, 'b1')).toEqual(['t1', 't2']);
+    expect(tasksByBucket(b).has('gone')).toBe(false);
+  });
+
   it('removeTask drops the task', () => {
     expect(removeTask(board(), 't1').tasks.map((t) => t.id)).toEqual(['t2']);
   });

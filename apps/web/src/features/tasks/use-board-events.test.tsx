@@ -93,6 +93,28 @@ describe('useBoardEvents', () => {
     await waitFor(() => expect(fetchBoard).toHaveBeenCalledTimes(2));
   });
 
+  it('refetches the board when a task arrives for an unknown bucket', async () => {
+    render(tree(1));
+    await waitFor(() => expect(cached()).toBeDefined());
+    act(() => fake.fire('board:task', { task: task('t2'), actor: { id: 'u2', name: 'Bo' } }));
+    expect(fetchBoard).toHaveBeenCalledTimes(1);
+    act(() =>
+      fake.fire('board:task', {
+        task: { ...task('t3'), bucketId: 'bX' },
+        actor: { id: 'u2', name: 'Bo' },
+      }),
+    );
+    await waitFor(() => expect(fetchBoard).toHaveBeenCalledTimes(2));
+  });
+
+  it('removes its listeners on unmount', async () => {
+    const view = render(tree(1));
+    await waitFor(() => expect(cached()).toBeDefined());
+    view.unmount();
+    act(() => fake.fire('board:task', { task: task('t2'), actor: { id: 'u2', name: 'Bo' } }));
+    expect(cached().tasks.map((t) => t.id)).toEqual(['t1']);
+  });
+
   it('refetches the board when the room is rejoined', async () => {
     const view = render(tree(1));
     await waitFor(() => expect(fetchBoard).toHaveBeenCalledTimes(1));
