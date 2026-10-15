@@ -29,6 +29,14 @@ File policy lives in `modules/files/policy.ts`: `canReadFile(actor, file, actorG
 
 Task policy lives in `modules/tasks/policy.ts`: `canUseBoard(actor, groupId, actorGroupId)` (= `canReadGroup`: read the board, create, edit and move tasks, clients included), `canManageBuckets` (any admin: create, rename, reorder, delete custom buckets) and `canDeleteTask(actor, task)` (any admin, or the client who created the task). A group, task or bucket the caller may not read answers `404 not_found`; `403 forbidden` is only for a readable resource the caller may not change (bucket management by a client, deleting someone else's task). Changing a fixed bucket answers `400 fixed_bucket`.
 
+| Task capability | Admin | Client (own group) |
+|---|---|---|
+| Read the board, open a task | yes | yes |
+| Create, edit and move tasks (any task of the group) | yes | yes |
+| Delete a task | any task | only tasks they created |
+| Create, rename, reorder, delete custom buckets | yes | no (403) |
+| Another group's board, task or bucket | yes (all groups) | 404 |
+
 Who is calling comes from the session cookie, read in `modules/auth/session.ts`. Routes use the preHandlers `requireUser(app.auth)` (no valid session: `401 {"error":"unauthorized"}`) or `requireAdmin(app.auth)` (no session: 401; not `isAdmin`: `403 {"error":"forbidden"}`); both set `request.user` (`SessionUser`). A disabled user counts as logged out even if a session row still exists. Finer checks (which group, which admin) call the module's policy functions with `request.user` before the service. State-changing requests from another site are refused earlier by the CSRF guard (see [overview.md](overview.md), "CSRF guard").
 
 Policy functions are written test-first. Confirmed in Phase 3: reading a resource you may not read answers 404, the same as a missing one.

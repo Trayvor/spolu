@@ -42,7 +42,7 @@ Pushed to the `group:<id>` room after the write commits, by `modules/tasks/event
 | event                | payload                                             | when                                                  |
 | -------------------- | --------------------------------------------------- | ----------------------------------------------------- |
 | `board:buckets`      | `{ groupId, buckets }` (the full list, by position) | a custom bucket is created, renamed, moved or deleted |
-| `board:task`         | `{ task, actor }`                                   | a task is created or edited (`task` is a `TaskDto`)   |
+| `board:task`         | `{ task, actor }`                                   | a task is created, edited or moved (`task` is a `TaskDto`) |
 | `board:task_deleted` | `{ groupId, taskId }`                               | a task is deleted                                     |
 
 `actor` (`{ id, name }`) is who made the change, so a client can skip its own echo or say who changed a card. The board has no `seq`: after a reconnect (a new `useGroupRoomJoins()` value) the web refetches `GET /api/groups/:id/board` instead of catching up event by event; boards are small.

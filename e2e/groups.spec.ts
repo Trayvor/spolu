@@ -39,7 +39,7 @@ test('admin creates a group, a client joins by invite and is removed', async ({
   await expect(page.getByText('Chat pribudne v ďalšej aktualizácii.')).toBeVisible();
   await page.getByRole('link', { name: 'Úlohy' }).click();
   await expect(page).toHaveURL(/\/tasks$/);
-  await expect(page.getByText('Nástenka úloh pribudne v ďalšej aktualizácii.')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Na spracovanie' })).toBeVisible();
   await page.getByRole('link', { name: 'Členovia' }).click();
   await expect(page).toHaveURL(/\/members$/);
 
@@ -77,7 +77,7 @@ test('admin creates a group, a client joins by invite and is removed', async ({
   await expect(client.getByText('Chat pribudne v ďalšej aktualizácii.')).toBeVisible();
   await client.getByRole('link', { name: 'Úlohy' }).click();
   await expect(client).toHaveURL(/\/tasks$/);
-  await expect(client.getByText('Nástenka úloh pribudne v ďalšej aktualizácii.')).toBeVisible();
+  await expect(client.getByRole('heading', { name: 'Na spracovanie' })).toBeVisible();
   await client.getByRole('link', { name: 'Členovia' }).click();
   await expect(client).toHaveURL(/\/members$/);
   await client.getByRole('link', { name: 'Chat' }).click();

@@ -33,4 +33,4 @@ Each group has a Kanban board with four fixed buckets (columns) and custom bucke
 
 ## Phase
 
-Phase 8 (board, buckets, tasks with attachments and the urgent flag, drag & drop, realtime). Phase 9 (task chat, tasks from chat messages). Phase 6 (task notifications and reminders).
+Phase 8 (built: board, buckets, tasks with attachments and the urgent flag, drag & drop with pointer, touch and keyboard, realtime, the task panel; end-to-end test in `e2e/tasks.spec.ts`). Phase 9 (task chat, tasks from chat messages). Phase 6 (task notifications and reminders).

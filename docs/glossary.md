@@ -5,7 +5,7 @@ Terms used across the docs and code, in alphabetical order.
 - **admin**: an eGrant team member. Sees all groups and can manage them. Created by the superadmin.
 - **ADR**: architecture decision record, a short file in `docs/decisions/` that records one decision and why it was made.
 - **API key**: a secret token that eGrant sends with each ticket request to prove who it is.
-- **bucket**: a column on a task board (for example "To do"). Tasks live in buckets and can be reordered.
+- **bucket**: a column on a task board. Each group has four fixed buckets (To do, eGrant review, client review, Completed) and admins can add custom buckets between To do and Completed. Cards can be dragged between and inside buckets.
 - **channel**: a place where messages are posted. In Spolu: a group chat, a direct message chat or a task chat.
 - **client**: a person from a customer organization. Sees only their own group.
 - **contract**: a record of an agreement with a client (dates, amount, files, notes). Admin-only.
@@ -33,8 +33,9 @@ Terms used across the docs and code, in alphabetical order.
 - **session**: a long-lived login on one device, kept after the code is entered. A `session` row plus the httpOnly cookie `better-auth.session_token`; removing a user deletes their sessions.
 - **Spolu**: the product name (Slovak for "together"); full brand "Spolu by eGrant". Formerly the working title eHub.
 - **superadmin**: the first admin, created automatically at start from `SUPERADMIN_EMAIL` (name from `SUPERADMIN_NAME`). Cannot be deleted or demoted; creates other admins.
-- **task**: a card on the task board with title, description, assignee, deadline, priority and labels.
+- **task**: a card on the task board with title, description, one or more assignees, deadline, an urgent flag and attachments.
 - **task chat**: the discussion inside one task, with threads, mentions and attachments.
 - **test environment**: the Oracle Cloud VM where Spolu is deployed for checks before real use; environment name `test`.
 - **thread**: replies grouped under one message.
 - **ticket**: a support request sent from eGrant, with a status (New / In progress / Resolved), shown in the matching group or in the global list.
+- **urgent**: a flag on a task. An urgent card shows a red "Urgent" pill on the board, and (from Phase 6) its assignees are reminded every 3 hours between 08:00 and 20:00 until it is in Completed or no longer urgent.
