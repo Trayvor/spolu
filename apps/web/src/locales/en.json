@@ -1,7 +1,7 @@
 {
   "app": { "name": "Spolu", "fullName": "Spolu by eGrant" },
   "nav": { "home": "Home", "settings": "Settings" },
-  "language": { "label": "Language" },
+  "language": { "current": "Language: {{name}}" },
   "system": {
     "title": "System status",
     "version": "Server version",
