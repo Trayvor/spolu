@@ -6,9 +6,12 @@ let socket: Socket | undefined;
  * The one shared Socket.IO connection (same origin, `/socket.io`). Created on first use but
  * not connected: the server only accepts a handshake with a session, so the signed-in layout
  * calls `connectSocket()` once the session is known.
+ *
+ * WebSocket only: browsers omit `Origin` on same-origin polling GETs, and the server refuses a
+ * handshake without the app `Origin` in production. A WebSocket handshake always sends it.
  */
 export function getSocket(): Socket {
-  socket ??= io({ path: '/socket.io', autoConnect: false });
+  socket ??= io({ path: '/socket.io', transports: ['websocket'], autoConnect: false });
   return socket;
 }
 

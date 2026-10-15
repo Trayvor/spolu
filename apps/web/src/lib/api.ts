@@ -50,7 +50,8 @@ export async function apiSend<T>(
     body: body === undefined ? undefined : JSON.stringify(body),
   });
   const data = await readJson(res);
-  if (!res.ok) throw new ApiError(`${method} ${path} failed (HTTP ${res.status})`, res.status, data);
+  if (!res.ok)
+    throw new ApiError(`${method} ${path} failed (HTTP ${res.status})`, res.status, data);
   if (!schema) return undefined;
   const parsed = schema.safeParse(data);
   if (!parsed.success) {

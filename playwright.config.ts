@@ -19,7 +19,15 @@ export default defineConfig({
     locale: 'sk-SK',
     trace: 'retain-on-failure',
   },
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+  projects: [
+    { name: 'setup', testMatch: /auth\.setup\.ts/ },
+    {
+      name: 'chromium',
+      dependencies: ['setup'],
+      testIgnore: /auth\.setup\.ts/,
+      use: { ...devices['Desktop Chrome'], storageState: 'e2e/.auth/superadmin.json' },
+    },
+  ],
   webServer: {
     command: 'node e2e/create-db.mjs && pnpm -r build && node apps/server/dist/main.js',
     url: `${baseURL}/api/health`,
