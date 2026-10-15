@@ -35,4 +35,7 @@ CREATE UNIQUE INDEX "notification_events_dedupe_unique" ON "notification_events"
 CREATE INDEX "notification_events_undelivered_idx" ON "notification_events" USING btree ("created_at") WHERE "notification_events"."delivered_at" is null;--> statement-breakpoint
 CREATE INDEX "notification_events_email_due_idx" ON "notification_events" USING btree ("email_due_at") WHERE "notification_events"."emailed_at" is null and "notification_events"."email_due_at" is not null;--> statement-breakpoint
 ALTER TABLE "user" ADD CONSTRAINT "user_default_group_mode_check" CHECK ("user"."default_group_mode" in ('all', 'mentions', 'off'));--> statement-breakpoint
-ALTER TABLE "user" ADD CONSTRAINT "user_language_check" CHECK ("user"."language" in ('sk', 'en'));
+ALTER TABLE "user" ADD CONSTRAINT "user_language_check" CHECK ("user"."language" in ('sk', 'en'));--> statement-breakpoint
+-- Before this release nothing set delivered_at, so every existing event looks undelivered. Mark
+-- them delivered and emailed, or the delivery worker would push and email the whole backlog.
+UPDATE "notification_events" SET "delivered_at" = now(), "emailed_at" = now() WHERE "delivered_at" IS NULL;

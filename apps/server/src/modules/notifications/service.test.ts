@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 import { afterAll, describe, expect, it } from 'vitest';
-import { eq, inArray } from 'drizzle-orm';
+import { eq, inArray, sql } from 'drizzle-orm';
 import { createDb } from '../../infra/db/client.js';
 import { testDatabaseUrl } from '../../../test/test-config.js';
 import { createGroup } from '../groups/service.js';
@@ -101,5 +102,39 @@ describe('deleteOldNotificationEvents', () => {
     await notificationsJobHandlers(db)[NOTIFICATIONS_PURGE_JOB]!({});
     expect(await rowsFor([a.id])).toHaveLength(0);
     expect(await rowsFor([b.id])).toHaveLength(1);
+  });
+});
+
+describe('migration 0009 backfill', () => {
+  const migration = readFileSync(
+    new URL('../../infra/db/migrations/0009_notifications_delivery.sql', import.meta.url),
+    'utf8',
+  );
+  const backfill = migration.split('--> statement-breakpoint').at(-1)!;
+
+  it('existing events count as delivered and emailed, so the worker never sends the backlog', async () => {
+    const { group, a } = await setup();
+    const id = randomUUID();
+    await db.insert(notificationEvents).values({
+      id,
+      userId: a.id,
+      groupId: group.id,
+      kind: 'chat.message',
+      payload: {},
+    });
+    class Rollback extends Error {}
+    // In a rolled-back transaction: the test database is shared, other tests' events stay as they are.
+    await expect(
+      db.transaction(async (tx) => {
+        await tx.execute(sql.raw(backfill));
+        const [row] = await tx
+          .select()
+          .from(notificationEvents)
+          .where(eq(notificationEvents.id, id));
+        expect(row?.deliveredAt).toBeInstanceOf(Date);
+        expect(row?.emailedAt).toBeInstanceOf(Date);
+        throw new Rollback();
+      }),
+    ).rejects.toBeInstanceOf(Rollback);
   });
 });
