@@ -21,9 +21,9 @@ describe('deleteExpiredVerifications', () => {
         row(live, new Date(Date.now() + 60_000)),
       ]);
 
-    expect(
-      await deleteExpiredVerifications(db, new Date(Date.now() - 5 * 60_000)),
-    ).toBeGreaterThanOrEqual(1);
+    // Other test files share this table (and may purge our expired row first), so the
+    // returned count is not asserted; only this test's own rows are.
+    await deleteExpiredVerifications(db, new Date(Date.now() - 5 * 60_000));
 
     const left = async (id: string) =>
       (await db.select().from(verification).where(eq(verification.id, id))).length;

@@ -263,21 +263,25 @@ describe('getFilesForGroup', () => {
 });
 
 describe('setFilePreview', () => {
-  it('stores the preview and dimensions, and overwrites an earlier one', async () => {
+  it('stores the preview and dimensions; a second call changes nothing and removes its object', async () => {
     const { group, owner } = await setup();
     const info = await upload(group.id, owner.id, PNG);
     const row = (await getFile(db, info.id))!;
-    await setFilePreview(deps, row, { body: Buffer.from('one'), width: 10, height: 5 });
-    await setFilePreview(deps, row, { body: Buffer.from('two'), width: 20, height: 8 });
-    const updated = (await getFile(db, info.id))!;
-    expect(updated).toMatchObject({
-      previewKey: `files/${group.id}/${info.id}-preview`,
-      width: 20,
-      height: 8,
-    });
-    const stored = await storage.get(updated.previewKey!);
+    expect(
+      await setFilePreview(deps, row, { body: Buffer.from('one'), width: 10, height: 5 }),
+    ).toBe(true);
+    const first = (await getFile(db, info.id))!;
+    expect(first).toMatchObject({ width: 10, height: 5 });
+    expect(first.previewKey).toMatch(new RegExp(`^files/${group.id}/${info.id}-preview-`));
+    const stored = await storage.get(first.previewKey!);
     expect(stored.contentType).toBe('image/webp');
-    expect((await readAll(stored.stream)).toString()).toBe('two');
+    expect((await readAll(stored.stream)).toString()).toBe('one');
+
+    const stale = { ...row, previewKey: null };
+    expect(
+      await setFilePreview(deps, stale, { body: Buffer.from('two'), width: 20, height: 8 }),
+    ).toBe(false);
+    expect(await getFile(db, info.id)).toMatchObject({ previewKey: first.previewKey, width: 10 });
   });
 });
 

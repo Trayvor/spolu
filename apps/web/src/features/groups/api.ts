@@ -91,5 +91,6 @@ export async function restoreMember(groupId: string, userId: string): Promise<vo
 export const groupPeopleQuery = (groupId: string) =>
   queryOptions({
     queryKey: ['groups', groupId, 'people'],
+    enabled: !!groupId,
     queryFn: () => apiGet(`/groups/${encodeURIComponent(groupId)}/people`, GroupPersonListSchema),
   });

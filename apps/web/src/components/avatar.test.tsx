@@ -1,6 +1,6 @@
 import { render } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import { Avatar, avatarColor } from './avatar';
+import { Avatar, avatarColor, avatarTextColor } from './avatar';
 
 const CLASSES = [
   'bg-brand-purple',
@@ -22,6 +22,24 @@ describe('avatarColor', () => {
   it('ids spread over more than one color', () => {
     const colors = new Set(Array.from({ length: 20 }, (_, i) => avatarColor(`id-${i}`)));
     expect(colors.size).toBeGreaterThanOrEqual(3);
+  });
+});
+
+describe('avatar contrast (WCAG AA)', () => {
+  // purple, blue and success are dark enough for white; pink and coral need ink text
+  it.each([
+    ['id-0', 'bg-success', 'text-white'],
+    ['id-1', 'bg-brand-purple', 'text-white'],
+    ['id-2', 'bg-brand-pink', 'text-foreground'],
+    ['id-3', 'bg-brand-blue', 'text-white'],
+    ['id-4', 'bg-brand-coral', 'text-foreground'],
+  ])('%s gets %s with %s', (id, bg, text) => {
+    expect(avatarColor(id)).toBe(bg);
+    expect(avatarTextColor(id)).toBe(text);
+    const { container } = render(<Avatar userId={id} name="Jana" />);
+    const el = container.firstElementChild!;
+    expect(el).toHaveClass(bg, text);
+    expect(el).not.toHaveClass(text === 'text-white' ? 'text-foreground' : 'text-white');
   });
 });
 

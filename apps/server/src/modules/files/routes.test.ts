@@ -363,6 +363,18 @@ describe('files API', () => {
       expect(res.json()).toEqual({ error: 'invalid_preview' });
     });
 
+    it('two racing previews: exactly one wins, the other answers 400 invalid_preview', async () => {
+      const { client, file } = await withPng();
+      const results = await Promise.all([
+        putPreview(file.id, client.cookie, WEBP),
+        putPreview(file.id, client.cookie, WEBP),
+      ]);
+      expect(results.map((r) => r.statusCode).sort()).toEqual([204, 400]);
+      const loser = results.find((r) => r.statusCode === 400)!;
+      expect(loser.json()).toEqual({ error: 'invalid_preview' });
+      expect((await get(`/api/files/${file.id}/preview`, client.cookie)).statusCode).toBe(200);
+    });
+
     it('a body over 300 KB answers 413', async () => {
       const { client, file } = await withPng();
       const big = Buffer.concat([WEBP, Buffer.alloc(300 * 1024)]);

@@ -142,7 +142,9 @@ export const filesRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { 
           return reply.code(400).send({ error: ErrorCodes.invalidPreview });
         }
 
-        await setFilePreview(deps, file, { body, width, height });
+        if (!(await setFilePreview(deps, file, { body, width, height }))) {
+          return reply.code(400).send({ error: ErrorCodes.invalidPreview });
+        }
         return reply.code(204).send();
       },
     );

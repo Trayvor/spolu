@@ -80,6 +80,7 @@ export async function apiSendRaw(
   path: string,
   body: Blob,
   contentType: string,
+  headers: Record<string, string> = {},
 ): Promise<void> {
   const res = await fetch(`/api${path}`, {
     method,
@@ -87,6 +88,7 @@ export async function apiSendRaw(
     headers: {
       Accept: 'application/json',
       'Accept-Language': i18n.language,
+      ...headers,
       'Content-Type': contentType,
     },
     body,

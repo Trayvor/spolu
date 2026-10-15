@@ -1,5 +1,5 @@
 import { FileInfoSchema, type FileInfo } from '@spolu/shared';
-import { ApiError } from '@/lib/api';
+import { ApiError, apiSendRaw } from '@/lib/api';
 import { i18n } from '@/i18n';
 import { resizeImageWithSize } from '@/lib/resize-image';
 
@@ -58,19 +58,14 @@ async function uploadPreview(info: FileInfo, file: File): Promise<FileInfo> {
   const { blob, width, height } = await resizeImageWithSize(file, PREVIEW_SIDE);
   if (blob.type !== 'image/webp') return info;
   const path = `/files/${encodeURIComponent(info.id)}/preview`;
-  const res = await fetch(`/api${path}`, {
-    method: 'PUT',
-    credentials: 'include',
-    headers: {
-      Accept: 'application/json',
-      'Accept-Language': i18n.language,
-      'Content-Type': 'image/webp',
+  try {
+    await apiSendRaw('PUT', path, blob, 'image/webp', {
       'x-image-width': String(width),
       'x-image-height': String(height),
-    },
-    body: blob,
-  });
-  if (!res.ok) return info;
+    });
+  } catch {
+    return info;
+  }
   return { ...info, hasPreview: true, width, height };
 }
 

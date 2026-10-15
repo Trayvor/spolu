@@ -133,18 +133,28 @@ export async function createFile(
   }
 }
 
-/** Stores the browser-made WebP preview and its dimensions; overwrites an earlier one. */
+/**
+ * Stores the browser-made WebP preview and its dimensions. The row update is a single
+ * conditional UPDATE, so of two racing calls exactly one wins; the loser's object is removed
+ * and `false` is returned (the route answers 400 invalid_preview).
+ */
 export async function setFilePreview(
   { db, storage }: FileDeps,
   row: FileRow,
   input: { body: Buffer; width: number; height: number },
-): Promise<void> {
-  const key = `files/${row.groupId}/${row.id}-preview`;
+): Promise<boolean> {
+  const key = `files/${row.groupId}/${row.id}-preview-${randomUUID()}`;
   await storage.put(key, input.body, 'image/webp');
-  await db
+  const updated = await db
     .update(files)
     .set({ previewKey: key, width: input.width, height: input.height })
-    .where(eq(files.id, row.id));
+    .where(and(eq(files.id, row.id), isNull(files.previewKey), isNull(files.attachedAt)))
+    .returning({ id: files.id });
+  if (updated.length === 0) {
+    await storage.delete(key).catch(() => undefined);
+    return false;
+  }
+  return true;
 }
 
 /** Marks the caller's own unattached files of the group as used. Call inside the owner's transaction. */

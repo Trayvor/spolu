@@ -51,6 +51,13 @@ describe('file display', () => {
     expect(img).toHaveAttribute('loading', 'lazy');
   });
 
+  it('ImagePreview never upscales beyond the natural width', async () => {
+    await setLanguage('en');
+    render(<ImagePreview file={{ ...IMG, width: 120, height: 80 }} maxWidth={320} />);
+    const link = screen.getByRole('link', { name: i18n.t('files.openImage', { name: IMG.name }) });
+    expect(link.style.maxWidth).toBe('min(100%, 120px)');
+  });
+
   it('ImagePreview without a preview falls back to FileChip', async () => {
     await setLanguage('en');
     render(<ImagePreview file={{ ...IMG, hasPreview: false }} />);

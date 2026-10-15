@@ -54,7 +54,7 @@ Extra colors (Tailwind names in brackets):
 | `--success-light` (`success-light`) | `#52C083` | `green-light` | |
 | `--brand-purple`, `--brand-pink`, `--brand-blue`, `--brand-coral` | `#7654FF`, `#EB5ED4`, `#3242DC`, `#FF8A4C` | `purple`, `pink`, `blue`, `coral` | logo gradient and illustration accents; use sparingly (avatars, labels), never as large fills |
 
-Avatar (`components/avatar.tsx`): a round initials badge, `size` px square (24, 32 or 40; default 32), white text, weight 600, font size `size * 0.4`. Initials are the first letters of the first and last word of the name, upper-case (`?` when empty). The background is picked from `bg-brand-purple`, `bg-brand-pink`, `bg-brand-blue`, `bg-brand-coral`, `bg-success` by a 32-bit FNV-1a hash of the user id modulo 5, so a person keeps one color everywhere. It is `aria-hidden`: the name always appears next to it.
+Avatar (`components/avatar.tsx`): a round initials badge, `size` px square (24, 32 or 40; default 32), weight 600, text white on purple, blue and success and ink on pink and coral (every pair at least 4.5:1, WCAG AA), font size `size * 0.4`. Initials are the first letters of the first and last word of the name, upper-case (`?` when empty). The background is picked from `bg-brand-purple`, `bg-brand-pink`, `bg-brand-blue`, `bg-brand-coral`, `bg-success` by a 32-bit FNV-1a hash of the user id modulo 5, so a person keeps one color everywhere. It is `aria-hidden`: the name always appears next to it.
 
 The live dot in the header "Výzvy" pill is `#64D01C` (hard-coded in `.egrant-header__challenges-dot`); it is not a token. Use `--success` for online/presence dots unless the owner wants the brighter green.
 

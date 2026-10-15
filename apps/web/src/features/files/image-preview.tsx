@@ -4,7 +4,8 @@ import { FileChip } from './file-chip';
 import { fileUrl, previewUrl } from './urls';
 
 /**
- * The 640 px preview in a box with the image's aspect ratio (no layout jump while it loads);
+ * The 640 px preview in a box with the image's aspect ratio (no layout jump while it loads), never wider than the
+ * image itself;
  * a click opens the full file in a new tab. Without a preview it is a FileChip.
  */
 export function ImagePreview({ file, maxWidth = 320 }: { file: FileInfo; maxWidth?: number }) {
@@ -19,7 +20,7 @@ export function ImagePreview({ file, maxWidth = 320 }: { file: FileInfo; maxWidt
       className="block overflow-hidden rounded-lg bg-muted"
       style={{
         aspectRatio: `${file.width} / ${file.height}`,
-        maxWidth: `min(100%, ${maxWidth}px)`,
+        maxWidth: `min(100%, ${Math.min(file.width, maxWidth)}px)`,
       }}
     >
       <img

@@ -7,7 +7,7 @@ import { createGroup } from '../groups/service.js';
 import { createUnverifiedClient } from '../users/service.js';
 import { FILES_CLEANUP_JOB } from './jobs.js';
 import { files } from './schema.js';
-import { createFile } from './service.js';
+import { attachFiles, createFile, getFile, setFilePreview } from './service.js';
 
 let ctx: Awaited<ReturnType<typeof buildTestApp>>;
 beforeAll(async () => {
@@ -36,15 +36,29 @@ describe('the files cleanup job', () => {
       );
     const stale = await upload('stale.txt');
     const fresh = await upload('fresh.txt');
-    await db
-      .update(files)
-      .set({ createdAt: new Date(Date.now() - 25 * 60 * 60 * 1000) })
-      .where(eq(files.id, stale.id));
+    const attached = await upload('attached.txt');
+    const withPreview = await upload('photo.txt');
+    await attachFiles(db, group.id, [attached.id], owner.id);
+    await setFilePreview({ db, storage }, (await getFile(db, withPreview.id))!, {
+      body: Buffer.from('preview'),
+      width: 10,
+      height: 5,
+    });
+    const previewKey = (await getFile(db, withPreview.id))!.previewKey!;
+    const old = new Date(Date.now() - 25 * 60 * 60 * 1000);
+    for (const f of [stale, attached, withPreview]) {
+      await db.update(files).set({ createdAt: old }).where(eq(files.id, f.id));
+    }
 
     await jobs.send(FILES_CLEANUP_JOB, {});
 
     expect(await db.select().from(files).where(eq(files.id, stale.id))).toHaveLength(0);
     expect(await storage.exists(`files/${group.id}/${stale.id}`)).toBe(false);
+    expect(await db.select().from(files).where(eq(files.id, withPreview.id))).toHaveLength(0);
+    expect(await storage.exists(`files/${group.id}/${withPreview.id}`)).toBe(false);
+    expect(await storage.exists(previewKey)).toBe(false);
+    expect(await db.select().from(files).where(eq(files.id, attached.id))).toHaveLength(1);
+    expect(await storage.exists(`files/${group.id}/${attached.id}`)).toBe(true);
     expect(await db.select().from(files).where(eq(files.id, fresh.id))).toHaveLength(1);
     expect(await storage.exists(`files/${group.id}/${fresh.id}`)).toBe(true);
   });

@@ -9,7 +9,13 @@ const fake = vi.hoisted(() => {
   const s = {
     connected: true,
     ackWith: { ok: true } as { ok: boolean },
-    emit: vi.fn((_e: string, _p: unknown, ack?: Ack) => ack?.(s.ackWith)),
+    deferAck: false,
+    pendingAcks: [] as (() => void)[],
+    emit: vi.fn((_e: string, _p: unknown, ack?: Ack) => {
+      if (!ack) return;
+      if (s.deferAck) s.pendingAcks.push(() => ack(s.ackWith));
+      else ack(s.ackWith);
+    }),
     on: vi.fn((e: string, fn: () => void) => {
       if (!listeners.has(e)) listeners.set(e, new Set());
       listeners.get(e)!.add(fn);
@@ -22,6 +28,8 @@ const fake = vi.hoisted(() => {
       listeners.clear();
       s.connected = true;
       s.ackWith = { ok: true };
+      s.deferAck = false;
+      s.pendingAcks = [];
     },
   };
   return s;
@@ -58,7 +66,30 @@ describe('useGroupRoom', () => {
     const { unmount } = renderHook(() => useGroupRoom('g1'));
     unmount();
     expect(leaveCalls()).toEqual([['group:leave', { groupId: 'g1' }]]);
-    expect(fake.off).toHaveBeenCalledWith('connect', expect.any(Function));
+    const registered = fake.on.mock.calls.find((c) => c[0] === 'connect')![1];
+    expect(fake.off).toHaveBeenCalledWith('connect', registered);
+  });
+
+  it('an ack arriving after unmount does not change the counter', () => {
+    fake.deferAck = true;
+    const { result, unmount } = renderHook(() => useGroupRoom('g1'));
+    expect(result.current).toBe(0);
+    unmount();
+    act(() => fake.pendingAcks.forEach((ack) => ack()));
+    expect(result.current).toBe(0);
+  });
+
+  it('an ack of the old group arriving after a group change is ignored', () => {
+    fake.deferAck = true;
+    const { result, rerender } = renderHook(({ id }) => useGroupRoom(id), {
+      initialProps: { id: 'g1' },
+    });
+    rerender({ id: 'g2' });
+    const [oldAck, newAck] = fake.pendingAcks;
+    act(() => oldAck!());
+    expect(result.current).toBe(0);
+    act(() => newAck!());
+    expect(result.current).toBe(1);
   });
 
   it('switching groupId leaves the old room and joins the new one', () => {
