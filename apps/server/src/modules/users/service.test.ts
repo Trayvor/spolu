@@ -12,6 +12,7 @@ import {
   findUserByEmail,
   getUserById,
   listAdmins,
+  reactivateUser,
 } from './service.js';
 
 const { db, close } = createDb(testDatabaseUrl);
@@ -149,5 +150,13 @@ describe('user table checks', () => {
   it('inserting an upper-case email fails', async () => {
     const values = { id: randomUUID(), name: 'Upper', email: `${randomUUID()}@EXAMPLE.com` };
     expect(await insertIsRejected(values)).toBe(true);
+  });
+});
+
+describe('reactivateUser', () => {
+  it('clears disabled_at', async () => {
+    const { id } = await insertUser('client', true);
+    await reactivateUser(db, id);
+    expect((await getUserById(db, id))?.disabledAt).toBeNull();
   });
 });

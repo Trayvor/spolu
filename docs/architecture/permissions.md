@@ -12,7 +12,7 @@ Product rules are in [roles-and-access](../product/roles-and-access.md). In the 
 | Create other admins | yes | yes | no |
 | Remove an admin | yes | yes | no |
 | Be removed or demoted | never | yes, by another admin (never by themselves) | yes (assumed, confirm in the phase design) |
-| Remove a client from a group | yes | yes | no (assumed, confirm in the phase design) |
+| Remove a client from a group | yes | yes | no (confirmed in Phase 3) |
 | Message users of other organizations | n/a | n/a | no |
 
 ## The rule
@@ -23,8 +23,10 @@ Client-side hiding of buttons and pages is cosmetic. The server never trusts the
 
 User policy lives in `modules/users/policy.ts`: `isAdmin`, `canManageAdmins` (any admin) and `canDeactivate` (target is an admin, not the actor; the superadmin is never a target).
 
+Group policy lives in `modules/groups/policy.ts`: `canManageGroups` (any admin), `canReadGroup(actor, groupId, actorGroupId)` (any admin, or a client whose membership group is `groupId`; `actorGroupId` comes from `getMembershipGroupId`) and `canRemoveMember` (admin actor, client target). A group a caller may not read answers `404 not_found`, never 403, so group ids cannot be probed.
+
 Who is calling comes from the session cookie, read in `modules/auth/session.ts`. Routes use the preHandlers `requireUser(app.auth)` (no valid session: `401 {"error":"unauthorized"}`) or `requireAdmin(app.auth)` (no session: 401; not `isAdmin`: `403 {"error":"forbidden"}`); both set `request.user` (`SessionUser`). A disabled user counts as logged out even if a session row still exists. Finer checks (which group, which admin) call the module's policy functions with `request.user` before the service.
 
-Policy functions are written test-first. To confirm in the Phase 3 design: a forbidden access returns an error that does not reveal whether the resource exists.
+Policy functions are written test-first. Confirmed in Phase 3: reading a resource you may not read answers 404, the same as a missing one.
 
 See [realtime.md](realtime.md) for room joins and [overview.md](overview.md) for module boundaries.

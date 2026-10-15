@@ -101,3 +101,17 @@ export async function deactivateUser(db: Db, id: string): Promise<void> {
     .set({ disabledAt: new Date(), updatedAt: new Date() })
     .where(eq(user.id, id));
 }
+
+/** Clears `disabled_at`: a removed user comes back (a removed client re-joining). */
+export async function reactivateUser(db: Db, id: string): Promise<void> {
+  await db.update(user).set({ disabledAt: null, updatedAt: new Date() }).where(eq(user.id, id));
+}
+
+/** A client who typed their email on an invite: not verified yet, no name yet. */
+export async function createUnverifiedClient(db: Db, email: string): Promise<UserRow> {
+  const [row] = await db
+    .insert(user)
+    .values({ id: randomUUID(), email: normalizeEmail(email), name: '', role: 'client' })
+    .returning();
+  return row as UserRow;
+}

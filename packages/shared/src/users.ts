@@ -38,5 +38,8 @@ export const ErrorCodes = {
   validationFailed: 'validation_failed',
   emailTakenAdmin: 'email_taken_admin',
   emailTakenClient: 'email_taken_client',
+  invalidLogo: 'invalid_logo',
+  egrantUrlTaken: 'egrant_url_taken',
+  rateLimited: 'rate_limited',
 } as const;
 export type ErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes];

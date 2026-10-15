@@ -34,8 +34,8 @@ erDiagram
 |---|---|---|---|
 | User | a person who logs in; role `superadmin`, `admin` or `client` | 2 | built |
 | Session, Account, Verification | login sessions and one-time codes; tables owned by better-auth (see below) | 2 | built |
-| Group | one client organization; has eGrant URL and invite token | 3 | planned |
-| GroupMember | links a client to their one group (admins need no rows) | 3 | planned |
+| Group | one client organization; has normalized eGrant URL (unique), invite token (unique, 32 chars) and optional logo key; `groups` table | 3 | built |
+| GroupMember | links a client to their one group (admins need no rows); `group_members`, `user_id` is the primary key, `group_id` is indexed, both cascade on delete | 3 | built |
 | Channel | one abstraction for group chat, DM and task chat | 4 | planned |
 | Message | a post in a channel with per-channel `seq`, optional thread parent | 4 | planned |
 | ReadState | last read `seq` per user and channel (unread counts) | 4 | planned |
