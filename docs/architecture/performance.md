@@ -31,7 +31,7 @@ Spolu must feel instant: faster than Microsoft Teams on a cheap phone over mobil
 
 ## Bundle budget
 
-The initial JS that the browser downloads before showing the first screen: **150 kB gzip**, reported by the build. Today (Phase 1) it is about 100 kB.
+The initial JS that the browser downloads before showing the first screen: **150 kB gzip**, reported by the build. Today (Phase 1, shell page) it is about 121 kB: the entry chunk 115 kB plus two small shared chunks.
 
 The budget is an **alarm, not a target to squeeze under**. When a change crosses it:
 

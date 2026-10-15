@@ -2,7 +2,10 @@ import { createRootRoute, createRoute, createRouter, lazyRouteComponent } from '
 import { RootLayout } from '@/routes/root';
 
 // Code-based route tree. Every screen is lazy-loaded so it ships as its own chunk.
-const rootRoute = createRootRoute({ component: RootLayout });
+const rootRoute = createRootRoute({
+  component: RootLayout,
+  notFoundComponent: lazyRouteComponent(() => import('@/routes/not-found'), 'NotFoundPage'),
+});
 
 const homeRoute = createRoute({
   getParentRoute: () => rootRoute,

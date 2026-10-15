@@ -3,6 +3,18 @@
   "nav": { "home": "Home", "settings": "Settings" },
   "language": { "label": "Language", "sk": "Slovenčina", "en": "English" },
   "system": {
-    "status": { "ok": "All systems working", "degraded": "Service degraded" }
+    "title": "System status",
+    "version": "Server version",
+    "lastPing": "Last ping",
+    "never": "Not yet",
+    "checking": "Checking…",
+    "unreachable": "Server unreachable",
+    "database": { "ok": "Database: OK", "down": "Database: unavailable" },
+    "realtime": { "connected": "Realtime: connected", "disconnected": "Realtime: disconnected" }
+  },
+  "notFound": {
+    "title": "Page not found",
+    "body": "This address does not exist. Check the link or go back to the home page.",
+    "home": "Go to the home page"
   }
 }

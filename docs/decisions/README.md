@@ -34,3 +34,4 @@ What gets easier, what gets harder.
 | [0008](0008-self-hosted-only.md) | Self-hosted only | accepted |
 | [0009](0009-web-client-stack.md) | Web client stack | accepted |
 | [0010](0010-web-i18n.md) | Web i18n with i18next | accepted |
+| [0011](0011-pwa-with-vite-plugin-pwa.md) | Installable PWA with vite-plugin-pwa | accepted |

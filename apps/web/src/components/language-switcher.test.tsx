@@ -23,15 +23,24 @@ describe('LanguageSwitcher', () => {
   });
   afterEach(() => localStorage.clear());
 
+  it('shows both languages as a radio group with the current one checked', () => {
+    render(<LanguageSwitcher />);
+    const group = screen.getByRole('radiogroup', { name: 'Jazyk' });
+    expect(group).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: 'Slovenčina' })).toHaveAttribute('aria-checked', 'true');
+    expect(screen.getByRole('radio', { name: 'English' })).toHaveAttribute('aria-checked', 'false');
+    expect(screen.getByRole('radio', { name: 'English' })).toHaveTextContent('EN');
+  });
+
   it('switches the rendered text and persists the choice', async () => {
     const user = userEvent.setup();
     render(<Probe />);
     expect(screen.getByTestId('probe')).toHaveTextContent('Nastavenia');
 
-    await user.click(screen.getByRole('button', { name: 'Jazyk' }));
-    await user.click(await screen.findByRole('menuitemradio', { name: 'English' }));
+    await user.click(screen.getByRole('radio', { name: 'English' }));
 
     expect(screen.getByTestId('probe')).toHaveTextContent('Settings');
+    expect(screen.getByRole('radio', { name: 'English' })).toHaveAttribute('aria-checked', 'true');
     expect(localStorage.getItem('spolu.lang')).toBe('en');
     expect(document.documentElement.lang).toBe('en');
     expect(i18n.language).toBe('en');

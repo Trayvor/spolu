@@ -42,6 +42,7 @@ Available now:
 - `docker compose -f docker-compose.dev.yml up -d --wait` — local PostgreSQL 17 (5432) and Mailpit (SMTP 1025, UI 8025). Server tests need it running.
 - `pnpm --filter @spolu/server dev` — run the server with reload, reading the root `.env`; `... build` bundles it to `dist/`.
 - `pnpm --filter @spolu/web dev` — Vite dev server on :5173, proxying `/api` and `/socket.io` to the server on :3000; `... build` writes `apps/web/dist`; `... test` runs Vitest (jsdom).
+- `pnpm --filter @spolu/web icons` — regenerate the PWA icons in `apps/web/public/icons/` from the egrant mark (commit the PNGs).
 - `pnpm --filter @spolu/server db:generate` — generate a migration after changing a `schema.ts`.
 
 App commands (`pnpm test`, `pnpm test:e2e`, dev, build) arrive in Phase 1.

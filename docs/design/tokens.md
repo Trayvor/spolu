@@ -142,6 +142,8 @@ egrant.sk spacing presets are 4, 8, 12, 16, 20, 24, 32, 40, 48, 54, 64px — all
 - Link cards show a small 16px diagonal arrow top-right; hover changes text to `ink-hover` (no lift, no scale).
 - Progress bar inside cards: 8px high, `rounded-full`, track `border` color, fill `ink`.
 - Accent block: a 3px `ink` left border with 12px left padding and no background (`.egrant-card-grid .egrant-card`, contact person).
+- Status badges (system status card): `success` fill for a working part, `destructive` fill with white text (4.7:1) for a failed one, `secondary` while unknown or disconnected. Key/value details below them are a `dl` in `text-button`, keys `text-muted-foreground`.
+- Not-found page: `text-large` title, `text-body` text in the 552px measure, one primary button back home; no illustration.
 
 ### Link
 
@@ -154,7 +156,8 @@ egrant.sk spacing presets are 4, 8, 12, 16, 20, 24, 32, 40, 48, 54, 64px — all
 - Right side: outline pill ("Výzvy" with a live dot and count), primary pill CTA, circular language toggle showing the code ("SK"), hamburger icon. Gap 12px.
 - The menu opens inside the same pill: background turns `card`, large 22px weight-600 links.
 - Language dropdown: `bg-popover`, `shadow-lift`, 20px radius, items with check mark for the active language, hover `bg-accent`.
-- Spolu header (Task 13): the egrant logo on the left, followed by the product name "Spolu" set in `--font-sans` weight 600, `text-medium`, `ink`, separated from the logo by 12px — in the spot where the website shows its tagline. No separate Spolu wordmark is drawn; ask the owner if they want one.
+- Spolu header (`src/components/app-header.tsx`, as built): the same pill — `bg-background rounded-nav shadow-lift`, max width 1152px, height 64px and 24px from the top (54px and 12px at 640px and below) — but in the page flow, not fixed. The egrant logo (32px high, 24px on mobile) and the product name "Spolu" (`app.name`, weight 600, `text-medium`, `ink`) 12px apart, together one link to `/`, in the spot where the website shows its tagline. No separate Spolu wordmark is drawn; ask the owner if they want one.
+- Spolu language switcher (as built): instead of the website's circle-plus-dropdown, a 38px-high `bg-secondary` pill with 4px padding holding two 30px pills "SK" and "EN" (`text-tiny`, weight 600); the active one is `bg-primary text-primary-foreground`, the other `ink` text with `hover:bg-surface-3`. Two options do not need a menu, and it keeps Radix out of the first load.
 
 ### Footer (reference only)
 

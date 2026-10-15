@@ -3,6 +3,18 @@
   "nav": { "home": "Domov", "settings": "Nastavenia" },
   "language": { "label": "Jazyk", "sk": "Slovenčina", "en": "English" },
   "system": {
-    "status": { "ok": "Všetko funguje", "degraded": "Služba má problémy" }
+    "title": "Stav systému",
+    "version": "Verzia servera",
+    "lastPing": "Posledný ping",
+    "never": "Zatiaľ nie",
+    "checking": "Overujem…",
+    "unreachable": "Server je nedostupný",
+    "database": { "ok": "Databáza: OK", "down": "Databáza: nedostupná" },
+    "realtime": { "connected": "Realtime: pripojené", "disconnected": "Realtime: odpojené" }
+  },
+  "notFound": {
+    "title": "Stránka sa nenašla",
+    "body": "Táto adresa neexistuje. Skontrolujte odkaz alebo sa vráťte na úvodnú stránku.",
+    "home": "Prejsť na úvodnú stránku"
   }
 }
