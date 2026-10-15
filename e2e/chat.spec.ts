@@ -48,7 +48,7 @@ test('admin and client chat in real time, in threads, with mentions and files, a
   await expect(admin).toHaveURL(/\/groups\/[^/]+\/chat$/);
   const groupPath = new URL(admin.url()).pathname.replace(/\/chat$/, '');
   await admin.goto(`${groupPath}/members`);
-  const inviteUrl = await admin.getByRole('textbox', { name: 'Pozvánka' }).inputValue();
+  const inviteUrl = await admin.getByRole('textbox', { name: 'Odkaz na pozvánku' }).inputValue();
 
   // The client joins by invite in a second context. Its WebSocket goes through a route we can
   // cut: Chromium's offline emulation alone does not close an established socket.
