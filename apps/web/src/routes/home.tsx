@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { HealthResponseSchema } from '@ehub/shared';
 import { Badge } from '@/components/ui/badge';
@@ -6,16 +7,17 @@ import { apiGet } from '@/lib/api';
 
 // Placeholder: proves the API round trip. Task 13 builds the real home screen.
 export function HomePage() {
+  const { t } = useTranslation();
   const health = useQuery({ queryKey: ['health'], queryFn: () => apiGet('/health', HealthResponseSchema) });
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>eHub</CardTitle>
+        <CardTitle>{t('app.name')}</CardTitle>
       </CardHeader>
       <CardContent>
         {health.data ? (
-          <Badge variant={health.data.status === 'ok' ? 'success' : 'destructive'}>{health.data.status}</Badge>
+          <Badge variant={health.data.status === 'ok' ? 'success' : 'destructive'}>{t(`system.status.${health.data.status}`)}</Badge>
         ) : null}
       </CardContent>
     </Card>

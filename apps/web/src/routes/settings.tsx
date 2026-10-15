@@ -1,4 +1,7 @@
+import { useTranslation } from 'react-i18next';
+
 // Placeholder: the real settings screen arrives with the auth and profile work.
 export function SettingsPage() {
-  return <h1 className="text-medium font-semibold">Settings</h1>;
+  const { t } = useTranslation();
+  return <h1 className="text-medium font-semibold">{t('nav.settings')}</h1>;
 }

@@ -50,6 +50,7 @@ App commands (`pnpm test`, `pnpm test:e2e`, dev, build) arrive in Phase 1.
 
 - `docs/` — knowledge base: product requirements, architecture, ADRs, design, runbooks, roadmap, glossary.
 - `.claude/` — project settings, hooks and skills (`.claude/skills/<name>/SKILL.md`).
+- `apps/web/src/locales/{en,sk}.json` — every UI string, as i18n keys; never hardcode UI text.
 - `apps/` — `server` (Fastify API, Socket.IO, jobs) and `web` (React + Vite SPA; PWA parts arrive later in Phase 1).
 - `packages/` — `shared` (zod schemas and types used by server and web). Arrives in Phase 1.
 - `.env.example` — every environment variable with dev defaults; copy to `.env`.

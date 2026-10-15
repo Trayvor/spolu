@@ -1,0 +1,8 @@
+{
+  "app": { "name": "eHub" },
+  "nav": { "home": "Home", "settings": "Settings" },
+  "language": { "label": "Language", "sk": "Slovenčina", "en": "English" },
+  "system": {
+    "status": { "ok": "All systems working", "degraded": "Service degraded" }
+  }
+}
