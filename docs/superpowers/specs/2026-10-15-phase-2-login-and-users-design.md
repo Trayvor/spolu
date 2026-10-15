@@ -131,9 +131,9 @@ Test-first for policies and server logic.
 
 ## Done when
 
-Walked by hand with the owner on the test environment:
+Walked by hand with the owner on the local production-like stack (https://localhost, Mailpit or Elastic Email); repeated on the test server after the deferred server deploy (see the roadmap, "Server deployment (deferred)"):
 
-1. The owner logs in with a code that arrived by Elastic Email.
+1. The owner logs in with a code that arrived by email (Mailpit locally, Elastic Email on the server).
 2. The owner adds another admin (for example a second email of theirs); that person receives the email and logs in with a code.
 3. After closing and reopening the browser the owner is still logged in.
 4. The owner removes that admin; the admin loses access at once.

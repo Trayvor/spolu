@@ -1,6 +1,6 @@
 # Roadmap
 
-17 phases (0-16). Each phase ends with something that works and can be used. Update the `Status` column when a phase starts or finishes (values: `planned`, `in progress`, `done`). The `implement-phase` and `update-kb` skills do this.
+17 phases (0-16). Each phase ends with something that works and can be used. Update the `Status` column when a phase starts or finishes (values: `planned`, `in progress`, `done (local)`, `done`). The `implement-phase` and `update-kb` skills do this.
 
 Requirements per module: [product/](product/README.md). Phases after 1 get their own short design and plan when they start.
 
@@ -8,7 +8,7 @@ Requirements per module: [product/](product/README.md). Phases after 1 get their
 |---|---|---|---|---|
 | 0 | [AI workflow & knowledge base](#phase-0--ai-workflow--knowledge-base) | done | - | [spec](superpowers/specs/2026-10-15-ehub-foundation-design.md), [plan](superpowers/plans/2026-10-15-phase-0-ai-workflow-and-kb.md) |
 | 1 | [Skeleton & delivery](#phase-1--skeleton--delivery) | in progress | 0 | [spec](superpowers/specs/2026-10-15-ehub-foundation-design.md), [plan](superpowers/plans/2026-10-15-phase-1-skeleton-and-delivery.md) |
-| 2 | [Login & users](#phase-2--login--users) | planned | 1 | - |
+| 2 | [Login & users](#phase-2--login--users) | in progress | 1 | [spec](superpowers/specs/2026-10-15-phase-2-login-and-users-design.md), plan (next) |
 | 3 | [Groups & invites](#phase-3--groups--invites) | planned | 2 | - |
 | 4 | [Group chat: core](#phase-4--group-chat-core) | planned | 3 | - |
 | 5 | [Chat: threads, mentions, files](#phase-5--chat-threads-mentions-files) | planned | 4 | - |
@@ -25,6 +25,15 @@ Requirements per module: [product/](product/README.md). Phases after 1 get their
 | 16 | [Password & polish](#phase-16--password--polish) | planned | 5 | - |
 
 Phases 8, 12 and 14 do not depend on each other, so their order can change by priority.
+
+## Server deployment (deferred)
+
+Owner decision (2026-10-15): build and verify locally first; deploy to the server later as one separate step.
+
+- Until then each phase is verified on the local production-like stack (the `deploy/` compose run at https://localhost, see [runbooks/deploy.md](runbooks/deploy.md)), and its "Done when" is walked with the owner there. A phase verified this way is marked `done (local)`.
+- The server step, when the owner is ready: Phase 1 Task 18 (first deploy to the Oracle test VM, GitHub `test` environment, runbooks, HSTS once the domain is final). It needs from the owner: the server, a domain and DNS record, `MAIL_FROM` verified in Elastic Email, `SUPERADMIN_EMAIL`, open ports 80/tcp, 443/tcp, 443/udp.
+- Phase 1's code is complete; only its Task 18 belongs to the server step, so Phase 2 proceeds on top of it (branch `phase-2` from `phase-1`). Phase 1 becomes `done (local)` once the owner confirms the local walkthrough.
+- After that step, every phase marked `done (local)` gets its "Done when" walked again on the test server and becomes `done`.
 
 ## Phase 0 — AI workflow & knowledge base
 
