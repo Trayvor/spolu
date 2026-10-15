@@ -46,7 +46,14 @@ t_nogit() {
   echo "ok nogit"
 }
 
-for t in t_block t_active t_both t_clean t_nogit; do
+t_superpowers() {
+  new_repo; touch_file apps/x.ts; touch_file docs/superpowers/p.md
+  out="$(run '{"stop_hook_active":false}')"; rc=$?
+  [[ $rc -eq 0 && "$out" == *'"decision":"block"'* ]] || { echo "FAIL superpowers: rc=$rc '$out'"; return 1; }
+  echo "ok superpowers"
+}
+
+for t in t_block t_active t_both t_clean t_nogit t_superpowers; do
   ( $t ) || fail=1
 done
 exit $fail

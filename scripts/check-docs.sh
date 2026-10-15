@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Usage: check-docs.sh <base-ref>
-# Warns (GitHub Actions annotation) when apps/ or packages/ changed without docs/. Always exits 0.
+# Warns (GitHub Actions annotation) when apps/ or packages/ changed without docs/ (docs/superpowers/ does not count). Always exits 0.
 set -u
 base="${1:-origin/main}"
 
@@ -14,6 +14,7 @@ docs=0
 while IFS= read -r f; do
   case "$f" in
     apps/*|packages/*) code=1 ;;
+    docs/superpowers/*) ;;
     docs/*) docs=1 ;;
   esac
 done <<EOF2

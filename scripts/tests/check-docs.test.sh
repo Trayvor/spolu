@@ -34,6 +34,7 @@ check() { # name expect_warning(0/1)
 (new_repo; commit_files apps/x.ts; check "code-only" 1) || fail=1
 (new_repo; commit_files apps/x.ts docs/a.md; check "code+docs" 0) || fail=1
 (new_repo; commit_files docs/a.md; check "docs-only" 0) || fail=1
+(new_repo; commit_files apps/x.ts docs/superpowers/p.md; check "code+superpowers-only" 1) || fail=1
 (new_repo; check "no-diff" 0) || fail=1
 (new_repo; commit_files packages/p/i.ts; check "packages" 1) || fail=1
 (new_repo; bash "$SCRIPT" nosuchref >/dev/null; rc=$?; [[ $rc -eq 0 ]] && echo "ok missing-ref" || { echo "FAIL missing-ref"; exit 1; }) || fail=1
