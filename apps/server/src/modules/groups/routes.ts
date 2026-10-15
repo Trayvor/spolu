@@ -5,6 +5,7 @@ import { disconnectUser } from '../../infra/realtime/rooms.js';
 import { requireUser } from '../auth/session.js';
 import { revokeAllSessions } from '../auth/service.js';
 import { deactivateUser, getUserById, reactivateUser } from '../users/service.js';
+import { logoRoutes } from './logo.js';
 import { canManageGroups, canReadGroup, canRemoveMember } from './policy.js';
 import {
   createGroup,
@@ -25,10 +26,9 @@ type MemberParams = { Params: { id: string; userId: string } };
 const notFound = (reply: FastifyReply) => reply.code(404).send({ error: ErrorCodes.notFound });
 const forbidden = (reply: FastifyReply) => reply.code(403).send({ error: ErrorCodes.forbidden });
 
-export const groupsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (
-  app,
-  { deps: { config, db } },
-) => {
+export const groupsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { deps }) => {
+  const { config, db } = deps;
+  await app.register(logoRoutes, { deps });
   const anyUser = requireUser(app.auth);
 
   const inviteUrl = (token: string): string => `${config.publicUrl}/join/${token}`;

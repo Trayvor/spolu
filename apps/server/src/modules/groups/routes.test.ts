@@ -7,7 +7,7 @@ import { loginAs } from '../../../test/login.js';
 import { groupRoom, userRoom } from '../../infra/realtime/rooms.js';
 import { user } from '../users/schema.js';
 import { addAdmin } from '../users/service.js';
-import { addMember, createGroup } from './service.js';
+import { addMember, createGroup, getGroup, regenerateInvite } from './service.js';
 
 type TestApp = Awaited<ReturnType<typeof buildTestApp>>;
 
@@ -353,5 +353,154 @@ describe('groups API', () => {
     const adminSockets = await test.app.io.in(userRoom(adminId)).fetchSockets();
     expect(adminSockets).toHaveLength(1);
     expect([...(adminSockets[0]?.rooms ?? [])].filter((r) => r.startsWith('group:'))).toEqual([]);
+  });
+
+  describe('logo', () => {
+    const png = Buffer.concat([
+      Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+      Buffer.from('fake png body'),
+    ]);
+    const jpeg = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), Buffer.from('fake jpeg')]);
+
+    const putLogo = (id: string, cookie: string | undefined, body: Buffer, type = 'image/png') =>
+      test.app.inject({
+        method: 'PUT',
+        url: `/api/groups/${id}/logo`,
+        headers: { ...(cookie ? { cookie } : {}), 'content-type': type },
+        payload: body,
+      });
+
+    const logoKey = async (id: string) => (await getGroup(test.deps.db, id))?.logoKey ?? null;
+
+    it('uploads a PNG: 204, hasLogo, served with cache headers and the stored type', async () => {
+      const { cookie } = await adminSession();
+      const g = await newGroup();
+      expect((await putLogo(g.id, cookie, png)).statusCode).toBe(204);
+      expect((await call('GET', `/api/groups/${g.id}`, cookie)).json<Group>().hasLogo).toBe(true);
+
+      const key = await logoKey(g.id);
+      expect(key).toMatch(new RegExp(`^groups/${g.id}/logo-[a-z0-9]+\\.png$`));
+      const res = await call('GET', `/api/groups/${g.id}/logo`, cookie);
+      expect(res.statusCode).toBe(200);
+      expect(res.headers['content-type']).toBe('image/png');
+      expect(res.headers['cache-control']).toBe('private, max-age=86400');
+      expect(res.headers.etag).toBe(`"${key}"`);
+      expect(res.rawPayload.equals(png)).toBe(true);
+
+      const cached = await test.app.inject({
+        method: 'GET',
+        url: `/api/groups/${g.id}/logo`,
+        headers: { cookie, 'if-none-match': `"${key}"` },
+      });
+      expect(cached.statusCode).toBe(304);
+    });
+
+    it('a PDF sent as image/png is 400 invalid_logo and the previous logo stays', async () => {
+      const { cookie } = await adminSession();
+      const g = await newGroup();
+      await putLogo(g.id, cookie, png);
+      const before = await logoKey(g.id);
+      const res = await putLogo(g.id, cookie, Buffer.from('%PDF-1.7 not an image'));
+      expect(res.statusCode).toBe(400);
+      expect(res.json()).toEqual({ error: 'invalid_logo' });
+      expect(await logoKey(g.id)).toBe(before);
+      expect(await test.deps.storage.exists(before!)).toBe(true);
+    });
+
+    it('a real JPEG declared as image/png is 400 invalid_logo; other content types too', async () => {
+      const { cookie } = await adminSession();
+      const g = await newGroup();
+      expect((await putLogo(g.id, cookie, jpeg, 'image/png')).json()).toEqual({
+        error: 'invalid_logo',
+      });
+      for (const type of ['application/pdf', 'image/svg+xml', 'text/plain']) {
+        const res = await putLogo(g.id, cookie, png, type);
+        expect(res.statusCode).toBe(400);
+        expect(res.json()).toEqual({ error: 'invalid_logo' });
+      }
+      expect(await logoKey(g.id)).toBeNull();
+    });
+
+    it('stores the sniffed type: a JPEG is served as image/jpeg', async () => {
+      const { cookie } = await adminSession();
+      const g = await newGroup();
+      expect((await putLogo(g.id, cookie, jpeg, 'image/jpeg')).statusCode).toBe(204);
+      expect((await logoKey(g.id))!.endsWith('.jpg')).toBe(true);
+      expect((await call('GET', `/api/groups/${g.id}/logo`, cookie)).headers['content-type']).toBe(
+        'image/jpeg',
+      );
+    });
+
+    it('more than 512 KB is 413 and nothing changes', async () => {
+      const { cookie } = await adminSession();
+      const g = await newGroup();
+      const big = Buffer.concat([png, Buffer.alloc(524288)]);
+      expect((await putLogo(g.id, cookie, big)).statusCode).toBe(413);
+      expect(await logoKey(g.id)).toBeNull();
+    });
+
+    it('replacing deletes the old file from storage; DELETE removes the logo', async () => {
+      const { cookie } = await adminSession();
+      const g = await newGroup();
+      await putLogo(g.id, cookie, png);
+      const first = (await logoKey(g.id))!;
+      await putLogo(g.id, cookie, jpeg, 'image/jpeg');
+      const second = (await logoKey(g.id))!;
+      expect(second).not.toBe(first);
+      expect(await test.deps.storage.exists(first)).toBe(false);
+      expect(await test.deps.storage.exists(second)).toBe(true);
+
+      expect((await call('DELETE', `/api/groups/${g.id}/logo`, cookie)).statusCode).toBe(204);
+      expect(await logoKey(g.id)).toBeNull();
+      expect(await test.deps.storage.exists(second)).toBe(false);
+      expect((await call('GET', `/api/groups/${g.id}/logo`, cookie)).statusCode).toBe(404);
+      expect((await call('DELETE', `/api/groups/${g.id}/logo`, cookie)).statusCode).toBe(204);
+    });
+
+    it('a client cannot upload or delete (403); anonymous is 401; unknown group is 404', async () => {
+      const { cookie } = await adminSession();
+      const g = await newGroup();
+      const client = await clientIn(g.id);
+      expect((await putLogo(g.id, client.cookie, png)).statusCode).toBe(403);
+      expect((await call('DELETE', `/api/groups/${g.id}/logo`, client.cookie)).statusCode).toBe(
+        403,
+      );
+      expect((await putLogo(g.id, undefined, png)).statusCode).toBe(401);
+      expect((await putLogo(randomUUID(), cookie, png)).statusCode).toBe(404);
+      expect((await call('DELETE', `/api/groups/${randomUUID()}/logo`, cookie)).statusCode).toBe(
+        404,
+      );
+    });
+
+    it('own members read the logo; a client of another group gets 404', async () => {
+      const { cookie } = await adminSession();
+      const g = await newGroup();
+      const other = await newGroup();
+      await putLogo(g.id, cookie, png);
+      const member = await clientIn(g.id);
+      const outsider = await clientIn(other.id);
+      expect((await call('GET', `/api/groups/${g.id}/logo`, member.cookie)).statusCode).toBe(200);
+      const res = await call('GET', `/api/groups/${g.id}/logo`, outsider.cookie);
+      expect(res.statusCode).toBe(404);
+      expect(res.json()).toEqual({ error: 'not_found' });
+      expect((await call('GET', `/api/groups/${g.id}/logo`)).statusCode).toBe(401);
+    });
+
+    it('the public join logo works for a valid token and 404s for an old or unknown one', async () => {
+      const { cookie } = await adminSession();
+      const g = await newGroup();
+      const withoutLogo = `/api/join/${g.inviteToken}/logo`;
+      expect((await call('GET', withoutLogo)).statusCode).toBe(404);
+      await putLogo(g.id, cookie, png);
+      const res = await call('GET', withoutLogo);
+      expect(res.statusCode).toBe(200);
+      expect(res.headers['content-type']).toBe('image/png');
+      expect(res.headers['cache-control']).toBe('private, max-age=86400');
+      expect(res.rawPayload.equals(png)).toBe(true);
+
+      await regenerateInvite(test.deps.db, g.id);
+      expect((await call('GET', withoutLogo)).statusCode).toBe(404);
+      expect((await call('GET', '/api/join/nope/logo')).statusCode).toBe(404);
+    });
   });
 });
