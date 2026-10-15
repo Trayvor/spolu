@@ -17,4 +17,4 @@ Requirements for eHub, one topic per file. Written for AI agents and the product
 | `notifications.md` | modes per group, push and email channels | 6 (and 7, 9, 12, 15) |
 | `profile.md` | name, avatar, language, password, message search | 16 |
 | `integrations.md` | eGrant, Elastic Email, LLM API | 2, 11, 12, 13 |
-| `non-functional.md` | PWA, languages, realtime, backups, monitoring, design rule | 1, 16 |
+| `non-functional.md` | PWA, languages, realtime, backups (DB nightly in 1; off-site and files in 16), monitoring (16), design rule | 1, 16 |
