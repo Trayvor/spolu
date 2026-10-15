@@ -1,8 +1,9 @@
-import { useEffect, useLayoutEffect, useRef, type KeyboardEvent, type ReactNode } from 'react';
+import { useLayoutEffect, useRef, type KeyboardEvent, type ReactNode } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import type { BucketDto } from '@spolu/shared';
 import { Button } from '@/components/ui/button';
+import { useScrollLock } from '@/lib/use-scroll-lock';
 import { cn } from '@/lib/utils';
 import { Select } from '@/components/ui/select';
 import { bucketTitle, byPosition } from './board-model';
@@ -42,22 +43,7 @@ export function PanelShell({
   }, [taskId]);
 
   // Below 1024 px the panel covers the screen: the page behind must not scroll under a finger.
-  // Follows the media query (a rotated tablet), and gives the page back on close.
-  useEffect(() => {
-    if (typeof window.matchMedia !== 'function') return;
-    const covering = window.matchMedia('(max-width: 1023px)');
-    const root = document.documentElement;
-    const before = root.style.overflow;
-    const apply = () => {
-      root.style.overflow = covering.matches ? 'hidden' : before;
-    };
-    apply();
-    covering.addEventListener('change', apply);
-    return () => {
-      covering.removeEventListener('change', apply);
-      root.style.overflow = before;
-    };
-  }, []);
+  useScrollLock(true, '(max-width: 1023px)');
 
   // Open menus and lists handle their own Escape.
   function onKeyDown(event: KeyboardEvent) {

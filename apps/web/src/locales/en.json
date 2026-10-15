@@ -123,10 +123,12 @@
     "confirmDelete": "Delete this message?",
     "actions": {
       "replyInThread": "Reply in thread",
-      "reply": "Reply",
       "more": "More",
       "edit": "Edit",
-      "delete": "Delete"
+      "delete": "Delete",
+      "quote": "Quote",
+      "label": "Message actions",
+      "open": "Message actions"
     },
     "thread": {
       "summary_one": "{{count}} reply, last at {{time}}",

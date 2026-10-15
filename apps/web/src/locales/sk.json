@@ -123,10 +123,12 @@
     "confirmDelete": "Odstrániť túto správu?",
     "actions": {
       "replyInThread": "Odpovedať vo vlákne",
-      "reply": "Odpovedať",
       "more": "Viac",
       "edit": "Upraviť",
-      "delete": "Odstrániť"
+      "delete": "Odstrániť",
+      "quote": "Citovať",
+      "label": "Akcie správy",
+      "open": "Akcie správy"
     },
     "thread": {
       "summary_one": "{{count}} odpoveď, posledná o {{time}}",

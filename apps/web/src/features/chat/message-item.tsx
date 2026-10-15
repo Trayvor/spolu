@@ -1,7 +1,16 @@
-import { memo, useState, type ReactNode } from 'react';
+import {
+  memo,
+  useCallback,
+  useRef,
+  useState,
+  type ReactNode,
+  type Ref,
+  type TouchEvent,
+} from 'react';
 import { useTranslation } from 'react-i18next';
 import { plainExcerpt, type MessageDto } from '@spolu/shared';
 import { Avatar } from '@/components/avatar';
+import { ActionSheet, ActionSheetItem } from '@/components/ui/action-sheet';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -15,7 +24,7 @@ import { cn } from '@/lib/utils';
 import { deleteMessage, editMessage } from './api';
 import { Composer } from './composer';
 import { MessageBody } from './format/render';
-import { MoreIcon, ReplyIcon, ThreadIcon } from './icons';
+import { EditIcon, MoreIcon, ReplyIcon, ThreadIcon, TrashIcon } from './icons';
 
 /** An extra entry in the hover toolbar of every message (Phase 9 adds "Turn into tasks"). */
 export type MessageAction = {
@@ -58,6 +67,30 @@ export interface MessageItemProps {
 }
 
 const REPLY_EXCERPT = 80;
+/** A finger held this long on a message opens its actions (touch screens). */
+const LONG_PRESS_MS = 450;
+/** Moving the finger further than this (px) is a scroll, not a long press. */
+const LONG_PRESS_SLOP = 10;
+
+/**
+ * Desktop (a pointer that hovers, 641 px and wider) shows the hover toolbar; everything else
+ * shows the "⋯" button and the action sheet. One media query, in CSS, so no listener per row.
+ */
+const DESKTOP_ONLY = 'hidden [@media(hover:hover)_and_(min-width:641px)]:flex';
+const TOUCH_ONLY = '[@media(hover:hover)_and_(min-width:641px)]:hidden';
+
+/**
+ * One action on a message. The desktop toolbar and the touch sheet render from the same list:
+ * `inMenu` actions sit behind "More" on desktop; on touch every action is a row of the sheet.
+ */
+type RowAction = {
+  id: string;
+  label: string;
+  icon: ReactNode;
+  inMenu?: boolean;
+  danger?: boolean;
+  run(): void;
+};
 
 const timeFormats = new Map<string, Intl.DateTimeFormat>();
 /** `HH:mm` in the viewer's local time and language; one formatter per language. */
@@ -185,6 +218,35 @@ function DeleteConfirm({
   );
 }
 
+/** Touch screens: the muted "⋯" that opens a message's action sheet; a 44 px hit area. */
+function SheetOpener({
+  ref,
+  label,
+  onOpen,
+  className,
+}: {
+  ref: Ref<HTMLButtonElement>;
+  label: string;
+  onOpen: () => void;
+  className?: string;
+}) {
+  return (
+    <button
+      ref={ref}
+      type="button"
+      aria-label={label}
+      aria-haspopup="dialog"
+      onClick={onOpen}
+      className={cn(
+        "relative inline-flex size-6 items-center justify-center rounded-md text-muted-foreground before:absolute before:-inset-2.5 before:content-['']",
+        className,
+      )}
+    >
+      <MoreIcon />
+    </button>
+  );
+}
+
 /**
  * One chat message as a row. Serves top-level messages, thread roots, thread replies and rows
  * still being sent. The hover toolbar sits inside the row (rows use `content-visibility`, which
@@ -222,24 +284,112 @@ export const MessageItem = memo(function MessageItem({
     <span className="text-micro text-muted-foreground">{t('chat.edited')}</span>
   );
 
-  const reply = inThread
-    ? onReply && { label: t('chat.actions.reply'), icon: <ReplyIcon />, run: onReply }
-    : onOpenThread && {
-        label: t('chat.actions.replyInThread'),
-        icon: <ThreadIcon />,
-        run: onOpenThread,
-      };
+  // In order: reply (in a thread: quote), the extra actions (Phase 9), then Edit and Delete.
+  const actions: RowAction[] = [];
+  if (inThread && onReply) {
+    actions.push({
+      id: 'quote',
+      label: t('chat.actions.quote'),
+      icon: <ReplyIcon />,
+      run: () => onReply(message),
+    });
+  } else if (!inThread && onOpenThread) {
+    actions.push({
+      id: 'thread',
+      label: t('chat.actions.replyInThread'),
+      icon: <ThreadIcon />,
+      run: () => onOpenThread(message),
+    });
+  }
+  for (const action of messageActions ?? []) {
+    actions.push({ ...action, run: () => action.onSelect(message) });
+  }
+  if (canManage) {
+    actions.push(
+      {
+        id: 'edit',
+        label: t('chat.actions.edit'),
+        icon: <EditIcon />,
+        inMenu: true,
+        run: () => setMode('edit'),
+      },
+      {
+        id: 'delete',
+        label: t('chat.actions.delete'),
+        icon: <TrashIcon />,
+        inMenu: true,
+        danger: true,
+        run: () => setMode('confirmDelete'),
+      },
+    );
+  }
+  const menu = actions.filter((a) => a.inMenu);
+
+  // Touch: "⋯" or a long press opens the sheet; the focus goes back to "⋯" when it closes.
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const opener = useRef<HTMLButtonElement>(null);
+  const press = useRef<{ x: number; y: number; timer: ReturnType<typeof setTimeout> } | null>(null);
+  const longPressed = useRef(false);
+  const closeSheet = useCallback(() => {
+    setSheetOpen(false);
+    opener.current?.focus();
+  }, []);
+  const cancelPress = () => {
+    if (press.current) clearTimeout(press.current.timer);
+    press.current = null;
+  };
+  const onTouchStart = (event: TouchEvent) => {
+    const touch = event.touches[0];
+    if (!showActions || !touch || event.touches.length > 1) return;
+    cancelPress();
+    longPressed.current = false;
+    press.current = {
+      x: touch.clientX,
+      y: touch.clientY,
+      timer: setTimeout(() => {
+        press.current = null;
+        longPressed.current = true;
+        setSheetOpen(true);
+      }, LONG_PRESS_MS),
+    };
+  };
+  const onTouchMove = (event: TouchEvent) => {
+    const touch = event.touches[0];
+    const start = press.current;
+    if (!start || !touch) return;
+    if (Math.hypot(touch.clientX - start.x, touch.clientY - start.y) > LONG_PRESS_SLOP) {
+      cancelPress();
+    }
+  };
+  const onTouchEnd = (event: TouchEvent) => {
+    cancelPress();
+    // The finger lifting after a long press must not click whatever is under it (the backdrop).
+    if (longPressed.current) {
+      longPressed.current = false;
+      event.preventDefault();
+    }
+  };
 
   return (
     <div
       data-message-id={message.id}
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
+      onTouchCancel={cancelPress}
+      // Android opens the link menu on a long press; the sheet replaces it.
+      onContextMenu={(event) => {
+        if (sheetOpen || longPressed.current) event.preventDefault();
+      }}
       className={cn(
         'group relative flex gap-3 border-l-2 px-4 pb-1',
-        // content-visibility clips overflow: the editing row must show the mention list above it.
-        mode !== 'edit' && '[contain-intrinsic-size:auto_64px] [content-visibility:auto]',
+        // content-visibility clips overflow: the editing row must show the mention list above it,
+        // and a hovered or focused row its toolbar, which sits on the boundary above it.
+        mode !== 'edit' &&
+          '[contain-intrinsic-size:auto_64px] [content-visibility:auto] hover:[content-visibility:visible] focus-within:[content-visibility:visible] has-[[data-state=open]]:[content-visibility:visible]',
         showHeader ? 'pt-3' : 'pt-0.5',
         mentionsMe ? 'border-brand-purple bg-muted' : 'border-transparent',
-        highlighted && 'bg-accent',
+        (highlighted || sheetOpen) && 'bg-accent',
         pending && 'text-muted-foreground',
       )}
     >
@@ -257,7 +407,23 @@ export const MessageItem = memo(function MessageItem({
             )}
             {time && <span className="text-micro text-muted-foreground">{time}</span>}
             {edited}
+            {showActions && (
+              <SheetOpener
+                ref={opener}
+                label={t('chat.actions.open')}
+                onOpen={() => setSheetOpen(true)}
+                className={cn('ml-auto self-center', TOUCH_ONLY)}
+              />
+            )}
           </div>
+        )}
+        {!showHeader && showActions && (
+          <SheetOpener
+            ref={opener}
+            label={t('chat.actions.open')}
+            onOpen={() => setSheetOpen(true)}
+            className={cn('absolute top-0.5 right-3', TOUCH_ONLY)}
+          />
         )}
         {quote && (
           <button
@@ -329,27 +495,23 @@ export const MessageItem = memo(function MessageItem({
       </div>
       {showActions && (
         <div
+          role="toolbar"
+          aria-label={t('chat.actions.label')}
           className={cn(
-            'absolute right-3 top-1 flex items-center rounded-lg border border-border bg-card p-0.5 opacity-0',
+            // On the boundary above the message (Slack style), never over the name or time.
+            'absolute -top-4 right-3 z-10 items-center rounded-lg border border-border bg-card p-0.5 opacity-0',
             'group-focus-within:opacity-100 group-hover:opacity-100 has-[[data-state=open]]:opacity-100',
-            '[@media(pointer:coarse)]:opacity-100',
+            DESKTOP_ONLY,
           )}
         >
-          {reply && (
-            <ToolButton label={reply.label} onClick={() => reply.run(message)}>
-              {reply.icon}
-            </ToolButton>
-          )}
-          {messageActions?.map((action) => (
-            <ToolButton
-              key={action.id}
-              label={action.label}
-              onClick={() => action.onSelect(message)}
-            >
-              {action.icon}
-            </ToolButton>
-          ))}
-          {canManage && (
+          {actions
+            .filter((a) => !a.inMenu)
+            .map((action) => (
+              <ToolButton key={action.id} label={action.label} onClick={action.run}>
+                {action.icon}
+              </ToolButton>
+            ))}
+          {menu.length > 0 && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
@@ -362,17 +524,34 @@ export const MessageItem = memo(function MessageItem({
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" onCloseAutoFocus={(e) => e.preventDefault()}>
-                <DropdownMenuItem onSelect={() => setMode('edit')}>
-                  {t('chat.actions.edit')}
-                </DropdownMenuItem>
-                <DropdownMenuItem variant="destructive" onSelect={() => setMode('confirmDelete')}>
-                  {t('chat.actions.delete')}
-                </DropdownMenuItem>
+                {menu.map((action) => (
+                  <DropdownMenuItem
+                    key={action.id}
+                    variant={action.danger ? 'destructive' : undefined}
+                    onSelect={action.run}
+                  >
+                    {action.label}
+                  </DropdownMenuItem>
+                ))}
               </DropdownMenuContent>
             </DropdownMenu>
           )}
         </div>
       )}
+      <ActionSheet open={sheetOpen} label={t('chat.actions.open')} onClose={closeSheet}>
+        {actions.map((action) => (
+          <ActionSheetItem
+            key={action.id}
+            icon={action.icon}
+            label={action.label}
+            danger={action.danger}
+            onSelect={() => {
+              setSheetOpen(false);
+              action.run();
+            }}
+          />
+        ))}
+      </ActionSheet>
     </div>
   );
 });

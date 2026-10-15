@@ -246,7 +246,7 @@ describe('Conversation', () => {
     const { user } = renderAt('/groups/g1/chat?thread=m2&c=c1');
     const thread = await panel();
     const r1 = await waitFor(() => row(thread, 'r1')!);
-    await user.click(within(r1).getByRole('button', { name: t('chat.actions.reply') }));
+    await user.click(within(r1).getByRole('button', { name: t('chat.actions.quote') }));
     expect(
       within(thread).getByText(
         t('chat.composer.replyingTo', { name: 'Anna Nováková', excerpt: 'text of r1' }),
@@ -372,7 +372,7 @@ describe('Conversation', () => {
     const thread = await panel();
     expect(within(thread).getByRole('heading', { name: t('chat.thread.title') })).toHaveFocus();
     const r1 = await waitFor(() => row(thread, 'r1')!);
-    await user.click(within(r1).getByRole('button', { name: t('chat.actions.reply') }));
+    await user.click(within(r1).getByRole('button', { name: t('chat.actions.quote') }));
     expect(within(thread).getByRole('textbox')).toHaveFocus();
     await user.keyboard('{Escape}');
     expect(screen.getByRole('region')).toBeInTheDocument();
