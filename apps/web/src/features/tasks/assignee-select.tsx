@@ -104,7 +104,9 @@ export function AssigneeSelect({
                   type="button"
                   aria-label={t('tasks.form.remove', { name })}
                   onClick={() => onChange(value.filter((v) => v !== id))}
-                  className="rounded-full hover:bg-surface-3"
+                  // A 16 px icon in a compact chip; the hit area around it is 44 px to tap.
+                  data-hit
+                  className="relative rounded-full before:absolute before:-inset-3.5 before:content-[''] hover:bg-surface-3"
                 >
                   <CloseIcon />
                 </button>

@@ -336,7 +336,7 @@ function TaskEditor({
           <DropdownMenu>
             <DropdownMenuTrigger
               aria-label={t('tasks.panel.more')}
-              className="flex size-8 shrink-0 items-center justify-center rounded-full hover:bg-accent"
+              className="flex size-8 shrink-0 items-center justify-center rounded-full hover:bg-accent max-[640px]:size-11"
             >
               <MoreIcon />
             </DropdownMenuTrigger>
@@ -349,7 +349,7 @@ function TaskEditor({
         )}
       </PanelHeader>
 
-      <div className="shrink-0 space-y-2 px-6 pt-3 empty:hidden">
+      <div className="shrink-0 space-y-2 px-4 pt-3 empty:hidden min-[641px]:px-6">
         {blocker.status === 'blocked' && (
           <PanelNotice text={t('tasks.panel.unsaved')}>
             <Button size="sm" variant="destructive" onClick={blocker.proceed}>
@@ -385,7 +385,7 @@ function TaskEditor({
         )}
       </div>
 
-      <div className="flex-1 space-y-5 overflow-y-auto p-6">
+      <div className="flex-1 space-y-5 overflow-y-auto overscroll-contain p-4 min-[641px]:p-6">
         <div className="flex items-start gap-3">
           {/* 18 px circle centred on the first 28 px line of the title. */}
           <DoneCircle

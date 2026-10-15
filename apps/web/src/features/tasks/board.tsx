@@ -212,7 +212,9 @@ export function Board({ groupId }: { groupId: string }) {
         onDragEnd={onDragEnd}
         onDragCancel={onDragCancel}
       >
-        <div className="flex snap-x snap-mandatory items-start gap-3 overflow-x-auto pb-3 min-[641px]:snap-none">
+        {/* `relative`: the cards' absolutely positioned `sr-only` texts must stay inside this
+            scroller; otherwise they widen the page and a phone zooms out to fit them. */}
+        <div className="relative flex snap-x snap-mandatory items-start gap-3 overflow-x-auto pb-3 min-[641px]:snap-none">
           <SortableContext
             id="buckets"
             items={buckets.map((bucket) => bucketSortId(bucket.id))}

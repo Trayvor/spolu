@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils';
 /**
  * The round "done" control left of a task title: an empty ring, or a filled `success` circle
  * with a white check when the task is in Completed. Its name says what a press does. The
- * 18 px circle has a 36 px hit area (`before:`), so it is easy to tap on a card.
+ * 18 px circle has a 44 px hit area (`before:`), so it is easy to tap on a card.
  */
 export function DoneCircle({
   done,
@@ -29,10 +29,11 @@ export function DoneCircle({
       tabIndex={inert ? -1 : undefined}
       title={inert ? undefined : t(done ? 'tasks.card.markNotDone' : 'tasks.card.markDone')}
       data-checked={done}
+      data-hit
       disabled={disabled}
       onClick={onToggle}
       className={cn(
-        "relative flex size-[18px] shrink-0 items-center justify-center rounded-full border-2 before:absolute before:-inset-[9px] before:content-['']",
+        "relative flex size-[18px] shrink-0 items-center justify-center rounded-full border-2 before:absolute before:-inset-[13px] before:content-['']",
         done
           ? 'border-success bg-success text-primary-foreground'
           : 'border-input bg-card text-transparent hover:border-foreground hover:text-foreground',

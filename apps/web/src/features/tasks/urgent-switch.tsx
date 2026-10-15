@@ -19,9 +19,11 @@ export function UrgentSwitch({
         role="switch"
         aria-checked={checked}
         aria-labelledby={labelId}
+        // 24 px tall; the hit area above and below makes it 44 px to tap.
+        data-hit
         onClick={() => onChange(!checked)}
         className={cn(
-          'relative h-6 w-11 shrink-0 rounded-full border-2 transition-colors duration-(--duration-fast)',
+          "relative h-6 w-11 shrink-0 rounded-full border-2 before:absolute before:-inset-x-0.5 before:-inset-y-2.5 before:content-[''] transition-colors duration-(--duration-fast)",
           checked ? 'border-foreground bg-foreground' : 'border-input bg-card',
         )}
       >

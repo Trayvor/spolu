@@ -3,11 +3,17 @@ import { cn } from '@/lib/utils';
 
 /**
  * egrant.sk select: a native `<select>` with the input's look (white, 2px border, 8px radius)
- * and a 16px chevron inside on the right. `className` goes on the select.
+ * and a 16px chevron inside on the right. `className` goes on the select, `containerClassName`
+ * on the box around it (for flex sizing).
  */
-function Select({ className, children, ...props }: React.ComponentProps<'select'>) {
+function Select({
+  className,
+  containerClassName,
+  children,
+  ...props
+}: React.ComponentProps<'select'> & { containerClassName?: string }) {
   return (
-    <div className="relative inline-flex">
+    <div className={cn('relative inline-flex', containerClassName)}>
       <select
         data-slot="select"
         className={cn(

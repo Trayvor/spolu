@@ -150,14 +150,14 @@ export function TaskForm({
         <FieldError id={id('assigneeIds-error')} message={errors.assigneeIds} />
       </div>
 
-      <div className="flex flex-col items-start gap-1.5">
+      <div className="flex flex-col gap-1.5 min-[641px]:items-start">
         <Label htmlFor={id('deadline')}>{t('tasks.form.deadline')}</Label>
         <Input
           id={id('deadline')}
           type="date"
           value={value.dueDate ?? ''}
           onChange={(event) => set({ dueDate: event.target.value || null })}
-          className="w-auto"
+          className="min-[641px]:w-auto"
         />
       </div>
 

@@ -143,3 +143,55 @@ test('admin creates a task through the full panel and marks it done', async ({ p
     .click();
   await expect(panel.locator('strong', { hasText: 'rozpočet' })).toBeVisible();
 });
+
+test('the task panel is a full-screen sheet on a phone', async ({ browser }) => {
+  const context = await browser.newContext({
+    viewport: { width: 390, height: 844 },
+    isMobile: true,
+    hasTouch: true,
+    locale: 'sk-SK',
+    storageState: 'e2e/.auth/superadmin.json',
+  });
+  const page = await context.newPage();
+  try {
+    const stamp = Date.now();
+    const created = await page.request.post('/api/groups', {
+      data: { name: `E2E Mobil ${stamp}`, egrantUrl: `https://e2e-mobil-${stamp}.egrant.sk` },
+    });
+    const group = (await created.json()) as { id: string };
+    await page.goto(`/groups/${group.id}/tasks`);
+    await page.getByRole('link', { name: 'Pridať úlohu' }).first().click();
+    const panel = page.getByTestId('task-panel');
+    await expect(panel.getByLabel('Názov', { exact: true })).toBeVisible();
+
+    // The sheet covers exactly the screen, and neither it nor the page scrolls sideways.
+    expect(await panel.boundingBox()).toEqual({ x: 0, y: 0, width: 390, height: 844 });
+    const widths = await page.evaluate(() => ({
+      page: document.documentElement.scrollWidth,
+      panel: document.querySelector('[data-testid="task-panel"]')!.scrollWidth,
+      overflow: getComputedStyle(document.documentElement).overflow,
+    }));
+    expect(widths).toEqual({ page: 390, panel: 390, overflow: 'hidden' });
+
+    // Every control in the sheet is at least 44 px to tap (or has its own 44 px hit area).
+    const small = await panel
+      .locator('button:not([data-hit]), select, input:not([type=file]), a')
+      .evaluateAll((elements) =>
+        elements
+          .map((e) => ({
+            name: e.getAttribute('aria-label') ?? e.textContent,
+            r: e.getBoundingClientRect(),
+          }))
+          .filter(({ r }) => r.width > 0 && (r.height < 44 || r.width < 44))
+          .map(({ name }) => name),
+      );
+    expect(small).toEqual([]);
+    // Deadline and Urgent stack: the switch is below the date field.
+    const date = (await panel.getByLabel('Termín').boundingBox())!;
+    const urgent = (await panel.getByRole('switch', { name: 'Urgentné' }).boundingBox())!;
+    expect(urgent.y).toBeGreaterThan(date.y + date.height);
+    expect(date.width).toBeGreaterThan(300);
+  } finally {
+    await context.close();
+  }
+});
