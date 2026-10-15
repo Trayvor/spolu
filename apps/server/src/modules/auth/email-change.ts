@@ -19,6 +19,14 @@ export class SameEmailError extends Error {
   }
 }
 
+/** The superadmin's email is fixed by `SUPERADMIN_EMAIL`: no one moves to it or away from it. */
+export class ReservedEmailError extends Error {
+  constructor() {
+    super('The superadmin email cannot be changed or taken');
+    this.name = 'ReservedEmailError';
+  }
+}
+
 /** No request, another address, expired, used up, or a wrong code: all look the same. */
 export class InvalidCodeError extends Error {
   constructor() {
@@ -51,6 +59,23 @@ async function lockUser(tx: Db, userId: string): Promise<void> {
   await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${identifierFor(userId)}))`);
 }
 
+/** Throws `ReservedEmailError` when the change touches the superadmin's address or account. */
+function assertNotReserved(
+  config: EmailChangeDeps['config'],
+  user: SessionUser,
+  currentEmail: string,
+  newEmail: string,
+): void {
+  const reserved = normalizeEmail(config.superadminEmail);
+  if (
+    user.role === 'superadmin' ||
+    normalizeEmail(currentEmail) === reserved ||
+    newEmail === reserved
+  ) {
+    throw new ReservedEmailError();
+  }
+}
+
 async function loadProfile(db: Db, user: SessionUser) {
   const profile = (await getNotificationProfiles(db, [user.id])).get(user.id);
   return { email: profile?.email ?? user.email, language: profile?.language ?? 'sk' };
@@ -69,6 +94,7 @@ export async function requestEmailChange(
   const email = normalizeEmail(newEmail);
   const profile = await loadProfile(db, user);
   if (email === normalizeEmail(profile.email)) throw new SameEmailError();
+  assertNotReserved(config, user, profile.email, email);
 
   const code = randomInt(0, 1_000_000).toString().padStart(6, '0');
   const identifier = identifierFor(user.id);
@@ -89,31 +115,40 @@ export async function requestEmailChange(
   );
 }
 
+/** Where to log a failed notice; Fastify's `request.log` fits. */
+export type ErrorLog = { error(obj: object, msg: string): void };
+
 /**
- * Finishes the caller's own email change. Throws `InvalidCodeError` (no request, another
- * address, expired, attempts used up, wrong code; a wrong code counts an attempt) or
- * `EmailTakenError` from `changeUserEmail`. Sessions are untouched. Notifies the old address.
+ * Finishes the caller's own email change. Throws `ReservedEmailError`, `InvalidCodeError` (no
+ * request, another address, expired, attempts used up, wrong code; a wrong code counts an
+ * attempt) or `EmailTakenError` from `changeUserEmail`. Using the code and storing the address
+ * are one transaction, so a failed update keeps the code. Sessions are untouched. The notice to
+ * the old address goes after commit; a failure to queue it is logged, never thrown.
  */
 export async function confirmEmailChange(
   { config, db, jobs }: EmailChangeDeps,
   user: SessionUser,
   newEmail: string,
   code: string,
+  log: ErrorLog,
 ): Promise<void> {
   const email = normalizeEmail(newEmail);
   const identifier = identifierFor(user.id);
   const given = Buffer.from(hmacSha256(config.appSecret, code), 'hex');
 
-  const accepted = await db.transaction(async (tx) => {
+  const outcome = await db.transaction(async (tx) => {
     await lockUser(tx, user.id);
+    // Read under the lock: the notice goes to the address the account had.
+    const before = await loadProfile(tx, user);
+    assertNotReserved(config, user, before.email, email);
     const [row] = await tx
       .select()
       .from(verification)
       .where(eq(verification.identifier, identifier));
-    if (!row) return false;
+    if (!row) return null;
     const parsed = parseValue(row.value);
-    if (!parsed || parsed.email !== email) return false;
-    if (row.expiresAt.getTime() <= Date.now() || parsed.attempts >= CODE_ATTEMPTS) return false;
+    if (!parsed || parsed.email !== email) return null;
+    if (row.expiresAt.getTime() <= Date.now() || parsed.attempts >= CODE_ATTEMPTS) return null;
 
     const expected = Buffer.from(parsed.hash, 'hex');
     if (expected.length !== given.length || !timingSafeEqual(expected, given)) {
@@ -124,15 +159,17 @@ export async function confirmEmailChange(
           updatedAt: new Date(),
         })
         .where(eq(verification.id, row.id));
-      return false;
+      return null;
     }
     await tx.delete(verification).where(eq(verification.id, row.id));
-    return true;
+    await changeUserEmail(tx, user.id, email); // EmailTakenError rolls the delete back
+    return before;
   });
-  if (!accepted) throw new InvalidCodeError();
+  if (!outcome) throw new InvalidCodeError();
 
-  // Read before the change: the notice goes to the address the account had.
-  const before = await loadProfile(db, user);
-  await changeUserEmail(db, user.id, email);
-  await sendEmailLater(jobs, emailChangedNoticeEmail(before.email, email, before.language));
+  try {
+    await sendEmailLater(jobs, emailChangedNoticeEmail(outcome.email, email, outcome.language));
+  } catch (error) {
+    log.error({ err: error }, 'could not queue the email-changed notice');
+  }
 }

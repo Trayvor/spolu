@@ -9,12 +9,13 @@ import {
   type Me,
 } from '@spolu/shared';
 import type { AppDeps } from '../../deps.js';
-import { createRateLimiter } from '../../infra/http/rate-limit.js';
+import { createRateLimiter, createSlidingRateLimiter } from '../../infra/http/rate-limit.js';
 import type { Auth } from './auth.js';
 import {
   confirmEmailChange,
   InvalidCodeError,
   requestEmailChange,
+  ReservedEmailError,
   SameEmailError,
 } from './email-change.js';
 import { getSessionFromHeaders, requireUser, toSessionUser } from './session.js';
@@ -26,8 +27,13 @@ export const authRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { d
   const { db } = deps;
   const { auth } = app;
   const preHandler = requireUser(auth);
-  // Per user, the same 10 a minute as the login code's plugin limit.
-  const allowEmailChange = createRateLimiter({ windowMs: 60_000, max: 10 });
+  // Email-change limits, in memory (one process; a restart resets them). Per user: 10 requests
+  // a minute (the login code's plugin limit) and 20 in a rolling day. Per target address, across
+  // users: 5 an hour, so no one floods someone's inbox. Confirms: 10 a minute per user.
+  const allowChangePerMinute = createRateLimiter({ windowMs: 60_000, max: 10 });
+  const allowChangePerDay = createSlidingRateLimiter({ windowMs: 86_400_000, max: 20 });
+  const allowChangeToAddress = createSlidingRateLimiter({ windowMs: 3_600_000, max: 5 });
+  const allowConfirm = createRateLimiter({ windowMs: 60_000, max: 10 });
 
   // better-auth's own endpoints, in a child plugin so its raw-body parser stays local.
   await app.register(async (child) => registerAuthHandler(child, auth));
@@ -66,13 +72,18 @@ export const authRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { d
   // Email change and language act on the session's user only; no route names another user.
   app.post('/me/email-change', { preHandler }, async (request, reply) => {
     const user = request.user!;
-    if (!allowEmailChange(user.id)) return reply.code(429).send({ error: ErrorCodes.rateLimited });
+    if (!allowChangePerMinute(user.id) || !allowChangePerDay(user.id)) {
+      return reply.code(429).send({ error: ErrorCodes.rateLimited });
+    }
     const body = EmailChangeRequestSchema.safeParse(request.body);
     if (!body.success) return reply.code(400).send({ error: ErrorCodes.validationFailed });
+    if (!allowChangeToAddress(body.data.newEmail)) {
+      return reply.code(429).send({ error: ErrorCodes.rateLimited });
+    }
     try {
       await requestEmailChange(deps, user, body.data.newEmail);
     } catch (error) {
-      if (error instanceof SameEmailError) {
+      if (error instanceof SameEmailError || error instanceof ReservedEmailError) {
         return reply.code(400).send({ error: ErrorCodes.validationFailed });
       }
       throw error;
@@ -82,11 +93,15 @@ export const authRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { d
 
   app.post('/me/email-change/confirm', { preHandler }, async (request, reply) => {
     const user = request.user!;
+    if (!allowConfirm(user.id)) return reply.code(429).send({ error: ErrorCodes.rateLimited });
     const body = EmailChangeConfirmSchema.safeParse(request.body);
     if (!body.success) return reply.code(400).send({ error: ErrorCodes.validationFailed });
     try {
-      await confirmEmailChange(deps, user, body.data.newEmail, body.data.code);
+      await confirmEmailChange(deps, user, body.data.newEmail, body.data.code, request.log);
     } catch (error) {
+      if (error instanceof ReservedEmailError) {
+        return reply.code(400).send({ error: ErrorCodes.validationFailed });
+      }
       if (error instanceof InvalidCodeError) {
         return reply.code(400).send({ error: ErrorCodes.invalidCode });
       }

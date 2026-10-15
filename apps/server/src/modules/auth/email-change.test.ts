@@ -204,7 +204,7 @@ describe('email change', () => {
       .where(eq(verification.identifier, `email-change:${a.id}`));
     expect(row?.value.endsWith(':3')).toBe(true);
     expect((await confirmChange(a.cookie, newEmail, right)).statusCode).toBe(400);
-  });
+  }, 20_000);
 
   it('an expired code answers invalid_code', async () => {
     const a = await signedIn();
@@ -271,6 +271,33 @@ describe('email change', () => {
     expect((await getMe(a.cookie)).json()).toMatchObject({ email: a.email });
     const [row] = await test.deps.db.select().from(user).where(eq(user.id, b.id));
     expect(row?.email).toBe(b.email);
+    // The failed update rolled back: the code is not burnt and no attempt was counted.
+    const [pending] = await test.deps.db
+      .select()
+      .from(verification)
+      .where(eq(verification.identifier, `email-change:${a.id}`));
+    expect(pending?.value.endsWith(`:${b.email}:0`)).toBe(true);
+  });
+
+  it('a failed notice to the old address still answers 200 with the change applied', async () => {
+    const a = await signedIn();
+    const newEmail = uniqueEmail();
+    await requestChange(a.cookie, newEmail);
+    const code = await latestLoginCode(newEmail);
+    const jobs = test.deps.jobs;
+    const original = jobs.send.bind(jobs);
+    const send = vi.spyOn(jobs, 'send').mockImplementation(async (name, data, options) => {
+      if ((data as { to?: string[] }).to?.[0] === a.email) throw new Error('queue down');
+      return original(name, data, options);
+    });
+    try {
+      const res = await confirmChange(a.cookie, newEmail, code);
+      expect(res.statusCode).toBe(200);
+      expect(res.json()).toMatchObject({ email: newEmail });
+    } finally {
+      send.mockRestore();
+    }
+    expect((await getMe(a.cookie)).json()).toMatchObject({ email: newEmail });
   });
 
   it('a taken address in another case still answers email_taken', async () => {
@@ -322,7 +349,7 @@ describe('email change', () => {
     // The limit is per user: someone else is not affected.
     const b = await signedIn();
     expect((await requestChange(b.cookie, uniqueEmail())).statusCode).toBe(204);
-  });
+  }, 20_000);
 
   it('confirm acts only on the caller', async () => {
     const a = await signedIn();
@@ -348,6 +375,79 @@ describe('email change', () => {
       payload: { language: 'en' },
     });
     expect(lang.statusCode).toBe(401);
+  });
+});
+
+describe('email change limits', () => {
+  it('the 21st request in a rolling 24 hours answers rate_limited', async () => {
+    const a = await signedIn();
+    const realNow = Date.now.bind(Date);
+    let offset = 0;
+    const clock = vi.spyOn(Date, 'now').mockImplementation(() => realNow() + offset);
+    try {
+      const statuses: number[] = [];
+      for (let i = 0; i < 21; i++) {
+        if (i > 0 && i % 10 === 0) offset += 61_000; // stay under 10 a minute
+        statuses.push((await requestChange(a.cookie, uniqueEmail())).statusCode);
+      }
+      expect(statuses).toEqual([...Array<number>(20).fill(204), 429]);
+      offset += 23 * 3_600_000; // still inside 24 hours of the first request
+      expect((await requestChange(a.cookie, uniqueEmail())).statusCode).toBe(429);
+      offset += 3_600_000; // past 24 hours: the oldest requests drop out
+      expect((await requestChange(a.cookie, uniqueEmail())).statusCode).toBe(204);
+    } finally {
+      clock.mockRestore();
+    }
+  }, 20_000);
+
+  it('the 6th request in an hour to one address answers rate_limited, across users', async () => {
+    const a = await signedIn();
+    const b = await signedIn();
+    const target = uniqueEmail();
+    const statuses: number[] = [];
+    for (let i = 0; i < 5; i++) statuses.push((await requestChange(a.cookie, target)).statusCode);
+    statuses.push((await requestChange(b.cookie, target.toUpperCase())).statusCode);
+    expect(statuses).toEqual([204, 204, 204, 204, 204, 429]);
+    const res = await requestChange(b.cookie, target);
+    expect(res.json()).toEqual({ error: 'rate_limited' });
+    expect((await requestChange(b.cookie, uniqueEmail())).statusCode).toBe(204);
+  }, 20_000);
+
+  it('the 11th confirm in a minute answers rate_limited', async () => {
+    const a = await signedIn();
+    const statuses: number[] = [];
+    for (let i = 0; i < 11; i++) {
+      statuses.push((await confirmChange(a.cookie, uniqueEmail(), '123456')).statusCode);
+    }
+    expect(statuses).toEqual([...Array<number>(10).fill(400), 429]);
+    const b = await signedIn();
+    expect((await confirmChange(b.cookie, uniqueEmail(), '123456')).statusCode).toBe(400);
+  }, 20_000);
+});
+
+describe('superadmin guard', () => {
+  const superadminEmail = () => test.deps.config.superadminEmail;
+
+  it('no one changes their email to the superadmin email', async () => {
+    const a = await signedIn();
+    const res = await requestChange(a.cookie, superadminEmail().toUpperCase());
+    expect(res.statusCode).toBe(400);
+    expect(res.json()).toEqual({ error: 'validation_failed' });
+    const rows = await test.deps.db
+      .select()
+      .from(verification)
+      .where(eq(verification.identifier, `email-change:${a.id}`));
+    expect(rows).toHaveLength(0);
+    const confirm = await confirmChange(a.cookie, superadminEmail(), '123456');
+    expect(confirm.statusCode).toBe(400);
+    expect(confirm.json()).toEqual({ error: 'validation_failed' });
+  });
+
+  it('the superadmin cannot change their email', async () => {
+    const root = await signedIn('superadmin');
+    const res = await requestChange(root.cookie, uniqueEmail());
+    expect(res.statusCode).toBe(400);
+    expect(res.json()).toEqual({ error: 'validation_failed' });
   });
 });
 

@@ -49,12 +49,30 @@ describe('ensureSuperadmin', () => {
     expect(rows[0]?.disabledAt).toBeNull();
   });
 
-  it('promotes an existing admin and re-enables a disabled user, keeping the name', async () => {
-    const existing = await insertUser('admin', true);
-    const before = await getUserById(db, existing.id);
-    await ensureSuperadmin(db, { email: existing.email, name: 'Other name' });
-    const after = await getUserById(db, existing.id);
-    expect(after).toMatchObject({ role: 'superadmin', disabledAt: null, name: before?.name });
+  it('re-enables a disabled superadmin, keeping the name', async () => {
+    const email = uniqueEmail();
+    expect(await ensureSuperadmin(db, { email, name: 'Root' })).toBe('ok');
+    await db.update(user).set({ disabledAt: new Date() }).where(eq(user.email, email));
+    expect(await ensureSuperadmin(db, { email, name: 'Other name' })).toBe('ok');
+    const [row] = await db.select().from(user).where(eq(user.email, email));
+    expect(row).toMatchObject({ role: 'superadmin', disabledAt: null, name: 'Root' });
+  });
+
+  it('never promotes an existing admin or client', async () => {
+    for (const role of ['admin', 'client'] as const) {
+      const existing = await insertUser(role, true);
+      const before = await getUserById(db, existing.id);
+      expect(await ensureSuperadmin(db, { email: existing.email, name: 'Root' })).toBe('refused');
+      expect(await getUserById(db, existing.id)).toEqual(before);
+    }
+  });
+
+  it('a client who claims the superadmin email does not become superadmin on boot', async () => {
+    const email = uniqueEmail();
+    const client = await insertUser('client');
+    await db.update(user).set({ email }).where(eq(user.id, client.id));
+    expect(await ensureSuperadmin(db, { email, name: 'Root' })).toBe('refused');
+    expect(await getUserById(db, client.id)).toMatchObject({ role: 'client' });
   });
 });
 
