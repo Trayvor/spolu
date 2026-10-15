@@ -8,6 +8,7 @@ import { chatRoutes } from './modules/chat/routes.js';
 import { filesRoutes } from './modules/files/routes.js';
 import { joinRoutes } from './modules/groups/join-routes.js';
 import { groupsRoutes } from './modules/groups/routes.js';
+import { notificationsRoutes } from './modules/notifications/routes.js';
 import { systemRoutes } from './modules/system/routes.js';
 import { tasksRoutes } from './modules/tasks/routes.js';
 import { usersRoutes } from './modules/users/routes.js';
@@ -46,6 +47,7 @@ export async function buildApp(
   await app.register(joinRoutes, { prefix: '/api', deps });
   await app.register(tasksRoutes, { prefix: '/api', deps });
   await app.register(chatRoutes, { prefix: '/api', deps });
+  await app.register(notificationsRoutes, { prefix: '/api', deps });
 
   registerNotFound(app);
   return app;

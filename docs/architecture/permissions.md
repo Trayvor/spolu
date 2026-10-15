@@ -40,6 +40,8 @@ Chat policy lives in `modules/chat/policy.ts`: `canReadChannel(actor, channel, a
 
 Who is calling comes from the session cookie, read in `modules/auth/session.ts`. Routes use the preHandlers `requireUser(app.auth)` (no valid session: `401 {"error":"unauthorized"}`) or `requireAdmin(app.auth)` (no session: 401; not `isAdmin`: `403 {"error":"forbidden"}`); both set `request.user` (`SessionUser`). A disabled user counts as logged out even if a session row still exists. Finer checks (which group, which admin) call the module's policy functions with `request.user` before the service. State-changing requests from another site are refused earlier by the CSRF guard (see [overview.md](overview.md), "CSRF guard").
 
+Notification settings (`modules/notifications/routes.ts`) are about the signed-in user only: every handler acts on `request.user`, and there is no route that names another user. Any signed-in user reads and changes their own preferences and push subscriptions (a `DELETE` of someone else's endpoint deletes nothing and still answers 204). A user sets a per-group mode only for a group `canReadGroup` allows, otherwise `404 not_found`. Only an admin sets the all-groups default mode (`PUT /api/notifications/modes/default`, a client gets `403 forbidden`); setting it also deletes that user's per-group overrides. The effective mode is the per-group override, then the user's default, then the role default (client `all`, admin `mentions`).
+
 Policy functions are written test-first. Confirmed in Phase 3: reading a resource you may not read answers 404, the same as a missing one.
 
 See [realtime.md](realtime.md) for room joins and [overview.md](overview.md) for module boundaries.

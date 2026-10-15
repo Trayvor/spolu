@@ -34,7 +34,7 @@ export async function buildTestApp(overrides: { config?: Partial<Config> } = {})
     db,
     email,
     storage,
-    push,
+    push: config.push ? push : null,
     jobs: createInlineJobs({
       ...emailJobHandlers(email),
       ...filesJobHandlers({ db, storage }),
