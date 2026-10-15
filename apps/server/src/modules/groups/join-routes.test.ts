@@ -6,6 +6,7 @@ import { buildTestApp } from '../../../test/test-app.js';
 import { cookieHeader, requestCode, signIn } from '../../../test/login.js';
 import { countEmailsTo, latestLoginCode } from '../../../test/mailpit.js';
 import { user } from '../users/schema.js';
+import { groupMembers } from './schema.js';
 import { addAdmin, findUserByEmail } from '../users/service.js';
 import { addMember, createGroup, getMembershipGroupId, regenerateInvite } from './service.js';
 
@@ -112,23 +113,21 @@ describe('join API', () => {
     );
     expect(after).toEqual(before);
     expect(await getMembershipGroupId(test.deps.db, clientId)).toBe(other.id);
-    expect(await getMembershipGroupId(test.deps.db, adminEmail)).toBeNull();
+    expect(await getMembershipGroupId(test.deps.db, before[0]!.id)).toBeNull();
   });
 
   it('a removed client gets no code after join', async () => {
     const group = await newGroup();
     const email = newEmail();
     const id = randomUUID();
-    await test.deps.db
-      .insert(user)
-      .values({
-        id,
-        email,
-        name: 'R',
-        role: 'client',
-        emailVerified: true,
-        disabledAt: new Date(),
-      });
+    await test.deps.db.insert(user).values({
+      id,
+      email,
+      name: 'R',
+      role: 'client',
+      emailVerified: true,
+      disabledAt: new Date(),
+    });
     await addMember(test.deps.db, group.id, id);
     expect((await join(group.inviteToken, { email })).statusCode).toBe(200);
     await requestCode(test.app, email);
@@ -162,5 +161,46 @@ describe('join API', () => {
     const res = await join(group.inviteToken, { email: newEmail() }, ip);
     expect(res.statusCode).toBe(429);
     expect(res.json()).toEqual({ error: 'rate_limited' });
+  });
+
+  it('an unverified client follows the latest invite; a verified client stays', async () => {
+    const a = await newGroup();
+    const b = await newGroup();
+    const email = newEmail();
+    await join(a.inviteToken, { email });
+    await join(b.inviteToken, { email });
+    const moved = await findUserByEmail(test.deps.db, email);
+    expect(await getMembershipGroupId(test.deps.db, moved!.id)).toBe(b.id);
+    const rows = await test.deps.db
+      .select()
+      .from(groupMembers)
+      .where(eq(groupMembers.userId, moved!.id));
+    expect(rows).toHaveLength(1);
+
+    const verifiedEmail = newEmail();
+    const id = randomUUID();
+    await test.deps.db
+      .insert(user)
+      .values({ id, email: verifiedEmail, name: 'V', role: 'client', emailVerified: true });
+    await addMember(test.deps.db, a.id, id);
+    await join(b.inviteToken, { email: verifiedEmail });
+    expect(await getMembershipGroupId(test.deps.db, id)).toBe(a.id);
+  });
+
+  it('two parallel joins with the same new email both answer 200 and make one user and membership', async () => {
+    const group = await newGroup();
+    const email = newEmail();
+    const [r1, r2] = await Promise.all([
+      join(group.inviteToken, { email }),
+      join(group.inviteToken, { email }),
+    ]);
+    expect([r1.statusCode, r2.statusCode]).toEqual([200, 200]);
+    const users = await test.deps.db.select().from(user).where(eq(user.email, email));
+    expect(users).toHaveLength(1);
+    const rows = await test.deps.db
+      .select()
+      .from(groupMembers)
+      .where(eq(groupMembers.userId, users[0]!.id));
+    expect(rows).toHaveLength(1);
   });
 });

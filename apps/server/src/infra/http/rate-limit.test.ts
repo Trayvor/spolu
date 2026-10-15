@@ -13,4 +13,16 @@ describe('createRateLimiter', () => {
     vi.advanceTimersByTime(60_001);
     expect(allow('1.1.1.1')).toBe(true);
   });
+
+  it('drops expired keys so the map does not grow', () => {
+    const allow = createRateLimiter({ windowMs: 1000, max: 1 });
+    allow('a');
+    vi.advanceTimersByTime(500);
+    allow('b');
+    vi.advanceTimersByTime(600); // a expired, b still live
+    expect(allow('b')).toBe(false);
+    expect(allow('a')).toBe(true); // fresh window for a
+    vi.advanceTimersByTime(1001);
+    expect(allow('b')).toBe(true);
+  });
 });

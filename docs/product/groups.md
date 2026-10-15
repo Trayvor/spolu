@@ -15,6 +15,7 @@ A group is one client (organization). It has a name, a logo and the client's eGr
   - a new user who registers through it automatically lands in that group;
   - the link is permanent until an admin generates a new one; the old link then stops working (404, "no longer valid");
   - a client belongs to exactly one group: opening another group's link with an email that is already a client does nothing;
+  - a person who entered an email on an invite but never signed in follows the latest invite they used (a link cannot reserve someone else's email into a group); once they have signed in, other links do nothing;
   - a removed client is blocked: the link sends them no code, and an admin can restore them.
 - Members list: the group shows its members.
 - An admin can remove a client from a group.

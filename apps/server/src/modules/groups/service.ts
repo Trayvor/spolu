@@ -3,7 +3,12 @@ import { and, asc, eq, isNotNull, isNull, sql } from 'drizzle-orm';
 import type { GroupInput, GroupSummary, Member } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
 import { user } from '../users/schema.js';
-import { createUnverifiedClient, findUserByEmail, isUniqueViolation } from '../users/service.js';
+import {
+  createUnverifiedClient,
+  findUserByEmail,
+  isUniqueViolation,
+  type UserRow,
+} from '../users/service.js';
 import { normalizeEgrantUrl } from './egrant-url.js';
 import { groupMembers, groups } from './schema.js';
 
@@ -163,10 +168,13 @@ export async function setLogoKey(db: Db, id: string, key: string | null): Promis
 
 /**
  * Join by invite link: an unknown email becomes an unverified client in the group, in one
- * transaction. Any existing user is left unchanged, and a concurrent duplicate counts as existing.
+ * transaction. An unverified, active client who never signed in follows the latest invite they
+ * used (so a link cannot reserve someone else's email); every other existing user is left
+ * unchanged. A concurrent duplicate counts as existing.
  */
 export async function joinWithEmail(db: Db, groupId: string, email: string): Promise<void> {
-  if (await findUserByEmail(db, email)) return;
+  const existing = await findUserByEmail(db, email);
+  if (existing) return moveUnverified(db, groupId, existing);
   try {
     await db.transaction(async (tx) => {
       const client = await createUnverifiedClient(tx, email);
@@ -174,5 +182,15 @@ export async function joinWithEmail(db: Db, groupId: string, email: string): Pro
     });
   } catch (error) {
     if (!isUniqueViolation(error)) throw error;
+    const winner = await findUserByEmail(db, email);
+    if (winner) await moveUnverified(db, groupId, winner);
   }
+}
+
+async function moveUnverified(db: Db, groupId: string, existing: UserRow): Promise<void> {
+  if (existing.role !== 'client' || existing.emailVerified || existing.disabledAt) return;
+  await db
+    .insert(groupMembers)
+    .values({ userId: existing.id, groupId })
+    .onConflictDoUpdate({ target: groupMembers.userId, set: { groupId } });
 }
