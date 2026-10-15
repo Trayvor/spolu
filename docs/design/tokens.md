@@ -192,7 +192,7 @@ egrant.sk spacing presets are 4, 8, 12, 16, 20, 24, 32, 40, 48, 54, 64px — all
 ### File chip and image preview (as built, `src/features/files/`)
 
 - File chip (`file-chip.tsx`): one inline row, `bg-secondary rounded-lg`, padding `px-3 py-2`, 8px gap, hover `bg-surface-3`. A 18px outline document icon (inline SVG, no icon library), the name in `text-button` weight 600 truncated (full name in `title`), the size in `text-micro text-muted-foreground`. The whole chip is a download link with `aria-label` "Download {name}".
-- Image preview (`image-preview.tsx`): the 640 px WebP preview in a `rounded-lg bg-muted` box with `aspect-ratio: width / height` and `max-width: min(100%, 320px)`, so the layout never jumps while it loads. Lazy, async decoding, decorative `alt=""`; the link around it opens the full file in a new tab (`aria-label` "Open {name}"). Without a preview it renders the file chip. No overlay, zoom or hover effect.
+- Image preview (`image-preview.tsx`): the 640 px WebP preview in a `rounded-lg bg-muted` box with `aspect-ratio: width / height` and `max-width: min(100%, min(width, maxWidth))` (default `maxWidth` 320 px, so the preview never upscales), so the layout never jumps while it loads. Lazy, async decoding, decorative `alt=""`; the link around it opens the full file in a new tab (`aria-label` "Open {name}"). Without a preview it renders the file chip. No overlay, zoom or hover effect.
 - Sizes (`format-size.ts`): `Intl` unit format in the UI language, 1024 steps, at most one decimal ("1.5 kB", "25 MB").
 
 ### Link

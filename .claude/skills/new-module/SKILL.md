@@ -60,14 +60,14 @@ apps/web/src/features/<name>/      api.ts (queries + writes), <name>-page.tsx, t
 - **Route-scoped body parser:** a non-JSON body (the logo upload, `modules/groups/logo.ts`) is its own plugin with `addContentTypeParser` and a small `bodyLimit`, so the parser does not leak to other routes. Sniff the type from the bytes, never trust the header alone. Web side: `apiSendRaw`.
 - **404, not 403, for unreadable resources:** if a caller may not read a resource, answer `404 not_found`, the same as a missing id (`canReadGroup`). 403 is only for known-readable resources the caller may not change.
 - **`Me` vs `SessionUser`:** `request.user` is a `SessionUser` (no group). Look the group up with the module's service (`getMembershipGroupId`); only `/api/me` returns `Me` (SessionUser + `groupId`).
-- **Cached files:** serve with `Cache-Control: private` and an `ETag`; when the file can change under the same URL, expose `updatedAt` in the shared schema and have the web append `?v=<updatedAt>`.
+- **Cached files:** serve with `Cache-Control: private`; an `ETag` for files that can change, or `max-age=31536000, immutable` for files that never change under their URL (the files module sends no ETag); when the file can change under the same URL, expose `updatedAt` in the shared schema and have the web append `?v=<updatedAt>`.
 - **One-statement races:** prefer one upsert (`onConflictDoUpdate`) or a unique-violation catch over check-then-write (`joinWithEmail`).
 
 ## Patterns from files
 
 Second example module: `apps/server/src/modules/files/` with `apps/web/src/features/files/`.
 
-- **Streaming raw-body upload scope:** a large non-JSON body (`POST /api/groups/:id/files`) is its own plugin with a catch-all `addContentTypeParser('*', { parseAs: 'stream' })`, so the body is never buffered and the parser does not leak to other routes. Check the cheap things first (policy, rate limit, `content-length`), then stream into storage; on any failure remove what was stored. Small bodies (the 300 KB preview) use a second scope with `parseAs: 'buffer'` and a small `bodyLimit`. Web side: `XMLHttpRequest` for upload progress, `apiSendRaw` (with extra headers) for small PUTs.
+- **Streaming raw-body upload scope:** a large non-JSON body (`POST /api/groups/:id/files`) is its own plugin with a catch-all `addContentTypeParser('*', (_req, payload, done) => done(null, payload))` (passes the stream through, no `parseAs`), so the body is never buffered and the parser does not leak to other routes. Check the cheap things first (policy, rate limit, `content-length`), then stream into storage; on any failure remove what was stored. Small bodies (the 300 KB preview) use a second scope with `parseAs: 'buffer'` and a small `bodyLimit`. Web side: `XMLHttpRequest` for upload progress, `apiSendRaw` (with extra headers) for small PUTs.
 - **Service called inside the caller's transaction:** a module that owns a row referencing files (a message, a task) calls `attachFiles(tx, groupId, fileIds, userId)` in its own transaction; it throws `InvalidAttachmentError` and the transaction rolls back. After commit it calls `deleteFiles` when rows were removed. Same shape for `recordNotifications(tx, ...)`.
 - **`emitToGroup` after commit:** the HTTP route emits with `emitToGroup(io, groupId, event, payload)` only after the transaction has committed; sockets stay push-only. Web consumers listen with `getSocket().on(...)` and refetch when `useGroupRoomJoins()` changes.
 - **One conditional UPDATE for races:** "set once" fields (`setFilePreview`) are decided by `UPDATE ... where <still unset>` and its row count, not by a read before.
@@ -76,7 +76,7 @@ Second example module: `apps/server/src/modules/files/` with `apps/web/src/featu
 
 | Rule | Wrong | Right |
 |---|---|---|
-| No cross-module table access | `chat/service.ts` imports `groups/schema.ts` to query members | `chat` calls an exported function from `groups/service.ts` |
+| No cross-module table access | `chat/service.ts` imports `groups/schema.ts` to query members | `chat` calls an exported function from `groups/service.ts`. Exception: a schema may import the `files` table for a foreign key only (`references(() => files.id)`), never to query it |
 | Permissions only via policy | `if (user.role === 'admin')` inside a route | `await canEditGroup(user, groupId)` from `policy.ts` |
 | One write path | socket handler `on('message:send')` writes to DB | `POST /api/...` writes, then the route emits after commit |
 | Client is never trusted | hiding a button is the only check | the server policy rejects; the UI also hides |

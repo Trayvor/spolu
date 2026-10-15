@@ -247,6 +247,29 @@ describe('socket.io', () => {
       expect(await got).toBe(true);
     });
 
+    it('a leave that overtakes an in-flight join leaves the socket out of the room', async () => {
+      const group = await newGroup();
+      const admin = await connected(await loggedInCookie(test));
+      const joined = join(admin, { groupId: group.id });
+      await admin.emitWithAck(SocketEvents.groupLeave, { groupId: group.id });
+      await joined;
+      const got = arrives(admin, 'test:event');
+      emitToGroup(test.app.io, group.id, 'test:event', { n: 1 });
+      expect(await got).toBe(false);
+    });
+
+    it('a non-function ack never breaks the server', async () => {
+      const group = await newGroup();
+      const admin = await connected(await loggedInCookie(test));
+      admin.emit(SocketEvents.ping, 5);
+      admin.emit(SocketEvents.groupJoin, { groupId: group.id }, 5);
+      admin.emit(SocketEvents.groupJoin, { groupId: 'nope' }, 'x');
+      admin.emit(SocketEvents.groupLeave, { groupId: group.id }, 5);
+      admin.emit(SocketEvents.groupLeave, { groupId: group.id }, {});
+      const ack: PingAck = await admin.emitWithAck(SocketEvents.ping);
+      expect(ack.pong).toBe(true);
+    });
+
     it('an admin leaves a group room and stops receiving its events', async () => {
       const group = await newGroup();
       const admin = await connected(await loggedInCookie(test));

@@ -1,4 +1,4 @@
-import { FileInfoSchema, type FileInfo } from '@spolu/shared';
+import { ErrorCodes, FileInfoSchema, type FileInfo } from '@spolu/shared';
 import { ApiError, apiSendRaw } from '@/lib/api';
 import { i18n } from '@/i18n';
 import { resizeImageWithSize } from '@/lib/resize-image';
@@ -80,7 +80,7 @@ export async function uploadFile(
   onProgress?: (fraction: number) => void,
 ): Promise<FileInfo> {
   if (file.size > MAX_FILE_BYTES) {
-    throw new ApiError('File is too large (over 25 MB)', 413, { error: 'file_too_large' });
+    throw new ApiError('File is too large (over 25 MB)', 413, { error: ErrorCodes.fileTooLarge });
   }
   const info = await send(groupId, file, onProgress);
   if (!PREVIEW_MIMES.has(info.mime)) return info;

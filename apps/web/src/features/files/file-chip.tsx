@@ -10,7 +10,7 @@ export function FileChip({ file, className }: { file: FileInfo; className?: stri
   return (
     <a
       href={fileUrl(file.id)}
-      download
+      download={file.name}
       aria-label={t('files.download', { name: file.name })}
       className={cn(
         'inline-flex max-w-full items-center gap-2 rounded-lg bg-secondary px-3 py-2 text-button text-secondary-foreground hover:bg-surface-3 hover:text-secondary-foreground',

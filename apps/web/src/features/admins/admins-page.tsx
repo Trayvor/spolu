@@ -87,6 +87,7 @@ function AddAdminForm({
     mutationFn: addAdmin,
     onSuccess: async (admin) => {
       await queryClient.invalidateQueries({ queryKey: adminsQuery.queryKey });
+      void queryClient.invalidateQueries({ queryKey: ['groups'] }); // group people lists
       onAdded(admin.name);
     },
     onError: (error) => {
@@ -200,6 +201,7 @@ function AdminRow({
     onSuccess: async () => {
       onRemoved();
       await queryClient.invalidateQueries({ queryKey: adminsQuery.queryKey });
+      void queryClient.invalidateQueries({ queryKey: ['groups'] }); // group people lists
     },
     onError: () => setFailed(true),
   });

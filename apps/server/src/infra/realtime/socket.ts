@@ -15,6 +15,8 @@ declare module 'socket.io' {
     sessionId: string;
     /** The client's group; unset for admins. */
     groupId?: string;
+    /** Group rooms the socket currently wants (added on `group:join`, removed on `group:leave`). */
+    wantedGroups: Set<string>;
   }
 }
 
@@ -54,6 +56,7 @@ export function attachSocket(
       if (!found) return next(new Error('unauthorized'));
       socket.data.user = found.user;
       socket.data.sessionId = found.sessionId;
+      socket.data.wantedGroups = new Set();
       const rooms = [userRoom(found.user.id), sessionRoom(found.sessionId)];
       // A client joins their group's room; admins join group rooms with `group:join`.
       if (found.user.role === 'client') {
@@ -75,41 +78,58 @@ export function attachSocket(
   });
 
   io.on('connection', (socket) => {
-    socket.on(SocketEvents.ping, (ack?: (payload: PingAck) => void) => {
-      ack?.({ pong: true, at: new Date().toISOString() });
+    // `ack` comes from the client: anything but a function is ignored, never called.
+    const asAck = <T>(ack: unknown): ((reply: T) => void) | undefined =>
+      typeof ack === 'function' ? (ack as (reply: T) => void) : undefined;
+
+    socket.on(SocketEvents.ping, (ack?: unknown) => {
+      asAck<PingAck>(ack)?.({ pong: true, at: new Date().toISOString() });
     });
 
     // Group rooms are joined after the same policy check as the HTTP routes; no data changes.
-    socket.on(SocketEvents.groupJoin, async (payload: unknown, ack?: (r: GroupJoinAck) => void) => {
+    socket.on(SocketEvents.groupJoin, async (payload: unknown, ackArg?: unknown) => {
+      const ack = asAck<GroupJoinAck>(ackArg);
       const groupId = parseGroupId(payload);
       try {
+        // Wanted before the awaits, so a `group:leave` that overtakes this join cancels it.
+        if (groupId !== null) socket.data.wantedGroups.add(groupId);
         const allowed =
           groupId !== null &&
           canReadGroup(socket.data.user, groupId, socket.data.groupId ?? null) &&
           (await getGroup(db, groupId)) !== null;
         // The handshake snapshot of the user may be stale: read the session again.
         if (!allowed || !(await getSessionFromHeaders(auth, socket.request.headers))) {
+          if (groupId !== null) socket.data.wantedGroups.delete(groupId);
           return ack?.({ ok: false, error: 'not_found' });
         }
         if (!socket.connected) return; // disconnected meanwhile: do not leave a stale room entry
+        if (!socket.data.wantedGroups.has(groupId)) return ack?.({ ok: false, error: 'not_found' });
         await socket.join(groupRoom(groupId));
         ack?.({ ok: true });
       } catch (error) {
         app.log.error(error, 'group:join failed');
-        ack?.({ ok: false, error: 'not_found' });
+        try {
+          ack?.({ ok: false, error: 'not_found' });
+        } catch (ackError) {
+          app.log.error(ackError, 'group:join ack failed');
+        }
       }
     });
 
-    socket.on(
-      SocketEvents.groupLeave,
-      async (payload: unknown, ack?: (r: GroupJoinAck) => void) => {
+    socket.on(SocketEvents.groupLeave, async (payload: unknown, ackArg?: unknown) => {
+      const ack = asAck<GroupJoinAck>(ackArg);
+      try {
         const groupId = parseGroupId(payload);
         // A client never leaves their own group's room.
-        if (groupId !== null && groupId !== socket.data.groupId)
+        if (groupId !== null && groupId !== socket.data.groupId) {
+          socket.data.wantedGroups.delete(groupId);
           await socket.leave(groupRoom(groupId));
+        }
         ack?.({ ok: true });
-      },
-    );
+      } catch (error) {
+        app.log.error(error, 'group:leave failed');
+      }
+    });
   });
 
   return io;
