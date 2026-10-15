@@ -49,7 +49,7 @@ apps/server/src/
     auth/ users/ groups/ chat/
     (later) dm/ tasks/ tickets/ contracts/ notifications/
   infra/              db/ email/ storage/ jobs/ realtime/ config/
-packages/shared/      zod schemas and types used by both sides
+packages/shared/      zod schemas and types used by both sides (source-only: server and web import `@ehub/shared` straight from `src/`; health response schema and socket event names live here)
 ```
 
 Each module owns its routes, service logic, DB tables, socket events and tests.
