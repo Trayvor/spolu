@@ -31,11 +31,11 @@ apps/web/src/features/<name>/      routes, components, queries for this feature
 
 1. Read the module's product doc (`docs/product/README.md` lists them), `docs/architecture/permissions.md` and `docs/architecture/realtime.md`.
 2. **Policy first, tests first.** Write failing tests for `policy.ts` covering every role (`superadmin`, `admin`, `client`) and the "other group" case, then implement. REQUIRED SUB-SKILL: `superpowers:test-driven-development`.
-3. Tables in `schema.ts`; generate and commit the drizzle-kit migration.
+3. Tables in `schema.ts`; generate and commit the drizzle-kit migration. Add an index for every column the module filters or sorts by.
 4. zod schemas in `packages/shared/src/<name>.ts`; use them in `routes.ts` and in web forms.
 5. Service and routes, test-first. Every route calls the policy before the service.
 6. Realtime: a write goes through the HTTP route (validate, check policy, DB transaction); **after** it commits, emit the event from `events.ts` to the room. Room joins use the same policy functions. Sockets never accept writes.
-7. Web feature in `apps/web/src/features/<name>/`. **Any UI: invoke `frontend-design:frontend-design` first**, before drawing or styling anything; the UI replicates https://egrant.sk using the theme tokens in `docs/design/`. All visible text goes through i18n (SK and EN).
+7. Web feature in `apps/web/src/features/<name>/`. **Any UI: invoke `frontend-design:frontend-design` first**, before drawing or styling anything; the UI replicates https://egrant.sk using the theme tokens in `docs/design/`. All visible text goes through i18n (SK and EN). Lazy-load the feature's routes; paginate lists that grow; no decorative effects (see `docs/design/README.md`, "Keep it light").
 8. Finish with the `update-kb` skill (product doc, data-model status, permissions, realtime, glossary).
 
 ## Rules

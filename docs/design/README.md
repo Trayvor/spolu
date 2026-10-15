@@ -15,6 +15,16 @@ Invoke the skill first, then do the work. Per kind of work:
 
 Never hard-code colors or sizes. Use the theme tokens.
 
+## Keep it light
+
+Performance comes before decoration (see `docs/product/non-functional.md`). Replicate egrant.sk's look — colors, fonts, spacing, components — but not heavy effects:
+
+- no heavy animations, parallax, blur/glass, large background images or video, or decorative motion;
+- transitions only where they help the user follow what happened, short (about 150 ms), CSS only, and off under `prefers-reduced-motion`;
+- system or self-hosted fonts, few weights; images and icons small (SVG where possible).
+
+When invoking `frontend-design`, pass this constraint with the request.
+
 ## Tokens
 
 Tokens: filled in Phase 1 — will live in `apps/web/src/styles/theme.css` and `docs/design/tokens.md`.

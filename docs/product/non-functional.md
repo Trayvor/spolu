@@ -1,6 +1,6 @@
 # Non-functional requirements
 
-Rules that apply to the whole product: installable PWA, Slovak and English interface, realtime updates, backups, error monitoring, no calls, and the design rule that the UI replicates egrant.sk.
+Rules that apply to the whole product: installable PWA, Slovak and English interface, realtime updates, backups, error monitoring, no calls, and the design rule that the UI replicates egrant.sk, performance, and easy extension.
 
 ## Requirements
 
@@ -14,6 +14,16 @@ Rules that apply to the whole product: installable PWA, Slovak and English inter
 - Minimum friction for the client: registration by link, only an email is needed.
 - Design rule: The UI replicates the design of https://egrant.sk. Any design work — scraping or analysing egrant.sk, copying its components, drawing or restyling any screen — MUST start by invoking the `frontend-design` skill.
 - The design covers colors, fonts, buttons, forms and cards.
+- **Performance is a top priority.** The app must feel instant on a cheap phone over mobile data and on the small test server. In practice:
+  - small JS bundles: each screen is lazy-loaded; no heavy library is added when a few lines of code will do;
+  - no fancy visual effects: no heavy animations, parallax, blur/glass, or decorative motion. Only short, purposeful transitions (for example, a menu opening), and none when the user prefers reduced motion;
+  - lists that can grow (messages, tasks, tickets) are paginated or virtualized, never loaded whole;
+  - every query that filters or sorts uses an index; no query per row (N+1);
+  - realtime events carry small payloads and go only to the rooms that need them.
+- **Easy to extend.** After all phases the system must stay easy to change and to add features to, by one person with AI. In practice:
+  - every feature is a self-contained module built the same way (`new-module` skill); modules talk only through exported service functions;
+  - simple, repeated patterns over clever abstractions; no framework of our own;
+  - docs, ADRs and tests are kept current with every change, so the next feature starts from accurate knowledge.
 
 ## Phase
 
