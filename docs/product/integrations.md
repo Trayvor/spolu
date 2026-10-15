@@ -14,4 +14,4 @@ Spolu talks to three external systems: eGrant (incoming error reports), Elastic 
 
 ## Phase
 
-Elastic Email: Phase 2 (login codes), later invites, notifications (Phase 6) and ticket replies (Phase 13). eGrant: Phase 12. AI: Phase 11.
+Elastic Email: Phase 2 (login codes), later invites, notifications (Phase 6) and ticket replies (Phase 13). eGrant: Phase 12. AI: Phase 9 (OpenAI API).

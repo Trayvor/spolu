@@ -24,4 +24,4 @@ Each user chooses a notification mode per group and delivery channels in their p
 
 ## Phase
 
-Phase 6 (modes, channels, thread replies). Phase 7 (DM), Phase 9 (task chat), Phase 12 (admin notification for new tickets) and Phase 15 (contract reminders) use these settings.
+Phase 6 (modes, channels, thread replies, task chat, task moves, deadline and urgent reminders; events recorded by Phases 5, 8 and 9). Phase 7 (DM), Phase 12 (admin notification for new tickets) and Phase 15 (contract reminders) use these settings.
