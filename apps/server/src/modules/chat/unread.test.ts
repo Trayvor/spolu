@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { eq } from 'drizzle-orm';
+import { readFileSync } from 'node:fs';
+import { and, eq, sql } from 'drizzle-orm';
 import type { SendMessageInput, SessionUser } from '@spolu/shared';
 import type { AppDeps } from '../../deps.js';
 import { buildTestApp } from '../../../test/test-app.js';
@@ -8,10 +9,12 @@ import { addMember, createGroup } from '../groups/service.js';
 import { user } from '../users/schema.js';
 import { addAdmin, createUnverifiedClient } from '../users/service.js';
 import { deleteMessage, getMessage, sendMessage } from './messages.js';
+import { messages, threadReadStates } from './schema.js';
 import {
   ensureGroupChannel,
   markRead,
   markThreadRead,
+  recordReplyReads,
   unreadByGroup,
   unreadCount,
   unreadThreads,
@@ -89,7 +92,9 @@ describe('unread thread replies', () => {
     expect(await unreadCount(deps.db, s.a.id, s.channel.id)).toBe(1);
   });
 
-  it("counts a reply that quotes the user's message", async () => {
+  // A quote always points into its own thread (checkThread), so its author is one of the thread's
+  // people: this case is covered by the thread rows and needs no rule of its own.
+  it("counts a reply that quotes the user's message (one of the thread's people, via checkThread)", async () => {
     const s = await setup();
     const root = await send(s.channel, s.b);
     const mine = await send(s.channel, s.a, { parentId: root.id });
@@ -145,5 +150,117 @@ describe('unread thread replies', () => {
     await send(s.channel, s.b);
     expect((await unreadByGroup(deps.db, s.a.id, null))[s.group.id]).toBe(2);
     expect(await unreadByGroup(deps.db, s.a.id, s.group.id)).toEqual({ [s.group.id]: 2 });
+  });
+
+  it('a reply that committed first but has a later time is read by the next replier', async () => {
+    const s = await setup();
+    const root = await send(s.channel, s.c);
+    // Boris's reply got its time first but committed first too: Anna's reply sees it.
+    const later = new Date(Date.now() + 60_000);
+    await deps.db.insert(messages).values({
+      id: randomUUID(),
+      channelId: s.channel.id,
+      authorId: s.b.id,
+      parentId: root.id,
+      body: 'early',
+      clientId: randomUUID(),
+      changeSeq: 1,
+      createdAt: later,
+    });
+    await recordReplyReads(
+      deps.db,
+      { channelId: s.channel.id, rootId: root.id, authorId: s.b.id },
+      { authorId: s.c.id, createdAt: new Date(root.createdAt) },
+    );
+    await send(s.channel, s.a, { parentId: root.id });
+    const [row] = await deps.db
+      .select()
+      .from(threadReadStates)
+      .where(and(eq(threadReadStates.rootId, root.id), eq(threadReadStates.userId, s.a.id)));
+    expect(row!.lastReadAt.getTime()).toBe(later.getTime());
+    expect(row!.lastReplyAt.getTime()).toBe(later.getTime());
+    await readFeed(s, s.a);
+    expect(await unreadCount(deps.db, s.a.id, s.channel.id)).toBe(0);
+  });
+
+  it('deleting the only unread reply takes the thread out of the unread index', async () => {
+    const s = await setup();
+    const root = await send(s.channel, s.a);
+    const reply = await send(s.channel, s.b, { parentId: root.id });
+    await deleteMessage(deps, {
+      channel: s.channel,
+      message: (await getMessage(deps.db, reply.id))!,
+    });
+    const [row] = await deps.db
+      .select()
+      .from(threadReadStates)
+      .where(and(eq(threadReadStates.rootId, root.id), eq(threadReadStates.userId, s.a.id)));
+    expect(row!.lastReadAt.getTime()).toBe(row!.lastReplyAt.getTime());
+    expect(await unreadCount(deps.db, s.a.id, s.channel.id)).toBe(0);
+  });
+});
+
+describe('migration 0008 backfill', () => {
+  const migration = readFileSync(
+    new URL('../../infra/db/migrations/0008_thread_read_states.sql', import.meta.url),
+    'utf8',
+  );
+  const backfill = migration.split('--> statement-breakpoint').at(-1)!;
+
+  it('existing threads are neither unread nor lost', async () => {
+    const s = await setup();
+    // A thread from before the release: rows only, no read states.
+    const rootId = randomUUID();
+    const base = { channelId: s.channel.id, body: 'old', changeSeq: 1 };
+    const old = new Date(Date.now() - 3_600_000);
+    await deps.db.insert(messages).values([
+      {
+        ...base,
+        id: rootId,
+        authorId: s.a.id,
+        clientId: randomUUID(),
+        createdAt: old,
+        replyCount: 1,
+      },
+      {
+        ...base,
+        id: randomUUID(),
+        authorId: s.b.id,
+        parentId: rootId,
+        clientId: randomUUID(),
+        createdAt: old,
+      },
+    ]);
+    class Rollback extends Error {}
+    await expect(
+      deps.db.transaction(async (tx) => {
+        await tx.execute(sql.raw(backfill));
+        const rows = await tx
+          .select({ userId: threadReadStates.userId })
+          .from(threadReadStates)
+          .where(eq(threadReadStates.rootId, rootId));
+        expect(rows.map((r) => r.userId).sort()).toEqual([s.a.id, s.b.id].sort());
+        expect(await unreadCount(tx, s.a.id, s.channel.id)).toBe(0);
+        // Not lost: a new reply counts for both people of the thread.
+        await tx.insert(messages).values({
+          ...base,
+          id: randomUUID(),
+          authorId: s.c.id,
+          parentId: rootId,
+          clientId: randomUUID(),
+          // now() is fixed for the transaction (the backfill's mark): come after it.
+          createdAt: new Date(Date.now() + 1000),
+        });
+        await recordReplyReads(
+          tx,
+          { channelId: s.channel.id, rootId, authorId: s.c.id },
+          { authorId: s.a.id, createdAt: old },
+        );
+        expect(await unreadCount(tx, s.a.id, s.channel.id)).toBe(1);
+        expect(await unreadThreads(tx, s.a.id, s.channel.id)).toEqual([rootId]);
+        expect(await unreadThreads(tx, s.b.id, s.channel.id)).toEqual([rootId]);
+        throw new Rollback();
+      }),
+    ).rejects.toBeInstanceOf(Rollback);
   });
 });

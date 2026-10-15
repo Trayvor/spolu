@@ -75,6 +75,8 @@ const R2 = msg('r2', 5, { parentId: 'm2', replyToId: 'r1', author: people[0]! })
 
 /** What GET /channels/c1/unread-threads answers. */
 let unreadRoots: string[];
+/** While set, POST thread/read waits for it before answering. */
+let holdThreadRead: Promise<void> | null;
 let fetchMock: Mock<(url: string, init?: RequestInit) => Promise<Response>>;
 const json = (status: number, body?: unknown) =>
   new Response(body === undefined ? null : JSON.stringify(body), { status });
@@ -86,12 +88,14 @@ beforeAll(async () => {
 beforeEach(() => {
   socket.reset();
   unreadRoots = [];
+  holdThreadRead = null;
   fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
     const method = init?.method ?? 'GET';
     if (url === '/api/channels/c1/unread-threads') return json(200, unreadRoots);
     if (url === '/api/channels/c2/unread-threads') return json(200, []);
     if (url === '/api/messages/m2/thread/read' && method === 'POST') {
       unreadRoots = unreadRoots.filter((id) => id !== 'm2');
+      if (holdThreadRead) await holdThreadRead;
       return json(204);
     }
     if (url === '/api/channels/c1/messages' && method === 'GET') {
@@ -442,6 +446,22 @@ describe('Conversation', () => {
       await waitFor(() => expect(threadReadCalls()).toHaveLength(1));
       expect(threadReadCalls()[0]![0]).toBe('/api/messages/m2/thread/read');
       await waitFor(() => expect(within(summary(container)).queryByText(dot())).toBeNull());
+    });
+
+    it('a reply announced while the open thread is being marked read is marked read too', async () => {
+      unreadRoots = ['m2'];
+      let release!: () => void;
+      holdThreadRead = new Promise((resolve) => (release = resolve));
+      renderAt('/groups/g1/chat?thread=m2&c=c1');
+      await panel();
+      await waitFor(() => expect(threadReadCalls()).toHaveLength(1));
+      // The server has stored the mark; then a new reply arrives before the answer.
+      unreadRoots = ['m2'];
+      act(() => socket.fire('chat:thread-reply', { groupId: 'g1', channelId: 'c1', rootId: 'm2' }));
+      holdThreadRead = null;
+      await act(async () => release());
+      await waitFor(() => expect(threadReadCalls()).toHaveLength(2));
+      await waitFor(() => expect(unreadRoots).toEqual([]));
     });
 
     it('a thread without unread replies is not marked read again', async () => {

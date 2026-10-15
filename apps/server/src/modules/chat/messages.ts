@@ -16,7 +16,13 @@ import { recordNotifications } from '../notifications/service.js';
 import { isUniqueViolation } from '../users/service.js';
 import { selectMessages, toMessageDtos, type MessageRow } from './dto.js';
 import { messageAttachments, messageMentions, messages } from './schema.js';
-import { getChannel, nextSeq, recordReplyReads, type ChannelRow } from './service.js';
+import {
+  getChannel,
+  nextSeq,
+  recordReplyReads,
+  settleThreadReads,
+  type ChannelRow,
+} from './service.js';
 
 const EXCERPT_LENGTH = 140;
 
@@ -184,12 +190,7 @@ export async function sendMessage(
         );
         await recordReplyReads(
           tx,
-          {
-            channelId: channel.id,
-            rootId: parentId,
-            authorId: author.id,
-            createdAt: row!.createdAt,
-          },
+          { channelId: channel.id, rootId: parentId, authorId: author.id },
           root!,
         );
       }
@@ -319,6 +320,7 @@ export async function deleteMessage(
     const ids = removed.map((r) => r.fileId);
     // If the removal below fails, the daily unattached-files cleanup picks them up.
     await detachFiles(tx, ids);
+    if (message.parentId !== null) await settleThreadReads(tx, message.parentId);
     return ids;
   });
   try {

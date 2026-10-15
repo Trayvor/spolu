@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { and, eq, sql, type SQL } from 'drizzle-orm';
 import type { Db } from '../../infra/db/client.js';
-import { channels, readStates, threadReadStates } from './schema.js';
+import { channels, messages, readStates, threadReadStates } from './schema.js';
 
 export type ChannelRow = typeof channels.$inferSelect;
 
@@ -171,29 +171,39 @@ export async function markThreadRead(db: Db, userId: string, rootId: string): Pr
 }
 
 /**
- * Records a new reply in the thread's read states (inside the send transaction): every person of
- * the thread learns the new reply time, the replier has read the thread up to their reply, and
- * the root author becomes one of its people with nothing read yet. Repliers before them already
- * have a row (from their own reply).
+ * Records a new reply in the thread's read states (inside the send transaction, after the reply
+ * row): every person of the thread learns the newest reply time, the replier has read the thread
+ * up to it, and the root author becomes one of its people with nothing read yet. Repliers before
+ * them already have a row (from their own reply).
+ *
+ * "Newest" is the latest reply this transaction sees, not the new reply's own time: a concurrent
+ * reply can take a later `created_at` yet commit first (the channel row lock orders the writers),
+ * and the replier saw it, so it must not stay unread for them.
  */
 export async function recordReplyReads(
   tx: Db,
-  reply: { channelId: string; rootId: string; authorId: string; createdAt: Date },
+  reply: { channelId: string; rootId: string; authorId: string },
   root: { authorId: string; createdAt: Date },
 ): Promise<void> {
-  const replyAt = reply.createdAt.toISOString();
+  const [newest] = await tx
+    .select({ at: sql<Date>`max(${messages.createdAt})`.mapWith(messages.createdAt) })
+    .from(messages)
+    .where(and(eq(messages.channelId, reply.channelId), eq(messages.parentId, reply.rootId)));
+  const latest = newest!.at;
   await tx
     .update(threadReadStates)
-    .set({ lastReplyAt: sql`greatest(${threadReadStates.lastReplyAt}, ${replyAt}::timestamptz)` })
+    .set({
+      lastReplyAt: sql`greatest(${threadReadStates.lastReplyAt}, ${latest.toISOString()}::timestamptz)`,
+    })
     .where(eq(threadReadStates.rootId, reply.rootId));
   const row = (userId: string, lastReadAt: Date) => ({
     userId,
     rootId: reply.rootId,
     channelId: reply.channelId,
     lastReadAt,
-    lastReplyAt: reply.createdAt,
+    lastReplyAt: latest,
   });
-  const rows = [row(reply.authorId, reply.createdAt)];
+  const rows = [row(reply.authorId, latest)];
   if (root.authorId !== reply.authorId) rows.push(row(root.authorId, root.createdAt));
   await tx
     .insert(threadReadStates)
@@ -205,4 +215,26 @@ export async function recordReplyReads(
         lastReplyAt: sql`greatest(${threadReadStates.lastReplyAt}, excluded.last_reply_at)`,
       },
     });
+}
+
+/**
+ * After a reply is deleted (inside the delete transaction): a person of the thread with nothing
+ * unread left in it is marked read up to the newest reply, so the row leaves the unread index.
+ */
+export async function settleThreadReads(tx: Db, rootId: string): Promise<void> {
+  await tx.execute(sql`
+    update thread_read_states t
+    set last_read_at = t.last_reply_at
+    where t.root_id = ${rootId}
+      and t.last_reply_at > t.last_read_at
+      and not exists (
+        select 1
+        from messages m
+        where m.channel_id = t.channel_id
+          and m.parent_id = t.root_id
+          and m.created_at > t.last_read_at
+          and m.deleted_at is null
+          and m.author_id <> t.user_id
+      )
+  `);
 }

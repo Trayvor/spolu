@@ -77,9 +77,10 @@ export function Conversation({
   const { message: linked, thread: threadId, clearMessage, setThread } = search;
   const chat = useChannelMessages(channelId, { groupId, aroundMessageId: linked });
   const { window: win, markRead, jumpToLatest, send, around } = chat;
-  const unreadThreads = useUnreadThreads(channelId, groupId);
   const column = useRef<HTMLDivElement>(null);
   const visible = useDocumentVisible();
+  // The open thread is read while the page is visible.
+  const unreadThreads = useUnreadThreads(channelId, groupId, visible ? threadId : undefined);
   // Below 1024 px an open thread covers the list.
   const covered = !useMediaQuery('(min-width: 1024px)') && threadId !== undefined;
   // The list opens away from the bottom when it shows a linked message.
@@ -114,16 +115,6 @@ export function Conversation({
     }, MARK_READ_DELAY_MS);
     return () => clearTimeout(timer);
   }, [unreadSeen, newest, markRead]);
-
-  // An open thread with unread replies is read while the page is visible (again when a new
-  // reply in it is announced).
-  const threadUnread = threadId !== undefined && unreadThreads.unread.has(threadId);
-  const markThreadRead = unreadThreads.markRead;
-  useEffect(() => {
-    if (!threadUnread || !visible || threadId === undefined) return;
-    // A failure is left alone: the dot stays and reopening the thread tries again.
-    markThreadRead(threadId).catch(() => undefined);
-  }, [threadUnread, visible, threadId, markThreadRead]);
 
   const onSend = useCallback(
     ({ body, fileIds }: { body: string; fileIds: string[] }) => {
