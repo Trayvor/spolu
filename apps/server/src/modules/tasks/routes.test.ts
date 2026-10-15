@@ -257,7 +257,7 @@ describe('tasks API: board and buckets', () => {
     await call('POST', `/api/groups/${g.id}/buckets`, cookie, { name: 'Live' });
     const event = await received;
     expect(event.groupId).toBe(g.id);
-    expect(event.buckets.map((b) => b.name)).toEqual([null, 'Live', null, null, null]);
+    expect(event.buckets.map((b) => b.name)).toEqual([null, null, null, null, 'Live']);
   });
 
   it('the 121st write within a minute → 429 rate_limited', async () => {

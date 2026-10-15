@@ -82,21 +82,38 @@ describe('ensureBoard / getBoard', () => {
 });
 
 describe('custom buckets', () => {
-  it('createBucket places a new bucket after the last custom bucket, or right after To do', async () => {
+  it('createBucket places a new bucket after the last bucket', async () => {
     const group = await newGroup();
     const first = await createBucket(db, group.id, 'First');
     expect(await kinds(group.id)).toEqual([
       'todo',
-      'custom',
       'egrant_review',
       'client_review',
       'done',
+      'custom',
     ]);
     const second = await createBucket(db, group.id, 'Second');
     const list = await listBuckets(db, group.id);
-    expect(list.map((b) => b.name)).toEqual([null, 'First', 'Second', null, null, null]);
+    expect(list.map((b) => b.name)).toEqual([null, null, null, null, 'First', 'Second']);
     expect(first.position < second.position).toBe(true);
     expect(first.groupId).toBe(group.id);
+  });
+
+  it('createBucket goes after a fixed bucket that was moved last', async () => {
+    const group = await newGroup();
+    const custom = await createBucket(db, group.id, 'Custom');
+    const todo = await bucketOf(group.id, 'todo');
+    await updateBucket(db, todo.id, { afterBucketId: custom.id });
+    expect((await listBuckets(db, group.id)).at(-1)?.kind).toBe('todo');
+    await createBucket(db, group.id, 'New');
+    expect((await listBuckets(db, group.id)).map((b) => b.name ?? b.kind)).toEqual([
+      'egrant_review',
+      'client_review',
+      'done',
+      'Custom',
+      'todo',
+      'New',
+    ]);
   });
 
   it('updateBucket moves a custom bucket after eGrant review and it stays before Completed', async () => {

@@ -157,13 +157,12 @@ function nextPositionAfter(rows: BucketRow[], position: string): string | null {
   return rows.find((r) => r.position > position)?.position ?? null;
 }
 
-/** Appends a custom bucket after the last custom one, or right after To do when there is none. */
+/** Appends a custom bucket after the last bucket, fixed or custom: where "Add column" sits. */
 export async function createBucket(db: Db, groupId: string, name: string): Promise<BucketDto> {
   await ensureBoard(db, groupId);
   return db.transaction(async (tx) => {
     const rows = await lockGroupBuckets(tx, groupId);
-    const prev = rows.findLast((r) => r.kind === 'custom') ?? rows.find((r) => r.kind === 'todo');
-    const after = prev?.position ?? FIXED_POSITIONS.todo;
+    const last = rows.at(-1); // rows are sorted by position; the four fixed ones always exist
     const [row] = await tx
       .insert(buckets)
       .values({
@@ -171,7 +170,7 @@ export async function createBucket(db: Db, groupId: string, name: string): Promi
         groupId,
         kind: 'custom',
         name,
-        position: keyAfter(after, nextPositionAfter(rows, after)),
+        position: keyAfter(last?.position ?? null, null),
       })
       .returning();
     return toBucketDto(row!);
