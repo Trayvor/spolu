@@ -30,8 +30,9 @@ if [[ -n "${EXTRA_TAG:-}" ]]; then
   args+=(--tag "$IMAGE:$EXTRA_TAG")
 fi
 if [[ "${BUILDX_CACHE:-}" == "gha" ]]; then
-  # mode=min exports only the final image layers, keeping the cache small.
-  args+=(--cache-from type=gha --cache-to "type=gha,mode=min")
+  # mode=max also caches the build-stage layers (install, build), which is what saves time,
+  # especially for the slow QEMU arm64 build. They hold no secrets: .env is in .dockerignore.
+  args+=(--cache-from type=gha --cache-to "type=gha,mode=max")
 fi
 
 log "Building and pushing $IMAGE:$tag${EXTRA_TAG:+ and $IMAGE:$EXTRA_TAG}"

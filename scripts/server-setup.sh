@@ -54,6 +54,8 @@ elif [[ "$os" == ubuntu ]]; then
   apt-get install -yq docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 else
   log "Installing Docker (Oracle Linux)"
+  # Oracle Linux ships podman, runc and buildah, which conflict with Docker's packages.
+  dnf remove -y podman runc buildah || true
   dnf install -y dnf-plugins-core
   # Oracle Linux is RHEL compatible; Docker publishes its packages for RHEL.
   dnf config-manager --add-repo https://download.docker.com/linux/rhel/docker-ce.repo

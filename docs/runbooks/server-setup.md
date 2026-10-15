@@ -2,6 +2,11 @@
 
 How to prepare a fresh Ubuntu or Oracle Linux VM to run Spolu. Done once per server.
 
+Before you start:
+- **One environment per server.** The compose project is always named `spolu` and Caddy takes ports 80 and 443, so two environments cannot share a VM.
+- **IPv4 only.** The script opens no IPv6 firewall rules, so do not create an AAAA DNS record for the domain.
+- **The `deploy` user is root-equivalent**: membership in the `docker` group gives full control of the host. Guard its key like a root key.
+
 ## 1. Create the deploy key
 
 On your laptop, a key used only by CI to log in as `deploy`:
@@ -21,7 +26,7 @@ ssh <admin-user>@<host> 'sudo bash /tmp/server-setup.sh /tmp/spolu_test.pub'
 
 The argument is the public key line itself or the path to a `.pub` file on the server. The script is idempotent: run it again any time (for example to add a second key). It:
 
-1. installs Docker Engine and the compose plugin from Docker's repository (Ubuntu: apt; Oracle Linux: dnf with Docker's RHEL repo) and writes `/etc/docker/daemon.json` with log rotation (10 MB x 3) if that file does not exist yet;
+1. installs Docker Engine and the compose plugin from Docker's repository (Ubuntu: apt; Oracle Linux: dnf with Docker's RHEL repo, after removing the preinstalled podman, runc and buildah, which conflict with it) and writes `/etc/docker/daemon.json` with log rotation (10 MB x 3) if that file does not exist yet;
 2. opens 80/tcp, 443/tcp and 443/udp in the host firewall and keeps them after reboot:
    - Oracle Linux: `firewalld` (`http`, `https`, `443/udp`, permanent);
    - Ubuntu with `ufw` active: `ufw allow`;

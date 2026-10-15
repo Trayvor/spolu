@@ -9,7 +9,7 @@ We use GitHub and GitHub Actions now, but plan to migrate to GitLab and Jenkins 
 ## Decision
 - Real CI/CD logic lives in `scripts/`: `ci.sh`, `build-image.sh`, `deploy.sh <env>`, `server-setup.sh`.
 - The GitHub Actions workflow is thin and only calls these scripts.
-- Environments are chosen by name and configured by `deploy/<env>.env`.
+- Environments are chosen by name. The env file template lives in `deploy/<env>.env.example`; the real env file is a CI secret and lives on the server as `/opt/spolu/<env>/.env`.
 
 ## Consequences
 - Migrating to GitLab and Jenkins means writing a new thin pipeline file, not new logic.

@@ -12,8 +12,8 @@
 #   DOMAIN           public domain of the environment, used for the health check
 # Env (optional):
 #   DEPLOY_PORT         SSH port (default 22)
-#   DEPLOY_KNOWN_HOSTS  known_hosts line(s) for the server; pins its host key. Without it the key
-#                       is accepted on first contact (fine for a throwaway runner, weaker).
+#   DEPLOY_KNOWN_HOSTS  known_hosts line(s) for the server; pins its host key. Without it the
+#                       server's host key is NOT verified (a warning is printed). Set it.
 #   REGISTRY_USER, REGISTRY_TOKEN  registry login on the server before pulling (private images);
 #                       the server logs out again right after the pull.
 #
@@ -49,6 +49,7 @@ if [[ -n "${DEPLOY_KNOWN_HOSTS:-}" ]]; then
 else
   : > "$known_hosts"
   host_key_check=accept-new
+  log "WARNING: DEPLOY_KNOWN_HOSTS is not set; the server's host key is not verified"
 fi
 common_opts=(
   -i "$DEPLOY_SSH_KEY"
@@ -60,6 +61,9 @@ common_opts=(
 )
 ssh_cmd=(ssh "${common_opts[@]}" -p "$port" "$target")
 scp_cmd=(scp "${common_opts[@]}" -P "$port")
+
+# The tag running now, for the rollback hint if this deploy fails. Empty on the first deploy.
+previous_tag="$("${ssh_cmd[@]}" "sed -n 's/^TAG=//p' '$remote_dir/.env' 2>/dev/null | tail -n 1" || true)"
 
 log "Uploading files to $target:$remote_dir"
 # The env file is written with umask 077 so it is never readable by other users, not even briefly.
@@ -92,8 +96,9 @@ fi
 # "< /dev/null": this script itself arrives on stdin, so commands must not read from it.
 docker compose pull --quiet < /dev/null
 docker compose up -d --remove-orphans < /dev/null
-# Remove images no container uses any more; the server disk is small.
-docker image prune -f > /dev/null < /dev/null
+# Remove images no container uses that are older than 7 days (old releases included); the
+# server disk is small. Recent ones stay, so a rollback to last week's tag needs no download.
+docker image prune -af --filter "until=168h" > /dev/null < /dev/null
 REMOTE
 } | "${ssh_cmd[@]}" bash -s
 
@@ -102,13 +107,14 @@ version_matches() {
   if command -v jq >/dev/null 2>&1; then
     jq -e --arg v "$tag" '.version == $v' >/dev/null 2>&1 <<< "$1"
   else
-    grep -q "\"version\" *: *\"$tag\"" <<< "$1"
+    grep -qF "\"version\":\"$tag\"" <<< "$1"
   fi
 }
 deadline=$((SECONDS + 120))
 response=""
 while true; do
-  response="$(curl -fsS --max-time 10 "$health_url" 2>&1)" || true
+  # --fail-with-body: a 503 still shows its JSON body in the timeout message.
+  response="$(curl -sS --fail-with-body --max-time 10 "$health_url" 2>&1)" || true
   if version_matches "$response"; then
     log "Deployed $tag to $env_name: $response"
     exit 0
@@ -122,4 +128,7 @@ done
 log "Health check did not report version $tag within 120s. Last response: $response"
 log "Containers and the last 50 app log lines on $DEPLOY_HOST:"
 "${ssh_cmd[@]}" "cd '$remote_dir' && docker compose ps && docker compose logs --no-color --tail 50 app" || true
+if [[ -n "$previous_tag" && "$previous_tag" != "$tag" ]]; then
+  log "To roll back: scripts/deploy.sh $env_name $previous_tag"
+fi
 die "deploy of $tag to $env_name failed"
