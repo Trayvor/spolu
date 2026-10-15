@@ -255,7 +255,8 @@
         "invalidDate": "Zadajte platný termín.",
         "invalid": "Skontrolujte polia a skúste to znova."
       },
-      "unknownFile": "Súbor"
+      "unknownFile": "Súbor",
+      "editDescription": "Upraviť popis"
     },
     "panel": {
       "label": "Úloha",

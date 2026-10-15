@@ -5,6 +5,7 @@ import { i18n } from '@/i18n';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { AssigneeSelect } from './assignee-select';
+import { DescriptionField } from './description-field';
 import { TaskFilesField } from './task-files-field';
 import { UrgentSwitch } from './urgent-switch';
 
@@ -124,15 +125,13 @@ export function TaskForm({
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor={id('description')}>{t('tasks.form.description')}</Label>
-        <textarea
+        <DescriptionField
           id={id('description')}
-          rows={4}
+          groupId={groupId}
           value={value.description}
-          aria-invalid={!!errors.description || undefined}
-          aria-describedby={describedBy('description')}
-          onChange={(event) => set({ description: event.target.value })}
-          className="w-full rounded-md border-2 border-input bg-card px-[18px] py-[13px] text-button font-medium text-foreground placeholder:text-muted-foreground focus:border-foreground aria-invalid:border-destructive"
+          onChange={(description) => set({ description })}
+          error={errors.description}
+          errorId={id('description-error')}
         />
         <FieldError id={id('description-error')} message={errors.description} />
       </div>

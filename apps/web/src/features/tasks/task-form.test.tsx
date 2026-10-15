@@ -226,6 +226,42 @@ describe('TaskForm', () => {
   });
 });
 
+describe('TaskForm description', () => {
+  beforeEach(async () => {
+    await setLanguage('en');
+  });
+
+  it('is at least 12 lines tall and offers the chat formatting toolbar', () => {
+    renderForm();
+    expect(screen.getByLabelText('Description')).toHaveAttribute('rows', '12');
+    const toolbar = screen.getByRole('toolbar', { name: t('chat.composer.formatting') });
+    for (const name of ['Bold', 'Italic', 'Strikethrough', 'Link', 'Quote', 'Code']) {
+      expect(within(toolbar).getByRole('button', { name })).toBeInTheDocument();
+    }
+  });
+
+  it('Bold wraps the selection in the chat markup', async () => {
+    const onValue = vi.fn();
+    const user = renderForm({ initial: { ...EMPTY_TASK_DRAFT, description: 'go' }, onValue });
+    await user.click(screen.getByRole('button', { name: 'Edit description' }));
+    const field = screen.getByLabelText('Description') as HTMLTextAreaElement;
+    field.setSelectionRange(0, 2);
+    await user.click(screen.getByRole('button', { name: 'Bold' }));
+    expect(onValue).toHaveBeenLastCalledWith({ ...EMPTY_TASK_DRAFT, description: '**go**' });
+  });
+
+  it('shows a saved description rendered like a chat message until Edit', async () => {
+    const user = renderForm({
+      initial: { ...EMPTY_TASK_DRAFT, description: 'Check **totals**' },
+    });
+    expect(screen.getByText('totals').tagName).toBe('STRONG');
+    expect(screen.queryByRole('textbox', { name: 'Description' })).toBeNull();
+    await user.click(screen.getByRole('button', { name: 'Edit description' }));
+    expect(screen.getByLabelText('Description')).toHaveValue('Check **totals**');
+    expect(screen.getByLabelText('Description')).toHaveFocus();
+  });
+});
+
 describe('TaskForm file uploads', () => {
   const upload = vi.mocked(uploadFile);
   const info = (id: string): FileInfo => ({ ...FILE, id, name: `${id}.pdf` });

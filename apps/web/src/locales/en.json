@@ -249,7 +249,8 @@
         "invalidDate": "Enter a valid deadline.",
         "invalid": "Check the fields and try again."
       },
-      "unknownFile": "File"
+      "unknownFile": "File",
+      "editDescription": "Edit description"
     },
     "panel": {
       "label": "Task",

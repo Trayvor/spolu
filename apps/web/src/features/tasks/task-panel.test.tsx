@@ -128,7 +128,7 @@ describe('TaskPanel', () => {
   it('shows the form filled from the task and the created-by footer', async () => {
     renderPanel();
     expect(await titleField()).toHaveValue('Task t1');
-    expect(screen.getByLabelText(t('tasks.form.description'))).toHaveValue('Details');
+    expect(screen.getByText('Details')).toBeInTheDocument();
     expect(screen.getByText('Created by Jana Nováková on 15 Oct 2026')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: t('tasks.panel.save') })).toBeNull();
   });
