@@ -2,6 +2,7 @@
 
 Terms used across the docs and code, in alphabetical order.
 
+- **@all**: a mention of everyone in the group (shown as "Everyone in this group" in the picker, stored as `<@all>`). It marks the message for every person in the group, like a mention of each of them.
 - **admin**: an eGrant team member. Sees all groups and can manage them. Created by the superadmin.
 - **ADR**: architecture decision record, a short file in `docs/decisions/` that records one decision and why it was made.
 - **API key**: a secret token that eGrant sends with each ticket request to prove who it is.
@@ -36,5 +37,5 @@ Terms used across the docs and code, in alphabetical order.
 - **task**: a card on the task board with title, description, assignee, deadline, priority and labels.
 - **task chat**: the discussion inside one task, with threads, mentions and attachments.
 - **test environment**: the Oracle Cloud VM where Spolu is deployed for checks before real use; environment name `test`.
-- **thread**: replies grouped under one message.
+- **thread**: replies grouped under one top-level message (the thread root); a reply cannot start another thread. Opens in a side panel, linked by `?thread=<rootId>&c=<channelId>`.
 - **ticket**: a support request sent from eGrant, with a status (New / In progress / Resolved), shown in the matching group or in the global list.
