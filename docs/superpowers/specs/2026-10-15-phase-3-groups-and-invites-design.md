@@ -93,7 +93,7 @@ Follows the `new-module` skill.
 | POST | `/api/groups/:id/members/:userId/restore` | admin | 204: clear `disabled_at` |
 | GET | `/api/join/:token` | public | `{ name, hasLogo, logoUrl }` or 404 |
 | GET | `/api/join/:token/logo` | public | the logo |
-| POST | `/api/join/:token` | public | `{ email }` → always 200 `{ ok: true }` for a valid token (404 for an invalid one); rate-limited 10 per minute per IP |
+| POST | `/api/join/:token` | public | `{ email }` → always 200 `{ ok: true }` for a valid token (404 for an invalid one); rate-limited 10 per minute per IP (`429 rate_limited`) |
 | PATCH | `/api/me` | user | `{ name }` → updated `SessionUser` (own name only) |
 | GET | `/api/me` | user | `SessionUser` plus `groupId` (null for admins) |
 
@@ -129,7 +129,7 @@ A socket joins `group:<id>` on connect: a client joins their membership group; a
 
 ### Storage hardening (roadmap)
 
-Strict signature format (64 lower-case hex) in `verifySignature`; atomic writes (temp file + rename for data and sidecar); `/files` added to the service worker `navigateFallbackDenylist`; the signature query parameter is not logged; the `files` volume is included in the nightly backup (tar alongside `pg_dump`, same retention).
+Strict signature format (64 lower-case hex) in `verifySignature`; the metadata sidecar is written before the data file (both already atomic via temp file + rename), so a visible file always has its metadata; `/files` added to the service worker `navigateFallbackDenylist`; not logging the signature query parameter moves to Phase 5, when a `/files` route first exists; the `files` volume is included in the nightly backup (tar alongside `pg_dump`, same retention).
 
 ## Error handling
 
