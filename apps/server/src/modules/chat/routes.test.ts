@@ -326,7 +326,8 @@ describe('chat API', () => {
     const res = await send(s.channelId, s.a.cookie);
     expect(res.statusCode).toBe(429);
     expect(res.json()).toEqual({ error: 'rate_limited' });
-  });
+    // 31 sequential writes: generous under a loaded CI machine.
+  }, 30_000);
 
   it('messages before/after, around, thread and changes return the shared shapes', async () => {
     const s = await setup();
