@@ -77,12 +77,10 @@ export function TaskCard({
             </time>
           )}
           {task.fileCount > 0 && (
-            <span
-              className="ml-auto flex items-center gap-1"
-              aria-label={t('tasks.card.files', { count: task.fileCount })}
-            >
+            <span className="ml-auto flex items-center gap-1">
               <PaperclipIcon />
               <span aria-hidden="true">{task.fileCount}</span>
+              <span className="sr-only">{t('tasks.card.files', { count: task.fileCount })}</span>
             </span>
           )}
         </span>

@@ -104,6 +104,8 @@ beforeEach(() => {
       });
     }
     if (url === '/api/buckets/b-custom' && method === 'DELETE') return reply(204);
+    if (url === '/api/buckets/b-custom' && method === 'PATCH')
+      return reply(200, { ...BUCKETS[3], name: JSON.parse(init!.body as string).name });
     return reply(404, { error: 'not_found' });
   });
   vi.stubGlobal('fetch', fetchMock);
@@ -124,8 +126,9 @@ describe('Board', () => {
       'Acme review',
       'Completed',
     ]);
-    expect(within(columns[0]!).getByLabelText('2 tasks')).toHaveTextContent('2');
-    expect(within(columns[4]!).getByLabelText('1 tasks')).toHaveTextContent('1');
+    expect(within(columns[0]!).getByText('2 tasks')).toBeInTheDocument();
+    expect(within(columns[4]!).getByText('1 task')).toBeInTheDocument();
+    expect(within(columns[1]!).getByText('0 tasks')).toBeInTheDocument();
   });
 
   it('says the board is empty in To do and "Nothing here yet." elsewhere', async () => {
@@ -199,6 +202,60 @@ describe('Board', () => {
     await screen.findAllByRole('region');
     expect(screen.queryByRole('button', { name: 'Add bucket' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /^More/ })).not.toBeInTheDocument();
+  });
+
+  describe('rename', () => {
+    async function startRename() {
+      const user = renderBoard();
+      await screen.findAllByRole('region');
+      await user.click(screen.getByRole('button', { name: /^More/ }));
+      await user.click(await screen.findByRole('menuitem', { name: 'Rename' }));
+      return { user, input: await screen.findByLabelText('Bucket name') };
+    }
+
+    it('keeps the field open after the menu closes; Enter sends PATCH and shows the new name', async () => {
+      const { user, input } = await startRename();
+      expect(input).toHaveFocus();
+      await user.clear(input);
+      await user.type(input, 'Renamed{Enter}');
+      expect(await screen.findByRole('heading', { name: 'Renamed' })).toBeInTheDocument();
+      const [url, init] = writes()[0]!;
+      expect(`${(init as RequestInit).method} ${url}`).toBe('PATCH /api/buckets/b-custom');
+      expect(JSON.parse((init as RequestInit).body as string)).toEqual({ name: 'Renamed' });
+    });
+
+    it('Esc cancels without a request', async () => {
+      const { user, input } = await startRename();
+      await user.type(input, 'x{Escape}');
+      expect(screen.getByRole('heading', { name: 'My bucket' })).toBeInTheDocument();
+      expect(writes()).toHaveLength(0);
+    });
+
+    it('blur cancels without a request', async () => {
+      const { user } = await startRename();
+      await user.click(document.body);
+      expect(await screen.findByRole('heading', { name: 'My bucket' })).toBeInTheDocument();
+      expect(writes()).toHaveLength(0);
+    });
+  });
+
+  it('shows a loading line, then an error with Try again when the board fails to load', async () => {
+    let fail = true;
+    const base = fetchMock.getMockImplementation() as (
+      u: string,
+      i?: RequestInit,
+    ) => Promise<Response>;
+    fetchMock.mockImplementation(async (url: string, init?: RequestInit) =>
+      url === '/api/groups/g1/board' && fail
+        ? new Response(JSON.stringify({ error: 'internal' }), { status: 500 })
+        : base(url, init),
+    );
+    const user = renderBoard();
+    expect(await screen.findByText('Loading the board.')).toBeInTheDocument();
+    expect(await screen.findByText('Could not load the board.')).toBeInTheDocument();
+    fail = false;
+    await user.click(screen.getByRole('button', { name: 'Try again' }));
+    expect(await screen.findAllByRole('region')).toHaveLength(5);
   });
 
   it('delete bucket asks inline, then sends DELETE', async () => {

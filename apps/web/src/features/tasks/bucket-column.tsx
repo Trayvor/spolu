@@ -118,11 +118,9 @@ export function BucketColumn({
               <span aria-hidden="true" className={cn('size-2 shrink-0 rounded-[2px]', mark)} />
             )}
             <h2 className="min-w-0 flex-1 truncate text-button font-semibold">{title}</h2>
-            <span
-              className="text-micro text-muted-foreground"
-              aria-label={t('tasks.board.count', { count: tasks.length })}
-            >
-              {tasks.length}
+            <span className="text-micro text-muted-foreground">
+              <span aria-hidden="true">{tasks.length}</span>
+              <span className="sr-only">{t('tasks.board.count', { count: tasks.length })}</span>
             </span>
             {admin && bucket.kind === 'custom' && (
               <BucketMenu

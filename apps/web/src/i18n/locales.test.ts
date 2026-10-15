@@ -17,15 +17,20 @@ function flatten(obj: Record<string, unknown>, prefix = ''): string[] {
   );
 }
 
+/** Plural forms differ per language (en has one/other, sk adds few/many): compare the base key. */
+const baseKeys = (obj: Record<string, unknown>) => [
+  ...new Set(flatten(obj).map((key) => key.replace(/_(zero|one|two|few|many|other)$/, ''))),
+];
+
 describe('locales', () => {
   it('there is exactly one locale file per supported language', () => {
     expect(Object.keys(locales).sort()).toEqual(SUPPORTED_LANGUAGES.map((l) => l.code).sort());
   });
 
   it('every locale has the same keys as en.json', () => {
-    const enKeys = flatten(locales.en ?? {}).sort();
+    const enKeys = baseKeys(locales.en ?? {}).sort();
     for (const [code, json] of Object.entries(locales)) {
-      expect({ code, keys: flatten(json).sort() }).toEqual({ code, keys: enKeys });
+      expect({ code, keys: baseKeys(json).sort() }).toEqual({ code, keys: enKeys });
     }
   });
 });

@@ -26,7 +26,11 @@ export function BucketMenu({
       >
         <MoreIcon />
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
+      <DropdownMenuContent
+        align="end"
+        // Keep focus where the chosen action put it (the rename field), not back on the trigger.
+        onCloseAutoFocus={(event) => event.preventDefault()}
+      >
         <DropdownMenuItem onSelect={onRename}>{t('tasks.board.rename')}</DropdownMenuItem>
         <DropdownMenuItem onSelect={onDelete} className="text-error-ink">
           {t('tasks.board.delete')}

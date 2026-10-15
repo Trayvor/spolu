@@ -22,14 +22,15 @@ export function TaskFilesField({
   files,
   onAdd,
   onRemove,
-  inputId,
+  labelId,
 }: {
   groupId: string;
   fileIds: string[];
   files: FileInfo[];
   onAdd: (file: FileInfo) => void;
   onRemove: (id: string) => void;
-  inputId: string;
+  /** Id of the visible label that names this group of files and the Attach button. */
+  labelId: string;
 }) {
   const { t } = useTranslation();
   const picker = useRef<HTMLInputElement>(null);
@@ -69,7 +70,7 @@ export function TaskFilesField({
   };
 
   return (
-    <div className="space-y-3">
+    <div role="group" aria-labelledby={labelId} className="space-y-3">
       {fileIds.length > 0 && (
         <ul className="space-y-2">
           {fileIds.map((id) => {
@@ -119,7 +120,6 @@ export function TaskFilesField({
       ))}
       <input
         ref={picker}
-        id={inputId}
         type="file"
         multiple
         hidden

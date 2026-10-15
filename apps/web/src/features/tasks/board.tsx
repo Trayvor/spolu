@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { isAdmin } from '@/features/auth/roles';
 import { useSession } from '@/features/auth/use-session';
 import { groupQuery } from '@/features/groups/api';
+import { Button } from '@/components/ui/button';
 import { AddBucket } from './add-bucket';
 import { boardQuery } from './api';
 import { byPosition, bucketTitle, tasksByBucket } from './board-model';
@@ -18,11 +19,24 @@ export function Board({ groupId }: { groupId: string }) {
   const { t } = useTranslation();
   const admin = isAdmin(useSession());
   useBoardEvents(groupId);
-  const { data: board } = useQuery(boardQuery(groupId));
+  const { data: board, isError, refetch } = useQuery(boardQuery(groupId));
   const { data: group } = useQuery(groupQuery(groupId));
   const grouped = useMemo(() => (board ? tasksByBucket(board) : null), [board]);
 
-  if (!board || !grouped) return null;
+  if (!board || !grouped) {
+    return isError ? (
+      <div role="alert" className="flex items-center gap-3 py-6 text-body">
+        <span className="text-error-ink">{t('tasks.board.loadFailed')}</span>
+        <Button variant="secondary" size="sm" onClick={() => void refetch()}>
+          {t('tasks.board.retry')}
+        </Button>
+      </div>
+    ) : (
+      <p role="status" className="py-6 text-body text-muted-foreground">
+        {t('tasks.board.loading')}
+      </p>
+    );
+  }
   const buckets = [...board.buckets].sort(byPosition);
   const groupName = group?.name ?? '';
   const today = todayInBratislava();

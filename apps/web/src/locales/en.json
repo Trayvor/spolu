@@ -125,19 +125,24 @@
       "bucketName": "Bucket name",
       "empty": "Nothing here yet.",
       "emptyBoard": "Add the first task for this group.",
-      "count": "{{count}} tasks",
+      "count_one": "{{count}} task",
+      "count_other": "{{count}} tasks",
       "more": "More",
       "rename": "Rename",
       "delete": "Delete",
       "deleteBucketConfirm": "Delete this bucket? Its tasks move to To do.",
       "cancel": "Cancel",
-      "error": "Could not save. Try again."
+      "error": "Could not save. Try again.",
+      "loading": "Loading the board.",
+      "loadFailed": "Could not load the board.",
+      "retry": "Try again"
     },
     "card": {
       "urgent": "Urgent",
       "due": "Deadline {{date}}",
       "overdue": "Overdue",
-      "files": "Files: {{count}}",
+      "files_one": "{{count}} file",
+      "files_other": "{{count}} files",
       "moreAssignees": "+{{count}}"
     },
     "form": {

@@ -164,10 +164,10 @@ export function TaskForm({
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor={id('files')}>{t('tasks.form.files')}</Label>
+        <Label id={id('files-label')}>{t('tasks.form.files')}</Label>
         <TaskFilesField
           groupId={groupId}
-          inputId={id('files')}
+          labelId={id('files-label')}
           fileIds={value.fileIds}
           files={files}
           onAdd={(file) => {

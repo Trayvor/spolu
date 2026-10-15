@@ -125,19 +125,28 @@
       "bucketName": "Názov stĺpca",
       "empty": "Zatiaľ tu nič nie je.",
       "emptyBoard": "Pridajte prvú úlohu pre túto skupinu.",
-      "count": "Počet úloh: {{count}}",
+      "count_one": "{{count}} úloha",
+      "count_few": "{{count}} úlohy",
+      "count_many": "{{count}} úlohy",
+      "count_other": "{{count}} úloh",
       "more": "Viac",
       "rename": "Premenovať",
       "delete": "Odstrániť",
       "deleteBucketConfirm": "Odstrániť tento stĺpec? Jeho úlohy sa presunú do Na spracovanie.",
       "cancel": "Zrušiť",
-      "error": "Nepodarilo sa uložiť. Skúste to znova."
+      "error": "Nepodarilo sa uložiť. Skúste to znova.",
+      "loading": "Načítava sa nástenka.",
+      "loadFailed": "Nástenku sa nepodarilo načítať.",
+      "retry": "Skúsiť znova"
     },
     "card": {
       "urgent": "Urgentné",
       "due": "Termín {{date}}",
       "overdue": "Po termíne",
-      "files": "Súbory: {{count}}",
+      "files_one": "{{count}} súbor",
+      "files_few": "{{count}} súbory",
+      "files_many": "{{count}} súboru",
+      "files_other": "{{count}} súborov",
       "moreAssignees": "+{{count}}"
     },
     "form": {
