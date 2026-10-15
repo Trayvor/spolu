@@ -1,8 +1,19 @@
 import nodemailer from 'nodemailer';
 import { EmailSendError, type EmailMessage, type EmailSender } from './email.js';
 
-export function createSmtpSender(opts: { host: string; port: number; from: string }): EmailSender {
-  const transport = nodemailer.createTransport({ host: opts.host, port: opts.port, secure: false });
+export function createSmtpSender(opts: {
+  host: string;
+  port: number;
+  secure?: boolean;
+  auth?: { user: string; pass: string };
+  from: string;
+}): EmailSender {
+  const transport = nodemailer.createTransport({
+    host: opts.host,
+    port: opts.port,
+    secure: opts.secure ?? false,
+    ...(opts.auth ? { auth: opts.auth } : {}),
+  });
   return {
     async send(msg: EmailMessage) {
       try {

@@ -15,7 +15,13 @@ const msg = (subject: string) => ({
 describe('smtp sender', () => {
   it('delivers to Mailpit with To and Cc', async () => {
     const subject = `smtp-test-${randomUUID()}`;
-    const sender = createEmailSender({ driver: 'smtp', host: '127.0.0.1', port: 1025, from });
+    const sender = createEmailSender({
+      driver: 'smtp',
+      host: '127.0.0.1',
+      port: 1025,
+      secure: false,
+      from,
+    });
     await sender.send(msg(subject));
 
     const res = await fetch(

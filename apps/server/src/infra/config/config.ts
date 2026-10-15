@@ -15,12 +15,28 @@ const base = {
 };
 
 const EnvSchema = z.discriminatedUnion('EMAIL_DRIVER', [
-  z.object({
-    ...base,
-    EMAIL_DRIVER: z.literal('smtp'),
-    SMTP_HOST: z.string().min(1),
-    SMTP_PORT: z.coerce.number().int().min(1).max(65535),
-  }),
+  z
+    .object({
+      ...base,
+      EMAIL_DRIVER: z.literal('smtp'),
+      SMTP_HOST: z.string().min(1),
+      SMTP_PORT: z.coerce.number().int().min(1).max(65535),
+      SMTP_USER: z.string().min(1).optional(),
+      SMTP_PASSWORD: z.string().min(1).optional(),
+      SMTP_SECURE: z
+        .enum(['true', 'false'])
+        .transform((v) => v === 'true')
+        .optional(),
+    })
+    .superRefine((v, ctx) => {
+      if ((v.SMTP_USER === undefined) !== (v.SMTP_PASSWORD === undefined)) {
+        ctx.addIssue({
+          code: 'custom',
+          path: [v.SMTP_USER === undefined ? 'SMTP_USER' : 'SMTP_PASSWORD'],
+          message: 'SMTP_USER and SMTP_PASSWORD must be set together',
+        });
+      }
+    }),
   z.object({
     ...base,
     EMAIL_DRIVER: z.literal('elastic'),
@@ -40,7 +56,14 @@ export type Config = {
   filesDir: string;
   webDistDir: string | undefined;
   email:
-    | { driver: 'smtp'; host: string; port: number; from: string }
+    | {
+        driver: 'smtp';
+        host: string;
+        port: number;
+        secure: boolean;
+        auth?: { user: string; pass: string };
+        from: string;
+      }
     | { driver: 'elastic'; apiKey: string; from: string };
 };
 
@@ -73,7 +96,16 @@ export function loadConfig(env: NodeJS.ProcessEnv): Config {
     webDistDir: e.WEB_DIST_DIR,
     email:
       e.EMAIL_DRIVER === 'smtp'
-        ? { driver: 'smtp', host: e.SMTP_HOST, port: e.SMTP_PORT, from: e.MAIL_FROM }
+        ? {
+            driver: 'smtp',
+            host: e.SMTP_HOST,
+            port: e.SMTP_PORT,
+            secure: e.SMTP_SECURE ?? e.SMTP_PORT === 465,
+            ...(e.SMTP_USER !== undefined && e.SMTP_PASSWORD !== undefined
+              ? { auth: { user: e.SMTP_USER, pass: e.SMTP_PASSWORD } }
+              : {}),
+            from: e.MAIL_FROM,
+          }
         : { driver: 'elastic', apiKey: e.ELASTIC_EMAIL_API_KEY, from: e.MAIL_FROM },
   };
 }
