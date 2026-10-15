@@ -41,7 +41,7 @@ erDiagram
 | ReadState | last read `seq` per user and channel (unread counts) | 4 | planned |
 | Mention | an @-tag of a user in a message | 5 | planned |
 | Attachment | links a file to a message, task, contract or ticket | 5 | planned |
-| File | stored file: storage key, mime, size, thumbnail (first used for group logos) | 3 | planned |
+| File | stored file of one group; `files` table: `group_id` (cascade, indexed), `uploaded_by`, `name`, `mime` (sniffed for PNG/JPEG/WebP, else the declared type), `size`, `storage_key` (`files/<groupId>/<id>`), optional WebP `preview_key` with `width`/`height`, `attached_at`. Lifecycle: uploaded unattached, attached by the owning module in its transaction, deleted with it; unattached files older than 24 h are cleaned up (partial index on `created_at`) | 4 | built |
 | NotificationPref | per user per group: `all`, `mentions` or `none` | 6 | planned |
 | Bucket | a task board column | 8 | planned |
 | Task | a card: title, assignee, due date, priority, labels, position | 8 | planned |

@@ -29,6 +29,13 @@
       "when": 1792070811540,
       "tag": "0003_curious_hydra",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792083110386,
+      "tag": "0004_chemical_ultragirl",
+      "breakpoints": true
     }
   ]
 }

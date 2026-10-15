@@ -1,0 +1,33 @@
+import { index, integer, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
+import { groups } from '../groups/schema.js';
+import { user } from '../users/schema.js';
+
+/** A stored file of one group. `attachedAt` stays null until the owning module uses it. */
+export const files = pgTable(
+  'files',
+  {
+    id: text('id').primaryKey(),
+    groupId: text('group_id')
+      .notNull()
+      .references(() => groups.id, { onDelete: 'cascade' }),
+    uploadedBy: text('uploaded_by')
+      .notNull()
+      .references(() => user.id),
+    name: text('name').notNull(),
+    mime: text('mime').notNull(),
+    size: integer('size').notNull(),
+    storageKey: text('storage_key').notNull(),
+    previewKey: text('preview_key'),
+    width: integer('width'),
+    height: integer('height'),
+    attachedAt: timestamp('attached_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('files_group_id_idx').on(t.groupId),
+    index('files_unattached_idx')
+      .on(t.createdAt)
+      .where(sql`${t.attachedAt} is null`),
+  ],
+);

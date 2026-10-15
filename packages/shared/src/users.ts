@@ -45,5 +45,8 @@ export const ErrorCodes = {
   invalidLogo: 'invalid_logo',
   egrantUrlTaken: 'egrant_url_taken',
   rateLimited: 'rate_limited',
+  fileTooLarge: 'file_too_large',
+  invalidAttachment: 'invalid_attachment',
+  invalidPreview: 'invalid_preview',
 } as const;
 export type ErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes];

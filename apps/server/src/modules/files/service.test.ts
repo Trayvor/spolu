@@ -1,0 +1,307 @@
+import { randomUUID } from 'node:crypto';
+import { mkdtemp, readdir, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { Readable } from 'node:stream';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { eq } from 'drizzle-orm';
+import { createDb } from '../../infra/db/client.js';
+import { createDiskStorage } from '../../infra/storage/disk-storage.js';
+import type { Storage } from '../../infra/storage/index.js';
+import { testDatabaseUrl } from '../../../test/test-config.js';
+import { createGroup } from '../groups/service.js';
+import { createUnverifiedClient } from '../users/service.js';
+import { files } from './schema.js';
+import {
+  attachFiles,
+  createFile,
+  deleteFiles,
+  deleteUnattachedFiles,
+  FileTooLargeError,
+  getFile,
+  getFilesForGroup,
+  InvalidAttachmentError,
+  setFilePreview,
+  type FileDeps,
+} from './service.js';
+
+const { db, close } = createDb(testDatabaseUrl);
+let dir: string;
+let storage: Storage;
+let deps: FileDeps;
+
+beforeAll(async () => {
+  dir = await mkdtemp(join(tmpdir(), 'spolu-files-'));
+  storage = createDiskStorage(dir, 'test-secret');
+  deps = { db, storage };
+});
+afterAll(async () => {
+  await close();
+  await rm(dir, { recursive: true, force: true });
+});
+
+const PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2, 3]);
+
+async function setup() {
+  const group = await createGroup(db, {
+    name: 'Firma',
+    egrantUrl: `https://g${randomUUID().replaceAll('-', '')}.egrant.sk`,
+  });
+  const owner = await createUnverifiedClient(db, `${randomUUID()}@example.com`);
+  return { group, owner };
+}
+
+const upload = (
+  groupId: string,
+  uploadedBy: string,
+  body: Buffer | Readable,
+  declaredType: string | null = 'text/plain',
+  name = 'notes.txt',
+) =>
+  createFile(deps, {
+    groupId,
+    uploadedBy,
+    name,
+    declaredType: declaredType ?? undefined,
+    body: Buffer.isBuffer(body) ? Readable.from([body]) : body,
+  });
+
+async function readAll(stream: Readable): Promise<Buffer> {
+  const chunks: Buffer[] = [];
+  for await (const chunk of stream) chunks.push(chunk as Buffer);
+  return Buffer.concat(chunks);
+}
+
+const rowsOf = (groupId: string) => db.select().from(files).where(eq(files.groupId, groupId));
+const storedNames = (groupId: string) => readdir(join(dir, 'files', groupId)).catch(() => []);
+
+describe('createFile', () => {
+  it('stores the bytes and returns FileInfo', async () => {
+    const { group, owner } = await setup();
+    const info = await upload(group.id, owner.id, Buffer.from('hello'));
+    expect(info).toEqual({
+      id: info.id,
+      name: 'notes.txt',
+      mime: 'text/plain',
+      size: 5,
+      width: null,
+      height: null,
+      hasPreview: false,
+    });
+    const stored = await storage.get(`files/${group.id}/${info.id}`);
+    expect((await readAll(stored.stream)).toString()).toBe('hello');
+  });
+
+  it('sniffs a PNG declared as application/pdf', async () => {
+    const { group, owner } = await setup();
+    expect((await upload(group.id, owner.id, PNG, 'application/pdf')).mime).toBe('image/png');
+  });
+
+  it('keeps a declared non-image type such as SVG, with parameters and case removed', async () => {
+    const { group, owner } = await setup();
+    const svg = Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"></svg>');
+    expect((await upload(group.id, owner.id, svg, 'image/svg+xml')).mime).toBe('image/svg+xml');
+    expect((await upload(group.id, owner.id, svg, 'Text/HTML; charset=utf-8')).mime).toBe(
+      'text/html',
+    );
+  });
+
+  it('falls back to application/octet-stream for an invalid or missing declared type', async () => {
+    const { group, owner } = await setup();
+    const body = Buffer.from('data');
+    expect((await upload(group.id, owner.id, body, 'not a type')).mime).toBe(
+      'application/octet-stream',
+    );
+    expect((await upload(group.id, owner.id, body, null)).mime).toBe('application/octet-stream');
+  });
+
+  it('does not trust a declared image type when the bytes are not an image', async () => {
+    const { group, owner } = await setup();
+    const info = await upload(group.id, owner.id, Buffer.from('<html></html>'), 'image/png');
+    expect(info.mime).toBe('application/octet-stream');
+  });
+
+  it('accepts an empty body', async () => {
+    const { group, owner } = await setup();
+    const info = await upload(group.id, owner.id, Buffer.alloc(0));
+    expect(info.size).toBe(0);
+  });
+
+  it('rejects with FileTooLargeError and keeps nothing over 25 MB', async () => {
+    const { group, owner } = await setup();
+    const chunk = Buffer.alloc(1024 * 1024, 1);
+    const body = Readable.from(Array.from({ length: 26 }, () => chunk));
+    await expect(upload(group.id, owner.id, body)).rejects.toBeInstanceOf(FileTooLargeError);
+    expect(await rowsOf(group.id)).toHaveLength(0);
+    expect(await storedNames(group.id)).toEqual([]);
+  });
+
+  it('keeps nothing when the upload is aborted midway', async () => {
+    const { group, owner } = await setup();
+    async function* aborted() {
+      yield Buffer.alloc(1024, 1);
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      throw new Error('connection lost');
+    }
+    await expect(upload(group.id, owner.id, Readable.from(aborted()))).rejects.toThrow();
+    expect(await rowsOf(group.id)).toHaveLength(0);
+    expect(await storedNames(group.id)).toEqual([]);
+  });
+
+  it('leaves no row when storage.put fails', async () => {
+    const { group, owner } = await setup();
+    const failing: Storage = {
+      ...storage,
+      put: () => Promise.reject(new Error('disk full')),
+    };
+    await expect(
+      createFile(
+        { db, storage: failing },
+        {
+          groupId: group.id,
+          uploadedBy: owner.id,
+          name: 'a.txt',
+          declaredType: 'text/plain',
+          body: Readable.from([Buffer.from('x')]),
+        },
+      ),
+    ).rejects.toThrow('disk full');
+    expect(await rowsOf(group.id)).toHaveLength(0);
+  });
+});
+
+describe('attachFiles', () => {
+  it('attaches own unattached files of the group', async () => {
+    const { group, owner } = await setup();
+    const a = await upload(group.id, owner.id, Buffer.from('a'));
+    const b = await upload(group.id, owner.id, Buffer.from('b'));
+    await attachFiles(db, group.id, [a.id, b.id], owner.id);
+    expect((await getFile(db, a.id))?.attachedAt).toBeInstanceOf(Date);
+    expect((await getFile(db, b.id))?.attachedAt).toBeInstanceOf(Date);
+  });
+
+  it("rejects another group's file", async () => {
+    const { group, owner } = await setup();
+    const other = await setup();
+    const foreign = await upload(other.group.id, owner.id, Buffer.from('a'));
+    await expect(attachFiles(db, group.id, [foreign.id], owner.id)).rejects.toBeInstanceOf(
+      InvalidAttachmentError,
+    );
+  });
+
+  it("rejects another user's file", async () => {
+    const { group, owner } = await setup();
+    const other = await createUnverifiedClient(db, `${randomUUID()}@example.com`);
+    const theirs = await upload(group.id, other.id, Buffer.from('a'));
+    await expect(attachFiles(db, group.id, [theirs.id], owner.id)).rejects.toBeInstanceOf(
+      InvalidAttachmentError,
+    );
+  });
+
+  it('rejects an already attached file and an unknown id', async () => {
+    const { group, owner } = await setup();
+    const a = await upload(group.id, owner.id, Buffer.from('a'));
+    await attachFiles(db, group.id, [a.id], owner.id);
+    await expect(attachFiles(db, group.id, [a.id], owner.id)).rejects.toBeInstanceOf(
+      InvalidAttachmentError,
+    );
+    await expect(attachFiles(db, group.id, [randomUUID()], owner.id)).rejects.toBeInstanceOf(
+      InvalidAttachmentError,
+    );
+  });
+
+  it('counts duplicate ids once and ignores an empty list', async () => {
+    const { group, owner } = await setup();
+    const a = await upload(group.id, owner.id, Buffer.from('a'));
+    await attachFiles(db, group.id, [a.id, a.id], owner.id);
+    await attachFiles(db, group.id, [], owner.id);
+    expect((await getFile(db, a.id))?.attachedAt).not.toBeNull();
+  });
+
+  it('keeps attached_at null when the surrounding transaction throws later', async () => {
+    const { group, owner } = await setup();
+    const a = await upload(group.id, owner.id, Buffer.from('a'));
+    await expect(
+      db.transaction(async (tx) => {
+        await attachFiles(tx, group.id, [a.id], owner.id);
+        throw new Error('later step failed');
+      }),
+    ).rejects.toThrow('later step failed');
+    expect((await getFile(db, a.id))?.attachedAt).toBeNull();
+  });
+});
+
+describe('getFilesForGroup', () => {
+  it("returns files in the order of ids and skips other groups' files", async () => {
+    const { group, owner } = await setup();
+    const other = await setup();
+    const a = await upload(group.id, owner.id, Buffer.from('a'));
+    const b = await upload(group.id, owner.id, Buffer.from('b'));
+    const foreign = await upload(other.group.id, owner.id, Buffer.from('c'));
+    const result = await getFilesForGroup(db, group.id, [b.id, foreign.id, a.id, randomUUID()]);
+    expect(result.map((f) => f.id)).toEqual([b.id, a.id]);
+  });
+
+  it('returns [] for empty ids', async () => {
+    const { group } = await setup();
+    expect(await getFilesForGroup(db, group.id, [])).toEqual([]);
+  });
+});
+
+describe('setFilePreview', () => {
+  it('stores the preview and dimensions, and overwrites an earlier one', async () => {
+    const { group, owner } = await setup();
+    const info = await upload(group.id, owner.id, PNG);
+    const row = (await getFile(db, info.id))!;
+    await setFilePreview(deps, row, { body: Buffer.from('one'), width: 10, height: 5 });
+    await setFilePreview(deps, row, { body: Buffer.from('two'), width: 20, height: 8 });
+    const updated = (await getFile(db, info.id))!;
+    expect(updated).toMatchObject({
+      previewKey: `files/${group.id}/${info.id}-preview`,
+      width: 20,
+      height: 8,
+    });
+    const stored = await storage.get(updated.previewKey!);
+    expect(stored.contentType).toBe('image/webp');
+    expect((await readAll(stored.stream)).toString()).toBe('two');
+  });
+});
+
+describe('deleteFiles', () => {
+  it('removes rows and storage objects (data and preview)', async () => {
+    const { group, owner } = await setup();
+    const info = await upload(group.id, owner.id, PNG);
+    await setFilePreview(deps, (await getFile(db, info.id))!, {
+      body: Buffer.from('p'),
+      width: 1,
+      height: 1,
+    });
+    await deleteFiles(deps, [info.id]);
+    expect(await getFile(db, info.id)).toBeNull();
+    expect(await storage.exists(`files/${group.id}/${info.id}`)).toBe(false);
+    expect(await storage.exists(`files/${group.id}/${info.id}-preview`)).toBe(false);
+    await deleteFiles(deps, []);
+  });
+});
+
+describe('deleteUnattachedFiles', () => {
+  it('deletes only unattached files older than the cutoff', async () => {
+    const { group, owner } = await setup();
+    const oldUnattached = await upload(group.id, owner.id, Buffer.from('1'));
+    const oldAttached = await upload(group.id, owner.id, Buffer.from('2'));
+    const fresh = await upload(group.id, owner.id, Buffer.from('3'));
+    await attachFiles(db, group.id, [oldAttached.id], owner.id);
+    const dayAgo = new Date(Date.now() - 25 * 3600 * 1000);
+    for (const id of [oldUnattached.id, oldAttached.id]) {
+      await db.update(files).set({ createdAt: dayAgo }).where(eq(files.id, id));
+    }
+
+    const count = await deleteUnattachedFiles(deps, new Date(Date.now() - 24 * 3600 * 1000));
+
+    expect(count).toBeGreaterThanOrEqual(1); // the shared DB may hold other tests' old files
+    expect(await getFile(db, oldUnattached.id)).toBeNull();
+    expect(await storage.exists(`files/${group.id}/${oldUnattached.id}`)).toBe(false);
+    expect(await getFile(db, oldAttached.id)).not.toBeNull();
+    expect(await getFile(db, fresh.id)).not.toBeNull();
+  });
+});

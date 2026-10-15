@@ -4,10 +4,9 @@ import { ErrorCodes } from '@spolu/shared';
 import type { AppDeps } from '../../deps.js';
 import { StorageNotFoundError } from '../../infra/storage/storage.js';
 import { requireUser } from '../auth/session.js';
+import { sniffImageType, type ImageType } from '../files/sniff.js';
 import { canManageGroups, canReadGroup } from './policy.js';
 import { getGroup, getGroupByInviteToken, getMembershipGroupId, setLogoKey } from './service.js';
-
-export type ImageType = 'image/png' | 'image/jpeg' | 'image/webp';
 
 const MAX_LOGO_BYTES = 512 * 1024;
 const EXTENSIONS: Record<ImageType, string> = {
@@ -15,23 +14,6 @@ const EXTENSIONS: Record<ImageType, string> = {
   'image/jpeg': 'jpg',
   'image/webp': 'webp',
 };
-const PNG_MAGIC = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
-const JPEG_MAGIC = Buffer.from([0xff, 0xd8, 0xff]);
-
-/** The real image type from the first bytes, or null when it is not a PNG, JPEG or WebP. */
-export function sniffImageType(buf: Buffer): ImageType | null {
-  if (buf.subarray(0, 8).equals(PNG_MAGIC)) return 'image/png';
-  if (buf.subarray(0, 3).equals(JPEG_MAGIC)) return 'image/jpeg';
-  // WebP: "RIFF", a 4-byte size, then "WEBP".
-  if (
-    buf.length >= 12 &&
-    buf.toString('latin1', 0, 4) === 'RIFF' &&
-    buf.toString('latin1', 8, 12) === 'WEBP'
-  ) {
-    return 'image/webp';
-  }
-  return null;
-}
 
 type IdParams = { Params: { id: string } };
 type TokenParams = { Params: { token: string } };
