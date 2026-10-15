@@ -192,6 +192,14 @@ describe('socket.io', () => {
       expect(await event).toEqual({ n: 1 });
     });
 
+    it('an admin disabled after connecting gets not_found on group:join', async () => {
+      const group = await newGroup();
+      const { id, cookie } = await loggedIn(test);
+      const admin = await connected(cookie);
+      await test.deps.db.update(user).set({ disabledAt: new Date() }).where(eq(user.id, id));
+      expect(await join(admin, { groupId: group.id })).toEqual({ ok: false, error: 'not_found' });
+    });
+
     it('an admin joining an unknown group gets not_found', async () => {
       const admin = await connected(await loggedInCookie(test));
       expect(await join(admin, { groupId: randomUUID() })).toEqual({

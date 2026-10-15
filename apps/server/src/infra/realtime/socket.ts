@@ -87,7 +87,11 @@ export function attachSocket(
           groupId !== null &&
           canReadGroup(socket.data.user, groupId, socket.data.groupId ?? null) &&
           (await getGroup(db, groupId)) !== null;
-        if (!allowed) return ack?.({ ok: false, error: 'not_found' });
+        // The handshake snapshot of the user may be stale: read the session again.
+        if (!allowed || !(await getSessionFromHeaders(auth, socket.request.headers))) {
+          return ack?.({ ok: false, error: 'not_found' });
+        }
+        if (!socket.connected) return; // disconnected meanwhile: do not leave a stale room entry
         await socket.join(groupRoom(groupId));
         ack?.({ ok: true });
       } catch (error) {

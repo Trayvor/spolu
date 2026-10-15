@@ -214,10 +214,12 @@ describe('group people', () => {
     await deactivateUser(db, removed.id);
     const unnamed = await newClient(false);
     await addMember(db, g.id, unnamed.id);
+    const emptyName = await namedClient('', g.id);
+    const blankName = await namedClient('   ', g.id);
     const foreign = await namedClient(`Foreign ${tag}`, other.id);
     const deactivatedAdmin = await newAdmin(`Gone ${tag}`);
     await deactivateUser(db, deactivatedAdmin.id);
-    return { g, client, admin, removed, unnamed, foreign, deactivatedAdmin };
+    return { g, client, admin, removed, unnamed, emptyName, blankName, foreign, deactivatedAdmin };
   }
 
   it("listGroupPeople lists the group's named active clients and active admins", async () => {
@@ -226,7 +228,14 @@ describe('group people', () => {
     const ids = people.map((p) => p.id);
     expect(people.find((p) => p.id === s.client.id)).toMatchObject({ isAdmin: false });
     expect(people.find((p) => p.id === s.admin.id)).toMatchObject({ isAdmin: true });
-    for (const excluded of [s.removed, s.unnamed, s.foreign, s.deactivatedAdmin]) {
+    for (const excluded of [
+      s.removed,
+      s.unnamed,
+      s.emptyName,
+      s.blankName,
+      s.foreign,
+      s.deactivatedAdmin,
+    ]) {
       expect(ids).not.toContain(excluded.id);
     }
     // Other tests add admins too: assert only the relative order of ours ("Aa" before "Bb").
@@ -237,7 +246,14 @@ describe('group people', () => {
     const s = await scenario();
     expect(await isGroupPerson(db, s.g.id, s.client.id)).toBe(true);
     expect(await isGroupPerson(db, s.g.id, s.admin.id)).toBe(true);
-    for (const no of [s.removed, s.unnamed, s.foreign, s.deactivatedAdmin]) {
+    for (const no of [
+      s.removed,
+      s.unnamed,
+      s.emptyName,
+      s.blankName,
+      s.foreign,
+      s.deactivatedAdmin,
+    ]) {
       expect(await isGroupPerson(db, s.g.id, no.id)).toBe(false);
     }
     expect(await isGroupPerson(db, s.g.id, randomUUID())).toBe(false);
@@ -246,7 +262,16 @@ describe('group people', () => {
   it('isGroupPerson agrees with listGroupPeople for every user of the scenario', async () => {
     const s = await scenario();
     const listed = new Set((await listGroupPeople(db, s.g.id)).map((p) => p.id));
-    const everyone = [s.client, s.admin, s.removed, s.unnamed, s.foreign, s.deactivatedAdmin];
+    const everyone = [
+      s.client,
+      s.admin,
+      s.removed,
+      s.unnamed,
+      s.emptyName,
+      s.blankName,
+      s.foreign,
+      s.deactivatedAdmin,
+    ];
     for (const u of everyone) {
       expect(await isGroupPerson(db, s.g.id, u.id)).toBe(listed.has(u.id));
     }
