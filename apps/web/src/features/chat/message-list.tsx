@@ -1,0 +1,243 @@
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
+import type { MessageDto } from '@spolu/shared';
+import { useGroupPeople } from '@/features/groups/use-group-people';
+import type { ChannelWindow, Pending } from './channel-window';
+import { MessageItem, type MessageAction } from './message-item';
+import { buildRows, localDay } from './message-rows';
+
+export interface MessageListProps {
+  window: ChannelWindow;
+  meId: string;
+  groupId: string;
+  onLoadOlder: () => void;
+  onLoadNewer: () => void;
+  onJumpToLatest: () => void;
+  /** The message to scroll to and mark (the conversation clears it after 2 s). */
+  highlightId?: string | null;
+  messageActions?: MessageAction[];
+  renderMessageFooter?: (message: MessageDto) => ReactNode;
+  onOpenThread?: (message: MessageDto) => void;
+  onRetry?: (clientId: string) => void;
+  /** Called when the list reaches or leaves the bottom (the conversation marks the chat read). */
+  onAtBottomChange?: (atBottom: boolean) => void;
+}
+
+/** Pixels from the end that still count as "at the end". */
+const EDGE = 24;
+/** Pixels from an end at which the next page is asked for. */
+const PREFETCH = 120;
+
+function DayDivider({ date }: { date: string }) {
+  const { t, i18n } = useTranslation();
+  const label = useMemo(() => {
+    const now = new Date();
+    if (date === localDay(now)) return t('chat.today');
+    if (date === localDay(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1))) {
+      return t('chat.yesterday');
+    }
+    const [y, m, d] = date.split('-').map(Number) as [number, number, number];
+    return new Intl.DateTimeFormat(i18n.language, {
+      day: 'numeric',
+      month: 'long',
+      year: y === now.getFullYear() ? undefined : 'numeric',
+    }).format(new Date(y, m - 1, d));
+  }, [date, t, i18n.language]);
+  return (
+    <div className="flex items-center gap-3 px-4 pt-4 text-micro font-semibold text-muted-foreground">
+      <span className="h-px flex-1 bg-border" />
+      <span>{label}</span>
+      <span className="h-px flex-1 bg-border" />
+    </div>
+  );
+}
+
+function NewMessagesLine() {
+  const { t } = useTranslation();
+  return (
+    <div className="flex items-center gap-3 px-4 pt-3 text-micro font-semibold text-brand-purple">
+      <span className="h-px flex-1 bg-brand-purple" />
+      <span>{t('chat.newMessages')}</span>
+      <span className="h-px flex-1 bg-brand-purple" />
+    </div>
+  );
+}
+
+/** The scrolling message list of one chat. It is the only scrolling element of the conversation. */
+export function MessageList({
+  window: win,
+  meId,
+  groupId,
+  onLoadOlder,
+  onLoadNewer,
+  onJumpToLatest,
+  highlightId,
+  messageActions,
+  renderMessageFooter,
+  onOpenThread,
+  onRetry,
+  onAtBottomChange,
+}: MessageListProps) {
+  const { t } = useTranslation();
+  const people = useGroupPeople(groupId).data;
+  const scroller = useRef<HTMLDivElement>(null);
+  const names = useMemo(() => new Map((people ?? []).map((p) => [p.id, p.name])), [people]);
+  const nameOf = useMemo(() => (id: string) => names.get(id), [names]);
+  const rows = useMemo(
+    () => buildRows(win.messages, { lastReadAt: win.unreadAnchor, meId, now: new Date() }),
+    [win.messages, win.unreadAnchor, meId],
+  );
+  const pending = useMemo(() => win.pending.filter((p) => !p.input.parentId), [win.pending]);
+
+  const firstId = win.messages[0]?.id;
+  const lastId = win.messages.at(-1)?.id;
+
+  // Follow the end while the reader is at the end; a link to a message starts away from it.
+  const stick = useRef(!highlightId);
+  const [atBottom, setAtBottom] = useState(true);
+  const [unseen, setUnseen] = useState(false);
+  /** Set when an older page is asked for: the scroll height and first row before it arrives. */
+  const olderAnchor = useRef<{ height: number; firstId: string | undefined } | null>(null);
+
+  useLayoutEffect(() => {
+    const el = scroller.current;
+    if (!el) return;
+    const anchor = olderAnchor.current;
+    if (anchor && anchor.firstId !== firstId) {
+      olderAnchor.current = null;
+      // A prepend keeps the old first row loaded; a trim at the other end drops it.
+      if (win.messages.some((m) => m.id === anchor.firstId)) {
+        el.scrollTop += el.scrollHeight - anchor.height;
+        return;
+      }
+    }
+    if (stick.current) el.scrollTop = el.scrollHeight;
+    // The scroll position is the only thing read here; rows are intentionally not a dependency.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [firstId, lastId, pending.length, win.loaded]);
+
+  const seenLast = useRef(lastId);
+  useEffect(() => {
+    if (lastId !== seenLast.current && !stick.current) setUnseen(true);
+    seenLast.current = lastId;
+  }, [lastId]);
+
+  const scrolledTo = useRef<string | null>(null);
+  useEffect(() => {
+    if (!highlightId) {
+      scrolledTo.current = null;
+      return;
+    }
+    if (scrolledTo.current === highlightId) return;
+    const row = scroller.current?.querySelector(`[data-message-id="${CSS.escape(highlightId)}"]`);
+    if (!row) return;
+    scrolledTo.current = highlightId;
+    stick.current = false;
+    row.scrollIntoView?.({ block: 'center' });
+  }, [highlightId, win.messages]);
+
+  function onScroll() {
+    const el = scroller.current;
+    if (!el) return;
+    const fromEnd = el.scrollHeight - el.scrollTop - el.clientHeight;
+    const bottom = fromEnd <= EDGE && !win.hasNewer;
+    stick.current = bottom;
+    if (bottom !== atBottom) {
+      setAtBottom(bottom);
+      onAtBottomChange?.(bottom);
+      if (bottom) setUnseen(false);
+    }
+    if (el.scrollTop < PREFETCH && win.hasOlder) {
+      olderAnchor.current ??= { height: el.scrollHeight, firstId };
+      onLoadOlder();
+    }
+    if (fromEnd < PREFETCH && win.hasNewer) onLoadNewer();
+  }
+
+  function jump() {
+    setUnseen(false);
+    stick.current = true;
+    if (win.hasNewer) onJumpToLatest();
+    else if (scroller.current) scroller.current.scrollTop = scroller.current.scrollHeight;
+  }
+
+  const me = people?.find((p) => p.id === meId);
+  const lastMessage = win.messages.at(-1);
+  const pendingMessage = (p: Pending): MessageDto => ({
+    id: `pending:${p.clientId}`,
+    channelId: lastMessage?.channelId ?? '',
+    parentId: null,
+    replyToId: null,
+    author: { id: meId, name: me?.name ?? '', isAdmin: me?.isAdmin ?? false },
+    body: p.input.body,
+    mentions: [],
+    mentionsAll: false,
+    attachments: [],
+    clientId: p.clientId,
+    replyCount: 0,
+    lastReplyAt: null,
+    editedAt: null,
+    deletedAt: null,
+    createdAt: '',
+    changeSeq: 0,
+  });
+
+  const empty = win.loaded && rows.length === 0 && pending.length === 0;
+  const showJump = !atBottom && (unseen || win.hasNewer);
+
+  return (
+    <div className="relative min-h-0 flex-1">
+      <div
+        ref={scroller}
+        onScroll={onScroll}
+        className="h-full overflow-y-auto overscroll-contain pb-3"
+      >
+        {empty && (
+          <p className="px-6 py-10 text-center text-body text-muted-foreground">
+            {t('chat.empty')}
+          </p>
+        )}
+        {rows.map((row) => {
+          if (row.kind === 'day') return <DayDivider key={`day-${row.date}`} date={row.date} />;
+          if (row.kind === 'new') return <NewMessagesLine key="new" />;
+          const { message } = row;
+          return (
+            <MessageItem
+              key={message.id}
+              message={message}
+              showHeader={row.showHeader}
+              mentionsMe={row.mentionsMe}
+              meId={meId}
+              nameOf={nameOf}
+              messageActions={messageActions}
+              renderMessageFooter={renderMessageFooter}
+              onOpenThread={onOpenThread}
+              highlighted={message.id === highlightId}
+            />
+          );
+        })}
+        {pending.map((p, i) => (
+          <MessageItem
+            key={p.clientId}
+            message={pendingMessage(p)}
+            showHeader={i === 0 && lastMessage?.author.id !== meId}
+            mentionsMe={false}
+            meId={meId}
+            nameOf={nameOf}
+            pending={p.status}
+            onRetry={onRetry}
+          />
+        ))}
+      </div>
+      {showJump && (
+        <button
+          type="button"
+          onClick={jump}
+          className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-primary px-4 py-2 text-tiny font-semibold text-primary-foreground shadow-lift hover:bg-ink-hover"
+        >
+          {t('chat.jumpToLatest')}
+        </button>
+      )}
+    </div>
+  );
+}

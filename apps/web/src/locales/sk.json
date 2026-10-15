@@ -108,6 +108,32 @@
   },
   "chat": {
     "placeholder": "Chat pribudne v ďalšej aktualizácii.",
+    "empty": "Zatiaľ tu nie sú žiadne správy. Napíšte prvú a začnite konverzáciu.",
+    "today": "Dnes",
+    "yesterday": "Včera",
+    "newMessages": "Nové správy",
+    "jumpToLatest": "Nové správy ↓",
+    "edited": "(upravené)",
+    "deleted": "Správa bola odstránená",
+    "egrant": "eGrant",
+    "notSent": "Neodoslané.",
+    "retry": "Skúsiť znova",
+    "save": "Uložiť",
+    "cancel": "Zrušiť",
+    "confirmDelete": "Odstrániť túto správu?",
+    "actions": {
+      "replyInThread": "Odpovedať vo vlákne",
+      "reply": "Odpovedať",
+      "more": "Viac",
+      "edit": "Upraviť",
+      "delete": "Odstrániť"
+    },
+    "thread": {
+      "summary_one": "{{count}} odpoveď, posledná o {{time}}",
+      "summary_few": "{{count}} odpovede, posledná o {{time}}",
+      "summary_many": "{{count}} odpovedí, posledná o {{time}}",
+      "summary_other": "{{count}} odpovedí, posledná o {{time}}"
+    },
     "mention": {
       "all": "@all",
       "unknown": "@neznámy"

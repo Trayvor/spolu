@@ -195,6 +195,16 @@ egrant.sk spacing presets are 4, 8, 12, 16, 20, 24, 32, 40, 48, 54, 64px — all
 - Image preview (`image-preview.tsx`): the 640 px WebP preview in a `rounded-lg bg-muted` box with `aspect-ratio: width / height` and `max-width: min(100%, min(width, maxWidth))` (default `maxWidth` 320 px, so the preview never upscales), so the layout never jumps while it loads. Lazy, async decoding, decorative `alt=""`; the link around it opens the full file in a new tab (`aria-label` "Open {name}"). Without a preview it renders the file chip. No overlay, zoom or hover effect.
 - Sizes (`format-size.ts`): `Intl` unit format in the UI language, 1024 steps, at most one decimal ("1.5 kB", "25 MB").
 
+### Chat rows (as built, `src/features/chat/`)
+
+- Rows, not bubbles (`message-item.tsx`): 32px `Avatar`, then name (`text-button`, weight 600), an `eGrant` pill for admins (`bg-secondary text-secondary-foreground rounded-full px-2 text-nano`, the chat's only mark), time (`text-micro text-muted-foreground`) and `(edited)`. Messages of one author within 5 minutes stack without avatar and name (the "(edited)" mark then follows the text). Text is `text-body`; a deleted message is one muted italic line "Message deleted" with no actions and no footer.
+- A message that mentions me (by id or @all, never my own) gets `bg-muted` and a 2px `border-brand-purple` left edge; other rows carry a transparent 2px edge so nothing shifts. The linked/highlighted message is `bg-accent`.
+- Every row has `content-visibility: auto; contain-intrinsic-size: auto 64px`. Because that clips overflow, the hover toolbar sits inside the row (`absolute right-3 top-1`), not above it.
+- Hover toolbar: `bg-card` box with a 1px `border`, 32px icon buttons (16px outline icons from `icons.tsx`, `text-muted-foreground`, hover `bg-accent`), order: Reply in thread (or Reply in a thread), `messageActions`, More (own messages only: Edit, Delete). It fades in with `group-hover`, `group-focus-within` or an open menu (opacity, so the buttons stay focusable) and is always visible on `(pointer: coarse)`. Every button has `aria-label` and `title`. Delete is inline: "Delete this message?" with a destructive small Delete and a ghost Cancel; Edit is a textarea with Save and Cancel (Enter saves, Escape cancels) until the composer takes over.
+- Day dividers and the "New messages" line: a 1px line, centred label in `text-micro` weight 600 (`border` / `muted-foreground` for days, `brand-purple` for the new line). Days read "Today", "Yesterday", then the date in the UI language.
+- Attachments under the text: images through `ImagePreview` with `maxWidth = min(320, 240 * width / height)`, other files as `FileChip`. Thread summary: a `text-micro` weight 600 `brand-purple` link "3 replies, last at 15:10". Reply quote: a `text-micro` muted line with a 2px `border` left edge, author name then the first 80 characters.
+- Sending rows are muted; a failed one adds "Not sent. Retry" in `error-ink`. The list scrolls itself (`overscroll-contain`); the "New messages ↓" pill is a `bg-primary` pill with `shadow-lift`, centred above the bottom edge.
+
 ### Link
 
 - Inherits color, no underline; hover color `neutral` (`#5E5E5E`). In long text (manuals) links are underlined and lose the underline on hover.

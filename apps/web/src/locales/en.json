@@ -108,6 +108,32 @@
   },
   "chat": {
     "placeholder": "The chat arrives in the next update.",
+    "empty": "No messages yet. Write the first one to start the conversation.",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "newMessages": "New messages",
+    "jumpToLatest": "New messages ↓",
+    "edited": "(edited)",
+    "deleted": "Message deleted",
+    "egrant": "eGrant",
+    "notSent": "Not sent.",
+    "retry": "Retry",
+    "save": "Save",
+    "cancel": "Cancel",
+    "confirmDelete": "Delete this message?",
+    "actions": {
+      "replyInThread": "Reply in thread",
+      "reply": "Reply",
+      "more": "More",
+      "edit": "Edit",
+      "delete": "Delete"
+    },
+    "thread": {
+      "summary_one": "{{count}} reply, last at {{time}}",
+      "summary_few": "{{count}} replies, last at {{time}}",
+      "summary_many": "{{count}} replies, last at {{time}}",
+      "summary_other": "{{count}} replies, last at {{time}}"
+    },
     "mention": {
       "all": "@all",
       "unknown": "@unknown"
