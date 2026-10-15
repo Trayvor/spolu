@@ -12,7 +12,7 @@ Requirements per module: [product/](product/README.md). Phases after 1 get their
 | 3 | [Groups & invites](#phase-3--groups--invites) | done (local) | 2 | [spec](superpowers/specs/2026-10-15-phase-3-groups-and-invites-design.md), [plan](superpowers/plans/2026-10-15-phase-3-groups-and-invites.md) |
 | 4 | [Shared foundation](#phase-4--shared-foundation) | done (local) | 3 | [spec](superpowers/specs/2026-10-15-phase-4-shared-foundation-design.md), [plan](superpowers/plans/2026-10-15-phase-4-shared-foundation.md) |
 | 5 | [Group chat](#phase-5--group-chat) | done (local) | 4 | [spec](superpowers/specs/2026-10-15-phase-5-group-chat-design.md), [plan](superpowers/plans/2026-10-15-phase-5-group-chat.md) |
-| 6 | [Notifications](#phase-6--notifications) | planned | 9 | - |
+| 6 | [Notifications](#phase-6--notifications) | in progress | 9 | [spec](superpowers/specs/2026-10-16-phase-6-notifications-design.md), [plan](superpowers/plans/2026-10-16-phase-6-notifications.md) |
 | 7 | [Direct messages](#phase-7--direct-messages) | planned | 5, 6 | - |
 | 8 | [Task board](#phase-8--task-board) | done (local) | 4 | [spec](superpowers/specs/2026-10-15-phase-8-task-board-design.md), [plan](superpowers/plans/2026-10-15-phase-8-task-board.md) |
 | 9 | [Task chat & message to tasks with AI](#phase-9--task-chat--message-to-tasks-with-ai) | planned | 5, 8 | - |
