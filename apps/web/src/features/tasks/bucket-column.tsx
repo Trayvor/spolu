@@ -92,7 +92,14 @@ function SortableTask({
         today={today}
         ref={setActivatorNodeRef}
         // Not dnd-kit's role="button": the card stays a link (Enter opens it, Space lifts it).
-        handleProps={{ ...listeners, 'aria-describedby': attributes['aria-describedby'] }}
+        handleProps={{
+          ...listeners,
+          'aria-describedby': attributes['aria-describedby'],
+          // A long press drags on touch; Android would open the link menu instead.
+          onContextMenu: (event) => {
+            if ((event.nativeEvent as PointerEvent).pointerType === 'touch') event.preventDefault();
+          },
+        }}
       />
     </li>
   );

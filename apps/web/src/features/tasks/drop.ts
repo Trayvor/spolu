@@ -1,9 +1,11 @@
+import { closestCorners, pointerWithin, type CollisionDetection } from '@dnd-kit/core';
 import type { QueryClient } from '@tanstack/react-query';
 import { generateKeyBetween } from 'fractional-indexing';
 import type { BoardDto, BucketDto, BucketPatch, TaskDto, TaskMove } from '@spolu/shared';
 import { ApiError } from '@/lib/api';
 import { boardQuery, moveTask, updateBucket } from './api';
 import { byPosition, removeTask, showBoardNotice, upsertTask } from './board-cache';
+import type { DragData } from './dnd-announcements';
 
 /**
  * What a drop means for the server and for the cache. The server computes the real position
@@ -87,11 +89,75 @@ export function computeBucketDrop(
   return { afterBucketId: after.id };
 }
 
+/** A card's vertical extent in its column. */
+export type CardSlot = { id: string; top: number; height: number };
+
 /**
- * Applies a task drop: the card moves in the cache at once, then the server places it. On 404
- * the task is gone ("This task was deleted."); on any other failure the card goes back to where
- * it was ("The task could not be moved."). Only this task is restored, so live events that
- * arrived meanwhile for other cards are kept.
+ * The card a hit on a column's empty space (the gaps between cards, its padding) stands for,
+ * so the board shows and sends the same place. In the dragged card's own bucket: the nearest
+ * card (the sortable list swaps with it). In another bucket: the first card whose middle is
+ * below `y` (the card lands before it), or the column itself (last place) below the last
+ * card's middle. An empty column is the column.
+ */
+export function resolveColumnHit(
+  bucketId: string,
+  cards: CardSlot[],
+  y: number,
+  ownBucket: boolean,
+): string {
+  const middle = (card: CardSlot) => card.top + card.height / 2;
+  if (ownBucket && cards.length > 0) {
+    const distance = (card: CardSlot) => Math.abs(middle(card) - y);
+    return cards.reduce((best, card) => (distance(card) < distance(best) ? card : best)).id;
+  }
+  return cards.find((card) => y < middle(card))?.id ?? columnDropId(bucketId);
+}
+
+/**
+ * What the dragged item is over. Under the pointer a card beats its column; with no pointer
+ * (keyboard) or between columns, the nearest target by its corners. A column hit is then turned
+ * into a card with `resolveColumnHit` (the keyboard points with the moved rectangle's top edge).
+ */
+export const boardCollisions: CollisionDetection = (args) => {
+  const dataOf = (id: string | number) =>
+    args.droppableContainers.find((c) => c.id === id)?.data.current as DragData | undefined;
+  const hits = pointerWithin(args);
+  const cards = hits.filter((hit) => dataOf(hit.id)?.type === 'task');
+  const found = cards.length > 0 ? cards : hits.length > 0 ? hits : closestCorners(args);
+  const target = found[0] && dataOf(found[0].id);
+  if (target?.type !== 'column') return found;
+
+  const slots = args.droppableContainers
+    .flatMap((container) => {
+      const data = container.data.current as DragData | undefined;
+      const rect = args.droppableRects.get(container.id);
+      return data?.type === 'task' && data.bucketId === target.bucketId && rect
+        ? [{ id: String(container.id), top: rect.top, height: rect.height }]
+        : [];
+    })
+    .sort((a, b) => a.top - b.top);
+  const active = args.active.data.current as DragData | undefined;
+  const ownBucket = active?.type === 'task' && active.bucketId === target.bucketId;
+  const y = args.pointerCoordinates?.y ?? args.collisionRect.top;
+  return [{ id: resolveColumnHit(target.bucketId, slots, y, ownBucket) }];
+};
+
+/** Cancels a board fetch in flight (it would undo an optimistic write); true when one was. */
+async function pauseBoardFetch(queryClient: QueryClient, key: readonly unknown[]) {
+  const fetching = queryClient.isFetching({ queryKey: key, exact: true }) > 0;
+  await queryClient.cancelQueries({ queryKey: key, exact: true });
+  return fetching;
+}
+
+/**
+ * Applies a task drop: the card moves in the cache at once, then the server places it.
+ * - Success: the server's place wins; a newer live edit of the card keeps its content, and a
+ *   card deleted live meanwhile stays deleted.
+ * - 404: the task, or its target bucket, is gone. The board is reloaded and says "This task was
+ *   deleted." only when the task is really missing ("The task could not be moved." otherwise).
+ * - Any other failure: the card goes back, unless a live event moved it meanwhile; "The task
+ *   could not be moved." Other cards are never touched, so their live changes are kept.
+ * A board fetch cancelled for the optimistic write is made up for afterwards.
  */
 export async function handleTaskDrop(
   queryClient: QueryClient,
@@ -101,33 +167,48 @@ export async function handleTaskDrop(
   move: (id: string, body: TaskMove) => Promise<TaskDto> = moveTask,
 ): Promise<void> {
   const key = boardQuery(groupId).queryKey;
-  const before = queryClient.getQueryData<BoardDto>(key)?.tasks.find((t) => t.id === taskId);
+  const cached = () => queryClient.getQueryData<BoardDto>(key)?.tasks.find((t) => t.id === taskId);
+  const before = cached();
   if (!before) return;
   const update = (apply: (board: BoardDto) => BoardDto) =>
     queryClient.setQueryData<BoardDto>(key, (board) => board && apply(board));
 
-  // A refetch in flight would overwrite the optimistic card with the old position.
-  await queryClient.cancelQueries({ queryKey: key, exact: true });
-  update((board) =>
-    upsertTask(board, { ...before, bucketId: drop.bucketId, position: drop.optimisticPosition }),
-  );
+  let reload = await pauseBoardFetch(queryClient, key);
+  const placed = { ...before, bucketId: drop.bucketId, position: drop.optimisticPosition };
+  update((board) => upsertTask(board, placed));
   try {
     const task = await move(taskId, { bucketId: drop.bucketId, afterTaskId: drop.afterTaskId });
-    update((board) => upsertTask(board, task));
+    const current = cached();
+    if (current) {
+      const { bucketId, position, completedAt } = task;
+      // `updatedAt` only grows (a move leaves it alone), so a higher one is a newer edit.
+      const next =
+        current.updatedAt > task.updatedAt ? { ...current, bucketId, position, completedAt } : task;
+      update((board) => upsertTask(board, next));
+    }
   } catch (error) {
     if (error instanceof ApiError && error.status === 404) {
       update((board) => removeTask(board, taskId));
-      showBoardNotice(queryClient, groupId, 'taskDeleted');
+      reload = false;
+      await queryClient.invalidateQueries({ queryKey: key, exact: true });
+      showBoardNotice(queryClient, groupId, cached() ? 'moveFailed' : 'taskDeleted');
     } else {
-      update((board) => upsertTask(board, before));
+      const current = cached();
+      if (current?.bucketId === placed.bucketId && current.position === placed.position) {
+        update((board) =>
+          upsertTask(board, { ...current, bucketId: before.bucketId, position: before.position }),
+        );
+      }
       showBoardNotice(queryClient, groupId, 'moveFailed');
     }
   }
+  if (reload) void queryClient.invalidateQueries({ queryKey: key, exact: true });
 }
 
 /**
  * Applies a bucket drop: the column moves in the cache at once, then the server places it. A
- * failure puts it back ("Could not save. Try again."); a 404 reloads the board (it was deleted).
+ * failure puts it back unless a live event moved it meanwhile ("Could not save. Try again."); a
+ * 404 reloads the board (it was deleted).
  */
 export async function handleBucketDrop(
   queryClient: QueryClient,
@@ -144,6 +225,8 @@ export async function handleBucketDrop(
   const next = board.buckets
     .filter((b) => b.id !== bucketId && b.position > after.position)
     .sort(byPosition)[0];
+  const cached = () =>
+    queryClient.getQueryData<BoardDto>(key)?.buckets.find((b) => b.id === bucketId);
   const replace = (bucket: BucketDto) =>
     queryClient.setQueryData<BoardDto>(
       key,
@@ -154,16 +237,19 @@ export async function handleBucketDrop(
         },
     );
 
-  await queryClient.cancelQueries({ queryKey: key, exact: true });
-  replace({ ...before, position: generateKeyBetween(after.position, next?.position ?? null) });
+  let reload = await pauseBoardFetch(queryClient, key);
+  const position = generateKeyBetween(after.position, next?.position ?? null);
+  replace({ ...before, position });
   try {
     replace(await update(bucketId, { afterBucketId }));
   } catch (error) {
     if (error instanceof ApiError && error.status === 404) {
-      await queryClient.invalidateQueries({ queryKey: key, exact: true });
+      reload = true;
     } else {
-      replace(before);
+      const current = cached();
+      if (current?.position === position) replace({ ...current, position: before.position });
       showBoardNotice(queryClient, groupId, 'error');
     }
   }
+  if (reload) await queryClient.invalidateQueries({ queryKey: key, exact: true });
 }

@@ -45,9 +45,11 @@ export function TaskCard({
       params={{ groupId: task.groupId, taskId: task.id } as never}
       ref={ref}
       {...handleProps}
+      // The lifted copy is only a picture of the card: out of the tab order.
+      tabIndex={lifted ? -1 : undefined}
       className={cn(
-        // No callout or text selection on a long press: on touch that press starts a drag.
-        'flex select-none flex-col items-start gap-2 rounded-lg bg-card p-3 text-left [-webkit-touch-callout:none]',
+        // No callout, text selection or double-tap zoom on a long press: on touch it drags.
+        'flex touch-manipulation select-none flex-col items-start gap-2 rounded-lg bg-card p-3 text-left [-webkit-touch-callout:none]',
         lifted && 'cursor-grabbing shadow-lift',
         // A card picked up with the keyboard keeps the focus ring on its lifted copy.
         lifted === 'keyboard' && 'outline-2 outline-offset-3 outline-ring',

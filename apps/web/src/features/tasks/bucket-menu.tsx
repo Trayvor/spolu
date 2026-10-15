@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   DropdownMenu,
@@ -18,6 +19,7 @@ export function BucketMenu({
   onDelete: () => void;
 }) {
   const { t } = useTranslation();
+  const renaming = useRef(false);
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
@@ -28,10 +30,20 @@ export function BucketMenu({
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="end"
-        // Keep focus where the chosen action put it (the rename field), not back on the trigger.
-        onCloseAutoFocus={(event) => event.preventDefault()}
+        // After Rename the focus stays in the rename field; otherwise it returns to the trigger.
+        onCloseAutoFocus={(event) => {
+          if (renaming.current) event.preventDefault();
+          renaming.current = false;
+        }}
       >
-        <DropdownMenuItem onSelect={onRename}>{t('tasks.board.rename')}</DropdownMenuItem>
+        <DropdownMenuItem
+          onSelect={() => {
+            renaming.current = true;
+            onRename();
+          }}
+        >
+          {t('tasks.board.rename')}
+        </DropdownMenuItem>
         <DropdownMenuItem onSelect={onDelete} className="text-error-ink">
           {t('tasks.board.delete')}
         </DropdownMenuItem>

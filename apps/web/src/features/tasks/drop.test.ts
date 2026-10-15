@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { BucketDto, TaskDto } from '@spolu/shared';
-import { computeBucketDrop, computeTaskDrop } from './drop';
+import { boardCollisions, computeBucketDrop, computeTaskDrop, resolveColumnHit } from './drop';
 
 const task = (id: string, bucketId: string, position: string): TaskDto => ({
   id,
@@ -126,5 +126,113 @@ describe('computeBucketDrop', () => {
   it('dropped where it already is → null', () => {
     expect(computeBucketDrop(buckets(), 'mine', 'mine')).toBeNull();
     expect(computeBucketDrop(buckets(), 'mine', 'todo')).toBeNull();
+  });
+});
+
+describe('resolveColumnHit', () => {
+  // Cards 60 px high with an 8 px gap, from y = 106 (the list's 6 px padding above).
+  const slots = [
+    { id: 'c1', top: 106, height: 60 },
+    { id: 'c2', top: 174, height: 60 },
+    { id: 'c3', top: 242, height: 60 },
+  ];
+
+  it('another bucket: the gap between two cards lands before the lower one', () => {
+    expect(resolveColumnHit('b', slots, 170, false)).toBe('c2');
+  });
+
+  it('another bucket: the padding above the first card lands first', () => {
+    expect(resolveColumnHit('b', slots, 101, false)).toBe('c1');
+  });
+
+  it('another bucket: below the last card’s middle lands last', () => {
+    expect(resolveColumnHit('b', slots, 290, false)).toBe('bucket:b');
+    expect(resolveColumnHit('b', slots, 305, false)).toBe('bucket:b');
+  });
+
+  it('an empty column is the column', () => {
+    expect(resolveColumnHit('b', [], 150, false)).toBe('bucket:b');
+    expect(resolveColumnHit('b', [], 150, true)).toBe('bucket:b');
+  });
+
+  it('own bucket: the nearest card, never the column', () => {
+    expect(resolveColumnHit('b', slots, 101, true)).toBe('c1');
+    expect(resolveColumnHit('b', slots, 236, true)).toBe('c2');
+    expect(resolveColumnHit('b', slots, 380, true)).toBe('c3');
+  });
+});
+
+describe('boardCollisions', () => {
+  const rect = (left: number, top: number, width: number, height: number) => ({
+    left,
+    top,
+    width,
+    height,
+    right: left + width,
+    bottom: top + height,
+  });
+  // To do (x 0–280): t1, t2, t3. eGrant review (x 300–580): e1, e2. Completed (x 600–880): empty.
+  const lists = [
+    ['todo', 0],
+    ['egrant', 300],
+    ['done', 600],
+  ] as const;
+  const cards = [
+    ['t1', 'todo', 0, 106],
+    ['t2', 'todo', 0, 174],
+    ['t3', 'todo', 0, 242],
+    ['e1', 'egrant', 300, 106],
+    ['e2', 'egrant', 300, 174],
+  ] as const;
+  const containers = [
+    ...lists.map(([bucketId, left]) => ({
+      id: `bucket:${bucketId}`,
+      data: { current: { type: 'column', bucketId } },
+      rect: rect(left, 100, 280, 300),
+    })),
+    ...cards.map(([id, bucketId, left, top]) => ({
+      id,
+      data: { current: { type: 'task', title: id, bucketId } },
+      rect: rect(left + 6, top, 268, 60),
+    })),
+  ];
+  const t1 = containers.find((c) => c.id === 't1')!;
+
+  function over(pointer: { x: number; y: number } | null, collisionTop = 106) {
+    const result = boardCollisions({
+      active: { id: 't1', data: t1.data },
+      collisionRect: rect(6, collisionTop, 268, 60),
+      droppableRects: new Map(containers.map((c) => [c.id, c.rect])),
+      droppableContainers: containers,
+      pointerCoordinates: pointer,
+    } as never);
+    return result[0]?.id;
+  }
+
+  it('a card under the pointer beats its column', () => {
+    expect(over({ x: 400, y: 200 })).toBe('e2');
+  });
+
+  it('the gap between cards in another bucket is the lower card', () => {
+    expect(over({ x: 400, y: 170 })).toBe('e2');
+  });
+
+  it('the padding of another bucket: above the first card, below the last', () => {
+    expect(over({ x: 400, y: 102 })).toBe('e1');
+    expect(over({ x: 400, y: 380 })).toBe('bucket:egrant');
+  });
+
+  it('an empty column is the column', () => {
+    expect(over({ x: 700, y: 200 })).toBe('bucket:done');
+  });
+
+  it('empty space in the own bucket is the nearest card', () => {
+    expect(over({ x: 100, y: 237 })).toBe('t2');
+    expect(over({ x: 100, y: 380 })).toBe('t3');
+  });
+
+  it('keyboard: the list above the first card keeps the card first', () => {
+    // ArrowUp from t1 moves the rectangle to the list's top edge; no pointer.
+    expect(over(null, 100)).toBe('t1');
   });
 });

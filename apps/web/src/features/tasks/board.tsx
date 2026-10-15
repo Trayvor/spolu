@@ -11,17 +11,13 @@ import {
   KeyboardSensor,
   PointerSensor,
   TouchSensor,
-  closestCorners,
-  pointerWithin,
   useSensor,
   useSensors,
-  type CollisionDetection,
   type DragEndEvent,
   type DragOverEvent,
   type DragStartEvent,
   type PointerActivationConstraint,
   type PointerSensorOptions,
-  type UniqueIdentifier,
 } from '@dnd-kit/core';
 import {
   SortableContext,
@@ -35,6 +31,7 @@ import { isAdmin } from '@/features/auth/roles';
 import { useSession } from '@/features/auth/use-session';
 import { groupQuery } from '@/features/groups/api';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { AddBucket } from './add-bucket';
 import { boardQuery } from './api';
 import { boardNoticeKey, showBoardNotice, type BoardNotice } from './board-cache';
@@ -43,6 +40,7 @@ import { BucketColumn, bucketSortId, type DropMark } from './bucket-column';
 import { todayInBratislava } from './dates';
 import { dndAccessibility, dragData } from './dnd-announcements';
 import {
+  boardCollisions,
   columnDropId,
   computeBucketDrop,
   computeTaskDrop,
@@ -74,19 +72,6 @@ const KEYBOARD_CODES = { start: ['Space'], cancel: ['Escape'], end: ['Space'] };
 const prefersReducedMotion = () =>
   typeof window.matchMedia === 'function' &&
   window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-/**
- * Under the pointer, a card beats its column (a column is only hit in its empty space). With
- * no pointer (keyboard) or between columns, the nearest target by its corners.
- */
-const collisions: CollisionDetection = (args) => {
-  const hits = pointerWithin(args);
-  if (hits.length === 0) return closestCorners(args);
-  const isCard = (id: UniqueIdentifier) =>
-    args.droppableContainers.find((c) => c.id === id)?.data.current?.type === 'task';
-  const cards = hits.filter((hit) => isCard(hit.id));
-  return cards.length > 0 ? cards : hits;
-};
 
 /** To do stays first and Completed last while a custom bucket is dragged over them. */
 const bucketStrategy: SortingStrategy = (args) =>
@@ -225,7 +210,7 @@ export function Board({ groupId }: { groupId: string }) {
       )}
       <DndContext
         sensors={sensors}
-        collisionDetection={collisions}
+        collisionDetection={boardCollisions}
         accessibility={accessibility}
         onDragStart={onDragStart}
         onDragOver={onDragOver}
@@ -254,7 +239,12 @@ export function Board({ groupId }: { groupId: string }) {
                   dragging={dragging?.type ?? null}
                   dropMark={dropTarget?.bucketId === bucket.id ? dropTarget.mark : null}
                 />
-                {admin && index === addAfter && <AddBucket groupId={groupId} />}
+                {admin && index === addAfter && (
+                  // Kept in the layout but hidden while a bucket is dragged: columns slide over it.
+                  <div className={cn('contents', dragging?.type === 'bucket' && '[&>*]:invisible')}>
+                    <AddBucket groupId={groupId} />
+                  </div>
+                )}
               </div>
             ))}
           </SortableContext>
