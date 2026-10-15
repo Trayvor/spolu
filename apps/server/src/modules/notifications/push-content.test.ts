@@ -63,6 +63,13 @@ describe('buildPushPayload chat', () => {
     const body = buildPushPayload({ ...base, payload: { ...chat, excerpt: 'x'.repeat(140) } }).body;
     expect(body).toBe(`Jana: ${'x'.repeat(120)}…`);
   });
+  it('cuts by code points so emoji never split', () => {
+    const body = buildPushPayload({
+      ...base,
+      payload: { ...chat, excerpt: '😀'.repeat(130) },
+    }).body;
+    expect(body).toBe(`Jana: ${'😀'.repeat(120)}…`);
+  });
   it('empty excerpt means a file', () => {
     const p = { ...chat, excerpt: '' };
     expect(buildPushPayload({ ...base, payload: p }).body).toBe('Jana poslal(a) súbor');
@@ -95,6 +102,16 @@ describe('buildPushPayload tasks', () => {
       }).body,
     ).toBe('Presunuté do Kontrola eGrant');
   });
+  it('moved without a usable toBucket falls back to a generic body', () => {
+    const m = { ...t, kind: 'task.moved' } as const;
+    expect(buildPushPayload({ ...m, payload: task }).body).toBe('Úloha presunutá');
+    expect(buildPushPayload({ ...m, lang: 'en', payload: { ...task, toBucket: 'x' } }).body).toBe(
+      'Task moved',
+    );
+    expect(
+      buildPushPayload({ ...m, payload: { ...task, toBucket: { kind: 'nope', name: null } } }).body,
+    ).toBe('Úloha presunutá');
+  });
   it('assigned', () => {
     const a = { ...t, kind: 'task.assigned', payload: task } as const;
     expect(buildPushPayload({ ...a, lang: 'en' }).body).toBe('Jana assigned you to this task');
@@ -103,9 +120,12 @@ describe('buildPushPayload tasks', () => {
   it('deadline', () => {
     const d = (daysLeft: number, lang: 'sk' | 'en') =>
       buildPushPayload({ ...t, lang, kind: 'task.deadline', payload: { ...task, daysLeft } }).body;
-    expect(d(2, 'en')).toBe('Deadline in 2 days');
+    expect(d(2, 'en')).toBe('Due in 2 days');
+    expect(d(3, 'en')).toBe('Due in 3 days');
     expect(d(2, 'sk')).toBe('Termín o 2 dni');
-    expect(d(1, 'en')).toBe('Deadline tomorrow');
+    expect(d(3, 'sk')).toBe('Termín o 3 dni');
+    expect(d(5, 'sk')).toBe('Termín o 5 dní');
+    expect(d(1, 'en')).toBe('Due tomorrow');
     expect(d(1, 'sk')).toBe('Termín zajtra');
   });
   it('urgent', () => {

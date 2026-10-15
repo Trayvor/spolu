@@ -19,8 +19,20 @@ function chatBody(p: Record<string, unknown>, lang: UserLanguage): string {
   const author = str(p.authorName) ?? '';
   const excerpt = (str(p.excerpt) ?? '').trim();
   if (excerpt === '') return texts(lang).sentFile(author);
-  const cut = excerpt.length > EXCERPT_MAX ? `${excerpt.slice(0, EXCERPT_MAX)}…` : excerpt;
+  const chars = Array.from(excerpt);
+  const cut = chars.length > EXCERPT_MAX ? `${chars.slice(0, EXCERPT_MAX).join('')}…` : excerpt;
   return `${author}: ${cut}`;
+}
+
+const BUCKET_KINDS = ['todo', 'egrant_review', 'client_review', 'done', 'custom'];
+
+function movedBody(toBucket: unknown, lang: UserLanguage): string {
+  const t = texts(lang);
+  const b = toBucket as Partial<BucketLabel> | null | undefined;
+  if (!b || typeof b !== 'object' || typeof b.kind !== 'string' || !BUCKET_KINDS.includes(b.kind)) {
+    return t.movedGeneric;
+  }
+  return t.moved(t.bucket({ kind: b.kind, name: typeof b.name === 'string' ? b.name : null }));
 }
 
 export function buildPushPayload(i: PushContentInput): PushPayload {
@@ -37,7 +49,7 @@ export function buildPushPayload(i: PushContentInput): PushPayload {
     const url = `/groups/${groupId}/tasks/${enc(taskId ?? '')}`;
     const tag = `task:${taskId ?? ''}`;
     let body: string;
-    if (i.kind === 'task.moved') body = t.moved(t.bucket(p.toBucket as BucketLabel));
+    if (i.kind === 'task.moved') body = movedBody(p.toBucket, i.lang);
     else if (i.kind === 'task.assigned') body = t.assigned(str(p.actorName) ?? '');
     else if (i.kind === 'task.deadline') body = t.deadline(Number(p.daysLeft));
     else body = t.urgent;

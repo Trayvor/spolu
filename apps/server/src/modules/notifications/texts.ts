@@ -4,6 +4,7 @@ import type { BucketLabel, UserLanguage } from '@spolu/shared';
 export type Texts = {
   sentFile(name: string): string;
   moved(label: string): string;
+  movedGeneric: string;
   assigned(name: string): string;
   deadline(daysLeft: number): string;
   urgent: string;
@@ -15,8 +16,9 @@ export type Texts = {
 const en: Texts = {
   sentFile: (name) => `${name} sent a file`,
   moved: (label) => `Moved to ${label}`,
+  movedGeneric: 'Task moved',
   assigned: (name) => `${name} assigned you to this task`,
-  deadline: (d) => (d === 1 ? 'Deadline tomorrow' : `Deadline in ${d} days`),
+  deadline: (d) => (d === 1 ? 'Due tomorrow' : `Due in ${d} days`),
   urgent: 'Urgent: still open',
   bucket: (l) => {
     switch (l.kind) {
@@ -45,8 +47,9 @@ function skMessages(n: number): string {
 const sk: Texts = {
   sentFile: (name) => `${name} poslal(a) súbor`,
   moved: (label) => `Presunuté do ${label}`,
+  movedGeneric: 'Úloha presunutá',
   assigned: (name) => `${name} vás priradil(a) k úlohe`,
-  deadline: (d) => (d === 1 ? 'Termín zajtra' : `Termín o ${d} dni`),
+  deadline: (d) => (d === 1 ? 'Termín zajtra' : d <= 4 ? `Termín o ${d} dni` : `Termín o ${d} dní`),
   urgent: 'Urgentné: stále otvorené',
   bucket: (l) => {
     switch (l.kind) {
