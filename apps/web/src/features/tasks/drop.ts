@@ -5,6 +5,7 @@ import type { BoardDto, BucketDto, BucketPatch, TaskDto, TaskMove } from '@spolu
 import { ApiError } from '@/lib/api';
 import { boardQuery, moveTask, updateBucket } from './api';
 import { byPosition, removeTask, showBoardNotice, upsertTask } from './board-cache';
+import { doneTarget } from './board-model';
 import type { DragData } from './dnd-announcements';
 
 /**
@@ -72,8 +73,7 @@ export function computeDoneToggle(
   buckets: BucketDto[],
   task: TaskDto,
 ): TaskDrop | null {
-  const current = buckets.find((b) => b.id === task.bucketId);
-  const target = buckets.find((b) => b.kind === (current?.kind === 'done' ? 'todo' : 'done'));
+  const target = doneTarget(buckets, task.bucketId);
   if (!target) return null;
   const first = columns.get(target.id)?.[0];
   return {

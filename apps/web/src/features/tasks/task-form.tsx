@@ -4,6 +4,7 @@ import { TaskDraftSchema, type FileInfo, type TaskDraft, type TaskPerson } from 
 import { i18n } from '@/i18n';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { cn } from '@/lib/utils';
 import { AssigneeSelect } from './assignee-select';
 import { DescriptionField } from './description-field';
 import { TaskFilesField } from './task-files-field';
@@ -52,6 +53,12 @@ export function validateTaskDraft(value: TaskDraft): TaskFormErrors {
   }
   return errors;
 }
+
+/**
+ * One field: label above, control, message. The 10 px gap is egrant.sk's and leaves the 5 px focus
+ * ring (2 px outline, 3 px offset) clear of the label.
+ */
+const FIELD = 'flex flex-col gap-2.5';
 
 function FieldError({ id, message }: { id: string; message?: string }) {
   if (!message) return null;
@@ -110,7 +117,7 @@ export function TaskForm({
         </p>
       )}
 
-      <div className="space-y-1.5">
+      <div className={FIELD}>
         <Label htmlFor={id('title')}>{t('tasks.form.title')}</Label>
         <Input
           id={id('title')}
@@ -124,7 +131,7 @@ export function TaskForm({
         <FieldError id={id('title-error')} message={errors.title} />
       </div>
 
-      <div className="space-y-1.5">
+      <div className={FIELD}>
         <DescriptionField
           id={id('description')}
           groupId={groupId}
@@ -136,7 +143,7 @@ export function TaskForm({
         <FieldError id={id('description-error')} message={errors.description} />
       </div>
 
-      <div className="space-y-1.5">
+      <div className={FIELD}>
         <Label htmlFor={id('assignees')}>{t('tasks.form.assignees')}</Label>
         <AssigneeSelect
           groupId={groupId}
@@ -150,7 +157,7 @@ export function TaskForm({
         <FieldError id={id('assigneeIds-error')} message={errors.assigneeIds} />
       </div>
 
-      <div className="flex flex-col gap-1.5 min-[641px]:items-start">
+      <div className={cn(FIELD, 'min-[641px]:items-start')}>
         <Label htmlFor={id('deadline')}>{t('tasks.form.deadline')}</Label>
         <Input
           id={id('deadline')}
@@ -163,7 +170,7 @@ export function TaskForm({
 
       <UrgentSwitch checked={value.urgent} onChange={(urgent) => set({ urgent })} />
 
-      <div className="space-y-1.5">
+      <div className={FIELD}>
         <Label id={id('files-label')}>{t('tasks.form.files')}</Label>
         <TaskFilesField
           groupId={groupId}

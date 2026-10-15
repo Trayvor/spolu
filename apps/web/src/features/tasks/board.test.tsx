@@ -317,6 +317,13 @@ describe('Board', () => {
       expect(within(columns[0]!).getByText('Task t1')).not.toHaveClass('line-through');
     });
 
+    it('is described by the card title', async () => {
+      board.tasks = [task('t1', 'b-todo')];
+      renderBoard();
+      const circle = await screen.findByRole('button', { name: 'Mark as done' });
+      expect(circle).toHaveAccessibleDescription('Task t1');
+    });
+
     it('checking moves the task to the top of Completed through the move endpoint', async () => {
       board.tasks = [task('t1', 'b-todo'), task('t3', 'b-done', { position: 'a0' })];
       const user = renderBoard();
@@ -436,6 +443,36 @@ describe('Board', () => {
       await waitFor(() => expect(screen.queryByText('Task t1')).not.toBeInTheDocument());
       expect(queryClient.getQueryData<BoardDto>(KEY)!.tasks).toEqual([]);
     });
+  });
+
+  it('reorders a fixed bucket with the keyboard: Space, ArrowRight, Space sends the PATCH', async () => {
+    // jsdom has no layout: give each column a 288 px box side by side, everything else none.
+    const rect = vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function (
+      this: Element,
+    ) {
+      const section = this.closest('[data-bucket-id]');
+      if (!section || section !== this) return new DOMRect(0, 0, 0, 0);
+      const index = [...document.querySelectorAll('[data-bucket-id]')].indexOf(section);
+      return new DOMRect(index * 300, 0, 288, 400);
+    });
+    try {
+      const user = renderBoard();
+      await screen.findAllByRole('region');
+      screen.getByRole('button', { name: 'Move To do' }).focus();
+      await user.keyboard(' ');
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      await user.keyboard('{ArrowRight}');
+      await user.keyboard(' ');
+      await waitFor(() => {
+        const patch = writes().find(([url]) => url === '/api/buckets/b-todo');
+        expect(patch).toBeDefined();
+        expect(JSON.parse((patch![1] as RequestInit).body as string)).toEqual({
+          afterBucketId: 'b-custom',
+        });
+      });
+    } finally {
+      rect.mockRestore();
+    }
   });
 
   describe('bucket drop', () => {

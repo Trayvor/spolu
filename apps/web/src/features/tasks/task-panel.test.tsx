@@ -273,6 +273,9 @@ describe('TaskPanel', () => {
       await within(panel).findByRole('button', { name: t('tasks.card.markNotDone') }),
     ).toBeInTheDocument();
     expect(within(panel).getByRole('heading', { name: 'Task t1' })).toHaveClass('line-through');
+    expect(
+      within(panel).getByRole('button', { name: t('tasks.card.markNotDone') }),
+    ).toHaveAccessibleDescription('Task t1');
   });
 
   it('shows Delete to admins and the creator, not to other clients', async () => {
@@ -451,5 +454,49 @@ describe('TaskPanel in create mode', () => {
     await waitFor(() => expect(router.state.location.pathname).toBe('/groups/g1/tasks'));
     expect(screen.queryByText(t('tasks.panel.unsaved'))).toBeNull();
     expect(calls('POST', '/api/groups/g1/tasks')).toHaveLength(0);
+  });
+});
+
+describe('TaskPanel scroll lock', () => {
+  let listeners: ((event: { matches: boolean }) => void)[];
+  let query: { matches: boolean };
+  const original = window.matchMedia;
+
+  beforeEach(() => {
+    listeners = [];
+    query = { matches: true };
+    window.matchMedia = vi.fn(() => ({
+      get matches() {
+        return query.matches;
+      },
+      addEventListener: (_: string, fn: (event: { matches: boolean }) => void) =>
+        listeners.push(fn),
+      removeEventListener: (_: string, fn: (event: { matches: boolean }) => void) => {
+        listeners = listeners.filter((l) => l !== fn);
+      },
+    })) as unknown as typeof window.matchMedia;
+  });
+  afterEach(() => {
+    window.matchMedia = original;
+    document.documentElement.style.overflow = '';
+  });
+  const change = (matches: boolean) =>
+    act(() => {
+      query.matches = matches;
+      listeners.forEach((fn) => fn({ matches }));
+    });
+
+  it('locks the page while the panel covers it, follows the media query and restores on close', async () => {
+    const { user, router } = renderPanel();
+    await titleField();
+    expect(document.documentElement.style.overflow).toBe('hidden');
+    change(false); // wider than 1024 px: the board stays usable
+    expect(document.documentElement.style.overflow).toBe('');
+    change(true);
+    expect(document.documentElement.style.overflow).toBe('hidden');
+    await user.click(screen.getByRole('button', { name: t('tasks.panel.close') }));
+    await waitFor(() => expect(router.state.location.pathname).toBe('/groups/g1/tasks'));
+    expect(document.documentElement.style.overflow).toBe('');
+    expect(listeners).toHaveLength(0);
   });
 });

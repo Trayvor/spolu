@@ -27,7 +27,7 @@ import { getSocket } from '@/lib/socket';
 import { cn } from '@/lib/utils';
 import { boardQuery, deleteTask, moveTask, taskQuery, updateTask } from './api';
 import { removeTask, showBoardNotice, upsertTask } from './board-cache';
-import { tasksByBucket } from './board-model';
+import { doneTarget, tasksByBucket } from './board-model';
 import { formatCreated } from './dates';
 import { DoneCircle } from './done-circle';
 import { MoreIcon } from './icons';
@@ -292,8 +292,7 @@ function TaskEditor({
 
   /** The done circle: to the top of Completed, or back to the top of To do. */
   function toggleDone() {
-    const kind = bucketOf?.kind === 'done' ? 'todo' : 'done';
-    const target = board?.buckets.find((b) => b.kind === kind);
+    const target = board && bucketOf && doneTarget(board.buckets, bucketOf.id);
     if (target) void onBucket(target.id, 'top');
   }
 
@@ -392,9 +391,11 @@ function TaskEditor({
             done={bucketOf?.kind === 'done'}
             disabled={!bucketOf || moving}
             onToggle={toggleDone}
+            describedBy="task-panel-title"
             className="mt-[5px]"
           />
           <h2
+            id="task-panel-title"
             ref={heading}
             tabIndex={-1}
             className={cn(

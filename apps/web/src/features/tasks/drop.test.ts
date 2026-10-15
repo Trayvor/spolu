@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { BucketDto, TaskDto } from '@spolu/shared';
 import { boardCollisions, computeBucketDrop, computeTaskDrop, resolveColumnHit } from './drop';
+import { doneTarget } from './board-model';
 
 const task = (id: string, bucketId: string, position: string): TaskDto => ({
   id,
@@ -240,5 +241,13 @@ describe('boardCollisions', () => {
   it('keyboard: the list above the first card keeps the card first', () => {
     // ArrowUp from t1 moves the rectangle to the list's top edge; no pointer.
     expect(over(null, 100)).toBe('t1');
+  });
+});
+
+describe('doneTarget', () => {
+  it('is Completed for any other bucket and To do for Completed', () => {
+    expect(doneTarget(buckets(), 'mine')?.id).toBe('done');
+    expect(doneTarget(buckets(), 'todo')?.id).toBe('done');
+    expect(doneTarget(buckets(), 'done')?.id).toBe('todo');
   });
 });

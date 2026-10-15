@@ -12,6 +12,7 @@ export function DoneCircle({
   disabled,
   className,
   inert,
+  describedBy,
 }: {
   done: boolean;
   onToggle?: () => void;
@@ -19,6 +20,8 @@ export function DoneCircle({
   className?: string;
   /** A picture only (the lifted copy of a dragged card): not focusable, not announced. */
   inert?: boolean;
+  /** Id of the task title, so the control says which task it marks. */
+  describedBy?: string;
 }) {
   const { t } = useTranslation();
   return (
@@ -26,6 +29,7 @@ export function DoneCircle({
       type="button"
       aria-label={inert ? undefined : t(done ? 'tasks.card.markNotDone' : 'tasks.card.markDone')}
       aria-hidden={inert || undefined}
+      aria-describedby={inert ? undefined : describedBy}
       tabIndex={inert ? -1 : undefined}
       title={inert ? undefined : t(done ? 'tasks.card.markNotDone' : 'tasks.card.markDone')}
       data-checked={done}

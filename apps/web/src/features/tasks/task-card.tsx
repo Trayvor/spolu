@@ -41,6 +41,7 @@ export function TaskCard({
   const extra = task.assignees.length - shown.length;
   const overdue = isOverdue(task.dueDate, bucketKind, today);
   const done = bucketKind === 'done';
+  const titleId = `task-title-${task.id}`;
   const hasMeta = task.assignees.length > 0 || task.dueDate !== null || task.fileCount > 0;
 
   // The circle is a sibling of the link (no button inside a link), laid over its left padding
@@ -64,6 +65,7 @@ export function TaskCard({
       >
         {task.urgent && <Badge variant="destructive">{t('tasks.card.urgent')}</Badge>}
         <span
+          id={lifted ? undefined : titleId}
           className={cn(
             'line-clamp-3 break-words text-button font-semibold',
             done && 'text-muted-foreground line-through',
@@ -116,6 +118,7 @@ export function TaskCard({
         done={done}
         onToggle={onToggleDone}
         inert={lifted !== undefined}
+        describedBy={titleId}
         className={cn('absolute left-3', task.urgent ? 'top-11' : 'top-3')}
       />
     </div>

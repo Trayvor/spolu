@@ -1,4 +1,12 @@
-import { useLayoutEffect, useRef, useState, type FocusEvent, type KeyboardEvent } from 'react';
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type FocusEvent,
+  type KeyboardEvent,
+  type MouseEvent,
+} from 'react';
 import { useTranslation } from 'react-i18next';
 import { applyFormat, type FormatKind } from '@/features/chat/composer-text';
 import { MessageBody } from '@/features/chat/format/render';
@@ -37,6 +45,11 @@ export function DescriptionField({
   const textarea = useRef<HTMLTextAreaElement>(null);
   const focusNext = useRef(false);
   const pendingSelection = useRef<[number, number] | null>(null);
+  // Read by the deferred blur check, which runs after the render it was scheduled in.
+  const latest = useRef({ value, error });
+  useEffect(() => {
+    latest.current = { value, error };
+  });
 
   // Restore the selection after a toolbar edit, then grow the field with its text.
   useLayoutEffect(() => {
@@ -70,10 +83,22 @@ export function DescriptionField({
     format(kind);
   }
 
-  // Focus moving out of the box (not to its toolbar) shows a filled description rendered.
+  // Focus leaving the box shows a filled description rendered. Decided a tick later, from where
+  // the focus is then: Safari does not focus a clicked button, so its blur has no related target
+  // even when the click goes to the toolbar (which hands the focus back to the textarea).
   function onBlur(e: FocusEvent<HTMLDivElement>) {
-    if (e.currentTarget.contains(e.relatedTarget as Node | null)) return;
-    if (value.trim() !== '' && !error) setEditing(false);
+    const box = e.currentTarget;
+    if (box.contains(e.relatedTarget as Node | null)) return;
+    setTimeout(() => {
+      if (box.isConnected && !box.contains(document.activeElement)) {
+        if (latest.current.value.trim() !== '' && !latest.current.error) setEditing(false);
+      }
+    }, 0);
+  }
+
+  // A press on a toolbar button must not take the focus (and the selection) from the textarea.
+  function keepFocus(e: MouseEvent<HTMLDivElement>) {
+    if ((e.target as HTMLElement).closest('button')) e.preventDefault();
   }
 
   function edit() {
@@ -82,7 +107,7 @@ export function DescriptionField({
   }
 
   return (
-    <div className="space-y-1.5">
+    <div className="flex flex-col gap-2.5">
       <div className="flex min-h-6 items-center justify-between gap-2">
         {editing ? (
           <Label htmlFor={id}>{t('tasks.form.description')}</Label>
@@ -103,7 +128,9 @@ export function DescriptionField({
             error && 'border-destructive',
           )}
         >
-          <FormatToolbar onFormat={format} />
+          <div onMouseDown={keepFocus}>
+            <FormatToolbar onFormat={format} />
+          </div>
           <textarea
             ref={textarea}
             id={id}

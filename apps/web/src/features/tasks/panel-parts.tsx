@@ -42,13 +42,19 @@ export function PanelShell({
   }, [taskId]);
 
   // Below 1024 px the panel covers the screen: the page behind must not scroll under a finger.
+  // Follows the media query (a rotated tablet), and gives the page back on close.
   useEffect(() => {
     if (typeof window.matchMedia !== 'function') return;
-    if (!window.matchMedia('(max-width: 1023px)').matches) return;
+    const covering = window.matchMedia('(max-width: 1023px)');
     const root = document.documentElement;
     const before = root.style.overflow;
-    root.style.overflow = 'hidden';
+    const apply = () => {
+      root.style.overflow = covering.matches ? 'hidden' : before;
+    };
+    apply();
+    covering.addEventListener('change', apply);
     return () => {
+      covering.removeEventListener('change', apply);
       root.style.overflow = before;
     };
   }, []);
