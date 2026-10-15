@@ -16,7 +16,7 @@ import { recordNotifications } from '../notifications/service.js';
 import { isUniqueViolation } from '../users/service.js';
 import { selectMessages, toMessageDtos, type MessageRow } from './dto.js';
 import { messageAttachments, messageMentions, messages } from './schema.js';
-import { getChannel, nextSeq, type ChannelRow } from './service.js';
+import { getChannel, nextSeq, recordReplyReads, type ChannelRow } from './service.js';
 
 const EXCERPT_LENGTH = 140;
 
@@ -95,18 +95,24 @@ async function checkThread(db: Db, channelId: string, data: SendMessageInput): P
  * mentions, attachments, the parent's reply count and the notification events (never for the
  * author). A repeated `clientId` of the same author returns the stored message with
  * `created: false` and writes nothing; `parent` is then null. `parent` is the updated root of a
- * new reply, for the caller to push.
+ * new reply, for the caller to push; `threadPeople` are the people of its thread still in the
+ * group, without the author (the reply counts as unread for them).
  */
 export async function sendMessage(
   deps: AppDeps,
   input: { channel: ChannelRow; author: SessionUser; data: SendMessageInput },
-): Promise<{ message: MessageDto; parent: MessageDto | null; created: boolean }> {
+): Promise<{
+  message: MessageDto;
+  parent: MessageDto | null;
+  created: boolean;
+  threadPeople: string[];
+}> {
   const { db } = deps;
   const { channel, author, data } = input;
   const groupId = channel.groupId;
 
   const existing = await findByClientId(db, channel, author.id, data.clientId);
-  if (existing) return { message: existing, parent: null, created: false };
+  if (existing) return { message: existing, parent: null, created: false, threadPeople: [] };
 
   await checkThread(db, channel.id, data);
 
@@ -119,6 +125,7 @@ export async function sendMessage(
   const parentId = data.parentId ?? null;
   const fileIds = data.fileIds ?? [];
   const others = (ids: Iterable<string>) => [...ids].filter((id) => id !== author.id);
+  let threadPeople: string[] = [];
 
   try {
     await db.transaction(async (tx) => {
@@ -149,7 +156,6 @@ export async function sendMessage(
           .values(fileIds.map((fileId, position) => ({ messageId, fileId, position })));
       }
 
-      let threadPeople: string[] = [];
       if (parentId !== null) {
         const [root] = await tx
           .update(messages)
@@ -160,7 +166,7 @@ export async function sendMessage(
             changeSeq: seq,
           })
           .where(eq(messages.id, parentId))
-          .returning({ authorId: messages.authorId });
+          .returning({ authorId: messages.authorId, createdAt: messages.createdAt });
         // checkThread found the root; messages are only soft-deleted, so the row still exists.
         const repliers = await tx
           .selectDistinct({ authorId: messages.authorId })
@@ -172,7 +178,20 @@ export async function sendMessage(
               sql`${messages.id} <> ${messageId}`,
             ),
           );
-        threadPeople = [root!.authorId, ...repliers.map((r) => r.authorId)];
+        // Only people who still belong to the group hear about the thread.
+        threadPeople = others(new Set([root!.authorId, ...repliers.map((r) => r.authorId)])).filter(
+          (id) => nameById.has(id),
+        );
+        await recordReplyReads(
+          tx,
+          {
+            channelId: channel.id,
+            rootId: parentId,
+            authorId: author.id,
+            createdAt: row!.createdAt,
+          },
+          root!,
+        );
       }
 
       const payload = {
@@ -188,19 +207,14 @@ export async function sendMessage(
       // Replies only notify the thread; the channel hears about top-level messages.
       if (parentId === null) await notify('chat.message', everyone);
       await notify('chat.mention', mentions.all ? everyone : mentions.userIds);
-      // Only people who still belong to the group hear about the thread.
-      if (parentId !== null)
-        await notify(
-          'chat.thread_reply',
-          threadPeople.filter((id) => nameById.has(id)),
-        );
+      if (parentId !== null) await notify('chat.thread_reply', threadPeople);
     });
   } catch (error) {
     if (!isUniqueViolation(error)) throw error;
     // A concurrent send with the same clientId won the unique index.
     const winner = await findByClientId(db, channel, author.id, data.clientId);
     if (!winner) throw error;
-    return { message: winner, parent: null, created: false };
+    return { message: winner, parent: null, created: false, threadPeople: [] };
   }
 
   const ids = parentId === null ? [messageId] : [messageId, parentId];
@@ -208,7 +222,7 @@ export async function sendMessage(
   const dtos = await toMessageDtos(db, groupId, rows);
   const message = dtos.find((m) => m.id === messageId)!;
   const parent = dtos.find((m) => m.id === parentId) ?? null;
-  return { message, parent, created: true };
+  return { message, parent, created: true, threadPeople };
 }
 
 export async function getMessage(db: Db, id: string): Promise<MessageRow | null> {

@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
-import { and, count, eq, sql } from 'drizzle-orm';
+import { and, eq, sql, type SQL } from 'drizzle-orm';
 import type { Db } from '../../infra/db/client.js';
-import { channels, messages, readStates } from './schema.js';
+import { channels, readStates, threadReadStates } from './schema.js';
 
 export type ChannelRow = typeof channels.$inferSelect;
 
@@ -60,28 +60,62 @@ export async function getLastReadAt(
   return row?.lastReadAt ?? null;
 }
 
-export async function unreadCount(db: Db, userId: string, channelId: string): Promise<number> {
-  const [row] = await db
-    .select({ n: count() })
-    .from(messages)
-    .leftJoin(
-      readStates,
-      and(eq(readStates.channelId, messages.channelId), eq(readStates.userId, userId)),
-    )
-    .where(
-      and(
-        eq(messages.channelId, channelId),
-        sql`${messages.parentId} is null`,
-        sql`${messages.deletedAt} is null`,
-        sql`${messages.authorId} <> ${userId}`,
-        sql`${messages.createdAt} > coalesce(${readStates.lastReadAt}, '-infinity'::timestamptz)`,
-      ),
-    );
-  return row?.n ?? 0;
-}
-
 /** Unread counts stop here: the UI shows "99+", so counting further would only cost time. */
 export const UNREAD_CAP = 100;
+
+/**
+ * The unread messages of channel `c` for the user, at most `UNREAD_CAP`: top-level messages by
+ * others after the channel's read mark (`rs`), plus replies by others after the thread's read
+ * mark in the threads the user is one of the people of. Only threads with a reply after the mark
+ * are looked at (`thread_read_states_unread_idx`); each part is then one index range per channel
+ * or thread (`messages_channel_parent_created_idx`).
+ */
+const unreadIn = (userId: string) => sql`
+  select count(*)::int as n
+  from (
+    (
+      select 1
+      from messages m
+      where m.channel_id = c.id
+        and m.parent_id is null
+        and m.deleted_at is null
+        and m.author_id <> ${userId}
+        and m.created_at > coalesce(rs.last_read_at, '-infinity'::timestamptz)
+      limit ${UNREAD_CAP}
+    )
+    union all
+    (
+      select 1
+      from thread_read_states t
+      join messages m
+        on m.channel_id = t.channel_id
+        and m.parent_id = t.root_id
+        and m.created_at > t.last_read_at
+      where t.user_id = ${userId}
+        and t.channel_id = c.id
+        and t.last_reply_at > t.last_read_at
+        and m.deleted_at is null
+        and m.author_id <> ${userId}
+      limit ${UNREAD_CAP}
+    )
+    limit ${UNREAD_CAP}
+  ) capped
+`;
+
+/** Counts per channel in one query: `c` is the channel, `rs` the user's read state of it. */
+const unreadPerChannel = (userId: string, where: SQL) => sql`
+  select c.id as channel_id, c.group_id, u.n
+  from channels c
+  left join read_states rs on rs.channel_id = c.id and rs.user_id = ${userId}
+  cross join lateral (${unreadIn(userId)}) u
+  where ${where}
+`;
+
+/** The channel's unread count for the user (at most `UNREAD_CAP`). */
+export async function unreadCount(db: Db, userId: string, channelId: string): Promise<number> {
+  const rows = await db.execute<{ n: number }>(unreadPerChannel(userId, sql`c.id = ${channelId}`));
+  return [...rows][0]?.n ?? 0;
+}
 
 /**
  * Unread counts per group in one query; groups without unread messages are absent. Each channel
@@ -92,26 +126,83 @@ export async function unreadByGroup(
   userId: string,
   onlyGroupId: string | null,
 ): Promise<Record<string, number>> {
+  const onlyGroup = onlyGroupId === null ? sql`` : sql`and c.group_id = ${onlyGroupId}`;
   const rows = await db.execute<{ group_id: string; n: number }>(sql`
-    select c.group_id, u.n
-    from channels c
-    left join read_states rs on rs.channel_id = c.id and rs.user_id = ${userId}
-    cross join lateral (
-      select count(*)::int as n
-      from (
-        select 1
-        from messages m
-        where m.channel_id = c.id
-          and m.parent_id is null
-          and m.deleted_at is null
-          and m.author_id <> ${userId}
-          and m.created_at > coalesce(rs.last_read_at, '-infinity'::timestamptz)
-        limit ${UNREAD_CAP}
-      ) capped
-    ) u
-    where c.kind = 'group'
-      and u.n > 0
-      ${onlyGroupId === null ? sql`` : sql`and c.group_id = ${onlyGroupId}`}
+    select group_id, n
+    from (${unreadPerChannel(userId, sql`c.kind = 'group' ${onlyGroup}`)}) per_channel
+    where n > 0
   `);
   return Object.fromEntries([...rows].map((r) => [r.group_id, r.n]));
+}
+
+/** The roots of the channel's threads with replies the user has not read (at most `UNREAD_CAP`). */
+export async function unreadThreads(db: Db, userId: string, channelId: string): Promise<string[]> {
+  const rows = await db.execute<{ root_id: string }>(sql`
+    select t.root_id
+    from thread_read_states t
+    where t.user_id = ${userId}
+      and t.channel_id = ${channelId}
+      and t.last_reply_at > t.last_read_at
+      and exists (
+        select 1
+        from messages m
+        where m.channel_id = t.channel_id
+          and m.parent_id = t.root_id
+          and m.created_at > t.last_read_at
+          and m.deleted_at is null
+          and m.author_id <> ${userId}
+      )
+    limit ${UNREAD_CAP}
+  `);
+  return [...rows].map((r) => r.root_id);
+}
+
+/**
+ * Marks the thread read up to now for one of its people; null (and nothing written) when the
+ * user is not one of them, so opening a thread never makes anyone follow it.
+ */
+export async function markThreadRead(db: Db, userId: string, rootId: string): Promise<Date | null> {
+  const [row] = await db
+    .update(threadReadStates)
+    .set({ lastReadAt: sql`greatest(${threadReadStates.lastReadAt}, now())` })
+    .where(and(eq(threadReadStates.rootId, rootId), eq(threadReadStates.userId, userId)))
+    .returning({ lastReadAt: threadReadStates.lastReadAt });
+  return row?.lastReadAt ?? null;
+}
+
+/**
+ * Records a new reply in the thread's read states (inside the send transaction): every person of
+ * the thread learns the new reply time, the replier has read the thread up to their reply, and
+ * the root author becomes one of its people with nothing read yet. Repliers before them already
+ * have a row (from their own reply).
+ */
+export async function recordReplyReads(
+  tx: Db,
+  reply: { channelId: string; rootId: string; authorId: string; createdAt: Date },
+  root: { authorId: string; createdAt: Date },
+): Promise<void> {
+  const replyAt = reply.createdAt.toISOString();
+  await tx
+    .update(threadReadStates)
+    .set({ lastReplyAt: sql`greatest(${threadReadStates.lastReplyAt}, ${replyAt}::timestamptz)` })
+    .where(eq(threadReadStates.rootId, reply.rootId));
+  const row = (userId: string, lastReadAt: Date) => ({
+    userId,
+    rootId: reply.rootId,
+    channelId: reply.channelId,
+    lastReadAt,
+    lastReplyAt: reply.createdAt,
+  });
+  const rows = [row(reply.authorId, reply.createdAt)];
+  if (root.authorId !== reply.authorId) rows.push(row(root.authorId, root.createdAt));
+  await tx
+    .insert(threadReadStates)
+    .values(rows)
+    .onConflictDoUpdate({
+      target: [threadReadStates.rootId, threadReadStates.userId],
+      set: {
+        lastReadAt: sql`greatest(${threadReadStates.lastReadAt}, excluded.last_read_at)`,
+        lastReplyAt: sql`greatest(${threadReadStates.lastReplyAt}, excluded.last_reply_at)`,
+      },
+    });
 }

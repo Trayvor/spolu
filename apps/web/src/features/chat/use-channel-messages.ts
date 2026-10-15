@@ -19,6 +19,7 @@ import {
   messageCursor,
   sendMessage,
   threadQuery,
+  unreadThreadsQuery,
 } from './api';
 import {
   initialWindow,
@@ -118,6 +119,7 @@ export function useChannelMessages(
       dispatch({ type: 'upsert', messages, local });
       const readUpTo = windowRef.current.lastReadAt;
       let unreadDeleted = false;
+      let replyDeleted = false;
       for (const m of messages) {
         if (!local) lastSeqRef.current = Math.max(lastSeqRef.current, m.changeSeq);
         const { queryKey } = threadQuery(m.parentId ?? m.id);
@@ -131,13 +133,18 @@ export function useChannelMessages(
         if (m.parentId === null && m.deletedAt !== null) {
           unreadDeleted ||= readUpTo === null || m.createdAt > readUpTo;
         }
+        // Whether it was unread for the reader only the server knows (replies are rarely deleted).
+        replyDeleted ||= m.parentId !== null && m.deletedAt !== null;
       }
       // The unread count would stay too high (the badge only counts up from events).
-      if (unreadDeleted) {
+      if (unreadDeleted || replyDeleted) {
         void queryClient.invalidateQueries({ queryKey: groupChatQuery(groupId).queryKey });
       }
+      if (replyDeleted) {
+        void queryClient.invalidateQueries({ queryKey: unreadThreadsQuery(channelId).queryKey });
+      }
     },
-    [queryClient, groupId],
+    [queryClient, groupId, channelId],
   );
   const apply = useCallback((incoming: MessageDto[]) => put(incoming, false), [put]);
 

@@ -16,7 +16,7 @@ import { requireUser } from '../auth/session.js';
 import { isAdmin } from '../users/policy.js';
 import { canReadGroup } from '../groups/policy.js';
 import { getGroup, getMembershipGroupId } from '../groups/service.js';
-import { emitMessage, emitRead } from './events.js';
+import { emitMessage, emitRead, emitThreadReply } from './events.js';
 import {
   EmptyMessageError,
   InvalidMentionError,
@@ -41,8 +41,10 @@ import {
   getChannel,
   getLastReadAt,
   markRead,
+  markThreadRead,
   unreadByGroup,
   unreadCount,
+  unreadThreads,
   type ChannelRow,
 } from './service.js';
 
@@ -173,7 +175,14 @@ export const chatRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { d
       const sent = await sendMessage(deps, { channel, author: actor, data: body.data });
       if (!sent.created) return reply.code(200).send(sent.message);
       emitMessage(app.io, channel.groupId, sent.message, true);
-      if (sent.parent) emitMessage(app.io, channel.groupId, sent.parent, false);
+      if (sent.parent) {
+        emitMessage(app.io, channel.groupId, sent.parent, false);
+        emitThreadReply(app.io, sent.threadPeople, {
+          groupId: channel.groupId,
+          channelId: channel.id,
+          rootId: sent.parent.id,
+        });
+      }
       return reply.code(201).send(sent.message);
     } catch (error) {
       if (error instanceof InvalidMentionError) {
@@ -243,6 +252,38 @@ export const chatRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { d
     });
     return reply.code(204).send();
   });
+
+  app.get<IdParams>(
+    '/channels/:id/unread-threads',
+    { preHandler: anyUser },
+    async (request, reply) => {
+      const channel = await readableChannel(request, reply, request.params.id);
+      if (!channel) return reply;
+      return unreadThreads(db, request.user!.id, channel.id);
+    },
+  );
+
+  // Opening a thread reads it; for someone who is not one of its people this changes nothing.
+  app.post<IdParams>(
+    '/messages/:id/thread/read',
+    { preHandler: anyUser },
+    async (request, reply) => {
+      const actor = request.user!;
+      const found = await readableMessage(request, reply, request.params.id);
+      if (!found) return reply;
+      const rootId = found.message.parentId ?? found.message.id;
+      const lastReadAt = await markThreadRead(db, actor.id, rootId);
+      if (lastReadAt) {
+        emitRead(app.io, actor.id, {
+          groupId: found.channel.groupId,
+          channelId: found.channel.id,
+          lastReadAt: lastReadAt.toISOString(),
+          rootId,
+        });
+      }
+      return reply.code(204).send();
+    },
+  );
 
   app.get('/chat/unread', { preHandler: anyUser }, async (request) => {
     const actor = request.user!;

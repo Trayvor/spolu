@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vite
 import { useState, type ReactNode } from 'react';
 import type { Changes, ChatMessageEvent, MessageDto, Thread } from '@spolu/shared';
 import { GroupRoomProvider } from '@/features/groups/use-group-room';
-import { chatUnreadQuery, groupChatQuery, threadQuery } from './api';
+import { chatUnreadQuery, groupChatQuery, threadQuery, unreadThreadsQuery } from './api';
 import { useChannelMessages } from './use-channel-messages';
 
 const socket = vi.hoisted(() => {
@@ -187,6 +187,24 @@ describe('useChannelMessages', () => {
     expect(cached?.replies.map((r) => r.id)).toEqual(['m4']);
     expect(cached?.root.replyCount).toBe(1);
     expect(result.current.window.messages[0]!.replyCount).toBe(1);
+  });
+
+  it('a deleted reply refreshes the unread count and the unread threads', async () => {
+    const { result, queryClient } = setup();
+    await waitFor(() => expect(result.current.window.loaded).toBe(true));
+    queryClient.setQueryData(unreadThreadsQuery('c1').queryKey, ['m1']);
+    queryClient.setQueryData(groupChatQuery('g1').queryKey, {
+      id: 'c1',
+      lastSeq: 3,
+      lastReadAt: null,
+      unread: 1,
+    });
+    act(() => socket.fire('chat:message', event(msg(4, { parentId: 'm1' }))));
+    expect(queryClient.getQueryState(groupChatQuery('g1').queryKey)?.isInvalidated).toBeFalsy();
+    const gone = msg(4, { parentId: 'm1', deletedAt: '2026-10-15T11:00:00.000Z', changeSeq: 5 });
+    act(() => socket.fire('chat:message', event(gone, { isNew: false })));
+    expect(queryClient.getQueryState(groupChatQuery('g1').queryKey)?.isInvalidated).toBe(true);
+    expect(queryClient.getQueryState(unreadThreadsQuery('c1').queryKey)?.isInvalidated).toBe(true);
   });
 
   it('reconnect fetches changes after the highest seq and applies an edit and a deletion without duplicates', async () => {

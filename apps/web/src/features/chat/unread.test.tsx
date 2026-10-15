@@ -134,6 +134,17 @@ describe('unread badges', () => {
     expect(screen.getByText('2')).toBeInTheDocument();
   });
 
+  it("a reply in one of the reader's threads increments it", async () => {
+    const { client } = renderBadge(1);
+    act(() => socket.fire('chat:thread-reply', { groupId: 'g1', channelId: 'c1', rootId: 'm0' }));
+    expect(await screen.findByText('2')).toBeInTheDocument();
+    act(() => {
+      socket.fire('chat:thread-reply', { groupId: 'g2', channelId: 'c1', rootId: 'm0' });
+      socket.fire('chat:thread-reply', { groupId: 'g1', channelId: 'c9', rootId: 'm0' });
+    });
+    expect(client.getQueryData(groupChatQuery('g1').queryKey)?.unread).toBe(2);
+  });
+
   it('chat:read clears it and refreshes the groups list counts', async () => {
     const { container, client } = renderBadge(3);
     client.setQueryData(chatUnreadQuery.queryKey, { g1: 3 });

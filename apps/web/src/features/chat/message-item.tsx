@@ -40,6 +40,8 @@ export interface MessageItemProps {
   onReply?: (message: MessageDto) => void;
   /** Main list: open this message's thread (toolbar and summary link). */
   onOpenThread?: (message: MessageDto) => void;
+  /** Main list: the thread has replies the reader has not read (a dot on "N replies"). */
+  unreadReplies?: boolean;
   onQuoteClick?: (messageId: string) => void;
   highlighted?: boolean;
   /** The message this one replies to (thread replies only). */
@@ -200,6 +202,7 @@ export const MessageItem = memo(function MessageItem({
   renderMessageFooter,
   onReply,
   onOpenThread,
+  unreadReplies = false,
   onQuoteClick,
   highlighted = false,
   quote,
@@ -308,8 +311,14 @@ export const MessageItem = memo(function MessageItem({
             type="button"
             onClick={() => onOpenThread(message)}
             data-thread-link=""
-            className="mt-1 block text-micro font-semibold text-brand-purple underline-offset-2 hover:underline"
+            className="mt-1 flex items-center gap-1.5 text-left text-micro font-semibold text-brand-purple underline-offset-2 hover:underline"
           >
+            {unreadReplies && (
+              <>
+                <span aria-hidden="true" className="size-2 shrink-0 rounded-full bg-brand-purple" />
+                <span className="sr-only">{t('chat.thread.unreadReplies')}</span>
+              </>
+            )}
             {t('chat.thread.summary', {
               count: message.replyCount,
               time: message.lastReplyAt ? formatTime(message.lastReplyAt, i18n.language) : '',

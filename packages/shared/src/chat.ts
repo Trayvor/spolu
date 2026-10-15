@@ -107,11 +107,19 @@ export type Changes = z.infer<typeof ChangesSchema>;
 export const ThreadSchema = z.object({ root: MessageSchema, replies: z.array(MessageSchema) });
 export type Thread = z.infer<typeof ThreadSchema>;
 
-/** Unread top-level message count per group id. */
+/** Unread message count per group id (top-level messages and replies in the reader's threads). */
 export const UnreadByGroupSchema = z.record(z.string(), z.number());
 export type UnreadByGroup = z.infer<typeof UnreadByGroupSchema>;
 
-export const ChatEvents = { message: 'chat:message', read: 'chat:read' } as const;
+/** The roots of a channel's threads with replies the reader has not read. */
+export const UnreadThreadsSchema = z.array(z.string());
+export type UnreadThreads = z.infer<typeof UnreadThreadsSchema>;
+
+export const ChatEvents = {
+  message: 'chat:message',
+  read: 'chat:read',
+  threadReply: 'chat:thread-reply',
+} as const;
 
 export interface ChatMessageEvent {
   groupId: string;
@@ -119,10 +127,18 @@ export interface ChatMessageEvent {
   message: MessageDto;
   isNew: boolean;
 }
+/** The channel (or, with `rootId`, one of its threads) is read up to `lastReadAt`. */
 export interface ChatReadEvent {
   groupId: string;
   channelId: string;
   lastReadAt: string;
+  rootId?: string;
+}
+/** To each person of the thread but the author: a new reply that counts as unread for them. */
+export interface ChatThreadReplyEvent {
+  groupId: string;
+  channelId: string;
+  rootId: string;
 }
 
 /** Global regexes: use them only with `matchAll`/`replace`, never `exec`/`test` (shared `lastIndex`). */

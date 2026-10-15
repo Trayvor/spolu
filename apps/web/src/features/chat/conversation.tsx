@@ -9,6 +9,7 @@ import { MessageList } from './message-list';
 import { HIGHLIGHT_MS, ThreadPanel } from './thread-panel';
 import { useChannelMessages } from './use-channel-messages';
 import { useChatSearch } from './use-chat-search';
+import { useUnreadThreads } from './use-unread-threads';
 
 export type { MessageAction } from './message-item';
 
@@ -76,6 +77,7 @@ export function Conversation({
   const { message: linked, thread: threadId, clearMessage, setThread } = search;
   const chat = useChannelMessages(channelId, { groupId, aroundMessageId: linked });
   const { window: win, markRead, jumpToLatest, send, around } = chat;
+  const unreadThreads = useUnreadThreads(channelId, groupId);
   const column = useRef<HTMLDivElement>(null);
   const visible = useDocumentVisible();
   // Below 1024 px an open thread covers the list.
@@ -112,6 +114,16 @@ export function Conversation({
     }, MARK_READ_DELAY_MS);
     return () => clearTimeout(timer);
   }, [unreadSeen, newest, markRead]);
+
+  // An open thread with unread replies is read while the page is visible (again when a new
+  // reply in it is announced).
+  const threadUnread = threadId !== undefined && unreadThreads.unread.has(threadId);
+  const markThreadRead = unreadThreads.markRead;
+  useEffect(() => {
+    if (!threadUnread || !visible || threadId === undefined) return;
+    // A failure is left alone: the dot stays and reopening the thread tries again.
+    markThreadRead(threadId).catch(() => undefined);
+  }, [threadUnread, visible, threadId, markThreadRead]);
 
   const onSend = useCallback(
     ({ body, fileIds }: { body: string; fileIds: string[] }) => {
@@ -180,6 +192,7 @@ export function Conversation({
             messageActions={messageActions}
             renderMessageFooter={renderMessageFooter}
             onOpenThread={openThread}
+            unreadThreads={unreadThreads.unread}
             onRetry={chat.retry}
             onAtBottomChange={setAtBottom}
             onMessageChanged={chat.applyLocal}
