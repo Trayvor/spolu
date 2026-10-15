@@ -2,6 +2,7 @@ import { queryOptions } from '@tanstack/react-query';
 import { z } from 'zod';
 import {
   GroupInputSchema,
+  GroupPersonListSchema,
   GroupSchema,
   GroupSummaryListSchema,
   MemberListSchema,
@@ -85,3 +86,10 @@ export async function restoreMember(groupId: string, userId: string): Promise<vo
     `/groups/${encodeURIComponent(groupId)}/members/${encodeURIComponent(userId)}/restore`,
   );
 }
+
+/** People of a group (members and admins) for mentions and assignees. Refetched with `['groups']`. */
+export const groupPeopleQuery = (groupId: string) =>
+  queryOptions({
+    queryKey: ['groups', groupId, 'people'],
+    queryFn: () => apiGet(`/groups/${encodeURIComponent(groupId)}/people`, GroupPersonListSchema),
+  });

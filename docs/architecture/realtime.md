@@ -28,6 +28,10 @@ These two events change no data; they only move the socket in and out of a room.
 
 Server code pushes into a group with `emitToGroup(io, groupId, event, payload)` from `rooms.ts`; call it after the transaction that made the change has committed.
 
+### Web hook
+
+`useGroupRoom(groupId)` (`features/groups/use-group-room.ts`) is called once by the group layout. It emits `group:join` when the socket is connected and on every `connect` event, and `group:leave` on unmount or when `groupId` changes. It returns a counter that is 0 until the first acknowledged join and grows by one after every acknowledged join (including the rejoin after a reconnect). A `not_found` ack does not count and is not retried until the next `connect`. The layout passes the counter to `GroupRoomProvider`; chat and board read it with `useGroupRoomJoins()` (0 outside a provider) and run their catch-up when it changes.
+
 ## Rooms
 
 | room | who joins | carries |
