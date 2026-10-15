@@ -23,6 +23,7 @@ export function testConfig(overrides: Partial<Config> = {}): Config {
       secure: false,
       from: 'Spolu <noreply@example.com>',
     },
+    ai: null,
     ...overrides,
   };
 }

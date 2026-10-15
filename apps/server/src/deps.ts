@@ -1,4 +1,6 @@
 import type { Config } from './infra/config/config.js';
+import { createAiProvider } from './modules/ai/index.js';
+import type { TaskSplitProvider } from './modules/ai/provider.js';
 import { authJobHandlers, AUTH_CLEANUP_JOB } from './modules/auth/jobs.js';
 import { filesJobHandlers, FILES_CLEANUP_JOB } from './modules/files/jobs.js';
 import { notificationsJobHandlers, NOTIFICATIONS_PURGE_JOB } from './modules/notifications/jobs.js';
@@ -14,6 +16,8 @@ export type AppDeps = {
   email: EmailSender;
   storage: Storage;
   jobs: JobQueue;
+  /** The AI task split provider; null when AI is off (no OpenAI key). */
+  ai: TaskSplitProvider | null;
 };
 
 /** Creates the real dependencies. `close` stops the jobs, then the database. */
@@ -38,7 +42,7 @@ export async function createDeps(
     ],
   );
   return {
-    deps: { config, db, email, storage, jobs: jobs.queue },
+    deps: { config, db, email, storage, jobs: jobs.queue, ai: createAiProvider(config.ai) },
     async close() {
       await jobs.stop();
       await closeDb();

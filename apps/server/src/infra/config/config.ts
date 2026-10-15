@@ -12,6 +12,10 @@ const base = {
   FILES_DIR: z.string().default('./data/files'),
   WEB_DIST_DIR: z.string().optional(),
   MAIL_FROM: z.string().min(1),
+  // `fake` is for local development and e2e only, never on a server.
+  AI_PROVIDER: z.enum(['openai', 'fake']).default('openai'),
+  OPENAI_API_KEY: z.string().min(1).optional(),
+  OPENAI_MODEL: z.string().min(1).default('gpt-5-mini'),
 };
 
 const EnvSchema = z.discriminatedUnion('EMAIL_DRIVER', [
@@ -65,6 +69,8 @@ export type Config = {
         from: string;
       }
     | { driver: 'elastic'; apiKey: string; from: string };
+  /** The task split provider; null when OpenAI is chosen but no key is set (AI is off). */
+  ai: { provider: 'openai'; apiKey: string; model: string } | { provider: 'fake' } | null;
 };
 
 export class ConfigError extends Error {
@@ -107,5 +113,11 @@ export function loadConfig(env: NodeJS.ProcessEnv): Config {
             from: e.MAIL_FROM,
           }
         : { driver: 'elastic', apiKey: e.ELASTIC_EMAIL_API_KEY, from: e.MAIL_FROM },
+    ai:
+      e.AI_PROVIDER === 'fake'
+        ? { provider: 'fake' }
+        : e.OPENAI_API_KEY === undefined
+          ? null
+          : { provider: 'openai', apiKey: e.OPENAI_API_KEY, model: e.OPENAI_MODEL },
   };
 }

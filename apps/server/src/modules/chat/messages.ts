@@ -1,7 +1,8 @@
 import { randomUUID } from 'node:crypto';
-import { and, eq, inArray, isNull, sql } from 'drizzle-orm';
+import { and, asc, eq, inArray, isNull, sql } from 'drizzle-orm';
 import {
   extractMentions,
+  type FileInfo,
   ID_RE,
   plainExcerpt,
   type ChatMessageTasksEvent,
@@ -14,7 +15,12 @@ import {
 import type { AppDeps } from '../../deps.js';
 import type { Db } from '../../infra/db/client.js';
 import { isUniqueViolation } from '../../infra/db/errors.js';
-import { attachFiles, deleteDetachedFiles, detachFiles } from '../files/service.js';
+import {
+  attachFiles,
+  deleteDetachedFiles,
+  detachFiles,
+  getFilesForGroup,
+} from '../files/service.js';
 import { getMembershipGroupId, listGroupPeople } from '../groups/service.js';
 import { recordNotifications } from '../notifications/service.js';
 import { listTasksForMessages } from '../tasks/service.js';
@@ -237,6 +243,24 @@ export async function sendMessage(
 export async function getMessage(db: Db, id: string): Promise<MessageRow | null> {
   const [row] = await db.select().from(messages).where(eq(messages.id, id));
   return row ?? null;
+}
+
+/** The files attached to a message, in their order (two queries; [] for a deleted message). */
+export async function getMessageFiles(
+  db: Db,
+  groupId: string,
+  messageId: string,
+): Promise<FileInfo[]> {
+  const rows = await db
+    .select({ fileId: messageAttachments.fileId })
+    .from(messageAttachments)
+    .where(eq(messageAttachments.messageId, messageId))
+    .orderBy(asc(messageAttachments.position));
+  return getFilesForGroup(
+    db,
+    groupId,
+    rows.map((r) => r.fileId),
+  );
 }
 
 // Same read-only exception as `selectMessages`: author and mentioned names come from `user`.

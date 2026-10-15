@@ -122,4 +122,29 @@ describe('loadConfig', () => {
       'The Boss',
     );
   });
+
+  it('has no AI without OPENAI_API_KEY and defaults the model to gpt-5-mini', () => {
+    expect(loadConfig(validEnv).ai).toBeNull();
+    expect(loadConfig({ ...validEnv, OPENAI_API_KEY: 'sk-test' }).ai).toEqual({
+      provider: 'openai',
+      apiKey: 'sk-test',
+      model: 'gpt-5-mini',
+    });
+    expect(
+      loadConfig({ ...validEnv, OPENAI_API_KEY: 'sk-test', OPENAI_MODEL: 'gpt-5' }).ai,
+    ).toMatchObject({ model: 'gpt-5' });
+  });
+
+  it('uses the fake provider when AI_PROVIDER=fake, key or not', () => {
+    expect(loadConfig({ ...validEnv, AI_PROVIDER: 'fake' }).ai).toEqual({ provider: 'fake' });
+    expect(loadConfig({ ...validEnv, AI_PROVIDER: 'fake', OPENAI_API_KEY: 'k' }).ai).toEqual({
+      provider: 'fake',
+    });
+  });
+
+  it('rejects an unknown AI_PROVIDER without echoing the key', () => {
+    const error = errorOf({ ...validEnv, AI_PROVIDER: 'claude', OPENAI_API_KEY: 'sk-secret' });
+    expect(error.message).toContain('AI_PROVIDER');
+    expect(error.message).not.toContain('sk-secret');
+  });
 });

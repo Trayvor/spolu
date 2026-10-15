@@ -5,6 +5,7 @@ import type { FastifyInstance } from 'fastify';
 import { buildApp } from '../src/app.js';
 import type { AppDeps } from '../src/deps.js';
 import type { Config } from '../src/infra/config/config.js';
+import type { TaskSplitProvider } from '../src/modules/ai/provider.js';
 import { filesJobHandlers } from '../src/modules/files/jobs.js';
 import { notificationsJobHandlers } from '../src/modules/notifications/jobs.js';
 import { createDb } from '../src/infra/db/client.js';
@@ -13,9 +14,12 @@ import { createInlineJobs } from '../src/infra/jobs/inline-jobs.js';
 import { createDiskStorage } from '../src/infra/storage/index.js';
 import { testConfig } from './test-config.js';
 
-/** A full app on the test database: SMTP to Mailpit, temp-dir storage, jobs run inline. */
+/**
+ * A full app on the test database: SMTP to Mailpit, temp-dir storage, jobs run inline, no AI
+ * unless `overrides.ai` gives a provider.
+ */
 export async function buildTestApp(
-  overrides: { config?: Partial<Config> } = {},
+  overrides: { config?: Partial<Config>; ai?: TaskSplitProvider | null } = {},
 ): Promise<{ app: FastifyInstance; deps: AppDeps; close(): Promise<void> }> {
   const config = testConfig(overrides.config);
   const { db, close: closeDb } = createDb(config.databaseUrl);
@@ -32,6 +36,7 @@ export async function buildTestApp(
       ...filesJobHandlers({ db, storage }),
       ...notificationsJobHandlers(db),
     }),
+    ai: overrides.ai ?? null,
   };
   const app = await buildApp(deps, { logger: false }); // quiet even with nodeEnv 'production'
   return {

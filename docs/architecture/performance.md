@@ -27,7 +27,7 @@ Spolu must feel instant: faster than Microsoft Teams on a cheap phone over mobil
 - No N+1: load related rows with one join or one `in (...)` query, not one query per row.
 - Endpoints return only the fields the screen needs, and every list endpoint is paginated.
 - Realtime events carry small payloads (ids and changed fields) and go only to the rooms that need them.
-- Slow work (emails, file processing, AI calls) runs in pg-boss jobs, never inside the request.
+- Slow work (emails, file processing) runs in pg-boss jobs, never inside the request. One exception: the AI task split (`POST /api/messages/:id/task-split`) calls OpenAI inside the request, because the user waits on the review screen for the answer; the call has a 30 s timeout, no retry, and holds no database transaction or connection while it waits.
 
 ## Bundle budget
 
