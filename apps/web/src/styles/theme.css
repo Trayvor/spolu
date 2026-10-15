@@ -166,6 +166,23 @@
     line-height: 1.25;
   }
 
+  /* Tailwind v4 preflight sets `cursor: default` on buttons; restore the hand. */
+  button:not(:disabled),
+  [role='button']:not([aria-disabled='true']),
+  [role='menuitem']:not([aria-disabled='true']),
+  [role='menuitemradio']:not([aria-disabled='true']),
+  [role='menuitemcheckbox']:not([aria-disabled='true']),
+  summary,
+  label[for],
+  input[type='file']:not(:disabled) {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  [aria-disabled='true'] {
+    cursor: not-allowed;
+  }
+
   h1,
   h2,
   h3,
