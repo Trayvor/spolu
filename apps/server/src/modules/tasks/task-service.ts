@@ -296,7 +296,8 @@ export async function createTasksFromMessage(
         urgent: draft.urgent,
         completedAt: null,
         sourceMessageId: source.id,
-        // Distinct and in input order, so "newest first" lists keep the order shown.
+        // Distinct, ascending in input order: the first card is the oldest (a newest-first list
+        // shows them reversed; the board orders by position, not by this).
         createdAt: new Date(now + index),
         updatedAt: new Date(now + index),
       }));

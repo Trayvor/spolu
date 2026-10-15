@@ -851,6 +851,27 @@ describe('createTasksFromMessage', () => {
     expect(await countFiles(group.id)).toBe(before);
   });
 
+  it('a review upload on two cards → InvalidAttachmentError; no tasks and no copies', async () => {
+    const { group, admin, file, m } = await setup();
+    const own = await upload(group.id, admin, 'own.txt');
+    const before = await countFiles(group.id);
+    await expect(
+      createTasksFromMessage(
+        deps,
+        admin,
+        group.id,
+        input(m.id, [
+          { title: 'A', fileIds: [own.id], messageFileIds: [file.id] },
+          { title: 'B', fileIds: [own.id] },
+        ]),
+        { id: m.id, fileIds: [file.id] },
+      ),
+    ).rejects.toBeInstanceOf(InvalidAttachmentError);
+    expect(await todoTitles(group.id)).toEqual(['Existing']);
+    expect(await countFiles(group.id)).toBe(before);
+    expect((await getFile(db, own.id))!.attachedAt).toBeNull();
+  });
+
   it('rejects a file that is not on the message, before copying anything', async () => {
     const { group, admin, ana, file, m } = await setup();
     const loose = await upload(group.id, ana, 'loose.txt');

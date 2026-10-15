@@ -115,13 +115,15 @@ export const taskRoutes: FastifyPluginAsync<TaskRoutesOptions> = async (
     const body = TaskCreateSchema.safeParse(request.body);
     if (!body.success) return invalidBody(reply, body.error);
     if (!(await canOpenGroup(actor, request.params.id))) return notFound(reply);
+    let task;
     try {
-      const task = await createTask(deps, actor, request.params.id, body.data);
-      emitTask(app.io, toTaskDto(task), person(actor));
-      return reply.code(201).send(task);
+      task = await createTask(deps, actor, request.params.id, body.data);
     } catch (error) {
       return writeError(reply, error);
     }
+    // After the commit, outside the try: nothing here may be mapped as a failed write.
+    emitTask(app.io, toTaskDto(task), person(actor));
+    return reply.code(201).send(task);
   });
 
   /**
@@ -146,15 +148,17 @@ export const taskRoutes: FastifyPluginAsync<TaskRoutesOptions> = async (
         id: messageId,
         fileIds: (await getMessageFiles(db, groupId, messageId)).map((f) => f.id),
       };
+      let created;
       try {
-        const created = await createTasksFromMessage(deps, actor, groupId, body.data, source);
-        for (const task of created) emitTask(app.io, toTaskDto(task), person(actor));
-        await pushMessageTasks(request, messageId);
-        const result: TasksFromMessageResult = { tasks: created };
-        return reply.code(201).send(result);
+        created = await createTasksFromMessage(deps, actor, groupId, body.data, source);
       } catch (error) {
         return writeError(reply, error);
       }
+      // After the commit, outside the try: nothing here may be mapped as a failed write.
+      for (const task of created) emitTask(app.io, toTaskDto(task), person(actor));
+      await pushMessageTasks(request, messageId);
+      const result: TasksFromMessageResult = { tasks: created };
+      return reply.code(201).send(result);
     },
   );
 
