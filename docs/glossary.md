@@ -10,9 +10,11 @@ Terms used across the docs and code, in alphabetical order.
 - **client**: a person from a customer organization. Sees only their own group.
 - **contract**: a record of an agreement with a client (dates, amount, files, notes). Admin-only.
 - **draft contract**: the prepared next contract for a client, with the same fields as a contract.
+- **deactivated admin**: an admin who was removed. The row is kept with `disabled_at` set; the person cannot log in, gets no codes and loses open sessions and sockets. Adding the same email again reactivates them.
 - **egrant URL**: the address of a client's eGrant instance, saved on the group. Incoming tickets are matched to a group by it. It is normalized first (case, protocol, trailing slash and similar differences are removed) so that equal addresses compare equal.
 - **group**: one client organization with its own chat, task board, tickets and contracts.
 - **invite link**: a link an admin copies from a group. A client opens it, enters an email, gets a code and joins that group.
+- **login code**: the 6-digit one-time code sent by email to log in; valid 5 minutes, 3 tries. Also called OTP code.
 - **member**: a user who belongs to a group.
 - **mention**: tagging a user with @ in a message so they are notified.
 - **message**: one post in a channel. Can have attachments, a thread and mentions.
@@ -25,9 +27,9 @@ Terms used across the docs and code, in alphabetical order.
 - **reminder**: a scheduled notification to admins that a contract is about to need attention.
 - **room**: a Socket.IO room; users join rooms to receive live events for a group, DM or task channel.
 - **seq**: a per-channel increasing number on each message. Clients use it to find and load messages missed during a disconnect.
-- **session**: a long-lived login on one device, kept after the code is entered.
+- **session**: a long-lived login on one device, kept after the code is entered. A `session` row plus the httpOnly cookie `better-auth.session_token`; removing a user deletes their sessions.
 - **Spolu**: the product name (Slovak for "together"); full brand "Spolu by eGrant". Formerly the working title eHub.
-- **superadmin**: the first admin, created automatically at first start from `SUPERADMIN_EMAIL`. Cannot be deleted or demoted; creates other admins.
+- **superadmin**: the first admin, created automatically at start from `SUPERADMIN_EMAIL` (name from `SUPERADMIN_NAME`). Cannot be deleted or demoted; creates other admins.
 - **task**: a card on the task board with title, description, assignee, deadline, priority and labels.
 - **task chat**: the discussion inside one task, with threads, mentions and attachments.
 - **test environment**: the Oracle Cloud VM where Spolu is deployed for checks before real use; environment name `test`.
