@@ -15,7 +15,7 @@ Requirements per module: [product/](product/README.md). Phases after 1 get their
 | 6 | [Notifications](#phase-6--notifications) | planned | 9 | - |
 | 7 | [Direct messages](#phase-7--direct-messages) | planned | 5, 6 | - |
 | 8 | [Task board](#phase-8--task-board) | done (local) | 4 | [spec](superpowers/specs/2026-10-15-phase-8-task-board-design.md), [plan](superpowers/plans/2026-10-15-phase-8-task-board.md) |
-| 9 | [Task chat & message to tasks with AI](#phase-9--task-chat--message-to-tasks-with-ai) | planned | 5, 8 | - |
+| 9 | [Task chat & message to tasks with AI](#phase-9--task-chat--message-to-tasks-with-ai) | in progress | 5, 8 | [spec](superpowers/specs/2026-10-15-phase-9-task-chat-and-ai-design.md), [plan](superpowers/plans/2026-10-15-phase-9-task-chat-and-ai.md) |
 | 10 | [Message to task](#phase-10--message-to-task) | merged into 9 | - | - |
 | 11 | [AI split into tasks](#phase-11--ai-split-into-tasks) | merged into 9 | - | - |
 | 12 | [Tickets: intake from eGrant](#phase-12--tickets-intake-from-egrant) | planned | 3, 6 | - |
