@@ -8,6 +8,8 @@ import {
   redirect,
   type RouterHistory,
 } from '@tanstack/react-router';
+import { ApiError } from '@/lib/api';
+import { groupQuery } from '@/features/groups/api';
 import { safeRedirect } from '@/features/auth/redirect';
 import { isAdmin } from '@/features/auth/roles';
 import { sessionQuery } from '@/features/auth/use-session';
@@ -63,7 +65,16 @@ const groupsRoute = createRoute({
 const groupRoute = createRoute({
   getParentRoute: () => authedRoute,
   path: '/groups/$groupId',
-  component: lazyRouteComponent(() => import('@/routes/groups-placeholder'), 'GroupPage'),
+  // A group the visitor may not read answers 404: show the not-found page.
+  loader: async ({ context, params }) => {
+    try {
+      await context.queryClient.ensureQueryData(groupQuery(params.groupId));
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 404) throw notFound();
+      throw error;
+    }
+  },
+  component: lazyRouteComponent(() => import('@/features/groups/group-page'), 'GroupRoute'),
 });
 
 const welcomeRoute = createRoute({

@@ -21,7 +21,14 @@ function isHttpUrl(value: string): boolean {
   }
 }
 
-class LogoUploadError extends Error {}
+class LogoUploadError extends Error {
+  /** True when the file itself is at fault: a broken image (resize failed) or a 400 / 413 answer. */
+  readonly badFile: boolean;
+  constructor(cause: unknown) {
+    super('Logo upload failed');
+    this.badFile = !(cause instanceof ApiError) || cause.status === 400 || cause.status === 413;
+  }
+}
 
 /**
  * Inline create / edit form (no modal). Without `group` it creates one, then uploads the logo:
@@ -60,8 +67,8 @@ export function GroupForm({
       if (logoFile) {
         try {
           await uploadLogo(saved.id, await resizeImage(logoFile));
-        } catch {
-          throw new LogoUploadError();
+        } catch (error) {
+          throw new LogoUploadError(error);
         }
       } else if (removing && saved.hasLogo) {
         await removeLogo(saved.id);
@@ -75,13 +82,13 @@ export function GroupForm({
     onError: async (error) => {
       if (error instanceof LogoUploadError) {
         setLogoFile(null);
-        setLogoError(t('groups.errors.invalidLogo'));
+        if (error.badFile) setLogoError(t('groups.errors.invalidLogo'));
+        else setFormError(t('errors.generic'));
         await queryClient.invalidateQueries({ queryKey: ['groups'] });
       } else if (error instanceof ApiError && error.code === 'egrant_url_taken') {
         setUrlError(t('groups.errors.urlTaken'));
-      } else if (error instanceof ApiError && error.code === 'validation_failed') {
-        setUrlError(t('groups.errors.invalidUrl'));
       } else {
+        // Includes `validation_failed`: the client checks both fields first, so it does not say which.
         setFormError(t('errors.generic'));
       }
     },
@@ -117,6 +124,7 @@ export function GroupForm({
             id="group-name"
             autoComplete="off"
             autoFocus
+            maxLength={100}
             value={name}
             onChange={(e) => setName(e.target.value)}
             aria-invalid={nameError ? true : undefined}

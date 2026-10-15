@@ -1,8 +1,10 @@
 import { queryOptions } from '@tanstack/react-query';
+import { z } from 'zod';
 import {
   GroupInputSchema,
   GroupSchema,
   GroupSummaryListSchema,
+  MemberListSchema,
   type Group,
   type GroupInput,
 } from '@spolu/shared';
@@ -42,4 +44,44 @@ export function uploadLogo(id: string, blob: Blob): Promise<void> {
 
 export async function removeLogo(id: string): Promise<void> {
   await apiSend('DELETE', `/groups/${encodeURIComponent(id)}/logo`);
+}
+
+const InviteSchema = z.object({ inviteUrl: z.string() });
+
+/** A new invite link; the old one stops working at once. */
+export async function regenerateInvite(id: string): Promise<string> {
+  const { inviteUrl } = await apiSend(
+    'POST',
+    `/groups/${encodeURIComponent(id)}/invite`,
+    undefined,
+    InviteSchema,
+  );
+  return inviteUrl;
+}
+
+export const membersQuery = (id: string) =>
+  queryOptions({
+    queryKey: ['groups', id, 'members'],
+    queryFn: () => apiGet(`/groups/${encodeURIComponent(id)}/members`, MemberListSchema),
+  });
+
+/** Removed members (admins only). */
+export const removedMembersQuery = (id: string) =>
+  queryOptions({
+    queryKey: ['groups', id, 'removed'],
+    queryFn: () => apiGet(`/groups/${encodeURIComponent(id)}/members/removed`, MemberListSchema),
+  });
+
+export async function removeMember(groupId: string, userId: string): Promise<void> {
+  await apiSend(
+    'DELETE',
+    `/groups/${encodeURIComponent(groupId)}/members/${encodeURIComponent(userId)}`,
+  );
+}
+
+export async function restoreMember(groupId: string, userId: string): Promise<void> {
+  await apiSend(
+    'POST',
+    `/groups/${encodeURIComponent(groupId)}/members/${encodeURIComponent(userId)}/restore`,
+  );
 }

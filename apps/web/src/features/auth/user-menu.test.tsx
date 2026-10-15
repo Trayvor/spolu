@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { RouterProvider, createMemoryHistory } from '@tanstack/react-router';
@@ -271,6 +271,23 @@ describe('logged-in shell', () => {
       }
       expect(fake.disconnect).not.toHaveBeenCalled();
       expect(router.state.location.pathname).toBe('/settings');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('leaving the signed-in layout cancels a pending server_error reconnect', async () => {
+    mockApi();
+    renderAt();
+    await screen.findByRole('heading', { name: t('nav.settings') });
+
+    vi.useFakeTimers();
+    try {
+      act(() => fake.fire('connect_error', new Error('server_error'))); // timer armed: 1 s
+      cleanup(); // unmounts the app, and with it the layout
+      const connects = fake.connect.mock.calls.length;
+      act(() => vi.advanceTimersByTime(60_000));
+      expect(fake.connect).toHaveBeenCalledTimes(connects);
     } finally {
       vi.useRealTimers();
     }

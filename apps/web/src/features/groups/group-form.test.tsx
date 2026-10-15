@@ -141,6 +141,32 @@ describe('GroupForm', () => {
     expect(calls('POST /api/groups')).toHaveLength(1);
   });
 
+  it('a 500 on the logo upload shows the generic error, not invalidLogo', async () => {
+    vi.mocked(resizeImage).mockResolvedValue(new Blob(['small'], { type: 'image/webp' }));
+    mockApi({ 'PUT /api/groups/g1/logo': { status: 500, body: { error: 'server_error' } } });
+    const { user } = renderForm();
+    await user.type(screen.getByLabelText(t('groups.form.name')), 'Acme');
+    await user.type(screen.getByLabelText(t('groups.form.egrantUrl')), 'https://acme.egrant.sk');
+    await user.upload(
+      screen.getByLabelText(t('groups.form.logo')),
+      new File(['b'], 'l.png', { type: 'image/png' }),
+    );
+    await user.click(screen.getByRole('button', { name: t('groups.form.save') }));
+    expect(await screen.findByText(t('errors.generic'))).toBeInTheDocument();
+    expect(screen.queryByText(t('groups.errors.invalidLogo'))).toBeNull();
+  });
+
+  it('a validation_failed answer shows the generic error and the name is capped at 100', async () => {
+    mockApi({ 'POST /api/groups': { status: 400, body: { error: 'validation_failed' } } });
+    const { user } = renderForm();
+    expect(screen.getByLabelText(t('groups.form.name'))).toHaveAttribute('maxlength', '100');
+    await user.type(screen.getByLabelText(t('groups.form.name')), 'Acme');
+    await user.type(screen.getByLabelText(t('groups.form.egrantUrl')), 'https://acme.egrant.sk');
+    await user.click(screen.getByRole('button', { name: t('groups.form.save') }));
+    expect(await screen.findByText(t('errors.generic'))).toBeInTheDocument();
+    expect(screen.queryByText(t('groups.errors.invalidUrl'))).toBeNull();
+  });
+
   it('a logo that cannot be resized shows invalidLogo', async () => {
     vi.mocked(resizeImage).mockRejectedValue(new Error('bad'));
     mockApi();

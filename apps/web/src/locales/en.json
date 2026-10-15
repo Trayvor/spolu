@@ -83,6 +83,26 @@
     "generic": "Something went wrong. Try again.",
     "retry": "Try again"
   },
+  "group": {
+    "edit": "Edit",
+    "invite": {
+      "title": "Invite",
+      "copy": "Copy",
+      "copied": "Link copied.",
+      "regenerate": "Generate new link",
+      "confirm": "The old link will stop working. Generate a new one?",
+      "generate": "Generate"
+    },
+    "members": {
+      "title": "Members",
+      "empty": "No members yet. Send the invite link to the client.",
+      "remove": "Remove",
+      "confirmRemove": "Remove {{name}}? They lose access at once.",
+      "removedTitle": "Removed members ({{count}})",
+      "restore": "Restore",
+      "you": "You"
+    }
+  },
   "groups": {
     "title": "Groups",
     "create": "Create group",

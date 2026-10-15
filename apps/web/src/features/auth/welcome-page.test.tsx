@@ -37,6 +37,11 @@ function mockApi(me: Me | null, patchStatus = 200) {
           ? new Response(JSON.stringify(me), { status: 200 })
           : new Response('{}', { status: 401 });
       }
+      if (url === '/api/groups/g1') {
+        const group = { id: 'g1', name: 'Acme', egrantUrl: 'https://a.egrant.sk', hasLogo: false };
+        return new Response(JSON.stringify({ ...group, updatedAt: 'x' }), { status: 200 });
+      }
+      if (url === '/api/groups/g1/members') return new Response('[]', { status: 200 });
       return new Response('{}', { status: 404 });
     }),
   );
@@ -128,7 +133,7 @@ describe('home redirect', () => {
     mockApi(client('Jana'));
     const first = renderAt('/');
     await waitFor(() => expect(first.router.state.location.pathname).toBe('/groups/g1'));
-    expect(await screen.findByRole('heading', { name: t('groups.title') })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Acme' })).toBeInTheDocument();
 
     mockApi(admin);
     const second = renderAt('/');
