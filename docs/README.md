@@ -14,7 +14,7 @@ eHub is the eGrant team's internal web app for working with clients: group chat,
 | path | what lives there |
 |---|---|
 | [product/](product/README.md) | requirements, one file per module |
-| [architecture/](architecture/overview.md) | system overview, [data-model.md](architecture/data-model.md), [realtime.md](architecture/realtime.md), [permissions.md](architecture/permissions.md) |
+| [architecture/](architecture/overview.md) | system overview, [data-model.md](architecture/data-model.md), [realtime.md](architecture/realtime.md), [permissions.md](architecture/permissions.md), [performance.md](architecture/performance.md) |
 | [decisions/](decisions/) | ADRs: one file per technical decision (`NNNN-title.md`) |
 | [design/](design/README.md) | the egrant.sk design rule and design tokens |
 | [runbooks/](runbooks/README.md) | server setup, deploy, rollback, backup |
