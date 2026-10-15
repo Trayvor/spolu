@@ -369,7 +369,7 @@ describe('copyFile', () => {
     await attachFiles(db, group.id, [original.id], owner.id);
     const originalRow = (await getFile(db, original.id))!;
 
-    const copy = await copyFile(deps, original.id, other.id);
+    const copy = await copyFile(deps, { fileId: original.id, groupId: group.id, userId: other.id });
     const row = (await getFile(db, copy.id))!;
     expect(copy.id).not.toBe(original.id);
     expect(copy).toMatchObject({
@@ -399,11 +399,23 @@ describe('copyFile', () => {
     expect(await storage.exists(row.storageKey)).toBe(false);
   });
 
+  it('throws InvalidAttachmentError for a file of another group, copying nothing', async () => {
+    const { group, owner } = await setup();
+    const { group: foreign, owner: foreignOwner } = await setup();
+    const theirs = await upload(foreign.id, foreignOwner.id, Buffer.from('secret'));
+    await expect(
+      copyFile(deps, { fileId: theirs.id, groupId: group.id, userId: owner.id }),
+    ).rejects.toBeInstanceOf(InvalidAttachmentError);
+    expect(await rowsOf(group.id)).toHaveLength(0);
+    expect(await storedNames(group.id)).toEqual([]);
+    expect(await rowsOf(foreign.id)).toHaveLength(1);
+  });
+
   it('throws InvalidAttachmentError for an unknown file', async () => {
-    const { owner } = await setup();
-    await expect(copyFile(deps, randomUUID(), owner.id)).rejects.toBeInstanceOf(
-      InvalidAttachmentError,
-    );
+    const { group, owner } = await setup();
+    await expect(
+      copyFile(deps, { fileId: randomUUID(), groupId: group.id, userId: owner.id }),
+    ).rejects.toBeInstanceOf(InvalidAttachmentError);
   });
 
   it('removes the copied objects when the insert fails, leaving no row', async () => {
@@ -411,7 +423,9 @@ describe('copyFile', () => {
     const original = await upload(group.id, owner.id, Buffer.from('hello'));
     const before = await storedNames(group.id);
     // A user that does not exist violates the uploaded_by foreign key.
-    await expect(copyFile(deps, original.id, randomUUID())).rejects.toThrow();
+    await expect(
+      copyFile(deps, { fileId: original.id, groupId: group.id, userId: randomUUID() }),
+    ).rejects.toThrow();
     expect(await rowsOf(group.id)).toHaveLength(1);
     expect(await storedNames(group.id)).toEqual(before);
   });

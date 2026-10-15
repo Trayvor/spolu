@@ -68,6 +68,12 @@ describe('disk storage', () => {
     expect(await storage.exists('a/y')).toBe(false);
   });
 
+  it('copy of a data file without its sidecar throws StorageNotFoundError', async () => {
+    await writeFile(join(dir, 'orphan.txt'), 'x');
+    await expect(storage.copy('orphan.txt', 'y.txt')).rejects.toBeInstanceOf(StorageNotFoundError);
+    expect(await storage.exists('y.txt')).toBe(false);
+  });
+
   it('copy validates both keys', async () => {
     await storage.put('a/x', Buffer.from('hi'), 'text/plain');
     await expect(storage.copy('a/x', '../escape')).rejects.toBeInstanceOf(InvalidStorageKeyError);

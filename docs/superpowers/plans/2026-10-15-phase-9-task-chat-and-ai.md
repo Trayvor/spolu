@@ -397,7 +397,7 @@ git commit -am "feat(tasks): messages list their tasks and tasks link back to th
 
 **Interfaces:**
 - `Storage.copy(fromKey: string, toKey: string): Promise<void>` — disk: validate both keys, `mkdir`, copy the sidecar first, then the data through the same temp-file-and-rename path as `put`; a missing source throws `StorageNotFoundError`.
-- `copyFile(deps: FileDeps, fileId: string, userId: string): Promise<FileInfo>` — new id, `storageKey = files/<groupId>/<newId>`, preview (if any) to `files/<groupId>/<newId>-preview-<uuid>`; new row in the same group with `uploadedBy = userId`, `attachedAt = null`, same name, mime, size, width, height. If the insert fails, the copied objects are deleted. Throws `InvalidAttachmentError` for an unknown file.
+- `copyFile(deps: FileDeps, input: { fileId: string; groupId: string; userId: string }): Promise<FileInfo>` — new id, `storageKey = files/<groupId>/<newId>`, preview (if any) to `files/<groupId>/<newId>-preview-<uuid>`; new row in the same group with `uploadedBy = userId`, `attachedAt = null`, same name, mime, size, width, height. If the insert fails, the copied objects are deleted. Throws `InvalidAttachmentError` for an unknown file or one in another group.
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -413,7 +413,7 @@ it('copy duplicates data and content type; the copy outlives the source', async 
 });
 // files/service.test.ts
 it('copyFile makes an unattached copy owned by the copier, with its own storage', async () => {
-  const copy = await copyFile(deps, original.id, other.id);
+  const copy = await copyFile(deps, { fileId: original.id, groupId: group.id, userId: other.id });
   const row = (await getFile(db, copy.id))!;
   expect(row).toMatchObject({ groupId: group.id, uploadedBy: other.id, attachedAt: null, name: 'plan.pdf' });
   expect(row.storageKey).not.toBe(originalRow.storageKey);
@@ -574,7 +574,7 @@ git commit -am "feat(ai): propose task cards for a chat message through OpenAI"
 - `keysBefore(next: string | null, n: number): string[]` — `generateNKeysBetween(null, next, n)`.
 - `createTasksFromMessage(deps: TaskDeps, actor: SessionUser, groupId: string, input: TasksFromMessage, source: { id: string; fileIds: string[] }): Promise<TaskDetailDto[]>`:
   1. Every `messageFileIds` entry must be in `source.fileIds`, else `InvalidAttachmentError`.
-  2. Copy each (card, message file) pair with `copyFile(deps, fileId, actor.id)` before the transaction.
+  2. Copy each (card, message file) pair with `copyFile(deps, { fileId, groupId, userId: actor.id })` before the transaction.
   3. One transaction: `ensureBoard`; lock the To do bucket (`lockBuckets`); `keysBefore(first To do position, n)`; insert the tasks in input order with `sourceMessageId = source.id` and `createdAt = now + index ms`; assignees (`checkAssignees`); `attachFiles(tx, groupId, [...fileIds, ...copyIds], actor.id)` and `task_attachments`; `notifyAssigned` per task.
   4. If anything throws, `deleteFiles(deps, copyIds)` and rethrow (nothing created).
   5. Returns `getTask` of each, in input order.

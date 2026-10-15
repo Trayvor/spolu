@@ -134,31 +134,32 @@ export async function createFile(
 }
 
 /**
- * Copies a file server-side into a new, unattached file of the same group owned by `userId`,
+ * Copies a file of `groupId` server-side into a new, unattached file of that group owned by `userId`
+ * (a file that is unknown or in another group throws InvalidAttachmentError),
  * with its own storage objects (data, and the preview if any). A copy never shares objects with
  * the source, so either can be deleted alone. If anything fails, the copied objects are removed.
  */
 export async function copyFile(
   { db, storage }: FileDeps,
-  fileId: string,
-  userId: string,
+  input: { fileId: string; groupId: string; userId: string },
 ): Promise<FileInfo> {
-  const source = await getFile(db, fileId);
-  if (!source) throw new InvalidAttachmentError();
+  const source = await getFile(db, input.fileId);
+  if (!source || source.groupId !== input.groupId) throw new InvalidAttachmentError();
   const id = randomUUID();
   const storageKey = `files/${source.groupId}/${id}`;
-  const previewKey = source.previewKey
-    ? `files/${source.groupId}/${id}-preview-${randomUUID()}`
+  const preview = source.previewKey
+    ? { from: source.previewKey, to: `files/${source.groupId}/${id}-preview-${randomUUID()}` }
     : null;
+  const previewKey = preview?.to ?? null;
   try {
     await storage.copy(source.storageKey, storageKey);
-    if (previewKey && source.previewKey) await storage.copy(source.previewKey, previewKey);
+    if (preview) await storage.copy(preview.from, preview.to);
     const [row] = await db
       .insert(files)
       .values({
         id,
         groupId: source.groupId,
-        uploadedBy: userId,
+        uploadedBy: input.userId,
         name: source.name,
         mime: source.mime,
         size: source.size,
