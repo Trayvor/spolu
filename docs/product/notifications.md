@@ -15,6 +15,16 @@ Each user chooses a notification mode per group and delivery channels in their p
 - **Delivery channels** (for all users, in profile settings):
   - **Push** (PWA): on by default;
   - **Email**: off by default, the user can additionally turn it on.
+- Which events arrive, by mode:
+
+  | Event | All messages | Mentions only | Nothing |
+  |---|---|---|---|
+  | plain message | yes | no | no |
+  | mention, @all | yes | yes | no |
+  | reply in my thread, quote of my message | yes | yes | no |
+  | task moved, assigned, deadline, urgent | yes | yes | no |
+
+  A user gets at most one notification per message; the strongest kind wins. Task chat messages link to the task's chat tab.
 - This applies to all notifications, including contract reminders for administrators.
 - Web Push (PWA) works on phone and desktop.
 - Notifications about replies in threads the user took part in.
