@@ -1,0 +1,171 @@
+import type { FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify';
+import { ErrorCodes } from '@spolu/shared';
+import type { AppDeps } from '../../deps.js';
+import { createRateLimiter } from '../../infra/http/rate-limit.js';
+import { StorageNotFoundError } from '../../infra/storage/storage.js';
+import { requireUser } from '../auth/session.js';
+import { canReadGroup } from '../groups/policy.js';
+import { getGroup, getMembershipGroupId } from '../groups/service.js';
+import { decodeFileNameHeader } from './file-name.js';
+import { canReadFile, canSetPreview } from './policy.js';
+import {
+  FileTooLargeError,
+  MAX_FILE_BYTES,
+  createFile,
+  getFile,
+  setFilePreview,
+} from './service.js';
+import { IMAGE_TYPES, sniffImageType } from './sniff.js';
+
+const MAX_PREVIEW_BYTES = 300 * 1024;
+const MAX_PREVIEW_SIDE = 20_000;
+const IMMUTABLE_CACHE = 'private, max-age=31536000, immutable';
+
+type IdParams = { Params: { id: string } };
+
+const notFound = (reply: FastifyReply) => reply.code(404).send({ error: ErrorCodes.notFound });
+const tooLarge = (reply: FastifyReply) =>
+  reply.code(413).header('connection', 'close').send({ error: ErrorCodes.fileTooLarge });
+
+/** `filename*` value: encodeURIComponent plus the characters it leaves that RFC 5987 does not allow. */
+function encodeRfc5987(name: string): string {
+  return encodeURIComponent(name).replace(
+    /['()*]/g,
+    (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`,
+  );
+}
+
+/** A positive integer header value in 1..MAX_PREVIEW_SIDE, else null. */
+function parseSide(value: string | string[] | undefined): number | null {
+  if (typeof value !== 'string' || !/^\d{1,5}$/.test(value)) return null;
+  const n = Number(value);
+  return n >= 1 && n <= MAX_PREVIEW_SIDE ? n : null;
+}
+
+/** Files API: streamed upload, preview upload and cached downloads. */
+export const filesRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { deps }) => {
+  const { db, storage } = deps;
+  const anyUser = requireUser(app.auth);
+  const allowUpload = createRateLimiter({ windowMs: 60_000, max: 60 });
+
+  /** The file when the caller may read it, else null (the route answers 404). */
+  const readableFile = async (request: FastifyRequest, id: string) => {
+    const actor = request.user!;
+    const file = await getFile(db, id);
+    if (!file) return null;
+    return canReadFile(actor, file, await getMembershipGroupId(db, actor.id)) ? file : null;
+  };
+
+  const sendStored = async (reply: FastifyReply, key: string, headers: Record<string, string>) => {
+    try {
+      const stored = await storage.get(key);
+      return reply
+        .headers({
+          ...headers,
+          'x-content-type-options': 'nosniff',
+          'cache-control': IMMUTABLE_CACHE,
+          'content-length': String(stored.size),
+        })
+        .send(stored.stream);
+    } catch (error) {
+      if (error instanceof StorageNotFoundError) return notFound(reply);
+      throw error;
+    }
+  };
+
+  // The upload body is never buffered: the catch-all parser hands the raw stream to the handler.
+  await app.register(async (upload) => {
+    upload.removeAllContentTypeParsers();
+    upload.addContentTypeParser('*', (_req, payload, done) => done(null, payload));
+
+    upload.post<IdParams>('/groups/:id/files', { preHandler: anyUser }, async (request, reply) => {
+      const actor = request.user!;
+      const { id: groupId } = request.params;
+      if (!canReadGroup(actor, groupId, await getMembershipGroupId(db, actor.id))) {
+        return notFound(reply);
+      }
+      if (!(await getGroup(db, groupId))) return notFound(reply);
+      if (!allowUpload(actor.id)) {
+        return reply.code(429).send({ error: ErrorCodes.rateLimited });
+      }
+      if (Number(request.headers['content-length']) > MAX_FILE_BYTES) return tooLarge(reply);
+
+      try {
+        const info = await createFile(deps, {
+          groupId,
+          uploadedBy: actor.id,
+          name: decodeFileNameHeader(request.headers['x-file-name'] as string | undefined),
+          declaredType: request.headers['content-type'],
+          body: request.raw,
+        });
+        return reply.code(201).send(info);
+      } catch (error) {
+        if (error instanceof FileTooLargeError) return tooLarge(reply);
+        throw error;
+      }
+    });
+  });
+
+  // Preview bodies are small and buffered; every content type goes to the handler.
+  await app.register(async (previews) => {
+    for (const type of ['application/json', '*']) {
+      if (type !== '*') previews.removeContentTypeParser(type);
+      previews.addContentTypeParser(
+        type,
+        { parseAs: 'buffer', bodyLimit: MAX_PREVIEW_BYTES },
+        (_req, body, done) => done(null, body),
+      );
+    }
+
+    previews.put<IdParams>(
+      '/files/:id/preview',
+      { preHandler: anyUser, bodyLimit: MAX_PREVIEW_BYTES },
+      async (request, reply) => {
+        const file = await readableFile(request, request.params.id);
+        if (!file) return notFound(reply);
+        if (!canSetPreview(request.user!, file)) {
+          return reply.code(403).send({ error: ErrorCodes.forbidden });
+        }
+
+        const body = request.body;
+        const width = parseSide(request.headers['x-image-width']);
+        const height = parseSide(request.headers['x-image-height']);
+        if (
+          file.attachedAt !== null ||
+          file.previewKey !== null ||
+          !(IMAGE_TYPES as readonly string[]).includes(file.mime) ||
+          !Buffer.isBuffer(body) ||
+          sniffImageType(body) !== 'image/webp' ||
+          width === null ||
+          height === null
+        ) {
+          return reply.code(400).send({ error: ErrorCodes.invalidPreview });
+        }
+
+        await setFilePreview(deps, file, { body, width, height });
+        return reply.code(204).send();
+      },
+    );
+  });
+
+  app.get<IdParams>('/files/:id', { preHandler: anyUser }, async (request, reply) => {
+    const file = await readableFile(request, request.params.id);
+    if (!file) return notFound(reply);
+    const inline = (IMAGE_TYPES as readonly string[]).includes(file.mime);
+    return sendStored(reply, file.storageKey, {
+      'content-type': file.mime,
+      'content-disposition': inline
+        ? 'inline'
+        : `attachment; filename*=UTF-8''${encodeRfc5987(file.name)}`,
+    });
+  });
+
+  app.get<IdParams>('/files/:id/preview', { preHandler: anyUser }, async (request, reply) => {
+    const file = await readableFile(request, request.params.id);
+    if (!file?.previewKey) return notFound(reply);
+    return sendStored(reply, file.previewKey, {
+      'content-type': 'image/webp',
+      'content-disposition': 'inline',
+    });
+  });
+};
