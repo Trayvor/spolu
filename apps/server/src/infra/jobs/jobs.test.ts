@@ -30,7 +30,7 @@ describe('jobs', () => {
   it('createInlineJobs runs the handler before send resolves', async () => {
     const seen: unknown[] = [];
     const queue = createInlineJobs({ greet: async (data) => void seen.push(data) });
-    await queue.send('greet', 'hi');
-    expect(seen).toEqual(['hi']);
+    await queue.send('greet', { hi: 1 });
+    expect(seen).toEqual([{ hi: 1 }]);
   });
 });

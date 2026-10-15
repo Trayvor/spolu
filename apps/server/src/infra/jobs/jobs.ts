@@ -1,11 +1,11 @@
 import { PgBoss } from 'pg-boss';
 
 export interface JobQueue {
-  send(name: string, data: unknown): Promise<void>;
+  send(name: string, data: object): Promise<void>;
 }
 
 /** One handler per job name; a thrown error makes pg-boss retry the job. */
-export type JobHandlers = Record<string, (data: unknown) => Promise<void>>;
+export type JobHandlers = Record<string, (data: object) => Promise<void>>;
 
 /**
  * Starts the pg-boss job queue in the app's PostgreSQL (schema `pgboss`, created on first start)
@@ -23,16 +23,17 @@ export async function startJobs(
   for (const [name, handler] of Object.entries(handlers)) {
     await boss.createQueue(name);
     await boss.work(name, async (jobs) => {
-      for (const job of jobs) await handler(job.data);
+      for (const job of jobs) await handler(job.data as object);
     });
   }
 
   return {
     queue: {
       async send(name, data) {
-        await boss.send(name, data as object);
+        await boss.send(name, data);
       },
     },
-    stop: () => boss.stop({ graceful: false, timeout: 2000 }),
+    // Graceful, but under the 30 s compose stop grace period.
+    stop: () => boss.stop({ graceful: true, timeout: 20_000 }),
   };
 }
