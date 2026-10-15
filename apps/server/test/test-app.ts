@@ -10,23 +10,31 @@ import { notificationsJobHandlers } from '../src/modules/notifications/jobs.js';
 import { createDb } from '../src/infra/db/client.js';
 import { createEmailSender, emailJobHandlers } from '../src/infra/email/index.js';
 import { createInlineJobs } from '../src/infra/jobs/inline-jobs.js';
+import { createFakePushSender, type FakePushSender } from '../src/infra/push/index.js';
 import { createDiskStorage } from '../src/infra/storage/index.js';
 import { testConfig } from './test-config.js';
 
 /** A full app on the test database: SMTP to Mailpit, temp-dir storage, jobs run inline. */
-export async function buildTestApp(
-  overrides: { config?: Partial<Config> } = {},
-): Promise<{ app: FastifyInstance; deps: AppDeps; close(): Promise<void> }> {
+export async function buildTestApp(overrides: { config?: Partial<Config> } = {}): Promise<{
+  app: FastifyInstance;
+  deps: AppDeps;
+  push: FakePushSender;
+  close(): Promise<void>;
+}> {
   const config = testConfig(overrides.config);
   const { db, close: closeDb } = createDb(config.databaseUrl);
   const filesDir = await mkdtemp(join(tmpdir(), 'spolu-test-'));
   const email = createEmailSender(config.email);
   const storage = createDiskStorage(filesDir, config.appSecret);
+  const push = createFakePushSender(
+    config.push?.provider === 'fake' ? config.push.file : undefined,
+  );
   const deps: AppDeps = {
     config,
     db,
     email,
     storage,
+    push,
     jobs: createInlineJobs({
       ...emailJobHandlers(email),
       ...filesJobHandlers({ db, storage }),
@@ -37,6 +45,7 @@ export async function buildTestApp(
   return {
     app,
     deps,
+    push,
     async close() {
       await closeDb();
       await rm(filesDir, { recursive: true, force: true });

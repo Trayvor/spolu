@@ -5,6 +5,11 @@ export interface JobOptions {
   expireInSeconds?: number;
   retentionSeconds?: number;
   deleteAfterSeconds?: number;
+  /** Delay before the job becomes available, in seconds. */
+  startAfter?: number;
+  retryLimit?: number;
+  /** Seconds between retries. */
+  retryDelay?: number;
 }
 
 export interface JobQueue {
@@ -18,6 +23,8 @@ export type JobHandlers = Record<string, (data: object) => Promise<void>>;
 export interface JobSchedule {
   name: string;
   cron: string;
+  /** IANA time zone the cron runs in; default UTC. */
+  tz?: string;
 }
 
 /**
@@ -42,9 +49,9 @@ export async function startJobs(
   }
 
   // The queue exists by now; a schedule with the same name replaces the earlier one.
-  for (const { name, cron } of schedules) {
+  for (const { name, cron, tz } of schedules) {
     if (!handlers[name]) throw new Error(`No handler for scheduled job "${name}"`);
-    await boss.schedule(name, cron);
+    await boss.schedule(name, cron, {}, tz ? { tz } : {});
   }
 
   return {

@@ -5,6 +5,7 @@ import { notificationsJobHandlers, NOTIFICATIONS_PURGE_JOB } from './modules/not
 import { createDb, type Db } from './infra/db/client.js';
 import { createEmailSender, emailJobHandlers, type EmailSender } from './infra/email/index.js';
 import { startJobs, type JobQueue } from './infra/jobs/jobs.js';
+import { createPushSender, type PushSender } from './infra/push/index.js';
 import { createDiskStorage, type Storage } from './infra/storage/index.js';
 
 /** Everything a module needs from the outside world; every module plugin receives this. */
@@ -14,6 +15,8 @@ export type AppDeps = {
   email: EmailSender;
   storage: Storage;
   jobs: JobQueue;
+  /** null when web push is not configured. */
+  push: PushSender | null;
 };
 
 /** Creates the real dependencies. `close` stops the jobs, then the database. */
@@ -38,7 +41,7 @@ export async function createDeps(
     ],
   );
   return {
-    deps: { config, db, email, storage, jobs: jobs.queue },
+    deps: { config, db, email, storage, jobs: jobs.queue, push: createPushSender(config.push) },
     async close() {
       await jobs.stop();
       await closeDb();

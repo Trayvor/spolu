@@ -122,4 +122,65 @@ describe('loadConfig', () => {
       'The Boss',
     );
   });
+
+  describe('push and batching', () => {
+    it('push is null without VAPID vars', () => {
+      expect(loadConfig(validEnv).push).toBeNull();
+    });
+
+    it('all three VAPID vars give webpush', () => {
+      const config = loadConfig({
+        ...validEnv,
+        VAPID_PUBLIC_KEY: 'pub',
+        VAPID_PRIVATE_KEY: 'priv',
+        VAPID_SUBJECT: 'mailto:ops@example.com',
+      });
+      expect(config.push).toEqual({
+        provider: 'webpush',
+        publicKey: 'pub',
+        privateKey: 'priv',
+        subject: 'mailto:ops@example.com',
+      });
+    });
+
+    it('only VAPID_PUBLIC_KEY names the two missing vars', () => {
+      expect(errorOf({ ...validEnv, VAPID_PUBLIC_KEY: 'pub' }).variables).toEqual([
+        'VAPID_PRIVATE_KEY',
+        'VAPID_SUBJECT',
+      ]);
+    });
+
+    it('VAPID_SUBJECT must be mailto: or https:', () => {
+      expect(
+        errorOf({
+          ...validEnv,
+          VAPID_PUBLIC_KEY: 'pub',
+          VAPID_PRIVATE_KEY: 'priv',
+          VAPID_SUBJECT: 'ftp://x',
+        }).variables,
+      ).toEqual(['VAPID_SUBJECT']);
+    });
+
+    it('PUSH_PROVIDER=fake needs no keys', () => {
+      expect(loadConfig({ ...validEnv, PUSH_PROVIDER: 'fake' }).push).toEqual({
+        provider: 'fake',
+        publicKey: null,
+        file: undefined,
+      });
+      const withFile = loadConfig({
+        ...validEnv,
+        PUSH_PROVIDER: 'fake',
+        PUSH_FAKE_FILE: '/tmp/p.jsonl',
+        VAPID_PUBLIC_KEY: 'pub',
+      });
+      expect(withFile.push).toEqual({ provider: 'fake', publicKey: 'pub', file: '/tmp/p.jsonl' });
+    });
+
+    it("EMAIL_BATCH_DELAY_MS defaults to 600000 and parses '3000'", () => {
+      expect(loadConfig(validEnv).emailBatchDelayMs).toBe(600_000);
+      expect(loadConfig({ ...validEnv, EMAIL_BATCH_DELAY_MS: '3000' }).emailBatchDelayMs).toBe(
+        3000,
+      );
+    });
+  });
 });

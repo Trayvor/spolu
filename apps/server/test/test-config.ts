@@ -23,6 +23,8 @@ export function testConfig(overrides: Partial<Config> = {}): Config {
       secure: false,
       from: 'Spolu <noreply@example.com>',
     },
+    push: { provider: 'fake', publicKey: 'test-vapid-public-key', file: undefined },
+    emailBatchDelayMs: 600_000,
     ...overrides,
   };
 }

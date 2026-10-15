@@ -12,6 +12,15 @@ const base = {
   FILES_DIR: z.string().default('./data/files'),
   WEB_DIST_DIR: z.string().optional(),
   MAIL_FROM: z.string().min(1),
+  VAPID_PUBLIC_KEY: z.string().min(1).optional(),
+  VAPID_PRIVATE_KEY: z.string().min(1).optional(),
+  VAPID_SUBJECT: z
+    .string()
+    .regex(/^(mailto:|https:)\S+$/, 'must start with mailto: or https:')
+    .optional(),
+  PUSH_PROVIDER: z.enum(['webpush', 'fake']).default('webpush'),
+  PUSH_FAKE_FILE: z.string().min(1).optional(),
+  EMAIL_BATCH_DELAY_MS: z.coerce.number().int().min(0).default(600_000),
 };
 
 const EnvSchema = z.discriminatedUnion('EMAIL_DRIVER', [
@@ -65,6 +74,13 @@ export type Config = {
         from: string;
       }
     | { driver: 'elastic'; apiKey: string; from: string };
+  /** null = web push is off (no VAPID keys). The fake provider is for tests and e2e. */
+  push:
+    | { provider: 'webpush'; publicKey: string; privateKey: string; subject: string }
+    | { provider: 'fake'; publicKey: string | null; file: string | undefined }
+    | null;
+  /** How long a group's email notifications wait so several events go out as one email. */
+  emailBatchDelayMs: number;
 };
 
 export class ConfigError extends Error {
@@ -94,6 +110,8 @@ export function loadConfig(env: NodeJS.ProcessEnv): Config {
     appVersion: e.APP_VERSION,
     filesDir: e.FILES_DIR,
     webDistDir: e.WEB_DIST_DIR,
+    push: pushConfig(e),
+    emailBatchDelayMs: e.EMAIL_BATCH_DELAY_MS,
     email:
       e.EMAIL_DRIVER === 'smtp'
         ? {
@@ -107,5 +125,33 @@ export function loadConfig(env: NodeJS.ProcessEnv): Config {
             from: e.MAIL_FROM,
           }
         : { driver: 'elastic', apiKey: e.ELASTIC_EMAIL_API_KEY, from: e.MAIL_FROM },
+  };
+}
+
+function pushConfig(e: {
+  PUSH_PROVIDER: 'webpush' | 'fake';
+  PUSH_FAKE_FILE?: string | undefined;
+  VAPID_PUBLIC_KEY?: string | undefined;
+  VAPID_PRIVATE_KEY?: string | undefined;
+  VAPID_SUBJECT?: string | undefined;
+}): Config['push'] {
+  if (e.PUSH_PROVIDER === 'fake') {
+    return { provider: 'fake', publicKey: e.VAPID_PUBLIC_KEY ?? null, file: e.PUSH_FAKE_FILE };
+  }
+  const vars = {
+    VAPID_PUBLIC_KEY: e.VAPID_PUBLIC_KEY,
+    VAPID_PRIVATE_KEY: e.VAPID_PRIVATE_KEY,
+    VAPID_SUBJECT: e.VAPID_SUBJECT,
+  };
+  const missing = Object.entries(vars)
+    .filter(([, v]) => v === undefined)
+    .map(([k]) => k);
+  if (missing.length === 3) return null;
+  if (missing.length > 0) throw new ConfigError(missing);
+  return {
+    provider: 'webpush',
+    publicKey: e.VAPID_PUBLIC_KEY!,
+    privateKey: e.VAPID_PRIVATE_KEY!,
+    subject: e.VAPID_SUBJECT!,
   };
 }
