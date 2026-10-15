@@ -8,7 +8,7 @@ Built on branch `phase-8`, cut from `phase-4`, **in parallel with Phase 5** (`ph
 
 ## Goal
 
-Every group has a Kanban board: four fixed buckets, custom buckets between them, task cards with title, description, creator, assignee, deadline, urgent flag and files, drag and drop, live updates for everyone looking at the board. The task form is one reusable component, so Phase 9 uses it to review the cards the AI proposes.
+Every group has a Kanban board: four fixed buckets, custom buckets between them, task cards with title, description, creator, assignees, deadline, urgent flag and files, drag and drop, live updates for everyone looking at the board. The task form is one reusable component, so Phase 9 uses it to review the cards the AI proposes.
 
 ## Owner decisions (brainstorming, 2026-10-15)
 
@@ -17,13 +17,14 @@ Every group has a Kanban board: four fixed buckets, custom buckets between them,
 | Fixed buckets | **To do**, **eGrant review**, **<client> review** (follows the group name), **Completed**. Created for every group; cannot be renamed, deleted or moved. To do is always first, Completed always last. |
 | Custom buckets | Allowed between To do and Completed; only admins create, rename, reorder and delete them. |
 | Clients | Create, edit and move tasks, and write in task chats. |
-| Card fields | Title, description, creator, assignee, deadline, files, **urgent** flag. No priority or labels. |
-| Notifications | Moving a task to another bucket notifies its creator and assignee; the assignee gets deadline reminders (3, 2, 1 days before) and, for urgent tasks, a reminder every 3 hours. Recorded here, delivered and scheduled in Phase 6. |
+| Card fields | Title, description, creator, **one or more assignees**, deadline, files, **urgent** flag. No priority or labels. |
+| Message ↔ tasks | A task made from a chat message links back to it ("Created from a message", opens the chat at that message); the message lists its tasks (Phase 9). |
+| Notifications | Moving a task to another bucket notifies its creator and every assignee; every assignee gets deadline reminders (3, 2, 1 days before) and, for urgent tasks, a reminder every 3 hours. Recorded here, delivered and scheduled in Phase 6. |
 | Reuse | The task form is the same in the board and in the AI review screen (Phase 9). |
 
 Controller rulings (technical, owner informed):
 
-- One assignee per task: a client of the group (not removed) or an active admin. If the assignee is removed from the group later, the task keeps them and shows the name as "(removed)".
+- Assignees: zero or more, each a person of the group (Phase 4 `useGroupPeople`: a client of the group or an active admin), max 10. If an assignee is removed from the group later, the task keeps them and shows the name as "(removed)".
 - Deleting a task: admins, and the client who created it. Deleting a custom bucket moves its tasks to the end of To do.
 - Deadline is a date (no time). Overdue = the date is before today in Europe/Bratislava and the task is not in Completed.
 - Editing in the task panel saves with an explicit "Save changes" (no autosave): one behaviour for the board and the AI review.
@@ -56,7 +57,7 @@ Order: To do, custom buckets, eGrant review, <client> review, Completed. The flo
 
 - Columns 288 px wide on the `muted` (#F0EDEA) tile color with the card radius, side by side; the board scrolls horizontally, each column scrolls vertically. Under 641 px each column takes the full width minus a peek of the next one (scroll-snap).
 - Column header: name, task count. The four fixed buckets carry a small 8 px square of color that says what kind of step they are: To do `ink` outline, eGrant review `brand-purple`, <client> review `brand-blue`, Completed `success`. Custom buckets have none. Admins see a "More" menu on custom buckets (Rename, Delete).
-- **Card**: white `card`, title (max 3 lines), then one meta row: assignee avatar (same initials avatar as the chat), deadline ("18 Oct"; `error-ink` text when overdue), paperclip with the file count, and in Phase 9 the chat count. Cards in Completed show the title in `muted-foreground`.
+- **Card**: white `card`, title (max 3 lines), then one meta row: assignee avatars (overlapping, up to 3, then "+2"), deadline ("18 Oct"; `error-ink` text when overdue), paperclip with the file count, and in Phase 9 the chat count. Cards in Completed show the title in `muted-foreground`.
 - **Urgent** is the board's one loud signal: a filled `destructive` pill "Urgent" above the title. Nothing else on the card uses color.
 - "+ Add task" at the bottom of each column: an inline title field (Enter creates the task in that bucket, Esc cancels). Details are added in the task panel.
 - Drag: the card lifts (shadow token), a placeholder shows where it lands; drop saves at once. Keyboard: focus a card, Space to pick up, arrows to move, Space to drop (dnd-kit announcements, translated). Touch: press and hold 250 ms to drag.
@@ -67,10 +68,10 @@ Order: To do, custom buckets, eGrant review, <client> review, Completed. The flo
 Route `/groups/:id/tasks/:taskId` (links from chat in Phase 9 open it). Desktop: a 560 px panel sliding over the right of the board; under 1024 px a full-screen page with a back button.
 
 - Top: bucket select (moves the task), "More" menu with Delete (creator or admin; inline confirm "Delete this task? Its files are deleted too.").
-- `<TaskForm>`: title (required, max 200), description (multi-line, max 10 000), assignee (searchable select of `useGroupPeople`, "eGrant" pill on admins, "Unassigned" first), deadline (native date input), urgent (switch with the label "Urgent"), files (upload with `features/files`, list with chips and image previews, remove a file before saving).
+- `<TaskForm>`: title (required, max 200), description (multi-line, max 10 000), assignees (searchable multi-select of `useGroupPeople`, chosen people shown as removable chips with avatar and the "eGrant" pill on admins), deadline (native date input), urgent (switch with the label "Urgent"), files (upload with `features/files`, list with chips and image previews, remove a file before saving).
 - Footer: "Created by Jana Nováková on 15 Oct 2026". Phase 9 puts the task chat below the form (slot `children`).
 - "Save changes" / "Cancel" appear when the form is dirty; leaving with unsaved changes asks inline first.
-- Phase 9 shows "Created from a message" with a link to the source message when there is one.
+- When the task was made from a chat message, the panel shows "Created from a message" above the form: the author, the first 140 characters and a link that opens the chat at that message (Phase 5 `?message=` link). The field exists in this phase (`source_message_id`); Phase 9 fills it.
 
 ### Bucket management (admins)
 
@@ -80,7 +81,7 @@ Route `/groups/:id/tasks/:taskId` (links from chat in Phase 9 open it). Desktop:
 
 ### Reuse: `<TaskForm>`
 
-`features/tasks/task-form.tsx` exports `<TaskForm value onChange groupId errors? />`: controlled fields only, no saving, no bucket select. The task panel wraps it with save logic; Phase 9's AI review screen renders one `<TaskForm>` per proposed card with its own Approve / Reject. Its value type `TaskDraft { title, description, assigneeId, dueDate, urgent, fileIds }` is in `packages/shared`, and the create endpoint accepts exactly this shape (plus `bucketId`), so Phase 9 creates approved cards through the same endpoint.
+`features/tasks/task-form.tsx` exports `<TaskForm value onChange groupId errors? />`: controlled fields only, no saving, no bucket select. The task panel wraps it with save logic; Phase 9's AI review screen renders one `<TaskForm>` per proposed card with its own Approve / Reject. Its value type `TaskDraft { title, description, assigneeIds, dueDate, urgent, fileIds }` is in `packages/shared`, and the create endpoint accepts exactly this shape (plus `bucketId`), so Phase 9 creates approved cards through the same endpoint.
 
 Shared with the chat from Phase 4: `<Avatar>` and `useGroupPeople(groupId)` (the assignee select lists exactly these people).
 
@@ -89,7 +90,8 @@ Shared with the chat from Phase 4: `<Avatar>` and `useGroupPeople(groupId)` (the
 | table | columns |
 |---|---|
 | `buckets` | `id`, `group_id` (FK cascade), `kind` (`todo` \| `egrant_review` \| `client_review` \| `done` \| `custom`, CHECK), `name` (custom only, max 60; CHECK null for fixed kinds), `position` text, `created_at`. Partial unique index on (`group_id`, `kind`) where `kind <> 'custom'`. |
-| `tasks` | `id`, `group_id` (FK cascade, indexed), `bucket_id` (FK), `position` text, `title`, `description`, `created_by` (FK user), `assignee_id` (nullable FK user), `due_date` date nullable, `urgent` boolean default false, `completed_at` (set when moved into Completed, cleared when moved out), `source_message_id` (nullable; FK added in Phase 9), `created_at`, `updated_at`. Index (`bucket_id`, `position`); index (`due_date`) where not completed, and (`urgent`) where urgent — both for Phase 6 reminders. |
+| `tasks` | `id`, `group_id` (FK cascade, indexed), `bucket_id` (FK), `position` text, `title`, `description`, `created_by` (FK user), `due_date` date nullable, `urgent` boolean default false, `completed_at` (set when moved into Completed, cleared when moved out), `source_message_id` (nullable; FK added in Phase 9), `created_at`, `updated_at`. Index (`bucket_id`, `position`); index (`due_date`) where not completed, and (`urgent`) where urgent — both for Phase 6 reminders. |
+| `task_assignees` | `task_id`, `user_id` (PK both, cascade; index on `user_id` for "my tasks" and reminders) |
 | `task_attachments` | `task_id`, `file_id` (PK both, cascade) |
 
 Fixed-bucket positions are fixed keys (`a0` … and `z0` for Completed) so custom buckets always fall between; the server refuses a custom bucket position outside them.
@@ -102,7 +104,7 @@ Fixed-bucket positions are fixed keys (`a0` … and `z0` for Completed) so custo
 
 | method | path | what |
 |---|---|---|
-| GET | `/api/groups/:id/board` | `{ buckets, tasks }` (created lazily); tasks with assignee, creator, file count |
+| GET | `/api/groups/:id/board` | `{ buckets, tasks }` (created lazily); tasks with assignees, creator, file count |
 | POST | `/api/groups/:id/buckets` | admin; `{ name }` → bucket placed after the last custom bucket |
 | PATCH | `/api/buckets/:id` | admin; `{ name?, afterBucketId? }` |
 | DELETE | `/api/buckets/:id` | admin; tasks move to the end of To do; 204 |
@@ -112,7 +114,7 @@ Fixed-bucket positions are fixed keys (`a0` … and `z0` for Completed) so custo
 | POST | `/api/tasks/:id/move` | `{ bucketId, afterTaskId: string \| null }` → task with its new position |
 | DELETE | `/api/tasks/:id` | creator or admin; files deleted; 204 |
 
-Rate limit: 120 writes/min per user. Validation in `packages/shared` (`TaskDraft`, `TaskDto`, `BucketDto`). An assignee who is not one of the group's people answers 400 `invalid_assignee`.
+Rate limit: 120 writes/min per user. Validation in `packages/shared` (`TaskDraft`, `TaskDto`, `BucketDto`). An assignee who is not one of the group's people, or more than 10, answers 400 `invalid_assignee`.
 
 ### Realtime
 
@@ -128,10 +130,10 @@ After a reconnect the board refetches `GET …/board` (one request; boards are s
 
 In the same transaction (`recordNotifications`, Phase 4), never for the person who acted:
 
-- `task.moved` — when the bucket changes: to the creator and the assignee. Payload `{ taskId, groupId, title, fromBucket, toBucket, actorName }` (bucket names resolved at that moment).
-- `task.assigned` — when the assignee changes to someone: to the new assignee.
+- `task.moved` — when the bucket changes: to the creator and every assignee. Payload `{ taskId, groupId, title, fromBucket, toBucket, actorName }` (bucket names resolved at that moment).
+- `task.assigned` — to each person newly added as an assignee.
 
-Deadline and urgent reminders are not events: Phase 6 schedules them by reading `tasks` (`due_date`, `urgent`, `completed_at`, `assignee_id`).
+Deadline and urgent reminders are not events: Phase 6 schedules them by reading `tasks` (`due_date`, `urgent`, `completed_at`) and `task_assignees`.
 
 ## Error handling
 

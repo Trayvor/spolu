@@ -7,7 +7,8 @@ Each group has one chat (at the start) with realtime messages, threads like Slac
 - **One chat per group** (at the start).
 - Messages in real time (WebSocket).
 - After a lost connection, missed messages are caught up (loaded) after reconnect.
-- **Threads:** under each message a reply thread can be opened (like Slack).
+- **Threads:** under each message a reply thread can be opened (like Slack). Inside a thread every message has "Reply": no nested thread, the reply shows a quote of the message it answers.
+- **Formatting:** bold, italic, strikethrough, lists, links, quotes, code.
 - **Mentions (@tags)** of users: any client of the group or any admin, and **@all** for everyone in the group and all admins.
 - **Attachments:** files and images, with image previews.
 - Users can edit and delete their own messages.

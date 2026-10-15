@@ -19,10 +19,14 @@ Each group has a realtime chat like Slack: messages, threads, @mentions (people 
 | Mentions | Anyone in the group (its clients) and any admin can be tagged; **@all** tags all of them. |
 | Message actions | On hover: "Reply in thread" and "Turn into tasks". The second one is built in Phase 9; this phase leaves a slot for it. |
 | Notifications | Recorded as events only; delivered in Phase 6. |
+| Formatting | Messages have formatting (bold, italic, lists, links, quotes, code). |
+| Replies inside a thread | Every message in a thread has "Reply". It does not open another thread: the composer shows "Replying to <name>: <excerpt>", and the sent message carries a small quote of the message it answers (click jumps to it). |
+| Message ↔ tasks | A message turned into tasks shows links to those tasks; each task links back to its message (Phase 9). Phase 5 provides the link target: a message can be opened by URL. |
 
 Controller rulings (technical, owner informed):
 
-- A message is plain text (line breaks kept, links made clickable), max 10 000 characters, max 10 attachments. No Markdown.
+- Formatting is a small Markdown subset: `**bold**`, `_italic_`, `~~strike~~`, `` `code` ``, code blocks (```` ``` ````), `> quote`, `-` and `1.` lists, links (bare URLs and `[text](url)`, `http`/`https`/`mailto` only). The composer has a toolbar (Bold, Italic, Strikethrough, Link, Bulleted list, Numbered list, Quote, Code) and the shortcuts Cmd/Ctrl+B, Cmd/Ctrl+I, Cmd/Ctrl+Shift+X; it inserts the Markdown marks, so the stored text stays readable in emails. Rendering is our own small parser (`features/chat/format/`, test-first) that builds React elements — never `innerHTML` — so no HTML from a message can run. Rejected: a full Markdown library with an HTML sanitizer (tens of kB, more than we need). Headings, tables and images in text are not supported (images go as attachments).
+- Max 10 000 characters, max 10 attachments per message.
 - Mentions are stored in the text as tokens `<@userId>` and `<@all>`; the server checks them and keeps a `message_mentions` table. The UI shows names.
 - Users edit and delete only their own messages, with no time limit. A deleted message stays as "Message deleted" so threads keep their parent; its files are deleted.
 - Thread replies do not count in the chat's unread number (Slack-like); a thread shows its own reply count.
@@ -59,8 +63,10 @@ All copy is the English source; Slovak goes in `sk.json`. Designed with `fronten
 - A message that mentions me (by name or @all) gets a `muted` background and a 2 px `brand-purple` left edge.
 - Mentions render as `secondary` pills with the person's name. Links open in a new tab (`rel="noreferrer noopener"`).
 - Attachments under the text: images as previews (max 320 × 240, aspect ratio from the stored size so nothing jumps, click opens the full image), other files as chips (icon, name, size; click downloads). Both from `features/files`.
-- **Hover actions** (desktop): a small toolbar at the message's top right: "Reply in thread", the Phase 9 slot ("Turn into tasks"), and "More" (Edit, Delete — own messages only). Touch: the toolbar is opened by a tap on a "More" button that is always visible on small screens. Every action has a tooltip and an aria-label.
+- **Hover actions** (desktop): a small toolbar at the message's top right: "Reply in thread" (in the main chat) or "Reply" (inside a thread), the Phase 9 slot ("Turn into tasks"), and "More" (Edit, Delete — own messages only). Touch: the toolbar is opened by a tap on a "More" button that is always visible on small screens. Every action has a tooltip and an aria-label.
 - **Thread summary** under a message with replies: "3 replies, last at 15:10" (a link). It opens the thread panel.
+- **Reply inside a thread**: "Reply" on any message in the thread panel puts a strip above the thread composer: "Replying to Jana Nováková: <first 80 characters>" with × to cancel. The sent reply shows that quote above its text (muted, 2 px `border` left edge); clicking it scrolls to and briefly highlights the quoted message. No nested threads.
+- **Open a message by URL**: `/groups/:id/chat?message=<id>` (and `?thread=<rootId>&message=<id>` for a reply) scrolls to the message, loading the page around it, and highlights it for 2 s. Phase 9's "Created from a message" link on a task uses this; the same link format works for a task chat.
 - **Thread panel**: right side, 400 px, from 1024 px up; below that it covers the chat as a full-width panel with a back button. Shows the root message, a divider with the reply count, the replies and its own composer. URL: `?thread=<messageId>` so it survives reload and can be linked.
 - **Composer**: white field with the egrant.sk 2 px input border; grows up to 8 lines, then scrolls. Enter sends, Shift+Enter adds a line (on touch devices Enter adds a line and the send button sends). Paperclip button, drag-and-drop of files onto the chat, paste of images. Files show as chips with upload progress above the text; send is disabled until uploads finish. Typing `@` opens the mention list: "Everyone in this group" (@all) first, then people (avatar, name, "eGrant" pill), filtered as you type, keyboard navigable.
 - **Edit** happens in place (the text turns into a composer; Enter saves, Esc cancels). **Delete** asks in a small inline confirm ("Delete this message?" Delete / Cancel), not a browser dialog.
@@ -93,7 +99,7 @@ Inside: `MessageList`, `MessageItem`, `Composer` (also used for edit and in the 
 | table | columns |
 |---|---|
 | `channels` | `id`, `group_id` (FK cascade), `kind` (`group` \| `task`, CHECK), `task_id` (nullable; FK added in Phase 9), `last_seq` bigint default 0, `created_at`. Partial unique index on `group_id` where `kind = 'group'`. |
-| `messages` | `id`, `channel_id` (FK cascade), `author_id` (FK user), `parent_id` (nullable, FK messages; only a top-level message can be a parent), `body` text, `mentions_all` boolean, `client_id` text (unique with `author_id`, for safe retries), `change_seq` bigint, `reply_count` int default 0, `last_reply_at`, `edited_at`, `deleted_at`, `created_at`. Indexes: (`channel_id`, `parent_id`, `created_at`), (`channel_id`, `change_seq`). |
+| `messages` | `id`, `channel_id` (FK cascade), `author_id` (FK user), `parent_id` (nullable, FK messages; only a top-level message can be a parent; a reply's parent is always the thread root), `reply_to_id` (nullable, FK messages: the message in the same thread this reply answers, shown as a quote), `body` text, `mentions_all` boolean, `client_id` text (unique with `author_id`, for safe retries), `change_seq` bigint, `reply_count` int default 0, `last_reply_at`, `edited_at`, `deleted_at`, `created_at`. Indexes: (`channel_id`, `parent_id`, `created_at`), (`channel_id`, `change_seq`). |
 | `message_mentions` | `message_id`, `user_id` (PK both, cascade) |
 | `message_attachments` | `message_id`, `file_id`, `position` (PK `message_id`,`file_id`, cascade) |
 | `read_states` | `user_id`, `channel_id` (PK both, cascade), `last_read_at` timestamptz |
@@ -114,7 +120,8 @@ Unread count = top-level, not deleted messages of the channel by other authors c
 | GET | `/api/channels/:id/messages?before=<createdAt,id>&limit=50` | a page of top-level messages, newest first, with authors, mentions, attachments (`FileInfo`) |
 | GET | `/api/channels/:id/changes?afterSeq=N` | catch-up: every message (top-level and replies) with `change_seq > N`, ascending, max 500; `{ messages, lastSeq, truncated }` (when `truncated` the client reloads the newest page) |
 | GET | `/api/messages/:id/thread` | root plus all replies, oldest first |
-| POST | `/api/channels/:id/messages` | `{ body, parentId?, fileIds?, clientId }` → 201 message; a repeated `clientId` returns the existing message. Rate limit 30/min per user. |
+| GET | `/api/messages/:id/around?limit=50` | the top-level page containing a message (or its thread root), for opening a message by URL |
+| POST | `/api/channels/:id/messages` | `{ body, parentId?, replyToId?, fileIds?, clientId }` (`replyToId` must be in the same thread) → 201 message; a repeated `clientId` returns the existing message. Rate limit 30/min per user. |
 | PATCH | `/api/messages/:id` | `{ body }` → message (mentions re-parsed) |
 | DELETE | `/api/messages/:id` | soft delete; files deleted; 204 |
 | POST | `/api/channels/:id/read` | `{ at }` marks read up to that time → 204 |
@@ -148,8 +155,8 @@ Network failure while sending: the optimistic message shows "Not sent. Retry"; r
 
 ## Testing
 
-- Server (test-first): policy; send with mentions, @all, attachments, thread reply; reply to a reply refused; `clientId` idempotency; edit re-parses mentions; delete keeps the thread and removes files; `change_seq` grows on each change and catch-up returns edits and deletions; unread count ignores own messages and thread replies; notification events per kind and never to the author; another group's client gets 404 everywhere; rate limit.
-- Web: composer (Enter vs Shift+Enter, mention picker keyboard, file chips), message grouping, optimistic send and retry, catch-up merge (no duplicates, edits applied), thread panel open from URL, unread line and badge.
+- Server (test-first): policy; send with mentions, @all, attachments, thread reply; a reply's `parentId` must be a root and its `replyToId` in the same thread; formatting parser (every mark, nesting, unsafe links like `javascript:` rendered as text, no HTML passes through); `clientId` idempotency; edit re-parses mentions; delete keeps the thread and removes files; `change_seq` grows on each change and catch-up returns edits and deletions; unread count ignores own messages and thread replies; notification events per kind and never to the author; another group's client gets 404 everywhere; rate limit.
+- Web: composer (Enter vs Shift+Enter, mention picker keyboard, file chips, toolbar and shortcuts), reply-to strip and quote jump, open message by URL, message grouping, optimistic send and retry, catch-up merge (no duplicates, edits applied), thread panel open from URL, unread line and badge.
 - E2E (two browsers): admin and client exchange messages live; a thread reply; a mention; an image upload with preview; edit and delete; go offline, the other side writes, come back online, the missed message appears.
 
 ## Done when
@@ -162,4 +169,4 @@ An admin and a client chat in real time with thread replies, mentions (including
 
 ## Out of scope
 
-"Turn into tasks" (Phase 9), task chat (Phase 9), delivery of notifications (Phase 6), message search (Phase 16), reactions, typing indicators, read receipts per person, pinned messages, Markdown.
+"Turn into tasks" (Phase 9), task chat (Phase 9), delivery of notifications (Phase 6), message search (Phase 16), reactions, typing indicators, read receipts per person, pinned messages, headings and tables in messages.

@@ -111,7 +111,7 @@ Requirements: [chat](product/chat.md).
 Scope:
 - One chat per group, built as a reusable conversation (the task chat in Phase 9 is the same component).
 - Realtime messages, catch-up after reconnect, edit and delete own messages, unread indicator.
-- Threads under messages, @mentions of people and @all, attachments with image previews.
+- Message formatting; threads under messages with quoted replies inside a thread; @mentions of people and @all; attachments with image previews; opening a message by link.
 - Message actions: "Reply in thread" and a slot for "Turn into tasks" (filled in Phase 9).
 
 Done when: an admin and a client chat in real time with thread replies, mentions and files, without reloading the page, and see unread counts.
@@ -126,7 +126,7 @@ Scope:
 - Per group, the user picks a mode: all / mentions only / nothing.
 - In the profile: push on by default, email can be turned on additionally.
 - Notifications about replies in threads the user took part in.
-- Task notifications: when a task moves to another bucket, its creator and assignee are notified (not the person who moved it); the assignee is reminded 3, 2 and 1 days before the deadline at 09:00 (Europe/Bratislava) while the task is not in Completed; an urgent task reminds its assignee every 3 hours between 08:00 and 20:00 (Europe/Bratislava) until it is in Completed or no longer urgent.
+- Task notifications: when a task moves to another bucket, its creator and assignees are notified (not the person who moved it); the assignees are reminded 3, 2 and 1 days before the deadline at 09:00 (Europe/Bratislava) while the task is not in Completed; an urgent task reminds its assignees every 3 hours between 08:00 and 20:00 (Europe/Bratislava) until it is in Completed or no longer urgent.
 - Notifications from the task chat, with the same modes as the group chat.
 
 Done when: a client gets a push about a new message according to their mode, and with email on, also an email; moving a task notifies its creator and assignee; a deadline reminder arrives.
@@ -148,7 +148,7 @@ Requirements: [task-board](product/task-board.md).
 
 Scope:
 - A task board in every group with four fixed buckets (To do, eGrant review, <client> review, Completed) and custom buckets between them (admins only).
-- Tasks: create, edit, delete. Fields: title, description, creator, assignee, deadline, urgent flag, attachments.
+- Tasks: create, edit, delete. Fields: title, description, creator, assignees (one or more), deadline, urgent flag, attachments; a link to the source message when made from chat.
 - Drag and drop of tasks between buckets and inside a bucket.
 - Realtime: other users' changes appear at once.
 - Clients create, edit and move tasks.
