@@ -1,14 +1,14 @@
 import { expect, test } from '@playwright/test';
 
 // The browser locale is sk-SK (playwright.config.ts), so the first visit renders Slovak.
-test('home shows database OK and realtime connected', async ({ page }) => {
-  await page.goto('/');
+test('settings shows database OK and realtime connected', async ({ page }) => {
+  await page.goto('/settings');
   await expect(page.getByText('Databáza: OK')).toBeVisible({ timeout: 10_000 });
   await expect(page.getByText('Realtime: pripojené')).toBeVisible({ timeout: 10_000 });
 });
 
 test('switching to English changes the UI and persists after reload', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/settings');
   await expect(page.getByText('Stav systému')).toBeVisible();
   await page.getByRole('button', { name: /Jazyk/ }).click();
   await page.getByRole('menuitemradio', { name: 'English' }).click();
@@ -23,6 +23,12 @@ test('switching to English changes the UI and persists after reload', async ({ p
     'aria-checked',
     'true',
   );
+});
+
+test('the home page sends an admin to /groups', async ({ page }) => {
+  await page.goto('/');
+  await expect(page).toHaveURL(/\/groups$/);
+  await expect(page.getByRole('heading', { name: 'Skupiny' })).toBeVisible();
 });
 
 test('a deep link renders the app, not a server 404', async ({ page }) => {
