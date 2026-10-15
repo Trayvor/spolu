@@ -10,11 +10,11 @@ Requirements per module: [product/](product/README.md). Phases after 1 get their
 | 1 | [Skeleton & delivery](#phase-1--skeleton--delivery) | done (local) | 0 | [spec](superpowers/specs/2026-10-15-ehub-foundation-design.md), [plan](superpowers/plans/2026-10-15-phase-1-skeleton-and-delivery.md) |
 | 2 | [Login & users](#phase-2--login--users) | done (local) | 1 | [spec](superpowers/specs/2026-10-15-phase-2-login-and-users-design.md), [plan](superpowers/plans/2026-10-15-phase-2-login-and-users.md) |
 | 3 | [Groups & invites](#phase-3--groups--invites) | done (local) | 2 | [spec](superpowers/specs/2026-10-15-phase-3-groups-and-invites-design.md), [plan](superpowers/plans/2026-10-15-phase-3-groups-and-invites.md) |
-| 4 | [Shared foundation](#phase-4--shared-foundation) | planned | 3 | - |
-| 5 | [Group chat](#phase-5--group-chat) | planned | 4 | - |
+| 4 | [Shared foundation](#phase-4--shared-foundation) | in progress | 3 | [spec](superpowers/specs/2026-10-15-phase-4-shared-foundation-design.md), [plan](superpowers/plans/2026-10-15-phase-4-shared-foundation.md) |
+| 5 | [Group chat](#phase-5--group-chat) | planned | 4 | [spec](superpowers/specs/2026-10-15-phase-5-group-chat-design.md), [plan](superpowers/plans/2026-10-15-phase-5-group-chat.md) |
 | 6 | [Notifications](#phase-6--notifications) | planned | 9 | - |
 | 7 | [Direct messages](#phase-7--direct-messages) | planned | 5, 6 | - |
-| 8 | [Task board](#phase-8--task-board) | planned | 4 | - |
+| 8 | [Task board](#phase-8--task-board) | planned | 4 | [spec](superpowers/specs/2026-10-15-phase-8-task-board-design.md), [plan](superpowers/plans/2026-10-15-phase-8-task-board.md) |
 | 9 | [Task chat & message to tasks with AI](#phase-9--task-chat--message-to-tasks-with-ai) | planned | 5, 8 | - |
 | 10 | [Message to task](#phase-10--message-to-task) | merged into 9 | - | - |
 | 11 | [AI split into tasks](#phase-11--ai-split-into-tasks) | merged into 9 | - | - |
