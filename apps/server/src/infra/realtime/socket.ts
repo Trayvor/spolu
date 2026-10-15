@@ -1,13 +1,44 @@
 import type { FastifyInstance } from 'fastify';
 import { Server as SocketIOServer } from 'socket.io';
-import { SocketEvents, type PingAck } from '@spolu/shared';
+import { SocketEvents, type PingAck, type SessionUser } from '@spolu/shared';
+import { getSessionUserFromHeaders } from '../../modules/auth/session.js';
+import type { Auth } from '../../modules/auth/auth.js';
 import type { Config } from '../config/config.js';
+import { userRoom } from './rooms.js';
 
-/** Attaches Socket.IO to the Fastify HTTP server. Sockets only push; writes go through HTTP. */
-export function attachSocket(app: FastifyInstance, config: Config): SocketIOServer {
+declare module 'socket.io' {
+  interface SocketData {
+    user: SessionUser;
+  }
+}
+
+/**
+ * Attaches Socket.IO to the Fastify HTTP server. Sockets only push; writes go through HTTP.
+ * Every socket is authenticated by the session cookie of the handshake and joins its user room.
+ */
+export function attachSocket(app: FastifyInstance, config: Config, auth: Auth): SocketIOServer {
   const io = new SocketIOServer(app.server, {
     path: '/socket.io',
     cors: { origin: config.nodeEnv === 'production' ? config.publicUrl : true },
+  });
+  const appOrigin = new URL(config.publicUrl).origin;
+
+  io.use(async (socket, next) => {
+    const { headers } = socket.request;
+    // CORS does not stop a cross-site WebSocket handshake, so check the Origin ourselves.
+    if (config.nodeEnv === 'production' && headers.origin !== appOrigin) {
+      return next(new Error('forbidden_origin'));
+    }
+    try {
+      const user = await getSessionUserFromHeaders(auth, headers);
+      if (!user) return next(new Error('unauthorized'));
+      socket.data.user = user;
+      await socket.join(userRoom(user.id));
+      next();
+    } catch (error) {
+      app.log.error(error, 'socket authentication failed');
+      next(new Error('unauthorized'));
+    }
   });
 
   io.on('connection', (socket) => {

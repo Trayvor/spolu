@@ -32,7 +32,6 @@ const AUTH_ENDPOINTS = [
   { method: 'POST', path: '/email-otp/send-verification-otp' },
   { method: 'POST', path: '/sign-in/email-otp' },
   { method: 'POST', path: '/sign-out' },
-  { method: 'GET', path: '/get-session' },
 ] as const;
 
 /** Forwards the allowed `/api/auth/...` endpoints to better-auth as a Web Request. */

@@ -1,15 +1,24 @@
+import { randomUUID } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import { io as connect } from 'socket.io-client';
 import { buildTestApp } from '../test/test-app.js';
+import { loginAs } from '../test/login.js';
+import { addAdmin } from './modules/users/service.js';
 
 describe('buildApp', () => {
   it('exposes app.io and app.close() closes it', async () => {
-    const { app, close } = await buildTestApp();
+    const { app, deps, close } = await buildTestApp();
     expect(app.io).toBeDefined();
+    const email = `${randomUUID()}@example.com`;
+    await addAdmin(deps.db, { email, name: 'App Test' });
+    const cookie = await loginAs(app, email);
     await app.listen({ port: 0, host: '127.0.0.1' });
     const address = app.server.address();
     if (address === null || typeof address === 'string') throw new Error('no port');
-    const client = connect(`http://127.0.0.1:${address.port}`, { transports: ['websocket'] });
+    const client = connect(`http://127.0.0.1:${address.port}`, {
+      transports: ['websocket'],
+      extraHeaders: { cookie },
+    });
     await new Promise<void>((resolve) => client.on('connect', () => resolve()));
 
     const disconnected = new Promise<void>((resolve) => client.on('disconnect', () => resolve()));

@@ -19,14 +19,14 @@ export async function buildApp(
     trustProxy: true,
   });
 
-  app.decorate('io', attachSocket(app, config));
+  app.decorate('auth', createAuth(deps));
+  app.decorate('io', attachSocket(app, config, app.auth));
   // preClose runs before Fastify waits for the HTTP server, which open websockets would block.
   // io.close() also closes the HTTP server and is safe when the app never listened.
   app.addHook('preClose', async () => {
     await app.io.close();
   });
 
-  app.decorate('auth', createAuth(deps));
   app.decorateRequest('user', null);
 
   await app.register(systemRoutes, { prefix: '/api', deps });

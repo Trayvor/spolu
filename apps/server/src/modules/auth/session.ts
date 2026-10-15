@@ -1,3 +1,4 @@
+import type { IncomingHttpHeaders } from 'node:http';
 import type { FastifyReply, FastifyRequest, preHandlerAsyncHookHandler } from 'fastify';
 import { fromNodeHeaders } from 'better-auth/node';
 import { SessionUserSchema, type SessionUser } from '@spolu/shared';
@@ -25,7 +26,15 @@ export async function getSessionUser(
   auth: Auth,
   request: FastifyRequest,
 ): Promise<SessionUser | null> {
-  const result = await auth.api.getSession({ headers: fromNodeHeaders(request.headers) });
+  return getSessionUserFromHeaders(auth, request.headers);
+}
+
+/** Same, from raw Node headers; the socket handshake has no Fastify request. */
+export async function getSessionUserFromHeaders(
+  auth: Auth,
+  headers: IncomingHttpHeaders,
+): Promise<SessionUser | null> {
+  const result = await auth.api.getSession({ headers: fromNodeHeaders(headers) });
   return toSessionUser(result?.user);
 }
 

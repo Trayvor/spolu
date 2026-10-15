@@ -271,7 +271,7 @@ describe('auth endpoint allow-list', () => {
     expect(list.json()).toEqual({ error: 'not_found' });
   });
 
-  it('GET /api/auth/get-session is open', async () => {
+  it('GET /api/auth/get-session is closed (the web uses /api/me)', async () => {
     const admin = await createUser('admin');
     const cookie = await loginAs(app, admin.email);
     const res = await app.inject({
@@ -279,8 +279,8 @@ describe('auth endpoint allow-list', () => {
       url: '/api/auth/get-session',
       headers: { cookie },
     });
-    expect(res.statusCode).toBe(200);
-    expect(res.json()).toMatchObject({ user: { id: admin.id } });
+    expect(res.statusCode).toBe(404);
+    expect(res.json()).toEqual({ error: 'not_found' });
   });
 });
 
