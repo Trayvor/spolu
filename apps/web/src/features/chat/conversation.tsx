@@ -24,6 +24,22 @@ export interface ConversationProps {
   renderMessageFooter?: (message: MessageDto) => ReactNode;
 }
 
+/** True while the media query matches; false where `matchMedia` is missing. */
+function useMediaQuery(query: string): boolean {
+  const [matches, setMatches] = useState(
+    () => typeof window.matchMedia === 'function' && window.matchMedia(query).matches,
+  );
+  useEffect(() => {
+    if (typeof window.matchMedia !== 'function') return;
+    const list = window.matchMedia(query);
+    const update = () => setMatches(list.matches);
+    update();
+    list.addEventListener('change', update);
+    return () => list.removeEventListener('change', update);
+  }, [query]);
+  return matches;
+}
+
 function useDocumentVisible(): boolean {
   const [visible, setVisible] = useState(() => document.visibilityState === 'visible');
   useEffect(() => {
@@ -42,8 +58,11 @@ function useDocumentVisible(): boolean {
  * It must be rendered under the group layout (`GroupRoomProvider`): catch-up after a reconnect
  * follows the group room's join counter.
  *
- * URL: `?thread=<rootId>` opens a thread (and survives a reload); `?message=<id>` opens the chat
- * around that message and highlights it for 2 s (with `thread`, the reply in the panel).
+ * URL: `?thread=<rootId>&c=<channelId>` opens a thread (and survives a reload);
+ * `?message=<id>&c=<channelId>` opens the chat around that message and highlights it for 2 s
+ * (with `thread`, the reply in the panel). Params of another channel are ignored, so two
+ * conversations on one page never open each other's threads; params without `c` belong to
+ * whoever adopts them (the group's Chat tab).
  */
 export function Conversation({
   channelId,
@@ -53,27 +72,33 @@ export function Conversation({
 }: ConversationProps) {
   const { t } = useTranslation();
   const meId = useSession()?.id ?? '';
-  const search = useChatSearch();
+  const search = useChatSearch(channelId);
   const { message: linked, thread: threadId, clearMessage, setThread } = search;
   const chat = useChannelMessages(channelId, { groupId, aroundMessageId: linked });
-  const { window: win, markRead, jumpToLatest, send } = chat;
+  const { window: win, markRead, jumpToLatest, send, around } = chat;
   const column = useRef<HTMLDivElement>(null);
   const visible = useDocumentVisible();
+  // Below 1024 px an open thread covers the list.
+  const covered = !useMediaQuery('(min-width: 1024px)') && threadId !== undefined;
   // The list opens away from the bottom when it shows a linked message.
   const [atBottom, setAtBottom] = useState(() => linked === undefined);
   const [endSignal, setEndSignal] = useState(0);
 
-  // The linked message stays highlighted for 2 s after the window has loaded, then leaves the URL.
+  // The linked message stays highlighted for 2 s once its page has arrived, then leaves the URL.
+  const linkSettled = linked !== undefined && around?.messageId === linked;
   useEffect(() => {
-    if (linked === undefined || !win.loaded) return;
+    if (!linkSettled) return;
     const timer = setTimeout(clearMessage, HIGHLIGHT_MS);
     return () => clearTimeout(timer);
-  }, [linked, win.loaded, clearMessage]);
+  }, [linkSettled, clearMessage]);
+  // A linked reply is not in the list: the list shows its thread root (the page's target).
+  const listHighlight = linkSettled ? (around?.targetId ?? undefined) : linked;
 
   // Marks read once the reader has been at the bottom of the newest page for a moment.
   const newest = win.messages.at(-1)?.createdAt;
   const unreadSeen =
     atBottom &&
+    !covered &&
     visible &&
     win.loaded &&
     !win.hasNewer &&
@@ -98,8 +123,33 @@ export function Conversation({
     [win.hasNewer, jumpToLatest, send],
   );
 
-  const openThread = useCallback((message: MessageDto) => setThread(message.id), [setThread]);
+  /** What had focus when the thread opened; it gets focus back when the thread closes. */
+  const opener = useRef<Element | null>(null);
+  const openThread = useCallback(
+    (message: MessageDto) => {
+      opener.current = document.activeElement;
+      setThread(message.id);
+    },
+    [setThread],
+  );
   const closeThread = useCallback(() => setThread(undefined), [setThread]);
+
+  // However the thread closed (button, Esc, Back), focus returns to where the reader was: the
+  // opener, else the root message's "N replies" link, else its first button.
+  const shownThread = useRef(threadId);
+  useEffect(() => {
+    const closed = shownThread.current;
+    shownThread.current = threadId;
+    if (closed === undefined || threadId !== undefined) return;
+    const back = opener.current;
+    opener.current = null;
+    if (back instanceof HTMLElement && back.isConnected && column.current?.contains(back)) {
+      back.focus();
+      return;
+    }
+    const row = column.current?.querySelector(`[data-message-id="${CSS.escape(closed)}"]`);
+    row?.querySelector<HTMLElement>('[data-thread-link], button')?.focus();
+  }, [threadId]);
   const threadPending = useMemo(
     () => win.pending.filter((p) => p.input.parentId === threadId),
     [win.pending, threadId],
@@ -107,7 +157,7 @@ export function Conversation({
 
   return (
     <div className="relative flex h-full min-h-0 overflow-hidden rounded-xl bg-card">
-      <div ref={column} className="flex min-w-0 flex-1 flex-col">
+      <div ref={column} inert={covered} className="flex min-w-0 flex-1 flex-col">
         {chat.error !== null && !win.loaded ? (
           <div
             className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center"
@@ -126,7 +176,7 @@ export function Conversation({
             onLoadOlder={chat.loadOlder}
             onLoadNewer={chat.loadNewer}
             onJumpToLatest={jumpToLatest}
-            highlightId={linked}
+            highlightId={listHighlight}
             messageActions={messageActions}
             renderMessageFooter={renderMessageFooter}
             onOpenThread={openThread}

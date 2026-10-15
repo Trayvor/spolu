@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vite
 import { useState, type ReactNode } from 'react';
 import type { Changes, ChatMessageEvent, MessageDto, Thread } from '@spolu/shared';
 import { GroupRoomProvider } from '@/features/groups/use-group-room';
-import { groupChatQuery, threadQuery } from './api';
+import { chatUnreadQuery, groupChatQuery, threadQuery } from './api';
 import { useChannelMessages } from './use-channel-messages';
 
 const socket = vi.hoisted(() => {
@@ -362,6 +362,51 @@ describe('useChannelMessages', () => {
     await act(() => result.current.jumpToLatest());
     expect(ids(result.current.window.messages)).toEqual(['m1', 'm2', 'm3']);
     expect(result.current.window.hasNewer).toBe(false);
+  });
+
+  it("an around page of another channel opens this chat's newest page instead", async () => {
+    fetchMock.mockImplementationOnce(async () =>
+      json(200, {
+        messages: [msg(40, { channelId: 'c2' })],
+        hasOlder: false,
+        hasNewer: false,
+        targetId: 'm40',
+        lastSeq: 40,
+        lastReadAt: null,
+      }),
+    );
+    const queryClient = new QueryClient();
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={queryClient}>
+        <GroupRoomProvider joins={1}>{children}</GroupRoomProvider>
+      </QueryClientProvider>
+    );
+    const { result } = renderHook(
+      () => useChannelMessages('c1', { groupId: 'g1', aroundMessageId: 'm40' }),
+      { wrapper },
+    );
+    await waitFor(() =>
+      expect(result.current.around).toEqual({ messageId: 'm40', targetId: null }),
+    );
+    expect(ids(result.current.window.messages)).toEqual(['m1', 'm2', 'm3']);
+  });
+
+  it('markRead posts the cursor and refreshes both unread counts', async () => {
+    fetchMock.mockImplementation(async (url: string, init?: RequestInit) => {
+      if (url === '/api/channels/c1/read') return json(204);
+      if (url === '/api/channels/c1/messages' && (init?.method ?? 'GET') === 'GET') {
+        return json(200, { messages: [], hasMore: false, lastSeq: 0, lastReadAt: null });
+      }
+      return json(404, { error: 'not_found' });
+    });
+    const { result, queryClient } = setup();
+    await waitFor(() => expect(result.current.window.loaded).toBe(true));
+    const spy = vi.spyOn(queryClient, 'invalidateQueries');
+    await act(() => result.current.markRead('2026-10-15T10:00:03.000Z'));
+    expect(result.current.window.lastReadAt).toBe('2026-10-15T10:00:03.000Z');
+    const keys = spy.mock.calls.map(([filters]) => filters?.queryKey);
+    expect(keys).toContainEqual(groupChatQuery('g1').queryKey);
+    expect(keys).toContainEqual(chatUnreadQuery.queryKey);
   });
 
   it('catch-up starts from the seq before the disconnect, not from a live event after it', async () => {

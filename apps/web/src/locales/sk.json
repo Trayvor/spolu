@@ -172,6 +172,7 @@
       "code": "Kód"
     },
     "unread": "Neprečítané správy: {{count}}",
+    "unread_one": "Neprečítaná správa: {{count}}",
     "loadError": "Chat sa nepodarilo načítať."
   },
   "tasks": {

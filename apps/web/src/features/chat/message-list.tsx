@@ -24,7 +24,11 @@ export interface MessageListProps {
    * list starts at the bottom, unless it opens at `highlightId`.
    */
   onAtBottomChange?: (atBottom: boolean) => void;
-  /** An edit or delete of the reader's own message was answered; apply it to the window. Apply it to the window only: it must not move lastSeq or catch-up bookkeeping (a delete copy has a fabricated changeSeq and deletedAt). */
+  /**
+   * An edit or delete of the reader's own message was answered. Apply it to the window only: it
+   * must not move lastSeq or catch-up bookkeeping (a delete copy has a fabricated changeSeq and
+   * deletedAt).
+   */
   onMessageChanged?: (message: MessageDto) => void;
   /** A change of this value scrolls to the end and follows it again (the reader just sent). */
   endSignal?: number;
@@ -160,20 +164,30 @@ export function MessageList({
     scrolledTo.current = highlightId;
     stick.current = false;
     row.scrollIntoView?.({ block: 'center' });
-  }, [highlightId, win.messages]);
+    // A page too short to scroll never fires a scroll event: measure once here.
+    syncBottom();
+  });
 
-  function onScroll() {
+  /** Whether the end of the newest page is in view; tells the conversation when it changes. */
+  function syncBottom() {
     const el = scroller.current;
     if (!el) return;
     const fromEnd = el.scrollHeight - el.scrollTop - el.clientHeight;
     const bottom = fromEnd <= EDGE && !win.hasNewer;
     stick.current = bottom;
-    anchor.current = captureAnchor(el);
     if (bottom !== atBottom) {
       setAtBottom(bottom);
       onAtBottomChange?.(bottom);
       if (bottom) setUnseen(false);
     }
+  }
+
+  function onScroll() {
+    const el = scroller.current;
+    if (!el) return;
+    const fromEnd = el.scrollHeight - el.scrollTop - el.clientHeight;
+    syncBottom();
+    anchor.current = captureAnchor(el);
     if (el.scrollTop < PREFETCH && win.hasOlder) onLoadOlder();
     if (fromEnd < PREFETCH && win.hasNewer) onLoadNewer();
   }

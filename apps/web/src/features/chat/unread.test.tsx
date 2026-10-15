@@ -134,8 +134,9 @@ describe('unread badges', () => {
     expect(screen.getByText('2')).toBeInTheDocument();
   });
 
-  it('chat:read clears it', async () => {
-    const { container } = renderBadge(3);
+  it('chat:read clears it and refreshes the groups list counts', async () => {
+    const { container, client } = renderBadge(3);
+    client.setQueryData(chatUnreadQuery.queryKey, { g1: 3 });
     expect(screen.getByText('3')).toBeInTheDocument();
     const read: ChatReadEvent = {
       groupId: 'g1',
@@ -144,6 +145,7 @@ describe('unread badges', () => {
     };
     act(() => socket.fire('chat:read', read));
     await waitFor(() => expect(container).toBeEmptyDOMElement());
+    expect(client.getQueryState(chatUnreadQuery.queryKey)?.isInvalidated).toBe(true);
   });
 
   it('groups list count reads the unread map', () => {

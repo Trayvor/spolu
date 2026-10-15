@@ -1,4 +1,12 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import {
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type ReactNode,
+} from 'react';
 import { useTranslation } from 'react-i18next';
 import type { MessageDto } from '@spolu/shared';
 import { Button } from '@/components/ui/button';
@@ -61,6 +69,9 @@ export function ThreadPanel({
   const nameOf = useMemo(() => (id: string) => names.get(id), [names]);
   const panel = useRef<HTMLElement>(null);
   const scroller = useRef<HTMLDivElement>(null);
+  const heading = useRef<HTMLHeadingElement>(null);
+  /** The reader is at (or near) the end of the thread, so new replies are followed. */
+  const nearEnd = useRef(true);
   const [replyTo, setReplyTo] = useState<MessageDto | null>(null);
   /** The quoted reply the reader jumped to. */
   const [flash, setFlash] = useState<string | null>(null);
@@ -85,15 +96,25 @@ export function ThreadPanel({
     return () => clearTimeout(timer);
   }, [flash]);
 
+  // Opening a thread moves focus into it (the heading, so screen readers announce it).
+  useEffect(() => {
+    heading.current?.focus();
+  }, []);
+
   // Scroll to the highlighted message once it is rendered; otherwise follow the newest reply
-  // when one is added (not when a highlight ends, which would yank the reader away).
+  // when one is added while the reader is at the end, and always after the reader's own send
+  // (never when a highlight ends, which would yank the reader away).
   const count = (replies?.length ?? 0) + pending.length;
   const seenCount = useRef(-1);
+  const seenPending = useRef(pending.length);
   const scrolledTo = useRef<string | null>(null);
   useLayoutEffect(() => {
     const el = scroller.current;
     if (!el || !thread) return;
-    const grew = count !== seenCount.current;
+    const sent = pending.length > seenPending.current;
+    seenPending.current = pending.length;
+    const grew =
+      count !== seenCount.current && (seenCount.current === -1 || nearEnd.current || sent);
     seenCount.current = count;
     if (highlighted) {
       if (scrolledTo.current === highlighted) return;
@@ -105,7 +126,22 @@ export function ThreadPanel({
     }
     scrolledTo.current = null;
     if (grew) el.scrollTop = el.scrollHeight;
-  }, [highlighted, thread, count]);
+  }, [highlighted, thread, count, pending.length]);
+
+  function onScroll() {
+    const el = scroller.current;
+    if (el) nearEnd.current = el.scrollHeight - el.scrollTop - el.clientHeight <= 80;
+  }
+
+  /** Esc inside the panel: first drops the quote, then closes the thread. */
+  function onKeyDown(e: KeyboardEvent<HTMLElement>) {
+    if (e.key !== 'Escape' || e.defaultPrevented || e.nativeEvent.isComposing) return;
+    // Keys from menus rendered in a portal bubble here through React; they are not ours.
+    if (!(e.target instanceof Node) || !e.currentTarget.contains(e.target)) return;
+    e.preventDefault();
+    if (replyTo) setReplyTo(null);
+    else onClose();
+  }
 
   function reply(message: MessageDto) {
     setReplyTo(message);
@@ -117,10 +153,14 @@ export function ThreadPanel({
   const lastAuthor = replies?.at(-1)?.author.id ?? thread?.root.author.id;
   const liveCount = replies?.filter((r) => r.deletedAt === null).length ?? 0;
 
+  // A thread of another chat (a link meant for a chat mounted elsewhere) is not shown here.
+  if (thread && thread.root.channelId !== channelId) return null;
+
   return (
     <section
       ref={panel}
       aria-label={t('chat.thread.title')}
+      onKeyDown={onKeyDown}
       className="absolute inset-0 z-10 flex flex-col bg-card min-[1024px]:static min-[1024px]:w-[400px] min-[1024px]:shrink-0 min-[1024px]:border-l min-[1024px]:border-border"
     >
       <header className="flex h-12 shrink-0 items-center gap-2 border-b border-border px-2 min-[1024px]:px-4">
@@ -128,7 +168,11 @@ export function ThreadPanel({
           <BackIcon />
           {t('chat.thread.back')}
         </Button>
-        <h2 className="flex-1 text-button font-semibold max-[1023px]:sr-only">
+        <h2
+          ref={heading}
+          tabIndex={-1}
+          className="flex-1 text-button font-semibold outline-none max-[1023px]:sr-only"
+        >
           {t('chat.thread.title')}
         </h2>
         <button
@@ -144,6 +188,7 @@ export function ThreadPanel({
 
       <div
         ref={scroller}
+        onScroll={onScroll}
         className="relative min-h-0 flex-1 overflow-y-auto overscroll-contain pb-3"
       >
         {isError && !thread && (

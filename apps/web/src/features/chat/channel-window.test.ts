@@ -133,9 +133,26 @@ describe('windowReducer', () => {
     expect(w.pending.map((p) => p.status)).toEqual(['sending', 'sending']);
   });
 
+  it('an around page of another channel is ignored', () => {
+    const w = windowReducer(initialWindow, {
+      type: 'loadedAround',
+      channelId: 'c2',
+      page: {
+        messages: range(10, 12),
+        hasOlder: false,
+        hasNewer: false,
+        targetId: 'm0011',
+        lastSeq: 12,
+        lastReadAt: null,
+      },
+    });
+    expect(w).toBe(initialWindow);
+  });
+
   it('messages outside the window are ignored while hasOlder/hasNewer', () => {
     const around = windowReducer(initialWindow, {
       type: 'loadedAround',
+      channelId: 'c1',
       page: {
         messages: range(10, 12),
         hasOlder: true,
@@ -201,6 +218,7 @@ describe('windowReducer', () => {
   it('loadedNewer appends a page and past 300 drops the oldest', () => {
     let w = windowReducer(initialWindow, {
       type: 'loadedAround',
+      channelId: 'c1',
       page: {
         messages: range(1, 280),
         hasOlder: false,

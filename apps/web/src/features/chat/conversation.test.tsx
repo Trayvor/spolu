@@ -15,6 +15,7 @@ import { sessionQuery } from '@/features/auth/use-session';
 import { groupPeopleQuery } from '@/features/groups/api';
 import { GroupRoomProvider } from '@/features/groups/use-group-room';
 import { i18n, setLanguage } from '@/i18n';
+import { ChatTab } from './chat-tab';
 import { Conversation, type ConversationProps } from './conversation';
 
 const socket = vi.hoisted(() => {
@@ -107,6 +108,13 @@ beforeEach(() => {
       return json(200, thread);
     }
     if (url === '/api/channels/c1/read' && method === 'POST') return json(204);
+    if (url === '/api/groups/g1/chat') {
+      return json(200, { id: 'c1', lastSeq: 5, lastReadAt: M1.createdAt, unread: 2 });
+    }
+    if (url === '/api/channels/c2/messages' && method === 'GET') {
+      const task = msg('x1', 1, { channelId: 'c2', body: 'task chat' });
+      return json(200, { messages: [task], hasMore: false, lastSeq: 1, lastReadAt: null });
+    }
     if (url === '/api/channels/c1/messages' && method === 'POST') {
       const input = JSON.parse(String(init!.body)) as Record<string, string>;
       return json(
@@ -136,7 +144,9 @@ const postBodies = () =>
     ([, init]) => JSON.parse(String((init as RequestInit).body)) as Record<string, unknown>,
   );
 
-function renderAt(path: string, props: Partial<ConversationProps> = {}) {
+type Page = 'one' | 'two' | 'tab';
+
+function renderAt(path: string, props: Partial<ConversationProps> = {}, page: Page = 'one') {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   client.setQueryData(sessionQuery.queryKey, ME as never);
   client.setQueryData(groupPeopleQuery('g1').queryKey, people);
@@ -146,7 +156,18 @@ function renderAt(path: string, props: Partial<ConversationProps> = {}) {
     path: '/groups/$groupId/chat',
     component: () => (
       <GroupRoomProvider joins={1}>
-        <Conversation channelId="c1" groupId="g1" {...props} />
+        {page === 'tab' ? (
+          <ChatTab />
+        ) : (
+          <div data-chat="c1">
+            <Conversation channelId="c1" groupId="g1" {...props} />
+          </div>
+        )}
+        {page === 'two' && (
+          <div data-chat="c2">
+            <Conversation channelId="c2" groupId="g1" />
+          </div>
+        )}
       </GroupRoomProvider>
     ),
   });
@@ -199,7 +220,7 @@ describe('Conversation', () => {
     const opened = await panel();
     await waitFor(() => expect(row(opened, 'r1')).toHaveTextContent('text of r1'));
     expect(within(opened).getByText(t('chat.thread.replies', { count: 2 }))).toBeInTheDocument();
-    expect(first.router.state.location.search).toEqual({ thread: 'm2' });
+    expect(first.router.state.location.search).toEqual({ thread: 'm2', c: 'c1' });
     const href = first.router.state.location.href;
     first.unmount();
 
@@ -208,7 +229,7 @@ describe('Conversation', () => {
   });
 
   it('Reply in a thread shows the strip and the sent reply carries replyToId', async () => {
-    const { user } = renderAt('/groups/g1/chat?thread=m2');
+    const { user } = renderAt('/groups/g1/chat?thread=m2&c=c1');
     const thread = await panel();
     const r1 = await waitFor(() => row(thread, 'r1')!);
     await user.click(within(r1).getByRole('button', { name: t('chat.actions.reply') }));
@@ -223,7 +244,7 @@ describe('Conversation', () => {
   });
 
   it('clicking a quote highlights the quoted reply', async () => {
-    const { user } = renderAt('/groups/g1/chat?thread=m2');
+    const { user } = renderAt('/groups/g1/chat?thread=m2&c=c1');
     const thread = await panel();
     const r2 = await waitFor(() => row(thread, 'r2')!);
     expect(row(thread, 'r1')).not.toHaveClass('bg-accent');
@@ -233,7 +254,7 @@ describe('Conversation', () => {
   });
 
   it('?message=<id> loads around it and highlights it', async () => {
-    const { container, router } = renderAt('/groups/g1/chat?message=m2');
+    const { container, router } = renderAt('/groups/g1/chat?message=m2&c=c1');
     await screen.findByText('text of m2');
     expect(calls((url) => url === '/api/messages/m2/around')).toHaveLength(1);
     expect(calls((url) => url === '/api/channels/c1/messages')).toHaveLength(0);
@@ -245,7 +266,7 @@ describe('Conversation', () => {
 
   it('messageActions and renderMessageFooter reach the thread panel messages too', async () => {
     const onSelect = vi.fn();
-    const { user } = renderAt('/groups/g1/chat?thread=m2', {
+    const { user } = renderAt('/groups/g1/chat?thread=m2&c=c1', {
       messageActions: [{ id: 'task', label: 'Turn into task', icon: null, onSelect }],
       renderMessageFooter: (m) => <span>footer {m.id}</span>,
     });
@@ -261,7 +282,7 @@ describe('Conversation', () => {
   });
 
   it('a message deleted while its thread is open shows Message deleted and keeps replies', async () => {
-    renderAt('/groups/g1/chat?thread=m2');
+    renderAt('/groups/g1/chat?thread=m2&c=c1');
     const thread = await panel();
     await waitFor(() => expect(row(thread, 'r1')).not.toBeNull());
     const event: ChatMessageEvent = {
@@ -276,5 +297,100 @@ describe('Conversation', () => {
     );
     expect(row(thread, 'r1')).toHaveTextContent('text of r1');
     expect(row(thread, 'r2')).toHaveTextContent('text of r2');
+  });
+  it('old links without a channel still open the group chat (the Chat tab adopts them)', async () => {
+    const { router } = renderAt('/groups/g1/chat?thread=m2', {}, 'tab');
+    const thread = await panel();
+    await waitFor(() => expect(row(thread, 'r1')).not.toBeNull());
+    expect(router.state.location.search).toEqual({ thread: 'm2', c: 'c1' });
+    // The window loaded once, already with the params claimed.
+    expect(calls((url) => url === '/api/channels/c1/messages')).toHaveLength(1);
+  });
+
+  it('two conversations on one page react only to their own params', async () => {
+    const { container, router, user } = renderAt(
+      '/groups/g1/chat?thread=m2&message=r1&c=c1',
+      {},
+      'two',
+    );
+    await screen.findByText('task chat');
+    const c1 = container.querySelector<HTMLElement>('[data-chat="c1"]')!;
+    const c2 = container.querySelector<HTMLElement>('[data-chat="c2"]')!;
+    await waitFor(() => expect(within(c1).getAllByRole('region')).toHaveLength(1));
+    expect(within(c2).queryByRole('region')).toBeNull();
+    // Only c1 loads around the linked message; c2 opens at its own newest page.
+    expect(calls((url) => url.endsWith('/around'))).toHaveLength(1);
+    expect(calls((url) => url === '/api/channels/c2/messages')).toHaveLength(1);
+
+    // Opening a thread in c2 takes the params over; c1's panel closes.
+    await waitFor(() => expect(router.state.location.search).toEqual({ thread: 'm2', c: 'c1' }), {
+      timeout: 3000,
+    });
+    const x1 = row(c2, 'x1')!;
+    await user.click(within(x1).getByRole('button', { name: t('chat.actions.replyInThread') }));
+    expect(router.state.location.search).toEqual({ thread: 'x1', c: 'c2' });
+    await waitFor(() => expect(within(c1).queryByRole('region')).toBeNull());
+  });
+
+  it('a thread of another channel is never shown', async () => {
+    // c1's link names a root that belongs to c2 (e.g. a stale or hand-made link).
+    const original = fetchMock.getMockImplementation()!;
+    fetchMock.mockImplementation(async (url, init) =>
+      url === '/api/messages/x9/thread'
+        ? json(200, { root: msg('x9', 1, { channelId: 'c2' }), replies: [] })
+        : original(url, init),
+    );
+    renderAt('/groups/g1/chat?thread=x9&c=c1');
+    await screen.findByText('text of m3');
+    await wait(50);
+    expect(screen.queryByRole('region')).toBeNull();
+  });
+
+  it('opening a thread focuses it, Esc drops the quote then closes, focus returns to the opener', async () => {
+    const { container, user } = renderAt('/groups/g1/chat');
+    await screen.findByText('text of m2');
+    const opener = within(row(container, 'm2')!).getByRole('button', {
+      name: t('chat.actions.replyInThread'),
+    });
+    await user.click(opener);
+    const thread = await panel();
+    expect(within(thread).getByRole('heading', { name: t('chat.thread.title') })).toHaveFocus();
+    const r1 = await waitFor(() => row(thread, 'r1')!);
+    await user.click(within(r1).getByRole('button', { name: t('chat.actions.reply') }));
+    expect(within(thread).getByRole('textbox')).toHaveFocus();
+    await user.keyboard('{Escape}');
+    expect(screen.getByRole('region')).toBeInTheDocument();
+    expect(within(thread).queryByText(/Replying to/)).toBeNull();
+    await user.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByRole('region')).toBeNull());
+    expect(opener).toHaveFocus();
+  });
+
+  it('below 1024 px the open thread makes the list inert and the chat is not marked read', async () => {
+    vi.stubGlobal('matchMedia', (query: string) => ({
+      matches: false,
+      media: query,
+      addEventListener: () => undefined,
+      removeEventListener: () => undefined,
+    }));
+    const { container } = renderAt('/groups/g1/chat?thread=m2&c=c1');
+    await panel();
+    await screen.findAllByText('text of m3');
+    const column = container.querySelector<HTMLElement>('[data-chat="c1"] > div > div')!;
+    expect(column).toHaveAttribute('inert');
+    await wait(1300);
+    expect(readCalls()).toHaveLength(0);
+  });
+
+  it('a hidden tab is not marked read', async () => {
+    const state = vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden');
+    try {
+      renderAt('/groups/g1/chat');
+      await screen.findByText('text of m3');
+      await wait(1300);
+      expect(readCalls()).toHaveLength(0);
+    } finally {
+      state.mockRestore();
+    }
   });
 });

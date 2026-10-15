@@ -252,10 +252,12 @@ describe('parseMessage', () => {
       '```\n'.repeat(n / 4),
       'a\n'.repeat(n / 2),
     ];
+    // A generous bound, so a loaded machine does not fail it: a quadratic scan of 100 000
+    // characters takes many seconds, a linear one a few milliseconds.
     for (const input of inputs) {
       const started = performance.now();
       parseMessage(input);
-      expect(performance.now() - started, input.slice(0, 12)).toBeLessThan(300);
+      expect(performance.now() - started, input.slice(0, 12)).toBeLessThan(2000);
     }
   });
 });

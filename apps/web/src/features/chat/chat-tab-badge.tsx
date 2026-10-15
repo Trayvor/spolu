@@ -4,15 +4,15 @@ import { ChatEvents, type ChatMessageEvent, type ChatReadEvent } from '@spolu/sh
 import { useSession } from '@/features/auth/use-session';
 import { useGroupRoomJoins } from '@/features/groups/use-group-room';
 import { getSocket } from '@/lib/socket';
-import { groupChatQuery } from './api';
+import { chatUnreadQuery, groupChatQuery } from './api';
 import { UnreadPill } from './unread';
 
 // Imported eagerly by the group layout: keep it to `api.ts`, `unread.tsx` and tiny hooks.
 
 /**
  * The Chat tab's unread count. A new top-level message by someone else in this group's channel
- * adds one to the cached count; `chat:read` (this or another device read the chat) and every
- * rejoin of the group room (messages may have been missed) ask the server again.
+ * adds one to the cached count; `chat:read` (this or another device read the chat; it also
+ * refreshes the groups list counts) and every rejoin of the group room (messages may have been missed) ask the server again.
  */
 export function ChatTabBadge({ groupId }: { groupId: string }) {
   const queryClient = useQueryClient();
@@ -35,6 +35,7 @@ export function ChatTabBadge({ groupId }: { groupId: string }) {
     const onRead = (event: ChatReadEvent) => {
       if (event.groupId !== groupId || event.channelId !== channelId) return;
       void queryClient.invalidateQueries({ queryKey });
+      void queryClient.invalidateQueries({ queryKey: chatUnreadQuery.queryKey });
     };
     socket.on(ChatEvents.message, onMessage);
     socket.on(ChatEvents.read, onRead);

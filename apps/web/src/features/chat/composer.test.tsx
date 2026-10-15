@@ -127,6 +127,13 @@ describe('Composer', () => {
     expect(onSubmit).toHaveBeenCalledWith({ body: '@zzz', fileIds: [] });
   });
 
+  it('one letter that starts an Everyone label does not offer Everyone', async () => {
+    const user = userEvent.setup();
+    renderComposer();
+    await user.type(box(), '@e');
+    expect(screen.queryByText('Everyone in this group')).not.toBeInTheDocument();
+  });
+
   it('Everyone in this group inserts @all and sends <@all>', async () => {
     const user = userEvent.setup();
     const { onSubmit } = renderComposer();

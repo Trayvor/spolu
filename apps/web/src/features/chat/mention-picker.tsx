@@ -48,12 +48,13 @@ export const MentionPicker = forwardRef<MentionPickerHandle, MentionPickerProps>
         type: 'person' as const,
         person,
       }));
-      // "Everyone" leads only while nothing is typed or the query starts one of its names, so a
-      // quick Enter after "@ja" never turns into a group-wide mention.
+      // "Everyone" leads only while nothing is typed or the query (2+ letters) starts one of its
+      // names, so a quick Enter after "@ja" or "@e" (aimed at Eva) never pings the whole group.
       const needle = fold(query);
-      const everyoneMatches = ['all', 'everyone', everyone].some((label) =>
-        fold(label).startsWith(needle),
-      );
+      const everyoneMatches =
+        needle.length === 0 ||
+        (needle.length >= 2 &&
+          ['all', 'everyone', everyone].some((label) => fold(label).startsWith(needle)));
       return everyoneMatches ? [{ type: 'all' as const }, ...list] : list;
     }, [people, query, everyone]);
     const [raw, setRaw] = useState(0);

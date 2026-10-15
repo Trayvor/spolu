@@ -172,6 +172,7 @@
       "code": "Code"
     },
     "unread": "{{count}} unread messages",
+    "unread_one": "{{count}} unread message",
     "loadError": "The chat could not be loaded."
   },
   "tasks": {

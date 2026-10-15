@@ -37,7 +37,8 @@ export type WindowAction =
   | { type: 'loadedLatest'; page: MessagePage }
   | { type: 'loadedOlder'; page: MessagePage }
   | { type: 'loadedNewer'; page: MessagePage }
-  | { type: 'loadedAround'; page: AroundPage }
+  /** `channelId`: the chat the window belongs to; a page of another chat is ignored. */
+  | { type: 'loadedAround'; page: AroundPage; channelId: string }
   /** `local`: a result of the reader's own edit or delete; it never moves `lastSeq`. */
   | { type: 'upsert'; messages: MessageDto[]; local?: boolean }
   | { type: 'pendingAdded'; input: SendMessageInput }
@@ -155,6 +156,8 @@ export function windowReducer(state: ChannelWindow, action: WindowAction): Chann
       });
     }
     case 'loadedAround':
+      // `/messages/:id/around` answers for any readable message, so it may be another chat's.
+      if (action.page.messages.some((m) => m.channelId !== action.channelId)) return state;
       return replaced(state, action.page.messages, action.page);
     // An older or newer page says nothing about changes to the rows already loaded, so
     // `lastSeq` stays: moving it could skip an edit that catch-up still has to deliver.

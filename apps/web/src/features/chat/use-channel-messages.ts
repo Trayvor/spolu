@@ -9,6 +9,7 @@ import {
 import { useGroupRoomJoins } from '@/features/groups/use-group-room';
 import { getSocket } from '@/lib/socket';
 import {
+  chatUnreadQuery,
   fetchAround,
   fetchChanges,
   fetchPage,
@@ -56,6 +57,12 @@ export function useChannelMessages(
     [channelId],
   );
   const error = failure?.channelId === channelId ? failure.error : null;
+  /**
+   * The last `aroundMessageId` whose load has finished, with the top-level message the page was
+   * opened at (the message itself or its thread root), or null when it could not be shown (another
+   * chat's message, or the request failed; the newest page is shown instead).
+   */
+  const [around, setAround] = useState<{ messageId: string; targetId: string | null } | null>(null);
 
   // Mirrors for async callbacks. `lastSeqRef` is the authority for catch-up (it moves
   // synchronously); `win.lastSeq` is the same value as rendered state.
@@ -226,18 +233,34 @@ export function useChannelMessages(
       dispatch({ type: 'reset' });
     }
     handledJoinsRef.current = joinsRef.current;
-    const request: Promise<WindowAction & { page: { lastSeq: number } }> = aroundMessageId
-      ? fetchAround(aroundMessageId).then((page) => ({ type: 'loadedAround', page }))
-      : fetchPage(channelId).then((page) => ({ type: 'loadedLatest', page }));
+    const latest = () =>
+      fetchPage(channelId).then((page): WindowAction & { page: { lastSeq: number } } => ({
+        type: 'loadedLatest',
+        page,
+      }));
+    const request = aroundMessageId
+      ? fetchAround(aroundMessageId).then((page) =>
+          // A message of another chat is never shown here: this chat opens at its newest page.
+          page.messages.every((m) => m.channelId === channelId)
+            ? { type: 'loadedAround' as const, page, channelId }
+            : latest(),
+        )
+      : latest();
     request.then(
       (action) => {
         if (gen !== genRef.current) return;
         dispatch(action);
         setError(null);
         afterFullPage(action.page.lastSeq);
+        if (aroundMessageId) {
+          const targetId = action.type === 'loadedAround' ? action.page.targetId : null;
+          setAround({ messageId: aroundMessageId, targetId });
+        }
       },
       (err: unknown) => {
-        if (gen === genRef.current) setError(err);
+        if (gen !== genRef.current) return;
+        setError(err);
+        if (aroundMessageId) setAround({ messageId: aroundMessageId, targetId: null });
       },
     );
   }, [channelId, aroundMessageId, afterFullPage, setError]);
@@ -358,13 +381,18 @@ export function useChannelMessages(
     [post],
   );
 
-  /** Marks the channel read up to `at` and moves the window's read cursor (not the anchor). */
+  /**
+   * Marks the channel read up to `at` and moves the window's read cursor (not the anchor). The
+   * unread counts (the Chat tab and the groups list) are asked for again.
+   */
   const markRead = useCallback(
     async (at: string) => {
       await postRead(channelId, at);
       dispatch({ type: 'readMarked', at });
+      void queryClient.invalidateQueries({ queryKey: groupChatQuery(groupId).queryKey });
+      void queryClient.invalidateQueries({ queryKey: chatUnreadQuery.queryKey });
     },
-    [channelId],
+    [channelId, groupId, queryClient],
   );
 
   return {
@@ -376,6 +404,7 @@ export function useChannelMessages(
     retry,
     markRead,
     applyLocal,
+    around,
     isLoading: !win.loaded && error === null,
     error,
   };
