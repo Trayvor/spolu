@@ -59,9 +59,31 @@ export const NotificationPrefsPatchSchema = z
   });
 export type NotificationPrefsPatch = z.infer<typeof NotificationPrefsPatchSchema>;
 
+/**
+ * Hosts a push endpoint may point to: the browser vendors' push services. The server POSTs to the
+ * endpoint a client sends, so anything else (internal hosts, IP addresses) would be SSRF.
+ * An entry matches the host itself and its subdomains.
+ */
+export const PUSH_ENDPOINT_HOSTS = [
+  'fcm.googleapis.com',
+  'android.googleapis.com',
+  'push.apple.com',
+  'push.services.mozilla.com',
+  'notify.windows.com',
+] as const;
+
+function isPushEndpoint(value: string): boolean {
+  const url = new URL(value);
+  if (url.username || url.password || url.port) return false;
+  return PUSH_ENDPOINT_HOSTS.some((h) => url.hostname === h || url.hostname.endsWith(`.${h}`));
+}
+
 /** A browser `PushSubscription.toJSON()`; unknown fields such as `expirationTime` are stripped. */
 export const PushSubscriptionBodySchema = z.object({
-  endpoint: z.url({ protocol: /^https$/ }).max(2048),
+  endpoint: z
+    .url({ protocol: /^https$/ })
+    .max(2048)
+    .refine(isPushEndpoint),
   keys: z.object({
     p256dh: z.string().regex(/^[A-Za-z0-9_-]{87}$/),
     auth: z.string().regex(/^[A-Za-z0-9_-]{22}$/),

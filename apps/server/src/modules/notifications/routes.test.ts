@@ -12,7 +12,7 @@ type TestApp = Awaited<ReturnType<typeof buildTestApp>>;
 
 const newEmail = () => `${randomUUID()}@example.com`;
 const newUrl = () => `https://g${randomUUID().replaceAll('-', '')}.egrant.sk`;
-const sub = (endpoint = `https://push.example.com/${randomUUID()}`) => ({
+const sub = (endpoint = `https://fcm.googleapis.com/fcm/send/${randomUUID()}`) => ({
   endpoint,
   keys: { p256dh: 'p'.repeat(87), auth: 'a'.repeat(22) },
 });
