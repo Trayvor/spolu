@@ -44,14 +44,25 @@ Server code pushes into a group with `emitToGroup(io, groupId, event, payload)` 
 | `group:<id>` | a client, on connect, for their membership group; an admin through `group:join` | every event of the group: chat, tasks, files, members (one room per group, no separate channel or board rooms) |
 | per DM channel | the two participants | direct messages (not built yet) |
 
-## Catch-up with `seq`
+## Chat events
 
-Every message has a `seq` number that increases by one per channel. After a disconnect the client asks for what it missed instead of relying on an event log.
+Both are pushed by the chat routes (`modules/chat/events.ts`) after the transaction committed. Payload types are `ChatMessageEvent` and `ChatReadEvent` in `packages/shared/src/chat.ts`; the event names are `ChatEvents.message` and `ChatEvents.read`.
 
-1. The client keeps the highest `seq` it has seen for each open channel.
-2. On (re)connect it re-establishes the socket and rejoins its rooms (the server checks permission on join).
-3. Over HTTP it fetches missed messages: `GET` with `channelId` and `lastSeq`. The server checks permission and returns all messages with `seq > lastSeq`, ordered by `seq` ascending.
-4. The client merges them by `seq`, ignoring ones it already has, and then handles live events as normal.
+| event | room | payload | sent when |
+|---|---|---|---|
+| `chat:message` | `group:<id>` (`emitToGroup`) | `{ groupId, channelId, message, isNew }` | a message is sent (`isNew: true`, and for a reply also the updated parent with `isNew: false`), edited or deleted (`isNew: false`). Never for a repeated `clientId` (the HTTP call answers 200 with the stored message and pushes nothing) or a second delete. |
+| `chat:read` | `user:<id>` | `{ groupId, channelId, lastReadAt }` | the user marks the channel read, so their other tabs clear the unread badge |
+
+`message` is a full `MessageDto`; the client upserts it by id. `isNew` tells the web whether to count it as unread and to append it. Handlers ignore events whose `groupId` is not the open group.
+
+## Catch-up with `change_seq`
+
+Every chat message has a `change_seq` taken from the channel's counter (`channels.last_seq`) whenever it is created, edited or deleted, and a reply moves its parent's `change_seq` too. There is no per-message `seq` that never changes. After a disconnect the client asks for what changed instead of relying on an event log.
+
+1. The client keeps the highest `lastSeq` it has seen for the open channel (from the channel, a message page or a catch-up answer).
+2. On (re)connect it rejoins its rooms (the server checks permission on join) and waits for `useGroupRoomJoins()` to change.
+3. Over HTTP it calls `GET /api/channels/:id/changes?afterSeq=<lastSeq>`. The server checks permission and returns every message (top-level and replies) with `change_seq > afterSeq`, ascending, at most 500, as `{ messages, lastSeq, truncated }`. When `truncated` is true, `lastSeq` is the last complete seq; the web reloads the newest page.
+4. The client upserts them by id, then handles live events as normal.
 
 ```mermaid
 sequenceDiagram
@@ -65,8 +76,8 @@ sequenceDiagram
     C->>S: join room (channelId)
     S->>S: policy check, e.g. canReadGroup
     S-->>C: joined
-    C->>H: GET messages after lastSeq
-    H->>DB: select where seq > lastSeq order by seq
+    C->>H: GET changes?afterSeq=lastSeq
+    H->>DB: select where change_seq > afterSeq order by change_seq
     DB-->>H: missed messages
     H-->>C: missed messages
     S-->>C: live events resume
