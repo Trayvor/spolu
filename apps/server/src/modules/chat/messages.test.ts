@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { Readable } from 'node:stream';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { asc, eq, inArray, sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
@@ -8,7 +8,8 @@ import { mentionToken, type SendMessageInput, type SessionUser } from '@spolu/sh
 import type { AppDeps } from '../../deps.js';
 import { buildTestApp } from '../../../test/test-app.js';
 import { testDatabaseUrl } from '../../../test/test-config.js';
-import { createFile, getFilesForGroup, InvalidAttachmentError } from '../files/service.js';
+import * as filesService from '../files/service.js';
+import { createFile, getFile, getFilesForGroup, InvalidAttachmentError } from '../files/service.js';
 import { addMember, createGroup, listGroupPeople } from '../groups/service.js';
 import { notificationEvents } from '../notifications/schema.js';
 import { user } from '../users/schema.js';
@@ -21,10 +22,16 @@ import {
   getMessage,
   InvalidMentionError,
   InvalidThreadError,
+  MessageDeletedError,
   sendMessage,
 } from './messages.js';
 import { messageMentions, messages } from './schema.js';
 import { ensureGroupChannel, getChannel, type ChannelRow } from './service.js';
+
+vi.mock('../files/service.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../files/service.js')>();
+  return { ...actual, deleteFiles: vi.fn(actual.deleteFiles) };
+});
 
 let deps: AppDeps;
 let close: () => Promise<void>;
@@ -454,5 +461,46 @@ describe('editMessage and deleteMessage', () => {
     const { message: reply } = await send(s.channel, s.b, { parentId: root.id });
     await deleteMessage(deps, { message: await load(reply.id), channel: s.channel });
     expect((await load(root.id)).replyCount).toBe(1);
+  });
+
+  it('a failing post-commit file removal does not fail the delete and leaves the files unattached', async () => {
+    const s = await setup();
+    const file = await upload(s.group.id, s.a.id, 'left.txt');
+    const { message } = await send(s.channel, s.a, { body: '', fileIds: [file.id] });
+    vi.mocked(filesService.deleteFiles).mockRejectedValueOnce(new Error('db down'));
+    const onFileCleanupError = vi.fn();
+    const dto = await deleteMessage(deps, {
+      message: await load(message.id),
+      channel: s.channel,
+      onFileCleanupError,
+    });
+    expect(dto.deletedAt).not.toBeNull();
+    expect(onFileCleanupError).toHaveBeenCalledOnce();
+    expect((await getFile(deps.db, file.id))?.attachedAt).toBeNull();
+  });
+
+  it('editing a message deleted in between → MessageDeletedError and the text stays cleared', async () => {
+    const s = await setup();
+    const { message } = await send(s.channel, s.a, { body: 'secret' });
+    const stale = await load(message.id);
+    await deleteMessage(deps, { message: stale, channel: s.channel });
+    await expect(
+      editMessage(deps, { message: stale, channel: s.channel, body: 'back again' }),
+    ).rejects.toBeInstanceOf(MessageDeletedError);
+    expect((await load(message.id)).body).toBe('');
+  });
+
+  it('deleting twice is a no-op', async () => {
+    const s = await setup();
+    const { message } = await send(s.channel, s.a);
+    const first = await deleteMessage(deps, {
+      message: await load(message.id),
+      channel: s.channel,
+    });
+    const second = await deleteMessage(deps, {
+      message: await load(message.id),
+      channel: s.channel,
+    });
+    expect(second.changeSeq).toBe(first.changeSeq);
   });
 });

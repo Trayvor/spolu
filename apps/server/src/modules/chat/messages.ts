@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { and, eq, inArray, sql } from 'drizzle-orm';
+import { and, eq, inArray, isNull, sql } from 'drizzle-orm';
 import {
   extractMentions,
   plainExcerpt,
@@ -10,7 +10,7 @@ import {
 } from '@spolu/shared';
 import type { AppDeps } from '../../deps.js';
 import type { Db } from '../../infra/db/client.js';
-import { attachFiles, deleteFiles } from '../files/service.js';
+import { attachFiles, deleteFiles, detachFiles } from '../files/service.js';
 import { listGroupPeople } from '../groups/service.js';
 import { recordNotifications } from '../notifications/service.js';
 import { isUniqueViolation } from '../users/service.js';
@@ -240,19 +240,23 @@ export async function editMessage(
   if (mentions.userIds.some((id) => !known.has(id))) throw new InvalidMentionError();
 
   await db.transaction(async (tx) => {
+    const seq = await nextSeq(tx, channel.id);
+    // Checked after the sequence lock: a delete committed since the caller read the row wins.
+    const updated = await tx
+      .update(messages)
+      .set({ body, mentionsAll: mentions.all, editedAt: sql`now()`, changeSeq: seq })
+      .where(and(eq(messages.id, message.id), isNull(messages.deletedAt)))
+      .returning({ id: messages.id });
+    if (updated.length === 0) throw new MessageDeletedError();
     if (body.trim().length === 0) {
       const [attachment] = await tx
         .select({ fileId: messageAttachments.fileId })
         .from(messageAttachments)
         .where(eq(messageAttachments.messageId, message.id))
         .limit(1);
+      // Throwing rolls the whole transaction back, the update included.
       if (!attachment) throw new EmptyMessageError();
     }
-    const seq = await nextSeq(tx, channel.id);
-    await tx
-      .update(messages)
-      .set({ body, mentionsAll: mentions.all, editedAt: sql`now()`, changeSeq: seq })
-      .where(eq(messages.id, message.id));
     await tx.delete(messageMentions).where(eq(messageMentions.messageId, message.id));
     if (mentions.userIds.length > 0) {
       await tx
@@ -266,11 +270,16 @@ export async function editMessage(
 /**
  * Soft-deletes a message in one transaction: the row stays (threads keep working), body and
  * mentions are cleared, attachment rows go, `change_seq` moves. Its files are deleted after the
- * commit. A reply's deletion leaves the root's `reply_count` as it is. Deleting twice is a no-op.
+ * commit, best effort (leftovers are unattached for the daily cleanup). A reply's deletion leaves the root's `reply_count` as it is. Deleting twice is a no-op.
  */
 export async function deleteMessage(
   deps: AppDeps,
-  input: { message: MessageRow; channel: ChannelRow },
+  input: {
+    message: MessageRow;
+    channel: ChannelRow;
+    /** Called when the post-commit file removal fails (the caller logs it with request context). */
+    onFileCleanupError?: (error: unknown) => void;
+  },
 ): Promise<MessageDto> {
   const { db } = deps;
   const { message, channel } = input;
@@ -287,8 +296,16 @@ export async function deleteMessage(
       .delete(messageAttachments)
       .where(eq(messageAttachments.messageId, message.id))
       .returning({ fileId: messageAttachments.fileId });
-    return removed.map((r) => r.fileId);
+    const ids = removed.map((r) => r.fileId);
+    // If the removal below fails, the daily unattached-files cleanup picks them up.
+    await detachFiles(tx, ids);
+    return ids;
   });
-  await deleteFiles(deps, fileIds);
+  try {
+    await deleteFiles(deps, fileIds);
+  } catch (error) {
+    // The message is already deleted; never fail the request over leftover files.
+    (input.onFileCleanupError ?? ((e) => console.error('chat: file cleanup failed', e)))(error);
+  }
   return loadDto(db, channel.groupId, message.id);
 }

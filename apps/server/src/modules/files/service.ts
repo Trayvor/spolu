@@ -181,6 +181,15 @@ export async function attachFiles(
   if (attached.length < ids.length) throw new InvalidAttachmentError();
 }
 
+/**
+ * Marks files as unattached again (the owner dropped them), so the daily unattached cleanup
+ * removes them if their immediate deletion fails. Call inside the owner's transaction.
+ */
+export async function detachFiles(tx: Db, fileIds: string[]): Promise<void> {
+  if (fileIds.length === 0) return;
+  await tx.update(files).set({ attachedAt: null }).where(inArray(files.id, fileIds));
+}
+
 /** In the order of `ids`; ids that are unknown or in another group are skipped. */
 export async function getFilesForGroup(
   db: Db,
