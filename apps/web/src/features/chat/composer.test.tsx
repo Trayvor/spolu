@@ -60,12 +60,12 @@ describe('Composer', () => {
     expect(box()).toHaveValue('');
   });
 
-  it('Cmd+B wraps the selection in **', async () => {
+  it('Cmd/Ctrl+B wraps the selection in **', async () => {
     const user = userEvent.setup();
     renderComposer();
     await user.type(box(), 'say hi now');
     (box() as HTMLTextAreaElement).setSelectionRange(4, 6);
-    await user.keyboard('{Meta>}b{/Meta}');
+    await user.keyboard('{Control>}b{/Control}');
     expect(box()).toHaveValue('say **hi** now');
   });
 
@@ -98,6 +98,33 @@ describe('Composer', () => {
     expect(box()).toHaveValue('hi @Jana Nováková ');
     await user.keyboard('ok{Enter}');
     expect(onSubmit).toHaveBeenCalledWith({ body: 'hi <@jana> ok', fileIds: [] });
+  });
+
+  it('@ja + Enter picks the person, never Everyone', async () => {
+    const user = userEvent.setup();
+    const { onSubmit } = renderComposer();
+    await user.type(box(), '@ja{Enter}');
+    expect(box()).toHaveValue('@Jana Nováková ');
+    await user.keyboard('{Enter}');
+    expect(onSubmit).toHaveBeenCalledWith({ body: '<@jana>', fileIds: [] });
+  });
+
+  it('@ + Enter picks Everyone only when nothing else is typed', async () => {
+    const user = userEvent.setup();
+    renderComposer();
+    await user.type(box(), '@{Enter}');
+    expect(box()).toHaveValue('@all ');
+  });
+
+  it('@all and @every lead with Everyone, @zzz shows nothing and Enter sends', async () => {
+    const user = userEvent.setup();
+    const { onSubmit } = renderComposer();
+    await user.type(box(), '@Every');
+    expect((await screen.findAllByRole('option'))[0]).toHaveTextContent('Everyone in this group');
+    await user.clear(box());
+    await user.type(box(), '@zzz{Enter}');
+    expect(screen.queryByRole('listbox')).toBeNull();
+    expect(onSubmit).toHaveBeenCalledWith({ body: '@zzz', fileIds: [] });
   });
 
   it('Everyone in this group inserts @all and sends <@all>', async () => {
@@ -206,6 +233,32 @@ describe('Composer', () => {
     await user.type(box(), '!{Enter}');
     expect(onSubmit).toHaveBeenCalledWith({ body: 'hi <@jana>!', fileIds: [] });
     expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument();
+  });
+
+  it('edit mode does not open the mention list on mount and saves a trailing mention unchanged', async () => {
+    const user = userEvent.setup();
+    const { onSubmit } = renderComposer({ mode: 'edit', initialBody: 'ok <@peter>' });
+    expect(box()).toHaveValue('ok @Peter Horváth');
+    expect(screen.queryByRole('listbox')).toBeNull();
+    await user.type(box(), '!{Enter}');
+    expect(onSubmit).toHaveBeenCalledWith({ body: 'ok <@peter>!', fileIds: [] });
+  });
+
+  it('a single-word mention at the end is not replaced by Enter', async () => {
+    const user = userEvent.setup();
+    const client = new QueryClient();
+    client.setQueryData(groupPeopleQuery('g1').queryKey, [
+      { id: 'p', name: 'Peter', isAdmin: false },
+    ]);
+    const onSubmit = vi.fn();
+    render(
+      <QueryClientProvider client={client}>
+        <Composer mode="edit" groupId="g1" initialBody="thanks <@p>" onSubmit={onSubmit} />
+      </QueryClientProvider>,
+    );
+    expect(screen.queryByRole('listbox')).toBeNull();
+    await user.keyboard('{Enter}');
+    expect(onSubmit).toHaveBeenCalledWith({ body: 'thanks <@p>', fileIds: [] });
   });
 
   it('edit mode shows an error when saving fails and allows another try', async () => {

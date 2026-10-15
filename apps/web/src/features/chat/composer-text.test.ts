@@ -40,6 +40,17 @@ describe('applyFormat', () => {
     expect(applyFormat('a\nb', 0, 0, 'quote').value).toBe('> a\nb');
   });
 
+  it('list and quote leave a caret, not a selection', () => {
+    expect(applyFormat('', 0, 0, 'bulletList')).toEqual({ value: '- ', start: 2, end: 2 });
+    expect(applyFormat('buy milk', 4, 4, 'quote')).toEqual({
+      value: '> buy milk',
+      start: 6,
+      end: 6,
+    });
+    const multi = applyFormat('a\nb', 0, 3, 'bulletList');
+    expect(multi).toEqual({ value: '- a\n- b', start: 7, end: 7 });
+  });
+
   it('numberedList numbers each selected line', () => {
     expect(applyFormat('x\na\nb\nc', 2, 7, 'numberedList').value).toBe('x\n1. a\n2. b\n3. c');
   });

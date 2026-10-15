@@ -121,6 +121,17 @@ describe('MessageList', () => {
     expect(screen.getByRole('menuitem', { name: 'Delete' })).toBeInTheDocument();
   });
 
+  it('the editing row drops content-visibility so the mention list is not clipped', async () => {
+    const user = userEvent.setup();
+    const own = msg({ body: 'mine', author: { id: ME, name: 'Me Myself', isAdmin: false } });
+    const { container } = renderList([own]);
+    const row = () => container.querySelector(`[data-message-id="${own.id}"]`) as HTMLElement;
+    expect(row().className).toContain('content-visibility');
+    await user.click(screen.getByRole('button', { name: 'More' }));
+    await user.click(await screen.findByRole('menuitem', { name: 'Edit' }));
+    expect(row().className).not.toContain('content-visibility');
+  });
+
   it('delete asks inline and calls the API on confirm', async () => {
     const user = userEvent.setup();
     const own = msg({ body: 'mine', author: { id: ME, name: 'Me Myself', isAdmin: false } });

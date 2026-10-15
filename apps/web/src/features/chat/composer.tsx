@@ -54,7 +54,10 @@ export interface ComposerProps {
   /** Edit mode: the message already has files, so an empty text is still a valid message. */
   hasAttachments?: boolean;
   replyTo?: { message: MessageDto; onCancel(): void };
-  /** Elements that accept dropped files, usually the conversation. */
+  /**
+   * The element that accepts dropped files, usually the conversation. Pass it to exactly one
+   * composer on a page: two composers listening on the same element would upload every drop twice.
+   */
   dropTarget?: RefObject<HTMLElement | null>;
   /**
    * Called with the stored body (mention tokens). Edit mode waits for a returned promise and shows
@@ -81,7 +84,7 @@ const REPLY_EXCERPT = 80;
 const FORMATS: { kind: FormatKind; key: string; icon: ReactNode; shortcut?: string }[] = [
   { kind: 'bold', key: 'bold', icon: <BoldIcon />, shortcut: 'B' },
   { kind: 'italic', key: 'italic', icon: <ItalicIcon />, shortcut: 'I' },
-  { kind: 'strike', key: 'strike', icon: <StrikeIcon />, shortcut: '⇧X' },
+  { kind: 'strike', key: 'strike', icon: <StrikeIcon />, shortcut: 'Shift+X' },
   { kind: 'link', key: 'link', icon: <LinkIcon /> },
   { kind: 'bulletList', key: 'bulletList', icon: <BulletListIcon /> },
   { kind: 'numberedList', key: 'numberedList', icon: <NumberedListIcon /> },
@@ -120,7 +123,10 @@ export function Composer({
   const [value, setValue] = useState(initial.text);
   const [picked, setPicked] = useState<PickedPerson[]>(initial.picked);
   const [caret, setCaret] = useState(initial.text.length);
-  const [closedAt, setClosedAt] = useState<number | null>(null);
+  // Editing starts with the picker closed: a body ending in "@Name" must not open it.
+  const [closedAt, setClosedAt] = useState<number | null>(
+    () => mentionQueryAt(initial.text, initial.text.length)?.start ?? null,
+  );
   const [uploads, setUploads] = useState<Upload[]>([]);
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -276,9 +282,11 @@ export function Composer({
   }
 
   function onKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
-    if (e.nativeEvent.isComposing) return;
+    // keyCode 229: Safari sends Enter after compositionend with isComposing already false.
+    if (e.nativeEvent.isComposing || e.keyCode === 229) return;
     if (pickerOpen && picker.current?.handleKey(e)) return;
-    const mod = e.metaKey || e.ctrlKey;
+    // Cmd on macOS (Ctrl+B / Ctrl+I are cursor keys there), Ctrl elsewhere.
+    const mod = isMac() ? e.metaKey : e.ctrlKey;
     if (mod && !e.altKey) {
       const key = e.key.toLowerCase();
       const kind =
@@ -306,6 +314,8 @@ export function Composer({
 
   function onPaste(e: ClipboardEvent<HTMLTextAreaElement>) {
     if (mode === 'edit') return;
+    // Text copied from a spreadsheet also carries an image of the cells: the text wins.
+    if (e.clipboardData.getData?.('text/plain')) return;
     const images = [...e.clipboardData.files].filter((f) => f.type.startsWith('image/'));
     if (images.length === 0) return;
     e.preventDefault();
@@ -317,7 +327,7 @@ export function Composer({
     e.target.value = '';
   }
 
-  const modKey = isMac() ? '⌘' : 'Ctrl+';
+  const modKey = isMac() ? 'Cmd+' : 'Ctrl+';
   const placeholder =
     mode === 'thread' ? t('chat.composer.threadPlaceholder') : t('chat.composer.placeholder');
 

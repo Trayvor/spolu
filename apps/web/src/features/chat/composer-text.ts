@@ -49,15 +49,19 @@ export function applyFormat(value: string, start: number, end: number, kind: For
   const nextBreak = value.indexOf('\n', end);
   const lineEnd = nextBreak === -1 ? value.length : nextBreak;
   const prefix = LINE_PREFIX[kind];
-  const block = value
-    .slice(lineStart, lineEnd)
-    .split('\n')
-    .map((line, i) => prefix(i) + line)
-    .join('\n');
+  const lines = value.slice(lineStart, lineEnd).split('\n');
+  const block = lines.map((line, i) => prefix(i) + line).join('\n');
+  // A collapsed caret keeps its place in the text (after the mark when it was at line start);
+  // a longer selection ends with the caret after the whole block. Nothing stays selected.
+  let caret = lineStart + block.length;
+  if (start === end) {
+    const index = value.slice(lineStart, start).split('\n').length - 1;
+    caret = start + prefix(index).length;
+  }
   return {
     value: value.slice(0, lineStart) + block + value.slice(lineEnd),
-    start: lineStart,
-    end: lineStart + block.length,
+    start: caret,
+    end: caret,
   };
 }
 

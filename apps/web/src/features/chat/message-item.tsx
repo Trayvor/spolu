@@ -47,7 +47,7 @@ export interface MessageItemProps {
   /** A message still being sent (`sending`) or that failed; it has no actions. */
   pending?: 'sending' | 'failed';
   onRetry?: (clientId: string) => void;
-  /** The server answered an edit (the updated message) or a delete (the message marked deleted). */
+  /** The server answered an edit (the updated message) or a delete (the message marked deleted). Apply it to the window only: it must not move lastSeq or catch-up bookkeeping (a delete copy has a fabricated changeSeq and deletedAt). */
   onChanged?: (message: MessageDto) => void;
 }
 
@@ -227,7 +227,9 @@ export const MessageItem = memo(function MessageItem({
     <div
       data-message-id={message.id}
       className={cn(
-        'group relative flex gap-3 border-l-2 px-4 pb-1 [contain-intrinsic-size:auto_64px] [content-visibility:auto]',
+        'group relative flex gap-3 border-l-2 px-4 pb-1',
+        // content-visibility clips overflow: the editing row must show the mention list above it.
+        mode !== 'edit' && '[contain-intrinsic-size:auto_64px] [content-visibility:auto]',
         showHeader ? 'pt-3' : 'pt-0.5',
         mentionsMe ? 'border-brand-purple bg-muted' : 'border-transparent',
         highlighted && 'bg-accent',

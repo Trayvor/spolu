@@ -42,25 +42,35 @@ const optionClass = 'flex cursor-pointer items-center gap-2 px-3 py-1.5 text-but
 export const MentionPicker = forwardRef<MentionPickerHandle, MentionPickerProps>(
   function MentionPicker({ query, people, onPick, onClose, id, onActiveChange }, ref) {
     const { t } = useTranslation();
-    const choices = useMemo<MentionChoice[]>(
-      () => [
-        { type: 'all' },
-        ...filterPeople(people, query).map((person) => ({ type: 'person' as const, person })),
-      ],
-      [people, query],
-    );
+    const everyone = t('chat.mention.everyone');
+    const choices = useMemo<MentionChoice[]>(() => {
+      const list = filterPeople(people, query).map((person) => ({
+        type: 'person' as const,
+        person,
+      }));
+      // "Everyone" leads only while nothing is typed or the query starts one of its names, so a
+      // quick Enter after "@ja" never turns into a group-wide mention.
+      const needle = fold(query);
+      const everyoneMatches = ['all', 'everyone', everyone].some((label) =>
+        fold(label).startsWith(needle),
+      );
+      return everyoneMatches ? [{ type: 'all' as const }, ...list] : list;
+    }, [people, query, everyone]);
     const [raw, setRaw] = useState(0);
     const active = Math.min(raw, choices.length - 1);
     const optionId = (i: number) => `${id}-${i}`;
 
     useEffect(() => {
+      if (choices.length === 0) return;
       onActiveChange?.(optionId(active));
+      document.getElementById(optionId(active))?.scrollIntoView?.({ block: 'nearest' });
       return () => onActiveChange?.(undefined);
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [active, id]);
 
     useImperativeHandle(ref, () => ({
       handleKey(event) {
+        if (choices.length === 0) return false;
         if (event.key === 'ArrowDown') setRaw((active + 1) % choices.length);
         else if (event.key === 'ArrowUp') setRaw((active - 1 + choices.length) % choices.length);
         else if (event.key === 'Enter' || event.key === 'Tab')
@@ -72,6 +82,7 @@ export const MentionPicker = forwardRef<MentionPickerHandle, MentionPickerProps>
       },
     }));
 
+    if (choices.length === 0) return null;
     return (
       <ul
         id={id}

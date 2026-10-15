@@ -21,7 +21,7 @@ export interface MessageListProps {
   onRetry?: (clientId: string) => void;
   /** Called when the list reaches or leaves the bottom (the conversation marks the chat read). */
   onAtBottomChange?: (atBottom: boolean) => void;
-  /** An edit or delete of the reader's own message was answered; apply it to the window. */
+  /** An edit or delete of the reader's own message was answered; apply it to the window. Apply it to the window only: it must not move lastSeq or catch-up bookkeeping (a delete copy has a fabricated changeSeq and deletedAt). */
   onMessageChanged?: (message: MessageDto) => void;
 }
 
