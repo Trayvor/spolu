@@ -48,6 +48,25 @@ const remove = async (channel: ChannelRow, id: string) =>
 
 const fresh = async (channel: ChannelRow) => (await getChannel(deps.db, channel.id))!;
 
+/** Bulk-inserts `count` top-level messages 1 ms apart (oldest first); returns their ids. */
+async function seedTopLevel(s: Awaited<ReturnType<typeof setup>>, count: number) {
+  const base = new Date('2026-03-01T10:00:00.000Z');
+  const ids = Array.from({ length: count }, () => randomUUID());
+  await deps.db.insert(messages).values(
+    ids.map((id, i) => ({
+      id,
+      channelId: s.channel.id,
+      authorId: s.a.id,
+      body: `m${i}`,
+      clientId: randomUUID(),
+      changeSeq: i + 1,
+      createdAt: new Date(base.getTime() + i),
+    })),
+  );
+  await deps.db.update(channels).set({ lastSeq: count }).where(eq(channels.id, s.channel.id));
+  return ids;
+}
+
 /** Inserts top-level rows directly with the given created_at values. */
 async function insertRows(s: Awaited<ReturnType<typeof setup>>, times: Date[]) {
   const ids: string[] = [];
@@ -111,9 +130,7 @@ describe('cursor', () => {
 describe('pageBefore / pageAfter', () => {
   it('paging 60 messages with before cursors returns each once, newest first, hasMore false at the end', async () => {
     const s = await setup();
-    const sent: string[] = [];
-    for (let i = 0; i < 60; i++)
-      sent.push((await send(s.channel, s.a, { body: `m${i}` })).message.id);
+    const sent = await seedTopLevel(s, 60);
     const first = await pageBefore(deps.db, await fresh(s.channel), s.a.id, null);
     expect(first.messages).toHaveLength(50);
     expect(first.hasMore).toBe(true);
@@ -173,9 +190,7 @@ describe('pageBefore / pageAfter', () => {
 describe('pageAround', () => {
   it("returns the page containing a reply's root with hasOlder/hasNewer", async () => {
     const s = await setup();
-    const sent: string[] = [];
-    for (let i = 0; i < 60; i++)
-      sent.push((await send(s.channel, s.a, { body: `m${i}` })).message.id);
+    const sent = await seedTopLevel(s, 60);
     const reply = (await send(s.channel, s.a, { parentId: sent[30]!, body: 'r' })).message;
     const page = (await pageAround(deps.db, s.channel, s.a.id, reply.id))!;
     expect(page.targetId).toBe(sent[30]);

@@ -25,7 +25,8 @@ import {
   MessageDeletedError,
   sendMessage,
 } from './messages.js';
-import { messageMentions, messages } from './schema.js';
+import { files } from '../files/schema.js';
+import { messageAttachments, messageMentions, messages } from './schema.js';
 import { ensureGroupChannel, getChannel, type ChannelRow } from './service.js';
 
 vi.mock('../files/service.js', async (importOriginal) => {
@@ -331,10 +332,38 @@ describe('sendMessage notifications for replies', () => {
 describe('toMessageDtos', () => {
   it('runs a fixed number of queries for 50 messages', async () => {
     const s = await setup();
-    for (let i = 0; i < 50; i++) {
-      const file = await upload(s.group.id, s.a.id, `f${i}.txt`);
-      await send(s.channel, s.a, { body: `${i} ${mentionToken(s.b.id)}`, fileIds: [file.id] });
-    }
+    // Bulk rows: 50 messages, each with one mention and one attached file.
+    const ids = Array.from({ length: 50 }, () => randomUUID());
+    const fileIds = Array.from({ length: 50 }, () => randomUUID());
+    await deps.db.insert(files).values(
+      fileIds.map((id, i) => ({
+        id,
+        groupId: s.group.id,
+        uploadedBy: s.a.id,
+        name: `f${i}.txt`,
+        mime: 'text/plain',
+        size: 1,
+        storageKey: `files/${s.group.id}/${id}`,
+        attachedAt: new Date(),
+      })),
+    );
+    await deps.db.insert(messages).values(
+      ids.map((id, i) => ({
+        id,
+        channelId: s.channel.id,
+        authorId: s.a.id,
+        body: `${i} ${mentionToken(s.b.id)}`,
+        clientId: randomUUID(),
+        changeSeq: i + 1,
+        createdAt: new Date(Date.UTC(2026, 2, 1, 10, 0, 0, i)),
+      })),
+    );
+    await deps.db
+      .insert(messageMentions)
+      .values(ids.map((messageId) => ({ messageId, userId: s.b.id })));
+    await deps.db
+      .insert(messageAttachments)
+      .values(ids.map((messageId, i) => ({ messageId, fileId: fileIds[i]!, position: 0 })));
     const client = postgres(testDatabaseUrl, { max: 1 });
     let statements = 0;
     const counted = drizzle(client, { logger: { logQuery: () => void statements++ } });

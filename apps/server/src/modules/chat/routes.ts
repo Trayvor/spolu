@@ -2,6 +2,7 @@ import type { FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import {
   EditMessageInputSchema,
+  ID_RE,
   ErrorCodes,
   MarkReadInputSchema,
   MESSAGE_PAGE_SIZE,
@@ -26,7 +27,7 @@ import {
   getMessage,
   sendMessage,
 } from './messages.js';
-import { canDeleteMessage, canEditMessage, canReadChannel } from './policy.js';
+import { canDeleteMessage, canEditMessage, canReadChannel, isMessageAuthor } from './policy.js';
 import {
   changesAfter,
   getThread,
@@ -59,7 +60,10 @@ const MessagesQuerySchema = z.object({
   limit: LimitSchema.optional(),
 });
 const AroundQuerySchema = z.object({ limit: LimitSchema.optional() });
-const ChangesQuerySchema = z.object({ afterSeq: z.coerce.number().int().min(0) });
+// change_seq is a Postgres integer: a larger value would fail in the query.
+const ChangesQuerySchema = z.object({
+  afterSeq: z.coerce.number().int().min(0).max(2_147_483_647),
+});
 
 export const chatRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { deps }) => {
   const { db } = deps;
@@ -76,9 +80,11 @@ export const chatRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { d
     channelId: string,
   ): Promise<ChannelRow | null> => {
     const actor = request.user!;
-    const channel = await getChannel(db, channelId);
-    if (channel && canReadChannel(actor, channel, await getMembershipGroupId(db, actor.id))) {
-      return channel;
+    // A malformed id cannot exist; checking first keeps NUL and the like away from Postgres.
+    const channel = ID_RE.test(channelId) ? await getChannel(db, channelId) : null;
+    if (channel) {
+      const actorGroupId = isAdmin(actor) ? null : await getMembershipGroupId(db, actor.id);
+      if (canReadChannel(actor, channel, actorGroupId)) return channel;
     }
     notFound(reply);
     return null;
@@ -86,7 +92,7 @@ export const chatRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { d
 
   /** A message with its readable channel, or a 404 answer and null. */
   const readableMessage = async (request: FastifyRequest, reply: FastifyReply, id: string) => {
-    const message = await getMessage(db, id);
+    const message = ID_RE.test(id) ? await getMessage(db, id) : null;
     const channel = message ? await readableChannel(request, reply, message.channelId) : null;
     if (!message || !channel) {
       if (!reply.sent) notFound(reply);
@@ -98,6 +104,7 @@ export const chatRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { d
   app.get<IdParams>('/groups/:id/chat', { preHandler: anyUser }, async (request, reply) => {
     const actor = request.user!;
     const { id } = request.params;
+    if (!ID_RE.test(id)) return notFound(reply);
     if (!canReadGroup(actor, id, await getMembershipGroupId(db, actor.id))) return notFound(reply);
     if (!(await getGroup(db, id))) return notFound(reply);
     const channel = await ensureGroupChannel(db, id);
@@ -190,7 +197,7 @@ export const chatRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { d
     if (!body.success) return invalid(reply);
     // Someone else's message is forbidden; the author's own deleted message is gone (404).
     if (!canEditMessage(actor, found.message)) {
-      return found.message.authorId === actor.id ? notFound(reply) : forbidden(reply);
+      return isMessageAuthor(actor, found.message) ? notFound(reply) : forbidden(reply);
     }
     try {
       const message = await editMessage(deps, { ...found, body: body.data.body });
@@ -210,7 +217,7 @@ export const chatRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { d
     const actor = request.user!;
     const found = await readableMessage(request, reply, request.params.id);
     if (!found) return reply;
-    if (found.message.authorId !== actor.id) return forbidden(reply);
+    if (!isMessageAuthor(actor, found.message)) return forbidden(reply);
     // Deleting twice is a no-op: nothing changes, so nothing is pushed.
     if (!canDeleteMessage(actor, found.message)) return reply.code(204).send();
     const message = await deleteMessage(deps, {

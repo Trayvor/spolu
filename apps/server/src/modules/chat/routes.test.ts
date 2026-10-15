@@ -176,10 +176,15 @@ describe('chat API', () => {
     const root = (await send(s.channelId, s.a.cookie)).json<MessageDto>();
     const socket = await socketFor(s.b.cookie);
     const events: ChatMessageEvent[] = [];
-    socket.on(ChatEvents.message, (e: ChatMessageEvent) => events.push(e));
+    const both = new Promise<void>((resolve) =>
+      socket.on(ChatEvents.message, (e: ChatMessageEvent) => {
+        events.push(e);
+        if (events.length === 2) resolve();
+      }),
+    );
     const res = await send(s.channelId, s.b.cookie, { parentId: root.id, body: 'reply' });
     expect(res.statusCode).toBe(201);
-    await new Promise((resolve) => setTimeout(resolve, 200));
+    await both;
     expect(events).toHaveLength(2);
     expect(events[0]).toMatchObject({ isNew: true });
     expect(events[0]!.message.parentId).toBe(root.id);
@@ -293,6 +298,24 @@ describe('chat API', () => {
     expect(admin[s2.group.id]).toBe(1);
     const client = await call('GET', '/api/chat/unread', s.b.cookie);
     expect(client.json()).toEqual({ [s.group.id]: 1 });
+  });
+
+  it('input that Postgres would reject answers 400/404, never 500', async () => {
+    const s = await setup();
+    const c = s.a.cookie;
+    const nul = '%00';
+    const results = await Promise.all([
+      call('POST', `/api/channels/${s.channelId}/read`, c, { at: '0000-01-01T00:00:00Z' }),
+      send(s.channelId, c, { body: 'a\u0000b' }),
+      send(s.channelId, c, { parentId: 'a\u0000b' }),
+      send(s.channelId, c, { fileIds: ['a\u0000b'] }),
+      call('PATCH', `/api/messages/x`, c, { body: 'a\u0000b' }),
+      call('GET', `/api/channels/x${nul}/messages`, c),
+      call('GET', `/api/messages/x${nul}/thread`, c),
+      call('GET', `/api/groups/x${nul}/chat`, c),
+      call('GET', `/api/channels/${s.channelId}/changes?afterSeq=99999999999`, c),
+    ]);
+    expect(results.map((r) => r.statusCode)).toEqual([400, 400, 400, 400, 404, 404, 404, 404, 400]);
   });
 
   it('the 31st send in a minute → 429 rate_limited', async () => {

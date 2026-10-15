@@ -35,26 +35,38 @@ export const MessageSchema = z.object({
 });
 export type MessageDto = z.infer<typeof MessageSchema>;
 
+/** Ids are uuids or short tokens; the pattern also keeps NUL (which Postgres rejects) out of queries. */
+export const ID_RE = /^[\w-]{1,64}$/;
+const IdSchema = z.string().regex(ID_RE);
+/** Message text: bounded, and no NUL character (Postgres text cannot store it). */
+const BodySchema = z
+  .string()
+  .max(MESSAGE_MAX_LENGTH)
+  .refine((v) => !v.includes('\0'));
+
 export const SendMessageInputSchema = z
   .object({
-    body: z.string().max(MESSAGE_MAX_LENGTH),
-    parentId: z.string().optional(),
-    replyToId: z.string().optional(),
+    body: BodySchema,
+    parentId: IdSchema.optional(),
+    replyToId: IdSchema.optional(),
     fileIds: z
-      .array(z.string())
+      .array(IdSchema)
       .max(MESSAGE_MAX_FILES)
       .refine((ids) => new Set(ids).size === ids.length)
       .optional(),
-    clientId: z.string().min(1).max(64),
+    clientId: IdSchema,
   })
   .refine((v) => v.body.trim().length > 0 || (v.fileIds?.length ?? 0) > 0, { path: ['body'] })
   .refine((v) => v.replyToId === undefined || v.parentId !== undefined, { path: ['replyToId'] });
 export type SendMessageInput = z.infer<typeof SendMessageInputSchema>;
 
-export const EditMessageInputSchema = z.object({ body: z.string().max(MESSAGE_MAX_LENGTH) });
+export const EditMessageInputSchema = z.object({ body: BodySchema });
 export type EditMessageInput = z.infer<typeof EditMessageInputSchema>;
 
-export const MarkReadInputSchema = z.object({ at: z.iso.datetime() });
+export const MarkReadInputSchema = z.object({
+  // Postgres timestamptz rejects years before 1 AD; nothing before 1970 is a real read time.
+  at: z.iso.datetime().refine((v) => new Date(v).getUTCFullYear() >= 1970),
+});
 export type MarkReadInput = z.infer<typeof MarkReadInputSchema>;
 
 export const GroupChannelSchema = z.object({

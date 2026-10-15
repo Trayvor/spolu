@@ -25,3 +25,8 @@ export function canDeleteMessage(
 ): boolean {
   return canEditMessage(actor, message);
 }
+
+/** Whether the actor wrote the message (deleted or not); decides 403 versus a quiet no-op. */
+export function isMessageAuthor(actor: SessionUser, message: { authorId: string }): boolean {
+  return message.authorId === actor.id;
+}
