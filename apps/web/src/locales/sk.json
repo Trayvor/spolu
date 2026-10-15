@@ -119,6 +119,31 @@
     },
     "board": {
       "taskDeleted": "Táto úloha bola odstránená."
+    },
+    "form": {
+      "title": "Názov",
+      "description": "Popis",
+      "assignees": "Riešitelia",
+      "searchPeople": "Hľadať ľudí",
+      "noPeople": "Nikto sa nenašiel.",
+      "remove": "Odobrať {{name}}",
+      "removedPerson": "{{name}} (odstránený)",
+      "adminPill": "eGrant",
+      "deadline": "Termín",
+      "urgent": "Urgentné",
+      "files": "Súbory",
+      "attach": "Priložiť súbor",
+      "removeFile": "Odstrániť {{name}}",
+      "uploading": "Nahráva sa {{name}}",
+      "uploadFailed": "Súbor {{name}} sa nepodarilo nahrať.",
+      "fileTooLarge": "Súbor {{name}} má viac ako 25 MB.",
+      "errors": {
+        "titleRequired": "Zadajte názov.",
+        "titleTooLong": "Použite najviac 200 znakov.",
+        "descriptionTooLong": "Použite najviac 10 000 znakov.",
+        "tooManyAssignees": "Vyberte najviac 10 ľudí.",
+        "invalidAssignee": "Niekto z vybraných už nie je v tejto skupine."
+      }
     }
   },
   "groups": {

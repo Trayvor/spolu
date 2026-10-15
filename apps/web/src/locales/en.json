@@ -119,6 +119,31 @@
     },
     "board": {
       "taskDeleted": "This task was deleted."
+    },
+    "form": {
+      "title": "Title",
+      "description": "Description",
+      "assignees": "Assignees",
+      "searchPeople": "Search people",
+      "noPeople": "No one found.",
+      "remove": "Remove {{name}}",
+      "removedPerson": "{{name}} (removed)",
+      "adminPill": "eGrant",
+      "deadline": "Deadline",
+      "urgent": "Urgent",
+      "files": "Files",
+      "attach": "Attach a file",
+      "removeFile": "Remove {{name}}",
+      "uploading": "Uploading {{name}}",
+      "uploadFailed": "Could not upload {{name}}.",
+      "fileTooLarge": "{{name}} is over 25 MB.",
+      "errors": {
+        "titleRequired": "Enter a title.",
+        "titleTooLong": "Use at most 200 characters.",
+        "descriptionTooLong": "Use at most 10,000 characters.",
+        "tooManyAssignees": "Choose at most 10 people.",
+        "invalidAssignee": "Someone you chose is no longer in this group."
+      }
     }
   },
   "groups": {
