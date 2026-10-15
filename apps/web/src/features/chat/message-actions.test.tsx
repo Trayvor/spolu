@@ -97,6 +97,70 @@ describe('message actions: touch and desktop', () => {
     expect(sheetRows()).toEqual([t('chat.actions.quote')]);
   });
 
+  it('puts an inMenu action behind "More" on desktop and in the phone sheet', async () => {
+    const onSelect = vi.fn();
+    const action = {
+      id: 'tasks',
+      label: 'Turn into tasks',
+      icon: <span />,
+      inMenu: true,
+      onSelect,
+    };
+    const { user } = renderItem({ message: message({ body: 'Do it' }), messageActions: [action] });
+    const bar = screen.getByRole('toolbar', { name: t('chat.actions.label') });
+    expect(within(bar).queryByRole('button', { name: 'Turn into tasks' })).toBeNull();
+    await user.click(within(bar).getByRole('button', { name: t('chat.actions.more') }));
+    await user.click(await screen.findByRole('menuitem', { name: 'Turn into tasks' }));
+    expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({ body: 'Do it' }));
+  });
+
+  it('lists inMenu extras before Edit and Delete behind "More"', async () => {
+    const action = {
+      id: 'tasks',
+      label: 'Turn into tasks',
+      icon: <span />,
+      inMenu: true,
+      onSelect: vi.fn(),
+    };
+    const { user } = renderItem({ messageActions: [action] });
+    const bar = screen.getByRole('toolbar', { name: t('chat.actions.label') });
+    await user.click(within(bar).getByRole('button', { name: t('chat.actions.more') }));
+    const items = (await screen.findAllByRole('menuitem')).map((i) => i.textContent);
+    expect(items).toEqual(['Turn into tasks', t('chat.actions.edit'), t('chat.actions.delete')]);
+  });
+
+  it('hides an action whose isAvailable says no, in the bar, the menu and the sheet', async () => {
+    const action = {
+      id: 'tasks',
+      label: 'Turn into tasks',
+      icon: <span />,
+      inMenu: true,
+      isAvailable: (m: MessageDto) => m.body.trim() !== '',
+      onSelect: vi.fn(),
+    };
+    const { user } = renderItem({
+      message: message({
+        body: '',
+        attachments: [
+          {
+            id: 'a1',
+            name: 'a.pdf',
+            mime: 'application/pdf',
+            size: 1,
+            width: null,
+            height: null,
+            hasPreview: false,
+          },
+        ],
+      }),
+      messageActions: [action],
+    });
+    await user.click(touchButton());
+    expect(within(sheet()).queryByRole('button', { name: 'Turn into tasks' })).toBeNull();
+    const bar = screen.getByRole('toolbar', { name: t('chat.actions.label') });
+    expect(within(bar).queryByRole('button', { name: 'Turn into tasks' })).toBeNull();
+  });
+
   it('extra actions (Phase 9) come after the reply, on both layouts', async () => {
     const onSelect = vi.fn();
     const { user } = renderItem({
