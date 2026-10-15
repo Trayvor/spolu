@@ -11,6 +11,8 @@ description: Use when you have changed code, config, infra or behavior in eHub a
 
 Run this after any change to code, config, infra or behavior, before committing.
 
+At a phase-end sweep, any gaps found go in a separate docs-only commit that names what it corrects; never amend or rewrite pushed commits.
+
 ## Steps
 
 1. **List what changed.** Include staged, unstaged and new files:

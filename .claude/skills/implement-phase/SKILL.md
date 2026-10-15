@@ -15,7 +15,7 @@ To resume a phase, find the first unchecked step whose output is missing (no spe
 
 Create a todo for each step.
 
-1. **Read the phase.** Its entry in `docs/roadmap.md` (scope, "Done when", dependencies — all dependencies must be `done`), the product docs it links, and the relevant `docs/architecture/*.md`.
+1. **Read the phase.** Its entry in `docs/roadmap.md` (scope, "Done when", dependencies — every dependency must be `done`; if any is not, stop and tell the owner instead of continuing), the product docs it links, and the relevant `docs/architecture/*.md`.
 2. **Design.** `superpowers:brainstorming` with the owner → spec saved in `docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md`. If the phase has any UI, invoke `frontend-design:frontend-design` during design, and again before implementing each screen.
 3. **Plan.** `superpowers:writing-plans` → plan saved in `docs/superpowers/plans/YYYY-MM-DD-<topic>.md`.
 4. **Roadmap start.** In `docs/roadmap.md` set the phase `Status` to `in progress` and link the spec and plan in its Design/plan column. Commit.
@@ -23,7 +23,7 @@ Create a todo for each step.
 6. **Docs.** Run the `update-kb` skill over the whole phase's changes.
 7. **Verify.** `superpowers:verification-before-completion`, with evidence for each:
    - `pnpm test` passes;
-   - end-to-end tests (Playwright) pass;
+   - end-to-end tests pass (`pnpm test:e2e`, Playwright);
    - the build is deployed to the test environment (see `docs/runbooks/deploy.md`);
    - walk the phase's "Done when" by hand **with the owner** on the test environment, item by item.
 8. **Roadmap done.** Only after the owner confirms step 7: set `Status` to `done` in `docs/roadmap.md`. Commit.

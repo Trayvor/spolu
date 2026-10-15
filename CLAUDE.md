@@ -32,7 +32,13 @@ The docs are the source of truth. This file only holds rules and pointers; do no
 
 ## Commands
 
-Filled in Phase 1.
+Available now:
+
+- `bash scripts/tests/check-docs.test.sh` — tests for the docs check script.
+- `bash scripts/tests/docs-reminder.test.sh` — tests for the Stop hook.
+- `bash scripts/check-docs.sh <base-ref>` — warns when code changed without docs.
+
+App commands (`pnpm test`, `pnpm test:e2e`, dev, build) arrive in Phase 1.
 
 ## Where things live
 
