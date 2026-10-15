@@ -226,7 +226,9 @@
       "files_few": "{{count}} súbory",
       "files_many": "{{count}} súboru",
       "files_other": "{{count}} súborov",
-      "moreAssignees": "+{{count}}"
+      "moreAssignees": "+{{count}}",
+      "markDone": "Označiť ako hotové",
+      "markNotDone": "Označiť ako nehotové"
     },
     "form": {
       "title": "Názov",

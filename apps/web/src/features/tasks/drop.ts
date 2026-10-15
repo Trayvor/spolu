@@ -63,6 +63,27 @@ export function computeTaskDrop(
 }
 
 /**
+ * The done circle as a drop: a task outside Completed goes to the top of Completed, a task in
+ * Completed to the top of To do. The same move endpoint and events as a drag. Null when the
+ * board has no such bucket.
+ */
+export function computeDoneToggle(
+  columns: Map<string, TaskDto[]>,
+  buckets: BucketDto[],
+  task: TaskDto,
+): TaskDrop | null {
+  const current = buckets.find((b) => b.id === task.bucketId);
+  const target = buckets.find((b) => b.kind === (current?.kind === 'done' ? 'todo' : 'done'));
+  if (!target) return null;
+  const first = columns.get(target.id)?.[0];
+  return {
+    bucketId: target.id,
+    afterTaskId: null,
+    optimisticPosition: generateKeyBetween(null, first?.position ?? null),
+  };
+}
+
+/**
  * Where a custom bucket lands when dropped on bucket `overId`, as the bucket it follows. It
  * moves like a sortable list, but always stays after To do and before Completed. Null for a
  * fixed bucket or when nothing changes.

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RouterProvider, createBrowserHistory, createMemoryHistory } from '@tanstack/react-router';
@@ -257,6 +257,22 @@ describe('TaskPanel', () => {
     expect(select).toHaveClass('appearance-none', 'rounded-md', 'border-2', 'border-input');
     expect(select).not.toHaveClass('rounded-full');
     expect(select.parentElement!.querySelector('svg')).not.toBeNull();
+  });
+
+  it('the done circle next to the title moves the task to the top of Completed', async () => {
+    const { user } = renderPanel();
+    await titleField();
+    const panel = screen.getByRole('complementary', { name: t('tasks.panel.label') });
+    await user.click(within(panel).getByRole('button', { name: t('tasks.card.markDone') }));
+    await waitFor(() => expect(calls('POST', '/api/tasks/t1/move')).toHaveLength(1));
+    const body = JSON.parse(
+      (calls('POST', '/api/tasks/t1/move')[0]![1] as RequestInit).body as string,
+    );
+    expect(body).toEqual({ bucketId: 'b-done', afterTaskId: null });
+    expect(
+      await within(panel).findByRole('button', { name: t('tasks.card.markNotDone') }),
+    ).toBeInTheDocument();
+    expect(within(panel).getByRole('heading', { name: 'Task t1' })).toHaveClass('line-through');
   });
 
   it('shows Delete to admins and the creator, not to other clients', async () => {

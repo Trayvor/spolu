@@ -27,6 +27,7 @@ import {
 } from '@dnd-kit/sortable';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
+import type { TaskDto } from '@spolu/shared';
 import { isAdmin } from '@/features/auth/roles';
 import { useSession } from '@/features/auth/use-session';
 import { groupQuery } from '@/features/groups/api';
@@ -43,6 +44,7 @@ import {
   boardCollisions,
   columnDropId,
   computeBucketDrop,
+  computeDoneToggle,
   computeTaskDrop,
   handleBucketDrop,
   handleTaskDrop,
@@ -196,6 +198,12 @@ export function Board({ groupId }: { groupId: string }) {
     }
   }
 
+  function onToggleDone(task: TaskDto) {
+    showBoardNotice(queryClient, groupId, null);
+    const drop = computeDoneToggle(columns, buckets, task);
+    if (drop) void handleTaskDrop(queryClient, groupId, task.id, drop);
+  }
+
   function onDragCancel() {
     setDragging(null);
     setDropTarget(null);
@@ -238,6 +246,7 @@ export function Board({ groupId }: { groupId: string }) {
                   }
                   dragging={dragging?.type ?? null}
                   dropMark={dropTarget?.bucketId === bucket.id ? dropTarget.mark : null}
+                  onToggleDone={onToggleDone}
                 />
                 {admin && index === addAfter && (
                   // Kept in the layout but hidden while a bucket is dragged: columns slide over it.

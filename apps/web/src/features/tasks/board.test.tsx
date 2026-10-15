@@ -105,6 +105,11 @@ beforeEach(() => {
         sourceMessage: null,
       });
     }
+    const moving = /^\/api\/tasks\/([^/]+)\/move$/.exec(url);
+    if (moving && method === 'POST') {
+      const body = JSON.parse(init!.body as string);
+      return reply(200, task(moving[1]!, body.bucketId, { position: 'Zz' }));
+    }
     if (url === '/api/buckets/b-custom' && method === 'DELETE') return reply(204);
     if (url === '/api/buckets/b-custom' && method === 'PATCH')
       return reply(200, { ...BUCKETS[3], name: JSON.parse(init!.body as string).name });
@@ -269,6 +274,54 @@ describe('Board', () => {
         'DELETE /api/buckets/b-custom',
       ]),
     );
+  });
+
+  describe('done circle', () => {
+    const moveBody = (id: string) =>
+      JSON.parse(
+        (writes().find(([url]) => url === `/api/tasks/${id}/move`)![1] as RequestInit)
+          .body as string,
+      );
+
+    it('every card has one; Completed cards are checked and struck through', async () => {
+      board.tasks = [task('t1', 'b-todo'), task('t2', 'b-custom'), task('t3', 'b-done')];
+      renderBoard();
+      const columns = await screen.findAllByRole('region');
+      expect(within(columns[0]!).getByRole('button', { name: 'Mark as done' })).toBeInTheDocument();
+      expect(within(columns[1]!).getByRole('button', { name: 'Mark as done' })).toBeInTheDocument();
+      const undo = within(columns[4]!).getByRole('button', { name: 'Mark as not done' });
+      expect(undo).toHaveAttribute('data-checked', 'true');
+      expect(within(columns[4]!).getByText('Task t3')).toHaveClass('line-through');
+      expect(within(columns[0]!).getByText('Task t1')).not.toHaveClass('line-through');
+    });
+
+    it('checking moves the task to the top of Completed through the move endpoint', async () => {
+      board.tasks = [task('t1', 'b-todo'), task('t3', 'b-done', { position: 'a0' })];
+      const user = renderBoard();
+      const columns = await screen.findAllByRole('region');
+      await user.click(within(columns[0]!).getByRole('button', { name: 'Mark as done' }));
+      await waitFor(() =>
+        expect(moveBody('t1')).toEqual({ bucketId: 'b-done', afterTaskId: null }),
+      );
+      await waitFor(() =>
+        expect(
+          within(columns[4]!)
+            .getAllByRole('link', { name: /^Task/ })
+            .map((a) => a.textContent),
+        ).toEqual(['Task t1', 'Task t3']),
+      );
+    });
+
+    it('unchecking a task in Completed moves it to the top of To do; clients can too', async () => {
+      me = CLIENT;
+      board.tasks = [task('t0', 'b-todo', { position: 'a0' }), task('t3', 'b-done')];
+      const user = renderBoard();
+      const columns = await screen.findAllByRole('region');
+      await user.click(within(columns[4]!).getByRole('button', { name: 'Mark as not done' }));
+      await waitFor(() =>
+        expect(moveBody('t3')).toEqual({ bucketId: 'b-todo', afterTaskId: null }),
+      );
+    });
   });
 
   describe('drop', () => {

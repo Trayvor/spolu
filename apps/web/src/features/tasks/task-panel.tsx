@@ -24,10 +24,12 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { ApiError } from '@/lib/api';
 import { getSocket } from '@/lib/socket';
+import { cn } from '@/lib/utils';
 import { boardQuery, deleteTask, moveTask, taskQuery, updateTask } from './api';
 import { removeTask, showBoardNotice, upsertTask } from './board-cache';
 import { tasksByBucket } from './board-model';
 import { formatCreated } from './dates';
+import { DoneCircle } from './done-circle';
 import { MoreIcon } from './icons';
 import { BucketSelect, PanelHeader, PanelNotice, PanelShell } from './panel-parts';
 import { SourceMessage } from './source-message';
@@ -266,13 +268,14 @@ function TaskEditor({
     }
   }
 
-  async function onBucket(bucketId: string) {
+  /** Moves the task to the end of `bucketId` (the select) or to its top (the done circle). */
+  async function onBucket(bucketId: string, place: 'end' | 'top' = 'end') {
     if (!board || bucketId === bucketOf?.id) return;
     setMoveFailed(false);
     setMoving(true);
-    const last = tasksByBucket(board).get(bucketId)?.at(-1);
+    const after = place === 'end' ? tasksByBucket(board).get(bucketId)?.at(-1) : undefined;
     try {
-      const moved = await moveTask(base.id, { bucketId, afterTaskId: last?.id ?? null });
+      const moved = await moveTask(base.id, { bucketId, afterTaskId: after?.id ?? null });
       queryClient.setQueryData<BoardDto>(
         boardQuery(groupId).queryKey,
         (b) => b && upsertTask(b, moved),
@@ -285,6 +288,13 @@ function TaskEditor({
     } finally {
       setMoving(false);
     }
+  }
+
+  /** The done circle: to the top of Completed, or back to the top of To do. */
+  function toggleDone() {
+    const kind = bucketOf?.kind === 'done' ? 'todo' : 'done';
+    const target = board?.buckets.find((b) => b.kind === kind);
+    if (target) void onBucket(target.id, 'top');
   }
 
   async function remove() {
@@ -376,13 +386,25 @@ function TaskEditor({
       </div>
 
       <div className="flex-1 space-y-5 overflow-y-auto p-6">
-        <h2
-          ref={heading}
-          tabIndex={-1}
-          className="break-words text-medium leading-tight font-semibold outline-none"
-        >
-          {base.title}
-        </h2>
+        <div className="flex items-start gap-3">
+          {/* 18 px circle centred on the first 28 px line of the title. */}
+          <DoneCircle
+            done={bucketOf?.kind === 'done'}
+            disabled={!bucketOf || moving}
+            onToggle={toggleDone}
+            className="mt-[5px]"
+          />
+          <h2
+            ref={heading}
+            tabIndex={-1}
+            className={cn(
+              'min-w-0 break-words text-medium leading-tight font-semibold outline-none',
+              bucketOf?.kind === 'done' && 'text-muted-foreground line-through',
+            )}
+          >
+            {base.title}
+          </h2>
+        </div>
         {moveFailed && (
           <p role="alert" className="text-button text-error-ink">
             {t('tasks.board.moveFailed')}

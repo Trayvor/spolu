@@ -106,3 +106,40 @@ test('admin and client work on the same task board live', async ({ page: admin, 
     await clientContext.close();
   }
 });
+
+test('admin creates a task through the full panel and marks it done', async ({ page }) => {
+  const stamp = Date.now();
+  const created = await page.request.post('/api/groups', {
+    data: { name: `E2E Done ${stamp}`, egrantUrl: `https://e2e-done-${stamp}.egrant.sk` },
+  });
+  expect(created.status()).toBe(201);
+  const group = (await created.json()) as { id: string };
+  const bucket = (name: string) => page.getByRole('region', { name });
+
+  await page.goto(`/groups/${group.id}/tasks`);
+  await bucket('Na spracovanie').getByRole('link', { name: 'Pridať úlohu' }).click();
+  const panel = page.getByRole('complementary', { name: 'Úloha' });
+  await panel.getByLabel('Názov', { exact: true }).fill('Záverečná správa');
+  await panel.getByLabel('Popis', { exact: true }).fill('Skontrolovať **rozpočet**');
+  await panel.getByRole('switch', { name: 'Urgentné' }).click();
+  await panel.getByRole('button', { name: 'Vytvoriť' }).click();
+  await expect(panel).toHaveCount(0);
+
+  const todoCard = bucket('Na spracovanie').getByRole('link', { name: /Záverečná správa/ });
+  await expect(todoCard).toBeVisible();
+  await bucket('Na spracovanie').getByRole('button', { name: 'Označiť ako hotové' }).click();
+
+  const doneTitle = bucket('Hotové').getByText('Záverečná správa');
+  await expect(doneTitle).toBeVisible();
+  await expect(doneTitle).toHaveCSS('text-decoration-line', 'line-through');
+  await expect(
+    bucket('Hotové').getByRole('button', { name: 'Označiť ako nehotové' }),
+  ).toBeVisible();
+  await expect(bucket('Na spracovanie').getByText('Záverečná správa')).toHaveCount(0);
+
+  // The description was saved with its formatting and shows rendered in the panel.
+  await bucket('Hotové')
+    .getByRole('link', { name: /Záverečná správa/ })
+    .click();
+  await expect(panel.locator('strong', { hasText: 'rozpočet' })).toBeVisible();
+});

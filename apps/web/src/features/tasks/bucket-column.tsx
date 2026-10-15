@@ -56,12 +56,14 @@ function SortableTask({
   today,
   disabled,
   mark,
+  onToggleDone,
 }: {
   task: TaskDto;
   bucketKind: BucketDto['kind'];
   today: string;
   disabled: boolean;
   mark: 'before' | 'after' | null;
+  onToggleDone: (task: TaskDto) => void;
 }) {
   const data: DragData = { type: 'task', title: task.title, bucketId: task.bucketId };
   const {
@@ -91,6 +93,7 @@ function SortableTask({
         bucketKind={bucketKind}
         today={today}
         ref={setActivatorNodeRef}
+        onToggleDone={() => onToggleDone(task)}
         // Not dnd-kit's role="button": the card stays a link (Enter opens it, Space lifts it).
         handleProps={{
           ...listeners,
@@ -119,6 +122,7 @@ export function BucketColumn({
   emptyText,
   dragging,
   dropMark,
+  onToggleDone,
 }: {
   bucket: BucketDto;
   title: string;
@@ -129,6 +133,8 @@ export function BucketColumn({
   /** What is being dragged on the board: only matching drop targets are enabled. */
   dragging: 'task' | 'bucket' | null;
   dropMark: DropMark;
+  /** The done circle of one of the column's cards was pressed. */
+  onToggleDone: (task: TaskDto) => void;
 }) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -310,6 +316,7 @@ export function BucketColumn({
               bucketKind={bucket.kind}
               today={today}
               disabled={dragging === 'bucket'}
+              onToggleDone={onToggleDone}
               mark={
                 dropMark === task.id
                   ? 'before'
