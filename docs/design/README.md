@@ -27,4 +27,8 @@ When invoking `frontend-design`, pass this constraint with the request.
 
 ## Tokens
 
-Tokens: filled in Phase 1 — will live in `apps/web/src/styles/theme.css` and `docs/design/tokens.md`.
+- [tokens.md](tokens.md) — every token with its value, where it was observed on egrant.sk and its shadcn variable; component notes (button, input, card, link, header); what was simplified for performance.
+- `apps/web/src/styles/theme.css` — the tokens as CSS variables (shadcn names) plus a Tailwind v4 `@theme inline` block, the Saans `@font-face` rules and the global `prefers-reduced-motion` rule. Import it right after `tailwindcss`.
+- `apps/web/public/fonts/` — self-hosted Saans woff2 (weights 500 and 600).
+- `apps/web/public/brand/` — egrant logo (light and dark backgrounds), favicons and PWA icons.
+- [screenshots/](screenshots/) — reference captures of egrant.sk (desktop and mobile).

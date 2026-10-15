@@ -1,0 +1,198 @@
+/*
+ * eHub theme — design tokens extracted from https://egrant.sk (2026-10-15).
+ * Every value, and where it was observed, is documented in docs/design/tokens.md.
+ *
+ * Usage (Task 11): in the app's main CSS, import Tailwind first, then this file:
+ *   @import "tailwindcss";
+ *   @import "./styles/theme.css";
+ * The base rules below sit in `@layer base`, so Tailwind utilities still win.
+ *
+ * egrant.sk has no dark mode, so there is no `.dark` block here.
+ */
+
+/* Saans (Displaay Type Foundry), the egrant.sk typeface. Only the two weights
+   the site uses: 500 (body) and 600 (headings, buttons, labels). Latin + latin-ext
+   (all Slovak diacritics) are in each file. */
+@font-face {
+  font-family: "Saans";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("/fonts/Saans-Medium.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Saans";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/fonts/Saans-SemiBold.woff2") format("woff2");
+}
+
+:root {
+  /* shadcn/ui semantic colors */
+  --background: #f5f3f1; /* egrant "base" — page background */
+  --foreground: #141414; /* egrant "ink" — text */
+  --card: #ffffff; /* egrant "surface" — cards, inputs, open menus */
+  --card-foreground: #141414;
+  --popover: #f5f3f1; /* dropdowns use "base" + lift shadow */
+  --popover-foreground: #141414;
+  --primary: #141414; /* filled buttons are ink */
+  --primary-foreground: #ffffff;
+  --secondary: #e4e2dd; /* egrant "surface-2" — language toggle, quiet pills */
+  --secondary-foreground: #141414;
+  --muted: #f0edea; /* egrant "tile" */
+  --muted-foreground: #6b6b6b; /* egrant "muted" — labels, placeholders */
+  --accent: #e4e2dd; /* hover background of menu items */
+  --accent-foreground: #141414;
+  --destructive: #e90000; /* egrant "error" — invalid field border */
+  --destructive-foreground: #ffffff;
+  --border: #e3deda; /* egrant "line" — hairlines, progress track */
+  --input: #6b6b6b; /* 2px field border */
+  --ring: #141414; /* focus outline: 2px ink, 3px offset */
+  --radius: 0.5rem; /* 8px — egrant radius "md" (inputs) */
+
+  /* egrant extras (no shadcn equivalent) */
+  --ink-hover: #3b3a33; /* filled button hover */
+  --surface-3: #d6d2c8; /* surface-2 hover */
+  --neutral: #5e5e5e; /* link hover color */
+  --error-ink: #d60004; /* error text */
+  --success: #007a37; /* egrant "green" */
+  --success-light: #52c083;
+  --brand-purple: #7654ff;
+  --brand-pink: #eb5ed4;
+  --brand-blue: #3242dc;
+  --brand-coral: #ff8a4c;
+
+  /* typography */
+  --font-family-base: "Saans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-sans: var(--font-family-base); /* shadcn name; same stack */
+  --type-nano: 0.7rem; /* 11.2px */
+  --type-micro: 0.8rem; /* 12.8px — field labels, captions */
+  --type-tiny: 0.875rem; /* 14px — header buttons, pills */
+  --type-button: 0.9rem; /* 14.4px — buttons, input text */
+  --type-body: 1.1rem; /* 17.6px desktop, 16.6px <= 900px */
+  --type-medium: 1.4rem; /* 22.4px desktop (h3), 17.6px <= 900px */
+  --type-large: 2.25rem; /* 36px */
+  --type-xlarge: 4rem; /* 64px desktop (h1, h2), 36px <= 900px */
+  --tracking-body: 0.2px;
+
+  /* elevation and motion */
+  --elevation-lift: 0 0 8px 0 rgb(0 0 0 / 0.1); /* nav pill, dropdowns */
+  --duration-fast: 150ms;
+}
+
+@media (max-width: 900px) {
+  :root {
+    --type-body: 1.0375rem; /* 16.6px */
+    --type-medium: 1.1rem; /* 17.6px */
+    --type-xlarge: 2.25rem; /* 36px */
+  }
+}
+
+/* Tailwind v4: expose the variables as utilities (bg-primary, rounded-lg, font-sans, ...). */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-ink-hover: var(--ink-hover);
+  --color-surface-3: var(--surface-3);
+  --color-neutral: var(--neutral);
+  --color-error-ink: var(--error-ink);
+  --color-success: var(--success);
+  --color-success-light: var(--success-light);
+  --color-brand-purple: var(--brand-purple);
+  --color-brand-pink: var(--brand-pink);
+  --color-brand-blue: var(--brand-blue);
+  --color-brand-coral: var(--brand-coral);
+
+  /* egrant radii: sm 4, md 8, lg 12, xl 16, nav pill 32, buttons fully round */
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 4px);
+  --radius-xl: calc(var(--radius) + 8px);
+  --radius-nav: 2rem;
+
+  --font-sans: var(--font-family-base);
+
+  --text-nano: var(--type-nano);
+  --text-micro: var(--type-micro);
+  --text-tiny: var(--type-tiny);
+  --text-button: var(--type-button);
+  --text-body: var(--type-body);
+  --text-medium: var(--type-medium);
+  --text-large: var(--type-large);
+  --text-xlarge: var(--type-xlarge);
+
+  --shadow-lift: var(--elevation-lift);
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-family-base);
+    font-size: var(--type-body);
+    font-weight: 500;
+    letter-spacing: var(--tracking-body);
+    line-height: 1.25;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  strong,
+  b {
+    font-weight: 600;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+    transition: color var(--duration-fast) ease;
+  }
+
+  a:hover {
+    color: var(--neutral);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 3px;
+  }
+}
+
+/* Owner rule: no motion when the user asks for less. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
