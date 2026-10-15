@@ -136,7 +136,33 @@
     },
     "mention": {
       "all": "@all",
-      "unknown": "@neznámy"
+      "unknown": "@neznámy",
+      "everyone": "Všetci v tejto skupine",
+      "label": "Ľudia"
+    },
+    "composer": {
+      "placeholder": "Napíšte správu…",
+      "threadPlaceholder": "Odpovedať…",
+      "send": "Odoslať",
+      "save": "Uložiť",
+      "attach": "Priložiť súbory",
+      "removeFile": "Odstrániť súbor",
+      "replyingTo": "Odpoveď pre {{name}}: {{excerpt}}",
+      "cancelReply": "Zrušiť odpoveď",
+      "tooLong": "{{count}} / 10 000 znakov",
+      "tooManyFiles": "Najviac 10 súborov v jednej správe.",
+      "fileTooLarge": "Príliš veľký (max 25 MB)",
+      "formatting": "Formátovanie"
+    },
+    "format": {
+      "bold": "Tučné",
+      "italic": "Kurzíva",
+      "strike": "Prečiarknuté",
+      "link": "Odkaz",
+      "bulletList": "Odrážkový zoznam",
+      "numberedList": "Číslovaný zoznam",
+      "quote": "Citácia",
+      "code": "Kód"
     }
   },
   "tasks": {

@@ -217,6 +217,7 @@ export function MessageList({
             <MessageItem
               key={message.id}
               message={message}
+              groupId={groupId}
               showHeader={row.showHeader}
               mentionsMe={row.mentionsMe}
               meId={meId}
@@ -234,6 +235,7 @@ export function MessageList({
           <MessageItem
             key={p.clientId}
             message={pendingMessage(p)}
+            groupId={groupId}
             showHeader={i === 0 && lastMessage?.author.id !== meId}
             mentionsMe={false}
             meId={meId}

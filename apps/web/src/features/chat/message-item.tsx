@@ -13,6 +13,7 @@ import { FileChip } from '@/features/files/file-chip';
 import { ImagePreview } from '@/features/files/image-preview';
 import { cn } from '@/lib/utils';
 import { deleteMessage, editMessage } from './api';
+import { Composer } from './composer';
 import { MessageBody } from './format/render';
 import { MoreIcon, ReplyIcon, ThreadIcon } from './icons';
 
@@ -26,6 +27,7 @@ export type MessageAction = {
 
 export interface MessageItemProps {
   message: MessageDto;
+  groupId: string;
   showHeader: boolean;
   mentionsMe: boolean;
   /** Inside the thread panel: "Reply" quotes a message instead of opening a thread. */
@@ -103,63 +105,28 @@ function Attachments({ message }: { message: MessageDto }) {
 
 function EditForm({
   message,
+  groupId,
   onDone,
   onChanged,
 }: {
   message: MessageDto;
+  groupId: string;
   onDone: () => void;
   onChanged?: (message: MessageDto) => void;
 }) {
-  const { t } = useTranslation();
-  const [body, setBody] = useState(message.body);
-  const [saving, setSaving] = useState(false);
-  const [failed, setFailed] = useState(false);
-  const canSave = !saving && (body.trim().length > 0 || message.attachments.length > 0);
-
-  async function save() {
-    if (!canSave) return;
-    setSaving(true);
-    setFailed(false);
-    try {
-      if (body !== message.body) onChanged?.(await editMessage(message.id, body));
-      onDone();
-    } catch {
-      setSaving(false);
-      setFailed(true);
-    }
-  }
-
   return (
-    <div className="flex flex-col gap-2">
-      <textarea
-        autoFocus
-        value={body}
-        onChange={(e) => setBody(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === 'Escape') onDone();
-          else if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            void save();
-          }
-        }}
-        rows={3}
-        aria-label={t('chat.actions.edit')}
-        className="w-full resize-y rounded-lg border-2 border-input bg-card px-3 py-2 text-body"
-      />
-      {failed && (
-        <p role="alert" className="text-micro text-error-ink">
-          {t('errors.generic')}
-        </p>
-      )}
-      <div className="flex gap-2">
-        <Button size="sm" disabled={!canSave} onClick={() => void save()}>
-          {t('chat.save')}
-        </Button>
-        <Button size="sm" variant="ghost" onClick={onDone}>
-          {t('chat.cancel')}
-        </Button>
-      </div>
-    </div>
+    <Composer
+      mode="edit"
+      groupId={groupId}
+      initialBody={message.body}
+      hasAttachments={message.attachments.length > 0}
+      onCancel={onDone}
+      // A rejection stays inside the composer, which shows the error and lets the user retry.
+      onSubmit={async ({ body }) => {
+        if (body !== message.body) onChanged?.(await editMessage(message.id, body));
+        onDone();
+      }}
+    />
   );
 }
 
@@ -219,6 +186,7 @@ function DeleteConfirm({
  */
 export const MessageItem = memo(function MessageItem({
   message,
+  groupId,
   showHeader,
   mentionsMe,
   inThread = false,
@@ -299,7 +267,12 @@ export const MessageItem = memo(function MessageItem({
         {deleted ? (
           <p className="text-body italic text-muted-foreground">{t('chat.deleted')}</p>
         ) : mode === 'edit' ? (
-          <EditForm message={message} onDone={() => setMode('view')} onChanged={onChanged} />
+          <EditForm
+            message={message}
+            groupId={groupId}
+            onDone={() => setMode('view')}
+            onChanged={onChanged}
+          />
         ) : (
           <div className="text-body">
             <MessageBody body={message.body} nameOf={nameOf} />
