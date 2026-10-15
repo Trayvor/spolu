@@ -35,14 +35,26 @@ Server code pushes into a group with `emitToGroup(io, groupId, event, payload)` 
 
 `useGroupRoom(groupId)` (`features/groups/use-group-room.ts`) is called once by the group layout. It emits `group:join` when the socket is connected and on every `connect` event, and `group:leave` on unmount or when `groupId` changes. It returns a counter that is 0 until the first acknowledged join and grows by one after every acknowledged join (including the rejoin after a reconnect). A `not_found` ack does not count and is not retried until the next `connect`. The layout passes the counter to `GroupRoomProvider`; chat and board read it with `useGroupRoomJoins()` (0 outside a provider) and run their catch-up when it changes.
 
+## Board events (server to client)
+
+Pushed to the `group:<id>` room after the write commits, by `modules/tasks/events.ts` (names in `BoardEvents`). Every payload carries the `groupId` (a `BoardTaskEvent` has it on `task.groupId`); web handlers ignore other groups.
+
+| event                | payload                                             | when                                                  |
+| -------------------- | --------------------------------------------------- | ----------------------------------------------------- |
+| `board:buckets`      | `{ groupId, buckets }` (the full list, by position) | a custom bucket is created, renamed, moved or deleted |
+| `board:task`         | `{ task, actor }`                                   | a task is created or changed (Task 3)                 |
+| `board:task_deleted` | `{ groupId, taskId }`                               | a task is deleted (Task 3)                            |
+
+After a bucket is deleted its tasks moved to To do without a `board:task` event; a client that sees a task whose bucket is missing from the new list should refetch the board.
+
 ## Rooms
 
-| room | who joins | carries |
-|---|---|---|
-| `user:<id>` | every socket of that user, on connect | events for one user (admin changes, notifications) |
-| `session:<id>` | every socket of that login session, on connect | sign-out |
-| `group:<id>` | a client, on connect, for their membership group; an admin through `group:join` | every event of the group: chat, tasks, files, members (one room per group, no separate channel or board rooms) |
-| per DM channel | the two participants | direct messages (not built yet) |
+| room           | who joins                                                                       | carries                                                                                                                            |
+| -------------- | ------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `user:<id>`    | every socket of that user, on connect                                           | events for one user (admin changes, notifications)                                                                                 |
+| `session:<id>` | every socket of that login session, on connect                                  | sign-out                                                                                                                           |
+| `group:<id>`   | a client, on connect, for their membership group; an admin through `group:join` | every event of the group: chat, board (tasks and buckets), files, members (one room per group, no separate channel or board rooms) |
+| per DM channel | the two participants                                                            | direct messages (not built yet)                                                                                                    |
 
 ## Catch-up with `seq`
 
