@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { Readable } from 'node:stream';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { eq } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import { TaskCreateSchema, type SessionUser } from '@spolu/shared';
 import { createDb } from '../../infra/db/client.js';
 import { createDiskStorage } from '../../infra/storage/disk-storage.js';
@@ -89,13 +89,15 @@ const getBoardTitles = async (groupId: string) =>
 /** `task.assigned` recipients of a task (payload match on `taskId`). */
 async function assignedRecipients(taskId: string): Promise<string[]> {
   const rows = await db
-    .select({ userId: notificationEvents.userId, payload: notificationEvents.payload })
+    .select({ userId: notificationEvents.userId })
     .from(notificationEvents)
-    .where(eq(notificationEvents.kind, 'task.assigned'));
-  return rows
-    .filter((r) => (r.payload as { taskId: string }).taskId === taskId)
-    .map((r) => r.userId)
-    .sort();
+    .where(
+      and(
+        eq(notificationEvents.kind, 'task.assigned'),
+        sql`${notificationEvents.payload}->>'taskId' = ${taskId}`,
+      ),
+    );
+  return rows.map((r) => r.userId).sort();
 }
 
 describe('createTask', () => {

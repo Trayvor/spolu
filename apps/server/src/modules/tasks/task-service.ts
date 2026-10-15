@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { and, asc, desc, eq, inArray } from 'drizzle-orm';
+import { and, desc, eq, inArray, sql } from 'drizzle-orm';
 import {
   TaskDtoSchema,
   type SessionUser,
@@ -44,6 +44,25 @@ export class TaskChangedError extends Error {
 
 const MAX_ASSIGNEES = 10;
 
+/** Called when deleting removed files fails after the commit; the write itself has succeeded. */
+export type CleanupOptions = { onFileCleanupError?: (error: unknown) => void };
+
+/**
+ * Post-commit file deletion is best effort: the task change is committed, so a failure here is
+ * reported to `onFileCleanupError` and never fails the caller.
+ */
+async function cleanUpFiles(
+  deps: TaskDeps,
+  fileIds: string[],
+  options: CleanupOptions,
+): Promise<void> {
+  try {
+    await deleteFiles(deps, fileIds);
+  } catch (error) {
+    options.onFileCleanupError?.(error);
+  }
+}
+
 /** The board shape of a task: the detail without description, files and source message. */
 export function toTaskDto(detail: TaskDetailDto): TaskDto {
   return TaskDtoSchema.parse(detail);
@@ -85,22 +104,23 @@ export async function getTaskRef(
 
 /** A task with description and files. `sourceMessage` is always null in this phase. */
 export async function getTask(db: Db, id: string): Promise<TaskDetailDto | null> {
-  const [task] = await selectTasks(db, eq(tasks.id, id));
-  if (!task) return null;
-  const [[extra], attachments] = await Promise.all([
-    db.select({ description: tasks.description }).from(tasks).where(eq(tasks.id, id)),
+  // The board shape and the detail-only columns (description, attached file ids) in parallel.
+  const [[task], [extra]] = await Promise.all([
+    selectTasks(db, eq(tasks.id, id)),
     db
-      .select({ fileId: taskAttachments.fileId })
-      .from(taskAttachments)
-      .where(eq(taskAttachments.taskId, id))
-      .orderBy(asc(taskAttachments.fileId)),
+      .select({
+        description: tasks.description,
+        fileIds: sql<string[]>`coalesce((
+          select array_agg(${taskAttachments.fileId} order by ${taskAttachments.fileId})
+          from ${taskAttachments} where ${taskAttachments.taskId} = ${tasks.id}
+        ), '{}')`,
+      })
+      .from(tasks)
+      .where(eq(tasks.id, id)),
   ]);
-  const files = await getFilesForGroup(
-    db,
-    task.groupId,
-    attachments.map((a) => a.fileId),
-  );
-  return { ...task, description: extra?.description ?? '', files, sourceMessage: null };
+  if (!task || !extra) return null;
+  const files = await getFilesForGroup(db, task.groupId, extra.fileIds);
+  return { ...task, description: extra.description, files, sourceMessage: null };
 }
 
 /**
@@ -177,10 +197,10 @@ export async function updateTask(
   actor: SessionUser,
   id: string,
   patch: TaskPatch,
+  options: CleanupOptions = {},
 ): Promise<TaskDetailDto> {
   const { db } = deps;
   const expected = new Date(patch.updatedAt);
-  if (Number.isNaN(expected.getTime())) throw new TaskChangedError();
   if (patch.assigneeIds && new Set(patch.assigneeIds).size > MAX_ASSIGNEES) {
     throw new InvalidAssigneeError();
   }
@@ -248,14 +268,18 @@ export async function updateTask(
     return removed;
   });
 
-  await deleteFiles(deps, removedFiles);
+  await cleanUpFiles(deps, removedFiles, options);
   const task = await getTask(db, id);
   if (!task) throw new NotFoundError(); // deleted right after this edit committed
   return task;
 }
 
-/** Deletes a task, then its files (rows and storage) after the commit. */
-export async function deleteTask(deps: TaskDeps, id: string): Promise<{ groupId: string }> {
+/** Deletes a task, then its files (rows and storage, best effort) after the commit. */
+export async function deleteTask(
+  deps: TaskDeps,
+  id: string,
+  options: CleanupOptions = {},
+): Promise<{ groupId: string }> {
   const { db } = deps;
   const { groupId, fileIds } = await db.transaction(async (tx) => {
     // Lock the task first: an edit attaching files right now commits before we list them.
@@ -272,6 +296,6 @@ export async function deleteTask(deps: TaskDeps, id: string): Promise<{ groupId:
     await tx.delete(tasks).where(eq(tasks.id, id));
     return { groupId: task.groupId, fileIds: attachments.map((a) => a.fileId) };
   });
-  await deleteFiles(deps, fileIds);
+  await cleanUpFiles(deps, fileIds, options);
   return { groupId };
 }

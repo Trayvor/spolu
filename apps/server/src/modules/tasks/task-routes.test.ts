@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { io as connect, type Socket } from 'socket.io-client';
 import {
   BoardEvents,
@@ -15,6 +15,19 @@ import { getFile } from '../files/service.js';
 import { addMember, createGroup } from '../groups/service.js';
 import { user } from '../users/schema.js';
 import { addAdmin } from '../users/service.js';
+
+// `deleteFiles` can be made to fail, to prove the post-commit cleanup never fails a write.
+const cleanup = vi.hoisted(() => ({ fail: false }));
+vi.mock('../files/service.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../files/service.js')>();
+  return {
+    ...actual,
+    deleteFiles: async (...args: Parameters<typeof actual.deleteFiles>) => {
+      if (cleanup.fail) throw new Error('cleanup failed');
+      return actual.deleteFiles(...args);
+    },
+  };
+});
 
 type TestApp = Awaited<ReturnType<typeof buildTestApp>>;
 
@@ -406,5 +419,39 @@ describe('tasks API: tasks', () => {
     );
     await call('DELETE', `/api/tasks/${task.id}`, admin.cookie);
     expect(await deleted).toEqual({ groupId: g.id, taskId: task.id });
+  });
+
+  it('a failing file cleanup after the commit still answers 200/204 and emits the events', async () => {
+    const g = await newGroup();
+    const client = await clientIn(g.id);
+    const keep = await upload(g.id, client.cookie);
+    const drop = await upload(g.id, client.cookie);
+    const task = (
+      await create(g.id, client.cookie, { title: 'A', fileIds: [keep.id, drop.id] })
+    ).json<TaskDetailDto>();
+    const socket = await listen(client.cookie);
+    cleanup.fail = true;
+    try {
+      const updated = new Promise<BoardTaskEvent>((resolve) =>
+        socket.once(BoardEvents.task, resolve),
+      );
+      const edited = await call('PATCH', `/api/tasks/${task.id}`, client.cookie, {
+        fileIds: [keep.id],
+        updatedAt: task.updatedAt,
+      });
+      expect(edited.statusCode).toBe(200);
+      expect(edited.json<TaskDetailDto>().files.map((f) => f.id)).toEqual([keep.id]);
+      expect((await updated).task.fileCount).toBe(1);
+      // The cleanup really failed: the removed file's row is still there.
+      expect(await getFile(test.deps.db, drop.id)).not.toBeNull();
+
+      const deleted = new Promise<BoardTaskDeletedEvent>((resolve) =>
+        socket.once(BoardEvents.taskDeleted, resolve),
+      );
+      expect((await call('DELETE', `/api/tasks/${task.id}`, client.cookie)).statusCode).toBe(204);
+      expect(await deleted).toEqual({ groupId: g.id, taskId: task.id });
+    } finally {
+      cleanup.fail = false;
+    }
   });
 });

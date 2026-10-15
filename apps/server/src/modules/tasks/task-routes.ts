@@ -1,4 +1,4 @@
-import type { FastifyPluginAsync, FastifyReply } from 'fastify';
+import type { FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify';
 import type { ZodError } from 'zod';
 import { ErrorCodes, TaskCreateSchema, TaskPatchSchema, type SessionUser } from '@spolu/shared';
 import type { AppDeps } from '../../deps.js';
@@ -64,6 +64,9 @@ export const taskRoutes: FastifyPluginAsync<TaskRoutesOptions> = async (
   const { db } = deps;
   const anyUser = requireUser(app.auth);
   const person = (actor: SessionUser) => ({ id: actor.id, name: actor.name });
+  /** Logs a failed post-commit file cleanup (no file names); the request still succeeds. */
+  const logCleanupError = (request: FastifyRequest) => (error: unknown) =>
+    request.log.error({ err: error }, 'could not delete the files of a task');
 
   /** The task's group and creator when the actor may use its board, else null (404). */
   const readableTask = async (actor: SessionUser, id: string) => {
@@ -101,7 +104,9 @@ export const taskRoutes: FastifyPluginAsync<TaskRoutesOptions> = async (
     // Anyone who may use the board edits any of its tasks.
     if (!(await readableTask(actor, request.params.id))) return notFound(reply);
     try {
-      const task = await updateTask(deps, actor, request.params.id, body.data);
+      const task = await updateTask(deps, actor, request.params.id, body.data, {
+        onFileCleanupError: logCleanupError(request),
+      });
       emitTask(app.io, toTaskDto(task), person(actor));
       return task;
     } catch (error) {
@@ -115,7 +120,9 @@ export const taskRoutes: FastifyPluginAsync<TaskRoutesOptions> = async (
     if (!ref) return notFound(reply);
     if (!canDeleteTask(actor, ref)) return reply.code(403).send({ error: ErrorCodes.forbidden });
     try {
-      const { groupId } = await deleteTask(deps, request.params.id);
+      const { groupId } = await deleteTask(deps, request.params.id, {
+        onFileCleanupError: logCleanupError(request),
+      });
       emitTaskDeleted(app.io, groupId, request.params.id);
       return reply.code(204).send();
     } catch (error) {
