@@ -533,6 +533,31 @@ describe('useChannelMessages', () => {
       unmount();
     });
 
+    it('two chained catch-ups that both fail leave exactly one retry loop', async () => {
+      const { result, rejoin, unmount } = setup();
+      await waitFor(() => expect(result.current.window.loaded).toBe(true));
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+      const original = fetchMock.getMockImplementation()!;
+      const failers: (() => void)[] = [];
+      fetchMock.mockImplementation((url, init) =>
+        url.includes('/changes?')
+          ? new Promise<Response>((resolve) => failers.push(() => resolve(json(503, {}))))
+          : original(url, init),
+      );
+      // The second run is queued behind the first, so both are started before either fails.
+      rejoin(2);
+      await act(() => vi.advanceTimersByTimeAsync(0));
+      rejoin(3);
+      await act(() => vi.advanceTimersByTimeAsync(0));
+      expect(failers).toHaveLength(1);
+      await act(async () => failers[0]!());
+      await act(() => vi.advanceTimersByTimeAsync(0));
+      await act(async () => failers[1]!());
+      await act(() => vi.advanceTimersByTimeAsync(0));
+      expect(vi.getTimerCount()).toBe(1);
+      unmount();
+    });
+
     it('a new catch-up replaces the waiting retry: one retry loop per channel', async () => {
       const { result, rejoin, unmount } = setup();
       await waitFor(() => expect(result.current.window.loaded).toBe(true));

@@ -212,14 +212,25 @@ export function useChannelMessages(
       const retry = (error: unknown) => {
         if (session !== sessionRef.current) return;
         if (error instanceof ApiError && (error.status === 403 || error.status === 404)) return;
+        // Two runs started before either failed: keep one timer, from the earlier `from`.
+        const other = retryRef.current;
+        let start = from;
+        let epoch = gapEpoch;
+        let tries = attempt;
+        if (other) {
+          clearTimeout(other.timer);
+          start = Math.min(start, other.from);
+          epoch ??= other.gapEpoch;
+          tries = Math.max(tries, other.attempt);
+        }
         const timer = setTimeout(
           () => {
             retryRef.current = null;
-            if (session === sessionRef.current) void run(from, gapEpoch, attempt + 1);
+            if (session === sessionRef.current) void run(start, epoch, tries + 1);
           },
-          Math.min(1000 * 2 ** attempt, 30_000),
+          Math.min(1000 * 2 ** tries, 30_000),
         );
-        retryRef.current = { timer, from, gapEpoch, attempt };
+        retryRef.current = { timer, from: start, gapEpoch: epoch, attempt: tries };
       };
       catchUpChain.current = catchUpChain.current.then(once).catch(retry);
       return catchUpChain.current;
