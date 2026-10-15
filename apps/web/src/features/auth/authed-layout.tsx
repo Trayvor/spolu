@@ -31,7 +31,7 @@ export function AuthedLayout() {
       if (reason !== 'io server disconnect') return;
       try {
         const current = await queryClient.fetchQuery({ ...sessionQuery, staleTime: 0 });
-        if (current) return; // still signed in (a server restart, say): nothing to do
+        if (current) return; // still signed in: the socket stays disconnected until a reload (no reconnect after a server-side disconnect); reconnect with backoff is a Phase 3 follow-up (see roadmap)
       } catch {
         return; // /api/me is down: stay as we are, the next request will tell
       }
