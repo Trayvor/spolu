@@ -262,6 +262,28 @@ describe('TaskForm description', () => {
   });
 });
 
+describe('TaskForm layout', () => {
+  beforeEach(async () => {
+    await setLanguage('en');
+  });
+
+  it('puts the Deadline label above its field and the urgent switch on its own row', () => {
+    renderForm();
+    const field = screen.getByLabelText('Deadline');
+    const label = screen.getByText('Deadline', { selector: 'label' });
+    // Label and field stack in one column, with the gap every other field uses.
+    expect(field.parentElement).toBe(label.parentElement);
+    expect(field.parentElement).toHaveClass('flex', 'flex-col', 'gap-1.5');
+    // The switch is a row of the form's own column, not beside the date.
+    const form = field.parentElement!.parentElement!;
+    expect(form).toHaveClass('space-y-5');
+    const urgent = screen.getByRole('switch', { name: 'Urgent' });
+    const urgentRow = [...form.children].find((row) => row.contains(urgent));
+    expect(urgentRow).toBeDefined();
+    expect(urgentRow).not.toBe(field.parentElement);
+  });
+});
+
 describe('TaskForm file uploads', () => {
   const upload = vi.mocked(uploadFile);
   const info = (id: string): FileInfo => ({ ...FILE, id, name: `${id}.pdf` });

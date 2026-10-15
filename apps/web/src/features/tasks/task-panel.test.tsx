@@ -250,6 +250,15 @@ describe('TaskPanel', () => {
     expect(body).toEqual({ bucketId: 'b-done', afterTaskId: 't9' });
   });
 
+  it("the bucket select looks like the app's fields, not a pill", async () => {
+    renderPanel();
+    await titleField();
+    const select = screen.getByLabelText(t('tasks.panel.bucket'));
+    expect(select).toHaveClass('appearance-none', 'rounded-md', 'border-2', 'border-input');
+    expect(select).not.toHaveClass('rounded-full');
+    expect(select.parentElement!.querySelector('svg')).not.toBeNull();
+  });
+
   it('shows Delete to admins and the creator, not to other clients', async () => {
     me = CLIENT;
     renderPanel();

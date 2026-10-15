@@ -3,6 +3,7 @@ import { useNavigate } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import type { BucketDto } from '@spolu/shared';
 import { Button } from '@/components/ui/button';
+import { Select } from '@/components/ui/select';
 import { bucketTitle, byPosition } from './board-model';
 
 /**
@@ -99,19 +100,20 @@ export function BucketSelect({
       <label htmlFor="task-bucket" className="sr-only">
         {t('tasks.panel.bucket')}
       </label>
-      <select
+      <Select
         id="task-bucket"
         value={value}
         disabled={disabled}
         onChange={(event) => onChange(event.target.value)}
-        className="h-[38px] max-w-52 rounded-full border-2 border-input bg-card px-4 text-button font-semibold text-foreground focus:border-foreground"
+        // The header's height (38 px, like its buttons) instead of the field's 52 px.
+        className="h-[38px] max-w-52 py-0 font-semibold"
       >
         {[...(buckets ?? [])].sort(byPosition).map((b) => (
           <option key={b.id} value={b.id}>
             {bucketTitle(t, b, groupName)}
           </option>
         ))}
-      </select>
+      </Select>
     </>
   );
 }

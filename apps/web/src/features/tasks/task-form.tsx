@@ -150,21 +150,18 @@ export function TaskForm({
         <FieldError id={id('assigneeIds-error')} message={errors.assigneeIds} />
       </div>
 
-      <div className="flex flex-wrap items-end gap-x-8 gap-y-4">
-        <div className="space-y-1.5">
-          <Label htmlFor={id('deadline')}>{t('tasks.form.deadline')}</Label>
-          <Input
-            id={id('deadline')}
-            type="date"
-            value={value.dueDate ?? ''}
-            onChange={(event) => set({ dueDate: event.target.value || null })}
-            className="w-auto"
-          />
-        </div>
-        <div className="flex h-[52px] items-center">
-          <UrgentSwitch checked={value.urgent} onChange={(urgent) => set({ urgent })} />
-        </div>
+      <div className="flex flex-col items-start gap-1.5">
+        <Label htmlFor={id('deadline')}>{t('tasks.form.deadline')}</Label>
+        <Input
+          id={id('deadline')}
+          type="date"
+          value={value.dueDate ?? ''}
+          onChange={(event) => set({ dueDate: event.target.value || null })}
+          className="w-auto"
+        />
       </div>
+
+      <UrgentSwitch checked={value.urgent} onChange={(urgent) => set({ urgent })} />
 
       <div className="space-y-1.5">
         <Label id={id('files-label')}>{t('tasks.form.files')}</Label>
