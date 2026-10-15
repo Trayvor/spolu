@@ -71,4 +71,15 @@ describe('loadConfig', () => {
       'SUPERADMIN_EMAIL',
     );
   });
+
+  it('defaults SUPERADMIN_NAME to the email local part', () => {
+    expect(loadConfig({ ...validEnv, SUPERADMIN_EMAIL: ' Boss.Man@Example.com ' })).toMatchObject({
+      superadminEmail: 'boss.man@example.com',
+      superadminName: 'boss.man',
+    });
+  });
+
+  it('uses SUPERADMIN_NAME when set', () => {
+    expect(loadConfig({ ...validEnv, SUPERADMIN_NAME: 'The Boss' }).superadminName).toBe('The Boss');
+  });
 });

@@ -32,7 +32,8 @@ erDiagram
 
 | entity | purpose | phase | status |
 |---|---|---|---|
-| User | a person who logs in; role `superadmin`, `admin` or `client` | 2 | planned |
+| User | a person who logs in; role `superadmin`, `admin` or `client` | 2 | built |
+| Session, Account, Verification | login sessions and one-time codes; tables owned by better-auth (see below) | 2 | built |
 | Group | one client organization; has eGrant URL and invite token | 3 | planned |
 | GroupMember | links a client to their one group (admins need no rows) | 3 | planned |
 | Channel | one abstraction for group chat, DM and task chat | 4 | planned |
@@ -50,4 +51,10 @@ erDiagram
 | Contract | agreement with a client; admin-only; reminder and draft fields | 14 | planned |
 | app_meta | technical table proving migrations work (not a product entity) | 1 | built |
 
-Notes: the superadmin is a `User` with role `superadmin`, created on first start from `SUPERADMIN_EMAIL`. See [glossary](../glossary.md) for terms and [roadmap](../roadmap.md) for phases.
+### User and auth tables (built in Phase 2)
+
+`user` (`modules/users/schema.ts`): `id` text PK, `name`, `email` (unique, stored lower-cased and trimmed), `email_verified` (always true for users we create), `image`, `role` (`superadmin | admin | client`, default `client`, indexed), `disabled_at` (set when an admin is removed; blocks login), `created_at`, `updated_at`. Removed admins are kept, not deleted; adding the same email again reactivates them.
+
+`session`, `account`, `verification` (`modules/auth/schema.ts`) match better-auth's expected shape (snake_case columns, timestamptz); `session.user_id` and `account.user_id` reference `user.id` on delete cascade. Only better-auth writes them; `account` stays empty with email-code login.
+
+Notes: the superadmin is a `User` with role `superadmin`, created on start from `SUPERADMIN_EMAIL` (name from `SUPERADMIN_NAME`, default the part before `@`); an existing user with that email is promoted and re-enabled. See [glossary](../glossary.md) for terms and [roadmap](../roadmap.md) for phases.

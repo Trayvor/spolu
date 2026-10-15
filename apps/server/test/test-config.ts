@@ -11,6 +11,7 @@ export function testConfig(overrides: Partial<Config> = {}): Config {
     publicUrl: 'http://localhost:3000',
     databaseUrl: testDatabaseUrl,
     superadminEmail: 'admin@example.com',
+    superadminName: 'admin',
     appSecret: 'x'.repeat(32),
     appVersion: 'test-sha',
     filesDir: './data/files',

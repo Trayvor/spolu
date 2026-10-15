@@ -5,7 +5,8 @@ const base = {
   PORT: z.coerce.number().int().min(1).max(65535).default(3000),
   PUBLIC_URL: z.url(),
   DATABASE_URL: z.string().min(1),
-  SUPERADMIN_EMAIL: z.email(),
+  SUPERADMIN_EMAIL: z.string().trim().toLowerCase().pipe(z.email()),
+  SUPERADMIN_NAME: z.string().trim().min(1).optional(),
   APP_SECRET: z.string().min(32),
   APP_VERSION: z.string().default('dev'),
   FILES_DIR: z.string().default('./data/files'),
@@ -33,6 +34,7 @@ export type Config = {
   publicUrl: string;
   databaseUrl: string;
   superadminEmail: string;
+  superadminName: string;
   appSecret: string;
   appVersion: string;
   filesDir: string;
@@ -64,6 +66,7 @@ export function loadConfig(env: NodeJS.ProcessEnv): Config {
     publicUrl: e.PUBLIC_URL,
     databaseUrl: e.DATABASE_URL,
     superadminEmail: e.SUPERADMIN_EMAIL,
+    superadminName: e.SUPERADMIN_NAME ?? e.SUPERADMIN_EMAIL.split('@')[0]!,
     appSecret: e.APP_SECRET,
     appVersion: e.APP_VERSION,
     filesDir: e.FILES_DIR,

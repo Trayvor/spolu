@@ -2,6 +2,7 @@ import { ConfigError, loadConfig } from './infra/config/config.js';
 import { createDeps } from './deps.js';
 import { runMigrations } from './infra/db/migrate.js';
 import { buildApp } from './app.js';
+import { ensureSuperadmin } from './modules/users/service.js';
 import { registerStatic } from './static.js';
 
 async function main(): Promise<void> {
@@ -18,6 +19,7 @@ async function main(): Promise<void> {
 
   await runMigrations(config.databaseUrl);
   const { deps, close } = await createDeps(config);
+  await ensureSuperadmin(deps.db, { email: config.superadminEmail, name: config.superadminName });
   const app = await buildApp(deps);
   if (config.webDistDir) await registerStatic(app, config.webDistDir);
   await app.listen({ host: '0.0.0.0', port: config.port });
