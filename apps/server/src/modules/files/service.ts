@@ -5,6 +5,7 @@ import { and, eq, inArray, isNull, lt, sql } from 'drizzle-orm';
 import type { FileInfo } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
 import type { Storage } from '../../infra/storage/index.js';
+import { sanitizeFileName } from './file-name.js';
 import { files } from './schema.js';
 import { IMAGE_TYPES, sniffImageType } from './sniff.js';
 
@@ -99,13 +100,15 @@ export async function createFile(
     },
   });
 
+  let putting: Promise<void> | undefined;
   try {
     const piping = pipeline(input.body, counter);
     piping.catch(() => undefined); // awaited below; avoids an unhandled rejection meanwhile
     // The storage content type needs the sniffed mime, so wait for the first bytes.
     const sniffedHead = await Promise.race([headSeen, piping.then(() => headSeen)]);
     const mime = resolveMime(sniffedHead, input.declaredType);
-    await Promise.all([piping, storage.put(key, counter, mime)]);
+    putting = storage.put(key, counter, mime);
+    await Promise.all([piping, putting]);
 
     const [row] = await db
       .insert(files)
@@ -113,7 +116,7 @@ export async function createFile(
         id,
         groupId: input.groupId,
         uploadedBy: input.uploadedBy,
-        name: input.name,
+        name: sanitizeFileName(input.name),
         mime,
         size,
         storageKey: key,
@@ -123,6 +126,8 @@ export async function createFile(
   } catch (error) {
     counter.destroy();
     input.body.destroy();
+    // Let an in-flight put settle first, so it cannot recreate files after the delete.
+    await putting?.catch(() => undefined);
     await storage.delete(key).catch(() => undefined);
     throw tooLarge ? new FileTooLargeError() : error;
   }

@@ -1,6 +1,7 @@
 const MAX_NAME_LENGTH = 255;
+// Separators, C0/C1 controls and Unicode bidi controls (they can disguise an extension).
 // eslint-disable-next-line no-control-regex
-const FORBIDDEN_CHARS = /[/\\\u0000-\u001f\u007f]/g;
+const FORBIDDEN_CHARS = /[/\\\u0000-\u001f\u007f-\u009f\u200e\u200f\u202a-\u202e\u2066-\u2069]/g;
 
 /** A safe display name: no path separators or control characters, at most 255 characters. */
 export function sanitizeFileName(name: string): string {

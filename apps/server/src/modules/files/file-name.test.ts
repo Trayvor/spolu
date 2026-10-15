@@ -21,6 +21,11 @@ describe('file names', () => {
     expect(sanitizeFileName('\u0000')).toBe('file');
   });
 
+  it('strips C1 controls and bidi controls', () => {
+    expect(sanitizeFileName('invoice\u202Efdp.exe')).toBe('invoicefdp.exe');
+    expect(sanitizeFileName('a\u200Eb\u2066c\u0085d.txt')).toBe('abcd.txt');
+  });
+
   it('treats a missing header as empty', () => {
     expect(decodeFileNameHeader(undefined)).toBe('');
   });

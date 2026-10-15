@@ -148,6 +148,20 @@ describe('createFile', () => {
     expect(await storedNames(group.id)).toEqual([]);
   });
 
+  it('sanitizes the name itself', async () => {
+    const { group, owner } = await setup();
+    const info = await upload(group.id, owner.id, Buffer.from('x'), 'text/plain', '../a\\b.txt');
+    expect(info.name).toBe('..ab.txt');
+  });
+
+  it('removes the stored object when the insert fails', async () => {
+    const { group } = await setup();
+    // uploadedBy references no user, so the insert violates the foreign key
+    await expect(upload(group.id, randomUUID(), Buffer.from('x'))).rejects.toThrow();
+    expect(await rowsOf(group.id)).toHaveLength(0);
+    expect(await storedNames(group.id)).toEqual([]);
+  });
+
   it('leaves no row when storage.put fails', async () => {
     const { group, owner } = await setup();
     const failing: Storage = {
