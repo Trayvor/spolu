@@ -6,8 +6,9 @@ import { RouterProvider, createMemoryHistory } from '@tanstack/react-router';
 import { i18n, setLanguage } from '@/i18n';
 import { createAppRouter } from '@/router';
 
+const socket = { on: vi.fn(), off: vi.fn(), emit: vi.fn(), connected: false };
 vi.mock('@/lib/socket', () => ({
-  getSocket: () => ({ on: vi.fn(), off: vi.fn(), connected: false }),
+  getSocket: () => socket,
   connectSocket: vi.fn(),
   disconnectSocket: vi.fn(),
 }));
@@ -76,12 +77,9 @@ function mockApi(
   return { calls };
 }
 
-function renderGroup() {
+function renderGroup(path = '/groups/g1/members') {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  const router = createAppRouter(
-    queryClient,
-    createMemoryHistory({ initialEntries: ['/groups/g1'] }),
-  );
+  const router = createAppRouter(queryClient, createMemoryHistory({ initialEntries: [path] }));
   const user = userEvent.setup();
   const writeText = vi.fn(async () => undefined);
   Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
@@ -90,14 +88,70 @@ function renderGroup() {
       <RouterProvider router={router} />
     </QueryClientProvider>,
   );
-  return { user, writeText };
+  return { user, writeText, router };
 }
 
 const rowOf = (name: string) => screen.getByText(name).closest('li') as HTMLElement;
 
-describe('group page', () => {
-  beforeEach(() => setLanguage('en'));
+describe('group layout', () => {
+  beforeEach(() => {
+    setLanguage('en');
+    socket.connected = false;
+    socket.emit.mockClear();
+  });
   afterEach(() => vi.unstubAllGlobals());
+
+  it('/groups/g1 redirects to /groups/g1/chat and shows the chat placeholder', async () => {
+    mockApi();
+    const { router } = renderGroup('/groups/g1');
+    expect(await screen.findByText(t('chat.placeholder'))).toBeInTheDocument();
+    expect(router.state.location.pathname).toBe('/groups/g1/chat');
+  });
+
+  it('the three tabs link to chat, tasks, members; the current one has aria-current="page"', async () => {
+    mockApi();
+    const { user } = renderGroup('/groups/g1/chat');
+    const nav = await screen.findByRole('navigation', { name: t('group.tabs.label') });
+    const link = (key: string) => within(nav).getByRole('link', { name: t(key) });
+    expect(link('group.tabs.chat')).toHaveAttribute('href', '/groups/g1/chat');
+    expect(link('group.tabs.tasks')).toHaveAttribute('href', '/groups/g1/tasks');
+    expect(link('group.tabs.members')).toHaveAttribute('href', '/groups/g1/members');
+    expect(link('group.tabs.chat')).toHaveAttribute('aria-current', 'page');
+    expect(link('group.tabs.tasks')).not.toHaveAttribute('aria-current');
+
+    await user.click(link('group.tabs.tasks'));
+    expect(await screen.findByText(t('tasks.placeholder'))).toBeInTheDocument();
+    expect(link('group.tabs.tasks')).toHaveAttribute('aria-current', 'page');
+    expect(link('group.tabs.chat')).not.toHaveAttribute('aria-current');
+
+    await user.click(link('group.tabs.members'));
+    expect(await screen.findByText('Petr')).toBeInTheDocument();
+  });
+
+  it('/ sends a client to /groups/<groupId>/chat', async () => {
+    mockApi({ me: CLIENT });
+    const { router } = renderGroup('/');
+    expect(await screen.findByText(t('chat.placeholder'))).toBeInTheDocument();
+    expect(router.state.location.pathname).toBe('/groups/g1/chat');
+  });
+
+  it('the header shows the 40 px logo, name and eGrant link; Edit (admins only) opens the form in place', async () => {
+    mockApi();
+    const { user } = renderGroup('/groups/g1/chat');
+    expect(await screen.findByRole('heading', { name: 'Acme' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'https://acme.egrant.sk' })).toBeInTheDocument();
+    expect(screen.getByText('A')).toHaveStyle({ width: '40px', height: '40px' });
+    await user.click(screen.getByRole('button', { name: t('group.edit') }));
+    expect(screen.getByLabelText(t('groups.form.name'))).toHaveValue('Acme');
+  });
+
+  it('the layout joins the group room', async () => {
+    socket.connected = true;
+    mockApi();
+    renderGroup('/groups/g1/chat');
+    await screen.findByText(t('chat.placeholder'));
+    expect(socket.emit).toHaveBeenCalledWith('group:join', { groupId: 'g1' }, expect.any(Function));
+  });
 
   it('admin sees invite box; copy writes the URL to the clipboard and shows Link copied.', async () => {
     mockApi();

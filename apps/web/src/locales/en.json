@@ -81,6 +81,12 @@
     "retry": "Try again"
   },
   "group": {
+    "tabs": {
+      "label": "Group sections",
+      "chat": "Chat",
+      "tasks": "Tasks",
+      "members": "Members"
+    },
     "edit": "Edit",
     "invite": {
       "title": "Invite",
@@ -99,6 +105,12 @@
       "restore": "Restore",
       "you": "You"
     }
+  },
+  "chat": {
+    "placeholder": "The chat arrives in the next update."
+  },
+  "tasks": {
+    "placeholder": "The task board arrives in the next update."
   },
   "groups": {
     "title": "Groups",

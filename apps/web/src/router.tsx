@@ -51,7 +51,11 @@ const homeRoute = createRoute({
     const user = await context.queryClient.ensureQueryData(sessionQuery);
     if (!user) throw redirect({ to: '/login' });
     if (isAdmin(user)) throw redirect({ to: '/groups' });
-    if (user.groupId) throw redirect({ to: '/groups/$groupId', params: { groupId: user.groupId } });
+    if (user.groupId)
+      throw redirect({
+        to: '/groups/$groupId/chat',
+        params: { groupId: user.groupId },
+      });
     throw redirect({ to: '/settings' });
   },
 });
@@ -74,7 +78,33 @@ const groupRoute = createRoute({
       throw error;
     }
   },
-  component: lazyRouteComponent(() => import('@/features/groups/group-page'), 'GroupRoute'),
+  component: lazyRouteComponent(() => import('@/features/groups/group-layout'), 'GroupLayout'),
+});
+
+const groupIndexRoute = createRoute({
+  getParentRoute: () => groupRoute,
+  path: '/',
+  beforeLoad: ({ params }) => {
+    throw redirect({ to: '/groups/$groupId/chat', params });
+  },
+});
+
+const groupChatRoute = createRoute({
+  getParentRoute: () => groupRoute,
+  path: 'chat',
+  component: lazyRouteComponent(() => import('@/features/chat/chat-tab'), 'ChatTab'),
+});
+
+const groupTasksRoute = createRoute({
+  getParentRoute: () => groupRoute,
+  path: 'tasks',
+  component: lazyRouteComponent(() => import('@/features/tasks/tasks-tab'), 'TasksTab'),
+});
+
+const groupMembersRoute = createRoute({
+  getParentRoute: () => groupRoute,
+  path: 'members',
+  component: lazyRouteComponent(() => import('@/features/groups/members-tab'), 'MembersTab'),
 });
 
 const welcomeRoute = createRoute({
@@ -131,7 +161,7 @@ const routeTree = rootRoute.addChildren([
     settingsRoute,
     adminsRoute,
     groupsRoute,
-    groupRoute,
+    groupRoute.addChildren([groupIndexRoute, groupChatRoute, groupTasksRoute, groupMembersRoute]),
     welcomeRoute,
   ]),
   loginRoute,

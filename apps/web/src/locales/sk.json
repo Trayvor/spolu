@@ -81,6 +81,12 @@
     "retry": "Skúsiť znova"
   },
   "group": {
+    "tabs": {
+      "label": "Časti skupiny",
+      "chat": "Chat",
+      "tasks": "Úlohy",
+      "members": "Členovia"
+    },
     "edit": "Upraviť",
     "invite": {
       "title": "Pozvánka",
@@ -99,6 +105,12 @@
       "restore": "Obnoviť",
       "you": "Vy"
     }
+  },
+  "chat": {
+    "placeholder": "Chat pribudne v ďalšej aktualizácii."
+  },
+  "tasks": {
+    "placeholder": "Nástenka úloh pribudne v ďalšej aktualizácii."
   },
   "groups": {
     "title": "Skupiny",

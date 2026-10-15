@@ -129,7 +129,7 @@ describe('join page', () => {
       { email: 'new@example.com', otp: '123456' },
     ]);
     // A client lands on their group.
-    await waitFor(() => expect(router.state.location.pathname).toBe('/groups/g1'));
+    await waitFor(() => expect(router.state.location.pathname).toBe('/groups/g1/chat'));
   });
 
   it('an invalid email sends nothing', async () => {
@@ -153,6 +153,6 @@ describe('join page', () => {
   it('a signed-in user opening the link goes to their group', async () => {
     mockApi({ loggedIn: true });
     const { router } = renderAt('/join/tok');
-    await waitFor(() => expect(router.state.location.pathname).toBe('/groups/g1'));
+    await waitFor(() => expect(router.state.location.pathname).toBe('/groups/g1/chat'));
   });
 });

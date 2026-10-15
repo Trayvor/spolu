@@ -111,7 +111,7 @@ describe('name step', () => {
     const { router, user } = renderAt('/welcome?redirect=%2F%2Fevil.example');
     await user.type(await screen.findByLabelText(t('welcome.name')), 'Jana');
     await user.click(screen.getByRole('button', { name: t('welcome.submit') }));
-    await waitFor(() => expect(router.state.location.pathname).toBe('/groups/g1'));
+    await waitFor(() => expect(router.state.location.pathname).toBe('/groups/g1/chat'));
   });
 
   it('an anonymous visitor to /welcome goes to login', async () => {
@@ -132,7 +132,7 @@ describe('home redirect', () => {
   it('/ redirects a client to its group and an admin to /groups', async () => {
     mockApi(client('Jana'));
     const first = renderAt('/');
-    await waitFor(() => expect(first.router.state.location.pathname).toBe('/groups/g1'));
+    await waitFor(() => expect(first.router.state.location.pathname).toBe('/groups/g1/chat'));
     expect(await screen.findByRole('heading', { name: 'Acme' })).toBeInTheDocument();
 
     mockApi(admin);
