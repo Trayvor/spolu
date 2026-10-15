@@ -1,16 +1,20 @@
 import { randomUUID } from 'node:crypto';
-import { and, desc, eq, inArray, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gt, inArray, sql } from 'drizzle-orm';
 import {
   TaskDtoSchema,
+  type BucketKind,
+  type BucketLabel,
   type SessionUser,
   type TaskCreate,
   type TaskDetailDto,
   type TaskDto,
+  type TaskMove,
+  type TaskMovedPayload,
   type TaskPatch,
 } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
 import { attachFiles, deleteFiles, getFilesForGroup, type FileDeps } from '../files/service.js';
-import { isGroupPerson } from '../groups/service.js';
+import { getGroup, isGroupPerson } from '../groups/service.js';
 import { recordNotifications } from '../notifications/service.js';
 import { keyAfter } from './positions.js';
 import { buckets, taskAssignees, taskAttachments, tasks } from './schema.js';
@@ -39,6 +43,14 @@ export class TaskChangedError extends Error {
   constructor() {
     super('The task was changed by someone else');
     this.name = 'TaskChangedError';
+  }
+}
+
+/** A move that cannot be placed: `afterTaskId` is not in the target bucket, or is the task itself. */
+export class ValidationError extends Error {
+  constructor() {
+    super('Invalid move');
+    this.name = 'ValidationError';
   }
 }
 
@@ -298,4 +310,132 @@ export async function deleteTask(
   });
   await cleanUpFiles(deps, fileIds, options);
   return { groupId };
+}
+
+/** A bucket as a notification shows it: custom name, the group name for `client_review`, else null. */
+function bucketLabel(
+  bucket: { kind: string; name: string | null },
+  groupName: string,
+): BucketLabel {
+  const kind = bucket.kind as BucketKind;
+  if (kind === 'custom') return { kind, name: bucket.name };
+  return { kind, name: kind === 'client_review' ? groupName : null };
+}
+
+/** `moved` is false when the task already sat there: nothing was written and nothing is emitted. */
+export type MoveResult = { task: TaskDto; moved: boolean };
+
+/**
+ * Moves a task into `bucketId`, right after `afterTaskId` (null = first). One transaction: the
+ * source and target buckets are locked first (`lockBuckets`, id order, before the task row), so
+ * concurrent moves into one bucket queue and every position is computed from committed rows.
+ * The task and the target bucket are read again after the locks (404 if gone meanwhile).
+ * `completedAt` is set entering Completed and cleared leaving it. `updatedAt` is not touched: it
+ * guards the content edited in the task form, and a drag must not invalidate an unsaved edit.
+ */
+export async function moveTask(
+  deps: TaskDeps,
+  actor: SessionUser,
+  id: string,
+  input: TaskMove,
+): Promise<MoveResult> {
+  const { db } = deps;
+  if (input.afterTaskId === id) throw new ValidationError();
+
+  const moved = await db.transaction(async (tx) => {
+    const [source] = await tx
+      .select({ bucketId: tasks.bucketId, groupId: tasks.groupId })
+      .from(tasks)
+      .where(eq(tasks.id, id));
+    if (!source) throw new NotFoundError();
+    const { groupId } = source;
+    const locked = await lockBuckets(tx, [...new Set([source.bucketId, input.bucketId])]);
+    const target = locked.find((b) => b.id === input.bucketId);
+    if (!target || target.groupId !== groupId) throw new NotFoundError();
+
+    // After the bucket locks: the task as it is now (it may have moved while this call waited).
+    const [task] = await tx
+      .select({
+        bucketId: tasks.bucketId,
+        position: tasks.position,
+        title: tasks.title,
+        createdBy: tasks.createdBy,
+      })
+      .from(tasks)
+      .where(eq(tasks.id, id))
+      .for('update');
+    if (!task) throw new NotFoundError();
+    // Normally the locked source; if another move won the race, its bucket now (not locked: only
+    // the target's positions are computed, and a deleted bucket would have moved the task).
+    const from =
+      locked.find((b) => b.id === task.bucketId) ??
+      (await tx.select().from(buckets).where(eq(buckets.id, task.bucketId)))[0];
+    if (!from) throw new NotFoundError();
+
+    let afterPosition: string | null = null;
+    if (input.afterTaskId !== null) {
+      const [after] = await tx
+        .select({ position: tasks.position })
+        .from(tasks)
+        .where(and(eq(tasks.id, input.afterTaskId), eq(tasks.bucketId, target.id)));
+      if (!after) throw new ValidationError();
+      afterPosition = after.position;
+    }
+    // The first task after the anchor, the moved task included. If it is the moved task, the task
+    // already sits there; otherwise it is the upper neighbour of the new position.
+    const [next] = await tx
+      .select({ id: tasks.id, position: tasks.position })
+      .from(tasks)
+      .where(
+        and(
+          eq(tasks.bucketId, target.id),
+          afterPosition === null ? undefined : gt(tasks.position, afterPosition),
+        ),
+      )
+      .orderBy(asc(tasks.position))
+      .limit(1);
+    if (next?.id === id) return false;
+
+    const changesBucket = from.id !== target.id;
+    const completedAt =
+      target.kind === 'done' ? (from.kind === 'done' ? undefined : new Date()) : null;
+    await tx
+      .update(tasks)
+      .set({
+        bucketId: target.id,
+        position: keyAfter(afterPosition, next?.position ?? null),
+        ...(completedAt !== undefined && { completedAt }),
+      })
+      .where(eq(tasks.id, id));
+
+    if (changesBucket) {
+      const group = await getGroup(tx, groupId);
+      const groupName = group?.name ?? '';
+      const assignees = await tx
+        .select({ userId: taskAssignees.userId })
+        .from(taskAssignees)
+        .where(eq(taskAssignees.taskId, id));
+      const payload: TaskMovedPayload = {
+        taskId: id,
+        groupId,
+        title: task.title,
+        fromBucket: bucketLabel(from, groupName),
+        toBucket: bucketLabel(target, groupName),
+        actorName: actor.name,
+      };
+      await recordNotifications(tx, {
+        kind: 'task.moved',
+        groupId,
+        recipients: [task.createdBy, ...assignees.map((a) => a.userId)].filter(
+          (userId) => userId !== actor.id,
+        ),
+        payload,
+      });
+    }
+    return true;
+  });
+
+  const [task] = await selectTasks(db, eq(tasks.id, id));
+  if (!task) throw new NotFoundError(); // deleted right after the move committed
+  return { task, moved };
 }

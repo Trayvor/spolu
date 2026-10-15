@@ -21,9 +21,11 @@ import {
   deleteTask,
   getTask,
   InvalidAssigneeError,
+  moveTask,
   NotFoundError,
   TaskChangedError,
   updateTask,
+  ValidationError,
   type TaskDeps,
 } from './task-service.js';
 
@@ -355,5 +357,179 @@ describe('deleteTask', () => {
 
   it('an unknown task → NotFoundError', async () => {
     await expect(deleteTask(deps, randomUUID())).rejects.toBeInstanceOf(NotFoundError);
+  });
+});
+
+/** `task.moved` events of a task: recipient and payload. */
+async function movedEvents(taskId: string) {
+  return db
+    .select({ userId: notificationEvents.userId, payload: notificationEvents.payload })
+    .from(notificationEvents)
+    .where(
+      and(
+        eq(notificationEvents.kind, 'task.moved'),
+        sql`${notificationEvents.payload}->>'taskId' = ${taskId}`,
+      ),
+    );
+}
+
+describe('moveTask', () => {
+  it('move into eGrant review after task B lands between B and the next task', async () => {
+    const group = await newGroup();
+    const client = await newClient(group.id);
+    const review = await bucketOf(group.id, 'egrant_review');
+    const b = await createTask(deps, client, group.id, { title: 'B', bucketId: review.id });
+    const c = await createTask(deps, client, group.id, { title: 'C', bucketId: review.id });
+    const x = await createTask(deps, client, group.id, { title: 'X' });
+
+    const { task, moved } = await moveTask(deps, client, x.id, {
+      bucketId: review.id,
+      afterTaskId: b.id,
+    });
+    expect(moved).toBe(true);
+    expect(task.bucketId).toBe(review.id);
+    expect(task.position > b.position && task.position < c.position).toBe(true);
+    expect(task.updatedAt).toBe(x.updatedAt);
+    const inReview = (await getBoard(db, group.id)).tasks.filter((t) => t.bucketId === review.id);
+    expect(inReview.map((t) => t.title)).toEqual(['B', 'X', 'C']);
+  });
+
+  it('afterTaskId null puts it first', async () => {
+    const group = await newGroup();
+    const client = await newClient(group.id);
+    const a = await createTask(deps, client, group.id, { title: 'A' });
+    const x = await createTask(deps, client, group.id, { title: 'X' });
+    const { task } = await moveTask(deps, client, x.id, {
+      bucketId: x.bucketId,
+      afterTaskId: null,
+    });
+    expect(task.position < a.position).toBe(true);
+    expect(await getBoardTitles(group.id)).toEqual(['X', 'A']);
+  });
+
+  it('moving to the current place is a no-op', async () => {
+    const group = await newGroup();
+    const client = await newClient(group.id);
+    const admin = await newAdmin();
+    const a = await createTask(deps, client, group.id, { title: 'A' });
+    const x = await createTask(deps, client, group.id, { title: 'X' });
+    await createTask(deps, client, group.id, { title: 'Y' });
+
+    const after = await moveTask(deps, admin, x.id, { bucketId: x.bucketId, afterTaskId: a.id });
+    expect(after.moved).toBe(false);
+    expect(after.task).toMatchObject({ position: x.position, updatedAt: x.updatedAt });
+    const first = await moveTask(deps, admin, a.id, { bucketId: a.bucketId, afterTaskId: null });
+    expect(first.moved).toBe(false);
+    expect(first.task.position).toBe(a.position);
+    expect(await movedEvents(x.id)).toEqual([]);
+    expect(await getBoardTitles(group.id)).toEqual(['A', 'X', 'Y']);
+  });
+
+  it('ten parallel moves after the same task give ten unique positions, all between that task and the next', async () => {
+    const group = await newGroup();
+    const client = await newClient(group.id);
+    const review = await bucketOf(group.id, 'egrant_review');
+    const b = await createTask(deps, client, group.id, { title: 'B', bucketId: review.id });
+    const c = await createTask(deps, client, group.id, { title: 'C', bucketId: review.id });
+    const moving = [];
+    for (let i = 0; i < 10; i++) {
+      moving.push(await createTask(deps, client, group.id, { title: `T${i}` }));
+    }
+
+    const results = await Promise.all(
+      moving.map((t) => moveTask(deps, client, t.id, { bucketId: review.id, afterTaskId: b.id })),
+    );
+    const positions = results.map((r) => r.task.position);
+    expect(new Set(positions).size).toBe(10);
+    for (const p of positions) expect(p > b.position && p < c.position).toBe(true);
+    const inReview = (await getBoard(db, group.id)).tasks.filter((t) => t.bucketId === review.id);
+    expect(inReview).toHaveLength(12);
+    expect(inReview[0]!.title).toBe('B');
+    expect(inReview[11]!.title).toBe('C');
+  });
+
+  it('completedAt set entering Completed and cleared leaving it', async () => {
+    const group = await newGroup();
+    const client = await newClient(group.id);
+    const done = await bucketOf(group.id, 'done');
+    const x = await createTask(deps, client, group.id, { title: 'X' });
+    const entered = await moveTask(deps, client, x.id, { bucketId: done.id, afterTaskId: null });
+    expect(entered.task.completedAt).not.toBeNull();
+    const left = await moveTask(deps, client, x.id, { bucketId: x.bucketId, afterTaskId: null });
+    expect(left.task.completedAt).toBeNull();
+  });
+
+  it('task.moved goes to creator and assignees, not the actor, with bucket labels', async () => {
+    const group = await newGroup();
+    const creator = await newClient(group.id, 'Creator');
+    const mover = await newClient(group.id, 'Mover');
+    const admin = await newAdmin('Assigned Admin');
+    const x = await createTask(deps, creator, group.id, {
+      title: 'Report',
+      assigneeIds: [admin.id, mover.id],
+    });
+    const clientReview = await bucketOf(group.id, 'client_review');
+
+    await moveTask(deps, mover, x.id, { bucketId: clientReview.id, afterTaskId: null });
+    const events = await movedEvents(x.id);
+    expect(events.map((e) => e.userId).sort()).toEqual([admin.id, creator.id].sort());
+    expect(events[0]!.payload).toEqual({
+      taskId: x.id,
+      groupId: group.id,
+      title: 'Report',
+      fromBucket: { kind: 'todo', name: null },
+      toBucket: { kind: 'client_review', name: 'Firma' },
+      actorName: 'Mover',
+    });
+
+    const custom = await createBucket(db, group.id, 'Waiting');
+    await moveTask(deps, creator, x.id, { bucketId: custom.id, afterTaskId: null });
+    const second = (await movedEvents(x.id)).filter(
+      (e) => (e.payload as { toBucket: { kind: string } }).toBucket.kind === 'custom',
+    );
+    expect(second.map((e) => e.userId).sort()).toEqual([admin.id, mover.id].sort());
+    expect(second[0]!.payload).toMatchObject({
+      fromBucket: { kind: 'client_review', name: 'Firma' },
+      toBucket: { kind: 'custom', name: 'Waiting' },
+      actorName: 'Creator',
+    });
+  });
+
+  it('afterTaskId from another bucket, or the task itself → ValidationError', async () => {
+    const group = await newGroup();
+    const client = await newClient(group.id);
+    const review = await bucketOf(group.id, 'egrant_review');
+    const other = await createTask(deps, client, group.id, { title: 'Other' });
+    const x = await createTask(deps, client, group.id, { title: 'X' });
+    await expect(
+      moveTask(deps, client, x.id, { bucketId: review.id, afterTaskId: other.id }),
+    ).rejects.toBeInstanceOf(ValidationError);
+    await expect(
+      moveTask(deps, client, x.id, { bucketId: x.bucketId, afterTaskId: x.id }),
+    ).rejects.toBeInstanceOf(ValidationError);
+    await expect(
+      moveTask(deps, client, x.id, { bucketId: x.bucketId, afterTaskId: randomUUID() }),
+    ).rejects.toBeInstanceOf(ValidationError);
+  });
+
+  it('moving a deleted task, or into a bucket of another group or a deleted bucket → NotFoundError', async () => {
+    const group = await newGroup();
+    const otherGroup = await newGroup();
+    const client = await newClient(group.id);
+    const x = await createTask(deps, client, group.id, { title: 'X' });
+    const foreign = await bucketOf(otherGroup.id, 'todo');
+    await expect(
+      moveTask(deps, client, x.id, { bucketId: foreign.id, afterTaskId: null }),
+    ).rejects.toBeInstanceOf(NotFoundError);
+    const custom = await createBucket(db, group.id, 'Gone');
+    await deleteBucket(db, custom.id);
+    await expect(
+      moveTask(deps, client, x.id, { bucketId: custom.id, afterTaskId: null }),
+    ).rejects.toBeInstanceOf(NotFoundError);
+
+    await deleteTask(deps, x.id);
+    await expect(
+      moveTask(deps, client, x.id, { bucketId: x.bucketId, afterTaskId: null }),
+    ).rejects.toBeInstanceOf(NotFoundError);
   });
 });

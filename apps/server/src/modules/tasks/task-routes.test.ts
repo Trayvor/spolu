@@ -8,6 +8,7 @@ import {
   type BoardTaskEvent,
   type FileInfo,
   type TaskDetailDto,
+  type TaskDto,
 } from '@spolu/shared';
 import { buildTestApp } from '../../../test/test-app.js';
 import { loginAs } from '../../../test/login.js';
@@ -116,6 +117,7 @@ describe('tasks API: tasks', () => {
     expect((await call('GET', '/api/tasks/x')).statusCode).toBe(401);
     expect((await call('PATCH', '/api/tasks/x', undefined, {})).statusCode).toBe(401);
     expect((await call('DELETE', '/api/tasks/x')).statusCode).toBe(401);
+    expect((await call('POST', '/api/tasks/x/move', undefined, {})).statusCode).toBe(401);
   });
 
   it('a client creates a task with only a title → 201, in To do, at the end, creator = client', async () => {
@@ -453,5 +455,54 @@ describe('tasks API: tasks', () => {
     } finally {
       cleanup.fail = false;
     }
+  });
+
+  const move = (taskId: string, cookie: string, body: object) =>
+    call('POST', `/api/tasks/${taskId}/move`, cookie, body);
+
+  it("client moves a task (200) and others see board:task; another group's client → 404", async () => {
+    const admin = await adminSession('Mover Admin');
+    const g = await newGroup();
+    const client = await clientIn(g.id, 'Cleo');
+    const stranger = await clientIn((await newGroup()).id);
+    const task = (await create(g.id, admin.cookie, { title: 'A' })).json<TaskDetailDto>();
+    const review = (await board(client.cookie, g.id)).buckets.find(
+      (b) => b.kind === 'egrant_review',
+    )!;
+    const watcher = await clientIn(g.id, 'Watcher');
+    const socket = await listen(watcher.cookie);
+    const pushed = new Promise<BoardTaskEvent>((resolve) => socket.once(BoardEvents.task, resolve));
+
+    expect(
+      (await move(task.id, stranger.cookie, { bucketId: review.id, afterTaskId: null })).statusCode,
+    ).toBe(404);
+    const res = await move(task.id, client.cookie, { bucketId: review.id, afterTaskId: null });
+    expect(res.statusCode).toBe(200);
+    const moved = res.json<TaskDto>();
+    expect(moved).toMatchObject({ id: task.id, bucketId: review.id, updatedAt: task.updatedAt });
+    expect(moved).not.toHaveProperty('description');
+    const event = await pushed;
+    expect(event.actor).toEqual({ id: client.id, name: 'Cleo' });
+    expect(event.task).toEqual(moved);
+  });
+
+  it('move: an invalid body or an afterTaskId from another bucket → 400; an unknown task → 404', async () => {
+    const g = await newGroup();
+    const client = await clientIn(g.id);
+    const a = (await create(g.id, client.cookie, { title: 'A' })).json<TaskDetailDto>();
+    const b = (await create(g.id, client.cookie, { title: 'B' })).json<TaskDetailDto>();
+    const review = (await board(client.cookie, g.id)).buckets.find(
+      (x) => x.kind === 'egrant_review',
+    )!;
+    expect((await move(a.id, client.cookie, { bucketId: review.id })).json()).toEqual({
+      error: 'validation_failed',
+    });
+    const wrong = await move(a.id, client.cookie, { bucketId: review.id, afterTaskId: b.id });
+    expect(wrong.statusCode).toBe(400);
+    expect(wrong.json()).toEqual({ error: 'validation_failed' });
+    expect(
+      (await move(randomUUID(), client.cookie, { bucketId: review.id, afterTaskId: null }))
+        .statusCode,
+    ).toBe(404);
   });
 });

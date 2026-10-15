@@ -1,6 +1,12 @@
 import type { FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify';
 import type { ZodError } from 'zod';
-import { ErrorCodes, TaskCreateSchema, TaskPatchSchema, type SessionUser } from '@spolu/shared';
+import {
+  ErrorCodes,
+  TaskCreateSchema,
+  TaskMoveSchema,
+  TaskPatchSchema,
+  type SessionUser,
+} from '@spolu/shared';
 import type { AppDeps } from '../../deps.js';
 import { requireUser } from '../auth/session.js';
 import { InvalidAttachmentError } from '../files/service.js';
@@ -14,10 +20,12 @@ import {
   getTask,
   getTaskRef,
   InvalidAssigneeError,
+  moveTask,
   NotFoundError,
   TaskChangedError,
   toTaskDto,
   updateTask,
+  ValidationError,
 } from './task-service.js';
 
 type IdParams = { Params: { id: string } };
@@ -50,13 +58,16 @@ const writeError = (reply: FastifyReply, error: unknown) => {
   if (error instanceof InvalidAttachmentError) {
     return reply.code(400).send({ error: ErrorCodes.invalidAttachment });
   }
+  if (error instanceof ValidationError) {
+    return reply.code(400).send({ error: ErrorCodes.validationFailed });
+  }
   if (error instanceof TaskChangedError) {
     return reply.code(409).send({ error: ErrorCodes.taskChanged });
   }
   throw error;
 };
 
-/** Create, read, edit and delete tasks. Registered by `tasksRoutes`, which owns the write guard. */
+/** Create, read, edit, move and delete tasks. Registered by `tasksRoutes`, which owns the write guard. */
 export const taskRoutes: FastifyPluginAsync<TaskRoutesOptions> = async (
   app,
   { deps, writeGuard, canOpenGroup },
@@ -108,6 +119,21 @@ export const taskRoutes: FastifyPluginAsync<TaskRoutesOptions> = async (
         onFileCleanupError: logCleanupError(request),
       });
       emitTask(app.io, toTaskDto(task), person(actor));
+      return task;
+    } catch (error) {
+      return writeError(reply, error);
+    }
+  });
+
+  app.post<IdParams>('/tasks/:id/move', { preHandler: writeGuard }, async (request, reply) => {
+    const actor = request.user!;
+    const body = TaskMoveSchema.safeParse(request.body);
+    if (!body.success) return reply.code(400).send({ error: ErrorCodes.validationFailed });
+    // Anyone who may use the board moves any of its tasks.
+    if (!(await readableTask(actor, request.params.id))) return notFound(reply);
+    try {
+      const { task, moved } = await moveTask(deps, actor, request.params.id, body.data);
+      if (moved) emitTask(app.io, task, person(actor));
       return task;
     } catch (error) {
       return writeError(reply, error);
