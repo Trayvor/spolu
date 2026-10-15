@@ -1,0 +1,34 @@
+# Architecture decision records
+
+One file per decision, named `NNNN-kebab-title.md`, numbered in order. Never rewrite history: to change a decision, add a new ADR and mark the old one `superseded by NNNN`. Use the `update-kb` skill when a decision is made.
+
+## Template
+
+```markdown
+# NNNN Title
+
+Date: YYYY-MM-DD
+Status: accepted | superseded by NNNN
+
+## Context
+Why a decision was needed.
+
+## Decision
+What we chose.
+
+## Consequences
+What gets easier, what gets harder.
+```
+
+## Index
+
+| # | title | status |
+|---|---|---|
+| [0001](0001-typescript-monorepo.md) | TypeScript monorepo | accepted |
+| [0002](0002-postgres-job-queue-no-redis.md) | Postgres job queue, no Redis | accepted |
+| [0003](0003-disk-storage-behind-interface.md) | Disk storage behind an interface | accepted |
+| [0004](0004-scripts-first-ci.md) | Scripts-first CI | accepted |
+| [0005](0005-single-process-deployment.md) | Single-process deployment | accepted |
+| [0006](0006-better-auth-email-otp.md) | better-auth with email OTP | accepted |
+| [0007](0007-egrant-design-via-frontend-design.md) | egrant.sk design via frontend-design | accepted |
+| [0008](0008-self-hosted-only.md) | Self-hosted only | accepted |
