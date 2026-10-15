@@ -20,7 +20,7 @@ A client joins a group through an invite link and only needs to enter an email. 
 - Anyone may ask for a code: an email that has no account (or a removed account) gets the same generic "if this email has an account, we sent a code" answer, but no email is sent. The answer never reveals whether an account exists.
 - A removed (disabled) user gets no code and cannot log in, even with a code sent earlier.
 - The code email is in Slovak, or in English when the browser prefers English.
-- Asking for codes is limited to 3 per minute from one address (in production).
+- Asking for codes, and signing in, is limited to 10 per minute from one address (in production), so colleagues in one office can log in together. Guessing a code is limited by the 3 tries per code, not by this limit.
 
 ## Phase
 

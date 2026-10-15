@@ -11,6 +11,13 @@ import { loginCodeEmail } from './emails.js';
 import { pickLanguage } from './language.js';
 import { account, session, verification } from './schema.js';
 
+/** Same as the code's life (300 s) or shorter; finished jobs, and their payload, go quickly. */
+const LOGIN_CODE_JOB_OPTIONS = {
+  expireInSeconds: 240,
+  retentionSeconds: 240,
+  deleteAfterSeconds: 60,
+};
+
 /**
  * The better-auth instance: email-code login only, sessions in the database.
  * Users are created by us (superadmin on start, admins by admins), never by sign-up.
@@ -68,6 +75,9 @@ export function createAuth({ config, db, jobs }: AppDeps) {
         otpLength: 6,
         expiresIn: 300,
         allowedAttempts: 3,
+        // Colleagues behind one office IP share the limit (default 3 per minute); the brute-force
+        // guard is allowedAttempts. Plugin rules win over the library's /sign-in special rule.
+        rateLimit: { window: 60, max: 10 },
         disableSignUp: true, // unknown emails get 200 but no code and no account
         storeOTP: 'hashed',
         async sendVerificationOTP({ email, otp, type }, ctx) {
@@ -76,7 +86,8 @@ export function createAuth({ config, db, jobs }: AppDeps) {
           // Disabled users get the same 200 as everyone else, just no email.
           if (!found || found.disabledAt) return;
           const lang = pickLanguage(ctx?.headers?.get('accept-language'));
-          await sendEmailLater(jobs, loginCodeEmail(email, otp, lang));
+          // Short life: the plaintext code sits in the job payload, and a late retry would mail a dead code.
+          await sendEmailLater(jobs, loginCodeEmail(email, otp, lang), LOGIN_CODE_JOB_OPTIONS);
         },
       }),
     ],

@@ -53,4 +53,9 @@ test('superadmin adds an admin, who logs in and sees the list, then is removed',
   await adminPage.goto('/');
   await expect(adminPage).toHaveURL(/\/login/);
   await adminContext.close();
+
+  // The superadmin logs out through the user menu (no extra code needed).
+  await page.getByRole('button', { name: 'Menu účtu' }).click();
+  await page.getByRole('menuitem', { name: 'Odhlásiť sa' }).click();
+  await expect(page).toHaveURL(/\/login/);
 });

@@ -81,3 +81,5 @@ cd deploy && docker compose --project-name spolutest up -d --wait
 curl -k https://localhost/api/health      # {"status":"ok","db":"ok","version":"local"}
 docker compose --project-name spolutest down -v   # separate project = separate volumes; removes them
 ```
+
+To walk the phase "Done when" locally (login codes included) catch the email in Mailpit (`docker compose -f docker-compose.dev.yml up -d --wait` from the repo root; UI on http://localhost:8025). For that set `EMAIL_DRIVER=smtp`, `SMTP_HOST=host.docker.internal` and `SMTP_PORT=1025` in `deploy/.env` before `up`.

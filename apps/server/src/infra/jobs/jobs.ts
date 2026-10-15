@@ -1,7 +1,14 @@
 import { PgBoss } from 'pg-boss';
 
+/** The pg-boss send options we use. */
+export interface JobOptions {
+  expireInSeconds?: number;
+  retentionSeconds?: number;
+  deleteAfterSeconds?: number;
+}
+
 export interface JobQueue {
-  send(name: string, data: object): Promise<void>;
+  send(name: string, data: object, options?: JobOptions): Promise<void>;
 }
 
 /** One handler per job name; a thrown error makes pg-boss retry the job. */
@@ -29,8 +36,8 @@ export async function startJobs(
 
   return {
     queue: {
-      async send(name, data) {
-        await boss.send(name, data);
+      async send(name, data, options) {
+        await boss.send(name, data, options);
       },
     },
     // Graceful, but under the 30 s compose stop grace period.

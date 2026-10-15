@@ -212,6 +212,33 @@ describe('logged-in shell', () => {
     expect(fake.disconnect).not.toHaveBeenCalled();
   });
 
+  it('a server-side socket disconnect with the session gone sends the user to /login', async () => {
+    const { state } = mockApi();
+    const { router, queryClient } = renderAt();
+    await screen.findByRole('heading', { name: /Welcome/ });
+
+    state.meStatus = 401; // the admin was removed
+    act(() => fake.fire('disconnect', 'io server disconnect'));
+
+    await waitFor(() => expect(router.state.location.pathname).toBe('/login'));
+    expect(queryClient.getQueryData(['session'])).toBeNull();
+  });
+
+  it('a server-side socket disconnect with the session intact keeps the user signed in', async () => {
+    const { fetchMock } = mockApi();
+    const { router } = renderAt();
+    await screen.findByRole('heading', { name: /Welcome/ });
+    const before = fetchMock.mock.calls.length;
+
+    act(() => fake.fire('disconnect', 'io server disconnect'));
+    await waitFor(() => expect(fetchMock.mock.calls.length).toBe(before + 1)); // re-checked
+
+    expect(router.state.location.pathname).toBe('/');
+    // Other reasons (transport close, ...) are Socket.IO's to retry: no re-check.
+    act(() => fake.fire('disconnect', 'transport close'));
+    expect(fetchMock.mock.calls.length).toBe(before + 1);
+  });
+
   it('an /api/me outage shows the error page with Try again', async () => {
     const { fetchMock } = mockApi();
     fetchMock.mockImplementationOnce(async () => new Response('oops', { status: 500 }));

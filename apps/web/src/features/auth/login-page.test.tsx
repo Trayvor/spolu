@@ -134,9 +134,10 @@ describe('login page', () => {
     expect(code).toHaveValue('123');
   });
 
-  it('INVALID_OTP shows attempts left 2 then 1', async () => {
+  it('INVALID_OTP shows attempts left 2 then 1, the third shows the expired message', async () => {
     mockApi({
       verify: [
+        json(400, { message: 'x', code: 'INVALID_OTP' }),
         json(400, { message: 'x', code: 'INVALID_OTP' }),
         json(400, { message: 'x', code: 'INVALID_OTP' }),
       ],
@@ -152,6 +153,10 @@ describe('login page', () => {
     expect(t('login.errors.wrongCode', { count: 1 })).toBe(
       'The code does not match. Attempts left: 1.',
     );
+
+    await user.type(code, '333333');
+    expect(await screen.findByText(t('login.errors.expired'))).toBeInTheDocument();
+    expect(screen.queryByText(/Attempts left: 0/)).not.toBeInTheDocument();
   });
 
   it('OTP_EXPIRED shows the expired message', async () => {

@@ -83,6 +83,7 @@ Scope:
 - Member list; admin can remove a client.
 - Client sees only their group; admin sees all.
 
+- Carried over from Phase 2: socket `server_error` reconnect with backoff; re-check the socket's session (disconnect a session's sockets on sign-out, re-check disabled after join); periodic cleanup of expired `verification` rows (pg-boss cron); e2e login rate-limit headroom (reuse storage state per role); DB CHECK constraints for `user.role` and lower-case `user.email`.
 - Storage hardening: strict signature hex, sidecar atomicity, `/files` in the service worker `navigateFallbackDenylist`, signature not logged, files volume in the backup.
 
 Done when: an admin creates a group with a logo and copies the invite; a client registers by email and sees only their group; the admin can remove the client.

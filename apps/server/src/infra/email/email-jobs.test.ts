@@ -15,4 +15,12 @@ describe('email jobs', () => {
     await sendEmailLater({ send: async (name, data) => void queued.push({ name, data }) }, msg);
     expect(queued).toEqual([{ name: EMAIL_JOB, data: msg }]);
   });
+
+  it('sendEmailLater passes send options through to the queue', async () => {
+    const seen: unknown[] = [];
+    await sendEmailLater({ send: async (_n, _d, options) => void seen.push(options) }, msg, {
+      expireInSeconds: 5,
+    });
+    expect(seen).toEqual([{ expireInSeconds: 5 }]);
+  });
 });

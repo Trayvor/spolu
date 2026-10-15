@@ -100,21 +100,24 @@ export function LoginPage({ redirectTo }: { redirectTo: string }) {
     } catch (error) {
       setCode('');
       setCodeError(true);
-      setFormError(failureMessage(error));
+      const wrongCode = error instanceof ApiError && error.code === 'INVALID_OTP';
+      if (wrongCode) setWrongTries(wrongTries + 1);
+      setFormError(failureMessage(error, wrongCode ? wrongTries + 1 : wrongTries));
     } finally {
       setBusy(false);
     }
   }
 
-  function failureMessage(error: unknown): string {
+  /** `tries`: wrong codes so far, this one included. */
+  function failureMessage(error: unknown, tries: number): string {
     if (!(error instanceof ApiError)) return t('errors.generic');
     if (error.status === 429) return t('login.errors.tooMany');
     switch (error.code) {
-      case 'INVALID_OTP': {
-        const tries = wrongTries + 1;
-        setWrongTries(tries);
-        return t('login.errors.wrongCode', { count: Math.max(MAX_ATTEMPTS - tries, 0) });
-      }
+      case 'INVALID_OTP':
+        // The last wrong try burns the code: say so instead of "0 attempts left".
+        return tries >= MAX_ATTEMPTS
+          ? t('login.errors.expired')
+          : t('login.errors.wrongCode', { count: MAX_ATTEMPTS - tries });
       case 'OTP_EXPIRED':
       case 'TOO_MANY_ATTEMPTS':
         return t('login.errors.expired');

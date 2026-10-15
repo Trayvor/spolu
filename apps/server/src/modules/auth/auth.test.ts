@@ -1,5 +1,5 @@
 import { randomBytes, randomUUID } from 'node:crypto';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { eq } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import { SessionUserSchema, type Role } from '@spolu/shared';
@@ -50,6 +50,18 @@ async function createUser(role: Role = 'admin', opts: { disabled?: boolean } = {
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 describe('email code login', () => {
+  it('queues the login code email with a short expiry', async () => {
+    const admin = await createUser('admin');
+    const send = vi.spyOn(test.deps.jobs, 'send');
+    await requestCode(app, admin.email);
+    expect(send).toHaveBeenCalledWith(
+      'email.send',
+      expect.objectContaining({ to: [admin.email] }),
+      expect.objectContaining({ expireInSeconds: 240 }),
+    );
+    send.mockRestore();
+  });
+
   it('known admin gets a code by email and signs in', async () => {
     const admin = await createUser('admin');
     const sent = await requestCode(app, admin.email);
@@ -344,10 +356,10 @@ describe('rate limiting in production', () => {
     await prod.close();
   });
 
-  it('the 4th code request from the same IP within a minute is 429', async () => {
+  it('the 11th code request from the same IP within a minute is 429', async () => {
     const email = uniqueEmail();
     const statuses: number[] = [];
-    for (let i = 0; i < 4; i++) statuses.push((await requestCode(prod.app, email)).statusCode);
-    expect(statuses).toEqual([200, 200, 200, 429]);
+    for (let i = 0; i < 11; i++) statuses.push((await requestCode(prod.app, email)).statusCode);
+    expect(statuses).toEqual([...Array<number>(10).fill(200), 429]);
   });
 });

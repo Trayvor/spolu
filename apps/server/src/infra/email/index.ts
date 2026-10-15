@@ -1,7 +1,7 @@
 import type { Config } from '../config/config.js';
 import { createElasticSender } from './elastic-sender.js';
 import type { EmailMessage, EmailSender } from './email.js';
-import type { JobHandlers, JobQueue } from '../jobs/jobs.js';
+import type { JobHandlers, JobOptions, JobQueue } from '../jobs/jobs.js';
 import { createSmtpSender } from './smtp-sender.js';
 
 export { EmailSendError } from './email.js';
@@ -23,7 +23,14 @@ export function emailJobHandlers(email: EmailSender): JobHandlers {
   return { [EMAIL_JOB]: async (data) => email.send(data as EmailMessage) };
 }
 
-/** Queues an email so a slow or failing provider never blocks the request; pg-boss retries. */
-export function sendEmailLater(jobs: JobQueue, msg: EmailMessage): Promise<void> {
-  return jobs.send(EMAIL_JOB, msg);
+/**
+ * Queues an email so a slow or failing provider never blocks the request; pg-boss retries.
+ * `options` are pg-boss send options, e.g. a short expiry for emails that go stale.
+ */
+export function sendEmailLater(
+  jobs: JobQueue,
+  msg: EmailMessage,
+  options?: JobOptions,
+): Promise<void> {
+  return jobs.send(EMAIL_JOB, msg, options);
 }

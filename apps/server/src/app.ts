@@ -16,8 +16,10 @@ export async function buildApp(
   const app = Fastify({
     logger: (options.logger ?? config.nodeEnv !== 'test') ? { level: 'info' } : false,
     // The app port is reachable only through Caddy (deploy/docker-compose.yml publishes just
-    // Caddy's ports), so X-Forwarded-For is set by our proxy and request.ip is the real client.
-    trustProxy: true,
+    // Caddy's ports). Trust one hop: Caddy's X-Forwarded-For entry is the real client, anything
+    // a client prepended before it is ignored.
+    // (A function: Fastify treats a plain number as "trust nothing".)
+    trustProxy: (_address, hop) => hop < 1,
   });
 
   app.decorate('auth', createAuth(deps));
@@ -48,15 +50,15 @@ declare module 'fastify' {
   }
 }
 
+function isUnder(path: string, prefix: string): boolean {
+  return path === prefix || path.startsWith(`${prefix}/`);
+}
+
 /**
  * The single not-found handler. Unknown /api/*, /socket.io/*, non-GET requests and anything
  * that looks like a file answer JSON 404. Other GET/HEAD requests get the SPA index.html,
  * but only when static serving is registered.
  */
-function isUnder(path: string, prefix: string): boolean {
-  return path === prefix || path.startsWith(`${prefix}/`);
-}
-
 function registerNotFound(app: FastifyInstance): void {
   app.decorate('spaFallback', null);
   app.setNotFoundHandler((request, reply) => {

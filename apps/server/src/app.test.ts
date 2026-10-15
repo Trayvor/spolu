@@ -53,6 +53,12 @@ describe('buildApp', () => {
       headers: { 'x-forwarded-for': '203.0.113.7' },
     });
     expect(res.body).toBe('203.0.113.7');
+    const spoofed = await app.inject({
+      method: 'GET',
+      url: '/test-ip',
+      headers: { 'x-forwarded-for': '198.51.100.9, 203.0.113.7' },
+    });
+    expect(spoofed.body).toBe('203.0.113.7'); // only the nearest hop (the proxy) is trusted
     await app.close();
     await close();
   });
