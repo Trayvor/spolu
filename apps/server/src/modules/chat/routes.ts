@@ -43,11 +43,13 @@ import {
   ensureTaskChannel,
   getChannel,
   getLastReadAt,
+  markAllRead,
   markRead,
   markThreadRead,
   unreadByGroup,
   unreadCount,
   unreadThreads,
+  taskChatSummaries,
   TaskGoneError,
   type ChannelRow,
 } from './service.js';
@@ -124,6 +126,16 @@ export const chatRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { d
     if (!canReadGroup(actor, id, await getMembershipGroupId(db, actor.id))) return notFound(reply);
     if (!(await getGroup(db, id))) return notFound(reply);
     return channelInfo(actor.id, await ensureGroupChannel(db, id));
+  });
+
+  // The board's chat icons: count and unread flag of every task chat of the group, one query.
+  app.get<IdParams>('/groups/:id/task-chats', { preHandler: anyUser }, async (request, reply) => {
+    const actor = request.user!;
+    const { id } = request.params;
+    if (!ID_RE.test(id)) return notFound(reply);
+    if (!canReadGroup(actor, id, await getMembershipGroupId(db, actor.id))) return notFound(reply);
+    if (!(await getGroup(db, id))) return notFound(reply);
+    return taskChatSummaries(db, actor.id, id);
   });
 
   // A task chat is read by whoever can read the task's group, like the group chat.
@@ -287,6 +299,27 @@ export const chatRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { d
       lastReadAt: lastReadAt.toISOString(),
     });
     return reply.code(204).send();
+  });
+
+  // Opening a task's Chat tab: the whole chat is read, the user's threads included.
+  app.post<IdParams>('/channels/:id/read-all', { preHandler: anyUser }, async (request, reply) => {
+    const actor = request.user!;
+    const channel = await readableChannel(request, reply, request.params.id);
+    if (!channel) return reply;
+    try {
+      const lastReadAt = await markAllRead(db, actor.id, channel.id);
+      emitRead(app.io, actor.id, {
+        groupId: channel.groupId,
+        channelId: channel.id,
+        taskId: channel.taskId,
+        lastReadAt: lastReadAt.toISOString(),
+        all: true,
+      });
+      return reply.code(204).send();
+    } catch (error) {
+      if (error instanceof ChannelGoneError) return notFound(reply);
+      throw error;
+    }
   });
 
   app.get<IdParams>(

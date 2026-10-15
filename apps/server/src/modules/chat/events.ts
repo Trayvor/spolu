@@ -29,7 +29,10 @@ export function emitMessage(
   emitToGroup(io, channel.groupId, ChatEvents.message, event);
 }
 
-/** Tells all sockets of one user that the channel is read up to `lastReadAt`. */
+/**
+ * Tells all sockets of one user that the channel (with `rootId` one thread, with `all` the whole
+ * chat and their threads) is read up to `lastReadAt`.
+ */
 export function emitRead(io: SocketIOServer, userId: string, event: ChatReadEvent): void {
   io.to(userRoom(userId)).emit(ChatEvents.read, event);
 }

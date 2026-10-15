@@ -9,6 +9,7 @@ import {
   GroupChannelSchema,
   MessagePageSchema,
   MessageSchema,
+  TaskChatSummariesSchema,
   ThreadSchema,
   UnreadThreadsSchema,
   mentionToken,
@@ -143,8 +144,10 @@ describe('chat API', () => {
       call('POST', `/api/channels/${s.channelId}/read`, c, { at: new Date().toISOString() }),
       call('GET', `/api/channels/${s.channelId}/unread-threads`, c),
       call('POST', `/api/messages/${messageId}/thread/read`, c),
+      call('GET', `/api/groups/${s.group.id}/task-chats`, c),
+      call('POST', `/api/channels/${s.channelId}/read-all`, c),
     ]);
-    expect(results.map((r) => r.statusCode)).toEqual(Array(11).fill(404));
+    expect(results.map((r) => r.statusCode)).toEqual(Array(13).fill(404));
     expect(results[0]!.json()).toEqual({ error: 'not_found' });
   });
 
@@ -254,6 +257,62 @@ describe('chat API', () => {
       at: new Date().toISOString(),
     });
     expect(await read).toMatchObject({ groupId: s.group.id, channelId, taskId: task.id });
+  });
+
+  it('GET /api/groups/:id/task-chats returns count and unread per task with a chat', async () => {
+    const s = await setup();
+    const newTask = async (title: string) =>
+      (await call('POST', `/api/groups/${s.group.id}/tasks`, s.admin.cookie, { title })).json<{
+        id: string;
+      }>();
+    const talked = await newTask('Talked');
+    await newTask('Quiet');
+    const channelId = (await call('GET', `/api/tasks/${talked.id}/chat`, s.a.cookie)).json<{
+      id: string;
+    }>().id;
+    await send(channelId, s.b.cookie);
+    const res = await call('GET', `/api/groups/${s.group.id}/task-chats`, s.a.cookie);
+    expect(res.statusCode).toBe(200);
+    expect(TaskChatSummariesSchema.parse(res.json())).toEqual({
+      [talked.id]: { count: 1, unread: true },
+    });
+    const admin = await call('GET', `/api/groups/${s.group.id}/task-chats`, s.admin.cookie);
+    expect(admin.json()).toEqual({ [talked.id]: { count: 1, unread: true } });
+    expect(
+      (await call('GET', `/api/groups/${randomUUID()}/task-chats`, s.admin.cookie)).statusCode,
+    ).toBe(404);
+    expect(
+      (await call('GET', '/api/groups/not%00an-id/task-chats', s.admin.cookie)).statusCode,
+    ).toBe(404);
+  });
+
+  it('POST /api/channels/:id/read-all reads the chat and its threads and tells the user', async () => {
+    const s = await setup();
+    const task = (
+      await call('POST', `/api/groups/${s.group.id}/tasks`, s.admin.cookie, { title: 'T' })
+    ).json<{ id: string }>();
+    const channelId = (await call('GET', `/api/tasks/${task.id}/chat`, s.a.cookie)).json<{
+      id: string;
+    }>().id;
+    const root = (await send(channelId, s.a.cookie)).json<MessageDto>();
+    await send(channelId, s.b.cookie, { parentId: root.id });
+    await send(channelId, s.b.cookie);
+    const anna = await socketFor(s.a.cookie);
+    const read = nextEvent<ChatReadEvent>(anna, ChatEvents.read);
+    const res = await call('POST', `/api/channels/${channelId}/read-all`, s.a.cookie);
+    expect(res.statusCode).toBe(204);
+    const event = await read;
+    expect(event).toMatchObject({ groupId: s.group.id, channelId, taskId: task.id, all: true });
+    expect(event.rootId).toBeUndefined();
+    const summaries = await call('GET', `/api/groups/${s.group.id}/task-chats`, s.a.cookie);
+    expect(summaries.json()).toEqual({ [task.id]: { count: 3, unread: false } });
+    const info = GroupChannelSchema.parse(
+      (await call('GET', `/api/tasks/${task.id}/chat`, s.a.cookie)).json(),
+    );
+    expect(info).toMatchObject({ unread: 0, lastReadAt: event.lastReadAt });
+    expect(
+      (await call('POST', `/api/channels/${randomUUID()}/read-all`, s.a.cookie)).statusCode,
+    ).toBe(404);
   });
 
   it('admin sends, a client socket in the group room receives chat:message with isNew true', async () => {

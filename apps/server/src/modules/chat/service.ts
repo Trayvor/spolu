@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { and, eq, isNotNull, sql, type SQL } from 'drizzle-orm';
+import type { TaskChatSummaries } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
 import { isForeignKeyViolation } from '../../infra/db/errors.js';
 import { channels, messageAttachments, messages, readStates, threadReadStates } from './schema.js';
@@ -113,6 +114,43 @@ export async function markRead(db: Db, userId: string, channelId: string, at: Da
   return row!.lastReadAt;
 }
 
+/**
+ * Reads the whole channel up to now for the user: the channel mark and every thread of theirs
+ * with unread replies (only those rows, through `thread_read_states_unread_idx`). The marks use
+ * the database clock, which also stamps the messages. A channel deleted meanwhile (with its task)
+ * throws `ChannelGoneError`.
+ */
+export async function markAllRead(db: Db, userId: string, channelId: string): Promise<Date> {
+  try {
+    return await db.transaction(async (tx) => {
+      const [row] = await tx
+        .insert(readStates)
+        .values({ userId, channelId, lastReadAt: sql`now()` })
+        .onConflictDoUpdate({
+          target: [readStates.userId, readStates.channelId],
+          set: { lastReadAt: sql`greatest(${readStates.lastReadAt}, now())` },
+        })
+        .returning({ lastReadAt: readStates.lastReadAt });
+      await tx
+        .update(threadReadStates)
+        .set({
+          lastReadAt: sql`greatest(${threadReadStates.lastReadAt}, ${threadReadStates.lastReplyAt})`,
+        })
+        .where(
+          and(
+            eq(threadReadStates.userId, userId),
+            eq(threadReadStates.channelId, channelId),
+            sql`${threadReadStates.lastReplyAt} > ${threadReadStates.lastReadAt}`,
+          ),
+        );
+      return row!.lastReadAt;
+    });
+  } catch (error) {
+    if (isForeignKeyViolation(error)) throw new ChannelGoneError();
+    throw error;
+  }
+}
+
 export async function getLastReadAt(
   db: Db,
   userId: string,
@@ -198,6 +236,60 @@ export async function unreadByGroup(
     where n > 0
   `);
   return Object.fromEntries([...rows].map((r) => [r.group_id, r.n]));
+}
+
+/**
+ * The chat of every task of the group that has one, for the board, in one statement: `count` is
+ * its live messages (replies included), `unread` whether it has anything unread for the user by
+ * the same rules as `unreadIn` (each part stops at the first hit). Tasks without a chat are
+ * absent. Checks no permissions.
+ */
+export async function taskChatSummaries(
+  db: Db,
+  userId: string,
+  groupId: string,
+): Promise<TaskChatSummaries> {
+  const rows = await db.execute<{ task_id: string; count: number; unread: boolean }>(sql`
+    select
+      c.task_id,
+      (
+        select count(*)::int
+        from messages m
+        where m.channel_id = c.id
+          and m.deleted_at is null
+      ) as count,
+      (
+        exists (
+          select 1
+          from messages m
+          where m.channel_id = c.id
+            and m.parent_id is null
+            and m.deleted_at is null
+            and m.author_id <> ${userId}
+            and m.created_at > coalesce(rs.last_read_at, '-infinity'::timestamptz)
+        )
+        or exists (
+          select 1
+          from thread_read_states t
+          join messages m
+            on m.channel_id = t.channel_id
+            and m.parent_id = t.root_id
+            and m.created_at > t.last_read_at
+          where t.user_id = ${userId}
+            and t.channel_id = c.id
+            and t.last_reply_at > t.last_read_at
+            and m.deleted_at is null
+            and m.author_id <> ${userId}
+        )
+      ) as unread
+    from channels c
+    left join read_states rs on rs.channel_id = c.id and rs.user_id = ${userId}
+    where c.group_id = ${groupId}
+      and c.kind = 'task'
+  `);
+  return Object.fromEntries(
+    [...rows].map((r) => [r.task_id, { count: r.count, unread: r.unread }]),
+  );
 }
 
 /** The roots of the channel's threads with replies the user has not read (at most `UNREAD_CAP`). */

@@ -115,6 +115,13 @@ export type UnreadByGroup = z.infer<typeof UnreadByGroupSchema>;
 export const UnreadThreadsSchema = z.array(z.string());
 export type UnreadThreads = z.infer<typeof UnreadThreadsSchema>;
 
+/** A task's chat on the board: its live messages (replies included) and whether any is unread. */
+export const TaskChatSummarySchema = z.object({ count: z.number().int(), unread: z.boolean() });
+/** By task id; tasks whose chat was never opened are absent. */
+export const TaskChatSummariesSchema = z.record(z.string(), TaskChatSummarySchema);
+export type TaskChatSummary = z.infer<typeof TaskChatSummarySchema>;
+export type TaskChatSummaries = z.infer<typeof TaskChatSummariesSchema>;
+
 export const ChatEvents = {
   message: 'chat:message',
   read: 'chat:read',
@@ -129,13 +136,17 @@ export interface ChatMessageEvent {
   message: MessageDto;
   isNew: boolean;
 }
-/** The channel (or, with `rootId`, one of its threads) is read up to `lastReadAt`. */
+/**
+ * The channel (or, with `rootId`, one of its threads) is read up to `lastReadAt`; with `all`, the
+ * whole channel is read, every thread of the reader included.
+ */
 export interface ChatReadEvent {
   groupId: string;
   channelId: string;
   taskId: string | null;
   lastReadAt: string;
   rootId?: string;
+  all?: true;
 }
 /** To each person of the thread but the author: a new reply that counts as unread for them. */
 export interface ChatThreadReplyEvent {

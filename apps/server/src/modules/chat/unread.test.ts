@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { and, eq, sql } from 'drizzle-orm';
 import type { SendMessageInput, SessionUser } from '@spolu/shared';
@@ -8,13 +8,18 @@ import { buildTestApp } from '../../../test/test-app.js';
 import { addMember, createGroup } from '../groups/service.js';
 import { user } from '../users/schema.js';
 import { addAdmin, createUnverifiedClient } from '../users/service.js';
+import { tasks } from '../tasks/schema.js';
+import { ensureBoard, listBuckets } from '../tasks/service.js';
 import { deleteMessage, getMessage, sendMessage } from './messages.js';
 import { messages, threadReadStates } from './schema.js';
 import {
   ensureGroupChannel,
+  ensureTaskChannel,
+  markAllRead,
   markRead,
   markThreadRead,
   recordReplyReads,
+  taskChatSummaries,
   unreadByGroup,
   unreadCount,
   unreadThreads,
@@ -197,6 +202,120 @@ describe('unread thread replies', () => {
       .where(and(eq(threadReadStates.rootId, root.id), eq(threadReadStates.userId, s.a.id)));
     expect(row!.lastReadAt.getTime()).toBe(row!.lastReplyAt.getTime());
     expect(await unreadCount(deps.db, s.a.id, s.channel.id)).toBe(0);
+  });
+});
+
+/** A task in the group's To do (no chat channel yet). */
+async function newTask(groupId: string, authorId: string) {
+  await ensureBoard(deps.db, groupId);
+  const todo = (await listBuckets(deps.db, groupId)).find((b) => b.kind === 'todo')!;
+  const now = new Date();
+  const task = { id: randomUUID(), groupId };
+  await deps.db.insert(tasks).values({
+    ...task,
+    bucketId: todo.id,
+    position: `a${randomUUID().slice(0, 8)}`,
+    title: 'Task',
+    createdBy: authorId,
+    createdAt: now,
+    updatedAt: now,
+  });
+  return task;
+}
+
+describe('taskChatSummaries', () => {
+  it('counts live messages and flags unread per task', async () => {
+    const s = await setup();
+    const a = await newTask(s.group.id, s.a.id);
+    const b = await newTask(s.group.id, s.a.id);
+    await newTask(s.group.id, s.a.id); // no chat channel: absent
+    const chatA = await ensureTaskChannel(deps.db, a);
+    const chatB = await ensureTaskChannel(deps.db, b);
+    await send(chatA, s.b);
+    await send(chatA, s.b);
+    await send(chatA, s.a);
+    const gone = await send(chatA, s.b);
+    await deleteMessage(deps, { channel: chatA, message: (await getMessage(deps.db, gone.id))! });
+    await send(chatB, s.a);
+    expect(await taskChatSummaries(deps.db, s.a.id, s.group.id)).toEqual({
+      [a.id]: { count: 3, unread: true },
+      [b.id]: { count: 1, unread: false },
+    });
+    // Replies count too; reading the channel clears the top-level unread.
+    const root = (await send(chatB, s.a)).id;
+    await send(chatB, s.b, { parentId: root });
+    await markRead(deps.db, s.a.id, chatA.id, new Date());
+    expect(await taskChatSummaries(deps.db, s.a.id, s.group.id)).toMatchObject({
+      [a.id]: { count: 3, unread: false },
+      [b.id]: { count: 3, unread: true },
+    });
+  });
+
+  it('a reply by someone else in my thread makes the task unread; markAllRead clears it', async () => {
+    const s = await setup();
+    const task = await newTask(s.group.id, s.a.id);
+    const chat = await ensureTaskChannel(deps.db, task);
+    const root = await send(chat, s.a);
+    await send(chat, s.b, { parentId: root.id });
+    // A thread Anna is not one of the people of never makes the task unread for her.
+    const foreign = await send(chat, s.c);
+    await send(chat, s.b, { parentId: foreign.id });
+    await markRead(deps.db, s.a.id, chat.id, new Date());
+    expect(await taskChatSummaries(deps.db, s.a.id, s.group.id)).toEqual({
+      [task.id]: { count: 4, unread: true },
+    });
+    const at = await markAllRead(deps.db, s.a.id, chat.id);
+    expect(at).toBeInstanceOf(Date);
+    expect(await taskChatSummaries(deps.db, s.a.id, s.group.id)).toEqual({
+      [task.id]: { count: 4, unread: false },
+    });
+    expect(await unreadThreads(deps.db, s.a.id, chat.id)).toEqual([]);
+    // Only Anna's marks move: Cyril still has Boris's reply in his thread to read.
+    await markRead(deps.db, s.c.id, chat.id, new Date());
+    expect(await taskChatSummaries(deps.db, s.c.id, s.group.id)).toEqual({
+      [task.id]: { count: 4, unread: true },
+    });
+  });
+
+  it('markAllRead on a chat never read creates the read mark', async () => {
+    const s = await setup();
+    const task = await newTask(s.group.id, s.a.id);
+    const chat = await ensureTaskChannel(deps.db, task);
+    await send(chat, s.b);
+    await markAllRead(deps.db, s.a.id, chat.id);
+    expect((await taskChatSummaries(deps.db, s.a.id, s.group.id))[task.id]).toEqual({
+      count: 1,
+      unread: false,
+    });
+  });
+
+  it('never counts task chats in the group chat badge', async () => {
+    const s = await setup();
+    const task = await newTask(s.group.id, s.a.id);
+    const chat = await ensureTaskChannel(deps.db, task);
+    const root = await send(chat, s.a);
+    await send(chat, s.b);
+    await send(chat, s.b, { parentId: root.id });
+    expect(await unreadByGroup(deps.db, s.a.id, s.group.id)).toEqual({});
+    expect((await unreadByGroup(deps.db, s.a.id, null))[s.group.id]).toBeUndefined();
+  });
+
+  it("is one statement and leaves other groups' task chats out", async () => {
+    const s = await setup();
+    const other = await setup();
+    const otherTask = await newTask(other.group.id, other.a.id);
+    await send(await ensureTaskChannel(deps.db, otherTask), other.b);
+    const task = await newTask(s.group.id, s.a.id);
+    await send(await ensureTaskChannel(deps.db, task), s.b);
+    const spy = vi.spyOn(deps.db, 'execute');
+    try {
+      expect(await taskChatSummaries(deps.db, s.a.id, s.group.id)).toEqual({
+        [task.id]: { count: 1, unread: true },
+      });
+      expect(spy).toHaveBeenCalledTimes(1);
+    } finally {
+      spy.mockRestore();
+    }
   });
 });
 
