@@ -7,7 +7,6 @@ const actor = (role: Role): SessionUser => ({
   email: 'a@example.com',
   name: 'A',
   role,
-  groupId: null,
 });
 
 describe('canManageGroups', () => {

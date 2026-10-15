@@ -8,10 +8,12 @@ export const SessionUserSchema = z.object({
   email: z.string(),
   name: z.string(),
   role: RoleSchema,
-  /** The client's group; null for admins. */
-  groupId: z.string().nullable(),
 });
 export type SessionUser = z.infer<typeof SessionUserSchema>;
+
+/** What `/api/me` returns: the session user plus the client's group (null for admins). */
+export const MeSchema = SessionUserSchema.extend({ groupId: z.string().nullable() });
+export type Me = z.infer<typeof MeSchema>;
 
 export const AdminSchema = z.object({
   id: z.string(),

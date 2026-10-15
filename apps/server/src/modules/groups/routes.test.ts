@@ -1,10 +1,10 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { io as connect, type Socket } from 'socket.io-client';
-import type { Group, GroupSummary, Member, SessionUser } from '@spolu/shared';
+import type { Group, GroupSummary, Member, Me } from '@spolu/shared';
 import { buildTestApp } from '../../../test/test-app.js';
 import { loginAs } from '../../../test/login.js';
-import { groupRoom } from '../../infra/realtime/rooms.js';
+import { groupRoom, userRoom } from '../../infra/realtime/rooms.js';
 import { user } from '../users/schema.js';
 import { addAdmin } from '../users/service.js';
 import { addMember, createGroup } from './service.js';
@@ -252,13 +252,14 @@ describe('groups API', () => {
     const again = await loginAs(test.app, client.email);
     const me = await call('GET', '/api/me', again);
     expect(me.statusCode).toBe(200);
-    expect(me.json<SessionUser>().groupId).toBe(g.id);
+    expect(me.json<Me>().groupId).toBe(g.id);
   });
 
   it('remove of an admin via the members route → 403', async () => {
     const { cookie } = await adminSession();
     const g = await newGroup();
     const other = newEmail();
+    // An admin with a membership row is an impossible state, set up on purpose to test the guard.
     const target = await addAdmin(test.deps.db, { email: other, name: 'Other Admin' });
     await addMember(test.deps.db, g.id, target.id);
     const res = await call('DELETE', `/api/groups/${g.id}/members/${target.id}`, cookie);
@@ -298,8 +299,8 @@ describe('groups API', () => {
     const { cookie } = await adminSession();
     const g = await newGroup();
     const client = await clientIn(g.id);
-    expect((await call('GET', '/api/me', cookie)).json<SessionUser>().groupId).toBeNull();
-    expect((await call('GET', '/api/me', client.cookie)).json<SessionUser>().groupId).toBe(g.id);
+    expect((await call('GET', '/api/me', cookie)).json<Me>().groupId).toBeNull();
+    expect((await call('GET', '/api/me', client.cookie)).json<Me>().groupId).toBe(g.id);
   });
 
   it("PATCH /api/me changes only the caller's name, validates 1..100", async () => {
@@ -314,7 +315,7 @@ describe('groups API', () => {
       role: 'admin',
     });
     expect(res.statusCode).toBe(200);
-    expect(res.json<SessionUser>()).toMatchObject({
+    expect(res.json<Me>()).toMatchObject({
       id: client.id,
       name: 'After',
       role: 'client',
@@ -345,8 +346,12 @@ describe('groups API', () => {
     };
     await open(client.cookie);
     await open(cookie);
+    const adminId = (await call('GET', '/api/me', cookie)).json<Me>().id;
     const inRoom = await test.app.io.in(groupRoom(g.id)).fetchSockets();
     expect(inRoom).toHaveLength(1);
     expect(inRoom[0]?.data.user.id).toBe(client.id);
+    const adminSockets = await test.app.io.in(userRoom(adminId)).fetchSockets();
+    expect(adminSockets).toHaveLength(1);
+    expect([...(adminSockets[0]?.rooms ?? [])].filter((r) => r.startsWith('group:'))).toEqual([]);
   });
 });

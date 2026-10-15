@@ -12,6 +12,8 @@ declare module 'socket.io' {
   interface SocketData {
     user: SessionUser;
     sessionId: string;
+    /** The client's group; unset for admins. */
+    groupId?: string;
   }
 }
 
@@ -47,7 +49,7 @@ export function attachSocket(
       if (found.user.role === 'client') {
         const groupId = await getMembershipGroupId(db, found.user.id);
         if (groupId) {
-          socket.data.user = { ...found.user, groupId };
+          socket.data.groupId = groupId;
           rooms.push(groupRoom(groupId));
         }
       }

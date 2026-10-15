@@ -12,27 +12,9 @@ vi.mock('@/lib/socket', () => ({
   disconnectSocket: vi.fn(),
 }));
 
-const ME = {
-  id: 'a1',
-  name: 'Jana Nováková',
-  email: 'jana@example.com',
-  role: 'admin',
-  groupId: null,
-};
-const SUPER = {
-  id: 's1',
-  name: 'Boss',
-  email: 'boss@example.com',
-  role: 'superadmin',
-  groupId: null,
-};
-const PETER = {
-  id: 'a2',
-  name: 'Peter Horváth',
-  email: 'peter@example.com',
-  role: 'admin',
-  groupId: null,
-};
+const ME = { id: 'a1', name: 'Jana Nováková', email: 'jana@example.com', role: 'admin' };
+const SUPER = { id: 's1', name: 'Boss', email: 'boss@example.com', role: 'superadmin' };
+const PETER = { id: 'a2', name: 'Peter Horváth', email: 'peter@example.com', role: 'admin' };
 
 type Reply = { status: number; body?: unknown };
 

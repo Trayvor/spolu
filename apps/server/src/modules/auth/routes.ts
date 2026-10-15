@@ -1,6 +1,6 @@
 import type { FastifyInstance, FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify';
 import { fromNodeHeaders } from 'better-auth/node';
-import { ErrorCodes, NameBodySchema } from '@spolu/shared';
+import { ErrorCodes, NameBodySchema, type Me } from '@spolu/shared';
 import type { AppDeps } from '../../deps.js';
 import type { Auth } from './auth.js';
 import { getSessionFromHeaders, toSessionUser } from './session.js';
@@ -23,7 +23,8 @@ export const authRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { d
     const base = toSessionUser(response?.user);
     if (!base) return null;
     const groupId = base.role === 'client' ? await getMembershipGroupId(db, base.id) : null;
-    return { user: { ...base, groupId }, headers };
+    const user: Me = { ...base, groupId };
+    return { user, headers };
   };
 
   app.get('/me', async (request, reply) => {

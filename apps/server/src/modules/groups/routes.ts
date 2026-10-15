@@ -2,7 +2,7 @@ import type { FastifyPluginAsync, FastifyReply } from 'fastify';
 import { ErrorCodes, GroupInputSchema, type Group } from '@spolu/shared';
 import type { AppDeps } from '../../deps.js';
 import { disconnectUser } from '../../infra/realtime/rooms.js';
-import { requireAdmin, requireUser } from '../auth/session.js';
+import { requireUser } from '../auth/session.js';
 import { revokeAllSessions } from '../auth/service.js';
 import { deactivateUser, getUserById, reactivateUser } from '../users/service.js';
 import { canManageGroups, canReadGroup, canRemoveMember } from './policy.js';
@@ -30,7 +30,6 @@ export const groupsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (
   { deps: { config, db } },
 ) => {
   const anyUser = requireUser(app.auth);
-  const adminOnly = requireAdmin(app.auth);
 
   const inviteUrl = (token: string): string => `${config.publicUrl}/join/${token}`;
   const toGroup = (row: GroupRow, withInvite: boolean): Group => ({
@@ -53,7 +52,10 @@ export const groupsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (
     throw error;
   };
 
-  app.get('/groups', { preHandler: adminOnly }, async () => listGroups(db));
+  app.get('/groups', { preHandler: anyUser }, async (request, reply) => {
+    if (!canManageGroups(request.user!)) return forbidden(reply);
+    return listGroups(db);
+  });
 
   app.post('/groups', { preHandler: anyUser }, async (request, reply) => {
     if (!canManageGroups(request.user!)) return forbidden(reply);

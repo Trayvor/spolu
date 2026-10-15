@@ -2,7 +2,7 @@ import { randomBytes, randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { eq } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
-import { SessionUserSchema, type Role } from '@spolu/shared';
+import { MeSchema, type Role } from '@spolu/shared';
 import { buildTestApp } from '../../../test/test-app.js';
 import { cookieHeader, loginAs, requestCode, signIn } from '../../../test/login.js';
 import { countEmailsTo, latestEmail, latestLoginCode } from '../../../test/mailpit.js';
@@ -78,7 +78,7 @@ describe('email code login', () => {
 
     const me = await app.inject({ method: 'GET', url: '/api/me', headers: { cookie } });
     expect(me.statusCode).toBe(200);
-    expect(SessionUserSchema.strict().parse(me.json())).toEqual({
+    expect(MeSchema.strict().parse(me.json())).toEqual({
       id: admin.id,
       email: admin.email,
       name: `User ${admin.id}`,
