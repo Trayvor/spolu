@@ -167,6 +167,31 @@ describe('Composer', () => {
     expect(onSubmit).toHaveBeenCalledWith({ body: '', fileIds: ['f1'] });
   });
 
+  it('a failed upload keeps its chip and blocks send until it is removed or retried', async () => {
+    const user = userEvent.setup();
+    upload.uploadFile.mockRejectedValueOnce(new Error('boom'));
+    const { onSubmit, container } = renderComposer();
+    await user.type(box(), 'hello');
+    await user.upload(fileInput(container), txt('big.txt'));
+    expect(await screen.findByRole('button', { name: 'Try again' })).toBeInTheDocument();
+    expect(screen.getByText('big.txt')).toBeInTheDocument();
+    expect(send()).toBeDisabled();
+    upload.uploadFile.mockResolvedValueOnce(info('f9'));
+    await user.click(screen.getByRole('button', { name: 'Try again' }));
+    await waitFor(() => expect(send()).toBeEnabled());
+    await user.click(send());
+    expect(onSubmit).toHaveBeenCalledWith({ body: 'hello', fileIds: ['f9'] });
+
+    // Removing the failed chip also unblocks send.
+    upload.uploadFile.mockRejectedValueOnce(new Error('boom'));
+    await user.type(box(), 'again');
+    await user.upload(fileInput(container), txt('bad.txt'));
+    await screen.findByRole('button', { name: 'Try again' });
+    expect(send()).toBeDisabled();
+    await user.click(screen.getByRole('button', { name: 'Remove file' }));
+    expect(send()).toBeEnabled();
+  });
+
   it('11th file shows At most 10 files', async () => {
     const user = userEvent.setup();
     upload.uploadFile.mockReturnValue(new Promise(() => undefined));
@@ -296,6 +321,26 @@ describe('Composer', () => {
     fireEvent.change(box(), { target: { value: 'a'.repeat(10_001) } });
     expect(screen.getByText(/10.?001 \/ 10 000 characters/)).toBeInTheDocument();
     expect(send()).toBeDisabled();
+  });
+
+  it('counts the stored body: mention tokens are longer than the names', () => {
+    const id = 'x'.repeat(36);
+    const client = new QueryClient();
+    client.setQueryData(groupPeopleQuery('g1').queryKey, [{ id, name: 'Jo', isAdmin: false }]);
+    render(
+      <QueryClientProvider client={client}>
+        <Composer
+          mode="edit"
+          groupId="g1"
+          initialBody={`${'a'.repeat(9_970)} <@${id}>`}
+          onSubmit={vi.fn()}
+          onCancel={vi.fn()}
+        />
+      </QueryClientProvider>,
+    );
+    // 9 974 characters as typed, 10 010 once stored.
+    expect(screen.getByText(/10.?010 \/ 10 000 characters/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
   });
 
   it('on touch screens Enter adds a line', async () => {

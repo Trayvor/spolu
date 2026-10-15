@@ -218,7 +218,7 @@ describe('useChannelMessages', () => {
     rejoin(2);
 
     await waitFor(() => expect(result.current.window.lastSeq).toBe(7));
-    expect(changesCalls()).toEqual(['/api/channels/c1/changes?afterSeq=4']);
+    expect(changesCalls()).toEqual(['/api/channels/c1/changes?afterSeq=0']);
     const messages = result.current.window.messages;
     expect(ids(messages)).toEqual(['m1', 'm2', 'm3', 'm4']);
     expect(messages[1]!.body).toBe('edited');
@@ -236,7 +236,7 @@ describe('useChannelMessages', () => {
     await waitFor(() => expect(result.current.window.loaded).toBe(true));
     // Joined after the page was requested: something may have been written in between.
     rejoin(1);
-    await waitFor(() => expect(changesCalls()).toEqual(['/api/channels/c1/changes?afterSeq=3']));
+    await waitFor(() => expect(changesCalls()).toEqual(['/api/channels/c1/changes?afterSeq=0']));
 
     const second = setup({ joins: 1 });
     await waitFor(() => expect(second.result.current.window.loaded).toBe(true));
@@ -417,7 +417,7 @@ describe('useChannelMessages', () => {
     act(() => socket.fire('connect'));
     act(() => socket.fire('chat:message', event(msg(9))));
     rejoin(2);
-    await waitFor(() => expect(changesCalls()).toEqual(['/api/channels/c1/changes?afterSeq=3']));
+    await waitFor(() => expect(changesCalls()).toEqual(['/api/channels/c1/changes?afterSeq=0']));
   });
 
   it('applyLocal applies an own edit or delete without moving the catch-up seq', async () => {
@@ -437,7 +437,7 @@ describe('useChannelMessages', () => {
     expect(result.current.window.lastSeq).toBe(3);
     // Catch-up still asks from the last server seq, so the real changes arrive.
     rejoin(2);
-    await waitFor(() => expect(changesCalls()).toEqual(['/api/channels/c1/changes?afterSeq=3']));
+    await waitFor(() => expect(changesCalls()).toEqual(['/api/channels/c1/changes?afterSeq=0']));
   });
 
   it('older pages never move the catch-up seq', async () => {
@@ -454,7 +454,7 @@ describe('useChannelMessages', () => {
     expect(ids(result.current.window.messages)).toEqual(['m1', 'm2', 'm3']);
     rejoin(1);
     await waitFor(() => expect(changesCalls()).toHaveLength(1));
-    expect(changesCalls()[0]).toBe('/api/channels/c1/changes?afterSeq=3');
+    expect(changesCalls()[0]).toBe('/api/channels/c1/changes?afterSeq=0');
   });
 
   it('a page answer of the window replaced by jumpToLatest is dropped', async () => {
@@ -497,9 +497,59 @@ describe('useChannelMessages', () => {
     expect(result.current.window.hasOlder).toBe(false);
   });
 
+  it('catch-up after a gap starts 20 seqs behind the last one seen (floor 0) and ignores duplicates', async () => {
+    server.latest = [msg(499), msg(500)];
+    server.lastSeq = 500;
+    const { result, rejoin } = setup();
+    await waitFor(() => expect(result.current.window.loaded).toBe(true));
+    act(() => socket.fire('disconnect'));
+    act(() => socket.fire('connect'));
+    // The answer repeats a row the window already holds, as an overlapping start would.
+    server.changes.push({ messages: [msg(499), msg(501)], lastSeq: 501, truncated: false });
+    rejoin(2);
+    await waitFor(() => expect(ids(result.current.window.messages)).toContain('m501'));
+    expect(changesCalls()).toEqual(['/api/channels/c1/changes?afterSeq=480']);
+    expect(ids(result.current.window.messages)).toEqual(['m499', 'm500', 'm501']);
+  });
+
   describe('with fake timers', () => {
     afterEach(() => {
       vi.useRealTimers();
+    });
+
+    it('a 403 or 404 answer stops the catch-up retries', async () => {
+      const { result, rejoin, unmount } = setup();
+      await waitFor(() => expect(result.current.window.loaded).toBe(true));
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+      const original = fetchMock.getMockImplementation()!;
+      fetchMock.mockImplementation(async (url, init) =>
+        url.includes('/changes?') ? json(403, { error: 'forbidden' }) : original(url, init),
+      );
+      rejoin(2);
+      await act(() => vi.advanceTimersByTimeAsync(0));
+      expect(changesCalls()).toHaveLength(1);
+      await act(() => vi.advanceTimersByTimeAsync(60_000));
+      expect(changesCalls()).toHaveLength(1);
+      unmount();
+    });
+
+    it('a new catch-up replaces the waiting retry: one retry loop per channel', async () => {
+      const { result, rejoin, unmount } = setup();
+      await waitFor(() => expect(result.current.window.loaded).toBe(true));
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+      const original = fetchMock.getMockImplementation()!;
+      fetchMock.mockImplementation(async (url, init) =>
+        url.includes('/changes?') ? json(503, { error: 'unavailable' }) : original(url, init),
+      );
+      rejoin(2);
+      await act(() => vi.advanceTimersByTimeAsync(0));
+      rejoin(3);
+      await act(() => vi.advanceTimersByTimeAsync(0));
+      expect(changesCalls()).toHaveLength(2);
+      // One loop: retries at 1 s, 3 s and 7 s (two loops would double them).
+      await act(() => vi.advanceTimersByTimeAsync(10_000));
+      expect(changesCalls()).toHaveLength(5);
+      unmount();
     });
 
     it('a failed catch-up keeps its seq and retries with backoff until it succeeds', async () => {
@@ -528,14 +578,14 @@ describe('useChannelMessages', () => {
       expect(changesCalls()).toHaveLength(2);
       await act(() => vi.advanceTimersByTimeAsync(2000));
       expect(changesCalls()).toEqual([
-        '/api/channels/c1/changes?afterSeq=3',
-        '/api/channels/c1/changes?afterSeq=3',
-        '/api/channels/c1/changes?afterSeq=3',
+        '/api/channels/c1/changes?afterSeq=0',
+        '/api/channels/c1/changes?afterSeq=0',
+        '/api/channels/c1/changes?afterSeq=0',
       ]);
       // Succeeded: the next rejoin starts from the window's seq again.
       rejoin(3);
       await act(() => vi.advanceTimersByTimeAsync(0));
-      expect(changesCalls().at(-1)).toBe('/api/channels/c1/changes?afterSeq=9');
+      expect(changesCalls().at(-1)).toBe('/api/channels/c1/changes?afterSeq=0');
       unmount();
     });
 
@@ -562,8 +612,8 @@ describe('useChannelMessages', () => {
       expect(ids(result.current.window.messages)).toEqual(['m1', 'm2', 'm3', 'm4']);
       await act(() => vi.advanceTimersByTimeAsync(1000));
       expect(changesCalls()).toEqual([
-        '/api/channels/c1/changes?afterSeq=3',
-        '/api/channels/c1/changes?afterSeq=3',
+        '/api/channels/c1/changes?afterSeq=0',
+        '/api/channels/c1/changes?afterSeq=0',
       ]);
       expect(ids(result.current.window.messages)).toEqual(['m600', 'm601']);
     });

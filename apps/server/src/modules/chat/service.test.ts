@@ -111,6 +111,25 @@ describe('unreadCount', () => {
 });
 
 describe('unreadByGroup', () => {
+  it('counts at most 100 per group', async () => {
+    const g = await newGroup();
+    const c = await ensureGroupChannel(db, g.id);
+    const me = await newUser();
+    const other = await newUser();
+    const base = {
+      channelId: c.id,
+      authorId: other.id,
+      body: 'hi',
+      changeSeq: 1,
+    };
+    await db
+      .insert(messages)
+      .values(
+        Array.from({ length: 105 }, () => ({ ...base, id: randomUUID(), clientId: randomUUID() })),
+      );
+    expect((await unreadByGroup(db, me.id, null))[g.id]).toBe(100);
+  });
+
   it('returns per-group counts, only the client group for a client', async () => {
     const g1 = await newGroup();
     const g2 = await newGroup();

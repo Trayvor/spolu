@@ -153,8 +153,13 @@ export function ThreadPanel({
   const lastAuthor = replies?.at(-1)?.author.id ?? thread?.root.author.id;
   const liveCount = replies?.filter((r) => r.deletedAt === null).length ?? 0;
 
-  // A thread of another chat (a link meant for a chat mounted elsewhere) is not shown here.
-  if (thread && thread.root.channelId !== channelId) return null;
+  // A thread of another chat (a link meant for a chat mounted elsewhere) is not shown here, and
+  // dropped from the URL so it does not leave the list covered (inert) below 1024 px.
+  const foreign = thread !== undefined && thread.root.channelId !== channelId;
+  useEffect(() => {
+    if (foreign) onClose();
+  }, [foreign, onClose]);
+  if (foreign) return null;
 
   return (
     <section

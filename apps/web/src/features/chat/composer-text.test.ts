@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import source from './composer-text.ts?raw';
 import {
   applyFormat,
   mentionQueryAt,
@@ -88,6 +89,18 @@ describe('toStored / toEditable', () => {
     expect(toStored('@Jana `@Jana` x@Jana @Janas @Tom', picked, '@all')).toBe(
       '<@b> `@Jana` x@Jana @Janas @Tom',
     );
+  });
+
+  it('converts mentions at the start, after a newline and back to back', () => {
+    const picked = [
+      { id: 'b', name: 'Jana' },
+      { id: 'd', name: 'Tom' },
+    ];
+    expect(toStored('@Jana @Tom\n@Tom,@Jana', picked, '@all')).toBe('<@b> <@d>\n<@d>,<@b>');
+  });
+
+  it('uses no regex lookbehind (Safari before 16.4 throws a SyntaxError on it)', () => {
+    expect(source).not.toContain('(?<');
   });
 
   it('keeps a token whose person is unknown', () => {

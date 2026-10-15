@@ -100,19 +100,21 @@ export function toStored(text: string, picked: PickedPerson[], allLabel: string)
   const labels = [...queues.keys()].map((name) => `@${name}`);
   labels.push(allLabel);
   labels.sort((a, b) => b.length - a.length);
+  // No lookbehind (Safari before 16.4 throws on it): the character before the label is matched
+  // as group 1 and put back.
   const re = new RegExp(
-    `(?<![\\p{L}\\p{N}_])(?:${labels.map(escapeRe).join('|')})(?![\\p{L}\\p{N}_])`,
+    `(^|[^\\p{L}\\p{N}_])(${labels.map(escapeRe).join('|')})(?![\\p{L}\\p{N}_])`,
     'gu',
   );
 
   const convert = (chunk: string) =>
-    chunk.replace(re, (label) => {
-      if (label === allLabel) return MENTION_ALL_TOKEN;
+    chunk.replace(re, (_match, before: string, label: string) => {
+      if (label === allLabel) return before + MENTION_ALL_TOKEN;
       const ids = queues.get(label.slice(1));
-      if (!ids?.length) return label;
+      if (!ids?.length) return before + label;
       // The same person picked twice keeps matching; several people take turns.
       const id = ids.length > 1 ? (ids.shift() as string) : (ids[0] as string);
-      return mentionToken(id);
+      return before + mentionToken(id);
     });
 
   let result = '';

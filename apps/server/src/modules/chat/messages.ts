@@ -223,7 +223,7 @@ async function loadDto(db: Db, groupId: string, id: string): Promise<MessageDto>
 
 /**
  * Replaces the body of a live message in one transaction: mentions are re-parsed and validated
- * against the group people, `edited_at` and `change_seq` move. No notifications are recorded.
+ * against the group people (mentions already on the message stay valid), `edited_at` and `change_seq` move. No notifications are recorded.
  * An empty body is allowed only while the message has attachments.
  */
 export async function editMessage(
@@ -237,6 +237,12 @@ export async function editMessage(
   const mentions = extractMentions(body);
   const people = await listGroupPeople(db, channel.groupId);
   const known = new Set(people.map((p) => p.id));
+  // Mentions already on the message stay valid even if that person has left the group since.
+  const stored = await db
+    .select({ userId: messageMentions.userId })
+    .from(messageMentions)
+    .where(eq(messageMentions.messageId, message.id));
+  for (const { userId } of stored) known.add(userId);
   if (mentions.userIds.some((id) => !known.has(id))) throw new InvalidMentionError();
 
   await db.transaction(async (tx) => {

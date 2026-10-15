@@ -80,30 +80,38 @@ export async function unreadCount(db: Db, userId: string, channelId: string): Pr
   return row?.n ?? 0;
 }
 
-/** Unread counts per group in one query; groups without unread messages are absent. */
+/** Unread counts stop here: the UI shows "99+", so counting further would only cost time. */
+export const UNREAD_CAP = 100;
+
+/**
+ * Unread counts per group in one query; groups without unread messages are absent. Each channel
+ * counts at most `UNREAD_CAP` messages, so the cost does not grow with the history.
+ */
 export async function unreadByGroup(
   db: Db,
   userId: string,
   onlyGroupId: string | null,
 ): Promise<Record<string, number>> {
-  const rows = await db
-    .select({ groupId: channels.groupId, n: count() })
-    .from(messages)
-    .innerJoin(channels, eq(channels.id, messages.channelId))
-    .leftJoin(
-      readStates,
-      and(eq(readStates.channelId, messages.channelId), eq(readStates.userId, userId)),
-    )
-    .where(
-      and(
-        eq(channels.kind, 'group'),
-        onlyGroupId === null ? undefined : eq(channels.groupId, onlyGroupId),
-        sql`${messages.parentId} is null`,
-        sql`${messages.deletedAt} is null`,
-        sql`${messages.authorId} <> ${userId}`,
-        sql`${messages.createdAt} > coalesce(${readStates.lastReadAt}, '-infinity'::timestamptz)`,
-      ),
-    )
-    .groupBy(channels.groupId);
-  return Object.fromEntries(rows.map((r) => [r.groupId, r.n]));
+  const rows = await db.execute<{ group_id: string; n: number }>(sql`
+    select c.group_id, u.n
+    from channels c
+    left join read_states rs on rs.channel_id = c.id and rs.user_id = ${userId}
+    cross join lateral (
+      select count(*)::int as n
+      from (
+        select 1
+        from messages m
+        where m.channel_id = c.id
+          and m.parent_id is null
+          and m.deleted_at is null
+          and m.author_id <> ${userId}
+          and m.created_at > coalesce(rs.last_read_at, '-infinity'::timestamptz)
+        limit ${UNREAD_CAP}
+      ) capped
+    ) u
+    where c.kind = 'group'
+      and u.n > 0
+      ${onlyGroupId === null ? sql`` : sql`and c.group_id = ${onlyGroupId}`}
+  `);
+  return Object.fromEntries([...rows].map((r) => [r.group_id, r.n]));
 }

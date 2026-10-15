@@ -7,6 +7,7 @@ import {
   type SendMessageInput,
 } from '@spolu/shared';
 import { useGroupRoomJoins } from '@/features/groups/use-group-room';
+import { ApiError } from '@/lib/api';
 import { getSocket } from '@/lib/socket';
 import {
   chatUnreadQuery,
@@ -25,6 +26,9 @@ import {
   windowReducer,
   type WindowAction,
 } from './channel-window';
+
+/** How many seqs a catch-up after a gap starts behind the last one seen. */
+const CATCH_UP_OVERLAP = 20;
 
 /** What a composer hands over; the hook adds the `clientId`. */
 export type SendInput = Omit<SendMessageInput, 'clientId'>;
@@ -87,7 +91,13 @@ export function useChannelMessages(
   /** The join counter the window is current with. */
   const handledJoinsRef = useRef(0);
   const catchUpChain = useRef<Promise<void>>(Promise.resolve());
-  const retryTimers = useRef(new Set<ReturnType<typeof setTimeout>>());
+  /** The one waiting catch-up retry of this channel (a newer catch-up replaces it). */
+  const retryRef = useRef<{
+    timer: ReturnType<typeof setTimeout>;
+    from: number;
+    gapEpoch: number | null;
+    attempt: number;
+  } | null>(null);
   const busy = useRef({ older: false, newer: false });
 
   useEffect(() => {
@@ -168,10 +178,20 @@ export function useChannelMessages(
   /**
    * Applies what changed after `from`, one run at a time. A failure (of the changes request or
    * of the truncated reload) retries from the same `from` after 1 s, 2 s, 4 s … at most 30 s,
-   * until it succeeds or the channel changes. A run that closes `gapEpoch` clears the gap.
+   * until it succeeds or the channel changes; 403 and 404 are permanent (the reader lost access)
+   * and stop it. There is one waiting retry per channel: a newer catch-up takes its place and
+   * starts from the earlier of the two `from`s. A run that closes `gapEpoch` clears the gap.
    */
   const runCatchUp = useCallback(
     function run(from: number, gapEpoch: number | null, attempt = 0): Promise<void> {
+      const waiting = retryRef.current;
+      if (waiting) {
+        clearTimeout(waiting.timer);
+        retryRef.current = null;
+        from = Math.min(from, waiting.from);
+        gapEpoch ??= waiting.gapEpoch;
+        attempt = Math.max(attempt, waiting.attempt);
+      }
       const session = sessionRef.current;
       const once = async () => {
         if (session !== sessionRef.current) return;
@@ -189,16 +209,17 @@ export function useChannelMessages(
         }
         if (gapEpoch !== null && gapRef.current?.epoch === gapEpoch) gapRef.current = null;
       };
-      const retry = () => {
+      const retry = (error: unknown) => {
         if (session !== sessionRef.current) return;
+        if (error instanceof ApiError && (error.status === 403 || error.status === 404)) return;
         const timer = setTimeout(
           () => {
-            retryTimers.current.delete(timer);
+            retryRef.current = null;
             if (session === sessionRef.current) void run(from, gapEpoch, attempt + 1);
           },
           Math.min(1000 * 2 ** attempt, 30_000),
         );
-        retryTimers.current.add(timer);
+        retryRef.current = { timer, from, gapEpoch, attempt };
       };
       catchUpChain.current = catchUpChain.current.then(once).catch(retry);
       return catchUpChain.current;
@@ -268,13 +289,12 @@ export function useChannelMessages(
   // Unmount (and StrictMode's rehearsal of it): drop pending answers and retries, load afresh
   // on remount.
   useEffect(() => {
-    const timers = retryTimers.current;
     return () => {
       genRef.current += 1;
       sessionRef.current += 1;
       channelRef.current = null;
-      timers.forEach(clearTimeout);
-      timers.clear();
+      if (retryRef.current) clearTimeout(retryRef.current.timer);
+      retryRef.current = null;
     };
   }, []);
 
@@ -305,7 +325,10 @@ export function useChannelMessages(
     if (!win.loaded || joins === 0 || joins === handledJoinsRef.current) return;
     handledJoinsRef.current = joins;
     const gap = gapRef.current;
-    void runCatchUp(gap?.from ?? lastSeqRef.current, gap?.epoch ?? null);
+    // Starts a little behind: live events can overtake each other by a few seqs, and the
+    // reducer ignores a change it already holds (same `changeSeq`).
+    const from = Math.max((gap?.from ?? lastSeqRef.current) - CATCH_UP_OVERLAP, 0);
+    void runCatchUp(from, gap?.epoch ?? null);
   }, [joins, win.loaded, runCatchUp]);
 
   const loadPage = useCallback(

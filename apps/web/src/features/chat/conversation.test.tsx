@@ -340,10 +340,12 @@ describe('Conversation', () => {
         ? json(200, { root: msg('x9', 1, { channelId: 'c2' }), replies: [] })
         : original(url, init),
     );
-    renderAt('/groups/g1/chat?thread=x9&c=c1');
+    const { router } = renderAt('/groups/g1/chat?thread=x9&c=c1');
     await screen.findByText('text of m3');
     await wait(50);
     expect(screen.queryByRole('region')).toBeNull();
+    // The link is dropped, so a narrow screen never keeps the list covered (inert) by nothing.
+    await waitFor(() => expect(router.state.location.search).toEqual({}));
   });
 
   it('opening a thread focuses it, Esc drops the quote then closes, focus returns to the opener', async () => {

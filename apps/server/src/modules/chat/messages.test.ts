@@ -438,6 +438,28 @@ describe('editMessage and deleteMessage', () => {
     expect(after.changeSeq).toBe(message.changeSeq);
   });
 
+  it('edit keeps a mention already stored on the message even if that person left the group', async () => {
+    const s = await setup();
+    const gone = await setup();
+    const { message } = await send(s.channel, s.a, { body: 'plain' });
+    // The stored mention of someone who is no longer one of the group's people.
+    await deps.db.insert(messageMentions).values({ messageId: message.id, userId: gone.a.id });
+    const dto = await editMessage(deps, {
+      message: await load(message.id),
+      channel: s.channel,
+      body: `hi ${mentionToken(gone.a.id)}`,
+    });
+    expect(dto.mentions).toEqual([gone.a.id]);
+    // A new foreign mention is still refused.
+    await expect(
+      editMessage(deps, {
+        message: await load(message.id),
+        channel: s.channel,
+        body: `hi ${mentionToken(gone.a.id)} ${mentionToken(gone.b.id)}`,
+      }),
+    ).rejects.toBeInstanceOf(InvalidMentionError);
+  });
+
   it('edit to an empty body is allowed only with attachments', async () => {
     const s = await setup();
     const { message } = await send(s.channel, s.a, { body: 'text' });

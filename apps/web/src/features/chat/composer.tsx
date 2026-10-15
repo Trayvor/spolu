@@ -73,6 +73,7 @@ type Upload = {
   size: number;
   progress: number;
   status: 'uploading' | 'done' | 'error';
+  file: File;
   fileId?: string;
   error?: string;
 };
@@ -177,24 +178,33 @@ export function Composer({
         size: file.size,
         progress: 0,
         status: 'uploading',
+        file,
       }));
       commitUploads([...uploadsRef.current, ...added]);
-      added.forEach((upload, i) => {
-        const patch = (p: Partial<Upload>) =>
-          commitUploads(uploadsRef.current.map((u) => (u.key === upload.key ? { ...u, ...p } : u)));
-        uploadFile(groupId, accepted[i] as File, (progress) => patch({ progress }))
-          .then((info) => patch({ status: 'done', progress: 1, fileId: info.id }))
-          .catch((error: unknown) =>
-            patch({
-              status: 'error',
-              error:
-                error instanceof ApiError && error.status === 413
-                  ? t('chat.composer.fileTooLarge')
-                  : t('errors.generic'),
-            }),
-          );
-      });
+      added.forEach(startUpload);
     }
+  }
+
+  function startUpload(upload: Upload) {
+    const patch = (p: Partial<Upload>) =>
+      commitUploads(uploadsRef.current.map((u) => (u.key === upload.key ? { ...u, ...p } : u)));
+    uploadFile(groupId, upload.file, (progress) => patch({ progress }))
+      .then((info) => patch({ status: 'done', progress: 1, fileId: info.id }))
+      .catch((error: unknown) =>
+        patch({
+          status: 'error',
+          error:
+            error instanceof ApiError && error.status === 413
+              ? t('chat.composer.fileTooLarge')
+              : t('errors.generic'),
+        }),
+      );
+  }
+
+  function retryUpload(upload: Upload) {
+    const fresh: Upload = { ...upload, status: 'uploading', progress: 0, error: undefined };
+    commitUploads(uploadsRef.current.map((u) => (u.key === upload.key ? fresh : u)));
+    startUpload(fresh);
   }
 
   const addFilesRef = useRef(addFiles);
@@ -225,10 +235,19 @@ export function Composer({
 
   const uploading = uploads.some((u) => u.status === 'uploading');
   const fileIds = uploads.flatMap((u) => (u.fileId ? [u.fileId] : []));
-  const tooLong = value.length > MESSAGE_MAX_LENGTH;
+  const uploadFailed = uploads.some((u) => u.status === 'error');
+  // The limit applies to the stored body, where `@Name` has grown into a mention token.
+  const storedLength = useMemo(
+    () =>
+      (picked.length === 0 && !value.includes(allLabel) ? value : toStored(value, picked, allLabel))
+        .length,
+    [value, picked, allLabel],
+  );
+  const tooLong = storedLength > MESSAGE_MAX_LENGTH;
   const canSend =
     !busy &&
     !uploading &&
+    !uploadFailed &&
     !tooLong &&
     (value.trim().length > 0 || fileIds.length > 0 || hasAttachments);
 
@@ -427,6 +446,15 @@ export function Composer({
               <span className="shrink-0 text-micro text-muted-foreground">
                 {u.status === 'error' ? u.error : formatFileSize(u.size, i18n.language)}
               </span>
+              {u.status === 'error' && (
+                <button
+                  type="button"
+                  onClick={() => retryUpload(u)}
+                  className="shrink-0 rounded-md px-2 py-1 text-micro font-semibold underline"
+                >
+                  {t('errors.retry')}
+                </button>
+              )}
               <button
                 type="button"
                 aria-label={t('chat.composer.removeFile')}
@@ -475,9 +503,9 @@ export function Composer({
             </button>
           </>
         )}
-        {value.length > COUNTER_FROM && (
+        {storedLength > COUNTER_FROM && (
           <span className={cn('text-micro', tooLong ? 'text-error-ink' : 'text-muted-foreground')}>
-            {t('chat.composer.tooLong', { count: value.length.toLocaleString(i18n.language) })}
+            {t('chat.composer.tooLong', { count: storedLength.toLocaleString(i18n.language) })}
           </span>
         )}
         <div className="ml-auto flex gap-2">
