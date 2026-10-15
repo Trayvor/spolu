@@ -1,9 +1,8 @@
 import { useEffect, useRef, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useTranslation } from 'react-i18next';
 import type { MessageDto } from '@spolu/shared';
-import { Button } from '@/components/ui/button';
 import { markAllRead, taskChatQuery } from '@/features/chat/api';
+import { ChatLoadError } from '@/features/chat/chat-load-error';
 import { Conversation, type MessageAction } from '@/features/chat/conversation';
 import { useDocumentVisible } from '@/features/chat/use-document-visible';
 
@@ -25,7 +24,6 @@ export function TaskChat({
   messageActions?: MessageAction[];
   renderMessageFooter?: (message: MessageDto) => ReactNode;
 }) {
-  const { t } = useTranslation();
   const { data, isError, refetch } = useQuery(taskChatQuery(taskId));
   const visible = useDocumentVisible();
   const channelId = data?.id;
@@ -37,6 +35,7 @@ export function TaskChat({
     if (channelId === undefined || !visible || marked.current === channelId) return;
     marked.current = channelId;
     // Task 9 invalidates the board's task-chat summaries here.
+    // A failed mark only leaves the chat unread; the next opening of the tab tries again.
     markAllRead(channelId).catch(() => undefined);
   }, [channelId, visible]);
 
@@ -51,18 +50,6 @@ export function TaskChat({
       />
     );
   }
-  if (isError) {
-    return (
-      <div
-        className="flex h-full flex-col items-center justify-center gap-3 rounded-xl bg-card px-6 text-center"
-        role="alert"
-      >
-        <p className="text-body">{t('chat.loadError')}</p>
-        <Button variant="outline" size="sm" onClick={() => void refetch()}>
-          {t('errors.retry')}
-        </Button>
-      </div>
-    );
-  }
+  if (isError) return <ChatLoadError onRetry={() => void refetch()} />;
   return <div className="h-full rounded-xl bg-card" aria-busy="true" />;
 }

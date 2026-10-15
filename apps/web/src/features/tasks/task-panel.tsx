@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { ApiError } from '@/lib/api';
 import { getSocket } from '@/lib/socket';
+import { useUpdateSearch } from '@/lib/use-update-search';
 import { cn } from '@/lib/utils';
 import { boardQuery, deleteTask, moveTask, taskQuery, updateTask } from './api';
 import { removeTask, showBoardNotice, upsertTask } from './board-cache';
@@ -129,21 +130,19 @@ export function TaskPanel({ groupId, taskId }: { groupId: string; taskId: string
 
 /** `?tab=chat` shows the Chat tab; anything else, Details. The route declares no search schema. */
 function usePanelTab(): [PanelTab, (tab: PanelTab) => void] {
-  const navigate = useNavigate();
+  const updateSearch = useUpdateSearch();
   const tab = useLocation({
     select: (l) => ((l.search as Record<string, unknown>).tab === 'chat' ? 'chat' : 'details'),
   });
+  // Replaces the history entry; other params (the chat's `message`, `thread`, `c`) stay.
   const setTab = (next: PanelTab) =>
-    void navigate({
-      to: '.',
-      replace: true,
-      // Other params (the chat's `message`, `thread`, `c`) stay.
-      search: ((prev: Record<string, unknown>) => {
-        const rest = { ...prev };
-        delete rest.tab;
-        return next === 'chat' ? { ...rest, tab: 'chat' } : rest;
-      }) as never,
-    });
+    updateSearch(
+      (search) => {
+        if (next === 'chat') search.tab = 'chat';
+        else delete search.tab;
+      },
+      { replace: true },
+    );
   return [tab, setTab];
 }
 

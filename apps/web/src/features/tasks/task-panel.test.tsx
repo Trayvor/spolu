@@ -363,6 +363,21 @@ describe('TaskPanel', () => {
     );
   });
 
+  it('the source message link navigates in the app, so unsaved edits are asked about first', async () => {
+    detail = {
+      ...detail,
+      sourceMessage: { id: 'm1', channelId: 'c1', taskId: null, authorName: 'Eva', excerpt: 'Hi' },
+    };
+    const { user, router } = renderPanel();
+    await user.type(await titleField(), '!');
+    await user.click(screen.getByRole('link', { name: t('tasks.panel.openMessage') }));
+    expect(await screen.findByText(t('tasks.panel.unsaved'))).toBeInTheDocument();
+    expect(router.state.location.pathname).toBe('/groups/g1/tasks/t1');
+    await user.click(screen.getByRole('button', { name: t('tasks.panel.discard') }));
+    await waitFor(() => expect(router.state.location.pathname).toBe('/groups/g1/chat'));
+    expect(router.state.location.search).toEqual({ message: 'm1', c: 'c1' });
+  });
+
   it("the source message of another task's chat links into that task's Chat tab", async () => {
     detail = {
       ...detail,
