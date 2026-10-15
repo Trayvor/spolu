@@ -1,7 +1,15 @@
 {
-  "app": { "name": "Spolu", "fullName": "Spolu by eGrant" },
-  "nav": { "home": "Home", "settings": "Settings" },
-  "language": { "current": "Language: {{name}}" },
+  "app": {
+    "name": "Spolu",
+    "fullName": "Spolu by eGrant"
+  },
+  "nav": {
+    "home": "Home",
+    "settings": "Settings"
+  },
+  "language": {
+    "current": "Language: {{name}}"
+  },
   "system": {
     "title": "System status",
     "version": "Server version",
@@ -9,12 +17,40 @@
     "never": "Not yet",
     "checking": "Checking…",
     "unreachable": "Server unreachable",
-    "database": { "ok": "Database: OK", "down": "Database: unavailable" },
-    "realtime": { "connected": "Realtime: connected", "disconnected": "Realtime: disconnected" }
+    "database": {
+      "ok": "Database: OK",
+      "down": "Database: unavailable"
+    },
+    "realtime": {
+      "connected": "Realtime: connected",
+      "disconnected": "Realtime: disconnected"
+    }
   },
   "notFound": {
     "title": "Page not found",
     "body": "This address does not exist. Check the link or go back to the home page.",
     "home": "Go to the home page"
+  },
+  "login": {
+    "title": "Log in",
+    "intro": "We will send a login code to your email.",
+    "email": "Email",
+    "sendCode": "Send code",
+    "codeIntro": "If {{email}} has access, we sent a 6-digit code to it. It is valid for 5 minutes.",
+    "code": "Code",
+    "submit": "Log in",
+    "sendAgain": "Send again",
+    "sendAgainIn": "Send again in {{seconds}} s",
+    "changeEmail": "Change email",
+    "errors": {
+      "invalidEmail": "Enter a valid email.",
+      "wrongCode": "The code does not match. Attempts left: {{count}}.",
+      "expired": "The code has expired. Send a new one.",
+      "tooMany": "Too many attempts. Try again in a few minutes.",
+      "disabled": "This account no longer has access."
+    }
+  },
+  "errors": {
+    "generic": "Something went wrong. Try again."
   }
 }

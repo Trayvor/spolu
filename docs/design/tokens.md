@@ -135,6 +135,7 @@ egrant.sk spacing presets are 4, 8, 12, 16, 20, 24, 32, 40, 48, 54, 64px — all
 - Focus, or once filled: border and text turn `ink`. egrant.sk removes the outline (`.egrant-field__input:focus { outline: none }`), but Spolu **keeps the global `:focus-visible` ring** on inputs as well (accessibility); do not remove it.
 - Label above the field, gap 10px: `text-micro` weight 600 `text-muted-foreground`; turns `ink` when the field is focused or filled.
 - Error: border `destructive`, text and placeholder `error-ink`, message 8px under the field in `text-nano`/`text-micro`.
+- As built (`src/components/ui/input.tsx`, `label.tsx`): the input has no custom focus ring of its own beyond the border change (`focus:border-foreground`) plus the global ring; text is always `ink` (typed text) and only the placeholder is `text-muted-foreground`, so the "turns ink once filled" rule needs no extra state. Error look is set with `aria-invalid` (border `destructive`, text and placeholder `error-ink`). The label is a plain `<label>` in `text-micro` weight 600 `text-muted-foreground`; it stays muted when the field is focused or filled (simplification, no state needed). The message under the field is `text-micro text-error-ink`, wired with `aria-describedby`.
 - Select and search look the same as the input (2px border, 8px radius, chevron or search icon inside).
 
 ### Card
@@ -145,6 +146,13 @@ egrant.sk spacing presets are 4, 8, 12, 16, 20, 24, 32, 40, 48, 54, 64px — all
 - Accent block: a 3px `ink` left border with 12px left padding and no background (`.egrant-card-grid .egrant-card`, contact person).
 - Status badges (system status card): `success` fill for a working part, `destructive` fill with white text (4.7:1) for a failed one, `secondary` while unknown or disconnected. Key/value details below them are a `dl` in `text-button`, keys `text-muted-foreground`.
 - Not-found page: `text-large` title, `text-body` text in the 552px measure, one primary button back home; no illustration.
+
+### Login card (as built, `src/features/auth/login-page.tsx`)
+
+- One `Card` (`bg-card rounded-xl`) centered under the header pill, `max-w-[440px]`, padding 32px (`p-8`), 24px gap between blocks. Title `text-medium` weight 600, one line of `text-body` text, the field (label 10px above), a full-width primary button.
+- The code step reuses the card and the Input; the code field is `text-medium` with `0.4em` letter spacing, `inputmode=numeric`. Its error message sits under the field in `text-micro text-error-ink` (and marks the field `aria-invalid`).
+- "Send again" (disabled with a "Send again in N s" countdown) and "Change email" are `link` buttons (`size sm`, no side padding) on one row, left and right.
+- No logo, illustration or animation in the card; the header pill above already carries the brand.
 
 ### Link
 
