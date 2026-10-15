@@ -83,9 +83,10 @@
   "group": {
     "edit": "Upraviť",
     "invite": {
-      "title": "Pozvánka",
+      "title": "Odkaz na pozvánku",
       "copy": "Kopírovať",
       "copied": "Odkaz skopírovaný.",
+      "copiedShort": "Skopírované",
       "regenerate": "Vygenerovať nový odkaz",
       "confirm": "Starý odkaz prestane fungovať. Vygenerovať nový?",
       "generate": "Vygenerovať"

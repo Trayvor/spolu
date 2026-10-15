@@ -135,6 +135,7 @@ describe('group page', () => {
     expect(screen.getByText(t('group.invite.confirm'))).toBeInTheDocument();
     const generate = screen.getByRole('button', { name: t('group.invite.generate') });
     expect(generate).toHaveFocus();
+    expect(generate).toHaveClass('bg-primary', 'text-primary-foreground');
     await user.click(screen.getByRole('button', { name: t('admins.cancel') }));
     expect(screen.queryByText(t('group.invite.confirm'))).toBeNull();
     expect(screen.getByRole('button', { name: t('group.invite.regenerate') })).toHaveFocus();

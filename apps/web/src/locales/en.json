@@ -83,9 +83,10 @@
   "group": {
     "edit": "Edit",
     "invite": {
-      "title": "Invite",
+      "title": "Invite link",
       "copy": "Copy",
       "copied": "Link copied.",
+      "copiedShort": "Copied",
       "regenerate": "Generate new link",
       "confirm": "The old link will stop working. Generate a new one?",
       "generate": "Generate"
