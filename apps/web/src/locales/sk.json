@@ -107,10 +107,76 @@
     }
   },
   "chat": {
-    "placeholder": "Chat pribudne v ďalšej aktualizácii."
+    "empty": "Zatiaľ tu nie sú žiadne správy. Napíšte prvú a začnite konverzáciu.",
+    "today": "Dnes",
+    "yesterday": "Včera",
+    "newMessages": "Nové správy",
+    "jumpToLatest": "Nové správy ↓",
+    "edited": "(upravené)",
+    "deleted": "Správa bola odstránená",
+    "egrant": "eGrant",
+    "notSent": "Neodoslané.",
+    "retry": "Skúsiť znova",
+    "save": "Uložiť",
+    "cancel": "Zrušiť",
+    "confirmDelete": "Odstrániť túto správu?",
+    "actions": {
+      "replyInThread": "Odpovedať vo vlákne",
+      "reply": "Odpovedať",
+      "more": "Viac",
+      "edit": "Upraviť",
+      "delete": "Odstrániť"
+    },
+    "thread": {
+      "summary_one": "{{count}} odpoveď, posledná o {{time}}",
+      "summary_few": "{{count}} odpovede, posledná o {{time}}",
+      "summary_many": "{{count}} odpovedí, posledná o {{time}}",
+      "summary_other": "{{count}} odpovedí, posledná o {{time}}",
+      "title": "Vlákno",
+      "close": "Zavrieť vlákno",
+      "back": "Späť na chat",
+      "replies_one": "{{count}} odpoveď",
+      "replies_few": "{{count}} odpovede",
+      "replies_many": "{{count}} odpovedí",
+      "replies_other": "{{count}} odpovedí"
+    },
+    "mention": {
+      "all": "@all",
+      "unknown": "@neznámy",
+      "everyone": "Všetci v tejto skupine",
+      "label": "Ľudia"
+    },
+    "composer": {
+      "placeholder": "Napíšte správu…",
+      "threadPlaceholder": "Odpovedať…",
+      "send": "Odoslať",
+      "save": "Uložiť",
+      "attach": "Priložiť súbory",
+      "removeFile": "Odstrániť súbor",
+      "replyingTo": "Odpoveď pre {{name}}: {{excerpt}}",
+      "cancelReply": "Zrušiť odpoveď",
+      "tooLong": "{{count}} / 10 000 znakov",
+      "tooManyFiles": "Najviac 10 súborov v jednej správe.",
+      "fileTooLarge": "Príliš veľký (max 25 MB)",
+      "formatting": "Formátovanie"
+    },
+    "format": {
+      "bold": "Tučné",
+      "italic": "Kurzíva",
+      "strike": "Prečiarknuté",
+      "link": "Odkaz",
+      "bulletList": "Odrážkový zoznam",
+      "numberedList": "Číslovaný zoznam",
+      "quote": "Citácia",
+      "code": "Kód"
+    },
+    "unread_few": "Neprečítané správy: {{count}}",
+    "unread_many": "Neprečítané správy: {{count}}",
+    "unread_other": "Neprečítané správy: {{count}}",
+    "unread_one": "Neprečítaná správa: {{count}}",
+    "loadError": "Chat sa nepodarilo načítať."
   },
   "tasks": {
-    "placeholder": "Nástenka úloh pribudne v ďalšej aktualizácii.",
     "buckets": {
       "todo": "Na spracovanie",
       "egrantReview": "Kontrola eGrant",

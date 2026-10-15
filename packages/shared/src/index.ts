@@ -1,3 +1,4 @@
+export * from './chat.js';
 export * from './files.js';
 export * from './groups.js';
 export * from './health.js';

@@ -107,10 +107,74 @@
     }
   },
   "chat": {
-    "placeholder": "The chat arrives in the next update."
+    "empty": "No messages yet. Write the first one to start the conversation.",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "newMessages": "New messages",
+    "jumpToLatest": "New messages ↓",
+    "edited": "(edited)",
+    "deleted": "Message deleted",
+    "egrant": "eGrant",
+    "notSent": "Not sent.",
+    "retry": "Retry",
+    "save": "Save",
+    "cancel": "Cancel",
+    "confirmDelete": "Delete this message?",
+    "actions": {
+      "replyInThread": "Reply in thread",
+      "reply": "Reply",
+      "more": "More",
+      "edit": "Edit",
+      "delete": "Delete"
+    },
+    "thread": {
+      "summary_one": "{{count}} reply, last at {{time}}",
+      "summary_few": "{{count}} replies, last at {{time}}",
+      "summary_many": "{{count}} replies, last at {{time}}",
+      "summary_other": "{{count}} replies, last at {{time}}",
+      "title": "Thread",
+      "close": "Close thread",
+      "back": "Back to chat",
+      "replies_one": "{{count}} reply",
+      "replies_few": "{{count}} replies",
+      "replies_many": "{{count}} replies",
+      "replies_other": "{{count}} replies"
+    },
+    "mention": {
+      "all": "@all",
+      "unknown": "@unknown",
+      "everyone": "Everyone in this group",
+      "label": "People"
+    },
+    "composer": {
+      "placeholder": "Write a message…",
+      "threadPlaceholder": "Reply…",
+      "send": "Send",
+      "save": "Save",
+      "attach": "Attach files",
+      "removeFile": "Remove file",
+      "replyingTo": "Replying to {{name}}: {{excerpt}}",
+      "cancelReply": "Cancel reply",
+      "tooLong": "{{count}} / 10 000 characters",
+      "tooManyFiles": "At most 10 files per message.",
+      "fileTooLarge": "Too large (max 25 MB)",
+      "formatting": "Formatting"
+    },
+    "format": {
+      "bold": "Bold",
+      "italic": "Italic",
+      "strike": "Strikethrough",
+      "link": "Link",
+      "bulletList": "Bulleted list",
+      "numberedList": "Numbered list",
+      "quote": "Quote",
+      "code": "Code"
+    },
+    "unread_other": "{{count}} unread messages",
+    "unread_one": "{{count}} unread message",
+    "loadError": "The chat could not be loaded."
   },
   "tasks": {
-    "placeholder": "The task board arrives in the next update.",
     "buckets": {
       "todo": "To do",
       "egrantReview": "eGrant review",

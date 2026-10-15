@@ -52,5 +52,7 @@ export const ErrorCodes = {
   fixedBucket: 'fixed_bucket',
   invalidAssignee: 'invalid_assignee',
   taskChanged: 'task_changed',
+  // Phase 5 — chat
+  invalidMention: 'invalid_mention',
 } as const;
 export type ErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes];

@@ -35,6 +35,8 @@ The initial JS that the browser downloads before showing the first screen: **200
 
 Lazy screen chunks worth watching: the Tasks tab (`tasks-tab`, the board with drag and drop: `@dnd-kit/core`, `@dnd-kit/sortable`, `fractional-indexing`) is about 24 kB gzip (Phase 8; about 4 kB before drag and drop). dnd-kit appears in no other chunk. With the board in place the initial JS is about 194 kB gzip (entry 169.5 kB, router chunks 19.7 kB and 0.6 kB, i18n 4.1 kB); all `tasks.*` texts (English and Slovak) add about 2.2 kB gzip to the entry chunk.
 
+Phase 5 (group chat, measured 2026-10-15): initial JS about 195 kB gzip (entry chunk 170.7 kB, router chunks 19.7 kB and 0.6 kB, i18n 4.1 kB). The chat is the lazy `chat-tab` chunk, 17.8 kB gzip (conversation, list, composer, thread panel, formatter); the Chat tab badge and the groups list count only add the small chat `api.ts` and `unread.tsx` (under 1 kB gzip) to the lazy group layout and groups list chunks.
+
 Budget history: 150 kB → 175 kB (2026-10-15): the Radix dropdown menu for the header language selector (about +29 kB), which later menus reuse at no extra cost. 175 kB → 200 kB (2026-10-15, Phase 2): the session guard checks `/api/me` (validated with zod) before the first screen, so zod and the API client moved into the initial load (about +26 kB); every later screen needs them anyway, and the service worker caches them after the first visit.
 
 The budget is an **alarm, not a target to squeeze under**. When a change crosses it:

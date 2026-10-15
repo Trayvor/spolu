@@ -13,6 +13,11 @@ vi.mock('@/lib/socket', () => ({
   disconnectSocket: vi.fn(),
 }));
 
+// The chat itself is tested in features/chat; here it only marks that the Chat tab rendered.
+vi.mock('@/features/chat/chat-tab', () => ({ ChatTab: () => <p>chat-tab</p> }));
+// Same for the task board (tested in features/tasks).
+vi.mock('@/features/tasks/tasks-tab', () => ({ TasksTab: () => <p>tasks-tab</p> }));
+
 vi.mock('@/features/chat/chat-tab-badge', () => ({
   ChatTabBadge: ({ groupId }: { groupId: string }) => <span>badge-{groupId}</span>,
 }));
@@ -105,10 +110,10 @@ describe('group layout', () => {
   });
   afterEach(() => vi.unstubAllGlobals());
 
-  it('/groups/g1 redirects to /groups/g1/chat and shows the chat placeholder', async () => {
+  it('/groups/g1 redirects to /groups/g1/chat and shows the chat', async () => {
     mockApi();
     const { router } = renderGroup('/groups/g1');
-    expect(await screen.findByText(t('chat.placeholder'))).toBeInTheDocument();
+    expect(await screen.findByText('chat-tab')).toBeInTheDocument();
     expect(router.state.location.pathname).toBe('/groups/g1/chat');
   });
 
@@ -129,6 +134,7 @@ describe('group layout', () => {
     expect(within(link('group.tabs.chat')).getByText('badge-g1')).toBeInTheDocument();
 
     await user.click(link('group.tabs.tasks'));
+    expect(await screen.findByText('tasks-tab')).toBeInTheDocument();
     await waitFor(() => expect(link('group.tabs.tasks')).toHaveAttribute('aria-current', 'page'));
     expect(link('group.tabs.chat')).not.toHaveAttribute('aria-current');
     expect(link('group.tabs.tasks')).toHaveClass('bg-primary');
@@ -141,7 +147,7 @@ describe('group layout', () => {
   it('/ sends a client to /groups/<groupId>/chat', async () => {
     mockApi({ me: CLIENT });
     const { router } = renderGroup('/');
-    expect(await screen.findByText(t('chat.placeholder'))).toBeInTheDocument();
+    expect(await screen.findByText('chat-tab')).toBeInTheDocument();
     expect(router.state.location.pathname).toBe('/groups/g1/chat');
   });
 
@@ -166,7 +172,7 @@ describe('group layout', () => {
     socket.connected = true;
     mockApi();
     renderGroup('/groups/g1/chat');
-    await screen.findByText(t('chat.placeholder'));
+    await screen.findByText('chat-tab');
     expect(socket.emit).toHaveBeenCalledWith('group:join', { groupId: 'g1' }, expect.any(Function));
   });
 

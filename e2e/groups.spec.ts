@@ -36,7 +36,7 @@ test('admin creates a group, a client joins by invite and is removed', async ({
   // /groups/:id redirects to the chat tab.
   await expect(page).toHaveURL(/\/groups\/[^/]+\/chat$/);
   const groupUrl = page.url().replace(/\/chat$/, '');
-  await expect(page.getByText('Chat pribudne v ďalšej aktualizácii.')).toBeVisible();
+  await expect(page.getByRole('textbox', { name: 'Napíšte správu…' })).toBeVisible();
   await page.getByRole('link', { name: 'Úlohy' }).click();
   await expect(page).toHaveURL(/\/tasks$/);
   await expect(page.getByRole('heading', { name: 'Na spracovanie' })).toBeVisible();
@@ -74,7 +74,7 @@ test('admin creates a group, a client joins by invite and is removed', async ({
   await expect(client).toHaveURL(new RegExp(`${new URL(groupUrl).pathname}/chat$`));
   await expect(client.getByRole('heading', { name })).toBeVisible();
   await expect(client.getByRole('link', { name: 'Skupiny' })).toHaveCount(0);
-  await expect(client.getByText('Chat pribudne v ďalšej aktualizácii.')).toBeVisible();
+  await expect(client.getByRole('textbox', { name: 'Napíšte správu…' })).toBeVisible();
   await client.getByRole('link', { name: 'Úlohy' }).click();
   await expect(client).toHaveURL(/\/tasks$/);
   await expect(client.getByRole('heading', { name: 'Na spracovanie' })).toBeVisible();

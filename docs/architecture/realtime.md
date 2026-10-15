@@ -58,14 +58,36 @@ After a bucket is deleted its tasks moved to To do without a `board:task` event;
 | `group:<id>`   | a client, on connect, for their membership group; an admin through `group:join` | every event of the group: chat, board (tasks and buckets), files, members (one room per group, no separate channel or board rooms) |
 | per DM channel | the two participants                                                            | direct messages (not built yet)                                                                                                    |
 
-## Catch-up with `seq`
+## Chat events
 
-Every message has a `seq` number that increases by one per channel. After a disconnect the client asks for what it missed instead of relying on an event log.
+Both are pushed by the chat routes (`modules/chat/events.ts`) after the transaction committed. Payload types are `ChatMessageEvent` and `ChatReadEvent` in `packages/shared/src/chat.ts`; the event names are `ChatEvents.message` and `ChatEvents.read`.
 
-1. The client keeps the highest `seq` it has seen for each open channel.
-2. On (re)connect it re-establishes the socket and rejoins its rooms (the server checks permission on join).
-3. Over HTTP it fetches missed messages: `GET` with `channelId` and `lastSeq`. The server checks permission and returns all messages with `seq > lastSeq`, ordered by `seq` ascending.
-4. The client merges them by `seq`, ignoring ones it already has, and then handles live events as normal.
+| event | room | payload | sent when |
+|---|---|---|---|
+| `chat:message` | `group:<id>` (`emitToGroup`) | `{ groupId, channelId, message, isNew }` | a message is sent (`isNew: true`, and for a reply also the updated parent with `isNew: false`), edited or deleted (`isNew: false`). Never for a repeated `clientId` (the HTTP call answers 200 with the stored message and pushes nothing) or a second delete. |
+| `chat:read` | `user:<id>` | `{ groupId, channelId, lastReadAt }` | the user marks the channel read, so their other tabs clear the unread badge |
+
+`message` is a full `MessageDto`; the client upserts it by id. `isNew` tells the web whether to count it as unread and to append it. Handlers ignore events whose `groupId` is not the open group.
+
+## Catch-up with `change_seq`
+
+Every chat message has a `change_seq` taken from the channel's counter (`channels.last_seq`) whenever it is created, edited or deleted, and a reply moves its parent's `change_seq` too. There is no per-message `seq` that never changes. After a disconnect the client asks for what changed instead of relying on an event log.
+
+1. The client keeps the highest `lastSeq` it has seen for the open channel (from the channel, a message page, a catch-up answer, a live event or the answer to its own send).
+2. On (re)connect it rejoins its rooms (the server checks permission on join) and waits for `useGroupRoomJoins()` to change.
+3. Over HTTP it calls `GET /api/channels/:id/changes?afterSeq=<lastSeq - 20>` (floor 0; it starts a little behind because a live event can overtake an earlier one by a few seqs, and the reducer ignores a row it already holds). The server checks permission and returns every message (top-level and replies) with `change_seq > afterSeq`, ascending, at most 500, as `{ messages, lastSeq, truncated }`. When `truncated` is true, `lastSeq` is the last complete seq; the web reloads the newest page.
+4. A failed catch-up retries with backoff (1 s … 30 s, one retry loop per channel) unless the answer is 403 or 404. The client upserts them by id, then handles live events as normal.
+
+On the web this is `useChannelMessages(channelId, { groupId, aroundMessageId? })` (`features/chat/use-channel-messages.ts`) over the pure reducer in `channel-window.ts`:
+
+- The window holds a gap-free run of at most 300 top-level messages, oldest first, with `hasOlder` / `hasNewer`. A message outside the run while those are set is ignored (it comes with its page); an older page past 300 drops the newest rows, new rows past 300 drop the oldest. A row is never replaced by a version with a lower `changeSeq`.
+- Live events, catch-up answers and the POST answer of a sent message all go through one `apply`: the window upsert, plus the cached thread (`['chat', 'thread', rootId]`) of the message. A deleted top-level message after the read cursor refetches the group's unread count.
+- Catch-up runs when `useGroupRoomJoins()` changes while the window is loaded, never on a raw `connect`. It starts from the seq saved at the socket's `disconnect` (live events after the reconnect cannot move it) and clears that saved seq only after it succeeds. A failed catch-up (or its reload) retries from the same seq after 1 s, 2 s, 4 s … at most 30 s, until it succeeds, the channel changes or the chat unmounts. A `truncated` answer reloads the newest page and refetches open threads.
+- Only full pages (latest, around) set the catch-up seq; older and newer pages never do. A page whose `lastSeq` is below a live event that arrived meanwhile triggers a catch-up from the page's seq, so a race between a page and an edit cannot leave a stale row. Replacing the window (jump to latest, reload) drops the answers of page requests made for the previous window.
+- `send` shows a pending row at once (`clientId = crypto.randomUUID()`); a failure marks it failed and only the user's Retry sends it again, with the same `clientId`. Pending thread replies carry `input.parentId`.
+- `unreadAnchor` (the read cursor when the chat opened, for the "New messages" line) stays fixed; `lastReadAt` moves with `markRead`.
+- `applyLocal(message)` puts the answer of the reader's own edit (the PATCH result) or delete (a local copy marked deleted, with a made-up `changeSeq + 1`) into the window and the cached thread **without** moving `lastSeq` or any catch-up bookkeeping; the server's own change still arrives by event or catch-up and wins by its `changeSeq`.
+- `<Conversation channelId groupId messageActions? renderMessageFooter? />` (`conversation.tsx`, the component Phase 9 reuses for task chats) must be rendered under the group layout (`GroupRoomProvider`), because catch-up follows the group room's join counter. Its URL params are scoped to its channel (`?thread=<rootId>&c=<channelId>`, `?message=<id>&c=<channelId>`, `use-chat-search.ts`); an around page or thread of another channel is never applied (the hook falls back to the newest page, the reducer ignores a foreign `loadedAround`, the panel renders nothing). It marks the chat read when the list is at the bottom of the newest page (`!hasNewer`), the tab is visible and the newest message is after `lastReadAt`: `markRead(newest.createdAt)` after 1 s (not while a thread overlay covers the list below 1024 px); a successful `markRead` refetches the channel's count and `GET /api/chat/unread`. The Chat tab badge (`chat-tab-badge.tsx`) adds one for each `chat:message` with `isNew`, top-level, not mine, in this group's channel, and refetches `GET /api/groups/:id/chat` and the groups list counts (`GET /api/chat/unread`) on `chat:read` (any of the user's devices read it) and on every rejoin after the first.
 
 ```mermaid
 sequenceDiagram
@@ -79,8 +101,8 @@ sequenceDiagram
     C->>S: join room (channelId)
     S->>S: policy check, e.g. canReadGroup
     S-->>C: joined
-    C->>H: GET messages after lastSeq
-    H->>DB: select where seq > lastSeq order by seq
+    C->>H: GET changes?afterSeq=lastSeq
+    H->>DB: select where change_seq > afterSeq order by change_seq
     DB-->>H: missed messages
     H-->>C: missed messages
     S-->>C: live events resume

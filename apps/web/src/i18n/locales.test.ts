@@ -33,4 +33,16 @@ describe('locales', () => {
       expect({ code, keys: baseKeys(json).sort() }).toEqual({ code, keys: enKeys });
     }
   });
+
+  it('every plural key has an _other form in every locale', () => {
+    const pluralSuffix = /_(zero|one|two|few|many|other)$/;
+    for (const [code, json] of Object.entries(locales)) {
+      const keys = new Set(flatten(json));
+      const pluralBases = [...keys]
+        .filter((key) => pluralSuffix.test(key))
+        .map((key) => key.replace(pluralSuffix, ''));
+      const missing = [...new Set(pluralBases)].filter((base) => !keys.has(`${base}_other`));
+      expect({ code, missing }).toEqual({ code, missing: [] });
+    }
+  });
 });

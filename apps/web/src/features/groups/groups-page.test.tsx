@@ -34,6 +34,7 @@ function mockApi(groups: unknown[], listStatus = 200) {
   const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
     const reply = (status: number, body: unknown) => new Response(JSON.stringify(body), { status });
     if (url === '/api/me') return reply(200, ADMIN);
+    if (url === '/api/chat/unread') return reply(200, { g1: 4, g2: 0 });
     if (url === '/api/groups' && (init?.method ?? 'GET') === 'GET')
       return reply(listStatus, listStatus === 200 ? groups : { error: 'internal' });
     if (url === '/api/groups' && init?.method === 'POST') {
@@ -80,6 +81,16 @@ describe('groups page', () => {
     const beta = screen.getByRole('link', { name: /beta/ });
     expect(beta.querySelector('img')).toBeNull();
     expect(beta).toHaveTextContent('B'); // first-letter placeholder
+  });
+
+  it('shows the unread chat count of each group, nothing at 0', async () => {
+    mockApi([ACME, BETA]);
+    renderGroups();
+    const acme = await screen.findByRole('link', { name: /Acme/ });
+    await waitFor(() => expect(acme).toHaveTextContent(t('chat.unread', { count: 4 })));
+    expect(screen.getByRole('link', { name: /beta/ })).not.toHaveTextContent(
+      t('chat.unread', { count: 0 }),
+    );
   });
 
   it('shows the empty state', async () => {

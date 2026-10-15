@@ -17,6 +17,7 @@ import {
   createFile,
   deleteFiles,
   deleteUnattachedFiles,
+  detachFiles,
   FileTooLargeError,
   getFile,
   getFilesForGroup,
@@ -299,6 +300,17 @@ describe('deleteFiles', () => {
     expect(await storage.exists(`files/${group.id}/${info.id}`)).toBe(false);
     expect(await storage.exists(`files/${group.id}/${info.id}-preview`)).toBe(false);
     await deleteFiles(deps, []);
+  });
+});
+
+describe('detachFiles', () => {
+  it('makes attached files unattached again', async () => {
+    const { group, owner } = await setup();
+    const a = await upload(group.id, owner.id, Buffer.from('a'));
+    await attachFiles(db, group.id, [a.id], owner.id);
+    await db.transaction((tx) => detachFiles(tx, [a.id]));
+    expect((await getFile(db, a.id))?.attachedAt).toBeNull();
+    await db.transaction((tx) => detachFiles(tx, []));
   });
 });
 

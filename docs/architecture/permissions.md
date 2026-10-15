@@ -36,6 +36,7 @@ Task policy lives in `modules/tasks/policy.ts`: `canUseBoard(actor, groupId, act
 | Delete a task | any task | only tasks they created |
 | Create, rename, reorder, delete custom buckets | yes | no (403) |
 | Another group's board, task or bucket | yes (all groups) | 404 |
+Chat policy lives in `modules/chat/policy.ts`: `canReadChannel(actor, channel, actorGroupId)` is `canReadGroup` on the channel's group (a task chat belongs to the task's group), and `canEditMessage` / `canDeleteMessage` allow the message's author only and never a deleted message, so not even a superadmin edits or deletes someone else's message. A channel or message the caller cannot read answers `404 not_found`; someone else's message on edit or delete answers `403 forbidden`.
 
 Who is calling comes from the session cookie, read in `modules/auth/session.ts`. Routes use the preHandlers `requireUser(app.auth)` (no valid session: `401 {"error":"unauthorized"}`) or `requireAdmin(app.auth)` (no session: 401; not `isAdmin`: `403 {"error":"forbidden"}`); both set `request.user` (`SessionUser`). A disabled user counts as logged out even if a session row still exists. Finer checks (which group, which admin) call the module's policy functions with `request.user` before the service. State-changing requests from another site are refused earlier by the CSRF guard (see [overview.md](overview.md), "CSRF guard").
 
