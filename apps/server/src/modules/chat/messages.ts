@@ -10,11 +10,11 @@ import {
 } from '@spolu/shared';
 import type { AppDeps } from '../../deps.js';
 import type { Db } from '../../infra/db/client.js';
-import { attachFiles } from '../files/service.js';
+import { attachFiles, deleteFiles } from '../files/service.js';
 import { listGroupPeople } from '../groups/service.js';
 import { recordNotifications } from '../notifications/service.js';
 import { isUniqueViolation } from '../users/service.js';
-import { selectMessages, toMessageDtos } from './dto.js';
+import { selectMessages, toMessageDtos, type MessageRow } from './dto.js';
 import { messageAttachments, messageMentions, messages } from './schema.js';
 import { getChannel, nextSeq, type ChannelRow } from './service.js';
 
@@ -33,6 +33,22 @@ export class InvalidThreadError extends Error {
   constructor() {
     super('The parent or the replied-to message is not in this thread');
     this.name = 'InvalidThreadError';
+  }
+}
+
+/** An edit would leave a message without text and attachments (route: 400 validation_failed). */
+export class EmptyMessageError extends Error {
+  constructor() {
+    super('A message needs text or an attachment');
+    this.name = 'EmptyMessageError';
+  }
+}
+
+/** The message is deleted and can no longer be edited (route: 404 not_found). */
+export class MessageDeletedError extends Error {
+  constructor() {
+    super('The message is deleted');
+    this.name = 'MessageDeletedError';
   }
 }
 
@@ -193,4 +209,86 @@ export async function sendMessage(
   const message = dtos.find((m) => m.id === messageId)!;
   const parent = dtos.find((m) => m.id === parentId) ?? null;
   return { message, parent, created: true };
+}
+
+export async function getMessage(db: Db, id: string): Promise<MessageRow | null> {
+  const [row] = await db.select().from(messages).where(eq(messages.id, id));
+  return row ?? null;
+}
+
+async function loadDto(db: Db, groupId: string, id: string): Promise<MessageDto> {
+  const rows = await selectMessages(db, eq(messages.id, id), []);
+  return (await toMessageDtos(db, groupId, rows))[0]!;
+}
+
+/**
+ * Replaces the body of a live message in one transaction: mentions are re-parsed and validated
+ * against the group people, `edited_at` and `change_seq` move. No notifications are recorded.
+ * An empty body is allowed only while the message has attachments.
+ */
+export async function editMessage(
+  deps: AppDeps,
+  input: { message: MessageRow; channel: ChannelRow; body: string },
+): Promise<MessageDto> {
+  const { db } = deps;
+  const { message, channel, body } = input;
+  if (message.deletedAt !== null) throw new MessageDeletedError();
+
+  const mentions = extractMentions(body);
+  const people = await listGroupPeople(db, channel.groupId);
+  const known = new Set(people.map((p) => p.id));
+  if (mentions.userIds.some((id) => !known.has(id))) throw new InvalidMentionError();
+
+  await db.transaction(async (tx) => {
+    if (body.trim().length === 0) {
+      const [attachment] = await tx
+        .select({ fileId: messageAttachments.fileId })
+        .from(messageAttachments)
+        .where(eq(messageAttachments.messageId, message.id))
+        .limit(1);
+      if (!attachment) throw new EmptyMessageError();
+    }
+    const seq = await nextSeq(tx, channel.id);
+    await tx
+      .update(messages)
+      .set({ body, mentionsAll: mentions.all, editedAt: sql`now()`, changeSeq: seq })
+      .where(eq(messages.id, message.id));
+    await tx.delete(messageMentions).where(eq(messageMentions.messageId, message.id));
+    if (mentions.userIds.length > 0) {
+      await tx
+        .insert(messageMentions)
+        .values(mentions.userIds.map((userId) => ({ messageId: message.id, userId })));
+    }
+  });
+  return loadDto(db, channel.groupId, message.id);
+}
+
+/**
+ * Soft-deletes a message in one transaction: the row stays (threads keep working), body and
+ * mentions are cleared, attachment rows go, `change_seq` moves. Its files are deleted after the
+ * commit. A reply's deletion leaves the root's `reply_count` as it is. Deleting twice is a no-op.
+ */
+export async function deleteMessage(
+  deps: AppDeps,
+  input: { message: MessageRow; channel: ChannelRow },
+): Promise<MessageDto> {
+  const { db } = deps;
+  const { message, channel } = input;
+  if (message.deletedAt !== null) return loadDto(db, channel.groupId, message.id);
+
+  const fileIds = await db.transaction(async (tx) => {
+    const seq = await nextSeq(tx, channel.id);
+    await tx
+      .update(messages)
+      .set({ deletedAt: sql`now()`, body: '', mentionsAll: false, changeSeq: seq })
+      .where(eq(messages.id, message.id));
+    await tx.delete(messageMentions).where(eq(messageMentions.messageId, message.id));
+    const removed = await tx
+      .delete(messageAttachments)
+      .where(eq(messageAttachments.messageId, message.id))
+      .returning({ fileId: messageAttachments.fileId });
+    return removed.map((r) => r.fileId);
+  });
+  await deleteFiles(deps, fileIds);
+  return loadDto(db, channel.groupId, message.id);
 }

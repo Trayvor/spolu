@@ -8,13 +8,21 @@ import { mentionToken, type SendMessageInput, type SessionUser } from '@spolu/sh
 import type { AppDeps } from '../../deps.js';
 import { buildTestApp } from '../../../test/test-app.js';
 import { testDatabaseUrl } from '../../../test/test-config.js';
-import { createFile, InvalidAttachmentError } from '../files/service.js';
+import { createFile, getFilesForGroup, InvalidAttachmentError } from '../files/service.js';
 import { addMember, createGroup, listGroupPeople } from '../groups/service.js';
 import { notificationEvents } from '../notifications/schema.js';
 import { user } from '../users/schema.js';
 import { addAdmin, createUnverifiedClient } from '../users/service.js';
 import { selectMessages, toMessageDtos } from './dto.js';
-import { InvalidMentionError, InvalidThreadError, sendMessage } from './messages.js';
+import {
+  deleteMessage,
+  editMessage,
+  EmptyMessageError,
+  getMessage,
+  InvalidMentionError,
+  InvalidThreadError,
+  sendMessage,
+} from './messages.js';
 import { messageMentions, messages } from './schema.js';
 import { ensureGroupChannel, getChannel, type ChannelRow } from './service.js';
 
@@ -355,5 +363,96 @@ describe('toMessageDtos', () => {
     const [dto] = await toMessageDtos(deps.db, s.group.id, rows);
     expect(dto).toMatchObject({ body: '', mentions: [], mentionsAll: false, attachments: [] });
     expect(dto!.deletedAt).not.toBeNull();
+  });
+});
+
+describe('editMessage and deleteMessage', () => {
+  const load = async (id: string) => (await getMessage(deps.db, id))!;
+
+  it('edit re-parses mentions (old mention gone, new one stored) and sets edited_at and a higher change_seq', async () => {
+    const s = await setup();
+    const { message } = await send(s.channel, s.a, { body: `hi ${mentionToken(s.b.id)}` });
+    const eventsBefore = await eventsFor(message.id);
+    const dto = await editMessage(deps, {
+      message: await load(message.id),
+      channel: s.channel,
+      body: `hi ${mentionToken(s.admin.id)} ${mentionToken('all')}`,
+    });
+    expect(dto.mentions).toEqual([s.admin.id]);
+    expect(dto.mentionsAll).toBe(true);
+    expect(dto.editedAt).not.toBeNull();
+    expect(dto.changeSeq).toBeGreaterThan(message.changeSeq);
+    expect((await eventsFor(message.id)).length).toBe(eventsBefore.length);
+  });
+
+  it('edit with a foreign mention → InvalidMentionError, nothing changed', async () => {
+    const s = await setup();
+    const other = await setup();
+    const { message } = await send(s.channel, s.a, { body: 'plain' });
+    await expect(
+      editMessage(deps, {
+        message: await load(message.id),
+        channel: s.channel,
+        body: `x ${mentionToken(other.a.id)}`,
+      }),
+    ).rejects.toBeInstanceOf(InvalidMentionError);
+    const after = await load(message.id);
+    expect(after.body).toBe('plain');
+    expect(after.editedAt).toBeNull();
+    expect(after.changeSeq).toBe(message.changeSeq);
+  });
+
+  it('edit to an empty body is allowed only with attachments', async () => {
+    const s = await setup();
+    const { message } = await send(s.channel, s.a, { body: 'text' });
+    await expect(
+      editMessage(deps, { message: await load(message.id), channel: s.channel, body: '  ' }),
+    ).rejects.toBeInstanceOf(EmptyMessageError);
+    const file = await upload(s.group.id, s.a.id, 'a.txt');
+    const withFile = await send(s.channel, s.a, { body: '', fileIds: [file.id] });
+    const dto = await editMessage(deps, {
+      message: await load(withFile.message.id),
+      channel: s.channel,
+      body: '',
+    });
+    expect(dto.body).toBe('');
+    expect(dto.attachments).toHaveLength(1);
+  });
+
+  it('delete keeps the row as deleted, clears body and mentions, keeps replies', async () => {
+    const s = await setup();
+    const { message: root } = await send(s.channel, s.a, { body: `hi ${mentionToken(s.b.id)}` });
+    const { message: reply } = await send(s.channel, s.b, { parentId: root.id });
+    const dto = await deleteMessage(deps, { message: await load(root.id), channel: s.channel });
+    expect(dto).toMatchObject({ body: '', mentions: [], mentionsAll: false, replyCount: 1 });
+    expect(dto.deletedAt).not.toBeNull();
+    expect(dto.changeSeq).toBeGreaterThan(root.changeSeq);
+    const stored = await deps.db
+      .select()
+      .from(messageMentions)
+      .where(eq(messageMentions.messageId, root.id));
+    expect(stored).toHaveLength(0);
+    expect((await load(reply.id)).deletedAt).toBeNull();
+  });
+
+  it("delete removes the message's files (getFilesForGroup returns none and storage objects are gone)", async () => {
+    const s = await setup();
+    const file = await upload(s.group.id, s.a.id, 'gone.txt');
+    const [row] = await deps.db.execute<{ storage_key: string }>(
+      sql`select storage_key from files where id = ${file.id}`,
+    );
+    const { message } = await send(s.channel, s.a, { body: '', fileIds: [file.id] });
+    const dto = await deleteMessage(deps, { message: await load(message.id), channel: s.channel });
+    expect(dto.attachments).toEqual([]);
+    expect(await getFilesForGroup(deps.db, s.group.id, [file.id])).toEqual([]);
+    expect(await deps.storage.exists(row!.storage_key)).toBe(false);
+  });
+
+  it("deleting a reply leaves the root's reply_count unchanged", async () => {
+    const s = await setup();
+    const { message: root } = await send(s.channel, s.a);
+    const { message: reply } = await send(s.channel, s.b, { parentId: root.id });
+    await deleteMessage(deps, { message: await load(reply.id), channel: s.channel });
+    expect((await load(root.id)).replyCount).toBe(1);
   });
 });
