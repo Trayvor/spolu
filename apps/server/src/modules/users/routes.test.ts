@@ -177,8 +177,10 @@ describe('admins API', () => {
       reconnection: false,
     });
     try {
-      await new Promise((resolve) => socket.once('connect', resolve));
-      const disconnected = new Promise((resolve) => socket.once('disconnect', resolve));
+      await new Promise<void>((resolve) => socket.once('connect', () => resolve()));
+      const disconnected = new Promise<void>((resolve) =>
+        socket.once('disconnect', () => resolve()),
+      );
 
       const res = await remove(cookie, target.admin.id);
       expect(res.statusCode).toBe(204);
