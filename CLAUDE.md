@@ -39,6 +39,8 @@ Available now:
 - `bash scripts/tests/check-docs.test.sh` — tests for the docs check script.
 - `bash scripts/tests/docs-reminder.test.sh` — tests for the Stop hook.
 - `bash scripts/check-docs.sh <base-ref>` — warns when code changed without docs.
+- `docker compose -f docker-compose.dev.yml up -d --wait` — local PostgreSQL 17 (5432) and Mailpit (SMTP 1025, UI 8025). Server tests need it running.
+- `pnpm --filter @ehub/server db:generate` — generate a migration after changing a `schema.ts`.
 
 App commands (`pnpm test`, `pnpm test:e2e`, dev, build) arrive in Phase 1.
 

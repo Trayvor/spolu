@@ -48,6 +48,6 @@ erDiagram
 | ApiKey | secret used by eGrant to send tickets | 12 | planned |
 | TicketReply | an admin reply on a ticket | 13 | planned |
 | Contract | agreement with a client; admin-only; reminder and draft fields | 14 | planned |
-| app_meta | technical table proving migrations work (not a product entity) | 1 | planned |
+| app_meta | technical table proving migrations work (not a product entity) | 1 | built |
 
 Notes: the superadmin is a `User` with role `superadmin`, created on first start from `SUPERADMIN_EMAIL`. See [glossary](../glossary.md) for terms and [roadmap](../roadmap.md) for phases.

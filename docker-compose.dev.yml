@@ -1,0 +1,26 @@
+# Local development services: PostgreSQL and Mailpit (catches all outgoing email).
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: ehub
+      POSTGRES_PASSWORD: ehub
+      POSTGRES_DB: ehub
+    ports:
+      - '5432:5432'
+    volumes:
+      - ehub-dev-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ehub -d ehub']
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  mailpit:
+    image: axllent/mailpit
+    ports:
+      - '1025:1025'
+      - '8025:8025'
+
+volumes:
+  ehub-dev-pgdata:
