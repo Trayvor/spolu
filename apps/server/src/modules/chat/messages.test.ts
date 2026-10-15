@@ -156,6 +156,15 @@ describe('sendMessage', () => {
     expect(message.attachments.map((f) => f.id)).toEqual([mine.id]);
   });
 
+  it('a file uploaded by another member of the group → invalid_attachment', async () => {
+    const s = await setup();
+    const hers = await upload(s.group.id, s.b.id, 'hers.txt');
+    await expect(send(s.channel, s.a, { fileIds: [hers.id] })).rejects.toBeInstanceOf(
+      InvalidAttachmentError,
+    );
+    expect(await messageCount(s.channel.id)).toBe(0);
+  });
+
   it("a reply bumps the parent's reply_count, last_reply_at and change_seq to the reply's seq", async () => {
     const s = await setup();
     const { message: root } = await send(s.channel, s.a);
@@ -273,6 +282,34 @@ describe('sendMessage', () => {
         excerpt: 'thanks @Cyril',
       },
     });
+  });
+});
+
+describe('sendMessage notifications for replies', () => {
+  it('a mention inside a reply records chat.mention, and no chat.message', async () => {
+    const s = await setup();
+    const { message: root } = await send(s.channel, s.a);
+    const { message: reply } = await send(s.channel, s.b, {
+      parentId: root.id,
+      body: `see ${mentionToken(s.admin.id)}`,
+    });
+    const events = await eventsFor(reply.id);
+    expect(recipientsOf(events, 'chat.mention')).toEqual(new Set([s.admin.id]));
+    expect(recipientsOf(events, 'chat.message').size).toBe(0);
+    expect(recipientsOf(events, 'chat.thread_reply')).toEqual(new Set([s.a.id]));
+  });
+
+  it("a repeated clientId from another group's chat keeps that message's attachments", async () => {
+    const s = await setup();
+    const other = await setup();
+    const otherChannel = await ensureGroupChannel(deps.db, other.group.id);
+    const file = await upload(other.group.id, other.admin.id, 'kept.txt');
+    const clientId = randomUUID();
+    const first = await send(otherChannel, other.admin, { clientId, fileIds: [file.id] });
+    const again = await send(s.channel, other.admin, { clientId });
+    expect(again.created).toBe(false);
+    expect(again.message.attachments.map((f) => f.id)).toEqual([file.id]);
+    expect(again.message).toEqual(first.message);
   });
 });
 

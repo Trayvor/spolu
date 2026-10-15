@@ -16,7 +16,7 @@ import { recordNotifications } from '../notifications/service.js';
 import { isUniqueViolation } from '../users/service.js';
 import { selectMessages, toMessageDtos } from './dto.js';
 import { messageAttachments, messageMentions, messages } from './schema.js';
-import { nextSeq, type ChannelRow } from './service.js';
+import { getChannel, nextSeq, type ChannelRow } from './service.js';
 
 const EXCERPT_LENGTH = 140;
 
@@ -36,9 +36,10 @@ export class InvalidThreadError extends Error {
   }
 }
 
+/** The author's message with this clientId; its DTO uses its own channel's group (it may be another chat). */
 async function findByClientId(
   db: Db,
-  groupId: string,
+  channel: ChannelRow,
   authorId: string,
   clientId: string,
 ): Promise<MessageDto | null> {
@@ -47,6 +48,10 @@ async function findByClientId(
     and(eq(messages.authorId, authorId), eq(messages.clientId, clientId)),
     [],
   );
+  const row = rows[0];
+  if (!row) return null;
+  const groupId =
+    row.channelId === channel.id ? channel.groupId : (await getChannel(db, row.channelId))!.groupId;
   const [dto] = await toMessageDtos(db, groupId, rows);
   return dto ?? null;
 }
@@ -84,7 +89,7 @@ export async function sendMessage(
   const { channel, author, data } = input;
   const groupId = channel.groupId;
 
-  const existing = await findByClientId(db, groupId, author.id, data.clientId);
+  const existing = await findByClientId(db, channel, author.id, data.clientId);
   if (existing) return { message: existing, parent: null, created: false };
 
   await checkThread(db, channel.id, data);
@@ -134,15 +139,23 @@ export async function sendMessage(
           .update(messages)
           .set({
             replyCount: sql`${messages.replyCount} + 1`,
-            lastReplyAt: row!.createdAt,
+            // Concurrent replies may commit with inverted created_at; never move it back.
+            lastReplyAt: sql`greatest(${messages.lastReplyAt}, ${row!.createdAt.toISOString()}::timestamptz)`,
             changeSeq: seq,
           })
           .where(eq(messages.id, parentId))
           .returning({ authorId: messages.authorId });
+        // checkThread found the root; messages are only soft-deleted, so the row still exists.
         const repliers = await tx
           .selectDistinct({ authorId: messages.authorId })
           .from(messages)
-          .where(and(eq(messages.parentId, parentId), sql`${messages.id} <> ${messageId}`));
+          .where(
+            and(
+              eq(messages.channelId, channel.id),
+              eq(messages.parentId, parentId),
+              sql`${messages.id} <> ${messageId}`,
+            ),
+          );
         threadPeople = [root!.authorId, ...repliers.map((r) => r.authorId)];
       }
 
@@ -169,7 +182,7 @@ export async function sendMessage(
   } catch (error) {
     if (!isUniqueViolation(error)) throw error;
     // A concurrent send with the same clientId won the unique index.
-    const winner = await findByClientId(db, groupId, author.id, data.clientId);
+    const winner = await findByClientId(db, channel, author.id, data.clientId);
     if (!winner) throw error;
     return { message: winner, parent: null, created: false };
   }
