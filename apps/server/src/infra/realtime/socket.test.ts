@@ -91,11 +91,13 @@ describe('socket.io', () => {
   it('a user disabled between session lookup and join is disconnected', async () => {
     const { id, cookie } = await loggedIn(test);
     const lookup = test.app.auth.api.getSession;
-    const spy = vi.spyOn(test.app.auth.api, 'getSession').mockImplementationOnce(async (...args) => {
-      const result = await lookup(...args);
-      await test.deps.db.update(user).set({ disabledAt: new Date() }).where(eq(user.id, id));
-      return result;
-    });
+    const spy = vi
+      .spyOn(test.app.auth.api, 'getSession')
+      .mockImplementationOnce(async (...args) => {
+        const result = await lookup(...args);
+        await test.deps.db.update(user).set({ disabledAt: new Date() }).where(eq(user.id, id));
+        return result;
+      });
     const error = (await nextEvent(connectWith({ cookie }), 'connect_error')) as Error;
     spy.mockRestore();
     expect(error.message).toBe('unauthorized');

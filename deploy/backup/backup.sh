@@ -1,27 +1,41 @@
 #!/usr/bin/env bash
-# Nightly pg_dump loop. Runs forever in the backup container.
+# Nightly pg_dump + files archive loop. Runs forever in the backup container.
 # Env: PGHOST, PGUSER, PGDATABASE, PGPASSWORD (libpq), BACKUP_HOUR (HH:MM, container time, default 03:30),
-# BACKUP_KEEP (default 14), BACKUP_DIR (default /backups), TZ.
+# BACKUP_KEEP (default 14), BACKUP_DIR (default /backups), FILES_DIR (default /data/files), TZ.
 set -euo pipefail
 
 BACKUP_HOUR="${BACKUP_HOUR:-03:30}"
 BACKUP_KEEP="${BACKUP_KEEP:-14}"
 BACKUP_DIR="${BACKUP_DIR:-/backups}"
+FILES_DIR="${FILES_DIR:-/data/files}"
 
 log() { echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) backup: $*"; }
 
+# Keeps the newest BACKUP_KEEP files matching a glob prefix/suffix (names sort by timestamp).
+prune() {
+  # shellcheck disable=SC2012,SC2086 # $1 is a glob, left unquoted on purpose
+  ls -1 "$BACKUP_DIR"/$1 2>/dev/null | sort -r | tail -n +"$((BACKUP_KEEP + 1))" | xargs -r rm -f --
+}
+
 run_backup() {
-  local file tmp
-  file="$BACKUP_DIR/spolu-$(date -u +%Y%m%dT%H%M%SZ).dump"
-  tmp="$file.partial"
-  if pg_dump -Fc -f "$tmp" && mv "$tmp" "$file"; then
-    log "ok $file ($(du -h "$file" | cut -f1))"
-    # Keep the newest BACKUP_KEEP dumps (names sort by timestamp).
-    # shellcheck disable=SC2012
-    ls -1 "$BACKUP_DIR"/spolu-*.dump 2>/dev/null | sort -r | tail -n +"$((BACKUP_KEEP + 1))" | xargs -r rm -f --
+  local stamp dump files
+  stamp=$(date -u +%Y%m%dT%H%M%SZ)
+  dump="$BACKUP_DIR/spolu-$stamp.dump"
+  files="$BACKUP_DIR/files-$stamp.tar.gz"
+  if pg_dump -Fc -f "$dump.partial" && mv "$dump.partial" "$dump"; then
+    log "ok $dump ($(du -h "$dump" | cut -f1))"
+    prune 'spolu-*.dump'
   else
-    rm -f "$tmp"
+    rm -f "$dump.partial"
     log "FAILED pg_dump"
+    return 1
+  fi
+  if tar -czf "$files.partial" -C "$FILES_DIR" . && mv "$files.partial" "$files"; then
+    log "ok $files ($(du -h "$files" | cut -f1))"
+    prune 'files-*.tar.gz'
+  else
+    rm -f "$files.partial"
+    log "FAILED files archive"
     return 1
   fi
 }

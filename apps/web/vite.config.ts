@@ -40,7 +40,7 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html}'],
         navigateFallback: '/index.html',
         // API calls and the WebSocket must always reach the server, never the cached shell.
-        navigateFallbackDenylist: [/^\/api/, /^\/socket\.io/],
+        navigateFallbackDenylist: [/^\/api/, /^\/socket\.io/, /^\/files/],
       },
     }),
   ],

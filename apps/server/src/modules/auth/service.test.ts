@@ -14,10 +14,12 @@ describe('deleteExpiredVerifications', () => {
     const expired = randomUUID();
     const live = randomUUID();
     const row = (id: string, expiresAt: Date) => ({ id, identifier: id, value: 'x', expiresAt });
-    await db.insert(verification).values([
-      row(expired, new Date(Date.now() - 60_000)),
-      row(live, new Date(Date.now() + 60_000)),
-    ]);
+    await db
+      .insert(verification)
+      .values([
+        row(expired, new Date(Date.now() - 60_000)),
+        row(live, new Date(Date.now() + 60_000)),
+      ]);
 
     expect(await deleteExpiredVerifications(db)).toBeGreaterThanOrEqual(1);
 

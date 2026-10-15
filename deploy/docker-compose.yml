@@ -73,6 +73,7 @@ services:
     volumes:
       - ./backup/backup.sh:/backup.sh:ro
       - backups:/backups
+      - files:/data/files:ro
     depends_on:
       postgres:
         condition: service_healthy

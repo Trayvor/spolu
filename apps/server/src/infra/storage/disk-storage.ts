@@ -7,6 +7,7 @@ import { pipeline } from 'node:stream/promises';
 import { InvalidStorageKeyError, StorageNotFoundError, type Storage } from './storage.js';
 
 const KEY_PATTERN = /^[a-z0-9/_.-]+$/;
+const SIGNATURE_PATTERN = /^[0-9a-f]{64}$/;
 const META_SUFFIX = '.meta.json';
 
 function assertValidKey(key: string): void {
@@ -50,8 +51,9 @@ export function createDiskStorage(rootDir: string, secret: string): Storage {
     async put(key, data, contentType) {
       const path = pathFor(key);
       await mkdir(dirname(path), { recursive: true });
-      await atomicWrite(path, data);
+      // Sidecar first: a visible data file always has its metadata.
       await atomicWrite(path + META_SUFFIX, Buffer.from(JSON.stringify({ contentType })));
+      await atomicWrite(path, data);
     },
 
     async get(key) {
@@ -99,6 +101,7 @@ export function createDiskStorage(rootDir: string, secret: string): Storage {
         return false;
       }
       if (!Number.isFinite(expires) || expires < Math.floor(Date.now() / 1000)) return false;
+      if (!SIGNATURE_PATTERN.test(sig)) return false;
       const expected = Buffer.from(sign(key, expires), 'hex');
       const given = Buffer.from(sig, 'hex');
       return given.length === expected.length && timingSafeEqual(given, expected);

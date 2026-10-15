@@ -1,4 +1,4 @@
-import { mkdtemp, readdir, rm } from 'node:fs/promises';
+import { mkdtemp, readdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { Readable } from 'node:stream';
@@ -46,6 +46,22 @@ describe('disk storage', () => {
     expect(await storage.exists('a.txt')).toBe(false);
     expect(await readdir(dir)).toEqual([]);
     await expect(storage.delete('a.txt')).resolves.toBeUndefined();
+  });
+
+  it('a data file without its sidecar reads as not found', async () => {
+    await writeFile(join(dir, 'orphan.txt'), 'x');
+    await expect(storage.get('orphan.txt')).rejects.toBeInstanceOf(StorageNotFoundError);
+  });
+
+  it('put writes the sidecar before the data', async () => {
+    const failing = new Readable({
+      read() {
+        this.destroy(new Error('boom'));
+      },
+    });
+    await expect(storage.put('b.txt', failing, 'text/plain')).rejects.toThrow('boom');
+    expect(await storage.exists('b.txt')).toBe(false);
+    expect(await readdir(dir)).toEqual(['b.txt.meta.json']);
   });
 
   it('throws StorageNotFoundError for a missing key', async () => {
@@ -102,6 +118,14 @@ describe('disk storage', () => {
       expect(storage.verifySignature('a.txt', expires, '')).toBe(false);
       expect(storage.verifySignature('b.txt', expires, sig)).toBe(false);
       expect(storage.verifySignature('a.txt', expires + 1, sig)).toBe(false);
+    });
+
+    it('rejects upper-case, short and non-hex signatures', () => {
+      const { expires, sig } = parse(storage.signUrl('a.txt', 60));
+      expect(storage.verifySignature('a.txt', expires, sig.toUpperCase())).toBe(false);
+      expect(storage.verifySignature('a.txt', expires, sig.slice(0, 32))).toBe(false);
+      expect(storage.verifySignature('a.txt', expires, 'z'.repeat(64))).toBe(false);
+      expect(storage.verifySignature('a.txt', expires, `${sig}00`)).toBe(false);
     });
 
     it('rejects an expired signature', () => {
