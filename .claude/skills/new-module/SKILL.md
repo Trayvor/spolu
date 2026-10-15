@@ -9,7 +9,7 @@ description: Use when adding a new feature area to Spolu — a server module und
 
 Spolu's server is organised as modules by feature. Each module owns its routes, service logic, permission policy, DB tables, socket events and tests. The architecture is in `docs/architecture/overview.md`; this skill is the hands-on template.
 
-**Worked example: `apps/server/src/modules/users/` (server) and `apps/web/src/features/admins/` (web).** Copy their shape; read them before writing a new module.
+**Worked example: `apps/server/src/modules/users/` (server) and `apps/web/src/features/admins/` (web).** Copy their shape; read them before writing a new module. `apps/server/src/modules/groups/` (with `apps/web/src/features/groups/` and `features/join/`) is the second example: it adds the patterns in "Patterns from groups" below.
 
 ## Layout
 
@@ -53,6 +53,15 @@ apps/web/src/features/<name>/      api.ts (queries + writes), <name>-page.tsx, t
     - Web: Vitest + Testing Library; mock `fetch` and `@/lib/socket` (see `admins-page.test.tsx`).
     - e2e (`e2e/`, own database `spolu_e2e`): one happy-path spec per module; the setup project logs the superadmin in once (`e2e/auth.setup.ts`).
 11. Finish with the `update-kb` skill (product doc, data-model status, permissions, realtime, overview, glossary).
+
+## Patterns from groups
+
+- **Public route:** no preHandler when a secret in the URL is the credential (`modules/groups/join-routes.ts`). Check the token first (unknown: 404), then the body, and answer the same for every email so nothing leaks. Rate-limit it with `createRateLimiter` (`infra/http/rate-limit.ts`, in-memory fixed window per key; fine for one process, ADR 0005).
+- **Route-scoped body parser:** a non-JSON body (the logo upload, `modules/groups/logo.ts`) is its own plugin with `addContentTypeParser` and a small `bodyLimit`, so the parser does not leak to other routes. Sniff the type from the bytes, never trust the header alone. Web side: `apiSendRaw`.
+- **404, not 403, for unreadable resources:** if a caller may not read a resource, answer `404 not_found`, the same as a missing id (`canReadGroup`). 403 is only for known-readable resources the caller may not change.
+- **`Me` vs `SessionUser`:** `request.user` is a `SessionUser` (no group). Look the group up with the module's service (`getMembershipGroupId`); only `/api/me` returns `Me` (SessionUser + `groupId`).
+- **Cached files:** serve with `Cache-Control: private` and an `ETag`; when the file can change under the same URL, expose `updatedAt` in the shared schema and have the web append `?v=<updatedAt>`.
+- **One-statement races:** prefer one upsert (`onConflictDoUpdate`) or a unique-violation catch over check-then-write (`joinWithEmail`).
 
 ## Rules
 

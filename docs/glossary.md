@@ -14,6 +14,7 @@ Terms used across the docs and code, in alphabetical order.
 - **egrant URL**: the address of a client's eGrant instance, saved on the group. Incoming tickets are matched to a group by it. It is normalized first (case, protocol, trailing slash and similar differences are removed) so that equal addresses compare equal.
 - **group**: one client organization with its own chat, task board, tickets and contracts.
 - **invite link**: a link an admin copies from a group. A client opens it, enters an email, gets a code and joins that group.
+- **pending client**: a client who entered an email on an invite link but never signed in (`email_verified` false, empty name). A later invite link moves them to its group; once they sign in they are a normal client.
 - **login code**: the 6-digit one-time code sent by email to log in; valid 5 minutes, 3 tries. Also called OTP code.
 - **member**: a user who belongs to a group.
 - **mention**: tagging a user with @ in a message so they are notified.
@@ -25,6 +26,7 @@ Terms used across the docs and code, in alphabetical order.
 - **PWA**: progressive web app. The web app can be installed on a phone or desktop and receive push notifications.
 - **read state**: what a user has already read in a channel; used for the unread indicator.
 - **reminder**: a scheduled notification to admins that a contract is about to need attention.
+- **removed member**: a client an admin removed from a group. The user row is kept with `disabled_at` set and the membership stays, so the admin can restore them; they get no code and lose sessions and sockets. Listed under the group's removed members.
 - **room**: a Socket.IO room; users join rooms to receive live events for a group, DM or task channel.
 - **seq**: a per-channel increasing number on each message. Clients use it to find and load messages missed during a disconnect.
 - **session**: a long-lived login on one device, kept after the code is entered. A `session` row plus the httpOnly cookie `better-auth.session_token`; removing a user deletes their sessions.

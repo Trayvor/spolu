@@ -10,13 +10,16 @@ const RECONNECT_MAX_MS = 30_000;
 
 /**
  * Layout of every signed-in screen. Owns the realtime connection: it opens once the session
- * is known and closes when the session goes (logout, 401) or the layout goes away. The server refuses a handshake without a
- * session with `unauthorized`: the session is gone, so go to /login (Socket.IO does not retry
- * after that error, and we do not either). `server_error` only means "try later": the user stays
- * signed in and the layout reconnects after 1 s, 2 s, 4 s ... up to 30 s (reset by a successful connect). When the server itself ends the connection (`io server disconnect`, e.g.
- * the admin was removed) Socket.IO does not reconnect, so ask /api/me: no session means
- * the same trip to /login.
+ * is known and closes when the session goes (logout, 401) or the layout goes away.
+ * The server refuses a handshake without a session with `unauthorized`: the session is gone,
+ * so go to /login (Socket.IO does not retry after that error, and we do not either).
+ * `server_error` only means "try later": the user stays signed in and the layout reconnects
+ * after 1 s, 2 s, 4 s ... up to 30 s (reset by a successful connect).
+ * When the server itself ends the connection (`io server disconnect`, e.g. the admin was
+ * removed) Socket.IO does not reconnect, so ask /api/me: no session means the same trip to
+ * /login.
  */
+
 export function AuthedLayout() {
   const userId = useSession()?.id;
   const queryClient = useQueryClient();

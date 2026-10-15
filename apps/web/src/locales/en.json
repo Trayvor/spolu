@@ -13,9 +13,6 @@
     "menu": "Account menu",
     "logout": "Log out"
   },
-  "home": {
-    "welcome": "Welcome, {{name}}"
-  },
   "language": {
     "current": "Language: {{name}}"
   },

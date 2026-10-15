@@ -25,4 +25,4 @@ A client joins a group through an invite link and only needs to enter an email. 
 
 ## Phase
 
-Phase 2 (superadmin, email-code login, long-lived session, creating admins). Optional password: Phase 16. Invite-based registration: Phase 3 (server endpoints done).
+Phase 2 (superadmin, email-code login, long-lived session, creating admins). Optional password: Phase 16. Invite-based registration: Phase 3.
