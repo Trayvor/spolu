@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { GroupForm } from './group-form';
 import { GroupLogo } from './group-logo';
 
-/** One line: logo, name, eGrant link and (admins) Edit. Editing swaps the line for the form. */
+/** One line: logo, name (a link to the instance) and (admins) Edit. Editing swaps the line for the form. */
 export function GroupHeader({ group, admin }: { group: Group; admin: boolean }) {
   const { t } = useTranslation();
   const [editing, setEditing] = useState(false);
@@ -29,19 +29,23 @@ export function GroupHeader({ group, admin }: { group: Group; admin: boolean }) 
           name={group.name}
           hasLogo={group.hasLogo}
           version={group.updatedAt}
-          size={40}
+          size={32}
         />
-        <div className="min-w-0">
-          <h1 className="truncate text-medium leading-tight font-semibold">{group.name}</h1>
-          <a
-            href={group.egrantUrl}
-            target="_blank"
-            rel="noreferrer noopener"
-            className="block truncate text-button text-muted-foreground hover:text-ink-hover"
-          >
-            {group.egrantUrl}
-          </a>
-        </div>
+        <h1 className="min-w-0 truncate text-medium leading-tight font-semibold">
+          {group.egrantUrl ? (
+            <a
+              href={group.egrantUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              title={group.egrantUrl}
+              className="hover:underline"
+            >
+              {group.name}
+            </a>
+          ) : (
+            group.name
+          )}
+        </h1>
       </div>
       {admin && (
         <Button variant="secondary" size="sm" className="shrink-0" onClick={() => setEditing(true)}>

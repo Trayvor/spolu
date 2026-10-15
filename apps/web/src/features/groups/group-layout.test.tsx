@@ -44,6 +44,7 @@ function mockApi(
     members?: unknown[];
     removed?: unknown[];
     group?: number;
+    egrantUrl?: string;
   } = {},
 ) {
   const me = options.me ?? ADMIN;
@@ -55,7 +56,8 @@ function mockApi(
     if (url === '/api/me') return reply(200, me);
     if (url === '/api/groups/g1' && method === 'GET') {
       if (options.group) return reply(options.group, { error: 'not_found' });
-      return reply(200, me.role === 'client' ? GROUP : { ...GROUP, inviteUrl: INVITE });
+      const group = { ...GROUP, egrantUrl: options.egrantUrl ?? GROUP.egrantUrl };
+      return reply(200, me.role === 'client' ? group : { ...group, inviteUrl: INVITE });
     }
     if (url === '/api/groups/g1/invite' && method === 'POST') {
       return reply(200, { inviteUrl: 'https://spolu.test/join/new-token' });
@@ -151,20 +153,39 @@ describe('group layout', () => {
     expect(router.state.location.pathname).toBe('/groups/g1/chat');
   });
 
-  it('the header shows the 40 px logo, name and eGrant link; Edit (admins only) opens the form in place', async () => {
+  it('the header is one compact line: 32 px logo, the name as a link to the instance, Edit opens the form in place', async () => {
     mockApi();
     const { user } = renderGroup('/groups/g1/chat');
-    expect(await screen.findByRole('heading', { name: 'Acme' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'https://acme.egrant.sk' })).toBeInTheDocument();
-    expect(screen.getByText('A')).toHaveStyle({ width: '40px', height: '40px' });
+    const heading = await screen.findByRole('heading', { name: 'Acme' });
+    expect(screen.queryByText('https://acme.egrant.sk')).toBeNull();
+    const link = within(heading).getByRole('link', { name: 'Acme' });
+    expect(link).toHaveAttribute('href', 'https://acme.egrant.sk');
+    expect(link).toHaveAttribute('target', '_blank');
+    expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+    expect(link).toHaveAttribute('title', 'https://acme.egrant.sk');
+    expect(link).toHaveClass('hover:underline');
+    expect(heading).toHaveClass('truncate');
+    expect(screen.getByText('A')).toHaveStyle({ width: '32px', height: '32px' });
     await user.click(screen.getByRole('button', { name: t('group.edit') }));
     expect(screen.getByLabelText(t('groups.form.name'))).toHaveValue('Acme');
   });
 
-  it('a client sees no Edit button in the header', async () => {
+  it('a group without a URL has a plain-text name, no link', async () => {
+    mockApi({ egrantUrl: '' });
+    renderGroup('/groups/g1/chat');
+    const heading = await screen.findByRole('heading', { name: 'Acme' });
+    expect(within(heading).queryByRole('link')).toBeNull();
+    expect(heading).toHaveClass('truncate');
+  });
+
+  it('a client sees the same header link and no Edit button', async () => {
     mockApi({ me: CLIENT });
     renderGroup('/groups/g1/chat');
-    expect(await screen.findByRole('heading', { name: 'Acme' })).toBeInTheDocument();
+    const heading = await screen.findByRole('heading', { name: 'Acme' });
+    expect(within(heading).getByRole('link', { name: 'Acme' })).toHaveAttribute(
+      'href',
+      'https://acme.egrant.sk',
+    );
     expect(screen.queryByRole('button', { name: t('group.edit') })).toBeNull();
   });
 
@@ -181,10 +202,6 @@ describe('group layout', () => {
     const { user, writeText } = renderGroup();
     const field = await screen.findByDisplayValue(INVITE);
     expect(field).toHaveAttribute('readonly');
-    expect(screen.getByRole('link', { name: 'https://acme.egrant.sk' })).toHaveAttribute(
-      'target',
-      '_blank',
-    );
     await user.click(screen.getByRole('button', { name: t('group.invite.copy') }));
     expect(writeText).toHaveBeenCalledWith(INVITE);
     await waitFor(() =>
