@@ -1,6 +1,6 @@
 # Data model
 
-Target model for all phases. Fields are indicative until the entity's phase. Status is `planned` for every entity; Phase 1 adds only a technical `app_meta` table (planned for Phase 1), no product entities.
+Target model for all phases. Fields are indicative until the entity's phase. Status is `built` for the technical `app_meta` table (Phase 1) and for `User` and the auth tables `Session`, `Account`, `Verification` (Phase 2); every other entity is `planned`.
 
 ```mermaid
 erDiagram
