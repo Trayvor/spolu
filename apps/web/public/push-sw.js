@@ -1,11 +1,16 @@
-/* global self */
+/* global self, URL */
 // Push handlers, pulled into the Workbox worker with importScripts (vite.config.ts).
 // Plain JS on purpose: it is served as is, not bundled.
 
 self.addEventListener('push', (event) => {
-  const payload = event.data ? event.data.json() : {};
+  let payload = {};
+  try {
+    payload = (event.data && event.data.json()) || {};
+  } catch {
+    // A malformed payload still gets a generic notification (userVisibleOnly requires one).
+  }
   event.waitUntil(
-    self.registration.showNotification(payload.title, {
+    self.registration.showNotification(payload.title || 'Spolu', {
       body: payload.body,
       tag: payload.tag,
       renotify: true,
@@ -15,9 +20,16 @@ self.addEventListener('push', (event) => {
   );
 });
 
-/** Keep only a same-origin path; anything else opens the app root. */
+/** Keep only a same-origin path (parsed like the browser does); anything else opens the root. */
 function safePath(url) {
-  return typeof url === 'string' && /^\/(?![/\\])/.test(url) ? url : '/';
+  if (typeof url !== 'string') return '/';
+  try {
+    const parsed = new URL(url, self.location.origin);
+    if (parsed.origin !== self.location.origin) return '/';
+    return parsed.pathname + parsed.search + parsed.hash;
+  } catch {
+    return '/';
+  }
 }
 
 self.addEventListener('notificationclick', (event) => {

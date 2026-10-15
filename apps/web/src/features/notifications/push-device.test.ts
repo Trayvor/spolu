@@ -31,6 +31,7 @@ function stubBrowser(opts: {
   standalone?: boolean;
   permission?: NotificationPermission;
   sub?: Sub | null;
+  noWorker?: boolean;
 }) {
   const sub = opts.sub ?? null;
   const newSub: Sub = {
@@ -46,7 +47,10 @@ function stubBrowser(opts: {
     userAgent: opts.ua ?? ANDROID,
     platform: 'Linux',
     maxTouchPoints: 5,
-    serviceWorker: { ready: Promise.resolve({ pushManager }) },
+    serviceWorker: {
+      ready: Promise.resolve({ pushManager }),
+      getRegistration: vi.fn(() => Promise.resolve(opts.noWorker ? undefined : { pushManager })),
+    },
   });
   vi.stubGlobal(
     'matchMedia',
@@ -149,6 +153,25 @@ describe('forgetThisDevice', () => {
     await forgetThisDevice();
     expect(deletePushSubscription).toHaveBeenCalledWith('https://fcm.googleapis.com/x');
     expect(order).toEqual(['server', 'browser']);
+  });
+
+  it('still unsubscribes when the server delete fails', async () => {
+    const sub: Sub = {
+      endpoint: 'https://fcm.googleapis.com/x',
+      toJSON: () => ({}),
+      unsubscribe: vi.fn(() => Promise.resolve(true)),
+    };
+    stubBrowser({ permission: 'granted', sub });
+    vi.mocked(deletePushSubscription).mockRejectedValueOnce(new Error('offline'));
+    await expect(forgetThisDevice()).rejects.toThrow('offline');
+    expect(sub.unsubscribe).toHaveBeenCalled();
+  });
+
+  it('with no worker registered, state is off and forgetting completes', async () => {
+    stubBrowser({ permission: 'granted', noWorker: true });
+    expect(await getDeviceState()).toBe('off');
+    await forgetThisDevice();
+    expect(deletePushSubscription).not.toHaveBeenCalled();
   });
 
   it('does nothing when unsupported', async () => {

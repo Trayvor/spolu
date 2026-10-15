@@ -34,9 +34,10 @@ function pushSupported(): boolean {
   );
 }
 
+/** `ready` never settles without a registered worker, so look the registration up instead. */
 async function currentSubscription(): Promise<PushSubscription | null> {
-  const registration = await navigator.serviceWorker.ready;
-  return registration.pushManager.getSubscription();
+  const registration = await navigator.serviceWorker.getRegistration();
+  return registration ? registration.pushManager.getSubscription() : null;
 }
 
 export async function getDeviceState(): Promise<DeviceState> {
@@ -77,6 +78,10 @@ export async function forgetThisDevice(): Promise<void> {
   if (!pushSupported()) return;
   const subscription = await currentSubscription();
   if (!subscription) return;
-  await deletePushSubscription(subscription.endpoint);
-  await subscription.unsubscribe();
+  try {
+    await deletePushSubscription(subscription.endpoint);
+  } finally {
+    // Never leave the browser subscribed after logout, even if the server call failed.
+    await subscription.unsubscribe();
+  }
 }

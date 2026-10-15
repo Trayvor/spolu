@@ -12,7 +12,11 @@ function setup(clientList: unknown[]) {
     addEventListener: (type: string, fn: Listener) => {
       listeners[type] = fn;
     },
-    registration: { showNotification: vi.fn(() => Promise.resolve()) },
+    registration: {
+      showNotification: vi.fn<(title: string, options?: unknown) => Promise<void>>(() =>
+        Promise.resolve(),
+      ),
+    },
     clients: {
       matchAll: vi.fn(() => Promise.resolve(clientList)),
       openWindow: vi.fn(() => Promise.resolve(null)),
@@ -47,6 +51,21 @@ describe('push-sw', () => {
     });
   });
 
+  it('a malformed or empty payload still shows a notification', async () => {
+    const { self, fire } = setup([]);
+    await fire('push', {
+      data: {
+        json: () => {
+          throw new SyntaxError('bad');
+        },
+      },
+    });
+    await fire('push', {});
+    expect(self.registration.showNotification).toHaveBeenCalledTimes(2);
+    expect(self.registration.showNotification.mock.calls[0]![0]).toBe('Spolu');
+    expect(self.registration.showNotification.mock.calls[1]![0]).toBe('Spolu');
+  });
+
   it('click focuses an open tab and posts the path', async () => {
     const client = {
       url: 'https://spolu.test/',
@@ -72,10 +91,17 @@ describe('push-sw', () => {
 
   it('a foreign url opens / instead', async () => {
     const { self, fire } = setup([]);
-    for (const url of ['https://evil.test/x', '//evil.test/x', 'javascript:alert(1)', 42]) {
+    const urls = [
+      'https://evil.test/x',
+      '//evil.test/x',
+      '/\t/evil.test',
+      'javascript:alert(1)',
+      42,
+    ];
+    for (const url of urls) {
       notification.data.url = url;
       await fire('notificationclick', { notification });
     }
-    expect(self.clients.openWindow.mock.calls).toEqual([['/'], ['/'], ['/'], ['/']]);
+    expect(self.clients.openWindow.mock.calls).toEqual(urls.map(() => ['/']));
   });
 });
