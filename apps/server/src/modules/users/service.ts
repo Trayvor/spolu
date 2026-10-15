@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { and, asc, eq, inArray, isNull, sql } from 'drizzle-orm';
-import type { Admin } from '@spolu/shared';
+import type { Admin, GroupMode, Role, UserLanguage } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
 import { user } from './schema.js';
 
@@ -119,4 +119,105 @@ export async function createUnverifiedClient(db: Db, email: string): Promise<Use
     .values({ id: randomUUID(), email: normalizeEmail(email), name: '', role: 'client' })
     .returning();
   return row as UserRow;
+}
+
+/** What notification delivery needs to know about a recipient. */
+export type NotificationProfile = {
+  id: string;
+  email: string;
+  name: string;
+  role: Role;
+  language: UserLanguage;
+  pushEnabled: boolean;
+  emailEnabled: boolean;
+  defaultGroupMode: GroupMode | null;
+  disabled: boolean;
+};
+
+/** Notification profiles of the given users, keyed by id, in one query. Unknown ids are absent. */
+export async function getNotificationProfiles(
+  db: Db,
+  ids: string[],
+): Promise<Map<string, NotificationProfile>> {
+  if (ids.length === 0) return new Map();
+  const rows = await db
+    .select({
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+      language: user.language,
+      pushEnabled: user.pushEnabled,
+      emailEnabled: user.emailEnabled,
+      defaultGroupMode: user.defaultGroupMode,
+      disabledAt: user.disabledAt,
+    })
+    .from(user)
+    .where(inArray(user.id, [...new Set(ids)]));
+  return new Map(
+    rows.map(({ disabledAt, ...row }) => [row.id, { ...row, disabled: disabledAt !== null }]),
+  );
+}
+
+/** Sets only the switches present in the patch. */
+export async function updateNotificationPrefs(
+  db: Db,
+  id: string,
+  patch: { pushEnabled?: boolean; emailEnabled?: boolean },
+): Promise<void> {
+  const set: Partial<Pick<UserRow, 'pushEnabled' | 'emailEnabled'>> = {};
+  if (patch.pushEnabled !== undefined) set.pushEnabled = patch.pushEnabled;
+  if (patch.emailEnabled !== undefined) set.emailEnabled = patch.emailEnabled;
+  if (Object.keys(set).length === 0) return;
+  await db
+    .update(user)
+    .set({ ...set, updatedAt: new Date() })
+    .where(eq(user.id, id));
+}
+
+/** Sets the user's own default group mode; null falls back to the role default. */
+export async function setDefaultGroupMode(
+  tx: Db,
+  id: string,
+  mode: GroupMode | null,
+): Promise<void> {
+  await tx
+    .update(user)
+    .set({ defaultGroupMode: mode, updatedAt: new Date() })
+    .where(eq(user.id, id));
+}
+
+export async function setUserLanguage(db: Db, id: string, language: UserLanguage): Promise<void> {
+  await db.update(user).set({ language, updatedAt: new Date() }).where(eq(user.id, id));
+}
+
+/**
+ * Stores a new, already confirmed email address. Throws `EmailTakenError` (with the other
+ * account's kind) when another account has it.
+ */
+export async function changeUserEmail(db: Db, id: string, email: string): Promise<void> {
+  const normalized = normalizeEmail(email);
+  try {
+    await db
+      .update(user)
+      .set({ email: normalized, emailVerified: true, updatedAt: new Date() })
+      .where(eq(user.id, id));
+  } catch (error) {
+    if (!isUniqueViolation(error)) throw error;
+    const owner = await findUserByEmail(db, normalized);
+    throw new EmailTakenError(owner?.role === 'client' ? 'client' : 'admin');
+  }
+}
+
+/**
+ * The iOS fallback: turns email on once per user. Returns true only when it changed the row, so a
+ * later manual opt-out is never undone.
+ */
+export async function applyEmailFallback(db: Db, id: string): Promise<boolean> {
+  const rows = await db
+    .update(user)
+    .set({ emailEnabled: true, emailFallbackAt: new Date(), updatedAt: new Date() })
+    .where(and(eq(user.id, id), isNull(user.emailFallbackAt)))
+    .returning({ id: user.id });
+  return rows.length > 0;
 }

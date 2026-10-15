@@ -6,13 +6,17 @@ import { testDatabaseUrl } from '../../../test/test-config.js';
 import { user } from './schema.js';
 import {
   addAdmin,
+  applyEmailFallback,
+  changeUserEmail,
   deactivateUser,
   EmailTakenError,
   ensureSuperadmin,
   findUserByEmail,
+  getNotificationProfiles,
   getUserById,
   listAdmins,
   reactivateUser,
+  updateNotificationPrefs,
 } from './service.js';
 
 const { db, close } = createDb(testDatabaseUrl);
@@ -158,5 +162,66 @@ describe('reactivateUser', () => {
     const { id } = await insertUser('client', true);
     await reactivateUser(db, id);
     expect((await getUserById(db, id))?.disabledAt).toBeNull();
+  });
+});
+
+describe('notification profile', () => {
+  it('a new user has push on, email off, no default mode and language sk', async () => {
+    const { id, email } = await insertUser('client');
+    const profiles = await getNotificationProfiles(db, [id]);
+    expect(profiles.get(id)).toEqual({
+      id,
+      email,
+      name: `Name ${id}`,
+      role: 'client',
+      language: 'sk',
+      pushEnabled: true,
+      emailEnabled: false,
+      defaultGroupMode: null,
+      disabled: false,
+    });
+    expect((await getNotificationProfiles(db, [])).size).toBe(0);
+  });
+
+  it('updateNotificationPrefs changes only the given switch', async () => {
+    const { id } = await insertUser('admin');
+    await updateNotificationPrefs(db, id, { emailEnabled: true });
+    expect((await getNotificationProfiles(db, [id])).get(id)).toMatchObject({
+      pushEnabled: true,
+      emailEnabled: true,
+    });
+    await updateNotificationPrefs(db, id, { pushEnabled: false });
+    expect((await getNotificationProfiles(db, [id])).get(id)).toMatchObject({
+      pushEnabled: false,
+      emailEnabled: true,
+    });
+  });
+
+  it('applyEmailFallback turns email on once and never again', async () => {
+    const { id } = await insertUser('client');
+    expect(await applyEmailFallback(db, id)).toBe(true);
+    expect((await getNotificationProfiles(db, [id])).get(id)?.emailEnabled).toBe(true);
+    await updateNotificationPrefs(db, id, { emailEnabled: false });
+    expect(await applyEmailFallback(db, id)).toBe(false);
+    expect((await getNotificationProfiles(db, [id])).get(id)?.emailEnabled).toBe(false);
+  });
+});
+
+describe('changeUserEmail', () => {
+  it('to an address another account has throws EmailTakenError, and the email stays', async () => {
+    const a = await insertUser('client');
+    const b = await insertUser('admin');
+    const error = await changeUserEmail(db, a.id, b.email).catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(EmailTakenError);
+    expect(error).toMatchObject({ kind: 'admin' });
+    expect((await getUserById(db, a.id))?.email).toBe(a.email);
+  });
+
+  it('stores the new address', async () => {
+    const { id } = await insertUser('client');
+    await db.update(user).set({ emailVerified: false }).where(eq(user.id, id));
+    const next = uniqueEmail();
+    await changeUserEmail(db, id, next);
+    expect(await getUserById(db, id)).toMatchObject({ email: next, emailVerified: true });
   });
 });

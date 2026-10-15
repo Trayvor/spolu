@@ -54,5 +54,10 @@ export const ErrorCodes = {
   taskChanged: 'task_changed',
   // Phase 5 — chat
   invalidMention: 'invalid_mention',
+  // Phase 6 — notifications and profile
+  emailTaken: 'email_taken',
+  pushUnavailable: 'push_unavailable',
+  invalidSubscription: 'invalid_subscription',
+  invalidCode: 'invalid_code',
 } as const;
 export type ErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes];
