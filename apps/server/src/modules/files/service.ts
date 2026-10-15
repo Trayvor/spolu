@@ -134,6 +134,52 @@ export async function createFile(
 }
 
 /**
+ * Copies a file server-side into a new, unattached file of the same group owned by `userId`,
+ * with its own storage objects (data, and the preview if any). A copy never shares objects with
+ * the source, so either can be deleted alone. If anything fails, the copied objects are removed.
+ */
+export async function copyFile(
+  { db, storage }: FileDeps,
+  fileId: string,
+  userId: string,
+): Promise<FileInfo> {
+  const source = await getFile(db, fileId);
+  if (!source) throw new InvalidAttachmentError();
+  const id = randomUUID();
+  const storageKey = `files/${source.groupId}/${id}`;
+  const previewKey = source.previewKey
+    ? `files/${source.groupId}/${id}-preview-${randomUUID()}`
+    : null;
+  try {
+    await storage.copy(source.storageKey, storageKey);
+    if (previewKey && source.previewKey) await storage.copy(source.previewKey, previewKey);
+    const [row] = await db
+      .insert(files)
+      .values({
+        id,
+        groupId: source.groupId,
+        uploadedBy: userId,
+        name: source.name,
+        mime: source.mime,
+        size: source.size,
+        storageKey,
+        previewKey,
+        width: source.width,
+        height: source.height,
+      })
+      .returning();
+    return toFileInfo(row!);
+  } catch (error) {
+    await Promise.all(
+      [storageKey, previewKey].flatMap((key) =>
+        key ? [storage.delete(key).catch(() => undefined)] : [],
+      ),
+    );
+    throw error;
+  }
+}
+
+/**
  * Stores the browser-made WebP preview and its dimensions. The row update is a single
  * conditional UPDATE, so of two racing calls exactly one wins; the loser's object is removed
  * and `false` is returned (the route answers 400 invalid_preview).

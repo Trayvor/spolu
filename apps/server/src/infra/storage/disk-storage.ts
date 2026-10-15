@@ -72,6 +72,24 @@ export function createDiskStorage(rootDir: string, secret: string): Storage {
       return { stream: createReadStream(path), contentType, size };
     },
 
+    async copy(fromKey, toKey) {
+      const from = pathFor(fromKey);
+      const to = pathFor(toKey);
+      let meta: Buffer;
+      try {
+        if (!(await stat(from)).isFile()) throw new StorageNotFoundError(fromKey);
+        meta = await readFile(from + META_SUFFIX);
+      } catch (err) {
+        if ((err as NodeJS.ErrnoException).code === 'ENOENT')
+          throw new StorageNotFoundError(fromKey);
+        throw err;
+      }
+      await mkdir(dirname(to), { recursive: true });
+      // Sidecar first, then the data through the same temp-file-and-rename path as put.
+      await atomicWrite(to + META_SUFFIX, meta);
+      await atomicWrite(to, createReadStream(from));
+    },
+
     async delete(key) {
       const path = pathFor(key);
       await rm(path, { force: true });
