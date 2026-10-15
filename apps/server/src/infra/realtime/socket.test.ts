@@ -1,10 +1,12 @@
 import { randomUUID } from 'node:crypto';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { eq } from 'drizzle-orm';
 import { io as connect, type Socket } from 'socket.io-client';
 import { SocketEvents, type PingAck } from '@spolu/shared';
 import { buildTestApp } from '../../../test/test-app.js';
 import { loginAs } from '../../../test/login.js';
 import { addAdmin } from '../../modules/users/service.js';
+import { user } from '../../modules/users/schema.js';
 import { disconnectUser } from './rooms.js';
 
 type TestApp = Awaited<ReturnType<typeof buildTestApp>>;
@@ -16,10 +18,14 @@ async function listen(test: TestApp): Promise<string> {
   return `http://127.0.0.1:${address.port}`;
 }
 
-async function loggedInCookie(test: TestApp): Promise<string> {
+async function loggedIn(test: TestApp): Promise<{ id: string; cookie: string }> {
   const email = `${randomUUID()}@example.com`;
-  await addAdmin(test.deps.db, { email, name: 'Socket Test' });
-  return loginAs(test.app, email);
+  const admin = await addAdmin(test.deps.db, { email, name: 'Socket Test' });
+  return { id: admin.id, cookie: await loginAs(test.app, email) };
+}
+
+async function loggedInCookie(test: TestApp): Promise<string> {
+  return (await loggedIn(test)).cookie;
 }
 
 function open(url: string, extraHeaders: Record<string, string> = {}): Socket {
@@ -64,17 +70,32 @@ describe('socket.io', () => {
     expect(Math.abs(Date.now() - new Date(ack.at).getTime())).toBeLessThan(5000);
   });
 
+  it('a disabled user gets connect_error "unauthorized"', async () => {
+    const { id, cookie } = await loggedIn(test);
+    await test.deps.db.update(user).set({ disabledAt: new Date() }).where(eq(user.id, id));
+    const error = (await nextEvent(connectWith({ cookie }), 'connect_error')) as Error;
+    expect(error.message).toBe('unauthorized');
+  });
+
+  it('a failing session lookup gets connect_error "server_error"', async () => {
+    const cookie = await loggedInCookie(test);
+    const lookup = vi
+      .spyOn(test.app.auth.api, 'getSession')
+      .mockRejectedValueOnce(new Error('database down'));
+    const socket = connectWith({ cookie });
+    const error = (await nextEvent(socket, 'connect_error')) as Error;
+    lookup.mockRestore();
+    expect(error.message).toBe('server_error');
+  });
+
   it('disconnectUser disconnects every socket of that user only', async () => {
-    const cookieA = await loggedInCookie(test);
+    const { id: userId, cookie: cookieA } = await loggedIn(test);
     const cookieB = await loggedInCookie(test);
     const a1 = connectWith({ cookie: cookieA });
     const a2 = connectWith({ cookie: cookieA });
     const b = connectWith({ cookie: cookieB });
     await Promise.all([a1, a2, b].map((s) => nextEvent(s, 'connect')));
 
-    const userId = [...test.app.io.sockets.sockets.values()].find(
-      (s) => s.request.headers.cookie === cookieA,
-    )?.data.user.id as string;
     const closed = Promise.all([nextEvent(a1, 'disconnect'), nextEvent(a2, 'disconnect')]);
     disconnectUser(test.app.io, userId);
     await closed;

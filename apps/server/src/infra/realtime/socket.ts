@@ -17,11 +17,11 @@ declare module 'socket.io' {
  * Every socket is authenticated by the session cookie of the handshake and joins its user room.
  */
 export function attachSocket(app: FastifyInstance, config: Config, auth: Auth): SocketIOServer {
+  const appOrigin = new URL(config.publicUrl).origin;
   const io = new SocketIOServer(app.server, {
     path: '/socket.io',
-    cors: { origin: config.nodeEnv === 'production' ? config.publicUrl : true },
+    cors: { origin: config.nodeEnv === 'production' ? appOrigin : true },
   });
-  const appOrigin = new URL(config.publicUrl).origin;
 
   io.use(async (socket, next) => {
     const { headers } = socket.request;
@@ -37,7 +37,7 @@ export function attachSocket(app: FastifyInstance, config: Config, auth: Auth): 
       next();
     } catch (error) {
       app.log.error(error, 'socket authentication failed');
-      next(new Error('unauthorized'));
+      next(new Error('server_error')); // not the user's fault: the client may retry later
     }
   });
 
