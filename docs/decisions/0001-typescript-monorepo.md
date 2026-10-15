@@ -10,6 +10,7 @@ eHub is built and maintained by one person working with AI agents. The stack mus
 - One git repo with pnpm workspaces: `apps/web`, `apps/server`, `packages/shared`.
 - TypeScript everywhere, `strict`.
 - Backend: Node.js LTS + Fastify. Database: PostgreSQL 17 with Drizzle ORM.
+- Drizzle talks to PostgreSQL through the postgres.js driver (`postgres` package).
 - Frontend: React + Vite, TanStack Router and Query, Tailwind CSS + shadcn/ui.
 - zod schemas live in `packages/shared` and validate both API input and forms.
 - Tests: Vitest and Playwright.
