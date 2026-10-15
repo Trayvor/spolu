@@ -6,6 +6,12 @@ import { RouterProvider, createMemoryHistory } from '@tanstack/react-router';
 import { i18n, setLanguage } from '@/i18n';
 import { createAppRouter } from '@/router';
 
+vi.mock('@/lib/socket', () => ({
+  getSocket: () => ({ on: vi.fn(), off: vi.fn(), connected: false }),
+  connectSocket: vi.fn(),
+  disconnectSocket: vi.fn(),
+}));
+
 const USER = {
   id: 'u1',
   name: 'Jana Nováková',
@@ -42,7 +48,7 @@ function mockApi(replies: { send?: Reply; verify?: Reply[]; loggedIn?: boolean }
       .map(
         (call) => JSON.parse(String((call as unknown as [string, RequestInit])[1].body)) as unknown,
       );
-  return { calls };
+  return { calls, fetchMock };
 }
 
 function renderAt(path: string, userOptions?: Parameters<typeof userEvent.setup>[0]) {
@@ -204,6 +210,39 @@ describe('login page', () => {
     await user.click(again);
     expect(api.calls('/api/auth/email-otp/send-verification-otp')).toHaveLength(2);
     expect(await screen.findByRole('button', { name: wait })).toBeDisabled();
+  });
+
+  it('after Send again the focus moves to the code field', async () => {
+    mockApi();
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const { user } = renderAt('/login', { advanceTimers: vi.advanceTimersByTime });
+    await toCodeStep(user);
+    await act(() => vi.advanceTimersByTimeAsync(31_000));
+    await user.click(screen.getByRole('button', { name: t('login.sendAgain') }));
+
+    await waitFor(() => expect(screen.getByLabelText(t('login.code'))).toHaveFocus());
+  });
+
+  it('a failed resend shows its error without marking the code field invalid', async () => {
+    const api = mockApi();
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const { user } = renderAt('/login', { advanceTimers: vi.advanceTimersByTime });
+    const code = await toCodeStep(user);
+    await act(() => vi.advanceTimersByTimeAsync(31_000));
+    api.fetchMock.mockImplementationOnce(async () => new Response('{}', { status: 429 }));
+    await user.click(screen.getByRole('button', { name: t('login.sendAgain') }));
+
+    expect(await screen.findByText(t('login.errors.tooMany'))).toBeInTheDocument();
+    expect(code).not.toHaveAttribute('aria-invalid');
+  });
+
+  it('a wrong code marks the code field invalid', async () => {
+    mockApi({ verify: [json(400, { message: 'x', code: 'INVALID_OTP' })] });
+    const { user } = renderAt('/login');
+    const code = await toCodeStep(user);
+    await user.type(code, '111111');
+    await screen.findByText(t('login.errors.wrongCode', { count: 2 }));
+    expect(code).toHaveAttribute('aria-invalid', 'true');
   });
 
   it('Change email returns to step 1', async () => {

@@ -5,7 +5,15 @@
   },
   "nav": {
     "home": "Home",
-    "settings": "Settings"
+    "settings": "Settings",
+    "admins": "Admins"
+  },
+  "user": {
+    "menu": "Account menu",
+    "logout": "Log out"
+  },
+  "home": {
+    "welcome": "Welcome, {{name}}"
   },
   "language": {
     "current": "Language: {{name}}"
@@ -51,6 +59,7 @@
     }
   },
   "errors": {
-    "generic": "Something went wrong. Try again."
+    "generic": "Something went wrong. Try again.",
+    "retry": "Try again"
   }
 }

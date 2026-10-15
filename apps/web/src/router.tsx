@@ -5,11 +5,11 @@ import {
   createRouter,
   lazyRouteComponent,
   redirect,
-  Outlet,
   type RouterHistory,
 } from '@tanstack/react-router';
 import { safeRedirect } from '@/features/auth/redirect';
 import { sessionQuery } from '@/features/auth/use-session';
+import { RootError } from '@/routes/root-error';
 import { RootLayout } from '@/routes/root';
 
 interface RouterContext {
@@ -19,6 +19,7 @@ interface RouterContext {
 // Code-based route tree. Every screen is lazy-loaded so it ships as its own chunk.
 const rootRoute = createRootRouteWithContext<RouterContext>()({
   component: RootLayout,
+  errorComponent: RootError,
   notFoundComponent: lazyRouteComponent(() => import('@/routes/not-found'), 'NotFoundPage'),
 });
 
@@ -26,7 +27,8 @@ const rootRoute = createRootRouteWithContext<RouterContext>()({
 const authedRoute = createRoute({
   getParentRoute: () => rootRoute,
   id: 'authed',
-  component: Outlet,
+  // Lazy: it is the only eager importer of socket.io-client otherwise.
+  component: lazyRouteComponent(() => import('@/features/auth/authed-layout'), 'AuthedLayout'),
   beforeLoad: async ({ context, location }) => {
     const user = await context.queryClient.ensureQueryData(sessionQuery);
     if (!user) throw redirect({ to: '/login', search: { redirect: location.href } });

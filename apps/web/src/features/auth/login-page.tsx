@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useRouter, useSearch } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
@@ -35,6 +35,8 @@ export function LoginPage({ redirectTo }: { redirectTo: string }) {
   const [wrongTries, setWrongTries] = useState(0);
   const [secondsLeft, setSecondsLeft] = useState(0);
   const [busy, setBusy] = useState(false);
+  const [codeError, setCodeError] = useState(false);
+  const codeRef = useRef<HTMLInputElement>(null);
 
   // Count the resend lock down once per second.
   const locked = secondsLeft > 0;
@@ -80,13 +82,16 @@ export function LoginPage({ redirectTo }: { redirectTo: string }) {
   }
 
   async function onResend() {
-    await request();
+    // Only a failed verification marks the code field; a failed resend has its own message.
+    setCodeError(false);
+    if (await request()) codeRef.current?.focus();
   }
 
   async function submitCode(value: string) {
     if (busy) return;
     setBusy(true);
     setFormError(null);
+    setCodeError(false);
     try {
       await verifyCode(email, value);
       // refetchType 'all': the session query has no observer on this page.
@@ -94,6 +99,7 @@ export function LoginPage({ redirectTo }: { redirectTo: string }) {
       router.history.push(redirectTo);
     } catch (error) {
       setCode('');
+      setCodeError(true);
       setFormError(failureMessage(error));
     } finally {
       setBusy(false);
@@ -181,9 +187,10 @@ export function LoginPage({ redirectTo }: { redirectTo: string }) {
               autoComplete="one-time-code"
               maxLength={CODE_LENGTH}
               autoFocus
+              ref={codeRef}
               value={code}
               onChange={(e) => onCodeChange(e.target.value)}
-              aria-invalid={formError ? true : undefined}
+              aria-invalid={codeError ? true : undefined}
               aria-describedby={formError ? 'login-code-error' : undefined}
               className="text-medium tracking-[0.4em]"
             />

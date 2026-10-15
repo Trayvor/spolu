@@ -30,7 +30,7 @@ export function StatusCard({ socket = getSocket() }: StatusCardProps) {
     <Card>
       <CardHeader>
         <CardTitle>
-          <h1>{t('system.title')}</h1>
+          <h2>{t('system.title')}</h2>
         </CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-5">

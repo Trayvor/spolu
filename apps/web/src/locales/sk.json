@@ -5,7 +5,15 @@
   },
   "nav": {
     "home": "Domov",
-    "settings": "Nastavenia"
+    "settings": "Nastavenia",
+    "admins": "Administrátori"
+  },
+  "user": {
+    "menu": "Menu účtu",
+    "logout": "Odhlásiť sa"
+  },
+  "home": {
+    "welcome": "Vitajte, {{name}}"
   },
   "language": {
     "current": "Jazyk: {{name}}"
@@ -51,6 +59,7 @@
     }
   },
   "errors": {
-    "generic": "Niečo sa pokazilo. Skúste to znova."
+    "generic": "Niečo sa pokazilo. Skúste to znova.",
+    "retry": "Skúsiť znova"
   }
 }

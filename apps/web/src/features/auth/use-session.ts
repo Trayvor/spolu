@@ -1,4 +1,4 @@
-import { queryOptions, useQuery } from '@tanstack/react-query';
+import { queryOptions, useQuery, type QueryClient } from '@tanstack/react-query';
 import { SessionUserSchema, type SessionUser } from '@spolu/shared';
 import { ApiError, apiGet } from '@/lib/api';
 
@@ -18,4 +18,14 @@ export const sessionQuery = queryOptions({
 
 export function useSession(): SessionUser | null {
   return useQuery(sessionQuery).data ?? null;
+}
+
+/**
+ * The session is over (logout, a 401, a refused socket): cache "anonymous" so the route guard
+ * does not trust the old user and drop everything else cached for that user. The signed-in
+ * layout sees the session go and closes the socket.
+ */
+export function clearSession(queryClient: QueryClient): void {
+  queryClient.setQueryData(sessionQuery.queryKey, null);
+  queryClient.removeQueries({ predicate: (query) => query.queryKey[0] !== 'session' });
 }

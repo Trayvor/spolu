@@ -31,7 +31,7 @@ Spolu must feel instant: faster than Microsoft Teams on a cheap phone over mobil
 
 ## Bundle budget
 
-The initial JS that the browser downloads before showing the first screen: **200 kB gzip**, reported by the build. Today (Phase 2, login guard) it is about 184 kB: the entry chunk about 120 kB, the API client with zod about 38 kB, the router's shared chunk about 20 kB, the `useTranslation` chunk 5.6 kB and the runtime 0.4 kB.
+The initial JS that the browser downloads before showing the first screen: **200 kB gzip**, reported by the build. Today (Phase 2, login guard) it is about 189 kB: the entry chunk about 109 kB, the API client with zod and the session code about 45 kB, the router's shared chunks about 20 kB and 10 kB, and the i18n chunk 4 kB. `socket.io-client` (about 13 kB) stays out of it: only the lazy signed-in layout and the home screen import it.
 
 Budget history: 150 kB → 175 kB (2026-10-15): the Radix dropdown menu for the header language selector (about +29 kB), which later menus reuse at no extra cost. 175 kB → 200 kB (2026-10-15, Phase 2): the session guard checks `/api/me` (validated with zod) before the first screen, so zod and the API client moved into the initial load (about +26 kB); every later screen needs them anyway, and the service worker caches them after the first visit.
 
