@@ -110,7 +110,7 @@ describe('migration 0009 backfill', () => {
     new URL('../../infra/db/migrations/0009_notifications_delivery.sql', import.meta.url),
     'utf8',
   );
-  const backfill = migration.split('--> statement-breakpoint').at(-1)!;
+  const backfill = migration.split('--> statement-breakpoint').at(-1)!.trim();
 
   it('existing events count as delivered and emailed, so the worker never sends the backlog', async () => {
     const { group, a } = await setup();
@@ -122,11 +122,14 @@ describe('migration 0009 backfill', () => {
       kind: 'chat.message',
       payload: {},
     });
+    // The test database is shared: run the migration's own UPDATE limited to this row, so it
+    // never locks or changes other files' events, and roll it back anyway.
+    expect(backfill).toMatch(/WHERE "delivered_at" IS NULL;$/);
+    const ownRowOnly = sql`${sql.raw(backfill.slice(0, -1))} AND "id" = ${id}`;
     class Rollback extends Error {}
-    // In a rolled-back transaction: the test database is shared, other tests' events stay as they are.
     await expect(
       db.transaction(async (tx) => {
-        await tx.execute(sql.raw(backfill));
+        await tx.execute(ownRowOnly);
         const [row] = await tx
           .select()
           .from(notificationEvents)
