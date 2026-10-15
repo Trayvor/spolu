@@ -118,7 +118,13 @@ describe('members', () => {
     for (const c of [active, unverified, removed]) await addMember(db, g.id, c.id);
     await deactivateUser(db, removed.id);
     const row = (await listGroups(db)).find((x) => x.id === g.id);
-    expect(row).toEqual({ id: g.id, name: 'Count', hasLogo: false, memberCount: 1 });
+    expect(row).toEqual({
+      id: g.id,
+      name: 'Count',
+      hasLogo: false,
+      memberCount: 1,
+      updatedAt: g.updatedAt.toISOString(),
+    });
   });
 
   it('listGroups orders by name', async () => {
@@ -133,7 +139,13 @@ describe('members', () => {
   it('listGroups gives a group without members memberCount 0', async () => {
     const g = await newGroup('Empty');
     const row = (await listGroups(db)).find((x) => x.id === g.id);
-    expect(row).toEqual({ id: g.id, name: 'Empty', hasLogo: false, memberCount: 0 });
+    expect(row).toEqual({
+      id: g.id,
+      name: 'Empty',
+      hasLogo: false,
+      memberCount: 0,
+      updatedAt: g.updatedAt.toISOString(),
+    });
   });
 
   it('listMembers hides unverified clients and splits removed ones', async () => {

@@ -7,6 +7,8 @@ export const GroupSummarySchema = z.object({
   name: z.string(),
   hasLogo: z.boolean(),
   memberCount: z.number().int(),
+  /** Cache-buster for the logo URL (`?v=`). */
+  updatedAt: z.string(),
 });
 export type GroupSummary = z.infer<typeof GroupSummarySchema>;
 export const GroupSummaryListSchema = z.array(GroupSummarySchema);

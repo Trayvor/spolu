@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { HealthResponseSchema } from '@spolu/shared';
 import { i18n } from '@/i18n';
-import { ApiError, apiGet, apiSend } from './api';
+import { ApiError, apiGet, apiSend, apiSendRaw } from './api';
 
 function mockFetch(status: number, body: string) {
   const fn = vi.fn().mockResolvedValue(new Response(body, { status }));
@@ -71,5 +71,31 @@ describe('apiSend', () => {
     const headers = init.headers as Record<string, string>;
     expect(headers['Content-Type']).toBe('application/json');
     expect(headers['Accept-Language']).toBe(i18n.language);
+  });
+});
+
+describe('apiSendRaw', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('sends the blob as the raw body with its content type, credentials included', async () => {
+    const fn = mockFetch(200, '');
+    const blob = new Blob(['bytes'], { type: 'image/webp' });
+    await apiSendRaw('PUT', '/groups/g1/logo', blob, 'image/webp');
+    const [url, init] = fn.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe('/api/groups/g1/logo');
+    expect(init.method).toBe('PUT');
+    expect(init.credentials).toBe('include');
+    expect(init.body).toBe(blob);
+    expect((init.headers as Record<string, string>)['Content-Type']).toBe('image/webp');
+  });
+
+  it('rejects with ApiError carrying the code on a non-2xx answer', async () => {
+    mockFetch(400, JSON.stringify({ error: 'invalid_logo' }));
+    const error = await apiSendRaw('PUT', '/groups/g1/logo', new Blob(['x']), 'image/png').catch(
+      (e: unknown) => e,
+    );
+    expect(error).toBeInstanceOf(ApiError);
+    expect((error as ApiError).status).toBe(400);
+    expect((error as ApiError).code).toBe('invalid_logo');
   });
 });

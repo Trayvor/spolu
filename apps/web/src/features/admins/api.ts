@@ -9,7 +9,7 @@ export const adminsQuery = queryOptions({
 });
 
 export async function addAdmin(body: AddAdminBody): Promise<Admin> {
-  return (await apiSend('POST', '/admins', body, AdminSchema)) as Admin;
+  return apiSend('POST', '/admins', body, AdminSchema);
 }
 
 export async function removeAdmin(id: string): Promise<void> {

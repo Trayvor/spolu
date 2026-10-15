@@ -54,13 +54,14 @@ export async function listGroups(db: Db): Promise<GroupSummary[]> {
       name: groups.name,
       hasLogo: sql<boolean>`${groups.logoKey} is not null`,
       memberCount: sql<number>`count(${user.id})::int`,
+      updatedAt: groups.updatedAt,
     })
     .from(groups)
     .leftJoin(groupMembers, eq(groupMembers.groupId, groups.id))
     .leftJoin(user, and(eq(user.id, groupMembers.userId), isActiveVerifiedClient()))
     .groupBy(groups.id)
     .orderBy(asc(groups.name), asc(groups.id));
-  return rows;
+  return rows.map((row) => ({ ...row, updatedAt: row.updatedAt.toISOString() }));
 }
 
 function isActiveVerifiedClient() {

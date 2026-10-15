@@ -175,6 +175,29 @@ describe('logged-in shell', () => {
     );
   });
 
+  it('the Groups link is shown to admins only', async () => {
+    mockApi({ role: 'admin' });
+    renderAt();
+    expect(await screen.findByRole('link', { name: t('nav.groups') })).toHaveAttribute(
+      'href',
+      '/groups',
+    );
+  });
+
+  it('a client does not see the Groups link', async () => {
+    mockApi({ role: 'client' });
+    renderAt();
+    await screen.findByRole('button', { name: t('user.menu') });
+    expect(screen.queryByRole('link', { name: t('nav.groups') })).not.toBeInTheDocument();
+  });
+
+  it('the user menu offers Groups to admins for narrow screens', async () => {
+    mockApi({ role: 'admin' });
+    const { user } = renderAt();
+    await user.click(await screen.findByRole('button', { name: t('user.menu') }));
+    expect(await screen.findByRole('menuitem', { name: t('nav.groups') })).toBeInTheDocument();
+  });
+
   it('a client does not see the Admins link', async () => {
     mockApi({ role: 'client' });
     renderAt();
@@ -205,6 +228,52 @@ describe('logged-in shell', () => {
     expect(queryClient.getQueryData(['session'])).toBeNull();
     expect(fake.disconnect).toHaveBeenCalled();
     expect(fake.connect).toHaveBeenCalledTimes(1);
+  });
+
+  it('server_error schedules a reconnect with growing delay and resets after connect', async () => {
+    mockApi();
+    const { router } = renderAt();
+    await screen.findByRole('heading', { name: t('nav.settings') });
+    expect(fake.connect).toHaveBeenCalledTimes(1);
+
+    vi.useFakeTimers();
+    try {
+      const fail = () => act(() => fake.fire('connect_error', new Error('server_error')));
+      const advance = (ms: number) => act(() => vi.advanceTimersByTime(ms));
+
+      fail();
+      advance(999);
+      expect(fake.connect).toHaveBeenCalledTimes(1);
+      advance(1);
+      expect(fake.connect).toHaveBeenCalledTimes(2); // after 1 s
+      fail();
+      advance(1999);
+      expect(fake.connect).toHaveBeenCalledTimes(2);
+      advance(1);
+      expect(fake.connect).toHaveBeenCalledTimes(3); // after 2 s
+      fail();
+      advance(4000);
+      expect(fake.connect).toHaveBeenCalledTimes(4); // after 4 s
+
+      act(() => fake.fire('connect')); // success: the delay starts again
+      fail();
+      advance(1000);
+      expect(fake.connect).toHaveBeenCalledTimes(5);
+
+      // The delay is capped at 30 s: 2, 4, 8, 16, 30, 30.
+      let count = 5;
+      for (const delay of [2000, 4000, 8000, 16000, 30000, 30000]) {
+        fail();
+        advance(delay - 1);
+        expect(fake.connect).toHaveBeenCalledTimes(count);
+        advance(1);
+        expect(fake.connect).toHaveBeenCalledTimes(++count);
+      }
+      expect(fake.disconnect).not.toHaveBeenCalled();
+      expect(router.state.location.pathname).toBe('/settings');
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('socket connect_error server_error keeps the user signed in', async () => {

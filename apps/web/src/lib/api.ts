@@ -36,6 +36,17 @@ async function readJson(res: Response): Promise<unknown> {
 export async function apiSend<T>(
   method: 'POST' | 'PATCH' | 'DELETE',
   path: string,
+  body: unknown,
+  schema: ZodType<T>,
+): Promise<T>;
+export async function apiSend(
+  method: 'POST' | 'PATCH' | 'DELETE',
+  path: string,
+  body?: unknown,
+): Promise<undefined>;
+export async function apiSend<T>(
+  method: 'POST' | 'PATCH' | 'DELETE',
+  path: string,
   body?: unknown,
   schema?: ZodType<T>,
 ): Promise<T | undefined> {
@@ -58,6 +69,35 @@ export async function apiSend<T>(
     throw new ApiError(`Response from ${path} does not match the expected shape`, res.status, data);
   }
   return parsed.data;
+}
+
+/**
+ * Send raw bytes (an image) as the request body with its own content type. Answers nothing;
+ * a non-2xx status rejects with ApiError carrying the parsed JSON body.
+ */
+export async function apiSendRaw(
+  method: 'PUT',
+  path: string,
+  body: Blob,
+  contentType: string,
+): Promise<void> {
+  const res = await fetch(`/api${path}`, {
+    method,
+    credentials: 'include',
+    headers: {
+      Accept: 'application/json',
+      'Accept-Language': i18n.language,
+      'Content-Type': contentType,
+    },
+    body,
+  });
+  if (!res.ok) {
+    throw new ApiError(
+      `${method} ${path} failed (HTTP ${res.status})`,
+      res.status,
+      await readJson(res),
+    );
+  }
 }
 
 /**

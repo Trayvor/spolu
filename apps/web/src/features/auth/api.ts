@@ -17,5 +17,5 @@ export async function signOut(): Promise<void> {
 
 /** Save the caller's display name; answers the updated profile. */
 export async function updateName(name: string): Promise<Me> {
-  return (await apiSend('PATCH', '/me', { name }, MeSchema)) as Me;
+  return apiSend('PATCH', '/me', { name }, MeSchema);
 }

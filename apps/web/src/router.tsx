@@ -57,7 +57,7 @@ const homeRoute = createRoute({
 const groupsRoute = createRoute({
   getParentRoute: () => authedRoute,
   path: '/groups',
-  component: lazyRouteComponent(() => import('@/routes/groups-placeholder'), 'GroupsPage'),
+  component: lazyRouteComponent(() => import('@/features/groups/groups-page'), 'GroupsPage'),
 });
 
 const groupRoute = createRoute({

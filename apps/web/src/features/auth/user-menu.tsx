@@ -28,7 +28,7 @@ export function initials(name: string, email: string): string {
  * The account menu in the header: a 38 px `bg-secondary` circle with the user's initials,
  * the same size and colour as the language button. The menu shows who is signed in
  * (name and email, not clickable) and "Log out". Under 641 px the header has no room for
- * the "Admins" link, so admins get it here instead.
+ * the "Groups" and "Admins" links, so admins get them here instead.
  */
 export function UserMenu({ user }: { user: SessionUser }) {
   const { t } = useTranslation();
@@ -58,9 +58,14 @@ export function UserMenu({ user }: { user: SessionUser }) {
             <span className="truncate">{user.email}</span>
           </DropdownMenuLabel>
           {isAdmin(user) && (
-            <DropdownMenuItem asChild className="min-[641px]:hidden">
-              <Link to="/admins">{t('nav.admins')}</Link>
-            </DropdownMenuItem>
+            <>
+              <DropdownMenuItem asChild className="min-[641px]:hidden">
+                <Link to="/groups">{t('nav.groups')}</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild className="min-[641px]:hidden">
+                <Link to="/admins">{t('nav.admins')}</Link>
+              </DropdownMenuItem>
+            </>
           )}
           <DropdownMenuSeparator />
           <DropdownMenuItem onSelect={() => logout.mutate()}>{t('user.logout')}</DropdownMenuItem>

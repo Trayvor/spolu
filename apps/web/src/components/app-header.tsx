@@ -5,11 +5,14 @@ import { isAdmin } from '@/features/auth/roles';
 import { UserMenu } from '@/features/auth/user-menu';
 import { useSession } from '@/features/auth/use-session';
 
+const navLink =
+  'hidden h-[38px] items-center rounded-full px-4 text-tiny font-semibold transition-colors duration-(--duration-fast) hover:bg-accent min-[641px]:inline-flex';
+
 /**
  * The egrant.sk header pill, kept still (no hide-on-scroll). On the left the brand
  * "Spolu by eGrant": the product name as the wordmark, a small "by" and the egrant logo,
- * one link to `/` named by `app.fullName`. On the right, for a signed-in user: the "Admins" link (admins only, hidden under 641 px where
- * the user menu offers it), the user menu and the language menu.
+ * one link to `/` named by `app.fullName`. On the right, for a signed-in user: the "Groups" and "Admins" links (admins only, hidden under 641 px where
+ * the user menu offers them), the user menu and the language menu.
  */
 export function AppHeader() {
   const { t } = useTranslation();
@@ -35,12 +38,14 @@ export function AppHeader() {
       </Link>
       <div className="ml-auto flex items-center gap-2">
         {isAdmin(user) && (
-          <Link
-            to="/admins"
-            className="hidden h-[38px] items-center rounded-full px-4 text-tiny font-semibold transition-colors duration-(--duration-fast) hover:bg-accent min-[641px]:inline-flex"
-          >
-            {t('nav.admins')}
-          </Link>
+          <>
+            <Link to="/groups" className={navLink}>
+              {t('nav.groups')}
+            </Link>
+            <Link to="/admins" className={navLink}>
+              {t('nav.admins')}
+            </Link>
+          </>
         )}
         {user && <UserMenu user={user} />}
         <LanguageSwitcher />

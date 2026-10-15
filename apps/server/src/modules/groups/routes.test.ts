@@ -92,6 +92,7 @@ describe('groups API', () => {
       name: 'Acme 2',
       hasLogo: false,
       memberCount: 0,
+      updatedAt: edited.json<Group>().updatedAt,
     });
     expect((await call('GET', '/api/groups/nope', cookie)).statusCode).toBe(404);
     expect(

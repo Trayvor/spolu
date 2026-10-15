@@ -1,11 +1,6 @@
 import { useTranslation } from 'react-i18next';
 
-// Placeholders: the group list and the group page replace these in the next tasks.
-export function GroupsPage() {
-  const { t } = useTranslation();
-  return <h1 className="text-medium font-semibold">{t('groups.title')}</h1>;
-}
-
+// Placeholder: the group page replaces this in the next task.
 export function GroupPage() {
   const { t } = useTranslation();
   return <h1 className="text-medium font-semibold">{t('groups.title')}</h1>;
