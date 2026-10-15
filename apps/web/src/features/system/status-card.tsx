@@ -35,14 +35,15 @@ export function StatusCard({ socket = getSocket() }: StatusCardProps) {
       </CardHeader>
       <CardContent className="flex flex-col gap-5">
         <div className="flex flex-wrap gap-2">
-          {health.data ? (
+          {/* Error first: after a failed refetch TanStack Query still holds the last good data. */}
+          {health.isError ? (
+            <Badge variant="destructive">{t('system.unreachable')}</Badge>
+          ) : health.data ? (
             <Badge variant={health.data.db === 'ok' ? 'success' : 'destructive'}>
               {t(health.data.db === 'ok' ? 'system.database.ok' : 'system.database.down')}
             </Badge>
           ) : (
-            <Badge variant={health.isError ? 'destructive' : 'secondary'}>
-              {t(health.isError ? 'system.unreachable' : 'system.checking')}
-            </Badge>
+            <Badge variant="secondary">{t('system.checking')}</Badge>
           )}
           <Badge variant={realtime.connected ? 'success' : 'secondary'}>
             {t(realtime.connected ? 'system.realtime.connected' : 'system.realtime.disconnected')}
@@ -50,7 +51,7 @@ export function StatusCard({ socket = getSocket() }: StatusCardProps) {
         </div>
         <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 text-button">
           <dt className="text-muted-foreground">{t('system.version')}</dt>
-          <dd>{health.data?.version ?? '–'}</dd>
+          <dd>{health.isError ? '–' : (health.data?.version ?? '–')}</dd>
           <dt className="text-muted-foreground">{t('system.lastPing')}</dt>
           <dd>{realtime.lastPingAt ? time.format(realtime.lastPingAt) : t('system.never')}</dd>
         </dl>

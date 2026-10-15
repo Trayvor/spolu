@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import type { Socket } from 'socket.io-client';
 import { SocketEvents, type PingAck } from '@spolu/shared';
 
-export const PING_INTERVAL_MS = 30_000;
+const PING_INTERVAL_MS = 30_000;
 const PING_TIMEOUT_MS = 5_000;
 
 export type SocketStatus = { connected: boolean; lastPingAt: Date | null };

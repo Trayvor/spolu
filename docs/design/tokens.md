@@ -172,9 +172,8 @@ Saved in `apps/web/public/brand/` (egrant.sk belongs to the owner's company; reu
 | `egrant-logo.svg` | inline `<svg class="egrant-header__logo">` on egrant.sk, 212×40, ink text + gradient mark |
 | `egrant-logo-on-dark.svg` | inline `<svg class="egrant-footer__logo">`, white text + gradient mark |
 | `favicon.svg`, `favicon.ico` | `https://egrant.sk/app/themes/egrant/assets/favicon/` |
-| `apple-touch-icon.png` (180), `icon-192.png`, `icon-512.png` | same folder (`site.webmanifest`: `theme_color #140700`, `background_color #F5F3F1`) |
 
-The PWA manifest should use `theme_color: #140700` and `background_color: #F5F3F1`, as egrant.sk does.
+PWA icons are not copied from egrant.sk: `apps/web/public/icons/` is generated from `favicon.svg` (see [overview.md](../architecture/overview.md), "PWA"). egrant.sk's `site.webmanifest` uses `theme_color #140700` and `background_color #F5F3F1`; Spolu uses `#F5F3F1` for both, so the browser bar blends with the light header pill instead of showing a near-black strip.
 
 ## Simplified for performance
 

@@ -14,14 +14,16 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['brand/favicon.svg', 'brand/egrant-logo.svg', 'fonts/*.woff2'],
       manifest: {
+        id: '/',
         name: 'Spolu by eGrant',
         short_name: 'Spolu',
+        description: 'Client communication by eGrant',
         lang: 'sk',
         display: 'standalone',
         start_url: '/',
         scope: '/',
-        // Same colors as egrant.sk's own web manifest (docs/design/tokens.md).
-        theme_color: '#140700',
+        // Page base color, so the browser bar blends with the light header (docs/design/tokens.md).
+        theme_color: '#F5F3F1',
         background_color: '#F5F3F1',
         icons: [
           { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
