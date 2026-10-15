@@ -45,6 +45,8 @@ export interface MessageItemProps {
   /** A message still being sent (`sending`) or that failed; it has no actions. */
   pending?: 'sending' | 'failed';
   onRetry?: (clientId: string) => void;
+  /** The server answered an edit (the updated message) or a delete (the message marked deleted). */
+  onChanged?: (message: MessageDto) => void;
 }
 
 const REPLY_EXCERPT = 80;
@@ -99,7 +101,15 @@ function Attachments({ message }: { message: MessageDto }) {
   );
 }
 
-function EditForm({ message, onDone }: { message: MessageDto; onDone: () => void }) {
+function EditForm({
+  message,
+  onDone,
+  onChanged,
+}: {
+  message: MessageDto;
+  onDone: () => void;
+  onChanged?: (message: MessageDto) => void;
+}) {
   const { t } = useTranslation();
   const [body, setBody] = useState(message.body);
   const [saving, setSaving] = useState(false);
@@ -111,7 +121,7 @@ function EditForm({ message, onDone }: { message: MessageDto; onDone: () => void
     setSaving(true);
     setFailed(false);
     try {
-      await editMessage(message.id, body);
+      if (body !== message.body) onChanged?.(await editMessage(message.id, body));
       onDone();
     } catch {
       setSaving(false);
@@ -153,7 +163,15 @@ function EditForm({ message, onDone }: { message: MessageDto; onDone: () => void
   );
 }
 
-function DeleteConfirm({ message, onDone }: { message: MessageDto; onDone: () => void }) {
+function DeleteConfirm({
+  message,
+  onDone,
+  onChanged,
+}: {
+  message: MessageDto;
+  onDone: () => void;
+  onChanged?: (message: MessageDto) => void;
+}) {
   const { t } = useTranslation();
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -163,6 +181,12 @@ function DeleteConfirm({ message, onDone }: { message: MessageDto; onDone: () =>
     setFailed(false);
     try {
       await deleteMessage(message.id);
+      // The server's own change (a higher seq) replaces this when its event or catch-up arrives.
+      onChanged?.({
+        ...message,
+        deletedAt: new Date().toISOString(),
+        changeSeq: message.changeSeq + 1,
+      });
       onDone();
     } catch {
       setBusy(false);
@@ -173,16 +197,10 @@ function DeleteConfirm({ message, onDone }: { message: MessageDto; onDone: () =>
   return (
     <div className="mt-1.5 flex flex-wrap items-center gap-2" role="group">
       <span className="text-button font-semibold">{t('chat.confirmDelete')}</span>
-      <Button
-        size="sm"
-        variant="destructive"
-        disabled={busy}
-        autoFocus
-        onClick={() => void confirm()}
-      >
+      <Button size="sm" variant="destructive" disabled={busy} onClick={() => void confirm()}>
         {t('chat.actions.delete')}
       </Button>
-      <Button size="sm" variant="ghost" onClick={onDone}>
+      <Button size="sm" variant="ghost" autoFocus onClick={onDone}>
         {t('chat.cancel')}
       </Button>
       {failed && (
@@ -215,11 +233,14 @@ export const MessageItem = memo(function MessageItem({
   quote,
   pending,
   onRetry,
+  onChanged,
 }: MessageItemProps) {
   const { t, i18n } = useTranslation();
   const [mode, setMode] = useState<'view' | 'edit' | 'confirmDelete'>('view');
   const deleted = message.deletedAt !== null;
   const canManage = message.author.id === meId && !deleted && !pending;
+  // Unsent rows get no toolbar and no footer: a message that is not saved cannot be turned into
+  // a task or carry other actions.
   const showActions = !deleted && !pending && mode === 'view';
   const time = pending ? '' : formatTime(message.createdAt, i18n.language);
   const edited = message.editedAt !== null && !deleted && (
@@ -278,7 +299,7 @@ export const MessageItem = memo(function MessageItem({
         {deleted ? (
           <p className="text-body italic text-muted-foreground">{t('chat.deleted')}</p>
         ) : mode === 'edit' ? (
-          <EditForm message={message} onDone={() => setMode('view')} />
+          <EditForm message={message} onDone={() => setMode('view')} onChanged={onChanged} />
         ) : (
           <div className="text-body">
             <MessageBody body={message.body} nameOf={nameOf} />
@@ -289,7 +310,7 @@ export const MessageItem = memo(function MessageItem({
           <Attachments message={message} />
         )}
         {mode === 'confirmDelete' && (
-          <DeleteConfirm message={message} onDone={() => setMode('view')} />
+          <DeleteConfirm message={message} onDone={() => setMode('view')} onChanged={onChanged} />
         )}
         {pending === 'failed' && (
           <p className="mt-0.5 text-micro text-error-ink">

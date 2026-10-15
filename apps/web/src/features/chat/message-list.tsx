@@ -21,12 +21,25 @@ export interface MessageListProps {
   onRetry?: (clientId: string) => void;
   /** Called when the list reaches or leaves the bottom (the conversation marks the chat read). */
   onAtBottomChange?: (atBottom: boolean) => void;
+  /** An edit or delete of the reader's own message was answered; apply it to the window. */
+  onMessageChanged?: (message: MessageDto) => void;
 }
 
 /** Pixels from the end that still count as "at the end". */
 const EDGE = 24;
 /** Pixels from an end at which the next page is asked for. */
 const PREFETCH = 120;
+
+/** The first row that reaches into the viewport, with its offset from the viewport top. */
+function captureAnchor(el: HTMLElement | null): { id: string; offset: number } | null {
+  if (!el) return null;
+  for (const row of el.querySelectorAll<HTMLElement>('[data-message-id]')) {
+    if (row.offsetTop + row.offsetHeight > el.scrollTop) {
+      return { id: row.dataset.messageId!, offset: row.offsetTop - el.scrollTop };
+    }
+  }
+  return null;
+}
 
 function DayDivider({ date }: { date: string }) {
   const { t, i18n } = useTranslation();
@@ -77,6 +90,7 @@ export function MessageList({
   onOpenThread,
   onRetry,
   onAtBottomChange,
+  onMessageChanged,
 }: MessageListProps) {
   const { t } = useTranslation();
   const people = useGroupPeople(groupId).data;
@@ -96,24 +110,24 @@ export function MessageList({
   const stick = useRef(!highlightId);
   const [atBottom, setAtBottom] = useState(true);
   const [unseen, setUnseen] = useState(false);
-  /** Set when an older page is asked for: the scroll height and first row before it arrives. */
-  const olderAnchor = useRef<{ height: number; firstId: string | undefined } | null>(null);
+  /**
+   * The first visible row and its offset, kept current by every scroll. When the first loaded
+   * row changes (an older page arrived, or the oldest rows were dropped at the cap) the layout
+   * effect puts that row back at the same offset, so the view does not jump.
+   */
+  const anchor = useRef<{ id: string; offset: number } | null>(null);
 
   useLayoutEffect(() => {
     const el = scroller.current;
     if (!el) return;
-    const anchor = olderAnchor.current;
-    if (anchor && anchor.firstId !== firstId) {
-      olderAnchor.current = null;
-      // A prepend keeps the old first row loaded; a trim at the other end drops it.
-      if (win.messages.some((m) => m.id === anchor.firstId)) {
-        el.scrollTop += el.scrollHeight - anchor.height;
-        return;
-      }
+    if (stick.current) {
+      el.scrollTop = el.scrollHeight;
+      return;
     }
-    if (stick.current) el.scrollTop = el.scrollHeight;
-    // The scroll position is the only thing read here; rows are intentionally not a dependency.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const kept = anchor.current;
+    const row = kept && el.querySelector<HTMLElement>(`[data-message-id="${CSS.escape(kept.id)}"]`);
+    if (kept && row) el.scrollTop = row.offsetTop - kept.offset;
+    anchor.current = captureAnchor(el);
   }, [firstId, lastId, pending.length, win.loaded]);
 
   const seenLast = useRef(lastId);
@@ -142,15 +156,13 @@ export function MessageList({
     const fromEnd = el.scrollHeight - el.scrollTop - el.clientHeight;
     const bottom = fromEnd <= EDGE && !win.hasNewer;
     stick.current = bottom;
+    anchor.current = captureAnchor(el);
     if (bottom !== atBottom) {
       setAtBottom(bottom);
       onAtBottomChange?.(bottom);
       if (bottom) setUnseen(false);
     }
-    if (el.scrollTop < PREFETCH && win.hasOlder) {
-      olderAnchor.current ??= { height: el.scrollHeight, firstId };
-      onLoadOlder();
-    }
+    if (el.scrollTop < PREFETCH && win.hasOlder) onLoadOlder();
     if (fromEnd < PREFETCH && win.hasNewer) onLoadNewer();
   }
 
@@ -190,7 +202,7 @@ export function MessageList({
       <div
         ref={scroller}
         onScroll={onScroll}
-        className="h-full overflow-y-auto overscroll-contain pb-3"
+        className="relative h-full overflow-y-auto overscroll-contain pb-3"
       >
         {empty && (
           <p className="px-6 py-10 text-center text-body text-muted-foreground">
@@ -212,10 +224,12 @@ export function MessageList({
               messageActions={messageActions}
               renderMessageFooter={renderMessageFooter}
               onOpenThread={onOpenThread}
+              onChanged={onMessageChanged}
               highlighted={message.id === highlightId}
             />
           );
         })}
+        {/* Unsent rows get no messageActions and no footer: they are not saved yet. */}
         {pending.map((p, i) => (
           <MessageItem
             key={p.clientId}

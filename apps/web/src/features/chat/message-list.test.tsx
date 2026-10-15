@@ -1,5 +1,5 @@
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { FileInfo, GroupPerson, MessageDto } from '@spolu/shared';
@@ -214,5 +214,115 @@ describe('MessageList', () => {
       'bg-muted',
     );
     expect(screen.getByText('New messages')).toBeInTheDocument();
+  });
+
+  it('applies the HTTP result of an edit and of a delete through onMessageChanged', async () => {
+    const user = userEvent.setup();
+    const onMessageChanged = vi.fn();
+    const own = msg({ body: 'mine', author: { id: ME, name: 'Me Myself', isAdmin: false } });
+    const updated = { ...own, body: 'better', changeSeq: own.changeSeq + 1 };
+    api.editMessage.mockResolvedValue(updated);
+    renderList([own], { onMessageChanged });
+    await user.click(screen.getByRole('button', { name: 'More' }));
+    await user.click(await screen.findByRole('menuitem', { name: 'Edit' }));
+    const box = screen.getByRole('textbox', { name: 'Edit' });
+    await user.clear(box);
+    await user.type(box, 'better');
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+    expect(onMessageChanged).toHaveBeenCalledWith(updated);
+
+    await user.click(screen.getByRole('button', { name: 'More' }));
+    await user.click(await screen.findByRole('menuitem', { name: 'Delete' }));
+    await user.click(screen.getByRole('button', { name: 'Delete' }));
+    expect(onMessageChanged).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        id: own.id,
+        deletedAt: expect.any(String),
+        changeSeq: own.changeSeq + 1,
+      }),
+    );
+  });
+
+  it('unsent rows get no messageActions and no footer', () => {
+    renderList(
+      [msg()],
+      {
+        messageActions: [{ id: 'task', label: 'Turn into tasks', icon: <i />, onSelect: vi.fn() }],
+        renderMessageFooter: () => <span>footer</span>,
+      },
+      {
+        pending: [
+          { clientId: 'c-1', input: { body: 'later', clientId: 'c-1' }, status: 'sending' },
+        ],
+      },
+    );
+    expect(screen.getAllByRole('button', { name: 'Turn into tasks' })).toHaveLength(1);
+    expect(screen.getAllByText('footer')).toHaveLength(1);
+  });
+});
+
+describe('MessageList scroll anchoring', () => {
+  // jsdom has no layout: every message row is 100px tall and stacked in DOM order.
+  beforeAll(() => {
+    const rowIndex = (el: HTMLElement) =>
+      [...el.parentElement!.querySelectorAll('[data-message-id]')].indexOf(el);
+    Object.defineProperty(HTMLElement.prototype, 'offsetTop', {
+      configurable: true,
+      get(this: HTMLElement) {
+        return this.dataset.messageId ? rowIndex(this) * 100 : 0;
+      },
+    });
+    Object.defineProperty(HTMLElement.prototype, 'offsetHeight', {
+      configurable: true,
+      get(this: HTMLElement) {
+        return this.dataset.messageId ? 100 : 0;
+      },
+    });
+    Object.defineProperty(HTMLElement.prototype, 'scrollHeight', {
+      configurable: true,
+      get: () => 1000,
+    });
+    Object.defineProperty(HTMLElement.prototype, 'clientHeight', {
+      configurable: true,
+      get: () => 100,
+    });
+  });
+
+  function setup(initial: MessageDto[]) {
+    const client = new QueryClient();
+    client.setQueryData(groupPeopleQuery('g1').queryKey, people);
+    const view = (messages: MessageDto[]) => (
+      <QueryClientProvider client={client}>
+        <MessageList
+          window={{ ...initialWindow, loaded: true, messages }}
+          meId={ME}
+          groupId="g1"
+          onLoadOlder={vi.fn()}
+          onLoadNewer={vi.fn()}
+          onJumpToLatest={vi.fn()}
+        />
+      </QueryClientProvider>
+    );
+    const utils = render(view(initial));
+    const scroller = utils.container.querySelector('[data-message-id]')!.parentElement!;
+    return { scroller, rerender: (m: MessageDto[]) => utils.rerender(view(m)) };
+  }
+
+  it('keeps the first visible row in place when an older page is prepended', () => {
+    const [a, b, c] = [msg(), msg(), msg()] as [MessageDto, MessageDto, MessageDto];
+    const { scroller, rerender } = setup([b, c]);
+    scroller.scrollTop = 50; // away from the end (scrollHeight 1000, clientHeight 100)
+    fireEvent.scroll(scroller);
+    rerender([a, b, c]);
+    expect(scroller.scrollTop).toBe(150);
+  });
+
+  it('keeps the first visible row in place when the oldest rows are trimmed', () => {
+    const [a, b, c] = [msg(), msg(), msg()] as [MessageDto, MessageDto, MessageDto];
+    const { scroller, rerender } = setup([a, b, c]);
+    scroller.scrollTop = 150;
+    fireEvent.scroll(scroller);
+    rerender([b, c]);
+    expect(scroller.scrollTop).toBe(50);
   });
 });
