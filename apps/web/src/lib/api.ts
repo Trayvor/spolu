@@ -34,18 +34,18 @@ async function readJson(res: Response): Promise<unknown> {
  * (undefined without one); any other status rejects with ApiError carrying the parsed body.
  */
 export async function apiSend<T>(
-  method: 'POST' | 'PATCH' | 'DELETE',
+  method: 'POST' | 'PUT' | 'PATCH' | 'DELETE',
   path: string,
   body: unknown,
   schema: ZodType<T>,
 ): Promise<T>;
 export async function apiSend(
-  method: 'POST' | 'PATCH' | 'DELETE',
+  method: 'POST' | 'PUT' | 'PATCH' | 'DELETE',
   path: string,
   body?: unknown,
 ): Promise<undefined>;
 export async function apiSend<T>(
-  method: 'POST' | 'PATCH' | 'DELETE',
+  method: 'POST' | 'PUT' | 'PATCH' | 'DELETE',
   path: string,
   body?: unknown,
   schema?: ZodType<T>,

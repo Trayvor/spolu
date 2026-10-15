@@ -3,6 +3,7 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { VitePWA } from 'vite-plugin-pwa';
+import { pwaManifest } from './pwa-manifest.js';
 
 export default defineConfig({
   plugins: [
@@ -13,30 +14,10 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['brand/favicon.svg', 'brand/egrant-logo.svg', 'fonts/*.woff2'],
-      manifest: {
-        id: '/',
-        name: 'Spolu by eGrant',
-        short_name: 'Spolu',
-        description: 'Client communication by eGrant',
-        lang: 'sk',
-        display: 'standalone',
-        start_url: '/',
-        scope: '/',
-        // Page base color, so the browser bar blends with the light header (docs/design/tokens.md).
-        theme_color: '#F5F3F1',
-        background_color: '#F5F3F1',
-        icons: [
-          { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
-          { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
-          {
-            src: '/icons/maskable-512.png',
-            sizes: '512x512',
-            type: 'image/png',
-            purpose: 'maskable',
-          },
-        ],
-      },
+      manifest: pwaManifest,
       workbox: {
+        // Push and notification-click handlers live in public/push-sw.js, outside the generated worker.
+        importScripts: ['/push-sw.js'],
         globPatterns: ['**/*.{js,css,html}'],
         navigateFallback: '/index.html',
         // API calls and the WebSocket must always reach the server, never the cached shell.

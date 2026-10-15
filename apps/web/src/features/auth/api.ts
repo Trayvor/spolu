@@ -12,6 +12,12 @@ export async function verifyCode(email: string, otp: string): Promise<void> {
 }
 
 export async function signOut(): Promise<void> {
+  // Drop this device's push subscription while the session is still valid; never block logout.
+  try {
+    await (await import('@/features/notifications/push-device')).forgetThisDevice();
+  } catch {
+    // Best effort: a failed cleanup must not keep the user signed in.
+  }
   await apiSend('POST', '/auth/sign-out', {});
 }
 

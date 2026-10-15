@@ -1,7 +1,9 @@
 import { Outlet } from '@tanstack/react-router';
 import { AppHeader } from '@/components/app-header';
+import { useSwNavigate } from '@/lib/use-sw-navigate';
 
 export function RootLayout() {
+  useSwNavigate();
   return (
     // A column at least as tall as the window: a screen that fills the window (the chat) takes
     // the room left under the header. The bottom gap is the side gutter on phones.
