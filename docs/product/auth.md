@@ -16,6 +16,11 @@ A client joins a group through an invite link and only needs to enter an email. 
 - The superadmin cannot be deleted or demoted.
 - The superadmin creates other admins: enters an email, the person receives an email and logs in with a code.
 - Login for admins is by one-time email code through Elastic Email.
+- The code has 6 digits, is valid for 5 minutes and allows 3 tries; after 3 wrong tries the user asks for a new code. Asking again replaces the previous code.
+- Anyone may ask for a code: an email that has no account (or a removed account) gets the same generic "if this email has an account, we sent a code" answer, but no email is sent. The answer never reveals whether an account exists.
+- A removed (disabled) user gets no code and cannot log in, even with a code sent earlier.
+- The code email is in Slovak, or in English when the browser prefers English.
+- Asking for codes is limited to 3 per minute from one address (in production).
 
 ## Phase
 

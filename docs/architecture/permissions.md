@@ -23,6 +23,8 @@ Client-side hiding of buttons and pages is cosmetic. The server never trusts the
 
 User policy lives in `modules/users/policy.ts`: `isAdmin`, `canManageAdmins` (any admin) and `canDeactivate` (target is an admin, not the actor; the superadmin is never a target).
 
+Who is calling comes from the session cookie, read in `modules/auth/session.ts`. Routes use the preHandlers `requireUser(app.auth)` (no valid session: `401 {"error":"unauthorized"}`) or `requireAdmin(app.auth)` (no session: 401; not `isAdmin`: `403 {"error":"forbidden"}`); both set `request.user` (`SessionUser`). A disabled user counts as logged out even if a session row still exists. Finer checks (which group, which admin) call the module's policy functions with `request.user` before the service.
+
 Policy functions are written test-first. To confirm in the Phase 3 design: a forbidden access returns an error that does not reveal whether the resource exists.
 
 See [realtime.md](realtime.md) for room joins and [overview.md](overview.md) for module boundaries.

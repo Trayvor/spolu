@@ -2,6 +2,8 @@ import Fastify, { type FastifyInstance, type FastifyReply } from 'fastify';
 import type { Server as SocketIOServer } from 'socket.io';
 import type { AppDeps } from './deps.js';
 import { attachSocket } from './infra/realtime/socket.js';
+import { createAuth, type Auth } from './modules/auth/auth.js';
+import { authRoutes } from './modules/auth/routes.js';
 import { systemRoutes } from './modules/system/routes.js';
 
 /** Builds the HTTP app and attaches Socket.IO (`app.io`); `app.close()` closes both. */
@@ -21,7 +23,11 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
     await app.io.close();
   });
 
+  app.decorate('auth', createAuth(deps));
+  app.decorateRequest('user', null);
+
   await app.register(systemRoutes, { prefix: '/api', deps });
+  await app.register(authRoutes, { prefix: '/api', deps });
 
   registerNotFound(app);
   return app;
@@ -30,6 +36,8 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
 declare module 'fastify' {
   interface FastifyInstance {
     io: SocketIOServer;
+    /** The better-auth instance (`modules/auth/auth.ts`). */
+    auth: Auth;
     /** Set by registerStatic: answers client-route requests with index.html. */
     spaFallback: ((reply: FastifyReply) => FastifyReply) | null;
   }
