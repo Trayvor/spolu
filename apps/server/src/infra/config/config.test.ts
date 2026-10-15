@@ -176,6 +176,28 @@ describe('loadConfig', () => {
       expect(withFile.push).toEqual({ provider: 'fake', publicKey: 'pub', file: '/tmp/p.jsonl' });
     });
 
+    it('PUSH_PROVIDER=fake is refused in production unless PUSH_ALLOW_FAKE=1', () => {
+      const env = { ...validEnv, NODE_ENV: 'production', PUSH_PROVIDER: 'fake' };
+      expect(errorOf(env).variables).toEqual(['PUSH_PROVIDER']);
+      expect(loadConfig({ ...env, PUSH_ALLOW_FAKE: '1' }).push?.provider).toBe('fake');
+    });
+
+    it('a missing VAPID_SUBJECT alone fails', () => {
+      expect(
+        errorOf({ ...validEnv, VAPID_PUBLIC_KEY: 'pub', VAPID_PRIVATE_KEY: 'priv' }).variables,
+      ).toEqual(['VAPID_SUBJECT']);
+    });
+
+    it('a missing VAPID_PRIVATE_KEY alone fails', () => {
+      expect(
+        errorOf({
+          ...validEnv,
+          VAPID_PUBLIC_KEY: 'pub',
+          VAPID_SUBJECT: 'mailto:ops@example.com',
+        }).variables,
+      ).toEqual(['VAPID_PRIVATE_KEY']);
+    });
+
     it("EMAIL_BATCH_DELAY_MS defaults to 600000 and parses '3000'", () => {
       expect(loadConfig(validEnv).emailBatchDelayMs).toBe(600_000);
       expect(loadConfig({ ...validEnv, EMAIL_BATCH_DELAY_MS: '3000' }).emailBatchDelayMs).toBe(

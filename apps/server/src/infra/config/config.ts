@@ -20,6 +20,7 @@ const base = {
     .optional(),
   PUSH_PROVIDER: z.enum(['webpush', 'fake']).default('webpush'),
   PUSH_FAKE_FILE: z.string().min(1).optional(),
+  PUSH_ALLOW_FAKE: z.enum(['1']).optional(),
   EMAIL_BATCH_DELAY_MS: z.coerce.number().int().min(0).default(600_000),
 };
 
@@ -129,6 +130,8 @@ export function loadConfig(env: NodeJS.ProcessEnv): Config {
 }
 
 function pushConfig(e: {
+  NODE_ENV: 'development' | 'test' | 'production';
+  PUSH_ALLOW_FAKE?: '1' | undefined;
   PUSH_PROVIDER: 'webpush' | 'fake';
   PUSH_FAKE_FILE?: string | undefined;
   VAPID_PUBLIC_KEY?: string | undefined;
@@ -136,6 +139,11 @@ function pushConfig(e: {
   VAPID_SUBJECT?: string | undefined;
 }): Config['push'] {
   if (e.PUSH_PROVIDER === 'fake') {
+    // A stray env line must not make production silently drop every push; the e2e server,
+    // which runs as production, opts in with PUSH_ALLOW_FAKE=1.
+    if (e.NODE_ENV === 'production' && e.PUSH_ALLOW_FAKE !== '1') {
+      throw new ConfigError(['PUSH_PROVIDER']);
+    }
     return { provider: 'fake', publicKey: e.VAPID_PUBLIC_KEY ?? null, file: e.PUSH_FAKE_FILE };
   }
   const vars = {
