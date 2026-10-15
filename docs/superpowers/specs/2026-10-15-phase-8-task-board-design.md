@@ -155,4 +155,4 @@ An admin and a client work on the board at the same time and see each other's ch
 
 ## Out of scope
 
-Task chat and tasks from messages (Phase 9), delivery of notifications and reminders (Phase 6), filters and search on the board, task history log, multiple assignees, time of day on deadlines.
+Task chat and tasks from messages (Phase 9), delivery of notifications and reminders (Phase 6), filters and search on the board, task history log, time of day on deadlines.
