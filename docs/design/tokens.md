@@ -127,7 +127,7 @@ egrant.sk spacing presets are 4, 8, 12, 16, 20, 24, 32, 40, 48, 54, 64px — all
 - Secondary: `bg-secondary`, hover `bg-surface-3` (`.egrant-header__lang-toggle`, "Odoberať výzvy").
 - Icon button: 38×38 circle, `bg-secondary` (language toggle) or `bg-primary` (modal close/back).
 - Full-width submit: primary, `w-full` (`.egrant-modal__submit`).
-- Cursor: pointer on every clickable control (buttons, `role=button`/`menuitem*`, `summary`, `label[for]`, file inputs); `not-allowed` when disabled or `aria-disabled`. One global rule in `theme.css` (`@layer base`) because Tailwind v4 preflight sets `cursor: default` on buttons; do not add per-component cursor classes.
+- Cursor: pointer on every clickable control (buttons, `role=button`/`menuitem*`, `summary`, file inputs; not text field labels); `not-allowed` when disabled or `aria-disabled`. One global rule in `theme.css` (`@layer base`) because Tailwind v4 preflight sets `cursor: default` on buttons; do not add per-component cursor classes.
 - shadcn's default button uses `rounded-md`; Spolu's `src/components/ui/button.tsx` is already `rounded-full` with these variants (default, outline, secondary, ghost, link, destructive) and sizes (default 38px, sm, lg, icon). Badge is a pill too (extra `success` variant). Dropdown menu (`src/components/ui/dropdown-menu.tsx`, Radix): `bg-popover` panel, `rounded-xl`, 8px padding, 2px item gap, min width 190px, `shadow-lift`, 8px below the trigger, no open/close animation; `rounded-lg` items, padding 10px 12px, `text-button` weight 500, focus/hover `bg-accent`; radio items show the label and a 16px check mark on the right and turn weight 600 when chosen (as on egrant.sk); destructive items use `text-error-ink`.
 
 ### Input

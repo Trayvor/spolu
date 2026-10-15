@@ -173,7 +173,6 @@
   [role='menuitemradio']:not([aria-disabled='true']),
   [role='menuitemcheckbox']:not([aria-disabled='true']),
   summary,
-  label[for],
   input[type='file']:not(:disabled) {
     cursor: pointer;
   }
