@@ -9,7 +9,7 @@ Requirements per module: [product/](product/README.md). Phases after 1 get their
 | 0 | [AI workflow & knowledge base](#phase-0--ai-workflow--knowledge-base) | done | - | [spec](superpowers/specs/2026-10-15-ehub-foundation-design.md), [plan](superpowers/plans/2026-10-15-phase-0-ai-workflow-and-kb.md) |
 | 1 | [Skeleton & delivery](#phase-1--skeleton--delivery) | in progress | 0 | [spec](superpowers/specs/2026-10-15-ehub-foundation-design.md), [plan](superpowers/plans/2026-10-15-phase-1-skeleton-and-delivery.md) |
 | 2 | [Login & users](#phase-2--login--users) | in progress | 1 | [spec](superpowers/specs/2026-10-15-phase-2-login-and-users-design.md), [plan](superpowers/plans/2026-10-15-phase-2-login-and-users.md) |
-| 3 | [Groups & invites](#phase-3--groups--invites) | planned | 2 | - |
+| 3 | [Groups & invites](#phase-3--groups--invites) | in progress | 2 | [spec](superpowers/specs/2026-10-15-phase-3-groups-and-invites-design.md), plan (next) |
 | 4 | [Group chat: core](#phase-4--group-chat-core) | planned | 3 | - |
 | 5 | [Chat: threads, mentions, files](#phase-5--chat-threads-mentions-files) | planned | 4 | - |
 | 6 | [Notifications](#phase-6--notifications) | planned | 5 | - |
