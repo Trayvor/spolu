@@ -14,11 +14,11 @@ export class EmailTakenError extends Error {
   }
 }
 
-const normalizeEmail = (email: string): string => email.trim().toLowerCase();
+export const normalizeEmail = (email: string): string => email.trim().toLowerCase();
 
 const adminColumns = { id: user.id, name: user.name, email: user.email, role: user.role };
 
-function isUniqueViolation(error: unknown): boolean {
+export function isUniqueViolation(error: unknown): boolean {
   // drizzle may wrap the driver error in `cause`
   const code = (e: unknown): unknown => (e as { code?: unknown } | null)?.code;
   return code(error) === '23505' || code((error as { cause?: unknown } | null)?.cause) === '23505';

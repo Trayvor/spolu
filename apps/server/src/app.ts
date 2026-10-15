@@ -4,6 +4,7 @@ import type { AppDeps } from './deps.js';
 import { attachSocket } from './infra/realtime/socket.js';
 import { createAuth, type Auth } from './modules/auth/auth.js';
 import { authRoutes } from './modules/auth/routes.js';
+import { joinRoutes } from './modules/groups/join-routes.js';
 import { groupsRoutes } from './modules/groups/routes.js';
 import { systemRoutes } from './modules/system/routes.js';
 import { usersRoutes } from './modules/users/routes.js';
@@ -37,6 +38,7 @@ export async function buildApp(
   await app.register(authRoutes, { prefix: '/api', deps });
   await app.register(usersRoutes, { prefix: '/api', deps });
   await app.register(groupsRoutes, { prefix: '/api', deps });
+  await app.register(joinRoutes, { prefix: '/api', deps });
 
   registerNotFound(app);
   return app;

@@ -12,7 +12,10 @@ A group is one client (organization). It has a name, a logo and the client's eGr
 - Each group has these modules: chat (`chat.md`), task board (`task-board.md`), technical support / tickets (`tickets.md`). Contracts are admin-only (`contracts.md`).
 - **Invite link:**
   - an administrator can **copy the invite link** for a specific group;
-  - a new user who registers through it automatically lands in that group.
+  - a new user who registers through it automatically lands in that group;
+  - the link is permanent until an admin generates a new one; the old link then stops working (404, "no longer valid");
+  - a client belongs to exactly one group: opening another group's link with an email that is already a client does nothing;
+  - a removed client is blocked: the link sends them no code, and an admin can restore them.
 - Members list: the group shows its members.
 - An admin can remove a client from a group.
 - Global "All groups" section (admin only):

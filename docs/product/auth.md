@@ -6,7 +6,8 @@ A client joins a group through an invite link and only needs to enter an email. 
 
 - Registration:
   1. The administrator copies the group's **invite link** and sends it to the client.
-  2. The client opens the link, enters an **email**, confirms a one-time code sent to that email, and then lands in the group. Nothing else needs to be filled in.
+  2. The client opens the link, enters an **email**, confirms a one-time code sent to that email, and then lands in the group. Nothing else needs to be filled in except a name, asked once right after the first login (a client who closes the tab on that step gets it again at the next login).
+  3. An email that has no account and did not come through an invite gets the same generic message as before and no code: unknown emails cannot sign up on the login page. Opening an invite with an email that already has an account (an admin, a client of another group, a removed client) changes nothing, and the page answers exactly as for a new email; a removed client still gets no code.
 - Later logins:
   - by a **one-time code sent to email** (default);
   - **optionally** the user can set a password in settings (phase 16).
@@ -24,4 +25,4 @@ A client joins a group through an invite link and only needs to enter an email. 
 
 ## Phase
 
-Phase 2 (superadmin, email-code login, long-lived session, creating admins). Optional password: Phase 16. Invite-based registration: Phase 3.
+Phase 2 (superadmin, email-code login, long-lived session, creating admins). Optional password: Phase 16. Invite-based registration: Phase 3 (server endpoints done).

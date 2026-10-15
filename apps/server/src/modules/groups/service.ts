@@ -3,6 +3,7 @@ import { and, asc, eq, isNotNull, isNull, sql } from 'drizzle-orm';
 import type { GroupInput, GroupSummary, Member } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
 import { user } from '../users/schema.js';
+import { createUnverifiedClient, findUserByEmail, isUniqueViolation } from '../users/service.js';
 import { normalizeEgrantUrl } from './egrant-url.js';
 import { groupMembers, groups } from './schema.js';
 
@@ -158,4 +159,20 @@ export async function setLogoKey(db: Db, id: string, key: string | null): Promis
     return old?.logoKey ?? null;
   });
   return previous;
+}
+
+/**
+ * Join by invite link: an unknown email becomes an unverified client in the group, in one
+ * transaction. Any existing user is left unchanged, and a concurrent duplicate counts as existing.
+ */
+export async function joinWithEmail(db: Db, groupId: string, email: string): Promise<void> {
+  if (await findUserByEmail(db, email)) return;
+  try {
+    await db.transaction(async (tx) => {
+      const client = await createUnverifiedClient(tx, email);
+      await addMember(tx, groupId, client.id);
+    });
+  } catch (error) {
+    if (!isUniqueViolation(error)) throw error;
+  }
 }
