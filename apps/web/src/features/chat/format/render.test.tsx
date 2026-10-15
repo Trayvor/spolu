@@ -46,6 +46,7 @@ describe('MessageBody', () => {
     for (const a of links) {
       expect(a).toHaveAttribute('target', '_blank');
       expect(a).toHaveAttribute('rel', 'noreferrer noopener');
+      expect(a).toHaveAttribute('title', a.getAttribute('href'));
     }
     expect(screen.getByText(/\[x\]\(javascript:alert\(1\)\)/)).toBeInTheDocument();
   });

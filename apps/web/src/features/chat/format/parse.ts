@@ -29,6 +29,10 @@ const ORDERED_ITEM_RE = /^(\d{1,9})\. /;
 const SAFE_PROTOCOLS = new Set(['http:', 'https:', 'mailto:']);
 /** Trailing characters that end a sentence rather than a bare URL. */
 const URL_TRAILING = '.,;:!?*~';
+/** Longer bare URL candidates stay text, which bounds the cost of validating one. */
+const MAX_URL_LENGTH = 2048;
+/** A fence's first line that is one word (`js`, `c++`, `objective-c`) is a language tag. */
+const FENCE_LANGUAGE_RE = /^[\w+#.-]{1,32}$/;
 const WORD_CHAR_RE = /[\p{L}\p{N}]/u;
 const SPACE_RE = /\s/;
 
@@ -76,6 +80,8 @@ const tokenOf = (id: string) => (id === 'all' ? MENTION_ALL_TOKEN : mentionToken
 const isBlank = (text: string) => text.trim() === '';
 const isQuote = (text: string) => text === '>' || text.startsWith('> ');
 const isWordChar = (ch: string | undefined) => ch !== undefined && WORD_CHAR_RE.test(ch);
+/** For `_`: an underscore inside a word (`snake_case`, `__init__`) never starts or ends italics. */
+const isWordOrUnderscore = (ch: string | undefined) => ch === '_' || isWordChar(ch);
 const isSpace = (ch: string | undefined) => ch === undefined || SPACE_RE.test(ch);
 
 function startsBlock(text: string, depth: number): boolean {
@@ -117,7 +123,8 @@ function parseBlocks(lines: Line[], depth: number, mentions: MentionMap): Block[
         }
         break;
       }
-      if (parts.length > 1 && isBlank(parts[0] as string)) parts.shift();
+      const first = (parts[0] as string).trim();
+      if (parts.length > 1 && (first === '' || FENCE_LANGUAGE_RE.test(first))) parts.shift();
       if (parts.length > 1 && isBlank(parts[parts.length - 1] as string)) parts.pop();
       blocks.push({ type: 'codeBlock', text: parts.join('\n') });
       if (rest) {
@@ -205,7 +212,8 @@ class InlineParser {
           text[i] === '_' &&
           !this.protectedChars[i] &&
           !isSpace(text[i - 1]) &&
-          !isWordChar(text[i + 1]),
+          text[i - 1] !== '_' &&
+          !isWordOrUnderscore(text[i + 1]),
       ),
     };
   }
@@ -258,7 +266,12 @@ class InlineParser {
       const type = ch === '*' ? 'bold' : 'strike';
       const close = this.closerAt(type, i + 3);
       if (close !== -1 && close + 2 <= end) return { type, from: i + 2, to: close, end: close + 2 };
-    } else if (ch === '_' && !isWordChar(text[i - 1]) && !isSpace(text[i + 1])) {
+    } else if (
+      ch === '_' &&
+      !isWordOrUnderscore(text[i - 1]) &&
+      !isSpace(text[i + 1]) &&
+      text[i + 1] !== '_'
+    ) {
       const close = this.closerAt('italic', i + 2);
       if (close !== -1 && close + 1 <= end) {
         return { type: 'italic', from: i + 1, to: close, end: close + 1 };
@@ -353,9 +366,9 @@ class InlineParser {
             continue;
           }
         } else if (!isWordChar(text[i - 1])) {
-          const end = this.bareUrlEnd(i);
-          if (end > 0) {
-            i = end;
+          const next = this.afterBareUrl(i);
+          if (next > 0) {
+            i = next;
             continue;
           }
         }
@@ -420,8 +433,12 @@ class InlineParser {
     return null;
   }
 
-  /** A bare http(s)/mailto URL at `i`, without trailing punctuation; returns its end, or -1. */
-  private bareUrlEnd(i: number): number {
+  /**
+   * A bare http(s)/mailto URL at `i`, without trailing punctuation. Returns where scanning goes
+   * on: the URL's end, or (for a candidate that is invalid or too long, which stays text) the end
+   * of the whole candidate, so no character is scanned twice. -1 when no URL starts here.
+   */
+  private afterBareUrl(i: number): number {
     const { text } = this;
     const head = text.slice(i, i + 8).toLowerCase();
     if (
@@ -439,6 +456,8 @@ class InlineParser {
       else if (text[end] === ')') closes++;
       end++;
     }
+    const candidateEnd = end;
+    if (end - i > MAX_URL_LENGTH) return candidateEnd;
     while (end > i) {
       const last = text[end - 1] as string;
       if (URL_TRAILING.includes(last)) {
@@ -452,7 +471,7 @@ class InlineParser {
     }
     const url = text.slice(i, end);
     const href = safeHref(url);
-    if (!href || !/^(?:https?:\/\/|mailto:)./i.test(url)) return -1;
+    if (!href || !/^(?:https?:\/\/|mailto:)./i.test(url)) return candidateEnd;
     this.atoms.set(i, {
       kind: 'node',
       end,

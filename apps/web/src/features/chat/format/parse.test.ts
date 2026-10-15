@@ -38,6 +38,8 @@ const cases: [name: string, body: string, expected: Block[]][] = [
   ['unclosed marks stay text', '**open _open ~~open', [p(text('**open _open ~~open'))]],
   ['empty marks stay text', '**** __ ~~~~', [p(text('**** __ ~~~~'))]],
   ['snake_case stays text', 'snake_case_name', [p(text('snake_case_name'))]],
+  ['dunder names stay text', '__init__ and __all__', [p(text('__init__ and __all__'))]],
+  ['an underscore inside a word does not close italics', '_a_b c_', [p(italic(text('a_b c')))]],
   ['single stars stay text', '2*3*4 and *x*', [p(text('2*3*4 and *x*'))]],
   ['line breaks', 'one\ntwo', [p(text('one'), br, text('two'))]],
   ['blank line splits paragraphs', 'one\n\n\ntwo', [p(text('one')), p(text('two'))]],
@@ -47,6 +49,14 @@ const cases: [name: string, body: string, expected: Block[]][] = [
     [{ type: 'codeBlock', text: '**a**\n  _b_ <@u1>' }, p(text('after'))],
   ],
   ['one-line fence', '```x = 1```', [{ type: 'codeBlock', text: 'x = 1' }]],
+  [
+    'language tag is dropped',
+    '```js\nconst a = 1;\n```',
+    [{ type: 'codeBlock', text: 'const a = 1;' }],
+  ],
+  ['language tag with symbols', '```c++\nx\n```', [{ type: 'codeBlock', text: 'x' }]],
+  ['a first line of two words is code', '```a b\nx\n```', [{ type: 'codeBlock', text: 'a b\nx' }]],
+  ['a lone word in a one-line fence is code', '```js```', [{ type: 'codeBlock', text: 'js' }]],
   ['unclosed fence runs to the end', '```\na\n\nb', [{ type: 'codeBlock', text: 'a\n\nb' }]],
   [
     'inline fence in a paragraph',
@@ -154,6 +164,16 @@ const cases: [name: string, body: string, expected: Block[]][] = [
   ],
   ['bare javascript: stays text', 'javascript:alert(1)', [p(text('javascript:alert(1)'))]],
   [
+    'an invalid bare URL stays text',
+    'see https://[oops and **b**',
+    [p(text('see https://[oops and '), bold(text('b')))],
+  ],
+  [
+    'a bare URL over 2048 characters stays text',
+    `https://x.sk/${'a'.repeat(2048)}`,
+    [p(text(`https://x.sk/${'a'.repeat(2048)}`))],
+  ],
+  [
     'mention and @all tokens',
     'hi <@u1>, <@all>!',
     [
@@ -220,6 +240,11 @@ describe('parseMessage', () => {
       'a_ '.repeat(n / 3),
       '` x'.repeat(n / 3),
       '(https://x.y/'.repeat(n / 13),
+      '(https://['.repeat(n / 10),
+      ' https://['.repeat(n / 10),
+      '(mailto:%'.repeat(n / 9),
+      'xhttps://'.repeat(n / 9),
+      'https://' + 'a'.repeat(n),
       'https://x.y/' + ')'.repeat(n),
       '- '.repeat(n / 2),
       '1. '.repeat(n / 3),

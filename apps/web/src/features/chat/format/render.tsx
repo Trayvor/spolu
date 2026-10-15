@@ -102,6 +102,7 @@ function renderInlines(nodes: Inline[], labels: Labels): ReactNode[] {
           <a
             key={key}
             href={href}
+            title={href}
             target="_blank"
             rel="noreferrer noopener"
             className="underline decoration-1 underline-offset-2"
