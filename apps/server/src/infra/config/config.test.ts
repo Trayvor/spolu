@@ -30,12 +30,50 @@ describe('loadConfig', () => {
       driver: 'smtp',
       host: 'localhost',
       port: 1025,
+      secure: false,
       from: 'Spolu <noreply@example.com>',
     });
     expect(config.port).toBe(3000);
     expect(config.appVersion).toBe('dev');
     expect(config.filesDir).toBe('./data/files');
     expect(config.webDistDir).toBeUndefined();
+  });
+
+  it('loads smtp auth and defaults secure on for port 465', () => {
+    const config = loadConfig({
+      ...validEnv,
+      SMTP_HOST: 'smtp.elasticemail.com',
+      SMTP_PORT: '465',
+      SMTP_USER: 'me@example.com',
+      SMTP_PASSWORD: 'pw',
+    });
+    expect(config.email).toEqual({
+      driver: 'smtp',
+      host: 'smtp.elasticemail.com',
+      port: 465,
+      secure: true,
+      auth: { user: 'me@example.com', pass: 'pw' },
+      from: 'Spolu <noreply@example.com>',
+    });
+  });
+
+  it('lets SMTP_SECURE override the port default', () => {
+    expect(loadConfig({ ...validEnv, SMTP_PORT: '465', SMTP_SECURE: 'false' }).email).toMatchObject(
+      { secure: false },
+    );
+    expect(loadConfig({ ...validEnv, SMTP_SECURE: 'true' }).email).toMatchObject({ secure: true });
+  });
+
+  it('rejects SMTP_USER without SMTP_PASSWORD and vice versa without echoing values', () => {
+    const noPass = errorOf({ ...validEnv, SMTP_USER: 'someone' });
+    expect(noPass.message).toContain('SMTP_PASSWORD');
+    const noUser = errorOf({ ...validEnv, SMTP_PASSWORD: 'hunter2-secret' });
+    expect(noUser.message).toContain('SMTP_USER');
+    expect(noUser.message).not.toContain('hunter2-secret');
+  });
+
+  it('rejects an invalid SMTP_SECURE', () => {
+    expect(errorOf({ ...validEnv, SMTP_SECURE: 'yes' }).message).toContain('SMTP_SECURE');
   });
 
   it('loads an elastic env', () => {
