@@ -43,6 +43,13 @@
       "when": 1792083773183,
       "tag": "0005_sad_hammerhead",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792087545177,
+      "tag": "0006_conscious_thor",
+      "breakpoints": true
     }
   ]
 }

@@ -19,7 +19,10 @@ erDiagram
     CHANNEL ||--o{ READ_STATE : tracked
     GROUP ||--o{ BUCKET : has
     BUCKET ||--o{ TASK : holds
-    USER ||--o{ TASK : "is assigned"
+    TASK ||--o{ TASK_ASSIGNEE : has
+    USER ||--o{ TASK_ASSIGNEE : "is assigned"
+    TASK ||--o{ TASK_ATTACHMENT : has
+    FILE ||--o{ TASK_ATTACHMENT : "is used by"
     MESSAGE ||--o| TASK : "converted to"
     GROUP ||--o{ TICKET : receives
     TICKET ||--o{ TICKET_REPLY : has
@@ -46,8 +49,10 @@ erDiagram
 | File | stored file of one group; `files` table: `group_id` (cascade, indexed), `uploaded_by` (no `ON DELETE` rule: a future hard delete of a user who uploaded files must handle those rows first), `name`, `mime` (sniffed for PNG/JPEG/WebP, else the declared type; a declared png/jpeg/webp whose bytes are not that image is stored as `application/octet-stream`, other declared types are kept and always served as attachments), `size`, `storage_key` (`files/<groupId>/<id>`), optional WebP `preview_key` with `width`/`height`, `attached_at`. Lifecycle: uploaded unattached, attached by the owning module in its transaction, deleted with it; unattached files older than 24 h are cleaned up (partial index on `created_at`). A future group delete cascades the rows but not the storage objects: it must call `deleteFiles` first | 4 | built |
 | NotificationEvent | one notification for one recipient; `notification_events` table: `user_id` (cascade), nullable `group_id` (cascade), `kind` (`chat.message`, `chat.mention`, `chat.thread_reply`, `task.moved`, `task.assigned`), `payload` jsonb, `created_at`, `delivered_at` (null until delivered); indexes `(user_id, delivered_at)` and `created_at`; written by `recordNotifications` inside the caller's transaction, purged after 30 days by `notifications.purge-old` | 4 | built |
 | NotificationPref | per user per group: `all`, `mentions` or `none` | 6 | planned |
-| Bucket | a task board column | 8 | planned |
-| Task | a card: title, assignee, due date, priority, labels, position | 8 | planned |
+| Bucket | a task board column; `buckets` table: `group_id` (cascade), `kind` (`todo`, `egrant_review`, `client_review`, `done`, `custom`; CHECK `buckets_kind_check`), `name` (custom buckets only, max 60; CHECK `buckets_name_check`), `position` (fractional-index key, `text collate "C"` so it sorts byte-wise), `created_at`. Unique `(group_id, kind)` where `kind <> 'custom'` (one of each fixed bucket) and unique `(group_id, position)`. Fixed keys: To do `a0`, eGrant review `a3`, client review `a6`, Completed `a9`; custom buckets sit strictly between `a0` and `a9`, never on a fixed key | 8 | built |
+| Task | a card; `tasks` table: `group_id` (cascade, indexed), `bucket_id` (FK with no action, so a group delete can cascade both tables in one statement), `position` (collated `"C"`, unique per bucket), `title`, `description`, `created_by`, `due_date` (date, no time), `urgent`, `completed_at` (set when moved into Completed), `source_message_id` (no FK until Phase 9), `created_at`, `updated_at` (both written from JS `new Date()`, millisecond precision, so the ISO string round-trips for the 409 check). Partial indexes on `due_date` where not completed and on `urgent` where urgent serve the Phase 6 reminders. Priority and labels were dropped from the model | 8 | built |
+| TaskAssignee | `task_assignees`: `(task_id, user_id)` primary key, both cascade, index on `user_id` | 8 | built |
+| TaskAttachment | `task_attachments`: `(task_id, file_id)` primary key, both cascade; links a task to its files | 8 | built |
 | Ticket | support request from eGrant, status `new`, `in_progress`, `resolved` | 12 | planned |
 | ApiKey | secret used by eGrant to send tickets | 12 | planned |
 | TicketReply | an admin reply on a ticket | 13 | planned |
