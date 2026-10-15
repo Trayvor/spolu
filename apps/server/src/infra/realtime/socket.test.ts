@@ -2,12 +2,13 @@ import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { eq } from 'drizzle-orm';
 import { io as connect, type Socket } from 'socket.io-client';
-import { SocketEvents, type PingAck } from '@spolu/shared';
+import { SocketEvents, type GroupJoinAck, type PingAck } from '@spolu/shared';
 import { buildTestApp } from '../../../test/test-app.js';
 import { loginAs } from '../../../test/login.js';
+import { addMember, createGroup } from '../../modules/groups/service.js';
 import { addAdmin } from '../../modules/users/service.js';
 import { user } from '../../modules/users/schema.js';
-import { disconnectUser, userRoom } from './rooms.js';
+import { disconnectUser, emitToGroup, userRoom } from './rooms.js';
 
 type TestApp = Awaited<ReturnType<typeof buildTestApp>>;
 
@@ -140,6 +141,113 @@ describe('socket.io', () => {
     expect(a1.connected).toBe(false);
     expect(a2.connected).toBe(false);
     expect(b.connected).toBe(true);
+  });
+
+  describe('group rooms', () => {
+    const newGroup = () =>
+      createGroup(test.deps.db, {
+        name: 'Rooms',
+        egrantUrl: `https://g${randomUUID().replaceAll('-', '')}.egrant.sk`,
+      });
+
+    async function clientCookie(groupId: string): Promise<string> {
+      const email = `${randomUUID()}@example.com`;
+      const id = randomUUID();
+      await test.deps.db
+        .insert(user)
+        .values({ id, email, name: 'Room Client', role: 'client', emailVerified: true });
+      await addMember(test.deps.db, groupId, id);
+      return loginAs(test.app, email);
+    }
+
+    async function connected(cookie: string): Promise<Socket> {
+      const socket = connectWith({ cookie });
+      await nextEvent(socket, 'connect');
+      return socket;
+    }
+
+    const join = (socket: Socket, payload: unknown): Promise<GroupJoinAck> =>
+      socket.emitWithAck(SocketEvents.groupJoin, payload);
+
+    /** Resolves true when `event` arrives within `ms`, else false. */
+    const arrives = (socket: Socket, event: string, ms = 200) =>
+      new Promise<boolean>((resolve) => {
+        const timer = setTimeout(() => {
+          socket.off(event, onEvent);
+          resolve(false);
+        }, ms);
+        const onEvent = () => {
+          clearTimeout(timer);
+          resolve(true);
+        };
+        socket.once(event, onEvent);
+      });
+
+    it('an admin joins any group room and receives emitToGroup events', async () => {
+      const group = await newGroup();
+      const admin = await connected(await loggedInCookie(test));
+      expect(await join(admin, { groupId: group.id })).toEqual({ ok: true });
+      const event = nextEvent(admin, 'test:event');
+      emitToGroup(test.app.io, group.id, 'test:event', { n: 1 });
+      expect(await event).toEqual({ n: 1 });
+    });
+
+    it('an admin joining an unknown group gets not_found', async () => {
+      const admin = await connected(await loggedInCookie(test));
+      expect(await join(admin, { groupId: randomUUID() })).toEqual({
+        ok: false,
+        error: 'not_found',
+      });
+    });
+
+    it('a malformed payload gets not_found', async () => {
+      const admin = await connected(await loggedInCookie(test));
+      for (const payload of [undefined, null, 'x', {}, { groupId: 5 }, { groupId: '' }]) {
+        expect(await join(admin, payload)).toEqual({ ok: false, error: 'not_found' });
+      }
+      expect(await join(admin, { groupId: 'x'.repeat(101) })).toEqual({
+        ok: false,
+        error: 'not_found',
+      });
+    });
+
+    it('a client joining another group gets not_found and receives none of its events', async () => {
+      const mine = await newGroup();
+      const other = await newGroup();
+      const client = await connected(await clientCookie(mine.id));
+      expect(await join(client, { groupId: other.id })).toEqual({ ok: false, error: 'not_found' });
+      const got = arrives(client, 'test:event');
+      emitToGroup(test.app.io, other.id, 'test:event', { n: 1 });
+      expect(await got).toBe(false);
+    });
+
+    it('a client joining their own group gets ok', async () => {
+      const group = await newGroup();
+      const client = await connected(await clientCookie(group.id));
+      expect(await join(client, { groupId: group.id })).toEqual({ ok: true });
+    });
+
+    it('group:leave of their own group keeps them in it', async () => {
+      const group = await newGroup();
+      const client = await connected(await clientCookie(group.id));
+      const ack: GroupJoinAck = await client.emitWithAck(SocketEvents.groupLeave, {
+        groupId: group.id,
+      });
+      expect(ack).toEqual({ ok: true });
+      const got = arrives(client, 'test:event', 1000);
+      emitToGroup(test.app.io, group.id, 'test:event', { n: 1 });
+      expect(await got).toBe(true);
+    });
+
+    it('an admin leaves a group room and stops receiving its events', async () => {
+      const group = await newGroup();
+      const admin = await connected(await loggedInCookie(test));
+      await join(admin, { groupId: group.id });
+      await admin.emitWithAck(SocketEvents.groupLeave, { groupId: group.id });
+      const got = arrives(admin, 'test:event');
+      emitToGroup(test.app.io, group.id, 'test:event', { n: 1 });
+      expect(await got).toBe(false);
+    });
   });
 });
 
