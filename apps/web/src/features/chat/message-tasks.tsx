@@ -20,11 +20,9 @@ export function MessageTasks({ groupId, tasks }: { groupId: string; tasks: Messa
           key={task.id}
           to="/groups/$groupId/tasks/$taskId"
           params={{ groupId, taskId: task.id }}
-          className="max-w-full truncate font-semibold underline underline-offset-4 hover:text-neutral"
+          className="inline-block max-w-full truncate align-bottom font-semibold underline underline-offset-4 hover:text-neutral"
         >
-          <span className={cn(task.completed && 'line-through text-muted-foreground')}>
-            {task.title}
-          </span>
+          <span className={cn(task.completed && 'line-through')}>{task.title}</span>
           {task.completed && <span className="sr-only"> {t('tasks.card.completed')}</span>}
         </Link>
       ))}
