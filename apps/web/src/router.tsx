@@ -101,6 +101,12 @@ const groupTasksRoute = createRoute({
   component: lazyRouteComponent(() => import('@/features/tasks/tasks-tab'), 'TasksTab'),
 });
 
+const taskRoute = createRoute({
+  getParentRoute: () => groupTasksRoute,
+  path: '$taskId',
+  component: lazyRouteComponent(() => import('@/features/tasks/task-panel'), 'TaskPanelRoute'),
+});
+
 const groupMembersRoute = createRoute({
   getParentRoute: () => groupRoute,
   path: 'members',
@@ -164,7 +170,7 @@ const routeTree = rootRoute.addChildren([
     groupRoute.addChildren([
       groupIndexRoute,
       groupChatRoute.addChildren([]), // Phase 5 adds its child routes here
-      groupTasksRoute.addChildren([]), // Phase 8 adds /tasks/$taskId here
+      groupTasksRoute.addChildren([taskRoute]),
       groupMembersRoute,
     ]),
     welcomeRoute,

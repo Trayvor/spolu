@@ -40,9 +40,8 @@ export function TaskCard({
 
   return (
     <Link
-      // The task panel route is registered by the panel task; the cast goes away with it.
-      to={'/groups/$groupId/tasks/$taskId' as never}
-      params={{ groupId: task.groupId, taskId: task.id } as never}
+      to="/groups/$groupId/tasks/$taskId"
+      params={{ groupId: task.groupId, taskId: task.id }}
       ref={ref}
       {...handleProps}
       // The lifted copy is only a picture of the card: out of the tab order.

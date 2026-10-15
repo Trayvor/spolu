@@ -190,6 +190,28 @@
         "invalid": "Skontrolujte polia a skúste to znova."
       },
       "unknownFile": "Súbor"
+    },
+    "panel": {
+      "label": "Úloha",
+      "loading": "Načítava sa úloha.",
+      "loadFailed": "Úlohu sa nepodarilo načítať.",
+      "bucket": "Stĺpec",
+      "close": "Zavrieť",
+      "back": "Späť na nástenku",
+      "save": "Uložiť zmeny",
+      "cancel": "Zrušiť",
+      "more": "Viac",
+      "delete": "Odstrániť",
+      "deleteConfirm": "Odstrániť túto úlohu? Odstránia sa aj jej súbory.",
+      "createdBy": "Vytvoril(a) {{name}} dňa {{date}}",
+      "changedBy": "{{name}} práve zmenil(a) túto úlohu.",
+      "changedBySomeone": "Úlohu medzitým zmenil niekto iný.",
+      "reload": "Načítať znova",
+      "unsaved": "Máte neuložené zmeny.",
+      "discard": "Zahodiť",
+      "keepEditing": "Pokračovať v úpravách",
+      "fromMessage": "Vytvorené zo správy",
+      "openMessage": "Otvoriť v chate"
     }
   },
   "groups": {

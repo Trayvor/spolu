@@ -23,3 +23,13 @@ export function formatDue(dueDate: string, language: string): string {
     },
   );
 }
+
+/** An instant as "15 Oct 2026" (Bratislava calendar day) in the interface language. */
+export function formatCreated(iso: string, language: string): string {
+  return new Date(iso).toLocaleDateString(/^en\b/.test(language) ? 'en-GB' : language, {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    timeZone: 'Europe/Bratislava',
+  });
+}

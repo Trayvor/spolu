@@ -186,6 +186,28 @@
         "invalid": "Check the fields and try again."
       },
       "unknownFile": "File"
+    },
+    "panel": {
+      "label": "Task",
+      "loading": "Loading the task.",
+      "loadFailed": "Could not load the task.",
+      "bucket": "Bucket",
+      "close": "Close",
+      "back": "Back to the board",
+      "save": "Save changes",
+      "cancel": "Cancel",
+      "more": "More",
+      "delete": "Delete",
+      "deleteConfirm": "Delete this task? Its files are deleted too.",
+      "createdBy": "Created by {{name}} on {{date}}",
+      "changedBy": "Changed by {{name}} just now.",
+      "changedBySomeone": "Changed by someone else.",
+      "reload": "Reload",
+      "unsaved": "You have unsaved changes.",
+      "discard": "Discard",
+      "keepEditing": "Keep editing",
+      "fromMessage": "Created from a message",
+      "openMessage": "Open in chat"
     }
   },
   "groups": {
