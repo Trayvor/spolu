@@ -13,7 +13,13 @@ import {
   type TaskPatch,
 } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
-import { attachFiles, deleteFiles, getFilesForGroup, type FileDeps } from '../files/service.js';
+import {
+  attachFiles,
+  deleteFiles,
+  detachFiles,
+  getFilesForGroup,
+  type FileDeps,
+} from '../files/service.js';
 import { getGroup, isGroupPerson } from '../groups/service.js';
 import { recordNotifications } from '../notifications/service.js';
 import { keyAfter } from './positions.js';
@@ -276,6 +282,8 @@ export async function updateTask(
       await tx
         .delete(taskAttachments)
         .where(and(eq(taskAttachments.taskId, id), inArray(taskAttachments.fileId, removed)));
+      // If the removal after the commit fails, the daily unattached-files cleanup picks them up.
+      await detachFiles(tx, removed);
     }
     return removed;
   });
@@ -286,7 +294,10 @@ export async function updateTask(
   return task;
 }
 
-/** Deletes a task, then its files (rows and storage, best effort) after the commit. */
+/**
+ * Deletes a task and detaches its files in one transaction, then deletes the files (rows and
+ * storage, best effort) after the commit.
+ */
 export async function deleteTask(
   deps: TaskDeps,
   id: string,
@@ -306,7 +317,10 @@ export async function deleteTask(
       .from(taskAttachments)
       .where(eq(taskAttachments.taskId, id));
     await tx.delete(tasks).where(eq(tasks.id, id));
-    return { groupId: task.groupId, fileIds: attachments.map((a) => a.fileId) };
+    const ids = attachments.map((a) => a.fileId);
+    // If the removal after the commit fails, the daily unattached-files cleanup picks them up.
+    await detachFiles(tx, ids);
+    return { groupId: task.groupId, fileIds: ids };
   });
   await cleanUpFiles(deps, fileIds, options);
   return { groupId };

@@ -3,13 +3,14 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { Readable } from 'node:stream';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { and, eq, sql } from 'drizzle-orm';
 import { TaskCreateSchema, type SessionUser } from '@spolu/shared';
 import { createDb } from '../../infra/db/client.js';
 import { createDiskStorage } from '../../infra/storage/disk-storage.js';
 import type { Storage } from '../../infra/storage/index.js';
 import { testDatabaseUrl } from '../../../test/test-config.js';
+import * as filesService from '../files/service.js';
 import { createFile, getFile, InvalidAttachmentError } from '../files/service.js';
 import { addMember, createGroup } from '../groups/service.js';
 import { notificationEvents } from '../notifications/schema.js';
@@ -28,6 +29,11 @@ import {
   ValidationError,
   type TaskDeps,
 } from './task-service.js';
+
+vi.mock('../files/service.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../files/service.js')>();
+  return { ...actual, deleteFiles: vi.fn(actual.deleteFiles) };
+});
 
 const { db, close } = createDb(testDatabaseUrl);
 // Cleanup failures must surface in tests.
@@ -363,6 +369,21 @@ describe('deleteTask', () => {
     expect(await getTask(db, task.id)).toBeNull();
     expect(await getFile(db, file.id)).toBeNull();
     expect(await storage.exists(key)).toBe(false);
+  });
+
+  it('a failing post-commit file removal does not fail the delete and leaves the files unattached', async () => {
+    const group = await newGroup();
+    const client = await newClient(group.id);
+    const file = await upload(group.id, client);
+    const task = await createTask(deps, client, group.id, { title: 'A', fileIds: [file.id] });
+    vi.mocked(filesService.deleteFiles).mockRejectedValueOnce(new Error('db down'));
+    const onFileCleanupError = vi.fn();
+    expect(await deleteTaskWith(deps, task.id, { onFileCleanupError })).toEqual({
+      groupId: group.id,
+    });
+    expect(onFileCleanupError).toHaveBeenCalledOnce();
+    expect(await getTask(db, task.id)).toBeNull();
+    expect((await getFile(db, file.id))?.attachedAt).toBeNull();
   });
 
   it('an unknown task → NotFoundError', async () => {
