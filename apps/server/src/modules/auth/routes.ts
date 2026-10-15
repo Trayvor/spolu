@@ -2,7 +2,8 @@ import type { FastifyInstance, FastifyPluginAsync, FastifyReply, FastifyRequest 
 import { fromNodeHeaders } from 'better-auth/node';
 import type { AppDeps } from '../../deps.js';
 import type { Auth } from './auth.js';
-import { toSessionUser } from './session.js';
+import { getSessionFromHeaders, toSessionUser } from './session.js';
+import { sessionRoom } from '../../infra/realtime/rooms.js';
 
 export const authRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app) => {
   const { auth } = app;
@@ -42,7 +43,15 @@ function registerAuthHandler(app: FastifyInstance, auth: Auth): void {
   app.addContentTypeParser('*', { parseAs: 'string' }, (_request, body, done) => done(null, body));
 
   const handler = async (request: FastifyRequest, reply: FastifyReply) => {
+    // Sign-out: remember whose session it is before better-auth deletes it.
+    const signingOut =
+      request.method === 'POST' && request.url.endsWith('/sign-out')
+        ? await getSessionFromHeaders(auth, request.headers)
+        : null;
     const response = await auth.handler(toWebRequest(request));
+    if (signingOut && response.status === 200) {
+      app.io.in(sessionRoom(signingOut.sessionId)).disconnectSockets(true);
+    }
     reply.status(response.status);
     response.headers.forEach((value, key) => {
       if (key !== 'set-cookie') reply.header(key, value);

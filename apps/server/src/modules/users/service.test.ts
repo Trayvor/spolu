@@ -123,3 +123,31 @@ describe('listAdmins and deactivateUser', () => {
     expect(await findUserByEmail(db, uniqueEmail())).toBeNull();
   });
 });
+
+describe('user table checks', () => {
+  /** Tries the insert in a transaction that is always rolled back, so no row can be left behind. */
+  async function insertIsRejected(values: Record<string, unknown>): Promise<boolean> {
+    let rejected = false;
+    await db
+      .transaction(async (tx) => {
+        try {
+          await tx.insert(user).values(values as never);
+        } catch {
+          rejected = true;
+        }
+        tx.rollback();
+      })
+      .catch(() => undefined); // rollback() throws by design
+    return rejected;
+  }
+
+  it("inserting a user with role 'boss' fails", async () => {
+    const values = { id: randomUUID(), name: 'Boss', email: uniqueEmail(), role: 'boss' };
+    expect(await insertIsRejected(values)).toBe(true);
+  });
+
+  it('inserting an upper-case email fails', async () => {
+    const values = { id: randomUUID(), name: 'Upper', email: `${randomUUID()}@EXAMPLE.com` };
+    expect(await insertIsRejected(values)).toBe(true);
+  });
+});

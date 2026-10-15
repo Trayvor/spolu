@@ -1,14 +1,15 @@
 import type { FastifyInstance } from 'fastify';
 import { Server as SocketIOServer } from 'socket.io';
 import { SocketEvents, type PingAck, type SessionUser } from '@spolu/shared';
-import { getSessionUserFromHeaders } from '../../modules/auth/session.js';
+import { getSessionFromHeaders } from '../../modules/auth/session.js';
 import type { Auth } from '../../modules/auth/auth.js';
 import type { Config } from '../config/config.js';
-import { userRoom } from './rooms.js';
+import { sessionRoom, userRoom } from './rooms.js';
 
 declare module 'socket.io' {
   interface SocketData {
     user: SessionUser;
+    sessionId: string;
   }
 }
 
@@ -30,10 +31,14 @@ export function attachSocket(app: FastifyInstance, config: Config, auth: Auth): 
       return next(new Error('forbidden_origin'));
     }
     try {
-      const user = await getSessionUserFromHeaders(auth, headers);
-      if (!user) return next(new Error('unauthorized'));
-      socket.data.user = user;
-      await socket.join(userRoom(user.id));
+      const found = await getSessionFromHeaders(auth, headers);
+      if (!found) return next(new Error('unauthorized'));
+      socket.data.user = found.user;
+      socket.data.sessionId = found.sessionId;
+      await socket.join([userRoom(found.user.id), sessionRoom(found.sessionId)]);
+      // A user disabled (and disconnectUser run) between the lookup and the join would
+      // otherwise keep this socket: check again now that the socket is in its rooms.
+      if (!(await getSessionFromHeaders(auth, headers))) return next(new Error('unauthorized'));
       next();
     } catch (error) {
       app.log.error(error, 'socket authentication failed');

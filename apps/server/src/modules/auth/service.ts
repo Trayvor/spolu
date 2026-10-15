@@ -1,6 +1,6 @@
-import { eq } from 'drizzle-orm';
+import { eq, lt } from 'drizzle-orm';
 import type { Db } from '../../infra/db/client.js';
-import { session } from './schema.js';
+import { session, verification } from './schema.js';
 
 /**
  * Logs the user out everywhere. Deleting the rows is enough: sessions live only in the
@@ -8,4 +8,13 @@ import { session } from './schema.js';
  */
 export async function revokeAllSessions(db: Db, userId: string): Promise<void> {
   await db.delete(session).where(eq(session.userId, userId));
+}
+
+/** Deletes login codes (and other verification rows) that have expired; returns how many. */
+export async function deleteExpiredVerifications(db: Db): Promise<number> {
+  const deleted = await db
+    .delete(verification)
+    .where(lt(verification.expiresAt, new Date()))
+    .returning({ id: verification.id });
+  return deleted.length;
 }

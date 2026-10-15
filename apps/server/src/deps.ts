@@ -1,4 +1,5 @@
 import type { Config } from './infra/config/config.js';
+import { authJobHandlers, AUTH_CLEANUP_JOB } from './modules/auth/jobs.js';
 import { createDb, type Db } from './infra/db/client.js';
 import { createEmailSender, emailJobHandlers, type EmailSender } from './infra/email/index.js';
 import { startJobs, type JobQueue } from './infra/jobs/jobs.js';
@@ -20,7 +21,11 @@ export async function createDeps(
   const { db, close: closeDb } = createDb(config.databaseUrl);
   const email = createEmailSender(config.email);
   const storage = createDiskStorage(config.filesDir, config.appSecret);
-  const jobs = await startJobs(config.databaseUrl, emailJobHandlers(email));
+  const jobs = await startJobs(
+    config.databaseUrl,
+    { ...emailJobHandlers(email), ...authJobHandlers(db) },
+    [{ name: AUTH_CLEANUP_JOB, cron: '15 3 * * *' }], // daily, 03:15
+  );
   return {
     deps: { config, db, email, storage, jobs: jobs.queue },
     async close() {

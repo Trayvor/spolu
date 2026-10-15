@@ -1,0 +1,2 @@
+ALTER TABLE "user" ADD CONSTRAINT "user_role_check" CHECK ("user"."role" in ('superadmin', 'admin', 'client'));--> statement-breakpoint
+ALTER TABLE "user" ADD CONSTRAINT "user_email_lower_check" CHECK ("user"."email" = lower("user"."email"));

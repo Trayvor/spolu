@@ -34,8 +34,17 @@ export async function getSessionUserFromHeaders(
   auth: Auth,
   headers: IncomingHttpHeaders,
 ): Promise<SessionUser | null> {
+  return (await getSessionFromHeaders(auth, headers))?.user ?? null;
+}
+
+/** The user and the id of the login session behind the headers, or null. */
+export async function getSessionFromHeaders(
+  auth: Auth,
+  headers: IncomingHttpHeaders,
+): Promise<{ user: SessionUser; sessionId: string } | null> {
   const result = await auth.api.getSession({ headers: fromNodeHeaders(headers) });
-  return toSessionUser(result?.user);
+  const user = toSessionUser(result?.user);
+  return result && user ? { user, sessionId: result.session.id } : null;
 }
 
 function unauthorized(reply: FastifyReply): FastifyReply {

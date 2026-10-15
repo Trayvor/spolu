@@ -15,6 +15,13 @@
       "when": 1792064441496,
       "tag": "0001_jittery_justin_hammer",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792070074628,
+      "tag": "0002_damp_blockbuster",
+      "breakpoints": true
     }
   ]
 }

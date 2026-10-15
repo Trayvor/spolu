@@ -7,7 +7,7 @@ import { buildTestApp } from '../../../test/test-app.js';
 import { loginAs } from '../../../test/login.js';
 import { addAdmin } from '../../modules/users/service.js';
 import { user } from '../../modules/users/schema.js';
-import { disconnectUser } from './rooms.js';
+import { disconnectUser, userRoom } from './rooms.js';
 
 type TestApp = Awaited<ReturnType<typeof buildTestApp>>;
 
@@ -86,6 +86,42 @@ describe('socket.io', () => {
     const error = (await nextEvent(socket, 'connect_error')) as Error;
     lookup.mockRestore();
     expect(error.message).toBe('server_error');
+  });
+
+  it('a user disabled between session lookup and join is disconnected', async () => {
+    const { id, cookie } = await loggedIn(test);
+    const lookup = test.app.auth.api.getSession;
+    const spy = vi.spyOn(test.app.auth.api, 'getSession').mockImplementationOnce(async (...args) => {
+      const result = await lookup(...args);
+      await test.deps.db.update(user).set({ disabledAt: new Date() }).where(eq(user.id, id));
+      return result;
+    });
+    const error = (await nextEvent(connectWith({ cookie }), 'connect_error')) as Error;
+    spy.mockRestore();
+    expect(error.message).toBe('unauthorized');
+    expect(await test.app.io.in(userRoom(id)).fetchSockets()).toHaveLength(0);
+  });
+
+  it("sign-out disconnects only that session's sockets", async () => {
+    const email = `${randomUUID()}@example.com`;
+    await addAdmin(test.deps.db, { email, name: 'Two Sessions' });
+    const cookieA = await loginAs(test.app, email);
+    const cookieB = await loginAs(test.app, email);
+    const a = connectWith({ cookie: cookieA });
+    const b = connectWith({ cookie: cookieB });
+    await Promise.all([a, b].map((s) => nextEvent(s, 'connect')));
+
+    const closed = nextEvent(a, 'disconnect');
+    const res = await test.app.inject({
+      method: 'POST',
+      url: '/api/auth/sign-out',
+      headers: { cookie: cookieA, origin: 'http://localhost:3000' },
+      payload: {},
+    });
+    expect(res.statusCode).toBe(200);
+    await closed;
+    expect(a.connected).toBe(false);
+    expect(b.connected).toBe(true);
   });
 
   it('disconnectUser disconnects every socket of that user only', async () => {

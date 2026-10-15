@@ -14,6 +14,12 @@ export interface JobQueue {
 /** One handler per job name; a thrown error makes pg-boss retry the job. */
 export type JobHandlers = Record<string, (data: object) => Promise<void>>;
 
+/** A job sent on a cron schedule; `handlers` must have a handler for `name`. */
+export interface JobSchedule {
+  name: string;
+  cron: string;
+}
+
 /**
  * Starts the pg-boss job queue in the app's PostgreSQL (schema `pgboss`, created on first start)
  * with a queue and a worker for each handler.
@@ -21,6 +27,7 @@ export type JobHandlers = Record<string, (data: object) => Promise<void>>;
 export async function startJobs(
   databaseUrl: string,
   handlers: JobHandlers,
+  schedules: JobSchedule[] = [],
 ): Promise<{ queue: JobQueue; stop(): Promise<void> }> {
   const boss = new PgBoss(databaseUrl);
   // Without a listener an 'error' event would crash the process; log and keep running.
@@ -32,6 +39,12 @@ export async function startJobs(
     await boss.work(name, async (jobs) => {
       for (const job of jobs) await handler(job.data as object);
     });
+  }
+
+  // The queue exists by now; a schedule with the same name replaces the earlier one.
+  for (const { name, cron } of schedules) {
+    if (!handlers[name]) throw new Error(`No handler for scheduled job "${name}"`);
+    await boss.schedule(name, cron);
   }
 
   return {
