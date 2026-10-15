@@ -31,9 +31,11 @@ import { ensureGroupChannel, getChannel, type ChannelRow } from './service.js';
 
 vi.mock('../files/service.js', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../files/service.js')>();
-  return { ...actual, deleteFiles: vi.fn(actual.deleteFiles) };
+  return { ...actual, deleteDetachedFiles: vi.fn(actual.deleteDetachedFiles) };
 });
 
+const actualFiles =
+  await vi.importActual<typeof import('../files/service.js')>('../files/service.js');
 let deps: AppDeps;
 let close: () => Promise<void>;
 beforeAll(async () => {
@@ -263,7 +265,7 @@ describe('sendMessage', () => {
     const toAll = recipientsOf(rootEvents, 'chat.message');
     expect(toAll.has(s.a.id)).toBe(false);
     // Admins are global and other suites add and deactivate them in parallel: only people present
-    // before and after the send must get it, and no one outside both snapshots may.
+    // before and after the send must get it, and no one outside either snapshot may.
     for (const id of peopleBefore)
       if (id !== s.a.id && peopleAfter.has(id)) expect(toAll.has(id)).toBe(true);
     for (const id of toAll) expect(peopleBefore.has(id) || peopleAfter.has(id)).toBe(true);
@@ -521,7 +523,7 @@ describe('editMessage and deleteMessage', () => {
     const s = await setup();
     const file = await upload(s.group.id, s.a.id, 'left.txt');
     const { message } = await send(s.channel, s.a, { body: '', fileIds: [file.id] });
-    vi.mocked(filesService.deleteFiles).mockRejectedValueOnce(new Error('db down'));
+    vi.mocked(filesService.deleteDetachedFiles).mockRejectedValueOnce(new Error('db down'));
     const onFileCleanupError = vi.fn();
     const dto = await deleteMessage(deps, {
       message: await load(message.id),
@@ -531,6 +533,26 @@ describe('editMessage and deleteMessage', () => {
     expect(dto.deletedAt).not.toBeNull();
     expect(onFileCleanupError).toHaveBeenCalledOnce();
     expect((await getFile(deps.db, file.id))?.attachedAt).toBeNull();
+  });
+
+  it('a file of a deleted message attached to a new message before the cleanup survives', async () => {
+    const s = await setup();
+    const file = await upload(s.group.id, s.a.id, 'kept.txt');
+    const { message } = await send(s.channel, s.a, { body: '', fileIds: [file.id] });
+    let again = '';
+    vi.mocked(filesService.deleteDetachedFiles).mockImplementationOnce(async (d, ids) => {
+      again = (await send(s.channel, s.a, { body: '', fileIds: ids })).message.id;
+      return actualFiles.deleteDetachedFiles(d, ids);
+    });
+    await deleteMessage(deps, { message: await load(message.id), channel: s.channel });
+    const links = await deps.db
+      .select({ fileId: messageAttachments.fileId })
+      .from(messageAttachments)
+      .where(eq(messageAttachments.messageId, again));
+    expect(links).toEqual([{ fileId: file.id }]);
+    const row = await getFile(deps.db, file.id);
+    expect(row?.attachedAt).not.toBeNull();
+    expect(await deps.storage.exists(row!.storageKey)).toBe(true);
   });
 
   it('editing a message deleted in between → MessageDeletedError and the text stays cleared', async () => {

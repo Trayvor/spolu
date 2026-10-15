@@ -10,7 +10,7 @@ import {
 } from '@spolu/shared';
 import type { AppDeps } from '../../deps.js';
 import type { Db } from '../../infra/db/client.js';
-import { attachFiles, deleteFiles, detachFiles } from '../files/service.js';
+import { attachFiles, deleteDetachedFiles, detachFiles } from '../files/service.js';
 import { listGroupPeople } from '../groups/service.js';
 import { recordNotifications } from '../notifications/service.js';
 import { isUniqueViolation } from '../users/service.js';
@@ -308,7 +308,7 @@ export async function deleteMessage(
     return ids;
   });
   try {
-    await deleteFiles(deps, fileIds);
+    await deleteDetachedFiles(deps, fileIds);
   } catch (error) {
     // The message is already deleted; never fail the request over leftover files.
     (input.onFileCleanupError ?? ((e) => console.error('chat: file cleanup failed', e)))(error);

@@ -15,7 +15,7 @@ import {
 import type { Db } from '../../infra/db/client.js';
 import {
   attachFiles,
-  deleteFiles,
+  deleteDetachedFiles,
   detachFiles,
   getFilesForGroup,
   type FileDeps,
@@ -75,7 +75,7 @@ async function cleanUpFiles(
   options: CleanupOptions,
 ): Promise<void> {
   try {
-    await deleteFiles(deps, fileIds);
+    await deleteDetachedFiles(deps, fileIds);
   } catch (error) {
     options.onFileCleanupError(error);
   }

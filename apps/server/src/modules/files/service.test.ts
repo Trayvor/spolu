@@ -15,6 +15,7 @@ import { files } from './schema.js';
 import {
   attachFiles,
   createFile,
+  deleteDetachedFiles,
   deleteFiles,
   deleteUnattachedFiles,
   detachFiles,
@@ -300,6 +301,24 @@ describe('deleteFiles', () => {
     expect(await storage.exists(`files/${group.id}/${info.id}`)).toBe(false);
     expect(await storage.exists(`files/${group.id}/${info.id}-preview`)).toBe(false);
     await deleteFiles(deps, []);
+  });
+});
+
+describe('deleteDetachedFiles', () => {
+  it('deletes detached files (rows and storage) and keeps files attached again meanwhile', async () => {
+    const { group, owner } = await setup();
+    const gone = await upload(group.id, owner.id, Buffer.from('gone'));
+    const back = await upload(group.id, owner.id, Buffer.from('back'));
+    await attachFiles(db, group.id, [gone.id, back.id], owner.id);
+    await db.transaction((tx) => detachFiles(tx, [gone.id, back.id]));
+    // Re-attached by the uploader between the owner's commit and its cleanup.
+    await attachFiles(db, group.id, [back.id], owner.id);
+    await deleteDetachedFiles(deps, [gone.id, back.id]);
+    expect(await getFile(db, gone.id)).toBeNull();
+    expect(await storage.exists(`files/${group.id}/${gone.id}`)).toBe(false);
+    expect((await getFile(db, back.id))?.attachedAt).not.toBeNull();
+    expect(await storage.exists(`files/${group.id}/${back.id}`)).toBe(true);
+    await deleteDetachedFiles(deps, []);
   });
 });
 

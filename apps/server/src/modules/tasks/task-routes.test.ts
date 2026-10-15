@@ -17,15 +17,15 @@ import { addMember, createGroup } from '../groups/service.js';
 import { user } from '../users/schema.js';
 import { addAdmin } from '../users/service.js';
 
-// `deleteFiles` can be made to fail, to prove the post-commit cleanup never fails a write.
+// `deleteDetachedFiles` can be made to fail, to prove the post-commit cleanup never fails a write.
 const cleanup = vi.hoisted(() => ({ fail: false }));
 vi.mock('../files/service.js', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../files/service.js')>();
   return {
     ...actual,
-    deleteFiles: async (...args: Parameters<typeof actual.deleteFiles>) => {
+    deleteDetachedFiles: async (...args: Parameters<typeof actual.deleteDetachedFiles>) => {
       if (cleanup.fail) throw new Error('cleanup failed');
-      return actual.deleteFiles(...args);
+      return actual.deleteDetachedFiles(...args);
     },
   };
 });

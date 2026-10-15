@@ -229,6 +229,20 @@ export async function deleteFiles({ db, storage }: FileDeps, ids: string[]): Pro
   await dropStored(storage, removed);
 }
 
+/**
+ * The owner's post-commit cleanup after `detachFiles`: deletes only those of `ids` that are still
+ * unattached (rows, then storage objects). A file the uploader attached again in between, to
+ * another message or task, is kept.
+ */
+export async function deleteDetachedFiles({ db, storage }: FileDeps, ids: string[]): Promise<void> {
+  if (ids.length === 0) return;
+  const removed = await db
+    .delete(files)
+    .where(and(inArray(files.id, ids), isNull(files.attachedAt)))
+    .returning({ storageKey: files.storageKey, previewKey: files.previewKey });
+  await dropStored(storage, removed);
+}
+
 /** Deletes files never attached and created before `olderThan`; returns how many. */
 export async function deleteUnattachedFiles(
   { db, storage }: FileDeps,

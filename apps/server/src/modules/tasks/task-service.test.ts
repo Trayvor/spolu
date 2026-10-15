@@ -32,9 +32,11 @@ import {
 
 vi.mock('../files/service.js', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../files/service.js')>();
-  return { ...actual, deleteFiles: vi.fn(actual.deleteFiles) };
+  return { ...actual, deleteDetachedFiles: vi.fn(actual.deleteDetachedFiles) };
 });
 
+const actualFiles =
+  await vi.importActual<typeof import('../files/service.js')>('../files/service.js');
 const { db, close } = createDb(testDatabaseUrl);
 // Cleanup failures must surface in tests.
 const cleanup = {
@@ -324,6 +326,41 @@ describe('updateTask', () => {
     expect(await storage.exists(key)).toBe(false);
   });
 
+  it('a failing post-commit file removal does not fail the edit and leaves the file unattached', async () => {
+    const group = await newGroup();
+    const client = await newClient(group.id);
+    const drop = await upload(group.id, client, 'drop.txt');
+    const task = await createTask(deps, client, group.id, { title: 'A', fileIds: [drop.id] });
+    vi.mocked(filesService.deleteDetachedFiles).mockRejectedValueOnce(new Error('db down'));
+    const onFileCleanupError = vi.fn();
+    const edited = await updateTaskWith(
+      deps,
+      client,
+      task.id,
+      { fileIds: [], updatedAt: task.updatedAt },
+      { onFileCleanupError },
+    );
+    expect(edited.files).toEqual([]);
+    expect(onFileCleanupError).toHaveBeenCalledOnce();
+    expect((await getFile(db, drop.id))?.attachedAt).toBeNull();
+  });
+
+  it('a file removed from a task and attached to another task before the cleanup survives', async () => {
+    const group = await newGroup();
+    const client = await newClient(group.id);
+    const file = await upload(group.id, client);
+    const task = await createTask(deps, client, group.id, { title: 'A', fileIds: [file.id] });
+    let other = '';
+    vi.mocked(filesService.deleteDetachedFiles).mockImplementationOnce(async (d, ids) => {
+      other = (await createTask(deps, client, group.id, { title: 'B', fileIds: ids })).id;
+      return actualFiles.deleteDetachedFiles(d, ids);
+    });
+    await updateTask(deps, client, task.id, { fileIds: [], updatedAt: task.updatedAt });
+    expect((await getTask(db, other))!.files.map((f) => f.id)).toEqual([file.id]);
+    const key = (await getFile(db, file.id))!.storageKey;
+    expect(await storage.exists(key)).toBe(true);
+  });
+
   it('task.assigned goes to newly added assignees only, never to the actor', async () => {
     const group = await newGroup();
     const actor = await newAdmin('Actor');
@@ -376,7 +413,7 @@ describe('deleteTask', () => {
     const client = await newClient(group.id);
     const file = await upload(group.id, client);
     const task = await createTask(deps, client, group.id, { title: 'A', fileIds: [file.id] });
-    vi.mocked(filesService.deleteFiles).mockRejectedValueOnce(new Error('db down'));
+    vi.mocked(filesService.deleteDetachedFiles).mockRejectedValueOnce(new Error('db down'));
     const onFileCleanupError = vi.fn();
     expect(await deleteTaskWith(deps, task.id, { onFileCleanupError })).toEqual({
       groupId: group.id,
@@ -384,6 +421,21 @@ describe('deleteTask', () => {
     expect(onFileCleanupError).toHaveBeenCalledOnce();
     expect(await getTask(db, task.id)).toBeNull();
     expect((await getFile(db, file.id))?.attachedAt).toBeNull();
+  });
+
+  it('a file of a deleted task attached to another task before the cleanup survives', async () => {
+    const group = await newGroup();
+    const client = await newClient(group.id);
+    const file = await upload(group.id, client);
+    const task = await createTask(deps, client, group.id, { title: 'A', fileIds: [file.id] });
+    let other = '';
+    vi.mocked(filesService.deleteDetachedFiles).mockImplementationOnce(async (d, ids) => {
+      other = (await createTask(deps, client, group.id, { title: 'B', fileIds: ids })).id;
+      return actualFiles.deleteDetachedFiles(d, ids);
+    });
+    await deleteTask(deps, task.id);
+    expect((await getTask(db, other))!.files.map((f) => f.id)).toEqual([file.id]);
+    expect(await storage.exists((await getFile(db, file.id))!.storageKey)).toBe(true);
   });
 
   it('an unknown task → NotFoundError', async () => {
