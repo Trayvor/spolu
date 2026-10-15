@@ -37,6 +37,8 @@ Lazy screen chunks worth watching: the Tasks tab (`tasks-tab`, the board with dr
 
 Phase 5 (group chat, measured 2026-10-15): initial JS about 195 kB gzip (entry chunk 170.7 kB, router chunks 19.7 kB and 0.6 kB, i18n 4.1 kB). The chat is the lazy `chat-tab` chunk, 17.8 kB gzip (conversation, list, composer, thread panel, formatter); the Chat tab badge and the groups list count only add the small chat `api.ts` and `unread.tsx` (under 1 kB gzip) to the lazy group layout and groups list chunks.
 
+Chat and task board together (integration of Phases 5 and 8 with main, measured 2026-10-15, gzip level 9 of the scripts `index.html` loads): initial JS about 197 kB gzip (entry chunk 119.4 kB, API client chunk 53.2 kB, router chunks 19.5 kB and 0.6 kB, i18n 4.0 kB), under the 200 kB budget, so the `chat.*` and `tasks.*` texts stay in the locale files of the entry chunk. If a later change crosses the budget, moving those texts into resource bundles loaded with the `chat-tab` and `tasks-tab` chunks (`i18next.addResourceBundle`) is the first lever.
+
 Budget history: 150 kB → 175 kB (2026-10-15): the Radix dropdown menu for the header language selector (about +29 kB), which later menus reuse at no extra cost. 175 kB → 200 kB (2026-10-15, Phase 2): the session guard checks `/api/me` (validated with zod) before the first screen, so zod and the API client moved into the initial load (about +26 kB); every later screen needs them anyway, and the service worker caches them after the first visit.
 
 The budget is an **alarm, not a target to squeeze under**. When a change crosses it:
