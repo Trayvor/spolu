@@ -21,8 +21,8 @@ Socket.IO runs in the same process as the API, as a single instance (no Redis ad
 Every message has a `seq` number that increases by one per channel. After a disconnect the client asks for what it missed instead of relying on an event log.
 
 1. The client keeps the highest `seq` it has seen for each open channel.
-2. On (re)connect it rejoins its rooms and sends `{ channelId, lastSeq }`.
-3. The server checks permission and returns all messages with `seq > lastSeq`, ordered by `seq` ascending.
+2. On (re)connect it re-establishes the socket and rejoins its rooms (the server checks permission on join).
+3. Over HTTP it fetches missed messages: `GET` with `channelId` and `lastSeq`. The server checks permission and returns all messages with `seq > lastSeq`, ordered by `seq` ascending.
 4. The client merges them by `seq`, ignoring ones it already has, and then handles live events as normal.
 
 ```mermaid

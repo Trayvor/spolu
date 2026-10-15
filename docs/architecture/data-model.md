@@ -40,7 +40,7 @@ erDiagram
 | ReadState | last read `seq` per user and channel (unread counts) | 4 | planned |
 | Mention | an @-tag of a user in a message | 5 | planned |
 | Attachment | links a file to a message, task, contract or ticket | 5 | planned |
-| File | stored file: storage key, mime, size, thumbnail | 5 | planned |
+| File | stored file: storage key, mime, size, thumbnail (first used for group logos) | 3 | planned |
 | NotificationPref | per user per group: `all`, `mentions` or `none` | 6 | planned |
 | Bucket | a task board column | 8 | planned |
 | Task | a card: title, assignee, due date, priority, labels, position | 8 | planned |

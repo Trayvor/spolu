@@ -9,9 +9,9 @@ Product rules are in [roles-and-access](../product/roles-and-access.md). In the 
 | Read and write chat, tasks, tickets in a group | all groups | all groups | own group only |
 | Contracts module | yes | yes | no (not shown at all) |
 | Global tickets list ("Technical support") | yes | yes | no |
-| Create other admins | yes | no | no |
-| Be deleted or demoted | never | yes | yes |
-| Remove a client from a group | yes | yes | no |
+| Create other admins | yes | no (assumed, confirm in the phase design) | no |
+| Be deleted or demoted | never | yes (assumed, confirm in the phase design) | yes (assumed, confirm in the phase design) |
+| Remove a client from a group | yes | yes | no (assumed, confirm in the phase design) |
 | Message users of other organizations | n/a | n/a | no |
 
 ## The rule
@@ -20,6 +20,6 @@ Permissions are enforced on the server, in one place per module. Each module exp
 
 Client-side hiding of buttons and pages is cosmetic. The server never trusts the client.
 
-Policy functions are written test-first. A forbidden access returns an error and never reveals whether the resource exists.
+Policy functions are written test-first. Default to confirm in the Phase 3 design: a forbidden access returns an error that does not reveal whether the resource exists.
 
 See [realtime.md](realtime.md) for room joins and [overview.md](overview.md) for module boundaries.
