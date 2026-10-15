@@ -422,6 +422,16 @@ describe('groups API', () => {
       expect(await logoKey(g.id)).toBeNull();
     });
 
+    it('application/json is 400 invalid_logo, not a JSON parser error', async () => {
+      const { cookie } = await adminSession();
+      const g = await newGroup();
+      for (const body of ['{"a":1}', 'not json', '']) {
+        const res = await putLogo(g.id, cookie, Buffer.from(body), 'application/json');
+        expect(res.statusCode).toBe(400);
+        expect(res.json()).toEqual({ error: 'invalid_logo' });
+      }
+    });
+
     it('stores the sniffed type: a JPEG is served as image/jpeg', async () => {
       const { cookie } = await adminSession();
       const g = await newGroup();

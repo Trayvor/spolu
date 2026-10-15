@@ -42,7 +42,11 @@ describe('join API', () => {
     const group = await newGroup();
     const ok = await test.app.inject({ method: 'GET', url: `/api/join/${group.inviteToken}` });
     expect(ok.statusCode).toBe(200);
-    expect(ok.json()).toEqual({ name: 'Join Co', hasLogo: false });
+    expect(ok.json()).toEqual({
+      name: 'Join Co',
+      hasLogo: false,
+      updatedAt: group.updatedAt.toISOString(),
+    });
     const bad = await test.app.inject({ method: 'GET', url: '/api/join/nope' });
     expect(bad.statusCode).toBe(404);
     expect(bad.json()).toEqual({ error: 'not_found' });

@@ -62,4 +62,62 @@ describe('buildApp', () => {
     await app.close();
     await close();
   });
+
+  describe('CSRF guard', () => {
+    const post = async (url: string, headers: Record<string, string>, nodeEnv?: 'development') => {
+      const { app, close } = await buildTestApp(nodeEnv ? { config: { nodeEnv } } : {});
+      try {
+        return await app.inject({ method: 'POST', url, headers, payload: {} });
+      } finally {
+        await app.close();
+        await close();
+      }
+    };
+    // Any /api route that exists; the guard runs before auth, so the answer is 401 when allowed.
+    const url = '/api/groups';
+
+    it('refuses a cross-site Sec-Fetch-Site and a foreign Origin with 403', async () => {
+      const cases: Record<string, string>[] = [
+        { 'sec-fetch-site': 'cross-site' },
+        { 'sec-fetch-site': 'same-site' },
+        { origin: 'https://evil.example' },
+        { origin: 'null' },
+      ];
+      for (const headers of cases) {
+        const res = await post(url, headers);
+        expect(res.statusCode).toBe(403);
+        expect(res.json()).toEqual({ error: 'forbidden' });
+      }
+    });
+
+    it('lets the same origin, none and header-less requests through', async () => {
+      const cases: Record<string, string>[] = [
+        { 'sec-fetch-site': 'same-origin', origin: 'http://localhost:3000' },
+        { 'sec-fetch-site': 'none' },
+        { origin: 'http://localhost:3000' },
+        {},
+      ];
+      for (const headers of cases) {
+        expect((await post(url, headers)).statusCode).toBe(401);
+      }
+    });
+
+    it('allows the Vite origin only in development, and never guards /api/auth or GET', async () => {
+      const vite = { origin: 'http://localhost:5173' };
+      expect((await post(url, vite)).statusCode).toBe(403);
+      expect((await post(url, vite, 'development')).statusCode).toBe(401);
+      expect(
+        (await post('/api/auth/sign-out', { 'sec-fetch-site': 'cross-site' })).statusCode,
+      ).not.toBe(403);
+      const { app, close } = await buildTestApp();
+      const get = await app.inject({
+        method: 'GET',
+        url: '/api/groups',
+        headers: { 'sec-fetch-site': 'cross-site' },
+      });
+      expect(get.statusCode).toBe(401);
+      await app.close();
+      await close();
+    });
+  });
 });

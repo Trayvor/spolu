@@ -10,5 +10,8 @@ export function normalizeEgrantUrl(input: string): string | null {
     return null;
   }
   if (url.protocol !== 'https:' && url.protocol !== 'http:') return null;
-  return url.origin; // URL already lower-cases scheme and host and drops default ports
+  // URL already lower-cases scheme and host and drops default ports. A trailing dot (an
+  // absolute DNS name) names the same host, so drop it.
+  if (url.hostname.endsWith('.')) url.hostname = url.hostname.slice(0, -1);
+  return url.origin;
 }

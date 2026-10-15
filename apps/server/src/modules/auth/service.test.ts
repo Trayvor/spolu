@@ -17,11 +17,13 @@ describe('deleteExpiredVerifications', () => {
     await db
       .insert(verification)
       .values([
-        row(expired, new Date(Date.now() - 60_000)),
+        row(expired, new Date(Date.now() - 10 * 60_000)),
         row(live, new Date(Date.now() + 60_000)),
       ]);
 
-    expect(await deleteExpiredVerifications(db)).toBeGreaterThanOrEqual(1);
+    expect(
+      await deleteExpiredVerifications(db, new Date(Date.now() - 5 * 60_000)),
+    ).toBeGreaterThanOrEqual(1);
 
     const left = async (id: string) =>
       (await db.select().from(verification).where(eq(verification.id, id))).length;

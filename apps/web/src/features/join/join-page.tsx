@@ -77,7 +77,7 @@ export function JoinPage({ token }: { token: string }) {
     <Card className="mx-auto w-full max-w-[440px] gap-6 p-8">
       {info.data.hasLogo && (
         <img
-          src={joinLogoUrl(token)}
+          src={joinLogoUrl(token, info.data.updatedAt)}
           alt=""
           width={56}
           height={56}

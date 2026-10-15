@@ -241,6 +241,7 @@ Scope:
 - Optional password in the profile as an alternative to code login.
 - Profile: name, avatar, language.
 - Search over group messages.
+- Periodic cleanup of never-verified clients created by invite links (unverified users who never signed in, with their membership). Idea to consider: bind the invite token to the login code verification, so signing in proves which link the email came from.
 - Database and file backups (including off-site), error monitoring. (A nightly DB backup exists since Phase 1; this adds off-site and file backups.)
 
 Done when: the system is ready for the team to move fully from Teams.

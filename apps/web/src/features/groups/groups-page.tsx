@@ -11,7 +11,7 @@ import { GroupLogo } from './group-logo';
 /** Admin home: every client group with its member count, and an inline "Create group" form. */
 export function GroupsPage() {
   const { t } = useTranslation();
-  const { data: groups } = useQuery(groupsQuery);
+  const { data: groups, isError, refetch } = useQuery(groupsQuery);
   const [formOpen, setFormOpen] = useState(false);
 
   return (
@@ -29,6 +29,14 @@ export function GroupsPage() {
         <GroupForm onCancel={() => setFormOpen(false)} onSaved={() => setFormOpen(false)} />
       )}
 
+      {isError && !groups && (
+        <div className="flex flex-col items-start gap-3" role="alert">
+          <p className="text-body">{t('errors.generic')}</p>
+          <Button variant="outline" onClick={() => void refetch()}>
+            {t('errors.retry')}
+          </Button>
+        </div>
+      )}
       {groups && groups.length === 0 && !formOpen && (
         <p className="text-body text-muted-foreground">{t('groups.empty')}</p>
       )}

@@ -30,11 +30,12 @@ const BETA = {
   updatedAt: '2026-10-15T11:00:00.000Z',
 };
 
-function mockApi(groups: unknown[]) {
+function mockApi(groups: unknown[], listStatus = 200) {
   const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
     const reply = (status: number, body: unknown) => new Response(JSON.stringify(body), { status });
     if (url === '/api/me') return reply(200, ADMIN);
-    if (url === '/api/groups' && (init?.method ?? 'GET') === 'GET') return reply(200, groups);
+    if (url === '/api/groups' && (init?.method ?? 'GET') === 'GET')
+      return reply(listStatus, listStatus === 200 ? groups : { error: 'internal' });
     if (url === '/api/groups' && init?.method === 'POST') {
       return reply(201, {
         id: 'g3',
@@ -85,6 +86,16 @@ describe('groups page', () => {
     mockApi([]);
     renderGroups();
     expect(await screen.findByText(t('groups.empty'))).toBeInTheDocument();
+  });
+
+  it('shows a generic error with a retry button when the list fails', async () => {
+    const fetchMock = mockApi([ACME], 500);
+    const { user } = renderGroups();
+    expect(await screen.findByText(t('errors.generic'))).toBeInTheDocument();
+    const listCalls = () => fetchMock.mock.calls.filter(([u]) => u === '/api/groups').length;
+    const before = listCalls();
+    await user.click(screen.getByRole('button', { name: t('errors.retry') }));
+    await waitFor(() => expect(listCalls()).toBeGreaterThan(before));
   });
 
   it('Create group opens the inline form; saving closes it and refreshes the list', async () => {

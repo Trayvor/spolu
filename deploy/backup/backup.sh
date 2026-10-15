@@ -17,27 +17,40 @@ prune() {
   ls -1 "$BACKUP_DIR"/$1 2>/dev/null | sort -r | tail -n +"$((BACKUP_KEEP + 1))" | xargs -r rm -f --
 }
 
+# The dump and the files archive run independently: a failure of one never skips the other.
+# Returns non-zero when either failed.
 run_backup() {
-  local stamp dump files
+  local stamp dump files failed=0 rc
   stamp=$(date -u +%Y%m%dT%H%M%SZ)
   dump="$BACKUP_DIR/spolu-$stamp.dump"
   files="$BACKUP_DIR/files-$stamp.tar.gz"
+
   if pg_dump -Fc -f "$dump.partial" && mv "$dump.partial" "$dump"; then
     log "ok $dump ($(du -h "$dump" | cut -f1))"
     prune 'spolu-*.dump'
   else
     rm -f "$dump.partial"
     log "FAILED pg_dump"
-    return 1
+    failed=1
   fi
-  if tar -czf "$files.partial" -C "$FILES_DIR" . && mv "$files.partial" "$files"; then
+
+  # Skip the app's atomic-write temp files (<target>.<uuid>.tmp). tar exits 1 when a file
+  # changed while it was read; the archive is still usable, so that counts as success.
+  rc=0
+  tar -czf "$files.partial" --exclude='*.tmp' -C "$FILES_DIR" . || rc=$?
+  if [ "$rc" -eq 1 ]; then
+    log "tar: some files changed while being read (archive kept)"
+    rc=0
+  fi
+  if [ "$rc" -eq 0 ] && mv "$files.partial" "$files"; then
     log "ok $files ($(du -h "$files" | cut -f1))"
     prune 'files-*.tar.gz'
   else
     rm -f "$files.partial"
     log "FAILED files archive"
-    return 1
+    failed=1
   fi
+  return "$failed"
 }
 
 # Seconds until the next BACKUP_HOUR. Never fails: if date cannot resolve the time (for example a

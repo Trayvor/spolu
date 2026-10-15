@@ -25,7 +25,7 @@ User policy lives in `modules/users/policy.ts`: `isAdmin`, `canManageAdmins` (an
 
 Group policy lives in `modules/groups/policy.ts`: `canManageGroups` (any admin), `canReadGroup(actor, groupId, actorGroupId)` (any admin, or a client whose membership group is `groupId`; `actorGroupId` comes from `getMembershipGroupId`) and `canRemoveMember` (admin actor, client target). A group a caller may not read answers `404 not_found`, never 403, so group ids cannot be probed.
 
-Who is calling comes from the session cookie, read in `modules/auth/session.ts`. Routes use the preHandlers `requireUser(app.auth)` (no valid session: `401 {"error":"unauthorized"}`) or `requireAdmin(app.auth)` (no session: 401; not `isAdmin`: `403 {"error":"forbidden"}`); both set `request.user` (`SessionUser`). A disabled user counts as logged out even if a session row still exists. Finer checks (which group, which admin) call the module's policy functions with `request.user` before the service.
+Who is calling comes from the session cookie, read in `modules/auth/session.ts`. Routes use the preHandlers `requireUser(app.auth)` (no valid session: `401 {"error":"unauthorized"}`) or `requireAdmin(app.auth)` (no session: 401; not `isAdmin`: `403 {"error":"forbidden"}`); both set `request.user` (`SessionUser`). A disabled user counts as logged out even if a session row still exists. Finer checks (which group, which admin) call the module's policy functions with `request.user` before the service. State-changing requests from another site are refused earlier by the CSRF guard (see [overview.md](overview.md), "CSRF guard").
 
 Policy functions are written test-first. Confirmed in Phase 3: reading a resource you may not read answers 404, the same as a missing one.
 

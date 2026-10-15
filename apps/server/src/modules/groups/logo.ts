@@ -68,8 +68,14 @@ export const logoRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (
 
   // Upload lives in its own scope: the raw-body parser must not touch other routes. The
   // catch-all parser hands every content type to the handler, so a wrong type answers
-  // 400 invalid_logo (not Fastify's 415).
+  // 400 invalid_logo (not Fastify's 415). JSON has a built-in parser, so replace it too.
   await app.register(async (upload) => {
+    upload.removeContentTypeParser('application/json');
+    upload.addContentTypeParser(
+      'application/json',
+      { parseAs: 'buffer', bodyLimit: MAX_LOGO_BYTES },
+      (_req, body, done) => done(null, body),
+    );
     upload.addContentTypeParser(
       '*',
       { parseAs: 'buffer', bodyLimit: MAX_LOGO_BYTES },

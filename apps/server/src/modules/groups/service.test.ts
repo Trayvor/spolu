@@ -14,6 +14,7 @@ import {
   getMembershipGroupId,
   listGroups,
   listMembers,
+  moveUnverified,
   regenerateInvite,
   setLogoKey,
   updateGroup,
@@ -169,5 +170,24 @@ describe('setLogoKey', () => {
     expect(await setLogoKey(db, g.id, 'k2')).toBe('k1');
     expect(await setLogoKey(db, g.id, null)).toBe('k2');
     expect((await getGroup(db, g.id))?.logoKey).toBeNull();
+  });
+});
+
+describe('moveUnverified', () => {
+  it('moves an unverified client to the new group', async () => {
+    const [a, b] = [await newGroup(), await newGroup()];
+    const client = await newClient(false);
+    await addMember(db, a.id, client.id);
+    await moveUnverified(db, b.id, client);
+    expect(await getMembershipGroupId(db, client.id)).toBe(b.id);
+  });
+
+  it('does not move a client who verified after the row was read', async () => {
+    const [a, b] = [await newGroup(), await newGroup()];
+    const stale = await newClient(false); // the stale read: still says unverified
+    await addMember(db, a.id, stale.id);
+    await db.update(user).set({ emailVerified: true }).where(eq(user.id, stale.id));
+    await moveUnverified(db, b.id, stale);
+    expect(await getMembershipGroupId(db, stale.id)).toBe(a.id);
   });
 });

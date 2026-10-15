@@ -10,11 +10,11 @@ export async function revokeAllSessions(db: Db, userId: string): Promise<void> {
   await db.delete(session).where(eq(session.userId, userId));
 }
 
-/** Deletes login codes (and other verification rows) that have expired; returns how many. */
-export async function deleteExpiredVerifications(db: Db): Promise<number> {
+/** Deletes login codes (and other verification rows) that expired before `before`; returns how many. */
+export async function deleteExpiredVerifications(db: Db, before = new Date()): Promise<number> {
   const deleted = await db
     .delete(verification)
-    .where(lt(verification.expiresAt, new Date()))
+    .where(lt(verification.expiresAt, before))
     .returning({ id: verification.id });
   return deleted.length;
 }

@@ -9,7 +9,7 @@ The `backup` service (`deploy/backup/backup.sh`) runs every night at `BACKUP_HOU
 - `spolu-<timestamp>.dump` — `pg_dump -Fc` of the database.
 - `files-<timestamp>.tar.gz` — the `files` volume (`/data/files`: group logos and other uploads, with their `.meta.json` sidecars). The backup container mounts it read-only.
 
-Each file is written as `.partial` and renamed when complete. The newest `BACKUP_KEEP` (default 14) of each kind are kept. Take an extra run with `BACKUP_ONCE=1`.
+Each file is written as `.partial` and renamed when complete. The dump and the files archive run independently: if one fails the other is still taken, and the run exits non-zero (logged as `FAILED ...`). The files archive skips the app's atomic-write temp files (`*.tmp`), and `tar` exit code 1 ("file changed as we read it") counts as success with a log line. The newest `BACKUP_KEEP` (default 14) of each kind are kept. Take an extra run with `BACKUP_ONCE=1`.
 
 ## Restore the files
 
@@ -27,4 +27,17 @@ Extracting adds and overwrites files; it does not remove files created after the
 
 ## Restore the database
 
-Restore the `.dump` with `pg_restore` into an empty database while the app is stopped.
+This replaces the current data with the newest dump. Run it from the `deploy/` directory on the server.
+
+1. Stop the app (PostgreSQL stays up): `docker compose stop app`.
+2. Restore the newest dump with a one-off run of the `backup` service (same image as PostgreSQL, the connection variables and the `backups` volume are already set):
+
+   ```bash
+   docker compose run --rm --no-deps --entrypoint bash backup -c \
+     'pg_restore --clean --if-exists --no-owner --dbname "$PGDATABASE" "$(ls -1 /backups/spolu-*.dump | sort | tail -n 1)"'
+   ```
+
+   `--clean --if-exists` drops and recreates each object, so no empty database is needed. Messages about objects that do not exist yet are harmless; any other error means the restore is incomplete, so do not start the app.
+
+3. Start the app: `docker compose start app`. It checks the migrations at boot.
+4. Check the sign-in and one group page. Restore the files too (above) when the files volume was lost as well.

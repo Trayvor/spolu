@@ -72,6 +72,30 @@ describe('resizeImage', () => {
     expect((await resizeImage(file())).type).toBe('image/png');
   });
 
+  it('downsizes big images with the browser high quality resize', async () => {
+    stubImage(1024, 512);
+    await resizeImage(file());
+    expect(createImageBitmap).toHaveBeenLastCalledWith(expect.anything(), {
+      resizeWidth: 256,
+      resizeHeight: 128,
+      resizeQuality: 'high',
+    });
+  });
+
+  it('does not resize a small image a second time', async () => {
+    stubImage(100, 50);
+    await resizeImage(file());
+    expect(createImageBitmap).toHaveBeenCalledTimes(1);
+  });
+
+  it('rejects a file over 20 MB before decoding it', async () => {
+    stubImage(10, 10);
+    const big = new File(['x'], 'logo', { type: 'image/png' });
+    Object.defineProperty(big, 'size', { value: 20 * 1024 * 1024 + 1 });
+    await expect(resizeImage(big)).rejects.toThrow('too large');
+    expect(createImageBitmap).not.toHaveBeenCalled();
+  });
+
   it('rejects a file that is not an image', async () => {
     stubImage(10, 10);
     await expect(resizeImage(file('application/pdf'))).rejects.toThrow();

@@ -33,6 +33,7 @@ export async function buildApp(
   });
 
   app.decorateRequest('user', null);
+  registerCsrfGuard(app, config);
 
   await app.register(systemRoutes, { prefix: '/api', deps });
   await app.register(authRoutes, { prefix: '/api', deps });
@@ -42,6 +43,30 @@ export async function buildApp(
 
   registerNotFound(app);
   return app;
+}
+
+/**
+ * CSRF guard for our own state-changing routes (the session cookie is SameSite=Lax, this is
+ * defence in depth). A browser sends Sec-Fetch-Site and Origin on such requests; refuse when
+ * either says the request came from elsewhere. Requests with neither header (curl, tests)
+ * pass. /api/auth/* is skipped: better-auth checks Origin itself.
+ */
+function registerCsrfGuard(app: FastifyInstance, config: AppDeps['config']): void {
+  const allowedOrigins = new Set([new URL(config.publicUrl).origin]);
+  // In dev the browser is on Vite (:5173), whose proxy keeps the page's Origin header.
+  if (config.nodeEnv === 'development') allowedOrigins.add('http://localhost:5173');
+  const safeMethods = new Set(['GET', 'HEAD', 'OPTIONS']);
+
+  app.addHook('onRequest', async (request, reply) => {
+    if (safeMethods.has(request.method)) return;
+    const path = request.url.split('?')[0] ?? '/';
+    if (!isUnder(path, '/api') || isUnder(path, '/api/auth')) return;
+    const site = request.headers['sec-fetch-site'];
+    const origin = request.headers.origin;
+    const crossSite = site !== undefined && site !== 'same-origin' && site !== 'none';
+    const foreignOrigin = origin !== undefined && !allowedOrigins.has(origin);
+    if (crossSite || foreignOrigin) return reply.code(403).send({ error: 'forbidden' });
+  });
 }
 
 declare module 'fastify' {

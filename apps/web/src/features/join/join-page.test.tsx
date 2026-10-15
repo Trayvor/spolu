@@ -34,7 +34,12 @@ function mockApi(options: { info?: Reply; join?: Reply; loggedIn?: boolean; veri
       reply =
         init?.method === 'POST'
           ? (options.join ?? json(200, { ok: true }))
-          : (options.info ?? json(200, { name: 'Firma s.r.o.', hasLogo: true }));
+          : (options.info ??
+            json(200, {
+              name: 'Firma s.r.o.',
+              hasLogo: true,
+              updatedAt: '2026-10-15T10:00:00.000Z',
+            }));
     } else if (url === '/api/auth/email-otp/send-verification-otp') {
       reply = json(200, { success: true });
     } else if (url === '/api/auth/sign-in/email-otp') {
@@ -82,18 +87,24 @@ describe('join page', () => {
       await screen.findByRole('heading', { name: t('join.title', { group: 'Firma s.r.o.' }) }),
     ).toBeInTheDocument();
     // Decorative (alt=""), so it has no accessible role.
-    expect(document.querySelector('img[src$="/logo"]')).toHaveAttribute(
+    expect(document.querySelector('img[src*="/logo"]')).toHaveAttribute(
       'src',
-      '/api/join/tok/logo',
+      '/api/join/tok/logo?v=2026-10-15T10%3A00%3A00.000Z',
     );
     expect(screen.getByText(t('join.intro'))).toBeInTheDocument();
   });
 
   it('shows no logo when the group has none', async () => {
-    mockApi({ info: json(200, { name: 'Firma s.r.o.', hasLogo: false }) });
+    mockApi({
+      info: json(200, {
+        name: 'Firma s.r.o.',
+        hasLogo: false,
+        updatedAt: '2026-10-15T10:00:00.000Z',
+      }),
+    });
     renderAt('/join/tok');
     await screen.findByRole('heading', { name: /Firma/ });
-    expect(document.querySelector('img[src$="/logo"]')).toBeNull();
+    expect(document.querySelector('img[src*="/logo"]')).toBeNull();
   });
 
   it('invalid token shows the invalid message and no form', async () => {

@@ -31,7 +31,12 @@ export const MemberSchema = z.object({ id: z.string(), name: z.string(), email: 
 export type Member = z.infer<typeof MemberSchema>;
 export const MemberListSchema = z.array(MemberSchema);
 
-export const JoinInfoSchema = z.object({ name: z.string(), hasLogo: z.boolean() });
+export const JoinInfoSchema = z.object({
+  name: z.string(),
+  hasLogo: z.boolean(),
+  /** ISO time of the last group change; the join page appends it to the logo URL as a cache key. */
+  updatedAt: z.string(),
+});
 export type JoinInfo = z.infer<typeof JoinInfoSchema>;
 
 export const JoinBodySchema = z.object({

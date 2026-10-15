@@ -188,10 +188,18 @@ export async function joinWithEmail(db: Db, groupId: string, email: string): Pro
   }
 }
 
-async function moveUnverified(db: Db, groupId: string, existing: UserRow): Promise<void> {
+/**
+ * Moves a client to `groupId` only while they are still an unverified, active client. The
+ * condition is part of the write, so a client who verified after `existing` was read stays put.
+ */
+export async function moveUnverified(db: Db, groupId: string, existing: UserRow): Promise<void> {
   if (existing.role !== 'client' || existing.emailVerified || existing.disabledAt) return;
   await db
     .insert(groupMembers)
     .values({ userId: existing.id, groupId })
-    .onConflictDoUpdate({ target: groupMembers.userId, set: { groupId } });
+    .onConflictDoUpdate({
+      target: groupMembers.userId,
+      set: { groupId },
+      setWhere: sql`exists (select 1 from "user" u where u.id = ${groupMembers.userId} and u.email_verified = false and u.disabled_at is null and u.role = 'client')`,
+    });
 }

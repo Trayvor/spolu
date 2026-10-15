@@ -13,7 +13,11 @@ export const joinRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { d
   app.get<TokenParams>('/join/:token', async (request, reply) => {
     const group = await getGroupByInviteToken(db, request.params.token);
     if (!group) return reply.code(404).send({ error: ErrorCodes.notFound });
-    const info: JoinInfo = { name: group.name, hasLogo: group.logoKey !== null };
+    const info: JoinInfo = {
+      name: group.name,
+      hasLogo: group.logoKey !== null,
+      updatedAt: group.updatedAt.toISOString(),
+    };
     return info;
   });
 
