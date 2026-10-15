@@ -2,6 +2,8 @@
 
 Socket.IO runs in the same process as the API, as a single instance (no Redis adapter).
 
+Built so far: `attachSocket` in `apps/server/src/infra/realtime/socket.ts` serves Socket.IO at `/socket.io` and answers the `system:ping` event with an ack `{ pong: true, at: <ISO string> }`. In production CORS allows only `PUBLIC_URL`; in development any origin.
+
 ## Rules
 
 - **Sockets are push-only.** Clients never send writes over a socket. Every write goes through the HTTP API, which then emits an event. See [overview.md](overview.md).
