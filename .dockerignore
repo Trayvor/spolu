@@ -1,0 +1,15 @@
+**/node_modules
+**/dist
+.git
+.superpowers
+.claude
+docs
+e2e
+test-results
+playwright-report
+.env
+.env.*
+deploy
+data
+coverage
+**/.vitest

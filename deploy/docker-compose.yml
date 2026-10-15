@@ -1,0 +1,84 @@
+# Spolu on one server: app + PostgreSQL + Caddy (TLS) + nightly backup.
+# Run from this directory with: docker compose --env-file .env up -d
+# .env holds IMAGE, TAG, DOMAIN, POSTGRES_PASSWORD and the app settings (see test.env.example).
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: 10m
+    max-file: "3"
+
+services:
+  app:
+    image: ${IMAGE}:${TAG}
+    env_file: .env
+    environment:
+      # Built from POSTGRES_PASSWORD, so .env needs no DATABASE_URL.
+      DATABASE_URL: postgres://spolu:${POSTGRES_PASSWORD}@postgres:5432/spolu
+    volumes:
+      - files:/data/files
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    stop_grace_period: 30s # pg-boss waits for running jobs on shutdown
+    logging: *logging
+
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: spolu
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: spolu
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U spolu -d spolu"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+    logging: *logging
+
+  caddy:
+    image: caddy:2
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      DOMAIN: ${DOMAIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - app
+    restart: unless-stopped
+    logging: *logging
+
+  backup:
+    image: postgres:17
+    entrypoint: ["bash", "/backup.sh"]
+    environment:
+      PGHOST: postgres
+      PGUSER: spolu
+      PGDATABASE: spolu
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      TZ: ${BACKUP_TZ:-Europe/Bratislava}
+      BACKUP_HOUR: ${BACKUP_HOUR:-02:30}
+    volumes:
+      - ./backup/backup.sh:/backup.sh:ro
+      - backups:/backups
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    logging: *logging
+
+volumes:
+  files:
+  pgdata:
+  caddy_data:
+  caddy_config:
+  backups:

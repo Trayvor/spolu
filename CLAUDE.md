@@ -56,5 +56,5 @@ One-time setup: `pnpm install`, `cp .env.example .env`, `pnpm exec playwright in
 - `packages/` — `shared` (zod schemas and types used by server and web). Arrives in Phase 1.
 - `.env.example` — every environment variable with dev defaults; copy to `.env`.
 - `scripts/` — shell scripts that hold all CI/CD logic; CI only calls them. Starts with `check-docs.sh` (Phase 0).
-- `deploy/` — Docker Compose, Caddyfile and env examples for servers. Arrives in Phase 1.
+- `deploy/` — Docker Compose, Caddyfile, backup script and env examples for servers. The root `Dockerfile` builds the production image.
 - `e2e/` — Playwright end-to-end tests; config in the root `playwright.config.ts`.

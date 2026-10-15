@@ -1,0 +1,12 @@
+# Caddy gets and renews the certificate for {$DOMAIN} automatically and redirects HTTP to HTTPS.
+# HSTS is not set by default; add it here once the domain is final.
+{$DOMAIN} {
+	encode zstd gzip
+	header {
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+		-Server
+	}
+	# WebSocket upgrades (Socket.IO) are proxied automatically.
+	reverse_proxy app:3000
+}
