@@ -8,7 +8,12 @@ const PING_TIMEOUT_MS = 5_000;
 export type SocketStatus = { connected: boolean; lastPingAt: Date | null };
 
 function isPingAck(value: unknown): value is PingAck {
-  return typeof value === 'object' && value !== null && (value as PingAck).pong === true && typeof (value as PingAck).at === 'string';
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    (value as PingAck).pong === true &&
+    typeof (value as PingAck).at === 'string'
+  );
 }
 
 /**
@@ -27,7 +32,11 @@ export function useSocketStatus(socket: Socket): SocketStatus {
       try {
         const ack: unknown = await socket.timeout(PING_TIMEOUT_MS).emitWithAck(SocketEvents.ping);
         if (!active) return;
-        setStatus(isPingAck(ack) ? { connected: true, lastPingAt: new Date(ack.at) } : (s) => ({ ...s, connected: false }));
+        setStatus(
+          isPingAck(ack)
+            ? { connected: true, lastPingAt: new Date(ack.at) }
+            : (s) => ({ ...s, connected: false }),
+        );
       } catch {
         if (active) setStatus((s) => ({ ...s, connected: false }));
       }

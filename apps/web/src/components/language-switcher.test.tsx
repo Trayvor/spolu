@@ -27,7 +27,10 @@ describe('LanguageSwitcher', () => {
     render(<LanguageSwitcher />);
     const group = screen.getByRole('radiogroup', { name: 'Jazyk' });
     expect(group).toBeInTheDocument();
-    expect(screen.getByRole('radio', { name: 'Slovenčina' })).toHaveAttribute('aria-checked', 'true');
+    expect(screen.getByRole('radio', { name: 'Slovenčina' })).toHaveAttribute(
+      'aria-checked',
+      'true',
+    );
     expect(screen.getByRole('radio', { name: 'English' })).toHaveAttribute('aria-checked', 'false');
     expect(screen.getByRole('radio', { name: 'English' })).toHaveTextContent('EN');
   });

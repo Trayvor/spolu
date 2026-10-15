@@ -15,7 +15,9 @@ export function createSmtpSender(opts: { host: string; port: number; from: strin
           text: msg.text,
         });
       } catch (err) {
-        throw new EmailSendError(`SMTP send failed: ${err instanceof Error ? err.message : String(err)}`);
+        throw new EmailSendError(
+          `SMTP send failed: ${err instanceof Error ? err.message : String(err)}`,
+        );
       }
     },
   };

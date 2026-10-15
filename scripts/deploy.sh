@@ -105,9 +105,9 @@ REMOTE
 log "Waiting for $health_url to report version $tag"
 version_matches() {
   if command -v jq >/dev/null 2>&1; then
-    jq -e --arg v "$tag" '.version == $v' >/dev/null 2>&1 <<< "$1"
+    jq -e --arg v "$tag" '.status == "ok" and .version == $v' >/dev/null 2>&1 <<< "$1"
   else
-    grep -qF "\"version\":\"$tag\"" <<< "$1"
+    grep -qF '"status":"ok"' <<< "$1" && grep -qF "\"version\":\"$tag\"" <<< "$1"
   fi
 }
 deadline=$((SECONDS + 120))

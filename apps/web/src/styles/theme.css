@@ -14,19 +14,19 @@
    the site uses: 500 (body) and 600 (headings, buttons, labels). Latin + latin-ext
    (all Slovak diacritics) are in each file. */
 @font-face {
-  font-family: "Saans";
+  font-family: 'Saans';
   font-style: normal;
   font-weight: 500;
   font-display: swap;
-  src: url("/fonts/Saans-Medium.woff2") format("woff2");
+  src: url('/fonts/Saans-Medium.woff2') format('woff2');
 }
 
 @font-face {
-  font-family: "Saans";
+  font-family: 'Saans';
   font-style: normal;
   font-weight: 600;
   font-display: swap;
-  src: url("/fonts/Saans-SemiBold.woff2") format("woff2");
+  src: url('/fonts/Saans-SemiBold.woff2') format('woff2');
 }
 
 :root {
@@ -65,7 +65,7 @@
   --brand-coral: #ff8a4c;
 
   /* typography */
-  --font-family-base: "Saans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-family-base: 'Saans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-sans: var(--font-family-base); /* shadcn name; same stack */
   --type-nano: 0.7rem; /* 11.2px */
   --type-micro: 0.8rem; /* 12.8px — field labels, captions */

@@ -126,7 +126,7 @@ egrant.sk spacing presets are 4, 8, 12, 16, 20, 24, 32, 40, 48, 54, 64px — all
 - Secondary: `bg-secondary`, hover `bg-surface-3` (`.egrant-header__lang-toggle`, "Odoberať výzvy").
 - Icon button: 38×38 circle, `bg-secondary` (language toggle) or `bg-primary` (modal close/back).
 - Full-width submit: primary, `w-full` (`.egrant-modal__submit`).
-- shadcn's default button uses `rounded-md`; Spolu's `src/components/ui/button.tsx` is already `rounded-full` with these variants (default, outline, secondary, ghost, link, destructive) and sizes (default 38px, sm, lg, icon). Badge is a pill too (extra `success` variant). Dropdown menu: `rounded-xl` panel, `rounded-lg` items, `shadow-lift`, no open/close animation.
+- shadcn's default button uses `rounded-md`; Spolu's `src/components/ui/button.tsx` is already `rounded-full` with these variants (default, outline, secondary, ghost, link, destructive) and sizes (default 38px, sm, lg, icon). Badge is a pill too (extra `success` variant). Dropdown menu (not in the repo yet; re-add with `pnpm dlx shadcn@latest add dropdown-menu` when a screen needs it, then trim to): `rounded-xl` panel, `rounded-lg` items, `shadow-lift`, no open/close animation.
 
 ### Input
 

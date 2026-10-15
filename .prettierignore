@@ -5,3 +5,5 @@ playwright-report
 test-results
 pnpm-lock.yaml
 docs/superpowers
+apps/server/src/infra/db/migrations/meta
+*.md

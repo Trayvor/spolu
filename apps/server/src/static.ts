@@ -1,9 +1,9 @@
 import { readFile } from 'node:fs/promises';
-import { join } from 'node:path';
+import { join, sep } from 'node:path';
 import fastifyStatic from '@fastify/static';
 import type { FastifyInstance } from 'fastify';
 
-const ASSETS_PREFIX = '/assets/';
+const ASSETS_DIR = 'assets';
 const IMMUTABLE = 'public, max-age=31536000, immutable';
 
 /**
@@ -19,7 +19,7 @@ export async function registerStatic(app: FastifyInstance, webDistDir: string): 
     cacheControl: false,
     // Vite fingerprints everything under /assets/, so it can be cached forever; the rest must revalidate.
     setHeaders: (reply, filePath) => {
-      const isAsset = filePath.startsWith(join(webDistDir, ASSETS_PREFIX));
+      const isAsset = filePath.startsWith(join(webDistDir, ASSETS_DIR) + sep);
       reply.header('Cache-Control', isAsset ? IMMUTABLE : 'no-cache');
     },
   });

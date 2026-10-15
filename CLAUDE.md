@@ -54,8 +54,8 @@ One-time setup: `pnpm install`, `cp .env.example .env`, `pnpm exec playwright in
 - `docs/` — knowledge base: product requirements, architecture, ADRs, design, runbooks, roadmap, glossary.
 - `.claude/` — project settings, hooks and skills (`.claude/skills/<name>/SKILL.md`).
 - `apps/web/src/locales/{en,sk}.json` — every UI string, as i18n keys; never hardcode UI text.
-- `apps/` — `server` (Fastify API, Socket.IO, jobs) and `web` (React + Vite SPA; PWA parts arrive later in Phase 1).
-- `packages/` — `shared` (zod schemas and types used by server and web). Arrives in Phase 1.
+- `apps/` — `server` (Fastify API, Socket.IO, jobs) and `web` (React + Vite PWA).
+- `packages/` — `shared` (zod schemas and types used by server and web).
 - `.env.example` — every environment variable with dev defaults; copy to `.env`.
 - `scripts/` — shell scripts that hold all CI/CD logic (`ci.sh`, `build-image.sh`, `deploy.sh`, `server-setup.sh`, `check-docs.sh`, shared helpers in `lib.sh`); CI only calls them. Tests in `scripts/tests/`.
 - `deploy/` — Docker Compose, Caddyfile, backup script and env examples for servers. The root `Dockerfile` builds the production image.

@@ -58,7 +58,8 @@ describe('elastic sender', () => {
   });
 
   it('rejects with EmailSendError carrying the status, never the key', async () => {
-    const fetchImpl = (async () => new Response('bad recipient', { status: 400 })) as unknown as typeof fetch;
+    const fetchImpl = (async () =>
+      new Response('bad recipient', { status: 400 })) as unknown as typeof fetch;
     const sender = createEmailSender({ driver: 'elastic', apiKey: 'secret-key', from }, fetchImpl);
     const err = await sender.send(msg('Hi')).catch((e: unknown) => e);
     expect(err).toBeInstanceOf(EmailSendError);

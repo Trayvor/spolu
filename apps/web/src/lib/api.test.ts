@@ -14,7 +14,10 @@ describe('apiGet', () => {
   it('requests /api<path> with credentials included', async () => {
     const fn = mockFetch(200, JSON.stringify({ status: 'ok', db: 'ok', version: 'abc' }));
     await apiGet('/health', HealthResponseSchema);
-    expect(fn).toHaveBeenCalledWith('/api/health', expect.objectContaining({ credentials: 'include' }));
+    expect(fn).toHaveBeenCalledWith(
+      '/api/health',
+      expect.objectContaining({ credentials: 'include' }),
+    );
   });
 
   it('returns the parsed degraded body for a 503 health response', async () => {

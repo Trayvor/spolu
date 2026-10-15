@@ -30,7 +30,10 @@ export async function apiGet<T>(path: string, schema: ZodType<T>): Promise<T> {
 
   const parsed = schema.safeParse(body);
   if (!parsed.success) {
-    throw new ApiError(`Response from ${path} does not match the expected shape (HTTP ${res.status})`, res.status);
+    throw new ApiError(
+      `Response from ${path} does not match the expected shape (HTTP ${res.status})`,
+      res.status,
+    );
   }
   return parsed.data;
 }

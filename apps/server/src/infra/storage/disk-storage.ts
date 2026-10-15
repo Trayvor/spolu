@@ -60,8 +60,9 @@ export function createDiskStorage(rootDir: string, secret: string): Storage {
       let contentType: string;
       try {
         size = (await stat(path)).size;
-        contentType = (JSON.parse(await readFile(path + META_SUFFIX, 'utf8')) as { contentType: string })
-          .contentType;
+        contentType = (
+          JSON.parse(await readFile(path + META_SUFFIX, 'utf8')) as { contentType: string }
+        ).contentType;
       } catch (err) {
         if ((err as NodeJS.ErrnoException).code === 'ENOENT') throw new StorageNotFoundError(key);
         throw err;

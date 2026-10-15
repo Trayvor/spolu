@@ -1,9 +1,15 @@
 import { useRef, type KeyboardEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { setLanguage } from '@/i18n';
+import { cn } from '@/lib/utils';
 import { LANGUAGES, type Language } from '@/i18n/detect';
 
-const ARROW_STEP: Record<string, number> = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 };
+const ARROW_STEP: Record<string, number> = {
+  ArrowRight: 1,
+  ArrowDown: 1,
+  ArrowLeft: -1,
+  ArrowUp: -1,
+};
 
 /**
  * "SK | EN" toggle in the style of the egrant.sk language pill: a secondary pill holding
@@ -28,7 +34,11 @@ export function LanguageSwitcher() {
   }
 
   return (
-    <div role="radiogroup" aria-label={t('language.label')} className="inline-flex gap-1 rounded-full bg-secondary p-1">
+    <div
+      role="radiogroup"
+      aria-label={t('language.label')}
+      className="inline-flex gap-1 rounded-full bg-secondary p-1"
+    >
       {LANGUAGES.map((lang, index) => {
         const checked = i18n.language === lang;
         return (
@@ -45,9 +55,12 @@ export function LanguageSwitcher() {
             tabIndex={checked ? 0 : -1}
             onClick={() => choose(lang)}
             onKeyDown={(event) => onKeyDown(event, index)}
-            className={`h-[30px] min-w-[38px] rounded-full px-3 text-tiny font-semibold transition-colors duration-(--duration-fast) ${
-              checked ? 'bg-primary text-primary-foreground' : 'text-secondary-foreground hover:bg-surface-3'
-            }`}
+            className={cn(
+              'h-[30px] min-w-[38px] rounded-full px-3 text-tiny font-semibold transition-colors duration-(--duration-fast)',
+              checked
+                ? 'bg-primary text-primary-foreground'
+                : 'text-secondary-foreground hover:bg-surface-3',
+            )}
           >
             {lang.toUpperCase()}
           </button>

@@ -8,7 +8,7 @@ x-logging: &logging
   driver: json-file
   options:
     max-size: 10m
-    max-file: "3"
+    max-file: '3'
 
 services:
   app:
@@ -35,7 +35,7 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U spolu -d spolu"]
+      test: ['CMD-SHELL', 'pg_isready -h 127.0.0.1 -U spolu -d spolu']
       interval: 5s
       timeout: 5s
       retries: 10
@@ -46,9 +46,9 @@ services:
   caddy:
     image: caddy:2
     ports:
-      - "80:80"
-      - "443:443"
-      - "443:443/udp"
+      - '80:80'
+      - '443:443'
+      - '443:443/udp'
     environment:
       DOMAIN: ${DOMAIN}
     volumes:
@@ -62,7 +62,7 @@ services:
 
   backup:
     image: postgres:17
-    entrypoint: ["bash", "/backup.sh"]
+    entrypoint: ['bash', '/backup.sh']
     environment:
       PGHOST: postgres
       PGUSER: spolu

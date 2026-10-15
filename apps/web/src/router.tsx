@@ -1,4 +1,9 @@
-import { createRootRoute, createRoute, createRouter, lazyRouteComponent } from '@tanstack/react-router';
+import {
+  createRootRoute,
+  createRoute,
+  createRouter,
+  lazyRouteComponent,
+} from '@tanstack/react-router';
 import { RootLayout } from '@/routes/root';
 
 // Code-based route tree. Every screen is lazy-loaded so it ships as its own chunk.

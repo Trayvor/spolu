@@ -4,6 +4,10 @@ Socket.IO runs in the same process as the API, as a single instance (no Redis ad
 
 Built so far: `attachSocket` in `apps/server/src/infra/realtime/socket.ts` serves Socket.IO at `/socket.io` and answers the `system:ping` event with an ack `{ pong: true, at: <ISO string> }`. In production CORS allows only `PUBLIC_URL`; in development any origin. The web client uses the ping as a liveness check: `useSocketStatus` (`apps/web/src/features/system/use-socket-status.ts`) pings on connect and every 30 s with a 5 s ack timeout and shows the result on the home status card.
 
+## Before Phase 2 ships
+
+Production Socket.IO `cors` does not reject cross-site WebSocket handshakes (CORS only governs browsers reading responses). Phase 2 adds an `allowRequest` check that `origin === new URL(PUBLIC_URL).origin`, plus socket authentication.
+
 ## Rules
 
 - **Sockets are push-only.** Clients never send writes over a socket. Every write goes through the HTTP API, which then emits an event. See [overview.md](overview.md).

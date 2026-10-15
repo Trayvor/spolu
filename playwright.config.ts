@@ -18,7 +18,7 @@ export default defineConfig({
     locale: 'sk-SK',
     trace: 'retain-on-failure',
   },
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'], locale: 'sk-SK' } }],
+  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   webServer: {
     command: 'pnpm -r build && node apps/server/dist/main.js',
     url: `${baseURL}/api/health`,

@@ -48,6 +48,9 @@ fi
 log "Lint"
 pnpm lint
 
+log "Format check"
+pnpm exec prettier --check .
+
 log "Typecheck"
 pnpm typecheck
 

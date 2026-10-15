@@ -19,6 +19,8 @@ describe('static web serving', () => {
   beforeAll(async () => {
     dir = await mkdtemp(join(tmpdir(), 'spolu-web-'));
     await mkdir(join(dir, 'assets'));
+    await mkdir(join(dir, 'assets-x'));
+    await writeFile(join(dir, 'assets-x', 'b.js'), 'console.log(2)');
     await writeFile(join(dir, 'index.html'), INDEX);
     await writeFile(join(dir, 'assets', 'a.js'), 'console.log(1)');
     app = await buildApp({ config: testConfig(), db });
@@ -45,6 +47,12 @@ describe('static web serving', () => {
     expect(res.statusCode).toBe(200);
     expect(res.body).toBe('console.log(1)');
     expect(res.headers['cache-control']).toBe('public, max-age=31536000, immutable');
+  });
+
+  it('a folder that only starts with "assets" is not immutable', async () => {
+    const res = await app.inject({ method: 'GET', url: '/assets-x/b.js' });
+    expect(res.statusCode).toBe(200);
+    expect(res.headers['cache-control']).toBe('no-cache');
   });
 
   it('a missing asset is a 404, not index.html', async () => {

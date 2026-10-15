@@ -56,6 +56,8 @@ Done when: a push to `main` deploys automatically; the HTTPS shell shows DB heal
 Requirements: [auth](product/auth.md), [roles-and-access](product/roles-and-access.md).
 
 Scope:
+- Module wiring: one dependencies object (db, io, email, storage, jobs) passed to every module's routes, Socket.IO attached inside `buildApp`; rewrite the `new-module` skill against `modules/system` (route registration in `app.ts` under `/api`, shared re-export, lazy route in `router.tsx`, en/sk keys, test DB isolation pattern); e2e gets its own database `spolu_e2e`; socket origin check + auth.
+- Hardening carried over from Phase 1: Elastic sender timeout + `EmailSendError` wrapping; Fastify `trustProxy`; `dotfiles: 'deny'` for static; `GET /api` (no slash) returns a JSON 404; `ApiError` carries the error body; pg-boss `stop` timeout below the compose grace period.
 - Superadmin created on first start (email from `SUPERADMIN_EMAIL`); cannot be deleted or demoted.
 - Login by one-time email code (Elastic Email), long-lived session.
 - Superadmin creates other admins by email.
@@ -71,6 +73,8 @@ Scope:
 - Invite link: client enters email, gets a code, joins the group.
 - Member list; admin can remove a client.
 - Client sees only their group; admin sees all.
+
+- Storage hardening: strict signature hex, sidecar atomicity, `/files` in the service worker `navigateFallbackDenylist`, signature not logged, files volume in the backup.
 
 Done when: an admin creates a group with a logo and copies the invite; a client registers by email and sees only their group; the admin can remove the client.
 
