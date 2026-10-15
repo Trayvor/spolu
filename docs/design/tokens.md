@@ -70,7 +70,7 @@ There is one family; no separate heading font, so no `--font-heading`.
 
 Font files are self-hosted in `apps/web/public/fonts/` (copied from `https://egrant.sk/app/themes/egrant/assets/fonts/`), about 56 KB each, `font-display: swap`. Each file contains latin and latin-ext; all Slovak diacritics are present (checked with fontTools). They do not contain Cyrillic.
 
-**License (open question for the owner):** Saans is a commercial font by Displaay Type Foundry; the files' license field forbids storing them on publicly accessible servers or redistributing them without a license. The owner must confirm that eGrant's Saans web license covers Spolu (another domain and app). If it does not, delete the two files and the `@font-face` rules: the stack falls back to the system UI font with no other change.
+**License:** Saans is a commercial font by Displaay Type Foundry. The owner confirmed (2026-10-15) that eGrant's license covers its use in Spolu. If that ever changes, delete the two files and the `@font-face` rules: the stack falls back to the system UI font with no other change.
 
 Type scale (Tailwind `text-*` utilities; desktop value, then the value under 900px):
 
