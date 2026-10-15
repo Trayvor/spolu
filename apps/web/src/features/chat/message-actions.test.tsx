@@ -112,6 +112,8 @@ describe('message actions: touch and desktop', () => {
     await user.click(within(bar).getByRole('button', { name: t('chat.actions.more') }));
     await user.click(await screen.findByRole('menuitem', { name: 'Turn into tasks' }));
     expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({ body: 'Do it' }));
+    await user.click(touchButton());
+    expect(sheetRows()).toContain('Turn into tasks');
   });
 
   it('lists inMenu extras before Edit and Delete behind "More"', async () => {
@@ -159,6 +161,9 @@ describe('message actions: touch and desktop', () => {
     expect(within(sheet()).queryByRole('button', { name: 'Turn into tasks' })).toBeNull();
     const bar = screen.getByRole('toolbar', { name: t('chat.actions.label') });
     expect(within(bar).queryByRole('button', { name: 'Turn into tasks' })).toBeNull();
+    await user.click(within(bar).getByRole('button', { name: t('chat.actions.more') }));
+    await screen.findAllByRole('menuitem');
+    expect(screen.queryByRole('menuitem', { name: 'Turn into tasks' })).toBeNull();
   });
 
   it('extra actions (Phase 9) come after the reply, on both layouts', async () => {
