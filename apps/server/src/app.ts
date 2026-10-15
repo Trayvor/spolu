@@ -7,7 +7,12 @@ import { systemRoutes } from './modules/system/routes.js';
 /** Builds the HTTP app and attaches Socket.IO (`app.io`); `app.close()` closes both. */
 export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
   const { config } = deps;
-  const app = Fastify({ logger: config.nodeEnv === 'test' ? false : { level: 'info' } });
+  const app = Fastify({
+    logger: config.nodeEnv === 'test' ? false : { level: 'info' },
+    // The app port is reachable only through Caddy (deploy/docker-compose.yml publishes just
+    // Caddy's ports), so X-Forwarded-For is set by our proxy and request.ip is the real client.
+    trustProxy: true,
+  });
 
   app.decorate('io', attachSocket(app, config));
   // preClose runs before Fastify waits for the HTTP server, which open websockets would block.
@@ -35,14 +40,18 @@ declare module 'fastify' {
  * that looks like a file answer JSON 404. Other GET/HEAD requests get the SPA index.html,
  * but only when static serving is registered.
  */
+function isUnder(path: string, prefix: string): boolean {
+  return path === prefix || path.startsWith(`${prefix}/`);
+}
+
 function registerNotFound(app: FastifyInstance): void {
   app.decorate('spaFallback', null);
   app.setNotFoundHandler((request, reply) => {
     const path = request.url.split('?')[0] ?? '/';
     const isClientRoute =
       (request.method === 'GET' || request.method === 'HEAD') &&
-      !path.startsWith('/api/') &&
-      !path.startsWith('/socket.io/') &&
+      !isUnder(path, '/api') &&
+      !isUnder(path, '/socket.io') &&
       !path.startsWith('/assets/') &&
       !(path.split('/').pop() ?? '').includes('.');
     if (isClientRoute && app.spaFallback) return app.spaFallback(reply);

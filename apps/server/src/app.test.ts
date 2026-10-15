@@ -25,4 +25,26 @@ describe('buildApp', () => {
     await app.close();
     await close();
   });
+
+  it('GET /api answers JSON 404 { error: not_found }', async () => {
+    const { app, close } = await buildTestApp();
+    const res = await app.inject({ method: 'GET', url: '/api' });
+    expect(res.statusCode).toBe(404);
+    expect(res.json()).toEqual({ error: 'not_found' });
+    await app.close();
+    await close();
+  });
+
+  it('request.ip comes from X-Forwarded-For (trustProxy)', async () => {
+    const { app, close } = await buildTestApp();
+    app.get('/test-ip', async (request) => request.ip);
+    const res = await app.inject({
+      method: 'GET',
+      url: '/test-ip',
+      headers: { 'x-forwarded-for': '203.0.113.7' },
+    });
+    expect(res.body).toBe('203.0.113.7');
+    await app.close();
+    await close();
+  });
 });

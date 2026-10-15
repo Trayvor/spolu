@@ -21,6 +21,7 @@ describe('static web serving', () => {
     await mkdir(join(dir, 'assets-x'));
     await writeFile(join(dir, 'assets-x', 'b.js'), 'console.log(2)');
     await writeFile(join(dir, 'index.html'), INDEX);
+    await writeFile(join(dir, '.secret'), 'top-secret');
     await writeFile(join(dir, 'assets', 'a.js'), 'console.log(1)');
     appTest = await buildTestApp();
     app = appTest.app;
@@ -83,5 +84,11 @@ describe('static web serving', () => {
     const res = await plain.inject({ method: 'GET', url: '/settings' });
     expect(res.statusCode).toBe(404);
     expect(res.json()).toEqual({ error: 'not_found' });
+  });
+
+  it('a dotfile in the web dist is not served', async () => {
+    const res = await app.inject({ method: 'GET', url: '/.secret' });
+    expect(res.statusCode).toBe(404);
+    expect(res.body).not.toContain('top-secret');
   });
 });

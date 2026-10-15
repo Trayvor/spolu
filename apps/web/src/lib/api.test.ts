@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { HealthResponseSchema } from '@spolu/shared';
-import { ApiError, apiGet } from './api';
+import { i18n } from '@/i18n';
+import { ApiError, apiGet, apiSend } from './api';
 
 function mockFetch(status: number, body: string) {
   const fn = vi.fn().mockResolvedValue(new Response(body, { status }));
@@ -42,5 +43,33 @@ describe('apiGet', () => {
   it('rejects with ApiError when the body does not match the schema', async () => {
     mockFetch(200, JSON.stringify({ status: 'nope' }));
     await expect(apiGet('/health', HealthResponseSchema)).rejects.toBeInstanceOf(ApiError);
+  });
+});
+
+describe('apiSend', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('ApiError carries the JSON error body and its code', async () => {
+    mockFetch(409, JSON.stringify({ error: 'email_taken_admin' }));
+    const err = await apiSend('POST', '/admins', { email: 'a@example.com' }).catch(
+      (e: unknown) => e,
+    );
+    expect(err).toBeInstanceOf(ApiError);
+    expect((err as ApiError).status).toBe(409);
+    expect((err as ApiError).body).toEqual({ error: 'email_taken_admin' });
+    expect((err as ApiError).code).toBe('email_taken_admin');
+  });
+
+  it('apiSend posts JSON with Accept-Language', async () => {
+    const fn = mockFetch(200, JSON.stringify({ ok: true }));
+    await apiSend('POST', '/admins', { email: 'a@example.com' });
+    const [url, init] = fn.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe('/api/admins');
+    expect(init.method).toBe('POST');
+    expect(init.credentials).toBe('include');
+    expect(init.body).toBe(JSON.stringify({ email: 'a@example.com' }));
+    const headers = init.headers as Record<string, string>;
+    expect(headers['Content-Type']).toBe('application/json');
+    expect(headers['Accept-Language']).toBe(i18n.language);
   });
 });

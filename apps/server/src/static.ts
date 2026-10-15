@@ -17,6 +17,8 @@ export async function registerStatic(app: FastifyInstance, webDistDir: string): 
     root: webDistDir,
     index: 'index.html',
     cacheControl: false,
+    // 'ignore' answers 404 as if the file did not exist ('deny' would answer 403).
+    dotfiles: 'ignore',
     // Vite fingerprints everything under /assets/, so it can be cached forever; the rest must revalidate.
     setHeaders: (reply, filePath) => {
       const isAsset = filePath.startsWith(join(webDistDir, ASSETS_DIR) + sep);

@@ -39,7 +39,7 @@ One-time setup: `pnpm install`, `cp .env.example .env`, `pnpm exec playwright in
 - `docker compose -f docker-compose.dev.yml up -d --wait` — local PostgreSQL 17 (5432) and Mailpit (SMTP 1025). Server tests and e2e need it running.
 - `pnpm dev` — server (:3000, reload, reads the root `.env`) and web (Vite on :5173, proxies `/api` and `/socket.io`) in parallel. Open http://localhost:5173.
 - `pnpm test` — unit and integration tests (Vitest) in every package.
-- `pnpm test:e2e` — Playwright smoke tests (Chromium) against a production-like run: builds all, starts `apps/server/dist/main.js` serving `apps/web/dist` on :3000.
+- `pnpm test:e2e` — Playwright smoke tests (Chromium) against a production-like run: builds all, starts `apps/server/dist/main.js` serving `apps/web/dist` on :3000, with its own database `spolu_e2e` (created automatically).
 - `pnpm lint`, `pnpm typecheck`, `pnpm build` — checks and production build for every package.
 - Mailpit UI (catches all dev email): http://localhost:8025.
 - `pnpm --filter @spolu/web icons` — regenerate the PWA icons in `apps/web/public/icons/` from the egrant mark (commit the PNGs).

@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import { EmailSendError, createEmailSender } from './index.js';
+import { createElasticSender } from './elastic-sender.js';
 
 const from = 'Spolu <noreply@example.com>';
 const msg = (subject: string) => ({
@@ -14,7 +15,7 @@ const msg = (subject: string) => ({
 describe('smtp sender', () => {
   it('delivers to Mailpit with To and Cc', async () => {
     const subject = `smtp-test-${randomUUID()}`;
-    const sender = createEmailSender({ driver: 'smtp', host: 'localhost', port: 1025, from });
+    const sender = createEmailSender({ driver: 'smtp', host: '127.0.0.1', port: 1025, from });
     await sender.send(msg(subject));
 
     const res = await fetch(
@@ -66,5 +67,25 @@ describe('elastic sender', () => {
     expect((err as Error).message).toContain('400');
     expect((err as Error).message).toContain('bad recipient');
     expect((err as Error).message).not.toContain('secret-key');
+  });
+
+  it('rejects with EmailSendError after the timeout', async () => {
+    const fetchImpl = ((_url: string, init: RequestInit) =>
+      new Promise((_resolve, reject) => {
+        init.signal?.addEventListener('abort', () => reject(init.signal?.reason));
+      })) as unknown as typeof fetch;
+    const sender = createElasticSender({ apiKey: 'secret-key', from }, fetchImpl, 50);
+    const err = await sender.send(msg('Hi')).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(EmailSendError);
+    expect((err as Error).message).not.toContain('secret-key');
+  });
+
+  it('wraps a network error in EmailSendError', async () => {
+    const fetchImpl = (async () => {
+      throw new TypeError('fetch failed');
+    }) as unknown as typeof fetch;
+    const sender = createElasticSender({ apiKey: 'secret-key', from }, fetchImpl);
+    const err = await sender.send(msg('Hi')).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(EmailSendError);
   });
 });
