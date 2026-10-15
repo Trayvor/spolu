@@ -10,7 +10,7 @@ Users log in with an email and a one-time code; passwords come only in a late ph
 - Use better-auth with its email-OTP plugin.
 - Sessions are stored in the database and sent in an httpOnly cookie. They are long-lived (about 60 days, sliding).
 - Roles (`superadmin | admin | client`) are our own, not part of the library.
-- better-auth `1.7.9`, pinned exactly in `apps/server` (`modules/auth/auth.ts`, `createAuth(deps)`). Settings:
+- better-auth `1.7.7`, pinned exactly in `apps/server` (1.7.9 was too new for pnpm's minimum-release-age guard, which we keep) (`modules/auth/auth.ts`, `createAuth(deps)`). Settings:
   - **No sign-up** (`disableSignUp: true`): users are created only by us (superadmin on start, admins by admins). An unknown email gets the same `200 {"success":true}` as a known one, but no code and no account, so the endpoint does not reveal who has an account.
   - **Codes**: 6 digits, valid 300 s, 3 attempts per code (then the code is dead, `403 TOO_MANY_ATTEMPTS`), stored **hashed** (`storeOTP: 'hashed'`) in `verification`; a new code replaces the previous one.
   - **Sessions**: `expiresIn` 60 days, `updateAge` 1 day (sliding). No cookie cache and no secondary storage, so deleting a user's `session` rows (`revokeAllSessions`) logs them out at once.

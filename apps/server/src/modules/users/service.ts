@@ -40,7 +40,10 @@ export async function ensureSuperadmin(
 }
 
 export async function findUserByEmail(db: Db, email: string): Promise<UserRow | null> {
-  const [row] = await db.select().from(user).where(eq(user.email, normalizeEmail(email)));
+  const [row] = await db
+    .select()
+    .from(user)
+    .where(eq(user.email, normalizeEmail(email)));
   return row ?? null;
 }
 
@@ -93,5 +96,8 @@ export async function addAdmin(db: Db, input: { email: string; name: string }): 
 
 /** Marks the user as disabled. Their sessions are revoked by the auth module. */
 export async function deactivateUser(db: Db, id: string): Promise<void> {
-  await db.update(user).set({ disabledAt: new Date(), updatedAt: new Date() }).where(eq(user.id, id));
+  await db
+    .update(user)
+    .set({ disabledAt: new Date(), updatedAt: new Date() })
+    .where(eq(user.id, id));
 }

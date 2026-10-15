@@ -63,7 +63,9 @@ describe('addAdmin', () => {
 
   it('rejects an existing admin with kind admin, ignoring case and spaces', async () => {
     const { email } = await insertUser('admin');
-    await expect(addAdmin(db, { email: ` ${email.toUpperCase()} `, name: 'X' })).rejects.toMatchObject({
+    await expect(
+      addAdmin(db, { email: ` ${email.toUpperCase()} `, name: 'X' }),
+    ).rejects.toMatchObject({
       name: 'EmailTakenError',
       kind: 'admin',
     });

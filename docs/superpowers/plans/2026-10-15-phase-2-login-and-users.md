@@ -6,14 +6,14 @@
 
 **Architecture:** `buildApp(deps)` owns Fastify, Socket.IO and every module's routes. better-auth (email-OTP plugin, database sessions in a cookie) is mounted at `/api/auth/*` by the `auth` module; roles, deactivation and admin management are our own `users` module with test-first policy functions. The web gets a session-guarded router, a two-step login page and an Admins page.
 
-**Tech Stack:** existing (Fastify 5, Drizzle + postgres.js, pg-boss, Socket.IO, React, TanStack Router/Query, Vitest, Playwright) + `better-auth@1.7.9` (server only).
+**Tech Stack:** existing (Fastify 5, Drizzle + postgres.js, pg-boss, Socket.IO, React, TanStack Router/Query, Vitest, Playwright) + `better-auth@1.7.7` (server only).
 
 **Spec:** `docs/superpowers/specs/2026-10-15-phase-2-login-and-users-design.md`. Requirements: `docs/product/auth.md`, `docs/product/roles-and-access.md`.
 
 ## Global Constraints
 
 - English everywhere (code, comments, docs, commits). Every UI string is an i18n key with SK and EN values.
-- The only new dependency is `better-auth` pinned to `1.7.9` in `apps/server` (covered by ADR 0006, updated in this phase). The web app adds no runtime dependency and calls the auth endpoints with `fetch` (no `better-auth/client`).
+- The only new dependency is `better-auth` pinned to `1.7.7` (1.7.9 failed the pnpm minimum-release-age guard) in `apps/server` (covered by ADR 0006, updated in this phase). The web app adds no runtime dependency and calls the auth endpoints with `fetch` (no `better-auth/client`).
 - Initial JS budget stays **175 kB gzip** (`docs/architecture/performance.md`); `/login` and `/admins` are lazy chunks.
 - Any UI work starts by invoking `frontend-design:frontend-design`; reuse the existing tokens and `src/components/ui/*` (button, card, badge, dropdown-menu). No new visual effects; no modals in this phase.
 - Permissions only through policy functions (`modules/users/policy.ts`); routes call the policy before the service. Modules use each other only through exported service functions; the better-auth Drizzle adapter receiving all four auth tables is the one documented exception.
@@ -25,7 +25,7 @@
 - Each commit updates the docs it affects (`update-kb`); Task 11 is only the final sweep.
 - Commit messages end with `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>` (or the implementing model's own trailer).
 
-Facts about better-auth 1.7.9 that the tasks rely on (verified by running it) are in the controller's research notes, passed to the Task 3–5 implementers. The essentials are repeated inside those tasks.
+Facts about better-auth that the tasks rely on (verified by running 1.7.9, re-checked against the pinned 1.7.7 source and tests) are in the controller's research notes, passed to the Task 3–5 implementers. The essentials are repeated inside those tasks.
 
 ## Review Focus
 
@@ -109,7 +109,7 @@ Facts about better-auth 1.7.9 that the tasks rely on (verified by running it) ar
 
 **Files:**
 - Create: `apps/server/src/modules/auth/auth.ts`, `apps/server/src/modules/auth/routes.ts`, `apps/server/src/modules/auth/session.ts`, `apps/server/src/modules/auth/service.ts`, `apps/server/src/modules/auth/emails.ts`, `apps/server/src/modules/auth/emails.test.ts`, `apps/server/src/modules/auth/language.ts`, `apps/server/src/modules/auth/auth.test.ts`, `apps/server/test/mailpit.ts`, `apps/server/test/login.ts`
-- Modify: `apps/server/package.json` (`better-auth: 1.7.9`), `apps/server/src/app.ts`, `docs/decisions/0006-better-auth-email-otp.md`, `docs/architecture/overview.md`, `docs/product/auth.md`
+- Modify: `apps/server/package.json` (`better-auth: 1.7.7`), `apps/server/src/app.ts`, `docs/decisions/0006-better-auth-email-otp.md`, `docs/architecture/overview.md`, `docs/product/auth.md`
 
 **Interfaces:**
 - Consumes: `AppDeps`, `sendEmailLater` (Task 1); `user` table, `findUserByEmail`, `isAdmin`, `SessionUser` (Task 3).
@@ -130,7 +130,7 @@ Email copy (subject / body essentials):
 
 - [ ] **Step 1: Write failing tests** (`auth.test.ts` via `buildTestApp`, `emails.test.ts`): `known admin gets a code by email and signs in` (cookie set, `GET /api/me` → SessionUser with role admin); `unknown email gets 200 { success: true } and no email` (Mailpit has nothing for it after 1 s); `disabled user gets 200 and no email`; `wrong code → 400 INVALID_OTP`; `three wrong codes burn the code → the right code then fails (403 TOO_MANY_ATTEMPTS)`; `expired code → 400 OTP_EXPIRED` (set the `verification.expires_at` row in the past); `a disabled user with a valid code gets 403 ACCOUNT_DISABLED and no cookie`; `GET /api/me without a cookie → 401 { error: 'unauthorized' }`; `deleting the user's sessions (revokeAllSessions) makes /api/me 401`; `requireAdmin gives 403 to a client`; `sign-out with body {} clears the session`; `the code email follows Accept-Language (en → English subject, missing → Slovak)`; `emails escape HTML in names`.
 - [ ] **Step 2: Run** — FAIL.
-- [ ] **Step 3: Implement.** Install with `pnpm --filter @spolu/server add better-auth@1.7.9`.
+- [ ] **Step 3: Implement.** Install with `pnpm --filter @spolu/server add better-auth@1.7.7`.
 - [ ] **Step 4: Run** `pnpm --filter @spolu/server test && pnpm typecheck && pnpm lint` — PASS.
 - [ ] **Step 5: Docs.** ADR 0006 "Decision": disableSignUp, hashed codes, roles and `disabled_at` as our columns, code email through the job queue, Fastify glue, cookie name `better-auth.session_token` (`__Secure-` prefix on https). `product/auth.md`: unknown emails get the generic message. `overview.md`: auth flow. **Commit** `feat(server): email code login with better-auth`.
 
