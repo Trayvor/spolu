@@ -6,6 +6,7 @@ import {
   SendMessageInputSchema,
   splitMentionTokens,
 } from './chat.js';
+import { MENTION_CASES } from './chat-mention-cases.js';
 
 describe('extractMentions', () => {
   it('finds users and @all, deduplicated', () => {
@@ -20,6 +21,10 @@ describe('extractMentions', () => {
       all: false,
     });
     expect(extractMentions('```\n<@u1>')).toEqual({ userIds: [], all: false });
+  });
+
+  it.each(MENTION_CASES)('shared case %#: $body', ({ body, userIds, all }) => {
+    expect(extractMentions(body)).toEqual({ userIds, all });
   });
 });
 

@@ -107,7 +107,11 @@
     }
   },
   "chat": {
-    "placeholder": "The chat arrives in the next update."
+    "placeholder": "The chat arrives in the next update.",
+    "mention": {
+      "all": "@all",
+      "unknown": "@unknown"
+    }
   },
   "tasks": {
     "placeholder": "The task board arrives in the next update."
