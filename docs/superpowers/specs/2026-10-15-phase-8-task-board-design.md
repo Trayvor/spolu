@@ -49,7 +49,7 @@ Bucket names: "To do", "eGrant review", "<group name> review", "Completed" (Slov
 ││(VH) 18 Oct││ │             │ │└─────────────────┘│ │                │ │               │
 │└───────────┘│ │             │ │                   │ │                │ │               │
 │ + Add task  │ │ + Add task  │ │ + Add task        │ │ + Add task     │ │ + Add task    │
-└─────────────┘ └───────────────────┘ └─────────────┘ └────────────────┘ └───────────────┘
+└─────────────┘ └─────────────┘ └───────────────────┘ └────────────────┘ └───────────────┘
 ```
 
 Order: To do, custom buckets, eGrant review, <client> review, Completed. The flow is work → eGrant checks → client checks → done, so a new custom bucket goes after the last custom bucket (or right after To do when there is none); an admin may reorder custom buckets anywhere between To do and Completed.
