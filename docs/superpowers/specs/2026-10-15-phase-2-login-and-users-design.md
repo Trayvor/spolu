@@ -63,7 +63,7 @@ No new visual effects; transitions only as already defined (150 ms color/opacity
 
 ### Module wiring (first task of the phase)
 
-- `AppDeps` becomes one object: `{ config, db, email, storage, jobs, log }`. `buildApp(deps)` creates Fastify, attaches Socket.IO **inside** `buildApp` (exposed as `app.io`) and registers every module's routes under `/api` with the same deps. `main.ts` only creates the infra, calls `buildApp`, serves static files and listens. Tests build the same app.
+- `AppDeps` becomes one object: `{ config, db, email, storage, jobs }` (logging uses Fastify's own logger). `buildApp(deps)` creates Fastify, attaches Socket.IO **inside** `buildApp` (exposed as `app.io`) and registers every module's routes under `/api` with the same deps. `main.ts` only creates the infra, calls `buildApp`, serves static files and listens. Tests build the same app.
 - Module layout, the same for every module: `modules/<name>/schema.ts` (Drizzle tables), `service.ts` (exported functions — the only way other modules use it), `policy.ts` (permission functions), `routes.ts` (Fastify plugin taking `AppDeps`), tests next to them. Request/response zod schemas and types live in `packages/shared/src/<name>.ts` and are re-exported from the package index.
 - Web: one folder per feature in `apps/web/src/features/<name>/`, its routes lazy in `router.tsx`, keys in `en.json`/`sk.json`.
 - The `new-module` skill is rewritten against this real pattern (`modules/system`, `modules/users`), including the test database isolation pattern.
@@ -75,7 +75,7 @@ No new visual effects; transitions only as already defined (150 ms color/opacity
 - Email-OTP plugin: 6 digits, valid 5 minutes, 3 attempts per code, `disableSignUp: true` (an unknown email gets the same success response and nothing is sent). The send callback enqueues a pg-boss job `email.send` (with retries) and returns at once; the job renders and sends the email through `EmailSender`. A disabled user gets the same generic response and no email.
 - Sessions: database sessions in an httpOnly, `Secure` (in production), `SameSite=Lax` cookie; 60 days, extended on use (sliding). A database hook refuses to create a session for a disabled user.
 - Rate limiting: better-auth's built-in limiter with memory storage (one process, ADR 0005); stricter limits on the OTP send and verify paths.
-- Exports `getSessionUser(request): Promise<SessionUser | null>` and Fastify preHandlers `requireUser` and `requireAdmin`. `SessionUser` = `{ id, email, name, role }`. A disabled user's request is treated as no session (401).
+- Exports `getSessionUser(request): Promise<SessionUser | null>` and Fastify preHandlers `requireUser` and `requireAdmin`. `SessionUser` = `{ id, email, name, role }`. A disabled user's request is treated as no session (401). The auth module also serves `GET /api/me` → `SessionUser` or 401.
 - Emails (`modules/auth/emails.ts`, used by both modules): plain text plus simple HTML, SK and EN — the login code email and the "you were added to Spolu" email with a link to `/login`.
 
 ### Users module (`modules/users`)
@@ -83,7 +83,6 @@ No new visual effects; transitions only as already defined (150 ms color/opacity
 - Uses better-auth's core tables `user`, `session`, `account`, `verification`, defined in `schema.ts`, with two extra user columns: `role` (`superadmin | admin | client`, not null, default `client`) and `disabled_at` (nullable timestamp). Indexes on `role` and on `email` (unique).
 - On start, `ensureSuperadmin(deps)` makes sure a user with `SUPERADMIN_EMAIL` exists, has role `superadmin` and is not disabled; running it twice changes nothing. If the env var later points to a new email, that user becomes a superadmin too; the old one stays (documented in the runbook).
 - Endpoints (zod-validated, shapes in `packages/shared/src/users.ts`):
-  - `GET /api/me` → `SessionUser` or 401.
   - `GET /api/admins` → active admins and superadmins `{ id, name, email, role }[]` (admin only).
   - `POST /api/admins` `{ email, name }` → 201 with the admin. 409 `email_taken_admin`, 409 `email_taken_client`. A disabled admin with that email is reactivated (role admin, new name). Sends the "added" email through the job queue.
   - `DELETE /api/admins/:id` → 204. Sets `disabled_at`, deletes the user's sessions, disconnects the user's sockets (room `user:<id>`). 403 when the policy refuses, 404 for an unknown id.
