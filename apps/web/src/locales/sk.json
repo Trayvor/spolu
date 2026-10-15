@@ -285,7 +285,12 @@
       "fromMessage": "Vytvorené zo správy",
       "openMessage": "Otvoriť v chate",
       "newTask": "Nová úloha",
-      "create": "Vytvoriť"
+      "create": "Vytvoriť",
+      "tabs": {
+        "label": "Časti úlohy",
+        "details": "Podrobnosti",
+        "chat": "Chat ({{count}})"
+      }
     }
   },
   "groups": {

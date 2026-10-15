@@ -15,7 +15,8 @@ const NONE: ReadonlySet<string> = new Set();
 /**
  * The channel's threads with replies the reader has not read (their roots), for the dot on
  * "N replies". `chat:thread-reply` adds a thread; `chat:read` for one of the channel's threads
- * (another device read it) and every rejoin of the group room ask the server again.
+ * (another device read it) and every rejoin of the group room ask the server again; `chat:read`
+ * with `all` (the whole chat was read) clears every dot at once, then asks again.
  *
  * `readingId` is the thread the reader has in front of them (open and the page visible). It is
  * marked read when it is in the set, and again for every reply announced in it, also while an
@@ -74,7 +75,10 @@ export function useUnreadThreads(channelId: string, groupId: string, readingId?:
       }
     };
     const onRead = (event: ChatReadEvent) => {
-      if (event.channelId !== channelId || event.rootId === undefined) return;
+      if (event.channelId !== channelId) return;
+      // The whole chat was read (a task's Chat tab opened): every dot goes at once.
+      if (event.all) queryClient.setQueryData(queryKey, []);
+      else if (event.rootId === undefined) return;
       void queryClient.invalidateQueries({ queryKey });
     };
     socket.on(ChatEvents.threadReply, onReply);

@@ -1,11 +1,12 @@
 import { useTranslation } from 'react-i18next';
 import type { SourceMessage as SourceMessageDto } from '@spolu/shared';
+import { chatMessageHref } from '@/features/chat/links';
 
 const EXCERPT_LENGTH = 140;
 
 /**
- * "Created from a message": the chat message an AI-made task came from. The link is a plain
- * anchor: Phase 5 owns the `?message=` search param of the chat route.
+ * "Created from a message": the chat message an AI-made task came from, in the group chat or in a
+ * task's chat. The link is a plain anchor to that chat (`chatMessageHref`).
  */
 export function SourceMessage({
   groupId,
@@ -26,7 +27,11 @@ export function SourceMessage({
       <p className="mt-1 text-tiny font-semibold text-muted-foreground">{message.authorName}</p>
       <p className="mt-1 break-words text-body">{text}</p>
       <a
-        href={`/groups/${encodeURIComponent(groupId)}/chat?message=${encodeURIComponent(message.id)}`}
+        href={chatMessageHref(groupId, {
+          messageId: message.id,
+          channelId: message.channelId,
+          taskId: message.taskId,
+        })}
         className="mt-2 inline-block text-button font-semibold underline underline-offset-4 hover:text-neutral"
       >
         {t('tasks.panel.openMessage')}
