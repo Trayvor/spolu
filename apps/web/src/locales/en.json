@@ -110,7 +110,16 @@
     "placeholder": "The chat arrives in the next update."
   },
   "tasks": {
-    "placeholder": "The task board arrives in the next update."
+    "placeholder": "The task board arrives in the next update.",
+    "buckets": {
+      "todo": "To do",
+      "egrantReview": "eGrant review",
+      "clientReview": "{{group}} review",
+      "done": "Completed"
+    },
+    "board": {
+      "taskDeleted": "This task was deleted."
+    }
   },
   "groups": {
     "title": "Groups",

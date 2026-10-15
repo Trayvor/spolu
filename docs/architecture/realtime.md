@@ -47,7 +47,7 @@ Pushed to the `group:<id>` room after the write commits, by `modules/tasks/event
 
 `actor` (`{ id, name }`) is who made the change, so a client can skip its own echo or say who changed a card. The board has no `seq`: after a reconnect (a new `useGroupRoomJoins()` value) the web refetches `GET /api/groups/:id/board` instead of catching up event by event; boards are small.
 
-After a bucket is deleted its tasks moved to To do without a `board:task` event; a client that sees a task whose bucket is missing from the new list should refetch the board.
+After a bucket is deleted its tasks moved to To do without a `board:task` event; `useBoardEvents` (web) refetches the board when a `board:buckets` list drops a bucket the cache had.
 
 ## Rooms
 
