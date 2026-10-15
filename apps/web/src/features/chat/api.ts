@@ -7,6 +7,7 @@ import {
   MessageSchema,
   ThreadSchema,
   UnreadByGroupSchema,
+  UnreadThreadsSchema,
   type AroundPage,
   type Changes,
   type MessageDto,
@@ -26,11 +27,18 @@ export const groupChatQuery = (groupId: string) =>
     queryFn: () => apiGet(`/groups/${enc(groupId)}/chat`, GroupChannelSchema),
   });
 
-/** Unread top-level message count per group the user can read. */
+/** Unread message count (top-level and replies in the reader's threads) per group the user can read. */
 export const chatUnreadQuery = queryOptions({
   queryKey: ['chat', 'unread'],
   queryFn: () => apiGet('/chat/unread', UnreadByGroupSchema),
 });
+
+/** The roots of the channel's threads with replies the reader has not read. */
+export const unreadThreadsQuery = (channelId: string) =>
+  queryOptions({
+    queryKey: ['chat', 'unread-threads', channelId],
+    queryFn: () => apiGet(`/channels/${enc(channelId)}/unread-threads`, UnreadThreadsSchema),
+  });
 
 /** A thread: its root and every reply, oldest first. Live events patch it in place. */
 export const threadQuery = (rootId: string) =>
@@ -87,4 +95,9 @@ export async function deleteMessage(id: string): Promise<void> {
 /** Marks the channel read up to `at` (an ISO time); the server never moves the cursor back. */
 export async function markRead(channelId: string, at: string): Promise<void> {
   await apiSend('POST', `/channels/${enc(channelId)}/read`, { at });
+}
+
+/** Marks a thread read up to now; a no-op for someone who is not one of its people. */
+export async function markThreadRead(rootId: string): Promise<void> {
+  await apiSend('POST', `/messages/${enc(rootId)}/thread/read`);
 }

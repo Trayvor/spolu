@@ -26,7 +26,7 @@ Terms used across the docs and code, in alphabetical order.
 - **pending client**: a client who entered an email on an invite link but never signed in (`email_verified` false, empty name). A later invite link moves them to its group; once they sign in they are a normal client.
 - **policy function**: a server function that decides whether a user may see or change a resource; written test-first.
 - **PWA**: progressive web app. The web app can be installed on a phone or desktop and receive push notifications.
-- **read state**: what a user has already read in a channel; used for the unread indicator.
+- **read state**: what a user has already read in a channel, and in each thread they started or replied in; used for the unread indicator.
 - **reminder**: a scheduled notification to admins that a contract is about to need attention.
 - **removed member**: a client an admin removed from a group. The user row is kept with `disabled_at` set and the membership stays, so the admin can restore them; they get no code and lose sessions and sockets. Listed under the group's removed members.
 - **room**: a Socket.IO room; users join rooms to receive live events for a group, DM or task channel.

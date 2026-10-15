@@ -18,6 +18,8 @@ export interface MessageListProps {
   messageActions?: MessageAction[];
   renderMessageFooter?: (message: MessageDto) => ReactNode;
   onOpenThread?: (message: MessageDto) => void;
+  /** Roots of threads with replies the reader has not read: their "N replies" link gets a dot. */
+  unreadThreads?: ReadonlySet<string>;
   onRetry?: (clientId: string) => void;
   /**
    * Called when the list reaches or leaves the bottom (the conversation marks the chat read). The
@@ -98,6 +100,7 @@ export function MessageList({
   messageActions,
   renderMessageFooter,
   onOpenThread,
+  unreadThreads,
   onRetry,
   onAtBottomChange,
   onMessageChanged,
@@ -234,6 +237,7 @@ export function MessageList({
               messageActions={messageActions}
               renderMessageFooter={renderMessageFooter}
               onOpenThread={onOpenThread}
+              unreadReplies={unreadThreads?.has(message.id) ?? false}
               onChanged={onMessageChanged}
               highlighted={message.id === highlightId}
             />

@@ -134,6 +134,7 @@
       "summary_many": "{{count}} odpovedí, posledná o {{time}}",
       "summary_other": "{{count}} odpovedí, posledná o {{time}}",
       "title": "Vlákno",
+      "unreadReplies": "Neprečítané odpovede",
       "close": "Zavrieť vlákno",
       "back": "Späť na chat",
       "replies_one": "{{count}} odpoveď",

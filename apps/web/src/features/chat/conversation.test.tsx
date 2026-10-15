@@ -73,6 +73,10 @@ const M3 = msg('m3', 3);
 const R1 = msg('r1', 4, { parentId: 'm2' });
 const R2 = msg('r2', 5, { parentId: 'm2', replyToId: 'r1', author: people[0]! });
 
+/** What GET /channels/c1/unread-threads answers. */
+let unreadRoots: string[];
+/** While set, POST thread/read waits for it before answering. */
+let holdThreadRead: Promise<void> | null;
 let fetchMock: Mock<(url: string, init?: RequestInit) => Promise<Response>>;
 const json = (status: number, body?: unknown) =>
   new Response(body === undefined ? null : JSON.stringify(body), { status });
@@ -83,8 +87,17 @@ beforeAll(async () => {
 
 beforeEach(() => {
   socket.reset();
+  unreadRoots = [];
+  holdThreadRead = null;
   fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
     const method = init?.method ?? 'GET';
+    if (url === '/api/channels/c1/unread-threads') return json(200, unreadRoots);
+    if (url === '/api/channels/c2/unread-threads') return json(200, []);
+    if (url === '/api/messages/m2/thread/read' && method === 'POST') {
+      unreadRoots = unreadRoots.filter((id) => id !== 'm2');
+      if (holdThreadRead) await holdThreadRead;
+      return json(204);
+    }
     if (url === '/api/channels/c1/messages' && method === 'GET') {
       return json(200, {
         messages: [M3, M2, M1],
@@ -139,6 +152,7 @@ const calls = (pred: (url: string, method: string) => boolean) =>
     pred(url as string, (init as RequestInit | undefined)?.method ?? 'GET'),
   );
 const readCalls = () => calls((url) => url === '/api/channels/c1/read');
+const threadReadCalls = () => calls((url) => url.endsWith('/thread/read'));
 const postBodies = () =>
   calls((url, method) => url === '/api/channels/c1/messages' && method === 'POST').map(
     ([, init]) => JSON.parse(String((init as RequestInit).body)) as Record<string, unknown>,
@@ -394,5 +408,68 @@ describe('Conversation', () => {
     } finally {
       state.mockRestore();
     }
+  });
+
+  describe('unread thread replies', () => {
+    const summary = (scope: HTMLElement) =>
+      within(row(scope, 'm2')!).getByRole('button', { name: /2 replies/ });
+    const dot = () => t('chat.thread.unreadReplies');
+
+    it('a thread with unread replies shows a dot on its replies link', async () => {
+      unreadRoots = ['m2'];
+      const { container } = renderAt('/groups/g1/chat');
+      await screen.findByText('text of m2');
+      await waitFor(() => expect(within(summary(container)).getByText(dot())).toBeInTheDocument());
+      expect(within(row(container, 'm1')!).queryByText(dot())).toBeNull();
+    });
+
+    it('a reply announced live adds the dot', async () => {
+      const { container } = renderAt('/groups/g1/chat');
+      await screen.findByText('text of m2');
+      await waitFor(() => expect(calls((u) => u.endsWith('/unread-threads'))).toHaveLength(1));
+      expect(within(summary(container)).queryByText(dot())).toBeNull();
+      unreadRoots = ['m2'];
+      act(() => socket.fire('chat:thread-reply', { groupId: 'g1', channelId: 'c1', rootId: 'm2' }));
+      await waitFor(() => expect(within(summary(container)).getByText(dot())).toBeInTheDocument());
+      // Another channel's thread is not this chat's.
+      act(() => socket.fire('chat:thread-reply', { groupId: 'g1', channelId: 'c2', rootId: 'm1' }));
+      expect(within(row(container, 'm1')!).queryByText(dot())).toBeNull();
+    });
+
+    it('opening the thread marks it read and the dot goes away', async () => {
+      unreadRoots = ['m2'];
+      const { container, user } = renderAt('/groups/g1/chat');
+      await screen.findByText('text of m2');
+      await waitFor(() => expect(within(summary(container)).getByText(dot())).toBeInTheDocument());
+      await user.click(summary(container));
+      await panel();
+      await waitFor(() => expect(threadReadCalls()).toHaveLength(1));
+      expect(threadReadCalls()[0]![0]).toBe('/api/messages/m2/thread/read');
+      await waitFor(() => expect(within(summary(container)).queryByText(dot())).toBeNull());
+    });
+
+    it('a reply announced while the open thread is being marked read is marked read too', async () => {
+      unreadRoots = ['m2'];
+      let release!: () => void;
+      holdThreadRead = new Promise((resolve) => (release = resolve));
+      renderAt('/groups/g1/chat?thread=m2&c=c1');
+      await panel();
+      await waitFor(() => expect(threadReadCalls()).toHaveLength(1));
+      // The server has stored the mark; then a new reply arrives before the answer.
+      unreadRoots = ['m2'];
+      act(() => socket.fire('chat:thread-reply', { groupId: 'g1', channelId: 'c1', rootId: 'm2' }));
+      holdThreadRead = null;
+      await act(async () => release());
+      await waitFor(() => expect(threadReadCalls()).toHaveLength(2));
+      await waitFor(() => expect(unreadRoots).toEqual([]));
+    });
+
+    it('a thread without unread replies is not marked read again', async () => {
+      renderAt('/groups/g1/chat?thread=m2&c=c1');
+      await panel();
+      await waitFor(() => expect(calls((u) => u.endsWith('/unread-threads'))).toHaveLength(1));
+      await wait(50);
+      expect(threadReadCalls()).toHaveLength(0);
+    });
   });
 });

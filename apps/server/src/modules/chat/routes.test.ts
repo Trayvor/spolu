@@ -10,9 +10,11 @@ import {
   MessagePageSchema,
   MessageSchema,
   ThreadSchema,
+  UnreadThreadsSchema,
   mentionToken,
   type ChatMessageEvent,
   type ChatReadEvent,
+  type ChatThreadReplyEvent,
   type MessageDto,
 } from '@spolu/shared';
 import { buildTestApp } from '../../../test/test-app.js';
@@ -20,7 +22,7 @@ import { loginAs } from '../../../test/login.js';
 import { createFile } from '../files/service.js';
 import { addMember, createGroup } from '../groups/service.js';
 import { user } from '../users/schema.js';
-import { addAdmin } from '../users/service.js';
+import { addAdmin, deactivateUser } from '../users/service.js';
 
 type TestApp = Awaited<ReturnType<typeof buildTestApp>>;
 
@@ -136,8 +138,10 @@ describe('chat API', () => {
       call('PATCH', `/api/messages/${messageId}`, c, { body: 'x' }),
       call('DELETE', `/api/messages/${messageId}`, c),
       call('POST', `/api/channels/${s.channelId}/read`, c, { at: new Date().toISOString() }),
+      call('GET', `/api/channels/${s.channelId}/unread-threads`, c),
+      call('POST', `/api/messages/${messageId}/thread/read`, c),
     ]);
-    expect(results.map((r) => r.statusCode)).toEqual(Array(9).fill(404));
+    expect(results.map((r) => r.statusCode)).toEqual(Array(11).fill(404));
     expect(results[0]!.json()).toEqual({ error: 'not_found' });
   });
 
@@ -284,6 +288,63 @@ describe('chat API', () => {
       at: 'yesterday',
     });
     expect(bad.statusCode).toBe(400);
+  });
+
+  it("a reply counts for the thread's people: chat:thread-reply, unread threads, then thread read", async () => {
+    const s = await setup();
+    const root = (await send(s.channelId, s.a.cookie)).json<MessageDto>();
+    await call('POST', `/api/channels/${s.channelId}/read`, s.a.cookie, {
+      at: new Date().toISOString(),
+    });
+    const anna = await socketFor(s.a.cookie);
+    const admin = await socketFor(s.admin.cookie);
+    const adminEvents: unknown[] = [];
+    admin.on(ChatEvents.threadReply, (e) => adminEvents.push(e));
+    const announced = nextEvent<ChatThreadReplyEvent>(anna, ChatEvents.threadReply);
+    await send(s.channelId, s.b.cookie, { parentId: root.id, body: 'reply' });
+    expect(await announced).toEqual({
+      groupId: s.group.id,
+      channelId: s.channelId,
+      rootId: root.id,
+    });
+    const chat = () => call('GET', `/api/groups/${s.group.id}/chat`, s.a.cookie);
+    expect(GroupChannelSchema.parse((await chat()).json()).unread).toBe(1);
+    const threads = await call('GET', `/api/channels/${s.channelId}/unread-threads`, s.a.cookie);
+    expect(UnreadThreadsSchema.parse(threads.json())).toEqual([root.id]);
+
+    const read = nextEvent<ChatReadEvent>(anna, ChatEvents.read);
+    const res = await call('POST', `/api/messages/${root.id}/thread/read`, s.a.cookie);
+    expect(res.statusCode).toBe(204);
+    expect(await read).toMatchObject({
+      groupId: s.group.id,
+      channelId: s.channelId,
+      rootId: root.id,
+    });
+    expect(GroupChannelSchema.parse((await chat()).json()).unread).toBe(0);
+    const after = await call('GET', `/api/channels/${s.channelId}/unread-threads`, s.a.cookie);
+    expect(after.json()).toEqual([]);
+    // The admin is not in the thread: no event, and reading it is a quiet no-op.
+    expect(adminEvents).toEqual([]);
+    const outside = await call('POST', `/api/messages/${root.id}/thread/read`, s.admin.cookie);
+    expect(outside.statusCode).toBe(204);
+  });
+
+  it('a removed member who took part in a thread gets no chat:thread-reply', async () => {
+    const s = await setup();
+    const root = (await send(s.channelId, s.a.cookie)).json<MessageDto>();
+    await send(s.channelId, s.b.cookie, { parentId: root.id });
+    const anna = await socketFor(s.a.cookie);
+    const boris = await socketFor(s.b.cookie);
+    const borisEvents: unknown[] = [];
+    boris.on(ChatEvents.threadReply, (e) => borisEvents.push(e));
+    // Removal without the socket disconnect, so only the recipient filter can keep him out.
+    await deactivateUser(test.deps.db, s.b.id);
+    const announced = nextEvent<ChatThreadReplyEvent>(anna, ChatEvents.threadReply);
+    await send(s.channelId, s.admin.cookie, { parentId: root.id });
+    await announced;
+    // Both rooms get their emit in the same tick; one round trip later nothing more can arrive.
+    await new Promise((resolve) => boris.emit('group:join', { groupId: s.group.id }, resolve));
+    expect(borisEvents).toEqual([]);
   });
 
   it('GET /api/chat/unread: an admin sees every group, a client only their own', async () => {

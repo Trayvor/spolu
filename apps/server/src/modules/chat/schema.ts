@@ -107,7 +107,7 @@ export const messageAttachments = pgTable(
   ],
 );
 
-/** Where a user has read a channel up to; unread = top-level messages by others created after it. */
+/** Where a user has read a channel up to: its top-level messages by others created after it are unread. */
 export const readStates = pgTable(
   'read_states',
   {
@@ -120,4 +120,36 @@ export const readStates = pgTable(
     lastReadAt: timestamptz('last_read_at').notNull(),
   },
   (t) => [primaryKey({ columns: [t.userId, t.channelId] })],
+);
+
+/**
+ * Where a user has read one thread up to. A row exists only for the people of the thread (its
+ * root author and everyone who replied, which includes everyone a reply can quote): their unread
+ * count includes the thread's replies by others created after `lastReadAt`. Written when a reply
+ * is sent and when the user opens the thread. `lastReplyAt` copies the thread's newest reply
+ * time, so the partial index holds only threads with something new and the unread count never
+ * looks at the others.
+ */
+export const threadReadStates = pgTable(
+  'thread_read_states',
+  {
+    userId: text('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    rootId: text('root_id')
+      .notNull()
+      .references(() => messages.id, { onDelete: 'cascade' }),
+    channelId: text('channel_id')
+      .notNull()
+      .references(() => channels.id, { onDelete: 'cascade' }),
+    lastReadAt: timestamptz('last_read_at').notNull(),
+    lastReplyAt: timestamptz('last_reply_at').notNull(),
+  },
+  (t) => [
+    // Root first: it also serves the cascade from a deleted message and the update per reply.
+    primaryKey({ columns: [t.rootId, t.userId] }),
+    index('thread_read_states_unread_idx')
+      .on(t.userId, t.channelId)
+      .where(sql`${t.lastReplyAt} > ${t.lastReadAt}`),
+  ],
 );

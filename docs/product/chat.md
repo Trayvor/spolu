@@ -13,7 +13,7 @@ Each group has one chat (at the start) with realtime messages, threads like Slac
 - **Mentions (@tags)** of users: any client of the group or any admin, and **@all** for everyone in the group and all admins.
 - **Attachments:** files and images, with image previews.
 - Users can edit and delete their own messages.
-- Unread indicator.
+- Unread indicator. As built (polish C1): a message counts as unread on the Chat tab and in the groups list when it is newer than the user's read mark and it is a top-level message, a reply in a thread the user started or replied in, or a reply that quotes the user's message. The user's own messages never count. Reading the main feed does not read the threads: a thread with unread replies shows a purple dot before its "N replies" link until the user opens it; opening it marks those replies read and the badge drops by that number at once (also on the user's other devices).
 - Message actions on hover: **"Reply in thread"** and **"Turn into tasks"** (AI, see `ai-task-split.md`). A message turned into tasks is marked "Turned into tasks" with links to them.
 - The same chat component is used for the task chat (see `task-board.md`).
 - Message search within a group (see `profile.md`, phase 16).

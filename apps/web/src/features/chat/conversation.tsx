@@ -9,6 +9,7 @@ import { MessageList } from './message-list';
 import { HIGHLIGHT_MS, ThreadPanel } from './thread-panel';
 import { useChannelMessages } from './use-channel-messages';
 import { useChatSearch } from './use-chat-search';
+import { useUnreadThreads } from './use-unread-threads';
 
 export type { MessageAction } from './message-item';
 
@@ -78,6 +79,8 @@ export function Conversation({
   const { window: win, markRead, jumpToLatest, send, around } = chat;
   const column = useRef<HTMLDivElement>(null);
   const visible = useDocumentVisible();
+  // The open thread is read while the page is visible.
+  const unreadThreads = useUnreadThreads(channelId, groupId, visible ? threadId : undefined);
   // Below 1024 px an open thread covers the list.
   const covered = !useMediaQuery('(min-width: 1024px)') && threadId !== undefined;
   // The list opens away from the bottom when it shows a linked message.
@@ -180,6 +183,7 @@ export function Conversation({
             messageActions={messageActions}
             renderMessageFooter={renderMessageFooter}
             onOpenThread={openThread}
+            unreadThreads={unreadThreads.unread}
             onRetry={chat.retry}
             onAtBottomChange={setAtBottom}
             onMessageChanged={chat.applyLocal}
