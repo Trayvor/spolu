@@ -262,8 +262,11 @@ describe('sendMessage', () => {
     const rootEvents = await eventsFor(root.id);
     const toAll = recipientsOf(rootEvents, 'chat.message');
     expect(toAll.has(s.a.id)).toBe(false);
-    for (const id of peopleBefore) if (id !== s.a.id) expect(toAll.has(id)).toBe(true);
-    for (const id of toAll) expect(peopleAfter.has(id)).toBe(true);
+    // Admins are global and other suites add and deactivate them in parallel: only people present
+    // before and after the send must get it, and no one outside both snapshots may.
+    for (const id of peopleBefore)
+      if (id !== s.a.id && peopleAfter.has(id)) expect(toAll.has(id)).toBe(true);
+    for (const id of toAll) expect(peopleBefore.has(id) || peopleAfter.has(id)).toBe(true);
     expect(recipientsOf(rootEvents, 'chat.mention')).toEqual(new Set([s.b.id]));
     expect(recipientsOf(rootEvents, 'chat.thread_reply').size).toBe(0);
 

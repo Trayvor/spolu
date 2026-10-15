@@ -253,8 +253,9 @@ describe('changesAfter', () => {
   it('truncates at 500', async () => {
     const s = await setup();
     const base = new Date('2026-03-01T10:00:00.000Z');
-    for (let i = 0; i < 501; i++) {
-      await deps.db.insert(messages).values({
+    // One multi-row insert: 501 single inserts outlast the 5 s timeout when the suite runs in parallel.
+    await deps.db.insert(messages).values(
+      Array.from({ length: 501 }, (_, i) => ({
         id: randomUUID(),
         channelId: s.channel.id,
         authorId: s.a.id,
@@ -262,8 +263,8 @@ describe('changesAfter', () => {
         clientId: randomUUID(),
         changeSeq: i + 1,
         createdAt: new Date(base.getTime() + i),
-      });
-    }
+      })),
+    );
     await deps.db.update(channels).set({ lastSeq: 501 }).where(eq(channels.id, s.channel.id));
     const changes = await changesAfter(deps.db, await fresh(s.channel), 0);
     expect(changes.messages).toHaveLength(500);
