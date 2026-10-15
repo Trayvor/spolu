@@ -3,15 +3,14 @@ import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { FastifyInstance } from 'fastify';
-import { buildApp } from './app.js';
 import { registerStatic } from './static.js';
-import { createDb } from './infra/db/client.js';
-import { testConfig, testDatabaseUrl } from '../test/test-config.js';
+import { buildTestApp } from '../test/test-app.js';
 
 const INDEX = '<!doctype html><title>Spolu</title>';
 
 describe('static web serving', () => {
-  const { db, close } = createDb(testDatabaseUrl);
+  let appTest: Awaited<ReturnType<typeof buildTestApp>>;
+  let plainTest: Awaited<ReturnType<typeof buildTestApp>>;
   let dir: string;
   let app: FastifyInstance;
   let plain: FastifyInstance;
@@ -23,14 +22,17 @@ describe('static web serving', () => {
     await writeFile(join(dir, 'assets-x', 'b.js'), 'console.log(2)');
     await writeFile(join(dir, 'index.html'), INDEX);
     await writeFile(join(dir, 'assets', 'a.js'), 'console.log(1)');
-    app = await buildApp({ config: testConfig(), db });
+    appTest = await buildTestApp();
+    app = appTest.app;
     await registerStatic(app, dir);
-    plain = await buildApp({ config: testConfig(), db });
+    plainTest = await buildTestApp();
+    plain = plainTest.app;
   });
   afterAll(async () => {
     await app.close();
     await plain.close();
-    await close();
+    await appTest.close();
+    await plainTest.close();
     await rm(dir, { recursive: true, force: true });
   });
 

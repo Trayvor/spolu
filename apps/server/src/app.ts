@@ -1,14 +1,22 @@
 import Fastify, { type FastifyInstance, type FastifyReply } from 'fastify';
-import type { Config } from './infra/config/config.js';
-import type { Db } from './infra/db/client.js';
+import type { Server as SocketIOServer } from 'socket.io';
+import type { AppDeps } from './deps.js';
+import { attachSocket } from './infra/realtime/socket.js';
 import { systemRoutes } from './modules/system/routes.js';
 
-export type AppDeps = { config: Config; db: Db };
-
-export async function buildApp({ config, db }: AppDeps): Promise<FastifyInstance> {
+/** Builds the HTTP app and attaches Socket.IO (`app.io`); `app.close()` closes both. */
+export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
+  const { config } = deps;
   const app = Fastify({ logger: config.nodeEnv === 'test' ? false : { level: 'info' } });
 
-  await app.register(systemRoutes, { prefix: '/api', config, db });
+  app.decorate('io', attachSocket(app, config));
+  // preClose runs before Fastify waits for the HTTP server, which open websockets would block.
+  // io.close() also closes the HTTP server and is safe when the app never listened.
+  app.addHook('preClose', async () => {
+    await app.io.close();
+  });
+
+  await app.register(systemRoutes, { prefix: '/api', deps });
 
   registerNotFound(app);
   return app;
@@ -16,6 +24,7 @@ export async function buildApp({ config, db }: AppDeps): Promise<FastifyInstance
 
 declare module 'fastify' {
   interface FastifyInstance {
+    io: SocketIOServer;
     /** Set by registerStatic: answers client-route requests with index.html. */
     spaFallback: ((reply: FastifyReply) => FastifyReply) | null;
   }

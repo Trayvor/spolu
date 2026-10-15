@@ -3,23 +3,30 @@ import type { FastifyInstance } from 'fastify';
 import { HealthResponseSchema } from '@spolu/shared';
 import { buildApp } from '../../app.js';
 import { createDb } from '../../infra/db/client.js';
-import { testConfig, testDatabaseUrl } from '../../../test/test-config.js';
+import { createInlineJobs } from '../../infra/jobs/inline-jobs.js';
+import { testConfig } from '../../../test/test-config.js';
+import { buildTestApp } from '../../../test/test-app.js';
 
 describe('system routes', () => {
-  const config = testConfig();
-  const good = createDb(testDatabaseUrl);
   const bad = createDb('postgres://x:x@localhost:1/x');
+  let test: Awaited<ReturnType<typeof buildTestApp>>;
   let app: FastifyInstance;
   let degraded: FastifyInstance;
 
   beforeAll(async () => {
-    app = await buildApp({ config, db: good.db });
-    degraded = await buildApp({ config, db: bad.db });
+    test = await buildTestApp();
+    app = test.app;
+    degraded = await buildApp({
+      ...test.deps,
+      config: testConfig({ databaseUrl: 'postgres://x:x@localhost:1/x' }),
+      db: bad.db,
+      jobs: createInlineJobs({}),
+    });
   });
   afterAll(async () => {
     await app.close();
     await degraded.close();
-    await good.close();
+    await test.close();
     await bad.close();
   });
 

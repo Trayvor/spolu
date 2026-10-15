@@ -1,11 +1,11 @@
 import type { FastifyPluginAsync } from 'fastify';
 import type { HealthResponse } from '@spolu/shared';
-import type { Config } from '../../infra/config/config.js';
-import { pingDb, type Db } from '../../infra/db/client.js';
+import type { AppDeps } from '../../deps.js';
+import { pingDb } from '../../infra/db/client.js';
 
-export const systemRoutes: FastifyPluginAsync<{ config: Config; db: Db }> = async (
+export const systemRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (
   app,
-  { config, db },
+  { deps: { config, db } },
 ) => {
   app.get('/health', async (_request, reply) => {
     const dbUp = await pingDb(db);

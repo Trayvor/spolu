@@ -15,7 +15,7 @@ export function testConfig(overrides: Partial<Config> = {}): Config {
     appVersion: 'test-sha',
     filesDir: './data/files',
     webDistDir: undefined,
-    email: { driver: 'smtp', host: 'localhost', port: 1025, from: 'Spolu <noreply@example.com>' },
+    email: { driver: 'smtp', host: '127.0.0.1', port: 1025, from: 'Spolu <noreply@example.com>' },
     ...overrides,
   };
 }

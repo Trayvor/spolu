@@ -1,24 +1,24 @@
 import { afterAll, describe, expect, it } from 'vitest';
-import type { PgBoss } from 'pg-boss';
+import { randomUUID } from 'node:crypto';
+import { createInlineJobs } from './inline-jobs.js';
 import { startJobs } from './jobs.js';
 import { testDatabaseUrl } from '../../../test/test-config.js';
 
 describe('jobs', () => {
-  let boss: PgBoss | undefined;
+  let stop: (() => Promise<void>) | undefined;
   afterAll(async () => {
-    await boss?.stop({ graceful: false, timeout: 2000 });
+    await stop?.();
   });
 
-  it('delivers a sent job to a worker within 5 seconds', async () => {
-    boss = await startJobs(testDatabaseUrl);
-    await boss.createQueue('test-job');
-
-    const received = new Promise<unknown>((resolve) => {
-      void boss!.work('test-job', async (jobs) => {
-        resolve(jobs[0]?.data);
-      });
+  it('startJobs runs the registered handler for a sent job within 5 s', async () => {
+    const name = `test-job-${randomUUID()}`;
+    let resolveReceived!: (data: unknown) => void;
+    const received = new Promise<unknown>((resolve) => (resolveReceived = resolve));
+    const jobs = await startJobs(testDatabaseUrl, {
+      [name]: async (data) => resolveReceived(data),
     });
-    await boss.send('test-job', { a: 1 });
+    stop = jobs.stop;
+    await jobs.queue.send(name, { a: 1 });
 
     const data = await Promise.race([
       received,
@@ -26,4 +26,11 @@ describe('jobs', () => {
     ]);
     expect(data).toEqual({ a: 1 });
   }, 10_000);
+
+  it('createInlineJobs runs the handler before send resolves', async () => {
+    const seen: unknown[] = [];
+    const queue = createInlineJobs({ greet: async (data) => void seen.push(data) });
+    await queue.send('greet', 'hi');
+    expect(seen).toEqual(['hi']);
+  });
 });

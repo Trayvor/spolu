@@ -1,8 +1,6 @@
 import { ConfigError, loadConfig } from './infra/config/config.js';
-import { createDb } from './infra/db/client.js';
+import { createDeps } from './deps.js';
 import { runMigrations } from './infra/db/migrate.js';
-import { startJobs } from './infra/jobs/jobs.js';
-import { attachSocket } from './infra/realtime/socket.js';
 import { buildApp } from './app.js';
 import { registerStatic } from './static.js';
 
@@ -19,11 +17,9 @@ async function main(): Promise<void> {
   }
 
   await runMigrations(config.databaseUrl);
-  const { db, close: closeDb } = createDb(config.databaseUrl);
-  const boss = await startJobs(config.databaseUrl);
-  const app = await buildApp({ config, db });
+  const { deps, close } = await createDeps(config);
+  const app = await buildApp(deps);
   if (config.webDistDir) await registerStatic(app, config.webDistDir);
-  const io = attachSocket(app, config);
   await app.listen({ host: '0.0.0.0', port: config.port });
 
   let shuttingDown = false;
@@ -35,10 +31,8 @@ async function main(): Promise<void> {
     shuttingDown = true;
     app.log.info(`${signal} received, shutting down`);
     try {
-      await io.close(); // also closes the HTTP server
-      await app.close();
-      await boss.stop();
-      await closeDb();
+      await app.close(); // closes Socket.IO and the HTTP server
+      await close();
       process.exit(0);
     } catch (error) {
       app.log.error(error, 'error during shutdown');
