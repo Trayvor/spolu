@@ -5,9 +5,9 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { Group } from '@spolu/shared';
 import { i18n, setLanguage } from '@/i18n';
 import { GroupForm } from './group-form';
-import { resizeImage } from './resize-image';
+import { resizeImage } from '@/lib/resize-image';
 
-vi.mock('./resize-image', () => ({ resizeImage: vi.fn() }));
+vi.mock('@/lib/resize-image', () => ({ resizeImage: vi.fn() }));
 
 const t = (key: string) => i18n.t(key);
 

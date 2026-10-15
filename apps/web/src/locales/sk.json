@@ -135,5 +135,9 @@
     "errors": {
       "nameRequired": "Zadajte svoje meno."
     }
+  },
+  "files": {
+    "download": "Stiahnuť {{name}}",
+    "openImage": "Otvoriť {{name}}"
   }
 }

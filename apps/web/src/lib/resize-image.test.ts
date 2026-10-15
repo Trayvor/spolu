@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { resizeImage } from './resize-image';
+import { resizeImage, resizeImageWithSize } from './resize-image';
 
 const drawImage = vi.fn();
 let toBlobResult: (type: string) => Blob | null;
@@ -104,5 +104,13 @@ describe('resizeImage', () => {
   it('rejects when the image cannot be decoded', async () => {
     vi.stubGlobal('createImageBitmap', vi.fn().mockRejectedValue(new Error('bad')));
     await expect(resizeImage(file('image/png'))).rejects.toThrow();
+  });
+
+  it('resizeImageWithSize returns the original size', async () => {
+    stubImage(1024, 512);
+    const result = await resizeImageWithSize(file(), 640);
+    expect([result.width, result.height]).toEqual([1024, 512]);
+    expect(usedCanvas().width).toBe(640);
+    expect(result.blob.type).toBe('image/webp');
   });
 });

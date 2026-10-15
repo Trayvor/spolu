@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { ApiError } from '@/lib/api';
 import { createGroup, removeLogo, updateGroup, uploadLogo } from './api';
 import { GroupLogo } from './group-logo';
-import { resizeImage } from './resize-image';
+import { resizeImage } from '@/lib/resize-image';
 
 /** A valid http(s) URL; the server stores it normalized. */
 function isHttpUrl(value: string): boolean {

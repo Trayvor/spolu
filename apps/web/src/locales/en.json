@@ -135,5 +135,9 @@
     "errors": {
       "nameRequired": "Enter your name."
     }
+  },
+  "files": {
+    "download": "Download {{name}}",
+    "openImage": "Open {{name}}"
   }
 }
