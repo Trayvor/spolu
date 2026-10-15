@@ -36,7 +36,7 @@ flowchart TD
 
 **Email.** `createEmailSender(config.email)` in `apps/server/src/infra/email/` returns an `EmailSender` (`send({ to, cc?, subject, html, text })`). `EMAIL_DRIVER=smtp` uses nodemailer (Mailpit in dev and tests); `elastic` posts to the Elastic Email v4 transactional API. Failures throw `EmailSendError` (status and response text, never the API key). Built; the job queue that retries sends comes later.
 
-**Storage.** An interface (put, get, delete, signed URL). Today it writes files to a disk volume; switching to S3-compatible storage later means swapping the implementation.
+**Storage.** An interface (put, get, delete, exists, signed URL) in `apps/server/src/infra/storage/`, built. `createDiskStorage(filesDir, appSecret)` writes files to a disk volume, with the content type in a `<key>.meta.json` sidecar; keys are `[a-z0-9/_.-]+` with no `..`, empty or absolute segments, and a bad key throws `InvalidStorageKeyError` before any disk access. `get` streams the file (never buffers it) and throws `StorageNotFoundError` when missing. Signed URLs are `/files/<key>?expires=<unix>&sig=<HMAC-SHA256 hex>`; the route that serves them arrives with the first upload feature (Phase 3); switching to S3-compatible storage later means swapping the implementation.
 
 **PostgreSQL.** The single source of truth: all data plus the job queue. See [data-model.md](data-model.md).
 
