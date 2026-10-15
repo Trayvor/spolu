@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Outlet, useParams } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
+import { useMessageTaskTools } from '@/features/task-split/use-message-task-tools';
 import { groupChatQuery } from './api';
 import { Conversation } from './conversation';
 import { useChatSearch } from './use-chat-search';
@@ -23,6 +24,7 @@ export function ChatTab() {
     enabled: groupId !== undefined,
   });
   const { unscoped, adopt } = useChatSearch(data?.id);
+  const tools = useMessageTaskTools(groupId ?? '');
   const claim = unscoped && data !== undefined;
   useEffect(() => {
     if (claim) adopt();
@@ -33,7 +35,14 @@ export function ChatTab() {
       <div data-testid="chat-card" className="relative min-h-[360px] flex-1">
         <div className="absolute inset-0">
           {data && groupId
-            ? !unscoped && <Conversation channelId={data.id} groupId={groupId} />
+            ? !unscoped && (
+                <Conversation
+                  channelId={data.id}
+                  groupId={groupId}
+                  messageActions={tools.messageActions}
+                  renderMessageFooter={tools.renderMessageFooter}
+                />
+              )
             : isError && (
                 <div
                   className="flex h-full flex-col items-center justify-center gap-3 rounded-xl bg-card px-6 text-center"
@@ -47,6 +56,7 @@ export function ChatTab() {
               )}
         </div>
       </div>
+      {tools.element}
       <Outlet />
     </>
   );

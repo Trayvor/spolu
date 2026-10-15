@@ -1,0 +1,364 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { fireEvent, render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import type { FileInfo, GroupPerson, MessageDto, TaskDetailDto, TaskProposal } from '@spolu/shared';
+import { ApiError } from '@/lib/api';
+import { i18n, setLanguage } from '@/i18n';
+import { createTasksFromMessage, proposeTasks } from './api';
+import { ReviewDialog } from './review-dialog';
+
+vi.mock('./api', async (importActual) => ({
+  ...(await importActual<typeof import('./api')>()),
+  proposeTasks: vi.fn(),
+  createTasksFromMessage: vi.fn(),
+}));
+vi.mock('@/features/files/upload', () => ({ uploadFile: vi.fn() }));
+
+const propose = vi.mocked(proposeTasks);
+const create = vi.mocked(createTasksFromMessage);
+
+const PEOPLE: GroupPerson[] = [{ id: 'u1', name: 'Anna Nováková', isAdmin: false }];
+
+const FILE: FileInfo = {
+  id: 'mf1',
+  name: 'invoice.pdf',
+  mime: 'application/pdf',
+  size: 2048,
+  width: null,
+  height: null,
+  hasPreview: false,
+};
+
+const MESSAGE: MessageDto = {
+  id: 'm1',
+  channelId: 'c1',
+  parentId: null,
+  replyToId: null,
+  author: { id: 'u2', name: 'Boris Kováč', isAdmin: true },
+  body: 'Send the report and pay the invoice',
+  mentions: [],
+  mentionsAll: false,
+  attachments: [FILE],
+  clientId: null,
+  replyCount: 0,
+  lastReplyAt: null,
+  editedAt: null,
+  deletedAt: null,
+  createdAt: '2026-10-15T10:00:00Z',
+  changeSeq: 1,
+  tasks: [],
+};
+
+const PROPOSALS: TaskProposal[] = [
+  {
+    title: 'Send the report',
+    description: 'The quarterly report to the agency',
+    assigneeIds: ['u1'],
+    dueDate: '2026-10-20',
+    urgent: true,
+    messageFileIds: [],
+  },
+  {
+    title: 'Pay the invoice',
+    description: '',
+    assigneeIds: [],
+    dueDate: null,
+    urgent: false,
+    messageFileIds: ['mf1'],
+  },
+];
+
+const t = (key: string, opts?: Record<string, unknown>) => i18n.t(key, opts);
+
+function stubWidth(desktop: boolean) {
+  vi.stubGlobal('matchMedia', (query: string) => ({
+    matches: desktop && query.includes('min-width: 641px'),
+    media: query,
+    addEventListener: () => undefined,
+    removeEventListener: () => undefined,
+  }));
+}
+
+function renderDialog() {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async () => new Response(JSON.stringify(PEOPLE), { status: 200 })),
+  );
+  const onClose = vi.fn();
+  const onCreated = vi.fn();
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  render(
+    <QueryClientProvider client={queryClient}>
+      <ReviewDialog groupId="g1" message={MESSAGE} onClose={onClose} onCreated={onCreated} />
+    </QueryClientProvider>,
+  );
+  return { user: userEvent.setup(), onClose, onCreated, queryClient };
+}
+
+const articles = () => screen.queryAllByRole('article');
+const article = (name: string) => screen.getByRole('article', { name });
+const createButton = () => screen.getByRole('button', { name: /^Create \d+ tasks?$/ });
+
+async function shown() {
+  await screen.findByRole('article', { name: 'Send the report' });
+}
+
+async function decideBoth(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(screen.getByRole('button', { name: t('taskSplit.approveAll') }));
+}
+
+describe('ReviewDialog', () => {
+  beforeEach(async () => {
+    await setLanguage('en');
+    propose.mockReset();
+    create.mockReset();
+    stubWidth(true);
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('shows the loading outlines, then compact cards', async () => {
+    let resolve!: (value: { tasks: TaskProposal[] }) => void;
+    propose.mockReturnValue(new Promise((r) => (resolve = r)));
+    renderDialog();
+
+    const dialog = screen.getByRole('dialog', { name: t('taskSplit.title') });
+    expect(within(dialog).getByText(MESSAGE.body)).toBeInTheDocument();
+    expect(within(dialog).getByText('Boris Kováč')).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent(t('taskSplit.loading'));
+    expect(screen.getAllByTestId('card-outline')).toHaveLength(3);
+    expect(propose).toHaveBeenCalledWith('m1');
+
+    resolve({ tasks: PROPOSALS });
+    await shown();
+    expect(articles()).toHaveLength(2);
+    expect(screen.queryByTestId('card-outline')).not.toBeInTheDocument();
+    // Compact: no form field until a card is opened.
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+    const first = article('Send the report');
+    expect(within(first).getByText('The quarterly report to the agency')).toHaveClass(
+      'line-clamp-2',
+    );
+    expect(within(first).getByText(t('tasks.card.urgent'))).toBeInTheDocument();
+    // The proposed message file shows as a chip on its card.
+    expect(
+      within(article('Pay the invoice')).getByRole('link', {
+        name: t('files.download', { name: 'invoice.pdf' }),
+      }),
+    ).toBeInTheDocument();
+    expect(createButton()).toBeDisabled();
+  });
+
+  it('desktop: opening a card expands it in place; opening another collapses the first and keeps its edits', async () => {
+    propose.mockResolvedValue({ tasks: PROPOSALS });
+    const { user } = renderDialog();
+    await shown();
+
+    await user.click(
+      within(article('Send the report')).getByRole('button', {
+        name: t('taskSplit.open', { title: 'Send the report' }),
+      }),
+    );
+    const title = within(article('Send the report')).getByRole('textbox', {
+      name: t('tasks.form.title'),
+    });
+    await user.type(title, ' now');
+
+    await user.click(
+      within(article('Pay the invoice')).getByRole('button', {
+        name: t('taskSplit.open', { title: 'Pay the invoice' }),
+      }),
+    );
+    expect(screen.getAllByRole('textbox', { name: t('tasks.form.title') })).toHaveLength(1);
+    expect(
+      within(article('Pay the invoice')).getByRole('textbox', { name: t('tasks.form.title') }),
+    ).toHaveValue('Pay the invoice');
+    // The proposed message file is in the form and can be removed.
+    await user.click(
+      screen.getByRole('button', { name: t('tasks.form.removeFile', { name: 'invoice.pdf' }) }),
+    );
+
+    await user.click(
+      within(article('Send the report now')).getByRole('button', {
+        name: t('taskSplit.open', { title: 'Send the report now' }),
+      }),
+    );
+    expect(screen.getByRole('textbox', { name: t('tasks.form.title') })).toHaveValue(
+      'Send the report now',
+    );
+    // The second card kept its edit: the file is gone from its summary.
+    expect(
+      within(article('Pay the invoice')).queryByRole('link', { name: /invoice\.pdf/ }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('phone: opening a card shows it full screen with Done, back to the list', async () => {
+    stubWidth(false);
+    propose.mockResolvedValue({ tasks: PROPOSALS });
+    const { user } = renderDialog();
+    await shown();
+
+    await user.click(
+      screen.getByRole('button', { name: t('taskSplit.open', { title: 'Send the report' }) }),
+    );
+    const layer = screen.getByRole('region', { name: t('taskSplit.editCard') });
+    expect(articles()).toHaveLength(0);
+    await user.type(within(layer).getByRole('textbox', { name: t('tasks.form.title') }), '!');
+    await user.click(within(layer).getByRole('button', { name: t('taskSplit.done') }));
+
+    expect(screen.queryByRole('region', { name: t('taskSplit.editCard') })).not.toBeInTheDocument();
+    expect(articles()).toHaveLength(2);
+    expect(article('Send the report!')).toBeInTheDocument();
+  });
+
+  it('approve, reject, undo; Create is enabled only when every card is decided', async () => {
+    propose.mockResolvedValue({ tasks: PROPOSALS });
+    const { user } = renderDialog();
+    await shown();
+
+    const approve = within(article('Send the report')).getByRole('button', {
+      name: t('taskSplit.approve'),
+    });
+    expect(approve).toHaveAttribute('aria-pressed', 'false');
+    await user.click(approve);
+    expect(approve).toHaveAttribute('aria-pressed', 'true');
+    expect(createButton()).toBeDisabled();
+    expect(createButton()).toHaveAccessibleName('Create 1 task');
+
+    await user.click(
+      within(article('Pay the invoice')).getByRole('button', { name: t('taskSplit.reject') }),
+    );
+    // A rejected card is one struck-through line with Undo.
+    const rejected = article('Pay the invoice');
+    expect(within(rejected).getByText('Pay the invoice')).toHaveClass('line-through');
+    expect(within(rejected).queryByRole('button', { name: t('taskSplit.approve') })).toBeNull();
+    expect(createButton()).toBeEnabled();
+
+    await user.click(within(rejected).getByRole('button', { name: t('taskSplit.undo') }));
+    expect(createButton()).toBeDisabled();
+
+    await decideBoth(user);
+    expect(createButton()).toBeEnabled();
+    expect(createButton()).toHaveAccessibleName('Create 2 tasks');
+  });
+
+  it('approving a card with errors opens it with them instead', async () => {
+    propose.mockResolvedValue({ tasks: [{ ...PROPOSALS[0]!, title: '' }, PROPOSALS[1]!] });
+    const { user } = renderDialog();
+    await screen.findByRole('article', { name: 'Pay the invoice' });
+
+    await decideBoth(user);
+    expect(await screen.findByText(t('tasks.form.errors.titleRequired'))).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: t('tasks.form.title') })).toHaveValue('');
+    expect(createButton()).toBeDisabled();
+  });
+
+  it('sends one request on a double click, and keeps the cards when it fails', async () => {
+    propose.mockResolvedValue({ tasks: PROPOSALS });
+    create.mockRejectedValueOnce(new ApiError('failed', 400, { error: 'invalid_attachment' }));
+    const { user, onCreated } = renderDialog();
+    await shown();
+    await decideBoth(user);
+
+    await user.dblClick(screen.getByRole('button', { name: /Create 2 tasks/ }));
+    expect(create).toHaveBeenCalledTimes(1);
+    expect(await screen.findByText(t('taskSplit.filesChanged'))).toBeInTheDocument();
+    expect(screen.getAllByRole('article')).toHaveLength(2);
+    expect(onCreated).not.toHaveBeenCalled();
+    expect(create.mock.calls[0]).toEqual([
+      'g1',
+      {
+        messageId: 'm1',
+        tasks: [
+          expect.objectContaining({ title: 'Send the report', fileIds: [], messageFileIds: [] }),
+          expect.objectContaining({
+            title: 'Pay the invoice',
+            fileIds: [],
+            messageFileIds: ['mf1'],
+          }),
+        ],
+      },
+    ]);
+  });
+
+  it('a created set is handed to onCreated; a missing message says so', async () => {
+    propose.mockResolvedValue({ tasks: PROPOSALS });
+    const tasks = [{ id: 't1' }] as TaskDetailDto[];
+    create.mockRejectedValueOnce(new ApiError('gone', 404, { error: 'not_found' }));
+    create.mockResolvedValueOnce(tasks);
+    const { user, onCreated } = renderDialog();
+    await shown();
+    await decideBoth(user);
+
+    await user.click(createButton());
+    expect(await screen.findByText(t('taskSplit.messageGone'))).toBeInTheDocument();
+    await user.click(createButton());
+    await vi.waitFor(() => expect(onCreated).toHaveBeenCalledWith(tasks));
+  });
+
+  it('Escape after a decision asks before discarding; a backdrop click does nothing', async () => {
+    propose.mockResolvedValue({ tasks: PROPOSALS });
+    const { user, onClose } = renderDialog();
+    await shown();
+
+    fireEvent.pointerDown(screen.getByTestId('review-backdrop'));
+    fireEvent.click(screen.getByTestId('review-backdrop'));
+    expect(onClose).not.toHaveBeenCalled();
+
+    await user.click(
+      within(article('Send the report')).getByRole('button', { name: t('taskSplit.reject') }),
+    );
+    await user.keyboard('{Escape}');
+    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.getByText(t('taskSplit.discardConfirm'))).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: t('taskSplit.keep') }));
+    expect(screen.queryByText(t('taskSplit.discardConfirm'))).not.toBeInTheDocument();
+    expect(articles()).toHaveLength(2);
+
+    await user.click(screen.getByRole('button', { name: t('taskSplit.cancel') }));
+    await user.click(screen.getByRole('button', { name: t('taskSplit.discard') }));
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('Escape while untouched closes at once', async () => {
+    propose.mockResolvedValue({ tasks: PROPOSALS });
+    const { user, onClose } = renderDialog();
+    await shown();
+    await user.keyboard('{Escape}');
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('no tasks: offers one card by hand prefilled with the message text', async () => {
+    propose.mockRejectedValue(new ApiError('none', 422, { error: 'ai_no_tasks' }));
+    const { user } = renderDialog();
+
+    expect(await screen.findByText(t('taskSplit.noTasks'))).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: t('taskSplit.byHand') }));
+
+    expect(articles()).toHaveLength(1);
+    expect(screen.getByRole('textbox', { name: t('tasks.form.title') })).toHaveValue('');
+    // The description is the message text (shown rendered until edited).
+    expect(within(articles()[0]!).getByText(MESSAGE.body)).toBeInTheDocument();
+  });
+
+  it('ai_failed: Try again calls the AI again', async () => {
+    propose.mockRejectedValueOnce(new ApiError('bad', 502, { error: 'ai_failed' }));
+    propose.mockResolvedValueOnce({ tasks: PROPOSALS });
+    const { user } = renderDialog();
+
+    expect(await screen.findByText(t('taskSplit.failed'))).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: t('taskSplit.retry') }));
+    await shown();
+    expect(propose).toHaveBeenCalledTimes(2);
+  });
+
+  it('ai_unavailable: says so, without a retry, and hides the action', async () => {
+    propose.mockRejectedValue(new ApiError('off', 503, { error: 'ai_unavailable' }));
+    const { queryClient } = renderDialog();
+    expect(await screen.findByText(t('taskSplit.unavailable'))).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: t('taskSplit.retry') })).not.toBeInTheDocument();
+    expect(queryClient.getQueryData(['ai', 'status'])).toEqual({ taskSplit: false });
+  });
+});
