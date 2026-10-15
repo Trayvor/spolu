@@ -279,6 +279,17 @@ describe('Composer', () => {
     await waitFor(() => expect(screen.queryByRole('alert')).toBeNull());
   });
 
+  it('opens the mention list below the field when editing and above it when writing', async () => {
+    const user = userEvent.setup();
+    const edit = renderComposer({ mode: 'edit', initialBody: 'a' });
+    await user.type(box(), ' @ja');
+    expect(await screen.findByRole('listbox')).toHaveClass('top-full');
+    edit.unmount();
+    renderComposer();
+    await user.type(box(), '@ja');
+    expect(await screen.findByRole('listbox')).toHaveClass('bottom-full');
+  });
+
   it('shows a counter only above 9 000 characters and blocks sending past 10 000', () => {
     renderComposer();
     expect(screen.queryByText(/10 000 characters/)).toBeNull();

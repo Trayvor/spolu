@@ -21,6 +21,11 @@ interface MentionPickerProps {
   id: string;
   /** Reports the DOM id of the highlighted option for `aria-activedescendant`. */
   onActiveChange?(optionId: string | undefined): void;
+  /**
+   * Open below the field instead of above it. An edited message near the top of the list has no
+   * room above (the list scroller clips it); below, the list simply scrolls.
+   */
+  below?: boolean;
 }
 
 const fold = (s: string) => s.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
@@ -40,7 +45,10 @@ const optionClass = 'flex cursor-pointer items-center gap-2 px-3 py-1.5 text-but
  * Focus stays in the textarea; the composer forwards keys to `handleKey`.
  */
 export const MentionPicker = forwardRef<MentionPickerHandle, MentionPickerProps>(
-  function MentionPicker({ query, people, onPick, onClose, id, onActiveChange }, ref) {
+  function MentionPicker(
+    { query, people, onPick, onClose, id, onActiveChange, below = false },
+    ref,
+  ) {
     const { t } = useTranslation();
     const everyone = t('chat.mention.everyone');
     const choices = useMemo<MentionChoice[]>(() => {
@@ -89,7 +97,10 @@ export const MentionPicker = forwardRef<MentionPickerHandle, MentionPickerProps>
         id={id}
         role="listbox"
         aria-label={t('chat.mention.label')}
-        className="absolute inset-x-0 bottom-full z-10 mb-1 max-h-60 overflow-y-auto rounded-lg border border-border bg-card py-1"
+        className={cn(
+          'absolute inset-x-0 z-10 max-h-60 overflow-y-auto rounded-lg border border-border bg-card py-1',
+          below ? 'top-full mt-1' : 'bottom-full mb-1',
+        )}
       >
         {choices.map((choice, i) => (
           <li

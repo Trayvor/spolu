@@ -364,6 +364,7 @@ export function Composer({
             onPick={pick}
             onClose={() => setClosedAt(mention.start)}
             onActiveChange={setActiveOption}
+            below={mode === 'edit'}
           />
         )}
         <div className="rounded-lg border-2 border-input bg-card focus-within:border-foreground">
