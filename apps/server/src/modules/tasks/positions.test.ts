@@ -4,7 +4,7 @@ import { asc, eq } from 'drizzle-orm';
 import { createDb } from '../../infra/db/client.js';
 import { testDatabaseUrl } from '../../../test/test-config.js';
 import { createGroup } from '../groups/service.js';
-import { FIXED_POSITIONS, keyAfter, keysAfter } from './positions.js';
+import { FIXED_POSITIONS, keyAfter, keysAfter, keysBefore } from './positions.js';
 import { buckets } from './schema.js';
 
 const { db, close } = createDb(testDatabaseUrl);
@@ -25,6 +25,14 @@ describe('positions', () => {
     expect(keys).toHaveLength(3);
     expect(keys[0]! > 'a0').toBe(true);
     expect([...keys].sort()).toEqual(keys);
+  });
+
+  it('keysBefore returns ascending keys before next', () => {
+    const keys = keysBefore('a0', 3);
+    expect(keys).toHaveLength(3);
+    expect(keys[2]! < 'a0').toBe(true);
+    expect([...keys].sort()).toEqual(keys);
+    expect(keysBefore(null, 2)).toEqual(keysAfter(null, 2));
   });
 
   it('fixed keys are in order', () => {

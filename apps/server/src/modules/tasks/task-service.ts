@@ -11,21 +11,25 @@ import {
   type TaskMove,
   type TaskMovedPayload,
   type TaskPatch,
+  type TasksFromMessage,
 } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
 import { isDeadlock } from '../../infra/db/errors.js';
 import {
   attachFiles,
+  copyFile,
   deleteDetachedFiles,
+  deleteFiles,
   detachFiles,
   getFilesForGroup,
+  InvalidAttachmentError,
   type FileDeps,
 } from '../files/service.js';
 import { getSourceMessage } from '../chat/messages.js';
 import { taskChatFileIds } from '../chat/service.js';
 import { getGroup, isGroupPerson } from '../groups/service.js';
 import { recordNotifications } from '../notifications/service.js';
-import { keyAfter } from './positions.js';
+import { keyAfter, keysBefore } from './positions.js';
 import { buckets, taskAssignees, taskAttachments, tasks } from './schema.js';
 import { ensureBoard, lockBuckets, selectTasks, type Tx } from './service.js';
 
@@ -211,6 +215,123 @@ export async function createTask(
     return taskId;
   });
   return (await getTask(db, id))!;
+}
+
+/**
+ * Creates the reviewed cards of a chat message, all or none. `source` is the message as the
+ * route read it (it checked the group and that the actor may read it): its id and file ids.
+ * Every `messageFileIds` entry must be one of the message's files (else `InvalidAttachmentError`,
+ * before anything is copied); each (card, message file) pair gets its own copy owned by the
+ * actor, made before the transaction. One transaction then inserts the cards at the top of To do
+ * in input order (the To do row locked, keys before its first task; `createdAt` 1 ms apart),
+ * with `sourceMessageId`, assignees, files (review uploads and copies) and `task.assigned`.
+ * If anything fails, the copies are deleted again (best effort; leftovers stay unattached and
+ * the daily cleanup removes them) and the error is rethrown. Returns the cards in input order.
+ */
+export async function createTasksFromMessage(
+  deps: TaskDeps,
+  actor: SessionUser,
+  groupId: string,
+  input: TasksFromMessage,
+  source: { id: string; fileIds: string[] },
+): Promise<TaskDetailDto[]> {
+  const { db } = deps;
+  const onMessage = new Set(source.fileIds);
+  const drafts = input.tasks.map((draft) => ({
+    ...draft,
+    assigneeIds: [...new Set(draft.assigneeIds)],
+    fileIds: [...new Set(draft.fileIds)],
+    messageFileIds: [...new Set(draft.messageFileIds)],
+  }));
+  if (drafts.some((d) => d.assigneeIds.length > MAX_ASSIGNEES)) throw new InvalidAssigneeError();
+  if (drafts.some((d) => d.messageFileIds.some((id) => !onMessage.has(id)))) {
+    throw new InvalidAttachmentError();
+  }
+  // A file uploaded in the review belongs to one card only.
+  const uploaded = drafts.flatMap((d) => d.fileIds);
+  if (new Set(uploaded).size < uploaded.length) throw new InvalidAttachmentError();
+  await ensureBoard(db, groupId);
+
+  // Every copy in parallel; the ones that succeeded are kept for the cleanup even if one fails.
+  const pairs = drafts.flatMap((d, index) => d.messageFileIds.map((fileId) => ({ index, fileId })));
+  const copied = await Promise.allSettled(
+    pairs.map(({ fileId }) => copyFile(deps, { fileId, groupId, userId: actor.id })),
+  );
+  const copyIds = copied.flatMap((r) => (r.status === 'fulfilled' ? [r.value.id] : []));
+  let ids: string[];
+  try {
+    const failed = copied.find((r) => r.status === 'rejected');
+    if (failed) throw failed.reason;
+    // No copy failed, so `copyIds` lines up with `pairs`.
+    const copiesOf = drafts.map((_, index) =>
+      pairs.flatMap((pair, i) => (pair.index === index ? [copyIds[i]!] : [])),
+    );
+    ids = await db.transaction(async (tx) => {
+      const [found] = await tx
+        .select({ id: buckets.id })
+        .from(buckets)
+        .where(and(eq(buckets.groupId, groupId), eq(buckets.kind, 'todo')));
+      if (!found) throw new NotFoundError();
+      const [todo] = await lockBuckets(tx, [found.id]);
+      if (!todo) throw new NotFoundError();
+      const [first] = await tx
+        .select({ position: tasks.position })
+        .from(tasks)
+        .where(eq(tasks.bucketId, todo.id))
+        .orderBy(asc(tasks.position))
+        .limit(1);
+      await checkAssignees(tx, groupId, [...new Set(drafts.flatMap((d) => d.assigneeIds))]);
+
+      const positions = keysBefore(first?.position ?? null, drafts.length);
+      const now = Date.now();
+      const rows = drafts.map((draft, index) => ({
+        id: randomUUID(),
+        groupId,
+        bucketId: todo.id,
+        position: positions[index]!,
+        title: draft.title,
+        description: draft.description,
+        createdBy: actor.id,
+        dueDate: draft.dueDate,
+        urgent: draft.urgent,
+        completedAt: null,
+        sourceMessageId: source.id,
+        // Distinct and in input order, so "newest first" lists keep the order shown.
+        createdAt: new Date(now + index),
+        updatedAt: new Date(now + index),
+      }));
+      await tx.insert(tasks).values(rows);
+      const assignees = rows.flatMap((row, index) =>
+        drafts[index]!.assigneeIds.map((userId) => ({ taskId: row.id, userId })),
+      );
+      if (assignees.length > 0) await tx.insert(taskAssignees).values(assignees);
+      const attachments = rows.flatMap((row, index) =>
+        [...drafts[index]!.fileIds, ...copiesOf[index]!].map((fileId) => ({
+          taskId: row.id,
+          fileId,
+        })),
+      );
+      if (attachments.length > 0) {
+        await attachFiles(
+          tx,
+          groupId,
+          attachments.map((a) => a.fileId),
+          actor.id,
+        );
+        await tx.insert(taskAttachments).values(attachments);
+      }
+      for (const [index, row] of rows.entries()) {
+        await notifyAssigned(tx, actor, row, drafts[index]!.assigneeIds);
+      }
+      return rows.map((row) => row.id);
+    });
+  } catch (error) {
+    await deleteFiles(deps, copyIds).catch(() => undefined);
+    throw error;
+  }
+  return (await Promise.all(ids.map((id) => getTask(db, id)))).flatMap((task) =>
+    task ? [task] : [],
+  );
 }
 
 /**

@@ -32,7 +32,7 @@ Each group has a Kanban board with four fixed buckets (columns) and custom bucke
   - every assignee is reminded 3, 2 and 1 days before the deadline, at 09:00 (Europe/Bratislava), while the task is not in Completed;
   - an **urgent** task reminds its assignees every 3 hours between 08:00 and 20:00 (Europe/Bratislava) until it is in Completed or no longer urgent;
   - task chat messages notify like the group chat.
-- **Creating tasks from a chat message** (with AI): see `ai-task-split.md`.
+- **Creating tasks from a chat message** (with AI): see `ai-task-split.md`. The approved cards go to the top of To do, in the order shown in the review, all at once or none; each keeps a link to its message, and a message file kept on a card is copied, so the card and the message each have their own file.
 
 ## Phase
 

@@ -5,11 +5,13 @@ import {
   TaskCreateSchema,
   TaskMoveSchema,
   TaskPatchSchema,
+  TasksFromMessageSchema,
   type SessionUser,
+  type TasksFromMessageResult,
 } from '@spolu/shared';
 import type { AppDeps } from '../../deps.js';
 import { emitMessageTasks } from '../chat/events.js';
-import { messageTasksEvent } from '../chat/messages.js';
+import { findReadableMessage, getMessageFiles, messageTasksEvent } from '../chat/messages.js';
 import { requireUser } from '../auth/session.js';
 import { InvalidAttachmentError } from '../files/service.js';
 import { getMembershipGroupId } from '../groups/service.js';
@@ -18,6 +20,7 @@ import { canDeleteTask, canUseBoard } from './policy.js';
 import type { WriteGuard } from './routes.js';
 import {
   createTask,
+  createTasksFromMessage,
   deleteTask,
   getTask,
   getTaskRef,
@@ -41,10 +44,13 @@ export type TaskRoutesOptions = {
 
 const notFound = (reply: FastifyReply) => reply.code(404).send({ error: ErrorCodes.notFound });
 
-/** 400 for a body that failed `TaskCreateSchema`/`TaskPatchSchema`: too many assignees has its own code. */
+/**
+ * 400 for a body that failed a task schema: too many assignees (on the task, or on a card made
+ * from a message) has its own code.
+ */
 const invalidBody = (reply: FastifyReply, error: ZodError) => {
   const tooManyAssignees = error.issues.some(
-    (issue) => issue.path[0] === 'assigneeIds' && issue.code === 'too_big',
+    (issue) => issue.path.at(-1) === 'assigneeIds' && issue.code === 'too_big',
   );
   return reply
     .code(400)
@@ -117,6 +123,40 @@ export const taskRoutes: FastifyPluginAsync<TaskRoutesOptions> = async (
       return writeError(reply, error);
     }
   });
+
+  /**
+   * The reviewed cards of a chat message. The message must be live, readable by the actor and in
+   * a channel (group or task chat) of this group; anything else answers 404 like a missing one.
+   */
+  app.post<IdParams>(
+    '/groups/:id/tasks/from-message',
+    { preHandler: writeGuard },
+    async (request, reply) => {
+      const actor = request.user!;
+      const groupId = request.params.id;
+      const body = TasksFromMessageSchema.safeParse(request.body);
+      if (!body.success) return invalidBody(reply, body.error);
+      if (!(await canOpenGroup(actor, groupId))) return notFound(reply);
+      const found = await findReadableMessage(db, actor, body.data.messageId);
+      if (!found || found.message.deletedAt !== null || found.channel.groupId !== groupId) {
+        return notFound(reply);
+      }
+      const messageId = found.message.id;
+      const source = {
+        id: messageId,
+        fileIds: (await getMessageFiles(db, groupId, messageId)).map((f) => f.id),
+      };
+      try {
+        const created = await createTasksFromMessage(deps, actor, groupId, body.data, source);
+        for (const task of created) emitTask(app.io, toTaskDto(task), person(actor));
+        await pushMessageTasks(request, messageId);
+        const result: TasksFromMessageResult = { tasks: created };
+        return reply.code(201).send(result);
+      } catch (error) {
+        return writeError(reply, error);
+      }
+    },
+  );
 
   app.get<IdParams>('/tasks/:id', { preHandler: anyUser }, async (request, reply) => {
     if (!(await readableTask(request.user!, request.params.id))) return notFound(reply);

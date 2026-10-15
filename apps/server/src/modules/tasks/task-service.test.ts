@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { Readable } from 'node:stream';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { and, eq, sql } from 'drizzle-orm';
-import { TaskCreateSchema, type SessionUser } from '@spolu/shared';
+import { TaskCreateSchema, TasksFromMessageSchema, type SessionUser } from '@spolu/shared';
 import type { AppDeps } from '../../deps.js';
 import { createDb } from '../../infra/db/client.js';
 import { createDiskStorage } from '../../infra/storage/disk-storage.js';
@@ -14,6 +14,7 @@ import { testDatabaseUrl } from '../../../test/test-config.js';
 import { deleteMessage, getMessage, sendMessage } from '../chat/messages.js';
 import { ensureGroupChannel, ensureTaskChannel, getChannel } from '../chat/service.js';
 import * as filesService from '../files/service.js';
+import { files } from '../files/schema.js';
 import { createFile, getFile, InvalidAttachmentError } from '../files/service.js';
 import { addMember, createGroup } from '../groups/service.js';
 import { notificationEvents } from '../notifications/schema.js';
@@ -23,6 +24,7 @@ import { tasks } from './schema.js';
 import { createBucket, deleteBucket, ensureBoard, getBoard, listBuckets } from './service.js';
 import {
   createTask as createTaskWith,
+  createTasksFromMessage,
   deleteTask as deleteTaskWith,
   getTask,
   getTaskRef,
@@ -730,5 +732,139 @@ describe('moveTask', () => {
     await expect(
       moveTask(deps, client, x.id, { bucketId: x.bucketId, afterTaskId: null }),
     ).rejects.toBeInstanceOf(NotFoundError);
+  });
+});
+
+describe('createTasksFromMessage', () => {
+  /** A group with an admin, a client who sent a message with one file, and a To do task. */
+  async function setup() {
+    const group = await newGroup();
+    const admin = await newAdmin();
+    const ana = await newClient(group.id, 'Ana');
+    const file = await upload(group.id, ana, 'brief.txt');
+    const channel = await ensureGroupChannel(db, group.id);
+    const m = (
+      await sendMessage(deps as AppDeps, {
+        channel,
+        author: ana,
+        data: { body: 'Write A, then B', clientId: randomUUID(), fileIds: [file.id] },
+      })
+    ).message;
+    const existing = await createTask(deps, ana, group.id, { title: 'Existing' });
+    return { group, admin, ana, file, m, existing };
+  }
+  const input = (messageId: string, tasksIn: object[]) =>
+    TasksFromMessageSchema.parse({ messageId, tasks: tasksIn });
+  const countFiles = async (groupId: string) =>
+    (await db.select({ id: files.id }).from(files).where(eq(files.groupId, groupId))).length;
+  const todoTitles = async (groupId: string) => {
+    const board = await getBoard(db, groupId);
+    const todo = board.buckets.find((b) => b.kind === 'todo')!;
+    return board.tasks.filter((t) => t.bucketId === todo.id).map((t) => t.title);
+  };
+
+  it('creates the cards at the top of To do, in order, linked to the message, with copied files', async () => {
+    const { group, admin, ana, file, m } = await setup();
+    const [a, b] = await createTasksFromMessage(
+      deps,
+      admin,
+      group.id,
+      input(m.id, [
+        { title: 'A', messageFileIds: [file.id], assigneeIds: [ana.id] },
+        { title: 'B', messageFileIds: [file.id] },
+      ]),
+      { id: m.id, fileIds: [file.id] },
+    );
+    expect(await todoTitles(group.id)).toEqual(['A', 'B', 'Existing']);
+    expect(a!.sourceMessageId).toBe(m.id);
+    expect(b!.sourceMessageId).toBe(m.id);
+    expect(a!.createdBy).toEqual({ id: admin.id, name: admin.name });
+    expect(a!.assignees).toEqual([{ id: ana.id, name: 'Ana' }]);
+    expect(await assignedRecipients(a!.id)).toEqual([ana.id]);
+    expect(Date.parse(a!.createdAt)).toBeLessThan(Date.parse(b!.createdAt));
+    expect(a!.files).toHaveLength(1);
+    expect(a!.files[0]!.id).not.toBe(file.id);
+    expect(a!.files[0]!.id).not.toBe(b!.files[0]!.id);
+    expect(a!.files[0]!.name).toBe('brief.txt');
+    const copy = (await getFile(db, a!.files[0]!.id))!;
+    expect(copy.uploadedBy).toBe(admin.id);
+    expect(copy.attachedAt).not.toBeNull();
+
+    await deleteTask(deps, a!.id);
+    expect(await getFile(db, copy.id)).toBeNull();
+    expect(await getFile(db, file.id)).not.toBeNull(); // the message keeps its file
+  });
+
+  it('attaches files uploaded in the review next to the copies', async () => {
+    const { group, admin, file, m } = await setup();
+    const own = await upload(group.id, admin, 'own.txt');
+    const [a] = await createTasksFromMessage(
+      deps,
+      admin,
+      group.id,
+      input(m.id, [{ title: 'A', fileIds: [own.id], messageFileIds: [file.id] }]),
+      { id: m.id, fileIds: [file.id] },
+    );
+    expect(a!.files.map((f) => f.name).sort()).toEqual(['brief.txt', 'own.txt']);
+    expect(a!.files.map((f) => f.id)).toContain(own.id);
+  });
+
+  it('is all or nothing: an invalid assignee on card 2 creates nothing and removes the copies', async () => {
+    const { group, admin, file, m } = await setup();
+    const other = await newGroup();
+    const stranger = await newClient(other.id, 'Stranger');
+    const before = await countFiles(group.id);
+    await expect(
+      createTasksFromMessage(
+        deps,
+        admin,
+        group.id,
+        input(m.id, [
+          { title: 'A', messageFileIds: [file.id] },
+          { title: 'B', messageFileIds: [file.id], assigneeIds: [stranger.id] },
+        ]),
+        { id: m.id, fileIds: [file.id] },
+      ),
+    ).rejects.toBeInstanceOf(InvalidAssigneeError);
+    expect(await todoTitles(group.id)).toEqual(['Existing']);
+    expect(await countFiles(group.id)).toBe(before);
+  });
+
+  it('a copy that fails after others succeeded removes the earlier copies', async () => {
+    const { group, admin, ana, file, m } = await setup();
+    const gone = await upload(group.id, ana, 'gone.txt');
+    await db.delete(files).where(eq(files.id, gone.id));
+    const before = await countFiles(group.id);
+    await expect(
+      createTasksFromMessage(
+        deps,
+        admin,
+        group.id,
+        input(m.id, [
+          { title: 'A', messageFileIds: [file.id] },
+          { title: 'B', messageFileIds: [gone.id] },
+        ]),
+        { id: m.id, fileIds: [file.id, gone.id] },
+      ),
+    ).rejects.toBeInstanceOf(InvalidAttachmentError);
+    expect(await todoTitles(group.id)).toEqual(['Existing']);
+    expect(await countFiles(group.id)).toBe(before);
+  });
+
+  it('rejects a file that is not on the message, before copying anything', async () => {
+    const { group, admin, ana, file, m } = await setup();
+    const loose = await upload(group.id, ana, 'loose.txt');
+    const before = await countFiles(group.id);
+    await expect(
+      createTasksFromMessage(
+        deps,
+        admin,
+        group.id,
+        input(m.id, [{ title: 'A', messageFileIds: [file.id, loose.id] }]),
+        { id: m.id, fileIds: [file.id] },
+      ),
+    ).rejects.toBeInstanceOf(InvalidAttachmentError);
+    expect(await todoTitles(group.id)).toEqual(['Existing']);
+    expect(await countFiles(group.id)).toBe(before);
   });
 });
