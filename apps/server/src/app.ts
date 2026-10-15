@@ -4,6 +4,7 @@ import type { AppDeps } from './deps.js';
 import { attachSocket } from './infra/realtime/socket.js';
 import { createAuth, type Auth } from './modules/auth/auth.js';
 import { authRoutes } from './modules/auth/routes.js';
+import { groupsRoutes } from './modules/groups/routes.js';
 import { systemRoutes } from './modules/system/routes.js';
 import { usersRoutes } from './modules/users/routes.js';
 
@@ -23,7 +24,7 @@ export async function buildApp(
   });
 
   app.decorate('auth', createAuth(deps));
-  app.decorate('io', attachSocket(app, config, app.auth));
+  app.decorate('io', attachSocket(app, config, app.auth, deps.db));
   // preClose runs before Fastify waits for the HTTP server, which open websockets would block.
   // io.close() also closes the HTTP server and is safe when the app never listened.
   app.addHook('preClose', async () => {
@@ -35,6 +36,7 @@ export async function buildApp(
   await app.register(systemRoutes, { prefix: '/api', deps });
   await app.register(authRoutes, { prefix: '/api', deps });
   await app.register(usersRoutes, { prefix: '/api', deps });
+  await app.register(groupsRoutes, { prefix: '/api', deps });
 
   registerNotFound(app);
   return app;

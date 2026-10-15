@@ -107,6 +107,11 @@ export async function reactivateUser(db: Db, id: string): Promise<void> {
   await db.update(user).set({ disabledAt: null, updatedAt: new Date() }).where(eq(user.id, id));
 }
 
+/** Sets the user's display name (the caller has already validated it). */
+export async function updateUserName(db: Db, id: string, name: string): Promise<void> {
+  await db.update(user).set({ name, updatedAt: new Date() }).where(eq(user.id, id));
+}
+
 /** A client who typed their email on an invite: not verified yet, no name yet. */
 export async function createUnverifiedClient(db: Db, email: string): Promise<UserRow> {
   const [row] = await db

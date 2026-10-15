@@ -14,11 +14,19 @@ declare module 'fastify' {
 
 type AuthUser = { id: string; email: string; name: string; role: string; disabledAt?: Date | null };
 
-/** Our view of better-auth's user; null for a disabled user even if a session still exists. */
-export function toSessionUser(authUser: AuthUser | undefined): SessionUser | null {
+/**
+ * Our view of better-auth's user; null for a disabled user even if a session still exists.
+ * `groupId` is null here: group membership lives in the groups module, so only `/api/me`
+ * (and the socket handshake) look it up. Do not read `request.user.groupId`; use
+ * `getMembershipGroupId`.
+ */
+export function toSessionUser(
+  authUser: AuthUser | undefined,
+  groupId: string | null = null,
+): SessionUser | null {
   if (!authUser || authUser.disabledAt) return null;
   const { id, email, name, role } = authUser;
-  return SessionUserSchema.parse({ id, email, name, role }); // throws on an unknown role
+  return SessionUserSchema.parse({ id, email, name, role, groupId }); // throws on an unknown role
 }
 
 /** The logged-in user from the request's session cookie, or null. */

@@ -14,3 +14,8 @@ export function sessionRoom(sessionId: string): string {
 export function disconnectUser(io: SocketIOServer, userId: string): void {
   io.in(userRoom(userId)).disconnectSockets(true);
 }
+
+/** The room of one group; a client joins their own group's room on connect. */
+export function groupRoom(groupId: string): string {
+  return `group:${groupId}`;
+}

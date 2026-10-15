@@ -8,6 +8,8 @@ export const SessionUserSchema = z.object({
   email: z.string(),
   name: z.string(),
   role: RoleSchema,
+  /** The client's group; null for admins. */
+  groupId: z.string().nullable(),
 });
 export type SessionUser = z.infer<typeof SessionUserSchema>;
 

@@ -36,7 +36,13 @@ vi.mock('@/lib/socket', () => ({
   disconnectSocket: () => fake.disconnect(),
 }));
 
-const USER = { id: 'u1', name: 'Jana Nováková', email: 'jana@example.com', role: 'admin' };
+const USER = {
+  id: 'u1',
+  name: 'Jana Nováková',
+  email: 'jana@example.com',
+  role: 'admin',
+  groupId: null,
+};
 
 /** Fake `fetch`: `/api/me` answers from `state`, sign-out flips it to anonymous. */
 function mockApi(initial: Partial<typeof USER> | null = {}) {

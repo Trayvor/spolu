@@ -17,6 +17,7 @@ const USER = {
   name: 'Jana Nováková',
   email: 'jana@example.com',
   role: 'admin',
+  groupId: null,
   isSuperadmin: false,
 };
 

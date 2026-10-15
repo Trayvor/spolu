@@ -122,10 +122,18 @@ describe('members', () => {
   });
 
   it('listGroups orders by name', async () => {
-    await newGroup('zzz');
-    await newGroup('aaa');
-    const names = (await listGroups(db)).map((g) => g.name);
-    expect(names).toEqual([...names].sort((x, y) => x.localeCompare(y)));
+    // Other test files add groups too: assert only the relative order of ours.
+    const z = await newGroup('zzz');
+    const a = await newGroup('aaa');
+    const ids = (await listGroups(db)).map((g) => g.id);
+    expect(ids.indexOf(a.id)).toBeGreaterThanOrEqual(0);
+    expect(ids.indexOf(a.id)).toBeLessThan(ids.indexOf(z.id));
+  });
+
+  it('listGroups gives a group without members memberCount 0', async () => {
+    const g = await newGroup('Empty');
+    const row = (await listGroups(db)).find((x) => x.id === g.id);
+    expect(row).toEqual({ id: g.id, name: 'Empty', hasLogo: false, memberCount: 0 });
   });
 
   it('listMembers hides unverified clients and splits removed ones', async () => {

@@ -22,7 +22,7 @@ export const GroupSchema = z.object({
 });
 export type Group = z.infer<typeof GroupSchema>;
 
-export const GroupInputSchema = z.object({ name: groupName, egrantUrl: z.string() });
+export const GroupInputSchema = z.object({ name: groupName, egrantUrl: z.string().max(2048) });
 export type GroupInput = z.infer<typeof GroupInputSchema>;
 
 export const MemberSchema = z.object({ id: z.string(), name: z.string(), email: z.string() });
