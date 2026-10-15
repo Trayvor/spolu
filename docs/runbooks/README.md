@@ -1,6 +1,6 @@
 # Runbooks
 
-Step-by-step operating guides. They are stubs now and are written in Phase 1.
+Step-by-step operating guides. Server setup and deploy are written; rollback and backup are stubs until the end of Phase 1.
 
 - [server-setup.md](server-setup.md): prepare a fresh server.
 - [deploy.md](deploy.md): deploy a new version.
