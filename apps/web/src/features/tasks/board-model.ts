@@ -32,3 +32,12 @@ export function bucketTitle(
       return bucket.name ?? '';
   }
 }
+
+/**
+ * Where the done circle sends a task in `bucketId`: Completed, or To do when it is in Completed
+ * already. Shared by the board and the task panel.
+ */
+export function doneTarget(buckets: BucketDto[], bucketId: string): BucketDto | undefined {
+  const current = buckets.find((b) => b.id === bucketId);
+  return buckets.find((b) => b.kind === (current?.kind === 'done' ? 'todo' : 'done'));
+}

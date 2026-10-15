@@ -27,14 +27,14 @@ Group policy lives in `modules/groups/policy.ts`: `canManageGroups` (any admin),
 
 File policy lives in `modules/files/policy.ts`: `canReadFile(actor, file, actorGroupId)` follows the file's group (`canReadGroup`; an unreadable file answers `404 not_found`) and `canSetPreview` allows the uploader only. Files API: anyone who reads the group may upload to it; a file unreadable to the caller answers `404 not_found` on download and preview alike, and `403 forbidden` is used only for a preview PUT by a reader who is not the uploader.
 
-Task policy lives in `modules/tasks/policy.ts`: `canUseBoard(actor, groupId, actorGroupId)` (= `canReadGroup`: read the board, create, edit and move tasks, clients included), `canManageBuckets` (any admin: create, rename, reorder, delete custom buckets) and `canDeleteTask(actor, task)` (any admin, or the client who created the task). A group, task or bucket the caller may not read answers `404 not_found`; `403 forbidden` is only for a readable resource the caller may not change (bucket management by a client, deleting someone else's task). Changing a fixed bucket answers `400 fixed_bucket`.
+Task policy lives in `modules/tasks/policy.ts`: `canUseBoard(actor, groupId, actorGroupId)` (= `canReadGroup`: read the board, create, edit and move tasks, including with the done circle, clients included), `canManageBuckets` (any admin: create, rename and delete custom buckets, reorder every bucket) and `canDeleteTask(actor, task)` (any admin, or the client who created the task). A group, task or bucket the caller may not read answers `404 not_found`; `403 forbidden` is only for a readable resource the caller may not change (bucket management by a client, deleting someone else's task). Renaming or deleting a fixed bucket answers `400 fixed_bucket`; moving one is allowed.
 
 | Task capability | Admin | Client (own group) |
 |---|---|---|
 | Read the board, open a task | yes | yes |
 | Create, edit and move tasks (any task of the group) | yes | yes |
 | Delete a task | any task | only tasks they created |
-| Create, rename, reorder, delete custom buckets | yes | no (403) |
+| Create, rename, delete custom buckets; reorder any bucket | yes | no (403) |
 | Another group's board, task or bucket | yes (all groups) | 404 |
 Chat policy lives in `modules/chat/policy.ts`: `canReadChannel(actor, channel, actorGroupId)` is `canReadGroup` on the channel's group (a task chat belongs to the task's group), and `canEditMessage` / `canDeleteMessage` allow the message's author only and never a deleted message, so not even a superadmin edits or deletes someone else's message. A channel or message the caller cannot read answers `404 not_found`; someone else's message on edit or delete answers `403 forbidden`.
 

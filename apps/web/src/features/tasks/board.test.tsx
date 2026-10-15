@@ -105,6 +105,11 @@ beforeEach(() => {
         sourceMessage: null,
       });
     }
+    const moving = /^\/api\/tasks\/([^/]+)\/move$/.exec(url);
+    if (moving && method === 'POST') {
+      const body = JSON.parse(init!.body as string);
+      return reply(200, task(moving[1]!, body.bucketId, { position: 'Zz' }));
+    }
     if (url === '/api/buckets/b-custom' && method === 'DELETE') return reply(204);
     if (url === '/api/buckets/b-custom' && method === 'PATCH')
       return reply(200, { ...BUCKETS[3], name: JSON.parse(init!.body as string).name });
@@ -173,36 +178,54 @@ describe('Board', () => {
     expect(within(card).getByText('+1')).toBeInTheDocument();
   });
 
-  it('inline add: Enter posts { title, bucketId } and the card appears; Esc cancels', async () => {
-    const user = renderBoard();
-    const todo = (await screen.findAllByRole('region'))[0]!;
-    await user.click(within(todo).getByRole('button', { name: 'Add task' }));
-    await user.type(screen.getByLabelText('Task title'), 'Write brief{Enter}');
-    expect(await screen.findByText('Write brief')).toBeInTheDocument();
-    const post = writes().find(([url]) => url === '/api/groups/g1/tasks')!;
-    expect(JSON.parse((post[1] as RequestInit).body as string)).toMatchObject({
-      title: 'Write brief',
-      bucketId: 'b-todo',
-    });
-
-    const before = writes().length;
-    await user.type(screen.getByLabelText('Task title'), 'Nope{Escape}');
-    expect(screen.queryByLabelText('Task title')).not.toBeInTheDocument();
-    expect(writes()).toHaveLength(before);
+  it('"Add task" links to the create panel with the bucket preselected', async () => {
+    renderBoard();
+    const columns = await screen.findAllByRole('region');
+    expect(within(columns[0]!).getByRole('link', { name: 'Add task' })).toHaveAttribute(
+      'href',
+      '/groups/g1/tasks/new?bucket=b-todo',
+    );
+    expect(within(columns[4]!).getByRole('link', { name: 'Add task' })).toHaveAttribute(
+      'href',
+      '/groups/g1/tasks/new?bucket=b-done',
+    );
+    expect(screen.queryByLabelText('Task title')).toBeNull();
   });
 
   it('shows Add bucket and the custom bucket menu to admins, neither to a client', async () => {
     renderBoard();
     await screen.findAllByRole('region');
-    expect(screen.getByRole('button', { name: 'Add bucket' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Add column' })).toBeInTheDocument();
     expect(screen.getAllByRole('button', { name: /^More/ })).toHaveLength(1);
+  });
+
+  it('puts "Add column" after the last bucket', async () => {
+    renderBoard();
+    const columns = await screen.findAllByRole('region');
+    const add = screen.getByRole('button', { name: 'Add column' });
+    expect(columns.at(-1)!.getAttribute('aria-label')).toBe('Completed');
+    expect(
+      columns.at(-1)!.compareDocumentPosition(add) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    for (const column of columns.slice(0, -1)) {
+      expect(column.compareDocumentPosition(add) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    }
+  });
+
+  it('gives admins a drag handle on every bucket, fixed ones included', async () => {
+    renderBoard();
+    await screen.findAllByRole('region');
+    for (const title of ['To do', 'My bucket', 'eGrant review', 'Acme review', 'Completed']) {
+      expect(screen.getByRole('button', { name: `Move ${title}` })).toBeInTheDocument();
+    }
   });
 
   it('hides bucket management from a client', async () => {
     me = CLIENT;
     renderBoard();
     await screen.findAllByRole('region');
-    expect(screen.queryByRole('button', { name: 'Add bucket' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Move / })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Add column' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /^More/ })).not.toBeInTheDocument();
   });
 
@@ -273,6 +296,61 @@ describe('Board', () => {
         'DELETE /api/buckets/b-custom',
       ]),
     );
+  });
+
+  describe('done circle', () => {
+    const moveBody = (id: string) =>
+      JSON.parse(
+        (writes().find(([url]) => url === `/api/tasks/${id}/move`)![1] as RequestInit)
+          .body as string,
+      );
+
+    it('every card has one; Completed cards are checked and struck through', async () => {
+      board.tasks = [task('t1', 'b-todo'), task('t2', 'b-custom'), task('t3', 'b-done')];
+      renderBoard();
+      const columns = await screen.findAllByRole('region');
+      expect(within(columns[0]!).getByRole('button', { name: 'Mark as done' })).toBeInTheDocument();
+      expect(within(columns[1]!).getByRole('button', { name: 'Mark as done' })).toBeInTheDocument();
+      const undo = within(columns[4]!).getByRole('button', { name: 'Mark as not done' });
+      expect(undo).toHaveAttribute('data-checked', 'true');
+      expect(within(columns[4]!).getByText('Task t3')).toHaveClass('line-through');
+      expect(within(columns[0]!).getByText('Task t1')).not.toHaveClass('line-through');
+    });
+
+    it('is described by the card title', async () => {
+      board.tasks = [task('t1', 'b-todo')];
+      renderBoard();
+      const circle = await screen.findByRole('button', { name: 'Mark as done' });
+      expect(circle).toHaveAccessibleDescription('Task t1');
+    });
+
+    it('checking moves the task to the top of Completed through the move endpoint', async () => {
+      board.tasks = [task('t1', 'b-todo'), task('t3', 'b-done', { position: 'a0' })];
+      const user = renderBoard();
+      const columns = await screen.findAllByRole('region');
+      await user.click(within(columns[0]!).getByRole('button', { name: 'Mark as done' }));
+      await waitFor(() =>
+        expect(moveBody('t1')).toEqual({ bucketId: 'b-done', afterTaskId: null }),
+      );
+      await waitFor(() =>
+        expect(
+          within(columns[4]!)
+            .getAllByRole('link', { name: /^Task/ })
+            .map((a) => a.textContent),
+        ).toEqual(['Task t1', 'Task t3']),
+      );
+    });
+
+    it('unchecking a task in Completed moves it to the top of To do; clients can too', async () => {
+      me = CLIENT;
+      board.tasks = [task('t0', 'b-todo', { position: 'a0' }), task('t3', 'b-done')];
+      const user = renderBoard();
+      const columns = await screen.findAllByRole('region');
+      await user.click(within(columns[4]!).getByRole('button', { name: 'Mark as not done' }));
+      await waitFor(() =>
+        expect(moveBody('t3')).toEqual({ bucketId: 'b-todo', afterTaskId: null }),
+      );
+    });
   });
 
   describe('drop', () => {
@@ -367,6 +445,36 @@ describe('Board', () => {
     });
   });
 
+  it('reorders a fixed bucket with the keyboard: Space, ArrowRight, Space sends the PATCH', async () => {
+    // jsdom has no layout: give each column a 288 px box side by side, everything else none.
+    const rect = vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function (
+      this: Element,
+    ) {
+      const section = this.closest('[data-bucket-id]');
+      if (!section || section !== this) return new DOMRect(0, 0, 0, 0);
+      const index = [...document.querySelectorAll('[data-bucket-id]')].indexOf(section);
+      return new DOMRect(index * 300, 0, 288, 400);
+    });
+    try {
+      const user = renderBoard();
+      await screen.findAllByRole('region');
+      screen.getByRole('button', { name: 'Move To do' }).focus();
+      await user.keyboard(' ');
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      await user.keyboard('{ArrowRight}');
+      await user.keyboard(' ');
+      await waitFor(() => {
+        const patch = writes().find(([url]) => url === '/api/buckets/b-todo');
+        expect(patch).toBeDefined();
+        expect(JSON.parse((patch![1] as RequestInit).body as string)).toEqual({
+          afterBucketId: 'b-custom',
+        });
+      });
+    } finally {
+      rect.mockRestore();
+    }
+  });
+
   describe('bucket drop', () => {
     const KEY = ['tasks', 'g1', 'board'];
     const order = () => screen.getAllByRole('region').map((c) => c.getAttribute('aria-label'));
@@ -389,6 +497,15 @@ describe('Board', () => {
       expect(
         queryClient.getQueryData<BoardDto>(KEY)!.buckets.find((b) => b.id === 'b-custom')!.position,
       ).toBe('a7V');
+    });
+
+    it('moves a fixed bucket to the front with afterBucketId null', async () => {
+      const { queryClient } = renderBoard();
+      await screen.findAllByRole('region');
+      const update = vi.fn(async () => ({ ...BUCKETS[0]!, position: 'Zz' }));
+      await handleBucketDrop(queryClient, 'g1', 'b-done', null, update);
+      expect(update).toHaveBeenCalledWith('b-done', { afterBucketId: null });
+      await waitFor(() => expect(order()[0]).toBe('Completed'));
     });
 
     it('a failure puts it back and says so', async () => {

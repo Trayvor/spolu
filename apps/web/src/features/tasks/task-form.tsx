@@ -4,7 +4,9 @@ import { TaskDraftSchema, type FileInfo, type TaskDraft, type TaskPerson } from 
 import { i18n } from '@/i18n';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { cn } from '@/lib/utils';
 import { AssigneeSelect } from './assignee-select';
+import { DescriptionField } from './description-field';
 import { TaskFilesField } from './task-files-field';
 import { UrgentSwitch } from './urgent-switch';
 
@@ -52,6 +54,12 @@ export function validateTaskDraft(value: TaskDraft): TaskFormErrors {
   return errors;
 }
 
+/**
+ * One field: label above, control, message. The 10 px gap is egrant.sk's and leaves the 5 px focus
+ * ring (2 px outline, 3 px offset) clear of the label.
+ */
+const FIELD = 'flex flex-col gap-2.5';
+
 function FieldError({ id, message }: { id: string; message?: string }) {
   if (!message) return null;
   return (
@@ -74,6 +82,7 @@ export function TaskForm({
   files,
   onFilesChange,
   knownPeople,
+  autoFocusTitle = false,
 }: {
   value: TaskDraft;
   onChange: (next: TaskDraft) => void;
@@ -84,6 +93,8 @@ export function TaskForm({
   onFilesChange: (next: FileInfo[]) => void;
   /** Assignees who may no longer be group people; shown as "Name (removed)". */
   knownPeople?: TaskPerson[];
+  /** Focus the title on mount (the create panel). */
+  autoFocusTitle?: boolean;
 }) {
   const { t } = useTranslation();
   const uid = useId();
@@ -106,10 +117,11 @@ export function TaskForm({
         </p>
       )}
 
-      <div className="space-y-1.5">
+      <div className={FIELD}>
         <Label htmlFor={id('title')}>{t('tasks.form.title')}</Label>
         <Input
           id={id('title')}
+          autoFocus={autoFocusTitle}
           value={value.title}
           maxLength={200}
           aria-invalid={!!errors.title || undefined}
@@ -119,21 +131,19 @@ export function TaskForm({
         <FieldError id={id('title-error')} message={errors.title} />
       </div>
 
-      <div className="space-y-1.5">
-        <Label htmlFor={id('description')}>{t('tasks.form.description')}</Label>
-        <textarea
+      <div className={FIELD}>
+        <DescriptionField
           id={id('description')}
-          rows={4}
+          groupId={groupId}
           value={value.description}
-          aria-invalid={!!errors.description || undefined}
-          aria-describedby={describedBy('description')}
-          onChange={(event) => set({ description: event.target.value })}
-          className="w-full rounded-md border-2 border-input bg-card px-[18px] py-[13px] text-button font-medium text-foreground placeholder:text-muted-foreground focus:border-foreground aria-invalid:border-destructive"
+          onChange={(description) => set({ description })}
+          error={errors.description}
+          errorId={id('description-error')}
         />
         <FieldError id={id('description-error')} message={errors.description} />
       </div>
 
-      <div className="space-y-1.5">
+      <div className={FIELD}>
         <Label htmlFor={id('assignees')}>{t('tasks.form.assignees')}</Label>
         <AssigneeSelect
           groupId={groupId}
@@ -147,23 +157,20 @@ export function TaskForm({
         <FieldError id={id('assigneeIds-error')} message={errors.assigneeIds} />
       </div>
 
-      <div className="flex flex-wrap items-end gap-x-8 gap-y-4">
-        <div className="space-y-1.5">
-          <Label htmlFor={id('deadline')}>{t('tasks.form.deadline')}</Label>
-          <Input
-            id={id('deadline')}
-            type="date"
-            value={value.dueDate ?? ''}
-            onChange={(event) => set({ dueDate: event.target.value || null })}
-            className="w-auto"
-          />
-        </div>
-        <div className="flex h-[52px] items-center">
-          <UrgentSwitch checked={value.urgent} onChange={(urgent) => set({ urgent })} />
-        </div>
+      <div className={cn(FIELD, 'min-[641px]:items-start')}>
+        <Label htmlFor={id('deadline')}>{t('tasks.form.deadline')}</Label>
+        <Input
+          id={id('deadline')}
+          type="date"
+          value={value.dueDate ?? ''}
+          onChange={(event) => set({ dueDate: event.target.value || null })}
+          className="min-[641px]:w-auto"
+        />
       </div>
 
-      <div className="space-y-1.5">
+      <UrgentSwitch checked={value.urgent} onChange={(urgent) => set({ urgent })} />
+
+      <div className={FIELD}>
         <Label id={id('files-label')}>{t('tasks.form.files')}</Label>
         <TaskFilesField
           groupId={groupId}

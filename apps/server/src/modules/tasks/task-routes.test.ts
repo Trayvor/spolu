@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { and, eq, sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { io as connect, type Socket } from 'socket.io-client';
 import {
@@ -14,6 +15,7 @@ import { buildTestApp } from '../../../test/test-app.js';
 import { loginAs } from '../../../test/login.js';
 import { getFile } from '../files/service.js';
 import { addMember, createGroup } from '../groups/service.js';
+import { notificationEvents } from '../notifications/schema.js';
 import { user } from '../users/schema.js';
 import { addAdmin } from '../users/service.js';
 
@@ -484,6 +486,48 @@ describe('tasks API: tasks', () => {
     const event = await pushed;
     expect(event.actor).toEqual({ id: client.id, name: 'Cleo' });
     expect(event.task).toEqual(moved);
+  });
+
+  it('done circle: a client marks a task done (top of Completed) and not done (top of To do)', async () => {
+    const admin = await adminSession('Done Admin');
+    const g = await newGroup();
+    const client = await clientIn(g.id, 'Dora');
+    const task = (await create(g.id, admin.cookie, { title: 'Finish' })).json<TaskDetailDto>();
+    const other = (await create(g.id, admin.cookie, { title: 'Other' })).json<TaskDetailDto>();
+    const buckets = (await board(client.cookie, g.id)).buckets;
+    const todo = buckets.find((b) => b.kind === 'todo')!;
+    const done = buckets.find((b) => b.kind === 'done')!;
+    // Something already in Completed: the done task goes above it.
+    await move(other.id, admin.cookie, { bucketId: done.id, afterTaskId: null });
+    const watcher = await clientIn(g.id, 'Watcher');
+    const socket = await listen(watcher.cookie);
+    const pushed = new Promise<BoardTaskEvent>((resolve) => socket.once(BoardEvents.task, resolve));
+
+    const checked = await move(task.id, client.cookie, { bucketId: done.id, afterTaskId: null });
+    expect(checked.statusCode).toBe(200);
+    expect(checked.json<TaskDto>().completedAt).not.toBeNull();
+    expect((await pushed).task.bucketId).toBe(done.id);
+    let tasks = (await board(client.cookie, g.id)).tasks.filter((t) => t.bucketId === done.id);
+    expect(tasks.map((t) => t.id)).toEqual([task.id, other.id]);
+
+    const unchecked = await move(task.id, client.cookie, { bucketId: todo.id, afterTaskId: null });
+    expect(unchecked.json<TaskDto>()).toMatchObject({ bucketId: todo.id, completedAt: null });
+    tasks = (await board(client.cookie, g.id)).tasks.filter((t) => t.bucketId === todo.id);
+    expect(tasks[0]!.id).toBe(task.id);
+
+    const events = await test.deps.db
+      .select({ userId: notificationEvents.userId, payload: notificationEvents.payload })
+      .from(notificationEvents)
+      .where(
+        and(
+          eq(notificationEvents.kind, 'task.moved'),
+          sql`${notificationEvents.payload}->>'taskId' = ${task.id}`,
+        ),
+      );
+    expect(events.map((e) => e.userId)).toEqual([admin.id, admin.id]);
+    expect(
+      events.map((e) => (e.payload as { toBucket: { kind: string } }).toBucket.kind).sort(),
+    ).toEqual(['done', 'todo']);
   });
 
   it('move: an invalid body or an afterTaskId from another bucket → 400; an unknown task → 404', async () => {

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { act, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -223,6 +223,97 @@ describe('TaskForm', () => {
     expect(screen.getByText('File')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Remove File' }));
     expect(onValue).toHaveBeenLastCalledWith(expect.objectContaining({ fileIds: [] }));
+  });
+});
+
+describe('TaskForm description', () => {
+  beforeEach(async () => {
+    await setLanguage('en');
+  });
+
+  it('is at least 12 lines tall and offers the chat formatting toolbar', () => {
+    renderForm();
+    expect(screen.getByLabelText('Description')).toHaveAttribute('rows', '12');
+    const toolbar = screen.getByRole('toolbar', { name: t('chat.composer.formatting') });
+    for (const name of ['Bold', 'Italic', 'Strikethrough', 'Link', 'Quote', 'Code']) {
+      expect(within(toolbar).getByRole('button', { name })).toBeInTheDocument();
+    }
+  });
+
+  it('Bold wraps the selection in the chat markup', async () => {
+    const onValue = vi.fn();
+    const user = renderForm({ initial: { ...EMPTY_TASK_DRAFT, description: 'go' }, onValue });
+    await user.click(screen.getByRole('button', { name: 'Edit description' }));
+    const field = screen.getByLabelText('Description') as HTMLTextAreaElement;
+    field.setSelectionRange(0, 2);
+    await user.click(screen.getByRole('button', { name: 'Bold' }));
+    expect(onValue).toHaveBeenLastCalledWith({ ...EMPTY_TASK_DRAFT, description: '**go**' });
+  });
+
+  it('keeps the editor open when the toolbar takes no focus (Safari) and applies the format', async () => {
+    const onValue = vi.fn();
+    const user = renderForm({ initial: { ...EMPTY_TASK_DRAFT, description: 'go' }, onValue });
+    await user.click(screen.getByRole('button', { name: 'Edit description' }));
+    const field = screen.getByLabelText('Description') as HTMLTextAreaElement;
+    field.setSelectionRange(0, 2);
+    const bold = screen.getByRole('button', { name: 'Bold' });
+    // The toolbar keeps the focus in the textarea: its mousedown is cancelled.
+    expect(fireEvent.mouseDown(bold)).toBe(false);
+    // Safari moves the focus nowhere when a button is clicked: blur without a related target.
+    fireEvent.blur(field, { relatedTarget: null });
+    fireEvent.click(bold);
+    expect(onValue).toHaveBeenLastCalledWith({ ...EMPTY_TASK_DRAFT, description: '**go**' });
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    expect(screen.getByLabelText('Description')).toBeInTheDocument();
+  });
+
+  it('collapses to the rendered view when the focus really leaves the field', async () => {
+    const user = renderForm({ initial: { ...EMPTY_TASK_DRAFT, description: 'go' } });
+    await user.click(screen.getByRole('button', { name: 'Edit description' }));
+    await user.click(screen.getByLabelText('Title'));
+    await waitFor(() => expect(screen.queryByRole('textbox', { name: 'Description' })).toBeNull());
+  });
+
+  it('shows a saved description rendered like a chat message until Edit', async () => {
+    const user = renderForm({
+      initial: { ...EMPTY_TASK_DRAFT, description: 'Check **totals**' },
+    });
+    expect(screen.getByText('totals').tagName).toBe('STRONG');
+    expect(screen.queryByRole('textbox', { name: 'Description' })).toBeNull();
+    await user.click(screen.getByRole('button', { name: 'Edit description' }));
+    expect(screen.getByLabelText('Description')).toHaveValue('Check **totals**');
+    expect(screen.getByLabelText('Description')).toHaveFocus();
+  });
+});
+
+describe('TaskForm layout', () => {
+  beforeEach(async () => {
+    await setLanguage('en');
+  });
+
+  it('gives the title the same label gap as the other fields, so its focus ring has room', () => {
+    renderForm();
+    const title = screen.getByLabelText('Title');
+    const deadline = screen.getByLabelText('Deadline');
+    // 10 px, as on egrant.sk: the 5 px focus ring (2 px + 3 px offset) never touches the label.
+    expect(title.parentElement).toHaveClass('flex', 'flex-col', 'gap-2.5');
+    expect(deadline.parentElement).toHaveClass('flex', 'flex-col', 'gap-2.5');
+  });
+
+  it('puts the Deadline label above its field and the urgent switch on its own row', () => {
+    renderForm();
+    const field = screen.getByLabelText('Deadline');
+    const label = screen.getByText('Deadline', { selector: 'label' });
+    // Label and field stack in one column, with the gap every other field uses.
+    expect(field.parentElement).toBe(label.parentElement);
+    expect(field.parentElement).toHaveClass('flex', 'flex-col', 'gap-2.5');
+    // The switch is a row of the form's own column, not beside the date.
+    const form = field.parentElement!.parentElement!;
+    expect(form).toHaveClass('space-y-5');
+    const urgent = screen.getByRole('switch', { name: 'Urgent' });
+    const urgentRow = [...form.children].find((row) => row.contains(urgent));
+    expect(urgentRow).toBeDefined();
+    expect(urgentRow).not.toBe(field.parentElement);
   });
 });
 

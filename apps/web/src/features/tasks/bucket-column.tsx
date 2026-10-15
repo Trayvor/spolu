@@ -2,12 +2,12 @@ import { useRef, useState, type CSSProperties, type KeyboardEvent } from 'react'
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { useQueryClient } from '@tanstack/react-query';
+import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import type { BoardDto, BucketDto, TaskDto } from '@spolu/shared';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
-import { AddTaskInline } from './add-task-inline';
 import { boardQuery, deleteBucket, updateBucket } from './api';
 import { byPosition } from './board-model';
 import { BucketMenu } from './bucket-menu';
@@ -25,7 +25,7 @@ const KIND_MARK: Record<BucketDto['kind'], string | null> = {
   custom: null,
 };
 
-/** Sortable id of a bucket column (custom ones are dragged by their handle). */
+/** Sortable id of a bucket column (dragged by its grip handle, admins only). */
 export const bucketSortId = (bucketId: string) => `header:${bucketId}`;
 
 /** Where a card from another bucket would land: before this card, or after the last one. */
@@ -56,12 +56,14 @@ function SortableTask({
   today,
   disabled,
   mark,
+  onToggleDone,
 }: {
   task: TaskDto;
   bucketKind: BucketDto['kind'];
   today: string;
   disabled: boolean;
   mark: 'before' | 'after' | null;
+  onToggleDone: (task: TaskDto) => void;
 }) {
   const data: DragData = { type: 'task', title: task.title, bucketId: task.bucketId };
   const {
@@ -91,6 +93,7 @@ function SortableTask({
         bucketKind={bucketKind}
         today={today}
         ref={setActivatorNodeRef}
+        onToggleDone={() => onToggleDone(task)}
         // Not dnd-kit's role="button": the card stays a link (Enter opens it, Space lifts it).
         handleProps={{
           ...listeners,
@@ -108,7 +111,7 @@ function SortableTask({
 /**
  * One column: header, scrolling card list, "+ Add task". The list is a droppable (a drop on it
  * puts the card last) holding one sortable per card; the column itself is sortable among the
- * buckets, but only a custom one can be lifted, by its grip.
+ * buckets: admins lift any of them, fixed ones included, by its grip.
  */
 export function BucketColumn({
   bucket,
@@ -119,6 +122,7 @@ export function BucketColumn({
   emptyText,
   dragging,
   dropMark,
+  onToggleDone,
 }: {
   bucket: BucketDto;
   title: string;
@@ -129,6 +133,8 @@ export function BucketColumn({
   /** What is being dragged on the board: only matching drop targets are enabled. */
   dragging: 'task' | 'bucket' | null;
   dropMark: DropMark;
+  /** The done circle of one of the column's cards was pressed. */
+  onToggleDone: (task: TaskDto) => void;
 }) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -138,7 +144,7 @@ export function BucketColumn({
   const busy = useRef(false);
   const mark = KIND_MARK[bucket.kind];
   const key = boardQuery(bucket.groupId).queryKey;
-  const movable = admin && bucket.kind === 'custom';
+  const movable = admin;
   const {
     setNodeRef,
     setActivatorNodeRef,
@@ -310,6 +316,7 @@ export function BucketColumn({
               bucketKind={bucket.kind}
               today={today}
               disabled={dragging === 'bucket'}
+              onToggleDone={onToggleDone}
               mark={
                 dropMark === task.id
                   ? 'before'
@@ -332,7 +339,15 @@ export function BucketColumn({
         )}
       </ul>
 
-      <AddTaskInline groupId={bucket.groupId} bucketId={bucket.id} />
+      <Link
+        to="/groups/$groupId/tasks/new"
+        params={{ groupId: bucket.groupId }}
+        search={{ bucket: bucket.id }}
+        className="rounded-lg px-3 py-2 text-left text-button font-semibold text-muted-foreground hover:bg-accent hover:text-foreground"
+      >
+        <span aria-hidden="true">+ </span>
+        {t('tasks.board.addTask')}
+      </Link>
     </section>
   );
 }

@@ -8,7 +8,6 @@ import {
   type ChangeEvent,
   type ClipboardEvent,
   type KeyboardEvent,
-  type ReactNode,
   type RefObject,
 } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -32,18 +31,8 @@ import {
   type FormatKind,
   type PickedPerson,
 } from './composer-text';
-import {
-  BoldIcon,
-  BulletListIcon,
-  CloseIcon,
-  CodeIcon,
-  ItalicIcon,
-  LinkIcon,
-  NumberedListIcon,
-  PaperclipIcon,
-  QuoteIcon,
-  StrikeIcon,
-} from './icons';
+import { FormatToolbar, formatShortcut, iconButton } from './format-toolbar';
+import { CloseIcon, PaperclipIcon } from './icons';
 import { MentionPicker, type MentionChoice, type MentionPickerHandle } from './mention-picker';
 
 export interface ComposerProps {
@@ -82,23 +71,8 @@ const COUNTER_FROM = 9_000;
 const MAX_LINES = 8;
 const REPLY_EXCERPT = 80;
 
-const FORMATS: { kind: FormatKind; key: string; icon: ReactNode; shortcut?: string }[] = [
-  { kind: 'bold', key: 'bold', icon: <BoldIcon />, shortcut: 'B' },
-  { kind: 'italic', key: 'italic', icon: <ItalicIcon />, shortcut: 'I' },
-  { kind: 'strike', key: 'strike', icon: <StrikeIcon />, shortcut: 'Shift+X' },
-  { kind: 'link', key: 'link', icon: <LinkIcon /> },
-  { kind: 'bulletList', key: 'bulletList', icon: <BulletListIcon /> },
-  { kind: 'numberedList', key: 'numberedList', icon: <NumberedListIcon /> },
-  { kind: 'quote', key: 'quote', icon: <QuoteIcon /> },
-  { kind: 'code', key: 'code', icon: <CodeIcon /> },
-];
-
-const isMac = () => typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform);
 const isTouch = () =>
   typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches;
-
-const iconButton =
-  'inline-flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground disabled:opacity-50';
 
 export function Composer({
   mode,
@@ -304,23 +278,11 @@ export function Composer({
     // keyCode 229: Safari sends Enter after compositionend with isComposing already false.
     if (e.nativeEvent.isComposing || e.keyCode === 229) return;
     if (pickerOpen && picker.current?.handleKey(e)) return;
-    // Cmd on macOS (Ctrl+B / Ctrl+I are cursor keys there), Ctrl elsewhere.
-    const mod = isMac() ? e.metaKey : e.ctrlKey;
-    if (mod && !e.altKey) {
-      const key = e.key.toLowerCase();
-      const kind =
-        key === 'b' && !e.shiftKey
-          ? 'bold'
-          : key === 'i' && !e.shiftKey
-            ? 'italic'
-            : key === 'x' && e.shiftKey
-              ? 'strike'
-              : null;
-      if (kind) {
-        e.preventDefault();
-        format(kind);
-        return;
-      }
+    const kind = formatShortcut(e);
+    if (kind) {
+      e.preventDefault();
+      format(kind);
+      return;
     }
     if (e.key === 'Escape' && mode === 'edit') {
       e.preventDefault();
@@ -346,7 +308,6 @@ export function Composer({
     e.target.value = '';
   }
 
-  const modKey = isMac() ? 'Cmd+' : 'Ctrl+';
   const placeholder =
     mode === 'thread' ? t('chat.composer.threadPlaceholder') : t('chat.composer.placeholder');
 
@@ -387,27 +348,7 @@ export function Composer({
           />
         )}
         <div className="rounded-lg border-2 border-input bg-card focus-within:border-foreground">
-          <div
-            role="toolbar"
-            aria-label={t('chat.composer.formatting')}
-            className="flex items-center gap-0.5 border-b border-border px-1.5 py-1"
-          >
-            {FORMATS.map(({ kind, key, icon, shortcut }) => {
-              const label = t(`chat.format.${key}`);
-              return (
-                <button
-                  key={kind}
-                  type="button"
-                  aria-label={label}
-                  title={shortcut ? `${label} (${modKey}${shortcut})` : label}
-                  onClick={() => format(kind)}
-                  className={iconButton}
-                >
-                  {icon}
-                </button>
-              );
-            })}
-          </div>
+          <FormatToolbar onFormat={format} />
           <textarea
             ref={textarea}
             autoFocus={mode === 'edit'}

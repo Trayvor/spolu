@@ -269,7 +269,9 @@ describe('files API', () => {
       const res = await upload(group.id, client.cookie, Buffer.from('x'));
       expect(res.statusCode).toBe(429);
       expect(res.json()).toEqual({ error: 'rate_limited' });
-    });
+      // 61 sequential uploads with their writes: under the full parallel suite this can pass 5 s,
+      // and a timed-out run kept going and took the next test's storage mock.
+    }, 30_000);
 
     it('a storage failure answers 500 and leaves no row', async () => {
       const group = await newGroup();

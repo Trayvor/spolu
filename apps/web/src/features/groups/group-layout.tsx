@@ -22,7 +22,7 @@ function GroupFrame({ groupId }: { groupId: string }) {
   if (!group) return null;
   return (
     <GroupRoomProvider joins={joins}>
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-1 flex-col gap-4">
         <GroupHeader group={group} admin={admin} />
         <GroupTabs groupId={group.id} badges={{ chat: <ChatTabBadge groupId={group.id} /> }} />
         <Outlet />

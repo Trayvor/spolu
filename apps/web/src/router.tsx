@@ -107,6 +107,18 @@ const taskRoute = createRoute({
   component: lazyRouteComponent(() => import('@/features/tasks/task-panel'), 'TaskPanelRoute'),
 });
 
+// A static segment wins over `$taskId`, so "new" is never read as a task id.
+const newTaskRoute = createRoute({
+  getParentRoute: () => groupTasksRoute,
+  path: 'new',
+  validateSearch: (search: Record<string, unknown>): { bucket?: string } =>
+    typeof search.bucket === 'string' ? { bucket: search.bucket } : {},
+  component: lazyRouteComponent(
+    () => import('@/features/tasks/task-create-panel'),
+    'NewTaskPanelRoute',
+  ),
+});
+
 const groupMembersRoute = createRoute({
   getParentRoute: () => groupRoute,
   path: 'members',
@@ -170,7 +182,7 @@ const routeTree = rootRoute.addChildren([
     groupRoute.addChildren([
       groupIndexRoute,
       groupChatRoute.addChildren([]), // Phase 5 adds its child routes here
-      groupTasksRoute.addChildren([taskRoute]),
+      groupTasksRoute.addChildren([newTaskRoute, taskRoute]),
       groupMembersRoute,
     ]),
     welcomeRoute,

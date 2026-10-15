@@ -55,5 +55,6 @@ describe('BucketPatchSchema', () => {
   it('accepts a name or afterBucketId', () => {
     expect(BucketPatchSchema.safeParse({ name: ' New ' }).success).toBe(true);
     expect(BucketPatchSchema.safeParse({ afterBucketId: 'b1' }).success).toBe(true);
+    expect(BucketPatchSchema.safeParse({ afterBucketId: null }).success).toBe(true);
   });
 });

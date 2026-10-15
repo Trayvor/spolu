@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RouterProvider, createBrowserHistory, createMemoryHistory } from '@tanstack/react-router';
@@ -92,6 +92,16 @@ beforeEach(() => {
       return reply(200, { ...detail, ...body, updatedAt: '2026-10-16T10:00:00.000Z' });
     }
     if (url === '/api/tasks/t1/move') return reply(200, card('t1', 'b-done'));
+    if (url === '/api/groups/g1/tasks' && method === 'POST') {
+      const body = JSON.parse(init!.body as string);
+      return reply(201, {
+        ...card('t2', body.bucketId),
+        title: body.title,
+        description: body.description,
+        files: [],
+        sourceMessage: null,
+      });
+    }
     if (url === '/api/tasks/t1' && method === 'DELETE') return reply(204);
     return reply(404, { error: 'not_found' });
   });
@@ -118,7 +128,7 @@ describe('TaskPanel', () => {
   it('shows the form filled from the task and the created-by footer', async () => {
     renderPanel();
     expect(await titleField()).toHaveValue('Task t1');
-    expect(screen.getByLabelText(t('tasks.form.description'))).toHaveValue('Details');
+    expect(screen.getByText('Details')).toBeInTheDocument();
     expect(screen.getByText('Created by Jana Nováková on 15 Oct 2026')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: t('tasks.panel.save') })).toBeNull();
   });
@@ -240,6 +250,34 @@ describe('TaskPanel', () => {
     expect(body).toEqual({ bucketId: 'b-done', afterTaskId: 't9' });
   });
 
+  it("the bucket select looks like the app's fields, not a pill", async () => {
+    renderPanel();
+    await titleField();
+    const select = screen.getByLabelText(t('tasks.panel.bucket'));
+    expect(select).toHaveClass('appearance-none', 'rounded-md', 'border-2', 'border-input');
+    expect(select).not.toHaveClass('rounded-full');
+    expect(select.parentElement!.querySelector('svg')).not.toBeNull();
+  });
+
+  it('the done circle next to the title moves the task to the top of Completed', async () => {
+    const { user } = renderPanel();
+    await titleField();
+    const panel = screen.getByRole('complementary', { name: t('tasks.panel.label') });
+    await user.click(within(panel).getByRole('button', { name: t('tasks.card.markDone') }));
+    await waitFor(() => expect(calls('POST', '/api/tasks/t1/move')).toHaveLength(1));
+    const body = JSON.parse(
+      (calls('POST', '/api/tasks/t1/move')[0]![1] as RequestInit).body as string,
+    );
+    expect(body).toEqual({ bucketId: 'b-done', afterTaskId: null });
+    expect(
+      await within(panel).findByRole('button', { name: t('tasks.card.markNotDone') }),
+    ).toBeInTheDocument();
+    expect(within(panel).getByRole('heading', { name: 'Task t1' })).toHaveClass('line-through');
+    expect(
+      within(panel).getByRole('button', { name: t('tasks.card.markNotDone') }),
+    ).toHaveAccessibleDescription('Task t1');
+  });
+
   it('shows Delete to admins and the creator, not to other clients', async () => {
     me = CLIENT;
     renderPanel();
@@ -352,5 +390,113 @@ describe('TaskPanel', () => {
     expect(unload()).toBe(false);
     await user.type(input, '!');
     expect(unload()).toBe(true);
+  });
+});
+
+describe('TaskPanel in create mode', () => {
+  const NEW = '/groups/g1/tasks/new?bucket=b-done';
+  const createButton = () => screen.getByRole('button', { name: t('tasks.panel.create') });
+
+  it('shows every field empty, the bucket preselected, and saves nothing before Create', async () => {
+    renderPanel(NEW);
+    expect(await titleField()).toHaveValue('');
+    expect(screen.getByRole('heading', { name: t('tasks.panel.newTask') })).toBeInTheDocument();
+    expect(screen.getByLabelText(t('tasks.form.description'))).toHaveValue('');
+    expect(screen.getByRole('combobox', { name: t('tasks.form.assignees') })).toBeInTheDocument();
+    expect(screen.getByLabelText(t('tasks.form.deadline'))).toBeInTheDocument();
+    expect(screen.getByRole('switch', { name: t('tasks.form.urgent') })).toBeInTheDocument();
+    expect(screen.getByText(t('tasks.form.files'))).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByLabelText(t('tasks.panel.bucket'))).toHaveValue('b-done'),
+    );
+    expect(createButton()).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: t('tasks.panel.more') })).toBeNull();
+    expect(calls('POST', '/api/groups/g1/tasks')).toHaveLength(0);
+  });
+
+  it('Create posts the whole draft to the chosen bucket and returns to the board', async () => {
+    const { user, router } = renderPanel(NEW);
+    await user.type(await titleField(), 'Budget');
+    await user.type(screen.getByLabelText(t('tasks.form.description')), 'Check **totals**');
+    await user.click(screen.getByRole('switch', { name: t('tasks.form.urgent') }));
+    await waitFor(() => expect(screen.getByLabelText(t('tasks.panel.bucket'))).toBeEnabled());
+    await user.selectOptions(screen.getByLabelText(t('tasks.panel.bucket')), 'b-todo');
+    await user.click(createButton());
+    await waitFor(() => expect(calls('POST', '/api/groups/g1/tasks')).toHaveLength(1));
+    const body = JSON.parse(
+      (calls('POST', '/api/groups/g1/tasks')[0]![1] as RequestInit).body as string,
+    );
+    expect(body).toEqual({
+      title: 'Budget',
+      description: 'Check **totals**',
+      assigneeIds: [],
+      dueDate: null,
+      urgent: true,
+      fileIds: [],
+      bucketId: 'b-todo',
+    });
+    await waitFor(() => expect(router.state.location.pathname).toBe('/groups/g1/tasks'));
+    expect(await screen.findByRole('link', { name: /Budget/ })).toBeInTheDocument();
+  });
+
+  it('an empty title shows the error and posts nothing', async () => {
+    const { user } = renderPanel(NEW);
+    await titleField();
+    await user.click(createButton());
+    expect(await screen.findByText(t('tasks.form.errors.titleRequired'))).toBeInTheDocument();
+    expect(calls('POST', '/api/groups/g1/tasks')).toHaveLength(0);
+  });
+
+  it('closing discards the draft without asking', async () => {
+    const { user, router } = renderPanel(NEW);
+    await user.type(await titleField(), 'Draft');
+    await user.click(screen.getByRole('button', { name: t('tasks.panel.close') }));
+    await waitFor(() => expect(router.state.location.pathname).toBe('/groups/g1/tasks'));
+    expect(screen.queryByText(t('tasks.panel.unsaved'))).toBeNull();
+    expect(calls('POST', '/api/groups/g1/tasks')).toHaveLength(0);
+  });
+});
+
+describe('TaskPanel scroll lock', () => {
+  let listeners: ((event: { matches: boolean }) => void)[];
+  let query: { matches: boolean };
+  const original = window.matchMedia;
+
+  beforeEach(() => {
+    listeners = [];
+    query = { matches: true };
+    window.matchMedia = vi.fn(() => ({
+      get matches() {
+        return query.matches;
+      },
+      addEventListener: (_: string, fn: (event: { matches: boolean }) => void) =>
+        listeners.push(fn),
+      removeEventListener: (_: string, fn: (event: { matches: boolean }) => void) => {
+        listeners = listeners.filter((l) => l !== fn);
+      },
+    })) as unknown as typeof window.matchMedia;
+  });
+  afterEach(() => {
+    window.matchMedia = original;
+    document.documentElement.style.overflow = '';
+  });
+  const change = (matches: boolean) =>
+    act(() => {
+      query.matches = matches;
+      listeners.forEach((fn) => fn({ matches }));
+    });
+
+  it('locks the page while the panel covers it, follows the media query and restores on close', async () => {
+    const { user, router } = renderPanel();
+    await titleField();
+    expect(document.documentElement.style.overflow).toBe('hidden');
+    change(false); // wider than 1024 px: the board stays usable
+    expect(document.documentElement.style.overflow).toBe('');
+    change(true);
+    expect(document.documentElement.style.overflow).toBe('hidden');
+    await user.click(screen.getByRole('button', { name: t('tasks.panel.close') }));
+    await waitFor(() => expect(router.state.location.pathname).toBe('/groups/g1/tasks'));
+    expect(document.documentElement.style.overflow).toBe('');
+    expect(listeners).toHaveLength(0);
   });
 });

@@ -42,9 +42,11 @@ test('admin and client work on the same task board live', async ({ page: admin, 
     await expect(bucket(client, 'Na spracovanie')).toBeVisible();
 
     // The client adds a card; the admin sees it without reloading.
-    await client.getByRole('button', { name: 'Pridať úlohu' }).first().click();
-    await client.getByLabel('Názov úlohy').fill('Rozpočet');
-    await client.getByLabel('Názov úlohy').press('Enter');
+    await client.getByRole('link', { name: 'Pridať úlohu' }).first().click();
+    const newPanel = client.getByRole('complementary', { name: 'Úloha' });
+    await newPanel.getByLabel('Názov', { exact: true }).fill('Rozpočet');
+    await newPanel.getByRole('button', { name: 'Vytvoriť' }).click();
+    await expect(newPanel).toHaveCount(0);
     await expect(bucket(client, 'Na spracovanie').getByText('Rozpočet')).toBeVisible();
     await expect(bucket(admin, 'Na spracovanie').getByText('Rozpočet')).toBeVisible();
 
@@ -102,5 +104,94 @@ test('admin and client work on the same task board live', async ({ page: admin, 
     await expect(bucket(client, 'Moje')).toHaveCount(0);
   } finally {
     await clientContext.close();
+  }
+});
+
+test('admin creates a task through the full panel and marks it done', async ({ page }) => {
+  const stamp = Date.now();
+  const created = await page.request.post('/api/groups', {
+    data: { name: `E2E Done ${stamp}`, egrantUrl: `https://e2e-done-${stamp}.egrant.sk` },
+  });
+  expect(created.status()).toBe(201);
+  const group = (await created.json()) as { id: string };
+  const bucket = (name: string) => page.getByRole('region', { name });
+
+  await page.goto(`/groups/${group.id}/tasks`);
+  await bucket('Na spracovanie').getByRole('link', { name: 'Pridať úlohu' }).click();
+  const panel = page.getByRole('complementary', { name: 'Úloha' });
+  await panel.getByLabel('Názov', { exact: true }).fill('Záverečná správa');
+  await panel.getByLabel('Popis', { exact: true }).fill('Skontrolovať **rozpočet**');
+  await panel.getByRole('switch', { name: 'Urgentné' }).click();
+  await panel.getByRole('button', { name: 'Vytvoriť' }).click();
+  await expect(panel).toHaveCount(0);
+
+  const todoCard = bucket('Na spracovanie').getByRole('link', { name: /Záverečná správa/ });
+  await expect(todoCard).toBeVisible();
+  await bucket('Na spracovanie').getByRole('button', { name: 'Označiť ako hotové' }).click();
+
+  const doneTitle = bucket('Hotové').getByText('Záverečná správa');
+  await expect(doneTitle).toBeVisible();
+  await expect(doneTitle).toHaveCSS('text-decoration-line', 'line-through');
+  await expect(
+    bucket('Hotové').getByRole('button', { name: 'Označiť ako nehotové' }),
+  ).toBeVisible();
+  await expect(bucket('Na spracovanie').getByText('Záverečná správa')).toHaveCount(0);
+
+  // The description was saved with its formatting and shows rendered in the panel.
+  await bucket('Hotové')
+    .getByRole('link', { name: /Záverečná správa/ })
+    .click();
+  await expect(panel.locator('strong', { hasText: 'rozpočet' })).toBeVisible();
+});
+
+test('the task panel is a full-screen sheet on a phone', async ({ browser }) => {
+  const context = await browser.newContext({
+    viewport: { width: 390, height: 844 },
+    isMobile: true,
+    hasTouch: true,
+    locale: 'sk-SK',
+    storageState: 'e2e/.auth/superadmin.json',
+  });
+  const page = await context.newPage();
+  try {
+    const stamp = Date.now();
+    const created = await page.request.post('/api/groups', {
+      data: { name: `E2E Mobil ${stamp}`, egrantUrl: `https://e2e-mobil-${stamp}.egrant.sk` },
+    });
+    const group = (await created.json()) as { id: string };
+    await page.goto(`/groups/${group.id}/tasks`);
+    await page.getByRole('link', { name: 'Pridať úlohu' }).first().click();
+    const panel = page.getByTestId('task-panel');
+    await expect(panel.getByLabel('Názov', { exact: true })).toBeVisible();
+
+    // The sheet covers exactly the screen, and neither it nor the page scrolls sideways.
+    expect(await panel.boundingBox()).toEqual({ x: 0, y: 0, width: 390, height: 844 });
+    const widths = await page.evaluate(() => ({
+      page: document.documentElement.scrollWidth,
+      panel: document.querySelector('[data-testid="task-panel"]')!.scrollWidth,
+      overflow: getComputedStyle(document.documentElement).overflow,
+    }));
+    expect(widths).toEqual({ page: 390, panel: 390, overflow: 'hidden' });
+
+    // Every control in the sheet is at least 44 px to tap (or has its own 44 px hit area).
+    const small = await panel
+      .locator('button:not([data-hit]), select, input:not([type=file]), a')
+      .evaluateAll((elements) =>
+        elements
+          .map((e) => ({
+            name: e.getAttribute('aria-label') ?? e.textContent,
+            r: e.getBoundingClientRect(),
+          }))
+          .filter(({ r }) => r.width > 0 && (r.height < 44 || r.width < 44))
+          .map(({ name }) => name),
+      );
+    expect(small).toEqual([]);
+    // Deadline and Urgent stack: the switch is below the date field.
+    const date = (await panel.getByLabel('Termín').boundingBox())!;
+    const urgent = (await panel.getByRole('switch', { name: 'Urgentné' }).boundingBox())!;
+    expect(urgent.y).toBeGreaterThan(date.y + date.height);
+    expect(date.width).toBeGreaterThan(300);
+  } finally {
+    await context.close();
   }
 });

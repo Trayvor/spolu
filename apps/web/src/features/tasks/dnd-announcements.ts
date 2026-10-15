@@ -3,7 +3,7 @@ import type { TFunction } from 'i18next';
 
 /**
  * The `data` every draggable and droppable on the board carries: a task card, a column (the
- * drop target at the end of a bucket) or a bucket (custom buckets are dragged by their handle).
+ * drop target at the end of a bucket) or a bucket (dragged by its grip handle; admins only).
  */
 export type DragData =
   | { type: 'task'; title: string; bucketId: string }
