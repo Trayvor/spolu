@@ -13,6 +13,10 @@ vi.mock('@/lib/socket', () => ({
   disconnectSocket: vi.fn(),
 }));
 
+vi.mock('@/features/chat/chat-tab-badge', () => ({
+  ChatTabBadge: ({ groupId }: { groupId: string }) => <span>badge-{groupId}</span>,
+}));
+
 const t = (key: string, options?: Record<string, unknown>) => i18n.t(key, options);
 
 const ADMIN = { id: 'a1', name: 'Jana', email: 'jana@example.com', role: 'admin', groupId: null };
@@ -112,17 +116,24 @@ describe('group layout', () => {
     mockApi();
     const { user } = renderGroup('/groups/g1/chat');
     const nav = await screen.findByRole('navigation', { name: t('group.tabs.label') });
-    const link = (key: string) => within(nav).getByRole('link', { name: t(key) });
+    const link = (key: string) => within(nav).getByRole('link', { name: new RegExp(`^${t(key)}`) });
     expect(link('group.tabs.chat')).toHaveAttribute('href', '/groups/g1/chat');
     expect(link('group.tabs.tasks')).toHaveAttribute('href', '/groups/g1/tasks');
     expect(link('group.tabs.members')).toHaveAttribute('href', '/groups/g1/members');
     expect(link('group.tabs.chat')).toHaveAttribute('aria-current', 'page');
     expect(link('group.tabs.tasks')).not.toHaveAttribute('aria-current');
+    expect(link('group.tabs.chat')).toHaveClass('bg-primary', 'text-primary-foreground');
+    expect(link('group.tabs.chat')).not.toHaveClass('bg-secondary');
+    expect(link('group.tabs.tasks')).toHaveClass('bg-secondary');
+    expect(link('group.tabs.tasks')).not.toHaveClass('bg-primary');
+    expect(within(link('group.tabs.chat')).getByText('badge-g1')).toBeInTheDocument();
 
     await user.click(link('group.tabs.tasks'));
     expect(await screen.findByText(t('tasks.placeholder'))).toBeInTheDocument();
     expect(link('group.tabs.tasks')).toHaveAttribute('aria-current', 'page');
     expect(link('group.tabs.chat')).not.toHaveAttribute('aria-current');
+    expect(link('group.tabs.tasks')).toHaveClass('bg-primary');
+    expect(link('group.tabs.chat')).toHaveClass('bg-secondary');
 
     await user.click(link('group.tabs.members'));
     expect(await screen.findByText('Petr')).toBeInTheDocument();
@@ -143,6 +154,13 @@ describe('group layout', () => {
     expect(screen.getByText('A')).toHaveStyle({ width: '40px', height: '40px' });
     await user.click(screen.getByRole('button', { name: t('group.edit') }));
     expect(screen.getByLabelText(t('groups.form.name'))).toHaveValue('Acme');
+  });
+
+  it('a client sees no Edit button in the header', async () => {
+    mockApi({ me: CLIENT });
+    renderGroup('/groups/g1/chat');
+    expect(await screen.findByRole('heading', { name: 'Acme' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: t('group.edit') })).toBeNull();
   });
 
   it('the layout joins the group room', async () => {

@@ -161,7 +161,12 @@ const routeTree = rootRoute.addChildren([
     settingsRoute,
     adminsRoute,
     groupsRoute,
-    groupRoute.addChildren([groupIndexRoute, groupChatRoute, groupTasksRoute, groupMembersRoute]),
+    groupRoute.addChildren([
+      groupIndexRoute,
+      groupChatRoute.addChildren([]), // Phase 5 adds its child routes here
+      groupTasksRoute.addChildren([]), // Phase 8 adds /tasks/$taskId here
+      groupMembersRoute,
+    ]),
     welcomeRoute,
   ]),
   loginRoute,

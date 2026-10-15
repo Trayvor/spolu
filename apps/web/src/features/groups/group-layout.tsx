@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Outlet, useParams } from '@tanstack/react-router';
 import { isAdmin } from '@/features/auth/roles';
 import { useSession } from '@/features/auth/use-session';
+import { ChatTabBadge } from '@/features/chat/chat-tab-badge';
 import { groupQuery } from './api';
 import { GroupHeader } from './group-header';
 import { GroupTabs } from './group-tabs';
@@ -23,7 +24,7 @@ function GroupFrame({ groupId }: { groupId: string }) {
     <GroupRoomProvider joins={joins}>
       <div className="flex flex-col gap-4">
         <GroupHeader group={group} admin={admin} />
-        <GroupTabs groupId={group.id} />
+        <GroupTabs groupId={group.id} badges={{ chat: <ChatTabBadge groupId={group.id} /> }} />
         <Outlet />
       </div>
     </GroupRoomProvider>

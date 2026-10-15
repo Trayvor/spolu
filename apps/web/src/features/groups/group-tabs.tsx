@@ -1,7 +1,6 @@
 import type { ReactNode } from 'react';
 import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
-import { cn } from '@/lib/utils';
 
 const pill = 'inline-flex h-8 items-center gap-2 rounded-full px-4 text-tiny font-semibold';
 
@@ -24,8 +23,11 @@ export function GroupTabs({ groupId, badges }: { groupId: string; badges?: Group
           to={to}
           params={{ groupId }}
           activeOptions={{ exact: false }}
-          className={cn(pill, 'bg-secondary text-secondary-foreground hover:bg-surface-3')}
-          activeProps={{ className: 'bg-primary text-primary-foreground hover:bg-primary' }}
+          className={pill}
+          activeProps={{ className: 'bg-primary text-primary-foreground' }}
+          inactiveProps={{
+            className: 'bg-secondary text-secondary-foreground hover:bg-surface-3',
+          }}
         >
           {t(`group.tabs.${key}`)}
           {badges?.[key]}
