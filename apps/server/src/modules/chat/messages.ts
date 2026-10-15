@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { and, eq, inArray, isNull, sql } from 'drizzle-orm';
 import {
   extractMentions,
+  ID_RE,
   plainExcerpt,
   type MessageDto,
   type NotificationKind,
@@ -11,10 +12,12 @@ import {
 import type { AppDeps } from '../../deps.js';
 import type { Db } from '../../infra/db/client.js';
 import { attachFiles, deleteDetachedFiles, detachFiles } from '../files/service.js';
-import { listGroupPeople } from '../groups/service.js';
+import { getMembershipGroupId, listGroupPeople } from '../groups/service.js';
 import { recordNotifications } from '../notifications/service.js';
+import { isAdmin } from '../users/policy.js';
 import { isUniqueViolation } from '../users/service.js';
 import { selectMessages, toMessageDtos, type MessageRow } from './dto.js';
+import { canReadChannel } from './policy.js';
 import { messageAttachments, messageMentions, messages } from './schema.js';
 import {
   getChannel,
@@ -197,6 +200,7 @@ export async function sendMessage(
 
       const payload = {
         channelId: channel.id,
+        taskId: channel.taskId,
         messageId,
         groupId,
         authorName: author.name,
@@ -229,6 +233,23 @@ export async function sendMessage(
 export async function getMessage(db: Db, id: string): Promise<MessageRow | null> {
   const [row] = await db.select().from(messages).where(eq(messages.id, id));
   return row ?? null;
+}
+
+/**
+ * The message with its channel when the actor may read that channel, else null: a missing
+ * message, a malformed id and an unreadable channel all look the same (the routes answer 404).
+ */
+export async function findReadableMessage(
+  db: Db,
+  actor: SessionUser,
+  id: string,
+): Promise<{ message: MessageRow; channel: ChannelRow } | null> {
+  // A malformed id cannot exist; checking first keeps NUL and the like away from Postgres.
+  const message = ID_RE.test(id) ? await getMessage(db, id) : null;
+  const channel = message ? await getChannel(db, message.channelId) : null;
+  if (!message || !channel) return null;
+  const actorGroupId = isAdmin(actor) ? null : await getMembershipGroupId(db, actor.id);
+  return canReadChannel(actor, channel, actorGroupId) ? { message, channel } : null;
 }
 
 async function loadDto(db: Db, groupId: string, id: string): Promise<MessageDto> {

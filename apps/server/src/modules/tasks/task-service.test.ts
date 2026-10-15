@@ -6,21 +6,26 @@ import { Readable } from 'node:stream';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { and, eq, sql } from 'drizzle-orm';
 import { TaskCreateSchema, type SessionUser } from '@spolu/shared';
+import type { AppDeps } from '../../deps.js';
 import { createDb } from '../../infra/db/client.js';
 import { createDiskStorage } from '../../infra/storage/disk-storage.js';
 import type { Storage } from '../../infra/storage/index.js';
 import { testDatabaseUrl } from '../../../test/test-config.js';
+import { sendMessage } from '../chat/messages.js';
+import { ensureTaskChannel, getChannel } from '../chat/service.js';
 import * as filesService from '../files/service.js';
 import { createFile, getFile, InvalidAttachmentError } from '../files/service.js';
 import { addMember, createGroup } from '../groups/service.js';
 import { notificationEvents } from '../notifications/schema.js';
 import { user } from '../users/schema.js';
 import { addAdmin, deactivateUser } from '../users/service.js';
+import { tasks } from './schema.js';
 import { createBucket, deleteBucket, ensureBoard, getBoard, listBuckets } from './service.js';
 import {
   createTask as createTaskWith,
   deleteTask as deleteTaskWith,
   getTask,
+  getTaskRef,
   InvalidAssigneeError,
   moveTask,
   NotFoundError,
@@ -402,7 +407,7 @@ describe('deleteTask', () => {
     const file = await upload(group.id, client);
     const task = await createTask(deps, client, group.id, { title: 'A', fileIds: [file.id] });
     const key = (await getFile(db, file.id))!.storageKey;
-    expect(await deleteTask(deps, task.id)).toEqual({ groupId: group.id });
+    expect(await deleteTask(deps, task.id)).toEqual({ groupId: group.id, sourceMessageId: null });
     expect(await getTask(db, task.id)).toBeNull();
     expect(await getFile(db, file.id)).toBeNull();
     expect(await storage.exists(key)).toBe(false);
@@ -417,6 +422,7 @@ describe('deleteTask', () => {
     const onFileCleanupError = vi.fn();
     expect(await deleteTaskWith(deps, task.id, { onFileCleanupError })).toEqual({
       groupId: group.id,
+      sourceMessageId: null,
     });
     expect(onFileCleanupError).toHaveBeenCalledOnce();
     expect(await getTask(db, task.id)).toBeNull();
@@ -440,6 +446,60 @@ describe('deleteTask', () => {
 
   it('an unknown task → NotFoundError', async () => {
     await expect(deleteTask(deps, randomUUID())).rejects.toBeInstanceOf(NotFoundError);
+  });
+
+  /** A message in the task's chat, by `author`, with the given files. */
+  const sendInTaskChat = async (
+    task: { id: string; groupId: string },
+    author: SessionUser,
+    fileIds: string[] = [],
+  ) => {
+    const channel = await ensureTaskChannel(db, task);
+    const sent = await sendMessage(deps as AppDeps, {
+      channel,
+      author,
+      data: { body: 'see the file', clientId: randomUUID(), fileIds },
+    });
+    return { channel, message: sent.message };
+  };
+
+  it('deleting a task deletes its chat, messages and their files', async () => {
+    const group = await newGroup();
+    const client = await newClient(group.id);
+    const task = await createTask(deps, client, group.id, { title: 'A' });
+    const file = await upload(group.id, client);
+    const storageKey = (await getFile(db, file.id))!.storageKey;
+    const { channel } = await sendInTaskChat(task, client, [file.id]);
+    expect(await deleteTask(deps, task.id)).toEqual({ groupId: group.id, sourceMessageId: null });
+    expect(await getChannel(db, channel.id)).toBeNull();
+    expect(await getFile(db, file.id)).toBeNull();
+    expect(await storage.exists(storageKey)).toBe(false);
+  });
+
+  it("returns the task's source message id", async () => {
+    const group = await newGroup();
+    const client = await newClient(group.id);
+    const source = await createTask(deps, client, group.id, { title: 'Source' });
+    const { message } = await sendInTaskChat(source, client);
+    const task = await createTask(deps, client, group.id, { title: 'A' });
+    await db.update(tasks).set({ sourceMessageId: message.id }).where(eq(tasks.id, task.id));
+    expect(await deleteTask(deps, task.id)).toEqual({
+      groupId: group.id,
+      sourceMessageId: message.id,
+    });
+  });
+
+  it("a task made from a message in another task's chat loses only its source when that task goes", async () => {
+    const group = await newGroup();
+    const client = await newClient(group.id);
+    const t1 = await createTask(deps, client, group.id, { title: 'One' });
+    const t2 = await createTask(deps, client, group.id, { title: 'Two' });
+    const { message } = await sendInTaskChat(t1, client);
+    await db.update(tasks).set({ sourceMessageId: message.id }).where(eq(tasks.id, t2.id));
+    expect((await getTask(db, t2.id))!.sourceMessageId).toBe(message.id);
+    await deleteTask(deps, t1.id);
+    expect(await getTaskRef(db, t2.id)).not.toBeNull();
+    expect((await getTask(db, t2.id))!.sourceMessageId).toBeNull();
   });
 });
 

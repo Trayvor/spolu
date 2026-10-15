@@ -16,6 +16,7 @@ import { requireUser } from '../auth/session.js';
 import { isAdmin } from '../users/policy.js';
 import { canReadGroup } from '../groups/policy.js';
 import { getGroup, getMembershipGroupId } from '../groups/service.js';
+import { getTaskRef } from '../tasks/task-service.js';
 import { emitMessage, emitRead, emitThreadReply } from './events.js';
 import {
   EmptyMessageError,
@@ -24,7 +25,7 @@ import {
   MessageDeletedError,
   deleteMessage,
   editMessage,
-  getMessage,
+  findReadableMessage,
   sendMessage,
 } from './messages.js';
 import { canDeleteMessage, canEditMessage, canReadChannel, isMessageAuthor } from './policy.js';
@@ -38,6 +39,7 @@ import {
 } from './reads.js';
 import {
   ensureGroupChannel,
+  ensureTaskChannel,
   getChannel,
   getLastReadAt,
   markRead,
@@ -45,6 +47,7 @@ import {
   unreadByGroup,
   unreadCount,
   unreadThreads,
+  TaskGoneError,
   type ChannelRow,
 } from './service.js';
 
@@ -94,13 +97,23 @@ export const chatRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { d
 
   /** A message with its readable channel, or a 404 answer and null. */
   const readableMessage = async (request: FastifyRequest, reply: FastifyReply, id: string) => {
-    const message = ID_RE.test(id) ? await getMessage(db, id) : null;
-    const channel = message ? await readableChannel(request, reply, message.channelId) : null;
-    if (!message || !channel) {
-      if (!reply.sent) notFound(reply);
-      return null;
-    }
-    return { message, channel };
+    const found = await findReadableMessage(db, request.user!, id);
+    if (!found) notFound(reply);
+    return found;
+  };
+
+  /** The answer of both chat entry points: the channel with the actor's read mark and unread count. */
+  const channelInfo = async (actorId: string, channel: ChannelRow): Promise<GroupChannel> => {
+    const [lastReadAt, unread] = await Promise.all([
+      getLastReadAt(db, actorId, channel.id),
+      unreadCount(db, actorId, channel.id),
+    ]);
+    return {
+      id: channel.id,
+      lastSeq: channel.lastSeq,
+      lastReadAt: lastReadAt?.toISOString() ?? null,
+      unread,
+    };
   };
 
   app.get<IdParams>('/groups/:id/chat', { preHandler: anyUser }, async (request, reply) => {
@@ -109,14 +122,25 @@ export const chatRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { d
     if (!ID_RE.test(id)) return notFound(reply);
     if (!canReadGroup(actor, id, await getMembershipGroupId(db, actor.id))) return notFound(reply);
     if (!(await getGroup(db, id))) return notFound(reply);
-    const channel = await ensureGroupChannel(db, id);
-    const body: GroupChannel = {
-      id: channel.id,
-      lastSeq: channel.lastSeq,
-      lastReadAt: (await getLastReadAt(db, actor.id, channel.id))?.toISOString() ?? null,
-      unread: await unreadCount(db, actor.id, channel.id),
-    };
-    return body;
+    return channelInfo(actor.id, await ensureGroupChannel(db, id));
+  });
+
+  // A task chat is read by whoever can read the task's group, like the group chat.
+  app.get<IdParams>('/tasks/:id/chat', { preHandler: anyUser }, async (request, reply) => {
+    const actor = request.user!;
+    const { id } = request.params;
+    if (!ID_RE.test(id)) return notFound(reply);
+    const task = await getTaskRef(db, id);
+    if (!task) return notFound(reply);
+    if (!canReadGroup(actor, task.groupId, await getMembershipGroupId(db, actor.id))) {
+      return notFound(reply);
+    }
+    try {
+      return await channelInfo(actor.id, await ensureTaskChannel(db, { id, ...task }));
+    } catch (error) {
+      if (error instanceof TaskGoneError) return notFound(reply);
+      throw error;
+    }
   });
 
   app.get<IdParams>('/channels/:id/messages', { preHandler: anyUser }, async (request, reply) => {
@@ -174,12 +198,13 @@ export const chatRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { d
     try {
       const sent = await sendMessage(deps, { channel, author: actor, data: body.data });
       if (!sent.created) return reply.code(200).send(sent.message);
-      emitMessage(app.io, channel.groupId, sent.message, true);
+      emitMessage(app.io, channel, sent.message, true);
       if (sent.parent) {
-        emitMessage(app.io, channel.groupId, sent.parent, false);
+        emitMessage(app.io, channel, sent.parent, false);
         emitThreadReply(app.io, sent.threadPeople, {
           groupId: channel.groupId,
           channelId: channel.id,
+          taskId: channel.taskId,
           rootId: sent.parent.id,
         });
       }
@@ -210,7 +235,7 @@ export const chatRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { d
     }
     try {
       const message = await editMessage(deps, { ...found, body: body.data.body });
-      emitMessage(app.io, found.channel.groupId, message, false);
+      emitMessage(app.io, found.channel, message, false);
       return message;
     } catch (error) {
       if (error instanceof InvalidMentionError) {
@@ -234,7 +259,7 @@ export const chatRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { d
       onFileCleanupError: (error) =>
         request.log.error({ err: error }, 'chat: file cleanup after message delete failed'),
     });
-    emitMessage(app.io, found.channel.groupId, message, false);
+    emitMessage(app.io, found.channel, message, false);
     return reply.code(204).send();
   });
 
@@ -248,6 +273,7 @@ export const chatRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { d
     emitRead(app.io, actor.id, {
       groupId: channel.groupId,
       channelId: channel.id,
+      taskId: channel.taskId,
       lastReadAt: lastReadAt.toISOString(),
     });
     return reply.code(204).send();
@@ -277,6 +303,7 @@ export const chatRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { d
         emitRead(app.io, actor.id, {
           groupId: found.channel.groupId,
           channelId: found.channel.id,
+          taskId: found.channel.taskId,
           lastReadAt: lastReadAt.toISOString(),
           rootId,
         });

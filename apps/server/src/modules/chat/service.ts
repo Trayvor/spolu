@@ -1,7 +1,8 @@
 import { randomUUID } from 'node:crypto';
-import { and, eq, sql, type SQL } from 'drizzle-orm';
+import { and, eq, isNotNull, sql, type SQL } from 'drizzle-orm';
 import type { Db } from '../../infra/db/client.js';
-import { channels, messages, readStates, threadReadStates } from './schema.js';
+import { isForeignKeyViolation } from '../users/service.js';
+import { channels, messageAttachments, messages, readStates, threadReadStates } from './schema.js';
 
 export type ChannelRow = typeof channels.$inferSelect;
 
@@ -16,6 +17,58 @@ export async function ensureGroupChannel(db: Db, groupId: string): Promise<Chann
     .from(channels)
     .where(and(eq(channels.groupId, groupId), eq(channels.kind, 'group')));
   return row!;
+}
+
+/** The task was deleted while its chat channel was being created (route: 404). */
+export class TaskGoneError extends Error {
+  constructor() {
+    super('The task no longer exists');
+    this.name = 'TaskGoneError';
+  }
+}
+
+/**
+ * Returns the task's chat channel, creating it on first use; safe when first reads race (the
+ * partial unique index `channels_task_unique` keeps one per task). The caller checks that the
+ * task exists and may be read; a task deleted meanwhile throws `TaskGoneError`.
+ */
+export async function ensureTaskChannel(
+  db: Db,
+  task: { id: string; groupId: string },
+): Promise<ChannelRow> {
+  try {
+    await db
+      .insert(channels)
+      .values({ id: randomUUID(), groupId: task.groupId, kind: 'task', taskId: task.id })
+      .onConflictDoNothing({ target: channels.taskId, where: isNotNull(channels.taskId) });
+  } catch (error) {
+    if (isForeignKeyViolation(error)) throw new TaskGoneError();
+    throw error;
+  }
+  const [row] = await db.select().from(channels).where(eq(channels.taskId, task.id));
+  if (!row) throw new TaskGoneError();
+  return row;
+}
+
+/**
+ * The ids of the files attached to any message of the task's chat (none when it has no chat).
+ * Call it inside the transaction that deletes the task: it first locks the channel row, so a
+ * send, edit or delete in that chat (they lock it through `nextSeq`) either committed before the
+ * list is read or waits until the channel is gone, and no attached file is missed.
+ */
+export async function taskChatFileIds(tx: Db, taskId: string): Promise<string[]> {
+  const [channel] = await tx
+    .select({ id: channels.id })
+    .from(channels)
+    .where(eq(channels.taskId, taskId))
+    .for('update');
+  if (!channel) return [];
+  const rows = await tx
+    .select({ fileId: messageAttachments.fileId })
+    .from(messageAttachments)
+    .innerJoin(messages, eq(messages.id, messageAttachments.messageId))
+    .where(eq(messages.channelId, channel.id));
+  return rows.map((r) => r.fileId);
 }
 
 export async function getChannel(db: Db, id: string): Promise<ChannelRow | null> {

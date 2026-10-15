@@ -121,9 +121,11 @@ export const ChatEvents = {
   threadReply: 'chat:thread-reply',
 } as const;
 
+/** Chat events name the channel's group and, for a task chat, its task (`taskId`, else null). */
 export interface ChatMessageEvent {
   groupId: string;
   channelId: string;
+  taskId: string | null;
   message: MessageDto;
   isNew: boolean;
 }
@@ -131,6 +133,7 @@ export interface ChatMessageEvent {
 export interface ChatReadEvent {
   groupId: string;
   channelId: string;
+  taskId: string | null;
   lastReadAt: string;
   rootId?: string;
 }
@@ -138,6 +141,7 @@ export interface ChatReadEvent {
 export interface ChatThreadReplyEvent {
   groupId: string;
   channelId: string;
+  taskId: string | null;
   rootId: string;
 }
 

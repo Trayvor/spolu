@@ -64,6 +64,13 @@
       "when": 1792098644095,
       "tag": "0008_thread_read_states",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792102517034,
+      "tag": "0009_task_chats",
+      "breakpoints": true
     }
   ]
 }

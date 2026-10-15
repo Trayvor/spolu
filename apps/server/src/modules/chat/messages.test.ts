@@ -12,6 +12,8 @@ import * as filesService from '../files/service.js';
 import { createFile, getFile, getFilesForGroup, InvalidAttachmentError } from '../files/service.js';
 import { addMember, createGroup, listGroupPeople } from '../groups/service.js';
 import { notificationEvents } from '../notifications/schema.js';
+import { tasks } from '../tasks/schema.js';
+import { ensureBoard, listBuckets } from '../tasks/service.js';
 import { user } from '../users/schema.js';
 import { addAdmin, createUnverifiedClient } from '../users/service.js';
 import { selectMessages, toMessageDtos } from './dto.js';
@@ -19,6 +21,7 @@ import {
   deleteMessage,
   editMessage,
   EmptyMessageError,
+  findReadableMessage,
   getMessage,
   InvalidMentionError,
   InvalidThreadError,
@@ -27,7 +30,7 @@ import {
 } from './messages.js';
 import { files } from '../files/schema.js';
 import { messageAttachments, messageMentions, messages } from './schema.js';
-import { ensureGroupChannel, getChannel, type ChannelRow } from './service.js';
+import { ensureGroupChannel, ensureTaskChannel, getChannel, type ChannelRow } from './service.js';
 
 vi.mock('../files/service.js', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../files/service.js')>();
@@ -297,6 +300,7 @@ describe('sendMessage', () => {
       groupId: s.group.id,
       payload: {
         channelId: s.channel.id,
+        taskId: null,
         messageId: reply.id,
         groupId: s.group.id,
         authorName: 'Boris',
@@ -578,5 +582,64 @@ describe('editMessage and deleteMessage', () => {
       channel: s.channel,
     });
     expect(second.changeSeq).toBe(first.changeSeq);
+  });
+});
+
+/** A task in the group's To do, created by `author`, and its chat channel. */
+async function newTaskChannel(groupId: string, authorId: string) {
+  await ensureBoard(deps.db, groupId);
+  const todo = (await listBuckets(deps.db, groupId)).find((b) => b.kind === 'todo')!;
+  const now = new Date();
+  const task = { id: randomUUID(), groupId };
+  await deps.db.insert(tasks).values({
+    ...task,
+    bucketId: todo.id,
+    position: 'a0',
+    title: 'Task',
+    createdBy: authorId,
+    createdAt: now,
+    updatedAt: now,
+  });
+  return { task, channel: await ensureTaskChannel(deps.db, task) };
+}
+
+describe('task chat', () => {
+  it('task chat notifications carry the taskId', async () => {
+    const s = await setup();
+    const { task, channel } = await newTaskChannel(s.group.id, s.a.id);
+    const { message: root } = await send(channel, s.a, { body: `hi ${mentionToken(s.b.id)}` });
+    const { message: reply } = await send(channel, s.b, { parentId: root.id, body: 'ok' });
+    const payloads = await deps.db
+      .select({ kind: notificationEvents.kind, payload: notificationEvents.payload })
+      .from(notificationEvents)
+      .where(inArray(sql`${notificationEvents.payload}->>'messageId'`, [root.id, reply.id]));
+    expect(new Set(payloads.map((p) => p.kind))).toEqual(
+      new Set(['chat.message', 'chat.mention', 'chat.thread_reply']),
+    );
+    for (const { payload } of payloads) {
+      expect(payload).toMatchObject({
+        channelId: channel.id,
+        taskId: task.id,
+        groupId: s.group.id,
+      });
+    }
+  });
+
+  it('findReadableMessage returns the message and its channel only to readers of the group', async () => {
+    const s = await setup();
+    const { channel } = await newTaskChannel(s.group.id, s.a.id);
+    const { message } = await send(channel, s.a);
+    const found = await findReadableMessage(deps.db, s.b, message.id);
+    expect(found?.message.id).toBe(message.id);
+    expect(found?.channel).toMatchObject({ id: channel.id, kind: 'task' });
+    expect((await findReadableMessage(deps.db, s.admin, message.id))?.message.id).toBe(message.id);
+    const other = await createGroup(deps.db, {
+      name: 'Other',
+      egrantUrl: `https://g${randomUUID().replaceAll('-', '')}.egrant.sk/app`,
+    });
+    const outsider = await newClient(other.id);
+    expect(await findReadableMessage(deps.db, outsider, message.id)).toBeNull();
+    expect(await findReadableMessage(deps.db, s.b, randomUUID())).toBeNull();
+    expect(await findReadableMessage(deps.db, s.b, 'not\u0000an-id')).toBeNull();
   });
 });

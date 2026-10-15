@@ -145,6 +145,67 @@ describe('chat API', () => {
     expect(results[0]!.json()).toEqual({ error: 'not_found' });
   });
 
+  it("GET /api/tasks/:id/chat creates the channel; another group's client gets 404", async () => {
+    const s = await setup();
+    const created = await call('POST', `/api/groups/${s.group.id}/tasks`, s.admin.cookie, {
+      title: 'Task',
+    });
+    expect(created.statusCode).toBe(201);
+    const task = created.json<{ id: string }>();
+    const first = await call('GET', `/api/tasks/${task.id}/chat`, s.admin.cookie);
+    expect(first.statusCode).toBe(200);
+    const channel = GroupChannelSchema.parse(first.json());
+    expect(channel).toMatchObject({ lastSeq: 0, lastReadAt: null, unread: 0 });
+    expect(channel.id).not.toBe(s.channelId);
+    const mine = await call('GET', `/api/tasks/${task.id}/chat`, s.a.cookie);
+    expect(mine.json<{ id: string }>().id).toBe(channel.id);
+
+    const other = await createGroup(test.deps.db, { name: 'Other', egrantUrl: newUrl() });
+    const otherClient = await clientIn(other.id);
+    expect((await call('GET', `/api/tasks/${task.id}/chat`, otherClient.cookie)).statusCode).toBe(
+      404,
+    );
+    expect((await send(channel.id, otherClient.cookie)).statusCode).toBe(404);
+    expect((await call('GET', `/api/tasks/${randomUUID()}/chat`, s.admin.cookie)).statusCode).toBe(
+      404,
+    );
+    expect((await call('GET', '/api/tasks/not%00an-id/chat', s.admin.cookie)).statusCode).toBe(404);
+  });
+
+  it('a task chat message and its thread reply carry the taskId in their events', async () => {
+    const s = await setup();
+    const task = (
+      await call('POST', `/api/groups/${s.group.id}/tasks`, s.admin.cookie, { title: 'T' })
+    ).json<{ id: string }>();
+    const channelId = (await call('GET', `/api/tasks/${task.id}/chat`, s.a.cookie)).json<{
+      id: string;
+    }>().id;
+    const anna = await socketFor(s.a.cookie);
+    const received = nextEvent<ChatMessageEvent>(anna, ChatEvents.message);
+    const root = (await send(channelId, s.b.cookie)).json<MessageDto>();
+    expect(await received).toMatchObject({
+      groupId: s.group.id,
+      channelId,
+      taskId: task.id,
+      isNew: true,
+    });
+    // Anna's own reply makes her one of the thread's people; the admin's reply then reaches her.
+    await send(channelId, s.a.cookie, { parentId: root.id, body: 'mine' });
+    const announced = nextEvent<ChatThreadReplyEvent>(anna, ChatEvents.threadReply);
+    await send(channelId, s.admin.cookie, { parentId: root.id, body: 'reply' });
+    expect(await announced).toEqual({
+      groupId: s.group.id,
+      channelId,
+      taskId: task.id,
+      rootId: root.id,
+    });
+    const read = nextEvent<ChatReadEvent>(anna, ChatEvents.read);
+    await call('POST', `/api/channels/${channelId}/read`, s.a.cookie, {
+      at: new Date().toISOString(),
+    });
+    expect(await read).toMatchObject({ groupId: s.group.id, channelId, taskId: task.id });
+  });
+
   it('admin sends, a client socket in the group room receives chat:message with isNew true', async () => {
     const s = await setup();
     const socket = await socketFor(s.a.cookie);
@@ -152,7 +213,12 @@ describe('chat API', () => {
     const res = await send(s.channelId, s.admin.cookie, { body: 'hi all' });
     expect(res.statusCode).toBe(201);
     const event = await received;
-    expect(event).toMatchObject({ groupId: s.group.id, channelId: s.channelId, isNew: true });
+    expect(event).toMatchObject({
+      groupId: s.group.id,
+      channelId: s.channelId,
+      taskId: null,
+      isNew: true,
+    });
     expect(event.message.id).toBe(res.json<MessageDto>().id);
   });
 
@@ -305,6 +371,7 @@ describe('chat API', () => {
     expect(await announced).toEqual({
       groupId: s.group.id,
       channelId: s.channelId,
+      taskId: null,
       rootId: root.id,
     });
     const chat = () => call('GET', `/api/groups/${s.group.id}/chat`, s.a.cookie);

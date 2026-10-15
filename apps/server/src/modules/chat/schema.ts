@@ -15,11 +15,15 @@ import {
 } from 'drizzle-orm/pg-core';
 import { files } from '../files/schema.js';
 import { groups } from '../groups/schema.js';
+import { tasks } from '../tasks/schema.js';
 import { user } from '../users/schema.js';
 
 const timestamptz = (name: string) => timestamp(name, { withTimezone: true, precision: 3 });
 
-/** A chat room: the group chat, and (Phase 9) one per task. `lastSeq` is the per-channel change counter. */
+/**
+ * A chat room: the group chat (one per group) and the task chats (one per task, created on first
+ * use, deleted with the task). `lastSeq` is the per-channel change counter.
+ */
 export const channels = pgTable(
   'channels',
   {
@@ -28,16 +32,23 @@ export const channels = pgTable(
       .notNull()
       .references(() => groups.id, { onDelete: 'cascade' }),
     kind: text('kind').notNull(),
-    /** Set for task chats; the FK to tasks is added in Phase 9. */
-    taskId: text('task_id'),
+    /** Set exactly for task chats. Lazy reference: tasks/schema.ts imports this file too. */
+    taskId: text('task_id').references((): AnyPgColumn => tasks.id, { onDelete: 'cascade' }),
     lastSeq: bigint('last_seq', { mode: 'number' }).notNull().default(0),
     createdAt: timestamptz('created_at').notNull().defaultNow(),
   },
   (t) => [
     check('channels_kind_check', sql`${t.kind} in ('group', 'task')`),
+    check('channels_task_check', sql`(${t.kind} = 'task') = (${t.taskId} is not null)`),
     uniqueIndex('channels_group_unique')
       .on(t.groupId)
       .where(sql`${t.kind} = 'group'`),
+    // `task_id is not null` (same rows as kind = 'task', by the check above) rather than
+    // kind = 'task': the planner can then use it for the cascade `where task_id = $1`.
+    uniqueIndex('channels_task_unique')
+      .on(t.taskId)
+      .where(sql`${t.taskId} is not null`),
+    index('channels_group_id_idx').on(t.groupId),
   ],
 );
 

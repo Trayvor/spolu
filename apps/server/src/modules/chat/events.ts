@@ -7,16 +7,26 @@ import {
   type MessageDto,
 } from '@spolu/shared';
 import { emitToGroup, userRoom } from '../../infra/realtime/rooms.js';
+import type { ChannelRow } from './service.js';
 
-/** Pushes a new, edited or deleted message (or a parent's new reply count) to the group room. Call after commit. */
+/**
+ * Pushes a new, edited or deleted message (or a parent's new reply count) to the group room; a
+ * task chat's events carry its `taskId`. Call after commit.
+ */
 export function emitMessage(
   io: SocketIOServer,
-  groupId: string,
+  channel: Pick<ChannelRow, 'groupId' | 'taskId'>,
   message: MessageDto,
   isNew: boolean,
 ): void {
-  const event: ChatMessageEvent = { groupId, channelId: message.channelId, message, isNew };
-  emitToGroup(io, groupId, ChatEvents.message, event);
+  const event: ChatMessageEvent = {
+    groupId: channel.groupId,
+    channelId: message.channelId,
+    taskId: channel.taskId,
+    message,
+    isNew,
+  };
+  emitToGroup(io, channel.groupId, ChatEvents.message, event);
 }
 
 /** Tells all sockets of one user that the channel is read up to `lastReadAt`. */

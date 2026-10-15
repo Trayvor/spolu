@@ -3,11 +3,15 @@ import { afterAll, describe, expect, it } from 'vitest';
 import { createDb } from '../../infra/db/client.js';
 import { testDatabaseUrl } from '../../../test/test-config.js';
 import { createGroup } from '../groups/service.js';
+import { tasks } from '../tasks/schema.js';
+import { ensureBoard, listBuckets } from '../tasks/service.js';
 import { createUnverifiedClient } from '../users/service.js';
 import { messages } from './schema.js';
 import {
   ensureGroupChannel,
+  ensureTaskChannel,
   getChannel,
+  TaskGoneError,
   getLastReadAt,
   markRead,
   nextSeq,
@@ -24,6 +28,29 @@ const newGroup = () =>
     egrantUrl: `https://g${randomUUID().replaceAll('-', '')}.egrant.sk/app`,
   });
 const newUser = () => createUnverifiedClient(db, `${randomUUID()}@example.com`);
+
+/** A group with one task in To do. */
+async function newTask() {
+  const group = await newGroup();
+  const author = await newUser();
+  await ensureBoard(db, group.id);
+  const todo = (await listBuckets(db, group.id)).find((b) => b.kind === 'todo')!;
+  const now = new Date();
+  const [task] = await db
+    .insert(tasks)
+    .values({
+      id: randomUUID(),
+      groupId: group.id,
+      bucketId: todo.id,
+      position: 'a0',
+      title: 'Task',
+      createdBy: author.id,
+      createdAt: now,
+      updatedAt: now,
+    })
+    .returning({ id: tasks.id, groupId: tasks.groupId });
+  return { group, task: task! };
+}
 
 async function addMessage(
   channelId: string,
@@ -52,6 +79,35 @@ describe('ensureGroupChannel', () => {
     expect((await ensureGroupChannel(db, group.id)).id).toBe(rows[0]!.id);
     expect((await getChannel(db, rows[0]!.id))?.groupId).toBe(group.id);
     expect(await getChannel(db, randomUUID())).toBeNull();
+  });
+});
+
+describe('ensureTaskChannel', () => {
+  it('creates one task channel under 5 parallel calls', async () => {
+    const { group, task } = await newTask();
+    const rows = await Promise.all(Array.from({ length: 5 }, () => ensureTaskChannel(db, task)));
+    expect(new Set(rows.map((r) => r.id)).size).toBe(1);
+    expect(rows[0]).toMatchObject({ kind: 'task', taskId: task.id, groupId: group.id });
+    expect((await ensureTaskChannel(db, task)).id).toBe(rows[0]!.id);
+  });
+
+  it('a task that no longer exists → TaskGoneError', async () => {
+    const { group } = await newTask();
+    await expect(
+      ensureTaskChannel(db, { id: randomUUID(), groupId: group.id }),
+    ).rejects.toBeInstanceOf(TaskGoneError);
+  });
+
+  it("a task channel is not the group's channel and does not count in unreadByGroup", async () => {
+    const { group, task } = await newTask();
+    const groupChannel = await ensureGroupChannel(db, group.id);
+    const taskChannel = await ensureTaskChannel(db, task);
+    expect(taskChannel.id).not.toBe(groupChannel.id);
+    const me = await newUser();
+    const other = await newUser();
+    await addMessage(taskChannel.id, other.id);
+    expect(await unreadCount(db, me.id, taskChannel.id)).toBe(1);
+    expect((await unreadByGroup(db, me.id, group.id))[group.id]).toBeUndefined();
   });
 });
 

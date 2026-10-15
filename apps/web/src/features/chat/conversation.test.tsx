@@ -302,6 +302,7 @@ describe('Conversation', () => {
     const event: ChatMessageEvent = {
       groupId: 'g1',
       channelId: 'c1',
+      taskId: null,
       message: { ...M2, body: '', deletedAt: '2026-10-15T10:00:00.000Z', changeSeq: 6 },
       isNew: false,
     };

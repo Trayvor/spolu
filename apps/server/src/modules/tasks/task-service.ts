@@ -20,6 +20,7 @@ import {
   getFilesForGroup,
   type FileDeps,
 } from '../files/service.js';
+import { taskChatFileIds } from '../chat/service.js';
 import { getGroup, isGroupPerson } from '../groups/service.js';
 import { recordNotifications } from '../notifications/service.js';
 import { keyAfter } from './positions.js';
@@ -302,28 +303,30 @@ export async function deleteTask(
   deps: TaskDeps,
   id: string,
   options: CleanupOptions,
-): Promise<{ groupId: string }> {
+): Promise<{ groupId: string; sourceMessageId: string | null }> {
   const { db } = deps;
-  const { groupId, fileIds } = await db.transaction(async (tx) => {
+  const { task, fileIds } = await db.transaction(async (tx) => {
     // Lock the task first: an edit attaching files right now commits before we list them.
-    const [task] = await tx
-      .select({ groupId: tasks.groupId })
+    const [row] = await tx
+      .select({ groupId: tasks.groupId, sourceMessageId: tasks.sourceMessageId })
       .from(tasks)
       .where(eq(tasks.id, id))
       .for('update');
-    if (!task) throw new NotFoundError();
+    if (!row) throw new NotFoundError();
     const attachments = await tx
       .select({ fileId: taskAttachments.fileId })
       .from(taskAttachments)
       .where(eq(taskAttachments.taskId, id));
+    // The task chat goes with the task (FK cascade), and with it its messages' attachments.
+    const chatFileIds = await taskChatFileIds(tx, id);
     await tx.delete(tasks).where(eq(tasks.id, id));
-    const ids = attachments.map((a) => a.fileId);
+    const ids = [...attachments.map((a) => a.fileId), ...chatFileIds];
     // If the removal after the commit fails, the daily unattached-files cleanup picks them up.
     await detachFiles(tx, ids);
-    return { groupId: task.groupId, fileIds: ids };
+    return { task: row, fileIds: ids };
   });
   await cleanUpFiles(deps, fileIds, options);
-  return { groupId };
+  return task;
 }
 
 /** A bucket as a notification shows it: custom name, the group name for `client_review`, else null. */

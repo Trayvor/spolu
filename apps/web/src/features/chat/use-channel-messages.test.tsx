@@ -134,6 +134,7 @@ const ids = (messages: MessageDto[]) => messages.map((m) => m.id);
 const event = (message: MessageDto, over: Partial<ChatMessageEvent> = {}): ChatMessageEvent => ({
   groupId: 'g1',
   channelId: 'c1',
+  taskId: null,
   message,
   isNew: true,
   ...over,
