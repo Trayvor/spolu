@@ -5,12 +5,13 @@ Each group has a Kanban board with four fixed buckets (columns) and custom bucke
 ## Requirements
 
 - Kanban board within a group, created with the group.
-- **Four fixed buckets**, in this order, created automatically for every group. They cannot be renamed, deleted or moved:
+- **Four fixed buckets**, in this order, created automatically for every group, in this order at first. They cannot be renamed or deleted, but admins can reorder them like any other bucket:
   1. **To do**;
   2. **eGrant review** (eGrant checks the work);
   3. **<client> review** (the client checks the work; the name follows the group name);
   4. **Completed**.
-- **Custom buckets**: admins create, rename, delete and reorder them; they always sit between To do and Completed. Deleting a custom bucket moves its tasks to To do.
+- **Custom buckets**: admins create, rename, delete and reorder them; a new one goes after the last custom bucket (or right after To do). Deleting a custom bucket moves its tasks to To do.
+- **Bucket order**: admins drag any bucket, fixed ones included, by its handle (mouse, touch or keyboard) to reorder the board. The order is stored per group and everyone looking at the board sees it change live. Clients cannot reorder buckets. "Add column" sits after the last bucket.
 - **Drag & drop** of tasks between buckets and inside a bucket.
 - **Done circle** on every card and in the task panel: checking it moves the task to the top of Completed, unchecking it moves it to the top of To do (it notifies like any move). Tasks in Completed show a checked circle and a struck-through title. Anyone who can move tasks can use it.
 - **Clients and admins** create, edit and move tasks. Only admins manage buckets.

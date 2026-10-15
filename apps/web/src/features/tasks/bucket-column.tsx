@@ -25,7 +25,7 @@ const KIND_MARK: Record<BucketDto['kind'], string | null> = {
   custom: null,
 };
 
-/** Sortable id of a bucket column (custom ones are dragged by their handle). */
+/** Sortable id of a bucket column (dragged by its grip handle, admins only). */
 export const bucketSortId = (bucketId: string) => `header:${bucketId}`;
 
 /** Where a card from another bucket would land: before this card, or after the last one. */
@@ -111,7 +111,7 @@ function SortableTask({
 /**
  * One column: header, scrolling card list, "+ Add task". The list is a droppable (a drop on it
  * puts the card last) holding one sortable per card; the column itself is sortable among the
- * buckets, but only a custom one can be lifted, by its grip.
+ * buckets: admins lift any of them, fixed ones included, by its grip.
  */
 export function BucketColumn({
   bucket,
@@ -144,7 +144,7 @@ export function BucketColumn({
   const busy = useRef(false);
   const mark = KIND_MARK[bucket.kind];
   const key = boardQuery(bucket.groupId).queryKey;
-  const movable = admin && bucket.kind === 'custom';
+  const movable = admin;
   const {
     setNodeRef,
     setActivatorNodeRef,

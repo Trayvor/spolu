@@ -23,7 +23,6 @@ import {
   SortableContext,
   horizontalListSortingStrategy,
   sortableKeyboardCoordinates,
-  type SortingStrategy,
 } from '@dnd-kit/sortable';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -32,7 +31,6 @@ import { isAdmin } from '@/features/auth/roles';
 import { useSession } from '@/features/auth/use-session';
 import { groupQuery } from '@/features/groups/api';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
 import { AddBucket } from './add-bucket';
 import { boardQuery } from './api';
 import { boardNoticeKey, showBoardNotice, type BoardNotice } from './board-cache';
@@ -74,14 +72,6 @@ const KEYBOARD_CODES = { start: ['Space'], cancel: ['Escape'], end: ['Space'] };
 const prefersReducedMotion = () =>
   typeof window.matchMedia === 'function' &&
   window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-/** To do stays first and Completed last while a custom bucket is dragged over them. */
-const bucketStrategy: SortingStrategy = (args) =>
-  horizontalListSortingStrategy(
-    args.overIndex < 0
-      ? args
-      : { ...args, overIndex: Math.min(Math.max(args.overIndex, 1), args.rects.length - 2) },
-  );
 
 type Dragging =
   | { type: 'task'; id: string; bucketId: string; via: 'pointer' | 'keyboard' }
@@ -153,9 +143,6 @@ export function Board({ groupId }: { groupId: string }) {
   const columns = grouped;
   const today = todayInBratislava();
   const noTasks = board.tasks.length === 0;
-  // "+ Add bucket" sits after the last custom bucket, or right after To do when there is none.
-  const lastCustom = buckets.findLastIndex((b) => b.kind === 'custom');
-  const addAfter = lastCustom >= 0 ? lastCustom : buckets.findIndex((b) => b.kind === 'todo');
   const liftedTask =
     dragging?.type === 'task' ? board.tasks.find((task) => task.id === dragging.id) : undefined;
   const liftedKind = buckets.find((b) => b.id === liftedTask?.bucketId)?.kind;
@@ -229,34 +216,28 @@ export function Board({ groupId }: { groupId: string }) {
           <SortableContext
             id="buckets"
             items={buckets.map((bucket) => bucketSortId(bucket.id))}
-            strategy={bucketStrategy}
+            strategy={horizontalListSortingStrategy}
           >
-            {buckets.map((bucket, index) => (
-              <div key={bucket.id} className="contents">
-                <BucketColumn
-                  bucket={bucket}
-                  title={bucketTitle(t, bucket, groupName)}
-                  tasks={grouped.get(bucket.id) ?? []}
-                  today={today}
-                  admin={admin}
-                  emptyText={
-                    noTasks && bucket.kind === 'todo'
-                      ? t('tasks.board.emptyBoard')
-                      : t('tasks.board.empty')
-                  }
-                  dragging={dragging?.type ?? null}
-                  dropMark={dropTarget?.bucketId === bucket.id ? dropTarget.mark : null}
-                  onToggleDone={onToggleDone}
-                />
-                {admin && index === addAfter && (
-                  // Kept in the layout but hidden while a bucket is dragged: columns slide over it.
-                  <div className={cn('contents', dragging?.type === 'bucket' && '[&>*]:invisible')}>
-                    <AddBucket groupId={groupId} />
-                  </div>
-                )}
-              </div>
+            {buckets.map((bucket) => (
+              <BucketColumn
+                key={bucket.id}
+                bucket={bucket}
+                title={bucketTitle(t, bucket, groupName)}
+                tasks={grouped.get(bucket.id) ?? []}
+                today={today}
+                admin={admin}
+                emptyText={
+                  noTasks && bucket.kind === 'todo'
+                    ? t('tasks.board.emptyBoard')
+                    : t('tasks.board.empty')
+                }
+                dragging={dragging?.type ?? null}
+                dropMark={dropTarget?.bucketId === bucket.id ? dropTarget.mark : null}
+                onToggleDone={onToggleDone}
+              />
             ))}
           </SortableContext>
+          {admin && <AddBucket groupId={groupId} />}
         </div>
         {/* The lifted card follows the pointer (or the arrow keys); no drop animation. */}
         <DragOverlay dropAnimation={null}>

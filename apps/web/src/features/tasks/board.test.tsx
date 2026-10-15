@@ -199,10 +199,32 @@ describe('Board', () => {
     expect(screen.getAllByRole('button', { name: /^More/ })).toHaveLength(1);
   });
 
+  it('puts "Add column" after the last bucket', async () => {
+    renderBoard();
+    const columns = await screen.findAllByRole('region');
+    const add = screen.getByRole('button', { name: 'Add column' });
+    expect(columns.at(-1)!.getAttribute('aria-label')).toBe('Completed');
+    expect(
+      columns.at(-1)!.compareDocumentPosition(add) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    for (const column of columns.slice(0, -1)) {
+      expect(column.compareDocumentPosition(add) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    }
+  });
+
+  it('gives admins a drag handle on every bucket, fixed ones included', async () => {
+    renderBoard();
+    await screen.findAllByRole('region');
+    for (const title of ['To do', 'My bucket', 'eGrant review', 'Acme review', 'Completed']) {
+      expect(screen.getByRole('button', { name: `Move ${title}` })).toBeInTheDocument();
+    }
+  });
+
   it('hides bucket management from a client', async () => {
     me = CLIENT;
     renderBoard();
     await screen.findAllByRole('region');
+    expect(screen.queryByRole('button', { name: /^Move / })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Add column' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /^More/ })).not.toBeInTheDocument();
   });
@@ -438,6 +460,15 @@ describe('Board', () => {
       expect(
         queryClient.getQueryData<BoardDto>(KEY)!.buckets.find((b) => b.id === 'b-custom')!.position,
       ).toBe('a7V');
+    });
+
+    it('moves a fixed bucket to the front with afterBucketId null', async () => {
+      const { queryClient } = renderBoard();
+      await screen.findAllByRole('region');
+      const update = vi.fn(async () => ({ ...BUCKETS[0]!, position: 'Zz' }));
+      await handleBucketDrop(queryClient, 'g1', 'b-done', null, update);
+      expect(update).toHaveBeenCalledWith('b-done', { afterBucketId: null });
+      await waitFor(() => expect(order()[0]).toBe('Completed'));
     });
 
     it('a failure puts it back and says so', async () => {

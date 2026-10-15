@@ -4,7 +4,7 @@ import { asc, eq } from 'drizzle-orm';
 import { createDb } from '../../infra/db/client.js';
 import { testDatabaseUrl } from '../../../test/test-config.js';
 import { createGroup } from '../groups/service.js';
-import { FIXED_POSITIONS, isCustomBucketPosition, keyAfter, keysAfter } from './positions.js';
+import { FIXED_POSITIONS, keyAfter, keysAfter } from './positions.js';
 import { buckets } from './schema.js';
 
 const { db, close } = createDb(testDatabaseUrl);
@@ -32,16 +32,6 @@ describe('positions', () => {
     expect([todo, egrant_review, client_review, done]).toEqual(
       [todo, egrant_review, client_review, done].sort(),
     );
-  });
-
-  it('isCustomBucketPosition accepts only keys strictly between To do and Completed', () => {
-    expect(isCustomBucketPosition('a0')).toBe(false);
-    expect(isCustomBucketPosition('a9')).toBe(false);
-    expect(isCustomBucketPosition('a5')).toBe(true);
-    expect(isCustomBucketPosition('a0V')).toBe(true);
-    expect(isCustomBucketPosition('a3')).toBe(false);
-    expect(isCustomBucketPosition('a6')).toBe(false);
-    expect(isCustomBucketPosition('Zz')).toBe(false);
   });
 
   it('positions sort byte-wise in SQL', async () => {

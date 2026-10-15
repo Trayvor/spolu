@@ -80,7 +80,8 @@ export const BucketCreateSchema = z.object({ name: bucketName });
 export type BucketCreate = z.infer<typeof BucketCreateSchema>;
 
 export const BucketPatchSchema = z
-  .object({ name: bucketName.optional(), afterBucketId: z.string().optional() })
+  // `afterBucketId: null` puts the bucket first.
+  .object({ name: bucketName.optional(), afterBucketId: z.string().nullable().optional() })
   .refine((v) => v.name !== undefined || v.afterBucketId !== undefined);
 export type BucketPatch = z.infer<typeof BucketPatchSchema>;
 

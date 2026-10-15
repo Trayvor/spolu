@@ -10,7 +10,7 @@ type BucketRow = typeof buckets.$inferSelect;
 /** The transaction handle drizzle passes to `db.transaction`. */
 export type Tx = Parameters<Parameters<Db['transaction']>[0]>[0];
 
-/** A fixed bucket (To do, eGrant review, Client review, Completed) cannot be renamed, moved or deleted. */
+/** A fixed bucket (To do, eGrant review, Client review, Completed) cannot be renamed or deleted. */
 export class FixedBucketError extends Error {
   constructor() {
     super('A fixed bucket cannot be changed');
@@ -18,7 +18,7 @@ export class FixedBucketError extends Error {
   }
 }
 
-/** `afterBucketId` is not a bucket of the same group, is the bucket itself, or is Completed. */
+/** `afterBucketId` is not a bucket of the same group, or is the bucket itself. */
 export class InvalidPlacementError extends Error {
   constructor() {
     super('A bucket cannot be placed after that bucket');
@@ -179,13 +179,14 @@ export async function createBucket(db: Db, groupId: string, name: string): Promi
 }
 
 /**
- * Renames and/or moves a custom bucket after `afterBucketId`. Null when the bucket is gone
- * (also when it was deleted while this call waited for the lock).
+ * Renames a custom bucket and/or moves any bucket, fixed ones included, after `afterBucketId`
+ * (null = first). Null when the bucket is gone (also when it was deleted while this call waited
+ * for the lock).
  */
 export async function updateBucket(
   db: Db,
   id: string,
-  patch: { name?: string; afterBucketId?: string },
+  patch: { name?: string; afterBucketId?: string | null },
 ): Promise<BucketDto | null> {
   const current = await getBucket(db, id);
   if (!current) return null;
@@ -193,13 +194,16 @@ export async function updateBucket(
     const rows = await lockGroupBuckets(tx, current.groupId);
     const bucket = rows.find((r) => r.id === id);
     if (!bucket) return null;
-    if (bucket.kind !== 'custom') throw new FixedBucketError();
+    if (patch.name !== undefined && bucket.kind !== 'custom') throw new FixedBucketError();
 
     const changes: { name?: string; position?: string } = {};
     if (patch.name !== undefined) changes.name = patch.name;
-    if (patch.afterBucketId !== undefined) {
+    if (patch.afterBucketId === null) {
+      const first = rows.find((r) => r.id !== id);
+      changes.position = keyAfter(null, first?.position ?? null);
+    } else if (patch.afterBucketId !== undefined) {
       const after = rows.find((r) => r.id === patch.afterBucketId);
-      if (!after || after.id === id || after.kind === 'done') throw new InvalidPlacementError();
+      if (!after || after.id === id) throw new InvalidPlacementError();
       const others = rows.filter((r) => r.id !== id);
       changes.position = keyAfter(after.position, nextPositionAfter(others, after.position));
     }

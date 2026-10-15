@@ -84,30 +84,22 @@ export function computeDoneToggle(
 }
 
 /**
- * Where a custom bucket lands when dropped on bucket `overId`, as the bucket it follows. It
- * moves like a sortable list, but always stays after To do and before Completed. Null for a
- * fixed bucket or when nothing changes.
+ * Where a bucket, fixed or custom, lands when dropped on bucket `overId`, as the bucket it follows
+ * (null = first). It moves like a sortable list: right lands after the target, left before it.
+ * Null when nothing changes.
  */
 export function computeBucketDrop(
   buckets: BucketDto[],
   activeId: string,
   overId: string,
-): { afterBucketId: string } | null {
+): { afterBucketId: string | null } | null {
   const sorted = [...buckets].sort(byPosition);
   const from = sorted.findIndex((b) => b.id === activeId);
   const to = sorted.findIndex((b) => b.id === overId);
-  if (from < 0 || to < 0 || sorted[from]!.kind !== 'custom') return null;
-
-  const others = sorted.filter((b) => b.id !== activeId);
-  let after: BucketDto | undefined;
-  if (sorted[to]!.kind === 'todo') after = sorted[to];
-  else if (sorted[to]!.kind === 'done') after = others.findLast((b) => b.kind !== 'done');
-  else {
-    const list = arrayMove(sorted, from, to);
-    after = list[list.indexOf(sorted[from]!) - 1];
-  }
-  if (!after || after.id === sorted[from - 1]?.id) return null;
-  return { afterBucketId: after.id };
+  if (from < 0 || to < 0 || from === to) return null;
+  const list = arrayMove(sorted, from, to);
+  const after = list[to - 1] ?? null;
+  return { afterBucketId: after?.id ?? null };
 }
 
 /** A card's vertical extent in its column. */
@@ -240,7 +232,7 @@ export async function handleTaskDrop(
 }
 
 /**
- * Applies a bucket drop: the column moves in the cache at once, then the server places it. A
+ * Applies a bucket drop (`afterBucketId` null = first): the column moves in the cache at once, then the server places it. A
  * failure puts it back unless a live event moved it meanwhile ("Could not save. Try again."); a
  * 404 reloads the board (it was deleted).
  */
@@ -248,16 +240,17 @@ export async function handleBucketDrop(
   queryClient: QueryClient,
   groupId: string,
   bucketId: string,
-  afterBucketId: string,
+  afterBucketId: string | null,
   update: (id: string, patch: BucketPatch) => Promise<BucketDto> = updateBucket,
 ): Promise<void> {
   const key = boardQuery(groupId).queryKey;
   const board = queryClient.getQueryData<BoardDto>(key);
   const before = board?.buckets.find((b) => b.id === bucketId);
-  const after = board?.buckets.find((b) => b.id === afterBucketId);
-  if (!board || !before || !after) return;
+  // null = first: the column goes before every other one.
+  const after = board?.buckets.find((b) => b.id === afterBucketId) ?? null;
+  if (!board || !before || (afterBucketId !== null && !after)) return;
   const next = board.buckets
-    .filter((b) => b.id !== bucketId && b.position > after.position)
+    .filter((b) => b.id !== bucketId && (after === null || b.position > after.position))
     .sort(byPosition)[0];
   const cached = () =>
     queryClient.getQueryData<BoardDto>(key)?.buckets.find((b) => b.id === bucketId);
@@ -272,7 +265,7 @@ export async function handleBucketDrop(
     );
 
   let reload = await pauseBoardFetch(queryClient, key);
-  const position = generateKeyBetween(after.position, next?.position ?? null);
+  const position = generateKeyBetween(after?.position ?? null, next?.position ?? null);
   replace({ ...before, position });
   try {
     replace(await update(bucketId, { afterBucketId }));

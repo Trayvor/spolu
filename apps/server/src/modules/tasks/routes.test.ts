@@ -161,15 +161,56 @@ describe('tasks API: board and buckets', () => {
       'done',
     ]);
 
-    const done = fixed.find((b) => b.kind === 'done')!;
     const bad = await call('PATCH', `/api/buckets/${bucket.id}`, cookie, {
-      afterBucketId: done.id,
+      afterBucketId: bucket.id,
     });
     expect(bad.statusCode).toBe(400);
     expect(bad.json()).toEqual({ error: 'validation_failed' });
 
     expect((await call('DELETE', `/api/buckets/${bucket.id}`, cookie)).statusCode).toBe(204);
     expect((await board(cookie, g.id)).buckets).toHaveLength(4);
+  });
+
+  it('admin reorders fixed buckets; everyone viewing gets board:buckets; a client gets 403', async () => {
+    const { cookie } = await adminSession();
+    const g = await newGroup();
+    const client = await clientIn(g.id);
+    const fixed = (await board(cookie, g.id)).buckets;
+    const done = fixed.find((b) => b.kind === 'done')!;
+    const todo = fixed.find((b) => b.kind === 'todo')!;
+    const socket = connect(baseUrl, {
+      transports: ['websocket'],
+      extraHeaders: { cookie: client.cookie },
+      reconnection: false,
+    });
+    sockets.push(socket);
+    await new Promise((resolve) => socket.once('connect', () => resolve(null)));
+    const received = new Promise<BoardBucketsEvent>((resolve) =>
+      socket.once(BoardEvents.buckets, resolve),
+    );
+
+    const refused = await call('PATCH', `/api/buckets/${done.id}`, client.cookie, {
+      afterBucketId: null,
+    });
+    expect(refused.statusCode).toBe(403);
+    expect(refused.json()).toEqual({ error: 'forbidden' });
+
+    const first = await call('PATCH', `/api/buckets/${done.id}`, cookie, { afterBucketId: null });
+    expect(first.statusCode).toBe(200);
+    const last = await call('PATCH', `/api/buckets/${todo.id}`, cookie, {
+      afterBucketId: fixed.find((b) => b.kind === 'client_review')!.id,
+    });
+    expect(last.statusCode).toBe(200);
+    const order = ['done', 'egrant_review', 'client_review', 'todo'];
+    expect((await board(client.cookie, g.id)).buckets.map((b) => b.kind)).toEqual(order);
+    const event = await received;
+    expect(event.groupId).toBe(g.id);
+    expect(event.buckets.map((b) => b.kind)).toEqual([
+      'done',
+      'todo',
+      'egrant_review',
+      'client_review',
+    ]);
   });
 
   it('PATCH or DELETE a fixed bucket → 400 fixed_bucket', async () => {

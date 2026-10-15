@@ -110,22 +110,22 @@ describe('computeBucketDrop', () => {
     expect(computeBucketDrop(buckets(), 'theirs', 'egrant')).toEqual({ afterBucketId: 'mine' });
   });
 
-  it('dropped on To do → after To do', () => {
-    expect(computeBucketDrop(buckets(), 'theirs', 'todo')).toEqual({ afterBucketId: 'todo' });
+  it('moving left onto the first bucket → first (afterBucketId null)', () => {
+    expect(computeBucketDrop(buckets(), 'theirs', 'todo')).toEqual({ afterBucketId: null });
   });
 
-  it('dropped on Completed → after the last bucket before Completed', () => {
-    expect(computeBucketDrop(buckets(), 'mine', 'done')).toEqual({ afterBucketId: 'client' });
+  it('moving right onto Completed → after Completed (last)', () => {
+    expect(computeBucketDrop(buckets(), 'mine', 'done')).toEqual({ afterBucketId: 'done' });
   });
 
-  it('a fixed bucket as active → null', () => {
-    expect(computeBucketDrop(buckets(), 'egrant', 'client')).toBeNull();
-    expect(computeBucketDrop(buckets(), 'todo', 'mine')).toBeNull();
+  it('fixed buckets move too', () => {
+    expect(computeBucketDrop(buckets(), 'done', 'todo')).toEqual({ afterBucketId: null });
+    expect(computeBucketDrop(buckets(), 'todo', 'egrant')).toEqual({ afterBucketId: 'egrant' });
+    expect(computeBucketDrop(buckets(), 'egrant', 'client')).toEqual({ afterBucketId: 'client' });
   });
 
   it('dropped where it already is → null', () => {
     expect(computeBucketDrop(buckets(), 'mine', 'mine')).toBeNull();
-    expect(computeBucketDrop(buckets(), 'mine', 'todo')).toBeNull();
   });
 });
 

@@ -6,7 +6,7 @@ Terms used across the docs and code, in alphabetical order.
 - **admin**: an eGrant team member. Sees all groups and can manage them. Created by the superadmin.
 - **ADR**: architecture decision record, a short file in `docs/decisions/` that records one decision and why it was made.
 - **API key**: a secret token that eGrant sends with each ticket request to prove who it is.
-- **bucket**: a column on a task board. Each group has four fixed buckets (To do, eGrant review, client review, Completed) and admins can add custom buckets between To do and Completed. Cards can be dragged between and inside buckets.
+- **bucket**: a column on a task board. Each group has four fixed buckets (To do, eGrant review, client review, Completed) and admins can add custom buckets and reorder every bucket, fixed ones included. Cards can be dragged between and inside buckets.
 - **channel**: a place where messages are posted. In Spolu: a group chat, a direct message chat or a task chat.
 - **client**: a person from a customer organization. Sees only their own group.
 - **contract**: a record of an agreement with a client (dates, amount, files, notes). Admin-only.

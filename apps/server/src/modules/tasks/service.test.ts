@@ -122,11 +122,29 @@ describe('custom buckets', () => {
     expect(list.at(-1)?.kind).toBe('done');
   });
 
-  it('updateBucket with afterBucketId of Completed → InvalidPlacementError', async () => {
+  it('updateBucket moves any bucket, fixed ones included: after Completed, or first with null', async () => {
     const group = await newGroup();
     const custom = await createBucket(db, group.id, 'Custom');
     const done = await bucketOf(group.id, 'done');
-    await expect(updateBucket(db, custom.id, { afterBucketId: done.id })).rejects.toBeInstanceOf(
+    const todo = await bucketOf(group.id, 'todo');
+    await updateBucket(db, custom.id, { afterBucketId: done.id });
+    await updateBucket(db, done.id, { afterBucketId: null });
+    const review = await bucketOf(group.id, 'egrant_review');
+    await updateBucket(db, todo.id, { afterBucketId: review.id });
+    expect(await kinds(group.id)).toEqual([
+      'done',
+      'egrant_review',
+      'todo',
+      'client_review',
+      'custom',
+    ]);
+  });
+
+  it("updateBucket after itself, another group's bucket or an unknown id → InvalidPlacementError", async () => {
+    const group = await newGroup();
+    const custom = await createBucket(db, group.id, 'Custom');
+    const todo = await bucketOf(group.id, 'todo');
+    await expect(updateBucket(db, todo.id, { afterBucketId: todo.id })).rejects.toBeInstanceOf(
       InvalidPlacementError,
     );
     await expect(updateBucket(db, custom.id, { afterBucketId: custom.id })).rejects.toBeInstanceOf(
@@ -146,6 +164,10 @@ describe('custom buckets', () => {
     const group = await newGroup();
     const todo = await bucketOf(group.id, 'todo');
     await expect(updateBucket(db, todo.id, { name: 'x' })).rejects.toBeInstanceOf(FixedBucketError);
+    const review = await bucketOf(group.id, 'egrant_review');
+    await expect(
+      updateBucket(db, todo.id, { name: 'x', afterBucketId: review.id }),
+    ).rejects.toBeInstanceOf(FixedBucketError);
     await expect(deleteBucket(db, todo.id)).rejects.toBeInstanceOf(FixedBucketError);
   });
 
