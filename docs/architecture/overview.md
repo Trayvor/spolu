@@ -34,6 +34,8 @@ flowchart TD
 
 **pg-boss workers.** Background jobs: sending email (with retries), later push notifications and contract reminders. The queue lives in PostgreSQL.
 
+**Email.** `createEmailSender(config.email)` in `apps/server/src/infra/email/` returns an `EmailSender` (`send({ to, cc?, subject, html, text })`). `EMAIL_DRIVER=smtp` uses nodemailer (Mailpit in dev and tests); `elastic` posts to the Elastic Email v4 transactional API. Failures throw `EmailSendError` (status and response text, never the API key). Built; the job queue that retries sends comes later.
+
 **Storage.** An interface (put, get, delete, signed URL). Today it writes files to a disk volume; switching to S3-compatible storage later means swapping the implementation.
 
 **PostgreSQL.** The single source of truth: all data plus the job queue. See [data-model.md](data-model.md).

@@ -7,7 +7,7 @@ import postgres from 'postgres';
 const migrationsFolder = fileURLToPath(new URL('./migrations', import.meta.url));
 
 export async function runMigrations(databaseUrl: string): Promise<void> {
-  const client = postgres(databaseUrl, { max: 1, connect_timeout: 5 });
+  const client = postgres(databaseUrl, { max: 1, connect_timeout: 5, onnotice: () => {} });
   try {
     await migrate(drizzle(client), { migrationsFolder });
   } finally {
