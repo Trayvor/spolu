@@ -95,3 +95,10 @@ export const CloseIcon = () => (
     <path d="M6 6l12 12M18 6 6 18" />
   </Icon>
 );
+
+/** A left chevron: back to the chat. */
+export const BackIcon = () => (
+  <Icon>
+    <path d="m15 18-6-6 6-6" />
+  </Icon>
+);

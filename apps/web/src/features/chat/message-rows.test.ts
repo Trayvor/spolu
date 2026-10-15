@@ -33,6 +33,11 @@ const messages = (rows: ReturnType<typeof buildRows>) =>
   rows.flatMap((r) => (r.kind === 'message' ? [r] : []));
 
 describe('buildRows', () => {
+  it('without a read cursor (thread panel) there is no new line', () => {
+    const rows = buildRows([msg({ at: at(14, 9) })], { ...opts, lastReadAt: undefined });
+    expect(rows.map((r) => r.kind)).toEqual(['day', 'message']);
+  });
+
   it('same author within 5 minutes hides the header', () => {
     const rows = messages(buildRows([msg({ at: at(14, 9) }), msg({ at: at(14, 9, 4) })], opts));
     expect(rows.map((r) => r.showHeader)).toEqual([true, false]);

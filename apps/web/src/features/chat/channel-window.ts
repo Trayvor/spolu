@@ -38,7 +38,8 @@ export type WindowAction =
   | { type: 'loadedOlder'; page: MessagePage }
   | { type: 'loadedNewer'; page: MessagePage }
   | { type: 'loadedAround'; page: AroundPage }
-  | { type: 'upsert'; messages: MessageDto[] }
+  /** `local`: a result of the reader's own edit or delete; it never moves `lastSeq`. */
+  | { type: 'upsert'; messages: MessageDto[]; local?: boolean }
   | { type: 'pendingAdded'; input: SendMessageInput }
   | { type: 'pendingFailed'; clientId: string }
   | { type: 'pendingRetried'; clientId: string }
@@ -106,8 +107,10 @@ function capKeepingNewest(state: ChannelWindow, messages: MessageDto[]): Channel
   return { ...state, messages: messages.slice(-MAX_IN_MEMORY), hasOlder: true };
 }
 
-function upsert(state: ChannelWindow, incoming: MessageDto[]): ChannelWindow {
-  const lastSeq = Math.max(state.lastSeq, ...incoming.map((m) => m.changeSeq));
+function upsert(state: ChannelWindow, incoming: MessageDto[], local: boolean): ChannelWindow {
+  const lastSeq = local
+    ? state.lastSeq
+    : Math.max(state.lastSeq, ...incoming.map((m) => m.changeSeq));
   const pending = settlePending(state.pending, incoming);
   const first = state.messages[0];
   const last = state.messages.at(-1);
@@ -167,7 +170,7 @@ export function windowReducer(state: ChannelWindow, action: WindowAction): Chann
         merge(state.messages, action.page.messages),
       );
     case 'upsert':
-      return upsert(state, action.messages);
+      return upsert(state, action.messages, action.local ?? false);
     case 'pendingAdded':
       return {
         ...state,

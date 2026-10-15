@@ -2,9 +2,9 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode }
 import { useTranslation } from 'react-i18next';
 import type { MessageDto } from '@spolu/shared';
 import { useGroupPeople } from '@/features/groups/use-group-people';
-import type { ChannelWindow, Pending } from './channel-window';
+import type { ChannelWindow } from './channel-window';
 import { MessageItem, type MessageAction } from './message-item';
-import { buildRows, localDay } from './message-rows';
+import { buildRows, localDay, pendingAsMessage } from './message-rows';
 
 export interface MessageListProps {
   window: ChannelWindow;
@@ -19,10 +19,15 @@ export interface MessageListProps {
   renderMessageFooter?: (message: MessageDto) => ReactNode;
   onOpenThread?: (message: MessageDto) => void;
   onRetry?: (clientId: string) => void;
-  /** Called when the list reaches or leaves the bottom (the conversation marks the chat read). */
+  /**
+   * Called when the list reaches or leaves the bottom (the conversation marks the chat read). The
+   * list starts at the bottom, unless it opens at `highlightId`.
+   */
   onAtBottomChange?: (atBottom: boolean) => void;
   /** An edit or delete of the reader's own message was answered; apply it to the window. Apply it to the window only: it must not move lastSeq or catch-up bookkeeping (a delete copy has a fabricated changeSeq and deletedAt). */
   onMessageChanged?: (message: MessageDto) => void;
+  /** A change of this value scrolls to the end and follows it again (the reader just sent). */
+  endSignal?: number;
 }
 
 /** Pixels from the end that still count as "at the end". */
@@ -41,7 +46,8 @@ function captureAnchor(el: HTMLElement | null): { id: string; offset: number } |
   return null;
 }
 
-function DayDivider({ date }: { date: string }) {
+/** A centred day label between two lines (main list and thread panel). */
+export function DayDivider({ date }: { date: string }) {
   const { t, i18n } = useTranslation();
   const label = useMemo(() => {
     const now = new Date();
@@ -91,6 +97,7 @@ export function MessageList({
   onRetry,
   onAtBottomChange,
   onMessageChanged,
+  endSignal = 0,
 }: MessageListProps) {
   const { t } = useTranslation();
   const people = useGroupPeople(groupId).data;
@@ -108,7 +115,7 @@ export function MessageList({
 
   // Follow the end while the reader is at the end; a link to a message starts away from it.
   const stick = useRef(!highlightId);
-  const [atBottom, setAtBottom] = useState(true);
+  const [atBottom, setAtBottom] = useState(!highlightId);
   const [unseen, setUnseen] = useState(false);
   /**
    * The first visible row and its offset, kept current by every scroll. When the first loaded
@@ -117,9 +124,14 @@ export function MessageList({
    */
   const anchor = useRef<{ id: string; offset: number } | null>(null);
 
+  const endSignalSeen = useRef(endSignal);
   useLayoutEffect(() => {
     const el = scroller.current;
     if (!el) return;
+    if (endSignal !== endSignalSeen.current) {
+      endSignalSeen.current = endSignal;
+      stick.current = true;
+    }
     if (stick.current) {
       el.scrollTop = el.scrollHeight;
       return;
@@ -128,7 +140,7 @@ export function MessageList({
     const row = kept && el.querySelector<HTMLElement>(`[data-message-id="${CSS.escape(kept.id)}"]`);
     if (kept && row) el.scrollTop = row.offsetTop - kept.offset;
     anchor.current = captureAnchor(el);
-  }, [firstId, lastId, pending.length, win.loaded]);
+  }, [firstId, lastId, pending.length, win.loaded, endSignal]);
 
   const seenLast = useRef(lastId);
   useEffect(() => {
@@ -175,24 +187,7 @@ export function MessageList({
 
   const me = people?.find((p) => p.id === meId);
   const lastMessage = win.messages.at(-1);
-  const pendingMessage = (p: Pending): MessageDto => ({
-    id: `pending:${p.clientId}`,
-    channelId: lastMessage?.channelId ?? '',
-    parentId: null,
-    replyToId: null,
-    author: { id: meId, name: me?.name ?? '', isAdmin: me?.isAdmin ?? false },
-    body: p.input.body,
-    mentions: [],
-    mentionsAll: false,
-    attachments: [],
-    clientId: p.clientId,
-    replyCount: 0,
-    lastReplyAt: null,
-    editedAt: null,
-    deletedAt: null,
-    createdAt: '',
-    changeSeq: 0,
-  });
+  const author = { id: meId, name: me?.name ?? '', isAdmin: me?.isAdmin ?? false };
 
   const empty = win.loaded && rows.length === 0 && pending.length === 0;
   const showJump = !atBottom && (unseen || win.hasNewer);
@@ -234,7 +229,7 @@ export function MessageList({
         {pending.map((p, i) => (
           <MessageItem
             key={p.clientId}
-            message={pendingMessage(p)}
+            message={pendingAsMessage(p, lastMessage?.channelId ?? '', author)}
             groupId={groupId}
             showHeader={i === 0 && lastMessage?.author.id !== meId}
             mentionsMe={false}

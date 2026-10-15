@@ -375,6 +375,26 @@ describe('useChannelMessages', () => {
     await waitFor(() => expect(changesCalls()).toEqual(['/api/channels/c1/changes?afterSeq=3']));
   });
 
+  it('applyLocal applies an own edit or delete without moving the catch-up seq', async () => {
+    const { result, rejoin, queryClient } = setup();
+    await waitFor(() => expect(result.current.window.loaded).toBe(true));
+    const thread: Thread = { root: msg(2), replies: [] };
+    queryClient.setQueryData(threadQuery('m2').queryKey, thread);
+    // The delete copy carries a made-up seq (changeSeq + 1); the edit answer a real but newer one.
+    act(() =>
+      result.current.applyLocal(msg(3, { deletedAt: '2026-10-15T11:00:00.000Z', changeSeq: 4 })),
+    );
+    act(() => result.current.applyLocal(msg(2, { body: 'edited', changeSeq: 9 })));
+    const messages = result.current.window.messages;
+    expect(messages[2]!.deletedAt).not.toBeNull();
+    expect(messages[1]!.body).toBe('edited');
+    expect(queryClient.getQueryData(threadQuery('m2').queryKey)?.root.body).toBe('edited');
+    expect(result.current.window.lastSeq).toBe(3);
+    // Catch-up still asks from the last server seq, so the real changes arrive.
+    rejoin(2);
+    await waitFor(() => expect(changesCalls()).toEqual(['/api/channels/c1/changes?afterSeq=3']));
+  });
+
   it('older pages never move the catch-up seq', async () => {
     fetchMock.mockImplementationOnce(async () =>
       json(200, { messages: [msg(3), msg(2)], hasMore: true, lastSeq: 3, lastReadAt: null }),

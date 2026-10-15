@@ -132,7 +132,14 @@
       "summary_one": "{{count}} reply, last at {{time}}",
       "summary_few": "{{count}} replies, last at {{time}}",
       "summary_many": "{{count}} replies, last at {{time}}",
-      "summary_other": "{{count}} replies, last at {{time}}"
+      "summary_other": "{{count}} replies, last at {{time}}",
+      "title": "Thread",
+      "close": "Close thread",
+      "back": "Back to chat",
+      "replies_one": "{{count}} reply",
+      "replies_few": "{{count}} replies",
+      "replies_many": "{{count}} replies",
+      "replies_other": "{{count}} replies"
     },
     "mention": {
       "all": "@all",
@@ -163,7 +170,9 @@
       "numberedList": "Numbered list",
       "quote": "Quote",
       "code": "Code"
-    }
+    },
+    "unread": "{{count}} unread messages",
+    "loadError": "The chat could not be loaded."
   },
   "tasks": {
     "placeholder": "The task board arrives in the next update."

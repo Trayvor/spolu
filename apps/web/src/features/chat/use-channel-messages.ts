@@ -88,16 +88,21 @@ export function useChannelMessages(
     joinsRef.current = joins;
   });
 
-  const apply = useCallback(
-    (incoming: MessageDto[]) => {
+  /**
+   * Puts messages into the window and the cached threads. Server changes (`local` false) also
+   * move the catch-up seq; a local result (`local` true) never does, because its `changeSeq` may
+   * be made up and the server's own change still has to arrive by event or catch-up.
+   */
+  const put = useCallback(
+    (incoming: MessageDto[], local: boolean) => {
       // An answer that arrives after a channel switch belongs to the old channel.
       const messages = incoming.filter((m) => m.channelId === channelRef.current);
       if (messages.length === 0) return;
-      dispatch({ type: 'upsert', messages });
+      dispatch({ type: 'upsert', messages, local });
       const readUpTo = windowRef.current.lastReadAt;
       let unreadDeleted = false;
       for (const m of messages) {
-        lastSeqRef.current = Math.max(lastSeqRef.current, m.changeSeq);
+        if (!local) lastSeqRef.current = Math.max(lastSeqRef.current, m.changeSeq);
         const { queryKey } = threadQuery(m.parentId ?? m.id);
         const thread = queryClient.getQueryData(queryKey);
         if (thread) {
@@ -117,6 +122,14 @@ export function useChannelMessages(
     },
     [queryClient, groupId],
   );
+  const apply = useCallback((incoming: MessageDto[]) => put(incoming, false), [put]);
+
+  /**
+   * Applies the answer to the reader's own edit (the updated message) or delete (a local copy
+   * marked deleted, with a made-up `changeSeq`). Seq-neutral: it never moves `lastSeq` or the
+   * catch-up bookkeeping.
+   */
+  const applyLocal = useCallback((message: MessageDto) => put([message], true), [put]);
 
   /**
    * Records the seq of a full page (latest or around) that just arrived. True when a live event
@@ -362,6 +375,7 @@ export function useChannelMessages(
     send,
     retry,
     markRead,
+    applyLocal,
     isLoading: !win.loaded && error === null,
     error,
   };

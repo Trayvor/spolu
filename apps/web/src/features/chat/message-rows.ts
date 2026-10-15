@@ -1,4 +1,5 @@
 import type { MessageDto } from '@spolu/shared';
+import type { Pending } from './channel-window';
 
 /** Messages by the same author closer than this stack without repeating avatar and name. */
 export const GROUPING_WINDOW_MS = 5 * 60_000;
@@ -20,17 +21,18 @@ export function localDay(time: string | Date): string {
  * The rows of a message run (oldest first): a day divider on every local day change, one "new"
  * line before the first message by someone else after `lastReadAt` (before the first one by
  * someone else when it is null), and per message whether it shows its header and whether it
- * mentions me. The main list and the thread panel both render these rows.
+ * mentions me. The main list and the thread panel both render these rows; the thread panel passes
+ * `lastReadAt: undefined`, which leaves the "new" line out.
  */
 export function buildRows(
   messages: MessageDto[],
-  opts: { lastReadAt: string | null; meId: string; now: Date },
+  opts: { lastReadAt: string | null | undefined; meId: string; now: Date },
 ): Row[] {
-  const readAt = opts.lastReadAt === null ? null : Date.parse(opts.lastReadAt);
+  const readAt = opts.lastReadAt == null ? null : Date.parse(opts.lastReadAt);
   const rows: Row[] = [];
   let prev: MessageDto | null = null;
   let day = '';
-  let newPlaced = false;
+  let newPlaced = opts.lastReadAt === undefined;
   for (const message of messages) {
     let separated = false;
     const messageDay = localDay(message.createdAt);
@@ -55,4 +57,30 @@ export function buildRows(
     prev = message;
   }
   return rows;
+}
+
+/** A message still being sent, shaped as a message row (no time, no actions). */
+export function pendingAsMessage(
+  p: Pending,
+  channelId: string,
+  author: MessageDto['author'],
+): MessageDto {
+  return {
+    id: `pending:${p.clientId}`,
+    channelId,
+    parentId: p.input.parentId ?? null,
+    replyToId: p.input.replyToId ?? null,
+    author,
+    body: p.input.body,
+    mentions: [],
+    mentionsAll: false,
+    attachments: [],
+    clientId: p.clientId,
+    replyCount: 0,
+    lastReplyAt: null,
+    editedAt: null,
+    deletedAt: null,
+    createdAt: '',
+    changeSeq: 0,
+  };
 }

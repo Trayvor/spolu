@@ -33,6 +33,8 @@ Spolu must feel instant: faster than Microsoft Teams on a cheap phone over mobil
 
 The initial JS that the browser downloads before showing the first screen: **200 kB gzip**, reported by the build. Today (Phase 3, groups and invites) it is about 193 kB: the entry chunk about 108 kB, the API client with zod and the session code about 48 kB (+3 kB: the router eagerly imports `features/groups/api` for the 404 loader), the router's shared chunks about 20 kB and 12 kB, and the i18n chunk 4 kB. `socket.io-client` (about 13 kB) stays out of it: only the lazy signed-in layout and the settings status card import it (there is no home screen).
 
+Phase 5 (group chat, measured 2026-10-15): initial JS about 195 kB gzip (entry chunk 170.7 kB, router chunks 19.7 kB and 0.6 kB, i18n 4.1 kB). The chat is the lazy `chat-tab` chunk, 17.1 kB gzip (conversation, list, composer, thread panel, formatter); the Chat tab badge and the groups list count only add the small chat `api.ts` and `unread.tsx` (under 1 kB gzip) to the lazy group layout and groups list chunks.
+
 Budget history: 150 kB → 175 kB (2026-10-15): the Radix dropdown menu for the header language selector (about +29 kB), which later menus reuse at no extra cost. 175 kB → 200 kB (2026-10-15, Phase 2): the session guard checks `/api/me` (validated with zod) before the first screen, so zod and the API client moved into the initial load (about +26 kB); every later screen needs them anyway, and the service worker caches them after the first visit.
 
 The budget is an **alarm, not a target to squeeze under**. When a change crosses it:
