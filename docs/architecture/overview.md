@@ -26,13 +26,13 @@ flowchart TD
 
 **Caddy.** The front door. It gets and renews HTTPS certificates automatically and forwards traffic to the app. Nothing else is exposed to the internet.
 
-**Fastify HTTP API.** The only way to change data. It validates input (zod), checks permissions, writes to the database in a transaction, and then tells Socket.IO what happened. Built so far: `buildApp` in `apps/server/src/app.ts`, `GET /api/health` (200 `ok`, or 503 `degraded` when PostgreSQL is unreachable; see `modules/system/`), and a JSON 404 `{"error":"not_found"}` for unknown `/api/*`.
+**Fastify HTTP API.** The only way to change data. It validates input (zod), checks permissions, writes to the database in a transaction, and then tells Socket.IO what happened. Built so far: `buildApp` in `apps/server/src/app.ts`, `GET /api/health` (200 `ok`, or 503 `degraded` when PostgreSQL is unreachable; see `modules/system/`), and one not-found handler: unknown `/api/*`, `/socket.io/*`, non-GET requests and file-like paths (a dot in the last segment, or anything under `/assets/`) answer JSON 404 `{"error":"not_found"}`; other GET/HEAD paths fall back to the web app when static serving is on.
 
 **Socket.IO.** Pushes events to browsers in real time (new message, edited task). Single instance, no Redis adapter. See [realtime.md](realtime.md).
 
-**Static web build.** The built React app, served by the same process, so there is no separate web server.
+**Static web build.** The built React app, served by the same process with `@fastify/static` (`registerStatic` in `apps/server/src/static.ts`), so there is no separate web server. Built; enabled when `WEB_DIST_DIR` is set (empty in dev, where Vite serves the web). Client routes such as `/settings` return `index.html` so deep links and refreshes work. `index.html` and other non-hashed files are sent with `Cache-Control: no-cache`; files under `/assets/` (Vite fingerprinted names) with `public, max-age=31536000, immutable`.
 
-**pg-boss workers.** Background jobs: sending email (with retries), later push notifications and contract reminders. The queue lives in PostgreSQL.
+**pg-boss workers.** Background jobs: sending email (with retries), later push notifications and contract reminders. The queue lives in PostgreSQL (schema `pgboss`, created on first start). Built: `startJobs(databaseUrl)` in `apps/server/src/infra/jobs/` starts pg-boss and returns it; queues are created with `boss.createQueue(name)` before `send`/`work`. No real jobs yet.
 
 **Email.** `createEmailSender(config.email)` in `apps/server/src/infra/email/` returns an `EmailSender` (`send({ to, cc?, subject, html, text })`). `EMAIL_DRIVER=smtp` uses nodemailer (Mailpit in dev and tests); `elastic` posts to the Elastic Email v4 transactional API. Failures throw `EmailSendError` (status and response text, never the API key). Built; the job queue that retries sends comes later.
 
@@ -41,6 +41,8 @@ flowchart TD
 **PostgreSQL.** The single source of truth: all data plus the job queue. See [data-model.md](data-model.md).
 
 Splitting workers into their own container later is a config change, not a rewrite. See [ADR 0005](../decisions/0005-single-process-deployment.md).
+
+**Boot and shutdown.** `apps/server/src/main.ts` runs: `loadConfig` (a `ConfigError` prints its message and exits 1) -> `runMigrations` -> `createDb` -> `startJobs` -> `buildApp` -> `registerStatic` (if `WEB_DIST_DIR`) -> `attachSocket` -> listen on `0.0.0.0:PORT`. On SIGTERM or SIGINT it closes Socket.IO and the HTTP server, stops pg-boss and closes the database pool; a second signal forces exit 1. `pnpm --filter @ehub/server build` bundles `src/main.ts` with tsup into `dist/main.js` (ESM, node24; `@ehub/shared` inlined, npm dependencies external) and copies the SQL migrations to `dist/migrations`, which is where `runMigrations` looks relative to the running file in both layouts. Run with `node dist/main.js`.
 
 ## Where code lives
 
