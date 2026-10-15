@@ -35,3 +35,4 @@ What gets easier, what gets harder.
 | [0009](0009-web-client-stack.md) | Web client stack | accepted |
 | [0010](0010-web-i18n.md) | Web i18n with i18next | accepted |
 | [0011](0011-pwa-with-vite-plugin-pwa.md) | Installable PWA with vite-plugin-pwa | accepted |
+| [0012](0012-dnd-kit-and-fractional-indexing.md) | dnd-kit and fractional-indexing for the task board | accepted |

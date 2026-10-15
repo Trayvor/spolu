@@ -135,7 +135,20 @@
       "error": "Could not save. Try again.",
       "loading": "Loading the board.",
       "loadFailed": "Could not load the board.",
-      "retry": "Try again"
+      "retry": "Try again",
+      "moveFailed": "The task could not be moved."
+    },
+    "dnd": {
+      "instructions": "To pick up a task, press Space. Use the arrow keys to move it and press Space again to drop it. Press Escape to cancel.",
+      "pickedUp": "Picked up {{title}}.",
+      "over": "{{title}} is over {{bucket}}.",
+      "dropped": "{{title}} was dropped in {{bucket}}.",
+      "cancelled": "Moving {{title}} was cancelled.",
+      "moveBucket": "Move {{title}}",
+      "bucketPickedUp": "Picked up the bucket {{title}}.",
+      "bucketOver": "The bucket {{title}} is over {{bucket}}.",
+      "bucketDropped": "The bucket {{title}} was dropped next to {{bucket}}.",
+      "bucketCancelled": "Moving the bucket {{title}} was cancelled."
     },
     "card": {
       "urgent": "Urgent",

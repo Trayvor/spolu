@@ -1,3 +1,4 @@
+import type { QueryClient } from '@tanstack/react-query';
 import type { BoardDto, BucketDto, TaskDto } from '@spolu/shared';
 import { byPosition } from './board-model';
 
@@ -25,4 +26,21 @@ export function replaceBuckets(
     board: { ...board, buckets: [...buckets].sort(byPosition) },
     removedBucket: board.buckets.some((b) => !kept.has(b.id)),
   };
+}
+
+/** A one-line message above the board, keyed under `tasks.board.*`. */
+export type BoardNotice = 'taskDeleted' | 'moveFailed' | 'error';
+
+/**
+ * The board's notice lives in the query cache next to the board, so code outside the board
+ * (a failed drop, the task panel) can show it. Never fetched; null hides it.
+ */
+export const boardNoticeKey = (groupId: string) => ['tasks', groupId, 'notice'] as const;
+
+export function showBoardNotice(
+  queryClient: QueryClient,
+  groupId: string,
+  notice: BoardNotice | null,
+): void {
+  queryClient.setQueryData<BoardNotice | null>(boardNoticeKey(groupId), notice);
 }

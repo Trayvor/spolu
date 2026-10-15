@@ -137,7 +137,20 @@
       "error": "Nepodarilo sa uložiť. Skúste to znova.",
       "loading": "Načítava sa nástenka.",
       "loadFailed": "Nástenku sa nepodarilo načítať.",
-      "retry": "Skúsiť znova"
+      "retry": "Skúsiť znova",
+      "moveFailed": "Úlohu sa nepodarilo presunúť."
+    },
+    "dnd": {
+      "instructions": "Úlohu zdvihnete medzerníkom. Šípkami ju presuniete a ďalším stlačením medzerníka ju položíte. Klávesom Escape presun zrušíte.",
+      "pickedUp": "Úloha {{title}} je zdvihnutá.",
+      "over": "Úloha {{title}} je nad stĺpcom {{bucket}}.",
+      "dropped": "Úloha {{title}} je položená v stĺpci {{bucket}}.",
+      "cancelled": "Presun úlohy {{title}} je zrušený.",
+      "moveBucket": "Presunúť stĺpec {{title}}",
+      "bucketPickedUp": "Stĺpec {{title}} je zdvihnutý.",
+      "bucketOver": "Stĺpec {{title}} je nad stĺpcom {{bucket}}.",
+      "bucketDropped": "Stĺpec {{title}} je položený vedľa stĺpca {{bucket}}.",
+      "bucketCancelled": "Presun stĺpca {{title}} je zrušený."
     },
     "card": {
       "urgent": "Urgentné",

@@ -10,7 +10,9 @@ import {
 } from '@tanstack/react-router';
 import type { BoardDto, BucketDto, TaskDto } from '@spolu/shared';
 import { i18n, setLanguage } from '@/i18n';
+import { ApiError } from '@/lib/api';
 import { Board } from './board';
+import { handleTaskDrop } from './drop';
 
 vi.mock('@/lib/socket', () => ({
   getSocket: () => ({ on: vi.fn(), off: vi.fn(), connected: false }),
@@ -80,7 +82,7 @@ function renderBoard() {
       <RouterProvider router={router as never} />
     </QueryClientProvider>,
   );
-  return userEvent.setup();
+  return Object.assign(userEvent.setup(), { queryClient });
 }
 
 beforeEach(() => {
@@ -271,5 +273,48 @@ describe('Board', () => {
         'DELETE /api/buckets/b-custom',
       ]),
     );
+  });
+
+  describe('drop', () => {
+    const DROP = { bucketId: 'b-egrant', afterTaskId: 't2', optimisticPosition: 'a1' };
+
+    async function dropWith(error: ApiError) {
+      board.tasks = [task('t1', 'b-todo', { position: 'a0' }), task('t2', 'b-egrant')];
+      const { queryClient } = renderBoard();
+      const columns = await screen.findAllByRole('region');
+      let fail!: (reason: unknown) => void;
+      const move = vi.fn(() => new Promise<TaskDto>((_, reject) => (fail = reject)));
+      const done = handleTaskDrop(queryClient, 'g1', 't1', DROP, move);
+      // Optimistic: the card is in eGrant review before the server answers.
+      await waitFor(() => expect(within(columns[2]!).getByText('Task t1')).toBeInTheDocument());
+      expect(within(columns[0]!).queryByText('Task t1')).not.toBeInTheDocument();
+      fail(error);
+      await done;
+      expect(move).toHaveBeenCalledWith('t1', { bucketId: 'b-egrant', afterTaskId: 't2' });
+      return columns;
+    }
+
+    it('a refused move restores the card to its bucket and shows the notice', async () => {
+      const columns = await dropWith(new ApiError('forbidden', 403, { error: 'forbidden' }));
+      expect(await within(columns[0]!).findByText('Task t1')).toBeInTheDocument();
+      expect(within(columns[2]!).queryByText('Task t1')).not.toBeInTheDocument();
+      expect(screen.getByRole('alert')).toHaveTextContent('The task could not be moved.');
+    });
+
+    it('a 404 removes the card and shows "This task was deleted."', async () => {
+      await dropWith(new ApiError('not_found', 404, { error: 'not_found' }));
+      await waitFor(() => expect(screen.queryByText('Task t1')).not.toBeInTheDocument());
+      expect(screen.getByRole('alert')).toHaveTextContent('This task was deleted.');
+    });
+
+    it('a successful move keeps the server copy', async () => {
+      board.tasks = [task('t1', 'b-todo', { position: 'a0' })];
+      const { queryClient } = renderBoard();
+      const columns = await screen.findAllByRole('region');
+      const move = vi.fn(async () => task('t1', 'b-done', { position: 'a0', title: 'Server' }));
+      await handleTaskDrop(queryClient, 'g1', 't1', { ...DROP, bucketId: 'b-done' }, move);
+      expect(await within(columns[4]!).findByText('Server')).toBeInTheDocument();
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    });
   });
 });

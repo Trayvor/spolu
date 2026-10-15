@@ -1,3 +1,4 @@
+import type { HTMLAttributes, Ref } from 'react';
 import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import type { BucketKind, TaskDto } from '@spolu/shared';
@@ -10,18 +11,26 @@ import { PaperclipIcon } from './icons';
 const MAX_AVATARS = 3;
 
 /**
- * One card on the board: a link to the task panel. Presentational only (no hooks besides i18n),
- * so the drag layer can wrap it without changing it.
+ * One card on the board: a link to the task panel. Presentational only (no hooks besides i18n):
+ * the board's drag layer passes its handle props and ref in, the card itself knows no dnd-kit.
  */
 export function TaskCard({
   task,
   bucketKind,
   today,
+  ref,
+  handleProps,
+  lifted,
 }: {
   task: TaskDto;
   bucketKind: BucketKind;
   /** Today's date in Bratislava (`YYYY-MM-DD`), passed down so a board renders one clock. */
   today: string;
+  ref?: Ref<HTMLAnchorElement>;
+  /** Drag listeners and `aria-describedby` (the drag instructions); the card stays a link. */
+  handleProps?: HTMLAttributes<HTMLAnchorElement>;
+  /** Set on the copy that follows the pointer or the arrow keys while the card is dragged. */
+  lifted?: 'pointer' | 'keyboard';
 }) {
   const { t, i18n } = useTranslation();
   const shown = task.assignees.slice(0, MAX_AVATARS);
@@ -34,7 +43,15 @@ export function TaskCard({
       // The task panel route is registered by the panel task; the cast goes away with it.
       to={'/groups/$groupId/tasks/$taskId' as never}
       params={{ groupId: task.groupId, taskId: task.id } as never}
-      className="flex flex-col items-start gap-2 rounded-lg bg-card p-3 text-left"
+      ref={ref}
+      {...handleProps}
+      className={cn(
+        // No callout or text selection on a long press: on touch that press starts a drag.
+        'flex select-none flex-col items-start gap-2 rounded-lg bg-card p-3 text-left [-webkit-touch-callout:none]',
+        lifted && 'cursor-grabbing shadow-lift',
+        // A card picked up with the keyboard keeps the focus ring on its lifted copy.
+        lifted === 'keyboard' && 'outline-2 outline-offset-3 outline-ring',
+      )}
     >
       {task.urgent && <Badge variant="destructive">{t('tasks.card.urgent')}</Badge>}
       <span
