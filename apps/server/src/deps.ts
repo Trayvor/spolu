@@ -37,7 +37,9 @@ export async function createDeps(
   // The reminder handlers send jobs themselves, but the queue exists only once the handlers do.
   const lateQueue: JobQueue = {
     send: (name, data, options) => {
-      return jobs.queue.send(name, data, options); // `jobs` is set before any handler runs
+      // Handlers only run after `startJobs` returned, so `jobs` is set by then.
+      if (!jobs) throw new Error('job queue not started');
+      return jobs.queue.send(name, data, options);
     },
   };
   const jobs = await startJobs(

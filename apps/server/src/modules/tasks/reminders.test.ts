@@ -207,9 +207,7 @@ describe('recordUrgentReminders', () => {
     const { addTask, events } = await setup();
     const { deps } = makeDeps();
     await addTask({ urgent: true, assignees: [] });
-    expect(
-      await recordUrgentReminders(deps, new Date('2026-10-16T06:00:00Z')),
-    ).toBeGreaterThanOrEqual(0);
+    await recordUrgentReminders(deps, new Date('2026-10-16T06:00:00Z'));
     expect(await events('task.urgent')).toHaveLength(0);
   });
 
