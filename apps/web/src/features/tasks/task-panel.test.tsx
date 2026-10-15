@@ -319,7 +319,13 @@ describe('TaskPanel', () => {
   it('renders the source message block with a link into the chat', async () => {
     detail = {
       ...detail,
-      sourceMessage: { id: 'm1', authorName: 'Eva', excerpt: 'Please send the budget' },
+      sourceMessage: {
+        id: 'm1',
+        channelId: 'c1',
+        taskId: null,
+        authorName: 'Eva',
+        excerpt: 'Please send the budget',
+      },
     };
     renderPanel();
     expect(await screen.findByText(t('tasks.panel.fromMessage'))).toBeInTheDocument();

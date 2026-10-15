@@ -37,6 +37,7 @@ function msg(over: Partial<MessageDto> = {}): MessageDto {
     deletedAt: null,
     createdAt: new Date(2026, 9, 14, 9, n).toISOString(),
     changeSeq: n,
+    tasks: [],
     ...over,
   };
 }

@@ -24,6 +24,7 @@ function msg(over: Partial<MessageDto> & { at: Date }): MessageDto {
     deletedAt: null,
     createdAt: at.toISOString(),
     changeSeq: n,
+    tasks: [],
     ...rest,
   };
 }

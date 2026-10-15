@@ -199,6 +199,7 @@ function DeleteConfirm({
         ...message,
         deletedAt: new Date().toISOString(),
         changeSeq: message.changeSeq + 1,
+        tasks: [],
       });
       onDone();
     } catch {

@@ -4,7 +4,9 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { io as connect, type Socket } from 'socket.io-client';
 import {
   BoardEvents,
+  ChatEvents,
   type BoardDto,
+  type ChatMessageTasksEvent,
   type BoardTaskDeletedEvent,
   type BoardTaskEvent,
   type FileInfo,
@@ -13,11 +15,14 @@ import {
 } from '@spolu/shared';
 import { buildTestApp } from '../../../test/test-app.js';
 import { loginAs } from '../../../test/login.js';
+import { sendMessage } from '../chat/messages.js';
+import { ensureGroupChannel } from '../chat/service.js';
 import { getFile } from '../files/service.js';
 import { addMember, createGroup } from '../groups/service.js';
 import { notificationEvents } from '../notifications/schema.js';
 import { user } from '../users/schema.js';
 import { addAdmin } from '../users/service.js';
+import { tasks } from './schema.js';
 
 // `deleteDetachedFiles` can be made to fail, to prove the post-commit cleanup never fails a write.
 const cleanup = vi.hoisted(() => ({ fail: false }));
@@ -425,6 +430,67 @@ describe('tasks API: tasks', () => {
     expect(await deleted).toEqual({ groupId: g.id, taskId: task.id });
   });
 
+  const move = (taskId: string, cookie: string, body: object) =>
+    call('POST', `/api/tasks/${taskId}/move`, cookie, body);
+
+  it('renaming, moving or deleting a task made from a message pushes chat:message_tasks', async () => {
+    const admin = await adminSession('Link Admin');
+    const g = await newGroup();
+    const client = await clientIn(g.id, 'Linda');
+    const channel = await ensureGroupChannel(test.deps.db, g.id);
+    const root = await sendMessage(test.deps, {
+      channel,
+      author: { id: client.id, email: client.email, name: 'Linda', role: 'client' },
+      data: { body: 'Do the report', clientId: randomUUID() },
+    });
+    const task = (await create(g.id, admin.cookie, { title: 'Report' })).json<TaskDetailDto>();
+    const plain = (await create(g.id, admin.cookie, { title: 'Plain' })).json<TaskDetailDto>();
+    await test.deps.db
+      .update(tasks)
+      .set({ sourceMessageId: root.message.id })
+      .where(eq(tasks.id, task.id));
+    const socket = await listen(client.cookie);
+    const received: ChatMessageTasksEvent[] = [];
+    socket.on(ChatEvents.messageTasks, (e: ChatMessageTasksEvent) => received.push(e));
+    const next = () =>
+      new Promise<ChatMessageTasksEvent>((resolve) =>
+        socket.once(ChatEvents.messageTasks, resolve),
+      );
+    const base = {
+      groupId: g.id,
+      channelId: channel.id,
+      messageId: root.message.id,
+      parentId: null,
+    };
+
+    let pushed = next();
+    await call('PATCH', `/api/tasks/${task.id}`, admin.cookie, {
+      title: 'Report v2',
+      updatedAt: task.updatedAt,
+    });
+    expect(await pushed).toEqual({
+      ...base,
+      tasks: [{ id: task.id, title: 'Report v2', completed: false }],
+    });
+
+    const done = (await board(admin.cookie, g.id)).buckets.find((b) => b.kind === 'done')!;
+    pushed = next();
+    await move(task.id, admin.cookie, { bucketId: done.id, afterTaskId: null });
+    expect((await pushed).tasks).toEqual([{ id: task.id, title: 'Report v2', completed: true }]);
+
+    // Tasks without a source message push nothing.
+    await call('PATCH', `/api/tasks/${plain.id}`, admin.cookie, {
+      title: 'Plain v2',
+      updatedAt: plain.updatedAt,
+    });
+    await call('DELETE', `/api/tasks/${plain.id}`, admin.cookie);
+
+    pushed = next();
+    await call('DELETE', `/api/tasks/${task.id}`, admin.cookie);
+    expect(await pushed).toEqual({ ...base, tasks: [] });
+    expect(received).toHaveLength(3);
+  });
+
   it('a failing file cleanup after the commit still answers 200/204 and emits the events', async () => {
     const g = await newGroup();
     const client = await clientIn(g.id);
@@ -458,9 +524,6 @@ describe('tasks API: tasks', () => {
       cleanup.fail = false;
     }
   });
-
-  const move = (taskId: string, cookie: string, body: object) =>
-    call('POST', `/api/tasks/${taskId}/move`, cookie, body);
 
   it("client moves a task (200) and others see board:task; another group's client → 404", async () => {
     const admin = await adminSession('Mover Admin');

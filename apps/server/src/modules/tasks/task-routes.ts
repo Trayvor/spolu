@@ -8,6 +8,8 @@ import {
   type SessionUser,
 } from '@spolu/shared';
 import type { AppDeps } from '../../deps.js';
+import { emitMessageTasks } from '../chat/events.js';
+import { messageTasksEvent } from '../chat/messages.js';
 import { requireUser } from '../auth/session.js';
 import { InvalidAttachmentError } from '../files/service.js';
 import { getMembershipGroupId } from '../groups/service.js';
@@ -79,6 +81,20 @@ export const taskRoutes: FastifyPluginAsync<TaskRoutesOptions> = async (
   const logCleanupError = (request: FastifyRequest) => (error: unknown) =>
     request.log.error({ err: error }, 'could not delete the files of a task');
 
+  /**
+   * After a write to a task made from a message: pushes that message's current task links, so
+   * open chats update its footer. A failure is logged; the write already succeeded.
+   */
+  const pushMessageTasks = async (request: FastifyRequest, messageId: string | null) => {
+    if (messageId === null) return;
+    try {
+      const event = await messageTasksEvent(db, messageId);
+      if (event) emitMessageTasks(app.io, event);
+    } catch (error) {
+      request.log.error({ err: error }, 'could not push the tasks of a message');
+    }
+  };
+
   /** The task's group and creator when the actor may use its board, else null (404). */
   const readableTask = async (actor: SessionUser, id: string) => {
     const ref = await getTaskRef(db, id);
@@ -119,6 +135,7 @@ export const taskRoutes: FastifyPluginAsync<TaskRoutesOptions> = async (
         onFileCleanupError: logCleanupError(request),
       });
       emitTask(app.io, toTaskDto(task), person(actor));
+      await pushMessageTasks(request, task.sourceMessageId);
       return task;
     } catch (error) {
       return writeError(reply, error);
@@ -133,7 +150,10 @@ export const taskRoutes: FastifyPluginAsync<TaskRoutesOptions> = async (
     if (!(await readableTask(actor, request.params.id))) return notFound(reply);
     try {
       const { task, moved } = await moveTask(deps, actor, request.params.id, body.data);
-      if (moved) emitTask(app.io, task, person(actor));
+      if (moved) {
+        emitTask(app.io, task, person(actor));
+        await pushMessageTasks(request, task.sourceMessageId);
+      }
       return task;
     } catch (error) {
       return writeError(reply, error);
@@ -146,10 +166,11 @@ export const taskRoutes: FastifyPluginAsync<TaskRoutesOptions> = async (
     if (!ref) return notFound(reply);
     if (!canDeleteTask(actor, ref)) return reply.code(403).send({ error: ErrorCodes.forbidden });
     try {
-      const { groupId } = await deleteTask(deps, request.params.id, {
+      const { groupId, sourceMessageId } = await deleteTask(deps, request.params.id, {
         onFileCleanupError: logCleanupError(request),
       });
       emitTaskDeleted(app.io, groupId, request.params.id);
+      await pushMessageTasks(request, sourceMessageId);
       return reply.code(204).send();
     } catch (error) {
       return writeError(reply, error);

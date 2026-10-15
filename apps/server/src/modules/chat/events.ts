@@ -2,6 +2,7 @@ import type { Server as SocketIOServer } from 'socket.io';
 import {
   ChatEvents,
   type ChatMessageEvent,
+  type ChatMessageTasksEvent,
   type ChatReadEvent,
   type ChatThreadReplyEvent,
   type MessageDto,
@@ -44,4 +45,9 @@ export function emitThreadReply(
   event: ChatThreadReplyEvent,
 ): void {
   if (userIds.length > 0) io.to(userIds.map(userRoom)).emit(ChatEvents.threadReply, event);
+}
+
+/** Pushes a message's current task links to its group room (its chat footer). Call after commit. */
+export function emitMessageTasks(io: SocketIOServer, event: ChatMessageTasksEvent): void {
+  emitToGroup(io, event.groupId, ChatEvents.messageTasks, event);
 }

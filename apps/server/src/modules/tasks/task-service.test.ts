@@ -11,8 +11,8 @@ import { createDb } from '../../infra/db/client.js';
 import { createDiskStorage } from '../../infra/storage/disk-storage.js';
 import type { Storage } from '../../infra/storage/index.js';
 import { testDatabaseUrl } from '../../../test/test-config.js';
-import { sendMessage } from '../chat/messages.js';
-import { ensureTaskChannel, getChannel } from '../chat/service.js';
+import { deleteMessage, getMessage, sendMessage } from '../chat/messages.js';
+import { ensureGroupChannel, ensureTaskChannel, getChannel } from '../chat/service.js';
 import * as filesService from '../files/service.js';
 import { createFile, getFile, InvalidAttachmentError } from '../files/service.js';
 import { addMember, createGroup } from '../groups/service.js';
@@ -229,6 +229,46 @@ describe('createTask', () => {
 describe('getTask', () => {
   it('null for an unknown id', async () => {
     expect(await getTask(db, randomUUID())).toBeNull();
+  });
+
+  it('getTask returns the source message with its channel', async () => {
+    const group = await newGroup();
+    const ana = await newClient(group.id, 'Ana');
+    const channel = await ensureGroupChannel(db, group.id);
+    const send = (body: string, on = channel) =>
+      sendMessage(deps as AppDeps, {
+        channel: on,
+        author: ana,
+        data: { body, clientId: randomUUID() },
+      });
+    const m = (await send('Do the report')).message;
+    const t = await createTask(deps, ana, group.id, { title: 'Report' });
+    await db.update(tasks).set({ sourceMessageId: m.id }).where(eq(tasks.id, t.id));
+    expect((await getTask(db, t.id))!.sourceMessage).toEqual({
+      id: m.id,
+      channelId: channel.id,
+      taskId: null,
+      authorName: 'Ana',
+      excerpt: 'Do the report',
+    });
+
+    // A message in another task's chat: mentions read as names, the chat's task is named.
+    const host = await createTask(deps, ana, group.id, { title: 'Host' });
+    const taskChannel = await ensureTaskChannel(db, host);
+    const inChat = (await send(`Ask <@${ana.id}>   and <@all> ${'x'.repeat(200)}`, taskChannel))
+      .message;
+    await db.update(tasks).set({ sourceMessageId: inChat.id }).where(eq(tasks.id, t.id));
+    const source = (await getTask(db, t.id))!.sourceMessage!;
+    expect(source).toMatchObject({ id: inChat.id, channelId: taskChannel.id, taskId: host.id });
+    expect(source.excerpt.startsWith('Ask @Ana and @all xxx')).toBe(true);
+    expect(source.excerpt).toHaveLength(141);
+
+    // A deleted message is no source any more.
+    await deleteMessage(deps as AppDeps, {
+      channel: taskChannel,
+      message: (await getMessage(db, inChat.id))!,
+    });
+    expect((await getTask(db, t.id))!.sourceMessage).toBeNull();
   });
 });
 

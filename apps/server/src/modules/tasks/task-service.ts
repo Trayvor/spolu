@@ -21,6 +21,7 @@ import {
   getFilesForGroup,
   type FileDeps,
 } from '../files/service.js';
+import { getSourceMessage } from '../chat/messages.js';
 import { taskChatFileIds } from '../chat/service.js';
 import { getGroup, isGroupPerson } from '../groups/service.js';
 import { recordNotifications } from '../notifications/service.js';
@@ -122,7 +123,10 @@ export async function getTaskRef(
   return row ?? null;
 }
 
-/** A task with description and files. `sourceMessage` is always null in this phase. */
+/**
+ * A task with description, files and the message it was made from (`sourceMessage`, null when
+ * there is none or it was deleted; the chat module builds it).
+ */
 export async function getTask(db: Db, id: string): Promise<TaskDetailDto | null> {
   // The board shape and the detail-only columns (description, attached file ids) in parallel.
   const [[task], [extra]] = await Promise.all([
@@ -139,8 +143,11 @@ export async function getTask(db: Db, id: string): Promise<TaskDetailDto | null>
       .where(eq(tasks.id, id)),
   ]);
   if (!task || !extra) return null;
-  const files = await getFilesForGroup(db, task.groupId, extra.fileIds);
-  return { ...task, description: extra.description, files, sourceMessage: null };
+  const [files, sourceMessage] = await Promise.all([
+    getFilesForGroup(db, task.groupId, extra.fileIds),
+    task.sourceMessageId === null ? null : getSourceMessage(db, task.sourceMessageId),
+  ]);
+  return { ...task, description: extra.description, files, sourceMessage };
 }
 
 /**

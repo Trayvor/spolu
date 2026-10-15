@@ -27,6 +27,7 @@ const message = (over: Partial<MessageDto> = {}): MessageDto => ({
   deletedAt: null,
   createdAt: '2026-10-14T09:00:00.000Z',
   changeSeq: 1,
+  tasks: [],
   ...over,
 });
 

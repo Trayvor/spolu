@@ -387,7 +387,8 @@ describe('toMessageDtos', () => {
       statements = 0;
       await toMessageDtos(counted, s.group.id, rows.slice(0, 1));
       expect(forFifty).toBe(statements);
-      expect(forFifty).toBe(3);
+      // Mentions, attachment rows and task links, then the files.
+      expect(forFifty).toBe(4);
     } finally {
       await client.end({ timeout: 1 });
     }
@@ -406,7 +407,13 @@ describe('toMessageDtos', () => {
       .where(eq(messages.id, message.id));
     const rows = await selectMessages(deps.db, inArray(messages.id, [message.id]), []);
     const [dto] = await toMessageDtos(deps.db, s.group.id, rows);
-    expect(dto).toMatchObject({ body: '', mentions: [], mentionsAll: false, attachments: [] });
+    expect(dto).toMatchObject({
+      body: '',
+      mentions: [],
+      mentionsAll: false,
+      attachments: [],
+      tasks: [],
+    });
     expect(dto!.deletedAt).not.toBeNull();
   });
 });
