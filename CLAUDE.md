@@ -41,6 +41,7 @@ Available now:
 - `bash scripts/check-docs.sh <base-ref>` — warns when code changed without docs.
 - `docker compose -f docker-compose.dev.yml up -d --wait` — local PostgreSQL 17 (5432) and Mailpit (SMTP 1025, UI 8025). Server tests need it running.
 - `pnpm --filter @ehub/server dev` — run the server with reload, reading the root `.env`; `... build` bundles it to `dist/`.
+- `pnpm --filter @ehub/web dev` — Vite dev server on :5173, proxying `/api` and `/socket.io` to the server on :3000; `... build` writes `apps/web/dist`; `... test` runs Vitest (jsdom).
 - `pnpm --filter @ehub/server db:generate` — generate a migration after changing a `schema.ts`.
 
 App commands (`pnpm test`, `pnpm test:e2e`, dev, build) arrive in Phase 1.
@@ -49,7 +50,7 @@ App commands (`pnpm test`, `pnpm test:e2e`, dev, build) arrive in Phase 1.
 
 - `docs/` — knowledge base: product requirements, architecture, ADRs, design, runbooks, roadmap, glossary.
 - `.claude/` — project settings, hooks and skills (`.claude/skills/<name>/SKILL.md`).
-- `apps/` — `server` (Fastify API, Socket.IO, jobs) and `web` (React PWA). Arrives in Phase 1.
+- `apps/` — `server` (Fastify API, Socket.IO, jobs) and `web` (React + Vite SPA; PWA parts arrive later in Phase 1).
 - `packages/` — `shared` (zod schemas and types used by server and web). Arrives in Phase 1.
 - `.env.example` — every environment variable with dev defaults; copy to `.env`.
 - `scripts/` — shell scripts that hold all CI/CD logic; CI only calls them. Starts with `check-docs.sh` (Phase 0).

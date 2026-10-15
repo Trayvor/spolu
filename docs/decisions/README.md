@@ -32,3 +32,4 @@ What gets easier, what gets harder.
 | [0006](0006-better-auth-email-otp.md) | better-auth with email OTP | accepted |
 | [0007](0007-egrant-design-via-frontend-design.md) | egrant.sk design via frontend-design | accepted |
 | [0008](0008-self-hosted-only.md) | Self-hosted only | accepted |
+| [0009](0009-web-client-stack.md) | Web client stack | accepted |

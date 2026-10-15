@@ -36,7 +36,7 @@ egrant.sk has **no dark mode** (no `prefers-color-scheme` rule anywhere). eHub h
 | `--muted-foreground` | `#6B6B6B` | `muted` | `.egrant-field__label`, placeholders, result counts |
 | `--accent` | `#E4E2DD` | `surface-2` | hover background of `.egrant-header__lang-option`, `.egrant-bottom-nav__item` |
 | `--accent-foreground` | `#141414` | `ink` | |
-| `--destructive` | `#E90000` | `error` | `.egrant-field--error .egrant-field__input` border, form error message |
+| `--destructive` | `#E90000` | `error` | `.egrant-field--error .egrant-field__input` border, filled destructive button or badge. **Fills and borders only; never as text color** (use `text-error-ink`) |
 | `--destructive-foreground` | `#FFFFFF` | — | text on a filled destructive button (egrant.sk has none; white chosen for contrast) |
 | `--border` | `#E3DEDA` | `line` | hairlines, `.egrant-challenge-card__bar` track |
 | `--input` | `#6B6B6B` | `custom.border.field` (`2px solid #6B6B6B`) | `.egrant-field__input` border at rest |
@@ -49,7 +49,7 @@ Extra colors (Tailwind names in brackets):
 | `--ink-hover` (`ink-hover`) | `#3B3A33` | `ink-hover` | filled button hover, card link hover text |
 | `--surface-3` (`surface-3`) | `#D6D2C8` | `surface-3` | hover of secondary (`.egrant-header__lang-toggle:hover`) |
 | `--neutral` (`neutral`) | `#5E5E5E` | `neutral` | link hover color (`a:hover` in global styles) |
-| `--error-ink` (`error-ink`) | `#D60004` | `error-ink` | error text inside an invalid field |
+| `--error-ink` (`error-ink`) | `#D60004` | `error-ink` | all error text: field messages, destructive menu items. Tailwind class `text-error-ink` (there is no `text-destructive` in components) |
 | `--success` (`success`) | `#007A37` | `green` | positive states (logo gradient stop) |
 | `--success-light` (`success-light`) | `#52C083` | `green-light` | |
 | `--brand-purple`, `--brand-pink`, `--brand-blue`, `--brand-coral` | `#7654FF`, `#EB5ED4`, `#3242DC`, `#FF8A4C` | `purple`, `pink`, `blue`, `coral` | logo gradient and illustration accents; use sparingly (avatars, labels), never as large fills |
@@ -126,12 +126,12 @@ egrant.sk spacing presets are 4, 8, 12, 16, 20, 24, 32, 40, 48, 54, 64px — all
 - Secondary: `bg-secondary`, hover `bg-surface-3` (`.egrant-header__lang-toggle`, "Odoberať výzvy").
 - Icon button: 38×38 circle, `bg-secondary` (language toggle) or `bg-primary` (modal close/back).
 - Full-width submit: primary, `w-full` (`.egrant-modal__submit`).
-- shadcn's default button uses `rounded-md`; eHub's button variant must use `rounded-full` to match.
+- shadcn's default button uses `rounded-md`; eHub's `src/components/ui/button.tsx` is already `rounded-full` with these variants (default, outline, secondary, ghost, link, destructive) and sizes (default 38px, sm, lg, icon). Badge is a pill too (extra `success` variant). Dropdown menu: `rounded-xl` panel, `rounded-lg` items, `shadow-lift`, no open/close animation.
 
 ### Input
 
 - `bg-card`, `border-2 border-input`, `rounded-md`, padding `13px 18px`, `text-button` weight 500, text and placeholder `text-muted-foreground`.
-- Focus, or once filled: border and text turn `ink`; no ring, no outline (`.egrant-field__input:focus { outline: none }`). For keyboard users eHub keeps the border change as the focus signal.
+- Focus, or once filled: border and text turn `ink`. egrant.sk removes the outline (`.egrant-field__input:focus { outline: none }`), but eHub **keeps the global `:focus-visible` ring** on inputs as well (accessibility); do not remove it.
 - Label above the field, gap 10px: `text-micro` weight 600 `text-muted-foreground`; turns `ink` when the field is focused or filled.
 - Error: border `destructive`, text and placeholder `error-ink`, message 8px under the field in `text-nano`/`text-micro`.
 - Select and search look the same as the input (2px border, 8px radius, chevron or search icon inside).

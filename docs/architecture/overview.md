@@ -22,7 +22,9 @@ flowchart TD
 
 ## The boxes
 
-**Browser / installed PWA.** The React web app. It can be installed on a phone or desktop. It talks to the server over HTTPS for all writes and over a WebSocket for live updates.
+**Browser / installed PWA.** The React web app. It can be installed on a phone or desktop (installability is not built yet). It talks to the server over HTTPS for all writes and over a WebSocket for live updates.
+
+The scaffold is built (`apps/web`): Vite, React, Tailwind v4 with the egrant theme (`src/styles/theme.css`), shadcn/ui components in `src/components/ui/` (button, card, badge, dropdown-menu; see [ADR 0009](../decisions/0009-web-client-stack.md)), TanStack Router with a code-based route tree in `src/router.tsx` (every screen is lazy-loaded, so each route is its own chunk) and TanStack Query (one `QueryClient`, `staleTime` 30 s, no refetch on window focus because realtime events keep data fresh). `src/lib/api.ts` has `apiGet(path, schema)`: it fetches `/api<path>` with cookies and parses the body with a zod schema whatever the status (so a 503 health body is returned), and rejects with `ApiError` on non-JSON or a mismatching body. `src/lib/socket.ts` has `getSocket()`, the single same-origin Socket.IO connection. Routes so far: `/` and `/settings`, both placeholders. UI strings are not translated yet (i18n is the next task).
 
 **Caddy.** The front door. It gets and renews HTTPS certificates automatically and forwards traffic to the app. Nothing else is exposed to the internet.
 
@@ -47,7 +49,7 @@ Splitting workers into their own container later is a config change, not a rewri
 ## Where code lives
 
 ```
-apps/web/             React + Vite app
+apps/web/             React + Vite app (src/routes, src/lib, src/components/ui, src/styles)
 apps/server/src/
   modules/            one folder per feature
     auth/ users/ groups/ chat/
