@@ -18,18 +18,28 @@ import { addAdmin, deactivateUser } from '../users/service.js';
 import { createBucket, deleteBucket, ensureBoard, getBoard, listBuckets } from './service.js';
 import {
   createTask as createTaskWith,
-  deleteTask,
+  deleteTask as deleteTaskWith,
   getTask,
   InvalidAssigneeError,
   moveTask,
   NotFoundError,
   TaskChangedError,
-  updateTask,
+  updateTask as updateTaskWith,
   ValidationError,
   type TaskDeps,
 } from './task-service.js';
 
 const { db, close } = createDb(testDatabaseUrl);
+// Cleanup failures must surface in tests.
+const cleanup = {
+  onFileCleanupError: (error: unknown) => {
+    throw error;
+  },
+};
+const updateTask = (
+  ...args: [TaskDeps, SessionUser, string, Parameters<typeof updateTaskWith>[3]]
+) => updateTaskWith(...args, cleanup);
+const deleteTask = (deps: TaskDeps, id: string) => deleteTaskWith(deps, id, cleanup);
 let dir: string;
 let storage: Storage;
 let deps: TaskDeps;

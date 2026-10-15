@@ -3,7 +3,7 @@ import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-quer
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { BoardDto, BucketDto, TaskDto } from '@spolu/shared';
 import { GroupRoomProvider } from '@/features/groups/use-group-room';
-import { boardQuery } from './api';
+import { boardQuery, taskQuery } from './api';
 import { useBoardEvents } from './use-board-events';
 
 const fake = vi.hoisted(() => {
@@ -122,5 +122,30 @@ describe('useBoardEvents', () => {
     expect(fetchBoard).toHaveBeenCalledTimes(1);
     view.rerender(tree(2));
     await waitFor(() => expect(fetchBoard).toHaveBeenCalledTimes(2));
+  });
+
+  it('invalidates a cached task detail when a newer board:task arrives', async () => {
+    render(tree(1));
+    await waitFor(() => expect(cached()).toBeDefined());
+    const key = taskQuery('t1').queryKey;
+    client.setQueryData(key, { ...task('t1'), description: '', files: [], sourceMessage: null });
+    act(() => fake.fire('board:task', { task: task('t1'), actor: { id: 'u2', name: 'Bo' } }));
+    expect(client.getQueryState(key)!.isInvalidated).toBe(false);
+    act(() =>
+      fake.fire('board:task', {
+        task: { ...task('t1'), updatedAt: '2026-10-16T10:00:00.000Z' },
+        actor: { id: 'u2', name: 'Bo' },
+      }),
+    );
+    expect(client.getQueryState(key)!.isInvalidated).toBe(true);
+  });
+
+  it('invalidates cached task details when the room is rejoined', async () => {
+    const view = render(tree(1));
+    await waitFor(() => expect(cached()).toBeDefined());
+    const key = taskQuery('t1').queryKey;
+    client.setQueryData(key, { ...task('t1'), description: '', files: [], sourceMessage: null });
+    view.rerender(tree(2));
+    await waitFor(() => expect(client.getQueryState(key)!.isInvalidated).toBe(true));
   });
 });

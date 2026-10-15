@@ -36,6 +36,7 @@ export function AssigneeSelect({
   const { t } = useTranslation();
   const people = useGroupPeople(groupId).data;
   const listId = useId();
+  const hintId = `${listId}-hint`;
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
@@ -122,10 +123,12 @@ export function AssigneeSelect({
           aria-activedescendant={
             showList && options[activeIndex] ? `${listId}-${options[activeIndex].id}` : undefined
           }
-          aria-describedby={describedBy}
+          aria-describedby={
+            [describedBy, full ? hintId : undefined].filter(Boolean).join(' ') || undefined
+          }
           aria-invalid={invalid || undefined}
           autoComplete="off"
-          disabled={full}
+          readOnly={full}
           placeholder={t('tasks.form.searchPeople')}
           value={query}
           onChange={(event) => {
@@ -137,6 +140,11 @@ export function AssigneeSelect({
           onBlur={() => setOpen(false)}
           onKeyDown={onKeyDown}
         />
+        {full && (
+          <p id={hintId} className="mt-1.5 text-tiny text-muted-foreground">
+            {t('tasks.form.errors.tooManyAssignees')}
+          </p>
+        )}
         <ul
           id={listId}
           role="listbox"

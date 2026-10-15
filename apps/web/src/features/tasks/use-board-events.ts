@@ -6,11 +6,15 @@ import {
   type BoardDto,
   type BoardTaskDeletedEvent,
   type BoardTaskEvent,
+  type TaskDetailDto,
 } from '@spolu/shared';
 import { useGroupRoomJoins } from '@/features/groups/use-group-room';
 import { getSocket } from '@/lib/socket';
-import { boardQuery } from './api';
+import { boardQuery, taskQuery } from './api';
 import { removeTask, replaceBuckets, upsertTask } from './board-cache';
+
+/** Prefix of every cached task detail (see `taskQuery`). */
+const TASK_DETAILS_KEY = ['tasks', 'task'] as const;
 
 /**
  * Applies the board events of the open group to the cached board. Room membership comes from
@@ -39,6 +43,11 @@ export function useBoardEvents(groupId: string): void {
       });
       // A card in a bucket we do not know would not render: reload the board.
       if (unknownBucket) void queryClient.invalidateQueries({ queryKey: key, exact: true });
+      // A cached task detail (open panel or one closed a moment ago) is now out of date.
+      const detailKey = taskQuery(task.id).queryKey;
+      const detail = queryClient.getQueryData<TaskDetailDto>(detailKey);
+      if (detail && detail.updatedAt !== task.updatedAt)
+        void queryClient.invalidateQueries({ queryKey: detailKey, exact: true });
     };
     const onTaskDeleted = (event: BoardTaskDeletedEvent) => {
       if (event.groupId === groupId) update((board) => removeTask(board, event.taskId));
@@ -69,5 +78,7 @@ export function useBoardEvents(groupId: string): void {
     if (seenJoins.current === joins) return;
     seenJoins.current = joins;
     void queryClient.invalidateQueries({ queryKey: boardQuery(groupId).queryKey, exact: true });
+    // Task details cached meanwhile may have missed events too (an open panel refetches).
+    void queryClient.invalidateQueries({ queryKey: TASK_DETAILS_KEY });
   }, [joins, groupId, queryClient]);
 }

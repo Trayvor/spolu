@@ -51,9 +51,10 @@ test('admin and client work on the same task board live', async ({ page: admin, 
     // The admin moves it with the keyboard: Space lifts, ArrowRight crosses a column, Space drops.
     await card('Rozpočet')(admin).focus();
     await admin.keyboard.press('Space');
-    // dnd-kit starts listening for the arrow keys a tick after the lift is announced.
+    // dnd-kit starts listening for the arrow keys in a timer queued before the announcement;
+    // a page-side 0 ms timer queued now fires after it.
     await expect(admin.getByText('Úloha Rozpočet je nad stĺpcom Na spracovanie.')).toBeAttached();
-    await admin.waitForTimeout(300);
+    await admin.evaluate(() => new Promise((resolve) => setTimeout(resolve, 0)));
     await admin.keyboard.press('ArrowRight');
     await expect(admin.getByText('Úloha Rozpočet je nad stĺpcom Kontrola eGrant.')).toBeAttached();
     await admin.keyboard.press('Space');

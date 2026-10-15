@@ -121,13 +121,29 @@ describe('TaskForm', () => {
     expect(await screen.findByText('Old Timer (removed)')).toBeInTheDocument();
   });
 
-  it('the 11th person cannot be chosen', async () => {
+  it('the 11th person cannot be chosen, but the field keeps focus and explains why', async () => {
     const user = renderForm({
       initial: { ...EMPTY_TASK_DRAFT, assigneeIds: PEOPLE.slice(0, 10).map((p) => p.id) },
     });
-    expect(screen.getByRole('combobox')).toBeDisabled();
-    await user.click(screen.getByRole('combobox'));
+    const combobox = screen.getByRole('combobox');
+    expect(combobox).not.toBeDisabled();
+    expect(combobox).toHaveAttribute('readonly');
+    expect(combobox).toHaveAccessibleDescription(t('tasks.form.errors.tooManyAssignees'));
+    await user.click(combobox);
+    expect(combobox).toHaveFocus();
     expect(screen.queryByRole('option')).not.toBeInTheDocument();
+  });
+
+  it('picking the 10th person keeps the keyboard focus on the field', async () => {
+    const user = renderForm({
+      initial: { ...EMPTY_TASK_DRAFT, assigneeIds: PEOPLE.slice(0, 9).map((p) => p.id) },
+    });
+    const combobox = screen.getByRole('combobox');
+    await user.click(combobox);
+    await screen.findAllByRole('option');
+    await user.keyboard('{Enter}');
+    expect(screen.getAllByRole('listitem').length).toBeGreaterThanOrEqual(10);
+    expect(combobox).toHaveFocus();
   });
 
   it('the urgent switch toggles value.urgent and aria-checked', async () => {

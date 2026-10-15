@@ -198,6 +198,7 @@ function TaskEditor({
   const dirty = !sameDraft(draft, toDraft(base));
   const latest = useRef({ dirty, base });
   const leaving = useRef(false);
+  const deleting = useRef(false);
   useEffect(() => {
     latest.current = { dirty, base };
   });
@@ -230,6 +231,17 @@ function TaskEditor({
     else applyVersion(fresh);
   };
 
+  // A newer version arrived through the query (a board event or a rejoin invalidated it):
+  // apply it to a clean form, ask when there are unsaved edits.
+  useEffect(() => {
+    const current = latest.current;
+    if (Date.parse(initial.updatedAt) <= Date.parse(current.base.updatedAt)) return;
+    if (current.dirty) setStale((s) => s ?? { by: null });
+    else applyVersion(initial);
+    // Only a new version matters; `applyVersion` only sets state.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initial.updatedAt]);
+
   const backToBoard = (replace = false) => {
     leaving.current = true;
     void navigate({ to: '/groups/$groupId/tasks', params: { groupId }, replace });
@@ -247,6 +259,8 @@ function TaskEditor({
     };
     const onDeleted = (event: BoardTaskDeletedEvent) => {
       if (event.groupId !== groupId || event.taskId !== latest.current.base.id) return;
+      // Our own delete: the socket frame can beat the HTTP answer, and we know already.
+      if (deleting.current) return;
       showBoardNotice(queryClient, groupId, 'taskDeleted');
       backToBoard(true);
     };
@@ -316,6 +330,7 @@ function TaskEditor({
   async function remove() {
     if (busy) return;
     setBusy(true);
+    deleting.current = true;
     try {
       await deleteTask(base.id);
       queryClient.setQueryData<BoardDto>(
@@ -325,6 +340,7 @@ function TaskEditor({
       queryClient.removeQueries({ queryKey: taskQuery(base.id).queryKey });
       backToBoard(true);
     } catch {
+      deleting.current = false;
       setErrors({ form: t('tasks.board.error') });
       setConfirmDelete(false);
       setBusy(false);

@@ -57,7 +57,7 @@ export class ValidationError extends Error {
 const MAX_ASSIGNEES = 10;
 
 /** Called when deleting removed files fails after the commit; the write itself has succeeded. */
-export type CleanupOptions = { onFileCleanupError?: (error: unknown) => void };
+export type CleanupOptions = { onFileCleanupError: (error: unknown) => void };
 
 /**
  * Post-commit file deletion is best effort: the task change is committed, so a failure here is
@@ -71,7 +71,7 @@ async function cleanUpFiles(
   try {
     await deleteFiles(deps, fileIds);
   } catch (error) {
-    options.onFileCleanupError?.(error);
+    options.onFileCleanupError(error);
   }
 }
 
@@ -209,7 +209,7 @@ export async function updateTask(
   actor: SessionUser,
   id: string,
   patch: TaskPatch,
-  options: CleanupOptions = {},
+  options: CleanupOptions,
 ): Promise<TaskDetailDto> {
   const { db } = deps;
   const expected = new Date(patch.updatedAt);
@@ -290,7 +290,7 @@ export async function updateTask(
 export async function deleteTask(
   deps: TaskDeps,
   id: string,
-  options: CleanupOptions = {},
+  options: CleanupOptions,
 ): Promise<{ groupId: string }> {
   const { db } = deps;
   const { groupId, fileIds } = await db.transaction(async (tx) => {

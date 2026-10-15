@@ -9,6 +9,9 @@ const postgres = createRequire(import.meta.dirname + '/../apps/server/package.js
 const adminUrl = process.env.ADMIN_DATABASE_URL ?? 'postgres://spolu:spolu@localhost:5432/spolu';
 const name = new URL(process.env.DATABASE_URL ?? 'postgres://x@h/spolu_e2e').pathname.slice(1);
 if (!/^[a-z0-9_]+$/i.test(name)) throw new Error(`Unsafe database name: ${name}`);
+// Never create or use the dev database by accident (an exported dev DATABASE_URL).
+if (!name.includes('e2e'))
+  throw new Error(`Refusing database "${name}": the e2e name must contain "e2e"`);
 
 const sql = postgres(adminUrl, { max: 1, onnotice: () => {} });
 try {

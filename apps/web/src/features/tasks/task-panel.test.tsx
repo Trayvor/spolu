@@ -6,6 +6,7 @@ import { RouterProvider, createBrowserHistory, createMemoryHistory } from '@tans
 import { BoardEvents, type BucketDto, type TaskDetailDto, type TaskDto } from '@spolu/shared';
 import { i18n, setLanguage } from '@/i18n';
 import { createAppRouter } from '@/router';
+import { taskQuery } from './api';
 
 const handlers = new Map<string, (payload: unknown) => void>();
 const socket = {
@@ -98,8 +99,9 @@ beforeEach(() => {
 });
 afterEach(() => vi.unstubAllGlobals());
 
-function renderPanel(path = '/groups/g1/tasks/t1') {
+function renderPanel(path = '/groups/g1/tasks/t1', seed?: (queryClient: QueryClient) => void) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  seed?.(queryClient);
   const router = createAppRouter(queryClient, createMemoryHistory({ initialEntries: [path] }));
   const user = userEvent.setup();
   render(
@@ -163,6 +165,67 @@ describe('TaskPanel', () => {
     act(() => handlers.get(BoardEvents.task)!({ task: again, actor: { id: 'u9', name: 'Jana' } }));
     await waitFor(() => expect(screen.getByLabelText(t('tasks.form.title'))).toHaveValue('Again'));
     expect(screen.queryByText('Changed by Jana just now.')).toBeNull();
+  });
+
+  it('a panel opened on a stale cached detail catches up when the refetch brings a newer one', async () => {
+    const old = { ...detail };
+    detail = { ...detail, title: 'Newer', updatedAt: '2026-10-16T09:00:00.000Z' };
+    renderPanel('/groups/g1/tasks/t1', (qc) => qc.setQueryData(taskQuery('t1').queryKey, old));
+    await waitFor(() => expect(screen.getByLabelText(t('tasks.form.title'))).toHaveValue('Newer'));
+    expect(screen.queryByText(t('tasks.panel.changedBySomeone'))).toBeNull();
+  });
+
+  it('a newer version arriving through a refetch while editing shows the notice, keeps edits', async () => {
+    const old = { ...detail };
+    detail = { ...detail, title: 'Newer', updatedAt: '2026-10-16T09:00:00.000Z' };
+    let release!: () => void;
+    const gate = new Promise<void>((r) => (release = r));
+    const inner = fetchMock.getMockImplementation() as (
+      url: string,
+      init?: RequestInit,
+    ) => Promise<Response>;
+    fetchMock.mockImplementation(async (url: string, init?: RequestInit) => {
+      if (url === '/api/tasks/t1' && !init?.method) await gate;
+      return inner(url, init);
+    });
+    const { user } = renderPanel('/groups/g1/tasks/t1', (qc) =>
+      qc.setQueryData(taskQuery('t1').queryKey, old),
+    );
+    await user.type(await titleField(), '!');
+    release();
+    expect(await screen.findByText(t('tasks.panel.changedBySomeone'))).toBeInTheDocument();
+    expect(screen.getByLabelText(t('tasks.form.title'))).toHaveValue('Task t1!');
+  });
+
+  it('catches up after a rejoin: the invalidated detail refetches and replaces a clean form', async () => {
+    let qc!: QueryClient;
+    renderPanel('/groups/g1/tasks/t1', (client) => (qc = client));
+    expect(await titleField()).toHaveValue('Task t1');
+    detail = { ...detail, title: 'After rejoin', updatedAt: '2026-10-16T09:00:00.000Z' };
+    await act(() => qc.invalidateQueries({ queryKey: ['tasks', 'task'] }));
+    await waitFor(() =>
+      expect(screen.getByLabelText(t('tasks.form.title'))).toHaveValue('After rejoin'),
+    );
+  });
+
+  it('deleting your own task does not show the "deleted" notice when the socket event comes first', async () => {
+    const { user, router } = renderPanel();
+    await titleField();
+    const inner = fetchMock.getMockImplementation() as (
+      url: string,
+      init?: RequestInit,
+    ) => Promise<Response>;
+    fetchMock.mockImplementation(async (url: string, init?: RequestInit) => {
+      if (url === '/api/tasks/t1' && init?.method === 'DELETE') {
+        act(() => handlers.get(BoardEvents.taskDeleted)!({ groupId: 'g1', taskId: 't1' }));
+      }
+      return inner(url, init);
+    });
+    await user.click(await screen.findByRole('button', { name: t('tasks.panel.more') }));
+    await user.click(await screen.findByRole('menuitem', { name: t('tasks.panel.delete') }));
+    await user.click(screen.getByRole('button', { name: t('tasks.panel.delete') }));
+    await waitFor(() => expect(router.state.location.pathname).toBe('/groups/g1/tasks'));
+    expect(screen.queryByText(t('tasks.board.taskDeleted'))).toBeNull();
   });
 
   it('choosing Completed posts the move after the last task there', async () => {
