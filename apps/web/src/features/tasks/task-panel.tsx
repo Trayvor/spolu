@@ -1,11 +1,4 @@
-import {
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-  type KeyboardEvent,
-  type ReactNode,
-} from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useBlocker, useNavigate, useParams } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
@@ -33,9 +26,10 @@ import { ApiError } from '@/lib/api';
 import { getSocket } from '@/lib/socket';
 import { boardQuery, deleteTask, moveTask, taskQuery, updateTask } from './api';
 import { removeTask, showBoardNotice, upsertTask } from './board-cache';
-import { bucketTitle, tasksByBucket } from './board-model';
+import { tasksByBucket } from './board-model';
 import { formatCreated } from './dates';
 import { MoreIcon } from './icons';
+import { BucketSelect, PanelHeader, PanelNotice, PanelShell } from './panel-parts';
 import { SourceMessage } from './source-message';
 import { TaskForm, validateTaskDraft, type TaskFormErrors } from './task-form';
 
@@ -91,35 +85,6 @@ export function TaskPanel({
     void navigate({ to: '/groups/$groupId/tasks', params: { groupId }, replace: true });
   }, [gone, groupId, navigate, queryClient]);
 
-  // Closing hands the focus back to the card that opened the panel (or the board if it is gone).
-  const panel = useRef<HTMLElement>(null);
-  useLayoutEffect(() => {
-    const element = panel.current;
-    return () => {
-      if (!element?.contains(document.activeElement)) return;
-      const card = document.querySelector<HTMLElement>(`[data-task-id="${CSS.escape(taskId)}"] a`);
-      const board = document.querySelector<HTMLElement>('[data-bucket-id]')?.parentElement;
-      if (card) card.focus();
-      else if (board) {
-        board.tabIndex = -1;
-        board.focus();
-      }
-    };
-  }, [taskId]);
-
-  // Escape closes, through the unsaved-changes guard; open menus and lists handle their own.
-  function onKeyDown(event: KeyboardEvent) {
-    const target = event.target as HTMLElement;
-    if (
-      event.key !== 'Escape' ||
-      event.defaultPrevented ||
-      target.closest('[role="menu"],[role="listbox"]') ||
-      target.getAttribute('aria-expanded') === 'true'
-    )
-      return;
-    void navigate({ to: '/groups/$groupId/tasks', params: { groupId } });
-  }
-
   let body: ReactNode = null;
   if (task && !gone) {
     body = (
@@ -155,14 +120,9 @@ export function TaskPanel({
   }
 
   return (
-    <aside
-      ref={panel}
-      onKeyDown={onKeyDown}
-      aria-label={t('tasks.panel.label')}
-      className="fixed inset-0 z-40 flex flex-col bg-background lg:left-auto lg:w-[560px] lg:border-l-2 lg:border-border"
-    >
+    <PanelShell groupId={groupId} taskId={taskId}>
       {body}
-    </aside>
+    </PanelShell>
   );
 }
 
@@ -354,50 +314,30 @@ function TaskEditor({
 
   return (
     <>
-      <header className="flex items-center gap-2 border-b-2 border-border px-4 py-3">
-        <Button variant="ghost" onClick={close} className="lg:hidden">
-          {t('tasks.panel.back')}
-        </Button>
-        <Button variant="ghost" onClick={close} className="max-lg:hidden">
-          {t('tasks.panel.close')}
-        </Button>
-        <div className="ml-auto flex items-center gap-2">
-          <label htmlFor="task-bucket" className="sr-only">
-            {t('tasks.panel.bucket')}
-          </label>
-          <select
-            id="task-bucket"
-            value={bucketOf?.id ?? ''}
-            disabled={!board || !bucketOf || moving}
-            onChange={(event) => void onBucket(event.target.value)}
-            className="h-[38px] max-w-52 rounded-full border-2 border-input bg-card px-4 text-button font-semibold text-foreground focus:border-foreground"
-          >
-            {board?.buckets.map((b) => (
-              <option key={b.id} value={b.id}>
-                {bucketTitle(t, b, group?.name ?? '')}
-              </option>
-            ))}
-          </select>
-          {canDelete && (
-            <DropdownMenu>
-              <DropdownMenuTrigger
-                aria-label={t('tasks.panel.more')}
-                className="flex size-8 shrink-0 items-center justify-center rounded-full hover:bg-accent"
-              >
-                <MoreIcon />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem
-                  onSelect={() => setConfirmDelete(true)}
-                  className="text-error-ink"
-                >
-                  {t('tasks.panel.delete')}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
-        </div>
-      </header>
+      <PanelHeader onClose={close}>
+        <BucketSelect
+          buckets={board?.buckets}
+          groupName={group?.name ?? ''}
+          value={bucketOf?.id ?? ''}
+          disabled={!board || !bucketOf || moving}
+          onChange={(bucketId) => void onBucket(bucketId)}
+        />
+        {canDelete && (
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              aria-label={t('tasks.panel.more')}
+              className="flex size-8 shrink-0 items-center justify-center rounded-full hover:bg-accent"
+            >
+              <MoreIcon />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onSelect={() => setConfirmDelete(true)} className="text-error-ink">
+                {t('tasks.panel.delete')}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+      </PanelHeader>
 
       <div className="shrink-0 space-y-2 px-6 pt-3 empty:hidden">
         {blocker.status === 'blocked' && (
@@ -489,15 +429,5 @@ function TaskEditor({
         })}
       </footer>
     </>
-  );
-}
-
-/** An inline bar above the form: a question or a warning with its actions. */
-function PanelNotice({ text, children }: { text: string; children: ReactNode }) {
-  return (
-    <div role="alert" className="flex flex-wrap items-center gap-3 rounded-lg bg-secondary p-3">
-      <p className="mr-auto text-button font-semibold">{text}</p>
-      {children}
-    </div>
   );
 }

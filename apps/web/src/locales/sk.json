@@ -187,7 +187,6 @@
     "board": {
       "taskDeleted": "Táto úloha bola odstránená.",
       "addTask": "Pridať úlohu",
-      "taskTitle": "Názov úlohy",
       "addBucket": "Pridať stĺpec",
       "bucketName": "Názov stĺpca",
       "empty": "Zatiaľ tu nič nie je.",
@@ -278,7 +277,9 @@
       "discard": "Zahodiť",
       "keepEditing": "Pokračovať v úpravách",
       "fromMessage": "Vytvorené zo správy",
-      "openMessage": "Otvoriť v chate"
+      "openMessage": "Otvoriť v chate",
+      "newTask": "Nová úloha",
+      "create": "Vytvoriť"
     }
   },
   "groups": {

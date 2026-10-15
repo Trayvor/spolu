@@ -74,6 +74,7 @@ export function TaskForm({
   files,
   onFilesChange,
   knownPeople,
+  autoFocusTitle = false,
 }: {
   value: TaskDraft;
   onChange: (next: TaskDraft) => void;
@@ -84,6 +85,8 @@ export function TaskForm({
   onFilesChange: (next: FileInfo[]) => void;
   /** Assignees who may no longer be group people; shown as "Name (removed)". */
   knownPeople?: TaskPerson[];
+  /** Focus the title on mount (the create panel). */
+  autoFocusTitle?: boolean;
 }) {
   const { t } = useTranslation();
   const uid = useId();
@@ -110,6 +113,7 @@ export function TaskForm({
         <Label htmlFor={id('title')}>{t('tasks.form.title')}</Label>
         <Input
           id={id('title')}
+          autoFocus={autoFocusTitle}
           value={value.title}
           maxLength={200}
           aria-invalid={!!errors.title || undefined}

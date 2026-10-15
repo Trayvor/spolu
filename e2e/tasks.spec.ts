@@ -42,9 +42,11 @@ test('admin and client work on the same task board live', async ({ page: admin, 
     await expect(bucket(client, 'Na spracovanie')).toBeVisible();
 
     // The client adds a card; the admin sees it without reloading.
-    await client.getByRole('button', { name: 'Pridať úlohu' }).first().click();
-    await client.getByLabel('Názov úlohy').fill('Rozpočet');
-    await client.getByLabel('Názov úlohy').press('Enter');
+    await client.getByRole('link', { name: 'Pridať úlohu' }).first().click();
+    const newPanel = client.getByRole('complementary', { name: 'Úloha' });
+    await newPanel.getByLabel('Názov', { exact: true }).fill('Rozpočet');
+    await newPanel.getByRole('button', { name: 'Vytvoriť' }).click();
+    await expect(newPanel).toHaveCount(0);
     await expect(bucket(client, 'Na spracovanie').getByText('Rozpočet')).toBeVisible();
     await expect(bucket(admin, 'Na spracovanie').getByText('Rozpočet')).toBeVisible();
 

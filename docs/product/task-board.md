@@ -13,6 +13,7 @@ Each group has a Kanban board with four fixed buckets (columns) and custom bucke
 - **Custom buckets**: admins create, rename, delete and reorder them; they always sit between To do and Completed. Deleting a custom bucket moves its tasks to To do.
 - **Drag & drop** of tasks between buckets and inside a bucket.
 - **Clients and admins** create, edit and move tasks. Only admins manage buckets.
+- **New task**: "Add task" in a column opens the full task form (every field) with that column chosen; nothing is saved until "Create", and closing discards the draft.
 - Realtime: changes by other users are visible immediately.
 - **Task card:**
   - title;

@@ -92,6 +92,16 @@ beforeEach(() => {
       return reply(200, { ...detail, ...body, updatedAt: '2026-10-16T10:00:00.000Z' });
     }
     if (url === '/api/tasks/t1/move') return reply(200, card('t1', 'b-done'));
+    if (url === '/api/groups/g1/tasks' && method === 'POST') {
+      const body = JSON.parse(init!.body as string);
+      return reply(201, {
+        ...card('t2', body.bucketId),
+        title: body.title,
+        description: body.description,
+        files: [],
+        sourceMessage: null,
+      });
+    }
     if (url === '/api/tasks/t1' && method === 'DELETE') return reply(204);
     return reply(404, { error: 'not_found' });
   });
@@ -352,5 +362,69 @@ describe('TaskPanel', () => {
     expect(unload()).toBe(false);
     await user.type(input, '!');
     expect(unload()).toBe(true);
+  });
+});
+
+describe('TaskPanel in create mode', () => {
+  const NEW = '/groups/g1/tasks/new?bucket=b-done';
+  const createButton = () => screen.getByRole('button', { name: t('tasks.panel.create') });
+
+  it('shows every field empty, the bucket preselected, and saves nothing before Create', async () => {
+    renderPanel(NEW);
+    expect(await titleField()).toHaveValue('');
+    expect(screen.getByRole('heading', { name: t('tasks.panel.newTask') })).toBeInTheDocument();
+    expect(screen.getByLabelText(t('tasks.form.description'))).toHaveValue('');
+    expect(screen.getByRole('combobox', { name: t('tasks.form.assignees') })).toBeInTheDocument();
+    expect(screen.getByLabelText(t('tasks.form.deadline'))).toBeInTheDocument();
+    expect(screen.getByRole('switch', { name: t('tasks.form.urgent') })).toBeInTheDocument();
+    expect(screen.getByText(t('tasks.form.files'))).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByLabelText(t('tasks.panel.bucket'))).toHaveValue('b-done'),
+    );
+    expect(createButton()).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: t('tasks.panel.more') })).toBeNull();
+    expect(calls('POST', '/api/groups/g1/tasks')).toHaveLength(0);
+  });
+
+  it('Create posts the whole draft to the chosen bucket and returns to the board', async () => {
+    const { user, router } = renderPanel(NEW);
+    await user.type(await titleField(), 'Budget');
+    await user.type(screen.getByLabelText(t('tasks.form.description')), 'Check **totals**');
+    await user.click(screen.getByRole('switch', { name: t('tasks.form.urgent') }));
+    await waitFor(() => expect(screen.getByLabelText(t('tasks.panel.bucket'))).toBeEnabled());
+    await user.selectOptions(screen.getByLabelText(t('tasks.panel.bucket')), 'b-todo');
+    await user.click(createButton());
+    await waitFor(() => expect(calls('POST', '/api/groups/g1/tasks')).toHaveLength(1));
+    const body = JSON.parse(
+      (calls('POST', '/api/groups/g1/tasks')[0]![1] as RequestInit).body as string,
+    );
+    expect(body).toEqual({
+      title: 'Budget',
+      description: 'Check **totals**',
+      assigneeIds: [],
+      dueDate: null,
+      urgent: true,
+      fileIds: [],
+      bucketId: 'b-todo',
+    });
+    await waitFor(() => expect(router.state.location.pathname).toBe('/groups/g1/tasks'));
+    expect(await screen.findByRole('link', { name: /Budget/ })).toBeInTheDocument();
+  });
+
+  it('an empty title shows the error and posts nothing', async () => {
+    const { user } = renderPanel(NEW);
+    await titleField();
+    await user.click(createButton());
+    expect(await screen.findByText(t('tasks.form.errors.titleRequired'))).toBeInTheDocument();
+    expect(calls('POST', '/api/groups/g1/tasks')).toHaveLength(0);
+  });
+
+  it('closing discards the draft without asking', async () => {
+    const { user, router } = renderPanel(NEW);
+    await user.type(await titleField(), 'Draft');
+    await user.click(screen.getByRole('button', { name: t('tasks.panel.close') }));
+    await waitFor(() => expect(router.state.location.pathname).toBe('/groups/g1/tasks'));
+    expect(screen.queryByText(t('tasks.panel.unsaved'))).toBeNull();
+    expect(calls('POST', '/api/groups/g1/tasks')).toHaveLength(0);
   });
 });

@@ -2,12 +2,12 @@ import { useRef, useState, type CSSProperties, type KeyboardEvent } from 'react'
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { useQueryClient } from '@tanstack/react-query';
+import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import type { BoardDto, BucketDto, TaskDto } from '@spolu/shared';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
-import { AddTaskInline } from './add-task-inline';
 import { boardQuery, deleteBucket, updateBucket } from './api';
 import { byPosition } from './board-model';
 import { BucketMenu } from './bucket-menu';
@@ -332,7 +332,15 @@ export function BucketColumn({
         )}
       </ul>
 
-      <AddTaskInline groupId={bucket.groupId} bucketId={bucket.id} />
+      <Link
+        to="/groups/$groupId/tasks/new"
+        params={{ groupId: bucket.groupId }}
+        search={{ bucket: bucket.id }}
+        className="rounded-lg px-3 py-2 text-left text-button font-semibold text-muted-foreground hover:bg-accent hover:text-foreground"
+      >
+        <span aria-hidden="true">+ </span>
+        {t('tasks.board.addTask')}
+      </Link>
     </section>
   );
 }

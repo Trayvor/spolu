@@ -173,28 +173,24 @@ describe('Board', () => {
     expect(within(card).getByText('+1')).toBeInTheDocument();
   });
 
-  it('inline add: Enter posts { title, bucketId } and the card appears; Esc cancels', async () => {
-    const user = renderBoard();
-    const todo = (await screen.findAllByRole('region'))[0]!;
-    await user.click(within(todo).getByRole('button', { name: 'Add task' }));
-    await user.type(screen.getByLabelText('Task title'), 'Write brief{Enter}');
-    expect(await screen.findByText('Write brief')).toBeInTheDocument();
-    const post = writes().find(([url]) => url === '/api/groups/g1/tasks')!;
-    expect(JSON.parse((post[1] as RequestInit).body as string)).toMatchObject({
-      title: 'Write brief',
-      bucketId: 'b-todo',
-    });
-
-    const before = writes().length;
-    await user.type(screen.getByLabelText('Task title'), 'Nope{Escape}');
-    expect(screen.queryByLabelText('Task title')).not.toBeInTheDocument();
-    expect(writes()).toHaveLength(before);
+  it('"Add task" links to the create panel with the bucket preselected', async () => {
+    renderBoard();
+    const columns = await screen.findAllByRole('region');
+    expect(within(columns[0]!).getByRole('link', { name: 'Add task' })).toHaveAttribute(
+      'href',
+      '/groups/g1/tasks/new?bucket=b-todo',
+    );
+    expect(within(columns[4]!).getByRole('link', { name: 'Add task' })).toHaveAttribute(
+      'href',
+      '/groups/g1/tasks/new?bucket=b-done',
+    );
+    expect(screen.queryByLabelText('Task title')).toBeNull();
   });
 
   it('shows Add bucket and the custom bucket menu to admins, neither to a client', async () => {
     renderBoard();
     await screen.findAllByRole('region');
-    expect(screen.getByRole('button', { name: 'Add bucket' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Add column' })).toBeInTheDocument();
     expect(screen.getAllByRole('button', { name: /^More/ })).toHaveLength(1);
   });
 
@@ -202,7 +198,7 @@ describe('Board', () => {
     me = CLIENT;
     renderBoard();
     await screen.findAllByRole('region');
-    expect(screen.queryByRole('button', { name: 'Add bucket' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Add column' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /^More/ })).not.toBeInTheDocument();
   });
 

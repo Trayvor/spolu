@@ -185,8 +185,7 @@
     "board": {
       "taskDeleted": "This task was deleted.",
       "addTask": "Add task",
-      "taskTitle": "Task title",
-      "addBucket": "Add bucket",
+      "addBucket": "Add column",
       "bucketName": "Bucket name",
       "empty": "Nothing here yet.",
       "emptyBoard": "Add the first task for this group.",
@@ -272,7 +271,9 @@
       "discard": "Discard",
       "keepEditing": "Keep editing",
       "fromMessage": "Created from a message",
-      "openMessage": "Open in chat"
+      "openMessage": "Open in chat",
+      "newTask": "New task",
+      "create": "Create"
     }
   },
   "groups": {
