@@ -31,7 +31,9 @@ Spolu must feel instant: faster than Microsoft Teams on a cheap phone over mobil
 
 ## Bundle budget
 
-The initial JS that the browser downloads before showing the first screen: **150 kB gzip**, reported by the build. Today (Phase 1, shell page) it is about 121 kB: the entry chunk 115 kB plus two small shared chunks.
+The initial JS that the browser downloads before showing the first screen: **175 kB gzip**, reported by the build. Today (Phase 1, shell page) it is about 158 kB: the entry chunk 152 kB plus two small shared chunks (the `useTranslation` chunk 5.6 kB and the runtime 0.4 kB).
+
+Budget history: 150 kB → 175 kB (2026-10-15): the Radix dropdown menu for the header language selector (about +29 kB), which later menus reuse at no extra cost.
 
 The budget is an **alarm, not a target to squeeze under**. When a change crosses it:
 

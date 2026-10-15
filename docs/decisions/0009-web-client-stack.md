@@ -9,7 +9,7 @@ The web app needs a build tool, router, data layer and component base. Owner pri
 ## Decision
 - Vite with `@vitejs/plugin-react`; Tailwind CSS v4 through `@tailwindcss/vite` (no PostCSS config).
 - TanStack Router (code-based route tree, lazy routes) and TanStack Query for server state.
-- shadcn/ui components copied into `src/components/ui/` (they depend on `radix-ui` primitives, `class-variance-authority`, `clsx`, `tailwind-merge`). Their classes are trimmed to the egrant tokens (dropdown-menu was removed as unused; re-add it with `pnpm dlx shadcn@latest add dropdown-menu` when a screen needs it); animations and the icon library (`lucide-react`) are left out.
+- shadcn/ui components copied into `src/components/ui/` (they depend on `radix-ui` primitives, `class-variance-authority`, `clsx`, `tailwind-merge`). Their classes are trimmed to the egrant tokens (dropdown-menu is the header language selector, trimmed to the items it needs, with inline SVG icons; the shadcn CLI may resolve the `cn` alias to an npm package of that name, so check `package.json` after `shadcn add`); animations and the icon library (`lucide-react`) are left out.
 - `socket.io-client` for realtime, `zod` with `@spolu/shared` for response parsing.
 - Vitest, jsdom and Testing Library for tests.
 

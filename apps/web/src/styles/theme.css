@@ -75,11 +75,18 @@
   --type-medium: 1.4rem; /* 22.4px desktop (h3), 17.6px <= 900px */
   --type-large: 2.25rem; /* 36px */
   --type-xlarge: 4rem; /* 64px desktop (h1, h2), 36px <= 900px */
+  --type-wordmark: 2rem; /* 32px — Spolu wordmark in the header (Spolu's own), 24px <= 640px */
   --tracking-body: 0.2px;
 
   /* elevation and motion */
   --elevation-lift: 0 0 8px 0 rgb(0 0 0 / 0.1); /* nav pill, dropdowns */
   --duration-fast: 150ms;
+}
+
+@media (max-width: 640px) {
+  :root {
+    --type-wordmark: 1.5rem; /* 24px, the 54px mobile header pill */
+  }
 }
 
 @media (max-width: 900px) {
@@ -139,6 +146,7 @@
   --text-medium: var(--type-medium);
   --text-large: var(--type-large);
   --text-xlarge: var(--type-xlarge);
+  --text-wordmark: var(--type-wordmark);
 
   --shadow-lift: var(--elevation-lift);
 }

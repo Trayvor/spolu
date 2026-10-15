@@ -10,13 +10,16 @@ test('home shows database OK and realtime connected', async ({ page }) => {
 test('switching to English changes the UI and persists after reload', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByText('Stav systému')).toBeVisible();
-  await page.getByRole('radio', { name: 'English' }).click();
+  await page.getByRole('button', { name: 'Jazyk' }).click();
+  await page.getByRole('menuitemradio', { name: 'English' }).click();
   await expect(page.getByText('System status')).toBeVisible();
   await expect(page.getByText('Stav systému')).toHaveCount(0);
 
   await page.reload();
   await expect(page.getByText('System status')).toBeVisible();
-  await expect(page.getByRole('radio', { name: 'English' })).toHaveAttribute(
+  await expect(page.getByRole('button', { name: 'Language' })).toHaveText('EN');
+  await page.getByRole('button', { name: 'Language' }).click();
+  await expect(page.getByRole('menuitemradio', { name: 'English' })).toHaveAttribute(
     'aria-checked',
     'true',
   );
@@ -25,7 +28,8 @@ test('switching to English changes the UI and persists after reload', async ({ p
 test('a deep link renders the app, not a server 404', async ({ page }) => {
   const response = await page.goto('/settings');
   expect(response?.status()).toBe(200);
-  await expect(page.getByRole('radiogroup')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Spolu by eGrant' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Jazyk' })).toBeVisible();
 });
 
 test('the web manifest is served with the product name', async ({ request }) => {

@@ -1,11 +1,12 @@
-export const LANGUAGES = ['sk', 'en'] as const;
-export type Language = (typeof LANGUAGES)[number];
+import { DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES, type Language } from './languages';
 
-export function isLanguage(value: string | null): value is Language {
-  return LANGUAGES.some((lang) => lang === value);
+export type { Language } from './languages';
+
+export function isLanguage(value: string | null | undefined): value is Language {
+  return SUPPORTED_LANGUAGES.some((lang) => lang.code === value);
 }
 
-// A stored choice wins; otherwise Slovak if the browser prefers it, else English.
+// A stored choice wins; otherwise the first supported browser language, else the default.
 export function detectInitialLanguage(
   stored: string | null,
   navigatorLanguages: readonly string[],
@@ -13,8 +14,7 @@ export function detectInitialLanguage(
   if (isLanguage(stored)) return stored;
   for (const tag of navigatorLanguages) {
     const base = tag.toLowerCase().split('-')[0];
-    if (base === 'sk') return 'sk';
-    if (base === 'en') return 'en';
+    if (isLanguage(base)) return base;
   }
-  return 'en';
+  return DEFAULT_LANGUAGE;
 }

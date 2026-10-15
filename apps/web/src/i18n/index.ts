@@ -2,7 +2,14 @@ import i18next from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import en from '@/locales/en.json';
 import sk from '@/locales/sk.json';
-import { detectInitialLanguage, type Language } from './detect';
+import { detectInitialLanguage } from './detect';
+import { DEFAULT_LANGUAGE, type Language } from './languages';
+
+// One translation file per entry in SUPPORTED_LANGUAGES; the Record type makes a missing one a type error.
+const resources: Record<Language, { translation: typeof en }> = {
+  sk: { translation: sk },
+  en: { translation: en },
+};
 
 export const LANGUAGE_STORAGE_KEY = 'spolu.lang';
 
@@ -27,9 +34,9 @@ const initial = detectInitialLanguage(readStored(), navigator.languages);
 document.documentElement.lang = initial;
 
 void i18next.use(initReactI18next).init({
-  resources: { en: { translation: en }, sk: { translation: sk } },
+  resources,
   lng: initial,
-  fallbackLng: 'en',
+  fallbackLng: DEFAULT_LANGUAGE,
   interpolation: { escapeValue: false }, // React already escapes
 });
 

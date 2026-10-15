@@ -84,6 +84,7 @@ Type scale (Tailwind `text-*` utilities; desktop value, then the value under 900
 | `text-medium` | 22.4px | 17.6px | `medium` | `h3`, lead text, modal titles |
 | `text-large` | 36px | 36px | `large` | |
 | `text-xlarge` | 64px | 36px | `x-large` | `h1`, `h2` (page titles) |
+| `text-wordmark` | 32px | 24px (≤ 640px) | — (Spolu's own) | the "Spolu" wordmark in the header only |
 
 For the app, page titles should normally use `text-medium` or `text-large`; `text-xlarge` is the website's hero size and is too big for app screens.
 
@@ -126,7 +127,7 @@ egrant.sk spacing presets are 4, 8, 12, 16, 20, 24, 32, 40, 48, 54, 64px — all
 - Secondary: `bg-secondary`, hover `bg-surface-3` (`.egrant-header__lang-toggle`, "Odoberať výzvy").
 - Icon button: 38×38 circle, `bg-secondary` (language toggle) or `bg-primary` (modal close/back).
 - Full-width submit: primary, `w-full` (`.egrant-modal__submit`).
-- shadcn's default button uses `rounded-md`; Spolu's `src/components/ui/button.tsx` is already `rounded-full` with these variants (default, outline, secondary, ghost, link, destructive) and sizes (default 38px, sm, lg, icon). Badge is a pill too (extra `success` variant). Dropdown menu (not in the repo yet; re-add with `pnpm dlx shadcn@latest add dropdown-menu` when a screen needs it, then trim to): `rounded-xl` panel, `rounded-lg` items, `shadow-lift`, no open/close animation.
+- shadcn's default button uses `rounded-md`; Spolu's `src/components/ui/button.tsx` is already `rounded-full` with these variants (default, outline, secondary, ghost, link, destructive) and sizes (default 38px, sm, lg, icon). Badge is a pill too (extra `success` variant). Dropdown menu (`src/components/ui/dropdown-menu.tsx`, Radix): `bg-popover` panel, `rounded-xl`, 8px padding, 2px item gap, min width 190px, `shadow-lift`, 8px below the trigger, no open/close animation; `rounded-lg` items, padding 10px 12px, `text-button` weight 500, focus/hover `bg-accent`; radio items show the label and a 16px check mark on the right and turn weight 600 when chosen (as on egrant.sk); destructive items use `text-error-ink`.
 
 ### Input
 
@@ -156,8 +157,8 @@ egrant.sk spacing presets are 4, 8, 12, 16, 20, 24, 32, 40, 48, 54, 64px — all
 - Right side: outline pill ("Výzvy" with a live dot and count), primary pill CTA, circular language toggle showing the code ("SK"), hamburger icon. Gap 12px.
 - The menu opens inside the same pill: background turns `card`, large 22px weight-600 links.
 - Language dropdown: `bg-popover`, `shadow-lift`, 20px radius, items with check mark for the active language, hover `bg-accent`.
-- Spolu header (`src/components/app-header.tsx`, as built): the same pill — `bg-background rounded-nav shadow-lift`, max width 1152px, height 64px and 24px from the top (54px and 12px at 640px and below) — but in the page flow, not fixed. The egrant logo (32px high, 24px on mobile) and the product name "Spolu" (`app.name`, weight 600, `text-medium`, `ink`) 12px apart, together one link to `/`, in the spot where the website shows its tagline. No separate Spolu wordmark is drawn; ask the owner if they want one.
-- Spolu language switcher (as built): instead of the website's circle-plus-dropdown, a 38px-high `bg-secondary` pill with 4px padding holding two 30px pills "SK" and "EN" (`text-tiny`, weight 600); the active one is `bg-primary text-primary-foreground`, the other `ink` text with `hover:bg-surface-3`. Two options do not need a menu, and it keeps Radix out of the first load.
+- Spolu header (`src/components/app-header.tsx`, as built): the same pill — `bg-background rounded-nav shadow-lift`, max width 1152px, height 64px and 24px from the top (54px and 12px at 640px and below) — but in the page flow, not fixed. On the left the brand "Spolu by eGrant" (owner request): the wordmark "Spolu" (`app.name`, Saans 600, `text-wordmark` 32px / 24px on mobile, `-0.4px` tracking), a small "by" (`text-micro`, weight 500, `text-muted-foreground`) and the egrant logo at 22px high (17px on mobile), so its capitals match the wordmark's cap height. All three sit on one baseline (the logo's letters end at the SVG's bottom edge), 8px apart, and form one link to `/` with the accessible name `app.fullName` ("Spolu by eGrant"; the logo has empty alt). At 360px the brand is 181px wide and nothing wraps.
+- Spolu language selector (as built, owner request "like egrant.sk"): a 38px-high `bg-secondary` pill showing the current code and a 12px chevron ("SK ⌄", `text-tiny`, weight 600; hover and open `bg-surface-3`) — the website uses a 38px circle with only the code; the chevron says it opens a menu. It opens the dropdown menu above, aligned to its right edge, listing every `SUPPORTED_LANGUAGES` entry by its own name ("Slovenčina", "English") with the check mark on the current one. The button is named by `language.label`.
 
 ### Footer (reference only)
 

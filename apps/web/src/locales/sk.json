@@ -1,7 +1,7 @@
 {
-  "app": { "name": "Spolu" },
+  "app": { "name": "Spolu", "fullName": "Spolu by eGrant" },
   "nav": { "home": "Domov", "settings": "Nastavenia" },
-  "language": { "label": "Jazyk", "sk": "Slovenčina", "en": "English" },
+  "language": { "label": "Jazyk" },
   "system": {
     "title": "Stav systému",
     "version": "Verzia servera",
