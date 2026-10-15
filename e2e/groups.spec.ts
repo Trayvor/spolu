@@ -36,7 +36,7 @@ test('admin creates a group, a client joins by invite and is removed', async ({
   const groupUrl = page.url();
 
   // The clipboard is unreliable in headless: read the read-only field instead.
-  const inviteUrl = await page.getByRole('textbox', { name: 'Pozvánka' }).inputValue();
+  const inviteUrl = await page.getByRole('textbox', { name: 'Odkaz na pozvánku' }).inputValue();
   expect(inviteUrl).toMatch(/\/join\//);
 
   // A second group, so the client can try to open a group that is not theirs.
