@@ -3,7 +3,7 @@ import { afterAll, describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
 import { createDb } from '../../infra/db/client.js';
 import { testDatabaseUrl } from '../../../test/test-config.js';
-import { createUnverifiedClient, deactivateUser } from '../users/service.js';
+import { addAdmin, createUnverifiedClient, deactivateUser } from '../users/service.js';
 import { user } from '../users/schema.js';
 import {
   addMember,
@@ -12,6 +12,8 @@ import {
   getGroup,
   getGroupByInviteToken,
   getMembershipGroupId,
+  isGroupPerson,
+  listGroupPeople,
   listGroups,
   listMembers,
   moveUnverified,
@@ -189,5 +191,64 @@ describe('moveUnverified', () => {
     await db.update(user).set({ emailVerified: true }).where(eq(user.id, stale.id));
     await moveUnverified(db, b.id, stale);
     expect(await getMembershipGroupId(db, stale.id)).toBe(a.id);
+  });
+});
+
+describe('group people', () => {
+  /** A verified client with a name, optionally in `groupId`. */
+  async function namedClient(name: string, groupId?: string) {
+    const row = await newClient(true);
+    await db.update(user).set({ name }).where(eq(user.id, row.id));
+    if (groupId) await addMember(db, groupId, row.id);
+    return row;
+  }
+  const newAdmin = (name: string) => addAdmin(db, { email: `${randomUUID()}@example.com`, name });
+
+  async function scenario() {
+    const g = await newGroup();
+    const other = await newGroup();
+    const tag = randomUUID().slice(0, 8);
+    const client = await namedClient(`Bb ${tag}`, g.id);
+    const admin = await newAdmin(`Aa ${tag}`);
+    const removed = await namedClient(`Removed ${tag}`, g.id);
+    await deactivateUser(db, removed.id);
+    const unnamed = await newClient(false);
+    await addMember(db, g.id, unnamed.id);
+    const foreign = await namedClient(`Foreign ${tag}`, other.id);
+    const deactivatedAdmin = await newAdmin(`Gone ${tag}`);
+    await deactivateUser(db, deactivatedAdmin.id);
+    return { g, client, admin, removed, unnamed, foreign, deactivatedAdmin };
+  }
+
+  it("listGroupPeople lists the group's named active clients and active admins", async () => {
+    const s = await scenario();
+    const people = await listGroupPeople(db, s.g.id);
+    const ids = people.map((p) => p.id);
+    expect(people.find((p) => p.id === s.client.id)).toMatchObject({ isAdmin: false });
+    expect(people.find((p) => p.id === s.admin.id)).toMatchObject({ isAdmin: true });
+    for (const excluded of [s.removed, s.unnamed, s.foreign, s.deactivatedAdmin]) {
+      expect(ids).not.toContain(excluded.id);
+    }
+    // Other tests add admins too: assert only the relative order of ours ("Aa" before "Bb").
+    expect(ids.indexOf(s.admin.id)).toBeLessThan(ids.indexOf(s.client.id));
+  });
+
+  it('isGroupPerson is true for the named client and an admin, false for everyone else', async () => {
+    const s = await scenario();
+    expect(await isGroupPerson(db, s.g.id, s.client.id)).toBe(true);
+    expect(await isGroupPerson(db, s.g.id, s.admin.id)).toBe(true);
+    for (const no of [s.removed, s.unnamed, s.foreign, s.deactivatedAdmin]) {
+      expect(await isGroupPerson(db, s.g.id, no.id)).toBe(false);
+    }
+    expect(await isGroupPerson(db, s.g.id, randomUUID())).toBe(false);
+  });
+
+  it('isGroupPerson agrees with listGroupPeople for every user of the scenario', async () => {
+    const s = await scenario();
+    const listed = new Set((await listGroupPeople(db, s.g.id)).map((p) => p.id));
+    const everyone = [s.client, s.admin, s.removed, s.unnamed, s.foreign, s.deactivatedAdmin];
+    for (const u of everyone) {
+      expect(await isGroupPerson(db, s.g.id, u.id)).toBe(listed.has(u.id));
+    }
   });
 });

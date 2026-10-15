@@ -1,6 +1,7 @@
 import { randomBytes, randomUUID } from 'node:crypto';
-import { and, asc, eq, isNotNull, isNull, sql } from 'drizzle-orm';
-import type { GroupInput, GroupSummary, Member } from '@spolu/shared';
+import { and, asc, eq, inArray, isNotNull, isNull, or, sql } from 'drizzle-orm';
+import { unionAll } from 'drizzle-orm/pg-core';
+import type { GroupInput, GroupPerson, GroupSummary, Member } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
 import { user } from '../users/schema.js';
 import {
@@ -146,6 +147,47 @@ export async function listMembers(
       ),
     )
     .orderBy(asc(user.name), asc(user.email));
+}
+
+// One definition of "a person of this group", shared by the list and the single check.
+const isActiveAdmin = and(inArray(user.role, ['admin', 'superadmin']), isNull(user.disabledAt));
+const isNamedActiveMember = (groupId: string) =>
+  and(
+    eq(groupMembers.groupId, groupId),
+    eq(user.emailVerified, true),
+    isNull(user.disabledAt),
+    sql`trim(${user.name}) <> ''`,
+  );
+
+/**
+ * Who can be mentioned or assigned in the group: its verified, named, active clients and every
+ * active admin. One query, ordered by name.
+ */
+export async function listGroupPeople(db: Db, groupId: string): Promise<GroupPerson[]> {
+  const clients = db
+    .select({ id: user.id, name: user.name, isAdmin: sql<boolean>`false`.as('is_admin') })
+    .from(groupMembers)
+    .innerJoin(user, eq(user.id, groupMembers.userId))
+    .where(isNamedActiveMember(groupId));
+  const admins = db
+    .select({ id: user.id, name: user.name, isAdmin: sql<boolean>`true`.as('is_admin') })
+    .from(user)
+    .where(isActiveAdmin);
+  return unionAll(clients, admins).orderBy(asc(sql`name`), asc(sql`id`));
+}
+
+/** The same condition as `listGroupPeople`, for one user. */
+export async function isGroupPerson(db: Db, groupId: string, userId: string): Promise<boolean> {
+  const [row] = await db
+    .select({ id: user.id })
+    .from(user)
+    .leftJoin(
+      groupMembers,
+      and(eq(groupMembers.userId, user.id), eq(groupMembers.groupId, groupId)),
+    )
+    .where(and(eq(user.id, userId), or(isActiveAdmin, isNamedActiveMember(groupId))))
+    .limit(1);
+  return row !== undefined;
 }
 
 /** Idempotent: a client is in one group, joining twice changes nothing. */

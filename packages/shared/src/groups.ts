@@ -31,6 +31,14 @@ export const MemberSchema = z.object({ id: z.string(), name: z.string(), email: 
 export type Member = z.infer<typeof MemberSchema>;
 export const MemberListSchema = z.array(MemberSchema);
 
+export const GroupPersonSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  isAdmin: z.boolean(),
+});
+export type GroupPerson = z.infer<typeof GroupPersonSchema>;
+export const GroupPersonListSchema = z.array(GroupPersonSchema);
+
 export const JoinInfoSchema = z.object({
   name: z.string(),
   hasLogo: z.boolean(),

@@ -13,6 +13,7 @@ import {
   getGroup,
   getMembershipGroupId,
   InvalidEgrantUrlError,
+  listGroupPeople,
   listGroups,
   listMembers,
   regenerateInvite,
@@ -102,6 +103,14 @@ export const groupsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, {
     if (!canReadGroup(actor, id, await getMembershipGroupId(db, actor.id))) return notFound(reply);
     if (!(await getGroup(db, id))) return notFound(reply);
     return listMembers(db, id, { removed: false });
+  });
+
+  app.get<IdParams>('/groups/:id/people', { preHandler: anyUser }, async (request, reply) => {
+    const actor = request.user!;
+    const { id } = request.params;
+    if (!canReadGroup(actor, id, await getMembershipGroupId(db, actor.id))) return notFound(reply);
+    if (!(await getGroup(db, id))) return notFound(reply);
+    return listGroupPeople(db, id);
   });
 
   app.get<IdParams>(

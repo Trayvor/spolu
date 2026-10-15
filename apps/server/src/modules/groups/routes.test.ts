@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { io as connect, type Socket } from 'socket.io-client';
-import type { Group, GroupSummary, Member, Me } from '@spolu/shared';
+import type { Group, GroupPerson, GroupSummary, Member, Me } from '@spolu/shared';
 import { buildTestApp } from '../../../test/test-app.js';
 import { loginAs } from '../../../test/login.js';
 import { groupRoom, userRoom } from '../../infra/realtime/rooms.js';
@@ -285,6 +285,43 @@ describe('groups API', () => {
       404,
     );
     expect((await call('GET', '/api/me', client.cookie)).statusCode).toBe(200);
+  });
+
+  it("a client reads their group's people", async () => {
+    const g = await newGroup();
+    const client = await clientIn(g.id, 'Reader');
+    const res = await call('GET', `/api/groups/${g.id}/people`, client.cookie);
+    expect(res.statusCode).toBe(200);
+    expect(res.json<GroupPerson[]>().find((p) => p.id === client.id)).toEqual({
+      id: client.id,
+      name: 'Reader',
+      isAdmin: false,
+    });
+  });
+
+  it("an admin reads any group's people", async () => {
+    const { cookie } = await adminSession();
+    const g = await newGroup();
+    const client = await clientIn(g.id, 'Member');
+    const res = await call('GET', `/api/groups/${g.id}/people`, cookie);
+    expect(res.statusCode).toBe(200);
+    const people = res.json<GroupPerson[]>();
+    expect(people.find((p) => p.id === client.id)?.isAdmin).toBe(false);
+    expect(people.some((p) => p.name === 'Group Admin' && p.isAdmin)).toBe(true);
+  });
+
+  it('people of a group the client does not belong to → 404', async () => {
+    const mine = await newGroup();
+    const theirs = await newGroup();
+    const client = await clientIn(mine.id);
+    const res = await call('GET', `/api/groups/${theirs.id}/people`, client.cookie);
+    expect(res.statusCode).toBe(404);
+    expect(res.json()).toEqual({ error: 'not_found' });
+  });
+
+  it('people of an unknown group → 404', async () => {
+    const { cookie } = await adminSession();
+    expect((await call('GET', `/api/groups/${randomUUID()}/people`, cookie)).statusCode).toBe(404);
   });
 
   it('a client cannot remove members', async () => {
