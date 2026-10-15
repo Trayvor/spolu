@@ -80,6 +80,8 @@ describe('loadConfig', () => {
   });
 
   it('uses SUPERADMIN_NAME when set', () => {
-    expect(loadConfig({ ...validEnv, SUPERADMIN_NAME: 'The Boss' }).superadminName).toBe('The Boss');
+    expect(loadConfig({ ...validEnv, SUPERADMIN_NAME: 'The Boss' }).superadminName).toBe(
+      'The Boss',
+    );
   });
 });

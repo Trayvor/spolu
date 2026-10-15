@@ -24,6 +24,7 @@ export async function latestEmail(email: string, timeoutMs = 5000): Promise<Caug
     const [newest] = await search(email);
     if (newest) {
       const res = await fetch(`${MAILPIT_URL}/api/v1/message/${newest.ID}`);
+      if (!res.ok) throw new Error(`Mailpit message ${newest.ID} fetch failed: ${res.status}`);
       const message = (await res.json()) as { Subject: string; Text: string };
       return { subject: message.Subject, text: message.Text };
     }

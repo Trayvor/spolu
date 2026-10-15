@@ -71,7 +71,7 @@ No new visual effects; transitions only as already defined (150 ms color/opacity
 
 ### Auth module (`modules/auth`)
 
-- One better-auth instance built from `AppDeps`: Drizzle adapter on our `db`, `secret` = `APP_SECRET`, `baseURL` = `PUBLIC_URL`, base path `/api/auth`. A Fastify route forwards `/api/auth/*` to better-auth's handler.
+- One better-auth instance built from `AppDeps`: Drizzle adapter on our `db`, `secret` = `APP_SECRET`, `baseURL` = `PUBLIC_URL`, base path `/api/auth`. Fastify routes forward an allow-list of the better-auth endpoints the app uses (send code, sign in, sign out, get session) to its handler; other `/api/auth/` paths are 404.
 - Email-OTP plugin: 6 digits, valid 5 minutes, 3 attempts per code, `disableSignUp: true` (an unknown email gets the same success response and nothing is sent). The send callback enqueues a pg-boss job `email.send` (with retries) and returns at once; the job renders and sends the email through `EmailSender`. A disabled user gets the same generic response and no email.
 - Sessions: database sessions in an httpOnly, `Secure` (in production), `SameSite=Lax` cookie; 60 days, extended on use (sliding). A database hook refuses to create a session for a disabled user.
 - Rate limiting: better-auth's built-in limiter with memory storage (one process, ADR 0005); stricter limits on the OTP send and verify paths.

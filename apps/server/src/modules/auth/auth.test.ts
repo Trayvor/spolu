@@ -208,6 +208,7 @@ describe('session', () => {
     await test.deps.db.update(user).set({ disabledAt: new Date() }).where(eq(user.id, admin.id));
     const me = await app.inject({ method: 'GET', url: '/api/me', headers: { cookie } });
     expect(me.statusCode).toBe(401);
+    expect(me.headers['set-cookie']).toBeUndefined();
     const guarded = await app.inject({
       method: 'GET',
       url: '/api/test/user-only',
@@ -243,6 +244,43 @@ describe('session', () => {
     expect(res.statusCode).toBe(403);
     const me = await app.inject({ method: 'GET', url: '/api/me', headers: { cookie } });
     expect(me.statusCode).toBe(200);
+  });
+});
+
+describe('auth endpoint allow-list', () => {
+  it('better-auth endpoints we do not use answer our JSON 404', async () => {
+    const admin = await createUser('admin');
+    const cookie = await loginAs(app, admin.email);
+    const update = await app.inject({
+      method: 'POST',
+      url: '/api/auth/update-user',
+      headers: { cookie, origin: 'http://localhost:3000' },
+      payload: { name: 'Hacked' },
+    });
+    expect(update.statusCode).toBe(404);
+    expect(update.json()).toEqual({ error: 'not_found' });
+    const [row] = await test.deps.db.select().from(user).where(eq(user.id, admin.id));
+    expect(row?.name).toBe(`User ${admin.id}`);
+
+    const list = await app.inject({
+      method: 'GET',
+      url: '/api/auth/list-sessions',
+      headers: { cookie },
+    });
+    expect(list.statusCode).toBe(404);
+    expect(list.json()).toEqual({ error: 'not_found' });
+  });
+
+  it('GET /api/auth/get-session is open', async () => {
+    const admin = await createUser('admin');
+    const cookie = await loginAs(app, admin.email);
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/auth/get-session',
+      headers: { cookie },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toMatchObject({ user: { id: admin.id } });
   });
 });
 

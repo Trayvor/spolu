@@ -26,7 +26,7 @@ export async function buildTestApp(
     storage: createDiskStorage(filesDir, config.appSecret),
     jobs: createInlineJobs(emailJobHandlers(email)),
   };
-  const app = await buildApp(deps);
+  const app = await buildApp(deps, { logger: false }); // quiet even with nodeEnv 'production'
   return {
     app,
     deps,

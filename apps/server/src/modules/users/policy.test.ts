@@ -2,7 +2,12 @@ import { describe, expect, it } from 'vitest';
 import type { Role, SessionUser } from '@spolu/shared';
 import { canDeactivate, canManageAdmins, isAdmin } from './policy.js';
 
-const actor = (role: Role): SessionUser => ({ id: 'actor', email: 'a@example.com', name: 'A', role });
+const actor = (role: Role): SessionUser => ({
+  id: 'actor',
+  email: 'a@example.com',
+  name: 'A',
+  role,
+});
 
 describe('isAdmin and canManageAdmins', () => {
   it.each([

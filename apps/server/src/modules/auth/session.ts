@@ -1,6 +1,6 @@
 import type { FastifyReply, FastifyRequest, preHandlerAsyncHookHandler } from 'fastify';
 import { fromNodeHeaders } from 'better-auth/node';
-import type { Role, SessionUser } from '@spolu/shared';
+import { SessionUserSchema, type SessionUser } from '@spolu/shared';
 import { isAdmin } from '../users/policy.js';
 import type { Auth } from './auth.js';
 
@@ -17,7 +17,7 @@ type AuthUser = { id: string; email: string; name: string; role: string; disable
 export function toSessionUser(authUser: AuthUser | undefined): SessionUser | null {
   if (!authUser || authUser.disabledAt) return null;
   const { id, email, name, role } = authUser;
-  return { id, email, name, role: role as Role };
+  return SessionUserSchema.parse({ id, email, name, role }); // throws on an unknown role
 }
 
 /** The logged-in user from the request's session cookie, or null. */

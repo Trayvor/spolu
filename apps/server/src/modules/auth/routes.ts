@@ -15,33 +15,45 @@ export const authRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app) => 
       headers: fromNodeHeaders(request.headers),
       returnHeaders: true,
     });
-    forwardCookies(reply, headers); // sliding expiry: a refreshed session sends a new cookie
     const user = toSessionUser(response?.user);
     if (!user) return reply.code(401).send({ error: 'unauthorized' });
+    // Sliding expiry: a refreshed session sends a new cookie. Only for a valid, enabled user.
+    forwardCookies(reply, headers);
     return user;
   });
 };
 
-/** Forwards `/api/auth/*` to better-auth as a Web Request. */
+/**
+ * The better-auth endpoints the app uses. An allow-list, not `/auth/*`: the library has
+ * many more (e.g. `update-user` lets a user edit their own record past our policies), and
+ * new library versions add more. Anything else under /api/auth answers our JSON 404.
+ */
+const AUTH_ENDPOINTS = [
+  { method: 'POST', path: '/email-otp/send-verification-otp' },
+  { method: 'POST', path: '/sign-in/email-otp' },
+  { method: 'POST', path: '/sign-out' },
+  { method: 'GET', path: '/get-session' },
+] as const;
+
+/** Forwards the allowed `/api/auth/...` endpoints to better-auth as a Web Request. */
 function registerAuthHandler(app: FastifyInstance, auth: Auth): void {
   // Keep the body as the raw string better-auth will parse itself. Any content type is
   // accepted, so an empty JSON body (e.g. a bare sign-out) is not rejected by Fastify.
   app.removeAllContentTypeParsers();
   app.addContentTypeParser('*', { parseAs: 'string' }, (_request, body, done) => done(null, body));
 
-  app.route({
-    method: ['GET', 'POST'],
-    url: '/auth/*',
-    handler: async (request, reply) => {
-      const response = await auth.handler(toWebRequest(request));
-      reply.status(response.status);
-      response.headers.forEach((value, key) => {
-        if (key !== 'set-cookie') reply.header(key, value);
-      });
-      forwardCookies(reply, response.headers);
-      return reply.send(response.body ? await response.text() : null);
-    },
-  });
+  const handler = async (request: FastifyRequest, reply: FastifyReply) => {
+    const response = await auth.handler(toWebRequest(request));
+    reply.status(response.status);
+    response.headers.forEach((value, key) => {
+      if (key !== 'set-cookie') reply.header(key, value);
+    });
+    forwardCookies(reply, response.headers);
+    return reply.send(response.body ? await response.text() : null);
+  };
+  for (const { method, path } of AUTH_ENDPOINTS) {
+    app.route({ method, url: `/auth${path}`, handler });
+  }
 }
 
 function toWebRequest(request: FastifyRequest): Request {

@@ -7,10 +7,13 @@ import { authRoutes } from './modules/auth/routes.js';
 import { systemRoutes } from './modules/system/routes.js';
 
 /** Builds the HTTP app and attaches Socket.IO (`app.io`); `app.close()` closes both. */
-export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
+export async function buildApp(
+  deps: AppDeps,
+  options: { logger?: boolean } = {},
+): Promise<FastifyInstance> {
   const { config } = deps;
   const app = Fastify({
-    logger: config.nodeEnv === 'test' ? false : { level: 'info' },
+    logger: (options.logger ?? config.nodeEnv !== 'test') ? { level: 'info' } : false,
     // The app port is reachable only through Caddy (deploy/docker-compose.yml publishes just
     // Caddy's ports), so X-Forwarded-For is set by our proxy and request.ip is the real client.
     trustProxy: true,
