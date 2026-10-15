@@ -5,6 +5,8 @@ import type { FastifyInstance } from 'fastify';
 import { buildApp } from '../src/app.js';
 import type { AppDeps } from '../src/deps.js';
 import type { Config } from '../src/infra/config/config.js';
+import { filesJobHandlers } from '../src/modules/files/jobs.js';
+import { notificationsJobHandlers } from '../src/modules/notifications/jobs.js';
 import { createDb } from '../src/infra/db/client.js';
 import { createEmailSender, emailJobHandlers } from '../src/infra/email/index.js';
 import { createInlineJobs } from '../src/infra/jobs/inline-jobs.js';
@@ -19,12 +21,17 @@ export async function buildTestApp(
   const { db, close: closeDb } = createDb(config.databaseUrl);
   const filesDir = await mkdtemp(join(tmpdir(), 'spolu-test-'));
   const email = createEmailSender(config.email);
+  const storage = createDiskStorage(filesDir, config.appSecret);
   const deps: AppDeps = {
     config,
     db,
     email,
-    storage: createDiskStorage(filesDir, config.appSecret),
-    jobs: createInlineJobs(emailJobHandlers(email)),
+    storage,
+    jobs: createInlineJobs({
+      ...emailJobHandlers(email),
+      ...filesJobHandlers({ db, storage }),
+      ...notificationsJobHandlers(db),
+    }),
   };
   const app = await buildApp(deps, { logger: false }); // quiet even with nodeEnv 'production'
   return {

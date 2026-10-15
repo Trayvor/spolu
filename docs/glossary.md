@@ -23,6 +23,7 @@ Terms used across the docs and code, in alphabetical order.
 - **OTP code**: the one-time code sent by email that is used to log in.
 - **owner walkthrough**: the final check of a phase, where the owner tries the "Done when" items by hand before the phase is marked done.
 - **policy function**: a server function that decides whether a user may see or change a resource; written test-first.
+- **notification event**: one stored notification for one recipient (kind, optional group, payload, delivered or not). Recorded in the same transaction as the change that caused it and deleted after 30 days.
 - **PWA**: progressive web app. The web app can be installed on a phone or desktop and receive push notifications.
 - **read state**: what a user has already read in a channel; used for the unread indicator.
 - **reminder**: a scheduled notification to admins that a contract is about to need attention.

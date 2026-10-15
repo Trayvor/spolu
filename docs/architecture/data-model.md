@@ -25,6 +25,8 @@ erDiagram
     TICKET ||--o{ TICKET_REPLY : has
     GROUP ||--o{ CONTRACT : has
     USER ||--o{ NOTIFICATION_PREF : sets
+USER ||--o{ NOTIFICATION_EVENT : receives
+GROUP ||--o{ NOTIFICATION_EVENT : "scoped to"
     GROUP ||--o{ NOTIFICATION_PREF : "scoped to"
 ```
 
@@ -42,6 +44,7 @@ erDiagram
 | Mention | an @-tag of a user in a message | 5 | planned |
 | Attachment | links a file to a message, task, contract or ticket | 5 | planned |
 | File | stored file of one group; `files` table: `group_id` (cascade, indexed), `uploaded_by`, `name`, `mime` (sniffed for PNG/JPEG/WebP, else the declared type), `size`, `storage_key` (`files/<groupId>/<id>`), optional WebP `preview_key` with `width`/`height`, `attached_at`. Lifecycle: uploaded unattached, attached by the owning module in its transaction, deleted with it; unattached files older than 24 h are cleaned up (partial index on `created_at`) | 4 | built. A declared png/jpeg/webp whose bytes are not that image is stored as `application/octet-stream`; other declared types are kept and always served as attachments |
+| NotificationEvent | one notification for one recipient; `notification_events` table: `user_id` (cascade), nullable `group_id` (cascade), `kind` (`chat.message`, `chat.mention`, `chat.thread_reply`, `task.moved`, `task.assigned`), `payload` jsonb, `created_at`, `delivered_at` (null until delivered); indexes `(user_id, delivered_at)` and `created_at`; written by `recordNotifications` inside the caller's transaction, purged after 30 days by `notifications.purge-old` | 4 | built |
 | NotificationPref | per user per group: `all`, `mentions` or `none` | 6 | planned |
 | Bucket | a task board column | 8 | planned |
 | Task | a card: title, assignee, due date, priority, labels, position | 8 | planned |
