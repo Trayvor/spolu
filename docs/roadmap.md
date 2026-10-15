@@ -7,7 +7,7 @@ Requirements per module: [product/](product/README.md). Phases after 1 get their
 | # | Phase | Status | Depends on | Design/plan |
 |---|---|---|---|---|
 | 0 | [AI workflow & knowledge base](#phase-0--ai-workflow--knowledge-base) | done | - | [spec](superpowers/specs/2026-10-15-ehub-foundation-design.md), [plan](superpowers/plans/2026-10-15-phase-0-ai-workflow-and-kb.md) |
-| 1 | [Skeleton & delivery](#phase-1--skeleton--delivery) | planned | 0 | [spec](superpowers/specs/2026-10-15-ehub-foundation-design.md), [plan](superpowers/plans/2026-10-15-phase-1-skeleton-and-delivery.md) |
+| 1 | [Skeleton & delivery](#phase-1--skeleton--delivery) | in progress | 0 | [spec](superpowers/specs/2026-10-15-ehub-foundation-design.md), [plan](superpowers/plans/2026-10-15-phase-1-skeleton-and-delivery.md) |
 | 2 | [Login & users](#phase-2--login--users) | planned | 1 | - |
 | 3 | [Groups & invites](#phase-3--groups--invites) | planned | 2 | - |
 | 4 | [Group chat: core](#phase-4--group-chat-core) | planned | 3 | - |
