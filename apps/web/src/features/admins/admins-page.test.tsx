@@ -161,6 +161,41 @@ describe('admins page', () => {
     await waitFor(() => expect(calls('GET', '/api/admins')).toHaveLength(2));
   });
 
+  it('moves focus to the confirmation and back to Remove on Cancel', async () => {
+    mockApi();
+    const user = renderAdmins();
+    await screen.findByText('Peter Horváth');
+    await user.click(
+      within(rowOf('Peter Horváth')).getByRole('button', { name: t('admins.remove') }),
+    );
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: t('admins.remove') })).toHaveFocus(),
+    );
+    await user.click(screen.getByRole('button', { name: t('admins.cancel') }));
+    await waitFor(() =>
+      expect(
+        within(rowOf('Peter Horváth')).getByRole('button', { name: t('admins.remove') }),
+      ).toHaveFocus(),
+    );
+  });
+
+  it('focuses the first invalid field and announces the status in a live region', async () => {
+    mockApi();
+    const user = renderAdmins();
+    await user.click(await screen.findByRole('button', { name: t('admins.add') }));
+    await user.click(screen.getByRole('button', { name: t('admins.submit') }));
+    expect(screen.getByLabelText(t('admins.name'))).toHaveFocus();
+
+    const status = screen.getByRole('status');
+    expect(status).toBeEmptyDOMElement();
+    await user.type(screen.getByLabelText(t('admins.name')), 'Eva');
+    await user.type(screen.getByLabelText(t('admins.email')), 'eva@example.com');
+    await user.click(screen.getByRole('button', { name: t('admins.submit') }));
+    await waitFor(() => expect(status).toHaveTextContent(t('admins.added', { name: 'Eva' })));
+    await user.click(screen.getByRole('button', { name: t('admins.add') }));
+    expect(status).toBeEmptyDOMElement();
+  });
+
   it('a client visiting /admins sees the not-found page', async () => {
     mockApi({ me: { ...ME, role: 'client' } });
     renderAdmins();

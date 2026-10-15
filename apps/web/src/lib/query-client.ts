@@ -26,7 +26,8 @@ export function createQueryClient(onUnauthorized: () => void): QueryClient {
     mutationCache: new MutationCache({ onError: handle }),
     defaultOptions: {
       queries: { staleTime: 30_000, refetchOnWindowFocus: false, retry },
-      mutations: { retry },
+      // Writes are not idempotent (a retried POST could send a second invite email).
+      mutations: { retry: false },
     },
   });
   return client;

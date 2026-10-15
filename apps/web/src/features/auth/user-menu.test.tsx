@@ -40,7 +40,11 @@ const USER = { id: 'u1', name: 'Jana Nováková', email: 'jana@example.com', rol
 
 /** Fake `fetch`: `/api/me` answers from `state`, sign-out flips it to anonymous. */
 function mockApi(initial: Partial<typeof USER> | null = {}) {
-  const state = { user: initial === null ? null : { ...USER, ...initial }, meStatus: 200, signOutStatus: 200 };
+  const state = {
+    user: initial === null ? null : { ...USER, ...initial },
+    meStatus: 200,
+    signOutStatus: 200,
+  };
   const fetchMock = vi.fn(async (url: string) => {
     if (url === '/api/me') {
       if (state.meStatus === 401 || !state.user) {
@@ -132,13 +136,15 @@ describe('logged-in shell', () => {
   });
 
   it('a failed Log out shows a generic error and keeps the user signed in', async () => {
-    const { state } = mockApi();
+    const { state, fetchMock } = mockApi();
     state.signOutStatus = 500;
     const { router, user } = renderAt();
     await user.click(await screen.findByRole('button', { name: t('user.menu') }));
     await user.click(await screen.findByRole('menuitem', { name: t('user.logout') }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent(t('errors.generic'));
+    // Writes are never retried.
+    expect(fetchMock.mock.calls.filter(([url]) => url === '/api/auth/sign-out')).toHaveLength(1);
     expect(router.state.location.pathname).toBe('/');
   });
 

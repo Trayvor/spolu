@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AddAdminBodySchema, type Admin } from '@spolu/shared';
 import { useTranslation } from 'react-i18next';
@@ -45,17 +45,21 @@ export function AdminsPage() {
           }}
         />
       )}
-      {added && (
-        <p role="status" className="text-button">
-          {t('admins.added', { name: added })}
-        </p>
-      )}
+      {/* Always mounted, so screen readers announce the text when it is filled in. */}
+      <p role="status" className="text-button empty:hidden">
+        {added ? t('admins.added', { name: added }) : null}
+      </p>
 
       {admins && (
         <Card className="gap-0 py-2">
           <ul>
             {admins.map((admin) => (
-              <AdminRow key={admin.id} admin={admin} isMe={admin.id === me?.id} />
+              <AdminRow
+                key={admin.id}
+                admin={admin}
+                isMe={admin.id === me?.id}
+                onRemoved={() => setAdded(null)}
+              />
             ))}
           </ul>
         </Card>
@@ -107,6 +111,7 @@ function AddAdminForm({
       const fields = new Set(parsed.error.issues.map((issue) => issue.path[0]));
       if (fields.has('name')) setNameError(t('admins.errors.nameRequired'));
       if (fields.has('email')) setEmailError(t('login.errors.invalidEmail'));
+      document.getElementById(fields.has('name') ? 'admin-name' : 'admin-email')?.focus();
       return;
     }
     add.mutate(parsed.data);
@@ -167,15 +172,35 @@ function AddAdminForm({
   );
 }
 
-function AdminRow({ admin, isMe }: { admin: Admin; isMe: boolean }) {
+function AdminRow({
+  admin,
+  isMe,
+  onRemoved,
+}: {
+  admin: Admin;
+  isMe: boolean;
+  onRemoved: () => void;
+}) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [confirming, setConfirming] = useState(false);
   const [failed, setFailed] = useState(false);
+  const confirmRef = useRef<HTMLButtonElement>(null);
+  const removeRef = useRef<HTMLButtonElement>(null);
+  const toggled = useRef(false);
+
+  // Keep keyboard focus on the row's action: the confirmation button, then back to Remove.
+  useEffect(() => {
+    if (!toggled.current) return;
+    (confirming ? confirmRef : removeRef).current?.focus();
+  }, [confirming]);
 
   const remove = useMutation({
     mutationFn: () => removeAdmin(admin.id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: adminsQuery.queryKey }),
+    onSuccess: async () => {
+      onRemoved();
+      await queryClient.invalidateQueries({ queryKey: adminsQuery.queryKey });
+    },
     onError: () => setFailed(true),
   });
 
@@ -188,6 +213,7 @@ function AdminRow({ admin, isMe }: { admin: Admin; isMe: boolean }) {
           <p className="text-button">{t('admins.confirmRemove', { name: admin.name })}</p>
           <div className="flex gap-2">
             <Button
+              ref={confirmRef}
               variant="destructive"
               size="sm"
               disabled={remove.isPending}
@@ -202,6 +228,7 @@ function AdminRow({ admin, isMe }: { admin: Admin; isMe: boolean }) {
               variant="ghost"
               size="sm"
               onClick={() => {
+                toggled.current = true;
                 setConfirming(false);
                 setFailed(false);
               }}
@@ -228,7 +255,15 @@ function AdminRow({ admin, isMe }: { admin: Admin; isMe: boolean }) {
             <div className="truncate text-button text-muted-foreground">{admin.email}</div>
           </div>
           {canRemove && (
-            <Button variant="ghost" size="sm" onClick={() => setConfirming(true)}>
+            <Button
+              ref={removeRef}
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                toggled.current = true;
+                setConfirming(true);
+              }}
+            >
               {t('admins.remove')}
             </Button>
           )}
