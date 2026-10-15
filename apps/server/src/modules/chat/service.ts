@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { and, eq, isNotNull, sql, type SQL } from 'drizzle-orm';
 import type { Db } from '../../infra/db/client.js';
-import { isForeignKeyViolation } from '../users/service.js';
+import { isForeignKeyViolation } from '../../infra/db/errors.js';
 import { channels, messageAttachments, messages, readStates, threadReadStates } from './schema.js';
 
 export type ChannelRow = typeof channels.$inferSelect;
@@ -76,14 +76,26 @@ export async function getChannel(db: Db, id: string): Promise<ChannelRow | null>
   return row ?? null;
 }
 
-/** Bumps and returns the channel counter; the row lock also serialises writers of one channel. */
+/** The channel was deleted (with its task or group) after the caller loaded it (route: 404). */
+export class ChannelGoneError extends Error {
+  constructor() {
+    super('The channel no longer exists');
+    this.name = 'ChannelGoneError';
+  }
+}
+
+/**
+ * Bumps and returns the channel counter; the row lock also serialises writers of one channel. A
+ * writer that waited on a task or group delete finds no row: `ChannelGoneError`.
+ */
 export async function nextSeq(tx: Db, channelId: string): Promise<number> {
   const [row] = await tx
     .update(channels)
     .set({ lastSeq: sql`${channels.lastSeq} + 1` })
     .where(eq(channels.id, channelId))
     .returning({ lastSeq: channels.lastSeq });
-  return row!.lastSeq;
+  if (!row) throw new ChannelGoneError();
+  return row.lastSeq;
 }
 
 /** Moves the read cursor forward only, never past the server's now; returns the stored value. */

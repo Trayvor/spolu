@@ -38,6 +38,7 @@ import {
   parseCursor,
 } from './reads.js';
 import {
+  ChannelGoneError,
   ensureGroupChannel,
   ensureTaskChannel,
   getChannel,
@@ -219,6 +220,7 @@ export const chatRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { d
       if (error instanceof InvalidThreadError || error instanceof EmptyMessageError) {
         return invalid(reply);
       }
+      if (error instanceof ChannelGoneError) return notFound(reply);
       throw error;
     }
   });
@@ -242,7 +244,9 @@ export const chatRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { d
         return reply.code(400).send({ error: ErrorCodes.invalidMention });
       }
       if (error instanceof EmptyMessageError) return invalid(reply);
-      if (error instanceof MessageDeletedError) return notFound(reply);
+      if (error instanceof MessageDeletedError || error instanceof ChannelGoneError) {
+        return notFound(reply);
+      }
       throw error;
     }
   });
@@ -254,13 +258,19 @@ export const chatRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { d
     if (!isMessageAuthor(actor, found.message)) return forbidden(reply);
     // Deleting twice is a no-op: nothing changes, so nothing is pushed.
     if (!canDeleteMessage(actor, found.message)) return reply.code(204).send();
-    const message = await deleteMessage(deps, {
-      ...found,
-      onFileCleanupError: (error) =>
-        request.log.error({ err: error }, 'chat: file cleanup after message delete failed'),
-    });
-    emitMessage(app.io, found.channel, message, false);
-    return reply.code(204).send();
+    try {
+      const message = await deleteMessage(deps, {
+        ...found,
+        onFileCleanupError: (error) =>
+          request.log.error({ err: error }, 'chat: file cleanup after message delete failed'),
+      });
+      emitMessage(app.io, found.channel, message, false);
+      return reply.code(204).send();
+    } catch (error) {
+      // The chat went with its task (or group) while this delete waited for the channel lock.
+      if (error instanceof ChannelGoneError) return notFound(reply);
+      throw error;
+    }
   });
 
   app.post<IdParams>('/channels/:id/read', { preHandler: anyUser }, async (request, reply) => {

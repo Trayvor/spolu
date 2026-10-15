@@ -17,11 +17,14 @@ import {
   type ChatThreadReplyEvent,
   type MessageDto,
 } from '@spolu/shared';
+import { eq, sql } from 'drizzle-orm';
 import { buildTestApp } from '../../../test/test-app.js';
 import { loginAs } from '../../../test/login.js';
 import { createFile } from '../files/service.js';
 import { addMember, createGroup } from '../groups/service.js';
+import { tasks } from '../tasks/schema.js';
 import { user } from '../users/schema.js';
+import { channels } from './schema.js';
 import { addAdmin, deactivateUser } from '../users/service.js';
 
 type TestApp = Awaited<ReturnType<typeof buildTestApp>>;
@@ -171,6 +174,53 @@ describe('chat API', () => {
     );
     expect((await call('GET', '/api/tasks/not%00an-id/chat', s.admin.cookie)).statusCode).toBe(404);
   });
+
+  it('GET /api/tasks/:id/chat for a deleted task → 404', async () => {
+    const s = await setup();
+    const task = (
+      await call('POST', `/api/groups/${s.group.id}/tasks`, s.admin.cookie, { title: 'Gone' })
+    ).json<{ id: string }>();
+    expect((await call('GET', `/api/tasks/${task.id}/chat`, s.a.cookie)).statusCode).toBe(200);
+    expect((await call('DELETE', `/api/tasks/${task.id}`, s.admin.cookie)).statusCode).toBe(204);
+    const res = await call('GET', `/api/tasks/${task.id}/chat`, s.a.cookie);
+    expect(res.statusCode).toBe(404);
+    expect(res.json()).toEqual({ error: 'not_found' });
+  });
+
+  it('a send, edit and delete waiting on a task chat that goes with its task → 404', async () => {
+    const s = await setup();
+    const task = (
+      await call('POST', `/api/groups/${s.group.id}/tasks`, s.admin.cookie, { title: 'T' })
+    ).json<{ id: string }>();
+    const channelId = (await call('GET', `/api/tasks/${task.id}/chat`, s.a.cookie)).json<{
+      id: string;
+    }>().id;
+    const mine = (await send(channelId, s.a.cookie)).json<MessageDto>();
+    const db = test.deps.db;
+    let pending: Promise<{ statusCode: number }[]> | undefined;
+    await db.transaction(async (tx) => {
+      // Hold the channel row lock (as a task delete does) so the three writes wait in nextSeq.
+      await tx.select().from(channels).where(eq(channels.id, channelId)).for('update');
+      pending = Promise.all([
+        send(channelId, s.a.cookie),
+        call('PATCH', `/api/messages/${mine.id}`, s.a.cookie, { body: 'edited' }),
+        call('DELETE', `/api/messages/${mine.id}`, s.a.cookie),
+      ]);
+      // Wait until all three are blocked on the lock, then delete the task (its chat cascades).
+      for (let i = 0; i < 60; i++) {
+        const [row] = await db.execute<{ n: number }>(sql`
+          select count(*)::int as n from pg_stat_activity
+          where query like 'update "channels" set "last_seq"%'
+            and cardinality(pg_blocking_pids(pid)) > 0
+        `);
+        if (row!.n >= 3) break;
+        await new Promise((r) => setTimeout(r, 50));
+      }
+      await tx.delete(tasks).where(eq(tasks.id, task.id));
+    });
+    const results = await pending!;
+    expect(results.map((r) => r.statusCode)).toEqual([404, 404, 404]);
+  }, 15_000);
 
   it('a task chat message and its thread reply carry the taskId in their events', async () => {
     const s = await setup();

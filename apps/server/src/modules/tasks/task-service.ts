@@ -13,6 +13,7 @@ import {
   type TaskPatch,
 } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
+import { isDeadlock } from '../../infra/db/errors.js';
 import {
   attachFiles,
   deleteDetachedFiles,
@@ -305,25 +306,32 @@ export async function deleteTask(
   options: CleanupOptions,
 ): Promise<{ groupId: string; sourceMessageId: string | null }> {
   const { db } = deps;
-  const { task, fileIds } = await db.transaction(async (tx) => {
-    // Lock the task first: an edit attaching files right now commits before we list them.
-    const [row] = await tx
-      .select({ groupId: tasks.groupId, sourceMessageId: tasks.sourceMessageId })
-      .from(tasks)
-      .where(eq(tasks.id, id))
-      .for('update');
-    if (!row) throw new NotFoundError();
-    const attachments = await tx
-      .select({ fileId: taskAttachments.fileId })
-      .from(taskAttachments)
-      .where(eq(taskAttachments.taskId, id));
-    // The task chat goes with the task (FK cascade), and with it its messages' attachments.
-    const chatFileIds = await taskChatFileIds(tx, id);
-    await tx.delete(tasks).where(eq(tasks.id, id));
-    const ids = [...attachments.map((a) => a.fileId), ...chatFileIds];
-    // If the removal after the commit fails, the daily unattached-files cleanup picks them up.
-    await detachFiles(tx, ids);
-    return { task: row, fileIds: ids };
+  const deleteInTx = () =>
+    db.transaction(async (tx) => {
+      // Lock the task first: an edit attaching files right now commits before we list them.
+      const [row] = await tx
+        .select({ groupId: tasks.groupId, sourceMessageId: tasks.sourceMessageId })
+        .from(tasks)
+        .where(eq(tasks.id, id))
+        .for('update');
+      if (!row) throw new NotFoundError();
+      const attachments = await tx
+        .select({ fileId: taskAttachments.fileId })
+        .from(taskAttachments)
+        .where(eq(taskAttachments.taskId, id));
+      // The task chat goes with the task (FK cascade), and with it its messages' attachments.
+      const chatFileIds = await taskChatFileIds(tx, id);
+      await tx.delete(tasks).where(eq(tasks.id, id));
+      const ids = [...attachments.map((a) => a.fileId), ...chatFileIds];
+      // If the removal after the commit fails, the daily unattached-files cleanup picks them up.
+      await detachFiles(tx, ids);
+      return { task: row, fileIds: ids };
+    });
+  // Two tasks each made from a message in the other's chat, deleted at once, lock each other's
+  // rows through the set-null cascade; Postgres aborts one (40P01), which then succeeds alone.
+  const { task, fileIds } = await deleteInTx().catch((error: unknown) => {
+    if (!isDeadlock(error)) throw error;
+    return deleteInTx();
   });
   await cleanUpFiles(deps, fileIds, options);
   return task;

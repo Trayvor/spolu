@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { and, asc, eq, inArray, isNull, sql } from 'drizzle-orm';
 import type { Admin } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
+import { isUniqueViolation } from '../../infra/db/errors.js';
 import { user } from './schema.js';
 
 export type UserRow = typeof user.$inferSelect;
@@ -17,22 +18,6 @@ export class EmailTakenError extends Error {
 export const normalizeEmail = (email: string): string => email.trim().toLowerCase();
 
 const adminColumns = { id: user.id, name: user.name, email: user.email, role: user.role };
-
-/** Whether the Postgres error (drizzle may wrap the driver error in `cause`) has this SQLSTATE. */
-function hasPgCode(error: unknown, sqlState: string): boolean {
-  const code = (e: unknown): unknown => (e as { code?: unknown } | null)?.code;
-  return (
-    code(error) === sqlState || code((error as { cause?: unknown } | null)?.cause) === sqlState
-  );
-}
-
-export function isUniqueViolation(error: unknown): boolean {
-  return hasPgCode(error, '23505');
-}
-
-export function isForeignKeyViolation(error: unknown): boolean {
-  return hasPgCode(error, '23503');
-}
 
 /** Makes sure the configured superadmin exists, is active and has the superadmin role. */
 export async function ensureSuperadmin(

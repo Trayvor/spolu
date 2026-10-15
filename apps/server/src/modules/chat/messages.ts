@@ -11,11 +11,11 @@ import {
 } from '@spolu/shared';
 import type { AppDeps } from '../../deps.js';
 import type { Db } from '../../infra/db/client.js';
+import { isUniqueViolation } from '../../infra/db/errors.js';
 import { attachFiles, deleteDetachedFiles, detachFiles } from '../files/service.js';
 import { getMembershipGroupId, listGroupPeople } from '../groups/service.js';
 import { recordNotifications } from '../notifications/service.js';
 import { isAdmin } from '../users/policy.js';
-import { isUniqueViolation } from '../users/service.js';
 import { selectMessages, toMessageDtos, type MessageRow } from './dto.js';
 import { canReadChannel } from './policy.js';
 import { messageAttachments, messageMentions, messages } from './schema.js';

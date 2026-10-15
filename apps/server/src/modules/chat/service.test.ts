@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, describe, expect, it } from 'vitest';
+import { eq } from 'drizzle-orm';
 import { createDb } from '../../infra/db/client.js';
 import { testDatabaseUrl } from '../../../test/test-config.js';
 import { createGroup } from '../groups/service.js';
@@ -8,6 +9,7 @@ import { ensureBoard, listBuckets } from '../tasks/service.js';
 import { createUnverifiedClient } from '../users/service.js';
 import { messages } from './schema.js';
 import {
+  ChannelGoneError,
   ensureGroupChannel,
   ensureTaskChannel,
   getChannel,
@@ -117,6 +119,13 @@ describe('nextSeq', () => {
     expect(await nextSeq(db, channel.id)).toBe(1);
     expect(await nextSeq(db, channel.id)).toBe(2);
     expect((await getChannel(db, channel.id))?.lastSeq).toBe(2);
+  });
+
+  it('a channel deleted with its task → ChannelGoneError', async () => {
+    const { task } = await newTask();
+    const channel = await ensureTaskChannel(db, task);
+    await db.delete(tasks).where(eq(tasks.id, task.id));
+    await expect(nextSeq(db, channel.id)).rejects.toBeInstanceOf(ChannelGoneError);
   });
 });
 

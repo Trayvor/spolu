@@ -501,6 +501,22 @@ describe('deleteTask', () => {
     expect(await getTaskRef(db, t2.id)).not.toBeNull();
     expect((await getTask(db, t2.id))!.sourceMessageId).toBeNull();
   });
+
+  it("two tasks made from messages in each other's chat can be deleted at once", async () => {
+    const group = await newGroup();
+    const client = await newClient(group.id);
+    for (let round = 0; round < 3; round++) {
+      const t1 = await createTask(deps, client, group.id, { title: 'One' });
+      const t2 = await createTask(deps, client, group.id, { title: 'Two' });
+      const m1 = (await sendInTaskChat(t1, client)).message;
+      const m2 = (await sendInTaskChat(t2, client)).message;
+      await db.update(tasks).set({ sourceMessageId: m2.id }).where(eq(tasks.id, t1.id));
+      await db.update(tasks).set({ sourceMessageId: m1.id }).where(eq(tasks.id, t2.id));
+      await Promise.all([deleteTask(deps, t1.id), deleteTask(deps, t2.id)]);
+      expect(await getTaskRef(db, t1.id)).toBeNull();
+      expect(await getTaskRef(db, t2.id)).toBeNull();
+    }
+  }, 15_000);
 });
 
 /** `task.moved` events of a task: recipient and payload. */
