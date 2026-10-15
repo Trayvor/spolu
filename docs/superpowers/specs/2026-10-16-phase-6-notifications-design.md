@@ -22,6 +22,7 @@ Recorded notification events reach people: Web Push on desktop and phones (the m
 | Defaults | Clients: All messages. Admins: Mentions and replies. |
 | Task notifications | Arrive in All messages and in Mentions and replies (they are about the user), not in Off. |
 | Parallel | Built in parallel with Phase 9. |
+| Install and enable prompts (2026-10-16) | On a phone browser, right after login: ask to install Spolu as an app, then to turn on notifications. Insistently: again every 6 hours until done. On iPhone say clearly that notifications only work after installing. An iOS too old for web push: tell the user, turn email notifications on automatically and say so. |
 
 ## Controller rulings (technical, owner informed)
 
@@ -30,9 +31,14 @@ Recorded notification events reach people: Web Push on desktop and phones (the m
   - A web app manifest: name "Spolu", the icons from `public/icons`, `display: standalone`, theme colour from the tokens.
   - A small hand-written service worker, `public/sw.js`. It does not cache anything; it only receives pushes and handles notification clicks. Offline is out of scope.
   - Clicking a notification focuses an open Spolu tab and navigates it to the link, or opens a new one.
-- **iPhone and iPad.** Apple allows Web Push only for a site added to the Home Screen (iOS 16.4+). When Safari on iOS runs outside standalone mode, the push row in the profile and the enable banner show a short hint instead of a switch: "To get notifications on iPhone, tap Share → Add to Home Screen, then open Spolu from the icon."
+- **iPhone and iPad.** Apple allows Web Push only for a site added to the Home Screen (iOS 16.4+). See the install and enable prompts below.
+- **Install and enable prompts** (owner, insistent by design). One component, `<AppPrompt>`, mounted in the app shell for signed-in users, decides which single prompt to show, if any:
+  1. **Install** — on a phone (touch, < 641 px or a mobile user agent) in a browser, not in standalone mode. A bottom card right after login and on every page load once 6 hours have passed since it was last dismissed. Android/Chromium: "Install Spolu as an app" with an **Install** button that uses the captured `beforeinstallprompt` event (falls back to "menu ⋮ → Install app / Add to Home screen" when the event never fires). iPhone/iPad (iOS 16.4+): a stronger card, "Important: install Spolu to get notifications. On iPhone, notifications only work from the Home Screen app.", with the steps "tap Share → Add to Home Screen → open Spolu from the icon" and a small illustration of the Share icon.
+  2. **Enable notifications** — when push is on in the profile, the device supports push, permission is `default` and this device has no subscription: on phones in the installed app and on desktop browsers. A banner "Turn on notifications on this device" with **Turn on** (asks the browser permission inside the click). Dismissed → shown again after 6 hours. Permission `denied` → the profile shows how to unblock it; no banner.
+  3. **iOS without web push** — iOS older than 16.4 (from the user agent; also when standalone and `PushManager` is missing). Once per device: the server sets `email_enabled = true` for the user (`POST /api/me/notification-fallback`, idempotent, recorded in `user.email_fallback_at` so it never flips the switch back on after the user turned email off again), and the card says: "Your iPhone's iOS doesn't support app notifications. We turned on email notifications for you. Update iOS to 16.4 or newer to get notifications on the phone." with **OK**.
+  Dismissal times live in `localStorage` per device (a missing or blocked storage means the prompt shows again, which is the insistent default). Every prompt is a card with clear text and real buttons (≥ 44 px), no animation beyond a short slide-in that respects reduced motion.
 - **Subscriptions** are per device: the `push_subscriptions` table holds `id`, `user_id`, unique `endpoint`, `p256dh`, `auth`, `user_agent`, `created_at` and `last_success_at`.
-  - A device subscribes only after the browser grants permission, which is asked by a user gesture: the switch in the profile, or the one-time banner "Turn on notifications on this device" that appears on the next page load after login while push is on and this device is not subscribed. Dismissing the banner hides it for 30 days on that device.
+  - A device subscribes only after the browser grants permission, asked inside a user gesture: the profile switch or the **Turn on** button of the enable prompt above.
   - A push service answering 404/410 deletes the subscription.
   - Logging out removes this device's subscription.
 - **Delivery pipeline.**
@@ -100,12 +106,12 @@ New `ErrorCodes`: `email_taken`, `push_unavailable`, `invalid_subscription`. A p
 - **Web:**
   - The bell menu: current mode, change, the optimistic update.
   - The groups page: the "All groups" control, including "Mixed".
+  - `<AppPrompt>`: install card on Android and iPhone (strong iOS copy), enable banner, 6-hour re-show after dismissal, nothing when installed and subscribed, the iOS < 16.4 fallback calls the server once and shows its notice; the server endpoint is idempotent and respects a later manual opt-out.
   - Profile:
     - name save;
     - the email change flow;
     - the push switch states: granted, default and denied;
     - the iOS hint when not standalone;
-    - the enable banner, and its 30-day dismissal.
 - **Service worker:** a unit test of the push and notification-click handlers with mocked `self.registration` and `clients`.
 - **E2E:** Chromium with a granted notification permission and a fake push sender (`PUSH_PROVIDER=fake` records sends).
   - A client in mode All gets a push record for an admin's message.
