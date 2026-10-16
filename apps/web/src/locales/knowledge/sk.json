@@ -50,7 +50,37 @@
       "timesInvalid": "Skontrolujte označené časy."
     }
   },
-  "detail": {},
+  "detail": {
+    "back": "Späť na znalosti",
+    "edit": "Upraviť",
+    "more": "Viac",
+    "delete": "Vymazať",
+    "deleteConfirm": "Vymazať túto položku? Vymažú sa aj jej súbory a pripomienky.",
+    "cancel": "Zrušiť",
+    "save": "Uložiť zmeny",
+    "create": "Vytvoriť",
+    "discardChanges": "Zahodiť vaše zmeny?",
+    "discardDraft": "Zahodiť tento koncept?",
+    "discard": "Zahodiť",
+    "keepEditing": "Pokračovať v úpravách",
+    "changed": "Niekto iný to medzitým zmenil.",
+    "reload": "Načítať znova",
+    "openLink": "Otvoriť odkaz",
+    "byline": "{{name}}, {{date}}",
+    "new": {
+      "note": "Nová poznámka",
+      "file": "Nový súbor",
+      "link": "Nový odkaz",
+      "reminder": "Nová pripomienka"
+    },
+    "loading": "Načítava sa…",
+    "loadFailed": "Položku sa nepodarilo načítať. Skúste to znova.",
+    "retry": "Skúsiť znova",
+    "saveFailed": "Nepodarilo sa uložiť. Skúste to znova.",
+    "deleteFailed": "Nepodarilo sa vymazať. Skúste to znova.",
+    "recipientInvalid": "Niekto zo zoznamu už nemôže dostať túto pripomienku. Skontrolujte príjemcov.",
+    "unavailable": "Táto položka už nie je dostupná."
+  },
   "tab": {},
   "newMenu": {},
   "global": {},

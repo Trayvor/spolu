@@ -14,7 +14,18 @@
       "duplicate": "Tento čas už v zozname je."
     }
   },
-  "panel": {},
+  "panel": {
+    "title": "Pripomienky",
+    "sent": "odoslané",
+    "reminded": "Pripomenie sa",
+    "remindMe": "Pripomenúť mi",
+    "authorHint": "Túto pripomienku ste vytvorili vy",
+    "addToCalendar": "Pridať do kalendára",
+    "noUpcoming": "Žiadne nadchádzajúce pripomienky",
+    "andMore": "{{names}} a ďalší ({{count}})",
+    "unavailable": "Táto položka už nemá pripomienky.",
+    "failed": "Pripomienku sa nepodarilo zmeniť. Skúste to znova."
+  },
   "time": {
     "today": "Dnes, {{time}}",
     "tomorrow": "Zajtra, {{time}}",

@@ -48,7 +48,37 @@
       "timesInvalid": "Check the times marked above."
     }
   },
-  "detail": {},
+  "detail": {
+    "back": "Back to knowledge",
+    "edit": "Edit",
+    "more": "More",
+    "delete": "Delete",
+    "deleteConfirm": "Delete this item? Its files and reminders are deleted too.",
+    "cancel": "Cancel",
+    "save": "Save changes",
+    "create": "Create",
+    "discardChanges": "Discard your changes?",
+    "discardDraft": "Discard this draft?",
+    "discard": "Discard",
+    "keepEditing": "Keep editing",
+    "changed": "Changed by someone else.",
+    "reload": "Reload",
+    "openLink": "Open link",
+    "byline": "{{name}}, {{date}}",
+    "new": {
+      "note": "New note",
+      "file": "New file",
+      "link": "New link",
+      "reminder": "New reminder"
+    },
+    "loading": "Loading…",
+    "loadFailed": "Could not load this item. Try again.",
+    "retry": "Try again",
+    "saveFailed": "Could not save. Try again.",
+    "deleteFailed": "Could not delete. Try again.",
+    "recipientInvalid": "Someone in the list can no longer get this reminder. Check the recipients.",
+    "unavailable": "This item is no longer available."
+  },
   "tab": {},
   "newMenu": {},
   "global": {},
