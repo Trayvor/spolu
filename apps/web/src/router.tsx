@@ -375,7 +375,7 @@ const bulkEmailRoute = createRoute({
   path: '/bulk-email',
   beforeLoad: bulkEmailGuard,
   component: lazyRouteComponent(
-    withNamespaces(['bulkEmail'], () => import('@/features/bulk-email/campaign-list-page')),
+    withNamespaces(['bulkEmail'], () => import('@/features/bulk-email/screens')),
     'CampaignListPage',
   ),
 });
@@ -385,7 +385,7 @@ const bulkCampaignRoute = createRoute({
   path: '/bulk-email/$campaignId',
   beforeLoad: bulkEmailGuard,
   component: lazyRouteComponent(
-    withNamespaces(['bulkEmail'], () => import('@/features/bulk-email/editor-page')),
+    withNamespaces(['bulkEmail'], () => import('@/features/bulk-email/screens')),
     'CampaignPageRoute',
   ),
 });
