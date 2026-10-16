@@ -7,6 +7,7 @@ import userEvent from '@testing-library/user-event';
 import { useTranslation } from 'react-i18next';
 import { i18n, setLanguage } from '@/i18n';
 import { SUPPORTED_LANGUAGES } from '@/i18n/languages';
+import { loadNamespace, resetNamespaces, setNamespaceImporter } from '@/i18n/namespaces';
 import { sessionQuery } from '@/features/auth/use-session';
 import { LanguageSwitcher } from './language-switcher';
 
@@ -36,6 +37,7 @@ describe('LanguageSwitcher', () => {
     localStorage.clear();
   });
   afterEach(() => {
+    setNamespaceImporter(null);
     localStorage.clear();
     vi.unstubAllGlobals();
   });
@@ -109,5 +111,53 @@ describe('LanguageSwitcher', () => {
     await user.click(screen.getByRole('menuitemradio', { name: 'English' }));
     expect(i18n.language).toBe('en');
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  describe('with a namespace still to load in the new language', () => {
+    beforeEach(async () => {
+      resetNamespaces();
+      await loadNamespace('settings'); // in sk only
+    });
+
+    it('a failed switch shows the error toast, keeps the language and saves nothing', async () => {
+      const fetchMock = vi.fn(async () => new Response(null, { status: 204 }));
+      vi.stubGlobal('fetch', fetchMock);
+      setNamespaceImporter(async () => {
+        throw new Error('offline');
+      });
+      const user = userEvent.setup();
+      render(<Probe />, true);
+      await user.click(screen.getByRole('button', { name: 'Jazyk: Slovenčina' }));
+      await user.click(screen.getByRole('menuitemradio', { name: 'English' }));
+
+      expect(await screen.findByText(i18n.t('errors.generic'))).toBeInTheDocument();
+      expect(i18n.language).toBe('sk');
+      expect(screen.getByTestId('probe')).toHaveTextContent('Nastavenia');
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it('choosing the shown language while a switch is pending ends in it', async () => {
+      let release!: () => void;
+      const gate = new Promise<void>((resolve) => (release = resolve));
+      setNamespaceImporter(async (name, lang) => {
+        await gate;
+        return (await import(`../locales/${name}/${lang}.json`)) as {
+          default: Record<string, unknown>;
+        };
+      });
+      const user = userEvent.setup();
+      render(<Probe />);
+      await user.click(screen.getByRole('button', { name: 'Jazyk: Slovenčina' }));
+      await user.click(screen.getByRole('menuitemradio', { name: 'English' }));
+      expect(i18n.language).toBe('sk'); // still loading the English texts
+      await user.click(screen.getByRole('button', { name: 'Jazyk: Slovenčina' }));
+      await user.click(screen.getByRole('menuitemradio', { name: 'Slovenčina' }));
+      release();
+
+      await waitFor(() => expect(localStorage.getItem('spolu.lang')).toBe('sk'));
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      expect(i18n.language).toBe('sk');
+      expect(screen.getByTestId('probe')).toHaveTextContent('Nastavenia');
+    });
   });
 });
