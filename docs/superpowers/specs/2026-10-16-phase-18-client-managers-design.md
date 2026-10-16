@@ -1,6 +1,6 @@
 # Spolu — Phase 18: Client managers (design)
 
-Date: 2026-10-16 · Status: written spec awaiting the owner's review
+Date: 2026-10-16 · Status: approved by the controller under the owner's overnight authorization (2026-10-16); rulings in 2026-10-16-phases-17-20-brief.md
 
 Requirements: [client-managers](../../product/client-managers.md), [notifications](../../product/notifications.md), [roles-and-access](../../product/roles-and-access.md). Builds on [Phase 6](2026-10-16-phase-6-notifications-design.md) (group notification modes) and [Phase 9](2026-10-15-phase-9-task-chat-and-ai-design.md) (task chat, @all in task chats, the AI split). Used by [Phase 17](2026-10-16-phase-17-knowledge-base-design.md) (the default of the global knowledge list's client filter) and [Phase 20](2026-10-16-phase-20-admin-home-design.md) (the admin home).
 

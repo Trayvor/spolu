@@ -1,6 +1,6 @@
 # Spolu — Phase 19: Task reminders (design)
 
-Date: 2026-10-16 · Status: written spec awaiting the owner's review
+Date: 2026-10-16 · Status: approved by the controller under the owner's overnight authorization (2026-10-16); rulings in 2026-10-16-phases-17-20-brief.md
 
 Requirements: [reminders](../../product/reminders.md), [task-board](../../product/task-board.md), [notifications](../../product/notifications.md). Roadmap entry: Phase 19 (added to `docs/roadmap.md` when the phase starts). Builds on [Phase 17](2026-10-16-phase-17-knowledge-base-design.md) (the reminders module), [Phase 6](2026-10-16-phase-6-notifications-design.md) (the automatic deadline and urgent reminders, the delivery pipeline) and [Phase 9](2026-10-15-phase-9-task-chat-and-ai-design.md) (the task panel).
 

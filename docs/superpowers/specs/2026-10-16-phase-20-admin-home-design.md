@@ -1,6 +1,6 @@
 # Spolu — Phase 20: Admin home: dashboard, client sidebar and global task board (design)
 
-Date: 2026-10-16 · Status: written spec awaiting the owner's review
+Date: 2026-10-16 · Status: approved by the controller under the owner's overnight authorization (2026-10-16); rulings in 2026-10-16-phases-17-20-brief.md
 
 Requirements: [admin-home](../../product/admin-home.md), [client-managers](../../product/client-managers.md), [task-board](../../product/task-board.md), [chat](../../product/chat.md). Builds on [Phase 18](2026-10-16-phase-18-client-managers-design.md) (managers, `managedGroupsSql`, the `admins` room), [Phase 9](2026-10-15-phase-9-task-chat-and-ai-design.md) (task chats, unread tasks, `TasksTabBadge`) and [Phase 6](2026-10-16-phase-6-notifications-design.md). The reminders card and the client filter come from [Phase 17](2026-10-16-phase-17-knowledge-base-design.md) (`modules/reminders`, `<ClientFilter>`), extended by Phase 19.
 

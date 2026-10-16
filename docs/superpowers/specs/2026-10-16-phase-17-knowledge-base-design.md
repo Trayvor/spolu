@@ -1,6 +1,6 @@
 # Spolu — Phase 17: Knowledge base (design)
 
-Date: 2026-10-16 · Status: written spec awaiting the owner's review
+Date: 2026-10-16 · Status: approved by the controller under the owner's overnight authorization (2026-10-16); rulings in 2026-10-16-phases-17-20-brief.md
 
 Requirements: [knowledge-base](../../product/knowledge-base.md), [reminders](../../product/reminders.md). Roadmap entry: Phase 17 (added to `docs/roadmap.md` when the phase starts). Builds on [Phase 6](2026-10-16-phase-6-notifications-design.md) (the notification pipeline), [Phase 8](2026-10-15-phase-8-task-board-design.md) and [Phase 9](2026-10-15-phase-9-task-chat-and-ai-design.md) (the task panel, `TaskForm`, the review dialog, `copyFile`). Depends on Phase 18 (Client managers, specified separately) only for the default client filter of the global list; see "Dependency on Phase 18".
 
