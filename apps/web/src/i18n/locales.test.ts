@@ -35,6 +35,7 @@ const NAMESPACES = [
   'taskSplit',
   'tasks',
   'tickets',
+  'unsubscribe',
 ] as const;
 const namespaceFiles = parsed(
   import.meta.glob<string>('../locales/*/*.json', {

@@ -1,0 +1,17 @@
+{
+  "done": {
+    "title": "Odhlásenie prebehlo",
+    "body": "Hromadné e-maily od eGrantu vám už nebudú chodiť. Prihlasovacie kódy a upozornenia zo Spolu dostávate naďalej."
+  },
+  "subscribed": {
+    "title": "Znova ste prihlásení",
+    "body": "Hromadné e-maily od eGrantu vám budú opäť chodiť. Kedykoľvek to zmeníte v Nastaveniach Spolu."
+  },
+  "subscribeAgain": "Znova prihlásiť",
+  "unsubscribeButton": "Odhlásiť",
+  "test": "Toto bol testovací e-mail, nič sa nezmenilo.",
+  "invalid": "Tento odkaz nie je platný.",
+  "errors": {
+    "rateLimited": "Príliš veľa pokusov. Skúste to znova o minútu."
+  }
+}
