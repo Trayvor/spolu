@@ -11,7 +11,7 @@ import { createFile, getFile } from '../files/service.js';
 import { addMembership } from '../groups/memberships.js';
 import { createGroup } from '../groups/service.js';
 import { notificationEvents } from '../notifications/schema.js';
-import { addAdmin, createUnverifiedClient } from '../users/service.js';
+import { addAdmin, createUnverifiedClient, deactivateUser } from '../users/service.js';
 import { user } from '../users/schema.js';
 
 const KEY = 'test-tickets-key-0123456789';
@@ -21,6 +21,9 @@ const host = () => `c${randomUUID().replaceAll('-', '').slice(0, 20)}`;
 
 describe('ticket chat', () => {
   let test: TestApp;
+  // Deactivated in afterAll: a ticket without a client notifies every active admin of the
+  // shared test database, so admins left active make later runs slower.
+  const admins: string[] = [];
   let baseUrl = '';
   const sockets: Socket[] = [];
 
@@ -33,6 +36,7 @@ describe('ticket chat', () => {
   });
   afterAll(async () => {
     sockets.forEach((s) => s.close());
+    for (const id of admins) await deactivateUser(test.deps.db, id);
     await test.app.close();
     await test.close();
   });
@@ -56,6 +60,7 @@ describe('ticket chat', () => {
   async function admin() {
     const email = newEmail();
     const a = await addAdmin(db(), { email, name: 'Ad Min' });
+    admins.push(a.id);
     return { ...a, cookie: await loginAs(test.app, email) };
   }
   async function member(groupId: string, role: 'client' | 'ziadatel', name = 'Člen') {

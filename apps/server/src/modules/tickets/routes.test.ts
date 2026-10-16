@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { and, eq, sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { io as connect, type Socket } from 'socket.io-client';
 import type { TicketDto, TicketListResponse } from '@spolu/shared';
@@ -8,8 +9,15 @@ import { countEmailsTo, latestEmail } from '../../../test/mailpit.js';
 import { addManager } from '../groups/managers.js';
 import { addMembership, getMembership, listMemberships } from '../groups/memberships.js';
 import { addMember, createGroup } from '../groups/service.js';
-import { addAdmin, createUnverifiedClient, findUserByEmail } from '../users/service.js';
+import {
+  addAdmin,
+  createUnverifiedClient,
+  findUserByEmail,
+  deactivateUser,
+} from '../users/service.js';
+import { notificationEvents } from '../notifications/schema.js';
 import { tasks } from '../tasks/schema.js';
+import { tickets } from './schema.js';
 import { getBoard } from '../tasks/service.js';
 
 const KEY = 'test-tickets-key-0123456789';
@@ -20,6 +28,9 @@ const host = () => `t${randomUUID().replaceAll('-', '').slice(0, 20)}`;
 
 describe('tickets API', () => {
   let test: TestApp;
+  // Deactivated in afterAll: a ticket without a client notifies every active admin of the
+  // shared test database, so admins left active make later runs slower.
+  const admins: string[] = [];
   let baseUrl = '';
   const sockets: Socket[] = [];
   let ip = 0;
@@ -33,6 +44,7 @@ describe('tickets API', () => {
   });
   afterAll(async () => {
     sockets.forEach((s) => s.close());
+    for (const id of admins) await deactivateUser(test.deps.db, id);
     await test.app.close();
     await test.close();
   });
@@ -67,6 +79,7 @@ describe('tickets API', () => {
   async function admin() {
     const email = newEmail();
     const a = await addAdmin(db(), { email, name: 'Ad Min' });
+    admins.push(a.id);
     return { ...a, cookie: await loginAs(test.app, email) };
   }
   async function clientIn(groupId: string, role: 'client' | 'ziadatel' = 'client') {
@@ -145,6 +158,57 @@ describe('tickets API', () => {
         dueDate: '2026-11-01',
         following: true, // the manager follows from the start
       });
+    });
+
+    it('a repeat with the same request_id answers the first ticket and does nothing else', async () => {
+      const g = await group();
+      const manager = await admin();
+      await addManager(db(), g.id, manager.id);
+      const email = newEmail();
+      const requestId = `egrant-${randomUUID()}`;
+      const body = {
+        subject: 'Opakovaný',
+        email,
+        instance_url: `https://${g.host}.egrant.sk`,
+        request_id: requestId,
+      };
+      const first = await intake(body);
+      expect(first.statusCode).toBe(201);
+      await latestEmail(email);
+      // A retry may differ in content; the request id alone decides.
+      const again = await intake({ ...body, subject: 'Iný predmet' });
+      expect(again.statusCode).toBe(200);
+      expect(again.json()).toEqual(first.json());
+
+      const { id } = first.json<{ id: string }>();
+      const rows = await db().select().from(tickets).where(eq(tickets.requestId, requestId));
+      expect(rows.map((r) => [r.id, r.subject])).toEqual([[id, 'Opakovaný']]);
+      const events = await db()
+        .select()
+        .from(notificationEvents)
+        .where(
+          and(
+            eq(notificationEvents.userId, manager.id),
+            sql`${notificationEvents.payload}->>'ticketId' = ${id}`,
+          ),
+        );
+      expect(events).toHaveLength(1);
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      expect(await countEmailsTo(email)).toBe(1);
+    });
+
+    it('concurrent requests with one request_id make one ticket', async () => {
+      const g = await group();
+      const body = {
+        subject: 'Súbežný',
+        instance_url: `https://${g.host}.egrant.sk`,
+        request_id: randomUUID(),
+      };
+      const answers = await Promise.all(Array.from({ length: 6 }, () => intake(body)));
+      expect(answers.map((r) => r.statusCode).sort()).toEqual([200, 200, 200, 200, 200, 201]);
+      expect(new Set(answers.map((r) => r.json<{ id: string }>().id)).size).toBe(1);
+      const rows = await db().select().from(tickets).where(eq(tickets.requestId, body.request_id));
+      expect(rows).toHaveLength(1);
     });
 
     it('no match: a ticket without client, only in the global view with scope none', async () => {

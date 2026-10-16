@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { and, eq } from 'drizzle-orm';
 import { io as connect, type Socket } from 'socket.io-client';
 import type {
@@ -19,6 +19,7 @@ import { addMembership } from '../groups/memberships.js';
 import { createGroup } from '../groups/service.js';
 import { notificationEvents } from '../notifications/schema.js';
 import { tasks } from '../tasks/schema.js';
+import { getBoard } from '../tasks/service.js';
 import { user } from '../users/schema.js';
 import { addAdmin, createUnverifiedClient, deactivateUser } from '../users/service.js';
 import { getTicketRow } from './service.js';
@@ -51,8 +52,12 @@ describe('ticket to tasks (Phase 21.5)', () => {
   });
 
   const db = () => test.deps.db;
-  const call = (method: 'GET' | 'POST' | 'PATCH', url: string, cookie: string, payload?: object) =>
-    test.app.inject({ method, url, headers: { cookie }, ...(payload ? { payload } : {}) });
+  const call = (
+    method: 'GET' | 'POST' | 'PATCH' | 'DELETE',
+    url: string,
+    cookie: string,
+    payload?: object,
+  ) => test.app.inject({ method, url, headers: { cookie }, ...(payload ? { payload } : {}) });
 
   async function group() {
     const h = host();
@@ -204,6 +209,55 @@ describe('ticket to tasks (Phase 21.5)', () => {
           ),
         );
       expect(events.map((e) => (e.payload as { count: number }).count)).toEqual([2]);
+    });
+
+    it('editing, moving and deleting a task made from the ticket refresh the ticket', async () => {
+      const g = await group();
+      const a = await admin();
+      const z = await member(g.id, 'ziadatel');
+      const t = await ticket(g, { email: z.email });
+      const [first, second] = (await create(g.id, t.id, a.cookie)).json<{
+        tasks: TaskDetailDto[];
+      }>().tasks;
+      // The requester's own room hears only their tickets' events.
+      const socket = connect(baseUrl, {
+        transports: ['websocket'],
+        extraHeaders: { cookie: z.cookie },
+        reconnection: false,
+      });
+      sockets.push(socket);
+      await new Promise((resolve) => socket.once('connect', () => resolve(null)));
+      const heard: string[] = [];
+      socket.on('ticket:updated', (p: { ticketId: string }) => heard.push(p.ticketId));
+      const next = async (n: number) => vi.waitFor(() => expect(heard).toHaveLength(n));
+
+      const patched = await call('PATCH', `/api/tasks/${first!.id}`, a.cookie, {
+        title: 'A renamed',
+        updatedAt: first!.updatedAt,
+      });
+      expect(patched.statusCode).toBe(200);
+      await next(1);
+      const done = (await getBoard(db(), g.id)).buckets.find((b) => b.kind === 'done')!;
+      const moved = await call('POST', `/api/tasks/${first!.id}/move`, a.cookie, {
+        bucketId: done.id,
+        afterTaskId: null,
+      });
+      expect(moved.statusCode).toBe(200);
+      await next(2);
+      expect((await call('DELETE', `/api/tasks/${second!.id}`, a.cookie)).statusCode).toBe(204);
+      await next(3);
+      expect(heard).toEqual([t.id, t.id, t.id]);
+
+      const dto = (await call('GET', `/api/tickets/${t.id}`, a.cookie)).json<TicketDto>();
+      expect(dto.tasks).toEqual([{ id: first!.id, title: 'A renamed', completed: true }]);
+      // A refresh, not a change the followers hear about.
+      const told = await db()
+        .select()
+        .from(notificationEvents)
+        .where(
+          and(eq(notificationEvents.userId, z.id), eq(notificationEvents.kind, 'ticket.tasks')),
+        );
+      expect(told).toHaveLength(1);
     });
 
     it('a client creates them; the ziadatel sees only the count', async () => {

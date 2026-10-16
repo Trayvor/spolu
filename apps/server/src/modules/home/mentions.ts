@@ -1,7 +1,8 @@
 import { sql, type SQL } from 'drizzle-orm';
-import { HOME_LIMITS, plainExcerpt, type Mentions } from '@spolu/shared';
+import { HOME_LIMITS, plainExcerpt, type Mentions, type SessionUser } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
 import { managedGroupsSql } from '../groups/managers.js';
+import { readableTicketIds } from '../tickets/service.js';
 
 const recent = sql.raw(`now() - interval '${HOME_LIMITS.mentionDays} days'`);
 
@@ -105,10 +106,18 @@ type Row = {
   mention_names: Record<string, string> | null;
 };
 
-export async function getMentions(db: Db, userId: string): Promise<Mentions> {
-  const rows = [...(await db.execute<Row>(mentionsSql(userId)))];
+/**
+ * The viewer's unread mentions. A ticket chat's message is dropped when the viewer no longer reads
+ * its ticket (the tickets policy, checked for the listed items in one batch), so no item opens a
+ * not-found page.
+ */
+export async function getMentions(db: Db, viewer: SessionUser): Promise<Mentions> {
+  const all = [...(await db.execute<Row>(mentionsSql(viewer.id)))];
+  const ticketIds = all.flatMap((r) => (r.ticket_id ? [r.ticket_id] : []));
+  const readable = await readableTicketIds(db, viewer, ticketIds);
+  const rows = all.filter((r) => r.ticket_id === null || readable.has(r.ticket_id));
   return {
-    total: rows[0]?.total ?? 0,
+    total: Math.max((all[0]?.total ?? 0) - (all.length - rows.length), rows.length),
     items: rows.map((r) => ({
       messageId: r.message_id,
       channelId: r.channel_id,

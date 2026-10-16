@@ -33,7 +33,7 @@ import {
   ValidationError,
 } from './task-service.js';
 import { clientGroupIds } from '../groups/memberships.js';
-import { emitTicket } from '../tickets/events.js';
+import { emitTicket, emitTicketRefresh } from '../tickets/events.js';
 import { runTicketChange } from '../tickets/hooks.js';
 import { actorReadsTicket, attachmentIds, getTicketRow } from '../tickets/service.js';
 
@@ -133,7 +133,19 @@ export const taskRoutes: FastifyPluginAsync<TaskRoutesOptions> = async (
     }
   };
 
-  /** The task's group and creator when the actor may use its board, else null (404). */
+  /**
+   * After a task made from a ticket changed (edited, moved, deleted): the ticket's page lists its
+   * tasks, so it refetches. A failure is logged; the write succeeded.
+   */
+  const refreshTicket = async (request: FastifyRequest, ticketId: string | null) => {
+    try {
+      await emitTicketRefresh(app.io, db, ticketId);
+    } catch (error) {
+      request.log.error({ err: error, ticketId }, 'could not refresh the ticket of a task');
+    }
+  };
+
+  /** The task's group, creator and source ticket when the actor may use its board, else null (404). */
   const readableTask = async (actor: SessionUser, id: string) => {
     const ref = await getTaskRef(db, id);
     if (!ref || !canUseBoard(actor, ref.groupId, await clientGroupIds(db, actor.id))) {
@@ -241,13 +253,15 @@ export const taskRoutes: FastifyPluginAsync<TaskRoutesOptions> = async (
     const body = TaskPatchSchema.safeParse(request.body);
     if (!body.success) return invalidBody(reply, body.error);
     // Anyone who may use the board edits any of its tasks.
-    if (!(await readableTask(actor, request.params.id))) return notFound(reply);
+    const ref = await readableTask(actor, request.params.id);
+    if (!ref) return notFound(reply);
     try {
       const task = await updateTask(deps, actor, request.params.id, body.data, {
         onFileCleanupError: logCleanupError(request),
       });
       emitTask(app.io, toTaskDto(task), person(actor));
       await pushMessageTasks(request, task.sourceMessageId);
+      await refreshTicket(request, ref.sourceTicketId);
       return task;
     } catch (error) {
       return writeError(reply, error);
@@ -259,12 +273,14 @@ export const taskRoutes: FastifyPluginAsync<TaskRoutesOptions> = async (
     const body = TaskMoveSchema.safeParse(request.body);
     if (!body.success) return reply.code(400).send({ error: ErrorCodes.validationFailed });
     // Anyone who may use the board moves any of its tasks.
-    if (!(await readableTask(actor, request.params.id))) return notFound(reply);
+    const ref = await readableTask(actor, request.params.id);
+    if (!ref) return notFound(reply);
     try {
       const { task, moved } = await moveTask(deps, actor, request.params.id, body.data);
       if (moved) {
         emitTask(app.io, task, person(actor));
         await pushMessageTasks(request, task.sourceMessageId);
+        await refreshTicket(request, ref.sourceTicketId);
       }
       return task;
     } catch (error) {
@@ -278,11 +294,14 @@ export const taskRoutes: FastifyPluginAsync<TaskRoutesOptions> = async (
     if (!ref) return notFound(reply);
     if (!canDeleteTask(actor, ref)) return reply.code(403).send({ error: ErrorCodes.forbidden });
     try {
-      const { groupId, sourceMessageId } = await deleteTask(deps, request.params.id, {
-        onFileCleanupError: logCleanupError(request),
-      });
+      const { groupId, sourceMessageId, sourceTicketId } = await deleteTask(
+        deps,
+        request.params.id,
+        { onFileCleanupError: logCleanupError(request) },
+      );
       emitTaskDeleted(app.io, groupId, request.params.id);
       await pushMessageTasks(request, sourceMessageId);
+      await refreshTicket(request, sourceTicketId);
       return reply.code(204).send();
     } catch (error) {
       return writeError(reply, error);

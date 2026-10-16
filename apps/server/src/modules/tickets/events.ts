@@ -1,6 +1,8 @@
 import type { Server as SocketIOServer } from 'socket.io';
 import { TicketEvents, type TicketEventPayload } from '@spolu/shared';
+import type { Db } from '../../infra/db/client.js';
 import { ADMINS_ROOM, groupRoom, userRoom } from '../../infra/realtime/rooms.js';
+import { getTicketRow } from './service.js';
 
 /**
  * Tells who may see a ticket that it changed: the group's room (its clients and the admins who
@@ -17,4 +19,19 @@ export function emitTicket(
   if (ticket.requesterUserId) rooms.push(userRoom(ticket.requesterUserId));
   const payload: TicketEventPayload = { ticketId: ticket.id, groupId: ticket.groupId };
   io.to(rooms).emit(TicketEvents[event], payload);
+}
+
+/**
+ * Tells the ticket's readers to refetch it after a change made elsewhere, such as a task made from
+ * it being edited, moved or deleted (its page lists those tasks). No hook runs: followers are not
+ * notified. Call it after the write committed.
+ */
+export async function emitTicketRefresh(
+  io: SocketIOServer,
+  db: Db,
+  ticketId: string | null,
+): Promise<void> {
+  if (ticketId === null) return;
+  const ticket = await getTicketRow(db, ticketId);
+  if (ticket) emitTicket(io, 'updated', ticket);
 }

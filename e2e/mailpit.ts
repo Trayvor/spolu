@@ -40,3 +40,30 @@ export async function subjectsFor(request: APIRequestContext, email: string): Pr
     .sort((a, b) => a.Created.localeCompare(b.Created))
     .map((m) => m.Subject);
 }
+
+/** The newest message to `email` whose subject matches; polls until one arrives. */
+export async function waitForMessage(
+  request: APIRequestContext,
+  email: string,
+  subject: RegExp,
+  timeoutMs = 30_000,
+): Promise<{ Subject: string; Text: string }> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const search = await request.get(
+      `${MAILPIT}/api/v1/search?query=${encodeURIComponent(`to:"${email}"`)}`,
+    );
+    const { messages } = (await search.json()) as {
+      messages?: { ID: string; Subject: string; Created: string }[];
+    };
+    const match = [...(messages ?? [])]
+      .sort((a, b) => b.Created.localeCompare(a.Created))
+      .find((m) => subject.test(m.Subject));
+    if (match) {
+      const message = await request.get(`${MAILPIT}/api/v1/message/${match.ID}`);
+      return (await message.json()) as { Subject: string; Text: string };
+    }
+    await new Promise((resolve) => setTimeout(resolve, 300));
+  }
+  throw new Error(`No message matching ${subject} arrived in Mailpit for ${email}`);
+}

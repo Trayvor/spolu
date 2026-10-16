@@ -7,7 +7,7 @@ Design: [Phase 21 spec](../superpowers/specs/2026-10-16-phase-21-tickets-and-req
 ## Requirements
 
 - **Sources.**
-  - eGrant sends a ticket to `POST /api/tickets/intake` with one shared Bearer key (`TICKETS_API_KEY`); the field list is in [integrations](integrations.md). Every field is optional, but a ticket needs a subject, a body or an area.
+  - eGrant sends a ticket to `POST /api/tickets/intake` with one shared Bearer key (`TICKETS_API_KEY`); the field list is in [integrations](integrations.md). Every field is optional, but a ticket needs a subject, a body or an area. An optional `request_id` makes retries safe: a repeat answers the first ticket and creates nothing.
   - A client creates a ticket in one of their groups and is its initiator.
   - An admin creates a ticket for any client and names the initiator (email, name, phone), as eGrant does.
   - A ziadatel never creates tickets.
@@ -39,7 +39,7 @@ Design: [Phase 21 spec](../superpowers/specs/2026-10-16-phase-21-tickets-and-req
 
 - **Lists**: the group's Tickets tab, **My tickets** (the initiator's tickets across their groups) and the admins' **global view** with the client filter (default the clients I manage, "All", "Without client", chosen clients). Filters: status (default Open = New and In progress; Resolved; All), area, "Following". Newest first, 50 per page.
 - **Chat.** A ticket with a client has its own chat (part 21.3, see [chat](chat.md)): admins, the group's clients and the initiator write there; it moves with the ticket. A ticket without a client has none until a client is assigned.
-- **Turn into tasks** (part 21.5, see [ai-task-split](ai-task-split.md)): admins and the group's clients turn a ticket, or a message of its chat, into task cards on the client's board with the Phase 9 AI split and review dialog. The cards link to the ticket ("Ticket: #123 subject" in the task panel), and the ticket lists them. A requester sees only "Turned into N tasks", without links, and never the action. A ticket without a client cannot be turned into tasks. The followers hear `ticket.tasks` ("#123 turned into 2 tasks").
+- **Turn into tasks** (part 21.5, see [ai-task-split](ai-task-split.md)): admins and the group's clients turn a ticket, or a message of its chat, into task cards on the client's board with the Phase 9 AI split and review dialog. The cards link to the ticket ("Ticket: #123 subject" in the task panel), and the ticket lists them; the list stays live when such a task is renamed, completed, moved or deleted. A requester sees only "Turned into N tasks", without links, and never the action. A ticket without a client cannot be turned into tasks. The followers hear `ticket.tasks` ("#123 turned into 2 tasks").
 
 ## Screens (part 21.4)
 
@@ -53,4 +53,4 @@ Design: [Phase 21 spec](../superpowers/specs/2026-10-16-phase-21-tickets-and-req
 
 ## Phase
 
-Phase 21. Built so far: part 21.1 (memberships), part 21.2 (server core: intake API, manual creation, initiator, "Ticket created" email, statuses and fields, assigning the client, following, lists), part 21.3 (ticket chat, server), part 21.4 (screens, above, with the ticket upload route, the requesters list and the task line), part 21.5 (ticket to tasks) and part 21.6 (notifications). Part 21.7: e2e and wrap-up.
+Phase 21. Built so far: part 21.1 (memberships), part 21.2 (server core: intake API, manual creation, initiator, "Ticket created" email, statuses and fields, assigning the client, following, lists), part 21.3 (ticket chat, server), part 21.4 (screens, above, with the ticket upload route, the requesters list and the task line), part 21.5 (ticket to tasks), part 21.6 (notifications) and part 21.7 (e2e and wrap-up: the intake's `request_id`, the eGrant [integration guide](../integrations/egrant-ticket-intake.md)). Phase 21 is done (local). End-to-end tests: `e2e/ticket-screens.spec.ts` (screens) and `e2e/tickets.spec.ts` (the whole flow: intake and retry, the "Ticket created" email and its login link, the requester sees only their ticket, chat, status, the requester's notification email, tasks, and the ticket's task list staying live when its tasks are completed or deleted).

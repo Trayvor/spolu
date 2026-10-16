@@ -25,6 +25,8 @@ export const TICKET_LIMITS = {
   pageSize: 50,
   /** Group ids in the global list's `clients` filter. */
   clients: 200,
+  /** The intake's idempotency key. */
+  requestId: 100,
 } as const;
 
 const isCalendarDate = (value: string): boolean => {
@@ -110,6 +112,17 @@ export const TicketIntakeBodySchema = z
     due_date: ticketContent.dueDate,
     url: ticketContent.url,
     instance_url: text(2048),
+    /**
+     * eGrant's own id for this request. A repeat with the same id answers the first ticket and
+     * creates nothing, so eGrant may retry safely.
+     */
+    request_id: z
+      .string()
+      .trim()
+      .min(1)
+      .max(TICKET_LIMITS.requestId)
+      .nullish()
+      .transform((v) => v ?? null),
   })
   .refine(hasContent, { message: 'subject, body or area is required' });
 export type TicketIntakeBody = z.infer<typeof TicketIntakeBodySchema>;

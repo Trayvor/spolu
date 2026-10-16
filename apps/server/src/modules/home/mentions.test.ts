@@ -44,14 +44,14 @@ const send = (
     data: { body, clientId: randomUUID(), ...(parentId ? { parentId } : {}) },
   });
 
-const mine = async (userId: string, groupIds: string[]) =>
-  (await getMentions(deps.db, userId)).items.filter((i) => groupIds.includes(i.groupId));
+const mine = async (viewer: SessionUser, groupIds: string[]) =>
+  (await getMentions(deps.db, viewer)).items.filter((i) => groupIds.includes(i.groupId));
 
 describe('getMentions', () => {
   it('a name mention by C is listed with author, group and excerpt', async () => {
     const s = await setup();
     const { message } = await send(s.gmChannel, s.C, `${mentionToken(s.A.id)} can you check?`);
-    const items = await mine(s.A.id, [s.GM.id]);
+    const items = await mine(s.A, [s.GM.id]);
     expect(items).toEqual([
       {
         messageId: message.id,
@@ -72,7 +72,7 @@ describe('getMentions', () => {
     const s = await setup();
     const { message } = await send(s.gmChannel, s.C, `${mentionToken('all')} the form`);
     await send(s.goChannel, s.D, `${mentionToken('all')} the form`);
-    const items = await mine(s.A.id, [s.GM.id, s.GO.id]);
+    const items = await mine(s.A, [s.GM.id, s.GO.id]);
     expect(items.map((i) => i.messageId)).toEqual([message.id]);
     expect(items[0]!.excerpt).toBe('@all the form');
   });
@@ -80,7 +80,7 @@ describe('getMentions', () => {
   it('a message with a name mention and @all in a managed group is one item', async () => {
     const s = await setup();
     await send(s.gmChannel, s.C, `${mentionToken('all')} and ${mentionToken(s.A.id)}`);
-    expect(await mine(s.A.id, [s.GM.id])).toHaveLength(1);
+    expect(await mine(s.A, [s.GM.id])).toHaveLength(1);
   });
 
   it('own messages, deleted messages and read messages are excluded', async () => {
@@ -98,9 +98,9 @@ describe('getMentions', () => {
       deletedAt: new Date(),
     });
     await send(s.gmChannel, s.C, `hi ${mentionToken(s.A.id)}`);
-    expect(await mine(s.A.id, [s.GM.id])).toHaveLength(1);
+    expect(await mine(s.A, [s.GM.id])).toHaveLength(1);
     await markRead(deps.db, s.A.id, s.GM.channelId, new Date());
-    expect(await mine(s.A.id, [s.GM.id])).toEqual([]);
+    expect(await mine(s.A, [s.GM.id])).toEqual([]);
   });
 
   it('a mention in a reply is listed with parentId and disappears after markThreadRead', async () => {
@@ -113,19 +113,19 @@ describe('getMentions', () => {
       `look ${mentionToken(s.A.id)}`,
       root.id,
     );
-    const items = await mine(s.A.id, [s.GM.id]);
+    const items = await mine(s.A, [s.GM.id]);
     expect(items.map((i) => [i.messageId, i.parentId])).toEqual([[reply.id, root.id]]);
     await markThreadRead(deps.db, s.A.id, root.id);
-    expect(await mine(s.A.id, [s.GM.id])).toEqual([]);
+    expect(await mine(s.A, [s.GM.id])).toEqual([]);
   });
 
   it('an @all reply counts until the channel read mark passes it', async () => {
     const s = await setup();
     const { message: root } = await send(s.gmChannel, s.C, 'root');
     await send(s.gmChannel, s.C, `${mentionToken('all')} reply`, root.id);
-    expect(await mine(s.A.id, [s.GM.id])).toHaveLength(1);
+    expect(await mine(s.A, [s.GM.id])).toHaveLength(1);
     await markRead(deps.db, s.A.id, s.GM.channelId, new Date());
-    expect(await mine(s.A.id, [s.GM.id])).toEqual([]);
+    expect(await mine(s.A, [s.GM.id])).toEqual([]);
   });
 
   it('a task chat mention carries taskId', async () => {
@@ -133,7 +133,7 @@ describe('getMentions', () => {
     const taskId = await newTask(deps.db, { groupId: s.GM.id, createdBy: s.A.id });
     const channel = await ensureTaskChannel(deps.db, { id: taskId, groupId: s.GM.id });
     const { message } = await send(channel, s.C, `task ${mentionToken(s.A.id)}`);
-    const items = await mine(s.A.id, [s.GM.id]);
+    const items = await mine(s.A, [s.GM.id]);
     expect(items).toHaveLength(1);
     expect(items[0]).toMatchObject({ messageId: message.id, channelId: channel.id, taskId });
   });
@@ -145,7 +145,7 @@ describe('getMentions', () => {
       .update(messages)
       .set({ createdAt: sql`now() - interval '91 days'` })
       .where(eq(messages.id, message.id));
-    expect(await mine(s.A.id, [s.GM.id])).toEqual([]);
+    expect(await mine(s.A, [s.GM.id])).toEqual([]);
   });
 
   it('total caps at 100 and items at 20', async () => {
@@ -164,7 +164,7 @@ describe('getMentions', () => {
         }),
       );
     }
-    const result = await getMentions(deps.db, A.id);
+    const result = await getMentions(deps.db, A);
     expect(result.total).toBe(100);
     expect(result.items.map((i) => i.messageId)).toEqual(ids.slice(-20).reverse());
   });
@@ -176,7 +176,7 @@ describe('getMentions', () => {
     let statements = 0;
     const counted = drizzle(client, { logger: { logQuery: () => void statements++ } });
     try {
-      expect((await getMentions(counted, s.A.id)).total).toBeGreaterThan(0);
+      expect((await getMentions(counted, s.A)).total).toBeGreaterThan(0);
       expect(statements).toBe(1);
     } finally {
       await client.end({ timeout: 1 });

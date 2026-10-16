@@ -567,7 +567,11 @@ describe('deleteTask', () => {
     const file = await upload(group.id, client);
     const task = await createTask(deps, client, group.id, { title: 'A', fileIds: [file.id] });
     const key = (await getFile(db, file.id))!.storageKey;
-    expect(await deleteTask(deps, task.id)).toEqual({ groupId: group.id, sourceMessageId: null });
+    expect(await deleteTask(deps, task.id)).toEqual({
+      groupId: group.id,
+      sourceMessageId: null,
+      sourceTicketId: null,
+    });
     expect(await getTask(db, task.id)).toBeNull();
     expect(await getFile(db, file.id)).toBeNull();
     expect(await storage.exists(key)).toBe(false);
@@ -583,6 +587,7 @@ describe('deleteTask', () => {
     expect(await deleteTaskWith(deps, task.id, { onFileCleanupError })).toEqual({
       groupId: group.id,
       sourceMessageId: null,
+      sourceTicketId: null,
     });
     expect(onFileCleanupError).toHaveBeenCalledOnce();
     expect(await getTask(db, task.id)).toBeNull();
@@ -630,7 +635,11 @@ describe('deleteTask', () => {
     const file = await upload(group.id, client);
     const storageKey = (await getFile(db, file.id))!.storageKey;
     const { channel } = await sendInTaskChat(task, client, [file.id]);
-    expect(await deleteTask(deps, task.id)).toEqual({ groupId: group.id, sourceMessageId: null });
+    expect(await deleteTask(deps, task.id)).toEqual({
+      groupId: group.id,
+      sourceMessageId: null,
+      sourceTicketId: null,
+    });
     expect(await getChannel(db, channel.id)).toBeNull();
     expect(await getFile(db, file.id)).toBeNull();
     expect(await storage.exists(storageKey)).toBe(false);
@@ -646,6 +655,7 @@ describe('deleteTask', () => {
     expect(await deleteTask(deps, task.id)).toEqual({
       groupId: group.id,
       sourceMessageId: message.id,
+      sourceTicketId: null,
     });
   });
 

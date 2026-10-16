@@ -17,7 +17,12 @@ import {
   moveFilesToGroup,
   type FileDeps,
 } from '../files/service.js';
-import { activeMemberOfSql, activeRolesIn, getMembership } from '../groups/memberships.js';
+import {
+  activeMemberOfSql,
+  activeRolesIn,
+  getMembership,
+  listMemberships,
+} from '../groups/memberships.js';
 import { listGroupManagers, managedGroupIds } from '../groups/managers.js';
 // Deliberate read-only exception: the list joins the group's name in its one query.
 import { groups } from '../groups/schema.js';
@@ -70,6 +75,30 @@ export async function actorReadsTicket(
   return canReadTicket(actor, ticket, await roleIn(db, actor, ticket.groupId));
 }
 
+/**
+ * Which of the tickets the actor reads now, in two queries whatever the count (the tickets and,
+ * for a non-admin, their active memberships). For lists built elsewhere that link to tickets.
+ */
+export async function readableTicketIds(
+  db: Db,
+  actor: SessionUser,
+  ids: string[],
+): Promise<Set<string>> {
+  if (ids.length === 0) return new Set();
+  const rows = await db
+    .select({ id: tickets.id, groupId: tickets.groupId, requesterUserId: tickets.requesterUserId })
+    .from(tickets)
+    .where(inArray(tickets.id, [...new Set(ids)]));
+  const roles = isAdmin(actor)
+    ? new Map<string, MemberRole>()
+    : new Map((await listMemberships(db, actor.id)).map((m) => [m.groupId, m.role]));
+  return new Set(
+    rows
+      .filter((r) => canReadTicket(actor, r, r.groupId ? (roles.get(r.groupId) ?? null) : null))
+      .map((r) => r.id),
+  );
+}
+
 export async function getTicketRow(db: Db, id: string): Promise<TicketRow | null> {
   const [row] = await db.select().from(tickets).where(eq(tickets.id, id));
   return row ?? null;
@@ -104,17 +133,27 @@ export type CreateTicketInput = {
   fileIds?: string[];
   /** The eGrant instance link the API sent. */
   instanceUrl?: string | null;
+  /** The intake's idempotency key: a second ticket with the same key is never written. */
+  requestId?: string | null;
 };
+
+/** The ticket the intake already made for `requestId`, if any. */
+export async function findTicketByRequestId(db: Db, requestId: string): Promise<TicketRow | null> {
+  const [row] = await db.select().from(tickets).where(eq(tickets.requestId, requestId));
+  return row ?? null;
+}
 
 /**
  * Saves a ticket. With a client, the initiator is resolved first (it may add a ziadatel
  * membership), then the ticket and its auto followers are written in one transaction. Returns
- * the row and whether the initiator should get the "Ticket created" email.
+ * the row and whether the initiator should get the "Ticket created" email. When another ticket
+ * already holds `requestId` (a concurrent retry), nothing is written and `duplicate` is true
+ * with that ticket.
  */
 export async function createTicket(
   deps: FileDeps,
   input: CreateTicketInput,
-): Promise<{ ticket: TicketRow; notifyRequester: boolean }> {
+): Promise<{ ticket: TicketRow; notifyRequester: boolean; duplicate: boolean }> {
   const { db } = deps;
   const resolved =
     input.groupId === null
@@ -134,12 +173,15 @@ export async function createTicket(
         requesterPhone: input.requester.phone,
         ...input.fields,
         instanceUrl: input.instanceUrl ?? null,
+        requestId: input.requestId ?? null,
         createdBy: input.createdBy,
         createdAt: now,
         updatedAt: now,
       })
+      .onConflictDoNothing({ target: tickets.requestId })
       .returning();
-    const created = row!;
+    if (!row) return null;
+    const created = row;
     if (input.groupId && input.fileIds && input.fileIds.length > 0) {
       await attachFiles(tx, input.groupId, input.fileIds, input.createdBy ?? '');
       await tx
@@ -149,9 +191,13 @@ export async function createTicket(
     await addAutoFollowers(tx, created);
     return created;
   });
+  if (!ticket) {
+    const existing = await findTicketByRequestId(db, input.requestId!);
+    return { ticket: existing!, notifyRequester: false, duplicate: true };
+  }
   const notifyRequester =
     resolved.notify && resolved.userId !== null && resolved.userId !== input.createdBy;
-  return { ticket, notifyRequester };
+  return { ticket, notifyRequester, duplicate: false };
 }
 
 /**
