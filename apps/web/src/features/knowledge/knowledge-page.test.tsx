@@ -219,7 +219,7 @@ describe('KnowledgePage', () => {
     await waitFor(() => expect(router.state.location.search).toMatchObject({ q: 'ab' }));
   });
 
-  it('All clients writes clients=all; without managed clients the request has no clients', async () => {
+  it('All clients writes clients=all and asks for scope=all', async () => {
     const { listCalls } = mockApi();
     const { router, user } = renderPage('/knowledge?clients=g1');
     await user.click(
@@ -233,16 +233,16 @@ describe('KnowledgePage', () => {
     expect(
       screen.getByRole('button', { name: t('knowledge.clientFilter.pillAll') }),
     ).toBeInTheDocument();
-    await waitFor(() => expect(listCalls().at(-1)).toBe('/api/knowledge'));
+    await waitFor(() => expect(listCalls().at(-1)).toBe('/api/knowledge?scope=all'));
   });
 
-  it('clients=all with managed clients asks for every client', async () => {
+  it('clients=all with managed clients asks for scope=all, not ids', async () => {
     const { listCalls } = mockApi(ADMIN, ['g1']);
     renderPage('/knowledge?clients=all');
     expect(
       await screen.findByRole('button', { name: t('knowledge.clientFilter.pillAll') }),
     ).toBeInTheDocument();
-    await waitFor(() => expect(listCalls()).toEqual(['/api/knowledge?clients=g1%2Cg2%2Cg3']));
+    await waitFor(() => expect(listCalls()).toEqual(['/api/knowledge?scope=all']));
   });
 
   it('the client pill waits for groups and scope', async () => {

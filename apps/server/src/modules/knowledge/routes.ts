@@ -62,6 +62,8 @@ const GlobalListQuerySchema = z.object({
     .transform((value) => value.split(',').filter((id) => id.length > 0))
     .pipe(z.array(IdSchema).max(KNOWLEDGE_LIMITS.clients))
     .optional(),
+  // `all`: every group, whatever the admin manages; it never combines with `clients`.
+  scope: z.literal('all').optional(),
 });
 
 /**
@@ -133,9 +135,11 @@ export const knowledgeRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app
   app.get('/knowledge', { preHandler: adminOnly }, async (request, reply) => {
     const query = GlobalListQuerySchema.safeParse(request.query);
     if (!query.success) return invalid(reply);
-    const { clients, ...opts } = query.data;
+    const { clients, scope, ...opts } = query.data;
+    if (scope === 'all' && clients !== undefined && clients.length > 0) return invalid(reply);
     let groupIds: string[] | null;
-    if (clients !== undefined && clients.length > 0) groupIds = clients;
+    if (scope === 'all') groupIds = null;
+    else if (clients !== undefined && clients.length > 0) groupIds = clients;
     else {
       // The default scope: the admin's managed groups; none (null or empty) means every group.
       const managed = await managedGroupIdsOf(db, request.user!.id);

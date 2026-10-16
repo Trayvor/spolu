@@ -28,6 +28,12 @@ describe('knowledge api', () => {
     expect(urlOf(fetchMock)).toBe('/api/knowledge?clients=a%2Cb&type=link&q=por+tal&cursor=cur1');
   });
 
+  it('global query sends scope=all instead of ids', async () => {
+    const fetchMock = mockFetch();
+    await run(globalKnowledgeQuery({ scope: 'all', q: 'x' }));
+    expect(urlOf(fetchMock)).toBe('/api/knowledge?scope=all&q=x');
+  });
+
   it('group query passes the cursor and omits empty filters', async () => {
     const fetchMock = mockFetch();
     const q = groupKnowledgeQuery('g1', {});

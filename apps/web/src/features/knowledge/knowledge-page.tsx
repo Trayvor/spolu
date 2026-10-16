@@ -112,17 +112,16 @@ export function KnowledgePage() {
         ? allIds
         : clientsParam.split(',').filter(Boolean);
   const noClients = clients !== null && !everyClient && clients.length === 0;
-  // Without a `clients` param the server uses the default scope. That is every client only while
-  // the admin manages none; otherwise "every client" has to be spelled out.
+  // Without a `clients` param the server uses the default scope (the managed clients, or every
+  // client while the admin manages none); `scope=all` is every client without sending the ids.
   const managedIds = scope?.managedGroupIds ?? null;
-  const requested = everyClient
-    ? managedIds?.length
-      ? allIds
-      : undefined
-    : (clients ?? undefined);
   const query = useInfiniteQuery({
-    ...globalKnowledgeQuery({ clients: requested, type: search.type, q: search.q }),
-    enabled: !noClients && (!everyClient || loaded),
+    ...globalKnowledgeQuery(
+      everyClient
+        ? { scope: 'all', type: search.type, q: search.q }
+        : { clients: clients ?? undefined, type: search.type, q: search.q },
+    ),
+    enabled: !noClients,
     refetchOnWindowFocus: true,
   });
 

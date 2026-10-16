@@ -470,6 +470,33 @@ describe('knowledge API', () => {
       expect((await list(`&clients=${g1.id},${g2.id}&type=link`)).items).toEqual([]);
     });
 
+    it('scope=all lists every group and ignores the managed groups', async () => {
+      const admin = await newAdmin();
+      const [g1, g2] = [await newGroup(), await newGroup()];
+      const tok = token();
+      const one = await create(admin.cookie, g1.id, note({ title: `${tok} one` }));
+      const two = await create(admin.cookie, g2.id, note({ title: `${tok} two` }));
+      const list = (query: string) => call('GET', `/api/knowledge?q=${tok}${query}`, admin.cookie);
+
+      scope.managed = [g1.id];
+      const all = await list('&scope=all');
+      expect(all.statusCode).toBe(200);
+      expect(all.json<KnowledgePage>().items.map((i) => i.id)).toEqual([two.id, one.id]);
+      expect((await list('&scope=all&type=link')).json<KnowledgePage>().items).toEqual([]);
+      // `scope=all` and `clients` contradict each other; any other scope is unknown.
+      const both = await list(`&scope=all&clients=${g1.id}`);
+      expect(both.statusCode).toBe(400);
+      expect(both.json()).toEqual({ error: 'validation_failed' });
+      expect((await list('&scope=mine')).statusCode).toBe(400);
+      scope.managed = null;
+    });
+
+    it('scope=all is 403 for clients', async () => {
+      const g = await newGroup();
+      const client = await clientIn(g.id);
+      expect((await call('GET', '/api/knowledge?scope=all', client.cookie)).statusCode).toBe(403);
+    });
+
     it('GET /api/knowledge/scope answers { managedGroupIds: null }', async () => {
       const admin = await newAdmin();
       const res = await call('GET', '/api/knowledge/scope', admin.cookie);

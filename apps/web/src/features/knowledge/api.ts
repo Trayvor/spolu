@@ -13,7 +13,8 @@ import { apiGet, apiSend } from '@/lib/api';
 const enc = encodeURIComponent;
 
 export type KnowledgeFilter = { type?: KnowledgeType; q?: string };
-export type GlobalKnowledgeFilter = KnowledgeFilter & { clients?: string[] };
+/** `scope: 'all'` is every client, whatever the admin manages; it never combines with `clients`. */
+export type GlobalKnowledgeFilter = KnowledgeFilter & { clients?: string[]; scope?: 'all' };
 
 function search(params: Record<string, string | undefined>): string {
   const qs = new URLSearchParams();
@@ -43,6 +44,7 @@ export const globalKnowledgeQuery = (filter: GlobalKnowledgeFilter) =>
     queryFn: ({ pageParam }) =>
       apiGet(
         `/knowledge${search({
+          scope: filter.scope,
           clients: filter.clients?.length ? filter.clients.join(',') : undefined,
           type: filter.type,
           q: filter.q,
