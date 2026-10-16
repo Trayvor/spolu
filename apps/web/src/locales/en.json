@@ -321,39 +321,5 @@
   "files": {
     "download": "Download {{name}}",
     "openImage": "Open {{name}}"
-  },
-  "notifications": {
-    "mode": {
-      "bellLabel": "Notifications: {{mode}}",
-      "all": "All messages",
-      "allHint": "Every new message in this group",
-      "mentions": "Mentions and replies",
-      "mentionsHint": "When someone mentions you, replies in your thread, or a task of yours changes",
-      "off": "Off",
-      "offHint": "No notifications from this group",
-      "mixed": "Mixed",
-      "allGroups": "All groups:"
-    },
-    "prompt": {
-      "installTitle": "Install Spolu as an app",
-      "installBody": "Open it from your home screen like any other app and get notifications.",
-      "install": "Install",
-      "installMenu": "Open the browser menu ⋮ → Install app / Add to Home screen",
-      "notNow": "Not now",
-      "iosTitle": "Important: install Spolu to get notifications.",
-      "iosBody": "On iPhone, notifications only work from the Home Screen app.",
-      "iosStepShare": "Tap Share",
-      "iosStepAdd": "Add to Home Screen",
-      "iosStepOpen": "Open Spolu from the icon",
-      "enableTitle": "Turn on notifications on this device",
-      "enableBody": "Get new messages and task updates right away.",
-      "turnOn": "Turn on",
-      "enableFailed": "Notifications could not be turned on. Try again.",
-      "iosUnsupportedTitle": "Your iPhone's iOS doesn't support app notifications.",
-      "iosUnsupportedBody": "We turned on email notifications for you. Update iOS to 16.4 or newer to get notifications on the phone.",
-      "iosUnsupportedEmailOn": "Email notifications are already on for you. Update iOS to 16.4 or newer to get notifications on the phone.",
-      "iosUnsupportedEmailOff": "Email notifications are off; you can turn them on in Settings. Update iOS to 16.4 or newer to get notifications on the phone.",
-      "ok": "OK"
-    }
   }
 }

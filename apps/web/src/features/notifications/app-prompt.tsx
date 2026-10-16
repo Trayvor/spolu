@@ -1,3 +1,4 @@
+import '@/i18n/notifications-copy';
 import { useEffect, useId, useReducer, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useQueryClient } from '@tanstack/react-query';

@@ -9,17 +9,19 @@ const locales = Object.fromEntries(
   Object.entries(files).map(([path, json]) => [path.replace(/^.*\/(.+)\.json$/, '$1'), json]),
 );
 
-// Copy that ships with the lazy settings page (`settings-copy.ts`), not with the entry chunk.
-const settingsFiles = import.meta.glob<Record<string, unknown>>('../locales/settings/*.json', {
+// Copy that ships with lazy chunks, not with the entry chunk: `src/locales/<bundle>/<code>.json`,
+// merged by `src/i18n/<bundle>-copy.ts` (settings page; bell, mode menu and app prompt).
+const LAZY_BUNDLES = ['settings', 'notifications'] as const;
+const lazyFiles = import.meta.glob<Record<string, unknown>>('../locales/*/*.json', {
   eager: true,
   import: 'default',
 });
-const settingsLocales = Object.fromEntries(
-  Object.entries(settingsFiles).map(([path, json]) => [
-    path.replace(/^.*\/(.+)\.json$/, '$1'),
-    json,
-  ]),
-);
+const lazyLocales = (bundle: string) =>
+  Object.fromEntries(
+    Object.entries(lazyFiles)
+      .filter(([path]) => path.startsWith(`../locales/${bundle}/`))
+      .map(([path, json]) => [path.replace(/^.*\/(.+)\.json$/, '$1'), json]),
+  );
 
 function flatten(obj: Record<string, unknown>, prefix = ''): string[] {
   return Object.entries(obj).flatMap(([key, value]) =>
@@ -46,18 +48,32 @@ describe('locales', () => {
     }
   });
 
-  it('the lazy settings bundle has one file per language, all with the same keys', () => {
-    const codes = Object.keys(settingsLocales).sort();
-    expect(codes).toEqual(SUPPORTED_LANGUAGES.map((l) => l.code).sort());
-    const enKeys = baseKeys(settingsLocales.en ?? {}).sort();
-    for (const [code, json] of Object.entries(settingsLocales)) {
-      expect({ code, keys: baseKeys(json).sort() }).toEqual({ code, keys: enKeys });
-    }
+  it('the lazy bundles are exactly settings and notifications', () => {
+    const found = new Set(Object.keys(lazyFiles).map((path) => path.split('/')[2]));
+    expect([...found].sort()).toEqual([...LAZY_BUNDLES].sort());
   });
 
-  it('the settings bundle adds keys and never overrides one of the main files', () => {
-    const main = new Set(flatten(locales.en ?? {}));
-    expect(flatten(settingsLocales.en ?? {}).filter((key) => main.has(key))).toEqual([]);
+  for (const bundle of LAZY_BUNDLES) {
+    it(`the lazy ${bundle} bundle has one file per language, all with the same keys`, () => {
+      const bundleLocales = lazyLocales(bundle);
+      const codes = Object.keys(bundleLocales).sort();
+      expect(codes).toEqual(SUPPORTED_LANGUAGES.map((l) => l.code).sort());
+      const enKeys = baseKeys(bundleLocales.en ?? {}).sort();
+      for (const [code, json] of Object.entries(bundleLocales)) {
+        expect({ code, keys: baseKeys(json).sort() }).toEqual({ code, keys: enKeys });
+      }
+    });
+
+    it(`the ${bundle} bundle adds keys and never overrides one of the main files`, () => {
+      const main = new Set(flatten(locales.en ?? {}));
+      expect(flatten(lazyLocales(bundle).en ?? {}).filter((key) => main.has(key))).toEqual([]);
+    });
+  }
+
+  it('the notifications texts are not in the main files (they ship with the lazy chunks)', () => {
+    for (const [code, json] of Object.entries(locales)) {
+      expect({ code, has: 'notifications' in json }).toEqual({ code, has: false });
+    }
   });
 
   it('every plural key has an _other form in every locale', () => {
