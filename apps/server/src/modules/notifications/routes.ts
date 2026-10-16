@@ -16,9 +16,10 @@ import { getGroup, getMembershipGroupId } from '../groups/service.js';
 import { isAdmin } from '../users/policy.js';
 import {
   applyEmailFallback,
-  getNotificationProfiles,
-  updateNotificationPrefs,
+  getNotificationChannels,
+  setNotificationChannel,
 } from '../users/service.js';
+import { visibleCategoriesFor } from './categories.js';
 import { getModeSettings, setDefaultMode, setGroupMode } from './modes.js';
 import { deleteOwnSubscription, saveSubscription } from './push-subscriptions.js';
 
@@ -29,33 +30,42 @@ export const notificationsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async 
   const { db, config } = deps;
   const anyUser = requireUser(app.auth);
 
-  const prefsOf = async (userId: string): Promise<NotificationPrefs> => {
-    const profile = (await getNotificationProfiles(db, [userId])).get(userId);
-    return {
-      pushEnabled: profile?.pushEnabled ?? true,
-      emailEnabled: profile?.emailEnabled ?? false,
-      vapidPublicKey: config.push?.publicKey ?? null,
-    };
-  };
+  const prefsOf = async (actor: { id: string }): Promise<NotificationPrefs> => ({
+    channels: await getNotificationChannels(db, actor.id),
+    visibleCategories: await visibleCategoriesFor(db, actor),
+    vapidPublicKey: config.push?.publicKey ?? null,
+  });
 
   app.get('/notifications/preferences', { preHandler: anyUser }, async (request) =>
-    prefsOf(request.user!.id),
+    prefsOf(request.user!),
   );
 
   app.patch('/notifications/preferences', { preHandler: anyUser }, async (request, reply) => {
+    const actor = request.user!;
     const parsed = NotificationPrefsPatchSchema.safeParse(request.body);
     if (!parsed.success) return reply.code(400).send({ error: ErrorCodes.validationFailed });
-    await updateNotificationPrefs(db, request.user!.id, parsed.data);
-    return prefsOf(request.user!.id);
+    const { category, channel } = parsed.data;
+    // A group the profile does not show is not the user's to set.
+    if (!(await visibleCategoriesFor(db, actor)).includes(category)) {
+      return reply.code(400).send({ error: ErrorCodes.validationFailed });
+    }
+    await setNotificationChannel(db, actor.id, category, channel);
+    return prefsOf(actor);
   });
 
-  // iOS without web push: email on once per user. `email_fallback_at` keeps a later opt-out off.
+  // iOS without web push: once per user, the visible push groups get email too.
+  // `email_fallback_at` keeps a later manual change.
   app.post(
     '/me/notification-fallback',
     { preHandler: anyUser },
     async (request): Promise<NotificationFallback> => {
-      const turnedOn = await applyEmailFallback(db, request.user!.id);
-      return { ...(await prefsOf(request.user!.id)), turnedOn };
+      const actor = request.user!;
+      const turnedOn = await applyEmailFallback(
+        db,
+        actor.id,
+        await visibleCategoriesFor(db, actor),
+      );
+      return { ...(await prefsOf(actor)), turnedOn };
     },
   );
 
