@@ -55,4 +55,20 @@ describe('knowledge api', () => {
       '/api/groups/g1/knowledge',
     ]);
   });
+
+  it('group query sends the folder, root for the top level, none for every folder', async () => {
+    const fetchMock = mockFetch();
+    await run(groupKnowledgeQuery('g1', { folder: 'f1' }));
+    await run(groupKnowledgeQuery('g1', { folder: null }));
+    await run(groupKnowledgeQuery('g1', { q: 'ab' }));
+    const urls = (fetchMock.mock.calls as unknown as string[][]).map((c) => c[0]);
+    expect(urls).toEqual([
+      '/api/groups/g1/knowledge?folder=f1',
+      '/api/groups/g1/knowledge?folder=root',
+      '/api/groups/g1/knowledge?q=ab',
+    ]);
+    expect(groupKnowledgeQuery('g1', { folder: null }).queryKey).not.toEqual(
+      groupKnowledgeQuery('g1', {}).queryKey,
+    );
+  });
 });

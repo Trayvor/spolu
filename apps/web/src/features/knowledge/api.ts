@@ -1,9 +1,14 @@
 import { infiniteQueryOptions, queryOptions } from '@tanstack/react-query';
 import {
+  KnowledgeFolderDtoSchema,
+  KnowledgeFolderListSchema,
   KnowledgeItemDtoSchema,
   KnowledgePageSchema,
   KnowledgeScopeSchema,
   type KnowledgeDraft,
+  type KnowledgeFolderDraft,
+  type KnowledgeFolderDto,
+  type KnowledgeFolderPatch,
   type KnowledgeItemDto,
   type KnowledgePatch,
   type KnowledgeType,
@@ -12,8 +17,11 @@ import { apiGet, apiSend } from '@/lib/api';
 
 const enc = encodeURIComponent;
 
-/** `types`: any of these types; empty or absent means every type. */
-export type KnowledgeFilter = { types?: KnowledgeType[]; q?: string };
+/**
+ * `types`: any of these types; empty or absent means every type. `folder` (the tab only): the
+ * items directly in that folder, null the top level; absent means every folder (a search).
+ */
+export type KnowledgeFilter = { types?: KnowledgeType[]; q?: string; folder?: string | null };
 /** `scope: 'all'` is every client, whatever the admin manages; it never combines with `clients`. */
 export type GlobalKnowledgeFilter = KnowledgeFilter & { clients?: string[]; scope?: 'all' };
 
@@ -42,7 +50,12 @@ export const groupKnowledgeQuery = (groupId: string, filter: KnowledgeFilter) =>
     initialPageParam: undefined as string | undefined,
     queryFn: ({ pageParam }) =>
       apiGet(
-        `/groups/${enc(groupId)}/knowledge${search({ type: typeParam(filter.types), q: filter.q, cursor: pageParam })}`,
+        `/groups/${enc(groupId)}/knowledge${search({
+          type: typeParam(filter.types),
+          q: filter.q,
+          folder: filter.folder === null ? 'root' : filter.folder,
+          cursor: pageParam,
+        })}`,
         KnowledgePageSchema,
       ),
     getNextPageParam: (page) => page.nextCursor ?? undefined,
@@ -99,4 +112,35 @@ export async function deleteKnowledge(id: string): Promise<void> {
   } finally {
     deleting.delete(id);
   }
+}
+
+// Folders (Phase 24): a group's whole folder list in one request.
+
+export const groupFoldersQuery = (groupId: string) =>
+  queryOptions({
+    queryKey: ['knowledge', 'folders', groupId],
+    queryFn: () =>
+      apiGet(`/groups/${enc(groupId)}/knowledge/folders`, KnowledgeFolderListSchema).then(
+        (list) => list.folders,
+      ),
+  });
+
+export function createFolder(
+  groupId: string,
+  draft: Partial<KnowledgeFolderDraft> & { name: string },
+): Promise<KnowledgeFolderDto> {
+  return apiSend(
+    'POST',
+    `/groups/${enc(groupId)}/knowledge/folders`,
+    draft,
+    KnowledgeFolderDtoSchema,
+  );
+}
+
+export function updateFolder(id: string, patch: KnowledgeFolderPatch): Promise<KnowledgeFolderDto> {
+  return apiSend('PATCH', `/knowledge/folders/${enc(id)}`, patch, KnowledgeFolderDtoSchema);
+}
+
+export async function deleteFolder(id: string): Promise<void> {
+  await apiSend('DELETE', `/knowledge/folders/${enc(id)}`);
 }

@@ -1,5 +1,10 @@
 import { expect, test, type APIRequestContext, type BrowserContext } from '@playwright/test';
-import type { KnowledgeItemDto, KnowledgePage } from '@spolu/shared';
+import type {
+  KnowledgeFolderDto,
+  KnowledgeFolderList,
+  KnowledgeItemDto,
+  KnowledgePage,
+} from '@spolu/shared';
 import { withDb } from './db';
 import { clearMailFor, latestLoginCode } from './mailpit';
 import { fakeSubscription, waitForPush } from './push-log';
@@ -186,6 +191,74 @@ test.describe.serial('knowledge base', () => {
     // Clients cannot use the global list.
     expect((await clientContext.request.get('/api/knowledge')).status()).toBe(403);
     await page.close();
+  });
+
+  // Phase 24: folders. The client never sees an admins-only folder or what is in it; a search
+  // finds an item in a subfolder and shows its path.
+  test('folders: the client sees only public folders, and search shows the folder path', async () => {
+    const folder = async (data: Record<string, unknown>) => {
+      const res = await adminContext.request.post(`/api/groups/${groupId}/knowledge/folders`, {
+        data,
+      });
+      expect(res.status()).toBe(201);
+      return (await res.json()) as KnowledgeFolderDto;
+    };
+    const grants = await folder({ name: `Granty ${stamp}` });
+    const year = await folder({ name: `Rok ${stamp}`, parentId: grants.id });
+    const secret = await folder({ name: `Tajné ${stamp}`, visibility: 'admins' });
+    const deep = await create(adminContext.request, {
+      type: 'note',
+      title: `Hlboko ${stamp}`,
+      fileIds: [],
+      folderId: year.id,
+    });
+    const hidden = await create(adminContext.request, {
+      type: 'note',
+      title: `Skryté ${stamp}`,
+      fileIds: [],
+      folderId: secret.id,
+    });
+    expect(hidden.visibility).toBe('admins');
+
+    const listed = (await (
+      await clientContext.request.get(`/api/groups/${groupId}/knowledge/folders`)
+    ).json()) as KnowledgeFolderList;
+    expect(listed.folders.map((f) => f.id)).toContain(grants.id);
+    expect(listed.folders.map((f) => f.id)).not.toContain(secret.id);
+    expect(
+      (
+        await clientContext.request.get(`/api/groups/${groupId}/knowledge?folder=${secret.id}`)
+      ).status(),
+    ).toBe(404);
+
+    const client = await clientContext.newPage();
+    await client.goto(`/groups/${groupId}/knowledge`);
+    await expect(
+      client.getByRole('button', { name: `Otvoriť priečinok ${grants.name}` }),
+    ).toBeVisible();
+    await expect(client.getByText(secret.name)).toHaveCount(0);
+    await client.getByRole('button', { name: `Otvoriť priečinok ${grants.name}` }).click();
+    await client.getByRole('button', { name: `Otvoriť priečinok ${year.name}` }).click();
+    await expect(client.getByRole('button', { name: `Otvoriť ${deep.title}` })).toBeVisible();
+    await expect(client.getByRole('navigation', { name: 'Cesta k priečinku' })).toContainText(
+      year.name,
+    );
+
+    await client.goto(`/groups/${groupId}/knowledge?q=${encodeURIComponent(`Hlboko ${stamp}`)}`);
+    await expect(client.getByRole('button', { name: `Otvoriť ${deep.title}` })).toBeVisible();
+    await expect(client.getByText(`${grants.name} / ${year.name}`)).toBeVisible();
+    await client.goto(`/groups/${groupId}/knowledge?q=${encodeURIComponent(`Skryté ${stamp}`)}`);
+    await expect(client.getByRole('button', { name: `Otvoriť ${hidden.title}` })).toHaveCount(0);
+    await client.close();
+
+    // The admins' global view: client → folders → items.
+    const admin = await adminContext.newPage();
+    await admin.goto(`/knowledge?clients=${groupId}`);
+    await admin.getByRole('button', { name: `Otvoriť priečinok E2E Znalosti ${stamp}` }).click();
+    await expect(
+      admin.getByRole('button', { name: `Otvoriť priečinok ${secret.name}` }),
+    ).toBeVisible();
+    await admin.close();
   });
 
   test('phone viewport: the detail is a full-screen sheet and its controls are at least 44 px', async () => {

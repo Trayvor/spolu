@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
   KNOWLEDGE_LIMITS,
+  KNOWLEDGE_FOLDER_LIMITS,
   KnowledgeDraftSchema,
+  KnowledgeFolderDraftSchema,
+  KnowledgeFolderPatchSchema,
   KnowledgePatchSchema,
   KnowledgeTypeListSchema,
   ReminderInputSchema,
@@ -23,6 +26,7 @@ describe('KnowledgeDraftSchema', () => {
       body: '',
       visibility: 'public',
       fileIds: [],
+      folderId: null,
     });
   });
 
@@ -239,5 +243,36 @@ describe('KnowledgeTypeListSchema', () => {
     expect(KnowledgeTypeListSchema.safeParse('note,poem').success).toBe(false);
     expect(KnowledgeTypeListSchema.safeParse('note,'.repeat(100)).success).toBe(false);
     expect(KnowledgeTypeListSchema.safeParse(Array(20).fill('note')).success).toBe(false);
+  });
+});
+
+describe('knowledge folders', () => {
+  it('a folder draft trims the name and fills the defaults', () => {
+    expect(KnowledgeFolderDraftSchema.parse({ name: '  Grants ' })).toEqual({
+      name: 'Grants',
+      parentId: null,
+      visibility: 'public',
+    });
+  });
+
+  it('a folder name has 1 to 100 characters', () => {
+    expect(KnowledgeFolderDraftSchema.safeParse({ name: '   ' }).success).toBe(false);
+    const max = 'a'.repeat(KNOWLEDGE_FOLDER_LIMITS.name);
+    expect(KnowledgeFolderDraftSchema.safeParse({ name: max }).success).toBe(true);
+    expect(KnowledgeFolderDraftSchema.safeParse({ name: `${max}a` }).success).toBe(false);
+  });
+
+  it('a folder patch needs at least one known field', () => {
+    expect(KnowledgeFolderPatchSchema.safeParse({}).success).toBe(false);
+    expect(KnowledgeFolderPatchSchema.safeParse({ color: 'red' }).success).toBe(false);
+    expect(KnowledgeFolderPatchSchema.parse({ parentId: null })).toEqual({ parentId: null });
+    expect(KnowledgeFolderPatchSchema.parse({ name: ' A ' })).toEqual({ name: 'A' });
+  });
+
+  it('an item patch may move the item to the top level', () => {
+    expect(KnowledgePatchSchema.parse({ folderId: null, updatedAt: at })).toEqual({
+      folderId: null,
+      updatedAt: at,
+    });
   });
 });

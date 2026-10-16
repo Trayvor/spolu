@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import type { Role, SessionUser } from '@spolu/shared';
-import { canDeleteItem, canEditItem, canReadItem, canSetVisibility } from './policy.js';
+import {
+  canDeleteItem,
+  canEditItem,
+  canReadFolder,
+  canReadItem,
+  canSetFolderVisibility,
+  canSetVisibility,
+} from './policy.js';
 
 const actor = (role: Role, id = 'actor'): SessionUser => ({
   id,
@@ -49,5 +56,18 @@ describe('knowledge policy', () => {
     expect(canSetVisibility(actor('admin'), null, 'admins')).toBe(true);
     expect(canSetVisibility(actor('admin', 'x'), { authorIsClient: false }, 'admins')).toBe(true);
     expect(canSetVisibility(actor('superadmin'), { authorIsClient: false }, 'public')).toBe(true);
+  });
+
+  it('folders: clients see public folders of their group; admins see all', () => {
+    expect(canReadFolder(actor('client'), pub, ['g1'])).toBe(true);
+    expect(canReadFolder(actor('client'), pub, ['g2'])).toBe(false);
+    expect(canReadFolder(actor('client'), hidden, ['g1'])).toBe(false);
+    expect(canReadFolder(actor('admin'), hidden, [])).toBe(true);
+  });
+
+  it('folders: only admins make a folder admins-only', () => {
+    expect(canSetFolderVisibility(actor('client'), 'public')).toBe(true);
+    expect(canSetFolderVisibility(actor('client'), 'admins')).toBe(false);
+    expect(canSetFolderVisibility(actor('admin'), 'admins')).toBe(true);
   });
 });

@@ -318,6 +318,16 @@ export async function pruneRecipientsForAdminsOnly(
   tx: Db,
   subject: ReminderSubjectRef,
 ): Promise<void> {
+  await pruneRecipientsForAdminsOnlyMany(tx, subject.kind, [subject.id]);
+}
+
+/** `pruneRecipientsForAdminsOnly` for many subjects of one kind, in one statement. */
+export async function pruneRecipientsForAdminsOnlyMany(
+  tx: Db,
+  kind: ReminderSubjectRef['kind'],
+  ids: string[],
+): Promise<void> {
+  if (ids.length === 0) return;
   await tx.delete(reminderRecipients).where(
     and(
       ne(reminderRecipients.source, 'author'),
@@ -326,7 +336,7 @@ export async function pruneRecipientsForAdminsOnly(
         tx
           .select({ id: reminderSets.id })
           .from(reminderSets)
-          .where(eq(subjectColumn(subject.kind), subject.id)),
+          .where(inArray(subjectColumn(kind), ids)),
       ),
       inArray(
         reminderRecipients.userId,

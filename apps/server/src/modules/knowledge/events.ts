@@ -2,6 +2,9 @@ import type { Server as SocketIOServer } from 'socket.io';
 import {
   KnowledgeEvents,
   KnowledgeSummarySchema,
+  type KnowledgeFolderDeletedEvent,
+  type KnowledgeFolderDto,
+  type KnowledgeFolderEvent,
   type KnowledgeItemDeletedEvent,
   type KnowledgeItemDto,
   type KnowledgeItemEvent,
@@ -55,4 +58,42 @@ export function emitKnowledgeDeleted(
   if (item.visibility === 'public')
     emitToGroup(io, item.groupId, KnowledgeEvents.itemDeleted, event);
   else emitToGroupAdmins(io, item.groupId, KnowledgeEvents.itemDeleted, event);
+}
+
+/**
+ * Pushes a created or changed folder after the commit, routed like an item. Public → admins-only
+ * deletes the folder for the clients, and each item that stopped being public (`hiddenItemIds`).
+ */
+export function emitKnowledgeFolder(
+  io: SocketIOServer,
+  folder: KnowledgeFolderDto,
+  previousVisibility?: Visibility,
+  hiddenItemIds: string[] = [],
+): void {
+  const event: KnowledgeFolderEvent = { folder };
+  const { groupId } = folder;
+  if (folder.visibility === 'public') {
+    emitToGroup(io, groupId, KnowledgeEvents.folder, event);
+    return;
+  }
+  if (previousVisibility === 'public') {
+    const deleted: KnowledgeFolderDeletedEvent = { groupId, id: folder.id };
+    emitToGroupClients(io, groupId, KnowledgeEvents.folderDeleted, deleted);
+  }
+  for (const id of hiddenItemIds) {
+    const gone: KnowledgeItemDeletedEvent = { groupId, id };
+    emitToGroupClients(io, groupId, KnowledgeEvents.itemDeleted, gone);
+  }
+  emitToGroupAdmins(io, groupId, KnowledgeEvents.folder, event);
+}
+
+/** Pushes a folder's deletion to its readers: the group room, or the admins room. */
+export function emitKnowledgeFolderDeleted(
+  io: SocketIOServer,
+  folder: { groupId: string; id: string; visibility: Visibility },
+): void {
+  const event: KnowledgeFolderDeletedEvent = { groupId: folder.groupId, id: folder.id };
+  if (folder.visibility === 'public') {
+    emitToGroup(io, folder.groupId, KnowledgeEvents.folderDeleted, event);
+  } else emitToGroupAdmins(io, folder.groupId, KnowledgeEvents.folderDeleted, event);
 }

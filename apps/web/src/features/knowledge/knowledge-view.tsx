@@ -7,7 +7,7 @@ import { MessageBody } from '@/features/chat/format/render';
 import { FileChip } from '@/features/files/file-chip';
 import { ImagePreview } from '@/features/files/image-preview';
 import { ReminderPanel } from '@/features/reminders/reminder-panel';
-import { ArrowOutIcon, LockIcon } from './icons';
+import { ArrowOutIcon, LockIcon, SmallFolderIcon } from './icons';
 
 type NameOf = (id: string) => string | undefined;
 
@@ -58,7 +58,15 @@ export const KnowledgeView = forwardRef<
   return (
     <article className="flex flex-col gap-4">
       <div className="flex flex-col gap-1.5">
-        <p className="text-micro text-muted-foreground">{t(`knowledge.types.${item.type}`)}</p>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-micro text-muted-foreground">
+          <p>{t(`knowledge.types.${item.type}`)}</p>
+          {item.folderPath.length > 0 && (
+            <p className="flex min-w-0 items-center gap-1" aria-label={t('knowledge.folders.path')}>
+              <SmallFolderIcon />
+              <span className="truncate">{item.folderPath.map((f) => f.name).join(' / ')}</span>
+            </p>
+          )}
+        </div>
         <SheetDialogTitle
           ref={titleRef}
           tabIndex={-1}

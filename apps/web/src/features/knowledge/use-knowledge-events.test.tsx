@@ -37,11 +37,13 @@ function summary(id: string, overrides: Partial<KnowledgeSummary> = {}): Knowled
     createdBy: { id: 'u1', name: 'Anna' },
     createdAt: '2026-10-14T10:00:00.000Z',
     updatedAt: '2026-10-14T10:00:00.000Z',
+    folderId: null,
+    folderPath: [],
     ...overrides,
   };
 }
 
-type Filter = { types?: KnowledgeType[]; q?: string };
+type Filter = { types?: KnowledgeType[]; q?: string; folder?: string | null };
 
 let fetchMock: ReturnType<typeof vi.fn>;
 let client: QueryClient;
@@ -183,5 +185,40 @@ describe('useKnowledgeEvents', () => {
     const before = fetchMock.mock.calls.length;
     view.rerender(tree({}, 2));
     await waitFor(() => expect(fetchMock.mock.calls.length).toBe(before + 1));
+  });
+
+  it('in a folder, only items of that folder are upserted; one moved away leaves', async () => {
+    await mount({ folder: 'f1' });
+    act(() => fake.fire(KnowledgeEvents.item, { item: summary('k2', { folderId: 'f1' }) }));
+    act(() => fake.fire(KnowledgeEvents.item, { item: summary('k3', { folderId: 'f2' }) }));
+    act(() => fake.fire(KnowledgeEvents.item, { item: summary('k4') }));
+    expect(cachedIds({ folder: 'f1' })).toEqual(['k2', 'k1']);
+    act(() => fake.fire(KnowledgeEvents.item, { item: summary('k1', { folderId: null }) }));
+    expect(cachedIds({ folder: 'f1' })).toEqual(['k2']);
+  });
+
+  it('at the top level, an item of a folder is not upserted', async () => {
+    await mount({ folder: null });
+    act(() => fake.fire(KnowledgeEvents.item, { item: summary('k2', { folderId: 'f1' }) }));
+    act(() => fake.fire(KnowledgeEvents.item, { item: summary('k3') }));
+    expect(cachedIds({ folder: null })).toEqual(['k3', 'k1']);
+  });
+
+  it('folder events refetch the folders and the lists of the group', async () => {
+    await mount({ folder: null });
+    const before = fetchMock.mock.calls.length;
+    const folder = {
+      id: 'f1',
+      groupId: 'g1',
+      parentId: null,
+      name: 'A',
+      visibility: 'public',
+      updatedAt: '',
+    };
+    act(() => fake.fire(KnowledgeEvents.folder, { folder: { ...folder, groupId: 'g2' } }));
+    act(() => fake.fire(KnowledgeEvents.folder, { folder }));
+    await waitFor(() => expect(fetchMock.mock.calls.length).toBe(before + 1));
+    act(() => fake.fire(KnowledgeEvents.folderDeleted, { groupId: 'g1', id: 'f1' }));
+    await waitFor(() => expect(fetchMock.mock.calls.length).toBe(before + 2));
   });
 });

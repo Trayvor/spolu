@@ -38,3 +38,20 @@ export function canSetVisibility(
   const authorIsClient = item ? item.authorIsClient : !isAdmin(actor);
   return isAdmin(actor) && !authorIsClient;
 }
+
+/**
+ * Whoever reads the group sees its public folders; admins-only folders only admins. Seeing a
+ * folder is enough to rename, move or delete it (Phase 24 owner decision 3).
+ */
+export function canReadFolder(
+  actor: SessionUser,
+  folder: { groupId: string; visibility: Visibility | string },
+  actorGroupIds: readonly string[],
+): boolean {
+  return canReadItem(actor, folder, actorGroupIds);
+}
+
+/** Only an admin makes a folder admins-only. */
+export function canSetFolderVisibility(actor: SessionUser, visibility: Visibility): boolean {
+  return visibility === 'public' || isAdmin(actor);
+}

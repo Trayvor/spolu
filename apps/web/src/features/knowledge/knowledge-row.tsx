@@ -8,7 +8,15 @@ import { fileUrl } from '@/features/files/urls';
 import { formatReminderTime } from '@/features/reminders/format';
 import { formatCreated } from '@/features/tasks/dates';
 import { CalendarLeaf } from './calendar-leaf';
-import { ArrowOutIcon, BellIcon, FileIcon, LinkIcon, LockIcon, NoteIcon } from './icons';
+import {
+  ArrowOutIcon,
+  BellIcon,
+  FileIcon,
+  LinkIcon,
+  LockIcon,
+  NoteIcon,
+  SmallFolderIcon,
+} from './icons';
 
 /** The URL without its protocol and a leading `www.`. */
 export const displayUrl = (url: string): string =>
@@ -53,10 +61,13 @@ export function KnowledgeRow({
   item,
   onOpen,
   showGroup,
+  showPath,
 }: {
   item: KnowledgeSummary;
   onOpen: (id: string) => void;
   showGroup?: boolean;
+  /** A search result: the item's folder path, when it is in a folder. */
+  showPath?: boolean;
 }) {
   const { t, i18n } = useTranslation();
   const done = item.type === 'reminder' && item.nextReminderAt === null;
@@ -150,6 +161,15 @@ export function KnowledgeRow({
                 )}
                 <span className="truncate font-semibold">{item.group.name}</span>
               </>
+            )}
+            {showPath && item.folderPath.length > 0 && (
+              <span
+                className="flex min-w-0 items-center gap-1"
+                aria-label={t('knowledge.folders.path')}
+              >
+                <SmallFolderIcon />
+                <span className="truncate">{item.folderPath.map((f) => f.name).join(' / ')}</span>
+              </span>
             )}
             <Avatar userId={item.createdBy.id} name={item.createdBy.name} size={24} />
             <span className="truncate">{item.createdBy.name}</span>

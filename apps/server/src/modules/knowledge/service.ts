@@ -37,6 +37,15 @@ import {
 import { isAdmin } from '../users/policy.js';
 import { groupMembers } from '../groups/schema.js';
 import { user } from '../users/schema.js';
+import {
+  InvalidUrlError,
+  InvalidVisibilityError,
+  KnowledgeChangedError,
+  KnowledgeForbiddenError,
+  KnowledgeNotFoundError,
+  ValidationError,
+} from './errors.js';
+import { folderForItem, folderPaths, lockGroupKnowledge } from './folders.js';
 import { canEditItem, canReadItem, canSetVisibility } from './policy.js';
 import { registerKnowledgeReminderSubject } from './reminder-subject.js';
 import { knowledgeAttachments, knowledgeItems } from './schema.js';
@@ -46,55 +55,26 @@ import { clientGroupIds } from '../groups/memberships.js';
 // The reminder endpoints and `getReminderSet` resolve items through this adapter.
 registerKnowledgeReminderSubject();
 
-/** The item does not exist or the actor cannot read it (404). */
-export class KnowledgeNotFoundError extends Error {
-  constructor() {
-    super('Knowledge item not found');
-    this.name = 'KnowledgeNotFoundError';
-  }
-}
-
-/** The actor reads the item but may not edit or delete it (403). */
-export class KnowledgeForbiddenError extends Error {
-  constructor() {
-    super('Not allowed to change this knowledge item');
-    this.name = 'KnowledgeForbiddenError';
-  }
-}
-
-/** The item changed since the `updatedAt` being edited (409 `knowledge_changed`). */
-export class KnowledgeChangedError extends Error {
-  constructor() {
-    super('Knowledge item changed');
-    this.name = 'KnowledgeChangedError';
-  }
-}
-
-/** `admins` by a client or on a client's item (400 `invalid_visibility`). */
-export class InvalidVisibilityError extends Error {
-  constructor() {
-    super('Invalid visibility');
-    this.name = 'InvalidVisibilityError';
-  }
-}
-
-/** Not an http(s) URL of at most 2048 characters, or a URL on a non-link item (400 `invalid_url`). */
-export class InvalidUrlError extends Error {
-  constructor() {
-    super('Invalid URL');
-    this.name = 'InvalidUrlError';
-  }
-}
-
-/** A malformed cursor, or a patch that tries to change the type (400 `validation`). */
-export class ValidationError extends Error {
-  constructor(message = 'Invalid request') {
-    super(message);
-    this.name = 'ValidationError';
-  }
-}
+export {
+  FolderLimitError,
+  InvalidFolderError,
+  InvalidUrlError,
+  InvalidVisibilityError,
+  KnowledgeChangedError,
+  KnowledgeFolderNotFoundError,
+  KnowledgeForbiddenError,
+  KnowledgeNotFoundError,
+  ValidationError,
+} from './errors.js';
 
 const SUBJECT = 'knowledge' as const;
+
+/** A parsed draft; `folderId` may be left out (the top level), as for callers before folders. */
+type DraftArg = KnowledgeDraft extends infer D
+  ? D extends KnowledgeDraft
+    ? Omit<D, 'folderId'> & { folderId?: string | null }
+    : never
+  : never;
 
 /** The actor's client groups for the policy checks; admins need none. */
 const actorGroupOf = (db: Db, actor: SessionUser) =>
@@ -112,6 +92,7 @@ export type PageRow = {
   visibility: Visibility;
   title: string;
   url: string | null;
+  folder_id: string | null;
   created_by: string;
   created_at: string;
   updated_at: string;
@@ -140,7 +121,7 @@ const iso = (expr: SQL) =>
  */
 function pageQuery(where: SQL, limit: number, withBody = false): SQL {
   return sql`
-    select k.id, k.group_id, k.type, k.visibility, k.title, k.url, k.created_by,
+    select k.id, k.group_id, k.type, k.visibility, k.title, k.url, k.folder_id, k.created_by,
            ${iso(sql`k.created_at`)} as created_at, ${iso(sql`k.updated_at`)} as updated_at,
            k.created_at::text as created_text, left(k.body, 2000) as body_head,
            ${withBody ? sql`k.body,` : sql``}
@@ -179,8 +160,26 @@ function jsonFileInfo(file: Record<string, unknown>): FileInfo {
   };
 }
 
-/** A list row; `names` resolves the mentions of the excerpt. */
-export function toSummary(row: PageRow, names: Map<string, string>): KnowledgeSummary {
+type FolderPath = KnowledgeSummary['folderPath'];
+type PathOf = (id: string, publicOnly: boolean) => FolderPath;
+
+/** The folder path of a row: a public item's path never shows an admins-only folder. */
+const rowPath = (row: PageRow, pathOf: PathOf): FolderPath =>
+  row.folder_id === null ? [] : pathOf(row.folder_id, row.visibility === 'public');
+
+/** One query for the folder paths of all these rows. */
+const pathsOf = (db: Db, rows: PageRow[]) =>
+  folderPaths(
+    db,
+    rows.flatMap((row) => (row.folder_id === null ? [] : [row.folder_id])),
+  );
+
+/** A list row; `names` resolves the mentions of the excerpt, `folderPath` is the row's path. */
+export function toSummary(
+  row: PageRow,
+  names: Map<string, string>,
+  folderPath: FolderPath = [],
+): KnowledgeSummary {
   return {
     id: row.id,
     groupId: row.group_id,
@@ -197,6 +196,8 @@ export function toSummary(row: PageRow, names: Map<string, string>): KnowledgeSu
     createdBy: { id: row.created_by, name: row.author_name },
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    folderId: row.folder_id,
+    folderPath,
   };
 }
 
@@ -265,8 +266,16 @@ function cursorWhere(cursor: string): SQL {
   return sql`(k.created_at, k.id) < (${createdText}::timestamptz, ${id})`;
 }
 
-/** `types`: any of these types; empty or absent means every type. */
-type ListFilters = { types?: KnowledgeType[]; q?: string; cursor?: string };
+/**
+ * `types`: any of these types; empty or absent means every type. `folder`: the items directly in
+ * that folder, null the top level; absent means every folder (the flat list of a search).
+ */
+type ListFilters = {
+  types?: KnowledgeType[];
+  q?: string;
+  cursor?: string;
+  folder?: string | null;
+};
 
 function filterWhere(scope: SQL, opts: ListFilters): SQL {
   const parts: SQL[] = [scope];
@@ -283,6 +292,8 @@ function filterWhere(scope: SQL, opts: ListFilters): SQL {
   for (const term of searchTerms(opts.q ?? '')) {
     parts.push(sql`k.search_text ilike '%' || ${escapeLike(term)} || '%' escape '\\'`);
   }
+  if (opts.folder === null) parts.push(sql`k.folder_id is null`);
+  else if (opts.folder !== undefined) parts.push(sql`k.folder_id = ${opts.folder}`);
   if (opts.cursor) parts.push(cursorWhere(opts.cursor));
   return sql.join(parts, sql` and `);
 }
@@ -295,12 +306,17 @@ async function runPage(
   const size = KNOWLEDGE_LIMITS.pageSize;
   const rows = [...(await db.execute<PageRow>(pageQuery(where, size + 1)))];
   const page = rows.slice(0, size);
-  const names = await mentionNames(
-    db,
-    page.map((row) => ({ groupId: row.group_id, body: row.body_head })),
-  );
+  const [names, pathOf] = await Promise.all([
+    mentionNames(
+      db,
+      page.map((row) => ({ groupId: row.group_id, body: row.body_head })),
+    ),
+    pathsOf(db, page),
+  ]);
   return {
-    items: page.map((row) => decorate(row, toSummary(row, namesIn(names, row.group_id)))),
+    items: page.map((row) =>
+      decorate(row, toSummary(row, namesIn(names, row.group_id), rowPath(row, pathOf))),
+    ),
     nextCursor: rows.length > size ? encodeCursor(page[page.length - 1]!) : null,
   };
 }
@@ -315,6 +331,8 @@ export async function listGroupItems(
   if (!canReadGroup(actor, groupId, await actorGroupOf(db, actor))) {
     throw new KnowledgeNotFoundError();
   }
+  // A folder the actor cannot see is "not found", like an unknown id.
+  if (typeof opts.folder === 'string') await folderForItem(db, actor, groupId, opts.folder);
   const scope = isAdmin(actor)
     ? sql`k.group_id = ${groupId}`
     : sql`k.group_id = ${groupId} and k.visibility = 'public'`;
@@ -391,13 +409,14 @@ export async function getItem(db: Db, actor: SessionUser, id: string): Promise<K
   const item = { groupId: row.group_id, visibility: row.visibility, createdBy: row.created_by };
   if (!canReadItem(actor, item, actorGroupIds)) throw new KnowledgeNotFoundError();
   const body = row.body ?? '';
-  const [names, fileRows, reminder] = await Promise.all([
+  const [names, fileRows, reminder, pathOf] = await Promise.all([
     mentionNames(db, [{ groupId: row.group_id, body }]),
     itemFiles(db, id),
     row.type === 'reminder' ? getReminderSet(db, { kind: SUBJECT, id }, actor) : null,
+    pathsOf(db, [row]),
   ]);
   return {
-    ...toSummary(row, namesIn(names, row.group_id)),
+    ...toSummary(row, namesIn(names, row.group_id), rowPath(row, pathOf)),
     body,
     files: fileRows.map(toFileInfo),
     reminder,
@@ -437,7 +456,7 @@ export async function insertItem(
   tx: Db,
   actor: SessionUser,
   groupId: string,
-  draft: KnowledgeDraft,
+  draft: DraftArg,
 ): Promise<{ id: string; fileIds: string[] }> {
   const id = randomUUID();
   const fileIds = [...new Set(draft.fileIds)];
@@ -458,6 +477,7 @@ export async function insertItem(
     title: draft.title,
     body: draft.body,
     url,
+    folderId: draft.folderId ?? null,
     createdBy: actor.id,
     searchText,
   });
@@ -499,7 +519,7 @@ export async function createItem(
   deps: { db: Db },
   actor: SessionUser,
   groupId: string,
-  draft: KnowledgeDraft,
+  draft: DraftArg,
 ): Promise<{ item: KnowledgeItemDto; fileIds: string[] }> {
   const { db } = deps;
   if (!canReadGroup(actor, groupId, await actorGroupOf(db, actor))) {
@@ -508,7 +528,13 @@ export async function createItem(
   if (!canSetVisibility(actor, null, draft.visibility)) throw new InvalidVisibilityError();
   if (draft.type === 'link' && !isHttpUrl(draft.url)) throw new InvalidUrlError();
   checkFileCount(draft.type, new Set(draft.fileIds).size);
-  const { id, fileIds } = await db.transaction((tx) => insertItem(tx, actor, groupId, draft));
+  const { id, fileIds } = await db.transaction(async (tx) => {
+    await lockGroupKnowledge(tx, groupId);
+    const folder = await folderForItem(tx, actor, groupId, draft.folderId ?? null);
+    // Inside an admins-only folder everything is admins-only (only admins see such a folder).
+    const visibility = folder?.visibility === 'admins' ? 'admins' : draft.visibility;
+    return insertItem(tx, actor, groupId, { ...draft, visibility });
+  });
   return { item: await getItem(db, actor, id), fileIds };
 }
 
@@ -520,6 +546,7 @@ type LockedRow = {
   title: string;
   body: string;
   url: string | null;
+  folder_id: string | null;
   created_by: string;
   updated_at: string;
   author_role: string;
@@ -528,8 +555,8 @@ type LockedRow = {
 /** Locks the item row and checks that the actor may change it. */
 async function lockForWrite(tx: Db, actor: SessionUser, id: string): Promise<LockedRow> {
   const rows = await tx.execute<LockedRow>(sql`
-    select k.id, k.group_id, k.type, k.visibility, k.title, k.body, k.url, k.created_by,
-           ${iso(sql`k.updated_at`)} as updated_at, u.role as author_role
+    select k.id, k.group_id, k.type, k.visibility, k.title, k.body, k.url, k.folder_id,
+           k.created_by, ${iso(sql`k.updated_at`)} as updated_at, u.role as author_role
     from knowledge_items k join "user" u on u.id = k.created_by
     where k.id = ${id} for update of k`);
   const row = rows[0];
@@ -554,12 +581,21 @@ export async function updateItem(
 ): Promise<{ item: KnowledgeItemDto; previousVisibility: Visibility; removedFileIds: string[] }> {
   const { db } = deps;
   if ('type' in patch) throw new ValidationError('The type cannot change');
+  const ref = await getItemRef(db, id);
+  if (!ref) throw new KnowledgeNotFoundError();
   const result = await db.transaction(async (tx) => {
+    // The group's lock first, then the row: the order of a folder's cascade too.
+    await lockGroupKnowledge(tx, ref.groupId);
     const row = await lockForWrite(tx, actor, id);
     if (row.updated_at !== new Date(patch.updatedAt).toISOString()) {
       throw new KnowledgeChangedError();
     }
-    const visibility = patch.visibility ?? row.visibility;
+    const folderId = patch.folderId !== undefined ? patch.folderId : row.folder_id;
+    const folder = await folderForItem(tx, actor, row.group_id, folderId);
+    // Inside an admins-only folder the item is admins-only (moved there, it becomes so).
+    const inAdmins = folder?.visibility === 'admins';
+    if (inAdmins && patch.visibility === 'public') throw new InvalidVisibilityError();
+    const visibility: Visibility = inAdmins ? 'admins' : (patch.visibility ?? row.visibility);
     if (
       visibility !== row.visibility &&
       !canSetVisibility(actor, { authorIsClient: row.author_role === 'client' }, visibility)
@@ -630,7 +666,7 @@ export async function updateItem(
     });
     await tx
       .update(knowledgeItems)
-      .set({ title, body, url, visibility, searchText, updatedAt: sql`now()` })
+      .set({ title, body, url, visibility, folderId, searchText, updatedAt: sql`now()` })
       .where(eq(knowledgeItems.id, id));
     return { previousVisibility: row.visibility, removedFileIds: removed };
   });

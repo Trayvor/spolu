@@ -26,6 +26,8 @@ import { subscribe } from '../reminders/service.js';
 import { getReminderSubject } from '../reminders/subjects.js';
 import { user } from '../users/schema.js';
 import { addAdmin } from '../users/service.js';
+import { KnowledgeFolderNotFoundError } from './errors.js';
+import { createFolder } from './folders.js';
 import { knowledgeAttachments, knowledgeItems } from './schema.js';
 import {
   createItem,
@@ -96,6 +98,7 @@ const note = (over: Partial<Extract<KnowledgeDraft, { type: 'note' }>> = {}): Kn
   body: '',
   visibility: 'public',
   fileIds: [],
+  folderId: null,
   ...over,
 });
 
@@ -610,5 +613,170 @@ describe('knowledge service', () => {
     expect(map.get(hidden.id)!.canRead(admin, [])).toBe(true);
     expect(info.canEdit(client)).toBe(false);
     expect(info.canEdit(admin)).toBe(true);
+  });
+
+  describe('folders', () => {
+    const folder = (
+      actor: SessionUser,
+      groupId: string,
+      name: string,
+      parentId: string | null = null,
+      visibility: 'public' | 'admins' = 'public',
+    ) => createFolder(db, actor, groupId, { name, parentId, visibility });
+
+    it('an item lands in its folder and carries the path', async () => {
+      const group = await newGroup();
+      const admin = await newAdmin();
+      const a = await folder(admin, group.id, 'Grants');
+      const b = await folder(admin, group.id, '2026', a.id);
+      const { item } = await createItem({ db }, admin, group.id, note({ folderId: b.id }));
+      expect(item.folderId).toBe(b.id);
+      expect(item.folderPath).toEqual([
+        { id: a.id, name: 'Grants' },
+        { id: b.id, name: '2026' },
+      ]);
+      const top = await createItem({ db }, admin, group.id, note());
+      expect(top.item.folderId).toBeNull();
+      expect(top.item.folderPath).toEqual([]);
+    });
+
+    it('the folder filter lists one folder; without it the list is flat, and search is too', async () => {
+      const group = await newGroup();
+      const admin = await newAdmin();
+      const a = await folder(admin, group.id, 'A');
+      const b = await folder(admin, group.id, 'B', a.id);
+      const top = (await createItem({ db }, admin, group.id, note({ title: 'Top budget' }))).item;
+      const inA = (await createItem({ db }, admin, group.id, note({ folderId: a.id }))).item;
+      const inB = (
+        await createItem({ db }, admin, group.id, note({ title: 'Deep budget', folderId: b.id }))
+      ).item;
+      expect(ids((await listGroupItems(db, admin, group.id, { folder: null })).items)).toEqual([
+        top.id,
+      ]);
+      expect(ids((await listGroupItems(db, admin, group.id, { folder: a.id })).items)).toEqual([
+        inA.id,
+      ]);
+      const flat = await listGroupItems(db, admin, group.id, {});
+      expect(ids(flat.items)).toEqual([inB.id, inA.id, top.id]);
+      const found = await listGroupItems(db, admin, group.id, { q: 'budget' });
+      expect(ids(found.items)).toEqual([inB.id, top.id]);
+      expect(found.items[0]!.folderPath.map((f) => f.name)).toEqual(['A', 'B']);
+      const global = await listAllItems(db, { groupIds: [group.id], q: 'deep budget' });
+      expect(global.items[0]!.folderPath.map((f) => f.name)).toEqual(['A', 'B']);
+    });
+
+    it('a client cannot list, create in or move into a hidden folder', async () => {
+      const group = await newGroup();
+      const admin = await newAdmin();
+      const client = await newClient(group.id);
+      const secret = await folder(admin, group.id, 'Secret', null, 'admins');
+      const other = await newGroup();
+      const foreign = await folder(admin, other.id, 'Foreign');
+      await expect(
+        listGroupItems(db, client, group.id, { folder: secret.id }),
+      ).rejects.toBeInstanceOf(KnowledgeFolderNotFoundError);
+      await expect(
+        listGroupItems(db, admin, group.id, { folder: foreign.id }),
+      ).rejects.toBeInstanceOf(KnowledgeFolderNotFoundError);
+      await expect(
+        createItem({ db }, client, group.id, note({ folderId: secret.id })),
+      ).rejects.toBeInstanceOf(KnowledgeFolderNotFoundError);
+      await expect(
+        createItem({ db }, admin, group.id, note({ folderId: foreign.id })),
+      ).rejects.toBeInstanceOf(KnowledgeFolderNotFoundError);
+      const { item } = await createItem({ db }, client, group.id, note());
+      await expect(
+        updateItem({ db }, client, item.id, { folderId: secret.id, updatedAt: item.updatedAt }),
+      ).rejects.toBeInstanceOf(KnowledgeFolderNotFoundError);
+    });
+
+    it("an admin cannot move a client's item into an admins-only folder", async () => {
+      const group = await newGroup();
+      const admin = await newAdmin();
+      const client = await newClient(group.id);
+      const secret = await folder(admin, group.id, 'Secret', null, 'admins');
+      const { item } = await createItem({ db }, client, group.id, note());
+      await expect(
+        updateItem({ db }, admin, item.id, { folderId: secret.id, updatedAt: item.updatedAt }),
+      ).rejects.toBeInstanceOf(InvalidVisibilityError);
+      expect((await getItem(db, client, item.id)).folderId).toBeNull();
+    });
+
+    it('inside an admins-only folder an item is admins-only and cannot be made public', async () => {
+      const group = await newGroup();
+      const admin = await newAdmin();
+      const secret = await folder(admin, group.id, 'Secret', null, 'admins');
+      const { item } = await createItem({ db }, admin, group.id, note({ folderId: secret.id }));
+      expect(item.visibility).toBe('admins');
+      await expect(
+        updateItem({ db }, admin, item.id, { visibility: 'public', updatedAt: item.updatedAt }),
+      ).rejects.toBeInstanceOf(InvalidVisibilityError);
+      // Moved out, it stays admins-only until an admin makes it public.
+      const out = await updateItem({ db }, admin, item.id, {
+        folderId: null,
+        updatedAt: item.updatedAt,
+      });
+      expect(out.item.visibility).toBe('admins');
+      expect(out.item.folderId).toBeNull();
+    });
+
+    it('moving an item into an admins-only folder hides its files and drops client recipients', async () => {
+      const group = await newGroup();
+      const admin = await newAdmin();
+      const client = await newClient(group.id);
+      const secret = await folder(admin, group.id, 'Secret', null, 'admins');
+      const file = await upload(group.id, admin);
+      const withFile = (await createItem({ db }, admin, group.id, note({ fileIds: [file.id] })))
+        .item;
+      const moved = await updateItem({ db }, admin, withFile.id, {
+        folderId: secret.id,
+        updatedAt: withFile.updatedAt,
+      });
+      expect(moved.item.visibility).toBe('admins');
+      expect(moved.previousVisibility).toBe('public');
+      expect(await adminsOnlyOf([file.id])).toEqual([true]);
+
+      const reminder = (
+        await createItem({ db }, admin, group.id, {
+          type: 'reminder',
+          title: 'R',
+          body: '',
+          visibility: 'public',
+          fileIds: [],
+          folderId: null,
+          reminder: { times: [{ at: inHours(3) }], recipientIds: [client.id] },
+        })
+      ).item;
+      await updateItem({ db }, admin, reminder.id, {
+        folderId: secret.id,
+        updatedAt: reminder.updatedAt,
+      });
+      const [set] = await db
+        .select()
+        .from(reminderSets)
+        .where(eq(reminderSets.knowledgeItemId, reminder.id));
+      const left = await db
+        .select({ userId: reminderRecipients.userId })
+        .from(reminderRecipients)
+        .where(eq(reminderRecipients.setId, set!.id));
+      expect(left.map((r) => r.userId)).toEqual([admin.id]);
+      await expect(getItem(db, client, reminder.id)).rejects.toBeInstanceOf(KnowledgeNotFoundError);
+    });
+
+    it("a client moves their own item between public folders; not another client's", async () => {
+      const group = await newGroup();
+      const client = await newClient(group.id);
+      const other = await newClient(group.id, 'Olga');
+      const a = await folder(client, group.id, 'A');
+      const { item } = await createItem({ db }, client, group.id, note());
+      const moved = await updateItem({ db }, client, item.id, {
+        folderId: a.id,
+        updatedAt: item.updatedAt,
+      });
+      expect(moved.item.folderPath).toEqual([{ id: a.id, name: 'A' }]);
+      await expect(
+        updateItem({ db }, other, item.id, { folderId: null, updatedAt: moved.item.updatedAt }),
+      ).rejects.toBeInstanceOf(KnowledgeForbiddenError);
+    });
   });
 });

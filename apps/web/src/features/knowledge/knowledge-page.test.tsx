@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RouterProvider, createMemoryHistory } from '@tanstack/react-router';
@@ -69,6 +69,8 @@ const ROW: KnowledgeSummary = {
   createdBy: { id: 'a1', name: 'Jana' },
   createdAt: '2026-10-14T10:00:00.000Z',
   updatedAt: '2026-10-14T10:00:00.000Z',
+  folderId: null,
+  folderPath: [],
   group: { id: 'g1', name: 'ABC s.r.o.', logoUrl: null },
 };
 
@@ -81,6 +83,23 @@ function mockApi(
     if (url === '/api/me') return reply(200, me);
     if (url === '/api/groups') return reply(200, GROUPS);
     if (url === '/api/knowledge/scope') return reply(200, { managedGroupIds });
+    if (url === '/api/groups/g1/knowledge/folders') {
+      return reply(200, {
+        folders: [
+          {
+            id: 'f1',
+            groupId: 'g1',
+            parentId: null,
+            name: 'Grants',
+            visibility: 'admins',
+            updatedAt: '',
+          },
+        ],
+      });
+    }
+    if (url.startsWith('/api/groups/g1/knowledge?')) {
+      return reply(200, { items: url.includes('folder=root') ? [ROW] : [], nextCursor: null });
+    }
     if (url === '/api/knowledge' || url.startsWith('/api/knowledge?')) {
       return reply(200, { items: [ROW], nextCursor: null });
     }
@@ -118,13 +137,13 @@ afterEach(() => {
 describe('KnowledgePage', () => {
   it('?clients restores the selection', async () => {
     const { listCalls } = mockApi();
-    renderPage('/knowledge?clients=g1,g3');
+    renderPage('/knowledge?clients=g1,g3&q=po');
     expect(
       await screen.findByRole('button', {
         name: t('knowledge.clientFilter.pillSelected', { count: 2 }),
       }),
     ).toBeInTheDocument();
-    await waitFor(() => expect(listCalls()).toContain('/api/knowledge?clients=g1%2Cg3'));
+    await waitFor(() => expect(listCalls()).toContain('/api/knowledge?clients=g1%2Cg3&q=po'));
   });
 
   it('without parameters the stored selection is restored', async () => {
@@ -137,8 +156,16 @@ describe('KnowledgePage', () => {
       }),
     ).toBeInTheDocument();
     await waitFor(() => expect(router.state.location.search).toMatchObject({ clients: 'g3' }));
-    await waitFor(() => expect(listCalls()).toContain('/api/knowledge?clients=g3'));
-    expect(listCalls()).not.toContain('/api/knowledge');
+    // Without a search: the folder view lists the chosen clients, no flat list.
+    expect(
+      await screen.findByRole('button', {
+        name: t('knowledge.folders.open', { name: 'Mesto Nitra' }),
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: t('knowledge.folders.open', { name: 'ABC s.r.o.' }) }),
+    ).toBeNull();
+    expect(listCalls()).toEqual([]);
   });
 
   it('an explicit choice is stored', async () => {
@@ -158,10 +185,13 @@ describe('KnowledgePage', () => {
     vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
       throw new Error('denied');
     });
-    const { listCalls } = mockApi();
+    mockApi();
     const { user } = renderPage('/knowledge');
-    expect(await screen.findByText('Ministry call portal')).toBeInTheDocument();
-    expect(listCalls()).toContain('/api/knowledge');
+    expect(
+      await screen.findByRole('button', {
+        name: t('knowledge.folders.open', { name: 'Mesto Nitra' }),
+      }),
+    ).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: t('knowledge.clientFilter.pillAll') }));
     await user.click(screen.getByRole('checkbox', { name: 'Mesto Nitra' }));
     await user.click(screen.getByRole('button', { name: t('knowledge.clientFilter.done') }));
@@ -174,13 +204,13 @@ describe('KnowledgePage', () => {
 
   it('type menu ticks several types into ?type and stays open', async () => {
     const { listCalls } = mockApi();
-    const { router, user } = renderPage('/knowledge');
+    const { router, user } = renderPage('/knowledge?q=po');
     await user.click(await screen.findByRole('button', { name: t('knowledge.global.allTypes') }));
     const all = screen.getByRole('menuitemcheckbox', { name: t('knowledge.global.allTypes') });
     expect(all).toHaveAttribute('aria-checked', 'true');
     await user.click(screen.getByRole('menuitemcheckbox', { name: t('knowledge.types.links') }));
     await waitFor(() => expect(router.state.location.search).toMatchObject({ type: 'link' }));
-    await waitFor(() => expect(listCalls()).toContain('/api/knowledge?type=link'));
+    await waitFor(() => expect(listCalls()).toContain('/api/knowledge?type=link&q=po'));
     // The open menu hides the page from the accessibility tree, the trigger included.
     const trigger = (name: string) => screen.getByRole('button', { name, hidden: true });
     expect(trigger(t('knowledge.types.links'))).toBeInTheDocument();
@@ -188,7 +218,7 @@ describe('KnowledgePage', () => {
     // The menu is still open: tick a second type.
     await user.click(screen.getByRole('menuitemcheckbox', { name: t('knowledge.types.notes') }));
     await waitFor(() => expect(router.state.location.search).toMatchObject({ type: 'note,link' }));
-    await waitFor(() => expect(listCalls()).toContain('/api/knowledge?type=note%2Clink'));
+    await waitFor(() => expect(listCalls()).toContain('/api/knowledge?type=note%2Clink&q=po'));
     expect(
       screen.getByRole('menuitemcheckbox', { name: t('knowledge.types.notes') }),
     ).toHaveAttribute('aria-checked', 'true');
@@ -206,11 +236,11 @@ describe('KnowledgePage', () => {
 
   it('reads several types and an old single type from the URL', async () => {
     const { listCalls } = mockApi();
-    renderPage('/knowledge?type=reminder,bogus,file');
+    renderPage('/knowledge?type=reminder,bogus,file&q=po');
     expect(
       await screen.findByRole('button', { name: t('knowledge.global.typesCount', { count: 2 }) }),
     ).toBeInTheDocument();
-    await waitFor(() => expect(listCalls()).toContain('/api/knowledge?type=file%2Creminder'));
+    await waitFor(() => expect(listCalls()).toContain('/api/knowledge?type=file%2Creminder&q=po'));
   });
 
   it('search writes ?q from 2 characters', async () => {
@@ -224,9 +254,9 @@ describe('KnowledgePage', () => {
     await waitFor(() => expect(router.state.location.search).toMatchObject({ q: 'po' }));
   });
 
-  it('rows show the group', async () => {
+  it('search results show the group', async () => {
     mockApi();
-    renderPage('/knowledge');
+    renderPage('/knowledge?q=portal');
     expect(await screen.findByText('Ministry call portal')).toBeInTheDocument();
     expect(screen.getAllByText('ABC s.r.o.').length).toBeGreaterThan(0);
   });
@@ -265,7 +295,7 @@ describe('KnowledgePage', () => {
 
   it('All clients writes clients=all and asks for scope=all', async () => {
     const { listCalls } = mockApi();
-    const { router, user } = renderPage('/knowledge?clients=g1');
+    const { router, user } = renderPage('/knowledge?clients=g1&q=po');
     await user.click(
       await screen.findByRole('button', {
         name: t('knowledge.clientFilter.pillSelected', { count: 1 }),
@@ -277,16 +307,16 @@ describe('KnowledgePage', () => {
     expect(
       screen.getByRole('button', { name: t('knowledge.clientFilter.pillAll') }),
     ).toBeInTheDocument();
-    await waitFor(() => expect(listCalls().at(-1)).toBe('/api/knowledge?scope=all'));
+    await waitFor(() => expect(listCalls().at(-1)).toBe('/api/knowledge?scope=all&q=po'));
   });
 
   it('clients=all with managed clients asks for scope=all, not ids', async () => {
     const { listCalls } = mockApi(ADMIN, ['g1']);
-    renderPage('/knowledge?clients=all');
+    renderPage('/knowledge?clients=all&q=po');
     expect(
       await screen.findByRole('button', { name: t('knowledge.clientFilter.pillAll') }),
     ).toBeInTheDocument();
-    await waitFor(() => expect(listCalls()).toEqual(['/api/knowledge?scope=all']));
+    await waitFor(() => expect(listCalls()).toEqual(['/api/knowledge?scope=all&q=po']));
   });
 
   it('the client pill waits for groups and scope', async () => {
@@ -308,5 +338,42 @@ describe('KnowledgePage', () => {
         screen.getByRole('button', { name: t('knowledge.clientFilter.pillAll') }),
       ).toBeEnabled(),
     );
+  });
+
+  describe('folder view', () => {
+    it('lists the managed clients by default, by name', async () => {
+      mockApi(ADMIN, ['g3', 'g1']);
+      renderPage('/knowledge');
+      const first = await screen.findByRole('button', {
+        name: t('knowledge.folders.open', { name: 'ABC s.r.o.' }),
+      });
+      const second = screen.getByRole('button', {
+        name: t('knowledge.folders.open', { name: 'Mesto Nitra' }),
+      });
+      expect(first.compareDocumentPosition(second) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      expect(
+        screen.queryByRole('button', { name: t('knowledge.folders.open', { name: 'Obec Lúčky' }) }),
+      ).toBeNull();
+    });
+
+    it('opening a client shows its folders and top-level items with breadcrumbs', async () => {
+      mockApi();
+      const { router, user } = renderPage('/knowledge');
+      await user.click(
+        await screen.findByRole('button', {
+          name: t('knowledge.folders.open', { name: 'ABC s.r.o.' }),
+        }),
+      );
+      await waitFor(() => expect(router.state.location.search).toMatchObject({ at: 'g1' }));
+      expect(await screen.findByText('Ministry call portal')).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: t('knowledge.folders.open', { name: 'Grants' }) }),
+      ).toBeInTheDocument();
+      const crumbs = screen.getByRole('navigation', { name: t('knowledge.folders.path') });
+      await user.click(
+        within(crumbs).getByRole('button', { name: t('knowledge.folders.allClients') }),
+      );
+      await waitFor(() => expect(router.state.location.search).not.toHaveProperty('at'));
+    });
   });
 });

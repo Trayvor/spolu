@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { formatTypes, normalizeTypes, parseTypes, validateKnowledgeSearch } from './search';
+import {
+  formatTypes,
+  normalizeTypes,
+  parseTypes,
+  validateFolderParam,
+  validateKnowledgeSearch,
+} from './search';
 
 describe('validateKnowledgeSearch', () => {
   it('sets every key, an invalid one to undefined, so raw params never leak through', () => {
@@ -8,6 +14,8 @@ describe('validateKnowledgeSearch', () => {
       type: undefined,
       q: undefined,
       k: undefined,
+      at: undefined,
+      folder: undefined,
     });
   });
 
@@ -17,7 +25,30 @@ describe('validateKnowledgeSearch', () => {
       type: 'link',
       q: 'portal',
       k: 'k1',
+      at: undefined,
+      folder: undefined,
     });
+  });
+
+  it('keeps the open client and folder only as valid ids, the folder only with a client', () => {
+    expect(validateKnowledgeSearch({ at: 'g1', folder: 'f1' })).toMatchObject({
+      at: 'g1',
+      folder: 'f1',
+    });
+    expect(validateKnowledgeSearch({ folder: 'f1' })).toMatchObject({ folder: undefined });
+    expect(validateKnowledgeSearch({ at: 'a b', folder: 'f1' })).toMatchObject({
+      at: undefined,
+      folder: undefined,
+    });
+  });
+});
+
+describe('validateFolderParam', () => {
+  it('keeps an id-like folder only', () => {
+    expect(validateFolderParam('f-1_A')).toBe('f-1_A');
+    expect(validateFolderParam('a b')).toBeUndefined();
+    expect(validateFolderParam(3)).toBeUndefined();
+    expect(validateFolderParam('')).toBeUndefined();
   });
 });
 

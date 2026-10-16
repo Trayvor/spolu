@@ -12,7 +12,12 @@ import type { KnowledgeType } from '@spolu/shared';
 import { loadNamespace, withNamespaces } from '@/i18n/namespaces';
 import { ApiError } from '@/lib/api';
 import { groupQuery } from '@/features/groups/api';
-import { normalizeTypes, singleType, validateKnowledgeSearch } from '@/features/knowledge/search';
+import {
+  normalizeTypes,
+  singleType,
+  validateFolderParam,
+  validateKnowledgeSearch,
+} from '@/features/knowledge/search';
 import { linkEmail, safeRedirect } from '@/features/auth/redirect';
 import { validateTicketsSearch } from '@/features/tickets/search';
 import { clientGroups, isAdmin } from '@/features/auth/roles';
@@ -236,7 +241,7 @@ const groupKnowledgeRoute = createRoute({
   path: 'knowledge',
   validateSearch: (
     search: Record<string, unknown>,
-  ): { type?: string; q?: string; k?: string; kind?: KnowledgeType } => {
+  ): { type?: string; q?: string; k?: string; kind?: KnowledgeType; folder?: string } => {
     // A search runs from 2 characters, trimmed (the tab writes it that way too).
     const q = typeof search.q === 'string' ? search.q.trim() : '';
     // Every key is set, an invalid one to undefined: the router keeps the raw params under
@@ -247,6 +252,7 @@ const groupKnowledgeRoute = createRoute({
       q: q.length >= 2 ? q : undefined,
       k: typeof search.k === 'string' && search.k ? search.k : undefined,
       kind: singleType(search.kind),
+      folder: validateFolderParam(search.folder),
     };
   },
   loader: () =>

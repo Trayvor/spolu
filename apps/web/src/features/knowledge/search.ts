@@ -15,7 +15,15 @@ export type KnowledgePageSearch = {
   type?: string;
   q?: string;
   k?: string;
+  /** The client (group) open in the folder view; the folder open in it. */
+  at?: string;
+  folder?: string;
 };
+
+/** An id-like URL value (letters, digits, `-` and `_`), else undefined. */
+export function validateFolderParam(value: unknown): string | undefined {
+  return typeof value === 'string' && /^[A-Za-z0-9_-]{1,100}$/.test(value) ? value : undefined;
+}
 
 const isType = (value: string): value is KnowledgeType =>
   (KNOWLEDGE_TYPES as readonly string[]).includes(value);
@@ -63,10 +71,13 @@ export function validateKnowledgeSearch(search: Record<string, unknown>): Knowle
   const text = (value: unknown) =>
     typeof value === 'string' ? value : typeof value === 'number' ? String(value) : undefined;
   const q = text(search.q)?.trim() ?? '';
+  const at = validateFolderParam(search.at);
   return {
     clients: text(search.clients),
     type: normalizeTypes(search.type),
     q: q.length >= 2 ? q : undefined,
     k: text(search.k) || undefined,
+    at,
+    folder: at ? validateFolderParam(search.folder) : undefined,
   };
 }
