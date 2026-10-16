@@ -81,6 +81,8 @@ describe('loadConfig', () => {
       ...validEnv,
       EMAIL_DRIVER: 'elastic',
       ELASTIC_EMAIL_API_KEY: 'key',
+      // The smtp bulk driver needs SMTP settings, which an elastic env has none of.
+      BULK_EMAIL_DRIVER: 'elastic',
     });
     expect(config.email).toEqual({
       driver: 'elastic',
@@ -252,5 +254,81 @@ describe('loadConfig', () => {
     const error = errorOf({ ...validEnv, AI_PROVIDER: 'claude', OPENAI_API_KEY: 'sk-secret' });
     expect(error.message).toContain('AI_PROVIDER');
     expect(error.message).not.toContain('sk-secret');
+  });
+});
+
+describe('loadConfig: bulk email', () => {
+  it('MAIL_FROM_BULK defaults to MAIL_FROM', () => {
+    const config = loadConfig(validEnv);
+    expect(config.bulkEmail).toEqual({ driver: 'smtp', from: 'Spolu <noreply@example.com>' });
+    expect(
+      loadConfig({ ...validEnv, MAIL_FROM_BULK: 'eGrant <info@egrant.sk>' }).bulkEmail,
+    ).toEqual({ driver: 'smtp', from: 'eGrant <info@egrant.sk>' });
+  });
+
+  it('BULK_EMAIL_DRIVER=elastic without ELASTIC_EMAIL_API_KEY is a ConfigError', () => {
+    const error = errorOf({ ...validEnv, BULK_EMAIL_DRIVER: 'elastic' });
+    expect(error.variables).toEqual(['ELASTIC_EMAIL_API_KEY']);
+  });
+
+  it('BULK_EMAIL_DRIVER=elastic works with EMAIL_DRIVER=smtp', () => {
+    const config = loadConfig({
+      ...validEnv,
+      BULK_EMAIL_DRIVER: 'elastic',
+      ELASTIC_EMAIL_API_KEY: 'bulk-key',
+      MAIL_FROM_BULK: 'eGrant <info@egrant.sk>',
+    });
+    expect(config.email.driver).toBe('smtp');
+    expect(config.bulkEmail).toEqual({
+      driver: 'elastic',
+      apiKey: 'bulk-key',
+      from: 'eGrant <info@egrant.sk>',
+      unsubscribe: 'elastic',
+    });
+  });
+
+  it('BULK_EMAIL_DRIVER=elastic shares the key with EMAIL_DRIVER=elastic', () => {
+    const config = loadConfig({
+      ...validEnv,
+      EMAIL_DRIVER: 'elastic',
+      ELASTIC_EMAIL_API_KEY: 'key',
+      BULK_EMAIL_DRIVER: 'elastic',
+      BULK_EMAIL_UNSUBSCRIBE: 'spolu',
+    });
+    expect(config.email).toEqual({ driver: 'elastic', apiKey: 'key', from: validEnv.MAIL_FROM });
+    expect(config.bulkEmail).toEqual({
+      driver: 'elastic',
+      apiKey: 'key',
+      from: validEnv.MAIL_FROM,
+      unsubscribe: 'spolu',
+    });
+  });
+
+  it('BULK_EMAIL_DRIVER=smtp with EMAIL_DRIVER=elastic is a ConfigError', () => {
+    const error = errorOf({ ...validEnv, EMAIL_DRIVER: 'elastic', ELASTIC_EMAIL_API_KEY: 'k' });
+    expect(error.variables).toEqual(['BULK_EMAIL_DRIVER']);
+    expect(error.message).not.toContain('k,');
+  });
+
+  it('BULK_EMAIL_PER_MINUTE defaults to 120', () => {
+    expect(loadConfig(validEnv).bulkEmailPerMinute).toBe(120);
+    expect(loadConfig({ ...validEnv, BULK_EMAIL_PER_MINUTE: '60' }).bulkEmailPerMinute).toBe(60);
+    expect(errorOf({ ...validEnv, BULK_EMAIL_PER_MINUTE: '0' }).variables).toEqual([
+      'BULK_EMAIL_PER_MINUTE',
+    ]);
+  });
+
+  it('BULK_EMAIL_UNSUBSCRIBE defaults to elastic and accepts only elastic or spolu', () => {
+    const env = { ...validEnv, BULK_EMAIL_DRIVER: 'elastic', ELASTIC_EMAIL_API_KEY: 'k' };
+    expect(loadConfig(env).bulkEmail).toMatchObject({ unsubscribe: 'elastic' });
+    expect(errorOf({ ...env, BULK_EMAIL_UNSUBSCRIBE: 'both' }).variables).toEqual([
+      'BULK_EMAIL_UNSUBSCRIBE',
+    ]);
+  });
+
+  it('rejects an unknown BULK_EMAIL_DRIVER', () => {
+    expect(errorOf({ ...validEnv, BULK_EMAIL_DRIVER: 'ses' }).variables).toEqual([
+      'BULK_EMAIL_DRIVER',
+    ]);
   });
 });
