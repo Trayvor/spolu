@@ -77,9 +77,28 @@ afterEach(() => {
 });
 
 describe('AppPrompt', () => {
+  it('renders in the page flow, never as a fixed or absolute overlay', async () => {
+    renderPrompt();
+    const banner = await screen.findByRole('region', { name: 'Install Spolu as an app' });
+    expect(banner.className).not.toMatch(/(^|\s)(\S+:)*(fixed|absolute|sticky)(\s|$)/);
+    expect(banner.className).not.toMatch(/\bz-\d+/);
+    expect(banner.getAttribute('style') ?? '').not.toMatch(/position/);
+  });
+
+  it('Slovak copy says upozornenia, not notifikácie', async () => {
+    await setLanguage('sk');
+    vi.mocked(iosVersion).mockReturnValue(17.2);
+    vi.stubGlobal('PushManager', undefined);
+    renderPrompt();
+    const banner = await screen.findByRole('region');
+    expect(banner).toHaveTextContent('aby vám chodili upozornenia');
+    expect(banner).toHaveTextContent('fungujú upozornenia len z aplikácie na ploche');
+    expect(banner.textContent).not.toMatch(/notifik/i);
+  });
+
   it('Install button uses the captured event', async () => {
     renderPrompt();
-    const dialog = await screen.findByRole('dialog', { name: 'Install Spolu as an app' });
+    const dialog = await screen.findByRole('region', { name: 'Install Spolu as an app' });
     fireEvent.click(screen.getByRole('button', { name: 'Install' }));
     expect(promptInstall).toHaveBeenCalledTimes(1);
     await waitFor(() => expect(dialog).not.toBeInTheDocument());
@@ -88,7 +107,7 @@ describe('AppPrompt', () => {
   it('Android without the event shows the menu steps', async () => {
     vi.mocked(canInstall).mockReturnValue(false);
     renderPrompt();
-    await screen.findByRole('dialog', { name: 'Install Spolu as an app' });
+    await screen.findByRole('region', { name: 'Install Spolu as an app' });
     expect(
       screen.getByText('Open the browser menu ⋮ → Install app / Add to Home screen'),
     ).toBeInTheDocument();
@@ -99,7 +118,7 @@ describe('AppPrompt', () => {
     vi.mocked(iosVersion).mockReturnValue(17.2);
     vi.stubGlobal('PushManager', undefined);
     renderPrompt();
-    const dialog = await screen.findByRole('dialog');
+    const dialog = await screen.findByRole('region');
     // The spec's sentence, split into the title and the line under it.
     expect(dialog).toHaveTextContent('Important: install Spolu to get notifications.');
     expect(dialog).toHaveTextContent(
@@ -114,7 +133,7 @@ describe('AppPrompt', () => {
 
   it('Not now stores the time and hides the card', async () => {
     renderPrompt();
-    const dialog = await screen.findByRole('dialog');
+    const dialog = await screen.findByRole('region');
     const before = Date.now();
     fireEvent.click(screen.getByRole('button', { name: 'Not now' }));
     expect(dialog).not.toBeInTheDocument();
@@ -124,7 +143,7 @@ describe('AppPrompt', () => {
   it('Turn on subscribes inside the click and hides', async () => {
     vi.mocked(isPhone).mockReturnValue(false);
     renderPrompt();
-    const dialog = await screen.findByRole('dialog', {
+    const dialog = await screen.findByRole('region', {
       name: 'Turn on notifications on this device',
     });
     fireEvent.click(screen.getByRole('button', { name: 'Turn on' }));
@@ -136,7 +155,7 @@ describe('AppPrompt', () => {
   it('Not now on the enable card stores its own time', async () => {
     vi.mocked(isPhone).mockReturnValue(false);
     renderPrompt();
-    await screen.findByRole('dialog', { name: 'Turn on notifications on this device' });
+    await screen.findByRole('region', { name: 'Turn on notifications on this device' });
     fireEvent.click(screen.getByRole('button', { name: 'Not now' }));
     expect(localStorage.getItem(STORAGE_KEYS.enable)).not.toBeNull();
     expect(localStorage.getItem(STORAGE_KEYS.install)).toBeNull();
@@ -146,7 +165,7 @@ describe('AppPrompt', () => {
     vi.mocked(iosVersion).mockReturnValue(15.8);
     vi.stubGlobal('PushManager', undefined);
     const client = renderPrompt();
-    const dialog = await screen.findByRole('dialog');
+    const dialog = await screen.findByRole('region');
     expect(dialog).toHaveTextContent("Your iPhone's iOS doesn't support app notifications.");
     expect(dialog).toHaveTextContent(
       'We turned on email notifications for you. Update iOS to 16.4 or newer to get notifications on the phone.',
@@ -165,7 +184,7 @@ describe('AppPrompt', () => {
     vi.mocked(iosVersion).mockReturnValue(15.8);
     vi.mocked(requestEmailFallback).mockResolvedValueOnce({ ...PREFS, turnedOn: false });
     renderPrompt();
-    const dialog = await screen.findByRole('dialog');
+    const dialog = await screen.findByRole('region');
     expect(dialog).toHaveTextContent('Email notifications are off');
   });
 
@@ -177,7 +196,7 @@ describe('AppPrompt', () => {
       turnedOn: false,
     });
     renderPrompt();
-    const dialog = await screen.findByRole('dialog');
+    const dialog = await screen.findByRole('region');
     expect(dialog).toHaveTextContent('Email notifications are already on');
     expect(dialog).not.toHaveTextContent('We turned on');
   });
@@ -189,14 +208,14 @@ describe('AppPrompt', () => {
     renderPrompt();
     await waitFor(() => expect(getDeviceState).toHaveBeenCalled());
     await new Promise((r) => setTimeout(r, 20));
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.queryByRole('region')).not.toBeInTheDocument();
     expect(requestEmailFallback).not.toHaveBeenCalled();
   });
 
   it('a failing install dialog falls back to the menu steps', async () => {
     vi.mocked(promptInstall).mockRejectedValue(new Error('boom'));
     renderPrompt();
-    await screen.findByRole('dialog', { name: 'Install Spolu as an app' });
+    await screen.findByRole('region', { name: 'Install Spolu as an app' });
     vi.mocked(canInstall).mockReturnValue(false);
     fireEvent.click(screen.getByRole('button', { name: 'Install' }));
     expect(
@@ -210,7 +229,7 @@ describe('AppPrompt', () => {
     vi.mocked(subscribeThisDevice).mockRejectedValue(error);
     const log = vi.spyOn(console, 'error').mockImplementation(() => undefined);
     renderPrompt();
-    const dialog = await screen.findByRole('dialog', {
+    const dialog = await screen.findByRole('region', {
       name: 'Turn on notifications on this device',
     });
     fireEvent.click(screen.getByRole('button', { name: 'Turn on' }));
@@ -224,7 +243,7 @@ describe('AppPrompt', () => {
   it('iOS steps are a list', async () => {
     vi.mocked(iosVersion).mockReturnValue(17.2);
     renderPrompt();
-    await screen.findByRole('dialog');
+    await screen.findByRole('region');
     expect(screen.getByRole('list')).toHaveAttribute('role', 'list');
     expect(screen.getAllByRole('listitem')).toHaveLength(3);
   });
@@ -233,16 +252,16 @@ describe('AppPrompt', () => {
     const start = Date.now();
     const now = vi.spyOn(Date, 'now').mockReturnValue(start);
     renderPrompt();
-    await screen.findByRole('dialog');
+    await screen.findByRole('region');
     fireEvent.click(screen.getByRole('button', { name: 'Not now' }));
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.queryByRole('region')).not.toBeInTheDocument();
     now.mockReturnValue(start + 6 * 60 * 60 * 1000);
     vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden');
     act(() => void document.dispatchEvent(new Event('visibilitychange')));
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.queryByRole('region')).not.toBeInTheDocument();
     vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible');
     act(() => void document.dispatchEvent(new Event('visibilitychange')));
-    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+    expect(await screen.findByRole('region')).toBeInTheDocument();
   });
 
   it('granted permission without a subscription re-subscribes silently', async () => {
@@ -251,7 +270,7 @@ describe('AppPrompt', () => {
     renderPrompt();
     await waitFor(() => expect(subscribeThisDevice).toHaveBeenCalledWith('KEY'));
     expect(subscribeThisDevice).toHaveBeenCalledTimes(1);
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.queryByRole('region')).not.toBeInTheDocument();
   });
 
   it('blocked storage still shows the prompt', async () => {
@@ -262,7 +281,7 @@ describe('AppPrompt', () => {
       throw new Error('blocked');
     });
     renderPrompt();
-    const dialog = await screen.findByRole('dialog', { name: 'Install Spolu as an app' });
+    const dialog = await screen.findByRole('region', { name: 'Install Spolu as an app' });
     fireEvent.click(screen.getByRole('button', { name: 'Not now' }));
     expect(dialog).not.toBeInTheDocument();
   });
@@ -271,13 +290,13 @@ describe('AppPrompt', () => {
     vi.stubGlobal('matchMedia', undefined);
     renderPrompt();
     await Promise.resolve();
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.queryByRole('region')).not.toBeInTheDocument();
     expect(getDeviceState).not.toHaveBeenCalled();
   });
 
   it('buttons are at least 44 px tall', async () => {
     renderPrompt();
-    await screen.findByRole('dialog');
+    await screen.findByRole('region');
     for (const button of screen.getAllByRole('button')) expect(button).toHaveClass('h-11');
   });
 });

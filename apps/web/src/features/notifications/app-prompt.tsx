@@ -60,7 +60,7 @@ function readStored() {
 }
 
 /**
- * One bottom card for signed-in users: install the app, turn on notifications on this device,
+ * One inline banner for signed-in users: install the app, turn on notifications on this device,
  * or (iOS < 16.4) the email fallback notice. The rules are in `prompt-rules.ts`; dismissals
  * live in localStorage per device and expire after 6 hours. Also re-subscribes silently when
  * permission is already granted but this device lost its subscription.
@@ -237,7 +237,7 @@ function Prompts({ device }: { device: Device }) {
           extra={
             <ol
               role="list"
-              className="mt-4 flex list-none flex-col gap-2 rounded-lg bg-ink-hover p-3 text-button"
+              className="mt-3 flex list-none flex-col gap-2 rounded-lg bg-ink-hover p-3 text-button"
             >
               <Step n={1}>
                 {t('notifications.prompt.iosStepShare')}
@@ -306,9 +306,9 @@ function Step({ n, children }: { n: number; children: ReactNode }) {
 }
 
 /**
- * The card: fixed at the bottom above the safe area, full width on a phone and a 448 px card
- * at the bottom right from 641 px. Not modal: the page stays usable. `strong` is the ink card
- * for the iPhone install step.
+ * The banner: an ordinary block at the top of the main content, under the app header. It takes
+ * its own room and pushes the page down, so it never covers a control. On 641 px and wider the
+ * text and the buttons share one row. `strong` is the ink card for the iPhone install step.
  */
 function PromptCard({
   title,
@@ -329,36 +329,40 @@ function PromptCard({
   const bodyId = useId();
   return (
     <div
-      role="dialog"
+      role="region"
       aria-labelledby={titleId}
       aria-describedby={bodyId}
       className={cn(
-        'fixed inset-x-3 bottom-[max(12px,calc(env(safe-area-inset-bottom)+8px))] z-40 mx-auto max-w-md rounded-xl p-5 shadow-lift motion-safe:animate-prompt-in sm:right-4 sm:left-auto sm:w-full',
+        'mb-3 w-full shrink-0 rounded-xl p-4 shadow-lift motion-safe:animate-prompt-in min-[641px]:mb-4',
         strong ? 'bg-primary text-primary-foreground' : 'bg-card text-card-foreground',
       )}
     >
-      <h2
-        id={titleId}
-        className={cn('font-semibold', strong ? 'text-medium leading-tight' : 'text-body')}
-      >
-        {title}
-      </h2>
-      <p
-        id={bodyId}
-        className={cn(
-          'mt-1 text-button font-medium',
-          strong ? 'text-primary-foreground/80' : 'text-muted-foreground',
-        )}
-      >
-        {body}
-      </p>
+      <div className="flex flex-col gap-3 min-[641px]:flex-row min-[641px]:items-center min-[641px]:justify-between">
+        <div className="min-w-0">
+          <h2
+            id={titleId}
+            className={cn('font-semibold', strong ? 'text-medium leading-tight' : 'text-body')}
+          >
+            {title}
+          </h2>
+          <p
+            id={bodyId}
+            className={cn(
+              'mt-1 text-button font-medium',
+              strong ? 'text-primary-foreground/80' : 'text-muted-foreground',
+            )}
+          >
+            {body}
+          </p>
+          {error && (
+            <p role="alert" className="mt-2 text-button font-medium text-error-ink">
+              {error}
+            </p>
+          )}
+        </div>
+        <div className="flex shrink-0 justify-end gap-2">{children}</div>
+      </div>
       {extra}
-      {error && (
-        <p role="alert" className="mt-3 text-button font-medium text-error-ink">
-          {error}
-        </p>
-      )}
-      <div className="mt-4 flex justify-end gap-2">{children}</div>
     </div>
   );
 }
