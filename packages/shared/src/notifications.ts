@@ -49,24 +49,68 @@ export type NotificationModes = z.infer<typeof NotificationModesSchema>;
 export const ModeBodySchema = z.object({ mode: GroupModeSchema });
 export type ModeBody = z.infer<typeof ModeBodySchema>;
 
-/** The user's two delivery switches, plus the VAPID key (null when push is not configured). */
+/**
+ * Notification groups: each event belongs to one, and the user picks a channel per group. The
+ * order is the profile's order. Item B (tickets) uses `tickets`.
+ */
+export const NotificationCategories = ['chat', 'tasks', 'tickets', 'knowledge'] as const;
+export const NotificationCategorySchema = z.enum(NotificationCategories);
+export type NotificationCategory = z.infer<typeof NotificationCategorySchema>;
+
+export const NotificationChannels = ['email', 'push', 'both', 'none'] as const;
+export const NotificationChannelSchema = z.enum(NotificationChannels);
+export type NotificationChannel = z.infer<typeof NotificationChannelSchema>;
+
+export type ChannelMap = Record<NotificationCategory, NotificationChannel>;
+
+/** Tickets arrive by email and push; everything else by push only. */
+export const DEFAULT_CHANNELS: Readonly<ChannelMap> = Object.freeze({
+  chat: 'push',
+  tasks: 'push',
+  tickets: 'both',
+  knowledge: 'push',
+});
+
+export const wantsPush = (channel: NotificationChannel): boolean =>
+  channel === 'push' || channel === 'both';
+export const wantsEmail = (channel: NotificationChannel): boolean =>
+  channel === 'email' || channel === 'both';
+
+/** The stored choices over the defaults; anything that is not a known channel is ignored. */
+export function resolveChannels(stored: unknown): ChannelMap {
+  const result: ChannelMap = { ...DEFAULT_CHANNELS };
+  if (stored === null || typeof stored !== 'object' || Array.isArray(stored)) return result;
+  for (const category of NotificationCategories) {
+    const value = NotificationChannelSchema.safeParse((stored as Record<string, unknown>)[category]);
+    if (value.success) result[category] = value.data;
+  }
+  return result;
+}
+
+/**
+ * The user's channel per group, the groups the profile shows (the server decides), and the VAPID
+ * key (null when push is not configured).
+ */
 export const NotificationPrefsSchema = z.object({
-  pushEnabled: z.boolean(),
-  emailEnabled: z.boolean(),
+  channels: z.object({
+    chat: NotificationChannelSchema,
+    tasks: NotificationChannelSchema,
+    tickets: NotificationChannelSchema,
+    knowledge: NotificationChannelSchema,
+  }),
+  visibleCategories: z.array(NotificationCategorySchema),
   vapidPublicKey: z.string().nullable(),
 });
 export type NotificationPrefs = z.infer<typeof NotificationPrefsSchema>;
 
-/** `POST /api/me/notification-fallback`: the preferences, and whether this call turned email on. */
+/** `POST /api/me/notification-fallback`: the preferences, and whether this call added email. */
 export const NotificationFallbackSchema = NotificationPrefsSchema.extend({ turnedOn: z.boolean() });
 export type NotificationFallback = z.infer<typeof NotificationFallbackSchema>;
 
+/** One group's channel. */
 export const NotificationPrefsPatchSchema = z
-  .object({ pushEnabled: z.boolean().optional(), emailEnabled: z.boolean().optional() })
-  .strict()
-  .refine((p) => p.pushEnabled !== undefined || p.emailEnabled !== undefined, {
-    message: 'At least one switch is required',
-  });
+  .object({ category: NotificationCategorySchema, channel: NotificationChannelSchema })
+  .strict();
 export type NotificationPrefsPatch = z.infer<typeof NotificationPrefsPatchSchema>;
 
 /**
