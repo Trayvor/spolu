@@ -163,9 +163,11 @@ async function collectDigests(
         seen.add(messageId);
       }
       if (row.kind === 'reminder.due') {
+        // A task reminder shows the task's current title, like the other task lines.
+        const reminderTaskId = str(p.taskId);
         lines.push(
           texts(profile.language).reminderLine(
-            str(p.title) ?? '',
+            (reminderTaskId ? taskTitles.get(reminderTaskId) : undefined) ?? str(p.title) ?? '',
             formatReminderTime(str(p.at), profile.language),
           ),
         );

@@ -18,6 +18,13 @@ import { addAdmin, deactivateUser } from '../users/service.js';
 import { fireBatch, fireDueReminders } from './jobs.js';
 import { reminderSets, reminderTimes } from './schema.js';
 import { sql } from 'drizzle-orm';
+import type { Server as SocketIOServer } from 'socket.io';
+import { RemindersEvents } from '@spolu/shared';
+import { groupRoom } from '../../infra/realtime/rooms.js';
+import { insertTask } from '../../../test/tasks.js';
+import { tasks } from '../tasks/schema.js';
+import { attachRemindersRealtime } from './realtime.js';
+import { replaceReminderSet } from './service.js';
 
 let deps: AppDeps;
 let push: FakePushSender;
@@ -209,11 +216,142 @@ describe('reminders.fire', () => {
           sql`update reminder_sets set knowledge_item_id = null where id = ${s.setId}`,
         );
         const batch = await fireBatch(tx, new Date(), 200, [s.setId]);
-        expect(batch).toEqual({ count: 1, recipients: [] });
+        expect(batch).toMatchObject({ count: 1, recipients: [] });
         const [time] = await tx.select().from(reminderTimes).where(eq(reminderTimes.id, s.timeId));
         expect(time!.firedAt).not.toBeNull();
         throw rollback;
       }),
     ).rejects.toBe(rollback);
+  });
+});
+
+describe('reminders.fire with task subjects', () => {
+  /** A fake Socket.IO server that records what is emitted to which room. */
+  function fakeIo() {
+    const emitted: { room: string; event: string; payload: unknown }[] = [];
+    const io = {
+      to: (room: string) => ({
+        emit: (event: string, payload: unknown) => void emitted.push({ room, event, payload }),
+      }),
+    };
+    return { io: io as unknown as SocketIOServer, emitted };
+  }
+
+  /** A task by the admin with one custom reminder time, moved `agoMs` into the past. */
+  async function taskSetup(opts: { agoMs?: number; done?: boolean } = {}) {
+    const group = await createGroup(deps.db, {
+      name: `Firma ${randomUUID().slice(0, 8)}`,
+      egrantUrl: `https://g${randomUUID().replaceAll('-', '')}.egrant.sk`,
+    });
+    const admin = await newAdmin();
+    const client = await newClient(group.id);
+    const taskId = await insertTask(deps.db, {
+      groupId: group.id,
+      createdBy: admin.id,
+      title: 'Fix the budget table',
+      done: opts.done,
+    });
+    await deps.db.transaction((tx) =>
+      replaceReminderSet(
+        tx,
+        { kind: 'task', id: taskId, groupId: group.id, adminsOnly: false, authorId: admin.id },
+        {
+          times: [{ at: new Date(Date.now() + 2 * HOUR).toISOString() }],
+          recipientIds: [client.id],
+        },
+        admin,
+      ),
+    );
+    const [set] = await deps.db.select().from(reminderSets).where(eq(reminderSets.taskId, taskId));
+    const [time] = await deps.db
+      .select()
+      .from(reminderTimes)
+      .where(eq(reminderTimes.setId, set!.id));
+    await deps.db
+      .update(reminderTimes)
+      .set({ at: new Date(Date.now() - (opts.agoMs ?? 30_000)) })
+      .where(eq(reminderTimes.id, time!.id));
+    return { group, admin, client, taskId, setId: set!.id, timeId: time!.id };
+  }
+
+  const firedAt = async (timeId: string) =>
+    (await deps.db.select().from(reminderTimes).where(eq(reminderTimes.id, timeId)))[0]?.firedAt;
+  const taskPushes = (taskId: string) =>
+    push.sent.filter((p) => p.payload.tag === `task:${taskId}`);
+
+  it('fires for an open task', async () => {
+    const s = await taskSetup();
+    expect(await fire(s.setId)).toBe(1);
+    const events = await eventsOf(s.timeId);
+    expect(events.map((e) => e.userId).sort()).toEqual([s.admin.id, s.client.id].sort());
+    expect(events[0]!.payload).toMatchObject({
+      subjectKind: 'task',
+      subjectId: s.taskId,
+      taskId: s.taskId,
+      groupId: s.group.id,
+    });
+    await deliverPending(deps, { userIds: [s.client.id] });
+    const sent = taskPushes(s.taskId);
+    expect(sent).toHaveLength(1);
+    expect(sent[0]!.payload.url).toBe(`/groups/${s.group.id}/tasks/${s.taskId}`);
+  });
+
+  it('is silent for a task in Completed and sets fired_at', async () => {
+    const s = await taskSetup();
+    await deps.db.update(tasks).set({ completedAt: new Date() }).where(eq(tasks.id, s.taskId));
+    expect(await fire(s.setId)).toBe(1);
+    expect(await eventsOf(s.timeId)).toHaveLength(0);
+    expect(await firedAt(s.timeId)).not.toBeNull();
+  });
+
+  it('fires again normally for a task reopened before the time', async () => {
+    const s = await taskSetup({ done: true });
+    await deps.db.update(tasks).set({ completedAt: null }).where(eq(tasks.id, s.taskId));
+    await fire(s.setId);
+    expect(await eventsOf(s.timeId)).toHaveLength(2);
+  });
+
+  it("a deleted task's times are gone", async () => {
+    const s = await taskSetup();
+    await deps.db.delete(tasks).where(eq(tasks.id, s.taskId));
+    expect(await firedAt(s.timeId)).toBeUndefined();
+    expect(await fire(s.setId)).toBe(0);
+  });
+
+  it('a task recipient in mode Off still gets the push', async () => {
+    const s = await taskSetup();
+    await setGroupMode(deps.db, s.client.id, s.group.id, 'off');
+    await fire(s.setId);
+    await deliverPending(deps, { userIds: [s.client.id] });
+    expect(taskPushes(s.taskId)).toHaveLength(1);
+  });
+
+  it("a renamed task's reminder push shows the current title", async () => {
+    const s = await taskSetup();
+    // Record without delivering, rename, then deliver.
+    await deps.db.transaction((tx) => fireBatch(tx, new Date(), 200, [s.setId]));
+    await deps.db.update(tasks).set({ title: 'Renamed task' }).where(eq(tasks.id, s.taskId));
+    await deliverPending(deps, { userIds: [s.client.id] });
+    const sent = taskPushes(s.taskId);
+    expect(sent).toHaveLength(1);
+    expect(sent[0]!.payload.title.startsWith('Renamed task · ')).toBe(true);
+  });
+
+  it('firing emits reminders:task with the remaining count', async () => {
+    const s = await taskSetup();
+    const { io, emitted } = fakeIo();
+    attachRemindersRealtime(io);
+    try {
+      await fire(s.setId);
+    } finally {
+      attachRemindersRealtime(null);
+    }
+    expect(emitted).toEqual([
+      {
+        room: groupRoom(s.group.id),
+        event: RemindersEvents.task,
+        payload: { groupId: s.group.id, taskId: s.taskId, upcomingReminders: 0 },
+      },
+    ]);
   });
 });

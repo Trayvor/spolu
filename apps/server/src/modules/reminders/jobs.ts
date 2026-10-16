@@ -5,7 +5,8 @@ import type { JobHandlers, JobQueue, JobSchedule } from '../../infra/jobs/jobs.j
 import { recordNotifications, requestDelivery } from '../notifications/service.js';
 import { user } from '../users/schema.js';
 import { reminderRecipients, reminderSets, reminderTimes } from './schema.js';
-import { listReminderSubjects, type SubjectInfo } from './subjects.js';
+import { notifyTimesChanged } from './realtime.js';
+import { listReminderSubjects, type ReminderSubjectRef, type SubjectInfo } from './subjects.js';
 
 export const REMINDERS_FIRE_JOB = 'reminders.fire';
 
@@ -23,7 +24,8 @@ export function remindersJobHandlers(deps: Deps): JobHandlers {
   return { [REMINDERS_FIRE_JOB]: async () => void (await fireDueReminders(deps)) };
 }
 
-type Batch = { count: number; recipients: string[] };
+/** What one batch processed: times, the users to deliver to, and the subjects whose times fired. */
+type Batch = { count: number; recipients: string[]; subjects: ReminderSubjectRef[] };
 
 /** `afterSelect` is a test hook: it runs once the times are locked. */
 export async function fireBatch(
@@ -47,7 +49,7 @@ export async function fireBatch(
     .limit(limit)
     .for('update', { skipLocked: true });
   await afterSelect?.();
-  if (times.length === 0) return { count: 0, recipients: [] };
+  if (times.length === 0) return { count: 0, recipients: [], subjects: [] };
 
   // The sets, with the subject id of whichever kind they belong to.
   const setRows = await tx
@@ -55,6 +57,7 @@ export async function fireBatch(
       id: reminderSets.id,
       groupId: reminderSets.groupId,
       knowledge: reminderSets.knowledgeItemId,
+      task: reminderSets.taskId,
     })
     .from(reminderSets)
     .where(inArray(reminderSets.id, [...new Set(times.map((t) => t.setId))]));
@@ -62,6 +65,7 @@ export async function fireBatch(
   for (const s of setRows) {
     if (s.knowledge)
       subjectOf.set(s.id, { kind: 'knowledge', id: s.knowledge, groupId: s.groupId });
+    else if (s.task) subjectOf.set(s.id, { kind: 'task', id: s.task, groupId: s.groupId });
   }
   const subjects = new Map<ReminderSubjectKind, Map<string, SubjectInfo>>();
   for (const subject of listReminderSubjects()) {
@@ -105,6 +109,8 @@ export async function fireBatch(
           groupId: info.groupId,
           title: info.title,
           at: time.at.toISOString(),
+          // The task title lookup of the delivery shows the current title.
+          ...(ref.kind === 'task' ? { taskId: ref.id } : {}),
         };
         // A savepoint, so one failing set does not abort the batch's transaction.
         await tx.transaction(async (sp) => {
@@ -127,12 +133,17 @@ export async function fireBatch(
       .set({ firedAt: sql`now()` })
       .where(eq(reminderTimes.id, time.id));
   }
-  return { count: times.length, recipients: recorded };
+  return {
+    count: times.length,
+    recipients: recorded,
+    subjects: [...subjectOf.values()].map(({ kind, id }) => ({ kind, id })),
+  };
 }
 
 /**
  * Fires the due reminder times: one `reminder.due` event per recipient (dedupe key
- * `reminder:<timeId>`), then marks the time fired. Safe to run in parallel (`skip locked`).
+ * `reminder:<timeId>`), then marks the time fired. After each batch commits it requests delivery
+ * and tells the subjects' adapters their times changed (`notifyTimesChanged`). Safe to run in parallel (`skip locked`).
  * Returns how many times were processed. `setIds` limits it to those sets (tests).
  */
 export async function fireDueReminders(
@@ -147,6 +158,8 @@ export async function fireDueReminders(
     const batch = await deps.db.transaction((tx) => fireBatch(tx, now, limit, opts.setIds));
     total += batch.count;
     await requestDelivery(deps.jobs, batch.recipients);
+    // Fired or silent, these subjects have fewer upcoming times now (the board's bell).
+    await notifyTimesChanged(deps.db, batch.subjects);
     if (batch.count < limit) return total;
   }
 }

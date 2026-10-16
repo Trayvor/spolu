@@ -49,6 +49,40 @@ describe('buildPushPayload reminder', () => {
   it('sk body reads "Pripomienka na …"', () => {
     expect(buildPushPayload({ ...r, lang: 'sk' }).body).toMatch(/^Pripomienka na .*10:00/);
   });
+
+  describe('task reminders', () => {
+    const at = '2026-10-16T12:00:00Z'; // 14:00 in Bratislava (summer time)
+    const payload = {
+      subjectKind: 'task',
+      subjectId: 't1',
+      taskId: 't1',
+      groupId: 'g1',
+      title: 'Old title',
+      at,
+    };
+    const t = { ...base, kind: 'reminder.due', payload, lang: 'en' } as const;
+    const onTime = new Date('2026-10-16T12:00:30Z');
+
+    it('a task reminder push has the task URL and tag task:<id>', () => {
+      expect(buildPushPayload({ ...t, taskTitle: 'Fix the budget', now: onTime })).toEqual({
+        title: 'Fix the budget · Firma',
+        body: 'Reminder for 14:00',
+        url: '/groups/g1/tasks/t1',
+        tag: 'task:t1',
+      });
+      // Without the current title, the one recorded with the event.
+      expect(buildPushPayload({ ...t, now: onTime }).title).toBe('Old title · Firma');
+    });
+
+    it('on time the body is "Reminder for 14:00"; ten minutes late it names the day', () => {
+      expect(buildPushPayload({ ...t, now: onTime }).body).toBe('Reminder for 14:00');
+      const late = new Date('2026-10-16T12:10:00Z');
+      expect(buildPushPayload({ ...t, now: late }).body).toBe(
+        `Reminder for ${formatReminderTime(at, 'en')}`,
+      );
+      expect(buildPushPayload({ ...t, lang: 'sk', now: onTime }).body).toBe('Pripomienka na 14:00');
+    });
+  });
 });
 
 describe('buildPushPayload chat', () => {

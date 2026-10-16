@@ -225,6 +225,28 @@ export async function replaceReminderSet(
   }
 }
 
+/**
+ * The unfired times of each subject of one kind (0 for a subject without any): one grouped query
+ * on the subject's unique index and `reminder_times_set_at_idx`.
+ */
+export async function countUpcomingTimes(
+  db: Db,
+  kind: ReminderSubjectKind,
+  ids: string[],
+): Promise<Map<string, number>> {
+  const counts = new Map(ids.map((id) => [id, 0]));
+  if (ids.length === 0) return counts;
+  const column = subjectColumn(kind);
+  const rows = await db
+    .select({ id: column, count: sql<number>`count(*)::int` })
+    .from(reminderSets)
+    .innerJoin(reminderTimes, eq(reminderTimes.setId, reminderSets.id))
+    .where(and(inArray(column, ids), isNull(reminderTimes.firedAt)))
+    .groupBy(column);
+  for (const row of rows) counts.set(row.id as string, row.count);
+  return counts;
+}
+
 /** The author of the subject's reminder set (`created_by`), or null when it has no set. */
 export async function getSetAuthorId(db: Db, subject: ReminderSubjectRef): Promise<string | null> {
   const [row] = await db

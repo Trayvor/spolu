@@ -13,7 +13,9 @@ import { registerKnowledgeReminderSubject } from './modules/knowledge/reminder-s
 import { createRateLimiter } from './infra/http/rate-limit.js';
 import { knowledgeRoutes } from './modules/knowledge/routes.js';
 import { notificationsRoutes } from './modules/notifications/routes.js';
+import { attachRemindersRealtime } from './modules/reminders/realtime.js';
 import { remindersRoutes } from './modules/reminders/routes.js';
+import { registerTaskReminderSubject } from './modules/tasks/reminder-subject.js';
 import { systemRoutes } from './modules/system/routes.js';
 import { tasksRoutes } from './modules/tasks/routes.js';
 import { usersRoutes } from './modules/users/routes.js';
@@ -42,7 +44,10 @@ export async function buildApp(
   app.decorate('io', attachSocket(app, config, app.auth, deps.db));
   // preClose runs before Fastify waits for the HTTP server, which open websockets would block.
   // io.close() also closes the HTTP server and is safe when the app never listened.
+  // The fire job reaches the sockets through the reminders module (jobs are built before the app).
+  attachRemindersRealtime(app.io);
   app.addHook('preClose', async () => {
+    attachRemindersRealtime(null);
     await app.io.close();
   });
 
@@ -64,6 +69,7 @@ export async function buildApp(
   await app.register(knowledgeRoutes, { prefix: '/api', deps, allowWrite: allowKnowledgeWrite });
   // The reminder endpoints are registered per subject: register the subjects first.
   registerKnowledgeReminderSubject();
+  registerTaskReminderSubject();
   await app.register(remindersRoutes, {
     prefix: '/api',
     deps,

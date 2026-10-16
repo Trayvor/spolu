@@ -83,6 +83,18 @@ export function texts(lang: UserLanguage): Texts {
   return lang === 'sk' ? sk : en;
 }
 
+/** The wall clock of a reminder time in Bratislava, `HH:mm` (a task reminder on time). */
+export function formatReminderClock(iso: string | undefined | null, lang: UserLanguage): string {
+  const at = new Date(iso ?? NaN);
+  if (Number.isNaN(at.getTime())) return '';
+  return new Intl.DateTimeFormat(lang === 'sk' ? 'sk-SK' : 'en-GB', {
+    timeZone: 'Europe/Bratislava',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).format(at);
+}
+
 /** A reminder time as the team reads it: Bratislava wall clock, e.g. "Sun 25 Oct, 10:00". */
 export function formatReminderTime(iso: string | undefined | null, lang: UserLanguage): string {
   const at = new Date(iso ?? NaN);
