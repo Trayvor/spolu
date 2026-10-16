@@ -3,7 +3,7 @@ import { act, fireEvent, render, screen, waitFor, within } from '@testing-librar
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RouterProvider, createMemoryHistory } from '@tanstack/react-router';
-import type { KnowledgeSummary } from '@spolu/shared';
+import type { KnowledgeFolderDto, KnowledgeSummary } from '@spolu/shared';
 import { i18n } from '@/i18n';
 import { createAppRouter } from '@/router';
 import type { KnowledgeDialogTarget } from './knowledge-dialog';
@@ -66,16 +66,30 @@ function summary(id: string, overrides: Partial<KnowledgeSummary> = {}): Knowled
     createdBy: { id: 'u1', name: 'Anna' },
     createdAt: '2026-10-14T10:00:00.000Z',
     updatedAt: '2026-10-14T10:00:00.000Z',
+    folderId: null,
+    folderPath: [],
     ...overrides,
   };
 }
 
-function mockApi(items: KnowledgeSummary[] = [summary('k1')]) {
-  const fetchMock = vi.fn(async (url: string) => {
+const FOLDERS: KnowledgeFolderDto[] = [
+  { id: 'f1', groupId: 'g1', parentId: null, name: 'Grants', visibility: 'public', updatedAt: '' },
+  { id: 'f2', groupId: 'g1', parentId: 'f1', name: '2026', visibility: 'public', updatedAt: '' },
+];
+
+function mockApi(items: KnowledgeSummary[] = [summary('k1')], folders = FOLDERS) {
+  const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
     const reply = (status: number, body?: unknown) =>
       new Response(body === undefined ? null : JSON.stringify(body), { status });
     if (url === '/api/me') return reply(200, ADMIN);
     if (url === '/api/groups/g1') return reply(200, GROUP);
+    if (url === '/api/groups/g1/knowledge/folders') {
+      if (init?.method === 'POST') {
+        const body = JSON.parse(String(init.body)) as { name: string; parentId: string | null };
+        return reply(201, { ...FOLDERS[0], id: 'f9', ...body, visibility: 'public' });
+      }
+      return reply(200, { folders });
+    }
     if (url.startsWith('/api/groups/g1/knowledge')) return reply(200, { items, nextCursor: null });
     return reply(404, { error: 'not_found' });
   });
@@ -147,9 +161,9 @@ describe('knowledge tab', () => {
     expect(box('knowledge.types.links')).toHaveAttribute('aria-checked', 'true');
     expect(all).toHaveAttribute('aria-pressed', 'false');
     await waitFor(() =>
-      expect(fetchMock.mock.calls.some(([u]) => u === '/api/groups/g1/knowledge?type=link')).toBe(
-        true,
-      ),
+      expect(
+        fetchMock.mock.calls.some(([u]) => u === '/api/groups/g1/knowledge?type=link&folder=root'),
+      ).toBe(true),
     );
 
     // The keyboard ticks a second one; the URL keeps the canonical order.
@@ -159,7 +173,9 @@ describe('knowledge tab', () => {
     expect(box('knowledge.types.notes')).toHaveAttribute('aria-checked', 'true');
     await waitFor(() =>
       expect(
-        fetchMock.mock.calls.some(([u]) => u === '/api/groups/g1/knowledge?type=note%2Clink'),
+        fetchMock.mock.calls.some(
+          ([u]) => u === '/api/groups/g1/knowledge?type=note%2Clink&folder=root',
+        ),
       ).toBe(true),
     );
 
@@ -258,7 +274,7 @@ describe('knowledge tab', () => {
   });
 
   it('empty and no-match states', async () => {
-    mockApi([]);
+    mockApi([], []);
     const { router } = renderTab();
     expect(await screen.findByText(t('knowledge.tab.empty'))).toBeInTheDocument();
     expect(screen.getAllByRole('button', { name: t('knowledge.tab.new') })).toHaveLength(2);
@@ -276,11 +292,87 @@ describe('knowledge tab', () => {
   });
 
   it('Clear filters removes type and q', async () => {
-    mockApi([]);
+    mockApi([], []);
     const { search, user } = renderTab('/groups/g1/knowledge?q=budget&type=file');
     await user.click(await screen.findByRole('button', { name: t('knowledge.tab.clearFilters') }));
     await waitFor(() => expect(search()).toEqual({}));
     expect(await screen.findByText(t('knowledge.tab.empty'))).toBeInTheDocument();
     expect(screen.getByRole('searchbox', { name: t('knowledge.tab.search') })).toHaveValue('');
+  });
+
+  describe('folders', () => {
+    it('shows the top-level folders; opening one writes ?folder= with breadcrumbs', async () => {
+      const fetchMock = mockApi();
+      const { search, user } = renderTab();
+      await user.click(
+        await screen.findByRole('button', {
+          name: t('knowledge.folders.open', { name: 'Grants' }),
+        }),
+      );
+      await waitFor(() => expect(search().folder).toBe('f1'));
+      const crumbs = await screen.findByRole('navigation', { name: t('knowledge.folders.path') });
+      expect(within(crumbs).getByText('Grants')).toHaveAttribute('aria-current', 'page');
+      expect(
+        screen.getByRole('button', { name: t('knowledge.folders.open', { name: '2026' }) }),
+      ).toBeInTheDocument();
+      await waitFor(() =>
+        expect(fetchMock.mock.calls.some(([u]) => u === '/api/groups/g1/knowledge?folder=f1')).toBe(
+          true,
+        ),
+      );
+      await user.click(within(crumbs).getByRole('button', { name: t('knowledge.folders.top') }));
+      await waitFor(() => expect(search().folder).toBeUndefined());
+    });
+
+    it('a search hides the folders and lists every folder flat with the paths', async () => {
+      const fetchMock = mockApi([
+        summary('k2', {
+          title: 'Deep',
+          folderId: 'f2',
+          folderPath: [
+            { id: 'f1', name: 'Grants' },
+            { id: 'f2', name: '2026' },
+          ],
+        }),
+      ]);
+      renderTab('/groups/g1/knowledge?folder=f1&q=deep');
+      await screen.findByText('Grants / 2026');
+      expect(
+        screen.queryByRole('button', { name: t('knowledge.folders.open', { name: '2026' }) }),
+      ).toBeNull();
+      expect(fetchMock.mock.calls.some(([u]) => u === '/api/groups/g1/knowledge?q=deep')).toBe(
+        true,
+      );
+    });
+
+    it('"+ New" → Folder creates a subfolder of the open folder', async () => {
+      const fetchMock = mockApi();
+      const { user } = renderTab('/groups/g1/knowledge?folder=f1');
+      await screen.findByRole('navigation', { name: t('knowledge.folders.path') });
+      await user.click(screen.getAllByRole('button', { name: t('knowledge.tab.new') })[0]!);
+      await user.click(
+        await screen.findByRole('menuitem', { name: new RegExp(t('knowledge.folders.label')) }),
+      );
+      await user.type(await screen.findByLabelText(t('knowledge.folders.name')), 'Reports');
+      await user.click(screen.getByRole('button', { name: t('knowledge.folders.create') }));
+      await waitFor(() =>
+        expect(
+          fetchMock.mock.calls.find(
+            ([u, init]) =>
+              u === '/api/groups/g1/knowledge/folders' && (init as RequestInit)?.method === 'POST',
+          )?.[1],
+        ).toMatchObject({
+          body: JSON.stringify({ name: 'Reports', parentId: 'f1', visibility: 'public' }),
+        }),
+      );
+      await waitFor(() => expect(screen.queryByTestId('folder-dialog')).toBeNull());
+    });
+
+    it('a folder that is gone returns to the top level with a notice', async () => {
+      mockApi();
+      const { search } = renderTab('/groups/g1/knowledge?folder=missing');
+      await screen.findByText(t('knowledge.folders.gone'));
+      await waitFor(() => expect(search().folder).toBeUndefined());
+    });
   });
 });

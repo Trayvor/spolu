@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useInfiniteQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { useParams, useSearch } from '@tanstack/react-router';
 import { KnowledgeTypes, type KnowledgeType } from '@spolu/shared';
 import { Button } from '@/components/ui/button';
@@ -9,7 +9,9 @@ import { useUpdateSearch } from '@/lib/use-update-search';
 import { cn } from '@/lib/utils';
 import { isAdmin } from '@/features/auth/roles';
 import { useSession } from '@/features/auth/use-session';
-import { groupKnowledgeQuery } from './api';
+import { groupFoldersQuery, groupKnowledgeQuery } from './api';
+import { FolderBrowser } from './folder-browser';
+import { FolderDialog } from './folder-dialog';
 import { KnowledgeDialog, type KnowledgeDialogTarget } from './knowledge-dialog';
 import { KnowledgeList } from './knowledge-list';
 import { NewItemMenu } from './new-item-menu';
@@ -25,6 +27,8 @@ type KnowledgeTabSearch = {
   q?: string;
   k?: string;
   kind?: KnowledgeType;
+  /** The open folder; absent: the top level. */
+  folder?: string;
 };
 
 /** A search runs from this many characters, after this many ms without typing. */
@@ -62,13 +66,22 @@ export function KnowledgeTab() {
 function GroupKnowledge({ groupId }: { groupId: string }) {
   const { t } = useTranslation();
   // The route's `validateSearch` (router.tsx) has checked these.
-  const { type, q, k, kind }: KnowledgeTabSearch = useSearch({ strict: false });
+  const { type, q, k, kind, folder }: KnowledgeTabSearch = useSearch({ strict: false });
   const updateSearch = useUpdateSearch();
   const canSeeAdmins = isAdmin(useSession());
   const types = parseTypes(type);
-  const filter = { types, q };
-  const query = useInfiniteQuery(groupKnowledgeQuery(groupId, filter));
-  const [notice, setNotice] = useState(false);
+  const folderId = folder ?? null;
+  // Searching lists every folder flat; otherwise the open folder's items (FolderBrowser).
+  const searching = Boolean(q);
+  const filter = searching ? { types, q } : { types, folder: folderId };
+  const query = useInfiniteQuery({
+    ...groupKnowledgeQuery(groupId, { types, q }),
+    enabled: searching,
+  });
+  const folders = useQuery(groupFoldersQuery(groupId)).data;
+  const openFolderRow = folders?.find((f) => f.id === folderId) ?? null;
+  const [notice, setNotice] = useState<'item' | 'folder' | null>(null);
+  const [newFolder, setNewFolder] = useState(false);
 
   // The field shows what is typed; the URL gets it after the debounce, from 2 characters.
   // A `q` that changes from outside (Back, a link) replaces the text; our own writes do not.
@@ -120,8 +133,25 @@ function GroupKnowledge({ groupId }: { groupId: string }) {
       { replace: false },
     );
   };
+  const openFolder = useCallback(
+    (id: string | null) => {
+      setNotice(null);
+      updateSearch(
+        (s) => {
+          if (id) s.folder = id;
+          else delete s.folder;
+        },
+        { replace: false },
+      );
+    },
+    [updateSearch],
+  );
+  const folderGone = useCallback(() => {
+    setNotice('folder');
+    updateSearch((s) => void delete s.folder, { replace: true });
+  }, [updateSearch]);
   const open = (id: string) => {
-    setNotice(false);
+    setNotice(null);
     updateSearch(
       (s) => {
         s.k = id;
@@ -131,7 +161,7 @@ function GroupKnowledge({ groupId }: { groupId: string }) {
     );
   };
   const create = (pick: KnowledgeType) => {
-    setNotice(false);
+    setNotice(null);
     updateSearch(
       (s) => {
         s.k = 'new';
@@ -153,14 +183,14 @@ function GroupKnowledge({ groupId }: { groupId: string }) {
     [updateSearch],
   );
   const unavailable = useCallback(() => {
-    setNotice(true);
+    setNotice('item');
     close();
   }, [close]);
 
   const target: KnowledgeDialogTarget | null =
     k === 'new'
       ? kind
-        ? { mode: 'create', type: kind, groupId }
+        ? { mode: 'create', type: kind, groupId, folderId }
         : null
       : k
         ? { mode: 'view', id: k }
@@ -179,6 +209,9 @@ function GroupKnowledge({ groupId }: { groupId: string }) {
     if (bareNew) close();
   }, [bareNew, close]);
 
+  const newMenu = (className?: string) => (
+    <NewItemMenu onPick={create} onPickFolder={() => setNewFolder(true)} className={className} />
+  );
   const filtered = Boolean(type || q);
   const empty = filtered ? (
     <div className="flex flex-col items-start gap-3 py-6">
@@ -194,15 +227,20 @@ function GroupKnowledge({ groupId }: { groupId: string }) {
   ) : (
     <div className="flex flex-col items-start gap-3 py-6">
       <p className="max-w-prose text-button text-muted-foreground">{t('knowledge.tab.empty')}</p>
-      <NewItemMenu onPick={create} />
+      {newMenu()}
     </div>
+  );
+  const folderEmpty = folderId ? (
+    <p className="py-6 text-button text-muted-foreground">{t('knowledge.folders.emptyFolder')}</p>
+  ) : (
+    empty
   );
 
   return (
     <section className="flex flex-col gap-4">
       <div className="flex flex-col gap-3 min-[641px]:flex-row min-[641px]:items-center min-[641px]:justify-between">
         <h2 className="text-medium font-semibold">{t('knowledge.tab.title')}</h2>
-        <NewItemMenu onPick={create} className="w-full min-[641px]:w-auto" />
+        {newMenu('w-full min-[641px]:w-auto')}
       </div>
       <div className="flex flex-col gap-3 min-[641px]:flex-row min-[641px]:items-center min-[641px]:justify-between">
         <div role="group" aria-label={t('knowledge.tab.filters')} className="flex flex-wrap gap-2">
@@ -243,10 +281,33 @@ function GroupKnowledge({ groupId }: { groupId: string }) {
       </div>
       {notice && (
         <p role="status" className="rounded-lg bg-secondary p-3 text-button font-semibold">
-          {t('knowledge.detail.unavailable')}
+          {notice === 'item' ? t('knowledge.detail.unavailable') : t('knowledge.folders.gone')}
         </p>
       )}
-      <KnowledgeList query={query} onOpen={open} empty={empty} />
+      {searching ? (
+        <KnowledgeList query={query} onOpen={open} empty={empty} showPath />
+      ) : (
+        <FolderBrowser
+          groupId={groupId}
+          folderId={folderId}
+          types={types}
+          rootCrumbs={[{ key: 'top', label: t('knowledge.folders.top') }]}
+          onOpenFolder={openFolder}
+          onOpenItem={open}
+          onFolderGone={folderGone}
+          canSeeAdmins={canSeeAdmins}
+          emptyHint={folderEmpty}
+        />
+      )}
+      {newFolder && (
+        <FolderDialog
+          groupId={groupId}
+          parent={openFolderRow}
+          canChooseVisibility={canSeeAdmins}
+          onDone={() => setNewFolder(false)}
+          onClose={() => setNewFolder(false)}
+        />
+      )}
       {target && (
         <KnowledgeDialog
           key={target.mode === 'view' ? target.id : `new-${target.type}`}

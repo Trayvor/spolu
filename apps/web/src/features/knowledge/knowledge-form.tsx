@@ -95,8 +95,15 @@ export function allowedRecipients(
   return ids.filter((id) => id === authorId || people?.find((p) => p.id === id)?.isAdmin === true);
 }
 
-/** What submitting needs besides the values: the group people, to filter recipients. */
-export type SubmitContext = { people: GroupPerson[] | undefined; authorId?: string };
+/**
+ * What submitting needs besides the values: the group people, to filter recipients, and for a
+ * new item the folder it goes into (null or absent: the top level).
+ */
+export type SubmitContext = {
+  people: GroupPerson[] | undefined;
+  authorId?: string;
+  folderId?: string | null;
+};
 
 /** The reminder part sent to the server. A fired time keeps its original `at`. */
 function reminderInput(
@@ -128,7 +135,12 @@ export function toDraft(
   value: KnowledgeFormValue,
   context: SubmitContext,
 ): KnowledgeDraft {
-  const base = { title: value.title.trim(), body: value.body, visibility: value.visibility };
+  const base = {
+    title: value.title.trim(),
+    body: value.body,
+    visibility: value.visibility,
+    folderId: context.folderId ?? null,
+  };
   switch (type) {
     case 'note':
     case 'file':
@@ -250,7 +262,7 @@ function FieldError({ id, message }: { id: string; message?: string }) {
 /**
  * "Visible to": two pills in a track, the chosen one ink. A radio group: arrows move the choice.
  */
-function VisibilityControl({
+export function VisibilityControl({
   value,
   onChange,
   disabled,
@@ -344,6 +356,7 @@ export function KnowledgeForm({
   onFilesChange,
   canChooseVisibility,
   visibilityLocked = false,
+  inAdminsFolder = false,
   authorId,
   autoFocusTitle = false,
 }: {
@@ -358,6 +371,8 @@ export function KnowledgeForm({
   onFilesChange: (next: FileInfo[]) => void;
   canChooseVisibility: boolean;
   visibilityLocked?: boolean;
+  /** The item is (or goes) into an admins-only folder: "Only eGrant", locked. */
+  inAdminsFolder?: boolean;
   /** The item's author (the current user on create): a fixed reminder recipient. */
   authorId: string;
   autoFocusTitle?: boolean;
@@ -518,10 +533,16 @@ export function KnowledgeForm({
 
       {canChooseVisibility && (
         <VisibilityControl
-          value={value.visibility}
+          value={inAdminsFolder ? 'admins' : value.visibility}
           onChange={setVisibility}
-          disabled={visibilityLocked}
-          hint={visibilityLocked ? t('knowledge.form.visibilityLocked') : undefined}
+          disabled={visibilityLocked || inAdminsFolder}
+          hint={
+            inAdminsFolder
+              ? t('knowledge.folders.inAdmins')
+              : visibilityLocked
+                ? t('knowledge.form.visibilityLocked')
+                : undefined
+          }
         />
       )}
     </div>

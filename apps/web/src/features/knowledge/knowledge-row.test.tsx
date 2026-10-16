@@ -20,6 +20,8 @@ const item = (over: Partial<KnowledgeSummary> = {}): KnowledgeSummary => ({
   createdBy: { id: 'u1', name: 'Jana Nováková' },
   createdAt: '2026-10-14T10:00:00.000Z',
   updatedAt: '2026-10-14T10:00:00.000Z',
+  folderId: null,
+  folderPath: [],
   ...over,
 });
 const FILE = { id: 'f1', name: 'budget.xlsx', mime: 'application/x-xlsx', size: 48_000 };

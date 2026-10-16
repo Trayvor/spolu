@@ -7,11 +7,12 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useMediaQuery } from '@/lib/use-media-query';
 import { cn } from '@/lib/utils';
-import { BellIcon, FileIcon, LinkIcon, NoteIcon } from './icons';
+import { BellIcon, FileIcon, FolderIcon, LinkIcon, NoteIcon } from './icons';
 
 const ICONS: Record<KnowledgeType, () => ReactNode> = {
   note: NoteIcon,
@@ -35,6 +36,24 @@ const PlusIcon = () => (
   </svg>
 );
 
+/** The folder entry: its icon, name and help line. */
+function FolderRow() {
+  const { t } = useTranslation();
+  return (
+    <>
+      <span className="text-muted-foreground">
+        <FolderIcon />
+      </span>
+      <span className="flex min-w-0 flex-col">
+        <span className="text-button font-semibold text-foreground">
+          {t('knowledge.folders.label')}
+        </span>
+        <span className="text-tiny text-muted-foreground">{t('knowledge.folders.help')}</span>
+      </span>
+    </>
+  );
+}
+
 /** The icon, the type's name and its help line. */
 function Row({ type }: { type: KnowledgeType }) {
   const { t } = useTranslation();
@@ -55,14 +74,17 @@ function Row({ type }: { type: KnowledgeType }) {
 }
 
 /**
- * The primary "+ New" pill and its menu of the four types, each with a line of help: the shared
- * dropdown from 641 px, an `ActionSheet` on phones.
+ * The primary "+ New" pill and its menu of the four types, each with a line of help, and after a
+ * rule "Folder" when `onPickFolder` is given: the shared dropdown from 641 px, an `ActionSheet`
+ * on phones.
  */
 export function NewItemMenu({
   onPick,
+  onPickFolder,
   className,
 }: {
   onPick: (type: KnowledgeType) => void;
+  onPickFolder?: () => void;
   className?: string;
 }) {
   const { t } = useTranslation();
@@ -86,6 +108,14 @@ export function NewItemMenu({
               <Row type={type} />
             </DropdownMenuItem>
           ))}
+          {onPickFolder && (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onSelect={onPickFolder} className="gap-3 py-2">
+                <FolderRow />
+              </DropdownMenuItem>
+            </>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
     );
@@ -115,6 +145,18 @@ export function NewItemMenu({
             <Row type={type} />
           </button>
         ))}
+        {onPickFolder && (
+          <button
+            type="button"
+            onClick={() => {
+              setSheetOpen(false);
+              onPickFolder();
+            }}
+            className="flex min-h-14 w-full items-center gap-3 rounded-lg border-t-2 border-border px-3 py-2 text-left hover:bg-accent focus-visible:bg-accent"
+          >
+            <FolderRow />
+          </button>
+        )}
       </ActionSheet>
     </>
   );

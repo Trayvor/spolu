@@ -20,6 +20,8 @@ const row = (id: string): KnowledgeSummary => ({
   createdBy: { id: 'u1', name: 'Jana' },
   createdAt: '2026-10-14T10:00:00.000Z',
   updatedAt: '2026-10-14T10:00:00.000Z',
+  folderId: null,
+  folderPath: [],
 });
 const query = (pages: { items: KnowledgeSummary[]; nextCursor: string | null }[], over = {}) =>
   ({

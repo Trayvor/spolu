@@ -20,6 +20,8 @@ function summary(id: string, overrides: Partial<KnowledgeSummary> = {}): Knowled
     createdBy: { id: 'u1', name: 'Anna' },
     createdAt: '2026-10-14T10:00:00.000Z',
     updatedAt: '2026-10-14T10:00:00.000Z',
+    folderId: null,
+    folderPath: [],
     ...overrides,
   };
 }

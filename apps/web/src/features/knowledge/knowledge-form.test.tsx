@@ -259,6 +259,8 @@ describe('toDraft and toPatch', () => {
     createdBy: { id: 'u2', name: 'Boris Kováč' },
     createdAt: '2026-10-01T08:00:00.000Z',
     updatedAt: '2026-10-02T08:00:00.000Z',
+    folderId: null,
+    folderPath: [],
     body: 'Send the report',
     files: [],
     reminder: {
@@ -319,6 +321,10 @@ describe('toDraft and toPatch', () => {
       url: 'https://egrant.sk',
       fileIds: [],
       visibility: 'public',
+      folderId: null,
+    });
+    expect(toDraft('note', value, { people: PEOPLE, folderId: 'f1' })).toMatchObject({
+      folderId: 'f1',
     });
     expect(emptyKnowledgeValue().times).toEqual([
       expect.objectContaining({
