@@ -1,4 +1,4 @@
-# Phase 21 — Members tab and Groups page Implementation Plan
+# Phase 22 — Members tab and Groups page Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use subagent-driven-development (recommended) or executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -23,6 +23,13 @@
 - Tests: Vitest; Playwright with Mailpit.
 
 **Spec:** the owner's decisions of 2026-10-16, given in chat and recorded here under "Decisions". This plan is the spec. Requirements to update: [groups](../../product/groups.md), [client-managers](../../product/client-managers.md), [knowledge-base](../../product/knowledge-base.md), [admin-home](../../product/admin-home.md).
+
+**Before starting, reconcile with Phase 21.1** (tickets and the ziadatel role, PR #4). That part changes the membership model this plan relies on:
+- clients can be in several groups;
+- `group_members` gets a `role` (`client | ziadatel`) and `removed_at`;
+- invites typed before signing in go to `pending_invites`.
+
+Re-check the "Invites by email" architecture and the member list against the merged code first. This plan was numbered 21 at first; it became 22 because the tickets phase already used 21.
 
 ## Decisions (owner, 2026-10-16)
 
@@ -332,7 +339,7 @@
   - `docs/product/client-managers.md`: the "Becoming and stopping" rule now covers any admin, from the Members tab;
   - `docs/product/knowledge-base.md`: the line about "Predvolené" on the client filter;
   - `docs/product/admin-home.md`, if it describes the client filter's reset row;
-  - `docs/roadmap.md`: set Phase 21 to its new status.
+  - `docs/roadmap.md`: set Phase 22 to its new status.
 
 **Interfaces:**
 - Consumes: everything above.
@@ -347,4 +354,4 @@
 - [ ] **Step 2: Run** `pnpm test:e2e -- managers groups` and expect PASS. Fix and re-run if needed.
 - [ ] **Step 3: Update the docs** listed above. Run `bash scripts/check-docs.sh origin/main`.
 - [ ] **Step 4: Run** `bash scripts/ci.sh` and expect it all green.
-- [ ] **Step 5: Commit** `docs: phase 21 members tab and groups page`.
+- [ ] **Step 5: Commit** `docs: phase 22 members tab and groups page`.
