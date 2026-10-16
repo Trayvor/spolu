@@ -134,10 +134,7 @@ export async function buildTicketSplitRequest(
     files: files.map((f) => ({ id: f.id, name: f.name })),
     people: people.map((p) => ({ id: p.id, name: p.name })),
     today: bratislavaDate.format(now),
-    details: [
-      ...detail('Area', ticket.area),
-      ...detail('Programme', ticket.programme),
-    ],
+    details: [...detail('Area', ticket.area), ...detail('Programme', ticket.programme)],
     conversation,
   };
 }
