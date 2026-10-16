@@ -1,6 +1,6 @@
 # Roadmap
 
-22 phases (0-21). Each phase ends with something that works and can be used. Update the `Status` column when a phase starts or finishes (values: `planned`, `in progress`, `done (local)`, `done`, `merged into N`). The `implement-phase` and `update-kb` skills do this.
+24 phases (0-23). Each phase ends with something that works and can be used. Update the `Status` column when a phase starts or finishes (values: `planned`, `in progress`, `done (local)`, `done`, `merged into N`). The `implement-phase` and `update-kb` skills do this.
 
 Requirements per module: [product/](product/README.md). Phases after 1 get their own short design and plan when they start.
 
@@ -29,6 +29,7 @@ Requirements per module: [product/](product/README.md). Phases after 1 get their
 | 20 | [Admin home](#phase-20--admin-home) | in progress | 17, 18 | [spec](superpowers/specs/2026-10-16-phase-20-admin-home-design.md), [plan](superpowers/plans/2026-10-16-phase-20-admin-home.md) |
 | 21 | [Tickets & the ziadatel role](#phase-21--tickets--the-ziadatel-role) | in progress | 18, 20; item C for 21.6 | [spec](superpowers/specs/2026-10-16-phase-21-tickets-and-requesters-design.md), [plan](superpowers/plans/2026-10-16-phase-21-tickets-and-requesters.md) |
 | 22 | [Members & groups page](#phase-22--members--groups-page) | in progress | 18, 20, 21.1 | [plan](superpowers/plans/2026-10-16-phase-22-members-and-groups-page.md) |
+| 23 | [Bulk email](#phase-23--bulk-email) | planned | 3, 18, 21.1 | [spec](superpowers/specs/2026-10-16-phase-23-bulk-email-design.md), [plan](superpowers/plans/2026-10-16-phase-23-bulk-email.md) |
 
 Phases 8 and 14 do not depend on each other, so their order can change by priority.
 
@@ -313,3 +314,13 @@ Requirements: [groups](product/groups.md), [client-managers](product/client-mana
 **22b — invites by email (planned, redesigned for Phase 21.1):** admins add members by email on the Members tab. A new or never-signed-in person gets an invitation with a login link (`/login?email=`) and shows as "Pozvaný" (resend, cancel) until the first sign-in; a client of another group is added at once and told by email. An admin's invite is a client membership created directly (no `pending_invites` row, no migration). The plan's Part 22b lists the proposed rules that wait for the owner's confirmation.
 
 Done when: (22a) an admin adds a manager on the Members tab and the Groups page filters by manager with the count; (22b) an admin invites a member, the member gets the email and signs in.
+
+## Phase 23 — Bulk email
+
+Requirements: the [design](superpowers/specs/2026-10-16-phase-23-bulk-email-design.md) (a `product/bulk-email.md` is written by part 23.2). Owner brief: [bulk email](superpowers/briefs/2026-10-16-bulk-email.md), with the owner update for the first version.
+
+Scope: admins write an email from blocks (heading, text, image, button, divider, eGrant logo) with a computer and phone preview, send a test to themselves, pick recipients among Spolu's people (client groups, managers' groups, roles client / ziadatel / admin, individual people), and send through a pg-boss queue in batches via Elastic Email (`POST /v4/emails`, one call per person). Every email has an unsubscribe link and `List-Unsubscribe`; people who unsubscribed are left out. A report shows recipients, sent, failed, skipped and unsubscribed per campaign and per person. First version: the existing egrant.sk sender, no webhooks, no open or click tracking (these come later, see the spec's "Later").
+
+Built in 7 parts, one pull request each (23.1 first; 23.2, 23.3 and 23.4 in parallel; then 23.5 and 23.6 in parallel; 23.7 last). Five proposed decisions (P1–P5 in the spec) wait for the owner.
+
+Done when: an admin sends a campaign to a client group, each client gets it with their name, one client unsubscribes through the link and the next campaign skips them, and the report shows the counts.

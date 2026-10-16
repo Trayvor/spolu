@@ -15,3 +15,14 @@ Translated from the owner's Ukrainian messages. A module for bulk emails, like M
 - Every bulk email needs an unsubscribe link and a `List-Unsubscribe` header. People who unsubscribed are left out of later sends.
 - Open counts are approximate: Apple Mail opens every message, and some clients block images. The report should say so.
 - The domain `news.egrant.sk` must be verified in Elastic Email (SPF, DKIM, DMARC and the tracking CNAME at the DNS host) before the first real send.
+
+## Owner update (2026-10-16, later): the first version
+
+This overrides the decisions above for the first version. The rest is added later, without rework.
+
+- Sender: the existing egrant.sk sender (today's `MAIL_FROM` domain). `news.egrant.sk` comes later.
+- No Elastic Email webhooks and no open or click tracking for now.
+- The first version keeps: campaigns, the block builder, the audience, a test send to oneself, queued sending in batches, a status per recipient from Spolu's own send results (queued, sent, failed), the unsubscribe link with `List-Unsubscribe` and the exclusion of people who unsubscribed, and a simple report (recipients, sent, failed, unsubscribed).
+- The design keeps a place for the later items: a separate config value for the bulk sender, and room for provider events.
+
+Spec: [Phase 23 design](../specs/2026-10-16-phase-23-bulk-email-design.md); plan: [Phase 23 plan](../plans/2026-10-16-phase-23-bulk-email.md).

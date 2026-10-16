@@ -1,0 +1,280 @@
+# Phase 23: Bulk email — Implementation Plan
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use subagent-driven-development (recommended) or executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** Admins write an email out of blocks, preview it, test it on themselves, choose recipients among Spolu's people and send it through a queue; Spolu records a status per person and leaves out people who unsubscribed.
+
+**Architecture:** A new module `modules/bulk-email` owns campaigns, frozen recipient lists, unsubscribes and public images. A pure server renderer turns blocks into table-based HTML, used both for the preview and for sending. A pg-boss job sends 20 people per run, one Elastic Email `POST /v4/emails` call per person with a stable `Idempotency-Key`, through a new `BulkEmailSender` (drivers `elastic` and `smtp`).
+
+**Tech Stack:** Fastify, Drizzle (PostgreSQL 17), pg-boss, Socket.IO, zod in `@spolu/shared`, nodemailer (dev/e2e), React + TanStack Router/Query, Vitest, Playwright.
+
+**Spec:** [2026-10-16-phase-23-bulk-email-design.md](../specs/2026-10-16-phase-23-bulk-email-design.md). Read it together with this plan; §1–§11 refer to it. The proposed decisions P1–P5 are built as written there unless the owner changed them; check the spec's status line first.
+
+## Global Constraints
+
+- English in code, comments, docs and commits; UI texts only through i18n keys, sk and en, in the lazy namespace `bulkEmail` (`apps/web/src/locales/bulkEmail/{en,sk}.json`). Email footer texts (sk, en) live in `bulk-email/texts.ts` on the server.
+- Test-first for the policy, `renderCampaign`, `validateForSend`, `resolveAudience` and the batch job (`test-driven-development`).
+- Every `/api/bulk-email/*` route uses `requireAdmin`, except exactly four public routes: `GET /api/bulk-email/images/:id`, `GET /api/bulk-email/unsubscribe/:token`, `POST /api/bulk-email/unsubscribe/:token`, `POST /api/bulk-email/unsubscribe/:token/one-click`.
+- Modules talk through exported functions: bulk-email reads users, memberships and managers only through SQL helpers exported by the users and groups modules.
+- One migration for the phase, in part 23.1: `pnpm --filter @spolu/server db:generate --name bulk_email`. If another branch merged a migration first, regenerate and renumber.
+- Every web part starts by invoking `frontend-design:frontend-design`; every screen is a lazy route.
+- Each part ends with `update-kb`, `bash scripts/ci.sh` green, one PR to `main` (never push to `main`, never merge).
+- Values pinned by the spec: statuses `draft | sending | sent | cancelled`; recipient statuses `queued | sending | sent | failed | skipped | cancelled`; unsubscribe sources `link | one_click | provider`; image types `image/png | image/jpeg`, ≤ 2 MB, browser-shrunk to ≤ 1 200 px wide; ≤ 50 blocks; heading ≤ 200, text ≤ 5 000, alt ≤ 200, button label ≤ 60, name/subject/preheader ≤ 200; audience id lists ≤ 500; `BATCH_SIZE = 20`; 3 attempts; stuck `sending` rows fail after 20 h; test sends 10/min per admin; image uploads 30/min per admin; unsubscribe endpoints 30/min per IP; pages of 50; debounce: audience count 300 ms, preview 500 ms, autosave 1 s; env `MAIL_FROM_BULK` (default `MAIL_FROM`), `BULK_EMAIL_DRIVER=smtp|elastic` (default `smtp`), `BULK_EMAIL_PER_MINUTE` (default 120), `ELASTIC_EMAIL_API_KEY`.
+- Elastic request (spec §5): `POST https://api.elasticemail.com/v4/emails`, header `X-ElasticEmail-ApiKey`, `Idempotency-Key: <campaignId>:<userId>`, body `Recipients: [{ Email }]`, `Content.Postback: <campaignId>:<userId>`, `Options: { TrackOpens: false, TrackClicks: false }`, unsubscribe href `{unsubscribe:<url>}`, 15 s timeout.
+
+## Review Focus
+
+1. A person who unsubscribes while a long campaign is sending → skipped before their turn, counted as skipped, never sent. Test in Task 5.2.
+2. The server crashes after Elastic accepted an email but before the row became `sent` → the retry uses the same `Idempotency-Key` and the person gets one email. Test in Task 5.2 (fake sender counts calls per key).
+3. A person who is in two selected groups, also added by hand, and also an admin → one recipient row. Test in Task 2.2.
+4. Text with `<script>`, `"` in an alt, `javascript:` in a button URL → escaped or rejected (`400 validation_failed`), never in the HTML. Test in Task 3.1 and in the shared schema tests of Task 1.1.
+5. Two admins edit the same draft → the second save gets `409 changed`, and nobody can edit a campaign after it started sending (`409 not_draft`). Test in Task 2.1.
+
+---
+
+## Parts and order
+
+| part | branch | PR content | waits for | can run in parallel with |
+|---|---|---|---|---|
+| 23.1 | `phase-23-1-bulk-foundation` | Contracts, tables, policy, config, bulk sender | — | — |
+| 23.2 | `phase-23-2-bulk-campaigns` | Campaigns and audience API | 23.1 merged | 23.3, 23.4 |
+| 23.3 | `phase-23-3-bulk-render` | Renderer, images, preview, logo PNG | 23.1 merged | 23.2, 23.4 |
+| 23.4 | `phase-23-4-bulk-unsubscribe` | Unsubscribe API and page, suppression sync | 23.1 merged | 23.2, 23.3, 23.5, 23.6 |
+| 23.5 | `phase-23-5-bulk-sending` | Test send, batch job, cancel, report API | 23.2 and 23.3 merged | 23.4, 23.6 |
+| 23.6 | `phase-23-6-bulk-web-editor` | Web: list, builder, audience, preview, test send | 23.2 and 23.3 merged | 23.4, 23.5 |
+| 23.7 | `phase-23-7-bulk-web-send` | Web: send flow, report; e2e; docs; roadmap | 23.4, 23.5, 23.6 merged | — |
+
+Each branch is cut from the latest `main`. 23.6 shows **Send a test to me** only when the API answers anything but `404` (the route arrives with 23.5), so 23.5 and 23.6 merge in either order.
+
+---
+
+## Part 23.1 — Foundation (spec §1, §5)
+
+### Task 1.1: Shared contracts
+
+**Files:**
+- Create: `packages/shared/src/bulk-email.ts`, `bulk-email.test.ts`; export from `packages/shared/src/index.ts`
+
+**Interfaces:**
+- Produces: `BulkBlockSchema` (discriminated union on `type`: `heading | text | image | button | divider | logo`, fields and limits of spec §3), `BulkAlign = 'left' | 'center'`, `BulkAudienceSchema` (spec §2, lists default `[]`, ≤ 500 each), `BulkCampaignStatus`, `BulkRecipientStatus`, `BulkCampaignDraftSchema` (`{ name, subject, preheader, blocks (≤ 50), audience, version }`), `BulkCampaignDto` (all campaign columns camelCase + `counts: Record<BulkRecipientStatus, number> & { unsubscribed: number }` + `createdByName`, `sentByName`), `BulkCampaignListItem`, `BulkAudienceCount = { count: number; leftOut: { unsubscribed: number; disabled: number; neverSignedIn: number } }`, `BulkRecipientItem`, `BulkNotReadyProblem = { blockId?: string; problem: 'subject_missing' | 'no_blocks' | 'image_missing' | 'invalid_url' }`, `BulkEvents = { updated: 'bulk:updated' }`, error codes `changed`, `not_draft`, `not_sending`, `not_ready`, `empty_audience`, `unsupported_type`.
+
+- [ ] **Step 1: Failing tests** in `bulk-email.test.ts`: `a button with javascript: URL is rejected`, `a button accepts mailto:`, `an image without alt is rejected`, `a text of 5 001 characters is rejected`, `51 blocks are rejected`, `audience lists default to []`, `an audience list of 501 ids is rejected`, `an unknown block type is rejected`.
+- [ ] **Step 2: Run** `pnpm --filter @spolu/shared test` — FAIL.
+- [ ] **Step 3: Implement** with zod; URLs through a helper `httpUrl` (http/https only, ≤ 2 048, the shared `MAX_URL_LENGTH`).
+- [ ] **Step 4: Run** — PASS. Commit `feat(shared): bulk email contracts`.
+
+### Task 1.2: Schema, policy and config
+
+**Files:**
+- Create: `apps/server/src/modules/bulk-email/schema.ts`, `policy.ts`, `policy.test.ts`
+- Modify: `apps/server/src/infra/db/schema.ts` (export), `infra/config/config.ts` + `config.test.ts`, `.env.example`, `deploy/test.env.example`
+- Migration: `db:generate --name bulk_email`
+
+**Interfaces:**
+- Produces: tables `bulkCampaigns`, `bulkRecipients`, `bulkUnsubscribes`, `bulkImages` exactly as spec §1 (checks, indexes `bulk_campaigns_status_updated_idx`, `bulk_recipients_campaign_status_idx`, `bulk_recipients_token_unique`, `bulk_recipients_user_idx`).
+- Produces: `canUseBulkEmail(actor: SessionUser): boolean`.
+- Produces (`Config`): `bulkEmail: { driver: 'smtp'; from: string } | { driver: 'elastic'; apiKey: string; from: string }`, `bulkEmailPerMinute: number`.
+
+- [ ] **Step 1: Failing tests:** policy `admin and superadmin may, client may not`; config `MAIL_FROM_BULK defaults to MAIL_FROM`, `BULK_EMAIL_DRIVER=elastic without ELASTIC_EMAIL_API_KEY → ConfigError(['ELASTIC_EMAIL_API_KEY'])`, `BULK_EMAIL_DRIVER=elastic works with EMAIL_DRIVER=smtp`, `BULK_EMAIL_DRIVER=smtp with EMAIL_DRIVER=elastic → ConfigError(['BULK_EMAIL_DRIVER'])`, `BULK_EMAIL_PER_MINUTE defaults to 120`.
+- [ ] **Step 2: Run** `pnpm --filter @spolu/server exec vitest run src/modules/bulk-email src/infra/config` — FAIL.
+- [ ] **Step 3: Implement**; `ELASTIC_EMAIL_API_KEY` moves to `base` as optional and is required by a `superRefine` when either driver is `elastic`. Generate the migration. Document the four variables in both env examples (comments in the style of the file).
+- [ ] **Step 4: Run** — PASS. Commit `feat(bulk-email): schema, policy and config`.
+
+### Task 1.3: Bulk sender
+
+**Files:**
+- Create: `apps/server/src/infra/email/bulk.ts`, `bulk-elastic.ts`, `bulk-smtp.ts`, `bulk-fake.ts`, `bulk.test.ts`
+- Modify: `apps/server/src/infra/email/index.ts` (export `createBulkSender`), `apps/server/src/deps.ts` (`AppDeps.bulkEmail: BulkEmailSender`), the test deps helper used by route tests
+
+**Interfaces:**
+- Produces: `BulkMessage`, `BulkEmailSender`, `BulkSendError { retryable: boolean; status: number | null }` exactly as spec §5; `createBulkSender(config: Config['bulkEmail'], smtp: Config['email'], fetchImpl?): BulkEmailSender`; `createFakeBulkSender(): BulkEmailSender & { sent: BulkMessage[]; failNext(status: number | 'network'): void; callsByKey: Map<string, number> }`.
+
+- [ ] **Step 1: Failing tests** (fake `fetch`): `elastic posts to /v4/emails with Recipients [{Email}], From = MAIL_FROM_BULK, Postback, TrackOpens false, TrackClicks false`; `sends Idempotency-Key and X-ElasticEmail-ApiKey`; `returns TransactionID and MessageID`; `5xx, 429, 409 and a network error are retryable`; `400 is not retryable and the message carries the response text but never the API key`; `unsubscribeHref wraps as {unsubscribe:url}`; smtp (nodemailer stream transport): `adds List-Unsubscribe <oneClickUrl> and List-Unsubscribe-Post: List-Unsubscribe=One-Click`, `unsubscribeHref returns the url`.
+- [ ] **Step 2: Run** `pnpm --filter @spolu/server exec vitest run src/infra/email/bulk.test.ts` — FAIL.
+- [ ] **Step 3: Implement.** The smtp driver reuses the SMTP options of `Config['email']` (driver `smtp`).
+- [ ] **Step 4: Run** — PASS.
+- [ ] **Step 5: Live check (owner's key, optional, not in CI).** With a real key, send one email to an address you own and record in the PR: whether Elastic replaced our footer link wrapper correctly, where `{unsubscribe:…}` redirects, and the headers of the received mail. If anything differs from spec §5, stop and report before 23.5.
+- [ ] **Step 6: Docs and PR.** `update-kb`: `architecture/overview.md` (Email: the bulk sender), `architecture/data-model.md` (four tables), `product/integrations.md` (Elastic: bulk email), ADR `0016-bulk-email-through-elastic-v4-emails.md` (one call per person to `/v4/emails`, idempotency key, no SMTP for bulk on servers, why not the transactional endpoint). `bash scripts/ci.sh`; push; PR.
+
+---
+
+## Part 23.2 — Campaigns and audience API (spec §2, §4)
+
+### Task 2.1: Campaign CRUD
+
+**Files:**
+- Create: `bulk-email/service.ts`, `service.test.ts`, `routes.ts`, `routes.test.ts`
+- Modify: `apps/server/src/app.ts` (register under `/api`)
+
+**Interfaces:**
+- Produces: `createCampaign(db, actor, name): Promise<BulkCampaignDto>`; `getCampaign(db, id): Promise<BulkCampaignDto | null>`; `listCampaigns(db, cursor?): Promise<{ items: BulkCampaignListItem[]; nextCursor: string | null }>` (keyset on `(updated_at, id)`); `saveDraft(db, actor, id, draft): Promise<BulkCampaignDto>` (throws `CampaignChangedError` → `409 changed`, `NotDraftError` → `409 not_draft`; bumps `version`); `deleteDraft(db, id)`; `duplicateCampaign(db, actor, id): Promise<BulkCampaignDto>` (name gets the suffix ` (copy)` / ` (kópia)` from the actor's language).
+- Routes: spec §4 table rows for list, create, get, put, delete, duplicate; the put route has `bodyLimit: 200_000`.
+- Produces: `emitBulkUpdated(io, campaignId)` → `ADMINS_ROOM`, event `bulk:updated`.
+
+- [ ] **Step 1: Failing tests:** `client gets 403 on every route, anonymous 401`; `save with an old version → 409 changed` (Review Focus 5); `save of a sending campaign → 409 not_draft`; `delete of a sent campaign → 409 not_draft`; `duplicate of a sent campaign is a draft with the same blocks and audience, version 1`; `list is newest first, 50 per page with a cursor`; `bulk:updated reaches an admin socket and not a client socket`.
+- [ ] **Step 2–4:** run (FAIL), implement, run (PASS). Commit `feat(bulk-email): campaigns API`.
+
+### Task 2.2: Audience
+
+**Files:**
+- Create: `bulk-email/audience.ts`, `audience.test.ts`
+- Modify: `groups/memberships.ts` or `groups/managers.ts` only to export SQL helpers if missing (`managedGroupsSql` exists); `users/service.ts`: `searchActiveUsers(db, q, limit)` if no such helper exists
+- Modify: `bulk-email/routes.ts`
+
+**Interfaces:**
+- Produces: `audienceSql(audience: BulkAudience): SQL` (the eligible user ids before "left out"); `countAudience(db, audience): Promise<BulkAudienceCount>`; `listAudience(db, audience, cursor?): Promise<{ items: BulkRecipientItem[]; nextCursor: string | null }>`; `resolveAudience(tx, audience): Promise<{ userId: string; email: string; name: string; language: 'sk' | 'en' }[]>` (eligible minus left out; used by 23.5).
+- Routes: `POST /api/bulk-email/audience/count`, `POST /api/bulk-email/audience/people?cursor=`, `GET /api/bulk-email/people?q=` (≥ 2 characters, 20 results, active users).
+
+- [ ] **Step 1: Failing tests:** `group filter takes active clients of the group, not removed memberships`; `roles ziadatel takes only ziadatel memberships`; `empty groups and managers = every group`; `managerIds adds the groups that admin manages`; `admin role adds every active admin, ignoring the group scope`; `includeUserIds adds a person outside the filters`; `excludeUserIds removes a person`; `a person in two groups, included by hand and admin is counted once` (Review Focus 3); `disabled, unsubscribed and never-signed-in people are left out and counted per reason`; `count runs one SQL statement` (use the db `onQuery` hook).
+- [ ] **Step 2–4:** run, implement, run. Commit `feat(bulk-email): audience`.
+- [ ] **Step 5: Docs and PR.** `update-kb`: new `product/bulk-email.md` (what admins can do, audience rules, P1), `product/README.md` row, `architecture/permissions.md` row (spec §7). `bash scripts/ci.sh`; PR.
+
+---
+
+## Part 23.3 — Renderer, images, preview (spec §3)
+
+### Task 3.1: `renderCampaign`
+
+**Files:**
+- Create: `bulk-email/render.ts`, `render.test.ts`, `texts.ts`
+
+**Interfaces:**
+- Produces: `renderCampaign(input)` with the exact signature of spec §3; `BULK_FOOTER: Record<'sk' | 'en', { reason: string; unsubscribe: string }>`.
+- Produces: `imageUrl(publicUrl, imageId) = ${publicUrl}/api/bulk-email/images/${imageId}`, `LOGO_PATH = '/brand/egrant-logo-email.png'`.
+
+- [ ] **Step 1: Failing tests:** `escapes <script> and quotes in every text field` (Review Focus 4); `{{name}} is replaced in heading and text, escaped`; `a lone {{ stays`; `text: blank line → paragraphs, **bold** → <strong>, URLs → links`; `image renders width, alt, display:block and its link`; `button is a table cell with background and a link`; `logo uses LOGO_PATH on publicUrl`; `footer is Slovak for sk, English for en, with unsubscribeHref`; `preheader is hidden text at the top`; `text part: heading in capitals, button as "label: url", image as [alt], unsubscribe line last`; `html has role=presentation tables 600 wide and the 620px media rule`.
+- [ ] **Step 2–4:** run, implement, run. Commit `feat(bulk-email): email renderer`.
+
+### Task 3.2: Images and preview
+
+**Files:**
+- Create: `bulk-email/images.ts`, `images.test.ts`
+- Modify: `bulk-email/routes.ts`, `routes.test.ts`; `apps/web/scripts/generate-icons.mjs` (also writes `public/brand/egrant-logo-email.png`, 360 px wide, from `egrant-logo.svg`); commit the PNG
+
+**Interfaces:**
+- Produces: `saveImage(deps, actor, body: Readable): Promise<{ id: string; url: string; width: number; height: number }>` (reads ≤ 2 MB, sniffs with `files/sniff.ts` limited to PNG and JPEG, reads width and height from the PNG IHDR or the JPEG SOF marker); `imageExists(db, ids: string[]): Promise<Set<string>>`.
+- Routes: `POST /api/bulk-email/images` (admins, raw body, 30/min), `GET /api/bulk-email/images/:id` (public, headers of spec §3), `POST /api/bulk-email/campaigns/:id/preview` (`{ subject, preheader, blocks }` → `{ html }`).
+
+- [ ] **Step 1: Failing tests:** `PNG and JPEG upload answer 201 with width and height`; `a GIF named .png → 415 unsupported_type`; `3 MB → 413`; `client upload → 403`; `public GET has nosniff, inline, CSP default-src 'none', public immutable cache`; `unknown id → 404`; `GET with a path-like id (../x) → 404`; `preview renders with the admin's name and is 403 for a client`.
+- [ ] **Step 2–4:** run, implement, run. Run `pnpm --filter @spolu/web icons`. Commit `feat(bulk-email): images and preview`.
+- [ ] **Step 5: Docs and PR.** `update-kb`: `product/bulk-email.md` (blocks, images are public by URL), `architecture/overview.md` (public image route), `design/README.md` (the email logo PNG). PR.
+
+---
+
+## Part 23.4 — Unsubscribe (spec §5)
+
+### Task 4.1: API and suppression sync
+
+**Files:**
+- Create: `bulk-email/unsubscribe.ts`, `unsubscribe.test.ts`, `bulk-email/jobs.ts`, `jobs.test.ts`
+- Modify: `bulk-email/routes.ts` (or a separate `public-routes.ts`), `apps/server/src/app.ts` (CSRF guard skips `/api/bulk-email/unsubscribe/`), `apps/server/src/deps.ts` (job handler and schedule)
+
+**Interfaces:**
+- Produces: `unsubscribeByToken(db, token, source: 'link' | 'one_click'): Promise<'done' | 'unknown'>`; `isUnsubscribed(db, userId): Promise<boolean>`; `unsubscribedSql(userIdColumn): SQL` (used by 23.2's audience if 23.4 merges first; 23.2 may inline the `not exists` until then); `tokenLanguage(db, token): Promise<'sk' | 'en' | null>`.
+- Routes: `POST /api/bulk-email/unsubscribe/:token` → `204` / `404`; `POST /api/bulk-email/unsubscribe/:token/one-click` → `204` / `404`, any body; `GET /api/bulk-email/unsubscribe/:token` → `{ language }` / `404` (for the page). 30/min per IP.
+- Produces: job `bulk-email.sync-suppressions` (cron `30 4 * * *`, Europe/Bratislava), only registered when `config.bulkEmail.driver === 'elastic'`: `syncSuppressions(deps, fetchImpl?)`.
+
+- [ ] **Step 1: Failing tests:** `link unsubscribe stores source link and the campaign id`; `second call is idempotent (one row, 204)`; `one-click with body List-Unsubscribe=One-Click stores one_click`; `a cross-site POST (Sec-Fetch-Site: cross-site) to one-click is not blocked by the CSRF guard`; `unknown token → 404`; `31st call a minute from one IP → 429`; `a login code still reaches an unsubscribed person` (auth route with the fake email sender); sync: `pages through /v4/suppressions/unsubscribes and /complaints with limit 1000`, `adds provider rows only for Spolu users not yet unsubscribed`.
+- [ ] **Step 2–4:** run, implement, run. Commit `feat(bulk-email): unsubscribe API and suppression sync`.
+
+### Task 4.2: Public page
+
+**Files:**
+- Create: `apps/web/src/features/bulk-email/unsubscribe-page.tsx`, `unsubscribe-page.test.tsx`, `apps/web/src/locales/bulkEmail/{en,sk}.json`
+- Modify: `apps/web/src/router.tsx` (public lazy route `/unsubscribe/$token`, outside the signed-in layout, with the `bulkEmail` namespace)
+
+- [ ] **Step 1: Invoke `frontend-design:frontend-design`.** Failing tests: `posts once on load and shows the done text`; `token test shows the test text and posts nothing`; `unknown token shows the invalid text`; `switches to the language the API returns`.
+- [ ] **Step 2–4:** run (`pnpm --filter @spolu/web exec vitest run src/features/bulk-email`), implement, run.
+- [ ] **Step 5: Docs and PR.** `update-kb`: `product/bulk-email.md` (unsubscribe, P3, P4, P5), `architecture/permissions.md` (public routes). PR.
+
+---
+
+## Part 23.5 — Sending (spec §4, §6)
+
+### Task 5.1: Send, test send, cancel
+
+**Files:**
+- Create: `bulk-email/send.ts`, `send.test.ts`
+- Modify: `bulk-email/routes.ts`, `routes.test.ts`, `bulk-email/jobs.ts`, `apps/server/src/deps.ts` (queues and schedules)
+
+**Interfaces:**
+- Consumes: `resolveAudience` (2.2), `renderCampaign`, `imageExists` (3.x), `BulkEmailSender` (1.3).
+- Produces: `validateForSend(campaign, existingImageIds: Set<string>): BulkNotReadyProblem[]`; `startSending(deps, actor, id): Promise<BulkCampaignDto>` (spec §4 "Send" steps 1–3; `NotReadyError`, `EmptyAudienceError`, `NotDraftError`); `cancelSending(deps, id)` (`NotSendingError`); `queueTestSend(deps, actor, id)`.
+- Jobs: `BULK_BATCH_JOB = 'bulk-email.batch'` (`{ campaignId }`), `BULK_TEST_JOB = 'bulk-email.test'` (`{ campaignId, userId }`), `BULK_SWEEP_JOB = 'bulk-email.sweep'` (cron `15 4 * * *`); queue settings `{ [BULK_BATCH_JOB]: { localConcurrency: 1, notify: false, pollingIntervalSeconds: 2 } }`.
+- Routes: `POST …/:id/send`, `POST …/:id/cancel`, `POST …/:id/test` (10/min per admin).
+
+- [ ] **Step 1: Failing tests:** `validateForSend` (each problem with its block id); `send freezes recipients with unique tokens and sets sending, sender, recipient_count`; `send with no recipients → 400 empty_audience, still a draft`; `two concurrent sends → one 409 not_draft`; `test send reaches only the actor, subject starts with [Test] , unsubscribe url ends /unsubscribe/test`; `11th test a minute → 429`; `cancel marks queued rows cancelled and the campaign cancelled`.
+- [ ] **Step 2–4:** run, implement, run. Commit `feat(bulk-email): start, test and cancel sending`.
+
+### Task 5.2: The batch job
+
+**Files:** `bulk-email/batch.ts`, `batch.test.ts`, `bulk-email/jobs.ts`
+
+**Interfaces:**
+- Produces: `runBatch(deps: { db; bulkEmail; jobs; io?; config }, campaignId): Promise<'more' | 'done' | 'stopped'>` — spec §4 steps 1–5; `nextDelaySeconds(perMinute: number) = Math.ceil(BATCH_SIZE / perMinute * 60)`; `sweepStuck(deps, now)` (rows `sending` with `updated_at` older than 20 h → `failed`, `error = 'unknown'`; re-queue campaigns `sending` with queued rows).
+
+- [ ] **Step 1: Failing tests** (fake sender, test DB): `sends 20, queues the next run with the delay, then finishes with status sent`; `a person unsubscribed after send start is skipped with error unsubscribed` (Review Focus 1); `a disabled person is skipped with error disabled`; `retryable failure goes back to queued, third failure is failed`; `400 is failed at once with the provider message`; `a row left in sending is sent again with the same Idempotency-Key and counted once by the fake` (Review Focus 2); `a cancelled campaign stops`; `Postback is campaignId:userId and provider ids are stored`; `sweep fails rows stuck 21 h and leaves 19 h rows`; `bulk:updated after each run`.
+- [ ] **Step 2–4:** run, implement, run. Commit `feat(bulk-email): batch sending job`.
+
+### Task 5.3: Report API
+
+**Files:** `bulk-email/service.ts`, `routes.ts`, tests
+
+**Interfaces:**
+- Produces: `campaignCounts(db, ids: string[]): Promise<Map<string, BulkCampaignDto['counts']>>` (one grouped query; also used by the list, so no N+1); `listRecipients(db, id, { status?, cursor? })`.
+- Route: `GET …/:id/recipients?status=&cursor=`.
+
+- [ ] **Step 1: Failing tests:** `counts per status and unsubscribed through this campaign`; `list of 3 campaigns runs one counts query`; `recipients filter by status, 50 per page`.
+- [ ] **Step 2–4:** run, implement, run. Commit `feat(bulk-email): report API`.
+- [ ] **Step 5: Docs and PR.** `update-kb`: `product/bulk-email.md` (states, sending speed, report), `architecture/realtime.md` (`bulk:updated`), `architecture/performance.md` (batch job). PR.
+
+---
+
+## Part 23.6 — Web: list and builder (spec §3, §8)
+
+### Task 6.1: API client, list, header link
+
+**Files:**
+- Create: `apps/web/src/features/bulk-email/api.ts`, `campaign-list-page.tsx` (+ tests)
+- Modify: `apps/web/src/router.tsx` (lazy `/bulk-email`, `/bulk-email/$campaignId`, admin-only like `/admins`), `apps/web/src/components/app-header.tsx` (admin link `nav.bulkEmail` beside Admins), main locales (`nav.bulkEmail`), `bulkEmail` locales
+
+- [ ] **Step 1: Invoke `frontend-design:frontend-design`.** Failing tests: `list shows status badges and counts`; `New email creates a draft and opens it`; `header link only for admins`; `bulk:updated refetches the list`.
+- [ ] **Step 2–4:** run, implement, run. Commit `feat(web): bulk email list`.
+
+### Task 6.2: Block builder and preview
+
+**Files:** `features/bulk-email/editor-page.tsx`, `block-list.tsx`, `block-forms.tsx`, `preview-frame.tsx`, `use-autosave.ts` (+ tests); `apps/web/src/lib/resize-image.ts` (add an `outputType` option: `image/jpeg` or `image/png`, default today's WebP)
+
+- [ ] **Step 1: Failing tests:** `add each of the six block types`; `move up and down reorder, first block has no Move up`; `delete removes the block`; `autosave PUTs once 1 s after the last change with the version`; `409 changed shows the reload prompt`; `preview iframe has sandbox without allow-scripts and switches 600/375 px`; `an image upload is shrunk to 1 200 px JPEG before the POST`; `not_ready problems show at their block`.
+- [ ] **Step 2–4:** run, implement, run. Commit `feat(web): bulk email block builder`.
+
+### Task 6.3: Audience builder and test send
+
+**Files:** `features/bulk-email/audience-builder.tsx`, `person-picker.tsx`, `recipients-dialog.tsx` (+ tests)
+
+- [ ] **Step 1: Failing tests:** `changing a filter asks for the count once after 300 ms`; `left-out reasons are shown`; `add and leave out a person by search`; `Show recipients pages by 50`; `Send a test to me posts and shows "sent to <my email>"`, hidden when the route answers 404.
+- [ ] **Step 2–4:** run, implement, run. `pnpm --filter @spolu/web build`: record in the PR the eager chunk size change (expected: route definitions and the header link only).
+- [ ] **Step 5: Docs and PR.** `update-kb`: `product/bulk-email.md` (screens), `architecture/performance.md` (chunks). PR.
+
+---
+
+## Part 23.7 — Send flow, report, e2e (spec §6, §8, §10)
+
+### Task 7.1: Send dialog and report
+
+**Files:** `features/bulk-email/send-dialog.tsx`, `report-view.tsx` (+ tests); `editor-page.tsx` switches to `report-view` when the status is not `draft`
+
+- [ ] **Step 1: Invoke `frontend-design:frontend-design`.** Failing tests: `send dialog shows subject, sender and the live count`; `confirm posts send and shows the report`; `report shows recipients, sent, failed, skipped, cancelled, unsubscribed and the "opens are not measured" note`; `progress bar updates on bulk:updated`; `Cancel sending only while sending`; `Duplicate opens the new draft`; `status filter of the per-person list`.
+- [ ] **Step 2–4:** run, implement, run. Commit `feat(web): bulk email sending and report`.
+
+### Task 7.2: e2e, docs, roadmap
+
+- [ ] Write `e2e/bulk-email.spec.ts` exactly as spec §10 (Mailpit API: message list, headers, HTML body).
+- [ ] `update-kb`: `product/bulk-email.md` as built, `runbooks/deploy.md` (the server env for bulk email and the owner checklist of spec "What the owner must do"), `glossary.md` (campaign, audience, unsubscribe), `roadmap.md` Phase 23 status.
+- [ ] `bash scripts/ci.sh` green; push; PR.
+
+---
+
+## Later (not in this plan)
+
+Spec "Later": the `news.egrant.sk` sender (config and DNS only), Elastic webhook tracking with the `bulk_events` table and opened/clicked/bounced/complaint columns, re-subscribing, image cleanup, scheduled sends. Each needs its own short plan when the owner asks for it.
