@@ -7,6 +7,8 @@ import { notificationEvents } from './schema.js';
 
 /** Delivers the pending events of `{ userIds }`, or of everyone (the one-minute sweep, `{}`). */
 export const DELIVER_JOB = 'notifications.deliver';
+/** Emails the due digests of `{ userIds }`, or of everyone (the one-minute sweep, `{}`). */
+export const DIGEST_JOB = 'notifications.email-digest';
 /** Sends one push to one device: `{ subscriptionId, payload }`. */
 export const PUSH_JOB = 'notifications.push';
 

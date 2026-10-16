@@ -15,6 +15,7 @@ Each user chooses a notification mode per group and delivery channels in their p
 - **Delivery channels** (for all users, in profile settings):
   - **Push** (PWA): on by default;
   - **Email**: off by default, the user can additionally turn it on.
+    - Email is batched: one email per user and group, sent 10 minutes after the first event that qualifies for email, and only if those events are still unread then. It lists up to 5 lines ("Jana: text") with an "Open" button to the group chat, in the user's language. Events that arrive within the 10 minutes join the same email. Reading the messages, switching email off or deactivating the user before it is due means no email.
 - Which events arrive, by mode:
 
   | Event | All messages | Mentions only | Nothing |

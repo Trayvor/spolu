@@ -19,7 +19,7 @@ import {
   markPushSuccess,
 } from './push-subscriptions.js';
 import { notificationEvents } from './schema.js';
-import { PUSH_JOB } from './service.js';
+import { DIGEST_JOB, PUSH_JOB } from './service.js';
 
 export type NotificationJobDeps = {
   db: Db;
@@ -58,7 +58,7 @@ export async function deliverPending(
   if (opts.userIds && opts.userIds.length === 0) return 0;
   let total = 0;
   for (;;) {
-    const { count, pushes } = await deps.db.transaction((tx) =>
+    const { count, pushes, emailUserIds } = await deps.db.transaction((tx) =>
       deliverBatch(tx, deps, opts.userIds, limit),
     );
     total += count;
@@ -70,6 +70,18 @@ export async function deliverPending(
         console.error('notifications: push job could not be queued', error);
       }
     }
+    if (emailUserIds.length > 0) {
+      try {
+        await deps.jobs.send(
+          DIGEST_JOB,
+          { userIds: emailUserIds },
+          { startAfter: Math.ceil(deps.config.emailBatchDelayMs / 1000) },
+        );
+      } catch (error) {
+        // The one-minute sweep emails the due digests anyway.
+        console.error('notifications: digest job could not be queued (the sweep sends it)', error);
+      }
+    }
     if (count < limit) return total;
   }
 }
@@ -79,7 +91,7 @@ async function deliverBatch(
   deps: NotificationJobDeps,
   userIds: string[] | undefined,
   limit: number,
-): Promise<{ count: number; pushes: PushJob[] }> {
+): Promise<{ count: number; pushes: PushJob[]; emailUserIds: string[] }> {
   const rows = await tx
     .select()
     .from(notificationEvents)
@@ -92,7 +104,7 @@ async function deliverBatch(
     .orderBy(asc(notificationEvents.createdAt), asc(notificationEvents.id))
     .limit(limit)
     .for('update', { skipLocked: true });
-  if (rows.length === 0) return { count: 0, pushes: [] };
+  if (rows.length === 0) return { count: 0, pushes: [], emailUserIds: [] };
 
   const { pushes, emailIds } = await decideBatch(tx, deps, rows);
   const email = new Set(emailIds);
@@ -113,7 +125,8 @@ async function deliverBatch(
       .set({ deliveredAt: sql`now()` })
       .where(inArray(notificationEvents.id, plainIds));
   }
-  return { count: rows.length, pushes };
+  const emailUserIds = unique(rows.filter((r) => email.has(r.id)).map((r) => r.userId));
+  return { count: rows.length, pushes, emailUserIds };
 }
 
 /**
