@@ -43,9 +43,12 @@ export function notificationGroupOf(
  * narrows this to `['tickets']` for a requester-only user (not an admin, no active client
  * membership).
  */
+// The parameters are item B-1's (it reads the user's memberships); unused until then.
+/* eslint-disable @typescript-eslint/no-unused-vars */
 export async function visibleCategoriesFor(
   _db: Db,
   _user: { id: string },
 ): Promise<NotificationCategory[]> {
+  /* eslint-enable @typescript-eslint/no-unused-vars */
   return [...NotificationCategories];
 }
