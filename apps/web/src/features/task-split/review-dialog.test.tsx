@@ -2,20 +2,37 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import type { FileInfo, GroupPerson, MessageDto, TaskDetailDto, TaskProposal } from '@spolu/shared';
+import type {
+  FileInfo,
+  GroupPerson,
+  MessageDto,
+  TaskDetailDto,
+  TaskProposal,
+  TicketDto,
+} from '@spolu/shared';
 import { ApiError } from '@/lib/api';
 import { i18n, setLanguage } from '@/i18n';
-import { createTasksFromMessage, proposeTasks } from './split-api';
+import {
+  createTasksFromMessage,
+  createTasksFromTicket,
+  proposeTasks,
+  proposeTicketTasks,
+} from './split-api';
 import { ReviewDialog } from './review-dialog';
+import type { SplitSource } from './review-model';
 
 vi.mock('./split-api', () => ({
   proposeTasks: vi.fn(),
   createTasksFromMessage: vi.fn(),
+  proposeTicketTasks: vi.fn(),
+  createTasksFromTicket: vi.fn(),
 }));
 vi.mock('@/features/files/upload', () => ({ uploadFile: vi.fn() }));
 
 const propose = vi.mocked(proposeTasks);
 const create = vi.mocked(createTasksFromMessage);
+const proposeTicket = vi.mocked(proposeTicketTasks);
+const createTicket = vi.mocked(createTasksFromTicket);
 
 const PEOPLE: GroupPerson[] = [
   { id: 'u1', name: 'Anna Nováková', isAdmin: false, isManager: false },
@@ -30,6 +47,15 @@ const FILE: FileInfo = {
   height: null,
   hasPreview: false,
 };
+
+const TICKET = {
+  id: 'k1',
+  number: 123,
+  groupId: 'g1',
+  subject: 'Cannot submit the application',
+  body: 'The form shows an error on the budget step.',
+  files: [FILE],
+} as unknown as TicketDto;
 
 const MESSAGE: MessageDto = {
   id: 'm1',
@@ -81,7 +107,7 @@ function stubWidth(desktop: boolean) {
   }));
 }
 
-function renderDialog() {
+function renderDialog(source: SplitSource = { kind: 'message', message: MESSAGE }) {
   vi.stubGlobal(
     'fetch',
     vi.fn(async () => new Response(JSON.stringify(PEOPLE), { status: 200 })),
@@ -91,7 +117,7 @@ function renderDialog() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
     <QueryClientProvider client={queryClient}>
-      <ReviewDialog groupId="g1" message={MESSAGE} onClose={onClose} onCreated={onCreated} />
+      <ReviewDialog groupId="g1" source={source} onClose={onClose} onCreated={onCreated} />
     </QueryClientProvider>,
   );
   return { user: userEvent.setup(), onClose, onCreated, queryClient };
@@ -124,6 +150,35 @@ describe('ReviewDialog', () => {
   });
   afterEach(() => {
     vi.unstubAllGlobals();
+  });
+
+  it('the review dialog quotes the ticket subject and body', async () => {
+    proposeTicket.mockResolvedValue({ tasks: PROPOSALS });
+    createTicket.mockResolvedValue([]);
+    const { user, onCreated } = renderDialog({ kind: 'ticket', ticket: TICKET });
+
+    const dialog = screen.getByRole('dialog', { name: t('taskSplit.title') });
+    expect(within(dialog).getByText('#123 Cannot submit the application')).toBeInTheDocument();
+    expect(within(dialog).getByText(TICKET.body!)).toBeInTheDocument();
+    expect(proposeTicket).toHaveBeenCalledWith('k1');
+    await shown();
+    // The ticket's files are offered on the cards like a message's files.
+    expect(
+      within(article('Pay the invoice')).getByRole('link', {
+        name: t('files.download', { name: 'invoice.pdf' }),
+      }),
+    ).toBeInTheDocument();
+    await decideBoth(user);
+    await user.click(createButton());
+    await vi.waitFor(() => expect(onCreated).toHaveBeenCalled());
+    expect(createTicket).toHaveBeenCalledWith('g1', {
+      ticketId: 'k1',
+      tasks: [
+        expect.objectContaining({ title: 'Send the report', messageFileIds: [] }),
+        expect.objectContaining({ title: 'Pay the invoice', messageFileIds: ['mf1'] }),
+      ],
+    });
+    expect(create).not.toHaveBeenCalled();
   });
 
   it('shows the loading outlines, then compact cards', async () => {

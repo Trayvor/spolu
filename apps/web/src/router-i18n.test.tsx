@@ -115,6 +115,10 @@ const TICKET = {
   updatedAt: NOW,
   resolvedAt: null,
   taskCount: 2,
+  tasks: [
+    { id: 't1', title: 'Fix it', completed: false },
+    { id: 't2', title: 'Write back', completed: true },
+  ],
   channelId: 'c3',
 };
 const PAGE = { messages: [MESSAGE], hasMore: false, lastSeq: 1, lastReadAt: null };

@@ -15,6 +15,7 @@ import { ChevronDown } from './icons';
 import { TicketChat } from './ticket-chat';
 import { StatusControl, TicketFields } from './ticket-fields';
 import { TicketFollowers } from './ticket-followers';
+import { TicketTasks } from './ticket-tasks';
 import { ticketTitle } from './ticket-list';
 import { useTicketEvents } from './use-ticket-events';
 
@@ -159,12 +160,17 @@ function TicketDetails({ ticket, me }: { ticket: TicketDto; me: Me }) {
       <Section>
         <TicketFollowers ticketId={ticket.id} following={ticket.following} />
       </Section>
-      {ticket.taskCount > 0 && (
-        <Section>
-          <p className="text-button text-muted-foreground">
-            {t('tickets.page.turnedInto', { count: ticket.taskCount })}
-          </p>
-        </Section>
+      {ticket.tasks !== null && ticket.groupId !== null ? (
+        <TicketTasks ticket={ticket} groupId={ticket.groupId} tasks={ticket.tasks} />
+      ) : (
+        // A requester sees only how many tasks the ticket became, without links.
+        ticket.taskCount > 0 && (
+          <Section>
+            <p className="text-button text-muted-foreground">
+              {t('tickets.page.turnedInto', { count: ticket.taskCount })}
+            </p>
+          </Section>
+        )
       )}
     </>
   );

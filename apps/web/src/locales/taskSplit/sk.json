@@ -31,6 +31,7 @@
   "keep": "Pokračovať v kontrole",
   "createFailed": "Úlohy sa nevytvorili. Skúste to znova.",
   "messageGone": "Správa bola odstránená, úlohy sa nevytvorili.",
+  "ticketGone": "Tiket už neexistuje, úlohy sa nevytvorili.",
   "filesChanged": "Súbor na niektorej karte už nie je dostupný. Odstráňte ho a skúste to znova.",
   "created_one": "{{count}} úloha vytvorená",
   "created_few": "{{count}} úlohy vytvorené",
