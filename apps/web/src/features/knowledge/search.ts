@@ -7,13 +7,19 @@ export const KNOWLEDGE_TYPES = [
   'file',
   'link',
   'reminder',
+  'chat_file',
 ] as const satisfies readonly KnowledgeType[];
+
+/** The types people create (`?kind=`); a chat file only comes from a chat. */
+const CREATABLE_TYPES: readonly string[] = ['note', 'file', 'link', 'reminder'];
 
 export type KnowledgePageSearch = {
   clients?: string;
   /** The ticked types as one comma list in the canonical order (`note,link`); none means all. */
   type?: string;
   q?: string;
+  /** `all`: chat files of the task and ticket chats too (only with the `chat_file` type). */
+  chats?: 'all';
   k?: string;
   /** The client (group) open in the folder view; the folder open in it. */
   at?: string;
@@ -57,9 +63,32 @@ export function formatTypes(types: readonly KnowledgeType[]): string | undefined
   return list.length > 0 ? list.join(',') : undefined;
 }
 
-/** `kind` and other single-type params. */
-export function singleType(value: unknown): KnowledgeType | undefined {
-  return typeof value === 'string' && isType(value) ? value : undefined;
+/** `kind`: a type people create (never `chat_file`). */
+export function singleType(value: unknown): Exclude<KnowledgeType, 'chat_file'> | undefined {
+  return typeof value === 'string' && CREATABLE_TYPES.includes(value)
+    ? (value as Exclude<KnowledgeType, 'chat_file'>)
+    : undefined;
+}
+
+/** The `chats` param: `all` or nothing. */
+export function validateChats(value: unknown): 'all' | undefined {
+  return value === 'all' ? 'all' : undefined;
+}
+
+/**
+ * The list is flat (every folder, no breadcrumbs) while searching or while chat files are
+ * ticked: they are in no folder.
+ */
+export function isFlatList(q: string | undefined, types: readonly KnowledgeType[]): boolean {
+  return Boolean(q) || types.includes('chat_file');
+}
+
+/** The `chats` filter to send: only while chat files are ticked. */
+export function chatsFilter(
+  types: readonly KnowledgeType[],
+  chats: 'all' | undefined,
+): 'all' | undefined {
+  return types.includes('chat_file') ? chats : undefined;
 }
 
 /**
@@ -76,6 +105,7 @@ export function validateKnowledgeSearch(search: Record<string, unknown>): Knowle
     clients: text(search.clients),
     type: normalizeTypes(search.type),
     q: q.length >= 2 ? q : undefined,
+    chats: validateChats(search.chats),
     k: text(search.k) || undefined,
     at,
     folder: at ? validateFolderParam(search.folder) : undefined,

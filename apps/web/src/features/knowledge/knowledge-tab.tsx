@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { useParams, useSearch } from '@tanstack/react-router';
-import { KnowledgeTypes, type KnowledgeType } from '@spolu/shared';
+import { KnowledgeTypes, type KnowledgeCreatableType, type KnowledgeType } from '@spolu/shared';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useUpdateSearch } from '@/lib/use-update-search';
@@ -15,7 +15,8 @@ import { FolderDialog } from './folder-dialog';
 import { KnowledgeDialog, type KnowledgeDialogTarget } from './knowledge-dialog';
 import { KnowledgeList } from './knowledge-list';
 import { NewItemMenu } from './new-item-menu';
-import { formatTypes, parseTypes } from './search';
+import { ChatsCheckbox } from './chats-checkbox';
+import { chatsFilter, formatTypes, isFlatList, parseTypes } from './search';
 import { useKnowledgeEvents } from './use-knowledge-events';
 
 /**
@@ -25,8 +26,10 @@ import { useKnowledgeEvents } from './use-knowledge-events';
 type KnowledgeTabSearch = {
   type?: string;
   q?: string;
+  /** `all`: the task and ticket chats' files too (shown only with "From chat" ticked). */
+  chats?: 'all';
   k?: string;
-  kind?: KnowledgeType;
+  kind?: KnowledgeCreatableType;
   /** The open folder; absent: the top level. */
   folder?: string;
 };
@@ -55,6 +58,7 @@ const PLURAL: Record<KnowledgeType, string> = {
   file: 'files',
   link: 'links',
   reminder: 'reminders',
+  chat_file: 'fromChat',
 };
 
 export function KnowledgeTab() {
@@ -66,16 +70,19 @@ export function KnowledgeTab() {
 function GroupKnowledge({ groupId }: { groupId: string }) {
   const { t } = useTranslation();
   // The route's `validateSearch` (router.tsx) has checked these.
-  const { type, q, k, kind, folder }: KnowledgeTabSearch = useSearch({ strict: false });
+  const { type, q, chats, k, kind, folder }: KnowledgeTabSearch = useSearch({ strict: false });
   const updateSearch = useUpdateSearch();
   const canSeeAdmins = isAdmin(useSession());
   const types = parseTypes(type);
   const folderId = folder ?? null;
-  // Searching lists every folder flat; otherwise the open folder's items (FolderBrowser).
-  const searching = Boolean(q);
-  const filter = searching ? { types, q } : { types, folder: folderId };
+  // Searching, or listing chat files (they are in no folder), lists every folder flat;
+  // otherwise the open folder's items (FolderBrowser).
+  const searching = isFlatList(q, types);
+  const chatFiles = types.includes('chat_file');
+  const flatFilter = { types, q, chats: chatsFilter(types, chats) };
+  const filter = searching ? flatFilter : { types, folder: folderId };
   const query = useInfiniteQuery({
-    ...groupKnowledgeQuery(groupId, { types, q }),
+    ...groupKnowledgeQuery(groupId, flatFilter),
     enabled: searching,
   });
   const folders = useQuery(groupFoldersQuery(groupId)).data;
@@ -129,6 +136,7 @@ function GroupKnowledge({ groupId }: { groupId: string }) {
       (s) => {
         delete s.type;
         delete s.q;
+        delete s.chats;
       },
       { replace: false },
     );
@@ -160,7 +168,15 @@ function GroupKnowledge({ groupId }: { groupId: string }) {
       { replace: false },
     );
   };
-  const create = (pick: KnowledgeType) => {
+  const setChats = (all: boolean) =>
+    updateSearch(
+      (s) => {
+        if (all) s.chats = 'all';
+        else delete s.chats;
+      },
+      { replace: false },
+    );
+  const create = (pick: KnowledgeCreatableType) => {
     setNotice(null);
     updateSearch(
       (s) => {
@@ -268,6 +284,7 @@ function GroupKnowledge({ groupId }: { groupId: string }) {
               </button>
             );
           })}
+          {chatFiles && <ChatsCheckbox checked={chats === 'all'} onChange={setChats} />}
         </div>
         <Input
           type="search"

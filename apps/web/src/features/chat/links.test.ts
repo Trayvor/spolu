@@ -48,3 +48,11 @@ describe('chatMessageLocation', () => {
     expect(chatMessageHref('g', m)).toBe('/tickets/k?message=m&c=c');
   });
 });
+
+describe('a reply', () => {
+  it('opens its thread too', () => {
+    expect(
+      chatMessageHref('g', { messageId: 'm', channelId: 'c', taskId: null, parentId: 'r' }),
+    ).toBe('/groups/g/chat?thread=r&message=m&c=c');
+  });
+});

@@ -15,6 +15,7 @@ import { groupQuery } from '@/features/groups/api';
 import {
   normalizeTypes,
   singleType,
+  validateChats,
   validateFolderParam,
   validateKnowledgeSearch,
 } from '@/features/knowledge/search';
@@ -241,7 +242,14 @@ const groupKnowledgeRoute = createRoute({
   path: 'knowledge',
   validateSearch: (
     search: Record<string, unknown>,
-  ): { type?: string; q?: string; k?: string; kind?: KnowledgeType; folder?: string } => {
+  ): {
+    type?: string;
+    q?: string;
+    chats?: 'all';
+    k?: string;
+    kind?: KnowledgeType;
+    folder?: string;
+  } => {
     // A search runs from 2 characters, trimmed (the tab writes it that way too).
     const q = typeof search.q === 'string' ? search.q.trim() : '';
     // Every key is set, an invalid one to undefined: the router keeps the raw params under
@@ -250,6 +258,7 @@ const groupKnowledgeRoute = createRoute({
     return {
       type: normalizeTypes(search.type),
       q: q.length >= 2 ? q : undefined,
+      chats: validateChats(search.chats),
       k: typeof search.k === 'string' && search.k ? search.k : undefined,
       kind: singleType(search.kind),
       folder: validateFolderParam(search.folder),

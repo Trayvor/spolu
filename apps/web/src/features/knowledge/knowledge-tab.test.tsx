@@ -376,3 +376,79 @@ describe('knowledge tab', () => {
     });
   });
 });
+
+describe('knowledge tab: files from chats', () => {
+  beforeEach(() => {
+    vi.stubGlobal('matchMedia', (query: string) => ({
+      matches: query.includes('min-width: 641px'),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }));
+  });
+  afterEach(() => vi.unstubAllGlobals());
+
+  const chatFile = summary('c1', {
+    type: 'chat_file',
+    title: 'scan.pdf',
+    file: {
+      id: 'f1',
+      name: 'scan.pdf',
+      mime: 'application/pdf',
+      size: 10,
+      width: null,
+      height: null,
+      hasPreview: false,
+    },
+    chat: {
+      channelId: 'ch1',
+      messageId: 'm1',
+      parentId: null,
+      kind: 'group',
+      taskId: null,
+      taskTitle: null,
+      ticketId: null,
+      ticketNumber: null,
+    },
+  });
+
+  it('"From chat" turns the list flat; the tasks-and-tickets box shows only with it', async () => {
+    const fetchMock = mockApi([chatFile]);
+    const { search, user } = renderTab();
+    await heading();
+    const pills = screen.getByRole('group', { name: t('knowledge.tab.filters') });
+    const also = () =>
+      within(pills).queryByRole('checkbox', { name: t('knowledge.chat.alsoTasksTickets') });
+    expect(also()).not.toBeInTheDocument();
+    // "+ New" never offers a chat file.
+    expect(screen.queryByRole('menuitem', { name: /From chat/ })).not.toBeInTheDocument();
+
+    await user.click(within(pills).getByRole('checkbox', { name: t('knowledge.types.fromChat') }));
+    await waitFor(() => expect(search().type).toBe('chat_file'));
+    await waitFor(() =>
+      expect(
+        fetchMock.mock.calls.some(([u]) => u === '/api/groups/g1/knowledge?type=chat_file'),
+      ).toBe(true),
+    );
+    // Flat: no folder rows.
+    expect(
+      screen.queryByRole('button', { name: t('knowledge.folders.open', { name: 'Grants' }) }),
+    ).not.toBeInTheDocument();
+    expect(await screen.findByRole('link', { name: 'scan.pdf' })).toHaveAttribute(
+      'href',
+      '/api/files/f1',
+    );
+    expect(
+      screen.getByRole('link', { name: t('knowledge.chat.open', { title: 'scan.pdf' }) }),
+    ).toHaveAttribute('href', '/groups/g1/chat?message=m1&c=ch1');
+
+    await user.click(also()!);
+    await waitFor(() => expect(search().chats).toBe('all'));
+    await waitFor(() =>
+      expect(
+        fetchMock.mock.calls.some(
+          ([u]) => u === '/api/groups/g1/knowledge?type=chat_file&chats=all',
+        ),
+      ).toBe(true),
+    );
+  });
+});

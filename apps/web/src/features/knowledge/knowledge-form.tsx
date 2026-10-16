@@ -149,6 +149,8 @@ export function toDraft(
       return { ...base, type, url: value.url.trim(), fileIds: [] };
     case 'reminder':
       return { ...base, type, reminder: reminderInput(value, undefined, context), fileIds: [] };
+    case 'chat_file':
+      throw new Error('A chat file comes only from a chat');
   }
 }
 

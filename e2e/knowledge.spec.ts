@@ -261,6 +261,50 @@ test.describe.serial('knowledge base', () => {
     await admin.close();
   });
 
+  test('a file the client sends in the group chat appears under "Z chatu" live and opens the chat', async () => {
+    const admin = await adminContext.newPage();
+    await admin.goto(`/groups/${groupId}/knowledge`);
+    await admin.getByRole('checkbox', { name: 'Z chatu' }).click();
+    await expect(admin).toHaveURL(/type=chat_file/);
+    // Only shown with "Z chatu".
+    await expect(admin.getByRole('checkbox', { name: 'Aj z úloh a tiketov' })).toBeVisible();
+
+    const name = `zmluva-${stamp}.txt`;
+    const fileId = await upload(clientContext.request, name, 'zmluva');
+    const channel = (await (
+      await clientContext.request.get(`/api/groups/${groupId}/chat`)
+    ).json()) as {
+      id: string;
+    };
+    const sent = await clientContext.request.post(`/api/channels/${channel.id}/messages`, {
+      data: { clientId: `kb-${stamp}`, body: 'Posielam zmluvu', fileIds: [fileId] },
+    });
+    expect(sent.status()).toBe(201);
+    const messageId = ((await sent.json()) as { id: string }).id;
+
+    // Live: the row appears without a reload; the file name downloads, the row opens the chat.
+    await expect(admin.getByRole('link', { name, exact: true })).toHaveAttribute(
+      'href',
+      `/api/files/${fileId}`,
+    );
+    await expect(admin.getByText('Skupinový chat')).toBeVisible();
+    await admin.getByRole('link', { name: `Zobraziť ${name} v chate` }).click();
+    await expect(admin).toHaveURL(new RegExp(`/groups/${groupId}/chat`));
+    await expect(admin.getByText('Posielam zmluvu')).toBeVisible();
+
+    // The client finds it by search too; deleting the message removes it.
+    const found = (await (
+      await clientContext.request.get(`/api/groups/${groupId}/knowledge?q=zmluva-${stamp}`)
+    ).json()) as KnowledgePage;
+    expect(found.items.map((i) => i.title)).toEqual([name]);
+    expect((await clientContext.request.delete(`/api/messages/${messageId}`)).status()).toBe(204);
+    const after = (await (
+      await clientContext.request.get(`/api/groups/${groupId}/knowledge?type=chat_file`)
+    ).json()) as KnowledgePage;
+    expect(after.items.map((i) => i.title)).not.toContain(name);
+    await admin.close();
+  });
+
   test('phone viewport: the detail is a full-screen sheet and its controls are at least 44 px', async () => {
     const note = await create(adminContext.request, {
       type: 'note',

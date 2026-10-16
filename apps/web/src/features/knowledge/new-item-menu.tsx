@@ -1,6 +1,6 @@
 import { useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { KnowledgeTypes, type KnowledgeType } from '@spolu/shared';
+import { KnowledgeCreatableTypes, type KnowledgeCreatableType } from '@spolu/shared';
 import { ActionSheet } from '@/components/ui/action-sheet';
 import { Button } from '@/components/ui/button';
 import {
@@ -14,7 +14,7 @@ import { useMediaQuery } from '@/lib/use-media-query';
 import { cn } from '@/lib/utils';
 import { BellIcon, FileIcon, FolderIcon, LinkIcon, NoteIcon } from './icons';
 
-const ICONS: Record<KnowledgeType, () => ReactNode> = {
+const ICONS: Record<KnowledgeCreatableType, () => ReactNode> = {
   note: NoteIcon,
   file: FileIcon,
   link: LinkIcon,
@@ -55,7 +55,7 @@ function FolderRow() {
 }
 
 /** The icon, the type's name and its help line. */
-function Row({ type }: { type: KnowledgeType }) {
+function Row({ type }: { type: KnowledgeCreatableType }) {
   const { t } = useTranslation();
   const Icon = ICONS[type];
   return (
@@ -83,7 +83,7 @@ export function NewItemMenu({
   onPickFolder,
   className,
 }: {
-  onPick: (type: KnowledgeType) => void;
+  onPick: (type: KnowledgeCreatableType) => void;
   onPickFolder?: () => void;
   className?: string;
 }) {
@@ -103,7 +103,7 @@ export function NewItemMenu({
       <DropdownMenu>
         <DropdownMenuTrigger asChild>{button}</DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-72">
-          {KnowledgeTypes.map((type) => (
+          {KnowledgeCreatableTypes.map((type) => (
             <DropdownMenuItem key={type} onSelect={() => onPick(type)} className="gap-3 py-2">
               <Row type={type} />
             </DropdownMenuItem>
@@ -132,7 +132,7 @@ export function NewItemMenu({
         {t('knowledge.tab.new')}
       </Button>
       <ActionSheet open={sheetOpen} label={t('knowledge.newMenu.label')} onClose={close}>
-        {KnowledgeTypes.map((type) => (
+        {KnowledgeCreatableTypes.map((type) => (
           <button
             key={type}
             type="button"

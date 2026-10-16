@@ -5,8 +5,37 @@ import { ReminderSetDtoSchema } from './reminders.js';
 import { TaskPersonSchema } from './tasks.js';
 import { isHttpUrl, MAX_URL_LENGTH } from './urls.js';
 
-export const KnowledgeTypes = ['note', 'file', 'link', 'reminder'] as const;
+/**
+ * Every item type. `chat_file` ("From chat") is a file attached to a chat message: created only
+ * by the chat, read-only, never in a folder.
+ */
+export const KnowledgeTypes = ['note', 'file', 'link', 'reminder', 'chat_file'] as const;
 export type KnowledgeType = (typeof KnowledgeTypes)[number];
+
+/** The types people create by hand (the "+ New" menu). */
+export const KnowledgeCreatableTypes = ['note', 'file', 'link', 'reminder'] as const;
+export type KnowledgeCreatableType = (typeof KnowledgeCreatableTypes)[number];
+
+/**
+ * The list filter's `chats` param: `all` also lists the files of the task and ticket chats;
+ * `group` (the default) only the group chat's.
+ */
+export const KnowledgeChatsFilterSchema = z.enum(['group', 'all']);
+export type KnowledgeChatsFilter = z.infer<typeof KnowledgeChatsFilterSchema>;
+
+/** Where a chat file came from: the message and its chat, enough to link to it. */
+export const KnowledgeChatSourceSchema = z.object({
+  channelId: z.string(),
+  messageId: z.string(),
+  /** The thread's root when the message is a reply. */
+  parentId: z.string().nullable(),
+  kind: z.enum(['group', 'task', 'ticket']),
+  taskId: z.string().nullable(),
+  taskTitle: z.string().nullable(),
+  ticketId: z.string().nullable(),
+  ticketNumber: z.number().int().nullable(),
+});
+export type KnowledgeChatSource = z.infer<typeof KnowledgeChatSourceSchema>;
 
 /**
  * A list filter's `type` query param: one type, a comma list (`note,link`) or repeated params.
@@ -156,6 +185,8 @@ export const KnowledgeSummarySchema = z.object({
   folderPath: z.array(z.object({ id: z.string(), name: z.string() })),
   /** Set in the global list only. */
   group: z.object({ id: z.string(), name: z.string(), logoUrl: z.string().nullable() }).optional(),
+  /** The source message of a chat file; null (or absent) for the other types. */
+  chat: KnowledgeChatSourceSchema.nullable().optional(),
 });
 export type KnowledgeSummary = z.infer<typeof KnowledgeSummarySchema>;
 

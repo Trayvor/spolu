@@ -3,7 +3,14 @@ import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { useSearch } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { KnowledgeTypes, type KnowledgeType } from '@spolu/shared';
-import { formatTypes, parseTypes, type KnowledgePageSearch } from './search';
+import {
+  chatsFilter,
+  formatTypes,
+  isFlatList,
+  parseTypes,
+  type KnowledgePageSearch,
+} from './search';
+import { ChatsCheckbox } from './chats-checkbox';
 import { Avatar } from '@/components/avatar';
 import { ClientFilter, type ClientOption } from '@/components/client-filter';
 import { Card } from '@/components/ui/card';
@@ -82,6 +89,7 @@ const TYPE_LABEL: Record<KnowledgeType, string> = {
   file: 'knowledge.types.files',
   link: 'knowledge.types.links',
   reminder: 'knowledge.types.reminders',
+  chat_file: 'knowledge.types.fromChat',
 };
 
 function SearchIcon() {
@@ -148,13 +156,15 @@ export function KnowledgePage() {
   // client while the admin manages none); `scope=all` is every client without sending the ids.
   const managedIds = scope?.managedGroupIds ?? null;
   const types = parseTypes(search.type);
-  // Searching lists every client's items flat; otherwise the folder view (client → folders).
-  const searching = Boolean(search.q);
+  // Searching, or listing chat files (in no folder), lists every client's items flat;
+  // otherwise the folder view (client → folders).
+  const searching = isFlatList(search.q, types);
+  const chats = chatsFilter(types, search.chats);
   const query = useInfiniteQuery({
     ...globalKnowledgeQuery(
       everyClient
-        ? { scope: 'all', types, q: search.q }
-        : { clients: clients ?? undefined, types, q: search.q },
+        ? { scope: 'all', types, q: search.q, chats }
+        : { clients: clients ?? undefined, types, q: search.q, chats },
     ),
     enabled: !noClients && searching,
     refetchOnWindowFocus: true,
@@ -311,6 +321,20 @@ export function KnowledgePage() {
             ))}
           </DropdownMenuContent>
         </DropdownMenu>
+        {types.includes('chat_file') && (
+          <ChatsCheckbox
+            checked={search.chats === 'all'}
+            onChange={(all) =>
+              update(
+                (s) => {
+                  if (all) s.chats = 'all';
+                  else delete s.chats;
+                },
+                { replace: false },
+              )
+            }
+          />
+        )}
         <label className="relative w-full min-[641px]:ml-auto min-[641px]:w-[300px]">
           <span className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-muted-foreground">
             <SearchIcon />

@@ -15,6 +15,7 @@ import { joinRoutes } from './modules/groups/join-routes.js';
 import { registerReminderSource } from './modules/home/reminder-source.js';
 import { homeRoutes } from './modules/home/routes.js';
 import { groupsRoutes } from './modules/groups/routes.js';
+import { registerKnowledgeChatFiles } from './modules/knowledge/chat-files.js';
 import { registerKnowledgeReminderSubject } from './modules/knowledge/reminder-subject.js';
 import { createRateLimiter } from './infra/http/rate-limit.js';
 import { knowledgeRoutes } from './modules/knowledge/routes.js';
@@ -94,6 +95,8 @@ export async function buildApp(
   // The ticket chat's access rules and its create/move hook, then the ticket notifications
   // (Phase 21): the chat exists before its followers hear about the ticket.
   registerTicketChat();
+  // Files attached in any chat become "From chat" knowledge items.
+  registerKnowledgeChatFiles();
   registerTicketNotifications();
   await app.register(remindersRoutes, {
     prefix: '/api',

@@ -1,13 +1,16 @@
 import { sql } from 'drizzle-orm';
 import {
   check,
+  foreignKey,
   index,
   pgTable,
   primaryKey,
   text,
   timestamp,
   type AnyPgColumn,
+  uniqueIndex,
 } from 'drizzle-orm/pg-core';
+import { messageAttachments } from '../chat/schema.js';
 import { files } from '../files/schema.js';
 import { groups } from '../groups/schema.js';
 import { user } from '../users/schema.js';
@@ -76,9 +79,51 @@ export const knowledgeItems = pgTable(
      * by the service on every change, searched with `ILIKE` through the trigram index.
      */
     searchText: text('search_text').notNull(),
+    /**
+     * A chat file (`type` `chat_file`): the message and file of its `message_attachments` row,
+     * which it cascades from, so the entry goes with the message, the file, the task, the ticket
+     * or the group. Written only by the chat hooks (`chat-files.ts`).
+     */
+    chatMessageId: text('chat_message_id'),
+    chatFileId: text('chat_file_id'),
+    /** The message's chat; a ticket chat that moves to another group moves its entries by it. */
+    chatChannelId: text('chat_channel_id'),
+    /** `group`, `task` or `ticket`: the kind of that chat (the `chats` list filter). */
+    chatKind: text('chat_kind'),
   },
   (t) => [
-    check('knowledge_items_type_check', sql`${t.type} in ('note', 'file', 'link', 'reminder')`),
+    check(
+      'knowledge_items_type_check',
+      sql`${t.type} in ('note', 'file', 'link', 'reminder', 'chat_file')`,
+    ),
+    check(
+      'knowledge_items_chat_check',
+      sql`(${t.type} = 'chat_file') = (${t.chatMessageId} is not null) and (${t.chatMessageId} is null) = (${t.chatFileId} is null) and (${t.chatMessageId} is null) = (${t.chatChannelId} is null) and (${t.chatMessageId} is null) = (${t.chatKind} is null)`,
+    ),
+    check(
+      'knowledge_items_chat_kind_check',
+      sql`${t.chatKind} is null or ${t.chatKind} in ('group', 'task', 'ticket')`,
+    ),
+    foreignKey({
+      name: 'knowledge_items_chat_attachment_fk',
+      columns: [t.chatMessageId, t.chatFileId],
+      foreignColumns: [messageAttachments.messageId, messageAttachments.fileId],
+    }).onDelete('cascade'),
+    // One entry per file of a message; also the lookup of the cascade above.
+    uniqueIndex('knowledge_items_chat_unique')
+      .on(t.chatMessageId, t.chatFileId)
+      .where(sql`${t.chatMessageId} is not null`),
+    index('knowledge_items_chat_channel_idx')
+      .on(t.chatChannelId)
+      .where(sql`${t.chatChannelId} is not null`),
+    // A group's chat files, newest first (the `chats` filter's kind is checked on top).
+    index('knowledge_items_group_chat_created_idx')
+      .on(t.groupId, t.createdAt.desc().nullsFirst(), t.id.desc().nullsFirst())
+      .where(sql`${t.type} = 'chat_file'`),
+    // The folder view's top level, which never lists chat files (they have no folder either).
+    index('knowledge_items_root_created_idx')
+      .on(t.groupId, t.createdAt.desc().nullsFirst(), t.id.desc().nullsFirst())
+      .where(sql`${t.folderId} is null and ${t.type} <> 'chat_file'`),
     check('knowledge_items_visibility_check', sql`${t.visibility} in ('public', 'admins')`),
     check('knowledge_items_url_check', sql`(${t.type} = 'link') = (${t.url} is not null)`),
     check('knowledge_items_title_check', sql`char_length(${t.title}) <= 200`),

@@ -4,6 +4,7 @@ import type { TaskChatSummaries } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
 import { isForeignKeyViolation } from '../../infra/db/errors.js';
 import { moveFilesToGroup } from '../files/service.js';
+import { runChannelMoved } from './file-hooks.js';
 import { channels, messageAttachments, messages, readStates, threadReadStates } from './schema.js';
 
 export type ChannelRow = typeof channels.$inferSelect;
@@ -87,6 +88,7 @@ export async function moveTicketChannel(db: Db, ticketId: string, groupId: strin
       .where(eq(channels.ticketId, ticketId))
       .returning({ id: channels.id });
     if (!channel) return;
+    await runChannelMoved(tx, { channelId: channel.id, groupId });
     const attached = await tx
       .select({ fileId: messageAttachments.fileId })
       .from(messageAttachments)

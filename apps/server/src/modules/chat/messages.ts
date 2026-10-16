@@ -28,6 +28,7 @@ import { listTasksForMessages } from '../tasks/service.js';
 import { user } from '../users/schema.js';
 import { selectMessages, toMessageDtos, type MessageRow } from './dto.js';
 import { actorReadsChannel, channelKindAccess } from './access.js';
+import { runFilesAttached } from './file-hooks.js';
 import { channels, messageAttachments, messageMentions, messages } from './schema.js';
 import {
   getChannel,
@@ -191,6 +192,14 @@ export async function sendMessage(
         await tx
           .insert(messageAttachments)
           .values(fileIds.map((fileId, position) => ({ messageId, fileId, position })));
+        // Other modules' rows next to the files (the knowledge base's "From chat" entries).
+        await runFilesAttached(tx, {
+          channel,
+          messageId,
+          authorId: author.id,
+          createdAt: row!.createdAt,
+          fileIds,
+        });
       }
 
       if (parentId !== null) {

@@ -79,8 +79,8 @@ Pushed after the write commits by `modules/knowledge/events.ts` (names in `Knowl
 
 | event | payload | room |
 |---|---|---|
-| `knowledge:item` | `{ item }` | created or edited: `group:<id>` for a public item, `group:<id>:admins` for an admins-only one |
-| `knowledge:item_deleted` | `{ groupId, id }` | deleted: the room the item was in; also sent to the group's clients (`group:<id>` except `group:<id>:admins`) when an item turns admins-only, also by a move into an admins-only folder or a folder turning admins-only |
+| `knowledge:item` | `{ item }` | created or edited: `group:<id>` for a public item, `group:<id>:admins` for an admins-only one; also a chat file (Phase 25), pushed by the chat route after the message with files commits (`chat/file-hooks.ts` `sent`) |
+| `knowledge:item_deleted` | `{ groupId, id }` | deleted: the room the item was in (a chat file when its message is deleted: the ids are read before the delete, `removing`); also sent to the group's clients (`group:<id>` except `group:<id>:admins`) when an item turns admins-only, also by a move into an admins-only folder or a folder turning admins-only |
 | `knowledge:folder` | `{ folder }` | a folder created or changed (Phase 24): `group:<id>` for a public folder, `group:<id>:admins` for an admins-only one |
 | `knowledge:folder_deleted` | `{ groupId, id }` | a folder deleted: the room it was in; also sent to the group's clients when a folder turns admins-only (before an `item_deleted` for each item that stopped being public) |
 

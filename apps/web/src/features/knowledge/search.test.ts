@@ -5,6 +5,9 @@ import {
   parseTypes,
   validateFolderParam,
   validateKnowledgeSearch,
+  chatsFilter,
+  isFlatList,
+  singleType,
 } from './search';
 
 describe('validateKnowledgeSearch', () => {
@@ -13,6 +16,7 @@ describe('validateKnowledgeSearch', () => {
       clients: '3',
       type: undefined,
       q: undefined,
+      chats: undefined,
       k: undefined,
       at: undefined,
       folder: undefined,
@@ -24,6 +28,7 @@ describe('validateKnowledgeSearch', () => {
       clients: undefined,
       type: 'link',
       q: 'portal',
+      chats: undefined,
       k: 'k1',
       at: undefined,
       folder: undefined,
@@ -75,5 +80,27 @@ describe('the type list in the URL', () => {
     expect(parseTypes(undefined)).toEqual([]);
     expect(formatTypes(['link', 'note', 'link'])).toBe('note,link');
     expect(formatTypes([])).toBeUndefined();
+  });
+});
+
+describe('chat files in the URL', () => {
+  it('chat_file is a filter type but never a kind to create', () => {
+    expect(normalizeTypes('chat_file,note')).toBe('note,chat_file');
+    expect(singleType('chat_file')).toBeUndefined();
+    expect(singleType('note')).toBe('note');
+  });
+
+  it('chats is all or nothing, and only counts with chat files ticked', () => {
+    expect(validateKnowledgeSearch({ chats: 'all' }).chats).toBe('all');
+    expect(validateKnowledgeSearch({ chats: 'task' }).chats).toBeUndefined();
+    expect(chatsFilter(['chat_file'], 'all')).toBe('all');
+    expect(chatsFilter(['note'], 'all')).toBeUndefined();
+  });
+
+  it('the list is flat while searching or while chat files are ticked', () => {
+    expect(isFlatList(undefined, [])).toBe(false);
+    expect(isFlatList(undefined, ['note'])).toBe(false);
+    expect(isFlatList('pdf', [])).toBe(true);
+    expect(isFlatList(undefined, ['note', 'chat_file'])).toBe(true);
   });
 });
