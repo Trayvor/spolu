@@ -6,7 +6,7 @@ import type { FastifyInstance } from 'fastify';
 import { registerStatic } from './static.js';
 import { buildTestApp } from '../test/test-app.js';
 
-const INDEX = '<!doctype html><title>Spolu</title>';
+const INDEX = '<!doctype html><title>Help by eGrant</title>';
 
 describe('static web serving', () => {
   let appTest: Awaited<ReturnType<typeof buildTestApp>>;

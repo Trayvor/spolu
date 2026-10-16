@@ -1,6 +1,6 @@
 # Spolu on one server: app + PostgreSQL + Caddy (TLS) + nightly backup.
 # Run from this directory with: docker compose --env-file .env up -d
-# .env holds IMAGE, TAG, DOMAIN, POSTGRES_PASSWORD and the app settings (see test.env.example).
+# .env holds IMAGE, TAG, DOMAIN, REDIRECT_DOMAINS, POSTGRES_PASSWORD and the app settings (see test.env.example).
 
 name: spolu # fixed project name so volumes never fork under another one
 
@@ -53,6 +53,7 @@ services:
       DOMAIN: ${DOMAIN}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./redirects.caddy:/etc/caddy/redirects.caddy:ro # written by scripts/deploy.sh
       - caddy_data:/data
       - caddy_config:/config
     depends_on:

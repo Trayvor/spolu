@@ -78,7 +78,7 @@ describe('email change', () => {
     expect(sent.statusCode).toBe(204);
     const codeEmail = await latestEmail(newEmail);
     // Default stored language: Slovak.
-    expect(codeEmail.subject).toMatch(/^Kód na zmenu e-mailu v Spolu: \d{6}$/);
+    expect(codeEmail.subject).toMatch(/^Kód na zmenu e-mailu v aplikácii Help: \d{6}$/);
     const code = await latestLoginCode(newEmail);
 
     const res = await confirmChange(a.cookie, newEmail, code);
@@ -95,7 +95,7 @@ describe('email change', () => {
     expect(me.statusCode).toBe(200);
     expect(me.json()).toMatchObject({ id: a.id, email: newEmail });
 
-    const notice = await waitForSubject(a.email, /^Váš e-mail v Spolu bol zmenený$/);
+    const notice = await waitForSubject(a.email, /^Váš e-mail v aplikácii Help bol zmenený$/);
     expect(notice.text).toContain(newEmail);
 
     // The request is used up.
@@ -469,10 +469,12 @@ describe('language', () => {
 
     const newEmail = uniqueEmail();
     await requestChange(a.cookie, newEmail);
-    expect((await latestEmail(newEmail)).subject).toMatch(/^Your Spolu email change code: \d{6}$/);
+    expect((await latestEmail(newEmail)).subject).toMatch(
+      /^Your Help by eGrant email change code: \d{6}$/,
+    );
     const code = await latestLoginCode(newEmail);
     expect((await confirmChange(a.cookie, newEmail, code)).statusCode).toBe(200);
-    const notice = await waitForSubject(a.email, /^Your Spolu email was changed$/);
+    const notice = await waitForSubject(a.email, /^Your Help by eGrant email was changed$/);
     expect(notice.text).toContain(newEmail);
   });
 

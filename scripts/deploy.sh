@@ -12,6 +12,9 @@
 #   DOMAIN           public domain of the environment: the health check, and DOMAIN= and
 #                    PUBLIC_URL=https://<domain> in the server's .env (they override the file)
 #   TICKETS_API_KEY  optional; when set it replaces TICKETS_API_KEY= of the env file
+#   REDIRECT_DOMAINS optional; space-separated old domains (e.g. "spolu.egrant.sk"). Each one gets
+#                    its own certificate and a permanent redirect to https://$DOMAIN (Caddy,
+#                    redirects.caddy). Written to the server's .env as REDIRECT_DOMAINS=.
 # Env (optional):
 #   DEPLOY_PORT         SSH port (default 22)
 #   DEPLOY_KNOWN_HOSTS  known_hosts line(s) for the server; pins its host key. Without it the
@@ -19,8 +22,8 @@
 #   REGISTRY_USER, REGISTRY_TOKEN  registry login on the server before pulling (private images);
 #                       the server logs out again right after the pull.
 #
-# On the server everything lives in /opt/spolu/<env>/: docker-compose.yml, Caddyfile, backup/ and
-# .env (mode 600). IMAGE= and TAG= in that .env are set to the deployed version, so a manual
+# On the server everything lives in /opt/spolu/<env>/: docker-compose.yml, Caddyfile,
+# redirects.caddy, backup/ and .env (mode 600). IMAGE= and TAG= in that .env are set to the deployed version, so a manual
 # "docker compose up -d" in that folder runs the same version.
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -40,10 +43,13 @@ remote_dir="/opt/spolu/$env_name"
 target="$DEPLOY_USER@$DEPLOY_HOST"
 port="${DEPLOY_PORT:-22}"
 health_url="https://$DOMAIN/api/health"
+# Before anything reaches the server: a bad REDIRECT_DOMAINS stops the deploy here.
+redirects_block="$(caddy_redirects)" || die "fix the REDIRECT_DOMAINS variable"
 
 # Per-run known_hosts file, so the runner's own ~/.ssh is never used or changed.
 work_dir="$(mktemp -d)"
 trap 'rm -rf "$work_dir"' EXIT
+printf '%s\n' "$redirects_block" > "$work_dir/redirects.caddy"
 known_hosts="$work_dir/known_hosts"
 if [[ -n "${DEPLOY_KNOWN_HOSTS:-}" ]]; then
   printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$known_hosts"
@@ -69,9 +75,11 @@ previous_tag="$("${ssh_cmd[@]}" "sed -n 's/^TAG=//p' '$remote_dir/.env' 2>/dev/n
 
 log "Uploading files to $target:$remote_dir"
 # The env file is written with umask 077 so it is never readable by other users, not even briefly.
-# DOMAIN, PUBLIC_URL and (when set) TICKETS_API_KEY come from the workflow, not the file: see deploy_env.
+# DOMAIN, PUBLIC_URL, REDIRECT_DOMAINS and (when set) TICKETS_API_KEY come from the workflow, not
+# the file: see deploy_env.
 deploy_env "$DEPLOY_ENV_FILE" | "${ssh_cmd[@]}" "mkdir -p '$remote_dir' && umask 077 && cat > '$remote_dir/.env.upload'"
-"${scp_cmd[@]}" -r deploy/docker-compose.yml deploy/Caddyfile deploy/backup "$target:$remote_dir/"
+"${scp_cmd[@]}" -r deploy/docker-compose.yml deploy/Caddyfile "$work_dir/redirects.caddy" deploy/backup \
+  "$target:$remote_dir/"
 
 log "Starting $IMAGE:$tag on $DEPLOY_HOST"
 # Values go in as shell assignments on stdin (not as ssh arguments), so the registry token
@@ -99,6 +107,9 @@ fi
 # "< /dev/null": this script itself arrives on stdin, so commands must not read from it.
 docker compose pull --quiet < /dev/null
 docker compose up -d --remove-orphans < /dev/null
+# "up" does not restart Caddy when only its mounted files changed (Caddyfile, redirects.caddy),
+# so it reloads them; a running Caddy keeps its old config if the new one is invalid.
+docker compose exec -T caddy caddy reload --config /etc/caddy/Caddyfile < /dev/null
 # Remove images no container uses that are older than 7 days (old releases included); the
 # server disk is small. Recent ones stay, so a rollback to last week's tag needs no download.
 docker image prune -af --filter "until=168h" > /dev/null < /dev/null

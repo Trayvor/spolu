@@ -1,11 +1,11 @@
 {
   "done": {
     "title": "You are unsubscribed",
-    "body": "You will no longer get bulk emails from eGrant. Login codes and notifications from Spolu still arrive."
+    "body": "You will no longer get bulk emails from eGrant. Login codes and notifications from the Help app still arrive."
   },
   "subscribed": {
     "title": "You are subscribed again",
-    "body": "You will get bulk emails from eGrant again. You can change this any time in Spolu's Settings."
+    "body": "You will get bulk emails from eGrant again. You can change this any time in the Help app's Settings."
   },
   "subscribeAgain": "Subscribe again",
   "unsubscribeButton": "Unsubscribe",

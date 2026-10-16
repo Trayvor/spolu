@@ -54,7 +54,7 @@ test('a new person is invited, signs in and becomes a member', async ({ page, br
   await expect(row.getByText('Pozvaný', { exact: true })).toBeVisible();
   await expect
     .poll(() => subjectsFor(page.request, email))
-    .toContain(`Pozvánka do Spolu – ${group}`);
+    .toContain(`Pozvánka do aplikácie Help – ${group}`);
 
   const { context, client } = await signInFromLink(browser, email);
   await expect(client).toHaveURL(new RegExp(`${path}/chat$`));

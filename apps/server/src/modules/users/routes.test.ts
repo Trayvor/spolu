@@ -109,7 +109,7 @@ describe('admins API', () => {
     expect(res.json()).toMatchObject({ email, name: 'New Person', role: 'admin' });
 
     const mail = await latestEmail(email);
-    expect(mail.subject).toBe('You were added to Spolu');
+    expect(mail.subject).toBe('You were added to Help by eGrant');
     expect(mail.text).toContain('Adder Person');
     expect(mail.text).toContain(`${test.deps.config.publicUrl}/login`);
 

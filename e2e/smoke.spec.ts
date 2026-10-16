@@ -34,7 +34,7 @@ test('the home page is the admin dashboard', async ({ page }) => {
 test('a deep link renders the app, not a server 404', async ({ page }) => {
   const response = await page.goto('/settings');
   expect(response?.status()).toBe(200);
-  await expect(page.getByRole('link', { name: 'Spolu by eGrant' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Help by eGrant' })).toBeVisible();
   await expect(page.getByRole('button', { name: /Jazyk/ })).toBeVisible();
 });
 
@@ -42,5 +42,5 @@ test('the web manifest is served with the product name', async ({ request }) => 
   const response = await request.get('/manifest.webmanifest');
   expect(response.ok()).toBe(true);
   const manifest = (await response.json()) as { name: string };
-  expect(manifest.name).toBe('Spolu by eGrant');
+  expect(manifest.name).toBe('Help by eGrant');
 });

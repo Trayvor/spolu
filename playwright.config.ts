@@ -56,7 +56,7 @@ export default defineConfig({
       EMAIL_DRIVER: 'smtp',
       SMTP_HOST: '127.0.0.1',
       SMTP_PORT: '1025',
-      MAIL_FROM: 'Spolu <noreply@localhost>',
+      MAIL_FROM: 'Help by eGrant <noreply@localhost>',
       // The canned task splitter; production mode refuses it without AI_ALLOW_FAKE=1.
       AI_PROVIDER: 'fake',
       // The ticket intake API (Phase 21); the specs post tickets with this key.

@@ -10,7 +10,7 @@ const smtp = {
   host: '127.0.0.1',
   port: 1025,
   secure: false,
-  from: 'Spolu <noreply@example.com>',
+  from: 'Help by eGrant <noreply@example.com>',
 };
 const elastic = (unsubscribe: 'elastic' | 'spolu') => ({
   driver: 'elastic' as const,

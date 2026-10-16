@@ -62,8 +62,8 @@ describe('push-sw', () => {
     });
     await fire('push', {});
     expect(self.registration.showNotification).toHaveBeenCalledTimes(2);
-    expect(self.registration.showNotification.mock.calls[0]![0]).toBe('Spolu');
-    expect(self.registration.showNotification.mock.calls[1]![0]).toBe('Spolu');
+    expect(self.registration.showNotification.mock.calls[0]![0]).toBe('Help');
+    expect(self.registration.showNotification.mock.calls[1]![0]).toBe('Help');
   });
 
   it('a payload without a tag gets the spolu tag (renotify needs one)', async () => {

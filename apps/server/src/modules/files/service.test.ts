@@ -413,11 +413,14 @@ describe('copyFile', () => {
     const { group, owner } = await setup();
     const original = await upload(group.id, owner.id, PNG, 'image/png', 'gone.png');
     await storage.delete((await getFile(db, original.id))!.storageKey);
-    const before = (await db.select().from(files)).length;
+    // Count this group's rows only: other test files add files to the shared database meanwhile.
+    const groupRows = async () =>
+      (await db.select().from(files).where(eq(files.groupId, group.id))).length;
+    const before = await groupRows();
     await expect(
       copyFile(deps, { fileId: original.id, groupId: group.id, userId: owner.id }),
     ).rejects.toBeInstanceOf(InvalidAttachmentError);
-    expect((await db.select().from(files)).length).toBe(before);
+    expect(await groupRows()).toBe(before);
   });
 
   it('makes an unattached copy owned by the copier, with its own storage', async () => {

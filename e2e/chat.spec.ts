@@ -39,6 +39,7 @@ test('admin and client chat in real time, in threads, with mentions and files, a
   page: admin,
   browser,
 }) => {
+  test.setTimeout(60_000); // a long scenario; the full parallel run nears 30 s
   const stamp = Date.now();
   const name = `E2E Chat ${stamp}`;
   const email = `e2e-chat-${stamp}@example.com`;

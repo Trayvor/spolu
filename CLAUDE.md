@@ -1,6 +1,6 @@
 # Spolu
 
-Spolu is the eGrant team's internal web app for client communication: group chat, direct messages, task boards, support tickets and contracts.
+Spolu (product name "Help by eGrant", shown as "Help"; code name Spolu) is the eGrant team's internal web app for client communication: group chat, direct messages, task boards, support tickets and contracts.
 It replaces Microsoft Teams. TypeScript monorepo (Fastify + PostgreSQL + Socket.IO server, React PWA client), self-hosted.
 
 ## Read first

@@ -4,9 +4,9 @@ import { describe, expect, it } from 'vitest';
 import { pwaManifest } from '../pwa-manifest';
 
 describe('pwaManifest', () => {
-  it('is standalone, named Spolu, themed with the page token', () => {
-    expect(pwaManifest.short_name).toBe('Spolu');
-    expect(pwaManifest.name).toBe('Spolu by eGrant');
+  it('is standalone, named Help, themed with the page token', () => {
+    expect(pwaManifest.short_name).toBe('Help');
+    expect(pwaManifest.name).toBe('Help by eGrant');
     expect(pwaManifest.display).toBe('standalone');
     expect(pwaManifest.start_url).toBe('/');
     expect(pwaManifest.scope).toBe('/');

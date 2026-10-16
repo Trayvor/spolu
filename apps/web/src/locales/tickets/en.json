@@ -65,7 +65,7 @@
     "client": "Client",
     "created": "Created",
     "fromEgrant": "by eGrant",
-    "inSpolu": "in Spolu",
+    "inSpolu": "in the Help app",
     "resolved": "Resolved"
   },
   "followers": {
@@ -87,7 +87,7 @@
     "title": "New ticket",
     "back": "Back",
     "initiator": "Initiator",
-    "initiatorHint": "They get an email and can follow the ticket in Spolu.",
+    "initiatorHint": "They get an email and can follow the ticket in the Help app.",
     "email": "Initiator's email",
     "name": "Initiator's name",
     "phone": "Initiator's phone",

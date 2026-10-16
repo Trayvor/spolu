@@ -10,7 +10,7 @@ const validEnv = {
   EMAIL_DRIVER: 'smtp',
   SMTP_HOST: 'localhost',
   SMTP_PORT: '1025',
-  MAIL_FROM: 'Spolu <noreply@example.com>',
+  MAIL_FROM: 'Help by eGrant <noreply@example.com>',
 };
 
 function errorOf(env: NodeJS.ProcessEnv): ConfigError {
@@ -31,7 +31,7 @@ describe('loadConfig', () => {
       host: 'localhost',
       port: 1025,
       secure: false,
-      from: 'Spolu <noreply@example.com>',
+      from: 'Help by eGrant <noreply@example.com>',
     });
     expect(config.port).toBe(3000);
     expect(config.appVersion).toBe('dev');
@@ -53,7 +53,7 @@ describe('loadConfig', () => {
       port: 465,
       secure: true,
       auth: { user: 'me@example.com', pass: 'pw' },
-      from: 'Spolu <noreply@example.com>',
+      from: 'Help by eGrant <noreply@example.com>',
     });
   });
 
@@ -87,7 +87,7 @@ describe('loadConfig', () => {
     expect(config.email).toEqual({
       driver: 'elastic',
       apiKey: 'key',
-      from: 'Spolu <noreply@example.com>',
+      from: 'Help by eGrant <noreply@example.com>',
     });
   });
 
@@ -260,7 +260,10 @@ describe('loadConfig', () => {
 describe('loadConfig: bulk email', () => {
   it('MAIL_FROM_BULK defaults to MAIL_FROM', () => {
     const config = loadConfig(validEnv);
-    expect(config.bulkEmail).toEqual({ driver: 'smtp', from: 'Spolu <noreply@example.com>' });
+    expect(config.bulkEmail).toEqual({
+      driver: 'smtp',
+      from: 'Help by eGrant <noreply@example.com>',
+    });
     expect(
       loadConfig({ ...validEnv, MAIL_FROM_BULK: 'eGrant <info@egrant.sk>' }).bulkEmail,
     ).toEqual({ driver: 'smtp', from: 'eGrant <info@egrant.sk>' });

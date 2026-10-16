@@ -26,7 +26,7 @@ export function ticketCreatedEmail(
         paragraphs: [
           `We received your support ticket #${p.number}: ${title}.`,
           ...(p.excerpt ? [p.excerpt] : []),
-          'You can follow it and write to eGrant in Spolu. Log in with this email address; we will send you a code.',
+          'You can follow it and write to eGrant in the Help app. Log in with this email address; we will send you a code.',
         ],
         button: { label: 'Open the ticket', url: p.url },
       })
@@ -36,7 +36,7 @@ export function ticketCreatedEmail(
         paragraphs: [
           `Prijali sme váš tiket technickej podpory #${p.number}: ${title}.`,
           ...(p.excerpt ? [p.excerpt] : []),
-          'V Spolu ho môžete sledovať a písať eGrantu. Prihláste sa touto e-mailovou adresou, pošleme vám kód.',
+          'V aplikácii Help ho môžete sledovať a písať eGrantu. Prihláste sa touto e-mailovou adresou, pošleme vám kód.',
         ],
         button: { label: 'Otvoriť tiket', url: p.url },
       });

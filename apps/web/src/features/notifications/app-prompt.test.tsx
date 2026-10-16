@@ -85,7 +85,7 @@ afterEach(() => {
 describe('AppPrompt', () => {
   it('renders in the page flow, never as a fixed or absolute overlay', async () => {
     renderPrompt();
-    const banner = await screen.findByRole('region', { name: 'Install Spolu as an app' });
+    const banner = await screen.findByRole('region', { name: 'Install the Help app' });
     expect(banner.className).not.toMatch(/(^|\s)(\S+:)*(fixed|absolute|sticky)(\s|$)/);
     expect(banner.className).not.toMatch(/\bz-\d+/);
     expect(banner.getAttribute('style') ?? '').not.toMatch(/position/);
@@ -104,7 +104,7 @@ describe('AppPrompt', () => {
 
   it('Install button uses the captured event', async () => {
     renderPrompt();
-    const dialog = await screen.findByRole('region', { name: 'Install Spolu as an app' });
+    const dialog = await screen.findByRole('region', { name: 'Install the Help app' });
     fireEvent.click(screen.getByRole('button', { name: 'Install' }));
     expect(promptInstall).toHaveBeenCalledTimes(1);
     await waitFor(() => expect(dialog).not.toBeInTheDocument());
@@ -113,7 +113,7 @@ describe('AppPrompt', () => {
   it('Android without the event shows the menu steps', async () => {
     vi.mocked(canInstall).mockReturnValue(false);
     renderPrompt();
-    await screen.findByRole('region', { name: 'Install Spolu as an app' });
+    await screen.findByRole('region', { name: 'Install the Help app' });
     expect(
       screen.getByText('Open the browser menu ⋮ → Install app / Add to Home screen'),
     ).toBeInTheDocument();
@@ -126,13 +126,13 @@ describe('AppPrompt', () => {
     renderPrompt();
     const dialog = await screen.findByRole('region');
     // The spec's sentence, split into the title and the line under it.
-    expect(dialog).toHaveTextContent('Important: install Spolu to get notifications.');
+    expect(dialog).toHaveTextContent('Important: install the Help app to get notifications.');
     expect(dialog).toHaveTextContent(
       'On iPhone, notifications only work from the Home Screen app.',
     );
     expect(dialog).toHaveTextContent('Tap Share');
     expect(dialog).toHaveTextContent('Add to Home Screen');
-    expect(dialog).toHaveTextContent('Open Spolu from the icon');
+    expect(dialog).toHaveTextContent('Open the Help app from the icon');
     expect(screen.getByTestId('share-icon')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Install' })).not.toBeInTheDocument();
   });
@@ -224,7 +224,7 @@ describe('AppPrompt', () => {
   it('a failing install dialog falls back to the menu steps', async () => {
     vi.mocked(promptInstall).mockRejectedValue(new Error('boom'));
     renderPrompt();
-    await screen.findByRole('region', { name: 'Install Spolu as an app' });
+    await screen.findByRole('region', { name: 'Install the Help app' });
     vi.mocked(canInstall).mockReturnValue(false);
     fireEvent.click(screen.getByRole('button', { name: 'Install' }));
     expect(
@@ -290,7 +290,7 @@ describe('AppPrompt', () => {
       throw new Error('blocked');
     });
     renderPrompt();
-    const dialog = await screen.findByRole('region', { name: 'Install Spolu as an app' });
+    const dialog = await screen.findByRole('region', { name: 'Install the Help app' });
     fireEvent.click(screen.getByRole('button', { name: 'Not now' }));
     expect(dialog).not.toBeInTheDocument();
   });

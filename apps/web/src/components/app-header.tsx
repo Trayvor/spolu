@@ -11,7 +11,7 @@ const navLink =
 
 /**
  * The egrant.sk header pill, kept still (no hide-on-scroll). On the left the brand
- * "Spolu by eGrant": the product name as the wordmark, a small "by" and the egrant logo,
+ * "Help by eGrant": the product name as the wordmark, a small "by" and the egrant logo,
  * one link to `/` named by `app.fullName`. On the right, for a signed-in user: the "Home", "Tasks",
  * "Tickets", "Knowledge", "Groups", "Admins" and "Bulk email" links (admins only, hidden under 641 px where
  * the user menu offers them), "My groups" for a client of several groups (Phase 21), "Tickets"

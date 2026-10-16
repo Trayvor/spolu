@@ -87,7 +87,7 @@ Type scale (Tailwind `text-*` utilities; desktop value, then the value under 900
 | `text-medium`   | 22.4px  | 17.6px         | `medium`         | `h3`, lead text, modal titles           |
 | `text-large`    | 36px    | 36px           | `large`          |                                         |
 | `text-xlarge`   | 64px    | 36px           | `x-large`        | `h1`, `h2` (page titles)                |
-| `text-wordmark` | 32px    | 24px (≤ 640px) | — (Spolu's own)  | the "Spolu" wordmark in the header only |
+| `text-wordmark` | 32px    | 24px (≤ 640px) | — (Spolu's own)  | the "Help" wordmark in the header only  |
 
 For the app, page titles should normally use `text-medium` or `text-large`; `text-xlarge` is the website's hero size and is too big for app screens.
 

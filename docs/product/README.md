@@ -1,6 +1,6 @@
 # Product requirements
 
-Requirements for Spolu, one topic per file. The product name is "Spolu" (full brand "Spolu by eGrant"), formerly the working title eHub. Written for AI agents and the product owner. Phase numbers follow `docs/roadmap.md`.
+Requirements for Spolu, one topic per file. The product is shown to users as "Help" (full brand and wordmark "Help by eGrant", since 2026-10-16; before that "Spolu by eGrant"); Spolu stays the code name in code, packages, databases and these docs. Formerly the working title eHub. Written for AI agents and the product owner. Phase numbers follow `docs/roadmap.md`.
 
 | file | what it covers | phase(s) |
 |---|---|---|

@@ -246,7 +246,7 @@ describe('renderCampaign: document', () => {
     expect(en).toContain('href="{unsubscribe:https://spolu.test/unsubscribe/x}"');
     expect(en).toContain(`>${BULK_FOOTER.en.unsubscribe}</a>`);
     expect(BULK_FOOTER.en.reason).toBe(
-      'You get this email because you have an account in Spolu by eGrant.',
+      'You get this email because you have an account in Help by eGrant.',
     );
   });
 

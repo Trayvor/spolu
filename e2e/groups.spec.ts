@@ -18,6 +18,7 @@ test('admin creates a group, a client joins by invite and is removed', async ({
   page,
   browser,
 }) => {
+  test.setTimeout(60_000); // a long scenario; the full parallel run nears 30 s
   const stamp = Date.now();
   const name = `E2E Group ${stamp}`;
   const email = `e2e-client-${stamp}@example.com`;

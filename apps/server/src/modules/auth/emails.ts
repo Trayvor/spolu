@@ -7,10 +7,10 @@ const message = (to: string, subject: string, paragraphs: string[]): EmailMessag
 
 export function loginCodeEmail(to: string, code: string, lang: EmailLanguage): EmailMessage {
   return lang === 'en'
-    ? message(to, `Your Spolu login code: ${code}`, [
+    ? message(to, `Your Help by eGrant login code: ${code}`, [
         `Your login code is ${code}. It is valid for 5 minutes. If you did not ask for it, ignore this email.`,
       ])
-    : message(to, `Váš prihlasovací kód do Spolu: ${code}`, [
+    : message(to, `Váš prihlasovací kód do aplikácie Help: ${code}`, [
         `Váš prihlasovací kód je ${code}. Platí 5 minút. Ak ste oň nežiadali, tento e-mail ignorujte.`,
       ]);
 }
@@ -21,13 +21,13 @@ export function adminAddedEmail(
   lang: EmailLanguage,
 ): EmailMessage {
   return lang === 'en'
-    ? message(to, 'You were added to Spolu', [
+    ? message(to, 'You were added to Help by eGrant', [
         `Hello ${p.name},`,
-        `${p.addedBy} added you as an administrator of Spolu by eGrant. Log in with your email ${to}: ${p.loginUrl}`,
+        `${p.addedBy} added you as an administrator of Help by eGrant. Log in with your email ${to}: ${p.loginUrl}`,
       ])
-    : message(to, 'Pridali vás do Spolu', [
+    : message(to, 'Pridali vás do aplikácie Help', [
         `Dobrý deň, ${p.name},`,
-        `${p.addedBy} vás pridal(a) ako administrátora v Spolu by eGrant. Prihláste sa svojím e-mailom ${to}: ${p.loginUrl}`,
+        `${p.addedBy} vás pridal(a) ako administrátora v aplikácii Help by eGrant. Prihláste sa svojím e-mailom ${to}: ${p.loginUrl}`,
       ]);
 }
 
@@ -38,11 +38,11 @@ export function memberInvitedEmail(
   lang: EmailLanguage,
 ): EmailMessage {
   return lang === 'en'
-    ? message(to, `Invitation to Spolu – ${p.groupName}`, [
-        `${p.invitedBy} invited you to the group ${p.groupName} in Spolu by eGrant. Log in with your email ${to}: ${p.loginUrl}`,
+    ? message(to, `Invitation to Help by eGrant – ${p.groupName}`, [
+        `${p.invitedBy} invited you to the group ${p.groupName} in Help by eGrant. Log in with your email ${to}: ${p.loginUrl}`,
       ])
-    : message(to, `Pozvánka do Spolu – ${p.groupName}`, [
-        `${p.invitedBy} vás pozval(a) do skupiny ${p.groupName} v Spolu by eGrant. Prihláste sa svojím e-mailom ${to}: ${p.loginUrl}`,
+    : message(to, `Pozvánka do aplikácie Help – ${p.groupName}`, [
+        `${p.invitedBy} vás pozval(a) do skupiny ${p.groupName} v aplikácii Help by eGrant. Prihláste sa svojím e-mailom ${to}: ${p.loginUrl}`,
       ]);
 }
 
@@ -54,21 +54,21 @@ export function memberAddedEmail(
 ): EmailMessage {
   return lang === 'en'
     ? message(to, `You were added to ${p.groupName}`, [
-        `${p.addedBy} added you to the group ${p.groupName} in Spolu by eGrant: ${p.groupUrl}`,
+        `${p.addedBy} added you to the group ${p.groupName} in Help by eGrant: ${p.groupUrl}`,
       ])
     : message(to, `Pridali vás do skupiny ${p.groupName}`, [
-        `${p.addedBy} vás pridal(a) do skupiny ${p.groupName} v Spolu by eGrant: ${p.groupUrl}`,
+        `${p.addedBy} vás pridal(a) do skupiny ${p.groupName} v aplikácii Help by eGrant: ${p.groupUrl}`,
       ]);
 }
 
 /** The code that confirms a new email address; sent to that new address. */
 export function emailChangeCodeEmail(to: string, code: string, lang: EmailLanguage): EmailMessage {
   return lang === 'en'
-    ? message(to, `Your Spolu email change code: ${code}`, [
-        `Your code is ${code}. Enter it in Spolu to change your email to ${to}. It is valid for 5 minutes. If you did not ask for it, ignore this email.`,
+    ? message(to, `Your Help by eGrant email change code: ${code}`, [
+        `Your code is ${code}. Enter it in the Help app to change your email to ${to}. It is valid for 5 minutes. If you did not ask for it, ignore this email.`,
       ])
-    : message(to, `Kód na zmenu e-mailu v Spolu: ${code}`, [
-        `Váš kód je ${code}. Zadajte ho v Spolu a váš e-mail sa zmení na ${to}. Platí 5 minút. Ak ste oň nežiadali, tento e-mail ignorujte.`,
+    : message(to, `Kód na zmenu e-mailu v aplikácii Help: ${code}`, [
+        `Váš kód je ${code}. Zadajte ho v aplikácii Help a váš e-mail sa zmení na ${to}. Platí 5 minút. Ak ste oň nežiadali, tento e-mail ignorujte.`,
       ]);
 }
 
@@ -79,12 +79,12 @@ export function emailChangedNoticeEmail(
   lang: EmailLanguage,
 ): EmailMessage {
   return lang === 'en'
-    ? message(to, 'Your Spolu email was changed', [
-        `The email of your Spolu account was changed to ${newEmail}. From now on, log in with the new address.`,
+    ? message(to, 'Your Help by eGrant email was changed', [
+        `The email of your Help by eGrant account was changed to ${newEmail}. From now on, log in with the new address.`,
         'If you did not do this, contact your administrator at once.',
       ])
-    : message(to, 'Váš e-mail v Spolu bol zmenený', [
-        `E-mail vášho účtu v Spolu bol zmenený na ${newEmail}. Odteraz sa prihlasujte novou adresou.`,
+    : message(to, 'Váš e-mail v aplikácii Help bol zmenený', [
+        `E-mail vášho účtu v aplikácii Help bol zmenený na ${newEmail}. Odteraz sa prihlasujte novou adresou.`,
         'Ak ste to neboli vy, ihneď kontaktujte svojho administrátora.',
       ]);
 }

@@ -35,7 +35,7 @@
     "deviceUnsupported": "This browser cannot receive notifications",
     "turnOnDevice": "Turn on for this device",
     "unblock": "Allow notifications for this site in the browser's site settings, then reload.",
-    "iosHint": "On iPhone, notifications only work from the Home Screen app. Tap Share, then Add to Home Screen, and open Spolu from the icon.",
+    "iosHint": "On iPhone, notifications only work from the Home Screen app. Tap Share, then Add to Home Screen, and open the Help app from the icon.",
     "groups": {
       "chat": "Chat",
       "tasks": "Task board",
