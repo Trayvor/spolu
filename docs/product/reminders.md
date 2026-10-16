@@ -26,7 +26,7 @@ One reminder feature serves the knowledge base and the task board: one or more d
 
 ## Status
 
-Built for knowledge items (Phase 17): the reminders module (`modules/reminders`: times, recipients, subscription, the `.ics` export, the every-minute fire job) and its web parts (`features/reminders`: the times and recipients fields, the reminder block). Phase 19 (in progress): the module takes tasks as a second subject (`reminder_sets.task_id`), stand-alone edits that only remove the times the sender loaded, editors as recipients, and the deadline in the calendar file.
+Built for knowledge items (Phase 17): the reminders module (`modules/reminders`: times, recipients, subscription, the `.ics` export, the every-minute fire job) and its web parts (`features/reminders`: the times and recipients fields, the reminder block). Built for tasks (Phase 19, in progress: built and tested locally, end-to-end test `e2e/task-reminders.spec.ts` written): the module takes tasks as a second subject (`reminder_sets.task_id`), stand-alone edits (`PUT /api/tasks/:id/reminders`) that only remove the times the sender loaded, editors as recipients, the deadline in the calendar file, task pushes with the task's tag, the live card bell, and the reminders section in the task panel (`features/tasks/task-reminders.tsx`).
 
 ## Phase
 

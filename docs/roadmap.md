@@ -266,6 +266,8 @@ Scope: custom reminders on tasks with recipients and subscription, beside the au
 
 Done when: a task reminder arrives at its time for its recipients and the task exports to a calendar.
 
+Status: built locally on branch `phase-19` (all tasks of the plan; unit, integration and web tests pass); the end-to-end test `e2e/task-reminders.spec.ts` is written but not yet run, and the owner walkthrough is pending.
+
 ## Phase 20 — Admin home
 
 Requirements: [admin-home](product/admin-home.md).
