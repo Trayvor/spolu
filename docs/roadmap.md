@@ -296,7 +296,7 @@ Requirements: [tickets](product/tickets.md), [roles-and-access](product/roles-an
 
 Scope: clients in several groups and a membership role (`client`, `ziadatel`); tickets from the eGrant API (Bearer key), from clients and from admins, assigned to a client by the instance link or by hand; statuses New / In progress / Resolved; a chat per ticket; following and notifications through the `tickets` notification group of item C; turning a ticket into tasks with AI; requesters who are not clients yet get a `ziadatel` membership that sees only their own tickets.
 
-Built in 7 parts, one pull request each (21.1 memberships first; 21.3, 21.4 and 21.6 in parallel after 21.2; 21.6 also waits for item C). The plan holds a ready prompt per part.
+Part 23.3 (renderer, public images, preview, email logo PNG) is built. Built in 7 parts, one pull request each (21.1 memberships first; 21.3, 21.4 and 21.6 in parallel after 21.2; 21.6 also waits for item C). The plan holds a ready prompt per part.
 
 Done when: eGrant sends a ticket, a new requester gets the email, logs in with a code and sees only that ticket and its chat; an admin replies and the requester is notified; the ticket becomes tasks that link back to it; a client works in two groups.
 
