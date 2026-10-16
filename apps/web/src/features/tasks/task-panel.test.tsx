@@ -185,6 +185,16 @@ describe('TaskPanel', () => {
     expect(screen.queryByText(t('tasks.panel.changedBySomeone'))).toBeNull();
   });
 
+  it('invalid_assignee on save shows the line and refetches people', async () => {
+    patchReply = { status: 400, body: { error: 'invalid_assignee' } };
+    const { user } = renderPanel();
+    await user.type(await titleField(), '!');
+    await waitFor(() => expect(calls('GET', '/api/groups/g1/people')).toHaveLength(1));
+    await user.click(screen.getByRole('button', { name: t('tasks.panel.save') }));
+    expect(await screen.findByText(t('tasks.form.errors.assigneeNotAllowed'))).toBeInTheDocument();
+    await waitFor(() => expect(calls('GET', '/api/groups/g1/people')).toHaveLength(2));
+  });
+
   it('a task event from someone else warns while dirty and reloads silently while clean', async () => {
     const { user } = renderPanel();
     await user.type(await titleField(), '!');
@@ -588,6 +598,25 @@ describe('TaskPanel in create mode', () => {
     });
     await waitFor(() => expect(router.state.location.pathname).toBe('/groups/g1/tasks'));
     expect(await screen.findByRole('link', { name: /Budget/ })).toBeInTheDocument();
+  });
+
+  it('invalid_assignee on Create shows the line and refetches people', async () => {
+    const answer = fetchMock.getMockImplementation() as (
+      url: string,
+      init?: RequestInit,
+    ) => Promise<Response>;
+    fetchMock.mockImplementation(async (url: string, init?: RequestInit) =>
+      url === '/api/groups/g1/tasks' && init?.method === 'POST'
+        ? new Response(JSON.stringify({ error: 'invalid_assignee' }), { status: 400 })
+        : answer(url, init),
+    );
+    const { user } = renderPanel(NEW);
+    await user.type(await titleField(), 'Budget');
+    await waitFor(() => expect(screen.getByLabelText(t('tasks.panel.bucket'))).toBeEnabled());
+    await waitFor(() => expect(calls('GET', '/api/groups/g1/people')).toHaveLength(1));
+    await user.click(createButton());
+    expect(await screen.findByText(t('tasks.form.errors.assigneeNotAllowed'))).toBeInTheDocument();
+    await waitFor(() => expect(calls('GET', '/api/groups/g1/people')).toHaveLength(2));
   });
 
   it('an empty title shows the error and posts nothing', async () => {

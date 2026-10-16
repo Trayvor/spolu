@@ -283,6 +283,7 @@ export function ThreadPanel({
                 nameOf={nameOf}
                 quote={quoteOf(p.input.replyToId ?? null)}
                 pending={p.status}
+                failReason={p.failReason}
                 onRetry={retry}
               />
             ))}

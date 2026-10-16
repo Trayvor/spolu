@@ -1,4 +1,4 @@
-import { index, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
+import { index, pgTable, primaryKey, text, timestamp } from 'drizzle-orm/pg-core';
 import { user } from '../users/schema.js';
 
 export const groups = pgTable('groups', {
@@ -25,4 +25,26 @@ export const groupMembers = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index('group_members_group_id_idx').on(t.groupId)],
+);
+
+/**
+ * The admins who manage a group (its account managers). Many per group, many groups per admin.
+ * Only active admins and superadmins count: read it through `managers.ts`, which filters on the role
+ * and `disabled_at`.
+ */
+export const groupManagers = pgTable(
+  'group_managers',
+  {
+    groupId: text('group_id')
+      .notNull()
+      .references(() => groups.id, { onDelete: 'cascade' }),
+    userId: text('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.groupId, t.userId] }),
+    index('group_managers_user_id_idx').on(t.userId),
+  ],
 );

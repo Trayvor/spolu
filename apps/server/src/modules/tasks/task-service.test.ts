@@ -16,6 +16,7 @@ import { ensureGroupChannel, ensureTaskChannel, getChannel } from '../chat/servi
 import * as filesService from '../files/service.js';
 import { files } from '../files/schema.js';
 import { createFile, getFile, InvalidAttachmentError } from '../files/service.js';
+import { addManager, removeManager } from '../groups/managers.js';
 import { addMember, createGroup } from '../groups/service.js';
 import { DELIVER_JOB } from '../notifications/service.js';
 import { notificationEvents } from '../notifications/schema.js';
@@ -193,6 +194,7 @@ describe('createTask', () => {
     const group = await newGroup();
     const client = await newClient(group.id, 'Bea');
     const admin = await newAdmin('Abe');
+    await addManager(db, group.id, admin.id);
     const task = await createTask(deps, client, group.id, {
       title: 'Both',
       assigneeIds: [admin.id, client.id],
@@ -207,6 +209,68 @@ describe('createTask', () => {
     expect(task).toMatchObject({ urgent: true, dueDate: '2026-12-31', description: 'Some text' });
     // task.assigned goes to the admin only: the client is the actor.
     expect(await assignedRecipients(task.id)).toEqual([admin.id]);
+  });
+
+  it('assigning a non-manager admin throws InvalidAssigneeError', async () => {
+    const group = await newGroup();
+    const client = await newClient(group.id);
+    const admin = await newAdmin('Nina');
+    await expect(
+      createTask(deps, client, group.id, { title: 'No', assigneeIds: [admin.id] }),
+    ).rejects.toBeInstanceOf(InvalidAssigneeError);
+  });
+
+  it('assigning a manager works', async () => {
+    const group = await newGroup();
+    const client = await newClient(group.id);
+    const manager = await newAdmin('Mara');
+    await addManager(db, group.id, manager.id);
+    const task = await createTask(deps, client, group.id, {
+      title: 'Yes',
+      assigneeIds: [manager.id],
+    });
+    expect(task.assignees).toEqual([{ id: manager.id, name: 'Mara' }]);
+  });
+
+  it('editing a task whose assignee is no longer a manager keeps them', async () => {
+    const group = await newGroup();
+    const client = await newClient(group.id);
+    const manager = await newAdmin('Mara');
+    await addManager(db, group.id, manager.id);
+    const task = await createTask(deps, client, group.id, {
+      title: 'A',
+      assigneeIds: [manager.id],
+    });
+    await removeManager(db, group.id, manager.id);
+    const edited = await updateTask(deps, client, task.id, {
+      title: 'B',
+      assigneeIds: [manager.id],
+      updatedAt: task.updatedAt,
+    });
+    expect(edited.title).toBe('B');
+    expect(edited.assignees.map((a) => a.id)).toEqual([manager.id]);
+  });
+
+  it('re-adding a former manager after removing them throws', async () => {
+    const group = await newGroup();
+    const client = await newClient(group.id);
+    const manager = await newAdmin('Mara');
+    await addManager(db, group.id, manager.id);
+    const task = await createTask(deps, client, group.id, {
+      title: 'A',
+      assigneeIds: [manager.id],
+    });
+    await removeManager(db, group.id, manager.id);
+    const cleared = await updateTask(deps, client, task.id, {
+      assigneeIds: [],
+      updatedAt: task.updatedAt,
+    });
+    await expect(
+      updateTask(deps, client, task.id, {
+        assigneeIds: [manager.id],
+        updatedAt: cleared.updatedAt,
+      }),
+    ).rejects.toBeInstanceOf(InvalidAssigneeError);
   });
 
   it('a file uploaded by someone else → InvalidAttachmentError', async () => {
@@ -334,6 +398,7 @@ describe('updateTask', () => {
     const group = await newGroup();
     const client = await newClient(group.id);
     const admin = await newAdmin();
+    await addManager(db, group.id, admin.id);
     const file = await upload(group.id, client);
     const task = await createTask(deps, client, group.id, {
       title: 'A',
@@ -431,6 +496,8 @@ describe('updateTask', () => {
     const group = await newGroup();
     const actor = await newAdmin('Actor');
     const first = await newAdmin('First');
+    await addManager(db, group.id, actor.id);
+    await addManager(db, group.id, first.id);
     const second = await newClient(group.id, 'Second');
     const task = await createTask(deps, actor, group.id, {
       title: 'A',
@@ -684,6 +751,7 @@ describe('moveTask', () => {
     const creator = await newClient(group.id, 'Creator');
     const mover = await newClient(group.id, 'Mover');
     const admin = await newAdmin('Assigned Admin');
+    await addManager(db, group.id, admin.id);
     const x = await createTask(deps, creator, group.id, {
       title: 'Report',
       assigneeIds: [admin.id, mover.id],
@@ -759,6 +827,7 @@ describe('createTasksFromMessage', () => {
   async function setup() {
     const group = await newGroup();
     const admin = await newAdmin();
+    await addManager(db, group.id, admin.id);
     const ana = await newClient(group.id, 'Ana');
     const file = await upload(group.id, ana, 'brief.txt');
     const channel = await ensureGroupChannel(db, group.id);
@@ -812,6 +881,20 @@ describe('createTasksFromMessage', () => {
     await deleteTask(deps, a!.id);
     expect(await getFile(db, copy.id)).toBeNull();
     expect(await getFile(db, file.id)).not.toBeNull(); // the message keeps its file
+  });
+
+  it('createTasksFromMessage refuses a non-pickable assignee', async () => {
+    const { group, ana, m } = await setup();
+    const outsider = await newAdmin('Nina');
+    await expect(
+      createTasksFromMessage(
+        deps,
+        ana,
+        group.id,
+        input(m.id, [{ title: 'A', assigneeIds: [outsider.id] }]),
+        { id: m.id, fileIds: [] },
+      ),
+    ).rejects.toBeInstanceOf(InvalidAssigneeError);
   });
 
   it('asks for delivery of the task.assigned events after the commit', async () => {

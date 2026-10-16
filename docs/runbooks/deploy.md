@@ -38,6 +38,16 @@ The env file sets `SUPERADMIN_EMAIL` and optionally `SUPERADMIN_NAME` (default: 
 
 Browser push needs a VAPID key pair ([ADR 0013](../decisions/0013-web-push.md)). On your laptop run `pnpm --filter @spolu/server vapid:generate`, put `VAPID_PUBLIC_KEY` and `VAPID_PRIVATE_KEY` into the environment's env file together with `VAPID_SUBJECT` (`mailto:` or `https:` contact), and deploy. Generate once and keep the keys: changing them invalidates every subscription, and users must enable push again. Leaving all three unset turns push off.
 
+## Phase 18: the group managers seed
+
+Migration 0011 (`group_managers`) creates the table, adds `group_notification_settings.origin` (existing rows become `user`) and then seeds managers once from production data: every active admin or superadmin becomes a manager of each group where they are assigned to an open task (not in Completed), or wrote a not-deleted message in the group chat or a task chat in the last 60 days before the deploy. It inserts only into `group_managers` (on conflict do nothing) and does **not** touch anyone's notification mode, so nobody's bells change on deploy. Admins adjust the result themselves on the Groups page. To see what it did after the deploy:
+
+```sql
+select g.name, u.name from group_managers gm
+  join groups g on g.id = gm.group_id join "user" u on u.id = gm.user_id
+ order by g.name, u.name;
+```
+
 ## Phase 6 check on real devices
 
 Done at the deferred server-deploy step, on the test server with the VAPID keys set (see above), the owner and one test client. Each item is "Done when" of Phase 6 ([spec](../superpowers/specs/2026-10-16-phase-6-notifications-design.md#done-when)).

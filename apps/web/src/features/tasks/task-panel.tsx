@@ -14,7 +14,7 @@ import {
 } from '@spolu/shared';
 import { isAdmin } from '@/features/auth/roles';
 import { useSession } from '@/features/auth/use-session';
-import { groupQuery } from '@/features/groups/api';
+import { groupPeopleQuery, groupQuery } from '@/features/groups/api';
 import { Button } from '@/components/ui/button';
 import { PanelHeader } from '@/components/ui/panel-header';
 import {
@@ -282,7 +282,9 @@ function TaskEditor({
       if (error instanceof ApiError && error.code === 'task_changed') {
         setStale({ by: null });
       } else if (error instanceof ApiError && error.code === 'invalid_assignee') {
-        setErrors({ assigneeIds: t('tasks.form.errors.invalidAssignee') });
+        // Someone chosen left the group or stopped managing it: refresh who can be assigned.
+        setErrors({ assigneeIds: t('tasks.form.errors.assigneeNotAllowed') });
+        void queryClient.invalidateQueries({ queryKey: groupPeopleQuery(groupId).queryKey });
       } else {
         setErrors({ form: t('tasks.board.error') });
       }

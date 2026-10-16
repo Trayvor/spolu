@@ -98,7 +98,12 @@ function mockApi(me: typeof ADMIN | typeof CLIENT | null) {
     '/api/channels/c2/unread-threads': [],
     '/api/chat/unread': { g1: 2 },
     '/api/ai/status': { taskSplit: true },
-    '/api/notifications/modes': { defaultMode: null, roleDefault: 'mentions', overrides: {} },
+    '/api/notifications/modes': {
+      defaultMode: null,
+      roleDefault: 'mentions',
+      overrides: {},
+      managerSet: [],
+    },
     '/api/notifications/preferences': {
       pushEnabled: false,
       emailEnabled: true,

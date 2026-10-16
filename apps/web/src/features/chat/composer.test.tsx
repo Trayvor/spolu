@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { FileInfo, GroupPerson, MessageDto } from '@spolu/shared';
 import { setLanguage } from '@/i18n';
+import { ApiError } from '@/lib/api';
 import { groupPeopleQuery } from '@/features/groups/api';
 import { Composer, type ComposerProps } from './composer';
 import { FormatToolbar } from './format-toolbar';
@@ -12,8 +13,9 @@ const upload = vi.hoisted(() => ({ uploadFile: vi.fn() }));
 vi.mock('@/features/files/upload', () => upload);
 
 const people: GroupPerson[] = [
-  { id: 'jana', name: 'Jana Nováková', isAdmin: false },
-  { id: 'peter', name: 'Peter Horváth', isAdmin: true },
+  { id: 'jana', name: 'Jana Nováková', isAdmin: false, isManager: false },
+  { id: 'peter', name: 'Peter Horváth', isAdmin: true, isManager: false },
+  { id: 'mira', name: 'Mira Kováčová', isAdmin: true, isManager: true },
 ];
 
 function renderComposer(props: Partial<ComposerProps> = {}) {
@@ -25,7 +27,7 @@ function renderComposer(props: Partial<ComposerProps> = {}) {
       <Composer mode="new" groupId="g1" {...props} onSubmit={onSubmit} />
     </QueryClientProvider>,
   );
-  return { onSubmit: onSubmit as ReturnType<typeof vi.fn>, ...view };
+  return { onSubmit: onSubmit as ReturnType<typeof vi.fn>, client, ...view };
 }
 
 const box = () => screen.getByRole('textbox');
@@ -308,7 +310,7 @@ describe('Composer', () => {
     const user = userEvent.setup();
     const client = new QueryClient();
     client.setQueryData(groupPeopleQuery('g1').queryKey, [
-      { id: 'p', name: 'Peter', isAdmin: false },
+      { id: 'p', name: 'Peter', isAdmin: false, isManager: false },
     ]);
     const onSubmit = vi.fn();
     render(
@@ -330,6 +332,43 @@ describe('Composer', () => {
     await user.keyboard('{Enter}');
     await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(2));
     await waitFor(() => expect(screen.queryByRole('alert')).toBeNull());
+  });
+
+  it('the mention picker lists clients and managers, not other admins', async () => {
+    const user = userEvent.setup();
+    renderComposer();
+    await user.type(box(), '@');
+    const options = await screen.findAllByRole('option');
+    expect(options.map((o) => o.textContent)).toEqual([
+      expect.stringContaining('Everyone in this group'),
+      expect.stringContaining('Jana Nováková'),
+      expect.stringContaining('Mira Kováčová'),
+    ]);
+    expect(screen.queryByRole('option', { name: /Peter/ })).toBeNull();
+  });
+
+  it('the Everyone row shows the clients-and-managers hint', async () => {
+    const user = userEvent.setup();
+    renderComposer();
+    await user.type(box(), '@');
+    const options = await screen.findAllByRole('option');
+    expect(options[0]).toHaveAccessibleName('Everyone in this group');
+    expect(options[0]).toHaveAccessibleDescription("The group's clients and its eGrant managers");
+  });
+
+  it('an edit refused with invalid_mention keeps the text, shows the line and refetches people', async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi
+      .fn()
+      .mockRejectedValue(new ApiError('bad', 400, { error: 'invalid_mention' }));
+    const { client } = renderComposer({ mode: 'edit', initialBody: 'hi <@peter>', onSubmit });
+    const invalidate = vi.spyOn(client, 'invalidateQueries');
+    await user.type(box(), ' ok{Enter}');
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      "Someone you mentioned can't be mentioned here any more.",
+    );
+    expect(box()).toHaveValue('hi @Peter Horváth ok');
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: groupPeopleQuery('g1').queryKey });
   });
 
   it('opens the mention list below the field when editing and above it when writing', async () => {
@@ -354,7 +393,9 @@ describe('Composer', () => {
   it('counts the stored body: mention tokens are longer than the names', () => {
     const id = 'x'.repeat(36);
     const client = new QueryClient();
-    client.setQueryData(groupPeopleQuery('g1').queryKey, [{ id, name: 'Jo', isAdmin: false }]);
+    client.setQueryData(groupPeopleQuery('g1').queryKey, [
+      { id, name: 'Jo', isAdmin: false, isManager: false },
+    ]);
     render(
       <QueryClientProvider client={client}>
         <Composer

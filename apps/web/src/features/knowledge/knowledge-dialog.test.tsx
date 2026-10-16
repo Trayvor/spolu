@@ -25,8 +25,8 @@ const ME: Me = {
   groupId: null,
 };
 const PEOPLE: GroupPerson[] = [
-  { id: 'u1', name: 'Anna Nováková', isAdmin: false },
-  { id: 'u2', name: 'Boris Kováč', isAdmin: true },
+  { id: 'u1', name: 'Anna Nováková', isAdmin: false, isManager: false },
+  { id: 'u2', name: 'Boris Kováč', isAdmin: true, isManager: true },
 ];
 const PDF: FileInfo = {
   id: 'f1',

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Role, SessionUser } from '@spolu/shared';
-import { canManageGroups, canReadGroup, canRemoveMember } from './policy.js';
+import { canBeManager, canManageGroups, canReadGroup, canRemoveMember } from './policy.js';
 
 const actor = (role: Role): SessionUser => ({
   id: 'actor',
@@ -42,5 +42,13 @@ describe('canRemoveMember', () => {
     ['client', 'admin', false],
   ] as const)('%s removing a %s -> %s', (role, targetRole, expected) => {
     expect(canRemoveMember(actor(role), { role: targetRole })).toBe(expected);
+  });
+});
+
+describe('canBeManager', () => {
+  it('admin and superadmin yes, client no', () => {
+    expect(canBeManager(actor('admin'))).toBe(true);
+    expect(canBeManager(actor('superadmin'))).toBe(true);
+    expect(canBeManager(actor('client'))).toBe(false);
   });
 });

@@ -1,6 +1,6 @@
 {
-  "id": "9af0d82e-09ff-4a7c-b731-53f212000246",
-  "prevId": "fa1cf2cd-3e0d-4665-96ed-645c36a86cfa",
+  "id": "4b626083-f52f-49cf-a037-10ddf14ccd22",
+  "prevId": "fa0d4bea-f2fe-42f1-9ccd-54e5b63a37ea",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -1140,6 +1140,89 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.group_managers": {
+      "name": "group_managers",
+      "schema": "",
+      "columns": {
+        "group_id": {
+          "name": "group_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "group_managers_user_id_idx": {
+          "name": "group_managers_user_id_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "group_managers_group_id_groups_id_fk": {
+          "name": "group_managers_group_id_groups_id_fk",
+          "tableFrom": "group_managers",
+          "tableTo": "groups",
+          "columnsFrom": [
+            "group_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "group_managers_user_id_user_id_fk": {
+          "name": "group_managers_user_id_user_id_fk",
+          "tableFrom": "group_managers",
+          "tableTo": "user",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "group_managers_group_id_user_id_pk": {
+          "name": "group_managers_group_id_user_id_pk",
+          "columns": [
+            "group_id",
+            "user_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.group_members": {
       "name": "group_members",
       "schema": "",
@@ -1591,6 +1674,13 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
+        },
+        "origin": {
+          "name": "origin",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'user'"
         }
       },
       "indexes": {
@@ -1653,6 +1743,10 @@
         "group_notification_settings_mode_check": {
           "name": "group_notification_settings_mode_check",
           "value": "\"group_notification_settings\".\"mode\" in ('all', 'mentions', 'off')"
+        },
+        "group_notification_settings_origin_check": {
+          "name": "group_notification_settings_origin_check",
+          "value": "\"group_notification_settings\".\"origin\" in ('user', 'manager')"
         }
       },
       "isRLSEnabled": false

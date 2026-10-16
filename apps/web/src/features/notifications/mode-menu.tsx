@@ -35,12 +35,15 @@ export function ModeMenu({
   triggerLabel,
   showText = false,
   onOpen,
+  note,
 }: {
   value: GroupMode | 'mixed';
   onChange(mode: GroupMode): void;
   triggerLabel: string;
   showText?: boolean;
   onOpen?(): void;
+  /** One muted line under the options (why the mode is what it is). */
+  note?: string;
 }) {
   const { t } = useTranslation();
   const hintId = useId();
@@ -84,16 +87,20 @@ export function ModeMenu({
             </DropdownMenuRadioItem>
           ))}
         </DropdownMenuRadioGroup>
+        {note && <p className="px-3 pt-2 pb-1 text-micro text-muted-foreground">{note}</p>}
       </DropdownMenuContent>
     </DropdownMenu>
   );
 }
 
-/** The bell of one group: your mode there, and a menu to change it. Renders once modes load. */
+/**
+ * The bell of one group: your mode there, and a menu to change it. Renders once modes load.
+ * When the mode comes from managing the group, the menu says so under the options.
+ */
 export function GroupBell({ groupId, className }: { groupId: string; className?: string }) {
   const { t } = useTranslation();
   const title = useModeTitle();
-  const { mode, setMode, isError, clearError } = useGroupMode(groupId);
+  const { mode, managed, setMode, isError, clearError } = useGroupMode(groupId);
   if (!mode) return null;
   return (
     <div className={cn('relative flex shrink-0', className)}>
@@ -102,6 +109,7 @@ export function GroupBell({ groupId, className }: { groupId: string; className?:
         onChange={setMode}
         triggerLabel={t('notifications.mode.bellLabel', { mode: title(mode) })}
         onOpen={clearError}
+        note={managed ? t('notifications.mode.managerNote') : undefined}
       />
       {isError && (
         <p

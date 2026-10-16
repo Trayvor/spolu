@@ -1,10 +1,13 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
+import { drizzle } from 'drizzle-orm/postgres-js';
+import postgres from 'postgres';
 import { createDb } from '../../infra/db/client.js';
 import { testDatabaseUrl } from '../../../test/test-config.js';
 import { addAdmin, createUnverifiedClient, deactivateUser } from '../users/service.js';
 import { user } from '../users/schema.js';
+import { addManager } from './managers.js';
 import {
   addMember,
   createGroup,
@@ -12,8 +15,9 @@ import {
   getGroup,
   getGroupByInviteToken,
   getMembershipGroupId,
-  isGroupPerson,
+  isPickablePerson,
   listGroupPeople,
+  listPickablePeople,
   listGroups,
   listMembers,
   moveUnverified,
@@ -26,6 +30,7 @@ const { db, close } = createDb(testDatabaseUrl);
 afterAll(() => close());
 
 const uniqueHost = (): string => `g${randomUUID().replaceAll('-', '')}.egrant.sk`;
+const VIEWER = 'nobody';
 const newGroup = (name = 'Firma') =>
   createGroup(db, { name, egrantUrl: `https://${uniqueHost()}/app` });
 
@@ -120,13 +125,15 @@ describe('members', () => {
     const removed = await newClient(true);
     for (const c of [active, unverified, removed]) await addMember(db, g.id, c.id);
     await deactivateUser(db, removed.id);
-    const row = (await listGroups(db)).find((x) => x.id === g.id);
+    const row = (await listGroups(db, VIEWER)).find((x) => x.id === g.id);
     expect(row).toEqual({
       id: g.id,
       name: 'Count',
       hasLogo: false,
       memberCount: 1,
       updatedAt: g.updatedAt.toISOString(),
+      managers: [],
+      managedByMe: false,
     });
   });
 
@@ -134,20 +141,76 @@ describe('members', () => {
     // Other test files add groups too: assert only the relative order of ours.
     const z = await newGroup('zzz');
     const a = await newGroup('aaa');
-    const ids = (await listGroups(db)).map((g) => g.id);
+    const ids = (await listGroups(db, VIEWER)).map((g) => g.id);
     expect(ids.indexOf(a.id)).toBeGreaterThanOrEqual(0);
     expect(ids.indexOf(a.id)).toBeLessThan(ids.indexOf(z.id));
   });
 
   it('listGroups gives a group without members memberCount 0', async () => {
     const g = await newGroup('Empty');
-    const row = (await listGroups(db)).find((x) => x.id === g.id);
+    const row = (await listGroups(db, VIEWER)).find((x) => x.id === g.id);
     expect(row).toEqual({
       id: g.id,
       name: 'Empty',
       hasLogo: false,
       memberCount: 0,
       updatedAt: g.updatedAt.toISOString(),
+      managers: [],
+      managedByMe: false,
+    });
+  });
+
+  describe('listGroups managers', () => {
+    const newAdmin = (name: string) => addAdmin(db, { email: `${randomUUID()}@example.com`, name });
+
+    it('listGroups returns managers by name and managedByMe for the viewer', async () => {
+      const g = await newGroup();
+      const zed = await newAdmin('Zed');
+      const amy = await newAdmin('Amy');
+      await addManager(db, g.id, zed.id);
+      await addManager(db, g.id, amy.id);
+      const asZed = (await listGroups(db, zed.id)).find((x) => x.id === g.id);
+      expect(asZed?.managers).toEqual([
+        { id: amy.id, name: 'Amy' },
+        { id: zed.id, name: 'Zed' },
+      ]);
+      expect(asZed?.managedByMe).toBe(true);
+      const other = (await listGroups(db, VIEWER)).find((x) => x.id === g.id);
+      expect(other?.managedByMe).toBe(false);
+    });
+
+    it('two managers do not change memberCount', async () => {
+      const g = await newGroup();
+      for (const c of [await newClient(true), await newClient(true)]) {
+        await addMember(db, g.id, c.id);
+      }
+      await addManager(db, g.id, (await newAdmin('One')).id);
+      await addManager(db, g.id, (await newAdmin('Two')).id);
+      const row = (await listGroups(db, VIEWER)).find((x) => x.id === g.id);
+      expect(row?.memberCount).toBe(2);
+      expect(row?.managers).toHaveLength(2);
+    });
+
+    it('a disabled manager is not in managers', async () => {
+      const g = await newGroup();
+      const gone = await newAdmin('Gone');
+      await addManager(db, g.id, gone.id);
+      await deactivateUser(db, gone.id);
+      const row = (await listGroups(db, gone.id)).find((x) => x.id === g.id);
+      expect(row?.managers).toEqual([]);
+      expect(row?.managedByMe).toBe(false);
+    });
+
+    it('listGroups is one statement', async () => {
+      const client = postgres(testDatabaseUrl, { max: 1 });
+      let statements = 0;
+      const counted = drizzle(client, { logger: { logQuery: () => void statements++ } });
+      try {
+        await listGroups(counted, VIEWER);
+        expect(statements).toBe(1);
+      } finally {
+        await client.end();
+      }
     });
   });
 
@@ -241,39 +304,77 @@ describe('group people', () => {
     // Other tests add admins too: assert only the relative order of ours ("Aa" before "Bb").
     expect(ids.indexOf(s.admin.id)).toBeLessThan(ids.indexOf(s.client.id));
   });
+});
 
-  it('isGroupPerson is true for the named client and an admin, false for everyone else', async () => {
+describe('readers versus pickable people', () => {
+  const tag = () => randomUUID().slice(0, 8);
+  async function named(name: string, groupId: string) {
+    const row = await newClient(true);
+    await db.update(user).set({ name }).where(eq(user.id, row.id));
+    await addMember(db, groupId, row.id);
+    return row;
+  }
+  const newAdmin = (name: string) => addAdmin(db, { email: `${randomUUID()}@example.com`, name });
+
+  async function scenario() {
+    const g = await newGroup();
+    const other = await newGroup();
+    const t = tag();
+    const client = await named(`Bb ${t}`, g.id);
+    const m = await newAdmin(`Mm ${t}`);
+    const n = await newAdmin(`Nn ${t}`);
+    await addManager(db, g.id, m.id);
+    const otherClient = await named(`Other ${t}`, other.id);
+    const otherManager = await newAdmin(`Om ${t}`);
+    await addManager(db, other.id, otherManager.id);
+    return { g, client, m, n, otherClient, otherManager };
+  }
+
+  it('listGroupPeople returns readers with isManager', async () => {
     const s = await scenario();
-    expect(await isGroupPerson(db, s.g.id, s.client.id)).toBe(true);
-    expect(await isGroupPerson(db, s.g.id, s.admin.id)).toBe(true);
-    for (const no of [
-      s.removed,
-      s.unnamed,
-      s.emptyName,
-      s.blankName,
-      s.foreign,
-      s.deactivatedAdmin,
-    ]) {
-      expect(await isGroupPerson(db, s.g.id, no.id)).toBe(false);
-    }
-    expect(await isGroupPerson(db, s.g.id, randomUUID())).toBe(false);
+    const people = await listGroupPeople(db, s.g.id);
+    expect(people.find((p) => p.id === s.client.id)?.isManager).toBe(false);
+    expect(people.find((p) => p.id === s.m.id)).toMatchObject({ isAdmin: true, isManager: true });
+    expect(people.find((p) => p.id === s.n.id)).toMatchObject({ isAdmin: true, isManager: false });
+    expect(people.find((p) => p.id === s.otherManager.id)?.isManager).toBe(false);
   });
 
-  it('isGroupPerson agrees with listGroupPeople for every user of the scenario', async () => {
+  it('listPickablePeople is the clients and the active managers', async () => {
     const s = await scenario();
-    const listed = new Set((await listGroupPeople(db, s.g.id)).map((p) => p.id));
-    const everyone = [
-      s.client,
-      s.admin,
-      s.removed,
-      s.unnamed,
-      s.emptyName,
-      s.blankName,
-      s.foreign,
-      s.deactivatedAdmin,
-    ];
-    for (const u of everyone) {
-      expect(await isGroupPerson(db, s.g.id, u.id)).toBe(listed.has(u.id));
-    }
+    const ours = new Set([s.client.id, s.m.id, s.n.id, s.otherManager.id, s.otherClient.id]);
+    const ids = async () =>
+      (await listPickablePeople(db, s.g.id)).map((p) => p.id).filter((id) => ours.has(id));
+    expect((await ids()).sort()).toEqual([s.client.id, s.m.id].sort());
+    await deactivateUser(db, s.m.id);
+    expect(await ids()).toEqual([s.client.id]);
+  });
+
+  it('isPickablePerson', async () => {
+    const s = await scenario();
+    expect(await isPickablePerson(db, s.g.id, s.client.id)).toBe(true);
+    expect(await isPickablePerson(db, s.g.id, s.m.id)).toBe(true);
+    expect(await isPickablePerson(db, s.g.id, s.n.id)).toBe(false);
+    expect(await isPickablePerson(db, s.g.id, s.otherClient.id)).toBe(false);
+    expect(await isPickablePerson(db, s.g.id, randomUUID())).toBe(false);
+    await deactivateUser(db, s.m.id);
+    expect(await isPickablePerson(db, s.g.id, s.m.id)).toBe(false);
+  });
+
+  it('a manager of another group is not pickable here', async () => {
+    const s = await scenario();
+    expect(await isPickablePerson(db, s.g.id, s.otherManager.id)).toBe(false);
+    expect((await listPickablePeople(db, s.g.id)).some((p) => p.id === s.otherManager.id)).toBe(
+      false,
+    );
+  });
+
+  it('a removed client is not pickable', async () => {
+    const s = await scenario();
+    const removed = await named(`Removed ${tag()}`, s.g.id);
+    await deactivateUser(db, removed.id);
+    expect((await listPickablePeople(db, s.g.id)).some((p) => p.id === removed.id)).toBe(false);
+    expect(await isPickablePerson(db, s.g.id, removed.id)).toBe(false);
+    const reader = (await listGroupPeople(db, s.g.id)).find((p) => p.id === removed.id);
+    expect(reader?.isManager ?? false).toBe(false);
   });
 });

@@ -15,8 +15,19 @@ import type {
 /** At most this many top-level messages stay in memory; the rest is re-fetched when scrolled to. */
 export const MAX_IN_MEMORY = 300;
 
-/** A message being sent (or that failed). A thread reply carries `input.parentId`. */
-export type Pending = { clientId: string; input: SendMessageInput; status: 'sending' | 'failed' };
+/** Why a send failed, when the server said: someone mentioned can no longer be mentioned. */
+export type PendingFailReason = 'invalid_mention';
+
+/**
+ * A message being sent (or that failed). A thread reply carries `input.parentId`. `failReason`
+ * is set only on a failed row whose refusal had a known reason.
+ */
+export type Pending = {
+  clientId: string;
+  input: SendMessageInput;
+  status: 'sending' | 'failed';
+  failReason?: PendingFailReason;
+};
 
 export type ChannelWindow = {
   /** Top-level messages, oldest first, without gaps. */
@@ -51,7 +62,7 @@ export type WindowAction =
   /** The tasks made from a message changed; no `changeSeq` moves, so `upsert` would drop it. */
   | { type: 'tasksChanged'; messageId: string; tasks: MessageTaskLink[] }
   | { type: 'pendingAdded'; input: SendMessageInput }
-  | { type: 'pendingFailed'; clientId: string }
+  | { type: 'pendingFailed'; clientId: string; reason?: PendingFailReason }
   | { type: 'pendingRetried'; clientId: string }
   | { type: 'readMarked'; at: string };
 
@@ -145,10 +156,16 @@ function setPendingStatus(
   state: ChannelWindow,
   clientId: string,
   status: Pending['status'],
+  failReason?: PendingFailReason,
 ): ChannelWindow {
   return {
     ...state,
-    pending: state.pending.map((p) => (p.clientId === clientId ? { ...p, status } : p)),
+    // A retry (or a failure without a known reason) drops the previous reason.
+    pending: state.pending.map((p) =>
+      p.clientId === clientId
+        ? { clientId: p.clientId, input: p.input, status, ...(failReason ? { failReason } : {}) }
+        : p,
+    ),
   };
 }
 
@@ -199,7 +216,7 @@ export function windowReducer(state: ChannelWindow, action: WindowAction): Chann
         ],
       };
     case 'pendingFailed':
-      return setPendingStatus(state, action.clientId, 'failed');
+      return setPendingStatus(state, action.clientId, 'failed', action.reason);
     case 'pendingRetried':
       return setPendingStatus(state, action.clientId, 'sending');
     case 'readMarked': {

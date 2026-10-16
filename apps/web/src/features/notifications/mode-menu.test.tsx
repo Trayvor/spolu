@@ -17,7 +17,12 @@ const CLIENT = {
   role: 'client' as const,
   groupId: 'g1',
 };
-const MODES: NotificationModes = { defaultMode: null, roleDefault: 'all', overrides: {} };
+const MODES: NotificationModes = {
+  defaultMode: null,
+  roleDefault: 'all',
+  overrides: {},
+  managerSet: [],
+};
 
 /** `put` decides the answer to the mode PUT: a promise to hold it, or a status. */
 function setup(put: () => Promise<Response>, getModes?: () => Promise<Response>) {
@@ -128,6 +133,26 @@ describe('GroupBell review fixes', () => {
     expect(await screen.findByRole('alert')).toBeInTheDocument();
     await user.click(await bell(t('notifications.mode.all')));
     await waitFor(() => expect(screen.queryByRole('alert')).toBeNull());
+  });
+});
+
+describe('GroupBell manager line', () => {
+  beforeEach(() => setLanguage('en'));
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('shows the manager line when the group is in managerSet, not otherwise', async () => {
+    const { queryClient, user } = setup(() => Promise.resolve(new Response(null, { status: 204 })));
+    await user.click(await bell(t('notifications.mode.all')));
+    await screen.findByRole('menu');
+    expect(screen.queryByText(t('notifications.mode.managerNote'))).toBeNull();
+    await user.keyboard('{Escape}');
+    queryClient.setQueryData(['notifications', 'modes'], {
+      ...MODES,
+      overrides: { g1: 'all' },
+      managerSet: ['g1'],
+    });
+    await user.click(await bell(t('notifications.mode.all')));
+    expect(await screen.findByText(t('notifications.mode.managerNote'))).toBeInTheDocument();
   });
 });
 

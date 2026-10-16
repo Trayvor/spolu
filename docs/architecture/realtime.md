@@ -56,9 +56,14 @@ After a bucket is deleted its tasks moved to To do without a `board:task` event;
 | -------------- | ------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
 | `user:<id>`    | every socket of that user, on connect                                           | events for one user (admin changes, notifications)                                                                                 |
 | `session:<id>` | every socket of that login session, on connect                                  | sign-out                                                                                                                           |
+| `admins`       | every admin socket, on connect (`ADMINS_ROOM`)                                  | events about all groups for admins: `group:managers`                                                                               |
 | `group:<id>`   | a client, on connect, for their membership group; an admin through `group:join` | every event of the group: chat, board (tasks and buckets), files, members (one room per group, no separate channel or board rooms) |
 | `group:<id>:admins` | an admin's socket, together with `group:<id>` on `group:join` (left with it on `group:leave`); never a client | admins-only events of the group (knowledge items with visibility `admins`) |
 | per DM channel | the two participants                                                            | direct messages (not built yet)                                                                                                    |
+
+## Group events
+
+`group:managers` (`GroupEvents.managers`, payload `GroupManagersEvent` = `{ groupId, managers: { id, name }[] }`, the group's full current active manager list by name) is pushed by `emitManagers` (`modules/groups/events.ts`) to `group:<id>` and `admins` in one `io.to([...]).emit`, so a socket in both gets it once. It is sent after `PUT` or `DELETE /api/groups/:id/managers/me` commits, only when the call changed something (an unchanged call pushes nothing). The client replaces the list.
 
 ## Knowledge events
 

@@ -8,10 +8,10 @@ import { i18n } from '@/i18n';
 import { RecipientsField } from './recipients-field';
 
 const PEOPLE: GroupPerson[] = [
-  { id: 'u1', name: 'Anna Nováková', isAdmin: false },
-  { id: 'u2', name: 'Boris Kováč', isAdmin: true },
-  { id: 'u3', name: 'Cyril Malý', isAdmin: false },
-  { id: 'u4', name: 'Dana Veľká', isAdmin: true },
+  { id: 'u1', name: 'Anna Nováková', isAdmin: false, isManager: false },
+  { id: 'u2', name: 'Boris Kováč', isAdmin: true, isManager: true },
+  { id: 'u3', name: 'Cyril Malý', isAdmin: false, isManager: false },
+  { id: 'u4', name: 'Dana Veľká', isAdmin: true, isManager: true },
 ];
 
 const t = (key: string, opts?: Record<string, unknown>) => i18n.t(key, opts);

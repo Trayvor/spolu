@@ -4,7 +4,13 @@ import { createDb } from '../../infra/db/client.js';
 import { testConfig } from '../../../test/test-config.js';
 import { addMember, createGroup } from '../groups/service.js';
 import { addAdmin, createUnverifiedClient, getNotificationProfiles } from '../users/service.js';
-import { getEffectiveModes, getModeSettings, setDefaultMode, setGroupMode } from './modes.js';
+import {
+  getEffectiveModes,
+  getModeSettings,
+  setDefaultMode,
+  setGroupMode,
+  startManagerMode,
+} from './modes.js';
 
 const { db, close } = createDb(testConfig().databaseUrl);
 afterAll(close);
@@ -32,6 +38,7 @@ describe('notification modes', () => {
       defaultMode: 'off',
       roleDefault: 'all',
       overrides: {},
+      managerSet: [],
     });
   });
 
@@ -56,5 +63,17 @@ describe('notification modes', () => {
     expect(modes.get(`${admin.id}:${g2.id}`)).toBe('mentions');
     expect(modes.get(`${other.id}:${g1.id}`)).toBe('off');
     expect((await getEffectiveModes(db, [], profiles)).size).toBe(0);
+  });
+
+  it('getModeSettings returns managerSet with only manager-origin groups', async () => {
+    const managed = await newGroup();
+    const own = await newGroup();
+    const admin = await addAdmin(db, { email: email(), name: 'A' });
+    const actor = { id: admin.id, email: admin.email, name: 'A', role: 'admin' as const };
+    await startManagerMode(db, admin.id, managed.id);
+    await setGroupMode(db, admin.id, own.id, 'off');
+    const settings = await getModeSettings(db, actor);
+    expect(settings.managerSet).toEqual([managed.id]);
+    expect(settings.overrides).toEqual({ [managed.id]: 'all', [own.id]: 'off' });
   });
 });

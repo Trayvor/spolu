@@ -1,22 +1,33 @@
 import { useId, useMemo, useState, type KeyboardEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { GroupPerson, TaskPerson } from '@spolu/shared';
+import { isPickable, type GroupPerson, type TaskPerson } from '@spolu/shared';
 import { Avatar } from '@/components/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { CloseIcon } from '@/components/icons';
+import { isAdmin } from '@/features/auth/roles';
+import { useSession } from '@/features/auth/use-session';
 
 /** Stable defaults, so the memoized lists keep their identity across renders. */
 const NONE: never[] = [];
 
-type Candidate = { id: string; name: string; isAdmin: boolean; removed: boolean };
+type Candidate = {
+  id: string;
+  name: string;
+  isAdmin: boolean;
+  removed: boolean;
+  /** Still a reader of the group, but no longer someone who can be picked. */
+  notPickable: boolean;
+};
 
 /**
  * Searchable multi-select of at most `max` of the given `people` (undefined while they load).
+ * Only pickable people are offered: the group's clients and its managers (`isPickable`).
  * Chosen people are removable chips, except those in `fixedIds`, which stay; people no longer in
- * the list (`knownPeople`) stay as "Name (removed)" until the user removes them. `label` names
- * the list of suggestions. Needs the `forms` locale namespace.
+ * the list (`knownPeople`) stay as "Name (removed)", and an eGrant admin who no longer manages
+ * the group stays with a muted "not a manager", until the user removes them. `label` names the
+ * list of suggestions. Needs the `forms` locale namespace.
  */
 export function PeopleSelect({
   people,
@@ -46,6 +57,7 @@ export function PeopleSelect({
   label: string;
 }) {
   const { t } = useTranslation();
+  const me = useSession();
   const listId = useId();
   const hintId = `${listId}-hint`;
   const [query, setQuery] = useState('');
@@ -54,8 +66,10 @@ export function PeopleSelect({
 
   const byId = useMemo(() => {
     const map = new Map<string, Candidate>();
-    for (const p of knownPeople) map.set(p.id, { ...p, isAdmin: false, removed: true });
-    for (const p of people ?? []) map.set(p.id, { ...p, removed: false });
+    for (const p of knownPeople)
+      map.set(p.id, { ...p, isAdmin: false, removed: true, notPickable: false });
+    for (const p of people ?? [])
+      map.set(p.id, { ...p, removed: false, notPickable: !isPickable(p) });
     return map;
   }, [people, knownPeople]);
 
@@ -64,11 +78,17 @@ export function PeopleSelect({
     const needle = query.trim().toLocaleLowerCase();
     return (people ?? []).filter(
       (p) =>
+        isPickable(p) &&
         !value.includes(p.id) &&
         !fixedIds.includes(p.id) &&
         p.name.toLocaleLowerCase().includes(needle),
     );
   }, [people, value, fixedIds, query]);
+  // An admin who does not manage the group cannot pick themselves: say who can be picked.
+  const nonManagerAdmin =
+    !!people && isAdmin(me) && !people.some((p) => p.id === me?.id && p.isManager);
+  const emptyLine =
+    nonManagerAdmin && query.trim() === '' ? 'forms.people.noPickable' : 'forms.people.empty';
   const showList = open && !full;
   const activeIndex = Math.min(active, options.length - 1);
 
@@ -114,6 +134,11 @@ export function PeopleSelect({
                 <Avatar userId={id} name={name} size={20} />
                 <span className="min-w-0 truncate">{chip}</span>
                 {person?.isAdmin && <Badge variant="outline">{t('forms.people.adminPill')}</Badge>}
+                {person?.notPickable && !fixedIds.includes(id) && (
+                  <span className="shrink-0 font-normal text-muted-foreground">
+                    {t('forms.people.notManager')}
+                  </span>
+                )}
                 {!fixedIds.includes(id) && (
                   <button
                     type="button"
@@ -171,7 +196,7 @@ export function PeopleSelect({
           className="absolute inset-x-0 top-full z-10 mt-1 max-h-56 overflow-auto rounded-md border-2 border-border bg-popover py-1 shadow-lift"
         >
           {options.length === 0 && (
-            <li className="px-4 py-2 text-tiny text-muted-foreground">{t('forms.people.empty')}</li>
+            <li className="px-4 py-2 text-tiny text-muted-foreground">{t(emptyLine)}</li>
           )}
           {options.map((p, index) => (
             <li

@@ -17,6 +17,8 @@
     "remove": "Remove {{name}}",
     "removed": "{{name}} (removed)",
     "adminPill": "eGrant",
-    "full": "Choose at most {{max}} people."
+    "full": "Choose at most {{max}} people.",
+    "notManager": "not a manager",
+    "noPickable": "Only clients and the client's managers can be chosen."
   }
 }

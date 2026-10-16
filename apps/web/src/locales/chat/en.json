@@ -40,7 +40,8 @@
     "all": "@all",
     "unknown": "@unknown",
     "everyone": "Everyone in this group",
-    "label": "People"
+    "label": "People",
+    "everyoneHint": "The group's clients and its eGrant managers"
   },
   "composer": {
     "placeholder": "Write a message…",
@@ -54,7 +55,8 @@
     "tooLong": "{{count}} / 10 000 characters",
     "tooManyFiles": "At most 10 files per message.",
     "fileTooLarge": "Too large (max 25 MB)",
-    "formatting": "Formatting"
+    "formatting": "Formatting",
+    "mentionNotAllowed": "Someone you mentioned can't be mentioned here any more."
   },
   "format": {
     "bold": "Bold",

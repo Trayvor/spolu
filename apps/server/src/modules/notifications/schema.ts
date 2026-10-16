@@ -13,6 +13,8 @@ import type { GroupMode } from '@spolu/shared';
 import { groups } from '../groups/schema.js';
 import { user } from '../users/schema.js';
 
+export type GroupModeOrigin = 'user' | 'manager';
+
 /**
  * One notification for one recipient; `deliveredAt` stays null until the delivery worker decided
  * it (set at insert when the recipient can get neither a push nor an email).
@@ -68,7 +70,11 @@ export const pushSubscriptions = pgTable(
   (t) => [index('push_subscriptions_user_id_idx').on(t.userId)],
 );
 
-/** A user's mode for one group, overriding their default and the role default. */
+/**
+ * A user's mode for one group, overriding their default and the role default. `origin` is
+ * `manager` for the `all` row written when the user became the group's manager (removed again
+ * when they stop), and `user` for a mode the user chose (kept when they stop).
+ */
 export const groupNotificationSettings = pgTable(
   'group_notification_settings',
   {
@@ -79,10 +85,12 @@ export const groupNotificationSettings = pgTable(
       .notNull()
       .references(() => groups.id, { onDelete: 'cascade' }),
     mode: text('mode').$type<GroupMode>().notNull(),
+    origin: text('origin').$type<GroupModeOrigin>().notNull().default('user'),
   },
   (t) => [
     primaryKey({ columns: [t.userId, t.groupId] }),
     index('group_notification_settings_group_id_idx').on(t.groupId),
     check('group_notification_settings_mode_check', sql`${t.mode} in ('all', 'mentions', 'off')`),
+    check('group_notification_settings_origin_check', sql`${t.origin} in ('user', 'manager')`),
   ],
 );

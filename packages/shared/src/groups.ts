@@ -1,6 +1,11 @@
 import { z } from 'zod';
+import { GroupModeSchema } from './notifications.js';
 
 const groupName = z.string().trim().min(1).max(100);
+
+/** An active admin who manages a group. */
+export const GroupManagerSchema = z.object({ id: z.string(), name: z.string() });
+export type GroupManager = z.infer<typeof GroupManagerSchema>;
 
 export const GroupSummarySchema = z.object({
   id: z.string(),
@@ -9,6 +14,10 @@ export const GroupSummarySchema = z.object({
   memberCount: z.number().int(),
   /** Cache-buster for the logo URL (`?v=`). */
   updatedAt: z.string(),
+  /** Active admins who manage the group, by name. */
+  managers: z.array(GroupManagerSchema),
+  /** Whether the viewer is one of the managers. */
+  managedByMe: z.boolean(),
 });
 export type GroupSummary = z.infer<typeof GroupSummarySchema>;
 export const GroupSummaryListSchema = z.array(GroupSummarySchema);
@@ -35,8 +44,12 @@ export const GroupPersonSchema = z.object({
   id: z.string(),
   name: z.string(),
   isAdmin: z.boolean(),
+  /** An admin who manages this group. Always false for clients. */
+  isManager: z.boolean(),
 });
 export type GroupPerson = z.infer<typeof GroupPersonSchema>;
+/** Who can be assigned or picked: the group's clients and its managers, not every admin. */
+export const isPickable = (person: GroupPerson): boolean => !person.isAdmin || person.isManager;
 export const GroupPersonListSchema = z.array(GroupPersonSchema);
 
 export const JoinInfoSchema = z.object({
@@ -54,3 +67,16 @@ export type JoinBody = z.infer<typeof JoinBodySchema>;
 
 export const NameBodySchema = z.object({ name: groupName });
 export type NameBody = z.infer<typeof NameBodySchema>;
+
+/** Answer of `PUT` and `DELETE /api/groups/:id/managers/me`: `mode` is the caller's effective mode for the group. */
+export const ManagersResponseSchema = z.object({
+  managers: z.array(GroupManagerSchema),
+  managedByMe: z.boolean(),
+  mode: GroupModeSchema,
+});
+export type ManagersResponse = z.infer<typeof ManagersResponseSchema>;
+
+export const GroupEvents = { managers: 'group:managers' } as const;
+
+/** Pushed to the group room and the admins room when a group's managers change. */
+export type GroupManagersEvent = { groupId: string; managers: GroupManager[] };

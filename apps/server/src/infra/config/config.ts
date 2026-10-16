@@ -90,6 +90,8 @@ export type Config = {
   emailBatchDelayMs: number;
   /** The task split provider; null when OpenAI is chosen but no key is set (AI is off). */
   ai: { provider: 'openai'; apiKey: string; model: string } | { provider: 'fake' } | null;
+  /** Calls a minute per admin to become or stop being a manager; unset = 120 (tests lower it). */
+  managerRateLimitPerMinute?: number;
 };
 
 export class ConfigError extends Error {

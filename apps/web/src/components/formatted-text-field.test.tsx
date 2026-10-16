@@ -18,7 +18,7 @@ describe('FormattedTextField', () => {
           onChange={() => undefined}
           label="Body"
           editLabel="Edit body"
-          people={[{ id: 'u1', name: 'Anna', isAdmin: false }]}
+          people={[{ id: 'u1', name: 'Anna', isAdmin: false, isManager: false }]}
         />
       </QueryClientProvider>,
     );

@@ -1,4 +1,4 @@
-import { Suspense } from 'react';
+import { Component, Suspense, type ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, render, screen } from '@testing-library/react';
 import { useTranslation } from 'react-i18next';
@@ -9,7 +9,10 @@ import {
   NAMESPACES,
   isNamespaceLoaded,
   loadNamespace,
+  pendingLanguage,
   resetNamespaces,
+  retryFailedNamespaces,
+  setNamespaceImporter,
   useNamespaces,
   withNamespaces,
 } from './namespaces';
@@ -26,6 +29,7 @@ beforeEach(async () => {
   i18n.on('missingKey', onMissing);
 });
 afterEach(() => {
+  setNamespaceImporter(null);
   i18n.off('missingKey', onMissing);
   i18n.options.saveMissing = false;
   vi.restoreAllMocks();
@@ -138,5 +142,132 @@ describe('useNamespaces', () => {
     expect(screen.getByText(settingsEn.profile.title)).toBeInTheDocument();
     expect(renders).toEqual([{ before: true, after: true }]);
     expect(missing).toEqual([]);
+  });
+});
+
+/** A real namespace file, through the real importer, once the test lets it go. */
+function deferredImporter() {
+  const real = async (name: string, lang: string) =>
+    (await import(`../locales/${name}/${lang}.json`)) as { default: Record<string, unknown> };
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => (release = resolve));
+  setNamespaceImporter(async (name, lang) => {
+    await gate;
+    return real(name, lang);
+  });
+  return release;
+}
+
+class Boundary extends Component<{ children: ReactNode }, { error: Error | null }> {
+  state = { error: null as Error | null };
+  static getDerivedStateFromError(error: Error) {
+    return { error };
+  }
+  render() {
+    if (this.state.error) {
+      return (
+        <p>
+          failed: {this.state.error.message}
+          <button type="button" onClick={() => this.setState({ error: null })}>
+            again
+          </button>
+        </p>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+describe('useNamespaces failures', () => {
+  function Probe({ names }: { names: string[] }) {
+    useNamespaces(names);
+    const { t } = useTranslation();
+    return <p>{t('settings.profile.title')}</p>;
+  }
+  const ui = (names: string[]) => (
+    <Boundary>
+      <Suspense fallback={<p>loading</p>}>
+        <Probe names={names} />
+      </Suspense>
+    </Boundary>
+  );
+  beforeEach(() => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined); // React logs caught errors
+  });
+
+  it('an unknown namespace throws to the error boundary at once', () => {
+    render(ui(['nope']));
+    expect(screen.getByText(/failed: .*nope/)).toBeInTheDocument();
+  });
+
+  it('a failed load reaches the error boundary instead of suspending forever', async () => {
+    const importer = vi.fn(async () => {
+      throw new Error('offline');
+    });
+    setNamespaceImporter(importer);
+    render(ui(['settings']));
+    expect(screen.getByText('loading')).toBeInTheDocument();
+    await act(async () => {
+      await loadNamespace('settings').catch(() => undefined);
+    });
+    expect(screen.getByText('failed: offline')).toBeInTheDocument();
+    // Rendering again does not start a new load: the failure stays until an explicit retry.
+    await act(async () => screen.getByRole('button', { name: 'again' }).click());
+    expect(screen.getByText('failed: offline')).toBeInTheDocument();
+    expect(importer).toHaveBeenCalledTimes(1);
+  });
+
+  it('retryFailedNamespaces lets the next render load again', async () => {
+    setNamespaceImporter(async () => {
+      throw new Error('offline');
+    });
+    render(ui(['settings']));
+    await act(async () => {
+      await loadNamespace('settings').catch(() => undefined);
+    });
+    expect(screen.getByText('failed: offline')).toBeInTheDocument();
+
+    setNamespaceImporter(null);
+    retryFailedNamespaces();
+    screen.getByRole('button', { name: 'again' }).click();
+    await act(() => loadNamespace('settings'));
+    expect(await screen.findByText(settingsEn.profile.title)).toBeInTheDocument();
+    expect(missing).toEqual([]);
+  });
+});
+
+describe('language switch races', () => {
+  it('sk→en then en→sk quickly ends in sk', async () => {
+    await setLanguage('sk');
+    resetNamespaces();
+    await loadNamespace('settings'); // in sk only: a switch to en has to load it
+    const release = deferredImporter();
+
+    const toEn = setLanguage('en');
+    expect(pendingLanguage()).toBe('en');
+    const toSk = setLanguage('sk');
+    release();
+    expect(await toSk).toBe(true);
+    expect(await toEn).toBe(false); // superseded: it never switches
+    expect(i18n.language).toBe('sk');
+    expect(localStorage.getItem('spolu.lang')).toBe('sk');
+    expect(document.documentElement.lang).toBe('sk');
+    expect(pendingLanguage()).toBe('sk');
+  });
+
+  it('a failed load rejects the switch and keeps the language', async () => {
+    await setLanguage('sk');
+    localStorage.setItem('spolu.lang', 'sk');
+    resetNamespaces();
+    await loadNamespace('settings');
+    setNamespaceImporter(async () => {
+      throw new Error('offline');
+    });
+
+    await expect(setLanguage('en')).rejects.toThrow('offline');
+    expect(i18n.language).toBe('sk');
+    expect(localStorage.getItem('spolu.lang')).toBe('sk');
+    expect(document.documentElement.lang).toBe('sk');
+    expect(pendingLanguage()).toBe('sk');
   });
 });

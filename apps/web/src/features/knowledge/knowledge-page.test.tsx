@@ -25,6 +25,8 @@ const GROUPS = [
     hasLogo: false,
     memberCount: 2,
     updatedAt: '2026-10-01T00:00:00Z',
+    managers: [],
+    managedByMe: false,
   },
   {
     id: 'g2',
@@ -32,6 +34,8 @@ const GROUPS = [
     hasLogo: false,
     memberCount: 3,
     updatedAt: '2026-10-01T00:00:00Z',
+    managers: [],
+    managedByMe: false,
   },
   {
     id: 'g3',
@@ -39,6 +43,8 @@ const GROUPS = [
     hasLogo: true,
     memberCount: 1,
     updatedAt: '2026-10-01T00:00:00Z',
+    managers: [],
+    managedByMe: false,
   },
 ];
 const ROW: KnowledgeSummary = {

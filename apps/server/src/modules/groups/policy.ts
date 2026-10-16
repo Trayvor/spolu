@@ -19,3 +19,8 @@ export function canReadGroup(
 export function canRemoveMember(actor: SessionUser, target: { role: Role }): boolean {
   return isAdmin(actor) && target.role === 'client';
 }
+
+/** Become or stop being a group's manager (self-service only): any admin. */
+export function canBeManager(actor: SessionUser): boolean {
+  return isAdmin(actor);
+}

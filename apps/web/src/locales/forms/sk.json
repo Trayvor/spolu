@@ -17,6 +17,8 @@
     "remove": "Odobrať {{name}}",
     "removed": "{{name}} (odstránený)",
     "adminPill": "eGrant",
-    "full": "Vyberte najviac {{max}} ľudí."
+    "full": "Vyberte najviac {{max}} ľudí.",
+    "notManager": "nie je manažér",
+    "noPickable": "Vybrať možno len klientov a manažérov klienta."
   }
 }

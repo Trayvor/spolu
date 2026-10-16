@@ -10,6 +10,7 @@ import { buildTestApp } from '../../../test/test-app.js';
 import { testDatabaseUrl } from '../../../test/test-config.js';
 import * as filesService from '../files/service.js';
 import { createFile, getFile, getFilesForGroup, InvalidAttachmentError } from '../files/service.js';
+import { addManager, removeManager } from '../groups/managers.js';
 import { addMember, createGroup, listGroupPeople } from '../groups/service.js';
 import { notificationEvents } from '../notifications/schema.js';
 import { tasks } from '../tasks/schema.js';
@@ -125,6 +126,7 @@ describe('sendMessage', () => {
 
   it('stores mentions and mentions_all', async () => {
     const s = await setup();
+    await addManager(deps.db, s.group.id, s.admin.id);
     const body = `hi ${mentionToken(s.b.id)} and ${mentionToken(s.admin.id)} ${mentionToken('all')} \`${mentionToken(s.a.id)}\``;
     const { message } = await send(s.channel, s.a, { body });
     expect(message.mentionsAll).toBe(true);
@@ -278,7 +280,8 @@ describe('sendMessage', () => {
     const { message: everyone } = await send(s.channel, s.b, { body: `${mentionToken('all')}!` });
     const allMentioned = recipientsOf(await eventsFor(everyone.id), 'chat.mention');
     expect(allMentioned.has(s.b.id)).toBe(false);
-    for (const id of [s.a.id, c.id, s.admin.id]) expect(allMentioned.has(id)).toBe(true);
+    for (const id of [s.a.id, c.id]) expect(allMentioned.has(id)).toBe(true);
+    expect(allMentioned.has(s.admin.id)).toBe(false);
 
     await send(s.channel, s.b, { parentId: root.id });
     await send(s.channel, s.admin, { parentId: root.id });
@@ -313,6 +316,7 @@ describe('sendMessage', () => {
 describe('sendMessage notifications for replies', () => {
   it('a mention inside a reply records chat.mention, and no chat.message', async () => {
     const s = await setup();
+    await addManager(deps.db, s.group.id, s.admin.id);
     const { message: root } = await send(s.channel, s.a);
     const { message: reply } = await send(s.channel, s.b, {
       parentId: root.id,
@@ -418,11 +422,82 @@ describe('toMessageDtos', () => {
   });
 });
 
+describe('mentions use the pickable people', () => {
+  const load = async (id: string) => (await getMessage(deps.db, id))!;
+
+  it('mentioning a non-manager admin throws InvalidMentionError', async () => {
+    const s = await setup();
+    await expect(
+      send(s.channel, s.a, { body: `hi ${mentionToken(s.admin.id)}` }),
+    ).rejects.toBeInstanceOf(InvalidMentionError);
+  });
+
+  it('mentioning a manager works', async () => {
+    const s = await setup();
+    await addManager(deps.db, s.group.id, s.admin.id);
+    const { message } = await send(s.channel, s.a, { body: `hi ${mentionToken(s.admin.id)}` });
+    expect(message.mentions).toEqual([s.admin.id]);
+  });
+
+  it('editing a message that mentions a former manager keeps working', async () => {
+    const s = await setup();
+    await addManager(deps.db, s.group.id, s.admin.id);
+    const { message } = await send(s.channel, s.a, { body: `hi ${mentionToken(s.admin.id)}` });
+    await removeManager(deps.db, s.group.id, s.admin.id);
+    const dto = await editMessage(deps, {
+      message: await load(message.id),
+      channel: s.channel,
+      body: `hello ${mentionToken(s.admin.id)}`,
+    });
+    expect(dto.mentions).toEqual([s.admin.id]);
+    expect(dto.body).toContain('hello');
+  });
+
+  it('editing to add a non-manager mention throws', async () => {
+    const s = await setup();
+    const { message } = await send(s.channel, s.a, { body: 'plain' });
+    await expect(
+      editMessage(deps, {
+        message: await load(message.id),
+        channel: s.channel,
+        body: `x ${mentionToken(s.admin.id)}`,
+      }),
+    ).rejects.toBeInstanceOf(InvalidMentionError);
+  });
+
+  it('@all records chat.mention for clients and managers only', async () => {
+    const s = await setup();
+    await addManager(deps.db, s.group.id, s.admin.id);
+    const n = await addAdmin(deps.db, { email: `${randomUUID()}@example.com`, name: 'Plain' });
+    const { message } = await send(s.channel, s.a, { body: mentionToken('all') });
+    const mentioned = recipientsOf(await eventsFor(message.id), 'chat.mention');
+    expect(mentioned.has(s.admin.id)).toBe(true);
+    expect(mentioned.has(s.b.id)).toBe(true);
+    expect(mentioned.has(n.id)).toBe(false);
+  });
+
+  it('chat.message still reaches every reader', async () => {
+    const s = await setup();
+    const n = await addAdmin(deps.db, { email: `${randomUUID()}@example.com`, name: 'Plain' });
+    const { message } = await send(s.channel, s.a);
+    expect(recipientsOf(await eventsFor(message.id), 'chat.message').has(n.id)).toBe(true);
+  });
+
+  it('a non-manager admin in a thread still gets chat.thread_reply', async () => {
+    const s = await setup();
+    const { message: root } = await send(s.channel, s.a);
+    await send(s.channel, s.admin, { parentId: root.id });
+    const { message: reply } = await send(s.channel, s.b, { parentId: root.id });
+    expect(recipientsOf(await eventsFor(reply.id), 'chat.thread_reply').has(s.admin.id)).toBe(true);
+  });
+});
+
 describe('editMessage and deleteMessage', () => {
   const load = async (id: string) => (await getMessage(deps.db, id))!;
 
   it('edit re-parses mentions (old mention gone, new one stored) and sets edited_at and a higher change_seq', async () => {
     const s = await setup();
+    await addManager(deps.db, s.group.id, s.admin.id);
     const { message } = await send(s.channel, s.a, { body: `hi ${mentionToken(s.b.id)}` });
     const eventsBefore = await eventsFor(message.id);
     const dto = await editMessage(deps, {

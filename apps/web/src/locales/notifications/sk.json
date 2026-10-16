@@ -8,7 +8,8 @@
     "off": "Vypnuté",
     "offHint": "Žiadne upozornenia z tejto skupiny",
     "mixed": "Zmiešané",
-    "allGroups": "Všetky skupiny:"
+    "allGroups": "Všetky skupiny:",
+    "managerNote": "Všetky správy, lebo tohto klienta spravujete."
   },
   "prompt": {
     "installTitle": "Nainštalujte si Spolu ako aplikáciu",

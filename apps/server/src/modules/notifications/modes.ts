@@ -1,4 +1,4 @@
-import { eq, inArray } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
 import {
   effectiveGroupMode,
   roleDefaultMode,
@@ -16,7 +16,11 @@ export async function getModeSettings(db: Db, actor: SessionUser): Promise<Notif
   const [[row], overrides] = await Promise.all([
     db.select({ mode: user.defaultGroupMode }).from(user).where(eq(user.id, actor.id)),
     db
-      .select({ groupId: groupNotificationSettings.groupId, mode: groupNotificationSettings.mode })
+      .select({
+        groupId: groupNotificationSettings.groupId,
+        mode: groupNotificationSettings.mode,
+        origin: groupNotificationSettings.origin,
+      })
       .from(groupNotificationSettings)
       .where(eq(groupNotificationSettings.userId, actor.id)),
   ]);
@@ -24,10 +28,60 @@ export async function getModeSettings(db: Db, actor: SessionUser): Promise<Notif
     defaultMode: row?.mode ?? null,
     roleDefault: roleDefaultMode(actor.role),
     overrides: Object.fromEntries(overrides.map((o) => [o.groupId, o.mode])),
+    managerSet: overrides.filter((o) => o.origin === 'manager').map((o) => o.groupId),
   };
 }
 
-/** Sets the user's mode for one group (an upsert). */
+/** The actor's effective mode for one group: their override, else their default, else the role's. */
+export async function getEffectiveGroupMode(
+  db: Db,
+  actor: SessionUser,
+  groupId: string,
+): Promise<GroupMode> {
+  const [[row], [override]] = await Promise.all([
+    db.select({ mode: user.defaultGroupMode }).from(user).where(eq(user.id, actor.id)),
+    db
+      .select({ mode: groupNotificationSettings.mode })
+      .from(groupNotificationSettings)
+      .where(
+        and(
+          eq(groupNotificationSettings.userId, actor.id),
+          eq(groupNotificationSettings.groupId, groupId),
+        ),
+      ),
+  ]);
+  return effectiveGroupMode({
+    override: override?.mode ?? null,
+    defaultMode: row?.mode ?? null,
+    role: actor.role,
+  });
+}
+
+/**
+ * Becoming a group's manager: `all` for that group, marked `manager`, unless the user already
+ * chose a mode for it (that row is kept as it is).
+ */
+export async function startManagerMode(tx: Db, userId: string, groupId: string): Promise<void> {
+  await tx
+    .insert(groupNotificationSettings)
+    .values({ userId, groupId, mode: 'all', origin: 'manager' })
+    .onConflictDoNothing();
+}
+
+/** Stopping: removes the row only if becoming manager wrote it and the user has not changed it. */
+export async function stopManagerMode(tx: Db, userId: string, groupId: string): Promise<void> {
+  await tx
+    .delete(groupNotificationSettings)
+    .where(
+      and(
+        eq(groupNotificationSettings.userId, userId),
+        eq(groupNotificationSettings.groupId, groupId),
+        eq(groupNotificationSettings.origin, 'manager'),
+      ),
+    );
+}
+
+/** Sets the user's mode for one group (an upsert). The row becomes the user's own (`user`). */
 export async function setGroupMode(
   db: Db,
   userId: string,
@@ -36,14 +90,17 @@ export async function setGroupMode(
 ): Promise<void> {
   await db
     .insert(groupNotificationSettings)
-    .values({ userId, groupId, mode })
+    .values({ userId, groupId, mode, origin: 'user' })
     .onConflictDoUpdate({
       target: [groupNotificationSettings.userId, groupNotificationSettings.groupId],
-      set: { mode },
+      set: { mode, origin: 'user' },
     });
 }
 
-/** Sets the all-groups default and drops the user's per-group overrides, in one transaction. */
+/**
+ * Sets the all-groups default and drops the user's per-group overrides, manager rows included,
+ * in one transaction.
+ */
 export async function setDefaultMode(db: Db, userId: string, mode: GroupMode): Promise<void> {
   await db.transaction(async (tx) => {
     await setDefaultGroupMode(tx, userId, mode);

@@ -20,3 +20,5 @@ There are exactly two roles: Administrator and Client. Administrators see the wh
 ## Phase
 
 Phase 2 (users and the superadmin) and Phase 3 (a client sees only their own group; an admin sees all). Contract hiding applies in Phase 14.
+
+A group manager is not a third role: it is a per-group flag on an administrator (an eGrant account manager for that client). A group has several managers and an admin can manage several groups. Every admin still reads every group; being a manager only makes the admin a pickable person (assignable) in that group, beside its clients.

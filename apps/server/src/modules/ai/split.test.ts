@@ -6,6 +6,7 @@ import { MENTION_ALL_TOKEN, mentionToken, type SessionUser } from '@spolu/shared
 import type { AppDeps } from '../../deps.js';
 import { buildTestApp } from '../../../test/test-app.js';
 import { createFile } from '../files/service.js';
+import { addManager, removeManager } from '../groups/managers.js';
 import { addMember, createGroup } from '../groups/service.js';
 import { deleteMessage, findReadableMessage, sendMessage } from '../chat/messages.js';
 import { ensureGroupChannel, type ChannelRow } from '../chat/service.js';
@@ -185,7 +186,7 @@ describe('split service', () => {
     expect(captured!.quoted).toBeNull();
     expect(captured!.files).toEqual([{ id: file.id, name: 'report.pdf' }]);
     expect(captured!.people).toContainEqual({ id: s.ana.id, name: 'Ana' });
-    expect(captured!.people).toContainEqual({ id: s.admin.id, name: 'Admin' });
+    expect(captured!.people).not.toContainEqual({ id: s.admin.id, name: 'Admin' });
     expect(captured!.today).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(result.tasks).toEqual([
       {
@@ -201,13 +202,46 @@ describe('split service', () => {
     expect(result.durationMs).toBeGreaterThanOrEqual(0);
   });
 
+  it('the prompt lists pickable people only', async () => {
+    const s = await setup();
+    const manager = await addAdmin(deps.db, { email: `${randomUUID()}@example.com`, name: 'Mo' });
+    await addManager(deps.db, s.group.id, manager.id);
+    const { message } = await send(s.channel, s.ana, { body: 'Do it' });
+    const request = await buildSplitRequest(deps.db, await found(s.ana, message.id));
+    const ids = request.people.map((p) => p.id);
+    expect(ids).toContain(s.ana.id);
+    expect(ids).toContain(manager.id);
+    expect(ids).not.toContain(s.admin.id);
+  });
+
+  it('a proposal naming a non-manager admin is dropped', async () => {
+    const s = await setup();
+    const { message } = await send(s.channel, s.ana, { body: 'Do it' });
+    const { provider } = capturing([raw({ assigneeIds: [s.admin.id, s.ana.id] })]);
+    const result = await proposeTasks({ ...deps, ai: provider }, await found(s.ana, message.id));
+    expect(result.tasks[0]!.assigneeIds).toEqual([s.ana.id]);
+  });
+
+  it('the message text still names a mentioned non-manager', async () => {
+    const s = await setup();
+    await addManager(deps.db, s.group.id, s.admin.id);
+    const { message } = await send(s.channel, s.ana, {
+      body: `Ask ${mentionToken(s.admin.id)}`,
+    });
+    await removeManager(deps.db, s.group.id, s.admin.id);
+    const request = await buildSplitRequest(deps.db, await found(s.ana, message.id));
+    expect(request.text).toBe('Ask @Admin');
+  });
+
   it('quotes the reply-to message and dates today in Bratislava', async () => {
     const s = await setup();
     const { message: root } = await send(s.channel, s.ana, { body: 'Root' });
+    await addManager(deps.db, s.group.id, s.admin.id);
     const { message: first } = await send(s.channel, s.ana, {
       body: `Is it ready, ${mentionToken(s.admin.id)}?`,
       parentId: root.id,
     });
+    await removeManager(deps.db, s.group.id, s.admin.id);
     const { message: reply } = await send(s.channel, s.admin, {
       body: '- Finish it',
       parentId: root.id,

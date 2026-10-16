@@ -52,6 +52,7 @@ function createProblemKey(error: unknown): string {
   if (error instanceof ApiError) {
     if (error.status === 404) return 'taskSplit.messageGone';
     if (error.code === ErrorCodes.invalidAttachment) return 'taskSplit.filesChanged';
+    if (error.code === ErrorCodes.invalidAssignee) return 'tasks.form.errors.assigneeNotAllowed';
   }
   return 'taskSplit.createFailed';
 }
@@ -271,6 +272,10 @@ export function ReviewDialog({
       );
       onCreated(tasks);
     } catch (error) {
+      // A chosen person may have stopped being a client or manager: the picker needs the new list.
+      if (error instanceof ApiError && error.code === ErrorCodes.invalidAssignee) {
+        void queryClient.invalidateQueries({ queryKey: ['groups', groupId, 'people'] });
+      }
       setCreateError((e) => ({ text: t(createProblemKey(error)), n: (e?.n ?? 0) + 1 }));
     } finally {
       sending.current = false;

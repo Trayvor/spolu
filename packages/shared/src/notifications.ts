@@ -33,11 +33,16 @@ export function effectiveGroupMode(input: {
   return input.override ?? input.defaultMode ?? roleDefaultMode(input.role);
 }
 
-/** The user's default mode, the role default and the per-group overrides keyed by group id. */
+/**
+ * The user's default mode, the role default and the per-group overrides keyed by group id.
+ * `managerSet` lists the groups whose override was set by becoming their manager (origin
+ * `manager`); it goes away when the user stops managing the group.
+ */
 export const NotificationModesSchema = z.object({
   defaultMode: GroupModeSchema.nullable(),
   roleDefault: GroupModeSchema,
   overrides: z.record(z.string(), GroupModeSchema),
+  managerSet: z.array(z.string()),
 });
 export type NotificationModes = z.infer<typeof NotificationModesSchema>;
 

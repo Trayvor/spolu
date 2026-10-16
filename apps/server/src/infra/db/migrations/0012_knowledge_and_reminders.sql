@@ -45,7 +45,8 @@ CREATE TABLE "reminder_times" (
 	"id" text PRIMARY KEY NOT NULL,
 	"set_id" text NOT NULL,
 	"at" timestamp with time zone NOT NULL,
-	"fired_at" timestamp with time zone
+	"fired_at" timestamp with time zone,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 ALTER TABLE "files" ADD COLUMN "admins_only" boolean DEFAULT false NOT NULL;--> statement-breakpoint

@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams, useSearch } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { TaskDtoSchema, type BoardDto, type FileInfo, type TaskDraft } from '@spolu/shared';
-import { groupQuery } from '@/features/groups/api';
+import { groupPeopleQuery, groupQuery } from '@/features/groups/api';
 import { Button } from '@/components/ui/button';
 import { ApiError } from '@/lib/api';
 import { PanelHeader } from '@/components/ui/panel-header';
@@ -56,13 +56,13 @@ export function NewTaskPanel({ groupId, bucketId }: { groupId: string; bucketId?
       );
       close();
     } catch (error) {
+      const invalidAssignee = error instanceof ApiError && error.code === 'invalid_assignee';
       setErrors({
-        form: t(
-          error instanceof ApiError && error.code === 'invalid_assignee'
-            ? 'tasks.form.errors.invalidAssignee'
-            : 'tasks.board.error',
-        ),
+        form: t(invalidAssignee ? 'tasks.form.errors.assigneeNotAllowed' : 'tasks.board.error'),
       });
+      // Someone chosen left the group or stopped managing it: refresh who can be assigned.
+      if (invalidAssignee)
+        void queryClient.invalidateQueries({ queryKey: groupPeopleQuery(groupId).queryKey });
       setBusy(false);
     }
   }

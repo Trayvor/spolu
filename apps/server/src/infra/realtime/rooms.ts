@@ -10,6 +10,9 @@ export function sessionRoom(sessionId: string): string {
   return `session:${sessionId}`;
 }
 
+/** The room of every admin socket: it carries events about all groups, such as `group:managers`. */
+export const ADMINS_ROOM = 'admins';
+
 /** Closes every socket of a user, e.g. after the user is removed. */
 export function disconnectUser(io: SocketIOServer, userId: string): void {
   io.in(userRoom(userId)).disconnectSockets(true);
