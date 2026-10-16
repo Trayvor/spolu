@@ -1,6 +1,14 @@
 import type { ReactNode } from 'react';
 
-function Tile({ children, size = 18 }: { children: ReactNode; size?: number }) {
+function Tile({
+  children,
+  size = 18,
+  name,
+}: {
+  children: ReactNode;
+  size?: number;
+  name?: string;
+}) {
   return (
     <svg
       aria-hidden="true"
@@ -12,6 +20,7 @@ function Tile({ children, size = 18 }: { children: ReactNode; size?: number }) {
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
+      data-icon={name}
       className="shrink-0"
     >
       {children}
@@ -20,7 +29,7 @@ function Tile({ children, size = 18 }: { children: ReactNode; size?: number }) {
 }
 
 export const NoteIcon = () => (
-  <Tile>
+  <Tile name="note">
     <path d="M4 6h16M4 12h16M4 18h10" />
   </Tile>
 );
@@ -49,5 +58,11 @@ export const LockIcon = () => (
   <Tile size={12}>
     <rect x="5" y="11" width="14" height="10" rx="2" />
     <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+  </Tile>
+);
+
+export const BellIcon = () => (
+  <Tile name="bell">
+    <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.9 1.9 0 0 0 3.4 0" />
   </Tile>
 );

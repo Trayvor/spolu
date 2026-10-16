@@ -117,4 +117,25 @@ describe('KnowledgeRow', () => {
     const meta = container.querySelector('.text-micro.text-muted-foreground:last-child')!;
     expect(meta.textContent!.indexOf('Acme Ltd')).toBeLessThan(meta.textContent!.indexOf('Jana'));
   });
+
+  it('adds an ellipsis when the excerpt was cut at 140 characters', () => {
+    const long = 'a'.repeat(140);
+    const { rerender } = render(<KnowledgeRow item={item({ excerpt: long })} onOpen={vi.fn()} />);
+    expect(screen.getByText(`${long}…`)).toBeInTheDocument();
+    rerender(<KnowledgeRow item={item({ excerpt: 'short' })} onOpen={vi.fn()} />);
+    expect(screen.getByText('short')).toBeInTheDocument();
+  });
+
+  it('the paperclip count is an image with a label', () => {
+    render(<KnowledgeRow item={item({ fileCount: 2 })} onOpen={vi.fn()} />);
+    expect(screen.getByRole('img', { name: '2 attached files' })).toBeInTheDocument();
+  });
+
+  it('a reminder without times uses the bell, not the note icon', () => {
+    const { container } = render(
+      <KnowledgeRow item={item({ type: 'reminder' })} onOpen={vi.fn()} />,
+    );
+    expect(container.querySelector('[data-icon="bell"]')).toBeInTheDocument();
+    expect(container.querySelector('[data-icon="note"]')).not.toBeInTheDocument();
+  });
 });

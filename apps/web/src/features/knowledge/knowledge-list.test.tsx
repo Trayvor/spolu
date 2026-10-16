@@ -50,4 +50,25 @@ describe('KnowledgeList', () => {
     expect(screen.getByText('Nothing here yet')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Load more' })).not.toBeInTheDocument();
   });
+
+  it('shows a busy placeholder while pending and an error on failure, never the empty node', () => {
+    const { rerender } = render(
+      <KnowledgeList
+        query={query([], { data: undefined, isPending: true, isError: false })}
+        onOpen={vi.fn()}
+        empty={<p>Nothing here yet</p>}
+      />,
+    );
+    expect(screen.queryByText('Nothing here yet')).not.toBeInTheDocument();
+    expect(document.querySelector('[aria-busy="true"]')).toBeInTheDocument();
+    rerender(
+      <KnowledgeList
+        query={query([], { data: undefined, isPending: false, isError: true })}
+        onOpen={vi.fn()}
+        empty={<p>Nothing here yet</p>}
+      />,
+    );
+    expect(screen.getByRole('alert')).toBeInTheDocument();
+    expect(screen.queryByText('Nothing here yet')).not.toBeInTheDocument();
+  });
 });

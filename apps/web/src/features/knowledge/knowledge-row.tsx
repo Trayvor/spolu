@@ -8,7 +8,7 @@ import { fileUrl } from '@/features/files/urls';
 import { formatReminderTime } from '@/features/reminders/format';
 import { formatCreated } from '@/features/tasks/dates';
 import { CalendarLeaf } from './calendar-leaf';
-import { ArrowOutIcon, FileIcon, LinkIcon, LockIcon, NoteIcon } from './icons';
+import { ArrowOutIcon, BellIcon, FileIcon, LinkIcon, LockIcon, NoteIcon } from './icons';
 
 /** The URL without its protocol and a leading `www.`. */
 export const displayUrl = (url: string): string =>
@@ -34,7 +34,7 @@ function Tile({ item, done }: { item: KnowledgeSummary; done: boolean }) {
       );
     }
   }
-  const Glyph = item.type === 'reminder' ? NoteIcon : TILE_ICONS[item.type];
+  const Glyph = item.type === 'reminder' ? BellIcon : TILE_ICONS[item.type];
   return (
     <span
       aria-hidden="true"
@@ -60,7 +60,9 @@ export function KnowledgeRow({
 }) {
   const { t, i18n } = useTranslation();
   const done = item.type === 'reminder' && item.nextReminderAt === null;
-  const excerpt = item.excerpt;
+  // The server cuts the excerpt at 140 characters; a full-length one was probably cut.
+  const excerpt =
+    item.excerpt.length >= 140 && !item.excerpt.endsWith('…') ? `${item.excerpt}…` : item.excerpt;
 
   return (
     <div className="relative flex gap-4 px-4 py-4 hover:bg-muted/50 sm:px-5">
@@ -83,6 +85,7 @@ export function KnowledgeRow({
             )}
             {item.type === 'note' && item.fileCount > 0 && (
               <span
+                role="img"
                 className="flex shrink-0 items-center gap-1 text-micro text-muted-foreground"
                 aria-label={t('knowledge.row.files', { count: item.fileCount })}
               >

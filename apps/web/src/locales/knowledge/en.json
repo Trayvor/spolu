@@ -16,7 +16,8 @@
   },
   "list": {
     "loadMore": "Load more",
-    "loading": "Loading…"
+    "loading": "Loading…",
+    "error": "Could not load the list. Try again."
   },
   "row": {
     "open": "Open {{title}}",

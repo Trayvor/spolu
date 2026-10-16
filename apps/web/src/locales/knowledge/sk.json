@@ -16,7 +16,8 @@
   },
   "list": {
     "loadMore": "Načítať viac",
-    "loading": "Načítava sa…"
+    "loading": "Načítava sa…",
+    "error": "Zoznam sa nepodarilo načítať. Skúste to znova."
   },
   "row": {
     "open": "Otvoriť {{title}}",

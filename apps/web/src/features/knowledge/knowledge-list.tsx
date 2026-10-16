@@ -20,6 +20,23 @@ export function KnowledgeList({
 }) {
   const { t } = useTranslation();
   const items = query.data?.pages.flatMap((page) => page.items) ?? [];
+  if (query.isPending) {
+    return (
+      <Card
+        role="status"
+        aria-busy="true"
+        className="h-24 w-full animate-pulse bg-muted"
+        aria-label={t('knowledge.list.loading')}
+      />
+    );
+  }
+  if (query.isError) {
+    return (
+      <p role="alert" className="text-button text-muted-foreground">
+        {t('knowledge.list.error')}
+      </p>
+    );
+  }
   if (items.length === 0) return <>{empty}</>;
   return (
     <div className="flex flex-col items-center gap-4">
