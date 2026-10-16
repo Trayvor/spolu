@@ -14,8 +14,17 @@
     "public": "Everyone in the group",
     "admins": "Only eGrant"
   },
-  "list": {},
-  "row": {},
+  "list": {
+    "loadMore": "Load more",
+    "loading": "Loading…"
+  },
+  "row": {
+    "open": "Open {{title}}",
+    "done": "Done",
+    "moreTimes": "and {{count}} more",
+    "files_one": "{{count}} attached file",
+    "files_other": "{{count}} attached files"
+  },
   "form": {},
   "detail": {},
   "tab": {},

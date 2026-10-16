@@ -262,6 +262,13 @@ egrant.sk spacing presets are 4, 8, 12, 16, 20, 24, 32, 40, 48, 54, 64px — all
 
 - Radix `Switch` (role `switch`): a 44×26 `rounded-full` track with 3px padding, `bg-surface-3` off and `bg-primary` (ink) on; a 20px white (`bg-card`) knob with `shadow-lift`, moved 18px when on. The knob slides in 150ms (`--duration-fast`) only under `motion-safe:`; the colour change is the same 150ms. Disabled: 50% opacity. Focus: the global 2px ink ring.
 
+### Knowledge rows and calendar leaf (as built, `src/features/knowledge/`)
+
+- List: rows in one `Card` (`gap-0`, `divide-y divide-border`, no padding), 720 px column, "Load more" as an outline pill below. A row is a `<div>` (`px-4 py-4`, `sm:px-5`, 16 px gap) with a full-row button underneath (`absolute inset-0`, "Open {title}"); the content sits above it with `pointer-events-none`, and the inner links (file name, URL) set `pointer-events-auto`, so they are siblings of the button, never inside it.
+- Tile: 32 px under 640 px, 40 px from it, `rounded-lg bg-muted`, an 18 px outline icon (`icons.tsx`: note lines, file document, link arrow-out). Line 1 is the title (`text-button`, weight 600, truncated) with the "Only eGrant" outline `Badge` (12 px lock) and, for notes, the paperclip count. Line 2 depends on the type (excerpt, file link and size, URL link with a 12 px arrow, next time and "and N more"); the excerpt of files, links and reminders follows on line 3. The last line (`text-micro`, muted) has the author's 24 px `Avatar`, name and date, preceded by the group logo and name in the global list.
+- Calendar leaf (`calendar-leaf.tsx`): the day (`text-button` weight 600, `text-micro` at 32 px) over the short month (`text-nano`, muted), `rounded-lg bg-muted` with a 2 px `border-foreground` top edge. A reminder with no upcoming time shows the last date, muted (`border-muted-foreground`), and line 2 reads "Done".
+- Times (`features/reminders/format.ts`): "Today, 14:00", "Tomorrow, 09:00", then "Fri 23 Oct, 14:00" (sk "pi 23. okt, 14:00"), in the browser's time zone.
+
 ### Sheet dialog (as built, `src/components/ui/sheet-dialog.tsx`)
 
 - `SheetDialog`, on Radix `Dialog`, always open while mounted (the caller unmounts it): from 641px a centred 720px panel (`bg-popover`, `rounded-xl`, `shadow-lift`, at most `min(880px, 100dvh - 48px)` tall and `100vw - 48px` wide) over a `bg-foreground/30` backdrop that does nothing when clicked; up to 640px a full-screen sheet with no backdrop. Named by a `SheetDialogTitle` inside it (or `labelledBy`); `initialFocus` takes the focus on open.
