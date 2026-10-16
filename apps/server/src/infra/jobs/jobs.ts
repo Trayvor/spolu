@@ -55,6 +55,12 @@ export interface QueueSettings {
   /** Idle poll in seconds when LISTEN/NOTIFY is down (default 2, at least 0.5). */
   pollingIntervalSeconds?: number;
   /**
+   * Backstop poll in seconds while LISTEN/NOTIFY is up (default 30). A burst larger than
+   * `localConcurrency` sends its NOTIFYs while every worker is busy, so the leftover jobs wait
+   * for this poll; a queue that must drain bursts fast sets it low.
+   */
+  notifyPollingIntervalSeconds?: number;
+  /**
    * LISTEN/NOTIFY wake-ups (default true). A notify queue polls only every 30 s, and a delayed job
    * (`startAfter`) sends no NOTIFY when it becomes due, so a queue of delayed jobs sets `false`
    * and is polled every `pollingIntervalSeconds` instead.
@@ -86,6 +92,7 @@ export async function startJobs(
       policy = 'standard',
       localConcurrency,
       pollingIntervalSeconds,
+      notifyPollingIntervalSeconds,
       notify = true,
     } = queues[name] ?? {};
     let existing = await boss.getQueue(name);
@@ -101,6 +108,7 @@ export async function startJobs(
       {
         ...(localConcurrency ? { localConcurrency } : {}),
         ...(pollingIntervalSeconds ? { pollingIntervalSeconds } : {}),
+        ...(notifyPollingIntervalSeconds ? { notifyPollingIntervalSeconds } : {}),
       },
       async (jobs) => {
         for (const job of jobs) await handler(job.data as object);
