@@ -16,6 +16,7 @@ import { useSession } from '@/features/auth/use-session';
 import { notificationModesQuery } from '@/features/notifications/api';
 import { cn } from '@/lib/utils';
 import { becomeManager, groupsQuery, stopManaging } from './api';
+import { busyGroups } from './manager-busy';
 
 const GROUPS = groupsQuery.queryKey;
 const MODES = notificationModesQuery.queryKey;
@@ -75,6 +76,8 @@ export function ManagerToggle({ group }: { group: GroupSummary }) {
   const [error, setError] = useState(false);
   const [toast, setToast] = useState<{ key: number; text: string[] } | null>(null);
   const busy = useRef(false);
+  /** What the user asked for last; the source of the next click while a burst is busy. */
+  const desired = useRef(group.managedByMe);
   const queued = useRef<boolean | null>(null);
   const snapshot = useRef<Snapshot | null>(null);
 
@@ -83,6 +86,8 @@ export function ManagerToggle({ group }: { group: GroupSummary }) {
   function finish(answer: ManagersResponse) {
     const before = snapshot.current;
     snapshot.current = null;
+    busyGroups.delete(groupId);
+    // Events were skipped during the burst: the last answer is the truth.
     patchGroup(qc, groupId, { managers: answer.managers, managedByMe: answer.managedByMe });
     if (me) {
       patchModes(qc, (old) => {
@@ -93,6 +98,8 @@ export function ManagerToggle({ group }: { group: GroupSummary }) {
         return withOverride(old, groupId, keepNoRow ? undefined : answer.mode, inSet);
       });
     }
+    // Back where the burst started (e.g. Manage, then Manage again): nothing to announce.
+    if (before && before.managedByMe === answer.managedByMe) return;
     const changed = before?.mode !== undefined && before.mode !== answer.mode;
     const text = answer.managedByMe
       ? [
@@ -116,10 +123,15 @@ export function ManagerToggle({ group }: { group: GroupSummary }) {
     const before = snapshot.current;
     snapshot.current = null;
     queued.current = null;
+    busyGroups.delete(groupId);
     if (!before) return;
     patchGroup(qc, groupId, { managers: before.managers, managedByMe: before.managedByMe });
     patchModes(qc, (old) => withOverride(old, groupId, before.override, before.inManagerSet));
+    desired.current = before.managedByMe;
     setError(true);
+    // Events were skipped while busy and some requests may have gone through: ask the server.
+    void qc.invalidateQueries({ queryKey: GROUPS, exact: true });
+    void qc.invalidateQueries({ queryKey: MODES });
   }
 
   async function send(target: boolean) {
@@ -144,11 +156,14 @@ export function ManagerToggle({ group }: { group: GroupSummary }) {
     event.preventDefault();
     event.stopPropagation();
     if (!me) return;
-    const next = !group.managedByMe;
+    // While busy, events are not applied to the cache: go from the last click, not the cache.
+    const next = !(busyGroups.has(groupId) ? desired.current : group.managedByMe);
+    desired.current = next;
     setError(false);
 
     const modes = qc.getQueryData<NotificationModes>(MODES);
     if (!snapshot.current) {
+      busyGroups.add(groupId);
       void qc.cancelQueries({ queryKey: GROUPS, exact: true });
       void qc.cancelQueries({ queryKey: MODES });
       snapshot.current = {

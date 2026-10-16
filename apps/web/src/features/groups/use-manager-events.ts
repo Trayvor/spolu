@@ -5,13 +5,15 @@ import { sessionQuery } from '@/features/auth/use-session';
 import { notificationModesQuery } from '@/features/notifications/api';
 import { getSocket } from '@/lib/socket';
 import { groupsQuery } from './api';
+import { busyGroups } from './manager-busy';
 
 /**
  * Listens for `group:managers` (sent to the admins room and the group's room) for the whole
  * signed-in session; mounted once in the authed layout. Refreshes the group's people (the
  * pickers), patches the groups list if it is loaded (`managers`, and `managedByMe` from the
  * session id), and refetches the notification modes when the signed-in user was added or
- * removed (becoming a manager can change their mode there).
+ * removed (becoming a manager can change their mode there). While the user's own toggle for
+ * that group is busy (`busyGroups`), only the people are refreshed.
  */
 export function useManagerEvents(): void {
   const queryClient = useQueryClient();
@@ -20,6 +22,8 @@ export function useManagerEvents(): void {
     const socket = getSocket();
     function onManagers({ groupId, managers }: GroupManagersEvent) {
       void queryClient.invalidateQueries({ queryKey: ['groups', groupId, 'people'] });
+      // The signed-in user's own toggle is mid-burst here: it reconciles with its last answer.
+      if (busyGroups.has(groupId)) return;
       const me = queryClient.getQueryData<Me | null>(sessionQuery.queryKey);
       if (!me) return;
       const managedByMe = managers.some((m) => m.id === me.id);

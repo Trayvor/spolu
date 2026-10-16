@@ -73,7 +73,7 @@ export function GroupsPage() {
                     <span className="min-w-0 flex-1 truncate font-semibold">{group.name}</span>
                     <GroupUnreadCount groupId={group.id} />
                   </Link>
-                  <div className="flex min-w-0 flex-1 items-center gap-2 pl-5 min-[641px]:flex-none min-[641px]:pl-0">
+                  <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2 gap-y-1 pl-5 min-[641px]:flex-none min-[641px]:pl-0">
                     <ManagerAvatars managers={group.managers} groupName={group.name} />
                     <ManagerToggle group={group} />
                     <GroupBell groupId={group.id} />

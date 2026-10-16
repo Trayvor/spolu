@@ -216,6 +216,12 @@ describe('groups page', () => {
       3,
     );
     expect(acme).toHaveTextContent(t('groups.managers.more', { count: 2 }));
+    // Phones show 2 avatars and +3.
+    const avatars = acme.querySelectorAll('[data-manager-avatars] > span:first-child > span');
+    expect(avatars[2]).toHaveClass('max-[640px]:hidden');
+    expect(acme).toHaveTextContent(t('groups.managers.more', { count: 3 }));
+    const controls = acme.querySelector('[data-manager-avatars]')?.parentElement;
+    expect(controls).toHaveClass('flex-wrap', 'gap-y-1');
     expect(acme).toHaveTextContent('PN');
     const toggle = within(acme).getByRole('button', {
       name: t('groups.managers.toggleLabel', { name: 'Acme' }),

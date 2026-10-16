@@ -1,14 +1,25 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query';
-import type { GroupSummary, NotificationModes } from '@spolu/shared';
+import { GroupEvents, type GroupSummary, type NotificationModes } from '@spolu/shared';
 import { i18n, setLanguage } from '@/i18n';
 import { sessionQuery } from '@/features/auth/use-session';
 import { notificationModesQuery } from '@/features/notifications/api';
 import { GroupBell } from '@/features/notifications/mode-menu';
 import { groupsQuery } from './api';
 import { ManagerToggle } from './manager-toggle';
+import { useManagerEvents } from './use-manager-events';
+
+const handlers = new Map<string, (payload: unknown) => void>();
+vi.mock('@/lib/socket', () => ({
+  getSocket: () => ({
+    on: (event: string, handler: (payload: unknown) => void) => handlers.set(event, handler),
+    off: (event: string) => handlers.delete(event),
+    connected: true,
+  }),
+}));
+const emitManagers = (payload: unknown) => act(() => handlers.get(GroupEvents.managers)?.(payload));
 
 const t = (key: string, options?: Record<string, unknown>) => i18n.t(key, options);
 
@@ -81,6 +92,7 @@ function setup(
   queryClient.setQueryData(notificationModesQuery.queryKey, modes);
   const onRowClick = vi.fn();
   function Row() {
+    useManagerEvents();
     const { data } = useQuery(groupsQuery);
     const g = data?.[0];
     if (!g) return null;
@@ -100,7 +112,7 @@ function setup(
     fetchMock.mock.calls
       .filter(([u]) => u === '/api/groups/g1/managers/me')
       .map(([, i]) => (i as RequestInit).method);
-  return { queryClient, onRowClick, managerCalls, user: userEvent.setup() };
+  return { queryClient, fetchMock, onRowClick, managerCalls, user: userEvent.setup() };
 }
 
 const toggle = () =>
@@ -112,7 +124,10 @@ const bell = (mode: string) =>
 
 describe('ManagerToggle', () => {
   beforeEach(() => setLanguage('en'));
-  afterEach(() => vi.unstubAllGlobals());
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    handlers.clear();
+  });
 
   it('shows Manage with aria-pressed false and Managing with aria-pressed true', async () => {
     setup(() => answer(false, 'mentions'));
@@ -167,9 +182,50 @@ describe('ManagerToggle', () => {
     // The PUT's answer does not flip the toggle back.
     expect(toggle()).toHaveAttribute('aria-pressed', 'false');
     del.release(answer(false, 'mentions'));
-    await screen.findByText(t('groups.managers.stopped', { name: 'Acme' }));
-    expect(toggle()).toHaveAttribute('aria-pressed', 'false');
+    await waitFor(() => expect(managerCalls()).toEqual(['PUT', 'DELETE']));
     await bell('mentions');
+    expect(toggle()).toHaveAttribute('aria-pressed', 'false');
+    // Back where the burst started: no toast.
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(screen.queryByText(t('groups.managers.stopped', { name: 'Acme' }))).toBeNull();
+  });
+
+  it('an event that arrives mid-burst does not flip aria-pressed', async () => {
+    const put = held();
+    const del = held();
+    const { user, managerCalls } = setup((method) =>
+      method === 'PUT' ? put.promise : del.promise,
+    );
+    await user.click(toggle());
+    await user.click(toggle());
+    // The server's event for the PUT arrives while the DELETE is still to come.
+    emitManagers({
+      groupId: 'g1',
+      managers: [
+        { id: 'a1', name: 'Jana' },
+        { id: 'a2', name: 'Peter' },
+      ],
+    });
+    expect(toggle()).toHaveAttribute('aria-pressed', 'false');
+    put.release(answer(true, 'all'));
+    await waitFor(() => expect(managerCalls()).toEqual(['PUT', 'DELETE']));
+    expect(toggle()).toHaveAttribute('aria-pressed', 'false');
+    // A third click goes from what the user asked for (false), not from the event.
+    await user.click(toggle());
+    expect(toggle()).toHaveAttribute('aria-pressed', 'true');
+    del.release(answer(false, 'mentions'));
+    await waitFor(() => expect(managerCalls()).toEqual(['PUT', 'DELETE', 'PUT']));
+  });
+
+  it('a failed request refetches the groups and the modes', async () => {
+    const { user, fetchMock } = setup(() => ({ status: 500, body: { error: 'internal' } }));
+    const gets = (url: string) => fetchMock.mock.calls.filter(([u]) => u === url).length;
+    await user.click(toggle());
+    await screen.findByRole('alert');
+    await waitFor(() => {
+      expect(gets('/api/groups')).toBeGreaterThan(0);
+      expect(gets('/api/notifications/modes')).toBeGreaterThan(0);
+    });
   });
 
   it('becoming manager sets the bell to all and toasts with the notifications line', async () => {

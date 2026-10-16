@@ -6,6 +6,7 @@ import { GroupEvents, type GroupManagersEvent, type GroupSummary } from '@spolu/
 import { sessionQuery } from '@/features/auth/use-session';
 import { notificationModesQuery } from '@/features/notifications/api';
 import { groupsQuery } from './api';
+import { busyGroups } from './manager-busy';
 import { useManagerEvents } from './use-manager-events';
 
 const handlers = new Map<string, (payload: unknown) => void>();
@@ -74,6 +75,20 @@ describe('useManagerEvents', () => {
     const groups = queryClient.getQueryData<GroupSummary[]>(groupsQuery.queryKey);
     expect(groups?.[0]?.managedByMe).toBe(true);
     expect(queryClient.getQueryState(notificationModesQuery.queryKey)?.isInvalidated).toBe(true);
+  });
+
+  it('while my toggle for the group is busy, only the people are refreshed', () => {
+    const { queryClient, emit } = setup();
+    busyGroups.add('g1');
+    try {
+      emit({ groupId: 'g1', managers: [{ id: 'a1', name: 'Jana' }] });
+    } finally {
+      busyGroups.delete('g1');
+    }
+    const groups = queryClient.getQueryData<GroupSummary[]>(groupsQuery.queryKey);
+    expect(groups?.[0]?.managers).toEqual([]);
+    expect(queryClient.getQueryState(['groups', 'g1', 'people'])?.isInvalidated).toBe(true);
+    expect(queryClient.getQueryState(notificationModesQuery.queryKey)?.isInvalidated).toBe(false);
   });
 
   it('stops listening on unmount', () => {
