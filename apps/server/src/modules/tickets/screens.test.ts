@@ -20,7 +20,7 @@ import { getMentions } from '../home/mentions.js';
 import { addMembership } from '../groups/memberships.js';
 import { createGroup } from '../groups/service.js';
 import { tasks } from '../tasks/schema.js';
-import { addAdmin, createUnverifiedClient } from '../users/service.js';
+import { addAdmin, createUnverifiedClient, deactivateUser } from '../users/service.js';
 import { user } from '../users/schema.js';
 
 /** Server support the ticket screens of part 21.4 need. */
@@ -41,6 +41,9 @@ const WEBP = Buffer.concat([
 
 describe('ticket screens: server support', () => {
   let test: TestApp;
+  // Deactivated in afterAll: a ticket without a client notifies every active admin of the
+  // shared test database, so admins left active make later runs slower.
+  const admins: string[] = [];
   let baseUrl = '';
   const sockets: Socket[] = [];
 
@@ -53,6 +56,7 @@ describe('ticket screens: server support', () => {
   });
   afterAll(async () => {
     sockets.forEach((s) => s.close());
+    for (const id of admins) await deactivateUser(test.deps.db, id);
     await test.app.close();
     await test.close();
   });
@@ -82,6 +86,7 @@ describe('ticket screens: server support', () => {
   async function admin() {
     const email = newEmail();
     const a = await addAdmin(db(), { email, name: 'Ad Min' });
+    admins.push(a.id);
     return { ...a, cookie: await loginAs(test.app, email) };
   }
   async function member(groupId: string, role: 'client' | 'ziadatel', name = 'Člen') {

@@ -9,7 +9,12 @@ import { countEmailsTo, latestEmail } from '../../../test/mailpit.js';
 import { addManager } from '../groups/managers.js';
 import { addMembership, getMembership, listMemberships } from '../groups/memberships.js';
 import { addMember, createGroup } from '../groups/service.js';
-import { addAdmin, createUnverifiedClient, findUserByEmail } from '../users/service.js';
+import {
+  addAdmin,
+  createUnverifiedClient,
+  findUserByEmail,
+  deactivateUser,
+} from '../users/service.js';
 import { notificationEvents } from '../notifications/schema.js';
 import { tasks } from '../tasks/schema.js';
 import { tickets } from './schema.js';
@@ -23,6 +28,9 @@ const host = () => `t${randomUUID().replaceAll('-', '').slice(0, 20)}`;
 
 describe('tickets API', () => {
   let test: TestApp;
+  // Deactivated in afterAll: a ticket without a client notifies every active admin of the
+  // shared test database, so admins left active make later runs slower.
+  const admins: string[] = [];
   let baseUrl = '';
   const sockets: Socket[] = [];
   let ip = 0;
@@ -36,6 +44,7 @@ describe('tickets API', () => {
   });
   afterAll(async () => {
     sockets.forEach((s) => s.close());
+    for (const id of admins) await deactivateUser(test.deps.db, id);
     await test.app.close();
     await test.close();
   });
@@ -70,6 +79,7 @@ describe('tickets API', () => {
   async function admin() {
     const email = newEmail();
     const a = await addAdmin(db(), { email, name: 'Ad Min' });
+    admins.push(a.id);
     return { ...a, cookie: await loginAs(test.app, email) };
   }
   async function clientIn(groupId: string, role: 'client' | 'ziadatel' = 'client') {
