@@ -107,6 +107,20 @@ describe('notifications API', () => {
     });
   });
 
+  it('notification-fallback turns email on once and respects a later opt-out', async () => {
+    const a = await admin();
+    expect(
+      (await test.app.inject({ method: 'POST', url: '/api/me/notification-fallback' })).statusCode,
+    ).toBe(401);
+    const first = await call('POST', '/api/me/notification-fallback', a.cookie);
+    expect(first.statusCode).toBe(200);
+    expect(first.json<NotificationPrefs>()).toMatchObject({ emailEnabled: true });
+    await call('PATCH', '/api/notifications/preferences', a.cookie, { emailEnabled: false });
+    const second = await call('POST', '/api/me/notification-fallback', a.cookie);
+    expect(second.statusCode).toBe(200);
+    expect(second.json<NotificationPrefs>()).toMatchObject({ emailEnabled: false });
+  });
+
   it('PATCH preferences rejects unknown keys and empty patches', async () => {
     const a = await admin();
     for (const body of [{ role: 'admin' }, { emailEnabled: true, role: 'admin' }, {}]) {

@@ -237,6 +237,14 @@ egrant.sk spacing presets are 4, 8, 12, 16, 20, 24, 32, 40, 48, 54, 64px — all
 - A chat that cannot load shows "The chat could not be loaded." (`text-body`) centred in the card with an outline small "Try again" button.
 - Unread pill (`unread.tsx`): `h-5 min-w-5 rounded-full bg-primary px-1.5 text-nano` weight 600 white tabular figures, `99+` above 99, nothing at 0; inside the active (ink) tab it turns white with ink figures (`in-data-[status=active]:`). Screen readers hear "{n} unread messages" (`sr-only`), not the bare number. Used after the Chat tab label and in the groups list rows.
 
+### App prompt card (as built, `src/features/notifications/app-prompt.tsx`)
+
+- The install, enable-notifications and iOS-fallback card: `fixed`, 12px from the sides on a phone and 12px (or the safe-area inset + 8px) from the bottom; from 641px a 448px card (`max-w-md`) at the bottom right, 16px from the edge. `z-40`, under the action sheet. `role="dialog"` named by its title and described by its line, but not modal: the page stays usable.
+- `bg-card rounded-xl p-5 shadow-lift` (it floats over content, so it takes the lift shadow cards otherwise do not have). Title `text-body` weight 600; the line under it `text-button` weight 500 `text-muted-foreground`, 4px below.
+- Buttons right-aligned, 16px below the text, 8px apart: ghost "Not now" then primary action, both `size="lg"` (44px high, the touch minimum).
+- The iPhone install card is the strong one: `bg-primary` (ink) with white text, title `text-medium`, line at 80% white. Under it the three steps on an `ink-hover` inset (`rounded-lg`, 12px padding): a 24px numbered ring (white at 40%) and the step text; "Tap Share" ends with the Share glyph (`share-icon.tsx`, drawn after the iOS icon: a box with an arrow up out of it) in white 28px `rounded-md` chip, so it looks like the button the user is looking for. Its only button, "Not now", is `secondary` so it reads on ink.
+- Motion: a 200ms slide-up and fade (`animate-prompt-in`, 16px), only under `motion-safe:`; nothing else moves.
+
 ### Link
 
 - Inherits color, no underline; hover color `neutral` (`#5E5E5E`). In long text (manuals) links are underlined and lose the underline on hover.

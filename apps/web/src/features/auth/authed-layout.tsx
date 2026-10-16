@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Outlet, useRouter } from '@tanstack/react-router';
+import { AppPrompt } from '@/features/notifications/app-prompt';
 import { connectSocket, disconnectSocket, getSocket } from '@/lib/socket';
 import { redirectToLogin } from './go-to-login';
 import { clearSession, sessionQuery, useSession } from './use-session';
@@ -18,6 +19,7 @@ const RECONNECT_MAX_MS = 30_000;
  * When the server itself ends the connection (`io server disconnect`, e.g. the admin was
  * removed) Socket.IO does not reconnect, so ask /api/me: no session means the same trip to
  * /login.
+ * It also mounts `<AppPrompt>`, the install and enable-notifications card.
  */
 
 export function AuthedLayout() {
@@ -69,5 +71,10 @@ export function AuthedLayout() {
     };
   }, [userId, queryClient, router]);
 
-  return <Outlet />;
+  return (
+    <>
+      <Outlet />
+      <AppPrompt />
+    </>
+  );
 }
