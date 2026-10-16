@@ -82,10 +82,14 @@ const visibilityField = z.enum(Visibilities);
 const fileIdsField = (max: number) => z.array(IdSchema).max(max).transform(unique);
 const noFiles = fileIdsField(0).default([]);
 
+/** A folder of the item's group; null is the top level. */
+const folderIdField = IdSchema.nullable();
+
 const draftBase = z.object({
   title: titleField,
   body: bodyField.default(''),
   visibility: visibilityField.default('public'),
+  folderId: folderIdField.default(null),
 });
 
 /** A new item; each type has its own fields. */
@@ -120,6 +124,8 @@ export const KnowledgePatchSchema = z
     fileIds: fileIdsField(KNOWLEDGE_LIMITS.noteFiles).optional(),
     visibility: visibilityField.optional(),
     reminder: ReminderEditSchema.optional(),
+    /** Moves the item: a folder of its group, or null for the top level. */
+    folderId: folderIdField.optional(),
     updatedAt: isoDateTime,
   })
   .strict();
@@ -144,6 +150,10 @@ export const KnowledgeSummarySchema = z.object({
   createdBy: TaskPersonSchema,
   createdAt: z.string(),
   updatedAt: z.string(),
+  /** The item's folder; null at the top level. */
+  folderId: z.string().nullable(),
+  /** The folders from the top level down to the item's folder; empty at the top level. */
+  folderPath: z.array(z.object({ id: z.string(), name: z.string() })),
   /** Set in the global list only. */
   group: z.object({ id: z.string(), name: z.string(), logoUrl: z.string().nullable() }).optional(),
 });
@@ -170,11 +180,59 @@ export type KnowledgeItemDto = z.infer<typeof KnowledgeItemDtoSchema>;
 export const KnowledgeScopeSchema = z.object({ managedGroupIds: z.array(z.string()).nullable() });
 export type KnowledgeScope = z.infer<typeof KnowledgeScopeSchema>;
 
+export const KNOWLEDGE_FOLDER_LIMITS = {
+  /** Characters of a folder name. */
+  name: 100,
+  /** Folders of one group. */
+  perGroup: 1000,
+} as const;
+
+/** A folder of a group's knowledge base; `parentId` null is the top level. */
+export const KnowledgeFolderDtoSchema = z.object({
+  id: z.string(),
+  groupId: z.string(),
+  parentId: z.string().nullable(),
+  name: z.string(),
+  visibility: visibilityField,
+  updatedAt: z.string(),
+});
+export type KnowledgeFolderDto = z.infer<typeof KnowledgeFolderDtoSchema>;
+
+/** `GET /api/groups/:id/knowledge/folders`: every folder the actor sees, by name. */
+export const KnowledgeFolderListSchema = z.object({ folders: z.array(KnowledgeFolderDtoSchema) });
+export type KnowledgeFolderList = z.infer<typeof KnowledgeFolderListSchema>;
+
+const folderNameField = z.string().trim().min(1).max(KNOWLEDGE_FOLDER_LIMITS.name);
+
+/** A new folder: in `parentId` (null: the top level). */
+export const KnowledgeFolderDraftSchema = z.object({
+  name: folderNameField,
+  parentId: folderIdField.default(null),
+  visibility: visibilityField.default('public'),
+});
+export type KnowledgeFolderDraft = z.output<typeof KnowledgeFolderDraftSchema>;
+
+/** Rename, move (`parentId`) or change the visibility of a folder: at least one field. */
+export const KnowledgeFolderPatchSchema = z
+  .object({
+    name: folderNameField.optional(),
+    parentId: folderIdField.optional(),
+    visibility: visibilityField.optional(),
+  })
+  .strict()
+  .refine((patch) => Object.keys(patch).length > 0, { message: 'Nothing to change' });
+export type KnowledgeFolderPatch = z.output<typeof KnowledgeFolderPatchSchema>;
+
 /** Socket events pushed after a knowledge write commits. */
 export const KnowledgeEvents = {
   item: 'knowledge:item',
   itemDeleted: 'knowledge:item_deleted',
+  folder: 'knowledge:folder',
+  folderDeleted: 'knowledge:folder_deleted',
 } as const;
+
+export type KnowledgeFolderEvent = { folder: KnowledgeFolderDto };
+export type KnowledgeFolderDeletedEvent = { groupId: string; id: string };
 
 export type KnowledgeItemEvent = { item: KnowledgeSummary };
 export type KnowledgeItemDeletedEvent = { groupId: string; id: string };

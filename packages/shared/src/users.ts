@@ -107,5 +107,8 @@ export const ErrorCodes = {
   notReady: 'not_ready',
   emptyAudience: 'empty_audience',
   unsupportedType: 'unsupported_type',
+  // Phase 24 — knowledge folders
+  invalidFolder: 'invalid_folder',
+  folderLimit: 'folder_limit',
 } as const;
 export type ErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes];
