@@ -26,7 +26,28 @@
     "files_one": "{{count}} attached file",
     "files_other": "{{count}} attached files"
   },
-  "form": {},
+  "form": {
+    "title": "Title",
+    "file": "File",
+    "url": "Web address",
+    "body": "Body",
+    "editBody": "Edit body",
+    "description": "Description",
+    "editDescription": "Edit description",
+    "files": "Files",
+    "visibleTo": "Visible to",
+    "visibilityLocked": "A client's item stays visible to everyone in the group.",
+    "errors": {
+      "titleRequired": "Enter a title.",
+      "titleTooLong": "Use at most 200 characters.",
+      "urlRequired": "Enter a web address.",
+      "urlInvalid": "Enter an address that starts with http:// or https://.",
+      "fileRequired": "Choose a file.",
+      "bodyTooLong": "Use at most 10,000 characters.",
+      "timesRequired": "Add at least one time.",
+      "timesInvalid": "Check the times marked above."
+    }
+  },
   "detail": {},
   "tab": {},
   "newMenu": {},

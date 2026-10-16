@@ -1,5 +1,19 @@
 {
-  "fields": {},
+  "fields": {
+    "times": "Časy",
+    "date": "Dátum {{n}}",
+    "time": "Čas {{n}}",
+    "add": "Pridať čas",
+    "remove": "Odstrániť čas {{n}}",
+    "sent": "odoslané",
+    "recipients": "Príjemcovia",
+    "errors": {
+      "incomplete": "Zadajte dátum a čas.",
+      "passed": "Tento čas už uplynul. Vyberte neskorší.",
+      "tooFar": "Vyberte čas najviac 5 rokov dopredu.",
+      "duplicate": "Tento čas už v zozname je."
+    }
+  },
   "panel": {},
   "time": {
     "today": "Dnes, {{time}}",

@@ -28,7 +28,28 @@
     "files_many": "{{count}} priloženého súboru",
     "files_other": "{{count}} priložených súborov"
   },
-  "form": {},
+  "form": {
+    "title": "Názov",
+    "file": "Súbor",
+    "url": "Webová adresa",
+    "body": "Text",
+    "editBody": "Upraviť text",
+    "description": "Popis",
+    "editDescription": "Upraviť popis",
+    "files": "Súbory",
+    "visibleTo": "Vidia",
+    "visibilityLocked": "Položka klienta zostáva viditeľná pre všetkých v skupine.",
+    "errors": {
+      "titleRequired": "Zadajte názov.",
+      "titleTooLong": "Použite najviac 200 znakov.",
+      "urlRequired": "Zadajte webovú adresu.",
+      "urlInvalid": "Zadajte adresu, ktorá začína http:// alebo https://.",
+      "fileRequired": "Vyberte súbor.",
+      "bodyTooLong": "Použite najviac 10 000 znakov.",
+      "timesRequired": "Pridajte aspoň jeden čas.",
+      "timesInvalid": "Skontrolujte označené časy."
+    }
+  },
   "detail": {},
   "tab": {},
   "newMenu": {},

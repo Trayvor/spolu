@@ -1,5 +1,19 @@
 {
-  "fields": {},
+  "fields": {
+    "times": "Times",
+    "date": "Date {{n}}",
+    "time": "Time {{n}}",
+    "add": "Add time",
+    "remove": "Remove time {{n}}",
+    "sent": "sent",
+    "recipients": "Recipients",
+    "errors": {
+      "incomplete": "Enter a date and a time.",
+      "passed": "This time has passed. Pick a later one.",
+      "tooFar": "Pick a time within 5 years.",
+      "duplicate": "This time is already in the list."
+    }
+  },
   "panel": {},
   "time": {
     "today": "Today, {{time}}",
