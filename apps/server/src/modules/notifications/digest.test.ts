@@ -27,8 +27,7 @@ afterAll(async () => {
   await close();
 });
 
-const DELAY = 600_000;
-const later = (ms = DELAY + 1000) => new Date(Date.now() + ms);
+const later = () => new Date(Date.now() + deps.config.emailBatchDelayMs + 1000);
 
 /** A group with an admin author ("Jana") and a client with email on and push off. */
 async function setup(language: 'sk' | 'en' = 'sk') {
@@ -126,11 +125,10 @@ describe('sendDueDigests', () => {
 
   it('a message read and another unread gives a digest of 1', async () => {
     const s = await setup('en');
-    await send(s.channel, s.admin, 'Old');
+    const old = await send(s.channel, s.admin, 'Old');
     await deliverPending(deps, { userIds: [s.client.id] });
-    await new Promise((r) => setTimeout(r, 50));
-    await markRead(deps.db, s.client.id, s.channel.id, new Date());
-    await new Promise((r) => setTimeout(r, 50));
+    // Read up to (and including) the first message only, by an explicit instant.
+    await markRead(deps.db, s.client.id, s.channel.id, new Date(old.createdAt));
     await send(s.channel, s.admin, 'New');
     await deliverPending(deps, { userIds: [s.client.id] });
     expect(await sendDueDigests(deps, { now: later(), userIds: [s.client.id] })).toBe(1);
@@ -201,5 +199,57 @@ describe('sendDueDigests', () => {
         options: { startAfter: Math.ceil(deps.config.emailBatchDelayMs / 1000) },
       },
     ]);
+  });
+
+  it('a task event makes a line "<body>: <task title>"', async () => {
+    const s = await setup('en');
+    await deps.db.insert(notificationEvents).values({
+      id: randomUUID(),
+      userId: s.client.id,
+      groupId: s.group.id,
+      kind: 'task.assigned',
+      payload: { actorName: 'Jana', title: 'Plan the launch' },
+      deliveredAt: new Date(),
+      emailDueAt: new Date(),
+    });
+    expect(await sendDueDigests(deps, { now: later(), userIds: [s.client.id] })).toBe(1);
+    const mail = await latestEmail(s.client.email);
+    expect(mail.subject).toBe(`1 new message in ${s.group.name}`);
+    expect(mail.text).toContain('Jana assigned you to this task: Plan the launch');
+  });
+
+  it('the sweep without userIds emails due digests', async () => {
+    const s = await setup();
+    await send(s.channel, s.admin, 'Raz');
+    await deliverPending(deps, { userIds: [s.client.id] });
+    expect(await sendDueDigests(deps, { now: later() })).toBeGreaterThanOrEqual(1);
+    expect((await latestEmail(s.client.email)).subject).toBe(`1 nová správa v ${s.group.name}`);
+  });
+
+  it('a digest that cannot be queued is retried by the next run', async () => {
+    const s = await setup();
+    await send(s.channel, s.admin, 'Raz');
+    await deliverPending(deps, { userIds: [s.client.id] });
+    const broken = {
+      ...deps,
+      jobs: {
+        send: async () => {
+          throw new Error('queue down');
+        },
+      },
+    };
+    expect(await sendDueDigests(broken, { now: later(), userIds: [s.client.id] })).toBe(0);
+    expect(await sendDueDigests(deps, { now: later(), userIds: [s.client.id] })).toBe(1);
+    expect(await countEmailsTo(s.client.email)).toBe(1);
+  });
+
+  it('two parallel runs send one email', async () => {
+    const s = await setup();
+    await send(s.channel, s.admin, 'Raz');
+    await deliverPending(deps, { userIds: [s.client.id] });
+    const opts = { now: later(), userIds: [s.client.id] };
+    const counts = await Promise.all([sendDueDigests(deps, opts), sendDueDigests(deps, opts)]);
+    expect(counts.reduce((a, b) => a + b, 0)).toBe(1);
+    expect(await countEmailsTo(s.client.email)).toBe(1);
   });
 });

@@ -4,7 +4,7 @@ import type { Db } from '../../infra/db/client.js';
 import { sendEmailLater, type EmailMessage } from '../../infra/email/index.js';
 import { buildEmail } from '../../infra/email/layout.js';
 import { unreadForNotify } from '../chat/notify.js';
-import { getGroup } from '../groups/service.js';
+import { groups } from '../groups/schema.js';
 import { getTaskTitles } from '../tasks/task-service.js';
 import { getNotificationProfiles } from '../users/service.js';
 import type { NotificationJobDeps } from './deliver.js';
@@ -50,15 +50,23 @@ export async function sendDueDigests(
 ): Promise<number> {
   if (opts.userIds && opts.userIds.length === 0) return 0;
   const now = opts.now ?? new Date();
-  const emails = await deps.db.transaction((tx) => collectDigests(tx, deps, now, opts.userIds));
-  for (const email of emails) {
+  const digests = await deps.db.transaction((tx) => collectDigests(tx, deps, now, opts.userIds));
+  let queued = 0;
+  for (const { email, rowIds } of digests) {
     try {
       await sendEmailLater(deps.jobs, email);
+      queued += 1;
     } catch (error) {
-      console.error('notifications: digest email could not be queued', error);
+      // Give the rows back so the next sweep retries. A crash between the commit and the send
+      // still loses the digest; that is accepted, as for a push.
+      console.error('notifications: digest email could not be queued (the sweep retries)', error);
+      await deps.db
+        .update(notificationEvents)
+        .set({ emailedAt: null })
+        .where(inArray(notificationEvents.id, rowIds));
     }
   }
-  return emails.length;
+  return queued;
 }
 
 async function collectDigests(
@@ -66,7 +74,7 @@ async function collectDigests(
   deps: NotificationJobDeps,
   now: Date,
   userIds: string[] | undefined,
-): Promise<EmailMessage[]> {
+): Promise<{ email: EmailMessage; rowIds: string[] }[]> {
   const due = await tx
     .selectDistinct({ userId: notificationEvents.userId, groupId: notificationEvents.groupId })
     .from(notificationEvents)
@@ -79,6 +87,10 @@ async function collectDigests(
       ),
     );
   if (due.length === 0) return [];
+  // One lock per pair, in a fixed order: a parallel run waits here, then finds the rows emailed
+  // and sends nothing (no early second email for events that arrived in between).
+  const keys = [...new Set(due.map((p) => `${p.userId}${p.groupId}`))].sort();
+  for (const key of keys) await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${key}))`);
   const pairs = sql.join(
     due.map((p) => sql`(${p.userId}::text, ${p.groupId}::text)`),
     sql`, `,
@@ -126,13 +138,21 @@ async function collectDigests(
     const key = `${r.userId}\u0000${r.groupId}`;
     byPair.set(key, [...(byPair.get(key) ?? []), r]);
   }
-  const emails: EmailMessage[] = [];
+  const groupNames = new Map(
+    (
+      await tx
+        .select({ id: groups.id, name: groups.name })
+        .from(groups)
+        .where(inArray(groups.id, [...new Set(rows.map((r) => r.groupId!))]))
+    ).map((g) => [g.id, g.name]),
+  );
+  const digests: { email: EmailMessage; rowIds: string[] }[] = [];
   for (const events of byPair.values()) {
     const first = events[0]!;
     const profile = profiles.get(first.userId);
     if (!profile || profile.disabled || !profile.emailEnabled) continue;
-    const group = await getGroup(tx, first.groupId!);
-    if (!group) continue;
+    const groupName = groupNames.get(first.groupId!);
+    if (groupName === undefined) continue;
     const seen = new Set<string>();
     const lines: string[] = [];
     for (const row of events) {
@@ -143,11 +163,11 @@ async function collectDigests(
         seen.add(messageId);
       }
       const taskId = str(p.taskId);
-      const title = taskId ? (taskTitles.get(taskId) ?? str(p.title)) : null;
+      const title = (taskId ? taskTitles.get(taskId) : undefined) ?? str(p.title);
       const body = buildPushPayload({
         kind: row.kind as NotificationKind,
         payload: p,
-        groupName: group.name,
+        groupName,
         taskTitle: title,
         parentId: null,
         lang: profile.language,
@@ -155,16 +175,17 @@ async function collectDigests(
       lines.push(messageId === null && title ? `${body}: ${title}` : body);
     }
     if (lines.length === 0) continue;
-    emails.push(
-      digestEmail({
+    digests.push({
+      rowIds: events.map((r) => r.id),
+      email: digestEmail({
         to: profile.email,
         lang: profile.language,
-        groupName: group.name,
-        groupUrl: `${deps.config.publicUrl}/groups/${encodeURIComponent(group.id)}/chat`,
+        groupName,
+        groupUrl: `${deps.config.publicUrl}/groups/${encodeURIComponent(first.groupId!)}/chat`,
         count: lines.length,
         lines,
       }),
-    );
+    });
   }
-  return emails;
+  return digests;
 }
