@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { IdSchema } from './chat.js';
 import { FileInfoSchema } from './files.js';
 import { ReminderSetDtoSchema } from './reminders.js';
 import { TaskPersonSchema } from './tasks.js';
@@ -41,21 +42,33 @@ export function isHttpUrl(value: string): boolean {
 const unique = (ids: string[]) => [...new Set(ids)];
 const isoDateTime = z.iso.datetime({ offset: true });
 
-/** The times and added recipients of a reminder item; a time with an `id` is an existing one. */
+const allDistinct = (values: unknown[]) => new Set(values).size === values.length;
+
+/**
+ * The times and added recipients of a reminder item; a time with an `id` is an existing one.
+ * Two times may not share an instant (whatever their offsets) or an id.
+ */
 export const ReminderInputSchema = z.object({
   times: z
-    .array(z.object({ id: z.string().optional(), at: isoDateTime }))
+    .array(z.object({ id: IdSchema.optional(), at: isoDateTime }))
     .min(1)
-    .max(KNOWLEDGE_LIMITS.times),
-  recipientIds: z.array(z.string()).max(KNOWLEDGE_LIMITS.recipients).transform(unique),
+    .max(KNOWLEDGE_LIMITS.times)
+    .refine((times) => allDistinct(times.map((t) => Date.parse(t.at))), {
+      message: 'Duplicate time',
+    })
+    .refine((times) => allDistinct(times.flatMap((t) => (t.id === undefined ? [] : [t.id]))), {
+      message: 'Duplicate time id',
+    }),
+  recipientIds: z.array(IdSchema).max(KNOWLEDGE_LIMITS.recipients).transform(unique),
 });
 export type ReminderInput = z.output<typeof ReminderInputSchema>;
 
 const titleField = z.string().trim().min(1).max(KNOWLEDGE_LIMITS.title);
 const bodyField = z.string().max(KNOWLEDGE_LIMITS.body);
-const urlField = z.string().refine(isHttpUrl);
+const urlField = z.string().trim().refine(isHttpUrl);
 const visibilityField = z.enum(Visibilities);
-const noFiles = z.array(z.string()).max(0).default([]);
+const fileIdsField = (max: number) => z.array(IdSchema).max(max).transform(unique);
+const noFiles = fileIdsField(0).default([]);
 
 const draftBase = z.object({
   title: titleField,
@@ -67,9 +80,12 @@ const draftBase = z.object({
 export const KnowledgeDraftSchema = z.discriminatedUnion('type', [
   draftBase.extend({
     type: z.literal('note'),
-    fileIds: z.array(z.string()).max(KNOWLEDGE_LIMITS.noteFiles).default([]),
+    fileIds: fileIdsField(KNOWLEDGE_LIMITS.noteFiles).default([]),
   }),
-  draftBase.extend({ type: z.literal('file'), fileIds: z.array(z.string()).length(1) }),
+  draftBase.extend({
+    type: z.literal('file'),
+    fileIds: z.array(IdSchema).length(1).transform(unique),
+  }),
   draftBase.extend({ type: z.literal('link'), url: urlField, fileIds: noFiles }),
   draftBase.extend({
     type: z.literal('reminder'),
@@ -89,7 +105,7 @@ export const KnowledgePatchSchema = z
     title: titleField.optional(),
     body: bodyField.optional(),
     url: urlField.optional(),
-    fileIds: z.array(z.string()).max(KNOWLEDGE_LIMITS.noteFiles).optional(),
+    fileIds: fileIdsField(KNOWLEDGE_LIMITS.noteFiles).optional(),
     visibility: visibilityField.optional(),
     reminder: ReminderInputSchema.optional(),
     updatedAt: isoDateTime,

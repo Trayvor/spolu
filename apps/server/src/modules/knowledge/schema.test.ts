@@ -6,8 +6,8 @@ import { testDatabaseUrl } from '../../../test/test-config.js';
 import { createGroup } from '../groups/service.js';
 import { addAdmin } from '../users/service.js';
 import { files } from '../files/schema.js';
-import { reminderSets } from '../reminders/schema.js';
-import { knowledgeItems } from './schema.js';
+import { reminderRecipients, reminderSets, reminderTimes } from '../reminders/schema.js';
+import { knowledgeAttachments, knowledgeItems } from './schema.js';
 
 const { db, close } = createDb(testDatabaseUrl);
 afterAll(() => close());
@@ -107,6 +107,59 @@ describe('knowledge and reminders tables', () => {
         }),
       ),
     ).toBe('reminder_sets_knowledge_item_id_knowledge_items_id_fk');
+  });
+
+  it('deleting an item deletes its reminder set, times, recipients and attachments', async () => {
+    const [group, admin] = await Promise.all([newGroup(), newAdmin()]);
+    const itemId = randomUUID();
+    const fileId = randomUUID();
+    const setId = randomUUID();
+    const timeId = randomUUID();
+    await db.insert(knowledgeItems).values({
+      id: itemId,
+      groupId: group.id,
+      type: 'reminder',
+      title: 'Report',
+      createdBy: admin.id,
+      searchText: 'report',
+    });
+    await db.insert(files).values({
+      id: fileId,
+      groupId: group.id,
+      uploadedBy: admin.id,
+      name: 'a.pdf',
+      mime: 'application/pdf',
+      size: 1,
+      storageKey: `files/${group.id}/${fileId}`,
+    });
+    await db.insert(knowledgeAttachments).values({ itemId, fileId });
+    await db
+      .insert(reminderSets)
+      .values({ id: setId, groupId: group.id, knowledgeItemId: itemId, createdBy: admin.id });
+    await db.insert(reminderTimes).values({ id: timeId, setId, at: new Date('2026-11-01T09:00Z') });
+    await db
+      .insert(reminderRecipients)
+      .values({ setId, userId: admin.id, source: 'author', addedBy: admin.id });
+
+    await db.delete(knowledgeItems).where(eq(knowledgeItems.id, itemId));
+
+    expect(await db.select().from(reminderSets).where(eq(reminderSets.id, setId))).toEqual([]);
+    expect(await db.select().from(reminderTimes).where(eq(reminderTimes.id, timeId))).toEqual([]);
+    expect(
+      await db.select().from(reminderRecipients).where(eq(reminderRecipients.setId, setId)),
+    ).toEqual([]);
+    expect(
+      await db.select().from(knowledgeAttachments).where(eq(knowledgeAttachments.itemId, itemId)),
+    ).toEqual([]);
+    // The file row stays: the service deletes detached files after the commit.
+    expect(await db.select().from(files).where(eq(files.id, fileId))).toHaveLength(1);
+  });
+
+  it('reminder_sets.group_id is indexed', async () => {
+    const rows = await db.execute(
+      sql`select indexdef from pg_indexes where tablename = 'reminder_sets' and indexname = 'reminder_sets_group_id_idx'`,
+    );
+    expect(rows).toHaveLength(1);
   });
 
   it('files.admins_only defaults to false', async () => {

@@ -66,6 +66,7 @@ CREATE INDEX "knowledge_items_created_idx" ON "knowledge_items" USING btree ("cr
 CREATE INDEX "knowledge_items_created_by_idx" ON "knowledge_items" USING btree ("created_by");--> statement-breakpoint
 CREATE INDEX "knowledge_items_search_idx" ON "knowledge_items" USING gin ("search_text" gin_trgm_ops);--> statement-breakpoint
 CREATE INDEX "reminder_recipients_user_id_idx" ON "reminder_recipients" USING btree ("user_id");--> statement-breakpoint
+CREATE INDEX "reminder_sets_group_id_idx" ON "reminder_sets" USING btree ("group_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "reminder_sets_knowledge_item_unique" ON "reminder_sets" USING btree ("knowledge_item_id");--> statement-breakpoint
 CREATE INDEX "reminder_times_due_idx" ON "reminder_times" USING btree ("at") WHERE "reminder_times"."fired_at" is null;--> statement-breakpoint
 CREATE INDEX "reminder_times_set_at_idx" ON "reminder_times" USING btree ("set_id","at");

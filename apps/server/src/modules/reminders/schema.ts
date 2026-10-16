@@ -34,6 +34,8 @@ export const reminderSets = pgTable(
   },
   (t) => [
     check('reminder_sets_subject_check', sql`num_nonnulls(${t.knowledgeItemId}) = 1`),
+    // The group cascade, and the group-scoped reminder lists of later phases.
+    index('reminder_sets_group_id_idx').on(t.groupId),
     uniqueIndex('reminder_sets_knowledge_item_unique').on(t.knowledgeItemId),
   ],
 );

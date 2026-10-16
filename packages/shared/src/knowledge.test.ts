@@ -8,7 +8,11 @@ import {
 } from './knowledge.js';
 
 const at = '2026-11-01T09:00:00.000Z';
-const times = (n: number) => Array.from({ length: n }, () => ({ at }));
+/** `n` distinct times, a minute apart. */
+const times = (n: number) =>
+  Array.from({ length: n }, (_, i) => ({
+    at: new Date(Date.parse(at) + i * 60_000).toISOString(),
+  }));
 
 describe('KnowledgeDraftSchema', () => {
   it('fills the defaults of a note', () => {
@@ -32,6 +36,32 @@ describe('KnowledgeDraftSchema', () => {
   it('a note takes at most 10 files', () => {
     const ids = Array.from({ length: 11 }, (_, i) => `f${i}`);
     expect(KnowledgeDraftSchema.safeParse({ type: 'note', title: 't', fileIds: ids }).success).toBe(
+      false,
+    );
+  });
+
+  it('fileIds must be ids and are deduplicated', () => {
+    const note = (fileIds: string[]) =>
+      KnowledgeDraftSchema.safeParse({ type: 'note', title: 't', fileIds });
+    expect(note(['a b']).success).toBe(false);
+    expect(note(['a\0']).success).toBe(false);
+    expect(note(['x'.repeat(65)]).success).toBe(false);
+    const parsed = KnowledgeDraftSchema.parse({
+      type: 'note',
+      title: 't',
+      fileIds: ['a', 'b', 'a'],
+    });
+    expect(parsed.fileIds).toEqual(['a', 'b']);
+  });
+
+  it('a link url is trimmed before it is checked', () => {
+    const parsed = KnowledgeDraftSchema.parse({
+      type: 'link',
+      title: 't',
+      url: '  https://opvai.sk/vyzvy  ',
+    });
+    expect(parsed.type === 'link' && parsed.url).toBe('https://opvai.sk/vyzvy');
+    expect(KnowledgeDraftSchema.safeParse({ type: 'link', title: 't', url: '   ' }).success).toBe(
       false,
     );
   });
@@ -95,6 +125,39 @@ describe('ReminderInputSchema', () => {
     ).toEqual(['a', 'b']);
   });
 
+  it('recipientIds and time ids must be ids', () => {
+    expect(ReminderInputSchema.safeParse({ times: times(1), recipientIds: ['a b'] }).success).toBe(
+      false,
+    );
+    expect(
+      ReminderInputSchema.safeParse({ times: [{ id: 'a/b', at }], recipientIds: [] }).success,
+    ).toBe(false);
+    expect(
+      ReminderInputSchema.safeParse({ times: [{ id: 't1', at }], recipientIds: [] }).success,
+    ).toBe(true);
+  });
+
+  it('refuses duplicate times and duplicate time ids', () => {
+    const parse = (t: { id?: string; at: string }[]) =>
+      ReminderInputSchema.safeParse({ times: t, recipientIds: [] }).success;
+    expect(parse([{ at }, { at }])).toBe(false);
+    // The same instant written with another offset is the same time.
+    expect(parse([{ at }, { at: '2026-11-01T10:00:00+01:00' }])).toBe(false);
+    const [a, b] = times(2) as [{ at: string }, { at: string }];
+    expect(
+      parse([
+        { id: 't1', ...a },
+        { id: 't1', ...b },
+      ]),
+    ).toBe(false);
+    expect(
+      parse([
+        { id: 't1', ...a },
+        { id: 't2', ...b },
+      ]),
+    ).toBe(true);
+  });
+
   it('takes at most 50 recipients and needs an offset on each time', () => {
     const ids = Array.from({ length: 51 }, (_, i) => `u${i}`);
     expect(ReminderInputSchema.safeParse({ times: times(1), recipientIds: ids }).success).toBe(
@@ -110,6 +173,11 @@ describe('ReminderInputSchema', () => {
 describe('KnowledgePatchSchema', () => {
   const updatedAt = '2026-10-16T10:00:00.000Z';
 
+  it('patch fileIds must be ids and are deduplicated', () => {
+    expect(KnowledgePatchSchema.safeParse({ fileIds: ['a b'], updatedAt }).success).toBe(false);
+    expect(KnowledgePatchSchema.parse({ fileIds: ['a', 'a'], updatedAt }).fileIds).toEqual(['a']);
+  });
+
   it('a patch rejects type', () => {
     expect(KnowledgePatchSchema.safeParse({ type: 'note', updatedAt }).success).toBe(false);
   });
@@ -124,6 +192,9 @@ describe('KnowledgePatchSchema', () => {
 
   it('checks the url of a patch', () => {
     expect(KnowledgePatchSchema.safeParse({ url: 'ftp://x', updatedAt }).success).toBe(false);
+    expect(KnowledgePatchSchema.parse({ url: ' https://x.sk ', updatedAt }).url).toBe(
+      'https://x.sk',
+    );
     expect(KnowledgePatchSchema.safeParse({ url: 'https://x.sk', updatedAt }).success).toBe(true);
   });
 });

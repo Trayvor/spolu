@@ -47,7 +47,7 @@ export type MessageDto = z.infer<typeof MessageSchema>;
 
 /** Ids are uuids or short tokens; the pattern also keeps NUL (which Postgres rejects) out of queries. */
 export const ID_RE = /^[\w-]{1,64}$/;
-const IdSchema = z.string().regex(ID_RE);
+export const IdSchema = z.string().regex(ID_RE);
 /** Message text: bounded, and no NUL character (Postgres text cannot store it). */
 const BodySchema = z
   .string()
