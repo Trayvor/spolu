@@ -1,9 +1,24 @@
-import type { GroupMode, NotificationKind } from '@spolu/shared';
+import {
+  wantsEmail,
+  wantsPush,
+  type GroupMode,
+  type NotificationCategory,
+  type NotificationChannel,
+  type NotificationKind,
+} from '@spolu/shared';
 
-/** The spec's mode filter: plain messages need "all"; everything else also passes "mentions"; reminders pass "off" too. */
-export function passesMode(kind: NotificationKind, mode: GroupMode): boolean {
-  // A reminder was set for this person (or by them) on purpose, so no mode silences it.
-  if (kind === 'reminder.due') return true;
+/**
+ * The spec's mode filter: plain messages need "all"; everything else also passes "mentions";
+ * reminders and ticket board events pass "off" too.
+ */
+export function passesMode(
+  kind: NotificationKind,
+  group: NotificationCategory,
+  mode: GroupMode,
+): boolean {
+  // Ticket events go to the people who follow the ticket, an explicit choice: only the tickets
+  // channel decides. A reminder was set for this person (or by them) on purpose, likewise.
+  if (group === 'tickets' || kind === 'reminder.due') return true;
   if (mode === 'off') return false;
   if (mode === 'all') return true;
   return kind !== 'chat.message';
@@ -38,14 +53,20 @@ export type DecisionInput = {
   isGroupPerson: boolean;
   unread: boolean;
   outranked: boolean;
-  pushEnabled: boolean;
-  emailEnabled: boolean;
+  /** The event's notification group and the user's channel for it. */
+  group: NotificationCategory;
+  channel: NotificationChannel;
+  /** The server has push configured. */
+  pushAvailable: boolean;
   hasSubscriptions: boolean;
 };
 
 export function decideEvent(i: DecisionInput): { push: boolean; email: boolean } {
-  if (!(i.isGroupPerson && i.unread && !i.outranked && passesMode(i.kind, i.mode))) {
+  if (!(i.isGroupPerson && i.unread && !i.outranked && passesMode(i.kind, i.group, i.mode))) {
     return { push: false, email: false };
   }
-  return { push: i.pushEnabled && i.hasSubscriptions, email: i.emailEnabled };
+  return {
+    push: wantsPush(i.channel) && i.pushAvailable && i.hasSubscriptions,
+    email: wantsEmail(i.channel),
+  };
 }

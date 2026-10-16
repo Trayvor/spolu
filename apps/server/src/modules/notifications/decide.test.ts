@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { NotificationKinds, type GroupMode, type NotificationKind } from '@spolu/shared';
+import { NOTIFICATION_GROUP_OF } from './categories.js';
 import { decideEvent, isOutranked, KIND_RANK, passesMode } from './decide.js';
 
 const table: [NotificationKind, Record<GroupMode, boolean>][] = [
@@ -21,7 +22,12 @@ describe('passesMode', () => {
     expect(table.map(([k]) => k).sort()).toEqual([...NotificationKinds].sort());
   });
   it.each(cases)('%s in %s mode -> %s', (kind, mode, expected) => {
-    expect(passesMode(kind, mode)).toBe(expected);
+    expect(passesMode(kind, NOTIFICATION_GROUP_OF[kind], mode)).toBe(expected);
+  });
+  it('a ticket board event passes every mode, Off included', () => {
+    for (const mode of ['all', 'mentions', 'off'] as const) {
+      expect(passesMode('chat.message', 'tickets', mode)).toBe(true);
+    }
   });
 });
 
@@ -31,8 +37,9 @@ const open = {
   isGroupPerson: true,
   unread: true,
   outranked: false,
-  pushEnabled: true,
-  emailEnabled: true,
+  group: 'chat',
+  channel: 'both',
+  pushAvailable: true,
   hasSubscriptions: true,
 } as const;
 
@@ -56,11 +63,22 @@ describe('decideEvent', () => {
       email: false,
     });
   });
-  it('push off still allows email', () => {
-    expect(decideEvent({ ...open, pushEnabled: false })).toEqual({ push: false, email: true });
+  it.each([
+    ['email', { push: false, email: true }],
+    ['push', { push: true, email: false }],
+    ['both', { push: true, email: true }],
+    ['none', { push: false, email: false }],
+  ] as const)('channel %s -> %j', (channel, expected) => {
+    expect(decideEvent({ ...open, channel })).toEqual(expected);
   });
-  it('email off still allows push', () => {
-    expect(decideEvent({ ...open, emailEnabled: false })).toEqual({ push: true, email: false });
+  it('push unavailable on the server still allows email', () => {
+    expect(decideEvent({ ...open, pushAvailable: false })).toEqual({ push: false, email: true });
+  });
+  it('a ticket board event passes Off', () => {
+    expect(decideEvent({ ...open, group: 'tickets', mode: 'off' })).toEqual({
+      push: true,
+      email: true,
+    });
   });
   it('no subscriptions means no push', () => {
     expect(decideEvent({ ...open, hasSubscriptions: false })).toEqual({ push: false, email: true });
