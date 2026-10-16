@@ -42,6 +42,9 @@ erDiagram
     REMINDER_SET ||--o{ REMINDER_TIME : has
     REMINDER_SET ||--o{ REMINDER_RECIPIENT : notifies
     USER ||--o{ REMINDER_RECIPIENT : "is reminded"
+    BULK_CAMPAIGN ||--o{ BULK_RECIPIENT : "is sent to"
+    USER ||--o{ BULK_RECIPIENT : receives
+    USER ||--o| BULK_SUBSCRIPTION : "bulk email setting"
 ```
 
 The ticket intake key is configuration (`TICKETS_API_KEY`), not a table. Ticket replies are the ticket's chat (part 21.3), not a table of their own. `tasks.source_ticket_id` (set null, partial index) links a task to the ticket it was made from; part 21.5 sets it through `createTasksFromSource` (also together with `source_message_id` for a message of a ticket chat).
@@ -76,6 +79,10 @@ The ticket intake key is configuration (`TICKETS_API_KEY`), not a table. Ticket 
 | Ticket | support request; `tickets`: `id`, `number` (identity, unique, shown `#123`), `group_id` (null = without client; cascade), `status` (`new`, `in_progress`, `resolved`), `source` (`api`, `manual`), `requester_user_id` (set null), `requester_name`, `requester_email`, `requester_phone`, `area`, `subject`, `programme`, `body`, `due_date`, `url`, `instance_url`, `file_links` (text[]), `created_by` (set null), `requester_notified_at` (the "Ticket created" email, once), `created_at`, `updated_at`, `resolved_at`. Indexes `(group_id, status, created_at desc)`, `(requester_user_id, created_at desc)`, `(created_at desc) where group_id is null`, `(due_date) where status <> 'resolved'` | 21 | built |
 | TicketFollower | `ticket_followers`, primary key `(ticket_id, user_id)`, `source` (`auto`, `manual`), index on `user_id`; both cascade | 21 | built |
 | TicketAttachment | files uploaded with a ticket made by hand; `ticket_attachments`, primary key `(ticket_id, file_id)`, index on `file_id`; both cascade | 21 | built |
+| BulkCampaign | a bulk email (`modules/bulk-email/schema.ts`, migration `0020_bulk_email`); `bulk_campaigns`: `id` (UUID), `name`, `subject` and `preheader` (default `''`), `blocks` jsonb (default `[]`, the shared `BulkBlockSchema` list), `audience` jsonb (`BulkAudienceSchema`), `status` (`draft`, `sending`, `sent`, `cancelled`, default `draft`; CHECK `bulk_campaigns_status_check`), `version` (default 1, optimistic lock), `sender` and `recipient_count` (set when sending starts), `created_by`, `updated_by`, `sent_by` (user, set null), `created_at`, `updated_at`, `send_started_at`, `finished_at`; index `bulk_campaigns_status_updated_idx` `(status, updated_at desc)` | 23 | built (tables; API from part 23.2) |
+| BulkRecipient | the frozen recipient list of a campaign; `bulk_recipients`: primary key `(campaign_id, user_id)` (both cascade), `email`, `name`, `language` (copied when sending starts; CHECK `sk`/`en`), `status` (`queued`, `sending`, `sent`, `failed`, `skipped`, `cancelled`, default `queued`; CHECK `bulk_recipients_status_check`), `error` (reason of `failed`/`skipped`), `attempts` smallint, `provider_transaction_id`, `provider_message_id` (Elastic's answer, for later webhook matching), `sent_at`, `updated_at`; indexes `bulk_recipients_campaign_status_idx` `(campaign_id, status)` and `bulk_recipients_user_idx` | 23 | built (table) |
+| BulkSubscription | a person's bulk email setting; no row = subscribed. `bulk_subscriptions`: `user_id` primary key (cascade), `subscribed`, `email` (the address at the change), `campaign_id` (the campaign whose link was used; set null), `source` (`link`, `one_click`, `profile`, `provider`; CHECK `bulk_subscriptions_source_check`), `changed_at`. Read only by bulk email, never by login codes or notifications | 23 | built (table) |
+| BulkImage | an image uploaded in the bulk email builder, served publicly by its unguessable id; `bulk_images`: `id` (UUID), `storage_key` (`bulk/<id>`), `mime` (`image/png` or `image/jpeg`, CHECK `bulk_images_mime_check`), `size`, `width`, `height`, `uploaded_by` (set null), `created_at` | 23 | built (table) |
 | Contract | agreement with a client; admin-only; reminder and draft fields | 14 | planned |
 | app_meta | technical table proving migrations work (not a product entity) | 1 | built |
 

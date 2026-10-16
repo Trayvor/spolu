@@ -31,6 +31,14 @@ const base = {
   OPENAI_API_KEY: z.string().min(1).optional(),
   OPENAI_MODEL: z.string().min(1).default('gpt-5-mini'),
   TICKETS_API_KEY: z.string().min(16).optional(),
+  // Phase 23 — bulk email. The API key is optional here and required (below) when either
+  // EMAIL_DRIVER or BULK_EMAIL_DRIVER is `elastic`.
+  ELASTIC_EMAIL_API_KEY: z.string().min(1).optional(),
+  MAIL_FROM_BULK: z.string().min(1).optional(),
+  // Unset: the same as EMAIL_DRIVER, so a server already on elastic keeps starting.
+  BULK_EMAIL_DRIVER: z.enum(['smtp', 'elastic']).optional(),
+  BULK_EMAIL_PER_MINUTE: z.coerce.number().int().min(1).default(120),
+  BULK_EMAIL_UNSUBSCRIBE: z.enum(['elastic', 'spolu']).default('elastic'),
 };
 
 const EnvSchema = z.discriminatedUnion('EMAIL_DRIVER', [
@@ -101,6 +109,17 @@ export type Config = {
   ticketsApiKey: string | null;
   /** Calls a minute per admin to become or stop being a manager; unset = 120 (tests lower it). */
   managerRateLimitPerMinute?: number;
+  /**
+   * The bulk email sender (Phase 23), separate from the transactional one. `smtp` reuses the
+   * SMTP settings of `email` (dev, tests, e2e); `elastic` posts to Elastic's `/v4/emails`.
+   * `unsubscribe`: whether the footer link passes through Elastic (`elastic`) or goes straight
+   * to Spolu with Spolu's own `List-Unsubscribe` header (`spolu`).
+   */
+  bulkEmail:
+    | { driver: 'smtp'; from: string }
+    | { driver: 'elastic'; apiKey: string; from: string; unsubscribe: 'elastic' | 'spolu' };
+  /** Upper bound of bulk emails sent a minute. */
+  bulkEmailPerMinute: number;
 };
 
 export class ConfigError extends Error {
@@ -122,6 +141,7 @@ export function loadConfig(env: NodeJS.ProcessEnv): Config {
   if (e.NODE_ENV === 'production' && e.AI_PROVIDER === 'fake' && e.AI_ALLOW_FAKE !== '1') {
     throw new ConfigError(['AI_PROVIDER']);
   }
+  const bulkEmail = bulkEmailConfig(e);
   return {
     nodeEnv: e.NODE_ENV,
     port: e.PORT,
@@ -151,12 +171,39 @@ export function loadConfig(env: NodeJS.ProcessEnv): Config {
             from: e.MAIL_FROM,
           }
         : { driver: 'elastic', apiKey: e.ELASTIC_EMAIL_API_KEY, from: e.MAIL_FROM },
+    bulkEmail,
+    bulkEmailPerMinute: e.BULK_EMAIL_PER_MINUTE,
     ai:
       e.AI_PROVIDER === 'fake'
         ? { provider: 'fake' }
         : e.OPENAI_API_KEY === undefined
           ? null
           : { provider: 'openai', apiKey: e.OPENAI_API_KEY, model: e.OPENAI_MODEL },
+  };
+}
+
+function bulkEmailConfig(e: {
+  EMAIL_DRIVER: 'smtp' | 'elastic';
+  ELASTIC_EMAIL_API_KEY?: string | undefined;
+  MAIL_FROM: string;
+  MAIL_FROM_BULK?: string | undefined;
+  BULK_EMAIL_DRIVER?: 'smtp' | 'elastic' | undefined;
+  BULK_EMAIL_UNSUBSCRIBE: 'elastic' | 'spolu';
+}): Config['bulkEmail'] {
+  const from = e.MAIL_FROM_BULK ?? e.MAIL_FROM;
+  const driver = e.BULK_EMAIL_DRIVER ?? e.EMAIL_DRIVER;
+  if (driver === 'smtp') {
+    // The smtp bulk driver reuses the transactional SMTP settings; with EMAIL_DRIVER=elastic
+    // there are none.
+    if (e.EMAIL_DRIVER !== 'smtp') throw new ConfigError(['BULK_EMAIL_DRIVER']);
+    return { driver: 'smtp', from };
+  }
+  if (e.ELASTIC_EMAIL_API_KEY === undefined) throw new ConfigError(['ELASTIC_EMAIL_API_KEY']);
+  return {
+    driver: 'elastic',
+    apiKey: e.ELASTIC_EMAIL_API_KEY,
+    from,
+    unsubscribe: e.BULK_EMAIL_UNSUBSCRIBE,
   };
 }
 

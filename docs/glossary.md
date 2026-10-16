@@ -10,6 +10,8 @@ Terms used across the docs and code, in alphabetical order.
 - **assigned to me**: the open tasks (not in Completed) a person is one of the assignees of. Counted in yellow (the `attention` colour) on the Úlohy tab, in the admin client sidebar and on the dashboard's "Assigned to me" card.
 - **automatic reminders**: the task board's built-in reminders (Phase 6): every assignee of an open task is reminded 3, 2 and 1 days before its deadline at 09:00, and every 3 hours while it is urgent. They need no setup and cannot be turned off; compare custom reminders.
 - **bucket**: a column on a task board. Each group has four fixed buckets (To do, eGrant review, client review, Completed) and admins can add custom buckets and reorder every bucket, fixed ones included. Cards can be dragged between and inside buckets.
+- **bulk email** ("Hromadné e-maily"): an email an admin writes from blocks and sends to many people in Spolu at once (Phase 23); one email is a **campaign** (`bulk_campaigns`: draft, sending, sent or cancelled). Only bulk email can be unsubscribed from; login codes and notifications always arrive.
+- **campaign**: see bulk email.
 - **channel**: a place where messages are posted. In Spolu: a group chat, a direct message chat or a task chat.
 - **custom reminders**: reminder times someone sets on a task themselves (Phase 19), for themselves, the people they add and anyone who subscribes. They sit beside the automatic reminders, do not move with the deadline, and export to a calendar with the deadline.
 - **client**: a person from a customer organization. Sees only their own groups (one or several, Phase 21); in the database the role of their membership in each group.
@@ -59,4 +61,5 @@ Terms used across the docs and code, in alphabetical order.
 - **ticket**: a support request (from eGrant's API, a client or an admin) with a number `#123` and a status (New / In progress / Resolved), shown in its client's Tickets tab, in My tickets and in the admins' global view; without a client only in the global view.
 - **ticket follower**: someone notified about a ticket's changes: its initiator, the client's managers and the creating admin from the start, plus anyone who pressed Follow.
 - **ziadatel** (requester): a person who reported a ticket but is not a client of that group (Phase 21). Their membership has the role `ziadatel`: they see only their own tickets of the group, never its chat, tasks, knowledge or members. One person can be a ziadatel of several clients.
+- **unsubscribe token**: the signed part of a bulk email's unsubscribe link, `<userId>.<campaignId>.<signature>` (HMAC-SHA256 with `APP_SECRET`); nothing is stored, and a test email uses the campaign id `test`.
 - **urgent**: a flag on a task. An urgent card shows a red "Urgent" pill on the board, and (from Phase 6) its assignees are reminded every 3 hours between 08:00 and 20:00 until it is in Completed or no longer urgent.

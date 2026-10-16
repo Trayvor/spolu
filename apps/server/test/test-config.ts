@@ -29,6 +29,8 @@ export function testConfig(overrides: Partial<Config> = {}): Config {
     joinRequestsPerMinute: 10,
     ai: null,
     ticketsApiKey: null,
+    bulkEmail: { driver: 'smtp', from: 'eGrant <news@example.com>' },
+    bulkEmailPerMinute: 120,
     ...overrides,
   };
 }

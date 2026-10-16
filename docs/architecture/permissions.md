@@ -9,6 +9,7 @@ Product rules are in [roles-and-access](../product/roles-and-access.md). In the 
 | Read and write chat, tasks, tickets in a group | all groups | all groups                                  | own groups only                            |
 | Contracts module                               | yes        | yes                                         | no (not shown at all)                      |
 | Global tickets list ("Technical support")      | yes        | yes                                         | no                                         |
+| Bulk email ("Hromadné e-maily")                | yes        | yes                                         | no (not shown at all)                      |
 | Create other admins                            | yes        | yes                                         | no                                         |
 | Remove an admin                                | yes        | yes                                         | no                                         |
 | Be removed or demoted                          | never      | yes, by another admin (never by themselves) | yes (assumed, confirm in the phase design) |
@@ -20,6 +21,8 @@ Product rules are in [roles-and-access](../product/roles-and-access.md). In the 
 Permissions are enforced on the server, in one place per module. Each module exports policy functions such as `canReadGroup(user, groupId)`. The same functions are used by HTTP routes and by socket room joins, so there is one definition of "who may see what".
 
 Client-side hiding of buttons and pages is cosmetic. The server never trusts the client.
+
+Bulk email policy lives in `modules/bulk-email/policy.ts`: `canUseBulkEmail(actor)` is `isAdmin(actor)` (Phase 23, owner decision 3: every admin edits, sends, cancels and deletes any campaign; no per-campaign owner). Its routes use `requireAdmin`, except the public image and unsubscribe routes, which check a random image id or a signed token (`modules/bulk-email/token.ts`), and `GET`/`PUT /api/me/bulk-email`, which act only on the signed-in person (parts 23.2–23.4).
 
 User policy lives in `modules/users/policy.ts`: `isAdmin`, `canManageAdmins` (any admin) and `canDeactivate` (target is an admin, not the actor; the superadmin is never a target).
 
