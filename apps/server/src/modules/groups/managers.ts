@@ -59,6 +59,15 @@ export function managedGroupsSql(userId: string): SQL {
   return sql`(select ${groupManagers.groupId} from ${groupManagers} inner join ${user} on ${user.id} = ${groupManagers.userId} where ${and(eq(groupManagers.userId, userId), activeAdmin)})`;
 }
 
+/**
+ * The groups any of these users actively manages, as a parenthesized subquery (the bulk email
+ * audience's managers filter). An empty list matches no group.
+ */
+export function managedGroupsOfSql(userIds: string[]): SQL {
+  if (userIds.length === 0) return sql`(select null::text where false)`;
+  return sql`(select ${groupManagers.groupId} from ${groupManagers} inner join ${user} on ${user.id} = ${groupManagers.userId} where ${and(inArray(groupManagers.userId, userIds), activeAdmin)})`;
+}
+
 /** The group's active managers, by name, then id. */
 export async function listGroupManagers(db: Db, groupId: string): Promise<GroupManager[]> {
   return db
