@@ -175,6 +175,43 @@ describe('useChannelMessages', () => {
     expect(result.current.window.lastSeq).toBe(3);
   });
 
+  it('chat:message_tasks updates the message in the window; other channels are ignored', async () => {
+    const { result, queryClient } = setup();
+    await waitFor(() => expect(result.current.window.loaded).toBe(true));
+    const seq = result.current.window.lastSeq;
+    const tasks = [{ id: 't1', title: 'Report', completed: false }];
+    const payload = { groupId: 'g1', channelId: 'c1', messageId: 'm1', parentId: null, tasks };
+    act(() => socket.fire('chat:message_tasks', { ...payload, channelId: 'c2' }));
+    act(() => socket.fire('chat:message_tasks', { ...payload, groupId: 'g2' }));
+    expect(result.current.window.messages.find((m) => m.id === 'm1')!.tasks).toEqual([]);
+    const thread: Thread = { root: msg(1), replies: [msg(4, { parentId: 'm1' })] };
+    queryClient.setQueryData(threadQuery('m1').queryKey, thread);
+    act(() => socket.fire('chat:message_tasks', payload));
+    expect(result.current.window.messages.find((m) => m.id === 'm1')!.tasks).toEqual(tasks);
+    expect(result.current.window.lastSeq).toBe(seq);
+    expect(queryClient.getQueryData(threadQuery('m1').queryKey)!.root.tasks).toEqual(tasks);
+  });
+
+  it('chat:message_tasks of a reply patches the cached thread of its root', async () => {
+    const { result, queryClient } = setup();
+    await waitFor(() => expect(result.current.window.loaded).toBe(true));
+    const thread: Thread = { root: msg(1), replies: [msg(4, { parentId: 'm1' })] };
+    queryClient.setQueryData(threadQuery('m1').queryKey, thread);
+    const tasks = [{ id: 't1', title: 'Bank', completed: true }];
+    act(() =>
+      socket.fire('chat:message_tasks', {
+        groupId: 'g1',
+        channelId: 'c1',
+        messageId: 'm4',
+        parentId: 'm1',
+        tasks,
+      }),
+    );
+    const cached = queryClient.getQueryData(threadQuery('m1').queryKey)!;
+    expect(cached.replies[0]!.tasks).toEqual(tasks);
+    expect(cached.root.tasks).toEqual([]);
+  });
+
   it('a reply event patches the cached thread', async () => {
     const { result, queryClient } = setup();
     await waitFor(() => expect(result.current.window.loaded).toBe(true));

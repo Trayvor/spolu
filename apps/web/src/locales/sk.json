@@ -178,7 +178,8 @@
     "unread_many": "Neprečítané správy: {{count}}",
     "unread_other": "Neprečítané správy: {{count}}",
     "unread_one": "Neprečítaná správa: {{count}}",
-    "loadError": "Chat sa nepodarilo načítať."
+    "loadError": "Chat sa nepodarilo načítať.",
+    "turnedIntoTasks": "Premenené na úlohy:"
   },
   "tasks": {
     "buckets": {
@@ -231,7 +232,8 @@
       "files_other": "{{count}} súborov",
       "moreAssignees": "+{{count}}",
       "markDone": "Označiť ako hotové",
-      "markNotDone": "Označiť ako nehotové"
+      "markNotDone": "Označiť ako nehotové",
+      "completed": "Hotová"
     },
     "form": {
       "title": "Názov",
