@@ -77,6 +77,7 @@
       "descriptionTooLong": "Use at most 10,000 characters.",
       "tooManyAssignees": "Choose at most 10 people.",
       "invalidAssignee": "Someone you chose is no longer in this group.",
+      "assigneeNotAllowed": "Someone you chose can't be assigned here any more.",
       "tooManyFiles": "Attach at most 20 files.",
       "invalidDate": "Enter a valid deadline.",
       "invalid": "Check the fields and try again."

@@ -275,6 +275,20 @@ describe('ReviewDialog', () => {
     expect(createButton()).toHaveAttribute('aria-disabled', 'true');
   });
 
+  it('shows the assignee error and refetches people', async () => {
+    propose.mockResolvedValue({ tasks: PROPOSALS });
+    create.mockRejectedValueOnce(new ApiError('failed', 400, { error: 'invalid_assignee' }));
+    const { user, queryClient } = renderDialog();
+    await shown();
+    await decideBoth(user);
+    const invalidate = vi.spyOn(queryClient, 'invalidateQueries');
+
+    await user.click(screen.getByRole('button', { name: /Create 2 tasks/ }));
+    await expectAnnounced(t('tasks.form.errors.assigneeNotAllowed'));
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ['groups', 'g1', 'people'] });
+    expect(screen.getAllByRole('article')).toHaveLength(2);
+  });
+
   it('sends one request on a double click, and keeps the cards when it fails', async () => {
     propose.mockResolvedValue({ tasks: PROPOSALS });
     create.mockRejectedValueOnce(new ApiError('failed', 400, { error: 'invalid_attachment' }));
