@@ -43,12 +43,14 @@ const INVITE = 'https://spolu.test/join/old-token';
 const EVA = { id: 'u1', name: 'Eva', email: 'eva@acme.sk' };
 const PETR = { id: 'u2', name: 'Petr', email: 'petr@acme.sk' };
 const OLGA = { id: 'u3', name: 'Olga', email: 'olga@acme.sk' };
+const INVITED = { id: 'u9', name: '', email: 'nova@acme.sk' };
 
 function mockApi(
   options: {
     me?: typeof ADMIN | typeof CLIENT;
     members?: unknown[];
     removed?: unknown[];
+    invited?: unknown[];
     group?: number;
     egrantUrl?: string;
     taskChats?: Record<string, { count: number; unread: boolean }>;
@@ -72,6 +74,7 @@ function mockApi(
     if (url === '/api/groups/g1/task-chats') return reply(200, options.taskChats ?? {});
     if (url === '/api/groups/g1/members') return reply(200, state.members);
     if (url === '/api/groups/g1/members/removed') return reply(200, state.removed);
+    if (url === '/api/groups/g1/members/invited') return reply(200, options.invited ?? [INVITED]);
     const del = url.match(/^\/api\/groups\/g1\/members\/(\w+)$/);
     if (del && method === 'DELETE') {
       const gone = state.members.find((m) => (m as { id: string }).id === del[1]);
@@ -287,8 +290,25 @@ describe('group layout', () => {
     expect(api.calls('GET', '/api/groups/g1/members/removed')).toHaveLength(0);
   });
 
+  it('a client sees no "+ Add member" and no invited rows', async () => {
+    const api = mockApi({ me: CLIENT });
+    renderGroup();
+    await screen.findByText('Petr');
+    expect(screen.queryByRole('button', { name: t('group.members.add') })).toBeNull();
+    expect(screen.queryByText(t('group.members.invited'))).toBeNull();
+    expect(api.calls('GET', '/api/groups/g1/members/invited')).toHaveLength(0);
+  });
+
+  it('an admin sees "+ Add member" and the invited rows', async () => {
+    mockApi();
+    renderGroup();
+    expect(await screen.findByText('nova@acme.sk')).toBeInTheDocument();
+    expect(within(rowOf('nova@acme.sk')).getByText(t('group.members.invited'))).toBeVisible();
+    expect(screen.getByRole('button', { name: t('group.members.add') })).toBeInTheDocument();
+  });
+
   it('shows the empty state', async () => {
-    mockApi({ members: [] });
+    mockApi({ members: [], invited: [] });
     renderGroup();
     expect(await screen.findByText(t('group.members.empty'))).toBeInTheDocument();
   });

@@ -18,11 +18,27 @@
   },
   "members": {
     "title": "Members",
-    "empty": "No members yet. Send the invite link to the client.",
+    "empty": "No members yet. Add them by email or send them the invite link.",
     "remove": "Remove",
     "confirmRemove": "Remove {{name}}? They lose access at once.",
     "removedTitle": "Removed members ({{count}})",
     "restore": "Restore",
-    "you": "You"
+    "you": "You",
+    "add": "+ Add member",
+    "formLabel": "Add a member by email",
+    "email": "Email",
+    "nameOptional": "Name (optional)",
+    "submit": "Add",
+    "cancel": "Cancel",
+    "invalidEmail": "Enter a valid email address.",
+    "toastInvited": "Invitation sent to {{email}}.",
+    "toastAdded": "{{email}} is now a member of the group. We emailed them.",
+    "toastResent": "We sent the invitation to {{email}} again.",
+    "alreadyMember": "This person is already a member.",
+    "emailTakenAdmin": "This email belongs to an administrator. Add them as a manager.",
+    "removedMember": "This person was removed from the group.",
+    "invited": "Invited",
+    "resend": "Resend",
+    "confirmCancelInvite": "Cancel the invitation for {{email}}?"
   }
 }

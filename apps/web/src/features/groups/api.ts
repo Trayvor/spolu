@@ -6,11 +6,15 @@ import {
   GroupSchema,
   GroupManagersResponseSchema,
   GroupSummaryListSchema,
+  InviteMemberBodySchema,
+  InviteMemberResponseSchema,
   ManagersResponseSchema,
   MemberListSchema,
   type Group,
   type GroupInput,
   type GroupManagersResponse,
+  type InviteMemberBody,
+  type InviteMemberResponse,
   type ManagersResponse,
 } from '@spolu/shared';
 import { apiGet, apiSend, apiSendRaw } from '@/lib/api';
@@ -76,6 +80,34 @@ export const removedMembersQuery = (id: string) =>
     queryKey: ['groups', id, 'removed'],
     queryFn: () => apiGet(`/groups/${encodeURIComponent(id)}/members/removed`, MemberListSchema),
   });
+
+/** People invited by email who have not signed in yet ("Pozvaný"; admins only). */
+export const invitedMembersQuery = (id: string) =>
+  queryOptions({
+    queryKey: ['groups', id, 'invited'],
+    queryFn: () => apiGet(`/groups/${encodeURIComponent(id)}/members/invited`, MemberListSchema),
+  });
+
+/** Add a person by email (admins only); the same email again resends the invitation. */
+export function inviteMember(
+  groupId: string,
+  body: InviteMemberBody,
+): Promise<InviteMemberResponse> {
+  return apiSend(
+    'POST',
+    `/groups/${encodeURIComponent(groupId)}/members`,
+    InviteMemberBodySchema.parse(body),
+    InviteMemberResponseSchema,
+  );
+}
+
+/** Cancel the invitation of a person who has not signed in yet. */
+export async function cancelInvite(groupId: string, userId: string): Promise<void> {
+  await apiSend(
+    'DELETE',
+    `/groups/${encodeURIComponent(groupId)}/members/invited/${encodeURIComponent(userId)}`,
+  );
+}
 
 export async function removeMember(groupId: string, userId: string): Promise<void> {
   await apiSend(
