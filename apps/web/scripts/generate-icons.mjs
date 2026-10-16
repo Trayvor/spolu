@@ -1,5 +1,6 @@
 /* global URL, console -- Node globals; ESLint has no Node environment set for plain .mjs scripts */
-// Builds the PWA icons in public/icons/ from the egrant mark (public/brand/favicon.svg).
+// Builds the PWA icons in public/icons/ from the egrant mark (public/brand/favicon.svg) and the
+// email logo PNG public/brand/egrant-logo-email.png from public/brand/egrant-logo.svg.
 // Run after the mark changes: `pnpm --filter @spolu/web icons`. The PNGs are committed.
 import { mkdir, readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
@@ -31,3 +32,13 @@ for (const { file, size, markRatio } of icons) {
     .toFile(`${outDir}/${file}`);
   console.log(`public/icons/${file} (${size}x${size})`);
 }
+
+// The eGrant logo for bulk emails (Phase 23): Gmail and Outlook do not show SVG, so the light
+// logo is also written as a PNG, 360 px wide and shown at 180 px (sharp on high-density screens).
+const logoSvg = await readFile(`${root}public/brand/egrant-logo.svg`);
+const logoFile = 'egrant-logo-email.png';
+const logo = await sharp(logoSvg, { density: 300 })
+  .resize({ width: 360 })
+  .png({ compressionLevel: 9, palette: true })
+  .toFile(`${root}public/brand/${logoFile}`);
+console.log(`public/brand/${logoFile} (${logo.width}x${logo.height})`);

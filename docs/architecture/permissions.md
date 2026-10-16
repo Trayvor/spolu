@@ -22,7 +22,7 @@ Permissions are enforced on the server, in one place per module. Each module exp
 
 Client-side hiding of buttons and pages is cosmetic. The server never trusts the client.
 
-Bulk email policy lives in `modules/bulk-email/policy.ts`: `canUseBulkEmail(actor)` is `isAdmin(actor)` (Phase 23, owner decision 3: every admin edits, sends, cancels and deletes any campaign; no per-campaign owner). Its routes use `requireAdmin`, except the public image and unsubscribe routes, which check a random image id or a signed token (`modules/bulk-email/token.ts`), and `GET`/`PUT /api/me/bulk-email`, which act only on the signed-in person (parts 23.2–23.4).
+Bulk email policy lives in `modules/bulk-email/policy.ts`: `canUseBulkEmail(actor)` is `isAdmin(actor)` (Phase 23, owner decision 3: every admin edits, sends, cancels and deletes any campaign; no per-campaign owner). Its routes use `requireAdmin`, except the public image and unsubscribe routes, which check a random image id or a signed token (`modules/bulk-email/token.ts`), and `GET`/`PUT /api/me/bulk-email`, which act only on the signed-in person (parts 23.2–23.4). Built so far (23.3): `POST /api/bulk-email/images` and `POST /api/bulk-email/campaigns/:id/preview` are `requireAdmin` (client 403, anonymous 401); `GET /api/bulk-email/images/:id` is public and reads only a `bulk_images` row by its UUID, never a storage key from the request, so nothing else in storage is reachable through it.
 
 User policy lives in `modules/users/policy.ts`: `isAdmin`, `canManageAdmins` (any admin) and `canDeactivate` (target is an admin, not the actor; the superadmin is never a target).
 
