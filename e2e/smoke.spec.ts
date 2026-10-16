@@ -25,10 +25,10 @@ test('switching to English changes the UI and persists after reload', async ({ p
   );
 });
 
-test('the home page sends an admin to /groups', async ({ page }) => {
+test('the home page is the admin dashboard', async ({ page }) => {
   await page.goto('/');
-  await expect(page).toHaveURL(/\/groups$/);
-  await expect(page.getByRole('heading', { name: 'Skupiny' })).toBeVisible();
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.getByRole('region', { name: 'Zmienky' })).toBeVisible();
 });
 
 test('a deep link renders the app, not a server 404', async ({ page }) => {

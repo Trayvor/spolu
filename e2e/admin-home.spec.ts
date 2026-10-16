@@ -111,7 +111,9 @@ test('admin home: dashboard, sidebar, Úlohy and global board', async ({ page: s
 
     // 5. G1's Úlohy tab carries the yellow pill.
     await n.goto(`/groups/${g1.id}/chat`);
-    const tasksTab = n.getByRole('link', { name: /^Úlohy/ });
+    const tasksTab = n
+      .getByRole('navigation', { name: 'Časti skupiny' })
+      .getByRole('link', { name: /^Úlohy/ });
     await expect(tasksTab).toContainText('1 úloha priradená vám');
 
     // 6. The global board defaults to the managed G1; adding G2 shows its task.
