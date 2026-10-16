@@ -443,6 +443,17 @@ describe('groups API', () => {
       expect((await call('PUT', url(g.id))).statusCode).toBe(401);
     });
 
+    it('the 121st call in a minute gets 429', async () => {
+      const { cookie } = await adminSession();
+      const g = await newGroup();
+      for (let i = 0; i < 120; i++) {
+        expect((await call('PUT', url(g.id), cookie)).statusCode).toBe(200);
+      }
+      const res = await call('PUT', url(g.id), cookie);
+      expect(res.statusCode).toBe(429);
+      expect(res.json()).toEqual({ error: 'rate_limited' });
+    });
+
     it('an unknown group gets 404', async () => {
       const { cookie } = await adminSession();
       expect((await call('PUT', url(randomUUID()), cookie)).statusCode).toBe(404);

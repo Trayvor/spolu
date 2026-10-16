@@ -357,6 +357,23 @@ describe('socket.io', () => {
       expect(f).toEqual([]);
     });
 
+    it('an admin in the group room and the admins room gets the event once', async () => {
+      const g = await createGroup(test.deps.db, {
+        name: 'G',
+        egrantUrl: `https://g${randomUUID().replaceAll('-', '')}.egrant.sk`,
+      });
+      const admin = await loggedIn(test);
+      const socket = await connected(admin.cookie);
+      const ack: GroupJoinAck = await socket.emitWithAck(SocketEvents.groupJoin, {
+        groupId: g.id,
+      });
+      expect(ack.ok).toBe(true);
+      const got = collect(socket);
+      expect((await put(g.id, admin.cookie)).statusCode).toBe(200);
+      await settle();
+      expect(got).toHaveLength(1);
+    });
+
     it('an unchanged PUT emits nothing', async () => {
       const g = await createGroup(test.deps.db, {
         name: 'G',

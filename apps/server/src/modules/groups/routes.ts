@@ -179,11 +179,13 @@ export const groupsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, {
       if (!(await getGroup(db, id))) return notFound(reply);
       try {
         const { changed, managers } = await change(db, id, actor.id);
+        // Read the mode first: a failure here must not follow an event already sent.
+        const mode = await getEffectiveGroupMode(db, actor, id);
         if (changed) emitManagers(app.io, { groupId: id, managers });
         const response: ManagersResponse = {
           managers,
           managedByMe: managers.some((m) => m.id === actor.id),
-          mode: await getEffectiveGroupMode(db, actor, id),
+          mode,
         };
         return response;
       } catch (error) {
