@@ -209,3 +209,35 @@ export function activeMemberOfSql(userId: string, groupColumn: SQL | AnyColumn):
   return sql`exists (select 1 from group_members gm where gm.user_id = ${userId}
     and gm.group_id = ${groupColumn} and gm.removed_at is null)`;
 }
+
+/**
+ * The users with an active membership of one of `roles`, as a parenthesized subquery for other
+ * modules' one-statement queries (the bulk email audience): `sql\`u.id in ${…}\``. `groupScope`
+ * builds the condition on the membership's group column; null = every group. Served by the
+ * partial index `group_members_group_active_idx`.
+ */
+export function activeMemberIdsSql(
+  roles: MemberRole[],
+  groupScope: ((groupColumn: SQL) => SQL) | null,
+): SQL {
+  const roleList = sql.join(
+    roles.map((role) => sql`${role}`),
+    sql`, `,
+  );
+  const scope = groupScope ? sql` and ${groupScope(sql`gm.group_id`)}` : sql``;
+  return sql`(select gm.user_id from group_members gm where gm.removed_at is null
+    and gm.role in (${roleList})${scope})`;
+}
+
+/** "The user has an active membership of this role (any group)", as SQL. */
+export function hasActiveRoleSql(userId: SQL | AnyColumn, role: MemberRole): SQL<boolean> {
+  return sql<boolean>`exists (select 1 from group_members gm where gm.user_id = ${userId}
+    and gm.role = ${role} and gm.removed_at is null)`;
+}
+
+/** The names of the user's actively joined groups, by name, as a SQL text array. */
+export function activeGroupNamesSql(userId: SQL | AnyColumn): SQL<string[]> {
+  return sql<string[]>`array(select g.name from group_members gm
+    inner join groups g on g.id = gm.group_id
+    where gm.user_id = ${userId} and gm.removed_at is null order by g.name, g.id)`;
+}

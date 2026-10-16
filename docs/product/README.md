@@ -16,6 +16,7 @@ Requirements for Spolu, one topic per file. The product name is "Spolu" (full br
 | `ai-task-split.md` | AI split of one message into several tasks | 11 |
 | `tickets.md` | tickets from eGrant, URL normalization, statuses, replies | 12, 13 |
 | `contracts.md` | admin-only contracts, next-contract draft, reminders, global list | 14, 15 |
+| `bulk-email.md` | admins' bulk email: campaigns, drafts, audience rules | 23 |
 | `notifications.md` | modes per group, push and email channels | 6 (and 7, 9, 12, 15) |
 | `profile.md` | name, avatar, language, password, message search | 16 |
 | `integrations.md` | eGrant, Elastic Email, LLM API | 2, 11, 12, 13 |

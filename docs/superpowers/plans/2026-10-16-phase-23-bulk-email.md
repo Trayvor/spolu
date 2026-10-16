@@ -112,6 +112,17 @@ Each branch is cut from the latest `main`. 23.6 shows **Send a test to me** only
 
 ## Part 23.2 — Campaigns and audience API (spec §2, §4)
 
+**As built (2026-10-16, branch `phase-23-2-bulk-campaigns`).** No migration. Differences and details later parts must use:
+- Errors live in `bulk-email/errors.ts`: `CampaignNotFoundError` (404), `NotDraftError` (409 `not_draft`, wins over a stale version), `CampaignChangedError` (409 `changed`), `InvalidCursorError` (400 `validation_failed`); `routes.ts` maps them in `bulkError`. The routes run `requireAdmin`, then `canUseBulkEmail`; they are registered as `bulkEmailRoutes` in `app.ts`. 23.3/23.5 add their routes to this plugin or beside it.
+- `getCampaign(db, id)` and `listCampaigns(db, cursor?)` share one query (`campaignsQuery`): counts per status plus `unsubscribed` (rows of `bulk_subscriptions` with `subscribed = false` and this `campaign_id`), `createdByName`, `sentByName`; dates are ISO strings with milliseconds. The list items have no `blocks`/`audience`. `listCampaigns` returns `BulkCampaignPage`. `deleteDraft` and `duplicateCampaign` throw `CampaignNotFoundError` for an unknown id. The duplicate's name is cut so name + suffix ≤ 200; the suffix follows `user.language` of the actor.
+- `bulk:updated` (`emitBulkUpdated(io, campaignId)`, `events.ts`) is sent after create, save, delete and duplicate.
+- Shared additions: `BulkCampaignCreateSchema`, `BulkCampaignPage`, `BulkPerson = { id, name, email, role: 'client' | 'ziadatel' | 'admin', groups: string[] }` (spec §2's people item; `listAudience` returns `BulkAudiencePage = { items: BulkPerson[]; nextCursor }`, not `BulkRecipientItem`), `BULK_PEOPLE_SEARCH`, `BulkPeopleLookupSchema`.
+- Audience (`audience.ts`): `audienceSql(audience)` (matched ids, subquery), `recipientsSql(audience)` — `select user_id, email, name, language` of matched, not disabled, not unsubscribed people, each once — for 23.5's one `insert into bulk_recipients (campaign_id, user_id, email, name, language) select ${campaignId}, r.* from (${recipientsSql(a)}) r`; `resolveAudience(db, audience): AudienceRecipient[]` (`{ userId, email, name, language }`, ordered by id) runs the same select. A disabled person who also unsubscribed counts as `disabled`. No roles and no hand-picked people = nobody. Disabled admins match the `admin` role and are counted as left out (disabled).
+- Group helpers added for the boundary rule: `activeMemberIdsSql(roles, groupScope)`, `hasActiveRoleSql(userId, role)`, `activeGroupNamesSql(userId)` (`groups/memberships.ts`), `managedGroupsOfSql(userIds)` (`groups/managers.ts`). The audience joins `user` read-only directly instead of a new `searchActiveUsers` in the users service: `searchPeople` and `lookupPeople` live in `audience.ts`, because they return `BulkPerson` (role and group names).
+- Extra route `POST /api/bulk-email/people/lookup` (`{ ids }` ≤ 1 000 → `BulkPerson[]`, disabled included, unknown left out), so 23.6 can show the hand-picked people of a saved draft by name.
+- The campaign list sorts `bulk_campaigns` by `updated_at desc, id desc` without a dedicated index (the table holds hundreds of rows; the spec's `(status, updated_at)` index serves a status filter later).
+
+
 ### Task 2.1: Campaign CRUD
 
 **Files:**
@@ -123,8 +134,8 @@ Each branch is cut from the latest `main`. 23.6 shows **Send a test to me** only
 - Routes: spec §4 table rows for list, create, get, put, delete, duplicate; the put route has `bodyLimit: 200_000`.
 - Produces: `emitBulkUpdated(io, campaignId)` → `ADMINS_ROOM`, event `bulk:updated`.
 
-- [ ] **Step 1: Failing tests:** `client gets 403 on every route, anonymous 401`; `save with an old version → 409 changed` (Review Focus 5); `save of a sending campaign → 409 not_draft`; `delete of a sent campaign → 409 not_draft`; `duplicate of a sent campaign is a draft with the same blocks and audience, version 1`; `list is newest first, 50 per page with a cursor`; `bulk:updated reaches an admin socket and not a client socket`.
-- [ ] **Step 2–4:** run (FAIL), implement, run (PASS). Commit `feat(bulk-email): campaigns API`.
+- [x] **Step 1: Failing tests:** `client gets 403 on every route, anonymous 401`; `save with an old version → 409 changed` (Review Focus 5); `save of a sending campaign → 409 not_draft`; `delete of a sent campaign → 409 not_draft`; `duplicate of a sent campaign is a draft with the same blocks and audience, version 1`; `list is newest first, 50 per page with a cursor`; `bulk:updated reaches an admin socket and not a client socket`.
+- [x] **Step 2–4:** run (FAIL), implement, run (PASS). Commit `feat(bulk-email): campaigns API`.
 
 ### Task 2.2: Audience
 
@@ -137,9 +148,9 @@ Each branch is cut from the latest `main`. 23.6 shows **Send a test to me** only
 - Produces: `audienceSql(audience: BulkAudience): SQL` (the eligible user ids before "left out"); `countAudience(db, audience): Promise<BulkAudienceCount>`; `listAudience(db, audience, cursor?): Promise<{ items: BulkRecipientItem[]; nextCursor: string | null }>`; `resolveAudience(tx, audience): Promise<{ userId: string; email: string; name: string; language: 'sk' | 'en' }[]>` (eligible minus left out; used by 23.5).
 - Routes: `POST /api/bulk-email/audience/count`, `POST /api/bulk-email/audience/people?cursor=`, `GET /api/bulk-email/people?q=` (≥ 2 characters, 20 results, active users).
 
-- [ ] **Step 1: Failing tests:** `group filter takes active clients of the group, not removed memberships`; `roles ziadatel takes only ziadatel memberships`; `empty groups and managers = every group`; `managerIds adds the groups that admin manages`; `admin role adds every active admin, ignoring the group scope`; `includeUserIds adds a person outside the filters`; `excludeUserIds removes a person`; `a person in two groups, included by hand and admin is counted once` (Review Focus 3); `disabled and unsubscribed people are left out and counted per reason`; `a person who never signed in is included` (P1); `a person who re-subscribed (row with subscribed true) is included`; `count runs one SQL statement` (use the db `onQuery` hook).
-- [ ] **Step 2–4:** run, implement, run. Commit `feat(bulk-email): audience`.
-- [ ] **Step 5: Docs and PR.** `update-kb`: new `product/bulk-email.md` (what admins can do, audience rules), `product/README.md` row, `architecture/permissions.md` row (spec §7). `bash scripts/ci.sh`; PR.
+- [x] **Step 1: Failing tests:** `group filter takes active clients of the group, not removed memberships`; `roles ziadatel takes only ziadatel memberships`; `empty groups and managers = every group`; `managerIds adds the groups that admin manages`; `admin role adds every active admin, ignoring the group scope`; `includeUserIds adds a person outside the filters`; `excludeUserIds removes a person`; `a person in two groups, included by hand and admin is counted once` (Review Focus 3); `disabled and unsubscribed people are left out and counted per reason`; `a person who never signed in is included` (P1); `a person who re-subscribed (row with subscribed true) is included`; `count runs one SQL statement` (use the db `onQuery` hook).
+- [x] **Step 2–4:** run, implement, run. Commit `feat(bulk-email): audience`.
+- [x] **Step 5: Docs and PR.** `update-kb`: new `product/bulk-email.md` (what admins can do, audience rules), `product/README.md` row, `architecture/permissions.md` row (spec §7). `bash scripts/ci.sh`; PR.
 
 ---
 

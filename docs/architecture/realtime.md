@@ -56,7 +56,7 @@ After a bucket is deleted its tasks moved to To do without a `board:task` event;
 | -------------- | ------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
 | `user:<id>`    | every socket of that user, on connect                                           | events for one user (admin changes, notifications)                                                                                 |
 | `session:<id>` | every socket of that login session, on connect                                  | sign-out                                                                                                                           |
-| `admins`       | every admin socket, on connect (`ADMINS_ROOM`)                                  | events about all groups for admins: `group:managers`, `admin:activity`                                                             |
+| `admins`       | every admin socket, on connect (`ADMINS_ROOM`)                                  | events about all groups for admins: `group:managers`, `admin:activity`, `bulk:updated`                                                             |
 | `group:<id>`   | a client, on connect, for each of their client groups; an admin through `group:join` | every event of the group: chat, board (tasks and buckets), files, members (one room per group, no separate channel or board rooms) |
 | `group:<id>:admins` | an admin's socket, together with `group:<id>` on `group:join` (left with it on `group:leave`); never a client | admins-only events of the group (knowledge items with visibility `admins`) |
 | per DM channel | the two participants                                                            | direct messages (not built yet)                                                                                                    |
@@ -68,6 +68,10 @@ After a bucket is deleted its tasks moved to To do without a `board:task` event;
 ## Admin activity
 
 `admin:activity` (`AdminEvents.activity`, payload `AdminActivityEvent` = `{ groupId, kind: 'chat' | 'task' }`, Phase 20) goes to the `admins` room only (`emitAdminActivity` in `infra/realtime/rooms.ts`); clients never get it. Admins are not in every group room, so this tiny signal tells the admin home what to refetch. It is sent next to the group-room event, after the commit, by `emitMessage` (kind `chat`: a group or task chat message sent, edited or deleted; a reply sends it twice, once with the parent) by `emitTask` and `emitTaskDeleted` (kind `task`: a task created, edited, moved or deleted), so every call site is covered, and by the bucket delete route (kind `task`: the bucket's tasks moved to To do). The web coalesces bursts with a 2 s debounce into one refetch per visible consumer (`useAdminActivityRefetch`): the sidebar and the open dashboard cards on both kinds and on `chat:read` in the user room (reading clears counts), the global board on kind `task` only. A `group:managers` event also refetches the sidebar (its sections).
+
+## Bulk email events
+
+`bulk:updated` (`BulkEvents.updated`, payload `BulkEventPayload` = `{ campaignId }`, Phase 23) goes to the `admins` room only (`emitBulkUpdated` in `modules/bulk-email/events.ts`), after a campaign is created, saved, deleted or duplicated (part 23.2; later also after each send state change and batch). The list and an open campaign refetch.
 
 ## Knowledge events
 

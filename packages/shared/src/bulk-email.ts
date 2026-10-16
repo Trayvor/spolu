@@ -198,3 +198,39 @@ export type BulkNotReadyProblem = {
 /** Socket events of bulk email, to the admins room only; payload `{ campaignId }`. */
 export const BulkEvents = { updated: 'bulk:updated' } as const;
 export type BulkEventPayload = { campaignId: string };
+
+/** `POST /api/bulk-email/campaigns`: a new draft needs only its internal name. */
+export const BulkCampaignCreateSchema = z.object({
+  name: z.string().trim().min(1).max(BULK_LIMITS.name),
+});
+export type BulkCampaignCreate = z.infer<typeof BulkCampaignCreateSchema>;
+
+/** `GET /api/bulk-email/campaigns?cursor=`: newest first, `BULK_LIMITS.pageSize` per page. */
+export type BulkCampaignPage = { items: BulkCampaignListItem[]; nextCursor: string | null };
+
+/**
+ * A person in the audience pickers and the "Show recipients" list. `role`: `admin` for admins
+ * and superadmins, `ziadatel` for a person whose only active memberships are ziadatel ones,
+ * else `client`. `groups`: the names of their active memberships, by name.
+ */
+export type BulkPerson = {
+  id: string;
+  name: string;
+  email: string;
+  role: BulkAudienceRole;
+  groups: string[];
+};
+
+/** `POST /api/bulk-email/audience/people?cursor=`: the people who would get it, by name. */
+export type BulkAudiencePage = { items: BulkPerson[]; nextCursor: string | null };
+
+/** People search of the pickers: `GET /api/bulk-email/people?q=` (2–200 characters). */
+export const BULK_PEOPLE_SEARCH = { minQuery: 2, maxQuery: 200, limit: 20 } as const;
+
+/**
+ * `POST /api/bulk-email/people/lookup`: the people behind saved ids (the editor shows the
+ * included and left-out people of a draft by name). Unknown ids are left out of the answer.
+ */
+export const BulkPeopleLookupSchema = z.object({
+  ids: z.array(z.string().min(1).max(100)).max(BULK_LIMITS.audienceIds * 2),
+});
