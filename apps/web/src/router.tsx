@@ -150,7 +150,7 @@ const groupMembersRoute = createRoute({
   getParentRoute: () => groupRoute,
   path: 'members',
   component: lazyRouteComponent(
-    withNamespaces(['group', 'admins'], () => import('@/features/groups/members-tab')),
+    withNamespaces(['group', 'groups', 'admins'], () => import('@/features/groups/members-tab')),
     'MembersTab',
   ),
 });

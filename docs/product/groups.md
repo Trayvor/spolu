@@ -18,7 +18,7 @@ A group is one client (organization). It has a name, a logo and the client's eGr
   - a person who entered an email on an invite but never signed in follows the latest invite they used (a link cannot reserve someone else's email into a group); once they have signed in, other links do nothing;
   - a removed client is blocked: the link sends them no code, and an admin can restore them.
 - Group page: three tabs, Chat, Tasks and Members (Chat opens first). Chat and Tasks are placeholders for now.
-- Members list (Members tab): the group shows its signed-in members (clients who have entered a code).
+- Members list (Members tab): the group shows its signed-in members (clients who have entered a code). Above them, "eGrant managers" lists the group's managers (avatar and name; "No eGrant manager yet." when there are none); admins also get the link "Change on the Groups page".
 - An admin can remove a client from a group and restore them from the removed list; a removed client loses sessions and sockets and gets no new code.
 - Global "All groups" section (admin only):
   - list of all groups and quick access to each;

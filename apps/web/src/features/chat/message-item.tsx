@@ -22,6 +22,7 @@ import { FileChip } from '@/features/files/file-chip';
 import { ImagePreview } from '@/features/files/image-preview';
 import { cn } from '@/lib/utils';
 import { deleteMessage, editMessage } from './api';
+import type { PendingFailReason } from './channel-window';
 import { Composer } from './composer';
 import { MessageBody } from './format/render';
 import { EditIcon, MoreIcon, ReplyIcon, ThreadIcon, TrashIcon } from './icons';
@@ -64,6 +65,8 @@ export interface MessageItemProps {
   quote?: MessageDto | null;
   /** A message still being sent (`sending`) or that failed; it has no actions. */
   pending?: 'sending' | 'failed';
+  /** A failed row's known reason: someone mentioned in it can no longer be mentioned. */
+  failReason?: PendingFailReason;
   onRetry?: (clientId: string) => void;
   /**
    * The server answered an edit (the updated message) or a delete (the message marked deleted).
@@ -277,6 +280,7 @@ export const MessageItem = memo(function MessageItem({
   highlighted = false,
   quote,
   pending,
+  failReason,
   onRetry,
   onChanged,
 }: MessageItemProps) {
@@ -477,7 +481,9 @@ export const MessageItem = memo(function MessageItem({
         )}
         {pending === 'failed' && (
           <p className="mt-0.5 text-micro text-error-ink">
-            {t('chat.notSent')}{' '}
+            {failReason === 'invalid_mention'
+              ? t('chat.composer.mentionNotAllowed')
+              : t('chat.notSent')}{' '}
             <button
               type="button"
               className="font-semibold underline underline-offset-2"

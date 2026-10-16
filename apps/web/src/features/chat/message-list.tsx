@@ -254,6 +254,7 @@ export function MessageList({
             meId={meId}
             nameOf={nameOf}
             pending={p.status}
+            failReason={p.failReason}
             onRetry={onRetry}
           />
         ))}

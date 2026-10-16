@@ -108,6 +108,8 @@ export const MentionPicker = forwardRef<MentionPickerHandle, MentionPickerProps>
             id={optionId(i)}
             role="option"
             aria-selected={i === active}
+            // The option's name stays "Everyone in this group"; the hint is its description.
+            aria-describedby={choice.type === 'all' ? `${id}-all-hint` : undefined}
             // mouseDown keeps the focus (and the caret) in the textarea.
             onMouseDown={(e) => {
               e.preventDefault();
@@ -117,7 +119,16 @@ export const MentionPicker = forwardRef<MentionPickerHandle, MentionPickerProps>
             className={cn(optionClass, i === active && 'bg-accent')}
           >
             {choice.type === 'all' ? (
-              <span className="font-semibold">{t('chat.mention.everyone')}</span>
+              <span className="flex min-w-0 flex-col">
+                <span className="font-semibold">{t('chat.mention.everyone')}</span>
+                <span
+                  id={`${id}-all-hint`}
+                  aria-hidden="true"
+                  className="text-micro text-muted-foreground"
+                >
+                  {t('chat.mention.everyoneHint')}
+                </span>
+              </span>
             ) : (
               <>
                 <Avatar userId={choice.person.id} name={choice.person.name} size={24} />

@@ -76,14 +76,14 @@
       "titleTooLong": "Use at most 200 characters.",
       "descriptionTooLong": "Use at most 10,000 characters.",
       "tooManyAssignees": "Choose at most 10 people.",
-      "invalidAssignee": "Someone you chose is no longer in this group.",
       "assigneeNotAllowed": "Someone you chose can't be assigned here any more.",
       "tooManyFiles": "Attach at most 20 files.",
       "invalidDate": "Enter a valid deadline.",
       "invalid": "Check the fields and try again."
     },
     "unknownFile": "File",
-    "editDescription": "Edit description"
+    "editDescription": "Edit description",
+    "noPickablePeople": "Only clients and the client's managers can be assigned."
   },
   "panel": {
     "label": "Task",
@@ -113,5 +113,8 @@
       "details": "Details",
       "chat": "Chat ({{count}})"
     }
+  },
+  "assignee": {
+    "notManager": "not a manager"
   }
 }

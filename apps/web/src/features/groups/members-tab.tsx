@@ -4,9 +4,10 @@ import { isAdmin } from '@/features/auth/roles';
 import { useSession } from '@/features/auth/use-session';
 import { groupQuery } from './api';
 import { InviteBox } from './invite-box';
+import { ManagersSection } from './managers-section';
 import { MembersList } from './members-list';
 
-/** The invite link (admins) and the members. */
+/** The invite link (admins), the group's eGrant managers and the members. */
 export function MembersTab() {
   const { groupId } = useParams({ strict: false });
   const admin = isAdmin(useSession());
@@ -15,6 +16,7 @@ export function MembersTab() {
   return (
     <div className="flex max-w-[720px] flex-col gap-6">
       {admin && group.inviteUrl && <InviteBox groupId={group.id} inviteUrl={group.inviteUrl} />}
+      <ManagersSection groupId={group.id} />
       <MembersList groupId={group.id} admin={admin} />
     </div>
   );

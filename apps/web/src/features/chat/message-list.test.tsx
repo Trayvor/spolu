@@ -191,6 +191,32 @@ describe('MessageList', () => {
     expect(screen.getAllByText(/Not sent\./)).toHaveLength(1);
   });
 
+  it('a failed row with reason invalid_mention shows the mention line', async () => {
+    const user = userEvent.setup();
+    const onRetry = vi.fn();
+    renderList(
+      [msg()],
+      { onRetry },
+      {
+        pending: [
+          {
+            clientId: 'c-1',
+            input: { body: 'hi there', clientId: 'c-1' },
+            status: 'failed',
+            failReason: 'invalid_mention',
+          },
+        ],
+      },
+    );
+    expect(screen.getByText('hi there')).toBeInTheDocument();
+    expect(
+      screen.getByText(/Someone you mentioned can't be mentioned here any more\./),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/Not sent\./)).toBeNull();
+    await user.click(screen.getByRole('button', { name: 'Retry' }));
+    expect(onRetry).toHaveBeenCalledWith('c-1');
+  });
+
   it('images render ImagePreview, other files FileChip', () => {
     renderList([
       msg({

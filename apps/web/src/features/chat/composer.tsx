@@ -10,8 +10,10 @@ import {
   type KeyboardEvent,
   type RefObject,
 } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import {
+  isPickable,
   MESSAGE_MAX_FILES,
   MESSAGE_MAX_LENGTH,
   plainExcerpt,
@@ -20,6 +22,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { uploadFile } from '@/features/files/upload';
 import { formatFileSize } from '@/features/files/format-size';
+import { groupPeopleQuery } from '@/features/groups/api';
 import { useGroupPeople } from '@/features/groups/use-group-people';
 import { ApiError } from '@/lib/api';
 import { cn } from '@/lib/utils';
@@ -87,7 +90,10 @@ export function Composer({
   onCancel,
 }: ComposerProps) {
   const { t, i18n } = useTranslation();
+  const queryClient = useQueryClient();
   const people = useGroupPeople(groupId).data;
+  // Only clients and managers can be mentioned; names still resolve against every reader.
+  const pickable = useMemo(() => people?.filter(isPickable), [people]);
   const allLabel = t('chat.mention.all');
   const nameOf = (id: string) => people?.find((p) => p.id === id)?.name;
 
@@ -107,7 +113,7 @@ export function Composer({
   const [uploads, setUploads] = useState<Upload[]>([]);
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [failed, setFailed] = useState(false);
+  const [failed, setFailed] = useState<'generic' | 'mention' | null>(null);
   const [activeOption, setActiveOption] = useState<string | undefined>();
 
   const textarea = useRef<HTMLTextAreaElement>(null);
@@ -242,11 +248,17 @@ export function Composer({
       return;
     }
     setBusy(true);
-    setFailed(false);
+    setFailed(null);
     try {
       await onSubmit(input);
-    } catch {
-      setFailed(true);
+    } catch (error) {
+      if (error instanceof ApiError && error.code === 'invalid_mention') {
+        // Someone stopped being mentionable: keep the text and refresh the picker's list.
+        setFailed('mention');
+        void queryClient.invalidateQueries({ queryKey: groupPeopleQuery(groupId).queryKey });
+      } else {
+        setFailed('generic');
+      }
     }
     setBusy(false);
   }
@@ -335,14 +347,14 @@ export function Composer({
         </div>
       )}
       <div className="relative">
-        {pickerOpen && mention && people && (
+        {pickerOpen && mention && pickable && (
           <MentionPicker
             ref={picker}
             // A new query starts at the top of the list again.
             key={mention.query}
             id={`${listId}-mentions`}
             query={mention.query}
-            people={people}
+            people={pickable}
             onPick={pick}
             onClose={() => setClosedAt(mention.start)}
             onActiveChange={setActiveOption}
@@ -466,7 +478,11 @@ export function Composer({
       )}
       {(notice || failed) && (
         <p role="alert" className="text-micro text-error-ink">
-          {failed ? t('errors.generic') : notice}
+          {failed === 'mention'
+            ? t('chat.composer.mentionNotAllowed')
+            : failed
+              ? t('errors.generic')
+              : notice}
         </p>
       )}
     </div>
