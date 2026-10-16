@@ -39,6 +39,9 @@ Phase 5 (group chat, measured 2026-10-15): initial JS about 195 kB gzip (entry c
 
 Chat and task board together (integration of Phases 5 and 8 with main, measured 2026-10-15, gzip level 9 of the scripts `index.html` loads): initial JS about 197 kB gzip (entry chunk 119.4 kB, API client chunk 53.2 kB, router chunks 19.5 kB and 0.6 kB, i18n 4.0 kB), under the 200 kB budget, so the `chat.*` and `tasks.*` texts stay in the locale files of the entry chunk. If a later change crosses the budget, moving those texts into resource bundles loaded with the `chat-tab` and `tasks-tab` chunks (`i18next.addResourceBundle`) is the first lever.
 
+
+Phase 9 review dialog ("Turn into tasks", measured 2026-10-16 the same way): initial JS about 196.9 kB gzip (entry 120.2 kB, API client chunk 52.4 kB, router chunks 19.6 kB and 0.6 kB, i18n 4.1 kB), 0.4 kB less than before the dialog. `@spolu/shared` declares `"sideEffects": false` (its modules only define schemas, constants and functions), so a schema module that only lazy screens import leaves the entry chunks. Without it every module the barrel re-exports stayed eager. The AI split schemas live in their own `task-split.ts` for that reason. The dialog, the Radix `Dialog`, the review cards and the propose/create calls (`split-api.ts`) are the lazy `review-dialog` chunk, 6.4 kB gzip, loaded when a message is chosen; the chat tab only gains the small hook, toast and `ai/status` query.
+
 Budget history: 150 kB → 175 kB (2026-10-15): the Radix dropdown menu for the header language selector (about +29 kB), which later menus reuse at no extra cost. 175 kB → 200 kB (2026-10-15, Phase 2): the session guard checks `/api/me` (validated with zod) before the first screen, so zod and the API client moved into the initial load (about +26 kB); every later screen needs them anyway, and the service worker caches them after the first visit.
 
 The budget is an **alarm, not a target to squeeze under**. When a change crosses it:

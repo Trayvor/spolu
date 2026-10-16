@@ -1,6 +1,7 @@
 import { useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Outlet, useParams } from '@tanstack/react-router';
+import { useMessageTaskTools } from '@/features/task-split/use-message-task-tools';
 import { groupChatQuery } from './api';
 import { ChatLoadError } from './chat-load-error';
 import { Conversation } from './conversation';
@@ -23,6 +24,7 @@ export function ChatTab() {
   });
   const renderFooter = useMemo(() => renderMessageTasks(groupId ?? ''), [groupId]);
   const { unscoped, adopt } = useChatSearch(data?.id);
+  const tools = useMessageTaskTools(groupId ?? '');
   const claim = unscoped && data !== undefined;
   useEffect(() => {
     if (claim) adopt();
@@ -37,12 +39,14 @@ export function ChatTab() {
                 <Conversation
                   channelId={data.id}
                   groupId={groupId}
+                  messageActions={tools.messageActions}
                   renderMessageFooter={renderFooter}
                 />
               )
             : isError && <ChatLoadError onRetry={() => void refetch()} />}
         </div>
       </div>
+      {tools.element}
       <Outlet />
     </>
   );

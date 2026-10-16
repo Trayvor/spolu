@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import type { MessageDto } from '@spolu/shared';
 import { Button } from '@/components/ui/button';
 import { useSession } from '@/features/auth/use-session';
+import { useMediaQuery } from '@/lib/use-media-query';
 import { Composer } from './composer';
 import type { MessageAction } from './message-item';
 import { MessageList } from './message-list';
@@ -29,22 +30,6 @@ export interface ConversationProps {
    * `over` always over the list, for narrow hosts such as the task panel.
    */
   threadMode?: 'side' | 'over';
-}
-
-/** True while the media query matches; false where `matchMedia` is missing. */
-function useMediaQuery(query: string): boolean {
-  const [matches, setMatches] = useState(
-    () => typeof window.matchMedia === 'function' && window.matchMedia(query).matches,
-  );
-  useEffect(() => {
-    if (typeof window.matchMedia !== 'function') return;
-    const list = window.matchMedia(query);
-    const update = () => setMatches(list.matches);
-    update();
-    list.addEventListener('change', update);
-    return () => list.removeEventListener('change', update);
-  }, [query]);
-  return matches;
 }
 
 /**
