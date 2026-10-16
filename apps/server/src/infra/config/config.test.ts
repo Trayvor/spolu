@@ -260,7 +260,10 @@ describe('loadConfig', () => {
 describe('loadConfig: bulk email', () => {
   it('MAIL_FROM_BULK defaults to MAIL_FROM', () => {
     const config = loadConfig(validEnv);
-    expect(config.bulkEmail).toEqual({ driver: 'smtp', from: 'Help by eGrant <noreply@example.com>' });
+    expect(config.bulkEmail).toEqual({
+      driver: 'smtp',
+      from: 'Help by eGrant <noreply@example.com>',
+    });
     expect(
       loadConfig({ ...validEnv, MAIL_FROM_BULK: 'eGrant <info@egrant.sk>' }).bulkEmail,
     ).toEqual({ driver: 'smtp', from: 'eGrant <info@egrant.sk>' });

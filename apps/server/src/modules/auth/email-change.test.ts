@@ -469,7 +469,9 @@ describe('language', () => {
 
     const newEmail = uniqueEmail();
     await requestChange(a.cookie, newEmail);
-    expect((await latestEmail(newEmail)).subject).toMatch(/^Your Help by eGrant email change code: \d{6}$/);
+    expect((await latestEmail(newEmail)).subject).toMatch(
+      /^Your Help by eGrant email change code: \d{6}$/,
+    );
     const code = await latestLoginCode(newEmail);
     expect((await confirmChange(a.cookie, newEmail, code)).statusCode).toBe(200);
     const notice = await waitForSubject(a.email, /^Your Help by eGrant email was changed$/);
