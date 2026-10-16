@@ -5,6 +5,7 @@ import { createDb } from '../../infra/db/client.js';
 import { testDatabaseUrl } from '../../../test/test-config.js';
 import { addAdmin, createUnverifiedClient, deactivateUser } from '../users/service.js';
 import { user } from '../users/schema.js';
+import { addManager } from './managers.js';
 import {
   addMember,
   createGroup,
@@ -13,7 +14,9 @@ import {
   getGroupByInviteToken,
   getMembershipGroupId,
   isGroupPerson,
+  isPickablePerson,
   listGroupPeople,
+  listPickablePeople,
   listGroups,
   listMembers,
   moveUnverified,
@@ -275,5 +278,78 @@ describe('group people', () => {
     for (const u of everyone) {
       expect(await isGroupPerson(db, s.g.id, u.id)).toBe(listed.has(u.id));
     }
+  });
+});
+
+describe('readers versus pickable people', () => {
+  const tag = () => randomUUID().slice(0, 8);
+  async function named(name: string, groupId: string) {
+    const row = await newClient(true);
+    await db.update(user).set({ name }).where(eq(user.id, row.id));
+    await addMember(db, groupId, row.id);
+    return row;
+  }
+  const newAdmin = (name: string) => addAdmin(db, { email: `${randomUUID()}@example.com`, name });
+
+  async function scenario() {
+    const g = await newGroup();
+    const other = await newGroup();
+    const t = tag();
+    const client = await named(`Bb ${t}`, g.id);
+    const m = await newAdmin(`Mm ${t}`);
+    const n = await newAdmin(`Nn ${t}`);
+    await addManager(db, g.id, m.id);
+    const otherClient = await named(`Other ${t}`, other.id);
+    const otherManager = await newAdmin(`Om ${t}`);
+    await addManager(db, other.id, otherManager.id);
+    return { g, client, m, n, otherClient, otherManager };
+  }
+
+  it('listGroupPeople returns readers with isManager', async () => {
+    const s = await scenario();
+    const people = await listGroupPeople(db, s.g.id);
+    expect(people.find((p) => p.id === s.client.id)?.isManager).toBe(false);
+    expect(people.find((p) => p.id === s.m.id)).toMatchObject({ isAdmin: true, isManager: true });
+    expect(people.find((p) => p.id === s.n.id)).toMatchObject({ isAdmin: true, isManager: false });
+    expect(people.find((p) => p.id === s.otherManager.id)?.isManager).toBe(false);
+  });
+
+  it('listPickablePeople is the clients and the active managers', async () => {
+    const s = await scenario();
+    const ours = new Set([s.client.id, s.m.id, s.n.id, s.otherManager.id, s.otherClient.id]);
+    const ids = async () =>
+      (await listPickablePeople(db, s.g.id)).map((p) => p.id).filter((id) => ours.has(id));
+    expect((await ids()).sort()).toEqual([s.client.id, s.m.id].sort());
+    await deactivateUser(db, s.m.id);
+    expect(await ids()).toEqual([s.client.id]);
+  });
+
+  it('isPickablePerson', async () => {
+    const s = await scenario();
+    expect(await isPickablePerson(db, s.g.id, s.client.id)).toBe(true);
+    expect(await isPickablePerson(db, s.g.id, s.m.id)).toBe(true);
+    expect(await isPickablePerson(db, s.g.id, s.n.id)).toBe(false);
+    expect(await isPickablePerson(db, s.g.id, s.otherClient.id)).toBe(false);
+    expect(await isPickablePerson(db, s.g.id, randomUUID())).toBe(false);
+    await deactivateUser(db, s.m.id);
+    expect(await isPickablePerson(db, s.g.id, s.m.id)).toBe(false);
+  });
+
+  it('a manager of another group is not pickable here', async () => {
+    const s = await scenario();
+    expect(await isPickablePerson(db, s.g.id, s.otherManager.id)).toBe(false);
+    expect((await listPickablePeople(db, s.g.id)).some((p) => p.id === s.otherManager.id)).toBe(
+      false,
+    );
+  });
+
+  it('a removed client is not pickable', async () => {
+    const s = await scenario();
+    const removed = await named(`Removed ${tag()}`, s.g.id);
+    await deactivateUser(db, removed.id);
+    expect((await listPickablePeople(db, s.g.id)).some((p) => p.id === removed.id)).toBe(false);
+    expect(await isPickablePerson(db, s.g.id, removed.id)).toBe(false);
+    const reader = (await listGroupPeople(db, s.g.id)).find((p) => p.id === removed.id);
+    expect(reader?.isManager ?? false).toBe(false);
   });
 });

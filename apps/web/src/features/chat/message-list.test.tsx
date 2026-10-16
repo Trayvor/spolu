@@ -13,9 +13,9 @@ vi.mock('./api', () => api);
 
 const ME = 'me';
 const people: GroupPerson[] = [
-  { id: ME, name: 'Me Myself', isAdmin: false },
-  { id: 'anna', name: 'Anna Nováková', isAdmin: false },
-  { id: 'vlad', name: 'Vlad', isAdmin: true },
+  { id: ME, name: 'Me Myself', isAdmin: false, isManager: false },
+  { id: 'anna', name: 'Anna Nováková', isAdmin: false, isManager: false },
+  { id: 'vlad', name: 'Vlad', isAdmin: true, isManager: false },
 ];
 let n = 0;
 function msg(over: Partial<MessageDto> = {}): MessageDto {

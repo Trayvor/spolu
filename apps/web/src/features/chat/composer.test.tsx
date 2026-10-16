@@ -12,8 +12,8 @@ const upload = vi.hoisted(() => ({ uploadFile: vi.fn() }));
 vi.mock('@/features/files/upload', () => upload);
 
 const people: GroupPerson[] = [
-  { id: 'jana', name: 'Jana Nováková', isAdmin: false },
-  { id: 'peter', name: 'Peter Horváth', isAdmin: true },
+  { id: 'jana', name: 'Jana Nováková', isAdmin: false, isManager: false },
+  { id: 'peter', name: 'Peter Horváth', isAdmin: true, isManager: false },
 ];
 
 function renderComposer(props: Partial<ComposerProps> = {}) {
@@ -308,7 +308,7 @@ describe('Composer', () => {
     const user = userEvent.setup();
     const client = new QueryClient();
     client.setQueryData(groupPeopleQuery('g1').queryKey, [
-      { id: 'p', name: 'Peter', isAdmin: false },
+      { id: 'p', name: 'Peter', isAdmin: false, isManager: false },
     ]);
     const onSubmit = vi.fn();
     render(
@@ -354,7 +354,9 @@ describe('Composer', () => {
   it('counts the stored body: mention tokens are longer than the names', () => {
     const id = 'x'.repeat(36);
     const client = new QueryClient();
-    client.setQueryData(groupPeopleQuery('g1').queryKey, [{ id, name: 'Jo', isAdmin: false }]);
+    client.setQueryData(groupPeopleQuery('g1').queryKey, [
+      { id, name: 'Jo', isAdmin: false, isManager: false },
+    ]);
     render(
       <QueryClientProvider client={client}>
         <Composer

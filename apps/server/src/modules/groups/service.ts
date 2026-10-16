@@ -1,13 +1,19 @@
 import { randomBytes, randomUUID } from 'node:crypto';
 import { and, asc, eq, inArray, isNotNull, isNull, or, sql } from 'drizzle-orm';
 import { unionAll } from 'drizzle-orm/pg-core';
-import type { GroupInput, GroupPerson, GroupSummary, Member } from '@spolu/shared';
+import {
+  isPickable,
+  type GroupInput,
+  type GroupPerson,
+  type GroupSummary,
+  type Member,
+} from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
 import { isUniqueViolation } from '../../infra/db/errors.js';
 import { user } from '../users/schema.js';
 import { createUnverifiedClient, findUserByEmail, type UserRow } from '../users/service.js';
 import { normalizeEgrantUrl } from './egrant-url.js';
-import { groupMembers, groups } from './schema.js';
+import { groupManagers, groupMembers, groups } from './schema.js';
 
 export type GroupRow = typeof groups.$inferSelect;
 
@@ -156,23 +162,65 @@ const isNamedActiveMember = (groupId: string) =>
   );
 
 /**
- * Who can be mentioned or assigned in the group: its verified, named, active clients and every
- * active admin. One query, ordered by name.
+ * The readers of the group: its verified, named, active clients and every active admin, each
+ * with whether the admin manages this group. One query, ordered by name.
  */
 export async function listGroupPeople(db: Db, groupId: string): Promise<GroupPerson[]> {
   const clients = db
-    .select({ id: user.id, name: user.name, isAdmin: sql<boolean>`false`.as('is_admin') })
+    .select({
+      id: user.id,
+      name: user.name,
+      isAdmin: sql<boolean>`false`.as('is_admin'),
+      isManager: sql<boolean>`false`.as('is_manager'),
+    })
     .from(groupMembers)
     .innerJoin(user, eq(user.id, groupMembers.userId))
     .where(isNamedActiveMember(groupId));
   const admins = db
-    .select({ id: user.id, name: user.name, isAdmin: sql<boolean>`true`.as('is_admin') })
+    .select({
+      id: user.id,
+      name: user.name,
+      isAdmin: sql<boolean>`true`.as('is_admin'),
+      isManager: sql<boolean>`${groupManagers.userId} is not null`.as('is_manager'),
+    })
     .from(user)
+    .leftJoin(
+      groupManagers,
+      and(eq(groupManagers.userId, user.id), eq(groupManagers.groupId, groupId)),
+    )
     .where(isActiveAdmin);
   return unionAll(clients, admins).orderBy(asc(sql`name`), asc(sql`id`));
 }
 
-/** The same condition as `listGroupPeople`, for one user. */
+/** Who can be assigned or picked: the group's clients and its active managers. */
+export async function listPickablePeople(db: Db, groupId: string): Promise<GroupPerson[]> {
+  return (await listGroupPeople(db, groupId)).filter(isPickable);
+}
+
+/** The same condition as `listPickablePeople`, for one user, in one query. */
+export async function isPickablePerson(db: Db, groupId: string, userId: string): Promise<boolean> {
+  const [row] = await db
+    .select({ id: user.id })
+    .from(user)
+    .leftJoin(
+      groupMembers,
+      and(eq(groupMembers.userId, user.id), eq(groupMembers.groupId, groupId)),
+    )
+    .leftJoin(
+      groupManagers,
+      and(eq(groupManagers.userId, user.id), eq(groupManagers.groupId, groupId)),
+    )
+    .where(
+      and(
+        eq(user.id, userId),
+        or(isNamedActiveMember(groupId), and(isActiveAdmin, isNotNull(groupManagers.userId))),
+      ),
+    )
+    .limit(1);
+  return row !== undefined;
+}
+
+/** The readers' condition (`listGroupPeople`), for one user. */
 export async function isGroupPerson(db: Db, groupId: string, userId: string): Promise<boolean> {
   const [row] = await db
     .select({ id: user.id })
