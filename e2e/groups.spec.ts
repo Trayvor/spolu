@@ -27,6 +27,8 @@ test('admin creates a group, a client joins by invite and is removed', async ({
   // The groups list's row, not the admin sidebar's link (it may list the new group too).
   const row = page.locator('a[href^="/groups/"]:not([href$="/chat"])', { hasText: name });
   await expect(row).toBeVisible();
+  // The logo is lazy-loaded: bring the row on screen first (the list may be long).
+  await row.scrollIntoViewIfNeeded();
   // The logo is decorative (alt=""), so find it by tag and check it really loaded.
   await expect(row.locator('img')).toBeVisible();
   await expect
