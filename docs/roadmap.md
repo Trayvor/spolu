@@ -23,6 +23,10 @@ Requirements per module: [product/](product/README.md). Phases after 1 get their
 | 14 | [Contracts](#phase-14--contracts) | planned | 3 | - |
 | 15 | [Contract reminders](#phase-15--contract-reminders) | planned | 6, 14 | - |
 | 16 | [Password & polish](#phase-16--password--polish) | planned | 5 | - |
+| 17 | [Knowledge base](#phase-17--knowledge-base) | in progress | 9, 6 | [spec](superpowers/specs/2026-10-16-phase-17-knowledge-base-design.md), [plan](superpowers/plans/2026-10-16-phase-17-knowledge-base.md) |
+| 18 | [Client managers](#phase-18--client-managers) | in progress | 9, 6 | [spec](superpowers/specs/2026-10-16-phase-18-client-managers-design.md), [plan](superpowers/plans/2026-10-16-phase-18-client-managers.md) |
+| 19 | [Task reminders](#phase-19--task-reminders) | planned | 17 | [spec](superpowers/specs/2026-10-16-phase-19-task-reminders-design.md), [plan](superpowers/plans/2026-10-16-phase-19-task-reminders.md) |
+| 20 | [Admin home](#phase-20--admin-home) | planned | 17, 18 | [spec](superpowers/specs/2026-10-16-phase-20-admin-home-design.md), [plan](superpowers/plans/2026-10-16-phase-20-admin-home.md) |
 
 Phases 8, 12 and 14 do not depend on each other, so their order can change by priority.
 
@@ -237,3 +241,36 @@ Scope:
 - Database and file backups (including off-site), error monitoring. (A nightly DB backup exists since Phase 1; this adds off-site and file backups.)
 
 Done when: the system is ready for the team to move fully from Teams.
+
+## Phase 17 — Knowledge base
+
+Requirements: [knowledge-base](product/knowledge-base.md), [reminders](product/reminders.md). Owner brief: [phases 17–20](superpowers/specs/2026-10-16-phases-17-20-brief.md).
+
+Scope: a Knowledge tab in each group with notes, files, links and reminders (public or admins-only); an admin list of all knowledge across clients with client and type filters and search; a reminders module with several times, recipients, self-subscription and calendar export.
+
+Done when: an admin and a client create each type, the client never sees admins-only items, a reminder arrives at its time and exports to a calendar, and the admin finds an item through the global search.
+
+## Phase 18 — Client managers
+
+Requirements: [client-managers](product/client-managers.md).
+
+Scope: an admin becomes or stops being a client's manager; only clients and managers can be mentioned, assigned or reached by @all; becoming a manager turns that client's notifications to All.
+
+Done when: an admin becomes manager of a client, is offered in its mention and assignee lists, gets all its messages; a non-manager admin still reads and writes but is not offered.
+
+## Phase 19 — Task reminders
+
+Requirements: [reminders](product/reminders.md), [task-board](product/task-board.md).
+
+Scope: custom reminders on tasks with recipients and subscription, beside the automatic deadline and urgent reminders; calendar export of the deadline and reminders.
+
+Done when: a task reminder arrives at its time for its recipients and the task exports to a calendar.
+
+## Phase 20 — Admin home
+
+Requirements: [admin-home](product/admin-home.md).
+
+Scope: the admin dashboard (assigned tasks, upcoming reminders, unread mentions), the client sidebar with unread and assigned counts, the yellow assigned count on the Tasks tab, and the global task board across clients.
+
+Done when: an admin sees their tasks, reminders and mentions on the home page, opens each from there, and filters the global board by client.
+
