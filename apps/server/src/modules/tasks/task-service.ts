@@ -130,9 +130,13 @@ async function notifyAssigned(
 export async function getTaskRef(
   db: Db,
   id: string,
-): Promise<{ groupId: string; createdBy: string } | null> {
+): Promise<{ groupId: string; createdBy: string; sourceTicketId: string | null } | null> {
   const [row] = await db
-    .select({ groupId: tasks.groupId, createdBy: tasks.createdBy })
+    .select({
+      groupId: tasks.groupId,
+      createdBy: tasks.createdBy,
+      sourceTicketId: tasks.sourceTicketId,
+    })
     .from(tasks)
     .where(eq(tasks.id, id));
   return row ?? null;
@@ -497,13 +501,17 @@ export async function deleteTask(
   deps: TaskDeps,
   id: string,
   options: CleanupOptions,
-): Promise<{ groupId: string; sourceMessageId: string | null }> {
+): Promise<{ groupId: string; sourceMessageId: string | null; sourceTicketId: string | null }> {
   const { db } = deps;
   const deleteInTx = () =>
     db.transaction(async (tx) => {
       // Lock the task first: an edit attaching files right now commits before we list them.
       const [row] = await tx
-        .select({ groupId: tasks.groupId, sourceMessageId: tasks.sourceMessageId })
+        .select({
+          groupId: tasks.groupId,
+          sourceMessageId: tasks.sourceMessageId,
+          sourceTicketId: tasks.sourceTicketId,
+        })
         .from(tasks)
         .where(eq(tasks.id, id))
         .for('update');
