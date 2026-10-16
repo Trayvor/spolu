@@ -1,6 +1,7 @@
 import { and, asc, eq, inArray, isNull, sql, type AnyColumn, type SQL } from 'drizzle-orm';
 import type { MemberRole, SessionUser } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
+import { hasInitiatedTicketIn } from '../tickets/initiators.js';
 import { isAdmin } from '../users/policy.js';
 import { groupMembers, groups, pendingInvites } from './schema.js';
 
@@ -139,6 +140,34 @@ export async function restoreMembership(db: Db, groupId: string, userId: string)
     .update(groupMembers)
     .set({ removedAt: null })
     .where(and(eq(groupMembers.userId, userId), eq(groupMembers.groupId, groupId)));
+}
+
+/**
+ * Cancels an admin's invite ("Odobrať" on a "Pozvaný" row): the user's active client membership
+ * of the group, only while the user has never signed in (`email_verified = false`), checked in
+ * the same statement. A person who initiated a ticket of the group goes back to ziadatel, so
+ * they keep their tickets; otherwise the membership is deleted (not marked removed). Their
+ * pending link invite for this group goes too. The account stays. True when a membership changed.
+ */
+export async function cancelInvitedMembership(
+  db: Db,
+  groupId: string,
+  userId: string,
+): Promise<boolean> {
+  return db.transaction(async (tx) => {
+    const invited = sql`gm.group_id = ${groupId} and gm.user_id = ${userId} and gm.role = 'client'
+      and gm.removed_at is null and gm.user_id = u.id and u.email_verified = false`;
+    const changed = (await hasInitiatedTicketIn(tx, userId, groupId))
+      ? await tx.execute(sql`update group_members gm set role = 'ziadatel' from "user" u
+          where ${invited} returning gm.user_id`)
+      : await tx.execute(sql`delete from group_members gm using "user" u
+          where ${invited} returning gm.user_id`);
+    if (changed.length === 0) return false;
+    await tx
+      .delete(pendingInvites)
+      .where(and(eq(pendingInvites.userId, userId), eq(pendingInvites.groupId, groupId)));
+    return true;
+  });
 }
 
 /** Remembers the invite the user typed their email on; a later invite replaces it. */

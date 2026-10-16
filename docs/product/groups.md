@@ -1,6 +1,6 @@
 # Groups and invites
 
-A group is one client (organization). It has a name, a logo and the client's eGrant URL. Each group has a chat, a task board and a support (tickets) section. Admins create and edit groups, copy invite links, see the member list and can remove a client.
+A group is one client (organization). It has a name, a logo and the client's eGrant URL. Each group has a chat, a task board and a support (tickets) section. Admins create and edit groups, copy invite links, add members by email, see the member list and can remove a client.
 
 ## Requirements
 
@@ -22,6 +22,14 @@ A group is one client (organization). It has a name, a logo and the client's eGr
   - a client removed from the group stays removed: the link does not bring them back, an admin restores them; a client whose every membership was removed is blocked and gets no code.
 - Group page: tabs Chat, Tasks, Tickets (Phase 21, sk "Tikety"), Knowledge (Phase 17, sk "Znalosti") and Members, in that order (Chat opens first). Knowledge is described in `knowledge-base.md`, tickets in `tickets.md`.
 - Members list (Members tab): the group shows its signed-in members (clients who have entered a code). Above them, "eGrant managers" lists the group's managers (avatar and name; "No eGrant manager yet." when there are none); admins add any active admin as a manager with "+ Add manager" (a menu of the admins who do not manage the group yet, by name, with a find field when there are more than 8; "Every administrator already manages this group." when none is left) and remove any manager with "Remove" on its row, without a confirmation. Clients only read the list.
+- **Adding members by email** (Phase 22b, Members tab, admins only): "+ Add member" opens a form under the heading with Email and "Name (optional)". The email is normalized; the name only fills an empty name, an invite never renames anyone. The answers:
+  - nobody has the email: a new client account and a membership; the person gets an invitation email ("Invitation to Spolu – <group>") with a login link that fills in their email (`/login?email=…`) and shows as **"Invited"** (sk "Pozvaný") until their first sign-in; toast "Invitation sent to …";
+  - a person who never signed in (from a link, a ticket or another admin's invite), or a requester of this group who never signed in: the same, "Invited";
+  - an invited person again: nothing changes, the invitation goes again (toast "We sent the invitation to … again.");
+  - a signed-in client of other groups, or a signed-in requester of this group: a member at once, emailed "You were added to <group>" (toast "… is now a member of the group. We emailed them."); a client blocked because their last group removed them is unblocked too;
+  - an active member: "This person is already a member."; an administrator: "This email belongs to an administrator. Add them as a manager.";
+  - a member removed from this group is not added back: "This person was removed from the group." with **Restore** (no email).
+  - Invited rows sit above the members in the same card, with the name (or the email), the email, the "Invited" badge, **Resend** and **Remove** (inline confirmation "Cancel the invitation for …?"). Remove cancels the invitation: no entry in the removed members and no email; a person who had started a ticket of this group stays its requester. After the first sign-in the row is an ordinary member. 30 adds a minute per admin. The emails follow the admin's language.
 - Below the members, **Requesters** (Phase 21, sk "Žiadatelia"): the people who reported tickets for this client without being its clients (`ziadatel` members, also before their first login). Clients see the list; admins remove a requester (at once) and restore them from "Removed requesters (n)". The section is hidden while there are none. A restored requester still only sees their own tickets.
 - An admin can remove a client from a group and restore them from the removed list. The client loses only that group (its pages answer not found and its live events stop); when it was their last group they lose their sessions and sockets and get no new code.
 - A client of several groups has "My groups" (`/my-groups`) in the header (in the user menu under 641 px): their groups with logo, name and unread count. `/` takes a client with one group straight into it and a client of several groups to "My groups".
@@ -34,4 +42,4 @@ A group is one client (organization). It has a name, a logo and the client's eGr
 
 ## Phase
 
-Phase 3 (groups, invites, members list, removing a client). Phase 22a: managers on the Members tab, the Groups page filter, order, count and member link.
+Phase 3 (groups, invites, members list, removing a client). Phase 22a: managers on the Members tab, the Groups page filter, order, count and member link. Phase 22b: adding members by email, the invited state, resend and cancel.

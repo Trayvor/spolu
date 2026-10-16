@@ -8,6 +8,7 @@ A client joins a group through an invite link and only needs to enter an email. 
   1. The administrator copies the group's **invite link** and sends it to the client.
   2. The client opens the link, enters an **email**, confirms a one-time code sent to that email, and then lands in the group. Nothing else needs to be filled in except a name, asked once right after the first login (a client who closes the tab on that step gets it again at the next login).
   3. An email that has no account and did not come through an invite gets the same generic message as before and no code: unknown emails cannot sign up on the login page. Opening an invite with an email that already has an account answers exactly as for a new email. For a client account the invite is remembered and applied when they sign in with the code (a client of another group then belongs to both; the latest invite used wins); an admin or a disabled account is left unchanged, and a disabled account still gets no code.
+   4. An admin can also add a person by email on the group's Members tab (`groups.md`). Their invitation email links to `/login?email=<their email>`: the login page starts with that email filled in (kept only when it has an `@` and at most 254 characters) and the person presses "Send code".
 - Later logins:
   - by a **one-time code sent to email** (default);
   - **optionally** the user can set a password in settings (phase 16).

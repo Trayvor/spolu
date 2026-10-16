@@ -8,20 +8,32 @@ import { Label } from '@/components/ui/label';
 import { ApiError } from '@/lib/api';
 import { sendCode } from './api';
 import { CodeStep } from './code-step';
-import { safeRedirect } from './redirect';
+import { linkEmail, safeRedirect } from './redirect';
 
-/** The route component: reads `?redirect=` once and hands a safe target to the page. */
+/**
+ * The route component: reads `?redirect=` once and hands a safe target to the page, and the
+ * `?email=` of an invitation link as the field's first value. Both are checked again here: the
+ * root route passes the raw search through.
+ */
 export function LoginRoute() {
-  const search = useSearch({ strict: false });
-  return <LoginPage redirectTo={safeRedirect((search as { redirect?: unknown }).redirect)} />;
+  const search = useSearch({ strict: false }) as { redirect?: unknown; email?: unknown };
+  return (
+    <LoginPage redirectTo={safeRedirect(search.redirect)} initialEmail={linkEmail(search.email)} />
+  );
 }
 
 /** Two steps in one card: ask for the email, then for the 6-digit code that was sent to it. */
-export function LoginPage({ redirectTo }: { redirectTo: string }) {
+export function LoginPage({
+  redirectTo,
+  initialEmail = '',
+}: {
+  redirectTo: string;
+  initialEmail?: string;
+}) {
   const { t } = useTranslation();
 
   const [step, setStep] = useState<'email' | 'code'>('email');
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(initialEmail);
   const [fieldError, setFieldError] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);

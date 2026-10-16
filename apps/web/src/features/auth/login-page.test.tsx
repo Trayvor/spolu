@@ -101,6 +101,25 @@ describe('login page', () => {
     ).toBeInTheDocument();
   });
 
+  it('prefills the email from the link', async () => {
+    mockApi();
+    renderAt('/login?email=anna%40firma.sk');
+    expect(await screen.findByLabelText(t('login.email'))).toHaveValue('anna@firma.sk');
+    expect(screen.getByRole('button', { name: t('login.sendCode') })).toBeInTheDocument();
+  });
+
+  it('ignores an email of over 254 characters', async () => {
+    mockApi();
+    renderAt(`/login?email=${'a'.repeat(250)}%40firma.sk`);
+    expect(await screen.findByLabelText(t('login.email'))).toHaveValue('');
+  });
+
+  it('ignores an email without @', async () => {
+    mockApi();
+    renderAt('/login?email=nope&redirect=%2Fsettings');
+    expect(await screen.findByLabelText(t('login.email'))).toHaveValue('');
+  });
+
   it('invalid email shows the field error and sends nothing', async () => {
     const api = mockApi();
     const { user } = renderAt('/login');
