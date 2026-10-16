@@ -71,6 +71,12 @@ function renderList(messages: MessageDto[], props: Partial<MessageListProps> = {
 }
 
 describe('MessageList', () => {
+  it('the scroll container leaves room above the first row for the lifted hover bar', () => {
+    const { container } = renderList([msg()]);
+    const scroller = container.querySelector('[data-message-id]')!.closest('.overflow-y-auto')!;
+    expect(scroller).toHaveClass('pt-9');
+  });
+
   beforeAll(async () => {
     await setLanguage('en');
   });

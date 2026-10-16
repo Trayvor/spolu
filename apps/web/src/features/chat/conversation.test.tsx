@@ -234,6 +234,8 @@ describe('Conversation', () => {
     const opened = await panel();
     await waitFor(() => expect(row(opened, 'r1')).toHaveTextContent('text of r1'));
     expect(within(opened).getByText(t('chat.thread.replies', { count: 2 }))).toBeInTheDocument();
+    // The root is the first row under the header: its lifted hover bar needs room above it.
+    expect(row(opened, 'm2')!.closest('.overflow-y-auto')).toHaveClass('pt-9');
     expect(first.router.state.location.search).toEqual({ thread: 'm2', c: 'c1' });
     const href = first.router.state.location.href;
     first.unmount();

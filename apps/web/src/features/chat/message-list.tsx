@@ -214,7 +214,7 @@ export function MessageList({
       <div
         ref={scroller}
         onScroll={onScroll}
-        className="relative h-full overflow-y-auto overscroll-contain pb-3"
+        className="relative h-full overflow-y-auto overscroll-contain pt-9 pb-3"
       >
         {empty && (
           <p className="px-6 py-10 text-center text-body text-muted-foreground">
