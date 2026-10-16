@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { createOpenAiProvider, SYSTEM_PROMPT } from './openai-provider.js';
+import { createOpenAiProvider, renderSplitPrompt, SYSTEM_PROMPTS } from './openai-provider.js';
 import { AiFailedError, type SplitRequest } from './provider.js';
 
 const request: SplitRequest = {
@@ -8,6 +8,9 @@ const request: SplitRequest = {
   files: [{ id: 'f1', name: 'report.pdf' }],
   people: [{ id: 'u1', name: 'Ana' }],
   today: '2026-10-16',
+  source: 'message',
+  details: [],
+  conversation: [],
 };
 
 const task = {
@@ -58,7 +61,7 @@ describe('OpenAI provider', () => {
     expect(body.model).toBe('gpt-5-mini');
     expect(body).not.toHaveProperty('temperature');
     expect(body.max_completion_tokens).toBe(8000);
-    expect(body.messages[0]).toEqual({ role: 'system', content: SYSTEM_PROMPT });
+    expect(body.messages[0]).toEqual({ role: 'system', content: SYSTEM_PROMPTS.message });
     expect(body.messages[1].role).toBe('user');
     const user: string = body.messages[1].content;
     expect(user).toContain('Message:\nAsk @Ana about report.pdf by Friday');
@@ -136,5 +139,50 @@ describe('OpenAI provider', () => {
     await expect(provider(aborting).split(request, controller.signal)).rejects.toBeInstanceOf(
       AiFailedError,
     );
+  });
+});
+
+describe('the prompt', () => {
+  const ticket: SplitRequest = {
+    ...request,
+    text: 'Error 500\n\nThe Applications tab fails.',
+    quoted: null,
+    source: 'ticket',
+    details: [{ label: 'Area', value: 'Errors' }],
+    conversation: [
+      { author: 'Vlad', text: 'Did you do anything before?' },
+      { author: 'Jana', text: 'I uploaded a file in Chrome.' },
+    ],
+  };
+
+  it('a ticket goes with its details and its chat, oldest first, and the ticket prompt', async () => {
+    const user = renderSplitPrompt(ticket);
+    expect(user).toContain('Ticket:\nError 500\n\nThe Applications tab fails.');
+    expect(user).toContain('Details (context only, never copy them into a card):\nArea: Errors');
+    expect(user).toContain(
+      'Ticket chat (oldest first):\nVlad: Did you do anything before?\nJana: I uploaded a file in Chrome.',
+    );
+    expect(user).not.toContain('Message:');
+
+    const fetchImpl = stubFetch(json(completion({ content: JSON.stringify({ tasks: [] }) })));
+    await provider(fetchImpl).split(ticket, new AbortController().signal);
+    const body = JSON.parse(fetchImpl.mock.calls[0]![1]!.body as string);
+    expect(body.messages[0].content).toBe(SYSTEM_PROMPTS.ticket);
+  });
+
+  it('a message has no details or chat sections', () => {
+    const user = renderSplitPrompt(request);
+    expect(user).not.toContain('Details');
+    expect(user).not.toContain('Ticket chat');
+  });
+
+  it('both prompts forbid metadata lines, ticket numbers in titles and generic advice', () => {
+    for (const prompt of [SYSTEM_PROMPTS.message, SYSTEM_PROMPTS.ticket]) {
+      expect(prompt).toContain('never add a ticket number');
+      expect(prompt).toContain('Never add labelled metadata lines');
+      expect(prompt).toContain('never generic advice');
+      expect(prompt).toContain('otherwise add no notes');
+    }
+    expect(SYSTEM_PROMPTS.ticket).toContain('language of the ticket and its chat');
   });
 });
