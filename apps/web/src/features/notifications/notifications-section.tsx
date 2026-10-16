@@ -21,7 +21,7 @@ import { getDeviceState, subscribeThisDevice, type DeviceState } from './push-de
  * group the server lists, each with a channel select. Choosing a push channel also subscribes this
  * device when it is not set up yet; the subscription starts first, inside the change, because the
  * browser asks for permission only in a user gesture. A change updates at once and rolls back
- * with an error line when the save fails.
+ * with an error line when the save fails (only that group).
  */
 export function NotificationsSection() {
   const { t } = useTranslation();
@@ -42,25 +42,25 @@ export function NotificationsSection() {
     };
   }, []);
 
+  // Each change touches only its own group in the cache, so two quick changes never undo each
+  // other: an answer carries the server's view of every group, possibly older than the other edit.
+  const setGroup = (category: NotificationCategory, channel: NotificationChannel) =>
+    queryClient.setQueryData<NotificationPrefs>(notificationPrefsQuery.queryKey, (current) =>
+      current ? { ...current, channels: { ...current.channels, [category]: channel } } : current,
+    );
   const save = useMutation({
     mutationFn: updateNotificationPrefs,
     onMutate: async (patch: NotificationPrefsPatch) => {
       await queryClient.cancelQueries({ queryKey: notificationPrefsQuery.queryKey });
-      const previous = queryClient.getQueryData<NotificationPrefs>(notificationPrefsQuery.queryKey);
-      if (previous) {
-        queryClient.setQueryData(notificationPrefsQuery.queryKey, {
-          ...previous,
-          channels: { ...previous.channels, [patch.category]: patch.channel },
-        });
-      }
+      const previous = queryClient.getQueryData<NotificationPrefs>(notificationPrefsQuery.queryKey)
+        ?.channels[patch.category];
+      setGroup(patch.category, patch.channel);
       return { previous };
     },
-    onError: (_error, _patch, context) => {
-      if (context?.previous) {
-        queryClient.setQueryData(notificationPrefsQuery.queryKey, context.previous);
-      }
+    onError: (_error, patch, context) => {
+      if (context?.previous) setGroup(patch.category, context.previous);
     },
-    onSuccess: (next) => queryClient.setQueryData(notificationPrefsQuery.queryKey, next),
+    onSuccess: (next, patch) => setGroup(patch.category, next.channels[patch.category]),
   });
 
   async function turnOnDevice(key: string) {

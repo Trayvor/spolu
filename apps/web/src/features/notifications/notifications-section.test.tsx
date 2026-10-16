@@ -129,6 +129,36 @@ describe('NotificationsSection', () => {
     await waitFor(async () => expect(await select('Task board')).toHaveValue('push'));
   });
 
+  it('two quick changes keep each other when the first answer comes last or fails', async () => {
+    // The first PATCH answers after the second, with a body that does not know the second change.
+    let releaseFirst: (r: Response) => void = () => undefined;
+    let n = 0;
+    const base = { ...PREFS };
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string, init?: RequestInit) => {
+        if (init?.method !== 'PATCH') return json(base);
+        n += 1;
+        if (n === 1) return new Promise<Response>((resolve) => (releaseFirst = resolve));
+        return json({ ...base, channels: { ...base.channels, tasks: 'email' } });
+      }),
+    );
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <NotificationsSection />
+      </QueryClientProvider>,
+    );
+    const user = userEvent.setup();
+    await user.selectOptions(await select('Chat'), 'none');
+    await user.selectOptions(await select('Task board'), 'email');
+    await waitFor(async () => expect(await select('Task board')).toHaveValue('email'));
+    releaseFirst(json({ error: 'internal' }, 500));
+    // Only the failed group goes back; the other change stays.
+    await waitFor(async () => expect(await select('Chat')).toHaveValue('push'));
+    expect(await select('Task board')).toHaveValue('email');
+  });
+
   it('choosing push while this device is not set up subscribes it first', async () => {
     const none = {
       ...PREFS,
