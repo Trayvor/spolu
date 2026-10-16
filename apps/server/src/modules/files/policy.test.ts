@@ -10,7 +10,7 @@ const actor = (role: Role, id = 'actor'): SessionUser => ({
 });
 
 describe('canReadFile', () => {
-  const file = { groupId: 'g1' };
+  const file = { groupId: 'g1', adminsOnly: false };
   it.each([
     ['superadmin', null, true],
     ['admin', null, true],
@@ -19,6 +19,15 @@ describe('canReadFile', () => {
     ['client', null, false],
   ] as const)('%s in group %s -> %s', (role, actorGroupId, expected) => {
     expect(canReadFile(actor(role), file, actorGroupId)).toBe(expected);
+  });
+});
+
+describe('canReadFile on admins-only files', () => {
+  const file = { groupId: 'g1', adminsOnly: true };
+  it("an admins-only file is unreadable to the group's client", () => {
+    expect(canReadFile(actor('client'), file, 'g1')).toBe(false);
+    expect(canReadFile(actor('admin'), file, null)).toBe(true);
+    expect(canReadFile(actor('superadmin'), file, null)).toBe(true);
   });
 });
 

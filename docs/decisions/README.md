@@ -38,3 +38,4 @@ What gets easier, what gets harder.
 | [0012](0012-dnd-kit-and-fractional-indexing.md) | dnd-kit and fractional-indexing for the task board | accepted |
 | [0013](0013-web-push.md) | Web Push with VAPID | accepted |
 | [0014](0014-lazy-locale-namespaces.md) | Lazy locale namespaces | accepted |
+| [0015](0015-trigram-search.md) | Trigram search for the knowledge base | accepted |
