@@ -1,5 +1,4 @@
 import type { FastifyPluginAsync, FastifyReply } from 'fastify';
-import { eq } from 'drizzle-orm';
 import { BULK_LIMITS, BulkCampaignDraftSchema, ErrorCodes } from '@spolu/shared';
 import type { AppDeps } from '../../deps.js';
 import { createRateLimiter } from '../../infra/http/rate-limit.js';
@@ -14,7 +13,7 @@ import {
   saveImage,
 } from './images.js';
 import { renderCampaign } from './render.js';
-import { bulkCampaigns } from './schema.js';
+import { getCampaign } from './service.js';
 
 /** `POST …/preview`: the draft as the editor holds it now. */
 const PreviewSchema = BulkCampaignDraftSchema.pick({
@@ -101,11 +100,7 @@ export const bulkEmailRenderRoutes: FastifyPluginAsync<{ deps: AppDeps }> = asyn
     async (request, reply) => {
       const draft = PreviewSchema.safeParse(request.body);
       if (!draft.success) return reply.code(400).send({ error: ErrorCodes.validationFailed });
-      const [campaign] = await db
-        .select({ id: bulkCampaigns.id })
-        .from(bulkCampaigns)
-        .where(eq(bulkCampaigns.id, request.params.id));
-      if (!campaign) return notFound(reply);
+      if (!(await getCampaign(db, request.params.id))) return notFound(reply);
 
       const actor = request.user!;
       const me = await getUserById(db, actor.id);

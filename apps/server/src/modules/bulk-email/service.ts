@@ -11,6 +11,9 @@ import {
   type BulkCampaignListItem,
   type BulkCampaignPage,
   type BulkCampaignStatus,
+  type BulkRecipientItem,
+  type BulkRecipientPage,
+  type BulkRecipientStatus,
   type SessionUser,
 } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
@@ -26,7 +29,8 @@ export { CampaignChangedError, CampaignNotFoundError, InvalidCursorError, NotDra
 
 /**
  * Campaigns (spec §4): drafts are created, saved with an optimistic `version`, deleted and
- * duplicated here. Sending, cancelling and the report arrive with part 23.5.
+ * duplicated here; `listRecipients` is the report's per-person list. Sending and cancelling
+ * live in `send.ts`, the batch job in `batch.ts`.
  */
 
 const iso = (expr: SQL) =>
@@ -283,4 +287,79 @@ export async function duplicateCampaign(
     returning id`);
   if (inserted.length === 0) throw new CampaignNotFoundError();
   return (await getCampaign(db, newId))!;
+}
+
+type RecipientRow = {
+  user_id: string;
+  name: string;
+  email: string;
+  status: BulkRecipientStatus;
+  error: string | null;
+  sent_at: string | null;
+};
+
+function recipientCursorWhere(cursor: string): SQL {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(Buffer.from(cursor, 'base64url').toString());
+  } catch {
+    throw new InvalidCursorError();
+  }
+  if (
+    !Array.isArray(parsed) ||
+    parsed.length !== 2 ||
+    typeof parsed[0] !== 'string' ||
+    typeof parsed[1] !== 'string'
+  ) {
+    throw new InvalidCursorError();
+  }
+  return sql`(r.name, r.user_id) > (${parsed[0]}, ${parsed[1]})`;
+}
+
+/**
+ * The report's per-person list of a campaign (spec §6): by name, `BULK_LIMITS.pageSize` a
+ * page (keyset on `(name, user_id)`), optionally one status; one query a page over the
+ * `(campaign_id, status)` index or the primary key. `CampaignNotFoundError` for an unknown id.
+ */
+export async function listRecipients(
+  db: Db,
+  id: string,
+  opts: { status?: BulkRecipientStatus; cursor?: string } = {},
+): Promise<BulkRecipientPage> {
+  const size = BULK_LIMITS.pageSize;
+  const where = [sql`r.campaign_id = ${id}`];
+  if (opts.status) where.push(sql`r.status = ${opts.status}`);
+  if (opts.cursor) where.push(recipientCursorWhere(opts.cursor));
+  const rows = [
+    ...(await db.execute<RecipientRow>(sql`
+      select r.user_id, r.name, r.email, r.status, r.error, ${iso(sql`r.sent_at`)} as sent_at
+      from bulk_recipients r
+      where ${sql.join(where, sql` and `)}
+      order by r.name, r.user_id
+      limit ${size + 1}`)),
+  ];
+  if (rows.length === 0 && !opts.cursor) {
+    const [found] = await db
+      .select({ id: bulkCampaigns.id })
+      .from(bulkCampaigns)
+      .where(eq(bulkCampaigns.id, id));
+    if (!found) throw new CampaignNotFoundError();
+  }
+  const page = rows.slice(0, size);
+  const last = page[page.length - 1];
+  const items: BulkRecipientItem[] = page.map((r) => ({
+    userId: r.user_id,
+    name: r.name,
+    email: r.email,
+    status: r.status,
+    error: r.error,
+    sentAt: r.sent_at,
+  }));
+  return {
+    items,
+    nextCursor:
+      rows.length > size && last
+        ? Buffer.from(JSON.stringify([last.name, last.user_id])).toString('base64url')
+        : null,
+  };
 }
