@@ -8,6 +8,7 @@ import {
   PushSubscriptionBodySchema,
   type NotificationFallback,
   type NotificationPrefs,
+  type SessionUser,
 } from '@spolu/shared';
 import type { AppDeps } from '../../deps.js';
 import { requireUser } from '../auth/session.js';
@@ -31,7 +32,7 @@ export const notificationsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async 
   const { db, config } = deps;
   const anyUser = requireUser(app.auth);
 
-  const prefsOf = async (actor: { id: string }): Promise<NotificationPrefs> => ({
+  const prefsOf = async (actor: SessionUser): Promise<NotificationPrefs> => ({
     channels: await getNotificationChannels(db, actor.id),
     visibleCategories: await visibleCategoriesFor(db, actor),
     vapidPublicKey: config.push?.publicKey ?? null,

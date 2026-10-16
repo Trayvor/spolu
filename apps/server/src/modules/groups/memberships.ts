@@ -45,6 +45,19 @@ export async function listMemberships(db: Db, userId: string): Promise<Membershi
     .orderBy(asc(groups.name), asc(groups.id));
 }
 
+/** The users with an active membership of the given role in the group. */
+export async function activeMemberIds(
+  db: Db,
+  groupId: string,
+  role: MemberRole,
+): Promise<string[]> {
+  const rows = await db
+    .select({ userId: groupMembers.userId })
+    .from(groupMembers)
+    .where(and(eq(groupMembers.groupId, groupId), eq(groupMembers.role, role), isActive));
+  return rows.map((r) => r.userId);
+}
+
 /** The groups the user reads as a client: their active `client` memberships. */
 export async function clientGroupIds(db: Db, userId: string): Promise<string[]> {
   const rows = await db

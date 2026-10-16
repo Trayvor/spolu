@@ -2,8 +2,10 @@ import {
   NotificationCategories,
   type NotificationCategory,
   type NotificationKind,
+  type SessionUser,
 } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
+import { activeMemberIds, isRequesterOnly } from '../groups/memberships.js';
 import { listGroupPeople } from '../groups/service.js';
 
 /**
@@ -40,31 +42,28 @@ export function notificationGroupOf(
 }
 
 /**
- * The groups the user can set (and the profile shows): all of them for everyone today. Item B-1
- * narrows this to `['tickets']` for a requester-only user (not an admin, no active client
- * membership).
+ * The groups the user can set (and the profile shows): all four, except for a requester-only
+ * person (not an admin, no active client membership, Phase 21), who has only `tickets`.
  */
-// The parameters are item B-1's (it reads the user's memberships); unused until then.
-/* eslint-disable @typescript-eslint/no-unused-vars */
 export async function visibleCategoriesFor(
-  _db: Db,
-  _user: { id: string },
+  db: Db,
+  user: SessionUser,
 ): Promise<NotificationCategory[]> {
-  /* eslint-enable @typescript-eslint/no-unused-vars */
-  return [...NotificationCategories];
+  return (await isRequesterOnly(db, user)) ? ['tickets'] : [...NotificationCategories];
 }
 
 /**
  * Who belongs to the event's client group for delivery: the group's people (its clients and every
- * admin) for every group today. Item B-1 changes only this: for `tickets`, members with the
- * `ziadatel` role count too; for every other group they do not.
+ * admin); for `tickets` also its `ziadatel` members (Phase 21), who belong to no other group.
  */
 export async function notificationAudience(
   db: Db,
   groupId: string,
-  // Item B-1's (it widens the audience for `tickets`); unused until then.
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  _group: NotificationCategory,
+  group: NotificationCategory,
 ): Promise<Set<string>> {
-  return new Set((await listGroupPeople(db, groupId)).map((p) => p.id));
+  const people = new Set((await listGroupPeople(db, groupId)).map((p) => p.id));
+  if (group === 'tickets') {
+    for (const id of await activeMemberIds(db, groupId, 'ziadatel')) people.add(id);
+  }
+  return people;
 }
