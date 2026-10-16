@@ -310,6 +310,6 @@ Requirements: [groups](product/groups.md), [client-managers](product/client-mana
 - The Groups page: the member count links to the Members tab, manager names in a tooltip, a filter by manager (`?manager=me|none|<adminId>`), my groups first, and a group count.
 - The client filter's "Predvolené" sits in the filter row on Úlohy and Znalosti.
 
-**22b — invites by email (planned):** admins invite members by email on the Members tab (an email with a login link; the "Pozvaný" state, resend, cancel). It must first be redesigned for Phase 21.1's membership model (`pending_invites`, clients in several groups, the `ziadatel` role); see the plan's "22b" note.
+**22b — invites by email (planned, redesigned for Phase 21.1):** admins add members by email on the Members tab. A new or never-signed-in person gets an invitation with a login link (`/login?email=`) and shows as "Pozvaný" (resend, cancel) until the first sign-in; a client of another group is added at once and told by email. An admin's invite is a client membership created directly (no `pending_invites` row, no migration). The plan's Part 22b lists the proposed rules that wait for the owner's confirmation.
 
 Done when: (22a) an admin adds a manager on the Members tab and the Groups page filters by manager with the count; (22b) an admin invites a member, the member gets the email and signs in.
