@@ -9,14 +9,16 @@ import { renderMessageTasks } from '@/features/chat/message-tasks';
 import { withNamespaces } from '@/i18n/namespaces';
 import { aiStatusQuery } from './api';
 
-// The review dialog (and the task form inside it) loads only when a message is chosen.
-// Its form fields need the `forms` namespace, which the chat and task panel routes load already.
-const ReviewDialog = lazy(withNamespaces(['forms'], () => import('./review-dialog')));
+// The review dialog (and the task form inside it) loads only when a message is chosen, with the
+// namespaces it renders (the ticket page loads neither `tasks` nor `taskSplit` by itself).
+const ReviewDialog = lazy(
+  withNamespaces(['forms', 'tasks', 'taskSplit'], () => import('./review-dialog')),
+);
 
 const NO_ACTIONS: MessageAction[] = [];
 
-/** Sparkle: the AI action in the message menu. */
-const TasksIcon = () => (
+/** Sparkle: the AI action in the message menu (and on the ticket page). */
+export const TasksIcon = () => (
   <svg
     aria-hidden="true"
     viewBox="0 0 24 24"
@@ -85,7 +87,7 @@ export function useMessageTaskTools(groupId: string): {
           <ReviewDialog
             key={message.id}
             groupId={groupId}
-            message={message}
+            source={{ kind: 'message', message }}
             onClose={close}
             onCreated={onCreated}
           />

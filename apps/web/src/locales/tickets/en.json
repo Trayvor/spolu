@@ -106,5 +106,10 @@
       "email": "Enter a valid email.",
       "links": "Up to 20 links, each starting with https:// or http://."
     }
+  },
+  "tasks": {
+    "title": "Tasks",
+    "none": "No tasks yet. Turn the ticket into tasks to put the work on the board.",
+    "completed": "Completed"
   }
 }

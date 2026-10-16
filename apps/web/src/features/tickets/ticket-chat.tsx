@@ -4,6 +4,7 @@ import { ticketChatQuery } from '@/features/chat/api';
 import { ChatLoadError } from '@/features/chat/chat-load-error';
 import { Conversation } from '@/features/chat/conversation';
 import { GroupRoomProvider, useGroupRoom } from '@/features/groups/use-group-room';
+import { useMessageTaskTools } from '@/features/task-split/use-message-task-tools';
 import { getSocket } from '@/lib/socket';
 
 /**
@@ -31,7 +32,9 @@ function useConnects(enabled: boolean): number {
  * from the channel (the initiator included; a requester cannot read the group's people) and its
  * uploads through the ticket (`POST /api/tickets/:id/files`). Admins and the group's clients
  * follow the group room, as on the group's pages; a requester (`readsGroup` false) follows their
- * own connection instead. Threads open over the list: the column is narrower than a page.
+ * own connection instead. Admins and clients also get "Turn into tasks" on its messages and the
+ * "Turned into tasks:" links under them (the cards link the ticket too, part 21.5); a requester
+ * gets neither. Threads open over the list: the column is narrower than a page.
  */
 export function TicketChat({
   ticketId,
@@ -45,6 +48,7 @@ export function TicketChat({
   const { data, isError, refetch } = useQuery(ticketChatQuery(ticketId));
   const groupJoins = useGroupRoom(readsGroup ? groupId : null);
   const connects = useConnects(!readsGroup);
+  const tools = useMessageTaskTools(groupId);
   const channelId = data?.id;
   const scope = useMemo(
     () => ({
@@ -57,7 +61,19 @@ export function TicketChat({
   if (data) {
     return (
       <GroupRoomProvider joins={readsGroup ? groupJoins : connects}>
-        <Conversation channelId={data.id} groupId={groupId} threadMode="over" scope={scope} />
+        <Conversation
+          channelId={data.id}
+          groupId={groupId}
+          threadMode="over"
+          scope={scope}
+          {...(readsGroup
+            ? {
+                messageActions: tools.messageActions,
+                renderMessageFooter: tools.renderMessageFooter,
+              }
+            : {})}
+        />
+        {readsGroup && tools.element}
       </GroupRoomProvider>
     );
   }

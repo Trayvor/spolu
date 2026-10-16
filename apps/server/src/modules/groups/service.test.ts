@@ -5,14 +5,25 @@ import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import { createDb } from '../../infra/db/client.js';
 import { testDatabaseUrl } from '../../../test/test-config.js';
-import { addAdmin, createUnverifiedClient, deactivateUser } from '../users/service.js';
+import {
+  addAdmin,
+  createUnverifiedClient,
+  deactivateUser,
+  EmailTakenError,
+  getUserById,
+  setNameIfEmpty,
+} from '../users/service.js';
 import { user } from '../users/schema.js';
 import { addManager } from './managers.js';
-import { addMembership, clientGroupIds, removeMembership } from './memberships.js';
+import { addMembership, clientGroupIds, getMembership, removeMembership } from './memberships.js';
 import { pendingInvites } from './schema.js';
 import {
   addMember,
+  AlreadyMemberError,
   createGroup,
+  inviteMember,
+  listInvitedMembers,
+  MemberRemovedError,
   EgrantUrlTakenError,
   getGroup,
   getGroupByInviteToken,
@@ -49,6 +60,23 @@ describe('createUnverifiedClient', () => {
     expect(row.role).toBe('client');
     expect(row.name).toBe('');
     expect(row.emailVerified).toBe(false);
+  });
+});
+
+describe('createUnverifiedClient with a name', () => {
+  it('stores the trimmed name', async () => {
+    const row = await createUnverifiedClient(db, `${randomUUID()}@example.com`, ' Anna ');
+    expect(row.name).toBe('Anna');
+  });
+});
+
+describe('setNameIfEmpty', () => {
+  it('fills only an empty or blank name', async () => {
+    const blank = await createUnverifiedClient(db, `${randomUUID()}@example.com`, '  ');
+    await setNameIfEmpty(db, blank.id, 'Anna');
+    expect((await getUserById(db, blank.id))?.name).toBe('Anna');
+    await setNameIfEmpty(db, blank.id, 'Berta');
+    expect((await getUserById(db, blank.id))?.name).toBe('Anna');
   });
 });
 
@@ -405,5 +433,161 @@ describe('findGroupByEgrantUrl', () => {
     }
     expect(await findGroupByEgrantUrl(db, `https://x${h}.egrant.sk`)).toBeNull();
     expect(await findGroupByEgrantUrl(db, null)).toBeNull();
+  });
+});
+
+describe('inviteMember', () => {
+  const email = () => `${randomUUID()}@example.com`;
+  const verify = (id: string) =>
+    db.update(user).set({ emailVerified: true }).where(eq(user.id, id));
+
+  it('a new email creates an unverified client named as given, invited', async () => {
+    const g = await newGroup();
+    const address = email();
+    const result = await inviteMember(db, g.id, {
+      email: ` ${address.toUpperCase()} `,
+      name: 'Anna',
+    });
+    expect(result.outcome).toBe('invited');
+    expect(result.verified).toBe(false);
+    expect(result.member).toEqual({ id: result.member.id, name: 'Anna', email: address });
+    const row = await getUserById(db, result.member.id);
+    expect(row).toMatchObject({ role: 'client', emailVerified: false, name: 'Anna' });
+    expect(await getMembership(db, row!.id, g.id)).toEqual({ role: 'client', removedAt: null });
+  });
+
+  it('an unverified client with no membership here is invited', async () => {
+    const [g, other, c] = await Promise.all([newGroup(), newGroup(), newClient(false)]);
+    await addMembership(db, c.id, other.id, 'ziadatel');
+    const result = await inviteMember(db, g.id, { email: c.email });
+    expect(result.outcome).toBe('invited');
+    expect(result.member.id).toBe(c.id);
+    expect((await getMembership(db, c.id, g.id))?.role).toBe('client');
+  });
+
+  it('an invited person again gives resent, and the name is unchanged', async () => {
+    const g = await newGroup();
+    const address = email();
+    const first = await inviteMember(db, g.id, { email: address, name: 'Anna' });
+    const again = await inviteMember(db, g.id, { email: address, name: 'Berta' });
+    expect(again.outcome).toBe('resent');
+    expect(again.member).toEqual(first.member);
+    expect((await getUserById(db, first.member.id))?.name).toBe('Anna');
+  });
+
+  it('a verified client of another group is added and reads both groups', async () => {
+    const [g, other, c] = await Promise.all([newGroup(), newGroup(), newClient(true)]);
+    await addMembership(db, c.id, other.id, 'client');
+    const result = await inviteMember(db, g.id, { email: c.email });
+    expect(result).toMatchObject({ outcome: 'added', verified: true });
+    expect((await clientGroupIds(db, c.id)).sort()).toEqual([g.id, other.id].sort());
+  });
+
+  it('a verified ziadatel here is promoted and added', async () => {
+    const [g, c] = await Promise.all([newGroup(), newClient(true)]);
+    await addMembership(db, c.id, g.id, 'ziadatel');
+    expect((await inviteMember(db, g.id, { email: c.email })).outcome).toBe('added');
+    expect((await getMembership(db, c.id, g.id))?.role).toBe('client');
+  });
+
+  it('an unverified ziadatel here is promoted and invited', async () => {
+    const [g, c] = await Promise.all([newGroup(), newClient(false)]);
+    await addMembership(db, c.id, g.id, 'ziadatel');
+    expect((await inviteMember(db, g.id, { email: c.email })).outcome).toBe('invited');
+    expect((await getMembership(db, c.id, g.id))?.role).toBe('client');
+  });
+
+  it('a disabled client with no membership here is reactivated and added', async () => {
+    const [g, other, c] = await Promise.all([newGroup(), newGroup(), newClient(true)]);
+    await addMembership(db, c.id, other.id, 'client');
+    await removeMembership(db, other.id, c.id);
+    await deactivateUser(db, c.id);
+    expect((await inviteMember(db, g.id, { email: c.email })).outcome).toBe('added');
+    expect((await getUserById(db, c.id))?.disabledAt).toBeNull();
+    expect(await clientGroupIds(db, c.id)).toEqual([g.id]);
+  });
+
+  it('an active verified member throws AlreadyMemberError', async () => {
+    const [g, c] = await Promise.all([newGroup(), newClient(true)]);
+    await addMembership(db, c.id, g.id, 'client');
+    await expect(inviteMember(db, g.id, { email: c.email })).rejects.toBeInstanceOf(
+      AlreadyMemberError,
+    );
+  });
+
+  it('a removed member throws MemberRemovedError with their id, and stays removed', async () => {
+    const [g, other, c] = await Promise.all([newGroup(), newGroup(), newClient(true)]);
+    await addMembership(db, c.id, g.id, 'client');
+    await addMembership(db, c.id, other.id, 'client');
+    await removeMembership(db, g.id, c.id);
+    const error = await inviteMember(db, g.id, { email: c.email }).catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(MemberRemovedError);
+    expect((error as MemberRemovedError).userId).toBe(c.id);
+    expect((await getMembership(db, c.id, g.id))?.removedAt).not.toBeNull();
+  });
+
+  it('an admin, a disabled admin and the superadmin throw EmailTakenError(admin)', async () => {
+    const g = await newGroup();
+    const admin = await addAdmin(db, { email: email(), name: 'Adam' });
+    const disabled = await addAdmin(db, { email: email(), name: 'Dana' });
+    await deactivateUser(db, disabled.id);
+    const superEmail = email();
+    await db
+      .insert(user)
+      .values({ id: randomUUID(), email: superEmail, name: 'Super', role: 'superadmin' });
+    for (const address of [admin.email, disabled.email, superEmail]) {
+      const error = await inviteMember(db, g.id, { email: address }).catch((e: unknown) => e);
+      expect(error).toBeInstanceOf(EmailTakenError);
+      expect((error as EmailTakenError).kind).toBe('admin');
+    }
+  });
+
+  it('the name fills only an empty name', async () => {
+    const [g, h, named] = await Promise.all([newGroup(), newGroup(), newClient(true)]);
+    await db.update(user).set({ name: 'Real Name' }).where(eq(user.id, named.id));
+    await inviteMember(db, g.id, { email: named.email, name: 'Other' });
+    expect((await getUserById(db, named.id))?.name).toBe('Real Name');
+
+    const blank = await newClient(false);
+    await verify(blank.id);
+    const result = await inviteMember(db, h.id, { email: blank.email, name: 'Filled' });
+    expect(result.member.name).toBe('Filled');
+  });
+
+  it('two concurrent calls give one user, one membership, outcomes invited and resent', async () => {
+    const g = await newGroup();
+    const address = email();
+    const results = await Promise.all([
+      inviteMember(db, g.id, { email: address }),
+      inviteMember(db, g.id, { email: address }),
+    ]);
+    expect(results.map((r) => r.outcome).sort()).toEqual(['invited', 'resent']);
+    expect(results[0].member.id).toBe(results[1].member.id);
+    const rows = await db.select().from(user).where(eq(user.email, address));
+    expect(rows).toHaveLength(1);
+    expect(await listInvitedMembers(db, g.id)).toHaveLength(1);
+  });
+});
+
+describe('listInvitedMembers', () => {
+  it('lists only unverified active clients of the group, by email', async () => {
+    const [g, other] = await Promise.all([newGroup(), newGroup()]);
+    const [b, a, verified, removed, ziadatel, elsewhere] = await Promise.all([
+      createUnverifiedClient(db, `b-${randomUUID()}@example.com`),
+      createUnverifiedClient(db, `a-${randomUUID()}@example.com`),
+      newClient(true),
+      newClient(false),
+      newClient(false),
+      newClient(false),
+    ]);
+    for (const c of [b, a, verified, removed]) await addMembership(db, c.id, g.id, 'client');
+    await addMembership(db, removed.id, other.id, 'client');
+    await removeMembership(db, g.id, removed.id);
+    await addMembership(db, ziadatel.id, g.id, 'ziadatel');
+    await addMembership(db, elsewhere.id, other.id, 'client');
+    expect(await listInvitedMembers(db, g.id)).toEqual([
+      { id: a.id, name: '', email: a.email },
+      { id: b.id, name: '', email: b.email },
+    ]);
   });
 });

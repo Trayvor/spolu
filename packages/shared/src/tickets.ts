@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { MessageTaskLinkSchema } from './chat.js';
 import { FileInfoSchema } from './files.js';
 import { isHttpUrl } from './urls.js';
 
@@ -189,6 +190,11 @@ export const TicketDtoSchema = z.object({
   following: z.boolean(),
   /** Tasks made from the ticket (part 21.5). */
   taskCount: z.number().int(),
+  /**
+   * The tasks made from the ticket, oldest first, for the people who use the group's board
+   * (admins and the group's clients); null for a ziadatel, who sees only `taskCount`.
+   */
+  tasks: z.array(MessageTaskLinkSchema).nullable(),
   /** The ticket's chat; null until the chat exists (part 21.3) or while it has no client. */
   channelId: z.string().nullable(),
 });

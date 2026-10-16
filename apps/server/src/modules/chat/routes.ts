@@ -9,6 +9,8 @@ import {
   MESSAGE_PAGE_SIZE,
   SendMessageInputSchema,
   type GroupChannel,
+  type MessageDto,
+  type SessionUser,
 } from '@spolu/shared';
 import type { AppDeps } from '../../deps.js';
 import { createRateLimiter } from '../../infra/http/rate-limit.js';
@@ -18,6 +20,7 @@ import { isAdmin } from '../users/policy.js';
 import { canReadGroup } from '../groups/policy.js';
 import { getGroup, listGroupPeople } from '../groups/service.js';
 import { getTaskRef } from '../tasks/task-service.js';
+import { withoutTaskLinks } from './dto.js';
 import { emitMessage, emitRead, emitThreadReply } from './events.js';
 import {
   EmptyMessageError,
@@ -97,6 +100,20 @@ export const chatRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { d
     if (channel && (await actorReadsChannel(db, actor, channel))) return channel;
     notFound(reply);
     return null;
+  };
+
+  /**
+   * Task links lead to the group's board: someone who reads a channel but not its group (a
+   * ziadatel in a ticket chat) gets the messages without them (part 21.5).
+   */
+  const forReader = async <T extends { messages: MessageDto[] }>(
+    actor: SessionUser,
+    channel: { groupId: string; kind: string },
+    page: T,
+  ): Promise<T> => {
+    if (channel.kind === 'group' || channel.kind === 'task') return page;
+    if (canReadGroup(actor, channel.groupId, await clientGroupIds(db, actor.id))) return page;
+    return { ...page, messages: page.messages.map(withoutTaskLinks) };
   };
 
   /** A message with its readable channel, or a 404 answer and null. */
@@ -194,9 +211,12 @@ export const chatRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { d
     const cursorText = after ?? before;
     const cursor = cursorText === undefined ? null : parseCursor(cursorText);
     if (cursorText !== undefined && !cursor) return invalid(reply);
-    const actorId = request.user!.id;
-    if (after !== undefined) return pageAfter(db, channel, actorId, cursor!, limit);
-    return pageBefore(db, channel, actorId, cursor, limit);
+    const actor = request.user!;
+    const page =
+      after !== undefined
+        ? await pageAfter(db, channel, actor.id, cursor!, limit)
+        : await pageBefore(db, channel, actor.id, cursor, limit);
+    return forReader(actor, channel, page);
   });
 
   app.get<IdParams>('/channels/:id/changes', { preHandler: anyUser }, async (request, reply) => {
@@ -204,14 +224,20 @@ export const chatRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { d
     if (!query.success) return invalid(reply);
     const channel = await readableChannel(request, reply, request.params.id);
     if (!channel) return reply;
-    return changesAfter(db, channel, query.data.afterSeq);
+    return forReader(request.user!, channel, await changesAfter(db, channel, query.data.afterSeq));
   });
 
   app.get<IdParams>('/messages/:id/thread', { preHandler: anyUser }, async (request, reply) => {
     const found = await readableMessage(request, reply, request.params.id);
     if (!found) return reply;
     const thread = await getThread(db, found.channel, found.message.id);
-    return thread ?? notFound(reply);
+    if (!thread) return notFound(reply);
+    const {
+      messages: [root, ...replies],
+    } = await forReader(request.user!, found.channel, {
+      messages: [thread.root, ...thread.replies],
+    });
+    return { root: root!, replies };
   });
 
   app.get<IdParams>('/messages/:id/around', { preHandler: anyUser }, async (request, reply) => {
@@ -226,7 +252,7 @@ export const chatRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { d
       found.message.id,
       query.data.limit,
     );
-    return page ?? notFound(reply);
+    return page ? forReader(request.user!, found.channel, page) : notFound(reply);
   });
 
   app.post<IdParams>('/channels/:id/messages', { preHandler: anyUser }, async (request, reply) => {

@@ -2,9 +2,14 @@ import type {
   FileInfo,
   MessageDto,
   TaskDraft,
+  TaskFromMessageDraft,
   TaskProposal,
-  TasksFromMessage,
+  TicketDto,
 } from '@spolu/shared';
+
+/** What is turned into tasks: a chat message, or a ticket (Phase 21). */
+export type SplitSource =
+  { kind: 'message'; message: MessageDto } | { kind: 'ticket'; ticket: TicketDto };
 
 /** One proposed card in the review. */
 export type ReviewCard = {
@@ -45,13 +50,13 @@ export function cardsFromProposals(
   });
 }
 
-/** The card offered when the AI found no tasks: empty title, the message text as description. */
-export function cardByHand(message: MessageDto): ReviewCard {
+/** The card offered when the AI found no tasks: empty title, the source's text as description. */
+export function cardByHand(text: string): ReviewCard {
   return {
     key: nextKey(),
     draft: {
       title: '',
-      description: message.body,
+      description: text,
       assigneeIds: [],
       dueDate: null,
       urgent: false,
@@ -84,22 +89,15 @@ export function isTouched(cards: ReviewCard[], initial: ReviewCard[]): boolean {
 }
 
 /**
- * The create request: approved cards in the order shown. Ids in `messageFileIds` (the source
- * message's files) go to `messageFileIds`, to be copied; the rest were uploaded in the review.
+ * The approved cards in the order shown. Ids in `sourceFileIds` (the source's files) go to
+ * `messageFileIds`, to be copied; the rest were uploaded in the review.
  */
-export function toRequest(
-  messageId: string,
-  cards: ReviewCard[],
-  messageFileIds: Set<string>,
-): TasksFromMessage {
-  return {
-    messageId,
-    tasks: cards
-      .filter((c) => c.decision === 'approved')
-      .map(({ draft }) => ({
-        ...draft,
-        fileIds: draft.fileIds.filter((id) => !messageFileIds.has(id)),
-        messageFileIds: draft.fileIds.filter((id) => messageFileIds.has(id)),
-      })),
-  };
+export function toDrafts(cards: ReviewCard[], sourceFileIds: Set<string>): TaskFromMessageDraft[] {
+  return cards
+    .filter((c) => c.decision === 'approved')
+    .map(({ draft }) => ({
+      ...draft,
+      fileIds: draft.fileIds.filter((id) => !sourceFileIds.has(id)),
+      messageFileIds: draft.fileIds.filter((id) => sourceFileIds.has(id)),
+    }));
 }

@@ -65,6 +65,26 @@ export const JoinBodySchema = z.object({
 });
 export type JoinBody = z.infer<typeof JoinBodySchema>;
 
+/** Body of `POST /api/groups/:id/members`: an admin adds a person by email (name optional). */
+export const InviteMemberBodySchema = z.object({
+  email: JoinBodySchema.shape.email,
+  name: z.string().trim().max(100).optional(),
+});
+export type InviteMemberBody = z.infer<typeof InviteMemberBodySchema>;
+
+/**
+ * `invited`: the person has not signed in yet and got an invitation ("Pozvaný"); `resent`: they
+ * were invited already and got it again; `added`: a signed-in client, a member at once.
+ */
+export const InviteOutcomeSchema = z.enum(['invited', 'resent', 'added']);
+export type InviteOutcome = z.infer<typeof InviteOutcomeSchema>;
+
+export const InviteMemberResponseSchema = z.object({
+  member: MemberSchema,
+  outcome: InviteOutcomeSchema,
+});
+export type InviteMemberResponse = z.infer<typeof InviteMemberResponseSchema>;
+
 export const NameBodySchema = z.object({ name: groupName });
 export type NameBody = z.infer<typeof NameBodySchema>;
 

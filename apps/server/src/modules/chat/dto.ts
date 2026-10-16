@@ -7,6 +7,10 @@ import { user } from '../users/schema.js';
 import { messageAttachments, messageMentions, messages } from './schema.js';
 
 export type MessageRow = typeof messages.$inferSelect;
+
+/** The message without its task links, for a reader who cannot open the group's board. */
+export const withoutTaskLinks = (message: MessageDto): MessageDto =>
+  message.tasks.length === 0 ? message : { ...message, tasks: [] };
 export type MessageWithAuthor = MessageRow & { author: ChatAuthor };
 
 // Deliberate read-only exception to "no other module's tables": the author's name and role are

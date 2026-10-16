@@ -7,15 +7,24 @@ import {
   type GroupManager,
   type GroupPerson,
   type GroupSummary,
+  type InviteMemberBody,
+  type InviteOutcome,
   type Member,
   type MemberRole,
 } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
 import { isUniqueViolation } from '../../infra/db/errors.js';
 import { user } from '../users/schema.js';
-import { createUnverifiedClient, findUserByEmail, type UserRow } from '../users/service.js';
+import {
+  createUnverifiedClient,
+  EmailTakenError,
+  findUserByEmail,
+  reactivateUser,
+  setNameIfEmpty,
+  type UserRow,
+} from '../users/service.js';
 import { normalizeEgrantUrl } from './egrant-url.js';
-import { addMembership, setPendingInvite } from './memberships.js';
+import { addMembership, getMembership, setPendingInvite } from './memberships.js';
 import { groupManagers, groupMembers, groups } from './schema.js';
 
 export type GroupRow = typeof groups.$inferSelect;
@@ -32,6 +41,22 @@ export class InvalidEgrantUrlError extends Error {
   constructor() {
     super('Not a valid eGrant URL');
     this.name = 'InvalidEgrantUrlError';
+  }
+}
+
+/** The email belongs to an active, signed-in client member of the group. */
+export class AlreadyMemberError extends Error {
+  constructor() {
+    super('This person is already a member of the group');
+    this.name = 'AlreadyMemberError';
+  }
+}
+
+/** An admin removed the person from the group; only Restore brings them back. */
+export class MemberRemovedError extends Error {
+  constructor(readonly userId: string) {
+    super('This person was removed from the group');
+    this.name = 'MemberRemovedError';
   }
 }
 
@@ -347,4 +372,83 @@ export async function joinWithEmail(db: Db, groupId: string, email: string): Pro
 export async function rememberInvite(db: Db, groupId: string, existing: UserRow): Promise<void> {
   if (existing.role !== 'client' || existing.disabledAt) return;
   await setPendingInvite(db, existing.id, groupId);
+}
+
+export type InviteResult = { member: Member; outcome: InviteOutcome; verified: boolean };
+
+/**
+ * An admin adds a person to the group by email (Phase 22b). The admin is trusted, so this is a
+ * client membership at once, not a pending invite: a new email becomes an unverified client
+ * ("Pozvaný" until their first sign-in), a ziadatel of the group is promoted, a client of other
+ * groups joins, a client disabled by their last removal is reactivated. Throws
+ * `EmailTakenError('admin')` for any admin, `MemberRemovedError` for a removed member and
+ * `AlreadyMemberError` for a signed-in member. `resent`: already invited here, unchanged.
+ * The name only fills an empty one.
+ */
+export async function inviteMember(
+  db: Db,
+  groupId: string,
+  input: InviteMemberBody,
+): Promise<InviteResult> {
+  const name = input.name ?? '';
+  let account = await findUserByEmail(db, input.email);
+  if (!account) {
+    try {
+      const created = await db.transaction(async (tx) => {
+        const row = await createUnverifiedClient(tx, input.email, name);
+        await addMembership(tx, row.id, groupId, 'client');
+        return row;
+      });
+      return result(created, 'invited');
+    } catch (error) {
+      // A concurrent call created the same email first: carry on with that account.
+      if (!isUniqueViolation(error)) throw error;
+      account = await findUserByEmail(db, input.email);
+      if (!account) throw error;
+    }
+  }
+  if (account.role !== 'client') throw new EmailTakenError('admin');
+
+  const existing = await getMembership(db, account.id, groupId);
+  if (existing?.removedAt) throw new MemberRemovedError(account.id);
+  let added = false;
+  if (existing?.role !== 'client') {
+    const outcome = await addMembership(db, account.id, groupId, 'client');
+    if (outcome === 'removed') throw new MemberRemovedError(account.id);
+    added = outcome !== 'unchanged'; // unchanged: a concurrent add won
+  }
+  if (!added && account.emailVerified && !account.disabledAt) throw new AlreadyMemberError();
+
+  if (account.disabledAt) await reactivateUser(db, account.id);
+  if (name.trim() !== '') await setNameIfEmpty(db, account.id, name);
+  const fresh = (await findUserByEmail(db, input.email)) ?? account;
+  if (!fresh.emailVerified) return result(fresh, added ? 'invited' : 'resent');
+  return result(fresh, 'added');
+}
+
+const result = (row: UserRow, outcome: InviteOutcome): InviteResult => ({
+  member: { id: row.id, name: row.name, email: row.email },
+  outcome,
+  verified: row.emailVerified,
+});
+
+/**
+ * The group's invited people ("Pozvaný"): active client memberships of users who have never
+ * signed in, by email. `listMembers` leaves them out.
+ */
+export async function listInvitedMembers(db: Db, groupId: string): Promise<Member[]> {
+  return db
+    .select({ id: user.id, name: user.name, email: user.email })
+    .from(groupMembers)
+    .innerJoin(user, eq(user.id, groupMembers.userId))
+    .where(
+      and(
+        eq(groupMembers.groupId, groupId),
+        eq(groupMembers.role, 'client'),
+        isNull(groupMembers.removedAt),
+        eq(user.emailVerified, false),
+        isNull(user.disabledAt),
+      ),
+    )
+    .orderBy(asc(user.email));
 }

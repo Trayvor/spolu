@@ -300,7 +300,7 @@ Built in 7 parts, one pull request each (21.1 memberships first; 21.3, 21.4 and 
 
 Done when: eGrant sends a ticket, a new requester gets the email, logs in with a code and sees only that ticket and its chat; an admin replies and the requester is notified; the ticket becomes tasks that link back to it; a client works in two groups.
 
-Status: part 21.1 (clients in several groups, membership roles, invites applied on sign-in) built on branch `phase-21-1-memberships`; part 21.2 (tickets server core) built on branch `phase-21-2-tickets-core`, stacked on 21.1; part 21.3 (ticket chat, server) on `phase-21-3-ticket-chat`, stacked on 21.2; part 21.4 (ticket screens: lists, ticket page with its chat, new-ticket dialog, requester shell, Requesters section, task line, ticket uploads) on `phase-21-4-tickets-web`, stacked on 21.3; part 21.6 (notifications) on its own branch; parts 21.5 and 21.7 not started.
+Status: part 21.1 (clients in several groups, membership roles, invites applied on sign-in) built on branch `phase-21-1-memberships`; part 21.2 (tickets server core) built on branch `phase-21-2-tickets-core`, stacked on 21.1; part 21.3 (ticket chat, server) on `phase-21-3-ticket-chat`, stacked on 21.2; part 21.4 (ticket screens: lists, ticket page with its chat, new-ticket dialog, requester shell, Requesters section, task line, ticket uploads) on `phase-21-4-tickets-web`, stacked on 21.3; part 21.6 (notifications) on its own branch; part 21.5 (ticket to tasks with AI) on `phase-21-5-ticket-tasks`; part 21.7 not started.
 
 ## Phase 22 — Members & groups page
 
@@ -311,7 +311,7 @@ Requirements: [groups](product/groups.md), [client-managers](product/client-mana
 - The Groups page: the member count links to the Members tab, manager names in a tooltip, a filter by manager (`?manager=me|none|<adminId>`), my groups first, and a group count.
 - The client filter's "Predvolené" sits in the filter row on Úlohy and Znalosti.
 
-**22b — invites by email (planned, redesigned for Phase 21.1):** admins add members by email on the Members tab. A new or never-signed-in person gets an invitation with a login link (`/login?email=`) and shows as "Pozvaný" (resend, cancel) until the first sign-in; a client of another group is added at once and told by email. An admin's invite is a client membership created directly (no `pending_invites` row, no migration). The plan's Part 22b lists the proposed rules that wait for the owner's confirmation.
+**22b — invites by email (built on branch `phase-22b-member-invites`, redesigned for Phase 21.1; e2e `member-invites.spec.ts` written, run by the orchestrator):** admins add members by email on the Members tab. A new or never-signed-in person gets an invitation with a login link (`/login?email=`) and shows as "Pozvaný" (resend, cancel) until the first sign-in; a client of another group is added at once and told by email. An admin's invite is a client membership created directly (no `pending_invites` row, no migration). Cancel deletes the membership, or turns a former requester back to ziadatel. The owner confirmed the plan's Part 22b decisions.
 
 Done when: (22a) an admin adds a manager on the Members tab and the Groups page filters by manager with the count; (22b) an admin invites a member, the member gets the email and signs in.
 

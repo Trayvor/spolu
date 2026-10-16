@@ -13,7 +13,10 @@ export const TaskProposalSchema = z.object({
   assigneeIds: z.array(z.string()),
   dueDate: z.string().nullable(),
   urgent: z.boolean(),
-  /** Files of the source message that belong to this card (copied when the card is created). */
+  /**
+   * Files of the source (the message, or the files uploaded with a ticket) that belong to this
+   * card (copied when the card is created).
+   */
   messageFileIds: z.array(z.string()),
 });
 export type TaskProposal = z.infer<typeof TaskProposalSchema>;
@@ -40,6 +43,16 @@ export const TasksFromMessageSchema = z.object({
   tasks: z.array(TaskFromMessageDraftSchema).min(1).max(AI_MAX_TASKS),
 });
 export type TasksFromMessage = z.output<typeof TasksFromMessageSchema>;
+
+/**
+ * `POST /api/groups/:id/tasks/from-ticket` (part 21.5): the approved cards of a ticket. Here
+ * `messageFileIds` name files uploaded with the ticket (copied onto the card).
+ */
+export const TasksFromTicketSchema = z.object({
+  ticketId: z.string().regex(ID_RE),
+  tasks: z.array(TaskFromMessageDraftSchema).min(1).max(AI_MAX_TASKS),
+});
+export type TasksFromTicket = z.output<typeof TasksFromTicketSchema>;
 
 export const TasksFromMessageResultSchema = z.object({ tasks: z.array(TaskDetailDtoSchema) });
 export type TasksFromMessageResult = z.infer<typeof TasksFromMessageResultSchema>;

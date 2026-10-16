@@ -5,8 +5,17 @@ import { useTranslation } from 'react-i18next';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { Toast } from '@/components/ui/toast';
 import { useSession } from '@/features/auth/use-session';
-import { membersQuery, removeMember, removedMembersQuery, restoreMember } from './api';
+import { AddMemberForm } from './add-member-form';
+import {
+  invitedMembersQuery,
+  membersQuery,
+  removeMember,
+  removedMembersQuery,
+  restoreMember,
+} from './api';
+import { InvitedRow } from './invited-members';
 
 const ROW =
   'flex flex-col gap-3 px-5 py-3 min-[641px]:flex-row min-[641px]:items-center min-[641px]:justify-between [&:not(:last-child)]:border-b [&:not(:last-child)]:border-border';
@@ -20,21 +29,50 @@ function Who({ member }: { member: Member }) {
   );
 }
 
-/** Members of a group; admins also get Remove per row and the collapsed removed members. */
+/**
+ * Members of a group. Admins also add people by email ("+ Add member" opens the form under the
+ * heading), see the invited people who have not signed in yet above the members in the same
+ * card, remove members and see the collapsed removed members.
+ */
 export function MembersList({ groupId, admin }: { groupId: string; admin: boolean }) {
   const { t } = useTranslation();
   const me = useSession();
   const { data: members } = useQuery(membersQuery(groupId));
+  const { data: invited = [] } = useQuery({ ...invitedMembersQuery(groupId), enabled: admin });
+  const [adding, setAdding] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
+  const titleId = `members-${groupId}`;
 
   return (
     <section className="flex flex-col gap-3">
-      <h2 className="text-body font-semibold">{t('group.members.title')}</h2>
-      {members && members.length === 0 && (
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+        <h2 id={titleId} className="text-body font-semibold">
+          {t('group.members.title')}
+        </h2>
+        {admin && !adding && (
+          <Button variant="secondary" size="sm" onClick={() => setAdding(true)}>
+            {t('group.members.add')}
+          </Button>
+        )}
+      </div>
+      {adding && (
+        <AddMemberForm groupId={groupId} onClose={() => setAdding(false)} onSent={setToast} />
+      )}
+      {members && members.length + invited.length === 0 && (
         <p className="text-body text-muted-foreground">{t('group.members.empty')}</p>
       )}
-      {members && members.length > 0 && (
+      {members && members.length + invited.length > 0 && (
         <Card className="gap-0 py-2">
-          <ul>
+          <ul aria-labelledby={titleId}>
+            {invited.map((person) => (
+              <InvitedRow
+                key={person.id}
+                groupId={groupId}
+                member={person}
+                row={ROW}
+                onSent={setToast}
+              />
+            ))}
             {members.map((member) => (
               <MemberRow
                 key={member.id}
@@ -48,6 +86,11 @@ export function MembersList({ groupId, admin }: { groupId: string; admin: boolea
         </Card>
       )}
       {admin && <RemovedMembers groupId={groupId} />}
+      {toast && (
+        <Toast key={toast} onClose={() => setToast(null)}>
+          {toast}
+        </Toast>
+      )}
     </section>
   );
 }
