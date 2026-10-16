@@ -1,9 +1,9 @@
 import { sql } from 'drizzle-orm';
-import { boolean, check, index, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
-import type { GroupMode, Role, UserLanguage } from '@spolu/shared';
+import { boolean, check, index, jsonb, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
+import type { ChannelMap, GroupMode, Role, UserLanguage } from '@spolu/shared';
 
 // Shape required by better-auth (field names are its camelCase names), plus `role`, `disabledAt`
-// and the Phase 6 notification settings.
+// and the notification settings (Phase 6; the channel per notification group from brief item C).
 export const user = pgTable(
   'user',
   {
@@ -15,8 +15,11 @@ export const user = pgTable(
     role: text('role').$type<Role>().notNull().default('client'),
     disabledAt: timestamp('disabled_at', { withTimezone: true }),
     defaultGroupMode: text('default_group_mode').$type<GroupMode>(),
-    pushEnabled: boolean('push_enabled').notNull().default(true),
-    emailEnabled: boolean('email_enabled').notNull().default(false),
+    /** Only the user's own choices, by notification group; a missing group uses its default. */
+    notificationChannels: jsonb('notification_channels')
+      .$type<Partial<ChannelMap>>()
+      .notNull()
+      .default({}),
     language: text('language').$type<UserLanguage>().notNull().default('sk'),
     emailFallbackAt: timestamp('email_fallback_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),

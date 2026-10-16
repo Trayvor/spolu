@@ -3,6 +3,8 @@ import { lt, sql } from 'drizzle-orm';
 import type { NotificationKind } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
 import type { JobQueue } from '../../infra/jobs/jobs.js';
+import { channelSql } from '../users/service.js';
+import { notificationGroupOf } from './categories.js';
 import { notificationEvents } from './schema.js';
 
 /** Delivers everyone's pending events; a stately queue, so requests coalesce (see `notificationQueues`). */
@@ -20,8 +22,9 @@ export const PUSH_JOB = 'notifications.push';
  * All events of one message must be recorded in one transaction (delivery finds a message's
  * events by their shared `created_at`).
  *
- * A recipient who can get neither a push nor an email (disabled, or email off and push off or no
- * device) gets the event already delivered: the delivery decision would be "nothing" anyway, and
+ * A recipient who can get neither a push nor an email by the channel of the event's notification
+ * group (disabled; none; push without a device; a kind with no group) gets the event already
+ * delivered: the delivery decision would be "nothing" anyway, and
  * most recipients of a message (every admin is in every group) are like this, so the worker only
  * touches the events that may send something. Returns the recipients an event was recorded for.
  */
@@ -41,18 +44,23 @@ export async function recordNotifications(
     recipients.map((userId) => sql`(${randomUUID()}::text, ${userId}::text)`),
     sql`, `,
   );
+  const group = notificationGroupOf(input.kind, input.payload);
+  const deliveredAt =
+    group === null
+      ? sql`now()`
+      : sql`case
+        when u.disabled_at is not null then now()
+        when ${channelSql('u', group)} in ('email', 'both') then null
+        when ${channelSql('u', group)} = 'push'
+          and exists (select 1 from push_subscriptions s where s.user_id = u.id) then null
+        else now()
+      end`;
   const rows = await tx.execute<{ user_id: string }>(sql`
     insert into notification_events
       (id, user_id, group_id, kind, payload, dedupe_key, delivered_at)
     select v.id, v.user_id, ${input.groupId}::text, ${input.kind}::text,
       ${JSON.stringify(input.payload)}::jsonb, ${input.dedupeKey ?? null}::text,
-      case
-        when u.disabled_at is not null then now()
-        when u.email_enabled then null
-        when u.push_enabled
-          and exists (select 1 from push_subscriptions s where s.user_id = u.id) then null
-        else now()
-      end
+      ${deliveredAt}
     from (values ${values}) as v(id, user_id)
     join "user" u on u.id = v.user_id
     on conflict do nothing

@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, describe, expect, it } from 'vitest';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
+import { DEFAULT_CHANNELS, NotificationCategories } from '@spolu/shared';
 import { createDb } from '../../infra/db/client.js';
 import { testDatabaseUrl } from '../../../test/test-config.js';
 import { user } from './schema.js';
@@ -12,11 +13,12 @@ import {
   EmailTakenError,
   ensureSuperadmin,
   findUserByEmail,
+  getNotificationChannels,
   getNotificationProfiles,
   getUserById,
   listAdmins,
   reactivateUser,
-  updateNotificationPrefs,
+  setNotificationChannel,
 } from './service.js';
 
 const { db, close } = createDb(testDatabaseUrl);
@@ -184,7 +186,7 @@ describe('reactivateUser', () => {
 });
 
 describe('notification profile', () => {
-  it('a new user has push on, email off, no default mode and language sk', async () => {
+  it('a new user has the default channels, no default mode and language sk', async () => {
     const { id, email } = await insertUser('client');
     const profiles = await getNotificationProfiles(db, [id]);
     expect(profiles.get(id)).toEqual({
@@ -193,35 +195,77 @@ describe('notification profile', () => {
       name: `Name ${id}`,
       role: 'client',
       language: 'sk',
-      pushEnabled: true,
-      emailEnabled: false,
+      channels: DEFAULT_CHANNELS,
       defaultGroupMode: null,
       disabled: false,
     });
+    expect(await getNotificationChannels(db, id)).toEqual(DEFAULT_CHANNELS);
     expect((await getNotificationProfiles(db, [])).size).toBe(0);
   });
 
-  it('updateNotificationPrefs changes only the given switch', async () => {
+  it('setNotificationChannel changes only the given group', async () => {
     const { id } = await insertUser('admin');
-    await updateNotificationPrefs(db, id, { emailEnabled: true });
-    expect((await getNotificationProfiles(db, [id])).get(id)).toMatchObject({
-      pushEnabled: true,
-      emailEnabled: true,
+    await setNotificationChannel(db, id, 'chat', 'none');
+    await setNotificationChannel(db, id, 'tickets', 'email');
+    expect(await getNotificationChannels(db, id)).toEqual({
+      ...DEFAULT_CHANNELS,
+      chat: 'none',
+      tickets: 'email',
     });
-    await updateNotificationPrefs(db, id, { pushEnabled: false });
-    expect((await getNotificationProfiles(db, [id])).get(id)).toMatchObject({
-      pushEnabled: false,
-      emailEnabled: true,
+    expect((await getNotificationProfiles(db, [id])).get(id)?.channels.chat).toBe('none');
+  });
+
+  it('a stored value that is not a channel falls back to the default', async () => {
+    const { id } = await insertUser('client');
+    await db.execute(
+      sql`update "user" set notification_channels = '{"chat": 5, "tasks": "loud"}'::jsonb where id = ${id}`,
+    );
+    expect(await getNotificationChannels(db, id)).toEqual(DEFAULT_CHANNELS);
+  });
+
+  it('the migration dropped the old switches and defaults the column to {}', async () => {
+    const columns = await db.execute<{ column_name: string; column_default: string | null }>(sql`
+      select column_name, column_default from information_schema.columns
+      where table_name = 'user' and column_name in ('push_enabled', 'email_enabled', 'notification_channels')
+    `);
+    expect([...columns]).toEqual([
+      { column_name: 'notification_channels', column_default: "'{}'::jsonb" },
+    ]);
+  });
+});
+
+describe('applyEmailFallback', () => {
+  it('adds email to every listed push group once', async () => {
+    const { id } = await insertUser('client');
+    expect(await applyEmailFallback(db, id, [...NotificationCategories])).toBe(true);
+    expect(await getNotificationChannels(db, id)).toEqual({
+      chat: 'both',
+      tasks: 'both',
+      tickets: 'both',
+      knowledge: 'both',
+    });
+    expect(await applyEmailFallback(db, id, [...NotificationCategories])).toBe(false);
+  });
+
+  it('keeps email, both and none, and touches only the listed groups', async () => {
+    const { id } = await insertUser('client');
+    await setNotificationChannel(db, id, 'chat', 'none');
+    await setNotificationChannel(db, id, 'tasks', 'email');
+    expect(await applyEmailFallback(db, id, ['chat', 'tasks', 'tickets'])).toBe(false);
+    expect(await getNotificationChannels(db, id)).toEqual({
+      chat: 'none',
+      tasks: 'email',
+      tickets: 'both',
+      knowledge: 'push',
     });
   });
 
-  it('applyEmailFallback turns email on once and never again', async () => {
+  it('never undoes a later manual change', async () => {
     const { id } = await insertUser('client');
-    expect(await applyEmailFallback(db, id)).toBe(true);
-    expect((await getNotificationProfiles(db, [id])).get(id)?.emailEnabled).toBe(true);
-    await updateNotificationPrefs(db, id, { emailEnabled: false });
-    expect(await applyEmailFallback(db, id)).toBe(false);
-    expect((await getNotificationProfiles(db, [id])).get(id)?.emailEnabled).toBe(false);
+    expect(await applyEmailFallback(db, id, ['chat'])).toBe(true);
+    await setNotificationChannel(db, id, 'chat', 'push');
+    expect(await applyEmailFallback(db, id, ['chat'])).toBe(false);
+    expect((await getNotificationChannels(db, id)).chat).toBe('push');
   });
 });
 
