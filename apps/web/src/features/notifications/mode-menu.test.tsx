@@ -20,10 +20,10 @@ const CLIENT = {
 const MODES: NotificationModes = { defaultMode: null, roleDefault: 'all', overrides: {} };
 
 /** `put` decides the answer to the mode PUT: a promise to hold it, or a status. */
-function setup(put: () => Promise<Response>) {
+function setup(put: () => Promise<Response>, getModes?: () => Promise<Response>) {
   const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
     if (url === '/api/notifications/modes' && !init?.method)
-      return new Response(JSON.stringify(MODES), { status: 200 });
+      return getModes?.() ?? new Response(JSON.stringify(MODES), { status: 200 });
     if (init?.method === 'PUT') return put();
     return new Response('{}', { status: 404 });
   });
@@ -75,6 +75,59 @@ describe('GroupBell', () => {
     await waitFor(async () => {
       expect(await bell(t('notifications.mode.all'))).toBeInTheDocument();
     });
+  });
+});
+
+describe('GroupBell review fixes', () => {
+  beforeEach(() => setLanguage('en'));
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('shows the role default straight away while the modes load', async () => {
+    setup(
+      () => Promise.resolve(new Response(null, { status: 204 })),
+      () => new Promise<Response>(() => undefined),
+    );
+    const trigger = await bell(t('notifications.mode.all'));
+    expect(trigger.querySelector('svg[data-icon="bell"]')).not.toBeNull();
+  });
+
+  it('the mentions icon carries an @ glyph', async () => {
+    const { queryClient } = setup(() => Promise.resolve(new Response(null, { status: 204 })));
+    await bell(t('notifications.mode.all'));
+    queryClient.setQueryData(['notifications', 'modes'], {
+      ...MODES,
+      overrides: { g1: 'mentions' },
+    });
+    const icon = (await bell(t('notifications.mode.mentions'))).querySelector(
+      'svg[data-icon="bell-at"]',
+    );
+    expect(icon?.textContent).toBe('@');
+  });
+
+  it('the root is a flex box that carries the className, so the trigger adds no line box', async () => {
+    setup(() => Promise.resolve(new Response(null, { status: 204 })));
+    const trigger = await bell(t('notifications.mode.all'));
+    const root = trigger.parentElement as HTMLElement;
+    expect(root).toHaveClass('flex');
+    expect(trigger).not.toHaveClass('-my-[3px]');
+  });
+
+  it('describes each mode by its hint', async () => {
+    const { user } = setup(() => Promise.resolve(new Response(null, { status: 204 })));
+    await user.click(await bell(t('notifications.mode.all')));
+    const item = await screen.findByRole('menuitemradio', {
+      name: t('notifications.mode.mentions'),
+    });
+    expect(item).toHaveAccessibleDescription(t('notifications.mode.mentionsHint'));
+  });
+
+  it('clears the error when the menu opens again', async () => {
+    const { user } = setup(() => Promise.resolve(new Response('{}', { status: 500 })));
+    await user.click(await bell(t('notifications.mode.all')));
+    await user.click(await screen.findByRole('menuitemradio', { name: /^Off/ }));
+    expect(await screen.findByRole('alert')).toBeInTheDocument();
+    await user.click(await bell(t('notifications.mode.all')));
+    await waitFor(() => expect(screen.queryByRole('alert')).toBeNull());
   });
 });
 

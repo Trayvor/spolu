@@ -32,14 +32,22 @@ const BETA = {
 
 const MODES = { defaultMode: null, roleDefault: 'mentions', overrides: {} };
 
-function mockApi(groups: unknown[], listStatus = 200, modes: unknown = MODES) {
+function mockApi(
+  groups: unknown[],
+  listStatus = 200,
+  initialModes: unknown = MODES,
+  defaultPutStatus = 200,
+) {
+  let modes = initialModes;
   const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
     const reply = (status: number, body: unknown) => new Response(JSON.stringify(body), { status });
     if (url === '/api/me') return reply(200, ADMIN);
     if (url === '/api/notifications/modes' && !init?.method) return reply(200, modes);
     if (url === '/api/notifications/modes/default' && init?.method === 'PUT') {
+      if (defaultPutStatus !== 200) return reply(defaultPutStatus, { error: 'internal' });
       const { mode } = JSON.parse(init.body as string) as { mode: string };
-      return reply(200, { ...MODES, defaultMode: mode, overrides: {} });
+      modes = { ...MODES, defaultMode: mode, overrides: {} };
+      return reply(200, modes);
     }
     if (url === '/api/chat/unread') return reply(200, { g1: 4, g2: 0 });
     if (url === '/api/groups' && (init?.method ?? 'GET') === 'GET')
@@ -170,5 +178,20 @@ describe('groups page', () => {
     await waitFor(() => expect(screen.getAllByRole('button', { name: allLabel })).toHaveLength(2));
     const put = fetchMock.mock.calls.find(([u]) => u === '/api/notifications/modes/default');
     expect(JSON.parse((put?.[1] as RequestInit).body as string)).toEqual({ mode: 'all' });
+  });
+
+  it('a failing All groups save rolls back to Mixed and shows the error', async () => {
+    mockApi([ACME, BETA], 200, { ...MODES, overrides: { g1: 'off' } }, 500);
+    const { user } = renderGroups();
+    await user.click(
+      await screen.findByRole('button', { name: new RegExp(t('notifications.mode.allGroups')) }),
+    );
+    await user.click(await screen.findByRole('menuitemradio', { name: /^All messages/ }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(t('errors.generic'));
+    expect(
+      await screen.findByRole('button', {
+        name: `${t('notifications.mode.allGroups')} ${t('notifications.mode.mixed')}`,
+      }),
+    ).toBeInTheDocument();
   });
 });

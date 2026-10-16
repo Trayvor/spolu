@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useId, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { GroupModes, type GroupMode } from '@spolu/shared';
 import {
@@ -34,26 +34,26 @@ export function ModeMenu({
   onChange,
   triggerLabel,
   showText = false,
-  className,
+  onOpen,
 }: {
   value: GroupMode | 'mixed';
   onChange(mode: GroupMode): void;
   triggerLabel: string;
   showText?: boolean;
-  className?: string;
+  onOpen?(): void;
 }) {
   const { t } = useTranslation();
+  const hintId = useId();
   const title = useModeTitle();
   const Icon = ICONS[value];
   const withText = showText || value === 'mixed';
   return (
-    <DropdownMenu>
+    <DropdownMenu onOpenChange={(open) => open && onOpen?.()}>
       <DropdownMenuTrigger
         aria-label={triggerLabel}
         className={cn(
           'inline-flex h-[38px] min-w-[38px] shrink-0 items-center justify-center gap-2 rounded-full text-button font-medium text-muted-foreground transition-colors duration-(--duration-fast) hover:bg-surface-3 hover:text-foreground data-[state=open]:bg-surface-3 data-[state=open]:text-foreground',
           withText && 'px-3',
-          className,
         )}
       >
         <Icon />
@@ -65,10 +65,19 @@ export function ModeMenu({
           onValueChange={(mode) => onChange(mode as GroupMode)}
         >
           {GroupModes.map((mode) => (
-            <DropdownMenuRadioItem key={mode} value={mode} className="items-start">
+            <DropdownMenuRadioItem
+              key={mode}
+              value={mode}
+              className="items-start"
+              aria-labelledby={`${hintId}-${mode}-title`}
+              aria-describedby={`${hintId}-${mode}`}
+            >
               <span className="flex flex-col gap-0.5">
-                <span>{t(`notifications.mode.${mode}`)}</span>
-                <span className="text-micro font-normal text-muted-foreground">
+                <span id={`${hintId}-${mode}-title`}>{t(`notifications.mode.${mode}`)}</span>
+                <span
+                  id={`${hintId}-${mode}`}
+                  className="text-micro font-normal text-muted-foreground"
+                >
                   {t(`notifications.mode.${mode}Hint`)}
                 </span>
               </span>
@@ -84,15 +93,15 @@ export function ModeMenu({
 export function GroupBell({ groupId, className }: { groupId: string; className?: string }) {
   const { t } = useTranslation();
   const title = useModeTitle();
-  const { mode, setMode, isError } = useGroupMode(groupId);
+  const { mode, setMode, isError, clearError } = useGroupMode(groupId);
   if (!mode) return null;
   return (
-    <div className="relative shrink-0">
+    <div className={cn('relative flex shrink-0', className)}>
       <ModeMenu
         value={mode}
         onChange={setMode}
         triggerLabel={t('notifications.mode.bellLabel', { mode: title(mode) })}
-        className={className}
+        onOpen={clearError}
       />
       {isError && (
         <p

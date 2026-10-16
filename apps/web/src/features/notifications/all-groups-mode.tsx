@@ -18,7 +18,7 @@ export function AllGroupsMode({ groupIds }: { groupIds: string[] }) {
   const { t } = useTranslation();
   const title = useModeTitle();
   const { data: modes } = useQuery(notificationModesQuery);
-  const { setMode, isError } = useDefaultMode();
+  const { setMode, isError, clearError } = useDefaultMode();
   if (!modes) return null;
   const value = allGroupsValue(groupIds, modes);
   return (
@@ -29,6 +29,7 @@ export function AllGroupsMode({ groupIds }: { groupIds: string[] }) {
         onChange={setMode}
         triggerLabel={`${t('notifications.mode.allGroups')} ${title(value)}`}
         showText
+        onOpen={clearError}
       />
       {isError && (
         <p role="alert" className="w-full text-right text-micro text-error-ink">

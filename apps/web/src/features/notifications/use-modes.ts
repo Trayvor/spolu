@@ -25,10 +25,12 @@ function useOptimisticModes<V>(
     onError: (_error, _value, context) => {
       if (context?.previous) queryClient.setQueryData(KEY, context.previous);
     },
+    // Whatever happened, the server has the last word.
+    onSettled: () => queryClient.invalidateQueries({ queryKey: KEY }),
   });
 }
 
-/** The signed-in user's mode in one group; `setMode` is optimistic and rolls back on error. */
+/** The signed-in user's mode in one group (the role default until the modes load); `setMode` is optimistic and rolls back on error. */
 export function useGroupMode(groupId: string) {
   const role = useSession()?.role;
   const { data } = useQuery(notificationModesQuery);
@@ -37,14 +39,18 @@ export function useGroupMode(groupId: string) {
     (old, mode) => ({ ...old, overrides: { ...old.overrides, [groupId]: mode } }),
   );
   const mode =
-    data && role
-      ? effectiveGroupMode({
-          override: data.overrides[groupId] ?? null,
-          defaultMode: data.defaultMode,
-          role,
-        })
-      : undefined;
-  return { mode, setMode: mutation.mutate, isError: mutation.isError };
+    role &&
+    effectiveGroupMode({
+      override: data?.overrides[groupId] ?? null,
+      defaultMode: data?.defaultMode ?? null,
+      role,
+    });
+  return {
+    mode: mode || undefined,
+    setMode: mutation.mutate,
+    isError: mutation.isError,
+    clearError: mutation.reset,
+  };
 }
 
 /** "All groups": set the default and clear every override. */
@@ -57,5 +63,5 @@ export function useDefaultMode() {
     },
     (old, mode) => ({ ...old, defaultMode: mode, overrides: {} }),
   );
-  return { setMode: mutation.mutate, isError: mutation.isError };
+  return { setMode: mutation.mutate, isError: mutation.isError, clearError: mutation.reset };
 }
