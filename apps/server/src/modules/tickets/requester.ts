@@ -4,6 +4,7 @@ import { addMembership, getMembership } from '../groups/memberships.js';
 import {
   createRequesterAccount,
   findUserByEmail,
+  findUserByMailbox,
   normalizeEmail,
   type UserRow,
 } from '../users/service.js';
@@ -16,7 +17,8 @@ const nobody: ResolvedRequester = { userId: null, notify: false };
 /**
  * Who started a ticket of `groupId`, by the email it carries (spec §3 step 2): an admin stays an
  * admin; a client of the group stays theirs; anyone else (a client of another group, a new
- * person) gets a ziadatel membership of the group, and a new person a client account first. A
+ * person) gets a ziadatel membership of the group, and a new person a client account first. An
+ * existing account is found by the exact address, else by its mailbox (`findUserByMailbox`). A
  * membership an admin removed, a disabled account or no email links no account.
  */
 export async function resolveRequester(
@@ -38,7 +40,9 @@ export async function resolveRequester(
 }
 
 async function findOrCreate(db: Db, email: string, name: string | null): Promise<UserRow> {
-  const existing = await findUserByEmail(db, email);
+  // The same mailbox under another spelling (a Gmail address with dots, a +tag) is the same
+  // person: never a second account beside, say, an admin's.
+  const existing = (await findUserByEmail(db, email)) ?? (await findUserByMailbox(db, email));
   if (existing) return existing;
   try {
     return await createRequesterAccount(db, { email, name });

@@ -14,10 +14,12 @@ import {
   EmailTakenError,
   ensureSuperadmin,
   findUserByEmail,
+  findUserByMailbox,
   getNotificationChannels,
   getNotificationProfiles,
   getUserById,
   listAdmins,
+  mailboxKey,
   reactivateUser,
   setNotificationChannel,
 } from './service.js';
@@ -342,5 +344,51 @@ describe('migration 0016 keeps the iOS fallback email', () => {
         throw new Rollback();
       }),
     ).rejects.toBeInstanceOf(Rollback);
+  });
+});
+
+describe('mailboxKey', () => {
+  it('ignores case and spaces, a +tag, and for gmail the dots and googlemail.com', () => {
+    expect(mailboxKey(' Jana.Nova+eGrant@Firma.sk ')).toBe('jana.nova@firma.sk');
+    expect(mailboxKey('j.a.n.a+x@googlemail.com')).toBe('jana@gmail.com');
+    expect(mailboxKey('JANA@gmail.com')).toBe('jana@gmail.com');
+  });
+});
+
+describe('findUserByMailbox', () => {
+  it('finds the account of the same mailbox, preferring an admin', async () => {
+    const local = `m${randomUUID().replaceAll('-', '').slice(0, 12)}`;
+    const clientId = randomUUID();
+    const adminId = randomUUID();
+    await db.insert(user).values([
+      { id: clientId, name: 'C', email: `${local}+old@gmail.com`, role: 'client' },
+      {
+        id: adminId,
+        name: 'A',
+        email: `${local.slice(0, 4)}.${local.slice(4)}@gmail.com`,
+        role: 'admin',
+      },
+    ]);
+    try {
+      expect((await findUserByMailbox(db, `${local}@googlemail.com`))?.id).toBe(adminId);
+      expect(await findUserByMailbox(db, `${local}x@gmail.com`)).toBeNull();
+    } finally {
+      await db.update(user).set({ disabledAt: new Date() }).where(eq(user.id, adminId));
+    }
+  });
+});
+
+describe('one account per address', () => {
+  it('the database refuses a second account with the same address, also in another case', async () => {
+    const email = uniqueEmail();
+    await db.insert(user).values({ id: randomUUID(), name: 'A', email, role: 'client' });
+    await expect(
+      db.insert(user).values({ id: randomUUID(), name: 'B', email, role: 'admin' }),
+    ).rejects.toThrow();
+    await expect(
+      db
+        .insert(user)
+        .values({ id: randomUUID(), name: 'C', email: email.toUpperCase(), role: 'client' }),
+    ).rejects.toThrow();
   });
 });

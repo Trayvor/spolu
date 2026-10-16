@@ -13,7 +13,7 @@ Design: [Phase 21 spec](../superpowers/specs/2026-10-16-phase-21-tickets-and-req
   - A ziadatel never creates tickets.
 - **Fields**: subject, question area, grant programme, text, due date, a URL, links to files (up to 20 external links, never downloaded), the instance link as received, the initiator's name, email and phone, the number `#123` (one sequence for all tickets), status, source (`api` or `manual`), who created it, when it was created, changed and resolved. A ticket created by hand can also carry uploaded files.
 - **Client by instance link.** The instance link is compared with the groups' eGrant URLs by host: scheme, a leading `www.`, the path and the case do not matter (`https://WWW.X.egrant.sk/app` matches `https://x.egrant.sk`). No match, or no link: the ticket is saved **without a client**. Only admins see it (global view, "Without client"); an admin assigns a client by hand. Until then there is no requester account and no email.
-- **Initiator** (for a ticket with a client, by its email):
+- **Initiator** (for a ticket with a client, by its email; an existing account is found by the exact address, else by its mailbox: case, spaces and a `+tag` never matter, nor, for Gmail, the dots and `googlemail.com`, preferring an admin; so an admin's address in another spelling never makes a second account):
   - an admin's email: that admin;
   - a client of the group: that client;
   - anyone else (a client of another group, a ziadatel of another client, a new person): gets a **ziadatel** membership of this group; a new person gets an account first (named from the ticket, Slovak);
