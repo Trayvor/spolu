@@ -14,6 +14,7 @@ An administrator can be a **manager** of a client group: one of the eGrant peopl
   - Becoming a manager switches that administrator's mode for the group to "All messages", unless they had already chosen a mode for that group themselves.
   - Changing the mode with the bell afterwards is the administrator's own choice and is kept.
   - Stopping being a manager returns the administrator to their default, unless they had chosen a mode themselves.
+  - Choosing a mode under "All groups" on the Groups page resets every per-group choice, including the All messages a manager got by becoming one. The administrator stays a manager; becoming a manager of a group again later sets All messages again.
 - **Existing assignments.** A task assigned to an administrator who is not (or no longer) a manager keeps the assignment. The task form shows that person with the note "not a manager"; they can be removed, but not added again.
 - **Visibility.** The Groups page shows each group's managers; the group's Members tab lists its managers.
 - Managers are used by later features: the default client filter of the global knowledge list and the global task board ("the clients I manage"), and the admin home's client list.

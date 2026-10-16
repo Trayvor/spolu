@@ -30,7 +30,7 @@ function seedSql(): string {
 class Rollback extends Error {}
 
 describe('group_managers seed', () => {
-  it('seeds open-task assignees and 60-day chat authors who are active admins, and no modes', async () => {
+  it('seeds open-task assignees and 60-day group and task chat authors who are active admins or superadmins, and no modes', async () => {
     const seed = seedSql();
     let checked = false;
     await db
@@ -60,6 +60,8 @@ describe('group_managers seed', () => {
         const disabledAssignee = await newUser('admin', true);
         const deletedAuthor = await newUser('admin');
         const client = await newUser('client');
+        const groupChatAuthor = await newUser('admin');
+        const superAuthor = await newUser('superadmin');
 
         const bucketId = randomUUID();
         await tx.insert(buckets).values({ id: bucketId, groupId, kind: 'todo', position: 'a0' });
@@ -116,6 +118,8 @@ describe('group_managers seed', () => {
             message(groupChannel, oldAuthor, daysAgo(61)),
             message(groupChannel, deletedAuthor, daysAgo(1), daysAgo(1)),
             message(groupChannel, client, new Date()),
+            message(groupChannel, groupChatAuthor, daysAgo(5)),
+            message(groupChannel, superAuthor, daysAgo(5)),
           ]);
 
         await tx.execute(sql.raw(seed));
@@ -126,7 +130,9 @@ describe('group_managers seed', () => {
           .select({ userId: groupManagers.userId })
           .from(groupManagers)
           .where(eq(groupManagers.groupId, groupId));
-        expect(managers.map((m) => m.userId).sort()).toEqual([openAssignee, recentAuthor].sort());
+        expect(managers.map((m) => m.userId).sort()).toEqual(
+          [openAssignee, recentAuthor, groupChatAuthor, superAuthor].sort(),
+        );
         const modes = await tx
           .select()
           .from(groupNotificationSettings)
@@ -139,6 +145,8 @@ describe('group_managers seed', () => {
               disabledAssignee,
               deletedAuthor,
               client,
+              groupChatAuthor,
+              superAuthor,
             ]),
           );
         expect(modes).toEqual([]);

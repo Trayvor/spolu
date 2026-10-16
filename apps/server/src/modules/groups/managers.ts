@@ -1,6 +1,7 @@
 import { and, asc, eq, inArray, isNull, sql, type SQL } from 'drizzle-orm';
-import type { GroupManager } from '@spolu/shared';
+import type { GroupManager, Role } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
+import { isForeignKeyViolation } from '../../infra/db/errors.js';
 import { startManagerMode, stopManagerMode } from '../notifications/modes.js';
 import { user } from '../users/schema.js';
 import { groupManagers } from './schema.js';
@@ -18,8 +19,16 @@ export class NotAnAdminError extends Error {
   }
 }
 
-const ADMIN_ROLES = ['admin', 'superadmin'] as const;
-const activeAdmin = and(inArray(user.role, [...ADMIN_ROLES]), isNull(user.disabledAt));
+export class GroupNotFoundError extends Error {
+  constructor() {
+    super('No such group');
+    this.name = 'GroupNotFoundError';
+  }
+}
+
+/** The roles that can manage a group; every reader below filters on them and `disabled_at`. */
+const MANAGER_ROLES: Role[] = ['admin', 'superadmin'];
+const activeAdmin = and(inArray(user.role, MANAGER_ROLES), isNull(user.disabledAt));
 
 /** Whether this user is an active manager of the group. One indexed lookup. */
 export async function isGroupManager(db: Db, groupId: string, userId: string): Promise<boolean> {
@@ -47,7 +56,7 @@ export async function managedGroupIds(db: Db, userId: string): Promise<string[]>
  * `sql\`${groups.id} in ${managedGroupsSql(userId)}\``.
  */
 export function managedGroupsSql(userId: string): SQL {
-  return sql`(select gm."group_id" from "group_managers" gm join "user" u on u."id" = gm."user_id" where gm."user_id" = ${userId} and u."role" in ('admin', 'superadmin') and u."disabled_at" is null)`;
+  return sql`(select ${groupManagers.groupId} from ${groupManagers} inner join ${user} on ${user.id} = ${groupManagers.userId} where ${and(eq(groupManagers.userId, userId), activeAdmin)})`;
 }
 
 /** The group's active managers, by name, then id. */
@@ -63,7 +72,7 @@ export async function listGroupManagers(db: Db, groupId: string): Promise<GroupM
 /**
  * Makes the user a manager of the group, and on a new row gives them `all` for it unless they
  * chose a mode already. Idempotent. Throws `NotAnAdminError` for a client, a disabled user or an
- * unknown id.
+ * unknown id, and `GroupNotFoundError` for an unknown group.
  */
 export async function addManager(
   db: Db,
@@ -79,11 +88,18 @@ export async function addManager(
     if (!target || target.role === 'client' || target.disabledAt !== null) {
       throw new NotAnAdminError();
     }
-    const inserted = await tx
-      .insert(groupManagers)
-      .values({ groupId, userId })
-      .onConflictDoNothing()
-      .returning({ userId: groupManagers.userId });
+    let inserted: { userId: string }[];
+    try {
+      inserted = await tx
+        .insert(groupManagers)
+        .values({ groupId, userId })
+        .onConflictDoNothing()
+        .returning({ userId: groupManagers.userId });
+    } catch (error) {
+      // The user row exists and is locked above, so the failing foreign key is the group's.
+      if (isForeignKeyViolation(error)) throw new GroupNotFoundError();
+      throw error;
+    }
     const changed = inserted.length > 0;
     if (changed) await startManagerMode(tx, userId, groupId);
     return { changed, managers: await listGroupManagers(tx, groupId) };

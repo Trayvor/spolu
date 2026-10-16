@@ -20,6 +20,7 @@ import {
 } from '../users/service.js';
 import {
   addManager,
+  GroupNotFoundError,
   isGroupManager,
   listGroupManagers,
   managedGroupIds,
@@ -103,6 +104,12 @@ describe('group managers', () => {
     const rows = await db.select().from(groupManagers).where(eq(groupManagers.groupId, g.id));
     expect(rows).toEqual([]);
     expect(await settingsRow(client.id, g.id)).toBeNull();
+  });
+
+  it('addManager answers GroupNotFoundError for an unknown group', async () => {
+    const a = await newAdmin();
+    await expect(addManager(db, randomUUID(), a.id)).rejects.toBeInstanceOf(GroupNotFoundError);
+    expect(await managedGroupIds(db, a.id)).toEqual([]);
   });
 
   it('a superadmin can become a manager and counts as one', async () => {
