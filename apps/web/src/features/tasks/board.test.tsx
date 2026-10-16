@@ -192,10 +192,7 @@ describe('Board', () => {
   });
 
   it('a card with a link shows the link mark, labelled Has a link; none without', async () => {
-    board.tasks = [
-      task('t1', 'b-todo', { link: 'https://egrant.sk/a' }),
-      task('t2', 'b-todo'),
-    ];
+    board.tasks = [task('t1', 'b-todo', { link: 'https://egrant.sk/a' }), task('t2', 'b-todo')];
     renderBoard();
     await screen.findByText('Task t1');
     const marks = screen.getAllByText(t('tasks.card.link'));

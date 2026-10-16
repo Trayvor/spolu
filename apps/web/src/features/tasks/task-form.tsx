@@ -168,9 +168,8 @@ export function TaskForm({
   const describedBy = (field: keyof TaskFormErrors) =>
     errors[field] ? id(`${field}-error`) : undefined;
   const linkDescribedBy =
-    [describedBy('link'), linkWarning ? id('link-warning') : undefined]
-      .filter(Boolean)
-      .join(' ') || undefined;
+    [describedBy('link'), linkWarning ? id('link-warning') : undefined].filter(Boolean).join(' ') ||
+    undefined;
   const openable = value.link !== null && isHttpUrl(value.link.trim());
 
   return (

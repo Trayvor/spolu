@@ -274,13 +274,13 @@ describe('tasks API: tasks', () => {
       const card = (await board(client.cookie, g.id)).tasks.find((c) => c.id === task.id);
       expect(card?.link).toBe('https://egrant.sk/projekt/42');
 
-      const empty = (await create(g.id, client.cookie, { title: 'No link', link: '' })).json<
-        TaskDetailDto
-      >();
+      const empty = (
+        await create(g.id, client.cookie, { title: 'No link', link: '' })
+      ).json<TaskDetailDto>();
       expect(empty.link).toBeNull();
-      const omitted = (await create(g.id, client.cookie, { title: 'Omitted' })).json<
-        TaskDetailDto
-      >();
+      const omitted = (
+        await create(g.id, client.cookie, { title: 'Omitted' })
+      ).json<TaskDetailDto>();
       expect(omitted.link).toBeNull();
     });
 

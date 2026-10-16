@@ -196,7 +196,10 @@ describe('TaskPanel', () => {
   it('invalid_url on save shows the link error', async () => {
     patchReply = { status: 400, body: { error: 'invalid_url' } };
     const { user } = renderPanel();
-    await user.type(await screen.findByRole('textbox', { name: t('tasks.form.link') }), 'https://x.sk');
+    await user.type(
+      await screen.findByRole('textbox', { name: t('tasks.form.link') }),
+      'https://x.sk',
+    );
     await user.click(screen.getByRole('button', { name: t('tasks.panel.save') }));
     expect(await screen.findByText(t('tasks.form.errors.invalidLink'))).toBeInTheDocument();
   });

@@ -270,9 +270,9 @@ describe('TaskForm', () => {
   it('linkWarning shows the empty-link warning under the field, described by it', () => {
     renderForm({ linkWarning: true });
     const warning = screen.getByText(t('tasks.form.linkEmptyWarning'));
-    expect(screen.getByRole('textbox', { name: t('tasks.form.link') }).getAttribute('aria-describedby')).toBe(
-      warning.id,
-    );
+    expect(
+      screen.getByRole('textbox', { name: t('tasks.form.link') }).getAttribute('aria-describedby'),
+    ).toBe(warning.id);
   });
 
   it('a file id without details shows a removable fallback chip', async () => {

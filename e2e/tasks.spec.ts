@@ -126,9 +126,7 @@ test('admin creates a task through the full panel and marks it done', async ({ p
   await panel.getByLabel('Názov', { exact: true }).fill('Záverečná správa');
   await panel.getByLabel('Popis', { exact: true }).fill('Skontrolovať **rozpočet**');
   await panel.getByRole('switch', { name: 'Urgentné' }).click();
-  await panel
-    .getByRole('textbox', { name: 'Odkaz', exact: true })
-    .fill('https://egrant.sk/vyzvy/');
+  await panel.getByRole('textbox', { name: 'Odkaz', exact: true }).fill('https://egrant.sk/vyzvy/');
   await panel.getByRole('button', { name: 'Vytvoriť' }).click();
   await expect(panel).toHaveCount(0);
 
