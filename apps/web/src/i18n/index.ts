@@ -45,9 +45,14 @@ void i18next.use(initReactI18next).init({
 
 export const i18n = i18next;
 
-/** Switches once the lazy namespaces loaded so far are there in `lang` too (no raw keys). */
-export async function setLanguage(lang: Language) {
-  await changeLanguage(lang);
+/**
+ * Switches once the lazy namespaces loaded so far are there in `lang` too (no raw keys), then
+ * stores the choice. `false`: a later choice superseded this one (nothing changed). Rejects,
+ * keeping the language, when a namespace cannot be loaded.
+ */
+export async function setLanguage(lang: Language): Promise<boolean> {
+  if (!(await changeLanguage(lang))) return false;
   writeStored(lang);
   document.documentElement.lang = lang;
+  return true;
 }

@@ -19,7 +19,14 @@ import { DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES, type Language } from './language
  */
 const files = import.meta.glob<{ default: Record<string, unknown> }>('../locales/*/*.json');
 
-const fileOf = (name: string, lang: Language) => `../locales/${name}/${lang}.json`;
+type LocaleFile = { default: Record<string, unknown> };
+type Importer = (name: string, lang: Language) => Promise<LocaleFile>;
+
+const importFile: Importer = (name, lang) => {
+  const file = files[`../locales/${name}/${lang}.json`];
+  return file ? file() : Promise.reject(new Error(`Unknown locale namespace "${name}" (${lang})`));
+};
+let importer: Importer = importFile;
 
 /** Every namespace there is: one folder in `src/locales` each. */
 export const NAMESPACES: readonly string[] = [
@@ -32,8 +39,12 @@ const loads = new Map<string, Promise<void>>();
 const loaded = new Set<string>();
 /** Namespaces asked for so far: a language change loads them all in the new language. */
 const wanted = new Set<string>();
+/** Failed loads (`${lang}/${name}`): `useNamespaces` throws them until `retryFailedNamespaces`. */
+const failed = new Map<string, Error>();
 /** The language `changeLanguage` is switching to, while its namespaces load. */
 let switchingTo: Language | null = null;
+/** Bumped by every `changeLanguage`: only the latest call may switch. */
+let switchSeq = 0;
 
 function currentLanguage(): Language {
   return isLanguage(i18next.language) ? i18next.language : DEFAULT_LANGUAGE;
@@ -43,14 +54,17 @@ function loadFor(name: string, lang: Language): Promise<void> {
   const id = `${lang}/${name}`;
   let load = loads.get(id);
   if (load) return load;
-  const file = files[fileOf(name, lang)];
-  if (!file) return Promise.reject(new Error(`Unknown locale namespace "${name}" (${lang})`));
-  load = file().then((module) => {
+  failed.delete(id); // a new attempt
+  load = importer(name, lang).then((module) => {
     i18next.addResourceBundle(lang, 'translation', { [name]: module.default }, true, false);
     loaded.add(id);
   });
-  // A failed fetch (offline, new deploy) may be retried by the next caller.
-  load.catch(() => loads.delete(id));
+  // A failed fetch (offline, new deploy): `loadNamespace` tries again on its next call, while
+  // `useNamespaces` throws the error until `retryFailedNamespaces`, so it never loops.
+  load.catch((error: unknown) => {
+    loads.delete(id);
+    failed.set(id, error instanceof Error ? error : new Error(String(error)));
+  });
   loads.set(id, load);
   return load;
 }
@@ -59,8 +73,12 @@ function loadFor(name: string, lang: Language): Promise<void> {
  * Loads `src/locales/<name>/<lang>.json` for the current language (and the one being switched
  * to) and merges it under `<name>`. Idempotent: concurrent and later calls share one load.
  */
-export async function loadNamespace(name: string): Promise<void> {
+function assertNamespace(name: string): void {
   if (!NAMESPACES.includes(name)) throw new Error(`Unknown locale namespace "${name}"`);
+}
+
+export async function loadNamespace(name: string): Promise<void> {
+  assertNamespace(name);
   wanted.add(name);
   const languages = new Set([currentLanguage(), switchingTo ?? currentLanguage()]);
   await Promise.all([...languages].map((lang) => loadFor(name, lang)));
@@ -88,38 +106,69 @@ export function withNamespaces<T>(
 /**
  * Suspends the component until its namespaces are loaded in the current language. For a
  * component that is not behind a `withNamespaces` import; it needs a `<Suspense>` above it.
+ * An unknown name or a failed load throws the error to the nearest error boundary; a failed
+ * load stays failed (no new attempt on every render) until `retryFailedNamespaces()`.
  */
 export function useNamespaces(names: readonly string[]): void {
   const { i18n } = useTranslation(); // re-renders on a language change
+  names.forEach(assertNamespace);
   const lang = isLanguage(i18n.language) ? i18n.language : DEFAULT_LANGUAGE;
   const missing = names.filter((name) => !isNamespaceLoaded(name, lang));
   if (missing.length === 0) return;
+  for (const name of missing) {
+    const error = failed.get(`${lang}/${name}`);
+    if (error) throw error;
+  }
   for (const name of missing) wanted.add(name);
   // Suspend the way `React.lazy` does: Suspense renders the component again once it settles.
   // (Not `use()`: replaying a component that suspended on mount breaks on the hooks after it.)
-  throw Promise.all(missing.map((name) => loadFor(name, lang)));
+  // Settled either way: Suspense renders again and then sees the load or the failure.
+  throw Promise.allSettled(missing.map((name) => loadFor(name, lang)));
+}
+
+/** Forgets failed loads, so the next `useNamespaces` render tries again (an error "Retry"). */
+export function retryFailedNamespaces(): void {
+  failed.clear();
+}
+
+/** The language the UI shows or is switching to: what a new choice compares against. */
+export function pendingLanguage(): Language {
+  return switchingTo ?? currentLanguage();
 }
 
 /**
  * Switches the language once every namespace loaded so far is loaded in it too, so no text
  * switches to a raw key. Namespaces asked for while it waits load in both languages.
+ * Resolves `true` once switched, or `false` when a later call superseded it (only the latest
+ * choice switches). Rejects, keeping the language, when a namespace fails to load.
  */
-export function changeLanguage(lang: Language): Promise<void> {
+export async function changeLanguage(lang: Language): Promise<boolean> {
+  const seq = ++switchSeq;
+  const latest = () => seq === switchSeq;
   const missingIn = () => [...wanted].filter((name) => !isNamespaceLoaded(name, lang));
-  // Nothing to load: switch at once, in the same tick, as with eager texts.
-  if (missingIn().length === 0) return i18next.changeLanguage(lang).then(() => undefined);
   switchingTo = lang;
-  return (async () => {
-    try {
-      // A namespace wanted while a round loads joins the next one.
-      for (let missing = missingIn(); missing.length > 0; missing = missingIn()) {
+  try {
+    // A namespace wanted while a round loads joins the next one.
+    for (let missing = missingIn(); missing.length > 0 && latest(); missing = missingIn()) {
+      try {
         await Promise.all(missing.map((name) => loadFor(name, lang)));
+      } catch (error) {
+        if (!latest()) return false; // superseded: its failure no longer matters
+        throw error;
       }
-      await i18next.changeLanguage(lang);
-    } finally {
-      if (switchingTo === lang) switchingTo = null;
     }
-  })();
+    if (!latest()) return false;
+    // Nothing left to load, so i18next switches at once (in the same tick when nothing was missing).
+    await i18next.changeLanguage(lang);
+    return true;
+  } finally {
+    if (latest()) switchingTo = null;
+  }
+}
+
+/** Tests only: replace how a namespace file is fetched (to delay or fail it); null restores it. */
+export function setNamespaceImporter(replacement: Importer | null): void {
+  importer = replacement ?? importFile;
 }
 
 /** Tests only: every namespace in every language, for tests that render screens in parts. */
@@ -140,5 +189,6 @@ export function resetNamespaces(): void {
   loads.clear();
   loaded.clear();
   wanted.clear();
+  failed.clear();
   switchingTo = null;
 }
