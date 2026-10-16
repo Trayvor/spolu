@@ -1,7 +1,7 @@
 # Deploys to the test environment: on every push to main, or by hand for any branch or SHA.
 # Logic lives in scripts/ci.sh, scripts/build-image.sh and scripts/deploy.sh; this file only
 # prepares the runner and passes settings in. Settings live in the "test" GitHub environment:
-#   secrets TEST_SSH_KEY, TEST_ENV_FILE; variables DEPLOY_HOST, DEPLOY_USER, DOMAIN, IMAGE,
+#   secrets TEST_SSH_KEY, TEST_ENV_FILE, optional TICKETS_API_KEY; variables DEPLOY_HOST, DEPLOY_USER, DOMAIN, IMAGE,
 #   optional DEPLOY_KNOWN_HOSTS. See docs/runbooks/deploy.md.
 name: Deploy test
 
@@ -89,6 +89,7 @@ jobs:
           DEPLOY_ENV_FILE: ${{ runner.temp }}/deploy.env
           DOMAIN: ${{ vars.DOMAIN }}
           IMAGE: ${{ vars.IMAGE }}
+          TICKETS_API_KEY: ${{ secrets.TICKETS_API_KEY }}
           REGISTRY_USER: ${{ github.actor }}
           REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Remove deploy secrets

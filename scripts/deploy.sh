@@ -9,7 +9,9 @@
 #   DEPLOY_SSH_KEY   path to the private SSH key of that user
 #   DEPLOY_ENV_FILE  path to the env file for the server (see deploy/test.env.example)
 #   IMAGE            image repository, e.g. ghcr.io/trayvor/spolu
-#   DOMAIN           public domain of the environment, used for the health check
+#   DOMAIN           public domain of the environment: the health check, and DOMAIN= and
+#                    PUBLIC_URL=https://<domain> in the server's .env (they override the file)
+#   TICKETS_API_KEY  optional; when set it replaces TICKETS_API_KEY= of the env file
 # Env (optional):
 #   DEPLOY_PORT         SSH port (default 22)
 #   DEPLOY_KNOWN_HOSTS  known_hosts line(s) for the server; pins its host key. Without it the
@@ -67,7 +69,8 @@ previous_tag="$("${ssh_cmd[@]}" "sed -n 's/^TAG=//p' '$remote_dir/.env' 2>/dev/n
 
 log "Uploading files to $target:$remote_dir"
 # The env file is written with umask 077 so it is never readable by other users, not even briefly.
-"${ssh_cmd[@]}" "mkdir -p '$remote_dir' && umask 077 && cat > '$remote_dir/.env.upload'" < "$DEPLOY_ENV_FILE"
+# DOMAIN, PUBLIC_URL and (when set) TICKETS_API_KEY come from the workflow, not the file: see deploy_env.
+deploy_env "$DEPLOY_ENV_FILE" | "${ssh_cmd[@]}" "mkdir -p '$remote_dir' && umask 077 && cat > '$remote_dir/.env.upload'"
 "${scp_cmd[@]}" -r deploy/docker-compose.yml deploy/Caddyfile deploy/backup "$target:$remote_dir/"
 
 log "Starting $IMAGE:$tag on $DEPLOY_HOST"
