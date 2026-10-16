@@ -25,7 +25,7 @@ Each user chooses a notification mode per client group (what arrives) and, in th
   | **Ticket board** | ticket events (item B, not built yet; the row is shown already) | Email and push |
   | **Knowledge base** | Knowledge base reminders | Push |
 
-  - The groups replaced the two Phase 6 switches (Push, Email); everyone started on the defaults.
+  - The groups replaced the two Phase 6 switches (Push, Email); everyone started on the defaults, except users whose email the iOS fallback had turned on (and who kept it on): their chat, task board and knowledge base groups start on Email and push, since that fallback never runs again.
   - A change saves at once. Choosing Push or Email and push while this device is not set up also sets it up (the browser asks for permission).
   - Above the groups the page shows this device while some group uses push: "on", "not set up" (with "Turn on for this device") or "blocked in the browser settings" (with how to unblock it); on an iPhone outside the Home Screen app it shows the install hint instead. Without VAPID keys on the server the page says push is not available, and Push and Email and push cannot be chosen (a group already on Email and push still gets its email).
   - Under the groups one line says what the email is: a summary of unread items, at most every 10 minutes.

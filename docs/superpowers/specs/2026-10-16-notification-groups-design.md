@@ -16,7 +16,7 @@ Each user picks, per **notification group**, how they hear about it: **email**, 
 |---|---|
 | Relation to the Push and Email switches | The groups **replace** them. The per-group bell mode (All / Mentions and replies / Off) stays: it decides *what* arrives, the notification group decides *by which channel*. |
 | Task chat | Messages in a task's chat belong to the **task board** group. A task's custom reminder too; a Knowledge base reminder belongs to **knowledge base**. |
-| Existing users | Everyone starts on the new defaults; the old switches are not carried over. |
+| Existing users | Everyone starts on the new defaults; the old switches are not carried over. Exception (owner, after the final review): a user whose email the Phase 6 iOS fallback turned on, and who kept it on, gets chat, tasks and knowledge on both, because the fallback never runs again. |
 | Ticket board row before item B | Shown right away, for every user. |
 | Ticket events and the bell mode | Ticket events pass every mode; only the `tickets` channel decides (item B's request). |
 | iOS without web push (the Phase 6 fallback) | Once per user, every group set to push becomes both. Email, both and none stay. A later manual change is never undone. |
@@ -36,7 +36,7 @@ Each user picks, per **notification group**, how they hear about it: **email**, 
 ### Storage
 
 - `user.notification_channels jsonb not null default '{}'`: only the user's own choices, keyed by category. A missing key means the category's default, so a new category (or a changed default) needs no data migration.
-- `user.push_enabled` and `user.email_enabled` are dropped. That is the reset to defaults the owner asked for. `user.email_fallback_at` stays.
+- `user.push_enabled` and `user.email_enabled` are dropped. That is the reset to defaults the owner asked for; before the drop, one hand-written statement keeps email (chat, tasks, knowledge on both) for users with `email_fallback_at` set and email still on. `user.email_fallback_at` stays.
 - The migration is generated with `pnpm --filter @spolu/server db:generate`.
 - No new index: nothing filters by this column; delivery reads it with the user row it already loads.
 
