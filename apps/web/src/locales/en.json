@@ -279,7 +279,12 @@
       "fromMessage": "Created from a message",
       "openMessage": "Open in chat",
       "newTask": "New task",
-      "create": "Create"
+      "create": "Create",
+      "tabs": {
+        "label": "Task sections",
+        "details": "Details",
+        "chat": "Chat ({{count}})"
+      }
     }
   },
   "groups": {

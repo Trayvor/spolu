@@ -10,6 +10,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import type { MessageDto } from '@spolu/shared';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { useGroupPeople } from '@/features/groups/use-group-people';
 import type { Pending } from './channel-window';
 import { Composer } from './composer';
@@ -38,6 +39,8 @@ export interface ThreadPanelProps {
   highlightId?: string | null;
   messageActions?: MessageAction[];
   renderMessageFooter?: (message: MessageDto) => ReactNode;
+  /** Covers the chat at every width, with the back button (the task panel's chat). */
+  over?: boolean;
   onClose: () => void;
 }
 
@@ -60,6 +63,7 @@ export function ThreadPanel({
   highlightId,
   messageActions,
   renderMessageFooter,
+  over = false,
   onClose,
 }: ThreadPanelProps) {
   const { t } = useTranslation();
@@ -166,29 +170,48 @@ export function ThreadPanel({
       ref={panel}
       aria-label={t('chat.thread.title')}
       onKeyDown={onKeyDown}
-      className="absolute inset-0 z-10 flex flex-col bg-card min-[1024px]:static min-[1024px]:w-[400px] min-[1024px]:shrink-0 min-[1024px]:border-l min-[1024px]:border-border"
+      className={cn(
+        'absolute inset-0 z-10 flex flex-col bg-card',
+        !over &&
+          'min-[1024px]:static min-[1024px]:w-[400px] min-[1024px]:shrink-0 min-[1024px]:border-l min-[1024px]:border-border',
+      )}
     >
-      <header className="flex h-12 shrink-0 items-center gap-2 border-b border-border px-2 min-[1024px]:px-4">
-        <Button variant="ghost" size="sm" className="min-[1024px]:hidden" onClick={onClose}>
+      <header
+        className={cn(
+          'flex h-12 shrink-0 items-center gap-2 border-b border-border px-2',
+          !over && 'min-[1024px]:px-4',
+        )}
+      >
+        <Button
+          variant="ghost"
+          size="sm"
+          className={cn(!over && 'min-[1024px]:hidden')}
+          onClick={onClose}
+        >
           <BackIcon />
           {t('chat.thread.back')}
         </Button>
         <h2
           ref={heading}
           tabIndex={-1}
-          className="flex-1 text-button font-semibold outline-none max-[1023px]:sr-only"
+          className={cn(
+            'flex-1 text-button font-semibold outline-none',
+            over ? 'sr-only' : 'max-[1023px]:sr-only',
+          )}
         >
           {t('chat.thread.title')}
         </h2>
-        <button
-          type="button"
-          aria-label={t('chat.thread.close')}
-          title={t('chat.thread.close')}
-          onClick={onClose}
-          className="hidden size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground min-[1024px]:inline-flex"
-        >
-          <CloseIcon />
-        </button>
+        {!over && (
+          <button
+            type="button"
+            aria-label={t('chat.thread.close')}
+            title={t('chat.thread.close')}
+            onClick={onClose}
+            className="hidden size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground min-[1024px]:inline-flex"
+          >
+            <CloseIcon />
+          </button>
+        )}
       </header>
 
       <div

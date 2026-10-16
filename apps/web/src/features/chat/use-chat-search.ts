@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
-import { useLocation, useNavigate } from '@tanstack/react-router';
+import { useLocation } from '@tanstack/react-router';
+import { useUpdateSearch } from '@/lib/use-update-search';
 
 /** The chat's own search params: the open thread, the message to show and their channel. */
 type ChatSearch = { thread?: string; message?: string; c?: string };
@@ -18,24 +19,20 @@ const text = (v: unknown): string | undefined => (typeof v === 'string' && v ? v
  */
 export function useChatSearch(channelId: string | undefined) {
   const search = useLocation({ select: (l) => l.search as Record<string, unknown> });
-  const navigate = useNavigate();
+  const updateSearch = useUpdateSearch();
   const channel = text(search.c);
   const mine = channelId !== undefined && channel === channelId;
 
   const update = useCallback(
-    (change: (next: Record<string, unknown>) => void, replace: boolean) => {
-      void navigate({
-        to: '.',
-        replace,
-        search: ((prev: Record<string, unknown>) => {
-          const next = { ...prev };
+    (change: (next: Record<string, unknown>) => void, replace: boolean) =>
+      updateSearch(
+        (next) => {
           change(next);
           if (next.thread === undefined && next.message === undefined) delete next.c;
-          return next;
-        }) as never,
-      });
-    },
-    [navigate],
+        },
+        { replace },
+      ),
+    [updateSearch],
   );
 
   /** Opening or closing a thread is a history step, so Back closes it again. */

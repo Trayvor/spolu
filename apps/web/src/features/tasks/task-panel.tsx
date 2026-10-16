@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useBlocker, useNavigate, useParams } from '@tanstack/react-router';
+import { useBlocker, useLocation, useNavigate, useParams } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import {
   BoardEvents,
@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { ApiError } from '@/lib/api';
 import { getSocket } from '@/lib/socket';
+import { useUpdateSearch } from '@/lib/use-update-search';
 import { cn } from '@/lib/utils';
 import { boardQuery, deleteTask, moveTask, taskQuery, updateTask } from './api';
 import { removeTask, showBoardNotice, upsertTask } from './board-cache';
@@ -31,8 +32,17 @@ import { doneTarget, tasksByBucket } from './board-model';
 import { formatCreated } from './dates';
 import { DoneCircle } from './done-circle';
 import { MoreIcon } from './icons';
-import { BucketSelect, PanelHeader, PanelNotice, PanelShell } from './panel-parts';
+import {
+  BucketSelect,
+  PanelHeader,
+  PanelNotice,
+  PanelShell,
+  PanelTabs,
+  panelTabIds,
+  type PanelTab,
+} from './panel-parts';
 import { SourceMessage } from './source-message';
+import { TaskChat } from './task-chat';
 import { TaskForm, validateTaskDraft, type TaskFormErrors } from './task-form';
 
 const toDraft = (task: TaskDetailDto): TaskDraft => ({
@@ -59,18 +69,10 @@ export function TaskPanelRoute() {
 }
 
 /**
- * The task panel over the board: 560 px on the right from 1024 px, full screen below.
- * `children` is the slot under the form (the task chat, later).
+ * The task panel over the board: 560 px on the right from 1024 px, full screen below. Under the
+ * title, two tabs: Details (the form) and Chat (the task's chat, `?tab=chat`).
  */
-export function TaskPanel({
-  groupId,
-  taskId,
-  children,
-}: {
-  groupId: string;
-  taskId: string;
-  children?: ReactNode;
-}) {
+export function TaskPanel({ groupId, taskId }: { groupId: string; taskId: string }) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -98,9 +100,7 @@ export function TaskPanel({
           const result = await query.refetch();
           return result.isError ? undefined : result.data;
         }}
-      >
-        {children}
-      </TaskEditor>
+      />
     );
   } else if (query.isError && !gone) {
     body = (
@@ -128,16 +128,32 @@ export function TaskPanel({
   );
 }
 
+/** `?tab=chat` shows the Chat tab; anything else, Details. The route declares no search schema. */
+function usePanelTab(): [PanelTab, (tab: PanelTab) => void] {
+  const updateSearch = useUpdateSearch();
+  const tab = useLocation({
+    select: (l) => ((l.search as Record<string, unknown>).tab === 'chat' ? 'chat' : 'details'),
+  });
+  // Replaces the history entry; other params (the chat's `message`, `thread`, `c`) stay.
+  const setTab = (next: PanelTab) =>
+    updateSearch(
+      (search) => {
+        if (next === 'chat') search.tab = 'chat';
+        else delete search.tab;
+      },
+      { replace: true },
+    );
+  return [tab, setTab];
+}
+
 function TaskEditor({
   groupId,
   initial,
   reload,
-  children,
 }: {
   groupId: string;
   initial: TaskDetailDto;
   reload: () => Promise<TaskDetailDto | undefined>;
-  children: ReactNode;
 }) {
   const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
@@ -165,8 +181,13 @@ function TaskEditor({
     latest.current = { dirty, base };
   });
 
+  const [tab, setTab] = usePanelTab();
+
+  // Leaving the task asks while the draft is unsaved; the tabs and the chat's own params
+  // (thread, message) only change the search, so they never ask.
   const blocker = useBlocker({
-    shouldBlockFn: () => latest.current.dirty && !leaving.current,
+    shouldBlockFn: ({ current, next }) =>
+      next.pathname !== current.pathname && latest.current.dirty && !leaving.current,
     enableBeforeUnload: () => latest.current.dirty && !leaving.current,
     withResolver: true,
   });
@@ -384,7 +405,7 @@ function TaskEditor({
         )}
       </div>
 
-      <div className="flex-1 space-y-5 overflow-y-auto overscroll-contain p-4 min-[641px]:p-6">
+      <div className="shrink-0 space-y-2 px-4 pt-4 pb-3 min-[641px]:px-6 min-[641px]:pt-5">
         <div className="flex items-start gap-3">
           {/* 18 px circle centred on the first 28 px line of the title. */}
           <DoneCircle
@@ -399,7 +420,8 @@ function TaskEditor({
             ref={heading}
             tabIndex={-1}
             className={cn(
-              'min-w-0 break-words text-medium leading-tight font-semibold outline-none',
+              // A long title never pushes the tabs and the chat off a phone screen.
+              'line-clamp-3 min-w-0 break-words text-medium leading-tight font-semibold outline-none',
               bucketOf?.kind === 'done' && 'text-muted-foreground line-through',
             )}
           >
@@ -411,46 +433,70 @@ function TaskEditor({
             {t('tasks.board.moveFailed')}
           </p>
         )}
-
-        {base.sourceMessage && <SourceMessage groupId={groupId} message={base.sourceMessage} />}
-
-        <TaskForm
-          value={draft}
-          onChange={setDraft}
-          groupId={groupId}
-          errors={errors}
-          files={files}
-          onFilesChange={setFiles}
-          knownPeople={base.assignees}
-        />
-
-        {dirty && (
-          <div className="flex gap-3">
-            <Button disabled={busy} onClick={() => void save()}>
-              {t('tasks.panel.save')}
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setDraft(toDraft(base));
-                setFiles(base.files);
-                setErrors({});
-              }}
-            >
-              {t('tasks.panel.cancel')}
-            </Button>
-          </div>
-        )}
-
-        {children}
       </div>
 
-      <footer className="border-t-2 border-border px-6 py-3 text-tiny text-muted-foreground">
-        {t('tasks.panel.createdBy', {
-          name: base.createdBy.name,
-          date: formatCreated(base.createdAt, i18n.language),
-        })}
-      </footer>
+      {/* Task 9 provides the real count from the board's task-chat summaries. */}
+      <PanelTabs tab={tab} chatCount={0} onChange={setTab} />
+
+      {/* Details stays mounted while Chat shows: the draft and the unsaved-changes guard live on. */}
+      <div
+        role="tabpanel"
+        id={panelTabIds('details').panel}
+        aria-labelledby={panelTabIds('details').tab}
+        hidden={tab !== 'details'}
+        className="flex min-h-0 flex-1 flex-col"
+      >
+        <div className="flex-1 space-y-5 overflow-y-auto overscroll-contain p-4 min-[641px]:p-6">
+          {base.sourceMessage && <SourceMessage groupId={groupId} message={base.sourceMessage} />}
+
+          <TaskForm
+            value={draft}
+            onChange={setDraft}
+            groupId={groupId}
+            errors={errors}
+            files={files}
+            onFilesChange={setFiles}
+            knownPeople={base.assignees}
+          />
+
+          {dirty && (
+            <div className="flex gap-3">
+              <Button disabled={busy} onClick={() => void save()}>
+                {t('tasks.panel.save')}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setDraft(toDraft(base));
+                  setFiles(base.files);
+                  setErrors({});
+                }}
+              >
+                {t('tasks.panel.cancel')}
+              </Button>
+            </div>
+          )}
+        </div>
+
+        <footer className="border-t-2 border-border px-6 py-3 text-tiny text-muted-foreground">
+          {t('tasks.panel.createdBy', {
+            name: base.createdBy.name,
+            date: formatCreated(base.createdAt, i18n.language),
+          })}
+        </footer>
+      </div>
+
+      {tab === 'chat' && (
+        <div
+          role="tabpanel"
+          id={panelTabIds('chat').panel}
+          aria-labelledby={panelTabIds('chat').tab}
+          data-own-touch
+          className="min-h-0 flex-1 p-2 min-[641px]:p-4"
+        >
+          <TaskChat groupId={groupId} taskId={base.id} />
+        </div>
+      )}
     </>
   );
 }
