@@ -31,7 +31,7 @@ Requirements per module: [product/](product/README.md). Phases after 1 get their
 Phases 8, 12 and 14 do not depend on each other, so their order can change by priority.
 
 **Next (owner brief, 2026-10-16):** [superpowers/briefs/2026-10-16-next-work.md](superpowers/briefs/2026-10-16-next-work.md). In order:
-- A: create knowledge and tasks from the admin global views, and the "only where I take part" board filter;
+- A: the "only where I take part" filter on the global task board;
 - C: notification groups in the profile;
 - B: the tickets module with the `ziadatel` role, which supersedes Phases 12–13.
 
