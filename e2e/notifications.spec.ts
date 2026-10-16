@@ -17,7 +17,10 @@ test('the client switches the bell to Mentions and replies and it sticks after r
   await admin.getByLabel('Adresa klienta v eGrant').fill(`https://e2e-bell-${stamp}.egrant.sk`);
   await admin.getByRole('button', { name: 'Uložiť' }).click();
   await expect(admin.getByRole('button', { name: 'Uložiť' })).toHaveCount(0);
-  await admin.getByRole('link', { name: new RegExp(`E2E Bell ${stamp}`) }).click();
+  // The groups list's row, not the admin sidebar's link (it may list the new group too).
+  await admin
+    .locator('a[href^="/groups/"]:not([href$="/chat"])', { hasText: `E2E Bell ${stamp}` })
+    .click();
   const groupPath = new URL(admin.url()).pathname.replace(/\/chat$/, '');
   await admin.goto(`${groupPath}/members`);
   const inviteUrl = await admin.getByRole('textbox', { name: 'Odkaz na pozvánku' }).inputValue();
