@@ -162,11 +162,15 @@ const groupKnowledgeRoute = createRoute({
     // Spelled out: importing `KnowledgeTypes` would pull the knowledge schemas into the eager bundle.
     const isType = (v: unknown): v is KnowledgeType =>
       typeof v === 'string' && ['note', 'file', 'link', 'reminder'].includes(v);
+    // A search runs from 2 characters, trimmed (the tab writes it that way too).
+    const q = typeof search.q === 'string' ? search.q.trim() : '';
+    // Every key is set, an invalid one to undefined: the router keeps the raw params under
+    // the validated ones, so an omitted key would let the raw value through.
     return {
-      ...(isType(search.type) && { type: search.type }),
-      ...(typeof search.q === 'string' && search.q.trim() && { q: search.q }),
-      ...(typeof search.k === 'string' && search.k && { k: search.k }),
-      ...(isType(search.kind) && { kind: search.kind }),
+      type: isType(search.type) ? search.type : undefined,
+      q: q.length >= 2 ? q : undefined,
+      k: typeof search.k === 'string' && search.k ? search.k : undefined,
+      kind: isType(search.kind) ? search.kind : undefined,
     };
   },
   loader: () =>

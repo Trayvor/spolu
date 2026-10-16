@@ -91,7 +91,11 @@ function renderTab(path = '/groups/g1/knowledge') {
       <RouterProvider router={router} />
     </QueryClientProvider>,
   );
-  const search = () => router.state.location.search as Record<string, unknown>;
+  // The validated search, without the keys it leaves undefined.
+  const search = () =>
+    Object.fromEntries(
+      Object.entries(router.state.matches.at(-1)?.search ?? {}).filter(([, v]) => v !== undefined),
+    ) as Record<string, unknown>;
   return { router, search, user: userEvent.setup() };
 }
 
@@ -189,6 +193,30 @@ describe('knowledge tab', () => {
     await waitFor(() => expect(search().k).toBeUndefined());
     expect(search().type).toBe('note');
     expect(screen.queryByText('view:k1')).not.toBeInTheDocument();
+  });
+
+  it('a bare ?k=new without a valid kind is dropped', async () => {
+    mockApi();
+    const { search } = renderTab('/groups/g1/knowledge?type=note&k=new&kind=bogus');
+    await heading();
+    await waitFor(() => expect(search()).toEqual({ type: 'note' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('?q is trimmed and needs 2 characters', async () => {
+    mockApi();
+    const first = renderTab('/groups/g1/knowledge?q=%20%20bu%20');
+    await heading();
+    expect(first.search().q).toBe('bu');
+    expect(screen.getByRole('searchbox', { name: t('knowledge.tab.search') })).toHaveValue('bu');
+    await act(() =>
+      first.router.navigate({
+        to: '/groups/$groupId/knowledge',
+        params: { groupId: 'g1' },
+        search: { q: ' b ' },
+      }),
+    );
+    expect(first.search().q).toBeUndefined();
   });
 
   it('an unavailable item closes with the notice', async () => {

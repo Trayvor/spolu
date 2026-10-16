@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useUpdateSearch } from '@/lib/use-update-search';
 import { cn } from '@/lib/utils';
+import { isAdmin } from '@/features/auth/roles';
+import { useSession } from '@/features/auth/use-session';
 import { groupKnowledgeQuery } from './api';
 import { KnowledgeDialog, type KnowledgeDialogTarget } from './knowledge-dialog';
 import { KnowledgeList } from './knowledge-list';
@@ -45,6 +47,7 @@ function GroupKnowledge({ groupId }: { groupId: string }) {
   // The route's `validateSearch` (router.tsx) has checked these.
   const { type, q, k, kind }: KnowledgeTabSearch = useSearch({ strict: false });
   const updateSearch = useUpdateSearch();
+  const canSeeAdmins = isAdmin(useSession());
   const filter = { type, q };
   const query = useInfiniteQuery(groupKnowledgeQuery(groupId, filter));
   const [notice, setNotice] = useState(false);
@@ -139,7 +142,19 @@ function GroupKnowledge({ groupId }: { groupId: string }) {
       : k
         ? { mode: 'view', id: k }
         : null;
-  useKnowledgeEvents(groupId, filter, target?.mode === 'view' ? target.id : undefined, unavailable);
+  useKnowledgeEvents(
+    groupId,
+    filter,
+    target?.mode === 'view' ? target.id : undefined,
+    unavailable,
+    canSeeAdmins,
+  );
+
+  // `?k=new` without a valid kind has nothing to create: drop it.
+  const bareNew = k === 'new' && !kind;
+  useEffect(() => {
+    if (bareNew) close();
+  }, [bareNew, close]);
 
   const filtered = Boolean(type || q);
   const empty = filtered ? (

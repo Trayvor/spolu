@@ -19,7 +19,9 @@ type Data = InfiniteData<KnowledgePage>;
  * `useBoardEvents`. Without a search an item of the filtered type is upserted (a known item that
  * changed to another type leaves the list) and other types are dropped; with a search the list
  * refetches, since only the server knows what matches. A deleted item is removed, and
- * `onOpenGone` fires when it is the one open. After every later (re)join the first page is
+ * `onOpenGone` fires when it is the one open. A viewer who cannot see admins-only items
+ * (`canSeeAdmins` false, a client) removes such an item instead of showing it; the server never
+ * sends one to the group room, this is defence in depth. After every later (re)join the first page is
  * refetched, since events sent while the socket was out of the room are lost.
  */
 export function useKnowledgeEvents(
@@ -27,6 +29,7 @@ export function useKnowledgeEvents(
   filter: KnowledgeFilter,
   openId: string | undefined,
   onOpenGone: () => void,
+  canSeeAdmins: boolean,
 ): void {
   const queryClient = useQueryClient();
   const joins = useGroupRoomJoins();
@@ -51,6 +54,10 @@ export function useKnowledgeEvents(
       const detail = queryClient.getQueryData<KnowledgeItemDto>(detailKey);
       if (detail && detail.updatedAt !== item.updatedAt)
         void queryClient.invalidateQueries({ queryKey: detailKey, exact: true });
+      if (!canSeeAdmins && item.visibility === 'admins') {
+        update((data) => removeSummary(data, item.id));
+        return;
+      }
       if (q) {
         void queryClient.invalidateQueries({ queryKey: key, exact: true });
         return;
@@ -70,7 +77,7 @@ export function useKnowledgeEvents(
       socket.off(KnowledgeEvents.item, onItem);
       socket.off(KnowledgeEvents.itemDeleted, onDeleted);
     };
-  }, [groupId, type, q, queryClient]);
+  }, [groupId, type, q, canSeeAdmins, queryClient]);
 
   useEffect(() => {
     if (seenJoins.current === joins) return;

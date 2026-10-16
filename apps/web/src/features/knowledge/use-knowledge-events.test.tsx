@@ -47,16 +47,24 @@ let fetchMock: ReturnType<typeof vi.fn>;
 let client: QueryClient;
 const onOpenGone = vi.fn();
 
-function Probe({ filter, openId }: { filter: Filter; openId?: string }) {
-  useKnowledgeEvents('g1', filter, openId, onOpenGone);
+function Probe({
+  filter,
+  openId,
+  canSeeAdmins = true,
+}: {
+  filter: Filter;
+  openId?: string;
+  canSeeAdmins?: boolean;
+}) {
+  useKnowledgeEvents('g1', filter, openId, onOpenGone, canSeeAdmins);
   useInfiniteQuery(groupKnowledgeQuery('g1', filter));
   return null;
 }
-function tree(filter: Filter, joins = 1, openId?: string) {
+function tree(filter: Filter, joins = 1, openId?: string, canSeeAdmins = true) {
   return (
     <QueryClientProvider client={client}>
       <GroupRoomProvider joins={joins}>
-        <Probe filter={filter} openId={openId} />
+        <Probe filter={filter} openId={openId} canSeeAdmins={canSeeAdmins} />
       </GroupRoomProvider>
     </QueryClientProvider>
   );
@@ -69,8 +77,8 @@ const cachedIds = (filter: Filter) =>
     )
     ?.pages.flatMap((p) => p.items.map((i) => i.id));
 
-async function mount(filter: Filter, openId?: string) {
-  const view = render(tree(filter, 1, openId));
+async function mount(filter: Filter, openId?: string, canSeeAdmins = true) {
+  const view = render(tree(filter, 1, openId, canSeeAdmins));
   await waitFor(() => expect(cachedIds(filter)).toEqual(['k1']));
   return view;
 }
@@ -92,6 +100,20 @@ describe('useKnowledgeEvents', () => {
     expect(cachedIds({})).toEqual(['k2', 'k1']);
     // An item of another group is ignored.
     act(() => fake.fire(KnowledgeEvents.item, { item: summary('k3', { groupId: 'g2' }) }));
+    expect(cachedIds({})).toEqual(['k2', 'k1']);
+  });
+
+  it('a client removes an item that became admins-only instead of showing it', async () => {
+    await mount({}, undefined, false);
+    act(() => fake.fire(KnowledgeEvents.item, { item: summary('k1', { visibility: 'admins' }) }));
+    expect(cachedIds({})).toEqual([]);
+    act(() => fake.fire(KnowledgeEvents.item, { item: summary('k2', { visibility: 'admins' }) }));
+    expect(cachedIds({})).toEqual([]);
+  });
+
+  it('an admin upserts an admins-only item', async () => {
+    await mount({});
+    act(() => fake.fire(KnowledgeEvents.item, { item: summary('k2', { visibility: 'admins' }) }));
     expect(cachedIds({})).toEqual(['k2', 'k1']);
   });
 
