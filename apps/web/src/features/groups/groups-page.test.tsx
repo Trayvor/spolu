@@ -30,10 +30,25 @@ const BETA = {
   updatedAt: '2026-10-15T11:00:00.000Z',
 };
 
-function mockApi(groups: unknown[], listStatus = 200) {
+const MODES = { defaultMode: null, roleDefault: 'mentions', overrides: {} };
+
+function mockApi(
+  groups: unknown[],
+  listStatus = 200,
+  initialModes: unknown = MODES,
+  defaultPutStatus = 200,
+) {
+  let modes = initialModes;
   const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
     const reply = (status: number, body: unknown) => new Response(JSON.stringify(body), { status });
     if (url === '/api/me') return reply(200, ADMIN);
+    if (url === '/api/notifications/modes' && !init?.method) return reply(200, modes);
+    if (url === '/api/notifications/modes/default' && init?.method === 'PUT') {
+      if (defaultPutStatus !== 200) return reply(defaultPutStatus, { error: 'internal' });
+      const { mode } = JSON.parse(init.body as string) as { mode: string };
+      modes = { ...MODES, defaultMode: mode, overrides: {} };
+      return reply(200, modes);
+    }
     if (url === '/api/chat/unread') return reply(200, { g1: 4, g2: 0 });
     if (url === '/api/groups' && (init?.method ?? 'GET') === 'GET')
       return reply(listStatus, listStatus === 200 ? groups : { error: 'internal' });
@@ -123,5 +138,60 @@ describe('groups page', () => {
       ([u, i]) => u === '/api/groups' && !(i as RequestInit | undefined)?.method,
     );
     expect(lists.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('each row has a bell outside the link', async () => {
+    mockApi([ACME, BETA]);
+    const { user } = renderGroups();
+    const acme = await screen.findByRole('link', { name: /Acme/ });
+    const bells = await screen.findAllByRole('button', {
+      name: t('notifications.mode.bellLabel', { mode: t('notifications.mode.mentions') }),
+    });
+    expect(bells).toHaveLength(2);
+    expect(acme.contains(bells[0] ?? null)).toBe(false);
+    await user.click(bells[0] as HTMLElement);
+    expect(await screen.findByRole('menu')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Acme/, hidden: true })).toBeInTheDocument(); // still on /groups
+    expect(
+      screen.getByRole('heading', { name: t('groups.title'), hidden: true }),
+    ).toBeInTheDocument();
+  });
+
+  it('All groups shows Mixed when groups differ', async () => {
+    mockApi([ACME, BETA], 200, { ...MODES, overrides: { g1: 'off' } });
+    renderGroups();
+    expect(
+      await screen.findByRole('button', {
+        name: `${t('notifications.mode.allGroups')} ${t('notifications.mode.mixed')}`,
+      }),
+    ).toHaveTextContent(t('notifications.mode.mixed'));
+  });
+
+  it('choosing in All groups sets every row', async () => {
+    const fetchMock = mockApi([ACME, BETA], 200, { ...MODES, overrides: { g1: 'off' } });
+    const { user } = renderGroups();
+    await user.click(
+      await screen.findByRole('button', { name: new RegExp(t('notifications.mode.allGroups')) }),
+    );
+    await user.click(await screen.findByRole('menuitemradio', { name: /^All messages/ }));
+    const allLabel = t('notifications.mode.bellLabel', { mode: t('notifications.mode.all') });
+    await waitFor(() => expect(screen.getAllByRole('button', { name: allLabel })).toHaveLength(2));
+    const put = fetchMock.mock.calls.find(([u]) => u === '/api/notifications/modes/default');
+    expect(JSON.parse((put?.[1] as RequestInit).body as string)).toEqual({ mode: 'all' });
+  });
+
+  it('a failing All groups save rolls back to Mixed and shows the error', async () => {
+    mockApi([ACME, BETA], 200, { ...MODES, overrides: { g1: 'off' } }, 500);
+    const { user } = renderGroups();
+    await user.click(
+      await screen.findByRole('button', { name: new RegExp(t('notifications.mode.allGroups')) }),
+    );
+    await user.click(await screen.findByRole('menuitemradio', { name: /^All messages/ }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(t('errors.generic'));
+    expect(
+      await screen.findByRole('button', {
+        name: `${t('notifications.mode.allGroups')} ${t('notifications.mode.mixed')}`,
+      }),
+    ).toBeInTheDocument();
   });
 });

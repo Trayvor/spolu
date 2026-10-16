@@ -321,5 +321,18 @@
   "files": {
     "download": "Download {{name}}",
     "openImage": "Open {{name}}"
+  },
+  "notifications": {
+    "mode": {
+      "bellLabel": "Notifications: {{mode}}",
+      "all": "All messages",
+      "allHint": "Every new message in this group",
+      "mentions": "Mentions and replies",
+      "mentionsHint": "When someone mentions you, replies in your thread, or a task of yours changes",
+      "off": "Off",
+      "offHint": "No notifications from this group",
+      "mixed": "Mixed",
+      "allGroups": "All groups:"
+    }
   }
 }
