@@ -24,13 +24,13 @@ An `io.use` middleware runs on every connection:
 
 These two events change no data; they only move the socket in and out of a room. Names are `SocketEvents.groupJoin` / `groupLeave`, the payload is `GroupRoomPayload` (`{ groupId }`).
 
-- `group:join` with an ack `GroupJoinAck`. The payload must be an object with a string `groupId` of 1 to 100 characters. The server checks `canReadGroup(socket.data.user, groupId, socket.data.groupId ?? null)` and that the group exists, then joins `group:<id>` and acks `{ ok: true }`. Anything else (malformed payload, unreadable or unknown group) acks `{ ok: false, error: 'not_found' }`, the same answer as the HTTP routes. Joining is idempotent; a missing or non-function ack is ignored (the handlers never call a client-supplied value that is not a function, so a bad ack cannot crash the process).
+- `group:join` with an ack `GroupJoinAck`. The payload must be an object with a string `groupId` of 1 to 100 characters. The server checks `canReadGroup(socket.data.user, groupId, socket.data.groupId ?? null)` and that the group exists, then joins `group:<id>` and acks `{ ok: true }`. An admin's socket (`isAdmin`) also joins `group:<id>:admins` (`groupAdminsRoom`) in the same call; a client's socket never joins an admins room, not even for their own group. Anything else (malformed payload, unreadable or unknown group) acks `{ ok: false, error: 'not_found' }`, the same answer as the HTTP routes. Joining is idempotent; a missing or non-function ack is ignored (the handlers never call a client-supplied value that is not a function, so a bad ack cannot crash the process).
 - A leave that overtakes an in-flight join wins: the socket keeps a set of wanted group rooms (`socket.data.wantedGroups`); `group:join` adds the id before its database reads and joins only if the id is still wanted afterwards, `group:leave` removes it.
-- `group:leave` leaves `group:<id>` and acks `{ ok: true }`, except that a client never leaves their own group's room (the id equals `socket.data.groupId`).
+- `group:leave` leaves `group:<id>` and `group:<id>:admins` and acks `{ ok: true }`, except that a client never leaves their own group's room (the id equals `socket.data.groupId`).
 
 Live handlers on the web should still ignore events whose `groupId` is not the open group (defence in depth).
 
-Server code pushes into a group with `emitToGroup(io, groupId, event, payload)` from `rooms.ts`; call it after the transaction that made the change has committed.
+Server code pushes into a group with `emitToGroup(io, groupId, event, payload)` from `rooms.ts`, and to the group's admins only with `emitToGroupAdmins(io, groupId, event, payload)`; call them after the transaction that made the change has committed. Anything clients must not see goes through `emitToGroupAdmins`, never `emitToGroup`.
 
 ### Web hook
 
@@ -57,7 +57,19 @@ After a bucket is deleted its tasks moved to To do without a `board:task` event;
 | `user:<id>`    | every socket of that user, on connect                                           | events for one user (admin changes, notifications)                                                                                 |
 | `session:<id>` | every socket of that login session, on connect                                  | sign-out                                                                                                                           |
 | `group:<id>`   | a client, on connect, for their membership group; an admin through `group:join` | every event of the group: chat, board (tasks and buckets), files, members (one room per group, no separate channel or board rooms) |
+| `group:<id>:admins` | an admin's socket, together with `group:<id>` on `group:join` (left with it on `group:leave`); never a client | admins-only events of the group (knowledge items with visibility `admins`) |
 | per DM channel | the two participants                                                            | direct messages (not built yet)                                                                                                    |
+
+## Knowledge events
+
+Pushed after the write commits by `modules/knowledge/events.ts` (names in `KnowledgeEvents`, Phase 17). The payload's `item` is a `KnowledgeSummary` built from an allowlist of the summary's fields, so the detail's body, files, reminder and the writer's own `canEdit` never travel.
+
+| event | payload | room |
+|---|---|---|
+| `knowledge:item` | `{ item }` | created or edited: `group:<id>` for a public item, `group:<id>:admins` for an admins-only one |
+| `knowledge:item_deleted` | `{ groupId, id }` | deleted: the room the item was in; also sent to `group:<id>` when an item turns admins-only |
+
+A visibility change from public to admins sends `knowledge:item_deleted` to the group room, then `knowledge:item` to the admins room; Socket.IO keeps order per connection, so an admin (in both rooms) ends with the item and a client drops it. Admins to public sends `knowledge:item` to the group room. There is no `seq`: after a rejoin the tab refetches its first page.
 
 ## Chat events
 

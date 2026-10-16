@@ -29,3 +29,21 @@ export function emitToGroup(
 ): void {
   io.to(groupRoom(groupId)).emit(event, payload);
 }
+
+/**
+ * The admins of one group: an admin's socket joins it together with the group room on
+ * `group:join`; a client's socket never does. Admins-only events go here, never to `groupRoom`.
+ */
+export function groupAdminsRoom(groupId: string): string {
+  return `group:${groupId}:admins`;
+}
+
+/** Pushes an event to the admins in the group's admins room. Call after the transaction commits. */
+export function emitToGroupAdmins(
+  io: SocketIOServer,
+  groupId: string,
+  event: string,
+  payload: unknown,
+): void {
+  io.to(groupAdminsRoom(groupId)).emit(event, payload);
+}

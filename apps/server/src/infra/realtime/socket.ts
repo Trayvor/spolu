@@ -7,7 +7,8 @@ import type { Config } from '../config/config.js';
 import { canReadGroup } from '../../modules/groups/policy.js';
 import { getGroup, getMembershipGroupId } from '../../modules/groups/service.js';
 import type { Db } from '../db/client.js';
-import { groupRoom, sessionRoom, userRoom } from './rooms.js';
+import { isAdmin } from '../../modules/users/policy.js';
+import { groupAdminsRoom, groupRoom, sessionRoom, userRoom } from './rooms.js';
 
 declare module 'socket.io' {
   interface SocketData {
@@ -58,7 +59,8 @@ export function attachSocket(
       socket.data.sessionId = found.sessionId;
       socket.data.wantedGroups = new Set();
       const rooms = [userRoom(found.user.id), sessionRoom(found.sessionId)];
-      // A client joins their group's room; admins join group rooms with `group:join`.
+      // A client joins their group's room (never its admins room); admins join group rooms
+      // and their admins rooms with `group:join`.
       if (found.user.role === 'client') {
         const groupId = await getMembershipGroupId(db, found.user.id);
         if (groupId) {
@@ -104,7 +106,12 @@ export function attachSocket(
         }
         if (!socket.connected) return; // disconnected meanwhile: do not leave a stale room entry
         if (!socket.data.wantedGroups.has(groupId)) return ack?.({ ok: false, error: 'not_found' });
-        await socket.join(groupRoom(groupId));
+        // An admin also joins the group's admins room (admins-only events); a client never does.
+        await socket.join(
+          isAdmin(socket.data.user)
+            ? [groupRoom(groupId), groupAdminsRoom(groupId)]
+            : groupRoom(groupId),
+        );
         ack?.({ ok: true });
       } catch (error) {
         app.log.error(error, 'group:join failed');
@@ -124,6 +131,7 @@ export function attachSocket(
         if (groupId !== null && groupId !== socket.data.groupId) {
           socket.data.wantedGroups.delete(groupId);
           await socket.leave(groupRoom(groupId));
+          await socket.leave(groupAdminsRoom(groupId));
         }
         ack?.({ ok: true });
       } catch (error) {

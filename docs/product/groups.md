@@ -9,7 +9,7 @@ A group is one client (organization). It has a name, a logo and the client's eGr
   - name;
   - logo;
   - **client URL in eGrant**: the link to the client's eGrant instance. It does not affect other functionality, but the server uses it to decide which group an incoming ticket belongs to (see `tickets.md`).
-- Each group has these modules: chat (`chat.md`), task board (`task-board.md`), technical support / tickets (`tickets.md`). Contracts are admin-only (`contracts.md`).
+- Each group has these modules: chat (`chat.md`), task board (`task-board.md`), knowledge base (`knowledge-base.md`, Phase 17), technical support / tickets (`tickets.md`). Contracts are admin-only (`contracts.md`).
 - **Invite link:**
   - an administrator can **copy the invite link** for a specific group;
   - a new user who registers through it automatically lands in that group;
@@ -17,7 +17,7 @@ A group is one client (organization). It has a name, a logo and the client's eGr
   - a client belongs to exactly one group: opening another group's link with an email that is already a client does nothing;
   - a person who entered an email on an invite but never signed in follows the latest invite they used (a link cannot reserve someone else's email into a group); once they have signed in, other links do nothing;
   - a removed client is blocked: the link sends them no code, and an admin can restore them.
-- Group page: three tabs, Chat, Tasks and Members (Chat opens first). Chat and Tasks are placeholders for now.
+- Group page: tabs Chat, Tasks, Knowledge (Phase 17, sk "Znalosti") and Members, in that order (Chat opens first).
 - Members list (Members tab): the group shows its signed-in members (clients who have entered a code).
 - An admin can remove a client from a group and restore them from the removed list; a removed client loses sessions and sockets and gets no new code.
 - Global "All groups" section (admin only):

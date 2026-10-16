@@ -71,5 +71,6 @@ export const ErrorCodes = {
   reminderInPast: 'reminder_in_past',
   invalidRecipient: 'invalid_recipient',
   authorRecipient: 'author_recipient',
+  noReminderSet: 'no_reminder_set',
 } as const;
 export type ErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes];
