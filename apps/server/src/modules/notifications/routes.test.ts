@@ -153,6 +153,16 @@ describe('notifications API', () => {
     }
   });
 
+  it('POST /push/subscriptions with a malformed endpoint answers 400', async () => {
+    const a = await admin();
+    const keys = { p256dh: 'A'.repeat(87), auth: 'B'.repeat(22) };
+    const res = await call('POST', '/api/push/subscriptions', a.cookie, {
+      endpoint: 'not a url',
+      keys,
+    });
+    expect(res.statusCode).toBe(400);
+  });
+
   it('modes: client default all, admin default mentions', async () => {
     const g = await createGroup(test.deps.db, { name: 'F', egrantUrl: newUrl() });
     const c = await client(g.id);

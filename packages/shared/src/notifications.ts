@@ -77,7 +77,13 @@ export const PUSH_ENDPOINT_HOSTS = [
 ] as const;
 
 function isPushEndpoint(value: string): boolean {
-  const url = new URL(value);
+  // zod runs this refine even when `z.url` already failed: a malformed value must not throw.
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    return false;
+  }
   if (url.username || url.password || url.port) return false;
   return PUSH_ENDPOINT_HOSTS.some((h) => url.hostname === h || url.hostname.endsWith(`.${h}`));
 }

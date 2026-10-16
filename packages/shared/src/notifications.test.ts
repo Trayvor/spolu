@@ -38,6 +38,14 @@ describe('schemas', () => {
     expect(PushSubscriptionBodySchema.parse({ ...ok, expirationTime: null })).toEqual(ok);
   });
 
+  it('a malformed endpoint is a validation failure, not a throw', () => {
+    const keys = { p256dh: 'A'.repeat(87), auth: 'B'.repeat(22) };
+    for (const endpoint of ['not a url', '', 'https://']) {
+      expect(PushSubscriptionBodySchema.safeParse({ endpoint, keys }).success).toBe(false);
+    }
+    expect(PushSubscriptionBodySchema.safeParse({ endpoint: 'not a url' }).success).toBe(false);
+  });
+
   it('push endpoints only on known push services', () => {
     const keys = { p256dh: 'A'.repeat(87), auth: 'B'.repeat(22) };
     const accepts = (endpoint: string) =>
