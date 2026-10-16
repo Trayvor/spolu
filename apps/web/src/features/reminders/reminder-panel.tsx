@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { ReminderSetDto } from '@spolu/shared';
 import { Avatar } from '@/components/avatar';
-import { Icon } from '@/components/icons';
+import { CloseIcon, Icon } from '@/components/icons';
 import { Button } from '@/components/ui/button';
 import { ApiError } from '@/lib/api';
 import { cn } from '@/lib/utils';
@@ -32,6 +32,12 @@ const SHOWN_NAMES = 3;
  * a calendar leaf, the fired ones muted as "sent", the recipients (author first), the viewer's
  * "Remind me" toggle and the `.ics` download. `prefix` is the subject's API route ("/knowledge",
  * "/tasks"; a missing leading slash is added). `onChanged` refetches the subject after a toggle.
+ *
+ * Options for subjects edited on their own (tasks, Phase 19); their defaults keep the knowledge
+ * rendering: `hideFired`, `timeTag` (a muted tag after a time's date), `onRemoveTime` (a remove
+ * button per upcoming time), `children` (under the times: the add row), `recipientsAction` (at the
+ * end of the "Reminded" line) and `calendarAvailable` (the `.ics` link without upcoming times, for
+ * a task's deadline).
  */
 export function ReminderPanel({
   prefix,
@@ -39,12 +45,24 @@ export function ReminderPanel({
   set,
   authorId,
   onChanged,
+  hideFired = false,
+  timeTag,
+  onRemoveTime,
+  children,
+  recipientsAction,
+  calendarAvailable,
 }: {
   prefix: string;
   subjectId: string;
   set: ReminderSetDto;
   authorId: string;
   onChanged: () => void;
+  hideFired?: boolean;
+  timeTag?: (iso: string) => string | null;
+  onRemoveTime?: (id: string) => void;
+  children?: ReactNode;
+  recipientsAction?: ReactNode;
+  calendarAvailable?: boolean;
 }) {
   const { t, i18n } = useTranslation();
   const me = useSession();
@@ -61,7 +79,7 @@ export function ReminderPanel({
     .filter((time) => time.firedAt === null)
     .sort((a, b) => a.at.localeCompare(b.at));
   const fired = set.times
-    .filter((time) => time.firedAt !== null)
+    .filter((time) => !hideFired && time.firedAt !== null)
     .sort((a, b) => b.at.localeCompare(a.at));
   const recipients = [...set.recipients].sort(
     (a, b) => Number(b.user.id === authorId) - Number(a.user.id === authorId),
@@ -105,14 +123,32 @@ export function ReminderPanel({
       </h3>
 
       <ul className="flex flex-col gap-2">
-        {upcoming.map((time) => (
-          <li key={time.id} className="flex items-center gap-3">
-            <CalendarLeaf iso={time.at} size={40} />
-            <span className="text-button font-semibold">
-              {formatReminderDate(time.at, i18n.language)}
-            </span>
-          </li>
-        ))}
+        {upcoming.map((time) => {
+          const tag = timeTag?.(time.at) ?? null;
+          return (
+            <li key={time.id} className="flex items-center gap-3">
+              <CalendarLeaf iso={time.at} size={40} />
+              <span className="flex min-w-0 flex-wrap items-baseline gap-x-2">
+                <span className="text-button font-semibold">
+                  {formatReminderDate(time.at, i18n.language)}
+                </span>
+                {tag && <span className="text-micro text-muted-foreground">{tag}</span>}
+              </span>
+              {onRemoveTime && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  aria-label={t('reminders.row.remove')}
+                  onClick={() => onRemoveTime(time.id)}
+                  className="ml-auto size-8 max-[640px]:size-11"
+                >
+                  <CloseIcon />
+                </Button>
+              )}
+            </li>
+          );
+        })}
         {fired.map((time) => (
           <li key={time.id} className="flex items-center gap-3 text-button text-muted-foreground">
             <span>{formatReminderDate(time.at, i18n.language)}</span>
@@ -120,6 +156,8 @@ export function ReminderPanel({
           </li>
         ))}
       </ul>
+
+      {children}
 
       {recipients.length > 0 && (
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
@@ -138,6 +176,7 @@ export function ReminderPanel({
           <span data-testid="reminder-recipients" className="min-w-0 text-button">
             {namesText}
           </span>
+          {recipientsAction}
         </div>
       )}
 
@@ -161,7 +200,7 @@ export function ReminderPanel({
             </span>
           )}
         </div>
-        {upcoming.length > 0 ? (
+        {(calendarAvailable ?? upcoming.length > 0) ? (
           <a
             href={reminderCalendarUrl(route, subjectId)}
             download

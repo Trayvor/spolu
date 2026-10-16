@@ -30,5 +30,13 @@
     "today": "Dnes, {{time}}",
     "tomorrow": "Zajtra, {{time}}",
     "dayTime": "{{day}}, {{time}}"
+  },
+  "row": {
+    "add": "Pridať pripomienku",
+    "confirm": "Pridať",
+    "cancel": "Zrušiť",
+    "remove": "Odstrániť pripomienku",
+    "date": "Dátum",
+    "time": "Čas"
   }
 }

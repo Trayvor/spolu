@@ -30,5 +30,13 @@
     "today": "Today, {{time}}",
     "tomorrow": "Tomorrow, {{time}}",
     "dayTime": "{{day}}, {{time}}"
+  },
+  "row": {
+    "add": "Add reminder",
+    "confirm": "Add",
+    "cancel": "Cancel",
+    "remove": "Remove reminder",
+    "date": "Date",
+    "time": "Time"
   }
 }

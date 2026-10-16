@@ -16,7 +16,15 @@ const PEOPLE: GroupPerson[] = [
 
 const t = (key: string, opts?: Record<string, unknown>) => i18n.t(key, opts);
 
-function Harness({ adminsOnly = false, initial }: { adminsOnly?: boolean; initial: string[] }) {
+function Harness({
+  adminsOnly = false,
+  initial,
+  suggestion,
+}: {
+  adminsOnly?: boolean;
+  initial: string[];
+  suggestion?: { label: string; ids: string[] };
+}) {
   const [value, setValue] = useState(initial);
   return (
     <RecipientsField
@@ -25,6 +33,7 @@ function Harness({ adminsOnly = false, initial }: { adminsOnly?: boolean; initia
       onChange={setValue}
       authorId="u2"
       adminsOnly={adminsOnly}
+      suggestion={suggestion}
     />
   );
 }
@@ -68,5 +77,18 @@ describe('RecipientsField', () => {
       .map((o) => o.textContent);
     expect(names).toHaveLength(1);
     expect(names[0]).toContain('Dana Veľká');
+  });
+
+  it('the suggestion adds only missing ids and hides when none are missing', async () => {
+    const user = renderField({
+      initial: ['u1'],
+      suggestion: { label: 'Add assignees', ids: ['u1', 'u3'] },
+    });
+    await screen.findByText('Boris Kováč');
+    await user.click(screen.getByRole('button', { name: 'Add assignees' }));
+    const chips = screen.getAllByRole('listitem').map((li) => li.textContent);
+    expect(chips.join(' ')).toContain('Cyril Malý');
+    expect(chips.filter((c) => c?.includes('Anna Nováková'))).toHaveLength(1);
+    expect(screen.queryByRole('button', { name: 'Add assignees' })).toBeNull();
   });
 });
