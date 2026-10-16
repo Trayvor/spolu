@@ -58,6 +58,7 @@ The owner merges them in order #3 → #4 → #6 → #7; GitHub then retargets ea
 4. The admin home "Unread mentions" card and chat message links know only group and task chats; a ticket chat message must link to `/tickets/<id>` (21.4 or 21.6, whichever touches it first).
 5. `/` for a person with only ziadatel memberships goes to `/settings` today; 21.4 changes it to `/tickets` (home route in `apps/web/src/router.tsx`, `clientGroups` in `features/auth/roles.ts`).
 6. Suggested separately, not part of Phase 21: an index on `notification_events.group_id` (a group delete scans that table).
+7. The owner pushed "Phase 21 — Members & groups page" to `main` (commit 28508cb); it becomes **Phase 22** through PR #9 (item C's session). After #9 merges, merging `main` into #4, #6 and #7 conflicts only in `docs/roadmap.md` (the table and the "Next" list): keep both, row 21 (tickets) above row 22. Phase 22's plan must be reconciled with 21.1's membership model (roles, `pending_invites`, several groups) before it is built.
 
 **Local setup notes.** Node 24 (`engine-strict`) and Docker for PostgreSQL 17 and Mailpit (`docker compose -f docker-compose.dev.yml up -d --wait`). If server tests time out at 5 s in unrelated files, the local test database has grown (millions of `notification_events` rows over many runs): run `psql postgres://spolu:spolu@localhost:5432/postgres -c "drop database spolu_test"` and run the tests again (the setup recreates it). Do the same after switching between stacked branches with different migrations.
 
