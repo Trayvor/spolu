@@ -139,6 +139,25 @@ export const groupsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, {
     return listGroupPeople(db, id);
   });
 
+  // Requesters (Phase 21): the group's ziadatel members, for the Members tab's own section.
+  app.get<IdParams>('/groups/:id/requesters', { preHandler: anyUser }, async (request, reply) => {
+    const actor = request.user!;
+    const { id } = request.params;
+    if (!canReadGroup(actor, id, await clientGroupIds(db, actor.id))) return notFound(reply);
+    if (!(await getGroup(db, id))) return notFound(reply);
+    return listMembers(db, id, { removed: false, role: 'ziadatel' });
+  });
+
+  app.get<IdParams>(
+    '/groups/:id/requesters/removed',
+    { preHandler: anyUser },
+    async (request, reply) => {
+      if (!canManageGroups(request.user!)) return forbidden(reply);
+      if (!(await getGroup(db, request.params.id))) return notFound(reply);
+      return listMembers(db, request.params.id, { removed: true, role: 'ziadatel' });
+    },
+  );
+
   app.get<IdParams>(
     '/groups/:id/members/removed',
     { preHandler: anyUser },
@@ -187,7 +206,9 @@ export const groupsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, {
       if (!canRemoveMember(request.user!, target)) return forbidden(reply);
       await restoreMembership(db, request.params.id, target.id);
       await reactivateUser(db, target.id);
-      joinGroupRoom(app.io, target.id, request.params.id);
+      // A requester's membership never opens the group, so their sockets stay out of its room.
+      const membership = await getMembership(db, target.id, request.params.id);
+      if (membership?.role === 'client') joinGroupRoom(app.io, target.id, request.params.id);
       return reply.code(204).send();
     },
   );

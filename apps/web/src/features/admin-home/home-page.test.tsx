@@ -36,6 +36,7 @@ const task = (over: Partial<AssignedTask> & { id: string; title: string }): Assi
 const mention = (over: Partial<MentionItem> & { messageId: string }): MentionItem => ({
   channelId: 'c1',
   taskId: null,
+  ticketId: null,
   parentId: null,
   groupId: 'g1',
   groupName: 'ABC s.r.o.',

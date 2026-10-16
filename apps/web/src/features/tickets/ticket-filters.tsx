@@ -1,0 +1,106 @@
+import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { cn } from '@/lib/utils';
+import type { TicketFilter } from './api';
+import { CheckIcon, ChevronDown } from './icons';
+
+const STATUSES = ['open', 'resolved', 'all'] as const;
+
+// The knowledge tab's type pills: 32 px, a 44 px tap area, filled ink when chosen.
+const pill =
+  "relative inline-flex h-8 items-center gap-1.5 rounded-full px-4 text-tiny font-semibold transition-colors duration-(--duration-fast) before:absolute before:-inset-y-1.5 before:inset-x-0 before:content-['']";
+const pillOff = 'bg-secondary text-secondary-foreground hover:bg-surface-3';
+const pillOn = 'bg-primary text-primary-foreground';
+
+/**
+ * The filters of every ticket list: the status (Open = New and In progress, the default;
+ * Resolved; All) as three pills, the question area as a menu of the areas seen in the list and
+ * "Following" as a toggle pill. `children` go first in the bar (the global view's client filter).
+ */
+export function TicketFilters({
+  filter,
+  onChange,
+  areas,
+  children,
+}: {
+  filter: TicketFilter;
+  onChange: (next: TicketFilter) => void;
+  areas: string[];
+  children?: ReactNode;
+}) {
+  const { t } = useTranslation();
+  const set = (patch: Partial<TicketFilter>) => onChange({ ...filter, ...patch });
+  const options = filter.area && !areas.includes(filter.area) ? [filter.area, ...areas] : areas;
+
+  return (
+    <div
+      role="group"
+      aria-label={t('tickets.filters.label')}
+      className="flex flex-wrap items-center gap-2"
+    >
+      {children}
+      <div role="group" aria-label={t('tickets.filters.status')} className="flex gap-2">
+        {STATUSES.map((status) => (
+          <button
+            key={status}
+            type="button"
+            aria-pressed={filter.status === status}
+            className={cn(pill, filter.status === status ? pillOn : pillOff)}
+            onClick={() => set({ status })}
+          >
+            {t(`tickets.filters.${status}`)}
+          </button>
+        ))}
+      </div>
+      <DropdownMenu>
+        <DropdownMenuTrigger className={cn(pill, filter.area ? pillOn : pillOff, 'max-w-60')}>
+          <span className="truncate">
+            {filter.area
+              ? t('tickets.filters.areaChosen', { area: filter.area })
+              : t('tickets.filters.allAreas')}
+          </span>
+          <ChevronDown />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent
+          align="start"
+          className="max-h-80 max-w-[min(320px,90vw)] overflow-y-auto"
+        >
+          <DropdownMenuRadioGroup
+            value={filter.area ?? ''}
+            onValueChange={(area) => set({ area: area || undefined })}
+          >
+            <DropdownMenuRadioItem value="">{t('tickets.filters.allAreas')}</DropdownMenuRadioItem>
+            {options.length > 0 && <DropdownMenuSeparator />}
+            {options.map((area) => (
+              <DropdownMenuRadioItem key={area} value={area}>
+                <span className="line-clamp-2">{area}</span>
+              </DropdownMenuRadioItem>
+            ))}
+          </DropdownMenuRadioGroup>
+          {options.length === 0 && (
+            <p className="px-3 py-2 text-micro text-muted-foreground">
+              {t('tickets.filters.noAreas')}
+            </p>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
+      <button
+        type="button"
+        aria-pressed={!!filter.following}
+        className={cn(pill, filter.following ? cn(pillOn, 'pl-3') : pillOff)}
+        onClick={() => set({ following: !filter.following || undefined })}
+      >
+        {filter.following && <CheckIcon />}
+        {t('tickets.filters.following')}
+      </button>
+    </div>
+  );
+}

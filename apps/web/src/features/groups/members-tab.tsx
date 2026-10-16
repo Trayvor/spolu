@@ -6,8 +6,9 @@ import { groupQuery } from './api';
 import { InviteBox } from './invite-box';
 import { ManagersSection } from './managers-section';
 import { MembersList } from './members-list';
+import { RequestersList } from './requesters-list';
 
-/** The invite link (admins), the group's eGrant managers and the members. */
+/** The invite link (admins), the group's eGrant managers, the members and the requesters. */
 export function MembersTab() {
   const { groupId } = useParams({ strict: false });
   const admin = isAdmin(useSession());
@@ -18,6 +19,7 @@ export function MembersTab() {
       {admin && group.inviteUrl && <InviteBox groupId={group.id} inviteUrl={group.inviteUrl} />}
       <ManagersSection groupId={group.id} />
       <MembersList groupId={group.id} admin={admin} />
+      <RequestersList groupId={group.id} admin={admin} />
     </div>
   );
 }

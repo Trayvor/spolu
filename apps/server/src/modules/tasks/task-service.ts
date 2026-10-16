@@ -29,6 +29,7 @@ import {
 import { getSourceMessage } from '../chat/messages.js';
 import { taskChatFileIds } from '../chat/service.js';
 import { getGroup, isPickablePerson } from '../groups/service.js';
+import { getTicketRef } from '../tickets/refs.js';
 import { recordNotifications, requestDelivery } from '../notifications/service.js';
 import { keyAfter, keysBefore } from './positions.js';
 import { buckets, taskAssignees, taskAttachments, tasks } from './schema.js';
@@ -147,8 +148,9 @@ export async function getTaskTitles(db: Db, ids: string[]): Promise<Map<string, 
 }
 
 /**
- * A task with description, files and the message it was made from (`sourceMessage`, null when
- * there is none or it was deleted; the chat module builds it).
+ * A task with description, files, the message it was made from (`sourceMessage`, null when
+ * there is none or it was deleted; the chat module builds it) and the ticket it was made from
+ * (`sourceTicket`, Phase 21; the tickets module builds it).
  */
 export async function getTask(db: Db, id: string): Promise<TaskDetailDto | null> {
   // The board shape and the detail-only columns (description, attached file ids) in parallel.
@@ -157,6 +159,7 @@ export async function getTask(db: Db, id: string): Promise<TaskDetailDto | null>
     db
       .select({
         description: tasks.description,
+        sourceTicketId: tasks.sourceTicketId,
         fileIds: sql<string[]>`coalesce((
           select array_agg(${taskAttachments.fileId} order by ${taskAttachments.fileId})
           from ${taskAttachments} where ${taskAttachments.taskId} = ${tasks.id}
@@ -166,11 +169,12 @@ export async function getTask(db: Db, id: string): Promise<TaskDetailDto | null>
       .where(eq(tasks.id, id)),
   ]);
   if (!task || !extra) return null;
-  const [files, sourceMessage] = await Promise.all([
+  const [files, sourceMessage, sourceTicket] = await Promise.all([
     getFilesForGroup(db, task.groupId, extra.fileIds),
     task.sourceMessageId === null ? null : getSourceMessage(db, task.sourceMessageId),
+    extra.sourceTicketId === null ? null : getTicketRef(db, extra.sourceTicketId, task.groupId),
   ]);
-  return { ...task, description: extra.description, files, sourceMessage };
+  return { ...task, description: extra.description, files, sourceMessage, sourceTicket };
 }
 
 /**

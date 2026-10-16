@@ -14,7 +14,13 @@ import type { AppDeps } from '../../deps.js';
 import { sendEmailLater } from '../../infra/email/index.js';
 import { createRateLimiter } from '../../infra/http/rate-limit.js';
 import { requireAdmin, requireUser } from '../auth/session.js';
-import { InvalidAttachmentError } from '../files/service.js';
+import { decodeFileNameHeader } from '../files/file-name.js';
+import {
+  createFile,
+  FileTooLargeError,
+  InvalidAttachmentError,
+  MAX_FILE_BYTES,
+} from '../files/service.js';
 import { findGroupByEgrantUrl, getGroup } from '../groups/service.js';
 import { getUserById } from '../users/service.js';
 import { isAdmin } from '../users/policy.js';
@@ -298,6 +304,39 @@ export const ticketsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, 
     if (!(await readable(actor, request.params.id, reply))) return reply;
     await unfollow(db, request.params.id, actor.id);
     return reply.code(204).send();
+  });
+
+  // ---- Files for the ticket chat ------------------------------------------------------------------
+  // Whoever reads the ticket uploads into its client's files, so a ziadatel, who cannot use
+  // `POST /api/groups/:id/files`, can attach files in the ticket chat. Streamed like that route.
+  const allowUpload = createRateLimiter({ windowMs: 60_000, max: 60 });
+  await app.register(async (upload) => {
+    upload.removeAllContentTypeParsers();
+    upload.addContentTypeParser('*', (_req, payload, done) => done(null, payload));
+
+    upload.post<IdParams>('/tickets/:id/files', { preHandler: anyUser }, async (request, reply) => {
+      const actor = request.user!;
+      const row = await readable(actor, request.params.id, reply);
+      if (!row) return reply;
+      if (row.groupId === null) return send(reply, 409, ErrorCodes.noClient);
+      if (!allowUpload(actor.id)) return send(reply, 429, ErrorCodes.rateLimited);
+      const tooLarge = () =>
+        reply.code(413).header('connection', 'close').send({ error: ErrorCodes.fileTooLarge });
+      if (Number(request.headers['content-length']) > MAX_FILE_BYTES) return tooLarge();
+      try {
+        const info = await createFile(deps, {
+          groupId: row.groupId,
+          uploadedBy: actor.id,
+          name: decodeFileNameHeader(request.headers['x-file-name'] as string | undefined),
+          declaredType: request.headers['content-type'],
+          body: request.raw,
+        });
+        return reply.code(201).send(info);
+      } catch (error) {
+        if (error instanceof FileTooLargeError) return tooLarge();
+        throw error;
+      }
+    });
   });
 
   app.get<IdParams>('/tickets/:id/followers', { preHandler: anyUser }, async (request, reply) => {

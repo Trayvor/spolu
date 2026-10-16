@@ -20,10 +20,8 @@ import {
   type MessageDto,
 } from '@spolu/shared';
 import { Button } from '@/components/ui/button';
-import { uploadFile } from '@/features/files/upload';
 import { formatFileSize } from '@/features/files/format-size';
-import { groupPeopleQuery } from '@/features/groups/api';
-import { useGroupPeople } from '@/features/groups/use-group-people';
+import { chatPeopleQuery, useChatPeople, useChatScope, useChatUpload } from './chat-scope';
 import { ApiError } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import {
@@ -91,7 +89,9 @@ export function Composer({
 }: ComposerProps) {
   const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
-  const people = useGroupPeople(groupId).data;
+  const scope = useChatScope();
+  const people = useChatPeople(groupId).data;
+  const sendFile = useChatUpload(groupId);
   // Only clients and managers can be mentioned; names still resolve against every reader.
   const pickable = useMemo(() => people?.filter(isPickable), [people]);
   const allLabel = t('chat.mention.all');
@@ -170,7 +170,7 @@ export function Composer({
   function startUpload(upload: Upload) {
     const patch = (p: Partial<Upload>) =>
       commitUploads(uploadsRef.current.map((u) => (u.key === upload.key ? { ...u, ...p } : u)));
-    uploadFile(groupId, upload.file, (progress) => patch({ progress }))
+    sendFile(upload.file, (progress) => patch({ progress }))
       .then((info) => patch({ status: 'done', progress: 1, fileId: info.id }))
       .catch((error: unknown) =>
         patch({
@@ -255,7 +255,7 @@ export function Composer({
       if (error instanceof ApiError && error.code === 'invalid_mention') {
         // Someone stopped being mentionable: keep the text and refresh the picker's list.
         setFailed('mention');
-        void queryClient.invalidateQueries({ queryKey: groupPeopleQuery(groupId).queryKey });
+        void queryClient.invalidateQueries({ queryKey: chatPeopleQuery(scope, groupId).queryKey });
       } else {
         setFailed('generic');
       }

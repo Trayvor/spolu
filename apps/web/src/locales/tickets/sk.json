@@ -1,0 +1,112 @@
+{
+  "new": "Nový tiket",
+  "status": {
+    "new": "Nový",
+    "in_progress": "V riešení",
+    "resolved": "Vyriešený"
+  },
+  "filters": {
+    "label": "Filtre tiketov",
+    "status": "Stav",
+    "open": "Otvorené",
+    "resolved": "Vyriešené",
+    "all": "Všetky",
+    "allAreas": "Všetky oblasti",
+    "areaChosen": "Oblasť: {{area}}",
+    "noAreas": "V tomto zozname zatiaľ nie sú oblasti",
+    "following": "Sledované",
+    "noClient": "Bez klienta"
+  },
+  "list": {
+    "loading": "Načítavam tikety…",
+    "error": "Tikety sa nepodarilo načítať.",
+    "empty": "Žiadne otvorené tikety.",
+    "noMatch": "Týmto filtrom nezodpovedá žiadny tiket.",
+    "loadMore": "Načítať ďalšie"
+  },
+  "row": {
+    "due": "Termín",
+    "overdue": "Po termíne od",
+    "noSubject": "Bez predmetu",
+    "noClient": "Bez klienta",
+    "following": "Tento tiket sledujete"
+  },
+  "mine": {
+    "title": "Moje tikety",
+    "empty": "Zatiaľ tu nemáte žiadne tikety. Keď vám ho podpora eGrantu založí, uvidíte ho tu."
+  },
+  "global": {
+    "title": "Tikety"
+  },
+  "page": {
+    "number": "#{{number}}",
+    "details": "Podrobnosti tiketu",
+    "edit": "Upraviť",
+    "editTitle": "Úprava tiketu",
+    "save": "Uložiť zmeny",
+    "cancel": "Zrušiť",
+    "turnedInto_one": "Premenený na {{count}} úlohu",
+    "turnedInto_few": "Premenený na {{count}} úlohy",
+    "turnedInto_many": "Premenený na {{count}} úlohy",
+    "turnedInto_other": "Premenený na {{count}} úloh"
+  },
+  "fields": {
+    "status": "Stav",
+    "subject": "Predmet",
+    "area": "Oblasť otázky",
+    "programme": "Grantový program",
+    "body": "Text",
+    "dueDate": "Termín",
+    "overdue": "po termíne",
+    "url": "Odkaz",
+    "instance": "Inštancia eGrantu",
+    "fileLinks": "Odkazy na súbory",
+    "files": "Súbory",
+    "initiator": "Iniciátor",
+    "unknown": "Neznámy",
+    "client": "Klient",
+    "created": "Vytvorený",
+    "fromEgrant": "z eGrantu",
+    "inSpolu": "v Spolu",
+    "resolved": "Vyriešený"
+  },
+  "followers": {
+    "title": "Sledujúci ({{count}})",
+    "follow": "Sledovať",
+    "following": "Sledujete",
+    "none": "Tento tiket nikto nesleduje."
+  },
+  "assign": {
+    "label": "Klient",
+    "moveLabel": "Presunúť k inému klientovi",
+    "choose": "Vyberte klienta",
+    "assign": "Priradiť klienta",
+    "move": "Presunúť",
+    "change": "Zmeniť klienta",
+    "hasTasks": "Tento tiket má úlohy na nástenke svojho klienta, preto zostáva pri ňom."
+  },
+  "noClient": {
+    "title": "Zatiaľ bez klienta",
+    "adminHint": "eGrant neposlal odkaz na inštanciu, ktorý by patril klientovi. Priraďte klienta: tiket dostane chat a iniciátor e-mail.",
+    "hint": "Klienta najprv priradí administrátor."
+  },
+  "form": {
+    "title": "Nový tiket",
+    "back": "Späť",
+    "initiator": "Iniciátor",
+    "initiatorHint": "Dostane e-mail a môže tiket sledovať v Spolu.",
+    "email": "E-mail iniciátora",
+    "name": "Meno iniciátora",
+    "phone": "Telefón iniciátora",
+    "linksPlaceholder": "Jeden odkaz na riadok",
+    "filesAfterClient": "Najprv vyberte klienta: súbory patria jemu.",
+    "create": "Vytvoriť tiket",
+    "errors": {
+      "content": "Napíšte predmet, text alebo oblasť otázky.",
+      "url": "Zadajte odkaz, ktorý začína https:// alebo http://.",
+      "client": "Vyberte klienta.",
+      "email": "Zadajte platný e-mail.",
+      "links": "Najviac 20 odkazov, každý začína https:// alebo http://."
+    }
+  }
+}

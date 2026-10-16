@@ -10,7 +10,8 @@ const recent = sql.raw(`now() - interval '${HOME_LIMITS.mentionDays} days'`);
  * they manage (Phase 18: @all reaches managers), by someone else, not deleted, from the last 90
  * days, and still unread for them: a top-level message after their read mark of its channel, a
  * reply after their read mark of its thread (the channel's mark when they have no thread row,
- * which is the case for an @all reply). Task chats count too.
+ * which is the case for an @all reply). Task and ticket chats count too (`ticketId` links a ticket
+ * chat's message to its ticket page).
  *
  * The candidates are a `union` (not `union all`), so a message that names the viewer and also says
  * @all is one item. The @all parts start from the managed groups' channels and read
@@ -47,7 +48,7 @@ export function mentionsSql(userId: string): SQL {
     ),
     unread as (
       select m.id, m.channel_id, m.parent_id, m.author_id, m.body, m.created_at, c.task_id,
-        c.group_id
+        c.ticket_id, c.group_id
       from candidates x
       join messages m on m.id = x.id
       join channels c on c.id = m.channel_id
@@ -67,6 +68,7 @@ export function mentionsSql(userId: string): SQL {
       u.id as message_id,
       u.channel_id,
       u.task_id,
+      u.ticket_id,
       u.parent_id,
       u.group_id,
       g.name as group_name,
@@ -92,6 +94,7 @@ type Row = {
   message_id: string;
   channel_id: string;
   task_id: string | null;
+  ticket_id: string | null;
   parent_id: string | null;
   group_id: string;
   group_name: string;
@@ -110,6 +113,7 @@ export async function getMentions(db: Db, userId: string): Promise<Mentions> {
       messageId: r.message_id,
       channelId: r.channel_id,
       taskId: r.task_id,
+      ticketId: r.ticket_id,
       parentId: r.parent_id,
       groupId: r.group_id,
       groupName: r.group_name,

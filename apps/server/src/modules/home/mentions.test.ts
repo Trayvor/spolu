@@ -57,6 +57,7 @@ describe('getMentions', () => {
         messageId: message.id,
         channelId: s.GM.channelId,
         taskId: null,
+        ticketId: null,
         parentId: null,
         groupId: s.GM.id,
         groupName: 'Managed',

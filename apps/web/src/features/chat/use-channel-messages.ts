@@ -52,9 +52,14 @@ export type SendInput = Omit<SendMessageInput, 'clientId'>;
  */
 export function useChannelMessages(
   channelId: string,
-  opts: { groupId: string; aroundMessageId?: string },
+  opts: {
+    groupId: string;
+    aroundMessageId?: string;
+    /** The people query refreshed after an `invalid_mention` (default: the group's people). */
+    peopleKey?: readonly unknown[];
+  },
 ) {
-  const { groupId, aroundMessageId } = opts;
+  const { groupId, aroundMessageId, peopleKey } = opts;
   const queryClient = useQueryClient();
   const joins = useGroupRoomJoins();
   const [win, dispatch] = useReducer(windowReducer, initialWindow);
@@ -412,13 +417,15 @@ export function useChannelMessages(
         if (error instanceof ApiError && error.code === 'invalid_mention') {
           // Someone in the text can no longer be mentioned: keep the row and refresh the picker.
           dispatch({ type: 'pendingFailed', clientId: input.clientId, reason: 'invalid_mention' });
-          void queryClient.invalidateQueries({ queryKey: groupPeopleQuery(groupId).queryKey });
+          void queryClient.invalidateQueries({
+            queryKey: peopleKey ?? groupPeopleQuery(groupId).queryKey,
+          });
         } else {
           dispatch({ type: 'pendingFailed', clientId: input.clientId });
         }
       }
     },
-    [channelId, apply, queryClient, groupId],
+    [channelId, apply, queryClient, groupId, peopleKey],
   );
 
   /** Sends at once as a pending row; a failure marks it failed (never retried on its own). */
