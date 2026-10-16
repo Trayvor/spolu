@@ -102,3 +102,9 @@ describe('notification queues', () => {
     expect(runs).toBeLessThanOrEqual(2);
   }, 30_000);
 });
+
+describe('PUSH_JOB_OPTIONS', () => {
+  it('expires a push job that runs over 30 s and retries it three times', () => {
+    expect(PUSH_JOB_OPTIONS).toMatchObject({ expireInSeconds: 30, retryLimit: 3, retryDelay: 30 });
+  });
+});

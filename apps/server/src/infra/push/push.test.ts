@@ -26,14 +26,14 @@ describe('web-push sender', () => {
     expect((error as PushSendError).statusCode).toBe(500);
   });
 
-  it('passes the VAPID details and a one-day TTL', async () => {
+  it('passes the VAPID details, a one-day TTL and a 10 s timeout', async () => {
     const send = vi.fn().mockResolvedValue({});
     const sender = createWebPushSender(vapid, send);
     expect(await sender.send(target, payload)).toBe('sent');
     expect(send).toHaveBeenCalledWith(
       { endpoint: target.endpoint, keys: { p256dh: 'pk', auth: 'au' } },
       JSON.stringify(payload),
-      { vapidDetails: vapid, TTL: 86_400, urgency: 'high' },
+      { vapidDetails: vapid, TTL: 86_400, urgency: 'high', timeout: 10_000 },
     );
   });
 });

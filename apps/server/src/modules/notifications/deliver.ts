@@ -29,8 +29,12 @@ export type NotificationJobDeps = {
 };
 
 const BATCH_SIZE = 200;
-/** One job per device: three retries 30 s apart, then the job is gone after an hour. */
+/**
+ * One job per device: three retries 30 s apart, then the job is gone after an hour. A run longer
+ * than 30 s (the send itself times out after 10 s) counts as failed and is retried.
+ */
 export const PUSH_JOB_OPTIONS: JobOptions = {
+  expireInSeconds: 30,
   retryLimit: 3,
   retryDelay: 30,
   deleteAfterSeconds: 3600,

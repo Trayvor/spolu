@@ -9,6 +9,8 @@ type SendFn = (
     vapidDetails: { subject: string; publicKey: string; privateKey: string };
     TTL: number;
     urgency: 'high';
+    /** Request timeout in ms. */
+    timeout: number;
   },
 ) => Promise<unknown>;
 
@@ -22,7 +24,8 @@ export function createWebPushSender(
         await send(
           { endpoint: target.endpoint, keys: { p256dh: target.p256dh, auth: target.auth } },
           JSON.stringify(payload),
-          { vapidDetails: vapid, TTL: 86_400, urgency: 'high' },
+          // A push service that hangs must not hold a push worker: give up after 10 s (pg-boss retries).
+          { vapidDetails: vapid, TTL: 86_400, urgency: 'high', timeout: 10_000 },
         );
         return 'sent';
       } catch (error) {
