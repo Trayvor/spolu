@@ -87,7 +87,7 @@ Knowledge                                                      [+ New]
 ```
 
 - Header: `text-medium` weight 600 "Knowledge" and the primary "+ New" pill (full width under the title below 641 px).
-- Filters: the type pills are the group tabs' filter-pill style (`h-8`, current one filled ink), single choice, "All" first. The search field (the shared `Input`, 300 ms debounce, minimum 2 characters) sits right of them from 641 px and on its own line below. Type and query live in the URL (`?type=link&q=portal`), so Back restores them.
+- Filters: the type pills are the group tabs' filter-pill style (`h-8`, current one filled ink), "All" first. Changed after Phase 17 at the owner's request: the type pills are multi-choice checkboxes (`role="checkbox"`, a ticked one filled ink with a check), "All" resets, and `?type` is a comma list (`?type=note,link`); see `docs/product/knowledge-base.md`. The search field (the shared `Input`, 300 ms debounce, minimum 2 characters) sits right of them from 641 px and on its own line below. Type and query live in the URL (`?type=link&q=portal`), so Back restores them.
 - **Row** (`px-5 py-4`, 16 px gap, the whole row opens the detail except the inner links):
   - Leading tile, 40 px, `rounded-lg bg-muted`, a 18 px outline icon in `text-foreground`: note (lines), file (document), link (arrow out). **Reminder:** the tile is a calendar leaf: the day number (`text-button` weight 600) over the short month (`text-nano` muted), with a 2 px `border-foreground` top edge. If no time is still ahead, the leaf shows the last date in `text-muted-foreground` and the second line reads "Done".
   - Line 1: the title (`text-button` weight 600, one line, truncated); on the right, the "Only eGrant" outline `Badge` with a 12 px lock for admins-only items (admins only ever see it), and for notes a paperclip with the file count (nothing at 0).
@@ -212,7 +212,7 @@ Knowledge
   - Two sections with `text-micro` weight 600 muted headings: "Managed by you" first, then "Other clients", each sorted by name. Checkboxes are 20 px with 44 px rows on phones. The find field filters both sections.
   - The chosen clients show under the bar as removable chips (`bg-secondary rounded-full`). Chips of managed clients carry a 6 px ink dot before the name, so the two kinds stay apart outside the popover too. "Reset" returns to the default.
   - The selection lives in the URL (`?clients=<id>,<id>`); no `clients` parameter means the default. The last explicit choice is also remembered in `localStorage` per browser, and restored when the admin opens `/knowledge` without parameters. Storage errors are ignored.
-- **Type filter**: a secondary pill with a menu: All types, Notes, Files, Links, Reminders. It is the same filter as the tab's pills, condensed to fit the row with the client filter.
+- **Type filter**: a secondary pill with a menu: All types, Notes, Files, Links, Reminders. Changed after Phase 17: the types are checkbox items, any combination can be ticked and the menu stays open; the pill reads "All types", the one type, or "n types". It is the same filter as the tab's pills, condensed to fit the row with the client filter.
 - **Search**: the same field and rules as in the tab, over title, description or body, file names and URL.
 - Empty: "No knowledge for these clients yet." / "No knowledge matches "{q}"."
 

@@ -12,9 +12,20 @@ import { apiGet, apiSend } from '@/lib/api';
 
 const enc = encodeURIComponent;
 
-export type KnowledgeFilter = { type?: KnowledgeType; q?: string };
+/** `types`: any of these types; empty or absent means every type. */
+export type KnowledgeFilter = { types?: KnowledgeType[]; q?: string };
 /** `scope: 'all'` is every client, whatever the admin manages; it never combines with `clients`. */
 export type GlobalKnowledgeFilter = KnowledgeFilter & { clients?: string[]; scope?: 'all' };
+
+/** The `type` param: one comma list. */
+const typeParam = (types: KnowledgeType[] | undefined) =>
+  types?.length ? types.join(',') : undefined;
+
+/** The filter as a query key: no types and an empty list are the same list. */
+const keyOf = <F extends KnowledgeFilter>(filter: F): F => ({
+  ...filter,
+  types: filter.types?.length ? filter.types : undefined,
+});
 
 function search(params: Record<string, string | undefined>): string {
   const qs = new URLSearchParams();
@@ -27,11 +38,11 @@ function search(params: Record<string, string | undefined>): string {
 
 export const groupKnowledgeQuery = (groupId: string, filter: KnowledgeFilter) =>
   infiniteQueryOptions({
-    queryKey: ['knowledge', 'group', groupId, filter],
+    queryKey: ['knowledge', 'group', groupId, keyOf(filter)],
     initialPageParam: undefined as string | undefined,
     queryFn: ({ pageParam }) =>
       apiGet(
-        `/groups/${enc(groupId)}/knowledge${search({ type: filter.type, q: filter.q, cursor: pageParam })}`,
+        `/groups/${enc(groupId)}/knowledge${search({ type: typeParam(filter.types), q: filter.q, cursor: pageParam })}`,
         KnowledgePageSchema,
       ),
     getNextPageParam: (page) => page.nextCursor ?? undefined,
@@ -39,14 +50,14 @@ export const groupKnowledgeQuery = (groupId: string, filter: KnowledgeFilter) =>
 
 export const globalKnowledgeQuery = (filter: GlobalKnowledgeFilter) =>
   infiniteQueryOptions({
-    queryKey: ['knowledge', 'global', filter],
+    queryKey: ['knowledge', 'global', keyOf(filter)],
     initialPageParam: undefined as string | undefined,
     queryFn: ({ pageParam }) =>
       apiGet(
         `/knowledge${search({
           scope: filter.scope,
           clients: filter.clients?.length ? filter.clients.join(',') : undefined,
-          type: filter.type,
+          type: typeParam(filter.types),
           q: filter.q,
           cursor: pageParam,
         })}`,

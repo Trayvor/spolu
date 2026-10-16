@@ -1,15 +1,58 @@
 import type { KnowledgeType } from '@spolu/shared';
 
 // Spelled out instead of importing `KnowledgeTypes`: this module is eager (the router), and the
-// shared knowledge module would bring its zod schemas into the entry chunk.
-const TYPES: readonly string[] = ['note', 'file', 'link', 'reminder'] satisfies KnowledgeType[];
+// shared knowledge module would bring its zod schemas into the entry chunk. Same order as there.
+export const KNOWLEDGE_TYPES = [
+  'note',
+  'file',
+  'link',
+  'reminder',
+] as const satisfies readonly KnowledgeType[];
 
 export type KnowledgePageSearch = {
   clients?: string;
-  type?: KnowledgeType;
+  /** The ticked types as one comma list in the canonical order (`note,link`); none means all. */
+  type?: string;
   q?: string;
   k?: string;
 };
+
+const isType = (value: string): value is KnowledgeType =>
+  (KNOWLEDGE_TYPES as readonly string[]).includes(value);
+
+/** The types in the canonical order, without duplicates. */
+const canonical = (types: readonly string[]): KnowledgeType[] =>
+  KNOWLEDGE_TYPES.filter((type) => types.includes(type));
+
+/**
+ * The `type` search param as the canonical comma list: a comma list, an old single value or an
+ * array, with invalid values and duplicates dropped; undefined when no valid type is left.
+ */
+export function normalizeTypes(value: unknown): string | undefined {
+  const parts =
+    typeof value === 'string'
+      ? value.split(',')
+      : Array.isArray(value)
+        ? value.filter((part): part is string => typeof part === 'string')
+        : [];
+  return formatTypes(parts.filter(isType));
+}
+
+/** The ticked types of a validated `type` param. */
+export function parseTypes(value: string | undefined): KnowledgeType[] {
+  return value ? canonical(value.split(',')) : [];
+}
+
+/** The `type` param for these types; undefined (every type) when none is ticked. */
+export function formatTypes(types: readonly KnowledgeType[]): string | undefined {
+  const list = canonical(types);
+  return list.length > 0 ? list.join(',') : undefined;
+}
+
+/** `kind` and other single-type params. */
+export function singleType(value: unknown): KnowledgeType | undefined {
+  return typeof value === 'string' && isType(value) ? value : undefined;
+}
 
 /**
  * The `/knowledge` search params. Every key is set, an invalid one to undefined: the router keeps
@@ -22,10 +65,7 @@ export function validateKnowledgeSearch(search: Record<string, unknown>): Knowle
   const q = text(search.q)?.trim() ?? '';
   return {
     clients: text(search.clients),
-    type:
-      typeof search.type === 'string' && TYPES.includes(search.type)
-        ? (search.type as KnowledgeType)
-        : undefined,
+    type: normalizeTypes(search.type),
     q: q.length >= 2 ? q : undefined,
     k: text(search.k) || undefined,
   };

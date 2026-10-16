@@ -390,6 +390,30 @@ describe('knowledge API', () => {
     expect(cursor.json()).toEqual({ error: 'validation_failed' });
     const type = await call('GET', `/api/groups/${g.id}/knowledge?type=poem`, admin.cookie);
     expect(type.statusCode).toBe(400);
+    const oneBad = await call('GET', `/api/groups/${g.id}/knowledge?type=note,poem`, admin.cookie);
+    expect(oneBad.statusCode).toBe(400);
+  });
+
+  it('the group list filters by one type or several', async () => {
+    const admin = await newAdmin();
+    const g = await newGroup();
+    const n = await create(admin.cookie, g.id, note());
+    const l = await create(admin.cookie, g.id, {
+      type: 'link',
+      title: 'L',
+      url: 'https://example.com',
+      fileIds: [],
+    });
+    const list = async (query: string) => {
+      const res = await call('GET', `/api/groups/${g.id}/knowledge${query}`, admin.cookie);
+      expect(res.statusCode, query).toBe(200);
+      return res.json<KnowledgePage>().items.map((i) => i.id);
+    };
+    expect(await list('?type=note')).toEqual([n.id]);
+    expect(await list('?type=note,link')).toEqual([l.id, n.id]);
+    expect(await list('?type=note&type=link')).toEqual([l.id, n.id]);
+    expect(await list('?type=file,reminder')).toEqual([]);
+    expect(await list('?type=')).toEqual([l.id, n.id]);
   });
 
   it('a file removed by an edit is deleted after the commit', async () => {
@@ -472,6 +496,9 @@ describe('knowledge API', () => {
       expect(all.statusCode).toBe(200);
       expect(all.json<KnowledgePage>().items.map((i) => i.id)).toEqual([two.id, one.id]);
       expect((await list('&scope=all&type=link')).json<KnowledgePage>().items).toEqual([]);
+      expect(
+        (await list('&scope=all&type=link,note')).json<KnowledgePage>().items.map((i) => i.id),
+      ).toEqual([two.id, one.id]);
       // `scope=all` and `clients` contradict each other; any other scope is unknown.
       const both = await list(`&scope=all&clients=${g1.id}`);
       expect(both.statusCode).toBe(400);

@@ -6,7 +6,7 @@ import { fakeSubscription, waitForPush } from './push-log';
 
 // Phase 17 "Done when": an admin (the superadmin) and a client of one group share knowledge
 // items, the client never sees admins-only items or their files, reminders push and export to a
-// calendar, and the global list finds items by client, type and search. One client logs in once
+// calendar, and the global list finds items by client, types and search. One client logs in once
 // (production rate limits allow only a few code requests per minute).
 test.describe.serial('knowledge base', () => {
   const stamp = Date.now();
@@ -166,9 +166,12 @@ test.describe.serial('knowledge base', () => {
     await page.goto(`/knowledge?clients=${groupId}&type=file&q=rozpocet-${stamp}`);
     await expect(page.getByRole('button', { name: `Otvoriť ${fileItem.title}` })).toBeVisible();
     await expect(page.getByText(`E2E Znalosti ${stamp}`).first()).toBeVisible();
-    // Another type finds nothing.
+    // Another type finds nothing; several types find it when one of them is its type.
     await page.goto(`/knowledge?clients=${groupId}&type=link&q=rozpocet-${stamp}`);
     await expect(page.getByRole('button', { name: `Otvoriť ${fileItem.title}` })).toHaveCount(0);
+    await page.goto(`/knowledge?clients=${groupId}&type=link,file&q=rozpocet-${stamp}`);
+    await expect(page.getByRole('button', { name: `Otvoriť ${fileItem.title}` })).toBeVisible();
+    await expect(page.getByRole('button', { name: '2 typy' })).toBeVisible();
 
     // The same through the API.
     const res = await adminContext.request.get(
@@ -176,6 +179,10 @@ test.describe.serial('knowledge base', () => {
     );
     const page1 = (await res.json()) as KnowledgePage;
     expect(page1.items.map((i) => i.id)).toEqual([fileItem.id]);
+    const several = await adminContext.request.get(
+      `/api/knowledge?clients=${groupId}&type=note,file&q=${encodeURIComponent(`rozpocet-${stamp}`)}`,
+    );
+    expect(((await several.json()) as KnowledgePage).items.map((i) => i.id)).toEqual([fileItem.id]);
     // Clients cannot use the global list.
     expect((await clientContext.request.get('/api/knowledge')).status()).toBe(403);
     await page.close();

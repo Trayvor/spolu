@@ -5,8 +5,8 @@ import { cn } from '@/lib/utils';
 /*
  * shadcn/ui dropdown menu (Radix), trimmed to the egrant language dropdown
  * (docs/design/tokens.md): `bg-popover` panel with `shadow-lift`, `rounded-xl`, 8px padding;
- * `rounded-lg` items with an `accent` hover; no open/close animation. Sub-menus, checkbox items
- * and shortcuts are left out until a screen needs them.
+ * `rounded-lg` items with an `accent` hover; no open/close animation. Sub-menus and shortcuts are
+ * left out until a screen needs them.
  */
 
 const DropdownMenu = DropdownMenuPrimitive.Root;
@@ -75,6 +75,34 @@ function DropdownMenuRadioItem({
   );
 }
 
+/**
+ * A checkbox item, drawn like the radio item (label, then the check mark when ticked). It keeps
+ * the menu open, so several can be ticked in a row.
+ */
+function DropdownMenuCheckboxItem({
+  className,
+  children,
+  onSelect,
+  ...props
+}: React.ComponentProps<typeof DropdownMenuPrimitive.CheckboxItem>) {
+  return (
+    <DropdownMenuPrimitive.CheckboxItem
+      data-slot="dropdown-menu-checkbox-item"
+      className={cn(itemClasses, 'data-[state=checked]:font-semibold', className)}
+      onSelect={(event) => {
+        event.preventDefault();
+        onSelect?.(event);
+      }}
+      {...props}
+    >
+      <span className="flex-1">{children}</span>
+      <DropdownMenuPrimitive.ItemIndicator className="shrink-0">
+        <CheckIcon />
+      </DropdownMenuPrimitive.ItemIndicator>
+    </DropdownMenuPrimitive.CheckboxItem>
+  );
+}
+
 function DropdownMenuLabel({
   className,
   ...props
@@ -115,6 +143,7 @@ export {
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuGroup,
+  DropdownMenuCheckboxItem,
   DropdownMenuLabel,
   DropdownMenuItem,
   DropdownMenuRadioGroup,

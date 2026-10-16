@@ -41,7 +41,7 @@ function summary(id: string, overrides: Partial<KnowledgeSummary> = {}): Knowled
   };
 }
 
-type Filter = { type?: KnowledgeType; q?: string };
+type Filter = { types?: KnowledgeType[]; q?: string };
 
 let fetchMock: ReturnType<typeof vi.fn>;
 let client: QueryClient;
@@ -117,18 +117,31 @@ describe('useKnowledgeEvents', () => {
     expect(cachedIds({})).toEqual(['k2', 'k1']);
   });
 
-  it('another type is dropped', async () => {
-    await mount({ type: 'note' });
+  it('with several types ticked, an item of any of them is upserted and others are dropped', async () => {
+    await mount({ types: ['note', 'reminder'] });
+    act(() => fake.fire(KnowledgeEvents.item, { item: summary('k2', { type: 'reminder' }) }));
+    act(() => fake.fire(KnowledgeEvents.item, { item: summary('k3', { type: 'link' }) }));
+    expect(cachedIds({ types: ['note', 'reminder'] })).toEqual(['k2', 'k1']);
+  });
+
+  it('an empty type list matches every type', async () => {
+    await mount({ types: [] });
     act(() => fake.fire(KnowledgeEvents.item, { item: summary('k2', { type: 'link' }) }));
-    expect(cachedIds({ type: 'note' })).toEqual(['k1']);
+    expect(cachedIds({ types: [] })).toEqual(['k2', 'k1']);
+  });
+
+  it('another type is dropped', async () => {
+    await mount({ types: ['note'] });
+    act(() => fake.fire(KnowledgeEvents.item, { item: summary('k2', { type: 'link' }) }));
+    expect(cachedIds({ types: ['note'] })).toEqual(['k1']);
     act(() => fake.fire(KnowledgeEvents.item, { item: summary('k3', { type: 'note' }) }));
-    expect(cachedIds({ type: 'note' })).toEqual(['k3', 'k1']);
+    expect(cachedIds({ types: ['note'] })).toEqual(['k3', 'k1']);
   });
 
   it('a known item that changed to another type leaves the filtered list', async () => {
-    await mount({ type: 'note' });
+    await mount({ types: ['note'] });
     act(() => fake.fire(KnowledgeEvents.item, { item: summary('k1', { type: 'link' }) }));
-    expect(cachedIds({ type: 'note' })).toEqual([]);
+    expect(cachedIds({ types: ['note'] })).toEqual([]);
   });
 
   it('with a search the list is invalidated', async () => {
