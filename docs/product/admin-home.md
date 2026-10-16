@@ -30,7 +30,8 @@ What an administrator sees after signing in: a dashboard of what needs them, a c
 - Upcoming reminders lists the knowledge base reminders the admin receives (author, added or subscribed); task reminders join when Phase 19 is merged, through the same source, with no change to the dashboard.
 - Each card fails on its own: "Could not load this. Try again." with a retry.
 - From 1024 px the client sidebar is on the left of every signed-in page for admins and can be collapsed to a rail of logos (remembered on the device). Under 1024 px the home shows three count tiles that open their lists, then the client list.
+- An end-to-end test (`e2e/admin-home.spec.ts`) covers an admin who manages one of two clients: the mention, the assigned task, the sidebar sections and pills, the Úlohy pill, the global board's default scope and adding a client, and the phone tiles. It was written in Phase 20 but not yet run (the shared e2e stack was busy); run it before the phase is marked done.
 
 ## Phase
 
-Phase 20 ([spec](../superpowers/specs/2026-10-16-phase-20-admin-home-design.md)). Needs Phase 18; the reminders card needs Phases 17 and 19.
+Phase 20 ([spec](../superpowers/specs/2026-10-16-phase-20-admin-home-design.md), [plan](../superpowers/plans/2026-10-16-phase-20-admin-home.md)), built on top of Phases 17 and 18; in progress until it is walked with the owner. The reminders card shows the knowledge base reminders (Phase 17) now and the task reminders once Phase 19 is merged.
