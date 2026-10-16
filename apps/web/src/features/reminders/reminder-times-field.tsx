@@ -1,4 +1,4 @@
-import { useId } from 'react';
+import { useEffect, useId, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { KNOWLEDGE_LIMITS } from '@spolu/shared';
 import { CloseIcon } from '@/components/icons';
@@ -6,8 +6,28 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 
-/** One reminder time in the form: local `date` (YYYY-MM-DD) and `time` (HH:mm). */
-export type ReminderTimeValue = { id?: string; date: string; time: string; firedAt: string | null };
+/**
+ * One reminder time in the form: local `date` (YYYY-MM-DD) and `time` (HH:mm). `key` is a
+ * client-side row key for a time without an `id` (never sent).
+ */
+export type ReminderTimeValue = {
+  id?: string;
+  key?: string;
+  date: string;
+  time: string;
+  firedAt: string | null;
+};
+
+let rowSeq = 0;
+/** A fresh client-side key for a new time row. */
+export function newRowKey(): string {
+  rowSeq += 1;
+  return `new-${rowSeq}`;
+}
+
+const rowKey = (row: ReminderTimeValue, index: number) => row.id ?? row.key ?? `index-${index}`;
+
+type FocusTarget = { kind: 'date' | 'remove'; key: string } | { kind: 'add' };
 
 const pad = (n: number) => String(n).padStart(2, '0');
 
@@ -48,6 +68,20 @@ export function ReminderTimesField({
   const { t } = useTranslation();
   const uid = useId();
   const legendId = `${uid}-legend`;
+  const dateRefs = useRef(new Map<string, HTMLInputElement>());
+  const removeRefs = useRef(new Map<string, HTMLButtonElement>());
+  const addRef = useRef<HTMLButtonElement>(null);
+  const focusNext = useRef<FocusTarget | null>(null);
+
+  // Runs after the render that shows the change, so the target exists.
+  useEffect(() => {
+    const target = focusNext.current;
+    if (!target) return;
+    focusNext.current = null;
+    if (target.kind === 'add') addRef.current?.focus();
+    else if (target.kind === 'date') dateRefs.current.get(target.key)?.focus();
+    else removeRefs.current.get(target.key)?.focus();
+  });
 
   const update = (index: number, patch: Partial<ReminderTimeValue>) =>
     onChange(value.map((row, i) => (i === index ? { ...row, ...patch } : row)));
@@ -56,7 +90,22 @@ export function ReminderTimesField({
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
     const last = [...value].reverse().find((row) => row.firedAt === null && row.date);
-    onChange([...value, { date: last?.date ?? localDate(tomorrow), time: '09:00', firedAt: null }]);
+    const key = newRowKey();
+    focusNext.current = { kind: 'date', key };
+    onChange([
+      ...value,
+      { key, date: last?.date ?? localDate(tomorrow), time: '09:00', firedAt: null },
+    ]);
+  };
+
+  // Focus moves to the next row's Remove, or to "+ Add time" when no unfired row follows.
+  const remove = (index: number) => {
+    const next = value.slice(index + 1).findIndex((row) => row.firedAt === null);
+    focusNext.current =
+      next === -1
+        ? { kind: 'add' }
+        : { kind: 'remove', key: rowKey(value[index + 1 + next]!, index + 1 + next) };
+    onChange(value.filter((_, i) => i !== index));
   };
 
   return (
@@ -70,10 +119,15 @@ export function ReminderTimesField({
           const fired = row.firedAt !== null;
           const error = errors[index];
           const errorId = `${uid}-error-${index}`;
+          const key = rowKey(row, index);
           return (
-            <li key={row.id ?? `new-${index}`} className="flex flex-col gap-1.5">
+            <li key={key} className="flex flex-col gap-1.5">
               <div className={cn('flex items-center gap-2', fired && 'text-muted-foreground')}>
                 <Input
+                  ref={(el) => {
+                    if (el) dateRefs.current.set(key, el);
+                    else dateRefs.current.delete(key);
+                  }}
                   type="date"
                   aria-label={t('reminders.fields.date', { n })}
                   value={row.date}
@@ -108,8 +162,12 @@ export function ReminderTimesField({
                     type="button"
                     variant="ghost"
                     size="icon"
+                    ref={(el) => {
+                      if (el) removeRefs.current.set(key, el);
+                      else removeRefs.current.delete(key);
+                    }}
                     aria-label={t('reminders.fields.remove', { n })}
-                    onClick={() => onChange(value.filter((_, i) => i !== index))}
+                    onClick={() => remove(index)}
                   >
                     <CloseIcon />
                   </Button>
@@ -125,7 +183,14 @@ export function ReminderTimesField({
         })}
       </ul>
       {value.length < KNOWLEDGE_LIMITS.times && (
-        <Button type="button" variant="secondary" size="sm" onClick={add} className="self-start">
+        <Button
+          ref={addRef}
+          type="button"
+          variant="secondary"
+          size="sm"
+          onClick={add}
+          className="self-start"
+        >
           <span aria-hidden="true">+</span>
           {t('reminders.fields.add')}
         </Button>

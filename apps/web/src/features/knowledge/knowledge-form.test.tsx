@@ -23,6 +23,7 @@ vi.mock('@/features/files/upload', () => ({ uploadFile: vi.fn() }));
 const PEOPLE: GroupPerson[] = [
   { id: 'u1', name: 'Anna Nováková', isAdmin: false },
   { id: 'u2', name: 'Boris Kováč', isAdmin: true },
+  { id: 'u3', name: 'Cyril Malý', isAdmin: true },
 ];
 
 const PDF: FileInfo = {
@@ -43,19 +44,24 @@ function Harness({
   errors,
   canChooseVisibility = false,
   visibilityLocked = false,
+  onValue,
 }: {
   type: KnowledgeType;
   initial?: KnowledgeFormValue;
   errors?: KnowledgeFormErrors;
   canChooseVisibility?: boolean;
   visibilityLocked?: boolean;
+  onValue?: (value: KnowledgeFormValue) => void;
 }) {
   const [value, setValue] = useState(initial);
   const [files, setFiles] = useState<FileInfo[]>([]);
   return (
     <KnowledgeForm
       value={value}
-      onChange={setValue}
+      onChange={(next) => {
+        setValue(next);
+        onValue?.(next);
+      }}
       groupId="g1"
       type={type}
       errors={errors}
@@ -166,6 +172,21 @@ describe('KnowledgeForm', () => {
     expect(everyone).toHaveAttribute('aria-checked', 'false');
   });
 
+  it('switching to admins-only keeps the author and confirmed admins only', async () => {
+    const onValue = vi.fn();
+    const { user } = renderForm({
+      type: 'reminder',
+      canChooseVisibility: true,
+      initial: { ...emptyKnowledgeValue(), recipientIds: ['u2', 'u1', 'u3', 'gone'] },
+      onValue,
+    });
+    await screen.findByText('Anna Nováková');
+    await user.click(screen.getByRole('radio', { name: t('knowledge.visibility.admins') }));
+    expect(onValue).toHaveBeenLastCalledWith(
+      expect.objectContaining({ visibility: 'admins', recipientIds: ['u2', 'u3'] }),
+    );
+  });
+
   it('locked visibility is disabled with the hint', () => {
     renderForm({ type: 'note', canChooseVisibility: true, visibilityLocked: true });
     for (const radio of screen.getAllByRole('radio')) expect(radio).toBeDisabled();
@@ -257,8 +278,8 @@ describe('toDraft and toPatch', () => {
 
   it('toPatch sends only changed fields plus updatedAt', () => {
     const value = fromItem(item);
-    expect(toPatch(item, value)).toEqual({ updatedAt: item.updatedAt });
-    expect(toPatch(item, { ...value, title: 'New title' })).toEqual({
+    expect(toPatch(item, value, { people: PEOPLE })).toEqual({ updatedAt: item.updatedAt });
+    expect(toPatch(item, { ...value, title: 'New title' }, { people: PEOPLE })).toEqual({
       title: 'New title',
       updatedAt: item.updatedAt,
     });
@@ -266,10 +287,14 @@ describe('toDraft and toPatch', () => {
 
   it('toPatch sends a fired time with its original at', () => {
     const value = fromItem(item);
-    const patch = toPatch(item, {
-      ...value,
-      times: [...value.times, { date: '2030-02-01', time: '09:00', firedAt: null }],
-    });
+    const patch = toPatch(
+      item,
+      {
+        ...value,
+        times: [...value.times, { date: '2030-02-01', time: '09:00', firedAt: null }],
+      },
+      { people: PEOPLE },
+    );
     expect(patch.reminder?.times).toEqual([
       { id: 't1', at: '2026-10-05T07:00:30.000Z' },
       { id: 't2', at: '2030-01-02T08:00:00.000Z' },
@@ -286,7 +311,7 @@ describe('toDraft and toPatch', () => {
       url: ' https://egrant.sk ',
       fileIds: ['f1'],
     };
-    expect(toDraft('link', value)).toEqual({
+    expect(toDraft('link', value, { people: PEOPLE })).toEqual({
       type: 'link',
       title: 'Site',
       body: '',
@@ -295,7 +320,26 @@ describe('toDraft and toPatch', () => {
       visibility: 'public',
     });
     expect(emptyKnowledgeValue().times).toEqual([
-      { date: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/), time: '09:00', firedAt: null },
+      expect.objectContaining({
+        date: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
+        time: '09:00',
+        firedAt: null,
+      }),
     ]);
+  });
+
+  it('an admins-only reminder sends only the author and confirmed admins', () => {
+    const value: KnowledgeFormValue = {
+      ...emptyKnowledgeValue(),
+      title: 'Audit',
+      visibility: 'admins',
+      times: [{ date: '2030-01-02', time: '09:00', firedAt: null }],
+      recipientIds: ['u2', 'u1', 'u3', 'gone'],
+    };
+    const draft = toDraft('reminder', value, { people: PEOPLE, authorId: 'u2' });
+    expect(draft.type === 'reminder' && draft.reminder.recipientIds).toEqual(['u2', 'u3']);
+    const patch = toPatch({ ...item, visibility: 'public' }, value, { people: PEOPLE });
+    expect(patch.reminder?.recipientIds).toEqual(['u2', 'u3']);
+    expect(patch.visibility).toBe('admins');
   });
 });

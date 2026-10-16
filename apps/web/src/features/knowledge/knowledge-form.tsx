@@ -5,6 +5,7 @@ import {
   Visibilities,
   isHttpUrl,
   type FileInfo,
+  type GroupPerson,
   type KnowledgeDraft,
   type KnowledgeItemDto,
   type KnowledgePatch,
@@ -25,6 +26,7 @@ import {
   isoToLocal,
   localDate,
   localToIso,
+  newRowKey,
   type ReminderTimeValue,
 } from '@/features/reminders/reminder-times-field';
 
@@ -54,7 +56,7 @@ export function emptyKnowledgeValue(): KnowledgeFormValue {
     url: '',
     fileIds: [],
     visibility: 'public',
-    times: [{ date: localDate(tomorrow), time: '09:00', firedAt: null }],
+    times: [{ key: newRowKey(), date: localDate(tomorrow), time: '09:00', firedAt: null }],
     recipientIds: [],
   };
 }
@@ -78,8 +80,29 @@ export function fromItem(item: KnowledgeItemDto): KnowledgeFormValue {
   };
 }
 
+/**
+ * The recipients an item of `visibility` may have: for an admins-only item, the author and the
+ * people `people` confirms are admins (none while it is not loaded); otherwise all of them.
+ */
+export function allowedRecipients(
+  ids: string[],
+  visibility: Visibility,
+  people: GroupPerson[] | undefined,
+  authorId: string | undefined,
+): string[] {
+  if (visibility !== 'admins') return ids;
+  return ids.filter((id) => id === authorId || people?.find((p) => p.id === id)?.isAdmin === true);
+}
+
+/** What submitting needs besides the values: the group people, to filter recipients. */
+export type SubmitContext = { people: GroupPerson[] | undefined; authorId?: string };
+
 /** The reminder part sent to the server. A fired time keeps its original `at`. */
-function reminderInput(value: KnowledgeFormValue, item?: KnowledgeItemDto): ReminderInput {
+function reminderInput(
+  value: KnowledgeFormValue,
+  item?: KnowledgeItemDto,
+  context?: SubmitContext,
+): ReminderInput {
   const original = new Map((item?.reminder?.times ?? []).map((time) => [time.id, time.at]));
   return {
     times: value.times.map((time) => {
@@ -89,12 +112,21 @@ function reminderInput(value: KnowledgeFormValue, item?: KnowledgeItemDto): Remi
           : localToIso(time.date, time.time);
       return time.id ? { id: time.id, at } : { at };
     }),
-    recipientIds: value.recipientIds,
+    recipientIds: context
+      ? allowedRecipients(value.recipientIds, value.visibility, context.people, context.authorId)
+      : value.recipientIds,
   };
 }
 
-/** A new item of `type` from the form values. */
-export function toDraft(type: KnowledgeType, value: KnowledgeFormValue): KnowledgeDraft {
+/**
+ * A new item of `type` from the form values. An admins-only reminder keeps only the author and
+ * confirmed admins of `context.people` as recipients.
+ */
+export function toDraft(
+  type: KnowledgeType,
+  value: KnowledgeFormValue,
+  context: SubmitContext,
+): KnowledgeDraft {
   const base = { title: value.title.trim(), body: value.body, visibility: value.visibility };
   switch (type) {
     case 'note':
@@ -103,14 +135,21 @@ export function toDraft(type: KnowledgeType, value: KnowledgeFormValue): Knowled
     case 'link':
       return { ...base, type, url: value.url.trim(), fileIds: [] };
     case 'reminder':
-      return { ...base, type, reminder: reminderInput(value), fileIds: [] };
+      return { ...base, type, reminder: reminderInput(value, undefined, context), fileIds: [] };
   }
 }
 
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 
-/** An edit of `item`: only the changed fields of its type, plus the `updatedAt` it was loaded at. */
-export function toPatch(item: KnowledgeItemDto, value: KnowledgeFormValue): KnowledgePatch {
+/**
+ * An edit of `item`: only the changed fields of its type, plus the `updatedAt` it was loaded at.
+ * Recipients are filtered as in `toDraft`, with the item's author.
+ */
+export function toPatch(
+  item: KnowledgeItemDto,
+  value: KnowledgeFormValue,
+  context: Omit<SubmitContext, 'authorId'>,
+): KnowledgePatch {
   const before = fromItem(item);
   const patch: KnowledgePatch = { updatedAt: item.updatedAt };
   if (value.title.trim() !== before.title) patch.title = value.title.trim();
@@ -121,7 +160,7 @@ export function toPatch(item: KnowledgeItemDto, value: KnowledgeFormValue): Know
     patch.fileIds = value.fileIds;
   }
   if (item.type === 'reminder') {
-    const next = reminderInput(value, item);
+    const next = reminderInput(value, item, { ...context, authorId: item.createdBy.id });
     if (!same(next, reminderInput(before, item))) patch.reminder = next;
   }
   return patch;
@@ -338,11 +377,9 @@ export function KnowledgeForm({
 
   const setVisibility = (visibility: Visibility) => {
     // An admins-only reminder notifies admins only: drop the others it was going to reach.
-    const keep = (personId: string) =>
-      personId === authorId || people?.find((p) => p.id === personId)?.isAdmin !== false;
     set({
       visibility,
-      recipientIds: visibility === 'admins' ? value.recipientIds.filter(keep) : value.recipientIds,
+      recipientIds: allowedRecipients(value.recipientIds, visibility, people, authorId),
     });
   };
 

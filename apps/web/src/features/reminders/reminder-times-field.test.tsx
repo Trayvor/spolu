@@ -68,6 +68,34 @@ describe('ReminderTimesField', () => {
     );
   });
 
+  it('focuses the new date after Add, and the next Remove or Add after Remove', async () => {
+    const user = userEvent.setup();
+    render(<Harness initial={[row('2030-01-01', '09:00'), row('2030-01-02', '09:00')]} />);
+    await user.click(screen.getByRole('button', { name: t('reminders.fields.add') }));
+    expect(screen.getByLabelText(t('reminders.fields.date', { n: 3 }))).toHaveFocus();
+
+    await user.click(screen.getByRole('button', { name: t('reminders.fields.remove', { n: 1 }) }));
+    // The rows renumber: the old second row is now the first.
+    expect(
+      screen.getByRole('button', { name: t('reminders.fields.remove', { n: 1 }) }),
+    ).toHaveFocus();
+    expect(screen.getByLabelText(t('reminders.fields.date', { n: 1 }))).toHaveValue('2030-01-02');
+
+    await user.click(screen.getByRole('button', { name: t('reminders.fields.remove', { n: 2 }) }));
+    expect(screen.getByRole('button', { name: t('reminders.fields.add') })).toHaveFocus();
+  });
+
+  it('keeps each new row its own input state when an earlier row is removed', async () => {
+    const user = userEvent.setup();
+    render(<Harness initial={[]} />);
+    await user.click(screen.getByRole('button', { name: t('reminders.fields.add') }));
+    await user.click(screen.getByRole('button', { name: t('reminders.fields.add') }));
+    const second = screen.getByLabelText(t('reminders.fields.date', { n: 2 }));
+    await user.click(screen.getByRole('button', { name: t('reminders.fields.remove', { n: 1 }) }));
+    // The same element moved up: it was not re-created from the first row's key.
+    expect(screen.getByLabelText(t('reminders.fields.date', { n: 1 }))).toBe(second);
+  });
+
   it('Add time hides at 20', async () => {
     const user = userEvent.setup();
     render(
