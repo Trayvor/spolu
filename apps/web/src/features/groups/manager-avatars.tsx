@@ -110,7 +110,7 @@ export function ManagerAvatars({
               }}
               // Radix's hidden description copy: the names as one sentence, not a second list.
               aria-label={managers.map((m) => m.name).join(', ')}
-              className="z-50 max-w-[240px] rounded-lg bg-primary px-3 py-2 text-micro text-primary-foreground shadow-lift"
+              className="z-50 max-w-[240px] origin-(--radix-tooltip-content-transform-origin) animate-fade-in rounded-lg bg-primary px-3 py-2 text-micro text-primary-foreground shadow-lift"
             >
               <ul data-manager-tooltip="" aria-hidden="true">
                 {managers.map((manager) => (

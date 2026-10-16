@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { Outlet, useParams } from '@tanstack/react-router';
+import { RouteFade } from '@/components/route-fade';
 import { isAdmin } from '@/features/auth/roles';
 import { useSession } from '@/features/auth/use-session';
 import { ChatTabBadge } from '@/features/chat/chat-tab-badge';
@@ -34,7 +35,10 @@ function GroupFrame({ groupId }: { groupId: string }) {
             }}
           />
         </div>
-        <Outlet />
+        {/* A tab switch fades the new tab in. */}
+        <RouteFade level={3} className="flex min-h-0 flex-1 flex-col">
+          <Outlet />
+        </RouteFade>
       </div>
     </GroupRoomProvider>
   );

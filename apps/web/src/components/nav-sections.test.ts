@@ -33,9 +33,7 @@ describe('navSections', () => {
 
   it('gives clients and requesters only what they can open', () => {
     expect(keys(me('client', [group('a', 'client')]))).toEqual([]);
-    expect(keys(me('client', [group('a', 'client'), group('b', 'client')]))).toEqual([
-      'myGroups',
-    ]);
+    expect(keys(me('client', [group('a', 'client'), group('b', 'client')]))).toEqual(['myGroups']);
     expect(keys(me('client', [group('a', 'client'), group('b', 'ziadatel')]))).toEqual([
       'group',
       'tickets',

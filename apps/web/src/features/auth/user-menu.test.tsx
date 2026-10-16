@@ -217,10 +217,11 @@ describe('logged-in shell', () => {
     const { user } = renderAt();
     await user.click(await screen.findByRole('button', { name: t('user.menu') }));
     const menu = await screen.findByRole('menu');
-    expect(within(menu).getAllByRole('menuitem').map((item) => item.textContent)).toEqual([
-      t('nav.settings'),
-      t('user.logout'),
-    ]);
+    expect(
+      within(menu)
+        .getAllByRole('menuitem')
+        .map((item) => item.textContent),
+    ).toEqual([t('nav.settings'), t('user.logout')]);
     // The phone header has no language pill: the languages are here (hidden from 641 px).
     expect(within(menu).getAllByRole('menuitemradio')).toHaveLength(9);
     expect(within(menu).getByRole('menuitemradio', { name: 'English' })).toHaveAttribute(
@@ -259,7 +260,11 @@ describe('logged-in shell', () => {
     expect(pill).toHaveAttribute('aria-expanded', 'false');
     await user.click(pill);
     const sheet = await screen.findByRole('dialog', { name: t('nav.menu') });
-    expect(within(sheet).getAllByRole('link').map((link) => link.textContent)).toEqual(order);
+    expect(
+      within(sheet)
+        .getAllByRole('link')
+        .map((link) => link.textContent),
+    ).toEqual(order);
     expect(pill).toHaveAttribute('aria-expanded', 'true');
 
     await user.click(within(sheet).getByRole('link', { name: t('nav.groups') }));
@@ -290,10 +295,11 @@ describe('logged-in shell', () => {
     const { user } = renderAt('/settings');
     await user.click(await screen.findByRole('button', { name: t('nav.menu') }));
     const sheet = await screen.findByRole('dialog', { name: t('nav.menu') });
-    expect(within(sheet).getAllByRole('link').map((link) => link.textContent)).toEqual([
-      'Firma',
-      t('nav.myTickets'),
-    ]);
+    expect(
+      within(sheet)
+        .getAllByRole('link')
+        .map((link) => link.textContent),
+    ).toEqual(['Firma', t('nav.myTickets')]);
     expect(within(sheet).getByRole('link', { name: 'Firma' })).toHaveAttribute('href', '/');
   });
 

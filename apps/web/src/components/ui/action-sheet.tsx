@@ -9,8 +9,9 @@ const SWIPE_CLOSE = 64;
 /**
  * A bottom sheet of actions for touch screens: a dimmed backdrop and a `bg-popover` panel with
  * full-width rows (`ActionSheetItem`). Closes on a tap outside, Escape, or a downward swipe.
- * The page behind does not scroll while it is open (the task panel's `useScrollLock`). No
- * animation. The caller puts the focus back where it came from on close.
+ * The page behind does not scroll while it is open (the task panel's `useScrollLock`). It rises
+ * from the bottom edge over a fading backdrop (`animate-sheet-in`, `animate-fade-in`; none under
+ * reduced motion) and goes at once on close. The caller puts the focus back where it came from.
  */
 export function ActionSheet({
   open,
@@ -59,7 +60,7 @@ export function ActionSheet({
         data-testid="sheet-backdrop"
         aria-hidden="true"
         onClick={onClose}
-        className="absolute inset-0 bg-foreground/30"
+        className="absolute inset-0 animate-fade-in bg-foreground/30"
       />
       <div
         ref={panel}
@@ -68,7 +69,7 @@ export function ActionSheet({
         aria-label={label}
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
-        className="relative rounded-t-xl bg-popover px-2 pt-2 pb-[max(8px,env(safe-area-inset-bottom))] shadow-lift"
+        className="relative max-h-[90dvh] animate-sheet-in overflow-y-auto overscroll-contain rounded-t-xl bg-popover px-2 pt-2 pb-[max(8px,env(safe-area-inset-bottom))] shadow-lift"
       >
         <div aria-hidden="true" className="mx-auto mb-2 h-1 w-8 rounded-full bg-surface-3" />
         <div className="flex flex-col">{children}</div>

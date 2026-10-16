@@ -12,7 +12,8 @@ export const PHONE_TARGETS =
 
 /**
  * A modal sheet: a centred 720 px dialog from 641 px (at most 880 px tall, 24 px clear of the
- * viewport), a full-screen sheet below with no backdrop. Always open while mounted: the caller
+ * viewport) that grows in over a fading backdrop, a full-screen sheet below with no backdrop that
+ * rises from the bottom edge (no motion under reduced motion; it goes at once on close). Always open while mounted: the caller
  * unmounts it to close. Clicks outside do nothing, and Escape goes to `onEscape`, which decides
  * (ask first, close a layer, or close). Keys typed inside never reach the page's own handlers.
  * Name it with a `SheetDialogTitle` inside, or with `labelledBy`.
@@ -37,7 +38,7 @@ export function SheetDialog({
       <Dialog.Portal>
         <Dialog.Overlay
           data-testid={testId && `${testId}-backdrop`}
-          className="fixed inset-0 z-50 bg-foreground/30 max-[640px]:hidden"
+          className="fixed inset-0 z-50 animate-fade-in bg-foreground/30 max-[640px]:hidden"
         />
         <Dialog.Content
           data-testid={testId}
@@ -55,7 +56,8 @@ export function SheetDialog({
           // handlers (the task panel closes on Escape).
           onKeyDown={(event: ReactKeyboardEvent) => event.stopPropagation()}
           className={cn(
-            'fixed inset-0 z-50 flex flex-col bg-popover text-popover-foreground outline-none',
+            // Phones: the sheet rises from the bottom edge; wider: the dialog grows in a little.
+            'fixed inset-0 z-50 flex flex-col bg-popover text-popover-foreground outline-none max-[640px]:animate-sheet-in min-[641px]:animate-menu-in',
             'min-[641px]:inset-auto min-[641px]:top-1/2 min-[641px]:left-1/2 min-[641px]:max-h-[min(880px,calc(100dvh-48px))] min-[641px]:w-[720px] min-[641px]:max-w-[calc(100vw-48px)] min-[641px]:-translate-x-1/2 min-[641px]:-translate-y-1/2 min-[641px]:rounded-xl min-[641px]:shadow-lift',
             PHONE_TARGETS,
           )}

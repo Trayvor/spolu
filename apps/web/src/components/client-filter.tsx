@@ -164,7 +164,7 @@ export function ClientFilter({
               align="start"
               sideOffset={8}
               aria-label={t('knowledge.clientFilter.title')}
-              className="z-50 flex max-h-[min(520px,var(--radix-popover-content-available-height))] w-[360px] max-w-[calc(100vw-24px)] flex-col rounded-xl bg-popover p-2 text-popover-foreground shadow-lift outline-none"
+              className="z-50 flex max-h-[min(520px,var(--radix-popover-content-available-height))] w-[360px] max-w-[calc(100vw-24px)] origin-(--radix-popover-content-transform-origin) flex-col rounded-xl bg-popover p-2 text-popover-foreground shadow-lift outline-none data-[state=closed]:animate-menu-out data-[state=open]:animate-menu-in"
             >
               {panel}
             </Popover.Content>
