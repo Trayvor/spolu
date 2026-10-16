@@ -166,7 +166,7 @@ async function collectDigests(
         lines.push(
           texts(profile.language).reminderLine(
             str(p.title) ?? '',
-            formatReminderTime(String(p.at), profile.language),
+            formatReminderTime(str(p.at), profile.language),
           ),
         );
         continue;

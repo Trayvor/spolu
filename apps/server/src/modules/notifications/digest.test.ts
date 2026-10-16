@@ -240,6 +240,27 @@ describe('sendDueDigests', () => {
     expect(mail.text).toContain('Reminder: Call the bank, Sun 25 Oct, 10:00');
   });
 
+  it('an sk reminder digest line reads "Pripomienka: <title>, <time>"', async () => {
+    const s = await setup('sk');
+    await deps.db.insert(notificationEvents).values({
+      id: randomUUID(),
+      userId: s.client.id,
+      groupId: s.group.id,
+      kind: 'reminder.due',
+      payload: {
+        subjectKind: 'knowledge',
+        subjectId: 'k1',
+        groupId: s.group.id,
+        title: 'Zavolať banke',
+        at: '2026-10-25T09:00:00Z',
+      },
+      deliveredAt: new Date(),
+      emailDueAt: new Date(),
+    });
+    expect(await sendDueDigests(deps, { now: later(), userIds: [s.client.id] })).toBe(1);
+    expect((await latestEmail(s.client.email)).text).toContain('Pripomienka: Zavolať banke, ');
+  });
+
   it('the sweep without userIds emails due digests', async () => {
     const s = await setup();
     await send(s.channel, s.admin, 'Raz');

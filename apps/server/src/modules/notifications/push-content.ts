@@ -45,11 +45,11 @@ export function buildPushPayload(i: PushContentInput): PushPayload {
       ? `${i.taskTitle ?? str(p.title)} · ${i.groupName}`
       : i.groupName;
 
-  if (i.kind.startsWith('reminder.')) {
+  if (i.kind === 'reminder.due') {
     const subjectId = str(p.subjectId) ?? '';
     return {
       title: `${str(p.title) ?? ''} · ${i.groupName}`,
-      body: t.reminderDue(formatReminderTime(String(p.at), i.lang)),
+      body: t.reminderDue(formatReminderTime(str(p.at), i.lang)),
       url: `/groups/${groupId}/knowledge?k=${enc(subjectId)}`,
       tag: `knowledge:${subjectId}`,
     };

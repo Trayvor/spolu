@@ -83,6 +83,21 @@ describe('reminder.due', () => {
   });
 });
 
+describe('reminder.due ranking', () => {
+  it('has the rank of a mention and is never outranked without siblings', () => {
+    expect(KIND_RANK['reminder.due']).toBe(KIND_RANK['chat.mention']);
+    expect(isOutranked({ id: 'a', kind: 'reminder.due' }, [])).toBe(false);
+    expect(
+      isOutranked({ id: 'a', kind: 'reminder.due' }, [{ id: 'a', kind: 'reminder.due' }]),
+    ).toBe(false);
+  });
+  it('a lower-ranked message sibling does not outrank it', () => {
+    expect(
+      isOutranked({ id: 'z', kind: 'reminder.due' }, [{ id: 'a', kind: 'chat.message' }]),
+    ).toBe(false);
+  });
+});
+
 describe('isOutranked', () => {
   it('ranks chat.message below the rest', () => {
     expect(KIND_RANK['chat.message']).toBe(1);

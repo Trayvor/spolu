@@ -80,7 +80,9 @@ export function texts(lang: UserLanguage): Texts {
 }
 
 /** A reminder time as the team reads it: Bratislava wall clock, e.g. "Sun 25 Oct, 10:00". */
-export function formatReminderTime(iso: string, lang: UserLanguage): string {
+export function formatReminderTime(iso: string | undefined | null, lang: UserLanguage): string {
+  const at = new Date(iso ?? NaN);
+  if (Number.isNaN(at.getTime())) return '';
   return new Intl.DateTimeFormat(lang === 'sk' ? 'sk-SK' : 'en-GB', {
     timeZone: 'Europe/Bratislava',
     weekday: 'short',
@@ -88,5 +90,5 @@ export function formatReminderTime(iso: string, lang: UserLanguage): string {
     month: 'short',
     hour: '2-digit',
     minute: '2-digit',
-  }).format(new Date(iso));
+  }).format(at);
 }

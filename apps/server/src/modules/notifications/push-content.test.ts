@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { buildPushPayload } from './push-content.js';
-import { texts } from './texts.js';
+import { formatReminderTime, texts } from './texts.js';
 
 const chat = {
   channelId: 'c1',
@@ -39,6 +39,12 @@ describe('buildPushPayload reminder', () => {
     expect(buildPushPayload({ ...r, lang: 'en' }).body).toContain('10:00');
     const before = { ...reminder, at: '2026-10-24T09:00:00Z' };
     expect(buildPushPayload({ ...r, lang: 'en', payload: before }).body).toContain('11:00');
+  });
+  it('a missing or invalid time gives an empty time, not an error', () => {
+    expect(formatReminderTime(undefined, 'en')).toBe('');
+    expect(formatReminderTime('nonsense', 'sk')).toBe('');
+    const bad = { ...reminder, at: 'nonsense' };
+    expect(buildPushPayload({ ...r, payload: bad }).body).toBe('Pripomienka na ');
   });
   it('sk body reads "Pripomienka na …"', () => {
     expect(buildPushPayload({ ...r, lang: 'sk' }).body).toMatch(/^Pripomienka na .*10:00/);
