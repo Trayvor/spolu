@@ -81,8 +81,23 @@
     "recipientInvalid": "Niekto zo zoznamu už nemôže dostať túto pripomienku. Skontrolujte príjemcov.",
     "unavailable": "Táto položka už nie je dostupná."
   },
-  "tab": {},
-  "newMenu": {},
+  "tab": {
+    "title": "Znalosti",
+    "new": "Nové",
+    "filters": "Typ",
+    "search": "Hľadať v znalostiach",
+    "empty": "Zatiaľ tu nič nie je. Pridajte poznámky, súbory, odkazy a pripomienky, ktoré nájde celá skupina.",
+    "noMatch": "Hľadaniu „{{q}}“ nezodpovedajú žiadne znalosti.",
+    "noMatchType": "Znalosti tohto typu tu zatiaľ nie sú.",
+    "clearFilters": "Zrušiť filtre"
+  },
+  "newMenu": {
+    "label": "Nová položka",
+    "note": "Text s formátovaním a súbormi",
+    "file": "Jeden súbor s popisom",
+    "link": "Webová adresa s poznámkou",
+    "reminder": "Text s dátumami na pripomenutie"
+  },
   "global": {},
   "clientFilter": {}
 }

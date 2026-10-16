@@ -25,12 +25,16 @@ Each group has a Knowledge tab where clients and admins keep what the group need
   - A client's item stays public.
 - **Edit and delete:** the author and admins. Deleting an item deletes its files and reminders.
 - **In the tab:** filter by type and search (title, body or description, file names, URL). Newest first, more on demand.
+  - Built: the header with "+ New", the type pills (All, Notes, Files, Links, Reminders) and the search field. The search runs 300 ms after typing stops, from 2 characters. Type and search live in the URL (`?type=link&q=portal`), so Back restores them.
+  - "+ New" opens a menu of the four types, each with one line of help: a dropdown from 641 px, a bottom sheet on phones. Picking one opens the create dialog (`?k=new&kind=reminder`); after Create the new item opens.
+  - Empty tab: "Nothing here yet. Add notes, files, links and reminders the whole group can find." with "+ New". With a filter or search: "No knowledge matches "{q}"." (or "No knowledge of this type yet." for a type alone) and "Clear filters".
+  - An item that is gone (deleted, or no longer visible) closes its dialog with "This item is no longer available."
 - **Global knowledge list** (admins only), in the main menu above Groups:
   - every client's knowledge in one list;
   - client filter: by default the clients this admin manages (see client managers); the admin removes some or adds others, with managed and other clients visually separated;
   - type filter;
   - search by title, description, file name or URL, also without diacritics.
-- **Realtime:** items created or changed by others appear at once in the group's tab.
+- **Realtime:** items created or changed by others appear at once in the group's tab. Built: a new item goes first and a changed one is updated in place; items of another type than the filtered one are left out; while a search is active the list reloads instead. A deleted item disappears, and its open dialog closes with the notice. After a reconnect the first page reloads.
 - Example of done: an admin and a client of one group keep notes, files, links and reminders in the tab. The client never sees the admin's admins-only items. The admin finds any item across clients in the global list.
 
 ## Phase

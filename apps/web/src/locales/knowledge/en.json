@@ -79,8 +79,23 @@
     "recipientInvalid": "Someone in the list can no longer get this reminder. Check the recipients.",
     "unavailable": "This item is no longer available."
   },
-  "tab": {},
-  "newMenu": {},
+  "tab": {
+    "title": "Knowledge",
+    "new": "New",
+    "filters": "Type",
+    "search": "Search knowledge",
+    "empty": "Nothing here yet. Add notes, files, links and reminders the whole group can find.",
+    "noMatch": "No knowledge matches “{{q}}”.",
+    "noMatchType": "No knowledge of this type yet.",
+    "clearFilters": "Clear filters"
+  },
+  "newMenu": {
+    "label": "New item",
+    "note": "Text with formatting and files",
+    "file": "One file with a description",
+    "link": "A web address with a note",
+    "reminder": "Text with dates to be reminded"
+  },
   "global": {},
   "clientFilter": {}
 }

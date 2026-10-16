@@ -8,7 +8,8 @@ import {
   redirect,
   type RouterHistory,
 } from '@tanstack/react-router';
-import { withNamespaces } from '@/i18n/namespaces';
+import type { KnowledgeType } from '@spolu/shared';
+import { loadNamespace, withNamespaces } from '@/i18n/namespaces';
 import { ApiError } from '@/lib/api';
 import { groupQuery } from '@/features/groups/api';
 import { safeRedirect } from '@/features/auth/redirect';
@@ -152,6 +153,27 @@ const newTaskRoute = createRoute({
   ),
 });
 
+const groupKnowledgeRoute = createRoute({
+  getParentRoute: () => groupRoute,
+  path: 'knowledge',
+  validateSearch: (
+    search: Record<string, unknown>,
+  ): { type?: KnowledgeType; q?: string; k?: string; kind?: KnowledgeType } => {
+    // Spelled out: importing `KnowledgeTypes` would pull the knowledge schemas into the eager bundle.
+    const isType = (v: unknown): v is KnowledgeType =>
+      typeof v === 'string' && ['note', 'file', 'link', 'reminder'].includes(v);
+    return {
+      ...(isType(search.type) && { type: search.type }),
+      ...(typeof search.q === 'string' && search.q.trim() && { q: search.q }),
+      ...(typeof search.k === 'string' && search.k && { k: search.k }),
+      ...(isType(search.kind) && { kind: search.kind }),
+    };
+  },
+  loader: () =>
+    Promise.all([loadNamespace('knowledge'), loadNamespace('reminders'), loadNamespace('forms')]),
+  component: lazyRouteComponent(() => import('@/features/knowledge/knowledge-tab'), 'KnowledgeTab'),
+});
+
 const groupMembersRoute = createRoute({
   getParentRoute: () => groupRoute,
   path: 'members',
@@ -228,6 +250,7 @@ const routeTree = rootRoute.addChildren([
       groupIndexRoute,
       groupChatRoute.addChildren([]), // Phase 5 adds its child routes here
       groupTasksRoute.addChildren([newTaskRoute, taskRoute]),
+      groupKnowledgeRoute,
       groupMembersRoute,
     ]),
     welcomeRoute,

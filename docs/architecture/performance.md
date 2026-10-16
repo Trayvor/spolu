@@ -68,6 +68,8 @@ The budget is an **alarm, not a target to squeeze under**. When a change crosses
 
 Never do this to fit the budget: minify or obfuscate by hand, inline or copy library code, drop types or tests, merge unrelated code into odd places, or remove useful features. A reviewer rejects such code even when it fits.
 
+Phase 17 Knowledge tab (Task 11, measured 2026-10-16, gzip -9 of the scripts `dist/index.html` loads): initial JS 193.9 kB gzip, 1.1 kB more than before the task (192.8 kB): the route definition with its search validation, the tab pill and its two strings. The route spells out the four types instead of importing `KnowledgeTypes`, which would pull `@spolu/shared`'s knowledge schemas into the entry (+2.4 kB). The tab, the menu, the list and the dialog are the lazy `knowledge-tab` chunk, 12.5 kB gzip.
+
 Lazy chunks for individual screens have no hard budget. Keep them reasonable and watch for anything above about 100 kB gzip.
 
 ## How to check
