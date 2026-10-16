@@ -41,3 +41,4 @@ What gets easier, what gets harder.
 | [0015](0015-trigram-search.md) | Trigram search for the knowledge base | accepted |
 | [0016](0016-bulk-email-through-elastic-v4-emails.md) | Bulk email through Elastic's /v4/emails | accepted |
 | [0017](0017-intake-files-as-base64.md) | Ticket intake files as base64 in the JSON body | accepted |
+| [0018](0018-visible-name-help-and-domain-redirects.md) | Visible name Help, code name Spolu, and old-domain redirects | accepted |

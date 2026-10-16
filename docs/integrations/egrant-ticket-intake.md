@@ -1,21 +1,22 @@
 # eGrant ticket intake: integration guide
 
-For the eGrant developers who send support requests from an eGrant instance to Spolu. Spolu is the eGrant team's own app for talking to clients; every request you send becomes a **ticket** there, with its own chat between the eGrant team and the person who asked.
+For the eGrant developers who send support requests from an eGrant instance to Help by eGrant ("Help", code name Spolu, at https://help.egrant.sk). Help is the eGrant team's own app for talking to clients; every request you send becomes a **ticket** there, with its own chat between the eGrant team and the person who asked.
 
 The product rules behind this guide live in [product/tickets.md](../product/tickets.md) and [product/integrations.md](../product/integrations.md); if they ever disagree with this page, they win.
 
 ## In short
 
-- One endpoint: `POST https://<spolu host>/api/tickets/intake`, JSON body. Files go in the same body, as base64.
+- One endpoint: `POST https://help.egrant.sk/api/tickets/intake`, JSON body. Files go in the same body, as base64.
+  The address was `https://spolu.egrant.sk/api/tickets/intake` until 2026-10-16. The old domain answers with a permanent redirect (`301`), and many HTTP clients turn a redirected POST into a GET without the body, so switch to the new address.
 - One shared secret: `Authorization: Bearer <key>`.
 - Send a `request_id` with every request and retry with the same id until you get a `2xx`.
-- Spolu answers `201` (created) or `200` (already created for that `request_id`) with `{ "id", "number" }`. There are no callbacks.
+- Help answers `201` (created) or `200` (already created for that `request_id`) with `{ "id", "number" }`. There are no callbacks.
 
 ## When to call
 
 Call the endpoint once when a user of an eGrant instance submits a support request (the help or contact form, an error report). Call it from your server, never from the user's browser: the key must not reach the browser.
 
-Do not call it for updates of the same request. Everything after the first message happens in Spolu: the eGrant team and the requester talk in the ticket's chat.
+Do not call it for updates of the same request. Everything after the first message happens in Help: the eGrant team and the requester talk in the ticket's chat.
 
 ## Authentication
 
@@ -26,11 +27,11 @@ Authorization: Bearer <key>
 Content-Type: application/json
 ```
 
-The eGrant team gives you the key; on the Spolu server it is the environment variable `TICKETS_API_KEY` (at least 16 characters). Keep it in your server's secret store. To rotate it, the Spolu admin sets a new value and restarts Spolu; requests with the old key then answer `401`. When Spolu has no key configured, the intake is switched off and answers `503`.
+The eGrant team gives you the key; on the Help server it is the environment variable `TICKETS_API_KEY` (at least 16 characters). Keep it in your server's secret store. To rotate it, the Help admin sets a new value and restarts Help; requests with the old key then answer `401`. When Help has no key configured, the intake is switched off and answers `503`.
 
 ## The JSON body
 
-Every field is optional, but a ticket needs at least one of `subject`, `body` or `area`. Strings are trimmed; an empty string counts as not given. Unknown fields are ignored. The whole body may be at most 28 MiB (other Spolu routes take 1 MiB; the intake takes more for the files).
+Every field is optional, but a ticket needs at least one of `subject`, `body` or `area`. Strings are trimmed; an empty string counts as not given. Unknown fields are ignored. The whole body may be at most 28 MiB (other Help routes take 1 MiB; the intake takes more for the files).
 
 | field | meaning | rules |
 |---|---|---|
@@ -49,7 +50,7 @@ Every field is optional, but a ticket needs at least one of `subject`, `body` or
 
 Always send `instance_url` and `email`: without them the ticket has no client and no requester account (see below).
 
-`file_links` (links to files) was removed: Spolu ignores it like any unknown field. Send the files themselves in `files`.
+`file_links` (links to files) was removed: Help ignores it like any unknown field. Send the files themselves in `files`.
 
 ## Files
 
@@ -57,9 +58,9 @@ Each item of `files` is one file, sent whole:
 
 | field | meaning | rules |
 |---|---|---|
-| `name` | the file name shown in Spolu, with its extension | 1 to 200 characters; a path (`C:\scans\a.png`, `docs/a.png`) is cut to the last part, control characters and slashes are removed |
+| `name` | the file name shown in Help, with its extension | 1 to 200 characters; a path (`C:\scans\a.png`, `docs/a.png`) is cut to the last part, control characters and slashes are removed |
 | `content_base64` | the file's bytes | standard base64 (`A–Z a–z 0–9 + /`) with `=` padding, on one line: no line breaks, spaces or `data:` prefix (PHP `base64_encode`, Node `buffer.toString('base64')`, Python `base64.b64encode`) |
-| `content_type` | the type you think it is | optional, informational only: Spolu reads the type from the bytes |
+| `content_type` | the type you think it is | optional, informational only: Help reads the type from the bytes |
 
 Limits: at most **10 files**, each at most **10 MiB** (10 485 760 bytes) decoded, together at most **20 MiB** (20 971 520 bytes) decoded. Base64 is about a third larger, so the body may be up to 28 MiB.
 
@@ -71,14 +72,14 @@ Accepted types (decided from the bytes, the extension only tells Office containe
 - RTF (`.rtf`);
 - plain UTF-8 text named `.txt` or `.csv`.
 
-Anything else (programs, scripts, HTML, SVG, a file whose bytes do not match one of the above) is refused with `400`, and so is the whole request: Spolu stores either all files with the ticket or nothing. Empty files are refused too.
+Anything else (programs, scripts, HTML, SVG, a file whose bytes do not match one of the above) is refused with `400`, and so is the whole request: Help stores either all files with the ticket or nothing. Empty files are refused too.
 
-Spolu stores the files in the client's files and shows them on the ticket: the eGrant team, the client's people and the requester download them there. For a ticket without a client only the eGrant team sees them until a client is assigned; then they move to that client.
+Help stores the files in the client's files and shows them on the ticket: the eGrant team, the client's people and the requester download them there. For a ticket without a client only the eGrant team sees them until a client is assigned; then they move to that client.
 
 ## Example
 
 ```bash
-curl -sS https://spolu.example.sk/api/tickets/intake \
+curl -sS https://help.egrant.sk/api/tickets/intake \
   -H "Authorization: Bearer $SPOLU_TICKETS_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -111,7 +112,7 @@ Answer:
 
 The file in the example is a real 1×1 pixel PNG; send real files the same way. In a shell, `base64 -w0 file.png` (Linux) or `base64 -i file.png` (macOS) prints the value.
 
-`number` is what people see (`#123`); `id` is Spolu's internal id. Store them if you want to show the user "Your ticket #123".
+`number` is what people see (`#123`); `id` is Help's internal id. Store them if you want to show the user "Your ticket #123".
 
 ## Answers
 
@@ -119,34 +120,34 @@ The file in the example is a real 1×1 pixel PNG; send real files the same way. 
 |---|---|---|
 | `201` | `{ "id": "…", "number": 123 }` | created (also when no client matched) |
 | `200` | `{ "id": "…", "number": 123 }` | a ticket with this `request_id` already exists; this is its id and number. Nothing new was created, emailed or notified, even if the rest of the body differs. Treat it like `201`. |
-| `400` | `{ "error": "validation_failed", "fields": ["due_date"] }` | a field is malformed (the names are listed; `["body"]` when there is no subject, body or area). A file's field is named with its index: `files[3].content_base64` (not strict base64, empty, or a type Spolu does not take), `files[0].name`; more than 10 files is `["files"]`. Nothing was stored. Fix the data; do not retry unchanged. |
+| `400` | `{ "error": "validation_failed", "fields": ["due_date"] }` | a field is malformed (the names are listed; `["body"]` when there is no subject, body or area). A file's field is named with its index: `files[3].content_base64` (not strict base64, empty, or a type Help does not take), `files[0].name`; more than 10 files is `["files"]`. Nothing was stored. Fix the data; do not retry unchanged. |
 | `401` | `{ "error": "unauthorized" }` | missing or wrong key. Do not retry; check the configuration. |
 | `413` | `{ "error": "file_too_large", "fields": ["files[1].content_base64"] }` | a file is over 10 MiB decoded (that file is named), or the files are over 20 MiB together (`["files"]`). Nothing was stored. Send smaller files; do not retry unchanged. |
 | `413` | (no fixed body) | the whole body is over 28 MiB. Do not retry unchanged. |
 | `429` | `{ "error": "rate_limited" }` | more than 60 requests a minute from one IP address. Retry later. |
-| `503` | `{ "error": "intake_disabled" }` | the intake is switched off on this Spolu server. Retry later; tell the eGrant team if it lasts. |
+| `503` | `{ "error": "intake_disabled" }` | the intake is switched off on this Help server. Retry later; tell the eGrant team if it lasts. |
 | other `5xx`, timeout, network error | | retry |
 
 ## Retries and `request_id`
 
-A request can reach Spolu even when your side sees a timeout. To make retries safe, send a `request_id` and reuse it for every attempt of the same request:
+A request can reach Help even when your side sees a timeout. To make retries safe, send a `request_id` and reuse it for every attempt of the same request:
 
 - Retry on a timeout, a network error, `429` and any `5xx`. Do not retry on `400`, `401` or `413`.
 - Back off between attempts, for example 1 s, 5 s, 30 s, 2 min, 10 min, then give up and log it.
-- The same `request_id` always answers the first ticket (`200`), however often it arrives, also when two attempts arrive at the same moment: Spolu keeps one ticket per id, for good. So never reuse an id for a different request.
-- A repeat with files is answered before they are read: Spolu never stores the same request's files twice. Send the same files in every attempt all the same.
-- Without `request_id`, every request that reaches Spolu makes a new ticket, so a retry after a lost answer makes a duplicate (with its files).
+- The same `request_id` always answers the first ticket (`200`), however often it arrives, also when two attempts arrive at the same moment: Help keeps one ticket per id, for good. So never reuse an id for a different request.
+- A repeat with files is answered before they are read: Help never stores the same request's files twice. Send the same files in every attempt all the same.
+- Without `request_id`, every request that reaches Help makes a new ticket, so a retry after a lost answer makes a duplicate (with its files).
 
-## What happens in Spolu
+## What happens in Help
 
-1. **Client matching.** Spolu compares `instance_url` with the eGrant address stored on each client (group) by host only: the scheme, a leading `www.`, the path and the case do not matter, so `https://WWW.Mesto-X.egrant.sk/app/login` matches `https://mesto-x.egrant.sk`. No match, or no `instance_url`: the ticket is saved **without a client**; only the eGrant team sees it until an admin assigns a client by hand.
-2. **The requester.** For a ticket with a client, Spolu finds the person by `email`. Someone new gets a Spolu account (named after `requester_name`) with a narrow requester role: they see only their own tickets, never the client's other chats, tasks or files. Without `email` nobody is linked.
-3. **"Ticket created" email.** The requester gets one email (Slovak by default) with the number, the subject, the first lines of the text and an **Open the ticket** button. The button leads to Spolu's login: they enter their email, get a 6-digit code by email and land on the ticket. There is no password. The email goes once per ticket, and only when a client matched (for a ticket without a client, it goes when an admin assigns one).
-4. **The eGrant team** hears about the new ticket (the client's managers, or every admin for a ticket without a client), answers in the ticket's chat, changes its status (New, In progress, Resolved) and may turn it into tasks. The requester follows all of it in Spolu and gets their own notifications by email.
+1. **Client matching.** Help compares `instance_url` with the eGrant address stored on each client (group) by host only: the scheme, a leading `www.`, the path and the case do not matter, so `https://WWW.Mesto-X.egrant.sk/app/login` matches `https://mesto-x.egrant.sk`. No match, or no `instance_url`: the ticket is saved **without a client**; only the eGrant team sees it until an admin assigns a client by hand.
+2. **The requester.** For a ticket with a client, Help finds the person by `email`. Someone new gets a Help account (named after `requester_name`) with a narrow requester role: they see only their own tickets, never the client's other chats, tasks or files. Without `email` nobody is linked.
+3. **"Ticket created" email.** The requester gets one email (Slovak by default) with the number, the subject, the first lines of the text and an **Open the ticket** button. The button leads to Help's login: they enter their email, get a 6-digit code by email and land on the ticket. There is no password. The email goes once per ticket, and only when a client matched (for a ticket without a client, it goes when an admin assigns one).
+4. **The eGrant team** hears about the new ticket (the client's managers, or every admin for a ticket without a client), answers in the ticket's chat, changes its status (New, In progress, Resolved) and may turn it into tasks. The requester follows all of it in Help and gets their own notifications by email.
 
-## What Spolu does not do
+## What Help does not do
 
-- **No callbacks or webhooks.** Spolu never calls eGrant back; status changes and replies stay in Spolu.
+- **No callbacks or webhooks.** Help never calls eGrant back; status changes and replies stay in Help.
 - **No status API.** There is no endpoint for eGrant to read a ticket later.
 - **No separate file upload.** Files travel only in `files` of the one request; later files the requester attaches in the ticket's chat.
-- **No links to files.** `file_links` is gone; Spolu never downloads anything from eGrant.
+- **No links to files.** `file_links` is gone; Help never downloads anything from eGrant.

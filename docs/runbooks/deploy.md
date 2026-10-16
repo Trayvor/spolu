@@ -1,6 +1,6 @@
 # Deploy
 
-How a new version of Spolu gets to an environment. The only environment now is `test`.
+How a new version of Spolu (shown to users as Help by eGrant) gets to an environment. The only environment now is `test`.
 
 > Task 18 finalizes this runbook after the first real deploy.
 
@@ -11,9 +11,10 @@ All logic lives in `scripts/` ([ADR 0004](../decisions/0004-scripts-first-ci.md)
 1. `scripts/ci.sh` — every check: `pnpm install --frozen-lockfile`, shellcheck of `scripts/*.sh` and `deploy/backup/backup.sh`, `scripts/tests/*.test.sh`, the dev services from `docker-compose.dev.yml`, `pnpm lint`, `pnpm typecheck`, `pnpm test`, Playwright Chromium + `pnpm test:e2e`, and `scripts/check-docs.sh "$CI_BASE_REF"` (default `origin/main`). No `.env` is needed. If the dev services were already running (your laptop) they are reused and left running; otherwise the script starts them and removes them on exit. `playwright install --with-deps` installs system packages, so the CI agent needs root or passwordless sudo (GitHub runners have it; a future Jenkins agent must too).
 2. `scripts/build-image.sh <sha>` — `docker buildx build` for `linux/amd64,linux/arm64` with `APP_VERSION=<sha>`, pushed as `$IMAGE:<sha>`. The caller logs in to the registry first and provides a buildx builder with QEMU. Optional env: `EXTRA_TAG` also pushes `$IMAGE:$EXTRA_TAG` (the test deploy pushes `test`, so that tag always means "what test runs"); `BUILDX_CACHE=gha` uses the GitHub Actions layer cache (`mode=max`: build-stage layers are cached too, which speeds up the QEMU arm64 build; they hold no secrets since `.env` is in `.dockerignore`).
 3. `scripts/deploy.sh <env> <sha>` — over SSH:
-   - uploads `deploy/docker-compose.yml`, `deploy/Caddyfile`, `deploy/backup/` and the env file to `/opt/spolu/<env>/` (the env file becomes `.env`, mode 600, written with umask 077);
+   - checks `REDIRECT_DOMAINS` and writes `redirects.caddy` from it (`caddy_redirects` in `scripts/lib.sh`; a bad name stops the deploy before anything reaches the server);
+   - uploads `deploy/docker-compose.yml`, `deploy/Caddyfile`, `redirects.caddy`, `deploy/backup/` and the env file to `/opt/spolu/<env>/` (the env file becomes `.env`, mode 600, written with umask 077; `DOMAIN`, `PUBLIC_URL` and `REDIRECT_DOMAINS` in it always come from the deploy variables, see `deploy_env`);
    - sets `IMAGE=` and `TAG=` in that `.env` to the deployed image, so a manual `docker compose up -d` on the server runs the same version;
-   - logs in to the registry if `REGISTRY_TOKEN` is set (and logs out after the pull), then `docker compose pull`, `docker compose up -d --remove-orphans`, `docker image prune -af --filter until=168h` (removes unused images older than 7 days, old releases included, so the small disk does not fill; last week's images stay for a quick rollback);
+   - logs in to the registry if `REGISTRY_TOKEN` is set (and logs out after the pull), then `docker compose pull`, `docker compose up -d --remove-orphans`, `caddy reload` inside the `caddy` container (`up` does not restart Caddy when only its mounted Caddyfile or `redirects.caddy` changed), `docker image prune -af --filter until=168h` (removes unused images older than 7 days, old releases included, so the small disk does not fill; last week's images stay for a quick rollback);
    - polls `https://$DOMAIN/api/health` every 5 s for up to 120 s until `version` equals `<sha>`. On timeout it prints the last response, `docker compose ps` and the last 50 app log lines (the health body is shown even for a 503), the rollback command `scripts/deploy.sh <env> <previous tag>` (read from the server's `.env` before the deploy), and exits 1.
 
 | deploy.sh variable | required | meaning |
@@ -23,7 +24,8 @@ All logic lives in `scripts/` ([ADR 0004](../decisions/0004-scripts-first-ci.md)
 | `DEPLOY_SSH_KEY` | yes | path to that user's private key |
 | `DEPLOY_ENV_FILE` | yes | path to the env file (template `deploy/test.env.example`) |
 | `IMAGE` | yes | image repository, lowercase, e.g. `ghcr.io/trayvor/spolu` |
-| `DOMAIN` | yes | public domain, for the health check |
+| `DOMAIN` | yes | public domain, for the health check; also `DOMAIN=` and `PUBLIC_URL=https://<domain>` of the server's `.env` |
+| `REDIRECT_DOMAINS` | no | space-separated old domains, e.g. `spolu.egrant.sk`; each gets its own certificate and a permanent (301) redirect to `https://$DOMAIN` with the same path and query. Lowercase host names only, never `DOMAIN` itself. Unset or empty: no redirect, no extra certificate |
 | `DEPLOY_PORT` | no | SSH port, default 22 |
 | `DEPLOY_KNOWN_HOSTS` | no | `known_hosts` line(s) of the server (`ssh-keyscan <host>`); pins its host key. Recommended: without it there is no host verification (a warning is printed) |
 | `REGISTRY_USER`, `REGISTRY_TOKEN` | no | registry login on the server for a private image |
@@ -66,8 +68,8 @@ Done at the deferred server-deploy step, on the test server with the VAPID keys 
   - [ ] Open the installed app: the enable banner appears; **Turn on** grants; a message from the admin arrives as a notification with the app closed, and tapping it opens the message.
   - [ ] "Not now" on either card hides it; it returns after 6 hours.
 - **iPhone** (iOS 16.4 or newer, Safari):
-  - [ ] In Safari, the dark install card appears ("Important: install Spolu to get notifications …") with the Share → Add to Home Screen → open from the icon steps; `/settings` shows the same hint instead of the device line.
-  - [ ] Add to Home Screen, open Spolu from the icon, sign in: the enable banner appears; **Turn on** grants; a message arrives as a notification and opens the message.
+  - [ ] In Safari, the dark install card appears ("Important: install the Help app to get notifications …") with the Share → Add to Home Screen → open from the icon steps; `/settings` shows the same hint instead of the device line.
+  - [ ] Add to Home Screen, open Help from the icon, sign in: the enable banner appears; **Turn on** grants; a message arrives as a notification and opens the message.
   - [ ] On an iPhone below 16.4 (if one is at hand): the card says iOS is too old and email was turned on; `/settings` shows Email on.
 
 ## GitHub Actions
@@ -85,11 +87,36 @@ Settings of the GitHub environment `test` (**Settings → Environments → test*
 | secret | `TEST_ENV_FILE` | full content of the server env file, filled from `deploy/test.env.example` |
 | variable | `DEPLOY_HOST` | server hostname or IP |
 | variable | `DEPLOY_USER` | `deploy` |
-| variable | `DOMAIN` | test domain, same as `DOMAIN` in the env file |
+| variable | `DOMAIN` | public domain (`help.egrant.sk`); it overrides `DOMAIN` and `PUBLIC_URL` of the env file |
+| variable | `REDIRECT_DOMAINS` | optional, old domains redirected to `DOMAIN` (`spolu.egrant.sk` after the move); see "Moving to a new domain" |
 | variable | `IMAGE` | `ghcr.io/trayvor/spolu` (lowercase) |
 | variable | `DEPLOY_KNOWN_HOSTS` | recommended, output of `ssh-keyscan <host>`; without it the host key is not verified |
 
 The image is private (private repository), so the server logs in to GHCR with the job's `GITHUB_TOKEN` for the pull and logs out right after. Moving to another CI (GitLab + Jenkins) means writing these few steps again with the same variables; the scripts stay.
+
+## Moving to a new domain
+
+The product became **Help by eGrant** on 2026-10-16 and moves from `spolu.egrant.sk` to `help.egrant.sk` (the DNS A/AAAA records of `help.egrant.sk` already point at the server). Keep the old name's DNS pointing at the server too, or its redirect cannot work.
+
+**How the redirect works.** `deploy/Caddyfile` ends with `import redirects.caddy`. `scripts/deploy.sh` writes that file from `REDIRECT_DOMAINS` on every deploy: unset or empty, it holds only comments, so Caddy starts cleanly and asks for no extra certificate; otherwise one site block lists the old domains, Caddy gets a certificate for each and answers `redir https://{$DOMAIN}{uri} permanent` (301, path and query kept). `REDIRECT_DOMAINS=` is also written into the server's `.env` as a record. Tests: `scripts/tests/deploy-env.test.sh` and `scripts/tests/caddy-redirects.test.sh` (with Docker it runs `caddy validate` on the real Caddyfile with and without old domains).
+
+**Steps.**
+
+1. In the GitHub environment `test`, set the variable `DOMAIN=help.egrant.sk` and add `REDIRECT_DOMAINS=spolu.egrant.sk`.
+2. In the secret `TEST_ENV_FILE`, change the From display name: `MAIL_FROM=Help by eGrant <…>` (and `MAIL_FROM_BULK` if set). `PUBLIC_URL` there is overridden anyway.
+3. Deploy (**Actions → Deploy test → Run workflow**, or the next push to `main`). The health check now polls `https://help.egrant.sk/api/health`.
+4. Check: `curl -sI https://spolu.egrant.sk/groups?x=1` answers `301` with `location: https://help.egrant.sk/groups?x=1`; the app opens on `https://help.egrant.sk`; a login email links to `help.egrant.sk`.
+5. Tell eGrant's developers the new intake URL `https://help.egrant.sk/api/tickets/intake` ([integrations/egrant-ticket-intake.md](../integrations/egrant-ticket-intake.md)). The old URL keeps answering through the redirect only for clients that follow redirects and resend the POST body (a 301 makes many HTTP clients switch to GET), so the switch must be made.
+
+**What users notice.**
+
+- Everyone signs in again on the new domain: the session cookie belongs to the old domain and is not sent to the new one.
+- Push notifications must be turned on again on every device: a push subscription belongs to the site's origin. The app's "Turn on notifications" card asks again on the new domain; email notifications are not affected.
+- An installed app (PWA) still opens the old address and is redirected to the browser. Remove it and install again from `https://help.egrant.sk`.
+- Old links (in earlier emails, bookmarks, unsubscribe links) keep working through the redirect for as long as `REDIRECT_DOMAINS` keeps the old domain.
+- Emails, the page title, the header and the installed app's name now say Help / Help by eGrant.
+
+Keep `REDIRECT_DOMAINS` for at least a few months; removing it later (empty variable, deploy) makes the old domain stop answering.
 
 ## Manual deploy from a laptop
 
@@ -101,7 +128,7 @@ echo "$GHCR_TOKEN" | docker login ghcr.io -u <github-user> --password-stdin
 IMAGE=ghcr.io/trayvor/spolu scripts/build-image.sh "$sha"
 
 DEPLOY_HOST=<host> DEPLOY_USER=deploy DEPLOY_SSH_KEY=~/.ssh/spolu_test \
-DEPLOY_ENV_FILE=~/secrets/spolu-test.env DOMAIN=<test-domain> IMAGE=ghcr.io/trayvor/spolu \
+DEPLOY_ENV_FILE=~/secrets/spolu-test.env DOMAIN=<test-domain> IMAGE=ghcr.io/trayvor/spolu REDIRECT_DOMAINS='<old domains or empty>' \
 REGISTRY_USER=<github-user> REGISTRY_TOKEN="$GHCR_TOKEN" \
 scripts/deploy.sh test "$sha"
 ```
