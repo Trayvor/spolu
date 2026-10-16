@@ -44,20 +44,24 @@ test('admin and client chat in real time, in threads, with mentions and files, a
   const email = `e2e-chat-${stamp}@example.com`;
 
   await createGroup(admin, name, `https://e2e-chat-${stamp}.egrant.sk`);
-  await admin.getByRole('link', { name: new RegExp(name) }).click();
+  // The groups list's row, not the admin sidebar's link (it may list the new group too).
+  await admin.locator('a[href^="/groups/"]:not([href$="/chat"])', { hasText: name }).click();
   await expect(admin).toHaveURL(/\/groups\/[^/]+\/chat$/);
   const groupPath = new URL(admin.url()).pathname.replace(/\/chat$/, '');
   await admin.goto(`${groupPath}/members`);
   const inviteUrl = await admin.getByRole('textbox', { name: 'Odkaz na pozvánku' }).inputValue();
 
   // The client joins by invite in a second context. Its WebSocket goes through a route we can
-  // cut: Chromium's offline emulation alone does not close an established socket.
+  // cut: Chromium's offline emulation alone does not close an established socket. A reconnect
+  // attempt made while offline is held and connected once back online (closing it instead left
+  // Socket.IO hanging on it until its 20 s timeout, so the catch-up came too late).
   const clientContext = await browser.newContext({ locale: 'sk-SK', storageState: undefined });
   let offline = false;
   const sockets = new Set<{ close(): void }>();
+  const held: { connectToServer(): unknown; close(): void }[] = [];
   await clientContext.routeWebSocket(/\/socket\.io\//, (ws) => {
     if (offline) {
-      void ws.close();
+      held.push(ws);
       return;
     }
     ws.connectToServer();
@@ -182,6 +186,10 @@ test('admin and client chat in real time, in threads, with mentions and files, a
   // Back online: catch-up brings all three without a reload.
   offline = false;
   await clientContext.setOffline(false);
+  for (const ws of held.splice(0)) {
+    ws.connectToServer();
+    sockets.add(ws);
+  }
   await expect(row(client, 'Počas výpadku')).toBeVisible({ timeout: 20_000 });
   await expect(row(client, 'Ahoj zmenené')).toBeVisible();
   await expect(row(client, 'Zmaž ma')).toHaveCount(0);
