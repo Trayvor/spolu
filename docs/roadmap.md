@@ -317,7 +317,7 @@ Done when: (22a) an admin adds a manager on the Members tab and the Groups page 
 
 ## Phase 23 — Bulk email
 
-Requirements: the [design](superpowers/specs/2026-10-16-phase-23-bulk-email-design.md) (a `product/bulk-email.md` is written by part 23.2). Owner brief: [bulk email](superpowers/briefs/2026-10-16-bulk-email.md), with the owner update for the first version.
+Requirements: [product/bulk-email.md](product/bulk-email.md) and the [design](superpowers/specs/2026-10-16-phase-23-bulk-email-design.md). Owner brief: [bulk email](superpowers/briefs/2026-10-16-bulk-email.md), with the owner update for the first version.
 
 Scope: admins write an email from blocks (heading, text, image, button, divider, eGrant logo) with a computer and phone preview, send a test to themselves, pick recipients among Spolu's people (client groups, managers' groups, roles client / ziadatel / admin, individual people), and send through a pg-boss queue in batches via Elastic Email (`POST /v4/emails`, one call per person). Every email has an unsubscribe link to Spolu and `List-Unsubscribe`; people who unsubscribed are left out until they tick "Receive mailings" again. A report shows recipients, sent, failed, skipped and unsubscribed per campaign and per person. First version: the existing egrant.sk sender, no webhooks, no open or click tracking (these come later, see the spec's "Later").
 
