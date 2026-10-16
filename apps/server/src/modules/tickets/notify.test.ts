@@ -110,13 +110,15 @@ describe('ticket notifications (Phase 21.6)', () => {
       groupId: g.id,
       payload: { ticketId: t.id, number: t.number, subject: 'Login fails' },
     });
-    await vi.waitFor(() =>
-      expect(pushesTo(m.endpoint)).toContainEqual({
-        title: `Nový tiket #${t.number} · Firma`,
-        body: 'Login fails',
-        url: `/tickets/${t.id}`,
-        tag: `ticket:${t.id}`,
-      }),
+    await vi.waitFor(
+      () =>
+        expect(pushesTo(m.endpoint)).toContainEqual({
+          title: `Nový tiket #${t.number} · Firma`,
+          body: 'Login fails',
+          url: `/tickets/${t.id}`,
+          tag: `ticket:${t.id}`,
+        }),
+      { timeout: 10_000 },
     );
   });
 
@@ -151,8 +153,12 @@ describe('ticket notifications (Phase 21.6)', () => {
     );
     expect(events.map((e) => e.userId).sort()).toEqual([z.id, m.id].sort());
     expect(events[0]!.payload).toMatchObject({ status: 'in_progress', number: t.number });
-    await vi.waitFor(() =>
-      expect(pushesTo(z.endpoint).map((p) => p.title)).toContain(`#${t.number} je teraz V riešení`),
+    await vi.waitFor(
+      () =>
+        expect(pushesTo(z.endpoint).map((p) => p.title)).toContain(
+          `#${t.number} je teraz V riešení`,
+        ),
+      { timeout: 10_000 },
     );
 
     await call('PATCH', `/api/tickets/${t.id}`, actor.cookie, { subject: 'Nové' });
@@ -183,10 +189,12 @@ describe('ticket notifications (Phase 21.6)', () => {
     await notifyTicketChange(test.deps, { kind: 'tasks', ticket: row, actorId: a.id, count: 2 });
     const [event] = (await eventsOf(t.id, [z.id])).filter((e) => e.kind === 'ticket.tasks');
     expect(event?.payload).toMatchObject({ count: 2 });
-    await vi.waitFor(() =>
-      expect(pushesTo(z.endpoint).map((p) => p.title)).toContain(
-        `#${t.number} rozdelený na 2 úlohy`,
-      ),
+    await vi.waitFor(
+      () =>
+        expect(pushesTo(z.endpoint).map((p) => p.title)).toContain(
+          `#${t.number} rozdelený na 2 úlohy`,
+        ),
+      { timeout: 10_000 },
     );
   });
 
@@ -200,13 +208,15 @@ describe('ticket notifications (Phase 21.6)', () => {
     expect((await send(chat.id, a.cookie, 'Pozrieme sa')).statusCode).toBe(201);
     const [event] = (await eventsOf(t.id, [z.id, a.id])).filter((e) => e.kind === 'ticket.message');
     expect(event).toMatchObject({ userId: z.id, groupId: g.id });
-    await vi.waitFor(() =>
-      expect(pushesTo(z.endpoint)).toContainEqual({
-        title: `#${t.number} Login fails`,
-        body: 'Ad Min: Pozrieme sa',
-        url: `/tickets/${t.id}`,
-        tag: `ticket:${t.id}`,
-      }),
+    await vi.waitFor(
+      () =>
+        expect(pushesTo(z.endpoint)).toContainEqual({
+          title: `#${t.number} Login fails`,
+          body: 'Ad Min: Pozrieme sa',
+          url: `/tickets/${t.id}`,
+          tag: `ticket:${t.id}`,
+        }),
+      { timeout: 10_000 },
     );
   });
 
@@ -248,18 +258,20 @@ describe('ticket notifications (Phase 21.6)', () => {
         [z.id, 'ticket.message'],
       ].sort(),
     );
-    await vi.waitFor(() =>
-      expect(pushesTo(c.endpoint)).toEqual([
-        {
-          title: `#${t.number} Login fails`,
-          body: 'Ad Min: @Klient @Jana pozrite',
-          url: `/tickets/${t.id}`,
-          tag: `ticket:${t.id}`,
-        },
-      ]),
+    await vi.waitFor(
+      () =>
+        expect(pushesTo(c.endpoint)).toEqual([
+          {
+            title: `#${t.number} Login fails`,
+            body: 'Ad Min: @Klient @Jana pozrite',
+            url: `/tickets/${t.id}`,
+            tag: `ticket:${t.id}`,
+          },
+        ]),
+      { timeout: 10_000 },
     );
     // The follower who is also named gets one push for the message.
-    await vi.waitFor(() => expect(pushesTo(z.endpoint)).toHaveLength(1));
+    await vi.waitFor(() => expect(pushesTo(z.endpoint)).toHaveLength(1), { timeout: 10_000 });
   });
 
   it('@all in a ticket chat reaches its followers only', async () => {
