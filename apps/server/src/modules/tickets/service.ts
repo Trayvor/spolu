@@ -17,7 +17,12 @@ import {
   moveFilesToGroup,
   type FileDeps,
 } from '../files/service.js';
-import { activeMemberOfSql, activeRolesIn, getMembership } from '../groups/memberships.js';
+import {
+  activeMemberOfSql,
+  activeRolesIn,
+  getMembership,
+  listMemberships,
+} from '../groups/memberships.js';
 import { listGroupManagers, managedGroupIds } from '../groups/managers.js';
 // Deliberate read-only exception: the list joins the group's name in its one query.
 import { groups } from '../groups/schema.js';
@@ -68,6 +73,30 @@ export async function actorReadsTicket(
   ticket: Pick<TicketRow, 'groupId' | 'requesterUserId'>,
 ): Promise<boolean> {
   return canReadTicket(actor, ticket, await roleIn(db, actor, ticket.groupId));
+}
+
+/**
+ * Which of the tickets the actor reads now, in two queries whatever the count (the tickets and,
+ * for a non-admin, their active memberships). For lists built elsewhere that link to tickets.
+ */
+export async function readableTicketIds(
+  db: Db,
+  actor: SessionUser,
+  ids: string[],
+): Promise<Set<string>> {
+  if (ids.length === 0) return new Set();
+  const rows = await db
+    .select({ id: tickets.id, groupId: tickets.groupId, requesterUserId: tickets.requesterUserId })
+    .from(tickets)
+    .where(inArray(tickets.id, [...new Set(ids)]));
+  const roles = isAdmin(actor)
+    ? new Map<string, MemberRole>()
+    : new Map((await listMemberships(db, actor.id)).map((m) => [m.groupId, m.role]));
+  return new Set(
+    rows
+      .filter((r) => canReadTicket(actor, r, r.groupId ? (roles.get(r.groupId) ?? null) : null))
+      .map((r) => r.id),
+  );
 }
 
 export async function getTicketRow(db: Db, id: string): Promise<TicketRow | null> {

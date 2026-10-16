@@ -7,6 +7,7 @@ import type {
   GroupChannel,
   Member,
   Mentions,
+  SessionUser,
   TaskDetailDto,
   TicketDto,
 } from '@spolu/shared';
@@ -15,6 +16,7 @@ import { loginAs } from '../../../test/login.js';
 import { insertTask } from '../../../test/tasks.js';
 import { groupRoom } from '../../infra/realtime/rooms.js';
 import { addManager } from '../groups/managers.js';
+import { getMentions } from '../home/mentions.js';
 import { addMembership } from '../groups/memberships.js';
 import { createGroup } from '../groups/service.js';
 import { tasks } from '../tasks/schema.js';
@@ -238,6 +240,37 @@ describe('ticket screens: server support', () => {
       });
       const mentions = (await call('GET', '/api/me/home/mentions', a.cookie)).json<Mentions>();
       expect(mentions.items[0]).toMatchObject({ channelId: chat.id, ticketId: id, taskId: null });
+    });
+  });
+
+  describe('mentions of a moved ticket', () => {
+    it('a viewer who no longer reads the ticket does not get its mention; an admin does', async () => {
+      const [g, other] = [await group(), await group()];
+      const a = await admin();
+      await addManager(db(), g.id, a.id);
+      const client = await member(g.id, 'client', 'Klient');
+      const author = await member(g.id, 'client', 'Autor');
+      const id = await ticket(g);
+      const chat = (await call('GET', `/api/tickets/${id}/chat`, a.cookie)).json<GroupChannel>();
+      for (const named of [a.id, client.id]) {
+        await call('POST', `/api/channels/${chat.id}/messages`, author.cookie, {
+          clientId: randomUUID(),
+          body: `<@${named}> pozrite sa`,
+        });
+      }
+      const viewer = { id: client.id, email: client.email, name: 'Klient', role: 'client' };
+      const ticketIds = async (who: SessionUser) =>
+        (await getMentions(db(), who)).items.map((i) => i.ticketId);
+      expect(await ticketIds(viewer as SessionUser)).toEqual([id]);
+
+      expect(
+        (await call('PUT', `/api/tickets/${id}/group`, a.cookie, { groupId: other.id })).statusCode,
+      ).toBe(200);
+      const left = await getMentions(db(), viewer as SessionUser);
+      expect(left.items.map((i) => i.ticketId)).not.toContain(id);
+      expect(left.total).toBe(left.items.length);
+      const adminView = (await call('GET', '/api/me/home/mentions', a.cookie)).json<Mentions>();
+      expect(adminView.items.find((i) => i.ticketId === id)).toMatchObject({ groupId: other.id });
     });
   });
 

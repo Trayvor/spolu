@@ -43,7 +43,7 @@ export const homeRoutes: FastifyPluginAsync<HomeRoutesOptions> = async (app, opt
   );
 
   app.get('/me/home/mentions', { preHandler: adminOnly }, async (request) =>
-    getMentions(db, request.user!.id),
+    getMentions(db, request.user!),
   );
 
   app.get(
