@@ -72,8 +72,9 @@ const timeEquals = (a: Date, b: Date) => a.getTime() === b.getTime();
 /**
  * Saves the times and the `added` recipients of a subject, creating its set on first use. Call it
  * inside the owner's write transaction (`tx`); the caller has checked that `actor` may edit.
- * `subject.authorId` is the set's author: written when the set is created, and its row is added
- * if missing and never removed. `subscribed` rows are kept.
+ * `subject.authorId` becomes the set's author when this call creates the set; the set's stored
+ * author (`created_by`) then has its row added if missing and never removed, so two first saves
+ * at once still leave one author. `subscribed` rows are kept.
  *
  * Fired times are kept; an input time may repeat a fired one (same id and instant) untouched.
  * Changed times are updated, new ones inserted. Which unfired times missing from the input are
@@ -107,8 +108,9 @@ export async function replaceReminderSet(
       [key]: subject.id,
     })
     .onConflictDoUpdate({ target: subjectColumn(subject.kind), set: { groupId: subject.groupId } })
-    .returning({ id: reminderSets.id });
+    .returning({ id: reminderSets.id, createdBy: reminderSets.createdBy });
   const setId = set!.id;
+  const authorId = set!.createdBy;
 
   // 2. Read the existing times and the recipients, and work out the diff.
   const [timeRows, recipientRows] = await Promise.all([
@@ -174,13 +176,13 @@ export async function replaceReminderSet(
       : await validateRecipients(
           tx,
           subject,
-          [...new Set(input.recipientIds)].filter((id) => id !== subject.authorId),
+          [...new Set(input.recipientIds)].filter((id) => id !== authorId),
           current,
         );
   const editorJoins =
     inserted.length > 0 &&
     getReminderSubject(subject.kind).addEditorsAsRecipients === true &&
-    actor.id !== subject.authorId &&
+    actor.id !== authorId &&
     !current.has(actor.id);
 
   // 3. Write the time diff in one statement. A time that fired meanwhile is left alone.
@@ -208,7 +210,7 @@ export async function replaceReminderSet(
   // editor who joined. The editor is on the kept list, so the replacement never removes them.
   const keep = [...(added ?? []), ...(editorJoins ? [actor.id] : [])];
   const rows = [
-    sql`(${setId}, ${subject.authorId}, 'author', ${subject.authorId})`,
+    sql`(${setId}, ${authorId}, 'author', ${authorId})`,
     ...keep.map((id) => sql`(${setId}, ${id}, 'added', ${actor.id})`),
   ];
   const insertRows = sql`insert into reminder_recipients (set_id, user_id, source, added_by)
@@ -327,7 +329,52 @@ export async function getReminderSet(
   actor: SessionUser,
 ): Promise<ReminderSetDto | null> {
   const info = await readableSubject(db, subject, actor);
+  return info ? loadSet(db, subject, actor, info) : null;
+}
+
+/**
+ * As `getReminderSet`, but a readable subject without a set gives the empty set (`GET
+ * …/reminders`); null only when the subject is missing or unreadable.
+ */
+export async function getReminderSetOrEmpty(
+  db: Db,
+  subject: ReminderSubjectRef,
+  actor: SessionUser,
+): Promise<ReminderSetDto | null> {
+  const info = await readableSubject(db, subject, actor);
   if (!info) return null;
+  return (await loadSet(db, subject, actor, info)) ?? emptyReminderSet(info.canEdit(actor));
+}
+
+/**
+ * A stand-alone edit (`PUT …/reminders`, subjects with `standaloneEdit`): checks `canRead` and
+ * `canEdit` (`NotReadableError` otherwise) and saves in one transaction, the actor becoming the
+ * author when this creates the set. The caller notifies after it returns (`notifyTimesChanged`).
+ */
+export async function saveReminderSet(
+  db: Db,
+  subject: ReminderSubjectRef,
+  input: { times: { id?: string; at: string }[]; recipientIds?: string[]; baseTimeIds: string[] },
+  actor: SessionUser,
+): Promise<void> {
+  await db.transaction(async (tx) => {
+    const info = await readableSubject(tx, subject, actor);
+    if (!info || !info.canEdit(actor)) throw new NotReadableError();
+    await replaceReminderSet(
+      tx,
+      { ...subject, groupId: info.groupId, adminsOnly: info.adminsOnly, authorId: actor.id },
+      input,
+      actor,
+    );
+  });
+}
+
+async function loadSet(
+  db: Db,
+  subject: ReminderSubjectRef,
+  actor: SessionUser,
+  info: SubjectInfo,
+): Promise<ReminderSetDto | null> {
   const setId = await findSetId(db, subject);
   if (!setId) return null;
   const [times, recipients] = await Promise.all([
