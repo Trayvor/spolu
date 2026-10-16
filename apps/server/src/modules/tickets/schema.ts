@@ -39,6 +39,8 @@ export const tickets = pgTable(
     dueDate: date('due_date', { mode: 'string' }),
     url: text('url'),
     instanceUrl: text('instance_url'),
+    /** eGrant's idempotency key from the intake: one ticket per key; null for manual tickets. */
+    requestId: text('request_id').unique('tickets_request_id_unique'),
     fileLinks: text('file_links')
       .array()
       .notNull()

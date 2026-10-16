@@ -7,7 +7,7 @@ Design: [Phase 21 spec](../superpowers/specs/2026-10-16-phase-21-tickets-and-req
 ## Requirements
 
 - **Sources.**
-  - eGrant sends a ticket to `POST /api/tickets/intake` with one shared Bearer key (`TICKETS_API_KEY`); the field list is in [integrations](integrations.md). Every field is optional, but a ticket needs a subject, a body or an area.
+  - eGrant sends a ticket to `POST /api/tickets/intake` with one shared Bearer key (`TICKETS_API_KEY`); the field list is in [integrations](integrations.md). Every field is optional, but a ticket needs a subject, a body or an area. An optional `request_id` makes retries safe: a repeat answers the first ticket and creates nothing.
   - A client creates a ticket in one of their groups and is its initiator.
   - An admin creates a ticket for any client and names the initiator (email, name, phone), as eGrant does.
   - A ziadatel never creates tickets.

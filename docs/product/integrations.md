@@ -31,16 +31,20 @@ Body (JSON); every field is optional, but at least one of `subject`, `body` or `
 | `due_date` | due date | `YYYY-MM-DD` |
 | `url` | a URL link | http(s) |
 | `instance_url` | the client's eGrant instance | any URL; matched to a client by host (scheme, `www.` and path ignored) |
+| `request_id` | eGrant's own id of this request, for safe retries | 1 to 100 characters; one ticket per id, kept forever |
 
 Answers:
 
 | status | body | when |
 |---|---|---|
 | `201` | `{ "id": "…", "number": 123 }` | saved (also when no client matched) |
+| `200` | `{ "id": "…", "number": 123 }` | a ticket with this `request_id` exists: its id and number; nothing is created, no email, no notification (the rest of the body is ignored, also when it differs) |
 | `400` | `{ "error": "validation_failed", "fields": ["due_date"] }` | a field is malformed, or no subject, body and area (`fields: ["body"]`) |
 | `401` | `{ "error": "unauthorized" }` | missing or wrong key |
 | `429` | `{ "error": "rate_limited" }` | more than 60 requests a minute from one address |
 | `503` | `{ "error": "intake_disabled" }` | no key is configured on the server |
+
+Retries: send a `request_id` and repeat the same request after a timeout, a network error, a `429` or a `5xx`; requests that arrive at the same moment with one id still make one ticket. Without `request_id` every request makes a new ticket. The full guide for the eGrant developers: [eGrant ticket intake](../integrations/egrant-ticket-intake.md).
 
 ## Phase
 
