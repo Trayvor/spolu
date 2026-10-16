@@ -21,9 +21,9 @@ const RECONNECT_MAX_MS = 30_000;
  * When the server itself ends the connection (`io server disconnect`, e.g. the admin was
  * removed) Socket.IO does not reconnect, so ask /api/me: no session means the same trip to
  * /login.
- * It also mounts `<AppPrompt>`, the install and enable-notifications card, and once per
- * signed-in user stores the UI language on the server (the language of their emails and pushes;
- * best effort).
+ * It also mounts `<AppPrompt>`, the install and enable-notifications banner above the page,
+ * and once per signed-in user stores the UI language on the server (the language of their
+ * emails and pushes; best effort).
  */
 
 export function AuthedLayout() {
@@ -84,8 +84,8 @@ export function AuthedLayout() {
 
   return (
     <>
-      <Outlet />
       <AppPrompt />
+      <Outlet />
     </>
   );
 }

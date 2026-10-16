@@ -43,7 +43,7 @@ Each user chooses a notification mode per group and delivery channels in their p
 
 ## Install and enable prompts
 
-The app asks insistently, on purpose (owner request): push only reaches a device that has the app installed (phones) and notifications allowed. One card at a time sits at the bottom of every signed-in screen:
+The app asks insistently, on purpose (owner request): push only reaches a device that has the app installed (phones) and notifications allowed. One banner at a time sits at the top of every signed-in screen, under the app header. It takes its own space and pushes the page down, so it never covers the composer or any other control:
 
 1. **Install** — on a phone (and on any iPhone or iPad, even one whose Safari poses as a Mac) in the browser, right after login and on every page load or return to the app once 6 hours have passed since "Not now".
    - Android and other Chromium browsers: "Install Spolu as an app" with **Install**, which opens the browser's own install dialog. When the browser offers no install dialog, the card says "Open the browser menu ⋮ → Install app / Add to Home screen" instead.
