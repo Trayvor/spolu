@@ -10,6 +10,7 @@ export const NotificationKinds = [
   'task.assigned',
   'task.deadline',
   'task.urgent',
+  'reminder.due',
 ] as const;
 export type NotificationKind = (typeof NotificationKinds)[number];
 

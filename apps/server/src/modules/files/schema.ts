@@ -1,4 +1,4 @@
-import { index, integer, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
+import { boolean, index, integer, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 import { groups } from '../groups/schema.js';
 import { user } from '../users/schema.js';
@@ -22,6 +22,8 @@ export const files = pgTable(
     width: integer('width'),
     height: integer('height'),
     attachedAt: timestamp('attached_at', { withTimezone: true }),
+    /** Attached to an admins-only knowledge item: clients cannot read it. Follows the item. */
+    adminsOnly: boolean('admins_only').notNull().default(false),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [

@@ -63,5 +63,13 @@ export const ErrorCodes = {
   aiUnavailable: 'ai_unavailable',
   aiFailed: 'ai_failed',
   aiNoTasks: 'ai_no_tasks',
+  // Phase 17 — knowledge base and reminders
+  invalidUrl: 'invalid_url',
+  invalidVisibility: 'invalid_visibility',
+  knowledgeChanged: 'knowledge_changed',
+  invalidReminder: 'invalid_reminder',
+  reminderInPast: 'reminder_in_past',
+  invalidRecipient: 'invalid_recipient',
+  authorRecipient: 'author_recipient',
 } as const;
 export type ErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes];

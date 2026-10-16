@@ -1,0 +1,25 @@
+{
+  "types": {
+    "note": "Note",
+    "file": "File",
+    "link": "Link",
+    "reminder": "Reminder",
+    "notes": "Notes",
+    "files": "Files",
+    "links": "Links",
+    "reminders": "Reminders",
+    "all": "All"
+  },
+  "visibility": {
+    "public": "Everyone in the group",
+    "admins": "Only eGrant"
+  },
+  "list": {},
+  "row": {},
+  "form": {},
+  "detail": {},
+  "tab": {},
+  "newMenu": {},
+  "global": {},
+  "clientFilter": {}
+}
