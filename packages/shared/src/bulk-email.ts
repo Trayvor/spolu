@@ -234,3 +234,17 @@ export const BULK_PEOPLE_SEARCH = { minQuery: 2, maxQuery: 200, limit: 20 } as c
 export const BulkPeopleLookupSchema = z.object({
   ids: z.array(z.string().min(1).max(100)).max(BULK_LIMITS.audienceIds * 2),
 });
+
+/** `GET /api/bulk-email/campaigns/:id/recipients?status=&cursor=`: by name, 50 per page. */
+export const BulkRecipientsQuerySchema = z.object({
+  status: BulkRecipientStatusSchema.optional(),
+  cursor: z.string().min(1).max(500).optional(),
+});
+export type BulkRecipientsQuery = z.infer<typeof BulkRecipientsQuerySchema>;
+export type BulkRecipientPage = { items: BulkRecipientItem[]; nextCursor: string | null };
+
+/** `400 not_ready` of `POST …/send` and `POST …/test`: what is missing, by block. */
+export type BulkNotReadyAnswer = { error: 'not_ready'; problems: BulkNotReadyProblem[] };
+
+/** `202` of `POST …/test`: the test goes to the signed-in admin's own address only. */
+export type BulkTestSendResult = { to: string };
