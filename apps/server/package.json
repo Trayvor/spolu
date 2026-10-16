@@ -6,7 +6,7 @@
     "dev": "tsx watch --env-file=../../.env src/main.ts",
     "build": "tsup",
     "start": "node dist/main.js",
-    "test": "vitest run",
+    "test": "vitest run && vitest run --config vitest.explain.config.ts",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "db:generate": "drizzle-kit generate",

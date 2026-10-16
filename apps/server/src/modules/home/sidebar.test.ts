@@ -62,9 +62,12 @@ describe('getSidebar', () => {
   });
 
   it('unread equals unreadByGroup for each group', async () => {
-    const { admin } = await setup();
-    const rows = await getSidebar(db, admin.id);
+    const { admin, groups } = await setup();
+    // Only this test's groups: other test files write messages to other groups meanwhile.
+    const ids = Object.values(groups).map((g) => g.id);
+    const rows = own(await getSidebar(db, admin.id), ids);
     const expected = await unreadByGroup(db, admin.id, null);
+    expect(rows).toHaveLength(6);
     for (const row of rows) expect(row.unread).toBe(expected[row.groupId] ?? 0);
   });
 

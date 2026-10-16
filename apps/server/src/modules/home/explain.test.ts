@@ -8,7 +8,8 @@ import { mentionsSql } from './mentions.js';
 import { sidebarSql } from './sidebar.js';
 import { withVolume } from './test-volume.js';
 
-const { db, close } = createDb(testDatabaseUrl);
+// A fresh database of its own (vitest.explain.config.ts); the shared one when run directly.
+const { db, close } = createDb(process.env.EXPLAIN_DATABASE_URL ?? testDatabaseUrl);
 afterAll(() => close());
 
 type PlanNode = {
