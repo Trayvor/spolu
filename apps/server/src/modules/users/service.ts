@@ -322,3 +322,13 @@ export async function getUserNames(db: Db, ids: string[]): Promise<Map<string, s
     .where(inArray(user.id, [...new Set(ids)]));
   return new Map(rows.map((r) => [r.id, r.name]));
 }
+
+/** The roles of the given users who are not disabled, in one query; others are left out. */
+export async function getActiveRoles(db: Db, ids: string[]): Promise<Map<string, Role>> {
+  if (ids.length === 0) return new Map();
+  const rows = await db
+    .select({ id: user.id, role: user.role })
+    .from(user)
+    .where(and(inArray(user.id, [...new Set(ids)]), isNull(user.disabledAt)));
+  return new Map(rows.map((r) => [r.id, r.role as Role]));
+}

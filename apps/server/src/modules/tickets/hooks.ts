@@ -5,13 +5,15 @@ import type { TicketRow } from './service.js';
 /**
  * A committed change of a ticket. Later parts react to it without the tickets module knowing
  * them: the ticket chat (21.3) creates or moves its channel, notifications (21.6) tell the
- * followers. `previousGroupId` is set on `moved`.
+ * followers. `previousGroupId` is set on `moved`, `count` on `tasks`.
  */
 export type TicketChange = {
   kind: 'created' | 'status' | 'updated' | 'moved' | 'tasks';
   ticket: TicketRow;
   actorId: string | null;
   previousGroupId?: string | null;
+  /** On `tasks`: how many tasks the ticket was turned into (part 21.5). */
+  count?: number;
 };
 
 type TicketChangeHook = (deps: AppDeps, change: TicketChange) => Promise<void>;

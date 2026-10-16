@@ -52,6 +52,53 @@ describe('digestEntry', () => {
   });
 
   it('an unknown kind gives null', () => {
-    expect(digestEntry({ kind: 'ticket.created', payload: {} }, ctx)).toBeNull();
+    expect(digestEntry({ kind: 'ticket.bogus', payload: {} }, ctx)).toBeNull();
+  });
+});
+
+describe('digestEntry tickets (Phase 21.6)', () => {
+  const ticket = { ticketId: 'k1', number: 123, subject: 'Login fails' };
+  const open = {
+    url: 'https://spolu.test/tickets/k1',
+    button: 'Open ticket',
+    topic: 'Ticket #123',
+  };
+
+  it('a ticket message: "#123 Subject: Jana: text", the ticket page, "Open ticket"', () => {
+    expect(
+      digestEntry(
+        { kind: 'ticket.message', payload: { ...ticket, authorName: 'Jana', excerpt: 'text' } },
+        ctx,
+      ),
+    ).toEqual({ line: '#123 Login fails: Jana: text', ...open });
+  });
+
+  it('a mention in a ticket chat opens the ticket too', () => {
+    expect(
+      digestEntry(
+        { kind: 'chat.mention', payload: { ...ticket, authorName: 'Jana', excerpt: 'text' } },
+        ctx,
+      ),
+    ).toEqual({ line: '#123 Login fails: Jana: text', ...open });
+  });
+
+  it('a status change: "<title>: <subject>"', () => {
+    expect(
+      digestEntry({ kind: 'ticket.status', payload: { ...ticket, status: 'resolved' } }, ctx)?.line,
+    ).toBe('#123 is now Resolved: Login fails');
+  });
+
+  it('a ticket without a client group still gets its entry, in Slovak too', () => {
+    expect(
+      digestEntry(
+        { kind: 'ticket.unassigned', payload: ticket },
+        { ...ctx, groupId: null, groupName: null, lang: 'sk' },
+      ),
+    ).toEqual({
+      line: 'Nový tiket #123 bez klienta: Login fails',
+      url: 'https://spolu.test/tickets/k1',
+      button: 'Otvoriť tiket',
+      topic: 'Tiket #123',
+    });
   });
 });

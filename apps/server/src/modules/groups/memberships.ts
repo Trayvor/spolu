@@ -1,4 +1,4 @@
-import { and, asc, eq, isNull, sql, type AnyColumn, type SQL } from 'drizzle-orm';
+import { and, asc, eq, inArray, isNull, sql, type AnyColumn, type SQL } from 'drizzle-orm';
 import type { MemberRole, SessionUser } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
 import { isAdmin } from '../users/policy.js';
@@ -56,6 +56,26 @@ export async function activeMemberIds(
     .from(groupMembers)
     .where(and(eq(groupMembers.groupId, groupId), eq(groupMembers.role, role), isActive));
   return rows.map((r) => r.userId);
+}
+
+/** The active roles of the given users in the group, in one query; non-members are left out. */
+export async function activeRolesIn(
+  db: Db,
+  groupId: string,
+  userIds: string[],
+): Promise<Map<string, MemberRole>> {
+  if (userIds.length === 0) return new Map();
+  const rows = await db
+    .select({ userId: groupMembers.userId, role: groupMembers.role })
+    .from(groupMembers)
+    .where(
+      and(
+        eq(groupMembers.groupId, groupId),
+        inArray(groupMembers.userId, [...new Set(userIds)]),
+        isActive,
+      ),
+    );
+  return new Map(rows.map((r) => [r.userId, r.role]));
 }
 
 /** The groups the user reads as a client: their active `client` memberships. */

@@ -1,5 +1,5 @@
 import { and, eq, isNull } from 'drizzle-orm';
-import type { SessionUser } from '@spolu/shared';
+import type { NotificationKind, SessionUser } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
 import { clientGroupIds } from '../groups/memberships.js';
 import { isAdmin } from '../users/policy.js';
@@ -31,6 +31,19 @@ export type ChannelKindAccess = {
   extraPeople(db: Db, channel: ChannelRef): Promise<{ id: string; name: string }[]>;
   /** Who `@all` reaches in this channel (a ticket's followers), instead of the pickable people. */
   allRecipients(db: Db, channel: ChannelRef): Promise<string[]>;
+  /**
+   * How a message here notifies, instead of the chat kinds: the event kind for its readers (a
+   * ticket's followers get `ticket.message`), who they are, and what the payload adds (the
+   * ticket's id, number and subject). Mentions here carry the same additions, so they open the
+   * owner's page. Null: the message notifies nobody but the people it names.
+   */
+  messageNotice(db: Db, channel: ChannelRef): Promise<MessageNotice | null>;
+};
+
+export type MessageNotice = {
+  kind: NotificationKind;
+  recipients: string[];
+  payload: Record<string, unknown>;
 };
 
 const kinds = new Map<string, ChannelKindAccess>();
