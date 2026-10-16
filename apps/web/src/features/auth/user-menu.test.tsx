@@ -186,6 +186,19 @@ describe('logged-in shell', () => {
     );
   });
 
+  it('the user menu links to Settings for every role, above Log out', async () => {
+    for (const role of ['client', 'admin'] as const) {
+      mockApi({ role });
+      const { user } = renderAt('/');
+      await user.click(await screen.findByRole('button', { name: t('user.menu') }));
+      const settings = await screen.findByRole('menuitem', { name: t('nav.settings') });
+      expect(settings).toHaveAttribute('href', '/settings');
+      const items = screen.getAllByRole('menuitem').map((item) => item.textContent);
+      expect(items.slice(-2)).toEqual([t('nav.settings'), t('user.logout')]);
+      cleanup();
+    }
+  });
+
   it('a client does not see the Groups link', async () => {
     mockApi({ role: 'client' });
     renderAt();

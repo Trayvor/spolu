@@ -1,14 +1,14 @@
 import { and, asc, inArray, isNull, sql } from 'drizzle-orm';
-import type { NotificationKind, PushPayload } from '@spolu/shared';
+import { wantsEmail, wantsPush, type NotificationKind, type PushPayload } from '@spolu/shared';
 import type { Config } from '../../infra/config/config.js';
 import type { Db } from '../../infra/db/client.js';
 import type { JobOptions, JobQueue } from '../../infra/jobs/jobs.js';
 import type { PushSender } from '../../infra/push/index.js';
 import { unreadForNotify } from '../chat/notify.js';
 import { groups } from '../groups/schema.js';
-import { listGroupPeople } from '../groups/service.js';
 import { getTaskTitles } from '../tasks/task-service.js';
 import { getNotificationProfiles } from '../users/service.js';
+import { notificationAudience, notificationGroupOf } from './categories.js';
 import { decideEvent, isOutranked, KIND_RANK } from './decide.js';
 import { getEffectiveModes } from './modes.js';
 import { buildPushPayload } from './push-content.js';
@@ -135,8 +135,8 @@ async function deliverBatch(
 
 /**
  * Loads the batch's context in bulk and decides every event. Events whose user could get neither
- * a push nor an email (no profile, disabled, push off or no device, email off) are decided
- * without loading the rest, which is most events of most batches.
+ * a push nor an email by the event group's channel (no profile, disabled, none, push without a
+ * device) are decided without loading the rest, which is most events of most batches.
  */
 async function decideBatch(
   tx: Db,
@@ -146,23 +146,25 @@ async function decideBatch(
   const userIds = unique(batch.map((r) => r.userId));
   const profiles = await getNotificationProfiles(tx, userIds);
   const subscriptions = await listSubscriptions(tx, userIds);
-  const reachable = (userId: string) => {
-    const profile = profiles.get(userId);
-    if (!profile || profile.disabled) return false;
-    const canPush = profile.pushEnabled && deps.push !== null && subscriptions.has(userId);
-    return canPush || profile.emailEnabled;
-  };
+  const groupOf = new Map(batch.map((r) => [r.id, notificationGroupOf(r.kind, payloadOf(r))]));
   const rows = batch.filter((r) => {
-    if (r.groupId === null || !(r.kind in KIND_RANK)) {
-      // Every kind recorded today has a group; this is a bug upstream, not a user setting.
+    const group = groupOf.get(r.id) ?? null;
+    // Only a ticket event may lack a client group (item B: `ticket.unassigned` goes to admins);
+    // for any other group that is a bug upstream, not a user setting.
+    if (group === null || (r.groupId === null && group !== 'tickets')) {
       console.warn(`notifications: event ${r.id} (${r.kind}) has no group or an unknown kind`);
       return false;
     }
-    return reachable(r.userId);
+    const profile = profiles.get(r.userId);
+    if (!profile || profile.disabled) return false;
+    const channel = profile.channels[group];
+    const canPush = wantsPush(channel) && deps.push !== null && subscriptions.has(r.userId);
+    return canPush || wantsEmail(channel);
   });
   if (rows.length === 0) return { pushes: [], emailIds: [] };
 
-  const groupIds = unique(rows.map((r) => r.groupId!));
+  const grouped = rows.filter((r) => r.groupId !== null);
+  const groupIds = unique(grouped.map((r) => r.groupId!));
   const messagePairs = rows.flatMap((r) => {
     const messageId = str(payloadOf(r).messageId);
     return messageId ? [{ userId: r.userId, messageId }] : [];
@@ -171,13 +173,17 @@ async function decideBatch(
 
   const modes = await getEffectiveModes(
     tx,
-    rows.map((r) => ({ userId: r.userId, groupId: r.groupId! })),
+    grouped.map((r) => ({ userId: r.userId, groupId: r.groupId! })),
     profiles,
   );
   // Membership as of now: someone removed after the event gets nothing.
+  const audienceKey = (groupId: string, rowId: string) => `${groupId}\u0000${groupOf.get(rowId)}`;
   const people = new Map<string, Set<string>>();
-  for (const groupId of groupIds) {
-    people.set(groupId, new Set((await listGroupPeople(tx, groupId)).map((p) => p.id)));
+  for (const r of grouped) {
+    const key = audienceKey(r.groupId!, r.id);
+    if (!people.has(key)) {
+      people.set(key, await notificationAudience(tx, r.groupId!, groupOf.get(r.id)!));
+    }
   }
   const groupNames = new Map(
     (
@@ -195,7 +201,7 @@ async function decideBatch(
   const emailIds: string[] = [];
   for (const row of rows) {
     const profile = profiles.get(row.userId)!;
-    const groupId = row.groupId!;
+    const groupId = row.groupId;
     const kind = row.kind as NotificationKind;
     const p = payloadOf(row);
     const messageId = str(p.messageId);
@@ -205,12 +211,15 @@ async function decideBatch(
     const decision = decideEvent({
       kind,
       mode: modes.get(`${row.userId}:${groupId}`) ?? 'off',
-      isGroupPerson: people.get(groupId)?.has(row.userId) ?? false,
+      // A ticket event without a client group: its recorder chose the recipients.
+      isGroupPerson:
+        groupId === null || (people.get(audienceKey(groupId, row.id))?.has(row.userId) ?? false),
       // Task events have no message to read; chat events need theirs still unread.
       unread: messageId === null || message !== undefined,
       outranked: messageId !== null && isOutranked({ id: row.id, kind }, siblings.get(key) ?? []),
-      pushEnabled: profile.pushEnabled && deps.push !== null,
-      emailEnabled: profile.emailEnabled,
+      group: groupOf.get(row.id)!,
+      channel: profile.channels[groupOf.get(row.id)!],
+      pushAvailable: deps.push !== null,
       hasSubscriptions: subs.length > 0,
     });
     if (decision.email) emailIds.push(row.id);
@@ -219,7 +228,7 @@ async function decideBatch(
     const payload = buildPushPayload({
       kind,
       payload: p,
-      groupName: groupNames.get(groupId) ?? '',
+      groupName: (groupId && groupNames.get(groupId)) ?? '',
       taskTitle: taskId ? (taskTitles.get(taskId) ?? null) : null,
       parentId: message?.parentId ?? null,
       lang: profile.language,

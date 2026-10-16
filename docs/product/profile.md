@@ -12,7 +12,7 @@ The user profile holds name, avatar and language, the notification channel setti
 
 ## Phase 6: name, email and language
 
-The profile on `/settings` (Phase 6) lets each user change only their own data. The page has three sections, in this order: **Profile** (name and email), **Notifications** (the push and email switches, see `notifications.md`) and **System status**.
+The profile on `/settings` (Phase 6) lets each user change only their own data. Every signed-in user reaches it from the account menu (the initials in the header): "Settings", above "Log out". The page has three sections, in this order: **Profile** (name and email), **Notifications** (this device's push state and a channel per notification group, see `notifications.md`) and **System status**.
 
 - **Name**: saved with "Save" (`PATCH /api/me`); "Saved" appears under the field. An empty name is refused in the page.
 - **Email**: shows the current address with "Change", which opens the steps below inline under it ("We sent a code to …", then "Your email address is now …"). Errors appear under the field and keep the step: "The code is wrong or has expired" (`invalid_code`), "This address belongs to another account" (`email_taken`). On success the page's session is refreshed.
@@ -25,4 +25,4 @@ The profile on `/settings` (Phase 6) lets each user change only their own data. 
 
 ## Phase
 
-Phase 16 (avatar, search, password). Name, email change, language and the notification channel settings (push/email) ship in Phase 6.
+Phase 16 (avatar, search, password). Name, email change, language and the notification channel settings ship in Phase 6; brief item C replaced its push and email switches with notification groups.
