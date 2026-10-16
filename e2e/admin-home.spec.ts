@@ -96,12 +96,17 @@ test('admin home: dashboard, sidebar, Úlohy and global board', async ({ page: s
     await expect(g1Row).toContainText('1 úloha priradená vám');
     await expect(others.getByRole('link', { name: new RegExp(g2Name) })).toBeVisible();
 
-    // 4. Opening the mention shows the chat at the message; back home it is gone.
+    // 4. Opening the mention shows the chat at the message; back home it is gone. Leaving only
+    // after the read is recorded: going home at once could cancel it.
+    const read = n.waitForResponse(
+      (r) => r.request().method() === 'POST' && /\/api\/channels\/[^/]+\/read$/.test(r.url()),
+    );
     await mention.click();
     await expect(n).toHaveURL(new RegExp(`/groups/${g1.id}/chat`));
     await expect(
       n.locator('[data-message-id]').filter({ hasText: `skontrolovať ${stamp}` }),
     ).toBeVisible();
+    expect((await read).ok()).toBe(true);
     await n.goto('/');
     await expect(
       n.getByRole('region', { name: 'Zmienky' }).getByRole('link', {

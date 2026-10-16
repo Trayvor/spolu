@@ -15,7 +15,7 @@ const MESSAGES_PER_CHANNEL = MESSAGES / GROUPS;
 
 /**
  * Opens a transaction and seeds it with `generate_series`: 100 groups (a group chat and the five
- * buckets each, one client each), 20 000 tasks (a third assigned to the admin, a tenth completed),
+ * buckets each, one client each; the custom one named "Step <group % 15>"), 20 000 tasks (a third assigned to the admin, a tenth completed),
  * 200 000 messages (a quarter name someone, 0.5 % the admin; 1 % @all; 10 % replies), the admin's read marks and
  * the admin managing 10 groups. Runs `analyze`, calls `fn`, then rolls everything back.
  */
@@ -59,7 +59,7 @@ export async function withVolume(
       await tx.execute(sql`
         insert into buckets (id, group_id, kind, name, position)
         select ${p} || '-b' || i || '-' || k.kind, ${p} || '-g' || i, k.kind,
-          case when k.kind = 'custom' then 'Step' end, k.pos
+          case when k.kind = 'custom' then 'Step ' || (i % 15) end, k.pos
         from generate_series(1, ${GROUPS}) i
         cross join (values ('todo', 'a0'), ('custom', 'a1'), ('egrant_review', 'a3'),
           ('client_review', 'a6'), ('done', 'a9')) as k(kind, pos)

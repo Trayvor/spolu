@@ -14,6 +14,8 @@ export const HOME_LIMITS = {
   reminders: 10,
   columnPage: 50,
   completedDays: 30,
+  /** Custom bucket columns on the global board; the rest fold into Other steps. */
+  customColumns: 12,
   excerpt: 80,
 } as const;
 
@@ -102,7 +104,11 @@ export const HomeRemindersSchema = z.union([
 ]);
 export type HomeReminders = z.infer<typeof HomeRemindersSchema>;
 
-/** The global board's columns: by bucket kind, every custom bucket in `other`. */
+/**
+ * The global board's fixed columns, by bucket kind. Custom buckets get columns of their own
+ * (`custom:<key>`, see `GlobalColumnSchema`); `other` holds the custom buckets folded beyond
+ * `HOME_LIMITS.customColumns` and appears only then.
+ */
 export const BoardColumnKinds = [
   'todo',
   'other',
@@ -111,6 +117,15 @@ export const BoardColumnKinds = [
   'done',
 ] as const;
 export type BoardColumnKind = (typeof BoardColumnKinds)[number];
+
+/** A column of custom buckets, merged by name: `custom:` and the name's key. */
+export const CUSTOM_COLUMN_PREFIX = 'custom:';
+/** A column id: a fixed kind, or `custom:<key>` (the key is at most 60 characters). */
+export const GlobalColumnIdSchema = z.union([
+  z.enum(BoardColumnKinds),
+  z.string().startsWith(CUSTOM_COLUMN_PREFIX).min(8).max(80),
+]);
+export type GlobalColumnId = z.infer<typeof GlobalColumnIdSchema>;
 
 export const GlobalTaskDtoSchema = TaskDtoSchema.extend({
   groupName: z.string(),
@@ -123,7 +138,11 @@ export const GlobalTaskDtoSchema = TaskDtoSchema.extend({
 export type GlobalTaskDto = z.infer<typeof GlobalTaskDtoSchema>;
 
 export const GlobalColumnSchema = z.object({
-  kind: z.enum(BoardColumnKinds),
+  /** `todo`, `other`… or `custom:<key>`; what `column` takes for "Show 50 more". */
+  id: z.string(),
+  kind: z.enum([...BoardColumnKinds, 'custom']),
+  /** Custom columns only: the most common spelling of the merged buckets' name. */
+  name: z.string().nullable(),
   total: z.number().int(),
   items: z.array(GlobalTaskDtoSchema),
   /** Cursor for "Show 50 more", or null on the last page. */
@@ -180,7 +199,7 @@ export const GlobalBoardFilterSchema = z
       .literal('1')
       .transform(() => true)
       .optional(),
-    column: z.enum(BoardColumnKinds).optional(),
+    column: GlobalColumnIdSchema.optional(),
     // The cursor carries the client's name (up to 100 characters, more bytes in base64url).
     after: z.string().min(1).max(1000).optional(),
   })

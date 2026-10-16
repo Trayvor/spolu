@@ -1,10 +1,11 @@
 import { sql, type SQL } from 'drizzle-orm';
 import {
-  BoardColumnKinds,
+  CUSTOM_COLUMN_PREFIX,
   HOME_LIMITS,
-  type BoardColumnKind,
   type DueFilter,
   type GlobalBoard,
+  type GlobalColumn,
+  type GlobalColumnId,
   type GlobalTaskDto,
   type TaskPerson,
 } from '@spolu/shared';
@@ -31,7 +32,8 @@ export type GlobalBoardQuery = {
   due?: DueFilter;
   q?: string;
   completed: boolean;
-  column?: BoardColumnKind;
+  /** A column id (`todo`, `other`, `custom:<key>`…): only that column, for "Show 50 more". */
+  column?: GlobalColumnId;
   after?: string;
   /** Bratislava's date, `YYYY-MM-DD`: "overdue" and "next 7 days" follow it, not UTC. */
   today: string;
@@ -119,22 +121,41 @@ function dueFilter(q: GlobalBoardQuery): SQL {
 }
 
 /**
+ * A custom bucket's name as shown: trimmed, inner whitespace collapsed.
+ */
+const spelling = (name: SQL) => sql`btrim(regexp_replace(${name}, '\\s+', ' ', 'g'))`;
+
+// Slovak, Czech, German and Hungarian letters with diacritics and their plain letters.
+const ACCENTED = 'áäčďéěíĺľňóôöőŕřšťúůüűýžÁÄČĎÉĚÍĹĽŇÓÔÖŐŔŘŠŤÚŮÜŰÝŽ';
+const PLAIN = 'aacdeeillnoooorrstuuuuyzAACDEEILLNOOOORRSTUUUUYZ';
+
+/**
+ * The key that merges custom buckets across clients: the spelling without diacritics (a fixed
+ * `translate`, no extension), lower-cased. `translate` first, so `lower` only meets ASCII letters
+ * here and behaves the same under any database locale.
+ */
+const nameKey = (name: SQL) => sql`lower(translate(${name}, ${ACCENTED}, ${PLAIN}))`;
+
+/**
  * The global task board in ONE statement: the chosen clients' tasks (open, plus with `completed`
- * those completed in the last 30 days, on `tasks_open_group_idx`), filtered (`mine`: the viewer created it or is an assignee), in five columns by
- * bucket kind (every custom bucket in `other`), each sorted by the keyset (not urgent, deadline
- * with none last, client name, created, id) and cut at 50 per column, with each column's total.
- * With `column` and `after` it answers that column's next 50 after the cursor. `people` are the
- * distinct assignees of the client scope, before the assignee filter.
+ * those completed in the last 30 days, on `tasks_open_group_idx`), filtered (`mine`: the viewer
+ * created it or is an assignee), in columns: the fixed bucket kinds, plus one column per custom
+ * bucket name of the client scope (merged by `nameKey`; the `customColumns` largest by open tasks
+ * in the scope, before the filters, the rest folded into `other`). Each column is sorted by the
+ * keyset (not urgent, deadline with none last, client name, created, id) and cut at 50, with its
+ * total. With `column` and `after` it answers that column's next 50 after the cursor. `people`
+ * are the distinct assignees of the client scope, before the assignee filter.
  *
- * Reads the tasks, groups and users tables directly: the read-only exception of `modules/home`.
+ * Reads the tasks, buckets, groups and users tables directly: the read-only exception of
+ * `modules/home`.
  */
 export function globalBoardSql(q: GlobalBoardQuery): SQL {
-  const clients =
+  const inClients = (column: SQL) =>
     q.clientIds === null
       ? sql`true`
       : q.clientIds.length === 0
         ? sql`false`
-        : sql`t.group_id in (${sql.join(
+        : sql`${column} in (${sql.join(
             q.clientIds.map((id) => sql`${id}`),
             sql`, `,
           )})`;
@@ -152,20 +173,57 @@ export function globalBoardSql(q: GlobalBoardQuery): SQL {
   }
   const page = HOME_LIMITS.columnPage;
   return sql`
-    with scope as (
+    with base as (
       select t.id, t.group_id, t.bucket_id, t.position, t.title, t.urgent, t.due_date, t.link,
         t.completed_at, t.source_message_id, t.created_at, t.updated_at, t.created_by,
         b.kind as bucket_kind, b.name as bucket_name,
-        case b.kind when 'custom' then 'other' else b.kind end as col,
         g.name as group_name, g.logo_key is not null as group_has_logo,
         g.updated_at as group_updated_at
       from tasks t
       join buckets b on b.id = t.bucket_id
       join groups g on g.id = t.group_id
-      where ${clients} and ${completed}
+      where ${inClients(sql`t.group_id`)} and ${completed}
+    ),
+    -- The scope's custom buckets, with their rank on their board (fixed buckets count too).
+    custom_buckets as (
+      select x.id, x.name, ${nameKey(sql`x.name`)} as key, x.rank
+      from (
+        select b.id, b.kind, ${spelling(sql`b.name`)} as name,
+          row_number() over (partition by b.group_id order by b.position) as rank
+        from buckets b
+        where ${inClients(sql`b.group_id`)}
+      ) x
+      where x.kind = 'custom'
+    ),
+    bucket_sizes as (
+      select bucket_id, count(*) as n from base where bucket_kind = 'custom' group by bucket_id
+    ),
+    -- One column per key: the most common spelling, the average rank, the open tasks.
+    custom_columns as (
+      select cb.key, mode() within group (order by cb.name collate "C") as name,
+        avg(cb.rank) as pos, coalesce(sum(bs.n), 0) as size
+      from custom_buckets cb
+      left join bucket_sizes bs on bs.bucket_id = cb.id
+      group by cb.key
+    ),
+    shown as (
+      select key, name, pos from custom_columns
+      order by size desc, pos, name collate "C", key collate "C"
+      limit ${HOME_LIMITS.customColumns}
+    ),
+    scope as (
+      select s.*,
+        case
+          when s.bucket_kind <> 'custom' then s.bucket_kind
+          when sh.key is not null then ${CUSTOM_COLUMN_PREFIX} || sh.key
+          else 'other'
+        end as col
+      from base s
+      left join custom_buckets cb on cb.id = s.bucket_id
+      left join shown sh on sh.key = cb.key
     ),
     filtered as (
-      select s.*, count(*) over (partition by s.col) as total
+      select s.*
       from scope s
       where ${assigneeFilter(q)} and ${mineFilter(q)} and ${urgent} and ${dueFilter(q)} and ${search} and ${onlyColumn}
     ),
@@ -230,11 +288,17 @@ export function globalBoardSql(q: GlobalBoardQuery): SQL {
         from (select col, count(*) as total from filtered group by col) c
       ) as totals,
       (
+        select coalesce(json_agg(json_build_object('key', sh.key, 'name', sh.name)
+          order by sh.pos, sh.name collate "C", sh.key collate "C"), '[]'::json)
+        from shown sh
+      ) as custom,
+      (select count(*) > ${HOME_LIMITS.customColumns} from custom_columns) as folded,
+      (
         select coalesce(json_agg(json_build_object('id', pu.id, 'name', pu.name)
           order by pu.name, pu.id), '[]'::json)
         from (
           select distinct ta.user_id
-          from scope s
+          from base s
           join task_assignees ta on ta.task_id = s.id
         ) x
         join "user" pu on pu.id = x.user_id
@@ -244,28 +308,67 @@ export function globalBoardSql(q: GlobalBoardQuery): SQL {
 
 /** One card as the statement returns it: its column, the rows left from it, its key, the DTO. */
 type CardJson = {
-  col: BoardColumnKind;
+  col: string;
   remaining: number;
   cursor: Cursor;
   task: GlobalTaskDto;
 };
 
-type Row = { tasks: CardJson[]; totals: Record<string, number>; people: TaskPerson[] };
+type Row = {
+  tasks: CardJson[];
+  totals: Record<string, number>;
+  /** The custom columns shown, in board order. */
+  custom: { key: string; name: string }[];
+  /** Some custom names did not get a column: their tasks are in `other`. */
+  folded: boolean;
+  people: TaskPerson[];
+};
+
+type ColumnHead = Pick<GlobalColumn, 'id' | 'kind' | 'name'>;
+
+const fixed = (kind: Exclude<GlobalColumn['kind'], 'custom'>): ColumnHead => ({
+  id: kind,
+  kind,
+  name: null,
+});
+
+/**
+ * The board's columns, in order: To do, the custom columns, Other steps (only when names were
+ * folded), eGrant review, Client review, and Completed with `completed`.
+ */
+function columnHeads(q: GlobalBoardQuery, row: Row): ColumnHead[] {
+  const heads: ColumnHead[] = [
+    fixed('todo'),
+    ...row.custom.map((c): ColumnHead => ({
+      id: `${CUSTOM_COLUMN_PREFIX}${c.key}`,
+      kind: 'custom',
+      name: c.name,
+    })),
+    ...(row.folded ? [fixed('other')] : []),
+    fixed('egrant_review'),
+    fixed('client_review'),
+    ...(q.completed ? [fixed('done')] : []),
+  ];
+  if (!q.column) return heads;
+  // One column's next page; a custom column that lost its place since still answers, as itself.
+  const head = heads.find((h) => h.id === q.column);
+  if (head) return [head];
+  return q.column.startsWith(CUSTOM_COLUMN_PREFIX)
+    ? [{ id: q.column, kind: 'custom', name: q.column.slice(CUSTOM_COLUMN_PREFIX.length) }]
+    : [fixed(q.column as Exclude<GlobalColumn['kind'], 'custom'>)];
+}
 
 const iso = (value: string) => new Date(value).toISOString();
 
 export async function getGlobalBoard(db: Db, q: GlobalBoardQuery): Promise<GlobalBoard> {
   const [row] = [...(await db.execute<Row>(globalBoardSql(q)))];
   const { tasks, totals, people } = row!;
-  const kinds = q.column
-    ? [q.column]
-    : BoardColumnKinds.filter((kind) => kind !== 'done' || q.completed);
-  const columns = kinds.map((kind) => {
-    const items = tasks.filter((t) => t.col === kind);
+  const columns = columnHeads(q, row!).map((head) => {
+    const items = tasks.filter((t) => t.col === head.id);
     const last = items.at(-1);
     return {
-      kind,
-      total: totals[kind] ?? 0,
+      ...head,
+      total: totals[head.id] ?? 0,
       // JSON timestamps come as `2026-10-01T10:00:00.123+00:00`; the DTOs use `toISOString()`.
       items: items.map(({ task: t }) => ({
         ...t,

@@ -81,9 +81,12 @@ describe('home API', () => {
   it('an admin gets the global board', async () => {
     const res = await get('/api/tasks/global?assignee=me&urgent=1', adminCookie);
     expect(res.statusCode).toBe(200);
-    expect(GlobalBoardSchema.parse(res.json()).columns.map((c) => c.kind)).toEqual([
+    // Every client (the admin manages none): the fixed columns around the custom ones.
+    const kinds = GlobalBoardSchema.parse(res.json()).columns.map((c) => c.kind);
+    expect(kinds[0]).toBe('todo');
+    expect(kinds.slice(-2)).toEqual(['egrant_review', 'client_review']);
+    expect(kinds.filter((k) => k !== 'custom' && k !== 'other')).toEqual([
       'todo',
-      'other',
       'egrant_review',
       'client_review',
     ]);

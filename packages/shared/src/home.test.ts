@@ -64,6 +64,16 @@ describe('GlobalBoardFilterSchema', () => {
     expect(GlobalBoardFilterSchema.safeParse({ column: 'nope', after: 'abc' }).success).toBe(false);
   });
 
+  it('filter: column takes a custom column id', () => {
+    const page = (column: string) =>
+      GlobalBoardFilterSchema.safeParse({ column, after: 'abc' }).success;
+    expect(page('custom:preklad')).toBe(true);
+    expect(page('custom:v preklade a korektúre')).toBe(true);
+    expect(page('other')).toBe(true);
+    expect(page('custom:')).toBe(false);
+    expect(page(`custom:${'x'.repeat(80)}`)).toBe(false);
+  });
+
   it('filter: q of one character is dropped', () => {
     expect(GlobalBoardFilterSchema.parse({ q: ' a ' }).q).toBeUndefined();
     expect(GlobalBoardFilterSchema.safeParse({ q: 'x'.repeat(101) }).success).toBe(false);

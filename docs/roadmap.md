@@ -41,6 +41,8 @@ Phases 8 and 14 do not depend on each other, so their order can change by priori
 
 Each one needs a spec and a plan before code.
 
+Also agreed on 2026-10-16: the global task board shows the chosen clients' custom buckets as their own columns (owner decision, a small change with no spec; see [product/admin-home.md](product/admin-home.md#custom-bucket-columns-owner-decision-2026-10-16)).
+
 ## Server deployment (deferred)
 
 Owner decision (2026-10-15): build and verify locally first; deploy to the server later as one separate step.
