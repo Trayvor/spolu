@@ -123,7 +123,7 @@ Requirements: [notifications](product/notifications.md), [profile](product/profi
 Scope:
 - Delivers the notification events recorded by Phases 5, 8 and 9.
 - Web Push (PWA) on phone and desktop.
-- Per group, the user picks a mode: all / mentions only / nothing.
+- Per group, the user picks a mode: All messages / Mentions and replies / Off (defaults: clients All messages, admins Mentions and replies).
 - In the profile: push on by default, email can be turned on additionally.
 - Notifications about replies in threads the user took part in.
 - Task notifications: when a task moves to another bucket, its creator and assignees are notified (not the person who moved it); the assignees are reminded 3, 2 and 1 days before the deadline at 09:00 (Europe/Bratislava) while the task is not in Completed; an urgent task reminds its assignees every 3 hours between 08:00 and 20:00 (Europe/Bratislava) until it is in Completed or no longer urgent.

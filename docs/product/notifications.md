@@ -4,28 +4,36 @@ Each user chooses a notification mode per group and delivery channels in their p
 
 ## Requirements
 
-- **Notification mode per group** (each user sets it separately for each group):
+- **Notification mode per group** (each user sets it only for themselves, for each group):
 
   | Mode | What arrives |
   |---|---|
-  | **All messages** | a notification for every message |
-  | **Mentions only** | only when the user is tagged (@) |
-  | **Nothing** | notifications are off |
+  | **All messages** | a notification for every message, plus everything below |
+  | **Mentions and replies** | when the user is mentioned (@ or @all), when someone replies in a thread they took part in or quotes their message, and task notifications about them |
+  | **Off** | nothing from this group |
 
-- **Delivery channels** (for all users, in profile settings):
-  - **Push** (PWA): on by default;
-  - **Email**: off by default, the user can additionally turn it on.
+  - **Role defaults**: clients start on All messages, admins on Mentions and replies.
+  - **The bell**: a bell button next to the group's logo and name in the group header shows the current mode (bell, bell with @, crossed-out bell) and opens a menu with the three modes, each with one line of explanation. It works for everyone, clients included.
+  - **Admins** also have the bell on every row of the groups page, and above the list an "All groups:" control with the same three modes (it shows "Mixed" when the groups differ). Choosing there sets the user's default for every group, current and future, and clears their per-group choices; a later per-group choice overrides it again. A group without the user's own choice follows that default, else the role default.
+- **Delivery channels** (for all users, on `/settings`, see `profile.md`):
+  - **Push** (PWA): on by default. Under the switch the page shows this device: "on", "not set up" (with "Turn on for this device") or "blocked in the browser settings" (with how to unblock it); on an iPhone outside the Home Screen app it shows the install hint instead. Turning push on also sets up this device when it is not set up yet. Without VAPID keys on the server the page says push is not available.
+  - **Email**: off by default, the user can additionally turn it on ("A summary of unread messages, at most every 10 minutes").
     - Email is batched: one email per user and group, sent 10 minutes after the first event that qualifies for email, and only if those events are still unread then. It lists up to 5 lines ("Jana: text") with an "Open" button to the group chat, in the user's language. Events that arrive within the 10 minutes join the same email. Reading the messages, switching email off or deactivating the user before it is due means no email.
 - Which events arrive, by mode:
 
-  | Event | All messages | Mentions only | Nothing |
+  | Event | All messages | Mentions and replies | Off |
   |---|---|---|---|
   | plain message | yes | no | no |
   | mention, @all | yes | yes | no |
   | reply in my thread, quote of my message | yes | yes | no |
   | task moved, assigned, deadline, urgent | yes | yes | no |
 
-  A user gets at most one notification per message; the strongest kind wins. Task chat messages link to the task's chat tab.
+  A user gets at most one notification per message; the strongest kind wins. The person who caused an event never gets it, and a message already read gets none. Task chat messages follow the task's group mode and link to the task's chat tab.
+- **Task notifications** (they are about the user, so they arrive in All messages and in Mentions and replies):
+  - **moved**: a task moved to another bucket notifies its creator and assignees, not the person who moved it ("Moved to eGrant review");
+  - **assigned**: a newly assigned person is notified;
+  - **deadline**: the assignees are reminded 3, 2 and 1 days before the deadline at 09:00 (Europe/Bratislava) while the task is not in Completed ("Deadline in 2 days");
+  - **urgent**: an urgent task reminds its assignees at 08:00, 11:00, 14:00, 17:00 and 20:00 (Europe/Bratislava) until it is in Completed or no longer urgent ("Urgent: still open").
 - This applies to all notifications, including contract reminders for administrators.
 - Web Push (PWA) works on phone and desktop.
 - Notifications about replies in threads the user took part in.

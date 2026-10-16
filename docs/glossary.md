@@ -6,6 +6,7 @@ Terms used across the docs and code, in alphabetical order.
 - **admin**: an eGrant team member. Sees all groups and can manage them. Created by the superadmin.
 - **ADR**: architecture decision record, a short file in `docs/decisions/` that records one decision and why it was made.
 - **API key**: a secret token that eGrant sends with each ticket request to prove who it is.
+- **AppPrompt**: the one card at the bottom of every signed-in screen that asks to install Spolu as an app on a phone, then to turn on notifications on this device, or tells an old iPhone that only email works (`<AppPrompt>`, `features/notifications/app-prompt.tsx`). "Not now" hides it for 6 hours on that device.
 - **bucket**: a column on a task board. Each group has four fixed buckets (To do, eGrant review, client review, Completed) and admins can add custom buckets and reorder every bucket, fixed ones included. Cards can be dragged between and inside buckets.
 - **channel**: a place where messages are posted. In Spolu: a group chat, a direct message chat or a task chat.
 - **client**: a person from a customer organization. Sees only their own group.
@@ -13,7 +14,9 @@ Terms used across the docs and code, in alphabetical order.
 - **deactivated admin**: an admin who was removed. The row is kept with `disabled_at` set; the person cannot log in, gets no codes and loses open sessions and sockets. Adding the same email again reactivates them.
 - **draft contract**: the prepared next contract for a client, with the same fields as a contract.
 - **egrant URL**: the address of a client's eGrant instance, saved on the group. Incoming tickets are matched to a group by it. It is normalized first (case, protocol, trailing slash and similar differences are removed) so that equal addresses compare equal.
+- **email digest**: the batched notification email: one per user and group, sent 10 minutes after the first email-eligible event (3 s in e2e via `EMAIL_BATCH_DELAY_MS`) and only for the messages still unread then, e.g. "3 new messages in <group>" with up to 5 lines. Sent only when the user turned email notifications on.
 - **group**: one client organization with its own chat, task board, tickets and contracts.
+- **group mode**: what one user hears about one group: All messages, Mentions and replies, or Off. Set with the bell in the group header or on the groups page; without a choice it follows the user's "All groups" default, else the role default (clients All messages, admins Mentions and replies).
 - **invite link**: a link an admin copies from a group. A client opens it, enters an email, gets a code and joins that group.
 - **login code**: the 6-digit one-time code sent by email to log in; valid 5 minutes, 3 tries. Also called OTP code.
 - **member**: a user who belongs to a group.
@@ -25,6 +28,7 @@ Terms used across the docs and code, in alphabetical order.
 - **owner walkthrough**: the final check of a phase, where the owner tries the "Done when" items by hand before the phase is marked done.
 - **pending client**: a client who entered an email on an invite link but never signed in (`email_verified` false, empty name). A later invite link moves them to its group; once they sign in they are a normal client.
 - **policy function**: a server function that decides whether a user may see or change a resource; written test-first.
+- **push subscription**: one browser's permission to receive Web Push for one user, stored per device in `push_subscriptions` (endpoint and keys). Created after the browser grants permission, removed at logout or when the push service answers 404/410.
 - **PWA**: progressive web app. The web app can be installed on a phone or desktop and receive push notifications.
 - **read state**: what a user has already read in a channel, and in each thread they started or replied in; used for the unread indicator.
 - **reminder**: a scheduled notification to admins that a contract is about to need attention.

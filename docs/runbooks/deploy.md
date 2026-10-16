@@ -38,6 +38,28 @@ The env file sets `SUPERADMIN_EMAIL` and optionally `SUPERADMIN_NAME` (default: 
 
 Browser push needs a VAPID key pair ([ADR 0013](../decisions/0013-web-push.md)). On your laptop run `pnpm --filter @spolu/server vapid:generate`, put `VAPID_PUBLIC_KEY` and `VAPID_PRIVATE_KEY` into the environment's env file together with `VAPID_SUBJECT` (`mailto:` or `https:` contact), and deploy. Generate once and keep the keys: changing them invalidates every subscription, and users must enable push again. Leaving all three unset turns push off.
 
+## Phase 6 check on real devices
+
+Done at the deferred server-deploy step, on the test server with the VAPID keys set (see above), the owner and one test client. Each item is "Done when" of Phase 6 ([spec](../superpowers/specs/2026-10-16-phase-6-notifications-design.md#done-when)).
+
+- **Desktop browser** (Chrome or Edge, then Firefox):
+  - [ ] Sign in as the client: the "Turn on notifications on this device" banner appears; **Turn on** asks for permission; `/settings` then says "This device: on".
+  - [ ] The admin sends a message in the client's group: a notification appears with the group name and "Name: text"; clicking it opens the message.
+  - [ ] Set the bell to Mentions and replies: a plain message brings nothing, an @mention does. Off: nothing.
+  - [ ] The admin's groups page: the bell on a row and the "All groups:" control change the modes ("Mixed" when they differ).
+  - [ ] Move a task the client created or is assigned to: its creator and assignees get "Moved to …", the mover nothing. A task due in 1-3 days reminds its assignees at 09:00; an urgent one at 08:00, 11:00, 14:00, 17:00 and 20:00.
+  - [ ] Turn on Email in `/settings`, leave the chat, have the admin send 3 messages: about 10 minutes later one email "3 new messages in <group>" arrives (none if the messages were read first).
+  - [ ] `/settings`: change the name (Save, "Saved"); change the email (code to the new address, notice to the old one); a wrong code says so and keeps the step.
+  - [ ] Block notifications in the site settings and reload: `/settings` says "blocked in the browser settings" with the unblock line, and no banner shows.
+- **Android phone** (Chrome):
+  - [ ] Right after sign-in the install card appears; **Install** opens the browser's install dialog (or the card shows the menu steps).
+  - [ ] Open the installed app: the enable banner appears; **Turn on** grants; a message from the admin arrives as a notification with the app closed, and tapping it opens the message.
+  - [ ] "Not now" on either card hides it; it returns after 6 hours.
+- **iPhone** (iOS 16.4 or newer, Safari):
+  - [ ] In Safari, the dark install card appears ("Important: install Spolu to get notifications …") with the Share → Add to Home Screen → open from the icon steps; `/settings` shows the same hint instead of the device line.
+  - [ ] Add to Home Screen, open Spolu from the icon, sign in: the enable banner appears; **Turn on** grants; a message arrives as a notification and opens the message.
+  - [ ] On an iPhone below 16.4 (if one is at hand): the card says iOS is too old and email was turned on; `/settings` shows Email on.
+
 ## GitHub Actions
 
 The workflows in `.github/workflows/` only check out, set up tools, pass settings and call the scripts. Actions are pinned to major versions, except `crazy-max/ghaction-github-runtime` (third party, exposes the cache token to `docker buildx`), which is pinned to a commit SHA.
