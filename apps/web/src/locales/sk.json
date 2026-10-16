@@ -12,7 +12,8 @@
     "groups": "Skupiny",
     "knowledge": "Znalosti",
     "myGroups": "Moje skupiny",
-    "myTickets": "Moje tikety"
+    "myTickets": "Moje tikety",
+    "bulkEmail": "Hromadné e-maily"
   },
   "user": {
     "menu": "Menu účtu",

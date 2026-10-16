@@ -11,7 +11,14 @@ const EMPTY_AUDIENCE = {
 };
 
 function draft(blocks: BulkBlock[], extra: Partial<EditableDraft> = {}): EditableDraft {
-  return { name: 'News', subject: 'Hello', preheader: '', blocks, audience: EMPTY_AUDIENCE, ...extra };
+  return {
+    name: 'News',
+    subject: 'Hello',
+    preheader: '',
+    blocks,
+    audience: EMPTY_AUDIENCE,
+    ...extra,
+  };
 }
 
 describe('draftProblems', () => {

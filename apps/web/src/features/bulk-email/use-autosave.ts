@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { ErrorCodes } from '@spolu/shared';
 import { ApiError } from '@/lib/api';
 
@@ -8,7 +8,8 @@ import { ApiError } from '@/lib/api';
  * `changed`: another admin saved first (409 `changed`), `notDraft`: sending started (409
  * `not_draft`). The last two stop autosaving for good: the editor must reload.
  */
-export type SaveState = 'saved' | 'pending' | 'saving' | 'invalid' | 'error' | 'changed' | 'notDraft';
+export type SaveState =
+  'saved' | 'pending' | 'saving' | 'invalid' | 'error' | 'changed' | 'notDraft';
 
 type Options<D> = {
   draft: D;
@@ -24,14 +25,19 @@ type Options<D> = {
  * saved with the version read last, and the answer's version is used for the next save. A
  * change made while a save runs is saved after it. A conflict is never retried, so another
  * admin's edit is never overwritten silently. A pending change is saved at once on unmount.
+ * Changes made while a save runs wait for it, then for `delay` again.
  */
 export function useAutosave<D>({ draft, version, save, isValid, delay = 1000 }: Options<D>) {
   const serialized = JSON.stringify(draft);
   const [state, setState] = useState<SaveState>('saved');
   const [currentVersion, setCurrentVersion] = useState(version);
+  // Bumped after each save, so the effect below looks again for changes made meanwhile.
+  const [saves, setSaves] = useState(0);
 
   const latest = useRef({ draft, serialized, save, isValid });
-  latest.current = { draft, serialized, save, isValid };
+  useLayoutEffect(() => {
+    latest.current = { draft, serialized, save, isValid };
+  });
   const lastSaved = useRef(serialized);
   const versionRef = useRef(version);
   const inFlight = useRef(false);
@@ -52,9 +58,7 @@ export function useAutosave<D>({ draft, version, save, isValid, delay = 1000 }: 
         versionRef.current = answer.version;
         lastSaved.current = snapshot;
         setCurrentVersion(answer.version);
-        // Edited while saving: the effect below did not schedule, so save the rest now.
-        if (latest.current.serialized !== snapshot) run();
-        else setState('saved');
+        setSaves((n) => n + 1);
       },
       (error: unknown) => {
         inFlight.current = false;
@@ -82,7 +86,7 @@ export function useAutosave<D>({ draft, version, save, isValid, delay = 1000 }: 
     setState('pending');
     timer.current = setTimeout(run, delay);
     return () => clearTimeout(timer.current);
-  }, [serialized, delay, run]);
+  }, [serialized, saves, delay, run]);
 
   // Leaving the editor: save what is still pending (fire and forget).
   useEffect(() => () => run(), [run]);

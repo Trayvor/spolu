@@ -13,7 +13,7 @@ const navLink =
  * The egrant.sk header pill, kept still (no hide-on-scroll). On the left the brand
  * "Spolu by eGrant": the product name as the wordmark, a small "by" and the egrant logo,
  * one link to `/` named by `app.fullName`. On the right, for a signed-in user: the "Home", "Tasks",
- * "Tickets", "Knowledge", "Groups" and "Admins" links (admins only, hidden under 641 px where
+ * "Tickets", "Knowledge", "Groups", "Admins" and "Bulk email" links (admins only, hidden under 641 px where
  * the user menu offers them), "My groups" for a client of several groups (Phase 21), "Tickets"
  * for a requester who is no client anywhere (their whole app) or "My tickets" for a client who
  * also reported tickets elsewhere, the user menu and the language menu.
@@ -60,6 +60,9 @@ export function AppHeader() {
             </Link>
             <Link to="/admins" className={navLink}>
               {t('nav.admins')}
+            </Link>
+            <Link to="/bulk-email" className={navLink}>
+              {t('nav.bulkEmail')}
             </Link>
           </>
         )}

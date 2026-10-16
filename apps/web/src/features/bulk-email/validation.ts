@@ -1,9 +1,4 @@
-import {
-  BULK_LIMITS,
-  BulkBlockSchema,
-  type BulkAudience,
-  type BulkBlock,
-} from '@spolu/shared';
+import { BULK_LIMITS, BulkBlockSchema, type BulkAudience, type BulkBlock } from '@spolu/shared';
 
 /** What the editor holds and saves: the draft without its `version`. */
 export type EditableDraft = {
@@ -77,4 +72,3 @@ export function hasProblems(problems: DraftProblems): boolean {
 export function validBlocks(blocks: BulkBlock[]): BulkBlock[] {
   return blocks.filter((b) => BulkBlockSchema.safeParse(b).success);
 }
-
