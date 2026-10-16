@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { io as connect, type Socket } from 'socket.io-client';
-import type { Group, GroupPerson, GroupSummary, Member, Me } from '@spolu/shared';
+import type { Group, GroupPerson, GroupSummary, ManagersResponse, Member, Me } from '@spolu/shared';
 import { buildTestApp } from '../../../test/test-app.js';
 import { loginAs } from '../../../test/login.js';
 import { groupRoom, userRoom } from '../../infra/realtime/rooms.js';
@@ -93,6 +93,8 @@ describe('groups API', () => {
       hasLogo: false,
       memberCount: 0,
       updatedAt: edited.json<Group>().updatedAt,
+      managers: [],
+      managedByMe: false,
     });
     expect((await call('GET', '/api/groups/nope', cookie)).statusCode).toBe(404);
     expect(
@@ -391,6 +393,61 @@ describe('groups API', () => {
     const adminSockets = await test.app.io.in(userRoom(adminId)).fetchSockets();
     expect(adminSockets).toHaveLength(1);
     expect([...(adminSockets[0]?.rooms ?? [])].filter((r) => r.startsWith('group:'))).toEqual([]);
+  });
+
+  describe('managers', () => {
+    const url = (id: string) => `/api/groups/${id}/managers/me`;
+
+    it('PUT managers/me makes the caller a manager and answers mode all', async () => {
+      const { cookie } = await adminSession();
+      const g = await newGroup();
+      const res = await call('PUT', url(g.id), cookie);
+      expect(res.statusCode).toBe(200);
+      const body = res.json<ManagersResponse>();
+      expect(body.managedByMe).toBe(true);
+      expect(body.mode).toBe('all');
+      expect(body.managers).toEqual([{ id: expect.any(String), name: 'Group Admin' }]);
+      const list = (await call('GET', '/api/groups', cookie)).json<GroupSummary[]>();
+      const row = list.find((x) => x.id === g.id);
+      expect(row?.managedByMe).toBe(true);
+      expect(row?.managers).toEqual(body.managers);
+    });
+
+    it('PUT twice is 200 both times', async () => {
+      const { cookie } = await adminSession();
+      const g = await newGroup();
+      expect((await call('PUT', url(g.id), cookie)).statusCode).toBe(200);
+      const again = await call('PUT', url(g.id), cookie);
+      expect(again.statusCode).toBe(200);
+      expect(again.json<ManagersResponse>().managers).toHaveLength(1);
+    });
+
+    it('DELETE answers managedByMe false and mode mentions', async () => {
+      const { cookie } = await adminSession();
+      const g = await newGroup();
+      await call('PUT', url(g.id), cookie);
+      const res = await call('DELETE', url(g.id), cookie);
+      expect(res.statusCode).toBe(200);
+      expect(res.json<ManagersResponse>()).toEqual({
+        managers: [],
+        managedByMe: false,
+        mode: 'mentions',
+      });
+    });
+
+    it('a client gets 403 on both', async () => {
+      const g = await newGroup();
+      const client = await clientIn(g.id);
+      expect((await call('PUT', url(g.id), client.cookie)).statusCode).toBe(403);
+      expect((await call('DELETE', url(g.id), client.cookie)).statusCode).toBe(403);
+      expect((await call('PUT', url(g.id))).statusCode).toBe(401);
+    });
+
+    it('an unknown group gets 404', async () => {
+      const { cookie } = await adminSession();
+      expect((await call('PUT', url(randomUUID()), cookie)).statusCode).toBe(404);
+      expect((await call('DELETE', url(randomUUID()), cookie)).statusCode).toBe(404);
+    });
   });
 
   describe('logo', () => {

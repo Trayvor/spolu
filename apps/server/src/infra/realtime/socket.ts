@@ -4,10 +4,11 @@ import { SocketEvents, type GroupJoinAck, type PingAck, type SessionUser } from 
 import { getSessionFromHeaders } from '../../modules/auth/session.js';
 import type { Auth } from '../../modules/auth/auth.js';
 import type { Config } from '../config/config.js';
+import { isAdmin } from '../../modules/users/policy.js';
 import { canReadGroup } from '../../modules/groups/policy.js';
 import { getGroup, getMembershipGroupId } from '../../modules/groups/service.js';
 import type { Db } from '../db/client.js';
-import { groupRoom, sessionRoom, userRoom } from './rooms.js';
+import { ADMINS_ROOM, groupRoom, sessionRoom, userRoom } from './rooms.js';
 
 declare module 'socket.io' {
   interface SocketData {
@@ -58,6 +59,7 @@ export function attachSocket(
       socket.data.sessionId = found.sessionId;
       socket.data.wantedGroups = new Set();
       const rooms = [userRoom(found.user.id), sessionRoom(found.sessionId)];
+      if (isAdmin(found.user)) rooms.push(ADMINS_ROOM);
       // A client joins their group's room; admins join group rooms with `group:join`.
       if (found.user.role === 'client') {
         const groupId = await getMembershipGroupId(db, found.user.id);

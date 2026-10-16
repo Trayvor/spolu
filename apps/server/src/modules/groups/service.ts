@@ -1,13 +1,13 @@
 import { randomBytes, randomUUID } from 'node:crypto';
 import { and, asc, eq, inArray, isNotNull, isNull, or, sql } from 'drizzle-orm';
 import { unionAll } from 'drizzle-orm/pg-core';
-import type { GroupInput, GroupPerson, GroupSummary, Member } from '@spolu/shared';
+import type { GroupInput, GroupManager, GroupPerson, GroupSummary, Member } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
 import { isUniqueViolation } from '../../infra/db/errors.js';
 import { user } from '../users/schema.js';
 import { createUnverifiedClient, findUserByEmail, type UserRow } from '../users/service.js';
 import { normalizeEgrantUrl } from './egrant-url.js';
-import { groupMembers, groups } from './schema.js';
+import { groupManagers, groupMembers, groups } from './schema.js';
 
 export type GroupRow = typeof groups.$inferSelect;
 
@@ -41,10 +41,28 @@ function normalizedOrThrow(url: string): string {
   return normalized;
 }
 
-// Deliberate read-only exception to "no other module's tables": the member count and member list
-// join the users table in one query (no N+1). Writes to users go through the users service.
-/** Groups by name with the number of verified, active clients. */
-export async function listGroups(db: Db): Promise<GroupSummary[]> {
+// Deliberate read-only exception to "no other module's tables": the member count, the managers and
+// the member list join the users table in one query (no N+1). Writes to users go through the users service.
+/**
+ * Groups by name with the number of verified, active clients, the active admins who manage them
+ * and whether `viewerId` is one. The managers are aggregated per group first, so they cannot
+ * multiply the member rows.
+ */
+export async function listGroups(db: Db, viewerId: string): Promise<GroupSummary[]> {
+  const managerAgg = db
+    .select({
+      groupId: groupManagers.groupId,
+      managers: sql<
+        GroupManager[]
+      >`jsonb_agg(jsonb_build_object('id', ${user.id}, 'name', ${user.name}) order by ${user.name}, ${user.id})`.as(
+        'managers',
+      ),
+      managedByMe: sql<boolean>`bool_or(${groupManagers.userId} = ${viewerId})`.as('managed_by_me'),
+    })
+    .from(groupManagers)
+    .innerJoin(user, and(eq(user.id, groupManagers.userId), isActiveAdmin))
+    .groupBy(groupManagers.groupId)
+    .as('manager_agg');
   const rows = await db
     .select({
       id: groups.id,
@@ -52,11 +70,14 @@ export async function listGroups(db: Db): Promise<GroupSummary[]> {
       hasLogo: sql<boolean>`${groups.logoKey} is not null`,
       memberCount: sql<number>`count(${user.id})::int`,
       updatedAt: groups.updatedAt,
+      managers: sql<GroupManager[]>`coalesce(${managerAgg.managers}, '[]'::jsonb)`,
+      managedByMe: sql<boolean>`coalesce(${managerAgg.managedByMe}, false)`,
     })
     .from(groups)
     .leftJoin(groupMembers, eq(groupMembers.groupId, groups.id))
     .leftJoin(user, and(eq(user.id, groupMembers.userId), isActiveVerifiedClient()))
-    .groupBy(groups.id)
+    .leftJoin(managerAgg, eq(managerAgg.groupId, groups.id))
+    .groupBy(groups.id, managerAgg.managers, managerAgg.managedByMe)
     .orderBy(asc(groups.name), asc(groups.id));
   return rows.map((row) => ({ ...row, updatedAt: row.updatedAt.toISOString() }));
 }
