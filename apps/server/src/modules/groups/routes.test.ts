@@ -1,13 +1,23 @@
 import { randomUUID } from 'node:crypto';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { io as connect, type Socket } from 'socket.io-client';
-import type { Group, GroupPerson, GroupSummary, ManagersResponse, Member, Me } from '@spolu/shared';
+import type {
+  Group,
+  GroupManagersResponse,
+  GroupPerson,
+  GroupSummary,
+  ManagersResponse,
+  Member,
+  Me,
+  SessionUser,
+} from '@spolu/shared';
 import { buildTestApp } from '../../../test/test-app.js';
 import { managerRateLimit } from './routes.js';
 import { loginAs } from '../../../test/login.js';
 import { groupRoom, userRoom } from '../../infra/realtime/rooms.js';
 import { user } from '../users/schema.js';
-import { addAdmin } from '../users/service.js';
+import { addAdmin, deactivateUser } from '../users/service.js';
+import { getEffectiveGroupMode } from '../notifications/modes.js';
 import { addMember, createGroup, getGroup, regenerateInvite } from './service.js';
 import { groupMembers } from './schema.js';
 import { eq } from 'drizzle-orm';
@@ -546,6 +556,114 @@ describe('groups API', () => {
       const { cookie } = await adminSession();
       expect((await call('PUT', url(randomUUID()), cookie)).statusCode).toBe(404);
       expect((await call('DELETE', url(randomUUID()), cookie)).statusCode).toBe(404);
+    });
+  });
+
+  describe('PUT/DELETE /groups/:id/managers/:userId', () => {
+    const url = (id: string, userId: string) => `/api/groups/${id}/managers/${userId}`;
+    const asSession = (a: { id: string; email: string; name: string }): SessionUser => ({
+      ...a,
+      role: 'admin',
+    });
+    const otherAdmin = async () =>
+      addAdmin(test.deps.db, { email: newEmail(), name: 'Other Admin' });
+    /** Counts the `group:managers` emits for this group while `run` runs. */
+    const managerEmits = async (groupId: string, run: () => Promise<unknown>) => {
+      const spy = vi.spyOn(test.app.io, 'to');
+      try {
+        await run();
+        return spy.mock.calls.filter(([rooms]) =>
+          Array.isArray(rooms) ? rooms.includes(groupRoom(groupId)) : false,
+        ).length;
+      } finally {
+        spy.mockRestore();
+      }
+    };
+
+    it('an admin makes another admin a manager and the event goes out', async () => {
+      const { cookie } = await adminSession();
+      const target = await otherAdmin();
+      const g = await newGroup();
+      let res: Awaited<ReturnType<typeof call>> | undefined;
+      const emits = await managerEmits(g.id, async () => {
+        res = await call('PUT', url(g.id, target.id), cookie);
+      });
+      expect(res?.statusCode).toBe(200);
+      expect(res?.json<GroupManagersResponse>()).toEqual({
+        managers: [{ id: target.id, name: 'Other Admin' }],
+      });
+      expect(emits).toBe(1);
+      expect(await getEffectiveGroupMode(test.deps.db, asSession(target), g.id)).toBe('all');
+    });
+
+    it('adding twice is 200 with no second event', async () => {
+      const { cookie } = await adminSession();
+      const target = await otherAdmin();
+      const g = await newGroup();
+      await call('PUT', url(g.id, target.id), cookie);
+      let res: Awaited<ReturnType<typeof call>> | undefined;
+      const emits = await managerEmits(g.id, async () => {
+        res = await call('PUT', url(g.id, target.id), cookie);
+      });
+      expect(res?.statusCode).toBe(200);
+      expect(res?.json<GroupManagersResponse>().managers).toHaveLength(1);
+      expect(emits).toBe(0);
+    });
+
+    it("an admin removes another admin and the target's mode returns to the default", async () => {
+      const { cookie } = await adminSession();
+      const target = await otherAdmin();
+      const g = await newGroup();
+      await call('PUT', url(g.id, target.id), cookie);
+      const res = await call('DELETE', url(g.id, target.id), cookie);
+      expect(res.statusCode).toBe(200);
+      expect(res.json<GroupManagersResponse>()).toEqual({ managers: [] });
+      expect(await getEffectiveGroupMode(test.deps.db, asSession(target), g.id)).toBe('mentions');
+    });
+
+    it('removing the viewer by id resets their own mode as /me does', async () => {
+      const { cookie } = await adminSession();
+      const me = (await call('GET', '/api/me', cookie)).json<Me>();
+      const g = await newGroup();
+      await call('PUT', url(g.id, me.id), cookie);
+      expect((await call('DELETE', url(g.id, me.id), cookie)).statusCode).toBe(200);
+      const session: SessionUser = { id: me.id, email: me.email, name: me.name, role: 'admin' };
+      expect(await getEffectiveGroupMode(test.deps.db, session, g.id)).toBe('mentions');
+    });
+
+    it('a client gets 403, an anonymous caller 401', async () => {
+      const g = await newGroup();
+      const client = await clientIn(g.id);
+      const target = await otherAdmin();
+      expect((await call('PUT', url(g.id, target.id), client.cookie)).statusCode).toBe(403);
+      expect((await call('DELETE', url(g.id, target.id), client.cookie)).statusCode).toBe(403);
+      expect((await call('PUT', url(g.id, target.id))).statusCode).toBe(401);
+    });
+
+    it('a client or a disabled admin as the target gets 403', async () => {
+      const { cookie } = await adminSession();
+      const g = await newGroup();
+      const client = await clientIn(g.id);
+      const disabled = await otherAdmin();
+      await deactivateUser(test.deps.db, disabled.id);
+      expect((await call('PUT', url(g.id, client.id), cookie)).statusCode).toBe(403);
+      expect((await call('PUT', url(g.id, disabled.id), cookie)).statusCode).toBe(403);
+      expect((await call('PUT', url(g.id, randomUUID()), cookie)).statusCode).toBe(403);
+    });
+
+    it('an unknown group gets 404', async () => {
+      const { cookie } = await adminSession();
+      const target = await otherAdmin();
+      expect((await call('PUT', url(randomUUID(), target.id), cookie)).statusCode).toBe(404);
+      expect((await call('DELETE', url(randomUUID(), target.id), cookie)).statusCode).toBe(404);
+    });
+
+    it('the /me routes still answer with managedByMe and mode', async () => {
+      const { cookie } = await adminSession();
+      const g = await newGroup();
+      const res = await call('PUT', `/api/groups/${g.id}/managers/me`, cookie);
+      expect(res.statusCode).toBe(200);
+      expect(res.json<ManagersResponse>()).toMatchObject({ managedByMe: true, mode: 'all' });
     });
   });
 

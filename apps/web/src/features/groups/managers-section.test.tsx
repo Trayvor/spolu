@@ -1,13 +1,7 @@
-import { beforeAll, describe, expect, it } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import {
-  RouterProvider,
-  createMemoryHistory,
-  createRootRoute,
-  createRoute,
-  createRouter,
-} from '@tanstack/react-router';
 import type { GroupPerson, Me } from '@spolu/shared';
 import { setLanguage } from '@/i18n';
 import { sessionQuery } from '@/features/auth/use-session';
@@ -27,35 +21,54 @@ const PEOPLE: GroupPerson[] = [
   { id: 'c1', name: 'Anna Nováková', isAdmin: false, isManager: false },
   { id: 'm1', name: 'Mira Kováčová', isAdmin: true, isManager: true },
   { id: 'a2', name: 'Boris Kováč', isAdmin: true, isManager: false },
+  { id: 'a3', name: 'Adam Bystrý', isAdmin: true, isManager: false },
 ];
 
-async function renderSection(people: GroupPerson[], me: Me) {
-  const client = new QueryClient({ defaultOptions: { queries: { staleTime: Infinity } } });
+type Call = { method: string; url: string };
+
+/** Renders the section with `people` loaded; manager writes answer 200 (or `status`). */
+async function renderSection(people: GroupPerson[], me: Me, status = 200) {
+  const calls: Call[] = [];
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (url: string, init?: RequestInit) => {
+      calls.push({ method: init?.method ?? 'GET', url });
+      if (url.startsWith('/api/groups/g1/managers/')) {
+        return new Response(JSON.stringify(status === 200 ? { managers: [] } : {}), { status });
+      }
+      if (url === '/api/groups/g1/people') return new Response(JSON.stringify(people));
+      return new Response('{}', { status: 404 });
+    }),
+  );
+  const client = new QueryClient({
+    defaultOptions: { queries: { staleTime: Infinity, retry: false } },
+  });
   client.setQueryData(groupPeopleQuery('g1').queryKey, people);
   client.setQueryData(sessionQuery.queryKey, me);
-  const root = createRootRoute({ component: () => <ManagersSection groupId="g1" /> });
-  const groups = createRoute({ getParentRoute: () => root, path: '/groups' });
-  const router = createRouter({
-    routeTree: root.addChildren([groups]),
-    history: createMemoryHistory({ initialEntries: ['/'] }),
-  });
   render(
     <QueryClientProvider client={client}>
-      <RouterProvider router={router} />
+      <ManagersSection groupId="g1" />
     </QueryClientProvider>,
   );
-  await waitFor(() => expect(router.state.status).toBe('idle'));
   await screen.findByRole('heading', { name: 'eGrant managers' });
+  return calls;
 }
+
+const writes = (calls: Call[]) => calls.filter((c) => c.method !== 'GET');
 
 beforeAll(async () => {
   await setLanguage('en');
 });
 
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
+
 describe('ManagersSection', () => {
   it('lists managers with avatars', async () => {
     await renderSection(PEOPLE, CLIENT);
-    const items = screen.getAllByRole('listitem');
+    const list = screen.getByRole('list', { name: 'eGrant managers' });
+    const items = within(list).getAllByRole('listitem');
     expect(items).toHaveLength(1);
     expect(items[0]).toHaveTextContent('Mira Kováčová');
     expect(within(items[0]!).getByText('MK')).toHaveAttribute('aria-hidden', 'true');
@@ -72,16 +85,76 @@ describe('ManagersSection', () => {
     expect(screen.queryByRole('listitem')).toBeNull();
   });
 
-  it('admins see the Groups page link, clients do not', async () => {
+  it('the Groups page link is gone', async () => {
     await renderSection(PEOPLE, ADMIN);
-    expect(screen.getByRole('link', { name: 'Change on the Groups page' })).toHaveAttribute(
-      'href',
-      '/groups',
+    expect(screen.queryByRole('link')).toBeNull();
+    expect(screen.queryByText('Change on the Groups page')).toBeNull();
+  });
+
+  it('a client sees neither Add manager nor Remove', async () => {
+    await renderSection(PEOPLE, CLIENT);
+    expect(screen.queryByRole('button', { name: /Add manager/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Remove/ })).toBeNull();
+  });
+
+  it('an admin adds a manager from the admins who are not managers, by name', async () => {
+    const user = userEvent.setup();
+    const calls = await renderSection(PEOPLE, ADMIN);
+    await user.click(screen.getByRole('button', { name: 'Add manager' }));
+    const menu = await screen.findByRole('menu');
+    const items = within(menu).getAllByRole('menuitem');
+    expect(items.map((i) => i.textContent)).toEqual(['Adam Bystrý', 'Boris Kováč']);
+    await user.click(within(menu).getByRole('menuitem', { name: 'Boris Kováč' }));
+    await waitFor(() =>
+      expect(writes(calls)).toEqual([{ method: 'PUT', url: '/api/groups/g1/managers/a2' }]),
     );
   });
 
-  it('clients do not see the Groups page link', async () => {
-    await renderSection(PEOPLE, CLIENT);
-    expect(screen.queryByRole('link', { name: 'Change on the Groups page' })).toBeNull();
+  it('when every admin manages the group, the menu says so', async () => {
+    const user = userEvent.setup();
+    await renderSection(
+      PEOPLE.map((p) => (p.isAdmin ? { ...p, isManager: true } : p)),
+      ADMIN,
+    );
+    await user.click(screen.getByRole('button', { name: 'Add manager' }));
+    expect(
+      await screen.findByText('Every administrator already manages this group.'),
+    ).toBeInTheDocument();
+  });
+
+  it('with more than 8 candidates the menu has a search field', async () => {
+    const user = userEvent.setup();
+    const many: GroupPerson[] = Array.from({ length: 9 }, (_, i) => ({
+      id: `x${i}`,
+      name: i === 4 ? 'Lúčka Zelená' : `Admin ${i}`,
+      isAdmin: true,
+      isManager: false,
+    }));
+    await renderSection(many, ADMIN);
+    await user.click(screen.getByRole('button', { name: 'Add manager' }));
+    const find = await screen.findByRole('searchbox', { name: 'Find an administrator' });
+    await user.type(find, 'luc');
+    const menu = screen.getByRole('menu');
+    expect(
+      within(menu)
+        .getAllByRole('menuitem')
+        .map((i) => i.textContent),
+    ).toEqual(['Lúčka Zelená']);
+  });
+
+  it('Remove on a manager row sends DELETE for that admin', async () => {
+    const user = userEvent.setup();
+    const calls = await renderSection(PEOPLE, ADMIN);
+    await user.click(screen.getByRole('button', { name: 'Remove Mira Kováčová' }));
+    await waitFor(() =>
+      expect(writes(calls)).toEqual([{ method: 'DELETE', url: '/api/groups/g1/managers/m1' }]),
+    );
+  });
+
+  it('a failed change shows the error', async () => {
+    const user = userEvent.setup();
+    await renderSection(PEOPLE, ADMIN, 500);
+    await user.click(screen.getByRole('button', { name: 'Remove Mira Kováčová' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Could not change it. Try again.');
   });
 });

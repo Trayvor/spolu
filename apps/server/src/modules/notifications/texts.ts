@@ -1,4 +1,4 @@
-import type { BucketLabel, UserLanguage } from '@spolu/shared';
+import type { BucketLabel, TicketStatus, UserLanguage } from '@spolu/shared';
 
 /** Server-side copy for push and email, in the user's language. */
 export type Texts = {
@@ -15,6 +15,25 @@ export type Texts = {
   reminderLine(title: string, time: string): string;
   /** The SUMMARY of a task's all-day deadline event in the calendar export. */
   deadlineEvent(title: string): string;
+  /** Ticket notifications (Phase 21): push titles, the digest topic and button. */
+  ticketNew(number: number, client: string): string;
+  ticketUnassigned(number: number): string;
+  ticketStatus(number: number, status: TicketStatus): string;
+  ticketUpdated(number: number): string;
+  ticketTasks(number: number, count: number): string;
+  ticketTopic(number: number): string;
+  openTicket: string;
+};
+
+const EN_STATUS: Record<TicketStatus, string> = {
+  new: 'New',
+  in_progress: 'In progress',
+  resolved: 'Resolved',
+};
+const SK_STATUS: Record<TicketStatus, string> = {
+  new: 'Nový',
+  in_progress: 'V riešení',
+  resolved: 'Vyriešený',
 };
 
 const en: Texts = {
@@ -43,6 +62,13 @@ const en: Texts = {
   reminderDue: (time) => `Reminder for ${time}`,
   reminderLine: (title, time) => `Reminder: ${title}, ${time}`,
   deadlineEvent: (title) => `Deadline: ${title}`,
+  ticketNew: (n, client) => `New ticket #${n} · ${client}`,
+  ticketUnassigned: (n) => `New ticket #${n} without client`,
+  ticketStatus: (n, status) => `#${n} is now ${EN_STATUS[status] ?? status}`,
+  ticketUpdated: (n) => `#${n} was changed`,
+  ticketTasks: (n, c) => `#${n} turned into ${c} ${c === 1 ? 'task' : 'tasks'}`,
+  ticketTopic: (n) => `Ticket #${n}`,
+  openTicket: 'Open ticket',
 };
 
 function skMessages(n: number): string {
@@ -77,6 +103,14 @@ const sk: Texts = {
   reminderDue: (time) => `Pripomienka na ${time}`,
   reminderLine: (title, time) => `Pripomienka: ${title}, ${time}`,
   deadlineEvent: (title) => `Termín: ${title}`,
+  ticketNew: (n, client) => `Nový tiket #${n} · ${client}`,
+  ticketUnassigned: (n) => `Nový tiket #${n} bez klienta`,
+  ticketStatus: (n, status) => `#${n} je teraz ${SK_STATUS[status] ?? status}`,
+  ticketUpdated: (n) => `#${n} bol zmenený`,
+  ticketTasks: (n, c) =>
+    `#${n} rozdelený na ${c} ${c === 1 ? 'úlohu' : c >= 2 && c <= 4 ? 'úlohy' : 'úloh'}`,
+  ticketTopic: (n) => `Tiket #${n}`,
+  openTicket: 'Otvoriť tiket',
 };
 
 export function texts(lang: UserLanguage): Texts {

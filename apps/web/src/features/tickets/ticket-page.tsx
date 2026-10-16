@@ -6,7 +6,9 @@ import type { Me, TicketDto } from '@spolu/shared';
 import { Button } from '@/components/ui/button';
 import { clientGroups, isAdmin } from '@/features/auth/roles';
 import { useSession } from '@/features/auth/use-session';
+import { ApiError } from '@/lib/api';
 import { useMediaQuery } from '@/lib/use-media-query';
+import { NotFoundPage } from '@/routes/not-found';
 import { ticketQuery } from './api';
 import { AssignClient } from './assign-client';
 import { ChevronDown } from './icons';
@@ -27,14 +29,18 @@ export function TicketPageRoute() {
  * 1024 px two columns, the details on the left (text, fields, client, followers, tasks) and the
  * ticket chat filling the rest of the window on the right. Below 1024 px the details fold into a
  * summary above the chat. A ticket without a client shows "No client yet" (with Assign client
- * for admins) and no chat. Admins change the status, the fields and the client in place.
+ * for admins) and no chat. Admins change the status, the fields and the client in place. A ticket
+ * that answers 404 later (moved to a client the viewer cannot read) shows the not-found page.
  */
 export function TicketPage({ ticketId }: { ticketId: string }) {
   const { t } = useTranslation();
   const me = useSession();
-  const { data: ticket } = useQuery(ticketQuery(ticketId));
+  const { data: cached, error } = useQuery(ticketQuery(ticketId));
   const wide = useMediaQuery('(min-width: 1024px)');
   useTicketEvents(null);
+  // Moved out of the viewer's reach while open: never keep showing the old ticket.
+  if (error instanceof ApiError && error.status === 404) return <NotFoundPage />;
+  const ticket = cached;
   if (!ticket || !me) return null;
 
   const admin = isAdmin(me);

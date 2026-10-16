@@ -129,6 +129,30 @@ describe('ClientFilter', () => {
     expect(onChange).toHaveBeenLastCalledWith(null);
   });
 
+  it('the reset sits in the filter row, not in the chips row', () => {
+    const { container, unmount } = render(
+      <Harness managedIds={['g1']} initial={['g1', 'g2', 'g3', 'g4']} />,
+    );
+    const reset = screen.getByRole('button', { name: t('knowledge.clientFilter.reset') });
+    expect(container.querySelector('.basis-full')).toBeNull();
+    expect(reset).toHaveClass('order-1');
+    expect(reset.parentElement).toBe(container);
+    unmount();
+
+    const chosen = render(<Harness managedIds={['g1']} initial={['g1', 'g3']} />);
+    const chipsRow = chosen.container.querySelector('.basis-full');
+    expect(chipsRow).not.toBeNull();
+    const again = screen.getByRole('button', { name: t('knowledge.clientFilter.reset') });
+    expect(chipsRow?.contains(again)).toBe(false);
+    expect(again.parentElement).toBe(chosen.container);
+  });
+
+  it('no reset and no chips row on the default scope of every client', () => {
+    const { container } = render(<Harness managedIds={null} />);
+    expect(screen.queryByRole('button', { name: t('knowledge.clientFilter.reset') })).toBeNull();
+    expect(container.querySelector('.basis-full')).toBeNull();
+  });
+
   it('Only my clients and All clients', async () => {
     const user = userEvent.setup();
     const onChange = vi.fn();

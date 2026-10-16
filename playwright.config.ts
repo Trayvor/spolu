@@ -44,6 +44,8 @@ export default defineConfig({
       // Every e2e browser logs in from 127.0.0.1: the production limit of 10 a minute would
       // refuse codes once the parallel specs log in more than that.
       LOGIN_CODES_PER_MINUTE: '200',
+      // The same for invite-link joins, which the specs post from 127.0.0.1 too.
+      JOIN_REQUESTS_PER_MINUTE: '200',
       PORT: String(PORT),
       PUBLIC_URL: baseURL,
       DATABASE_URL: process.env.DATABASE_URL ?? 'postgres://spolu:spolu@localhost:5432/spolu_e2e',

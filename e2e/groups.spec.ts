@@ -115,3 +115,46 @@ test('admin creates a group, a client joins by invite and is removed', async ({
   await expect(client).toHaveURL(/\/login/);
   await clientContext.close();
 });
+
+// Phase 22a: the Groups page's manager filter, order and count.
+test('the Groups page filters by manager and shows the count', async ({ page }) => {
+  const stamp = Date.now();
+  const mine = `E2E Filter Mine ${stamp}`;
+  const other = `E2E Filter Other ${stamp}`;
+  const ids: string[] = [];
+  for (const [name, host] of [
+    [mine, `e2e-filter-mine-${stamp}`],
+    [other, `e2e-filter-other-${stamp}`],
+  ] as const) {
+    const created = await page.request.post('/api/groups', {
+      data: { name, egrantUrl: `https://${host}.egrant.sk` },
+    });
+    expect(created.status()).toBe(201);
+    ids.push(((await created.json()) as { id: string }).id);
+  }
+  expect((await page.request.put(`/api/groups/${ids[0]}/managers/me`)).ok()).toBe(true);
+
+  const groupRow = (name: string) =>
+    page.locator('a[href^="/groups/"]:not([href$="/chat"])', { hasText: name });
+  const count = page.locator('[data-group-count]');
+
+  await page.goto('/groups');
+  await expect(groupRow(mine)).toBeVisible();
+  await expect(groupRow(other)).toBeVisible();
+  await expect(count).toHaveText(/^\d+$/);
+
+  await page.getByRole('button', { name: 'Správca: Všetci' }).click();
+  await page.getByRole('menuitemradio', { name: 'Ja' }).click();
+  await expect(page).toHaveURL(/\?manager=me$/);
+  await expect(groupRow(mine)).toBeVisible();
+  await expect(groupRow(other)).toHaveCount(0);
+  await expect(count).toHaveText(/^\d+ z \d+$/);
+
+  // "Členovia: N" opens the group's Members tab.
+  await page
+    .getByRole('listitem')
+    .filter({ has: groupRow(mine) })
+    .getByRole('link', { name: /^Členovia: \d+$/ })
+    .click();
+  await expect(page).toHaveURL(new RegExp(`/groups/${ids[0]}/members$`));
+});

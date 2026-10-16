@@ -21,7 +21,13 @@ Design: [Phase 21 spec](../superpowers/specs/2026-10-16-phase-21-tickets-and-req
 - **"Ticket created" email.** The initiator gets one email per ticket (in their language) with the number, the subject, the first lines of the text and **Open the ticket**, which goes through the code login to `/tickets/<id>`. It is sent whatever the notification settings, never twice (not on a later move), and not when the initiator created the ticket themselves.
 - **Statuses**: New, In progress, Resolved. Only admins change the status and the fields; resolving records the time, reopening clears it.
 - **Assign or move the client** (admins). The initiator is found again for the new client and the "Ticket created" email goes if it never went. Followers who cannot read the ticket in the new client are dropped. A ticket with tasks cannot move (`409 has_tasks`): its tasks live on that client's board.
-- **Following.** The initiator, the client's managers and the admin who created the ticket by hand follow it from the start. Anyone who reads a ticket can follow or stop following it. Notifications to followers come in part 21.6 (through the `tickets` notification group of brief item C).
+- **Following.** The initiator, the client's managers and the admin who created the ticket by hand follow it from the start. Anyone who reads a ticket can follow or stop following it.
+- **Notifications** (part 21.6, through the **Ticket board** notification group, by default email and push, whatever the group's bell mode; see [notifications](notifications.md)):
+  - a new ticket, or one that gets or changes its client: the client's managers ("New ticket #123 · <client>"); a ticket without a client: every admin ("New ticket #123 without client");
+  - a chat message (also a thread reply): the followers ("#123 <subject>", "Jana: text");
+  - a status change, a field change, turning into tasks: the followers ("#123 is now In progress", "#123 was changed", "#123 turned into 2 tasks");
+  - someone named in the ticket chat who reads the ticket gets it even without following;
+  - only followers who can still read the ticket, never the person who made the change; every notification opens `/tickets/<id>`, and the email batches one email per ticket.
 - **Who sees what**:
 
   | | admin | client of the group | ziadatel of the group |
@@ -46,4 +52,4 @@ Design: [Phase 21 spec](../superpowers/specs/2026-10-16-phase-21-tickets-and-req
 
 ## Phase
 
-Phase 21. Built so far: part 21.1 (memberships), part 21.2 (server core: intake API, manual creation, initiator, "Ticket created" email, statuses and fields, assigning the client, following, lists), part 21.3 (ticket chat, server) and part 21.4 (screens, above, with the ticket upload route, the requesters list and the task line). Parts 21.5–21.7: ticket to tasks, notifications, e2e.
+Phase 21. Built so far: part 21.1 (memberships), part 21.2 (server core: intake API, manual creation, initiator, "Ticket created" email, statuses and fields, assigning the client, following, lists), part 21.3 (ticket chat, server), part 21.4 (screens, above, with the ticket upload route, the requesters list and the task line) and part 21.6 (notifications). Parts 21.5 and 21.7: ticket to tasks, e2e.

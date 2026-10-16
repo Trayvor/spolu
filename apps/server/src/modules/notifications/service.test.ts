@@ -150,7 +150,7 @@ describe('recordNotifications pending state', () => {
 
   it('a disabled user and an unknown kind are delivered at once', async () => {
     expect(await pending('chat.message', {}, { chat: 'both' }, { disabled: true })).toBe(false);
-    expect(await pending('ticket.created', {}, {})).toBe(false);
+    expect(await pending('ticket.bogus', {}, {})).toBe(false);
   });
 });
 

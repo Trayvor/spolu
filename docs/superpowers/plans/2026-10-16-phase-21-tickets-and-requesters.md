@@ -53,7 +53,7 @@ The owner merges them in order #3 → #4 → #6 → #7; GitHub then retargets ea
 
 **Open points the next parts must handle** (also in the "As built" notes of each part below):
 1. *(Done in 21.4: `POST /api/tickets/:id/files`.)* A ziadatel cannot upload files: the upload route `POST /api/groups/:id/files` needs the group. 21.4 either hides the attach button for a ziadatel in the ticket chat, or adds `POST /api/tickets/:id/files` (files of the ticket's group, readable through the ticket chat's file rule). Recommended: the route, it is small.
-2. A ticket chat records no chat notifications yet. 21.6 adds `ticket.message` (followers) and decides mentions: a mention in a ticket chat should notify the mentioned reader as a `tickets` event that links to `/tickets/<id>`.
+2. Done in 21.6: a ticket chat message notifies the followers as `ticket.message`, a mention notifies the named reader as a `tickets` event; both link to `/tickets/<id>`.
 3. *(Done in 21.4.)* The web ticket chat must take its people from `GET /api/channels/:id/people`, not `/api/groups/:id/people` (a ziadatel gets 404 there).
 4. *(Done in 21.4: `MentionItem.ticketId`.)* The admin home "Unread mentions" card and chat message links know only group and task chats; a ticket chat message must link to `/tickets/<id>` (21.4 or 21.6, whichever touches it first).
 5. *(Done in 21.4.)* `/` for a person with only ziadatel memberships goes to `/settings` today; 21.4 changes it to `/tickets` (home route in `apps/web/src/router.tsx`, `clientGroups` in `features/auth/roles.ts`).
@@ -288,7 +288,7 @@ Each branch is cut from the latest `main`. The ticket page of 21.4 renders the c
 - Requesters: `GET /api/groups/:id/requesters` (readers of the group) and `/requesters/removed` (admins); remove and restore use the member routes; a restored requester's sockets no longer join the group room (that was a leak in 21.1's restore).
 - The area filter offers the areas seen in the loaded list (no endpoint). The requester's ticket chat catches up on every socket `connect` (they cannot join the group room).
 - e2e: `e2e/ticket-screens.spec.ts` (intake → requester logs in, sees only their ticket, writes in its chat; admin sets In progress and replies; admin creates a ticket from the group tab and sees the requester on the Members tab). `playwright.config.ts` sets `TICKETS_API_KEY`. 21.7's `e2e/tickets.spec.ts` can build on it.
-- Bundle: initial JS 199.6 kB gzip (+2.1 kB), 0.4 kB under the budget; see `architecture/performance.md`.
+- Bundle: initial JS 199.6 kB gzip (+2.1 kB) on the stacked base; 197.9 kB after merging `main` (21.6, 22a); see `architecture/performance.md`.
 - Not done: screenshots in the PR (the orchestrator runs the e2e and the app).
 
 All tasks start with the `frontend-design` skill. Web tests mock HTTP with the shared schemas of 21.2.
@@ -346,6 +346,15 @@ All tasks start with the `frontend-design` skill. Web tests mock HTTP with the s
 ---
 
 ## Part 21.6 — Following and notifications (spec §4, "What B expects from C")
+
+**As built (2026-10-16, branch `phase-21-6-ticket-notifications`, stacked on 21.3).** No migration. The contract check is in the spec ("Contract check (part 21.6)"). For later parts:
+- `notifyTicketChange(deps, change)` in `tickets/notify.ts`, registered as an `onTicketChange` hook by `registerTicketNotifications()` (in `app.ts`, after `registerTicketChat`). `created` and `moved` → `ticket.created` to the client's managers (`moved` too: "steps 2–3 run for the new group"), or `ticket.unassigned` to every active admin with `groupId` null; `status`, `updated`, `tasks` → followers who still read the ticket; never the actor. Payload `{ ticketId, number, subject, groupId }` plus `status` or `count`.
+- **21.5 must pass `count`**: `TicketChange` gained `count?: number`; run `runTicketChange(deps, { kind: 'tasks', ticket, actorId, count }, log)` after the cards are created.
+- Ticket chat messages: `ChannelKindAccess` gained `messageNotice(db, channel) → { kind, recipients, payload } | null`; the tickets module answers `ticket.message`, the reading followers and `ticketPayload(ticket)`. `sendMessage` records it for every message (replies too; no `chat.message` / `chat.thread_reply` in a ticket chat) and records `chat.mention` for the named people (`@all` = `allRecipients`, the reading followers) with the ticket in the payload. Open point 2 is decided this way: such a mention is a `tickets` event (`notificationGroupOf` maps a `chat.*` payload with `ticketId` to `tickets`), passes every bell mode and opens `/tickets/<id>`. A named follower gets one notification (`ticket.message` ranks 1, `chat.mention` 2).
+- Push: title and body per spec §4 (title "#123 is now In progress", body the subject, and so on; see `docs/product/notifications.md`); url `/tickets/<id>` without a message anchor, tag `ticket:<id>`. Digest: one email per ticket, line `<push title>: <push body>`, button "Open ticket", topic "Ticket #123" ("Tiket #123" in Slovak).
+- `readingFollowerIds` is three queries (followers, `getActiveRoles`, `activeRolesIn`) decided by `canReadTicket`; `assignTicketGroup` uses it to drop followers in one delete.
+- Tests: an intake without a client now notifies every admin of the test database, so tests that make many such tickets give them a client (the intake rate-limit test), and the digest sweep test makes only its own event due.
+- Open point 4 (ticket chat links on the admin home) is not done here: `MentionItem` has no `ticketId` yet; 21.4 (or a follow-up) adds it to `home/mentions.ts` (`channels.ticket_id`) and links the item to `/tickets/<id>`.
 
 ### Task 6.1: Verify the C contract
 

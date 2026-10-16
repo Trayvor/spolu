@@ -70,7 +70,8 @@ const event = (userId: string, kind: string, groupId: string | null) =>
     userId,
     groupId,
     kind,
-    payload: { ticketId: 't1' },
+    // A chat event with `ticketId` is a ticket chat's (Phase 21.6): this one is a group chat's.
+    payload: kind === 'test.ticket' ? { ticketId: 't1' } : { channelId: 'c1' },
   });
 const sentTo = (endpoint: string) => push.sent.filter((s) => s.endpoint === endpoint);
 

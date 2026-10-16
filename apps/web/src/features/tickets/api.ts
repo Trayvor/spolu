@@ -16,6 +16,7 @@ import {
   type TicketListResponse,
   type TicketPatchBody,
 } from '@spolu/shared';
+import { channelPeopleQuery } from '@/features/chat/chat-scope';
 import { apiGet, apiSend } from '@/lib/api';
 
 const enc = encodeURIComponent;
@@ -200,9 +201,15 @@ export function useAssignGroup(id: string) {
       apiSend('PUT', `/tickets/${enc(id)}/group`, { groupId }, TicketDtoSchema),
     onSuccess: (ticket) => {
       queryClient.setQueryData(ticketQuery(ticket.id).queryKey, ticket);
-      // The client changed: group lists gain or lose it, followers may have been dropped.
+      // The client changed: group lists gain or lose it, followers may have been dropped, and
+      // the chat's mention list is the new client's people.
       void queryClient.invalidateQueries({ queryKey: ticketListPrefix });
       void queryClient.invalidateQueries({ queryKey: followersQuery(id).queryKey });
+      if (ticket.channelId) {
+        void queryClient.invalidateQueries({
+          queryKey: channelPeopleQuery(ticket.channelId).queryKey,
+        });
+      }
     },
   });
 }

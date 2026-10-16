@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { and, desc, eq, inArray, isNull, lt, or, sql, type SQL } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNull, lt, notInArray, or, sql, type SQL } from 'drizzle-orm';
 import type {
   MemberRole,
   SessionUser,
@@ -17,7 +17,7 @@ import {
   moveFilesToGroup,
   type FileDeps,
 } from '../files/service.js';
-import { activeMemberOfSql, getMembership } from '../groups/memberships.js';
+import { activeMemberOfSql, activeRolesIn, getMembership } from '../groups/memberships.js';
 import { listGroupManagers, managedGroupIds } from '../groups/managers.js';
 // Deliberate read-only exception: the list joins the group's name in its one query.
 import { groups } from '../groups/schema.js';
@@ -25,7 +25,7 @@ import { getGroup } from '../groups/service.js';
 import { countTasksFromTicket } from '../tasks/task-service.js';
 import { getTicketChannel } from '../chat/service.js';
 import { isAdmin } from '../users/policy.js';
-import { getUserById, getUserNames } from '../users/service.js';
+import { getActiveRoles, getUserById, getUserNames } from '../users/service.js';
 import { canReadTicket } from './policy.js';
 import { resolveRequester } from './requester.js';
 import { ticketAttachments, ticketFollowers, tickets } from './schema.js';
@@ -395,14 +395,6 @@ export async function updateTicket(
   return { ticket: row!, statusChanged, fieldsChanged };
 }
 
-/** Whether a follower still reads the ticket in its group (admins always do). */
-async function followerReads(db: Db, ticket: TicketRow, userId: string): Promise<boolean> {
-  const row = await getUserById(db, userId);
-  if (!row || row.disabledAt) return false;
-  const who = { id: userId, role: row.role } as SessionUser;
-  return actorReadsTicket(db, who, ticket);
-}
-
 /**
  * Gives a ticket its client, or moves it to another one. The initiator is resolved for the new
  * group, auto followers are added and followers who cannot read it there are dropped. A ticket
@@ -432,17 +424,15 @@ export async function assignTicketGroup(
     // The form's files belong to the ticket's client, like its chat's files.
     await moveFilesToGroup(tx, await attachmentIds(tx, id), groupId);
     await addAutoFollowers(tx, moved);
-    const followers = await tx
-      .select({ userId: ticketFollowers.userId })
-      .from(ticketFollowers)
-      .where(eq(ticketFollowers.ticketId, id));
-    for (const f of followers) {
-      if (!(await followerReads(tx, moved, f.userId))) {
-        await tx
-          .delete(ticketFollowers)
-          .where(and(eq(ticketFollowers.ticketId, id), eq(ticketFollowers.userId, f.userId)));
-      }
-    }
+    const readers = await readingFollowerIds(tx, moved);
+    await tx
+      .delete(ticketFollowers)
+      .where(
+        and(
+          eq(ticketFollowers.ticketId, id),
+          readers.length > 0 ? notInArray(ticketFollowers.userId, readers) : undefined,
+        ),
+      );
     return moved;
   });
   return {
@@ -485,13 +475,23 @@ export async function listFollowers(
     .sort((a, b) => a.name.localeCompare(b.name, 'sk') || a.id.localeCompare(b.id));
 }
 
-/** The ids of the followers who can still read the ticket (for notifications, part 21.6). */
+/**
+ * The ids of the followers who can still read the ticket, by `canReadTicket`: not disabled, and an
+ * admin or a member of its group with the right role. Three queries whatever the number of
+ * followers (it runs for every message of the ticket's chat).
+ */
 export async function readingFollowerIds(db: Db, ticket: TicketRow): Promise<string[]> {
   const followers = await db
     .select({ userId: ticketFollowers.userId })
     .from(ticketFollowers)
     .where(eq(ticketFollowers.ticketId, ticket.id));
-  const out: string[] = [];
-  for (const f of followers) if (await followerReads(db, ticket, f.userId)) out.push(f.userId);
-  return out;
+  const ids = followers.map((f) => f.userId);
+  const roles = await getActiveRoles(db, ids);
+  const memberRoles =
+    ticket.groupId === null ? new Map() : await activeRolesIn(db, ticket.groupId, ids);
+  return ids.filter((id) => {
+    const role = roles.get(id);
+    if (role === undefined) return false;
+    return canReadTicket({ id, role } as SessionUser, ticket, memberRoles.get(id) ?? null);
+  });
 }

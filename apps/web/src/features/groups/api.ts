@@ -4,11 +4,13 @@ import {
   GroupInputSchema,
   GroupPersonListSchema,
   GroupSchema,
+  GroupManagersResponseSchema,
   GroupSummaryListSchema,
   ManagersResponseSchema,
   MemberListSchema,
   type Group,
   type GroupInput,
+  type GroupManagersResponse,
   type ManagersResponse,
 } from '@spolu/shared';
 import { apiGet, apiSend, apiSendRaw } from '@/lib/api';
@@ -126,4 +128,17 @@ export function stopManaging(groupId: string): Promise<ManagersResponse> {
     undefined,
     ManagersResponseSchema,
   );
+}
+
+const managerUrl = (groupId: string, userId: string) =>
+  `/groups/${encodeURIComponent(groupId)}/managers/${encodeURIComponent(userId)}`;
+
+/** Make an active admin a manager of the group (admins only, idempotent); answers the managers. */
+export function setManager(groupId: string, userId: string): Promise<GroupManagersResponse> {
+  return apiSend('PUT', managerUrl(groupId, userId), undefined, GroupManagersResponseSchema);
+}
+
+/** Stop an admin managing the group (admins only, idempotent). */
+export function unsetManager(groupId: string, userId: string): Promise<GroupManagersResponse> {
+  return apiSend('DELETE', managerUrl(groupId, userId), undefined, GroupManagersResponseSchema);
 }

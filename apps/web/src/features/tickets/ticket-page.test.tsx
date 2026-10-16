@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RouterProvider, createMemoryHistory } from '@tanstack/react-router';
@@ -142,5 +142,47 @@ describe('ticket page', () => {
     expect(await screen.findByTestId('ticket-chat')).toBeInTheDocument();
     await waitFor(() => expect(calls).toContain('GET /api/channels/ch1/people'));
     expect(calls.some((c) => c.includes('/api/groups/g1/people'))).toBe(false);
+  });
+
+  it('shows the not-found page once the ticket moves out of reach', async () => {
+    let gone = false;
+    renderTicket(CLIENT, ticket(), [
+      (url) =>
+        gone && url.pathname === '/api/tickets/k1' ? reply(404, { error: 'not_found' }) : undefined,
+    ]);
+    await screen.findByRole('heading', { name: 'Cannot submit the application' });
+    gone = true;
+    act(() => socket.fire('ticket:moved', { ticketId: 'k1', groupId: 'g1' }));
+    expect(await screen.findByRole('heading', { name: t('notFound.title') })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Cannot submit the application' })).toBeNull();
+  });
+
+  it('a client change refreshes the chat people of the ticket', async () => {
+    const { calls } = renderTicket(ADMIN, ticket({ channelId: 'ch1' }), [
+      (url) =>
+        url.pathname === '/api/tickets/k1/chat'
+          ? reply(200, { id: 'ch1', lastSeq: 0, lastReadAt: null, unread: 0 })
+          : undefined,
+      (url) =>
+        url.pathname === '/api/channels/ch1/messages'
+          ? reply(200, { messages: [], hasMore: false, lastSeq: 0, lastReadAt: null })
+          : undefined,
+      (url) => (url.pathname === '/api/channels/ch1/people' ? reply(200, []) : undefined),
+      (url) => (url.pathname === '/api/channels/ch1/unread-threads' ? reply(200, []) : undefined),
+      (url, init) =>
+        url.pathname === '/api/tickets/k1/group' && init?.method === 'PUT'
+          ? reply(200, ticket({ channelId: 'ch1', groupId: 'g2', groupName: 'Obec Lúky' }))
+          : undefined,
+    ]);
+    await screen.findByTestId('ticket-chat');
+    await waitFor(() => expect(calls).toContain('GET /api/channels/ch1/people'));
+    const peopleCalls = () => calls.filter((c) => c === 'GET /api/channels/ch1/people').length;
+    const before = peopleCalls();
+    await userEvent.click(screen.getByRole('button', { name: t('tickets.assign.change') }));
+    const choose = screen.getByRole('combobox', { name: t('tickets.assign.moveLabel') });
+    await waitFor(() => expect(within(choose).getByText('Obec Lúky')).toBeInTheDocument());
+    await userEvent.selectOptions(choose, 'g2');
+    await userEvent.click(screen.getByRole('button', { name: t('tickets.assign.move') }));
+    await waitFor(() => expect(peopleCalls()).toBeGreaterThan(before));
   });
 });

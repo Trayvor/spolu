@@ -119,4 +119,42 @@ describe('ticket lists', () => {
     expect(screen.getByText(t('tickets.status.in_progress'))).toBeInTheDocument();
     expect(listCalls()).toBe(before);
   });
+
+  it("My tickets of a client ignores the group's other tickets", async () => {
+    const BOTH = {
+      ...CLIENT,
+      groups: [
+        ...CLIENT.groups,
+        { id: 'g2', name: 'Obec Lúky', role: 'ziadatel', hasLogo: false, updatedAt: '' },
+      ],
+    };
+    const { calls } = mockTicketApi(BOTH, [
+      (url) =>
+        url.pathname === '/api/tickets/mine'
+          ? reply(200, { items: [item({ id: 'k1', subject: 'Mine' })], nextCursor: null })
+          : undefined,
+      (url) =>
+        url.pathname === '/api/tickets/k9'
+          ? reply(
+              200,
+              ticket({
+                id: 'k9',
+                requester: { userId: 'someone', name: 'X', email: null, phone: null },
+              }),
+            )
+          : undefined,
+    ]);
+    renderAt('/tickets');
+    await screen.findByText('Mine');
+    const listCalls = () => calls.filter((c) => c.startsWith('GET /api/tickets/mine')).length;
+    const before = listCalls();
+    act(() => socket.fire('ticket:created', { ticketId: 'k9', groupId: 'g1' }));
+    act(() => socket.fire('ticket:updated', { ticketId: 'k9', groupId: 'g1' }));
+    act(() => socket.fire('ticket:moved', { ticketId: 'k9', groupId: 'g1' }));
+    await waitFor(() =>
+      expect(calls.filter((c) => c === 'GET /api/tickets/k9').length).toBeGreaterThan(0),
+    );
+    await new Promise((r) => setTimeout(r, 50));
+    expect(listCalls()).toBe(before);
+  });
 });

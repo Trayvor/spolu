@@ -33,15 +33,15 @@ export function SidebarFrame({
   collapsed: boolean;
   children: React.ReactNode;
 }) {
+  // `contain: size` keeps the sidebar out of the row's height: a long client list must never
+  // make the row (and the chat card that fills it) taller than the window. The column still
+  // stretches to the row, and the sidebar scrolls inside it.
   return (
-    <aside
-      className={cn(
-        'sticky top-4 flex max-h-[calc(100dvh-2rem)] shrink-0 flex-col gap-3 self-start overflow-y-auto rounded-xl bg-card p-2',
-        collapsed ? 'w-14' : 'w-[232px]',
-      )}
-    >
-      {children}
-    </aside>
+    <div className={cn('shrink-0 [contain:size]', collapsed ? 'w-14' : 'w-[232px]')}>
+      <aside className="sticky top-4 flex max-h-[min(100%,calc(100dvh-2rem))] flex-col gap-3 overflow-y-auto rounded-xl bg-card p-2">
+        {children}
+      </aside>
+    </div>
   );
 }
 
