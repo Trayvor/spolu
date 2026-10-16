@@ -5,8 +5,11 @@ import {
   IdSchema,
   KNOWLEDGE_LIMITS,
   KnowledgeDraftSchema,
+  KnowledgeFolderDraftSchema,
+  KnowledgeFolderPatchSchema,
   KnowledgePatchSchema,
   KnowledgeTypeListSchema,
+  type KnowledgeFolderList,
   type KnowledgeScope,
   type SessionUser,
 } from '@spolu/shared';
@@ -23,15 +26,24 @@ import {
   NotReadableError,
   ReminderInPastError,
 } from '../reminders/errors.js';
-import { emitKnowledgeDeleted, emitKnowledgeItem } from './events.js';
+import {
+  emitKnowledgeDeleted,
+  emitKnowledgeFolder,
+  emitKnowledgeFolderDeleted,
+  emitKnowledgeItem,
+} from './events.js';
+import { createFolder, deleteFolder, listFolders, updateFolder } from './folders.js';
 import { managedGroupIdsOf } from './scope.js';
 import {
   createItem,
   deleteItem,
+  FolderLimitError,
   getItem,
+  InvalidFolderError,
   InvalidUrlError,
   InvalidVisibilityError,
   KnowledgeChangedError,
+  KnowledgeFolderNotFoundError,
   KnowledgeForbiddenError,
   KnowledgeNotFoundError,
   listAllItems,
@@ -53,7 +65,11 @@ const filters = {
   q: z.string().max(200).optional(),
   cursor: z.string().max(200).optional(),
 };
-const GroupListQuerySchema = z.object(filters);
+/** `folder`: the items directly in that folder, or `root` for the top level; absent: all. */
+const GroupListQuerySchema = z.object({
+  ...filters,
+  folder: z.union([z.literal('root'), IdSchema]).optional(),
+});
 /** `clients`: comma-separated group ids, at most 200. */
 const GlobalListQuerySchema = z.object({
   ...filters,
@@ -82,9 +98,15 @@ function bodyErrorCode(error: ZodError): string {
 
 /** Maps the expected service errors; anything else is rethrown (500). */
 export function knowledgeError(reply: FastifyReply, error: unknown): FastifyReply {
-  if (error instanceof KnowledgeNotFoundError || error instanceof NotReadableError) {
+  if (
+    error instanceof KnowledgeNotFoundError ||
+    error instanceof KnowledgeFolderNotFoundError ||
+    error instanceof NotReadableError
+  ) {
     return notFound(reply);
   }
+  if (error instanceof InvalidFolderError) return send(reply, 400, ErrorCodes.invalidFolder);
+  if (error instanceof FolderLimitError) return send(reply, 400, ErrorCodes.folderLimit);
   if (error instanceof NoReminderSetError) return send(reply, 404, ErrorCodes.noReminderSet);
   if (error instanceof KnowledgeForbiddenError) return send(reply, 403, ErrorCodes.forbidden);
   if (error instanceof KnowledgeChangedError) return send(reply, 409, ErrorCodes.knowledgeChanged);
@@ -127,9 +149,13 @@ export const knowledgeRoutes: FastifyPluginAsync<{
     if (!query.success) return invalid(reply);
     const actor = request.user!;
     if (!(await canOpenGroup(actor, request.params.id))) return notFound(reply);
-    const { type: types, ...opts } = query.data;
+    const { type: types, folder, ...opts } = query.data;
     try {
-      return await listGroupItems(db, actor, request.params.id, { ...opts, types });
+      return await listGroupItems(db, actor, request.params.id, {
+        ...opts,
+        types,
+        folder: folder === 'root' ? null : folder,
+      });
     } catch (error) {
       return knowledgeError(reply, error);
     }
@@ -221,4 +247,73 @@ export const knowledgeRoutes: FastifyPluginAsync<{
     emitKnowledgeDeleted(app.io, { ...deleted, id: request.params.id });
     return reply.code(204).send();
   });
+
+  // Folders (Phase 24): every folder the actor sees, then create, change and delete.
+  app.get<IdParams>(
+    '/groups/:id/knowledge/folders',
+    { preHandler: anyUser },
+    async (request, reply) => {
+      const actor = request.user!;
+      if (!(await canOpenGroup(actor, request.params.id))) return notFound(reply);
+      try {
+        const list: KnowledgeFolderList = {
+          folders: await listFolders(db, actor, request.params.id),
+        };
+        return list;
+      } catch (error) {
+        return knowledgeError(reply, error);
+      }
+    },
+  );
+
+  app.post<IdParams>(
+    '/groups/:id/knowledge/folders',
+    { preHandler: writeGuard },
+    async (request, reply) => {
+      const actor = request.user!;
+      if (!(await canOpenGroup(actor, request.params.id))) return notFound(reply);
+      const body = KnowledgeFolderDraftSchema.safeParse(request.body);
+      if (!body.success) return invalid(reply);
+      let folder;
+      try {
+        folder = await createFolder(db, actor, request.params.id, body.data);
+      } catch (error) {
+        return knowledgeError(reply, error);
+      }
+      emitKnowledgeFolder(app.io, folder);
+      return reply.code(201).send(folder);
+    },
+  );
+
+  app.patch<IdParams>(
+    '/knowledge/folders/:id',
+    { preHandler: writeGuard },
+    async (request, reply) => {
+      const body = KnowledgeFolderPatchSchema.safeParse(request.body);
+      if (!body.success) return invalid(reply);
+      let result;
+      try {
+        result = await updateFolder(db, request.user!, request.params.id, body.data);
+      } catch (error) {
+        return knowledgeError(reply, error);
+      }
+      emitKnowledgeFolder(app.io, result.folder, result.previousVisibility, result.hiddenItemIds);
+      return result.folder;
+    },
+  );
+
+  app.delete<IdParams>(
+    '/knowledge/folders/:id',
+    { preHandler: writeGuard },
+    async (request, reply) => {
+      let deleted;
+      try {
+        deleted = await deleteFolder(db, request.user!, request.params.id);
+      } catch (error) {
+        return knowledgeError(reply, error);
+      }
+      emitKnowledgeFolderDeleted(app.io, deleted);
+      return reply.code(204).send();
+    },
+  );
 };
