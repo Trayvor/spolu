@@ -7,6 +7,8 @@ import type { AppDeps } from '../src/deps.js';
 import type { Config } from '../src/infra/config/config.js';
 import type { TaskSplitProvider } from '../src/modules/ai/provider.js';
 import { filesJobHandlers } from '../src/modules/files/jobs.js';
+import { registerKnowledgeReminderSubject } from '../src/modules/knowledge/reminder-subject.js';
+import { remindersJobHandlers } from '../src/modules/reminders/jobs.js';
 import { notificationsJobHandlers } from '../src/modules/notifications/jobs.js';
 import { createDb } from '../src/infra/db/client.js';
 import { createEmailSender, emailJobHandlers } from '../src/infra/email/index.js';
@@ -39,6 +41,7 @@ export async function buildTestApp(
   const pushSender = config.push ? push : null;
   // The notification handlers send jobs (push) to the queue built from them.
   const forward = createDeferredQueue();
+  registerKnowledgeReminderSubject();
   const jobs = createInlineJobs({
     ...emailJobHandlers(email),
     ...filesJobHandlers({ db, storage }),
@@ -46,6 +49,7 @@ export async function buildTestApp(
       { db, config, push: pushSender, jobs: forward.queue },
       { scopedDelivery: true }, // test files run at once: deliver only the job's users
     ),
+    ...remindersJobHandlers({ db, jobs: forward.queue }),
   });
   forward.resolve(jobs);
   const deps: AppDeps = {

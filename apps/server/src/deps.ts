@@ -8,6 +8,8 @@ import {
   notificationSchedules,
   notificationsJobHandlers,
 } from './modules/notifications/jobs.js';
+import { registerKnowledgeReminderSubject } from './modules/knowledge/reminder-subject.js';
+import { reminderSchedules, remindersJobHandlers } from './modules/reminders/jobs.js';
 import { tasksJobHandlers, taskSchedules } from './modules/tasks/jobs.js';
 import { createDb, type Db } from './infra/db/client.js';
 import {
@@ -44,6 +46,7 @@ export async function createDeps(
   // The notification and reminder handlers send jobs to the queue built from them; a job that
   // runs before startJobs returns waits for it.
   const forward = createDeferredQueue();
+  registerKnowledgeReminderSubject(); // the fire job loads subjects through the registry
   const jobs = await startJobs(
     config.databaseUrl,
     {
@@ -52,12 +55,14 @@ export async function createDeps(
       ...filesJobHandlers({ db, storage }),
       ...notificationsJobHandlers({ db, config, push, jobs: forward.queue }),
       ...tasksJobHandlers({ db, jobs: forward.queue }),
+      ...remindersJobHandlers({ db, jobs: forward.queue }),
     },
     [
       { name: AUTH_CLEANUP_JOB, cron: '15 3 * * *' }, // daily, 03:15
       { name: FILES_CLEANUP_JOB, cron: '30 3 * * *' },
       ...notificationSchedules, // delivery sweep every minute, purge at 03:45
       ...taskSchedules, // deadline and urgent reminders, Bratislava time
+      ...reminderSchedules, // fire due reminders every minute
     ],
     { ...emailQueues, ...notificationQueues }, // concurrency and policies; the rest: defaults
   );
