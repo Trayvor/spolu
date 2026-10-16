@@ -96,7 +96,7 @@ test.describe.serial('knowledge base', () => {
   test("the client's link item appears live for the admin, whose link opens it in a new tab", async () => {
     const admin = await adminContext.newPage();
     await admin.goto(`/groups/${groupId}/knowledge`);
-    await expect(admin.getByRole('heading', { name: 'Znalosti' })).toBeVisible();
+    await expect(admin.getByRole('heading', { name: 'Znalosti', exact: true })).toBeVisible();
 
     const title = `Portál výzvy ${stamp}`;
     const url = `https://opvai.sk/vyzvy/e2e-${stamp}`;
