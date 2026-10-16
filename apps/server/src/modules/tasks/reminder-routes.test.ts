@@ -237,5 +237,5 @@ describe('task reminders API', () => {
       last = (await put(task.id, admin.cookie, { times: [] })).statusCode;
     }
     expect(last).toBe(429);
-  });
+  }, 30_000); // 121 sequential requests
 });
