@@ -1,6 +1,6 @@
 # Roadmap
 
-17 phases (0-16). Each phase ends with something that works and can be used. Update the `Status` column when a phase starts or finishes (values: `planned`, `in progress`, `done (local)`, `done`, `merged into N`). The `implement-phase` and `update-kb` skills do this.
+22 phases (0-21). Each phase ends with something that works and can be used. Update the `Status` column when a phase starts or finishes (values: `planned`, `in progress`, `done (local)`, `done`, `merged into N`). The `implement-phase` and `update-kb` skills do this.
 
 Requirements per module: [product/](product/README.md). Phases after 1 get their own short design and plan when they start.
 
@@ -18,8 +18,8 @@ Requirements per module: [product/](product/README.md). Phases after 1 get their
 | 9 | [Task chat & message to tasks with AI](#phase-9--task-chat--message-to-tasks-with-ai) | in progress | 5, 8 | [spec](superpowers/specs/2026-10-15-phase-9-task-chat-and-ai-design.md), [plan](superpowers/plans/2026-10-15-phase-9-task-chat-and-ai.md) |
 | 10 | [Message to task](#phase-10--message-to-task) | merged into 9 | - | - |
 | 11 | [AI split into tasks](#phase-11--ai-split-into-tasks) | merged into 9 | - | - |
-| 12 | [Tickets: intake from eGrant](#phase-12--tickets-intake-from-egrant) | planned | 3, 6 | - |
-| 13 | [Tickets: replies](#phase-13--tickets-replies) | planned | 12 | - |
+| 12 | [Tickets: intake from eGrant](#phase-12--tickets-intake-from-egrant) | merged into 21 | - | - |
+| 13 | [Tickets: replies](#phase-13--tickets-replies) | merged into 21 | - | - |
 | 14 | [Contracts](#phase-14--contracts) | planned | 3 | - |
 | 15 | [Contract reminders](#phase-15--contract-reminders) | planned | 6, 14 | - |
 | 16 | [Password & polish](#phase-16--password--polish) | planned | 5 | - |
@@ -27,14 +27,15 @@ Requirements per module: [product/](product/README.md). Phases after 1 get their
 | 18 | [Client managers](#phase-18--client-managers) | in progress | 9, 6 | [spec](superpowers/specs/2026-10-16-phase-18-client-managers-design.md), [plan](superpowers/plans/2026-10-16-phase-18-client-managers.md) |
 | 19 | [Task reminders](#phase-19--task-reminders) | in progress | 17 | [spec](superpowers/specs/2026-10-16-phase-19-task-reminders-design.md), [plan](superpowers/plans/2026-10-16-phase-19-task-reminders.md) |
 | 20 | [Admin home](#phase-20--admin-home) | in progress | 17, 18 | [spec](superpowers/specs/2026-10-16-phase-20-admin-home-design.md), [plan](superpowers/plans/2026-10-16-phase-20-admin-home.md) |
+| 21 | [Tickets & the ziadatel role](#phase-21--tickets--the-ziadatel-role) | planned | 18, 20; item C for 21.6 | [spec](superpowers/specs/2026-10-16-phase-21-tickets-and-requesters-design.md), [plan](superpowers/plans/2026-10-16-phase-21-tickets-and-requesters.md) |
 | 22 | [Members & groups page](#phase-22--members--groups-page) | planned | 18, 20, 21.1 | [plan](superpowers/plans/2026-10-16-phase-22-members-and-groups-page.md) |
 
-Phases 8, 12 and 14 do not depend on each other, so their order can change by priority.
+Phases 8 and 14 do not depend on each other, so their order can change by priority.
 
 **Next (owner brief, 2026-10-16):** [superpowers/briefs/2026-10-16-next-work.md](superpowers/briefs/2026-10-16-next-work.md). In order:
 - A: the "only where I take part" filter on the global task board (done: a small change, no spec, agreed in the session; see [product/task-board.md](product/task-board.md));
 - C: notification groups in the profile ([spec](superpowers/specs/2026-10-16-notification-groups-design.md), [plan](superpowers/plans/2026-10-16-notification-groups.md));
-- B: the tickets module with the `ziadatel` role, which supersedes Phases 12–13.
+- B: the tickets module with the `ziadatel` role, which supersedes Phases 12–13: [Phase 21](#phase-21--tickets--the-ziadatel-role) ([spec](superpowers/specs/2026-10-16-phase-21-tickets-and-requesters-design.md), [plan](superpowers/plans/2026-10-16-phase-21-tickets-and-requesters.md)).
 
 Each one needs a spec and a plan before code.
 
@@ -188,6 +189,8 @@ Merged into [Phase 9](#phase-9--task-chat--message-to-tasks-with-ai).
 
 ## Phase 12 — Tickets: intake from eGrant
 
+Merged into [Phase 21](#phase-21--tickets--the-ziadatel-role) (owner brief, 2026-10-16). The original scope is kept below for reference.
+
 Requirements: [tickets](product/tickets.md), [integrations](product/integrations.md).
 
 Scope:
@@ -204,6 +207,8 @@ Scope:
 Done when: eGrant sends an error and the ticket appears in the right group, or in the global list as "no group".
 
 ## Phase 13 — Tickets: replies
+
+Merged into [Phase 21](#phase-21--tickets--the-ziadatel-role): replies are written in the ticket chat and reach the requester through the ticket notification group, not as a direct email with the manager in copy.
 
 Requirements: [tickets](product/tickets.md).
 
@@ -283,6 +288,16 @@ Requirements: [admin-home](product/admin-home.md).
 Scope: the admin dashboard (assigned tasks, upcoming reminders, unread mentions), the client sidebar with unread and assigned counts, the yellow assigned count on the Tasks tab, and the global task board across clients.
 
 Done when: an admin sees their tasks, reminders and mentions on the home page, opens each from there, and filters the global board by client.
+
+## Phase 21 — Tickets & the ziadatel role
+
+Requirements: [tickets](product/tickets.md), [roles-and-access](product/roles-and-access.md), [groups](product/groups.md). Owner brief: [item B](superpowers/briefs/2026-10-16-next-work.md). Supersedes Phases 12 and 13.
+
+Scope: clients in several groups and a membership role (`client`, `ziadatel`); tickets from the eGrant API (Bearer key), from clients and from admins, assigned to a client by the instance link or by hand; statuses New / In progress / Resolved; a chat per ticket; following and notifications through the `tickets` notification group of item C; turning a ticket into tasks with AI; requesters who are not clients yet get a `ziadatel` membership that sees only their own tickets.
+
+Built in 7 parts, one pull request each (21.1 memberships first; 21.3, 21.4 and 21.6 in parallel after 21.2; 21.6 also waits for item C). The plan holds a ready prompt per part.
+
+Done when: eGrant sends a ticket, a new requester gets the email, logs in with a code and sees only that ticket and its chat; an admin replies and the requester is notified; the ticket becomes tasks that link back to it; a client works in two groups.
 
 ## Phase 22 — Members & groups page
 
