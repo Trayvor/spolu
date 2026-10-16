@@ -19,7 +19,7 @@ const base: PromptInput = {
   standalone: false,
   ios: null,
   hasPushManager: true,
-  pushEnabled: true,
+  pushWanted: true,
   vapidKey: true,
   permission: 'default',
   subscribed: false,
@@ -51,7 +51,7 @@ describe('choosePrompt', () => {
       { permission: 'unsupported', hasPushManager: false },
       null,
     ],
-    ['push switched off in the profile gets no enable prompt', { pushEnabled: false }, null],
+    ['no group on push in the profile gets no enable prompt', { pushWanted: false }, null],
     ['no VAPID key on the server gets no enable prompt', { vapidKey: false }, null],
     [
       'phone in the browser is never asked to enable',
