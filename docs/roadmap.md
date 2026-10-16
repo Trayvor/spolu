@@ -28,6 +28,7 @@ Requirements per module: [product/](product/README.md). Phases after 1 get their
 | 19 | [Task reminders](#phase-19--task-reminders) | in progress | 17 | [spec](superpowers/specs/2026-10-16-phase-19-task-reminders-design.md), [plan](superpowers/plans/2026-10-16-phase-19-task-reminders.md) |
 | 20 | [Admin home](#phase-20--admin-home) | in progress | 17, 18 | [spec](superpowers/specs/2026-10-16-phase-20-admin-home-design.md), [plan](superpowers/plans/2026-10-16-phase-20-admin-home.md) |
 | 21 | [Tickets & the ziadatel role](#phase-21--tickets--the-ziadatel-role) | in progress | 18, 20; item C for 21.6 | [spec](superpowers/specs/2026-10-16-phase-21-tickets-and-requesters-design.md), [plan](superpowers/plans/2026-10-16-phase-21-tickets-and-requesters.md) |
+| 22 | [Members & groups page](#phase-22--members--groups-page) | planned | 18, 20, 21.1 | [plan](superpowers/plans/2026-10-16-phase-22-members-and-groups-page.md) |
 
 Phases 8 and 14 do not depend on each other, so their order can change by priority.
 
@@ -299,3 +300,14 @@ Built in 7 parts, one pull request each (21.1 memberships first; 21.3, 21.4 and 
 Done when: eGrant sends a ticket, a new requester gets the email, logs in with a code and sees only that ticket and its chat; an admin replies and the requester is notified; the ticket becomes tasks that link back to it; a client works in two groups.
 
 Status: part 21.1 (clients in several groups, membership roles, invites applied on sign-in) built on branch `phase-21-1-memberships`; parts 21.2–21.7 not started.
+
+## Phase 22 — Members & groups page
+
+Requirements: [groups](product/groups.md), [client-managers](product/client-managers.md). Owner decisions (2026-10-16) are in the [plan](superpowers/plans/2026-10-16-phase-22-members-and-groups-page.md); the owner builds it locally after the cloud work of the next brief.
+
+Scope:
+- The Members tab: admins add and remove the group's managers, and invite members by email (an email with a login link; the "Pozvaný" state, resend, cancel).
+- The Groups page: the member count links to the Members tab, manager names in a tooltip, a filter by manager, my groups first, and a group count.
+- The client filter's "Predvolené" sits in the filter row on Úlohy and Znalosti.
+
+Done when: an admin adds a manager and invites a member on the Members tab, the member gets the email and signs in, and the Groups page filters by manager with the count.
