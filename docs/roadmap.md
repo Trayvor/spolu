@@ -299,7 +299,7 @@ Built in 7 parts, one pull request each (21.1 memberships first; 21.3, 21.4 and 
 
 Done when: eGrant sends a ticket, a new requester gets the email, logs in with a code and sees only that ticket and its chat; an admin replies and the requester is notified; the ticket becomes tasks that link back to it; a client works in two groups.
 
-Status: part 21.1 (clients in several groups, membership roles, invites applied on sign-in) built on branch `phase-21-1-memberships`; part 21.2 (tickets server core) built on branch `phase-21-2-tickets-core`, stacked on 21.1; part 21.3 (ticket chat, server) on `phase-21-3-ticket-chat`, stacked on 21.2; part 21.4 (ticket screens: lists, ticket page with its chat, new-ticket dialog, requester shell, Requesters section, task line, ticket uploads) on `phase-21-4-tickets-web`, stacked on 21.3; part 21.6 (notifications) on its own branch; parts 21.5 and 21.7 not started.
+Status: part 21.1 (clients in several groups, membership roles, invites applied on sign-in) built on branch `phase-21-1-memberships`; part 21.2 (tickets server core) built on branch `phase-21-2-tickets-core`, stacked on 21.1; part 21.3 (ticket chat, server) on `phase-21-3-ticket-chat`, stacked on 21.2; part 21.4 (ticket screens: lists, ticket page with its chat, new-ticket dialog, requester shell, Requesters section, task line, ticket uploads) on `phase-21-4-tickets-web`, stacked on 21.3; part 21.6 (notifications) on its own branch; part 21.5 (ticket to tasks with AI) on `phase-21-5-ticket-tasks`; part 21.7 not started.
 
 ## Phase 22 — Members & groups page
 
