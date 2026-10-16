@@ -52,5 +52,44 @@
       "caption": "neprečítaných",
       "empty": "Žiadne neprečítané zmienky."
     }
+  },
+  "board": {
+    "title": "Úlohy",
+    "filtersLabel": "Filtre úloh",
+    "filters": "Filtre ({{count}})",
+    "filtersTitle": "Filtre",
+    "close": "Hotovo",
+    "assignee": {
+      "label": "Riešiteľ: {{name}}",
+      "me": "Ja",
+      "anyone": "Ktokoľvek",
+      "none": "Bez riešiteľa"
+    },
+    "urgent": "Urgentné",
+    "due": {
+      "label": "Termín: {{name}}",
+      "any": "Akýkoľvek",
+      "overdue": "Po termíne",
+      "week": "Najbližších 7 dní",
+      "none": "Bez termínu"
+    },
+    "search": "Hľadať úlohy",
+    "completed": "Zobraziť dokončené",
+    "clear": "Zrušiť filtre",
+    "more": "Zobraziť ďalších 50",
+    "moreFailed": "Ďalšie sa nepodarilo načítať. Skúste to znova.",
+    "emptyFiltered": "Týmto filtrom nezodpovedá žiadna úloha.",
+    "empty": "Títo klienti nemajú žiadne otvorené úlohy.",
+    "columns": {
+      "todo": "Na spracovanie",
+      "other": "Ďalšie kroky",
+      "egrant_review": "Kontrola eGrant",
+      "client_review": "Kontrola klienta",
+      "done": "Hotové"
+    },
+    "count_one": "{{count}} úloha",
+    "count_few": "{{count}} úlohy",
+    "count_many": "{{count}} úlohy",
+    "count_other": "{{count}} úloh"
   }
 }

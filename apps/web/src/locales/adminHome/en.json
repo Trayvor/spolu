@@ -46,5 +46,42 @@
       "caption": "unread",
       "empty": "No unread mentions."
     }
+  },
+  "board": {
+    "title": "Tasks",
+    "filtersLabel": "Task filters",
+    "filters": "Filters ({{count}})",
+    "filtersTitle": "Filters",
+    "close": "Done",
+    "assignee": {
+      "label": "Assignee: {{name}}",
+      "me": "Me",
+      "anyone": "Anyone",
+      "none": "Unassigned"
+    },
+    "urgent": "Urgent",
+    "due": {
+      "label": "Due: {{name}}",
+      "any": "Any",
+      "overdue": "Overdue",
+      "week": "Next 7 days",
+      "none": "No deadline"
+    },
+    "search": "Search tasks",
+    "completed": "Show completed",
+    "clear": "Clear filters",
+    "more": "Show 50 more",
+    "moreFailed": "Could not load more. Try again.",
+    "emptyFiltered": "No tasks match these filters.",
+    "empty": "No open tasks for these clients.",
+    "columns": {
+      "todo": "To do",
+      "other": "Other steps",
+      "egrant_review": "eGrant review",
+      "client_review": "Client review",
+      "done": "Completed"
+    },
+    "count_one": "{{count}} task",
+    "count_other": "{{count}} tasks"
   }
 }

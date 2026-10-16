@@ -1,4 +1,4 @@
-import type { HTMLAttributes, Ref } from 'react';
+import type { HTMLAttributes, ReactNode, Ref } from 'react';
 import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import type { BucketKind, TaskChatSummary, TaskDto, TaskPerson } from '@spolu/shared';
@@ -104,6 +104,9 @@ export function TaskCard({
   lifted,
   onToggleDone,
   chat,
+  groupLine,
+  link,
+  showDone = true,
 }: {
   task: TaskDto;
   bucketKind: BucketKind;
@@ -118,6 +121,12 @@ export function TaskCard({
   onToggleDone?: () => void;
   /** The task chat's message count and unread flag; absent when it has no messages. */
   chat?: TaskChatSummary;
+  /** Rendered first in the card: the global board's client line (Phase 20). */
+  groupLine?: ReactNode;
+  /** Where the card goes; default the task panel over the group's board. */
+  link?: { to: string; search?: Record<string, unknown>; params?: Record<string, string> };
+  /** The done circle (the global board has none: a task is moved from its panel). */
+  showDone?: boolean;
 }) {
   const { t } = useTranslation();
   const overdue = isOverdue(task.dueDate, bucketKind, today);
@@ -134,20 +143,26 @@ export function TaskCard({
   return (
     <div className="relative">
       <Link
-        to="/groups/$groupId/tasks/$taskId"
-        params={{ groupId: task.groupId, taskId: task.id }}
+        {...(link
+          ? { to: link.to as never, params: link.params as never, search: link.search as never }
+          : {
+              to: '/groups/$groupId/tasks/$taskId',
+              params: { groupId: task.groupId, taskId: task.id },
+            })}
         ref={ref}
         {...handleProps}
         // The lifted copy is only a picture of the card: out of the tab order.
         tabIndex={lifted ? -1 : undefined}
         className={cn(
           // No callout, text selection or double-tap zoom on a long press: on touch it drags.
-          'flex touch-manipulation select-none flex-col items-start gap-2 rounded-lg bg-card p-3 pl-10 text-left [-webkit-touch-callout:none]',
+          'flex touch-manipulation select-none flex-col items-start gap-2 rounded-lg bg-card p-3 text-left [-webkit-touch-callout:none]',
+          showDone && 'pl-10',
           lifted && 'cursor-grabbing shadow-lift',
           // A card picked up with the keyboard keeps the focus ring on its lifted copy.
           lifted === 'keyboard' && 'outline-2 outline-offset-3 outline-ring',
         )}
       >
+        {groupLine}
         {task.urgent && <Badge variant="destructive">{t('tasks.card.urgent')}</Badge>}
         <span
           id={lifted ? undefined : titleId}
@@ -169,13 +184,15 @@ export function TaskCard({
           />
         )}
       </Link>
-      <DoneCircle
-        done={done}
-        onToggle={onToggleDone}
-        inert={lifted !== undefined}
-        describedBy={titleId}
-        className={cn('absolute left-3', task.urgent ? 'top-11' : 'top-3')}
-      />
+      {showDone && (
+        <DoneCircle
+          done={done}
+          onToggle={onToggleDone}
+          inert={lifted !== undefined}
+          describedBy={titleId}
+          className={cn('absolute left-3', task.urgent ? 'top-11' : 'top-3')}
+        />
+      )}
     </div>
   );
 }

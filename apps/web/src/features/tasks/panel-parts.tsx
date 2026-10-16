@@ -15,10 +15,13 @@ import { bucketTitle, byPosition } from './board-model';
 export function PanelShell({
   groupId,
   taskId,
+  onExit,
   children,
 }: {
   groupId: string;
   taskId?: string;
+  /** Closes the panel instead of going to the group's board (the global board, Phase 20). */
+  onExit?: (opts: { replace: boolean }) => void;
   children: ReactNode;
 }) {
   const { t } = useTranslation();
@@ -55,7 +58,8 @@ export function PanelShell({
       target.getAttribute('aria-expanded') === 'true'
     )
       return;
-    void navigate({ to: '/groups/$groupId/tasks', params: { groupId } });
+    if (onExit) onExit({ replace: false });
+    else void navigate({ to: '/groups/$groupId/tasks', params: { groupId } });
   }
 
   return (

@@ -73,7 +73,19 @@ export function TaskPanelRoute() {
  * The task panel over the board: 560 px on the right from 1024 px, full screen below. Under the
  * title, two tabs: Details (the form) and Chat (the task's chat, `?tab=chat`).
  */
-export function TaskPanel({ groupId, taskId }: { groupId: string; taskId: string }) {
+export function TaskPanel({
+  groupId,
+  taskId,
+  onExit,
+}: {
+  groupId: string;
+  taskId: string;
+  /**
+   * Set where the panel opens over another screen (the global board): close, Escape, back and a
+   * deleted task call it instead of going to the group's board (and show no board notice).
+   */
+  onExit?: (opts: { replace: boolean }) => void;
+}) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -84,8 +96,16 @@ export function TaskPanel({ groupId, taskId }: { groupId: string; taskId: string
     (task !== undefined && task.groupId !== groupId);
 
   // Gone, foreign or unreadable: back to the board, which says so.
+  const exit = useRef(onExit);
+  useEffect(() => {
+    exit.current = onExit;
+  });
   useEffect(() => {
     if (!gone) return;
+    if (exit.current) {
+      exit.current({ replace: true });
+      return;
+    }
     showBoardNotice(queryClient, groupId, 'taskDeleted');
     void navigate({ to: '/groups/$groupId/tasks', params: { groupId }, replace: true });
   }, [gone, groupId, navigate, queryClient]);
@@ -97,6 +117,7 @@ export function TaskPanel({ groupId, taskId }: { groupId: string; taskId: string
         key={taskId}
         groupId={groupId}
         initial={task}
+        onExit={onExit}
         reload={async () => {
           const result = await query.refetch();
           return result.isError ? undefined : result.data;
@@ -123,7 +144,7 @@ export function TaskPanel({ groupId, taskId }: { groupId: string; taskId: string
   }
 
   return (
-    <PanelShell groupId={groupId} taskId={taskId}>
+    <PanelShell groupId={groupId} taskId={taskId} onExit={onExit}>
       {body}
     </PanelShell>
   );
@@ -151,10 +172,12 @@ function TaskEditor({
   groupId,
   initial,
   reload,
+  onExit,
 }: {
   groupId: string;
   initial: TaskDetailDto;
   reload: () => Promise<TaskDetailDto | undefined>;
+  onExit?: (opts: { replace: boolean }) => void;
 }) {
   const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
@@ -188,8 +211,13 @@ function TaskEditor({
   // Leaving the task asks while the draft is unsaved; the tabs and the chat's own params
   // (thread, message) only change the search, so they never ask.
   const blocker = useBlocker({
+    // `task` is the panel open over the global board: closing it changes only the search.
     shouldBlockFn: ({ current, next }) =>
-      next.pathname !== current.pathname && latest.current.dirty && !leaving.current,
+      (next.pathname !== current.pathname ||
+        (next.search as Record<string, unknown>).task !==
+          (current.search as Record<string, unknown>).task) &&
+      latest.current.dirty &&
+      !leaving.current,
     enableBeforeUnload: () => latest.current.dirty && !leaving.current,
     withResolver: true,
   });
@@ -229,9 +257,13 @@ function TaskEditor({
 
   const backToBoard = (replace = false) => {
     leaving.current = true;
-    void navigate({ to: '/groups/$groupId/tasks', params: { groupId }, replace });
+    if (onExit) onExit({ replace });
+    else void navigate({ to: '/groups/$groupId/tasks', params: { groupId }, replace });
   };
-  const close = () => void navigate({ to: '/groups/$groupId/tasks', params: { groupId } });
+  const close = () => {
+    if (onExit) onExit({ replace: false });
+    else void navigate({ to: '/groups/$groupId/tasks', params: { groupId } });
+  };
 
   // Live: someone else changed or deleted this task.
   useEffect(() => {
@@ -246,7 +278,7 @@ function TaskEditor({
       if (event.groupId !== groupId || event.taskId !== latest.current.base.id) return;
       // Our own delete: the socket frame can beat the HTTP answer, and we know already.
       if (deleting.current) return;
-      showBoardNotice(queryClient, groupId, 'taskDeleted');
+      if (!onExit) showBoardNotice(queryClient, groupId, 'taskDeleted');
       backToBoard(true);
     };
     socket.on(BoardEvents.task, onTask);
@@ -307,7 +339,7 @@ function TaskEditor({
       );
     } catch (error) {
       if (error instanceof ApiError && error.status === 404) {
-        showBoardNotice(queryClient, groupId, 'taskDeleted');
+        if (!onExit) showBoardNotice(queryClient, groupId, 'taskDeleted');
         backToBoard(true);
       } else setMoveFailed(true);
     } finally {

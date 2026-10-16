@@ -17,6 +17,7 @@ Terms used across the docs and code, in alphabetical order.
 - **draft contract**: the prepared next contract for a client, with the same fields as a contract.
 - **egrant URL**: the address of a client's eGrant instance, saved on the group. Incoming tickets are matched to a group by it. It is normalized first (case, protocol, trailing slash and similar differences are removed) so that equal addresses compare equal.
 - **email digest**: the batched notification email: one per user and group, sent 10 minutes after the first email-eligible event (10 s in e2e via `EMAIL_BATCH_DELAY_MS`) and only for the messages still unread then, e.g. "3 new messages in <group>" with up to 5 lines. Sent only when the user turned email notifications on.
+- **global board**: the admins' task board across clients at `/tasks` (Phase 20): five columns by step (To do, Other steps for every custom bucket, eGrant review, Client review, Completed when shown), filtered by default to the clients the admin manages. Cards open the task panel over it; there is no drag and drop.
 - **group**: one client organization with its own chat, task board, tickets and contracts.
 - **group mode**: what one user hears about one group: All messages, Mentions and replies, or Off. Set with the bell in the group header or on the groups page; without a choice it follows the user's "All groups" default, else the role default (clients All messages, admins Mentions and replies).
 - **invite link**: a link an admin copies from a group. A client opens it, enters an email, gets a code and joins that group.

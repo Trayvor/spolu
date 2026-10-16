@@ -40,3 +40,13 @@ Each group has a Kanban board with four fixed buckets (columns) and custom bucke
 ## Phase
 
 Phase 8 (built: board, buckets, tasks with attachments and the urgent flag, drag & drop with pointer, touch and keyboard, realtime, the task panel; end-to-end test in `e2e/tasks.spec.ts`). Phase 9 (task chat, tasks from chat messages). Phase 6 (task notifications and reminders).
+
+## Global task board (as built, Phase 20)
+
+Admins have a board across clients at `/tasks` (header link "Tasks"):
+
+- Five columns by step, the same for every client: **To do**, **Other steps** (every custom bucket; the card names the bucket), **eGrant review**, **Client review** and, with "Show completed", **Completed** (the last 30 days). Each column shows its total and its first 50 cards; "Show 50 more" loads the next ones. Cards are sorted urgent first, then by deadline (none last), then by client name.
+- Each card is the group board's card with a line on top: the client's logo and name. It has no done circle and cannot be dragged: a card opens the task panel over the board (`/tasks?…&task=<id>`), whose bucket select moves the task; closing the panel returns to the same filtered board. There is no "+ Add task": a task is created on its client's board.
+- Filters, all in the address so a view can be bookmarked: clients (the knowledge list's client filter; by default the clients I manage, or all when I manage none; the last explicit choice is remembered on the device), assignee (me, anyone, unassigned, or a person among the assignees of the chosen clients), urgent, deadline (overdue, next 7 days, no deadline; by Bratislava's date), a title search (from 2 characters) and "Show completed". "Clear filters" appears when anything differs from the defaults. On phones the filters collapse into one "Filters (n)" pill that opens a sheet. A filter the server refuses (an old bookmark) resets the board to its defaults.
+- The board follows changes in any client live (refetched about 2 seconds after the last change while the page is visible).
+
