@@ -29,6 +29,7 @@ const base = {
   AI_ALLOW_FAKE: z.enum(['1']).optional(),
   OPENAI_API_KEY: z.string().min(1).optional(),
   OPENAI_MODEL: z.string().min(1).default('gpt-5-mini'),
+  TICKETS_API_KEY: z.string().min(16).optional(),
 };
 
 const EnvSchema = z.discriminatedUnion('EMAIL_DRIVER', [
@@ -93,6 +94,8 @@ export type Config = {
   loginCodesPerMinute: number;
   /** The task split provider; null when OpenAI is chosen but no key is set (AI is off). */
   ai: { provider: 'openai'; apiKey: string; model: string } | { provider: 'fake' } | null;
+  /** The shared Bearer key of the ticket intake API (Phase 21); null = intake is off. */
+  ticketsApiKey: string | null;
   /** Calls a minute per admin to become or stop being a manager; unset = 120 (tests lower it). */
   managerRateLimitPerMinute?: number;
 };
@@ -130,6 +133,7 @@ export function loadConfig(env: NodeJS.ProcessEnv): Config {
     push: pushConfig(e),
     emailBatchDelayMs: e.EMAIL_BATCH_DELAY_MS,
     loginCodesPerMinute: e.LOGIN_CODES_PER_MINUTE,
+    ticketsApiKey: e.TICKETS_API_KEY ?? null,
     email:
       e.EMAIL_DRIVER === 'smtp'
         ? {

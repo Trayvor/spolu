@@ -88,7 +88,7 @@ describe('email change', () => {
       email: newEmail,
       name: `User ${a.id}`,
       role: 'admin',
-      groupId: null,
+      groups: [],
     });
 
     const me = await getMe(a.cookie);

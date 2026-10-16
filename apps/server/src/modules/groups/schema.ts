@@ -1,4 +1,6 @@
-import { index, pgTable, primaryKey, text, timestamp } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
+import { check, index, pgTable, primaryKey, text, timestamp } from 'drizzle-orm/pg-core';
+import type { MemberRole } from '@spolu/shared';
 import { user } from '../users/schema.js';
 
 export const groups = pgTable('groups', {
@@ -12,20 +14,51 @@ export const groups = pgTable('groups', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
-/** One row per client: a client belongs to exactly one group. Admins have no rows. */
+/**
+ * A person's membership of a group (Phase 21): one row per user and group. `client` reads the
+ * whole group; `ziadatel` (a requester) only reaches their own tickets. A client may belong to
+ * several groups. `removed_at` marks a membership an admin removed; it stays removed until an
+ * admin restores it. Admins have no rows.
+ */
 export const groupMembers = pgTable(
   'group_members',
   {
     userId: text('user_id')
-      .primaryKey()
+      .notNull()
       .references(() => user.id, { onDelete: 'cascade' }),
     groupId: text('group_id')
       .notNull()
       .references(() => groups.id, { onDelete: 'cascade' }),
+    role: text('role').$type<MemberRole>().notNull().default('client'),
+    removedAt: timestamp('removed_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [index('group_members_group_id_idx').on(t.groupId)],
+  (t) => [
+    primaryKey({ columns: [t.userId, t.groupId] }),
+    check('group_members_role_check', sql`${t.role} in ('client', 'ziadatel')`),
+    index('group_members_group_active_idx')
+      .on(t.groupId, t.role)
+      .where(sql`${t.removedAt} is null`),
+    index('group_members_user_active_idx')
+      .on(t.userId)
+      .where(sql`${t.removedAt} is null`),
+  ],
 );
+
+/**
+ * The latest invite a person used before signing in with a code: one per user. It becomes a
+ * client membership when they sign in (`applyPendingInvite`), so typing an email on an invite
+ * never adds an existing account to a group by itself.
+ */
+export const pendingInvites = pgTable('pending_invites', {
+  userId: text('user_id')
+    .primaryKey()
+    .references(() => user.id, { onDelete: 'cascade' }),
+  groupId: text('group_id')
+    .notNull()
+    .references(() => groups.id, { onDelete: 'cascade' }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
 
 /**
  * The admins who manage a group (its account managers). Many per group, many groups per admin.

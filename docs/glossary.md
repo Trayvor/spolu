@@ -5,14 +5,14 @@ Terms used across the docs and code, in alphabetical order.
 - **@all**: a mention of everyone in the group (shown as "Everyone in this group" in the picker, stored as `<@all>`). It marks the message for every person in the group, like a mention of each of them.
 - **admin**: an eGrant team member. Sees all groups and can manage them. Created by the superadmin.
 - **ADR**: architecture decision record, a short file in `docs/decisions/` that records one decision and why it was made.
-- **API key**: a secret token that eGrant sends with each ticket request to prove who it is.
+- **API key**: the shared secret (`TICKETS_API_KEY`) eGrant sends as `Authorization: Bearer` with each ticket to the intake API.
 - **AppPrompt**: the one card at the bottom of every signed-in screen that asks to install Spolu as an app on a phone, then to turn on notifications on this device, or tells an old iPhone that only email works (`<AppPrompt>`, `features/notifications/app-prompt.tsx`). "Not now" hides it for 6 hours on that device.
 - **assigned to me**: the open tasks (not in Completed) a person is one of the assignees of. Counted in yellow (the `attention` colour) on the Úlohy tab, in the admin client sidebar and on the dashboard's "Assigned to me" card.
 - **automatic reminders**: the task board's built-in reminders (Phase 6): every assignee of an open task is reminded 3, 2 and 1 days before its deadline at 09:00, and every 3 hours while it is urgent. They need no setup and cannot be turned off; compare custom reminders.
 - **bucket**: a column on a task board. Each group has four fixed buckets (To do, eGrant review, client review, Completed) and admins can add custom buckets and reorder every bucket, fixed ones included. Cards can be dragged between and inside buckets.
 - **channel**: a place where messages are posted. In Spolu: a group chat, a direct message chat or a task chat.
 - **custom reminders**: reminder times someone sets on a task themselves (Phase 19), for themselves, the people they add and anyone who subscribes. They sit beside the automatic reminders, do not move with the deadline, and export to a calendar with the deadline.
-- **client**: a person from a customer organization. Sees only their own group.
+- **client**: a person from a customer organization. Sees only their own groups (one or several, Phase 21); in the database the role of their membership in each group.
 - **contract**: a record of an agreement with a client (dates, amount, files, notes). Admin-only.
 - **dashboard**: the admin home at `/` (Phase 20): a greeting and three count cards (Assigned to me, Upcoming reminders, Mentions), each a big count beside a list of items that open where they live. On phones the cards are count tiles above the client list.
 - **deactivated admin**: an admin who was removed. The row is kept with `disabled_at` set; the person cannot log in, gets no codes and loses open sessions and sockets. Adding the same email again reactivates them.
@@ -22,11 +22,11 @@ Terms used across the docs and code, in alphabetical order.
 - **global board**: the admins' task board across clients at `/tasks` (Phase 20): five columns by step (To do, Other steps for every custom bucket, eGrant review, Client review, Completed when shown), filtered by default to the clients the admin manages. Cards open the task panel over it; there is no drag and drop.
 - **group**: one client organization with its own chat, task board, tickets and contracts.
 - **group mode**: what one user hears about one group: All messages, Mentions and replies, or Off. Set with the bell in the group header or on the groups page; without a choice it follows the user's "All groups" default, else the role default (clients All messages, admins Mentions and replies).
-- **invite link**: a link an admin copies from a group. A client opens it, enters an email, gets a code and joins that group.
+- **invite link**: a link an admin copies from a group. A person opens it, enters an email, gets a code and joins that group when they sign in with it (Phase 21: also a client of another group, or a requester of this one).
 - **knowledge item**: a card in a group's Knowledge tab: a note, a file, a link or a reminder. Public (everyone in the group) or admins-only ("Only eGrant"); a client's items are always public. Admins also see all items across clients in the global knowledge list.
 - **login code**: the 6-digit one-time code sent by email to log in; valid 5 minutes, 3 tries. Also called OTP code.
 - **manager**: an admin who manages a group (an eGrant account manager for that client). A per-group flag, not a role: a group can have several managers and an admin can manage several groups; each admin becomes or stops being one only for themselves. A disabled admin does not count. Becoming manager turns the group's mode to All messages unless the admin chose one.
-- **member**: a user who belongs to a group.
+- **member**: a user who belongs to a group: a `group_members` row with a role (`client` or `ziadatel`); removed by an admin when `removed_at` is set.
 - **mention**: tagging a user with @ in a message so they are notified.
 - **message**: one post in a channel. Can have attachments, a thread and mentions.
 - **module**: a self-contained feature area of the server (for example chat or tasks) that owns its routes, policies and tables.
@@ -34,7 +34,8 @@ Terms used across the docs and code, in alphabetical order.
 - **notification event**: one stored notification for one recipient (kind, optional group, payload, delivered or not). Recorded in the same transaction as the change that caused it and deleted after 30 days.
 - **OTP code**: the one-time code sent by email that is used to log in.
 - **owner walkthrough**: the final check of a phase, where the owner tries the "Done when" items by hand before the phase is marked done.
-- **pending client**: a client who entered an email on an invite link but never signed in (`email_verified` false, empty name). A later invite link moves them to its group; once they sign in they are a normal client.
+- **pending client**: a client who entered an email on an invite link but never signed in (`email_verified` false, empty name). A later invite link replaces their pending invite; once they sign in they are a normal client of that group.
+- **pending invite**: the invite a person typed their email on, kept until they sign in with a code (`pending_invites`, Phase 21); the latest one wins.
 - **pickable people**: who can be picked as an assignee in a group: its named, verified, active clients and its active managers. Every other admin is a reader of the group (can be mentioned and read it) but is not pickable. See `listPickablePeople`.
 - **policy function**: a server function that decides whether a user may see or change a resource; written test-first.
 - **push subscription**: one browser's permission to receive Web Push for one user, stored per device in `push_subscriptions` (endpoint and keys). Created after the browser grants permission, removed at logout or when the push service answers 404/410.
@@ -54,5 +55,7 @@ Terms used across the docs and code, in alphabetical order.
 - **task chat**: the discussion inside one task, with threads, mentions and attachments.
 - **test environment**: the Oracle Cloud VM where Spolu is deployed for checks before real use; environment name `test`.
 - **thread**: replies grouped under one top-level message (the thread root); a reply cannot start another thread. Opens in a side panel, linked by `?thread=<rootId>&c=<channelId>`.
-- **ticket**: a support request sent from eGrant, with a status (New / In progress / Resolved), shown in the matching group or in the global list.
+- **ticket**: a support request (from eGrant's API, a client or an admin) with a number `#123` and a status (New / In progress / Resolved), shown in its client's Tickets tab, in My tickets and in the admins' global view; without a client only in the global view.
+- **ticket follower**: someone notified about a ticket's changes: its initiator, the client's managers and the creating admin from the start, plus anyone who pressed Follow.
+- **ziadatel** (requester): a person who reported a ticket but is not a client of that group (Phase 21). Their membership has the role `ziadatel`: they see only their own tickets of the group, never its chat, tasks, knowledge or members. One person can be a ziadatel of several clients.
 - **urgent**: a flag on a task. An urgent card shows a red "Urgent" pill on the board, and (from Phase 6) its assignees are reminded every 3 hours between 08:00 and 20:00 until it is in Completed or no longer urgent.

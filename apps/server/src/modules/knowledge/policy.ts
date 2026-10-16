@@ -6,10 +6,10 @@ import { isAdmin } from '../users/policy.js';
 export function canReadItem(
   actor: SessionUser,
   item: { groupId: string; visibility: Visibility | string },
-  actorGroupId: string | null,
+  actorGroupIds: readonly string[],
 ): boolean {
   return (
-    canReadGroup(actor, item.groupId, actorGroupId) &&
+    canReadGroup(actor, item.groupId, actorGroupIds) &&
     (item.visibility === 'public' || isAdmin(actor))
   );
 }
@@ -18,9 +18,9 @@ export function canReadItem(
 export function canEditItem(
   actor: SessionUser,
   item: { groupId: string; visibility: Visibility | string; createdBy: string },
-  actorGroupId: string | null,
+  actorGroupIds: readonly string[],
 ): boolean {
-  return canReadItem(actor, item, actorGroupId) && (isAdmin(actor) || item.createdBy === actor.id);
+  return canReadItem(actor, item, actorGroupIds) && (isAdmin(actor) || item.createdBy === actor.id);
 }
 
 export const canDeleteItem = canEditItem;

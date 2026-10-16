@@ -17,21 +17,21 @@ const ME = {
   name: 'Jana Nováková',
   email: 'jana@example.com',
   role: 'admin',
-  groupId: null,
+  groups: [],
 };
 const SUPER = {
   id: 's1',
   name: 'Boss',
   email: 'boss@example.com',
   role: 'superadmin',
-  groupId: null,
+  groups: [],
 };
 const PETER = {
   id: 'a2',
   name: 'Peter Horváth',
   email: 'peter@example.com',
   role: 'admin',
-  groupId: null,
+  groups: [],
 };
 
 type Reply = { status: number; body?: unknown };

@@ -6,9 +6,9 @@ import { isAdmin } from '../users/policy.js';
 export function canUseBoard(
   actor: SessionUser,
   groupId: string,
-  actorGroupId: string | null,
+  actorGroupIds: readonly string[],
 ): boolean {
-  return canReadGroup(actor, groupId, actorGroupId);
+  return canReadGroup(actor, groupId, actorGroupIds);
 }
 
 /** Create, rename, reorder and delete custom buckets: any admin. */

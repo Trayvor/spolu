@@ -9,7 +9,8 @@
     "settings": "Settings",
     "admins": "Admins",
     "groups": "Groups",
-    "knowledge": "Knowledge"
+    "knowledge": "Knowledge",
+    "myGroups": "My groups"
   },
   "user": {
     "menu": "Account menu",

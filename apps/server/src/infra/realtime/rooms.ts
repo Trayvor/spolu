@@ -23,6 +23,16 @@ export function emitAdminActivity(io: SocketIOServer, event: AdminActivityEvent)
   io.to(ADMINS_ROOM).emit(AdminEvents.activity, event);
 }
 
+/** Every socket of the user joins the group's room, e.g. when a removed client is restored. */
+export function joinGroupRoom(io: SocketIOServer, userId: string, groupId: string): void {
+  io.in(userRoom(userId)).socketsJoin(groupRoom(groupId));
+}
+
+/** Every socket of the user leaves the group's rooms, e.g. when an admin removes them from it. */
+export function leaveGroupRoom(io: SocketIOServer, userId: string, groupId: string): void {
+  io.in(userRoom(userId)).socketsLeave([groupRoom(groupId), groupAdminsRoom(groupId)]);
+}
+
 /** Closes every socket of a user, e.g. after the user is removed. */
 export function disconnectUser(io: SocketIOServer, userId: string): void {
   io.in(userRoom(userId)).disconnectSockets(true);

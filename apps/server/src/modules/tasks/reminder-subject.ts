@@ -39,7 +39,7 @@ async function loadMany(db: Db, ids: string[]): Promise<Map<string, SubjectInfo>
       active: row.completedAt === null,
       authorId: row.createdBy,
       link: `/groups/${row.groupId}/tasks/${row.id}`,
-      canRead: (actor, actorGroupId) => canUseBoard(actor, row.groupId, actorGroupId),
+      canRead: (actor, actorGroupIds) => canUseBoard(actor, row.groupId, actorGroupIds),
       // Everyone who uses the board edits its tasks; every route checks `canRead` first.
       canEdit: () => true,
     });

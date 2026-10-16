@@ -8,11 +8,12 @@ import {
   PushSubscriptionBodySchema,
   type NotificationFallback,
   type NotificationPrefs,
+  type SessionUser,
 } from '@spolu/shared';
 import type { AppDeps } from '../../deps.js';
 import { requireUser } from '../auth/session.js';
 import { canReadGroup } from '../groups/policy.js';
-import { getGroup, getMembershipGroupId } from '../groups/service.js';
+import { getGroup } from '../groups/service.js';
 import { isAdmin } from '../users/policy.js';
 import {
   applyEmailFallback,
@@ -22,6 +23,7 @@ import {
 import { visibleCategoriesFor } from './categories.js';
 import { getModeSettings, setDefaultMode, setGroupMode } from './modes.js';
 import { deleteOwnSubscription, saveSubscription } from './push-subscriptions.js';
+import { clientGroupIds } from '../groups/memberships.js';
 
 const USER_AGENT_MAX = 300;
 
@@ -30,7 +32,7 @@ export const notificationsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async 
   const { db, config } = deps;
   const anyUser = requireUser(app.auth);
 
-  const prefsOf = async (actor: { id: string }): Promise<NotificationPrefs> => ({
+  const prefsOf = async (actor: SessionUser): Promise<NotificationPrefs> => ({
     channels: await getNotificationChannels(db, actor.id),
     visibleCategories: await visibleCategoriesFor(db, actor),
     vapidPublicKey: config.push?.publicKey ?? null,
@@ -91,7 +93,7 @@ export const notificationsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async 
       // A malformed id cannot exist; checking first keeps NUL and the like away from Postgres.
       const readable =
         ID_RE.test(groupId) &&
-        canReadGroup(actor, groupId, await getMembershipGroupId(db, actor.id)) &&
+        canReadGroup(actor, groupId, await clientGroupIds(db, actor.id)) &&
         (await getGroup(db, groupId)) !== null;
       if (!readable) return reply.code(404).send({ error: ErrorCodes.notFound });
       const parsed = ModeBodySchema.safeParse(request.body);

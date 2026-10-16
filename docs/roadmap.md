@@ -27,7 +27,7 @@ Requirements per module: [product/](product/README.md). Phases after 1 get their
 | 18 | [Client managers](#phase-18--client-managers) | in progress | 9, 6 | [spec](superpowers/specs/2026-10-16-phase-18-client-managers-design.md), [plan](superpowers/plans/2026-10-16-phase-18-client-managers.md) |
 | 19 | [Task reminders](#phase-19--task-reminders) | in progress | 17 | [spec](superpowers/specs/2026-10-16-phase-19-task-reminders-design.md), [plan](superpowers/plans/2026-10-16-phase-19-task-reminders.md) |
 | 20 | [Admin home](#phase-20--admin-home) | in progress | 17, 18 | [spec](superpowers/specs/2026-10-16-phase-20-admin-home-design.md), [plan](superpowers/plans/2026-10-16-phase-20-admin-home.md) |
-| 21 | [Tickets & the ziadatel role](#phase-21--tickets--the-ziadatel-role) | planned | 18, 20; item C for 21.6 | [spec](superpowers/specs/2026-10-16-phase-21-tickets-and-requesters-design.md), [plan](superpowers/plans/2026-10-16-phase-21-tickets-and-requesters.md) |
+| 21 | [Tickets & the ziadatel role](#phase-21--tickets--the-ziadatel-role) | in progress | 18, 20; item C for 21.6 | [spec](superpowers/specs/2026-10-16-phase-21-tickets-and-requesters-design.md), [plan](superpowers/plans/2026-10-16-phase-21-tickets-and-requesters.md) |
 | 22 | [Members & groups page](#phase-22--members--groups-page) | planned | 18, 20, 21.1 | [plan](superpowers/plans/2026-10-16-phase-22-members-and-groups-page.md) |
 
 Phases 8 and 14 do not depend on each other, so their order can change by priority.
@@ -298,6 +298,8 @@ Scope: clients in several groups and a membership role (`client`, `ziadatel`); t
 Built in 7 parts, one pull request each (21.1 memberships first; 21.3, 21.4 and 21.6 in parallel after 21.2; 21.6 also waits for item C). The plan holds a ready prompt per part.
 
 Done when: eGrant sends a ticket, a new requester gets the email, logs in with a code and sees only that ticket and its chat; an admin replies and the requester is notified; the ticket becomes tasks that link back to it; a client works in two groups.
+
+Status: part 21.1 (clients in several groups, membership roles, invites applied on sign-in) built on branch `phase-21-1-memberships`; part 21.2 (tickets server core) built on branch `phase-21-2-tickets-core`, stacked on 21.1; part 21.3 (ticket chat, server) on `phase-21-3-ticket-chat`, stacked on 21.2; parts 21.4–21.7 not started.
 
 ## Phase 22 — Members & groups page
 

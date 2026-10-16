@@ -8,12 +8,14 @@ import {
   type GroupPerson,
   type GroupSummary,
   type Member,
+  type MemberRole,
 } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
 import { isUniqueViolation } from '../../infra/db/errors.js';
 import { user } from '../users/schema.js';
 import { createUnverifiedClient, findUserByEmail, type UserRow } from '../users/service.js';
 import { normalizeEgrantUrl } from './egrant-url.js';
+import { addMembership, setPendingInvite } from './memberships.js';
 import { groupManagers, groupMembers, groups } from './schema.js';
 
 export type GroupRow = typeof groups.$inferSelect;
@@ -81,7 +83,14 @@ export async function listGroups(db: Db, viewerId: string): Promise<GroupSummary
       managedByMe: sql<boolean>`coalesce(${managerAgg.managedByMe}, false)`,
     })
     .from(groups)
-    .leftJoin(groupMembers, eq(groupMembers.groupId, groups.id))
+    .leftJoin(
+      groupMembers,
+      and(
+        eq(groupMembers.groupId, groups.id),
+        eq(groupMembers.role, 'client'),
+        isNull(groupMembers.removedAt),
+      ),
+    )
     .leftJoin(user, and(eq(user.id, groupMembers.userId), isActiveVerifiedClient()))
     .leftJoin(managerAgg, eq(managerAgg.groupId, groups.id))
     .groupBy(groups.id, managerAgg.managers, managerAgg.managedByMe)
@@ -140,24 +149,37 @@ export async function regenerateInvite(db: Db, id: string): Promise<string> {
   return inviteToken;
 }
 
+/**
+ * The group whose eGrant URL names the same host as `url` (tickets, Phase 21), else null. The
+ * scheme, a leading `www.`, the path and the case do not matter: `https://www.X.egrant.sk/app`
+ * matches a group saved as `http://x.egrant.sk`.
+ */
+export async function findGroupByEgrantUrl(db: Db, url: string | null): Promise<GroupRow | null> {
+  const normalized = url === null ? null : normalizeEgrantUrl(url);
+  if (!normalized) return null;
+  const host = new URL(normalized).host.replace(/^www\./, '');
+  const [row] = await db
+    .select()
+    .from(groups)
+    .where(sql`regexp_replace(${groups.egrantUrl}, '^https?://(www\.)?', '') = ${host}`)
+    .orderBy(asc(groups.createdAt))
+    .limit(1);
+  return row ?? null;
+}
+
 export async function getGroupByInviteToken(db: Db, token: string): Promise<GroupRow | null> {
   const [row] = await db.select().from(groups).where(eq(groups.inviteToken, token));
   return row ?? null;
 }
 
-export async function getMembershipGroupId(db: Db, userId: string): Promise<string | null> {
-  const [row] = await db
-    .select({ groupId: groupMembers.groupId })
-    .from(groupMembers)
-    .where(eq(groupMembers.userId, userId));
-  return row?.groupId ?? null;
-}
-
-/** Verified clients of the group: the active ones, or the removed ones (`removed: true`). */
+/**
+ * Verified members of the group with the given role (default clients): the active ones, or the
+ * ones an admin removed (`removed: true`).
+ */
 export async function listMembers(
   db: Db,
   groupId: string,
-  options: { removed: boolean },
+  options: { removed: boolean; role?: MemberRole },
 ): Promise<Member[]> {
   return db
     .select({ id: user.id, name: user.name, email: user.email })
@@ -166,8 +188,11 @@ export async function listMembers(
     .where(
       and(
         eq(groupMembers.groupId, groupId),
+        eq(groupMembers.role, options.role ?? 'client'),
         eq(user.emailVerified, true),
-        options.removed ? isNotNull(user.disabledAt) : isNull(user.disabledAt),
+        options.removed
+          ? isNotNull(groupMembers.removedAt)
+          : and(isNull(groupMembers.removedAt), isNull(user.disabledAt)),
       ),
     )
     .orderBy(asc(user.name), asc(user.email));
@@ -175,9 +200,12 @@ export async function listMembers(
 
 // One definition of "a person of this group", shared by the list and the single check.
 const isActiveAdmin = and(inArray(user.role, ['admin', 'superadmin']), isNull(user.disabledAt));
+// A ziadatel (requester) is not a person of the group: they never read its chat or board.
 const isNamedActiveMember = (groupId: string) =>
   and(
     eq(groupMembers.groupId, groupId),
+    eq(groupMembers.role, 'client'),
+    isNull(groupMembers.removedAt),
     eq(user.emailVerified, true),
     isNull(user.disabledAt),
     sql`trim(${user.name}) <> ''`,
@@ -272,9 +300,9 @@ export async function getGroupPeopleRoles(
   return new Map(rows.map((r) => [r.id, { isAdmin: r.role !== 'client', isManager: r.isManager }]));
 }
 
-/** Idempotent: a client is in one group, joining twice changes nothing. */
+/** Adds a client membership (see `addMembership`); joining twice changes nothing. */
 export async function addMember(db: Db, groupId: string, userId: string): Promise<void> {
-  await db.insert(groupMembers).values({ userId, groupId }).onConflictDoNothing();
+  await addMembership(db, userId, groupId, 'client');
 }
 
 /** Sets or clears the logo storage key. Returns the previous key so the caller can delete the file. */
@@ -292,38 +320,29 @@ export async function setLogoKey(db: Db, id: string, key: string | null): Promis
 }
 
 /**
- * Join by invite link: an unknown email becomes an unverified client in the group, in one
- * transaction. An unverified, active client who never signed in follows the latest invite they
- * used (so a link cannot reserve someone else's email); every other existing user is left
- * unchanged. A concurrent duplicate counts as existing.
+ * Join by invite link. The group is only remembered as the person's pending invite
+ * (`setPendingInvite`); it becomes a client membership when they sign in with a code
+ * (`applyPendingInvite`), so typing an email never adds an account to a group by itself. An
+ * unknown email becomes an unverified client first. Admins and disabled accounts are left
+ * unchanged; the latest invite used wins. A concurrent duplicate counts as existing.
  */
 export async function joinWithEmail(db: Db, groupId: string, email: string): Promise<void> {
   const existing = await findUserByEmail(db, email);
-  if (existing) return moveUnverified(db, groupId, existing);
+  if (existing) return rememberInvite(db, groupId, existing);
   try {
     await db.transaction(async (tx) => {
       const client = await createUnverifiedClient(tx, email);
-      await addMember(tx, groupId, client.id);
+      await setPendingInvite(tx, client.id, groupId);
     });
   } catch (error) {
     if (!isUniqueViolation(error)) throw error;
     const winner = await findUserByEmail(db, email);
-    if (winner) await moveUnverified(db, groupId, winner);
+    if (winner) await rememberInvite(db, groupId, winner);
   }
 }
 
-/**
- * Moves a client to `groupId` only while they are still an unverified, active client. The
- * condition is part of the write, so a client who verified after `existing` was read stays put.
- */
-export async function moveUnverified(db: Db, groupId: string, existing: UserRow): Promise<void> {
-  if (existing.role !== 'client' || existing.emailVerified || existing.disabledAt) return;
-  await db
-    .insert(groupMembers)
-    .values({ userId: existing.id, groupId })
-    .onConflictDoUpdate({
-      target: groupMembers.userId,
-      set: { groupId },
-      setWhere: sql`exists (select 1 from "user" u where u.id = ${groupMembers.userId} and u.email_verified = false and u.disabled_at is null and u.role = 'client')`,
-    });
+/** Keeps the invite for a client account that is not disabled. */
+export async function rememberInvite(db: Db, groupId: string, existing: UserRow): Promise<void> {
+  if (existing.role !== 'client' || existing.disabledAt) return;
+  await setPendingInvite(db, existing.id, groupId);
 }

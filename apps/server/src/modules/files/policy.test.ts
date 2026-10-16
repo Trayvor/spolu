@@ -12,11 +12,12 @@ const actor = (role: Role, id = 'actor'): SessionUser => ({
 describe('canReadFile', () => {
   const file = { groupId: 'g1', adminsOnly: false };
   it.each([
-    ['superadmin', null, true],
-    ['admin', null, true],
-    ['client', 'g1', true],
-    ['client', 'g2', false],
-    ['client', null, false],
+    ['superadmin', [], true],
+    ['admin', [], true],
+    ['client', ['g1'], true],
+    ['client', ['g2'], false],
+    ['client', [], false],
+    ['client', ['g2', 'g1'], true],
   ] as const)('%s in group %s -> %s', (role, actorGroupId, expected) => {
     expect(canReadFile(actor(role), file, actorGroupId)).toBe(expected);
   });
@@ -25,9 +26,9 @@ describe('canReadFile', () => {
 describe('canReadFile on admins-only files', () => {
   const file = { groupId: 'g1', adminsOnly: true };
   it("an admins-only file is unreadable to the group's client", () => {
-    expect(canReadFile(actor('client'), file, 'g1')).toBe(false);
-    expect(canReadFile(actor('admin'), file, null)).toBe(true);
-    expect(canReadFile(actor('superadmin'), file, null)).toBe(true);
+    expect(canReadFile(actor('client'), file, ['g1'])).toBe(false);
+    expect(canReadFile(actor('admin'), file, [])).toBe(true);
+    expect(canReadFile(actor('superadmin'), file, [])).toBe(true);
   });
 });
 

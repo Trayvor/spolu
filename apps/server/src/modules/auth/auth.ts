@@ -6,6 +6,7 @@ import { emailOTP } from 'better-auth/plugins';
 import type { AppDeps } from '../../deps.js';
 import { sendEmailLater } from '../../infra/email/index.js';
 import { user } from '../users/schema.js';
+import { applyPendingInvite } from '../groups/memberships.js';
 import { findUserByEmail, getUserById } from '../users/service.js';
 import { loginCodeEmail } from './emails.js';
 import { pickLanguage } from './language.js';
@@ -71,6 +72,9 @@ export function createAuth({ config, db, jobs }: AppDeps) {
                 code: 'ACCOUNT_DISABLED',
               });
             }
+            // Signing in with a code proves the email: only now does the invite the person
+            // typed it on make them a client of that group.
+            if (owner?.role === 'client') await applyPendingInvite(db, owner.id);
           },
         },
       },

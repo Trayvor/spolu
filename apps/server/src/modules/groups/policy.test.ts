@@ -21,11 +21,12 @@ describe('canManageGroups', () => {
 
 describe('canReadGroup', () => {
   it.each([
-    ['superadmin', null, true],
-    ['admin', null, true],
-    ['client', 'g1', true],
-    ['client', 'g2', false],
-    ['client', null, false],
+    ['superadmin', [], true],
+    ['admin', [], true],
+    ['client', ['g1'], true],
+    ['client', ['g2'], false],
+    ['client', [], false],
+    ['client', ['g2', 'g1'], true],
   ] as const)('%s with membership %s -> %s', (role, membership, expected) => {
     expect(canReadGroup(actor(role), 'g1', membership)).toBe(expected);
   });

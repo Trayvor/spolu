@@ -6,7 +6,8 @@ import { StorageNotFoundError } from '../../infra/storage/storage.js';
 import { requireUser } from '../auth/session.js';
 import { sniffImageType, type ImageType } from '../files/sniff.js';
 import { canManageGroups, canReadGroup } from './policy.js';
-import { getGroup, getGroupByInviteToken, getMembershipGroupId, setLogoKey } from './service.js';
+import { getGroup, getGroupByInviteToken, setLogoKey } from './service.js';
+import { clientGroupIds } from './memberships.js';
 
 const MAX_LOGO_BYTES = 512 * 1024;
 const EXTENSIONS: Record<ImageType, string> = {
@@ -105,7 +106,7 @@ export const logoRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (
   app.get<IdParams>('/groups/:id/logo', { preHandler: anyUser }, async (request, reply) => {
     const actor = request.user!;
     const { id } = request.params;
-    if (!canReadGroup(actor, id, await getMembershipGroupId(db, actor.id))) return notFound(reply);
+    if (!canReadGroup(actor, id, await clientGroupIds(db, actor.id))) return notFound(reply);
     return sendLogo(request, reply, (await getGroup(db, id))?.logoKey ?? null);
   });
 

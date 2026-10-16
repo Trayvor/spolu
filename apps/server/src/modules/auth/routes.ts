@@ -7,6 +7,8 @@ import {
   LanguageBodySchema,
   NameBodySchema,
   type Me,
+  type MeGroup,
+  type SessionUser,
 } from '@spolu/shared';
 import type { AppDeps } from '../../deps.js';
 import { createRateLimiter, createSlidingRateLimiter } from '../../infra/http/rate-limit.js';
@@ -19,7 +21,7 @@ import {
   SameEmailError,
 } from './email-change.js';
 import { getSessionFromHeaders, requireUser, toSessionUser } from './session.js';
-import { getMembershipGroupId } from '../groups/service.js';
+import { listMemberships } from '../groups/memberships.js';
 import { EmailTakenError, setUserLanguage, updateUserName } from '../users/service.js';
 import { sessionRoom } from '../../infra/realtime/rooms.js';
 
@@ -38,7 +40,18 @@ export const authRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { d
   // better-auth's own endpoints, in a child plugin so its raw-body parser stays local.
   await app.register(async (child) => registerAuthHandler(child, auth));
 
-  /** The caller with their group; null when there is no valid, enabled session. */
+  const meGroups = async (u: SessionUser): Promise<MeGroup[]> =>
+    u.role === 'client'
+      ? (await listMemberships(db, u.id)).map((m) => ({
+          id: m.groupId,
+          name: m.name,
+          role: m.role,
+          hasLogo: m.hasLogo,
+          updatedAt: m.updatedAt.toISOString(),
+        }))
+      : [];
+
+  /** The caller with their groups; null when there is no valid, enabled session. */
   const currentUser = async (request: FastifyRequest) => {
     const { headers, response } = await auth.api.getSession({
       headers: fromNodeHeaders(request.headers),
@@ -46,8 +59,7 @@ export const authRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { d
     });
     const base = toSessionUser(response?.user);
     if (!base) return null;
-    const groupId = base.role === 'client' ? await getMembershipGroupId(db, base.id) : null;
-    const user: Me = { ...base, groupId };
+    const user: Me = { ...base, groups: await meGroups(base) };
     return { user, headers };
   };
 
@@ -110,8 +122,7 @@ export const authRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { d
       }
       throw error;
     }
-    const groupId = user.role === 'client' ? await getMembershipGroupId(db, user.id) : null;
-    const me: Me = { ...user, email: body.data.newEmail, groupId };
+    const me: Me = { ...user, email: body.data.newEmail, groups: await meGroups(user) };
     return me;
   });
 

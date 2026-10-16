@@ -1,7 +1,7 @@
 import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { LanguageSwitcher } from '@/components/language-switcher';
-import { isAdmin } from '@/features/auth/roles';
+import { clientGroups, isAdmin } from '@/features/auth/roles';
 import { UserMenu } from '@/features/auth/user-menu';
 import { useSession } from '@/features/auth/use-session';
 
@@ -12,7 +12,8 @@ const navLink =
  * The egrant.sk header pill, kept still (no hide-on-scroll). On the left the brand
  * "Spolu by eGrant": the product name as the wordmark, a small "by" and the egrant logo,
  * one link to `/` named by `app.fullName`. On the right, for a signed-in user: the "Home", "Tasks", "Knowledge", "Groups" and "Admins" links (admins only, hidden under 641 px where
- * the user menu offers them), the user menu and the language menu.
+ * the user menu offers them), "My groups" for a client of several groups (Phase 21), the user
+ * menu and the language menu.
  */
 export function AppHeader() {
   const { t } = useTranslation();
@@ -55,6 +56,11 @@ export function AppHeader() {
               {t('nav.admins')}
             </Link>
           </>
+        )}
+        {user && !isAdmin(user) && clientGroups(user).length > 1 && (
+          <Link to="/my-groups" className={navLink}>
+            {t('nav.myGroups')}
+          </Link>
         )}
         {user && <UserMenu user={user} />}
         <LanguageSwitcher />

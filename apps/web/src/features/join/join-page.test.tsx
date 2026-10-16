@@ -17,13 +17,15 @@ const CLIENT = {
   name: 'Jana',
   email: 'jana@example.com',
   role: 'client',
-  groupId: 'g1',
+  groups: [{ id: 'g1', name: 'Firma', role: 'client', hasLogo: false, updatedAt: '' }],
 };
 
 type Reply = { status: number; body: unknown };
 const json = (status: number, body: unknown): Reply => ({ status, body });
 
-function mockApi(options: { info?: Reply; join?: Reply; loggedIn?: boolean; verify?: Reply } = {}) {
+function mockApi(
+  options: { info?: Reply; join?: Reply; accept?: Reply; loggedIn?: boolean; verify?: Reply } = {},
+) {
   const state = { loggedIn: options.loggedIn ?? false };
   const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
     let reply: Reply;
@@ -40,6 +42,8 @@ function mockApi(options: { info?: Reply; join?: Reply; loggedIn?: boolean; veri
               hasLogo: true,
               updatedAt: '2026-10-15T10:00:00.000Z',
             }));
+    } else if (url === '/api/join/tok/accept') {
+      reply = options.accept ?? json(200, { groupId: 'g2' });
     } else if (url === '/api/auth/email-otp/send-verification-otp') {
       reply = json(200, { success: true });
     } else if (url === '/api/auth/sign-in/email-otp') {
@@ -150,9 +154,22 @@ describe('join page', () => {
     expect(screen.queryByLabelText(t('login.code'))).toBeNull();
   });
 
-  it('a signed-in user opening the link goes to their group', async () => {
-    mockApi({ loggedIn: true });
-    const { router } = renderAt('/join/tok');
-    await waitFor(() => expect(router.state.location.pathname).toBe('/groups/g1/chat'));
+  it('a signed-in client joins with one button and lands in the new group', async () => {
+    const { posts } = mockApi({ loggedIn: true });
+    const { router, user } = renderAt('/join/tok');
+    expect(
+      await screen.findByText(t('join.signedInAs', { email: 'jana@example.com' })),
+    ).toBeInTheDocument();
+    expect(screen.queryByLabelText(t('login.email'))).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: t('join.accept') }));
+    await waitFor(() => expect(router.state.location.pathname).toBe('/groups/g2/chat'));
+    expect(posts('/api/join/tok/accept')).toEqual([{}]);
+  });
+
+  it('a removed client is told an admin removed them', async () => {
+    mockApi({ loggedIn: true, accept: json(403, { error: 'removed' }) });
+    const { user } = renderAt('/join/tok');
+    await user.click(await screen.findByRole('button', { name: t('join.accept') }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(t('join.errors.removed'));
   });
 });

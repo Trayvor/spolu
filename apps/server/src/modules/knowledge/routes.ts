@@ -14,7 +14,7 @@ import type { AppDeps } from '../../deps.js';
 import { requireAdmin, requireUser } from '../auth/session.js';
 import { deleteDetachedFiles, InvalidAttachmentError } from '../files/service.js';
 import { canReadGroup } from '../groups/policy.js';
-import { getGroup, getMembershipGroupId } from '../groups/service.js';
+import { getGroup } from '../groups/service.js';
 import {
   AuthorRecipientError,
   InvalidRecipientError,
@@ -39,6 +39,7 @@ import {
   updateItem,
   ValidationError,
 } from './service.js';
+import { clientGroupIds } from '../groups/memberships.js';
 
 type IdParams = { Params: { id: string } };
 
@@ -118,7 +119,7 @@ export const knowledgeRoutes: FastifyPluginAsync<{
 
   /** True when the actor may read the group and it exists. */
   const canOpenGroup = async (actor: SessionUser, groupId: string): Promise<boolean> =>
-    canReadGroup(actor, groupId, await getMembershipGroupId(db, actor.id)) &&
+    canReadGroup(actor, groupId, await clientGroupIds(db, actor.id)) &&
     (await getGroup(db, groupId)) !== null;
 
   app.get<IdParams>('/groups/:id/knowledge', { preHandler: anyUser }, async (request, reply) => {

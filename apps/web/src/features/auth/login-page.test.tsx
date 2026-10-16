@@ -17,7 +17,7 @@ const USER = {
   name: 'Jana Nováková',
   email: 'jana@example.com',
   role: 'admin',
-  groupId: null,
+  groups: [],
 };
 
 type Reply = { status: number; body: unknown };

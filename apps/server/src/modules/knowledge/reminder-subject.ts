@@ -25,7 +25,8 @@ async function loadMany(db: Db, ids: string[]): Promise<Map<string, SubjectInfo>
            (select jsonb_object_agg(m.id, m.name) from "user" m
              where m.id in (select (regexp_matches(k.body, '<@([A-Za-z0-9_-]+)>', 'g'))[1])
                and (m.role <> 'client' or exists (select 1 from group_members gm
-                     where gm.user_id = m.id and gm.group_id = k.group_id))) as mention_names
+                     where gm.user_id = m.id and gm.group_id = k.group_id
+                       and gm.role = 'client' and gm.removed_at is null))) as mention_names
     from knowledge_items k
     where k.id in (${sql.join(ids, sql`, `)})`);
   for (const row of rows) {
@@ -40,7 +41,7 @@ async function loadMany(db: Db, ids: string[]): Promise<Map<string, SubjectInfo>
       active: true,
       authorId: row.created_by,
       link: `/groups/${row.group_id}/knowledge?k=${row.id}`,
-      canRead: (actor, actorGroupId) => canReadItem(actor, item, actorGroupId),
+      canRead: (actor, actorGroupIds) => canReadItem(actor, item, actorGroupIds),
       canEdit: (actor) => isAdmin(actor) || actor.id === row.created_by,
     });
   }

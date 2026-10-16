@@ -1,4 +1,4 @@
-import type { SessionUser } from '@spolu/shared';
+import type { Me, MeGroup, SessionUser } from '@spolu/shared';
 
 /**
  * Cosmetic only: decides whether to show admin links. The server enforces the real
@@ -6,4 +6,9 @@ import type { SessionUser } from '@spolu/shared';
  */
 export function isAdmin(user: SessionUser | null): boolean {
   return user !== null && user.role !== 'client';
+}
+
+/** The groups the person reads as a client (not the ones where they are only a requester). */
+export function clientGroups(me: Me): MeGroup[] {
+  return me.groups.filter((g) => g.role === 'client');
 }

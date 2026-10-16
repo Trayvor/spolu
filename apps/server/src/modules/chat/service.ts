@@ -3,6 +3,7 @@ import { and, eq, isNotNull, sql, type SQL } from 'drizzle-orm';
 import type { TaskChatSummaries } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
 import { isForeignKeyViolation } from '../../infra/db/errors.js';
+import { moveFilesToGroup } from '../files/service.js';
 import { channels, messageAttachments, messages, readStates, threadReadStates } from './schema.js';
 
 export type ChannelRow = typeof channels.$inferSelect;
@@ -49,6 +50,54 @@ export async function ensureTaskChannel(
   const [row] = await db.select().from(channels).where(eq(channels.taskId, task.id));
   if (!row) throw new TaskGoneError();
   return row;
+}
+
+/**
+ * The ticket's chat channel (Phase 21), created if missing; safe when two writers race (the
+ * partial unique index `channels_ticket_unique` keeps one per ticket). Only a ticket with a
+ * client has a chat: the ticket module calls this when the ticket gets its client.
+ */
+export async function ensureTicketChannel(
+  db: Db,
+  ticket: { id: string; groupId: string },
+): Promise<ChannelRow> {
+  await db
+    .insert(channels)
+    .values({ id: randomUUID(), groupId: ticket.groupId, kind: 'ticket', ticketId: ticket.id })
+    .onConflictDoNothing({ target: channels.ticketId, where: isNotNull(channels.ticketId) });
+  const [row] = await db.select().from(channels).where(eq(channels.ticketId, ticket.id));
+  return row!;
+}
+
+/** The ticket's chat channel, or null while the ticket has none (no client yet). */
+export async function getTicketChannel(db: Db, ticketId: string): Promise<ChannelRow | null> {
+  const [row] = await db.select().from(channels).where(eq(channels.ticketId, ticketId));
+  return row ?? null;
+}
+
+/**
+ * Moves a ticket's chat to the ticket's new group, with the files of its messages, so the
+ * messages and their attachments stay readable there. One transaction; no-op without a chat.
+ */
+export async function moveTicketChannel(db: Db, ticketId: string, groupId: string): Promise<void> {
+  await db.transaction(async (tx) => {
+    const [channel] = await tx
+      .update(channels)
+      .set({ groupId })
+      .where(eq(channels.ticketId, ticketId))
+      .returning({ id: channels.id });
+    if (!channel) return;
+    const attached = await tx
+      .select({ fileId: messageAttachments.fileId })
+      .from(messageAttachments)
+      .innerJoin(messages, eq(messages.id, messageAttachments.messageId))
+      .where(eq(messages.channelId, channel.id));
+    await moveFilesToGroup(
+      tx,
+      attached.map((a) => a.fileId),
+      groupId,
+    );
+  });
 }
 
 /**
@@ -248,9 +297,15 @@ export function unreadByGroupSql(userId: string): SQL {
 export async function unreadByGroup(
   db: Db,
   userId: string,
-  onlyGroupId: string | null,
+  onlyGroupIds: readonly string[] | null,
 ): Promise<Record<string, number>> {
-  const onlyGroup = onlyGroupId === null ? sql`` : sql`and group_id = ${onlyGroupId}`;
+  const onlyGroup =
+    onlyGroupIds === null
+      ? sql``
+      : sql`and group_id in (${sql.join(
+          onlyGroupIds.map((id) => sql`${id}`),
+          sql`, `,
+        )})`;
   const rows = await db.execute<{ group_id: string; n: number }>(sql`
     select group_id, n
     from (${unreadByGroupSql(userId)}) by_group

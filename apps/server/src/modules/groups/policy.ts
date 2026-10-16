@@ -6,13 +6,16 @@ export function canManageGroups(actor: SessionUser): boolean {
   return isAdmin(actor);
 }
 
-/** Admins read every group; a client reads only the group they belong to (`actorGroupId`). */
+/**
+ * Admins read every group; a client reads the groups of their active client memberships
+ * (`actorGroupIds`, from `clientGroupIds`). A ziadatel membership never opens a group.
+ */
 export function canReadGroup(
   actor: SessionUser,
   groupId: string,
-  actorGroupId: string | null,
+  actorGroupIds: readonly string[],
 ): boolean {
-  return isAdmin(actor) || (actor.role === 'client' && actorGroupId === groupId);
+  return isAdmin(actor) || (actor.role === 'client' && actorGroupIds.includes(groupId));
 }
 
 /** Admins remove clients; nobody removes an admin this way. */

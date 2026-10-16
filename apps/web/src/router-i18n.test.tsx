@@ -19,8 +19,14 @@ vi.mock('@/lib/socket', () => ({
 }));
 
 const NOW = '2026-10-16T10:00:00.000Z';
-const ADMIN = { id: 'a1', name: 'Jana', email: 'jana@example.com', role: 'admin', groupId: null };
-const CLIENT = { id: 'u1', name: 'Eva', email: 'eva@acme.sk', role: 'client', groupId: 'g1' };
+const ADMIN = { id: 'a1', name: 'Jana', email: 'jana@example.com', role: 'admin', groups: [] };
+const CLIENT = {
+  id: 'u1',
+  name: 'Eva',
+  email: 'eva@acme.sk',
+  role: 'client',
+  groups: [{ id: 'g1', name: 'Firma', role: 'client', hasLogo: false, updatedAt: '' }],
+};
 const GROUP = { id: 'g1', name: 'Acme', egrantUrl: 'https://acme.egrant.sk', hasLogo: false };
 const PERSON = { id: 'a1', name: 'Jana' };
 const MESSAGE = {

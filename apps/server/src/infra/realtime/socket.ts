@@ -6,7 +6,8 @@ import type { Auth } from '../../modules/auth/auth.js';
 import type { Config } from '../config/config.js';
 import { isAdmin } from '../../modules/users/policy.js';
 import { canReadGroup } from '../../modules/groups/policy.js';
-import { getGroup, getMembershipGroupId } from '../../modules/groups/service.js';
+import { getGroup } from '../../modules/groups/service.js';
+import { clientGroupIds } from '../../modules/groups/memberships.js';
 import type { Db } from '../db/client.js';
 import { ADMINS_ROOM, groupAdminsRoom, groupRoom, sessionRoom, userRoom } from './rooms.js';
 
@@ -14,8 +15,6 @@ declare module 'socket.io' {
   interface SocketData {
     user: SessionUser;
     sessionId: string;
-    /** The client's group; unset for admins. */
-    groupId?: string;
     /** Group rooms the socket currently wants (added on `group:join`, removed on `group:leave`). */
     wantedGroups: Set<string>;
   }
@@ -60,14 +59,11 @@ export function attachSocket(
       socket.data.wantedGroups = new Set();
       const rooms = [userRoom(found.user.id), sessionRoom(found.sessionId)];
       if (isAdmin(found.user)) rooms.push(ADMINS_ROOM);
-      // A client joins their group's room (never its admins room); admins join group rooms
-      // and their admins rooms with `group:join`.
+      // A client joins the rooms of all their client groups (never an admins room; a ziadatel
+      // membership gives none); admins join group rooms and their admins rooms with `group:join`.
       if (found.user.role === 'client') {
-        const groupId = await getMembershipGroupId(db, found.user.id);
-        if (groupId) {
-          socket.data.groupId = groupId;
+        for (const groupId of await clientGroupIds(db, found.user.id))
           rooms.push(groupRoom(groupId));
-        }
       }
       await socket.join(rooms);
       // A user disabled (and disconnectUser run) between the lookup and the join would
@@ -98,7 +94,11 @@ export function attachSocket(
         if (groupId !== null) socket.data.wantedGroups.add(groupId);
         const allowed =
           groupId !== null &&
-          canReadGroup(socket.data.user, groupId, socket.data.groupId ?? null) &&
+          canReadGroup(
+            socket.data.user,
+            groupId,
+            isAdmin(socket.data.user) ? [] : await clientGroupIds(db, socket.data.user.id),
+          ) &&
           (await getGroup(db, groupId)) !== null;
         // The handshake snapshot of the user may be stale: read the session again.
         if (!allowed || !(await getSessionFromHeaders(auth, socket.request.headers))) {
@@ -128,8 +128,9 @@ export function attachSocket(
       const ack = asAck<GroupJoinAck>(ackArg);
       try {
         const groupId = parseGroupId(payload);
-        // A client never leaves their own group's room.
-        if (groupId !== null && groupId !== socket.data.groupId) {
+        // A client never leaves their groups' rooms: they hold only those, joined on connect,
+        // and leave one only when an admin removes them (`leaveGroupRoom`).
+        if (groupId !== null && isAdmin(socket.data.user)) {
           socket.data.wantedGroups.delete(groupId);
           await socket.leave(groupRoom(groupId));
           await socket.leave(groupAdminsRoom(groupId));

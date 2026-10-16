@@ -12,7 +12,7 @@ const ME: Me = {
   name: 'Eva',
   email: 'eva@example.com',
   role: 'client',
-  groupId: 'g1',
+  groups: [{ id: 'g1', name: 'Firma', role: 'client', hasLogo: false, updatedAt: '' }],
 };
 
 type Handler = (body: unknown) => Response | Promise<Response>;

@@ -3,7 +3,7 @@ import { BucketCreateSchema, BucketPatchSchema, ErrorCodes, type SessionUser } f
 import type { AppDeps } from '../../deps.js';
 import { createRateLimiter } from '../../infra/http/rate-limit.js';
 import { requireUser } from '../auth/session.js';
-import { getGroup, getMembershipGroupId } from '../groups/service.js';
+import { getGroup } from '../groups/service.js';
 import { emitAdminActivity } from '../../infra/realtime/rooms.js';
 import { emitBuckets } from './events.js';
 import { canManageBuckets, canUseBoard } from './policy.js';
@@ -19,6 +19,7 @@ import {
   listBuckets,
   updateBucket,
 } from './service.js';
+import { clientGroupIds } from '../groups/memberships.js';
 
 type GroupParams = { Params: { id: string } };
 
@@ -45,7 +46,7 @@ export const tasksRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { 
 
   /** True when the actor may open the board of `groupId` and the group exists. */
   const canOpenGroup = async (actor: SessionUser, groupId: string): Promise<boolean> =>
-    canUseBoard(actor, groupId, await getMembershipGroupId(db, actor.id)) &&
+    canUseBoard(actor, groupId, await clientGroupIds(db, actor.id)) &&
     (await getGroup(db, groupId)) !== null;
 
   await app.register(taskRoutes, { deps, writeGuard, canOpenGroup });

@@ -8,22 +8,24 @@ import { testDatabaseUrl } from '../../../test/test-config.js';
 import { addAdmin, createUnverifiedClient, deactivateUser } from '../users/service.js';
 import { user } from '../users/schema.js';
 import { addManager } from './managers.js';
+import { addMembership, clientGroupIds, removeMembership } from './memberships.js';
+import { pendingInvites } from './schema.js';
 import {
   addMember,
   createGroup,
   EgrantUrlTakenError,
   getGroup,
   getGroupByInviteToken,
-  getMembershipGroupId,
   isPickablePerson,
   listGroupPeople,
   listPickablePeople,
   listGroups,
   listMembers,
-  moveUnverified,
   regenerateInvite,
   setLogoKey,
   updateGroup,
+  findGroupByEgrantUrl,
+  rememberInvite,
 } from './service.js';
 
 const { db, close } = createDb(testDatabaseUrl);
@@ -111,9 +113,9 @@ describe('members', () => {
   it('addMember sets the membership, once per client', async () => {
     const g = await newGroup();
     const c = await newClient(true);
-    expect(await getMembershipGroupId(db, c.id)).toBeNull();
+    expect(await clientGroupIds(db, c.id)).toEqual([]);
     await addMember(db, g.id, c.id);
-    expect(await getMembershipGroupId(db, c.id)).toBe(g.id);
+    expect(await clientGroupIds(db, c.id)).toEqual([g.id]);
     await addMember(db, g.id, c.id); // idempotent
     expect(await listMembers(db, g.id, { removed: false })).toHaveLength(1);
   });
@@ -124,7 +126,7 @@ describe('members', () => {
     const unverified = await newClient(false);
     const removed = await newClient(true);
     for (const c of [active, unverified, removed]) await addMember(db, g.id, c.id);
-    await deactivateUser(db, removed.id);
+    await removeMembership(db, g.id, removed.id);
     const row = (await listGroups(db, VIEWER)).find((x) => x.id === g.id);
     expect(row).toEqual({
       id: g.id,
@@ -220,7 +222,7 @@ describe('members', () => {
     const unverified = await newClient(false);
     const removed = await newClient(true);
     for (const c of [active, unverified, removed]) await addMember(db, g.id, c.id);
-    await deactivateUser(db, removed.id);
+    await removeMembership(db, g.id, removed.id);
     const ids = async (r: boolean) =>
       (await listMembers(db, g.id, { removed: r })).map((m) => m.id);
     expect(await ids(false)).toEqual([active.id]);
@@ -238,22 +240,31 @@ describe('setLogoKey', () => {
   });
 });
 
-describe('moveUnverified', () => {
-  it('moves an unverified client to the new group', async () => {
-    const [a, b] = [await newGroup(), await newGroup()];
-    const client = await newClient(false);
-    await addMember(db, a.id, client.id);
-    await moveUnverified(db, b.id, client);
-    expect(await getMembershipGroupId(db, client.id)).toBe(b.id);
+describe('rememberInvite', () => {
+  it('keeps the invite of a client account, never of an admin or a disabled account', async () => {
+    const g = await newGroup();
+    const client = await newClient(true);
+    await rememberInvite(db, g.id, client);
+    const disabled = { ...(await newClient(true)), disabledAt: new Date() };
+    await rememberInvite(db, g.id, disabled);
+    const rows = await db.select().from(pendingInvites);
+    expect(rows.some((r) => r.userId === client.id && r.groupId === g.id)).toBe(true);
+    expect(rows.some((r) => r.userId === disabled.id)).toBe(false);
   });
+});
 
-  it('does not move a client who verified after the row was read', async () => {
-    const [a, b] = [await newGroup(), await newGroup()];
-    const stale = await newClient(false); // the stale read: still says unverified
-    await addMember(db, a.id, stale.id);
-    await db.update(user).set({ emailVerified: true }).where(eq(user.id, stale.id));
-    await moveUnverified(db, b.id, stale);
-    expect(await getMembershipGroupId(db, stale.id)).toBe(a.id);
+describe('ziadatel members', () => {
+  it('are neither group people nor listed as clients; only in the ziadatel list', async () => {
+    const g = await newGroup();
+    const z = await newClient(true);
+    await db.update(user).set({ name: 'Žiadateľ' }).where(eq(user.id, z.id));
+    await addMembership(db, z.id, g.id, 'ziadatel');
+    expect((await listGroupPeople(db, g.id)).some((p) => p.id === z.id)).toBe(false);
+    expect(await isPickablePerson(db, g.id, z.id)).toBe(false);
+    expect((await listMembers(db, g.id, { removed: false })).map((m) => m.id)).toEqual([]);
+    expect(
+      (await listMembers(db, g.id, { removed: false, role: 'ziadatel' })).map((m) => m.id),
+    ).toEqual([z.id]);
   });
 });
 
@@ -376,5 +387,23 @@ describe('readers versus pickable people', () => {
     expect(await isPickablePerson(db, s.g.id, removed.id)).toBe(false);
     const reader = (await listGroupPeople(db, s.g.id)).find((p) => p.id === removed.id);
     expect(reader?.isManager ?? false).toBe(false);
+  });
+});
+
+describe('findGroupByEgrantUrl', () => {
+  it('ignores the scheme, a leading www., the path and the case', async () => {
+    const h = `g${randomUUID().replaceAll('-', '').slice(0, 16)}`;
+    const g = await createGroup(db, { name: 'Firma', egrantUrl: `http://${h}.egrant.sk` });
+    for (const url of [
+      `https://WWW.${h}.egrant.sk/app/login`,
+      `http://${h}.egrant.sk.`,
+      `${h}.egrant.sk`,
+    ]) {
+      const found = await findGroupByEgrantUrl(db, url);
+      if (url.startsWith('http')) expect(found?.id).toBe(g.id);
+      else expect(found).toBeNull(); // not a URL
+    }
+    expect(await findGroupByEgrantUrl(db, `https://x${h}.egrant.sk`)).toBeNull();
+    expect(await findGroupByEgrantUrl(db, null)).toBeNull();
   });
 });

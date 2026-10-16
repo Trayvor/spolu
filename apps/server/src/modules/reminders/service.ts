@@ -11,7 +11,7 @@ import {
 } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
 import { groups } from '../groups/schema.js';
-import { getGroupPeopleRoles, getMembershipGroupId } from '../groups/service.js';
+import { getGroupPeopleRoles } from '../groups/service.js';
 import { isAdmin } from '../users/policy.js';
 import { user } from '../users/schema.js';
 import { getUserNames } from '../users/service.js';
@@ -33,6 +33,7 @@ import {
   type ReminderSubjectRef,
   type SubjectInfo,
 } from './subjects.js';
+import { clientGroupIds } from '../groups/memberships.js';
 
 export const REMINDER_LIMITS = {
   /** Unfired times per set. */
@@ -54,9 +55,9 @@ async function readableSubject(
   ref: ReminderSubjectRef,
   actor: SessionUser,
 ): Promise<SubjectInfo | null> {
-  const actorGroupId = isAdmin(actor) ? null : await getMembershipGroupId(db, actor.id);
+  const actorGroupIds = isAdmin(actor) ? [] : await clientGroupIds(db, actor.id);
   const info = (await getReminderSubject(ref.kind).loadMany(db, [ref.id])).get(ref.id);
-  return info && info.canRead(actor, actorGroupId) ? info : null;
+  return info && info.canRead(actor, actorGroupIds) ? info : null;
 }
 
 async function findSetId(db: Db, ref: ReminderSubjectRef): Promise<string | null> {
@@ -575,9 +576,14 @@ export async function countUpcomingForUser(
   actor: SessionUser,
   range: { from: Date; to: Date },
 ): Promise<number> {
-  const actorGroupId = isAdmin(actor) ? null : await getMembershipGroupId(db, actor.id);
-  if (!isAdmin(actor) && actorGroupId === null) return 0;
-  const onlyGroup = actorGroupId === null ? sql`` : sql`and s.group_id = ${actorGroupId}`;
+  const actorGroupIds = isAdmin(actor) ? [] : await clientGroupIds(db, actor.id);
+  if (!isAdmin(actor) && actorGroupIds.length === 0) return 0;
+  const onlyGroup = isAdmin(actor)
+    ? sql``
+    : sql`and s.group_id in (${sql.join(
+        actorGroupIds.map((id) => sql`${id}`),
+        sql`, `,
+      )})`;
   const rows = await db.execute<{ n: number }>(sql`
     select count(*)::int as n
     from (
@@ -606,10 +612,10 @@ export async function listUpcomingForUser(
   actor: SessionUser,
   opts: { from?: Date; limit: number },
 ): Promise<UpcomingReminder[]> {
-  // A client only ever reads their current group: old sets from a group they left never fill
+  // A client only reads their current client groups: old sets from a group they left never fill
   // the limit.
-  const actorGroupId = isAdmin(actor) ? null : await getMembershipGroupId(db, actor.id);
-  if (!isAdmin(actor) && actorGroupId === null) return [];
+  const actorGroupIds = isAdmin(actor) ? [] : await clientGroupIds(db, actor.id);
+  if (!isAdmin(actor) && actorGroupIds.length === 0) return [];
   const rows = await db
     .select({
       id: reminderTimes.id,
@@ -630,7 +636,7 @@ export async function listUpcomingForUser(
       and(
         isNull(reminderTimes.firedAt),
         gte(reminderTimes.at, opts.from ?? new Date()),
-        actorGroupId === null ? undefined : eq(reminderSets.groupId, actorGroupId),
+        isAdmin(actor) ? undefined : inArray(reminderSets.groupId, actorGroupIds),
       ),
     )
     .orderBy(asc(reminderTimes.at), asc(reminderTimes.id))
@@ -654,7 +660,7 @@ export async function listUpcomingForUser(
       : row.taskId
         ? taskInfos.get(row.taskId)
         : undefined;
-    if (!info || !info.canRead(actor, actorGroupId)) return [];
+    if (!info || !info.canRead(actor, actorGroupIds)) return [];
     const target: UpcomingReminder['target'] = row.knowledgeItemId
       ? { kind: 'knowledge', itemId: row.knowledgeItemId }
       : { kind: 'task', taskId: row.taskId! };

@@ -26,7 +26,13 @@ const socket = vi.hoisted(() => {
 });
 vi.mock('@/lib/socket', () => ({ getSocket: () => socket }));
 
-const ME = { id: 'me', name: 'Me', email: 'me@example.com', role: 'client', groupId: 'g1' };
+const ME = {
+  id: 'me',
+  name: 'Me',
+  email: 'me@example.com',
+  role: 'client',
+  groups: [{ id: 'g1', name: 'Firma', role: 'client', hasLogo: false, updatedAt: '' }],
+};
 
 const message = (over: Partial<MessageDto> = {}): MessageDto => ({
   id: 'm1',

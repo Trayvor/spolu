@@ -24,8 +24,14 @@ vi.mock('@/features/chat/chat-tab-badge', () => ({
 
 const t = (key: string, options?: Record<string, unknown>) => i18n.t(key, options);
 
-const ADMIN = { id: 'a1', name: 'Jana', email: 'jana@example.com', role: 'admin', groupId: null };
-const CLIENT = { id: 'u1', name: 'Eva', email: 'eva@acme.sk', role: 'client', groupId: 'g1' };
+const ADMIN = { id: 'a1', name: 'Jana', email: 'jana@example.com', role: 'admin', groups: [] };
+const CLIENT = {
+  id: 'u1',
+  name: 'Eva',
+  email: 'eva@acme.sk',
+  role: 'client',
+  groups: [{ id: 'g1', name: 'Firma', role: 'client', hasLogo: false, updatedAt: '' }],
+};
 const GROUP = {
   id: 'g1',
   name: 'Acme',
