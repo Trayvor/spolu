@@ -86,7 +86,7 @@ function mockApi(items: KnowledgeSummary[] = [summary('k1')]) {
 function renderTab(path = '/groups/g1/knowledge') {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const router = createAppRouter(queryClient, createMemoryHistory({ initialEntries: [path] }));
-  render(
+  const { unmount } = render(
     <QueryClientProvider client={queryClient}>
       <RouterProvider router={router} />
     </QueryClientProvider>,
@@ -96,7 +96,7 @@ function renderTab(path = '/groups/g1/knowledge') {
     Object.fromEntries(
       Object.entries(router.state.matches.at(-1)?.search ?? {}).filter(([, v]) => v !== undefined),
     ) as Record<string, unknown>;
-  return { router, search, user: userEvent.setup() };
+  return { router, search, unmount, user: userEvent.setup() };
 }
 
 const heading = () => screen.findByRole('heading', { name: t('knowledge.tab.title') });
@@ -131,28 +131,57 @@ describe('knowledge tab', () => {
     );
   });
 
-  it('type pill writes ?type', async () => {
+  it('type pills are checkboxes: tick several into ?type, All clears them', async () => {
     const fetchMock = mockApi();
     const { search, user } = renderTab();
     await heading();
     const pills = screen.getByRole('group', { name: t('knowledge.tab.filters') });
-    expect(within(pills).getByRole('button', { name: t('knowledge.types.all') })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
-    await user.click(within(pills).getByRole('button', { name: t('knowledge.types.links') }));
+    const all = within(pills).getByRole('button', { name: t('knowledge.types.all') });
+    const box = (name: string) => within(pills).getByRole('checkbox', { name: t(name) });
+    expect(all).toHaveAttribute('aria-pressed', 'true');
+    expect(box('knowledge.types.links')).toHaveAttribute('aria-checked', 'false');
+
+    await user.click(box('knowledge.types.links'));
     await waitFor(() => expect(search().type).toBe('link'));
-    expect(within(pills).getByRole('button', { name: t('knowledge.types.links') })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
+    expect(box('knowledge.types.links')).toHaveAttribute('aria-checked', 'true');
+    expect(all).toHaveAttribute('aria-pressed', 'false');
     await waitFor(() =>
       expect(fetchMock.mock.calls.some(([u]) => u === '/api/groups/g1/knowledge?type=link')).toBe(
         true,
       ),
     );
-    await user.click(within(pills).getByRole('button', { name: t('knowledge.types.all') }));
+
+    // The keyboard ticks a second one; the URL keeps the canonical order.
+    box('knowledge.types.notes').focus();
+    await user.keyboard(' ');
+    await waitFor(() => expect(search().type).toBe('note,link'));
+    expect(box('knowledge.types.notes')).toHaveAttribute('aria-checked', 'true');
+    await waitFor(() =>
+      expect(
+        fetchMock.mock.calls.some(([u]) => u === '/api/groups/g1/knowledge?type=note%2Clink'),
+      ).toBe(true),
+    );
+
+    await user.click(box('knowledge.types.links'));
+    await waitFor(() => expect(search().type).toBe('note'));
+    await user.click(all);
     await waitFor(() => expect(search().type).toBeUndefined());
+    expect(box('knowledge.types.notes')).toHaveAttribute('aria-checked', 'false');
+  });
+
+  it('?type drops invalid values and duplicates, and an old single value still works', async () => {
+    mockApi();
+    const first = renderTab('/groups/g1/knowledge?type=link,bogus,note,link');
+    await heading();
+    expect(first.search().type).toBe('note,link');
+    first.unmount();
+    const second = renderTab('/groups/g1/knowledge?type=file');
+    await heading();
+    expect(second.search().type).toBe('file');
+    const pills = screen.getByRole('group', { name: t('knowledge.tab.filters') });
+    expect(
+      within(pills).getByRole('checkbox', { name: t('knowledge.types.files') }),
+    ).toHaveAttribute('aria-checked', 'true');
   });
 
   it('search writes ?q after 300 ms and only from 2 characters', async () => {

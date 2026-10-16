@@ -18,14 +18,16 @@ afterEach(() => vi.unstubAllGlobals());
 describe('knowledge api', () => {
   it('global query joins clients with commas', async () => {
     const fetchMock = mockFetch();
-    const q = globalKnowledgeQuery({ clients: ['a', 'b'], type: 'link', q: 'por tal' });
+    const q = globalKnowledgeQuery({ clients: ['a', 'b'], types: ['note', 'link'], q: 'por tal' });
     expect(q.queryKey).toEqual([
       'knowledge',
       'global',
-      { clients: ['a', 'b'], type: 'link', q: 'por tal' },
+      { clients: ['a', 'b'], types: ['note', 'link'], q: 'por tal' },
     ]);
     await run(q, 'cur1');
-    expect(urlOf(fetchMock)).toBe('/api/knowledge?clients=a%2Cb&type=link&q=por+tal&cursor=cur1');
+    expect(urlOf(fetchMock)).toBe(
+      '/api/knowledge?clients=a%2Cb&type=note%2Clink&q=por+tal&cursor=cur1',
+    );
   });
 
   it('global query sends scope=all instead of ids', async () => {
@@ -41,5 +43,16 @@ describe('knowledge api', () => {
     await run(q);
     expect(urlOf(fetchMock)).toBe('/api/groups/g1/knowledge');
     expect(q.getNextPageParam({ items: [], nextCursor: 'n' }, [], undefined, [])).toBe('n');
+  });
+
+  it('group query sends the types as one comma list, none when the list is empty', async () => {
+    const fetchMock = mockFetch();
+    await run(groupKnowledgeQuery('g1', { types: ['file', 'reminder'] }));
+    await run(groupKnowledgeQuery('g1', { types: [] }));
+    const urls = (fetchMock.mock.calls as unknown as string[][]).map((c) => c[0]);
+    expect(urls).toEqual([
+      '/api/groups/g1/knowledge?type=file%2Creminder',
+      '/api/groups/g1/knowledge',
+    ]);
   });
 });

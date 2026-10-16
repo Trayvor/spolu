@@ -9,6 +9,7 @@ import {
   KnowledgePatchSchema,
   type KnowledgeDraft,
   type KnowledgeSummary,
+  type KnowledgeType,
   type SessionUser,
 } from '@spolu/shared';
 import { createDb } from '../../infra/db/client.js';
@@ -390,8 +391,26 @@ describe('knowledge service', () => {
         fileIds: [],
       })
     ).item.id;
-    expect(ids((await listGroupItems(db, admin, group.id, { type: 'note' })).items)).toEqual([n]);
-    expect(ids((await listGroupItems(db, admin, group.id, { type: 'link' })).items)).toEqual([l]);
+    const r = (
+      await createItem({ db }, admin, group.id, {
+        type: 'reminder',
+        title: 'R',
+        body: '',
+        visibility: 'public',
+        fileIds: [],
+        reminder: { times: [{ at: inHours(2) }], recipientIds: [] },
+      })
+    ).item.id;
+    const list = async (types: KnowledgeType[]) =>
+      ids((await listGroupItems(db, admin, group.id, { types })).items);
+    expect(await list(['note'])).toEqual([n]);
+    expect(await list(['link'])).toEqual([l]);
+    // Several types: any of them; none: every type.
+    expect(await list(['note', 'reminder'])).toEqual([r, n]);
+    expect(await list([])).toEqual([r, l, n]);
+    expect(
+      ids((await listAllItems(db, { groupIds: [group.id], types: ['link', 'reminder'] })).items),
+    ).toEqual([r, l]);
   });
 
   it('cursor pages never skip or repeat items with equal created_at', async () => {

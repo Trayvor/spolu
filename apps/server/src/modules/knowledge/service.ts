@@ -258,11 +258,21 @@ function cursorWhere(cursor: string): SQL {
   return sql`(k.created_at, k.id) < (${createdText}::timestamptz, ${id})`;
 }
 
-type ListFilters = { type?: KnowledgeType; q?: string; cursor?: string };
+/** `types`: any of these types; empty or absent means every type. */
+type ListFilters = { types?: KnowledgeType[]; q?: string; cursor?: string };
 
 function filterWhere(scope: SQL, opts: ListFilters): SQL {
   const parts: SQL[] = [scope];
-  if (opts.type) parts.push(sql`k.type = ${opts.type}`);
+  const types = [...new Set(opts.types ?? [])];
+  // A filter on top of the (group, created) and (created) indexes, as one type was before.
+  if (types.length > 0) {
+    parts.push(
+      sql`k.type in (${sql.join(
+        types.map((type) => sql`${type}`),
+        sql`, `,
+      )})`,
+    );
+  }
   for (const term of searchTerms(opts.q ?? '')) {
     parts.push(sql`k.search_text ilike '%' || ${escapeLike(term)} || '%' escape '\\'`);
   }

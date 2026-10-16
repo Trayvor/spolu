@@ -166,13 +166,45 @@ describe('KnowledgePage', () => {
     ).toBeInTheDocument();
   });
 
-  it('type menu writes ?type', async () => {
+  it('type menu ticks several types into ?type and stays open', async () => {
     const { listCalls } = mockApi();
     const { router, user } = renderPage('/knowledge');
     await user.click(await screen.findByRole('button', { name: t('knowledge.global.allTypes') }));
-    await user.click(screen.getByRole('menuitemradio', { name: t('knowledge.types.links') }));
+    const all = screen.getByRole('menuitemcheckbox', { name: t('knowledge.global.allTypes') });
+    expect(all).toHaveAttribute('aria-checked', 'true');
+    await user.click(screen.getByRole('menuitemcheckbox', { name: t('knowledge.types.links') }));
     await waitFor(() => expect(router.state.location.search).toMatchObject({ type: 'link' }));
     await waitFor(() => expect(listCalls()).toContain('/api/knowledge?type=link'));
+    // The open menu hides the page from the accessibility tree, the trigger included.
+    const trigger = (name: string) => screen.getByRole('button', { name, hidden: true });
+    expect(trigger(t('knowledge.types.links'))).toBeInTheDocument();
+
+    // The menu is still open: tick a second type.
+    await user.click(screen.getByRole('menuitemcheckbox', { name: t('knowledge.types.notes') }));
+    await waitFor(() => expect(router.state.location.search).toMatchObject({ type: 'note,link' }));
+    await waitFor(() => expect(listCalls()).toContain('/api/knowledge?type=note%2Clink'));
+    expect(
+      screen.getByRole('menuitemcheckbox', { name: t('knowledge.types.notes') }),
+    ).toHaveAttribute('aria-checked', 'true');
+    expect(all).toHaveAttribute('aria-checked', 'false');
+    expect(trigger(t('knowledge.global.typesCount', { count: 2 }))).toBeInTheDocument();
+
+    // Unticking one leaves the other; "All types" clears the rest.
+    await user.click(screen.getByRole('menuitemcheckbox', { name: t('knowledge.types.links') }));
+    await waitFor(() => expect(router.state.location.search).toMatchObject({ type: 'note' }));
+    await user.click(all);
+    await waitFor(() => expect(router.state.location.search).not.toHaveProperty('type'));
+    expect(trigger(t('knowledge.global.allTypes'))).toBeInTheDocument();
+    expect(all).toHaveAttribute('aria-checked', 'true');
+  });
+
+  it('reads several types and an old single type from the URL', async () => {
+    const { listCalls } = mockApi();
+    renderPage('/knowledge?type=reminder,bogus,file');
+    expect(
+      await screen.findByRole('button', { name: t('knowledge.global.typesCount', { count: 2 }) }),
+    ).toBeInTheDocument();
+    await waitFor(() => expect(listCalls()).toContain('/api/knowledge?type=file%2Creminder'));
   });
 
   it('search writes ?q from 2 characters', async () => {

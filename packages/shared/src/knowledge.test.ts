@@ -4,6 +4,7 @@ import {
   KNOWLEDGE_LIMITS,
   KnowledgeDraftSchema,
   KnowledgePatchSchema,
+  KnowledgeTypeListSchema,
   ReminderInputSchema,
 } from './knowledge.js';
 
@@ -219,5 +220,24 @@ describe('isHttpUrl', () => {
     const max = `https://x.sk/${'a'.repeat(KNOWLEDGE_LIMITS.url - 'https://x.sk/'.length)}`;
     expect(isHttpUrl(max)).toBe(true);
     expect(isHttpUrl(`${max}a`)).toBe(false);
+  });
+});
+
+describe('KnowledgeTypeListSchema', () => {
+  it('reads one type, a comma list or repeated params, deduplicated in the canonical order', () => {
+    expect(KnowledgeTypeListSchema.parse('note')).toEqual(['note']);
+    expect(KnowledgeTypeListSchema.parse('reminder,note,reminder')).toEqual(['note', 'reminder']);
+    expect(KnowledgeTypeListSchema.parse(['link', 'file,link'])).toEqual(['file', 'link']);
+  });
+
+  it('treats an empty value as no filter', () => {
+    expect(KnowledgeTypeListSchema.parse('')).toEqual([]);
+    expect(KnowledgeTypeListSchema.parse(',')).toEqual([]);
+  });
+
+  it('rejects an unknown type and an oversized value', () => {
+    expect(KnowledgeTypeListSchema.safeParse('note,poem').success).toBe(false);
+    expect(KnowledgeTypeListSchema.safeParse('note,'.repeat(100)).success).toBe(false);
+    expect(KnowledgeTypeListSchema.safeParse(Array(20).fill('note')).success).toBe(false);
   });
 });
