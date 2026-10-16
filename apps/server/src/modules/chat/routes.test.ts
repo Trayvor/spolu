@@ -393,6 +393,11 @@ describe('chat API', () => {
     const mention = await send(s.channelId, s.a.cookie, { body: `hi ${mentionToken('nobody')}` });
     expect(mention.statusCode).toBe(400);
     expect(mention.json()).toEqual({ error: 'invalid_mention' });
+    const adminMention = await send(s.channelId, s.a.cookie, {
+      body: `hi ${mentionToken(s.admin.id)}`,
+    });
+    expect(adminMention.statusCode).toBe(400);
+    expect(adminMention.json()).toEqual({ error: 'invalid_mention' });
 
     const other = await createGroup(test.deps.db, { name: 'Other', egrantUrl: newUrl() });
     const file = await createFile(
