@@ -40,6 +40,12 @@ const BETA = {
   managedByMe: false,
 };
 
+const ADMINS = [
+  { id: 'a1', name: 'Jana', email: 'jana@example.com', role: 'superadmin' },
+  { id: 'a2', name: 'Peter Novak', email: 'peter@example.com', role: 'admin' },
+  { id: 'a6', name: 'Bara', email: 'bara@example.com', role: 'admin' },
+];
+
 const MODES = { defaultMode: null, roleDefault: 'mentions', overrides: {}, managerSet: [] };
 
 function mockApi(
@@ -60,6 +66,7 @@ function mockApi(
       return reply(200, modes);
     }
     if (url === '/api/chat/unread') return reply(200, { g1: 4, g2: 0 });
+    if (url === '/api/admins') return reply(200, ADMINS);
     if (url === '/api/groups' && (init?.method ?? 'GET') === 'GET')
       return reply(listStatus, listStatus === 200 ? groups : { error: 'internal' });
     if (url === '/api/groups' && init?.method === 'POST') {
@@ -77,15 +84,15 @@ function mockApi(
   return fetchMock;
 }
 
-function renderGroups() {
+function renderGroups(url = '/groups') {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  const router = createAppRouter(queryClient, createMemoryHistory({ initialEntries: ['/groups'] }));
+  const router = createAppRouter(queryClient, createMemoryHistory({ initialEntries: [url] }));
   const view = render(
     <QueryClientProvider client={queryClient}>
       <RouterProvider router={router} />
     </QueryClientProvider>,
   );
-  return { ...view, user: userEvent.setup() };
+  return { ...view, router, user: userEvent.setup() };
 }
 
 describe('groups page', () => {
@@ -246,5 +253,86 @@ describe('groups page', () => {
     mockApi([ACME, BETA]);
     renderGroups();
     expect(await screen.findByText(t('groups.managers.noManagerHint'))).toBeInTheDocument();
+  });
+
+  it('the member count links to the Members tab', async () => {
+    mockApi([ACME, BETA]);
+    renderGroups();
+    const link = await screen.findByRole('link', { name: t('groups.members', { count: 3 }) });
+    expect(link).toHaveAttribute('href', '/groups/g1/members');
+  });
+
+  it('groups I manage come first, by name inside each part', async () => {
+    const cyan = { ...BETA, id: 'g3', name: 'Cyan', managedByMe: true, managers: [ADMINS[0]] };
+    mockApi([ACME, BETA, cyan]);
+    renderGroups();
+    await screen.findByRole('link', { name: /Acme/ });
+    const names = screen
+      .getAllByRole('link', { name: /Acme|beta|Cyan/ })
+      .filter((a) => /^\/groups\/g\d$/.test(a.getAttribute('href') ?? ''))
+      .map((a) => a.textContent);
+    expect(names.map((n) => n?.match(/Acme|beta|Cyan/)?.[0])).toEqual(['Acme', 'Cyan', 'beta']);
+  });
+
+  it('the title shows the count, and "shown of total" with a filter', async () => {
+    mockApi([ACME, BETA]);
+    const { unmount } = renderGroups();
+    await screen.findByRole('link', { name: /Acme/ });
+    expect(document.querySelector('[data-group-count]')).toHaveTextContent(/^2$/);
+    unmount();
+    renderGroups('/groups?manager=me');
+    await screen.findByRole('link', { name: /Acme/ });
+    expect(screen.queryByRole('link', { name: /beta/ })).toBeNull();
+    expect(document.querySelector('[data-group-count]')).toHaveTextContent(
+      t('groups.count.filtered', { shown: 1, total: 2 }),
+    );
+    expect(
+      screen.getByRole('button', {
+        name: t('groups.filter.label', { name: t('groups.filter.me') }),
+      }),
+    ).toBeInTheDocument();
+  });
+
+  it('picking an admin in the filter shows only the groups they manage', async () => {
+    mockApi([ACME, BETA]);
+    const { user, router } = renderGroups();
+    await user.click(
+      await screen.findByRole('button', {
+        name: t('groups.filter.label', { name: t('groups.filter.all') }),
+      }),
+    );
+    const menu = await screen.findByRole('menu');
+    const options = within(menu)
+      .getAllByRole('menuitemradio')
+      .map((o) => o.textContent);
+    expect(options).toEqual([
+      t('groups.filter.all'),
+      t('groups.filter.me'),
+      t('groups.filter.none'),
+      'Bara',
+      'Peter Novak',
+    ]);
+    await user.click(within(menu).getByRole('menuitemradio', { name: 'Peter Novak' }));
+    await waitFor(() => expect(router.state.location.search).toEqual({ manager: 'a2' }));
+    expect(screen.getByRole('link', { name: /Acme/ })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /beta/ })).toBeNull();
+  });
+
+  it('an empty filtered list offers Clear filter, which clears the search', async () => {
+    mockApi([ACME]);
+    const { user, router } = renderGroups('/groups?manager=none');
+    expect(await screen.findByText(t('groups.filter.empty'))).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /Acme/ })).toBeNull();
+    await user.click(screen.getByRole('button', { name: t('groups.filter.clear') }));
+    await waitFor(() => expect(router.state.location.search).toEqual({}));
+    expect(await screen.findByRole('link', { name: /Acme/ })).toBeInTheDocument();
+  });
+
+  it('an id that is not an active admin falls back to every group', async () => {
+    mockApi([ACME, BETA]);
+    const { router } = renderGroups('/groups?manager=gone');
+    await waitFor(() => expect(router.state.location.search).toEqual({}));
+    expect(await screen.findByRole('link', { name: /beta/ })).toBeInTheDocument();
+    expect(document.querySelector('[data-group-count]')).toHaveTextContent(/^2$/);
   });
 });

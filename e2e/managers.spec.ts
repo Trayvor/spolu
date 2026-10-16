@@ -139,3 +139,46 @@ test('admin A manages a client; pickers, @all and live updates follow', async ({
     await cContext.close();
   }
 });
+
+// Phase 22a: any admin sets another admin as a group's manager on the Members tab.
+test('admin A adds and removes admin B as a manager on the Members tab', async ({ page: a }) => {
+  const stamp = Date.now();
+  const groupName = `E2E Members Managers ${stamp}`;
+  const bName = `E2E Admin Mgr ${stamp}`;
+  const bEmail = `e2e-members-mgr-${stamp}@example.com`;
+
+  const created = await a.request.post('/api/groups', {
+    data: { name: groupName, egrantUrl: `https://e2e-members-mgr-${stamp}.egrant.sk` },
+  });
+  expect(created.status()).toBe(201);
+  const group = (await created.json()) as { id: string };
+  expect((await a.request.post('/api/admins', { data: { name: bName, email: bEmail } })).ok()).toBe(
+    true,
+  );
+
+  // 1. A adds B from "+ Pridať manažéra".
+  await a.goto(`/groups/${group.id}/members`);
+  await a.getByRole('button', { name: 'Pridať manažéra' }).click();
+  const menu = a.getByRole('menu');
+  // Earlier runs leave many admins behind: the menu then has a find field.
+  const find = menu.getByRole('searchbox', { name: 'Nájsť administrátora' });
+  if (await find.isVisible()) await find.fill(bName);
+  await menu.getByRole('menuitem', { name: bName }).click();
+  const managers = a.getByRole('list', { name: 'Manažéri z eGrantu' });
+  await expect(managers.getByText(bName)).toBeVisible();
+
+  // 2. B shows in the group's avatars on the Groups page, by name in the tooltip.
+  await a.goto('/groups');
+  const avatars = a.getByRole('button', { name: `Správcovia ${groupName}` });
+  await avatars.scrollIntoViewIfNeeded();
+  await avatars.hover();
+  await expect(a.locator('[data-manager-tooltip]')).toContainText(bName);
+
+  // 3. A removes B on the Members tab; the Groups page has no avatars for the group any more.
+  await a.goto(`/groups/${group.id}/members`);
+  await a.getByRole('button', { name: `Odobrať ${bName}` }).click();
+  await expect(a.getByText('Zatiaľ žiadny manažér z eGrantu.')).toBeVisible();
+  await a.goto('/groups');
+  await expect(a.getByRole('button', { name: `Spravovať ${groupName}` })).toBeVisible();
+  await expect(a.getByRole('button', { name: `Správcovia ${groupName}` })).toHaveCount(0);
+});

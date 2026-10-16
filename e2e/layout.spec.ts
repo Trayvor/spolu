@@ -21,6 +21,18 @@ for (const { name, width, height, gap, mobile } of [
         data: { name: `E2E Layout ${stamp}`, egrantUrl: `https://e2e-layout-${stamp}.egrant.sk` },
       });
       const group = (await created.json()) as { id: string };
+      if (!mobile) {
+        // Enough clients that the admin's sidebar is taller than the window: it must scroll
+        // inside its own column, never stretch the page or the chat.
+        for (let i = 0; i < 25; i++) {
+          await page.request.post('/api/groups', {
+            data: {
+              name: `E2E Layout ${stamp} ${i}`,
+              egrantUrl: `https://e2e-layout-${stamp}-${i}.egrant.sk`,
+            },
+          });
+        }
+      }
       await page.goto(`/groups/${group.id}/chat`);
       const card = page.getByTestId('chat-card');
       await expect(card.getByRole('toolbar')).toBeVisible();

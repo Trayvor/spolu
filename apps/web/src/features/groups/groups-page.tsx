@@ -1,32 +1,67 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Link } from '@tanstack/react-router';
+import { Link, useNavigate, useSearch } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { adminsQuery } from '@/features/admins/api';
+import { useSession } from '@/features/auth/use-session';
 import { GroupUnreadCount } from '@/features/chat/unread';
 import { AllGroupsMode } from '@/features/notifications/all-groups-mode';
 import { GroupBell } from '@/features/notifications/mode-menu';
 import { groupsQuery } from './api';
 import { GroupForm } from './group-form';
+import { filterByManager, isKnownManager, sortMineFirst } from './group-list';
 import { GroupLogo } from './group-logo';
 import { ManagerAvatars } from './manager-avatars';
+import { ManagerFilter } from './manager-filter';
 import { ManagerToggle } from './manager-toggle';
 
 /**
- * Admin home: every client group with its unread chat count, its managers, the "Manage" toggle,
- * the bell and the member count, and an inline "Create group" form. Under 641px a row wraps:
- * logo, name and unread on the first line; avatars, toggle, bell and members on the second.
+ * Every client group with its unread chat count, its managers (names in a tooltip), the "Manage"
+ * toggle, the bell and the member count (a link to the Members tab), and an inline "Create group"
+ * form. Groups I manage come first. The manager filter (`?manager=me|none|<adminId>`) sits left
+ * of "All groups: …"; the title shows the count, "shown of total" while filtered. Under 641px a
+ * row wraps: logo, name and unread on the first line; avatars, toggle, bell and members on the
+ * second, and the filter goes on its own line above "All groups".
  */
 export function GroupsPage() {
   const { t } = useTranslation();
+  const me = useSession();
+  const navigate = useNavigate();
+  const { manager } = useSearch({ strict: false }) as { manager?: string };
   const { data: groups, isError, refetch } = useQuery(groupsQuery);
+  const { data: admins } = useQuery(adminsQuery);
   const [formOpen, setFormOpen] = useState(false);
+
+  const adminIds = useMemo(() => (admins ? new Set(admins.map((a) => a.id)) : null), [admins]);
+  const setManager = (next: string | undefined, replace = false) =>
+    void navigate({ to: '/groups', search: next ? { manager: next } : {}, replace });
+  // An old link to an admin who is gone: back to every group rather than an unexplained list.
+  const unknown = manager !== undefined && adminIds !== null && !isKnownManager(manager, adminIds);
+  useEffect(() => {
+    if (unknown) void navigate({ to: '/groups', search: {}, replace: true });
+  }, [unknown, navigate]);
+
+  const shown = useMemo(
+    () => (groups ? sortMineFirst(filterByManager(groups, manager, adminIds)) : []),
+    [groups, manager, adminIds],
+  );
+  const filtered = groups !== undefined && shown.length !== groups.length;
 
   return (
     <div className="flex max-w-[720px] flex-col gap-6">
       <div className="flex flex-col gap-4 min-[641px]:flex-row min-[641px]:items-center min-[641px]:justify-between">
-        <h1 className="text-medium leading-tight font-semibold">{t('groups.title')}</h1>
+        <div className="flex items-baseline gap-2">
+          <h1 className="text-medium leading-tight font-semibold">{t('groups.title')}</h1>
+          {groups && groups.length > 0 && (
+            <span data-group-count="" className="text-medium leading-tight text-muted-foreground">
+              {filtered
+                ? t('groups.count.filtered', { shown: shown.length, total: groups.length })
+                : groups.length}
+            </span>
+          )}
+        </div>
         {!formOpen && (
           <Button className="w-full min-[641px]:w-auto" onClick={() => setFormOpen(true)}>
             {t('groups.create')}
@@ -49,12 +84,30 @@ export function GroupsPage() {
       {groups && groups.length === 0 && !formOpen && (
         <p className="text-body text-muted-foreground">{t('groups.empty')}</p>
       )}
-      {groups && groups.length > 0 && <AllGroupsMode groupIds={groups.map((g) => g.id)} />}
       {groups && groups.length > 0 && (
+        <div className="flex flex-col items-start gap-2 min-[641px]:flex-row min-[641px]:items-center min-[641px]:justify-between">
+          <ManagerFilter
+            value={unknown ? undefined : manager}
+            admins={admins ?? null}
+            meId={me?.id ?? ''}
+            onChange={(next) => setManager(next)}
+          />
+          <AllGroupsMode groupIds={groups.map((g) => g.id)} />
+        </div>
+      )}
+      {groups && groups.length > 0 && shown.length === 0 && (
+        <div className="flex flex-col items-start gap-3">
+          <p className="text-body text-muted-foreground">{t('groups.filter.empty')}</p>
+          <Button variant="outline" size="sm" onClick={() => setManager(undefined)}>
+            {t('groups.filter.clear')}
+          </Button>
+        </div>
+      )}
+      {shown.length > 0 && (
         <div className="flex flex-col gap-2">
           <Card className="gap-0 py-2">
             <ul>
-              {groups.map((group) => (
+              {shown.map((group) => (
                 <li
                   key={group.id}
                   className="flex flex-wrap items-center gap-x-3 pr-3 pb-3 min-[641px]:flex-nowrap min-[641px]:pb-0 [&:not(:last-child)]:border-b [&:not(:last-child)]:border-border"
@@ -77,9 +130,13 @@ export function GroupsPage() {
                     <ManagerAvatars managers={group.managers} groupName={group.name} />
                     <ManagerToggle group={group} />
                     <GroupBell groupId={group.id} />
-                    <span className="ml-auto shrink-0 text-button text-muted-foreground min-[641px]:ml-1">
+                    <Link
+                      to="/groups/$groupId/members"
+                      params={{ groupId: group.id }}
+                      className="ml-auto shrink-0 text-button text-muted-foreground underline-offset-2 hover:text-foreground hover:underline min-[641px]:ml-1"
+                    >
                       {t('groups.members', { count: group.memberCount })}
-                    </span>
+                    </Link>
                   </div>
                 </li>
               ))}
