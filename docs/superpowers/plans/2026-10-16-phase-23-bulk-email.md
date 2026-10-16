@@ -278,29 +278,39 @@ Each branch is cut from the latest `main`. 23.6 shows **Send a test to me** only
 
 ## Part 23.6 — Web: list and builder (spec §3, §8)
 
+**As built (2026-10-16, branch `phase-23-6-bulk-web`).** Web only, no server change. Differences and details 23.7 must use:
+- Files in `apps/web/src/features/bulk-email/`: `api.ts` (queries, mutations and the zod schemas of the answers, since the bulk DTOs are TypeScript types in `@spolu/shared`; `BULK_KEY`, `campaignListKey`, `campaignQuery(id)`, `campaignsQuery`, `audienceCountQuery`, `audiencePeopleQuery`, `peopleSearchQuery`, `peopleLookupQuery`, `uploadImage`, `sendTest`, `previewCampaign`, `duplicateCampaign`, `deleteCampaign`), `blocks.ts` (`BulkBlockTypes`, `newBlock`, `blocksReducer`), `validation.ts` (`draftProblems`, `hasProblems`, `validBlocks`: the client mirror of `BulkCampaignDraftSchema`), `use-autosave.ts`, `use-bulk-events.ts`, `campaign-list-page.tsx`, `editor-page.tsx` (`CampaignPage`, `DraftEditor`, `CampaignSummary`), `block-list.tsx`, `block-forms.tsx`, `preview-frame.tsx`, `audience-builder.tsx`, `person-picker.tsx`, `recipients-dialog.tsx`, `test-send.tsx`, `parts.tsx`, `screens.ts`, `test-api.ts` (test helpers).
+- **One lazy chunk** for both routes (`screens.ts`, 9.6 kB gzip), not two: two chunks made the bundler split `useBaseQuery` out of the entry (+1.4 kB initial, over the 200 kB budget). Initial JS 199.3 kB gzip (main 199.0 kB). 23.7 should add the report and send dialog to this chunk (or lazy-load the report from it), not as new routes' chunks.
+- **Autosave** (`useAutosave`): 1 s after the last change, only when `draftProblems` finds nothing (a new image block has no image or alt and a new button no URL, so such a draft stays local, "Not saved: fix the marked fields"); the answer's version is used for the next save; edits during a save are saved 1 s after it; `409 changed` / `409 not_draft` stop autosaving for good and show **Reload** (refetches and remounts the editor); a pending change is saved on unmount. When `bulk:updated` brings a newer version and nothing waits to be saved, the editor reloads itself.
+- **Not ready**: `TestSend` reads `400 { error: 'not_ready', problems: BulkNotReadyProblem[] }` (23.5 must answer `problems` under that key) and passes them to the block list; problems without `blockId` show under the button. **Test send route (23.5)**: any 2xx counts as sent ("Test sent to <my email>"); `429` shows a wait message; a 404 whose `error` is not `not_found` (Fastify's generic unknown-route answer) hides the button for the session. The button is disabled while the autosave state is not `saved`.
+- The preview sends only `validBlocks` and the subject and preheader cut to 200 characters, so it never gets `400`; it keeps the last HTML while a new one loads. Images in the editor are shown from the relative `/api/bulk-email/images/<id>`.
+- `lib/resize-image.ts` `resizeImageWithSize(file, max, { outputType: 'image/jpeg' | 'image/png', fit: 'width' })`; the editor uses JPEG unless the source is PNG.
+- The audience builder reuses `groupsQuery` (groups) and `adminsQuery` (managers); hand-picked people of a saved draft are named once through `POST /people/lookup`; adding a person to one list removes them from the other.
+- Non-draft campaigns show a small read-only `CampaignSummary` (status, subject, who sent when from which sender, recipients, sent, failed, Duplicate). **23.7 must**: replace `CampaignSummary` with the report (counts, progress on `bulk:updated`, per-person list, Cancel sending), add the **Send** step (confirm dialog with subject, sender and live count) as section 4 of `DraftEditor` (or under section 3), and route `400 not_ready` from send through the same `onProblems` path as `TestSend`.
+
 ### Task 6.1: API client, list, header link
 
 **Files:**
 - Create: `apps/web/src/features/bulk-email/api.ts`, `campaign-list-page.tsx` (+ tests)
 - Modify: `apps/web/src/router.tsx` (lazy `/bulk-email`, `/bulk-email/$campaignId`, admin-only like `/admins`), `apps/web/src/components/app-header.tsx` (admin link `nav.bulkEmail` beside Admins), main locales (`nav.bulkEmail`), `bulkEmail` locales
 
-- [ ] **Step 1: Invoke `frontend-design:frontend-design`.** Failing tests: `list shows status badges and counts`; `New email creates a draft and opens it`; `header link only for admins`; `bulk:updated refetches the list`.
-- [ ] **Step 2–4:** run, implement, run. Commit `feat(web): bulk email list`.
+- [x] **Step 1: Invoke `frontend-design:frontend-design`.** Failing tests: `list shows status badges and counts`; `New email creates a draft and opens it`; `header link only for admins`; `bulk:updated refetches the list`.
+- [x] **Step 2–4:** run, implement, run. Commit `feat(web): bulk email list`.
 
 ### Task 6.2: Block builder and preview
 
 **Files:** `features/bulk-email/editor-page.tsx`, `block-list.tsx`, `block-forms.tsx`, `preview-frame.tsx`, `use-autosave.ts` (+ tests); `apps/web/src/lib/resize-image.ts` (add an `outputType` option: `image/jpeg` or `image/png`, default today's WebP)
 
-- [ ] **Step 1: Failing tests:** `add each of the six block types`; `move up and down reorder, first block has no Move up`; `delete removes the block`; `autosave PUTs once 1 s after the last change with the version`; `409 changed shows the reload prompt`; `preview iframe has sandbox without allow-scripts and switches 600/375 px`; `an image upload is shrunk to 1 200 px JPEG before the POST`; `not_ready problems show at their block`.
-- [ ] **Step 2–4:** run, implement, run. Commit `feat(web): bulk email block builder`.
+- [x] **Step 1: Failing tests:** `add each of the six block types`; `move up and down reorder, first block has no Move up`; `delete removes the block`; `autosave PUTs once 1 s after the last change with the version`; `409 changed shows the reload prompt`; `preview iframe has sandbox without allow-scripts and switches 600/375 px`; `an image upload is shrunk to 1 200 px JPEG before the POST`; `not_ready problems show at their block`.
+- [x] **Step 2–4:** run, implement, run. Commit `feat(web): bulk email block builder`.
 
 ### Task 6.3: Audience builder and test send
 
 **Files:** `features/bulk-email/audience-builder.tsx`, `person-picker.tsx`, `recipients-dialog.tsx` (+ tests)
 
-- [ ] **Step 1: Failing tests:** `changing a filter asks for the count once after 300 ms`; `left-out reasons are shown`; `add and leave out a person by search`; `Show recipients pages by 50`; `Send a test to me posts and shows "sent to <my email>"`, hidden when the route answers 404.
-- [ ] **Step 2–4:** run, implement, run. `pnpm --filter @spolu/web build`: record in the PR the eager chunk size change (expected: route definitions and the header link only).
-- [ ] **Step 5: Docs and PR.** `update-kb`: `product/bulk-email.md` (screens), `architecture/performance.md` (chunks). PR.
+- [x] **Step 1: Failing tests:** `changing a filter asks for the count once after 300 ms`; `left-out reasons are shown`; `add and leave out a person by search`; `Show recipients pages by 50`; `Send a test to me posts and shows "sent to <my email>"`, hidden when the route answers 404.
+- [x] **Step 2–4:** run, implement, run. `pnpm --filter @spolu/web build`: record in the PR the eager chunk size change (expected: route definitions and the header link only).
+- [x] **Step 5: Docs and PR.** `update-kb`: `product/bulk-email.md` (screens), `architecture/performance.md` (chunks). PR.
 
 ---
 

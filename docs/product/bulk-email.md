@@ -8,7 +8,20 @@ Every administrator can write an email to many people in Spolu at once ("Hromadn
 - **Drafts.** A new campaign is a draft with only its name, an empty audience and no blocks. Any admin edits any draft; edits are saved with the `version` read last, so when two admins edit the same draft the later save is refused (`409 changed`) and the editor offers to reload. Only a draft can be edited or deleted (`409 not_draft` otherwise).
 - **Duplicate.** Any campaign, also a sent or cancelled one, can be duplicated into a new draft with the same subject, preheader, blocks and audience, version 1, named "<name> (kópia)" / "<name> (copy)" in the admin's language.
 - **List.** All campaigns, last changed first, 50 a page, with status, counts (queued, sending, sent, failed, skipped, cancelled, unsubscribed through this campaign's link), author and dates.
-- Test sends, sending, cancelling and the report arrive with the later parts (23.5–23.7).
+- Sending, cancelling and the report arrive with the later parts (23.5, 23.7).
+
+## Screens (part 23.6)
+
+The header link "Hromadné e-maily" / "Bulk email" (beside Admins; in the account menu under 641 px) is shown to admins only; a client who opens `/bulk-email` gets the not-found page.
+
+- **`/bulk-email`**: the list of emails, last changed first, 50 a page with "Show more": internal name, status badge (Draft, Sending, Sent, Cancelled), subject, "248 sent, 2 failed" for an email past its draft, author and the last change. **New email** creates a draft named "Email of <date and time>" / "E-mail z <…>" and opens it; the name can be changed in the editor. The list refreshes on `bulk:updated`.
+- **`/bulk-email/<id>`, a draft**: three numbered sections on one page.
+  1. **Content**: internal name, subject, preview line, then the blocks and the preview (side by side when the page is wide enough, the preview below the blocks otherwise). Each block has its form, **Move up**, **Move down** (not on the first or last block) and **Delete**; **Add block** offers the six types (at most 50 blocks). Heading and text accept `{{name}}`. An image is shrunk in the browser to at most 1 200 px wide, as JPEG (PNG stays PNG), before the upload, and needs a description (alt); a button needs a link (`https://…` or `mailto:`). A field the server would refuse is marked at once with the reason. The **preview** is the server's rendering in a sandboxed frame (no scripts) with a **Computer** (600 px) / **Phone** (375 px) switch, refreshed 500 ms after the last edit, with the signed-in admin's name; blocks with problems are left out of it until fixed.
+  2. **Recipients**: roles (Clients, Requesters, Admins), the groups managed by chosen admins, client groups (with a search; none ticked = every group), **Add a person** and **Leave out a person** (search by name or email; adding a person to one list removes them from the other), and the live count ("248 people get this email", asked 300 ms after the last change) with the left-out numbers (unsubscribed, disabled) and **Show recipients** (a dialog, 50 a page).
+  3. **Test**: **Send a test to me** sends the email as saved to the signed-in admin's own address and says where it went. It is disabled while changes are not saved yet. Reasons the email is not ready (`400 not_ready`) show at their block (or under the button for the subject and "no blocks"); 10 tests a minute (`429`) shows a wait message. Until the test route exists on the server (part 23.5) the button gives way to "Test sending is not available on this server yet".
+
+  **Saving** is automatic, 1 s after the last change, with the `version` read last; the status line says "All changes saved", "Saving…", "Not saved: fix the marked fields" or "Not saved. Check your connection." (with Try again). When another admin saved first (`409 changed`) or sending started (`409 not_draft`) the editor stops saving, says so, and offers **Reload**, which loads the server's version; it never overwrites the other edit. When another admin saves while nothing waits to be saved here, the editor takes their version at once. A pending change is saved when the editor is left. **Delete draft** asks first.
+- **`/bulk-email/<id>`, sending, sent or cancelled**: read-only: status, subject, who started sending when and from which address, recipients, sent and failed, and **Duplicate**, which opens the new draft. Part 23.7 replaces it with the full report and adds Send and Cancel sending.
 
 ## Audience rules
 
@@ -62,4 +75,4 @@ The public routes allow 30 calls a minute per IP (`429 rate_limited`); all of th
 
 ## Status
 
-Phase 23 in progress: part 23.1 (tables, policy, config, sender), part 23.2 (campaigns and audience API), part 23.3 (renderer, images, preview) and part 23.4 (unsubscribe, subscribe again, the Settings checkbox, the Elastic suppression jobs) are built.
+Phase 23 in progress: part 23.1 (tables, policy, config, sender), part 23.2 (campaigns and audience API), part 23.3 (renderer, images, preview), part 23.4 (unsubscribe, subscribe again, the Settings checkbox, the Elastic suppression jobs) and part 23.6 (the list, block builder, preview, audience builder and test send screens) are built.

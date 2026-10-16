@@ -71,7 +71,7 @@ After a bucket is deleted its tasks moved to To do without a `board:task` event;
 
 ## Bulk email events
 
-`bulk:updated` (`BulkEvents.updated`, payload `BulkEventPayload` = `{ campaignId }`, Phase 23) goes to the `admins` room only (`emitBulkUpdated` in `modules/bulk-email/events.ts`), after a campaign is created, saved, deleted or duplicated (part 23.2; later also after each send state change and batch). The list and an open campaign refetch.
+`bulk:updated` (`BulkEvents.updated`, payload `BulkEventPayload` = `{ campaignId }`, Phase 23) goes to the `admins` room only (`emitBulkUpdated` in `modules/bulk-email/events.ts`), after a campaign is created, saved, deleted or duplicated (part 23.2; later also after each send state change and batch). The web hook `useBulkEvents` (`features/bulk-email/use-bulk-events.ts`) refetches the campaign list and that campaign, and the list again after a reconnect. An open draft editor takes a newer version from another admin only when it has nothing unsaved; otherwise its next save gets `409 changed` and it offers to reload.
 
 ## Knowledge events
 
