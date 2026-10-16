@@ -6,6 +6,7 @@ import {
   TaskMoveSchema,
   TaskPatchSchema,
   TasksFromMessageSchema,
+  TasksFromTicketSchema,
   type SessionUser,
   type TasksFromMessageResult,
 } from '@spolu/shared';
@@ -19,7 +20,7 @@ import { canDeleteTask, canUseBoard } from './policy.js';
 import type { WriteGuard } from './routes.js';
 import {
   createTask,
-  createTasksFromMessage,
+  createTasksFromSource,
   deleteTask,
   getTask,
   getTaskRef,
@@ -32,6 +33,9 @@ import {
   ValidationError,
 } from './task-service.js';
 import { clientGroupIds } from '../groups/memberships.js';
+import { emitTicket } from '../tickets/events.js';
+import { runTicketChange } from '../tickets/hooks.js';
+import { actorReadsTicket, attachmentIds, getTicketRow } from '../tickets/service.js';
 
 type IdParams = { Params: { id: string } };
 
@@ -105,6 +109,30 @@ export const taskRoutes: FastifyPluginAsync<TaskRoutesOptions> = async (
     }
   };
 
+  /**
+   * After cards were made from a ticket (or a message of its chat): its page refetches, and its
+   * followers hear `ticket.tasks` with the count. A failure is logged; the write succeeded.
+   */
+  const afterTicketTasks = async (
+    request: FastifyRequest,
+    ticketId: string | null,
+    count: number,
+  ) => {
+    if (ticketId === null) return;
+    try {
+      const ticket = await getTicketRow(db, ticketId);
+      if (!ticket) return;
+      emitTicket(app.io, 'updated', ticket);
+      await runTicketChange(
+        deps,
+        { kind: 'tasks', ticket, actorId: request.user!.id, count },
+        request.log,
+      );
+    } catch (error) {
+      request.log.error({ err: error, ticketId }, 'could not announce the tasks of a ticket');
+    }
+  };
+
   /** The task's group and creator when the actor may use its board, else null (404). */
   const readableTask = async (actor: SessionUser, id: string) => {
     const ref = await getTaskRef(db, id);
@@ -148,19 +176,55 @@ export const taskRoutes: FastifyPluginAsync<TaskRoutesOptions> = async (
         return notFound(reply);
       }
       const messageId = found.message.id;
+      // A message of a ticket's chat links its cards to the ticket too (part 21.5).
+      const ticketId = found.channel.ticketId;
       const source = {
-        id: messageId,
+        messageId,
+        ticketId: ticketId ?? undefined,
         fileIds: (await getMessageFiles(db, groupId, messageId)).map((f) => f.id),
       };
       let created;
       try {
-        created = await createTasksFromMessage(deps, actor, groupId, body.data, source);
+        created = await createTasksFromSource(deps, actor, groupId, body.data, source);
       } catch (error) {
         return writeError(reply, error);
       }
       // After the commit, outside the try: nothing here may be mapped as a failed write.
       for (const task of created) emitTask(app.io, toTaskDto(task), person(actor));
       await pushMessageTasks(request, messageId);
+      await afterTicketTasks(request, ticketId, created.length);
+      const result: TasksFromMessageResult = { tasks: created };
+      return reply.code(201).send(result);
+    },
+  );
+
+  /**
+   * The reviewed cards of a ticket (part 21.5). The ticket must be of this group and readable by
+   * the actor, who uses the group's board (admins and its clients, so never a ziadatel); anything
+   * else answers 404 like a missing one. The files uploaded with the ticket may be copied.
+   */
+  app.post<IdParams>(
+    '/groups/:id/tasks/from-ticket',
+    { preHandler: writeGuard },
+    async (request, reply) => {
+      const actor = request.user!;
+      const groupId = request.params.id;
+      const body = TasksFromTicketSchema.safeParse(request.body);
+      if (!body.success) return invalidBody(reply, body.error);
+      if (!(await canOpenGroup(actor, groupId))) return notFound(reply);
+      const ticket = await getTicketRow(db, body.data.ticketId);
+      if (!ticket || ticket.groupId !== groupId || !(await actorReadsTicket(db, actor, ticket))) {
+        return notFound(reply);
+      }
+      const source = { ticketId: ticket.id, fileIds: await attachmentIds(db, ticket.id) };
+      let created;
+      try {
+        created = await createTasksFromSource(deps, actor, groupId, body.data, source);
+      } catch (error) {
+        return writeError(reply, error);
+      }
+      for (const task of created) emitTask(app.io, toTaskDto(task), person(actor));
+      await afterTicketTasks(request, ticket.id, created.length);
       const result: TasksFromMessageResult = { tasks: created };
       return reply.code(201).send(result);
     },

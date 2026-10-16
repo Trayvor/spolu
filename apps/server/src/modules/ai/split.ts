@@ -12,6 +12,7 @@ import type { MessageRow } from '../chat/dto.js';
 import { getMessage, getMessageFiles } from '../chat/messages.js';
 import type { ChannelRow } from '../chat/service.js';
 import { listPickablePeople } from '../groups/service.js';
+import { ticketFiles, type TicketRow } from '../tickets/service.js';
 import { getUserById } from '../users/service.js';
 import {
   AiFailedError,
@@ -88,6 +89,58 @@ export async function buildSplitRequest(
   };
 }
 
+/** A file link's name for the AI: its last path segment, or its host (never the query). */
+export function linkName(url: string): string {
+  try {
+    const parsed = new URL(url);
+    const last = parsed.pathname.split('/').filter(Boolean).at(-1);
+    if (!last) return parsed.hostname;
+    try {
+      return decodeURIComponent(last);
+    } catch {
+      return last;
+    }
+  } catch {
+    return url;
+  }
+}
+
+/**
+ * What the AI gets for a ticket (part 21.5): its subject, area, programme, due date, the names of
+ * its file links and its text as one labelled message; the files uploaded with it; the group's
+ * pickable people; today. The ticket must have a client.
+ */
+export async function buildTicketSplitRequest(
+  db: Db,
+  ticket: TicketRow,
+  now: Date = new Date(),
+): Promise<SplitRequest> {
+  const groupId = ticket.groupId!;
+  const [people, files] = await Promise.all([
+    listPickablePeople(db, groupId),
+    ticketFiles(db, ticket),
+  ]);
+  const nameById = new Map(people.map((p) => [p.id, p.name]));
+  const line = (label: string, value: string | null) =>
+    value === null || value.trim() === '' ? [] : [`${label}: ${value}`];
+  const text = [
+    `Support ticket #${ticket.number}`,
+    ...line('Subject', ticket.subject),
+    ...line('Area', ticket.area),
+    ...line('Programme', ticket.programme),
+    ...line('Due date', ticket.dueDate),
+    ...line('Links to files', ticket.fileLinks.map(linkName).join(', ')),
+    ...(ticket.body ? ['', await withNames(db, ticket.body, nameById)] : []),
+  ].join('\n');
+  return {
+    text,
+    quoted: null,
+    files: files.map((f) => ({ id: f.id, name: f.name })),
+    people: people.map((p) => ({ id: p.id, name: p.name })),
+    today: bratislavaDate.format(now),
+  };
+}
+
 const isCalendarDate = (value: string): boolean => {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
   const date = new Date(`${value}T00:00:00Z`);
@@ -126,17 +179,47 @@ export function sanitizeProposals(
 }
 
 /**
- * Asks the provider for task cards for a readable message and sanitizes them. The provider gets
- * an abort signal and `timeoutMs`; a provider that ignores it is still cut off then.
+ * Asks the provider for task cards for a readable message and sanitizes them; see `askProvider`.
  */
 export async function proposeTasks(
   deps: AppDeps,
   found: Found,
   options: { timeoutMs?: number } = {},
-): Promise<{ tasks: TaskProposal[]; usage: SplitResult['usage']; durationMs: number }> {
+): Promise<Proposed> {
+  if (deps.ai === null) throw new AiUnavailableError();
+  return askProvider(deps, await buildSplitRequest(deps.db, found), options);
+}
+
+/**
+ * Task cards for a ticket with a client (part 21.5). A card without a deadline of its own gets
+ * the ticket's due date.
+ */
+export async function proposeTicketTasks(
+  deps: AppDeps,
+  ticket: TicketRow,
+  options: { timeoutMs?: number } = {},
+): Promise<Proposed> {
+  if (deps.ai === null) throw new AiUnavailableError();
+  const result = await askProvider(deps, await buildTicketSplitRequest(deps.db, ticket), options);
+  return {
+    ...result,
+    tasks: result.tasks.map((t) => ({ ...t, dueDate: t.dueDate ?? ticket.dueDate })),
+  };
+}
+
+export type Proposed = { tasks: TaskProposal[]; usage: SplitResult['usage']; durationMs: number };
+
+/**
+ * Sends the request to the provider and sanitizes the answer. The provider gets an abort signal
+ * and `timeoutMs`; a provider that ignores it is still cut off then.
+ */
+async function askProvider(
+  deps: AppDeps,
+  request: SplitRequest,
+  options: { timeoutMs?: number },
+): Promise<Proposed> {
   const provider = deps.ai;
   if (provider === null) throw new AiUnavailableError();
-  const request = await buildSplitRequest(deps.db, found);
 
   const signal = AbortSignal.timeout(options.timeoutMs ?? AI_TIMEOUT_MS);
   const timedOut = new Promise<never>((_, reject) => {
