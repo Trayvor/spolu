@@ -1,6 +1,12 @@
 import { randomUUID } from 'node:crypto';
 import { and, asc, eq, gt, gte, inArray, isNull, ne, notInArray, sql, type SQL } from 'drizzle-orm';
-import type { RecipientSource, ReminderSetDto, SessionUser, UpcomingReminder } from '@spolu/shared';
+import {
+  isPickable,
+  type RecipientSource,
+  type ReminderSetDto,
+  type SessionUser,
+  type UpcomingReminder,
+} from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
 import { groups } from '../groups/schema.js';
 import { getGroupPeopleRoles, getMembershipGroupId } from '../groups/service.js';
@@ -139,7 +145,15 @@ export async function replaceReminderSet(
 
   // The recipients are validated before anything is written.
   const added = [...new Set(input.recipientIds)].filter((id) => id !== subject.authorId);
-  await validateRecipients(tx, subject, added);
+  const current = new Set(
+    (
+      await tx
+        .select({ userId: reminderRecipients.userId })
+        .from(reminderRecipients)
+        .where(eq(reminderRecipients.setId, setId))
+    ).map((r) => r.userId),
+  );
+  await validateRecipients(tx, subject, added, current);
 
   // 3. Write the time diff in one statement. A time that fired meanwhile is left alone.
   const parts: SQL[] = [];
@@ -176,11 +190,16 @@ export async function replaceReminderSet(
     on conflict (set_id, user_id) do nothing`);
 }
 
-/** People of the group, admins for an admins-only subject, at most 50. */
+/**
+ * People of the group, admins for an admins-only subject, at most 50. A recipient new to the set
+ * must also be pickable (a client or one of the group's managers, Phase 18), as for assignees;
+ * someone already on it (`current`) who has since stopped managing the group stays.
+ */
 async function validateRecipients(
   tx: Db,
   subject: { groupId: string; adminsOnly: boolean },
   ids: string[],
+  current: Set<string>,
 ): Promise<void> {
   if (ids.length > REMINDER_LIMITS.recipients) throw new InvalidRecipientError();
   if (ids.length === 0) return;
@@ -188,6 +207,9 @@ async function validateRecipients(
   for (const id of ids) {
     const person = people.get(id);
     if (!person || (subject.adminsOnly && !person.isAdmin)) throw new InvalidRecipientError();
+    if (!current.has(id) && !isPickable({ id, name: '', ...person })) {
+      throw new InvalidRecipientError();
+    }
   }
 }
 

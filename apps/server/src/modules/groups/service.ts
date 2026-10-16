@@ -244,23 +244,32 @@ export async function isPickablePerson(db: Db, groupId: string, userId: string):
 
 /**
  * The same condition as `listGroupPeople`, for many users in one query: the ids among `userIds`
- * that are people of the group, each with whether they are an admin.
+ * that are people of the group, each with whether they are an admin and whether they manage the
+ * group (so `isPickable` applies to the result as to a `GroupPerson`).
  */
 export async function getGroupPeopleRoles(
   db: Db,
   groupId: string,
   userIds: string[],
-): Promise<Map<string, { isAdmin: boolean }>> {
+): Promise<Map<string, { isAdmin: boolean; isManager: boolean }>> {
   if (userIds.length === 0) return new Map();
   const rows = await db
-    .select({ id: user.id, role: user.role })
+    .select({
+      id: user.id,
+      role: user.role,
+      isManager: sql<boolean>`${groupManagers.userId} is not null`,
+    })
     .from(user)
     .leftJoin(
       groupMembers,
       and(eq(groupMembers.userId, user.id), eq(groupMembers.groupId, groupId)),
     )
+    .leftJoin(
+      groupManagers,
+      and(eq(groupManagers.userId, user.id), eq(groupManagers.groupId, groupId)),
+    )
     .where(and(inArray(user.id, userIds), or(isActiveAdmin, isNamedActiveMember(groupId))));
-  return new Map(rows.map((r) => [r.id, { isAdmin: r.role !== 'client' }]));
+  return new Map(rows.map((r) => [r.id, { isAdmin: r.role !== 'client', isManager: r.isManager }]));
 }
 
 /** Idempotent: a client is in one group, joining twice changes nothing. */

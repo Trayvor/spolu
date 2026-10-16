@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { Readable } from 'node:stream';
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
 import { io as connect, type Socket } from 'socket.io-client';
 import {
@@ -15,15 +15,10 @@ import { buildTestApp } from '../../../test/test-app.js';
 import { loginAs } from '../../../test/login.js';
 import { files } from '../files/schema.js';
 import { createFile } from '../files/service.js';
+import { addManager } from '../groups/managers.js';
 import { addMember, createGroup } from '../groups/service.js';
 import { user } from '../users/schema.js';
 import { addAdmin } from '../users/service.js';
-
-// The default scope of the global list comes from `managedGroupIdsOf`; tests switch its answer.
-const scope = vi.hoisted(() => ({ managed: null as string[] | null }));
-vi.mock('./scope.js', () => ({
-  managedGroupIdsOf: vi.fn(async () => scope.managed),
-}));
 
 type TestApp = Awaited<ReturnType<typeof buildTestApp>>;
 type Person = { id: string; cookie: string };
@@ -129,9 +124,6 @@ describe('knowledge API', () => {
     const address = test.app.server.address();
     if (address === null || typeof address === 'string') throw new Error('no port');
     baseUrl = `http://127.0.0.1:${address.port}`;
-  });
-  beforeEach(() => {
-    scope.managed = null;
   });
   afterAll(async () => {
     sockets.forEach((s) => s.close());
@@ -443,7 +435,7 @@ describe('knowledge API', () => {
       );
     });
 
-    it('the default scope is all groups while managedGroupIdsOf is null', async () => {
+    it('the default scope is the managed groups, or all groups when the admin manages none', async () => {
       const admin = await newAdmin();
       const [g1, g2] = [await newGroup(), await newGroup()];
       const tok = token();
@@ -460,10 +452,7 @@ describe('knowledge API', () => {
       expect(all.items.map((i) => i.id)).toEqual([two.id, one.id]);
       expect(all.items[1]!.group).toMatchObject({ id: g1.id, name: 'Firma' });
 
-      scope.managed = [];
-      expect((await list()).items.map((i) => i.id)).toEqual([two.id, one.id]);
-
-      scope.managed = [g1.id];
+      await addManager(test.deps.db, g1.id, admin.id);
       expect((await list()).items.map((i) => i.id)).toEqual([one.id]);
       // An explicit `clients` filter wins over the default scope.
       expect((await list(`&clients=${g2.id}`)).items.map((i) => i.id)).toEqual([two.id]);
@@ -478,7 +467,7 @@ describe('knowledge API', () => {
       const two = await create(admin.cookie, g2.id, note({ title: `${tok} two` }));
       const list = (query: string) => call('GET', `/api/knowledge?q=${tok}${query}`, admin.cookie);
 
-      scope.managed = [g1.id];
+      await addManager(test.deps.db, g1.id, admin.id);
       const all = await list('&scope=all');
       expect(all.statusCode).toBe(200);
       expect(all.json<KnowledgePage>().items.map((i) => i.id)).toEqual([two.id, one.id]);
@@ -488,7 +477,6 @@ describe('knowledge API', () => {
       expect(both.statusCode).toBe(400);
       expect(both.json()).toEqual({ error: 'validation_failed' });
       expect((await list('&scope=mine')).statusCode).toBe(400);
-      scope.managed = null;
     });
 
     it('scope=all is 403 for clients', async () => {
@@ -497,11 +485,15 @@ describe('knowledge API', () => {
       expect((await call('GET', '/api/knowledge?scope=all', client.cookie)).statusCode).toBe(403);
     });
 
-    it('GET /api/knowledge/scope answers { managedGroupIds: null }', async () => {
+    it('GET /api/knowledge/scope answers the managed group ids', async () => {
       const admin = await newAdmin();
+      const none = await call('GET', '/api/knowledge/scope', admin.cookie);
+      expect(none.statusCode).toBe(200);
+      expect(none.json()).toEqual({ managedGroupIds: [] });
+      const g = await newGroup();
+      await addManager(test.deps.db, g.id, admin.id);
       const res = await call('GET', '/api/knowledge/scope', admin.cookie);
-      expect(res.statusCode).toBe(200);
-      expect(res.json()).toEqual({ managedGroupIds: null });
+      expect(res.json()).toEqual({ managedGroupIds: [g.id] });
     });
   });
 

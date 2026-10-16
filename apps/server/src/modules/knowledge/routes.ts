@@ -141,9 +141,9 @@ export const knowledgeRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app
     if (scope === 'all') groupIds = null;
     else if (clients !== undefined && clients.length > 0) groupIds = clients;
     else {
-      // The default scope: the admin's managed groups; none (null or empty) means every group.
+      // The default scope: the admin's managed groups; none means every group.
       const managed = await managedGroupIdsOf(db, request.user!.id);
-      groupIds = managed !== null && managed.length > 0 ? managed : null;
+      groupIds = managed.length > 0 ? managed : null;
     }
     try {
       return await listAllItems(db, { ...opts, groupIds });

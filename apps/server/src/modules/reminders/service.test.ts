@@ -5,6 +5,7 @@ import type { SessionUser } from '@spolu/shared';
 import { createDb, type Db } from '../../infra/db/client.js';
 import { testDatabaseUrl } from '../../../test/test-config.js';
 import { groupMembers } from '../groups/schema.js';
+import { addManager, removeManager } from '../groups/managers.js';
 import { addMember, createGroup } from '../groups/service.js';
 import { knowledgeItems } from '../knowledge/schema.js';
 import { user } from '../users/schema.js';
@@ -316,6 +317,7 @@ describe('replaceReminderSet', () => {
       replace(subject, { times: [{ at: inMs(DAY) }], recipientIds: [randomUUID()] }, admin),
     ).rejects.toBeInstanceOf(InvalidRecipientError);
     const otherAdmin = await newAdmin('Bob');
+    await addManager(db, subject.groupId, otherAdmin.id);
     await replace(
       subject,
       { times: [{ at: inMs(DAY) }], recipientIds: [client.id, otherAdmin.id] },
@@ -327,6 +329,21 @@ describe('replaceReminderSet', () => {
       [otherAdmin.id, 'added'],
       [client.id, 'added'],
     ]);
+  });
+
+  it('a new recipient admin must manage the client; one who stopped managing stays', async () => {
+    const { admin, subject } = await setup();
+    const bob = await newAdmin('Bob');
+    await expect(
+      replace(subject, { times: [{ at: inMs(DAY) }], recipientIds: [bob.id] }, admin),
+    ).rejects.toBeInstanceOf(InvalidRecipientError);
+    await addManager(db, subject.groupId, bob.id);
+    await replace(subject, { times: [{ at: inMs(DAY) }], recipientIds: [bob.id] }, admin);
+    await removeManager(db, subject.groupId, bob.id);
+    // Saving again with Bob still listed keeps him: only new recipients must be pickable.
+    await replace(subject, { times: await timesOf(subject, admin), recipientIds: [bob.id] }, admin);
+    const set = await getReminderSet(db, subject, admin);
+    expect(set!.recipients.map((r) => r.user.id)).toEqual([admin.id, bob.id]);
   });
 
   it('refuses more than 50 recipients', async () => {
@@ -434,6 +451,7 @@ describe('pruneRecipientsForAdminsOnly', () => {
     ]);
     // A client's own reminder, later made admins-only by an admin.
     const subject = await newItem(group.id, client);
+    await addManager(db, group.id, admin.id);
     await replace(subject, { times: [{ at: inMs(DAY) }], recipientIds: [admin.id] }, client);
     await subscribe(db, subject, other);
     await db.transaction((tx) => pruneRecipientsForAdminsOnly(tx, subject));

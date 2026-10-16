@@ -17,6 +17,7 @@ import type { Storage } from '../../infra/storage/index.js';
 import { testDatabaseUrl } from '../../../test/test-config.js';
 import { files } from '../files/schema.js';
 import { createFile } from '../files/service.js';
+import { addManager } from '../groups/managers.js';
 import { addMember, createGroup } from '../groups/service.js';
 import { notificationEvents } from '../notifications/schema.js';
 import { reminderRecipients, reminderSets, reminderTimes } from '../reminders/schema.js';
@@ -465,6 +466,7 @@ describe('knowledge service', () => {
     const group = await newGroup();
     const admin = await newAdmin();
     const other = await newAdmin('Bea');
+    await addManager(db, group.id, other.id);
     const client = await newClient(group.id);
     const { item } = await createItem({ db }, admin, group.id, {
       type: 'reminder',
