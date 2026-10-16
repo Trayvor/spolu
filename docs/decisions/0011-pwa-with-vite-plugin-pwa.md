@@ -15,3 +15,5 @@ Spolu must be installable on phones and computers (docs/product/non-functional.m
 - A deploy reaches users on their next visit without a prompt; an open tab switches to the new version on reload.
 - Offline the shell and fonts load, but data needs the server; offline data is not a goal.
 - Changing the mark means rerunning `pnpm --filter @spolu/web icons`.
+- The manifest lives in `apps/web/pwa-manifest.ts`: `name` is "Spolu by eGrant", `short_name` is "Spolu" (the home-screen label; iOS also gets `apple-mobile-web-app-title`).
+- Web push (ADR 0013) needs `push` and `notificationclick` handlers. They are plain JS in `apps/web/public/push-sw.js`, imported into the generated Workbox worker with `workbox.importScripts`, so `generateSW` stays and no custom worker is written. A notification click posts the target path to an open tab (`spolu:navigate`) or opens a window.
