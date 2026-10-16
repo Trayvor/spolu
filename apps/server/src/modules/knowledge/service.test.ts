@@ -328,6 +328,38 @@ describe('knowledge service', () => {
     expect((await listGroupItems(db, client, group.id, { q: 'note' })).items).toHaveLength(1);
   });
 
+  it('a client search matching only an admins-only body returns nothing', async () => {
+    const group = await newGroup();
+    const admin = await newAdmin();
+    const client = await newClient(group.id);
+    const word = `tajne${randomUUID().slice(0, 8)}`;
+    await createItem(
+      { db },
+      admin,
+      group.id,
+      note({ visibility: 'admins', body: `about ${word}` }),
+    );
+    await createItem({ db }, admin, group.id, note({ body: 'nothing here' }));
+    expect((await listGroupItems(db, client, group.id, { q: word })).items).toEqual([]);
+    expect((await listGroupItems(db, admin, group.id, { q: word })).items).toHaveLength(1);
+  });
+
+  it("mentions of people outside the item's group do not reveal their names", async () => {
+    const group = await newGroup();
+    const admin = await newAdmin('Adela');
+    const member = await newClient(group.id, 'Mira');
+    const stranger = await newClient((await newGroup()).id, 'Stranger');
+    const body = `<@${member.id}> <@${stranger.id}> <@${admin.id}>`;
+    const { item } = await createItem({ db }, admin, group.id, note({ body }));
+    expect(item.excerpt).toBe('@Mira @? @Adela');
+    expect((await listGroupItems(db, admin, group.id, {})).items[0]!.excerpt).toBe(
+      '@Mira @? @Adela',
+    );
+    expect(await searchTextOf(item.id)).not.toContain('stranger');
+    const info = (await getReminderSubject('knowledge').loadMany(db, [item.id])).get(item.id)!;
+    expect(info.body).toBe('@Mira @? @Adela');
+  });
+
   it('type filter', async () => {
     const group = await newGroup();
     const admin = await newAdmin();

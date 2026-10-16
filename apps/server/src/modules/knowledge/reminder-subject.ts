@@ -12,7 +12,7 @@ type SubjectRow = {
   body: string;
   visibility: string;
   created_by: string;
-  /** Names of the users mentioned in the body, for the plain-text body. */
+  /** Names of the people of the item's group mentioned in the body, for the plain-text body. */
   mention_names: Record<string, string> | null;
 };
 
@@ -23,7 +23,9 @@ async function loadMany(db: Db, ids: string[]): Promise<Map<string, SubjectInfo>
   const rows = await db.execute<SubjectRow>(sql`
     select k.id, k.group_id, k.title, k.body, k.visibility, k.created_by,
            (select jsonb_object_agg(m.id, m.name) from "user" m
-             where m.id in (select (regexp_matches(k.body, '<@([A-Za-z0-9_-]+)>', 'g'))[1])) as mention_names
+             where m.id in (select (regexp_matches(k.body, '<@([A-Za-z0-9_-]+)>', 'g'))[1])
+               and (m.role <> 'client' or exists (select 1 from group_members gm
+                     where gm.user_id = m.id and gm.group_id = k.group_id))) as mention_names
     from knowledge_items k
     where k.id in (${sql.join(ids, sql`, `)})`);
   for (const row of rows) {

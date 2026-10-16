@@ -36,7 +36,8 @@ import {
   replaceReminderSet,
 } from '../reminders/service.js';
 import { isAdmin } from '../users/policy.js';
-import { getUserNames } from '../users/service.js';
+import { groupMembers } from '../groups/schema.js';
+import { user } from '../users/schema.js';
 import { canEditItem, canReadItem, canSetVisibility } from './policy.js';
 import { registerKnowledgeReminderSubject } from './reminder-subject.js';
 import { knowledgeAttachments, knowledgeItems } from './schema.js';
@@ -210,12 +211,34 @@ const withGroup = (row: PageRow, summary: KnowledgeSummary): KnowledgeSummary =>
   },
 });
 
-async function mentionNames(db: Db, bodies: string[]): Promise<Map<string, string>> {
-  return getUserNames(
-    db,
-    bodies.flatMap((body) => extractMentions(body).userIds),
-  );
+/**
+ * The names of the users mentioned in the bodies, per group: only people of that group (its
+ * members and admins), so a body never reveals the name of someone outside the item's group.
+ * One query for any number of items.
+ */
+async function mentionNames(
+  db: Db,
+  entries: { groupId: string; body: string }[],
+): Promise<Map<string, Map<string, string>>> {
+  const byGroup = new Map<string, Map<string, string>>();
+  for (const entry of entries) byGroup.set(entry.groupId, new Map());
+  const ids = [...new Set(entries.flatMap((e) => extractMentions(e.body).userIds))];
+  if (ids.length === 0) return byGroup;
+  const rows = await db
+    .select({ id: user.id, name: user.name, role: user.role, groupId: groupMembers.groupId })
+    .from(user)
+    .leftJoin(groupMembers, eq(groupMembers.userId, user.id))
+    .where(inArray(user.id, ids));
+  for (const row of rows) {
+    for (const [groupId, names] of byGroup) {
+      if (row.role !== 'client' || row.groupId === groupId) names.set(row.id, row.name);
+    }
+  }
+  return byGroup;
 }
+
+const namesIn = (names: Map<string, Map<string, string>>, groupId: string) =>
+  names.get(groupId) ?? new Map<string, string>();
 
 const CURSOR_TEXT = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(\.\d{1,6})?[+-]\d{2}(:\d{2}){0,2}$/;
 
@@ -257,10 +280,10 @@ async function runPage(
   const page = rows.slice(0, size);
   const names = await mentionNames(
     db,
-    page.map((row) => row.body_head),
+    page.map((row) => ({ groupId: row.group_id, body: row.body_head })),
   );
   return {
-    items: page.map((row) => decorate(row, toSummary(row, names))),
+    items: page.map((row) => decorate(row, toSummary(row, namesIn(names, row.group_id)))),
     nextCursor: rows.length > size ? encodeCursor(page[page.length - 1]!) : null,
   };
 }
@@ -352,12 +375,12 @@ export async function getItem(db: Db, actor: SessionUser, id: string): Promise<K
   if (!canReadItem(actor, item, actorGroupId)) throw new KnowledgeNotFoundError();
   const body = row.body ?? '';
   const [names, fileRows, reminder] = await Promise.all([
-    mentionNames(db, [body]),
+    mentionNames(db, [{ groupId: row.group_id, body }]),
     itemFiles(db, id),
     row.type === 'reminder' ? getReminderSet(db, { kind: SUBJECT, id }, actor) : null,
   ]);
   return {
-    ...toSummary(row, names),
+    ...toSummary(row, namesIn(names, row.group_id)),
     body,
     files: fileRows.map(toFileInfo),
     reminder,
@@ -372,10 +395,10 @@ export async function getItem(db: Db, actor: SessionUser, id: string): Promise<K
 
 async function computeSearchText(
   tx: Db,
-  input: { title: string; body: string; url: string | null; fileIds: string[] },
+  input: { groupId: string; title: string; body: string; url: string | null; fileIds: string[] },
 ): Promise<string> {
-  const [names, fileNames] = await Promise.all([
-    mentionNames(tx, [input.body]),
+  const [byGroup, fileNames] = await Promise.all([
+    mentionNames(tx, [{ groupId: input.groupId, body: input.body }]),
     input.fileIds.length === 0
       ? Promise.resolve([] as { name: string }[])
       : tx.select({ name: files.name }).from(files).where(inArray(files.id, input.fileIds)),
@@ -385,7 +408,7 @@ async function computeSearchText(
     body: input.body,
     url: input.url,
     fileNames: fileNames.map((f) => f.name),
-    nameOf: (id) => names.get(id),
+    nameOf: (id) => namesIn(byGroup, input.groupId).get(id),
   });
 }
 
@@ -404,6 +427,7 @@ export async function insertItem(
   const url = draft.type === 'link' ? draft.url : null;
   await attachFiles(tx, groupId, fileIds, actor.id);
   const searchText = await computeSearchText(tx, {
+    groupId,
     title: draft.title,
     body: draft.body,
     url,
@@ -579,7 +603,13 @@ export async function updateItem(
 
     const title = patch.title ?? row.title;
     const body = patch.body ?? row.body;
-    const searchText = await computeSearchText(tx, { title, body, url, fileIds: next });
+    const searchText = await computeSearchText(tx, {
+      groupId: row.group_id,
+      title,
+      body,
+      url,
+      fileIds: next,
+    });
     await tx
       .update(knowledgeItems)
       .set({ title, body, url, visibility, searchText, updatedAt: sql`now()` })
