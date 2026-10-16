@@ -178,6 +178,17 @@ describe('KnowledgePatchSchema', () => {
     expect(KnowledgePatchSchema.parse({ fileIds: ['a', 'a'], updatedAt }).fileIds).toEqual(['a']);
   });
 
+  it('a patch may send back more than 20 times (fired ones included), up to timesSent', () => {
+    const patch = (n: number) =>
+      KnowledgePatchSchema.safeParse({
+        reminder: { times: times(n), recipientIds: [] },
+        updatedAt,
+      });
+    expect(patch(KNOWLEDGE_LIMITS.times + 1).success).toBe(true);
+    expect(patch(KNOWLEDGE_LIMITS.timesSent).success).toBe(true);
+    expect(patch(KNOWLEDGE_LIMITS.timesSent + 1).success).toBe(false);
+  });
+
   it('a patch rejects type', () => {
     expect(KnowledgePatchSchema.safeParse({ type: 'note', updatedAt }).success).toBe(false);
   });

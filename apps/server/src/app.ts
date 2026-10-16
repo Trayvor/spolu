@@ -10,6 +10,7 @@ import { filesRoutes } from './modules/files/routes.js';
 import { joinRoutes } from './modules/groups/join-routes.js';
 import { groupsRoutes } from './modules/groups/routes.js';
 import { registerKnowledgeReminderSubject } from './modules/knowledge/reminder-subject.js';
+import { createRateLimiter } from './infra/http/rate-limit.js';
 import { knowledgeRoutes } from './modules/knowledge/routes.js';
 import { notificationsRoutes } from './modules/notifications/routes.js';
 import { remindersRoutes } from './modules/reminders/routes.js';
@@ -58,10 +59,16 @@ export async function buildApp(
   await app.register(chatRoutes, { prefix: '/api', deps });
   await app.register(notificationsRoutes, { prefix: '/api', deps });
   await app.register(aiRoutes, { prefix: '/api', deps });
-  await app.register(knowledgeRoutes, { prefix: '/api', deps });
+  // Knowledge writes and reminder subscription changes share one limit: 120 a minute per user.
+  const allowKnowledgeWrite = createRateLimiter({ windowMs: 60_000, max: 120 });
+  await app.register(knowledgeRoutes, { prefix: '/api', deps, allowWrite: allowKnowledgeWrite });
   // The reminder endpoints are registered per subject: register the subjects first.
   registerKnowledgeReminderSubject();
-  await app.register(remindersRoutes, { prefix: '/api', deps });
+  await app.register(remindersRoutes, {
+    prefix: '/api',
+    deps,
+    allowWrite: allowKnowledgeWrite,
+  });
 
   registerNotFound(app);
   return app;

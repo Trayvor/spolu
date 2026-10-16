@@ -206,6 +206,7 @@ function GroupKnowledge({ groupId }: { groupId: string }) {
           value={text}
           onChange={(event) => setText(event.target.value)}
           placeholder={t('knowledge.tab.search')}
+          maxLength={200}
           aria-label={t('knowledge.tab.search')}
           className="min-[641px]:w-72"
         />

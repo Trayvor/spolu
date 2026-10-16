@@ -74,6 +74,18 @@ export function updateKnowledge(id: string, patch: KnowledgePatch): Promise<Know
   return apiSend('PATCH', `/knowledge/${enc(id)}`, patch, KnowledgeItemDtoSchema);
 }
 
+/** Items this browser is deleting: their socket `item_deleted` is the viewer's own delete. */
+const deleting = new Set<string>();
+
+export function isDeletingKnowledge(id: string): boolean {
+  return deleting.has(id);
+}
+
 export async function deleteKnowledge(id: string): Promise<void> {
-  await apiSend('DELETE', `/knowledge/${enc(id)}`);
+  deleting.add(id);
+  try {
+    await apiSend('DELETE', `/knowledge/${enc(id)}`);
+  } finally {
+    deleting.delete(id);
+  }
 }

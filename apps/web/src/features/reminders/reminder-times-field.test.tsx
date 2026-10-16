@@ -112,6 +112,17 @@ describe('ReminderTimesField', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('sent times do not count toward the 20', () => {
+    const sent = Array.from({ length: 20 }, (_, i) =>
+      row(`2020-01-${String(i + 1).padStart(2, '0')}`, '09:00', {
+        id: `t${i}`,
+        firedAt: '2020-02-01T00:00:00.000Z',
+      }),
+    );
+    render(<Harness initial={sent} />);
+    expect(screen.getByRole('button', { name: t('reminders.fields.add') })).toBeInTheDocument();
+  });
+
   it('localToIso round-trips', () => {
     const iso = localToIso('2026-10-23', '14:05');
     expect(new Date(iso).getHours()).toBe(14);

@@ -182,7 +182,7 @@ export function ReminderTimesField({
           );
         })}
       </ul>
-      {value.length < KNOWLEDGE_LIMITS.times && (
+      {value.filter((v) => v.firedAt === null).length < KNOWLEDGE_LIMITS.times && (
         <Button
           ref={addRef}
           type="button"

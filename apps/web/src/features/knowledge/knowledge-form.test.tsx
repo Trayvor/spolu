@@ -8,6 +8,7 @@ import { uploadFile } from '@/features/files/upload';
 import { i18n } from '@/i18n';
 import {
   KnowledgeForm,
+  allowedRecipients,
   emptyKnowledgeValue,
   fromItem,
   toDraft,
@@ -341,5 +342,19 @@ describe('toDraft and toPatch', () => {
     const patch = toPatch({ ...item, visibility: 'public' }, value, { people: PEOPLE });
     expect(patch.reminder?.recipientIds).toEqual(['u2', 'u3']);
     expect(patch.visibility).toBe('admins');
+  });
+});
+
+describe('allowedRecipients', () => {
+  const people: GroupPerson[] = [
+    { id: 'a1', name: 'Ada', isAdmin: true, isManager: true },
+    { id: 'c1', name: 'Cleo', isAdmin: false, isManager: false },
+  ];
+  it('an admins-only item keeps the author and admins', () => {
+    expect(allowedRecipients(['a1', 'c1'], 'admins', people, 'u9')).toEqual(['a1']);
+    expect(allowedRecipients(['a1', 'c1'], 'public', people, 'u9')).toEqual(['a1', 'c1']);
+  });
+  it('keeps every recipient while the people are still loading (the server decides)', () => {
+    expect(allowedRecipients(['a1', 'c1'], 'admins', undefined, 'u9')).toEqual(['a1', 'c1']);
   });
 });

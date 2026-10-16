@@ -11,7 +11,6 @@ import {
   type SessionUser,
 } from '@spolu/shared';
 import type { AppDeps } from '../../deps.js';
-import { createRateLimiter } from '../../infra/http/rate-limit.js';
 import { requireAdmin, requireUser } from '../auth/session.js';
 import { deleteDetachedFiles, InvalidAttachmentError } from '../files/service.js';
 import { canReadGroup } from '../groups/policy.js';
@@ -103,12 +102,14 @@ export function knowledgeError(reply: FastifyReply, error: unknown): FastifyRepl
 }
 
 /** The knowledge tab, the global list for admins, and item reads and writes. */
-export const knowledgeRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { deps }) => {
+export const knowledgeRoutes: FastifyPluginAsync<{
+  deps: AppDeps;
+  /** 120 writes per minute per user, shared with the reminder subscriptions (see app.ts). */
+  allowWrite: (userId: string) => boolean;
+}> = async (app, { deps, allowWrite }) => {
   const { db, storage } = deps;
   const anyUser = requireUser(app.auth);
   const adminOnly = requireAdmin(app.auth);
-  // 120 knowledge writes per minute per user, as the board.
-  const allowWrite = createRateLimiter({ windowMs: 60_000, max: 120 });
   const limitWrites: preHandlerAsyncHookHandler = async (request, reply) => {
     if (!allowWrite(request.user!.id)) return send(reply, 429, ErrorCodes.rateLimited);
   };

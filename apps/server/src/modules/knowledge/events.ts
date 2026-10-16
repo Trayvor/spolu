@@ -8,7 +8,7 @@ import {
   type KnowledgeSummary,
   type Visibility,
 } from '@spolu/shared';
-import { emitToGroup, emitToGroupAdmins } from '../../infra/realtime/rooms.js';
+import { emitToGroup, emitToGroupAdmins, emitToGroupClients } from '../../infra/realtime/rooms.js';
 
 const SUMMARY_KEYS = Object.keys(KnowledgeSummarySchema.shape) as (keyof KnowledgeSummary)[];
 
@@ -24,8 +24,9 @@ export function toEventSummary(item: KnowledgeSummary | KnowledgeItemDto): Knowl
 
 /**
  * Pushes a created or edited item after the commit. A public item goes to the group room, an
- * admins-only one to the group's admins room only. Public → admins first deletes it from the
- * group room (Socket.IO keeps order per connection, so an admin in both rooms ends with it).
+ * admins-only one to the group's admins room only. Public → admins deletes it for the clients
+ * (the group room except its admins, so an admin's open view of it stays) and sends it to the
+ * admins room.
  */
 export function emitKnowledgeItem(
   io: SocketIOServer,
@@ -40,7 +41,7 @@ export function emitKnowledgeItem(
   }
   if (previousVisibility === 'public') {
     const deleted: KnowledgeItemDeletedEvent = { groupId, id: item.id };
-    emitToGroup(io, groupId, KnowledgeEvents.itemDeleted, deleted);
+    emitToGroupClients(io, groupId, KnowledgeEvents.itemDeleted, deleted);
   }
   emitToGroupAdmins(io, groupId, KnowledgeEvents.item, event);
 }

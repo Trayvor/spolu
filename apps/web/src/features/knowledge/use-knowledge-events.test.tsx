@@ -3,7 +3,7 @@ import { QueryClient, QueryClientProvider, useInfiniteQuery } from '@tanstack/re
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { KnowledgeEvents, type KnowledgeSummary, type KnowledgeType } from '@spolu/shared';
 import { GroupRoomProvider } from '@/features/groups/use-group-room';
-import { groupKnowledgeQuery } from './api';
+import { deleteKnowledge, groupKnowledgeQuery } from './api';
 import { useKnowledgeEvents } from './use-knowledge-events';
 
 const fake = vi.hoisted(() => {
@@ -150,6 +150,19 @@ describe('useKnowledgeEvents', () => {
     await mount({}, 'k1');
     act(() => fake.fire(KnowledgeEvents.itemDeleted, { groupId: 'g1', id: 'k1' }));
     expect(onOpenGone).toHaveBeenCalledTimes(1);
+  });
+
+  it("the viewer's own delete closes without the notice", async () => {
+    await mount({}, 'k1');
+    let answer: (r: Response) => void = () => {};
+    fetchMock.mockImplementationOnce(() => new Promise<Response>((r) => (answer = r)));
+    const deleting = deleteKnowledge('k1');
+    // The socket event comes before the HTTP answer.
+    act(() => fake.fire(KnowledgeEvents.itemDeleted, { groupId: 'g1', id: 'k1' }));
+    expect(onOpenGone).not.toHaveBeenCalled();
+    expect(cachedIds({})).toEqual([]);
+    answer(new Response(null, { status: 204 }));
+    await deleting;
   });
 
   it('refetches the first page after a rejoin', async () => {

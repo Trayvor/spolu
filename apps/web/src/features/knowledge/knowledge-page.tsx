@@ -78,7 +78,9 @@ export function KnowledgePage() {
 
   // A visit without parameters restores the last explicit client choice. Until the URL has it,
   // the stored value is used, so the default scope is never fetched first.
-  const [stored] = useState(() => (Object.keys(search).length === 0 ? readStored() : null));
+  const [stored] = useState(() =>
+    Object.values(search).every((v) => v === undefined) ? readStored() : null,
+  );
   const [restoring, setRestoring] = useState(stored !== null);
   useEffect(() => {
     if (stored !== null) update((s) => void (s.clients = stored), { replace: true });
@@ -242,6 +244,7 @@ export function KnowledgePage() {
             value={text}
             onChange={(event) => changeText(event.target.value)}
             placeholder={t('knowledge.global.search')}
+            maxLength={200}
             aria-label={t('knowledge.global.search')}
             className="py-2 pl-10"
           />

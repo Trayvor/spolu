@@ -510,6 +510,10 @@ describe('knowledge API', () => {
     expect(limited.statusCode).toBe(429);
     expect(limited.json()).toEqual({ error: 'rate_limited' });
     expect((await call('DELETE', `/api/knowledge/${id}`, client.cookie)).statusCode).toBe(429);
+    // Reminder subscriptions share the same limit.
+    expect(
+      (await call('POST', `/api/knowledge/${id}/reminders/subscription`, client.cookie)).statusCode,
+    ).toBe(429);
     // Reads are not limited; other users are not affected.
     expect((await call('GET', `/api/groups/${g.id}/knowledge`, client.cookie)).statusCode).toBe(
       200,
@@ -582,7 +586,7 @@ describe('knowledge API', () => {
       expect(clientEvents).toEqual([]);
     });
 
-    it('public → admins sends item_deleted to the client and the admin ends with the item', async () => {
+    it('public → admins sends item_deleted to the client only and the item to the admins', async () => {
       const { admin, g, adminEvents, clientEvents } = await pair();
       const item = await create(admin.cookie, g.id, note());
       await until(() => clientEvents.length === 1 && adminEvents.length === 1);
@@ -592,16 +596,15 @@ describe('knowledge API', () => {
         updatedAt: item.updatedAt,
       });
       expect(hidden.statusCode).toBe(200);
-      await until(() => clientEvents.length === 2 && adminEvents.length === 3);
+      await until(() => clientEvents.length === 2 && adminEvents.length === 2);
       expect(clientEvents[1]).toEqual({
         name: KnowledgeEvents.itemDeleted,
         payload: { groupId: g.id, id: item.id },
       });
-      expect(adminEvents.slice(1).map((e) => e.name)).toEqual([
-        KnowledgeEvents.itemDeleted,
-        KnowledgeEvents.item,
-      ]);
-      expect((adminEvents[2]!.payload as KnowledgeItemEvent).item.visibility).toBe('admins');
+      // Admins are in the group room too, but the delete skips them: their open view stays.
+      await settle();
+      expect(adminEvents.slice(1).map((e) => e.name)).toEqual([KnowledgeEvents.item]);
+      expect((adminEvents[1]!.payload as KnowledgeItemEvent).item.visibility).toBe('admins');
 
       // Admins → public: the item goes to the group room again.
       const shown = await call('PATCH', `/api/knowledge/${item.id}`, admin.cookie, {
@@ -609,7 +612,7 @@ describe('knowledge API', () => {
         updatedAt: hidden.json<KnowledgeItemDto>().updatedAt,
       });
       expect(shown.statusCode).toBe(200);
-      await until(() => clientEvents.length === 3 && adminEvents.length === 4);
+      await until(() => clientEvents.length === 3 && adminEvents.length === 3);
       expect((clientEvents[2]!.payload as KnowledgeItemEvent).item.visibility).toBe('public');
       await settle();
       expect(clientEvents).toHaveLength(3);

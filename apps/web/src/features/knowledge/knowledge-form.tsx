@@ -82,7 +82,8 @@ export function fromItem(item: KnowledgeItemDto): KnowledgeFormValue {
 
 /**
  * The recipients an item of `visibility` may have: for an admins-only item, the author and the
- * people `people` confirms are admins (none while it is not loaded); otherwise all of them.
+ * people `people` confirms are admins; otherwise all of them. While `people` is not loaded all
+ * are kept, so a quick save never drops recipients silently: the server keeps or refuses them.
  */
 export function allowedRecipients(
   ids: string[],
@@ -90,7 +91,7 @@ export function allowedRecipients(
   people: GroupPerson[] | undefined,
   authorId: string | undefined,
 ): string[] {
-  if (visibility !== 'admins') return ids;
+  if (visibility !== 'admins' || people === undefined) return ids;
   return ids.filter((id) => id === authorId || people?.find((p) => p.id === id)?.isAdmin === true);
 }
 

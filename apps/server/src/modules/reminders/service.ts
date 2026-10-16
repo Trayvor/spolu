@@ -144,7 +144,7 @@ export async function replaceReminderSet(
     .map((row) => row.id);
 
   // The recipients are validated before anything is written.
-  const added = [...new Set(input.recipientIds)].filter((id) => id !== subject.authorId);
+  const wanted = [...new Set(input.recipientIds)].filter((id) => id !== subject.authorId);
   const current = new Set(
     (
       await tx
@@ -153,7 +153,7 @@ export async function replaceReminderSet(
         .where(eq(reminderRecipients.setId, setId))
     ).map((r) => r.userId),
   );
-  await validateRecipients(tx, subject, added, current);
+  const added = await validateRecipients(tx, subject, wanted, current);
 
   // 3. Write the time diff in one statement. A time that fired meanwhile is left alone.
   const parts: SQL[] = [];
@@ -191,26 +191,34 @@ export async function replaceReminderSet(
 }
 
 /**
- * People of the group, admins for an admins-only subject, at most 50. A recipient new to the set
- * must also be pickable (a client or one of the group's managers, Phase 18), as for assignees;
- * someone already on it (`current`) who has since stopped managing the group stays.
+ * The recipients to keep: people of the group, admins for an admins-only subject, at most 50. A
+ * recipient new to the set must also be pickable (a client or one of the group's managers, Phase
+ * 18), as for assignees, else `InvalidRecipientError`. Someone already on the set (`current`)
+ * who has since stopped managing the group stays; one who is no longer a person of the group (a
+ * removed client, a disabled admin) is dropped quietly, so the form, which sends back the
+ * recipients it loaded, can still save.
  */
 async function validateRecipients(
   tx: Db,
   subject: { groupId: string; adminsOnly: boolean },
   ids: string[],
   current: Set<string>,
-): Promise<void> {
+): Promise<string[]> {
   if (ids.length > REMINDER_LIMITS.recipients) throw new InvalidRecipientError();
-  if (ids.length === 0) return;
+  if (ids.length === 0) return [];
   const people = await getGroupPeopleRoles(tx, subject.groupId, ids);
+  const kept: string[] = [];
   for (const id of ids) {
     const person = people.get(id);
-    if (!person || (subject.adminsOnly && !person.isAdmin)) throw new InvalidRecipientError();
-    if (!current.has(id) && !isPickable({ id, name: '', ...person })) {
-      throw new InvalidRecipientError();
+    const allowed = !!person && (!subject.adminsOnly || person.isAdmin);
+    if (current.has(id)) {
+      if (allowed) kept.push(id);
+      continue;
     }
+    if (!allowed || !isPickable({ id, name: '', ...person })) throw new InvalidRecipientError();
+    kept.push(id);
   }
+  return kept;
 }
 
 /** After a subject became admins-only: drops every non-admin recipient except the author. */

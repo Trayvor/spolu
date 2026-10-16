@@ -9,7 +9,12 @@ import {
 } from '@spolu/shared';
 import { useGroupRoomJoins } from '@/features/groups/use-group-room';
 import { getSocket } from '@/lib/socket';
-import { groupKnowledgeQuery, knowledgeItemQuery, type KnowledgeFilter } from './api';
+import {
+  groupKnowledgeQuery,
+  isDeletingKnowledge,
+  knowledgeItemQuery,
+  type KnowledgeFilter,
+} from './api';
 import { removeSummary, upsertSummary } from './knowledge-cache';
 
 type Data = InfiniteData<KnowledgePage>;
@@ -68,7 +73,9 @@ export function useKnowledgeEvents(
     const onDeleted = (event: KnowledgeItemDeletedEvent) => {
       if (event.groupId !== groupId) return;
       update((data) => removeSummary(data, event.id));
-      if (latest.current.openId === event.id) latest.current.onOpenGone();
+      // The server pushes before it answers: the viewer's own delete is not "no longer available".
+      if (latest.current.openId === event.id && !isDeletingKnowledge(event.id))
+        latest.current.onOpenGone();
     };
 
     socket.on(KnowledgeEvents.item, onItem);

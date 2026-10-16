@@ -11,18 +11,22 @@ export type KnowledgePageSearch = {
   k?: string;
 };
 
-/** The `/knowledge` search params; anything else is dropped. */
+/**
+ * The `/knowledge` search params. Every key is set, an invalid one to undefined: the router keeps
+ * the raw params under the validated ones, so an omitted key would let the raw value through.
+ * The search is trimmed and runs from 2 characters, as on the Knowledge tab.
+ */
 export function validateKnowledgeSearch(search: Record<string, unknown>): KnowledgePageSearch {
   const text = (value: unknown) =>
     typeof value === 'string' ? value : typeof value === 'number' ? String(value) : undefined;
-  const out: KnowledgePageSearch = {};
-  const clients = text(search.clients);
-  if (clients !== undefined) out.clients = clients;
-  if (typeof search.type === 'string' && TYPES.includes(search.type))
-    out.type = search.type as KnowledgeType;
-  const q = text(search.q);
-  if (q) out.q = q;
-  const k = text(search.k);
-  if (k) out.k = k;
-  return out;
+  const q = text(search.q)?.trim() ?? '';
+  return {
+    clients: text(search.clients),
+    type:
+      typeof search.type === 'string' && TYPES.includes(search.type)
+        ? (search.type as KnowledgeType)
+        : undefined,
+    q: q.length >= 2 ? q : undefined,
+    k: text(search.k) || undefined,
+  };
 }

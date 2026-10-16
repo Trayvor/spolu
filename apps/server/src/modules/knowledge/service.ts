@@ -446,7 +446,8 @@ export async function insertItem(
   });
   if (fileIds.length > 0) {
     await tx.insert(knowledgeAttachments).values(fileIds.map((fileId) => ({ itemId: id, fileId })));
-    if (draft.visibility === 'admins') await setFilesAdminsOnly(tx, fileIds, true);
+    // Always set: a reused upload may still carry the flag from an earlier admins-only item.
+    await setFilesAdminsOnly(tx, fileIds, draft.visibility === 'admins');
   }
   if (draft.type === 'reminder') {
     await replaceReminderSet(
@@ -579,8 +580,8 @@ export async function updateItem(
     }
     if (visibility !== row.visibility) {
       await setFilesAdminsOnly(tx, next, visibility === 'admins');
-    } else if (visibility === 'admins') {
-      await setFilesAdminsOnly(tx, added, true);
+    } else if (added.length > 0) {
+      await setFilesAdminsOnly(tx, added, visibility === 'admins');
     }
 
     if (patch.reminder !== undefined) {

@@ -50,3 +50,16 @@ export function emitToGroupAdmins(
 ): void {
   io.to(groupAdminsRoom(groupId)).emit(event, payload);
 }
+
+/**
+ * Pushes an event to the group room except the sockets also in its admins room: the clients of
+ * the group. Call after the transaction commits.
+ */
+export function emitToGroupClients(
+  io: SocketIOServer,
+  groupId: string,
+  event: string,
+  payload: unknown,
+): void {
+  io.to(groupRoom(groupId)).except(groupAdminsRoom(groupId)).emit(event, payload);
+}

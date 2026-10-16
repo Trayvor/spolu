@@ -7,7 +7,7 @@ One reminder feature serves the knowledge base and the task board: one or more d
 - **Times:** one or more dates with a time, at most 20 not yet sent per reminder. A new or changed time must be at least one minute ahead and at most five years ahead. Times already sent stay listed (after the upcoming ones) and cannot be changed or removed.
 - **Recipients:**
   - the author (the person who set the reminder; always included);
-  - people the author adds, from the group's clients and its eGrant managers, as for assignees (Phase 18; admins-only knowledge: managers only). Someone added earlier who has since stopped managing the client stays until removed;
+  - people the author adds, from the group's clients and its eGrant managers, as for assignees (Phase 18; admins-only knowledge: managers only). Someone added earlier who has since stopped managing the client stays until removed; someone who left the group is dropped at the next save;
   - anyone who can see the item can subscribe or unsubscribe themselves ("Remind me"). An added person can leave too; only the author cannot.
   - at most 50 added people. Recipients are listed author first, then by name.
   - when an item becomes eGrant only, everyone but admins and the author is removed.

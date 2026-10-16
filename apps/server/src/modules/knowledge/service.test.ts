@@ -213,6 +213,21 @@ describe('knowledge service', () => {
     expect(await adminsOnlyOf([a.id, b.id, c.id])).toEqual([true, true, true]);
   });
 
+  it('a file still marked admins-only is opened when attached to a public item', async () => {
+    const group = await newGroup();
+    const admin = await newAdmin();
+    const [a, b] = await Promise.all([upload(group.id, admin), upload(group.id, admin)]);
+    // Left over from an admins-only item whose storage delete failed.
+    await db
+      .update(files)
+      .set({ adminsOnly: true })
+      .where(inArray(files.id, [a.id, b.id]));
+    const { item } = await createItem({ db }, admin, group.id, note({ fileIds: [a.id] }));
+    expect(await adminsOnlyOf([a.id])).toEqual([false]);
+    await updateItem({ db }, admin, item.id, { fileIds: [a.id, b.id], updatedAt: item.updatedAt });
+    expect(await adminsOnlyOf([a.id, b.id])).toEqual([false, false]);
+  });
+
   it('clients never see admins-only items or other groups', async () => {
     const group = await newGroup();
     const other = await newGroup();

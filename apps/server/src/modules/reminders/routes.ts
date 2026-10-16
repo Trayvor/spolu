@@ -1,7 +1,6 @@
 import type { FastifyPluginAsync, FastifyReply, preHandlerAsyncHookHandler } from 'fastify';
 import { ErrorCodes } from '@spolu/shared';
 import type { AppDeps } from '../../deps.js';
-import { createRateLimiter } from '../../infra/http/rate-limit.js';
 import { requireUser } from '../auth/session.js';
 import { AuthorRecipientError, NoReminderSetError, NotReadableError } from './errors.js';
 import { buildIcs, getReminderSet, subscribe, unsubscribe } from './service.js';
@@ -25,11 +24,13 @@ function subscriptionError(reply: FastifyReply, error: unknown): FastifyReply {
  * Register the subjects before this plugin. A subject the actor cannot read answers 404 on every
  * route, as a missing one.
  */
-export const remindersRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { deps }) => {
+export const remindersRoutes: FastifyPluginAsync<{
+  deps: AppDeps;
+  /** The knowledge writes' limiter: subscription changes share its 120 per minute per user. */
+  allowWrite: (userId: string) => boolean;
+}> = async (app, { deps, allowWrite }) => {
   const { db, config } = deps;
   const anyUser = requireUser(app.auth);
-  // Subscription changes: 120 per minute per user, as the other writes.
-  const allowWrite = createRateLimiter({ windowMs: 60_000, max: 120 });
   const limitWrites: preHandlerAsyncHookHandler = async (request, reply) => {
     if (!allowWrite(request.user!.id)) return send(reply, 429, ErrorCodes.rateLimited);
   };

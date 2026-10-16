@@ -243,8 +243,15 @@ const knowledgeRoute = createRoute({
     const user = await context.queryClient.ensureQueryData(sessionQuery);
     if (!isAdmin(user)) throw notFound();
   },
+  // `chat` too: the detail renders bodies with the chat's renderer and formatting toolbar (the
+  // group tab gets it from the group layout).
   loader: () =>
-    Promise.all([loadNamespace('knowledge'), loadNamespace('reminders'), loadNamespace('forms')]),
+    Promise.all([
+      loadNamespace('knowledge'),
+      loadNamespace('reminders'),
+      loadNamespace('forms'),
+      loadNamespace('chat'),
+    ]),
   component: lazyRouteComponent(
     () => import('@/features/knowledge/knowledge-page'),
     'KnowledgePage',

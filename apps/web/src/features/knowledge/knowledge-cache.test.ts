@@ -47,6 +47,33 @@ describe('knowledge cache', () => {
     expect(replaced.pages[0]).toBe(before.pages[0]);
   });
 
+  it('an unknown older item goes in its place, or waits for Load more when past the loaded rows', () => {
+    const at = (h: number) => `2026-10-14T${String(h).padStart(2, '0')}:00:00.000Z`;
+    const before: InfiniteData<KnowledgePage> = {
+      pages: [
+        {
+          items: [summary('a', { createdAt: at(12) }), summary('b', { createdAt: at(10) })],
+          nextCursor: 'c0',
+        },
+        { items: [summary('c', { createdAt: at(8) })], nextCursor: 'c1' },
+      ],
+      pageParams: [undefined, 'c0'],
+    };
+    // Between loaded rows: inserted where the server would list it.
+    expect(ids(upsertSummary(before, summary('m', { createdAt: at(9) })))).toEqual([
+      ['a', 'b'],
+      ['m', 'c'],
+    ]);
+    // Older than every loaded row while more pages exist: "Load more" brings it, no duplicate.
+    expect(upsertSummary(before, summary('old', { createdAt: at(1) }))).toBe(before);
+    // With every page loaded it goes last.
+    const all = { ...before, pages: [before.pages[0]!, { ...before.pages[1]!, nextCursor: null }] };
+    expect(ids(upsertSummary(all, summary('old', { createdAt: at(1) })))).toEqual([
+      ['a', 'b'],
+      ['c', 'old'],
+    ]);
+  });
+
   it('remove', () => {
     const before = data(['a', 'b'], ['c']);
     expect(ids(removeSummary(before, 'b'))).toEqual([['a'], ['c']]);

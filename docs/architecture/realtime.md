@@ -72,9 +72,9 @@ Pushed after the write commits by `modules/knowledge/events.ts` (names in `Knowl
 | event | payload | room |
 |---|---|---|
 | `knowledge:item` | `{ item }` | created or edited: `group:<id>` for a public item, `group:<id>:admins` for an admins-only one |
-| `knowledge:item_deleted` | `{ groupId, id }` | deleted: the room the item was in; also sent to `group:<id>` when an item turns admins-only |
+| `knowledge:item_deleted` | `{ groupId, id }` | deleted: the room the item was in; also sent to the group's clients (`group:<id>` except `group:<id>:admins`) when an item turns admins-only |
 
-A visibility change from public to admins sends `knowledge:item_deleted` to the group room, then `knowledge:item` to the admins room; Socket.IO keeps order per connection, so an admin (in both rooms) ends with the item and a client drops it. Admins to public sends `knowledge:item` to the group room. There is no `seq`: after a rejoin the tab refetches its first page.
+A visibility change from public to admins sends `knowledge:item_deleted` to the group room except its admins room (`emitToGroupClients`, `io.to(group).except(admins)`), then `knowledge:item` to the admins room, so a client drops the item and an admin's open detail and row stay in place. The server pushes before it answers the HTTP request, so the web tab ignores the `item_deleted` of an item this browser is deleting (`isDeletingKnowledge`) instead of showing "This item is no longer available.". An unknown item from `knowledge:item` goes where the server lists it (newest first); one older than every loaded row while more pages exist is left for "Load more", so it is never listed twice. Admins to public sends `knowledge:item` to the group room. There is no `seq`: after a rejoin the tab refetches its first page.
 
 ## Chat events
 

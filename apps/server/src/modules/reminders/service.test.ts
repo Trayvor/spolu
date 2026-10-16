@@ -9,7 +9,7 @@ import { addManager, removeManager } from '../groups/managers.js';
 import { addMember, createGroup } from '../groups/service.js';
 import { knowledgeItems } from '../knowledge/schema.js';
 import { user } from '../users/schema.js';
-import { addAdmin, getUserNames } from '../users/service.js';
+import { addAdmin, deactivateUser, getUserNames } from '../users/service.js';
 import { isAdmin } from '../users/policy.js';
 import {
   AuthorRecipientError,
@@ -344,6 +344,29 @@ describe('replaceReminderSet', () => {
     await replace(subject, { times: await timesOf(subject, admin), recipientIds: [bob.id] }, admin);
     const set = await getReminderSet(db, subject, admin);
     expect(set!.recipients.map((r) => r.user.id)).toEqual([admin.id, bob.id]);
+  });
+
+  it('an added recipient who left the group is dropped on save, not refused', async () => {
+    const { admin, client, subject } = await setup();
+    await replace(subject, { times: [{ at: inMs(DAY) }], recipientIds: [client.id] }, admin);
+    await deactivateUser(db, client.id);
+    // The form sends the recipients it loaded; the one who left must not block the save.
+    await replace(
+      subject,
+      { times: await timesOf(subject, admin), recipientIds: [client.id] },
+      admin,
+    );
+    const set = await getReminderSet(db, subject, admin);
+    expect(set!.recipients.map((r) => r.user.id)).toEqual([admin.id]);
+    // Adding someone who is not a group person is still refused.
+    const stranger = await newClient((await newGroup()).id);
+    await expect(
+      replace(
+        subject,
+        { times: await timesOf(subject, admin), recipientIds: [stranger.id] },
+        admin,
+      ),
+    ).rejects.toBeInstanceOf(InvalidRecipientError);
   });
 
   it('refuses more than 50 recipients', async () => {

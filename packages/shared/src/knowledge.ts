@@ -17,8 +17,13 @@ export const KNOWLEDGE_LIMITS = {
   url: 2048,
   /** Files of a note (a file item has exactly one). */
   noteFiles: 10,
-  /** Reminder times per item. */
+  /** Reminder times per item not yet sent (a new item: all of its times). */
   times: 20,
+  /**
+   * Times one edit may send: the form sends sent times back with their ids, and the server keeps
+   * the limit of 20 on the unsent ones.
+   */
+  timesSent: 200,
   /** Recipients a reminder's author may add. */
   recipients: 50,
   pageSize: 30,
@@ -46,21 +51,25 @@ const allDistinct = (values: unknown[]) => new Set(values).size === values.lengt
 
 /**
  * The times and added recipients of a reminder item; a time with an `id` is an existing one.
- * Two times may not share an instant (whatever their offsets) or an id.
+ * Two times may not share an instant (whatever their offsets) or an id. `maxTimes` is 20 for a
+ * new item and `timesSent` for an edit, which also carries the sent times.
  */
-export const ReminderInputSchema = z.object({
-  times: z
-    .array(z.object({ id: IdSchema.optional(), at: isoDateTime }))
-    .min(1)
-    .max(KNOWLEDGE_LIMITS.times)
-    .refine((times) => allDistinct(times.map((t) => Date.parse(t.at))), {
-      message: 'Duplicate time',
-    })
-    .refine((times) => allDistinct(times.flatMap((t) => (t.id === undefined ? [] : [t.id]))), {
-      message: 'Duplicate time id',
-    }),
-  recipientIds: z.array(IdSchema).max(KNOWLEDGE_LIMITS.recipients).transform(unique),
-});
+const reminderInput = (maxTimes: number) =>
+  z.object({
+    times: z
+      .array(z.object({ id: IdSchema.optional(), at: isoDateTime }))
+      .min(1)
+      .max(maxTimes)
+      .refine((times) => allDistinct(times.map((t) => Date.parse(t.at))), {
+        message: 'Duplicate time',
+      })
+      .refine((times) => allDistinct(times.flatMap((t) => (t.id === undefined ? [] : [t.id]))), {
+        message: 'Duplicate time id',
+      }),
+    recipientIds: z.array(IdSchema).max(KNOWLEDGE_LIMITS.recipients).transform(unique),
+  });
+export const ReminderInputSchema = reminderInput(KNOWLEDGE_LIMITS.times);
+export const ReminderEditSchema = reminderInput(KNOWLEDGE_LIMITS.timesSent);
 export type ReminderInput = z.output<typeof ReminderInputSchema>;
 
 const titleField = z.string().trim().min(1).max(KNOWLEDGE_LIMITS.title);
@@ -107,7 +116,7 @@ export const KnowledgePatchSchema = z
     url: urlField.optional(),
     fileIds: fileIdsField(KNOWLEDGE_LIMITS.noteFiles).optional(),
     visibility: visibilityField.optional(),
-    reminder: ReminderInputSchema.optional(),
+    reminder: ReminderEditSchema.optional(),
     updatedAt: isoDateTime,
   })
   .strict();
