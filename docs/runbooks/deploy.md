@@ -1,8 +1,6 @@
 # Deploy
 
-How a new version of Spolu (shown to users as Help by eGrant) gets to an environment. The only environment now is `test`.
-
-> Task 18 finalizes this runbook after the first real deploy.
+How a new version of Spolu (shown to users as Help by eGrant) gets to an environment. The only environment now is `test`, at https://help.egrant.sk (first deployed 2026-10-15): every push to `main` deploys it.
 
 ## How it works
 
@@ -52,7 +50,7 @@ select g.name, u.name from group_managers gm
 
 ## Phase 6 check on real devices
 
-Done at the deferred server-deploy step, on the test server with the VAPID keys set (see above), the owner and one test client. Each item is "Done when" of Phase 6 ([spec](../superpowers/specs/2026-10-16-phase-6-notifications-design.md#done-when)).
+To be walked by the owner and one test client on the test server (https://help.egrant.sk) with the VAPID keys set (see above); not yet recorded as done. Each item is "Done when" of Phase 6 ([spec](../superpowers/specs/2026-10-16-phase-6-notifications-design.md#done-when)).
 
 - **Desktop browser** (Chrome or Edge, then Firefox):
   - [ ] Sign in as the client: the "Turn on notifications on this device" banner appears; **Turn on** asks for permission; `/settings` then says "This device: on".
@@ -99,7 +97,7 @@ The image is private (private repository), so the server logs in to GHCR with th
 
 The senders' display name can also come from a variable: with `MAIL_FROM_NAME` set (for example `Help by eGrant`), `deploy_env` rewrites `MAIL_FROM=` and `MAIL_FROM_BULK=` of `TEST_ENV_FILE` to `<name> <their address>`, so renaming the sender needs no secret edit.
 
-The product became **Help by eGrant** on 2026-10-16 and moves from `spolu.egrant.sk` to `help.egrant.sk` (the DNS A/AAAA records of `help.egrant.sk` already point at the server). Keep the old name's DNS pointing at the server too, or its redirect cannot work.
+The product became **Help by eGrant** on 2026-10-16 and moved from `spolu.egrant.sk` to `help.egrant.sk`; the old domain now answers `301` to the new one. Keep the old name's DNS pointing at the server too, or its redirect cannot work. The steps below are how that move was done; repeat them for any later domain.
 
 **How the redirect works.** `deploy/Caddyfile` ends with `import redirects.caddy`. `scripts/deploy.sh` writes that file from `REDIRECT_DOMAINS` on every deploy: unset or empty, it holds only comments, so Caddy starts cleanly and asks for no extra certificate; otherwise one site block lists the old domains, Caddy gets a certificate for each and answers `redir https://{$DOMAIN}{uri} permanent` (301, path and query kept). `REDIRECT_DOMAINS=` is also written into the server's `.env` as a record. Tests: `scripts/tests/deploy-env.test.sh` and `scripts/tests/caddy-redirects.test.sh` (with Docker it runs `caddy validate` on the real Caddyfile with and without old domains).
 
@@ -153,6 +151,8 @@ To walk the phase "Done when" locally (login codes included) catch the email in 
 **Ticket intake (Phase 21).** Set `TICKETS_API_KEY` (at least 16 characters, for example `openssl rand -hex 24`) as its own secret of the `test` environment in GitHub (`gh secret set TICKETS_API_KEY --env test`); the deploy writes it into the server's `.env` (it replaces a `TICKETS_API_KEY=` line of `TEST_ENV_FILE`). Give it to the eGrant team with [integrations/egrant-ticket-intake.md](../integrations/egrant-ticket-intake.md). Without it `POST /api/tickets/intake` answers 503 `intake_disabled`.
 
 **Domain.** `DOMAIN=` and `PUBLIC_URL=https://<domain>` in the server's `.env` come from the `DOMAIN` variable of the GitHub environment, not from `TEST_ENV_FILE` (`deploy_env` in `scripts/lib.sh`), so moving to another domain is: point its DNS A record at the server, change the variable, deploy. Caddy gets the new certificate on start.
+
+**Fake push and AI.** `PUSH_PROVIDER=fake` (and `PUSH_FAKE_FILE`) and `AI_PROVIDER=fake` are for local development and e2e only; with `NODE_ENV=production` the app refuses to start with them unless `PUSH_ALLOW_FAKE=1` or `AI_ALLOW_FAKE=1`, which only the Playwright web server sets.
 
 **AI task split.** Set `OPENAI_API_KEY` in the env file to turn on "Turn into tasks" (without it the action is hidden and `POST /api/messages/:id/task-split` answers 503 `ai_unavailable`). `OPENAI_MODEL` is optional (default `gpt-5-mini`). Never set `AI_PROVIDER=fake` on a server: it is a canned splitter for local development and e2e, and with `NODE_ENV=production` the app refuses to start with it (`ConfigError: AI_PROVIDER`) unless `AI_ALLOW_FAKE=1`, which only the Playwright web server sets. The key is never logged; each call logs one info line `ai task split` with the user, message, duration, outcome and token usage, so cost can be read from the logs (`docker compose logs app | grep 'ai task split'`).
 

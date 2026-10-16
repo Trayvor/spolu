@@ -4,20 +4,22 @@ Requirements for Spolu, one topic per file. The product is shown to users as "He
 
 | file | what it covers | phase(s) |
 |---|---|---|
-| `overview.md` | what Spolu is, general principles, out of scope | all |
-| `roles-and-access.md` | Administrator and Client roles, what each sees | 2, 3, 14 |
-| `auth.md` | invite registration, email-code login, superadmin, admins, optional password | 2, 3, 16 |
-| `groups.md` | groups, fields, invite links, members, removing a client | 3 |
-| `chat.md` | group chat, threads, mentions, attachments, edit/delete, unread | 4, 5, 10, 11 |
-| `direct-messages.md` | one-to-one chats and who can write to whom | 7 |
-| `task-board.md` | Kanban board, buckets, task card, task chat, message to task | 8, 9, 10 |
-| `knowledge-base.md` | Knowledge tab (notes, files, links, reminders), visibility, global list | 17 |
-| `reminders.md` | reminders of knowledge items (and tasks), recipients, calendar export | 17, 19 |
-| `ai-task-split.md` | AI split of one message into several tasks | 11 |
-| `tickets.md` | tickets from eGrant, URL normalization, statuses, replies | 12, 13 |
-| `contracts.md` | admin-only contracts, next-contract draft, reminders, global list | 14, 15 |
-| `bulk-email.md` | admins' bulk email: campaigns, drafts, audience rules | 23 |
-| `notifications.md` | modes per group, push and email channels | 6 (and 7, 9, 12, 15) |
-| `profile.md` | name, avatar, language, password, message search | 16 |
-| `integrations.md` | eGrant, Elastic Email, LLM API | 2, 11, 12, 13 |
-| `non-functional.md` | PWA, languages, realtime, backups (DB nightly in 1; off-site and files in 16), monitoring (16), design rule | 1, 16 |
+| [overview.md](overview.md) | what Spolu is, general principles, naming, out of scope | all |
+| [roles-and-access.md](roles-and-access.md) | Administrator and Client roles, the `ziadatel` membership, what each sees | 2, 3, 14, 21 |
+| [auth.md](auth.md) | invite registration, email-code login, superadmin, admins, optional password | 2, 3, 16 |
+| [groups.md](groups.md) | groups, fields, invite links, members, invites by email, the Groups page | 3, 21, 22 |
+| [client-managers.md](client-managers.md) | admins who manage a client: mentions, assignees, notifications | 18, 22 |
+| [chat.md](chat.md) | group chat, threads, mentions, attachments, edit/delete, unread | 4, 5, 9 |
+| [direct-messages.md](direct-messages.md) | one-to-one chats and who can write to whom | 7 |
+| [task-board.md](task-board.md) | Kanban board, buckets, task card, task chat, message to task | 8, 9, 19 |
+| [admin-home.md](admin-home.md) | the admin dashboard, the client sidebar, the global task board | 20 |
+| [knowledge-base.md](knowledge-base.md) | Knowledge tab (notes, files, links, reminders, files from chats), folders, visibility, global list | 17, 24, 25 |
+| [reminders.md](reminders.md) | reminders of knowledge items and tasks, recipients, calendar export | 17, 19 |
+| [ai-task-split.md](ai-task-split.md) | AI split of one message (or ticket) into several tasks | 9, 21 |
+| [tickets.md](tickets.md) | tickets from eGrant, clients and admins, statuses, ticket chat, followers | 21 |
+| [contracts.md](contracts.md) | admin-only contracts, next-contract draft, reminders, global list | 14, 15 |
+| [bulk-email.md](bulk-email.md) | admins' bulk email: campaigns, drafts, audience rules, unsubscribe, report | 23 |
+| [notifications.md](notifications.md) | notification groups, modes per group, push and email channels | 6 (and 7, 15, 21) |
+| [profile.md](profile.md) | name, avatar, language, password, message search | 6, 16, 26 |
+| [integrations.md](integrations.md) | eGrant, Elastic Email, LLM API | 2, 9, 21, 23 |
+| [non-functional.md](non-functional.md) | PWA, nine languages, realtime, backups (DB nightly in 1; off-site and files in 16), monitoring (16), design rule | 1, 16, 26 |

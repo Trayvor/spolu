@@ -27,4 +27,4 @@ Rules that apply to the whole product: installable PWA, a nine-language interfac
 
 ## Phase
 
-Phase 1 (PWA shell, SK/EN switcher, design extraction). Realtime applies from Phase 5 on. Nightly database backup: Phase 1. Off-site backup and file backup: Phase 16 (polish). Error monitoring: Phase 16.
+Phase 1 (PWA shell, SK/EN switcher, design extraction); Phase 26 (seven more languages). Realtime applies from Phase 5 on. Nightly database backup: Phase 1. Off-site backup and file backup: Phase 16 (polish). Error monitoring: Phase 16.

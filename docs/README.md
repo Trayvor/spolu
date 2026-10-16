@@ -1,10 +1,10 @@
 # Spolu documentation
 
-Spolu is the code name of **Help by eGrant** (shown as "Help" at https://help.egrant.sk), the eGrant team's internal web app for working with clients: group chat, direct messages, task boards, support tickets from eGrant, and contracts. It replaces Teams for client communication. These docs are the source of truth for requirements, architecture and decisions, written for AI agents first and readable by the owner.
+Spolu is the code name of **Help by eGrant** (shown as "Help" at https://help.egrant.sk), the eGrant team's internal web app for working with clients: group chat, task boards, support tickets from eGrant, a knowledge base and bulk email; direct messages and contracts are planned. It replaces Teams for client communication. These docs are the source of truth for requirements, architecture and decisions, written for AI agents first and readable by the owner.
 
 ## Reading order for a newcomer
 
-1. [../README.md](../README.md)
+1. [../README.md](../README.md), and for AI agents [../CLAUDE.md](../CLAUDE.md) (rules, commands, tips)
 2. [product/overview.md](product/overview.md)
 3. [architecture/overview.md](architecture/overview.md)
 4. [roadmap.md](roadmap.md)
@@ -15,13 +15,13 @@ Spolu is the code name of **Help by eGrant** (shown as "Help" at https://help.eg
 |---|---|
 | [product/](product/README.md) | requirements, one file per module |
 | [architecture/](architecture/overview.md) | system overview, [data-model.md](architecture/data-model.md), [realtime.md](architecture/realtime.md), [permissions.md](architecture/permissions.md), [performance.md](architecture/performance.md) |
-| [decisions/](decisions/) | ADRs: one file per technical decision (`NNNN-title.md`) |
+| [decisions/](decisions/README.md) | ADRs: one file per technical decision (`NNNN-title.md`), indexed in its README |
 | [design/](design/README.md) | the egrant.sk design rule and design tokens |
-| [runbooks/](runbooks/README.md) | server setup, deploy, rollback, backup |
+| [runbooks/](runbooks/README.md) | server setup, deploy, rollback, backup, cloud sessions |
 | [integrations/](integrations/egrant-ticket-intake.md) | guides for outside developers: [eGrant ticket intake](integrations/egrant-ticket-intake.md) |
 | [superpowers/specs/](superpowers/specs/) | per-phase designs |
 | [superpowers/plans/](superpowers/plans/) | per-phase implementation plans |
-| [superpowers/briefs/](superpowers/briefs/) | owner briefs for work not yet specced |
+| [superpowers/briefs/](superpowers/briefs/) | owner briefs (each says at the top whether it is done) |
 | [roadmap.md](roadmap.md) | phases with status |
 | [glossary.md](glossary.md) | terms used in the project |
 

@@ -1,21 +1,21 @@
 # Roadmap
 
-26 phases (0-25). Each phase ends with something that works and can be used. Update the `Status` column when a phase starts or finishes (values: `planned`, `in progress`, `done (local)`, `done`, `merged into N`). The `implement-phase` and `update-kb` skills do this.
+28 phases (0-27). Each phase ends with something that works and can be used. Update the `Status` column when a phase starts or finishes (values: `planned`, `in progress`, `done` = merged into `main`, which deploys it to the test server https://help.egrant.sk, `merged into N`). What the owner still has to walk by hand is written in the phase's section. The `implement-phase` and `update-kb` skills do this.
 
 Requirements per module: [product/](product/README.md). Phases after 1 get their own short design and plan when they start.
 
 | # | Phase | Status | Depends on | Design/plan |
 |---|---|---|---|---|
 | 0 | [AI workflow & knowledge base](#phase-0--ai-workflow--knowledge-base) | done | - | [spec](superpowers/specs/2026-10-15-ehub-foundation-design.md), [plan](superpowers/plans/2026-10-15-phase-0-ai-workflow-and-kb.md) |
-| 1 | [Skeleton & delivery](#phase-1--skeleton--delivery) | done (local) | 0 | [spec](superpowers/specs/2026-10-15-ehub-foundation-design.md), [plan](superpowers/plans/2026-10-15-phase-1-skeleton-and-delivery.md) |
-| 2 | [Login & users](#phase-2--login--users) | done (local) | 1 | [spec](superpowers/specs/2026-10-15-phase-2-login-and-users-design.md), [plan](superpowers/plans/2026-10-15-phase-2-login-and-users.md) |
-| 3 | [Groups & invites](#phase-3--groups--invites) | done (local) | 2 | [spec](superpowers/specs/2026-10-15-phase-3-groups-and-invites-design.md), [plan](superpowers/plans/2026-10-15-phase-3-groups-and-invites.md) |
-| 4 | [Shared foundation](#phase-4--shared-foundation) | done (local) | 3 | [spec](superpowers/specs/2026-10-15-phase-4-shared-foundation-design.md), [plan](superpowers/plans/2026-10-15-phase-4-shared-foundation.md) |
-| 5 | [Group chat](#phase-5--group-chat) | done (local) | 4 | [spec](superpowers/specs/2026-10-15-phase-5-group-chat-design.md), [plan](superpowers/plans/2026-10-15-phase-5-group-chat.md) |
-| 6 | [Notifications](#phase-6--notifications) | in progress | 9 | [spec](superpowers/specs/2026-10-16-phase-6-notifications-design.md), [plan](superpowers/plans/2026-10-16-phase-6-notifications.md) |
+| 1 | [Skeleton & delivery](#phase-1--skeleton--delivery) | done | 0 | [spec](superpowers/specs/2026-10-15-ehub-foundation-design.md), [plan](superpowers/plans/2026-10-15-phase-1-skeleton-and-delivery.md) |
+| 2 | [Login & users](#phase-2--login--users) | done | 1 | [spec](superpowers/specs/2026-10-15-phase-2-login-and-users-design.md), [plan](superpowers/plans/2026-10-15-phase-2-login-and-users.md) |
+| 3 | [Groups & invites](#phase-3--groups--invites) | done | 2 | [spec](superpowers/specs/2026-10-15-phase-3-groups-and-invites-design.md), [plan](superpowers/plans/2026-10-15-phase-3-groups-and-invites.md) |
+| 4 | [Shared foundation](#phase-4--shared-foundation) | done | 3 | [spec](superpowers/specs/2026-10-15-phase-4-shared-foundation-design.md), [plan](superpowers/plans/2026-10-15-phase-4-shared-foundation.md) |
+| 5 | [Group chat](#phase-5--group-chat) | done | 4 | [spec](superpowers/specs/2026-10-15-phase-5-group-chat-design.md), [plan](superpowers/plans/2026-10-15-phase-5-group-chat.md) |
+| 6 | [Notifications](#phase-6--notifications) | done | 9 | [spec](superpowers/specs/2026-10-16-phase-6-notifications-design.md), [plan](superpowers/plans/2026-10-16-phase-6-notifications.md) |
 | 7 | [Direct messages](#phase-7--direct-messages) | planned | 5, 6 | - |
-| 8 | [Task board](#phase-8--task-board) | done (local) | 4 | [spec](superpowers/specs/2026-10-15-phase-8-task-board-design.md), [plan](superpowers/plans/2026-10-15-phase-8-task-board.md) |
-| 9 | [Task chat & message to tasks with AI](#phase-9--task-chat--message-to-tasks-with-ai) | in progress | 5, 8 | [spec](superpowers/specs/2026-10-15-phase-9-task-chat-and-ai-design.md), [plan](superpowers/plans/2026-10-15-phase-9-task-chat-and-ai.md) |
+| 8 | [Task board](#phase-8--task-board) | done | 4 | [spec](superpowers/specs/2026-10-15-phase-8-task-board-design.md), [plan](superpowers/plans/2026-10-15-phase-8-task-board.md) |
+| 9 | [Task chat & message to tasks with AI](#phase-9--task-chat--message-to-tasks-with-ai) | done | 5, 8 | [spec](superpowers/specs/2026-10-15-phase-9-task-chat-and-ai-design.md), [plan](superpowers/plans/2026-10-15-phase-9-task-chat-and-ai.md) |
 | 10 | [Message to task](#phase-10--message-to-task) | merged into 9 | - | - |
 | 11 | [AI split into tasks](#phase-11--ai-split-into-tasks) | merged into 9 | - | - |
 | 12 | [Tickets: intake from eGrant](#phase-12--tickets-intake-from-egrant) | merged into 21 | - | - |
@@ -23,35 +23,32 @@ Requirements per module: [product/](product/README.md). Phases after 1 get their
 | 14 | [Contracts](#phase-14--contracts) | planned | 3 | - |
 | 15 | [Contract reminders](#phase-15--contract-reminders) | planned | 6, 14 | - |
 | 16 | [Password & polish](#phase-16--password--polish) | planned | 5 | - |
-| 17 | [Knowledge base](#phase-17--knowledge-base) | in progress | 9, 6 | [spec](superpowers/specs/2026-10-16-phase-17-knowledge-base-design.md), [plan](superpowers/plans/2026-10-16-phase-17-knowledge-base.md) |
-| 18 | [Client managers](#phase-18--client-managers) | in progress | 9, 6 | [spec](superpowers/specs/2026-10-16-phase-18-client-managers-design.md), [plan](superpowers/plans/2026-10-16-phase-18-client-managers.md) |
-| 19 | [Task reminders](#phase-19--task-reminders) | in progress | 17 | [spec](superpowers/specs/2026-10-16-phase-19-task-reminders-design.md), [plan](superpowers/plans/2026-10-16-phase-19-task-reminders.md) |
-| 20 | [Admin home](#phase-20--admin-home) | in progress | 17, 18 | [spec](superpowers/specs/2026-10-16-phase-20-admin-home-design.md), [plan](superpowers/plans/2026-10-16-phase-20-admin-home.md) |
-| 21 | [Tickets & the ziadatel role](#phase-21--tickets--the-ziadatel-role) | done (local) | 18, 20; item C for 21.6 | [spec](superpowers/specs/2026-10-16-phase-21-tickets-and-requesters-design.md), [plan](superpowers/plans/2026-10-16-phase-21-tickets-and-requesters.md) |
-| 22 | [Members & groups page](#phase-22--members--groups-page) | in progress | 18, 20, 21.1 | [plan](superpowers/plans/2026-10-16-phase-22-members-and-groups-page.md) |
-| 23 | [Bulk email](#phase-23--bulk-email) | done (local) | 3, 18, 21.1 | [spec](superpowers/specs/2026-10-16-phase-23-bulk-email-design.md), [plan](superpowers/plans/2026-10-16-phase-23-bulk-email.md) |
-| 24 | [Knowledge folders](#phase-24--knowledge-folders) | in progress | 17 | [spec](superpowers/specs/2026-10-16-phase-24-knowledge-folders-design.md), [plan](superpowers/plans/2026-10-16-phase-24-knowledge-folders.md) |
-| 25 | [Chat files in the knowledge base](#phase-25--chat-files-in-the-knowledge-base) | done (local) | 17, 24 | [spec](superpowers/specs/2026-10-16-knowledge-chat-files-design.md), [plan](superpowers/plans/2026-10-16-knowledge-chat-files.md) |
+| 17 | [Knowledge base](#phase-17--knowledge-base) | done | 9, 6 | [spec](superpowers/specs/2026-10-16-phase-17-knowledge-base-design.md), [plan](superpowers/plans/2026-10-16-phase-17-knowledge-base.md) |
+| 18 | [Client managers](#phase-18--client-managers) | done | 9, 6 | [spec](superpowers/specs/2026-10-16-phase-18-client-managers-design.md), [plan](superpowers/plans/2026-10-16-phase-18-client-managers.md) |
+| 19 | [Task reminders](#phase-19--task-reminders) | done | 17 | [spec](superpowers/specs/2026-10-16-phase-19-task-reminders-design.md), [plan](superpowers/plans/2026-10-16-phase-19-task-reminders.md) |
+| 20 | [Admin home](#phase-20--admin-home) | done | 17, 18 | [spec](superpowers/specs/2026-10-16-phase-20-admin-home-design.md), [plan](superpowers/plans/2026-10-16-phase-20-admin-home.md) |
+| 21 | [Tickets & the ziadatel role](#phase-21--tickets--the-ziadatel-role) | done | 18, 20; item C for 21.6 | [spec](superpowers/specs/2026-10-16-phase-21-tickets-and-requesters-design.md), [plan](superpowers/plans/2026-10-16-phase-21-tickets-and-requesters.md) |
+| 22 | [Members & groups page](#phase-22--members--groups-page) | done | 18, 20, 21.1 | [plan](superpowers/plans/2026-10-16-phase-22-members-and-groups-page.md) |
+| 23 | [Bulk email](#phase-23--bulk-email) | done | 3, 18, 21.1 | [spec](superpowers/specs/2026-10-16-phase-23-bulk-email-design.md), [plan](superpowers/plans/2026-10-16-phase-23-bulk-email.md) |
+| 24 | [Knowledge folders](#phase-24--knowledge-folders) | done | 17 | [spec](superpowers/specs/2026-10-16-phase-24-knowledge-folders-design.md), [plan](superpowers/plans/2026-10-16-phase-24-knowledge-folders.md) |
+| 25 | [Chat files in the knowledge base](#phase-25--chat-files-in-the-knowledge-base) | done | 17, 24 | [spec](superpowers/specs/2026-10-16-knowledge-chat-files-design.md), [plan](superpowers/plans/2026-10-16-knowledge-chat-files.md) |
+| 26 | [One email design and nine languages](#phase-26--one-email-design-and-nine-languages) | done | 23 | [ADR 0019](decisions/0019-nine-languages-and-one-email-design.md) |
+| 27 | [Whole-project review: performance and cleanup](#phase-27--whole-project-review-performance-and-cleanup) | planned | the UI/UX polish work | - |
 
 Phases 8 and 14 do not depend on each other, so their order can change by priority.
 
-**Next (owner brief, 2026-10-16):** [superpowers/briefs/2026-10-16-next-work.md](superpowers/briefs/2026-10-16-next-work.md). In order:
-- A: the "only where I take part" filter on the global task board (done: a small change, no spec, agreed in the session; see [product/task-board.md](product/task-board.md));
+**Owner brief of 2026-10-16** ([superpowers/briefs/2026-10-16-next-work.md](superpowers/briefs/2026-10-16-next-work.md)), all done:
+- A: the "only where I take part" filter on the global task board (a small change, no spec; see [product/task-board.md](product/task-board.md));
 - C: notification groups in the profile ([spec](superpowers/specs/2026-10-16-notification-groups-design.md), [plan](superpowers/plans/2026-10-16-notification-groups.md));
-- B: the tickets module with the `ziadatel` role, which supersedes Phases 12–13: [Phase 21](#phase-21--tickets--the-ziadatel-role) ([spec](superpowers/specs/2026-10-16-phase-21-tickets-and-requesters-design.md), [plan](superpowers/plans/2026-10-16-phase-21-tickets-and-requesters.md)).
+- B: the tickets module with the `ziadatel` role, which supersedes Phases 12–13: [Phase 21](#phase-21--tickets--the-ziadatel-role).
 
-Each one needs a spec and a plan before code.
+Also done outside the numbered phases: the visible name **Help by eGrant** and the move to https://help.egrant.sk with a redirect from spolu.egrant.sk ([ADR 0018](decisions/0018-visible-name-help-and-domain-redirects.md), pull request #31; see [runbooks/deploy.md](runbooks/deploy.md#moving-to-a-new-domain)).
 
 Also agreed on 2026-10-16: the global task board shows the chosen clients' custom buckets as their own columns (owner decision, a small change with no spec; see [product/admin-home.md](product/admin-home.md#custom-bucket-columns-owner-decision-2026-10-16)).
 
-## Server deployment (deferred)
+## Server deployment
 
-Owner decision (2026-10-15): build and verify locally first; deploy to the server later as one separate step.
-
-- Until then each phase is verified on the local production-like stack (the `deploy/` compose run at https://localhost, see [runbooks/deploy.md](runbooks/deploy.md)), and its "Done when" is walked with the owner there. A phase verified this way is marked `done (local)`.
-- The server step, when the owner is ready: Phase 1 Task 18 (first deploy to the Oracle test VM, GitHub `test` environment, runbooks, HSTS once the domain is final). It needs from the owner: the server, a domain and DNS record, `MAIL_FROM` verified in Elastic Email, `SUPERADMIN_EMAIL`, open ports 80/tcp, 443/tcp, 443/udp.
-- Phase 1's code is complete; only its Task 18 belongs to the server step, so Phase 2 proceeds on top of it (branch `phase-2` from `phase-1`). Phases 1–3 were walked by the owner on the local stack on 2026-10-15 and are `done (local)`.
-- After that step, every phase marked `done (local)` gets its "Done when" walked again on the test server and becomes `done`.
+Owner decision (2026-10-15): build and verify locally first, deploy to the server as one separate step. That step is done: the first deploy to the Oracle test VM ran on 2026-10-15 (Phase 1 Task 18), and since then every merge into `main` deploys to the test server, now https://help.egrant.sk ([runbooks/deploy.md](runbooks/deploy.md)). The status `done (local)` is retired: the phases verified locally before that are `done`. Still open from the server step: the Phase 6 check on real devices ([runbooks/deploy.md](runbooks/deploy.md#phase-6-check-on-real-devices)) and HSTS.
 
 ## Phase 0 — AI workflow & knowledge base
 
@@ -260,6 +257,8 @@ Scope:
 
 Done when: the system is ready for the team to move fully from Teams.
 
+Already built elsewhere: the profile name (Phase 6, `/settings`) and the stored language (Phase 26); search over the knowledge base (Phase 17), not yet over messages.
+
 ## Phase 17 — Knowledge base
 
 Requirements: [knowledge-base](product/knowledge-base.md), [reminders](product/reminders.md). Owner brief: [phases 17–20](superpowers/specs/2026-10-16-phases-17-20-brief.md).
@@ -284,7 +283,7 @@ Scope: custom reminders on tasks with recipients and subscription, beside the au
 
 Done when: a task reminder arrives at its time for its recipients and the task exports to a calendar.
 
-Status: built locally on branch `phase-19` (all tasks of the plan; unit, integration and web tests pass); the end-to-end test `e2e/task-reminders.spec.ts` is written but not yet run, and the owner walkthrough is pending.
+Status: done (merged; end-to-end test `e2e/task-reminders.spec.ts`).
 
 ## Phase 20 — Admin home
 
@@ -306,7 +305,7 @@ Built in 7 parts, one pull request each (21.1 memberships first; 21.3, 21.4 and 
 
 Done when: eGrant sends a ticket, a new requester gets the email, logs in with a code and sees only that ticket and its chat; an admin replies and the requester is notified; the ticket becomes tasks that link back to it; a client works in two groups.
 
-Status: done (local). All seven parts are merged into `main`: 21.1 memberships, 21.2 tickets server core, 21.3 ticket chat, 21.4 ticket screens, 21.5 ticket to tasks with AI, 21.6 following and notifications, 21.7 e2e and wrap-up (`e2e/tickets.spec.ts` walks the whole "Done when" flow; the intake's `request_id` for safe retries; mentions of unreadable tickets dropped from the admin home; task changes refresh the ticket page; the [eGrant integration guide](integrations/egrant-ticket-intake.md)). Not yet deployed to a server.
+Status: done. All seven parts are merged into `main`: 21.1 memberships, 21.2 tickets server core, 21.3 ticket chat, 21.4 ticket screens, 21.5 ticket to tasks with AI, 21.6 following and notifications, 21.7 e2e and wrap-up (`e2e/tickets.spec.ts` walks the whole "Done when" flow; the intake's `request_id` for safe retries; mentions of unreadable tickets dropped from the admin home; task changes refresh the ticket page; the [eGrant integration guide](integrations/egrant-ticket-intake.md)).
 
 Follow-up (owner decision 2026-10-16, branch `ticket-intake-files`): the intake takes the files themselves as base64 (`files`, up to 10, 10 MiB each, 20 MiB per request; body limit 28 MiB on the intake only), stored in the client's files and attached to the ticket; `file_links` is removed everywhere (migration 0023). See [ADR 0017](decisions/0017-intake-files-as-base64.md) and the [integration guide](integrations/egrant-ticket-intake.md).
 
@@ -314,12 +313,12 @@ Follow-up (owner decision 2026-10-16, branch `ticket-intake-files`): the intake 
 
 Requirements: [groups](product/groups.md), [client-managers](product/client-managers.md). Owner decisions (2026-10-16) are in the [plan](superpowers/plans/2026-10-16-phase-22-members-and-groups-page.md), split into two parts.
 
-**22a — managers and the Groups page** (built on branch `phase-22a-managers-groups-page`, stacked on `phase-21-3-ticket-chat`):
+**22a — managers and the Groups page** (merged, pull request #10):
 - The Members tab: admins add any active admin as the group's manager and remove any manager (`PUT`/`DELETE /api/groups/:id/managers/:userId`); the link to the Groups page is gone.
 - The Groups page: the member count links to the Members tab, manager names in a tooltip, a filter by manager (`?manager=me|none|<adminId>`), my groups first, and a group count.
 - The client filter's "Predvolené" sits in the filter row on Úlohy and Znalosti.
 
-**22b — invites by email (built on branch `phase-22b-member-invites`, redesigned for Phase 21.1; e2e `member-invites.spec.ts` written, run by the orchestrator):** admins add members by email on the Members tab. A new or never-signed-in person gets an invitation with a login link (`/login?email=`) and shows as "Pozvaný" (resend, cancel) until the first sign-in; a client of another group is added at once and told by email. An admin's invite is a client membership created directly (no `pending_invites` row, no migration). Cancel deletes the membership, or turns a former requester back to ziadatel. The owner confirmed the plan's Part 22b decisions.
+**22b — invites by email (merged, pull request #16; redesigned for Phase 21.1; e2e `member-invites.spec.ts`):** admins add members by email on the Members tab. A new or never-signed-in person gets an invitation with a login link (`/login?email=`) and shows as "Pozvaný" (resend, cancel) until the first sign-in; a client of another group is added at once and told by email. An admin's invite is a client membership created directly (no `pending_invites` row, no migration). Cancel deletes the membership, or turns a former requester back to ziadatel. The owner confirmed the plan's Part 22b decisions.
 
 Done when: (22a) an admin adds a manager on the Members tab and the Groups page filters by manager with the count; (22b) an admin invites a member, the member gets the email and signs in.
 
@@ -331,7 +330,7 @@ Scope: admins write an email from blocks (heading, text, image, button, divider,
 
 Built in 7 parts, one pull request each (23.1 first; 23.2, 23.3 and 23.4 in parallel; then 23.5 and 23.6 in parallel; 23.7 last). The owner answered the five open decisions on 2026-10-16 (spec, P1–P5): people who never signed in are included, Spolu is the source of truth for unsubscribing, and a "Receive mailings" checkbox in Settings lets people subscribe again.
 
-Status: parts 23.1 (foundation), 23.2 (campaigns and audience API), 23.3 (renderer, public images, preview, email logo PNG) 23.4 (unsubscribe page and API, one-click, subscribe again, the "Receive mailings" checkbox, Elastic suppression lift and daily sync), 23.5 (test send, start sending, the batch job and daily sweep, cancel, the per-person report API) 23.6 (web: campaign list, block builder with preview, audience builder, test send button) and 23.7 (web: the Send step with its confirm dialog, the report with live progress, the per-person list and Cancel sending; e2e `e2e/bulk-email.spec.ts`; docs) are built: Phase 23 is done locally. Before the first real send the owner works through the [pre-launch checklist](runbooks/deploy.md#bulk-email-pre-launch-checklist) (Elastic plan and key, `MAIL_FROM_BULK`, the List-Unsubscribe setting, the live sender check and the P5 check).
+Status: parts 23.1 (foundation), 23.2 (campaigns and audience API), 23.3 (renderer, public images, preview, email logo PNG) 23.4 (unsubscribe page and API, one-click, subscribe again, the "Receive mailings" checkbox, Elastic suppression lift and daily sync), 23.5 (test send, start sending, the batch job and daily sweep, cancel, the per-person report API) 23.6 (web: campaign list, block builder with preview, audience builder, test send button) and 23.7 (web: the Send step with its confirm dialog, the report with live progress, the per-person list and Cancel sending; e2e `e2e/bulk-email.spec.ts`; docs) are merged: Phase 23 is done. Before the first real send the owner works through the [pre-launch checklist](runbooks/deploy.md#bulk-email-pre-launch-checklist) (Elastic plan and key, `MAIL_FROM_BULK`, the List-Unsubscribe setting, the live sender check and the P5 check).
 
 Done when: an admin sends a campaign to a client group, each client gets it with their name, one client unsubscribes through the link and the next campaign skips them, and the report shows the counts.
 
@@ -341,7 +340,7 @@ Requirements: [knowledge-base](product/knowledge-base.md) and the [design](super
 
 Scope: folders and subfolders in each group's knowledge base, with breadcrumbs; admins and the group's clients create, rename, move and delete them; a folder can be admins-only, and everything inside it is then admins-only too; "Move to…" for items and folders; the admins' global view browses client → folders → items, and search stays a flat list across folders with each result's client and folder path.
 
-Status: built in one pull request (server, web, end-to-end test in `e2e/knowledge.spec.ts`); migration 0022.
+Status: done (pull request #26: server, web, end-to-end test in `e2e/knowledge.spec.ts`); migration 0022.
 
 Done when: an admin and a client sort a group's knowledge into folders, the client never sees an admins-only folder or anything in it, and a search finds an item in a subfolder and shows its path.
 
@@ -351,7 +350,7 @@ Requirements: [knowledge-base](product/knowledge-base.md) and the [design](super
 
 Scope: every file attached to a chat message (group chat, task chat, ticket chat) becomes a read-only knowledge item of the type "From chat" ("Z chatu"), created automatically, removed with the message, and opening the chat at that message; the type filter and a "tasks and tickets too" checkbox in the group's tab and the admins' global view; a backfill for files already in chats.
 
-Status: built in one pull request on branch `knowledge-chat-files` (server, web, end-to-end test in `e2e/knowledge.spec.ts`); migration 0024 with the backfill. Waiting for the owner's walkthrough.
+Status: done (pull request #32: server, web, end-to-end test in `e2e/knowledge.spec.ts`); migration 0024 with the backfill. Waiting for the owner's walkthrough.
 
 Done when: a client uploads a file in the group chat, an admin finds it under "From chat" in the client's Knowledge tab and in the global view, opens the chat at the message from it, and the entry disappears when the message is deleted.
 
@@ -361,6 +360,20 @@ Requirements: [non-functional](product/non-functional.md) (interface languages) 
 
 Scope: every system email (login and email-change codes, admin and member invites, notification digests, "ticket created") rendered by the bulk email renderer, so all email has one design (logo, heading, card, one pill button, muted footer), still transactional (no unsubscribe link, no tracking, a plain-text part); Czech, Slovenian, Bulgarian, Estonian, Italian, Croatian and Ukrainian next to Slovak and English in the UI, the language menu, the stored account language (migration 0025) and every email and push, with only Slovak and English in the initial JS.
 
-Status: built in one pull request on branch `feat/email-style-and-languages` (server, web, the e2e language case in `e2e/smoke.spec.ts`). The new translations wait for a native speaker's review.
+Status: done (pull request #34: server, web, the e2e language case in `e2e/smoke.spec.ts`); migration 0025. The new translations wait for a native speaker's review.
 
 Done when: a user picks Čeština in the language menu, the app and their next notification email are in Czech, and a login code email looks like a bulk email.
+
+## Phase 27 — Whole-project review: performance and cleanup
+
+Owner request (2026-10-17). Starts after the UI/UX polish work is merged. Requirements: [architecture/performance.md](architecture/performance.md), [product/non-functional.md](product/non-functional.md) ("Performance is a top priority", "Easy to extend").
+
+Scope: review the whole project for places where performance can sag, for dead or unneeded code, and for other optimizations. First a findings report as the spec (`docs/superpowers/specs/`), each finding with where it is, a measurement and a proposed fix; then the fixes in small pull requests, each measured before and after. Areas to check:
+- **Server:** slow or unindexed queries (`EXPLAIN` on realistic data, like `modules/home/explain.test.ts`), N+1 patterns, lists without pagination, heavy pg-boss jobs (digests, reminders, bulk email, backfills), socket fan-out (who gets which event, payload sizes), memory use of the one process.
+- **Web:** the initial JS (200 kB gzip budget, practically full): what can leave the entry chunk; needless re-renders; long lists without virtualization; query invalidation storms after socket events; image and asset sizes (fonts, icons, logos).
+- **Dead code:** unused exports, files, dependencies and locale keys (in all nine languages).
+- **Duplication:** the same logic repeated across modules that should share one helper.
+- **Tests and CI:** test-suite speed (`scripts/ci.sh` takes about 12 minutes), slow or flaky tests.
+- **Docker image:** its size and build time.
+
+Done when: the findings report is written and agreed with the owner, every accepted finding is fixed in its own merged pull request with before/after numbers, and the remaining ones are listed as later work.
