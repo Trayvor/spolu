@@ -1,4 +1,5 @@
 export * from './ai.js';
+export * from './bulk-email.js';
 export * from './chat.js';
 export * from './files.js';
 export * from './groups.js';

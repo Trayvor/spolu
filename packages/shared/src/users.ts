@@ -100,5 +100,12 @@ export const ErrorCodes = {
   intakeDisabled: 'intake_disabled',
   hasTasks: 'has_tasks',
   noClient: 'no_client',
+  // Phase 23 — bulk email
+  changed: 'changed',
+  notDraft: 'not_draft',
+  notSending: 'not_sending',
+  notReady: 'not_ready',
+  emptyAudience: 'empty_audience',
+  unsupportedType: 'unsupported_type',
 } as const;
 export type ErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes];

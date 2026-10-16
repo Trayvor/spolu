@@ -12,7 +12,12 @@ import { remindersJobHandlers } from '../src/modules/reminders/jobs.js';
 import { registerTaskReminderSubject } from '../src/modules/tasks/reminder-subject.js';
 import { notificationsJobHandlers } from '../src/modules/notifications/jobs.js';
 import { createDb } from '../src/infra/db/client.js';
-import { createEmailSender, emailJobHandlers } from '../src/infra/email/index.js';
+import {
+  createBulkSender,
+  createEmailSender,
+  emailJobHandlers,
+  type BulkEmailSender,
+} from '../src/infra/email/index.js';
 import { createInlineJobs } from '../src/infra/jobs/inline-jobs.js';
 import { createDeferredQueue } from '../src/infra/jobs/jobs.js';
 import { createFakePushSender, type FakePushSender } from '../src/infra/push/index.js';
@@ -20,13 +25,15 @@ import { createDiskStorage } from '../src/infra/storage/index.js';
 import { testConfig } from './test-config.js';
 
 /**
- * A full app on the test database: SMTP to Mailpit, temp-dir storage, jobs run inline, no AI
- * unless `overrides.ai` gives a provider.
+ * A full app on the test database: SMTP to Mailpit (bulk email too), temp-dir storage, jobs run
+ * inline, no AI unless `overrides.ai` gives a provider.
  */
 export async function buildTestApp(
   overrides: {
     config?: Partial<Config>;
     ai?: TaskSplitProvider | null;
+    /** The bulk sender; default: the smtp driver to Mailpit (tests of the batch job pass a fake). */
+    bulkEmail?: BulkEmailSender;
     /** Receives the app's info log as JSON lines (otherwise the app does not log). */
     logStream?: { write(line: string): void };
   } = {},
@@ -58,6 +65,7 @@ export async function buildTestApp(
     config,
     db,
     email,
+    bulkEmail: overrides.bulkEmail ?? createBulkSender(config.bulkEmail, config.email),
     storage,
     push: pushSender,
     jobs,

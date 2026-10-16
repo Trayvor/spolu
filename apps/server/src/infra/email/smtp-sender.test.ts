@@ -35,3 +35,19 @@ describe('createSmtpSender transport options', () => {
     expect(o).toEqual({ host: '127.0.0.1', port: 1025, secure: false });
   });
 });
+
+describe('createSmtpSender messages', () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it('the transactional smtp sender adds IsTransactional: True', async () => {
+    const sendMail = vi.fn().mockResolvedValue({});
+    vi.spyOn(nodemailer, 'createTransport').mockReturnValue({ sendMail } as never);
+    await createSmtpSender({ host: 'h', port: 25, from: 'a@b.c' }).send({
+      to: ['x@example.com'],
+      subject: 'Code',
+      html: '<p>1</p>',
+      text: '1',
+    });
+    expect(sendMail.mock.calls[0]![0]).toMatchObject({ headers: { IsTransactional: 'True' } });
+  });
+});

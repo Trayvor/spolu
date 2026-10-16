@@ -39,3 +39,4 @@ What gets easier, what gets harder.
 | [0013](0013-web-push.md) | Web Push with VAPID | accepted |
 | [0014](0014-lazy-locale-namespaces.md) | Lazy locale namespaces | accepted |
 | [0015](0015-trigram-search.md) | Trigram search for the knowledge base | accepted |
+| [0016](0016-bulk-email-through-elastic-v4-emails.md) | Bulk email through Elastic's /v4/emails | accepted |

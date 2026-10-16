@@ -9,7 +9,7 @@ Spolu talks to three external systems: eGrant (incoming error reports), Elastic 
   | System | Purpose |
   |---|---|
   | **eGrant** | Incoming support requests (JSON + one shared Bearer key) become tickets (see `tickets.md`). |
-  | **Elastic Email** | Emails: invites, login codes, "Ticket created", email notifications. |
+  | **Elastic Email** | Emails: invites, login codes, "Ticket created", email notifications (transactional); bulk email (Phase 23) through the marketing endpoint `POST /v4/emails`, one call per person, no open or click tracking ([ADR 0016](../decisions/0016-bulk-email-through-elastic-v4-emails.md)). |
   | **AI (LLM API)** | Splitting a message into tasks (see `ai-task-split.md`). |
 
 ## Ticket intake API (for the eGrant team)
@@ -48,4 +48,4 @@ Retries: send a `request_id` and repeat the same request after a timeout, a netw
 
 ## Phase
 
-Elastic Email: Phase 2 (login codes), later invites, notifications (Phase 6) and the "Ticket created" email (Phase 21). eGrant ticket intake: Phase 21 (part 21.2; it supersedes Phases 12 and 13). AI: Phase 9 (OpenAI API).
+Elastic Email: Phase 2 (login codes), later invites, notifications (Phase 6) and the "Ticket created" email (Phase 21); bulk email (Phase 23: the sender is built in part 23.1, sending in 23.5). eGrant ticket intake: Phase 21 (part 21.2; it supersedes Phases 12 and 13). AI: Phase 9 (OpenAI API).

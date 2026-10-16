@@ -51,6 +51,16 @@ Each branch is cut from the latest `main`. 23.6 shows **Send a test to me** only
 
 ## Part 23.1 — Foundation (spec §1, §5)
 
+**As built (2026-10-16, branch `phase-23-1-bulk-foundation`).** Differences and details later parts must use:
+- Migration `0020_bulk_email` (the next free number on `main`). Tables are picked up by the drizzle glob `src/**/schema.ts`; `infra/db/schema.ts` needs no export. `bulk_campaigns.audience` has no default (the service writes the empty audience); `created_at`/`updated_at` default `now()`; `bulk_recipients.language` has a CHECK `sk`/`en`. `schema.test.ts` covers defaults, the status checks and `campaign_id` set null on a subscription.
+- `BulkAudienceCount.leftOut` is `{ unsubscribed, disabled }` only: people who never signed in are included (P1), so there is no `neverSignedIn` count.
+- Shared (`packages/shared/src/bulk-email.ts`): also `BULK_LIMITS` (every pinned limit, `pageSize: 50`, `imageBytes`, `imageWidth`), `BulkCampaignStatuses`, `BulkRecipientStatuses`, `BulkSubscriptionSources`, `BulkImageMimes`, `BulkAudienceRoleSchema`, `BulkCampaignCounts`, `BulkEventPayload = { campaignId }`. `BulkCampaignDto` and the other DTOs are TypeScript types, not zod schemas. Draft `name` is trimmed and required (1–200); `subject` and `preheader` may be empty in a draft (`validateForSend` checks the subject). A button URL is http(s) or `mailto:<something>`; an image `href` http(s) only; `alt` is trimmed and required. The error codes are in `ErrorCodes` (`changed`, `notDraft`, `notSending`, `notReady`, `emptyAudience`, `unsupportedType`).
+- `token.ts` also exports `TEST_CAMPAIGN_ID = 'test'`. `verifyUnsubscribeToken` rejects any token that is not exactly three non-empty dot-separated parts or whose signature is not canonical base64url; `unsubscribeUrls` strips a trailing `/` of `PUBLIC_URL`.
+- Config: `ELASTIC_EMAIL_API_KEY` moved to the base schema (optional) and stays required in the `EMAIL_DRIVER=elastic` branch; the bulk checks run after parsing (`bulkEmailConfig`), so a bulk `ConfigError` names only `BULK_EMAIL_DRIVER` or `ELASTIC_EMAIL_API_KEY`. An env with `EMAIL_DRIVER=elastic` must now set `BULK_EMAIL_DRIVER=elastic`. `testConfig()` uses `bulkEmail: { driver: 'smtp', from: 'eGrant <news@example.com>' }`, `bulkEmailPerMinute: 120`.
+- Sender: `bulk.ts` also exports `BulkSendResult`, `FakeBulkSender`, `isRetryableStatus(status)` (`409`, `429`, `5xx`). `createElasticBulkSender(opts, fetchImpl, timeoutMs = 15 000)` and `createSmtpBulkSender(opts, transport?)` can be built directly. Error messages carry at most 300 characters of provider text with the key masked; a `422` is final. The smtp bulk driver never sets `IsTransactional` and always adds Spolu's `List-Unsubscribe`/`List-Unsubscribe-Post`. The fake replays a repeated idempotency key like Elastic: `sent` holds one message per key, `callsByKey` counts every call (failures included), `failNext` queues failures in order.
+- `buildTestApp({ bulkEmail })` overrides the bulk sender (default: the smtp driver to Mailpit), so the batch job tests of 23.5 pass `createFakeBulkSender()`.
+- Step 5 (live check with the owner's key) was not run: no key in this environment. It stays open for the owner before 23.5 goes live.
+
 ### Task 1.1: Shared contracts
 
 **Files:**
@@ -59,10 +69,10 @@ Each branch is cut from the latest `main`. 23.6 shows **Send a test to me** only
 **Interfaces:**
 - Produces: `BulkBlockSchema` (discriminated union on `type`: `heading | text | image | button | divider | logo`, fields and limits of spec §3), `BulkAlign = 'left' | 'center'`, `BulkAudienceSchema` (spec §2, lists default `[]`, ≤ 500 each), `BulkCampaignStatus`, `BulkRecipientStatus`, `BulkCampaignDraftSchema` (`{ name, subject, preheader, blocks (≤ 50), audience, version }`), `BulkCampaignDto` (all campaign columns camelCase + `counts: Record<BulkRecipientStatus, number> & { unsubscribed: number }` + `createdByName`, `sentByName`), `BulkCampaignListItem`, `BulkAudienceCount = { count: number; leftOut: { unsubscribed: number; disabled: number; neverSignedIn: number } }`, `BulkRecipientItem`, `BulkNotReadyProblem = { blockId?: string; problem: 'subject_missing' | 'no_blocks' | 'image_missing' | 'invalid_url' }`, `BulkEvents = { updated: 'bulk:updated' }`, error codes `changed`, `not_draft`, `not_sending`, `not_ready`, `empty_audience`, `unsupported_type`.
 
-- [ ] **Step 1: Failing tests** in `bulk-email.test.ts`: `a button with javascript: URL is rejected`, `a button accepts mailto:`, `an image without alt is rejected`, `a text of 5 001 characters is rejected`, `51 blocks are rejected`, `audience lists default to []`, `an audience list of 501 ids is rejected`, `an unknown block type is rejected`.
-- [ ] **Step 2: Run** `pnpm --filter @spolu/shared test` — FAIL.
-- [ ] **Step 3: Implement** with zod; URLs through a helper `httpUrl` (http/https only, ≤ 2 048, the shared `MAX_URL_LENGTH`).
-- [ ] **Step 4: Run** — PASS. Commit `feat(shared): bulk email contracts`.
+- [x] **Step 1: Failing tests** in `bulk-email.test.ts`: `a button with javascript: URL is rejected`, `a button accepts mailto:`, `an image without alt is rejected`, `a text of 5 001 characters is rejected`, `51 blocks are rejected`, `audience lists default to []`, `an audience list of 501 ids is rejected`, `an unknown block type is rejected`.
+- [x] **Step 2: Run** `pnpm --filter @spolu/shared test` — FAIL.
+- [x] **Step 3: Implement** with zod; URLs through a helper `httpUrl` (http/https only, ≤ 2 048, the shared `MAX_URL_LENGTH`).
+- [x] **Step 4: Run** — PASS. Commit `feat(shared): bulk email contracts`.
 
 ### Task 1.2: Schema, policy and config
 
@@ -77,10 +87,10 @@ Each branch is cut from the latest `main`. 23.6 shows **Send a test to me** only
 - Produces: `canUseBulkEmail(actor: SessionUser): boolean`.
 - Produces (`Config`): `bulkEmail: { driver: 'smtp'; from: string } | { driver: 'elastic'; apiKey: string; from: string; unsubscribe: 'elastic' | 'spolu' }`, `bulkEmailPerMinute: number`.
 
-- [ ] **Step 1: Failing tests:** policy `admin and superadmin may, client may not`; config `MAIL_FROM_BULK defaults to MAIL_FROM`, `BULK_EMAIL_DRIVER=elastic without ELASTIC_EMAIL_API_KEY → ConfigError(['ELASTIC_EMAIL_API_KEY'])`, `BULK_EMAIL_DRIVER=elastic works with EMAIL_DRIVER=smtp`, `BULK_EMAIL_DRIVER=smtp with EMAIL_DRIVER=elastic → ConfigError(['BULK_EMAIL_DRIVER'])`, `BULK_EMAIL_PER_MINUTE defaults to 120`, `BULK_EMAIL_UNSUBSCRIBE defaults to elastic`; token `round-trips`, `a changed user id, campaign id or signature → null`, `a token signed with another secret → null`, `malformed (two parts, empty) → null`.
-- [ ] **Step 2: Run** `pnpm --filter @spolu/server exec vitest run src/modules/bulk-email src/infra/config` — FAIL.
-- [ ] **Step 3: Implement**; `ELASTIC_EMAIL_API_KEY` moves to `base` as optional and is required by a `superRefine` when either driver is `elastic`. Generate the migration. Document the five variables in both env examples (comments in the style of the file).
-- [ ] **Step 4: Run** — PASS. Commit `feat(bulk-email): schema, policy and config`.
+- [x] **Step 1: Failing tests:** policy `admin and superadmin may, client may not`; config `MAIL_FROM_BULK defaults to MAIL_FROM`, `BULK_EMAIL_DRIVER=elastic without ELASTIC_EMAIL_API_KEY → ConfigError(['ELASTIC_EMAIL_API_KEY'])`, `BULK_EMAIL_DRIVER=elastic works with EMAIL_DRIVER=smtp`, `BULK_EMAIL_DRIVER=smtp with EMAIL_DRIVER=elastic → ConfigError(['BULK_EMAIL_DRIVER'])`, `BULK_EMAIL_PER_MINUTE defaults to 120`, `BULK_EMAIL_UNSUBSCRIBE defaults to elastic`; token `round-trips`, `a changed user id, campaign id or signature → null`, `a token signed with another secret → null`, `malformed (two parts, empty) → null`.
+- [x] **Step 2: Run** `pnpm --filter @spolu/server exec vitest run src/modules/bulk-email src/infra/config` — FAIL.
+- [x] **Step 3: Implement**; `ELASTIC_EMAIL_API_KEY` moves to `base` as optional and is required by a `superRefine` when either driver is `elastic`. Generate the migration. Document the five variables in both env examples (comments in the style of the file).
+- [x] **Step 4: Run** — PASS. Commit `feat(bulk-email): schema, policy and config`.
 
 ### Task 1.3: Bulk sender
 
@@ -91,12 +101,12 @@ Each branch is cut from the latest `main`. 23.6 shows **Send a test to me** only
 **Interfaces:**
 - Produces: `BulkMessage`, `BulkEmailSender`, `BulkSendError { retryable: boolean; status: number | null }` exactly as spec §5; `createBulkSender(config: Config['bulkEmail'], smtp: Config['email'], fetchImpl?): BulkEmailSender`; `createFakeBulkSender(): BulkEmailSender & { sent: BulkMessage[]; failNext(status: number | 'network'): void; callsByKey: Map<string, number> }`.
 
-- [ ] **Step 1: Failing tests** (fake `fetch`): `elastic posts to /v4/emails with Recipients [{Email}], From = MAIL_FROM_BULK, Postback, TrackOpens false, TrackClicks false`; `sends Idempotency-Key and X-ElasticEmail-ApiKey`; `returns TransactionID and MessageID`; `5xx, 429, 409 and a network error are retryable`; `400 is not retryable and the message carries the response text but never the API key`; `elastic mode: unsubscribeHref wraps as {unsubscribe:url} and no List-Unsubscribe in Content.Headers`; `spolu mode: unsubscribeHref returns the url and Content.Headers has List-Unsubscribe <oneClickUrl> and List-Unsubscribe-Post`; `the transactional smtp sender adds IsTransactional: True`; smtp (nodemailer stream transport): `adds List-Unsubscribe <oneClickUrl> and List-Unsubscribe-Post: List-Unsubscribe=One-Click`, `unsubscribeHref returns the url`.
-- [ ] **Step 2: Run** `pnpm --filter @spolu/server exec vitest run src/infra/email/bulk.test.ts` — FAIL.
-- [ ] **Step 3: Implement.** The smtp driver reuses the SMTP options of `Config['email']` (driver `smtp`).
-- [ ] **Step 4: Run** — PASS.
+- [x] **Step 1: Failing tests** (fake `fetch`): `elastic posts to /v4/emails with Recipients [{Email}], From = MAIL_FROM_BULK, Postback, TrackOpens false, TrackClicks false`; `sends Idempotency-Key and X-ElasticEmail-ApiKey`; `returns TransactionID and MessageID`; `5xx, 429, 409 and a network error are retryable`; `400 is not retryable and the message carries the response text but never the API key`; `elastic mode: unsubscribeHref wraps as {unsubscribe:url} and no List-Unsubscribe in Content.Headers`; `spolu mode: unsubscribeHref returns the url and Content.Headers has List-Unsubscribe <oneClickUrl> and List-Unsubscribe-Post`; `the transactional smtp sender adds IsTransactional: True`; smtp (nodemailer stream transport): `adds List-Unsubscribe <oneClickUrl> and List-Unsubscribe-Post: List-Unsubscribe=One-Click`, `unsubscribeHref returns the url`.
+- [x] **Step 2: Run** `pnpm --filter @spolu/server exec vitest run src/infra/email/bulk.test.ts` — FAIL.
+- [x] **Step 3: Implement.** The smtp driver reuses the SMTP options of `Config['email']` (driver `smtp`).
+- [x] **Step 4: Run** — PASS.
 - [ ] **Step 5: Live check (owner's key, optional, not in CI).** With a real key, send one email to an address you own and record in the PR: whether Elastic replaced our footer link wrapper correctly, where `{unsubscribe:…}` redirects, the headers of the received mail, whether a `spolu`-mode send keeps our `List-Unsubscribe` header, and whether `DELETE /v4/suppressions/{email}` re-enables the address after an unsubscribe. If anything differs from spec §5, stop and report before 23.5.
-- [ ] **Step 6: Docs and PR.** `update-kb`: `architecture/overview.md` (Email: the bulk sender), `architecture/data-model.md` (four tables), `product/integrations.md` (Elastic: bulk email), ADR `0016-bulk-email-through-elastic-v4-emails.md` (one call per person to `/v4/emails`, idempotency key, no SMTP for bulk on servers, why not the transactional endpoint, the two unsubscribe modes). `bash scripts/ci.sh`; push; PR.
+- [x] **Step 6: Docs and PR.** `update-kb`: `architecture/overview.md` (Email: the bulk sender), `architecture/data-model.md` (four tables), `product/integrations.md` (Elastic: bulk email), ADR `0016-bulk-email-through-elastic-v4-emails.md` (one call per person to `/v4/emails`, idempotency key, no SMTP for bulk on servers, why not the transactional endpoint, the two unsubscribe modes). `bash scripts/ci.sh`; push; PR.
 
 ---
 
