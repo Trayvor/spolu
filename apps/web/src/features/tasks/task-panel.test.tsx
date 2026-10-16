@@ -71,6 +71,7 @@ const card = (id: string, bucketId: string): TaskDto => ({
   createdBy: { id: 'a1', name: 'Jana Nováková' },
   assignees: [],
   fileCount: 0,
+  upcomingReminders: 0,
   sourceMessageId: null,
   createdAt: '2026-10-15T10:00:00.000Z',
   updatedAt: '2026-10-15T10:00:00.000Z',

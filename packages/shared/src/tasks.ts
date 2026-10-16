@@ -97,6 +97,8 @@ export const TaskDtoSchema = z.object({
   createdBy: TaskPersonSchema,
   assignees: z.array(TaskPersonSchema),
   fileCount: z.number().int(),
+  /** Unfired custom reminder times (Phase 19): the board card's bell. */
+  upcomingReminders: z.number().int(),
   sourceMessageId: z.string().nullable(),
   createdAt: z.string(),
   updatedAt: z.string(),

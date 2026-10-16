@@ -10,12 +10,13 @@ import {
 } from 'drizzle-orm/pg-core';
 import { groups } from '../groups/schema.js';
 import { knowledgeItems } from '../knowledge/schema.js';
+import { tasks } from '../tasks/schema.js';
 import { user } from '../users/schema.js';
 
 /**
  * The reminders of one subject. One foreign key column per subject kind (not a generic
- * `subject_id`), so deleting the subject deletes its reminders in the database. Phase 19 adds
- * `task_id` and widens the check to `num_nonnulls(knowledge_item_id, task_id) = 1`.
+ * `subject_id`), so deleting the subject deletes its reminders in the database: a knowledge
+ * reminder item (Phase 17) or a task (Phase 19). Exactly one of them is set.
  */
 export const reminderSets = pgTable(
   'reminder_sets',
@@ -27,16 +28,18 @@ export const reminderSets = pgTable(
     knowledgeItemId: text('knowledge_item_id').references(() => knowledgeItems.id, {
       onDelete: 'cascade',
     }),
+    taskId: text('task_id').references(() => tasks.id, { onDelete: 'cascade' }),
     createdBy: text('created_by')
       .notNull()
       .references(() => user.id),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
-    check('reminder_sets_subject_check', sql`num_nonnulls(${t.knowledgeItemId}) = 1`),
+    check('reminder_sets_subject_check', sql`num_nonnulls(${t.knowledgeItemId}, ${t.taskId}) = 1`),
     // The group cascade, and the group-scoped reminder lists of later phases.
     index('reminder_sets_group_id_idx').on(t.groupId),
     uniqueIndex('reminder_sets_knowledge_item_unique').on(t.knowledgeItemId),
+    uniqueIndex('reminder_sets_task_unique').on(t.taskId),
   ],
 );
 

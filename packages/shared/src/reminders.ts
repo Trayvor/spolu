@@ -1,8 +1,37 @@
 import { z } from 'zod';
+import { IdSchema } from './chat.js';
 import { TaskPersonSchema } from './tasks.js';
 
-/** What a reminder set belongs to. Phase 19 adds `'task'`. */
-export type ReminderSubjectKind = 'knowledge';
+/** What a reminder set belongs to: a knowledge reminder item (Phase 17) or a task (Phase 19). */
+export type ReminderSubjectKind = 'knowledge' | 'task';
+
+/** Unfired times per set, and `added` recipients per set (the server's `REMINDER_LIMITS`). */
+export const REMINDER_PUT_LIMITS = { times: 20, recipients: 50 } as const;
+
+const unique = (ids: string[]) => [...new Set(ids)];
+const allDistinct = (values: unknown[]) => new Set(values).size === values.length;
+
+/**
+ * `PUT /api/<prefix>/:id/reminders` (subjects edited on their own, Phase 19: tasks). `times` are
+ * the sender's upcoming times after the change (an `id` is an existing one); zero is valid.
+ * `baseTimeIds` are the unfired time ids the sender had loaded: only those missing from `times`
+ * are deleted, so a time someone else added meanwhile survives. `recipientIds` omitted means
+ * "recipients unchanged".
+ */
+export const ReminderPutSchema = z.object({
+  times: z
+    .array(z.object({ id: IdSchema.optional(), at: z.iso.datetime({ offset: true }) }))
+    .max(REMINDER_PUT_LIMITS.times)
+    .refine((times) => allDistinct(times.map((t) => Date.parse(t.at))), {
+      message: 'Duplicate time',
+    })
+    .refine((times) => allDistinct(times.flatMap((t) => (t.id === undefined ? [] : [t.id]))), {
+      message: 'Duplicate time id',
+    }),
+  recipientIds: z.array(IdSchema).max(REMINDER_PUT_LIMITS.recipients).transform(unique).optional(),
+  baseTimeIds: z.array(IdSchema).max(REMINDER_PUT_LIMITS.times).default([]),
+});
+export type ReminderPut = z.output<typeof ReminderPutSchema>;
 
 /** How a person became a recipient: the subject's author, added by the author, or by themselves. */
 export const RecipientSources = ['author', 'added', 'subscribed'] as const;
@@ -37,5 +66,11 @@ export type UpcomingReminder = {
   title: string;
   groupId: string;
   groupName: string;
-  target: { kind: 'knowledge'; itemId: string };
+  target: { kind: 'knowledge'; itemId: string } | { kind: 'task'; taskId: string };
 };
+
+/** Socket events of the reminders module, to the group room after a write or a firing commits. */
+export const RemindersEvents = { task: 'reminders:task' } as const;
+
+/** A task's count of upcoming custom reminders changed (the board card's bell). */
+export type TaskRemindersEvent = { groupId: string; taskId: string; upcomingReminders: number };

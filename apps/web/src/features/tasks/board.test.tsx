@@ -59,6 +59,7 @@ const task = (id: string, bucketId: string, extra: Partial<TaskDto> = {}): TaskD
   createdBy: { id: 'a1', name: 'Jana' },
   assignees: [],
   fileCount: 0,
+  upcomingReminders: 0,
   sourceMessageId: null,
   createdAt: '2026-10-15T10:00:00.000Z',
   updatedAt: '2026-10-15T10:00:00.000Z',

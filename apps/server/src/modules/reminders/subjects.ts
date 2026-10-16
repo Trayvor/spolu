@@ -50,10 +50,11 @@ export function listReminderSubjects(): ReminderSubject[] {
 
 /**
  * The foreign key column of `reminder_sets` that points at a subject of this kind, and its
- * property name for inserts. Phase 19 adds `task: taskId`.
+ * property name for inserts.
  */
 const SUBJECT_COLUMNS = {
   knowledge: { column: reminderSets.knowledgeItemId, key: 'knowledgeItemId' },
+  task: { column: reminderSets.taskId, key: 'taskId' },
 } as const satisfies Record<ReminderSubjectKind, { column: AnyPgColumn; key: string }>;
 
 export function subjectColumn(kind: ReminderSubjectKind): AnyPgColumn {
