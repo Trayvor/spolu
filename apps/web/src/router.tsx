@@ -263,10 +263,10 @@ const welcomeRoute = createRoute({
 const joinRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/join/$token',
-  // Public, but someone already signed in has nothing to join.
+  // Public. A signed-in client may join one more group here; an admin has nothing to join.
   beforeLoad: async ({ context }) => {
     const user = await context.queryClient.ensureQueryData(sessionQuery);
-    if (user) throw redirect({ to: '/' });
+    if (user && isAdmin(user)) throw redirect({ to: '/' });
   },
   component: lazyRouteComponent(
     withNamespaces(['join'], () => import('@/features/join/join-page')),

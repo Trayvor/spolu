@@ -92,5 +92,7 @@ export const ErrorCodes = {
   noReminderSet: 'no_reminder_set',
   // Phase 20 — admin home and the global task board
   invalidFilter: 'invalid_filter',
+  // Phase 21 — memberships
+  removedMember: 'removed',
 } as const;
 export type ErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes];

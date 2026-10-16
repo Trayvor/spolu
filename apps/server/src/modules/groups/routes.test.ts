@@ -426,7 +426,15 @@ describe('groups API', () => {
       id: client.id,
       name: 'After',
       role: 'client',
-      groups: [expect.objectContaining({ id: g.id, name: g.name, role: 'client', hasLogo: false, updatedAt: expect.any(String) })],
+      groups: [
+        expect.objectContaining({
+          id: g.id,
+          name: g.name,
+          role: 'client',
+          hasLogo: false,
+          updatedAt: expect.any(String),
+        }),
+      ],
     });
     const members = (await call('GET', `/api/groups/${g.id}/members`, cookie)).json<Member[]>();
     expect(members.find((m) => m.id === other.id)?.name).toBe('Untouched');

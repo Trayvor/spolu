@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { useParams } from '@tanstack/react-router';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useNavigate, useParams } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -9,7 +9,8 @@ import { Label } from '@/components/ui/label';
 import { ApiError } from '@/lib/api';
 import { sendCode } from '@/features/auth/api';
 import { CodeStep } from '@/features/auth/code-step';
-import { joinGroup, joinInfoQuery, joinLogoUrl } from './api';
+import { sessionQuery, useSession } from '@/features/auth/use-session';
+import { acceptInvite, joinGroup, joinInfoQuery, joinLogoUrl } from './api';
 
 /** The route component: reads the invite token from the path. */
 export function JoinRoute() {
@@ -17,10 +18,16 @@ export function JoinRoute() {
   return <JoinPage token={token} />;
 }
 
-/** Public invite page: the group's name and logo, then the login card flow (email, code). */
+/**
+ * Public invite page: the group's name and logo, then the login card flow (email, code). A client
+ * who is already signed in joins with one button instead (Phase 21: a client of several groups).
+ */
 export function JoinPage({ token }: { token: string }) {
   const { t } = useTranslation();
   const info = useQuery(joinInfoQuery(token));
+  // Signed in when the page opened (the route loads the session first); signing in with the
+  // code below must not switch this card to the button.
+  const [me] = useState(useSession());
 
   const [step, setStep] = useState<'email' | 'code'>('email');
   const [email, setEmail] = useState('');
@@ -88,7 +95,9 @@ export function JoinPage({ token }: { token: string }) {
         {t('join.title', { group: info.data.name })}
       </h1>
 
-      {step === 'email' ? (
+      {me ? (
+        <AcceptStep token={token} email={me.email} onExpired={() => setExpired(true)} />
+      ) : step === 'email' ? (
         <form noValidate onSubmit={onEmailSubmit} className="flex flex-col gap-6">
           <p>{t('join.intro')}</p>
           <div className="flex flex-col gap-2.5">
@@ -127,5 +136,53 @@ export function JoinPage({ token }: { token: string }) {
         />
       )}
     </Card>
+  );
+}
+
+/** A signed-in client joins the group with one button, then lands in its chat. */
+function AcceptStep({
+  token,
+  email,
+  onExpired,
+}: {
+  token: string;
+  email: string;
+  onExpired: () => void;
+}) {
+  const { t } = useTranslation();
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function onAccept() {
+    if (busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const groupId = await acceptInvite(token);
+      await queryClient.invalidateQueries({ queryKey: sessionQuery.queryKey });
+      await navigate({ to: '/groups/$groupId/chat', params: { groupId } });
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 404) onExpired();
+      else if (e instanceof ApiError && e.status === 403) setError(t('join.errors.removed'));
+      else if (e instanceof ApiError && e.status === 429) setError(t('join.errors.rateLimited'));
+      else setError(t('errors.generic'));
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-6">
+      <p>{t('join.signedInAs', { email })}</p>
+      {error && (
+        <p role="alert" className="text-micro text-error-ink">
+          {error}
+        </p>
+      )}
+      <Button className="w-full" disabled={busy} onClick={() => void onAccept()}>
+        {t('join.accept')}
+      </Button>
+    </div>
   );
 }

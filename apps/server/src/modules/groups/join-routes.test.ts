@@ -8,7 +8,7 @@ import { countEmailsTo, latestLoginCode } from '../../../test/mailpit.js';
 import { user } from '../users/schema.js';
 import { groupMembers, pendingInvites } from './schema.js';
 import { addAdmin, findUserByEmail } from '../users/service.js';
-import { clientGroupIds } from './memberships.js';
+import { clientGroupIds, removeMembership } from './memberships.js';
 import { addMember, createGroup, regenerateInvite } from './service.js';
 
 type TestApp = Awaited<ReturnType<typeof buildTestApp>>;
@@ -229,6 +229,39 @@ describe('join API', () => {
       const me = await test.app.inject({ method: 'GET', url: '/api/me', headers: { cookie } });
       expect((me.json() as Me).groups.map((g) => g.id).sort()).toEqual([a.id, b.id].sort());
     }
+  });
+
+  it("a signed-in client accepts another group's invite at once; admins and removed members cannot", async () => {
+    const a = await newGroup();
+    const b = await newGroup();
+    const email = newEmail();
+    await join(a.inviteToken, { email });
+    const cookie = await signInAs(email);
+    const id = (await findUserByEmail(test.deps.db, email))!.id;
+    const accept = (token: string, c?: string) =>
+      test.app.inject({
+        method: 'POST',
+        url: `/api/join/${token}/accept`,
+        headers: c ? { cookie: c } : {},
+      });
+
+    const res = await accept(b.inviteToken, cookie);
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({ groupId: b.id });
+    expect((await groupsOf(id)).sort()).toEqual([a.id, b.id].sort());
+    expect((await accept(b.inviteToken, cookie)).statusCode).toBe(200); // idempotent
+    expect((await accept('nope', cookie)).statusCode).toBe(404);
+    expect((await accept(b.inviteToken)).statusCode).toBe(401);
+
+    const adminEmail = newEmail();
+    await addAdmin(test.deps.db, { email: adminEmail, name: 'Ad Min' });
+    expect((await accept(b.inviteToken, await signInAs(adminEmail))).statusCode).toBe(403);
+
+    await removeMembership(test.deps.db, b.id, id);
+    const removed = await accept(b.inviteToken, cookie);
+    expect(removed.statusCode).toBe(403);
+    expect(removed.json()).toEqual({ error: 'removed' });
+    expect(await groupsOf(id)).toEqual([a.id]);
   });
 
   it('two parallel joins with the same new email both answer 200 and make one user and invite', async () => {
