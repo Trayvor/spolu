@@ -1,0 +1,8 @@
+{
+  "title": "Kuidas me võime Teid kutsuda?",
+  "name": "Teie nimi",
+  "submit": "Jätka",
+  "errors": {
+    "nameRequired": "Sisestage oma nimi."
+  }
+}

@@ -31,8 +31,24 @@
   "cards": {
     "back": "Nazaj",
     "urgent": "Nujno",
+    "tickets": {
+      "title": "Zahtevki",
+      "caption": "odprtih",
+      "fresh_one": "{{count}} nov",
+      "fresh_two": "{{count}} nova",
+      "fresh_few": "{{count}} novi",
+      "fresh_other": "{{count}} novih",
+      "unassigned_one": "{{count}} brez stranke",
+      "unassigned_two": "{{count}} brez stranke",
+      "unassigned_few": "{{count}} brez stranke",
+      "unassigned_other": "{{count}} brez stranke",
+      "new": "Nov",
+      "noClient": "Brez stranke",
+      "showAll": "Prikaži vse zahtevke",
+      "empty": "Vaše stranke nimajo odprtih zahtevkov in noben zahtevek ni brez stranke."
+    },
     "assigned": {
-      "title": "Dodeljeno meni",
+      "title": "Moje naloge",
       "caption": "dodeljeno",
       "urgent_one": "{{count}} nujna",
       "urgent_two": "{{count}} nujni",
@@ -92,5 +108,15 @@
     "count_two": "{{count}} nalogi",
     "count_few": "{{count}} naloge",
     "count_other": "{{count}} nalog"
+  },
+  "navCount": {
+    "tasks_one": "{{count}} odprta naloga, dodeljena vam",
+    "tasks_two": "{{count}} odprti nalogi, dodeljeni vam",
+    "tasks_few": "{{count}} odprte naloge, dodeljene vam",
+    "tasks_other": "{{count}} odprtih nalog, dodeljenih vam",
+    "tickets_one": "{{count}} odprt zahtevek vaših strank ali brez stranke",
+    "tickets_two": "{{count}} odprta zahtevka vaših strank ali brez stranke",
+    "tickets_few": "{{count}} odprti zahtevki vaših strank ali brez stranke",
+    "tickets_other": "{{count}} odprtih zahtevkov vaših strank ali brez stranke"
   }
 }

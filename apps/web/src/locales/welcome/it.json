@@ -1,0 +1,8 @@
+{
+  "title": "Come possiamo chiamarLa?",
+  "name": "Il Suo nome",
+  "submit": "Continua",
+  "errors": {
+    "nameRequired": "Inserire il nome."
+  }
+}

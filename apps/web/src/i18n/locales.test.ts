@@ -29,6 +29,7 @@ const NAMESPACES = [
   'groups',
   'join',
   'knowledge',
+  'login',
   'notifications',
   'reminders',
   'settings',
@@ -37,6 +38,7 @@ const NAMESPACES = [
   'tasks',
   'tickets',
   'unsubscribe',
+  'welcome',
 ] as const;
 const namespaceFiles = parsed(
   import.meta.glob<string>('../locales/*/*.json', {
@@ -119,16 +121,7 @@ describe('locales', () => {
   }
 
   it('the eager shell keeps its texts in the main files', () => {
-    for (const key of [
-      'app',
-      'nav',
-      'user',
-      'language',
-      'errors',
-      'login',
-      'welcome',
-      'notFound',
-    ]) {
+    for (const key of ['app', 'nav', 'user', 'language', 'errors', 'notFound']) {
       expect({ key, eager: key in (locales.en ?? {}) }).toEqual({ key, eager: true });
     }
   });

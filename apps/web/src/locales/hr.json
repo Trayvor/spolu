@@ -27,36 +27,9 @@
     "body": "Ova adresa ne postoji. Provjerite poveznicu ili se vratite na početnu stranicu.",
     "home": "Idi na početnu stranicu"
   },
-  "login": {
-    "title": "Prijava",
-    "intro": "Poslat ćemo Vam kôd za prijavu e-poštom.",
-    "email": "E-pošta",
-    "sendCode": "Pošalji kôd",
-    "codeIntro": "Ako {{email}} ima pristup, poslali smo na tu adresu šesteroznamenkasti kôd. Vrijedi 5 minuta.",
-    "code": "Kôd",
-    "submit": "Prijavi se",
-    "sendAgain": "Pošalji ponovno",
-    "sendAgainIn": "Pošalji ponovno za {{seconds}} s",
-    "changeEmail": "Promijeni e-poštu",
-    "errors": {
-      "invalidEmail": "Unesite valjanu adresu e-pošte.",
-      "wrongCode": "Kôd se ne podudara. Preostali pokušaji: {{count}}.",
-      "expired": "Kôd je istekao. Zatražite novi.",
-      "tooMany": "Previše pokušaja. Pokušajte ponovno za nekoliko minuta.",
-      "disabled": "Ovaj račun više nema pristup."
-    }
-  },
   "errors": {
     "generic": "Nešto nije u redu. Pokušajte ponovno.",
     "retry": "Pokušaj ponovno"
-  },
-  "welcome": {
-    "title": "Kako Vam se možemo obraćati?",
-    "name": "Vaše ime",
-    "submit": "Nastavi",
-    "errors": {
-      "nameRequired": "Unesite svoje ime."
-    }
   },
   "files": {
     "download": "Preuzmi {{name}}",

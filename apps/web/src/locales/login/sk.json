@@ -1,0 +1,19 @@
+{
+  "title": "Prihlásenie",
+  "intro": "Pošleme vám prihlasovací kód na e-mail.",
+  "email": "E-mail",
+  "sendCode": "Poslať kód",
+  "codeIntro": "Ak má {{email}} prístup, poslali sme naň 6-miestny kód. Platí 5 minút.",
+  "code": "Kód",
+  "submit": "Prihlásiť sa",
+  "sendAgain": "Poslať znova",
+  "sendAgainIn": "Poslať znova o {{seconds}} s",
+  "changeEmail": "Zmeniť e-mail",
+  "errors": {
+    "invalidEmail": "Zadajte platný e-mail.",
+    "wrongCode": "Kód nesedí. Zostávajúce pokusy: {{count}}.",
+    "expired": "Kód vypršal. Pošlite si nový.",
+    "tooMany": "Príliš veľa pokusov. Skúste to znova o pár minút.",
+    "disabled": "Tento účet už nemá prístup."
+  }
+}

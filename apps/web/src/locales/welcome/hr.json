@@ -1,0 +1,8 @@
+{
+  "title": "Kako Vam se možemo obraćati?",
+  "name": "Vaše ime",
+  "submit": "Nastavi",
+  "errors": {
+    "nameRequired": "Unesite svoje ime."
+  }
+}

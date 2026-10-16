@@ -29,8 +29,22 @@
   "cards": {
     "back": "Natrag",
     "urgent": "Hitno",
+    "tickets": {
+      "title": "Tiketi",
+      "caption": "otvorenih",
+      "fresh_one": "{{count}} novi",
+      "fresh_few": "{{count}} nova",
+      "fresh_other": "{{count}} novih",
+      "unassigned_one": "{{count}} bez klijenta",
+      "unassigned_few": "{{count}} bez klijenta",
+      "unassigned_other": "{{count}} bez klijenta",
+      "new": "Novi",
+      "noClient": "Bez klijenta",
+      "showAll": "Prikaži sve tikete",
+      "empty": "Vaši klijenti nemaju otvorenih tiketa i nijedan tiket nije bez klijenta."
+    },
     "assigned": {
-      "title": "Dodijeljeno meni",
+      "title": "Moji zadaci",
       "caption": "dodijeljeno",
       "urgent_one": "{{count}} hitan",
       "urgent_few": "{{count}} hitna",
@@ -88,5 +102,13 @@
     "count_one": "{{count}} zadatak",
     "count_few": "{{count}} zadatka",
     "count_other": "{{count}} zadataka"
+  },
+  "navCount": {
+    "tasks_one": "{{count}} otvoreni zadatak dodijeljen Vama",
+    "tasks_few": "{{count}} otvorena zadatka dodijeljena Vama",
+    "tasks_other": "{{count}} otvorenih zadataka dodijeljenih Vama",
+    "tickets_one": "{{count}} otvoreni tiket Vaših klijenata ili bez klijenta",
+    "tickets_few": "{{count}} otvorena tiketa Vaših klijenata ili bez klijenta",
+    "tickets_other": "{{count}} otvorenih tiketa Vaših klijenata ili bez klijenta"
   }
 }

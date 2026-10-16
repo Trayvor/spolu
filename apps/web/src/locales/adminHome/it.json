@@ -29,8 +29,22 @@
   "cards": {
     "back": "Indietro",
     "urgent": "Urgente",
+    "tickets": {
+      "title": "Ticket",
+      "caption": "aperti",
+      "fresh_one": "{{count}} nuovo",
+      "fresh_many": "{{count}} nuovi",
+      "fresh_other": "{{count}} nuovi",
+      "unassigned_one": "{{count}} senza cliente",
+      "unassigned_many": "{{count}} senza cliente",
+      "unassigned_other": "{{count}} senza cliente",
+      "new": "Nuovo",
+      "noClient": "Senza cliente",
+      "showAll": "Mostra tutti i ticket",
+      "empty": "Nessun ticket aperto dei Suoi clienti o senza cliente."
+    },
     "assigned": {
-      "title": "Assegnate a me",
+      "title": "Le mie attività",
       "caption": "assegnate",
       "urgent_one": "{{count}} urgente",
       "urgent_many": "{{count}} urgenti",
@@ -88,5 +102,13 @@
     "count_one": "{{count}} attività",
     "count_many": "{{count}} attività",
     "count_other": "{{count}} attività"
+  },
+  "navCount": {
+    "tasks_one": "{{count}} attività aperta assegnata a Lei",
+    "tasks_many": "{{count}} attività aperte assegnate a Lei",
+    "tasks_other": "{{count}} attività aperte assegnate a Lei",
+    "tickets_one": "{{count}} ticket aperto dei Suoi clienti o senza cliente",
+    "tickets_many": "{{count}} ticket aperti dei Suoi clienti o senza cliente",
+    "tickets_other": "{{count}} ticket aperti dei Suoi clienti o senza cliente"
   }
 }

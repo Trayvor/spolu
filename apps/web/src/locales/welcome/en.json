@@ -1,0 +1,8 @@
+{
+  "title": "How should we call you?",
+  "name": "Your name",
+  "submit": "Continue",
+  "errors": {
+    "nameRequired": "Enter your name."
+  }
+}

@@ -31,8 +31,24 @@
   "cards": {
     "back": "Назад",
     "urgent": "Термінові",
+    "tickets": {
+      "title": "Тікети",
+      "caption": "відкритих",
+      "fresh_one": "{{count}} новий",
+      "fresh_few": "{{count}} нові",
+      "fresh_many": "{{count}} нових",
+      "fresh_other": "{{count}} нового",
+      "unassigned_one": "{{count}} без клієнта",
+      "unassigned_few": "{{count}} без клієнта",
+      "unassigned_many": "{{count}} без клієнта",
+      "unassigned_other": "{{count}} без клієнта",
+      "new": "Новий",
+      "noClient": "Без клієнта",
+      "showAll": "Показати всі тікети",
+      "empty": "Немає відкритих тікетів Ваших клієнтів або без клієнта."
+    },
     "assigned": {
-      "title": "Призначені мені",
+      "title": "Мої завдання",
       "caption": "призначено",
       "urgent_one": "{{count}} термінове",
       "urgent_few": "{{count}} термінові",
@@ -92,5 +108,15 @@
     "count_few": "{{count}} завдання",
     "count_many": "{{count}} завдань",
     "count_other": "{{count}} завдання"
+  },
+  "navCount": {
+    "tasks_one": "{{count}} відкрите завдання, призначене Вам",
+    "tasks_few": "{{count}} відкриті завдання, призначені Вам",
+    "tasks_many": "{{count}} відкритих завдань, призначених Вам",
+    "tasks_other": "{{count}} відкритого завдання, призначеного Вам",
+    "tickets_one": "{{count}} відкритий тікет Ваших клієнтів або без клієнта",
+    "tickets_few": "{{count}} відкриті тікети Ваших клієнтів або без клієнта",
+    "tickets_many": "{{count}} відкритих тікетів Ваших клієнтів або без клієнта",
+    "tickets_other": "{{count}} відкритого тікета Ваших клієнтів або без клієнта"
   }
 }

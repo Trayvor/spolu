@@ -27,36 +27,9 @@
     "body": "Seda aadressi ei ole olemas. Kontrollige linki või minge tagasi avalehele.",
     "home": "Mine avalehele"
   },
-  "login": {
-    "title": "Sisselogimine",
-    "intro": "Saadame sisselogimiskoodi Teie e-posti aadressile.",
-    "email": "E-post",
-    "sendCode": "Saada kood",
-    "codeIntro": "Kui aadressil {{email}} on juurdepääs, saatsime sinna 6-kohalise koodi. See kehtib 5 minutit.",
-    "code": "Kood",
-    "submit": "Logi sisse",
-    "sendAgain": "Saada uuesti",
-    "sendAgainIn": "Saada uuesti {{seconds}} s pärast",
-    "changeEmail": "Muuda e-posti aadressi",
-    "errors": {
-      "invalidEmail": "Sisestage kehtiv e-posti aadress.",
-      "wrongCode": "Kood ei ole õige. Katseid jäänud: {{count}}.",
-      "expired": "Kood on aegunud. Laske saata uus.",
-      "tooMany": "Liiga palju katseid. Proovige mõne minuti pärast uuesti.",
-      "disabled": "Sellel kontol ei ole enam juurdepääsu."
-    }
-  },
   "errors": {
     "generic": "Midagi läks valesti. Proovige uuesti.",
     "retry": "Proovi uuesti"
-  },
-  "welcome": {
-    "title": "Kuidas me võime Teid kutsuda?",
-    "name": "Teie nimi",
-    "submit": "Jätka",
-    "errors": {
-      "nameRequired": "Sisestage oma nimi."
-    }
   },
   "files": {
     "download": "Laadi alla: {{name}}",

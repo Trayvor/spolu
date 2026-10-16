@@ -27,8 +27,20 @@
   "cards": {
     "back": "Tagasi",
     "urgent": "Kiire",
+    "tickets": {
+      "title": "Pöördumised",
+      "caption": "avatud",
+      "fresh_one": "{{count}} uus",
+      "fresh_other": "{{count}} uut",
+      "unassigned_one": "{{count}} kliendita",
+      "unassigned_other": "{{count}} kliendita",
+      "new": "Uus",
+      "noClient": "Kliendita",
+      "showAll": "Näita kõiki pöördumisi",
+      "empty": "Teie klientidel pole avatud pöördumisi ja kliendita pöördumisi pole."
+    },
     "assigned": {
-      "title": "Mulle määratud",
+      "title": "Minu ülesanded",
       "caption": "määratud",
       "urgent_one": "{{count}} kiire",
       "urgent_other": "{{count}} kiiret",
@@ -84,5 +96,11 @@
     },
     "count_one": "{{count}} ülesanne",
     "count_other": "{{count}} ülesannet"
+  },
+  "navCount": {
+    "tasks_one": "{{count}} Teile määratud avatud ülesanne",
+    "tasks_other": "{{count}} Teile määratud avatud ülesannet",
+    "tickets_one": "{{count}} avatud pöördumine Teie klientidelt või kliendita",
+    "tickets_other": "{{count}} avatud pöördumist Teie klientidelt või kliendita"
   }
 }

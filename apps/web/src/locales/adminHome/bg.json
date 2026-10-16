@@ -27,8 +27,20 @@
   "cards": {
     "back": "Назад",
     "urgent": "Спешно",
+    "tickets": {
+      "title": "Тикети",
+      "caption": "отворени",
+      "fresh_one": "{{count}} нов",
+      "fresh_other": "{{count}} нови",
+      "unassigned_one": "{{count}} без клиент",
+      "unassigned_other": "{{count}} без клиент",
+      "new": "Нов",
+      "noClient": "Без клиент",
+      "showAll": "Показване на всички тикети",
+      "empty": "Няма отворени тикети на Вашите клиенти или без клиент."
+    },
     "assigned": {
-      "title": "Възложени на мен",
+      "title": "Моите задачи",
       "caption": "възложени",
       "urgent_one": "{{count}} спешна",
       "urgent_other": "{{count}} спешни",
@@ -84,5 +96,11 @@
     },
     "count_one": "{{count}} задача",
     "count_other": "{{count}} задачи"
+  },
+  "navCount": {
+    "tasks_one": "{{count}} отворена задача, възложена на Вас",
+    "tasks_other": "{{count}} отворени задачи, възложени на Вас",
+    "tickets_one": "{{count}} отворен тикет на Ваши клиенти или без клиент",
+    "tickets_other": "{{count}} отворени тикета на Ваши клиенти или без клиент"
   }
 }

@@ -14,7 +14,7 @@ The owner asked for seven more interface languages (Czech, Slovenian, Bulgarian,
 - The translations were written with the change from the en and sk texts (no translation service or dependency); a native speaker should review each language before it is announced to clients. A test checks that every web locale has exactly the keys of `en` and every plural form its language uses; the server texts are checked by type and by a sample test.
 
 ## Consequences
-- The initial JS stays under the budget (199.97 kB gzip, +0.7 kB): the language names, the lazy-language loader and Vite's preload helper as its own chunk. The budget is now effectively used up; the next eager growth must first move something out (see `performance.md`).
+- The initial JS stays under the budget: the language names, the lazy-language loader and Vite's preload helper as its own chunk add about 0.7 kB; moving the sign-in and welcome texts out of the sk and en main files into the lazy `login` and `welcome` namespaces frees about 0.6 kB (199.69 kB gzip after rebasing on the dashboard tickets change). The budget is nearly used up (see `performance.md`).
 - A user of a lazy language waits for one more small chunk (its main file, about 1 kB gzip, and the lazy-files map, 1.5 kB) before the first screen; the service worker precaches them.
 - Adding a language: its code in `UserLanguages` and `SUPPORTED_LANGUAGES`, its web locale files, `infra/i18n/<code>.ts` and the generated migration; the lazy-files patterns need no change.
 - Every system email now has the logo, a heading and the egrant card; tests that read the plain-text part see the heading in capitals and the footer after `---`.
