@@ -125,7 +125,7 @@ describe('ticket chat', () => {
     expect((await call('GET', `/api/tickets/${own}/chat`, stranger.cookie)).statusCode).toBe(404);
   });
 
-  it('the initiator can be mentioned; the people list includes them; no chat notifications', async () => {
+  it("the initiator can be mentioned; the people list includes them; events are the ticket's", async () => {
     const g = await group();
     const z = await member(g.id, 'ziadatel', 'Jana Žiadateľka');
     const client = await member(g.id, 'client', 'Klient');
@@ -148,9 +148,16 @@ describe('ticket chat', () => {
       .select()
       .from(notificationEvents)
       .where(eq(notificationEvents.groupId, g.id));
-    expect(
-      recorded.filter((e) => (e.payload as { channelId?: string }).channelId === chat.id),
-    ).toEqual([]);
+    // No group chat kinds: the followers get ticket.message, the named people a mention that
+    // carries the ticket (part 21.6).
+    const ofChat = recorded.filter(
+      (e) => (e.payload as { channelId?: string }).channelId === chat.id,
+    );
+    expect(ofChat.length).toBeGreaterThan(0);
+    for (const e of ofChat) {
+      expect(['ticket.message', 'chat.mention']).toContain(e.kind);
+      expect(e.payload).toMatchObject({ ticketId: own });
+    }
   });
 
   it("the initiator's sockets get the chat's messages though they are in no group room", async () => {

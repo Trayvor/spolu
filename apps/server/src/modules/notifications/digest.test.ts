@@ -327,7 +327,13 @@ describe('sendDueDigests', () => {
     const s = await setup();
     await send(s.channel, s.admin, 'Raz');
     await deliverPending(deps, { userIds: [s.client.id] });
-    expect(await sendDueDigests(deps, { now: later() })).toBeGreaterThanOrEqual(1);
+    // Only this event is due now: the sweep must not email every other test file's pending
+    // digests (each ticket without a client notifies every admin, Phase 21.6).
+    await deps.db
+      .update(notificationEvents)
+      .set({ emailDueAt: new Date(Date.now() - 1000) })
+      .where(eq(notificationEvents.userId, s.client.id));
+    expect(await sendDueDigests(deps, { now: new Date() })).toBeGreaterThanOrEqual(1);
     expect((await latestEmail(s.client.email)).subject).toBe(`1 nová správa v ${s.group.name}`);
   });
 

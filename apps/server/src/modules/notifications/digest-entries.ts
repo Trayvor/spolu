@@ -1,6 +1,6 @@
 import type { NotificationKind, UserLanguage } from '@spolu/shared';
 import { notificationGroupOf } from './categories.js';
-import { buildPushPayload } from './push-content.js';
+import { buildPushPayload, isTicketEvent } from './push-content.js';
 import { formatReminderTime, texts } from './texts.js';
 
 /**
@@ -22,19 +22,37 @@ export type DigestContext = {
 const str = (v: unknown): string | null => (typeof v === 'string' && v !== '' ? v : null);
 
 /**
- * The digest entry of one event; emails are split by the entries' `url`. Every kind today opens
- * the group chat. Item B adds its ticket kinds here ("#123 Subject: Jana: text", the ticket's page,
- * "Open ticket"). A kind it does not know gives null and is left out of the email.
+ * The digest entry of one event; emails are split by the entries' `url`. A ticket event (Phase 21)
+ * opens the ticket's page, so each ticket gets its own email: "#123 Subject: Jana: text" for a
+ * message or a mention, "<what happened>: <subject>" otherwise, and "Open ticket". Every other
+ * kind opens the group chat. A kind it does not know gives null and is left out of the email.
  */
 export function digestEntry(
   row: { kind: string; payload: Record<string, unknown> },
   ctx: DigestContext,
 ): DigestEntry | null {
   const group = notificationGroupOf(row.kind, row.payload);
-  // Only a ticket event may lack a client group, and item B builds those entries.
-  if (group === null || ctx.groupId === null || ctx.groupName === null) return null;
+  if (group === null) return null;
   const t = texts(ctx.lang);
   const p = row.payload;
+  if (group === 'tickets' && isTicketEvent(row.kind, p)) {
+    const push = buildPushPayload({
+      kind: row.kind as NotificationKind,
+      payload: p,
+      groupName: ctx.groupName ?? '',
+      taskTitle: null,
+      parentId: null,
+      lang: ctx.lang,
+    });
+    return {
+      line: push.body === '' ? push.title : `${push.title}: ${push.body}`,
+      url: `${ctx.publicUrl}${push.url}`,
+      button: t.openTicket,
+      topic: t.ticketTopic(Number(p.number)),
+    };
+  }
+  // Only a ticket event may lack a client group.
+  if (ctx.groupId === null || ctx.groupName === null) return null;
   const taskId = str(p.taskId);
   const title = (taskId ? ctx.taskTitles.get(taskId) : undefined) ?? str(p.title);
   let line: string;

@@ -104,9 +104,12 @@ describe('tickets API', () => {
 
     it('the 61st request in a minute from one address is 429', async () => {
       const from = '10.9.9.1';
-      for (let i = 0; i < 60; i++)
-        expect((await intake({ subject: 'x' }, KEY, from)).statusCode).toBe(201);
-      expect((await intake({ subject: 'x' }, KEY, from)).statusCode).toBe(429);
+      // With a client and no managers, nobody is notified: a ticket without a client would
+      // notify every admin of the test database 60 times.
+      const g = await group();
+      const body = { subject: 'x', instance_url: `https://${g.host}.egrant.sk` };
+      for (let i = 0; i < 60; i++) expect((await intake(body, KEY, from)).statusCode).toBe(201);
+      expect((await intake(body, KEY, from)).statusCode).toBe(429);
     });
 
     it('matches the instance link, makes the requester a ziadatel and emails them a login link', async () => {

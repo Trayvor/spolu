@@ -22,15 +22,15 @@ Each user chooses a notification mode per client group (what arrives) and, in th
   |---|---|---|
   | **Chat** | group chat messages, mentions and replies | Push |
   | **Task board** | task moves, assignments, deadline and urgent reminders, a task's custom reminders, and task chats | Push |
-  | **Ticket board** | ticket events (item B, not built yet; the row is shown already) | Email and push |
+  | **Ticket board** | ticket events and the ticket chats (Phase 21) | Email and push |
   | **Knowledge base** | Knowledge base reminders | Push |
 
   - The groups replaced the two Phase 6 switches (Push, Email); everyone started on the defaults, except users whose email the iOS fallback had turned on (and who kept it on): their chat, task board and knowledge base groups start on Email and push, since that fallback never runs again.
   - A change saves at once. Choosing Push or Email and push while this device is not set up also sets it up (the browser asks for permission).
   - Above the groups the page shows this device while some group uses push: "on", "not set up" (with "Turn on for this device") or "blocked in the browser settings" (with how to unblock it); on an iPhone outside the Home Screen app it shows the install hint instead. Without VAPID keys on the server the page says push is not available, and Push and Email and push cannot be chosen (a group already on Email and push still gets its email).
   - Under the groups one line says what the email is: a summary of unread items, at most every 10 minutes.
-  - **Email is batched**: one email per user and client group, sent 10 minutes after the first event that qualifies for email, and only if those events are still unread then. It lists up to 5 lines ("Jana: text") with an "Open" button to the group chat, in the user's language. Events that arrive within the 10 minutes join the same email. Reading the messages, switching that group away from email or deactivating the user before it is due means no email for them.
-  - **Ticket board** events (item B) pass every mode, Off included: they go to the people who follow or own the ticket, an explicit choice, so only the ticket board channel decides. A ticket event may have no client group (it goes to the recipients its module chose). A requester-only person (Phase 21: not an admin, no client membership, only `ziadatel` memberships) sees only the Ticket board group on `/settings`, and is in the audience of their groups for ticket events only, never for chat, task or knowledge events.
+  - **Email is batched**: one email per user and client group, sent 10 minutes after the first event that qualifies for email, and only if those events are still unread then. It lists up to 5 lines ("Jana: text") with an "Open" button to the group chat, in the user's language. Ticket events make one email per ticket ("N new messages in Ticket #123", lines such as "#123 Subject: Jana: text", button "Open ticket"). Events that arrive within the 10 minutes join the same email. Reading the messages, switching that group away from email or deactivating the user before it is due means no email for them.
+  - **Ticket board** events (Phase 21) pass every mode, Off included: they go to the people who follow the ticket or manage its client, an explicit choice, so only the ticket board channel decides. A ticket without a client notifies every admin, without a client group. A requester-only person (Phase 21: not an admin, no client membership, only `ziadatel` memberships) sees only the Ticket board group on `/settings`, and is in the audience of their groups for ticket events only, never for chat, task or knowledge events.
 - Which events arrive, by mode:
 
   | Event | All messages | Mentions and replies | Off |
@@ -42,6 +42,18 @@ Each user chooses a notification mode per client group (what arrives) and, in th
   | reminder due (Knowledge base, task) | yes | yes | **yes** |
 
   A user gets at most one notification per message; the strongest kind wins. The person who caused an event never gets it, and a message already read gets none. Task chat messages follow the task's group mode and link to the task's chat tab.
+- **Ticket notifications** (Phase 21, part 21.6; who gets which is in `tickets.md`). Every push opens the ticket (`/tickets/<id>`) and shares the device tag `ticket:<id>`, so a newer one replaces the older on the device.
+
+  | Event | Push title | Push text |
+  |---|---|---|
+  | new ticket | New ticket #123 · <client> | subject |
+  | new ticket without client | New ticket #123 without client | subject |
+  | chat message, mention in the ticket chat | #123 <subject> | Jana: text |
+  | status change | #123 is now In progress | subject |
+  | other change | #123 was changed | subject |
+  | turned into tasks | #123 turned into 2 tasks | subject |
+
+  A chat message of a ticket goes to its followers whether it is a reply or not; someone named in the ticket chat who does not follow it gets the mention; a follower who is named gets one notification. `@all` in a ticket chat means the ticket's followers. Texts are in Slovak or English by the user's language.
 - **Reminders** (`reminder.due`, from a Knowledge base reminder or a task's custom reminder): sent to the reminder's recipients at the set time. They pass every mode, **Off** included, because the person chose to be reminded; the exception covers only explicit recipients, and someone no longer in the group still gets nothing. In the email digest the line is "Reminder: <title>, <time>"; like task events it always counts as unread.
   - A Knowledge base reminder's push reads "<title> · <group>" with "Reminder for Sun 25 Oct, 10:00" (Bratislava time) and opens the item in the group's Knowledge tab.
   - A task reminder's push reads "<task title> · <group>" (the task's current title) with "Reminder for 14:00", or "Reminder for Thu 16 Oct, 14:00" when it arrives more than 5 minutes late, and opens the task panel. It shares the device tag `task:<taskId>` with the automatic task notifications, so a custom reminder at the same moment as a deadline reminder replaces it on the device instead of stacking; both are still recorded and sent. A task in Completed at the time reminds nobody.
@@ -71,4 +83,4 @@ The app asks insistently, on purpose (owner request): push only reaches a device
 
 ## Phase
 
-Phase 6 (modes, channels, thread replies, task chat, task moves, deadline and urgent reminders; events recorded by Phases 5, 8 and 9). Phase 18 adds the manager rule and the origin of a group mode. Phase 7 (DM), Phase 12 (admin notification for new tickets) and Phase 15 (contract reminders) use these settings. Brief item C replaced the Push and Email switches with notification groups; item B (tickets) uses the ticket board group.
+Phase 6 (modes, channels, thread replies, task chat, task moves, deadline and urgent reminders; events recorded by Phases 5, 8 and 9). Phase 18 adds the manager rule and the origin of a group mode. Phase 7 (DM), Phase 12 (admin notification for new tickets) and Phase 15 (contract reminders) use these settings. Brief item C replaced the Push and Email switches with notification groups; Phase 21 (tickets, part 21.6) uses the ticket board group.

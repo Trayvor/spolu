@@ -31,12 +31,21 @@ describe('notificationGroupOf', () => {
     ['task.urgent', {}, 'tasks'],
     ['reminder.due', { subjectKind: 'task', taskId: 't1' }, 'tasks'],
     ['reminder.due', { subjectKind: 'knowledge' }, 'knowledge'],
+    ['ticket.created', { ticketId: 'k1' }, 'tickets'],
+    ['ticket.unassigned', { ticketId: 'k1' }, 'tickets'],
+    ['ticket.message', { ticketId: 'k1' }, 'tickets'],
+    ['ticket.status', { ticketId: 'k1' }, 'tickets'],
+    ['ticket.updated', { ticketId: 'k1' }, 'tickets'],
+    ['ticket.tasks', { ticketId: 'k1' }, 'tickets'],
+    // A mention in a ticket chat (Phase 21.6) belongs to the ticket board.
+    ['chat.mention', { ticketId: 'k1' }, 'tickets'],
+    ['chat.mention', { ticketId: '' }, 'chat'],
   ] as const)('%s %j -> %s', (kind, payload, group) => {
     expect(notificationGroupOf(kind, payload)).toBe(group);
   });
 
   it('an unknown kind has no group and does not throw', () => {
-    expect(notificationGroupOf('ticket.created', {})).toBeNull();
+    expect(notificationGroupOf('ticket.bogus', {})).toBeNull();
     expect(notificationGroupOf('', {})).toBeNull();
     expect(notificationGroupOf('toString', {})).toBeNull();
   });

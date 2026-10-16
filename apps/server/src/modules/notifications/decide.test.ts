@@ -12,6 +12,12 @@ const table: [NotificationKind, Record<GroupMode, boolean>][] = [
   ['task.deadline', { all: true, mentions: true, off: false }],
   ['task.urgent', { all: true, mentions: true, off: false }],
   ['reminder.due', { all: true, mentions: true, off: true }],
+  ['ticket.created', { all: true, mentions: true, off: true }],
+  ['ticket.unassigned', { all: true, mentions: true, off: true }],
+  ['ticket.message', { all: true, mentions: true, off: true }],
+  ['ticket.status', { all: true, mentions: true, off: true }],
+  ['ticket.updated', { all: true, mentions: true, off: true }],
+  ['ticket.tasks', { all: true, mentions: true, off: true }],
 ];
 const cases = table.flatMap(([kind, modes]) =>
   (['all', 'mentions', 'off'] as const).map((mode) => [kind, mode, modes[mode]] as const),
@@ -120,6 +126,15 @@ describe('isOutranked', () => {
   it('ranks chat.message below the rest', () => {
     expect(KIND_RANK['chat.message']).toBe(1);
     expect(KIND_RANK['chat.mention']).toBe(2);
+  });
+  it('a ticket message ranks like a chat message, so a mention of it wins', () => {
+    expect(KIND_RANK['ticket.message']).toBe(1);
+    expect(
+      isOutranked({ id: 'a', kind: 'ticket.message' }, [{ id: 'b', kind: 'chat.mention' }]),
+    ).toBe(true);
+    for (const kind of ['ticket.created', 'ticket.unassigned', 'ticket.status'] as const) {
+      expect(KIND_RANK[kind]).toBe(2);
+    }
   });
   it('mention beats message, equal rank keeps the smaller id', () => {
     const msg = { id: 'b', kind: 'chat.message' } as const;
