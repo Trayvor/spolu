@@ -8,6 +8,7 @@ import { authRoutes } from './modules/auth/routes.js';
 import { chatRoutes } from './modules/chat/routes.js';
 import { filesRoutes } from './modules/files/routes.js';
 import { joinRoutes } from './modules/groups/join-routes.js';
+import { homeRoutes } from './modules/home/routes.js';
 import { groupsRoutes } from './modules/groups/routes.js';
 import { registerKnowledgeReminderSubject } from './modules/knowledge/reminder-subject.js';
 import { createRateLimiter } from './infra/http/rate-limit.js';
@@ -69,6 +70,8 @@ export async function buildApp(
     deps,
     allowWrite: allowKnowledgeWrite,
   });
+
+  await app.register(homeRoutes, { prefix: '/api', deps });
 
   registerNotFound(app);
   return app;

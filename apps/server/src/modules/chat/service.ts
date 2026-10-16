@@ -233,6 +233,15 @@ export async function unreadCount(db: Db, userId: string, channelId: string): Pr
 }
 
 /**
+ * `(group_id, n)` for every group chat: the user's unread count of each group's chat (at most
+ * `UNREAD_CAP`), zeros included. A subquery for other modules' single statements (the admin
+ * sidebar joins it to `groups`).
+ */
+export function unreadByGroupSql(userId: string): SQL {
+  return sql`select group_id, n from (${unreadPerChannel(userId, sql`c.kind = 'group'`)}) per_channel`;
+}
+
+/**
  * Unread counts per group in one query; groups without unread messages are absent. Each channel
  * counts at most `UNREAD_CAP` messages, so the cost does not grow with the history.
  */
@@ -241,11 +250,11 @@ export async function unreadByGroup(
   userId: string,
   onlyGroupId: string | null,
 ): Promise<Record<string, number>> {
-  const onlyGroup = onlyGroupId === null ? sql`` : sql`and c.group_id = ${onlyGroupId}`;
+  const onlyGroup = onlyGroupId === null ? sql`` : sql`and group_id = ${onlyGroupId}`;
   const rows = await db.execute<{ group_id: string; n: number }>(sql`
     select group_id, n
-    from (${unreadPerChannel(userId, sql`c.kind = 'group' ${onlyGroup}`)}) per_channel
-    where n > 0
+    from (${unreadByGroupSql(userId)}) by_group
+    where n > 0 ${onlyGroup}
   `);
   return Object.fromEntries([...rows].map((r) => [r.group_id, r.n]));
 }
