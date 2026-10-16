@@ -33,9 +33,9 @@ const TasksIcon = () => (
 
 /**
  * What a chat needs for "Turn into tasks": the message action (only while the server has the
- * AI on), the "Turned into tasks:" footer under each message (`renderMessageTasks`), and `element` — the lazy review dialog for the chosen
- * message and the "N tasks created" toast. `ChatTab` and `TaskChat` render `element` next to
- * their `<Conversation>`.
+ * AI on), the "Turned into tasks:" footer under each message (`renderMessageTasks`), and
+ * `element` — the lazy review dialog for the chosen message and the "N tasks created" toast.
+ * `ChatTab` and `TaskChat` render `element` next to their `<Conversation>`.
  */
 export function useMessageTaskTools(groupId: string): {
   messageActions: MessageAction[];

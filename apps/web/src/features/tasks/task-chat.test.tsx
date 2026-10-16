@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
   RouterProvider,
@@ -52,9 +53,25 @@ beforeEach(async () => {
   await setLanguage('en');
   vi.stubGlobal(
     'fetch',
-    vi.fn(async (url: string) => {
+    vi.fn(async (url: string, init?: RequestInit) => {
       const reply = (body: unknown) => new Response(JSON.stringify(body), { status: 200 });
       if (url === '/api/ai/status') return reply({ taskSplit: true });
+      if (url === '/api/groups/g1/people') return reply([]);
+      if (url === '/api/messages/m1/task-split')
+        return reply({
+          tasks: [
+            {
+              title: 'Pay the invoice',
+              description: '',
+              assigneeIds: [],
+              dueDate: null,
+              urgent: false,
+              messageFileIds: [],
+            },
+          ],
+        });
+      if (url === '/api/groups/g1/tasks/from-message' && init?.method === 'POST')
+        return reply({ tasks: [] });
       if (url === '/api/tasks/t1/chat')
         return reply({ id: 'ch1', lastSeq: 1, lastReadAt: null, unread: 0 });
       return new Response(JSON.stringify({ error: 'not_found' }), { status: 404 });
@@ -110,14 +127,30 @@ describe('TaskChat', () => {
     expect(seen.every((p) => p.renderMessageFooter === last.renderMessageFooter)).toBe(true);
   });
 
-  it('choosing "Turn into tasks" opens the review dialog', async () => {
+  it('choosing "Turn into tasks" opens the review dialog; approving posts to the task\'s group', async () => {
+    const user = userEvent.setup();
     renderTaskChat();
-    const action = await screen.findByRole('button', {
-      name: i18n.t('chat.actions.turnIntoTasks'),
-    });
-    action.click();
-    await waitFor(() =>
-      expect(screen.getByRole('dialog', { name: i18n.t('taskSplit.title') })).toBeInTheDocument(),
+    await user.click(
+      await screen.findByRole('button', { name: i18n.t('chat.actions.turnIntoTasks') }),
     );
+    const dialog = await screen.findByRole('dialog', { name: i18n.t('taskSplit.title') });
+    await user.click(await screen.findByRole('button', { name: i18n.t('taskSplit.approveAll') }));
+    await user.click(screen.getByRole('button', { name: /^Create \d+ tasks?$/ }));
+
+    const fetchMock = vi.mocked(fetch);
+    await waitFor(() =>
+      expect(
+        fetchMock.mock.calls.some(([url]) => url === '/api/groups/g1/tasks/from-message'),
+      ).toBe(true),
+    );
+    const [, init] = fetchMock.mock.calls.find(
+      ([url]) => url === '/api/groups/g1/tasks/from-message',
+    )!;
+    expect(init?.method).toBe('POST');
+    expect(JSON.parse(init?.body as string)).toMatchObject({
+      messageId: 'm1',
+      tasks: [{ title: 'Pay the invoice' }],
+    });
+    expect(dialog).toBeDefined();
   });
 });
