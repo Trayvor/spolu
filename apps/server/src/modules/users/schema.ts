@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm';
 import { boolean, check, index, jsonb, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
 import type { ChannelMap, GroupMode, Role, UserLanguage } from '@spolu/shared';
+import { languageIn } from '../../infra/db/language-check.js';
 
 // Shape required by better-auth (field names are its camelCase names), plus `role`, `disabledAt`
 // and the notification settings (Phase 6; the channel per notification group from brief item C).
@@ -33,6 +34,6 @@ export const user = pgTable(
       'user_default_group_mode_check',
       sql`${t.defaultGroupMode} in ('all', 'mentions', 'off')`,
     ),
-    check('user_language_check', sql`${t.language} in ('sk', 'en')`),
+    check('user_language_check', languageIn(t.language)),
   ],
 );

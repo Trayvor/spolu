@@ -1,0 +1,20 @@
+# 0019 Nine languages and one email design
+
+Date: 2026-10-17
+Status: accepted
+
+## Context
+The owner asked for seven more interface languages (Czech, Slovenian, Bulgarian, Estonian, Italian, Croatian, Ukrainian) next to Slovak and English, in the UI and in every email, and for the system emails (codes, invites, digests, tickets) to look like the bulk emails of the block builder. Until now the web bundled both main locale files into the entry chunk ([0010](0010-web-i18n.md)), the server wrote each email as an `lang === 'en' ? … : …` pair, and system emails used a plain `<p>` layout of their own. The initial JS was 199.3 kB gzip of the 200 kB budget.
+
+## Decision
+- **One list of languages.** `UserLanguages` in `@spolu/shared` (`sk, en, cs, sl, bg, et, it, hr, uk`) types the stored language; the `language` checks of `user` and `bulk_recipients` are built from it (`infra/db/language-check.ts`), so a new language changes the generated SQL and `db:generate` writes the migration (0025). The web lists the same codes in `SUPPORTED_LANGUAGES`.
+- **Web: only sk and en are eager.** `EAGER_LANGUAGES` keep their main file in the entry chunk; the other languages' main and namespace files are listed in `src/i18n/lazy-files.ts`, a chunk loaded on the first use of such a language, and each file stays its own small chunk. `changeLanguage` loads a lazy main file before switching; on start, `main.tsx` renders after `i18nReady` (at once for sk and en, after one small chunk for the others), so no text flashes in English.
+- **Server: one text file per language.** `apps/server/src/infra/i18n/<code>.ts`, each a `ServerTexts` (the type in `types.ts`), hold every text the server writes: system emails, push, digests, the calendar export and both email footers. `Record<UserLanguage, ServerTexts>` makes a missing language a type error. Counts use `plural()` (CLDR rules through `Intl.PluralRules`, as i18next does on the web).
+- **One email renderer.** The bulk email renderer moved to `infra/email/render.ts` (`renderEmail`); bulk emails add their `{{name}}`, `**bold**` and unsubscribe footer in `modules/bulk-email/render.ts`, and `buildEmail` (`infra/email/layout.ts`) renders system emails from fixed blocks (logo, heading, optional code, text, at most one button) in `literal` mode with a system footer. System emails keep no unsubscribe link and no List-Unsubscribe header (they are transactional), no tracking and a plain-text part.
+- The translations were written with the change from the en and sk texts (no translation service or dependency); a native speaker should review each language before it is announced to clients. A test checks that every web locale has exactly the keys of `en` and every plural form its language uses; the server texts are checked by type and by a sample test.
+
+## Consequences
+- The initial JS stays under the budget (199.97 kB gzip, +0.7 kB): the language names, the lazy-language loader and Vite's preload helper as its own chunk. The budget is now effectively used up; the next eager growth must first move something out (see `performance.md`).
+- A user of a lazy language waits for one more small chunk (its main file, about 1 kB gzip, and the lazy-files map, 1.5 kB) before the first screen; the service worker precaches them.
+- Adding a language: its code in `UserLanguages` and `SUPPORTED_LANGUAGES`, its web locale files, `infra/i18n/<code>.ts` and the generated migration; the lazy-files patterns need no change.
+- Every system email now has the logo, a heading and the egrant card; tests that read the plain-text part see the heading in capitals and the footer after `---`.

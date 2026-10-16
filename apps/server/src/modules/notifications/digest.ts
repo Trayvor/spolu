@@ -24,6 +24,8 @@ const str = (v: unknown): string | null => (typeof v === 'string' && v !== '' ? 
 export function digestEmail(i: {
   to: string;
   lang: UserLanguage;
+  /** The app's origin, for the logo. */
+  publicUrl: string;
   /** What the subject names: the group, or item B's ticket. */
   topic: string;
   url: string;
@@ -34,6 +36,8 @@ export function digestEmail(i: {
   const t = texts(i.lang);
   return buildEmail({
     to: i.to,
+    lang: i.lang,
+    publicUrl: i.publicUrl,
     subject: t.digestSubject(i.count, i.topic),
     paragraphs: i.lines.slice(-MAX_LINES),
     button: { label: i.button, url: i.url },
@@ -213,6 +217,7 @@ async function collectDigests(
         email: digestEmail({
           to: profile.email,
           lang: profile.language,
+          publicUrl: deps.config.publicUrl,
           topic: split.topic,
           url: split.url,
           button: split.button,

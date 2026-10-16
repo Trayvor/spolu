@@ -110,7 +110,7 @@ export async function requestEmailChange(
   });
   await sendEmailLater(
     jobs,
-    emailChangeCodeEmail(email, code, profile.language),
+    emailChangeCodeEmail({ to: email, lang: profile.language, publicUrl: config.publicUrl }, code),
     LOGIN_CODE_JOB_OPTIONS,
   );
 }
@@ -168,7 +168,13 @@ export async function confirmEmailChange(
   if (!outcome) throw new InvalidCodeError();
 
   try {
-    await sendEmailLater(jobs, emailChangedNoticeEmail(outcome.email, email, outcome.language));
+    await sendEmailLater(
+      jobs,
+      emailChangedNoticeEmail(
+        { to: outcome.email, lang: outcome.language, publicUrl: config.publicUrl },
+        email,
+      ),
+    );
   } catch (error) {
     log.error({ err: error }, 'could not queue the email-changed notice');
   }

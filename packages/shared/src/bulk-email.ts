@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { isHttpUrl, MAX_URL_LENGTH } from './urls.js';
+import { UserLanguages } from './notifications.js';
 
 /** Phase 23 — bulk email. Limits pinned by the spec (§2, §3). */
 export const BULK_LIMITS = {
@@ -240,7 +241,7 @@ export const BulkPeopleLookupSchema = z.object({
  * more (no name, no address). `test`: the link of a test email, which changes nothing.
  */
 export const BulkUnsubscribeInfoSchema = z.object({
-  language: z.enum(['sk', 'en']),
+  language: z.enum(UserLanguages),
   subscribed: z.boolean(),
   test: z.boolean(),
 });

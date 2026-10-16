@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
-import type { SendMessageInput, SessionUser } from '@spolu/shared';
+import type { SendMessageInput, SessionUser, UserLanguage } from '@spolu/shared';
 import type { AppDeps } from '../../deps.js';
 import { buildTestApp } from '../../../test/test-app.js';
 import { countEmailsTo, latestEmail } from '../../../test/mailpit.js';
@@ -68,12 +68,13 @@ const send = async (channel: ChannelRow, author: SessionUser, body: string) =>
 describe('digestEmail', () => {
   const base = {
     to: 'a@example.com',
+    publicUrl: 'https://x',
     topic: 'Firma',
     url: 'https://x/groups/g/chat',
     button: 'Open Firma',
   };
   it('uses the plural forms of the language', () => {
-    const subject = (lang: 'en' | 'sk', count: number) =>
+    const subject = (lang: UserLanguage, count: number) =>
       digestEmail({ ...base, lang, count, lines: [] }).subject;
     expect(subject('en', 1)).toBe('1 new message in Firma');
     expect(subject('en', 3)).toBe('3 new messages in Firma');
@@ -88,7 +89,9 @@ describe('digestEmail', () => {
       count: 7,
       lines: ['1', '2', '3', '4', '5', '6', '7'],
     });
-    expect(m.text).toBe('3\n\n4\n\n5\n\n6\n\n7\n\nOpen Firma: https://x/groups/g/chat');
+    expect(m.text).toContain(
+      '7 NEW MESSAGES IN FIRMA\n\n3\n\n4\n\n5\n\n6\n\n7\n\nOpen Firma: https://x/groups/g/chat\n\n---',
+    );
     expect(
       digestEmail({ ...base, button: 'Otvoriť tiket', lang: 'sk', count: 1, lines: ['a'] }).text,
     ).toContain('Otvoriť tiket: https://x/groups/g/chat');

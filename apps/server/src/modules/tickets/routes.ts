@@ -125,14 +125,13 @@ export const ticketsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, 
       await sendEmailLater(
         jobs,
         ticketCreatedEmail(
-          account.email,
+          { to: account.email, lang: account.language, publicUrl: config.publicUrl },
           {
             number: ticket.number,
             subject: ticket.subject,
             excerpt: bodyExcerpt(ticket.body),
             url,
           },
-          account.language,
         ),
       );
     } catch (error) {

@@ -1,0 +1,112 @@
+import type { TicketStatus } from '@spolu/shared';
+import { plural } from './plural.js';
+import type { ServerTexts } from './types.js';
+
+const STATUS: Record<TicketStatus, string> = {
+  new: 'Nový',
+  in_progress: 'Řeší se',
+  resolved: 'Vyřešený',
+};
+
+export const cs: ServerTexts = {
+  intl: 'cs-CZ',
+  email: {
+    footer: ['Help by eGrant', 'Tento e-mail byl odeslán automaticky z aplikace Help by eGrant.'],
+  },
+  bulkEmail: {
+    reason: 'Tento e-mail dostáváte, protože máte účet v aplikaci Help by eGrant.',
+    unsubscribe: 'Odhlásit odběr',
+  },
+  auth: {
+    loginCode: {
+      subject: (code) => `Váš přihlašovací kód do aplikace Help: ${code}`,
+      heading: 'Váš přihlašovací kód',
+      body: 'Platí 5 minut. Pokud jste o něj nežádali, tento e-mail ignorujte.',
+    },
+    adminAdded: {
+      subject: 'Byli jste přidáni do aplikace Help',
+      greeting: (name) => `Dobrý den, ${name},`,
+      body: ({ addedBy, email }) =>
+        `${addedBy} vás přidal(a) jako administrátora v aplikaci Help by eGrant. Přihlaste se svým e-mailem ${email}.`,
+      button: 'Přihlásit se',
+    },
+    memberInvited: {
+      subject: (group) => `Pozvánka do aplikace Help – ${group}`,
+      body: ({ invitedBy, groupName, email }) =>
+        `${invitedBy} vás pozval(a) do skupiny ${groupName} v aplikaci Help by eGrant. Přihlaste se svým e-mailem ${email}.`,
+      button: 'Přihlásit se',
+    },
+    memberAdded: {
+      subject: (group) => `Byli jste přidáni do skupiny ${group}`,
+      body: ({ addedBy, groupName }) =>
+        `${addedBy} vás přidal(a) do skupiny ${groupName} v aplikaci Help by eGrant.`,
+      button: 'Otevřít skupinu',
+    },
+    emailChangeCode: {
+      subject: (code) => `Kód pro změnu e-mailu v aplikaci Help: ${code}`,
+      heading: 'Kód pro změnu e-mailu',
+      body: (email) =>
+        `Zadejte ho v aplikaci Help a váš e-mail se změní na ${email}. Platí 5 minut. Pokud jste o něj nežádali, tento e-mail ignorujte.`,
+    },
+    emailChanged: {
+      subject: 'Váš e-mail v aplikaci Help byl změněn',
+      body: (newEmail) =>
+        `E-mail vašeho účtu v aplikaci Help byl změněn na ${newEmail}. Od teď se přihlašujte novou adresou.`,
+      warning: 'Pokud jste to nebyli vy, okamžitě kontaktujte svého administrátora.',
+    },
+  },
+  tickets: {
+    created: {
+      subject: (n, title) => `Tiket #${n} byl vytvořen: ${title}`,
+      untitled: 'váš požadavek',
+      received: (n, title) => `Přijali jsme váš tiket technické podpory #${n}: ${title}.`,
+      followUp:
+        'V aplikaci Help ho můžete sledovat a psát eGrantu. Přihlaste se touto e-mailovou adresou, pošleme vám kód.',
+      button: 'Otevřít tiket',
+    },
+  },
+  notifications: {
+    sentFile: (name) => `${name} poslal(a) soubor`,
+    moved: (label) => `Přesunuto do: ${label}`,
+    movedGeneric: 'Úkol přesunut',
+    assigned: (name) => `${name} vám přidělil(a) úkol`,
+    deadline: (d) =>
+      d === 1
+        ? 'Termín zítra'
+        : `Termín za ${d} ${plural('cs', d, { one: 'den', few: 'dny', many: 'dne', other: 'dní' })}`,
+    urgent: 'Naléhavé: stále otevřené',
+    bucket: (l) => {
+      switch (l.kind) {
+        case 'todo':
+          return 'K vyřízení';
+        case 'egrant_review':
+          return 'Kontrola eGrant';
+        case 'client_review':
+          return `Kontrola ${l.name ?? ''}`.trim();
+        case 'done':
+          return 'Dokončené';
+        case 'custom':
+          return l.name ?? '';
+      }
+    },
+    digestSubject: (n, g) =>
+      `${n} ${plural('cs', n, {
+        one: 'nová zpráva',
+        few: 'nové zprávy',
+        many: 'nové zprávy',
+        other: 'nových zpráv',
+      })} ve skupině ${g}`,
+    digestButton: (g) => `Otevřít ${g}`,
+    reminderDue: (time) => `Připomínka na ${time}`,
+    reminderLine: (title, time) => `Připomínka: ${title}, ${time}`,
+    deadlineEvent: (title) => `Termín: ${title}`,
+    ticketNew: (n, client) => `Nový tiket #${n} · ${client}`,
+    ticketUnassigned: (n) => `Nový tiket #${n} bez klienta`,
+    ticketStatus: (n, status) => `#${n} je nyní ve stavu ${STATUS[status] ?? status}`,
+    ticketUpdated: (n) => `#${n} byl změněn`,
+    ticketTasks: (n, c) =>
+      `#${n} převeden na ${c} ${plural('cs', c, { one: 'úkol', few: 'úkoly', many: 'úkolu', other: 'úkolů' })}`,
+    ticketTopic: (n) => `Tiket #${n}`,
+    openTicket: 'Otevřít tiket',
+  },
+};

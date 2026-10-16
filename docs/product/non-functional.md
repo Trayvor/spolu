@@ -1,12 +1,12 @@
 # Non-functional requirements
 
-Rules that apply to the whole product: installable PWA, Slovak and English interface, realtime updates, backups, error monitoring, no calls, and the design rule that the UI replicates egrant.sk, performance, and easy extension.
+Rules that apply to the whole product: installable PWA, a nine-language interface, realtime updates, backups, error monitoring, no calls, and the design rule that the UI replicates egrant.sk, performance, and easy extension.
 
 ## Requirements
 
 - Technology and architecture: see `docs/architecture/overview.md`.
 - The app is a **PWA**: installable on a phone and on a computer as an app.
-- Interface languages: Slovak (SK) and English (EN) only at the start, with a language switcher.
+- Interface languages: Slovak (SK, the default for new accounts and emails), English (EN), Czech (CS), Slovenian (SL), Bulgarian (BG), Estonian (ET), Italian (IT), Croatian (HR) and Ukrainian (UK), with a language switcher. The chosen language is stored on the account; emails and pushes use it ([ADR 0019](../decisions/0019-nine-languages-and-one-email-design.md)).
 - **Realtime everywhere:** all changes (messages, tasks, tickets) appear without reloading the page.
 - Nightly database backup (Phase 1). Off-site backup and file backup (Phase 16, polish).
 - Error monitoring (Phase 16).

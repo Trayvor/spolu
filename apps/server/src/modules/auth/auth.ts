@@ -97,7 +97,11 @@ export function createAuth({ config, db, jobs }: AppDeps) {
           if (!found || found.disabledAt) return;
           const lang = pickLanguage(ctx?.headers?.get('accept-language'));
           // Short life: the plaintext code sits in the job payload, and a late retry would mail a dead code.
-          await sendEmailLater(jobs, loginCodeEmail(email, otp, lang), LOGIN_CODE_JOB_OPTIONS);
+          await sendEmailLater(
+            jobs,
+            loginCodeEmail({ to: email, lang, publicUrl: config.publicUrl }, otp),
+            LOGIN_CODE_JOB_OPTIONS,
+          );
         },
       }),
     ],

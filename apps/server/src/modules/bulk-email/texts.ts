@@ -1,16 +1,10 @@
 import type { UserLanguage } from '@spolu/shared';
+import { serverTexts } from '../../infra/i18n/index.js';
 
 /**
- * The only translated part of a bulk email: the footer, in the recipient's language. The rest
- * of the email is whatever the admin wrote.
+ * The only translated part of a bulk email: the footer, in the recipient's language
+ * (`infra/i18n/<code>.ts`). The rest of the email is whatever the admin wrote.
  */
-export const BULK_FOOTER: Record<UserLanguage, { reason: string; unsubscribe: string }> = {
-  sk: {
-    reason: 'Tento e-mail dostávate, pretože máte účet v aplikácii Help by eGrant.',
-    unsubscribe: 'Odhlásiť sa z odberu',
-  },
-  en: {
-    reason: 'You get this email because you have an account in Help by eGrant.',
-    unsubscribe: 'Unsubscribe',
-  },
-};
+export function bulkFooter(lang: UserLanguage): { reason: string; unsubscribe: string } {
+  return serverTexts(lang).bulkEmail;
+}

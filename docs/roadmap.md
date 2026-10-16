@@ -354,3 +354,13 @@ Scope: every file attached to a chat message (group chat, task chat, ticket chat
 Status: built in one pull request on branch `knowledge-chat-files` (server, web, end-to-end test in `e2e/knowledge.spec.ts`); migration 0024 with the backfill. Waiting for the owner's walkthrough.
 
 Done when: a client uploads a file in the group chat, an admin finds it under "From chat" in the client's Knowledge tab and in the global view, opens the chat at the message from it, and the entry disappears when the message is deleted.
+
+## Phase 26 — One email design and nine languages
+
+Requirements: [non-functional](product/non-functional.md) (interface languages) and [ADR 0019](decisions/0019-nine-languages-and-one-email-design.md) (owner request of 2026-10-17).
+
+Scope: every system email (login and email-change codes, admin and member invites, notification digests, "ticket created") rendered by the bulk email renderer, so all email has one design (logo, heading, card, one pill button, muted footer), still transactional (no unsubscribe link, no tracking, a plain-text part); Czech, Slovenian, Bulgarian, Estonian, Italian, Croatian and Ukrainian next to Slovak and English in the UI, the language menu, the stored account language (migration 0025) and every email and push, with only Slovak and English in the initial JS.
+
+Status: built in one pull request on branch `feat/email-style-and-languages` (server, web, the e2e language case in `e2e/smoke.spec.ts`). The new translations wait for a native speaker's review.
+
+Done when: a user picks Čeština in the language menu, the app and their next notification email are in Czech, and a login code email looks like a bulk email.
