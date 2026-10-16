@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import type { Role, SessionUser } from '@spolu/shared';
-import { canBeManager, canManageGroups, canSetManager, canReadGroup, canRemoveMember } from './policy.js';
+import {
+  canBeManager,
+  canManageGroups,
+  canSetManager,
+  canReadGroup,
+  canRemoveMember,
+} from './policy.js';
 
 const actor = (role: Role): SessionUser => ({
   id: 'actor',

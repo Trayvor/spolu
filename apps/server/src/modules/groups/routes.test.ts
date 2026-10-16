@@ -1,7 +1,16 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { io as connect, type Socket } from 'socket.io-client';
-import type { Group, GroupManagersResponse, GroupPerson, GroupSummary, ManagersResponse, Member, Me, SessionUser } from '@spolu/shared';
+import type {
+  Group,
+  GroupManagersResponse,
+  GroupPerson,
+  GroupSummary,
+  ManagersResponse,
+  Member,
+  Me,
+  SessionUser,
+} from '@spolu/shared';
 import { buildTestApp } from '../../../test/test-app.js';
 import { managerRateLimit } from './routes.js';
 import { loginAs } from '../../../test/login.js';
@@ -609,9 +618,7 @@ describe('groups API', () => {
       const res = await call('DELETE', url(g.id, target.id), cookie);
       expect(res.statusCode).toBe(200);
       expect(res.json<GroupManagersResponse>()).toEqual({ managers: [] });
-      expect(await getEffectiveGroupMode(test.deps.db, asSession(target), g.id)).toBe(
-        'mentions',
-      );
+      expect(await getEffectiveGroupMode(test.deps.db, asSession(target), g.id)).toBe('mentions');
     });
 
     it('removing the viewer by id resets their own mode as /me does', async () => {
