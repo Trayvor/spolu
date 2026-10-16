@@ -1,0 +1,17 @@
+{
+  "done": {
+    "title": "Disiscrizione completata",
+    "body": "Non riceverà più email massive da eGrant. I codici di accesso e le notifiche dell'app Help continueranno ad arrivare."
+  },
+  "subscribed": {
+    "title": "Iscrizione di nuovo attiva",
+    "body": "Riceverà di nuovo le email massive da eGrant. Può modificare questa scelta in qualsiasi momento nelle Impostazioni dell'app Help."
+  },
+  "subscribeAgain": "Iscriviti di nuovo",
+  "unsubscribeButton": "Annulla iscrizione",
+  "test": "Questa era un'email di prova; non è cambiato nulla.",
+  "invalid": "Questo link non è valido.",
+  "errors": {
+    "rateLimited": "Troppi tentativi. Riprovare tra un minuto."
+  }
+}

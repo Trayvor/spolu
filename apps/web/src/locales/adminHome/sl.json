@@ -1,0 +1,96 @@
+{
+  "shell": {
+    "loadError": "Tega ni bilo mogoče naložiti. Poskusite znova.",
+    "retry": "Poskusi znova"
+  },
+  "sidebar": {
+    "title": "Stranke",
+    "find": "Poišči stranko",
+    "managed": "Stranke, ki jih upravljate",
+    "others": "Druge stranke",
+    "collapse": "Strni seznam strank",
+    "expand": "Razširi seznam strank",
+    "noMatch": "Nobena stranka se ne ujema.",
+    "unread_one": "{{count}} neprebrano sporočilo",
+    "unread_two": "{{count}} neprebrani sporočili",
+    "unread_few": "{{count}} neprebrana sporočila",
+    "unread_other": "{{count}} neprebranih sporočil",
+    "assigned_one": "{{count}} vam dodeljena naloga",
+    "assigned_two": "{{count}} vam dodeljeni nalogi",
+    "assigned_few": "{{count}} vam dodeljene naloge",
+    "assigned_other": "{{count}} vam dodeljenih nalog"
+  },
+  "home": {
+    "greeting": {
+      "morning": "Dobro jutro, {{name}}",
+      "afternoon": "Dober dan, {{name}}",
+      "evening": "Dober večer, {{name}}"
+    },
+    "clients": "Stranke"
+  },
+  "cards": {
+    "back": "Nazaj",
+    "urgent": "Nujno",
+    "assigned": {
+      "title": "Dodeljeno meni",
+      "caption": "dodeljeno",
+      "urgent_one": "{{count}} nujna",
+      "urgent_two": "{{count}} nujni",
+      "urgent_few": "{{count}} nujne",
+      "urgent_other": "{{count}} nujnih",
+      "noDate": "brez datuma",
+      "showAll": "Prikaži vse ({{count}})",
+      "empty": "Ničesar vam ni dodeljeno."
+    },
+    "reminders": {
+      "title": "Prihajajoči opomniki",
+      "caption": "naslednjih 7 dni",
+      "empty": "Ni prihajajočih opomnikov."
+    },
+    "mentions": {
+      "title": "Omembe",
+      "caption": "neprebrane",
+      "empty": "Ni neprebranih omemb."
+    }
+  },
+  "board": {
+    "title": "Naloge",
+    "filtersLabel": "Filtri nalog",
+    "filters": "Filtri ({{count}})",
+    "filtersTitle": "Filtri",
+    "close": "Končano",
+    "assignee": {
+      "label": "Izvajalec: {{name}}",
+      "me": "Jaz",
+      "anyone": "Kdorkoli",
+      "none": "Nedodeljeno"
+    },
+    "urgent": "Nujno",
+    "mine": "Samo tiste, pri katerih sodelujem",
+    "due": {
+      "label": "Rok: {{name}}",
+      "any": "Kadarkoli",
+      "overdue": "Zamujeno",
+      "week": "Naslednjih 7 dni",
+      "none": "Brez roka"
+    },
+    "search": "Iskanje nalog",
+    "completed": "Prikaži dokončane",
+    "clear": "Počisti filtre",
+    "more": "Prikaži še 50",
+    "moreFailed": "Več ni bilo mogoče naložiti. Poskusite znova.",
+    "emptyFiltered": "Nobena naloga ne ustreza tem filtrom.",
+    "empty": "Za te stranke ni odprtih nalog.",
+    "columns": {
+      "todo": "Za narediti",
+      "other": "Drugi koraki",
+      "egrant_review": "Pregled eGrant",
+      "client_review": "Pregled stranke",
+      "done": "Dokončano"
+    },
+    "count_one": "{{count}} naloga",
+    "count_two": "{{count}} nalogi",
+    "count_few": "{{count}} naloge",
+    "count_other": "{{count}} nalog"
+  }
+}

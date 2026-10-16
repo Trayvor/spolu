@@ -1,0 +1,71 @@
+{
+  "empty": "Sõnumeid veel ei ole. Kirjutage esimene ja alustage vestlust.",
+  "today": "Täna",
+  "yesterday": "Eile",
+  "newMessages": "Uued sõnumid",
+  "jumpToLatest": "Uued sõnumid ↓",
+  "edited": "(muudetud)",
+  "deleted": "Sõnum on kustutatud",
+  "egrant": "eGrant",
+  "notSent": "Saatmata.",
+  "retry": "Proovi uuesti",
+  "save": "Salvesta",
+  "cancel": "Tühista",
+  "confirmDelete": "Kas kustutada see sõnum?",
+  "actions": {
+    "replyInThread": "Vasta lõimes",
+    "more": "Rohkem",
+    "edit": "Muuda",
+    "delete": "Kustuta",
+    "quote": "Tsiteeri",
+    "label": "Sõnumi toimingud",
+    "open": "Sõnumi toimingud",
+    "turnIntoTasks": "Loo ülesanded"
+  },
+  "thread": {
+    "summary_one": "{{count}} vastus, viimane kell {{time}}",
+    "summary_other": "{{count}} vastust, viimane kell {{time}}",
+    "title": "Lõim",
+    "unreadReplies": "Lugemata vastused",
+    "close": "Sulge lõim",
+    "back": "Tagasi vestlusesse",
+    "replies_one": "{{count}} vastus",
+    "replies_other": "{{count}} vastust"
+  },
+  "mention": {
+    "all": "@all",
+    "unknown": "@tundmatu",
+    "everyone": "Kõik selles grupis",
+    "label": "Inimesed",
+    "everyoneHint": "Grupi kliendid ja selle eGranti haldurid"
+  },
+  "composer": {
+    "placeholder": "Kirjutage sõnum…",
+    "threadPlaceholder": "Vasta…",
+    "send": "Saada",
+    "save": "Salvesta",
+    "attach": "Lisa failid",
+    "removeFile": "Eemalda fail",
+    "replyingTo": "Vastus – {{name}}: {{excerpt}}",
+    "cancelReply": "Tühista vastus",
+    "tooLong": "{{count}} / 10 000 tähemärki",
+    "tooManyFiles": "Ühes sõnumis kuni 10 faili.",
+    "fileTooLarge": "Liiga suur (max 25 MB)",
+    "formatting": "Vormindus",
+    "mentionNotAllowed": "Kedagi, keda mainisite, ei saa siin enam mainida."
+  },
+  "format": {
+    "bold": "Paks",
+    "italic": "Kursiiv",
+    "strike": "Läbikriipsutus",
+    "link": "Link",
+    "bulletList": "Täpploend",
+    "numberedList": "Nummerdatud loend",
+    "quote": "Tsitaat",
+    "code": "Kood"
+  },
+  "unread_other": "{{count}} lugemata sõnumit",
+  "unread_one": "{{count}} lugemata sõnum",
+  "loadError": "Vestlust ei õnnestunud laadida.",
+  "turnedIntoTasks": "Muudetud ülesanneteks:"
+}

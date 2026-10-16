@@ -1,0 +1,50 @@
+{
+  "tabs": {
+    "label": "Razdelki skupine",
+    "chat": "Klepet",
+    "tasks": "Naloge",
+    "tickets": "Zahtevki",
+    "knowledge": "Znanje",
+    "members": "Člani"
+  },
+  "edit": "Uredi",
+  "invite": {
+    "title": "Povezava za povabilo",
+    "copy": "Kopiraj",
+    "copied": "Povezava je kopirana.",
+    "copiedShort": "Kopirano",
+    "regenerate": "Ustvari novo povezavo",
+    "confirm": "Stara povezava ne bo več delovala. Želite ustvariti novo?",
+    "generate": "Ustvari"
+  },
+  "members": {
+    "title": "Člani",
+    "empty": "Članov še ni. Dodajte jih po e-pošti ali jim pošljite povezavo za povabilo.",
+    "remove": "Odstrani",
+    "confirmRemove": "Želite odstraniti osebo {{name}}? Dostop bo takoj izgubila.",
+    "removedTitle": "Odstranjeni člani ({{count}})",
+    "restore": "Obnovi",
+    "you": "Vi",
+    "add": "+ Dodaj člana",
+    "formLabel": "Dodajte člana po e-pošti",
+    "email": "E-pošta",
+    "nameOptional": "Ime (neobvezno)",
+    "submit": "Dodaj",
+    "cancel": "Prekliči",
+    "invalidEmail": "Vnesite veljaven e-poštni naslov.",
+    "toastInvited": "Povabilo je poslano na {{email}}.",
+    "toastAdded": "{{email}} je zdaj član skupine. Poslali smo mu e-sporočilo.",
+    "toastResent": "Povabilo smo znova poslali na {{email}}.",
+    "alreadyMember": "Ta oseba je že član.",
+    "emailTakenAdmin": "Ta e-poštni naslov pripada skrbniku. Dodajte ga kot upravitelja.",
+    "removedMember": "Ta oseba je bila odstranjena iz skupine.",
+    "invited": "Povabljen",
+    "resend": "Pošlji znova",
+    "confirmCancelInvite": "Želite preklicati povabilo za {{email}}?"
+  },
+  "requesters": {
+    "title": "Prijavitelji",
+    "hint": "Osebe, ki so prijavile zahtevke za to stranko. Vidijo samo svoje zahtevke, nikoli skupine.",
+    "removedTitle": "Odstranjeni prijavitelji ({{count}})"
+  }
+}

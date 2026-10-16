@@ -1,0 +1,50 @@
+{
+  "tabs": {
+    "label": "Sekce skupiny",
+    "chat": "Chat",
+    "tasks": "Úkoly",
+    "tickets": "Tikety",
+    "knowledge": "Znalosti",
+    "members": "Členové"
+  },
+  "edit": "Upravit",
+  "invite": {
+    "title": "Pozvánkový odkaz",
+    "copy": "Kopírovat",
+    "copied": "Odkaz zkopírován.",
+    "copiedShort": "Zkopírováno",
+    "regenerate": "Vytvořit nový odkaz",
+    "confirm": "Starý odkaz přestane fungovat. Vytvořit nový?",
+    "generate": "Vytvořit"
+  },
+  "members": {
+    "title": "Členové",
+    "empty": "Zatím žádní členové. Přidejte je e-mailem nebo jim pošlete pozvánkový odkaz.",
+    "remove": "Odebrat",
+    "confirmRemove": "Odebrat {{name}}? Okamžitě ztratí přístup.",
+    "removedTitle": "Odebraní členové ({{count}})",
+    "restore": "Obnovit",
+    "you": "Vy",
+    "add": "+ Přidat člena",
+    "formLabel": "Přidat člena e-mailem",
+    "email": "E-mail",
+    "nameOptional": "Jméno (nepovinné)",
+    "submit": "Přidat",
+    "cancel": "Zrušit",
+    "invalidEmail": "Zadejte platnou e-mailovou adresu.",
+    "toastInvited": "Pozvánka odeslána na {{email}}.",
+    "toastAdded": "{{email}} je nyní členem skupiny. Poslali jsme mu e-mail.",
+    "toastResent": "Pozvánku jsme na {{email}} poslali znovu.",
+    "alreadyMember": "Tato osoba už je členem.",
+    "emailTakenAdmin": "Tento e-mail patří administrátorovi. Přidejte ho jako správce.",
+    "removedMember": "Tato osoba byla ze skupiny odebrána.",
+    "invited": "Pozván(a)",
+    "resend": "Poslat znovu",
+    "confirmCancelInvite": "Zrušit pozvánku pro {{email}}?"
+  },
+  "requesters": {
+    "title": "Žadatelé",
+    "hint": "Lidé, kteří pro tohoto klienta nahlásili tikety. Vidí jen své vlastní tikety, nikdy skupinu.",
+    "removedTitle": "Odebraní žadatelé ({{count}})"
+  }
+}

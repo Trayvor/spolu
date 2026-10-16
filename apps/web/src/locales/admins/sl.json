@@ -1,0 +1,20 @@
+{
+  "title": "Skrbniki",
+  "add": "Dodaj skrbnika",
+  "name": "Ime",
+  "email": "E-pošta",
+  "submit": "Dodaj in pošlji e-sporočilo",
+  "cancel": "Prekliči",
+  "added": "Oseba {{name}} je dodana.",
+  "remove": "Odstrani",
+  "confirmRemove": "Želite odstraniti osebo {{name}}? Dostop bo takoj izgubila.",
+  "badge": {
+    "superadmin": "Glavni skrbnik",
+    "you": "Vi"
+  },
+  "errors": {
+    "emailTakenAdmin": "Ta e-poštni naslov že pripada skrbniku.",
+    "emailTakenClient": "Ta e-poštni naslov pripada stranki.",
+    "nameRequired": "Vnesite ime."
+  }
+}

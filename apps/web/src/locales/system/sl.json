@@ -1,0 +1,16 @@
+{
+  "title": "Stanje sistema",
+  "version": "Različica strežnika",
+  "lastPing": "Zadnji odziv",
+  "never": "Še ne",
+  "checking": "Preverjanje…",
+  "unreachable": "Strežnik ni dosegljiv",
+  "database": {
+    "ok": "Zbirka podatkov: OK",
+    "down": "Zbirka podatkov: ni na voljo"
+  },
+  "realtime": {
+    "connected": "Sprotna povezava: vzpostavljena",
+    "disconnected": "Sprotna povezava: prekinjena"
+  }
+}

@@ -145,6 +145,36 @@ describe('locales', () => {
     }
   });
 
+  it('every plural key has every plural form its language uses (Intl.PluralRules)', () => {
+    const pluralSuffix = /_(zero|one|two|few|many|other)$/;
+    for (const [code, json] of Object.entries(merged)) {
+      const categories = new Intl.PluralRules(code).resolvedOptions().pluralCategories;
+      const keys = new Set(flatten(json));
+      const bases = new Set(
+        [...keys].filter((key) => pluralSuffix.test(key)).map((k) => k.replace(pluralSuffix, '')),
+      );
+      const missing = [...bases].flatMap((base) =>
+        categories.filter((c) => !keys.has(`${base}_${c}`)).map((c) => `${base}_${c}`),
+      );
+      expect({ code, missing }).toEqual({ code, missing: [] });
+    }
+  });
+
+  it('every language beyond sk and en has its own texts, not a copy of en', () => {
+    const en = flatten(locales.en ?? {});
+    for (const { code } of SUPPORTED_LANGUAGES) {
+      if (code === 'en') continue;
+      const json = locales[code] ?? {};
+      const same = en.filter((key) => {
+        const read = (obj: Record<string, unknown>) =>
+          key.split('.').reduce<unknown>((o, k) => (o as Record<string, unknown>)?.[k], obj);
+        return read(json) === read(locales.en ?? {});
+      });
+      // Brand names and a few symbols may match; most texts must not.
+      expect({ code, copied: same.length < en.length / 4 }).toEqual({ code, copied: true });
+    }
+  });
+
   it('the namespaces have plural keys to check (the plural test sees them)', () => {
     const plural = flatten(merged.en ?? {}).filter((key) => key.endsWith('_other'));
     expect(plural.some((key) => key.startsWith('chat.'))).toBe(true);

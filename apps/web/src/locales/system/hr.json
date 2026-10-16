@@ -1,0 +1,16 @@
+{
+  "title": "Stanje sustava",
+  "version": "Verzija poslužitelja",
+  "lastPing": "Posljednji ping",
+  "never": "Još ne",
+  "checking": "Provjeravam…",
+  "unreachable": "Poslužitelj nije dostupan",
+  "database": {
+    "ok": "Baza podataka: OK",
+    "down": "Baza podataka: nedostupna"
+  },
+  "realtime": {
+    "connected": "Realtime: povezano",
+    "disconnected": "Realtime: nije povezano"
+  }
+}

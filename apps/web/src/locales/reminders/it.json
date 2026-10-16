@@ -1,0 +1,61 @@
+{
+  "fields": {
+    "times": "Orari",
+    "date": "Data {{n}}",
+    "time": "Ora {{n}}",
+    "add": "Aggiungi orario",
+    "remove": "Rimuovi orario {{n}}",
+    "sent": "inviato",
+    "recipients": "Destinatari",
+    "errors": {
+      "incomplete": "Inserire una data e un'ora.",
+      "passed": "Questo orario è già passato. Sceglierne uno successivo.",
+      "tooFar": "Scegliere un orario entro 5 anni.",
+      "duplicate": "Questo orario è già nell'elenco."
+    }
+  },
+  "panel": {
+    "title": "Promemoria",
+    "sent": "inviato",
+    "reminded": "Promemoria inviato",
+    "remindMe": "Promemoria per me",
+    "authorHint": "Ha creato Lei questo promemoria",
+    "addToCalendar": "Esporta nel calendario",
+    "noUpcoming": "Nessun promemoria in arrivo",
+    "andMore": "{{names}} e altri {{count}}",
+    "unavailable": "Questo elemento non ha più promemoria.",
+    "failed": "Impossibile modificare il promemoria. Riprovare."
+  },
+  "time": {
+    "today": "Oggi, {{time}}",
+    "tomorrow": "Domani, {{time}}",
+    "dayTime": "{{day}}, {{time}}"
+  },
+  "row": {
+    "add": "Aggiungi promemoria",
+    "confirm": "Aggiungi",
+    "cancel": "Annulla",
+    "remove": "Rimuovi promemoria",
+    "date": "Data",
+    "time": "Ora"
+  },
+  "task": {
+    "title": "Promemoria",
+    "autoDeadline": "Gli assegnatari ricevono automaticamente un promemoria 3, 2 e 1 giorno prima della scadenza.",
+    "autoDeadlineUrgent": "Gli assegnatari ricevono automaticamente un promemoria 3, 2 e 1 giorno prima della scadenza e ogni 3 ore finché l'attività è urgente.",
+    "autoUrgent": "Gli assegnatari ricevono automaticamente un promemoria ogni 3 ore finché l'attività è urgente.",
+    "afterDeadline": "dopo la scadenza",
+    "reminded": "Promemoria inviato:",
+    "setThem": "(da impostare)",
+    "change": "Modifica",
+    "done": "Fatto",
+    "addAssignees": "Aggiungi assegnatari",
+    "saved": "Salvato",
+    "saveFailed": "Impossibile salvare. Riprovare.",
+    "inPast": "Questo orario è già passato. Sceglierne uno successivo.",
+    "createHint": "Aggiungere i promemoria dopo aver creato l'attività",
+    "completed": "Questa attività è completata: non invia promemoria.",
+    "authorHint": "Ha impostato Lei questi promemoria",
+    "unavailable": "Questa attività non ha più promemoria."
+  }
+}

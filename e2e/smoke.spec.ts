@@ -25,6 +25,26 @@ test('switching to English changes the UI and persists after reload', async ({ p
   );
 });
 
+test('a language loaded on use (Ukrainian) switches, and starts after a reload', async ({
+  page,
+}) => {
+  await page.goto('/settings');
+  await expect(page.getByText('Stav systému')).toBeVisible();
+  await page.getByRole('button', { name: /Jazyk/ }).click();
+  await page.getByRole('menuitemradio', { name: 'Українська' }).click();
+  await expect(page.getByText('Стан системи')).toBeVisible();
+
+  // The first screen after a reload waits for the lazy main file: no Slovak or English flash.
+  await page.reload();
+  await expect(page.getByText('Стан системи')).toBeVisible();
+  await expect(page.getByRole('button', { name: /Мова/ })).toHaveText('UK');
+  await expect(page.locator('html')).toHaveAttribute('lang', 'uk');
+
+  await page.getByRole('button', { name: /Мова/ }).click();
+  await page.getByRole('menuitemradio', { name: 'Slovenčina' }).click();
+  await expect(page.getByText('Stav systému')).toBeVisible();
+});
+
 test('the home page is the admin dashboard', async ({ page }) => {
   await page.goto('/');
   await expect(page).toHaveURL(/\/$/);

@@ -1,0 +1,59 @@
+{
+  "profile": {
+    "title": "Profilo",
+    "name": "Nome",
+    "save": "Salva",
+    "saved": "Salvato",
+    "nameRequired": "Inserire il nome.",
+    "email": "Email",
+    "change": "Cambia",
+    "emailFixed": "Impostata nella configurazione del server; non può essere modificata qui.",
+    "cancel": "Annulla",
+    "newEmail": "Nuovo indirizzo email",
+    "sendCode": "Invia codice",
+    "invalidEmail": "Inserire un indirizzo email valido.",
+    "sameEmail": "Inserire un indirizzo diverso da quello attuale.",
+    "codeSent": "Abbiamo inviato un codice a {{email}}",
+    "code": "Codice",
+    "confirm": "Conferma",
+    "done": "Il Suo indirizzo email ora è {{email}}",
+    "invalidCode": "Il codice è errato o scaduto",
+    "emailTaken": "Questo indirizzo appartiene a un altro account",
+    "tooMany": "Troppi tentativi. Riprovare tra qualche minuto.",
+    "bulkEmail": {
+      "label": "Ricevi comunicazioni",
+      "hint": "Novità da eGrant inviate a molte persone contemporaneamente. I codici di accesso e le notifiche arrivano sempre."
+    }
+  },
+  "notifications": {
+    "title": "Notifiche",
+    "pushUnavailable": "Le notifiche push non sono disponibili su questo server",
+    "device": "Questo dispositivo: {{state}}",
+    "deviceOn": "attive",
+    "deviceOff": "non configurate",
+    "deviceBlocked": "bloccate nelle impostazioni del browser",
+    "deviceUnsupported": "Questo browser non può ricevere notifiche",
+    "turnOnDevice": "Attiva su questo dispositivo",
+    "unblock": "Consenta le notifiche per questo sito nelle impostazioni del sito del browser, poi ricarichi la pagina.",
+    "iosHint": "Su iPhone le notifiche funzionano solo dall'app nella schermata Home. Tocchi Condividi, poi Aggiungi alla schermata Home, e apra l'app Help dall'icona.",
+    "groups": {
+      "chat": "Chat",
+      "tasks": "Bacheca delle attività",
+      "tickets": "Bacheca dei ticket",
+      "knowledge": "Base di conoscenza"
+    },
+    "hints": {
+      "chat": "Messaggi, menzioni e risposte nelle chat dei gruppi",
+      "tasks": "Spostamenti, assegnazioni, scadenze, promemoria e chat delle attività",
+      "tickets": "Ticket di supporto e relative conversazioni",
+      "knowledge": "Promemoria della base di conoscenza"
+    },
+    "channels": {
+      "email": "Email",
+      "push": "Push",
+      "both": "Email e push",
+      "none": "Nessuna"
+    },
+    "emailNote": "L'email è un riepilogo di ciò che non ha ancora letto, al massimo ogni 10 minuti."
+  }
+}

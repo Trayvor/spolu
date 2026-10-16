@@ -1,0 +1,61 @@
+{
+  "fields": {
+    "times": "Časy",
+    "date": "Datum {{n}}",
+    "time": "Čas {{n}}",
+    "add": "Přidat čas",
+    "remove": "Odebrat čas {{n}}",
+    "sent": "odesláno",
+    "recipients": "Příjemci",
+    "errors": {
+      "incomplete": "Zadejte datum a čas.",
+      "passed": "Tento čas už uplynul. Vyberte pozdější.",
+      "tooFar": "Vyberte čas v rozmezí 5 let.",
+      "duplicate": "Tento čas už v seznamu je."
+    }
+  },
+  "panel": {
+    "title": "Připomínky",
+    "sent": "odesláno",
+    "reminded": "Připomenuto",
+    "remindMe": "Připomenout mi",
+    "authorHint": "Tuto připomínku jste vytvořili vy",
+    "addToCalendar": "Exportovat do kalendáře",
+    "noUpcoming": "Žádné nadcházející připomínky",
+    "andMore": "{{names}} a další ({{count}})",
+    "unavailable": "Tato položka už nemá žádné připomínky.",
+    "failed": "Vaši připomínku se nepodařilo změnit. Zkuste to znovu."
+  },
+  "time": {
+    "today": "Dnes, {{time}}",
+    "tomorrow": "Zítra, {{time}}",
+    "dayTime": "{{day}}, {{time}}"
+  },
+  "row": {
+    "add": "Přidat připomínku",
+    "confirm": "Přidat",
+    "cancel": "Zrušit",
+    "remove": "Odebrat připomínku",
+    "date": "Datum",
+    "time": "Čas"
+  },
+  "task": {
+    "title": "Připomínky",
+    "autoDeadline": "Řešitelům se automaticky připomene 3, 2 a 1 den před termínem.",
+    "autoDeadlineUrgent": "Řešitelům se automaticky připomene 3, 2 a 1 den před termínem a každé 3 hodiny, dokud je úkol naléhavý.",
+    "autoUrgent": "Řešitelům se automaticky připomíná každé 3 hodiny, dokud je úkol naléhavý.",
+    "afterDeadline": "po termínu",
+    "reminded": "Připomenuto:",
+    "setThem": "(nastavit)",
+    "change": "Změnit",
+    "done": "Hotovo",
+    "addAssignees": "Přidat řešitele",
+    "saved": "Uloženo",
+    "saveFailed": "Nepodařilo se uložit. Zkuste to znovu.",
+    "inPast": "Tento čas už uplynul. Vyberte pozdější.",
+    "createHint": "Připomínky přidáte po vytvoření úkolu",
+    "completed": "Tento úkol je dokončený: neposílá žádné připomínky.",
+    "authorHint": "Tyto připomínky jste nastavili vy",
+    "unavailable": "Tento úkol už nemá žádné připomínky."
+  }
+}

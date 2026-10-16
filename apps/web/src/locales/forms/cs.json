@@ -1,0 +1,24 @@
+{
+  "panel": {
+    "back": "Zpět na nástěnku",
+    "close": "Zavřít"
+  },
+  "files": {
+    "attach": "Přiložit soubor",
+    "remove": "Odebrat {{name}}",
+    "uploading": "Nahrává se {{name}}",
+    "uploadFailed": "{{name}} se nepodařilo nahrát.",
+    "tooLarge": "{{name}} má více než 25 MB.",
+    "unknown": "Soubor"
+  },
+  "people": {
+    "search": "Hledat lidi",
+    "empty": "Nikdo nenalezen.",
+    "remove": "Odebrat {{name}}",
+    "removed": "{{name}} (odebrán/a)",
+    "adminPill": "eGrant",
+    "full": "Vyberte nejvýše {{max}} lidí.",
+    "notManager": "není správce",
+    "noPickable": "Vybrat lze jen klienty a správce klienta."
+  }
+}

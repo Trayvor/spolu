@@ -1,0 +1,35 @@
+{
+  "mode": {
+    "bellLabel": "Oznámení: {{mode}}",
+    "all": "Všechny zprávy",
+    "allHint": "Každá nová zpráva v této skupině",
+    "mentions": "Zmínky a odpovědi",
+    "mentionsHint": "Když vás někdo zmíní, odpoví ve vašem vlákně nebo se změní váš úkol",
+    "off": "Vypnuto",
+    "offHint": "Žádná oznámení z této skupiny",
+    "mixed": "Různé",
+    "allGroups": "Všechny skupiny:",
+    "managerNote": "Všechny zprávy, protože tohoto klienta spravujete."
+  },
+  "prompt": {
+    "installTitle": "Nainstalujte si aplikaci Help",
+    "installBody": "Otevírejte ji z plochy jako každou jinou aplikaci a dostávejte oznámení.",
+    "install": "Nainstalovat",
+    "installMenu": "Otevřete nabídku prohlížeče ⋮ → Nainstalovat aplikaci / Přidat na plochu",
+    "notNow": "Teď ne",
+    "iosTitle": "Důležité: pro oznámení si nainstalujte aplikaci Help.",
+    "iosBody": "Na iPhonu fungují oznámení jen z aplikace na ploše.",
+    "iosStepShare": "Klepněte na Sdílet",
+    "iosStepAdd": "Přidat na plochu",
+    "iosStepOpen": "Otevřete aplikaci Help z ikony",
+    "enableTitle": "Zapněte oznámení na tomto zařízení",
+    "enableBody": "Dostávejte nové zprávy a změny úkolů okamžitě.",
+    "turnOn": "Zapnout",
+    "enableFailed": "Oznámení se nepodařilo zapnout. Zkuste to znovu.",
+    "iosUnsupportedTitle": "iOS ve vašem iPhonu nepodporuje oznámení aplikací.",
+    "iosUnsupportedBody": "Zapnuli jsme vám e-mailová oznámení. Pro oznámení v telefonu aktualizujte iOS na verzi 16.4 nebo novější.",
+    "iosUnsupportedEmailOn": "E-mailová oznámení už máte zapnutá. Pro oznámení v telefonu aktualizujte iOS na verzi 16.4 nebo novější.",
+    "iosUnsupportedEmailOff": "E-mailová oznámení jsou vypnutá; zapnout je můžete v Nastavení. Pro oznámení v telefonu aktualizujte iOS na verzi 16.4 nebo novější.",
+    "ok": "OK"
+  }
+}

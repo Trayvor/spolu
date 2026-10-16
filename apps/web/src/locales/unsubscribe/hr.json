@@ -1,0 +1,17 @@
+{
+  "done": {
+    "title": "Odjavljeni ste",
+    "body": "Više nećete primati skupne e-poruke od eGranta. Kodovi za prijavu i obavijesti iz aplikacije Help i dalje stižu."
+  },
+  "subscribed": {
+    "title": "Ponovno ste prijavljeni",
+    "body": "Ponovno ćete primati skupne e-poruke od eGranta. To možete promijeniti u bilo kojem trenutku u Postavkama aplikacije Help."
+  },
+  "subscribeAgain": "Ponovno se prijavi",
+  "unsubscribeButton": "Odjavi se",
+  "test": "Ovo je bila probna e-poruka; ništa se nije promijenilo.",
+  "invalid": "Ova poveznica nije valjana.",
+  "errors": {
+    "rateLimited": "Previše pokušaja. Pokušajte ponovno za minutu."
+  }
+}

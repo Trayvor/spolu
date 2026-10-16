@@ -1,0 +1,110 @@
+{
+  "new": "Nov zahtevek",
+  "status": {
+    "new": "Nov",
+    "in_progress": "V obdelavi",
+    "resolved": "Rešen"
+  },
+  "filters": {
+    "label": "Filtri zahtevkov",
+    "status": "Stanje",
+    "open": "Odprti",
+    "resolved": "Rešeni",
+    "all": "Vsi",
+    "allAreas": "Vsa področja",
+    "areaChosen": "Področje: {{area}}",
+    "noAreas": "Na tem seznamu še ni področij",
+    "following": "Spremljani",
+    "noClient": "Brez stranke"
+  },
+  "list": {
+    "loading": "Nalaganje zahtevkov…",
+    "error": "Zahtevkov ni bilo mogoče naložiti.",
+    "empty": "Ni odprtih zahtevkov.",
+    "noMatch": "Noben zahtevek ne ustreza tem filtrom.",
+    "loadMore": "Naloži več"
+  },
+  "row": {
+    "due": "Rok",
+    "overdue": "Zamuda od",
+    "noSubject": "Brez zadeve",
+    "noClient": "Brez stranke",
+    "following": "Ta zahtevek spremljate"
+  },
+  "mine": {
+    "title": "Moji zahtevki",
+    "empty": "Tukaj nimate zahtevkov. Ko vam ga odpre podpora eGrant, se bo prikazal tukaj."
+  },
+  "global": {
+    "title": "Zahtevki"
+  },
+  "page": {
+    "number": "#{{number}}",
+    "details": "Podrobnosti zahtevka",
+    "edit": "Uredi",
+    "editTitle": "Uredi zahtevek",
+    "save": "Shrani spremembe",
+    "cancel": "Prekliči",
+    "turnedInto_one": "Pretvorjeno v {{count}} nalogo",
+    "turnedInto_two": "Pretvorjeno v {{count}} nalogi",
+    "turnedInto_few": "Pretvorjeno v {{count}} naloge",
+    "turnedInto_other": "Pretvorjeno v {{count}} nalog",
+    "back": "Nazaj"
+  },
+  "fields": {
+    "status": "Stanje",
+    "subject": "Zadeva",
+    "area": "Področje vprašanja",
+    "programme": "Program financiranja",
+    "body": "Besedilo",
+    "dueDate": "Rok",
+    "overdue": "zamujeno",
+    "url": "Povezava",
+    "instance": "Instanca eGrant",
+    "files": "Datoteke",
+    "initiator": "Pobudnik",
+    "unknown": "Ni znano",
+    "client": "Stranka",
+    "created": "Ustvarjeno",
+    "fromEgrant": "v sistemu eGrant",
+    "inSpolu": "v aplikaciji Help",
+    "resolved": "Rešeno"
+  },
+  "followers": {
+    "title": "Spremljevalci ({{count}})",
+    "follow": "Spremljaj",
+    "following": "Spremljate",
+    "none": "Tega zahtevka nihče ne spremlja."
+  },
+  "assign": {
+    "choose": "Izberite stranko",
+    "hasTasks": "Ta zahtevek ima naloge na tabli svoje stranke, zato ostane pri tej stranki."
+  },
+  "noClient": {
+    "title": "Stranka še ni določena",
+    "adminHint": "eGrant ni poslal povezave do instance, ki bi ustrezala kateri od strank. Stranko izberite v urejanju: zahtevek dobi svoj klepet, pobudnik pa svoje e-sporočilo.",
+    "hint": "Stranko mora najprej dodeliti skrbnik."
+  },
+  "form": {
+    "title": "Nov zahtevek",
+    "back": "Nazaj",
+    "initiator": "Pobudnik",
+    "initiatorHint": "Prejme e-sporočilo in lahko zahtevek spremlja v aplikaciji Help.",
+    "email": "E-pošta pobudnika",
+    "name": "Ime pobudnika",
+    "phone": "Telefon pobudnika",
+    "filesAfterClient": "Najprej izberite stranko: datoteke pripadajo njej.",
+    "create": "Ustvari zahtevek",
+    "errors": {
+      "content": "Napišite zadevo, besedilo ali izberite področje vprašanja.",
+      "url": "Vnesite povezavo, ki se začne s https:// ali http://.",
+      "client": "Izberite stranko.",
+      "email": "Vnesite veljaven e-poštni naslov."
+    }
+  },
+  "tasks": {
+    "title": "Naloge",
+    "none": "Nalog še ni. Pretvorite zahtevek v naloge, da delo prenesete na tablo.",
+    "completed": "Dokončano"
+  }
+}

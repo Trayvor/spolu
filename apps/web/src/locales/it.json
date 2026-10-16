@@ -1,0 +1,68 @@
+{
+  "app": {
+    "name": "Help",
+    "fullName": "Help by eGrant"
+  },
+  "nav": {
+    "home": "Home",
+    "tasks": "Attività",
+    "tickets": "Ticket",
+    "settings": "Impostazioni",
+    "admins": "Amministratori",
+    "groups": "Gruppi",
+    "knowledge": "Conoscenze",
+    "myGroups": "I miei gruppi",
+    "myTickets": "I miei ticket",
+    "bulkEmail": "Email massive"
+  },
+  "user": {
+    "menu": "Menu dell'account",
+    "logout": "Esci"
+  },
+  "language": {
+    "current": "Lingua: {{name}}"
+  },
+  "notFound": {
+    "title": "Pagina non trovata",
+    "body": "Questo indirizzo non esiste. Controllare il link o tornare alla pagina iniziale.",
+    "home": "Vai alla pagina iniziale"
+  },
+  "login": {
+    "title": "Accedi",
+    "intro": "Le invieremo un codice di accesso via email.",
+    "email": "Email",
+    "sendCode": "Invia codice",
+    "codeIntro": "Se {{email}} ha accesso, abbiamo inviato a questo indirizzo un codice di 6 cifre. È valido per 5 minuti.",
+    "code": "Codice",
+    "submit": "Accedi",
+    "sendAgain": "Invia di nuovo",
+    "sendAgainIn": "Invia di nuovo tra {{seconds}} s",
+    "changeEmail": "Cambia email",
+    "errors": {
+      "invalidEmail": "Inserire un'email valida.",
+      "wrongCode": "Il codice non corrisponde. Tentativi rimasti: {{count}}.",
+      "expired": "Il codice è scaduto. Richiederne uno nuovo.",
+      "tooMany": "Troppi tentativi. Riprovare tra qualche minuto.",
+      "disabled": "Questo account non ha più accesso."
+    }
+  },
+  "errors": {
+    "generic": "Si è verificato un errore. Riprovare.",
+    "retry": "Riprova"
+  },
+  "welcome": {
+    "title": "Come possiamo chiamarLa?",
+    "name": "Il Suo nome",
+    "submit": "Continua",
+    "errors": {
+      "nameRequired": "Inserire il nome."
+    }
+  },
+  "files": {
+    "download": "Scarica {{name}}",
+    "openImage": "Apri {{name}}"
+  },
+  "toast": {
+    "close": "Chiudi"
+  }
+}

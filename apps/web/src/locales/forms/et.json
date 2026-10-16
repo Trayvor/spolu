@@ -1,0 +1,24 @@
+{
+  "panel": {
+    "back": "Tagasi tahvlile",
+    "close": "Sulge"
+  },
+  "files": {
+    "attach": "Lisa fail",
+    "remove": "Eemalda {{name}}",
+    "uploading": "Üleslaadimine: {{name}}",
+    "uploadFailed": "Faili {{name}} ei õnnestunud üles laadida.",
+    "tooLarge": "Fail {{name}} on suurem kui 25 MB.",
+    "unknown": "Fail"
+  },
+  "people": {
+    "search": "Otsi inimesi",
+    "empty": "Kedagi ei leitud.",
+    "remove": "Eemalda {{name}}",
+    "removed": "{{name}} (eemaldatud)",
+    "adminPill": "eGrant",
+    "full": "Valige kuni {{max}} inimest.",
+    "notManager": "ei ole haldur",
+    "noPickable": "Valida saab ainult kliente ja kliendi haldureid."
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "title": "Amministratori",
+  "add": "Aggiungi amministratore",
+  "name": "Nome",
+  "email": "Email",
+  "submit": "Aggiungi e invia email",
+  "cancel": "Annulla",
+  "added": "Aggiunta di {{name}} completata.",
+  "remove": "Rimuovi",
+  "confirmRemove": "Rimuovere {{name}}? Perderà subito l'accesso.",
+  "badge": {
+    "superadmin": "Superadmin",
+    "you": "Lei"
+  },
+  "errors": {
+    "emailTakenAdmin": "Questa email appartiene già a un amministratore.",
+    "emailTakenClient": "Questa email appartiene a un cliente.",
+    "nameRequired": "Inserire un nome."
+  }
+}

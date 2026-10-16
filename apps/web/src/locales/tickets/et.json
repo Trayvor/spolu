@@ -1,0 +1,108 @@
+{
+  "new": "Uus pöördumine",
+  "status": {
+    "new": "Uus",
+    "in_progress": "Töös",
+    "resolved": "Lahendatud"
+  },
+  "filters": {
+    "label": "Pöördumiste filtrid",
+    "status": "Olek",
+    "open": "Avatud",
+    "resolved": "Lahendatud",
+    "all": "Kõik",
+    "allAreas": "Kõik valdkonnad",
+    "areaChosen": "Valdkond: {{area}}",
+    "noAreas": "Selles loendis pole veel valdkondi",
+    "following": "Jälgitavad",
+    "noClient": "Kliendita"
+  },
+  "list": {
+    "loading": "Pöördumiste laadimine…",
+    "error": "Pöördumisi ei õnnestunud laadida.",
+    "empty": "Avatud pöördumisi ei ole.",
+    "noMatch": "Nendele filtritele ei vasta ükski pöördumine.",
+    "loadMore": "Laadi rohkem"
+  },
+  "row": {
+    "due": "Tähtaeg",
+    "overdue": "Tähtaeg ületatud alates",
+    "noSubject": "Teemata",
+    "noClient": "Kliendita",
+    "following": "Te jälgite seda pöördumist"
+  },
+  "mine": {
+    "title": "Minu pöördumised",
+    "empty": "Teil ei ole siin pöördumisi. Kui eGranti tugi avab Teile pöördumise, ilmub see siia."
+  },
+  "global": {
+    "title": "Pöördumised"
+  },
+  "page": {
+    "number": "#{{number}}",
+    "details": "Pöördumise üksikasjad",
+    "edit": "Muuda",
+    "editTitle": "Muuda pöördumist",
+    "save": "Salvesta muudatused",
+    "cancel": "Tühista",
+    "turnedInto_one": "Muudetud {{count}} ülesandeks",
+    "turnedInto_other": "Muudetud {{count}} ülesandeks",
+    "back": "Tagasi"
+  },
+  "fields": {
+    "status": "Olek",
+    "subject": "Teema",
+    "area": "Küsimuse valdkond",
+    "programme": "Toetusprogramm",
+    "body": "Tekst",
+    "dueDate": "Tähtaeg",
+    "overdue": "tähtaeg ületatud",
+    "url": "Link",
+    "instance": "eGranti keskkond",
+    "files": "Failid",
+    "initiator": "Algataja",
+    "unknown": "Teadmata",
+    "client": "Klient",
+    "created": "Loodud",
+    "fromEgrant": "eGrantist",
+    "inSpolu": "Help-rakenduses",
+    "resolved": "Lahendatud"
+  },
+  "followers": {
+    "title": "Jälgijad ({{count}})",
+    "follow": "Jälgi",
+    "following": "Jälgite",
+    "none": "Keegi ei jälgi seda pöördumist."
+  },
+  "assign": {
+    "choose": "Valige klient",
+    "hasTasks": "Sellel pöördumisel on ülesandeid kliendi tahvlil, seega jääb see selle kliendi juurde."
+  },
+  "noClient": {
+    "title": "Klient puudub",
+    "adminHint": "eGrant ei saatnud ühelegi kliendile vastavat keskkonna linki. Valige klient jaotises Muuda: pöördumine saab oma vestluse ja algataja saab e-kirja.",
+    "hint": "Administraator määrab esmalt kliendi."
+  },
+  "form": {
+    "title": "Uus pöördumine",
+    "back": "Tagasi",
+    "initiator": "Algataja",
+    "initiatorHint": "Ta saab e-kirja ja saab pöördumist Help-rakenduses jälgida.",
+    "email": "Algataja e-posti aadress",
+    "name": "Algataja nimi",
+    "phone": "Algataja telefon",
+    "filesAfterClient": "Valige esmalt klient: failid kuuluvad talle.",
+    "create": "Loo pöördumine",
+    "errors": {
+      "content": "Kirjutage teema, tekst või küsimuse valdkond.",
+      "url": "Sisestage link, mis algab https:// või http://.",
+      "client": "Valige klient.",
+      "email": "Sisestage kehtiv e-posti aadress."
+    }
+  },
+  "tasks": {
+    "title": "Ülesanded",
+    "none": "Ülesandeid veel ei ole. Muutke pöördumine ülesanneteks, et töö tahvlile panna.",
+    "completed": "Lõpetatud"
+  }
+}

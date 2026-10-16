@@ -1,0 +1,61 @@
+{
+  "fields": {
+    "times": "Ajad",
+    "date": "Kuupäev {{n}}",
+    "time": "Kellaaeg {{n}}",
+    "add": "Lisa aeg",
+    "remove": "Eemalda aeg {{n}}",
+    "sent": "saadetud",
+    "recipients": "Saajad",
+    "errors": {
+      "incomplete": "Sisestage kuupäev ja kellaaeg.",
+      "passed": "See aeg on möödas. Valige hilisem aeg.",
+      "tooFar": "Valige aeg järgmise 5 aasta jooksul.",
+      "duplicate": "See aeg on juba loendis."
+    }
+  },
+  "panel": {
+    "title": "Meeldetuletused",
+    "sent": "saadetud",
+    "reminded": "Meelde tuletatakse",
+    "remindMe": "Tuleta mulle meelde",
+    "authorHint": "Teie lõite selle meeldetuletuse",
+    "addToCalendar": "Ekspordi kalendrisse",
+    "noUpcoming": "Eelseisvaid meeldetuletusi ei ole",
+    "andMore": "{{names}} ja veel {{count}}",
+    "unavailable": "Sellel kirjel ei ole enam meeldetuletusi.",
+    "failed": "Teie meeldetuletust ei õnnestunud muuta. Proovige uuesti."
+  },
+  "time": {
+    "today": "Täna, {{time}}",
+    "tomorrow": "Homme, {{time}}",
+    "dayTime": "{{day}}, {{time}}"
+  },
+  "row": {
+    "add": "Lisa meeldetuletus",
+    "confirm": "Lisa",
+    "cancel": "Tühista",
+    "remove": "Eemalda meeldetuletus",
+    "date": "Kuupäev",
+    "time": "Kellaaeg"
+  },
+  "task": {
+    "title": "Meeldetuletused",
+    "autoDeadline": "Täitjatele tuletatakse automaatselt meelde 3, 2 ja 1 päev enne tähtaega.",
+    "autoDeadlineUrgent": "Täitjatele tuletatakse automaatselt meelde 3, 2 ja 1 päev enne tähtaega ning kiireloomulisuse ajal iga 3 tunni järel.",
+    "autoUrgent": "Täitjatele tuletatakse automaatselt meelde iga 3 tunni järel, kuni ülesanne on kiire.",
+    "afterDeadline": "pärast tähtaega",
+    "reminded": "Meelde tuletame:",
+    "setThem": "(määras need)",
+    "change": "Muuda",
+    "done": "Valmis",
+    "addAssignees": "Lisa täitjad",
+    "saved": "Salvestatud",
+    "saveFailed": "Salvestamine ebaõnnestus. Proovige uuesti.",
+    "inPast": "See aeg on möödas. Valige hilisem aeg.",
+    "createHint": "Lisage meeldetuletused pärast ülesande loomist",
+    "completed": "See ülesanne on lõpetatud: see ei saada meeldetuletusi.",
+    "authorHint": "Teie määrasite need meeldetuletused",
+    "unavailable": "Sellel ülesandel ei ole enam meeldetuletusi."
+  }
+}

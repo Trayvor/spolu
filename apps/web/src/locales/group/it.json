@@ -1,0 +1,50 @@
+{
+  "tabs": {
+    "label": "Sezioni del gruppo",
+    "chat": "Chat",
+    "tasks": "Attività",
+    "tickets": "Ticket",
+    "knowledge": "Conoscenze",
+    "members": "Membri"
+  },
+  "edit": "Modifica",
+  "invite": {
+    "title": "Link di invito",
+    "copy": "Copia",
+    "copied": "Link copiato.",
+    "copiedShort": "Copiato",
+    "regenerate": "Genera nuovo link",
+    "confirm": "Il vecchio link smetterà di funzionare. Generarne uno nuovo?",
+    "generate": "Genera"
+  },
+  "members": {
+    "title": "Membri",
+    "empty": "Ancora nessun membro. Li aggiunga via email o invii loro il link di invito.",
+    "remove": "Rimuovi",
+    "confirmRemove": "Rimuovere {{name}}? Perderà subito l'accesso.",
+    "removedTitle": "Membri rimossi ({{count}})",
+    "restore": "Ripristina",
+    "you": "Lei",
+    "add": "+ Aggiungi membro",
+    "formLabel": "Aggiungi un membro via email",
+    "email": "Email",
+    "nameOptional": "Nome (facoltativo)",
+    "submit": "Aggiungi",
+    "cancel": "Annulla",
+    "invalidEmail": "Inserire un indirizzo email valido.",
+    "toastInvited": "Invito inviato a {{email}}.",
+    "toastAdded": "{{email}} ora è membro del gruppo. Gli abbiamo inviato un'email.",
+    "toastResent": "Abbiamo inviato di nuovo l'invito a {{email}}.",
+    "alreadyMember": "Questa persona è già membro.",
+    "emailTakenAdmin": "Questa email appartiene a un amministratore. Lo aggiunga come responsabile.",
+    "removedMember": "Questa persona è stata rimossa dal gruppo.",
+    "invited": "Invitato",
+    "resend": "Invia di nuovo",
+    "confirmCancelInvite": "Annullare l'invito per {{email}}?"
+  },
+  "requesters": {
+    "title": "Richiedenti",
+    "hint": "Persone che hanno segnalato ticket per questo cliente. Vedono solo i propri ticket, mai il gruppo.",
+    "removedTitle": "Richiedenti rimossi ({{count}})"
+  }
+}

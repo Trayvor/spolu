@@ -2,6 +2,7 @@ import i18next from 'i18next';
 import { useTranslation } from 'react-i18next';
 import { isLanguage } from './detect';
 import { DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES, type Language } from './languages';
+import { isMainLocaleLoaded, lazyFiles, loadMainLocale } from './main-locales';
 
 /**
  * Lazy locale namespaces: the texts of one feature in `src/locales/<name>/<code>.json`,
@@ -17,18 +18,21 @@ import { DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES, type Language } from './language
  * - a route wraps its lazy component: `lazyRouteComponent(withNamespaces(['chat'], () => import(…)), 'ChatTab')`;
  * - a component rendered elsewhere calls `useNamespaces(['chat'])` under a `<Suspense>`.
  */
-const files = import.meta.glob<{ default: Record<string, unknown> }>('../locales/*/*.json');
-
 type LocaleFile = { default: Record<string, unknown> };
 type Importer = (name: string, lang: Language) => Promise<LocaleFile>;
 
-const importFile: Importer = (name, lang) => {
-  const file = files[`../locales/${name}/${lang}.json`];
-  return file ? file() : Promise.reject(new Error(`Unknown locale namespace "${name}" (${lang})`));
+/** The eager languages' namespace files; the others' are in `./lazy-files.ts` (a lazy chunk). */
+const files = import.meta.glob<LocaleFile>(['../locales/*/sk.json', '../locales/*/en.json']);
+
+const importFile: Importer = async (name, lang) => {
+  const path = `../locales/${name}/${lang}.json`;
+  const file = files[path] ?? (await lazyFiles()).namespaceFiles[path];
+  if (!file) throw new Error(`Unknown locale namespace "${name}" (${lang})`);
+  return file();
 };
 let importer: Importer = importFile;
 
-/** Every namespace there is: one folder in `src/locales` each. */
+/** Every namespace there is: one folder in `src/locales` each (every folder has `en.json`). */
 export const NAMESPACES: readonly string[] = [
   ...new Set(Object.keys(files).map((path) => path.split('/')[2] ?? '')),
 ].sort();
@@ -148,6 +152,16 @@ export async function changeLanguage(lang: Language): Promise<boolean> {
   const missingIn = () => [...wanted].filter((name) => !isNamespaceLoaded(name, lang));
   switchingTo = lang;
   try {
+    // The shell's texts first (a lazy language's main file), then its namespaces. Awaited only
+    // when missing, so a switch with everything loaded still happens in the same tick.
+    if (!isMainLocaleLoaded(lang)) {
+      try {
+        await loadMainLocale(lang);
+      } catch (error) {
+        if (!latest()) return false;
+        throw error;
+      }
+    }
     // A namespace wanted while a round loads joins the next one.
     for (let missing = missingIn(); missing.length > 0 && latest(); missing = missingIn()) {
       try {

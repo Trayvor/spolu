@@ -1,0 +1,68 @@
+{
+  "app": {
+    "name": "Help",
+    "fullName": "Help by eGrant"
+  },
+  "nav": {
+    "home": "Domov",
+    "tasks": "Naloge",
+    "tickets": "Zahtevki",
+    "settings": "Nastavitve",
+    "admins": "Skrbniki",
+    "groups": "Skupine",
+    "knowledge": "Znanje",
+    "myGroups": "Moje skupine",
+    "myTickets": "Moji zahtevki",
+    "bulkEmail": "Množična e-pošta"
+  },
+  "user": {
+    "menu": "Meni računa",
+    "logout": "Odjava"
+  },
+  "language": {
+    "current": "Jezik: {{name}}"
+  },
+  "notFound": {
+    "title": "Strani ni mogoče najti",
+    "body": "Ta naslov ne obstaja. Preverite povezavo ali se vrnite na domačo stran.",
+    "home": "Na domačo stran"
+  },
+  "login": {
+    "title": "Prijava",
+    "intro": "Na vaš e-poštni naslov vam bomo poslali kodo za prijavo.",
+    "email": "E-pošta",
+    "sendCode": "Pošlji kodo",
+    "codeIntro": "Če ima {{email}} dostop, smo nanj poslali 6-mestno kodo. Velja 5 minut.",
+    "code": "Koda",
+    "submit": "Prijava",
+    "sendAgain": "Pošlji znova",
+    "sendAgainIn": "Pošlji znova čez {{seconds}} s",
+    "changeEmail": "Spremeni e-poštni naslov",
+    "errors": {
+      "invalidEmail": "Vnesite veljaven e-poštni naslov.",
+      "wrongCode": "Koda se ne ujema. Preostali poskusi: {{count}}.",
+      "expired": "Koda je potekla. Pošljite si novo.",
+      "tooMany": "Preveč poskusov. Poskusite znova čez nekaj minut.",
+      "disabled": "Ta račun nima več dostopa."
+    }
+  },
+  "errors": {
+    "generic": "Prišlo je do napake. Poskusite znova.",
+    "retry": "Poskusi znova"
+  },
+  "welcome": {
+    "title": "Kako naj vas nagovarjamo?",
+    "name": "Vaše ime",
+    "submit": "Nadaljuj",
+    "errors": {
+      "nameRequired": "Vnesite svoje ime."
+    }
+  },
+  "files": {
+    "download": "Prenesi {{name}}",
+    "openImage": "Odpri {{name}}"
+  },
+  "toast": {
+    "close": "Zapri"
+  }
+}

@@ -5,6 +5,9 @@ const locale = (language: string) => (/^en\b/.test(language) ? 'en-GB' : languag
 const timeOf = (d: Date, language: string) =>
   d.toLocaleTimeString(locale(language), { hour: '2-digit', minute: '2-digit', hour12: false });
 
+/** Languages that write the day as an ordinal: "23. okt" (sk, cs, sl, hr, et), not "23 Oct". */
+const ORDINAL_DOT = /^(sk|cs|sl|hr|et)\b/;
+
 const dayStart = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
 
 /** "Thu 23 Oct" (sk: "št 23. okt"); weekday and date are formatted apart so every locale reads alike. */
@@ -12,7 +15,7 @@ function dayLabel(d: Date, language: string, withYear = false): string {
   const weekday = d.toLocaleDateString(locale(language), { weekday: 'short' });
   // The month alone is abbreviated by name in every locale; with the day, sk would give "10.".
   const { day, month } = leafParts(d.toISOString(), language);
-  const date = `${day}${/^sk\b/.test(language) ? '.' : ''} ${month}`;
+  const date = `${day}${ORDINAL_DOT.test(language) ? '.' : ''} ${month}`;
   return `${weekday} ${date}${withYear ? ` ${d.getFullYear()}` : ''}`;
 }
 
