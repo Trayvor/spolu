@@ -29,7 +29,7 @@ Requirements per module: [product/](product/README.md). Phases after 1 get their
 | 20 | [Admin home](#phase-20--admin-home) | in progress | 17, 18 | [spec](superpowers/specs/2026-10-16-phase-20-admin-home-design.md), [plan](superpowers/plans/2026-10-16-phase-20-admin-home.md) |
 | 21 | [Tickets & the ziadatel role](#phase-21--tickets--the-ziadatel-role) | in progress | 18, 20; item C for 21.6 | [spec](superpowers/specs/2026-10-16-phase-21-tickets-and-requesters-design.md), [plan](superpowers/plans/2026-10-16-phase-21-tickets-and-requesters.md) |
 | 22 | [Members & groups page](#phase-22--members--groups-page) | in progress | 18, 20, 21.1 | [plan](superpowers/plans/2026-10-16-phase-22-members-and-groups-page.md) |
-| 23 | [Bulk email](#phase-23--bulk-email) | planned | 3, 18, 21.1 | [spec](superpowers/specs/2026-10-16-phase-23-bulk-email-design.md), [plan](superpowers/plans/2026-10-16-phase-23-bulk-email.md) |
+| 23 | [Bulk email](#phase-23--bulk-email) | in progress | 3, 18, 21.1 | [spec](superpowers/specs/2026-10-16-phase-23-bulk-email-design.md), [plan](superpowers/plans/2026-10-16-phase-23-bulk-email.md) |
 
 Phases 8 and 14 do not depend on each other, so their order can change by priority.
 

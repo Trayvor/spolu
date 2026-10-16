@@ -6,6 +6,15 @@ import { createSmtpSender } from './smtp-sender.js';
 
 export { EmailSendError } from './email.js';
 export type { EmailMessage, EmailSender } from './email.js';
+export {
+  BulkSendError,
+  createBulkSender,
+  createFakeBulkSender,
+  type BulkEmailSender,
+  type BulkMessage,
+  type BulkSendResult,
+  type FakeBulkSender,
+} from './bulk.js';
 
 export function createEmailSender(
   config: Config['email'],

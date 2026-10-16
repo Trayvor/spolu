@@ -24,6 +24,9 @@ export function createSmtpSender(opts: {
           subject: msg.subject,
           html: msg.html,
           text: msg.text,
+          // Elastic's documented marker for transactional mail over SMTP: login codes and
+          // notifications must reach people who unsubscribed from bulk email (P5).
+          headers: { IsTransactional: 'True' },
         });
       } catch (err) {
         throw new EmailSendError(

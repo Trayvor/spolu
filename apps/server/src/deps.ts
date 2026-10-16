@@ -14,9 +14,11 @@ import { reminderSchedules, remindersJobHandlers } from './modules/reminders/job
 import { tasksJobHandlers, taskSchedules } from './modules/tasks/jobs.js';
 import { createDb, type Db } from './infra/db/client.js';
 import {
+  createBulkSender,
   createEmailSender,
   emailJobHandlers,
   emailQueues,
+  type BulkEmailSender,
   type EmailSender,
 } from './infra/email/index.js';
 import { createDeferredQueue, startJobs, type JobQueue } from './infra/jobs/jobs.js';
@@ -28,6 +30,8 @@ export type AppDeps = {
   config: Config;
   db: Db;
   email: EmailSender;
+  /** The bulk email sender (Phase 23), separate from the transactional `email`. */
+  bulkEmail: BulkEmailSender;
   storage: Storage;
   jobs: JobQueue;
   /** null when web push is not configured. */
@@ -42,6 +46,7 @@ export async function createDeps(
 ): Promise<{ deps: AppDeps; close(): Promise<void> }> {
   const { db, close: closeDb } = createDb(config.databaseUrl);
   const email = createEmailSender(config.email);
+  const bulkEmail = createBulkSender(config.bulkEmail, config.email);
   const storage = createDiskStorage(config.filesDir, config.appSecret);
   const push = createPushSender(config.push);
   // The notification and reminder handlers send jobs to the queue built from them; a job that
@@ -71,7 +76,16 @@ export async function createDeps(
   );
   forward.resolve(jobs.queue);
   return {
-    deps: { config, db, email, storage, jobs: jobs.queue, push, ai: createAiProvider(config.ai) },
+    deps: {
+      config,
+      db,
+      email,
+      bulkEmail,
+      storage,
+      jobs: jobs.queue,
+      push,
+      ai: createAiProvider(config.ai),
+    },
     async close() {
       await jobs.stop();
       await closeDb();
