@@ -331,15 +331,15 @@ The email is normalized (`normalizeEmail`). Adding an email changes the account 
 - **The language:** the emails go out in the acting admin's request language (`pickLanguage(accept-language)`), as `POST /admins` does.
 - **Socket and session:** a verified client added here joins the group's room at once (`joinGroupRoom`, as `accept` and Restore do). They see the group in "My groups" on their next `/api/me` load. No new socket event: removal and restore send none either.
 
-### Decision (proposed): needs the owner's confirmation
+### Decisions (confirmed by the owner, 2026-10-16)
 
-These follow from 21.1 and are the simplest consistent rules. Each one is a single line to change if the owner decides otherwise.
+All six were confirmed; number 5 in the variant below (cancel returns a former requester to ziadatel).
 
 1. **A client of another group** is added here directly and emailed "You were added to the group {group}". They do not get the "Pozvaný" state, because they have already signed in. The old plan answered "belongs to a client of another group"; that is no longer an error.
 2. **A ziadatel (requester) of this group** becomes a full client of the group, the same as when they open the invite link.
 3. **A person removed from this group** is not added back by email. The form says they were removed and offers "Obnoviť" (restore, no email). Restoring stays a deliberate step.
 4. **A client blocked because their last group removed them** is added and unblocked when an admin of another group adds them.
-5. **Cancel** removes the invited person from the group completely: no entry in "Odobraní", no email. If they were a ziadatel of this group before the invite, they lose that too. Their tickets keep their name and email, and their next ticket links them again.
+5. **Cancel** takes the invited person out of the group's members: no entry in "Odobraní", no email. If they initiated a ticket of this group (they were its ziadatel before the invite), their membership goes back to `ziadatel` instead of being deleted, so they keep their tickets. Otherwise the membership is deleted. No new column: "initiated a ticket of this group" is read through the tickets module's exported service.
 6. **An administrator's email** is refused: "This email belongs to an administrator. Add them as a manager."
 
 ### Review Focus (22b)
@@ -395,6 +395,7 @@ These follow from 21.1 and are the simplest consistent rules. Each one is a sing
   - `memberships.test.ts`:
     - `cancelInvitedMembership deletes an unverified client membership and this group's pending invite`;
     - `returns false and deletes nothing for a verified member, a removed one or a ziadatel`;
+    - `turns the membership back to ziadatel when the person initiated a ticket of this group`;
     - `keeps a pending invite of another group`.
 - [ ] **Step 2: Run** `pnpm --filter @spolu/server exec vitest run src/modules/groups/service.test.ts src/modules/groups/memberships.test.ts`. Expect FAIL: the functions are missing.
 - [ ] **Step 3: Implement.**
