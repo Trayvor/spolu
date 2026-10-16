@@ -6,6 +6,7 @@ import { createAuth, type Auth } from './modules/auth/auth.js';
 import { aiRoutes } from './modules/ai/routes.js';
 import { bulkEmailRenderRoutes } from './modules/bulk-email/render-routes.js';
 import { authRoutes } from './modules/auth/routes.js';
+import { attachBulkRealtime } from './modules/bulk-email/events.js';
 import { bulkEmailRoutes } from './modules/bulk-email/routes.js';
 import { bulkEmailUnsubscribeRoutes } from './modules/bulk-email/unsubscribe-routes.js';
 import { chatRoutes } from './modules/chat/routes.js';
@@ -60,8 +61,10 @@ export async function buildApp(
   // io.close() also closes the HTTP server and is safe when the app never listened.
   // The fire job reaches the sockets through the reminders module (jobs are built before the app).
   attachRemindersRealtime(app.io);
+  attachBulkRealtime(app.io); // the bulk batch job's bulk:updated
   app.addHook('preClose', async () => {
     attachRemindersRealtime(null);
+    attachBulkRealtime(null);
     await app.io.close();
   });
 

@@ -28,7 +28,7 @@ Spolu must feel instant: faster than Microsoft Teams on a cheap phone over mobil
 - No N+1: load related rows with one join or one `in (...)` query, not one query per row.
 - Endpoints return only the fields the screen needs, and every list endpoint is paginated.
 - Realtime events carry small payloads (ids and changed fields) and go only to the rooms that need them.
-- Slow work (emails, file processing) runs in pg-boss jobs, never inside the request. One exception: the AI task split (`POST /api/messages/:id/task-split`) calls OpenAI inside the request, because the user waits on the review screen for the answer; the call has a 30 s timeout, no retry, and holds no database transaction or connection while it waits.
+- Slow work (emails, file processing) runs in pg-boss jobs, never inside the request. Bulk email sending (Phase 23.5) is the `bulk-email.batch` job: one worker, 20 people a run with `for update skip locked`, one `insert … select` freezes the recipients, one query per batch for image sizes, one update per person before and after their call (so a crash never resends), runs spaced by `BULK_EMAIL_PER_MINUTE`; the send request returns at once. The report list is keyset-paged by `(name, user_id)` within one campaign; the counts are one grouped query per campaign page. One exception: the AI task split (`POST /api/messages/:id/task-split`) calls OpenAI inside the request, because the user waits on the review screen for the answer; the call has a 30 s timeout, no retry, and holds no database transaction or connection while it waits.
 
 ## Bundle budget
 

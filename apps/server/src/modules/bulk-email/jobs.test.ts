@@ -2,12 +2,15 @@ import { randomUUID } from 'node:crypto';
 import { afterAll, describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
 import { createDb } from '../../infra/db/client.js';
+import { createFakeBulkSender } from '../../infra/email/bulk.js';
+import { createRecordingJobs } from '../../../test/bulk-sending.js';
 import type { Config } from '../../infra/config/config.js';
 import type { JobOptions, JobQueue } from '../../infra/jobs/jobs.js';
 import { user } from '../users/schema.js';
 import { testConfig, testDatabaseUrl } from '../../../test/test-config.js';
 import {
   BULK_PROVIDER_RESUBSCRIBE_JOB,
+  BULK_SWEEP_JOB,
   BULK_SYNC_SUPPRESSIONS_JOB,
   bulkEmailJobHandlers,
   bulkEmailSchedules,
@@ -26,6 +29,9 @@ const elasticConfig = (unsubscribe: 'elastic' | 'spolu'): Config =>
       unsubscribe,
     },
   });
+
+/** The sending deps the handlers need; unused by the Elastic jobs. */
+const sending = () => ({ bulkEmail: createFakeBulkSender(), jobs: createRecordingJobs() });
 
 type Lists = { unsubscribes: unknown[]; complaints: unknown[] };
 
@@ -126,14 +132,20 @@ describe('bulk email jobs', () => {
       unsubscribes: [{ Email: a.email, DateUpdated: '2026-10-01T10:00:00' }],
       complaints: [],
     });
-    const handlers = bulkEmailJobHandlers({ db, config: elasticConfig('spolu') }, fetchImpl);
+    const handlers = bulkEmailJobHandlers(
+      { db, config: elasticConfig('spolu'), ...sending() },
+      fetchImpl,
+    );
     await handlers[BULK_SYNC_SUPPRESSIONS_JOB]!({});
     expect(await row(a.id)).toMatchObject({ subscribed: false, source: 'provider' });
   });
 
   it('the resubscribe job deletes the suppression of the address', async () => {
     const { fetchImpl, calls } = fakeElastic();
-    const handlers = bulkEmailJobHandlers({ db, config: elasticConfig('elastic') }, fetchImpl);
+    const handlers = bulkEmailJobHandlers(
+      { db, config: elasticConfig('elastic'), ...sending() },
+      fetchImpl,
+    );
     await handlers[BULK_PROVIDER_RESUBSCRIBE_JOB]!({ email: 'jana@example.com' });
     expect(calls).toEqual([
       { url: 'https://api.elasticemail.com/v4/suppressions/jana%40example.com', method: 'DELETE' },
@@ -161,9 +173,11 @@ describe('bulk email jobs', () => {
     });
   });
 
-  it('schedules the daily sync at 04:30 Bratislava only with the elastic driver', () => {
-    expect(bulkEmailSchedules(testConfig())).toEqual([]);
+  it('schedules the sweep at 04:15 and the daily sync at 04:30 only with the elastic driver', () => {
+    const sweep = { name: BULK_SWEEP_JOB, cron: '15 4 * * *', tz: 'Europe/Bratislava' };
+    expect(bulkEmailSchedules(testConfig())).toEqual([sweep]);
     expect(bulkEmailSchedules(elasticConfig('spolu'))).toEqual([
+      sweep,
       { name: BULK_SYNC_SUPPRESSIONS_JOB, cron: '30 4 * * *', tz: 'Europe/Bratislava' },
     ]);
   });

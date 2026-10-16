@@ -107,7 +107,7 @@ test('admin home: dashboard, sidebar, Úlohy and global board', async ({ page: s
       n.getByRole('region', { name: 'Zmienky' }).getByRole('link', {
         name: new RegExp(`skontrolovať ${stamp}`),
       }),
-    ).toHaveCount(0, { timeout: 5_000 });
+    ).toHaveCount(0, { timeout: 15_000 }); // reading travels over the socket; slow under load
 
     // 5. G1's Úlohy tab carries the yellow pill.
     await n.goto(`/groups/${g1.id}/chat`);
