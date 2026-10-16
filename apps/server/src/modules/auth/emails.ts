@@ -1,23 +1,9 @@
 import type { EmailMessage } from '../../infra/email/index.js';
+import { buildEmail } from '../../infra/email/layout.js';
 import type { EmailLanguage } from './language.js';
 
-const escapeHtml = (value: string): string =>
-  value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-
-/** Builds the message from plain-text paragraphs; the HTML part escapes every one. */
-function message(to: string, subject: string, paragraphs: string[]): EmailMessage {
-  return {
-    to: [to],
-    subject,
-    text: paragraphs.join('\n\n'),
-    html: paragraphs.map((p) => `<p>${escapeHtml(p)}</p>`).join('\n'),
-  };
-}
+const message = (to: string, subject: string, paragraphs: string[]): EmailMessage =>
+  buildEmail({ to, subject, paragraphs });
 
 export function loginCodeEmail(to: string, code: string, lang: EmailLanguage): EmailMessage {
   return lang === 'en'
