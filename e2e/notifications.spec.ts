@@ -47,12 +47,14 @@ test('the client switches the bell to Mentions and replies and it sticks after r
   await context.close();
 });
 
-// Push delivery by group mode. The e2e server runs the fake sender, which appends every send to a
-// file. One client logs in once for both tests.
-test.describe.serial('push delivery by group mode', () => {
+// Push delivery by group mode, then the email digest. The e2e server runs the fake sender, which
+// appends every send to a file. One client logs in once for all three tests; the digest test runs
+// last, so its messages do not queue in front of the push tests' deliveries.
+test.describe.serial('push and email delivery', () => {
   let groupId = '';
   let channelId = '';
   let clientId = '';
+  let clientEmail = '';
   let clientContext: BrowserContext;
   let adminContext: BrowserContext;
   const endpoint = fakeSubscription();
@@ -60,6 +62,7 @@ test.describe.serial('push delivery by group mode', () => {
   test.beforeAll(async ({ browser }) => {
     const stamp = Date.now();
     const email = `e2e-push-${stamp}@example.com`;
+    clientEmail = email;
     adminContext = await browser.newContext({ storageState: 'e2e/.auth/superadmin.json' });
     const created = await adminContext.request.post('/api/groups', {
       data: { name: `E2E Push ${stamp}`, egrantUrl: `https://e2e-push-${stamp}.egrant.sk` },
@@ -133,43 +136,17 @@ test.describe.serial('push delivery by group mode', () => {
     await waitForPush(endpoint.endpoint, (p) => p.body.includes(mention));
     expect(pushesFor(endpoint.endpoint).some((p) => p.body.includes(plain))).toBe(false);
   });
-});
 
-// The e2e server batches email after EMAIL_BATCH_DELAY_MS (3 s) instead of 10 minutes.
-test('with email on, one batched email arrives in Mailpit', async ({ browser }) => {
-  const stamp = Date.now();
-  const email = `e2e-digest-${stamp}@example.com`;
-  const adminContext = await browser.newContext({ storageState: 'e2e/.auth/superadmin.json' });
-  const clientContext = await browser.newContext({ locale: 'sk-SK', storageState: undefined });
-  try {
-    const created = await adminContext.request.post('/api/groups', {
-      data: { name: `E2E Digest ${stamp}`, egrantUrl: `https://e2e-digest-${stamp}.egrant.sk` },
+  // The e2e server batches email after EMAIL_BATCH_DELAY_MS (3 s) instead of 10 minutes.
+  test('with email on, one batched email arrives in Mailpit', async () => {
+    // Back to All messages: the test above left the client on Mentions and replies.
+    const reset = await clientContext.request.put(`/api/groups/${groupId}/notification-mode`, {
+      data: { mode: 'all' },
     });
-    const groupId = ((await created.json()) as { id: string }).id;
-    const channelId = (
-      (await (await adminContext.request.get(`/api/groups/${groupId}/chat`)).json()) as {
-        id: string;
-      }
-    ).id;
-    const admin = await adminContext.newPage();
-    await admin.goto(`/groups/${groupId}/members`);
-    const inviteUrl = await admin.getByRole('textbox', { name: 'Odkaz na pozvánku' }).inputValue();
+    expect(reset.status()).toBe(204);
 
-    // The install card can cover controls on a phone; dismissed here, as in chat-mobile.spec.ts.
-    await clientContext.addInitScript(() => {
-      localStorage.setItem('spolu.prompt.install.dismissedAt', String(Date.now()));
-    });
+    // The settings page, not the chat: an open chat would mark the messages read.
     const client = await clientContext.newPage();
-    await client.goto(new URL(inviteUrl).pathname);
-    await clearMailFor(clientContext.request, email);
-    await client.getByLabel('E-mail').fill(email);
-    await client.getByRole('button', { name: 'Poslať kód' }).click();
-    await client.getByLabel('Kód').fill(await latestLoginCode(clientContext.request, email));
-    await client.getByLabel('Vaše meno').fill('E2E Digest Client');
-    await client.getByRole('button', { name: 'Pokračovať' }).click();
-    await expect(client).toHaveURL(new RegExp(`/groups/${groupId}/chat$`));
-
-    // Off the chat, so the messages stay unread; then the Email switch in the settings.
     await client.goto('/settings');
     const emailSwitch = client.getByRole('switch', { name: 'E-mailové upozornenia' });
     await expect(emailSwitch).not.toBeChecked();
@@ -179,25 +156,19 @@ test('with email on, one batched email arrives in Mailpit', async ({ browser }) 
     await emailSwitch.click();
     expect((await saved).status()).toBe(200);
     await expect(emailSwitch).toBeChecked();
-    await clearMailFor(clientContext.request, email);
+    await clearMailFor(clientContext.request, clientEmail);
 
-    for (const n of [1, 2, 3]) {
-      const res = await adminContext.request.post(`/api/channels/${channelId}/messages`, {
-        data: { body: `digest ${n} ${stamp}`, clientId: randomUUID() },
-      });
-      expect(res.status()).toBe(201);
-    }
+    const stamp = Date.now();
+    for (const n of [1, 2, 3]) await send(`digest ${n} ${stamp}`);
 
     await expect
-      .poll(() => subjectsFor(clientContext.request, email), { timeout: 15_000 })
+      .poll(() => subjectsFor(clientContext.request, clientEmail), { timeout: 15_000 })
       .toHaveLength(1);
-    const [subject] = await subjectsFor(clientContext.request, email);
+    const [subject] = await subjectsFor(clientContext.request, clientEmail);
     expect(subject).toContain('3 nové správy');
     // No second email for the same messages.
     await client.waitForTimeout(5_000);
-    expect(await subjectsFor(clientContext.request, email)).toHaveLength(1);
-  } finally {
-    await clientContext.close();
-    await adminContext.close();
-  }
+    expect(await subjectsFor(clientContext.request, clientEmail)).toHaveLength(1);
+    await client.close();
+  });
 });
