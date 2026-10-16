@@ -78,6 +78,13 @@
       "when": 1792117646833,
       "tag": "0010_notifications_delivery",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1792119318770,
+      "tag": "0011_group_managers",
+      "breakpoints": true
     }
   ]
 }

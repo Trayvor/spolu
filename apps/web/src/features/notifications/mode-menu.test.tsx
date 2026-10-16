@@ -17,7 +17,12 @@ const CLIENT = {
   role: 'client' as const,
   groupId: 'g1',
 };
-const MODES: NotificationModes = { defaultMode: null, roleDefault: 'all', overrides: {} };
+const MODES: NotificationModes = {
+  defaultMode: null,
+  roleDefault: 'all',
+  overrides: {},
+  managerSet: [],
+};
 
 /** `put` decides the answer to the mode PUT: a promise to hold it, or a status. */
 function setup(put: () => Promise<Response>, getModes?: () => Promise<Response>) {

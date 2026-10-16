@@ -173,6 +173,7 @@ describe('notifications API', () => {
       defaultMode: null,
       roleDefault: 'all',
       overrides: {},
+      managerSet: [],
     });
     expect(
       (await call('GET', '/api/notifications/modes', a.cookie)).json<NotificationModes>()
@@ -193,6 +194,7 @@ describe('notifications API', () => {
       defaultMode: 'off',
       roleDefault: 'mentions',
       overrides: { [g.id]: 'all' },
+      managerSet: [],
     });
   });
 
@@ -262,6 +264,7 @@ describe('notifications API', () => {
       defaultMode: null,
       roleDefault: 'mentions',
       overrides: {},
+      managerSet: [],
     });
   });
 

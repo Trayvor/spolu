@@ -30,7 +30,7 @@ const BETA = {
   updatedAt: '2026-10-15T11:00:00.000Z',
 };
 
-const MODES = { defaultMode: null, roleDefault: 'mentions', overrides: {} };
+const MODES = { defaultMode: null, roleDefault: 'mentions', overrides: {}, managerSet: [] };
 
 function mockApi(
   groups: unknown[],

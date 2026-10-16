@@ -36,7 +36,12 @@ export function useGroupMode(groupId: string) {
   const { data } = useQuery(notificationModesQuery);
   const mutation = useOptimisticModes<GroupMode>(
     (mode) => setGroupMode(groupId, mode),
-    (old, mode) => ({ ...old, overrides: { ...old.overrides, [groupId]: mode } }),
+    // A bell change makes the row the user's own, so it is no longer a manager row.
+    (old, mode) => ({
+      ...old,
+      overrides: { ...old.overrides, [groupId]: mode },
+      managerSet: old.managerSet.filter((id) => id !== groupId),
+    }),
   );
   const mode =
     role &&
@@ -61,7 +66,7 @@ export function useDefaultMode() {
       const saved = await setDefaultMode(mode);
       queryClient.setQueryData(KEY, saved);
     },
-    (old, mode) => ({ ...old, defaultMode: mode, overrides: {} }),
+    (old, mode) => ({ ...old, defaultMode: mode, overrides: {}, managerSet: [] }),
   );
   return { setMode: mutation.mutate, isError: mutation.isError, clearError: mutation.reset };
 }

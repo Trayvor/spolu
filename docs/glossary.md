@@ -19,6 +19,7 @@ Terms used across the docs and code, in alphabetical order.
 - **group mode**: what one user hears about one group: All messages, Mentions and replies, or Off. Set with the bell in the group header or on the groups page; without a choice it follows the user's "All groups" default, else the role default (clients All messages, admins Mentions and replies).
 - **invite link**: a link an admin copies from a group. A client opens it, enters an email, gets a code and joins that group.
 - **login code**: the 6-digit one-time code sent by email to log in; valid 5 minutes, 3 tries. Also called OTP code.
+- **manager**: an admin who manages a group (an eGrant account manager for that client). A per-group flag, not a role: a group can have several managers and an admin can manage several groups; each admin becomes or stops being one only for themselves. A disabled admin does not count. Becoming manager turns the group's mode to All messages unless the admin chose one.
 - **member**: a user who belongs to a group.
 - **mention**: tagging a user with @ in a message so they are notified.
 - **message**: one post in a channel. Can have attachments, a thread and mentions.

@@ -39,6 +39,10 @@ export const GroupPersonSchema = z.object({
 export type GroupPerson = z.infer<typeof GroupPersonSchema>;
 export const GroupPersonListSchema = z.array(GroupPersonSchema);
 
+/** An active admin who manages a group. */
+export const GroupManagerSchema = z.object({ id: z.string(), name: z.string() });
+export type GroupManager = z.infer<typeof GroupManagerSchema>;
+
 export const JoinInfoSchema = z.object({
   name: z.string(),
   hasLogo: z.boolean(),
