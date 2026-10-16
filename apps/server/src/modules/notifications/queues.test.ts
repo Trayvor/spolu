@@ -32,8 +32,26 @@ describe('notification queues', () => {
     });
   });
 
-  it('20 push jobs finish in under 3 s', async () => {
-    const push = createFakePushSender();
+  it('20 push jobs are sent in parallel', async () => {
+    const fake = createFakePushSender();
+    const endpoints = new Set<string>();
+    let inFlight = 0;
+    let maxInFlight = 0;
+    // A sender as slow as the network: parallel workers overlap, a single worker never would.
+    // Counting overlap instead of wall time keeps the check stable on a loaded CI runner, and the
+    // 10 s wait still fails when the jobs past the second round of 8 wait for the 30 s poll.
+    const push = {
+      async send(...args: Parameters<typeof fake.send>) {
+        const ours = endpoints.has(args[0].endpoint);
+        if (ours) maxInFlight = Math.max(maxInFlight, ++inFlight);
+        try {
+          await new Promise((resolve) => setTimeout(resolve, 200));
+          return await fake.send(...args);
+        } finally {
+          if (ours) inFlight--;
+        }
+      },
+    };
     const handlers = notificationsJobHandlers({
       db,
       config: testConfig(),
@@ -46,7 +64,6 @@ describe('notification queues', () => {
     });
     try {
       const ids: string[] = [];
-      const endpoints = new Set<string>();
       for (let i = 0; i < 20; i++) {
         const endpoint = `https://push.example.test/${randomUUID()}`;
         endpoints.add(endpoint);
@@ -55,7 +72,6 @@ describe('notification queues', () => {
           select id from push_subscriptions where endpoint = ${endpoint}`;
         ids.push(row!.id);
       }
-      const started = Date.now();
       for (const subscriptionId of ids) {
         await jobs.queue.send(
           PUSH_JOB,
@@ -64,9 +80,9 @@ describe('notification queues', () => {
         );
       }
       // Count only ours: pushes left in the queue by an earlier run may be sent too.
-      const ours = () => push.sent.filter((p) => endpoints.has(p.endpoint));
-      await vi.waitFor(() => expect(ours()).toHaveLength(20), { timeout: 5000, interval: 50 });
-      expect(Date.now() - started).toBeLessThan(3000);
+      const ours = () => fake.sent.filter((p) => endpoints.has(p.endpoint));
+      await vi.waitFor(() => expect(ours()).toHaveLength(20), { timeout: 10_000, interval: 50 });
+      expect(maxInFlight).toBeGreaterThan(1);
     } finally {
       await jobs.stop();
     }

@@ -42,12 +42,14 @@ export function notificationsJobHandlers(
 /**
  * Deliver is stately (at most one queued and one active: requests after a write coalesce, and
  * the global sweep with `SKIP LOCKED` delivers everything). Push sends run 8 at once with a
- * short poll: one job per device, each a network round trip to the push service. Digest jobs are
+ * short poll: one job per device, each a network round trip to the push service. A burst of more
+ * than 16 pushes outruns its NOTIFY wake-ups, so the push queue's backstop poll is 1 s, not 30 s.
+ * Digest jobs are
  * sent with a delay, which NOTIFY does not wake, so that queue polls (every 2 s) instead.
  */
 export const notificationQueues: Record<string, QueueSettings> = {
   [DELIVER_JOB]: { policy: 'stately' },
-  [PUSH_JOB]: { localConcurrency: 8, pollingIntervalSeconds: 0.5 },
+  [PUSH_JOB]: { localConcurrency: 8, pollingIntervalSeconds: 0.5, notifyPollingIntervalSeconds: 1 },
   [DIGEST_JOB]: { notify: false },
 };
 
