@@ -218,6 +218,7 @@ export async function createTask(
       createdBy: actor.id,
       dueDate: input.dueDate,
       urgent: input.urgent,
+      link: input.link,
       completedAt: bucket.kind === 'done' ? now : null,
       sourceMessageId: null,
       createdAt: now,
@@ -320,6 +321,7 @@ export async function createTasksFromMessage(
         createdBy: actor.id,
         dueDate: draft.dueDate,
         urgent: draft.urgent,
+        link: draft.link,
         completedAt: null,
         sourceMessageId: source.id,
         // Distinct, ascending in input order: the first card is the oldest (a newest-first list
@@ -395,6 +397,7 @@ export async function updateTask(
         ...(patch.description !== undefined && { description: patch.description }),
         ...(patch.dueDate !== undefined && { dueDate: patch.dueDate }),
         ...(patch.urgent !== undefined && { urgent: patch.urgent }),
+        ...(patch.link !== undefined && { link: patch.link }),
         updatedAt,
       })
       .where(and(eq(tasks.id, id), eq(tasks.updatedAt, expected)))

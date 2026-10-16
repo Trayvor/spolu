@@ -45,6 +45,10 @@ test('admin and client work on the same task board live', async ({ page: admin, 
     await client.getByRole('link', { name: 'Pridať úlohu' }).first().click();
     const newPanel = client.getByRole('complementary', { name: 'Úloha' });
     await newPanel.getByLabel('Názov', { exact: true }).fill('Rozpočet');
+    // The first Create with an empty link only warns and focuses the link; the second creates.
+    await newPanel.getByRole('button', { name: 'Vytvoriť' }).click();
+    await expect(newPanel.getByText(/Odkaz je prázdny/)).toBeVisible();
+    await expect(newPanel.getByRole('textbox', { name: 'Odkaz', exact: true })).toBeFocused();
     await newPanel.getByRole('button', { name: 'Vytvoriť' }).click();
     await expect(newPanel).toHaveCount(0);
     await expect(bucket(client, 'Na spracovanie').getByText('Rozpočet')).toBeVisible();
@@ -122,6 +126,9 @@ test('admin creates a task through the full panel and marks it done', async ({ p
   await panel.getByLabel('Názov', { exact: true }).fill('Záverečná správa');
   await panel.getByLabel('Popis', { exact: true }).fill('Skontrolovať **rozpočet**');
   await panel.getByRole('switch', { name: 'Urgentné' }).click();
+  await panel
+    .getByRole('textbox', { name: 'Odkaz', exact: true })
+    .fill('https://egrant.sk/vyzvy/');
   await panel.getByRole('button', { name: 'Vytvoriť' }).click();
   await expect(panel).toHaveCount(0);
 
@@ -142,6 +149,11 @@ test('admin creates a task through the full panel and marks it done', async ({ p
     .getByRole('link', { name: /Záverečná správa/ })
     .click();
   await expect(panel.locator('strong', { hasText: 'rozpočet' })).toBeVisible();
+  // So was the link: it opens in a new tab.
+  await expect(panel.getByRole('link', { name: 'Otvoriť odkaz' })).toHaveAttribute(
+    'href',
+    'https://egrant.sk/vyzvy/',
+  );
 });
 
 test('the task panel is a full-screen sheet on a phone', async ({ browser }) => {

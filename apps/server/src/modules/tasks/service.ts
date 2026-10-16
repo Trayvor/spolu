@@ -124,6 +124,7 @@ export async function selectTasks(db: Db, where: SQL): Promise<TaskDto[]> {
       title: tasks.title,
       urgent: tasks.urgent,
       dueDate: tasks.dueDate,
+      link: tasks.link,
       completedAt: tasks.completedAt,
       sourceMessageId: tasks.sourceMessageId,
       createdAt: tasks.createdAt,

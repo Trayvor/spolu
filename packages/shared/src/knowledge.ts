@@ -3,6 +3,7 @@ import { IdSchema } from './chat.js';
 import { FileInfoSchema } from './files.js';
 import { ReminderSetDtoSchema } from './reminders.js';
 import { TaskPersonSchema } from './tasks.js';
+import { isHttpUrl, MAX_URL_LENGTH } from './urls.js';
 
 export const KnowledgeTypes = ['note', 'file', 'link', 'reminder'] as const;
 export type KnowledgeType = (typeof KnowledgeTypes)[number];
@@ -27,7 +28,7 @@ export type Visibility = (typeof Visibilities)[number];
 export const KNOWLEDGE_LIMITS = {
   title: 200,
   body: 10_000,
-  url: 2048,
+  url: MAX_URL_LENGTH,
   /** Files of a note (a file item has exactly one). */
   noteFiles: 10,
   /** Reminder times per item not yet sent (a new item: all of its times). */
@@ -45,17 +46,6 @@ export const KNOWLEDGE_LIMITS = {
   /** Group ids in the global list's `clients` filter. */
   clients: 200,
 } as const;
-
-/** An absolute http or https URL of at most 2048 characters (links, never `javascript:`). */
-export function isHttpUrl(value: string): boolean {
-  if (value.length > KNOWLEDGE_LIMITS.url) return false;
-  try {
-    const { protocol } = new URL(value);
-    return protocol === 'http:' || protocol === 'https:';
-  } catch {
-    return false;
-  }
-}
 
 const unique = (ids: string[]) => [...new Set(ids)];
 const isoDateTime = z.iso.datetime({ offset: true });

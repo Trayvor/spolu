@@ -48,6 +48,7 @@
     "files_one": "{{count}} file",
     "files_other": "{{count}} files",
     "reminders": "Has reminders",
+    "link": "Has a link",
     "moreAssignees": "+{{count}}",
     "markDone": "Mark as done",
     "markNotDone": "Mark as not done",
@@ -64,6 +65,10 @@
     "deadline": "Deadline",
     "urgent": "Urgent",
     "files": "Files",
+    "link": "Link",
+    "linkPlaceholder": "https://…",
+    "openLink": "Open link",
+    "linkEmptyWarning": "The link is empty. Adding one helps support resolve the task faster. Click Create again to save without it.",
     "errors": {
       "titleRequired": "Enter a title.",
       "titleTooLong": "Use at most 200 characters.",
@@ -71,6 +76,7 @@
       "assigneeNotAllowed": "Someone you chose can't be assigned here any more.",
       "tooManyFiles": "Attach at most 20 files.",
       "invalidDate": "Enter a valid deadline.",
+      "invalidLink": "Enter a full web address starting with http:// or https://.",
       "invalid": "Check the fields and try again."
     },
     "editDescription": "Edit description"

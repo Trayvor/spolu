@@ -7,13 +7,14 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { formatDue, isOverdue } from './dates';
 import { DoneCircle } from './done-circle';
-import { BellIcon, ChatIcon, PaperclipIcon } from './icons';
+import { BellIcon, ChatIcon, LinkIcon, PaperclipIcon } from './icons';
 
 const MAX_AVATARS = 3;
 
 /**
  * The card's meta row: up to three overlapping avatars with "+n", the due date (error ink when
- * overdue) and, pushed right, a bell when the task has upcoming custom reminders, a paperclip with
+ * overdue) and, pushed right, a link icon when the task has a link, a bell when the task has
+ * upcoming custom reminders, a paperclip with
  * the file count and a chat bubble with the message count (a dot on the bubble when the chat is
  * unread). Shared by the board card and the
  * AI review's card summaries.
@@ -25,6 +26,7 @@ export function TaskCardMeta({
   fileCount,
   chat,
   hasReminders = false,
+  hasLink = false,
 }: {
   assignees: TaskPerson[];
   dueDate: string | null;
@@ -33,6 +35,8 @@ export function TaskCardMeta({
   chat?: TaskChatSummary;
   /** Upcoming custom reminders (no count, to keep the card quiet). */
   hasReminders?: boolean;
+  /** The task has a link (no URL on the card: it opens from the panel). */
+  hasLink?: boolean;
 }) {
   const { t, i18n } = useTranslation();
   const hasChat = chat !== undefined && chat.count > 0;
@@ -69,8 +73,14 @@ export function TaskCardMeta({
           {overdue && <span className="sr-only"> ({t('tasks.card.overdue')})</span>}
         </time>
       )}
-      {(fileCount > 0 || hasChat || hasReminders) && (
+      {(fileCount > 0 || hasChat || hasReminders || hasLink) && (
         <span className="ml-auto flex items-center gap-3">
+          {hasLink && (
+            <span className="flex items-center">
+              <LinkIcon />
+              <span className="sr-only">{t('tasks.card.link')}</span>
+            </span>
+          )}
           {hasReminders && (
             <span className="flex items-center">
               <BellIcon />
@@ -147,6 +157,7 @@ export function TaskCard({
     task.dueDate !== null ||
     task.fileCount > 0 ||
     task.upcomingReminders > 0 ||
+    task.link !== null ||
     (chat?.count ?? 0) > 0;
 
   // The circle is a sibling of the link (no button inside a link), laid over its left padding
@@ -193,6 +204,7 @@ export function TaskCard({
             fileCount={task.fileCount}
             chat={chat}
             hasReminders={task.upcomingReminders > 0}
+            hasLink={task.link !== null}
           />
         )}
       </Link>

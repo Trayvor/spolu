@@ -70,6 +70,8 @@ export const tasks = pgTable(
       .references(() => user.id),
     dueDate: date('due_date', { mode: 'string' }),
     urgent: boolean('urgent').notNull().default(false),
+    /** An http(s) URL (checked by the shared schema), or null. */
+    link: text('link'),
     /** Set when moved into Completed, cleared when moved out. */
     completedAt: timestamp('completed_at', { withTimezone: true }),
     /**

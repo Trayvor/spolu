@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { FileInfoSchema } from './files.js';
+import { isHttpUrl } from './urls.js';
 
 export const BucketKindSchema = z.enum([
   'todo',
@@ -41,6 +42,13 @@ const dueDateField = z
   .refine(isCalendarDate)
   .nullable();
 const fileIdsField = z.array(z.string()).max(20);
+/** An http(s) URL, trimmed; empty, blank or null clears it (stored as null). */
+const linkField = z
+  .string()
+  .trim()
+  .transform((value) => (value === '' ? null : value))
+  .refine((value) => value === null || isHttpUrl(value))
+  .nullable();
 
 /** The editable content of a task; the create endpoint and the task form share it. */
 export const TaskDraftSchema = z.object({
@@ -50,6 +58,7 @@ export const TaskDraftSchema = z.object({
   dueDate: dueDateField.default(null),
   urgent: z.boolean().default(false),
   fileIds: fileIdsField.default([]),
+  link: linkField.default(null),
 });
 export type TaskDraft = z.output<typeof TaskDraftSchema>;
 
@@ -64,6 +73,7 @@ export const TaskPatchSchema = z.object({
   dueDate: dueDateField.optional(),
   urgent: z.boolean().optional(),
   fileIds: fileIdsField.optional(),
+  link: linkField.optional(),
   /** `updatedAt` of the version being edited; a stale value answers 409 `task_changed`. */
   updatedAt: z.iso.datetime({ offset: true }),
 });
@@ -93,6 +103,8 @@ export const TaskDtoSchema = z.object({
   title: z.string(),
   urgent: z.boolean(),
   dueDate: z.string().nullable(),
+  /** An http(s) URL or null; the board card shows a link icon when set. */
+  link: z.string().nullable(),
   completedAt: z.string().nullable(),
   createdBy: TaskPersonSchema,
   assignees: z.array(TaskPersonSchema),

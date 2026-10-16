@@ -54,6 +54,7 @@ const toDraft = (task: TaskDetailDto): TaskDraft => ({
   dueDate: task.dueDate,
   urgent: task.urgent,
   fileIds: task.files.map((f) => f.id),
+  link: task.link,
 });
 
 const sameDraft = (a: TaskDraft, b: TaskDraft) =>
@@ -61,6 +62,7 @@ const sameDraft = (a: TaskDraft, b: TaskDraft) =>
   a.description === b.description &&
   a.dueDate === b.dueDate &&
   a.urgent === b.urgent &&
+  a.link === b.link &&
   a.assigneeIds.join() === b.assigneeIds.join() &&
   a.fileIds.join() === b.fileIds.join();
 
@@ -314,6 +316,8 @@ function TaskEditor({
     } catch (error) {
       if (error instanceof ApiError && error.code === 'task_changed') {
         setStale({ by: null });
+      } else if (error instanceof ApiError && error.code === 'invalid_url') {
+        setErrors({ link: t('tasks.form.errors.invalidLink') });
       } else if (error instanceof ApiError && error.code === 'invalid_assignee') {
         // Someone chosen left the group or stopped managing it: refresh who can be assigned.
         setErrors({ assigneeIds: t('tasks.form.errors.assigneeNotAllowed') });

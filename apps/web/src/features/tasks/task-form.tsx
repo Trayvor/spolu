@@ -1,6 +1,13 @@
-import { useEffect, useId, useRef, type ReactNode } from 'react';
+import { useEffect, useId, useRef, useState, type ReactNode, type Ref } from 'react';
 import { useTranslation } from 'react-i18next';
-import { TaskDraftSchema, type FileInfo, type TaskDraft, type TaskPerson } from '@spolu/shared';
+import {
+  isHttpUrl,
+  MAX_URL_LENGTH,
+  TaskDraftSchema,
+  type FileInfo,
+  type TaskDraft,
+  type TaskPerson,
+} from '@spolu/shared';
 import { i18n } from '@/i18n';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,6 +16,7 @@ import { FilesField } from '@/components/files-field';
 import { FormattedTextField } from '@/components/formatted-text-field';
 import { PeopleSelect } from '@/components/people-select';
 import { useGroupPeople } from '@/features/groups/use-group-people';
+import { LinkIcon } from './icons';
 import { UrgentSwitch } from './urgent-switch';
 
 /** The most assignees and files a task has (the shared `TaskDraftSchema` checks the same). */
@@ -16,7 +24,7 @@ const MAX_ASSIGNEES = 10;
 const MAX_TASK_FILES = 20;
 
 export type TaskFormErrors = Partial<
-  Record<'title' | 'description' | 'assigneeIds' | 'form', string>
+  Record<'title' | 'description' | 'assigneeIds' | 'link' | 'form', string>
 >;
 
 /** The empty draft a new card starts from. */
@@ -27,6 +35,7 @@ export const EMPTY_TASK_DRAFT: TaskDraft = {
   dueDate: null,
   urgent: false,
   fileIds: [],
+  link: null,
 };
 
 /** Checks a draft with the shared schema and returns translated messages per field. */
@@ -45,7 +54,14 @@ export function validateTaskDraft(value: TaskDraft): TaskFormErrors {
       errors.description = i18n.t('tasks.form.errors.descriptionTooLong');
     } else if (field === 'assigneeIds' && !errors.assigneeIds) {
       errors.assigneeIds = i18n.t('forms.people.full', { max: MAX_ASSIGNEES });
-    } else if (field !== 'title' && field !== 'description' && field !== 'assigneeIds') {
+    } else if (field === 'link') {
+      errors.link = i18n.t('tasks.form.errors.invalidLink');
+    } else if (
+      field !== 'title' &&
+      field !== 'description' &&
+      field !== 'assigneeIds' &&
+      field !== 'link'
+    ) {
       // Fields without an input of their own (files, deadline) report through the form error.
       errors.form ??= i18n.t(
         field === 'fileIds'
@@ -64,6 +80,31 @@ export function validateTaskDraft(value: TaskDraft): TaskFormErrors {
  * ring (2 px outline, 3 px offset) clear of the label.
  */
 const FIELD = 'flex flex-col gap-2.5';
+
+/**
+ * The one-time "the link is empty" warning of the forms that create a task by hand (the create
+ * panel). `holdSave(draft)` is called on Save: while the link is empty and the warning has not
+ * been shown yet, it shows it, focuses the link field and answers true (do not save); any later
+ * Save goes through. Typing a link hides the warning for good. Editing a task never uses it.
+ */
+export function useEmptyLinkWarning() {
+  const [state, setState] = useState<'unseen' | 'shown' | 'done'>('unseen');
+  const inputRef = useRef<HTMLInputElement>(null);
+  return {
+    inputRef,
+    shown: state === 'shown',
+    holdSave(draft: TaskDraft): boolean {
+      if (state !== 'unseen' || (draft.link ?? '').trim() !== '') return false;
+      setState('shown');
+      inputRef.current?.focus();
+      return true;
+    },
+    /** Pass every draft change: a typed link settles the warning. */
+    onDraft(draft: TaskDraft) {
+      if (state === 'shown' && draft.link) setState('done');
+    },
+  };
+}
 
 function FieldError({ id, message }: { id: string; message?: string }) {
   if (!message) return null;
@@ -89,6 +130,8 @@ export function TaskForm({
   knownPeople,
   autoFocusTitle = false,
   remindersSlot,
+  linkWarning = false,
+  linkInputRef,
 }: {
   value: TaskDraft;
   onChange: (next: TaskDraft) => void;
@@ -107,6 +150,9 @@ export function TaskForm({
    * AI review does not pass it.
    */
   remindersSlot?: ReactNode;
+  /** Show the empty-link warning under the link field (see `useEmptyLinkWarning`). */
+  linkWarning?: boolean;
+  linkInputRef?: Ref<HTMLInputElement>;
 }) {
   const { t } = useTranslation();
   const people = useGroupPeople(groupId).data;
@@ -121,6 +167,11 @@ export function TaskForm({
   const set = (patch: Partial<TaskDraft>) => onChange({ ...value, ...patch });
   const describedBy = (field: keyof TaskFormErrors) =>
     errors[field] ? id(`${field}-error`) : undefined;
+  const linkDescribedBy =
+    [describedBy('link'), linkWarning ? id('link-warning') : undefined]
+      .filter(Boolean)
+      .join(' ') || undefined;
+  const openable = value.link !== null && isHttpUrl(value.link.trim());
 
   return (
     <div className="space-y-5">
@@ -156,6 +207,44 @@ export function TaskForm({
           errorId={id('description-error')}
         />
         <FieldError id={id('description-error')} message={errors.description} />
+      </div>
+
+      <div className={FIELD}>
+        <Label htmlFor={id('link')}>{t('tasks.form.link')}</Label>
+        <Input
+          id={id('link')}
+          ref={linkInputRef}
+          type="url"
+          inputMode="url"
+          autoComplete="url"
+          placeholder={t('tasks.form.linkPlaceholder')}
+          value={value.link ?? ''}
+          maxLength={MAX_URL_LENGTH}
+          aria-invalid={!!errors.link || undefined}
+          aria-describedby={linkDescribedBy}
+          onChange={(event) => set({ link: event.target.value === '' ? null : event.target.value })}
+        />
+        <FieldError id={id('link-error')} message={errors.link} />
+        {linkWarning && (
+          <p
+            id={id('link-warning')}
+            role="status"
+            className="rounded-lg bg-secondary px-3 py-2 text-tiny text-foreground"
+          >
+            {t('tasks.form.linkEmptyWarning')}
+          </p>
+        )}
+        {openable && (
+          <a
+            href={value.link!.trim()}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex min-w-0 items-center gap-1.5 self-start text-tiny font-semibold underline underline-offset-2 hover:text-neutral"
+          >
+            <LinkIcon />
+            {t('tasks.form.openLink')}
+          </a>
+        )}
       </div>
 
       <div className={FIELD}>
