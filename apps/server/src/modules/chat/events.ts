@@ -7,12 +7,13 @@ import {
   type ChatThreadReplyEvent,
   type MessageDto,
 } from '@spolu/shared';
-import { emitToGroup, userRoom } from '../../infra/realtime/rooms.js';
+import { emitAdminActivity, emitToGroup, userRoom } from '../../infra/realtime/rooms.js';
 import type { ChannelRow } from './service.js';
 
 /**
  * Pushes a new, edited or deleted message (or a parent's new reply count) to the group room; a
- * task chat's events carry its `taskId`. Call after commit.
+ * task chat's events carry its `taskId`. Also sends `admin:activity` (kind `chat`) to the admins
+ * room. Call after commit.
  */
 export function emitMessage(
   io: SocketIOServer,
@@ -28,6 +29,7 @@ export function emitMessage(
     isNew,
   };
   emitToGroup(io, channel.groupId, ChatEvents.message, event);
+  emitAdminActivity(io, { groupId: channel.groupId, kind: 'chat' });
 }
 
 /**

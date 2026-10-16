@@ -8,9 +8,12 @@ import {
   type TaskDto,
   type TaskPerson,
 } from '@spolu/shared';
-import { emitToGroup } from '../../infra/realtime/rooms.js';
+import { emitAdminActivity, emitToGroup } from '../../infra/realtime/rooms.js';
 
-/** Every event goes to the group room and carries its `groupId`; call after the write commits. */
+/**
+ * Every event goes to the group room and carries its `groupId`; call after the write commits. A
+ * task change or delete also sends `admin:activity` (kind `task`) to the admins room.
+ */
 export function emitBuckets(io: SocketIOServer, groupId: string, buckets: BucketDto[]): void {
   const event: BoardBucketsEvent = { groupId, buckets };
   emitToGroup(io, groupId, BoardEvents.buckets, event);
@@ -19,9 +22,11 @@ export function emitBuckets(io: SocketIOServer, groupId: string, buckets: Bucket
 export function emitTask(io: SocketIOServer, task: TaskDto, actor: TaskPerson): void {
   const event: BoardTaskEvent = { task, actor };
   emitToGroup(io, task.groupId, BoardEvents.task, event);
+  emitAdminActivity(io, { groupId: task.groupId, kind: 'task' });
 }
 
 export function emitTaskDeleted(io: SocketIOServer, groupId: string, taskId: string): void {
   const event: BoardTaskDeletedEvent = { groupId, taskId };
   emitToGroup(io, groupId, BoardEvents.taskDeleted, event);
+  emitAdminActivity(io, { groupId, kind: 'task' });
 }

@@ -30,8 +30,17 @@ import {
   sendMessage,
 } from './messages.js';
 import { files } from '../files/schema.js';
-import { messageAttachments, messageMentions, messages } from './schema.js';
-import { ensureGroupChannel, ensureTaskChannel, getChannel, type ChannelRow } from './service.js';
+import { messageAttachments, messageMentions, messages, threadReadStates } from './schema.js';
+import {
+  ensureGroupChannel,
+  ensureTaskChannel,
+  getChannel,
+  markRead,
+  markThreadRead,
+  unreadCount,
+  unreadThreads,
+  type ChannelRow,
+} from './service.js';
 
 vi.mock('../files/service.js', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../files/service.js')>();
@@ -723,5 +732,82 @@ describe('task chat', () => {
     expect(await findReadableMessage(deps.db, outsider, message.id)).toBeNull();
     expect(await findReadableMessage(deps.db, s.b, randomUUID())).toBeNull();
     expect(await findReadableMessage(deps.db, s.b, 'not\u0000an-id')).toBeNull();
+  });
+});
+
+describe('a name mention in a reply joins the thread', () => {
+  /** A new group with client C and admins A and B, both managers (so they can be mentioned). */
+  async function threadSetup() {
+    const s = await setup();
+    const mkAdmin = async (name: string) => {
+      const row = await addAdmin(deps.db, { email: `${randomUUID()}@example.com`, name });
+      await addManager(deps.db, s.group.id, row.id);
+      return asSession({ ...row, role: 'admin' });
+    };
+    const A = await mkAdmin('Ada');
+    const B = await mkAdmin('Bob');
+    const { message: root } = await send(s.channel, s.a, { body: 'root' });
+    return { ...s, C: s.a, A, B, root };
+  }
+
+  const reply = (s: { channel: ChannelRow }, author: SessionUser, rootId: string, body = 'r') =>
+    send(s.channel, author, { body, parentId: rootId });
+
+  it("a reply naming A adds A's thread row and counts as unread for A", async () => {
+    const s = await threadSetup();
+    await markRead(deps.db, s.A.id, s.channel.id, new Date());
+    const before = await unreadCount(deps.db, s.A.id, s.channel.id);
+    const sent = await reply(s, s.C, s.root.id, `see ${mentionToken(s.A.id)}`);
+    expect(await unreadThreads(deps.db, s.A.id, s.channel.id)).toEqual([s.root.id]);
+    expect(await unreadCount(deps.db, s.A.id, s.channel.id)).toBe(before + 1);
+    expect(sent.threadPeople).toContain(s.A.id);
+  });
+
+  it('opening the thread clears it', async () => {
+    const s = await threadSetup();
+    await markRead(deps.db, s.A.id, s.channel.id, new Date());
+    await reply(s, s.C, s.root.id, `see ${mentionToken(s.A.id)}`);
+    await markThreadRead(deps.db, s.A.id, s.root.id);
+    expect(await unreadThreads(deps.db, s.A.id, s.channel.id)).toEqual([]);
+    expect(await unreadCount(deps.db, s.A.id, s.channel.id)).toBe(0);
+  });
+
+  it('a reply naming someone already in the thread keeps their older unread replies unread', async () => {
+    const s = await threadSetup();
+    await markRead(deps.db, s.B.id, s.channel.id, new Date());
+    await reply(s, s.B, s.root.id);
+    await reply(s, s.C, s.root.id);
+    await reply(s, s.C, s.root.id);
+    await reply(s, s.C, s.root.id, `and ${mentionToken(s.B.id)}`);
+    expect(await unreadCount(deps.db, s.B.id, s.channel.id)).toBe(3);
+  });
+
+  it('an @all reply adds no thread rows', async () => {
+    const s = await threadSetup();
+    await reply(s, s.B, s.root.id, `hey ${mentionToken('all')}`);
+    const rows = await deps.db
+      .select({ userId: threadReadStates.userId })
+      .from(threadReadStates)
+      .where(eq(threadReadStates.rootId, s.root.id));
+    expect(new Set(rows.map((r) => r.userId))).toEqual(new Set([s.B.id, s.C.id]));
+  });
+
+  it('a self-mention adds nothing', async () => {
+    const s = await threadSetup();
+    await reply(s, s.A, s.root.id, `me ${mentionToken(s.A.id)}`);
+    const rows = await deps.db
+      .select({ userId: threadReadStates.userId })
+      .from(threadReadStates)
+      .where(eq(threadReadStates.rootId, s.root.id));
+    expect(new Set(rows.map((r) => r.userId))).toEqual(new Set([s.A.id, s.C.id]));
+    expect(await unreadThreads(deps.db, s.A.id, s.channel.id)).toEqual([]);
+  });
+
+  it('the named user gets chat.mention and no chat.thread_reply', async () => {
+    const s = await threadSetup();
+    const { message } = await reply(s, s.B, s.root.id, `see ${mentionToken(s.A.id)}`);
+    const events = await eventsFor(message.id);
+    expect(recipientsOf(events, 'chat.mention')).toEqual(new Set([s.A.id]));
+    expect(recipientsOf(events, 'chat.thread_reply')).toEqual(new Set([s.C.id]));
   });
 });

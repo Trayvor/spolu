@@ -3,15 +3,21 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { eq } from 'drizzle-orm';
 import { io as connect, type Socket } from 'socket.io-client';
 import {
+  AdminEvents,
+  type AdminActivityEvent,
   GroupEvents,
   SocketEvents,
+  TaskCreateSchema,
   type GroupJoinAck,
   type GroupManagersEvent,
   type PingAck,
 } from '@spolu/shared';
 import { buildTestApp } from '../../../test/test-app.js';
 import { loginAs } from '../../../test/login.js';
+import { ensureGroupChannel } from '../../modules/chat/service.js';
 import { addMember, createGroup } from '../../modules/groups/service.js';
+import { listBuckets } from '../../modules/tasks/service.js';
+import { createTask } from '../../modules/tasks/task-service.js';
 import { addAdmin } from '../../modules/users/service.js';
 import { user } from '../../modules/users/schema.js';
 import {
@@ -417,6 +423,84 @@ describe('socket.io', () => {
       expect((await put(g.id, admin.cookie)).statusCode).toBe(200);
       await settle();
       expect(got).toEqual([]);
+    });
+  });
+
+  describe('admin:activity', () => {
+    const mkGroup = () =>
+      createGroup(test.deps.db, {
+        name: 'Activity',
+        egrantUrl: `https://g${randomUUID().replaceAll('-', '')}.egrant.sk`,
+      });
+    const clientIn = async (groupId: string) => {
+      const email = `${randomUUID()}@example.com`;
+      const id = randomUUID();
+      await test.deps.db
+        .insert(user)
+        .values({ id, email, name: 'C', role: 'client', emailVerified: true });
+      await addMember(test.deps.db, groupId, id);
+      return { id, cookie: await loginAs(test.app, email) };
+    };
+    const connected = async (cookie: string) => {
+      const socket = connectWith({ cookie });
+      await nextEvent(socket, 'connect');
+      return socket;
+    };
+    const collect = (socket: Socket) => {
+      const got: AdminActivityEvent[] = [];
+      socket.on(AdminEvents.activity, (e: AdminActivityEvent) => got.push(e));
+      return got;
+    };
+    const settle = () => new Promise((r) => setTimeout(r, 150));
+
+    it('admin:activity reaches admins only', async () => {
+      const [g, other] = [await mkGroup(), await mkGroup()];
+      const admin = await loggedIn(test);
+      const own = await clientIn(g.id);
+      const foreign = await clientIn(other.id);
+      const sockets = await Promise.all([
+        connected(admin.cookie),
+        connected(own.cookie),
+        connected(foreign.cookie),
+      ]);
+      const [a, o, f] = sockets.map(collect) as [
+        AdminActivityEvent[],
+        AdminActivityEvent[],
+        AdminActivityEvent[],
+      ];
+      const channel = await ensureGroupChannel(test.deps.db, g.id);
+      const res = await test.app.inject({
+        method: 'POST',
+        url: `/api/channels/${channel.id}/messages`,
+        headers: { cookie: own.cookie, origin: 'http://localhost:3000' },
+        payload: { body: 'hi', clientId: randomUUID() },
+      });
+      expect(res.statusCode).toBe(201);
+      await settle();
+      expect(a).toEqual([{ groupId: g.id, kind: 'chat' }]);
+      expect(o).toEqual([]);
+      expect(f).toEqual([]);
+    });
+
+    it('a task move sends kind task', async () => {
+      const g = await mkGroup();
+      const admin = await loggedIn(test);
+      const socket = await connected(admin.cookie);
+      const actor = { id: admin.id, email: 'x@example.com', name: 'A', role: 'admin' } as const;
+      const task = await createTask(test.deps, actor, g.id, TaskCreateSchema.parse({ title: 'T' }));
+      const review = (await listBuckets(test.deps.db, g.id)).find(
+        (b) => b.kind === 'egrant_review',
+      )!;
+      const got = collect(socket);
+      const res = await test.app.inject({
+        method: 'POST',
+        url: `/api/tasks/${task.id}/move`,
+        headers: { cookie: admin.cookie, origin: 'http://localhost:3000' },
+        payload: { bucketId: review.id, afterTaskId: null },
+      });
+      expect(res.statusCode).toBe(200);
+      await settle();
+      expect(got).toEqual([{ groupId: g.id, kind: 'task' }]);
     });
   });
 });

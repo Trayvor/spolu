@@ -1,4 +1,5 @@
 import type { Server as SocketIOServer } from 'socket.io';
+import { AdminEvents, type AdminActivityEvent } from '@spolu/shared';
 
 /** The room every socket of one user joins on connect. */
 export function userRoom(userId: string): string {
@@ -12,6 +13,15 @@ export function sessionRoom(sessionId: string): string {
 
 /** The room of every admin socket: it carries events about all groups, such as `group:managers`. */
 export const ADMINS_ROOM = 'admins';
+
+/**
+ * Tells every admin socket that something changed in a group (`kind`: its chats or its tasks), so
+ * the admin home's sidebar, dashboard and global board refetch. Clients never get it. Call after
+ * the write commits, next to the group-room event.
+ */
+export function emitAdminActivity(io: SocketIOServer, event: AdminActivityEvent): void {
+  io.to(ADMINS_ROOM).emit(AdminEvents.activity, event);
+}
 
 /** Closes every socket of a user, e.g. after the user is removed. */
 export function disconnectUser(io: SocketIOServer, userId: string): void {

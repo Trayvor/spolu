@@ -116,7 +116,8 @@ async function checkThread(db: Db, channelId: string, data: SendMessageInput): P
  * author), whose delivery is requested after the commit. A repeated `clientId` of the same author
  * returns the stored message with `created: false` and writes nothing; `parent` is then null. `parent` is the updated root of a
  * new reply, for the caller to push; `threadPeople` are the people of its thread still in the
- * group, without the author (the reply counts as unread for them).
+ * group, without the author (the reply counts as unread for them), including the people the reply
+ * names (never @all), who become people of the thread.
  */
 export async function sendMessage(
   deps: AppDeps,
@@ -205,10 +206,17 @@ export async function sendMessage(
         threadPeople = others(new Set([root!.authorId, ...repliers.map((r) => r.authorId)])).filter(
           (id) => nameById.has(id),
         );
+        // Naming someone in a reply makes them one of the thread's people (never @all).
         await recordReplyReads(
           tx,
-          { channelId: channel.id, rootId: parentId, authorId: author.id },
+          {
+            channelId: channel.id,
+            rootId: parentId,
+            authorId: author.id,
+            createdAt: row!.createdAt,
+          },
           root!,
+          mentions.userIds,
         );
       }
 
@@ -233,7 +241,12 @@ export async function sendMessage(
       // Replies only notify the thread; the channel hears about top-level messages.
       if (parentId === null) await notify('chat.message', everyone);
       await notify('chat.mention', mentions.all ? [...pickable] : mentions.userIds);
-      if (parentId !== null) await notify('chat.thread_reply', threadPeople);
+      if (parentId !== null) {
+        // The named people already get chat.mention; the thread notice stays with the old people.
+        await notify('chat.thread_reply', threadPeople);
+        const named = others(mentions.userIds).filter((id) => nameById.has(id));
+        threadPeople = [...new Set([...threadPeople, ...named])];
+      }
     });
   } catch (error) {
     if (!isUniqueViolation(error)) throw error;

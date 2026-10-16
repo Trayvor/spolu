@@ -328,11 +328,16 @@ export async function markThreadRead(db: Db, userId: string, rootId: string): Pr
  * "Newest" is the latest reply this transaction sees, not the new reply's own time: a concurrent
  * reply can take a later `created_at` yet commit first (the channel row lock orders the writers),
  * and the replier saw it, so it must not stay unread for them.
+ *
+ * `mentionedIds` (Phase 20) are the people the reply names (never @all): each, other than the
+ * replier, becomes one of the thread's people with a read mark just before the reply, so the reply
+ * is unread for them. An existing row keeps its read mark: a mention never marks older replies read.
  */
 export async function recordReplyReads(
   tx: Db,
-  reply: { channelId: string; rootId: string; authorId: string },
+  reply: { channelId: string; rootId: string; authorId: string; createdAt?: Date },
   root: { authorId: string; createdAt: Date },
+  mentionedIds: string[] = [],
 ): Promise<void> {
   const [newest] = await tx
     .select({ at: sql<Date>`max(${messages.createdAt})`.mapWith(messages.createdAt) })
@@ -361,6 +366,19 @@ export async function recordReplyReads(
       target: [threadReadStates.rootId, threadReadStates.userId],
       set: {
         lastReadAt: sql`greatest(${threadReadStates.lastReadAt}, excluded.last_read_at)`,
+        lastReplyAt: sql`greatest(${threadReadStates.lastReplyAt}, excluded.last_reply_at)`,
+      },
+    });
+  const named = [...new Set(mentionedIds)].filter((id) => id !== reply.authorId);
+  if (named.length === 0) return;
+  const replyAt = reply.createdAt ?? latest;
+  const before = new Date(replyAt.getTime() - 1);
+  await tx
+    .insert(threadReadStates)
+    .values(named.map((userId) => row(userId, before)))
+    .onConflictDoUpdate({
+      target: [threadReadStates.rootId, threadReadStates.userId],
+      set: {
         lastReplyAt: sql`greatest(${threadReadStates.lastReplyAt}, excluded.last_reply_at)`,
       },
     });
