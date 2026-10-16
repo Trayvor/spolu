@@ -54,12 +54,19 @@ export interface QueueSettings {
   localConcurrency?: number;
   /** Idle poll in seconds when LISTEN/NOTIFY is down (default 2, at least 0.5). */
   pollingIntervalSeconds?: number;
+  /**
+   * LISTEN/NOTIFY wake-ups (default true). A notify queue polls only every 30 s, and a delayed job
+   * (`startAfter`) sends no NOTIFY when it becomes due, so a queue of delayed jobs sets `false`
+   * and is polled every `pollingIntervalSeconds` instead.
+   */
+  notify?: boolean;
 }
 
 /**
  * Starts the pg-boss job queue in the app's PostgreSQL (schema `pgboss`, created on first start)
  * with a queue and a worker for each handler, set up by `queues[name]` when given.
- * LISTEN/NOTIFY is on, so a sent job wakes its worker at once; polling stays as the fallback.
+ * LISTEN/NOTIFY is on, so a sent job wakes its worker at once; polling stays as the fallback
+ * (every 30 s on a notify queue; queues of delayed jobs opt out with `notify: false`).
  */
 export async function startJobs(
   databaseUrl: string,
@@ -75,15 +82,20 @@ export async function startJobs(
   await boss.start();
 
   for (const [name, handler] of Object.entries(handlers)) {
-    const { policy = 'standard', localConcurrency, pollingIntervalSeconds } = queues[name] ?? {};
+    const {
+      policy = 'standard',
+      localConcurrency,
+      pollingIntervalSeconds,
+      notify = true,
+    } = queues[name] ?? {};
     let existing = await boss.getQueue(name);
     if (existing && existing.policy !== policy) {
       console.warn(`pg-boss: recreating queue ${name} (policy ${existing.policy} -> ${policy})`);
       await boss.deleteQueue(name);
       existing = null;
     }
-    if (!existing) await boss.createQueue(name, { policy, notify: true });
-    else if (!existing.notify) await boss.updateQueue(name, { notify: true });
+    if (!existing) await boss.createQueue(name, { policy, notify });
+    else if (existing.notify !== notify) await boss.updateQueue(name, { notify });
     await boss.work(
       name,
       {
