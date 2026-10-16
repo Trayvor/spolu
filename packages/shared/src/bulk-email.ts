@@ -234,3 +234,18 @@ export const BULK_PEOPLE_SEARCH = { minQuery: 2, maxQuery: 200, limit: 20 } as c
 export const BulkPeopleLookupSchema = z.object({
   ids: z.array(z.string().min(1).max(100)).max(BULK_LIMITS.audienceIds * 2),
 });
+
+/**
+ * `GET /api/bulk-email/unsubscribe/:token` (public): what the unsubscribe page needs and nothing
+ * more (no name, no address). `test`: the link of a test email, which changes nothing.
+ */
+export const BulkUnsubscribeInfoSchema = z.object({
+  language: z.enum(['sk', 'en']),
+  subscribed: z.boolean(),
+  test: z.boolean(),
+});
+export type BulkUnsubscribeInfo = z.infer<typeof BulkUnsubscribeInfoSchema>;
+
+/** `GET`/`PUT /api/me/bulk-email`: the signed-in person's "Receive mailings" setting. */
+export const BulkSubscriptionSchema = z.object({ subscribed: z.boolean() });
+export type BulkSubscription = z.infer<typeof BulkSubscriptionSchema>;

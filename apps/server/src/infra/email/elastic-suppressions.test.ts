@@ -71,7 +71,9 @@ describe('elastic suppressions client', () => {
 
   it('removing an address that is not suppressed (404) is fine', async () => {
     const { fetchImpl } = fakeFetch(() => new Response('not found', { status: 404 }));
-    await expect(createElasticSuppressions('k', fetchImpl).remove('a@b.sk')).resolves.toBeUndefined();
+    await expect(
+      createElasticSuppressions('k', fetchImpl).remove('a@b.sk'),
+    ).resolves.toBeUndefined();
   });
 
   it('a failed remove throws', async () => {

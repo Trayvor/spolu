@@ -19,7 +19,12 @@ import { setSubscribed } from './subscriptions.js';
 
 const elasticConfig = (unsubscribe: 'elastic' | 'spolu'): Config =>
   testConfig({
-    bulkEmail: { driver: 'elastic', apiKey: 'secret-key', from: 'eGrant <i@egrant.sk>', unsubscribe },
+    bulkEmail: {
+      driver: 'elastic',
+      apiKey: 'secret-key',
+      from: 'eGrant <i@egrant.sk>',
+      unsubscribe,
+    },
   });
 
 type Lists = { unsubscribes: unknown[]; complaints: unknown[] };
@@ -71,7 +76,9 @@ describe('bulk email jobs', () => {
         complaints: [],
       });
       await syncSuppressions({ db, config: elasticConfig('elastic') }, fetchImpl);
-      expect(calls.map((c) => c.url.replace('https://api.elasticemail.com/v4/suppressions/', ''))).toEqual([
+      expect(
+        calls.map((c) => c.url.replace('https://api.elasticemail.com/v4/suppressions/', '')),
+      ).toEqual([
         'unsubscribes?limit=1000&offset=0',
         'unsubscribes?limit=1000&offset=1000',
         'complaints?limit=1000&offset=0',
@@ -138,7 +145,11 @@ describe('bulk email jobs', () => {
       const { queue, sent } = recordingQueue();
       await queueProviderResubscribe({ config: elasticConfig('elastic'), jobs: queue }, 'a@b.sk');
       expect(sent).toEqual([
-        { name: BULK_PROVIDER_RESUBSCRIBE_JOB, data: { email: 'a@b.sk' }, options: { retryLimit: 2 } },
+        {
+          name: BULK_PROVIDER_RESUBSCRIBE_JOB,
+          data: { email: 'a@b.sk' },
+          options: { retryLimit: 2 },
+        },
       ]);
     });
 

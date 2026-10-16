@@ -12,7 +12,13 @@ import {
   unsubscribedSql,
 } from './subscriptions.js';
 
-const audience = { groupIds: [], managerIds: [], roles: [], includeUserIds: [], excludeUserIds: [] };
+const audience = {
+  groupIds: [],
+  managerIds: [],
+  roles: [],
+  includeUserIds: [],
+  excludeUserIds: [],
+};
 
 describe('bulk email subscriptions', () => {
   const { db, close } = createDb(testDatabaseUrl);
@@ -104,7 +110,11 @@ describe('bulk email subscriptions', () => {
         { email: `${randomUUID()}@nobody.example`, date },
       ]);
       expect(changed).toBe(1);
-      expect(await row(a.id)).toMatchObject({ subscribed: false, source: 'provider', changedAt: date });
+      expect(await row(a.id)).toMatchObject({
+        subscribed: false,
+        source: 'provider',
+        changedAt: date,
+      });
     });
 
     it('never overrides a row changed in Spolu after the provider date', async () => {

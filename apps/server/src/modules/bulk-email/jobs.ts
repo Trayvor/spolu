@@ -77,7 +77,9 @@ export function bulkEmailJobHandlers(
     [BULK_SYNC_SUPPRESSIONS_JOB]: async () => {
       const { checked, changed } = await syncSuppressions(deps, fetchImpl);
       if (changed > 0) {
-        console.info(`${BULK_SYNC_SUPPRESSIONS_JOB}: ${changed} of ${checked} addresses unsubscribed`);
+        console.info(
+          `${BULK_SYNC_SUPPRESSIONS_JOB}: ${changed} of ${checked} addresses unsubscribed`,
+        );
       }
     },
   };

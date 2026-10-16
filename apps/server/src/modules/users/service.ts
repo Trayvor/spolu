@@ -350,5 +350,8 @@ export async function getUsersByEmails(
 ): Promise<{ id: string; email: string }[]> {
   const wanted = [...new Set(emails.map(normalizeEmail))];
   if (wanted.length === 0) return [];
-  return db.select({ id: user.id, email: user.email }).from(user).where(inArray(user.email, wanted));
+  return db
+    .select({ id: user.id, email: user.email })
+    .from(user)
+    .where(inArray(user.email, wanted));
 }
