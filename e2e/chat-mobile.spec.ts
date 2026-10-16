@@ -29,8 +29,10 @@ test('on a phone, "⋯" opens the action sheet and Reply in thread opens the thr
     await expect(message.getByRole('toolbar', { name: 'Akcie správy' })).toBeHidden();
     await message.getByRole('button', { name: 'Akcie správy' }).tap();
     const sheet = page.getByRole('dialog', { name: 'Akcie správy' });
+    // "Vytvoriť úlohy" (Turn into tasks): the e2e server runs the fake AI provider.
     await expect(sheet.getByRole('button')).toHaveText([
       'Odpovedať vo vlákne',
+      'Vytvoriť úlohy',
       'Upraviť',
       'Odstrániť',
     ]);
