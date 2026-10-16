@@ -17,7 +17,7 @@ Terms used across the docs and code, in alphabetical order.
 - **custom reminders**: reminder times someone sets on a task themselves (Phase 19), for themselves, the people they add and anyone who subscribes. They sit beside the automatic reminders, do not move with the deadline, and export to a calendar with the deadline.
 - **client**: a person from a customer organization. Sees only their own groups (one or several, Phase 21); in the database the role of their membership in each group.
 - **contract**: a record of an agreement with a client (dates, amount, files, notes). Admin-only.
-- **dashboard**: the admin home at `/` (Phase 20): a greeting and three count cards (Assigned to me, Upcoming reminders, Mentions), each a big count beside a list of items that open where they live. On phones the cards are count tiles above the client list.
+- **dashboard**: the admin home at `/` (Phase 20): a greeting and four count cards (Tickets, My tasks (formerly Assigned to me), Upcoming reminders, Mentions), each a big count beside a list of items that open where they live. On phones the cards are count tiles above the client list.
 - **deactivated admin**: an admin who was removed. The row is kept with `disabled_at` set; the person cannot log in, gets no codes and loses open sessions and sockets. Adding the same email again reactivates them.
 - **draft contract**: the prepared next contract for a client, with the same fields as a contract.
 - **egrant URL**: the address of a client's eGrant instance, saved on the group. Incoming tickets are matched to a group by it. It is normalized first (case, protocol, trailing slash and similar differences are removed) so that equal addresses compare equal.

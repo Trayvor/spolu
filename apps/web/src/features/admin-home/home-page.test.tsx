@@ -3,7 +3,14 @@ import type { ReactNode } from 'react';
 import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { AdminEvents, type AssignedTask, type Me, type MentionItem } from '@spolu/shared';
+import {
+  AdminEvents,
+  TicketEvents,
+  type AssignedTask,
+  type HomeTicket,
+  type Me,
+  type MentionItem,
+} from '@spolu/shared';
 import { i18n, setLanguage } from '@/i18n';
 import { sessionQuery } from '@/features/auth/use-session';
 import { HomePage } from './home-page';
@@ -46,7 +53,20 @@ const mention = (over: Partial<MentionItem> & { messageId: string }): MentionIte
   ...over,
 });
 
-type Answers = Partial<Record<'tasks' | 'mentions' | 'reminders' | 'sidebar', unknown>> & {
+const ticket = (over: Partial<HomeTicket> & { id: string; number: number }): HomeTicket => ({
+  subject: 'Budget question',
+  excerpt: null,
+  status: 'in_progress',
+  groupId: 'g1',
+  groupName: 'ABC s.r.o.',
+  dueDate: null,
+  createdAt: '2026-10-16T08:00:00.000Z',
+  ...over,
+});
+
+type Answers = Partial<
+  Record<'tasks' | 'tickets' | 'mentions' | 'reminders' | 'sidebar', unknown>
+> & {
   fail?: string[];
 };
 
@@ -61,6 +81,24 @@ function mockApi(answers: Answers = {}) {
         task({ id: 't1', title: 'Fix budget table', urgent: true, dueDate: '2026-10-01' }),
         task({ id: 't2', title: 'Upload invoices', dueDate: '2999-10-22', groupId: 'g2' }),
         task({ id: 't3', title: 'Report', groupName: 'Krok' }),
+      ],
+    },
+    tickets: {
+      total: 25,
+      fresh: 2,
+      unassigned: 1,
+      items: [
+        ticket({ id: 'k1', number: 41, status: 'new', subject: 'Login fails' }),
+        ticket({
+          id: 'k2',
+          number: 42,
+          status: 'new',
+          subject: null,
+          excerpt: 'Where is the form',
+          groupId: null,
+          groupName: null,
+        }),
+        ticket({ id: 'k3', number: 7, dueDate: '2026-10-01' }),
       ],
     },
     mentions: {
@@ -185,6 +223,49 @@ describe('HomePage', () => {
     await waitFor(() => expect(all).toHaveAttribute('href', '/tasks?assignee=me&clients=all'));
   });
 
+  it('the Tickets card comes first: rows link to the ticket, New is marked, no client is named', async () => {
+    mockApi();
+    await renderHome();
+    const card = await screen.findByRole('region', { name: t('adminHome.cards.tickets.title') });
+    const regions = screen.getAllByRole('region').map((r) => r.getAttribute('aria-labelledby'));
+    expect(regions[0]).toBe(card.getAttribute('aria-labelledby'));
+    const first = await within(card).findByRole('link', { name: /Login fails/ });
+    expect(first).toHaveAttribute('href', '/tickets/k1');
+    expect(first).toHaveTextContent('#41');
+    expect(within(first).getByText(t('adminHome.cards.tickets.new'))).toBeInTheDocument();
+    const noClient = within(card).getByRole('link', { name: /Where is the form/ });
+    expect(noClient).toHaveTextContent(t('adminHome.cards.tickets.noClient'));
+    const progress = within(card).getByRole('link', { name: /#7/ });
+    expect(within(progress).queryByText(t('adminHome.cards.tickets.new'))).toBeNull();
+    expect(within(progress).getByText('1 Oct')).toHaveClass('text-error-ink');
+    expect(within(card).getByText('25')).toBeInTheDocument();
+    expect(within(card).getByText('2 new')).toBeInTheDocument();
+    expect(within(card).getByText('1 without client')).toBeInTheDocument();
+    expect(within(card).getByRole('link', { name: 'Show all tickets' })).toHaveAttribute(
+      'href',
+      '/tickets',
+    );
+    // The tasks card is now named for what it holds.
+    expect(
+      screen.getByRole('region', { name: t('adminHome.cards.assigned.title') }),
+    ).toHaveTextContent('My tasks');
+  });
+
+  it('a ticket event refetches the Tickets card after 2 s', async () => {
+    mockApi();
+    await renderHome();
+    await screen.findByRole('link', { name: /Login fails/ });
+    const count = () => calls.filter((u) => u === '/api/me/home/tickets').length;
+    const before = count();
+    vi.useFakeTimers();
+    act(() =>
+      handlers.get(TicketEvents.updated)?.forEach((fn) => fn({ ticketId: 'k1', groupId: 'g1' })),
+    );
+    await act(() => vi.advanceTimersByTimeAsync(2000));
+    vi.useRealTimers();
+    await waitFor(() => expect(count()).toBe(before + 1));
+  });
+
   it('mentions link to the message, with the thread for a reply and the task chat for a task message', async () => {
     mockApi();
     await renderHome();
@@ -233,28 +314,30 @@ describe('HomePage', () => {
     expect(await screen.findByRole('link', { name: /Fix budget table/ })).toBeInTheDocument();
   });
 
-  it('under 1024 px: three tiles, a tile opens its sheet, and the client list follows', async () => {
+  it('under 1024 px: four tiles, a tile opens its sheet, and the client list follows', async () => {
     wide = false;
     mockApi();
     await renderHome();
     const tiles = await screen.findAllByRole('button', { name: /:/ });
-    expect(tiles).toHaveLength(3);
+    expect(tiles).toHaveLength(4);
+    expect(tiles[0]).toHaveTextContent(t('adminHome.cards.tickets.title'));
+    expect(tiles[1]).toHaveTextContent(t('adminHome.cards.assigned.title'));
     expect(screen.queryByRole('region', { name: t('adminHome.cards.assigned.title') })).toBeNull();
     expect(await screen.findByRole('link', { name: /Obec Lúky/ })).toHaveClass('h-12');
-    await waitFor(() => expect(tiles[2]).toHaveAccessibleName(/Mentions: 3 unread/));
-    await userEvent.click(tiles[2]!);
+    await waitFor(() => expect(tiles[3]).toHaveAccessibleName(/Mentions: 3 unread/));
+    await userEvent.click(tiles[3]!);
     const sheet = await screen.findByRole('dialog', { name: t('adminHome.cards.mentions.title') });
     expect(within(sheet).getAllByRole('link')).toHaveLength(3);
     await userEvent.click(within(sheet).getByRole('button', { name: t('adminHome.cards.back') }));
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 
-  it('two tiles without reminders', async () => {
+  it('three tiles without reminders', async () => {
     wide = false;
     mockApi({ reminders: { available: false } });
     await renderHome();
     await screen.findByRole('link', { name: /Obec Lúky/ });
-    await waitFor(() => expect(screen.getAllByRole('button', { name: /:/ })).toHaveLength(2));
+    await waitFor(() => expect(screen.getAllByRole('button', { name: /:/ })).toHaveLength(3));
   });
 
   it('an admin:activity refetches the cards after 2 s', async () => {

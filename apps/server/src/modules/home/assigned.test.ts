@@ -3,7 +3,7 @@ import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import { createDb } from '../../infra/db/client.js';
 import { testDatabaseUrl } from '../../../test/test-config.js';
-import { getAssignedTasks } from './assigned.js';
+import { countAssignedTasks, getAssignedTasks } from './assigned.js';
 import { bucketOf, newAdmin, newGroup, newTask } from './test-fixtures.js';
 
 const { db, close } = createDb(testDatabaseUrl);
@@ -82,5 +82,22 @@ describe('getAssignedTasks', () => {
     } finally {
       await client.end({ timeout: 1 });
     }
+  });
+});
+
+describe('countAssignedTasks', () => {
+  it("counts my open tasks only: not Completed, not unassigned, not others'", async () => {
+    const g = await newGroup(db, 'Count');
+    const me = await newAdmin(db, 'Ada', [g.id]);
+    const other = await newAdmin(db, 'Bob', [g.id]);
+    const done = await bucketOf(db, g.id, 'done');
+    const base = { groupId: g.id, createdBy: me.id };
+    await newTask(db, { ...base, assigneeIds: [me.id] });
+    await newTask(db, { ...base, assigneeIds: [me.id, other.id], urgent: true });
+    await newTask(db, { ...base, assigneeIds: [me.id], bucketId: done, completedAt: new Date() });
+    await newTask(db, { ...base, assigneeIds: [other.id] });
+    await newTask(db, base);
+    expect(await countAssignedTasks(db, me.id)).toBe(2);
+    expect(await countAssignedTasks(db, (await newAdmin(db, 'Cyril')).id)).toBe(0);
   });
 });

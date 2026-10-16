@@ -16,7 +16,10 @@ async function signIn(request: APIRequestContext, email: string) {
 
 // A new admin N who manages G1 of two new groups; a client of G1 mentions N. The stored
 // superadmin only sets things up. The UI is Slovak in e2e.
-test('admin home: dashboard, sidebar, Úlohy and global board', async ({ page: setup, browser }) => {
+test('admin home: dashboard, header counts, sidebar, Úlohy and global board', async ({
+  page: setup,
+  browser,
+}) => {
   const stamp = Date.now();
   const g1Name = `E2E Domov A ${stamp}`;
   const g2Name = `E2E Domov B ${stamp}`;
@@ -62,6 +65,13 @@ test('admin home: dashboard, sidebar, Úlohy and global board', async ({ page: s
     });
     expect(other.status()).toBe(201);
 
+    // A ticket of G1 (N manages it), New: N's Tikety card and the header's Tikety count.
+    const ticketRes = await nContext.request.post('/api/tickets', {
+      data: { groupId: g1.id, subject: `Tiket ${stamp}`, requesterEmail: clientEmail },
+    });
+    expect(ticketRes.status()).toBe(201);
+    const ticketId = ((await ticketRes.json()) as { id: string }).id;
+
     // 2. The client mentions N in G1's chat.
     const channel = (await (await cContext.request.get(`/api/groups/${g1.id}/chat`)).json()) as {
       id: string;
@@ -78,10 +88,38 @@ test('admin home: dashboard, sidebar, Úlohy and global board', async ({ page: s
     const mention = mentions.getByRole('link', { name: new RegExp(`skontrolovať ${stamp}`) });
     await expect(mention).toBeVisible();
     await expect(mention).toContainText(clientName);
-    const assigned = n.getByRole('region', { name: 'Priradené mne' });
+    const assigned = n.getByRole('region', { name: 'Moje úlohy' });
     await expect(
       assigned.getByRole('link', { name: new RegExp(`Rozpočet ${stamp}`) }),
     ).toBeVisible();
+
+    // The Tikety card comes first; the new ticket is marked Nový and opens the ticket page.
+    const ticketsCard = n.getByRole('region', { name: 'Tikety' });
+    const ticketRow = ticketsCard.getByRole('link', { name: new RegExp(`Tiket ${stamp}`) });
+    await expect(ticketRow).toBeVisible();
+    await expect(ticketRow).toContainText('Nový');
+    await expect(ticketRow).toHaveAttribute('href', `/tickets/${ticketId}`);
+
+    // The header counts: N's one open task; the tickets include G1's (others may have none).
+    const header = n.getByRole('banner');
+    await expect(header.getByTestId('nav-count-tasks')).toContainText(
+      '1 otvorená úloha priradená vám',
+    );
+    await expect(header.getByTestId('nav-count-tickets')).toBeVisible();
+
+    // Live: a second task for N raises the count; resolving the ticket takes it off the card.
+    const second = await setup.request.post(`/api/groups/${g1.id}/tasks`, {
+      data: { title: `Druhá úloha ${stamp}`, assigneeIds: [nId] },
+    });
+    expect(second.status()).toBe(201);
+    await expect(header.getByTestId('nav-count-tasks')).toContainText(
+      '2 otvorené úlohy priradené vám',
+    );
+    const resolved = await nContext.request.patch(`/api/tickets/${ticketId}`, {
+      data: { status: 'resolved' },
+    });
+    expect(resolved.ok()).toBe(true);
+    await expect(ticketRow).toHaveCount(0);
 
     const sidebar = n.getByRole('navigation', { name: 'Klienti' });
     const managed = sidebar.locator('section').filter({
@@ -93,7 +131,7 @@ test('admin home: dashboard, sidebar, Úlohy and global board', async ({ page: s
     const g1Row = managed.getByRole('link', { name: new RegExp(g1Name) });
     await expect(g1Row).toBeVisible();
     await expect(g1Row).toContainText('1 neprečítaná správa');
-    await expect(g1Row).toContainText('1 úloha priradená vám');
+    await expect(g1Row).toContainText('2 úlohy priradené vám');
     await expect(others.getByRole('link', { name: new RegExp(g2Name) })).toBeVisible();
 
     // 4. Opening the mention shows the chat at the message; back home it is gone. Leaving only
@@ -119,7 +157,7 @@ test('admin home: dashboard, sidebar, Úlohy and global board', async ({ page: s
     const tasksTab = n
       .getByRole('navigation', { name: 'Časti skupiny' })
       .getByRole('link', { name: /^Úlohy/ });
-    await expect(tasksTab).toContainText('1 úloha priradená vám');
+    await expect(tasksTab).toContainText('2 úlohy priradené vám');
 
     // 6. The global board defaults to the managed G1; adding G2 shows its task.
     await n.goto('/tasks');
@@ -136,7 +174,8 @@ test('admin home: dashboard, sidebar, Úlohy and global board', async ({ page: s
     // 7. On a phone the home shows the count tiles and the client list.
     await n.setViewportSize({ width: 390, height: 844 });
     await n.goto('/');
-    await expect(n.getByRole('button', { name: /^Priradené mne:/ })).toBeVisible();
+    await expect(n.getByRole('button', { name: /^Tikety:/ })).toBeVisible();
+    await expect(n.getByRole('button', { name: /^Moje úlohy:/ })).toBeVisible();
     await expect(n.getByRole('button', { name: /^Zmienky:/ })).toBeVisible();
     // Three tiles once Phase 17's reminders source is registered (it is on this branch).
     await expect(n.getByRole('button', { name: /^Najbližšie pripomienky:/ })).toBeVisible();

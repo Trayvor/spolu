@@ -3,7 +3,9 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
   AssignedTasksSchema,
   GlobalBoardSchema,
+  HomeTicketsSchema,
   MentionsSchema,
+  NavCountsSchema,
   SidebarSchema,
 } from '@spolu/shared';
 import { buildTestApp } from '../../../test/test-app.js';
@@ -36,6 +38,8 @@ describe('home API', () => {
     for (const url of [
       '/api/me/home/sidebar',
       '/api/me/home/tasks',
+      '/api/me/home/tickets',
+      '/api/me/home/counts',
       '/api/me/home/mentions',
       '/api/me/home/reminders',
       '/api/tasks/global',
@@ -64,6 +68,38 @@ describe('home API', () => {
     const mentions = await get('/api/me/home/mentions', adminCookie);
     expect(mentions.statusCode).toBe(200);
     expect(MentionsSchema.parse(mentions.json())).toEqual({ total: 0, items: [] });
+  });
+
+  it('an admin gets the tickets card and the header counts', async () => {
+    const db = test.deps.db;
+    const group = await newGroup(db, 'Counts route');
+    const admin = await newAdmin(db, 'Nina', [group.id]);
+    const client = await newClient(db, group.id, 'Karol');
+    await newTask(db, { groupId: group.id, createdBy: client.id, assigneeIds: [admin.id] });
+    await newTask(db, { groupId: group.id, createdBy: client.id });
+    const cookie = await loginAs(test.app, admin.email);
+    const created = await test.app.inject({
+      method: 'POST',
+      url: '/api/tickets',
+      headers: { cookie },
+      payload: {
+        groupId: group.id,
+        subject: 'Counted',
+        requesterEmail: client.email,
+        requesterName: 'Karol',
+      },
+    });
+    expect(created.statusCode).toBe(201);
+
+    const tickets = HomeTicketsSchema.parse((await get('/api/me/home/tickets', cookie)).json());
+    const mine = tickets.items.filter((t) => t.groupId === group.id);
+    expect(mine).toMatchObject([{ subject: 'Counted', status: 'new', groupName: 'Counts route' }]);
+
+    const counts = NavCountsSchema.parse((await get('/api/me/home/counts', cookie)).json());
+    expect(counts.tasks).toBe(1);
+    // Mine (1) plus the tickets without a client that other tests leave in the database.
+    expect(counts.tickets).toBeGreaterThanOrEqual(1);
+    expect(counts.tickets).toBeGreaterThanOrEqual(tickets.unassigned);
   });
 
   it('unknown due is 400 invalid_filter', async () => {

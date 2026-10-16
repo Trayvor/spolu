@@ -13,7 +13,8 @@ function BackArrow() {
 }
 
 /**
- * A card on a phone: a tile with the count, its caption and subline; tapping it opens the card's
+ * A card on a phone: a tile with the card's title, the count, its caption and subline (the title
+ * tells the Tickets and My tasks tiles apart); tapping it opens the card's
  * full list in a full-screen sheet with a back button.
  */
 export function CountTile(props: CountCardProps) {
@@ -26,8 +27,11 @@ export function CountTile(props: CountCardProps) {
         type="button"
         onClick={() => setOpen(true)}
         aria-label={`${title}: ${count > 99 ? '99+' : count} ${caption}`}
-        className="flex min-h-11 min-w-0 flex-1 flex-col items-start rounded-xl bg-card p-3 text-left hover:bg-accent"
+        className="flex min-h-11 min-w-0 flex-1 flex-col items-start gap-2 rounded-xl bg-card p-3 text-left hover:bg-accent"
       >
+        <span aria-hidden="true" className="w-full truncate text-micro font-semibold">
+          {title}
+        </span>
         {state === 'ready' ? (
           <CountFigure count={count} caption={caption} subline={subline} />
         ) : (

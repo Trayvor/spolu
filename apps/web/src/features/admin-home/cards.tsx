@@ -1,10 +1,10 @@
 import { useQuery, type UseQueryResult } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import type { AssignedTask, HomeReminder, MentionItem } from '@spolu/shared';
+import type { AssignedTask, HomeReminder, HomeTicket, MentionItem } from '@spolu/shared';
 import { Badge } from '@/components/ui/badge';
 import { formatDue, isOverdue, todayInBratislava } from '@/features/tasks/dates';
 import { cn } from '@/lib/utils';
-import { assignedQuery, mentionsQuery, remindersQuery } from './api';
+import { assignedQuery, mentionsQuery, remindersQuery, ticketsQuery } from './api';
 import type { CardTarget, CountCardProps } from './count-card';
 
 const stateOf = (query: UseQueryResult<unknown>): CountCardProps['state'] =>
@@ -109,6 +109,77 @@ export function useAssignedCard(): CountCardProps {
               // `all`: every client, without sending hundreds of ids.
               search: { assignee: 'me', clients: 'all' },
             },
+          }
+        : undefined,
+    state: stateOf(query),
+    onRetry: () => void query.refetch(),
+  };
+}
+
+function TicketRow({ ticket, today }: { ticket: HomeTicket; today: string }) {
+  const { t, i18n } = useTranslation();
+  const overdue = ticket.dueDate !== null && ticket.dueDate < today;
+  return (
+    <>
+      <span className="shrink-0 text-micro text-muted-foreground tabular-nums">
+        #{ticket.number}
+      </span>
+      {ticket.status === 'new' && <Badge>{t('adminHome.cards.tickets.new')}</Badge>}
+      <span className="min-w-0 flex-1 truncate text-button font-semibold">
+        {ticket.subject ?? ticket.excerpt ?? ''}
+      </span>
+      <span className="hidden max-w-[40%] truncate text-micro text-muted-foreground min-[641px]:inline">
+        {ticket.groupName ?? t('adminHome.cards.tickets.noClient')}
+      </span>
+      {ticket.dueDate !== null && (
+        <span
+          className={cn(
+            'shrink-0 text-micro tabular-nums',
+            overdue ? 'font-semibold text-error-ink' : 'text-foreground',
+          )}
+        >
+          {formatDue(ticket.dueDate, i18n.language)}
+        </span>
+      )}
+    </>
+  );
+}
+
+/**
+ * The Tickets card: the active tickets (New, In progress) of the clients I manage and those
+ * without a client, New first, each marked "New". "Show all" opens the global ticket list.
+ */
+export function useTicketsCard(): CountCardProps {
+  const { t } = useTranslation();
+  const query = useQuery(ticketsQuery);
+  const today = todayInBratislava();
+  const data = query.data;
+  return {
+    title: t('adminHome.cards.tickets.title'),
+    count: data?.total ?? 0,
+    caption: t('adminHome.cards.tickets.caption'),
+    subline: (
+      <span className="flex flex-col gap-0.5 text-micro text-muted-foreground">
+        <span className="flex items-center gap-1.5">
+          {(data?.fresh ?? 0) > 0 && (
+            <span aria-hidden="true" className="size-2 rounded-full bg-primary" />
+          )}
+          {t('adminHome.cards.tickets.fresh', { count: data?.fresh ?? 0 })}
+        </span>
+        <span>{t('adminHome.cards.tickets.unassigned', { count: data?.unassigned ?? 0 })}</span>
+      </span>
+    ),
+    rows: (data?.items ?? []).map((ticket) => ({
+      key: ticket.id,
+      to: { to: '/tickets/$ticketId', params: { ticketId: ticket.id } },
+      content: <TicketRow ticket={ticket} today={today} />,
+    })),
+    empty: t('adminHome.cards.tickets.empty'),
+    showAll:
+      data && data.total > data.items.length
+        ? {
+            label: t('adminHome.cards.tickets.showAll', { count: data.total }),
+            to: { to: '/tickets' },
           }
         : undefined,
     state: stateOf(query),

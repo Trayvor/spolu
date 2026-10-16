@@ -11,16 +11,18 @@ What an administrator sees after signing in: a dashboard of what needs them, a c
   - Each client shows its unread message count (black) and its count of open tasks assigned to me (yellow).
   - A search field filters the list.
 - **Dashboard cards.** Each card has a count on the left and a list on the right; clicking an item opens it.
-  - **Assigned to me** (a wide card): the number of open tasks assigned to me and how many are urgent. The list: urgent tasks first, then by the nearest deadline, then later deadlines, then tasks with no deadline.
+  - **Tickets** (a wide card, the first row): the active tickets (New or In progress) that are mine to answer, that is of the clients I manage, and the tickets without a client, which nobody looks after yet. The count is all of them, with how many are New and how many have no client. The list: New tickets first (marked "New"), then the newest first; each row shows `#number`, the subject (or the first words of the text), the client ("Without client" for none) and the due date (red when overdue) and opens the ticket page.
+  - **My tasks** (a wide card, the next row; called "Assigned to me" before 2026-10-17): the number of open tasks assigned to me and how many are urgent. The list: urgent tasks first, then by the nearest deadline, then later deadlines, then tasks with no deadline.
   - **Upcoming reminders**: my next reminders in time order, with the count for the next 7 days. It comes from the reminders of the knowledge base and the task board (Phases 17 and 19) and appears once they exist.
   - **Mentions**: unread messages where I was mentioned (by name, or by @all in a client I manage). Clicking one opens the chat at that message (a ticket chat's message opens the ticket page). A ticket chat's message is listed only while the viewer can read the ticket (checked when the card loads, in one batch).
+- **Header counts.** For administrators the header's "Tasks" link shows the number of my open tasks (assigned to me, not in Completed; unassigned tasks do not count), and "Tickets" the Tickets card's total (active tickets of the clients I manage plus those without a client). A count is hidden at 0 and shows `99+` above 99; on a phone the same counts are in the user menu's links.
 - **Tasks tab (Úlohy).** In a group's tab bar, the Tasks tab shows a black dot with the number of tasks with unread chat messages and a yellow dot with the number of open tasks assigned to me. Clients see it too.
 - **Global task board.** Administrators have a task board across all clients:
   - columns by step: To do, then the custom buckets of the chosen clients as their own columns (custom buckets with the same name in different clients share one column), eGrant review, Client review, Completed (Completed hidden unless chosen); cards keep showing their client;
   - a client filter that by default shows the clients I manage; I can add or remove clients, with managed and other clients shown separately;
   - filters by assignee (me, anyone, unassigned, a person), urgent, "only where I take part" (tasks I created or am an assignee of), deadline (overdue, next 7 days, none), title search, and showing completed tasks;
   - clicking a task opens it; tasks are moved from the task panel, not dragged.
-- **Phones.** The client list and dashboard become one column: three count tiles (each opens its list) above the client list.
+- **Phones.** The client list and dashboard become one column: four count tiles, two per row (Tickets, My tasks, Upcoming reminders, Mentions; each shows its title and opens its list) above the client list.
 - **Speed.** The dashboard and the client list each load with one request; nothing slows down the first screen for clients.
 
 ## As built (Phase 20)
@@ -29,8 +31,17 @@ What an administrator sees after signing in: a dashboard of what needs them, a c
 - The card and the sidebar counts follow changes live: a message or a task change in any group, or reading a chat (also on another device), refetches them within about 2 seconds while the page is visible, and again when the window gets the focus.
 - Upcoming reminders lists the knowledge base reminders the admin receives (author, added or subscribed); task reminders join when Phase 19 is merged, through the same source, with no change to the dashboard.
 - Each card fails on its own: "Could not load this. Try again." with a retry.
-- From 1024 px the client sidebar is on the left of every signed-in page for admins and can be collapsed to a rail of logos (remembered on the device). A long client list scrolls inside the sidebar; it never makes the page or the chat taller than the window. Under 1024 px the home shows three count tiles that open their lists, then the client list.
+- From 1024 px the client sidebar is on the left of every signed-in page for admins and can be collapsed to a rail of logos (remembered on the device). A long client list scrolls inside the sidebar; it never makes the page or the chat taller than the window. Under 1024 px the home shows the count tiles (four since 2026-10-17) that open their lists, then the client list.
 - An end-to-end test (`e2e/admin-home.spec.ts`) covers an admin who manages one of two clients: the mention, the assigned task, the sidebar sections and pills, the Úlohy pill, the global board's default scope and adding a client, and the phone tiles. It was written in Phase 20 but not yet run (the shared e2e stack was busy); run it before the phase is marked done.
+
+## Tickets card and header counts (owner request, 2026-10-17)
+
+- The Tickets card sits in the first row and the tasks card, renamed **My tasks** (SK "Moje úlohy"), moves to the second row, so the two cannot be confused. The tickets card is **Tickets** (SK "Tikety"), caption "open", sublines "N new" and "N without client". It lists the first 20; "Show all tickets" opens the global ticket list (`/tickets`, by default the clients I manage).
+- **Decision (default): "assigned to me".** Tickets have no assignee of their own. A ticket is "mine" when its client is one I manage (see `client-managers.md`), the same rule as the ticket notifications and the global list's default filter; "assigned to nobody" is a ticket without a client. An admin who manages no client sees only the tickets without a client here (the global list still shows them every client). A per-ticket assignee would be a new feature for the owner to decide.
+- **Decision (default): active.** Active means New or In progress; Resolved tickets never count. "New" is the ticket status New, marked with a "New" badge on the row.
+- Live: the Tickets card refetches on every `ticket:created`, `ticket:updated` and `ticket:moved` (admins room), and the header counts on those and on task activity (`admin:activity` of kind `task`), within about 2 seconds, and again when the window gets the focus. Becoming or stopping being a manager updates them on the next focus or event.
+- Server: `GET /api/me/home/tickets` (`HomeTickets`) and `GET /api/me/home/counts` (`NavCounts`, `{ tasks, tickets }`), admins only (clients get 403). See `architecture/overview.md`, Admin home API.
+- End-to-end: `e2e/admin-home.spec.ts` also covers the Tickets card (a New ticket of the managed client, its link, resolving it removes it), the live header Tasks count and the phone tiles' new titles; written, not yet run.
 
 ## Custom bucket columns (owner decision, 2026-10-16)
 
