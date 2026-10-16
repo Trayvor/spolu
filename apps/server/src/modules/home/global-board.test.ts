@@ -3,7 +3,7 @@ import { afterAll, describe, expect, it } from 'vitest';
 import { eq, sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
-import type { GlobalBoard } from '@spolu/shared';
+import { HOME_LIMITS, type GlobalBoard } from '@spolu/shared';
 import { createDb } from '../../infra/db/client.js';
 import { testDatabaseUrl } from '../../../test/test-config.js';
 import { tasks } from '../tasks/schema.js';
@@ -33,7 +33,7 @@ const query = (
     ...over,
   }) as GlobalBoardQuery;
 
-const column = (board: GlobalBoard, kind: string) => board.columns.find((c) => c.kind === kind);
+const column = (board: GlobalBoard, id: string) => board.columns.find((c) => c.id === id);
 const titles = (board: GlobalBoard, kind = 'todo') =>
   column(board, kind)!.items.map((t) => t.title);
 
@@ -74,20 +74,20 @@ describe('resolveClientIds', () => {
 });
 
 describe('getGlobalBoard', () => {
-  it('columns by kind: custom buckets land in other with bucketName', async () => {
+  it('columns by kind, each custom bucket in its own column', async () => {
     const { g, admin, task } = await oneGroup('Kinds');
     await task('todo');
     await task('custom', { bucketId: await bucketOf(db, g.id, 'custom', 'In translation') });
     await task('egrant', { bucketId: await bucketOf(db, g.id, 'egrant_review') });
     await task('client', { bucketId: await bucketOf(db, g.id, 'client_review') });
     const board = await getGlobalBoard(db, query({ clientIds: [g.id], viewerId: admin.id }));
-    expect(board.columns.map((c) => [c.kind, c.total])).toEqual([
-      ['todo', 1],
-      ['other', 1],
-      ['egrant_review', 1],
-      ['client_review', 1],
+    expect(board.columns.map((c) => [c.id, c.kind, c.name, c.total])).toEqual([
+      ['todo', 'todo', null, 1],
+      ['custom:in translation', 'custom', 'In translation', 1],
+      ['egrant_review', 'egrant_review', null, 1],
+      ['client_review', 'client_review', null, 1],
     ]);
-    expect(column(board, 'other')!.items[0]).toMatchObject({
+    expect(column(board, 'custom:in translation')!.items[0]).toMatchObject({
       title: 'custom',
       bucketKind: 'custom',
       bucketName: 'In translation',
@@ -137,12 +137,179 @@ describe('getGlobalBoard', () => {
     );
     expect(shown.columns.map((c) => c.kind)).toEqual([
       'todo',
-      'other',
       'egrant_review',
       'client_review',
       'done',
     ]);
     expect(titles(shown, 'done')).toEqual(['recent']);
+  });
+
+  describe('custom bucket columns', () => {
+    /** Moves a bucket to `position` (fixed ones are a0..a3, see FIXED_POSITIONS). */
+    const place = (bucketId: string, position: string) =>
+      db.execute(sql`update buckets set position = ${position} where id = ${bucketId}`);
+
+    it('no custom buckets: no extra column and no Other steps', async () => {
+      const { g, admin, task } = await oneGroup('Plain');
+      await task('one');
+      const board = await getGlobalBoard(db, query({ clientIds: [g.id], viewerId: admin.id }));
+      expect(board.columns.map((c) => c.id)).toEqual(['todo', 'egrant_review', 'client_review']);
+    });
+
+    it('same names merge across clients (trimmed, case and diacritics ignored), most common spelling', async () => {
+      const a = await oneGroup('Alfa');
+      const b = await newGroup(db, 'Beta');
+      const c = await newGroup(db, 'Gama');
+      const inA = await bucketOf(db, a.g.id, 'custom', 'Preklad');
+      const inB = await bucketOf(db, b.id, 'custom', '  preklád ');
+      const inC = await bucketOf(db, c.id, 'custom', 'Preklad');
+      const t = (groupId: string, bucketId: string, title: string) =>
+        newTask(db, { groupId, bucketId, createdBy: a.admin.id, title });
+      await t(a.g.id, inA, 'a');
+      await t(b.id, inB, 'b');
+      await t(c.id, inC, 'c');
+      const board = await getGlobalBoard(
+        db,
+        query({ clientIds: [a.g.id, b.id, c.id], viewerId: a.admin.id }),
+      );
+      expect(board.columns.map((col) => [col.id, col.name, col.total])).toEqual([
+        ['todo', null, 0],
+        ['custom:preklad', 'Preklad', 3],
+        ['egrant_review', null, 0],
+        ['client_review', null, 0],
+      ]);
+      const items = column(board, 'custom:preklad')!.items;
+      expect(items.map((i) => [i.title, i.groupName, i.bucketName])).toEqual([
+        ['a', 'Alfa', 'Preklad'],
+        ['b', 'Beta', '  preklád '],
+        ['c', 'Gama', 'Preklad'],
+      ]);
+    });
+
+    it('unique names get their own column, empty buckets too, ordered by typical position then name', async () => {
+      const a = await oneGroup('Alfa');
+      const b = await newGroup(db, 'Beta');
+      // Alfa: To do, Rozpočet, Preklad, Zmluvy, eGrant review…
+      // Beta: To do, Preklad, eGrant review, Archív, Client review…
+      const budget = await bucketOf(db, a.g.id, 'custom', 'Rozpočet');
+      await place(budget, 'a1');
+      await place(await bucketOf(db, a.g.id, 'custom', 'Preklad'), 'a2');
+      await place(await bucketOf(db, a.g.id, 'custom', 'Zmluvy'), 'a25');
+      await place(await bucketOf(db, b.id, 'custom', 'Preklad'), 'a1');
+      await place(await bucketOf(db, b.id, 'custom', 'Archív'), 'a4');
+      await a.task('budget', { bucketId: budget });
+      const board = await getGlobalBoard(
+        db,
+        query({ clientIds: [a.g.id, b.id], viewerId: a.admin.id }),
+      );
+      // Rozpočet: rank 2; Preklad: ranks 3 and 2 (2.5); Archív and Zmluvy: rank 4, so by name.
+      expect(board.columns.map((c) => c.name ?? c.id)).toEqual([
+        'todo',
+        'Rozpočet',
+        'Preklad',
+        'Archív',
+        'Zmluvy',
+        'egrant_review',
+        'client_review',
+      ]);
+      expect(board.columns.find((c) => c.name === 'Zmluvy')!.total).toBe(0);
+    });
+
+    it('buckets of clients outside the filter make no column', async () => {
+      const a = await oneGroup('Alfa');
+      const b = await newGroup(db, 'Beta');
+      await bucketOf(db, b.id, 'custom', 'Only in Beta');
+      const board = await getGlobalBoard(db, query({ clientIds: [a.g.id], viewerId: a.admin.id }));
+      expect(board.columns.map((c) => c.id)).toEqual(['todo', 'egrant_review', 'client_review']);
+    });
+
+    it('the columns do not change with the other filters', async () => {
+      const { g, admin } = await oneGroup('Stable');
+      await bucketOf(db, g.id, 'custom', 'Preklad');
+      const board = await getGlobalBoard(
+        db,
+        query({ clientIds: [g.id], viewerId: admin.id, assignee: 'me', q: 'nothing like it' }),
+      );
+      expect(board.columns.map((c) => [c.id, c.total])).toEqual([
+        ['todo', 0],
+        ['custom:preklad', 0],
+        ['egrant_review', 0],
+        ['client_review', 0],
+      ]);
+    });
+
+    it(`more than ${HOME_LIMITS.customColumns} names: the largest keep a column, the rest fold into Other steps`, async () => {
+      const { g, admin } = await oneGroup('Many');
+      const extra = HOME_LIMITS.customColumns + 2;
+      for (let i = 0; i < extra; i++) {
+        const bucketId = await bucketOf(db, g.id, 'custom', `Step ${String(i).padStart(2, '0')}`);
+        // Step 00 and Step 01 are empty, every other step has one task, Step 13 has two.
+        for (let n = 0; n < (i < 2 ? 0 : i === extra - 1 ? 2 : 1); n++) {
+          await newTask(db, { groupId: g.id, bucketId, createdBy: admin.id, title: `in ${i}` });
+        }
+      }
+      const board = await getGlobalBoard(db, query({ clientIds: [g.id], viewerId: admin.id }));
+      const ids = board.columns.map((c) => c.id);
+      expect(ids).toHaveLength(3 + HOME_LIMITS.customColumns + 1);
+      expect(ids.slice(0, 2)).toEqual(['todo', 'custom:step 02']);
+      expect(ids.slice(-4)).toEqual(['custom:step 13', 'other', 'egrant_review', 'client_review']);
+      const other = column(board, 'other')!;
+      expect([other.kind, other.name, other.total]).toEqual(['other', null, 0]);
+      expect(ids).not.toContain('custom:step 00');
+    });
+
+    it('folded buckets show their tasks in Other steps with the bucket name', async () => {
+      const { g, admin } = await oneGroup('Folded');
+      for (let i = 0; i < HOME_LIMITS.customColumns; i++) {
+        const bucketId = await bucketOf(db, g.id, 'custom', `Big ${i}`);
+        await newTask(db, { groupId: g.id, bucketId, createdBy: admin.id, title: `big ${i}` });
+      }
+      const small = await bucketOf(db, g.id, 'custom', 'Small');
+      await newTask(db, { groupId: g.id, bucketId: small, createdBy: admin.id, title: 'small' });
+      await newTask(db, {
+        groupId: g.id,
+        bucketId: await bucketOf(db, g.id, 'custom', 'Big 0'),
+        createdBy: admin.id,
+        title: 'big 0 again',
+      });
+      const board = await getGlobalBoard(db, query({ clientIds: [g.id], viewerId: admin.id }));
+      // Big 0 exists twice in one client: merged too, with two tasks.
+      expect(column(board, 'custom:big 0')!.total).toBe(2);
+      // Ties on size: the earlier position wins, so the last created ("Small") folds.
+      expect(column(board, 'other')!.items.map((t) => [t.title, t.bucketName])).toEqual([
+        ['small', 'Small'],
+      ]);
+    });
+
+    it('paging inside a merged column', async () => {
+      const a = await oneGroup('Alfa');
+      const b = await newGroup(db, 'Beta');
+      const inA = await bucketOf(db, a.g.id, 'custom', 'Preklad');
+      const inB = await bucketOf(db, b.id, 'custom', 'PREKLAD');
+      const ids: string[] = [];
+      for (let i = 0; i < 70; i++) {
+        ids.push(
+          await newTask(db, {
+            groupId: i < 35 ? a.g.id : b.id,
+            bucketId: i < 35 ? inA : inB,
+            createdBy: a.admin.id,
+            createdAt: new Date(Date.UTC(2026, 0, 1, 0, 0, 0, i)),
+          }),
+        );
+      }
+      const base = query({ clientIds: [a.g.id, b.id], viewerId: a.admin.id });
+      const first = column(await getGlobalBoard(db, base), 'custom:preklad')!;
+      expect([first.total, first.items.length]).toEqual([70, 50]);
+      const page = await getGlobalBoard(db, {
+        ...base,
+        column: 'custom:preklad',
+        after: first.next!,
+      });
+      expect(page.columns.map((c) => [c.id, c.kind])).toEqual([['custom:preklad', 'custom']]);
+      const second = page.columns[0]!;
+      expect(second.next).toBeNull();
+      expect([...first.items, ...second.items].map((t) => t.id)).toEqual(ids);
+    });
   });
 
   describe('filters', () => {
