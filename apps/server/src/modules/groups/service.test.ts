@@ -1,6 +1,8 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
+import { drizzle } from 'drizzle-orm/postgres-js';
+import postgres from 'postgres';
 import { createDb } from '../../infra/db/client.js';
 import { testDatabaseUrl } from '../../../test/test-config.js';
 import { addAdmin, createUnverifiedClient, deactivateUser } from '../users/service.js';
@@ -29,6 +31,7 @@ const { db, close } = createDb(testDatabaseUrl);
 afterAll(() => close());
 
 const uniqueHost = (): string => `g${randomUUID().replaceAll('-', '')}.egrant.sk`;
+const VIEWER = 'nobody';
 const newGroup = (name = 'Firma') =>
   createGroup(db, { name, egrantUrl: `https://${uniqueHost()}/app` });
 
@@ -123,13 +126,15 @@ describe('members', () => {
     const removed = await newClient(true);
     for (const c of [active, unverified, removed]) await addMember(db, g.id, c.id);
     await deactivateUser(db, removed.id);
-    const row = (await listGroups(db)).find((x) => x.id === g.id);
+    const row = (await listGroups(db, VIEWER)).find((x) => x.id === g.id);
     expect(row).toEqual({
       id: g.id,
       name: 'Count',
       hasLogo: false,
       memberCount: 1,
       updatedAt: g.updatedAt.toISOString(),
+      managers: [],
+      managedByMe: false,
     });
   });
 
@@ -137,20 +142,76 @@ describe('members', () => {
     // Other test files add groups too: assert only the relative order of ours.
     const z = await newGroup('zzz');
     const a = await newGroup('aaa');
-    const ids = (await listGroups(db)).map((g) => g.id);
+    const ids = (await listGroups(db, VIEWER)).map((g) => g.id);
     expect(ids.indexOf(a.id)).toBeGreaterThanOrEqual(0);
     expect(ids.indexOf(a.id)).toBeLessThan(ids.indexOf(z.id));
   });
 
   it('listGroups gives a group without members memberCount 0', async () => {
     const g = await newGroup('Empty');
-    const row = (await listGroups(db)).find((x) => x.id === g.id);
+    const row = (await listGroups(db, VIEWER)).find((x) => x.id === g.id);
     expect(row).toEqual({
       id: g.id,
       name: 'Empty',
       hasLogo: false,
       memberCount: 0,
       updatedAt: g.updatedAt.toISOString(),
+      managers: [],
+      managedByMe: false,
+    });
+  });
+
+  describe('listGroups managers', () => {
+    const newAdmin = (name: string) => addAdmin(db, { email: `${randomUUID()}@example.com`, name });
+
+    it('listGroups returns managers by name and managedByMe for the viewer', async () => {
+      const g = await newGroup();
+      const zed = await newAdmin('Zed');
+      const amy = await newAdmin('Amy');
+      await addManager(db, g.id, zed.id);
+      await addManager(db, g.id, amy.id);
+      const asZed = (await listGroups(db, zed.id)).find((x) => x.id === g.id);
+      expect(asZed?.managers).toEqual([
+        { id: amy.id, name: 'Amy' },
+        { id: zed.id, name: 'Zed' },
+      ]);
+      expect(asZed?.managedByMe).toBe(true);
+      const other = (await listGroups(db, VIEWER)).find((x) => x.id === g.id);
+      expect(other?.managedByMe).toBe(false);
+    });
+
+    it('two managers do not change memberCount', async () => {
+      const g = await newGroup();
+      for (const c of [await newClient(true), await newClient(true)]) {
+        await addMember(db, g.id, c.id);
+      }
+      await addManager(db, g.id, (await newAdmin('One')).id);
+      await addManager(db, g.id, (await newAdmin('Two')).id);
+      const row = (await listGroups(db, VIEWER)).find((x) => x.id === g.id);
+      expect(row?.memberCount).toBe(2);
+      expect(row?.managers).toHaveLength(2);
+    });
+
+    it('a disabled manager is not in managers', async () => {
+      const g = await newGroup();
+      const gone = await newAdmin('Gone');
+      await addManager(db, g.id, gone.id);
+      await deactivateUser(db, gone.id);
+      const row = (await listGroups(db, gone.id)).find((x) => x.id === g.id);
+      expect(row?.managers).toEqual([]);
+      expect(row?.managedByMe).toBe(false);
+    });
+
+    it('listGroups is one statement', async () => {
+      const client = postgres(testDatabaseUrl, { max: 1 });
+      let statements = 0;
+      const counted = drizzle(client, { logger: { logQuery: () => void statements++ } });
+      try {
+        await listGroups(counted, VIEWER);
+        expect(statements).toBe(1);
+      } finally {
+        await client.end();
+      }
     });
   });
 

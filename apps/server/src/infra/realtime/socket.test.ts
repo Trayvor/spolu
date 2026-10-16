@@ -2,13 +2,19 @@ import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { eq } from 'drizzle-orm';
 import { io as connect, type Socket } from 'socket.io-client';
-import { SocketEvents, type GroupJoinAck, type PingAck } from '@spolu/shared';
+import {
+  GroupEvents,
+  SocketEvents,
+  type GroupJoinAck,
+  type GroupManagersEvent,
+  type PingAck,
+} from '@spolu/shared';
 import { buildTestApp } from '../../../test/test-app.js';
 import { loginAs } from '../../../test/login.js';
 import { addMember, createGroup } from '../../modules/groups/service.js';
 import { addAdmin } from '../../modules/users/service.js';
 import { user } from '../../modules/users/schema.js';
-import { disconnectUser, emitToGroup, userRoom } from './rooms.js';
+import { ADMINS_ROOM, disconnectUser, emitToGroup, userRoom } from './rooms.js';
 
 type TestApp = Awaited<ReturnType<typeof buildTestApp>>;
 
@@ -278,6 +284,109 @@ describe('socket.io', () => {
       const got = arrives(admin, 'test:event');
       emitToGroup(test.app.io, group.id, 'test:event', { n: 1 });
       expect(await got).toBe(false);
+    });
+  });
+  describe('group managers', () => {
+    const clientIn = async (groupId: string) => {
+      const email = `${randomUUID()}@example.com`;
+      const id = randomUUID();
+      await test.deps.db
+        .insert(user)
+        .values({ id, email, name: 'C', role: 'client', emailVerified: true });
+      await addMember(test.deps.db, groupId, id);
+      return { id, cookie: await loginAs(test.app, email) };
+    };
+    const put = (id: string, cookie: string) =>
+      test.app.inject({ method: 'PUT', url: `/api/groups/${id}/managers/me`, headers: { cookie } });
+    const connected = async (cookie: string) => {
+      const socket = connectWith({ cookie });
+      await nextEvent(socket, 'connect');
+      return socket;
+    };
+    const collect = (socket: Socket) => {
+      const got: GroupManagersEvent[] = [];
+      socket.on(GroupEvents.managers, (e: GroupManagersEvent) => got.push(e));
+      return got;
+    };
+    const settle = () => new Promise((r) => setTimeout(r, 150));
+
+    it('an admin socket joins the admins room, a client socket does not', async () => {
+      const g = await createGroup(test.deps.db, {
+        name: 'G',
+        egrantUrl: `https://g${randomUUID().replaceAll('-', '')}.egrant.sk`,
+      });
+      const admin = await loggedIn(test);
+      const client = await clientIn(g.id);
+      await connected(admin.cookie);
+      await connected(client.cookie);
+      const inRoom = await test.app.io.in(ADMINS_ROOM).fetchSockets();
+      const ids = inRoom.map((s) => s.data.user.id);
+      expect(ids).toContain(admin.id);
+      expect(ids).not.toContain(client.id);
+    });
+
+    it('group:managers reaches the group room and the admins room, not a client of another group', async () => {
+      const mk = () =>
+        createGroup(test.deps.db, {
+          name: 'G',
+          egrantUrl: `https://g${randomUUID().replaceAll('-', '')}.egrant.sk`,
+        });
+      const [g, other] = [await mk(), await mk()];
+      const admin = await loggedIn(test);
+      const watcher = await loggedIn(test);
+      const own = await clientIn(g.id);
+      const foreign = await clientIn(other.id);
+      const [adminSocket, watcherSocket, ownSocket, foreignSocket] = await Promise.all([
+        connected(admin.cookie),
+        connected(watcher.cookie),
+        connected(own.cookie),
+        connected(foreign.cookie),
+      ]);
+      const [a, w, o, f] = [adminSocket, watcherSocket, ownSocket, foreignSocket].map(collect) as [
+        GroupManagersEvent[],
+        GroupManagersEvent[],
+        GroupManagersEvent[],
+        GroupManagersEvent[],
+      ];
+      expect((await put(g.id, admin.cookie)).statusCode).toBe(200);
+      await settle();
+      const expected = { groupId: g.id, managers: [{ id: admin.id, name: 'Socket Test' }] };
+      expect(a).toEqual([expected]);
+      expect(w).toEqual([expected]);
+      expect(o).toEqual([expected]);
+      expect(f).toEqual([]);
+    });
+
+    it('an admin in the group room and the admins room gets the event once', async () => {
+      const g = await createGroup(test.deps.db, {
+        name: 'G',
+        egrantUrl: `https://g${randomUUID().replaceAll('-', '')}.egrant.sk`,
+      });
+      const admin = await loggedIn(test);
+      const socket = await connected(admin.cookie);
+      const ack: GroupJoinAck = await socket.emitWithAck(SocketEvents.groupJoin, {
+        groupId: g.id,
+      });
+      expect(ack.ok).toBe(true);
+      const got = collect(socket);
+      expect((await put(g.id, admin.cookie)).statusCode).toBe(200);
+      await settle();
+      expect(got).toHaveLength(1);
+    });
+
+    it('an unchanged PUT emits nothing', async () => {
+      const g = await createGroup(test.deps.db, {
+        name: 'G',
+        egrantUrl: `https://g${randomUUID().replaceAll('-', '')}.egrant.sk`,
+      });
+      const admin = await loggedIn(test);
+      const socket = await connected(admin.cookie);
+      await put(g.id, admin.cookie);
+      await settle();
+      const got = collect(socket);
+      expect((await put(g.id, admin.cookie)).statusCode).toBe(200);
+      await settle();
+      expect(got).toEqual([]);
     });
   });
 });
