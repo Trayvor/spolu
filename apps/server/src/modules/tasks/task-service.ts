@@ -13,6 +13,7 @@ import {
   type TaskPatch,
 } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
+import type { JobQueue } from '../../infra/jobs/jobs.js';
 import {
   attachFiles,
   deleteDetachedFiles,
@@ -21,12 +22,13 @@ import {
   type FileDeps,
 } from '../files/service.js';
 import { getGroup, isGroupPerson } from '../groups/service.js';
-import { recordNotifications } from '../notifications/service.js';
+import { recordNotifications, requestDelivery } from '../notifications/service.js';
 import { keyAfter } from './positions.js';
 import { buckets, taskAssignees, taskAttachments, tasks } from './schema.js';
 import { ensureBoard, lockBuckets, selectTasks, type Tx } from './service.js';
 
-export type TaskDeps = FileDeps;
+/** `jobs` asks for notification delivery after a write commits. */
+export type TaskDeps = FileDeps & { jobs: JobQueue };
 
 /** The task (or the bucket a task should go to) does not exist, or is not in that group. */
 export class NotFoundError extends Error {
@@ -93,14 +95,17 @@ async function checkAssignees(tx: Tx, groupId: string, ids: string[]): Promise<v
   }
 }
 
-/** `task.assigned` to the new assignees, never to the actor. In the write's transaction. */
+/**
+ * `task.assigned` to the new assignees, never to the actor. In the write's transaction; returns
+ * the recipients, for `requestDelivery` after the commit.
+ */
 async function notifyAssigned(
   tx: Tx,
   actor: SessionUser,
   task: { id: string; groupId: string; title: string },
   added: string[],
-): Promise<void> {
-  await recordNotifications(tx, {
+): Promise<string[]> {
+  return recordNotifications(tx, {
     kind: 'task.assigned',
     groupId: task.groupId,
     recipients: added.filter((id) => id !== actor.id),
@@ -118,6 +123,16 @@ export async function getTaskRef(
     .from(tasks)
     .where(eq(tasks.id, id));
   return row ?? null;
+}
+
+/** Titles of the given tasks, keyed by id, in one query; unknown ids are absent. */
+export async function getTaskTitles(db: Db, ids: string[]): Promise<Map<string, string>> {
+  if (ids.length === 0) return new Map();
+  const rows = await db
+    .select({ id: tasks.id, title: tasks.title })
+    .from(tasks)
+    .where(inArray(tasks.id, [...new Set(ids)]));
+  return new Map(rows.map((r) => [r.id, r.title]));
 }
 
 /** A task with description and files. `sourceMessage` is always null in this phase. */
@@ -157,7 +172,7 @@ export async function createTask(
   const fileIds = [...new Set(input.fileIds)];
   if (assigneeIds.length > MAX_ASSIGNEES) throw new InvalidAssigneeError();
 
-  const id = await db.transaction(async (tx) => {
+  const { id, notified } = await db.transaction(async (tx) => {
     const target = input.bucketId
       ? and(eq(buckets.id, input.bucketId), eq(buckets.groupId, groupId))
       : and(eq(buckets.groupId, groupId), eq(buckets.kind, 'todo'));
@@ -198,9 +213,15 @@ export async function createTask(
       await attachFiles(tx, groupId, fileIds, actor.id);
       await tx.insert(taskAttachments).values(fileIds.map((fileId) => ({ taskId, fileId })));
     }
-    await notifyAssigned(tx, actor, { id: taskId, groupId, title: input.title }, assigneeIds);
-    return taskId;
+    const notified = await notifyAssigned(
+      tx,
+      actor,
+      { id: taskId, groupId, title: input.title },
+      assigneeIds,
+    );
+    return { id: taskId, notified };
   });
+  await requestDelivery(deps.jobs, notified);
   return (await getTask(db, id))!;
 }
 
@@ -223,6 +244,7 @@ export async function updateTask(
     throw new InvalidAssigneeError();
   }
 
+  let notified: string[] = [];
   const removedFiles = await db.transaction(async (tx) => {
     // Always strictly later than the edited version, even within the same millisecond.
     const updatedAt = new Date(Math.max(Date.now(), expected.getTime() + 1));
@@ -261,7 +283,7 @@ export async function updateTask(
       if (added.length > 0) {
         await tx.insert(taskAssignees).values(added.map((userId) => ({ taskId: id, userId })));
       }
-      await notifyAssigned(tx, actor, row, added);
+      notified = await notifyAssigned(tx, actor, row, added);
     }
 
     if (!patch.fileIds) return [];
@@ -288,6 +310,7 @@ export async function updateTask(
     return removed;
   });
 
+  await requestDelivery(deps.jobs, notified);
   await cleanUpFiles(deps, removedFiles, options);
   const task = await getTask(db, id);
   if (!task) throw new NotFoundError(); // deleted right after this edit committed
@@ -356,6 +379,7 @@ export async function moveTask(
   const { db } = deps;
   if (input.afterTaskId === id) throw new ValidationError();
 
+  let notified: string[] = [];
   const moved = await db.transaction(async (tx) => {
     const [source] = await tx
       .select({ bucketId: tasks.bucketId, groupId: tasks.groupId })
@@ -437,7 +461,7 @@ export async function moveTask(
         toBucket: bucketLabel(target, groupName),
         actorName: actor.name,
       };
-      await recordNotifications(tx, {
+      notified = await recordNotifications(tx, {
         kind: 'task.moved',
         groupId,
         recipients: [task.createdBy, ...assignees.map((a) => a.userId)].filter(
@@ -449,6 +473,7 @@ export async function moveTask(
     return true;
   });
 
+  await requestDelivery(deps.jobs, notified);
   const [task] = await selectTasks(db, eq(tasks.id, id));
   if (!task) throw new NotFoundError(); // deleted right after the move committed
   return { task, moved };

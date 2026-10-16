@@ -17,6 +17,7 @@ An `io.use` middleware runs on every connection:
 ## Rules
 
 - **Sockets are push-only.** Clients never send writes over a socket. Every write goes through the HTTP API, which then emits an event. See [overview.md](overview.md).
+- **Web push is separate from sockets.** Push notifications go through the notification delivery jobs (pg-boss, Web Push), never through socket.io; a socket event is not a notification. See [overview.md](overview.md) (Notification delivery).
 - **Permissions are checked on join.** A socket may join a room only if the module's policy function allows it (see [permissions.md](permissions.md)).
 
 ## Group room events (client to server)

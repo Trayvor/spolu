@@ -14,7 +14,8 @@ import { groups } from '../groups/schema.js';
 import { user } from '../users/schema.js';
 
 /**
- * One notification for one recipient; `deliveredAt` stays null until push and socket delivery ran.
+ * One notification for one recipient; `deliveredAt` stays null until the delivery worker decided
+ * it (set at insert when the recipient can get neither a push nor an email).
  * `emailDueAt` is when the batched email for it may go out, `emailedAt` when it went (or was
  * skipped). `dedupeKey` makes an event at most once per user, e.g. one deadline reminder per day.
  */

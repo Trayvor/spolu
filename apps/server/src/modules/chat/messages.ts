@@ -12,7 +12,7 @@ import type { AppDeps } from '../../deps.js';
 import type { Db } from '../../infra/db/client.js';
 import { attachFiles, deleteDetachedFiles, detachFiles } from '../files/service.js';
 import { listGroupPeople } from '../groups/service.js';
-import { recordNotifications } from '../notifications/service.js';
+import { recordNotifications, requestDelivery } from '../notifications/service.js';
 import { isUniqueViolation } from '../users/service.js';
 import { selectMessages, toMessageDtos, type MessageRow } from './dto.js';
 import { messageAttachments, messageMentions, messages } from './schema.js';
@@ -99,8 +99,8 @@ async function checkThread(db: Db, channelId: string, data: SendMessageInput): P
 /**
  * Sends a message, or a reply when `parentId` is set, in one transaction: sequence, row,
  * mentions, attachments, the parent's reply count and the notification events (never for the
- * author). A repeated `clientId` of the same author returns the stored message with
- * `created: false` and writes nothing; `parent` is then null. `parent` is the updated root of a
+ * author), whose delivery is requested after the commit. A repeated `clientId` of the same author
+ * returns the stored message with `created: false` and writes nothing; `parent` is then null. `parent` is the updated root of a
  * new reply, for the caller to push; `threadPeople` are the people of its thread still in the
  * group, without the author (the reply counts as unread for them).
  */
@@ -132,6 +132,7 @@ export async function sendMessage(
   const fileIds = data.fileIds ?? [];
   const others = (ids: Iterable<string>) => [...ids].filter((id) => id !== author.id);
   let threadPeople: string[] = [];
+  const notified = new Set<string>();
 
   try {
     await db.transaction(async (tx) => {
@@ -202,8 +203,15 @@ export async function sendMessage(
         authorName: author.name,
         excerpt: plainExcerpt(data.body, (id) => nameById.get(id), EXCERPT_LENGTH),
       };
-      const notify = (kind: NotificationKind, recipients: string[]) =>
-        recordNotifications(tx, { kind, groupId, recipients: others(recipients), payload });
+      const notify = async (kind: NotificationKind, recipients: string[]) => {
+        const recorded = await recordNotifications(tx, {
+          kind,
+          groupId,
+          recipients: others(recipients),
+          payload,
+        });
+        for (const id of recorded) notified.add(id);
+      };
       const everyone = people.map((p) => p.id);
       // Replies only notify the thread; the channel hears about top-level messages.
       if (parentId === null) await notify('chat.message', everyone);
@@ -218,6 +226,7 @@ export async function sendMessage(
     return { message: winner, parent: null, created: false, threadPeople: [] };
   }
 
+  await requestDelivery(deps.jobs, [...notified]);
   const ids = parentId === null ? [messageId] : [messageId, parentId];
   const rows = await selectMessages(db, inArray(messages.id, ids), []);
   const dtos = await toMessageDtos(db, groupId, rows);

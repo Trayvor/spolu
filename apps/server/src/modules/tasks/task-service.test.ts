@@ -21,6 +21,7 @@ import {
   createTask as createTaskWith,
   deleteTask as deleteTaskWith,
   getTask,
+  getTaskTitles,
   InvalidAssigneeError,
   moveTask,
   NotFoundError,
@@ -55,7 +56,7 @@ let deps: TaskDeps;
 beforeAll(async () => {
   dir = await mkdtemp(join(tmpdir(), 'spolu-tasks-'));
   storage = createDiskStorage(dir, 'test-secret');
-  deps = { db, storage };
+  deps = { db, storage, jobs: { send: async () => {} } };
 });
 afterAll(async () => {
   await close();
@@ -218,6 +219,23 @@ describe('createTask', () => {
     expect(task.files.map((f) => f.name)).toEqual(['plan.txt']);
     expect(task.fileCount).toBe(1);
     expect((await getFile(db, file.id))!.attachedAt).not.toBeNull();
+  });
+});
+
+describe('getTaskTitles', () => {
+  it('maps known ids to titles and leaves unknown ids out', async () => {
+    const group = await newGroup();
+    const client = await newClient(group.id);
+    const a = await createTask(deps, client, group.id, { title: 'Alpha' });
+    const b = await createTask(deps, client, group.id, { title: 'Beta' });
+    const titles = await getTaskTitles(db, [a.id, b.id, a.id, randomUUID()]);
+    expect(titles).toEqual(
+      new Map([
+        [a.id, 'Alpha'],
+        [b.id, 'Beta'],
+      ]),
+    );
+    expect(await getTaskTitles(db, [])).toEqual(new Map());
   });
 });
 

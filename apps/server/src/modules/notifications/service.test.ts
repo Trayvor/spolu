@@ -1,14 +1,20 @@
 import { randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
-import { afterAll, describe, expect, it } from 'vitest';
+import { afterAll, describe, expect, it, vi } from 'vitest';
 import { eq, inArray, sql } from 'drizzle-orm';
 import { createDb } from '../../infra/db/client.js';
-import { testDatabaseUrl } from '../../../test/test-config.js';
+import { testConfig, testDatabaseUrl } from '../../../test/test-config.js';
 import { createGroup } from '../groups/service.js';
-import { createUnverifiedClient } from '../users/service.js';
+import { createUnverifiedClient, updateNotificationPrefs } from '../users/service.js';
+import { saveSubscription } from './push-subscriptions.js';
 import { NOTIFICATIONS_PURGE_JOB, notificationsJobHandlers } from './jobs.js';
 import { notificationEvents } from './schema.js';
-import { deleteOldNotificationEvents, recordNotifications } from './service.js';
+import {
+  DELIVER_JOB,
+  deleteOldNotificationEvents,
+  recordNotifications,
+  requestDelivery,
+} from './service.js';
 
 const { db, close } = createDb(testDatabaseUrl);
 afterAll(close);
@@ -43,8 +49,9 @@ describe('recordNotifications', () => {
         kind: 'chat.message',
         groupId: group.id,
         payload: { messageId: 'm1' },
-        deliveredAt: null,
       });
+      // Neither can get a push or an email: recorded as delivered (see the pending-state test).
+      expect(row.deliveredAt).toBeInstanceOf(Date);
     }
   });
 
@@ -67,7 +74,63 @@ describe('recordNotifications', () => {
   it('with no recipients does nothing', async () => {
     await expect(
       recordNotifications(db, { kind: 'chat.mention', groupId: null, recipients: [], payload: {} }),
-    ).resolves.toBeUndefined();
+    ).resolves.toEqual([]);
+  });
+
+  it('returns the recipients recorded; a repeated dedupeKey records nothing', async () => {
+    const { group, a, b } = await setup();
+    const input = {
+      kind: 'task.deadline' as const,
+      groupId: group.id,
+      payload: { taskId: 't1' },
+      dedupeKey: `deadline:${randomUUID()}`,
+    };
+    expect((await recordNotifications(db, { ...input, recipients: [a.id] })).sort()).toEqual([
+      a.id,
+    ]);
+    expect((await recordNotifications(db, { ...input, recipients: [a.id, b.id] })).sort()).toEqual([
+      b.id,
+    ]);
+    expect(await rowsFor([a.id, b.id])).toHaveLength(2);
+  });
+});
+
+describe('recordNotifications pending state', () => {
+  it('only a recipient who could get a push or an email waits for delivery', async () => {
+    const { group, a, b } = await setup();
+    const c = await createUnverifiedClient(db, `${randomUUID()}@example.com`);
+    await saveSubscription(db, a.id, {
+      endpoint: `https://push.example.test/${randomUUID()}`,
+      p256dh: 'pk',
+      auth: 'au',
+      userAgent: null,
+    });
+    await updateNotificationPrefs(db, b.id, { emailEnabled: true });
+    const recorded = await recordNotifications(db, {
+      kind: 'chat.message',
+      groupId: group.id,
+      recipients: [a.id, b.id, c.id],
+      payload: { messageId: 'm1' },
+    });
+    expect(recorded.sort()).toEqual([a.id, b.id, c.id].sort());
+    const rows = await rowsFor([a.id, b.id, c.id]);
+    const delivered = (id: string) => rows.find((r) => r.userId === id)!.deliveredAt !== null;
+    expect([delivered(a.id), delivered(b.id), delivered(c.id)]).toEqual([false, false, true]);
+  });
+});
+
+describe('requestDelivery', () => {
+  it('sends one deliver job with the unique users, nothing for none, and never throws', async () => {
+    const sent: { name: string; data: object }[] = [];
+    const jobs = { send: async (name: string, data: object) => void sent.push({ name, data }) };
+    await requestDelivery(jobs, []);
+    await requestDelivery(jobs, ['u1', 'u2', 'u1']);
+    expect(sent).toEqual([{ name: DELIVER_JOB, data: { userIds: ['u1', 'u2'] } }]);
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const failing = { send: async () => Promise.reject(new Error('queue down')) };
+    await expect(requestDelivery(failing, ['u1'])).resolves.toBeUndefined();
+    expect(error).toHaveBeenCalled();
+    error.mockRestore();
   });
 });
 
@@ -99,7 +162,8 @@ describe('deleteOldNotificationEvents', () => {
 
   it('the purge job removes a 31 day old event and keeps a fresh one', async () => {
     const { a, b } = await seedOldAndFresh();
-    await notificationsJobHandlers(db)[NOTIFICATIONS_PURGE_JOB]!({});
+    const deps = { db, config: testConfig(), push: null, jobs: { send: async () => {} } };
+    await notificationsJobHandlers(deps)[NOTIFICATIONS_PURGE_JOB]!({});
     expect(await rowsFor([a.id])).toHaveLength(0);
     expect(await rowsFor([b.id])).toHaveLength(1);
   });

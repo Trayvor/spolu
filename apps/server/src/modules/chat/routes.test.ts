@@ -23,6 +23,7 @@ import { createFile } from '../files/service.js';
 import { addMember, createGroup } from '../groups/service.js';
 import { user } from '../users/schema.js';
 import { addAdmin, deactivateUser } from '../users/service.js';
+import { saveSubscription } from '../notifications/push-subscriptions.js';
 
 type TestApp = Awaited<ReturnType<typeof buildTestApp>>;
 
@@ -119,6 +120,22 @@ describe('chat API', () => {
     expect(channel).toMatchObject({ lastSeq: 0, lastReadAt: null, unread: 0 });
     const again = await call('GET', `/api/groups/${group.id}/chat`, admin.cookie);
     expect(again.json<{ id: string }>().id).toBe(channel.id);
+  });
+
+  it('chat send triggers delivery: a subscribed client gets a push', async () => {
+    const s = await setup();
+    const endpoint = `https://push.example.test/${randomUUID()}`;
+    await saveSubscription(test.deps.db, s.a.id, {
+      endpoint,
+      p256dh: 'pk',
+      auth: 'au',
+      userAgent: null,
+    });
+    const res = await send(s.channelId, s.admin.cookie, { body: 'Ahoj' });
+    expect(res.statusCode).toBe(201);
+    const sent = test.push.sent.filter((x) => x.endpoint === endpoint);
+    expect(sent).toHaveLength(1);
+    expect(sent[0]!.payload).toMatchObject({ title: 'Firma', body: 'Admin: Ahoj' });
   });
 
   it('a client of another group gets 404 on every route', async () => {
