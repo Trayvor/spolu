@@ -7,6 +7,8 @@ export type GlobalFilters = {
   clients?: string;
   assignee?: string;
   urgent?: boolean;
+  /** Only the tasks the viewer created or is an assignee of. */
+  mine?: boolean;
   due?: 'overdue' | 'week' | 'none';
   q?: string;
   completed?: boolean;
@@ -17,6 +19,7 @@ function queryString(filters: GlobalFilters, page?: { column: BoardColumnKind; a
   if (filters.clients) params.set('clients', filters.clients);
   if (filters.assignee && filters.assignee !== 'anyone') params.set('assignee', filters.assignee);
   if (filters.urgent) params.set('urgent', '1');
+  if (filters.mine) params.set('mine', '1');
   if (filters.due) params.set('due', filters.due);
   if (filters.q) params.set('q', filters.q);
   if (filters.completed) params.set('completed', '1');

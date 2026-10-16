@@ -18,7 +18,7 @@ What an administrator sees after signing in: a dashboard of what needs them, a c
 - **Global task board.** Administrators have a task board across all clients:
   - columns by step: To do, Other steps (custom buckets), eGrant review, Client review, Completed (Completed hidden unless chosen);
   - a client filter that by default shows the clients I manage; I can add or remove clients, with managed and other clients shown separately;
-  - filters by assignee (me, anyone, unassigned, a person), urgent, deadline (overdue, next 7 days, none), title search, and showing completed tasks;
+  - filters by assignee (me, anyone, unassigned, a person), urgent, "only where I take part" (tasks I created or am an assignee of), deadline (overdue, next 7 days, none), title search, and showing completed tasks;
   - clicking a task opens it; tasks are moved from the task panel, not dragged.
 - **Phones.** The client list and dashboard become one column: three count tiles (each opens its list) above the client list.
 - **Speed.** The dashboard and the client list each load with one request; nothing slows down the first screen for clients.

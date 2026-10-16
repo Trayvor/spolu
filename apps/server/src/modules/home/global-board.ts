@@ -26,6 +26,8 @@ export type GlobalBoardQuery = {
   /** `me`, `anyone`, `none` (unassigned) or a person id. */
   assignee: string;
   urgent: boolean;
+  /** Only the tasks the viewer created or is an assignee of. */
+  mine: boolean;
   due?: DueFilter;
   q?: string;
   completed: boolean;
@@ -96,6 +98,12 @@ function assigneeFilter(q: GlobalBoardQuery): SQL {
   return assigned(q.assignee === 'me' ? q.viewerId : q.assignee);
 }
 
+function mineFilter(q: GlobalBoardQuery): SQL {
+  if (!q.mine) return sql`true`;
+  return sql`(s.created_by = ${q.viewerId} or exists (
+    select 1 from task_assignees ta where ta.task_id = s.id and ta.user_id = ${q.viewerId}))`;
+}
+
 function dueFilter(q: GlobalBoardQuery): SQL {
   const today = sql`${q.today}::date`;
   switch (q.due) {
@@ -112,7 +120,7 @@ function dueFilter(q: GlobalBoardQuery): SQL {
 
 /**
  * The global task board in ONE statement: the chosen clients' tasks (open, plus with `completed`
- * those completed in the last 30 days, on `tasks_open_group_idx`), filtered, in five columns by
+ * those completed in the last 30 days, on `tasks_open_group_idx`), filtered (`mine`: the viewer created it or is an assignee), in five columns by
  * bucket kind (every custom bucket in `other`), each sorted by the keyset (not urgent, deadline
  * with none last, client name, created, id) and cut at 50 per column, with each column's total.
  * With `column` and `after` it answers that column's next 50 after the cursor. `people` are the
@@ -159,7 +167,7 @@ export function globalBoardSql(q: GlobalBoardQuery): SQL {
     filtered as (
       select s.*, count(*) over (partition by s.col) as total
       from scope s
-      where ${assigneeFilter(q)} and ${urgent} and ${dueFilter(q)} and ${search} and ${onlyColumn}
+      where ${assigneeFilter(q)} and ${mineFilter(q)} and ${urgent} and ${dueFilter(q)} and ${search} and ${onlyColumn}
     ),
     ranked as (
       select r.*,

@@ -9,7 +9,7 @@ import {
 import { buildTestApp } from '../../../test/test-app.js';
 import { loginAs } from '../../../test/login.js';
 import { addAdmin } from '../users/service.js';
-import { newClient, newGroup } from './test-fixtures.js';
+import { newAdmin, newClient, newGroup, newTask } from './test-fixtures.js';
 
 type TestApp = Awaited<ReturnType<typeof buildTestApp>>;
 
@@ -87,5 +87,27 @@ describe('home API', () => {
       'egrant_review',
       'client_review',
     ]);
+  });
+
+  it('mine=1 keeps the tasks the admin created or is an assignee of', async () => {
+    const db = test.deps.db;
+    const group = await newGroup(db, 'Mine route');
+    const admin = await newAdmin(db, 'Mia');
+    const client = await newClient(db, group.id, 'Kamil');
+    await newTask(db, { groupId: group.id, createdBy: admin.id, title: 'created' });
+    await newTask(db, {
+      groupId: group.id,
+      createdBy: client.id,
+      title: 'assigned',
+      assigneeIds: [admin.id],
+    });
+    await newTask(db, { groupId: group.id, createdBy: client.id, title: 'not mine' });
+    const res = await get(
+      `/api/tasks/global?clients=${group.id}&mine=1`,
+      await loginAs(test.app, admin.email),
+    );
+    expect(res.statusCode).toBe(200);
+    const todo = GlobalBoardSchema.parse(res.json()).columns.find((c) => c.kind === 'todo')!;
+    expect(todo.items.map((t) => t.title).sort()).toEqual(['assigned', 'created']);
   });
 });
