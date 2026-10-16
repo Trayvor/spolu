@@ -60,12 +60,12 @@ const event = (m: MessageDto, over: Partial<ChatMessageEvent> = {}): ChatMessage
 let server: TaskChatSummaries;
 let fetches: number;
 
-function renderBadge(initial: TaskChatSummaries) {
+function renderBadge(initial?: TaskChatSummaries) {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false, staleTime: Infinity } },
   });
   client.setQueryData(sessionQuery.queryKey, ME as never);
-  client.setQueryData(taskChatsQuery('g1').queryKey, initial);
+  if (initial) client.setQueryData(taskChatsQuery('g1').queryKey, initial);
   render(
     <QueryClientProvider client={client}>
       <TasksTabBadge groupId="g1" />
@@ -146,6 +146,24 @@ describe('task chats', () => {
       ),
     );
     await waitFor(() => expect(fetches).toBe(1));
+  });
+
+  it('an event before the first fetch has landed refetches instead of being dropped', async () => {
+    server = { t1: { count: 1, unread: true } };
+    // Hold the first response so the event arrives while the fetch is in flight.
+    let release: () => void = () => {};
+    const gate = new Promise<void>((resolve) => (release = resolve));
+    vi.mocked(fetch).mockImplementationOnce(async () => {
+      fetches += 1;
+      await gate;
+      return new Response(JSON.stringify({}), { status: 200 });
+    });
+    const client = renderBadge();
+    await waitFor(() => expect(fetches).toBe(1));
+    act(() => socket.fire('chat:message', event(message())));
+    release();
+    await waitFor(() => expect(fetches).toBe(2));
+    await waitFor(() => expect(cached(client)).toEqual(server));
   });
 
   it('ignores events of the group channel and of other groups', () => {

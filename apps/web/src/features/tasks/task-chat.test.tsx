@@ -133,7 +133,7 @@ describe('TaskChat', () => {
     await user.click(
       await screen.findByRole('button', { name: i18n.t('chat.actions.turnIntoTasks') }),
     );
-    const dialog = await screen.findByRole('dialog', { name: i18n.t('taskSplit.title') });
+    await screen.findByRole('dialog', { name: i18n.t('taskSplit.title') });
     await user.click(await screen.findByRole('button', { name: i18n.t('taskSplit.approveAll') }));
     await user.click(screen.getByRole('button', { name: /^Create \d+ tasks?$/ }));
 
@@ -151,6 +151,5 @@ describe('TaskChat', () => {
       messageId: 'm1',
       tasks: [{ title: 'Pay the invoice' }],
     });
-    expect(dialog).toBeDefined();
   });
 });

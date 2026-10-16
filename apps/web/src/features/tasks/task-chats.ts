@@ -40,12 +40,20 @@ export function useTaskChatEvents(groupId: string, meId: string | undefined): vo
     const update = (
       taskId: string,
       apply: (old: TaskChatSummaries[string]) => TaskChatSummaries[string],
-    ) =>
-      // Not cached yet: the initial fetch will cover it.
+    ) => {
+      // Not cached yet (the first fetch is in flight): its answer may predate the event, so drop
+      // it and ask again. (invalidateQueries alone would join the request already in flight.)
+      if (!queryClient.getQueryData(queryKey)) {
+        void queryClient
+          .cancelQueries({ queryKey, exact: true })
+          .then(() => queryClient.invalidateQueries({ queryKey, exact: true }));
+        return;
+      }
       queryClient.setQueryData<TaskChatSummaries>(
         queryKey,
         (all) => all && { ...all, [taskId]: apply(all[taskId] ?? { count: 0, unread: false }) },
       );
+    };
     const refetch = () => void queryClient.invalidateQueries({ queryKey, exact: true });
 
     const onMessage = (event: ChatMessageEvent) => {
