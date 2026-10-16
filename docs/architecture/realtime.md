@@ -71,7 +71,7 @@ After a bucket is deleted its tasks moved to To do without a `board:task` event;
 
 ## Bulk email events
 
-`bulk:updated` (`BulkEvents.updated`, payload `BulkEventPayload` = `{ campaignId }`, Phase 23) goes to the `admins` room only (`emitBulkUpdated` in `modules/bulk-email/events.ts`), after a campaign is created, saved, deleted or duplicated (part 23.2), after sending starts or is cancelled, after each batch run of the sending job and when a campaign becomes `sent` (part 23.5; the job reaches the sockets through `attachBulkRealtime`, set in `buildApp`). The list and an open campaign refetch.
+`bulk:updated` (`BulkEvents.updated`, payload `BulkEventPayload` = `{ campaignId }`, Phase 23) goes to the `admins` room only (`emitBulkUpdated` in `modules/bulk-email/events.ts`), after a campaign is created, saved, deleted or duplicated (part 23.2), after sending starts or is cancelled, after each batch run of the sending job and when a campaign becomes `sent` (part 23.5; the job reaches the sockets through `attachBulkRealtime`, set in `buildApp`). The list and an open campaign refetch; on an open report this also refetches the per-person list (its query key extends the campaign's), so the progress bar and the list move while sending (part 23.7).
 
 ## Knowledge events
 
