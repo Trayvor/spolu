@@ -27,3 +27,16 @@ export async function latestLoginCode(request: APIRequestContext, email: string)
   }
   throw new Error(`No login code arrived in Mailpit for ${email}`);
 }
+
+/** The subjects of every message Mailpit holds for `email`, oldest first. */
+export async function subjectsFor(request: APIRequestContext, email: string): Promise<string[]> {
+  const search = await request.get(
+    `${MAILPIT}/api/v1/search?query=${encodeURIComponent(`to:"${email}"`)}`,
+  );
+  const { messages } = (await search.json()) as {
+    messages?: { Subject: string; Created: string }[];
+  };
+  return [...(messages ?? [])]
+    .sort((a, b) => a.Created.localeCompare(b.Created))
+    .map((m) => m.Subject);
+}

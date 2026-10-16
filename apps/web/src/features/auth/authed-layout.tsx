@@ -1,7 +1,9 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Outlet, useRouter } from '@tanstack/react-router';
 import { AppPrompt } from '@/features/notifications/app-prompt';
+import { saveLanguage } from '@/features/profile/api';
+import { i18n } from '@/i18n';
 import { connectSocket, disconnectSocket, getSocket } from '@/lib/socket';
 import { redirectToLogin } from './go-to-login';
 import { clearSession, sessionQuery, useSession } from './use-session';
@@ -19,13 +21,22 @@ const RECONNECT_MAX_MS = 30_000;
  * When the server itself ends the connection (`io server disconnect`, e.g. the admin was
  * removed) Socket.IO does not reconnect, so ask /api/me: no session means the same trip to
  * /login.
- * It also mounts `<AppPrompt>`, the install and enable-notifications card.
+ * It also mounts `<AppPrompt>`, the install and enable-notifications card, and once per
+ * signed-in user stores the UI language on the server (the language of their emails and pushes;
+ * best effort).
  */
 
 export function AuthedLayout() {
   const userId = useSession()?.id;
   const queryClient = useQueryClient();
   const router = useRouter();
+  const languageSavedFor = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!userId || languageSavedFor.current === userId) return;
+    languageSavedFor.current = userId;
+    saveLanguage(i18n.language).catch(() => undefined);
+  }, [userId]);
 
   useEffect(() => {
     if (!userId) return;

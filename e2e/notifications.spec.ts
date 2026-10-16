@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { expect, test, type BrowserContext } from '@playwright/test';
-import { clearMailFor, latestLoginCode } from './mailpit';
+import { clearMailFor, latestLoginCode, subjectsFor } from './mailpit';
 import { fakeSubscription, pushesFor, waitForPush } from './push-log';
 
 // One client logs in once (production rate limits allow only a few code requests per minute).
@@ -133,4 +133,71 @@ test.describe.serial('push delivery by group mode', () => {
     await waitForPush(endpoint.endpoint, (p) => p.body.includes(mention));
     expect(pushesFor(endpoint.endpoint).some((p) => p.body.includes(plain))).toBe(false);
   });
+});
+
+// The e2e server batches email after EMAIL_BATCH_DELAY_MS (3 s) instead of 10 minutes.
+test('with email on, one batched email arrives in Mailpit', async ({ browser }) => {
+  const stamp = Date.now();
+  const email = `e2e-digest-${stamp}@example.com`;
+  const adminContext = await browser.newContext({ storageState: 'e2e/.auth/superadmin.json' });
+  const clientContext = await browser.newContext({ locale: 'sk-SK', storageState: undefined });
+  try {
+    const created = await adminContext.request.post('/api/groups', {
+      data: { name: `E2E Digest ${stamp}`, egrantUrl: `https://e2e-digest-${stamp}.egrant.sk` },
+    });
+    const groupId = ((await created.json()) as { id: string }).id;
+    const channelId = (
+      (await (await adminContext.request.get(`/api/groups/${groupId}/chat`)).json()) as {
+        id: string;
+      }
+    ).id;
+    const admin = await adminContext.newPage();
+    await admin.goto(`/groups/${groupId}/members`);
+    const inviteUrl = await admin.getByRole('textbox', { name: 'Odkaz na pozvánku' }).inputValue();
+
+    // The install card can cover controls on a phone; dismissed here, as in chat-mobile.spec.ts.
+    await clientContext.addInitScript(() => {
+      localStorage.setItem('spolu.prompt.install.dismissedAt', String(Date.now()));
+    });
+    const client = await clientContext.newPage();
+    await client.goto(new URL(inviteUrl).pathname);
+    await clearMailFor(clientContext.request, email);
+    await client.getByLabel('E-mail').fill(email);
+    await client.getByRole('button', { name: 'Poslať kód' }).click();
+    await client.getByLabel('Kód').fill(await latestLoginCode(clientContext.request, email));
+    await client.getByLabel('Vaše meno').fill('E2E Digest Client');
+    await client.getByRole('button', { name: 'Pokračovať' }).click();
+    await expect(client).toHaveURL(new RegExp(`/groups/${groupId}/chat$`));
+
+    // Off the chat, so the messages stay unread; then the Email switch in the settings.
+    await client.goto('/settings');
+    const emailSwitch = client.getByRole('switch', { name: 'E-mailové upozornenia' });
+    await expect(emailSwitch).not.toBeChecked();
+    const saved = client.waitForResponse(
+      (r) => r.url().endsWith('/api/notifications/preferences') && r.request().method() === 'PATCH',
+    );
+    await emailSwitch.click();
+    expect((await saved).status()).toBe(200);
+    await expect(emailSwitch).toBeChecked();
+    await clearMailFor(clientContext.request, email);
+
+    for (const n of [1, 2, 3]) {
+      const res = await adminContext.request.post(`/api/channels/${channelId}/messages`, {
+        data: { body: `digest ${n} ${stamp}`, clientId: randomUUID() },
+      });
+      expect(res.status()).toBe(201);
+    }
+
+    await expect
+      .poll(() => subjectsFor(clientContext.request, email), { timeout: 15_000 })
+      .toHaveLength(1);
+    const [subject] = await subjectsFor(clientContext.request, email);
+    expect(subject).toContain('3 nové správy');
+    // No second email for the same messages.
+    await client.waitForTimeout(5_000);
+    expect(await subjectsFor(clientContext.request, email)).toHaveLength(1);
+  } finally {
+    await clientContext.close();
+    await adminContext.close();
+  }
 });

@@ -51,7 +51,8 @@ export async function waitForPush(
   for (;;) {
     const found = pushesFor(endpoint).find(match);
     if (found) return found;
-    if (Date.now() > deadline) throw new Error(`No matching push for ${endpoint} in ${timeoutMs} ms`);
+    if (Date.now() > deadline)
+      throw new Error(`No matching push for ${endpoint} in ${timeoutMs} ms`);
     await new Promise((r) => setTimeout(r, 200));
   }
 }

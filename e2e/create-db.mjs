@@ -3,6 +3,7 @@
 // Connects as the dev user to the `spolu` database; ADMIN_DATABASE_URL overrides.
 import { createRequire } from 'node:module';
 import process from 'node:process';
+import { URL } from 'node:url';
 
 // `postgres` is a dependency of the server package, not of the repo root.
 const postgres = createRequire(import.meta.dirname + '/../apps/server/package.json')('postgres');

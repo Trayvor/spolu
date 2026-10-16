@@ -6,6 +6,8 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { useSession } from '@/features/auth/use-session';
+import { saveLanguage } from '@/features/profile/api';
 import { setLanguage } from '@/i18n';
 import { isLanguage } from '@/i18n/detect';
 import { SUPPORTED_LANGUAGES } from '@/i18n/languages';
@@ -15,14 +17,19 @@ import { SUPPORTED_LANGUAGES } from '@/i18n/languages';
  * opens a menu below with every language in SUPPORTED_LANGUAGES, named in its own language,
  * the current one checked. The button's name includes the current language
  * (`language.current`, "Jazyk: Slovenčina"), so screen readers announce it.
+ * For a signed-in user the choice is also stored on the server (emails and pushes use it);
+ * that save is best effort and never blocks the switch.
  */
 export function LanguageSwitcher() {
   const { t, i18n } = useTranslation();
+  const signedIn = useSession() !== null;
 
   const current = SUPPORTED_LANGUAGES.find((lang) => lang.code === i18n.language);
 
   function choose(value: string) {
-    if (isLanguage(value) && value !== i18n.language) void setLanguage(value);
+    if (!isLanguage(value) || value === i18n.language) return;
+    void setLanguage(value);
+    if (signedIn) saveLanguage(value).catch(() => undefined);
   }
 
   return (

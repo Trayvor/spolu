@@ -246,6 +246,18 @@ egrant.sk spacing presets are 4, 8, 12, 16, 20, 24, 32, 40, 48, 54, 64px — all
 - The iPhone install card is the strong one: `bg-primary` (ink) with white text, title `text-medium`, line at 80% white. Under it the three steps (an `<ol role="list">`, since `list-none` drops the list role in Safari) on an `ink-hover` inset (`rounded-lg`, 12px padding): a 24px numbered ring (white at 40%) and the step text; "Tap Share" ends with the Share glyph (`share-icon.tsx`, drawn after the iOS icon: a box with an arrow up out of it) in white 28px `rounded-md` chip, so it looks like the button the user is looking for. Its only button, "Not now", is `secondary` so it reads on ink.
 - Motion: a 200ms slide-up and fade (`animate-prompt-in`, 16px), only under `motion-safe:`; nothing else moves.
 
+### Settings page (as built, `src/routes/settings.tsx`, `src/features/profile/`, `src/features/notifications/notifications-section.tsx`)
+
+- One column in the 552px measure, 24px apart: the `text-medium` page title, then three `Card`s in this order: Profile, Notifications, System status. Each card title is an `h2` in `CardTitle`; rows inside a card are split by a `border-t border-border` hairline with 20px above and below. No icons, no illustrations.
+- Name: the Label above, then the Input and a `secondary` "Save" (`size="lg"`, 44px) on one row. After a save, "Saved" in `text-micro` weight 600 `text-success` (`role="status"`) under the field; an empty name or a failed save is the usual `text-micro text-error-ink` line and marks the field `aria-invalid`.
+- Email: the `text-micro` label, then the address (`text-button` weight 600, breaks anywhere) with a `secondary` "Change" on the right. "Change" opens the flow inline under it, on a `bg-muted rounded-lg p-4` inset with 16px gaps: the new address field, then the line "We sent a code to …" and the code field (`text-medium`, `0.4em` letter spacing, `inputmode=numeric`, at most 220px wide, as on the login card). Each step ends with a primary submit ("Send code", "Confirm") and a ghost "Cancel", both 44px. Errors sit under the field (`role="alert"`, `text-error-ink`) and the step stays. Done: "Your email address is now …" in the "Saved" style. The superadmin sees no "Change", only a muted line that the address comes from the server configuration.
+- Switch row: the label (`text-body` weight 600, a `<label>` for the switch, so the text toggles it too) and a one-line hint (`text-button text-muted-foreground`) on the left, the switch on the right, 3px down so it lines up with the label.
+- Under the Push row, this device on the same `bg-muted rounded-lg p-4` inset: "This device: on / not set up / blocked in the browser settings" in weight 600; "not set up" adds an `outline` "Turn on for this device" (44px); "blocked" adds one muted line on how to unblock. On an iPhone outside the Home Screen the inset holds only the install hint. Without VAPID keys the Push row has no switch, only the "not available on this server" hint.
+
+### Switch (as built, `src/components/ui/switch.tsx`)
+
+- Radix `Switch` (role `switch`): a 44×26 `rounded-full` track with 3px padding, `bg-surface-3` off and `bg-primary` (ink) on; a 20px white (`bg-card`) knob with `shadow-lift`, moved 18px when on. The knob slides in 150ms (`--duration-fast`) only under `motion-safe:`; the colour change is the same 150ms. Disabled: 50% opacity. Focus: the global 2px ink ring.
+
 ### Link
 
 - Inherits color, no underline; hover color `neutral` (`#5E5E5E`). In long text (manuals) links are underlined and lose the underline on hover.
