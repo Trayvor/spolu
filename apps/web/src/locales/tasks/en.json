@@ -100,6 +100,7 @@
     "keepEditing": "Keep editing",
     "fromMessage": "Created from a message",
     "openMessage": "Open in chat",
+    "fromTicket": "Ticket:",
     "newTask": "New task",
     "create": "Create",
     "tabs": {

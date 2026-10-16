@@ -68,6 +68,17 @@ export const membersQuery = (id: string) =>
     queryFn: () => apiGet(`/groups/${encodeURIComponent(id)}/members`, MemberListSchema),
   });
 
+/** The group's requesters (`ziadatel` members, Phase 21); `removed` for the admins' list. */
+export const requestersQuery = (id: string, removed = false) =>
+  queryOptions({
+    queryKey: ['groups', id, 'requesters', removed ? 'removed' : 'active'],
+    queryFn: () =>
+      apiGet(
+        `/groups/${encodeURIComponent(id)}/requesters${removed ? '/removed' : ''}`,
+        MemberListSchema,
+      ),
+  });
+
 /** Removed members (admins only). */
 export const removedMembersQuery = (id: string) =>
   queryOptions({

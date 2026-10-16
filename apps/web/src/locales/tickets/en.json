@@ -1,0 +1,110 @@
+{
+  "new": "New ticket",
+  "status": {
+    "new": "New",
+    "in_progress": "In progress",
+    "resolved": "Resolved"
+  },
+  "filters": {
+    "label": "Ticket filters",
+    "status": "Status",
+    "open": "Open",
+    "resolved": "Resolved",
+    "all": "All",
+    "allAreas": "All areas",
+    "areaChosen": "Area: {{area}}",
+    "noAreas": "No areas in this list yet",
+    "following": "Following",
+    "noClient": "Without client"
+  },
+  "list": {
+    "loading": "Loading tickets…",
+    "error": "The tickets could not be loaded.",
+    "empty": "No open tickets.",
+    "noMatch": "No tickets match these filters.",
+    "loadMore": "Load more"
+  },
+  "row": {
+    "due": "Due",
+    "overdue": "Overdue since",
+    "noSubject": "No subject",
+    "noClient": "Without client",
+    "following": "You follow this ticket"
+  },
+  "mine": {
+    "title": "My tickets",
+    "empty": "You have no tickets here. When eGrant support opens one for you, it shows up here."
+  },
+  "global": {
+    "title": "Tickets"
+  },
+  "page": {
+    "number": "#{{number}}",
+    "details": "Ticket details",
+    "edit": "Edit",
+    "editTitle": "Edit the ticket",
+    "save": "Save changes",
+    "cancel": "Cancel",
+    "turnedInto_one": "Turned into {{count}} task",
+    "turnedInto_other": "Turned into {{count}} tasks"
+  },
+  "fields": {
+    "status": "Status",
+    "subject": "Subject",
+    "area": "Question area",
+    "programme": "Grant programme",
+    "body": "Text",
+    "dueDate": "Due date",
+    "overdue": "overdue",
+    "url": "Link",
+    "instance": "eGrant instance",
+    "fileLinks": "Links to files",
+    "files": "Files",
+    "initiator": "Initiator",
+    "unknown": "Not known",
+    "client": "Client",
+    "created": "Created",
+    "fromEgrant": "by eGrant",
+    "inSpolu": "in Spolu",
+    "resolved": "Resolved"
+  },
+  "followers": {
+    "title": "Followers ({{count}})",
+    "follow": "Follow",
+    "following": "Following",
+    "none": "Nobody follows this ticket."
+  },
+  "assign": {
+    "label": "Client",
+    "moveLabel": "Move to another client",
+    "choose": "Choose a client",
+    "assign": "Assign client",
+    "move": "Move",
+    "change": "Change client",
+    "hasTasks": "This ticket has tasks on its client's board, so it stays with that client."
+  },
+  "noClient": {
+    "title": "No client yet",
+    "adminHint": "eGrant sent no instance link that matches a client. Assign the client: the ticket gets its chat and the initiator gets their email.",
+    "hint": "An admin assigns the client first."
+  },
+  "form": {
+    "title": "New ticket",
+    "back": "Back",
+    "initiator": "Initiator",
+    "initiatorHint": "They get an email and can follow the ticket in Spolu.",
+    "email": "Initiator's email",
+    "name": "Initiator's name",
+    "phone": "Initiator's phone",
+    "linksPlaceholder": "One link per line",
+    "filesAfterClient": "Choose the client first: files belong to it.",
+    "create": "Create ticket",
+    "errors": {
+      "content": "Write a subject, a text or a question area.",
+      "url": "Enter a link that starts with https:// or http://.",
+      "client": "Choose the client.",
+      "email": "Enter a valid email.",
+      "links": "Up to 20 links, each starting with https:// or http://."
+    }
+  }
+}

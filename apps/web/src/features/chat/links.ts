@@ -1,6 +1,12 @@
 const enc = encodeURIComponent;
 
-type LinkedMessage = { messageId: string; channelId: string; taskId: string | null };
+type LinkedMessage = {
+  messageId: string;
+  channelId: string;
+  taskId: string | null;
+  /** Set for a message of a ticket chat (Phase 21): it opens on the ticket's page. */
+  ticketId?: string | null;
+};
 
 /**
  * The one place a link to a chat message is built, as a router location for `<Link>` (in-app
@@ -9,6 +15,9 @@ type LinkedMessage = { messageId: string; channelId: string; taskId: string | nu
  */
 export function chatMessageLocation(groupId: string, m: LinkedMessage) {
   const search = { message: m.messageId, c: m.channelId };
+  if (m.ticketId) {
+    return { to: '/tickets/$ticketId' as const, params: { ticketId: m.ticketId }, search };
+  }
   return m.taskId === null
     ? { to: '/groups/$groupId/chat' as const, params: { groupId }, search }
     : {
@@ -21,7 +30,7 @@ export function chatMessageLocation(groupId: string, m: LinkedMessage) {
 /**
  * The link to one chat message, as a string: `chatMessageLocation` written out, so both always
  * agree. The group's Chat tab for a group chat message, the task panel's Chat tab for a task chat
- * message. `c` scopes the params to that chat (see `useChatSearch`).
+ * message, the ticket page for a ticket chat message. `c` scopes the params to that chat (see `useChatSearch`).
  */
 export function chatMessageHref(groupId: string, m: LinkedMessage): string {
   const { to, params, search } = chatMessageLocation(groupId, m);

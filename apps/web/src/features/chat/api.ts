@@ -34,6 +34,13 @@ export const taskChatQuery = (taskId: string) =>
     queryFn: () => apiGet(`/tasks/${enc(taskId)}/chat`, GroupChannelSchema),
   });
 
+/** A ticket's chat (Phase 21; it exists once the ticket has a client), as `taskChatQuery`. */
+export const ticketChatQuery = (ticketId: string) =>
+  queryOptions({
+    queryKey: ['chat', 'ticket', ticketId],
+    queryFn: () => apiGet(`/tickets/${enc(ticketId)}/chat`, GroupChannelSchema),
+  });
+
 /** Unread message count (top-level and replies in the reader's threads) per group the user can read. */
 export const chatUnreadQuery = queryOptions({
   queryKey: ['chat', 'unread'],

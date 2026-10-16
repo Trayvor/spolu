@@ -12,3 +12,8 @@ export function isAdmin(user: SessionUser | null): boolean {
 export function clientGroups(me: Me): MeGroup[] {
   return me.groups.filter((g) => g.role === 'client');
 }
+
+/** Whether the person reports tickets somewhere: an active requester (`ziadatel`) membership. */
+export function isRequester(me: Me): boolean {
+  return me.groups.some((g) => g.role === 'ziadatel');
+}

@@ -1,6 +1,9 @@
 import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
-import type { SourceMessage as SourceMessageDto } from '@spolu/shared';
+import type {
+  SourceMessage as SourceMessageDto,
+  SourceTicket as SourceTicketDto,
+} from '@spolu/shared';
 import { chatMessageLocation } from '@/features/chat/links';
 
 const EXCERPT_LENGTH = 140;
@@ -38,5 +41,28 @@ export function SourceMessage({
         {t('tasks.panel.openMessage')}
       </Link>
     </section>
+  );
+}
+
+/**
+ * "Ticket: #123 subject" (Phase 21): the ticket a task was made from, one line linking to the
+ * ticket page. The server sends it only to people who can read the ticket.
+ */
+export function SourceTicketLine({ ticket }: { ticket: SourceTicketDto }) {
+  const { t } = useTranslation();
+  return (
+    <p className="flex min-w-0 items-baseline gap-1.5 text-button">
+      <span className="shrink-0 font-semibold text-muted-foreground">
+        {t('tasks.panel.fromTicket')}
+      </span>
+      <Link
+        to="/tickets/$ticketId"
+        params={{ ticketId: ticket.id }}
+        className="min-w-0 truncate font-semibold underline underline-offset-4 hover:text-neutral"
+      >
+        #{ticket.number}
+        {ticket.subject ? ` ${ticket.subject}` : ''}
+      </Link>
+    </p>
   );
 }

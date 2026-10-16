@@ -62,6 +62,7 @@ const TASK: TaskDetailDto = {
   description: '',
   files: [],
   sourceMessage: null,
+  sourceTicket: null,
 };
 
 const EMPTY: ReminderSetDto = { times: [], recipients: [], subscribed: false, canEdit: true };

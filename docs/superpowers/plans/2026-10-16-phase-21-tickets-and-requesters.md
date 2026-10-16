@@ -52,11 +52,11 @@ The owner merges them in order #3 → #4 → #6 → #7; GitHub then retargets ea
 - **21.5 Ticket to tasks** after 21.4 (it needs the ticket page). **21.7 e2e and wrap-up** last.
 
 **Open points the next parts must handle** (also in the "As built" notes of each part below):
-1. A ziadatel cannot upload files: the upload route `POST /api/groups/:id/files` needs the group. 21.4 either hides the attach button for a ziadatel in the ticket chat, or adds `POST /api/tickets/:id/files` (files of the ticket's group, readable through the ticket chat's file rule). Recommended: the route, it is small.
+1. *(Done in 21.4: `POST /api/tickets/:id/files`.)* A ziadatel cannot upload files: the upload route `POST /api/groups/:id/files` needs the group. 21.4 either hides the attach button for a ziadatel in the ticket chat, or adds `POST /api/tickets/:id/files` (files of the ticket's group, readable through the ticket chat's file rule). Recommended: the route, it is small.
 2. A ticket chat records no chat notifications yet. 21.6 adds `ticket.message` (followers) and decides mentions: a mention in a ticket chat should notify the mentioned reader as a `tickets` event that links to `/tickets/<id>`.
-3. The web ticket chat must take its people from `GET /api/channels/:id/people`, not `/api/groups/:id/people` (a ziadatel gets 404 there).
-4. The admin home "Unread mentions" card and chat message links know only group and task chats; a ticket chat message must link to `/tickets/<id>` (21.4 or 21.6, whichever touches it first).
-5. `/` for a person with only ziadatel memberships goes to `/settings` today; 21.4 changes it to `/tickets` (home route in `apps/web/src/router.tsx`, `clientGroups` in `features/auth/roles.ts`).
+3. *(Done in 21.4.)* The web ticket chat must take its people from `GET /api/channels/:id/people`, not `/api/groups/:id/people` (a ziadatel gets 404 there).
+4. *(Done in 21.4: `MentionItem.ticketId`.)* The admin home "Unread mentions" card and chat message links know only group and task chats; a ticket chat message must link to `/tickets/<id>` (21.4 or 21.6, whichever touches it first).
+5. *(Done in 21.4.)* `/` for a person with only ziadatel memberships goes to `/settings` today; 21.4 changes it to `/tickets` (home route in `apps/web/src/router.tsx`, `clientGroups` in `features/auth/roles.ts`).
 6. Suggested separately, not part of Phase 21: an index on `notification_events.group_id` (a group delete scans that table).
 7. The owner pushed "Phase 21 — Members & groups page" to `main` (commit 28508cb); it becomes **Phase 22** through PR #9 (item C's session). After #9 merges, merging `main` into #4, #6 and #7 conflicts only in `docs/roadmap.md` (the table and the "Next" list): keep both, row 21 (tickets) above row 22. Phase 22's plan must be reconciled with 21.1's membership model (roles, `pending_invites`, several groups) before it is built.
 
@@ -278,6 +278,18 @@ Each branch is cut from the latest `main`. The ticket page of 21.4 renders the c
 ---
 
 ## Part 21.4 — Ticket screens (spec §5)
+
+**As built (2026-10-16, branch `phase-21-4-tickets-web`, stacked on 21.3).** For later parts:
+- Handoff open points done here: 1 (`POST /api/tickets/:id/files`: whoever reads a ticket with a client uploads into its client's files, `409 no_client` without one; the preview route lets the uploader set their own file's preview without the group read check), 3 (the ticket chat reads its people from `GET /api/channels/:id/people` and uploads through the ticket: `ChatScope` in `features/chat/chat-scope.ts`, passed as `<Conversation scope>`), 4 (`MentionItem.ticketId` from `home/mentions.ts`; `mentionTarget` and `chatMessageLocation` link a ticket chat message to `/tickets/<id>?message=…&c=…`) and 5 (`/` sends a person with only requester memberships to `/tickets`).
+- Web: `features/tickets/` (`api.ts` with `ticketsQuery(source, filter)`, `ticketQuery`, `useCreateTicket`, `usePatchTicket`, `useAssignGroup`, `useFollow`, `patchTicketInLists`; `ticket-list.tsx` `<TicketList source filter onFilterChange>`; `ticket-page.tsx`; `new-ticket-dialog.tsx`; `use-ticket-events.ts`; `search.ts` for the URL filters). Routes `/tickets` (admins: global view; others: My tickets), `/tickets/$ticketId` (loader 404 → not found; no search schema, so chat links pass through) and the group tab `tickets`. Texts in the lazy `tickets` namespace.
+- The ticket page has **no "Turn into tasks" yet** and shows "Turned into N tasks" without links for everyone: 21.5 adds the button (admins and the group's clients, never for a ticket without a client), the linked task list and the message action in the ticket chat (the chat passes no `messageActions` today).
+- `TicketDto.files` (the manual form's uploads, `FileInfo[]`): readable by whoever reads the ticket (`fileOfReadableTicket`, a file read rule registered in `tickets/chat.ts`) and moved with the ticket (`assignTicketGroup`).
+- `TaskDetailDto.sourceTicket` (`{ id, number, subject } | null`, `tickets/refs.ts` `getTicketRef`, only a ticket of the task's group) and the task panel's line "Ticket: #123 subject"; 21.5 only needs to set `tasks.source_ticket_id`.
+- Requesters: `GET /api/groups/:id/requesters` (readers of the group) and `/requesters/removed` (admins); remove and restore use the member routes; a restored requester's sockets no longer join the group room (that was a leak in 21.1's restore).
+- The area filter offers the areas seen in the loaded list (no endpoint). The requester's ticket chat catches up on every socket `connect` (they cannot join the group room).
+- e2e: `e2e/ticket-screens.spec.ts` (intake → requester logs in, sees only their ticket, writes in its chat; admin sets In progress and replies; admin creates a ticket from the group tab and sees the requester on the Members tab). `playwright.config.ts` sets `TICKETS_API_KEY`. 21.7's `e2e/tickets.spec.ts` can build on it.
+- Bundle: initial JS 199.6 kB gzip (+2.1 kB), 0.4 kB under the budget; see `architecture/performance.md`.
+- Not done: screenshots in the PR (the orchestrator runs the e2e and the app).
 
 All tasks start with the `frontend-design` skill. Web tests mock HTTP with the shared schemas of 21.2.
 
