@@ -34,3 +34,14 @@ require_cmd() {
     command -v "$cmd" >/dev/null 2>&1 || die "command '$cmd' is required but not installed"
   done
 }
+
+# deploy_env <env file>: prints the env file for the server. DOMAIN and PUBLIC_URL come from the
+# DOMAIN variable (so a domain change is one GitHub variable), and a non-empty TICKETS_API_KEY
+# (its own GitHub secret) replaces the file's. Every other line is kept as it is.
+deploy_env() {
+  local drop='^(DOMAIN|PUBLIC_URL)='
+  [[ -n "${TICKETS_API_KEY:-}" ]] && drop='^(DOMAIN|PUBLIC_URL|TICKETS_API_KEY)='
+  grep -Ev "$drop" "$1" || true
+  printf 'DOMAIN=%s\nPUBLIC_URL=https://%s\n' "$DOMAIN" "$DOMAIN"
+  if [[ -n "${TICKETS_API_KEY:-}" ]]; then printf 'TICKETS_API_KEY=%s\n' "$TICKETS_API_KEY"; fi
+}
