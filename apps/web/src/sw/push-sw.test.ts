@@ -66,6 +66,29 @@ describe('push-sw', () => {
     expect(self.registration.showNotification.mock.calls[1]![0]).toBe('Spolu');
   });
 
+  it('a payload without a tag gets the spolu tag (renotify needs one)', async () => {
+    const { self, fire } = setup([]);
+    // Like browsers: renotify without a tag rejects with a TypeError and nothing is shown.
+    self.registration.showNotification.mockImplementation((_title, options) => {
+      const o = options as { tag?: string; renotify?: boolean };
+      return o.renotify && !o.tag
+        ? Promise.reject(new TypeError('renotify needs a tag'))
+        : Promise.resolve();
+    });
+    await fire('push', {
+      data: {
+        json: () => {
+          throw new SyntaxError('bad');
+        },
+      },
+    });
+    await fire('push', { data: { json: () => ({ title: 'Acme', tag: '' }) } });
+    const tags = self.registration.showNotification.mock.calls.map(
+      ([, options]) => (options as { tag: string }).tag,
+    );
+    expect(tags).toEqual(['spolu', 'spolu']);
+  });
+
   it('click focuses an open tab and posts the path', async () => {
     const client = {
       url: 'https://spolu.test/',

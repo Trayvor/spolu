@@ -12,7 +12,8 @@ self.addEventListener('push', (event) => {
   event.waitUntil(
     self.registration.showNotification(payload.title || 'Spolu', {
       body: payload.body,
-      tag: payload.tag,
+      // `renotify` needs a tag: without one the browser rejects and shows nothing.
+      tag: payload.tag || 'spolu',
       renotify: true,
       icon: '/icons/icon-192.png',
       data: { url: payload.url },
