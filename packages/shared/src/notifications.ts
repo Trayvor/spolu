@@ -81,7 +81,9 @@ export function resolveChannels(stored: unknown): ChannelMap {
   const result: ChannelMap = { ...DEFAULT_CHANNELS };
   if (stored === null || typeof stored !== 'object' || Array.isArray(stored)) return result;
   for (const category of NotificationCategories) {
-    const value = NotificationChannelSchema.safeParse((stored as Record<string, unknown>)[category]);
+    const value = NotificationChannelSchema.safeParse(
+      (stored as Record<string, unknown>)[category],
+    );
     if (value.success) result[category] = value.data;
   }
   return result;

@@ -166,6 +166,30 @@ it('patch schema accepts one group and channel, refuses others', () => {
 - [ ] **Step 4:** Same command → PASS; then `pnpm --filter @spolu/server test` and `pnpm --filter @spolu/server typecheck` → PASS.
 - [ ] **Step 5:** Commit `feat(notifications): preferences API by group`.
 
+### Task 5b: Ticket events without a client group; the audience hook (item B's follow-up request)
+
+**Files:**
+- Modify: `apps/server/src/modules/notifications/categories.ts`, `deliver.ts`, `digest.ts`, `digest-entries.ts`, `digest-entries.test.ts`, `digest.test.ts`
+- Create: `apps/server/src/modules/notifications/tickets-contract.test.ts`
+
+**Interfaces:**
+- Produces:
+  - `notificationAudience(db: Db, groupId: string, group: NotificationCategory): Promise<Set<string>>` — today the ids of `listGroupPeople(db, groupId)` for every group
+  - `DigestEntry` gains `topic: string`; `DigestContext.groupId` and `groupName` become `string | null`
+  - delivery: an event with `groupId = null` passes when its group is `tickets` (no membership check, mode irrelevant); otherwise warned and dropped as today
+  - digest: due pairs keyed by `(user_id, coalesce(group_id, ''))`, so events without a client group make their own digest; subject = `digestSubject(count, topic)`
+
+- [ ] **Step 1: Failing tests** in `tickets-contract.test.ts`, with `vi.mock('./categories.js')` mapping a test kind `test.ticket` to `tickets` (and every other kind as the real function) and `vi.mock('./digest-entries.js')` returning `{ line: '#1 Login: Jana: help', url: '<publicUrl>/tickets/1', button: 'Open ticket', topic: 'Ticket #1' }` for it:
+  - a `test.ticket` event with `groupId: null` to a subscribed admin → one push sent;
+  - a `test.ticket` event with a client group to a client of another group → no push (the audience still applies when there is a group);
+  - a `chat.message` event with `groupId: null` → dropped, no push;
+  - a `test.ticket` event with `groupId: null`, email due → one email with subject `1 new message in Ticket #1` and the ticket url.
+  - `digest-entries.test.ts`: every entry has `topic` = the group name; a chat event with `groupId: null` → `null`.
+- [ ] **Step 2:** `pnpm --filter @spolu/server exec vitest run src/modules/notifications` → FAIL.
+- [ ] **Step 3:** Implement.
+- [ ] **Step 4:** Same command → PASS; `pnpm --filter @spolu/server test` → PASS.
+- [ ] **Step 5:** Commit `feat(notifications): ticket events without a client group; audience hook`.
+
 ### Task 6: Settings card and prompts (web)
 
 **Files:**

@@ -62,12 +62,19 @@ One map and one function in `apps/server/src/modules/notifications/categories.ts
 
 The bell mode (All / Mentions and replies / Off) is about a client group's chat and tasks. Ticket events go to people who follow the ticket (or own it), which is an explicit choice, so **every event of the `tickets` group passes every mode**, Off included. Only the `tickets` channel decides how it arrives. `passesMode` takes the event's group: `tickets` → always true; `reminder.due` → always true (unchanged); the rest as today. Membership of the event's client group is still required (item B makes requesters members, see below).
 
+### Ticket events without a client group, and who counts as a group person
+
+Two rules for the `tickets` group only (item B's request); every other group keeps today's rules.
+
+- **No client group.** A ticket event may have `groupId = null` (for example `ticket.unassigned`, which goes to the admins before a client is known). Such an event skips the membership check: the module that records it chooses the recipients. An event of any other group without a client group stays a bug upstream: it is logged and dropped, as today. Its push title and its digest email come from item B's branches (below); the digest groups these events per user under no client group.
+- **Who counts as a group person.** Delivery asks `notificationAudience(db, groupId, group): Promise<Set<string>>` in `categories.ts` who belongs to the event's client group. Today it is the group's people (`listGroupPeople`: its clients and every admin) for every group. Item B-1 changes only this function: for `tickets`, members with the `ziadatel` role count too; for every other group they do not (B-1 keeps them out of `listGroupPeople`, or filters them here).
+
 ### How item B uses the ticket board group
 
 The key is `tickets`; channels `email | push | both | none`; default `both`. Item B only:
 1. adds its kinds to `NotificationKinds` (`ticket.created`, `ticket.unassigned`, `ticket.message`, `ticket.status`, `ticket.updated`, `ticket.tasks`), to `KIND_RANK` and to `NOTIFICATION_GROUP_OF` as `tickets` (the compiler asks for both maps once the kinds exist);
-2. adds a branch for them to `buildPushPayload` (push title, body, url, tag) and to `digestEntry` (below), carrying in the payload what those need (ticket number, subject, author, excerpt);
-3. changes `visibleCategoriesFor(db, user)` (below) to return only `['tickets']` for a requester-only user. B-1 defines that as a user who is not an admin and has no active `client` membership (`group_members.role`), through a function such as `isRequesterOnly(user)`.
+2. adds a branch for them to `buildPushPayload` (push title, body, url, tag) and to `digestEntry` (below, with its own `topic`, for example "Ticket #123"), carrying in the payload what those need (ticket number, subject, author, excerpt);
+3. changes `visibleCategoriesFor(db, user)` (below) to return only `['tickets']` for a requester-only user, and `notificationAudience` (above) to count `ziadatel` members for `tickets` only. B-1 defines that as a user who is not an admin and has no active `client` membership (`group_members.role`), through a function such as `isRequesterOnly(user)`.
 
 Recording, the decision, the mode bypass, the email batching, the API and the profile row already handle `tickets` with its default both. The ticket-created email to a requester (item B) is a direct message, not a notification, and does not go through these settings.
 
@@ -84,7 +91,7 @@ Recording, the decision, the mode bypass, the email batching, the API and the pr
 - **`decideEvent`** takes the event's `group` and `channel: NotificationChannel` instead of `pushEnabled` and `emailEnabled`: push when `wantsPush(channel)`, the server has push and the user has a device; email when `wantsEmail(channel)`. The mode filter, read marks, actor and membership rules are unchanged.
 - **Delivery** (`deliverBatch`): `reachable` and the decision use each event's own channel. `NotificationProfile` carries `channels` (resolved) instead of the two booleans.
 - **Email digest**: an event goes out by email only if its group still wants email when the digest is due (switching a group away from email before then means no email, as switching email off does today).
-  - Each event becomes a digest entry through one function, `digestEntry(row, ctx): { line: string; url: string; button: string } | null`, in `digest-entries.ts`: chat lines ("Jana: text"), task lines, reminder lines, each with the group chat link and "Open <group>" as today. A kind it does not know gives `null` (skipped, never thrown).
+  - Each event becomes a digest entry through one function, `digestEntry(row, ctx): { line: string; url: string; button: string; topic: string } | null`, in `digest-entries.ts`: chat lines ("Jana: text"), task lines, reminder lines, each with the group chat link, "Open <group>" and the topic the subject names ("3 new messages in <topic>"), the group's name, as today. A kind it does not know, or an event of another group than `tickets` without a client group, gives `null` (skipped, never thrown). `ctx.groupId` and `ctx.groupName` are null for an event without a client group.
   - The rows of one user and group (still locked together, as today) are split into emails by the entries' `url`: today every entry has the group chat url, so it stays one email per user and group. Item B returns, for ticket kinds, the line "#123 Subject: Jana: text", `url` `/tickets/<id>` and a button "Open ticket", so each ticket gets its own email.
 - **API** (all for the signed-in user only):
   - `GET /api/notifications/preferences` → `{ channels, vapidPublicKey }`, every category resolved;
@@ -115,6 +122,7 @@ No new error codes. A bad PATCH body is `validation_failed`. A stored value outs
 - **Shared**: `resolveChannels` fills defaults and keeps choices; `wantsPush` and `wantsEmail` for each channel; the schemas accept each category and channel and refuse others.
 - **Server, unit**:
   - `notificationGroupOf`, row by row of the table above, plus an unknown kind → `null`;
+  - delivery and digest of a `tickets` event without a client group (a test kind mapped to `tickets` through a module mock, since no ticket kind exists yet): delivered to a recipient who is no group's member, one digest email with the entry's topic; a `chat` event without a client group is still dropped;
   - `passesMode`: a `tickets` event passes Off (tested with a `tickets` group passed in, since no ticket kind exists yet);
   - `digestEntry`: each current kind gives the line and group url it gives today; an unknown kind → `null`;
   - `decideEvent` for each channel, with and without a device, with push unavailable.
