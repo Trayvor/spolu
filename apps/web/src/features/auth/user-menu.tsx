@@ -27,7 +27,8 @@ export function initials(name: string, email: string): string {
 /**
  * The account menu in the header: a 38 px `bg-secondary` circle with the user's initials,
  * the same size and colour as the language button. The menu shows who is signed in
- * (name and email, not clickable) and "Log out". Under 641 px the header has no room for
+ * (name and email, not clickable), then "Settings" (the profile and notification settings
+ * page, for every role) and "Log out". Under 641 px the header has no room for
  * the "Home", "Tasks", "Knowledge", "Groups" and "Admins" links, so admins get them here instead.
  */
 export function UserMenu({ user }: { user: SessionUser }) {
@@ -77,6 +78,9 @@ export function UserMenu({ user }: { user: SessionUser }) {
             </>
           )}
           <DropdownMenuSeparator />
+          <DropdownMenuItem asChild>
+            <Link to="/settings">{t('nav.settings')}</Link>
+          </DropdownMenuItem>
           <DropdownMenuItem onSelect={() => logout.mutate()}>{t('user.logout')}</DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
