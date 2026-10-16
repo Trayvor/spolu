@@ -6,6 +6,7 @@ import { buildApp } from '../src/app.js';
 import type { AppDeps } from '../src/deps.js';
 import type { Config } from '../src/infra/config/config.js';
 import type { TaskSplitProvider } from '../src/modules/ai/provider.js';
+import { bulkSendJobHandlers } from '../src/modules/bulk-email/send-jobs.js';
 import { filesJobHandlers } from '../src/modules/files/jobs.js';
 import { registerKnowledgeReminderSubject } from '../src/modules/knowledge/reminder-subject.js';
 import { remindersJobHandlers } from '../src/modules/reminders/jobs.js';
@@ -51,6 +52,7 @@ export async function buildTestApp(
   const forward = createDeferredQueue();
   registerKnowledgeReminderSubject();
   registerTaskReminderSubject();
+  const bulkEmail = overrides.bulkEmail ?? createBulkSender(config.bulkEmail, config.email);
   const jobs = createInlineJobs({
     ...emailJobHandlers(email),
     ...filesJobHandlers({ db, storage }),
@@ -59,13 +61,14 @@ export async function buildTestApp(
       { scopedDelivery: true }, // test files run at once: deliver only the job's users
     ),
     ...remindersJobHandlers({ db, jobs: forward.queue }),
+    ...bulkSendJobHandlers({ db, config, bulkEmail, jobs: forward.queue }),
   });
   forward.resolve(jobs);
   const deps: AppDeps = {
     config,
     db,
     email,
-    bulkEmail: overrides.bulkEmail ?? createBulkSender(config.bulkEmail, config.email),
+    bulkEmail,
     storage,
     push: pushSender,
     jobs,
