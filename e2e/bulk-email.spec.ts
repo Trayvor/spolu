@@ -189,9 +189,10 @@ test('bulk email: write, test, send, report, unsubscribe and subscribe again', a
     await expect(setting).not.toBeChecked();
     await setting.check();
     await expect(setting).toBeChecked();
-    expect(await (await contexts[0]!.request.get('/api/me/bulk-email')).json()).toEqual({
-      subscribed: true,
-    });
+    // The checkbox saves on change: wait for the server to have it.
+    await expect
+      .poll(async () => (await contexts[0]!.request.get('/api/me/bulk-email')).json())
+      .toEqual({ subscribed: true });
 
     // Boris subscribes again from the page his link opens.
     const boris = await contexts[1]!.newPage();
