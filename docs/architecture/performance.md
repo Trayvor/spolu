@@ -53,6 +53,8 @@ Phase 9 unread tasks (measured 2026-10-16 the same way): initial JS 197.2 kB gzi
 
 Phase 9 final (end-to-end test added; measured 2026-10-16, gzip level 9 of every script `index.html` loads): initial JS 197.3 kB gzip (entry 120.2 kB, API client chunk 52.6 kB, router chunks 19.6 kB and 0.6 kB, i18n 4.1 kB, `registerSW.js` 0.1 kB), under the 200 kB budget. Lazy chunks: `review-dialog` 6.4 kB gzip, `tasks-tab` 22.6 kB (the board; the task panel with its chat tab loads the shared `conversation` chunk, 15.2 kB, also used by the Chat tab).
 
+Phase 6 on top of Phase 9 (merge of main at `d4cb90a` into `phase-6`, measured 2026-10-16, gzip -9 of the scripts `dist/index.html` loads: the module, its modulepreloads and `registerSW.js`): initial JS 197.4 kB gzip (entry chunk 114.9 kB, API client chunk 45.6 kB, router chunks 19.6 kB and 0.6 kB, a shared dependency chunk 16.2 kB, i18n 0.5 kB, `registerSW.js` 0.1 kB), under the 200 kB budget. For comparison, Phase 6 alone was 197.9 kB and Phase 9 alone 197.3 kB: both keep their feature texts and screens in lazy chunks (`notifications-copy`, `settings`, `review-dialog`, `conversation`, `tasks-tab`).
+
 Budget history: 150 kB → 175 kB (2026-10-15): the Radix dropdown menu for the header language selector (about +29 kB), which later menus reuse at no extra cost. 175 kB → 200 kB (2026-10-15, Phase 2): the session guard checks `/api/me` (validated with zod) before the first screen, so zod and the API client moved into the initial load (about +26 kB); every later screen needs them anyway, and the service worker caches them after the first visit.
 
 The budget is an **alarm, not a target to squeeze under**. When a change crosses it:
