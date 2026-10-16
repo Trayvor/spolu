@@ -342,4 +342,14 @@ describe('readers versus pickable people', () => {
       false,
     );
   });
+
+  it('a removed client is not pickable', async () => {
+    const s = await scenario();
+    const removed = await named(`Removed ${tag()}`, s.g.id);
+    await deactivateUser(db, removed.id);
+    expect((await listPickablePeople(db, s.g.id)).some((p) => p.id === removed.id)).toBe(false);
+    expect(await isPickablePerson(db, s.g.id, removed.id)).toBe(false);
+    const reader = (await listGroupPeople(db, s.g.id)).find((p) => p.id === removed.id);
+    expect(reader?.isManager ?? false).toBe(false);
+  });
 });
