@@ -55,6 +55,8 @@ function item(overrides: Partial<KnowledgeItemDto> = {}): KnowledgeItemDto {
     createdBy: { id: 'u1', name: 'Anna Nováková' },
     createdAt: '2026-10-14T10:00:00.000Z',
     updatedAt: '2026-10-14T10:00:00.000Z',
+    folderId: null,
+    folderPath: [],
     body: 'Check the **budget table**',
     files: [],
     reminder: null,
@@ -66,6 +68,20 @@ function item(overrides: Partial<KnowledgeItemDto> = {}): KnowledgeItemDto {
 
 let current: KnowledgeItemDto | 'missing' = item();
 
+const folderOf = (id: string, name: string, parentId: string | null, admins = false) => ({
+  id,
+  groupId: 'g1',
+  parentId,
+  name,
+  visibility: admins ? ('admins' as const) : ('public' as const),
+  updatedAt: '',
+});
+const FOLDERS = [
+  folderOf('f1', 'Grants', null),
+  folderOf('f2', '2026', 'f1'),
+  folderOf('f3', 'Secret', null, true),
+];
+
 beforeEach(() => {
   current = item();
   vi.stubGlobal(
@@ -73,6 +89,9 @@ beforeEach(() => {
     vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input);
       if (url.includes('/people')) return new Response(JSON.stringify(PEOPLE), { status: 200 });
+      if (url.endsWith('/knowledge/folders')) {
+        return new Response(JSON.stringify({ folders: FOLDERS }), { status: 200 });
+      }
       if (url.includes('/knowledge/')) {
         return current === 'missing'
           ? new Response(JSON.stringify({ error: 'not_found' }), { status: 404 })
@@ -208,6 +227,7 @@ describe('KnowledgeDialog', () => {
       body: '',
       visibility: 'public',
       fileIds: [],
+      folderId: null,
     });
     await waitFor(() => expect(onClose).toHaveBeenCalledWith('k9'));
   });
@@ -274,5 +294,82 @@ describe('KnowledgeDialog', () => {
     await waitFor(() =>
       expect(screen.getByRole('heading', { name: 'Grant checklist' })).toHaveFocus(),
     );
+  });
+
+  describe('folders', () => {
+    it('view shows the folder path', async () => {
+      current = item({
+        folderId: 'f2',
+        folderPath: [
+          { id: 'f1', name: 'Grants' },
+          { id: 'f2', name: '2026' },
+        ],
+      });
+      renderDialog();
+      await heading('Grant checklist');
+      expect(screen.getByLabelText(t('knowledge.folders.path'))).toHaveTextContent('Grants / 2026');
+    });
+
+    it('a new item in an admins-only folder is locked to Only eGrant and sends the folder', async () => {
+      vi.mocked(createKnowledge).mockResolvedValue(item({ id: 'k9' }));
+      const user = userEvent.setup();
+      renderDialog({ mode: 'create', type: 'note', groupId: 'g1', folderId: 'f3' });
+      await heading(t('knowledge.detail.new.note'));
+      expect(await screen.findByText(t('knowledge.folders.inAdmins'))).toBeInTheDocument();
+      expect(screen.getByRole('radio', { name: t('knowledge.visibility.admins') })).toBeChecked();
+      await user.type(screen.getByLabelText(t('knowledge.form.title')), 'Plan');
+      await user.click(screen.getByRole('button', { name: t('knowledge.detail.create') }));
+      expect(createKnowledge).toHaveBeenCalledWith(
+        'g1',
+        expect.objectContaining({ folderId: 'f3', visibility: 'admins' }),
+      );
+    });
+
+    it('Move to… moves the item to the chosen folder', async () => {
+      current = item({ folderId: 'f1', folderPath: [{ id: 'f1', name: 'Grants' }] });
+      vi.mocked(updateKnowledge).mockResolvedValue(item({ folderId: null }));
+      const user = userEvent.setup();
+      renderDialog();
+      await heading('Grant checklist');
+      await user.click(screen.getByRole('button', { name: t('knowledge.detail.more') }));
+      await user.click(
+        await screen.findByRole('menuitem', { name: t('knowledge.folders.moveTo') }),
+      );
+      const picker = await screen.findByTestId('move-dialog');
+      // The current place cannot be chosen.
+      expect(await within(picker).findByRole('radio', { name: /Grants/ })).toBeDisabled();
+      await user.click(
+        within(picker).getByRole('radio', { name: t('knowledge.folders.topLevel') }),
+      );
+      await user.click(
+        within(picker).getByRole('button', { name: t('knowledge.folders.moveHere') }),
+      );
+      expect(updateKnowledge).toHaveBeenCalledWith('k1', {
+        folderId: null,
+        updatedAt: '2026-10-14T10:00:00.000Z',
+      });
+      await waitFor(() => expect(screen.queryByTestId('move-dialog')).toBeNull());
+    });
+
+    it("a refused move explains that a client's item stays public", async () => {
+      vi.mocked(updateKnowledge).mockRejectedValue(
+        new ApiError('refused', 400, { error: 'invalid_visibility' }),
+      );
+      const user = userEvent.setup();
+      renderDialog();
+      await heading('Grant checklist');
+      await user.click(screen.getByRole('button', { name: t('knowledge.detail.more') }));
+      await user.click(
+        await screen.findByRole('menuitem', { name: t('knowledge.folders.moveTo') }),
+      );
+      const picker = await screen.findByTestId('move-dialog');
+      await user.click(await within(picker).findByRole('radio', { name: /Secret/ }));
+      await user.click(
+        within(picker).getByRole('button', { name: t('knowledge.folders.moveHere') }),
+      );
+      expect(await within(picker).findByRole('alert')).toHaveTextContent(
+        t('knowledge.folders.clientItem'),
+      );
+    });
   });
 });

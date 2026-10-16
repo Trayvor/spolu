@@ -11,11 +11,14 @@ export function KnowledgeList({
   query,
   onOpen,
   showGroup,
+  showPath,
   empty,
 }: {
   query: UseInfiniteQueryResult<InfiniteData<KnowledgePage>>;
   onOpen: (id: string) => void;
   showGroup?: boolean;
+  /** Search results: each row shows its folder path. */
+  showPath?: boolean;
   empty: ReactNode;
 }) {
   const { t } = useTranslation();
@@ -42,7 +45,13 @@ export function KnowledgeList({
     <div className="flex flex-col items-center gap-4">
       <Card className="w-full gap-0 divide-y divide-border overflow-hidden py-0">
         {items.map((item) => (
-          <KnowledgeRow key={item.id} item={item} onOpen={onOpen} showGroup={showGroup} />
+          <KnowledgeRow
+            key={item.id}
+            item={item}
+            onOpen={onOpen}
+            showGroup={showGroup}
+            showPath={showPath}
+          />
         ))}
       </Card>
       {query.hasNextPage && (

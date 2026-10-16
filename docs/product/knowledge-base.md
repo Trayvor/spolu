@@ -37,16 +37,31 @@ Each group has a Knowledge tab where clients and admins keep what the group need
 - **Realtime:** items created or changed by others appear at once in the group's tab. Built: a new item goes first and a changed one is updated in place; items of a type that is not ticked are left out (none ticked: every type is kept); while a search is active the list reloads instead. A deleted item disappears, and its open dialog closes with the notice. After a reconnect the first page reloads.
 - Example of done: an admin and a client of one group keep notes, files, links and reminders in the tab. The client never sees the admin's admins-only items. The admin finds any item across clients in the global list.
 
+## Folders (Phase 24, built)
+
+Design and the defaults we chose: [Phase 24 spec](../superpowers/specs/2026-10-16-phase-24-knowledge-folders-design.md).
+
+- Each group's knowledge base has folders and subfolders (no depth limit; at most 1000 per group; names 1–100 characters, may repeat). No folders shared across clients.
+- Admins and the group's clients create, rename, move and delete the folders they see. Moving an item is part of editing it (its author and admins).
+- **Admins-only folders:** only admins create them or switch a folder to admins-only. Clients never see such a folder or anything inside it. Everything inside is admins-only: a folder or item created or moved into it becomes admins-only (files and reminder recipients follow), and nothing inside can be made public. A client's item stays public, so it cannot go into an admins-only folder and a folder holding one cannot become admins-only ("A client's item can't go into a folder that only eGrant sees."). Making a folder public again changes only that folder.
+- **Deleting a folder never deletes items:** its subfolders and items move one level up. The confirmation says so.
+- **Tab:** breadcrumbs ("Knowledge › Folder › Subfolder"; on phones a long path keeps the first and last two), then the open folder's subfolders by name (folder icon, "Only eGrant" badge, "…" menu: Rename, Move to…, Delete), then its items newest first. The open folder is `?folder=<id>`. "+ New" has a fifth entry, "Folder", which creates a subfolder of the open folder; a new item is created in the open folder. The type pills filter the open folder's items. A folder that disappears (deleted, or hidden) takes the viewer back to the top level with "This folder is no longer available."
+- **Search** ignores folders: while `q` is set the breadcrumbs and folder rows hide and the list is flat across all folders; each row shows its folder path ("Grants / 2026").
+- **Item detail:** the folder path next to the type; "Move to…" in the "…" menu opens a picker of the group's folders as an indented tree under "Top level" (the current place cannot be chosen; for a folder, neither can the folder itself or anything below it).
+- **Global list:** without a search it is a folder view: the clients of the client filter by name (logo and name), then a client's folders and items (`?at=<group>&folder=<id>`, breadcrumbs "All clients › Client › Folder"). The type filter applies to the items there. Typing a search switches to the flat list across clients, each row with its client and folder path.
+- **Realtime:** folder changes reach the tab live (`knowledge:folder`, `knowledge:folder_deleted`); the folder list and the item lists refetch.
+
 ## Status
 
-Built on the server (Phase 17): the HTTP API (`modules/knowledge/routes.ts`: the tab list, the global list and its scope, create, read, edit, delete; 120 writes per minute per user), the reminder endpoints (`modules/reminders/routes.ts`: the set, subscribe and unsubscribe, the `.ics` file) and realtime (public items to the group room, admins-only items to the group's admins room). Built on the web: the Knowledge tab with live updates, the detail dialog (view, create, edit, delete), the reminder block, and the admins' global list with the client filter. End-to-end tests: `e2e/knowledge.spec.ts`. Waiting for the owner's walkthrough on the server.
+Built on the server (Phase 17): the HTTP API (`modules/knowledge/routes.ts`: the tab list, the global list and its scope, create, read, edit, delete; 120 writes per minute per user), the reminder endpoints (`modules/reminders/routes.ts`: the set, subscribe and unsubscribe, the `.ics` file) and realtime (public items to the group room, admins-only items to the group's admins room). Built on the web: the Knowledge tab with live updates, the detail dialog (view, create, edit, delete), the reminder block, and the admins' global list with the client filter. Phase 24 adds folders (above), on the server (`modules/knowledge/folders.ts`, routes in `routes.ts`) and on the web (`folder-browser.tsx`, `folder-dialog.tsx`, `move-dialog.tsx`, `breadcrumbs.tsx`). End-to-end tests: `e2e/knowledge.spec.ts`. Waiting for the owner's walkthrough on the server.
 
 ## Phase
 
-Phase 17 (the tab, the four types, visibility, the global list; reminders from `reminders.md`). The global list's default client filter is the clients the admin manages (Phase 18, client managers).
+Phase 17 (the tab, the four types, visibility, the global list; reminders from `reminders.md`). Phase 24: folders. The global list's default client filter is the clients the admin manages (Phase 18, client managers).
 
 ## Global list (built)
 
+- Without a search the list is the folder view (see Folders above); the rows below are what a search shows.
 - `/knowledge`, for admins only (a client gets the not-found page; the API answers 403). The header shows "Knowledge" before "Groups"; on phones the user menu lists it first.
 - The rows are the tab's rows, each with the group's logo and name in its last line, newest first, 30 per page with "Load more". Clicking a row opens the detail over the list (`?k=<id>`).
 - Filters, all in the URL so Back and shared links keep them: `?clients=<id>,<id>` (none means the default scope), `?type=` (any combination of Notes, Files, Links, Reminders as one comma list, e.g. `?type=note,link`; none means all types; an old single value still works, unknown or repeated types are dropped) and `?q=` (applied after 300 ms of typing, from 2 characters; Back or a link that changes `q` updates the field).

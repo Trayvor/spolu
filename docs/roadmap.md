@@ -30,6 +30,7 @@ Requirements per module: [product/](product/README.md). Phases after 1 get their
 | 21 | [Tickets & the ziadatel role](#phase-21--tickets--the-ziadatel-role) | done (local) | 18, 20; item C for 21.6 | [spec](superpowers/specs/2026-10-16-phase-21-tickets-and-requesters-design.md), [plan](superpowers/plans/2026-10-16-phase-21-tickets-and-requesters.md) |
 | 22 | [Members & groups page](#phase-22--members--groups-page) | in progress | 18, 20, 21.1 | [plan](superpowers/plans/2026-10-16-phase-22-members-and-groups-page.md) |
 | 23 | [Bulk email](#phase-23--bulk-email) | in progress | 3, 18, 21.1 | [spec](superpowers/specs/2026-10-16-phase-23-bulk-email-design.md), [plan](superpowers/plans/2026-10-16-phase-23-bulk-email.md) |
+| 24 | [Knowledge folders](#phase-24--knowledge-folders) | in progress | 17 | [spec](superpowers/specs/2026-10-16-phase-24-knowledge-folders-design.md), [plan](superpowers/plans/2026-10-16-phase-24-knowledge-folders.md) |
 
 Phases 8 and 14 do not depend on each other, so their order can change by priority.
 
@@ -326,3 +327,13 @@ Built in 7 parts, one pull request each (23.1 first; 23.2, 23.3 and 23.4 in para
 Status: parts 23.1 (foundation), 23.2 (campaigns and audience API), 23.3 (renderer, public images, preview, email logo PNG) 23.4 (unsubscribe page and API, one-click, subscribe again, the "Receive mailings" checkbox, Elastic suppression lift and daily sync), 23.5 (test send, start sending, the batch job and daily sweep, cancel, the per-person report API) and 23.6 (web: campaign list, block builder with preview, audience builder, test send button) are built.
 
 Done when: an admin sends a campaign to a client group, each client gets it with their name, one client unsubscribes through the link and the next campaign skips them, and the report shows the counts.
+
+## Phase 24 — Knowledge folders
+
+Requirements: [knowledge-base](product/knowledge-base.md) and the [design](superpowers/specs/2026-10-16-phase-24-knowledge-folders-design.md) (owner decisions of 2026-10-16 and the defaults we took).
+
+Scope: folders and subfolders in each group's knowledge base, with breadcrumbs; admins and the group's clients create, rename, move and delete them; a folder can be admins-only, and everything inside it is then admins-only too; "Move to…" for items and folders; the admins' global view browses client → folders → items, and search stays a flat list across folders with each result's client and folder path.
+
+Status: built in one pull request (server, web, end-to-end test in `e2e/knowledge.spec.ts`); migration 0022.
+
+Done when: an admin and a client sort a group's knowledge into folders, the client never sees an admins-only folder or anything in it, and a search finds an item in a subfolder and shows its path.

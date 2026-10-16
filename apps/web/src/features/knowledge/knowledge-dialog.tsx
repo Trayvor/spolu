@@ -16,7 +16,13 @@ import { SheetDialog, SheetDialogTitle } from '@/components/ui/sheet-dialog';
 import { ApiError } from '@/lib/api';
 import { useSession } from '@/features/auth/use-session';
 import { useGroupPeople } from '@/features/groups/use-group-people';
-import { createKnowledge, deleteKnowledge, knowledgeItemQuery, updateKnowledge } from './api';
+import {
+  createKnowledge,
+  deleteKnowledge,
+  groupFoldersQuery,
+  knowledgeItemQuery,
+  updateKnowledge,
+} from './api';
 import {
   KnowledgeForm,
   emptyKnowledgeValue,
@@ -28,11 +34,15 @@ import {
   type KnowledgeFormValue,
 } from './knowledge-form';
 import { KnowledgeView } from './knowledge-view';
+import { MoveDialog } from './move-dialog';
 
+/** `folderId` of a create: the folder the new item goes into (null or absent: the top level). */
 export type KnowledgeDialogTarget =
-  { mode: 'view'; id: string } | { mode: 'create'; type: KnowledgeType; groupId: string };
+  | { mode: 'view'; id: string }
+  | { mode: 'create'; type: KnowledgeType; groupId: string; folderId?: string | null };
 
-type Ask = { kind: 'discard'; then: 'close' | 'view' } | { kind: 'delete' } | null;
+type Ask =
+  { kind: 'discard'; then: 'close' | 'view' } | { kind: 'delete' } | { kind: 'move' } | null;
 
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 
@@ -81,6 +91,11 @@ export function KnowledgeDialog({
   const item = query.data;
   const groupId = target.mode === 'create' ? target.groupId : (item?.groupId ?? '');
   const people = useGroupPeople(groupId).data;
+  const folders = useQuery({ ...groupFoldersQuery(groupId), enabled: groupId !== '' }).data;
+  const folderId = target.mode === 'create' ? (target.folderId ?? null) : (item?.folderId ?? null);
+  // Inside an admins-only folder everything is admins-only: "Visible to" is locked.
+  const inAdminsFolder =
+    folderId !== null && folders?.find((f) => f.id === folderId)?.visibility === 'admins';
   const nameOf = (id: string) => people?.find((p) => p.id === id)?.name;
 
   const [editing, setEditing] = useState(target.mode === 'create');
@@ -155,7 +170,11 @@ export function KnowledgeDialog({
       if (target.mode === 'create') {
         saved = await createKnowledge(
           target.groupId,
-          toDraft(type, value, { people, authorId: me?.id }),
+          toDraft(type, inAdminsFolder ? { ...value, visibility: 'admins' } : value, {
+            people,
+            authorId: me?.id,
+            folderId,
+          }),
         );
       } else {
         if (!item) return;
@@ -217,6 +236,9 @@ export function KnowledgeDialog({
                 <MoreIcon />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
+                <DropdownMenuItem onSelect={() => setAsk({ kind: 'move' })}>
+                  {t('knowledge.folders.moveTo')}
+                </DropdownMenuItem>
                 <DropdownMenuItem
                   onSelect={() => setAsk({ kind: 'delete' })}
                   className="text-error-ink"
@@ -272,6 +294,7 @@ export function KnowledgeDialog({
               onFilesChange={setFiles}
               canChooseVisibility={canChooseVisibility}
               visibilityLocked={item?.visibilityLocked ?? false}
+              inAdminsFolder={inAdminsFolder}
               authorId={item?.createdBy.id ?? me?.id ?? ''}
               autoFocusTitle={target.mode === 'create'}
             />
@@ -344,6 +367,24 @@ export function KnowledgeDialog({
             </div>
           )}
         </footer>
+      )}
+      {ask?.kind === 'move' && item && (
+        <MoveDialog
+          groupId={item.groupId}
+          name={item.title}
+          currentFolderId={item.folderId}
+          clientItemMessage={t('knowledge.folders.clientItem')}
+          onMove={async (next) => {
+            const saved = await updateKnowledge(item.id, {
+              folderId: next,
+              updatedAt: item.updatedAt,
+            });
+            client.setQueryData(['knowledge', 'item', saved.id], saved);
+            refreshLists(client);
+            setAsk(null);
+          }}
+          onClose={() => setAsk(null)}
+        />
       )}
     </SheetDialog>
   );
