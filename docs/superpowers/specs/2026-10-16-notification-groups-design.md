@@ -4,7 +4,7 @@ Date: 2026-10-16 · Status: draft for the owner's review
 
 Brief: [2026-10-16-next-work.md](../briefs/2026-10-16-next-work.md), item C. Builds on [Phase 6](2026-10-16-phase-6-notifications-design.md) (delivery, modes, profile), [Phase 17](2026-10-16-phase-17-knowledge-base-design.md) and [Phase 19](2026-10-16-phase-19-task-reminders-design.md) (`reminder.due`). Requirements: [notifications](../../product/notifications.md), [profile](../../product/profile.md).
 
-Built in parallel with item A (the "only where I take part" board filter) and the spec of item B (tickets). This work touches neither: no task board filter, no ticket tables, no `ziadatel` role.
+Built in parallel with item A (the "only where I take part" board filter) and item B (tickets). This work touches neither: no task board filter, no ticket tables, no `ziadatel` role. Item B's session asked for the contract in [How item B uses the ticket board group](#how-item-b-uses-the-ticket-board-group); this spec follows it.
 
 ## Goal
 
@@ -17,7 +17,8 @@ Each user picks, per **notification group**, how they hear about it: **email**, 
 | Relation to the Push and Email switches | The groups **replace** them. The per-group bell mode (All / Mentions and replies / Off) stays: it decides *what* arrives, the notification group decides *by which channel*. |
 | Task chat | Messages in a task's chat belong to the **task board** group. A task's custom reminder too; a Knowledge base reminder belongs to **knowledge base**. |
 | Existing users | Everyone starts on the new defaults; the old switches are not carried over. |
-| Ticket board row before item B | Shown right away, for every role. |
+| Ticket board row before item B | Shown right away, for every user. |
+| Ticket events and the bell mode | Ticket events pass every mode; only the `tickets` channel decides (item B's request). |
 | iOS without web push (the Phase 6 fallback) | Once per user, every group set to push becomes both. Email, both and none stay. A later manual change is never undone. |
 
 ## Model
@@ -29,8 +30,7 @@ Each user picks, per **notification group**, how they hear about it: **email**, 
 - `DEFAULT_CHANNELS: Record<NotificationCategory, NotificationChannel>` = `{ chat: 'push', tasks: 'push', tickets: 'both', knowledge: 'push' }`.
 - `wantsPush(channel)` (push or both) and `wantsEmail(channel)` (email or both).
 - `resolveChannels(stored: Partial<Record<…>>)`: the stored choices over the defaults, so every category has a value.
-- `visibleCategories(role)`: every category for every role today. Item B adds the `ziadatel` branch (only `tickets`). The profile shows only these rows, and the server refuses to set any other (`validation_failed`).
-- `NotificationPrefsSchema` becomes `{ channels: Record<NotificationCategory, NotificationChannel>, vapidPublicKey: string | null }`. `NotificationPrefsPatchSchema` becomes `{ category, channel }` (strict). `NotificationFallbackSchema` stays the prefs plus `turnedOn`.
+- `NotificationPrefsSchema` becomes `{ channels: Record<NotificationCategory, NotificationChannel>, visibleCategories: NotificationCategory[], vapidPublicKey: string | null }`. The web shows the rows the server lists in `visibleCategories`; it has no role logic of its own. `NotificationPrefsPatchSchema` becomes `{ category, channel }` (strict). `NotificationFallbackSchema` stays the prefs plus `turnedOn`.
 - `pushEnabled` and `emailEnabled` disappear from the shared types.
 
 ### Storage
@@ -42,41 +42,50 @@ Each user picks, per **notification group**, how they hear about it: **email**, 
 
 ### Which group an event belongs to
 
-One pure function in `apps/server/src/modules/notifications/categories.ts`:
+One map and one function in `apps/server/src/modules/notifications/categories.ts`:
 
-`categoryOf(kind: NotificationKind, payload: Record<string, unknown>): NotificationCategory`
+- `NOTIFICATION_GROUP_OF: Record<NotificationKind, NotificationCategory>`, the one place that maps a kind to its group:
 
-| kind | category |
-|---|---|
-| `chat.message`, `chat.mention`, `chat.thread_reply` without `taskId` in the payload | chat |
-| the same with `taskId` (task chat) | tasks |
-| `task.moved`, `task.assigned`, `task.deadline`, `task.urgent` | tasks |
-| `reminder.due` with `subjectKind: 'task'` | tasks |
-| `reminder.due` with `subjectKind: 'knowledge'` | knowledge |
+  | kind | group |
+  |---|---|
+  | `chat.message`, `chat.mention`, `chat.thread_reply` | chat |
+  | `task.moved`, `task.assigned`, `task.deadline`, `task.urgent` | tasks |
+  | `reminder.due` | tasks |
 
-It is the only place that maps events to groups. It is exhaustive over `NotificationKind` (a `switch` with a `never` check), so a new kind does not compile until it is classified.
+- `notificationGroupOf(kind: string, payload: Record<string, unknown>): NotificationCategory | null` reads the map and refines two cases by the payload:
+  - a `chat.*` event with `taskId` (task chat) → `tasks`;
+  - `reminder.due` with `subjectKind: 'knowledge'` → `knowledge`.
+
+  A kind missing from the map (an old row of a kind that no longer exists) gives `null`. It never throws: `recordNotifications` stores such an event already delivered, and delivery and the digest skip it with a warning, as delivery does today for unknown kinds.
+
+### Ticket events skip the group mode
+
+The bell mode (All / Mentions and replies / Off) is about a client group's chat and tasks. Ticket events go to people who follow the ticket (or own it), which is an explicit choice, so **every event of the `tickets` group passes every mode**, Off included. Only the `tickets` channel decides how it arrives. `passesMode` takes the event's group: `tickets` → always true; `reminder.due` → always true (unchanged); the rest as today. Membership of the event's client group is still required (item B makes requesters members, see below).
 
 ### How item B uses the ticket board group
 
-Item B only:
-1. adds its kinds to `NotificationKinds` (for example `ticket.created`, `ticket.changed`) and to `KIND_RANK`;
-2. classifies them in `categoryOf` as `tickets`, and a ticket chat message (a `chat.*` event carrying `ticketId`) as `tickets` too;
-3. adds the `ziadatel` branch to `visibleCategories`.
+The key is `tickets`; channels `email | push | both | none`; default `both`. Item B only:
+1. adds its kinds to `NotificationKinds` (`ticket.created`, `ticket.unassigned`, `ticket.message`, `ticket.status`, `ticket.updated`, `ticket.tasks`), to `KIND_RANK` and to `NOTIFICATION_GROUP_OF` as `tickets` (the compiler asks for both maps once the kinds exist);
+2. adds a branch for them to `buildPushPayload` (push title, body, url, tag) and to `digestEntry` (below), carrying in the payload what those need (ticket number, subject, author, excerpt);
+3. changes `visibleCategoriesFor(db, user)` (below) to return only `['tickets']` for a requester-only user. B-1 defines that as a user who is not an admin and has no active `client` membership (`group_members.role`), through a function such as `isRequesterOnly(user)`.
 
-Recording (`recordNotifications`), delivery, the email digest, the API and the profile row already handle `tickets` with its default both. The ticket-created email to a requester (item B) is a direct message, not a notification, and does not go through these settings.
+Recording, the decision, the mode bypass, the email batching, the API and the profile row already handle `tickets` with its default both. The ticket-created email to a requester (item B) is a direct message, not a notification, and does not go through these settings.
 
 ## Server
 
-- **`recordNotifications`** takes the category from `categoryOf(kind, payload)` and marks an event delivered at insert when the recipient's channel for that category can send nothing:
+- **`visibleCategoriesFor(db, user): Promise<NotificationCategory[]>`** in `categories.ts`: all four groups for every user today. Item B-1 narrows it for requester-only users. The prefs API, the PATCH check and the iOS fallback use it.
+- **`recordNotifications`** takes the group from `notificationGroupOf(kind, payload)` (`null` → recorded already delivered) and marks an event delivered at insert when the recipient's channel for that category can send nothing:
   - disabled user → delivered;
   - channel wants email → pending;
   - channel wants push and the user has a push subscription → pending;
   - otherwise → delivered.
 
   The channel is read in the same statement: `coalesce(u.notification_channels ->> $category, $default)`.
-- **`decideEvent`** takes `channel: NotificationChannel` instead of `pushEnabled` and `emailEnabled`: push when `wantsPush(channel)`, the server has push and the user has a device; email when `wantsEmail(channel)`. The mode filter, read marks, actor and membership rules are unchanged.
+- **`decideEvent`** takes the event's `group` and `channel: NotificationChannel` instead of `pushEnabled` and `emailEnabled`: push when `wantsPush(channel)`, the server has push and the user has a device; email when `wantsEmail(channel)`. The mode filter, read marks, actor and membership rules are unchanged.
 - **Delivery** (`deliverBatch`): `reachable` and the decision use each event's own channel. `NotificationProfile` carries `channels` (resolved) instead of the two booleans.
-- **Email digest**: an event goes out by email only if its category still wants email when the digest is due (switching a group away from email before then means no email, as switching email off does today). One email per user and group stays; it may now mix chat and task lines only if both groups want email.
+- **Email digest**: an event goes out by email only if its group still wants email when the digest is due (switching a group away from email before then means no email, as switching email off does today).
+  - Each event becomes a digest entry through one function, `digestEntry(row, ctx): { line: string; url: string; button: string } | null`, in `digest-entries.ts`: chat lines ("Jana: text"), task lines, reminder lines, each with the group chat link and "Open <group>" as today. A kind it does not know gives `null` (skipped, never thrown).
+  - The rows of one user and group (still locked together, as today) are split into emails by the entries' `url`: today every entry has the group chat url, so it stays one email per user and group. Item B returns, for ticket kinds, the line "#123 Subject: Jana: text", `url` `/tickets/<id>` and a button "Open ticket", so each ticket gets its own email.
 - **API** (all for the signed-in user only):
   - `GET /api/notifications/preferences` → `{ channels, vapidPublicKey }`, every category resolved;
   - `PATCH /api/notifications/preferences` with `{ category, channel }` → the new prefs; an unknown category or channel, or a category not visible to the role, answers 400 `validation_failed`. It stores the value with `jsonb_set`, so concurrent changes of two groups do not overwrite each other;
@@ -105,7 +114,9 @@ No new error codes. A bad PATCH body is `validation_failed`. A stored value outs
 
 - **Shared**: `resolveChannels` fills defaults and keeps choices; `wantsPush` and `wantsEmail` for each channel; the schemas accept each category and channel and refuse others.
 - **Server, unit**:
-  - `categoryOf`, row by row of the table above;
+  - `notificationGroupOf`, row by row of the table above, plus an unknown kind → `null`;
+  - `passesMode`: a `tickets` event passes Off (tested with a `tickets` group passed in, since no ticket kind exists yet);
+  - `digestEntry`: each current kind gives the line and group url it gives today; an unknown kind → `null`;
   - `decideEvent` for each channel, with and without a device, with push unavailable.
 - **Server, integration** (test database):
   - `recordNotifications`: delivered at insert for none, for push without a device and for a disabled user; pending for email, both, and push with a device; per category (chat none and tasks email for the same user give different results);
