@@ -11,7 +11,7 @@ const navLink =
 /**
  * The egrant.sk header pill, kept still (no hide-on-scroll). On the left the brand
  * "Spolu by eGrant": the product name as the wordmark, a small "by" and the egrant logo,
- * one link to `/` named by `app.fullName`. On the right, for a signed-in user: the "Knowledge", "Groups" and "Admins" links (admins only, hidden under 641 px where
+ * one link to `/` named by `app.fullName`. On the right, for a signed-in user: the "Home", "Tasks", "Knowledge", "Groups" and "Admins" links (admins only, hidden under 641 px where
  * the user menu offers them), the user menu and the language menu.
  */
 export function AppHeader() {
@@ -39,6 +39,12 @@ export function AppHeader() {
       <div className="ml-auto flex items-center gap-2">
         {isAdmin(user) && (
           <>
+            <Link to="/" activeOptions={{ exact: true }} className={navLink}>
+              {t('nav.home')}
+            </Link>
+            <Link to="/tasks" className={navLink}>
+              {t('nav.tasks')}
+            </Link>
             <Link to="/knowledge" className={navLink}>
               {t('nav.knowledge')}
             </Link>

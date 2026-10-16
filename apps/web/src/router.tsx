@@ -54,11 +54,11 @@ const authedRoute = createRoute({
 const homeRoute = createRoute({
   getParentRoute: () => authedRoute,
   path: '/',
-  // No screen of its own: a client goes to their group, an admin to the groups list.
+  // An admin's dashboard (Phase 20); a client goes to their group.
   beforeLoad: async ({ context }) => {
     const user = await context.queryClient.ensureQueryData(sessionQuery);
     if (!user) throw redirect({ to: '/login' });
-    if (isAdmin(user)) throw redirect({ to: '/groups' });
+    if (isAdmin(user)) return;
     if (user.groupId)
       throw redirect({
         to: '/groups/$groupId/chat',
@@ -66,6 +66,57 @@ const homeRoute = createRoute({
       });
     throw redirect({ to: '/settings' });
   },
+  component: lazyRouteComponent(
+    withNamespaces(['adminHome'], () => import('@/features/admin-home/home-page')),
+    'HomePage',
+  ),
+});
+
+/** The global board's filters in the URL (Phase 20); the page validates them in detail. */
+export type GlobalBoardSearch = {
+  clients?: string;
+  assignee?: string;
+  urgent?: 1;
+  due?: 'overdue' | 'week' | 'none';
+  q?: string;
+  completed?: 1;
+  task?: string;
+};
+
+// The router parses `?q=12` as a number: keep it as text.
+const text = (v: unknown) =>
+  typeof v === 'number' ? String(v) : typeof v === 'string' && v ? v : undefined;
+const flag = (v: unknown) => (v === 1 || v === '1' || v === true ? (1 as const) : undefined);
+
+// The admins' task board across clients.
+const globalBoardRoute = createRoute({
+  getParentRoute: () => authedRoute,
+  path: '/tasks',
+  // Spelled out: importing the shared filter schema would pull it into the eager bundle. Every
+  // key is set (an invalid one to undefined) so a raw value never slips through.
+  validateSearch: (search: Record<string, unknown>): GlobalBoardSearch => ({
+    clients: text(search.clients),
+    assignee: text(search.assignee),
+    urgent: flag(search.urgent),
+    due: ['overdue', 'week', 'none'].includes(search.due as string)
+      ? (search.due as GlobalBoardSearch['due'])
+      : undefined,
+    q: text(search.q),
+    completed: flag(search.completed),
+    task: text(search.task),
+  }),
+  // Cosmetic guard: the server answers 403 to a client anyway.
+  beforeLoad: async ({ context }) => {
+    const user = await context.queryClient.ensureQueryData(sessionQuery);
+    if (!isAdmin(user)) throw notFound();
+  },
+  component: lazyRouteComponent(
+    withNamespaces(
+      ['adminHome', 'tasks', 'chat', 'taskSplit', 'forms'],
+      () => import('@/features/global-board/global-board'),
+    ),
+    'GlobalBoardPage',
+  ),
 });
 
 const groupsRoute = createRoute({
@@ -273,6 +324,7 @@ const loginRoute = createRoute({
 const routeTree = rootRoute.addChildren([
   authedRoute.addChildren([
     homeRoute,
+    globalBoardRoute,
     settingsRoute,
     adminsRoute,
     knowledgeRoute,

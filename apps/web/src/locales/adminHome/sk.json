@@ -2,5 +2,22 @@
   "shell": {
     "loadError": "Nepodarilo sa to načítať. Skúste to znova.",
     "retry": "Skúsiť znova"
+  },
+  "sidebar": {
+    "title": "Klienti",
+    "find": "Nájsť klienta",
+    "managed": "Spravujete vy",
+    "others": "Ostatní klienti",
+    "collapse": "Zbaliť zoznam klientov",
+    "expand": "Rozbaliť zoznam klientov",
+    "noMatch": "Žiadny klient nezodpovedá.",
+    "unread_one": "{{count}} neprečítaná správa",
+    "unread_few": "{{count}} neprečítané správy",
+    "unread_many": "{{count}} neprečítanej správy",
+    "unread_other": "{{count}} neprečítaných správ",
+    "assigned_one": "{{count}} úloha priradená vám",
+    "assigned_few": "{{count}} úlohy priradené vám",
+    "assigned_many": "{{count}} úlohy priradené vám",
+    "assigned_other": "{{count}} úloh priradených vám"
   }
 }

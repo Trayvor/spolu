@@ -645,16 +645,26 @@ describe('TaskPanel scroll lock', () => {
   beforeEach(() => {
     listeners = [];
     query = { matches: true };
-    window.matchMedia = vi.fn(() => ({
-      get matches() {
-        return query.matches;
-      },
-      addEventListener: (_: string, fn: (event: { matches: boolean }) => void) =>
-        listeners.push(fn),
-      removeEventListener: (_: string, fn: (event: { matches: boolean }) => void) => {
-        listeners = listeners.filter((l) => l !== fn);
-      },
-    })) as unknown as typeof window.matchMedia;
+    window.matchMedia = vi.fn((text: string) =>
+      // The signed-in frame's sidebar query (Phase 20) is not the panel's: keep it narrow and out
+      // of the listener count.
+      text === '(min-width: 1024px)'
+        ? {
+            matches: false,
+            addEventListener: () => undefined,
+            removeEventListener: () => undefined,
+          }
+        : {
+            get matches() {
+              return query.matches;
+            },
+            addEventListener: (_: string, fn: (event: { matches: boolean }) => void) =>
+              listeners.push(fn),
+            removeEventListener: (_: string, fn: (event: { matches: boolean }) => void) => {
+              listeners = listeners.filter((l) => l !== fn);
+            },
+          },
+    ) as unknown as typeof window.matchMedia;
   });
   afterEach(() => {
     window.matchMedia = original;

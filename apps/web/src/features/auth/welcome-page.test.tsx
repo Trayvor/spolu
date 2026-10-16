@@ -129,7 +129,7 @@ describe('home redirect', () => {
     vi.unstubAllGlobals();
   });
 
-  it('/ redirects a client to its group and an admin to /groups', async () => {
+  it('/ redirects a client to its group and shows an admin the dashboard', async () => {
     mockApi(client('Jana'));
     const first = renderAt('/');
     await waitFor(() => expect(first.router.state.location.pathname).toBe('/groups/g1/chat'));
@@ -137,7 +137,8 @@ describe('home redirect', () => {
 
     mockApi(admin);
     const second = renderAt('/');
-    await waitFor(() => expect(second.router.state.location.pathname).toBe('/groups'));
+    await waitFor(() => expect(second.router.state.status).toBe('idle'));
+    expect(second.router.state.location.pathname).toBe('/');
   });
 
   it('a client without a group goes to /settings', async () => {

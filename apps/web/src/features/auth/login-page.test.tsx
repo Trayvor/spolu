@@ -269,17 +269,17 @@ describe('login page', () => {
     expect(router.state.location.pathname).toBe('/settings');
   });
 
-  it('a foreign redirect target lands on the home page (an admin: /groups)', async () => {
+  it('a foreign redirect target lands on the home page (an admin: the dashboard at /)', async () => {
     mockApi();
     const { router, user } = renderAt('/login?redirect=https%3A%2F%2Fevil.example');
     await user.type(await toCodeStep(user), '123456');
 
-    await waitFor(() => expect(router.state.location.pathname).toBe('/groups'));
+    await waitFor(() => expect(router.state.location.pathname).toBe('/'));
   });
 
-  it('a signed-in user opening /login is sent home (an admin: /groups)', async () => {
+  it('a signed-in user opening /login is sent home (an admin: the dashboard at /)', async () => {
     mockApi({ loggedIn: true });
     const { router } = renderAt('/login');
-    await waitFor(() => expect(router.state.location.pathname).toBe('/groups'));
+    await waitFor(() => expect(router.state.location.pathname).toBe('/'));
   });
 });

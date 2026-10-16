@@ -41,7 +41,7 @@ const USER = {
   name: 'Jana Nováková',
   email: 'jana@example.com',
   role: 'admin',
-  groupId: null,
+  groupId: null as string | null,
 };
 
 /** Fake `fetch`: `/api/me` answers from `state`, sign-out flips it to anonymous. */
@@ -198,6 +198,51 @@ describe('logged-in shell', () => {
     const { user } = renderAt();
     await user.click(await screen.findByRole('button', { name: t('user.menu') }));
     expect(await screen.findByRole('menuitem', { name: t('nav.groups') })).toBeInTheDocument();
+  });
+
+  it('admins see Home, Tasks, Knowledge, Groups, Admins in that order', async () => {
+    mockApi({ role: 'admin' });
+    const { user } = renderAt();
+    const order = [
+      t('nav.home'),
+      t('nav.tasks'),
+      t('nav.knowledge'),
+      t('nav.groups'),
+      t('nav.admins'),
+    ];
+    await screen.findByRole('link', { name: t('nav.admins') });
+    const header = screen.getByRole('banner');
+    const names = within(header)
+      .getAllByRole('link')
+      .map((link) => link.textContent)
+      .filter((name) => order.includes(name ?? ''));
+    expect(names).toEqual(order);
+    expect(within(header).getByRole('link', { name: t('nav.tasks') })).toHaveAttribute(
+      'href',
+      '/tasks',
+    );
+    await user.click(screen.getByRole('button', { name: t('user.menu') }));
+    const items = (await screen.findAllByRole('menuitem'))
+      .map((item) => item.textContent)
+      .filter((name) => order.includes(name ?? ''));
+    expect(items).toEqual(order);
+  });
+
+  it('/ renders the dashboard for an admin and redirects a client to their group', async () => {
+    mockApi({ role: 'admin' });
+    const admin = renderAt('/');
+    expect(await screen.findByRole('heading', { level: 1 })).toBeInTheDocument();
+    expect(admin.router.state.location.pathname).toBe('/');
+    cleanup();
+    mockApi({ role: 'client', groupId: 'g1' });
+    const client = renderAt('/');
+    await waitFor(() => expect(client.router.state.location.pathname).toBe('/groups/g1/chat'));
+  });
+
+  it('/tasks is not found for a client', async () => {
+    mockApi({ role: 'client', groupId: 'g1' });
+    renderAt('/tasks');
+    expect(await screen.findByRole('heading', { name: t('notFound.title') })).toBeInTheDocument();
   });
 
   it('a client does not see the Admins link', async () => {

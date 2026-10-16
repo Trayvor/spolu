@@ -1,12 +1,16 @@
-import { useEffect, useRef } from 'react';
+import { lazy, Suspense, useEffect, useRef, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Outlet, useRouter } from '@tanstack/react-router';
+import { readCollapsed } from '@/features/admin-home/sidebar-collapse';
 import { useManagerEvents } from '@/features/groups/use-manager-events';
 import { AppPrompt } from '@/features/notifications/app-prompt';
 import { saveLanguage } from '@/features/profile/api';
 import { i18n } from '@/i18n';
+import { withNamespaces } from '@/i18n/namespaces';
+import { useMediaQuery } from '@/lib/use-media-query';
 import { connectSocket, disconnectSocket, getSocket } from '@/lib/socket';
 import { redirectToLogin } from './go-to-login';
+import { isAdmin } from './roles';
 import { clearSession, sessionQuery, useSession } from './use-session';
 
 const RECONNECT_MIN_MS = 1000;
@@ -88,7 +92,45 @@ export function AuthedLayout() {
   return (
     <>
       <AppPrompt />
-      <Outlet />
+      <SignedInFrame>
+        <Outlet />
+      </SignedInFrame>
     </>
+  );
+}
+
+/** The admin sidebar's lazy chunk (`admin-shell`) with its texts; clients never download it. */
+const LazyAdminSidebar = lazy((): Promise<{ default: () => ReactNode }> =>
+  withNamespaces(['adminHome'], () => import('@/features/admin-home/admin-shell'))().then(
+    (module) => ({ default: module.AdminSidebar }),
+    // A failed chunk (offline, new deploy) leaves the page without the sidebar, not broken.
+    () => ({ default: () => null }),
+  ),
+);
+
+/** Holds the sidebar's place while its chunk loads, at the width it will have. */
+function SidebarPlaceholder() {
+  return (
+    <div aria-hidden="true" className={readCollapsed() ? 'w-14 shrink-0' : 'w-[232px] shrink-0'} />
+  );
+}
+
+/**
+ * The two-column frame of the signed-in screens: for an admin from 1024 px the client sidebar
+ * sits on the left of every page, so moving between clients never reloads it. The page keeps its
+ * place in the tree whether or not the sidebar shows, so it never remounts when it loads.
+ */
+export function SignedInFrame({ children }: { children: ReactNode }) {
+  const admin = isAdmin(useSession());
+  const wide = useMediaQuery('(min-width: 1024px)');
+  return (
+    <div className="flex flex-1 gap-6">
+      {admin && wide && (
+        <Suspense fallback={<SidebarPlaceholder />}>
+          <LazyAdminSidebar />
+        </Suspense>
+      )}
+      <div className="flex min-w-0 flex-1 flex-col">{children}</div>
+    </div>
   );
 }

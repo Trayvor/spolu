@@ -5,6 +5,7 @@
   },
   "nav": {
     "home": "Home",
+    "tasks": "Tasks",
     "settings": "Settings",
     "admins": "Admins",
     "groups": "Groups",
