@@ -1,10 +1,12 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { io as connect } from 'socket.io-client';
-import type { Admin } from '@spolu/shared';
+import { GroupEvents, type Admin, type GroupManagersEvent } from '@spolu/shared';
 import { buildTestApp } from '../../../test/test-app.js';
 import { loginAs } from '../../../test/login.js';
 import { latestEmail } from '../../../test/mailpit.js';
+import { addManager } from '../groups/managers.js';
+import { createGroup } from '../groups/service.js';
 import { user } from './schema.js';
 import { addAdmin, ensureSuperadmin, findUserByEmail } from './service.js';
 
@@ -165,10 +167,42 @@ describe('admins API', () => {
     }
   });
 
+  it('removing a manager tells the admins their groups lost a manager', async () => {
+    const { cookie } = await adminSession();
+    const watcher = await adminSession('Watcher');
+    const target = await adminSession('Target Manager');
+    const group = await createGroup(test.deps.db, {
+      name: 'Firma',
+      egrantUrl: `https://g${randomUUID().replaceAll('-', '')}.egrant.sk/app`,
+    });
+    await addManager(test.deps.db, group.id, target.admin.id);
+    if (!test.app.server.listening) await test.app.listen({ port: 0, host: '127.0.0.1' });
+    const address = test.app.server.address();
+    if (address === null || typeof address === 'string') throw new Error('no port');
+    const socket = connect(`http://127.0.0.1:${address.port}`, {
+      transports: ['websocket'],
+      extraHeaders: { cookie: watcher.cookie },
+      reconnection: false,
+    });
+    try {
+      await new Promise<void>((resolve) => socket.once('connect', () => resolve()));
+      const event = new Promise<GroupManagersEvent>((resolve) =>
+        socket.on(GroupEvents.managers, (e: GroupManagersEvent) => {
+          if (e.groupId === group.id) resolve(e);
+        }),
+      );
+      expect((await remove(cookie, target.admin.id)).statusCode).toBe(204);
+      const received = await event;
+      expect(received.managers.some((m) => m.id === target.admin.id)).toBe(false);
+    } finally {
+      socket.close();
+    }
+  });
+
   it("admin removes another admin -> 204, that admin's /api/me is 401 and their socket is disconnected", async () => {
     const { cookie } = await adminSession();
     const target = await adminSession('Target');
-    await test.app.listen({ port: 0, host: '127.0.0.1' });
+    if (!test.app.server.listening) await test.app.listen({ port: 0, host: '127.0.0.1' });
     const address = test.app.server.address();
     if (address === null || typeof address === 'string') throw new Error('no port');
     const socket = connect(`http://127.0.0.1:${address.port}`, {

@@ -15,7 +15,6 @@ import {
   getGroup,
   getGroupByInviteToken,
   getMembershipGroupId,
-  isGroupPerson,
   isPickablePerson,
   listGroupPeople,
   listPickablePeople,
@@ -304,41 +303,6 @@ describe('group people', () => {
     }
     // Other tests add admins too: assert only the relative order of ours ("Aa" before "Bb").
     expect(ids.indexOf(s.admin.id)).toBeLessThan(ids.indexOf(s.client.id));
-  });
-
-  it('isGroupPerson is true for the named client and an admin, false for everyone else', async () => {
-    const s = await scenario();
-    expect(await isGroupPerson(db, s.g.id, s.client.id)).toBe(true);
-    expect(await isGroupPerson(db, s.g.id, s.admin.id)).toBe(true);
-    for (const no of [
-      s.removed,
-      s.unnamed,
-      s.emptyName,
-      s.blankName,
-      s.foreign,
-      s.deactivatedAdmin,
-    ]) {
-      expect(await isGroupPerson(db, s.g.id, no.id)).toBe(false);
-    }
-    expect(await isGroupPerson(db, s.g.id, randomUUID())).toBe(false);
-  });
-
-  it('isGroupPerson agrees with listGroupPeople for every user of the scenario', async () => {
-    const s = await scenario();
-    const listed = new Set((await listGroupPeople(db, s.g.id)).map((p) => p.id));
-    const everyone = [
-      s.client,
-      s.admin,
-      s.removed,
-      s.unnamed,
-      s.emptyName,
-      s.blankName,
-      s.foreign,
-      s.deactivatedAdmin,
-    ];
-    for (const u of everyone) {
-      expect(await isGroupPerson(db, s.g.id, u.id)).toBe(listed.has(u.id));
-    }
   });
 });
 

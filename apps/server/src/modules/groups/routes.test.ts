@@ -3,6 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { io as connect, type Socket } from 'socket.io-client';
 import type { Group, GroupPerson, GroupSummary, ManagersResponse, Member, Me } from '@spolu/shared';
 import { buildTestApp } from '../../../test/test-app.js';
+import { managerRateLimit } from './routes.js';
 import { loginAs } from '../../../test/login.js';
 import { groupRoom, userRoom } from '../../infra/realtime/rooms.js';
 import { user } from '../users/schema.js';
@@ -445,15 +446,28 @@ describe('groups API', () => {
       expect((await call('PUT', url(g.id))).statusCode).toBe(401);
     });
 
-    it('the 121st call in a minute gets 429', async () => {
-      const { cookie } = await adminSession();
-      const g = await newGroup();
-      for (let i = 0; i < 120; i++) {
-        expect((await call('PUT', url(g.id), cookie)).statusCode).toBe(200);
+    it('the default limit is 120 calls a minute', () => {
+      expect(managerRateLimit(test.deps.config)).toBe(120);
+    });
+
+    it('the call over the configured limit gets 429', async () => {
+      const limited = await buildTestApp({ config: { managerRateLimitPerMinute: 2 } });
+      try {
+        const email = newEmail();
+        await addAdmin(limited.deps.db, { email, name: 'Limited Admin' });
+        const cookie = await loginAs(limited.app, email);
+        const g = await newGroup();
+        const put = () =>
+          limited.app.inject({ method: 'PUT', url: url(g.id), headers: { cookie } });
+        expect((await put()).statusCode).toBe(200);
+        expect((await put()).statusCode).toBe(200);
+        const res = await put();
+        expect(res.statusCode).toBe(429);
+        expect(res.json()).toEqual({ error: 'rate_limited' });
+      } finally {
+        await limited.app.close();
+        await limited.close();
       }
-      const res = await call('PUT', url(g.id), cookie);
-      expect(res.statusCode).toBe(429);
-      expect(res.json()).toEqual({ error: 'rate_limited' });
     });
 
     it('an unknown group gets 404', async () => {

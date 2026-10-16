@@ -242,20 +242,6 @@ export async function isPickablePerson(db: Db, groupId: string, userId: string):
   return row !== undefined;
 }
 
-/** The readers' condition (`listGroupPeople`), for one user. */
-export async function isGroupPerson(db: Db, groupId: string, userId: string): Promise<boolean> {
-  const [row] = await db
-    .select({ id: user.id })
-    .from(user)
-    .leftJoin(
-      groupMembers,
-      and(eq(groupMembers.userId, user.id), eq(groupMembers.groupId, groupId)),
-    )
-    .where(and(eq(user.id, userId), or(isActiveAdmin, isNamedActiveMember(groupId))))
-    .limit(1);
-  return row !== undefined;
-}
-
 /** Idempotent: a client is in one group, joining twice changes nothing. */
 export async function addMember(db: Db, groupId: string, userId: string): Promise<void> {
   await db.insert(groupMembers).values({ userId, groupId }).onConflictDoNothing();

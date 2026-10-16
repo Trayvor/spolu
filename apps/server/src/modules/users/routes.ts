@@ -7,6 +7,8 @@ import { adminAddedEmail } from '../auth/emails.js';
 import { pickLanguage } from '../auth/language.js';
 import { requireAdmin } from '../auth/session.js';
 import { revokeAllSessions } from '../auth/service.js';
+import { emitManagers } from '../groups/events.js';
+import { listGroupManagers, managedGroupIds } from '../groups/managers.js';
 import { canDeactivate, canManageAdmins } from './policy.js';
 import { addAdmin, deactivateUser, EmailTakenError, getUserById, listAdmins } from './service.js';
 
@@ -59,9 +61,14 @@ export const usersRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (
       return reply.code(403).send({ error: ErrorCodes.forbidden });
     }
 
+    // Read the groups before deactivating: only an active admin counts as a manager.
+    const managed = await managedGroupIds(db, id);
     await deactivateUser(db, id);
     await revokeAllSessions(db, id);
     disconnectUser(app.io, id);
+    for (const groupId of managed) {
+      emitManagers(app.io, { groupId, managers: await listGroupManagers(db, groupId) });
+    }
     return reply.code(204).send();
   });
 };

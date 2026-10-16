@@ -1,6 +1,7 @@
 import type { FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify';
 import { ErrorCodes, GroupInputSchema, type Group, type ManagersResponse } from '@spolu/shared';
 import type { AppDeps } from '../../deps.js';
+import type { Config } from '../../infra/config/config.js';
 import { disconnectUser } from '../../infra/realtime/rooms.js';
 import { createRateLimiter } from '../../infra/http/rate-limit.js';
 import { requireAdmin, requireUser } from '../auth/session.js';
@@ -30,6 +31,9 @@ type MemberParams = { Params: { id: string; userId: string } };
 
 const notFound = (reply: FastifyReply) => reply.code(404).send({ error: ErrorCodes.notFound });
 const forbidden = (reply: FastifyReply) => reply.code(403).send({ error: ErrorCodes.forbidden });
+
+/** Calls a minute per admin to become or stop being a manager. */
+export const managerRateLimit = (config: Config): number => config.managerRateLimitPerMinute ?? 120;
 
 export const groupsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { deps }) => {
   const { config, db } = deps;
@@ -163,7 +167,7 @@ export const groupsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, {
   );
 
   // Managers are self-service: an admin adds or removes only themselves, never someone else.
-  const allowManagerChange = createRateLimiter({ windowMs: 60_000, max: 120 });
+  const allowManagerChange = createRateLimiter({ windowMs: 60_000, max: managerRateLimit(config) });
   const adminOnly = requireAdmin(app.auth);
 
   const changeManager =
