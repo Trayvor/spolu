@@ -59,7 +59,6 @@
     "overdue": "overdue",
     "url": "Link",
     "instance": "eGrant instance",
-    "fileLinks": "Links to files",
     "files": "Files",
     "initiator": "Initiator",
     "unknown": "Not known",
@@ -92,15 +91,13 @@
     "email": "Initiator's email",
     "name": "Initiator's name",
     "phone": "Initiator's phone",
-    "linksPlaceholder": "One link per line",
     "filesAfterClient": "Choose the client first: files belong to it.",
     "create": "Create ticket",
     "errors": {
       "content": "Write a subject, a text or a question area.",
       "url": "Enter a link that starts with https:// or http://.",
       "client": "Choose the client.",
-      "email": "Enter a valid email.",
-      "links": "Up to 20 links, each starting with https:// or http://."
+      "email": "Enter a valid email."
     }
   },
   "tasks": {

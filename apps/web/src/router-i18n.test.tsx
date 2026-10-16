@@ -109,7 +109,6 @@ const TICKET = {
   body: 'The form fails',
   url: null,
   instanceUrl: 'https://acme.egrant.sk',
-  fileLinks: [],
   files: [],
   createdBy: null,
   updatedAt: NOW,

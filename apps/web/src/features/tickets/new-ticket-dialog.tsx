@@ -10,33 +10,18 @@ import { PanelHeader } from '@/components/ui/panel-header';
 import { Select } from '@/components/ui/select';
 import { SheetDialog, SheetDialogTitle } from '@/components/ui/sheet-dialog';
 import { groupsQuery } from '@/features/groups/api';
-import { cn } from '@/lib/utils';
 import { useCreateTicket } from './api';
-import {
-  ContentFields,
-  contentErrors,
-  EMPTY_CONTENT,
-  textareaClass,
-  type ContentDraft,
-} from './content-fields';
+import { ContentFields, contentErrors, EMPTY_CONTENT, type ContentDraft } from './content-fields';
 
-type Errors = Partial<Record<keyof ContentDraft | 'client' | 'email' | 'links', string>>;
+type Errors = Partial<Record<keyof ContentDraft | 'client' | 'email', string>>;
 
-const isHttp = (value: string) => {
-  try {
-    return ['http:', 'https:'].includes(new URL(value).protocol);
-  } catch {
-    return false;
-  }
-};
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /**
  * A new ticket in a `SheetDialog`. An admin chooses the client (fixed when opened from a group's
  * tab) and names the initiator by email, name and phone, with the hint that they get an email
  * and can follow the ticket; a client creates in their group and is the initiator, so those
- * fields are not there. Then the content fields, links to files (one per line, at most 20) and
- * uploaded files (once the client is known: they belong to it). `onCreated` gets the ticket.
+ * fields are not there. Then the content fields and uploaded files (once the client is known: they belong to it). `onCreated` gets the ticket.
  */
 export function NewTicketDialog({
   admin,
@@ -59,7 +44,6 @@ export function NewTicketDialog({
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
-  const [links, setLinks] = useState('');
   const [files, setFiles] = useState<FileInfo[]>([]);
   const [errors, setErrors] = useState<Errors>({});
   const create = useCreateTicket();
@@ -71,16 +55,9 @@ export function NewTicketDialog({
 
   const submit = () => {
     const found: Errors = contentErrors(content);
-    const fileLinks = links
-      .split('\n')
-      .map((l) => l.trim())
-      .filter(Boolean);
     if (!groupId) found.client = 'tickets.form.errors.client';
     if (admin && email.trim() && !EMAIL.test(email.trim()))
       found.email = 'tickets.form.errors.email';
-    if (fileLinks.length > TICKET_LIMITS.fileLinks || fileLinks.some((l) => !isHttp(l))) {
-      found.links = 'tickets.form.errors.links';
-    }
     setErrors(found);
     if (Object.keys(found).length > 0) return;
     create.mutate(
@@ -95,7 +72,6 @@ export function NewTicketDialog({
         body: content.body,
         dueDate: content.dueDate || null,
         url: content.url,
-        fileLinks,
         fileIds: files.map((f) => f.id),
       },
       { onSuccess: onCreated },
@@ -192,19 +168,6 @@ export function NewTicketDialog({
             errors={errors}
             subjectRef={subjectRef}
           />
-          <div className="flex flex-col gap-2.5">
-            <Label htmlFor={id('links')}>{t('tickets.fields.fileLinks')}</Label>
-            <textarea
-              id={id('links')}
-              rows={3}
-              value={links}
-              placeholder={t('tickets.form.linksPlaceholder')}
-              onChange={(e) => setLinks(e.target.value)}
-              className={cn(textareaClass, 'resize-y')}
-              {...described('links')}
-            />
-            {error('links')}
-          </div>
           <div className="flex flex-col gap-2.5">
             <span id={id('files')} className="text-micro font-semibold text-muted-foreground">
               {t('tickets.fields.files')}

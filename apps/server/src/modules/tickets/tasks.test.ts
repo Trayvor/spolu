@@ -124,7 +124,6 @@ describe('ticket to tasks (Phase 21.5)', () => {
         area: 'Granty',
         programme: 'Plán obnovy',
         due_date: '2026-11-20',
-        file_links: ['https://drive.example.com/docs/rozpocet.xlsx?x=1', 'https://example.com/'],
       });
       const request = await build(t.id);
       expect(request.source).toBe('ticket');
@@ -133,7 +132,6 @@ describe('ticket to tasks (Phase 21.5)', () => {
       expect(request.details).toEqual([
         { label: 'Area', value: 'Granty' },
         { label: 'Programme', value: 'Plán obnovy' },
-        { label: 'Links to files', value: 'rozpocet.xlsx, example.com' },
       ]);
       expect(request.quoted).toBeNull();
       expect(request.conversation).toEqual([]);

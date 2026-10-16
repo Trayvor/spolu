@@ -25,9 +25,11 @@ test('a ticket from eGrant: requester login, chat, status, email and tasks', asy
   const host = `e2e-flow-${stamp}.egrant.sk`;
   const email = `e2e-flow-requester-${stamp}@example.com`;
   const subject = `Rozpočet nejde uložiť ${stamp}`;
+  const fileText = 'Krok 3: chyba pri uložení rozpočtu.';
   const groupId = await createGroup(page, `E2E Tiket tok ${stamp}`, `https://${host}`);
 
-  // 1. eGrant sends the ticket; a retry with the same request_id answers the same ticket.
+  // 1. eGrant sends the ticket with a small file as base64; a retry with the same request_id
+  // answers the same ticket.
   const intake = (data: object) =>
     page.request.post('/api/tickets/intake', {
       headers: { authorization: `Bearer ${KEY}` },
@@ -41,6 +43,7 @@ test('a ticket from eGrant: requester login, chat, status, email and tasks', asy
     email,
     requester_name: 'E2E Žiadateľka',
     instance_url: `https://www.${host}/app/login`,
+    files: [{ name: 'popis-chyby.txt', content_base64: Buffer.from(fileText).toString('base64') }],
   };
   const created = await intake(body);
   expect(created.status()).toBe(201);
@@ -75,6 +78,14 @@ test('a ticket from eGrant: requester login, chat, status, email and tasks', asy
   await requester.getByLabel('Kód').fill(await latestLoginCode(context.request, email));
   await expect(requester).toHaveURL(new RegExp(`/tickets/${id}$`));
   await expect(requester.getByRole('heading', { name: subject })).toBeVisible();
+  // The file eGrant sent is on the ticket, and the requester downloads it.
+  await expect(requester.getByText('popis-chyby.txt')).toBeVisible();
+  const ticket = (await (await context.request.get(`/api/tickets/${id}`)).json()) as {
+    files: { id: string }[];
+  };
+  const download = await context.request.get(`/api/files/${ticket.files[0]!.id}`);
+  expect(download.status()).toBe(200);
+  expect(await download.text()).toBe(fileText);
 
   // 4. Only their own ticket; the client's group and other tickets stay closed.
   await requester.goto('/tickets');

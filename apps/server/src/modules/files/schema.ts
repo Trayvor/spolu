@@ -3,17 +3,18 @@ import { sql } from 'drizzle-orm';
 import { groups } from '../groups/schema.js';
 import { user } from '../users/schema.js';
 
-/** A stored file of one group. `attachedAt` stays null until the owning module uses it. */
+/**
+ * A stored file of one group. `attachedAt` stays null until the owning module uses it.
+ * `groupId` null: a file sent to the ticket intake for a ticket without a client (only admins
+ * read it; it moves to the client with the ticket). `uploadedBy` null: received from an
+ * integration, not uploaded by a person.
+ */
 export const files = pgTable(
   'files',
   {
     id: text('id').primaryKey(),
-    groupId: text('group_id')
-      .notNull()
-      .references(() => groups.id, { onDelete: 'cascade' }),
-    uploadedBy: text('uploaded_by')
-      .notNull()
-      .references(() => user.id),
+    groupId: text('group_id').references(() => groups.id, { onDelete: 'cascade' }),
+    uploadedBy: text('uploaded_by').references(() => user.id),
     name: text('name').notNull(),
     mime: text('mime').notNull(),
     size: integer('size').notNull(),

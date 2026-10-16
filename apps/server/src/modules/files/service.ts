@@ -134,6 +134,55 @@ export async function createFile(
 }
 
 /**
+ * Stores a file received whole and already checked (the ticket intake, Phase 21: the caller
+ * decoded the bytes and sniffed `mime` with `sniffAllowedType`) as an unattached file of
+ * `groupId` (null: a ticket without a client) with no uploader. The name is sanitized. If the
+ * insert fails, the stored object is removed. The owner attaches it with `attachReceivedFiles`.
+ */
+export async function createReceivedFile(
+  { db, storage }: FileDeps,
+  input: { groupId: string | null; name: string; mime: string; bytes: Buffer },
+): Promise<FileInfo> {
+  const id = randomUUID();
+  const key = `files/${input.groupId ?? 'no-group'}/${id}`;
+  await storage.put(key, input.bytes, input.mime);
+  try {
+    const [row] = await db
+      .insert(files)
+      .values({
+        id,
+        groupId: input.groupId,
+        uploadedBy: null,
+        name: sanitizeFileName(input.name),
+        mime: input.mime,
+        size: input.bytes.length,
+        storageKey: key,
+      })
+      .returning();
+    return toFileInfo(row!);
+  } catch (error) {
+    await storage.delete(key).catch(() => undefined);
+    throw error;
+  }
+}
+
+/**
+ * Marks received files (no uploader, see `createReceivedFile`) as used; any id that is unknown,
+ * uploaded by a person or already attached throws InvalidAttachmentError. Call inside the
+ * owner's transaction.
+ */
+export async function attachReceivedFiles(tx: Db, fileIds: string[]): Promise<void> {
+  const ids = [...new Set(fileIds)];
+  if (ids.length === 0) return;
+  const attached = await tx
+    .update(files)
+    .set({ attachedAt: sql`now()` })
+    .where(and(inArray(files.id, ids), isNull(files.uploadedBy), isNull(files.attachedAt)))
+    .returning({ id: files.id });
+  if (attached.length < ids.length) throw new InvalidAttachmentError();
+}
+
+/**
  * Copies a file of `groupId` server-side into a new, unattached file of that group owned by `userId`
  * (a file that is unknown or in another group throws InvalidAttachmentError),
  * with its own storage objects (data, and the preview if any). A copy never shares objects with
@@ -249,17 +298,25 @@ export async function setFilesAdminsOnly(tx: Db, fileIds: string[], value: boole
   await tx.update(files).set({ adminsOnly: value }).where(inArray(files.id, fileIds));
 }
 
-/** In the order of `ids`; ids that are unknown or in another group are skipped. */
+/**
+ * In the order of `ids`; ids that are unknown or in another group are skipped. `groupId` null:
+ * the files of no group (a ticket without a client).
+ */
 export async function getFilesForGroup(
   db: Db,
-  groupId: string,
+  groupId: string | null,
   ids: string[],
 ): Promise<FileInfo[]> {
   if (ids.length === 0) return [];
   const rows = await db
     .select()
     .from(files)
-    .where(and(eq(files.groupId, groupId), inArray(files.id, ids)));
+    .where(
+      and(
+        groupId === null ? isNull(files.groupId) : eq(files.groupId, groupId),
+        inArray(files.id, ids),
+      ),
+    );
   const byId = new Map(rows.map((row) => [row.id, row]));
   return ids.flatMap((id) => {
     const row = byId.get(id);
@@ -315,7 +372,10 @@ export async function deleteUnattachedFiles(
   return removed.length;
 }
 
-/** Moves files to another group (a ticket chat moving with its ticket, Phase 21). */
+/**
+ * Moves files to another group (a ticket chat, or the files of a ticket, moving with its ticket;
+ * Phase 21). The storage keys stay as they are.
+ */
 export async function moveFilesToGroup(tx: Db, fileIds: string[], groupId: string): Promise<void> {
   if (fileIds.length === 0) return;
   await tx.update(files).set({ groupId }).where(inArray(files.id, fileIds));

@@ -17,7 +17,9 @@ import {
 } from '../users/service.js';
 import { notificationEvents } from '../notifications/schema.js';
 import { tasks } from '../tasks/schema.js';
+import { files } from '../files/schema.js';
 import { tickets } from './schema.js';
+import { findTicketByRequestId } from './service.js';
 import { user } from '../users/schema.js';
 import { getBoard } from '../tasks/service.js';
 
@@ -155,10 +157,12 @@ describe('tickets API', () => {
         status: 'new',
         source: 'api',
         requester: { userId: requester!.id, name: 'Jana Nová', email },
-        fileLinks: ['https://files.egrant.sk/a.png'],
+        files: [],
         dueDate: '2026-11-01',
         following: true, // the manager follows from the start
       });
+      // The removed file_links is ignored.
+      expect(dto).not.toHaveProperty('fileLinks');
     });
 
     it('a repeat with the same request_id answers the first ticket and does nothing else', async () => {
@@ -229,6 +233,227 @@ describe('tickets API', () => {
       expect(none.items.map((t) => t.id)).toContain(id);
       const dto = (await call('GET', `/api/tickets/${id}`, a.cookie)).json<TicketDto>();
       expect(dto).toMatchObject({ groupId: null, instanceUrl: 'https://nobody.egrant.sk' });
+    });
+  });
+
+  describe('intake files', () => {
+    // An 8-byte PNG signature plus a few bytes, and a tiny PDF: sniffing reads only the head.
+    const PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2, 3, 4]);
+    const PDF = Buffer.from('%PDF-1.7\n1 0 obj <<>> endobj\n%%EOF\n');
+    const b64 = (bytes: Buffer) => bytes.toString('base64');
+    const MiB = 1024 * 1024;
+    /** Valid base64 of `bytes` zero bytes, without allocating them. */
+    const zeros = (bytes: number) => 'A'.repeat(Math.ceil(bytes / 3) * 4);
+
+    const groupFiles = (groupId: string) =>
+      db().select().from(files).where(eq(files.groupId, groupId));
+    const download = (id: string, cookie: string) => call('GET', `/api/files/${id}`, cookie);
+
+    it('stores a PNG and a PDF in the client files; the requester sees and downloads them', async () => {
+      const g = await group();
+      const email = newEmail();
+      const res = await intake({
+        subject: 'So súbormi',
+        email,
+        instance_url: `https://${g.host}.egrant.sk`,
+        files: [
+          { name: 'C:\\shots\\chyba.png', content_base64: b64(PNG), content_type: 'text/plain' },
+          { name: 'rozpočet.pdf', content_base64: b64(PDF) },
+        ],
+      });
+      expect(res.statusCode).toBe(201);
+      const { id } = res.json<{ id: string }>();
+      const requester = await loginAs(test.app, email);
+      const dto = (await call('GET', `/api/tickets/${id}`, requester)).json<TicketDto>();
+      // The type comes from the bytes, never from content_type.
+      expect(dto.files.map((f) => [f.name, f.mime, f.size])).toEqual([
+        ['chyba.png', 'image/png', PNG.length],
+        ['rozpočet.pdf', 'application/pdf', PDF.length],
+      ]);
+      const rows = await groupFiles(g.id);
+      expect(rows).toHaveLength(2);
+      expect(rows.every((r) => r.attachedAt !== null && r.uploadedBy === null)).toBe(true);
+
+      const png = await download(dto.files[0]!.id, requester);
+      expect(png.statusCode).toBe(200);
+      expect(png.headers['content-type']).toBe('image/png');
+      expect(png.rawPayload).toEqual(PNG);
+      const pdf = await download(dto.files[1]!.id, requester);
+      expect(pdf.headers['content-disposition']).toMatch(/^attachment;/);
+      expect(pdf.rawPayload).toEqual(PDF);
+      // Another ziadatel of the client does not read them.
+      const other = await clientIn(g.id, 'ziadatel');
+      expect((await download(dto.files[0]!.id, other.cookie)).statusCode).toBe(404);
+    });
+
+    it('a disallowed type is 400 naming the file and stores nothing', async () => {
+      const g = await group();
+      const requestId = randomUUID();
+      const res = await intake({
+        subject: 'Program',
+        instance_url: `https://${g.host}.egrant.sk`,
+        request_id: requestId,
+        files: [
+          { name: 'a.png', content_base64: b64(PNG) },
+          { name: 'setup.pdf', content_base64: b64(Buffer.from('MZ\x90\x00\x03\x00\x00\x00')) },
+        ],
+      });
+      expect(res.statusCode).toBe(400);
+      expect(res.json()).toEqual({
+        error: 'validation_failed',
+        fields: ['files[1].content_base64'],
+      });
+      expect(await findTicketByRequestId(db(), requestId)).toBeNull();
+      expect(await groupFiles(g.id)).toHaveLength(0);
+    });
+
+    it('bad base64, a bad name and too many files are 400 with the field names', async () => {
+      const file = { name: 'a.png', content_base64: b64(PNG) };
+      const bad = await intake({
+        subject: 'x',
+        files: [file, { name: 'b.png', content_base64: 'iVBO Rw0K' }, { ...file, name: ' ' }],
+      });
+      expect(bad.statusCode).toBe(400);
+      expect(bad.json()).toEqual({
+        error: 'validation_failed',
+        fields: ['files[1].content_base64', 'files[2].name'],
+      });
+      const many = await intake({ subject: 'x', files: Array.from({ length: 11 }, () => file) });
+      expect(many.json()).toEqual({ error: 'validation_failed', fields: ['files'] });
+    });
+
+    it('a file over 10 MiB or files over 20 MiB in total are 413; nothing is stored', async () => {
+      const g = await group();
+      const base = { subject: 'Veľké', instance_url: `https://${g.host}.egrant.sk` };
+      const big = await intake({
+        ...base,
+        files: [
+          { name: 'a.png', content_base64: b64(PNG) },
+          { name: 'big.pdf', content_base64: zeros(10 * MiB + 1) },
+        ],
+      });
+      expect(big.statusCode).toBe(413);
+      expect(big.json()).toEqual({ error: 'file_too_large', fields: ['files[1].content_base64'] });
+      const total = await intake({
+        ...base,
+        files: Array.from({ length: 3 }, (_, i) => ({
+          name: `${i}.pdf`,
+          content_base64: zeros(7_000_000),
+        })),
+      });
+      expect(total.statusCode).toBe(413);
+      expect(total.json()).toEqual({ error: 'file_too_large', fields: ['files'] });
+      expect(await groupFiles(g.id)).toHaveLength(0);
+    });
+
+    it('takes a body up to 28 MiB on the intake only; 1 MiB stays the limit elsewhere', async () => {
+      const g = await group();
+      // 6 files of 3.3 MB: 19.8 MB decoded, about 26.4 MB of JSON.
+      const pdf = b64(Buffer.concat([PDF, Buffer.alloc(3_300_000 - PDF.length)]));
+      const res = await intake({
+        subject: 'Takmer limit',
+        instance_url: `https://${g.host}.egrant.sk`,
+        files: Array.from({ length: 6 }, (_, i) => ({ name: `${i}.pdf`, content_base64: pdf })),
+      });
+      expect(res.statusCode).toBe(201);
+      const over = await intake({ subject: 'x', body: 'y'.repeat(29 * MiB) });
+      expect(over.statusCode).toBe(413);
+      const a = await admin();
+      const manual = await call('POST', '/api/tickets', a.cookie, {
+        groupId: g.id,
+        subject: 'x',
+        body: 'y'.repeat(MiB),
+      });
+      expect(manual.statusCode).toBe(413);
+    });
+
+    it('a repeated request_id answers 200 and stores no file again', async () => {
+      const g = await group();
+      const body = {
+        subject: 'Opakovaný so súborom',
+        instance_url: `https://${g.host}.egrant.sk`,
+        request_id: randomUUID(),
+        files: [{ name: 'a.png', content_base64: b64(PNG) }],
+      };
+      expect((await intake(body)).statusCode).toBe(201);
+      expect((await intake(body)).statusCode).toBe(200);
+      const answers = await Promise.all(Array.from({ length: 4 }, () => intake(body)));
+      expect(answers.map((r) => r.statusCode)).toEqual([200, 200, 200, 200]);
+      expect(await groupFiles(g.id)).toHaveLength(1);
+    });
+
+    it('concurrent first requests with one request_id keep the files of one ticket only', async () => {
+      const g = await group();
+      const body = {
+        subject: 'Súbežný so súbormi',
+        instance_url: `https://${g.host}.egrant.sk`,
+        request_id: randomUUID(),
+        files: [
+          { name: 'a.png', content_base64: b64(PNG) },
+          { name: 'b.pdf', content_base64: b64(PDF) },
+        ],
+      };
+      const answers = await Promise.all(Array.from({ length: 4 }, () => intake(body)));
+      expect(answers.map((r) => r.statusCode).sort()).toEqual([200, 200, 200, 201]);
+      const rows = await groupFiles(g.id);
+      expect(rows).toHaveLength(2);
+      expect(rows.every((r) => r.attachedAt !== null)).toBe(true);
+    });
+
+    it('a storage failure fails the request without a ticket and removes stored files', async () => {
+      const g = await group();
+      const requestId = randomUUID();
+      const storage = test.deps.storage;
+      const put = storage.put.bind(storage);
+      let calls = 0;
+      storage.put = (key, data, type) =>
+        ++calls === 2 ? Promise.reject(new Error('disk full')) : put(key, data, type);
+      try {
+        const res = await intake({
+          subject: 'Plný disk',
+          instance_url: `https://${g.host}.egrant.sk`,
+          request_id: requestId,
+          files: [
+            { name: 'a.png', content_base64: b64(PNG) },
+            { name: 'b.pdf', content_base64: b64(PDF) },
+          ],
+        });
+        expect(res.statusCode).toBe(500);
+      } finally {
+        storage.put = put;
+      }
+      expect(await findTicketByRequestId(db(), requestId)).toBeNull();
+      expect(await groupFiles(g.id)).toHaveLength(0);
+    });
+
+    it('a ticket without a client keeps its files for admins; they move with the client', async () => {
+      const a = await admin();
+      const email = newEmail();
+      const res = await intake({
+        subject: 'Bez klienta so súborom',
+        email,
+        instance_url: 'https://nobody.egrant.sk',
+        files: [{ name: 'a.png', content_base64: b64(PNG) }],
+      });
+      expect(res.statusCode).toBe(201);
+      const { id } = res.json<{ id: string }>();
+      const before = (await call('GET', `/api/tickets/${id}`, a.cookie)).json<TicketDto>();
+      expect(before.files.map((f) => f.name)).toEqual(['a.png']);
+      const fileId = before.files[0]!.id;
+      expect((await download(fileId, a.cookie)).rawPayload).toEqual(PNG);
+
+      const g = await group();
+      const outsider = await clientIn(g.id);
+      expect((await download(fileId, outsider.cookie)).statusCode).toBe(404);
+      const assigned = await call('PUT', `/api/tickets/${id}/group`, a.cookie, { groupId: g.id });
+      expect(assigned.statusCode).toBe(200);
+      expect((await groupFiles(g.id)).map((r) => r.id)).toEqual([fileId]);
+      // Now the client's people and the requester read it.
+      expect((await download(fileId, outsider.cookie)).statusCode).toBe(200);
+      const requester = await loginAs(test.app, email);
+      const dto = (await call('GET', `/api/tickets/${id}`, requester)).json<TicketDto>();
+      expect(dto.files.map((f) => f.id)).toEqual([fileId]);
+      expect((await download(fileId, requester)).rawPayload).toEqual(PNG);
     });
   });
 

@@ -6,7 +6,7 @@ The product rules behind this guide live in [product/tickets.md](../product/tick
 
 ## In short
 
-- One endpoint: `POST https://<spolu host>/api/tickets/intake`, JSON body.
+- One endpoint: `POST https://<spolu host>/api/tickets/intake`, JSON body. Files go in the same body, as base64.
 - One shared secret: `Authorization: Bearer <key>`.
 - Send a `request_id` with every request and retry with the same id until you get a `2xx`.
 - Spolu answers `201` (created) or `200` (already created for that `request_id`) with `{ "id", "number" }`. There are no callbacks.
@@ -30,7 +30,7 @@ The eGrant team gives you the key; on the Spolu server it is the environment var
 
 ## The JSON body
 
-Every field is optional, but a ticket needs at least one of `subject`, `body` or `area`. Strings are trimmed; an empty string counts as not given. Unknown fields are ignored. The whole body may be at most 1 MiB.
+Every field is optional, but a ticket needs at least one of `subject`, `body` or `area`. Strings are trimmed; an empty string counts as not given. Unknown fields are ignored. The whole body may be at most 28 MiB (other Spolu routes take 1 MiB; the intake takes more for the files).
 
 | field | meaning | rules |
 |---|---|---|
@@ -44,10 +44,36 @@ Every field is optional, but a ticket needs at least one of `subject`, `body` or
 | `phone` | the requester's phone number | up to 50 |
 | `due_date` | due date | `YYYY-MM-DD`, a real calendar date |
 | `url` | the page the request is about | an `http` or `https` URL |
-| `file_links` | links to files (screenshots, documents) | an array of up to 20 `http`/`https` URLs; Spolu shows them as links and never downloads them, so they must stay reachable for the eGrant team |
+| `files` | files the requester attached (screenshots, documents) | an array of up to 10 file objects, see "Files" below |
 | `instance_url` | the eGrant instance the request came from | any URL, up to 2048; see "Client matching" |
 
 Always send `instance_url` and `email`: without them the ticket has no client and no requester account (see below).
+
+`file_links` (links to files) was removed: Spolu ignores it like any unknown field. Send the files themselves in `files`.
+
+## Files
+
+Each item of `files` is one file, sent whole:
+
+| field | meaning | rules |
+|---|---|---|
+| `name` | the file name shown in Spolu, with its extension | 1 to 200 characters; a path (`C:\scans\a.png`, `docs/a.png`) is cut to the last part, control characters and slashes are removed |
+| `content_base64` | the file's bytes | standard base64 (`A–Z a–z 0–9 + /`) with `=` padding, on one line: no line breaks, spaces or `data:` prefix (PHP `base64_encode`, Node `buffer.toString('base64')`, Python `base64.b64encode`) |
+| `content_type` | the type you think it is | optional, informational only: Spolu reads the type from the bytes |
+
+Limits: at most **10 files**, each at most **10 MiB** (10 485 760 bytes) decoded, together at most **20 MiB** (20 971 520 bytes) decoded. Base64 is about a third larger, so the body may be up to 28 MiB.
+
+Accepted types (decided from the bytes, the extension only tells Office containers apart):
+
+- images: PNG, JPEG, WebP, GIF;
+- PDF;
+- Word, Excel, PowerPoint (`.docx`, `.xlsx`, `.pptx` and the old `.doc`, `.xls`, `.ppt`), OpenDocument (`.odt`, `.ods`, `.odp`), ZIP (`.zip`);
+- RTF (`.rtf`);
+- plain UTF-8 text named `.txt` or `.csv`.
+
+Anything else (programs, scripts, HTML, SVG, a file whose bytes do not match one of the above) is refused with `400`, and so is the whole request: Spolu stores either all files with the ticket or nothing. Empty files are refused too.
+
+Spolu stores the files in the client's files and shows them on the ticket: the eGrant team, the client's people and the requester download them there. For a ticket without a client only the eGrant team sees them until a client is assigned; then they move to that client.
 
 ## Example
 
@@ -66,8 +92,14 @@ curl -sS https://spolu.example.sk/api/tickets/intake \
     "phone": "+421 900 000 000",
     "due_date": "2026-11-01",
     "url": "https://mesto-x.egrant.sk/applications/4711",
-    "file_links": ["https://mesto-x.egrant.sk/files/screenshot-4711.png"],
-    "instance_url": "https://mesto-x.egrant.sk"
+    "instance_url": "https://mesto-x.egrant.sk",
+    "files": [
+      {
+        "name": "chyba.png",
+        "content_base64": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGNgYGD4DwABBAEAwS2OUAAAAABJRU5ErkJggg==",
+        "content_type": "image/png"
+      }
+    ]
   }'
 ```
 
@@ -77,6 +109,8 @@ Answer:
 { "id": "3f0c9a52-1d7e-4f43-9a51-2b8c1e6d7a10", "number": 123 }
 ```
 
+The file in the example is a real 1×1 pixel PNG; send real files the same way. In a shell, `base64 -w0 file.png` (Linux) or `base64 -i file.png` (macOS) prints the value.
+
 `number` is what people see (`#123`); `id` is Spolu's internal id. Store them if you want to show the user "Your ticket #123".
 
 ## Answers
@@ -85,9 +119,10 @@ Answer:
 |---|---|---|
 | `201` | `{ "id": "…", "number": 123 }` | created (also when no client matched) |
 | `200` | `{ "id": "…", "number": 123 }` | a ticket with this `request_id` already exists; this is its id and number. Nothing new was created, emailed or notified, even if the rest of the body differs. Treat it like `201`. |
-| `400` | `{ "error": "validation_failed", "fields": ["due_date"] }` | a field is malformed (the names are listed; `["body"]` when there is no subject, body or area). Fix the data; do not retry unchanged. |
+| `400` | `{ "error": "validation_failed", "fields": ["due_date"] }` | a field is malformed (the names are listed; `["body"]` when there is no subject, body or area). A file's field is named with its index: `files[3].content_base64` (not strict base64, empty, or a type Spolu does not take), `files[0].name`; more than 10 files is `["files"]`. Nothing was stored. Fix the data; do not retry unchanged. |
 | `401` | `{ "error": "unauthorized" }` | missing or wrong key. Do not retry; check the configuration. |
-| `413` | | the body is over 1 MiB. Shorten it; do not retry unchanged. |
+| `413` | `{ "error": "file_too_large", "fields": ["files[1].content_base64"] }` | a file is over 10 MiB decoded (that file is named), or the files are over 20 MiB together (`["files"]`). Nothing was stored. Send smaller files; do not retry unchanged. |
+| `413` | (no fixed body) | the whole body is over 28 MiB. Do not retry unchanged. |
 | `429` | `{ "error": "rate_limited" }` | more than 60 requests a minute from one IP address. Retry later. |
 | `503` | `{ "error": "intake_disabled" }` | the intake is switched off on this Spolu server. Retry later; tell the eGrant team if it lasts. |
 | other `5xx`, timeout, network error | | retry |
@@ -99,7 +134,8 @@ A request can reach Spolu even when your side sees a timeout. To make retries sa
 - Retry on a timeout, a network error, `429` and any `5xx`. Do not retry on `400`, `401` or `413`.
 - Back off between attempts, for example 1 s, 5 s, 30 s, 2 min, 10 min, then give up and log it.
 - The same `request_id` always answers the first ticket (`200`), however often it arrives, also when two attempts arrive at the same moment: Spolu keeps one ticket per id, for good. So never reuse an id for a different request.
-- Without `request_id`, every request that reaches Spolu makes a new ticket, so a retry after a lost answer makes a duplicate.
+- A repeat with files is answered before they are read: Spolu never stores the same request's files twice. Send the same files in every attempt all the same.
+- Without `request_id`, every request that reaches Spolu makes a new ticket, so a retry after a lost answer makes a duplicate (with its files).
 
 ## What happens in Spolu
 
@@ -112,4 +148,5 @@ A request can reach Spolu even when your side sees a timeout. To make retries sa
 
 - **No callbacks or webhooks.** Spolu never calls eGrant back; status changes and replies stay in Spolu.
 - **No status API.** There is no endpoint for eGrant to read a ticket later.
-- **No file uploads through the intake.** Send links in `file_links`; the requester can attach files in the ticket's chat.
+- **No separate file upload.** Files travel only in `files` of the one request; later files the requester attaches in the ticket's chat.
+- **No links to files.** `file_links` is gone; Spolu never downloads anything from eGrant.

@@ -95,30 +95,14 @@ export async function buildSplitRequest(
   };
 }
 
-/** A file link's name for the AI: its last path segment, or its host (never the query). */
-export function linkName(url: string): string {
-  try {
-    const parsed = new URL(url);
-    const last = parsed.pathname.split('/').filter(Boolean).at(-1);
-    if (!last) return parsed.hostname;
-    try {
-      return decodeURIComponent(last);
-    } catch {
-      return last;
-    }
-  } catch {
-    return url;
-  }
-}
-
 /** The newest ticket chat messages the AI gets, and the length each is cut to. */
 export const CONVERSATION_MAX = 30;
 const CONVERSATION_MESSAGE_MAX = 2000;
 
 /**
- * What the AI gets for a ticket (part 21.5): its subject and text; its area, programme and file
- * link names as context only; its chat, oldest first (the newest `CONVERSATION_MAX` messages);
- * the files uploaded with it; the group's pickable people; today. No number, dates or labels
+ * What the AI gets for a ticket (part 21.5): its subject and text; its area and programme as
+ * context only; its chat, oldest first (the newest `CONVERSATION_MAX` messages); its files
+ * (uploaded with it or sent to the intake); the group's pickable people; today. No number, dates or labels
  * in the text: the AI copied them into the cards. The ticket must have a client.
  */
 export async function buildTicketSplitRequest(
@@ -150,11 +134,7 @@ export async function buildTicketSplitRequest(
     files: files.map((f) => ({ id: f.id, name: f.name })),
     people: people.map((p) => ({ id: p.id, name: p.name })),
     today: bratislavaDate.format(now),
-    details: [
-      ...detail('Area', ticket.area),
-      ...detail('Programme', ticket.programme),
-      ...detail('Links to files', ticket.fileLinks.map(linkName).join(', ')),
-    ],
+    details: [...detail('Area', ticket.area), ...detail('Programme', ticket.programme)],
     conversation,
   };
 }

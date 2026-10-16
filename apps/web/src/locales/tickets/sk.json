@@ -61,7 +61,6 @@
     "overdue": "po termíne",
     "url": "Odkaz",
     "instance": "Inštancia eGrantu",
-    "fileLinks": "Odkazy na súbory",
     "files": "Súbory",
     "initiator": "Iniciátor",
     "unknown": "Neznámy",
@@ -94,15 +93,13 @@
     "email": "E-mail iniciátora",
     "name": "Meno iniciátora",
     "phone": "Telefón iniciátora",
-    "linksPlaceholder": "Jeden odkaz na riadok",
     "filesAfterClient": "Najprv vyberte klienta: súbory patria jemu.",
     "create": "Vytvoriť tiket",
     "errors": {
       "content": "Napíšte predmet, text alebo oblasť otázky.",
       "url": "Zadajte odkaz, ktorý začína https:// alebo http://.",
       "client": "Vyberte klienta.",
-      "email": "Zadajte platný e-mail.",
-      "links": "Najviac 20 odkazov, každý začína https:// alebo http://."
+      "email": "Zadajte platný e-mail."
     }
   },
   "tasks": {

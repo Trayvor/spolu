@@ -49,7 +49,6 @@ describe('new ticket dialog', () => {
       requesterEmail: 'jana@x.sk',
       requesterName: 'Jana',
       subject: 'Login fails',
-      fileLinks: [],
       fileIds: [],
     });
   });

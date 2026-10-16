@@ -13,6 +13,7 @@ import type { Db } from '../../infra/db/client.js';
 import type { FileReadRule } from '../files/read-rules.js';
 import {
   attachFiles,
+  attachReceivedFiles,
   getFilesForGroup,
   moveFilesToGroup,
   type FileDeps,
@@ -45,7 +46,6 @@ export type TicketFields = {
   body: string | null;
   dueDate: string | null;
   url: string | null;
-  fileLinks: string[];
 };
 
 export class TicketHasTasksError extends Error {
@@ -131,6 +131,12 @@ export type CreateTicketInput = {
   requester: { email: string | null; name: string | null; phone: string | null };
   /** Files uploaded in the manual form (they must belong to `groupId`). */
   fileIds?: string[];
+  /**
+   * Files sent to the intake, already stored with `createReceivedFile` in `groupId` (null for a
+   * ticket without a client). Attached in the ticket's transaction; on a duplicate or a failure
+   * they stay unattached and the caller deletes them.
+   */
+  receivedFileIds?: string[];
   /** The eGrant instance link the API sent. */
   instanceUrl?: string | null;
   /** The intake's idempotency key: a second ticket with the same key is never written. */
@@ -186,7 +192,19 @@ export async function createTicket(
       await attachFiles(tx, input.groupId, input.fileIds, input.createdBy ?? '');
       await tx
         .insert(ticketAttachments)
-        .values(input.fileIds.map((fileId) => ({ ticketId: created.id, fileId })));
+        .values(
+          input.fileIds.map((fileId, position) => ({ ticketId: created.id, fileId, position })),
+        );
+    }
+    if (input.receivedFileIds && input.receivedFileIds.length > 0) {
+      await attachReceivedFiles(tx, input.receivedFileIds);
+      await tx.insert(ticketAttachments).values(
+        input.receivedFileIds.map((fileId, position) => ({
+          ticketId: created.id,
+          fileId,
+          position,
+        })),
+      );
     }
     await addAutoFollowers(tx, created);
     return created;
@@ -225,19 +243,18 @@ async function groupNameOf(db: Db, groupId: string | null): Promise<string | nul
   return groupId === null ? null : ((await getGroup(db, groupId))?.name ?? null);
 }
 
-/** The ids of the files uploaded with the ticket in the manual form. */
+/** The ids of the files uploaded with the ticket in the manual form or sent to the intake. */
 export async function attachmentIds(db: Db, ticketId: string): Promise<string[]> {
   const rows = await db
     .select({ fileId: ticketAttachments.fileId })
     .from(ticketAttachments)
     .where(eq(ticketAttachments.ticketId, ticketId))
-    .orderBy(ticketAttachments.fileId);
+    .orderBy(ticketAttachments.position, ticketAttachments.fileId);
   return rows.map((r) => r.fileId);
 }
 
-/** The files uploaded with the ticket (none without a client). */
+/** The files of the ticket; a ticket without a client keeps the intake's files in no group. */
 export async function ticketFiles(db: Db, row: TicketRow) {
-  if (row.groupId === null) return [];
   return getFilesForGroup(db, row.groupId, await attachmentIds(db, row.id));
 }
 
@@ -296,7 +313,6 @@ export async function toTicketDto(
     dueDate: row.dueDate,
     url: row.url,
     instanceUrl: row.instanceUrl,
-    fileLinks: row.fileLinks,
     files,
     createdBy: row.createdBy,
     createdAt: row.createdAt.toISOString(),
@@ -482,7 +498,7 @@ export async function assignTicketGroup(
       .where(eq(tickets.id, id))
       .returning();
     const moved = row!;
-    // The form's files belong to the ticket's client, like its chat's files.
+    // The ticket's files (form or intake) belong to its client, like its chat's files.
     await moveFilesToGroup(tx, await attachmentIds(tx, id), groupId);
     await addAutoFollowers(tx, moved);
     const readers = await readingFollowerIds(tx, moved);

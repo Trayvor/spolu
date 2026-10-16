@@ -14,8 +14,10 @@ import { createUnverifiedClient } from '../users/service.js';
 import { files } from './schema.js';
 import {
   attachFiles,
+  attachReceivedFiles,
   copyFile,
   createFile,
+  createReceivedFile,
   deleteDetachedFiles,
   deleteFiles,
   deleteUnattachedFiles,
@@ -184,6 +186,56 @@ describe('createFile', () => {
       ),
     ).rejects.toThrow('disk full');
     expect(await rowsOf(group.id)).toHaveLength(0);
+  });
+});
+
+describe('createReceivedFile', () => {
+  const receive = (groupId: string | null, bytes = PNG, name = 'shot.png') =>
+    createReceivedFile(deps, { groupId, name, mime: 'image/png', bytes });
+
+  it('stores the bytes as an unattached file of the group without an uploader', async () => {
+    const { group } = await setup();
+    const info = await receive(group.id, PNG, '../a\\b.png');
+    expect(info).toMatchObject({ name: '..ab.png', mime: 'image/png', size: PNG.length });
+    const row = (await getFile(db, info.id))!;
+    expect(row).toMatchObject({ groupId: group.id, uploadedBy: null, attachedAt: null });
+    expect(await readAll((await storage.get(row.storageKey)).stream)).toEqual(PNG);
+  });
+
+  it('stores a file of no group (a ticket without a client)', async () => {
+    const info = await receive(null);
+    const row = (await getFile(db, info.id))!;
+    expect(row.groupId).toBeNull();
+    expect((await getFilesForGroup(db, null, [info.id])).map((f) => f.id)).toEqual([info.id]);
+    await deleteFiles(deps, [info.id]);
+    expect(await storage.exists(row.storageKey)).toBe(false);
+  });
+
+  it('removes the stored object when the insert fails', async () => {
+    // The group does not exist, so the insert violates the foreign key.
+    const groupId = randomUUID();
+    await expect(receive(groupId)).rejects.toThrow();
+    expect(await storedNames(groupId)).toEqual([]);
+  });
+});
+
+describe('attachReceivedFiles', () => {
+  it('attaches unattached received files; an uploaded or attached one is rejected', async () => {
+    const { group, owner } = await setup();
+    const a = await createReceivedFile(deps, {
+      groupId: group.id,
+      name: 'a.png',
+      mime: 'image/png',
+      bytes: PNG,
+    });
+    const uploaded = await upload(group.id, owner.id, Buffer.from('u'));
+    await expect(attachReceivedFiles(db, [uploaded.id])).rejects.toBeInstanceOf(
+      InvalidAttachmentError,
+    );
+    await attachReceivedFiles(db, [a.id]);
+    expect((await getFile(db, a.id))?.attachedAt).toBeInstanceOf(Date);
+    await expect(attachReceivedFiles(db, [a.id])).rejects.toBeInstanceOf(InvalidAttachmentError);
+    await attachReceivedFiles(db, []);
   });
 });
 

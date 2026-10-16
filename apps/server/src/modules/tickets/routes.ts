@@ -1,13 +1,17 @@
 import { timingSafeEqual } from 'node:crypto';
 import type { FastifyBaseLogger, FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify';
 import {
+  base64DecodedSize,
   ErrorCodes,
+  intakeFieldNames,
+  TICKET_LIMITS,
   TicketCreateBodySchema,
   TicketGroupBodySchema,
   TicketIntakeBodySchema,
   TicketListQuerySchema,
   TicketPatchBodySchema,
   type SessionUser,
+  type TicketIntakeBody,
   type TicketIntakeResponse,
 } from '@spolu/shared';
 import type { AppDeps } from '../../deps.js';
@@ -17,10 +21,13 @@ import { requireAdmin, requireUser } from '../auth/session.js';
 import { decodeFileNameHeader } from '../files/file-name.js';
 import {
   createFile,
+  createReceivedFile,
+  deleteFiles,
   FileTooLargeError,
   InvalidAttachmentError,
   MAX_FILE_BYTES,
 } from '../files/service.js';
+import { sniffAllowedType } from '../files/sniff.js';
 import { findGroupByEgrantUrl, getGroup } from '../groups/service.js';
 import { getUserById } from '../users/service.js';
 import { isAdmin } from '../users/policy.js';
@@ -57,6 +64,41 @@ const intakeAnswer = (ticket: TicketRow): TicketIntakeResponse => ({
   id: ticket.id,
   number: ticket.number,
 });
+
+/**
+ * The sizes of the intake's files from their base64 length: the field of a file over the limit,
+ * `files` when they are over it together, null when they fit.
+ */
+function oversizedField(files: TicketIntakeBody['files']): string | null {
+  let total = 0;
+  for (const [i, file] of files.entries()) {
+    const size = base64DecodedSize(file.content_base64);
+    if (size > TICKET_LIMITS.intakeFileBytes) return `files[${i}].content_base64`;
+    total += size;
+  }
+  return total > TICKET_LIMITS.intakeTotalBytes ? 'files' : null;
+}
+
+/**
+ * Decodes the intake's files and sniffs their type: the bytes and type of each, or the fields of
+ * the files whose type Spolu does not take.
+ */
+function decodeFiles(
+  files: TicketIntakeBody['files'],
+):
+  | { ok: true; files: { name: string; mime: string; bytes: Buffer }[] }
+  | { ok: false; fields: string[] } {
+  const decoded: { name: string; mime: string; bytes: Buffer }[] = [];
+  const fields: string[] = [];
+  for (const [i, file] of files.entries()) {
+    const bytes = Buffer.from(file.content_base64, 'base64');
+    const mime = sniffAllowedType(bytes, file.name);
+    if (mime === null) fields.push(`files[${i}].content_base64`);
+    // After the first bad file, keep only checking: the bytes would never be stored.
+    else if (fields.length === 0) decoded.push({ name: file.name, mime, bytes });
+  }
+  return fields.length > 0 ? { ok: false, fields } : { ok: true, files: decoded };
+}
 
 /** Constant-time comparison of the Bearer key. */
 function keyMatches(header: string | undefined, key: string): boolean {
@@ -113,47 +155,82 @@ export const ticketsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, 
   }
 
   // ---- eGrant intake: the shared key is the credential, no session -------------------------
-  app.post('/tickets/intake', async (request, reply) => {
+  // The key and the rate limit are checked before the body (up to 28 MiB) is read.
+  const intakeGate = async (request: FastifyRequest, reply: FastifyReply) => {
     if (!config.ticketsApiKey) return send(reply, 503, ErrorCodes.intakeDisabled);
     if (!keyMatches(request.headers.authorization, config.ticketsApiKey)) {
       return send(reply, 401, ErrorCodes.unauthorized);
     }
     if (!allowIntake(request.ip)) return send(reply, 429, ErrorCodes.rateLimited);
-    const body = TicketIntakeBodySchema.safeParse(request.body);
-    if (!body.success) {
-      return reply.code(400).send({
-        error: ErrorCodes.validationFailed,
-        fields: [...new Set(body.error.issues.map((i) => i.path.join('.') || 'body'))],
-      });
-    }
-    const b = body.data;
-    // A retry of a request already taken answers its ticket and repeats nothing.
-    const earlier = b.request_id ? await findTicketByRequestId(db, b.request_id) : null;
-    if (earlier) return reply.code(200).send(intakeAnswer(earlier));
-    const group = await findGroupByEgrantUrl(db, b.instance_url);
-    const { ticket, notifyRequester, duplicate } = await createTicket(deps, {
-      source: 'api',
-      groupId: group?.id ?? null,
-      createdBy: null,
-      fields: {
-        area: b.area,
-        subject: b.subject,
-        programme: b.programme,
-        body: b.body,
-        dueDate: b.due_date,
-        url: b.url,
-        fileLinks: b.file_links,
-      },
-      requester: { email: b.email, name: b.requester_name, phone: b.phone },
-      // Kept as received, so admins see what eGrant sent even when no client matched.
-      instanceUrl: b.instance_url,
-      requestId: b.request_id,
-    });
-    // A concurrent duplicate lost the race to the unique key: the winner does the rest.
-    if (duplicate) return reply.code(200).send(intakeAnswer(ticket));
-    await afterCreate(request, ticket, notifyRequester);
-    return reply.code(201).send(intakeAnswer(ticket));
-  });
+  };
+
+  app.post(
+    '/tickets/intake',
+    { onRequest: intakeGate, bodyLimit: TICKET_LIMITS.intakeBodyBytes },
+    async (request, reply) => {
+      const body = TicketIntakeBodySchema.safeParse(request.body);
+      if (!body.success) {
+        return reply.code(400).send({
+          error: ErrorCodes.validationFailed,
+          fields: intakeFieldNames(body.error.issues),
+        });
+      }
+      const b = body.data;
+      const oversized = oversizedField(b.files);
+      if (oversized) {
+        return reply.code(413).send({ error: ErrorCodes.fileTooLarge, fields: [oversized] });
+      }
+      // A retry of a request already taken answers its ticket and repeats nothing: its files are
+      // neither decoded nor stored again.
+      const earlier = b.request_id ? await findTicketByRequestId(db, b.request_id) : null;
+      if (earlier) return reply.code(200).send(intakeAnswer(earlier));
+      const decoded = decodeFiles(b.files);
+      if (!decoded.ok) {
+        return reply.code(400).send({ error: ErrorCodes.validationFailed, fields: decoded.fields });
+      }
+      const group = await findGroupByEgrantUrl(db, b.instance_url);
+      const groupId = group?.id ?? null;
+      // The files are stored first, unattached; the ticket's transaction attaches them. Any
+      // failure, or a concurrent duplicate, deletes them again (the daily unattached cleanup
+      // is the net if even that fails).
+      const fileIds: string[] = [];
+      let result: Awaited<ReturnType<typeof createTicket>>;
+      try {
+        for (const file of decoded.files) {
+          fileIds.push((await createReceivedFile(deps, { groupId, ...file })).id);
+        }
+        result = await createTicket(deps, {
+          source: 'api',
+          groupId,
+          createdBy: null,
+          fields: {
+            area: b.area,
+            subject: b.subject,
+            programme: b.programme,
+            body: b.body,
+            dueDate: b.due_date,
+            url: b.url,
+          },
+          requester: { email: b.email, name: b.requester_name, phone: b.phone },
+          // Kept as received, so admins see what eGrant sent even when no client matched.
+          instanceUrl: b.instance_url,
+          requestId: b.request_id,
+          receivedFileIds: fileIds,
+        });
+      } catch (error) {
+        await deleteFiles(deps, fileIds).catch(() => undefined);
+        throw error;
+      }
+      const { ticket, notifyRequester, duplicate } = result;
+      // A concurrent duplicate lost the race to the unique key: the winner does the rest.
+      if (duplicate) {
+        await deleteFiles(deps, fileIds).catch(() => undefined);
+        return reply.code(200).send(intakeAnswer(ticket));
+      }
+      await afterCreate(request, ticket, notifyRequester);
+      return reply.code(201).send(intakeAnswer(ticket));
+    },
+  );
 
   // ---- Manual creation ------------------------------------------------------------------------
   app.post('/tickets', { preHandler: anyUser }, async (request, reply) => {
@@ -182,7 +259,6 @@ export const ticketsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, 
           body: b.body,
           dueDate: b.dueDate,
           url: b.url,
-          fileLinks: b.fileLinks,
         },
         requester,
         fileIds: b.fileIds,
