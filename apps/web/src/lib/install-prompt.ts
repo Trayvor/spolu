@@ -19,5 +19,9 @@ export async function promptInstall(): Promise<'accepted' | 'dismissed' | 'unava
   const event = deferred;
   if (!event) return 'unavailable';
   deferred = null;
-  return (await event.prompt()).outcome;
+  try {
+    return (await event.prompt()).outcome;
+  } catch {
+    return 'unavailable'; // e.g. already used: the card falls back to the menu steps
+  }
 }

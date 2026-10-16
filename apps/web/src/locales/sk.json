@@ -343,8 +343,10 @@
       "enableTitle": "Zapnite notifikácie na tomto zariadení",
       "enableBody": "Nové správy a zmeny v úlohách uvidíte hneď.",
       "turnOn": "Zapnúť",
+      "enableFailed": "Notifikácie sa nepodarilo zapnúť. Skúste to znova.",
       "iosUnsupportedTitle": "iOS vo vašom iPhone nepodporuje notifikácie aplikácií.",
       "iosUnsupportedBody": "Zapli sme vám notifikácie e-mailom. Aktualizujte iOS na verziu 16.4 alebo novšiu, aby vám notifikácie chodili do telefónu.",
+      "iosUnsupportedEmailOn": "Notifikácie e-mailom už máte zapnuté. Aktualizujte iOS na verziu 16.4 alebo novšiu, aby vám notifikácie chodili do telefónu.",
       "iosUnsupportedEmailOff": "Notifikácie e-mailom máte vypnuté; zapnúť ich môžete v Nastaveniach. Aktualizujte iOS na verziu 16.4 alebo novšiu, aby vám notifikácie chodili do telefónu.",
       "ok": "OK"
     }

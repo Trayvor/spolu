@@ -1,8 +1,10 @@
 import { queryOptions } from '@tanstack/react-query';
 import {
+  NotificationFallbackSchema,
   NotificationModesSchema,
   NotificationPrefsSchema,
   type GroupMode,
+  type NotificationFallback,
   type NotificationModes,
   type NotificationPrefs,
   type NotificationPrefsPatch,
@@ -39,7 +41,7 @@ export async function deletePushSubscription(endpoint: string): Promise<void> {
   await apiSend('DELETE', '/push/subscriptions', { endpoint });
 }
 
-/** iOS without push: switch email on once (Task 7's endpoint). */
-export function requestEmailFallback(): Promise<NotificationPrefs> {
-  return apiSend('POST', '/me/notification-fallback', {}, NotificationPrefsSchema);
+/** iOS without push: switch email on once per user; `turnedOn` says whether this call did it. */
+export function requestEmailFallback(): Promise<NotificationFallback> {
+  return apiSend('POST', '/me/notification-fallback', {}, NotificationFallbackSchema);
 }

@@ -1,6 +1,6 @@
 import { StrictMode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { NotificationPrefs } from '@spolu/shared';
 import { setLanguage } from '@/i18n';
@@ -22,7 +22,9 @@ vi.mock('./api', async () => {
       queryKey: ['notifications', 'preferences'],
       queryFn: vi.fn(() => Promise.resolve(PREFS)),
     }),
-    requestEmailFallback: vi.fn(() => Promise.resolve({ ...PREFS, emailEnabled: true })),
+    requestEmailFallback: vi.fn(() =>
+      Promise.resolve({ ...PREFS, emailEnabled: true, turnedOn: true }),
+    ),
   };
 });
 vi.mock('./prompt-rules', async (importOriginal) => ({
@@ -150,7 +152,8 @@ describe('AppPrompt', () => {
       'We turned on email notifications for you. Update iOS to 16.4 or newer to get notifications on the phone.',
     );
     expect(requestEmailFallback).toHaveBeenCalledTimes(1);
-    expect(client.getQueryData<NotificationPrefs>(['notifications', 'preferences'])).toMatchObject({
+    expect(client.getQueryData<NotificationPrefs>(['notifications', 'preferences'])).toEqual({
+      ...PREFS,
       emailEnabled: true,
     });
     fireEvent.click(screen.getByRole('button', { name: 'OK' }));
@@ -160,10 +163,86 @@ describe('AppPrompt', () => {
 
   it('iOS fallback after an email opt-out says email is off', async () => {
     vi.mocked(iosVersion).mockReturnValue(15.8);
-    vi.mocked(requestEmailFallback).mockResolvedValueOnce(PREFS);
+    vi.mocked(requestEmailFallback).mockResolvedValueOnce({ ...PREFS, turnedOn: false });
     renderPrompt();
     const dialog = await screen.findByRole('dialog');
     expect(dialog).toHaveTextContent('Email notifications are off');
+  });
+
+  it('iOS fallback with email already on says so', async () => {
+    vi.mocked(iosVersion).mockReturnValue(15.8);
+    vi.mocked(requestEmailFallback).mockResolvedValueOnce({
+      ...PREFS,
+      emailEnabled: true,
+      turnedOn: false,
+    });
+    renderPrompt();
+    const dialog = await screen.findByRole('dialog');
+    expect(dialog).toHaveTextContent('Email notifications are already on');
+    expect(dialog).not.toHaveTextContent('We turned on');
+  });
+
+  it('a failing device check shows no prompt and never asks for the email fallback', async () => {
+    vi.mocked(iosVersion).mockReturnValue(17.2);
+    vi.mocked(isStandalone).mockReturnValue(true);
+    vi.mocked(getDeviceState).mockRejectedValue(new Error('broken'));
+    renderPrompt();
+    await waitFor(() => expect(getDeviceState).toHaveBeenCalled());
+    await new Promise((r) => setTimeout(r, 20));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(requestEmailFallback).not.toHaveBeenCalled();
+  });
+
+  it('a failing install dialog falls back to the menu steps', async () => {
+    vi.mocked(promptInstall).mockRejectedValue(new Error('boom'));
+    renderPrompt();
+    await screen.findByRole('dialog', { name: 'Install Spolu as an app' });
+    vi.mocked(canInstall).mockReturnValue(false);
+    fireEvent.click(screen.getByRole('button', { name: 'Install' }));
+    expect(
+      await screen.findByText('Open the browser menu ⋮ → Install app / Add to Home screen'),
+    ).toBeInTheDocument();
+  });
+
+  it('a failed Turn on shows an error in the card and logs it', async () => {
+    vi.mocked(isPhone).mockReturnValue(false);
+    const error = new Error('push service down');
+    vi.mocked(subscribeThisDevice).mockRejectedValue(error);
+    const log = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    renderPrompt();
+    const dialog = await screen.findByRole('dialog', {
+      name: 'Turn on notifications on this device',
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Turn on' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Notifications could not be turned on. Try again.',
+    );
+    expect(dialog).toBeInTheDocument();
+    expect(log).toHaveBeenCalledWith(expect.any(String), error);
+  });
+
+  it('iOS steps are a list', async () => {
+    vi.mocked(iosVersion).mockReturnValue(17.2);
+    renderPrompt();
+    await screen.findByRole('dialog');
+    expect(screen.getByRole('list')).toHaveAttribute('role', 'list');
+    expect(screen.getAllByRole('listitem')).toHaveLength(3);
+  });
+
+  it('a page that becomes visible again re-checks the 6-hour window', async () => {
+    const start = Date.now();
+    const now = vi.spyOn(Date, 'now').mockReturnValue(start);
+    renderPrompt();
+    await screen.findByRole('dialog');
+    fireEvent.click(screen.getByRole('button', { name: 'Not now' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    now.mockReturnValue(start + 6 * 60 * 60 * 1000);
+    vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden');
+    act(() => void document.dispatchEvent(new Event('visibilitychange')));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible');
+    act(() => void document.dispatchEvent(new Event('visibilitychange')));
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
   });
 
   it('granted permission without a subscription re-subscribes silently', async () => {

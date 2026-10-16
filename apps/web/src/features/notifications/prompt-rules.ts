@@ -33,7 +33,8 @@ export function choosePrompt(i: PromptInput): Prompt {
   }
   // Installing would not bring notifications to an old iOS, so no install card there.
   if (oldIos) return null;
-  if (i.phone && !i.standalone && due(i.installDismissedAt)) {
+  // An iPad in Safari poses as a Mac at desktop widths, so iOS counts as a phone here.
+  if ((i.phone || i.ios !== null) && !i.standalone && due(i.installDismissedAt)) {
     return i.ios !== null ? 'install-ios' : 'install-android';
   }
   const enable =

@@ -96,6 +96,16 @@ describe('choosePrompt', () => {
       null,
     ],
     [
+      'iPad Safari posing as a Mac at a desktop width gets install-ios',
+      { phone: false, ios: 17.2, hasPushManager: false },
+      'install-ios',
+    ],
+    [
+      'installed iPad at a desktop width gets enable',
+      { phone: false, ios: 17.2, standalone: true },
+      'enable',
+    ],
+    [
       'missing storage values mean the prompt shows',
       { ...iphoneSafari, installDismissedAt: null },
       'install-ios',

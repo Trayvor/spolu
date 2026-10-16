@@ -51,6 +51,10 @@ export const NotificationPrefsSchema = z.object({
 });
 export type NotificationPrefs = z.infer<typeof NotificationPrefsSchema>;
 
+/** `POST /api/me/notification-fallback`: the preferences, and whether this call turned email on. */
+export const NotificationFallbackSchema = NotificationPrefsSchema.extend({ turnedOn: z.boolean() });
+export type NotificationFallback = z.infer<typeof NotificationFallbackSchema>;
+
 export const NotificationPrefsPatchSchema = z
   .object({ pushEnabled: z.boolean().optional(), emailEnabled: z.boolean().optional() })
   .strict()

@@ -1,7 +1,7 @@
 import { useEffect, useId, useReducer, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import type { NotificationPrefs } from '@spolu/shared';
+import type { NotificationFallback } from '@spolu/shared';
 import { Button } from '@/components/ui/button';
 import { canInstall, promptInstall } from '@/lib/install-prompt';
 import { cn } from '@/lib/utils';
@@ -75,11 +75,15 @@ function Prompts({ device }: { device: Device }) {
   const queryClient = useQueryClient();
   const { data: prefs } = useQuery(notificationPrefsQuery);
   const [stored, setStored] = useState(readStored);
-  // The 6-hour window is judged at mount (a page load or a login), like the spec says.
-  const [mountedAt] = useState(Date.now);
-  const [deviceState, setDeviceState] = useState<DeviceState | null>(null);
-  const [fallback, setFallback] = useState<NotificationPrefs | null>(null);
+  // The 6-hour window is judged at mount (a page load or a login) and whenever the page
+  // becomes visible again, so a PWA resumed from the background prompts again (insistent).
+  const [now, setNow] = useState(Date.now);
+  // 'failed': the device check threw; no prompt then, and never the email fallback.
+  const [deviceState, setDeviceState] = useState<DeviceState | 'failed' | null>(null);
+  const [fallback, setFallback] = useState<NotificationFallback | null>(null);
   const [hidden, setHidden] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [enableFailed, setEnableFailed] = useState(false);
   const [, rerender] = useReducer((n: number) => n + 1, 0);
   const resubscribed = useRef(false);
   const fallbackAsked = useRef(false);
@@ -91,15 +95,22 @@ function Prompts({ device }: { device: Device }) {
     let live = true;
     getDeviceState().then(
       (state) => live && setDeviceState(state),
-      () => live && setDeviceState('unsupported'),
+      () => live && setDeviceState('failed'),
     );
     // The event can arrive after mount (install-prompt.ts keeps it); show the button then.
     const onInstallable = () => rerender();
     const onInstalled = () => setHidden(true);
+    const onVisible = () => {
+      if (document.visibilityState !== 'visible') return;
+      setNow(Date.now());
+      setStored(readStored());
+    };
     window.addEventListener('beforeinstallprompt', onInstallable);
     window.addEventListener('appinstalled', onInstalled);
+    document.addEventListener('visibilitychange', onVisible);
     return () => {
       live = false;
+      document.removeEventListener('visibilitychange', onVisible);
       window.removeEventListener('beforeinstallprompt', onInstallable);
       window.removeEventListener('appinstalled', onInstalled);
     };
@@ -117,7 +128,7 @@ function Prompts({ device }: { device: Device }) {
   }, [pushOn, vapidKey, device.permission, deviceState]);
 
   const prompt: Prompt =
-    deviceState === null || hidden
+    deviceState === null || deviceState === 'failed' || hidden
       ? null
       : choosePrompt({
           phone: device.phone,
@@ -131,7 +142,7 @@ function Prompts({ device }: { device: Device }) {
           installDismissedAt: stored.install,
           enableDismissedAt: stored.enable,
           fallbackDone: stored.fallbackDone,
-          now: mountedAt,
+          now,
         });
 
   // Once per device (until OK): the server turns email on and never again after an opt-out.
@@ -140,7 +151,12 @@ function Prompts({ device }: { device: Device }) {
     fallbackAsked.current = true;
     requestEmailFallback().then(
       (next) => {
-        queryClient.setQueryData(notificationPrefsQuery.queryKey, next);
+        const { pushEnabled, emailEnabled, vapidPublicKey } = next;
+        queryClient.setQueryData(notificationPrefsQuery.queryKey, {
+          pushEnabled,
+          emailEnabled,
+          vapidPublicKey,
+        });
         setFallback(next);
       },
       () => undefined, // not told, not stored: asked again on the next load
@@ -153,20 +169,32 @@ function Prompts({ device }: { device: Device }) {
   }
 
   function install() {
-    void promptInstall().then((outcome) => {
-      if (outcome === 'accepted') setHidden(true);
-      else if (outcome === 'dismissed') dismiss('install');
-      else rerender(); // the event is gone: show the menu steps
-    });
+    promptInstall().then(
+      (outcome) => {
+        if (outcome === 'accepted') setHidden(true);
+        else if (outcome === 'dismissed') dismiss('install');
+        else rerender(); // the event is gone: show the menu steps
+      },
+      () => rerender(), // the dialog failed: the event is gone, show the menu steps
+    );
   }
 
   function turnOn() {
     // Synchronously inside the click: the browser asks for permission only on a user gesture.
     const result = subscribeThisDevice(vapidKey!);
-    setHidden(true);
+    setBusy(true);
+    setEnableFailed(false);
     result.then(
-      (state) => state === 'on' && setDeviceState('on'),
-      () => undefined,
+      (state) => {
+        setBusy(false);
+        if (state === 'on') setDeviceState('on');
+        setHidden(true); // 'blocked': the profile explains how to unblock
+      },
+      (error: unknown) => {
+        console.error('Turning on notifications failed', error);
+        setBusy(false);
+        setEnableFailed(true);
+      },
     );
   }
 
@@ -207,7 +235,10 @@ function Prompts({ device }: { device: Device }) {
           title={t('notifications.prompt.iosTitle')}
           body={t('notifications.prompt.iosBody')}
           extra={
-            <ol className="mt-4 flex list-none flex-col gap-2 rounded-lg bg-ink-hover p-3 text-button">
+            <ol
+              role="list"
+              className="mt-4 flex list-none flex-col gap-2 rounded-lg bg-ink-hover p-3 text-button"
+            >
               <Step n={1}>
                 {t('notifications.prompt.iosStepShare')}
                 <span className="ml-2 inline-flex size-7 items-center justify-center rounded-md bg-card align-middle text-foreground">
@@ -229,9 +260,10 @@ function Prompts({ device }: { device: Device }) {
         <PromptCard
           title={t('notifications.prompt.enableTitle')}
           body={t('notifications.prompt.enableBody')}
+          error={enableFailed ? t('notifications.prompt.enableFailed') : undefined}
         >
           {notNow('enable')}
-          <Button size="lg" onClick={turnOn}>
+          <Button size="lg" onClick={turnOn} disabled={busy}>
             {t('notifications.prompt.turnOn')}
           </Button>
         </PromptCard>
@@ -242,9 +274,11 @@ function Prompts({ device }: { device: Device }) {
         <PromptCard
           title={t('notifications.prompt.iosUnsupportedTitle')}
           body={
-            fallback.emailEnabled
+            fallback.turnedOn
               ? t('notifications.prompt.iosUnsupportedBody')
-              : t('notifications.prompt.iosUnsupportedEmailOff')
+              : fallback.emailEnabled
+                ? t('notifications.prompt.iosUnsupportedEmailOn')
+                : t('notifications.prompt.iosUnsupportedEmailOff')
           }
         >
           <Button size="lg" onClick={acknowledge}>
@@ -280,12 +314,14 @@ function PromptCard({
   title,
   body,
   extra,
+  error,
   strong = false,
   children,
 }: {
   title: string;
   body: string;
   extra?: ReactNode;
+  error?: string;
   strong?: boolean;
   children: ReactNode;
 }) {
@@ -317,6 +353,11 @@ function PromptCard({
         {body}
       </p>
       {extra}
+      {error && (
+        <p role="alert" className="mt-3 text-button font-medium text-error-ink">
+          {error}
+        </p>
+      )}
       <div className="mt-4 flex justify-end gap-2">{children}</div>
     </div>
   );
