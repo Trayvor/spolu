@@ -33,6 +33,10 @@ Each group has a Knowledge tab where clients and admins keep what the group need
 - **Realtime:** items created or changed by others appear at once in the group's tab.
 - Example of done: an admin and a client of one group keep notes, files, links and reminders in the tab. The client never sees the admin's admins-only items. The admin finds any item across clients in the global list.
 
+## Status
+
+Built on the server (Phase 17): the HTTP API (`modules/knowledge/routes.ts`: the tab list, the global list and its scope, create, read, edit, delete; 120 writes per minute per user), the reminder endpoints (`modules/reminders/routes.ts`: the set, subscribe and unsubscribe, the `.ics` file) and realtime (public items to the group room, admins-only items to the group's admins room). The web tab and global list come in later Phase 17 tasks.
+
 ## Phase
 
 Phase 17 (the tab, the four types, visibility, the global list; reminders from `reminders.md`). The global list's default client filter needs Phase 18 (client managers); until then it shows all clients.

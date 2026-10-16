@@ -8,7 +8,13 @@ import { loginAs } from '../../../test/login.js';
 import { addMember, createGroup } from '../../modules/groups/service.js';
 import { addAdmin } from '../../modules/users/service.js';
 import { user } from '../../modules/users/schema.js';
-import { disconnectUser, emitToGroup, userRoom } from './rooms.js';
+import {
+  disconnectUser,
+  emitToGroup,
+  emitToGroupAdmins,
+  groupAdminsRoom,
+  userRoom,
+} from './rooms.js';
 
 type TestApp = Awaited<ReturnType<typeof buildTestApp>>;
 
@@ -268,6 +274,29 @@ describe('socket.io', () => {
       admin.emit(SocketEvents.groupLeave, { groupId: group.id }, {});
       const ack: PingAck = await admin.emitWithAck(SocketEvents.ping);
       expect(ack.pong).toBe(true);
+    });
+
+    it("an admin's group:join also joins the admins room; a client never does", async () => {
+      const group = await newGroup();
+      expect(groupAdminsRoom(group.id)).toBe(`group:${group.id}:admins`);
+      const admin = await connected(await loggedInCookie(test));
+      const client = await connected(await clientCookie(group.id));
+      expect(await join(admin, { groupId: group.id })).toEqual({ ok: true });
+      // A client's join of their own group must not add the admins room either.
+      expect(await join(client, { groupId: group.id })).toEqual({ ok: true });
+      const adminGot = nextEvent(admin, 'test:admins');
+      const clientGot = arrives(client, 'test:admins', 500);
+      emitToGroupAdmins(test.app.io, group.id, 'test:admins', { n: 1 });
+      expect(await adminGot).toEqual({ n: 1 });
+      expect(await clientGot).toBe(false);
+      const rooms = await test.app.io.in(groupAdminsRoom(group.id)).fetchSockets();
+      expect(rooms.map((s) => s.data.user.role)).toEqual(['admin']);
+
+      // Leaving the group room leaves the admins room too.
+      await admin.emitWithAck(SocketEvents.groupLeave, { groupId: group.id });
+      const afterLeave = arrives(admin, 'test:admins');
+      emitToGroupAdmins(test.app.io, group.id, 'test:admins', { n: 2 });
+      expect(await afterLeave).toBe(false);
     });
 
     it('an admin leaves a group room and stops receiving its events', async () => {

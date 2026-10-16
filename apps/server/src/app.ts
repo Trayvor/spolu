@@ -9,7 +9,10 @@ import { chatRoutes } from './modules/chat/routes.js';
 import { filesRoutes } from './modules/files/routes.js';
 import { joinRoutes } from './modules/groups/join-routes.js';
 import { groupsRoutes } from './modules/groups/routes.js';
+import { registerKnowledgeReminderSubject } from './modules/knowledge/reminder-subject.js';
+import { knowledgeRoutes } from './modules/knowledge/routes.js';
 import { notificationsRoutes } from './modules/notifications/routes.js';
+import { remindersRoutes } from './modules/reminders/routes.js';
 import { systemRoutes } from './modules/system/routes.js';
 import { tasksRoutes } from './modules/tasks/routes.js';
 import { usersRoutes } from './modules/users/routes.js';
@@ -55,6 +58,10 @@ export async function buildApp(
   await app.register(chatRoutes, { prefix: '/api', deps });
   await app.register(notificationsRoutes, { prefix: '/api', deps });
   await app.register(aiRoutes, { prefix: '/api', deps });
+  await app.register(knowledgeRoutes, { prefix: '/api', deps });
+  // The reminder endpoints are registered per subject: register the subjects first.
+  registerKnowledgeReminderSubject();
+  await app.register(remindersRoutes, { prefix: '/api', deps });
 
   registerNotFound(app);
   return app;

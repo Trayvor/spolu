@@ -11,6 +11,8 @@ Requirements for Spolu, one topic per file. The product name is "Spolu" (full br
 | `chat.md` | group chat, threads, mentions, attachments, edit/delete, unread | 4, 5, 10, 11 |
 | `direct-messages.md` | one-to-one chats and who can write to whom | 7 |
 | `task-board.md` | Kanban board, buckets, task card, task chat, message to task | 8, 9, 10 |
+| `knowledge-base.md` | Knowledge tab (notes, files, links, reminders), visibility, global list | 17 |
+| `reminders.md` | reminders of knowledge items (and tasks), recipients, calendar export | 17, 19 |
 | `ai-task-split.md` | AI split of one message into several tasks | 11 |
 | `tickets.md` | tickets from eGrant, URL normalization, statuses, replies | 12, 13 |
 | `contracts.md` | admin-only contracts, next-contract draft, reminders, global list | 14, 15 |
