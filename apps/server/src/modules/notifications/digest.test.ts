@@ -336,7 +336,7 @@ describe('sendDueDigests', () => {
     expect(await sendDueDigests(deps, { now: new Date() })).toBeGreaterThanOrEqual(1);
     expect((await latestEmail(s.client.email)).subject).toBe(`1 nová správa v ${s.group.name}`);
     // The sweep sends every due digest of the shared test database, which the parallel ticket
-    // tests fill with events for every admin: allow it more than the default 5 s.
+    // tests fill with events for every admin: allow it more than the default.
   }, 30_000);
 
   it('a digest that cannot be queued is retried by the next run', async () => {
