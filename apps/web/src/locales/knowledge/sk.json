@@ -83,6 +83,30 @@
   },
   "tab": {},
   "newMenu": {},
-  "global": {},
-  "clientFilter": {}
+  "global": {
+    "title": "Znalosti",
+    "filters": "Filtre",
+    "allTypes": "Všetky typy",
+    "search": "Hľadať v názve, popise, súbore alebo odkaze",
+    "empty": "Pre týchto klientov zatiaľ nie sú žiadne znalosti.",
+    "noMatch": "Výrazu „{{q}}“ nezodpovedajú žiadne znalosti."
+  },
+  "clientFilter": {
+    "pillAll": "Klienti: Všetci",
+    "pillMine": "Klienti: Moji klienti ({{count}})",
+    "pillSelected": "Klienti: vybraní ({{count}})",
+    "title": "Klienti",
+    "find": "Nájsť klienta",
+    "clients": "Klienti",
+    "managed": "Spravujete vy",
+    "others": "Ostatní klienti",
+    "noMatch": "Výrazu „{{q}}“ nezodpovedá žiadny klient.",
+    "noManaged": "Zatiaľ nespravujete žiadnych klientov. Zobrazujú sa všetci klienti.",
+    "onlyMine": "Len moji klienti",
+    "allClients": "Všetci klienti",
+    "done": "Hotovo",
+    "chosen": "Vybraní klienti",
+    "remove": "Odstrániť {{name}}",
+    "reset": "Predvolené"
+  }
 }

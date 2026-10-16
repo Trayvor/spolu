@@ -81,6 +81,30 @@
   },
   "tab": {},
   "newMenu": {},
-  "global": {},
-  "clientFilter": {}
+  "global": {
+    "title": "Knowledge",
+    "filters": "Filters",
+    "allTypes": "All types",
+    "search": "Search title, description, file or link",
+    "empty": "No knowledge for these clients yet.",
+    "noMatch": "No knowledge matches \"{{q}}\"."
+  },
+  "clientFilter": {
+    "pillAll": "Clients: All",
+    "pillMine": "Clients: My clients ({{count}})",
+    "pillSelected": "Clients: {{count}} selected",
+    "title": "Clients",
+    "find": "Find a client",
+    "clients": "Clients",
+    "managed": "Managed by you",
+    "others": "Other clients",
+    "noMatch": "No client matches \"{{q}}\".",
+    "noManaged": "You don't manage any clients yet. Showing all clients.",
+    "onlyMine": "Only my clients",
+    "allClients": "All clients",
+    "done": "Done",
+    "chosen": "Chosen clients",
+    "remove": "Remove {{name}}",
+    "reset": "Reset"
+  }
 }

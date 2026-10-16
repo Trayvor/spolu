@@ -36,3 +36,12 @@ Each group has a Knowledge tab where clients and admins keep what the group need
 ## Phase
 
 Phase 17 (the tab, the four types, visibility, the global list; reminders from `reminders.md`). The global list's default client filter needs Phase 18 (client managers); until then it shows all clients.
+
+## Global list (built)
+
+- `/knowledge`, for admins only (a client gets the not-found page; the API answers 403). The header shows "Knowledge" before "Groups"; on phones the user menu lists it first.
+- The rows are the tab's rows, each with the group's logo and name in its last line, newest first, 30 per page with "Load more". Clicking a row opens the detail over the list (`?k=<id>`).
+- Filters, all in the URL so Back and shared links keep them: `?clients=<id>,<id>` (none means the default scope), `?type=` (All types, Notes, Files, Links, Reminders) and `?q=` (applied after 300 ms, from 2 characters).
+- Client filter: "Clients: All", "Clients: My clients (n)" or "Clients: n selected". The list splits into "Managed by you" and "Other clients" as soon as `GET /api/knowledge/scope` names managed clients; until Phase 18 it answers `managedGroupIds: null`, so the default is every client in one list headed "Clients". An admin who manages none sees all clients with the hint "You don't manage any clients yet. Showing all clients." "Only my clients" and "Reset" go back to the default; "All clients" chooses every client. The chosen clients show as removable chips, managed ones with an ink dot.
+- The last explicit client choice is kept in the browser (`localStorage['spolu.knowledge.clients']`) and restored when the admin opens `/knowledge` without parameters; Reset clears it. Blocked storage is ignored.
+- No live updates: the list refetches when the window regains focus and when the page opens.

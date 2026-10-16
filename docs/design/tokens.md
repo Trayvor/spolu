@@ -277,6 +277,13 @@ egrant.sk spacing presets are 4, 8, 12, 16, 20, 24, 32, 40, 48, 54, 64px — all
 - Its header can be a `PanelHeader` with `compactBelow={641}`: the back arrow under 641px, "Close" from 641px; `backLabel` replaces "Back to the board" with the place the arrow goes back to.
 - Used by the "Turn into tasks" review; Phase 17's knowledge detail and create dialogs use it too.
 
+### Client filter (as built, `src/components/client-filter.tsx`)
+
+- `ClientFilter({ groups, managedIds, value, onChange })`, generic so the Phase 20 board reuses it: `value` null is the default scope (the managed clients, or every client while `managedIds` is null or empty). It renders the pill and the chip row as siblings; put it in a `flex flex-wrap` bar and the chip row (`order-last basis-full`) wraps under the bar.
+- Pill: a secondary `sm` button with a 12 px chevron: "Clients: All", "Clients: My clients (n)", "Clients: n selected". From 641 px it opens a Radix popover (360 px, `bg-popover rounded-xl p-2 shadow-lift`, at most 520 px or the available height); below, a `SheetDialog` full-screen sheet titled "Clients".
+- Panel: the shared `Input` as a find field (case and diacritics ignored), the no-managed hint (`text-tiny`, muted) when `managedIds` is `[]`, then the sections "Managed by you" and "Other clients" (or one "Clients" list while nothing is managed): `text-micro` weight 600 muted headings, rows of a 20 px checkbox (`accent-foreground`), a 24 px logo (`rounded-md`, or the first letter on `bg-secondary`) and the name, 40 px tall and 44 px on phones, `hover:bg-accent`, each sorted by name. Footer over a 1 px `border` rule: outline "Only my clients" (hidden while `managedIds` is null) and "All clients", ink "Done" on the right. Changes apply at once.
+- Chips: `h-8 rounded-full bg-secondary`, `text-tiny` weight 600, a 6 px `bg-foreground` dot before the name of a managed client, and a 24 px round remove button (hit area enlarged by an `after:` inset). "Reset" (link button) sits at the end of the row while an explicit choice is set. No chips when every client is chosen.
+
 ### Knowledge detail dialog and reminder block (as built, `src/features/knowledge/knowledge-dialog.tsx`, `knowledge-view.tsx`, `src/features/reminders/reminder-panel.tsx`)
 
 - Frame: a `SheetDialog` (720px from 641px, a full-screen sheet below) with a `PanelHeader` (`compactBelow={641}`, back label "Back to knowledge"). In view mode, for the author and admins (`item.canEdit`), the header's right side holds "Edit" (secondary small pill) and "More" (32px round trigger, `MoreIcon` from `src/components/icons.tsx`) with Delete (`text-error-ink`). The body scrolls with 16px padding on phones and 24px × 20px from 641px.
