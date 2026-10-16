@@ -91,7 +91,9 @@ describe('FolderBrowser', () => {
     await user.click(await screen.findByRole('menuitem', { name: t('knowledge.folders.moveTo') }));
     const picker = await screen.findByTestId('move-dialog');
     for (const name of ['Grants', 'Old', 'Older']) {
-      expect(within(picker).getByRole('radio', { name: new RegExp(`^${name}($| )`) })).toBeDisabled();
+      expect(
+        within(picker).getByRole('radio', { name: new RegExp(`^${name}($| )`) }),
+      ).toBeDisabled();
     }
     // The current place (the top level) is disabled too.
     expect(
