@@ -16,7 +16,7 @@ const MESSAGES_PER_CHANNEL = MESSAGES / GROUPS;
 /**
  * Opens a transaction and seeds it with `generate_series`: 100 groups (a group chat and the five
  * buckets each, one client each), 20 000 tasks (a third assigned to the admin, a tenth completed),
- * 200 000 messages (5 % naming the admin, 1 % @all, 10 % replies), the admin's read marks and
+ * 200 000 messages (a quarter name someone, 0.5 % the admin; 1 % @all; 10 % replies), the admin's read marks and
  * the admin managing 10 groups. Runs `analyze`, calls `fn`, then rolls everything back.
  */
 export async function withVolume(
@@ -95,9 +95,15 @@ export async function withVolume(
           now() - (${MESSAGES} - i) * interval '20 seconds'
         from generate_series(1, ${MESSAGES}) i
       `);
+      // A quarter of the messages name someone: 0.5 % of all messages name the admin (1 000, about
+      // 22 a day over the seeded 46 days), the rest name the group's client. A user's share of the
+      // mention rows stays small, as with many users in production.
       await tx.execute(sql`
         insert into message_mentions (message_id, user_id)
-        select ${p} || '-m' || i, ${adminId} from generate_series(1, ${MESSAGES}) i where i % 20 = 3
+        select ${p} || '-m' || i,
+          case when i % 200 = 3 then ${adminId}
+            else ${p} || '-c' || ((i - 1) / ${MESSAGES_PER_CHANNEL} + 1) end
+        from generate_series(1, ${MESSAGES}) i where i % 4 = 3
       `);
       await tx.execute(sql`
         insert into read_states (user_id, channel_id, last_read_at)

@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { AssignedTasksSchema, SidebarSchema } from '@spolu/shared';
+import { AssignedTasksSchema, MentionsSchema, SidebarSchema } from '@spolu/shared';
 import { buildTestApp } from '../../../test/test-app.js';
 import { loginAs } from '../../../test/login.js';
 import { addAdmin } from '../users/service.js';
@@ -27,8 +27,8 @@ describe('home API', () => {
   const get = (url: string, cookie: string) =>
     test.app.inject({ method: 'GET', url, headers: { cookie } });
 
-  it('a client gets 403 on /me/home/sidebar and /me/home/tasks', async () => {
-    for (const url of ['/api/me/home/sidebar', '/api/me/home/tasks']) {
+  it('a client gets 403 on every admin home endpoint', async () => {
+    for (const url of ['/api/me/home/sidebar', '/api/me/home/tasks', '/api/me/home/mentions']) {
       const res = await get(url, clientCookie);
       expect({ url, status: res.statusCode, body: res.json() }).toEqual({
         url,
@@ -50,5 +50,8 @@ describe('home API', () => {
     const tasks = await get('/api/me/home/tasks', adminCookie);
     expect(tasks.statusCode).toBe(200);
     expect(AssignedTasksSchema.parse(tasks.json())).toEqual({ total: 0, urgent: 0, items: [] });
+    const mentions = await get('/api/me/home/mentions', adminCookie);
+    expect(mentions.statusCode).toBe(200);
+    expect(MentionsSchema.parse(mentions.json())).toEqual({ total: 0, items: [] });
   });
 });

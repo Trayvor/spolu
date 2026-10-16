@@ -3,6 +3,7 @@ import { sql, type SQL } from 'drizzle-orm';
 import { createDb, type Db } from '../../infra/db/client.js';
 import { testDatabaseUrl } from '../../../test/test-config.js';
 import { assignedSql } from './assigned.js';
+import { mentionsSql } from './mentions.js';
 import { sidebarSql } from './sidebar.js';
 import { withVolume } from './test-volume.js';
 
@@ -60,6 +61,8 @@ describe('admin home query plans on a seeded volume', () => {
       // sidebar and assigned use indexes under 50 ms
       await expectIndexed(tx, sidebarSql(adminId), CHAT_TABLES);
       await expectIndexed(tx, assignedSql(adminId), CHAT_TABLES);
+      // mentions uses indexes under 50 ms
+      await expectIndexed(tx, mentionsSql(adminId), CHAT_TABLES);
     });
   });
 });

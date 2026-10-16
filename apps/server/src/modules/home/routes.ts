@@ -2,6 +2,7 @@ import type { FastifyPluginAsync } from 'fastify';
 import type { AppDeps } from '../../deps.js';
 import { requireAdmin } from '../auth/session.js';
 import { getAssignedTasks } from './assigned.js';
+import { getMentions } from './mentions.js';
 import { getSidebar } from './sidebar.js';
 
 export type HomeRoutesOptions = {
@@ -25,5 +26,9 @@ export const homeRoutes: FastifyPluginAsync<HomeRoutesOptions> = async (app, { d
 
   app.get('/me/home/tasks', { preHandler: adminOnly }, async (request) =>
     getAssignedTasks(db, request.user!.id),
+  );
+
+  app.get('/me/home/mentions', { preHandler: adminOnly }, async (request) =>
+    getMentions(db, request.user!.id),
   );
 };
