@@ -4,7 +4,7 @@ import { pipeline } from 'node:stream/promises';
 import { and, eq, inArray, isNull, lt, sql } from 'drizzle-orm';
 import type { FileInfo } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
-import type { Storage } from '../../infra/storage/index.js';
+import { StorageNotFoundError, type Storage } from '../../infra/storage/index.js';
 import { sanitizeFileName } from './file-name.js';
 import { files } from './schema.js';
 import { IMAGE_TYPES, sniffImageType } from './sniff.js';
@@ -130,6 +130,55 @@ export async function createFile(
     await putting?.catch(() => undefined);
     await storage.delete(key).catch(() => undefined);
     throw tooLarge ? new FileTooLargeError() : error;
+  }
+}
+
+/**
+ * Copies a file of `groupId` server-side into a new, unattached file of that group owned by `userId`
+ * (a file that is unknown or in another group throws InvalidAttachmentError),
+ * with its own storage objects (data, and the preview if any). A copy never shares objects with
+ * the source, so either can be deleted alone. If anything fails, the copied objects are removed.
+ */
+export async function copyFile(
+  { db, storage }: FileDeps,
+  input: { fileId: string; groupId: string; userId: string },
+): Promise<FileInfo> {
+  const source = await getFile(db, input.fileId);
+  if (!source || source.groupId !== input.groupId) throw new InvalidAttachmentError();
+  const id = randomUUID();
+  const storageKey = `files/${source.groupId}/${id}`;
+  const preview = source.previewKey
+    ? { from: source.previewKey, to: `files/${source.groupId}/${id}-preview-${randomUUID()}` }
+    : null;
+  const previewKey = preview?.to ?? null;
+  try {
+    await storage.copy(source.storageKey, storageKey);
+    if (preview) await storage.copy(preview.from, preview.to);
+    const [row] = await db
+      .insert(files)
+      .values({
+        id,
+        groupId: source.groupId,
+        uploadedBy: input.userId,
+        name: source.name,
+        mime: source.mime,
+        size: source.size,
+        storageKey,
+        previewKey,
+        width: source.width,
+        height: source.height,
+      })
+      .returning();
+    return toFileInfo(row!);
+  } catch (error) {
+    await Promise.all(
+      [storageKey, previewKey].flatMap((key) =>
+        key ? [storage.delete(key).catch(() => undefined)] : [],
+      ),
+    );
+    // A source object that is gone makes the file unusable, like an unknown id.
+    if (error instanceof StorageNotFoundError) throw new InvalidAttachmentError();
+    throw error;
   }
 }
 

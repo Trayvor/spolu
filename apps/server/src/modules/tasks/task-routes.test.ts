@@ -4,20 +4,28 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { io as connect, type Socket } from 'socket.io-client';
 import {
   BoardEvents,
+  ChatEvents,
   type BoardDto,
+  type ChatMessageTasksEvent,
   type BoardTaskDeletedEvent,
   type BoardTaskEvent,
   type FileInfo,
   type TaskDetailDto,
   type TaskDto,
+  type TasksFromMessageResult,
 } from '@spolu/shared';
 import { buildTestApp } from '../../../test/test-app.js';
 import { loginAs } from '../../../test/login.js';
+import { deleteMessage, getMessage, sendMessage } from '../chat/messages.js';
+import { messageAttachments } from '../chat/schema.js';
+import { ensureGroupChannel, ensureTaskChannel } from '../chat/service.js';
+import { files } from '../files/schema.js';
 import { getFile } from '../files/service.js';
 import { addMember, createGroup } from '../groups/service.js';
 import { notificationEvents } from '../notifications/schema.js';
 import { user } from '../users/schema.js';
 import { addAdmin } from '../users/service.js';
+import { tasks } from './schema.js';
 
 // `deleteDetachedFiles` can be made to fail, to prove the post-commit cleanup never fails a write.
 const cleanup = vi.hoisted(() => ({ fail: false }));
@@ -425,6 +433,67 @@ describe('tasks API: tasks', () => {
     expect(await deleted).toEqual({ groupId: g.id, taskId: task.id });
   });
 
+  const move = (taskId: string, cookie: string, body: object) =>
+    call('POST', `/api/tasks/${taskId}/move`, cookie, body);
+
+  it('renaming, moving or deleting a task made from a message pushes chat:message_tasks', async () => {
+    const admin = await adminSession('Link Admin');
+    const g = await newGroup();
+    const client = await clientIn(g.id, 'Linda');
+    const channel = await ensureGroupChannel(test.deps.db, g.id);
+    const root = await sendMessage(test.deps, {
+      channel,
+      author: { id: client.id, email: client.email, name: 'Linda', role: 'client' },
+      data: { body: 'Do the report', clientId: randomUUID() },
+    });
+    const task = (await create(g.id, admin.cookie, { title: 'Report' })).json<TaskDetailDto>();
+    const plain = (await create(g.id, admin.cookie, { title: 'Plain' })).json<TaskDetailDto>();
+    await test.deps.db
+      .update(tasks)
+      .set({ sourceMessageId: root.message.id })
+      .where(eq(tasks.id, task.id));
+    const socket = await listen(client.cookie);
+    const received: ChatMessageTasksEvent[] = [];
+    socket.on(ChatEvents.messageTasks, (e: ChatMessageTasksEvent) => received.push(e));
+    const next = () =>
+      new Promise<ChatMessageTasksEvent>((resolve) =>
+        socket.once(ChatEvents.messageTasks, resolve),
+      );
+    const base = {
+      groupId: g.id,
+      channelId: channel.id,
+      messageId: root.message.id,
+      parentId: null,
+    };
+
+    let pushed = next();
+    await call('PATCH', `/api/tasks/${task.id}`, admin.cookie, {
+      title: 'Report v2',
+      updatedAt: task.updatedAt,
+    });
+    expect(await pushed).toEqual({
+      ...base,
+      tasks: [{ id: task.id, title: 'Report v2', completed: false }],
+    });
+
+    const done = (await board(admin.cookie, g.id)).buckets.find((b) => b.kind === 'done')!;
+    pushed = next();
+    await move(task.id, admin.cookie, { bucketId: done.id, afterTaskId: null });
+    expect((await pushed).tasks).toEqual([{ id: task.id, title: 'Report v2', completed: true }]);
+
+    // Tasks without a source message push nothing.
+    await call('PATCH', `/api/tasks/${plain.id}`, admin.cookie, {
+      title: 'Plain v2',
+      updatedAt: plain.updatedAt,
+    });
+    await call('DELETE', `/api/tasks/${plain.id}`, admin.cookie);
+
+    pushed = next();
+    await call('DELETE', `/api/tasks/${task.id}`, admin.cookie);
+    expect(await pushed).toEqual({ ...base, tasks: [] });
+    expect(received).toHaveLength(3);
+  });
+
   it('a failing file cleanup after the commit still answers 200/204 and emits the events', async () => {
     const g = await newGroup();
     const client = await clientIn(g.id);
@@ -458,9 +527,6 @@ describe('tasks API: tasks', () => {
       cleanup.fail = false;
     }
   });
-
-  const move = (taskId: string, cookie: string, body: object) =>
-    call('POST', `/api/tasks/${taskId}/move`, cookie, body);
 
   it("client moves a task (200) and others see board:task; another group's client → 404", async () => {
     const admin = await adminSession('Mover Admin');
@@ -548,5 +614,186 @@ describe('tasks API: tasks', () => {
       (await move(randomUUID(), client.cookie, { bucketId: review.id, afterTaskId: null }))
         .statusCode,
     ).toBe(404);
+  });
+  /** A group with a client who sent a message carrying one file, in the group chat. */
+  async function messageSetup(name = 'Mira') {
+    const g = await newGroup();
+    const client = await clientIn(g.id, name);
+    const file = await upload(g.id, client.cookie, 'brief.txt');
+    const channel = await ensureGroupChannel(test.deps.db, g.id);
+    const author = { id: client.id, email: client.email, name, role: 'client' as const };
+    const { message } = await sendMessage(test.deps, {
+      channel,
+      author,
+      data: { body: 'Do A and B', clientId: randomUUID(), fileIds: [file.id] },
+    });
+    return { g, client, file, channel, author, message };
+  }
+  const fromMessage = (groupId: string, cookie: string, body: object) =>
+    call('POST', `/api/groups/${groupId}/tasks/from-message`, cookie, body);
+  const countFiles = async (groupId: string) =>
+    (await test.deps.db.select({ id: files.id }).from(files).where(eq(files.groupId, groupId)))
+      .length;
+
+  it('POST from-message: 201, board:task per card and one chat:message_tasks', async () => {
+    const admin = await adminSession('Split Admin');
+    const { g, client, file, channel, message } = await messageSetup();
+    await create(g.id, client.cookie, { title: 'Existing' });
+    const socket = await listen(client.cookie);
+    const boardEvents: BoardTaskEvent[] = [];
+    const linkEvents: ChatMessageTasksEvent[] = [];
+    socket.on(BoardEvents.task, (e: BoardTaskEvent) => boardEvents.push(e));
+    const linked = new Promise<ChatMessageTasksEvent>((resolve) =>
+      socket.on(ChatEvents.messageTasks, (e: ChatMessageTasksEvent) => {
+        linkEvents.push(e);
+        resolve(e);
+      }),
+    );
+
+    const res = await fromMessage(g.id, admin.cookie, {
+      messageId: message.id,
+      tasks: [
+        { title: 'A', messageFileIds: [file.id], assigneeIds: [client.id] },
+        { title: 'B', urgent: true },
+      ],
+    });
+    expect(res.statusCode).toBe(201);
+    const { tasks: created } = res.json<TasksFromMessageResult>();
+    expect(created.map((t) => t.title)).toEqual(['A', 'B']);
+    expect(created[0]).toMatchObject({ sourceMessageId: message.id, urgent: false });
+    expect(created[0]!.sourceMessage).toMatchObject({ id: message.id, channelId: channel.id });
+    expect(created[0]!.files).toHaveLength(1);
+    expect(created[0]!.files[0]!.id).not.toBe(file.id);
+
+    const event = await linked;
+    expect(event).toEqual({
+      groupId: g.id,
+      channelId: channel.id,
+      messageId: message.id,
+      parentId: null,
+      tasks: created.map((t) => ({ id: t.id, title: t.title, completed: false })),
+    });
+    const b = await board(client.cookie, g.id);
+    const todo = b.buckets.find((x) => x.kind === 'todo')!;
+    expect(b.tasks.filter((t) => t.bucketId === todo.id).map((t) => t.title)).toEqual([
+      'A',
+      'B',
+      'Existing',
+    ]);
+    // board:task is emitted before chat:message_tasks, so both have arrived by now.
+    expect(boardEvents.map((e) => e.task.title)).toEqual(['A', 'B']);
+    expect(boardEvents[0]!.actor).toEqual({ id: admin.id, name: 'Split Admin' });
+    expect(linkEvents).toHaveLength(1);
+
+    // The message lists its tasks too.
+    const page = await call('GET', `/api/channels/${channel.id}/messages`, client.cookie);
+    const listed = page
+      .json<{ messages: { id: string; tasks: { id: string }[] }[] }>()
+      .messages.find((m) => m.id === message.id)!;
+    expect(listed.tasks.map((t) => t.id)).toEqual(created.map((t) => t.id));
+  });
+
+  it('a message in a task chat of the same group is a valid source', async () => {
+    const { g, client, author } = await messageSetup();
+    const host = (await create(g.id, client.cookie, { title: 'Host' })).json<TaskDetailDto>();
+    const channel = await ensureTaskChannel(test.deps.db, host);
+    const { message } = await sendMessage(test.deps, {
+      channel,
+      author,
+      data: { body: 'Inside', clientId: randomUUID() },
+    });
+    const res = await fromMessage(g.id, client.cookie, {
+      messageId: message.id,
+      tasks: [{ title: 'From the task chat' }],
+    });
+    expect(res.statusCode).toBe(201);
+  });
+
+  it("404 for a message of another group, a deleted message, an unknown one, or another group's client", async () => {
+    const admin = await adminSession();
+    const a = await messageSetup('Ann');
+    const b = await messageSetup('Bob');
+    const filesA = await countFiles(a.g.id);
+    const filesB = await countFiles(b.g.id);
+    const body = (messageId: string) => ({
+      messageId,
+      tasks: [{ title: 'X', messageFileIds: [a.file.id] }],
+    });
+
+    // A message from group A, tasks for group B: 404 and nothing is created anywhere.
+    expect((await fromMessage(b.g.id, admin.cookie, body(a.message.id))).statusCode).toBe(404);
+    // Group B's client may not read group A's message nor open its board.
+    expect((await fromMessage(b.g.id, b.client.cookie, body(a.message.id))).statusCode).toBe(404);
+    expect((await fromMessage(a.g.id, b.client.cookie, body(a.message.id))).statusCode).toBe(404);
+    expect((await fromMessage(a.g.id, admin.cookie, body(randomUUID()))).statusCode).toBe(404);
+    expect((await board(admin.cookie, a.g.id)).tasks).toHaveLength(0);
+    expect((await board(admin.cookie, b.g.id)).tasks).toHaveLength(0);
+    expect(await countFiles(a.g.id)).toBe(filesA);
+    expect(await countFiles(b.g.id)).toBe(filesB);
+
+    await deleteMessage(test.deps, {
+      channel: a.channel,
+      message: (await getMessage(test.deps.db, a.message.id))!,
+    });
+    expect((await fromMessage(a.g.id, admin.cookie, body(a.message.id))).statusCode).toBe(404);
+    expect((await board(admin.cookie, a.g.id)).tasks).toHaveLength(0);
+  });
+
+  it('400 for an invalid body: no cards, more than 10, a bad message id, too many files', async () => {
+    const { g, client, file, message } = await messageSetup();
+    const send = (body: object) => fromMessage(g.id, client.cookie, body);
+    expect((await send({ messageId: message.id, tasks: [] })).statusCode).toBe(400);
+    const eleven = Array.from({ length: 11 }, (_, i) => ({ title: `T${i}` }));
+    expect((await send({ messageId: message.id, tasks: eleven })).statusCode).toBe(400);
+    expect((await send({ messageId: 'bad id!', tasks: [{ title: 'X' }] })).statusCode).toBe(400);
+    const many = Array.from({ length: 11 }, () => randomUUID());
+    const res = await send({
+      messageId: message.id,
+      tasks: [{ title: 'X', fileIds: many, messageFileIds: [file.id, ...many.slice(1)] }],
+    });
+    expect(res.statusCode).toBe(400);
+    expect(res.json()).toEqual({ error: 'validation_failed' });
+    const crowd = Array.from({ length: 11 }, () => randomUUID());
+    const tooMany = await send({
+      messageId: message.id,
+      tasks: [{ title: 'X', assigneeIds: crowd }],
+    });
+    expect(tooMany.statusCode).toBe(400);
+    expect(tooMany.json()).toEqual({ error: 'invalid_assignee' });
+  });
+
+  it('400 invalid_attachment when the message lost the file since the proposal', async () => {
+    const { g, client, file, message } = await messageSetup();
+    await test.deps.db
+      .delete(messageAttachments)
+      .where(
+        and(eq(messageAttachments.messageId, message.id), eq(messageAttachments.fileId, file.id)),
+      );
+    const before = await countFiles(g.id);
+    const res = await fromMessage(g.id, client.cookie, {
+      messageId: message.id,
+      tasks: [{ title: 'A' }, { title: 'B', messageFileIds: [file.id] }],
+    });
+    expect(res.statusCode).toBe(400);
+    expect(res.json()).toEqual({ error: 'invalid_attachment' });
+    expect((await board(client.cookie, g.id)).tasks).toHaveLength(0);
+    expect(await countFiles(g.id)).toBe(before);
+  });
+
+  it('400 invalid_assignee for an assignee from another group; nothing is created', async () => {
+    const { g, client, file, message } = await messageSetup();
+    const other = await messageSetup('Otto');
+    const before = await countFiles(g.id);
+    const res = await fromMessage(g.id, client.cookie, {
+      messageId: message.id,
+      tasks: [
+        { title: 'A', messageFileIds: [file.id] },
+        { title: 'B', assigneeIds: [other.client.id] },
+      ],
+    });
+    expect(res.statusCode).toBe(400);
+    expect(res.json()).toEqual({ error: 'invalid_assignee' });
+    expect((await board(client.cookie, g.id)).tasks).toHaveLength(0);
+    expect(await countFiles(g.id)).toBe(before);
   });
 });

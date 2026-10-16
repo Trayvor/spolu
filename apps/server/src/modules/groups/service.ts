@@ -3,13 +3,9 @@ import { and, asc, eq, inArray, isNotNull, isNull, or, sql } from 'drizzle-orm';
 import { unionAll } from 'drizzle-orm/pg-core';
 import type { GroupInput, GroupPerson, GroupSummary, Member } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
+import { isUniqueViolation } from '../../infra/db/errors.js';
 import { user } from '../users/schema.js';
-import {
-  createUnverifiedClient,
-  findUserByEmail,
-  isUniqueViolation,
-  type UserRow,
-} from '../users/service.js';
+import { createUnverifiedClient, findUserByEmail, type UserRow } from '../users/service.js';
 import { normalizeEgrantUrl } from './egrant-url.js';
 import { groupMembers, groups } from './schema.js';
 

@@ -22,6 +22,12 @@ const base = {
   PUSH_FAKE_FILE: z.string().min(1).optional(),
   PUSH_ALLOW_FAKE: z.enum(['1']).optional(),
   EMAIL_BATCH_DELAY_MS: z.coerce.number().int().min(0).default(600_000),
+  // `fake` is for local development and e2e only, never on a server: in production it needs
+  // AI_ALLOW_FAKE=1 (set only by the e2e web server).
+  AI_PROVIDER: z.enum(['openai', 'fake']).default('openai'),
+  AI_ALLOW_FAKE: z.enum(['1']).optional(),
+  OPENAI_API_KEY: z.string().min(1).optional(),
+  OPENAI_MODEL: z.string().min(1).default('gpt-5-mini'),
 };
 
 const EnvSchema = z.discriminatedUnion('EMAIL_DRIVER', [
@@ -82,6 +88,8 @@ export type Config = {
     | null;
   /** How long a group's email notifications wait so several events go out as one email. */
   emailBatchDelayMs: number;
+  /** The task split provider; null when OpenAI is chosen but no key is set (AI is off). */
+  ai: { provider: 'openai'; apiKey: string; model: string } | { provider: 'fake' } | null;
 };
 
 export class ConfigError extends Error {
@@ -100,6 +108,9 @@ export function loadConfig(env: NodeJS.ProcessEnv): Config {
     throw new ConfigError([...names]);
   }
   const e = result.data;
+  if (e.NODE_ENV === 'production' && e.AI_PROVIDER === 'fake' && e.AI_ALLOW_FAKE !== '1') {
+    throw new ConfigError(['AI_PROVIDER']);
+  }
   return {
     nodeEnv: e.NODE_ENV,
     port: e.PORT,
@@ -126,6 +137,12 @@ export function loadConfig(env: NodeJS.ProcessEnv): Config {
             from: e.MAIL_FROM,
           }
         : { driver: 'elastic', apiKey: e.ELASTIC_EMAIL_API_KEY, from: e.MAIL_FROM },
+    ai:
+      e.AI_PROVIDER === 'fake'
+        ? { provider: 'fake' }
+        : e.OPENAI_API_KEY === undefined
+          ? null
+          : { provider: 'openai', apiKey: e.OPENAI_API_KEY, model: e.OPENAI_MODEL },
   };
 }
 

@@ -1,5 +1,5 @@
 {
-  "id": "3b34ac0d-886a-419b-8562-facf7e2b64dc",
+  "id": "ccca6f15-89b8-40f7-881d-6317fe7a0bc2",
   "prevId": "9aba8994-c1a8-45e1-9d28-795aba89b29f",
   "version": "7",
   "dialect": "postgresql",
@@ -379,6 +379,37 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
+        },
+        "channels_task_unique": {
+          "name": "channels_task_unique",
+          "columns": [
+            {
+              "expression": "task_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"channels\".\"task_id\" is not null",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "channels_group_id_idx": {
+          "name": "channels_group_id_idx",
+          "columns": [
+            {
+              "expression": "group_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         }
       },
       "foreignKeys": {
@@ -394,6 +425,19 @@
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
+        },
+        "channels_task_id_tasks_id_fk": {
+          "name": "channels_task_id_tasks_id_fk",
+          "tableFrom": "channels",
+          "tableTo": "tasks",
+          "columnsFrom": [
+            "task_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -403,6 +447,10 @@
         "channels_kind_check": {
           "name": "channels_kind_check",
           "value": "\"channels\".\"kind\" in ('group', 'task')"
+        },
+        "channels_task_check": {
+          "name": "channels_task_check",
+          "value": "(\"channels\".\"kind\" = 'task') = (\"channels\".\"task_id\" is not null)"
         }
       },
       "isRLSEnabled": false
@@ -1232,93 +1280,6 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.group_notification_settings": {
-      "name": "group_notification_settings",
-      "schema": "",
-      "columns": {
-        "user_id": {
-          "name": "user_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "group_id": {
-          "name": "group_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "mode": {
-          "name": "mode",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {
-        "group_notification_settings_group_id_idx": {
-          "name": "group_notification_settings_group_id_idx",
-          "columns": [
-            {
-              "expression": "group_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "group_notification_settings_user_id_user_id_fk": {
-          "name": "group_notification_settings_user_id_user_id_fk",
-          "tableFrom": "group_notification_settings",
-          "tableTo": "user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "group_notification_settings_group_id_groups_id_fk": {
-          "name": "group_notification_settings_group_id_groups_id_fk",
-          "tableFrom": "group_notification_settings",
-          "tableTo": "groups",
-          "columnsFrom": [
-            "group_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "group_notification_settings_user_id_group_id_pk": {
-          "name": "group_notification_settings_user_id_group_id_pk",
-          "columns": [
-            "user_id",
-            "group_id"
-          ]
-        }
-      },
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {
-        "group_notification_settings_mode_check": {
-          "name": "group_notification_settings_mode_check",
-          "value": "\"group_notification_settings\".\"mode\" in ('all', 'mentions', 'off')"
-        }
-      },
-      "isRLSEnabled": false
-    },
     "public.notification_events": {
       "name": "notification_events",
       "schema": "",
@@ -1365,24 +1326,6 @@
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": false
-        },
-        "email_due_at": {
-          "name": "email_due_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "emailed_at": {
-          "name": "emailed_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "dedupe_key": {
-          "name": "dedupe_key",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
         }
       },
       "indexes": {
@@ -1421,60 +1364,6 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
-        },
-        "notification_events_dedupe_unique": {
-          "name": "notification_events_dedupe_unique",
-          "columns": [
-            {
-              "expression": "user_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "dedupe_key",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "where": "\"notification_events\".\"dedupe_key\" is not null",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "notification_events_undelivered_idx": {
-          "name": "notification_events_undelivered_idx",
-          "columns": [
-            {
-              "expression": "created_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "where": "\"notification_events\".\"delivered_at\" is null",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "notification_events_email_due_idx": {
-          "name": "notification_events_email_due_idx",
-          "columns": [
-            {
-              "expression": "email_due_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "where": "\"notification_events\".\"emailed_at\" is null and \"notification_events\".\"email_due_at\" is not null",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
         }
       },
       "foreignKeys": {
@@ -1507,106 +1396,6 @@
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.push_subscriptions": {
-      "name": "push_subscriptions",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "endpoint": {
-          "name": "endpoint",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "p256dh": {
-          "name": "p256dh",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "auth": {
-          "name": "auth",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "user_agent": {
-          "name": "user_agent",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "last_success_at": {
-          "name": "last_success_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "indexes": {
-        "push_subscriptions_user_id_idx": {
-          "name": "push_subscriptions_user_id_idx",
-          "columns": [
-            {
-              "expression": "user_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "push_subscriptions_user_id_user_id_fk": {
-          "name": "push_subscriptions_user_id_user_id_fk",
-          "tableFrom": "push_subscriptions",
-          "tableTo": "user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "push_subscriptions_endpoint_unique": {
-          "name": "push_subscriptions_endpoint_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "endpoint"
-          ]
-        }
-      },
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -2017,6 +1806,22 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
+        },
+        "tasks_source_message_id_idx": {
+          "name": "tasks_source_message_id_idx",
+          "columns": [
+            {
+              "expression": "source_message_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "where": "\"tasks\".\"source_message_id\" is not null",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         }
       },
       "foreignKeys": {
@@ -2057,6 +1862,19 @@
             "id"
           ],
           "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "tasks_source_message_id_messages_id_fk": {
+          "name": "tasks_source_message_id_messages_id_fk",
+          "tableFrom": "tasks",
+          "tableTo": "messages",
+          "columnsFrom": [
+            "source_message_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
           "onUpdate": "no action"
         }
       },
@@ -2114,39 +1932,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "default_group_mode": {
-          "name": "default_group_mode",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "push_enabled": {
-          "name": "push_enabled",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": true
-        },
-        "email_enabled": {
-          "name": "email_enabled",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "language": {
-          "name": "language",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'sk'"
-        },
-        "email_fallback_at": {
-          "name": "email_fallback_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp with time zone",
@@ -2199,14 +1984,6 @@
         "user_email_lower_check": {
           "name": "user_email_lower_check",
           "value": "\"user\".\"email\" = lower(\"user\".\"email\")"
-        },
-        "user_default_group_mode_check": {
-          "name": "user_default_group_mode_check",
-          "value": "\"user\".\"default_group_mode\" in ('all', 'mentions', 'off')"
-        },
-        "user_language_check": {
-          "name": "user_language_check",
-          "value": "\"user\".\"language\" in ('sk', 'en')"
         }
       },
       "isRLSEnabled": false

@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { and, asc, eq, inArray, isNull, sql } from 'drizzle-orm';
 import type { Admin, GroupMode, Role, UserLanguage } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
+import { isUniqueViolation } from '../../infra/db/errors.js';
 import { user } from './schema.js';
 
 export type UserRow = typeof user.$inferSelect;
@@ -17,12 +18,6 @@ export class EmailTakenError extends Error {
 export const normalizeEmail = (email: string): string => email.trim().toLowerCase();
 
 const adminColumns = { id: user.id, name: user.name, email: user.email, role: user.role };
-
-export function isUniqueViolation(error: unknown): boolean {
-  // drizzle may wrap the driver error in `cause`
-  const code = (e: unknown): unknown => (e as { code?: unknown } | null)?.code;
-  return code(error) === '23505' || code((error as { cause?: unknown } | null)?.cause) === '23505';
-}
 
 /**
  * Makes sure the configured superadmin exists and is active. Only a row that is already the

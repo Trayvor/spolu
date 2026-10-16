@@ -3,6 +3,7 @@ import type { Server as SocketIOServer } from 'socket.io';
 import type { AppDeps } from './deps.js';
 import { attachSocket } from './infra/realtime/socket.js';
 import { createAuth, type Auth } from './modules/auth/auth.js';
+import { aiRoutes } from './modules/ai/routes.js';
 import { authRoutes } from './modules/auth/routes.js';
 import { chatRoutes } from './modules/chat/routes.js';
 import { filesRoutes } from './modules/files/routes.js';
@@ -16,11 +17,16 @@ import { usersRoutes } from './modules/users/routes.js';
 /** Builds the HTTP app and attaches Socket.IO (`app.io`); `app.close()` closes both. */
 export async function buildApp(
   deps: AppDeps,
-  options: { logger?: boolean } = {},
+  options: { logger?: boolean; logStream?: { write(line: string): void } } = {},
 ): Promise<FastifyInstance> {
   const { config } = deps;
   const app = Fastify({
-    logger: (options.logger ?? config.nodeEnv !== 'test') ? { level: 'info' } : false,
+    // `logStream` (tests) captures the info log as JSON lines.
+    logger: options.logStream
+      ? { level: 'info', stream: options.logStream }
+      : (options.logger ?? config.nodeEnv !== 'test')
+        ? { level: 'info' }
+        : false,
     // The app port is reachable only through Caddy (deploy/docker-compose.yml publishes just
     // Caddy's ports). Trust one hop: Caddy's X-Forwarded-For entry is the real client, anything
     // a client prepended before it is ignored.
@@ -48,6 +54,7 @@ export async function buildApp(
   await app.register(tasksRoutes, { prefix: '/api', deps });
   await app.register(chatRoutes, { prefix: '/api', deps });
   await app.register(notificationsRoutes, { prefix: '/api', deps });
+  await app.register(aiRoutes, { prefix: '/api', deps });
 
   registerNotFound(app);
   return app;

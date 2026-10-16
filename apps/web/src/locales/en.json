@@ -128,7 +128,8 @@
       "delete": "Delete",
       "quote": "Quote",
       "label": "Message actions",
-      "open": "Message actions"
+      "open": "Message actions",
+      "turnIntoTasks": "Turn into tasks"
     },
     "thread": {
       "summary_one": "{{count}} reply, last at {{time}}",
@@ -176,9 +177,12 @@
     },
     "unread_other": "{{count}} unread messages",
     "unread_one": "{{count}} unread message",
-    "loadError": "The chat could not be loaded."
+    "loadError": "The chat could not be loaded.",
+    "turnedIntoTasks": "Turned into tasks:"
   },
   "tasks": {
+    "unreadTasks_one": "{{count}} task with unread messages",
+    "unreadTasks_other": "{{count}} tasks with unread messages",
     "buckets": {
       "todo": "To do",
       "egrantReview": "eGrant review",
@@ -225,7 +229,12 @@
       "files_other": "{{count}} files",
       "moreAssignees": "+{{count}}",
       "markDone": "Mark as done",
-      "markNotDone": "Mark as not done"
+      "markNotDone": "Mark as not done",
+      "completed": "Completed",
+      "messages_one": "{{count}} message",
+      "messages_other": "{{count}} messages",
+      "messagesUnread_one": "{{count}} message, unread",
+      "messagesUnread_other": "{{count}} messages, unread"
     },
     "form": {
       "title": "Title",
@@ -279,7 +288,12 @@
       "fromMessage": "Created from a message",
       "openMessage": "Open in chat",
       "newTask": "New task",
-      "create": "Create"
+      "create": "Create",
+      "tabs": {
+        "label": "Task sections",
+        "details": "Details",
+        "chat": "Chat ({{count}})"
+      }
     }
   },
   "groups": {
@@ -321,5 +335,42 @@
   "files": {
     "download": "Download {{name}}",
     "openImage": "Open {{name}}"
+  },
+  "taskSplit": {
+    "title": "Turn into tasks",
+    "loading": "AI is reading the message…",
+    "proposed_one": "{{count}} card proposed",
+    "proposed_other": "{{count}} cards proposed",
+    "intro": "Open a card to edit it. Approve the cards to create and reject the rest.",
+    "failed": "The AI did not answer. Try again.",
+    "retry": "Try again",
+    "noTasks": "The AI found no tasks in this message.",
+    "byHand": "Create one task by hand",
+    "unavailable": "Turning messages into tasks is not available right now.",
+    "open": "Edit “{{title}}”",
+    "untitled": "Untitled task",
+    "approve": "Approve",
+    "reject": "Reject",
+    "rejected": "Rejected",
+    "undo": "Undo",
+    "approveAll": "Approve all",
+    "done": "Done",
+    "editCard": "Edit the task",
+    "create_one": "Create {{count}} task",
+    "create_other": "Create {{count}} tasks",
+    "cancel": "Cancel",
+    "close": "Close",
+    "discardConfirm": "Discard the proposed tasks?",
+    "discard": "Discard",
+    "keep": "Keep reviewing",
+    "createFailed": "The tasks were not created. Try again.",
+    "messageGone": "The message was deleted, so no tasks were created.",
+    "filesChanged": "A file on a card is no longer available. Remove it and try again.",
+    "created_one": "{{count}} task created",
+    "created_other": "{{count}} tasks created",
+    "openBoard": "Open the board"
+  },
+  "toast": {
+    "close": "Dismiss"
   }
 }

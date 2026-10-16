@@ -1,21 +1,34 @@
 import { randomUUID } from 'node:crypto';
-import { and, eq, inArray, isNull, sql } from 'drizzle-orm';
+import { and, asc, eq, inArray, isNull, sql } from 'drizzle-orm';
 import {
   extractMentions,
+  type FileInfo,
+  ID_RE,
   plainExcerpt,
+  type ChatMessageTasksEvent,
   type MessageDto,
   type NotificationKind,
   type SendMessageInput,
   type SessionUser,
+  type SourceMessage,
 } from '@spolu/shared';
 import type { AppDeps } from '../../deps.js';
 import type { Db } from '../../infra/db/client.js';
-import { attachFiles, deleteDetachedFiles, detachFiles } from '../files/service.js';
-import { listGroupPeople } from '../groups/service.js';
+import { isUniqueViolation } from '../../infra/db/errors.js';
+import {
+  attachFiles,
+  deleteDetachedFiles,
+  detachFiles,
+  getFilesForGroup,
+} from '../files/service.js';
+import { getMembershipGroupId, listGroupPeople } from '../groups/service.js';
 import { recordNotifications, requestDelivery } from '../notifications/service.js';
-import { isUniqueViolation } from '../users/service.js';
+import { listTasksForMessages } from '../tasks/service.js';
+import { isAdmin } from '../users/policy.js';
+import { user } from '../users/schema.js';
 import { selectMessages, toMessageDtos, type MessageRow } from './dto.js';
-import { messageAttachments, messageMentions, messages } from './schema.js';
+import { canReadChannel } from './policy.js';
+import { channels, messageAttachments, messageMentions, messages } from './schema.js';
 import {
   getChannel,
   nextSeq,
@@ -198,6 +211,7 @@ export async function sendMessage(
 
       const payload = {
         channelId: channel.id,
+        taskId: channel.taskId,
         messageId,
         groupId,
         authorName: author.name,
@@ -238,6 +252,107 @@ export async function sendMessage(
 export async function getMessage(db: Db, id: string): Promise<MessageRow | null> {
   const [row] = await db.select().from(messages).where(eq(messages.id, id));
   return row ?? null;
+}
+
+/** The files attached to a message, in their order (two queries; [] for a deleted message). */
+export async function getMessageFiles(
+  db: Db,
+  groupId: string,
+  messageId: string,
+): Promise<FileInfo[]> {
+  const rows = await db
+    .select({ fileId: messageAttachments.fileId })
+    .from(messageAttachments)
+    .where(eq(messageAttachments.messageId, messageId))
+    .orderBy(asc(messageAttachments.position));
+  return getFilesForGroup(
+    db,
+    groupId,
+    rows.map((r) => r.fileId),
+  );
+}
+
+// Same read-only exception as `selectMessages`: author and mentioned names come from `user`.
+/**
+ * The message a task was made from, for the task panel: author name, a one-line excerpt with
+ * mentions as names, its channel and that channel's task (null in the group chat). One query;
+ * null when the message is missing or deleted.
+ */
+export async function getSourceMessage(db: Db, messageId: string): Promise<SourceMessage | null> {
+  const [row] = await db
+    .select({
+      id: messages.id,
+      channelId: messages.channelId,
+      taskId: channels.taskId,
+      body: messages.body,
+      deletedAt: messages.deletedAt,
+      authorName: user.name,
+      mentionNames: sql<Record<string, string>>`coalesce((
+        select json_object_agg(mu.id, mu.name)
+        from ${messageMentions} join ${user} mu on mu.id = ${messageMentions.userId}
+        where ${messageMentions.messageId} = ${messages.id}
+      ), '{}'::json)`,
+    })
+    .from(messages)
+    .innerJoin(channels, eq(channels.id, messages.channelId))
+    .innerJoin(user, eq(user.id, messages.authorId))
+    .where(eq(messages.id, messageId));
+  if (!row || row.deletedAt !== null) return null;
+  return {
+    id: row.id,
+    channelId: row.channelId,
+    taskId: row.taskId,
+    authorName: row.authorName,
+    excerpt: plainExcerpt(row.body, (id) => row.mentionNames[id], EXCERPT_LENGTH),
+  };
+}
+
+/**
+ * The `chat:message_tasks` event of a message: its place and its current tasks (two queries in
+ * parallel). Null when the message is missing or deleted (its footer is gone).
+ */
+export async function messageTasksEvent(
+  db: Db,
+  messageId: string,
+): Promise<ChatMessageTasksEvent | null> {
+  const [[row], tasksOf] = await Promise.all([
+    db
+      .select({
+        channelId: messages.channelId,
+        parentId: messages.parentId,
+        deletedAt: messages.deletedAt,
+        groupId: channels.groupId,
+      })
+      .from(messages)
+      .innerJoin(channels, eq(channels.id, messages.channelId))
+      .where(eq(messages.id, messageId)),
+    listTasksForMessages(db, [messageId]),
+  ]);
+  if (!row || row.deletedAt !== null) return null;
+  return {
+    groupId: row.groupId,
+    channelId: row.channelId,
+    messageId,
+    parentId: row.parentId,
+    tasks: tasksOf.get(messageId) ?? [],
+  };
+}
+
+/**
+ * The message with its channel when the actor may read that channel, else null: a missing
+ * message, a malformed id and an unreadable channel all look the same (the routes answer 404).
+ */
+export async function findReadableMessage(
+  db: Db,
+  actor: SessionUser,
+  id: string,
+): Promise<{ message: MessageRow; channel: ChannelRow } | null> {
+  // A malformed id cannot exist; checking first keeps NUL and the like away from Postgres.
+  const message = ID_RE.test(id) ? await getMessage(db, id) : null;
+  const channel = message ? await getChannel(db, message.channelId) : null;
+  if (!message || !channel) return null;
+  const actorGroupId = isAdmin(actor) ? null : await getMembershipGroupId(db, actor.id);
+  return canReadChannel(actor, channel, actorGroupId) ? { message, channel } : null;
 }
 
 async function loadDto(db: Db, groupId: string, id: string): Promise<MessageDto> {

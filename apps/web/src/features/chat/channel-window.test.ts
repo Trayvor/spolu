@@ -28,6 +28,7 @@ function msg(n: number, over: Partial<MessageDto> = {}): MessageDto {
     deletedAt: null,
     createdAt: at,
     changeSeq: n,
+    tasks: [],
     ...over,
   };
 }
@@ -264,6 +265,10 @@ describe('windowReducer', () => {
 
   it('reset returns the empty, unloaded window', () => {
     expect(windowReducer(loaded(range(1, 2)), { type: 'reset' })).toBe(initialWindow);
+  });
+  it('tasksChanged for a message that is not in the window returns the same state', () => {
+    const w = loaded(range(1, 3));
+    expect(windowReducer(w, { type: 'tasksChanged', messageId: 'missing', tasks: [] })).toBe(w);
   });
 });
 

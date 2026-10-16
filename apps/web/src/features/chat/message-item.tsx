@@ -26,11 +26,18 @@ import { Composer } from './composer';
 import { MessageBody } from './format/render';
 import { EditIcon, MoreIcon, ReplyIcon, ThreadIcon, TrashIcon } from './icons';
 
-/** An extra entry in the hover toolbar of every message (Phase 9 adds "Turn into tasks"). */
+/**
+ * An extra action on a message, shown in the desktop hover toolbar and as a row of the phone
+ * action sheet (Phase 9 adds "Turn into tasks").
+ */
 export type MessageAction = {
   id: string;
   label: string;
   icon: ReactNode;
+  /** Desktop: behind "More" instead of on the hover bar. The phone sheet lists every action. */
+  inMenu?: boolean;
+  /** Hidden on messages where this returns false (deleted and unsent messages never show actions). */
+  isAvailable?: (message: MessageDto) => boolean;
   onSelect(message: MessageDto): void;
 };
 
@@ -192,6 +199,7 @@ function DeleteConfirm({
         ...message,
         deletedAt: new Date().toISOString(),
         changeSeq: message.changeSeq + 1,
+        tasks: [],
       });
       onDone();
     } catch {
@@ -302,7 +310,14 @@ export const MessageItem = memo(function MessageItem({
     });
   }
   for (const action of messageActions ?? []) {
-    actions.push({ ...action, run: () => action.onSelect(message) });
+    if (action.isAvailable?.(message) === false) continue;
+    actions.push({
+      id: action.id,
+      label: action.label,
+      icon: action.icon,
+      inMenu: action.inMenu,
+      run: () => action.onSelect(message),
+    });
   }
   if (canManage) {
     actions.push(

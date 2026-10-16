@@ -63,6 +63,7 @@ function msg(id: string, n: number, over: Partial<MessageDto> = {}): MessageDto 
     deletedAt: null,
     createdAt: new Date(Date.UTC(2026, 9, 15, 9, n)).toISOString(),
     changeSeq: n,
+    tasks: [],
     ...over,
   };
 }
@@ -304,6 +305,7 @@ describe('Conversation', () => {
     const event: ChatMessageEvent = {
       groupId: 'g1',
       channelId: 'c1',
+      taskId: null,
       message: { ...M2, body: '', deletedAt: '2026-10-15T10:00:00.000Z', changeSeq: 6 },
       isNew: false,
     };
@@ -400,6 +402,38 @@ describe('Conversation', () => {
     expect(readCalls()).toHaveLength(0);
   });
 
+  describe('threadMode', () => {
+    beforeEach(() => {
+      vi.stubGlobal('matchMedia', (query: string) => ({
+        matches: true,
+        media: query,
+        addEventListener: () => undefined,
+        removeEventListener: () => undefined,
+      }));
+    });
+    const column = (container: HTMLElement) =>
+      container.querySelector<HTMLElement>('[data-chat="c1"] > div > div')!;
+
+    it('side (default): from 1024 px the open thread sits beside the list', async () => {
+      const { container } = renderAt('/groups/g1/chat?thread=m2&c=c1');
+      const thread = await panel();
+      expect(column(container)).not.toHaveAttribute('inert');
+      expect(thread).toHaveClass('min-[1024px]:static');
+    });
+
+    it('over: an open thread covers the list at desktop width', async () => {
+      const { container, user, router } = renderAt('/groups/g1/chat?thread=m2&c=c1', {
+        threadMode: 'over',
+      });
+      const thread = await panel();
+      expect(column(container)).toHaveAttribute('inert');
+      expect(thread).not.toHaveClass('min-[1024px]:static');
+      await user.click(within(thread).getByRole('button', { name: t('chat.thread.back') }));
+      await waitFor(() => expect(router.state.location.search).toEqual({}));
+      expect(column(container)).not.toHaveAttribute('inert');
+    });
+  });
+
   it('a hidden tab is not marked read', async () => {
     const state = vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden');
     try {
@@ -464,6 +498,29 @@ describe('Conversation', () => {
       await act(async () => release());
       await waitFor(() => expect(threadReadCalls()).toHaveLength(2));
       await waitFor(() => expect(unreadRoots).toEqual([]));
+    });
+
+    it('the whole chat read elsewhere (chat:read with all) clears its dots', async () => {
+      unreadRoots = ['m2'];
+      const { container } = renderAt('/groups/g1/chat');
+      await screen.findByText('text of m2');
+      await waitFor(() => expect(within(summary(container)).getByText(dot())).toBeInTheDocument());
+      const read = (channelId: string) =>
+        act(() =>
+          socket.fire('chat:read', {
+            groupId: 'g1',
+            channelId,
+            taskId: channelId === 'c1' ? null : 't1',
+            lastReadAt: M3.createdAt,
+            all: true,
+          }),
+        );
+      // Another chat's read-all is not this chat's.
+      read('c2');
+      expect(within(summary(container)).getByText(dot())).toBeInTheDocument();
+      unreadRoots = [];
+      read('c1');
+      await waitFor(() => expect(within(summary(container)).queryByText(dot())).toBeNull());
     });
 
     it('a thread without unread replies is not marked read again', async () => {

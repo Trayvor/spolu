@@ -25,14 +25,16 @@ Each group has a Kanban board with four fixed buckets (columns) and custom bucke
   - deadline (date);
   - **urgent** flag;
   - attachments (files, images);
-  - link to the source message in chat (if the task was created from chat): opens the chat at that message;
-  - **task chat**: the same chat as the group chat (threads, @mentions of anyone in the group and admins, @all, attachments).
+  - link to the source message in chat (if the task was created from chat): opens the chat at that message, in the group chat or in the task chat it was written in;
+  - **task chat**: the same chat as the group chat (threads, @mentions of anyone in the group and admins, @all, attachments, "Turn into tasks" and the "Turned into tasks:" links under a message).
+- **Task panel tabs** (as built, Phase 9): under the task title the panel has two tabs, **Details** (the form) and **Chat (N)** (the task chat). The open tab is part of the address (`?tab=chat`), so a link can open a task straight on its chat at a message. Switching tabs keeps unsaved changes in the form, and closing the panel still asks about them. Opening the Chat tab marks the task's chat read. On phones the panel is a full-screen sheet and the chat fills it, with the message box at the bottom. A new task has no Chat tab until it is created.
+- **Unread tasks** (as built, Phase 9): a new message in a task chat marks the task unread for everyone else; a reply in a thread you are in does too. An unread task's card shows its title in bold and a dot on the chat icon next to the message count. The group's **Tasks tab** shows the number of unread tasks, live. Opening the task's Chat tab reads the whole chat and clears it (on every device). Your own messages never make a task unread for you.
 - **Notifications** (delivered from Phase 6):
   - when a task moves to another bucket, its creator and its assignees are notified (not the person who moved it);
   - every assignee is reminded 3, 2 and 1 days before the deadline, at 09:00 (Europe/Bratislava), while the task is not in Completed. The job `tasks.deadline-reminders` runs daily and records a `task.deadline` event per assignee, at most one per task and day, counted in Bratislava days (so daylight saving changes do not shift it);
   - an **urgent** task reminds its assignees every 3 hours between 08:00 and 20:00 (Europe/Bratislava) until it is in Completed or no longer urgent. The job `tasks.urgent-reminders` runs at 08, 11, 14, 17 and 20 and records a `task.urgent` event per assignee, at most one per task and Bratislava hour slot. A task without assignees reminds nobody;
   - task chat messages notify like the group chat.
-- **Creating tasks from a chat message** (with AI): see `ai-task-split.md`.
+- **Creating tasks from a chat message** (with AI): see `ai-task-split.md`. The approved cards go to the top of To do, in the order shown in the review, all at once or none; each keeps a link to its message, and a message file kept on a card is copied, so the card and the message each have their own file.
 
 ## Phase
 

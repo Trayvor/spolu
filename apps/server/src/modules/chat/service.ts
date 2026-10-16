@@ -1,7 +1,9 @@
 import { randomUUID } from 'node:crypto';
-import { and, eq, sql, type SQL } from 'drizzle-orm';
+import { and, eq, isNotNull, sql, type SQL } from 'drizzle-orm';
+import type { TaskChatSummaries } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
-import { channels, messages, readStates, threadReadStates } from './schema.js';
+import { isForeignKeyViolation } from '../../infra/db/errors.js';
+import { channels, messageAttachments, messages, readStates, threadReadStates } from './schema.js';
 
 export type ChannelRow = typeof channels.$inferSelect;
 
@@ -18,19 +20,83 @@ export async function ensureGroupChannel(db: Db, groupId: string): Promise<Chann
   return row!;
 }
 
+/** The task was deleted while its chat channel was being created (route: 404). */
+export class TaskGoneError extends Error {
+  constructor() {
+    super('The task no longer exists');
+    this.name = 'TaskGoneError';
+  }
+}
+
+/**
+ * Returns the task's chat channel, creating it on first use; safe when first reads race (the
+ * partial unique index `channels_task_unique` keeps one per task). The caller checks that the
+ * task exists and may be read; a task deleted meanwhile throws `TaskGoneError`.
+ */
+export async function ensureTaskChannel(
+  db: Db,
+  task: { id: string; groupId: string },
+): Promise<ChannelRow> {
+  try {
+    await db
+      .insert(channels)
+      .values({ id: randomUUID(), groupId: task.groupId, kind: 'task', taskId: task.id })
+      .onConflictDoNothing({ target: channels.taskId, where: isNotNull(channels.taskId) });
+  } catch (error) {
+    if (isForeignKeyViolation(error)) throw new TaskGoneError();
+    throw error;
+  }
+  const [row] = await db.select().from(channels).where(eq(channels.taskId, task.id));
+  if (!row) throw new TaskGoneError();
+  return row;
+}
+
+/**
+ * The ids of the files attached to any message of the task's chat (none when it has no chat).
+ * Call it inside the transaction that deletes the task: it first locks the channel row, so a
+ * send, edit or delete in that chat (they lock it through `nextSeq`) either committed before the
+ * list is read or waits until the channel is gone, and no attached file is missed.
+ */
+export async function taskChatFileIds(tx: Db, taskId: string): Promise<string[]> {
+  const [channel] = await tx
+    .select({ id: channels.id })
+    .from(channels)
+    .where(eq(channels.taskId, taskId))
+    .for('update');
+  if (!channel) return [];
+  const rows = await tx
+    .select({ fileId: messageAttachments.fileId })
+    .from(messageAttachments)
+    .innerJoin(messages, eq(messages.id, messageAttachments.messageId))
+    .where(eq(messages.channelId, channel.id));
+  return rows.map((r) => r.fileId);
+}
+
 export async function getChannel(db: Db, id: string): Promise<ChannelRow | null> {
   const [row] = await db.select().from(channels).where(eq(channels.id, id));
   return row ?? null;
 }
 
-/** Bumps and returns the channel counter; the row lock also serialises writers of one channel. */
+/** The channel was deleted (with its task or group) after the caller loaded it (route: 404). */
+export class ChannelGoneError extends Error {
+  constructor() {
+    super('The channel no longer exists');
+    this.name = 'ChannelGoneError';
+  }
+}
+
+/**
+ * Bumps and returns the channel counter; the row lock also serialises writers of one channel. A
+ * writer that waited on a task or group delete finds no row: `ChannelGoneError`.
+ */
 export async function nextSeq(tx: Db, channelId: string): Promise<number> {
   const [row] = await tx
     .update(channels)
     .set({ lastSeq: sql`${channels.lastSeq} + 1` })
     .where(eq(channels.id, channelId))
     .returning({ lastSeq: channels.lastSeq });
-  return row!.lastSeq;
+  if (!row) throw new ChannelGoneError();
+  return row.lastSeq;
 }
 
 /** Moves the read cursor forward only, never past the server's now; returns the stored value. */
@@ -46,6 +112,45 @@ export async function markRead(db: Db, userId: string, channelId: string, at: Da
     })
     .returning({ lastReadAt: readStates.lastReadAt });
   return row!.lastReadAt;
+}
+
+/**
+ * Reads the whole channel up to now for the user: the channel mark and every thread of theirs
+ * with unread replies (only those rows, through `thread_read_states_unread_idx`). The marks use
+ * the database clock, which also stamps the messages. A channel deleted meanwhile (with its task)
+ * throws `ChannelGoneError`.
+ */
+export async function markAllRead(db: Db, userId: string, channelId: string): Promise<Date> {
+  // now() is the transaction's start time, not the moment of the write; markRead's least(at, now())
+  // has the same behaviour.
+  try {
+    return await db.transaction(async (tx) => {
+      const [row] = await tx
+        .insert(readStates)
+        .values({ userId, channelId, lastReadAt: sql`now()` })
+        .onConflictDoUpdate({
+          target: [readStates.userId, readStates.channelId],
+          set: { lastReadAt: sql`greatest(${readStates.lastReadAt}, now())` },
+        })
+        .returning({ lastReadAt: readStates.lastReadAt });
+      await tx
+        .update(threadReadStates)
+        .set({
+          lastReadAt: sql`greatest(${threadReadStates.lastReadAt}, ${threadReadStates.lastReplyAt})`,
+        })
+        .where(
+          and(
+            eq(threadReadStates.userId, userId),
+            eq(threadReadStates.channelId, channelId),
+            sql`${threadReadStates.lastReplyAt} > ${threadReadStates.lastReadAt}`,
+          ),
+        );
+      return row!.lastReadAt;
+    });
+  } catch (error) {
+    if (isForeignKeyViolation(error)) throw new ChannelGoneError();
+    throw error;
+  }
 }
 
 export async function getLastReadAt(
@@ -64,6 +169,38 @@ export async function getLastReadAt(
 export const UNREAD_CAP = 100;
 
 /**
+ * The unread top-level messages of channel `c` for the user: by others, not deleted, after the
+ * channel's read mark (`rs`, the user's `read_states` row joined by the caller). A `from ... where`
+ * fragment: the caller selects from it.
+ */
+const topLevelUnread = (userId: string) => sql`
+  from messages m
+  where m.channel_id = c.id
+    and m.parent_id is null
+    and m.deleted_at is null
+    and m.author_id <> ${userId}
+    and m.created_at > coalesce(rs.last_read_at, '-infinity'::timestamptz)
+`;
+
+/**
+ * The unread replies of channel `c` for the user: by others, not deleted, after the thread's read
+ * mark, in the threads the user is one of the people of. Only threads with a reply after the mark
+ * are looked at (`thread_read_states_unread_idx`). A `from ... where` fragment.
+ */
+const threadUnread = (userId: string) => sql`
+  from thread_read_states t
+  join messages m
+    on m.channel_id = t.channel_id
+    and m.parent_id = t.root_id
+    and m.created_at > t.last_read_at
+  where t.user_id = ${userId}
+    and t.channel_id = c.id
+    and t.last_reply_at > t.last_read_at
+    and m.deleted_at is null
+    and m.author_id <> ${userId}
+`;
+
+/**
  * The unread messages of channel `c` for the user, at most `UNREAD_CAP`: top-level messages by
  * others after the channel's read mark (`rs`), plus replies by others after the thread's read
  * mark in the threads the user is one of the people of. Only threads with a reply after the mark
@@ -73,31 +210,9 @@ export const UNREAD_CAP = 100;
 const unreadIn = (userId: string) => sql`
   select count(*)::int as n
   from (
-    (
-      select 1
-      from messages m
-      where m.channel_id = c.id
-        and m.parent_id is null
-        and m.deleted_at is null
-        and m.author_id <> ${userId}
-        and m.created_at > coalesce(rs.last_read_at, '-infinity'::timestamptz)
-      limit ${UNREAD_CAP}
-    )
+    (select 1 ${topLevelUnread(userId)} limit ${UNREAD_CAP})
     union all
-    (
-      select 1
-      from thread_read_states t
-      join messages m
-        on m.channel_id = t.channel_id
-        and m.parent_id = t.root_id
-        and m.created_at > t.last_read_at
-      where t.user_id = ${userId}
-        and t.channel_id = c.id
-        and t.last_reply_at > t.last_read_at
-        and m.deleted_at is null
-        and m.author_id <> ${userId}
-      limit ${UNREAD_CAP}
-    )
+    (select 1 ${threadUnread(userId)} limit ${UNREAD_CAP})
     limit ${UNREAD_CAP}
   ) capped
 `;
@@ -133,6 +248,40 @@ export async function unreadByGroup(
     where n > 0
   `);
   return Object.fromEntries([...rows].map((r) => [r.group_id, r.n]));
+}
+
+/**
+ * The chat of every task of the group that has one, for the board, in one statement: `count` is
+ * its live messages (replies included), `unread` whether it has anything unread for the user by
+ * the same predicates as `unreadIn` (`topLevelUnread`, `threadUnread`), each in an `exists` that
+ * stops at the first hit. Tasks without a chat are absent. Checks no permissions.
+ */
+export async function taskChatSummaries(
+  db: Db,
+  userId: string,
+  groupId: string,
+): Promise<TaskChatSummaries> {
+  const rows = await db.execute<{ task_id: string; count: number; unread: boolean }>(sql`
+    select
+      c.task_id,
+      (
+        select count(*)::int
+        from messages m
+        where m.channel_id = c.id
+          and m.deleted_at is null
+      ) as count,
+      (
+        exists (select 1 ${topLevelUnread(userId)})
+        or exists (select 1 ${threadUnread(userId)})
+      ) as unread
+    from channels c
+    left join read_states rs on rs.channel_id = c.id and rs.user_id = ${userId}
+    where c.group_id = ${groupId}
+      and c.kind = 'task'
+  `);
+  return Object.fromEntries(
+    [...rows].map((r) => [r.task_id, { count: r.count, unread: r.unread }]),
+  );
 }
 
 /** The roots of the channel's threads with replies the user has not read (at most `UNREAD_CAP`). */

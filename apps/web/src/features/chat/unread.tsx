@@ -6,15 +6,15 @@ import { chatUnreadQuery } from './api';
 
 /**
  * An unread count as a small ink pill (`99+` above 99), nothing at 0. Inside the active (ink)
- * group tab it turns white, so it stays visible.
+ * group tab it turns white, so it stays visible. `label` replaces the default screen-reader text.
  */
-export function UnreadPill({ count }: { count: number }) {
+export function UnreadPill({ count, label }: { count: number; label?: string }) {
   const { t } = useTranslation();
   if (count <= 0) return null;
   return (
     <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-nano font-semibold text-primary-foreground tabular-nums in-data-[status=active]:bg-primary-foreground in-data-[status=active]:text-primary">
       <span aria-hidden="true">{count > 99 ? '99+' : count}</span>
-      <span className="sr-only">{t('chat.unread', { count })}</span>
+      <span className="sr-only">{label ?? t('chat.unread', { count })}</span>
     </span>
   );
 }

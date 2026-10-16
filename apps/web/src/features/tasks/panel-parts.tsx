@@ -45,13 +45,15 @@ export function PanelShell({
   // Below 1024 px the panel covers the screen: the page behind must not scroll under a finger.
   useScrollLock(true, '(max-width: 1023px)');
 
-  // Open menus and lists handle their own Escape.
+  // Open menus, lists and dialogs handle their own Escape; so do layers in a portal (React
+  // bubbles their keys through the panel), such as the chat's action sheet.
   function onKeyDown(event: KeyboardEvent) {
     const target = event.target as HTMLElement;
     if (
       event.key !== 'Escape' ||
       event.defaultPrevented ||
-      target.closest('[role="menu"],[role="listbox"]') ||
+      !panel.current?.contains(target) ||
+      target.closest('[role="menu"],[role="listbox"],[role="dialog"]') ||
       target.getAttribute('aria-expanded') === 'true'
     )
       return;
@@ -67,9 +69,10 @@ export function PanelShell({
       className={cn(
         'fixed inset-0 z-40 flex flex-col bg-background lg:left-auto lg:w-[560px] lg:border-l-2 lg:border-border',
         // Phones: every control in the sheet is at least 44 px to tap, except those that carry
-        // their own larger hit area (`data-hit`). The formatting toolbar drops its gaps so its
-        // eight 44 px buttons fit one line at 390 px, and wraps on narrower screens.
-        'max-[640px]:[&_:is(button,a,select,input):not([data-hit])]:min-h-11 max-[640px]:[&_:is(button,a,select):not([data-hit])]:min-w-11 max-[640px]:[&_[role=toolbar]]:flex-wrap max-[640px]:[&_[role=toolbar]]:gap-0 max-[640px]:[&_[role=toolbar]]:px-0',
+        // their own larger hit area (`data-hit`) and the task chat (`data-own-touch`), which is
+        // sized for phones already, like the group chat. The formatting toolbar drops its gaps so
+        // its eight 44 px buttons fit one line at 390 px, and wraps on narrower screens.
+        'max-[640px]:[&_:is(button,a,select,input):not([data-hit],[data-own-touch]_*)]:min-h-11 max-[640px]:[&_:is(button,a,select):not([data-hit],[data-own-touch]_*)]:min-w-11 max-[640px]:[&_[role=toolbar]:not([data-own-touch]_*)]:flex-wrap max-[640px]:[&_[role=toolbar]:not([data-own-touch]_*)]:gap-0 max-[640px]:[&_[role=toolbar]:not([data-own-touch]_*)]:px-0',
       )}
     >
       {children}
@@ -145,6 +148,94 @@ export function PanelNotice({ text, children }: { text: string; children: ReactN
     <div role="alert" className="flex flex-wrap items-center gap-3 rounded-lg bg-secondary p-3">
       <p className="mr-auto text-button font-semibold">{text}</p>
       {children}
+    </div>
+  );
+}
+
+export type PanelTab = 'details' | 'chat';
+const PANEL_TABS: PanelTab[] = ['details', 'chat'];
+
+/** The id of a tab's button and of its panel, for `aria-controls` / `aria-labelledby`. */
+export const panelTabIds = (tab: PanelTab) => ({
+  tab: `task-panel-tab-${tab}`,
+  panel: `task-panel-${tab}`,
+});
+
+/**
+ * "Details" and "Chat (N)" under the task title: underlined tabs on the panel's 2px rule (the
+ * group's pills name pages; these switch views inside one panel). Arrow keys, Home and End move
+ * between them and select at once (automatic activation; both views are cheap to show).
+ */
+export function PanelTabs({
+  tab,
+  chatCount,
+  onChange,
+}: {
+  tab: PanelTab;
+  chatCount: number;
+  onChange: (tab: PanelTab) => void;
+}) {
+  const { t } = useTranslation();
+  const list = useRef<HTMLDivElement>(null);
+
+  function onKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    const index = PANEL_TABS.indexOf(tab);
+    const last = PANEL_TABS.length - 1;
+    const next =
+      event.key === 'ArrowRight'
+        ? index === last
+          ? 0
+          : index + 1
+        : event.key === 'ArrowLeft'
+          ? index === 0
+            ? last
+            : index - 1
+          : event.key === 'Home'
+            ? 0
+            : event.key === 'End'
+              ? last
+              : null;
+    if (next === null) return;
+    event.preventDefault();
+    const target = PANEL_TABS[next]!;
+    onChange(target);
+    list.current?.querySelector<HTMLElement>(`#${panelTabIds(target).tab}`)?.focus();
+  }
+
+  return (
+    <div
+      ref={list}
+      role="tablist"
+      aria-label={t('tasks.panel.tabs.label')}
+      onKeyDown={onKeyDown}
+      className="flex shrink-0 gap-6 border-b-2 border-border px-4 min-[641px]:px-6"
+    >
+      {PANEL_TABS.map((key) => {
+        const selected = key === tab;
+        return (
+          <button
+            key={key}
+            type="button"
+            role="tab"
+            id={panelTabIds(key).tab}
+            aria-selected={selected}
+            aria-controls={panelTabIds(key).panel}
+            tabIndex={selected ? 0 : -1}
+            onClick={() => onChange(key)}
+            className={cn(
+              // Sits on the list's 2px rule, so the selected tab's ink line replaces it.
+              '-mb-0.5 h-10 border-b-2 text-button font-semibold tabular-nums max-[640px]:h-11',
+              selected
+                ? 'border-foreground text-foreground'
+                : 'border-transparent text-muted-foreground hover:text-foreground',
+            )}
+          >
+            {key === 'chat'
+              ? t('tasks.panel.tabs.chat', { count: chatCount })
+              : t('tasks.panel.tabs.details')}
+          </button>
+        );
+      })}
     </div>
   );
 }

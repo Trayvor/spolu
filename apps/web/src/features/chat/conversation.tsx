@@ -3,11 +3,13 @@ import { useTranslation } from 'react-i18next';
 import type { MessageDto } from '@spolu/shared';
 import { Button } from '@/components/ui/button';
 import { useSession } from '@/features/auth/use-session';
+import { useMediaQuery } from '@/lib/use-media-query';
 import { Composer } from './composer';
 import type { MessageAction } from './message-item';
 import { MessageList } from './message-list';
 import { HIGHLIGHT_MS, ThreadPanel } from './thread-panel';
 import { useChannelMessages } from './use-channel-messages';
+import { useDocumentVisible } from './use-document-visible';
 import { useChatSearch } from './use-chat-search';
 import { useUnreadThreads } from './use-unread-threads';
 
@@ -23,37 +25,16 @@ export interface ConversationProps {
   messageActions?: MessageAction[];
   /** Rendered under every saved message's content (main list and thread panel). */
   renderMessageFooter?: (message: MessageDto) => ReactNode;
-}
-
-/** True while the media query matches; false where `matchMedia` is missing. */
-function useMediaQuery(query: string): boolean {
-  const [matches, setMatches] = useState(
-    () => typeof window.matchMedia === 'function' && window.matchMedia(query).matches,
-  );
-  useEffect(() => {
-    if (typeof window.matchMedia !== 'function') return;
-    const list = window.matchMedia(query);
-    const update = () => setMatches(list.matches);
-    update();
-    list.addEventListener('change', update);
-    return () => list.removeEventListener('change', update);
-  }, [query]);
-  return matches;
-}
-
-function useDocumentVisible(): boolean {
-  const [visible, setVisible] = useState(() => document.visibilityState === 'visible');
-  useEffect(() => {
-    const update = () => setVisible(document.visibilityState === 'visible');
-    document.addEventListener('visibilitychange', update);
-    return () => document.removeEventListener('visibilitychange', update);
-  }, []);
-  return visible;
+  /**
+   * Where an open thread goes: `side` (default) beside the list from 1024 px and over it below;
+   * `over` always over the list, for narrow hosts such as the task panel.
+   */
+  threadMode?: 'side' | 'over';
 }
 
 /**
  * One chat: the message list, its composer and the thread panel (right side, 400 px, from 1024 px;
- * a full-width panel with a back button below). It knows nothing about what the channel belongs
+ * a full-width panel with a back button below, and at every width with `threadMode="over"`). It knows nothing about what the channel belongs
  * to: the group chat and Phase 9's task chats use it alike. It fills its parent's height.
  *
  * It must be rendered under the group layout (`GroupRoomProvider`): catch-up after a reconnect
@@ -70,6 +51,7 @@ export function Conversation({
   groupId,
   messageActions,
   renderMessageFooter,
+  threadMode = 'side',
 }: ConversationProps) {
   const { t } = useTranslation();
   const meId = useSession()?.id ?? '';
@@ -81,8 +63,10 @@ export function Conversation({
   const visible = useDocumentVisible();
   // The open thread is read while the page is visible.
   const unreadThreads = useUnreadThreads(channelId, groupId, visible ? threadId : undefined);
-  // Below 1024 px an open thread covers the list.
-  const covered = !useMediaQuery('(min-width: 1024px)') && threadId !== undefined;
+  // Below 1024 px (or always, in `over` mode) an open thread covers the list.
+  const wide = useMediaQuery('(min-width: 1024px)');
+  const over = threadMode === 'over';
+  const covered = (over || !wide) && threadId !== undefined;
   // The list opens away from the bottom when it shows a linked message.
   const [atBottom, setAtBottom] = useState(() => linked === undefined);
   const [endSignal, setEndSignal] = useState(0);
@@ -209,6 +193,7 @@ export function Conversation({
           highlightId={linked}
           messageActions={messageActions}
           renderMessageFooter={renderMessageFooter}
+          over={over}
           onClose={closeThread}
         />
       )}

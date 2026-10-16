@@ -103,8 +103,11 @@ export const TaskDtoSchema = z.object({
 });
 export type TaskDto = z.infer<typeof TaskDtoSchema>;
 
+/** The chat message a task was made from; `taskId` is the task whose chat it is in, else null. */
 export const SourceMessageSchema = z.object({
   id: z.string(),
+  channelId: z.string(),
+  taskId: z.string().nullable(),
   authorName: z.string(),
   excerpt: z.string(),
 });

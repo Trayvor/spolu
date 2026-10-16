@@ -2,6 +2,7 @@ import { asc, eq, inArray, type SQL } from 'drizzle-orm';
 import type { ChatAuthor, MessageDto } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
 import { getFilesForGroup } from '../files/service.js';
+import { listTasksForMessages } from '../tasks/service.js';
 import { user } from '../users/schema.js';
 import { messageAttachments, messageMentions, messages } from './schema.js';
 
@@ -39,7 +40,9 @@ const iso = (date: Date | null): string | null => date?.toISOString() ?? null;
 
 /**
  * Builds the DTOs with a fixed number of queries for any number of rows (mentions, attachment
- * rows, then their files). A deleted message has an empty body, no mentions and no attachments.
+ * rows and task links in parallel, then the files; none of them when no row is live). A deleted
+ * message has an empty body, no mentions, no attachments and no tasks. The task links come from
+ * the tasks service (the chat module never reads the tasks table itself).
  */
 export async function toMessageDtos(
   db: Db,
@@ -47,9 +50,9 @@ export async function toMessageDtos(
   rows: MessageWithAuthor[],
 ): Promise<MessageDto[]> {
   const liveIds = rows.filter((r) => r.deletedAt === null).map((r) => r.id);
-  const [mentionRows, attachmentRows] =
+  const [mentionRows, attachmentRows, tasksOf] =
     liveIds.length === 0
-      ? [[], []]
+      ? [[], [], new Map<string, MessageDto['tasks']>()]
       : await Promise.all([
           db.select().from(messageMentions).where(inArray(messageMentions.messageId, liveIds)),
           db
@@ -57,6 +60,7 @@ export async function toMessageDtos(
             .from(messageAttachments)
             .where(inArray(messageAttachments.messageId, liveIds))
             .orderBy(asc(messageAttachments.messageId), asc(messageAttachments.position)),
+          listTasksForMessages(db, liveIds),
         ]);
   const files = await getFilesForGroup(
     db,
@@ -94,6 +98,7 @@ export async function toMessageDtos(
       deletedAt: iso(r.deletedAt),
       createdAt: r.createdAt.toISOString(),
       changeSeq: r.changeSeq,
+      tasks: deleted ? [] : (tasksOf.get(r.id) ?? []),
     };
   });
 }

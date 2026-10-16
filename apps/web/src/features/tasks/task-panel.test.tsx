@@ -6,6 +6,7 @@ import { RouterProvider, createBrowserHistory, createMemoryHistory } from '@tans
 import { BoardEvents, type BucketDto, type TaskDetailDto, type TaskDto } from '@spolu/shared';
 import { i18n, setLanguage } from '@/i18n';
 import { createAppRouter } from '@/router';
+import { chatMessageHref } from '@/features/chat/links';
 import { taskQuery } from './api';
 
 const handlers = new Map<string, (payload: unknown) => void>();
@@ -21,6 +22,23 @@ vi.mock('@/lib/socket', () => ({
   disconnectSocket: vi.fn(),
 }));
 vi.mock('@/features/chat/chat-tab-badge', () => ({ ChatTabBadge: () => null }));
+// The conversation has its own tests; here it only has to be mounted for the right channel.
+vi.mock('@/features/chat/conversation', () => ({
+  Conversation: (props: { channelId: string; threadMode?: string }) => (
+    <div
+      data-testid="conversation"
+      data-channel={props.channelId}
+      data-thread-mode={props.threadMode}
+    />
+  ),
+}));
+const markAllRead = vi.hoisted(() =>
+  vi.fn<(channelId: string) => Promise<void>>(async () => undefined),
+);
+vi.mock('@/features/chat/api', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/features/chat/api')>()),
+  markAllRead,
+}));
 
 const t = (key: string, options?: Record<string, unknown>) => i18n.t(key, options);
 
@@ -70,9 +88,15 @@ const calls = (method: string, url: string) =>
 beforeEach(() => {
   setLanguage('en');
   handlers.clear();
+  markAllRead.mockClear();
   me = ADMIN;
   patchReply = null;
-  detail = { ...card('t1', 'b-todo'), description: 'Details', files: [], sourceMessage: null };
+  detail = {
+    ...card('t1', 'b-todo'),
+    description: 'Some details',
+    files: [],
+    sourceMessage: null,
+  };
   fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
     const method = init?.method ?? 'GET';
     const reply = (status: number, body?: unknown) =>
@@ -92,6 +116,8 @@ beforeEach(() => {
       return reply(200, { ...detail, ...body, updatedAt: '2026-10-16T10:00:00.000Z' });
     }
     if (url === '/api/tasks/t1/move') return reply(200, card('t1', 'b-done'));
+    if (url === '/api/tasks/t1/chat')
+      return reply(200, { id: 'ch1', lastSeq: 3, lastReadAt: null, unread: 3 });
     if (url === '/api/groups/g1/tasks' && method === 'POST') {
       const body = JSON.parse(init!.body as string);
       return reply(201, {
@@ -123,12 +149,13 @@ function renderPanel(path = '/groups/g1/tasks/t1', seed?: (queryClient: QueryCli
 }
 
 const titleField = () => screen.findByLabelText(t('tasks.form.title'));
+const tab = (name: RegExp) => screen.getByRole('tab', { name });
 
 describe('TaskPanel', () => {
   it('shows the form filled from the task and the created-by footer', async () => {
     renderPanel();
     expect(await titleField()).toHaveValue('Task t1');
-    expect(screen.getByText('Details')).toBeInTheDocument();
+    expect(screen.getByText('Some details')).toBeInTheDocument();
     expect(screen.getByText('Created by Jana Nováková on 15 Oct 2026')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: t('tasks.panel.save') })).toBeNull();
   });
@@ -319,15 +346,138 @@ describe('TaskPanel', () => {
   it('renders the source message block with a link into the chat', async () => {
     detail = {
       ...detail,
-      sourceMessage: { id: 'm1', authorName: 'Eva', excerpt: 'Please send the budget' },
+      sourceMessage: {
+        id: 'm1',
+        channelId: 'c1',
+        taskId: null,
+        authorName: 'Eva',
+        excerpt: 'Please send the budget',
+      },
     };
     renderPanel();
     expect(await screen.findByText(t('tasks.panel.fromMessage'))).toBeInTheDocument();
     expect(screen.getByText('Eva')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: t('tasks.panel.openMessage') })).toHaveAttribute(
       'href',
-      '/groups/g1/chat?message=m1',
+      chatMessageHref('g1', { messageId: 'm1', channelId: 'c1', taskId: null }),
     );
+  });
+
+  it('the source message link navigates in the app, so unsaved edits are asked about first', async () => {
+    detail = {
+      ...detail,
+      sourceMessage: { id: 'm1', channelId: 'c1', taskId: null, authorName: 'Eva', excerpt: 'Hi' },
+    };
+    const { user, router } = renderPanel();
+    await user.type(await titleField(), '!');
+    await user.click(screen.getByRole('link', { name: t('tasks.panel.openMessage') }));
+    expect(await screen.findByText(t('tasks.panel.unsaved'))).toBeInTheDocument();
+    expect(router.state.location.pathname).toBe('/groups/g1/tasks/t1');
+    await user.click(screen.getByRole('button', { name: t('tasks.panel.discard') }));
+    await waitFor(() => expect(router.state.location.pathname).toBe('/groups/g1/chat'));
+    expect(router.state.location.search).toEqual({ message: 'm1', c: 'c1' });
+  });
+
+  it("the source message of another task's chat links into that task's Chat tab", async () => {
+    detail = {
+      ...detail,
+      sourceMessage: {
+        id: 'm2',
+        channelId: 'ch7',
+        taskId: 't7',
+        authorName: 'Eva',
+        excerpt: 'Split this',
+      },
+    };
+    renderPanel();
+    expect(await screen.findByRole('link', { name: t('tasks.panel.openMessage') })).toHaveAttribute(
+      'href',
+      '/groups/g1/tasks/t7?tab=chat&message=m2&c=ch7',
+    );
+  });
+
+  describe('tabs', () => {
+    it('shows Details and Chat tabs; Chat mounts the conversation and marks the chat read', async () => {
+      const { user, router } = renderPanel('/groups/g1/tasks/t1');
+      await titleField();
+      expect(tab(/Details/)).toHaveAttribute('aria-selected', 'true');
+      expect(screen.queryByTestId('conversation')).toBeNull();
+      expect(calls('GET', '/api/tasks/t1/chat')).toHaveLength(0);
+      await user.click(tab(/Chat/));
+      const conversation = await screen.findByTestId('conversation');
+      expect(conversation).toHaveAttribute('data-channel', 'ch1');
+      expect(conversation).toHaveAttribute('data-thread-mode', 'over');
+      await waitFor(() => expect(markAllRead).toHaveBeenCalledWith('ch1'));
+      expect(markAllRead).toHaveBeenCalledTimes(1);
+      expect(tab(/Chat/)).toHaveAttribute('aria-selected', 'true');
+      expect(router.state.location.search).toMatchObject({ tab: 'chat' });
+      // The Details tab drops the param and keeps the others.
+      await user.click(tab(/Details/));
+      expect(router.state.location.search).toEqual({});
+    });
+
+    it('the tabs read "Details" and "Chat (N)" and move with the arrow keys', async () => {
+      const { user } = renderPanel();
+      await titleField();
+      expect(tab(/Chat/)).toHaveAccessibleName(t('tasks.panel.tabs.chat', { count: 0 }));
+      tab(/Details/).focus();
+      await user.keyboard('{ArrowRight}');
+      expect(tab(/Chat/)).toHaveFocus();
+      expect(tab(/Chat/)).toHaveAttribute('aria-selected', 'true');
+      await user.keyboard('{ArrowLeft}');
+      expect(tab(/Details/)).toHaveAttribute('aria-selected', 'true');
+    });
+
+    it('keeps unsaved Details edits across a tab switch and still asks on leaving', async () => {
+      const { user } = renderPanel();
+      await user.type(await titleField(), ' more');
+      await user.click(tab(/Chat/));
+      expect(await screen.findByTestId('conversation')).toBeInTheDocument();
+      await user.click(tab(/Details/));
+      expect(screen.getByLabelText(t('tasks.form.title'))).toHaveValue('Task t1 more');
+      await user.click(screen.getByRole('button', { name: t('tasks.panel.close') }));
+      expect(await screen.findByText(t('tasks.panel.unsaved'))).toBeInTheDocument();
+    });
+
+    it('opens on the Chat tab at a linked message', async () => {
+      const { router } = renderPanel('/groups/g1/tasks/t1?tab=chat&message=m9&c=ch1');
+      expect(await screen.findByRole('tab', { name: /Chat/, selected: true })).toBeInTheDocument();
+      expect(await screen.findByTestId('conversation')).toBeInTheDocument();
+      expect(router.state.location.search).toMatchObject({ message: 'm9', c: 'ch1' });
+    });
+
+    it('a chat that cannot load says so and retries', async () => {
+      const inner = fetchMock.getMockImplementation() as (
+        url: string,
+        init?: RequestInit,
+      ) => Promise<Response>;
+      let fail = true;
+      fetchMock.mockImplementation(async (url: string, init?: RequestInit) => {
+        if (url === '/api/tasks/t1/chat' && fail) return new Response(null, { status: 500 });
+        return inner(url, init);
+      });
+      const { user } = renderPanel('/groups/g1/tasks/t1?tab=chat');
+      expect(await screen.findByText(t('chat.loadError'))).toBeInTheDocument();
+      expect(markAllRead).not.toHaveBeenCalled();
+      fail = false;
+      await user.click(screen.getByRole('button', { name: t('errors.retry') }));
+      expect(await screen.findByTestId('conversation')).toBeInTheDocument();
+    });
+
+    it('a hidden page does not mark the chat read until it is shown', async () => {
+      let state: DocumentVisibilityState = 'hidden';
+      const spy = vi.spyOn(document, 'visibilityState', 'get').mockImplementation(() => state);
+      try {
+        renderPanel('/groups/g1/tasks/t1?tab=chat');
+        await screen.findByTestId('conversation');
+        expect(markAllRead).not.toHaveBeenCalled();
+        state = 'visible';
+        act(() => void document.dispatchEvent(new Event('visibilitychange')));
+        await waitFor(() => expect(markAllRead).toHaveBeenCalledWith('ch1'));
+      } finally {
+        spy.mockRestore();
+      }
+    });
   });
 
   it('a task that is gone sends the user back to the board with the deleted notice', async () => {
@@ -411,6 +561,7 @@ describe('TaskPanel in create mode', () => {
     );
     expect(createButton()).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: t('tasks.panel.more') })).toBeNull();
+    expect(screen.queryByRole('tablist')).toBeNull();
     expect(calls('POST', '/api/groups/g1/tasks')).toHaveLength(0);
   });
 

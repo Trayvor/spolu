@@ -14,6 +14,7 @@ import { createUnverifiedClient } from '../users/service.js';
 import { files } from './schema.js';
 import {
   attachFiles,
+  copyFile,
   createFile,
   deleteDetachedFiles,
   deleteFiles,
@@ -352,5 +353,91 @@ describe('deleteUnattachedFiles', () => {
     expect(await storage.exists(`files/${group.id}/${oldUnattached.id}`)).toBe(false);
     expect(await getFile(db, oldAttached.id)).not.toBeNull();
     expect(await getFile(db, fresh.id)).not.toBeNull();
+  });
+});
+
+describe('copyFile', () => {
+  it('a missing source object is an invalid attachment, and leaves no row', async () => {
+    const { group, owner } = await setup();
+    const original = await upload(group.id, owner.id, PNG, 'image/png', 'gone.png');
+    await storage.delete((await getFile(db, original.id))!.storageKey);
+    const before = (await db.select().from(files)).length;
+    await expect(
+      copyFile(deps, { fileId: original.id, groupId: group.id, userId: owner.id }),
+    ).rejects.toBeInstanceOf(InvalidAttachmentError);
+    expect((await db.select().from(files)).length).toBe(before);
+  });
+
+  it('makes an unattached copy owned by the copier, with its own storage', async () => {
+    const { group, owner } = await setup();
+    const other = await createUnverifiedClient(db, `${randomUUID()}@example.com`);
+    const original = await upload(group.id, owner.id, PNG, 'image/png', 'plan.png');
+    await setFilePreview(deps, (await getFile(db, original.id))!, {
+      body: Buffer.from('webp'),
+      width: 3,
+      height: 4,
+    });
+    await attachFiles(db, group.id, [original.id], owner.id);
+    const originalRow = (await getFile(db, original.id))!;
+
+    const copy = await copyFile(deps, { fileId: original.id, groupId: group.id, userId: other.id });
+    const row = (await getFile(db, copy.id))!;
+    expect(copy.id).not.toBe(original.id);
+    expect(copy).toMatchObject({
+      name: 'plan.png',
+      mime: 'image/png',
+      size: 11,
+      width: 3,
+      height: 4,
+      hasPreview: true,
+    });
+    expect(row).toMatchObject({
+      groupId: group.id,
+      uploadedBy: other.id,
+      attachedAt: null,
+      name: 'plan.png',
+    });
+    expect(row.storageKey).toBe(`files/${group.id}/${copy.id}`);
+    expect(row.previewKey).toMatch(new RegExp(`^files/${group.id}/${copy.id}-preview-`));
+    expect(row.storageKey).not.toBe(originalRow.storageKey);
+    expect(row.previewKey).not.toBe(originalRow.previewKey);
+    expect((await readAll((await storage.get(row.storageKey)).stream)).equals(PNG)).toBe(true);
+    expect((await readAll((await storage.get(row.previewKey!)).stream)).toString()).toBe('webp');
+
+    await deleteFiles(deps, [copy.id]);
+    expect(await storage.exists(originalRow.storageKey)).toBe(true);
+    expect(await storage.exists(originalRow.previewKey!)).toBe(true);
+    expect(await storage.exists(row.storageKey)).toBe(false);
+  });
+
+  it('throws InvalidAttachmentError for a file of another group, copying nothing', async () => {
+    const { group, owner } = await setup();
+    const { group: foreign, owner: foreignOwner } = await setup();
+    const theirs = await upload(foreign.id, foreignOwner.id, Buffer.from('secret'));
+    await expect(
+      copyFile(deps, { fileId: theirs.id, groupId: group.id, userId: owner.id }),
+    ).rejects.toBeInstanceOf(InvalidAttachmentError);
+    expect(await rowsOf(group.id)).toHaveLength(0);
+    expect(await storedNames(group.id)).toEqual([]);
+    expect(await rowsOf(foreign.id)).toHaveLength(1);
+  });
+
+  it('throws InvalidAttachmentError for an unknown file', async () => {
+    const { group, owner } = await setup();
+    await expect(
+      copyFile(deps, { fileId: randomUUID(), groupId: group.id, userId: owner.id }),
+    ).rejects.toBeInstanceOf(InvalidAttachmentError);
+  });
+
+  it('removes the copied objects when the insert fails, leaving no row', async () => {
+    const { group, owner } = await setup();
+    const original = await upload(group.id, owner.id, Buffer.from('hello'));
+    const before = await storedNames(group.id);
+    // A user that does not exist violates the uploaded_by foreign key.
+    await expect(
+      copyFile(deps, { fileId: original.id, groupId: group.id, userId: randomUUID() }),
+    ).rejects.toThrow();
+    expect(await rowsOf(group.id)).toHaveLength(1);
+    expect(await storedNames(group.id)).toEqual(before);
   });
 });

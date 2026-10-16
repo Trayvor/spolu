@@ -82,5 +82,6 @@ export function pendingAsMessage(
     deletedAt: null,
     createdAt: '',
     changeSeq: 0,
+    tasks: [],
   };
 }

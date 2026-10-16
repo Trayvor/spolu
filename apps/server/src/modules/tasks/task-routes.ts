@@ -5,9 +5,13 @@ import {
   TaskCreateSchema,
   TaskMoveSchema,
   TaskPatchSchema,
+  TasksFromMessageSchema,
   type SessionUser,
+  type TasksFromMessageResult,
 } from '@spolu/shared';
 import type { AppDeps } from '../../deps.js';
+import { emitMessageTasks } from '../chat/events.js';
+import { findReadableMessage, getMessageFiles, messageTasksEvent } from '../chat/messages.js';
 import { requireUser } from '../auth/session.js';
 import { InvalidAttachmentError } from '../files/service.js';
 import { getMembershipGroupId } from '../groups/service.js';
@@ -16,6 +20,7 @@ import { canDeleteTask, canUseBoard } from './policy.js';
 import type { WriteGuard } from './routes.js';
 import {
   createTask,
+  createTasksFromMessage,
   deleteTask,
   getTask,
   getTaskRef,
@@ -39,10 +44,13 @@ export type TaskRoutesOptions = {
 
 const notFound = (reply: FastifyReply) => reply.code(404).send({ error: ErrorCodes.notFound });
 
-/** 400 for a body that failed `TaskCreateSchema`/`TaskPatchSchema`: too many assignees has its own code. */
+/**
+ * 400 for a body that failed a task schema: too many assignees (on the task, or on a card made
+ * from a message) has its own code.
+ */
 const invalidBody = (reply: FastifyReply, error: ZodError) => {
   const tooManyAssignees = error.issues.some(
-    (issue) => issue.path[0] === 'assigneeIds' && issue.code === 'too_big',
+    (issue) => issue.path.at(-1) === 'assigneeIds' && issue.code === 'too_big',
   );
   return reply
     .code(400)
@@ -79,6 +87,20 @@ export const taskRoutes: FastifyPluginAsync<TaskRoutesOptions> = async (
   const logCleanupError = (request: FastifyRequest) => (error: unknown) =>
     request.log.error({ err: error }, 'could not delete the files of a task');
 
+  /**
+   * After a write to a task made from a message: pushes that message's current task links, so
+   * open chats update its footer. A failure is logged; the write already succeeded.
+   */
+  const pushMessageTasks = async (request: FastifyRequest, messageId: string | null) => {
+    if (messageId === null) return;
+    try {
+      const event = await messageTasksEvent(db, messageId);
+      if (event) emitMessageTasks(app.io, event);
+    } catch (error) {
+      request.log.error({ err: error }, 'could not push the tasks of a message');
+    }
+  };
+
   /** The task's group and creator when the actor may use its board, else null (404). */
   const readableTask = async (actor: SessionUser, id: string) => {
     const ref = await getTaskRef(db, id);
@@ -93,14 +115,52 @@ export const taskRoutes: FastifyPluginAsync<TaskRoutesOptions> = async (
     const body = TaskCreateSchema.safeParse(request.body);
     if (!body.success) return invalidBody(reply, body.error);
     if (!(await canOpenGroup(actor, request.params.id))) return notFound(reply);
+    let task;
     try {
-      const task = await createTask(deps, actor, request.params.id, body.data);
-      emitTask(app.io, toTaskDto(task), person(actor));
-      return reply.code(201).send(task);
+      task = await createTask(deps, actor, request.params.id, body.data);
     } catch (error) {
       return writeError(reply, error);
     }
+    // After the commit, outside the try: nothing here may be mapped as a failed write.
+    emitTask(app.io, toTaskDto(task), person(actor));
+    return reply.code(201).send(task);
   });
+
+  /**
+   * The reviewed cards of a chat message. The message must be live, readable by the actor and in
+   * a channel (group or task chat) of this group; anything else answers 404 like a missing one.
+   */
+  app.post<IdParams>(
+    '/groups/:id/tasks/from-message',
+    { preHandler: writeGuard },
+    async (request, reply) => {
+      const actor = request.user!;
+      const groupId = request.params.id;
+      const body = TasksFromMessageSchema.safeParse(request.body);
+      if (!body.success) return invalidBody(reply, body.error);
+      if (!(await canOpenGroup(actor, groupId))) return notFound(reply);
+      const found = await findReadableMessage(db, actor, body.data.messageId);
+      if (!found || found.message.deletedAt !== null || found.channel.groupId !== groupId) {
+        return notFound(reply);
+      }
+      const messageId = found.message.id;
+      const source = {
+        id: messageId,
+        fileIds: (await getMessageFiles(db, groupId, messageId)).map((f) => f.id),
+      };
+      let created;
+      try {
+        created = await createTasksFromMessage(deps, actor, groupId, body.data, source);
+      } catch (error) {
+        return writeError(reply, error);
+      }
+      // After the commit, outside the try: nothing here may be mapped as a failed write.
+      for (const task of created) emitTask(app.io, toTaskDto(task), person(actor));
+      await pushMessageTasks(request, messageId);
+      const result: TasksFromMessageResult = { tasks: created };
+      return reply.code(201).send(result);
+    },
+  );
 
   app.get<IdParams>('/tasks/:id', { preHandler: anyUser }, async (request, reply) => {
     if (!(await readableTask(request.user!, request.params.id))) return notFound(reply);
@@ -119,6 +179,7 @@ export const taskRoutes: FastifyPluginAsync<TaskRoutesOptions> = async (
         onFileCleanupError: logCleanupError(request),
       });
       emitTask(app.io, toTaskDto(task), person(actor));
+      await pushMessageTasks(request, task.sourceMessageId);
       return task;
     } catch (error) {
       return writeError(reply, error);
@@ -133,7 +194,10 @@ export const taskRoutes: FastifyPluginAsync<TaskRoutesOptions> = async (
     if (!(await readableTask(actor, request.params.id))) return notFound(reply);
     try {
       const { task, moved } = await moveTask(deps, actor, request.params.id, body.data);
-      if (moved) emitTask(app.io, task, person(actor));
+      if (moved) {
+        emitTask(app.io, task, person(actor));
+        await pushMessageTasks(request, task.sourceMessageId);
+      }
       return task;
     } catch (error) {
       return writeError(reply, error);
@@ -146,10 +210,11 @@ export const taskRoutes: FastifyPluginAsync<TaskRoutesOptions> = async (
     if (!ref) return notFound(reply);
     if (!canDeleteTask(actor, ref)) return reply.code(403).send({ error: ErrorCodes.forbidden });
     try {
-      const { groupId } = await deleteTask(deps, request.params.id, {
+      const { groupId, sourceMessageId } = await deleteTask(deps, request.params.id, {
         onFileCleanupError: logCleanupError(request),
       });
       emitTaskDeleted(app.io, groupId, request.params.id);
+      await pushMessageTasks(request, sourceMessageId);
       return reply.code(204).send();
     } catch (error) {
       return writeError(reply, error);

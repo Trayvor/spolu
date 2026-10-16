@@ -15,6 +15,14 @@ export const ChatAuthorSchema = z.object({
 });
 export type ChatAuthor = z.infer<typeof ChatAuthorSchema>;
 
+/** A task made from a message, for the message's "Turned into tasks" footer. */
+export const MessageTaskLinkSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  completed: z.boolean(),
+});
+export type MessageTaskLink = z.infer<typeof MessageTaskLinkSchema>;
+
 export const MessageSchema = z.object({
   id: z.string(),
   channelId: z.string(),
@@ -32,6 +40,8 @@ export const MessageSchema = z.object({
   deletedAt: z.string().nullable(),
   createdAt: z.string(),
   changeSeq: z.number().int(),
+  /** Tasks made from the message, oldest first; always empty on a deleted message. */
+  tasks: z.array(MessageTaskLinkSchema),
 });
 export type MessageDto = z.infer<typeof MessageSchema>;
 
@@ -115,30 +125,55 @@ export type UnreadByGroup = z.infer<typeof UnreadByGroupSchema>;
 export const UnreadThreadsSchema = z.array(z.string());
 export type UnreadThreads = z.infer<typeof UnreadThreadsSchema>;
 
+/** A task's chat on the board: its live messages (replies included) and whether any is unread. */
+export const TaskChatSummarySchema = z.object({ count: z.number().int(), unread: z.boolean() });
+/** By task id; tasks whose chat was never opened are absent. */
+export const TaskChatSummariesSchema = z.record(z.string(), TaskChatSummarySchema);
+export type TaskChatSummary = z.infer<typeof TaskChatSummarySchema>;
+export type TaskChatSummaries = z.infer<typeof TaskChatSummariesSchema>;
+
 export const ChatEvents = {
   message: 'chat:message',
   read: 'chat:read',
   threadReply: 'chat:thread-reply',
+  messageTasks: 'chat:message_tasks',
 } as const;
 
+/** Chat events name the channel's group and, for a task chat, its task (`taskId`, else null). */
 export interface ChatMessageEvent {
   groupId: string;
   channelId: string;
+  taskId: string | null;
   message: MessageDto;
   isNew: boolean;
 }
-/** The channel (or, with `rootId`, one of its threads) is read up to `lastReadAt`. */
+/**
+ * The channel (or, with `rootId`, one of its threads) is read up to `lastReadAt`; with `all`, the
+ * whole channel is read, every thread of the reader included.
+ */
 export interface ChatReadEvent {
   groupId: string;
   channelId: string;
+  taskId: string | null;
   lastReadAt: string;
   rootId?: string;
+  all?: true;
 }
 /** To each person of the thread but the author: a new reply that counts as unread for them. */
 export interface ChatThreadReplyEvent {
   groupId: string;
   channelId: string;
+  taskId: string | null;
   rootId: string;
+}
+
+/** The tasks made from a message changed (created, renamed, completed, reopened or deleted). */
+export interface ChatMessageTasksEvent {
+  groupId: string;
+  channelId: string;
+  messageId: string;
+  parentId: string | null;
+  tasks: MessageTaskLink[];
 }
 
 /** Global regexes: use them only with `matchAll`/`replace`, never `exec`/`test` (shared `lastIndex`). */

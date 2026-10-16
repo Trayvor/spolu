@@ -18,3 +18,8 @@ export function keyAfter(prev: string | null, next: string | null): string {
 export function keysAfter(prev: string | null, n: number): string[] {
   return generateNKeysBetween(prev, null, n);
 }
+
+/** `n` ascending keys before `next` (null = an empty list): the top of a bucket. */
+export function keysBefore(next: string | null, n: number): string[] {
+  return generateNKeysBetween(null, next, n);
+}

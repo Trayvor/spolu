@@ -1,4 +1,11 @@
-import type { AroundPage, MessageDto, MessagePage, SendMessageInput, Thread } from '@spolu/shared';
+import type {
+  AroundPage,
+  MessageDto,
+  MessagePage,
+  MessageTaskLink,
+  SendMessageInput,
+  Thread,
+} from '@spolu/shared';
 
 /**
  * The slice of one chat kept in memory: a contiguous run of top-level messages plus the
@@ -41,6 +48,8 @@ export type WindowAction =
   | { type: 'loadedAround'; page: AroundPage; channelId: string }
   /** `local`: a result of the reader's own edit or delete; it never moves `lastSeq`. */
   | { type: 'upsert'; messages: MessageDto[]; local?: boolean }
+  /** The tasks made from a message changed; no `changeSeq` moves, so `upsert` would drop it. */
+  | { type: 'tasksChanged'; messageId: string; tasks: MessageTaskLink[] }
   | { type: 'pendingAdded'; input: SendMessageInput }
   | { type: 'pendingFailed'; clientId: string }
   | { type: 'pendingRetried'; clientId: string }
@@ -174,6 +183,13 @@ export function windowReducer(state: ChannelWindow, action: WindowAction): Chann
       );
     case 'upsert':
       return upsert(state, action.messages, action.local ?? false);
+    case 'tasksChanged': {
+      const at = state.messages.findIndex((m) => m.id === action.messageId);
+      if (at === -1) return state;
+      const messages = state.messages.slice();
+      messages[at] = { ...messages[at]!, tasks: action.tasks };
+      return { ...state, messages };
+    }
     case 'pendingAdded':
       return {
         ...state,
@@ -205,4 +221,18 @@ export function upsertIntoThread(thread: Thread, m: MessageDto): Thread {
   const old = thread.replies.find((r) => r.id === m.id);
   if (old && m.changeSeq <= old.changeSeq) return thread;
   return { ...thread, replies: merge(thread.replies, [m]) };
+}
+
+/** A cached thread with the task links of its root or one of its replies replaced. */
+export function setTasksInThread(
+  thread: Thread,
+  messageId: string,
+  tasks: MessageTaskLink[],
+): Thread {
+  if (thread.root.id === messageId) return { ...thread, root: { ...thread.root, tasks } };
+  if (!thread.replies.some((r) => r.id === messageId)) return thread;
+  return {
+    ...thread,
+    replies: thread.replies.map((r) => (r.id === messageId ? { ...r, tasks } : r)),
+  };
 }

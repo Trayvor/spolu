@@ -45,6 +45,7 @@ function mockApi(
     removed?: unknown[];
     group?: number;
     egrantUrl?: string;
+    taskChats?: Record<string, { count: number; unread: boolean }>;
   } = {},
 ) {
   const me = options.me ?? ADMIN;
@@ -62,6 +63,7 @@ function mockApi(
     if (url === '/api/groups/g1/invite' && method === 'POST') {
       return reply(200, { inviteUrl: 'https://spolu.test/join/new-token' });
     }
+    if (url === '/api/groups/g1/task-chats') return reply(200, options.taskChats ?? {});
     if (url === '/api/groups/g1/members') return reply(200, state.members);
     if (url === '/api/groups/g1/members/removed') return reply(200, state.removed);
     const del = url.match(/^\/api\/groups\/g1\/members\/(\w+)$/);
@@ -117,6 +119,21 @@ describe('group layout', () => {
     const { router } = renderGroup('/groups/g1');
     expect(await screen.findByText('chat-tab')).toBeInTheDocument();
     expect(router.state.location.pathname).toBe('/groups/g1/chat');
+  });
+
+  it('the Tasks tab shows the number of unread tasks', async () => {
+    mockApi({
+      taskChats: {
+        t1: { count: 2, unread: true },
+        t2: { count: 1, unread: true },
+        t3: { count: 4, unread: false },
+      },
+    });
+    renderGroup('/groups/g1/chat');
+    const nav = await screen.findByRole('navigation', { name: t('group.tabs.label') });
+    const tab = within(nav).getByRole('link', { name: new RegExp(`^${t('group.tabs.tasks')}`) });
+    expect(await within(tab).findByText(t('tasks.unreadTasks', { count: 2 }))).toBeInTheDocument();
+    expect(within(tab).getByText('2')).toBeInTheDocument();
   });
 
   it('the three tabs link to chat, tasks, members; the current one has aria-current="page"', async () => {

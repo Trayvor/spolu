@@ -1,4 +1,6 @@
 import type { Config } from './infra/config/config.js';
+import { createAiProvider } from './modules/ai/index.js';
+import type { TaskSplitProvider } from './modules/ai/provider.js';
 import { authJobHandlers, AUTH_CLEANUP_JOB } from './modules/auth/jobs.js';
 import { filesJobHandlers, FILES_CLEANUP_JOB } from './modules/files/jobs.js';
 import {
@@ -27,6 +29,8 @@ export type AppDeps = {
   jobs: JobQueue;
   /** null when web push is not configured. */
   push: PushSender | null;
+  /** The AI task split provider; null when AI is off (no OpenAI key). */
+  ai: TaskSplitProvider | null;
 };
 
 /** Creates the real dependencies. `close` stops the jobs, then the database. */
@@ -59,7 +63,7 @@ export async function createDeps(
   );
   forward.resolve(jobs.queue);
   return {
-    deps: { config, db, email, storage, jobs: jobs.queue, push },
+    deps: { config, db, email, storage, jobs: jobs.queue, push, ai: createAiProvider(config.ai) },
     async close() {
       await jobs.stop();
       await closeDb();

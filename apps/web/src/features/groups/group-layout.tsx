@@ -3,6 +3,7 @@ import { Outlet, useParams } from '@tanstack/react-router';
 import { isAdmin } from '@/features/auth/roles';
 import { useSession } from '@/features/auth/use-session';
 import { ChatTabBadge } from '@/features/chat/chat-tab-badge';
+import { TasksTabBadge } from '@/features/tasks/tasks-tab-badge';
 import { groupQuery } from './api';
 import { GroupHeader } from './group-header';
 import { GroupTabs } from './group-tabs';
@@ -25,7 +26,13 @@ function GroupFrame({ groupId }: { groupId: string }) {
       <div className="flex flex-1 flex-col gap-3">
         <div className="flex flex-col gap-2">
           <GroupHeader group={group} admin={admin} />
-          <GroupTabs groupId={group.id} badges={{ chat: <ChatTabBadge groupId={group.id} /> }} />
+          <GroupTabs
+            groupId={group.id}
+            badges={{
+              chat: <ChatTabBadge groupId={group.id} />,
+              tasks: <TasksTabBadge groupId={group.id} />,
+            }}
+          />
         </div>
         <Outlet />
       </div>

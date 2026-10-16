@@ -1,6 +1,13 @@
 import { randomUUID } from 'node:crypto';
 import { asc, eq, inArray, sql, type SQL } from 'drizzle-orm';
-import type { BoardDto, BucketDto, BucketKind, TaskDto, TaskPerson } from '@spolu/shared';
+import type {
+  BoardDto,
+  BucketDto,
+  BucketKind,
+  MessageTaskLink,
+  TaskDto,
+  TaskPerson,
+} from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
 import { user } from '../users/schema.js';
 import { FIXED_POSITIONS, keyAfter, keysAfter } from './positions.js';
@@ -140,6 +147,35 @@ export async function selectTasks(db: Db, where: SQL): Promise<TaskDto[]> {
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   }));
+}
+
+/**
+ * The tasks made from each of the given messages, oldest first (`created_at`, then `position`):
+ * one query on `tasks_source_message_id_idx`. Messages without tasks are absent from the map.
+ */
+export async function listTasksForMessages(
+  db: Db,
+  messageIds: string[],
+): Promise<Map<string, MessageTaskLink[]>> {
+  const byMessage = new Map<string, MessageTaskLink[]>();
+  if (messageIds.length === 0) return byMessage;
+  const rows = await db
+    .select({
+      id: tasks.id,
+      title: tasks.title,
+      completedAt: tasks.completedAt,
+      messageId: tasks.sourceMessageId,
+    })
+    .from(tasks)
+    .where(inArray(tasks.sourceMessageId, messageIds))
+    .orderBy(asc(tasks.createdAt), asc(tasks.position), asc(tasks.id));
+  for (const row of rows) {
+    const link = { id: row.id, title: row.title, completed: row.completedAt !== null };
+    const list = byMessage.get(row.messageId!);
+    if (list) list.push(link);
+    else byMessage.set(row.messageId!, [link]);
+  }
+  return byMessage;
 }
 
 /** The board of a group, created on first read. Two queries after the ensure. */

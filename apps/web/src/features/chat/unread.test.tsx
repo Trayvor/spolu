@@ -48,12 +48,14 @@ function message(over: Partial<MessageDto> = {}): MessageDto {
     deletedAt: null,
     createdAt: '2026-10-15T10:00:00.000Z',
     changeSeq: 1,
+    tasks: [],
     ...over,
   };
 }
 const event = (m: MessageDto, over: Partial<ChatMessageEvent> = {}): ChatMessageEvent => ({
   groupId: 'g1',
   channelId: 'c1',
+  taskId: null,
   message: m,
   isNew: true,
   ...over,
@@ -152,6 +154,7 @@ describe('unread badges', () => {
     const read: ChatReadEvent = {
       groupId: 'g1',
       channelId: 'c1',
+      taskId: null,
       lastReadAt: '2026-10-15T10:00:00.000Z',
     };
     act(() => socket.fire('chat:read', read));

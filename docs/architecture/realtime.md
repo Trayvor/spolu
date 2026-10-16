@@ -43,7 +43,7 @@ Pushed to the `group:<id>` room after the write commits, by `modules/tasks/event
 | event                | payload                                             | when                                                  |
 | -------------------- | --------------------------------------------------- | ----------------------------------------------------- |
 | `board:buckets`      | `{ groupId, buckets }` (the full list, by position) | a custom bucket is created, renamed, moved or deleted |
-| `board:task`         | `{ task, actor }`                                   | a task is created, edited or moved (`task` is a `TaskDto`) |
+| `board:task`         | `{ task, actor }`                                   | a task is created (one event per card when cards are made from a message), edited or moved (`task` is a `TaskDto`) |
 | `board:task_deleted` | `{ groupId, taskId }`                               | a task is deleted                                     |
 
 `actor` (`{ id, name }`) is who made the change, so a client can skip its own echo or say who changed a card. The board has no `seq`: after a reconnect (a new `useGroupRoomJoins()` value) the web refetches `GET /api/groups/:id/board` instead of catching up event by event; boards are small.
@@ -61,15 +61,16 @@ After a bucket is deleted its tasks moved to To do without a `board:task` event;
 
 ## Chat events
 
-All are pushed by the chat routes (`modules/chat/events.ts`) after the transaction committed. Payload types are `ChatMessageEvent`, `ChatReadEvent` and `ChatThreadReplyEvent` in `packages/shared/src/chat.ts`; the event names are `ChatEvents.message`, `ChatEvents.read` and `ChatEvents.threadReply`.
+All are pushed after the transaction committed, by the chat routes, or for `chat:message_tasks` by the task routes, through `modules/chat/events.ts`. Payload types are `ChatMessageEvent`, `ChatReadEvent`, `ChatThreadReplyEvent` and `ChatMessageTasksEvent` in `packages/shared/src/chat.ts`; the event names are `ChatEvents.message`, `ChatEvents.read`, `ChatEvents.threadReply` and `ChatEvents.messageTasks`.
 
 | event | room | payload | sent when |
 |---|---|---|---|
-| `chat:message` | `group:<id>` (`emitToGroup`) | `{ groupId, channelId, message, isNew }` | a message is sent (`isNew: true`, and for a reply also the updated parent with `isNew: false`), edited or deleted (`isNew: false`). Never for a repeated `clientId` (the HTTP call answers 200 with the stored message and pushes nothing) or a second delete. |
-| `chat:read` | `user:<id>` | `{ groupId, channelId, lastReadAt, rootId? }` | the user marks the channel read, or (with `rootId`) opens a thread they are one of the people of, so their other tabs refresh the unread badge and the thread dots |
-| `chat:thread-reply` | `user:<id>` of each person of the thread still in the group, never the author | `{ groupId, channelId, rootId }` | a new reply: it counts as unread for them (the badge adds one, the thread gets its dot) |
+| `chat:message` | `group:<id>` (`emitToGroup`) | `{ groupId, channelId, taskId, message, isNew }` | a message is sent (`isNew: true`, and for a reply also the updated parent with `isNew: false`), edited or deleted (`isNew: false`). Never for a repeated `clientId` (the HTTP call answers 200 with the stored message and pushes nothing) or a second delete. |
+| `chat:read` | `user:<id>` | `{ groupId, channelId, taskId, lastReadAt, rootId?, all? }` | the user marks the channel read, (with `rootId`) opens a thread they are one of the people of, or (with `all: true`, `POST /api/channels/:id/read-all`) reads the whole chat including their threads, as when opening a task's Chat tab; their other tabs refresh the unread badge, the thread dots and the task's unread flag |
+| `chat:thread-reply` | `user:<id>` of each person of the thread still in the group, never the author | `{ groupId, channelId, taskId, rootId }` | a new reply: it counts as unread for them (the badge adds one, the thread gets its dot) |
+| `chat:message_tasks` | `group:<id>` (`emitMessageTasks`) | `{ groupId, channelId, messageId, parentId, tasks }` | the tasks made from a message changed: cards were created from it (`POST /api/groups/:id/tasks/from-message`, one event after the `board:task` of every card), one of them was edited (`PATCH /api/tasks/:id`), moved to another place (`completed` may flip) or deleted. `tasks` is the message's full current list `{ id, title, completed }[]` (the same as `MessageDto.tasks`), so the client replaces the message's list; `parentId` tells a thread reply from a top-level message. Not sent for a deleted or missing message. |
 
-`message` is a full `MessageDto`; the client upserts it by id. `isNew` tells the web whether to count it as unread and to append it. Handlers ignore events whose `groupId` is not the open group.
+`message` is a full `MessageDto`; the client upserts it by id. A task link change does not move the message's `change_seq`, so the catch-up below does not replay `chat:message_tasks`; a missed one is corrected by the next page load of that chat. `isNew` tells the web whether to count it as unread and to append it. Handlers ignore events whose `groupId` is not the open group. `taskId` is the task whose chat the channel is (Phase 9), or null for the group chat; task chats use the same group room, so a listener also filters on `channelId` (the group Chat tab badge ignores task chats).
 
 ## Catch-up with `change_seq`
 

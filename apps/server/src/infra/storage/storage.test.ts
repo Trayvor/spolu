@@ -53,6 +53,33 @@ describe('disk storage', () => {
     await expect(storage.get('orphan.txt')).rejects.toBeInstanceOf(StorageNotFoundError);
   });
 
+  it('copy duplicates data and content type; the copy outlives the source', async () => {
+    await storage.put('a/x', Buffer.from('hi'), 'text/plain');
+    await storage.copy('a/x', 'b/y');
+    await storage.delete('a/x');
+    const got = await storage.get('b/y');
+    expect(got.contentType).toBe('text/plain');
+    expect((await readAll(got.stream)).toString()).toBe('hi');
+    expect(await readdir(join(dir, 'b'))).toEqual(['y', 'y.meta.json']);
+  });
+
+  it('copy of a missing source throws StorageNotFoundError and creates nothing', async () => {
+    await expect(storage.copy('a/none', 'a/y')).rejects.toBeInstanceOf(StorageNotFoundError);
+    expect(await storage.exists('a/y')).toBe(false);
+  });
+
+  it('copy of a data file without its sidecar throws StorageNotFoundError', async () => {
+    await writeFile(join(dir, 'orphan.txt'), 'x');
+    await expect(storage.copy('orphan.txt', 'y.txt')).rejects.toBeInstanceOf(StorageNotFoundError);
+    expect(await storage.exists('y.txt')).toBe(false);
+  });
+
+  it('copy validates both keys', async () => {
+    await storage.put('a/x', Buffer.from('hi'), 'text/plain');
+    await expect(storage.copy('a/x', '../escape')).rejects.toBeInstanceOf(InvalidStorageKeyError);
+    await expect(storage.copy('../escape', 'a/y')).rejects.toBeInstanceOf(InvalidStorageKeyError);
+  });
+
   it('put writes the sidecar before the data', async () => {
     const failing = new Readable({
       read() {

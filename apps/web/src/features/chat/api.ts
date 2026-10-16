@@ -27,6 +27,13 @@ export const groupChatQuery = (groupId: string) =>
     queryFn: () => apiGet(`/groups/${enc(groupId)}/chat`, GroupChannelSchema),
   });
 
+/** A task's chat (created on first open) with the reader's unread count and read cursor. */
+export const taskChatQuery = (taskId: string) =>
+  queryOptions({
+    queryKey: ['chat', 'task', taskId],
+    queryFn: () => apiGet(`/tasks/${enc(taskId)}/chat`, GroupChannelSchema),
+  });
+
 /** Unread message count (top-level and replies in the reader's threads) per group the user can read. */
 export const chatUnreadQuery = queryOptions({
   queryKey: ['chat', 'unread'],
@@ -95,6 +102,11 @@ export async function deleteMessage(id: string): Promise<void> {
 /** Marks the channel read up to `at` (an ISO time); the server never moves the cursor back. */
 export async function markRead(channelId: string, at: string): Promise<void> {
   await apiSend('POST', `/channels/${enc(channelId)}/read`, { at });
+}
+
+/** Marks the whole channel read up to now, every thread of the reader included. */
+export async function markAllRead(channelId: string): Promise<void> {
+  await apiSend('POST', `/channels/${enc(channelId)}/read-all`);
 }
 
 /** Marks a thread read up to now; a no-op for someone who is not one of its people. */

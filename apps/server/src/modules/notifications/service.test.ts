@@ -169,12 +169,19 @@ describe('deleteOldNotificationEvents', () => {
   });
 });
 
-describe('migration 0009 backfill', () => {
+describe('migration 0010 backfill', () => {
   const migration = readFileSync(
-    new URL('../../infra/db/migrations/0009_notifications_delivery.sql', import.meta.url),
+    new URL('../../infra/db/migrations/0010_notifications_delivery.sql', import.meta.url),
     'utf8',
   );
   const backfill = migration.split('--> statement-breakpoint').at(-1)!.trim();
+
+  it('the migration ends with the hand-written backfill of existing events', () => {
+    expect(migration.split('\n')).toContain(
+      'UPDATE "notification_events" SET "delivered_at" = now(), "emailed_at" = now() WHERE "delivered_at" IS NULL;',
+    );
+    expect(backfill).toMatch(/^-- Before this release nothing set delivered_at/);
+  });
 
   it('existing events count as delivered and emailed, so the worker never sends the backlog', async () => {
     const { group, a } = await setup();

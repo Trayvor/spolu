@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm';
 import {
+  type AnyPgColumn,
   boolean,
   check,
   customType,
@@ -11,6 +12,7 @@ import {
   timestamp,
   uniqueIndex,
 } from 'drizzle-orm/pg-core';
+import { messages } from '../chat/schema.js';
 import { files } from '../files/schema.js';
 import { groups } from '../groups/schema.js';
 import { user } from '../users/schema.js';
@@ -70,8 +72,13 @@ export const tasks = pgTable(
     urgent: boolean('urgent').notNull().default(false),
     /** Set when moved into Completed, cleared when moved out. */
     completedAt: timestamp('completed_at', { withTimezone: true }),
-    /** Phase 9 adds the foreign key. */
-    sourceMessageId: text('source_message_id'),
+    /**
+     * The chat message the task was made from; cleared when that message's channel is deleted
+     * (with its task). Lazy reference: chat/schema.ts imports this file too.
+     */
+    sourceMessageId: text('source_message_id').references((): AnyPgColumn => messages.id, {
+      onDelete: 'set null',
+    }),
     // Always written from JS `new Date()` (millisecond precision) so the ISO string round-trips.
     createdAt: timestamp('created_at', { withTimezone: true }).notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull(),
@@ -85,6 +92,10 @@ export const tasks = pgTable(
     index('tasks_urgent_idx')
       .on(t.urgent)
       .where(sql`${t.urgent}`),
+    // Serves the set-null cascade when a task chat goes, and listing a message's tasks.
+    index('tasks_source_message_id_idx')
+      .on(t.sourceMessageId)
+      .where(sql`${t.sourceMessageId} is not null`),
   ],
 );
 

@@ -8,51 +8,51 @@ egrant.sk is a WordPress block theme. Its design system is the `theme.json` outp
 
 Reference screenshots (Playwright, Chromium, PNG compressed with pngquant) are in [screenshots/](screenshots/):
 
-| File | Page | Shows |
-|---|---|---|
-| `home-desktop.png` | `/` at 1440×900 | nav pill, hero type, primary button, blog card |
-| `home-mobile.png` | `/` at 390×844 | mobile nav pill, mobile type scale |
-| `challenges-desktop.png` | `/vyzvy/` at 1440×900 | search field, selects, filter pills, white cards with progress bar |
-| `contact-desktop.png` | `/kontakt/` at 1440×900 | form fields, labels, accent-border contact block |
-| `demo-desktop.png` | `/demo/` at 1440×900 | form with submit button, screenshot of the eGrant app itself |
+| File                     | Page                    | Shows                                                              |
+| ------------------------ | ----------------------- | ------------------------------------------------------------------ |
+| `home-desktop.png`       | `/` at 1440×900         | nav pill, hero type, primary button, blog card                     |
+| `home-mobile.png`        | `/` at 390×844          | mobile nav pill, mobile type scale                                 |
+| `challenges-desktop.png` | `/vyzvy/` at 1440×900   | search field, selects, filter pills, white cards with progress bar |
+| `contact-desktop.png`    | `/kontakt/` at 1440×900 | form fields, labels, accent-border contact block                   |
+| `demo-desktop.png`       | `/demo/` at 1440×900    | form with submit button, screenshot of the eGrant app itself       |
 
 egrant.sk has **no dark mode** (no `prefers-color-scheme` rule anywhere). Spolu has none either; `theme.css` has no `.dark` block. Add one only if the owner asks.
 
 ## Colors
 
-| shadcn variable | Value | egrant.sk name | Observed on |
-|---|---|---|---|
-| `--background` | `#F5F3F1` | `base` | `body` background; header pill, dropdowns, modal panel |
-| `--foreground` | `#141414` | `ink` | `body` text, headings |
-| `--card` | `#FFFFFF` | `surface` | `.egrant-challenge-card`, `.egrant-field__input`, open nav panel |
-| `--card-foreground` | `#141414` | `ink` | card text |
-| `--popover` | `#F5F3F1` | `base` | `.egrant-header__lang-dropdown` (with lift shadow) |
-| `--popover-foreground` | `#141414` | `ink` | dropdown items |
-| `--primary` | `#141414` | `ink` | `.wp-element-button`, `.egrant-header__cta` background |
-| `--primary-foreground` | `#FFFFFF` | `surface` | button text |
-| `--secondary` | `#E4E2DD` | `surface-2` | `.egrant-header__lang-toggle`, `.egrant-header__subscribe`, "Odoberať výzvy" pill |
-| `--secondary-foreground` | `#141414` | `ink` | text on those |
-| `--muted` | `#F0EDEA` | `tile` | `.egrant-bottom-nav__items`, feature tiles |
-| `--muted-foreground` | `#6B6B6B` | `muted` | `.egrant-field__label`, placeholders, result counts |
-| `--accent` | `#E4E2DD` | `surface-2` | hover background of `.egrant-header__lang-option`, `.egrant-bottom-nav__item` |
-| `--accent-foreground` | `#141414` | `ink` | |
-| `--destructive` | `#E90000` | `error` | `.egrant-field--error .egrant-field__input` border, filled destructive button or badge. **Fills and borders only; never as text color** (use `text-error-ink`) |
-| `--destructive-foreground` | `#FFFFFF` | — | text on a filled destructive button (egrant.sk has none; white chosen for contrast) |
-| `--border` | `#E3DEDA` | `line` | hairlines, `.egrant-challenge-card__bar` track |
-| `--input` | `#6B6B6B` | `custom.border.field` (`2px solid #6B6B6B`) | `.egrant-field__input` border at rest |
-| `--ring` | `#141414` | `ink` | `.wp-element-button:focus-visible` outline (2px, offset 3px); focused input border |
+| shadcn variable            | Value     | egrant.sk name                              | Observed on                                                                                                                                                    |
+| -------------------------- | --------- | ------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--background`             | `#F5F3F1` | `base`                                      | `body` background; header pill, dropdowns, modal panel                                                                                                         |
+| `--foreground`             | `#141414` | `ink`                                       | `body` text, headings                                                                                                                                          |
+| `--card`                   | `#FFFFFF` | `surface`                                   | `.egrant-challenge-card`, `.egrant-field__input`, open nav panel                                                                                               |
+| `--card-foreground`        | `#141414` | `ink`                                       | card text                                                                                                                                                      |
+| `--popover`                | `#F5F3F1` | `base`                                      | `.egrant-header__lang-dropdown` (with lift shadow)                                                                                                             |
+| `--popover-foreground`     | `#141414` | `ink`                                       | dropdown items                                                                                                                                                 |
+| `--primary`                | `#141414` | `ink`                                       | `.wp-element-button`, `.egrant-header__cta` background                                                                                                         |
+| `--primary-foreground`     | `#FFFFFF` | `surface`                                   | button text                                                                                                                                                    |
+| `--secondary`              | `#E4E2DD` | `surface-2`                                 | `.egrant-header__lang-toggle`, `.egrant-header__subscribe`, "Odoberať výzvy" pill                                                                              |
+| `--secondary-foreground`   | `#141414` | `ink`                                       | text on those                                                                                                                                                  |
+| `--muted`                  | `#F0EDEA` | `tile`                                      | `.egrant-bottom-nav__items`, feature tiles                                                                                                                     |
+| `--muted-foreground`       | `#6B6B6B` | `muted`                                     | `.egrant-field__label`, placeholders, result counts                                                                                                            |
+| `--accent`                 | `#E4E2DD` | `surface-2`                                 | hover background of `.egrant-header__lang-option`, `.egrant-bottom-nav__item`                                                                                  |
+| `--accent-foreground`      | `#141414` | `ink`                                       |                                                                                                                                                                |
+| `--destructive`            | `#E90000` | `error`                                     | `.egrant-field--error .egrant-field__input` border, filled destructive button or badge. **Fills and borders only; never as text color** (use `text-error-ink`) |
+| `--destructive-foreground` | `#FFFFFF` | —                                           | text on a filled destructive button (egrant.sk has none; white chosen for contrast)                                                                            |
+| `--border`                 | `#E3DEDA` | `line`                                      | hairlines, `.egrant-challenge-card__bar` track                                                                                                                 |
+| `--input`                  | `#6B6B6B` | `custom.border.field` (`2px solid #6B6B6B`) | `.egrant-field__input` border at rest                                                                                                                          |
+| `--ring`                   | `#141414` | `ink`                                       | `.wp-element-button:focus-visible` outline (2px, offset 3px); focused input border                                                                             |
 
 Extra colors (Tailwind names in brackets):
 
-| Variable | Value | egrant.sk name | Use |
-|---|---|---|---|
-| `--ink-hover` (`ink-hover`) | `#3B3A33` | `ink-hover` | filled button hover, card link hover text |
-| `--surface-3` (`surface-3`) | `#D6D2C8` | `surface-3` | hover of secondary (`.egrant-header__lang-toggle:hover`) |
-| `--neutral` (`neutral`) | `#5E5E5E` | `neutral` | link hover color (`a:hover` in global styles) |
-| `--error-ink` (`error-ink`) | `#D60004` | `error-ink` | all error text: field messages, destructive menu items. Tailwind class `text-error-ink` (there is no `text-destructive` in components) |
-| `--success` (`success`) | `#007A37` | `green` | positive states (logo gradient stop) |
-| `--success-light` (`success-light`) | `#52C083` | `green-light` | |
-| `--brand-purple`, `--brand-pink`, `--brand-blue`, `--brand-coral` | `#7654FF`, `#EB5ED4`, `#3242DC`, `#FF8A4C` | `purple`, `pink`, `blue`, `coral` | logo gradient and illustration accents; use sparingly (avatars, labels), never as large fills |
+| Variable                                                          | Value                                      | egrant.sk name                    | Use                                                                                                                                    |
+| ----------------------------------------------------------------- | ------------------------------------------ | --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `--ink-hover` (`ink-hover`)                                       | `#3B3A33`                                  | `ink-hover`                       | filled button hover, card link hover text                                                                                              |
+| `--surface-3` (`surface-3`)                                       | `#D6D2C8`                                  | `surface-3`                       | hover of secondary (`.egrant-header__lang-toggle:hover`)                                                                               |
+| `--neutral` (`neutral`)                                           | `#5E5E5E`                                  | `neutral`                         | link hover color (`a:hover` in global styles)                                                                                          |
+| `--error-ink` (`error-ink`)                                       | `#D60004`                                  | `error-ink`                       | all error text: field messages, destructive menu items. Tailwind class `text-error-ink` (there is no `text-destructive` in components) |
+| `--success` (`success`)                                           | `#007A37`                                  | `green`                           | positive states (logo gradient stop)                                                                                                   |
+| `--success-light` (`success-light`)                               | `#52C083`                                  | `green-light`                     |                                                                                                                                        |
+| `--brand-purple`, `--brand-pink`, `--brand-blue`, `--brand-coral` | `#7654FF`, `#EB5ED4`, `#3242DC`, `#FF8A4C` | `purple`, `pink`, `blue`, `coral` | logo gradient and illustration accents; use sparingly (avatars, labels), never as large fills                                          |
 
 Avatar (`components/avatar.tsx`): a round initials badge, `size` px square (24, 32 or 40; default 32), weight 600, text white on purple, blue and success and ink on pink and coral (every pair at least 4.5:1, WCAG AA), font size `size * 0.4`. Initials are the first letters of the first and last word of the name, upper-case (`?` when empty). The background is picked from `bg-brand-purple`, `bg-brand-pink`, `bg-brand-blue`, `bg-brand-coral`, `bg-success` by a 32-bit FNV-1a hash of the user id modulo 5, so a person keeps one color everywhere. It is `aria-hidden`: the name always appears next to it.
 
@@ -60,13 +60,13 @@ The live dot in the header "Výzvy" pill is `#64D01C` (hard-coded in `.egrant-he
 
 ## Typography
 
-| Token | Value | Observed on |
-|---|---|---|
-| `--font-sans` (source `--font-family-base`) | `"Saans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif` | `--wp--preset--font-family--saans`, set on `body` |
-| Weight 500 | `Saans-Medium.woff2` | `body` (`font-weight: 500`) — the site's normal text weight; there is no 400 |
-| Weight 600 | `Saans-SemiBold.woff2` | `h1`–`h6`, buttons, field labels, nav links |
-| Letter spacing | `0.2px` | `body`, buttons, headings; `h1` uses `-0.6px`, `h2` `0`, captions `0.25px` |
-| Line height | `1.25` body; `1.2` h3–h4; `1` h1–h2 (`38/36` under 900px) | global styles |
+| Token                                       | Value                                                                | Observed on                                                                  |
+| ------------------------------------------- | -------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| `--font-sans` (source `--font-family-base`) | `"Saans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif` | `--wp--preset--font-family--saans`, set on `body`                            |
+| Weight 500                                  | `Saans-Medium.woff2`                                                 | `body` (`font-weight: 500`) — the site's normal text weight; there is no 400 |
+| Weight 600                                  | `Saans-SemiBold.woff2`                                               | `h1`–`h6`, buttons, field labels, nav links                                  |
+| Letter spacing                              | `0.2px`                                                              | `body`, buttons, headings; `h1` uses `-0.6px`, `h2` `0`, captions `0.25px`   |
+| Line height                                 | `1.25` body; `1.2` h3–h4; `1` h1–h2 (`38/36` under 900px)            | global styles                                                                |
 
 There is one family; no separate heading font, so no `--font-heading`.
 
@@ -76,37 +76,37 @@ Font files are self-hosted in `apps/web/public/fonts/` (copied from `https://egr
 
 Type scale (Tailwind `text-*` utilities; desktop value, then the value under 900px):
 
-| Utility | Desktop | ≤ 900px | egrant.sk preset | Used for |
-|---|---|---|---|---|
-| `text-nano` | 11.2px | 11.2px | `nano` | tiny meta |
-| `text-micro` | 12.8px | 12.8px | `micro` | field labels, captions, `h6` |
-| `text-tiny` | 14px | 14px | `tiny` | header buttons, pills, bottom nav |
-| `text-button` | 14.4px | 14.4px | `button` | buttons, input text, `h5` |
-| `text-body` | 17.6px | 16.6px | `small` | body text, `h4` |
-| `text-medium` | 22.4px | 17.6px | `medium` | `h3`, lead text, modal titles |
-| `text-large` | 36px | 36px | `large` | |
-| `text-xlarge` | 64px | 36px | `x-large` | `h1`, `h2` (page titles) |
-| `text-wordmark` | 32px | 24px (≤ 640px) | — (Spolu's own) | the "Spolu" wordmark in the header only |
+| Utility         | Desktop | ≤ 900px        | egrant.sk preset | Used for                                |
+| --------------- | ------- | -------------- | ---------------- | --------------------------------------- |
+| `text-nano`     | 11.2px  | 11.2px         | `nano`           | tiny meta                               |
+| `text-micro`    | 12.8px  | 12.8px         | `micro`          | field labels, captions, `h6`            |
+| `text-tiny`     | 14px    | 14px           | `tiny`           | header buttons, pills, bottom nav       |
+| `text-button`   | 14.4px  | 14.4px         | `button`         | buttons, input text, `h5`               |
+| `text-body`     | 17.6px  | 16.6px         | `small`          | body text, `h4`                         |
+| `text-medium`   | 22.4px  | 17.6px         | `medium`         | `h3`, lead text, modal titles           |
+| `text-large`    | 36px    | 36px           | `large`          |                                         |
+| `text-xlarge`   | 64px    | 36px           | `x-large`        | `h1`, `h2` (page titles)                |
+| `text-wordmark` | 32px    | 24px (≤ 640px) | — (Spolu's own)  | the "Spolu" wordmark in the header only |
 
 For the app, page titles should normally use `text-medium` or `text-large`; `text-xlarge` is the website's hero size and is too big for app screens.
 
 ## Radius
 
-| Tailwind | Value | egrant.sk name | Observed on |
-|---|---|---|---|
-| `rounded-sm` | 4px | `radius.sm` | small chips |
-| `rounded-md` (`--radius`) | 8px | `radius.md` | `.egrant-field__input` |
-| `rounded-lg` | 12px | `radius.lg` | |
-| `rounded-xl` | 16px | `radius.xl` | `.egrant-challenge-card`, `.egrant-footer__box`, `.egrant-modal` |
-| `rounded-nav` | 32px | `radius.nav` | header pill `.egrant-header__bar` |
-| `rounded-full` | pill | `radius.pill` / `80px` | every button, filter pill, language toggle (circle) |
+| Tailwind                  | Value | egrant.sk name         | Observed on                                                      |
+| ------------------------- | ----- | ---------------------- | ---------------------------------------------------------------- |
+| `rounded-sm`              | 4px   | `radius.sm`            | small chips                                                      |
+| `rounded-md` (`--radius`) | 8px   | `radius.md`            | `.egrant-field__input`                                           |
+| `rounded-lg`              | 12px  | `radius.lg`            |                                                                  |
+| `rounded-xl`              | 16px  | `radius.xl`            | `.egrant-challenge-card`, `.egrant-footer__box`, `.egrant-modal` |
+| `rounded-nav`             | 32px  | `radius.nav`           | header pill `.egrant-header__bar`                                |
+| `rounded-full`            | pill  | `radius.pill` / `80px` | every button, filter pill, language toggle (circle)              |
 
 Dropdown panels use 20px and their items 14px; in Spolu use `rounded-xl` and `rounded-lg` for those.
 
 ## Shadow
 
-| Tailwind | Value | Observed on |
-|---|---|---|
+| Tailwind      | Value                        | Observed on                                |
+| ------------- | ---------------------------- | ------------------------------------------ |
 | `shadow-lift` | `0 0 8px 0 rgb(0 0 0 / 0.1)` | header pill, language dropdown, bottom nav |
 
 Cards have **no shadow** (`.egrant-challenge-card { box-shadow: none }`): a white card on the `base` background is the separation. The theme also defines WordPress default shadows (`crisp`, `natural`, `deep` …) that the site does not use; they are left out.
@@ -196,10 +196,13 @@ egrant.sk spacing presets are 4, 8, 12, 16, 20, 24, 32, 40, 48, 54, 64px — all
 - Board: columns in a horizontal row (`flex gap-3`, scrolls sideways; snap scrolling under 641px), no animations besides dnd-kit's own transform while dragging. The lifted card and the dragged column use `shadow-lift`.
 - Column (`bucket-column.tsx`): `rounded-xl bg-muted p-3`, `w-72` from 641px, nearly full width (`100vw - 56px`) below it, `min-h-40`, at most `100dvh - 14rem` tall with the card list scrolling inside. Header: a grip handle on every column in admin view (fixed ones included; clients see none), a 8px kind square, the name (`h2`, `text-button` weight 600, truncated), the card count (`text-micro text-muted-foreground`) and, for custom columns in admin view, a "More" menu (Rename, Delete). Kind squares: To do an outlined square (`border-[1.5px] border-foreground`), eGrant review `bg-brand-purple`, client review `bg-brand-blue`, Completed `bg-success`, custom columns none. The delete confirmation is inline (`bg-card` panel with a destructive "Delete" and a secondary "Cancel"), no modal.
 - Card (`task-card.tsx`): a link, `rounded-lg bg-card p-3` with 40px left padding, 8px gap, title `text-button` weight 600 clamped to 3 lines (muted and struck through in Completed). The done circle (`done-circle.tsx`) sits in that left padding on the title's line, as a sibling of the link (never a button inside a link): an 18px circle with a 2px `border-input` ring on `bg-card` (hover: ink ring and a faint ink check), filled `success` with a white check in Completed; a 36px hit area around it; named "Mark as done" / "Mark as not done". It is the only color on a card besides the Urgent pill and an overdue date. Above the title the urgent pill: `Badge` variant `destructive`, text "Urgent". Meta row (`text-micro text-muted-foreground`): up to 3 overlapping 24px avatars with "+n", the due date (`text-error-ink` weight 600 when overdue and not in Completed) and, pushed right, a paperclip icon with the file count. A card picked up by the keyboard keeps the focus ring (`outline-ring`) on its lifted copy; the slot it left stays in the list, faded.
+- Chat meta and unread task (`TaskCardMeta`, `icons.tsx`, Phase 9): after the paperclip, on the right of the meta row, a 16px outline speech bubble (`ChatIcon`) with the message count, shown when the task chat has messages; screen readers get "N messages" or "N messages, unread". An unread chat adds a filled 8px `foreground` dot on the bubble's top right corner (ringed in the card colour) and turns the count to `foreground`. An unread task's title is weight 700 (`font-bold`), a read one's 500 (`font-medium`; it was 600), a visible pair on Inter at 15px without any colour change. The Tasks tab carries an `UnreadPill` with the number of unread tasks (`tasks.unreadTasks` for screen readers).
 - Drop marks: a 2px line before or after the card the drag is over, and an end-of-column zone under the last card.
 - Add task: a ghost "+ Add task" link at the foot of each column opens the task panel in create mode with that column chosen. Add column: an inline name field (Enter creates, Esc cancels) behind a `secondary` pill "+ Add column" after the last column (admins).
 - Create mode (`task-create-panel.tsx`): the same panel and `<TaskForm>`, heading "New task", the title field focused, the bucket select preset to the column that opened it, then a primary "Create" and an outline "Cancel". Nothing is saved before Create; closing discards the draft without asking.
-- Panel (`task-panel.tsx`): `aside` fixed to the right, 560px wide with a 2px left border from 1024px, full screen below. Phones (under 641px): the header is a 44px back arrow (the "Back to the board" label stays for screen readers), the bucket select filling the rest of the line and the 44px "More" button; the body padding is 16px; the deadline field is full width; every control in the sheet is at least 44px to tap (one rule on the `aside`), except the done circle, the urgent switch and the assignee chips' remove icons, which keep their size and carry a 44px hit area (`data-hit`, a `before:` pseudo-element); the formatting toolbar drops its gaps so its eight 44px buttons fit one line at 390px and wraps on narrower screens. While the panel covers the screen (under 1024px) the page behind does not scroll (`overflow: hidden` on `html`). The board's scroller is `relative`, so the cards' `sr-only` texts stay inside it and never widen the page (they made a phone zoom out to 1372px). Header: "Back to board" (phones) or "Close" ghost button, a bucket select (the shared `Select`, 38px high to match the header buttons, weight 600) and a "More" menu with Delete (admin or creator). Body scrolls: the done circle and the title `h2` (`text-medium`, struck through and muted in Completed), the form, one field per row with its label above it and the same 10px label-to-field gap (egrant.sk's; it keeps the 5px focus ring clear of the label) (title, description, assignees as chips with avatars and an "eGrant" pill for admins, deadline as a native date field at its natural width, the urgent switch on its own row, files with image previews), then Save and Cancel only while the draft differs. Notices (unsaved changes, delete confirmation, changed by someone else) are inline `bg-secondary` bars above the body with `role="alert"`; the footer says who created the task and when. The `children` slot sits under the form for the Phase 9 task chat.
+- Panel (`task-panel.tsx`): `aside` fixed to the right, 560px wide with a 2px left border from 1024px, full screen below. Phones (under 641px): the header is a 44px back arrow (the "Back to the board" label stays for screen readers), the bucket select filling the rest of the line and the 44px "More" button; the body padding is 16px; the deadline field is full width; every control in the sheet is at least 44px to tap (one rule on the `aside`), except the task chat (`data-own-touch`: the chat is sized for phones already, as in the group chat, and the rule and the toolbar rule below skip it), the done circle, the urgent switch and the assignee chips' remove icons, which keep their size and carry a 44px hit area (`data-hit`, a `before:` pseudo-element); the formatting toolbar drops its gaps so its eight 44px buttons fit one line at 390px and wraps on narrower screens. While the panel covers the screen (under 1024px) the page behind does not scroll (`overflow: hidden` on `html`). The board's scroller is `relative`, so the cards' `sr-only` texts stay inside it and never widen the page (they made a phone zoom out to 1372px). Header: "Back to board" (phones) or "Close" ghost button, a bucket select (the shared `Select`, 38px high to match the header buttons, weight 600) and a "More" menu with Delete (admin or creator). Under the header and the notices, fixed (outside any scroll area): the done circle and the title `h2` (`text-medium`, struck through and muted in Completed, clamped to 3 lines so the chat keeps its room on a phone), then the panel tabs (see below). The Details tab scrolls: the source message, the form, one field per row with its label above it and the same 10px label-to-field gap (egrant.sk's; it keeps the 5px focus ring clear of the label) (title, description, assignees as chips with avatars and an "eGrant" pill for admins, deadline as a native date field at its natural width, the urgent switch on its own row, files with image previews), then Save and Cancel only while the draft differs. Notices (unsaved changes, delete confirmation, changed by someone else) are inline `bg-secondary` bars above the body with `role="alert"`; the footer says who created the task and when. The Details tab ends with the footer.
+- Panel tabs (`PanelTabs` in `panel-parts.tsx`, Phase 9): "Details" and "Chat (N)" under the title, a `tablist` on a 2px `border` rule (`border-b-2`, 16px side padding, 24px from 641px), 24px apart. Each tab is `text-button` weight 600, 40px high (44px under 641px), with a 2px bottom edge laid over the rule: `foreground` text and edge when selected, `muted-foreground` text and a transparent edge otherwise (hover: `foreground` text). No pill and no fill: the group's ink pills name pages, these underlined tabs switch views inside one panel, and the panel's other dividers are the same 2px rule. The count uses tabular figures. Arrow keys, Home and End move and select (roving `tabIndex`); the focus ring is the app's global outline. The tab is `?tab=chat` (other params kept; switching replaces the history entry and never triggers the unsaved-changes question). Details stays mounted (`hidden`) while Chat shows. Create mode has no tabs.
+- Task chat (`task-chat.tsx`): the Chat tab is a `flex-1 min-h-0` box with 8px padding (16px from 641px) holding `<Conversation threadMode="over">`, the same white card as the group chat, filling the panel down to its bottom edge with the composer pinned at the bottom (on phones the whole sheet). With `threadMode="over"` the thread covers the chat card at every width, with "‹ Back to chat" and no × button. While the channel loads the card is empty (`aria-busy`); a load error is the chat's "The chat could not be loaded." with "Try again".
 - Description (`description-field.tsx`): the chat composer's formatting, not a new editor. The composer box look (`rounded-md border-2 border-input bg-card`, border `foreground` on focus-within) with the shared `FormatToolbar` (`features/chat/format-toolbar.tsx`, the same buttons, order and shortcuts as the composer) above a borderless `text-button` textarea of at least 12 lines that grows with its text (the panel scrolls, the field never does). A filled description shows rendered by the chat's `MessageBody` in a plain `bg-card` box, with a ghost small "Edit description" next to the label; focus leaving the field shows it rendered again (decided a tick after the blur, and the toolbar cancels `mousedown`, so Safari, which does not focus clicked buttons, keeps the editor open and the selection). The done circle is described by the task title (`aria-describedby`).
 - Urgent switch (`urgent-switch.tsx`): a 44x24px pill toggle, ink when on, `border-input` when off.
 
@@ -214,11 +217,12 @@ egrant.sk spacing presets are 4, 8, 12, 16, 20, 24, 32, 40, 48, 54, 64px — all
 - Rows, not bubbles (`message-item.tsx`): 32px `Avatar`, then name (`text-button`, weight 600), an `eGrant` pill for admins (`bg-secondary text-secondary-foreground rounded-full px-2 text-nano`, the chat's only mark), time (`text-micro text-muted-foreground`) and `(edited)`. Messages of one author within 5 minutes stack without avatar and name (the "(edited)" mark then follows the text). Text is `text-body`; a deleted message is one muted italic line "Message deleted" with no actions and no footer.
 - A message that mentions me (by id or @all, never my own) gets `bg-muted` and a 2px `border-brand-purple` left edge; other rows carry a transparent 2px edge so nothing shifts. The linked/highlighted message is `bg-accent`.
 - Every row has `content-visibility: auto; contain-intrinsic-size: auto 64px`. Because that clips overflow, the hover toolbar sits inside the row (`absolute right-3 top-1`), not above it.
-- Message actions come from one list in `message-item.tsx` (`RowAction`): Reply in thread (in the thread panel: Quote), the `messageActions` (Phase 9 "Turn into tasks"), then, for own messages, Edit and Delete (danger). Desktop and touch render that same list. The switch is one CSS media query, `(hover: hover) and (min-width: 641px)` = desktop, so no listener per row.
+- Message actions come from one list in `message-item.tsx` (`RowAction`): Reply in thread (in the thread panel: Quote), the `messageActions` (Phase 9 "Turn into tasks"; an action with `inMenu` sits behind "More" on desktop, one with `isAvailable` returning false is hidden on that message, in bar, menu and sheet), then, for own messages, Edit and Delete (danger). Desktop and touch render that same list. The switch is one CSS media query, `(hover: hover) and (min-width: 641px)` = desktop, so no listener per row.
 - Desktop hover toolbar (`role="toolbar"`, "Message actions"): `bg-card` box with a 1px `border`, 32px icon buttons (16px outline icons from `icons.tsx`, `text-muted-foreground`, hover `bg-accent`); Edit and Delete sit behind More. It sits just above the message (`bottom-full translate-y-1`: 4px overlap into the row's top padding), so it never reaches the name or time; the two scroll containers (main feed, thread panel) have `pt-9` so the bar over the first row is not clipped by the container edge or covered by the panel header. A hovered or focused row switches `content-visibility` to `visible` so the lifted toolbar is not clipped by the row. It fades in with `group-hover`, `group-focus-within` or an open menu (opacity, so the buttons stay focusable). Every button has `aria-label` and `title`.
 - Touch (no hover, or under 641px): no toolbar. A muted 24px "⋯" ("Message actions", 44px hit area) at the end of the author and time line (top right on a grouped row without a header). It, or a long press on the message (450ms, cancelled when the finger moves more than 10px or scrolls), opens the action sheet (`components/ui/action-sheet.tsx`): a `bg-foreground/30` backdrop and a `bg-popover` panel with `rounded-t-xl`, `shadow-lift`, a 32x4px `surface-3` grab bar and full-width 48px rows (16px icon in `text-muted-foreground`, `text-button` weight 500 label; Delete in `text-error-ink`). The message has `bg-accent` while its sheet is open. It closes on a tap outside, Escape or a downward swipe of 64px; the focus goes back to "⋯". The page behind does not scroll (`useScrollLock`, shared with the task panel). No animation. Delete is inline: "Delete this message?" with a destructive small Delete and a ghost Cancel; Edit is the composer in `edit` mode (see Composer below).
 - Day dividers and the "New messages" line: a 1px line, centred label in `text-micro` weight 600 (`border` / `muted-foreground` for days, `brand-purple` for the new line). Days read "Today", "Yesterday", then the date in the UI language.
 - Attachments under the text: images through `ImagePreview` with `maxWidth = min(320, 240 * width / height)`, other files as `FileChip`. Thread summary: a `text-micro` weight 600 `brand-purple` link "3 replies, last at 15:10"; when the thread has replies the reader has not read, an 8px `bg-brand-purple` dot sits before the text (6px gap; `aria-hidden`, screen readers hear "Unread replies"). Purple is the chat's "new" color (the "New messages" line, the mention edge), so the dot needs no extra color and no motion. Reply quote: a `text-micro` muted line with a 2px `border` left edge, author name then the first 80 characters.
+- Tasks footer (`message-tasks.tsx`, via `renderMessageFooter`): under the message, one `text-micro text-muted-foreground` line (4px above): "Turned into tasks:" then a link per task (weight 600, underlined with a 4px offset, hover `neutral`, truncated). A completed task's title is `line-through` muted, with an `sr-only` "Completed". The line wraps on narrow screens (`gap-x-2`); nothing for a message without tasks.
 - Sending rows are muted and have no toolbar and no footer (`messageActions` and `renderMessageFooter` skip unsent messages); a failed one adds "Not sent. Retry" in `error-ink`. The list scrolls itself (`overscroll-contain`); the "New messages ↓" pill is a `bg-primary` pill with `shadow-lift`, centred above the bottom edge.
 
 ### Composer (as built, `src/features/chat/composer.tsx`, `mention-picker.tsx`, `composer-text.ts`)
@@ -232,7 +236,7 @@ egrant.sk spacing presets are 4, 8, 12, 16, 20, 24, 32, 40, 48, 54, 64px — all
 ### Chat screen (as built, `src/features/chat/conversation.tsx`, `thread-panel.tsx`, `chat-tab.tsx`)
 
 - `<Conversation>` is one white card (`bg-card rounded-xl`, no border, no shadow) that fills its parent. The Chat tab gives it all the window height left under the header pill, the group header and the tabs, down to the page's bottom gap (12px on phones, 32px from 641px), at least 360px: the root layout is a `min-h-dvh` flex column, `main` and the group layout grow (`flex-1`), and the Chat tab's box is `relative flex-1` with the card `absolute inset-0` in it, so long conversations scroll inside the card and never stretch the page. Other screens are unaffected (they just sit at the top of the growing `main`). Inside: the message list (the only scrolling part) and under it the composer with 16px side and bottom padding. Files dropped on the chat column go to the main composer.
-- Thread panel: from 1024px a 400px column on the right of the card with a 1px `border` left edge; below 1024px it covers the whole card (`absolute inset-0`, `bg-card`). Header row 48px high with a 1px `border` underneath: "Thread" (`text-button` weight 600) and a 32px × icon button "Close thread" from 1024px; below, a ghost small "‹ Back to chat" button instead. Then the root message, a divider (`text-micro` weight 600 muted, "3 replies", a 1px `border` line to the right), the replies (same rows as the list, no "New messages" line) and the thread's own composer (`Reply…`), which takes files dropped on the panel. "Reply" on any message of the thread puts the reply strip over that composer; there are no nested threads. Opening a thread focuses its heading; Esc inside the panel drops the quote, then closes the thread; focus returns to the button that opened it (else the root's "N replies" link). Below 1024px the covered chat column is `inert`.
+- Thread panel: from 1024px a 400px column on the right of the card with a 1px `border` left edge; below 1024px (and at every width with `threadMode="over"`, the task panel's chat) it covers the whole card (`absolute inset-0`, `bg-card`). Header row 48px high with a 1px `border` underneath: "Thread" (`text-button` weight 600) and a 32px × icon button "Close thread" from 1024px; below, a ghost small "‹ Back to chat" button instead. Then the root message, a divider (`text-micro` weight 600 muted, "3 replies", a 1px `border` line to the right), the replies (same rows as the list, no "New messages" line) and the thread's own composer (`Reply…`), which takes files dropped on the panel. "Reply" on any message of the thread puts the reply strip over that composer; there are no nested threads. Opening a thread focuses its heading; Esc inside the panel drops the quote, then closes the thread; focus returns to the button that opened it (else the root's "N replies" link). Below 1024px the covered chat column is `inert`.
 - Highlight: a linked message (`?message=<id>&c=<channelId>`; for a linked reply the list highlights its thread root and the panel the reply) or a reply whose quote was clicked gets `bg-accent` for 2 s, then plain again; no animation. (The mention tint stays `bg-muted`, so the two never look alike.)
 - A chat that cannot load shows "The chat could not be loaded." (`text-body`) centred in the card with an outline small "Try again" button.
 - Unread pill (`unread.tsx`): `h-5 min-w-5 rounded-full bg-primary px-1.5 text-nano` weight 600 white tabular figures, `99+` above 99, nothing at 0; inside the active (ink) tab it turns white with ink figures (`in-data-[status=active]:`). Screen readers hear "{n} unread messages" (`sr-only`), not the bare number. Used after the Chat tab label and in the groups list rows.
@@ -258,6 +262,20 @@ egrant.sk spacing presets are 4, 8, 12, 16, 20, 24, 32, 40, 48, 54, 64px — all
 
 - Radix `Switch` (role `switch`): a 44×26 `rounded-full` track with 3px padding, `bg-surface-3` off and `bg-primary` (ink) on; a 20px white (`bg-card`) knob with `shadow-lift`, moved 18px when on. The knob slides in 150ms (`--duration-fast`) only under `motion-safe:`; the colour change is the same 150ms. Disabled: 50% opacity. Focus: the global 2px ink ring.
 
+### Turn into tasks review (as built, `src/features/task-split/`, `components/ui/toast.tsx`)
+
+- Dialog (`review-dialog.tsx`, Radix `Dialog`, lazy chunk): from 641px a centred 720px panel (`bg-popover`, `rounded-xl`, `shadow-lift`, at most `100dvh - 48px` tall) over a `bg-foreground/30` backdrop that does nothing when clicked; up to 640px a full-screen sheet (no backdrop) where every control is at least 44px (the task panel's rule). Header: "Turn into tasks" (`text-medium` weight 600). The body scrolls; the footer (2px `border` top) never does, so on phones it is always in view above the safe area.
+- Quoted message: `bg-muted rounded-lg px-4 py-3`, the author in `text-tiny` weight 600, the text (mentions as `@name`, at most 280 characters) in `text-button text-muted-foreground`, clamped to 3 lines.
+- Loading: "AI is reading the message…" (`text-button text-muted-foreground`, `role="status"`) above three card outlines: `rounded-lg border-2 border-dashed border-surface-3 p-4` with three `bg-secondary` pill bars (60%, full, 40% wide). The outlines pulse only with `motion-safe:animate-pulse`; with reduced motion they stay still.
+- Card summary (`review-card.tsx`): the board card's look, `bg-card rounded-lg`, no shadow. One button opens it ("Edit “title”"): the Urgent pill, the title (`text-button` weight 600, 3 lines, underlined on hover) with a 16px pencil, two lines of description (`text-tiny text-muted-foreground`, `line-clamp-2`, plain text). Then the board card's meta row (`TaskCardMeta` from `task-card.tsx`: avatars, deadline) and the message files as `FileChip`s. Bottom right: a ghost "Reject" and an outline "Approve", both 44px pills; pressed (`aria-pressed`) Approve fills `bg-success` with a white check, and the approved card gets a 4px `success` inset left edge: green is the only color that marks a decision.
+- Rejected card: one 56px line, `rounded-lg border-2 border-dashed border-surface-3`, the title struck through in `text-muted-foreground` (screen readers also hear "Rejected") and a ghost 44px "Undo"; the focus moves to Undo on reject and back to the summary on Undo.
+- Open card, desktop: the summary is replaced in place by the full `TaskForm` in a `bg-card rounded-lg p-4` box with a 2px `ring-foreground`; under the form (2px `border` divider) a secondary "Done" on the left and Reject / Approve on the right. One card is open at a time; opening another closes the first and keeps its edits.
+- Open card, phones: a full-screen `bg-popover` layer over the list ("Edit the task" `text-body` weight 600 with a filled "Done" in a header with a 2px `border` underneath; the form scrolls; Reject / Approve in a bottom bar above the safe area). The list stays mounted (hidden), so its scroll position survives.
+- Footer: a secondary "Approve all" (while cards are pending) on the left; an outline "Cancel" and a filled "Create N tasks" on the right, all 44px. Create is unavailable until every card is approved or rejected and at least one is approved, and while the request runs. Errors show above the buttons in `text-error-ink`. Discarding asks inline in the footer: "Discard the proposed tasks?" (weight 600) with an outline "Keep reviewing" and a destructive "Discard".
+- Problems (a `bg-card rounded-lg p-4` box under the quote, `text-body`): the AI did not answer (+ outline "Try again"), found no tasks (+ outline "Create one task by hand"), is not available, or the message is gone.
+- Screen readers and focus: one `sr-only` `role="status"` region at the top of the dialog is mounted empty and filled a tick later with the current state ("AI is reading the message…", "2 cards proposed", or the error), so each change is announced; the visible texts carry no live role of their own. The focus starts on the title (`tabIndex=-1`, no ring) while the AI works. When a button disappears under the focus it moves on: after "Approve all" to Create; after "Try again" to the title, then to the first card; after "Create one task by hand" into the new card's title. Create is `aria-disabled` (50% opacity, `not-allowed` cursor), never `disabled`, so it keeps the focus while the request runs and after a failure. The phone layer is named by the card's title.
+- Toast (`components/ui/toast.tsx`): fixed bottom centre, 16px above the bottom (or the safe area), `bg-popover rounded-xl shadow-lift`, `text-button` weight 500: a `role="status"` region (mounted empty, filled on the next tick so it is announced) with "3 tasks created" and an underlined "Open the board" link, then a 44px × "Dismiss". It closes after 6 s or on ×. No animation.
+
 ### Link
 
 - Inherits color, no underline; hover color `neutral` (`#5E5E5E`). In long text (manuals) links are underlined and lose the underline on hover.
@@ -281,11 +299,11 @@ A dark box: `bg-foreground` (ink), `rounded-xl`, padding 32px, white logo (`egra
 
 Saved in `apps/web/public/brand/` (egrant.sk belongs to the owner's company; reuse is allowed):
 
-| File | Source |
-|---|---|
-| `egrant-logo.svg` | inline `<svg class="egrant-header__logo">` on egrant.sk, 212×40, ink text + gradient mark |
-| `egrant-logo-on-dark.svg` | inline `<svg class="egrant-footer__logo">`, white text + gradient mark |
-| `favicon.svg`, `favicon.ico` | `https://egrant.sk/app/themes/egrant/assets/favicon/` |
+| File                         | Source                                                                                    |
+| ---------------------------- | ----------------------------------------------------------------------------------------- |
+| `egrant-logo.svg`            | inline `<svg class="egrant-header__logo">` on egrant.sk, 212×40, ink text + gradient mark |
+| `egrant-logo-on-dark.svg`    | inline `<svg class="egrant-footer__logo">`, white text + gradient mark                    |
+| `favicon.svg`, `favicon.ico` | `https://egrant.sk/app/themes/egrant/assets/favicon/`                                     |
 
 PWA icons are not copied from egrant.sk: `apps/web/public/icons/` is generated from `favicon.svg` (see [overview.md](../architecture/overview.md), "PWA"). egrant.sk's `site.webmanifest` uses `theme_color #140700` and `background_color #F5F3F1`; Spolu uses `#F5F3F1` for both, so the browser bar blends with the light header pill instead of showing a near-black strip.
 

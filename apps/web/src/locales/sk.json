@@ -128,7 +128,8 @@
       "delete": "Odstrániť",
       "quote": "Citovať",
       "label": "Akcie správy",
-      "open": "Akcie správy"
+      "open": "Akcie správy",
+      "turnIntoTasks": "Vytvoriť úlohy"
     },
     "thread": {
       "summary_one": "{{count}} odpoveď, posledná o {{time}}",
@@ -178,9 +179,14 @@
     "unread_many": "Neprečítané správy: {{count}}",
     "unread_other": "Neprečítané správy: {{count}}",
     "unread_one": "Neprečítaná správa: {{count}}",
-    "loadError": "Chat sa nepodarilo načítať."
+    "loadError": "Chat sa nepodarilo načítať.",
+    "turnedIntoTasks": "Premenené na úlohy:"
   },
   "tasks": {
+    "unreadTasks_one": "{{count}} úloha s neprečítanými správami",
+    "unreadTasks_few": "{{count}} úlohy s neprečítanými správami",
+    "unreadTasks_many": "{{count}} úlohy s neprečítanými správami",
+    "unreadTasks_other": "{{count}} úloh s neprečítanými správami",
     "buckets": {
       "todo": "Na spracovanie",
       "egrantReview": "Kontrola eGrant",
@@ -231,7 +237,16 @@
       "files_other": "{{count}} súborov",
       "moreAssignees": "+{{count}}",
       "markDone": "Označiť ako hotové",
-      "markNotDone": "Označiť ako nehotové"
+      "markNotDone": "Označiť ako nehotové",
+      "completed": "Hotová",
+      "messages_one": "{{count}} správa",
+      "messages_few": "{{count}} správy",
+      "messages_many": "{{count}} správy",
+      "messages_other": "{{count}} správ",
+      "messagesUnread_one": "{{count}} správa, neprečítaná",
+      "messagesUnread_few": "{{count}} správy, neprečítané",
+      "messagesUnread_many": "{{count}} správy, neprečítané",
+      "messagesUnread_other": "{{count}} správ, neprečítaných"
     },
     "form": {
       "title": "Názov",
@@ -285,7 +300,12 @@
       "fromMessage": "Vytvorené zo správy",
       "openMessage": "Otvoriť v chate",
       "newTask": "Nová úloha",
-      "create": "Vytvoriť"
+      "create": "Vytvoriť",
+      "tabs": {
+        "label": "Časti úlohy",
+        "details": "Podrobnosti",
+        "chat": "Chat ({{count}})"
+      }
     }
   },
   "groups": {
@@ -327,5 +347,48 @@
   "files": {
     "download": "Stiahnuť {{name}}",
     "openImage": "Otvoriť {{name}}"
+  },
+  "taskSplit": {
+    "title": "Vytvoriť úlohy",
+    "loading": "AI číta správu…",
+    "proposed_one": "Navrhnutá {{count}} karta",
+    "proposed_few": "Navrhnuté {{count}} karty",
+    "proposed_many": "Navrhnutých {{count}} kariet",
+    "proposed_other": "Navrhnutých {{count}} kariet",
+    "intro": "Kartu upravíte po otvorení. Schváľte karty, ktoré chcete vytvoriť, a ostatné zamietnite.",
+    "failed": "AI neodpovedala. Skúste to znova.",
+    "retry": "Skúsiť znova",
+    "noTasks": "AI v tejto správe nenašla žiadne úlohy.",
+    "byHand": "Vytvoriť jednu úlohu ručne",
+    "unavailable": "Vytváranie úloh zo správ teraz nie je dostupné.",
+    "open": "Upraviť „{{title}}“",
+    "untitled": "Úloha bez názvu",
+    "approve": "Schváliť",
+    "reject": "Zamietnuť",
+    "rejected": "Zamietnutá",
+    "undo": "Vrátiť",
+    "approveAll": "Schváliť všetky",
+    "done": "Hotovo",
+    "editCard": "Úprava úlohy",
+    "create_one": "Vytvoriť {{count}} úlohu",
+    "create_few": "Vytvoriť {{count}} úlohy",
+    "create_many": "Vytvoriť {{count}} úloh",
+    "create_other": "Vytvoriť {{count}} úloh",
+    "cancel": "Zrušiť",
+    "close": "Zavrieť",
+    "discardConfirm": "Zahodiť navrhnuté úlohy?",
+    "discard": "Zahodiť",
+    "keep": "Pokračovať v kontrole",
+    "createFailed": "Úlohy sa nevytvorili. Skúste to znova.",
+    "messageGone": "Správa bola odstránená, úlohy sa nevytvorili.",
+    "filesChanged": "Súbor na niektorej karte už nie je dostupný. Odstráňte ho a skúste to znova.",
+    "created_one": "{{count}} úloha vytvorená",
+    "created_few": "{{count}} úlohy vytvorené",
+    "created_many": "{{count}} úloh vytvorených",
+    "created_other": "{{count}} úloh vytvorených",
+    "openBoard": "Otvoriť nástenku"
+  },
+  "toast": {
+    "close": "Zavrieť"
   }
 }

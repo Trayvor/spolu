@@ -5,6 +5,7 @@ import type { FastifyInstance } from 'fastify';
 import { buildApp } from '../src/app.js';
 import type { AppDeps } from '../src/deps.js';
 import type { Config } from '../src/infra/config/config.js';
+import type { TaskSplitProvider } from '../src/modules/ai/provider.js';
 import { filesJobHandlers } from '../src/modules/files/jobs.js';
 import { notificationsJobHandlers } from '../src/modules/notifications/jobs.js';
 import { createDb } from '../src/infra/db/client.js';
@@ -15,13 +16,18 @@ import { createFakePushSender, type FakePushSender } from '../src/infra/push/ind
 import { createDiskStorage } from '../src/infra/storage/index.js';
 import { testConfig } from './test-config.js';
 
-/** A full app on the test database: SMTP to Mailpit, temp-dir storage, jobs run inline. */
-export async function buildTestApp(overrides: { config?: Partial<Config> } = {}): Promise<{
-  app: FastifyInstance;
-  deps: AppDeps;
-  push: FakePushSender;
-  close(): Promise<void>;
-}> {
+/**
+ * A full app on the test database: SMTP to Mailpit, temp-dir storage, jobs run inline, no AI
+ * unless `overrides.ai` gives a provider.
+ */
+export async function buildTestApp(
+  overrides: {
+    config?: Partial<Config>;
+    ai?: TaskSplitProvider | null;
+    /** Receives the app's info log as JSON lines (otherwise the app does not log). */
+    logStream?: { write(line: string): void };
+  } = {},
+): Promise<{ app: FastifyInstance; deps: AppDeps; push: FakePushSender; close(): Promise<void> }> {
   const config = testConfig(overrides.config);
   const { db, close: closeDb } = createDb(config.databaseUrl);
   const filesDir = await mkdtemp(join(tmpdir(), 'spolu-test-'));
@@ -42,8 +48,17 @@ export async function buildTestApp(overrides: { config?: Partial<Config> } = {})
     ),
   });
   forward.resolve(jobs);
-  const deps: AppDeps = { config, db, email, storage, push: pushSender, jobs };
-  const app = await buildApp(deps, { logger: false }); // quiet even with nodeEnv 'production'
+  const deps: AppDeps = {
+    config,
+    db,
+    email,
+    storage,
+    push: pushSender,
+    jobs,
+    ai: overrides.ai ?? null,
+  };
+  // Quiet even with nodeEnv 'production', unless a test captures the log.
+  const app = await buildApp(deps, { logger: false, logStream: overrides.logStream });
   return {
     app,
     deps,

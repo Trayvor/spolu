@@ -59,5 +59,9 @@ export const ErrorCodes = {
   pushUnavailable: 'push_unavailable',
   invalidSubscription: 'invalid_subscription',
   invalidCode: 'invalid_code',
+  // Phase 9 — AI task split
+  aiUnavailable: 'ai_unavailable',
+  aiFailed: 'ai_failed',
+  aiNoTasks: 'ai_no_tasks',
 } as const;
 export type ErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes];

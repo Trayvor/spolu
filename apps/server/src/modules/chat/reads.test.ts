@@ -1,12 +1,15 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { eq } from 'drizzle-orm';
-import type { SendMessageInput, SessionUser } from '@spolu/shared';
+import { eq, inArray } from 'drizzle-orm';
+import { TaskCreateSchema, type SendMessageInput, type SessionUser } from '@spolu/shared';
 import type { AppDeps } from '../../deps.js';
 import { buildTestApp } from '../../../test/test-app.js';
 import { addMember, createGroup } from '../groups/service.js';
 import { user } from '../users/schema.js';
 import { createUnverifiedClient } from '../users/service.js';
+import { tasks } from '../tasks/schema.js';
+import { ensureBoard, listBuckets } from '../tasks/service.js';
+import { createTask, deleteTask, moveTask } from '../tasks/task-service.js';
 import { deleteMessage, getMessage, sendMessage } from './messages.js';
 import {
   changesAfter,
@@ -184,6 +187,37 @@ describe('pageBefore / pageAfter', () => {
     const thread = await getThread(deps.db, s.channel, root.id);
     expect(thread!.root.deletedAt).not.toBeNull();
     expect(thread!.replies).toHaveLength(1);
+  });
+
+  it('a message page carries its tasks; a deleted task leaves the list, a completed one is marked', async () => {
+    const s = await setup();
+    const m = (await send(s.channel, s.a, { body: 'Do the report' })).message;
+    const other = (await send(s.channel, s.a)).message;
+    const task = (title: string) =>
+      createTask(deps, s.a, s.group.id, TaskCreateSchema.parse({ title }));
+    const t1 = await task('One');
+    const t2 = await task('Two');
+    const t3 = await task('Three');
+    await deps.db
+      .update(tasks)
+      .set({ sourceMessageId: m.id })
+      .where(inArray(tasks.id, [t1.id, t2.id, t3.id]));
+    await ensureBoard(deps.db, s.group.id);
+    const done = (await listBuckets(deps.db, s.group.id)).find((b) => b.kind === 'done')!;
+    await moveTask(deps, s.a, t2.id, { bucketId: done.id, afterTaskId: null });
+    await deleteTask(deps, t1.id, { onFileCleanupError: () => {} });
+
+    const page = await pageBefore(deps.db, s.channel, s.a.id, null);
+    expect(page.messages.find((x) => x.id === m.id)!.tasks).toEqual([
+      { id: t2.id, title: 'Two', completed: true },
+      { id: t3.id, title: 'Three', completed: false },
+    ]);
+    expect(page.messages.find((x) => x.id === other.id)!.tasks).toEqual([]);
+
+    // A deleted message lists no tasks, though they still point at it.
+    await remove(s.channel, m.id);
+    const after = await pageBefore(deps.db, s.channel, s.a.id, null);
+    expect(after.messages.find((x) => x.id === m.id)!.tasks).toEqual([]);
   });
 });
 
