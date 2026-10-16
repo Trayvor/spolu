@@ -60,6 +60,7 @@ const task = (id: string, bucketId: string, extra: Partial<TaskDto> = {}): TaskD
   assignees: [],
   fileCount: 0,
   upcomingReminders: 0,
+  link: null,
   sourceMessageId: null,
   createdAt: '2026-10-15T10:00:00.000Z',
   updatedAt: '2026-10-15T10:00:00.000Z',
@@ -188,6 +189,20 @@ describe('Board', () => {
     expect(bell).toHaveClass('sr-only');
     const files = screen.getByText(t('tasks.card.files', { count: 1 }));
     expect(bell.compareDocumentPosition(files) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('a card with a link shows the link mark, labelled Has a link; none without', async () => {
+    board.tasks = [
+      task('t1', 'b-todo', { link: 'https://egrant.sk/a' }),
+      task('t2', 'b-todo'),
+    ];
+    renderBoard();
+    await screen.findByText('Task t1');
+    const marks = screen.getAllByText(t('tasks.card.link'));
+    expect(marks).toHaveLength(1);
+    expect(marks[0]).toHaveClass('sr-only');
+    // The card stays one link: no URL anchor inside it.
+    expect(screen.queryByRole('link', { name: 'https://egrant.sk/a' })).toBeNull();
   });
 
   it('no bell at 0', async () => {

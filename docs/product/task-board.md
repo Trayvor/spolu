@@ -16,6 +16,7 @@ Each group has a Kanban board with four fixed buckets (columns) and custom bucke
 - **Done circle** on every card and in the task panel: checking it moves the task to the top of Completed, unchecking it moves it to the top of To do (it notifies like any move). Tasks in Completed show a checked circle and a struck-through title. Anyone who can move tasks can use it.
 - **Clients and admins** create, edit and move tasks. Only admins manage buckets.
 - **New task**: "Add task" in a column opens the full task form (every field) with that column chosen; nothing is saved until "Create", and closing discards the draft.
+  - **Empty-link warning** (owner request, 2026-10-16): the first "Create" with the link field empty does not save. It shows "The link is empty. Adding one helps support resolve the task faster. Click Create again to save without it." under the link field (inline, not a dialog) and moves the focus there. A second "Create" saves without a link. The warning shows once per form: typing a link hides it for good. Editing an existing task never warns. Cards created in the AI review ("Turn into tasks") have the link field but no warning: that is a bulk review of proposals, not a task filled by hand.
 - Realtime: changes by other users are visible immediately.
 - **Task card:**
   - title;
@@ -24,6 +25,7 @@ Each group has a Kanban board with four fixed buckets (columns) and custom bucke
   - assignees (one or more people: clients of the group or its managers; an admin who is not a manager of the group cannot be chosen). Existing assignments are kept when a task is edited, even if the person has since stopped being a manager; only newly added assignees are checked (400 `invalid_assignee`);
     - Picker (Phase 18): the list offers only the group's clients and its eGrant managers. An existing assignee who is an admin but not a manager keeps their chip with a muted "not a manager" and can be removed, but is not offered again. An admin who does not manage the group and finds no one to pick sees "Only clients and the client's managers can be assigned." A save refused with `invalid_assignee` shows "Someone you chose can't be assigned here any more." and refetches the group's people. See [client-managers.md](client-managers.md).
   - deadline (date);
+  - **link**: an optional web address (http or https only, at most 2048 characters, trimmed; empty means none) pointing to where the issue is, so support can find it. In the panel a saved link shows as "Open link" under the field (new tab); the field stays editable and clearing it removes the link. A card with a link shows a small link icon. A value that is not an http(s) address is refused ("Enter a full web address starting with http:// or https://."; server 400 `invalid_url`);
   - **urgent** flag;
   - attachments (files, images);
   - link to the source message in chat (if the task was created from chat): opens the chat at that message, in the group chat or in the task chat it was written in;

@@ -52,6 +52,7 @@
     "files_many": "{{count}} súboru",
     "files_other": "{{count}} súborov",
     "reminders": "Má pripomienky",
+    "link": "Má odkaz",
     "moreAssignees": "+{{count}}",
     "markDone": "Označiť ako hotové",
     "markNotDone": "Označiť ako nehotové",
@@ -72,6 +73,10 @@
     "deadline": "Termín",
     "urgent": "Urgentné",
     "files": "Súbory",
+    "link": "Odkaz",
+    "linkPlaceholder": "https://…",
+    "openLink": "Otvoriť odkaz",
+    "linkEmptyWarning": "Odkaz je prázdny. S odkazom podpora vyrieši úlohu rýchlejšie. Ak ho nechcete pridať, kliknite znova na Vytvoriť.",
     "errors": {
       "titleRequired": "Zadajte názov.",
       "titleTooLong": "Použite najviac 200 znakov.",
@@ -79,6 +84,7 @@
       "assigneeNotAllowed": "Niekoho, koho ste vybrali, tu už nemožno priradiť.",
       "tooManyFiles": "Priložte najviac 20 súborov.",
       "invalidDate": "Zadajte platný termín.",
+      "invalidLink": "Zadajte celú webovú adresu, ktorá začína http:// alebo https://.",
       "invalid": "Skontrolujte polia a skúste to znova."
     },
     "editDescription": "Upraviť popis"

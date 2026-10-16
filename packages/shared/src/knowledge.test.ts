@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
-  isHttpUrl,
   KNOWLEDGE_LIMITS,
   KnowledgeDraftSchema,
   KnowledgePatchSchema,
   ReminderInputSchema,
 } from './knowledge.js';
+import { isHttpUrl } from './urls.js';
 
 const at = '2026-11-01T09:00:00.000Z';
 /** `n` distinct times, a minute apart. */

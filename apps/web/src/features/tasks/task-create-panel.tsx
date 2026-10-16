@@ -10,7 +10,13 @@ import { PanelHeader } from '@/components/ui/panel-header';
 import { boardQuery, createTask } from './api';
 import { upsertTask } from './board-cache';
 import { BucketSelect, PanelShell } from './panel-parts';
-import { EMPTY_TASK_DRAFT, TaskForm, validateTaskDraft, type TaskFormErrors } from './task-form';
+import {
+  EMPTY_TASK_DRAFT,
+  TaskForm,
+  useEmptyLinkWarning,
+  validateTaskDraft,
+  type TaskFormErrors,
+} from './task-form';
 
 /** Route component: `/groups/:groupId/tasks/new?bucket=<id>`. */
 export function NewTaskPanelRoute() {
@@ -22,7 +28,8 @@ export function NewTaskPanelRoute() {
 /**
  * The task panel in create mode: the same form as the detail, empty, with the bucket of the
  * column that opened it (changeable). Nothing is saved before "Create"; closing discards the
- * draft. Files uploaded meanwhile stay unattached and the daily cleanup removes them.
+ * draft. Files uploaded meanwhile stay unattached and the daily cleanup removes them. The first
+ * "Create" with an empty link only shows the empty-link warning (`useEmptyLinkWarning`).
  */
 export function NewTaskPanel({ groupId, bucketId }: { groupId: string; bucketId?: string }) {
   const { t } = useTranslation();
@@ -35,6 +42,7 @@ export function NewTaskPanel({ groupId, bucketId }: { groupId: string; bucketId?
   const [errors, setErrors] = useState<TaskFormErrors>({});
   const [chosen, setChosen] = useState<string | undefined>(bucketId);
   const [busy, setBusy] = useState(false);
+  const linkWarning = useEmptyLinkWarning();
 
   // An unknown or missing bucket falls back to To do once the board is known.
   const target =
@@ -46,6 +54,7 @@ export function NewTaskPanel({ groupId, bucketId }: { groupId: string; bucketId?
     const found = validateTaskDraft(draft);
     setErrors(found);
     if (Object.keys(found).length > 0) return;
+    if (linkWarning.holdSave(draft)) return;
     setBusy(true);
     try {
       const created = await createTask(groupId, { ...draft, bucketId: target.id });
@@ -57,9 +66,13 @@ export function NewTaskPanel({ groupId, bucketId }: { groupId: string; bucketId?
       close();
     } catch (error) {
       const invalidAssignee = error instanceof ApiError && error.code === 'invalid_assignee';
-      setErrors({
-        form: t(invalidAssignee ? 'tasks.form.errors.assigneeNotAllowed' : 'tasks.board.error'),
-      });
+      if (error instanceof ApiError && error.code === 'invalid_url') {
+        setErrors({ link: t('tasks.form.errors.invalidLink') });
+      } else {
+        setErrors({
+          form: t(invalidAssignee ? 'tasks.form.errors.assigneeNotAllowed' : 'tasks.board.error'),
+        });
+      }
       // Someone chosen left the group or stopped managing it: refresh who can be assigned.
       if (invalidAssignee)
         void queryClient.invalidateQueries({ queryKey: groupPeopleQuery(groupId).queryKey });
@@ -83,11 +96,16 @@ export function NewTaskPanel({ groupId, bucketId }: { groupId: string; bucketId?
         <h2 className="text-medium leading-tight font-semibold">{t('tasks.panel.newTask')}</h2>
         <TaskForm
           value={draft}
-          onChange={setDraft}
+          onChange={(next) => {
+            setDraft(next);
+            linkWarning.onDraft(next);
+          }}
           groupId={groupId}
           errors={errors}
           files={files}
           onFilesChange={setFiles}
+          linkWarning={linkWarning.shown}
+          linkInputRef={linkWarning.inputRef}
           autoFocusTitle
           remindersSlot={
             <p className="text-micro text-muted-foreground">{t('reminders.task.createHint')}</p>

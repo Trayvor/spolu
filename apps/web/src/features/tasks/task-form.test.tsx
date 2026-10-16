@@ -40,8 +40,10 @@ function Harness({
   known,
   onValue,
   slot,
+  linkWarning,
 }: {
   slot?: ReactNode;
+  linkWarning?: boolean;
   initial?: TaskDraft;
   errors?: TaskFormErrors;
   initialFiles?: FileInfo[];
@@ -63,6 +65,7 @@ function Harness({
       onFilesChange={setFiles}
       knownPeople={known}
       remindersSlot={slot}
+      linkWarning={linkWarning}
     />
   );
 }
@@ -227,6 +230,48 @@ describe('TaskForm', () => {
     );
     expect(validateTaskDraft({ ...base, description: 'x'.repeat(10_001) }).description).toBe(
       t('tasks.form.errors.descriptionTooLong'),
+    );
+  });
+
+  it('the link is a URL field; typing sets it, clearing sets null', async () => {
+    const onValue = vi.fn();
+    const user = renderForm({ onValue });
+    const link = screen.getByRole('textbox', { name: t('tasks.form.link') });
+    expect(link).toHaveAttribute('type', 'url');
+    expect(link).toHaveAttribute('placeholder', t('tasks.form.linkPlaceholder'));
+    await user.type(link, 'https://e.sk');
+    expect(onValue).toHaveBeenLastCalledWith(expect.objectContaining({ link: 'https://e.sk' }));
+    await user.clear(link);
+    expect(onValue).toHaveBeenLastCalledWith(expect.objectContaining({ link: null }));
+  });
+
+  it('a valid link shows an "Open link" anchor in a new tab; an invalid one does not', () => {
+    renderForm({ initial: { ...EMPTY_TASK_DRAFT, link: 'https://egrant.sk/projekt' } });
+    const open = screen.getByRole('link', { name: new RegExp(t('tasks.form.openLink')) });
+    expect(open).toHaveAttribute('href', 'https://egrant.sk/projekt');
+    expect(open).toHaveAttribute('target', '_blank');
+    expect(open).toHaveAttribute('rel', 'noopener noreferrer');
+  });
+
+  it('no anchor for a link that is not http(s)', () => {
+    renderForm({ initial: { ...EMPTY_TASK_DRAFT, link: 'javascript:alert(1)' } });
+    expect(screen.queryByRole('link', { name: new RegExp(t('tasks.form.openLink')) })).toBeNull();
+  });
+
+  it('validateTaskDraft reports a link that is not an http(s) URL on the link field', () => {
+    const base = { ...EMPTY_TASK_DRAFT, title: 'ok' };
+    expect(validateTaskDraft({ ...base, link: 'ftp://e.sk/a' }).link).toBe(
+      t('tasks.form.errors.invalidLink'),
+    );
+    expect(validateTaskDraft({ ...base, link: 'https://e.sk' })).toEqual({});
+    expect(validateTaskDraft({ ...base, link: null })).toEqual({});
+  });
+
+  it('linkWarning shows the empty-link warning under the field, described by it', () => {
+    renderForm({ linkWarning: true });
+    const warning = screen.getByText(t('tasks.form.linkEmptyWarning'));
+    expect(screen.getByRole('textbox', { name: t('tasks.form.link') }).getAttribute('aria-describedby')).toBe(
+      warning.id,
     );
   });
 

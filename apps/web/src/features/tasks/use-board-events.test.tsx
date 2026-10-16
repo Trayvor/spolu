@@ -40,6 +40,7 @@ const task = (id: string, groupId = 'g1'): TaskDto => ({
   assignees: [],
   fileCount: 0,
   upcomingReminders: 0,
+  link: null,
   sourceMessageId: null,
   createdAt: '2026-10-15T10:00:00.000Z',
   updatedAt: '2026-10-15T10:00:00.000Z',

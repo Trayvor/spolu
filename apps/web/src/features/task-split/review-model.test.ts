@@ -26,6 +26,7 @@ const DRAFT: TaskDraft = {
   dueDate: null,
   urgent: false,
   fileIds: [],
+  link: null,
 };
 
 let n = 0;

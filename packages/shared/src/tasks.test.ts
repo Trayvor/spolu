@@ -10,7 +10,25 @@ describe('TaskDraftSchema', () => {
       dueDate: null,
       urgent: false,
       fileIds: [],
+      link: null,
     });
+  });
+
+  it('accepts an http(s) link, trimmed; empty or blank means null', () => {
+    const link = (value: unknown) => TaskDraftSchema.parse({ title: 't', link: value }).link;
+    expect(link('  https://egrant.sk/projekt?id=1  ')).toBe('https://egrant.sk/projekt?id=1');
+    expect(link('http://example.com')).toBe('http://example.com');
+    expect(link('')).toBeNull();
+    expect(link('   ')).toBeNull();
+    expect(link(null)).toBeNull();
+  });
+
+  it('rejects links that are not http(s) URLs or are too long', () => {
+    const ok = (value: string) => TaskDraftSchema.safeParse({ title: 't', link: value }).success;
+    expect(ok('javascript:alert(1)')).toBe(false);
+    expect(ok('ftp://example.com/file')).toBe(false);
+    expect(ok('egrant.sk')).toBe(false);
+    expect(ok(`https://e.sk/${'a'.repeat(2048)}`)).toBe(false);
   });
 
   it('rejects a blank title and a 201-character title', () => {
@@ -40,6 +58,16 @@ describe('TaskPatchSchema', () => {
     expect(parsed).toEqual({ updatedAt: '2026-10-15T10:00:00.000Z' });
     expect(parsed.urgent).toBeUndefined();
     expect(parsed.assigneeIds).toBeUndefined();
+  });
+
+  it('accepts a link, and empty or null to clear it', () => {
+    const at = '2026-10-15T10:00:00.000Z';
+    expect(TaskPatchSchema.parse({ link: ' https://e.sk ', updatedAt: at }).link).toBe(
+      'https://e.sk',
+    );
+    expect(TaskPatchSchema.parse({ link: '', updatedAt: at }).link).toBeNull();
+    expect(TaskPatchSchema.parse({ link: null, updatedAt: at }).link).toBeNull();
+    expect(TaskPatchSchema.safeParse({ link: 'javascript:x', updatedAt: at }).success).toBe(false);
   });
 
   it('requires updatedAt', () => {

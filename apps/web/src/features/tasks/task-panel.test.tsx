@@ -67,6 +67,7 @@ const card = (id: string, bucketId: string): TaskDto => ({
   title: `Task ${id}`,
   urgent: false,
   dueDate: null,
+  link: null,
   completedAt: null,
   createdBy: { id: 'a1', name: 'Jana Nováková' },
   assignees: [],
@@ -171,6 +172,33 @@ describe('TaskPanel', () => {
     await waitFor(() =>
       expect(screen.queryByRole('button', { name: t('tasks.panel.save') })).toBeNull(),
     );
+    // Editing never warns about an empty link.
+    expect(screen.queryByText(t('tasks.form.linkEmptyWarning'))).toBeNull();
+  });
+
+  it('shows a saved link as a link in a new tab and edits it in place', async () => {
+    detail = { ...detail, link: 'https://egrant.sk/projekt/1' };
+    const { user } = renderPanel();
+    const field = await screen.findByRole('textbox', { name: t('tasks.form.link') });
+    expect(field).toHaveValue('https://egrant.sk/projekt/1');
+    const open = screen.getByRole('link', { name: new RegExp(t('tasks.form.openLink')) });
+    expect(open).toHaveAttribute('href', 'https://egrant.sk/projekt/1');
+    expect(open).toHaveAttribute('target', '_blank');
+    expect(open).toHaveAttribute('rel', 'noopener noreferrer');
+    await user.clear(field);
+    await user.click(screen.getByRole('button', { name: t('tasks.panel.save') }));
+    await waitFor(() => expect(calls('PATCH', '/api/tasks/t1')).toHaveLength(1));
+    const body = JSON.parse((calls('PATCH', '/api/tasks/t1')[0]![1] as RequestInit).body as string);
+    expect(body.link).toBeNull();
+    expect(screen.queryByText(t('tasks.form.linkEmptyWarning'))).toBeNull();
+  });
+
+  it('invalid_url on save shows the link error', async () => {
+    patchReply = { status: 400, body: { error: 'invalid_url' } };
+    const { user } = renderPanel();
+    await user.type(await screen.findByRole('textbox', { name: t('tasks.form.link') }), 'https://x.sk');
+    await user.click(screen.getByRole('button', { name: t('tasks.panel.save') }));
+    expect(await screen.findByText(t('tasks.form.errors.invalidLink'))).toBeInTheDocument();
   });
 
   it('answers 409 task_changed with a notice and keeps the typed title until Reload', async () => {
@@ -584,9 +612,61 @@ describe('TaskPanel in create mode', () => {
     expect(fetchMock.mock.calls.some(([u]) => String(u).includes('/reminders'))).toBe(false);
   });
 
+  const linkField = () => screen.getByRole('textbox', { name: t('tasks.form.link') });
+  const warning = () => screen.queryByText(t('tasks.form.linkEmptyWarning'));
+
+  it('Create with an empty link warns once and focuses the field; the second Create saves', async () => {
+    const { user, router } = renderPanel(NEW);
+    await user.type(await titleField(), 'No link');
+    await waitFor(() => expect(createButton()).toBeEnabled());
+    await user.click(createButton());
+    expect(warning()).toBeInTheDocument();
+    expect(linkField()).toHaveFocus();
+    expect(calls('POST', '/api/groups/g1/tasks')).toHaveLength(0);
+
+    await user.click(createButton());
+    await waitFor(() => expect(calls('POST', '/api/groups/g1/tasks')).toHaveLength(1));
+    const body = JSON.parse(
+      (calls('POST', '/api/groups/g1/tasks')[0]![1] as RequestInit).body as string,
+    );
+    expect(body.link).toBeNull();
+    await waitFor(() => expect(router.state.location.pathname).toBe('/groups/g1/tasks'));
+  });
+
+  it('typing a link after the warning hides it for good and Create sends the link', async () => {
+    const { user } = renderPanel(NEW);
+    await user.type(await titleField(), 'Linked');
+    await waitFor(() => expect(createButton()).toBeEnabled());
+    await user.click(createButton());
+    expect(warning()).toBeInTheDocument();
+    await user.type(linkField(), 'h');
+    expect(warning()).toBeNull();
+    await user.clear(linkField());
+    expect(warning()).toBeNull(); // shown once only
+    await user.type(linkField(), 'https://egrant.sk/projekt');
+    await user.click(createButton());
+    await waitFor(() => expect(calls('POST', '/api/groups/g1/tasks')).toHaveLength(1));
+    const body = JSON.parse(
+      (calls('POST', '/api/groups/g1/tasks')[0]![1] as RequestInit).body as string,
+    );
+    expect(body.link).toBe('https://egrant.sk/projekt');
+  });
+
+  it('an invalid link shows its error and posts nothing (no warning)', async () => {
+    const { user } = renderPanel(NEW);
+    await user.type(await titleField(), 'Bad link');
+    await user.type(linkField(), 'ftp://files.example.com');
+    await waitFor(() => expect(createButton()).toBeEnabled());
+    await user.click(createButton());
+    expect(await screen.findByText(t('tasks.form.errors.invalidLink'))).toBeInTheDocument();
+    expect(warning()).toBeNull();
+    expect(calls('POST', '/api/groups/g1/tasks')).toHaveLength(0);
+  });
+
   it('Create posts the whole draft to the chosen bucket and returns to the board', async () => {
     const { user, router } = renderPanel(NEW);
     await user.type(await titleField(), 'Budget');
+    await user.type(linkField(), 'https://egrant.sk/b');
     await user.type(screen.getByLabelText(t('tasks.form.description')), 'Check **totals**');
     await user.click(screen.getByRole('switch', { name: t('tasks.form.urgent') }));
     await waitFor(() => expect(screen.getByLabelText(t('tasks.panel.bucket'))).toBeEnabled());
@@ -603,6 +683,7 @@ describe('TaskPanel in create mode', () => {
       dueDate: null,
       urgent: true,
       fileIds: [],
+      link: 'https://egrant.sk/b',
       bucketId: 'b-todo',
     });
     await waitFor(() => expect(router.state.location.pathname).toBe('/groups/g1/tasks'));
@@ -621,6 +702,7 @@ describe('TaskPanel in create mode', () => {
     );
     const { user } = renderPanel(NEW);
     await user.type(await titleField(), 'Budget');
+    await user.type(linkField(), 'https://egrant.sk/b');
     await waitFor(() => expect(screen.getByLabelText(t('tasks.panel.bucket'))).toBeEnabled());
     await waitFor(() => expect(calls('GET', '/api/groups/g1/people')).toHaveLength(1));
     await user.click(createButton());

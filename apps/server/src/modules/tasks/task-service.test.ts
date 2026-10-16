@@ -152,8 +152,21 @@ describe('createTask', () => {
       completedAt: null,
       sourceMessageId: null,
       sourceMessage: null,
+      link: null,
     });
     expect(second.position > first.position).toBe(true);
+  });
+
+  it('stores the link on the detail and the board shape', async () => {
+    const group = await newGroup();
+    const client = await newClient(group.id);
+    const task = await createTask(deps, client, group.id, {
+      title: 'Linked',
+      link: ' https://egrant.sk/a ',
+    });
+    expect(task.link).toBe('https://egrant.sk/a');
+    expect((await getTask(db, task.id))!.link).toBe('https://egrant.sk/a');
+    expect((await getBoard(db, group.id)).tasks[0]!.link).toBe('https://egrant.sk/a');
   });
 
   it('into Completed sets completedAt', async () => {
@@ -359,6 +372,24 @@ describe('getTask', () => {
 });
 
 describe('updateTask', () => {
+  it('sets, keeps and clears the link', async () => {
+    const group = await newGroup();
+    const admin = await newAdmin();
+    const task = await createTask(deps, admin, group.id, { title: 'A' });
+    const set = await updateTask(deps, admin, task.id, {
+      link: 'https://egrant.sk/x',
+      updatedAt: task.updatedAt,
+    });
+    expect(set.link).toBe('https://egrant.sk/x');
+    const kept = await updateTask(deps, admin, task.id, { title: 'B', updatedAt: set.updatedAt });
+    expect(kept.link).toBe('https://egrant.sk/x');
+    const cleared = await updateTask(deps, admin, task.id, {
+      link: null,
+      updatedAt: kept.updatedAt,
+    });
+    expect(cleared.link).toBeNull();
+  });
+
   it('two edits with the returned updatedAt both succeed; updatedAt grows', async () => {
     const group = await newGroup();
     const admin = await newAdmin();
@@ -860,11 +891,13 @@ describe('createTasksFromMessage', () => {
       group.id,
       input(m.id, [
         { title: 'A', messageFileIds: [file.id], assigneeIds: [ana.id] },
-        { title: 'B', messageFileIds: [file.id] },
+        { title: 'B', messageFileIds: [file.id], link: 'https://egrant.sk/b' },
       ]),
       { id: m.id, fileIds: [file.id] },
     );
     expect(await todoTitles(group.id)).toEqual(['A', 'B', 'Existing']);
+    expect(a!.link).toBeNull();
+    expect(b!.link).toBe('https://egrant.sk/b');
     expect(a!.sourceMessageId).toBe(m.id);
     expect(b!.sourceMessageId).toBe(m.id);
     expect(a!.createdBy).toEqual({ id: admin.id, name: admin.name });

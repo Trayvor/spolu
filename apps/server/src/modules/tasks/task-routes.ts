@@ -45,16 +45,20 @@ export type TaskRoutesOptions = {
 const notFound = (reply: FastifyReply) => reply.code(404).send({ error: ErrorCodes.notFound });
 
 /**
- * 400 for a body that failed a task schema: too many assignees (on the task, or on a card made
- * from a message) has its own code.
+ * 400 for a body that failed a task schema: too many assignees and a link that is not an http(s)
+ * URL (on the task, or on a card made from a message) have their own codes.
  */
 const invalidBody = (reply: FastifyReply, error: ZodError) => {
   const tooManyAssignees = error.issues.some(
     (issue) => issue.path.at(-1) === 'assigneeIds' && issue.code === 'too_big',
   );
-  return reply
-    .code(400)
-    .send({ error: tooManyAssignees ? ErrorCodes.invalidAssignee : ErrorCodes.validationFailed });
+  const badLink = error.issues.some((issue) => issue.path.at(-1) === 'link');
+  const code = tooManyAssignees
+    ? ErrorCodes.invalidAssignee
+    : badLink
+      ? ErrorCodes.invalidUrl
+      : ErrorCodes.validationFailed;
+  return reply.code(400).send({ error: code });
 };
 
 /** Maps the expected service errors of a task write; anything else is rethrown. */

@@ -260,6 +260,104 @@ describe('tasks API: tasks', () => {
     });
   });
 
+  describe('link', () => {
+    it('create stores a trimmed http(s) link on the detail and the board card; empty is null', async () => {
+      const g = await newGroup();
+      const client = await clientIn(g.id);
+      const res = await create(g.id, client.cookie, {
+        title: 'Linked',
+        link: '  https://egrant.sk/projekt/42  ',
+      });
+      expect(res.statusCode).toBe(201);
+      const task = res.json<TaskDetailDto>();
+      expect(task.link).toBe('https://egrant.sk/projekt/42');
+      const card = (await board(client.cookie, g.id)).tasks.find((c) => c.id === task.id);
+      expect(card?.link).toBe('https://egrant.sk/projekt/42');
+
+      const empty = (await create(g.id, client.cookie, { title: 'No link', link: '' })).json<
+        TaskDetailDto
+      >();
+      expect(empty.link).toBeNull();
+      const omitted = (await create(g.id, client.cookie, { title: 'Omitted' })).json<
+        TaskDetailDto
+      >();
+      expect(omitted.link).toBeNull();
+    });
+
+    it('a link that is not an http(s) URL → 400 invalid_url, on create and on edit', async () => {
+      const g = await newGroup();
+      const client = await clientIn(g.id);
+      for (const link of [
+        'javascript:alert(1)',
+        'ftp://files.example.com/a',
+        'egrant.sk',
+        `https://e.sk/${'a'.repeat(2048)}`,
+      ]) {
+        const res = await create(g.id, client.cookie, { title: 'Bad', link });
+        expect(res.statusCode).toBe(400);
+        expect(res.json()).toEqual({ error: 'invalid_url' });
+      }
+      const task = (await create(g.id, client.cookie, { title: 'A' })).json<TaskDetailDto>();
+      const bad = await call('PATCH', `/api/tasks/${task.id}`, client.cookie, {
+        link: 'javascript:alert(1)',
+        updatedAt: task.updatedAt,
+      });
+      expect(bad.statusCode).toBe(400);
+      expect(bad.json()).toEqual({ error: 'invalid_url' });
+      const now = (await call('GET', `/api/tasks/${task.id}`, client.cookie)).json<TaskDetailDto>();
+      expect(now.link).toBeNull();
+    });
+
+    it('whoever may edit the task sets and clears the link; the board event carries it', async () => {
+      const admin = await adminSession('Link Admin');
+      const g = await newGroup();
+      const client = await clientIn(g.id);
+      const task = (await create(g.id, client.cookie, { title: 'A' })).json<TaskDetailDto>();
+      const socket = await listen(client.cookie);
+
+      const pushed = new Promise<BoardTaskEvent>((resolve) =>
+        socket.once(BoardEvents.task, resolve),
+      );
+      const set = await call('PATCH', `/api/tasks/${task.id}`, admin.cookie, {
+        link: 'http://example.com/ticket?id=7',
+        updatedAt: task.updatedAt,
+      });
+      expect(set.statusCode).toBe(200);
+      const withLink = set.json<TaskDetailDto>();
+      expect(withLink).toMatchObject({ link: 'http://example.com/ticket?id=7', title: 'A' });
+      expect((await pushed).task.link).toBe('http://example.com/ticket?id=7');
+
+      // Another field only: the link stays.
+      const titled = await call('PATCH', `/api/tasks/${task.id}`, client.cookie, {
+        title: 'B',
+        updatedAt: withLink.updatedAt,
+      });
+      expect(titled.json<TaskDetailDto>().link).toBe('http://example.com/ticket?id=7');
+
+      const cleared = await call('PATCH', `/api/tasks/${task.id}`, client.cookie, {
+        link: '',
+        updatedAt: titled.json<TaskDetailDto>().updatedAt,
+      });
+      expect(cleared.statusCode).toBe(200);
+      expect(cleared.json<TaskDetailDto>().link).toBeNull();
+    });
+
+    it('someone outside the group cannot set the link (404)', async () => {
+      const g = await newGroup();
+      const other = await newGroup();
+      const client = await clientIn(g.id);
+      const stranger = await clientIn(other.id);
+      const task = (await create(g.id, client.cookie, { title: 'A' })).json<TaskDetailDto>();
+      const res = await call('PATCH', `/api/tasks/${task.id}`, stranger.cookie, {
+        link: 'https://evil.example.com',
+        updatedAt: task.updatedAt,
+      });
+      expect(res.statusCode).toBe(404);
+      const now = (await call('GET', `/api/tasks/${task.id}`, client.cookie)).json<TaskDetailDto>();
+      expect(now.link).toBeNull();
+    });
+  });
+
   it('PATCH twice with the returned updatedAt succeeds both times', async () => {
     const g = await newGroup();
     const client = await clientIn(g.id);
@@ -773,6 +871,12 @@ describe('tasks API: tasks', () => {
     });
     expect(tooMany.statusCode).toBe(400);
     expect(tooMany.json()).toEqual({ error: 'invalid_assignee' });
+    const badLink = await send({
+      messageId: message.id,
+      tasks: [{ title: 'X', link: 'javascript:alert(1)' }],
+    });
+    expect(badLink.statusCode).toBe(400);
+    expect(badLink.json()).toEqual({ error: 'invalid_url' });
   });
 
   it('400 invalid_attachment when the message lost the file since the proposal', async () => {
