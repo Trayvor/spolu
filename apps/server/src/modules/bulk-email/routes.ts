@@ -6,16 +6,22 @@ import {
   BulkCampaignCreateSchema,
   BulkCampaignDraftSchema,
   BulkPeopleLookupSchema,
+  BulkRecipientsQuerySchema,
   ErrorCodes,
+  type BulkNotReadyAnswer,
 } from '@spolu/shared';
 import type { AppDeps } from '../../deps.js';
+import { createRateLimiter } from '../../infra/http/rate-limit.js';
 import { requireAdmin } from '../auth/session.js';
 import { countAudience, listAudience, lookupPeople, searchPeople } from './audience.js';
 import {
   CampaignChangedError,
   CampaignNotFoundError,
+  EmptyAudienceError,
   InvalidCursorError,
   NotDraftError,
+  NotReadyError,
+  NotSendingError,
 } from './errors.js';
 import { emitBulkUpdated } from './events.js';
 import { canUseBulkEmail } from './policy.js';
@@ -25,8 +31,10 @@ import {
   duplicateCampaign,
   getCampaign,
   listCampaigns,
+  listRecipients,
   saveDraft,
 } from './service.js';
+import { cancelSending, queueTestSend, startSending } from './send.js';
 
 type IdParams = { Params: { id: string } };
 
@@ -47,17 +55,25 @@ function bulkError(reply: FastifyReply, error: unknown): FastifyReply {
   if (error instanceof NotDraftError) return send(reply, 409, ErrorCodes.notDraft);
   if (error instanceof CampaignChangedError) return send(reply, 409, ErrorCodes.changed);
   if (error instanceof InvalidCursorError) return invalid(reply);
+  if (error instanceof NotSendingError) return send(reply, 409, ErrorCodes.notSending);
+  if (error instanceof EmptyAudienceError) return send(reply, 400, ErrorCodes.emptyAudience);
+  if (error instanceof NotReadyError) {
+    const answer: BulkNotReadyAnswer = { error: ErrorCodes.notReady, problems: error.problems };
+    return reply.code(400).send(answer);
+  }
   throw error;
 }
 
+/** Test sends a minute per admin (spec §4). */
+const TEST_SENDS_PER_MINUTE = 10;
+
 /**
- * Campaigns and their audience (spec §2, §4), admins only. Every write pushes `bulk:updated`
- * to the admins room after it succeeded.
+ * Campaigns, their audience, sending and the report (spec §2, §4, §6), admins only. Every
+ * write pushes `bulk:updated` to the admins room after it succeeded.
  */
-export const bulkEmailRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (
-  app,
-  { deps: { db } },
-) => {
+export const bulkEmailRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { deps }) => {
+  const { db } = deps;
+  const allowTest = createRateLimiter({ windowMs: 60_000, max: TEST_SENDS_PER_MINUTE });
   const adminOnly = requireAdmin(app.auth);
   const mayUse: preHandlerAsyncHookHandler = async (request, reply) => {
     if (!canUseBulkEmail(request.user!)) return send(reply, 403, ErrorCodes.forbidden);
@@ -158,4 +174,49 @@ export const bulkEmailRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (
     if (!body.success) return invalid(reply);
     return lookupPeople(db, body.data.ids);
   });
+
+  app.post<IdParams>('/bulk-email/campaigns/:id/send', { preHandler }, async (request, reply) => {
+    let campaign;
+    try {
+      campaign = await startSending(deps, request.user!, request.params.id);
+    } catch (error) {
+      return bulkError(reply, error);
+    }
+    emitBulkUpdated(app.io, campaign.id);
+    return campaign;
+  });
+
+  app.post<IdParams>('/bulk-email/campaigns/:id/cancel', { preHandler }, async (request, reply) => {
+    let campaign;
+    try {
+      campaign = await cancelSending(deps, request.params.id);
+    } catch (error) {
+      return bulkError(reply, error);
+    }
+    emitBulkUpdated(app.io, campaign.id);
+    return campaign;
+  });
+
+  app.post<IdParams>('/bulk-email/campaigns/:id/test', { preHandler }, async (request, reply) => {
+    if (!allowTest(request.user!.id)) return send(reply, 429, ErrorCodes.rateLimited);
+    try {
+      return reply.code(202).send(await queueTestSend(deps, request.user!, request.params.id));
+    } catch (error) {
+      return bulkError(reply, error);
+    }
+  });
+
+  app.get<IdParams>(
+    '/bulk-email/campaigns/:id/recipients',
+    { preHandler },
+    async (request, reply) => {
+      const query = BulkRecipientsQuerySchema.safeParse(request.query);
+      if (!query.success) return invalid(reply);
+      try {
+        return await listRecipients(db, request.params.id, query.data);
+      } catch (error) {
+        return bulkError(reply, error);
+      }
+    },
+  );
 };

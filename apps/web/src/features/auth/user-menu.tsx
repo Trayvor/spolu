@@ -29,7 +29,7 @@ export function initials(name: string, email: string): string {
  * the same size and colour as the language button. The menu shows who is signed in
  * (name and email, not clickable), then "Settings" (the profile and notification settings
  * page, for every role) and "Log out". Under 641 px the header has no room for
- * the "Home", "Tasks", "Tickets", "Knowledge", "Groups" and "Admins" links, so admins get them here
+ * the "Home", "Tasks", "Tickets", "Knowledge", "Groups", "Admins" and "Bulk email" links, so admins get them here
  * instead (and a client who also reported tickets elsewhere gets "My tickets").
  */
 export function UserMenu({ user }: { user: Me }) {
@@ -78,6 +78,9 @@ export function UserMenu({ user }: { user: Me }) {
               </DropdownMenuItem>
               <DropdownMenuItem asChild className="min-[641px]:hidden">
                 <Link to="/admins">{t('nav.admins')}</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild className="min-[641px]:hidden">
+                <Link to="/bulk-email">{t('nav.bulkEmail')}</Link>
               </DropdownMenuItem>
             </>
           )}

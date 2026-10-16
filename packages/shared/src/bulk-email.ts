@@ -249,3 +249,17 @@ export type BulkUnsubscribeInfo = z.infer<typeof BulkUnsubscribeInfoSchema>;
 /** `GET`/`PUT /api/me/bulk-email`: the signed-in person's "Receive mailings" setting. */
 export const BulkSubscriptionSchema = z.object({ subscribed: z.boolean() });
 export type BulkSubscription = z.infer<typeof BulkSubscriptionSchema>;
+
+/** `GET /api/bulk-email/campaigns/:id/recipients?status=&cursor=`: by name, 50 per page. */
+export const BulkRecipientsQuerySchema = z.object({
+  status: BulkRecipientStatusSchema.optional(),
+  cursor: z.string().min(1).max(500).optional(),
+});
+export type BulkRecipientsQuery = z.infer<typeof BulkRecipientsQuerySchema>;
+export type BulkRecipientPage = { items: BulkRecipientItem[]; nextCursor: string | null };
+
+/** `400 not_ready` of `POST …/send` and `POST …/test`: what is missing, by block. */
+export type BulkNotReadyAnswer = { error: 'not_ready'; problems: BulkNotReadyProblem[] };
+
+/** `202` of `POST …/test`: the test goes to the signed-in admin's own address only. */
+export type BulkTestSendResult = { to: string };

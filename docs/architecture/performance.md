@@ -28,7 +28,7 @@ Spolu must feel instant: faster than Microsoft Teams on a cheap phone over mobil
 - No N+1: load related rows with one join or one `in (...)` query, not one query per row.
 - Endpoints return only the fields the screen needs, and every list endpoint is paginated.
 - Realtime events carry small payloads (ids and changed fields) and go only to the rooms that need them.
-- Slow work (emails, file processing) runs in pg-boss jobs, never inside the request. One exception: the AI task split (`POST /api/messages/:id/task-split`) calls OpenAI inside the request, because the user waits on the review screen for the answer; the call has a 30 s timeout, no retry, and holds no database transaction or connection while it waits.
+- Slow work (emails, file processing) runs in pg-boss jobs, never inside the request. Bulk email sending (Phase 23.5) is the `bulk-email.batch` job: one worker, 20 people a run with `for update skip locked`, one `insert … select` freezes the recipients, one query per batch for image sizes, one update per person before and after their call (so a crash never resends), runs spaced by `BULK_EMAIL_PER_MINUTE`; the send request returns at once. The report list is keyset-paged by `(name, user_id)` within one campaign; the counts are one grouped query per campaign page. One exception: the AI task split (`POST /api/messages/:id/task-split`) calls OpenAI inside the request, because the user waits on the review screen for the answer; the call has a 30 s timeout, no retry, and holds no database transaction or connection while it waits.
 
 ## Bundle budget
 
@@ -75,6 +75,8 @@ Phase 21 ticket screens (part 21.4, measured 2026-10-16, gzip -9 of the scripts 
 Phase 21 ticket to tasks (part 21.5, measured 2026-10-16, gzip -9 of the scripts `dist/index.html` loads): initial JS 197.7 kB gzip, unchanged against `main` (197.8 kB). Nothing went into the entry chunk: the ticket page's Tasks section is in the lazy `ticket-page` chunk (5.2 kB gzip, was 3.9 kB), the review dialog stays its own lazy chunk and loads only on "Turn into tasks".
 
 Phase 23 unsubscribe (part 23.4, measured 2026-10-16, gzip -9 of the scripts `dist/index.html` loads): initial JS 198.8 kB gzip, unchanged against `main` (198.8 kB). The entry chunk gains only the `/unsubscribe/$token` route definition; the page is its own lazy `unsubscribe-page` chunk with its `unsubscribe` locale namespace (not the large `bulkEmail` one of the editor), and the Settings checkbox lives in the lazy settings chunk.
+
+Phase 23 bulk email editor (part 23.6, measured 2026-10-16, gzip -9 of the scripts `dist/index.html` loads): initial JS 199.3 kB gzip, 0.3 kB above `main` (199.0 kB): the two route definitions, the header and account-menu links and `nav.bulkEmail`. The list and the editor are **one** lazy chunk (`features/bulk-email/screens.ts`, 9.6 kB gzip: list, editor, block forms, preview frame, audience builder, recipients dialog, test send, the response schemas) with the `bulkEmail` namespace. As two chunks sharing the API module they made the bundler move `useBaseQuery` out of the entry chunk into its own eagerly loaded chunk, +1.4 kB of initial JS (200.5 kB, over the budget); one chunk avoids that. The editor's requests are debounced (preview 500 ms, audience count 300 ms, people search 300 ms, autosave 1 s); "Show recipients" pages by 50. No new dependency: reordering is buttons, the preview an `<iframe sandbox srcdoc>`.
 
 Lazy chunks for individual screens have no hard budget. Keep them reasonable and watch for anything above about 100 kB gzip.
 

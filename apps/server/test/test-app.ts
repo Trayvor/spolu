@@ -58,6 +58,7 @@ export async function buildTestApp(
   const forward = createDeferredQueue();
   registerKnowledgeReminderSubject();
   registerTaskReminderSubject();
+  const bulkEmail = overrides.bulkEmail ?? createBulkSender(config.bulkEmail, config.email);
   const jobs = createInlineJobs({
     ...emailJobHandlers(email),
     ...filesJobHandlers({ db, storage }),
@@ -66,14 +67,17 @@ export async function buildTestApp(
       { scopedDelivery: true }, // test files run at once: deliver only the job's users
     ),
     ...remindersJobHandlers({ db, jobs: forward.queue }),
-    ...bulkEmailJobHandlers({ db, config }, overrides.bulkFetch ?? refuseFetch),
+    ...bulkEmailJobHandlers(
+      { db, config, bulkEmail, jobs: forward.queue },
+      overrides.bulkFetch ?? refuseFetch,
+    ),
   });
   forward.resolve(jobs);
   const deps: AppDeps = {
     config,
     db,
     email,
-    bulkEmail: overrides.bulkEmail ?? createBulkSender(config.bulkEmail, config.email),
+    bulkEmail,
     storage,
     push: pushSender,
     jobs,

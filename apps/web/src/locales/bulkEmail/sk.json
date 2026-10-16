@@ -1,0 +1,166 @@
+{
+  "status": {
+    "draft": "Koncept",
+    "sending": "Odosiela sa",
+    "sent": "Odoslaný",
+    "cancelled": "Zrušený"
+  },
+  "list": {
+    "title": "Hromadné e-maily",
+    "intro": "Napíšte jeden e-mail mnohým ľuďom v Spolu: poskladajte ho z blokov, vyberte, kto ho dostane, a najprv si pošlite test.",
+    "new": "Nový e-mail",
+    "defaultName": "E-mail z {{date}}",
+    "empty": "Zatiaľ žiadne e-maily. Začnite tlačidlom Nový e-mail.",
+    "noSubject": "Zatiaľ bez predmetu",
+    "counts": "odoslané: {{sent}}, zlyhané: {{failed}}",
+    "changed": "Zmenené {{date}}",
+    "changedBy": "Autor {{name}}, zmenené {{date}}",
+    "more": "Zobraziť ďalšie"
+  },
+  "editor": {
+    "back": "Všetky e-maily",
+    "notFound": "Tento e-mail už neexistuje.",
+    "delete": "Vymazať koncept",
+    "deleteConfirm": "Vymazať tento koncept? Nedá sa obnoviť.",
+    "deleteYes": "Vymazať",
+    "cancel": "Zrušiť"
+  },
+  "save": {
+    "saved": "Všetky zmeny sú uložené",
+    "saving": "Ukladá sa…",
+    "invalid": "Neuložené: opravte označené polia.",
+    "error": "Neuložené. Skontrolujte pripojenie.",
+    "retry": "Skúsiť znova",
+    "changed": "Kým ste upravovali, iný admin tento e-mail zmenil. Načítajte ho znova, aby ste videli jeho verziu; vaše posledné zmeny tu sa neuložili.",
+    "notDraft": "Odosielanie tohto e-mailu sa začalo, už sa nedá meniť.",
+    "reload": "Načítať znova"
+  },
+  "content": {
+    "title": "Obsah",
+    "name": "Interný názov",
+    "nameHint": "Vidia ho len admini v zozname e-mailov.",
+    "subject": "Predmet",
+    "preheader": "Riadok náhľadu",
+    "preheaderHint": "E-mailové aplikácie ho ukazujú vedľa predmetu. Nepovinné."
+  },
+  "blocks": {
+    "title": "Bloky",
+    "empty": "Zatiaľ žiadne bloky. Začnite nadpisom a textom.",
+    "add": "Pridať blok",
+    "limit": "E-mail má najviac {{max}} blokov.",
+    "moveUp": "Posunúť blok {{n}} ({{type}}) vyššie",
+    "moveDown": "Posunúť blok {{n}} ({{type}}) nižšie",
+    "delete": "Vymazať blok {{n}} ({{type}})",
+    "types": {
+      "heading": "Nadpis",
+      "text": "Text",
+      "image": "Obrázok",
+      "button": "Tlačidlo",
+      "divider": "Oddeľovač",
+      "logo": "Logo eGrant"
+    }
+  },
+  "fields": {
+    "text": "Text",
+    "nameHint": "Napíšte {{placeholder}} a každého oslovíte menom.",
+    "textHint": "Prázdny riadok začína nový odsek. **tučné** zvýrazní text, webové adresy sa zmenia na odkazy, {{placeholder}} na meno každého človeka.",
+    "align": "Zarovnanie",
+    "left": "Vľavo",
+    "center": "Na stred",
+    "image": "Obrázok",
+    "upload": "Nahrať obrázok",
+    "replace": "Vymeniť obrázok",
+    "uploading": "Nahráva sa…",
+    "uploadFailed": "Obrázok sa nepodarilo nahrať. Použite súbor PNG alebo JPEG.",
+    "alt": "Popis",
+    "altHint": "Zobrazí sa, keď e-mailová aplikácia nenačíta obrázky.",
+    "href": "Odkaz (nepovinný)",
+    "label": "Text tlačidla",
+    "url": "Odkaz",
+    "urlHint": "Webová adresa začínajúca https:// alebo mailto: s e-mailovou adresou.",
+    "dividerNote": "Tenká čiara medzi dvoma časťami e-mailu."
+  },
+  "problems": {
+    "required": "Vyplňte toto pole.",
+    "tooLong": "Príliš dlhé: najviac {{max}} znakov.",
+    "invalidUrl": "Zadajte celú adresu začínajúcu https://.",
+    "imageMissing": "Nahrajte obrázok."
+  },
+  "notReady": {
+    "subject_missing": "Pred odoslaním doplňte predmet.",
+    "no_blocks": "Pred odoslaním pridajte aspoň jeden blok.",
+    "image_missing": "Tento obrázok chýba. Nahrajte ho znova.",
+    "invalid_url": "Tento odkaz nie je platný."
+  },
+  "preview": {
+    "title": "Náhľad",
+    "device": "Veľkosť náhľadu",
+    "computer": "Počítač",
+    "phone": "Telefón",
+    "frame": "Náhľad e-mailu",
+    "loading": "Načítava sa náhľad…",
+    "failed": "Náhľad sa nepodarilo načítať.",
+    "note": "S vaším menom, tak ako by ste ho dostali. Bloky s problémom sa ukážu, keď ich opravíte."
+  },
+  "audience": {
+    "title": "Príjemcovia",
+    "roles": "Kto",
+    "rolesHint": "Klienti a žiadatelia z vybraných skupín; admini sú všetci admini.",
+    "role": {
+      "client": "Klienti",
+      "ziadatel": "Žiadatelia",
+      "admin": "Admini"
+    },
+    "managers": "Skupiny, ktoré spravuje",
+    "managersHint": "Pridá každú skupinu, ktorú označený admin spravuje.",
+    "groups": "Skupiny klientov",
+    "groupsHint": "Keď nie je označená žiadna skupina ani správca, platia všetky skupiny.",
+    "groupSearch": "Nájsť skupinu",
+    "groupsNone": "Žiadna skupina nezodpovedá.",
+    "groupsChosen_one": "Označená {{count}} skupina",
+    "groupsChosen_few": "Označené {{count}} skupiny",
+    "groupsChosen_many": "Označených {{count}} skupín",
+    "groupsChosen_other": "Označených {{count}} skupín",
+    "include": "Pridať človeka",
+    "exclude": "Vynechať človeka",
+    "count_one": "E-mail dostane {{count}} človek",
+    "count_few": "E-mail dostanú {{count}} ľudia",
+    "count_many": "E-mail dostane {{count}} ľudí",
+    "count_other": "E-mail dostane {{count}} ľudí",
+    "leftOut": "Vynechaní: {{unsubscribed}} odhlásení z odberu, {{disabled}} so zablokovaným účtom.",
+    "counting": "Počíta sa…",
+    "show": "Zobraziť príjemcov"
+  },
+  "picker": {
+    "search": "Meno alebo e-mail",
+    "min": "Napíšte aspoň 2 znaky.",
+    "none": "Nikto nezodpovedá.",
+    "addShort": "Pridať",
+    "add": "Pridať: {{name}}",
+    "remove": "Odobrať: {{name}}",
+    "unknown": "Neznámy človek"
+  },
+  "recipients": {
+    "title": "Príjemcovia",
+    "close": "Zavrieť",
+    "more": "Zobraziť ďalších",
+    "empty": "Týmto filtrom nikto nezodpovedá."
+  },
+  "test": {
+    "title": "Test",
+    "intro": "Pošlite si e-mail tak, ako je teraz uložený, na vlastnú adresu {{email}}.",
+    "send": "Poslať test mne",
+    "sending": "Odosiela sa…",
+    "sent": "Test bol odoslaný na {{email}}.",
+    "unsaved": "Počkajte, kým sa zmeny uložia.",
+    "unavailable": "Testovacie odosielanie na tomto serveri ešte nie je.",
+    "rateLimited": "Príliš veľa testov za minútu. Chvíľu počkajte a skúste znova.",
+    "notReady": "E-mail ešte nie je pripravený. Najprv opravte označené problémy."
+  },
+  "summary": {
+    "started": "Odosielanie začal {{name}} {{date}}, z adresy {{sender}}.",
+    "counts": "Príjemcovia: {{recipients}}, odoslané: {{sent}}, zlyhané: {{failed}}.",
+    "readOnly": "Tento e-mail sa už nedá meniť. Duplikujte ho, ak chcete poslať novú verziu.",
+    "duplicate": "Duplikovať"
+  }
+}

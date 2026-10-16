@@ -4,13 +4,19 @@ import {
   createElasticSuppressions,
   type SuppressionList,
 } from '../../infra/email/elastic-suppressions.js';
-import type { JobHandlers, JobQueue, JobSchedule } from '../../infra/jobs/jobs.js';
+import type { BulkEmailSender } from '../../infra/email/bulk.js';
+import type { JobHandlers, JobQueue, JobSchedule, QueueSettings } from '../../infra/jobs/jobs.js';
+import { BULK_BATCH_JOB, runBatch, sweepStuck } from './batch.js';
+import { bulkRealtime } from './events.js';
+import { BULK_TEST_JOB, runTestSend, type BulkTestJobData } from './send.js';
 import { applyProviderSuppressions } from './subscriptions.js';
 
 /** Asks Elastic to drop the suppression of a person who subscribed again (`{ email }`). */
 export const BULK_PROVIDER_RESUBSCRIBE_JOB = 'bulk-email.provider-resubscribe';
 /** The daily safety net: copies Elastic's unsubscribes and complaints into Spolu. */
 export const BULK_SYNC_SUPPRESSIONS_JOB = 'bulk-email.sync-suppressions';
+/** The daily sweep of stuck sends (spec §4): stuck rows fail, a lost batch job is queued again. */
+export const BULK_SWEEP_JOB = 'bulk-email.sweep';
 
 const PAGE = 1000;
 /** A runaway guard: a million addresses is far beyond Spolu's few thousand people. */
@@ -56,12 +62,23 @@ export async function queueProviderResubscribe(
   await jobs.send(BULK_PROVIDER_RESUBSCRIBE_JOB, { email }, { retryLimit: 2 });
 }
 
-/** Job handlers of the bulk email module; passed to `startJobs`. */
+/**
+ * Job handlers of the bulk email module; passed to `startJobs`. Sending: the batch runs (which
+ * reach the sockets through `attachBulkRealtime`, since jobs are built before the app), the test
+ * sends and the daily sweep. Unsubscribing: the Elastic resubscribe call and suppression sync.
+ */
 export function bulkEmailJobHandlers(
-  deps: BulkJobDeps,
+  deps: BulkJobDeps & { bulkEmail: BulkEmailSender; jobs: JobQueue },
   fetchImpl: typeof fetch = fetch,
 ): JobHandlers {
   return {
+    [BULK_BATCH_JOB]: async (data) =>
+      void (await runBatch(
+        { ...deps, io: bulkRealtime() },
+        (data as { campaignId: string }).campaignId,
+      )),
+    [BULK_TEST_JOB]: async (data) => runTestSend(deps, data as BulkTestJobData),
+    [BULK_SWEEP_JOB]: async () => sweepStuck(deps, new Date()),
     [BULK_PROVIDER_RESUBSCRIBE_JOB]: async (data) => {
       const { config } = deps;
       if (config.bulkEmail.driver !== 'elastic') return;
@@ -85,9 +102,21 @@ export function bulkEmailJobHandlers(
   };
 }
 
-/** The daily sync at 04:30 Bratislava time, only when bulk email goes through Elastic. */
+/**
+ * The sweep of stuck sends at 04:15 Bratislava time, and the suppression sync at 04:30 only
+ * when bulk email goes through Elastic.
+ */
 export function bulkEmailSchedules(config: Config): JobSchedule[] {
+  const sweep: JobSchedule = { name: BULK_SWEEP_JOB, cron: '15 4 * * *', tz: 'Europe/Bratislava' };
   return config.bulkEmail.driver === 'elastic'
-    ? [{ name: BULK_SYNC_SUPPRESSIONS_JOB, cron: '30 4 * * *', tz: 'Europe/Bratislava' }]
-    : [];
+    ? [sweep, { name: BULK_SYNC_SUPPRESSIONS_JOB, cron: '30 4 * * *', tz: 'Europe/Bratislava' }]
+    : [sweep];
 }
+
+/**
+ * One batch at a time in this process; its jobs are delayed (`startAfter`), which sends no
+ * NOTIFY, so the queue polls every 2 s instead.
+ */
+export const bulkEmailQueues: Record<string, QueueSettings> = {
+  [BULK_BATCH_JOB]: { localConcurrency: 1, notify: false, pollingIntervalSeconds: 2 },
+};

@@ -1,0 +1,162 @@
+{
+  "status": {
+    "draft": "Draft",
+    "sending": "Sending",
+    "sent": "Sent",
+    "cancelled": "Cancelled"
+  },
+  "list": {
+    "title": "Bulk email",
+    "intro": "Write one email to many people in Spolu: build it from blocks, choose who gets it, and send a test to yourself first.",
+    "new": "New email",
+    "defaultName": "Email of {{date}}",
+    "empty": "No emails yet. Start with New email.",
+    "noSubject": "No subject yet",
+    "counts": "{{sent}} sent, {{failed}} failed",
+    "changed": "Changed {{date}}",
+    "changedBy": "By {{name}}, changed {{date}}",
+    "more": "Show more"
+  },
+  "editor": {
+    "back": "All emails",
+    "notFound": "This email does not exist any more.",
+    "delete": "Delete draft",
+    "deleteConfirm": "Delete this draft? It cannot be restored.",
+    "deleteYes": "Delete",
+    "cancel": "Cancel"
+  },
+  "save": {
+    "saved": "All changes saved",
+    "saving": "Saving…",
+    "invalid": "Not saved: fix the marked fields.",
+    "error": "Not saved. Check your connection.",
+    "retry": "Try again",
+    "changed": "Another admin changed this email while you were editing. Reload to see their version; your last changes here were not saved.",
+    "notDraft": "Sending of this email has started, so it can no longer be changed.",
+    "reload": "Reload"
+  },
+  "content": {
+    "title": "Content",
+    "name": "Internal name",
+    "nameHint": "Only admins see it, in the list of emails.",
+    "subject": "Subject",
+    "preheader": "Preview line",
+    "preheaderHint": "Mail apps show it next to the subject. Optional."
+  },
+  "blocks": {
+    "title": "Blocks",
+    "empty": "No blocks yet. Add a heading and some text to start.",
+    "add": "Add block",
+    "limit": "An email has at most {{max}} blocks.",
+    "moveUp": "Move block {{n}} ({{type}}) up",
+    "moveDown": "Move block {{n}} ({{type}}) down",
+    "delete": "Delete block {{n}} ({{type}})",
+    "types": {
+      "heading": "Heading",
+      "text": "Text",
+      "image": "Image",
+      "button": "Button",
+      "divider": "Divider",
+      "logo": "eGrant logo"
+    }
+  },
+  "fields": {
+    "text": "Text",
+    "nameHint": "Write {{placeholder}} to greet each person by name.",
+    "textHint": "A blank line starts a new paragraph. **bold** makes text bold, web addresses become links, {{placeholder}} becomes each person's name.",
+    "align": "Alignment",
+    "left": "Left",
+    "center": "Centre",
+    "image": "Image",
+    "upload": "Upload image",
+    "replace": "Replace image",
+    "uploading": "Uploading…",
+    "uploadFailed": "The image could not be uploaded. Use a PNG or JPEG file.",
+    "alt": "Description",
+    "altHint": "Shown when the mail app does not load images.",
+    "href": "Link (optional)",
+    "label": "Button text",
+    "url": "Link",
+    "urlHint": "A web address starting with https://, or mailto: with an email address.",
+    "dividerNote": "A thin line between two parts of the email."
+  },
+  "problems": {
+    "required": "Fill this in.",
+    "tooLong": "Too long: at most {{max}} characters.",
+    "invalidUrl": "Enter a full address starting with https://.",
+    "imageMissing": "Upload an image."
+  },
+  "notReady": {
+    "subject_missing": "Add a subject before sending.",
+    "no_blocks": "Add at least one block before sending.",
+    "image_missing": "This image is missing. Upload it again.",
+    "invalid_url": "This link is not valid."
+  },
+  "preview": {
+    "title": "Preview",
+    "device": "Preview size",
+    "computer": "Computer",
+    "phone": "Phone",
+    "frame": "Email preview",
+    "loading": "Loading the preview…",
+    "failed": "The preview could not be loaded.",
+    "note": "Shown with your name, as you would get it. Blocks with problems are left out until they are fixed."
+  },
+  "audience": {
+    "title": "Recipients",
+    "roles": "Who",
+    "rolesHint": "Clients and requesters come from the chosen groups; admins are all admins.",
+    "role": {
+      "client": "Clients",
+      "ziadatel": "Requesters",
+      "admin": "Admins"
+    },
+    "managers": "Groups managed by",
+    "managersHint": "Adds every group the ticked admin manages.",
+    "groups": "Client groups",
+    "groupsHint": "With no group and no manager ticked, every group counts.",
+    "groupSearch": "Find a group",
+    "groupsNone": "No group matches.",
+    "groupsChosen_one": "{{count}} group ticked",
+    "groupsChosen_other": "{{count}} groups ticked",
+    "include": "Add a person",
+    "exclude": "Leave out a person",
+    "count_one": "{{count}} person gets this email",
+    "count_other": "{{count}} people get this email",
+    "leftOut": "Left out: {{unsubscribed}} unsubscribed, {{disabled}} with a disabled account.",
+    "counting": "Counting…",
+    "show": "Show recipients"
+  },
+  "picker": {
+    "search": "Name or email",
+    "min": "Type at least 2 characters.",
+    "none": "Nobody matches.",
+    "addShort": "Add",
+    "add": "Add {{name}}",
+    "remove": "Remove {{name}}",
+    "unknown": "Unknown person"
+  },
+  "recipients": {
+    "title": "Recipients",
+    "close": "Close",
+    "more": "Show more",
+    "empty": "Nobody matches these filters."
+  },
+  "test": {
+    "title": "Test",
+    "intro": "Send the email as it is saved now to your own address, {{email}}.",
+    "send": "Send a test to me",
+    "sending": "Sending…",
+    "sent": "Test sent to {{email}}.",
+    "unsaved": "Wait until your changes are saved.",
+    "unavailable": "Test sending is not available on this server yet.",
+    "rateLimited": "Too many tests in a minute. Wait a moment and try again.",
+    "notReady": "The email is not ready yet. Fix the marked problems first."
+  },
+  "summary": {
+    "started": "Sending started {{date}} by {{name}}, from {{sender}}.",
+    "counts": "{{recipients}} recipients, {{sent}} sent, {{failed}} failed.",
+    "readOnly": "This email can no longer be changed. Duplicate it to send a new version.",
+    "duplicate": "Duplicate"
+  }
+}
