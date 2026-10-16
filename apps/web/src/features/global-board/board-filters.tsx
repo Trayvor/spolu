@@ -133,6 +133,20 @@ function FilterControls({ board, people }: { board: Search; people: TaskPerson[]
       >
         {t('adminHome.board.urgent')}
       </Button>
+      <Button
+        variant="secondary"
+        size="sm"
+        aria-pressed={search.mine === 1}
+        className={cn(search.mine === 1 && pressed)}
+        onClick={() =>
+          board.set((s) => {
+            if (s.mine) delete s.mine;
+            else s.mine = 1;
+          })
+        }
+      >
+        {t('adminHome.board.mine')}
+      </Button>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="secondary" size="sm" className={cn(due !== 'any' && pressed)}>

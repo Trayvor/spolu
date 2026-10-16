@@ -79,6 +79,7 @@ export const homeRoutes: FastifyPluginAsync<HomeRoutesOptions> = async (app, opt
         clientIds: await resolveClientIds(db, viewerId, clients),
         viewerId,
         urgent: rest.urgent ?? false,
+        mine: rest.mine ?? false,
         completed: rest.completed ?? false,
         today: bratislavaToday(now()),
       });

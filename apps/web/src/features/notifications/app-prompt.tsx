@@ -1,7 +1,7 @@
 import { useEffect, useId, useReducer, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import type { NotificationFallback } from '@spolu/shared';
+import { wantsEmail, wantsPush, type NotificationFallback } from '@spolu/shared';
 import { Button } from '@/components/ui/button';
 import { canInstall, promptInstall } from '@/lib/install-prompt';
 import { cn } from '@/lib/utils';
@@ -13,6 +13,7 @@ import {
   readFlag,
   readTime,
   recordDismissal,
+  someWant,
   write,
   type Prompt,
 } from './prompt-rules';
@@ -89,7 +90,8 @@ function Prompts({ device }: { device: Device }) {
   const fallbackAsked = useRef(false);
 
   const vapidKey = prefs?.vapidPublicKey ?? null;
-  const pushOn = prefs?.pushEnabled === true && vapidKey !== null;
+  const pushWanted = prefs ? someWant(prefs, wantsPush) : false;
+  const pushOn = pushWanted && vapidKey !== null;
 
   useEffect(() => {
     let live = true;
@@ -135,7 +137,7 @@ function Prompts({ device }: { device: Device }) {
           standalone: device.standalone,
           ios: device.ios,
           hasPushManager: device.pushManager && deviceState !== 'unsupported',
-          pushEnabled: prefs?.pushEnabled ?? false,
+          pushWanted,
           vapidKey: vapidKey !== null,
           permission: device.permission,
           subscribed: deviceState === 'on',
@@ -151,10 +153,10 @@ function Prompts({ device }: { device: Device }) {
     fallbackAsked.current = true;
     requestEmailFallback().then(
       (next) => {
-        const { pushEnabled, emailEnabled, vapidPublicKey } = next;
+        const { channels, visibleCategories, vapidPublicKey } = next;
         queryClient.setQueryData(notificationPrefsQuery.queryKey, {
-          pushEnabled,
-          emailEnabled,
+          channels,
+          visibleCategories,
           vapidPublicKey,
         });
         setFallback(next);
@@ -276,7 +278,7 @@ function Prompts({ device }: { device: Device }) {
           body={
             fallback.turnedOn
               ? t('notifications.prompt.iosUnsupportedBody')
-              : fallback.emailEnabled
+              : someWant(fallback, wantsEmail)
                 ? t('notifications.prompt.iosUnsupportedEmailOn')
                 : t('notifications.prompt.iosUnsupportedEmailOff')
           }

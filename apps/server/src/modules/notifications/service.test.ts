@@ -2,10 +2,12 @@ import { randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { afterAll, describe, expect, it, vi } from 'vitest';
 import { eq, inArray, sql } from 'drizzle-orm';
+import type { NotificationCategory, NotificationChannel, NotificationKind } from '@spolu/shared';
 import { createDb } from '../../infra/db/client.js';
 import { testConfig, testDatabaseUrl } from '../../../test/test-config.js';
 import { createGroup } from '../groups/service.js';
-import { createUnverifiedClient, updateNotificationPrefs } from '../users/service.js';
+import { user } from '../users/schema.js';
+import { createUnverifiedClient, setNotificationChannel } from '../users/service.js';
 import { saveSubscription } from './push-subscriptions.js';
 import { NOTIFICATIONS_PURGE_JOB, notificationsJobHandlers } from './jobs.js';
 import { notificationEvents } from './schema.js';
@@ -96,26 +98,59 @@ describe('recordNotifications', () => {
 });
 
 describe('recordNotifications pending state', () => {
-  it('only a recipient who could get a push or an email waits for delivery', async () => {
-    const { group, a, b } = await setup();
-    const c = await createUnverifiedClient(db, `${randomUUID()}@example.com`);
-    await saveSubscription(db, a.id, {
+  const device = (userId: string) =>
+    saveSubscription(db, userId, {
       endpoint: `https://push.example.test/${randomUUID()}`,
       p256dh: 'pk',
       auth: 'au',
       userAgent: null,
     });
-    await updateNotificationPrefs(db, b.id, { emailEnabled: true });
+  const pending = async (
+    kind: string,
+    payload: Record<string, unknown>,
+    channels: Partial<Record<NotificationCategory, NotificationChannel>>,
+    opts: { device?: boolean; disabled?: boolean } = {},
+  ) => {
+    const { group, a } = await setup();
+    if (opts.device ?? true) await device(a.id);
+    for (const [category, channel] of Object.entries(channels)) {
+      await setNotificationChannel(db, a.id, category as NotificationCategory, channel);
+    }
+    if (opts.disabled)
+      await db.update(user).set({ disabledAt: new Date() }).where(eq(user.id, a.id));
     const recorded = await recordNotifications(db, {
-      kind: 'chat.message',
+      kind: kind as NotificationKind,
       groupId: group.id,
-      recipients: [a.id, b.id, c.id],
-      payload: { messageId: 'm1' },
+      recipients: [a.id],
+      payload,
     });
-    expect(recorded.sort()).toEqual([a.id, b.id, c.id].sort());
-    const rows = await rowsFor([a.id, b.id, c.id]);
-    const delivered = (id: string) => rows.find((r) => r.userId === id)!.deliveredAt !== null;
-    expect([delivered(a.id), delivered(b.id), delivered(c.id)]).toEqual([false, false, true]);
+    expect(recorded).toEqual([a.id]);
+    const [row] = await rowsFor([a.id]);
+    return row!.deliveredAt === null;
+  };
+
+  it('the default push with a device waits; without a device it is delivered at once', async () => {
+    expect(await pending('chat.message', { messageId: 'm' }, {})).toBe(true);
+    expect(await pending('chat.message', { messageId: 'm' }, {}, { device: false })).toBe(false);
+  });
+
+  it('follows the channel of the event group', async () => {
+    expect(await pending('chat.message', {}, { chat: 'none' })).toBe(false);
+    expect(await pending('task.moved', {}, { chat: 'none' })).toBe(true);
+    expect(await pending('task.moved', {}, { tasks: 'email' }, { device: false })).toBe(true);
+    expect(await pending('task.moved', {}, { tasks: 'both' }, { device: false })).toBe(true);
+    expect(await pending('task.moved', {}, { tasks: 'push' }, { device: false })).toBe(false);
+    // A task chat message belongs to the task board.
+    expect(await pending('chat.message', { taskId: 't1' }, { chat: 'none' })).toBe(true);
+    expect(await pending('chat.message', { taskId: 't1' }, { tasks: 'none' })).toBe(false);
+    expect(await pending('reminder.due', { subjectKind: 'knowledge' }, { knowledge: 'none' })).toBe(
+      false,
+    );
+  });
+
+  it('a disabled user and an unknown kind are delivered at once', async () => {
+    expect(await pending('chat.message', {}, { chat: 'both' }, { disabled: true })).toBe(false);
+    expect(await pending('ticket.created', {}, {})).toBe(false);
   });
 });
 

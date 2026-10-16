@@ -23,8 +23,6 @@
   },
   "notifications": {
     "title": "Notifications",
-    "push": "Push notifications",
-    "pushHint": "New messages and task updates on your devices",
     "pushUnavailable": "Push notifications are not available on this server",
     "device": "This device: {{state}}",
     "deviceOn": "on",
@@ -34,7 +32,24 @@
     "turnOnDevice": "Turn on for this device",
     "unblock": "Allow notifications for this site in the browser's site settings, then reload.",
     "iosHint": "On iPhone, notifications only work from the Home Screen app. Tap Share, then Add to Home Screen, and open Spolu from the icon.",
-    "email": "Email notifications",
-    "emailHint": "A summary of unread messages, at most every 10 minutes"
+    "groups": {
+      "chat": "Chat",
+      "tasks": "Task board",
+      "tickets": "Ticket board",
+      "knowledge": "Knowledge base"
+    },
+    "hints": {
+      "chat": "Messages, mentions and replies in group chats",
+      "tasks": "Task moves, assignments, deadlines, reminders and task chats",
+      "tickets": "Support tickets and their conversations",
+      "knowledge": "Knowledge base reminders"
+    },
+    "channels": {
+      "email": "Email",
+      "push": "Push",
+      "both": "Email and push",
+      "none": "None"
+    },
+    "emailNote": "Email is a summary of what you have not read yet, at most every 10 minutes."
   }
 }

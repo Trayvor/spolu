@@ -79,6 +79,7 @@ export type GlobalBoardSearch = {
   clients?: string;
   assignee?: string;
   urgent?: 1;
+  mine?: 1;
   due?: 'overdue' | 'week' | 'none';
   q?: string;
   completed?: 1;
@@ -100,6 +101,7 @@ const globalBoardRoute = createRoute({
     clients: text(search.clients),
     assignee: text(search.assignee),
     urgent: flag(search.urgent),
+    mine: flag(search.mine),
     due: ['overdue', 'week', 'none'].includes(search.due as string)
       ? (search.due as GlobalBoardSearch['due'])
       : undefined,

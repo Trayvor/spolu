@@ -1,6 +1,17 @@
 import { randomUUID } from 'node:crypto';
-import { and, asc, eq, inArray, isNull, sql } from 'drizzle-orm';
-import type { Admin, GroupMode, Role, UserLanguage } from '@spolu/shared';
+import { and, asc, eq, inArray, isNull, sql, type SQL } from 'drizzle-orm';
+import {
+  DEFAULT_CHANNELS,
+  NotificationChannels,
+  resolveChannels,
+  type Admin,
+  type ChannelMap,
+  type GroupMode,
+  type NotificationCategory,
+  type NotificationChannel,
+  type Role,
+  type UserLanguage,
+} from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
 import { isUniqueViolation } from '../../infra/db/errors.js';
 import { user } from './schema.js';
@@ -131,8 +142,8 @@ export type NotificationProfile = {
   name: string;
   role: Role;
   language: UserLanguage;
-  pushEnabled: boolean;
-  emailEnabled: boolean;
+  /** The channel per notification group, defaults filled in. */
+  channels: ChannelMap;
   defaultGroupMode: GroupMode | null;
   disabled: boolean;
 };
@@ -150,31 +161,58 @@ export async function getNotificationProfiles(
       name: user.name,
       role: user.role,
       language: user.language,
-      pushEnabled: user.pushEnabled,
-      emailEnabled: user.emailEnabled,
+      notificationChannels: user.notificationChannels,
       defaultGroupMode: user.defaultGroupMode,
       disabledAt: user.disabledAt,
     })
     .from(user)
     .where(inArray(user.id, [...new Set(ids)]));
   return new Map(
-    rows.map(({ disabledAt, ...row }) => [row.id, { ...row, disabled: disabledAt !== null }]),
+    rows.map(({ disabledAt, notificationChannels, ...row }) => [
+      row.id,
+      { ...row, channels: resolveChannels(notificationChannels), disabled: disabledAt !== null },
+    ]),
   );
 }
 
-/** Sets only the switches present in the patch. */
-export async function updateNotificationPrefs(
+/**
+ * SQL for one group's channel of the `"user"` row aliased `alias`, defaults filled in: a stored
+ * value that is not a channel counts as unset, as in `resolveChannels`.
+ */
+export function channelSql(
+  alias: string,
+  category: NotificationCategory,
+): SQL<NotificationChannel> {
+  const stored = sql`${sql.identifier(alias)}.notification_channels ->> ${category}::text`;
+  const known = sql.join(
+    NotificationChannels.map((c) => sql`${c}::text`),
+    sql`, `,
+  );
+  return sql<NotificationChannel>`(case when ${stored} in (${known}) then ${stored} else ${DEFAULT_CHANNELS[category]}::text end)`;
+}
+
+/** The user's channel per notification group, defaults filled in. */
+export async function getNotificationChannels(db: Db, id: string): Promise<ChannelMap> {
+  const [row] = await db
+    .select({ channels: user.notificationChannels })
+    .from(user)
+    .where(eq(user.id, id));
+  return resolveChannels(row?.channels);
+}
+
+/** Stores one group's channel; a single `jsonb_set`, so concurrent changes of two groups both stay. */
+export async function setNotificationChannel(
   db: Db,
   id: string,
-  patch: { pushEnabled?: boolean; emailEnabled?: boolean },
+  category: NotificationCategory,
+  channel: NotificationChannel,
 ): Promise<void> {
-  const set: Partial<Pick<UserRow, 'pushEnabled' | 'emailEnabled'>> = {};
-  if (patch.pushEnabled !== undefined) set.pushEnabled = patch.pushEnabled;
-  if (patch.emailEnabled !== undefined) set.emailEnabled = patch.emailEnabled;
-  if (Object.keys(set).length === 0) return;
   await db
     .update(user)
-    .set({ ...set, updatedAt: new Date() })
+    .set({
+      notificationChannels: sql`jsonb_set(${user.notificationChannels}, array[${category}::text], to_jsonb(${channel}::text))`,
+      updatedAt: new Date(),
+    })
     .where(eq(user.id, id));
 }
 
@@ -216,16 +254,43 @@ export async function changeUserEmail(db: Db, id: string, email: string): Promis
 }
 
 /**
- * The iOS fallback: turns email on once per user. Returns true only when it changed the row, so a
- * later manual opt-out is never undone.
+ * The iOS fallback, once per user: every listed group whose channel is push becomes both (email
+ * added); email, both and none stay. Returns true only when it changed a group, so it tells
+ * whether email was turned on; `email_fallback_at` is set either way, and a later manual change
+ * is never undone.
  */
-export async function applyEmailFallback(db: Db, id: string): Promise<boolean> {
-  const rows = await db
-    .update(user)
-    .set({ emailEnabled: true, emailFallbackAt: new Date(), updatedAt: new Date() })
-    .where(and(eq(user.id, id), isNull(user.emailFallbackAt)))
-    .returning({ id: user.id });
-  return rows.length > 0;
+export async function applyEmailFallback(
+  db: Db,
+  id: string,
+  categories: NotificationCategory[],
+): Promise<boolean> {
+  const patch = sql.join(
+    [
+      sql`'{}'::jsonb`,
+      ...categories.map(
+        (c) =>
+          sql`(case when ${channelSql('u', c)} = 'push' then jsonb_build_object(${c}::text, 'both') else '{}'::jsonb end)`,
+      ),
+    ],
+    sql` || `,
+  );
+  const rows = await db.execute<{ before: unknown }>(sql`
+    with prev as (
+      select id, notification_channels as before from "user"
+      where id = ${id} and email_fallback_at is null
+      for update
+    )
+    update "user" u
+    set notification_channels = u.notification_channels || ${patch},
+      email_fallback_at = now(), updated_at = now()
+    from prev
+    where u.id = prev.id
+    returning prev.before
+  `);
+  const [row] = [...rows];
+  if (!row) return false;
+  const before = resolveChannels(row.before);
+  return categories.some((c) => before[c] === 'push');
 }
 
 /** Names of the given users in one query; unknown ids are left out. */

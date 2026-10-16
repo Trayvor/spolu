@@ -113,8 +113,8 @@ function mockApi(me: typeof ADMIN | typeof CLIENT | null) {
       managerSet: [],
     },
     '/api/notifications/preferences': {
-      pushEnabled: false,
-      emailEnabled: true,
+      channels: { chat: 'email', tasks: 'email', tickets: 'both', knowledge: 'email' },
+      visibleCategories: ['chat', 'tasks', 'tickets', 'knowledge'],
       vapidPublicKey: null,
     },
     '/api/health': { status: 'ok', db: 'ok', version: '1.0.0' },
