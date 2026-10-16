@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RouterProvider, createMemoryHistory } from '@tanstack/react-router';
@@ -21,6 +21,14 @@ const ACME = {
   hasLogo: true,
   memberCount: 3,
   updatedAt: '2026-10-15T10:00:00.000Z',
+  managers: [
+    { id: 'a1', name: 'Jana' },
+    { id: 'a2', name: 'Peter Novak' },
+    { id: 'a3', name: 'Zora' },
+    { id: 'a4', name: 'Zuzana' },
+    { id: 'a5', name: 'Zdeno' },
+  ],
+  managedByMe: true,
 };
 const BETA = {
   id: 'g2',
@@ -28,6 +36,8 @@ const BETA = {
   hasLogo: false,
   memberCount: 0,
   updatedAt: '2026-10-15T11:00:00.000Z',
+  managers: [],
+  managedByMe: false,
 };
 
 const MODES = { defaultMode: null, roleDefault: 'mentions', overrides: {}, managerSet: [] };
@@ -87,7 +97,7 @@ describe('groups page', () => {
     renderGroups();
     const acme = await screen.findByRole('link', { name: /Acme/ });
     expect(acme).toHaveAttribute('href', '/groups/g1');
-    expect(acme).toHaveTextContent(t('groups.members', { count: 3 }));
+    expect(acme.closest('li')).toHaveTextContent(t('groups.members', { count: 3 }));
     // Logo URL carries the version for cache-busting.
     expect(acme.querySelector('img')).toHaveAttribute(
       'src',
@@ -193,5 +203,42 @@ describe('groups page', () => {
         name: `${t('notifications.mode.allGroups')} ${t('notifications.mode.mixed')}`,
       }),
     ).toBeInTheDocument();
+  });
+  it('rows show up to 3 manager avatars and +N', async () => {
+    mockApi([ACME, BETA]);
+    renderGroups();
+    const acme = (await screen.findByRole('link', { name: /Acme/ })).closest('li') as HTMLElement;
+    const list = within(acme).getByRole('list', {
+      name: t('groups.managers.listLabel', { name: 'Acme' }),
+    });
+    expect(within(list).getAllByRole('listitem')).toHaveLength(5);
+    expect(acme.querySelectorAll('[data-manager-avatars] > span:first-child > span')).toHaveLength(
+      3,
+    );
+    expect(acme).toHaveTextContent(t('groups.managers.more', { count: 2 }));
+    expect(acme).toHaveTextContent('PN');
+    const toggle = within(acme).getByRole('button', {
+      name: t('groups.managers.toggleLabel', { name: 'Acme' }),
+    });
+    expect(toggle).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('a row with no managers shows no avatars', async () => {
+    mockApi([ACME, BETA]);
+    renderGroups();
+    const beta = (await screen.findByRole('link', { name: /beta/ })).closest('li') as HTMLElement;
+    expect(within(beta).queryByRole('list')).toBeNull();
+    expect(beta.querySelector('[data-manager-avatars]')).toBeNull();
+    expect(
+      within(beta).getByRole('button', {
+        name: t('groups.managers.toggleLabel', { name: 'beta' }),
+      }),
+    ).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('the no-manager hint is shown', async () => {
+    mockApi([ACME, BETA]);
+    renderGroups();
+    expect(await screen.findByText(t('groups.managers.noManagerHint'))).toBeInTheDocument();
   });
 });

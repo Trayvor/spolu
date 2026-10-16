@@ -5,9 +5,11 @@ import {
   GroupPersonListSchema,
   GroupSchema,
   GroupSummaryListSchema,
+  ManagersResponseSchema,
   MemberListSchema,
   type Group,
   type GroupInput,
+  type ManagersResponse,
 } from '@spolu/shared';
 import { apiGet, apiSend, apiSendRaw } from '@/lib/api';
 
@@ -94,3 +96,23 @@ export const groupPeopleQuery = (groupId: string) =>
     enabled: !!groupId,
     queryFn: () => apiGet(`/groups/${encodeURIComponent(groupId)}/people`, GroupPersonListSchema),
   });
+
+/** Make the signed-in admin a manager of the group (idempotent); answers the managers and the admin's mode there. */
+export function becomeManager(groupId: string): Promise<ManagersResponse> {
+  return apiSend(
+    'PUT',
+    `/groups/${encodeURIComponent(groupId)}/managers/me`,
+    undefined,
+    ManagersResponseSchema,
+  );
+}
+
+/** Stop managing the group (idempotent). */
+export function stopManaging(groupId: string): Promise<ManagersResponse> {
+  return apiSend(
+    'DELETE',
+    `/groups/${encodeURIComponent(groupId)}/managers/me`,
+    undefined,
+    ManagersResponseSchema,
+  );
+}

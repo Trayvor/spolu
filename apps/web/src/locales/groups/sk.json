@@ -16,5 +16,18 @@
     "invalidUrl": "Zadajte platnú adresu.",
     "urlTaken": "Túto adresu eGrant už používa iná skupina.",
     "invalidLogo": "Logo musí byť obrázok PNG, JPEG alebo WebP do 512 KB."
+  },
+  "managers": {
+    "manage": "Spravovať",
+    "managing": "Spravujem",
+    "toggleLabel": "Spravovať {{name}}",
+    "started": "Teraz spravujete {{name}}.",
+    "startedMode": "Upozornenia: všetky správy.",
+    "stopped": "{{name}} už nespravujete.",
+    "stoppedMode": "Upozornenia: {{mode}}",
+    "error": "Nepodarilo sa to zmeniť. Skúste to znova.",
+    "more": "+{{count}}",
+    "listLabel": "Správcovia {{name}}",
+    "noManagerHint": "Klienti bez správcu: spomenúť alebo priradiť sa dajú len ich vlastní ľudia."
   }
 }
