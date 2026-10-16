@@ -29,7 +29,7 @@ What an administrator sees after signing in: a dashboard of what needs them, a c
 - The card and the sidebar counts follow changes live: a message or a task change in any group, or reading a chat (also on another device), refetches them within about 2 seconds while the page is visible, and again when the window gets the focus.
 - Upcoming reminders lists the knowledge base reminders the admin receives (author, added or subscribed); task reminders join when Phase 19 is merged, through the same source, with no change to the dashboard.
 - Each card fails on its own: "Could not load this. Try again." with a retry.
-- From 1024 px the client sidebar is on the left of every signed-in page for admins and can be collapsed to a rail of logos (remembered on the device). Under 1024 px the home shows three count tiles that open their lists, then the client list.
+- From 1024 px the client sidebar is on the left of every signed-in page for admins and can be collapsed to a rail of logos (remembered on the device). A long client list scrolls inside the sidebar; it never makes the page or the chat taller than the window. Under 1024 px the home shows three count tiles that open their lists, then the client list.
 - An end-to-end test (`e2e/admin-home.spec.ts`) covers an admin who manages one of two clients: the mention, the assigned task, the sidebar sections and pills, the Úlohy pill, the global board's default scope and adding a client, and the phone tiles. It was written in Phase 20 but not yet run (the shared e2e stack was busy); run it before the phase is marked done.
 
 ## Phase
