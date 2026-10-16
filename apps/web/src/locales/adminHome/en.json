@@ -27,8 +27,20 @@
   "cards": {
     "back": "Back",
     "urgent": "Urgent",
+    "tickets": {
+      "title": "Tickets",
+      "caption": "open",
+      "fresh_one": "{{count}} new",
+      "fresh_other": "{{count}} new",
+      "unassigned_one": "{{count}} without client",
+      "unassigned_other": "{{count}} without client",
+      "new": "New",
+      "noClient": "Without client",
+      "showAll": "Show all tickets",
+      "empty": "No open tickets for your clients or without a client."
+    },
     "assigned": {
-      "title": "Assigned to me",
+      "title": "My tasks",
       "caption": "assigned",
       "urgent_one": "{{count}} urgent",
       "urgent_other": "{{count}} urgent",
@@ -84,5 +96,11 @@
     },
     "count_one": "{{count}} task",
     "count_other": "{{count}} tasks"
+  },
+  "navCount": {
+    "tasks_one": "{{count}} open task assigned to you",
+    "tasks_other": "{{count}} open tasks assigned to you",
+    "tickets_one": "{{count}} open ticket of your clients or without a client",
+    "tickets_other": "{{count}} open tickets of your clients or without a client"
   }
 }

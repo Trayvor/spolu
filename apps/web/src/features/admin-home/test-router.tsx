@@ -21,6 +21,8 @@ export async function renderWithRouter(
     '/groups/$groupId/tasks/$taskId',
     '/groups/$groupId/knowledge',
     '/tasks',
+    '/tickets',
+    '/tickets/$ticketId',
   ];
   const routes = paths.map((path) =>
     createRoute({ getParentRoute: () => rootRoute, path, component: ui }),

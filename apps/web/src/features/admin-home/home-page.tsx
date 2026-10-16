@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { useSession } from '@/features/auth/use-session';
 import { useMediaQuery } from '@/lib/use-media-query';
 import { homeKeys, sidebarQuery } from './api';
-import { useAssignedCard, useMentionsCard, useRemindersCard } from './cards';
+import { useAssignedCard, useMentionsCard, useRemindersCard, useTicketsCard } from './cards';
 import { ClientSidebarList, SidebarRowsPlaceholder } from './client-sidebar';
 import { CountCard } from './count-card';
 import { CountTile } from './count-tile';
@@ -13,6 +13,7 @@ import { useAdminActivityRefetch } from './use-admin-activity';
 
 const CARD_KEYS = [homeKeys.tasks, homeKeys.mentions, homeKeys.reminders] as const;
 const PHONE_KEYS = [...CARD_KEYS, homeKeys.sidebar] as const;
+const TICKET_KEYS = [homeKeys.tickets] as const;
 
 /** Under 1024 px the client list is part of the home screen (there is no sidebar). */
 function PhoneClientList() {
@@ -40,19 +41,22 @@ function PhoneClientList() {
 }
 
 /**
- * The admin dashboard: a greeting, then "Assigned to me" (wide), "Upcoming reminders" and
- * "Mentions" (half each; Mentions takes the row when there is no reminder source). Under 1024 px
- * the cards become count tiles that open their lists, followed by the client list.
+ * The admin dashboard: a greeting, then "Tickets" (wide: mine and those without a client), "My
+ * tasks" (wide), "Upcoming reminders" and "Mentions" (half each; Mentions takes the row when
+ * there is no reminder source). Under 1024 px the cards become count tiles (two per row) that open
+ * their lists, followed by the client list. The Tickets card refetches on ticket events only.
  */
 export function HomePage() {
   const { t } = useTranslation();
   const name = firstName(useSession()?.name ?? '');
   const wide = useMediaQuery('(min-width: 1024px)');
   useAdminActivityRefetch(wide ? CARD_KEYS : PHONE_KEYS);
+  useAdminActivityRefetch(TICKET_KEYS, { kinds: [], chatRead: false, tickets: true });
+  const tickets = useTicketsCard();
   const assigned = useAssignedCard();
   const reminders = useRemindersCard();
   const mentions = useMentionsCard();
-  const cards = [assigned, ...(reminders ? [reminders] : []), mentions];
+  const cards = [tickets, assigned, ...(reminders ? [reminders] : []), mentions];
 
   return (
     <div className="flex flex-col gap-4">
@@ -61,6 +65,7 @@ export function HomePage() {
       </h1>
       {wide ? (
         <>
+          <CountCard {...tickets} />
           <CountCard {...assigned} />
           <div className={reminders ? 'grid grid-cols-2 gap-4' : 'grid grid-cols-1 gap-4'}>
             {reminders && <CountCard {...reminders} />}
@@ -69,7 +74,7 @@ export function HomePage() {
         </>
       ) : (
         <>
-          <div className="flex gap-2">
+          <div className="grid grid-cols-2 gap-2">
             {cards.map((card) => (
               <CountTile key={card.title} {...card} />
             ))}

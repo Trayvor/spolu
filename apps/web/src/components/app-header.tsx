@@ -1,6 +1,7 @@
 import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { LanguageSwitcher } from '@/components/language-switcher';
+import { NavCount } from '@/components/lazy-nav-count';
 import { clientGroups, isAdmin, isRequester } from '@/features/auth/roles';
 import { UserMenu } from '@/features/auth/user-menu';
 import { useSession } from '@/features/auth/use-session';
@@ -16,7 +17,9 @@ const navLink =
  * "Tickets", "Knowledge", "Groups", "Admins" and "Bulk email" links (admins only, hidden under 641 px where
  * the user menu offers them), "My groups" for a client of several groups (Phase 21), "Tickets"
  * for a requester who is no client anywhere (their whole app) or "My tickets" for a client who
- * also reported tickets elsewhere, the user menu and the language menu.
+ * also reported tickets elsewhere, the user menu and the language menu. For admins "Tasks" and
+ * "Tickets" carry a count (my open tasks; the active tickets of my clients and those without a
+ * client), hidden at 0.
  */
 export function AppHeader() {
   const { t } = useTranslation();
@@ -48,9 +51,11 @@ export function AppHeader() {
             </Link>
             <Link to="/tasks" className={navLink}>
               {t('nav.tasks')}
+              <NavCount kind="tasks" live />
             </Link>
             <Link to="/tickets" className={navLink}>
               {t('nav.tickets')}
+              <NavCount kind="tickets" />
             </Link>
             <Link to="/knowledge" className={navLink}>
               {t('nav.knowledge')}

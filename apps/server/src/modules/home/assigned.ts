@@ -59,3 +59,22 @@ export async function getAssignedTasks(db: Db, userId: string): Promise<Assigned
     })),
   };
 }
+
+/**
+ * The header's Tasks count: the viewer's open tasks (not in Completed), the same set as the
+ * "My tasks" card's total. Unassigned tasks do not count. Reads `task_assignees_user_id_idx`.
+ */
+export function assignedCountSql(userId: string): SQL {
+  return sql`
+    select count(*)::int as total
+    from task_assignees ta
+    join tasks t on t.id = ta.task_id
+    where ta.user_id = ${userId}
+      and t.completed_at is null
+  `;
+}
+
+export async function countAssignedTasks(db: Db, userId: string): Promise<number> {
+  const [row] = [...(await db.execute<{ total: number }>(assignedCountSql(userId)))];
+  return row?.total ?? 0;
+}

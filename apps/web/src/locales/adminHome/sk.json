@@ -31,8 +31,24 @@
   "cards": {
     "back": "Späť",
     "urgent": "Urgentné",
+    "tickets": {
+      "title": "Tikety",
+      "caption": "otvorených",
+      "fresh_one": "{{count}} nový",
+      "fresh_few": "{{count}} nové",
+      "fresh_many": "{{count}} nového",
+      "fresh_other": "{{count}} nových",
+      "unassigned_one": "{{count}} bez klienta",
+      "unassigned_few": "{{count}} bez klienta",
+      "unassigned_many": "{{count}} bez klienta",
+      "unassigned_other": "{{count}} bez klienta",
+      "new": "Nový",
+      "noClient": "Bez klienta",
+      "showAll": "Zobraziť všetky tikety",
+      "empty": "Vaši klienti nemajú žiadne otvorené tikety a žiadny nie je bez klienta."
+    },
     "assigned": {
-      "title": "Priradené mne",
+      "title": "Moje úlohy",
       "caption": "priradených",
       "urgent_one": "{{count}} urgentná",
       "urgent_few": "{{count}} urgentné",
@@ -92,5 +108,15 @@
     "count_few": "{{count}} úlohy",
     "count_many": "{{count}} úlohy",
     "count_other": "{{count}} úloh"
+  },
+  "navCount": {
+    "tasks_one": "{{count}} otvorená úloha priradená vám",
+    "tasks_few": "{{count}} otvorené úlohy priradené vám",
+    "tasks_many": "{{count}} otvorenej úlohy priradenej vám",
+    "tasks_other": "{{count}} otvorených úloh priradených vám",
+    "tickets_one": "{{count}} otvorený tiket vašich klientov alebo bez klienta",
+    "tickets_few": "{{count}} otvorené tikety vašich klientov alebo bez klienta",
+    "tickets_many": "{{count}} otvoreného tiketu vašich klientov alebo bez klienta",
+    "tickets_other": "{{count}} otvorených tiketov vašich klientov alebo bez klienta"
   }
 }

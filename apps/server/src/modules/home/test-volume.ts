@@ -10,12 +10,14 @@ class Rollback extends Error {}
 
 const GROUPS = 100;
 const TASKS = 20_000;
+const TICKETS = 20_000;
 const MESSAGES = 200_000;
 const MESSAGES_PER_CHANNEL = MESSAGES / GROUPS;
 
 /**
  * Opens a transaction and seeds it with `generate_series`: 100 groups (a group chat and the five
  * buckets each, one client each; the custom one named "Step <group % 15>"), 20 000 tasks (a third assigned to the admin, a tenth completed),
+ * 20 000 tickets (a tenth active, a fiftieth without a client),
  * 200 000 messages (a quarter name someone, 0.5 % the admin; 1 % @all; 10 % replies), the admin's read marks and
  * the admin managing 10 groups. Runs `analyze`, calls `fn`, then rolls everything back.
  */
@@ -83,6 +85,17 @@ export async function withVolume(
         insert into task_assignees (task_id, user_id)
         select ${p} || '-t' || i, ${adminId} from generate_series(1, ${TASKS}) i where i % 3 = 1
       `);
+      // Ticket i is in group (i % 100) + 1, every fiftieth has no client; nine in ten are resolved,
+      // the rest New or In progress.
+      await tx.execute(sql`
+        insert into tickets (id, group_id, status, source, subject, body, created_at, updated_at)
+        select ${p} || '-k' || i,
+          case when i % 50 = 0 then null else ${p} || '-g' || (i % ${GROUPS} + 1) end,
+          case when i % 10 = 1 then 'new' when i % 10 = 2 then 'in_progress' else 'resolved' end,
+          'api', 'Ticket ' || i, 'Text of ticket ' || i,
+          now() - i * interval '5 minutes', now()
+        from generate_series(1, ${TICKETS}) i
+      `);
       // Message i is in channel ((i - 1) / 2000) + 1; every tenth replies to the one before it.
       await tx.execute(sql`
         insert into messages (id, channel_id, author_id, parent_id, body, mentions_all, client_id,
@@ -124,6 +137,7 @@ export async function withVolume(
         'buckets',
         'tasks',
         'task_assignees',
+        'tickets',
         'messages',
         'message_mentions',
         'read_states',

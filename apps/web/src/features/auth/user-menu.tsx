@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link, useRouter } from '@tanstack/react-router';
 import type { Me } from '@spolu/shared';
 import { useTranslation } from 'react-i18next';
+import { NavCount } from '@/components/lazy-nav-count';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -30,7 +31,8 @@ export function initials(name: string, email: string): string {
  * (name and email, not clickable), then "Settings" (the profile and notification settings
  * page, for every role) and "Log out". Under 641 px the header has no room for
  * the "Home", "Tasks", "Tickets", "Knowledge", "Groups", "Admins" and "Bulk email" links, so admins get them here
- * instead (and a client who also reported tickets elsewhere gets "My tickets").
+ * instead, "Tasks" and "Tickets" with the header's counts (and a client who also reported
+ * tickets elsewhere gets "My tickets").
  */
 export function UserMenu({ user }: { user: Me }) {
   const { t } = useTranslation();
@@ -65,10 +67,16 @@ export function UserMenu({ user }: { user: Me }) {
                 <Link to="/">{t('nav.home')}</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild className="min-[641px]:hidden">
-                <Link to="/tasks">{t('nav.tasks')}</Link>
+                <Link to="/tasks">
+                  {t('nav.tasks')}
+                  <NavCount kind="tasks" />
+                </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild className="min-[641px]:hidden">
-                <Link to="/tickets">{t('nav.tickets')}</Link>
+                <Link to="/tickets">
+                  {t('nav.tickets')}
+                  <NavCount kind="tickets" />
+                </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild className="min-[641px]:hidden">
                 <Link to="/knowledge">{t('nav.knowledge')}</Link>

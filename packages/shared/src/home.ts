@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { BucketKindSchema, TaskDtoSchema, TaskPersonSchema } from './tasks.js';
+import { TicketStatusSchema } from './tickets.js';
 
 /**
  * Phase 20: the admin home (dashboard, client sidebar) and the global task board. Its own module,
@@ -8,6 +9,7 @@ import { BucketKindSchema, TaskDtoSchema, TaskPersonSchema } from './tasks.js';
 
 export const HOME_LIMITS = {
   tasks: 20,
+  tickets: 20,
   mentions: 20,
   mentionCap: 100,
   mentionDays: 90,
@@ -51,6 +53,41 @@ export const AssignedTasksSchema = z.object({
   items: z.array(AssignedTaskSchema),
 });
 export type AssignedTasks = z.infer<typeof AssignedTasksSchema>;
+
+/**
+ * One active ticket on the dashboard's Tickets card: a ticket of a client the viewer manages, or
+ * a ticket without a client (nobody looks after it yet). `groupId` null: without client.
+ */
+export const HomeTicketSchema = z.object({
+  id: z.string(),
+  number: z.number().int(),
+  subject: z.string().nullable(),
+  /** The first characters of the text, for a ticket without a subject. */
+  excerpt: z.string().nullable(),
+  status: TicketStatusSchema,
+  groupId: z.string().nullable(),
+  groupName: z.string().nullable(),
+  dueDate: z.string().nullable(),
+  createdAt: z.string(),
+});
+export type HomeTicket = z.infer<typeof HomeTicketSchema>;
+export const HomeTicketsSchema = z.object({
+  /** Active tickets (New, In progress) of the clients I manage plus those without a client. */
+  total: z.number().int(),
+  /** Of those, in the New state. */
+  fresh: z.number().int(),
+  /** Of those, without a client. */
+  unassigned: z.number().int(),
+  items: z.array(HomeTicketSchema),
+});
+export type HomeTickets = z.infer<typeof HomeTicketsSchema>;
+
+/** The header's counts for admins: my open tasks and the Tickets card's total. */
+export const NavCountsSchema = z.object({
+  tasks: z.number().int(),
+  tickets: z.number().int(),
+});
+export type NavCounts = z.infer<typeof NavCountsSchema>;
 
 export const MentionItemSchema = z.object({
   messageId: z.string(),

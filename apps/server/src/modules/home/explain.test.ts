@@ -2,7 +2,8 @@ import { afterAll, describe, expect, it } from 'vitest';
 import { sql, type SQL } from 'drizzle-orm';
 import { createDb, type Db } from '../../infra/db/client.js';
 import { testDatabaseUrl } from '../../../test/test-config.js';
-import { assignedSql } from './assigned.js';
+import { dashboardTicketCountsSql, dashboardTicketsSql } from '../tickets/dashboard.js';
+import { assignedCountSql, assignedSql } from './assigned.js';
 import { bratislavaToday, globalBoardSql } from './global-board.js';
 import { mentionsSql } from './mentions.js';
 import { sidebarSql } from './sidebar.js';
@@ -66,6 +67,10 @@ describe('admin home query plans on a seeded volume', () => {
       // sidebar and assigned use indexes under 50 ms
       await expectIndexed(tx, sidebarSql(adminId), CHAT_TABLES);
       await expectIndexed(tx, assignedSql(adminId), CHAT_TABLES);
+      await expectIndexed(tx, assignedCountSql(adminId), CHAT_TABLES);
+      // the Tickets card and the header's Tickets count read the tickets indexes
+      await expectIndexed(tx, dashboardTicketsSql(adminId), ['tickets']);
+      await expectIndexed(tx, dashboardTicketCountsSql(adminId), ['tickets']);
       // mentions uses indexes under 50 ms
       await expectIndexed(tx, mentionsSql(adminId), CHAT_TABLES);
       // global board uses tasks_open_group_idx under 50 ms, for the 10 managed groups

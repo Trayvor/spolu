@@ -4,10 +4,12 @@ import {
   GlobalBoardFilterSchema,
   HOME_LIMITS,
   type HomeReminders,
+  type NavCounts,
 } from '@spolu/shared';
 import type { AppDeps } from '../../deps.js';
 import { requireAdmin } from '../auth/session.js';
-import { getAssignedTasks } from './assigned.js';
+import { countDashboardTickets, getDashboardTickets } from '../tickets/dashboard.js';
+import { countAssignedTasks, getAssignedTasks } from './assigned.js';
 import {
   bratislavaToday,
   getGlobalBoard,
@@ -25,7 +27,8 @@ export type HomeRoutesOptions = {
 };
 
 /**
- * The admin home (Phase 20): the client sidebar, the dashboard cards and the global task board.
+ * The admin home (Phase 20): the client sidebar, the dashboard cards, the header's Tasks and
+ * Tickets counts and the global task board.
  * Read-only, admins only (`requireAdmin`: clients get 403); admins read every group, so no
  * further permission filter applies.
  */
@@ -41,6 +44,19 @@ export const homeRoutes: FastifyPluginAsync<HomeRoutesOptions> = async (app, opt
   app.get('/me/home/tasks', { preHandler: adminOnly }, async (request) =>
     getAssignedTasks(db, request.user!.id),
   );
+
+  app.get('/me/home/tickets', { preHandler: adminOnly }, async (request) =>
+    getDashboardTickets(db, request.user!.id),
+  );
+
+  app.get('/me/home/counts', { preHandler: adminOnly }, async (request): Promise<NavCounts> => {
+    const userId = request.user!.id;
+    const [tasks, tickets] = await Promise.all([
+      countAssignedTasks(db, userId),
+      countDashboardTickets(db, userId),
+    ]);
+    return { tasks, tickets: tickets.mine + tickets.unassigned };
+  });
 
   app.get('/me/home/mentions', { preHandler: adminOnly }, async (request) =>
     getMentions(db, request.user!),
