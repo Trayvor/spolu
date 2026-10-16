@@ -1,5 +1,5 @@
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
-import { screen, waitFor } from '@testing-library/react';
+import { cleanup, screen, waitFor } from '@testing-library/react';
 import { i18n, setLanguage } from '@/i18n';
 import { renderMembers } from './members-test-api';
 
@@ -51,7 +51,7 @@ describe('AddMemberForm', () => {
       await openForm(user);
       await submit(user, 'a@firma.sk');
       expect(await screen.findByText(text)).toBeInTheDocument();
-      document.body.innerHTML = '';
+      cleanup();
     }
   });
 
@@ -76,7 +76,7 @@ describe('AddMemberForm', () => {
         'aria-invalid',
         'true',
       );
-      document.body.innerHTML = '';
+      cleanup();
     }
   });
 

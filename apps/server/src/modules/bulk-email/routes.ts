@@ -9,6 +9,7 @@ import {
   BulkRecipientsQuerySchema,
   ErrorCodes,
   type BulkNotReadyAnswer,
+  type BulkSenderDto,
 } from '@spolu/shared';
 import type { AppDeps } from '../../deps.js';
 import { createRateLimiter } from '../../infra/http/rate-limit.js';
@@ -173,6 +174,12 @@ export const bulkEmailRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app
     const body = BulkPeopleLookupSchema.safeParse(request.body);
     if (!body.success) return invalid(reply);
     return lookupPeople(db, body.data.ids);
+  });
+
+  // The send dialog names the sender before anything is sent.
+  app.get('/bulk-email/sender', { preHandler }, async () => {
+    const answer: BulkSenderDto = { sender: deps.config.bulkEmail.from };
+    return answer;
   });
 
   app.post<IdParams>('/bulk-email/campaigns/:id/send', { preHandler }, async (request, reply) => {
