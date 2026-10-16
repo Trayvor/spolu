@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { and, asc, eq, inArray, isNull, sql } from 'drizzle-orm';
 import {
   extractMentions,
+  isPickable,
   type FileInfo,
   ID_RE,
   plainExcerpt,
@@ -39,7 +40,7 @@ import {
 
 const EXCERPT_LENGTH = 140;
 
-/** A mentioned id is not one of the group's people (route: 400 invalid_mention). */
+/** A mentioned id is not one of the group's pickable people (clients and managers) (route: 400 invalid_mention). */
 export class InvalidMentionError extends Error {
   constructor() {
     super('A mentioned user is not one of the group people');
@@ -138,7 +139,9 @@ export async function sendMessage(
   const mentions = extractMentions(data.body);
   const people = await listGroupPeople(db, groupId);
   const nameById = new Map(people.map((p) => [p.id, p.name]));
-  if (mentions.userIds.some((id) => !nameById.has(id))) throw new InvalidMentionError();
+  // New mentions and @all reach clients and managers only; chat.message and threads reach readers.
+  const pickable = new Set(people.filter(isPickable).map((p) => p.id));
+  if (mentions.userIds.some((id) => !pickable.has(id))) throw new InvalidMentionError();
 
   const messageId = randomUUID();
   const parentId = data.parentId ?? null;
@@ -229,7 +232,7 @@ export async function sendMessage(
       const everyone = people.map((p) => p.id);
       // Replies only notify the thread; the channel hears about top-level messages.
       if (parentId === null) await notify('chat.message', everyone);
-      await notify('chat.mention', mentions.all ? everyone : mentions.userIds);
+      await notify('chat.mention', mentions.all ? [...pickable] : mentions.userIds);
       if (parentId !== null) await notify('chat.thread_reply', threadPeople);
     });
   } catch (error) {
@@ -362,7 +365,7 @@ async function loadDto(db: Db, groupId: string, id: string): Promise<MessageDto>
 
 /**
  * Replaces the body of a live message in one transaction: mentions are re-parsed and validated
- * against the group people (mentions already on the message stay valid), `edited_at` and `change_seq` move. No notifications are recorded.
+ * against the pickable people (mentions already on the message stay valid), `edited_at` and `change_seq` move. No notifications are recorded.
  * An empty body is allowed only while the message has attachments.
  */
 export async function editMessage(
@@ -375,7 +378,7 @@ export async function editMessage(
 
   const mentions = extractMentions(body);
   const people = await listGroupPeople(db, channel.groupId);
-  const known = new Set(people.map((p) => p.id));
+  const known = new Set(people.filter(isPickable).map((p) => p.id));
   // Mentions already on the message stay valid even if that person has left the group since.
   const stored = await db
     .select({ userId: messageMentions.userId })
