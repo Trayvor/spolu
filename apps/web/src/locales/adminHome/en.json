@@ -60,6 +60,7 @@
       "none": "Unassigned"
     },
     "urgent": "Urgent",
+    "mine": "Only where I take part",
     "due": {
       "label": "Due: {{name}}",
       "any": "Any",
