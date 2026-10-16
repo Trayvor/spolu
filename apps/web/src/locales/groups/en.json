@@ -16,5 +16,10 @@
     "invalidUrl": "Enter a valid URL.",
     "urlTaken": "Another group already uses this eGrant URL.",
     "invalidLogo": "The logo must be a PNG, JPEG or WebP image up to 512 KB."
+  },
+  "managers": {
+    "title": "eGrant managers",
+    "none": "No eGrant manager yet.",
+    "changeLink": "Change on the Groups page"
   }
 }

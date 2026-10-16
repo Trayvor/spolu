@@ -22,6 +22,7 @@ Each group has a Kanban board with four fixed buckets (columns) and custom bucke
   - description;
   - creator (who created it);
   - assignees (one or more people: clients of the group or admins);
+    - Picker (Phase 18): the list offers only the group's clients and its eGrant managers. An existing assignee who is an admin but not a manager keeps their chip with a muted "not a manager" and can be removed, but is not offered again. An admin who does not manage the group and finds no one to pick sees "Only clients and the client's managers can be assigned." A save refused with `invalid_assignee` shows "Someone you chose can't be assigned here any more." and refetches the group's people. See [client-managers.md](client-managers.md).
   - deadline (date);
   - **urgent** flag;
   - attachments (files, images);

@@ -117,7 +117,12 @@ export const MentionPicker = forwardRef<MentionPickerHandle, MentionPickerProps>
             className={cn(optionClass, i === active && 'bg-accent')}
           >
             {choice.type === 'all' ? (
-              <span className="font-semibold">{t('chat.mention.everyone')}</span>
+              <span className="flex min-w-0 flex-col">
+                <span className="font-semibold">{t('chat.mention.everyone')}</span>
+                <span className="text-micro text-muted-foreground">
+                  {t('chat.mention.everyoneHint')}
+                </span>
+              </span>
             ) : (
               <>
                 <Avatar userId={choice.person.id} name={choice.person.name} size={24} />

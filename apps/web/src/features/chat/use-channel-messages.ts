@@ -7,6 +7,7 @@ import {
   type MessageDto,
   type SendMessageInput,
 } from '@spolu/shared';
+import { groupPeopleQuery } from '@/features/groups/api';
 import { useGroupRoomJoins } from '@/features/groups/use-group-room';
 import { ApiError } from '@/lib/api';
 import { getSocket } from '@/lib/socket';
@@ -407,11 +408,17 @@ export function useChannelMessages(
       try {
         // The answer settles the row even when its socket event is missed.
         apply([await sendMessage(channelId, input)]);
-      } catch {
-        dispatch({ type: 'pendingFailed', clientId: input.clientId });
+      } catch (error) {
+        if (error instanceof ApiError && error.code === 'invalid_mention') {
+          // Someone in the text can no longer be mentioned: keep the row and refresh the picker.
+          dispatch({ type: 'pendingFailed', clientId: input.clientId, reason: 'invalid_mention' });
+          void queryClient.invalidateQueries({ queryKey: groupPeopleQuery(groupId).queryKey });
+        } else {
+          dispatch({ type: 'pendingFailed', clientId: input.clientId });
+        }
       }
     },
-    [channelId, apply],
+    [channelId, apply, queryClient, groupId],
   );
 
   /** Sends at once as a pending row; a failure marks it failed (never retried on its own). */

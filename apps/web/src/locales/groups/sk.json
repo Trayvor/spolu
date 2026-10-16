@@ -16,5 +16,10 @@
     "invalidUrl": "Zadajte platnú adresu.",
     "urlTaken": "Túto adresu eGrant už používa iná skupina.",
     "invalidLogo": "Logo musí byť obrázok PNG, JPEG alebo WebP do 512 KB."
+  },
+  "managers": {
+    "title": "Manažéri z eGrantu",
+    "none": "Zatiaľ žiadny manažér z eGrantu.",
+    "changeLink": "Zmeniť na stránke Skupiny"
   }
 }

@@ -14,7 +14,7 @@ vi.mock('@/features/files/upload', () => ({ uploadFile: vi.fn() }));
 
 const PEOPLE: GroupPerson[] = [
   { id: 'u1', name: 'Anna Nováková', isAdmin: false, isManager: false },
-  { id: 'u2', name: 'Boris Kováč', isAdmin: true, isManager: false },
+  { id: 'u2', name: 'Boris Kováč', isAdmin: true, isManager: true },
   ...Array.from({ length: 10 }, (_, i) => ({
     id: `p${i}`,
     name: `Person ${String.fromCharCode(67 + i)}`,

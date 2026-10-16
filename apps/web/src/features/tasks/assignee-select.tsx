@@ -1,20 +1,31 @@
 import { useId, useMemo, useState, type KeyboardEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { TaskPerson } from '@spolu/shared';
+import { isPickable, type TaskPerson } from '@spolu/shared';
 import { Avatar } from '@/components/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
+import { isAdmin } from '@/features/auth/roles';
+import { useSession } from '@/features/auth/use-session';
 import { useGroupPeople } from '@/features/groups/use-group-people';
 import { CloseIcon } from './icons';
 
 export const MAX_ASSIGNEES = 10;
 
-type Candidate = { id: string; name: string; isAdmin: boolean; removed: boolean };
+type Candidate = {
+  id: string;
+  name: string;
+  isAdmin: boolean;
+  removed: boolean;
+  /** Still a reader of the group, but no longer someone who can be assigned. */
+  notPickable: boolean;
+};
 
 /**
- * Searchable multi-select over the group's people. Chosen people are removable chips; people
- * who left the group (`knownPeople`) stay as "Name (removed)" until the user removes them.
+ * Searchable multi-select over the people who can be assigned: the group's clients and its
+ * managers (`isPickable`). Chosen people are removable chips; people who left the group
+ * (`knownPeople`) stay as "Name (removed)", and an eGrant admin who no longer manages the group
+ * stays with a muted "not a manager", until the user removes them.
  */
 export function AssigneeSelect({
   groupId,
@@ -35,6 +46,7 @@ export function AssigneeSelect({
 }) {
   const { t } = useTranslation();
   const people = useGroupPeople(groupId).data;
+  const me = useSession();
   const listId = useId();
   const hintId = `${listId}-hint`;
   const [query, setQuery] = useState('');
@@ -43,8 +55,10 @@ export function AssigneeSelect({
 
   const byId = useMemo(() => {
     const map = new Map<string, Candidate>();
-    for (const p of knownPeople) map.set(p.id, { ...p, isAdmin: false, removed: true });
-    for (const p of people ?? []) map.set(p.id, { ...p, removed: false });
+    for (const p of knownPeople)
+      map.set(p.id, { ...p, isAdmin: false, removed: true, notPickable: false });
+    for (const p of people ?? [])
+      map.set(p.id, { ...p, removed: false, notPickable: !isPickable(p) });
     return map;
   }, [people, knownPeople]);
 
@@ -52,9 +66,14 @@ export function AssigneeSelect({
   const options = useMemo(() => {
     const needle = query.trim().toLocaleLowerCase();
     return (people ?? []).filter(
-      (p) => !value.includes(p.id) && p.name.toLocaleLowerCase().includes(needle),
+      (p) => isPickable(p) && !value.includes(p.id) && p.name.toLocaleLowerCase().includes(needle),
     );
   }, [people, value, query]);
+  // An admin who does not manage the group cannot assign themselves: say who can be assigned.
+  const nonManagerAdmin =
+    isAdmin(me) && !(people ?? []).some((p) => p.id === me?.id && p.isManager);
+  const emptyLine =
+    nonManagerAdmin && query.trim() === '' ? 'tasks.form.noPickablePeople' : 'tasks.form.noPeople';
   const showList = open && !full;
   const activeIndex = Math.min(active, options.length - 1);
 
@@ -100,6 +119,11 @@ export function AssigneeSelect({
                 <Avatar userId={id} name={name} size={20} />
                 <span className="min-w-0 truncate">{label}</span>
                 {person?.isAdmin && <Badge variant="outline">{t('tasks.form.adminPill')}</Badge>}
+                {person?.notPickable && (
+                  <span className="shrink-0 font-normal text-muted-foreground">
+                    {t('tasks.assignee.notManager')}
+                  </span>
+                )}
                 <button
                   type="button"
                   aria-label={t('tasks.form.remove', { name })}
@@ -155,9 +179,7 @@ export function AssigneeSelect({
           className="absolute inset-x-0 top-full z-10 mt-1 max-h-56 overflow-auto rounded-md border-2 border-border bg-popover py-1 shadow-lift"
         >
           {options.length === 0 && (
-            <li className="px-4 py-2 text-tiny text-muted-foreground">
-              {t('tasks.form.noPeople')}
-            </li>
+            <li className="px-4 py-2 text-tiny text-muted-foreground">{t(emptyLine)}</li>
           )}
           {options.map((p, index) => (
             <li

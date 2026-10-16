@@ -79,10 +79,12 @@
       "invalidAssignee": "Someone you chose is no longer in this group.",
       "tooManyFiles": "Attach at most 20 files.",
       "invalidDate": "Enter a valid deadline.",
-      "invalid": "Check the fields and try again."
+      "invalid": "Check the fields and try again.",
+      "assigneeNotAllowed": "Someone you chose can't be assigned here any more."
     },
     "unknownFile": "File",
-    "editDescription": "Edit description"
+    "editDescription": "Edit description",
+    "noPickablePeople": "Only clients and the client's managers can be assigned."
   },
   "panel": {
     "label": "Task",
@@ -112,5 +114,8 @@
       "details": "Details",
       "chat": "Chat ({{count}})"
     }
+  },
+  "assignee": {
+    "notManager": "not a manager"
   }
 }

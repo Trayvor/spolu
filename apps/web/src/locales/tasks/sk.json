@@ -89,10 +89,12 @@
       "invalidAssignee": "Niekto z vybraných už nie je v tejto skupine.",
       "tooManyFiles": "Priložte najviac 20 súborov.",
       "invalidDate": "Zadajte platný termín.",
-      "invalid": "Skontrolujte polia a skúste to znova."
+      "invalid": "Skontrolujte polia a skúste to znova.",
+      "assigneeNotAllowed": "Niekoho, koho ste vybrali, tu už nemožno priradiť."
     },
     "unknownFile": "Súbor",
-    "editDescription": "Upraviť popis"
+    "editDescription": "Upraviť popis",
+    "noPickablePeople": "Priradiť možno len klientov a manažérov klienta."
   },
   "panel": {
     "label": "Úloha",
@@ -122,5 +124,8 @@
       "details": "Podrobnosti",
       "chat": "Chat ({{count}})"
     }
+  },
+  "assignee": {
+    "notManager": "nie je manažér"
   }
 }

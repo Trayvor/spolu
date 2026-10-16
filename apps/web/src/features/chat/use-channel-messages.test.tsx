@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 import { useState, type ReactNode } from 'react';
 import type { Changes, ChatMessageEvent, MessageDto, Thread } from '@spolu/shared';
+import { groupPeopleQuery } from '@/features/groups/api';
 import { GroupRoomProvider } from '@/features/groups/use-group-room';
 import { chatUnreadQuery, groupChatQuery, threadQuery, unreadThreadsQuery } from './api';
 import { useChannelMessages } from './use-channel-messages';
@@ -348,6 +349,27 @@ describe('useChannelMessages', () => {
     // The POST answer settles the row even without its socket event.
     expect(result.current.window.pending).toEqual([]);
     expect(ids(result.current.window.messages)).toEqual(['m1', 'm2', 'm3', 'm4']);
+  });
+
+  it('a send refused with invalid_mention marks the row failed with that reason and refetches people', async () => {
+    const { result, queryClient } = setup();
+    await waitFor(() => expect(result.current.window.loaded).toBe(true));
+    const invalidate = vi.spyOn(queryClient, 'invalidateQueries');
+    server.send = () => json(400, { error: 'invalid_mention' });
+
+    await act(() => result.current.send({ body: 'hi <@u9>' }));
+    expect(result.current.window.pending[0]).toMatchObject({
+      status: 'failed',
+      failReason: 'invalid_mention',
+      input: { body: 'hi <@u9>' },
+    });
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: groupPeopleQuery('g1').queryKey });
+
+    // A retry clears the reason while it is on its way.
+    server.send = () => json(500, { error: 'internal' });
+    await act(() => result.current.retry(result.current.window.pending[0]!.clientId));
+    expect(result.current.window.pending[0]!.status).toBe('failed');
+    expect(result.current.window.pending[0]!.failReason).toBeUndefined();
   });
 
   it('the socket event of my message arriving before the POST answer leaves one row', async () => {
