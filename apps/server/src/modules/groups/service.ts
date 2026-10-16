@@ -174,13 +174,15 @@ export async function getGroupByInviteToken(db: Db, token: string): Promise<Grou
 
 /**
  * Verified members of the group with the given role (default clients): the active ones, or the
- * ones an admin removed (`removed: true`).
+ * ones an admin removed (`removed: true`). Requesters (`role: 'ziadatel'`) are listed whether or
+ * not they have signed in yet: the tickets module made their accounts, nobody invited them.
  */
 export async function listMembers(
   db: Db,
   groupId: string,
   options: { removed: boolean; role?: MemberRole },
 ): Promise<Member[]> {
+  const role = options.role ?? 'client';
   return db
     .select({ id: user.id, name: user.name, email: user.email })
     .from(groupMembers)
@@ -188,8 +190,8 @@ export async function listMembers(
     .where(
       and(
         eq(groupMembers.groupId, groupId),
-        eq(groupMembers.role, options.role ?? 'client'),
-        eq(user.emailVerified, true),
+        eq(groupMembers.role, role),
+        role === 'client' ? eq(user.emailVerified, true) : undefined,
         options.removed
           ? isNotNull(groupMembers.removedAt)
           : and(isNull(groupMembers.removedAt), isNull(user.disabledAt)),

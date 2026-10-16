@@ -3,6 +3,7 @@
     "label": "Group sections",
     "chat": "Chat",
     "tasks": "Tasks",
+    "tickets": "Tickets",
     "knowledge": "Knowledge",
     "members": "Members"
   },
@@ -24,5 +25,10 @@
     "removedTitle": "Removed members ({{count}})",
     "restore": "Restore",
     "you": "You"
+  },
+  "requesters": {
+    "title": "Requesters",
+    "hint": "People who reported tickets for this client. They see only their own tickets, never the group.",
+    "removedTitle": "Removed requesters ({{count}})"
   }
 }

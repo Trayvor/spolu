@@ -139,7 +139,13 @@ describe('useBoardEvents', () => {
     render(tree(1));
     await waitFor(() => expect(cached()).toBeDefined());
     const key = taskQuery('t1').queryKey;
-    client.setQueryData(key, { ...task('t1'), description: '', files: [], sourceMessage: null });
+    client.setQueryData(key, {
+      ...task('t1'),
+      description: '',
+      files: [],
+      sourceMessage: null,
+      sourceTicket: null,
+    });
     act(() => fake.fire('board:task', { task: task('t1'), actor: { id: 'u2', name: 'Bo' } }));
     expect(client.getQueryState(key)!.isInvalidated).toBe(false);
     act(() =>
@@ -155,7 +161,13 @@ describe('useBoardEvents', () => {
     const view = render(tree(1));
     await waitFor(() => expect(cached()).toBeDefined());
     const key = taskQuery('t1').queryKey;
-    client.setQueryData(key, { ...task('t1'), description: '', files: [], sourceMessage: null });
+    client.setQueryData(key, {
+      ...task('t1'),
+      description: '',
+      files: [],
+      sourceMessage: null,
+      sourceTicket: null,
+    });
     view.rerender(tree(2));
     await waitFor(() => expect(client.getQueryState(key)!.isInvalidated).toBe(true));
   });

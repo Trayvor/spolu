@@ -37,4 +37,14 @@ describe('chatMessageLocation', () => {
       search: { tab: 'chat', message: 'm', c: 'c' },
     });
   });
+
+  it('points a ticket chat message at the ticket page', () => {
+    const m = { messageId: 'm', channelId: 'c', taskId: null, ticketId: 'k' };
+    expect(chatMessageLocation('g', m)).toEqual({
+      to: '/tickets/$ticketId',
+      params: { ticketId: 'k' },
+      search: { message: 'm', c: 'c' },
+    });
+    expect(chatMessageHref('g', m)).toBe('/tickets/k?message=m&c=c');
+  });
 });

@@ -127,10 +127,19 @@ export const SourceMessageSchema = z.object({
 });
 export type SourceMessage = z.infer<typeof SourceMessageSchema>;
 
+/** The ticket a task was made from (Phase 21), for the task panel's "Ticket: #123" line. */
+export const SourceTicketSchema = z.object({
+  id: z.string(),
+  number: z.number().int(),
+  subject: z.string().nullable(),
+});
+export type SourceTicket = z.infer<typeof SourceTicketSchema>;
+
 export const TaskDetailDtoSchema = TaskDtoSchema.extend({
   description: z.string(),
   files: z.array(FileInfoSchema),
   sourceMessage: SourceMessageSchema.nullable(),
+  sourceTicket: SourceTicketSchema.nullable(),
 });
 export type TaskDetailDto = z.infer<typeof TaskDetailDtoSchema>;
 

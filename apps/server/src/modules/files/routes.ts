@@ -124,9 +124,12 @@ export const filesRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { 
       '/files/:id/preview',
       { preHandler: anyUser, bodyLimit: MAX_PREVIEW_BYTES },
       async (request, reply) => {
-        const file = await readableFile(request, request.params.id);
+        // The uploader sets the preview of their own new file even when no group rule lets them
+        // read it yet (a ziadatel's upload to a ticket chat, Phase 21); others need to read it.
+        const file = await getFile(db, request.params.id);
         if (!file) return notFound(reply);
         if (!canSetPreview(request.user!, file)) {
+          if (!(await readableFile(request, file.id))) return notFound(reply);
           return reply.code(403).send({ error: ErrorCodes.forbidden });
         }
 
