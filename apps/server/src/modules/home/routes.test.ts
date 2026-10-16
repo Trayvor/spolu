@@ -1,6 +1,11 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { AssignedTasksSchema, MentionsSchema, SidebarSchema } from '@spolu/shared';
+import {
+  AssignedTasksSchema,
+  GlobalBoardSchema,
+  MentionsSchema,
+  SidebarSchema,
+} from '@spolu/shared';
 import { buildTestApp } from '../../../test/test-app.js';
 import { loginAs } from '../../../test/login.js';
 import { addAdmin } from '../users/service.js';
@@ -28,7 +33,13 @@ describe('home API', () => {
     test.app.inject({ method: 'GET', url, headers: { cookie } });
 
   it('a client gets 403 on every admin home endpoint', async () => {
-    for (const url of ['/api/me/home/sidebar', '/api/me/home/tasks', '/api/me/home/mentions']) {
+    for (const url of [
+      '/api/me/home/sidebar',
+      '/api/me/home/tasks',
+      '/api/me/home/mentions',
+      '/api/me/home/reminders',
+      '/api/tasks/global',
+    ]) {
       const res = await get(url, clientCookie);
       expect({ url, status: res.statusCode, body: res.json() }).toEqual({
         url,
@@ -53,5 +64,28 @@ describe('home API', () => {
     const mentions = await get('/api/me/home/mentions', adminCookie);
     expect(mentions.statusCode).toBe(200);
     expect(MentionsSchema.parse(mentions.json())).toEqual({ total: 0, items: [] });
+  });
+
+  it('unknown due is 400 invalid_filter', async () => {
+    const res = await get('/api/tasks/global?due=tomorrow', adminCookie);
+    expect(res.statusCode).toBe(400);
+    expect(res.json()).toEqual({ error: 'invalid_filter' });
+  });
+
+  it('a bad cursor is 400 invalid_filter', async () => {
+    const res = await get('/api/tasks/global?column=todo&after=nope', adminCookie);
+    expect(res.statusCode).toBe(400);
+    expect(res.json()).toEqual({ error: 'invalid_filter' });
+  });
+
+  it('an admin gets the global board', async () => {
+    const res = await get('/api/tasks/global?assignee=me&urgent=1', adminCookie);
+    expect(res.statusCode).toBe(200);
+    expect(GlobalBoardSchema.parse(res.json()).columns.map((c) => c.kind)).toEqual([
+      'todo',
+      'other',
+      'egrant_review',
+      'client_review',
+    ]);
   });
 });

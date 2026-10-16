@@ -3,6 +3,7 @@ import { sql, type SQL } from 'drizzle-orm';
 import { createDb, type Db } from '../../infra/db/client.js';
 import { testDatabaseUrl } from '../../../test/test-config.js';
 import { assignedSql } from './assigned.js';
+import { bratislavaToday, globalBoardSql } from './global-board.js';
 import { mentionsSql } from './mentions.js';
 import { sidebarSql } from './sidebar.js';
 import { withVolume } from './test-volume.js';
@@ -57,12 +58,25 @@ const CHAT_TABLES = ['messages', 'message_mentions'];
  */
 describe('admin home query plans on a seeded volume', () => {
   it('the admin home queries use indexes under 50 ms', { timeout: 180_000 }, async () => {
-    await withVolume(db, async (tx, { adminId }) => {
+    await withVolume(db, async (tx, { adminId, managedIds }) => {
       // sidebar and assigned use indexes under 50 ms
       await expectIndexed(tx, sidebarSql(adminId), CHAT_TABLES);
       await expectIndexed(tx, assignedSql(adminId), CHAT_TABLES);
       // mentions uses indexes under 50 ms
       await expectIndexed(tx, mentionsSql(adminId), CHAT_TABLES);
+      // global board uses tasks_open_group_idx under 50 ms, for the 10 managed groups
+      await expectIndexed(
+        tx,
+        globalBoardSql({
+          clientIds: managedIds,
+          viewerId: adminId,
+          assignee: 'anyone',
+          urgent: false,
+          completed: false,
+          today: bratislavaToday(new Date()),
+        }),
+        ['tasks', ...CHAT_TABLES],
+      );
     });
   });
 });

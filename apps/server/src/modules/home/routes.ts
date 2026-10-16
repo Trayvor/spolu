@@ -1,8 +1,19 @@
 import type { FastifyPluginAsync } from 'fastify';
-import { HOME_LIMITS, type HomeReminders } from '@spolu/shared';
+import {
+  ErrorCodes,
+  GlobalBoardFilterSchema,
+  HOME_LIMITS,
+  type HomeReminders,
+} from '@spolu/shared';
 import type { AppDeps } from '../../deps.js';
 import { requireAdmin } from '../auth/session.js';
 import { getAssignedTasks } from './assigned.js';
+import {
+  bratislavaToday,
+  getGlobalBoard,
+  InvalidCursorError,
+  resolveClientIds,
+} from './global-board.js';
 import { getMentions } from './mentions.js';
 import { getReminderSource } from './reminder-source.js';
 import { getSidebar } from './sidebar.js';
@@ -56,4 +67,26 @@ export const homeRoutes: FastifyPluginAsync<HomeRoutesOptions> = async (app, opt
       }
     },
   );
+
+  app.get('/tasks/global', { preHandler: adminOnly }, async (request, reply) => {
+    const filter = GlobalBoardFilterSchema.safeParse(request.query);
+    if (!filter.success) return reply.code(400).send({ error: ErrorCodes.invalidFilter });
+    const viewerId = request.user!.id;
+    const { clients, ...rest } = filter.data;
+    try {
+      return await getGlobalBoard(db, {
+        ...rest,
+        clientIds: await resolveClientIds(db, viewerId, clients),
+        viewerId,
+        urgent: rest.urgent ?? false,
+        completed: rest.completed ?? false,
+        today: bratislavaToday(now()),
+      });
+    } catch (error) {
+      if (error instanceof InvalidCursorError) {
+        return reply.code(400).send({ error: ErrorCodes.invalidFilter });
+      }
+      throw error;
+    }
+  });
 };
