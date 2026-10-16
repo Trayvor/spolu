@@ -113,4 +113,22 @@ describe('resizeImage', () => {
     expect(usedCanvas().width).toBe(640);
     expect(result.blob.type).toBe('image/webp');
   });
+
+  it('encodes as JPEG 0.85 fitting only the width when asked (bulk email images)', async () => {
+    stubImage(2400, 4000);
+    const result = await resizeImageWithSize(file('image/jpeg'), 1200, {
+      outputType: 'image/jpeg',
+      fit: 'width',
+    });
+    expect([usedCanvas().width, usedCanvas().height]).toEqual([1200, 2000]);
+    expect(toBlobCalls).toEqual([['image/jpeg', 0.85]]);
+    expect(result.blob.type).toBe('image/jpeg');
+  });
+
+  it('encodes as PNG when asked', async () => {
+    stubImage(300, 200);
+    const result = await resizeImageWithSize(file('image/png'), 1200, { outputType: 'image/png' });
+    expect(toBlobCalls.map(([type]) => type)).toEqual(['image/png']);
+    expect(result.blob.type).toBe('image/png');
+  });
 });

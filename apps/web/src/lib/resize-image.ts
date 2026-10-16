@@ -14,17 +14,22 @@ export const MAX_INPUT_BYTES = 20 * 1024 * 1024;
  * that request, so fall back to PNG. The blob's `type` is what to send as Content-Type.
  * Rejects for a file that is not an image, is over 20 MB, or cannot be decoded.
  * Also answers the original bitmap's width and height (before shrinking).
+ *
+ * `outputType` encodes as JPEG (0.85) or PNG instead, with no fallback (bulk email images: many
+ * mail apps do not show WebP); `fit: 'width'` limits only the width to `max`.
  */
 export async function resizeImageWithSize(
   file: File,
   max: number,
+  options: { outputType?: 'image/jpeg' | 'image/png'; fit?: 'side' | 'width' } = {},
 ): Promise<{ blob: Blob; width: number; height: number }> {
   if (!file.type.startsWith('image/')) throw new Error('Not an image');
   if (file.size > MAX_INPUT_BYTES) throw new Error('Image is too large');
   const bitmap = await createImageBitmap(file);
   let scaled: ImageBitmap | null = null;
   try {
-    const scale = Math.min(1, max / Math.max(bitmap.width, bitmap.height));
+    const side = options.fit === 'width' ? bitmap.width : Math.max(bitmap.width, bitmap.height);
+    const scale = Math.min(1, max / side);
     const width = Math.max(1, Math.round(bitmap.width * scale));
     const height = Math.max(1, Math.round(bitmap.height * scale));
     const original = { width: bitmap.width, height: bitmap.height };
@@ -43,6 +48,12 @@ export async function resizeImageWithSize(
     if (!context) throw new Error('Canvas is not available');
     context.drawImage(scaled ?? bitmap, 0, 0, width, height);
 
+    if (options.outputType) {
+      const quality = options.outputType === 'image/jpeg' ? 0.85 : undefined;
+      const blob = await encode(canvas, options.outputType, quality);
+      if (!blob) throw new Error('Could not encode the image');
+      return { blob, ...original };
+    }
     const webp = await encode(canvas, 'image/webp', 0.85);
     if (webp?.type === 'image/webp') return { blob: webp, ...original };
     const png = await encode(canvas, 'image/png');
