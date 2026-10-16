@@ -1,6 +1,25 @@
-# Phase 22 — Members tab and Groups page Implementation Plan
+# Phase 22 — Members tab and Groups page Implementation Plan (22a built, 22b planned)
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use subagent-driven-development (recommended) or executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+## Parts
+
+Phase 22 is split in two:
+
+| part | branch | content | status |
+|---|---|---|---|
+| 22a | `phase-22a-managers-groups-page` | Task 1; the managers half of Task 4; Tasks 5 and 6; Task 7's managers and Groups page e2e and docs | built |
+| 22b | not cut | invites by email: Tasks 2 and 3, the members half of Task 4 (add-member form, invited rows), Task 7's invite e2e | planned, needs a redesign first |
+
+**22a as built (2026-10-16, branch `phase-22a-managers-groups-page`, stacked on `phase-21-3-ticket-chat`).** Differences from the tasks below:
+- Server: `/managers/me` and `/managers/:userId` share one handler (`applyManagerChange` in `groups/routes.ts`), one rate limit per acting admin, and build their answer before the `group:managers` event goes out. `/:userId` answers `GroupManagersResponse = { managers }`; a client, disabled or unknown target is `403` (`NotAnAdminError`). No policy or service change beyond `canSetManager`.
+- Members tab: "+ Add manager" is a `DropdownMenu` (`add-manager-menu.tsx`) of the group's people with `isAdmin && !isManager`; the find field appears from 9 candidates. Success invalidates `['groups']`; no toast. The 21.1 membership model needs nothing here: managers are admins, never memberships.
+- Groups page: `filterByManager(groups, manager, adminIds: Set | null)` takes the active admins' ids (from `GET /admins`) instead of `meId` (`me` uses `managedByMe`); an id not among them, or any id while they load, gives every group, and the page then drops the param (`replace`). `isKnownManager` is exported for that. The count sits beside the `h1` (`data-group-count`), not inside it, so the heading's name stays "Groups".
+- Tooltip: Radix `Tooltip`, controlled, `disableHoverableContent`; a press on the trigger is not a press outside, a touch pointer leaving does not close it. The bubble's list is `aria-hidden`; Radix's hidden description gets the names as one comma-separated line (`aria-label` on the content).
+- Client filter: the chips are the `order-last basis-full` row themselves (no wrapper); the reset is a sibling link button with `order-1`.
+- e2e written, not run in this part's session: `managers.spec.ts` (add and remove B on the Members tab, tooltip on the Groups page) and `groups.spec.ts` (filter "Ja", count "n z m", the member link).
+
+**22b — redesign before building.** Tasks 2, 3 and the member half of Task 4 were written before Phase 21.1. Since then clients can be in several groups, `group_members` has `role` (`client | ziadatel`) and `removed_at`, removal is per membership (the account is disabled only with the last one), and an invite typed before signing in is stored in `pending_invites` and applied on sign-in (`moveUnverified` is gone). "An invited member is an unverified active client in `group_members`" no longer holds, and the "verified client of another group" answer is wrong now that such a client can simply be added. Redesign the invite model (likely a `pending_invites`-style row per group and email, shown as "Pozvaný" until applied), the answers table and the cancel rule against that model, then rewrite Tasks 2 to 4 before cutting the branch.
 
 **Goal:**
 - On a group's Members tab (Členovia), admins manage the group's eGrant managers and invite members by email.
@@ -88,7 +107,7 @@ Re-check the "Invites by email" architecture and the member list against the mer
 
 ---
 
-### Task 1: Server — admins set any admin as a group's manager
+### Task 1: Server — admins set any admin as a group's manager (22a, built)
 
 **Files:**
 - Modify: `apps/server/src/modules/groups/routes.ts` (next to the `/managers/me` routes)
@@ -121,7 +140,7 @@ Re-check the "Invites by email" architecture and the member list against the mer
 - [ ] **Step 4: Run the tests** and expect PASS. Then run `pnpm --filter @spolu/server typecheck`.
 - [ ] **Step 5: Commit** `feat(server): admins set any admin as a group's manager`.
 
-### Task 2: Server — invite a member by email; list, resend, cancel
+### Task 2: Server — invite a member by email; list, resend, cancel (22b, redesign first)
 
 **Files:**
 - Modify: `apps/server/src/modules/users/service.ts`:
@@ -186,7 +205,7 @@ Re-check the "Invites by email" architecture and the member list against the mer
 - [ ] **Step 7: Run** `pnpm --filter @spolu/server test` and `typecheck`, and expect PASS.
 - [ ] **Step 8: Commit** `feat(server): invite group members by email`.
 
-### Task 3: Web — login page takes `?email=`
+### Task 3: Web — login page takes `?email=` (22b)
 
 **Files:**
 - Modify: `apps/web/src/router.tsx`: the login route's `validateSearch` keeps `email?: string` next to `redirect`.
@@ -203,7 +222,7 @@ Re-check the "Invites by email" architecture and the member list against the mer
 - [ ] **Step 4: Run the tests** and expect PASS.
 - [ ] **Step 5: Commit** `feat(web): the login link can carry the email`.
 
-### Task 4: Web — Members tab: managers editable, add member, invited rows
+### Task 4: Web — Members tab: managers editable (22a, built), add member, invited rows (22b, redesign first)
 
 **Files:**
 - Modify: `apps/web/src/features/groups/api.ts`:
@@ -262,7 +281,7 @@ Re-check the "Invites by email" architecture and the member list against the mer
 - [ ] **Step 4: Run the tests** and expect PASS. Run `pnpm --filter @spolu/web typecheck` and `lint`.
 - [ ] **Step 5: Commit** `feat(web): manage managers and invite members on the Members tab`.
 
-### Task 5: Web — client filter: "Predvolené" in the filter row
+### Task 5: Web — client filter: "Predvolené" in the filter row (22a, built)
 
 **Files:**
 - Modify: `apps/web/src/components/client-filter.tsx` (the block around `order-last basis-full`).
@@ -278,7 +297,7 @@ Re-check the "Invites by email" architecture and the member list against the mer
 - [ ] **Step 4: Run** the web tests and expect PASS. Look at both pages at 1280 px and 375 px in `pnpm dev`.
 - [ ] **Step 5: Commit** `fix(web): the client filter's reset sits in the filter row`.
 
-### Task 6: Web — Groups page: link, tooltip, manager filter, sort, count
+### Task 6: Web — Groups page: link, tooltip, manager filter, sort, count (22a, built)
 
 **Files:**
 - Modify: `apps/web/src/router.tsx`: `groupsRoute.validateSearch` gives `{ manager?: string }`, a non-empty string of at most 64 characters.
@@ -329,7 +348,7 @@ Re-check the "Invites by email" architecture and the member list against the mer
 - [ ] **Step 4: Run the tests** and expect PASS. Run `pnpm --filter @spolu/web typecheck` and `lint`.
 - [ ] **Step 5: Commit** `feat(web): Groups page filter by manager, my groups first, counts and links`.
 
-### Task 7: End-to-end, docs, roadmap
+### Task 7: End-to-end, docs, roadmap (managers and Groups page: 22a, built; invites: 22b)
 
 **Files:**
 - Modify: `e2e/managers.spec.ts`.

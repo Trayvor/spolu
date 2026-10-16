@@ -1,5 +1,12 @@
 import type { FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify';
-import { ErrorCodes, GroupInputSchema, type Group, type ManagersResponse } from '@spolu/shared';
+import {
+  ErrorCodes,
+  GroupInputSchema,
+  type Group,
+  type GroupManager,
+  type GroupManagersResponse,
+  type ManagersResponse,
+} from '@spolu/shared';
 import type { AppDeps } from '../../deps.js';
 import type { Config } from '../../infra/config/config.js';
 import { disconnectUser, joinGroupRoom, leaveGroupRoom } from '../../infra/realtime/rooms.js';
@@ -11,7 +18,13 @@ import { deactivateUser, getUserById, reactivateUser } from '../users/service.js
 import { emitManagers } from './events.js';
 import { logoRoutes } from './logo.js';
 import { addManager, GroupNotFoundError, NotAnAdminError, removeManager } from './managers.js';
-import { canBeManager, canManageGroups, canReadGroup, canRemoveMember } from './policy.js';
+import {
+  canBeManager,
+  canManageGroups,
+  canReadGroup,
+  canRemoveMember,
+  canSetManager,
+} from './policy.js';
 import {
   createGroup,
   EgrantUrlTakenError,
@@ -179,46 +192,94 @@ export const groupsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, {
     },
   );
 
-  // Managers are self-service: an admin adds or removes only themselves, never someone else.
+  // Managers: an admin adds or removes themselves (`/managers/me`, answering their own mode too),
+  // or any active admin (`/managers/:userId`, from the group's Members tab). One rate limit for both.
   const allowManagerChange = createRateLimiter({ windowMs: 60_000, max: managerRateLimit(config) });
   const adminOnly = requireAdmin(app.auth);
 
-  const changeManager =
+  /**
+   * Runs the change for `targetId` and sends `answer(managers)`. The answer is built before the
+   * event goes out, so a failure there never follows an event already sent.
+   */
+  const applyManagerChange = async <T>(
+    actorId: string,
+    change: typeof addManager,
+    groupId: string,
+    targetId: string,
+    reply: FastifyReply,
+    answer: (managers: GroupManager[]) => Promise<T> | T,
+  ): Promise<T | FastifyReply> => {
+    if (!allowManagerChange(actorId)) {
+      return reply.code(429).send({ error: ErrorCodes.rateLimited });
+    }
+    // removeManager is idempotent and never sees the group, so check it here for every route.
+    if (!(await getGroup(db, groupId))) return notFound(reply);
+    try {
+      const { changed, managers } = await change(db, groupId, targetId);
+      const response = await answer(managers);
+      if (changed) emitManagers(app.io, { groupId, managers });
+      return response;
+    } catch (error) {
+      if (error instanceof GroupNotFoundError) return notFound(reply);
+      if (error instanceof NotAnAdminError) return forbidden(reply);
+      throw error;
+    }
+  };
+
+  const changeMyManager =
     (change: typeof addManager) =>
     async (request: FastifyRequest<IdParams>, reply: FastifyReply) => {
       const actor = request.user!;
       if (!canBeManager(actor)) return forbidden(reply);
-      if (!allowManagerChange(actor.id)) {
-        return reply.code(429).send({ error: ErrorCodes.rateLimited });
-      }
       const { id } = request.params;
-      // removeManager is idempotent and never sees the group, so check it here for both routes.
-      if (!(await getGroup(db, id))) return notFound(reply);
-      try {
-        const { changed, managers } = await change(db, id, actor.id);
-        // Read the mode first: a failure here must not follow an event already sent.
-        const mode = await getEffectiveGroupMode(db, actor, id);
-        if (changed) emitManagers(app.io, { groupId: id, managers });
-        const response: ManagersResponse = {
+      return applyManagerChange(
+        actor.id,
+        change,
+        id,
+        actor.id,
+        reply,
+        async (managers): Promise<ManagersResponse> => ({
           managers,
           managedByMe: managers.some((m) => m.id === actor.id),
-          mode,
-        };
-        return response;
-      } catch (error) {
-        if (error instanceof GroupNotFoundError) return notFound(reply);
-        if (error instanceof NotAnAdminError) return forbidden(reply);
-        throw error;
-      }
+          mode: await getEffectiveGroupMode(db, actor, id),
+        }),
+      );
     };
 
+  const changeManager =
+    (change: typeof addManager) =>
+    async (request: FastifyRequest<MemberParams>, reply: FastifyReply) => {
+      const actor = request.user!;
+      if (!canSetManager(actor)) return forbidden(reply);
+      const { id, userId } = request.params;
+      return applyManagerChange(
+        actor.id,
+        change,
+        id,
+        userId,
+        reply,
+        (managers): GroupManagersResponse => ({ managers }),
+      );
+    };
+
+  // `/managers/me` is registered first so `me` is never read as a user id.
   app.put<IdParams>(
     '/groups/:id/managers/me',
     { preHandler: adminOnly },
-    changeManager(addManager),
+    changeMyManager(addManager),
   );
   app.delete<IdParams>(
     '/groups/:id/managers/me',
+    { preHandler: adminOnly },
+    changeMyManager(removeManager),
+  );
+  app.put<MemberParams>(
+    '/groups/:id/managers/:userId',
+    { preHandler: adminOnly },
+    changeManager(addManager),
+  );
+  app.delete<MemberParams>(
+    '/groups/:id/managers/:userId',
     { preHandler: adminOnly },
     changeManager(removeManager),
   );

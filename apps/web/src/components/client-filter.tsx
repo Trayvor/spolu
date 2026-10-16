@@ -63,8 +63,9 @@ function ClientLogo({ client }: { client: ClientOption }) {
  * - Every change calls `onChange` at once with the ids in the order of `groups`; "Only my
  *   clients" and "Reset" give null, "All clients" every id.
  *
- * It renders the pill and the chip row side by side: put it in a `flex flex-wrap` bar, where the
- * chip row (`order-last basis-full`) wraps to its own line under the bar.
+ * It renders the pill, the reset and the chip row as siblings: put it in a `flex flex-wrap` bar.
+ * The reset ("Predvolené", `order-1`) lands after the bar's other controls; the chip row
+ * (`order-last basis-full`, only with chips) wraps to its own line under the bar.
  */
 export function ClientFilter({
   groups,
@@ -184,41 +185,40 @@ export function ClientFilter({
           )}
         </>
       )}
-      {(chips.length > 0 || value !== null) && (
-        <div className="order-last flex basis-full flex-wrap items-center gap-2">
-          {chips.length > 0 && (
-            <ul aria-label={t('knowledge.clientFilter.chosen')} className="flex flex-wrap gap-2">
-              {chips.map((group) => (
-                <li
-                  key={group.id}
-                  className="inline-flex h-8 items-center gap-1.5 rounded-full bg-secondary pr-1 pl-3 text-tiny font-semibold text-secondary-foreground"
-                >
-                  {managed.has(group.id) && (
-                    <span
-                      data-managed-dot=""
-                      aria-hidden="true"
-                      className="size-1.5 shrink-0 rounded-full bg-foreground"
-                    />
-                  )}
-                  <span className="max-w-[200px] truncate">{group.name}</span>
-                  <button
-                    type="button"
-                    aria-label={t('knowledge.clientFilter.remove', { name: group.name })}
-                    onClick={() => toggle(group.id)}
-                    className="relative inline-flex size-6 items-center justify-center rounded-full transition-colors duration-(--duration-fast) after:absolute after:-inset-2 hover:bg-surface-3"
-                  >
-                    <CrossIcon />
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-          {value !== null && (
-            <Button variant="link" size="sm" className="ml-auto" onClick={() => onChange(null)}>
-              {t('knowledge.clientFilter.reset')}
-            </Button>
-          )}
-        </div>
+      {chips.length > 0 && (
+        <ul
+          aria-label={t('knowledge.clientFilter.chosen')}
+          className="order-last flex basis-full flex-wrap gap-2"
+        >
+          {chips.map((group) => (
+            <li
+              key={group.id}
+              className="inline-flex h-8 items-center gap-1.5 rounded-full bg-secondary pr-1 pl-3 text-tiny font-semibold text-secondary-foreground"
+            >
+              {managed.has(group.id) && (
+                <span
+                  data-managed-dot=""
+                  aria-hidden="true"
+                  className="size-1.5 shrink-0 rounded-full bg-foreground"
+                />
+              )}
+              <span className="max-w-[200px] truncate">{group.name}</span>
+              <button
+                type="button"
+                aria-label={t('knowledge.clientFilter.remove', { name: group.name })}
+                onClick={() => toggle(group.id)}
+                className="relative inline-flex size-6 items-center justify-center rounded-full transition-colors duration-(--duration-fast) after:absolute after:-inset-2 hover:bg-surface-3"
+              >
+                <CrossIcon />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      {value !== null && (
+        <Button variant="link" size="sm" className="order-1" onClick={() => onChange(null)}>
+          {t('knowledge.clientFilter.reset')}
+        </Button>
       )}
     </>
   );

@@ -126,6 +126,11 @@ const globalBoardRoute = createRoute({
 const groupsRoute = createRoute({
   getParentRoute: () => authedRoute,
   path: '/groups',
+  // The manager filter: `me`, `none` or an admin id (the page drops an id that is not an admin).
+  validateSearch: (search: Record<string, unknown>): { manager?: string } => {
+    const manager = text(search.manager);
+    return { manager: manager && manager.length <= 64 ? manager : undefined };
+  },
   component: lazyRouteComponent(
     withNamespaces(['groups', 'chat'], () => import('@/features/groups/groups-page')),
     'GroupsPage',

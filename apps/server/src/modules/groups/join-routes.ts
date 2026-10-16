@@ -14,8 +14,11 @@ type TokenParams = { Params: { token: string } };
  * Invite-link routes (the logo is in logo.ts). Reading and joining by email need no auth: the
  * token is the credential. `accept` is for a client who is already signed in.
  */
-export const joinRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { deps: { db } }) => {
-  const allowJoin = createRateLimiter({ windowMs: 60_000, max: 10 });
+export const joinRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (
+  app,
+  { deps: { config, db } },
+) => {
+  const allowJoin = createRateLimiter({ windowMs: 60_000, max: config.joinRequestsPerMinute });
 
   app.get<TokenParams>('/join/:token', async (request, reply) => {
     const group = await getGroupByInviteToken(db, request.params.token);

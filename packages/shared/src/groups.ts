@@ -76,6 +76,10 @@ export const ManagersResponseSchema = z.object({
 });
 export type ManagersResponse = z.infer<typeof ManagersResponseSchema>;
 
+/** Answer of `PUT` and `DELETE /api/groups/:id/managers/:userId`: the group's managers after the change. */
+export const GroupManagersResponseSchema = z.object({ managers: z.array(GroupManagerSchema) });
+export type GroupManagersResponse = z.infer<typeof GroupManagersResponseSchema>;
+
 export const GroupEvents = { managers: 'group:managers' } as const;
 
 /** Pushed to the group room and the admins room when a group's managers change. */

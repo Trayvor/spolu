@@ -27,3 +27,8 @@ export function canRemoveMember(actor: SessionUser, target: { role: Role }): boo
 export function canBeManager(actor: SessionUser): boolean {
   return isAdmin(actor);
 }
+
+/** Make any active admin a group's manager, or stop them being one: any admin. */
+export function canSetManager(actor: SessionUser): boolean {
+  return isAdmin(actor);
+}
