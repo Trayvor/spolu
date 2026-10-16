@@ -11,6 +11,11 @@ test('on a phone, "⋯" opens the action sheet and Reply in thread opens the thr
     locale: 'sk-SK',
     storageState: 'e2e/.auth/superadmin.json',
   });
+  // The install card (AppPrompt) sits over the composer on a phone; this test is about the
+  // action sheet, so the card counts as dismissed just now.
+  await context.addInitScript(() => {
+    localStorage.setItem('spolu.prompt.install.dismissedAt', String(Date.now()));
+  });
   const page = await context.newPage();
   try {
     const stamp = Date.now();
