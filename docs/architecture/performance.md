@@ -72,6 +72,8 @@ Phase 17 Knowledge tab (Task 11, measured 2026-10-16, gzip -9 of the scripts `di
 
 Phase 21 ticket screens (part 21.4, measured 2026-10-16, gzip -9 of the scripts `dist/index.html` loads): initial JS 199.6 kB gzip, 2.1 kB more than the base branch `phase-21-3-ticket-chat` (197.5 kB): the entry chunk grew 1.0 kB (the `/tickets`, `/tickets/$ticketId` and group `tickets` route definitions with their search validation, the header's Tickets links and their strings, the ticket link of chat messages and mentions); the rest is Rollup splitting React's JSX runtime and TanStack Query's `removable` into their own small shared chunks now that more lazy chunks share them. The ticket loader imports the ticket schemas with a dynamic `import()`, so they stay lazy. The screens are lazy chunks: `ticket-list` 3.9 kB, `ticket-page` 3.9 kB, `tickets-page` 3.0 kB gzip, plus their `tickets` locale namespace; the chat is the shared `conversation` chunk. Only 0.4 kB was left under the budget then. After merging `main` (with 21.6 and 22a) the same measurement gives 197.9 kB gzip, as the build split the shared chunks differently; the next eager growth should still start with the levers above.
 
+Phase 21 ticket to tasks (part 21.5, measured 2026-10-16, gzip -9 of the scripts `dist/index.html` loads): initial JS 197.7 kB gzip, unchanged against `main` (197.8 kB). Nothing went into the entry chunk: the ticket page's Tasks section is in the lazy `ticket-page` chunk (5.2 kB gzip, was 3.9 kB), the review dialog stays its own lazy chunk and loads only on "Turn into tasks".
+
 Lazy chunks for individual screens have no hard budget. Keep them reasonable and watch for anything above about 100 kB gzip.
 
 ## How to check

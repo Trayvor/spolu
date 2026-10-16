@@ -4,8 +4,9 @@ import { useTranslation } from 'react-i18next';
 import {
   ErrorCodes,
   plainExcerpt,
-  type MessageDto,
+  type FileInfo,
   type TaskDetailDto,
+  type TaskFromMessageDraft,
   type TaskProposals,
 } from '@spolu/shared';
 import { Button } from '@/components/ui/button';
@@ -16,15 +17,21 @@ import { TaskForm, validateTaskDraft, type TaskFormErrors } from '@/features/tas
 import { ApiError } from '@/lib/api';
 import { useMediaQuery } from '@/lib/use-media-query';
 import { aiStatusQuery } from './api';
-import { createTasksFromMessage, proposeTasks } from './split-api';
+import {
+  createTasksFromMessage,
+  createTasksFromTicket,
+  proposeTasks,
+  proposeTicketTasks,
+} from './split-api';
 import { DecisionButtons, ReviewCardView } from './review-card';
 import {
   canSubmit,
   cardByHand,
   cardsFromProposals,
   isTouched,
-  toRequest,
+  toDrafts,
   type ReviewCard,
+  type SplitSource,
 } from './review-model';
 
 const QUOTE_EXCERPT = 280;
@@ -48,9 +55,52 @@ function proposalProblem(error: unknown): Problem {
   return 'failed';
 }
 
-function createProblemKey(error: unknown): string {
+/** What the dialog needs of its source, a chat message or a ticket. */
+type SourceView = {
+  id: string;
+  /** Over the quote: the message's author, or the ticket's number and subject. */
+  caption: string;
+  text: string;
+  authorId: string | null;
+  authorName: string | null;
+  files: FileInfo[];
+  goneKey: string;
+  propose(): Promise<TaskProposals>;
+  create(groupId: string, tasks: TaskFromMessageDraft[]): Promise<TaskDetailDto[]>;
+};
+
+function viewOf(source: SplitSource): SourceView {
+  if (source.kind === 'message') {
+    const { message } = source;
+    return {
+      id: `message:${message.id}`,
+      caption: message.author.name,
+      text: message.body,
+      authorId: message.author.id,
+      authorName: message.author.name,
+      files: message.attachments,
+      goneKey: 'taskSplit.messageGone',
+      propose: () => proposeTasks(message.id),
+      create: (groupId, tasks) => createTasksFromMessage(groupId, { messageId: message.id, tasks }),
+    };
+  }
+  const { ticket } = source;
+  return {
+    id: `ticket:${ticket.id}`,
+    caption: [`#${ticket.number}`, ticket.subject].filter(Boolean).join(' '),
+    text: ticket.body ?? '',
+    authorId: null,
+    authorName: null,
+    files: ticket.files,
+    goneKey: 'taskSplit.ticketGone',
+    propose: () => proposeTicketTasks(ticket.id),
+    create: (groupId, tasks) => createTasksFromTicket(groupId, { ticketId: ticket.id, tasks }),
+  };
+}
+
+function createProblemKey(error: unknown, goneKey: string): string {
   if (error instanceof ApiError) {
-    if (error.status === 404) return 'taskSplit.messageGone';
+    if (error.status === 404) return goneKey;
     if (error.code === ErrorCodes.invalidAttachment) return 'taskSplit.filesChanged';
     if (error.code === ErrorCodes.invalidAssignee) return 'tasks.form.errors.assigneeNotAllowed';
   }
@@ -58,7 +108,8 @@ function createProblemKey(error: unknown): string {
 }
 
 /**
- * "Turn into tasks": the AI's proposed cards for one message, reviewed before anything exists.
+ * "Turn into tasks": the AI's proposed cards for one message or ticket (`source`), reviewed
+ * before anything exists.
  * A `SheetDialog`: a centred 720 px dialog from 641 px, a full-screen sheet below with the footer
  * always in view.
  * Every card shows as a compact summary; opening one shows its `TaskForm` (in place on desktop,
@@ -68,12 +119,12 @@ function createProblemKey(error: unknown): string {
  */
 export function ReviewDialog({
   groupId,
-  message,
+  source,
   onClose,
   onCreated,
 }: {
   groupId: string;
-  message: MessageDto;
+  source: SplitSource;
   onClose: () => void;
   onCreated: (tasks: TaskDetailDto[]) => void;
 }) {
@@ -81,15 +132,14 @@ export function ReviewDialog({
   const desktop = useMediaQuery('(min-width: 641px)');
   const people = useGroupPeople(groupId).data;
   const [today] = useState(todayInBratislava);
-  const messageFileIds = useMemo(
-    () => new Set(message.attachments.map((f) => f.id)),
-    [message.attachments],
-  );
+  // The dialog is keyed by its source, which never changes while it is open.
+  const [view] = useState(() => viewOf(source));
+  const sourceFileIds = useMemo(() => new Set(view.files.map((f) => f.id)), [view]);
 
-  // One request per message; gcTime 0 drops it on close, so reopening asks the AI afresh.
+  // One request per source; gcTime 0 drops it on close, so reopening asks the AI afresh.
   const proposals = useQuery({
-    queryKey: ['ai', 'split', message.id],
-    queryFn: () => proposeTasks(message.id),
+    queryKey: ['ai', 'split', view.id],
+    queryFn: () => view.propose(),
     retry: false,
     staleTime: Infinity,
     gcTime: 0,
@@ -116,7 +166,7 @@ export function ReviewDialog({
   // The proposals become cards once, when they arrive.
   if (proposals.data && proposals.data !== seeded) {
     setSeeded(proposals.data);
-    const next = cardsFromProposals(proposals.data.tasks, message.attachments);
+    const next = cardsFromProposals(proposals.data.tasks, view.files);
     setCards(next);
     setInitial(next);
     if (refocus) {
@@ -125,6 +175,7 @@ export function ReviewDialog({
     }
   }
 
+  const problemKey = (p: Problem) => (p === 'gone' ? view.goneKey : PROBLEM_KEYS[p]);
   const loading = cards === null && (proposals.isPending || proposals.isFetching);
   const problem = cards === null && !loading ? proposalProblem(proposals.error) : null;
   // The server turned the AI off since the status was read: hide the action from now on.
@@ -147,7 +198,7 @@ export function ReviewDialog({
     : loading
       ? t('taskSplit.loading')
       : problem
-        ? t(PROBLEM_KEYS[problem])
+        ? t(problemKey(problem))
         : seeded && cards
           ? t('taskSplit.proposed', { count: seeded.tasks.length })
           : '';
@@ -166,7 +217,7 @@ export function ReviewDialog({
 
   const nameOf = (id: string) =>
     people?.find((p) => p.id === id)?.name ??
-    (id === message.author.id ? message.author.name : undefined);
+    (id === view.authorId ? (view.authorName ?? undefined) : undefined);
 
   const focusCard = (key: string) => setFocus((f) => ({ key, n: f.n + 1 }));
 
@@ -242,7 +293,7 @@ export function ReviewDialog({
   };
 
   const byHand = () => {
-    const card = cardByHand(message);
+    const card = cardByHand(view.text);
     setCards([card]);
     setInitial([card]);
     setOpenKey(card.key);
@@ -266,17 +317,17 @@ export function ReviewDialog({
     sending.current = true;
     setBusy(true);
     try {
-      const tasks = await createTasksFromMessage(
-        groupId,
-        toRequest(message.id, cards, messageFileIds),
-      );
+      const tasks = await view.create(groupId, toDrafts(cards, sourceFileIds));
       onCreated(tasks);
     } catch (error) {
       // A chosen person may have stopped being a client or manager: the picker needs the new list.
       if (error instanceof ApiError && error.code === ErrorCodes.invalidAssignee) {
         void queryClient.invalidateQueries({ queryKey: ['groups', groupId, 'people'] });
       }
-      setCreateError((e) => ({ text: t(createProblemKey(error)), n: (e?.n ?? 0) + 1 }));
+      setCreateError((e) => ({
+        text: t(createProblemKey(error, view.goneKey)),
+        n: (e?.n ?? 0) + 1,
+      }));
     } finally {
       sending.current = false;
       setBusy(false);
@@ -324,10 +375,12 @@ export function ReviewDialog({
       {/* Hidden, not unmounted, under the phone layer: the list keeps its scroll position. */}
       <div hidden={layer} className="min-h-0 flex-1 overflow-y-auto px-4 pb-4 min-[641px]:px-6">
         <figure className="rounded-lg bg-muted px-4 py-3">
-          <figcaption className="text-tiny font-semibold">{message.author.name}</figcaption>
-          <blockquote className="mt-1 line-clamp-3 break-words text-button text-muted-foreground">
-            {plainExcerpt(message.body, nameOf, QUOTE_EXCERPT, t('chat.mention.all'))}
-          </blockquote>
+          <figcaption className="text-tiny font-semibold">{view.caption}</figcaption>
+          {view.text.trim() !== '' && (
+            <blockquote className="mt-1 line-clamp-3 break-words text-button text-muted-foreground">
+              {plainExcerpt(view.text, nameOf, QUOTE_EXCERPT, t('chat.mention.all'))}
+            </blockquote>
+          )}
         </figure>
 
         {loading && (
@@ -351,7 +404,7 @@ export function ReviewDialog({
 
         {problem && (
           <div className="mt-4 flex flex-col items-start gap-3 rounded-lg bg-card p-4">
-            <p className="text-body">{t(PROBLEM_KEYS[problem])}</p>
+            <p className="text-body">{t(problemKey(problem))}</p>
             {problem === 'failed' && (
               <Button variant="outline" size="lg" onClick={retry}>
                 {t('taskSplit.retry')}

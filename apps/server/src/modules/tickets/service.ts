@@ -22,11 +22,11 @@ import { listGroupManagers, managedGroupIds } from '../groups/managers.js';
 // Deliberate read-only exception: the list joins the group's name in its one query.
 import { groups } from '../groups/schema.js';
 import { getGroup } from '../groups/service.js';
-import { countTasksFromTicket } from '../tasks/task-service.js';
+import { countTasksFromTicket, listTasksFromTicket } from '../tasks/task-service.js';
 import { getTicketChannel } from '../chat/service.js';
 import { isAdmin } from '../users/policy.js';
 import { getActiveRoles, getUserById, getUserNames } from '../users/service.js';
-import { canReadTicket } from './policy.js';
+import { canReadTicket, canSplitTicket } from './policy.js';
 import { resolveRequester } from './requester.js';
 import { ticketAttachments, ticketFollowers, tickets } from './schema.js';
 
@@ -180,7 +180,7 @@ async function groupNameOf(db: Db, groupId: string | null): Promise<string | nul
 }
 
 /** The ids of the files uploaded with the ticket in the manual form. */
-async function attachmentIds(db: Db, ticketId: string): Promise<string[]> {
+export async function attachmentIds(db: Db, ticketId: string): Promise<string[]> {
   const rows = await db
     .select({ fileId: ticketAttachments.fileId })
     .from(ticketAttachments)
@@ -189,7 +189,8 @@ async function attachmentIds(db: Db, ticketId: string): Promise<string[]> {
   return rows.map((r) => r.fileId);
 }
 
-async function ticketFiles(db: Db, row: TicketRow) {
+/** The files uploaded with the ticket (none without a client). */
+export async function ticketFiles(db: Db, row: TicketRow) {
   if (row.groupId === null) return [];
   return getFilesForGroup(db, row.groupId, await attachmentIds(db, row.id));
 }
@@ -211,15 +212,24 @@ export const fileOfReadableTicket: FileReadRule = async (db, actor, file) => {
   return false;
 };
 
-/** The ticket as the viewer sees it. */
-export async function toTicketDto(db: Db, row: TicketRow, viewerId: string): Promise<TicketDto> {
-  const [groupName, following, taskCount, channel, files] = await Promise.all([
+/**
+ * The ticket as the viewer sees it. `seesTasks`: the viewer uses the group's board (admins and
+ * the group's clients) and gets the linked tasks; anyone else only their count.
+ */
+export async function toTicketDto(
+  db: Db,
+  row: TicketRow,
+  viewerId: string,
+  seesTasks: boolean,
+): Promise<TicketDto> {
+  const [groupName, following, taskList, channel, files] = await Promise.all([
     groupNameOf(db, row.groupId),
     isFollowing(db, row.id, viewerId),
-    countTasksFromTicket(db, row.id),
+    seesTasks ? listTasksFromTicket(db, row.id) : countTasksFromTicket(db, row.id),
     getTicketChannel(db, row.id),
     ticketFiles(db, row),
   ]);
+  const taskCount = typeof taskList === 'number' ? taskList : taskList.length;
   return {
     id: row.id,
     number: row.number,
@@ -248,6 +258,7 @@ export async function toTicketDto(db: Db, row: TicketRow, viewerId: string): Pro
     resolvedAt: row.resolvedAt?.toISOString() ?? null,
     following,
     taskCount,
+    tasks: typeof taskList === 'number' ? null : taskList,
     channelId: channel?.id ?? null,
   };
 }
@@ -259,8 +270,12 @@ export async function getTicketForActor(
   id: string,
 ): Promise<TicketDto | null> {
   const row = await getTicketRow(db, id);
-  if (!row || !(await actorReadsTicket(db, actor, row))) return null;
-  return toTicketDto(db, row, actor.id);
+  if (!row) return null;
+  const role = await roleIn(db, actor, row.groupId);
+  if (!canReadTicket(actor, row, role)) return null;
+  // A ticket without a client has no board: admins see its (empty) task list all the same.
+  const seesTasks = row.groupId === null || canSplitTicket(actor, row, role);
+  return toTicketDto(db, row, actor.id, seesTasks);
 }
 
 // ---------------------------------------------------------------------------------------------

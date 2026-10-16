@@ -4,6 +4,7 @@ import {
   TaskDtoSchema,
   type BucketKind,
   type BucketLabel,
+  type MessageTaskLink,
   type SessionUser,
   type TaskCreate,
   type TaskDetailDto,
@@ -247,23 +248,46 @@ export async function createTask(
   return (await getTask(db, id))!;
 }
 
-/**
- * Creates the reviewed cards of a chat message, all or none. `source` is the message as the
- * route read it (it checked the group and that the actor may read it): its id and file ids.
- * Every `messageFileIds` entry must be one of the message's files (else `InvalidAttachmentError`,
- * before anything is copied); each (card, message file) pair gets its own copy owned by the
- * actor, made before the transaction. One transaction then inserts the cards at the top of To do
- * in input order (the To do row locked, keys before its first task; `createdAt` 1 ms apart),
- * with `sourceMessageId`, assignees, files (review uploads and copies) and `task.assigned`.
- * If anything fails, the copies are deleted again (best effort; leftovers stay unattached and
- * the daily cleanup removes them) and the error is rethrown. Returns the cards in input order.
- */
-export async function createTasksFromMessage(
+/** Where reviewed cards come from: a chat message, a ticket, or a message of a ticket's chat. */
+export type TaskSource = {
+  messageId?: string;
+  ticketId?: string;
+  /** The source's files the cards may copy (the message's, or the files uploaded with the ticket). */
+  fileIds: string[];
+};
+
+/** The cards of a chat message (Phase 9); see `createTasksFromSource`. */
+export function createTasksFromMessage(
   deps: TaskDeps,
   actor: SessionUser,
   groupId: string,
-  input: TasksFromMessage,
+  input: Pick<TasksFromMessage, 'tasks'>,
   source: { id: string; fileIds: string[] },
+): Promise<TaskDetailDto[]> {
+  return createTasksFromSource(deps, actor, groupId, input, {
+    messageId: source.id,
+    fileIds: source.fileIds,
+  });
+}
+
+/**
+ * Creates the reviewed cards of a source, all or none. `source` is what the route read (it checked
+ * the group and that the actor may read the source): the message and/or ticket ids and the files
+ * the cards may copy. Every `messageFileIds` entry must be one of `source.fileIds` (else
+ * `InvalidAttachmentError`, before anything is copied); each (card, source file) pair gets its own
+ * copy owned by the actor, made before the transaction. One transaction then inserts the cards at
+ * the top of To do in input order (the To do row locked, keys before its first task; `createdAt`
+ * 1 ms apart), with `sourceMessageId` and `sourceTicketId`, assignees, files (review uploads and
+ * copies) and `task.assigned`. If anything fails, the copies are deleted again (best effort;
+ * leftovers stay unattached and the daily cleanup removes them) and the error is rethrown.
+ * Returns the cards in input order.
+ */
+export async function createTasksFromSource(
+  deps: TaskDeps,
+  actor: SessionUser,
+  groupId: string,
+  input: Pick<TasksFromMessage, 'tasks'>,
+  source: TaskSource,
 ): Promise<TaskDetailDto[]> {
   const { db } = deps;
   const onMessage = new Set(source.fileIds);
@@ -327,7 +351,8 @@ export async function createTasksFromMessage(
         urgent: draft.urgent,
         link: draft.link,
         completedAt: null,
-        sourceMessageId: source.id,
+        sourceMessageId: source.messageId ?? null,
+        sourceTicketId: source.ticketId ?? null,
         // Distinct, ascending in input order: the first card is the oldest (a newest-first list
         // shows them reversed; the board orders by position, not by this).
         createdAt: new Date(now + index),
@@ -633,6 +658,19 @@ export async function moveTask(
   const [task] = await selectTasks(db, eq(tasks.id, id));
   if (!task) throw new NotFoundError(); // deleted right after the move committed
   return { task, moved };
+}
+
+/**
+ * The tasks made from a ticket, oldest first (`created_at`, then `position`), for the ticket page
+ * (part 21.5): one query on `tasks_source_ticket_id_idx`.
+ */
+export async function listTasksFromTicket(db: Db, ticketId: string): Promise<MessageTaskLink[]> {
+  const rows = await db
+    .select({ id: tasks.id, title: tasks.title, completedAt: tasks.completedAt })
+    .from(tasks)
+    .where(eq(tasks.sourceTicketId, ticketId))
+    .orderBy(asc(tasks.createdAt), asc(tasks.position), asc(tasks.id));
+  return rows.map((r) => ({ id: r.id, title: r.title, completed: r.completedAt !== null }));
 }
 
 /** How many tasks were made from the ticket (Phase 21). */

@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import type { FileInfo, MessageDto, TaskDraft, TaskProposal } from '@spolu/shared';
+import type { FileInfo, TaskDraft, TaskProposal } from '@spolu/shared';
 import {
   canSubmit,
   cardByHand,
   cardsFromProposals,
   isTouched,
-  toRequest,
+  toDrafts,
   type ReviewCard,
 } from './review-model';
 
@@ -73,8 +73,7 @@ describe('review model', () => {
   });
 
   it('cardByHand has an empty title and the message text as description', () => {
-    const message = { id: 'm1', body: 'Call the bank', attachments: [] } as unknown as MessageDto;
-    expect(cardByHand(message)).toMatchObject({
+    expect(cardByHand('Call the bank')).toMatchObject({
       decision: 'pending',
       draft: { title: '', description: 'Call the bank', fileIds: [] },
       files: [],
@@ -97,15 +96,13 @@ describe('review model', () => {
     ).toBe(true);
   });
 
-  it('toRequest keeps shown order and splits message files from uploads', () => {
-    const request = toRequest(
-      'm1',
+  it('toDrafts keeps shown order and splits source files from uploads', () => {
+    const tasks = toDrafts(
       [approved({ fileIds: ['mf', 'up'] }), rejected(), approved({ title: 'Second' })],
       new Set(['mf']),
     );
-    expect(request.messageId).toBe('m1');
-    expect(request.tasks).toHaveLength(2);
-    expect(request.tasks[0]).toMatchObject({ fileIds: ['up'], messageFileIds: ['mf'] });
-    expect(request.tasks[1]).toMatchObject({ title: 'Second', fileIds: [], messageFileIds: [] });
+    expect(tasks).toHaveLength(2);
+    expect(tasks[0]).toMatchObject({ fileIds: ['up'], messageFileIds: ['mf'] });
+    expect(tasks[1]).toMatchObject({ title: 'Second', fileIds: [], messageFileIds: [] });
   });
 });

@@ -101,3 +101,47 @@ test('an admin creates a ticket for a client from the group tab', async ({ page 
   await expect(page.getByRole('heading', { name: 'Žiadatelia' })).toBeVisible();
   await expect(page.getByText('E2E Iniciátor')).toBeVisible();
 });
+
+// Phase 21, part 21.5: the admin turns a ticket into two tasks (the fake AI makes one per list
+// line); both link back to the ticket and the ticket lists them.
+test('an admin turns a ticket into tasks that link back to it', async ({ page }) => {
+  const stamp = Date.now();
+  const host = `e2e-ticket-tasks-${stamp}.egrant.sk`;
+  await createGroup(page, `E2E Tiket na úlohy ${stamp}`, `https://${host}`);
+  const res = await page.request.post('/api/tickets/intake', {
+    headers: { authorization: `Bearer ${KEY}` },
+    data: {
+      subject: `Rozpočet ${stamp}`,
+      body: '- Opraviť krok rozpočtu\n- Odpísať žiadateľovi',
+      due_date: '2030-01-15',
+      instance_url: `https://${host}`,
+    },
+  });
+  expect(res.status()).toBe(201);
+  const { id, number } = (await res.json()) as { id: string; number: number };
+
+  await page.goto(`/tickets/${id}`);
+  await page.getByRole('button', { name: 'Vytvoriť úlohy' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Vytvoriť úlohy' });
+  await expect(dialog.getByText(`#${number} Rozpočet ${stamp}`)).toBeVisible();
+  await expect(dialog.getByRole('article')).toHaveCount(2);
+  await dialog.getByRole('button', { name: 'Schváliť všetky' }).click();
+  await dialog.getByRole('button', { name: 'Vytvoriť 2 úlohy' }).click();
+  await expect(dialog).toHaveCount(0);
+
+  const tasks = page.getByRole('region', { name: /^Úlohy/ });
+  // The section also links to the board; only the list holds the tasks.
+  await expect(tasks.getByRole('list').getByRole('link')).toHaveText([
+    'Opraviť krok rozpočtu',
+    'Odpísať žiadateľovi',
+  ]);
+  for (const title of ['Opraviť krok rozpočtu', 'Odpísať žiadateľovi']) {
+    await page.goto(`/tickets/${id}`);
+    await page
+      .getByRole('region', { name: /^Úlohy/ })
+      .getByRole('link', { name: title })
+      .click();
+    const panel = page.getByRole('complementary', { name: 'Úloha' });
+    await expect(panel.getByRole('link', { name: `#${number} Rozpočet ${stamp}` })).toBeVisible();
+  }
+});

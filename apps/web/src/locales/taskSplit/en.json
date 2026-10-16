@@ -27,6 +27,7 @@
   "keep": "Keep reviewing",
   "createFailed": "The tasks were not created. Try again.",
   "messageGone": "The message was deleted, so no tasks were created.",
+  "ticketGone": "The ticket is no longer there, so no tasks were created.",
   "filesChanged": "A file on a card is no longer available. Remove it and try again.",
   "created_one": "{{count}} task created",
   "created_other": "{{count}} tasks created",

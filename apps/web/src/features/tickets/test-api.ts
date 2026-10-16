@@ -62,6 +62,7 @@ export const ticket = (over: Partial<TicketDto> = {}): TicketDto => ({
   resolvedAt: null,
   following: false,
   taskCount: 0,
+  tasks: [],
   channelId: null,
   ...over,
 });

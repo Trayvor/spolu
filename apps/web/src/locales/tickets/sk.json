@@ -108,5 +108,10 @@
       "email": "Zadajte platný e-mail.",
       "links": "Najviac 20 odkazov, každý začína https:// alebo http://."
     }
+  },
+  "tasks": {
+    "title": "Úlohy",
+    "none": "Zatiaľ žiadne úlohy. Vytvorte z tiketu úlohy a dajte prácu na nástenku.",
+    "completed": "Hotová"
   }
 }

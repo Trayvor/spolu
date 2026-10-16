@@ -1,11 +1,21 @@
 import { performance } from 'node:perf_hooks';
-import type { FastifyPluginAsync } from 'fastify';
+import type { FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify';
 import { ErrorCodes, type AiStatus, type TaskProposals } from '@spolu/shared';
 import type { AppDeps } from '../../deps.js';
 import { requireUser } from '../auth/session.js';
 import { findReadableMessage } from '../chat/messages.js';
+import { clientGroupIds } from '../groups/memberships.js';
+import { canReadGroup } from '../groups/policy.js';
+import { canReadTicket, canSplitTicket } from '../tickets/policy.js';
+import { getTicketRow, roleIn } from '../tickets/service.js';
 import { AiFailedError, AiTimeoutError, type SplitResult } from './provider.js';
-import { AiNoTasksError, AiUnavailableError, proposeTasks } from './split.js';
+import {
+  AiNoTasksError,
+  AiUnavailableError,
+  proposeTasks,
+  proposeTicketTasks,
+  type Proposed,
+} from './split.js';
 
 type IdParams = { Params: { id: string } };
 type Outcome = 'ok' | 'no_tasks' | 'failed' | 'timeout';
@@ -16,6 +26,49 @@ type Outcome = 'ok' | 'no_tasks' | 'failed' | 'timeout';
  */
 export const aiRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { deps }) => {
   const anyUser = requireUser(app.auth);
+  const unavailable = (reply: FastifyReply) =>
+    reply.code(503).send({ error: ErrorCodes.aiUnavailable });
+
+  /** Runs one split, logs it with its source (message or ticket id) and maps its errors. */
+  async function runSplit(
+    request: FastifyRequest,
+    reply: FastifyReply,
+    source: { messageId: string } | { ticketId: string },
+    propose: () => Promise<Proposed>,
+  ) {
+    const started = performance.now();
+    const log = (outcome: Outcome, usage: SplitResult['usage'], durationMs?: number) =>
+      request.log.info(
+        {
+          ai: {
+            userId: request.user!.id,
+            ...source,
+            durationMs: durationMs ?? Math.round(performance.now() - started),
+            outcome,
+            usage,
+          },
+        },
+        'ai task split',
+      );
+    try {
+      const result = await propose();
+      log('ok', result.usage, result.durationMs);
+      const body: TaskProposals = { tasks: result.tasks };
+      return body;
+    } catch (error) {
+      if (error instanceof AiUnavailableError) return unavailable(reply);
+      if (error instanceof AiNoTasksError) {
+        log('no_tasks', error.usage);
+        return reply.code(422).send({ error: ErrorCodes.aiNoTasks });
+      }
+      if (error instanceof AiFailedError) {
+        log(error instanceof AiTimeoutError ? 'timeout' : 'failed', null);
+        request.log.warn({ reason: error.message }, 'ai task split failed');
+        return reply.code(502).send({ error: ErrorCodes.aiFailed });
+      }
+      throw error;
+    }
+  }
 
   app.get('/ai/status', { preHandler: anyUser }, async (): Promise<AiStatus> => {
     return { taskSplit: deps.ai !== null };
@@ -25,49 +78,42 @@ export const aiRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { dep
     '/messages/:id/task-split',
     { preHandler: anyUser },
     async (request, reply) => {
-      const unavailable = () => reply.code(503).send({ error: ErrorCodes.aiUnavailable });
-      if (deps.ai === null) return unavailable();
+      if (deps.ai === null) return unavailable(reply);
       const actor = request.user!;
       const found = await findReadableMessage(deps.db, actor, request.params.id);
       if (!found || found.message.deletedAt !== null) {
         return reply.code(404).send({ error: ErrorCodes.notFound });
       }
+      // The cards go on the group's board: someone who reads the chat but not the group (a
+      // ziadatel in a ticket chat) may not turn its messages into tasks.
+      const groupIds = await clientGroupIds(deps.db, actor.id);
+      if (!canReadGroup(actor, found.channel.groupId, groupIds)) {
+        return reply.code(403).send({ error: ErrorCodes.forbidden });
+      }
       if (found.message.body.trim() === '') {
         return reply.code(400).send({ error: ErrorCodes.validationFailed });
       }
-
-      const started = performance.now();
-      const log = (outcome: Outcome, usage: SplitResult['usage'], durationMs?: number) =>
-        request.log.info(
-          {
-            ai: {
-              userId: actor.id,
-              messageId: found.message.id,
-              durationMs: durationMs ?? Math.round(performance.now() - started),
-              outcome,
-              usage,
-            },
-          },
-          'ai task split',
-        );
-      try {
-        const result = await proposeTasks(deps, found);
-        log('ok', result.usage, result.durationMs);
-        const body: TaskProposals = { tasks: result.tasks };
-        return body;
-      } catch (error) {
-        if (error instanceof AiUnavailableError) return unavailable();
-        if (error instanceof AiNoTasksError) {
-          log('no_tasks', error.usage);
-          return reply.code(422).send({ error: ErrorCodes.aiNoTasks });
-        }
-        if (error instanceof AiFailedError) {
-          log(error instanceof AiTimeoutError ? 'timeout' : 'failed', null);
-          request.log.warn({ reason: error.message }, 'ai task split failed');
-          return reply.code(502).send({ error: ErrorCodes.aiFailed });
-        }
-        throw error;
-      }
+      return runSplit(request, reply, { messageId: found.message.id }, () =>
+        proposeTasks(deps, found),
+      );
     },
   );
+
+  // A ticket (part 21.5): admins and the ticket group's clients; a ziadatel 403; no client 409.
+  app.post<IdParams>('/tickets/:id/task-split', { preHandler: anyUser }, async (request, reply) => {
+    if (deps.ai === null) return unavailable(reply);
+    const actor = request.user!;
+    const ticket = await getTicketRow(deps.db, request.params.id);
+    const role = ticket ? await roleIn(deps.db, actor, ticket.groupId) : null;
+    if (!ticket || !canReadTicket(actor, ticket, role)) {
+      return reply.code(404).send({ error: ErrorCodes.notFound });
+    }
+    if (ticket.groupId === null) return reply.code(409).send({ error: ErrorCodes.noClient });
+    if (!canSplitTicket(actor, ticket, role)) {
+      return reply.code(403).send({ error: ErrorCodes.forbidden });
+    }
+    return runSplit(request, reply, { ticketId: ticket.id }, () =>
+      proposeTicketTasks(deps, ticket),
+    );
+  });
 };
