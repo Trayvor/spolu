@@ -8,6 +8,8 @@
     "files": "Súbory",
     "links": "Odkazy",
     "reminders": "Pripomienky",
+    "chat_file": "Z chatu",
+    "fromChat": "Z chatu",
     "all": "Všetko"
   },
   "visibility": {
@@ -168,5 +170,13 @@
     "noItemsHere": "V tomto priečinku nie sú položky tohto typu.",
     "loading": "Načítavam priečinky…",
     "noClients": "Žiadni klienti na zobrazenie. Zmeňte filter klientov."
+  },
+  "chat": {
+    "group": "Skupinový chat",
+    "task": "Úloha: {{title}}",
+    "ticket": "Tiket #{{number}}",
+    "open": "Zobraziť {{title}} v chate",
+    "show": "Zobraziť v chate",
+    "alsoTasksTickets": "Aj z úloh a tiketov"
   }
 }

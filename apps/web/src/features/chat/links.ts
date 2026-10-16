@@ -6,6 +6,8 @@ type LinkedMessage = {
   taskId: string | null;
   /** Set for a message of a ticket chat (Phase 21): it opens on the ticket's page. */
   ticketId?: string | null;
+  /** The thread's root of a reply: the link opens that thread too. */
+  parentId?: string | null;
 };
 
 /**
@@ -14,7 +16,11 @@ type LinkedMessage = {
  * routes declare no search schema. `chatMessageHref` is the same link as a string.
  */
 export function chatMessageLocation(groupId: string, m: LinkedMessage) {
-  const search = { message: m.messageId, c: m.channelId };
+  const search = {
+    ...(m.parentId ? { thread: m.parentId } : {}),
+    message: m.messageId,
+    c: m.channelId,
+  };
   if (m.ticketId) {
     return { to: '/tickets/$ticketId' as const, params: { ticketId: m.ticketId }, search };
   }

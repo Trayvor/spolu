@@ -86,3 +86,18 @@ export const ChevronIcon = ({ size = 16 }: { size?: number }) => (
     <path d="m9 6 6 6-6 6" />
   </Tile>
 );
+
+/** A chat file's tile: a speech bubble with a page in it. */
+export const ChatFileIcon = () => (
+  <Tile name="chat-file">
+    <path d="M4 5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9l-5 4z" />
+    <path d="M10 7h3l2 2v4h-5z" />
+  </Tile>
+);
+
+/** The 12 px bubble before a chat file's source ("Group chat", "Task: …"). */
+export const SmallChatIcon = () => (
+  <Tile size={12}>
+    <path d="M4 5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9l-5 4z" />
+  </Tile>
+);

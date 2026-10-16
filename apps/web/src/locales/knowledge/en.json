@@ -8,6 +8,8 @@
     "files": "Files",
     "links": "Links",
     "reminders": "Reminders",
+    "chat_file": "From chat",
+    "fromChat": "From chat",
     "all": "All"
   },
   "visibility": {
@@ -162,5 +164,13 @@
     "noItemsHere": "No items of this type in this folder.",
     "loading": "Loading folders…",
     "noClients": "No clients to show. Change the client filter."
+  },
+  "chat": {
+    "group": "Group chat",
+    "task": "Task: {{title}}",
+    "ticket": "Ticket #{{number}}",
+    "open": "Show {{title}} in the chat",
+    "show": "Show in chat",
+    "alsoTasksTickets": "Also from tasks and tickets"
   }
 }

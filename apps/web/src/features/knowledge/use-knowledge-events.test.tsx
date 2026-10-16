@@ -43,7 +43,7 @@ function summary(id: string, overrides: Partial<KnowledgeSummary> = {}): Knowled
   };
 }
 
-type Filter = { types?: KnowledgeType[]; q?: string; folder?: string | null };
+type Filter = { types?: KnowledgeType[]; q?: string; folder?: string | null; chats?: 'all' };
 
 let fetchMock: ReturnType<typeof vi.fn>;
 let client: QueryClient;
@@ -220,5 +220,38 @@ describe('useKnowledgeEvents', () => {
     await waitFor(() => expect(fetchMock.mock.calls.length).toBe(before + 1));
     act(() => fake.fire(KnowledgeEvents.folderDeleted, { groupId: 'g1', id: 'f1' }));
     await waitFor(() => expect(fetchMock.mock.calls.length).toBe(before + 2));
+  });
+  it('a chat file goes only into a flat list that admits its chat, never into a folder view', async () => {
+    const chatFile = (id: string, kind: 'group' | 'task') =>
+      summary(id, {
+        type: 'chat_file',
+        chat: {
+          channelId: 'c',
+          messageId: id,
+          parentId: null,
+          kind,
+          taskId: kind === 'task' ? 't1' : null,
+          taskTitle: null,
+          ticketId: null,
+          ticketNumber: null,
+        },
+      });
+    const folderView = { folder: null };
+    const { unmount } = await mount(folderView);
+    act(() => fake.fire(KnowledgeEvents.item, { item: chatFile('c1', 'group') }));
+    expect(cachedIds(folderView)).toEqual(['k1']);
+    unmount();
+
+    const groupOnly = { types: ['chat_file' as const] };
+    const second = await mount(groupOnly);
+    act(() => fake.fire(KnowledgeEvents.item, { item: chatFile('c2', 'task') }));
+    act(() => fake.fire(KnowledgeEvents.item, { item: chatFile('c3', 'group') }));
+    expect(cachedIds(groupOnly)).toEqual(['c3', 'k1']);
+    second.unmount();
+
+    const all = { types: ['chat_file' as const], chats: 'all' as const };
+    await mount(all);
+    act(() => fake.fire(KnowledgeEvents.item, { item: chatFile('c4', 'task') }));
+    expect(cachedIds(all)).toEqual(['c4', 'k1']);
   });
 });

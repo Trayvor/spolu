@@ -26,7 +26,7 @@ type Data = InfiniteData<KnowledgePage>;
 /**
  * Applies the knowledge events of the open group to the tab's cached list, like
  * `useBoardEvents`. Without a search an item of a ticked type (any type when none is ticked) is
- * upserted (a known item that changed to an unticked type leaves the list) and other types are
+ * upserted (a chat file only into a flat list, and only a group chat's unless `chats` is `all`) (a known item that changed to an unticked type leaves the list) and other types are
  * dropped; with a search the list
  * refetches, since only the server knows what matches. A deleted item is removed, and
  * `onOpenGone` fires when it is the one open. A viewer who cannot see admins-only items
@@ -44,7 +44,7 @@ export function useKnowledgeEvents(
   const queryClient = useQueryClient();
   const joins = useGroupRoomJoins();
   const seenJoins = useRef(joins);
-  const { q, folder } = filter;
+  const { q, folder, chats } = filter;
   // A string, so a new array with the same types does not resubscribe.
   const typeKey = (filter.types ?? []).join(',');
   // The latest values, read by the listeners without resubscribing.
@@ -56,7 +56,7 @@ export function useKnowledgeEvents(
   useEffect(() => {
     const socket = getSocket();
     const types = typeKey ? (typeKey.split(',') as KnowledgeType[]) : [];
-    const key = groupKnowledgeQuery(groupId, { types, q, folder }).queryKey;
+    const key = groupKnowledgeQuery(groupId, { types, q, folder, chats }).queryKey;
     const update = (apply: (data: Data) => Data) =>
       queryClient.setQueryData<Data>(key, (data) => data && apply(data));
 
@@ -75,9 +75,12 @@ export function useKnowledgeEvents(
         void queryClient.invalidateQueries({ queryKey: key, exact: true });
         return;
       }
-      // In a folder (or at the top level) only that folder's items belong to the list.
-      const elsewhere = folder !== undefined && item.folderId !== folder;
-      if (elsewhere || (types.length > 0 && !types.includes(item.type)))
+      // In a folder (or at the top level) only that folder's items belong to the list; a chat
+      // file is in no folder, and only the group chat's unless `chats` is `all`.
+      const elsewhere =
+        folder !== undefined && (item.folderId !== folder || item.type === 'chat_file');
+      const otherChat = item.type === 'chat_file' && chats !== 'all' && item.chat?.kind !== 'group';
+      if (elsewhere || otherChat || (types.length > 0 && !types.includes(item.type)))
         update((data) => removeSummary(data, item.id));
       else update((data) => upsertSummary(data, item));
     };
@@ -108,13 +111,13 @@ export function useKnowledgeEvents(
       socket.off(KnowledgeEvents.folder, onFolder);
       socket.off(KnowledgeEvents.folderDeleted, onFolder);
     };
-  }, [groupId, typeKey, q, folder, canSeeAdmins, queryClient]);
+  }, [groupId, typeKey, q, folder, chats, canSeeAdmins, queryClient]);
 
   useEffect(() => {
     if (seenJoins.current === joins) return;
     seenJoins.current = joins;
     const types = typeKey ? (typeKey.split(',') as KnowledgeType[]) : [];
-    const key = groupKnowledgeQuery(groupId, { types, q, folder }).queryKey;
+    const key = groupKnowledgeQuery(groupId, { types, q, folder, chats }).queryKey;
     // Only the first page refetches: later pages are dropped, "Load more" fetches them again.
     queryClient.setQueryData<Data>(
       key,
@@ -122,5 +125,5 @@ export function useKnowledgeEvents(
     );
     void queryClient.invalidateQueries({ queryKey: key, exact: true });
     void queryClient.invalidateQueries({ queryKey: groupFoldersQuery(groupId).queryKey });
-  }, [joins, groupId, typeKey, q, folder, queryClient]);
+  }, [joins, groupId, typeKey, q, folder, chats, queryClient]);
 }

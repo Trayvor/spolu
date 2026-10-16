@@ -1,5 +1,6 @@
 import { forwardRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Link } from '@tanstack/react-router';
 import type { FileInfo, KnowledgeItemDto } from '@spolu/shared';
 import { Avatar } from '@/components/avatar';
 import { SheetDialogTitle } from '@/components/ui/sheet-dialog';
@@ -7,6 +8,8 @@ import { MessageBody } from '@/features/chat/format/render';
 import { FileChip } from '@/features/files/file-chip';
 import { ImagePreview } from '@/features/files/image-preview';
 import { ReminderPanel } from '@/features/reminders/reminder-panel';
+import { Button } from '@/components/ui/button';
+import { ChatSourceLabel, chatSourceLocation } from './chat-source';
 import { ArrowOutIcon, LockIcon, SmallFolderIcon } from './icons';
 
 type NameOf = (id: string) => string | undefined;
@@ -100,6 +103,24 @@ export const KnowledgeView = forwardRef<
             <FileChip file={(item.file ?? item.files[0])!} className="w-full py-3" />
           )}
           <Body body={item.body} nameOf={nameOf} />
+        </>
+      )}
+
+      {item.type === 'chat_file' && (
+        <>
+          <Attachments files={item.files} />
+          {item.chat && (
+            <div className="flex flex-col items-start gap-3">
+              <p className="flex text-tiny text-muted-foreground">
+                <ChatSourceLabel chat={item.chat} />
+              </p>
+              <Button asChild variant="outline">
+                <Link {...chatSourceLocation(item.groupId, item.chat)}>
+                  {t('knowledge.chat.show')}
+                </Link>
+              </Button>
+            </div>
+          )}
         </>
       )}
 

@@ -21,7 +21,13 @@ const enc = encodeURIComponent;
  * `types`: any of these types; empty or absent means every type. `folder` (the tab only): the
  * items directly in that folder, null the top level; absent means every folder (a search).
  */
-export type KnowledgeFilter = { types?: KnowledgeType[]; q?: string; folder?: string | null };
+export type KnowledgeFilter = {
+  types?: KnowledgeType[];
+  q?: string;
+  folder?: string | null;
+  /** `all`: the task and ticket chats' files too; absent: the group chat's only. */
+  chats?: 'all';
+};
 /** `scope: 'all'` is every client, whatever the admin manages; it never combines with `clients`. */
 export type GlobalKnowledgeFilter = KnowledgeFilter & { clients?: string[]; scope?: 'all' };
 
@@ -53,6 +59,7 @@ export const groupKnowledgeQuery = (groupId: string, filter: KnowledgeFilter) =>
         `/groups/${enc(groupId)}/knowledge${search({
           type: typeParam(filter.types),
           q: filter.q,
+          chats: filter.chats,
           folder: filter.folder === null ? 'root' : filter.folder,
           cursor: pageParam,
         })}`,
@@ -72,6 +79,7 @@ export const globalKnowledgeQuery = (filter: GlobalKnowledgeFilter) =>
           clients: filter.clients?.length ? filter.clients.join(',') : undefined,
           type: typeParam(filter.types),
           q: filter.q,
+          chats: filter.chats,
           cursor: pageParam,
         })}`,
         KnowledgePageSchema,

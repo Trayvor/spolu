@@ -243,6 +243,29 @@ describe('KnowledgePage', () => {
     await waitFor(() => expect(listCalls()).toContain('/api/knowledge?type=file%2Creminder&q=po'));
   });
 
+  it('"From chat" lists flat without a search; the tasks-and-tickets box adds chats=all', async () => {
+    const { listCalls } = mockApi();
+    const { router, user } = renderPage('/knowledge?type=chat_file&clients=all');
+    await waitFor(() => expect(listCalls()).toContain('/api/knowledge?scope=all&type=chat_file'));
+    const box = await screen.findByRole('checkbox', {
+      name: t('knowledge.chat.alsoTasksTickets'),
+    });
+    await user.click(box);
+    await waitFor(() => expect(router.state.location.search).toMatchObject({ chats: 'all' }));
+    await waitFor(() =>
+      expect(listCalls()).toContain('/api/knowledge?scope=all&type=chat_file&chats=all'),
+    );
+  });
+
+  it('the tasks-and-tickets box is hidden without "From chat"', async () => {
+    mockApi();
+    renderPage('/knowledge?type=note&q=po&chats=all');
+    await screen.findByRole('button', { name: t('knowledge.types.notes') });
+    expect(
+      screen.queryByRole('checkbox', { name: t('knowledge.chat.alsoTasksTickets') }),
+    ).not.toBeInTheDocument();
+  });
+
   it('search writes ?q from 2 characters', async () => {
     mockApi();
     const { router, user } = renderPage('/knowledge');

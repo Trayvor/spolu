@@ -1,5 +1,6 @@
 import type { KnowledgeSummary } from '@spolu/shared';
 import { useTranslation } from 'react-i18next';
+import { Link } from '@tanstack/react-router';
 import { Avatar } from '@/components/avatar';
 import { PaperclipIcon } from '@/components/icons';
 import { Badge } from '@/components/ui/badge';
@@ -8,9 +9,11 @@ import { fileUrl } from '@/features/files/urls';
 import { formatReminderTime } from '@/features/reminders/format';
 import { formatCreated } from '@/features/tasks/dates';
 import { CalendarLeaf } from './calendar-leaf';
+import { ChatSourceLabel, chatSourceLocation } from './chat-source';
 import {
   ArrowOutIcon,
   BellIcon,
+  ChatFileIcon,
   FileIcon,
   LinkIcon,
   LockIcon,
@@ -24,7 +27,15 @@ export const displayUrl = (url: string): string =>
 
 const linkClass = 'pointer-events-auto font-semibold underline hover:text-neutral';
 
-const TILE_ICONS = { note: NoteIcon, file: FileIcon, link: LinkIcon } as const;
+const TILE_ICONS = {
+  note: NoteIcon,
+  file: FileIcon,
+  link: LinkIcon,
+  chat_file: ChatFileIcon,
+} as const;
+
+const overlayClass =
+  'absolute inset-0 cursor-pointer focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring';
 
 function Tile({ item, done }: { item: KnowledgeSummary; done: boolean }) {
   if (item.type === 'reminder') {
@@ -54,8 +65,9 @@ function Tile({ item, done }: { item: KnowledgeSummary; done: boolean }) {
 }
 
 /**
- * One list row. The row is a div: a full-row button underneath opens the detail, and the inner
- * links are siblings of that button (never nested in it) with pointer events of their own.
+ * One list row. The row is a div: a full-row button underneath opens the detail (for a chat
+ * file, a full-row link opens the chat at its message), and the inner links are siblings of it
+ * (never nested in it) with pointer events of their own.
  */
 export function KnowledgeRow({
   item,
@@ -77,17 +89,38 @@ export function KnowledgeRow({
 
   return (
     <div className="relative flex gap-4 px-4 py-4 hover:bg-muted/50 sm:px-5">
-      <button
-        type="button"
-        aria-label={t('knowledge.row.open', { title: item.title })}
-        onClick={() => onOpen(item.id)}
-        className="absolute inset-0 cursor-pointer focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
-      />
+      {item.type === 'chat_file' && item.chat ? (
+        <Link
+          {...chatSourceLocation(item.groupId, item.chat)}
+          aria-label={t('knowledge.chat.open', { title: item.title })}
+          className={overlayClass}
+        />
+      ) : (
+        <button
+          type="button"
+          aria-label={t('knowledge.row.open', { title: item.title })}
+          onClick={() => onOpen(item.id)}
+          className={overlayClass}
+        />
+      )}
       <div className="pointer-events-none relative flex min-w-0 flex-1 gap-4">
         <Tile item={item} done={done} />
         <div className="flex min-w-0 flex-1 flex-col gap-0.5">
           <div className="flex items-center gap-2">
-            <span className="min-w-0 flex-1 truncate text-button font-semibold">{item.title}</span>
+            {item.type === 'chat_file' && item.file ? (
+              // The title is the file name: it downloads the file (or opens an image).
+              <a
+                href={fileUrl(item.file.id)}
+                className="pointer-events-auto min-w-0 truncate text-button font-semibold underline hover:text-neutral"
+              >
+                {item.title}
+              </a>
+            ) : (
+              <span className="min-w-0 flex-1 truncate text-button font-semibold">
+                {item.title}
+              </span>
+            )}
+            {item.type === 'chat_file' && <span className="flex-1" />}
             {item.visibility === 'admins' && (
               <Badge variant="outline">
                 <LockIcon />
@@ -107,6 +140,14 @@ export function KnowledgeRow({
           </div>
           {item.type === 'note' && excerpt && (
             <p className="truncate text-button text-muted-foreground">{excerpt}</p>
+          )}
+          {item.type === 'chat_file' && item.chat && (
+            <p className="flex min-w-0 items-center gap-2 text-button text-muted-foreground">
+              <ChatSourceLabel chat={item.chat} />
+              {item.file && (
+                <span className="shrink-0">{formatFileSize(item.file.size, i18n.language)}</span>
+              )}
+            </p>
           )}
           {item.type === 'file' && item.file && (
             <p className="flex min-w-0 items-baseline gap-2 text-button">
@@ -148,7 +189,7 @@ export function KnowledgeRow({
               )}
             </p>
           )}
-          {item.type !== 'note' && excerpt && (
+          {item.type !== 'note' && item.type !== 'chat_file' && excerpt && (
             <p className="truncate text-button text-muted-foreground">{excerpt}</p>
           )}
           <div className="mt-1 flex min-w-0 items-center gap-2 text-micro text-muted-foreground">
