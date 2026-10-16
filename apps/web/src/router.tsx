@@ -12,6 +12,7 @@ import type { KnowledgeType } from '@spolu/shared';
 import { loadNamespace, withNamespaces } from '@/i18n/namespaces';
 import { ApiError } from '@/lib/api';
 import { groupQuery } from '@/features/groups/api';
+import { validateKnowledgeSearch } from '@/features/knowledge/search';
 import { safeRedirect } from '@/features/auth/redirect';
 import { isAdmin } from '@/features/auth/roles';
 import { sessionQuery } from '@/features/auth/use-session';
@@ -232,6 +233,24 @@ const adminsRoute = createRoute({
   ),
 });
 
+// The admins' global knowledge list across all clients.
+const knowledgeRoute = createRoute({
+  getParentRoute: () => authedRoute,
+  path: '/knowledge',
+  validateSearch: validateKnowledgeSearch,
+  // Cosmetic guard: the server answers 403 to a client anyway.
+  beforeLoad: async ({ context }) => {
+    const user = await context.queryClient.ensureQueryData(sessionQuery);
+    if (!isAdmin(user)) throw notFound();
+  },
+  loader: () =>
+    Promise.all([loadNamespace('knowledge'), loadNamespace('reminders'), loadNamespace('forms')]),
+  component: lazyRouteComponent(
+    () => import('@/features/knowledge/knowledge-page'),
+    'KnowledgePage',
+  ),
+});
+
 const loginRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/login',
@@ -249,6 +268,7 @@ const routeTree = rootRoute.addChildren([
     homeRoute,
     settingsRoute,
     adminsRoute,
+    knowledgeRoute,
     groupsRoute,
     groupRoute.addChildren([
       groupIndexRoute,
