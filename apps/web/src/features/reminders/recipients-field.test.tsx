@@ -82,13 +82,15 @@ describe('RecipientsField', () => {
   it('the suggestion adds only missing ids and hides when none are missing', async () => {
     const user = renderField({
       initial: ['u1'],
-      suggestion: { label: 'Add assignees', ids: ['u1', 'u3'] },
+      // u9 is not a person the picker offers: never added.
+      suggestion: { label: 'Add assignees', ids: ['u1', 'u3', 'u9'] },
     });
     await screen.findByText('Boris Kováč');
     await user.click(screen.getByRole('button', { name: 'Add assignees' }));
     const chips = screen.getAllByRole('listitem').map((li) => li.textContent);
     expect(chips.join(' ')).toContain('Cyril Malý');
     expect(chips.filter((c) => c?.includes('Anna Nováková'))).toHaveLength(1);
+    expect(chips).toHaveLength(3);
     expect(screen.queryByRole('button', { name: 'Add assignees' })).toBeNull();
   });
 });

@@ -16,10 +16,11 @@ One reminder feature serves the knowledge base and the task board: one or more d
 - **Knowledge base:** the reminder item type (see `knowledge-base.md`). Its times are edited with the item, by the author and admins.
 - **Task board:**
   - Anyone who can edit a task can add custom reminders to it. The person who adds the first one is the author of the task's reminders, and anyone else who adds a time becomes a recipient (added by themselves). Someone who only removes a time does not.
-  - Each change (add a time, remove a time, change the recipients) saves on its own, not with the task form. When two people edit at once, a change only removes the times its sender had loaded: a time someone else added meanwhile is kept, and a time someone else removed meanwhile is not brought back. Changing only the times leaves the recipients as they are.
+  - Each change (add a time, remove a time, change the recipients) saves on its own, not with the task form. When two people edit at once, a change only removes the times its sender had loaded: a time someone else added meanwhile is kept, and a time someone else removed meanwhile is not brought back. Changing only the times leaves the recipients as they are. Adding a moment that someone else added meanwhile adds nothing (no double push), and the panel refuses a moment already in the list ("This time is already in the list.").
+  - Removing the last upcoming time ends the task's reminders: their recipients go too, and whoever adds the next time becomes the author of a new set. So nobody stays bound to a task's reminders after their own are gone.
   - Custom reminders do not replace the automatic ones: assignees still get the deadline reminders (3, 2 and 1 days before, at 09:00) and the urgent reminders (every 3 hours).
   - A custom reminder that comes at the same moment as an automatic one shows as one notification on the device.
-  - A task in Completed sends no reminders.
+  - A task in Completed sends no reminders; its panel says so instead of the automatic-reminder line.
   - The task's calendar file holds the deadline, as an all-day event titled "Deadline: <title>" in the requester's language with no alert (the automatic reminders already cover the days before), and its upcoming custom reminders. A task with neither has no calendar file.
   - A card shows a bell when the task has upcoming custom reminders.
 - Example of done: a reminder set for a time reaches its author and recipients by push at that time, and its `.ics` file adds the times to a calendar.

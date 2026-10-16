@@ -24,7 +24,10 @@ const SAVED_MS = 2000;
 export function automaticReminderLine(task: {
   dueDate: string | null;
   urgent: boolean;
-}): 'deadline' | 'deadlineUrgent' | 'urgent' | null {
+  completedAt?: string | null;
+}): 'deadline' | 'deadlineUrgent' | 'urgent' | 'completed' | null {
+  // A task in Completed reminds nobody, automatic or custom.
+  if (task.completedAt) return task.dueDate || task.urgent ? 'completed' : null;
   if (task.dueDate) return task.urgent ? 'deadlineUrgent' : 'deadline';
   return task.urgent ? 'urgent' : null;
 }
@@ -33,6 +36,7 @@ const LINE_KEYS = {
   deadline: 'reminders.task.autoDeadline',
   deadlineUrgent: 'reminders.task.autoDeadlineUrgent',
   urgent: 'reminders.task.autoUrgent',
+  completed: 'reminders.task.completed',
 } as const;
 
 /** The time falls on a later local calendar day than the deadline (not a UTC comparison). */
@@ -154,7 +158,13 @@ export function TaskReminders({
   const addControl = adding ? (
     <AddReminderRow
       defaultDate={defaultReminderDate(task.dueDate)}
-      onAdd={(at) => void save({ kind: 'add', at })}
+      onAdd={(at) => {
+        if (upcoming.some((time) => Date.parse(time.at) === Date.parse(at))) {
+          setAddError(t('reminders.fields.errors.duplicate'));
+          return;
+        }
+        void save({ kind: 'add', at });
+      }}
       onCancel={() => {
         setAdding(false);
         setAddError(undefined);
@@ -227,6 +237,8 @@ export function TaskReminders({
         onRemoveTime={(id) => void save({ kind: 'remove', id })}
         remindedLabel={t('reminders.task.reminded')}
         authorMark={t('reminders.task.setThem')}
+        authorHint={t('reminders.task.authorHint')}
+        unavailableText={t('reminders.task.unavailable')}
         calendarAvailable
         recipientsAction={
           editing === null && (
@@ -256,15 +268,26 @@ export function TaskReminders({
                 ids: task.assignees.map((p) => p.id),
               }}
             />
-            <Button
-              type="button"
-              size="sm"
-              disabled={busy}
-              onClick={() => void save({ kind: 'recipients', ids: editing })}
-              className="self-start max-[640px]:h-11"
-            >
-              {t('reminders.task.done')}
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                size="sm"
+                disabled={busy}
+                onClick={() => void save({ kind: 'recipients', ids: editing })}
+                className="max-[640px]:h-11"
+              >
+                {t('reminders.task.done')}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setEditing(null)}
+                className="max-[640px]:h-11"
+              >
+                {t('reminders.row.cancel')}
+              </Button>
+            </div>
           </div>
         )}
       </ReminderPanel>

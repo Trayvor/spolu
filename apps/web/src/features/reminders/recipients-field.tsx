@@ -1,6 +1,6 @@
 import { useId, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { KNOWLEDGE_LIMITS } from '@spolu/shared';
+import { isPickable, KNOWLEDGE_LIMITS } from '@spolu/shared';
 import { PeopleSelect } from '@/components/people-select';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -43,7 +43,14 @@ export function RecipientsField({
   );
   const fixedIds = useMemo(() => [authorId], [authorId]);
   const label = t('reminders.fields.recipients');
-  const missing = suggestion?.ids.filter((id) => id !== authorId && !value.includes(id)) ?? [];
+  // Only people the picker offers: the server refuses anyone else (an admin who stopped managing).
+  const missing =
+    suggestion?.ids.filter(
+      (id) =>
+        id !== authorId &&
+        !value.includes(id) &&
+        people?.some((p) => p.id === id && isPickable(p)) === true,
+    ) ?? [];
 
   return (
     <div className="flex flex-col gap-2.5">

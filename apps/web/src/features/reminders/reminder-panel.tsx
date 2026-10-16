@@ -70,6 +70,8 @@ export function ReminderPanel({
   intro,
   remindedLabel,
   authorMark,
+  authorHint,
+  unavailableText,
 }: {
   prefix: string;
   subjectId: string;
@@ -88,6 +90,10 @@ export function ReminderPanel({
   remindedLabel?: string;
   /** After the author's name in the list (a task: "(set them)"). */
   authorMark?: string;
+  /** Replaces "You created this reminder" beside the author's toggle. */
+  authorHint?: string;
+  /** Replaces "This item has no reminders any more." (`no_reminder_set`). */
+  unavailableText?: string;
 }) {
   const { t, i18n } = useTranslation();
   const me = useSession();
@@ -134,7 +140,7 @@ export function ReminderPanel({
       setPending(null);
       setNotice(
         error instanceof ApiError && error.code === 'no_reminder_set'
-          ? t('reminders.panel.unavailable')
+          ? (unavailableText ?? t('reminders.panel.unavailable'))
           : t('reminders.panel.failed'),
       );
     } finally {
@@ -226,7 +232,7 @@ export function ReminderPanel({
           </Button>
           {isAuthor && (
             <span id={`reminders-hint-${subjectId}`} className="text-micro text-muted-foreground">
-              {t('reminders.panel.authorHint')}
+              {authorHint ?? t('reminders.panel.authorHint')}
             </span>
           )}
         </div>

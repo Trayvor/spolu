@@ -53,6 +53,9 @@
     "saved": "Uložené",
     "saveFailed": "Nepodarilo sa uložiť. Skúste znova.",
     "inPast": "Tento čas už uplynul. Vyberte neskorší.",
-    "createHint": "Pripomienky pridáte po vytvorení úlohy"
+    "createHint": "Pripomienky pridáte po vytvorení úlohy",
+    "completed": "Úloha je dokončená: neposiela žiadne pripomienky.",
+    "authorHint": "Tieto pripomienky ste nastavili vy",
+    "unavailable": "Táto úloha už nemá pripomienky."
   }
 }

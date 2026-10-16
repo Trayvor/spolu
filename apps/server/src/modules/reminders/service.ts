@@ -164,9 +164,27 @@ export async function replaceReminderSet(
   const deleted = timeRows
     .filter((row) => !row.firedAt && !kept.has(row.id) && (base === null || base.has(row.id)))
     .map((row) => row.id);
+  if (base !== null) {
+    // A stand-alone edit that adds an instant someone else added meanwhile adds nothing: the
+    // recipients would get two pushes at once.
+    const staying = new Set(
+      timeRows
+        .filter((row) => !row.firedAt && !deleted.includes(row.id))
+        .map((row) => row.at.getTime()),
+    );
+    for (let i = inserted.length - 1; i >= 0; i--) {
+      if (staying.has(inserted[i]!.at.getTime())) inserted.splice(i, 1);
+    }
+  }
   // Every unfired time after the merge counts, others' times included.
   const unfired = timeRows.filter((row) => !row.firedAt).length - deleted.length + inserted.length;
   if (unfired > REMINDER_LIMITS.times) throw new InvalidReminderError('Too many times');
+  if (base !== null && unfired === 0) {
+    // A stand-alone set with nothing left to send goes, with its recipients: whoever adds the
+    // next time starts a new set as its author, and nobody stays bound to old reminders.
+    await tx.delete(reminderSets).where(eq(reminderSets.id, setId));
+    return;
+  }
 
   // The recipients are validated before anything is written.
   const current = new Set(recipientRows.map((r) => r.userId));
@@ -357,16 +375,28 @@ export async function saveReminderSet(
   input: { times: { id?: string; at: string }[]; recipientIds?: string[]; baseTimeIds: string[] },
   actor: SessionUser,
 ): Promise<void> {
-  await db.transaction(async (tx) => {
-    const info = await readableSubject(tx, subject, actor);
-    if (!info || !info.canEdit(actor)) throw new NotReadableError();
-    await replaceReminderSet(
-      tx,
-      { ...subject, groupId: info.groupId, adminsOnly: info.adminsOnly, authorId: actor.id },
-      input,
-      actor,
-    );
-  });
+  try {
+    await db.transaction(async (tx) => {
+      const info = await readableSubject(tx, subject, actor);
+      if (!info || !info.canEdit(actor)) throw new NotReadableError();
+      await replaceReminderSet(
+        tx,
+        { ...subject, groupId: info.groupId, adminsOnly: info.adminsOnly, authorId: actor.id },
+        input,
+        actor,
+      );
+    });
+  } catch (error) {
+    // The subject was deleted between the read and the set's insert: a missing subject (404).
+    if (isForeignKeyViolation(error)) throw new NotReadableError();
+    throw error;
+  }
+}
+
+/** A PostgreSQL foreign key violation (23503), as drizzle wraps it. */
+function isForeignKeyViolation(error: unknown): boolean {
+  const code = (e: unknown) => (e as { code?: string } | null)?.code;
+  return code(error) === '23503' || code((error as { cause?: unknown } | null)?.cause) === '23503';
 }
 
 async function loadSet(

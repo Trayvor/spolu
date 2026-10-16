@@ -732,13 +732,39 @@ describe('task subjects (stand-alone edits)', () => {
 
   it('fired times are kept', async () => {
     const { admin, task } = await newTask();
-    await put(task, { times: [{ at: inMs(DAY) }, { at: inMs(2 * DAY) }] }, admin);
-    const [first, second] = await upcoming(task, admin);
+    await put(
+      task,
+      { times: [{ at: inMs(DAY) }, { at: inMs(2 * DAY) }, { at: inMs(3 * DAY) }] },
+      admin,
+    );
+    const [first, second, third] = await upcoming(task, admin);
     await markFired(first!.id);
     // The panel hides fired times: it sends only the upcoming ones.
-    await put(task, { times: [], baseTimeIds: [second!.id] }, admin);
+    await put(
+      task,
+      { times: [{ id: third!.id, at: third!.at }], baseTimeIds: [second!.id, third!.id] },
+      admin,
+    );
     const times = (await getReminderSet(db, task, admin))!.times;
-    expect(times.map((t) => t.id)).toEqual([first!.id]);
+    expect(times.map((t) => t.id)).toEqual([third!.id, first!.id]);
+  });
+
+  it('removing the last upcoming time deletes the set; the next adder becomes the author', async () => {
+    const { admin, client, task } = await newTask();
+    await put(task, { times: [{ at: inMs(DAY) }], recipientIds: [client.id] }, admin);
+    const loaded = await upcoming(task, admin);
+    await put(task, { times: [], baseTimeIds: loaded.map((t) => t.id) }, admin);
+    expect(await getSetAuthorId(db, task)).toBeNull();
+    await put(task, { times: [{ at: inMs(2 * DAY) }] }, client);
+    expect(await recipientsOf(task, admin)).toEqual([[client.id, 'author']]);
+  });
+
+  it('an instant someone else added meanwhile is stored once', async () => {
+    const { admin, client, task } = await newTask();
+    const at = inMs(DAY);
+    await put(task, { times: [{ at }] }, admin);
+    await put(task, { times: [{ at }] }, client);
+    expect(await upcoming(task, admin)).toHaveLength(1);
   });
 
   it('times added concurrently by others survive a PUT that did not know them', async () => {

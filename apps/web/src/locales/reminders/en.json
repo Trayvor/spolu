@@ -53,6 +53,9 @@
     "saved": "Saved",
     "saveFailed": "Could not save. Try again.",
     "inPast": "This time has passed. Pick a later one.",
-    "createHint": "Add reminders after creating the task"
+    "createHint": "Add reminders after creating the task",
+    "completed": "This task is completed: it sends no reminders.",
+    "authorHint": "You set these reminders",
+    "unavailable": "This task has no reminders any more."
   }
 }

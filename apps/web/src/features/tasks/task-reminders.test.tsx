@@ -126,6 +126,13 @@ describe('task reminder helpers', () => {
     expect(automaticReminderLine({ dueDate: '2030-01-15', urgent: true })).toBe('deadlineUrgent');
     expect(automaticReminderLine({ dueDate: null, urgent: true })).toBe('urgent');
     expect(automaticReminderLine({ dueDate: null, urgent: false })).toBeNull();
+    expect(
+      automaticReminderLine({
+        dueDate: '2030-01-15',
+        urgent: false,
+        completedAt: '2026-10-16T10:00:00Z',
+      }),
+    ).toBe('completed');
   });
 
   it('the after-the-deadline tag compares local dates', () => {
@@ -251,6 +258,19 @@ describe('TaskReminders', () => {
     await user.click(screen.getByRole('button', { name: t('reminders.row.confirm') }));
     expect(await screen.findByText(t('reminders.task.inPast'))).toBeInTheDocument();
     expect(screen.getByLabelText(t('reminders.row.date'))).toBeInTheDocument();
+  });
+
+  it('adding an instant already in the list shows the duplicate message and sends nothing', async () => {
+    const at = localToIso('2030-01-15', '09:00');
+    current = withTimes([{ id: 'r1', at, firedAt: null }]);
+    const { user } = renderSection();
+    await user.click(await screen.findByRole('button', { name: t('reminders.row.add') }));
+    fireEvent.change(screen.getByLabelText(t('reminders.row.date')), {
+      target: { value: '2030-01-15' },
+    });
+    await user.click(screen.getByRole('button', { name: t('reminders.row.confirm') }));
+    expect(await screen.findByText(t('reminders.fields.errors.duplicate'))).toBeInTheDocument();
+    expect(puts()).toHaveLength(0);
   });
 
   it('another error shows saveFailed', async () => {
