@@ -296,6 +296,7 @@ describe('groups API', () => {
       id: client.id,
       name: 'Reader',
       isAdmin: false,
+      isManager: false,
     });
   });
 
@@ -308,6 +309,7 @@ describe('groups API', () => {
     const people = res.json<GroupPerson[]>();
     expect(people.find((p) => p.id === client.id)?.isAdmin).toBe(false);
     expect(people.some((p) => p.name === 'Group Admin' && p.isAdmin)).toBe(true);
+    expect(people.every((p) => typeof p.isManager === 'boolean')).toBe(true);
   });
 
   it('people of a group the client does not belong to → 404', async () => {

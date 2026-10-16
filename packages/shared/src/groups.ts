@@ -35,8 +35,12 @@ export const GroupPersonSchema = z.object({
   id: z.string(),
   name: z.string(),
   isAdmin: z.boolean(),
+  /** An admin who manages this group. Always false for clients. */
+  isManager: z.boolean(),
 });
 export type GroupPerson = z.infer<typeof GroupPersonSchema>;
+/** Who can be assigned or picked: the group's clients and its managers, not every admin. */
+export const isPickable = (person: GroupPerson): boolean => !person.isAdmin || person.isManager;
 export const GroupPersonListSchema = z.array(GroupPersonSchema);
 
 /** An active admin who manages a group. */

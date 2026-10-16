@@ -17,7 +17,9 @@ vi.mock('@/features/files/upload', () => ({ uploadFile: vi.fn() }));
 const propose = vi.mocked(proposeTasks);
 const create = vi.mocked(createTasksFromMessage);
 
-const PEOPLE: GroupPerson[] = [{ id: 'u1', name: 'Anna Nováková', isAdmin: false }];
+const PEOPLE: GroupPerson[] = [
+  { id: 'u1', name: 'Anna Nováková', isAdmin: false, isManager: false },
+];
 
 const FILE: FileInfo = {
   id: 'mf1',

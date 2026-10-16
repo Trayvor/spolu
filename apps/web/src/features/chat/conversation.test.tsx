@@ -41,8 +41,8 @@ vi.mock('@/lib/socket', () => ({ getSocket: () => socket }));
 const t = (key: string, options?: Record<string, unknown>) => i18n.t(key, options);
 const ME = { id: 'me', name: 'Me Myself', email: 'me@example.com', role: 'client', groupId: 'g1' };
 const people: GroupPerson[] = [
-  { id: 'me', name: 'Me Myself', isAdmin: false },
-  { id: 'anna', name: 'Anna Nováková', isAdmin: false },
+  { id: 'me', name: 'Me Myself', isAdmin: false, isManager: false },
+  { id: 'anna', name: 'Anna Nováková', isAdmin: false, isManager: false },
 ];
 
 function msg(id: string, n: number, over: Partial<MessageDto> = {}): MessageDto {

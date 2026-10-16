@@ -28,6 +28,7 @@ Terms used across the docs and code, in alphabetical order.
 - **OTP code**: the one-time code sent by email that is used to log in.
 - **owner walkthrough**: the final check of a phase, where the owner tries the "Done when" items by hand before the phase is marked done.
 - **pending client**: a client who entered an email on an invite link but never signed in (`email_verified` false, empty name). A later invite link moves them to its group; once they sign in they are a normal client.
+- **pickable people**: who can be picked as an assignee in a group: its named, verified, active clients and its active managers. Every other admin is a reader of the group (can be mentioned and read it) but is not pickable. See `listPickablePeople`.
 - **policy function**: a server function that decides whether a user may see or change a resource; written test-first.
 - **push subscription**: one browser's permission to receive Web Push for one user, stored per device in `push_subscriptions` (endpoint and keys). Created after the browser grants permission, removed at logout or when the push service answers 404/410.
 - **PWA**: progressive web app. The web app can be installed on a phone or desktop and receive push notifications.
