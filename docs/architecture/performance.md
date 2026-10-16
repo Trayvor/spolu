@@ -76,6 +76,8 @@ Phase 21 ticket to tasks (part 21.5, measured 2026-10-16, gzip -9 of the scripts
 
 Phase 23 unsubscribe (part 23.4, measured 2026-10-16, gzip -9 of the scripts `dist/index.html` loads): initial JS 198.8 kB gzip, unchanged against `main` (198.8 kB). The entry chunk gains only the `/unsubscribe/$token` route definition; the page is its own lazy `unsubscribe-page` chunk with its `unsubscribe` locale namespace (not the large `bulkEmail` one of the editor), and the Settings checkbox lives in the lazy settings chunk.
 
+Phase 23 bulk email editor (part 23.6, measured 2026-10-16, gzip -9 of the scripts `dist/index.html` loads): initial JS 199.3 kB gzip, 0.3 kB above `main` (199.0 kB): the two route definitions, the header and account-menu links and `nav.bulkEmail`. The list and the editor are **one** lazy chunk (`features/bulk-email/screens.ts`, 9.6 kB gzip: list, editor, block forms, preview frame, audience builder, recipients dialog, test send, the response schemas) with the `bulkEmail` namespace. As two chunks sharing the API module they made the bundler move `useBaseQuery` out of the entry chunk into its own eagerly loaded chunk, +1.4 kB of initial JS (200.5 kB, over the budget); one chunk avoids that. The editor's requests are debounced (preview 500 ms, audience count 300 ms, people search 300 ms, autosave 1 s); "Show recipients" pages by 50. No new dependency: reordering is buttons, the preview an `<iframe sandbox srcdoc>`.
+
 Lazy chunks for individual screens have no hard budget. Keep them reasonable and watch for anything above about 100 kB gzip.
 
 ## How to check

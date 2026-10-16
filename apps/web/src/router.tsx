@@ -363,6 +363,33 @@ const adminsRoute = createRoute({
   ),
 });
 
+// Bulk email (Phase 23): the campaign list and one campaign (editor for a draft). Admins only.
+const bulkEmailGuard = async ({ context }: { context: RouterContext }) => {
+  // Cosmetic guard: the server answers 403 to a client anyway.
+  const user = await context.queryClient.ensureQueryData(sessionQuery);
+  if (!isAdmin(user)) throw notFound();
+};
+
+const bulkEmailRoute = createRoute({
+  getParentRoute: () => authedRoute,
+  path: '/bulk-email',
+  beforeLoad: bulkEmailGuard,
+  component: lazyRouteComponent(
+    withNamespaces(['bulkEmail'], () => import('@/features/bulk-email/screens')),
+    'CampaignListPage',
+  ),
+});
+
+const bulkCampaignRoute = createRoute({
+  getParentRoute: () => authedRoute,
+  path: '/bulk-email/$campaignId',
+  beforeLoad: bulkEmailGuard,
+  component: lazyRouteComponent(
+    withNamespaces(['bulkEmail'], () => import('@/features/bulk-email/screens')),
+    'CampaignPageRoute',
+  ),
+});
+
 // The admins' global knowledge list across all clients.
 const knowledgeRoute = createRoute({
   getParentRoute: () => authedRoute,
@@ -409,6 +436,8 @@ const routeTree = rootRoute.addChildren([
     globalBoardRoute,
     settingsRoute,
     adminsRoute,
+    bulkEmailRoute,
+    bulkCampaignRoute,
     knowledgeRoute,
     groupsRoute,
     myGroupsRoute,

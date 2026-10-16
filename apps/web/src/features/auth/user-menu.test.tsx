@@ -417,15 +417,20 @@ describe('logged-in shell', () => {
     const { fetchMock } = mockApi();
     const { router } = renderAt();
     await screen.findByRole('heading', { name: t('nav.settings') });
-    const before = fetchMock.mock.calls.length;
+    // Only the session re-checks count: the settings page loads other data on its own time.
+    const meCalls = () =>
+      fetchMock.mock.calls.filter(
+        ([url]) => new URL(String(url), 'http://x').pathname === '/api/me',
+      ).length;
+    const before = meCalls();
 
     act(() => fake.fire('disconnect', 'io server disconnect'));
-    await waitFor(() => expect(fetchMock.mock.calls.length).toBe(before + 1)); // re-checked
+    await waitFor(() => expect(meCalls()).toBe(before + 1)); // re-checked
 
     expect(router.state.location.pathname).toBe('/settings');
     // Other reasons (transport close, ...) are Socket.IO's to retry: no re-check.
     act(() => fake.fire('disconnect', 'transport close'));
-    expect(fetchMock.mock.calls.length).toBe(before + 1);
+    expect(meCalls()).toBe(before + 1);
   });
 
   it('an /api/me outage shows the error page with Try again', async () => {
