@@ -1,6 +1,6 @@
 # Roadmap
 
-24 phases (0-23). Each phase ends with something that works and can be used. Update the `Status` column when a phase starts or finishes (values: `planned`, `in progress`, `done (local)`, `done`, `merged into N`). The `implement-phase` and `update-kb` skills do this.
+26 phases (0-25). Each phase ends with something that works and can be used. Update the `Status` column when a phase starts or finishes (values: `planned`, `in progress`, `done (local)`, `done`, `merged into N`). The `implement-phase` and `update-kb` skills do this.
 
 Requirements per module: [product/](product/README.md). Phases after 1 get their own short design and plan when they start.
 
@@ -31,6 +31,7 @@ Requirements per module: [product/](product/README.md). Phases after 1 get their
 | 22 | [Members & groups page](#phase-22--members--groups-page) | in progress | 18, 20, 21.1 | [plan](superpowers/plans/2026-10-16-phase-22-members-and-groups-page.md) |
 | 23 | [Bulk email](#phase-23--bulk-email) | done (local) | 3, 18, 21.1 | [spec](superpowers/specs/2026-10-16-phase-23-bulk-email-design.md), [plan](superpowers/plans/2026-10-16-phase-23-bulk-email.md) |
 | 24 | [Knowledge folders](#phase-24--knowledge-folders) | in progress | 17 | [spec](superpowers/specs/2026-10-16-phase-24-knowledge-folders-design.md), [plan](superpowers/plans/2026-10-16-phase-24-knowledge-folders.md) |
+| 25 | [Chat files in the knowledge base](#phase-25--chat-files-in-the-knowledge-base) | in progress | 17, 24 | [spec](superpowers/specs/2026-10-16-knowledge-chat-files-design.md), [plan](superpowers/plans/2026-10-16-knowledge-chat-files.md) |
 
 Phases 8 and 14 do not depend on each other, so their order can change by priority.
 
@@ -341,3 +342,13 @@ Scope: folders and subfolders in each group's knowledge base, with breadcrumbs; 
 Status: built in one pull request (server, web, end-to-end test in `e2e/knowledge.spec.ts`); migration 0022.
 
 Done when: an admin and a client sort a group's knowledge into folders, the client never sees an admins-only folder or anything in it, and a search finds an item in a subfolder and shows its path.
+
+## Phase 25 — Chat files in the knowledge base
+
+Requirements: [knowledge-base](product/knowledge-base.md) and the [design](superpowers/specs/2026-10-16-knowledge-chat-files-design.md) (owner request of 2026-10-16 and the defaults we took).
+
+Scope: every file attached to a chat message (group chat, task chat, ticket chat) becomes a read-only knowledge item of the type "From chat" ("Z chatu"), created automatically, removed with the message, and opening the chat at that message; the type filter and a "tasks and tickets too" checkbox in the group's tab and the admins' global view; a backfill for files already in chats.
+
+Status: in progress on branch `knowledge-chat-files`.
+
+Done when: a client uploads a file in the group chat, an admin finds it under "From chat" in the client's Knowledge tab and in the global view, opens the chat at the message from it, and the entry disappears when the message is deleted.
