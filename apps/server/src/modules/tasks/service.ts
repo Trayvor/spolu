@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { asc, eq, inArray, sql, type SQL } from 'drizzle-orm';
+import { and, asc, eq, inArray, isNull, sql, type SQL } from 'drizzle-orm';
 import type {
   BoardDto,
   BucketDto,
@@ -147,6 +147,21 @@ export async function selectTasks(db: Db, where: SQL): Promise<TaskDto[]> {
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   }));
+}
+
+/**
+ * How many open tasks (not in Completed) of the group are assigned to the user: one indexed count
+ * (`task_assignees_user_id_idx`), for the yellow "assigned to me" pill on the Tasks tab.
+ */
+export async function countMyOpenTasks(db: Db, userId: string, groupId: string): Promise<number> {
+  const [row] = await db
+    .select({ n: sql<number>`count(*)::int` })
+    .from(taskAssignees)
+    .innerJoin(tasks, eq(tasks.id, taskAssignees.taskId))
+    .where(
+      and(eq(taskAssignees.userId, userId), eq(tasks.groupId, groupId), isNull(tasks.completedAt)),
+    );
+  return row?.n ?? 0;
 }
 
 /**

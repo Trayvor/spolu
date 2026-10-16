@@ -1,6 +1,8 @@
 {
   "unreadTasks_one": "{{count}} task with unread messages",
   "unreadTasks_other": "{{count}} tasks with unread messages",
+  "assignedToYou_one": "{{count}} task assigned to you",
+  "assignedToYou_other": "{{count}} tasks assigned to you",
   "buckets": {
     "todo": "To do",
     "egrantReview": "eGrant review",

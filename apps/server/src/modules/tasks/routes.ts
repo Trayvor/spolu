@@ -8,6 +8,7 @@ import { emitBuckets } from './events.js';
 import { canManageBuckets, canUseBoard } from './policy.js';
 import { taskRoutes } from './task-routes.js';
 import {
+  countMyOpenTasks,
   createBucket,
   deleteBucket,
   FixedBucketError,
@@ -47,6 +48,16 @@ export const tasksRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { 
     (await getGroup(db, groupId)) !== null;
 
   await app.register(taskRoutes, { deps, writeGuard, canOpenGroup });
+
+  app.get<GroupParams>(
+    '/groups/:id/tasks/mine-count',
+    { preHandler: anyUser },
+    async (request, reply) => {
+      const actor = request.user!;
+      if (!(await canOpenGroup(actor, request.params.id))) return notFound(reply);
+      return { open: await countMyOpenTasks(db, actor.id, request.params.id) };
+    },
+  );
 
   app.get<GroupParams>('/groups/:id/board', { preHandler: anyUser }, async (request, reply) => {
     // Group check first: ensureBoard must never run for an unknown group.

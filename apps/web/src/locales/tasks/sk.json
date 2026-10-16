@@ -3,6 +3,10 @@
   "unreadTasks_few": "{{count}} úlohy s neprečítanými správami",
   "unreadTasks_many": "{{count}} úlohy s neprečítanými správami",
   "unreadTasks_other": "{{count}} úloh s neprečítanými správami",
+  "assignedToYou_one": "{{count}} úloha priradená vám",
+  "assignedToYou_few": "{{count}} úlohy priradené vám",
+  "assignedToYou_many": "{{count}} úlohy priradené vám",
+  "assignedToYou_other": "{{count}} úloh priradených vám",
   "buckets": {
     "todo": "Na spracovanie",
     "egrantReview": "Kontrola eGrant",
