@@ -44,7 +44,8 @@ test('admin and client chat in real time, in threads, with mentions and files, a
   const email = `e2e-chat-${stamp}@example.com`;
 
   await createGroup(admin, name, `https://e2e-chat-${stamp}.egrant.sk`);
-  await admin.getByRole('link', { name: new RegExp(name) }).click();
+  // The groups list's row, not the admin sidebar's link (it may list the new group too).
+  await admin.locator('a[href^="/groups/"]:not([href$="/chat"])', { hasText: name }).click();
   await expect(admin).toHaveURL(/\/groups\/[^/]+\/chat$/);
   const groupPath = new URL(admin.url()).pathname.replace(/\/chat$/, '');
   await admin.goto(`${groupPath}/members`);

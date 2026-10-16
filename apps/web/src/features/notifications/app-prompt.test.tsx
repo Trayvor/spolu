@@ -22,9 +22,7 @@ vi.mock('./api', async () => {
       queryKey: ['notifications', 'preferences'],
       queryFn: vi.fn(() => Promise.resolve(PREFS)),
     }),
-    requestEmailFallback: vi.fn(() =>
-      Promise.resolve({ ...PREFS, emailEnabled: true, turnedOn: true }),
-    ),
+    requestEmailFallback: vi.fn(() => Promise.resolve({ ...WITH_EMAIL, turnedOn: true })),
   };
 });
 vi.mock('./prompt-rules', async (importOriginal) => ({
@@ -32,7 +30,15 @@ vi.mock('./prompt-rules', async (importOriginal) => ({
   isPhone: vi.fn(() => true),
 }));
 
-const PREFS: NotificationPrefs = { pushEnabled: true, emailEnabled: false, vapidPublicKey: 'KEY' };
+const PREFS: NotificationPrefs = {
+  channels: { chat: 'push', tasks: 'push', tickets: 'push', knowledge: 'push' },
+  visibleCategories: ['chat', 'tasks', 'tickets', 'knowledge'],
+  vapidPublicKey: 'KEY',
+};
+const WITH_EMAIL: NotificationPrefs = {
+  ...PREFS,
+  channels: { chat: 'both', tasks: 'both', tickets: 'both', knowledge: 'both' },
+};
 
 import { canInstall, promptInstall } from '@/lib/install-prompt';
 import { requestEmailFallback } from './api';
@@ -171,10 +177,9 @@ describe('AppPrompt', () => {
       'We turned on email notifications for you. Update iOS to 16.4 or newer to get notifications on the phone.',
     );
     expect(requestEmailFallback).toHaveBeenCalledTimes(1);
-    expect(client.getQueryData<NotificationPrefs>(['notifications', 'preferences'])).toEqual({
-      ...PREFS,
-      emailEnabled: true,
-    });
+    expect(client.getQueryData<NotificationPrefs>(['notifications', 'preferences'])).toEqual(
+      WITH_EMAIL,
+    );
     fireEvent.click(screen.getByRole('button', { name: 'OK' }));
     expect(dialog).not.toBeInTheDocument();
     expect(localStorage.getItem(STORAGE_KEYS.iosFallback)).toBe('1');
@@ -182,7 +187,11 @@ describe('AppPrompt', () => {
 
   it('iOS fallback after an email opt-out says email is off', async () => {
     vi.mocked(iosVersion).mockReturnValue(15.8);
-    vi.mocked(requestEmailFallback).mockResolvedValueOnce({ ...PREFS, turnedOn: false });
+    vi.mocked(requestEmailFallback).mockResolvedValueOnce({
+      ...PREFS,
+      channels: { chat: 'none', tasks: 'push', tickets: 'none', knowledge: 'push' },
+      turnedOn: false,
+    });
     renderPrompt();
     const dialog = await screen.findByRole('region');
     expect(dialog).toHaveTextContent('Email notifications are off');
@@ -192,7 +201,7 @@ describe('AppPrompt', () => {
     vi.mocked(iosVersion).mockReturnValue(15.8);
     vi.mocked(requestEmailFallback).mockResolvedValueOnce({
       ...PREFS,
-      emailEnabled: true,
+      channels: { ...PREFS.channels, tickets: 'email' },
       turnedOn: false,
     });
     renderPrompt();

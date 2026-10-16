@@ -25,12 +25,12 @@ function writeStored(clients: string | null) {
 }
 
 /** The filter keys the board writes; "Clear filters" removes them all. */
-const FILTER_KEYS = ['clients', 'assignee', 'urgent', 'due', 'q', 'completed'] as const;
+const FILTER_KEYS = ['clients', 'assignee', 'urgent', 'mine', 'due', 'q', 'completed'] as const;
 
 const SEARCH_DEBOUNCE_MS = 300;
 
 /**
- * The global board's filters, all in the URL (`/tasks?clients&assignee&urgent&due&q&completed`)
+ * The global board's filters, all in the URL (`/tasks?clients&assignee&urgent&mine&due&q&completed`)
  * plus the open task (`task`). A visit without `clients` restores the last explicit choice from
  * `localStorage`; `null` clients is the default scope (the managed clients, or all).
  */
@@ -51,11 +51,20 @@ export function useGlobalSearch() {
       clients: clientsParam,
       assignee: search.assignee,
       urgent: search.urgent === 1 || undefined,
+      mine: search.mine === 1 || undefined,
       due: search.due,
       q: search.q && search.q.trim().length >= 2 ? search.q.trim() : undefined,
       completed: search.completed === 1 || undefined,
     }),
-    [clientsParam, search.assignee, search.urgent, search.due, search.q, search.completed],
+    [
+      clientsParam,
+      search.assignee,
+      search.urgent,
+      search.mine,
+      search.due,
+      search.q,
+      search.completed,
+    ],
   );
   const clients = clientsParam === undefined ? null : clientsParam.split(',').filter(Boolean);
 

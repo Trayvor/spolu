@@ -56,7 +56,7 @@ Each branch is cut from the latest `main`. The ticket page of 21.4 renders the c
 - An invite is not applied when the email is typed: it is stored in `pending_invites` (one per user, the latest wins) and applied on sign-in (`applyPendingInvite`, called from the session-create hook in `auth/auth.ts`). `moveUnverified` is gone (`rememberInvite`).
 - Removal keeps using `user.disabled_at` for the account: removing the **last** active membership disables the account (as before); removing one of several only sets `removed_at`. The migration copies `disabled_at` of removed clients to their membership's `removed_at`.
 - `Me.groups` items are `{ id, name, role, hasLogo, updatedAt }`. `clientGroups(me)` in `features/auth/roles.ts`; `/` sends a client with one group into it, with several to `/my-groups`, with none to `/settings` (part 21.4 changes that last case to `/tickets`).
-- `visibleCategoriesFor` was not changed (item C had not merged): part 21.6 does it.
+- Item C merged first, so 21.1 also did C's two B-1 changes: `visibleCategoriesFor` returns `['tickets']` for `isRequesterOnly`, and `notificationAudience` adds the group's active `ziadatel` members for the `tickets` group only (`activeMemberIds`). The memberships migration is `0017_memberships` (after C's `0016_notification_groups`).
 
 ### Task 1.1: Schema and membership service
 

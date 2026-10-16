@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
+  DEFAULT_CHANNELS,
   EmailChangeConfirmSchema,
+  NotificationCategories,
+  resolveChannels,
+  wantsEmail,
+  wantsPush,
   effectiveGroupMode,
   NotificationPrefsPatchSchema,
   PushSubscriptionBodySchema,
@@ -87,9 +92,49 @@ describe('schemas', () => {
     );
   });
 
-  it('prefs patch needs at least one known key', () => {
-    expect(NotificationPrefsPatchSchema.safeParse({ pushEnabled: false }).success).toBe(true);
-    expect(NotificationPrefsPatchSchema.safeParse({}).success).toBe(false);
-    expect(NotificationPrefsPatchSchema.safeParse({ other: true }).success).toBe(false);
+  it('prefs patch accepts one group and channel, refuses others', () => {
+    const ok = (body: unknown) => NotificationPrefsPatchSchema.safeParse(body).success;
+    expect(ok({ category: 'tickets', channel: 'none' })).toBe(true);
+    expect(ok({ category: 'dm', channel: 'push' })).toBe(false);
+    expect(ok({ category: 'chat', channel: 'sms' })).toBe(false);
+    expect(ok({ category: 'chat', channel: 'push', x: 1 })).toBe(false);
+    expect(ok({})).toBe(false);
+  });
+});
+
+describe('notification groups', () => {
+  it('defaults: tickets both, the rest push', () => {
+    expect(resolveChannels({})).toEqual({
+      chat: 'push',
+      tasks: 'push',
+      tickets: 'both',
+      knowledge: 'push',
+    });
+    expect(DEFAULT_CHANNELS).toEqual(resolveChannels({}));
+  });
+
+  it('keeps valid choices and ignores garbage', () => {
+    expect(resolveChannels({ chat: 'none', tasks: 5, knowledge: 'loud', x: 'email' })).toEqual({
+      chat: 'none',
+      tasks: 'push',
+      tickets: 'both',
+      knowledge: 'push',
+    });
+    expect(resolveChannels(null)).toEqual(DEFAULT_CHANNELS);
+    expect(resolveChannels(['email'])).toEqual(DEFAULT_CHANNELS);
+  });
+
+  it.each([
+    ['email', false, true],
+    ['push', true, false],
+    ['both', true, true],
+    ['none', false, false],
+  ] as const)('%s: push %s, email %s', (channel, push, email) => {
+    expect(wantsPush(channel)).toBe(push);
+    expect(wantsEmail(channel)).toBe(email);
+  });
+
+  it('groups are in the profile order', () => {
+    expect([...NotificationCategories]).toEqual(['chat', 'tasks', 'tickets', 'knowledge']);
   });
 });

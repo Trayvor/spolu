@@ -1,3 +1,13 @@
+import type { NotificationChannel, NotificationPrefs } from '@spolu/shared';
+
+/** Whether some notification group the user can see uses a channel `wants` accepts. */
+export function someWant(
+  prefs: Pick<NotificationPrefs, 'channels' | 'visibleCategories'>,
+  wants: (channel: NotificationChannel) => boolean,
+): boolean {
+  return prefs.visibleCategories.some((c) => wants(prefs.channels[c]));
+}
+
 /** Which one card `<AppPrompt>` shows. Pure rules; the component gathers the input. */
 export type Prompt = 'install-android' | 'install-ios' | 'enable' | 'ios-unsupported' | null;
 
@@ -7,8 +17,9 @@ export type PromptInput = {
   /** iOS/iPadOS version (16.4), null elsewhere. */
   ios: number | null;
   hasPushManager: boolean;
-  /** From the profile: push on, and the server has a VAPID key. */
-  pushEnabled: boolean;
+  /** From the profile: some visible notification group wants push. */
+  pushWanted: boolean;
+  /** The server has a VAPID key. */
   vapidKey: boolean;
   permission: NotificationPermission | 'unsupported';
   subscribed: boolean;
@@ -38,7 +49,7 @@ export function choosePrompt(i: PromptInput): Prompt {
     return i.ios !== null ? 'install-ios' : 'install-android';
   }
   const enable =
-    i.pushEnabled &&
+    i.pushWanted &&
     i.vapidKey &&
     i.hasPushManager &&
     i.permission === 'default' &&

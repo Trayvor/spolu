@@ -69,18 +69,22 @@ describe('admin home query plans on a seeded volume', () => {
       // mentions uses indexes under 50 ms
       await expectIndexed(tx, mentionsSql(adminId), CHAT_TABLES);
       // global board uses tasks_open_group_idx under 50 ms, for the 10 managed groups
-      await expectIndexed(
-        tx,
-        globalBoardSql({
-          clientIds: managedIds,
-          viewerId: adminId,
-          assignee: 'anyone',
-          urgent: false,
-          completed: false,
-          today: bratislavaToday(new Date()),
-        }),
-        ['tasks', ...CHAT_TABLES],
-      );
+      // and so does its "only where I take part" filter
+      for (const mine of [false, true]) {
+        await expectIndexed(
+          tx,
+          globalBoardSql({
+            clientIds: managedIds,
+            viewerId: adminId,
+            assignee: 'anyone',
+            urgent: false,
+            mine,
+            completed: false,
+            today: bratislavaToday(new Date()),
+          }),
+          ['tasks', ...CHAT_TABLES],
+        );
+      }
     });
   });
 });
