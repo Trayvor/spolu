@@ -43,17 +43,6 @@ function ExternalLink({ href, children }: { href: string; children?: ReactNode }
   );
 }
 
-/** The last path segment of a link, as its name ("a.png" for https://x.sk/f/a.png). */
-function linkName(href: string): string {
-  try {
-    const url = new URL(href);
-    const last = url.pathname.split('/').filter(Boolean).at(-1);
-    return last ? decodeURIComponent(last) : url.host;
-  } catch {
-    return href;
-  }
-}
-
 /** The status: a select for admins (saved at once), the badge for everyone else. */
 export function StatusControl({ ticket, editable }: { ticket: TicketDto; editable: boolean }) {
   const { t } = useTranslation();
@@ -90,7 +79,7 @@ export function StatusControl({ ticket, editable }: { ticket: TicketDto; editabl
 
 /**
  * The ticket's text and fields as a definition list: the initiator (name, email, phone), area,
- * programme, due date (red when overdue), URL, the instance link eGrant sent, links to files,
+ * programme, due date (red when overdue), URL, the instance link eGrant sent,
  * the uploaded files, then when it was created and resolved. An admin edits the content in place
  * ("Edit": the same fields as the new-ticket dialog, Save or Cancel).
  */
@@ -198,17 +187,6 @@ export function TicketFields({ ticket, editable }: { ticket: TicketDto; editable
         {ticket.instanceUrl && (
           <Row label={t('tickets.fields.instance')}>
             <span className="break-all">{ticket.instanceUrl}</span>
-          </Row>
-        )}
-        {ticket.fileLinks.length > 0 && (
-          <Row label={t('tickets.fields.fileLinks')}>
-            <ul className="flex flex-col gap-1">
-              {ticket.fileLinks.map((href) => (
-                <li key={href} className="min-w-0">
-                  <ExternalLink href={href}>{linkName(href)}</ExternalLink>
-                </li>
-              ))}
-            </ul>
           </Row>
         )}
         {ticket.files.length > 0 && (

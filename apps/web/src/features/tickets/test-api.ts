@@ -54,7 +54,6 @@ export const ticket = (over: Partial<TicketDto> = {}): TicketDto => ({
   dueDate: null,
   url: null,
   instanceUrl: 'https://abc.egrant.sk',
-  fileLinks: [],
   files: [],
   createdBy: null,
   createdAt: NOW,
