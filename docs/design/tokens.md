@@ -63,7 +63,7 @@ The live dot in the header "Výzvy" pill is `#64D01C` (hard-coded in `.egrant-he
 
 | Token                                       | Value                                                                | Observed on                                                                  |
 | ------------------------------------------- | -------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| `--font-sans` (source `--font-family-base`) | `"Saans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif` | `--wp--preset--font-family--saans`, set on `body`                            |
+| `--font-sans` (source `--font-family-base`) | `"Saans", "Help Cyrillic", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif` | `--wp--preset--font-family--saans`, set on `body`                            |
 | Weight 500                                  | `Saans-Medium.woff2`                                                 | `body` (`font-weight: 500`) — the site's normal text weight; there is no 400 |
 | Weight 600                                  | `Saans-SemiBold.woff2`                                               | `h1`–`h6`, buttons, field labels, nav links                                  |
 | Letter spacing                              | `0.2px`                                                              | `body`, buttons, headings; `h1` uses `-0.6px`, `h2` `0`, captions `0.25px`   |
@@ -74,6 +74,8 @@ There is one family; no separate heading font, so no `--font-heading`.
 Font files are self-hosted in `apps/web/public/fonts/` (copied from `https://egrant.sk/app/themes/egrant/assets/fonts/`), about 56 KB each, `font-display: swap`. Each file contains latin and latin-ext; all Slovak diacritics are present (checked with fontTools). They do not contain Cyrillic.
 
 **License:** Saans is a commercial font by Displaay Type Foundry. The owner confirmed (2026-10-15) that eGrant's license covers its use in Spolu. If that ever changes, delete the two files and the `@font-face` rules: the stack falls back to the system UI font with no other change.
+
+**Cyrillic (uk, bg):** Saans has no Cyrillic glyphs. `Help Cyrillic` is Inter's Cyrillic subset (SIL OFL, `Inter-Cyrillic-Medium.woff2` and `Inter-Cyrillic-SemiBold.woff2`, about 8 kB each, license `public/fonts/Inter-LICENSE.txt`), next in the stack, so the browser uses it per character. Its `unicode-range` (U+0400–045F, U+0490–0491, U+04B0–04B1, U+0301, U+2116) means it downloads only when Cyrillic text is on the page; it is not preloaded.
 
 Type scale (Tailwind `text-*` utilities; desktop value, then the value under 900px):
 
