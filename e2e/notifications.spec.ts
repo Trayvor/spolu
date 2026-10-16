@@ -135,7 +135,7 @@ test.describe.serial('push and email delivery', () => {
 
   // The e2e server batches email after EMAIL_BATCH_DELAY_MS (10 s) instead of 10 minutes: long
   // enough that all three messages are delivered before the batch is emailed.
-  test('with chat on email and push, one batched email arrives in Mailpit', async () => {
+  test('with chat on email, one batched email arrives in Mailpit', async () => {
     test.setTimeout(60_000); // a 30 s poll for the email, then 5 s to see no second one
     // Back to All messages: the test above left the client on Mentions and replies.
     const reset = await clientContext.request.put(`/api/groups/${groupId}/notification-mode`, {
@@ -146,15 +146,16 @@ test.describe.serial('push and email delivery', () => {
     // The settings page, not the chat: an open chat would mark the messages read.
     const client = await clientContext.newPage();
     await client.goto('/settings');
-    // Chat on "E-mail a push" in the notification groups.
+    // Chat on "E-mail" in the notification groups (the e2e server has no VAPID key, so the push
+    // choices are disabled in the page; the fake sender still records the API's subscriptions).
     const chat = client.getByRole('combobox', { name: 'Chat' });
     await expect(chat).toHaveValue('push');
     const saved = client.waitForResponse(
       (r) => r.url().endsWith('/api/notifications/preferences') && r.request().method() === 'PATCH',
     );
-    await chat.selectOption('both');
+    await chat.selectOption('email');
     expect((await saved).status()).toBe(200);
-    await expect(chat).toHaveValue('both');
+    await expect(chat).toHaveValue('email');
     await clearMailFor(clientContext.request, clientEmail);
 
     const stamp = Date.now();
