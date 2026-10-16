@@ -103,4 +103,33 @@ test('a message with 5 jobs becomes 4 reviewed tasks with links both ways and wo
   ).toBeVisible();
   await page.getByRole('button', { name: 'Späť na chat' }).click();
   await expect(row(page, 'Bank opens at nine').getByText(/1 odpoveď/)).toBeVisible();
+
+  // A mention and a file in the task chat.
+  const box = page.getByRole('textbox', { name: 'Napíšte správu…' });
+  await box.fill('Heads up @all');
+  await expect(page.getByRole('option', { name: /Všetci v tejto skupine/ })).toBeVisible();
+  await box.press('Enter');
+  await box.pressSequentially('see the logo');
+  await taskPanel
+    .getByRole('tabpanel')
+    .locator('input[type="file"]')
+    .setInputFiles('e2e/fixtures/logo.png');
+  await expect(page.getByRole('button', { name: 'Odoslať' })).toBeEnabled();
+  await page.getByRole('button', { name: 'Odoslať' }).click();
+  const withFile = row(page, 'see the logo');
+  await expect(withFile).toContainText('@all');
+  await expect(withFile.locator('img')).toBeVisible();
+
+  // Another task's chat is its own: it starts empty.
+  await page.goto(`/groups/${group.id}/tasks`);
+  await page
+    .getByRole('region', { name: 'Na spracovanie' })
+    .getByRole('link', { name: /Book the room/ })
+    .click();
+  await page
+    .getByRole('complementary', { name: 'Úloha' })
+    .getByRole('tab', { name: /^Chat/ })
+    .click();
+  await expect(page.getByRole('textbox', { name: 'Napíšte správu…' })).toBeVisible();
+  await expect(page.locator('[data-message-id]')).toHaveCount(0);
 });

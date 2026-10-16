@@ -1,8 +1,10 @@
 import { useEffect } from 'react';
 import { queryOptions, useQueryClient } from '@tanstack/react-query';
 import {
+  BoardEvents,
   ChatEvents,
   TaskChatSummariesSchema,
+  type BoardTaskDeletedEvent,
   type ChatMessageEvent,
   type ChatReadEvent,
   type ChatThreadReplyEvent,
@@ -73,10 +75,19 @@ export function useTaskChatEvents(groupId: string, meId: string | undefined): vo
     const onRead = (event: ChatReadEvent) => {
       if (event.groupId === groupId && event.taskId !== null) refetch();
     };
+    const onTaskDeleted = (event: BoardTaskDeletedEvent) => {
+      if (event.groupId !== groupId) return;
+      queryClient.setQueryData<TaskChatSummaries>(queryKey, (all) => {
+        if (!all || !(event.taskId in all)) return all;
+        return Object.fromEntries(Object.entries(all).filter(([id]) => id !== event.taskId));
+      });
+    };
+    socket.on(BoardEvents.taskDeleted, onTaskDeleted);
     socket.on(ChatEvents.message, onMessage);
     socket.on(ChatEvents.threadReply, onThreadReply);
     socket.on(ChatEvents.read, onRead);
     return () => {
+      socket.off(BoardEvents.taskDeleted, onTaskDeleted);
       socket.off(ChatEvents.message, onMessage);
       socket.off(ChatEvents.threadReply, onThreadReply);
       socket.off(ChatEvents.read, onRead);

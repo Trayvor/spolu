@@ -4,7 +4,7 @@ import { pipeline } from 'node:stream/promises';
 import { and, eq, inArray, isNull, lt, sql } from 'drizzle-orm';
 import type { FileInfo } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
-import type { Storage } from '../../infra/storage/index.js';
+import { StorageNotFoundError, type Storage } from '../../infra/storage/index.js';
 import { sanitizeFileName } from './file-name.js';
 import { files } from './schema.js';
 import { IMAGE_TYPES, sniffImageType } from './sniff.js';
@@ -176,6 +176,8 @@ export async function copyFile(
         key ? [storage.delete(key).catch(() => undefined)] : [],
       ),
     );
+    // A source object that is gone makes the file unusable, like an unknown id.
+    if (error instanceof StorageNotFoundError) throw new InvalidAttachmentError();
     throw error;
   }
 }

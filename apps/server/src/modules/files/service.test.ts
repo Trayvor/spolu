@@ -357,6 +357,17 @@ describe('deleteUnattachedFiles', () => {
 });
 
 describe('copyFile', () => {
+  it('a missing source object is an invalid attachment, and leaves no row', async () => {
+    const { group, owner } = await setup();
+    const original = await upload(group.id, owner.id, PNG, 'image/png', 'gone.png');
+    await storage.delete((await getFile(db, original.id))!.storageKey);
+    const before = (await db.select().from(files)).length;
+    await expect(
+      copyFile(deps, { fileId: original.id, groupId: group.id, userId: owner.id }),
+    ).rejects.toBeInstanceOf(InvalidAttachmentError);
+    expect((await db.select().from(files)).length).toBe(before);
+  });
+
   it('makes an unattached copy owned by the copier, with its own storage', async () => {
     const { group, owner } = await setup();
     const other = await createUnverifiedClient(db, `${randomUUID()}@example.com`);

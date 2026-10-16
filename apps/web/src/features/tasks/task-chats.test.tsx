@@ -166,6 +166,19 @@ describe('task chats', () => {
     await waitFor(() => expect(cached(client)).toEqual(server));
   });
 
+  it('a deleted task drops out of the summaries, so the badge falls', async () => {
+    const client = renderBadge({
+      t1: { count: 1, unread: true },
+      t2: { count: 2, unread: false },
+    });
+    expect(await screen.findByText('1')).toBeInTheDocument();
+    act(() => socket.fire('board:task_deleted', { groupId: 'g2', taskId: 't1' }));
+    expect(cached(client)?.t1).toBeDefined();
+    act(() => socket.fire('board:task_deleted', { groupId: 'g1', taskId: 't1' }));
+    expect(cached(client)).toEqual({ t2: { count: 2, unread: false } });
+    await waitFor(() => expect(screen.queryByText('1')).not.toBeInTheDocument());
+  });
+
   it('ignores events of the group channel and of other groups', () => {
     const client = renderBadge({ t1: { count: 1, unread: false } });
     act(() => {
