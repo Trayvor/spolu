@@ -43,10 +43,25 @@ deploy_env() {
   local drop='^(DOMAIN|PUBLIC_URL|REDIRECT_DOMAINS)=' redirects=()
   read -ra redirects <<< "${REDIRECT_DOMAINS:-}"
   [[ -n "${TICKETS_API_KEY:-}" ]] && drop='^(DOMAIN|PUBLIC_URL|REDIRECT_DOMAINS|TICKETS_API_KEY)='
-  grep -Ev "$drop" "$1" || true
+  grep -Ev "$drop" "$1" | rename_senders || true
   printf 'DOMAIN=%s\nPUBLIC_URL=https://%s\n' "$DOMAIN" "$DOMAIN"
   printf 'REDIRECT_DOMAINS=%s\n' "${redirects[*]-}"
   if [[ -n "${TICKETS_API_KEY:-}" ]]; then printf 'TICKETS_API_KEY=%s\n' "$TICKETS_API_KEY"; fi
+}
+
+# rename_senders (stdin to stdout): with MAIL_FROM_NAME set, MAIL_FROM= and MAIL_FROM_BULK= keep
+# their address and get that display name ("Name <address>"); otherwise lines pass unchanged.
+rename_senders() {
+  local line key value address
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    if [[ -n "${MAIL_FROM_NAME:-}" && "$line" =~ ^(MAIL_FROM|MAIL_FROM_BULK)=(.+)$ ]]; then
+      key="${BASH_REMATCH[1]}" value="${BASH_REMATCH[2]}"
+      if [[ "$value" =~ \<([^\>]+)\> ]]; then address="${BASH_REMATCH[1]}"; else address="$value"; fi
+      printf '%s=%s <%s>\n' "$key" "$MAIL_FROM_NAME" "$address"
+    else
+      printf '%s\n' "$line"
+    fi
+  done
 }
 
 # caddy_redirects: prints the Caddy site block imported by deploy/Caddyfile (redirects.caddy).

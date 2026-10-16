@@ -89,6 +89,8 @@ Settings of the GitHub environment `test` (**Settings → Environments → test*
 | variable | `DEPLOY_USER` | `deploy` |
 | variable | `DOMAIN` | public domain (`help.egrant.sk`); it overrides `DOMAIN` and `PUBLIC_URL` of the env file |
 | variable | `REDIRECT_DOMAINS` | optional, old domains redirected to `DOMAIN` (`spolu.egrant.sk` after the move); see "Moving to a new domain" |
+
+The senders' display name can also come from a variable: with `MAIL_FROM_NAME` set (for example `Help by eGrant`), `deploy_env` rewrites `MAIL_FROM=` and `MAIL_FROM_BULK=` of `TEST_ENV_FILE` to `<name> <their address>`, so renaming the sender needs no secret edit.
 | variable | `IMAGE` | `ghcr.io/trayvor/spolu` (lowercase) |
 | variable | `DEPLOY_KNOWN_HOSTS` | recommended, output of `ssh-keyscan <host>`; without it the host key is not verified |
 

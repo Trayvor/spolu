@@ -30,6 +30,14 @@ check "REDIRECT_DOMAINS replaces the file's, spaces normalized" \
 out="$(unset REDIRECT_DOMAINS; DOMAIN=new.example.com deploy_env "$d/in.env" | grep '^REDIRECT_DOMAINS=')"
 check "an unset REDIRECT_DOMAINS writes an empty one (old domains stop redirecting)" "REDIRECT_DOMAINS=" "$out"
 
+printf 'MAIL_FROM=Spolu by eGrant <noreply@egrant.sk>\nMAIL_FROM_BULK=news@egrant.sk\nX=1\n' > "$d/mail.env"
+out="$(DOMAIN=help.example.com MAIL_FROM_NAME='Help by eGrant' deploy_env "$d/mail.env" | grep -E '^MAIL_FROM')"
+check "MAIL_FROM_NAME replaces only the display name of both senders" \
+  "$(printf 'MAIL_FROM=Help by eGrant <noreply@egrant.sk>\nMAIL_FROM_BULK=Help by eGrant <news@egrant.sk>')" "$out"
+
+out="$(DOMAIN=help.example.com deploy_env "$d/mail.env" | grep -E '^MAIL_FROM=')"
+check "without MAIL_FROM_NAME the sender stays" "MAIL_FROM=Spolu by eGrant <noreply@egrant.sk>" "$out"
+
 rm -rf "$d"
 [[ $fail -eq 0 ]] && echo "deploy-env.test.sh: all passed"
 exit $fail

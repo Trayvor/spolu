@@ -89,6 +89,7 @@ jobs:
           DEPLOY_ENV_FILE: ${{ runner.temp }}/deploy.env
           DOMAIN: ${{ vars.DOMAIN }}
           REDIRECT_DOMAINS: ${{ vars.REDIRECT_DOMAINS }}
+          MAIL_FROM_NAME: ${{ vars.MAIL_FROM_NAME }}
           IMAGE: ${{ vars.IMAGE }}
           TICKETS_API_KEY: ${{ secrets.TICKETS_API_KEY }}
           REGISTRY_USER: ${{ github.actor }}
