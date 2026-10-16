@@ -153,10 +153,70 @@
     "rateLimited": "Too many tests in a minute. Wait a moment and try again.",
     "notReady": "The email is not ready yet. Fix the marked problems first."
   },
-  "summary": {
+  "send": {
+    "title": "Send",
+    "intro": "Send the email as it is saved to everyone in Recipients. You can stop the sending while it runs, but emails already sent cannot be taken back.",
+    "open": "Send…",
+    "preparing": "Saving…",
+    "unsaved": "Fix the marked fields first: only a saved email can be sent.",
+    "dialogTitle_one": "Send to {{count}} person?",
+    "dialogTitle_other": "Send to {{count}} people?",
+    "dialogCounting": "Send this email?",
+    "subject": "Subject",
+    "sender": "From",
+    "recipients": "Recipients",
+    "counting": "Counting…",
+    "people_one": "{{count}} person",
+    "people_other": "{{count}} people",
+    "confirm_one": "Send to {{count}} person",
+    "confirm_other": "Send to {{count}} people",
+    "sending": "Starting…",
+    "cancel": "Not now",
+    "notReady": "The email is not ready yet. Fix the marked problems first.",
+    "emptyAudience": "Nobody would get this email. Choose recipients first.",
+    "notDraft": "Sending of this email has already started.",
+    "reload": "Show the report"
+  },
+  "report": {
     "started": "Sending started {{date}} by {{name}}, from {{sender}}.",
-    "counts": "{{recipients}} recipients, {{sent}} sent, {{failed}} failed.",
+    "finished": "Finished {{date}}.",
+    "progress": "{{done}} of {{total}} handled",
+    "progressLabel": "Sending progress",
+    "counts": "Numbers",
+    "recipients": "Recipients",
+    "sent": "Sent",
+    "failed": "Failed",
+    "skipped": "Skipped",
+    "cancelled": "Cancelled",
+    "unsubscribed": "Unsubscribed",
+    "skippedHint": "Unsubscribed or disabled before their turn.",
+    "unsubscribedHint": "Through this email's link, still unsubscribed.",
+    "note": "Spolu does not measure opens and clicks yet. 'Sent' means Elastic Email accepted the email, not that it reached the inbox.",
     "readOnly": "This email can no longer be changed. Duplicate it to send a new version.",
-    "duplicate": "Duplicate"
+    "duplicate": "Duplicate",
+    "cancelSending": "Cancel sending",
+    "cancelConfirm": "Stop sending? People who have not got the email yet will not get it.",
+    "cancelYes": "Stop sending",
+    "cancelNo": "Keep sending",
+    "notSending": "Sending has already finished.",
+    "people": "People",
+    "filter": "Show",
+    "filterAll": "Everyone",
+    "empty": "Nobody with this status.",
+    "more": "Show more",
+    "sentAt": "Sent {{date}}",
+    "recipientStatus": {
+      "queued": "Waiting",
+      "sending": "Sending",
+      "sent": "Sent",
+      "failed": "Failed",
+      "skipped": "Skipped",
+      "cancelled": "Cancelled"
+    },
+    "reason": {
+      "unsubscribed": "Unsubscribed",
+      "disabled": "Account disabled",
+      "unknown": "Unknown result: the email may or may not have gone out."
+    }
   }
 }
