@@ -6,6 +6,7 @@ import {
   ModeBodySchema,
   NotificationPrefsPatchSchema,
   PushSubscriptionBodySchema,
+  type NotificationFallback,
   type NotificationPrefs,
 } from '@spolu/shared';
 import type { AppDeps } from '../../deps.js';
@@ -13,7 +14,11 @@ import { requireUser } from '../auth/session.js';
 import { canReadGroup } from '../groups/policy.js';
 import { getGroup, getMembershipGroupId } from '../groups/service.js';
 import { isAdmin } from '../users/policy.js';
-import { getNotificationProfiles, updateNotificationPrefs } from '../users/service.js';
+import {
+  applyEmailFallback,
+  getNotificationProfiles,
+  updateNotificationPrefs,
+} from '../users/service.js';
 import { getModeSettings, setDefaultMode, setGroupMode } from './modes.js';
 import { deleteOwnSubscription, saveSubscription } from './push-subscriptions.js';
 
@@ -43,6 +48,16 @@ export const notificationsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async 
     await updateNotificationPrefs(db, request.user!.id, parsed.data);
     return prefsOf(request.user!.id);
   });
+
+  // iOS without web push: email on once per user. `email_fallback_at` keeps a later opt-out off.
+  app.post(
+    '/me/notification-fallback',
+    { preHandler: anyUser },
+    async (request): Promise<NotificationFallback> => {
+      const turnedOn = await applyEmailFallback(db, request.user!.id);
+      return { ...(await prefsOf(request.user!.id)), turnedOn };
+    },
+  );
 
   app.get('/notifications/modes', { preHandler: anyUser }, async (request) =>
     getModeSettings(db, request.user!),

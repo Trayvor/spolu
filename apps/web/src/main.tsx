@@ -4,6 +4,7 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { RouterProvider } from '@tanstack/react-router';
 import '@/i18n';
 import { redirectToLogin } from '@/features/auth/go-to-login';
+import '@/lib/install-prompt'; // keeps the early beforeinstallprompt event for <AppPrompt>
 import { createQueryClient } from '@/lib/query-client';
 import { createAppRouter } from '@/router';
 import '@/styles/index.css';

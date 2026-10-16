@@ -149,6 +149,15 @@
   --text-wordmark: var(--type-wordmark);
 
   --shadow-lift: var(--elevation-lift);
+
+  /* The app prompt card slides in from below; used only under `motion-safe:`. */
+  --animate-prompt-in: prompt-in 200ms ease-out;
+  @keyframes prompt-in {
+    from {
+      transform: translateY(16px);
+      opacity: 0;
+    }
+  }
 }
 
 @layer base {

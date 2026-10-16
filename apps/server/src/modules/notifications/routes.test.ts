@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import type { NotificationModes, NotificationPrefs } from '@spolu/shared';
+import { eq } from 'drizzle-orm';
+import type { NotificationFallback, NotificationModes, NotificationPrefs } from '@spolu/shared';
 import { buildTestApp } from '../../../test/test-app.js';
 import { loginAs } from '../../../test/login.js';
 import { addMember, createGroup } from '../groups/service.js';
@@ -105,6 +106,42 @@ describe('notifications API', () => {
       pushEnabled: true,
       emailEnabled: false,
     });
+  });
+
+  it('notification-fallback turns email on once and respects a later opt-out', async () => {
+    const a = await admin();
+    expect(
+      (await test.app.inject({ method: 'POST', url: '/api/me/notification-fallback' })).statusCode,
+    ).toBe(401);
+    const first = await call('POST', '/api/me/notification-fallback', a.cookie);
+    expect(first.statusCode).toBe(200);
+    expect(first.json<NotificationFallback>()).toMatchObject({
+      emailEnabled: true,
+      turnedOn: true,
+    });
+    const again = await call('POST', '/api/me/notification-fallback', a.cookie);
+    expect(again.json<NotificationFallback>()).toMatchObject({
+      emailEnabled: true,
+      turnedOn: false,
+    });
+    await call('PATCH', '/api/notifications/preferences', a.cookie, { emailEnabled: false });
+    const second = await call('POST', '/api/me/notification-fallback', a.cookie);
+    expect(second.statusCode).toBe(200);
+    expect(second.json<NotificationFallback>()).toMatchObject({
+      emailEnabled: false,
+      turnedOn: false,
+    });
+  });
+
+  it('notification-fallback leaves other users alone', async () => {
+    const a = await admin();
+    const b = await admin();
+    await call('POST', '/api/me/notification-fallback', a.cookie);
+    const [row] = await test.deps.db
+      .select({ emailEnabled: user.emailEnabled, emailFallbackAt: user.emailFallbackAt })
+      .from(user)
+      .where(eq(user.id, b.id));
+    expect(row).toEqual({ emailEnabled: false, emailFallbackAt: null });
   });
 
   it('PATCH preferences rejects unknown keys and empty patches', async () => {
