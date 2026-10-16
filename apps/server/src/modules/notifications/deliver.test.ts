@@ -8,6 +8,8 @@ import {
   type SessionUser,
 } from '@spolu/shared';
 import type { AppDeps } from '../../deps.js';
+import { createInlineJobs } from '../../infra/jobs/inline-jobs.js';
+import { createDeferredQueue } from '../../infra/jobs/jobs.js';
 import type { FakePushSender } from '../../infra/push/index.js';
 import { buildTestApp } from '../../../test/test-app.js';
 import { deleteMessage, getMessage, sendMessage } from '../chat/messages.js';
@@ -19,6 +21,7 @@ import { createTask, moveTask } from '../tasks/task-service.js';
 import { user } from '../users/schema.js';
 import { addAdmin, deactivateUser, updateNotificationPrefs } from '../users/service.js';
 import { deliverPending, sendPush } from './deliver.js';
+import { DELIVER_JOB, notificationsJobHandlers } from './jobs.js';
 import { setGroupMode } from './modes.js';
 import { getSubscription, listSubscriptions, saveSubscription } from './push-subscriptions.js';
 import { notificationEvents, pushSubscriptions } from './schema.js';
@@ -163,10 +166,77 @@ describe('deliverPending', () => {
     expect((await eventsOf(s.client.id)).every((e) => e.deliveredAt !== null)).toBe(true);
   });
 
-  it('one push per message even when its events land in different batches', async () => {
+  // Both orders: the weaker event's batch runs first (it must yield to the later mention), or the
+  // mention's does (the message must then see it delivered). Ids fix the order within created_at.
+  for (const first of ['chat.message', 'chat.mention'] as const) {
+    it(`one push per message even when its events land in different batches (${first} first)`, async () => {
+      const s = await setup();
+      await send(s.channel, s.admin, { body: `Ahoj ${mentionToken(s.client.id)}` });
+      const prefix = randomUUID();
+      for (const kind of ['chat.message', 'chat.mention'] as const) {
+        await deps.db
+          .update(notificationEvents)
+          .set({ id: `${prefix}-${kind === first ? 1 : 2}` })
+          .where(
+            and(eq(notificationEvents.userId, s.client.id), eq(notificationEvents.kind, kind)),
+          );
+      }
+      expect(await deliverPending(deps, { userIds: [s.client.id], limit: 1 })).toBe(2);
+      expect(sentTo(s.endpoint)).toHaveLength(1);
+    });
+  }
+
+  it("a message's events share one created_at (the sibling lookup relies on it)", async () => {
     const s = await setup();
-    await send(s.channel, s.admin, { body: `Ahoj ${mentionToken(s.client.id)}` });
-    expect(await deliverPending(deps, { userIds: [s.client.id], limit: 1 })).toBe(2);
+    const root = await send(s.channel, s.client, { body: `Hi ${mentionToken(s.admin.id)}` });
+    // A reply that mentions the root's author: chat.mention and chat.thread_reply for one user.
+    const reply = await send(s.channel, s.admin, {
+      parentId: root.id,
+      body: `Re ${mentionToken(s.client.id)}`,
+    });
+    // Siblings are one user's events of one message: the admin has message + mention for the
+    // root, the client mention + thread reply for the reply. Each pair must share created_at.
+    for (const [userId, m] of [
+      [s.admin.id, root],
+      [s.client.id, reply],
+    ] as const) {
+      const rows = (await eventsOf(userId)).filter(
+        (e) => (e.payload as { messageId: string }).messageId === m.id,
+      );
+      expect(rows).toHaveLength(2);
+      const instants = await deps.db
+        .selectDistinct({ at: sql<string>`${notificationEvents.createdAt}::text` })
+        .from(notificationEvents)
+        .where(
+          inArray(
+            notificationEvents.id,
+            rows.map((r) => r.id),
+          ),
+        );
+      expect(instants).toHaveLength(1);
+    }
+    const kinds = (await eventsOf(s.client.id))
+      .filter((e) => (e.payload as { messageId: string }).messageId === reply.id)
+      .map((e) => e.kind)
+      .sort();
+    expect(kinds).toEqual(['chat.mention', 'chat.thread_reply']);
+    expect(await deliverPending(deps, { userIds: [s.client.id] })).toBe(2);
+    expect(sentTo(s.endpoint)).toHaveLength(1);
+  });
+
+  it('a deliver job that runs before the queue is ready still sends its push', async () => {
+    const s = await setup();
+    await send(s.channel, s.admin);
+    // As in createDeps: pg-boss may run a job before startJobs has returned the queue.
+    const forward = createDeferredQueue();
+    const handlers = notificationsJobHandlers({ ...deps, jobs: forward.queue });
+    const running = handlers[DELIVER_JOB]!({ userIds: [s.client.id] });
+    await vi.waitFor(async () =>
+      expect((await eventsOf(s.client.id))[0]!.deliveredAt).toBeInstanceOf(Date),
+    );
+    expect(sentTo(s.endpoint)).toHaveLength(0);
+    forward.resolve(createInlineJobs(handlers));
+    await running;
     expect(sentTo(s.endpoint)).toHaveLength(1);
   });
 

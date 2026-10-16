@@ -135,9 +135,14 @@ async function decideBatch(
     const canPush = profile.pushEnabled && deps.push !== null && subscriptions.has(userId);
     return canPush || profile.emailEnabled;
   };
-  const rows = batch.filter(
-    (r) => r.groupId !== null && r.kind in KIND_RANK && reachable(r.userId),
-  );
+  const rows = batch.filter((r) => {
+    if (r.groupId === null || !(r.kind in KIND_RANK)) {
+      // Every kind recorded today has a group; this is a bug upstream, not a user setting.
+      console.warn(`notifications: event ${r.id} (${r.kind}) has no group or an unknown kind`);
+      return false;
+    }
+    return reachable(r.userId);
+  });
   if (rows.length === 0) return { pushes: [], emailIds: [] };
 
   const groupIds = unique(rows.map((r) => r.groupId!));
@@ -221,9 +226,10 @@ async function loadSiblings(
   const chat = rows.filter((r) => str(payloadOf(r).messageId) !== null);
   if (chat.length === 0) return result;
   const messageId = sql<string>`${notificationEvents.payload}->>'messageId'`;
-  // As text: a JS Date drops the microseconds. A few literal instants keep the plan on the index.
-  const instants = await tx
-    .selectDistinct({ at: sql<string>`${notificationEvents.createdAt}::text` })
+  // The batch's instants, read in SQL (a JS Date would drop the microseconds); `= any(array(…))`
+  // keeps the plan on the created_at index.
+  const instants = tx
+    .selectDistinct({ at: notificationEvents.createdAt })
     .from(notificationEvents)
     .where(
       inArray(
@@ -241,11 +247,7 @@ async function loadSiblings(
     .from(notificationEvents)
     .where(
       and(
-        // Sent as text and cast in SQL: a timestamptz parameter would also lose the microseconds.
-        sql`${notificationEvents.createdAt} in (${sql.join(
-          instants.map((i) => sql`${i.at}::text::timestamptz`),
-          sql`, `,
-        )})`,
+        sql`${notificationEvents.createdAt} = any(array(${instants}))`,
         inArray(notificationEvents.userId, unique(chat.map((r) => r.userId))),
         inArray(messageId, unique(chat.map((r) => str(payloadOf(r).messageId)!))),
       ),

@@ -4,7 +4,7 @@ import { filesJobHandlers, FILES_CLEANUP_JOB } from './modules/files/jobs.js';
 import { notificationSchedules, notificationsJobHandlers } from './modules/notifications/jobs.js';
 import { createDb, type Db } from './infra/db/client.js';
 import { createEmailSender, emailJobHandlers, type EmailSender } from './infra/email/index.js';
-import { startJobs, type JobQueue } from './infra/jobs/jobs.js';
+import { createDeferredQueue, startJobs, type JobQueue } from './infra/jobs/jobs.js';
 import { createPushSender, type PushSender } from './infra/push/index.js';
 import { createDiskStorage, type Storage } from './infra/storage/index.js';
 
@@ -27,21 +27,16 @@ export async function createDeps(
   const email = createEmailSender(config.email);
   const storage = createDiskStorage(config.filesDir, config.appSecret);
   const push = createPushSender(config.push);
-  // The notification handlers send jobs themselves, to the queue built from them: forward.
-  let queue: JobQueue | null = null;
-  const forward: JobQueue = {
-    send: (...args) => {
-      if (!queue) throw new Error('The job queue is not started yet');
-      return queue.send(...args);
-    },
-  };
+  // The notification handlers send jobs to the queue built from them; a job that runs before
+  // startJobs returns waits for it.
+  const forward = createDeferredQueue();
   const jobs = await startJobs(
     config.databaseUrl,
     {
       ...emailJobHandlers(email),
       ...authJobHandlers(db),
       ...filesJobHandlers({ db, storage }),
-      ...notificationsJobHandlers({ db, config, push, jobs: forward }),
+      ...notificationsJobHandlers({ db, config, push, jobs: forward.queue }),
     },
     [
       { name: AUTH_CLEANUP_JOB, cron: '15 3 * * *' }, // daily, 03:15
@@ -49,7 +44,7 @@ export async function createDeps(
       ...notificationSchedules, // delivery sweep every minute, purge at 03:45
     ],
   );
-  queue = jobs.queue;
+  forward.resolve(jobs.queue);
   return {
     deps: { config, db, email, storage, jobs: jobs.queue, push },
     async close() {

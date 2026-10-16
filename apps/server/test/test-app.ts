@@ -10,7 +10,7 @@ import { notificationsJobHandlers } from '../src/modules/notifications/jobs.js';
 import { createDb } from '../src/infra/db/client.js';
 import { createEmailSender, emailJobHandlers } from '../src/infra/email/index.js';
 import { createInlineJobs } from '../src/infra/jobs/inline-jobs.js';
-import type { JobQueue } from '../src/infra/jobs/jobs.js';
+import { createDeferredQueue } from '../src/infra/jobs/jobs.js';
 import { createFakePushSender, type FakePushSender } from '../src/infra/push/index.js';
 import { createDiskStorage } from '../src/infra/storage/index.js';
 import { testConfig } from './test-config.js';
@@ -31,13 +31,14 @@ export async function buildTestApp(overrides: { config?: Partial<Config> } = {})
     config.push?.provider === 'fake' ? config.push.file : undefined,
   );
   const pushSender = config.push ? push : null;
-  // The notification handlers send jobs (push) to the queue built from them: forward.
-  const forward: JobQueue = { send: (...args) => jobs.send(...args) };
+  // The notification handlers send jobs (push) to the queue built from them.
+  const forward = createDeferredQueue();
   const jobs = createInlineJobs({
     ...emailJobHandlers(email),
     ...filesJobHandlers({ db, storage }),
-    ...notificationsJobHandlers({ db, config, push: pushSender, jobs: forward }),
+    ...notificationsJobHandlers({ db, config, push: pushSender, jobs: forward.queue }),
   });
+  forward.resolve(jobs);
   const deps: AppDeps = { config, db, email, storage, push: pushSender, jobs };
   const app = await buildApp(deps, { logger: false }); // quiet even with nodeEnv 'production'
   return {

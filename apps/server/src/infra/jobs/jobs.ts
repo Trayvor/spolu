@@ -16,6 +16,20 @@ export interface JobQueue {
   send(name: string, data: object, options?: JobOptions): Promise<void>;
 }
 
+/**
+ * A queue for handlers that send jobs to the queue built from them. `send` waits until `resolve`
+ * hands over the real queue: pg-boss may run a job before `startJobs` returns, and a send must
+ * not fail then (a delivered event's push would be lost).
+ */
+export function createDeferredQueue(): { queue: JobQueue; resolve(queue: JobQueue): void } {
+  let resolve!: (queue: JobQueue) => void;
+  const ready = new Promise<JobQueue>((r) => (resolve = r));
+  return {
+    queue: { send: async (...args) => (await ready).send(...args) },
+    resolve,
+  };
+}
+
 /** One handler per job name; a thrown error makes pg-boss retry the job. */
 export type JobHandlers = Record<string, (data: object) => Promise<void>>;
 
