@@ -330,6 +330,16 @@ const joinRoute = createRoute({
   ),
 });
 
+// Public: the unsubscribe link of a bulk email (Phase 23). No session, no redirect for anyone.
+const unsubscribeRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/unsubscribe/$token',
+  component: lazyRouteComponent(
+    withNamespaces(['unsubscribe'], () => import('@/features/bulk-email/unsubscribe-page')),
+    'UnsubscribeRoute',
+  ),
+});
+
 const settingsRoute = createRoute({
   getParentRoute: () => authedRoute,
   path: '/settings',
@@ -416,6 +426,7 @@ const routeTree = rootRoute.addChildren([
   ]),
   loginRoute,
   joinRoute,
+  unsubscribeRoute,
 ]);
 
 export function createAppRouter(queryClient: QueryClient, history?: RouterHistory) {

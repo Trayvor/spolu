@@ -110,15 +110,13 @@ describe('startSending', () => {
     const admin = await newBulkAdmin(db);
     const a = await newBulkPerson(db);
     const b = await newBulkPerson(db);
-    await db
-      .insert(bulkSubscriptions)
-      .values({
-        userId: b.id,
-        subscribed: false,
-        email: b.email,
-        source: 'profile',
-        changedAt: new Date(),
-      });
+    await db.insert(bulkSubscriptions).values({
+      userId: b.id,
+      subscribed: false,
+      email: b.email,
+      source: 'profile',
+      changedAt: new Date(),
+    });
     const id = await newReadyCampaign(db, admin, [a.id, b.id]);
     await startSending({ db, config, jobs: createRecordingJobs() }, admin, id);
     expect((await recipientsOf(id)).map((r) => r.userId)).toEqual([a.id]);

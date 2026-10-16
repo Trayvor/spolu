@@ -8,6 +8,7 @@ import { bulkEmailRenderRoutes } from './modules/bulk-email/render-routes.js';
 import { authRoutes } from './modules/auth/routes.js';
 import { attachBulkRealtime } from './modules/bulk-email/events.js';
 import { bulkEmailRoutes } from './modules/bulk-email/routes.js';
+import { bulkEmailUnsubscribeRoutes } from './modules/bulk-email/unsubscribe-routes.js';
 import { chatRoutes } from './modules/chat/routes.js';
 import { filesRoutes } from './modules/files/routes.js';
 import { joinRoutes } from './modules/groups/join-routes.js';
@@ -49,6 +50,9 @@ export async function buildApp(
     // a client prepended before it is ignored.
     // (A function: Fastify treats a plain number as "trust nothing".)
     trustProxy: (_address, hop) => hop < 1,
+    // A bulk email unsubscribe token (`<userId>.<campaignId>.<sig>`) is about 115 characters;
+    // Fastify's default (100) would answer 414.
+    maxParamLength: 256,
   });
 
   app.decorate('auth', createAuth(deps));
@@ -80,6 +84,7 @@ export async function buildApp(
   await app.register(ticketsRoutes, { prefix: '/api', deps });
   await app.register(bulkEmailRoutes, { prefix: '/api', deps });
   await app.register(bulkEmailRenderRoutes, { prefix: '/api', deps });
+  await app.register(bulkEmailUnsubscribeRoutes, { prefix: '/api', deps });
   // Knowledge writes and reminder subscription changes share one limit: 120 a minute per user.
   const allowKnowledgeWrite = createRateLimiter({ windowMs: 60_000, max: 120 });
   await app.register(knowledgeRoutes, { prefix: '/api', deps, allowWrite: allowKnowledgeWrite });
@@ -112,8 +117,12 @@ export async function buildApp(
  * CSRF guard for our own state-changing routes (the session cookie is SameSite=Lax, this is
  * defence in depth). A browser sends Sec-Fetch-Site and Origin on such requests; refuse when
  * either says the request came from elsewhere. Requests with neither header (curl, tests)
- * pass. /api/auth/* is skipped: better-auth checks Origin itself.
+ * pass. /api/auth/* is skipped: better-auth checks Origin itself. The bulk email unsubscribe
+ * and subscribe POSTs are skipped too: their signed token is the credential, they use no
+ * session, and mail providers send the RFC 8058 one-click from their own servers.
  */
+const TOKEN_POSTS = ['/api/bulk-email/unsubscribe/', '/api/bulk-email/subscribe/'];
+
 function registerCsrfGuard(app: FastifyInstance, config: AppDeps['config']): void {
   const allowedOrigins = new Set([new URL(config.publicUrl).origin]);
   // In dev the browser is on Vite (:5173), whose proxy keeps the page's Origin header.
@@ -124,6 +133,7 @@ function registerCsrfGuard(app: FastifyInstance, config: AppDeps['config']): voi
     if (safeMethods.has(request.method)) return;
     const path = request.url.split('?')[0] ?? '/';
     if (!isUnder(path, '/api') || isUnder(path, '/api/auth')) return;
+    if (TOKEN_POSTS.some((prefix) => path.startsWith(prefix))) return;
     const site = request.headers['sec-fetch-site'];
     const origin = request.headers.origin;
     const crossSite = site !== undefined && site !== 'same-origin' && site !== 'none';
@@ -148,7 +158,8 @@ function isUnder(path: string, prefix: string): boolean {
 
 /**
  * The single not-found handler. Unknown /api/*, /socket.io/*, non-GET requests and anything
- * that looks like a file answer JSON 404. Other GET/HEAD requests get the SPA index.html,
+ * that looks like a file (a dot in the last segment, except /unsubscribe/<token>) answer JSON
+ * 404. Other GET/HEAD requests get the SPA index.html,
  * but only when static serving is registered.
  */
 function registerNotFound(app: FastifyInstance): void {
@@ -160,7 +171,8 @@ function registerNotFound(app: FastifyInstance): void {
       !isUnder(path, '/api') &&
       !isUnder(path, '/socket.io') &&
       !path.startsWith('/assets/') &&
-      !(path.split('/').pop() ?? '').includes('.');
+      // The unsubscribe page's token has dots (`<user>.<campaign>.<sig>`) but is no file.
+      (path.startsWith('/unsubscribe/') || !(path.split('/').pop() ?? '').includes('.'));
     if (isClientRoute && app.spaFallback) return app.spaFallback(reply);
     return reply.code(404).send({ error: 'not_found' });
   });

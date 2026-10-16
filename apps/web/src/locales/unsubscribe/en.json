@@ -1,0 +1,17 @@
+{
+  "done": {
+    "title": "You are unsubscribed",
+    "body": "You will no longer get bulk emails from eGrant. Login codes and notifications from Spolu still arrive."
+  },
+  "subscribed": {
+    "title": "You are subscribed again",
+    "body": "You will get bulk emails from eGrant again. You can change this any time in Spolu's Settings."
+  },
+  "subscribeAgain": "Subscribe again",
+  "unsubscribeButton": "Unsubscribe",
+  "test": "This was a test email; nothing changed.",
+  "invalid": "This link is not valid.",
+  "errors": {
+    "rateLimited": "Too many attempts. Try again in a minute."
+  }
+}

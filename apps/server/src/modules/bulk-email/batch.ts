@@ -6,6 +6,7 @@ import { BulkSendError } from '../../infra/email/bulk.js';
 import { emitBulkUpdated } from './events.js';
 import { imageSizes } from './images.js';
 import { imageIdsOf, personalMessage } from './message.js';
+import { unsubscribedSql } from './subscriptions.js';
 
 /**
  * The batch job of a sending campaign (spec §4): each run takes up to `BATCH_SIZE` people,
@@ -80,8 +81,7 @@ export async function runBatch(
       flagged as (
         select p.user_id,
           case when u.disabled_at is not null then 'disabled'
-            when exists (select 1 from bulk_subscriptions s
-              where s.user_id = p.user_id and s.subscribed = false) then 'unsubscribed'
+            when ${unsubscribedSql(sql`p.user_id`)} then 'unsubscribed'
           end as reason
         from picked p join "user" u on u.id = p.user_id
       )

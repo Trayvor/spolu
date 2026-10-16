@@ -37,13 +37,16 @@ describe('static web serving', () => {
     await rm(dir, { recursive: true, force: true });
   });
 
-  it.each(['/', '/settings', '/groups/42/chat'])('GET %s serves index.html', async (url) => {
-    const res = await app.inject({ method: 'GET', url });
-    expect(res.statusCode).toBe(200);
-    expect(res.headers['content-type']).toContain('text/html');
-    expect(res.headers['cache-control']).toBe('no-cache');
-    expect(res.body).toBe(INDEX);
-  });
+  it.each(['/', '/settings', '/groups/42/chat', '/unsubscribe/u1.c1.sig-9_x'])(
+    'GET %s serves index.html',
+    async (url) => {
+      const res = await app.inject({ method: 'GET', url });
+      expect(res.statusCode).toBe(200);
+      expect(res.headers['content-type']).toContain('text/html');
+      expect(res.headers['cache-control']).toBe('no-cache');
+      expect(res.body).toBe(INDEX);
+    },
+  );
 
   it('serves an asset file with a long immutable cache', async () => {
     const res = await app.inject({ method: 'GET', url: '/assets/a.js' });
