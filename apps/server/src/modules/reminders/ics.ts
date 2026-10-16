@@ -1,18 +1,26 @@
 /**
  * Calendar export (RFC 5545): one VEVENT per reminder time, in UTC, with a display alarm at the
- * start. Our own ~80 lines instead of a dependency.
+ * start, and all-day events for dates (a task's deadline). Our own ~80 lines instead of a dependency.
  */
 
 export type IcsEvent = {
   /** Stable across exports (`reminder-<timeId>@spolu`), so importing again updates the event. */
   uid: string;
-  start: Date;
   title: string;
   description: string;
   url: string;
-  /** When the time was last set: SEQUENCE and LAST-MODIFIED, so a re-import updates the event. */
+  /** When the event last changed: SEQUENCE and LAST-MODIFIED, so a re-import updates the event. */
   updatedAt: Date;
-};
+} & (
+  | {
+      /** A timed event: 15 minutes from `start`, with a display alarm at the start. */
+      start: Date;
+    }
+  | {
+      /** An all-day event on this date (`YYYY-MM-DD`, a task's deadline), with no alarm. */
+      date: string;
+    }
+);
 
 const EVENT_MINUTES = 15;
 const MAX_LINE_OCTETS = 75;
@@ -23,6 +31,14 @@ function utc(date: Date): string {
     .toISOString()
     .replace(/\.\d{3}Z$/, 'Z')
     .replace(/[-:]/g, '');
+}
+
+/** `YYYYMMDD` of a `YYYY-MM-DD` date, and of the day after it (the exclusive end). */
+function allDay(date: string): { start: string; end: string } {
+  const day = new Date(`${date}T00:00:00Z`);
+  const next = new Date(day.getTime() + 24 * 60 * 60_000);
+  const compact = (d: Date) => d.toISOString().slice(0, 10).replace(/-/g, '');
+  return { start: compact(day), end: compact(next) };
 }
 
 /** Seconds since this epoch make SEQUENCE: it grows with each update and fits in 32 bits. */
@@ -88,26 +104,37 @@ export function buildIcsText(input: { now: Date; events: IcsEvent[] }): string {
   ];
   const stamp = utc(input.now);
   for (const event of input.events) {
-    const end = new Date(event.start.getTime() + EVENT_MINUTES * 60_000);
+    let when: string[];
+    if ('date' in event) {
+      // A date is the same day in every time zone: no VTIMEZONE, no alarm.
+      const { start, end } = allDay(event.date);
+      when = [`DTSTART;VALUE=DATE:${start}`, `DTEND;VALUE=DATE:${end}`];
+    } else {
+      const end = new Date(event.start.getTime() + EVENT_MINUTES * 60_000);
+      when = [`DTSTART:${utc(event.start)}`, `DTEND:${utc(end)}`];
+    }
     lines.push(
       'BEGIN:VEVENT',
       `UID:${cleanUri(event.uid)}`,
       `DTSTAMP:${stamp}`,
-      `DTSTART:${utc(event.start)}`,
-      `DTEND:${utc(end)}`,
+      ...when,
       `LAST-MODIFIED:${utc(event.updatedAt)}`,
       `SEQUENCE:${sequence(event.updatedAt)}`,
       `SUMMARY:${escapeText(event.title)}`,
       `DESCRIPTION:${escapeText(event.description)}`,
       `URL:${cleanUri(event.url)}`,
-      'BEGIN:VALARM',
-      'TRIGGER:PT0M',
-      'ACTION:DISPLAY',
-      // DESCRIPTION is required on a DISPLAY alarm.
-      `DESCRIPTION:${escapeText(event.title)}`,
-      'END:VALARM',
-      'END:VEVENT',
     );
+    if (!('date' in event)) {
+      lines.push(
+        'BEGIN:VALARM',
+        'TRIGGER:PT0M',
+        'ACTION:DISPLAY',
+        // DESCRIPTION is required on a DISPLAY alarm.
+        `DESCRIPTION:${escapeText(event.title)}`,
+        'END:VALARM',
+      );
+    }
+    lines.push('END:VEVENT');
   }
   lines.push('END:VCALENDAR');
   return lines.map(fold).join('\r\n') + '\r\n';

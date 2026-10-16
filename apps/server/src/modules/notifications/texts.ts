@@ -13,6 +13,8 @@ export type Texts = {
   digestButton(group: string): string;
   reminderDue(time: string): string;
   reminderLine(title: string, time: string): string;
+  /** The SUMMARY of a task's all-day deadline event in the calendar export. */
+  deadlineEvent(title: string): string;
 };
 
 const en: Texts = {
@@ -40,6 +42,7 @@ const en: Texts = {
   digestButton: (g) => `Open ${g}`,
   reminderDue: (time) => `Reminder for ${time}`,
   reminderLine: (title, time) => `Reminder: ${title}, ${time}`,
+  deadlineEvent: (title) => `Deadline: ${title}`,
 };
 
 function skMessages(n: number): string {
@@ -73,6 +76,7 @@ const sk: Texts = {
   digestButton: (g) => `Otvoriť ${g}`,
   reminderDue: (time) => `Pripomienka na ${time}`,
   reminderLine: (title, time) => `Pripomienka: ${title}, ${time}`,
+  deadlineEvent: (title) => `Termín: ${title}`,
 };
 
 export function texts(lang: UserLanguage): Texts {
