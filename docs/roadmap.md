@@ -32,7 +32,7 @@ Phases 8, 12 and 14 do not depend on each other, so their order can change by pr
 
 **Next (owner brief, 2026-10-16):** [superpowers/briefs/2026-10-16-next-work.md](superpowers/briefs/2026-10-16-next-work.md). In order:
 - A: the "only where I take part" filter on the global task board;
-- C: notification groups in the profile;
+- C: notification groups in the profile ([spec](superpowers/specs/2026-10-16-notification-groups-design.md), [plan](superpowers/plans/2026-10-16-notification-groups.md));
 - B: the tickets module with the `ziadatel` role, which supersedes Phases 12–13.
 
 Each one needs a spec and a plan before code.
