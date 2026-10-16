@@ -32,6 +32,35 @@
 
 ---
 
+## Handoff (2026-10-16, end of the first session)
+
+Read this first when you continue Phase 21.
+
+**Where things are.** Parts 21.1–21.3 are built, each in its own pull request, stacked:
+
+| part | branch | pull request | state |
+|---|---|---|---|
+| docs (spec, plan, roadmap) | `claude/bold-cori-e7s8yr` | #3 | CI green, waiting for the owner's merge |
+| 21.1 memberships | `phase-21-1-memberships` | #4 | CI green; includes item C (#5, merged) |
+| 21.2 tickets core (server) | `phase-21-2-tickets-core` | #6 | CI green, base `phase-21-1-memberships` |
+| 21.3 ticket chat (server) | `phase-21-3-ticket-chat` | #7 | CI green, base `phase-21-2-tickets-core` |
+
+The owner merges them in order #3 → #4 → #6 → #7; GitHub then retargets each to `main`. Migrations so far: `0016_notification_groups` (item C), `0017_memberships`, `0018_tickets`, `0019_ticket_chat`. A new part adds `0020_…`; if a branch below yours changes, merge it in and regenerate your migration with `db:generate` (keep hand-written SQL).
+
+**What comes next.**
+- **21.4 Ticket screens** and **21.6 Following and notifications** can be built in parallel. While #7 is not merged into `main`, cut the branch from `phase-21-3-ticket-chat` and open the pull request with that base (stacked); after it is merged, cut from `main`.
+- **21.5 Ticket to tasks** after 21.4 (it needs the ticket page). **21.7 e2e and wrap-up** last.
+
+**Open points the next parts must handle** (also in the "As built" notes of each part below):
+1. A ziadatel cannot upload files: the upload route `POST /api/groups/:id/files` needs the group. 21.4 either hides the attach button for a ziadatel in the ticket chat, or adds `POST /api/tickets/:id/files` (files of the ticket's group, readable through the ticket chat's file rule). Recommended: the route, it is small.
+2. A ticket chat records no chat notifications yet. 21.6 adds `ticket.message` (followers) and decides mentions: a mention in a ticket chat should notify the mentioned reader as a `tickets` event that links to `/tickets/<id>`.
+3. The web ticket chat must take its people from `GET /api/channels/:id/people`, not `/api/groups/:id/people` (a ziadatel gets 404 there).
+4. The admin home "Unread mentions" card and chat message links know only group and task chats; a ticket chat message must link to `/tickets/<id>` (21.4 or 21.6, whichever touches it first).
+5. `/` for a person with only ziadatel memberships goes to `/settings` today; 21.4 changes it to `/tickets` (home route in `apps/web/src/router.tsx`, `clientGroups` in `features/auth/roles.ts`).
+6. Suggested separately, not part of Phase 21: an index on `notification_events.group_id` (a group delete scans that table).
+
+**Local setup notes.** Node 24 (`engine-strict`) and Docker for PostgreSQL 17 and Mailpit (`docker compose -f docker-compose.dev.yml up -d --wait`). If server tests time out at 5 s in unrelated files, the local test database has grown (millions of `notification_events` rows over many runs): run `psql postgres://spolu:spolu@localhost:5432/postgres -c "drop database spolu_test"` and run the tests again (the setup recreates it). Do the same after switching between stacked branches with different migrations.
+
 ## Parts and order
 
 | part | branch | PR content | waits for | can run in parallel with |
@@ -390,7 +419,7 @@ Done when: tests pass, `bash scripts/ci.sh` is green, docs updated with update-k
 ### Prompt 21.4 — Ticket screens
 
 ```text
-Implement part 21.4 (Ticket screens: lists, ticket page, new-ticket dialog, ziadatel shell, Requesters section, ticket line on tasks) of Phase 21 in Spolu. Part 21.2 must already be merged into main. It can run at the same time as parts 21.3 and 21.6 in other sessions: render the chat column only when TicketDto.channelId is not null, so it works before and after 21.3.
+Implement part 21.4 (Ticket screens: lists, ticket page with its chat, new-ticket dialog, ziadatel shell, Requesters section, ticket line on tasks) of Phase 21 in Spolu. Parts 21.1-21.3 are built (PRs #4, #6, #7); read the plan's Handoff section first, including its open points 1, 3, 4 and 5, which this part handles. If PR #7 is not merged into main yet, cut your branch from phase-21-3-ticket-chat and open the PR with that base; otherwise cut it from main. It can run at the same time as part 21.6 in another session.
 
 Start by invoking the frontend-design skill (the UI replicates egrant.sk; see docs/design/README.md). Read: CLAUDE.md, docs/superpowers/specs/2026-10-16-phase-21-tickets-and-requesters-design.md (§5, decisions 3, 4, 9) and docs/superpowers/plans/2026-10-16-phase-21-tickets-and-requesters.md (Global Constraints, Part 21.4). Texts go into the lazy namespace `tickets` (sk and en); every screen is a lazy route; keep the eager chunk within the budget in docs/architecture/performance.md.
 
@@ -414,7 +443,7 @@ Done when: tests pass, `bash scripts/ci.sh` is green, docs updated with update-k
 ### Prompt 21.6 — Following and notifications
 
 ```text
-Implement part 21.6 (ticket notifications through the `tickets` notification group) of Phase 21 in Spolu. It needs part 21.2 AND item C (notification groups, spec docs/superpowers/specs/2026-10-16-notification-groups-design.md) merged into main; check for apps/server/src/modules/notifications/categories.ts and apps/server/src/modules/tickets/. If either is missing, stop and tell me. It can run at the same time as parts 21.3–21.5.
+Implement part 21.6 (ticket notifications through the `tickets` notification group) of Phase 21 in Spolu. Item C is merged (PR #5) and parts 21.1-21.3 are built (PRs #4, #6, #7); read the plan's Handoff section first, including its open points 2 and 4. If PR #7 is not merged into main yet, cut your branch from phase-21-3-ticket-chat and open the PR with that base; otherwise cut it from main. It can run at the same time as part 21.4 in another session.
 
 Read: CLAUDE.md, docs/superpowers/specs/2026-10-16-phase-21-tickets-and-requesters-design.md (§4 and "What B expects from C"), the C spec, and docs/superpowers/plans/2026-10-16-phase-21-tickets-and-requesters.md (Part 21.6). First do Task 6.1: compare C's merged code with the 7 contract points and record any difference in the Phase 21 spec before coding. Two cases to make sure of: ticket.unassigned has groupId null and goes to admins; a ziadatel membership counts as group membership for tickets kinds only.
 
