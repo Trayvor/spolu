@@ -26,8 +26,10 @@ A group is one client (organization). It has a name, a logo and the client's eGr
 - Global "All groups" section (admin only):
   - list of all groups and quick access to each;
   - create and edit a group (name, logo, client URL in eGrant);
-  - copy the invite link of any group.
+  - copy the invite link of any group;
+  - the Groups page (`/groups`, Phase 22a): the groups I manage come first, then the rest, by name inside each part. The title shows the count ("Groups 12"), or "Groups 3 of 12" while a filter is set. Each row's "Members: N" links to the group's Members tab. Hovering or focusing the manager avatars shows every manager's name in a small tooltip, including those behind "+N"; on touch a tap toggles it.
+  - the manager filter, left of "All groups: …" on the same row (its own line above it on phones): Everyone, Me, No manager, then every other active admin by name. It lives in the URL as `?manager=me|none|<adminId>`; an id that is not an active admin (an old link) falls back to Everyone. With no match the page says "No groups for this filter." with "Clear filter".
 
 ## Phase
 
-Phase 3 (groups, invites, members list, removing a client).
+Phase 3 (groups, invites, members list, removing a client). Phase 22a: managers on the Members tab, the Groups page filter, order, count and member link.

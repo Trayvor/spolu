@@ -40,5 +40,16 @@
   "mine": {
     "title": "Moje skupiny",
     "empty": "Zatiaľ nie ste v žiadnej skupine. Otvorte pozývací odkaz, ktorý ste dostali."
+  },
+  "count": {
+    "filtered": "{{shown}} z {{total}}"
+  },
+  "filter": {
+    "label": "Správca: {{name}}",
+    "all": "Všetci",
+    "me": "Ja",
+    "none": "Bez správcu",
+    "empty": "Žiadne skupiny pre tento filter.",
+    "clear": "Zrušiť filter"
   }
 }
