@@ -82,6 +82,32 @@ describe('BoardFilters', () => {
     expect(within(row).getByRole('button', { name: /Assignee: Petra/ })).toBeInTheDocument();
   });
 
+  it('"Only where I take part" toggles mine=1 in the URL and the request', async () => {
+    const { calls } = mockBoardApi();
+    const { router, user } = renderBoard();
+    const row = await screen.findByRole('group', { name: t('adminHome.board.filtersLabel') });
+    const mine = within(row).getByRole('button', { name: t('adminHome.board.mine') });
+    expect(mine).toHaveAttribute('aria-pressed', 'false');
+
+    await user.click(mine);
+    await waitFor(() => expect(router.state.location.search).toEqual({ mine: 1 }));
+    await waitFor(() => expect(globalCalls(calls).at(-1)).toBe('/api/tasks/global?mine=1'));
+    expect(mine).toHaveAttribute('aria-pressed', 'true');
+
+    await user.click(within(row).getByRole('button', { name: t('adminHome.board.clear') }));
+    await waitFor(() => expect(router.state.location.search).toEqual({}));
+    expect(mine).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('mine counts in the collapsed Filters pill', async () => {
+    desktop = false;
+    mockBoardApi();
+    renderBoard('/tasks?mine=1&urgent=1');
+    expect(
+      await screen.findByRole('button', { name: t('adminHome.board.filters', { count: 2 }) }),
+    ).toBeInTheDocument();
+  });
+
   it('Clear filters appears only off-default and resets', async () => {
     mockBoardApi();
     const { router, user } = renderBoard('/tasks?urgent=1&due=overdue');

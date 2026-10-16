@@ -66,6 +66,7 @@
       "none": "Bez riešiteľa"
     },
     "urgent": "Urgentné",
+    "mine": "Len kde sa podieľam",
     "due": {
       "label": "Termín: {{name}}",
       "any": "Akýkoľvek",

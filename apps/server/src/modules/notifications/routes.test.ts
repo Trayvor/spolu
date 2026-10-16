@@ -1,7 +1,12 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
-import type { NotificationFallback, NotificationModes, NotificationPrefs } from '@spolu/shared';
+import {
+  DEFAULT_CHANNELS,
+  type NotificationFallback,
+  type NotificationModes,
+  type NotificationPrefs,
+} from '@spolu/shared';
 import { buildTestApp } from '../../../test/test-app.js';
 import { loginAs } from '../../../test/login.js';
 import { addMember, createGroup } from '../groups/service.js';
@@ -67,13 +72,13 @@ describe('notifications API', () => {
     expect(res.statusCode).toBe(401);
   });
 
-  it('preferences default to push on, email off, with the VAPID key', async () => {
+  it('preferences default to the group defaults, every group visible, with the VAPID key', async () => {
     const a = await admin();
     const res = await call('GET', '/api/notifications/preferences', a.cookie);
     expect(res.statusCode).toBe(200);
     expect(res.json<NotificationPrefs>()).toEqual({
-      pushEnabled: true,
-      emailEnabled: false,
+      channels: { chat: 'push', tasks: 'push', tickets: 'both', knowledge: 'push' },
+      visibleCategories: ['chat', 'tasks', 'tickets', 'knowledge'],
       vapidPublicKey: 'test-vapid-public-key',
     });
     const off = await call(
@@ -92,23 +97,39 @@ describe('notifications API', () => {
     return loginAs(offTest.app, e);
   }
 
-  it('PATCH preferences changes only the caller', async () => {
+  it('PATCH preferences changes one group of the caller only', async () => {
     const a = await admin();
     const b = await admin();
     const res = await call('PATCH', '/api/notifications/preferences', a.cookie, {
-      emailEnabled: true,
-      pushEnabled: false,
+      category: 'chat',
+      channel: 'email',
     });
     expect(res.statusCode).toBe(200);
-    expect(res.json<NotificationPrefs>()).toMatchObject({ pushEnabled: false, emailEnabled: true });
-    const other = await call('GET', '/api/notifications/preferences', b.cookie);
-    expect(other.json<NotificationPrefs>()).toMatchObject({
-      pushEnabled: true,
-      emailEnabled: false,
+    expect(res.json<NotificationPrefs>().channels).toEqual({
+      ...DEFAULT_CHANNELS,
+      chat: 'email',
     });
+    const other = await call('GET', '/api/notifications/preferences', b.cookie);
+    expect(other.json<NotificationPrefs>().channels).toEqual(DEFAULT_CHANNELS);
   });
 
-  it('notification-fallback turns email on once and respects a later opt-out', async () => {
+  it('two PATCHes for different groups at once both stay', async () => {
+    const a = await admin();
+    await Promise.all([
+      call('PATCH', '/api/notifications/preferences', a.cookie, {
+        category: 'chat',
+        channel: 'none',
+      }),
+      call('PATCH', '/api/notifications/preferences', a.cookie, {
+        category: 'tasks',
+        channel: 'email',
+      }),
+    ]);
+    const res = await call('GET', '/api/notifications/preferences', a.cookie);
+    expect(res.json<NotificationPrefs>().channels).toMatchObject({ chat: 'none', tasks: 'email' });
+  });
+
+  it('notification-fallback adds email to push groups once, and respects a later change', async () => {
     const a = await admin();
     expect(
       (await test.app.inject({ method: 'POST', url: '/api/me/notification-fallback' })).statusCode,
@@ -116,21 +137,17 @@ describe('notifications API', () => {
     const first = await call('POST', '/api/me/notification-fallback', a.cookie);
     expect(first.statusCode).toBe(200);
     expect(first.json<NotificationFallback>()).toMatchObject({
-      emailEnabled: true,
+      channels: { chat: 'both', tasks: 'both', tickets: 'both', knowledge: 'both' },
       turnedOn: true,
     });
+    await call('PATCH', '/api/notifications/preferences', a.cookie, {
+      category: 'chat',
+      channel: 'push',
+    });
     const again = await call('POST', '/api/me/notification-fallback', a.cookie);
-    expect(again.json<NotificationFallback>()).toMatchObject({
-      emailEnabled: true,
-      turnedOn: false,
-    });
-    await call('PATCH', '/api/notifications/preferences', a.cookie, { emailEnabled: false });
-    const second = await call('POST', '/api/me/notification-fallback', a.cookie);
-    expect(second.statusCode).toBe(200);
-    expect(second.json<NotificationFallback>()).toMatchObject({
-      emailEnabled: false,
-      turnedOn: false,
-    });
+    expect(again.statusCode).toBe(200);
+    expect(again.json<NotificationFallback>()).toMatchObject({ turnedOn: false });
+    expect(again.json<NotificationFallback>().channels.chat).toBe('push');
   });
 
   it('notification-fallback leaves other users alone', async () => {
@@ -138,15 +155,21 @@ describe('notifications API', () => {
     const b = await admin();
     await call('POST', '/api/me/notification-fallback', a.cookie);
     const [row] = await test.deps.db
-      .select({ emailEnabled: user.emailEnabled, emailFallbackAt: user.emailFallbackAt })
+      .select({ channels: user.notificationChannels, emailFallbackAt: user.emailFallbackAt })
       .from(user)
       .where(eq(user.id, b.id));
-    expect(row).toEqual({ emailEnabled: false, emailFallbackAt: null });
+    expect(row).toEqual({ channels: {}, emailFallbackAt: null });
   });
 
-  it('PATCH preferences rejects unknown keys and empty patches', async () => {
+  it('PATCH preferences rejects unknown groups, channels and keys', async () => {
     const a = await admin();
-    for (const body of [{ role: 'admin' }, { emailEnabled: true, role: 'admin' }, {}]) {
+    for (const body of [
+      { category: 'dm', channel: 'push' },
+      { category: 'chat', channel: 'sms' },
+      { category: 'chat', channel: 'push', role: 'admin' },
+      { emailEnabled: true },
+      {},
+    ]) {
       const res = await call('PATCH', '/api/notifications/preferences', a.cookie, body);
       expect(res.statusCode).toBe(400);
       expect(res.json()).toEqual({ error: 'validation_failed' });

@@ -161,6 +161,11 @@ export const GlobalBoardFilterSchema = z
       .literal('1')
       .transform(() => true)
       .optional(),
+    /** Only the tasks the viewer created or is an assignee of. */
+    mine: z
+      .literal('1')
+      .transform(() => true)
+      .optional(),
     due: z.enum(DueFilters).optional(),
     /** Title search; shorter than 2 characters is ignored. */
     q: z

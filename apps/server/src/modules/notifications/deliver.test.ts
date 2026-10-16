@@ -25,7 +25,7 @@ import { addMember, createGroup } from '../groups/service.js';
 import { listBuckets } from '../tasks/service.js';
 import { createTask, moveTask } from '../tasks/task-service.js';
 import { user } from '../users/schema.js';
-import { addAdmin, deactivateUser, updateNotificationPrefs } from '../users/service.js';
+import { addAdmin, deactivateUser, setNotificationChannel } from '../users/service.js';
 import { deliverPending, sendPush } from './deliver.js';
 import { DELIVER_JOB, notificationsJobHandlers } from './jobs.js';
 import { setGroupMode } from './modes.js';
@@ -313,9 +313,9 @@ describe('deliverPending', () => {
     });
   });
 
-  it('push switched off sends nothing but still marks delivered', async () => {
+  it('chat set to none sends nothing but still marks delivered', async () => {
     const s = await setup();
-    await updateNotificationPrefs(deps.db, s.client.id, { pushEnabled: false });
+    await setNotificationChannel(deps.db, s.client.id, 'chat', 'none');
     await send(s.channel, s.admin);
     // Nothing could be sent, so the event is recorded as delivered and the worker skips it.
     expect((await eventsOf(s.client.id))[0]!.deliveredAt).toBeInstanceOf(Date);
@@ -323,19 +323,57 @@ describe('deliverPending', () => {
     expect(sentTo(s.endpoint)).toHaveLength(0);
   });
 
-  it('push switched off after the event still marks it delivered and sends nothing', async () => {
+  it('chat set to none after the event still marks it delivered and sends nothing', async () => {
     const s = await setup();
     await send(s.channel, s.admin);
-    await updateNotificationPrefs(deps.db, s.client.id, { pushEnabled: false });
+    await setNotificationChannel(deps.db, s.client.id, 'chat', 'none');
     expect(await deliverPending(deps, { userIds: [s.client.id] })).toBe(1);
     expect(sentTo(s.endpoint)).toHaveLength(0);
     expect((await eventsOf(s.client.id))[0]!.deliveredAt).toBeInstanceOf(Date);
   });
 
+  it('each event follows its own group: chat none, a task move still pushes', async () => {
+    const s = await setup();
+    await setNotificationChannel(deps.db, s.client.id, 'chat', 'none');
+    await send(s.channel, s.admin);
+    const task = await createTask(
+      quiet,
+      s.admin,
+      s.group.id,
+      TaskCreateSchema.parse({ title: 'Grouped', assigneeIds: [s.client.id] }),
+    );
+    const review = (await listBuckets(deps.db, s.group.id)).find(
+      (b) => b.kind === 'egrant_review',
+    )!;
+    await moveTask(quiet, s.admin, task.id, { bucketId: review.id, afterTaskId: null });
+    await deliverPending(deps, { userIds: [s.client.id] });
+    const sent = sentTo(s.endpoint);
+    expect(sent.length).toBeGreaterThan(0);
+    expect(sent.every((p) => p.payload.url.includes('/tasks/'))).toBe(true);
+  });
+
+  it('chat on email only: email_due_at set, no push', async () => {
+    const s = await setup();
+    await setNotificationChannel(deps.db, s.client.id, 'chat', 'email');
+    await send(s.channel, s.admin);
+    await deliverPending(deps, { userIds: [s.client.id] });
+    expect(sentTo(s.endpoint)).toHaveLength(0);
+    expect((await eventsOf(s.client.id))[0]!.emailDueAt).toBeInstanceOf(Date);
+  });
+
+  it('without push on the server, chat on both still gets the email', async () => {
+    const s = await setup();
+    await setNotificationChannel(deps.db, s.client.id, 'chat', 'both');
+    await send(s.channel, s.admin);
+    await deliverPending({ ...deps, push: null }, { userIds: [s.client.id] });
+    expect(sentTo(s.endpoint)).toHaveLength(0);
+    expect((await eventsOf(s.client.id))[0]!.emailDueAt).toBeInstanceOf(Date);
+  });
+
   it('email-eligible events get email_due_at = delivered_at + delay; others stay null', async () => {
     const s = await setup();
     const other = await newClient(s.group.id, 'Boris');
-    await updateNotificationPrefs(deps.db, s.client.id, { emailEnabled: true });
+    await setNotificationChannel(deps.db, s.client.id, 'chat', 'both');
     await send(s.channel, s.admin);
     await deliverPending(deps, { userIds: [s.client.id, other.id] });
     const [mine] = await eventsOf(s.client.id);

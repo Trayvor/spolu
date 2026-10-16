@@ -23,8 +23,6 @@
   },
   "notifications": {
     "title": "Upozornenia",
-    "push": "Push upozornenia",
-    "pushHint": "Nové správy a zmeny úloh na vašich zariadeniach",
     "pushUnavailable": "Push upozornenia nie sú na tomto serveri dostupné",
     "device": "Toto zariadenie: {{state}}",
     "deviceOn": "zapnuté",
@@ -34,7 +32,24 @@
     "turnOnDevice": "Zapnúť na tomto zariadení",
     "unblock": "Povoľte upozornenia pre túto stránku v nastaveniach stránky v prehliadači a potom stránku obnovte.",
     "iosHint": "Na iPhone fungujú upozornenia len z aplikácie na ploche. Ťuknite na Zdieľať, potom na Pridať na plochu a otvorte Spolu z ikony.",
-    "email": "E-mailové upozornenia",
-    "emailHint": "Súhrn neprečítaných správ, najviac raz za 10 minút"
+    "groups": {
+      "chat": "Chat",
+      "tasks": "Nástenka úloh",
+      "tickets": "Nástenka tiketov",
+      "knowledge": "Znalostná báza"
+    },
+    "hints": {
+      "chat": "Správy, zmienky a odpovede v skupinových chatoch",
+      "tasks": "Presuny, priradenia, termíny, pripomienky a chaty úloh",
+      "tickets": "Tikety podpory a ich komunikácia",
+      "knowledge": "Pripomienky zo znalostnej bázy"
+    },
+    "channels": {
+      "email": "E-mail",
+      "push": "Push",
+      "both": "E-mail a push",
+      "none": "Nič"
+    },
+    "emailNote": "E-mail je súhrn toho, čo ste ešte neprečítali, najviac raz za 10 minút."
   }
 }

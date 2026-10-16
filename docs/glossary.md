@@ -18,7 +18,7 @@ Terms used across the docs and code, in alphabetical order.
 - **deactivated admin**: an admin who was removed. The row is kept with `disabled_at` set; the person cannot log in, gets no codes and loses open sessions and sockets. Adding the same email again reactivates them.
 - **draft contract**: the prepared next contract for a client, with the same fields as a contract.
 - **egrant URL**: the address of a client's eGrant instance, saved on the group. Incoming tickets are matched to a group by it. It is normalized first (case, protocol, trailing slash and similar differences are removed) so that equal addresses compare equal.
-- **email digest**: the batched notification email: one per user and group, sent 10 minutes after the first email-eligible event (10 s in e2e via `EMAIL_BATCH_DELAY_MS`) and only for the messages still unread then, e.g. "3 new messages in <group>" with up to 5 lines. Sent only when the user turned email notifications on.
+- **email digest**: the batched notification email: one per user and group, sent 10 minutes after the first email-eligible event (10 s in e2e via `EMAIL_BATCH_DELAY_MS`) and only for the messages still unread then, e.g. "3 new messages in <group>" with up to 5 lines. Sent only for the notification groups the user set to Email or Email and push.
 - **global board**: the admins' task board across clients at `/tasks` (Phase 20): five columns by step (To do, Other steps for every custom bucket, eGrant review, Client review, Completed when shown), filtered by default to the clients the admin manages. Cards open the task panel over it; there is no drag and drop.
 - **group**: one client organization with its own chat, task board, tickets and contracts.
 - **group mode**: what one user hears about one group: All messages, Mentions and replies, or Off. Set with the bell in the group header or on the groups page; without a choice it follows the user's "All groups" default, else the role default (clients All messages, admins Mentions and replies).
@@ -30,6 +30,7 @@ Terms used across the docs and code, in alphabetical order.
 - **mention**: tagging a user with @ in a message so they are notified.
 - **message**: one post in a channel. Can have attachments, a thread and mentions.
 - **module**: a self-contained feature area of the server (for example chat or tasks) that owns its routes, policies and tables.
+- **notification group**: one of chat, task board, ticket board, knowledge base: every notification event belongs to one, and the user picks its channel (Email, Push, Email and push, None) in the profile. Keys `chat`, `tasks`, `tickets`, `knowledge`. Not the same as a client group's notification mode (bell), which decides what arrives.
 - **notification event**: one stored notification for one recipient (kind, optional group, payload, delivered or not). Recorded in the same transaction as the change that caused it and deleted after 30 days.
 - **OTP code**: the one-time code sent by email that is used to log in.
 - **owner walkthrough**: the final check of a phase, where the owner tries the "Done when" items by hand before the phase is marked done.

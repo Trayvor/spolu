@@ -32,8 +32,8 @@ Requirements per module: [product/](product/README.md). Phases after 1 get their
 Phases 8 and 14 do not depend on each other, so their order can change by priority.
 
 **Next (owner brief, 2026-10-16):** [superpowers/briefs/2026-10-16-next-work.md](superpowers/briefs/2026-10-16-next-work.md). In order:
-- A: the "only where I take part" filter on the global task board;
-- C: notification groups in the profile;
+- A: the "only where I take part" filter on the global task board (done: a small change, no spec, agreed in the session; see [product/task-board.md](product/task-board.md));
+- C: notification groups in the profile ([spec](superpowers/specs/2026-10-16-notification-groups-design.md), [plan](superpowers/plans/2026-10-16-notification-groups.md));
 - B: the tickets module with the `ziadatel` role, which supersedes Phases 12–13: [Phase 21](#phase-21--tickets--the-ziadatel-role) ([spec](superpowers/specs/2026-10-16-phase-21-tickets-and-requesters-design.md), [plan](superpowers/plans/2026-10-16-phase-21-tickets-and-requesters.md)).
 
 Each one needs a spec and a plan before code.

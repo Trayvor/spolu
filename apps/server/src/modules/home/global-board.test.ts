@@ -27,6 +27,7 @@ const query = (
   ({
     assignee: 'anyone',
     urgent: false,
+    mine: false,
     completed: false,
     today: TODAY,
     ...over,
@@ -179,6 +180,35 @@ describe('getGlobalBoard', () => {
     it('assignee by id', async () => {
       const f = await filtered();
       expect(titles(await f.run({ assignee: f.other.id }))).toEqual(['hers']);
+    });
+
+    it('mine: tasks the viewer created or is an assignee of', async () => {
+      const { g, admin, task } = await oneGroup('Mine');
+      const other = await newClient(db, g.id, 'Olga');
+      const byOther = (title: string, extra: Partial<Parameters<typeof newTask>[1]> = {}) =>
+        newTask(db, { groupId: g.id, createdBy: other.id, title, ...extra });
+      await task('created by me');
+      await task('created by me for her', { assigneeIds: [other.id] });
+      await byOther('hers, assigned to me', { assigneeIds: [admin.id] });
+      await byOther('hers, assigned to us both', { assigneeIds: [admin.id, other.id] });
+      await byOther('hers alone', { assigneeIds: [other.id] });
+      await byOther('hers, unassigned');
+      const run = (over: Partial<GlobalBoardQuery>) =>
+        getGlobalBoard(db, query({ clientIds: [g.id], viewerId: admin.id, ...over }));
+
+      expect(titles(await run({ mine: true })).sort()).toEqual([
+        'created by me',
+        'created by me for her',
+        'hers, assigned to me',
+        'hers, assigned to us both',
+      ]);
+      // It narrows the assignee filter; the people menu stays the scope's assignees.
+      const herTasks = await run({ mine: true, assignee: other.id });
+      expect(titles(herTasks).sort()).toEqual([
+        'created by me for her',
+        'hers, assigned to us both',
+      ]);
+      expect(herTasks.people.map((p) => p.name)).toEqual(['Ada', 'Olga']);
     });
 
     it('urgent', async () => {
