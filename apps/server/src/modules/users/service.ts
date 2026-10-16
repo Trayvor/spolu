@@ -227,3 +227,13 @@ export async function applyEmailFallback(db: Db, id: string): Promise<boolean> {
     .returning({ id: user.id });
   return rows.length > 0;
 }
+
+/** Names of the given users in one query; unknown ids are left out. */
+export async function getUserNames(db: Db, ids: string[]): Promise<Map<string, string>> {
+  if (ids.length === 0) return new Map();
+  const rows = await db
+    .select({ id: user.id, name: user.name })
+    .from(user)
+    .where(inArray(user.id, [...new Set(ids)]));
+  return new Map(rows.map((r) => [r.id, r.name]));
+}
