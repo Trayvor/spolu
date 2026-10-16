@@ -11,6 +11,8 @@ export type Texts = {
   bucket(label: BucketLabel): string;
   digestSubject(count: number, group: string): string;
   digestButton(group: string): string;
+  reminderDue(time: string): string;
+  reminderLine(title: string, time: string): string;
 };
 
 const en: Texts = {
@@ -36,6 +38,8 @@ const en: Texts = {
   },
   digestSubject: (n, g) => (n === 1 ? `1 new message in ${g}` : `${n} new messages in ${g}`),
   digestButton: (g) => `Open ${g}`,
+  reminderDue: (time) => `Reminder for ${time}`,
+  reminderLine: (title, time) => `Reminder: ${title}, ${time}`,
 };
 
 function skMessages(n: number): string {
@@ -67,8 +71,22 @@ const sk: Texts = {
   },
   digestSubject: (n, g) => `${n} ${skMessages(n)} v ${g}`,
   digestButton: (g) => `Otvoriť ${g}`,
+  reminderDue: (time) => `Pripomienka na ${time}`,
+  reminderLine: (title, time) => `Pripomienka: ${title}, ${time}`,
 };
 
 export function texts(lang: UserLanguage): Texts {
   return lang === 'sk' ? sk : en;
+}
+
+/** A reminder time as the team reads it: Bratislava wall clock, e.g. "Sun 25 Oct, 10:00". */
+export function formatReminderTime(iso: string, lang: UserLanguage): string {
+  return new Intl.DateTimeFormat(lang === 'sk' ? 'sk-SK' : 'en-GB', {
+    timeZone: 'Europe/Bratislava',
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(iso));
 }

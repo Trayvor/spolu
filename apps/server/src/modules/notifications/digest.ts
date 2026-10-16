@@ -10,7 +10,7 @@ import { getNotificationProfiles } from '../users/service.js';
 import type { NotificationJobDeps } from './deliver.js';
 import { buildPushPayload } from './push-content.js';
 import { notificationEvents } from './schema.js';
-import { texts } from './texts.js';
+import { formatReminderTime, texts } from './texts.js';
 
 const MAX_LINES = 5;
 
@@ -161,6 +161,15 @@ async function collectDigests(
       if (messageId !== null) {
         if (!unread.has(`${row.userId}:${messageId}`) || seen.has(messageId)) continue;
         seen.add(messageId);
+      }
+      if (row.kind === 'reminder.due') {
+        lines.push(
+          texts(profile.language).reminderLine(
+            str(p.title) ?? '',
+            formatReminderTime(String(p.at), profile.language),
+          ),
+        );
+        continue;
       }
       const taskId = str(p.taskId);
       const title = (taskId ? taskTitles.get(taskId) : undefined) ?? str(p.title);

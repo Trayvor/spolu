@@ -1,5 +1,5 @@
 import type { BucketLabel, NotificationKind, PushPayload, UserLanguage } from '@spolu/shared';
-import { texts } from './texts.js';
+import { formatReminderTime, texts } from './texts.js';
 
 const EXCERPT_MAX = 120;
 
@@ -44,6 +44,16 @@ export function buildPushPayload(i: PushContentInput): PushPayload {
     taskId && (i.taskTitle ?? str(p.title))
       ? `${i.taskTitle ?? str(p.title)} · ${i.groupName}`
       : i.groupName;
+
+  if (i.kind.startsWith('reminder.')) {
+    const subjectId = str(p.subjectId) ?? '';
+    return {
+      title: `${str(p.title) ?? ''} · ${i.groupName}`,
+      body: t.reminderDue(formatReminderTime(String(p.at), i.lang)),
+      url: `/groups/${groupId}/knowledge?k=${enc(subjectId)}`,
+      tag: `knowledge:${subjectId}`,
+    };
+  }
 
   if (i.kind.startsWith('task.')) {
     const url = `/groups/${groupId}/tasks/${enc(taskId ?? '')}`;

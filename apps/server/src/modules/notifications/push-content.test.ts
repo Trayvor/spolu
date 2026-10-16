@@ -19,6 +19,32 @@ const base = {
 } as const;
 const task = { taskId: 't1', groupId: 'g1', title: 'Report', actorName: 'Jana' };
 
+describe('buildPushPayload reminder', () => {
+  const reminder = {
+    subjectKind: 'knowledge',
+    subjectId: 'k1',
+    groupId: 'g1',
+    title: 'Call the bank',
+    at: '2026-10-25T09:00:00Z',
+  };
+  const r = { ...base, kind: 'reminder.due', payload: reminder } as const;
+  it('reminder push has title · group, knowledge URL and tag', () => {
+    expect(buildPushPayload({ ...r, lang: 'en' })).toMatchObject({
+      title: 'Call the bank · Firma',
+      url: '/groups/g1/knowledge?k=k1',
+      tag: 'knowledge:k1',
+    });
+  });
+  it('reminder push body uses Bratislava time across the DST change', () => {
+    expect(buildPushPayload({ ...r, lang: 'en' }).body).toContain('10:00');
+    const before = { ...reminder, at: '2026-10-24T09:00:00Z' };
+    expect(buildPushPayload({ ...r, lang: 'en', payload: before }).body).toContain('11:00');
+  });
+  it('sk body reads "Pripomienka na …"', () => {
+    expect(buildPushPayload({ ...r, lang: 'sk' }).body).toMatch(/^Pripomienka na .*10:00/);
+  });
+});
+
 describe('buildPushPayload chat', () => {
   it('plain message', () => {
     expect(buildPushPayload(base)).toEqual({

@@ -10,7 +10,7 @@ const table: [NotificationKind, Record<GroupMode, boolean>][] = [
   ['task.assigned', { all: true, mentions: true, off: false }],
   ['task.deadline', { all: true, mentions: true, off: false }],
   ['task.urgent', { all: true, mentions: true, off: false }],
-  ['reminder.due', { all: true, mentions: true, off: false }],
+  ['reminder.due', { all: true, mentions: true, off: true }],
 ];
 const cases = table.flatMap(([kind, modes]) =>
   (['all', 'mentions', 'off'] as const).map((mode) => [kind, mode, modes[mode]] as const),
@@ -64,6 +64,22 @@ describe('decideEvent', () => {
   });
   it('no subscriptions means no push', () => {
     expect(decideEvent({ ...open, hasSubscriptions: false })).toEqual({ push: false, email: true });
+  });
+});
+
+describe('reminder.due', () => {
+  it('reminder.due passes All, Mentions and Off', () => {
+    for (const mode of ['all', 'mentions', 'off'] as const) {
+      expect(decideEvent({ ...open, kind: 'reminder.due', mode })).toEqual({
+        push: true,
+        email: true,
+      });
+    }
+  });
+  it('reminder.due is still dropped for someone no longer in the group', () => {
+    expect(
+      decideEvent({ ...open, kind: 'reminder.due', mode: 'off', isGroupPerson: false }),
+    ).toEqual({ push: false, email: false });
   });
 });
 

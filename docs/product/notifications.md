@@ -27,8 +27,10 @@ Each user chooses a notification mode per group and delivery channels in their p
   | mention, @all | yes | yes | no |
   | reply in my thread, quote of my message | yes | yes | no |
   | task moved, assigned, deadline, urgent | yes | yes | no |
+  | reminder due (Knowledge base) | yes | yes | **yes** |
 
   A user gets at most one notification per message; the strongest kind wins. The person who caused an event never gets it, and a message already read gets none. Task chat messages follow the task's group mode and link to the task's chat tab.
+- **Reminders** (`reminder.due`, from a Knowledge base reminder): sent to the reminder's recipients at the set time. They pass every mode, **Off** included, because the person chose to be reminded; the exception covers only explicit recipients, and someone no longer in the group still gets nothing. The push reads "<title> · <group>" with "Reminder for Sun 25 Oct, 10:00" (Bratislava time) and opens the item in the group's Knowledge tab. In the email digest the line is "Reminder: <title>, <time>"; like task events it always counts as unread.
 - **Task notifications** (they are about the user, so they arrive in All messages and in Mentions and replies):
   - **moved**: a task moved to another bucket notifies its creator and assignees, not the person who moved it ("Moved to eGrant review");
   - **assigned**: a newly assigned person is notified;
