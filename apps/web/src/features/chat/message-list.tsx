@@ -40,6 +40,8 @@ export interface MessageListProps {
 const EDGE = 24;
 /** Pixels from an end at which the next page is asked for. */
 const PREFETCH = 120;
+/** Pixels left above the "new messages" line when a chat opens at it. */
+const UNREAD_GAP = 8;
 
 /** The first row that reaches into the viewport, with its offset from the viewport top. */
 function captureAnchor(el: HTMLElement | null): { id: string; offset: number } | null {
@@ -80,7 +82,10 @@ export function DayDivider({ date }: { date: string }) {
 function NewMessagesLine() {
   const { t } = useTranslation();
   return (
-    <div className="flex items-center gap-3 px-4 pt-3 text-micro font-semibold text-brand-purple">
+    <div
+      data-new-messages=""
+      className="flex items-center gap-3 px-4 pt-3 text-micro font-semibold text-brand-purple"
+    >
       <span className="h-px flex-1 bg-brand-purple" />
       <span>{t('chat.newMessages')}</span>
       <span className="h-px flex-1 bg-brand-purple" />
@@ -109,6 +114,7 @@ export function MessageList({
   const { t } = useTranslation();
   const people = useGroupPeople(groupId).data;
   const scroller = useRef<HTMLDivElement>(null);
+  const content = useRef<HTMLDivElement>(null);
   const names = useMemo(() => new Map((people ?? []).map((p) => [p.id, p.name])), [people]);
   const nameOf = useMemo(() => (id: string) => names.get(id), [names]);
   const rows = useMemo(
@@ -132,12 +138,29 @@ export function MessageList({
   const anchor = useRef<{ id: string; offset: number } | null>(null);
 
   const endSignalSeen = useRef(endSignal);
+  /** Whether the first loaded page was placed (at the first unread message or at the end). */
+  const opened = useRef(false);
   useLayoutEffect(() => {
     const el = scroller.current;
     if (!el) return;
     if (endSignal !== endSignalSeen.current) {
       endSignalSeen.current = endSignal;
       stick.current = true;
+    }
+    if (!opened.current && win.loaded && rows.length > 0) {
+      opened.current = true;
+      // A chat read before opens at its first unread message; one never read opens at the end.
+      const line =
+        !highlightId && win.unreadAnchor !== null
+          ? el.querySelector<HTMLElement>('[data-new-messages]')
+          : null;
+      if (line) {
+        el.scrollTop = Math.max(0, line.offsetTop - UNREAD_GAP);
+        anchor.current = captureAnchor(el);
+        // All unread rows may fit in view: then this is the end, and the chat is read.
+        syncBottom();
+        return;
+      }
     }
     if (stick.current) {
       el.scrollTop = el.scrollHeight;
@@ -148,6 +171,29 @@ export function MessageList({
     if (kept && row) el.scrollTop = row.offsetTop - kept.offset;
     anchor.current = captureAnchor(el);
   }, [firstId, lastId, pending.length, win.loaded, endSignal]);
+
+  /**
+   * Rows change height after the first layout (`content-visibility` estimates rows it has not
+   * drawn, images and names arrive later) without a scroll event. Keep the end in view while the
+   * reader follows it, else keep the first visible row where it was.
+   */
+  useEffect(() => {
+    const el = scroller.current;
+    const inner = content.current;
+    if (!el || !inner || typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(() => {
+      if (stick.current) {
+        el.scrollTop = el.scrollHeight;
+        return;
+      }
+      const kept = anchor.current;
+      const row =
+        kept && el.querySelector<HTMLElement>(`[data-message-id="${CSS.escape(kept.id)}"]`);
+      if (kept && row) el.scrollTop = row.offsetTop - kept.offset;
+    });
+    observer.observe(inner);
+    return () => observer.disconnect();
+  }, []);
 
   const seenLast = useRef(lastId);
   useEffect(() => {
@@ -216,48 +262,50 @@ export function MessageList({
         onScroll={onScroll}
         className="relative h-full overflow-y-auto overscroll-contain pt-9 pb-3"
       >
-        {empty && (
-          <p className="px-6 py-10 text-center text-body text-muted-foreground">
-            {t('chat.empty')}
-          </p>
-        )}
-        {rows.map((row) => {
-          if (row.kind === 'day') return <DayDivider key={`day-${row.date}`} date={row.date} />;
-          if (row.kind === 'new') return <NewMessagesLine key="new" />;
-          const { message } = row;
-          return (
+        <div ref={content}>
+          {empty && (
+            <p className="px-6 py-10 text-center text-body text-muted-foreground">
+              {t('chat.empty')}
+            </p>
+          )}
+          {rows.map((row) => {
+            if (row.kind === 'day') return <DayDivider key={`day-${row.date}`} date={row.date} />;
+            if (row.kind === 'new') return <NewMessagesLine key="new" />;
+            const { message } = row;
+            return (
+              <MessageItem
+                key={message.id}
+                message={message}
+                groupId={groupId}
+                showHeader={row.showHeader}
+                mentionsMe={row.mentionsMe}
+                meId={meId}
+                nameOf={nameOf}
+                messageActions={messageActions}
+                renderMessageFooter={renderMessageFooter}
+                onOpenThread={onOpenThread}
+                unreadReplies={unreadThreads?.has(message.id) ?? false}
+                onChanged={onMessageChanged}
+                highlighted={message.id === highlightId}
+              />
+            );
+          })}
+          {/* Unsent rows get no messageActions and no footer: they are not saved yet. */}
+          {pending.map((p, i) => (
             <MessageItem
-              key={message.id}
-              message={message}
+              key={p.clientId}
+              message={pendingAsMessage(p, lastMessage?.channelId ?? '', author)}
               groupId={groupId}
-              showHeader={row.showHeader}
-              mentionsMe={row.mentionsMe}
+              showHeader={i === 0 && lastMessage?.author.id !== meId}
+              mentionsMe={false}
               meId={meId}
               nameOf={nameOf}
-              messageActions={messageActions}
-              renderMessageFooter={renderMessageFooter}
-              onOpenThread={onOpenThread}
-              unreadReplies={unreadThreads?.has(message.id) ?? false}
-              onChanged={onMessageChanged}
-              highlighted={message.id === highlightId}
+              pending={p.status}
+              failReason={p.failReason}
+              onRetry={onRetry}
             />
-          );
-        })}
-        {/* Unsent rows get no messageActions and no footer: they are not saved yet. */}
-        {pending.map((p, i) => (
-          <MessageItem
-            key={p.clientId}
-            message={pendingAsMessage(p, lastMessage?.channelId ?? '', author)}
-            groupId={groupId}
-            showHeader={i === 0 && lastMessage?.author.id !== meId}
-            mentionsMe={false}
-            meId={meId}
-            nameOf={nameOf}
-            pending={p.status}
-            failReason={p.failReason}
-            onRetry={onRetry}
-          />
-        ))}
+          ))}
+        </div>
       </div>
       {showJump && (
         <button
