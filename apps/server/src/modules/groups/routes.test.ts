@@ -6,6 +6,7 @@ import type {
   GroupManagersResponse,
   GroupPerson,
   GroupSummary,
+  InviteMemberResponse,
   ManagersResponse,
   Member,
   Me,
@@ -21,6 +22,9 @@ import { getEffectiveGroupMode } from '../notifications/modes.js';
 import { addMember, createGroup, getGroup, regenerateInvite } from './service.js';
 import { groupMembers } from './schema.js';
 import { eq } from 'drizzle-orm';
+import type { EmailMessage } from '../../infra/email/index.js';
+import { EMAIL_JOB } from '../../infra/email/index.js';
+import { removeMembership } from './memberships.js';
 
 type TestApp = Awaited<ReturnType<typeof buildTestApp>>;
 
@@ -823,6 +827,214 @@ describe('groups API', () => {
       await regenerateInvite(test.deps.db, g.id);
       expect((await call('GET', withoutLogo)).statusCode).toBe(404);
       expect((await call('GET', '/api/join/nope/logo')).statusCode).toBe(404);
+    });
+  });
+
+  describe('member invites', () => {
+    const invite = (groupId: string, cookie: string, body: unknown) =>
+      call('POST', `/api/groups/${groupId}/members`, cookie, body);
+    /** The emails queued while `run` runs. */
+    async function emailsDuring(run: () => Promise<unknown>): Promise<EmailMessage[]> {
+      const send = vi.spyOn(test.deps.jobs, 'send');
+      try {
+        await run();
+        return send.mock.calls
+          .filter(([name]) => name === EMAIL_JOB)
+          .map(([, data]) => data as EmailMessage);
+      } finally {
+        send.mockRestore();
+      }
+    }
+    type Res = Awaited<ReturnType<typeof call>>;
+    const ids = (res: { json: <T>() => T }) => res.json<Member[]>().map((m) => m.id);
+
+    it('a client gets 403 on POST, GET invited and DELETE invited', async () => {
+      const g = await newGroup();
+      const client = await clientIn(g.id);
+      expect((await invite(g.id, client.cookie, { email: newEmail() })).statusCode).toBe(403);
+      expect(
+        (await call('GET', `/api/groups/${g.id}/members/invited`, client.cookie)).statusCode,
+      ).toBe(403);
+      expect(
+        (await call('DELETE', `/api/groups/${g.id}/members/invited/${client.id}`, client.cookie))
+          .statusCode,
+      ).toBe(403);
+    });
+
+    it('an unknown group is 404', async () => {
+      const { cookie } = await adminSession();
+      expect((await invite('nope', cookie, { email: newEmail() })).statusCode).toBe(404);
+      expect((await call('GET', '/api/groups/nope/members/invited', cookie)).statusCode).toBe(404);
+      expect((await call('DELETE', '/api/groups/nope/members/invited/x', cookie)).statusCode).toBe(
+        404,
+      );
+    });
+
+    it('POST a new email: 201 invited and an invitation; again: 200 resent and one more', async () => {
+      const { cookie } = await adminSession();
+      const g = await newGroup('Pozvaná firma');
+      const email = newEmail();
+      let first: Res | undefined;
+      const sent = await emailsDuring(async () => {
+        first = await invite(g.id, cookie, { email: email.toUpperCase(), name: 'Nová Osoba' });
+      });
+      expect(first!.statusCode).toBe(201);
+      const body = first!.json<InviteMemberResponse>();
+      expect(body).toEqual({
+        member: { id: body.member.id, name: 'Nová Osoba', email },
+        outcome: 'invited',
+      });
+      expect(sent).toHaveLength(1);
+      expect(sent[0]!.to).toEqual([email]);
+      expect(sent[0]!.subject).toContain('Pozvaná firma');
+      expect(sent[0]!.text).toContain(`/login?email=${encodeURIComponent(email)}`);
+
+      let again: Res | undefined;
+      const resent = await emailsDuring(async () => {
+        again = await invite(g.id, cookie, { email });
+      });
+      expect(again!.statusCode).toBe(200);
+      expect(again!.json<InviteMemberResponse>().outcome).toBe('resent');
+      expect(resent).toHaveLength(1);
+    });
+
+    it('the email follows the admin request language', async () => {
+      const { cookie } = await adminSession();
+      const g = await newGroup('Lang');
+      const sent = await emailsDuring(() =>
+        test.app.inject({
+          method: 'POST',
+          url: `/api/groups/${g.id}/members`,
+          headers: { cookie, 'accept-language': 'en-GB,en;q=0.9' },
+          payload: { email: newEmail() },
+        }),
+      );
+      expect(sent[0]!.subject).toBe('Invitation to Spolu – Lang');
+    });
+
+    it('POST a verified client of another group: 201 added, the added email, and they read the group', async () => {
+      const { cookie } = await adminSession();
+      const [g, other] = await Promise.all([newGroup('Druhá'), newGroup()]);
+      const client = await clientIn(other.id, 'Klient Iný');
+      expect((await call('GET', `/api/groups/${g.id}`, client.cookie)).statusCode).toBe(404);
+      let res: Res | undefined;
+      const sent = await emailsDuring(async () => {
+        res = await invite(g.id, cookie, { email: client.email });
+      });
+      expect(res!.statusCode).toBe(201);
+      expect(res!.json<InviteMemberResponse>()).toEqual({
+        member: { id: client.id, name: 'Klient Iný', email: client.email },
+        outcome: 'added',
+      });
+      expect(sent).toHaveLength(1);
+      expect(sent[0]!.subject).toContain('Druhá');
+      expect(sent[0]!.text).toContain(`/groups/${g.id}`);
+      expect((await call('GET', `/api/groups/${g.id}`, client.cookie)).statusCode).toBe(200);
+      expect(ids(await call('GET', `/api/groups/${g.id}/members`, cookie))).toContain(client.id);
+    });
+
+    it('409 already_member, removed with userId and email_taken_admin, with no email', async () => {
+      const { cookie } = await adminSession();
+      const [g, other] = await Promise.all([newGroup(), newGroup()]);
+      const member = await clientIn(g.id);
+      const removed = await clientIn(g.id);
+      await addMember(test.deps.db, other.id, removed.id);
+      await removeMembership(test.deps.db, g.id, removed.id);
+      const admin = newEmail();
+      await addAdmin(test.deps.db, { email: admin, name: 'Other Admin' });
+
+      const answers: unknown[] = [];
+      const sent = await emailsDuring(async () => {
+        for (const email of [member.email, removed.email, admin]) {
+          const res = await invite(g.id, cookie, { email });
+          expect(res.statusCode).toBe(409);
+          answers.push(res.json());
+        }
+      });
+      expect(answers).toEqual([
+        { error: 'already_member' },
+        { error: 'removed', userId: removed.id },
+        { error: 'email_taken_admin' },
+      ]);
+      expect(sent).toEqual([]);
+    });
+
+    it('400 for an invalid email or a too long name', async () => {
+      const { cookie } = await adminSession();
+      const g = await newGroup();
+      expect((await invite(g.id, cookie, { email: 'not-an-email' })).statusCode).toBe(400);
+      expect(
+        (await invite(g.id, cookie, { email: newEmail(), name: 'x'.repeat(101) })).statusCode,
+      ).toBe(400);
+    });
+
+    it('GET invited lists the invited person and GET members does not; DELETE takes them out', async () => {
+      const { cookie } = await adminSession();
+      const g = await newGroup();
+      const invited = (
+        await invite(g.id, cookie, { email: newEmail() })
+      ).json<InviteMemberResponse>().member;
+      expect(ids(await call('GET', `/api/groups/${g.id}/members/invited`, cookie))).toEqual([
+        invited.id,
+      ]);
+      expect(ids(await call('GET', `/api/groups/${g.id}/members`, cookie))).not.toContain(
+        invited.id,
+      );
+
+      const sent = await emailsDuring(async () => {
+        const res = await call(
+          'DELETE',
+          `/api/groups/${g.id}/members/invited/${invited.id}`,
+          cookie,
+        );
+        expect(res.statusCode).toBe(204);
+      });
+      expect(sent).toEqual([]);
+      expect(ids(await call('GET', `/api/groups/${g.id}/members/invited`, cookie))).toEqual([]);
+      expect(ids(await call('GET', `/api/groups/${g.id}/members/removed`, cookie))).toEqual([]);
+      expect(
+        (await call('DELETE', `/api/groups/${g.id}/members/invited/${invited.id}`, cookie))
+          .statusCode,
+      ).toBe(404);
+    });
+
+    it('DELETE invited of a verified member: 404, and they are still a member', async () => {
+      const { cookie } = await adminSession();
+      const g = await newGroup();
+      const member = await clientIn(g.id);
+      expect(
+        (await call('DELETE', `/api/groups/${g.id}/members/invited/${member.id}`, cookie))
+          .statusCode,
+      ).toBe(404);
+      expect(ids(await call('GET', `/api/groups/${g.id}/members`, cookie))).toContain(member.id);
+    });
+
+    it('after the invited person signs in with a code they leave invited and appear in members', async () => {
+      const { cookie } = await adminSession();
+      const g = await newGroup();
+      const email = newEmail();
+      const { member } = (
+        await invite(g.id, cookie, { email, name: 'Prvé Prihlásenie' })
+      ).json<InviteMemberResponse>();
+      const clientCookie = await loginAs(test.app, email);
+      expect(ids(await call('GET', `/api/groups/${g.id}/members/invited`, cookie))).toEqual([]);
+      expect(ids(await call('GET', `/api/groups/${g.id}/members`, cookie))).toContain(member.id);
+      expect((await call('GET', `/api/groups/${g.id}`, clientCookie)).statusCode).toBe(200);
+      expect(
+        (await call('DELETE', `/api/groups/${g.id}/members/invited/${member.id}`, cookie))
+          .statusCode,
+      ).toBe(404);
+    });
+
+    it('429 over 30 adds a minute per admin', async () => {
+      const { cookie } = await adminSession();
+      const g = await newGroup();
+      const codes: number[] = [];
+      for (let i = 0; i < 31; i++) {
+        codes.push((await invite(g.id, cookie, { email: 'not-an-email' })).statusCode);
+      }
+      expect(codes.slice(0, 30).every((c) => c === 400)).toBe(true);
+      expect(codes[30]).toBe(429);
     });
   });
 });

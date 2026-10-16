@@ -5,9 +5,12 @@ import type { SessionUser } from '@spolu/shared';
 import { createDb } from '../../infra/db/client.js';
 import { testDatabaseUrl } from '../../../test/test-config.js';
 import { addAdmin, createUnverifiedClient, getUserById } from '../users/service.js';
+import { tickets } from '../tickets/schema.js';
+import { user } from '../users/schema.js';
 import {
   addMembership,
   applyPendingInvite,
+  cancelInvitedMembership,
   clientGroupIds,
   getMembership,
   isRequesterOnly,
@@ -16,7 +19,7 @@ import {
   restoreMembership,
   setPendingInvite,
 } from './memberships.js';
-import { groupMembers } from './schema.js';
+import { groupMembers, pendingInvites } from './schema.js';
 import { createGroup } from './service.js';
 
 const { db, close } = createDb(testDatabaseUrl);
@@ -169,5 +172,80 @@ describe('isRequesterOnly', () => {
   it('is false for admins', async () => {
     const admin = await addAdmin(db, { email: `${randomUUID()}@example.com`, name: 'A' });
     expect(await isRequesterOnly(db, asSession({ ...admin, role: 'admin' }))).toBe(false);
+  });
+});
+
+describe('cancelInvitedMembership', () => {
+  const verify = (id: string) =>
+    db.update(user).set({ emailVerified: true }).where(eq(user.id, id));
+  const pendingOf = async (userId: string) => {
+    const [row] = await db.select().from(pendingInvites).where(eq(pendingInvites.userId, userId));
+    return row ?? null;
+  };
+  const initiateTicket = (groupId: string, requesterUserId: string) => {
+    const now = new Date();
+    return db.insert(tickets).values({
+      id: randomUUID(),
+      groupId,
+      source: 'manual',
+      requesterUserId,
+      createdAt: now,
+      updatedAt: now,
+    });
+  };
+
+  it("deletes an unverified client membership and this group's pending invite", async () => {
+    const [g, c] = await Promise.all([newGroup(), newClient()]);
+    await addMembership(db, c.id, g.id, 'client');
+    await setPendingInvite(db, c.id, g.id);
+    expect(await cancelInvitedMembership(db, g.id, c.id)).toBe(true);
+    expect(await rowOf(c.id, g.id)).toBeNull();
+    expect(await pendingOf(c.id)).toBeNull();
+    expect(await getUserById(db, c.id)).not.toBeNull();
+  });
+
+  it('returns false and deletes nothing for a verified member, a removed one or a ziadatel', async () => {
+    const [g, other, verified, removed, ziadatel] = await Promise.all([
+      newGroup(),
+      newGroup(),
+      newClient(),
+      newClient(),
+      newClient(),
+    ]);
+    await verify(verified.id);
+    await addMembership(db, verified.id, g.id, 'client');
+    await addMembership(db, removed.id, g.id, 'client');
+    await addMembership(db, removed.id, other.id, 'client');
+    await removeMembership(db, g.id, removed.id);
+    await addMembership(db, ziadatel.id, g.id, 'ziadatel');
+    for (const c of [verified, removed, ziadatel]) {
+      const before = await rowOf(c.id, g.id);
+      expect(await cancelInvitedMembership(db, g.id, c.id)).toBe(false);
+      expect(await rowOf(c.id, g.id)).toEqual(before);
+    }
+    expect(await cancelInvitedMembership(db, g.id, 'nobody')).toBe(false);
+  });
+
+  it('turns the membership back to ziadatel when the person initiated a ticket of this group', async () => {
+    const [g, other, c, d] = await Promise.all([newGroup(), newGroup(), newClient(), newClient()]);
+    await addMembership(db, c.id, g.id, 'ziadatel');
+    await initiateTicket(g.id, c.id);
+    await addMembership(db, c.id, g.id, 'client');
+    expect(await cancelInvitedMembership(db, g.id, c.id)).toBe(true);
+    expect(await getMembership(db, c.id, g.id)).toEqual({ role: 'ziadatel', removedAt: null });
+
+    // A ticket of another group does not count.
+    await initiateTicket(other.id, d.id);
+    await addMembership(db, d.id, g.id, 'client');
+    expect(await cancelInvitedMembership(db, g.id, d.id)).toBe(true);
+    expect(await rowOf(d.id, g.id)).toBeNull();
+  });
+
+  it('keeps a pending invite of another group', async () => {
+    const [g, other, c] = await Promise.all([newGroup(), newGroup(), newClient()]);
+    await addMembership(db, c.id, g.id, 'client');
+    await setPendingInvite(db, c.id, other.id);
+    expect(await cancelInvitedMembership(db, g.id, c.id)).toBe(true);
+    expect((await pendingOf(c.id))?.groupId).toBe(other.id);
   });
 });

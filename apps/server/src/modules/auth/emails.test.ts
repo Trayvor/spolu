@@ -4,6 +4,8 @@ import {
   emailChangeCodeEmail,
   emailChangedNoticeEmail,
   loginCodeEmail,
+  memberAddedEmail,
+  memberInvitedEmail,
 } from './emails.js';
 import { pickLanguage } from './language.js';
 
@@ -100,5 +102,48 @@ describe('emailChangedNoticeEmail', () => {
     expect(msg.subject).toBe('Váš e-mail v Spolu bol zmenený');
     expect(msg.text).toContain('bol zmenený na <b>@example.com');
     expect(msg.html).toContain('&lt;b&gt;@example.com');
+  });
+});
+
+describe('memberInvitedEmail', () => {
+  const loginUrl = 'https://spolu.example/login?email=eva%40example.com';
+  const params = { groupName: 'Firma s.r.o.', invitedBy: 'Jana', loginUrl };
+
+  it('names the group and links the login with the email, in English', () => {
+    const msg = memberInvitedEmail('eva@example.com', params, 'en');
+    expect(msg.to).toEqual(['eva@example.com']);
+    expect(msg.subject).toBe('Invitation to Spolu – Firma s.r.o.');
+    expect(msg.text).toContain(
+      `Jana invited you to the group Firma s.r.o. in Spolu by eGrant. Log in with your email eva@example.com: ${loginUrl}`,
+    );
+  });
+
+  it('is in Slovak', () => {
+    const msg = memberInvitedEmail('eva@example.com', params, 'sk');
+    expect(msg.subject).toBe('Pozvánka do Spolu – Firma s.r.o.');
+    expect(msg.text).toContain(
+      `Jana vás pozval(a) do skupiny Firma s.r.o. v Spolu by eGrant. Prihláste sa svojím e-mailom eva@example.com: ${loginUrl}`,
+    );
+  });
+});
+
+describe('memberAddedEmail', () => {
+  const groupUrl = 'https://spolu.example/groups/g1';
+  const params = { groupName: 'Firma s.r.o.', addedBy: 'Jana', groupUrl };
+
+  it('names the group and links it, in English', () => {
+    const msg = memberAddedEmail('eva@example.com', params, 'en');
+    expect(msg.subject).toBe('You were added to Firma s.r.o.');
+    expect(msg.text).toContain(
+      `Jana added you to the group Firma s.r.o. in Spolu by eGrant: ${groupUrl}`,
+    );
+  });
+
+  it('is in Slovak', () => {
+    const msg = memberAddedEmail('eva@example.com', params, 'sk');
+    expect(msg.subject).toBe('Pridali vás do skupiny Firma s.r.o.');
+    expect(msg.text).toContain(
+      `Jana vás pridal(a) do skupiny Firma s.r.o. v Spolu by eGrant: ${groupUrl}`,
+    );
   });
 });

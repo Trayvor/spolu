@@ -9,7 +9,7 @@ Phase 22 is split in two:
 | part | branch | content | status |
 |---|---|---|---|
 | 22a | `phase-22a-managers-groups-page` | Task 1; the managers half of Task 4; Tasks 5 and 6; Task 7's managers and Groups page e2e and docs | built |
-| 22b | `phase-22b-member-invites` | invites by email: [Part 22b](#part-22b--invites-by-email-redesigned-for-211-2026-10-16), Tasks B1–B5 (replace Tasks 2 and 3, the members half of Task 4 and Task 7's invite e2e) | planned; decisions marked "Decision (proposed)" await the owner |
+| 22b | `phase-22b-member-invites` | invites by email: [Part 22b](#part-22b--invites-by-email-redesigned-for-211-2026-10-16), Tasks B1–B5 (replace Tasks 2 and 3, the members half of Task 4 and Task 7's invite e2e) | built (e2e written, not run in its session) |
 
 **22a as built (2026-10-16, branch `phase-22a-managers-groups-page`, stacked on `phase-21-3-ticket-chat`).** Differences from the tasks below:
 - Server: `/managers/me` and `/managers/:userId` share one handler (`applyManagerChange` in `groups/routes.ts`), one rate limit per acting admin, and build their answer before the `group:managers` event goes out. `/:userId` answers `GroupManagersResponse = { managers }`; a client, disabled or unknown target is `403` (`NotAnAdminError`). No policy or service change beyond `canSetManager`.
@@ -297,6 +297,14 @@ Moved to Task B3 in Part 22b.
 ## Part 22b — Invites by email (redesigned for 21.1, 2026-10-16)
 
 Branch `phase-22b-member-invites`, cut from the latest `main`. This part replaces Tasks 2 and 3, the member half of Task 4 and the invite e2e of Task 7, which were written before Phase 21.1.
+
+**22b as built (2026-10-16).** Differences from the tasks below:
+- "Initiated a ticket of this group" is `hasInitiatedTicketIn` in a new `modules/tickets/initiators.ts`, not in `tickets/service.ts`, which imports the groups module (an import cycle otherwise). `cancelInvitedMembership` checks it first, then runs one conditional `update … set role = 'ziadatel'` or `delete` in the same transaction.
+- `inviteMember` treats an active client membership of a verified but disabled user as an add (reactivated, `added`), not `AlreadyMemberError`: such a person is in no list the admin can see.
+- `listInvitedMembers` also leaves out disabled users.
+- Web: the toast state lives in `MembersList`; `InvitedRow` (`invited-members.tsx`) is a row of the members card, and an invited row without a name shows the email once. The form validates the email with `InviteMemberBodySchema` before sending ("Enter a valid email address."). Shared test helper: `features/groups/members-test-api.tsx`.
+- Login: the root route passes the raw search through, so `LoginRoute` checks `?email=` again with `linkEmail` (`features/auth/redirect.ts`), as it does `safeRedirect`.
+- The POST route checks the rate limit before the body, so invalid bodies count too.
 
 **Goal:** on a group's Members tab, an admin adds a person by email (name optional). A new or never-signed-in person gets an invitation email with a login link and shows as **"Pozvaný"** until their first sign-in; an existing client of another group is added at once and told by email.
 
