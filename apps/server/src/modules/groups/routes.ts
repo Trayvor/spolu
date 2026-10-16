@@ -2,6 +2,7 @@ import type { FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify';
 import {
   ErrorCodes,
   GroupInputSchema,
+  InviteMemberBodySchema,
   type Group,
   type GroupManager,
   type GroupManagersResponse,
@@ -9,12 +10,15 @@ import {
 } from '@spolu/shared';
 import type { AppDeps } from '../../deps.js';
 import type { Config } from '../../infra/config/config.js';
+import { sendEmailLater } from '../../infra/email/index.js';
 import { disconnectUser, joinGroupRoom, leaveGroupRoom } from '../../infra/realtime/rooms.js';
 import { createRateLimiter } from '../../infra/http/rate-limit.js';
+import { memberAddedEmail, memberInvitedEmail } from '../auth/emails.js';
+import { pickLanguage } from '../auth/language.js';
 import { requireAdmin, requireUser } from '../auth/session.js';
 import { revokeAllSessions } from '../auth/service.js';
 import { getEffectiveGroupMode } from '../notifications/modes.js';
-import { deactivateUser, getUserById, reactivateUser } from '../users/service.js';
+import { deactivateUser, EmailTakenError, getUserById, reactivateUser } from '../users/service.js';
 import { emitManagers } from './events.js';
 import { logoRoutes } from './logo.js';
 import { addManager, GroupNotFoundError, NotAnAdminError, removeManager } from './managers.js';
@@ -26,18 +30,23 @@ import {
   canSetManager,
 } from './policy.js';
 import {
+  AlreadyMemberError,
   createGroup,
   EgrantUrlTakenError,
   getGroup,
   InvalidEgrantUrlError,
+  inviteMember,
   listGroupPeople,
   listGroups,
+  listInvitedMembers,
   listMembers,
+  MemberRemovedError,
   regenerateInvite,
   updateGroup,
   type GroupRow,
 } from './service.js';
 import {
+  cancelInvitedMembership,
   clientGroupIds,
   getMembership,
   removeMembership,
@@ -53,8 +62,11 @@ const forbidden = (reply: FastifyReply) => reply.code(403).send({ error: ErrorCo
 /** Calls a minute per admin to become or stop being a manager. */
 export const managerRateLimit = (config: Config): number => config.managerRateLimitPerMinute ?? 120;
 
+/** Members an admin may add by email per minute. */
+const INVITES_PER_MINUTE = 30;
+
 export const groupsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { deps }) => {
-  const { config, db } = deps;
+  const { config, db, jobs } = deps;
   await app.register(logoRoutes, { deps });
   const anyUser = requireUser(app.auth);
 
@@ -146,6 +158,89 @@ export const groupsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, {
       if (!canManageGroups(request.user!)) return forbidden(reply);
       if (!(await getGroup(db, request.params.id))) return notFound(reply);
       return listMembers(db, request.params.id, { removed: true });
+    },
+  );
+
+  // Adding members by email (Phase 22b): admins only. An admin's invite is a client membership
+  // at once; "Pozvaný" is that membership while the person has never signed in.
+  const allowInvite = createRateLimiter({ windowMs: 60_000, max: INVITES_PER_MINUTE });
+
+  app.post<IdParams>('/groups/:id/members', { preHandler: anyUser }, async (request, reply) => {
+    const actor = request.user!;
+    if (!canManageGroups(actor)) return forbidden(reply);
+    if (!allowInvite(actor.id)) return reply.code(429).send({ error: ErrorCodes.rateLimited });
+    const group = await getGroup(db, request.params.id);
+    if (!group) return notFound(reply);
+    const body = InviteMemberBodySchema.safeParse(request.body);
+    if (!body.success) return reply.code(400).send({ error: ErrorCodes.validationFailed });
+
+    let invited;
+    try {
+      invited = await inviteMember(db, group.id, body.data);
+    } catch (error) {
+      if (error instanceof AlreadyMemberError) {
+        return reply.code(409).send({ error: ErrorCodes.alreadyMember });
+      }
+      if (error instanceof MemberRemovedError) {
+        return reply.code(409).send({ error: ErrorCodes.removedMember, userId: error.userId });
+      }
+      if (error instanceof EmailTakenError) {
+        return reply.code(409).send({ error: ErrorCodes.emailTakenAdmin });
+      }
+      throw error;
+    }
+    const { member, outcome } = invited;
+    if (outcome === 'added') joinGroupRoom(app.io, member.id, group.id);
+
+    // The membership is committed; a failed email must not turn this into an error.
+    try {
+      const lang = pickLanguage(request.headers['accept-language']);
+      const email =
+        outcome === 'added'
+          ? memberAddedEmail(
+              member.email,
+              {
+                groupName: group.name,
+                addedBy: actor.name,
+                groupUrl: `${config.publicUrl}/groups/${group.id}`,
+              },
+              lang,
+            )
+          : memberInvitedEmail(
+              member.email,
+              {
+                groupName: group.name,
+                invitedBy: actor.name,
+                loginUrl: `${config.publicUrl}/login?email=${encodeURIComponent(member.email)}`,
+              },
+              lang,
+            );
+      await sendEmailLater(jobs, email);
+    } catch (error) {
+      request.log.error({ err: error }, 'could not queue the member invite email');
+    }
+    return reply.code(outcome === 'resent' ? 200 : 201).send({ member, outcome });
+  });
+
+  app.get<IdParams>(
+    '/groups/:id/members/invited',
+    { preHandler: anyUser },
+    async (request, reply) => {
+      if (!canManageGroups(request.user!)) return forbidden(reply);
+      if (!(await getGroup(db, request.params.id))) return notFound(reply);
+      return listInvitedMembers(db, request.params.id);
+    },
+  );
+
+  // Cancels an invite: only a never-signed-in client; removing a member stays `DELETE /members/:userId`.
+  app.delete<MemberParams>(
+    '/groups/:id/members/invited/:userId',
+    { preHandler: anyUser },
+    async (request, reply) => {
+      if (!canManageGroups(request.user!)) return forbidden(reply);
+      const { id, userId } = request.params;
+      if (!(await cancelInvitedMembership(db, id, userId))) return notFound(reply);
+      return reply.code(204).send();
     },
   );
 

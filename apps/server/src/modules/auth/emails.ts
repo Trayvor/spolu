@@ -31,6 +31,36 @@ export function adminAddedEmail(
       ]);
 }
 
+/** An admin invited a person who has not signed in yet to a group (Phase 22b). */
+export function memberInvitedEmail(
+  to: string,
+  p: { groupName: string; invitedBy: string; loginUrl: string },
+  lang: EmailLanguage,
+): EmailMessage {
+  return lang === 'en'
+    ? message(to, `Invitation to Spolu – ${p.groupName}`, [
+        `${p.invitedBy} invited you to the group ${p.groupName} in Spolu by eGrant. Log in with your email ${to}: ${p.loginUrl}`,
+      ])
+    : message(to, `Pozvánka do Spolu – ${p.groupName}`, [
+        `${p.invitedBy} vás pozval(a) do skupiny ${p.groupName} v Spolu by eGrant. Prihláste sa svojím e-mailom ${to}: ${p.loginUrl}`,
+      ]);
+}
+
+/** An admin added a signed-in client to one more group (Phase 22b). */
+export function memberAddedEmail(
+  to: string,
+  p: { groupName: string; addedBy: string; groupUrl: string },
+  lang: EmailLanguage,
+): EmailMessage {
+  return lang === 'en'
+    ? message(to, `You were added to ${p.groupName}`, [
+        `${p.addedBy} added you to the group ${p.groupName} in Spolu by eGrant: ${p.groupUrl}`,
+      ])
+    : message(to, `Pridali vás do skupiny ${p.groupName}`, [
+        `${p.addedBy} vás pridal(a) do skupiny ${p.groupName} v Spolu by eGrant: ${p.groupUrl}`,
+      ]);
+}
+
 /** The code that confirms a new email address; sent to that new address. */
 export function emailChangeCodeEmail(to: string, code: string, lang: EmailLanguage): EmailMessage {
   return lang === 'en'
