@@ -38,7 +38,9 @@ export default defineConfig({
       PUSH_PROVIDER: 'fake', // sends are recorded to PUSH_FAKE_FILE, nothing leaves the machine
       PUSH_ALLOW_FAKE: '1', // the e2e server may use PUSH_PROVIDER=fake despite production
       PUSH_FAKE_FILE: resolve('data/e2e-push.jsonl'),
-      EMAIL_BATCH_DELAY_MS: '3000',
+      // 10 s, not 10 minutes: long enough for the digest test's three messages to be delivered
+      // before the batch is emailed, short enough for a 30 s poll.
+      EMAIL_BATCH_DELAY_MS: '10000',
       PORT: String(PORT),
       PUBLIC_URL: baseURL,
       DATABASE_URL: process.env.DATABASE_URL ?? 'postgres://spolu:spolu@localhost:5432/spolu_e2e',

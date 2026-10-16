@@ -83,10 +83,6 @@ test.describe.serial('push and email delivery', () => {
       storageState: undefined,
       permissions: ['notifications'],
     });
-    // The install card can cover controls on a phone; dismissed here, as in chat-mobile.spec.ts.
-    await clientContext.addInitScript(() => {
-      localStorage.setItem('spolu.prompt.install.dismissedAt', String(Date.now()));
-    });
     const client = await clientContext.newPage();
     await client.goto(new URL(inviteUrl).pathname);
     await clearMailFor(clientContext.request, email);
@@ -137,8 +133,10 @@ test.describe.serial('push and email delivery', () => {
     expect(pushesFor(endpoint.endpoint).some((p) => p.body.includes(plain))).toBe(false);
   });
 
-  // The e2e server batches email after EMAIL_BATCH_DELAY_MS (3 s) instead of 10 minutes.
+  // The e2e server batches email after EMAIL_BATCH_DELAY_MS (10 s) instead of 10 minutes: long
+  // enough that all three messages are delivered before the batch is emailed.
   test('with email on, one batched email arrives in Mailpit', async () => {
+    test.setTimeout(60_000); // a 30 s poll for the email, then 5 s to see no second one
     // Back to All messages: the test above left the client on Mentions and replies.
     const reset = await clientContext.request.put(`/api/groups/${groupId}/notification-mode`, {
       data: { mode: 'all' },
@@ -162,7 +160,7 @@ test.describe.serial('push and email delivery', () => {
     for (const n of [1, 2, 3]) await send(`digest ${n} ${stamp}`);
 
     await expect
-      .poll(() => subjectsFor(clientContext.request, clientEmail), { timeout: 15_000 })
+      .poll(() => subjectsFor(clientContext.request, clientEmail), { timeout: 30_000 })
       .toHaveLength(1);
     const [subject] = await subjectsFor(clientContext.request, clientEmail);
     expect(subject).toContain('3 nové správy');
