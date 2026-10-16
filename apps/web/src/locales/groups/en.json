@@ -1,0 +1,20 @@
+{
+  "title": "Groups",
+  "create": "Create group",
+  "empty": "No groups yet. Create the first one for a client.",
+  "members": "{{count}} members",
+  "form": {
+    "name": "Name",
+    "egrantUrl": "Client's eGrant URL",
+    "logo": "Logo",
+    "save": "Save",
+    "cancel": "Cancel",
+    "removeLogo": "Remove logo"
+  },
+  "errors": {
+    "nameRequired": "Enter a name.",
+    "invalidUrl": "Enter a valid URL.",
+    "urlTaken": "Another group already uses this eGrant URL.",
+    "invalidLogo": "The logo must be a PNG, JPEG or WebP image up to 512 KB."
+  }
+}

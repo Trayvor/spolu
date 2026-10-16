@@ -1,4 +1,3 @@
-import '@/i18n/notifications-copy'; // `useModeTitle` and the mode names
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import type { GroupMode, NotificationModes } from '@spolu/shared';

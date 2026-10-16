@@ -4,7 +4,10 @@ import en from '@/locales/en.json';
 import sk from '@/locales/sk.json';
 import { detectInitialLanguage } from './detect';
 import { DEFAULT_LANGUAGE, type Language } from './languages';
+import { changeLanguage } from './namespaces';
 
+// The texts of the eager shell (header, menus, sign-in, errors). Feature texts are lazy
+// namespaces in `src/locales/<name>/`, loaded by `./namespaces.ts` with their screens.
 // One translation file per entry in SUPPORTED_LANGUAGES; the Record type makes a missing one a type error.
 const resources: Record<Language, { translation: typeof en }> = {
   sk: { translation: sk },
@@ -42,8 +45,9 @@ void i18next.use(initReactI18next).init({
 
 export const i18n = i18next;
 
+/** Switches once the lazy namespaces loaded so far are there in `lang` too (no raw keys). */
 export async function setLanguage(lang: Language) {
-  await i18next.changeLanguage(lang);
+  await changeLanguage(lang);
   writeStored(lang);
   document.documentElement.lang = lang;
 }

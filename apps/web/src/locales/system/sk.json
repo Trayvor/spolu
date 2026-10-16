@@ -1,0 +1,16 @@
+{
+  "title": "Stav systému",
+  "version": "Verzia servera",
+  "lastPing": "Posledný ping",
+  "never": "Zatiaľ nie",
+  "checking": "Overujem…",
+  "unreachable": "Server je nedostupný",
+  "database": {
+    "ok": "Databáza: OK",
+    "down": "Databáza: nedostupná"
+  },
+  "realtime": {
+    "connected": "Realtime: pripojené",
+    "disconnected": "Realtime: odpojené"
+  }
+}

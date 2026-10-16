@@ -1,0 +1,8 @@
+{
+  "title": "Pridajte sa ku skupine {{group}}",
+  "intro": "Zadajte svoj pracovný e-mail. Pošleme vám prihlasovací kód.",
+  "invalid": "Tento odkaz už neplatí. Požiadajte eGrant o nový.",
+  "errors": {
+    "rateLimited": "Príliš veľa pokusov. Skúste to znova o minútu."
+  }
+}

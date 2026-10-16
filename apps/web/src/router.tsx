@@ -8,6 +8,7 @@ import {
   redirect,
   type RouterHistory,
 } from '@tanstack/react-router';
+import { withNamespaces } from '@/i18n/namespaces';
 import { ApiError } from '@/lib/api';
 import { groupQuery } from '@/features/groups/api';
 import { safeRedirect } from '@/features/auth/redirect';
@@ -20,7 +21,9 @@ interface RouterContext {
   queryClient: QueryClient;
 }
 
-// Code-based route tree. Every screen is lazy-loaded so it ships as its own chunk.
+// Code-based route tree. Every screen is lazy-loaded so it ships as its own chunk, together with
+// the locale namespaces its components render (`withNamespaces`, see src/i18n/namespaces.ts):
+// the component resolves only once its texts are there, so no screen shows raw keys.
 const rootRoute = createRootRouteWithContext<RouterContext>()({
   component: RootLayout,
   errorComponent: RootError,
@@ -32,7 +35,10 @@ const authedRoute = createRoute({
   getParentRoute: () => rootRoute,
   id: 'authed',
   // Lazy: it is the only eager importer of socket.io-client otherwise.
-  component: lazyRouteComponent(() => import('@/features/auth/authed-layout'), 'AuthedLayout'),
+  component: lazyRouteComponent(
+    withNamespaces(['notifications'], () => import('@/features/auth/authed-layout')),
+    'AuthedLayout',
+  ),
   beforeLoad: async ({ context, location }) => {
     const user = await context.queryClient.ensureQueryData(sessionQuery);
     if (!user) throw redirect({ to: '/login', search: { redirect: location.href } });
@@ -63,7 +69,10 @@ const homeRoute = createRoute({
 const groupsRoute = createRoute({
   getParentRoute: () => authedRoute,
   path: '/groups',
-  component: lazyRouteComponent(() => import('@/features/groups/groups-page'), 'GroupsPage'),
+  component: lazyRouteComponent(
+    withNamespaces(['groups', 'chat'], () => import('@/features/groups/groups-page')),
+    'GroupsPage',
+  ),
 });
 
 const groupRoute = createRoute({
@@ -78,7 +87,14 @@ const groupRoute = createRoute({
       throw error;
     }
   },
-  component: lazyRouteComponent(() => import('@/features/groups/group-layout'), 'GroupLayout'),
+  component: lazyRouteComponent(
+    // The header (group form), the tabs and their unread badges.
+    withNamespaces(
+      ['group', 'groups', 'chat', 'tasks'],
+      () => import('@/features/groups/group-layout'),
+    ),
+    'GroupLayout',
+  ),
 });
 
 const groupIndexRoute = createRoute({
@@ -92,19 +108,30 @@ const groupIndexRoute = createRoute({
 const groupChatRoute = createRoute({
   getParentRoute: () => groupRoute,
   path: 'chat',
-  component: lazyRouteComponent(() => import('@/features/chat/chat-tab'), 'ChatTab'),
+  component: lazyRouteComponent(
+    // Messages show the tasks made from them and offer "Turn into tasks".
+    withNamespaces(['chat', 'tasks', 'taskSplit'], () => import('@/features/chat/chat-tab')),
+    'ChatTab',
+  ),
 });
 
 const groupTasksRoute = createRoute({
   getParentRoute: () => groupRoute,
   path: 'tasks',
-  component: lazyRouteComponent(() => import('@/features/tasks/tasks-tab'), 'TasksTab'),
+  component: lazyRouteComponent(
+    // A task panel has its own chat, with "Turn into tasks".
+    withNamespaces(['tasks', 'chat', 'taskSplit'], () => import('@/features/tasks/tasks-tab')),
+    'TasksTab',
+  ),
 });
 
 const taskRoute = createRoute({
   getParentRoute: () => groupTasksRoute,
   path: '$taskId',
-  component: lazyRouteComponent(() => import('@/features/tasks/task-panel'), 'TaskPanelRoute'),
+  component: lazyRouteComponent(
+    withNamespaces(['tasks', 'chat', 'taskSplit'], () => import('@/features/tasks/task-panel')),
+    'TaskPanelRoute',
+  ),
 });
 
 // A static segment wins over `$taskId`, so "new" is never read as a task id.
@@ -114,7 +141,7 @@ const newTaskRoute = createRoute({
   validateSearch: (search: Record<string, unknown>): { bucket?: string } =>
     typeof search.bucket === 'string' ? { bucket: search.bucket } : {},
   component: lazyRouteComponent(
-    () => import('@/features/tasks/task-create-panel'),
+    withNamespaces(['tasks', 'chat'], () => import('@/features/tasks/task-create-panel')),
     'NewTaskPanelRoute',
   ),
 });
@@ -122,7 +149,10 @@ const newTaskRoute = createRoute({
 const groupMembersRoute = createRoute({
   getParentRoute: () => groupRoute,
   path: 'members',
-  component: lazyRouteComponent(() => import('@/features/groups/members-tab'), 'MembersTab'),
+  component: lazyRouteComponent(
+    withNamespaces(['group', 'admins'], () => import('@/features/groups/members-tab')),
+    'MembersTab',
+  ),
 });
 
 const welcomeRoute = createRoute({
@@ -141,13 +171,19 @@ const joinRoute = createRoute({
     const user = await context.queryClient.ensureQueryData(sessionQuery);
     if (user) throw redirect({ to: '/' });
   },
-  component: lazyRouteComponent(() => import('@/features/join/join-page'), 'JoinRoute'),
+  component: lazyRouteComponent(
+    withNamespaces(['join'], () => import('@/features/join/join-page')),
+    'JoinRoute',
+  ),
 });
 
 const settingsRoute = createRoute({
   getParentRoute: () => authedRoute,
   path: '/settings',
-  component: lazyRouteComponent(() => import('@/routes/settings'), 'SettingsPage'),
+  component: lazyRouteComponent(
+    withNamespaces(['settings', 'notifications', 'system'], () => import('@/routes/settings')),
+    'SettingsPage',
+  ),
 });
 
 const adminsRoute = createRoute({
@@ -158,7 +194,10 @@ const adminsRoute = createRoute({
     const user = await context.queryClient.ensureQueryData(sessionQuery);
     if (!isAdmin(user)) throw notFound();
   },
-  component: lazyRouteComponent(() => import('@/features/admins/admins-page'), 'AdminsPage'),
+  component: lazyRouteComponent(
+    withNamespaces(['admins'], () => import('@/features/admins/admins-page')),
+    'AdminsPage',
+  ),
 });
 
 const loginRoute = createRoute({

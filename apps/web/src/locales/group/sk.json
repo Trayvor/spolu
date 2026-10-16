@@ -1,0 +1,27 @@
+{
+  "tabs": {
+    "label": "Časti skupiny",
+    "chat": "Chat",
+    "tasks": "Úlohy",
+    "members": "Členovia"
+  },
+  "edit": "Upraviť",
+  "invite": {
+    "title": "Odkaz na pozvánku",
+    "copy": "Kopírovať",
+    "copied": "Odkaz skopírovaný.",
+    "copiedShort": "Skopírované",
+    "regenerate": "Vygenerovať nový odkaz",
+    "confirm": "Starý odkaz prestane fungovať. Vygenerovať nový?",
+    "generate": "Vygenerovať"
+  },
+  "members": {
+    "title": "Členovia",
+    "empty": "Zatiaľ žiadni členovia. Pošlite klientovi odkaz s pozvánkou.",
+    "remove": "Odobrať",
+    "confirmRemove": "Odobrať {{name}}? Okamžite stratí prístup.",
+    "removedTitle": "Odobraní členovia ({{count}})",
+    "restore": "Obnoviť",
+    "you": "Vy"
+  }
+}

@@ -1,0 +1,304 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { act, render, screen } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { RouterProvider, createMemoryHistory } from '@tanstack/react-router';
+import { NAMESPACES } from '@/i18n/namespaces';
+
+/**
+ * Every lazy screen gets its texts from locale namespaces (`src/locales/<name>/<code>.json`)
+ * that load with its chunk. Here each route starts as a fresh page load (fresh modules: no
+ * namespace and no route chunk loaded yet) and must never
+ * render a raw key: not in any render (i18next reports every missing key it is asked for) and
+ * not in the DOM at any moment (a MutationObserver checks every change).
+ */
+
+vi.mock('@/lib/socket', () => ({
+  getSocket: () => ({ on: vi.fn(), off: vi.fn(), emit: vi.fn(), connected: false }),
+  connectSocket: vi.fn(),
+  disconnectSocket: vi.fn(),
+}));
+
+const NOW = '2026-10-16T10:00:00.000Z';
+const ADMIN = { id: 'a1', name: 'Jana', email: 'jana@example.com', role: 'admin', groupId: null };
+const CLIENT = { id: 'u1', name: 'Eva', email: 'eva@acme.sk', role: 'client', groupId: 'g1' };
+const GROUP = { id: 'g1', name: 'Acme', egrantUrl: 'https://acme.egrant.sk', hasLogo: false };
+const PERSON = { id: 'a1', name: 'Jana' };
+const MESSAGE = {
+  id: 'm1',
+  channelId: 'c1',
+  parentId: null,
+  replyToId: null,
+  author: { id: 'a1', name: 'Jana', isAdmin: true },
+  body: 'Send the report',
+  mentions: [],
+  mentionsAll: false,
+  attachments: [],
+  clientId: null,
+  replyCount: 2,
+  lastReplyAt: NOW,
+  editedAt: null,
+  deletedAt: null,
+  createdAt: NOW,
+  changeSeq: 1,
+  tasks: [{ id: 't1', title: 'Send the report', completed: false }],
+};
+const BUCKETS = (['todo', 'egrant_review', 'client_review', 'done'] as const).map((kind, i) => ({
+  id: `b-${kind}`,
+  groupId: 'g1',
+  kind,
+  name: null,
+  position: `a${i}`,
+}));
+const TASK = {
+  id: 't1',
+  groupId: 'g1',
+  bucketId: 'b-todo',
+  position: 'a0',
+  title: 'Send the report',
+  urgent: true,
+  dueDate: '2026-10-20',
+  completedAt: null,
+  createdBy: PERSON,
+  assignees: [PERSON],
+  fileCount: 1,
+  sourceMessageId: 'm1',
+  createdAt: NOW,
+  updatedAt: NOW,
+};
+const TASK_DETAIL = {
+  ...TASK,
+  description: 'Before Friday',
+  files: [],
+  sourceMessage: {
+    id: 'm1',
+    channelId: 'c1',
+    taskId: null,
+    authorName: 'Jana',
+    excerpt: 'Send the report',
+  },
+};
+const CHANNEL = { lastSeq: 1, lastReadAt: null, unread: 0 };
+const PAGE = { messages: [MESSAGE], hasMore: false, lastSeq: 1, lastReadAt: null };
+
+function mockApi(me: typeof ADMIN | typeof CLIENT | null) {
+  const routes: Record<string, unknown> = {
+    '/api/groups': [{ ...GROUP, memberCount: 2, updatedAt: NOW }],
+    '/api/groups/g1': { ...GROUP, updatedAt: NOW, inviteUrl: 'https://spolu.test/join/tok' },
+    '/api/groups/g1/chat': { id: 'c1', ...CHANNEL },
+    '/api/groups/g1/people': [{ ...PERSON, isAdmin: true }],
+    '/api/groups/g1/members': [{ id: 'u1', name: 'Eva', email: 'eva@acme.sk' }],
+    '/api/groups/g1/members/removed': [],
+    '/api/groups/g1/task-chats': { t1: { count: 1, unread: true } },
+    '/api/groups/g1/board': { buckets: BUCKETS, tasks: [TASK] },
+    '/api/tasks/t1': TASK_DETAIL,
+    '/api/tasks/t1/chat': { id: 'c2', ...CHANNEL },
+    '/api/channels/c1/messages': PAGE,
+    '/api/channels/c2/messages': { ...PAGE, messages: [] },
+    '/api/channels/c1/unread-threads': [],
+    '/api/channels/c2/unread-threads': [],
+    '/api/chat/unread': { g1: 2 },
+    '/api/ai/status': { taskSplit: true },
+    '/api/notifications/modes': { defaultMode: null, roleDefault: 'mentions', overrides: {} },
+    '/api/notifications/preferences': {
+      pushEnabled: false,
+      emailEnabled: true,
+      vapidPublicKey: null,
+    },
+    '/api/health': { status: 'ok', db: 'ok', version: '1.0.0' },
+    '/api/admins': [{ id: 'a1', name: 'Jana', email: 'jana@example.com', role: 'superadmin' }],
+    '/api/join/tok': { name: 'Acme', hasLogo: false, updatedAt: NOW },
+  };
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (url: string, init?: RequestInit) => {
+      const reply = (status: number, body?: unknown) =>
+        new Response(body === undefined ? null : JSON.stringify(body), { status });
+      if ((init?.method ?? 'GET') !== 'GET') return reply(204);
+      if (url === '/api/me') return me ? reply(200, me) : reply(401, { error: 'unauthorized' });
+      return url in routes ? reply(200, routes[url]) : reply(404, { error: 'not_found' });
+    }),
+  );
+}
+
+const RAW_KEY = new RegExp(`\\b(${NAMESPACES.join('|')})\\.[A-Za-z_]+`);
+
+/** Collects every raw key that reached the DOM: text and the attributes people read. */
+function watchDom(found: string[]) {
+  const check = (node: Node) => {
+    const texts: string[] = [];
+    if (node.nodeType === Node.TEXT_NODE) texts.push(node.textContent ?? '');
+    if (node instanceof Element) {
+      texts.push(node.textContent ?? '');
+      for (const el of [node, ...node.querySelectorAll('*')]) {
+        for (const name of ['aria-label', 'placeholder', 'title', 'alt']) {
+          const value = el.getAttribute(name);
+          if (value) texts.push(value);
+        }
+      }
+    }
+    for (const text of texts) {
+      const match = RAW_KEY.exec(text);
+      if (match) found.push(match[0]);
+    }
+  };
+  const observer = new MutationObserver((records) => {
+    for (const record of records) {
+      check(record.target);
+      record.addedNodes.forEach(check);
+    }
+  });
+  observer.observe(document.body, {
+    subtree: true,
+    childList: true,
+    characterData: true,
+    attributes: true,
+  });
+  return observer;
+}
+
+// Fresh per test (see beforeEach): the router caches its lazy route components.
+let app: {
+  i18n: typeof import('@/i18n').i18n;
+  setLanguage: typeof import('@/i18n').setLanguage;
+  isNamespaceLoaded: typeof import('@/i18n/namespaces').isNamespaceLoaded;
+  createAppRouter: typeof import('@/router').createAppRouter;
+};
+
+function renderAt(path: string) {
+  const { createAppRouter } = app;
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const router = createAppRouter(queryClient, createMemoryHistory({ initialEntries: [path] }));
+  render(
+    <QueryClientProvider client={queryClient}>
+      <RouterProvider router={router} />
+    </QueryClientProvider>,
+  );
+  return router;
+}
+
+interface Case {
+  path: string;
+  me: typeof ADMIN | typeof CLIENT | null;
+  /** A text (or a field placeholder) of the screen in English, found once it has rendered. */
+  shows: string | RegExp;
+  placeholder?: boolean;
+  /** Namespaces the screen needs, loaded before it renders. */
+  namespaces: string[];
+}
+
+const CASES: Case[] = [
+  { path: '/groups', me: ADMIN, shows: 'Create group', namespaces: ['groups', 'chat'] },
+  {
+    path: '/groups/g1/chat',
+    me: ADMIN,
+    shows: 'Write a message…',
+    placeholder: true,
+    namespaces: ['group', 'groups', 'chat', 'tasks', 'taskSplit'],
+  },
+  {
+    path: '/groups/g1/chat',
+    me: CLIENT,
+    shows: 'Write a message…',
+    placeholder: true,
+    namespaces: ['group', 'chat', 'tasks', 'taskSplit'],
+  },
+  {
+    path: '/groups/g1/tasks',
+    me: ADMIN,
+    shows: 'Add task',
+    namespaces: ['group', 'chat', 'tasks', 'taskSplit'],
+  },
+  {
+    path: '/groups/g1/tasks/t1',
+    me: ADMIN,
+    shows: 'Created from a message',
+    namespaces: ['group', 'chat', 'tasks', 'taskSplit'],
+  },
+  {
+    path: '/groups/g1/tasks/new',
+    me: CLIENT,
+    shows: 'New task',
+    namespaces: ['group', 'chat', 'tasks', 'taskSplit'],
+  },
+  {
+    path: '/groups/g1/members',
+    me: ADMIN,
+    shows: 'Invite link',
+    namespaces: ['group', 'admins'],
+  },
+  {
+    path: '/settings',
+    me: CLIENT,
+    shows: 'System status',
+    namespaces: ['settings', 'notifications', 'system'],
+  },
+  { path: '/admins', me: ADMIN, shows: 'Add admin', namespaces: ['admins'] },
+  { path: '/join/tok', me: null, shows: 'Join Acme', namespaces: ['join'] },
+  { path: '/login', me: null, shows: /./, namespaces: [] },
+  { path: '/no-such-page', me: CLIENT, shows: /./, namespaces: [] },
+];
+
+describe('routes render no raw locale keys', () => {
+  const missing: string[] = [];
+  const onMissing = (_lngs: readonly string[], _ns: string, key: string) => missing.push(key);
+  const inDom: string[] = [];
+  let observer: MutationObserver;
+
+  beforeEach(async () => {
+    vi.resetModules();
+    const [{ i18n, setLanguage }, { isNamespaceLoaded }, { createAppRouter }] = await Promise.all([
+      import('@/i18n'),
+      import('@/i18n/namespaces'),
+      import('@/router'),
+    ]);
+    app = { i18n, setLanguage, isNamespaceLoaded, createAppRouter };
+    await setLanguage('en');
+    missing.length = 0;
+    inDom.length = 0;
+    i18n.options.saveMissing = true;
+    i18n.on('missingKey', onMissing);
+    observer = watchDom(inDom);
+  });
+  afterEach(() => {
+    const { i18n } = app;
+    observer.disconnect();
+    i18n.off('missingKey', onMissing);
+    i18n.options.saveMissing = false;
+    vi.unstubAllGlobals();
+  });
+
+  for (const { path, me, shows, placeholder, namespaces } of CASES) {
+    it(`${path} (${me?.role ?? 'anonymous'})`, async () => {
+      const { isNamespaceLoaded } = app;
+      mockApi(me);
+      renderAt(path);
+      const found = placeholder
+        ? await screen.findAllByPlaceholderText(shows)
+        : await screen.findAllByText(shows);
+      expect(found.length).toBeGreaterThan(0);
+      // Let the queries settle so loaded data renders too.
+      await act(() => new Promise((resolve) => setTimeout(resolve, 50)));
+      for (const name of namespaces)
+        expect({ name, loaded: isNamespaceLoaded(name) }).toEqual({
+          name,
+          loaded: true,
+        });
+      expect(missing).toEqual([]);
+      expect(inDom).toEqual([]);
+    });
+  }
+
+  it('switching to Slovak on a lazy screen loads its texts before anything switches', async () => {
+    const { i18n, setLanguage, isNamespaceLoaded } = app;
+    mockApi(ADMIN);
+    renderAt('/groups/g1/tasks/t1');
+    await screen.findByText('Created from a message');
+    await act(() => setLanguage('sk'));
+    expect(isNamespaceLoaded('tasks', 'sk')).toBe(true);
+    expect(isNamespaceLoaded('chat', 'sk')).toBe(true);
+    expect(await screen.findByText(i18n.t('tasks.panel.fromMessage'))).toBeInTheDocument();
+    expect(i18n.t('tasks.panel.fromMessage')).not.toBe('Created from a message');
+    expect(missing).toEqual([]);
+    expect(inDom).toEqual([]);
+  });
+});

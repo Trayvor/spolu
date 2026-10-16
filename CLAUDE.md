@@ -53,7 +53,7 @@ One-time setup: `pnpm install`, `cp .env.example .env`, `pnpm exec playwright in
 
 - `docs/` — knowledge base: product requirements, architecture, ADRs, design, runbooks, roadmap, glossary.
 - `.claude/` — project settings, hooks and skills (`.claude/skills/<name>/SKILL.md`).
-- `apps/web/src/locales/{en,sk}.json` — every UI string, as i18n keys; never hardcode UI text.
+- `apps/web/src/locales/` — every UI string, as i18n keys; never hardcode UI text. `{en,sk}.json` hold the eager shell (header, menus, sign-in, errors); feature texts live in lazy namespaces `<name>/{en,sk}.json`, loaded with their routes (`withNamespaces` in `router.tsx`, see `src/i18n/namespaces.ts`).
 - `apps/` — `server` (Fastify API, Socket.IO, jobs) and `web` (React + Vite PWA).
 - `packages/` — `shared` (zod schemas and types used by server and web).
 - `.env.example` — every environment variable with dev defaults; copy to `.env`.

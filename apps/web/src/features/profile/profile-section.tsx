@@ -1,4 +1,3 @@
-import '@/i18n/settings-copy';
 import { useId, useState, type FormEvent } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';

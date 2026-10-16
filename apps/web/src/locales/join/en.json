@@ -1,0 +1,8 @@
+{
+  "title": "Join {{group}}",
+  "intro": "Enter your work email. We will send you a login code.",
+  "invalid": "This link is no longer valid. Ask eGrant for a new one.",
+  "errors": {
+    "rateLimited": "Too many attempts. Try again in a minute."
+  }
+}

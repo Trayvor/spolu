@@ -1,0 +1,27 @@
+{
+  "tabs": {
+    "label": "Group sections",
+    "chat": "Chat",
+    "tasks": "Tasks",
+    "members": "Members"
+  },
+  "edit": "Edit",
+  "invite": {
+    "title": "Invite link",
+    "copy": "Copy",
+    "copied": "Link copied.",
+    "copiedShort": "Copied",
+    "regenerate": "Generate new link",
+    "confirm": "The old link will stop working. Generate a new one?",
+    "generate": "Generate"
+  },
+  "members": {
+    "title": "Members",
+    "empty": "No members yet. Send the invite link to the client.",
+    "remove": "Remove",
+    "confirmRemove": "Remove {{name}}? They lose access at once.",
+    "removedTitle": "Removed members ({{count}})",
+    "restore": "Restore",
+    "you": "You"
+  }
+}

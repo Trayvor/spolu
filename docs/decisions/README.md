@@ -37,3 +37,4 @@ What gets easier, what gets harder.
 | [0011](0011-pwa-with-vite-plugin-pwa.md) | Installable PWA with vite-plugin-pwa | accepted |
 | [0012](0012-dnd-kit-and-fractional-indexing.md) | dnd-kit and fractional-indexing for the task board | accepted |
 | [0013](0013-web-push.md) | Web Push with VAPID | accepted |
+| [0014](0014-lazy-locale-namespaces.md) | Lazy locale namespaces | accepted |

@@ -1,4 +1,3 @@
-import '@/i18n/notifications-copy';
 import { useId, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { GroupModes, type GroupMode } from '@spolu/shared';

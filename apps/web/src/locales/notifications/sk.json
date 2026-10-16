@@ -1,36 +1,34 @@
 {
-  "notifications": {
-    "mode": {
-      "bellLabel": "Upozornenia: {{mode}}",
-      "all": "Všetky správy",
-      "allHint": "Každá nová správa v tejto skupine",
-      "mentions": "Zmienky a odpovede",
-      "mentionsHint": "Keď vás niekto spomenie, odpovie vo vašom vlákne alebo sa zmení vaša úloha",
-      "off": "Vypnuté",
-      "offHint": "Žiadne upozornenia z tejto skupiny",
-      "mixed": "Zmiešané",
-      "allGroups": "Všetky skupiny:"
-    },
-    "prompt": {
-      "installTitle": "Nainštalujte si Spolu ako aplikáciu",
-      "installBody": "Otvoríte ju z plochy ako každú inú aplikáciu a budú vám chodiť upozornenia.",
-      "install": "Inštalovať",
-      "installMenu": "Otvorte menu prehliadača ⋮ → Inštalovať aplikáciu / Pridať na plochu",
-      "notNow": "Teraz nie",
-      "iosTitle": "Dôležité: nainštalujte si Spolu, aby vám chodili upozornenia.",
-      "iosBody": "Na iPhone fungujú upozornenia len z aplikácie na ploche.",
-      "iosStepShare": "Ťuknite na Zdieľať",
-      "iosStepAdd": "Pridať na plochu",
-      "iosStepOpen": "Otvorte Spolu z ikony",
-      "enableTitle": "Zapnite upozornenia na tomto zariadení",
-      "enableBody": "Nové správy a zmeny v úlohách uvidíte hneď.",
-      "turnOn": "Zapnúť",
-      "enableFailed": "Upozornenia sa nepodarilo zapnúť. Skúste to znova.",
-      "iosUnsupportedTitle": "iOS vo vašom iPhone nepodporuje upozornenia aplikácií.",
-      "iosUnsupportedBody": "Zapli sme vám upozornenia e-mailom. Aktualizujte iOS na verziu 16.4 alebo novšiu, aby vám upozornenia chodili do telefónu.",
-      "iosUnsupportedEmailOn": "Upozornenia e-mailom už máte zapnuté. Aktualizujte iOS na verziu 16.4 alebo novšiu, aby vám upozornenia chodili do telefónu.",
-      "iosUnsupportedEmailOff": "Upozornenia e-mailom máte vypnuté; zapnúť ich môžete v Nastaveniach. Aktualizujte iOS na verziu 16.4 alebo novšiu, aby vám upozornenia chodili do telefónu.",
-      "ok": "OK"
-    }
+  "mode": {
+    "bellLabel": "Upozornenia: {{mode}}",
+    "all": "Všetky správy",
+    "allHint": "Každá nová správa v tejto skupine",
+    "mentions": "Zmienky a odpovede",
+    "mentionsHint": "Keď vás niekto spomenie, odpovie vo vašom vlákne alebo sa zmení vaša úloha",
+    "off": "Vypnuté",
+    "offHint": "Žiadne upozornenia z tejto skupiny",
+    "mixed": "Zmiešané",
+    "allGroups": "Všetky skupiny:"
+  },
+  "prompt": {
+    "installTitle": "Nainštalujte si Spolu ako aplikáciu",
+    "installBody": "Otvoríte ju z plochy ako každú inú aplikáciu a budú vám chodiť upozornenia.",
+    "install": "Inštalovať",
+    "installMenu": "Otvorte menu prehliadača ⋮ → Inštalovať aplikáciu / Pridať na plochu",
+    "notNow": "Teraz nie",
+    "iosTitle": "Dôležité: nainštalujte si Spolu, aby vám chodili upozornenia.",
+    "iosBody": "Na iPhone fungujú upozornenia len z aplikácie na ploche.",
+    "iosStepShare": "Ťuknite na Zdieľať",
+    "iosStepAdd": "Pridať na plochu",
+    "iosStepOpen": "Otvorte Spolu z ikony",
+    "enableTitle": "Zapnite upozornenia na tomto zariadení",
+    "enableBody": "Nové správy a zmeny v úlohách uvidíte hneď.",
+    "turnOn": "Zapnúť",
+    "enableFailed": "Upozornenia sa nepodarilo zapnúť. Skúste to znova.",
+    "iosUnsupportedTitle": "iOS vo vašom iPhone nepodporuje upozornenia aplikácií.",
+    "iosUnsupportedBody": "Zapli sme vám upozornenia e-mailom. Aktualizujte iOS na verziu 16.4 alebo novšiu, aby vám upozornenia chodili do telefónu.",
+    "iosUnsupportedEmailOn": "Upozornenia e-mailom už máte zapnuté. Aktualizujte iOS na verziu 16.4 alebo novšiu, aby vám upozornenia chodili do telefónu.",
+    "iosUnsupportedEmailOff": "Upozornenia e-mailom máte vypnuté; zapnúť ich môžete v Nastaveniach. Aktualizujte iOS na verziu 16.4 alebo novšiu, aby vám upozornenia chodili do telefónu.",
+    "ok": "OK"
   }
 }

@@ -1,0 +1,20 @@
+{
+  "title": "Admins",
+  "add": "Add admin",
+  "name": "Name",
+  "email": "Email",
+  "submit": "Add and send email",
+  "cancel": "Cancel",
+  "added": "{{name}} was added.",
+  "remove": "Remove",
+  "confirmRemove": "Remove {{name}}? They lose access at once.",
+  "badge": {
+    "superadmin": "Superadmin",
+    "you": "You"
+  },
+  "errors": {
+    "emailTakenAdmin": "This email already belongs to an admin.",
+    "emailTakenClient": "This email belongs to a client.",
+    "nameRequired": "Enter a name."
+  }
+}

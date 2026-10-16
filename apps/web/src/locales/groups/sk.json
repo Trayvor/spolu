@@ -1,0 +1,20 @@
+{
+  "title": "Skupiny",
+  "create": "Vytvoriť skupinu",
+  "empty": "Zatiaľ žiadne skupiny. Vytvorte prvú pre klienta.",
+  "members": "Členovia: {{count}}",
+  "form": {
+    "name": "Názov",
+    "egrantUrl": "Adresa klienta v eGrant",
+    "logo": "Logo",
+    "save": "Uložiť",
+    "cancel": "Zrušiť",
+    "removeLogo": "Odstrániť logo"
+  },
+  "errors": {
+    "nameRequired": "Zadajte názov.",
+    "invalidUrl": "Zadajte platnú adresu.",
+    "urlTaken": "Túto adresu eGrant už používa iná skupina.",
+    "invalidLogo": "Logo musí byť obrázok PNG, JPEG alebo WebP do 512 KB."
+  }
+}
