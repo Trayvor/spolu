@@ -39,7 +39,7 @@ Each group has a Knowledge tab where clients and admins keep what the group need
 
 ## Status
 
-Built on the server (Phase 17): the HTTP API (`modules/knowledge/routes.ts`: the tab list, the global list and its scope, create, read, edit, delete; 120 writes per minute per user), the reminder endpoints (`modules/reminders/routes.ts`: the set, subscribe and unsubscribe, the `.ics` file) and realtime (public items to the group room, admins-only items to the group's admins room). The web tab and global list come in later Phase 17 tasks.
+Built on the server (Phase 17): the HTTP API (`modules/knowledge/routes.ts`: the tab list, the global list and its scope, create, read, edit, delete; 120 writes per minute per user), the reminder endpoints (`modules/reminders/routes.ts`: the set, subscribe and unsubscribe, the `.ics` file) and realtime (public items to the group room, admins-only items to the group's admins room). Built on the web: the Knowledge tab with live updates, the detail dialog (view, create, edit, delete), the reminder block, and the admins' global list with the client filter. End-to-end tests: `e2e/knowledge.spec.ts`. Waiting for the owner's walkthrough on the server.
 
 ## Phase
 

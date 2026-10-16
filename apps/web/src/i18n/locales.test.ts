@@ -34,11 +34,6 @@ const NAMESPACES = [
   'taskSplit',
   'tasks',
 ] as const;
-/**
- * Namespaces created as skeletons of empty sections that later Phase 17 tasks fill. Remove a name
- * once its namespace has keys, so it is held to the "at least one key" rule again.
- */
-const SKELETONS = new Set<string>(['knowledge', 'reminders']);
 const namespaceFiles = parsed(
   import.meta.glob<string>('../locales/*/*.json', {
     eager: true,
@@ -101,19 +96,7 @@ describe('locales', () => {
       const byCode = namespaceLocales(name);
       expect(Object.keys(byCode).sort()).toEqual(codes);
       const enKeys = baseKeys(byCode.en ?? {}).sort();
-      if (SKELETONS.has(name)) {
-        // A skeleton may hold only empty sections, which must match across languages.
-        const enSections = Object.keys(byCode.en ?? {}).sort();
-        expect(enSections.length).toBeGreaterThan(0);
-        for (const [code, json] of Object.entries(byCode)) {
-          expect({ code, sections: Object.keys(json).sort() }).toEqual({
-            code,
-            sections: enSections,
-          });
-        }
-      } else {
-        expect(enKeys.length).toBeGreaterThan(0);
-      }
+      expect(enKeys.length).toBeGreaterThan(0);
       for (const [code, json] of Object.entries(byCode)) {
         expect({ code, keys: baseKeys(json).sort() }).toEqual({ code, keys: enKeys });
       }

@@ -23,6 +23,10 @@ One reminder feature serves the knowledge base and the task board: one or more d
   - A card shows a bell when the task has upcoming custom reminders.
 - Example of done: a reminder set for a time reaches its author and recipients by push at that time, and its `.ics` file adds the times to a calendar.
 
+## Status
+
+Built for knowledge items (Phase 17): the reminders module (`modules/reminders`: times, recipients, subscription, the `.ics` export, the every-minute fire job) and its web parts (`features/reminders`: the times and recipients fields, the reminder block). Task reminders come with Phase 19.
+
 ## Phase
 
 Phase 17 (the reminders module, knowledge reminders, calendar export). Phase 19 (custom reminders on tasks). Delivery uses Phase 6.

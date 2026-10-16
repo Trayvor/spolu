@@ -18,6 +18,7 @@ Terms used across the docs and code, in alphabetical order.
 - **group**: one client organization with its own chat, task board, tickets and contracts.
 - **group mode**: what one user hears about one group: All messages, Mentions and replies, or Off. Set with the bell in the group header or on the groups page; without a choice it follows the user's "All groups" default, else the role default (clients All messages, admins Mentions and replies).
 - **invite link**: a link an admin copies from a group. A client opens it, enters an email, gets a code and joins that group.
+- **knowledge item**: a card in a group's Knowledge tab: a note, a file, a link or a reminder. Public (everyone in the group) or admins-only ("Only eGrant"); a client's items are always public. Admins also see all items across clients in the global knowledge list.
 - **login code**: the 6-digit one-time code sent by email to log in; valid 5 minutes, 3 tries. Also called OTP code.
 - **manager**: an admin who manages a group (an eGrant account manager for that client). A per-group flag, not a role: a group can have several managers and an admin can manage several groups; each admin becomes or stops being one only for themselves. A disabled admin does not count. Becoming manager turns the group's mode to All messages unless the admin chose one.
 - **member**: a user who belongs to a group.
@@ -33,12 +34,15 @@ Terms used across the docs and code, in alphabetical order.
 - **push subscription**: one browser's permission to receive Web Push for one user, stored per device in `push_subscriptions` (endpoint and keys). Created after the browser grants permission, removed at logout or when the push service answers 404/410.
 - **PWA**: progressive web app. The web app can be installed on a phone or desktop and receive push notifications.
 - **read state**: what a user has already read in a channel, and in each thread they started or replied in; used for the unread indicator.
-- **reminder**: a scheduled notification to admins that a contract is about to need attention.
+- **recipient (of a reminder)**: someone a reminder notifies: its author (always), people the author added, and people who subscribed themselves. Recipients get it in every group mode, Off included.
+- **reminder**: a scheduled notification. A knowledge reminder (Phase 17) notifies its recipients at the chosen times; a contract reminder (Phase 15) tells admins that a contract is about to need attention.
+- **reminder set**: the times and recipients of one subject (a knowledge item; later a task), kept by the reminders module. Each time fires once, by the every-minute `reminders.fire` job, as a `reminder.due` notification to every recipient.
 - **removed member**: a client an admin removed from a group. The user row is kept with `disabled_at` set and the membership stays, so the admin can restore them; they get no code and lose sessions and sockets. Listed under the group's removed members.
 - **room**: a Socket.IO room; users join rooms to receive live events for a group, DM or task channel.
 - **seq**: a per-channel increasing number on each message. Clients use it to find and load messages missed during a disconnect.
 - **session**: a long-lived login on one device, kept after the code is entered. A `session` row plus the httpOnly cookie `better-auth.session_token`; removing a user deletes their sessions.
 - **Spolu**: the product name (Slovak for "together"); full brand "Spolu by eGrant". Formerly the working title eHub.
+- **subscribe (to a reminder)**: "Remind me" on a reminder: anyone who can read the item adds themselves as a recipient, and can leave again. The author cannot leave their own reminder.
 - **superadmin**: the first admin, created automatically at start from `SUPERADMIN_EMAIL` (name from `SUPERADMIN_NAME`). Cannot be deleted or demoted; creates other admins.
 - **task**: a card on the task board with title, description, one or more assignees, deadline, an urgent flag and attachments.
 - **task chat**: the discussion inside one task, with threads, mentions and attachments.
