@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { useSearch } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
@@ -23,6 +23,15 @@ import { KnowledgeList } from './knowledge-list';
 
 /** The last explicit client choice, restored on a visit without parameters. */
 export const CLIENTS_STORAGE_KEY = 'spolu.knowledge.clients';
+
+/** The `clients` value meaning every client. */
+const ALL = 'all';
+
+/** The `q` a field text gives: trimmed, from 2 characters. */
+const toQuery = (text: string) => {
+  const trimmed = text.trim();
+  return trimmed.length >= 2 ? trimmed : undefined;
+};
 
 function readStored(): string | null {
   try {
@@ -92,16 +101,38 @@ export function KnowledgePage() {
     [groups],
   );
 
-  const clients = clientsParam === undefined ? null : clientsParam.split(',').filter(Boolean);
-  const noClients = clients !== null && clients.length === 0;
+  const loaded = groups !== undefined && scope !== undefined;
+  const allIds = options.map((group) => group.id);
+  // `clients=all` is every client, now and later; any other value is a list of ids.
+  const everyClient = clientsParam === ALL;
+  const clients =
+    clientsParam === undefined
+      ? null
+      : everyClient
+        ? allIds
+        : clientsParam.split(',').filter(Boolean);
+  const noClients = clients !== null && !everyClient && clients.length === 0;
+  // Without a `clients` param the server uses the default scope. That is every client only while
+  // the admin manages none; otherwise "every client" has to be spelled out.
+  const managedIds = scope?.managedGroupIds ?? null;
+  const requested = everyClient
+    ? managedIds?.length
+      ? allIds
+      : undefined
+    : (clients ?? undefined);
   const query = useInfiniteQuery({
-    ...globalKnowledgeQuery({ clients: clients ?? undefined, type: search.type, q: search.q }),
-    enabled: !noClients,
+    ...globalKnowledgeQuery({ clients: requested, type: search.type, q: search.q }),
+    enabled: !noClients && (!everyClient || loaded),
     refetchOnWindowFocus: true,
   });
 
   const changeClients = (next: string[] | null) => {
-    const value = next === null ? null : next.join(',');
+    const value =
+      next === null
+        ? null
+        : allIds.length > 0 && allIds.every((id) => next.includes(id))
+          ? ALL
+          : next.join(',');
     writeStored(value);
     update(
       (s) => {
@@ -112,13 +143,27 @@ export function KnowledgePage() {
     );
   };
 
-  // The search field applies after 300 ms, from 2 characters.
+  // The search field applies after 300 ms, from 2 characters, and only from typing: a `q` that
+  // changes in the URL (Back, a link) is copied into the field and cancels a pending write.
   const [text, setText] = useState(search.q ?? '');
+  const [seenQ, setSeenQ] = useState(search.q);
+  if (search.q !== seenQ) {
+    setSeenQ(search.q);
+    if (toQuery(text) !== search.q) setText(search.q ?? '');
+  }
+  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const pending = useRef<string | undefined>(undefined);
   useEffect(() => {
-    const trimmed = text.trim();
-    const q = trimmed.length >= 2 ? trimmed : undefined;
+    if (pending.current !== search.q) clearTimeout(timer.current);
+  }, [search.q]);
+  useEffect(() => () => clearTimeout(timer.current), []);
+  const changeText = (next: string) => {
+    setText(next);
+    clearTimeout(timer.current);
+    const q = toQuery(next);
     if (q === search.q) return;
-    const timer = setTimeout(
+    pending.current = q;
+    timer.current = setTimeout(
       () =>
         update(
           (s) => {
@@ -129,8 +174,7 @@ export function KnowledgePage() {
         ),
       300,
     );
-    return () => clearTimeout(timer);
-  }, [text, search.q, update]);
+  };
 
   const [unavailable, setUnavailable] = useState(false);
   const closeItem = () => update((s) => void delete s.k, { replace: false });
@@ -152,9 +196,10 @@ export function KnowledgePage() {
       >
         <ClientFilter
           groups={options}
-          managedIds={scope?.managedGroupIds ?? null}
+          managedIds={managedIds}
           value={clients}
           onChange={changeClients}
+          disabled={!loaded}
         />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -196,7 +241,7 @@ export function KnowledgePage() {
           <Input
             type="search"
             value={text}
-            onChange={(event) => setText(event.target.value)}
+            onChange={(event) => changeText(event.target.value)}
             placeholder={t('knowledge.global.search')}
             aria-label={t('knowledge.global.search')}
             className="py-2 pl-10"

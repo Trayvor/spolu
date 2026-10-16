@@ -60,12 +60,15 @@ const ROW: KnowledgeSummary = {
   group: { id: 'g1', name: 'ABC s.r.o.', logoUrl: null },
 };
 
-function mockApi(me: typeof ADMIN | typeof CLIENT = ADMIN) {
+function mockApi(
+  me: typeof ADMIN | typeof CLIENT = ADMIN,
+  managedGroupIds: string[] | null = null,
+) {
   const fetchMock = vi.fn(async (url: string) => {
     const reply = (status: number, body: unknown) => new Response(JSON.stringify(body), { status });
     if (url === '/api/me') return reply(200, me);
     if (url === '/api/groups') return reply(200, GROUPS);
-    if (url === '/api/knowledge/scope') return reply(200, { managedGroupIds: null });
+    if (url === '/api/knowledge/scope') return reply(200, { managedGroupIds });
     if (url === '/api/knowledge' || url.startsWith('/api/knowledge?')) {
       return reply(200, { items: [ROW], nextCursor: null });
     }
@@ -189,5 +192,77 @@ describe('KnowledgePage', () => {
     renderPage('/knowledge');
     expect(await screen.findByText(t('notFound.title'))).toBeInTheDocument();
     expect(listCalls()).toEqual([]);
+  });
+
+  it('Back that removes q keeps it removed', async () => {
+    mockApi();
+    const { router } = renderPage('/knowledge?q=portal');
+    const field = await screen.findByRole('searchbox', { name: t('knowledge.global.search') });
+    expect(field).toHaveValue('portal');
+    await router.navigate({ to: '/knowledge', search: {} as never });
+    await waitFor(() => expect(field).toHaveValue(''));
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    expect(router.state.location.search).not.toHaveProperty('q');
+  });
+
+  it('Back restores q in the field', async () => {
+    mockApi();
+    const { router, user } = renderPage('/knowledge');
+    const field = await screen.findByRole('searchbox', { name: t('knowledge.global.search') });
+    await router.navigate({ to: '/knowledge', search: { q: 'portal' } as never });
+    await waitFor(() => expect(field).toHaveValue('portal'));
+    router.history.back();
+    await waitFor(() => expect(field).toHaveValue(''));
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    expect(router.state.location.search).not.toHaveProperty('q');
+    await user.type(field, 'ab');
+    await waitFor(() => expect(router.state.location.search).toMatchObject({ q: 'ab' }));
+  });
+
+  it('All clients writes clients=all; without managed clients the request has no clients', async () => {
+    const { listCalls } = mockApi();
+    const { router, user } = renderPage('/knowledge?clients=g1');
+    await user.click(
+      await screen.findByRole('button', {
+        name: t('knowledge.clientFilter.pillSelected', { count: 1 }),
+      }),
+    );
+    await user.click(screen.getByRole('button', { name: t('knowledge.clientFilter.allClients') }));
+    await user.click(screen.getByRole('button', { name: t('knowledge.clientFilter.done') }));
+    await waitFor(() => expect(router.state.location.search).toMatchObject({ clients: 'all' }));
+    expect(
+      screen.getByRole('button', { name: t('knowledge.clientFilter.pillAll') }),
+    ).toBeInTheDocument();
+    await waitFor(() => expect(listCalls().at(-1)).toBe('/api/knowledge'));
+  });
+
+  it('clients=all with managed clients asks for every client', async () => {
+    const { listCalls } = mockApi(ADMIN, ['g1']);
+    renderPage('/knowledge?clients=all');
+    expect(
+      await screen.findByRole('button', { name: t('knowledge.clientFilter.pillAll') }),
+    ).toBeInTheDocument();
+    await waitFor(() => expect(listCalls()).toEqual(['/api/knowledge?clients=g1%2Cg2%2Cg3']));
+  });
+
+  it('the client pill waits for groups and scope', async () => {
+    mockApi();
+    let release: () => void = () => undefined;
+    const gate = new Promise<void>((resolve) => (release = resolve));
+    const base = globalThis.fetch as (url: string) => Promise<Response>;
+    vi.stubGlobal('fetch', async (url: string) => {
+      if (url === '/api/knowledge/scope') await gate;
+      return base(url);
+    });
+    renderPage('/knowledge');
+    expect(
+      await screen.findByRole('button', { name: t('knowledge.clientFilter.pillAll') }),
+    ).toBeDisabled();
+    release();
+    await waitFor(() =>
+      expect(
+        screen.getByRole('button', { name: t('knowledge.clientFilter.pillAll') }),
+      ).toBeEnabled(),
+    );
   });
 });

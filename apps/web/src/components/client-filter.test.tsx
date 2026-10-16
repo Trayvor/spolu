@@ -19,10 +19,12 @@ function Harness({
   managedIds,
   initial = null,
   onChange,
+  disabled,
 }: {
   managedIds: string[] | null;
   initial?: string[] | null;
   onChange?: (next: string[] | null) => void;
+  disabled?: boolean;
 }) {
   const [value, setValue] = useState<string[] | null>(initial);
   return (
@@ -30,6 +32,7 @@ function Harness({
       groups={GROUPS}
       managedIds={managedIds}
       value={value}
+      disabled={disabled}
       onChange={(next) => {
         onChange?.(next);
         setValue(next);
@@ -163,5 +166,37 @@ describe('ClientFilter', () => {
         .getAllByRole('checkbox')
         .every((b) => (b as HTMLInputElement).checked),
     ).toBe(true);
+  });
+
+  it('an explicit selection equal to the managed set reads My clients', () => {
+    render(<Harness managedIds={['g1', 'g2']} initial={['g2', 'g1']} />);
+    expect(
+      screen.getByRole('button', { name: t('knowledge.clientFilter.pillMine', { count: 2 }) }),
+    ).toBeInTheDocument();
+  });
+
+  it('stale ids are ignored', async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(<Harness managedIds={null} initial={['g1', 'gone']} onChange={onChange} />);
+    expect(
+      screen.getByRole('button', { name: t('knowledge.clientFilter.pillSelected', { count: 1 }) }),
+    ).toBeInTheDocument();
+    const chips = screen.getByRole('list', { name: t('knowledge.clientFilter.chosen') });
+    expect(
+      within(chips)
+        .getAllByRole('listitem')
+        .map((li) => li.textContent),
+    ).toEqual(['Obec Lúčky']);
+    const panel = await open(user, t('knowledge.clientFilter.pillSelected', { count: 1 }));
+    await user.click(within(panel).getByRole('checkbox', { name: 'Mesto Nitra' }));
+    expect(onChange).toHaveBeenLastCalledWith(['g1', 'g3']);
+  });
+
+  it('the pill is disabled while loading', () => {
+    render(<Harness managedIds={null} disabled />);
+    expect(
+      screen.getByRole('button', { name: t('knowledge.clientFilter.pillAll') }),
+    ).toBeDisabled();
   });
 });

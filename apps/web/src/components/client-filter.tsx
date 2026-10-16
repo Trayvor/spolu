@@ -61,7 +61,7 @@ function ClientLogo({ client }: { client: ClientOption }) {
  * - With managed clients the list splits into "Managed by you" and "Other clients"; managed
  *   chips carry a 6 px ink dot so the two kinds stay apart outside the popover too.
  * - Every change calls `onChange` at once with the ids in the order of `groups`; "Only my
- *   clients" and "Reset" give null.
+ *   clients" and "Reset" give null, "All clients" every id.
  *
  * It renders the pill and the chip row side by side: put it in a `flex flex-wrap` bar, where the
  * chip row (`order-last basis-full`) wraps to its own line under the bar.
@@ -71,11 +71,14 @@ export function ClientFilter({
   managedIds,
   value,
   onChange,
+  disabled = false,
 }: {
   groups: ClientOption[];
   managedIds: string[] | null;
   value: string[] | null;
   onChange: (next: string[] | null) => void;
+  /** Disables the pill, for example until the groups and the managed ids have loaded. */
+  disabled?: boolean;
 }) {
   const { t, i18n } = useTranslation();
   const desktop = useMediaQuery('(min-width: 641px)');
@@ -92,7 +95,9 @@ export function ClientFilter({
   const split = mine.length > 0;
 
   const defaultIds = split ? mine.map((group) => group.id) : groups.map((group) => group.id);
-  const selected = new Set(value ?? defaultIds);
+  // Ids of clients that no longer exist (an old link, stored choice) are ignored.
+  const known = new Set(groups.map((group) => group.id));
+  const selected = new Set(value === null ? defaultIds : value.filter((id) => known.has(id)));
   const allChosen = groups.every((group) => selected.has(group.id));
 
   const pill =
@@ -102,7 +107,9 @@ export function ClientFilter({
         : t('knowledge.clientFilter.pillAll')
       : allChosen
         ? t('knowledge.clientFilter.pillAll')
-        : t('knowledge.clientFilter.pillSelected', { count: selected.size });
+        : split && selected.size === mine.length && mine.every((group) => selected.has(group.id))
+          ? t('knowledge.clientFilter.pillMine', { count: mine.length })
+          : t('knowledge.clientFilter.pillSelected', { count: selected.size });
 
   const emit = (ids: Set<string>) =>
     onChange(groups.filter((group) => ids.has(group.id)).map((group) => group.id));
@@ -112,7 +119,7 @@ export function ClientFilter({
     else next.add(id);
     emit(next);
   };
-  const chooseAll = () => (split ? emit(new Set(groups.map((group) => group.id))) : onChange(null));
+  const chooseAll = () => emit(known);
 
   // Chips: the chosen clients, managed first, unless the choice is every client.
   const chips = allChosen ? [] : [...mine, ...others].filter((group) => selected.has(group.id));
@@ -138,6 +145,7 @@ export function ClientFilter({
       size="sm"
       aria-haspopup="dialog"
       aria-expanded={open}
+      disabled={disabled}
       onClick={desktop ? undefined : () => setOpen(true)}
     >
       {pill}
