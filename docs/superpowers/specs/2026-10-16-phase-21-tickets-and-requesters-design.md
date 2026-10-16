@@ -1,6 +1,6 @@
 # Spolu — Phase 21: Tickets and the ziadatel role (design)
 
-Date: 2026-10-16 · Status: draft, waiting for the owner's review
+Date: 2026-10-16 · Status: approved by the owner (2026-10-16)
 
 Owner brief: [2026-10-16-next-work.md](../briefs/2026-10-16-next-work.md), item B. It **supersedes Phases 12 and 13** of the [roadmap](../../roadmap.md); what was useful from them is kept (URL normalization, three statuses, the global list with filters, manual assignment to a client, admin notification about a new ticket). Their reply-by-email with the manager in copy is replaced by ticket chat plus notifications (decision 6).
 
@@ -163,15 +163,15 @@ A mention in a ticket chat (`chat.mention`) also reaches the mentioned person if
 
 ### What B expects from C
 
-Item C (notification groups in the profile) is built in parallel in another session. B relies on these points; part 21.6 waits until C has merged and checks them first.
+Item C (notification groups in the profile) is built in parallel: spec [2026-10-16-notification-groups-design.md](2026-10-16-notification-groups-design.md), branch `claude/admiring-cerf-lgc5tq`. Its session confirmed this contract on 2026-10-16; part 21.6 waits until C has merged and re-checks each point against the merged code first.
 
-1. A notification group with the key **`tickets`** ("Ticket board"), channels `email | push | both | none`, default **both** (the other groups default to push).
-2. One mapping in the notifications module from an event `kind` to its group (for example `notificationGroupOf(kind)` or `registerNotificationKind(kind, group)`), so B only registers `ticket.created`, `ticket.unassigned`, `ticket.message`, `ticket.status`, `ticket.updated`, `ticket.tasks` under `tickets`. An unknown kind must not break delivery.
-3. Events of the `tickets` group are delivered **regardless of the group's mode** (All messages / Mentions and replies / Off): following a ticket is an explicit choice, like a reminder. Only the person's `tickets` channel setting decides.
-4. "A ziadatel sees only the ticket board group": in B a person is ziadatel-only when they are **not an admin and have no active client membership**. Part 21.1 adds `isRequesterOnly(user)` in the groups service; until then C can show every group to everyone.
-5. The email digest can render a line and a link per event kind, not only for group chat messages: B needs "#123 <subject>: Jana: text" with an **Open** button to `/tickets/<id>`.
-
-If C settles any point differently, part 21.6 adapts to C and this section is updated; the rest of B does not depend on C.
+1. Group keys `chat | tasks | tickets | knowledge`, channels `email | push | both | none`; defaults `tickets = both`, the others `push`. Stored in `user.notification_channels` (jsonb; a missing key means the default).
+2. B adds its kinds `ticket.created`, `ticket.unassigned`, `ticket.message`, `ticket.status`, `ticket.updated`, `ticket.tasks` to `NotificationKinds` (shared), to `KIND_RANK` (`notifications/decide.ts`) and to `NOTIFICATION_GROUP_OF` (`notifications/categories.ts`) as `'tickets'`. An unknown kind maps to `null`: the event is recorded as delivered and skipped.
+3. The `tickets` group passes every bell mode, Off included; only its channel decides. C requires the recipient to belong to the event's group (`groupId`). **Two cases B needs from that check** (21.6 adapts it if C does not cover them): `ticket.unassigned` has `groupId = null` and goes to admins; and a ziadatel belongs to the group through a `ziadatel` membership, which must count for `tickets` kinds (and only for them).
+4. Profile visibility comes from `visibleCategoriesFor(db, user)` in `notifications/categories.ts` (today all four groups). Part 21.1 changes only that function: for `isRequesterOnly(user)` it returns `['tickets']`. The API and the page already show only that list.
+5. Digest: B adds a branch for ticket kinds to `digestEntry(row, ctx) → { line, url, button } | null` (`notifications/digest-entries.ts`): line "#123 <subject>: Jana: text", url `/tickets/<id>`. Emails are split by `url`, so each ticket gets its own email.
+6. Push: B adds a branch to `buildPushPayload` (`notifications/push-content.ts`) and puts the number, subject, author and excerpt into the payload when recording (`recordNotifications`).
+7. Migrations: C's `notification_channels` migration comes from `db:generate`. Whichever branch merges second regenerates its own migration.
 
 ## 5. Interface
 
