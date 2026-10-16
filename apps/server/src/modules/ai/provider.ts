@@ -1,11 +1,19 @@
-/** What the server tells the AI about one message (only text and names leave the server). */
+/**
+ * What the server tells the AI about one message or one ticket (only text and names leave the
+ * server). For a ticket, `text` is its subject and body.
+ */
 export type SplitRequest = {
+  source: 'message' | 'ticket';
   text: string;
   quoted: string | null;
   files: { id: string; name: string }[];
   people: { id: string; name: string }[];
   /** YYYY-MM-DD, Europe/Bratislava. */
   today: string;
+  /** Ticket only: area, programme, file link names; context the cards never repeat. */
+  details: { label: string; value: string }[];
+  /** Ticket only: its chat, oldest first, the newest `CONVERSATION_MAX` messages. */
+  conversation: { author: string; text: string }[];
 };
 
 /** One card as the AI returned it, before `sanitizeProposals`. */

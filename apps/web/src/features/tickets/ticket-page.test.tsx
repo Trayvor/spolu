@@ -21,6 +21,7 @@ function renderTicket(
   me: unknown,
   dto: TicketDto,
   extra: Parameters<typeof mockTicketApi>[1] = [],
+  entries: string[] = ['/tickets/k1'],
 ) {
   const api = mockTicketApi(me, [
     ...extra,
@@ -37,14 +38,14 @@ function renderTicket(
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const router = createAppRouter(
     queryClient,
-    createMemoryHistory({ initialEntries: ['/tickets/k1'] }),
+    createMemoryHistory({ initialEntries: entries, initialIndex: entries.length - 1 }),
   );
   render(
     <QueryClientProvider client={queryClient}>
       <RouterProvider router={router} />
     </QueryClientProvider>,
   );
-  return api;
+  return { ...api, router };
 }
 
 afterEach(() => {
@@ -94,26 +95,14 @@ describe('ticket page', () => {
     expect(screen.queryByRole('link', { name: 'ABC s.r.o.' })).toBeNull();
   });
 
-  it('without client: "No client yet" + Assign client, no chat', async () => {
-    const { calls } = renderTicket(
-      ADMIN,
-      ticket({ groupId: null, groupName: null, channelId: null }),
-      [
-        (url, init) =>
-          url.pathname === '/api/tickets/k1/group' && init?.method === 'PUT'
-            ? reply(200, ticket())
-            : undefined,
-      ],
-    );
+  it('without client: "No client yet" pointing to Edit, no chat', async () => {
+    renderTicket(ADMIN, ticket({ groupId: null, groupName: null, channelId: null }));
     expect(
       await screen.findByRole('heading', { name: t('tickets.noClient.title') }),
     ).toBeInTheDocument();
+    expect(screen.getByText(t('tickets.noClient.adminHint'))).toBeInTheDocument();
     expect(screen.queryByTestId('ticket-chat')).toBeNull();
-    const choose = screen.getByRole('combobox', { name: t('tickets.assign.label') });
-    await waitFor(() => expect(within(choose).getByText('Obec Lúky')).toBeInTheDocument());
-    await userEvent.selectOptions(choose, 'g2');
-    await userEvent.click(screen.getByRole('button', { name: t('tickets.assign.assign') }));
-    await waitFor(() => expect(calls).toContain('PUT /api/tickets/k1/group'));
+    expect(screen.queryByRole('combobox', { name: t('tickets.fields.client') })).toBeNull();
   });
 
   it('chat column hidden while channelId is null', async () => {
@@ -178,12 +167,142 @@ describe('ticket page', () => {
     await waitFor(() => expect(calls).toContain('GET /api/channels/ch1/people'));
     const peopleCalls = () => calls.filter((c) => c === 'GET /api/channels/ch1/people').length;
     const before = peopleCalls();
-    await userEvent.click(screen.getByRole('button', { name: t('tickets.assign.change') }));
-    const choose = screen.getByRole('combobox', { name: t('tickets.assign.moveLabel') });
+    await userEvent.click(screen.getByRole('button', { name: t('tickets.page.edit') }));
+    const choose = screen.getByRole('combobox', { name: t('tickets.fields.client') });
     await waitFor(() => expect(within(choose).getByText('Obec Lúky')).toBeInTheDocument());
     await userEvent.selectOptions(choose, 'g2');
-    await userEvent.click(screen.getByRole('button', { name: t('tickets.assign.move') }));
+    await userEvent.click(screen.getByRole('button', { name: t('tickets.page.save') }));
     await waitFor(() => expect(peopleCalls()).toBeGreaterThan(before));
+  });
+
+  describe('the client field', () => {
+    const fieldOrder = () =>
+      Array.from(document.querySelectorAll('dt')).map((dt) => dt.textContent);
+
+    it('shows the client as a row right above the programme, no separate block', async () => {
+      renderTicket(ADMIN, ticket());
+      await screen.findByRole('heading', { name: 'Cannot submit the application' });
+      const order = fieldOrder();
+      expect(order.indexOf(t('tickets.fields.client'))).toBe(
+        order.indexOf(t('tickets.fields.programme')) - 1,
+      );
+      const row = screen.getByText(t('tickets.fields.client'), { selector: 'dt' }).parentElement!;
+      expect(within(row).getByText('ABC s.r.o.')).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /zmeniť klienta|change client/i })).toBeNull();
+    });
+
+    it('a ticket without client shows "Without client"', async () => {
+      renderTicket(CLIENT, ticket({ groupId: null, groupName: null }));
+      const dt = await screen.findByText(t('tickets.fields.client'), { selector: 'dt' });
+      expect(within(dt.parentElement!).getByText(t('tickets.row.noClient'))).toBeInTheDocument();
+    });
+
+    it('Save moves the client first, then saves changed content', async () => {
+      const { calls, fetchMock } = renderTicket(ADMIN, ticket(), [
+        (url, init) =>
+          url.pathname === '/api/tickets/k1/group' && init?.method === 'PUT'
+            ? reply(200, ticket({ groupId: 'g2', groupName: 'Obec Lúky' }))
+            : undefined,
+        (url, init) =>
+          url.pathname === '/api/tickets/k1' && init?.method === 'PATCH'
+            ? reply(200, ticket({ groupId: 'g2', groupName: 'Obec Lúky', subject: 'New' }))
+            : undefined,
+      ]);
+      await userEvent.click(await screen.findByRole('button', { name: t('tickets.page.edit') }));
+      const choose = screen.getByRole('combobox', { name: t('tickets.fields.client') });
+      await waitFor(() => expect(within(choose).getByText('Obec Lúky')).toBeInTheDocument());
+      await userEvent.selectOptions(choose, 'g2');
+      const subject = screen.getByLabelText(t('tickets.fields.subject'));
+      await userEvent.clear(subject);
+      await userEvent.type(subject, 'New');
+      await userEvent.click(screen.getByRole('button', { name: t('tickets.page.save') }));
+      await waitFor(() => expect(calls).toContain('PATCH /api/tickets/k1'));
+      const writes = calls.filter((c) => /^(PUT|PATCH) \/api\/tickets\//.test(c));
+      expect(writes).toEqual(['PUT /api/tickets/k1/group', 'PATCH /api/tickets/k1']);
+      const put = fetchMock.mock.calls.find(([url]) => String(url).endsWith('/tickets/k1/group'))!;
+      expect(JSON.parse(put[1]!.body as string)).toEqual({ groupId: 'g2' });
+      expect(await screen.findByRole('heading', { name: 'New' })).toBeInTheDocument();
+    });
+
+    it('only the client changed: no content PATCH', async () => {
+      const { calls } = renderTicket(ADMIN, ticket(), [
+        (url, init) =>
+          url.pathname === '/api/tickets/k1/group' && init?.method === 'PUT'
+            ? reply(200, ticket({ groupId: 'g2', groupName: 'Obec Lúky' }))
+            : undefined,
+      ]);
+      await userEvent.click(await screen.findByRole('button', { name: t('tickets.page.edit') }));
+      const choose = screen.getByRole('combobox', { name: t('tickets.fields.client') });
+      await waitFor(() => expect(within(choose).getByText('Obec Lúky')).toBeInTheDocument());
+      await userEvent.selectOptions(choose, 'g2');
+      await userEvent.click(screen.getByRole('button', { name: t('tickets.page.save') }));
+      await waitFor(() =>
+        expect(screen.queryByRole('form', { name: t('tickets.page.editTitle') })).toBeNull(),
+      );
+      expect(calls).toContain('PUT /api/tickets/k1/group');
+      expect(calls).not.toContain('PATCH /api/tickets/k1');
+    });
+
+    it('409 has_tasks keeps the form open with the reason', async () => {
+      renderTicket(ADMIN, ticket(), [
+        (url, init) =>
+          url.pathname === '/api/tickets/k1/group' && init?.method === 'PUT'
+            ? reply(409, { error: 'has_tasks' })
+            : undefined,
+      ]);
+      await userEvent.click(await screen.findByRole('button', { name: t('tickets.page.edit') }));
+      const choose = screen.getByRole('combobox', { name: t('tickets.fields.client') });
+      await waitFor(() => expect(within(choose).getByText('Obec Lúky')).toBeInTheDocument());
+      await userEvent.selectOptions(choose, 'g2');
+      await userEvent.click(screen.getByRole('button', { name: t('tickets.page.save') }));
+      expect(await screen.findByText(t('tickets.assign.hasTasks'))).toBeInTheDocument();
+      expect(screen.getByRole('form', { name: t('tickets.page.editTitle') })).toBeInTheDocument();
+    });
+
+    it('a ticket with tasks: the client cannot be changed, and says why', async () => {
+      renderTicket(ADMIN, ticket({ taskCount: 1, tasks: [] }));
+      await userEvent.click(await screen.findByRole('button', { name: t('tickets.page.edit') }));
+      expect(screen.getByRole('combobox', { name: t('tickets.fields.client') })).toBeDisabled();
+      expect(screen.getByText(t('tickets.assign.hasTasks'))).toBeInTheDocument();
+    });
+
+    it('a ticket without client: the edit form assigns one', async () => {
+      const { calls } = renderTicket(ADMIN, ticket({ groupId: null, groupName: null }), [
+        (url, init) =>
+          url.pathname === '/api/tickets/k1/group' && init?.method === 'PUT'
+            ? reply(200, ticket())
+            : undefined,
+      ]);
+      await userEvent.click(await screen.findByRole('button', { name: t('tickets.page.edit') }));
+      const choose = screen.getByRole('combobox', { name: t('tickets.fields.client') });
+      expect(choose).toHaveValue('');
+      await waitFor(() => expect(within(choose).getByText('ABC s.r.o.')).toBeInTheDocument());
+      await userEvent.selectOptions(choose, 'g1');
+      await userEvent.click(screen.getByRole('button', { name: t('tickets.page.save') }));
+      await waitFor(() => expect(calls).toContain('PUT /api/tickets/k1/group'));
+    });
+  });
+
+  describe('the back link', () => {
+    const back = () => screen.findByRole('link', { name: t('tickets.page.back') });
+
+    it("without in-app history goes to the viewer's list", async () => {
+      renderTicket(ADMIN, ticket());
+      expect(await back()).toHaveAttribute('href', '/tickets');
+      cleanup();
+      renderTicket(CLIENT, ticket());
+      expect(await back()).toHaveAttribute('href', '/groups/g1/tickets');
+      cleanup();
+      renderTicket(REQUESTER, ticket());
+      expect(await back()).toHaveAttribute('href', '/tickets');
+    });
+
+    it('goes back in history to the list the person came from, with its filters', async () => {
+      const { router } = renderTicket(ADMIN, ticket(), [], ['/tickets?status=all', '/tickets/k1']);
+      await userEvent.click(await back());
+      await waitFor(() => expect(router.state.location.pathname).toBe('/tickets'));
+      expect(router.history.location.search).toBe('?status=all');
+    });
   });
 
   describe('turn into tasks', () => {

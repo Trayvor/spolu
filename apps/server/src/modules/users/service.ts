@@ -61,6 +61,47 @@ export async function findUserByEmail(db: Db, email: string): Promise<UserRow | 
   return row ?? null;
 }
 
+const GMAIL_DOMAINS = new Set(['gmail.com', 'googlemail.com']);
+
+/**
+ * The mailbox an address delivers to, for matching people across spellings: case and spaces
+ * never matter, a `+tag` in the local part is dropped, and for Gmail the dots too
+ * (`googlemail.com` is `gmail.com`). Only for finding an existing account; accounts keep and
+ * log in with their exact address.
+ */
+export function mailboxKey(email: string): string {
+  const normalized = normalizeEmail(email);
+  const at = normalized.lastIndexOf('@');
+  if (at <= 0) return normalized;
+  const domain = normalized.slice(at + 1);
+  const local = normalized.slice(0, at).split('+')[0]!;
+  return GMAIL_DOMAINS.has(domain)
+    ? `${local.replaceAll('.', '')}@gmail.com`
+    : `${local}@${domain}`;
+}
+
+/** `mailboxKey` in SQL, for the stored (already normalized) `user.email`. */
+const mailboxKeySql = sql`(case
+  when split_part(${user.email}, '@', 2) in ('gmail.com', 'googlemail.com')
+  then replace(split_part(split_part(${user.email}, '@', 1), '+', 1), '.', '') || '@gmail.com'
+  else split_part(split_part(${user.email}, '@', 1), '+', 1) || '@' || split_part(${user.email}, '@', 2)
+end)`;
+
+/**
+ * The account whose address delivers to the same mailbox as `email` (see `mailboxKey`), when
+ * no account has the exact address. Several: an admin first, then the oldest. A full scan of
+ * the small `user` table; called only when a ticket's initiator has no exact match.
+ */
+export async function findUserByMailbox(db: Db, email: string): Promise<UserRow | null> {
+  const [row] = await db
+    .select()
+    .from(user)
+    .where(sql`${mailboxKeySql} = ${mailboxKey(email)}`)
+    .orderBy(sql`${user.role} = 'client'`, asc(user.createdAt))
+    .limit(1);
+  return row ?? null;
+}
+
 export async function getUserById(db: Db, id: string): Promise<UserRow | null> {
   const [row] = await db.select().from(user).where(eq(user.id, id));
   return row ?? null;

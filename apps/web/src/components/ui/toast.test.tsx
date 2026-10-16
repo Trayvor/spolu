@@ -27,4 +27,15 @@ describe('Toast', () => {
     fireEvent.click(screen.getByRole('button', { name: i18n.t('toast.close') }));
     expect(onClose).toHaveBeenCalledTimes(1);
   });
+
+  it('renders straight into the body, above any positioned column of the page', () => {
+    const { container } = render(
+      <div style={{ position: 'sticky' }}>
+        <Toast onClose={() => {}}>Done</Toast>
+      </div>,
+    );
+    const layer = screen.getByRole('status').closest('.fixed');
+    expect(container.contains(layer)).toBe(false);
+    expect(layer?.parentElement).toBe(document.body);
+  });
 });
