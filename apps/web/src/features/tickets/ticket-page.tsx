@@ -1,17 +1,15 @@
-import { useState, type ReactNode } from 'react';
+import type { MouseEvent, ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Link, useParams } from '@tanstack/react-router';
+import { Link, useParams, useRouter } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import type { Me, TicketDto } from '@spolu/shared';
-import { Button } from '@/components/ui/button';
 import { clientGroups, isAdmin } from '@/features/auth/roles';
 import { useSession } from '@/features/auth/use-session';
 import { ApiError } from '@/lib/api';
 import { useMediaQuery } from '@/lib/use-media-query';
 import { NotFoundPage } from '@/routes/not-found';
 import { ticketQuery } from './api';
-import { AssignClient } from './assign-client';
-import { ChevronDown } from './icons';
+import { ChevronDown, ChevronLeft } from './icons';
 import { TicketChat } from './ticket-chat';
 import { StatusControl, TicketFields } from './ticket-fields';
 import { TicketFollowers } from './ticket-followers';
@@ -27,11 +25,12 @@ export function TicketPageRoute() {
 
 /**
  * The ticket page (Phase 21): the ticket's number, status and client over its subject, then from
- * 1024 px two columns, the details on the left (text, fields, client, followers, tasks) and the
- * ticket chat filling the rest of the window on the right. Below 1024 px the details fold into a
- * summary above the chat. A ticket without a client shows "No client yet" (with Assign client
- * for admins) and no chat. Admins change the status, the fields and the client in place. A ticket
- * that answers 404 later (moved to a client the viewer cannot read) shows the not-found page.
+ * 1024 px two columns, the details on the left (text, fields with the client, followers, tasks)
+ * and the ticket chat filling the rest of the window on the right; "Back" above returns to the
+ * list. Below 1024 px the details fold into a summary above the chat. A ticket without a client
+ * shows "No client yet" (admins choose the client in Edit) and no chat. Admins change the status
+ * from the header, the client and the fields in the details' Edit form. A ticket that answers
+ * 404 later (moved to a client the viewer cannot read) shows the not-found page.
  */
 export function TicketPage({ ticketId }: { ticketId: string }) {
   const { t } = useTranslation();
@@ -51,7 +50,7 @@ export function TicketPage({ ticketId }: { ticketId: string }) {
 
   return (
     <div className="flex flex-1 flex-col gap-3">
-      <TicketHeader ticket={ticket} admin={admin} readsGroup={readsGroup} />
+      <TicketHeader ticket={ticket} admin={admin} readsGroup={readsGroup} me={me} />
       <div className="flex min-h-0 flex-1 flex-col gap-3 lg:flex-row lg:gap-4">
         {wide ? (
           <aside
@@ -80,10 +79,46 @@ export function TicketPage({ ticketId }: { ticketId: string }) {
             </div>
           </div>
         ) : (
-          ticket.groupId === null && <NoClient ticket={ticket} admin={admin} />
+          ticket.groupId === null && <NoClient admin={admin} />
         )}
       </div>
     </div>
+  );
+}
+
+/**
+ * "Back" over the header: one step back in the app's history when the ticket was opened from
+ * inside the app (the list keeps its filters, which live in the URL), else the viewer's list:
+ * the global view for admins, the group's Tickets tab for a client of the ticket's group, My
+ * tickets for anyone else.
+ */
+function BackLink({ ticket, me }: { ticket: TicketDto; me: Me }) {
+  const { t } = useTranslation();
+  const router = useRouter();
+  const groupId = ticket.groupId;
+  const toGroup =
+    !isAdmin(me) && groupId !== null && clientGroups(me).some((g) => g.id === groupId);
+  const goBack = (event: MouseEvent<HTMLAnchorElement>) => {
+    if (!router.history.canGoBack()) return;
+    event.preventDefault();
+    router.history.back();
+  };
+  const className =
+    'inline-flex min-h-11 items-center gap-1.5 self-start text-tiny font-semibold text-muted-foreground hover:text-foreground';
+  const label = (
+    <>
+      <ChevronLeft />
+      {t('tickets.page.back')}
+    </>
+  );
+  return toGroup ? (
+    <Link to="/groups/$groupId/tickets" params={{ groupId }} onClick={goBack} className={className}>
+      {label}
+    </Link>
+  ) : (
+    <Link to="/tickets" onClick={goBack} className={className}>
+      {label}
+    </Link>
   );
 }
 
@@ -91,15 +126,18 @@ function TicketHeader({
   ticket,
   admin,
   readsGroup,
+  me,
 }: {
   ticket: TicketDto;
   admin: boolean;
   readsGroup: boolean;
+  me: Me;
 }) {
   const { t } = useTranslation();
   const title = ticketTitle({ subject: ticket.subject, excerpt: ticket.body });
   return (
     <header className="flex flex-col gap-2">
+      <BackLink ticket={ticket} me={me} />
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <span className="text-button font-semibold text-muted-foreground tabular-nums">
           {t('tickets.page.number', { number: ticket.number })}
@@ -126,37 +164,12 @@ function TicketHeader({
   );
 }
 
-/** Left column (or the folded summary): text and fields, client, followers, tasks. */
+/** Left column (or the folded summary): text and fields (with the client), followers, tasks. */
 function TicketDetails({ ticket, me }: { ticket: TicketDto; me: Me }) {
   const { t } = useTranslation();
-  const admin = isAdmin(me);
-  const [moving, setMoving] = useState(false);
   return (
     <>
-      <TicketFields ticket={ticket} editable={admin} />
-      {admin && ticket.groupId !== null && (
-        <Section>
-          {moving ? (
-            <AssignClient
-              ticketId={ticket.id}
-              currentGroupId={ticket.groupId}
-              onDone={() => setMoving(false)}
-            />
-          ) : (
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex min-w-0 flex-col gap-1">
-                <span className="text-micro font-semibold text-muted-foreground">
-                  {t('tickets.fields.client')}
-                </span>
-                <span className="truncate text-button font-semibold">{ticket.groupName}</span>
-              </div>
-              <Button variant="ghost" size="sm" onClick={() => setMoving(true)}>
-                {t('tickets.assign.change')}
-              </Button>
-            </div>
-          )}
-        </Section>
-      )}
+      <TicketFields ticket={ticket} editable={isAdmin(me)} />
       <Section>
         <TicketFollowers ticketId={ticket.id} following={ticket.following} />
       </Section>
@@ -180,8 +193,8 @@ function Section({ children }: { children: ReactNode }) {
   return <div className="border-t-2 border-border pt-5">{children}</div>;
 }
 
-/** In the chat's place while the ticket has no client: who can act, and Assign client. */
-function NoClient({ ticket, admin }: { ticket: TicketDto; admin: boolean }) {
+/** In the chat's place while the ticket has no client: who assigns one, and how. */
+function NoClient({ admin }: { admin: boolean }) {
   const { t } = useTranslation();
   return (
     <section
@@ -194,7 +207,6 @@ function NoClient({ ticket, admin }: { ticket: TicketDto; admin: boolean }) {
       <p className="text-button text-muted-foreground">
         {t(admin ? 'tickets.noClient.adminHint' : 'tickets.noClient.hint')}
       </p>
-      {admin && <AssignClient ticketId={ticket.id} currentGroupId={null} />}
     </section>
   );
 }

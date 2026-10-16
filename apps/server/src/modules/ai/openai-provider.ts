@@ -5,8 +5,21 @@ import { AiFailedError, type SplitRequest, type TaskSplitProvider } from './prov
 const MAX_COMPLETION_TOKENS = 8000;
 const OPENAI_URL = 'https://api.openai.com/v1/chat/completions';
 
-export const SYSTEM_PROMPT =
-  'You turn one chat message into task cards for a project board. Write every title and description in the language of the message. Make one task per distinct job; do not split one job into steps. Set assigneeIds, deadline (YYYY-MM-DD) and urgent only when the message states them clearly; otherwise use [], null and false. Use only ids from the lists given. Give each file to the task or tasks it belongs to (fileIds); a file may belong to several tasks or to none. Titles are short (at most 200 characters); descriptions keep the details the message gives (at most 5000 characters). Return at most 10 tasks, or none if the message describes no job.';
+/** How a card is written, for a message and for a ticket alike. */
+const CARD_RULES = [
+  'Make one task per distinct job; do not split one job into steps.',
+  'A title is a short action (at most 200 characters, best under 80), such as "Fix the error 500 on the Applications tab"; never add a ticket number, a source, a status or a date to it.',
+  'A description says only what has to be done, clearly and concretely, with the details the text gives (at most 5000 characters). Never add labelled metadata lines (number, subject, area, programme, files, dates, reporter), and never generic advice or a standard procedure (such as checking logs, reproducing the problem, testing or preparing a fix) that the text does not ask for.',
+  'Only when the text gives useful context beyond the job itself (what was already tried, where or when it happens, an answer or a decision from the conversation), end the description with a short paragraph headed "Notes:" in the output language; otherwise add no notes.',
+  'Set assigneeIds, deadline (YYYY-MM-DD) and urgent only when the text states them clearly; otherwise use [], null and false. Use only ids from the lists given. Give each file to the task or tasks it belongs to (fileIds); a file may belong to several tasks or to none.',
+  'Return at most 10 tasks, or none if the text describes no job.',
+].join(' ');
+
+/** The system prompt by source: one chat message, or a support ticket with its chat. */
+export const SYSTEM_PROMPTS = {
+  message: `You turn one chat message into task cards for a project board. Write every title and description in the language of the message. ${CARD_RULES}`,
+  ticket: `You turn a support ticket into task cards for the support team's board. You get the ticket (its subject and text), some details for context only, and the ticket's chat, oldest first: later messages may correct, settle or add to what the ticket says. Describe the work from the ticket and its chat together. Write every title and description in the language of the ticket and its chat. ${CARD_RULES}`,
+} as const;
 
 const ids = (description: string) => ({ type: 'array', items: { type: 'string' }, description });
 
@@ -75,9 +88,24 @@ const list = (items: { id: string; name: string }[]) =>
 
 /** The user message: the request as labelled sections. */
 export function renderSplitPrompt(request: SplitRequest): string {
+  const ticket = request.source === 'ticket';
   return [
-    `Message:\n${request.text}`,
+    `${ticket ? 'Ticket' : 'Message'}:\n${request.text}`,
     ...(request.quoted === null ? [] : [`Quoted message:\n${request.quoted}`]),
+    ...(request.details.length === 0
+      ? []
+      : [
+          `Details (context only, never copy them into a card):\n${request.details
+            .map((d) => `${d.label}: ${d.value}`)
+            .join('\n')}`,
+        ]),
+    ...(request.conversation.length === 0
+      ? []
+      : [
+          `Ticket chat (oldest first):\n${request.conversation
+            .map((m) => `${m.author}: ${m.text}`)
+            .join('\n')}`,
+        ]),
     `Files (id — name):\n${list(request.files)}`,
     `People (id — name):\n${list(request.people)}`,
     `Today:\n${request.today}`,
@@ -106,7 +134,7 @@ export function createOpenAiProvider(options: {
             // Ten full cards fit well within this; it caps the cost of a runaway answer.
             max_completion_tokens: MAX_COMPLETION_TOKENS,
             messages: [
-              { role: 'system', content: SYSTEM_PROMPT },
+              { role: 'system', content: SYSTEM_PROMPTS[request.source] },
               { role: 'user', content: renderSplitPrompt(request) },
             ],
             response_format: {

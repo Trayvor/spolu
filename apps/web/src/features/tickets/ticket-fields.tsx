@@ -1,17 +1,30 @@
 import { useId, useState, type ReactNode } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { TicketStatuses, type TicketDto, type TicketStatus } from '@spolu/shared';
+import {
+  ErrorCodes,
+  TicketStatuses,
+  type TicketDto,
+  type TicketPatchBody,
+  type TicketStatus,
+} from '@spolu/shared';
 import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
+import { groupsQuery } from '@/features/groups/api';
 import { ImagePreview } from '@/features/files/image-preview';
 import { formatCreated, formatDue, todayInBratislava } from '@/features/tasks/dates';
+import { ApiError } from '@/lib/api';
 import { cn } from '@/lib/utils';
-import { usePatchTicket } from './api';
+import { useAssignGroup, usePatchTicket } from './api';
 import { ContentFields, contentErrors, type ContentDraft } from './content-fields';
 import { LinkOutIcon } from './icons';
 import { isTicketOverdue, StatusBadge } from './status-badge';
 
-const draftOf = (ticket: TicketDto): ContentDraft => ({
+type Draft = ContentDraft & { groupId: string };
+
+const draftOf = (ticket: TicketDto): Draft => ({
+  groupId: ticket.groupId ?? '',
   subject: ticket.subject ?? '',
   area: ticket.area ?? '',
   programme: ticket.programme ?? '',
@@ -88,70 +101,158 @@ export function StatusControl({ ticket, editable }: { ticket: TicketDto; editabl
   );
 }
 
+/** The fields of the draft that the content PATCH carries, when any differs from the ticket. */
+function contentPatch(ticket: TicketDto, draft: Draft): TicketPatchBody | null {
+  const before = draftOf(ticket);
+  const keys = ['subject', 'area', 'programme', 'body', 'dueDate', 'url'] as const;
+  if (keys.every((key) => draft[key] === before[key])) return null;
+  return Object.fromEntries(keys.map((key) => [key, draft[key]])) as TicketPatchBody;
+}
+
+/**
+ * The client in the edit form: a select of every client. A ticket without a client starts on
+ * "Without client" (it cannot go back to none); a ticket with tasks keeps its client (the server
+ * answers `409 has_tasks`), so the select is disabled and says why.
+ */
+function ClientSelect({
+  ticket,
+  value,
+  onChange,
+  error,
+}: {
+  ticket: TicketDto;
+  value: string;
+  onChange: (groupId: string) => void;
+  error: string | null;
+}) {
+  const { t } = useTranslation();
+  const id = useId();
+  const groups = useQuery(groupsQuery).data;
+  const locked = ticket.groupId !== null && ticket.taskCount > 0;
+  const reason = locked ? t('tickets.assign.hasTasks') : error;
+  return (
+    <div className="flex flex-col gap-2.5">
+      <Label htmlFor={id}>{t('tickets.fields.client')}</Label>
+      <Select
+        id={id}
+        value={value}
+        disabled={!groups || locked}
+        onChange={(e) => onChange(e.target.value)}
+        aria-describedby={reason ? `${id}-reason` : undefined}
+        aria-invalid={error ? true : undefined}
+      >
+        {ticket.groupId === null && <option value="">{t('tickets.row.noClient')}</option>}
+        {/* The current client stays listed while the list loads. */}
+        {!groups && ticket.groupId !== null && (
+          <option value={ticket.groupId}>{ticket.groupName}</option>
+        )}
+        {(groups ?? []).map((g) => (
+          <option key={g.id} value={g.id}>
+            {g.name}
+          </option>
+        ))}
+      </Select>
+      {reason && (
+        <p
+          id={`${id}-reason`}
+          role={error ? 'alert' : undefined}
+          className={cn('text-tiny', error ? 'text-error-ink' : 'text-muted-foreground')}
+        >
+          {reason}
+        </p>
+      )}
+    </div>
+  );
+}
+
+/**
+ * An admin's edit of the ticket: the client and the content fields of the new-ticket dialog.
+ * Save moves the client first (`PUT /group`: the initiator is found again, followers are checked,
+ * the "Ticket created" email goes if it never went), then saves the content when it changed. A
+ * failed move saves nothing; a ticket with tasks cannot move.
+ */
+function TicketEditor({ ticket, onClose }: { ticket: TicketDto; onClose: () => void }) {
+  const { t } = useTranslation();
+  const [draft, setDraft] = useState<Draft>(() => draftOf(ticket));
+  const [errors, setErrors] = useState<ReturnType<typeof contentErrors>>({});
+  const patch = usePatchTicket(ticket.id);
+  const assign = useAssignGroup(ticket.id);
+  const pending = patch.isPending || assign.isPending;
+  const clientError =
+    assign.error instanceof ApiError && assign.error.code === ErrorCodes.hasTasks
+      ? t('tickets.assign.hasTasks')
+      : assign.isError
+        ? t('errors.generic')
+        : null;
+
+  const save = async () => {
+    const found = contentErrors(draft);
+    setErrors(found);
+    if (Object.keys(found).length > 0) return;
+    try {
+      if (draft.groupId !== '' && draft.groupId !== (ticket.groupId ?? '')) {
+        await assign.mutateAsync(draft.groupId);
+      }
+      const changes = contentPatch(ticket, draft);
+      if (changes) await patch.mutateAsync(changes);
+      onClose();
+    } catch {
+      // Shown from the mutation's state; the form stays open with the draft.
+    }
+  };
+
+  return (
+    <form
+      className="flex flex-col gap-4"
+      aria-label={t('tickets.page.editTitle')}
+      onSubmit={(e) => {
+        e.preventDefault();
+        void save();
+      }}
+    >
+      <ClientSelect
+        ticket={ticket}
+        value={draft.groupId}
+        onChange={(groupId) => {
+          assign.reset();
+          setDraft({ ...draft, groupId });
+        }}
+        error={clientError}
+      />
+      <ContentFields
+        draft={draft}
+        onChange={(next) => setDraft({ ...next, groupId: draft.groupId })}
+        errors={errors}
+      />
+      {patch.isError && (
+        <p role="alert" className="text-tiny text-error-ink">
+          {t('errors.generic')}
+        </p>
+      )}
+      <div className="flex gap-2">
+        <Button type="submit" disabled={pending}>
+          {t('tickets.page.save')}
+        </Button>
+        <Button type="button" variant="ghost" onClick={onClose}>
+          {t('tickets.page.cancel')}
+        </Button>
+      </div>
+    </form>
+  );
+}
+
 /**
  * The ticket's text and fields as a definition list: the initiator (name, email, phone), area,
- * programme, due date (red when overdue), URL, the instance link eGrant sent, links to files,
- * the uploaded files, then when it was created and resolved. An admin edits the content in place
- * ("Edit": the same fields as the new-ticket dialog, Save or Cancel).
+ * the client ("Without client" for none), programme, due date (red when overdue), URL, the
+ * instance link eGrant sent, links to files, the uploaded files, then when it was created and
+ * resolved. An admin edits the client and the content in place ("Edit", Save or Cancel).
  */
 export function TicketFields({ ticket, editable }: { ticket: TicketDto; editable: boolean }) {
   const { t, i18n } = useTranslation();
-  const [draft, setDraft] = useState<ContentDraft | null>(null);
-  const [errors, setErrors] = useState<ReturnType<typeof contentErrors>>({});
-  const patch = usePatchTicket(ticket.id);
+  const [editing, setEditing] = useState(false);
   const lang = i18n.language;
 
-  if (draft) {
-    const save = () => {
-      const found = contentErrors(draft);
-      setErrors(found);
-      if (Object.keys(found).length > 0) return;
-      patch.mutate(
-        {
-          subject: draft.subject,
-          area: draft.area,
-          programme: draft.programme,
-          body: draft.body,
-          dueDate: draft.dueDate,
-          url: draft.url,
-        },
-        { onSuccess: () => setDraft(null) },
-      );
-    };
-    return (
-      <form
-        className="flex flex-col gap-4"
-        aria-label={t('tickets.page.editTitle')}
-        onSubmit={(e) => {
-          e.preventDefault();
-          save();
-        }}
-      >
-        <ContentFields draft={draft} onChange={setDraft} errors={errors} />
-        {patch.isError && (
-          <p role="alert" className="text-tiny text-error-ink">
-            {t('errors.generic')}
-          </p>
-        )}
-        <div className="flex gap-2">
-          <Button type="submit" disabled={patch.isPending}>
-            {t('tickets.page.save')}
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={() => {
-              setDraft(null);
-              setErrors({});
-              patch.reset();
-            }}
-          >
-            {t('tickets.page.cancel')}
-          </Button>
-        </div>
-      </form>
-    );
-  }
+  if (editing) return <TicketEditor ticket={ticket} onClose={() => setEditing(false)} />;
 
   const overdue = isTicketOverdue(ticket.dueDate, ticket.status, todayInBratislava());
   const { requester } = ticket;
@@ -181,6 +282,11 @@ export function TicketFields({ ticket, editable }: { ticket: TicketDto; editable
           )}
         </Row>
         {ticket.area && <Row label={t('tickets.fields.area')}>{ticket.area}</Row>}
+        <Row label={t('tickets.fields.client')}>
+          {ticket.groupName ?? (
+            <span className="text-muted-foreground">{t('tickets.row.noClient')}</span>
+          )}
+        </Row>
         {ticket.programme && <Row label={t('tickets.fields.programme')}>{ticket.programme}</Row>}
         {ticket.dueDate && (
           <Row label={t('tickets.fields.dueDate')}>
@@ -238,7 +344,7 @@ export function TicketFields({ ticket, editable }: { ticket: TicketDto; editable
           variant="secondary"
           size="sm"
           className="self-start"
-          onClick={() => setDraft(draftOf(ticket))}
+          onClick={() => setEditing(true)}
         >
           {t('tickets.page.edit')}
         </Button>

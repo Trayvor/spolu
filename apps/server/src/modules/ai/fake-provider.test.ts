@@ -11,6 +11,9 @@ const request = (text: string): SplitRequest => ({
     { id: 'u2', name: 'Boris' },
   ],
   today: '2026-10-16',
+  source: 'message',
+  details: [],
+  conversation: [],
 });
 
 const split = (text: string) =>
