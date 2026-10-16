@@ -1,30 +1,22 @@
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import type { MessageDto } from '@spolu/shared';
 import { markAllRead, taskChatQuery } from '@/features/chat/api';
 import { ChatLoadError } from '@/features/chat/chat-load-error';
-import { Conversation, type MessageAction } from '@/features/chat/conversation';
+import { Conversation } from '@/features/chat/conversation';
 import { useDocumentVisible } from '@/features/chat/use-document-visible';
+import { useMessageTaskTools } from '@/features/task-split/use-message-task-tools';
 
 /**
  * The task's chat in the panel's Chat tab: the shared `<Conversation>` for the task's channel
  * (created by the server on first open), with threads opening over the list. Opening the tab
  * reads the whole chat, threads included, once the channel is known and the page is visible.
- * Must render under the group layout (`GroupRoomProvider`). Pass stable `messageActions` and
- * `renderMessageFooter` (memoised), or every row re-renders.
+ * Like the group's Chat tab, messages show "Turned into tasks:" and offer "Turn into tasks"
+ * (`useMessageTaskTools`, whose action list and footer stay the same across renders).
+ * Must render under the group layout (`GroupRoomProvider`).
  */
-export function TaskChat({
-  groupId,
-  taskId,
-  messageActions,
-  renderMessageFooter,
-}: {
-  groupId: string;
-  taskId: string;
-  messageActions?: MessageAction[];
-  renderMessageFooter?: (message: MessageDto) => ReactNode;
-}) {
+export function TaskChat({ groupId, taskId }: { groupId: string; taskId: string }) {
   const { data, isError, refetch } = useQuery(taskChatQuery(taskId));
+  const tools = useMessageTaskTools(groupId);
   const visible = useDocumentVisible();
   const channelId = data?.id;
 
@@ -41,13 +33,16 @@ export function TaskChat({
 
   if (data) {
     return (
-      <Conversation
-        channelId={data.id}
-        groupId={groupId}
-        threadMode="over"
-        messageActions={messageActions}
-        renderMessageFooter={renderMessageFooter}
-      />
+      <>
+        <Conversation
+          channelId={data.id}
+          groupId={groupId}
+          threadMode="over"
+          messageActions={tools.messageActions}
+          renderMessageFooter={tools.renderMessageFooter}
+        />
+        {tools.element}
+      </>
     );
   }
   if (isError) return <ChatLoadError onRetry={() => void refetch()} />;

@@ -26,7 +26,7 @@ Each group has a Kanban board with four fixed buckets (columns) and custom bucke
   - **urgent** flag;
   - attachments (files, images);
   - link to the source message in chat (if the task was created from chat): opens the chat at that message, in the group chat or in the task chat it was written in;
-  - **task chat**: the same chat as the group chat (threads, @mentions of anyone in the group and admins, @all, attachments).
+  - **task chat**: the same chat as the group chat (threads, @mentions of anyone in the group and admins, @all, attachments, "Turn into tasks" and the "Turned into tasks:" links under a message).
 - **Task panel tabs** (as built, Phase 9): under the task title the panel has two tabs, **Details** (the form) and **Chat (N)** (the task chat). The open tab is part of the address (`?tab=chat`), so a link can open a task straight on its chat at a message. Switching tabs keeps unsaved changes in the form, and closing the panel still asks about them. Opening the Chat tab marks the task's chat read. On phones the panel is a full-screen sheet and the chat fills it, with the message box at the bottom. A new task has no Chat tab until it is created.
 - **Notifications** (delivered from Phase 6):
   - when a task moves to another bucket, its creator and its assignees are notified (not the person who moved it);

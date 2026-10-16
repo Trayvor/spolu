@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import type { MessageDto, TaskDetailDto } from '@spolu/shared';
 import { Toast } from '@/components/ui/toast';
 import type { MessageAction } from '@/features/chat/conversation';
+import { renderMessageTasks } from '@/features/chat/message-tasks';
 import { aiStatusQuery } from './api';
 
 // The review dialog (and the task form inside it) loads only when a message is chosen.
@@ -32,7 +33,7 @@ const TasksIcon = () => (
 
 /**
  * What a chat needs for "Turn into tasks": the message action (only while the server has the
- * AI on), the footer under each message, and `element` — the lazy review dialog for the chosen
+ * AI on), the "Turned into tasks:" footer under each message (`renderMessageTasks`), and `element` — the lazy review dialog for the chosen
  * message and the "N tasks created" toast. `ChatTab` and `TaskChat` render `element` next to
  * their `<Conversation>`.
  */
@@ -66,8 +67,8 @@ export function useMessageTaskTools(groupId: string): {
     [enabled, t],
   );
 
-  // Task 10 ("Turned into tasks" under the message) supplies the footer at the merge.
-  const renderMessageFooter = useCallback((): ReactNode => null, []);
+  // "Turned into tasks:" under a message; one function per group, so rows never re-render for it.
+  const renderMessageFooter = useMemo(() => renderMessageTasks(groupId), [groupId]);
 
   const close = useCallback(() => setMessage(null), []);
   const onCreated = useCallback((tasks: TaskDetailDto[]) => {

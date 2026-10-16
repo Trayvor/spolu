@@ -1,11 +1,10 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Outlet, useParams } from '@tanstack/react-router';
 import { useMessageTaskTools } from '@/features/task-split/use-message-task-tools';
 import { groupChatQuery } from './api';
 import { ChatLoadError } from './chat-load-error';
 import { Conversation } from './conversation';
-import { renderMessageTasks } from './message-tasks';
 import { useChatSearch } from './use-chat-search';
 
 /**
@@ -22,7 +21,6 @@ export function ChatTab() {
     ...groupChatQuery(groupId ?? ''),
     enabled: groupId !== undefined,
   });
-  const renderFooter = useMemo(() => renderMessageTasks(groupId ?? ''), [groupId]);
   const { unscoped, adopt } = useChatSearch(data?.id);
   const tools = useMessageTaskTools(groupId ?? '');
   const claim = unscoped && data !== undefined;
@@ -40,7 +38,7 @@ export function ChatTab() {
                   channelId={data.id}
                   groupId={groupId}
                   messageActions={tools.messageActions}
-                  renderMessageFooter={renderFooter}
+                  renderMessageFooter={tools.renderMessageFooter}
                 />
               )
             : isError && <ChatLoadError onRetry={() => void refetch()} />}
