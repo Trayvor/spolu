@@ -71,7 +71,7 @@ export function AssigneeSelect({
   }, [people, value, query]);
   // An admin who does not manage the group cannot assign themselves: say who can be assigned.
   const nonManagerAdmin =
-    isAdmin(me) && !(people ?? []).some((p) => p.id === me?.id && p.isManager);
+    !!people && isAdmin(me) && !people.some((p) => p.id === me?.id && p.isManager);
   const emptyLine =
     nonManagerAdmin && query.trim() === '' ? 'tasks.form.noPickablePeople' : 'tasks.form.noPeople';
   const showList = open && !full;
