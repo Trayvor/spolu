@@ -10,7 +10,13 @@ import type {
   TicketSource,
 } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
-import { attachFiles, type FileDeps } from '../files/service.js';
+import type { FileReadRule } from '../files/read-rules.js';
+import {
+  attachFiles,
+  getFilesForGroup,
+  moveFilesToGroup,
+  type FileDeps,
+} from '../files/service.js';
 import { activeMemberOfSql, getMembership } from '../groups/memberships.js';
 import { listGroupManagers, managedGroupIds } from '../groups/managers.js';
 // Deliberate read-only exception: the list joins the group's name in its one query.
@@ -173,13 +179,46 @@ async function groupNameOf(db: Db, groupId: string | null): Promise<string | nul
   return groupId === null ? null : ((await getGroup(db, groupId))?.name ?? null);
 }
 
+/** The ids of the files uploaded with the ticket in the manual form. */
+async function attachmentIds(db: Db, ticketId: string): Promise<string[]> {
+  const rows = await db
+    .select({ fileId: ticketAttachments.fileId })
+    .from(ticketAttachments)
+    .where(eq(ticketAttachments.ticketId, ticketId))
+    .orderBy(ticketAttachments.fileId);
+  return rows.map((r) => r.fileId);
+}
+
+async function ticketFiles(db: Db, row: TicketRow) {
+  if (row.groupId === null) return [];
+  return getFilesForGroup(db, row.groupId, await attachmentIds(db, row.id));
+}
+
+/**
+ * A file uploaded with a ticket is read by whoever reads the ticket (its initiator, a ziadatel,
+ * reads no group files otherwise). Registered with the files module at start-up.
+ */
+export const fileOfReadableTicket: FileReadRule = async (db, actor, file) => {
+  const rows = await db
+    .select({ ticketId: ticketAttachments.ticketId })
+    .from(ticketAttachments)
+    .where(eq(ticketAttachments.fileId, file.id));
+  for (const { ticketId } of rows) {
+    const ticket = await getTicketRow(db, ticketId);
+    if (ticket?.groupId === file.groupId && (await actorReadsTicket(db, actor, ticket)))
+      return true;
+  }
+  return false;
+};
+
 /** The ticket as the viewer sees it. */
 export async function toTicketDto(db: Db, row: TicketRow, viewerId: string): Promise<TicketDto> {
-  const [groupName, following, taskCount, channel] = await Promise.all([
+  const [groupName, following, taskCount, channel, files] = await Promise.all([
     groupNameOf(db, row.groupId),
     isFollowing(db, row.id, viewerId),
     countTasksFromTicket(db, row.id),
     getTicketChannel(db, row.id),
+    ticketFiles(db, row),
   ]);
   return {
     id: row.id,
@@ -202,6 +241,7 @@ export async function toTicketDto(db: Db, row: TicketRow, viewerId: string): Pro
     url: row.url,
     instanceUrl: row.instanceUrl,
     fileLinks: row.fileLinks,
+    files,
     createdBy: row.createdBy,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
@@ -389,6 +429,8 @@ export async function assignTicketGroup(
       .where(eq(tickets.id, id))
       .returning();
     const moved = row!;
+    // The form's files belong to the ticket's client, like its chat's files.
+    await moveFilesToGroup(tx, await attachmentIds(tx, id), groupId);
     await addAutoFollowers(tx, moved);
     const followers = await tx
       .select({ userId: ticketFollowers.userId })

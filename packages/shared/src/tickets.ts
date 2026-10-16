@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { FileInfoSchema } from './files.js';
 import { isHttpUrl } from './urls.js';
 
 /** Phase 21. New → In progress → Resolved; an admin may set any of them at any time. */
@@ -178,6 +179,8 @@ export const TicketDtoSchema = z.object({
   url: z.string().nullable(),
   instanceUrl: z.string().nullable(),
   fileLinks: z.array(z.string()),
+  /** Files uploaded in the manual form (`ticket_attachments`). */
+  files: z.array(FileInfoSchema),
   createdBy: z.string().nullable(),
   createdAt: z.string(),
   updatedAt: z.string(),

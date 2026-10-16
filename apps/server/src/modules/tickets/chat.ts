@@ -5,7 +5,12 @@ import { ensureTicketChannel, moveTicketChannel } from '../chat/service.js';
 import type { Db } from '../../infra/db/client.js';
 import { getUserById } from '../users/service.js';
 import { onTicketChange } from './hooks.js';
-import { actorReadsTicket, getTicketRow, readingFollowerIds } from './service.js';
+import {
+  actorReadsTicket,
+  fileOfReadableTicket,
+  getTicketRow,
+  readingFollowerIds,
+} from './service.js';
 
 const ticketOf = (db: Db, channel: ChannelRef) =>
   channel.ticketId ? getTicketRow(db, channel.ticketId) : Promise.resolve(null);
@@ -14,7 +19,8 @@ const ticketOf = (db: Db, channel: ChannelRef) =>
  * The ticket chat (Phase 21, part 21.3): the chat module reads a `ticket` channel by the ticket's
  * rules, pushes its messages to the initiator's own sockets too (a ziadatel is in no group room),
  * lets the initiator be mentioned and makes `@all` mean the ticket's followers. A ticket gets its
- * chat when it gets a client; the chat moves with the ticket. Call once at start-up.
+ * chat when it gets a client; the chat moves with the ticket. The files uploaded with a ticket are
+ * read by whoever reads it. Call once at start-up.
  */
 export function registerTicketChat(): void {
   registerChannelKind('ticket', {
@@ -42,6 +48,7 @@ export function registerTicketChat(): void {
   });
   onTicketChange(createOrMoveChat);
   registerFileReadRule(fileInReadableChannel);
+  registerFileReadRule(fileOfReadableTicket);
 }
 
 async function createOrMoveChat(
