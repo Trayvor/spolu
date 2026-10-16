@@ -1,8 +1,47 @@
 import { sql } from 'drizzle-orm';
-import { check, index, pgTable, primaryKey, text, timestamp } from 'drizzle-orm/pg-core';
+import {
+  check,
+  index,
+  pgTable,
+  primaryKey,
+  text,
+  timestamp,
+  type AnyPgColumn,
+} from 'drizzle-orm/pg-core';
 import { files } from '../files/schema.js';
 import { groups } from '../groups/schema.js';
 import { user } from '../users/schema.js';
+
+/**
+ * A folder of one group's knowledge base; `parent_id` null is the top level. Everything inside an
+ * admins-only folder is admins-only (kept by the service, see `folders.ts`).
+ */
+export const knowledgeFolders = pgTable(
+  'knowledge_folders',
+  {
+    id: text('id').primaryKey(),
+    groupId: text('group_id')
+      .notNull()
+      .references(() => groups.id, { onDelete: 'cascade' }),
+    // No action on delete: a folder's contents move up before it goes, and a group's delete
+    // cascades to all of its folders in the same statement.
+    parentId: text('parent_id').references((): AnyPgColumn => knowledgeFolders.id),
+    name: text('name').notNull(),
+    /** `public` (the group and admins) or `admins` (admins only). */
+    visibility: text('visibility').notNull().default('public'),
+    createdBy: text('created_by')
+      .notNull()
+      .references(() => user.id),
+    createdAt: timestamp('created_at', { withTimezone: true, precision: 3 }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true, precision: 3 }).notNull().defaultNow(),
+  },
+  (t) => [
+    check('knowledge_folders_visibility_check', sql`${t.visibility} in ('public', 'admins')`),
+    check('knowledge_folders_name_check', sql`char_length(${t.name}) between 1 and 100`),
+    index('knowledge_folders_group_idx').on(t.groupId),
+    index('knowledge_folders_parent_idx').on(t.parentId),
+  ],
+);
 
 /** A knowledge card of one group: a note, a file, a link or a reminder. */
 export const knowledgeItems = pgTable(
@@ -20,6 +59,8 @@ export const knowledgeItems = pgTable(
     body: text('body').notNull().default(''),
     /** Set exactly for links. */
     url: text('url'),
+    /** The item's folder; null is the top level. */
+    folderId: text('folder_id').references(() => knowledgeFolders.id),
     createdBy: text('created_by')
       .notNull()
       .references(() => user.id),
@@ -53,6 +94,14 @@ export const knowledgeItems = pgTable(
       t.id.desc().nullsFirst(),
     ),
     index('knowledge_items_created_by_idx').on(t.createdBy),
+    // A folder's page (`folder_id = $1`, or `is null` with the group), newest first; folder
+    // first, so the foreign key check of a folder's delete uses it too.
+    index('knowledge_items_folder_created_idx').on(
+      t.folderId,
+      t.groupId,
+      t.createdAt.desc().nullsFirst(),
+      t.id.desc().nullsFirst(),
+    ),
     index('knowledge_items_search_idx').using('gin', t.searchText.op('gin_trgm_ops')),
   ],
 );
