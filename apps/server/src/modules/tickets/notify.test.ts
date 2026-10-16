@@ -125,8 +125,12 @@ describe('ticket notifications (Phase 21.6)', () => {
       ['ticket.unassigned', null],
       ['ticket.unassigned', null],
     ]);
-    expect(pushesTo(a1.endpoint).map((p) => p.title)).toContain(
-      `Nový tiket #${t.number} bez klienta`,
+    // Every active admin of the shared test database gets this push, so under load it can land
+    // after the events are written: wait for it.
+    await vi.waitFor(() =>
+      expect(pushesTo(a1.endpoint).map((p) => p.title)).toContain(
+        `Nový tiket #${t.number} bez klienta`,
+      ),
     );
   });
 
