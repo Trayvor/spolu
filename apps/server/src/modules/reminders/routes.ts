@@ -78,6 +78,7 @@ export const remindersRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app
         .header('content-type', 'text/calendar; charset=utf-8')
         .header('content-disposition', `attachment; filename="${ics.filename}"`)
         .header('cache-control', 'private, no-store')
+        .header('x-content-type-options', 'nosniff')
         .send(ics.text);
     });
   };

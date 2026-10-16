@@ -160,9 +160,10 @@ export const knowledgeRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app
     { preHandler: writeGuard },
     async (request, reply) => {
       const actor = request.user!;
+      // The group first: an unreadable or unknown group is 404 whatever the body.
+      if (!(await canOpenGroup(actor, request.params.id))) return notFound(reply);
       const body = KnowledgeDraftSchema.safeParse(request.body);
       if (!body.success) return send(reply, 400, bodyErrorCode(body.error));
-      if (!(await canOpenGroup(actor, request.params.id))) return notFound(reply);
       let item;
       try {
         ({ item } = await createItem(deps, actor, request.params.id, body.data));
@@ -193,9 +194,9 @@ export const knowledgeRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app
       return knowledgeError(reply, error);
     }
     const { item, previousVisibility, removedFileIds } = result;
-    // The files taken off the item were detached in the transaction; a failed delete leaves them
-    // to the daily unattached cleanup.
-    await deleteDetachedFiles({ db, storage }, removedFileIds).catch((error: unknown) =>
+    // The files taken off the item were detached in the transaction. Not awaited: the answer does
+    // not wait for storage, and a failed delete leaves them to the daily unattached cleanup.
+    void deleteDetachedFiles({ db, storage }, removedFileIds).catch((error: unknown) =>
       request.log.error({ err: error }, 'could not delete the files of a knowledge item'),
     );
     emitKnowledgeItem(app.io, item, previousVisibility);

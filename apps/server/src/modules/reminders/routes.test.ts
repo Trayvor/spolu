@@ -188,6 +188,7 @@ describe('reminders API (knowledge subjects)', () => {
     expect(res.statusCode).toBe(200);
     expect(res.headers['content-type']).toBe('text/calendar; charset=utf-8');
     expect(res.headers['content-disposition']).toBe('attachment; filename="pay-the-vat.ics"');
+    expect(res.headers['x-content-type-options']).toBe('nosniff');
     expect(res.body.match(/BEGIN:VEVENT/g)).toHaveLength(2);
     expect(res.body).toContain(`UID:reminder-${set.times[1]!.id}@spolu`);
     expect(res.body).not.toContain(`UID:reminder-${set.times[0]!.id}@spolu`);

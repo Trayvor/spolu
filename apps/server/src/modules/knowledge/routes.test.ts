@@ -256,6 +256,20 @@ describe('knowledge API', () => {
     );
   });
 
+  it('POST to an unreadable or unknown group is 404 even with an invalid body', async () => {
+    const g = await newGroup();
+    const outsider = await clientIn((await newGroup()).id);
+    const admin = await newAdmin();
+    for (const [groupId, cookie] of [
+      [g.id, outsider.cookie],
+      [randomUUID(), admin.cookie],
+    ] as const) {
+      const res = await call('POST', `/api/groups/${groupId}/knowledge`, cookie, { type: 'poem' });
+      expect(res.statusCode).toBe(404);
+      expect(res.json()).toEqual({ error: 'not_found' });
+    }
+  });
+
   it('a client cannot create admins-only', async () => {
     const g = await newGroup();
     const client = await clientIn(g.id);
@@ -397,8 +411,12 @@ describe('knowledge API', () => {
     });
     expect(res.statusCode).toBe(200);
     expect(res.json<KnowledgeItemDto>().files.map((f) => f.id)).toEqual([a.id]);
-    const left = await test.deps.db.select().from(files).where(eq(files.id, b.id));
-    expect(left).toEqual([]);
+    // Deleted after the answer, not before it.
+    const left = () => test.deps.db.select().from(files).where(eq(files.id, b.id));
+    for (let i = 0; i < 100 && (await left()).length > 0; i++) {
+      await new Promise((r) => setTimeout(r, 20));
+    }
+    expect(await left()).toEqual([]);
     expect((await call('GET', `/api/files/${b.id}`, admin.cookie)).statusCode).toBe(404);
     expect((await call('GET', `/api/files/${a.id}`, admin.cookie)).statusCode).toBe(200);
   });
