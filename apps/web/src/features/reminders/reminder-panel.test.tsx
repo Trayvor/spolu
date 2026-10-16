@@ -105,7 +105,7 @@ describe('ReminderPanel', () => {
   it('Add to calendar is disabled with no upcoming time and links to calendar.ics otherwise', () => {
     renderPanel(set({ times: [{ id: 't0', at: future(-48), firedAt: future(-48) }] }));
     expect(screen.queryByRole('link', { name: t('reminders.panel.addToCalendar') })).toBeNull();
-    expect(screen.getByRole('button', { name: t('reminders.panel.noUpcoming') })).toBeDisabled();
+    expect(screen.getByText(t('reminders.panel.noUpcoming')).closest('button')).toBeNull();
     cleanup();
     renderPanel(set());
     const link = screen.getByRole('link', { name: t('reminders.panel.addToCalendar') });

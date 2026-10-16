@@ -20,7 +20,7 @@
     "reminded": "Reminded",
     "remindMe": "Remind me",
     "authorHint": "You created this reminder",
-    "addToCalendar": "Add to calendar",
+    "addToCalendar": "Export to calendar",
     "noUpcoming": "No upcoming reminders",
     "andMore": "{{names}} and {{count}} more",
     "unavailable": "This item has no reminders any more.",

@@ -261,4 +261,18 @@ describe('KnowledgeDialog', () => {
     await user.click(screen.getByRole('button', { name: t('knowledge.detail.save') }));
     expect(await screen.findByText(t('reminders.fields.errors.passed'))).toBeInTheDocument();
   });
+  it('focuses the title after loading, after Edit and after Cancel', async () => {
+    const user = userEvent.setup();
+    renderDialog();
+    const title = await heading('Grant checklist');
+    await waitFor(() => expect(title).toHaveFocus());
+    await user.click(screen.getByRole('button', { name: t('knowledge.detail.edit') }));
+    await waitFor(() =>
+      expect(screen.getByRole('heading', { name: 'Grant checklist' })).toHaveFocus(),
+    );
+    await user.click(screen.getByRole('button', { name: t('knowledge.detail.cancel') }));
+    await waitFor(() =>
+      expect(screen.getByRole('heading', { name: 'Grant checklist' })).toHaveFocus(),
+    );
+  });
 });

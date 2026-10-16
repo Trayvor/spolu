@@ -171,10 +171,9 @@ export function ReminderPanel({
             {t('reminders.panel.addToCalendar')}
           </a>
         ) : (
-          <Button variant="outline" size="sm" disabled className="gap-1.5">
-            <CalendarIcon />
+          <span className="text-micro text-muted-foreground">
             {t('reminders.panel.noUpcoming')}
-          </Button>
+          </span>
         )}
       </div>
 

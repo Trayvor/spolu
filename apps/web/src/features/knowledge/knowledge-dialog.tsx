@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import type { FileInfo, KnowledgeItemDto, KnowledgeType } from '@spolu/shared';
+import { MoreIcon } from '@/components/icons';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -10,12 +11,11 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { PanelHeader } from '@/components/ui/panel-header';
+import { PanelNotice } from '@/components/ui/panel-notice';
 import { SheetDialog, SheetDialogTitle } from '@/components/ui/sheet-dialog';
 import { ApiError } from '@/lib/api';
 import { useSession } from '@/features/auth/use-session';
 import { useGroupPeople } from '@/features/groups/use-group-people';
-import { PanelNotice } from '@/features/tasks/panel-parts';
-import { MoreIcon } from '@/features/tasks/icons';
 import { createKnowledge, deleteKnowledge, knowledgeItemQuery, updateKnowledge } from './api';
 import {
   KnowledgeForm,
@@ -101,6 +101,14 @@ export function KnowledgeDialog({
     reported.current = true;
     onUnavailable();
   }, [notFound, onUnavailable]);
+
+  // The title takes the focus once the item shows, and again after Edit, Save or Cancel. A new
+  // item's form focuses its title field instead.
+  const shownId = item?.id;
+  useEffect(() => {
+    if (target.mode === 'create') return;
+    titleRef.current?.focus();
+  }, [editing, shownId, target.mode]);
 
   const type: KnowledgeType | undefined = target.mode === 'create' ? target.type : item?.type;
   const dirty = editing && !same(value, initial);
