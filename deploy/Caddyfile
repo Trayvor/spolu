@@ -10,3 +10,8 @@
 	# WebSocket upgrades (Socket.IO) are proxied automatically.
 	reverse_proxy app:3000
 }
+
+# Old domains (REDIRECT_DOMAINS): each gets its own certificate and a permanent redirect to
+# https://{$DOMAIN}{uri}. scripts/deploy.sh writes this file next to the Caddyfile on every
+# deploy (scripts/lib.sh caddy_redirects); with no old domains it holds only comments.
+import redirects.caddy
