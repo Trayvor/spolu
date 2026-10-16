@@ -89,6 +89,8 @@ test.describe.serial('task reminders', () => {
     await panel.getByRole('button', { name: 'Zmeniť' }).click();
     await panel.getByRole('combobox', { name: 'Príjemcovia' }).click();
     await admin.getByRole('option', { name: new RegExp(clientName) }).click();
+    // The multi-select list stays open after a pick and covers Done; close it first.
+    await admin.keyboard.press('Escape');
     await panel.getByRole('button', { name: 'Hotovo' }).click();
     await expect(panel.getByTestId('reminder-recipients')).toContainText(clientName);
 
