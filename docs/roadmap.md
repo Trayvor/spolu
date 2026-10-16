@@ -27,6 +27,7 @@ Requirements per module: [product/](product/README.md). Phases after 1 get their
 | 18 | [Client managers](#phase-18--client-managers) | in progress | 9, 6 | [spec](superpowers/specs/2026-10-16-phase-18-client-managers-design.md), [plan](superpowers/plans/2026-10-16-phase-18-client-managers.md) |
 | 19 | [Task reminders](#phase-19--task-reminders) | in progress | 17 | [spec](superpowers/specs/2026-10-16-phase-19-task-reminders-design.md), [plan](superpowers/plans/2026-10-16-phase-19-task-reminders.md) |
 | 20 | [Admin home](#phase-20--admin-home) | in progress | 17, 18 | [spec](superpowers/specs/2026-10-16-phase-20-admin-home-design.md), [plan](superpowers/plans/2026-10-16-phase-20-admin-home.md) |
+| 21 | [Members & groups page](#phase-21--members--groups-page) | planned | 18, 20 | [plan](superpowers/plans/2026-10-16-phase-21-members-and-groups-page.md) |
 
 Phases 8, 12 and 14 do not depend on each other, so their order can change by priority.
 
@@ -283,3 +284,13 @@ Scope: the admin dashboard (assigned tasks, upcoming reminders, unread mentions)
 
 Done when: an admin sees their tasks, reminders and mentions on the home page, opens each from there, and filters the global board by client.
 
+## Phase 21 — Members & groups page
+
+Requirements: [groups](product/groups.md), [client-managers](product/client-managers.md). Owner decisions (2026-10-16) are in the [plan](superpowers/plans/2026-10-16-phase-21-members-and-groups-page.md); the owner builds it locally after the cloud work of the next brief.
+
+Scope:
+- The Members tab: admins add and remove the group's managers, and invite members by email (an email with a login link; the "Pozvaný" state, resend, cancel).
+- The Groups page: the member count links to the Members tab, manager names in a tooltip, a filter by manager, my groups first, and a group count.
+- The client filter's "Predvolené" sits in the filter row on Úlohy and Znalosti.
+
+Done when: an admin adds a manager and invites a member on the Members tab, the member gets the email and signs in, and the Groups page filters by manager with the count.
