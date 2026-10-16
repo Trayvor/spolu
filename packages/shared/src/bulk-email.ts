@@ -232,7 +232,5 @@ export const BULK_PEOPLE_SEARCH = { minQuery: 2, maxQuery: 200, limit: 20 } as c
  * included and left-out people of a draft by name). Unknown ids are left out of the answer.
  */
 export const BulkPeopleLookupSchema = z.object({
-  ids: z
-    .array(z.string().min(1).max(100))
-    .max(BULK_LIMITS.audienceIds * 2),
+  ids: z.array(z.string().min(1).max(100)).max(BULK_LIMITS.audienceIds * 2),
 });

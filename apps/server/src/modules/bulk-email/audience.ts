@@ -17,6 +17,7 @@ import {
   hasActiveRoleSql,
 } from '../groups/memberships.js';
 import { escapeLike } from '../knowledge/search.js';
+import { InvalidCursorError } from './errors.js';
 
 /**
  * Who gets a campaign (spec §2). Every read here is one SQL statement over the `"user"` row
@@ -30,13 +31,6 @@ export type AudienceRecipient = {
   name: string;
   language: UserLanguage;
 };
-
-export class InvalidCursorError extends Error {
-  constructor() {
-    super('Invalid cursor');
-    this.name = 'InvalidCursorError';
-  }
-}
 
 const list = (ids: string[]): SQL =>
   sql.join(

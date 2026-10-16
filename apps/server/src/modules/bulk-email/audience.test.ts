@@ -28,8 +28,7 @@ afterAll(async () => {
   await counting.close();
 });
 
-const audience = (over: Partial<BulkAudience> = {}): BulkAudience =>
-  BulkAudienceSchema.parse(over);
+const audience = (over: Partial<BulkAudience> = {}): BulkAudience => BulkAudienceSchema.parse(over);
 
 const newGroup = (name = 'Firma') =>
   createGroup(db, { name, egrantUrl: `https://g${randomUUID().replaceAll('-', '')}.egrant.sk` });
@@ -60,7 +59,8 @@ async function newAdmin(name = 'Ada') {
   return addAdmin(db, { email: `${randomUUID()}@example.com`, name });
 }
 
-const idsOf = async (a: BulkAudience) => new Set((await resolveAudience(db, a)).map((r) => r.userId));
+const idsOf = async (a: BulkAudience) =>
+  new Set((await resolveAudience(db, a)).map((r) => r.userId));
 
 async function unsubscribe(userId: string, subscribed = false) {
   await db.insert(bulkSubscriptions).values({
@@ -135,7 +135,9 @@ describe('audience', () => {
   it('a manager who manages nothing narrows the scope to no group', async () => {
     const admin = await newAdmin();
     await member((await newGroup()).id);
-    expect((await countAudience(db, audience({ managerIds: [admin.id], roles: ['client'] }))).count).toBe(0);
+    expect(
+      (await countAudience(db, audience({ managerIds: [admin.id], roles: ['client'] }))).count,
+    ).toBe(0);
   });
 
   it('admin role adds every active admin, ignoring the group scope', async () => {
@@ -250,7 +252,11 @@ describe('audience', () => {
   it('count runs one SQL statement', async () => {
     const g = await newGroup();
     await member(g.id);
-    const a = audience({ groupIds: [g.id], managerIds: [randomUUID()], roles: ['client', 'admin'] });
+    const a = audience({
+      groupIds: [g.id],
+      managerIds: [randomUUID()],
+      roles: ['client', 'admin'],
+    });
     counting.reset();
     await countAudience(counting.db, a);
     expect(counting.count()).toBe(1);
@@ -291,9 +297,7 @@ describe('audience', () => {
     const byName = await searchPeople(db, tag);
     expect(byName.map((p) => p.id)).toEqual([found.id]);
     expect(byName[0]).toMatchObject({ role: 'client', groups: ['Gama'], email: found.email });
-    expect((await searchPeople(db, found.email.slice(0, 12))).map((p) => p.id)).toEqual([
-      found.id,
-    ]);
+    expect((await searchPeople(db, found.email.slice(0, 12))).map((p) => p.id)).toEqual([found.id]);
     // LIKE wildcards are matched literally.
     expect(await searchPeople(db, `%_${tag}`)).toEqual([]);
   });
