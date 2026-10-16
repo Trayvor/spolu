@@ -15,8 +15,9 @@ import { saveSubscription } from '../notifications/push-subscriptions.js';
 import { notificationEvents } from '../notifications/schema.js';
 import { user } from '../users/schema.js';
 import { addAdmin, deactivateUser } from '../users/service.js';
-import { fireDueReminders } from './jobs.js';
+import { fireBatch, fireDueReminders } from './jobs.js';
 import { reminderSets, reminderTimes } from './schema.js';
+import { sql } from 'drizzle-orm';
 
 let deps: AppDeps;
 let push: FakePushSender;
@@ -171,5 +172,48 @@ describe('reminders.fire', () => {
     expect(sent[0]!.payload.title).toBe(`Renew contract · ${s.group.name}`);
     expect(sent[0]!.payload.body).toMatch(/^Reminder for /);
     expect(sent[0]!.payload.url).toBe(`/groups/${s.group.id}/knowledge?k=${s.item.id}`);
+  });
+
+  it('SKIP LOCKED: a second open transaction skips the times the first has locked', async () => {
+    const s = await setup();
+    const now = new Date();
+    let release!: () => void;
+    const gate = new Promise<void>((r) => (release = r));
+    let locked!: () => void;
+    const aLocked = new Promise<void>((r) => (locked = r));
+    const a = deps.db.transaction((tx) =>
+      fireBatch(tx, now, 200, [s.setId], async () => {
+        locked();
+        await gate; // A keeps its transaction open, holding the lock
+      }),
+    );
+    await aLocked;
+    const b = await deps.db.transaction((tx) => fireBatch(tx, now, 200, [s.setId]));
+    expect(b.count).toBe(0);
+    release();
+    expect((await a).count).toBe(1);
+    expect(await eventsOf(s.timeId)).toHaveLength(2);
+  });
+
+  it('times whose set has no subject are still marked fired', async () => {
+    const s = await setup();
+    // The check constraint makes a subject-less set impossible; lift it inside a rolled-back
+    // transaction to reach the empty-subjects path.
+    const rollback = new Error('rollback');
+    await expect(
+      deps.db.transaction(async (tx) => {
+        await tx.execute(
+          sql`alter table reminder_sets drop constraint reminder_sets_subject_check`,
+        );
+        await tx.execute(
+          sql`update reminder_sets set knowledge_item_id = null where id = ${s.setId}`,
+        );
+        const batch = await fireBatch(tx, new Date(), 200, [s.setId]);
+        expect(batch).toEqual({ count: 1, recipients: [] });
+        const [time] = await tx.select().from(reminderTimes).where(eq(reminderTimes.id, s.timeId));
+        expect(time!.firedAt).not.toBeNull();
+        throw rollback;
+      }),
+    ).rejects.toBe(rollback);
   });
 });

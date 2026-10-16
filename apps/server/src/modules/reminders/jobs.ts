@@ -25,11 +25,13 @@ export function remindersJobHandlers(deps: Deps): JobHandlers {
 
 type Batch = { count: number; recipients: string[] };
 
-async function fireBatch(
+/** `afterSelect` is a test hook: it runs once the times are locked. */
+export async function fireBatch(
   tx: Db,
   now: Date,
   limit: number,
   setIds: string[] | undefined,
+  afterSelect?: () => Promise<void>,
 ): Promise<Batch> {
   const times = await tx
     .select({ id: reminderTimes.id, setId: reminderTimes.setId, at: reminderTimes.at })
@@ -44,6 +46,7 @@ async function fireBatch(
     .orderBy(asc(reminderTimes.at), asc(reminderTimes.id))
     .limit(limit)
     .for('update', { skipLocked: true });
+  await afterSelect?.();
   if (times.length === 0) return { count: 0, recipients: [] };
 
   // The sets, with the subject id of whichever kind they belong to.
@@ -66,11 +69,18 @@ async function fireBatch(
     subjects.set(subject.kind, await subject.loadMany(tx, ids));
   }
 
-  const recipientRows = await tx
-    .select({ setId: reminderRecipients.setId, userId: reminderRecipients.userId, role: user.role })
-    .from(reminderRecipients)
-    .innerJoin(user, eq(user.id, reminderRecipients.userId))
-    .where(inArray(reminderRecipients.setId, [...subjectOf.keys()]));
+  // An empty `in ()` is invalid SQL: with no sets there are no recipients.
+  const recipientRows = !subjectOf.size
+    ? []
+    : await tx
+        .select({
+          setId: reminderRecipients.setId,
+          userId: reminderRecipients.userId,
+          role: user.role,
+        })
+        .from(reminderRecipients)
+        .innerJoin(user, eq(user.id, reminderRecipients.userId))
+        .where(inArray(reminderRecipients.setId, [...subjectOf.keys()]));
   const recipientsOf = new Map<string, { userId: string; isAdmin: boolean }[]>();
   for (const r of recipientRows) {
     const list = recipientsOf.get(r.setId) ?? [];
