@@ -32,8 +32,9 @@ Design: [Phase 21 spec](../superpowers/specs/2026-10-16-phase-21-tickets-and-req
   | follow | yes | yes | own tickets |
 
 - **Lists**: the group's Tickets tab, **My tickets** (the initiator's tickets across their groups) and the admins' **global view** with the client filter (default the clients I manage, "All", "Without client", chosen clients). Filters: status (default Open = New and In progress; Resolved; All), area, "Following". Newest first, 50 per page.
-- Each ticket has its own chat (part 21.3) and can be turned into tasks with AI (part 21.5).
+- **Chat.** A ticket with a client has its own chat (part 21.3, see [chat](chat.md)): admins, the group's clients and the initiator write there; it moves with the ticket. A ticket without a client has none until a client is assigned.
+- A ticket can be turned into tasks with AI (part 21.5).
 
 ## Phase
 
-Phase 21. Built so far: part 21.1 (memberships) and part 21.2 (server core: intake API, manual creation, initiator, "Ticket created" email, statuses and fields, assigning the client, following, lists). Parts 21.3–21.7: ticket chat, screens, ticket to tasks, notifications, e2e.
+Phase 21. Built so far: part 21.1 (memberships), part 21.2 (server core: intake API, manual creation, initiator, "Ticket created" email, statuses and fields, assigning the client, following, lists) and part 21.3 (ticket chat, server). Parts 21.4–21.7: screens, ticket to tasks, notifications, e2e.

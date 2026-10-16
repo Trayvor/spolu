@@ -314,3 +314,9 @@ export async function deleteUnattachedFiles(
   await dropStored(storage, removed);
   return removed.length;
 }
+
+/** Moves files to another group (a ticket chat moving with its ticket, Phase 21). */
+export async function moveFilesToGroup(tx: Db, fileIds: string[], groupId: string): Promise<void> {
+  if (fileIds.length === 0) return;
+  await tx.update(files).set({ groupId }).where(inArray(files.id, fileIds));
+}

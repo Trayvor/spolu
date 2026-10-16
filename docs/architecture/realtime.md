@@ -90,6 +90,9 @@ A visibility change from public to admins sends `knowledge:item_deleted` to the 
 
 ## Chat events
 
+A ticket chat's message events (Phase 21) go to the group room and also to the ticket initiator's user room (`extraRoomsOf`, from the rules the tickets module registers), because a ziadatel is in no group room. Listeners already filter by `channelId` (and task chats by `taskId`), so a ticket chat's events never touch the group Chat tab or the task chats.
+
+
 All are pushed after the transaction committed, by the chat routes, or for `chat:message_tasks` by the task routes, through `modules/chat/events.ts`. Payload types are `ChatMessageEvent`, `ChatReadEvent`, `ChatThreadReplyEvent` and `ChatMessageTasksEvent` in `packages/shared/src/chat.ts`; the event names are `ChatEvents.message`, `ChatEvents.read`, `ChatEvents.threadReply` and `ChatEvents.messageTasks`.
 
 | event | room | payload | sent when |

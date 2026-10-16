@@ -16,13 +16,15 @@ import {
 import { files } from '../files/schema.js';
 import { groups } from '../groups/schema.js';
 import { tasks } from '../tasks/schema.js';
+import { tickets } from '../tickets/schema.js';
 import { user } from '../users/schema.js';
 
 const timestamptz = (name: string) => timestamp(name, { withTimezone: true, precision: 3 });
 
 /**
- * A chat room: the group chat (one per group) and the task chats (one per task, created on first
- * use, deleted with the task). `lastSeq` is the per-channel change counter.
+ * A chat room: the group chat (one per group), the task chats (one per task, created on first
+ * use, deleted with the task) and the ticket chats (Phase 21: one per ticket with a client,
+ * moved with the ticket, deleted with it). `lastSeq` is the per-channel change counter.
  */
 export const channels = pgTable(
   'channels',
@@ -34,12 +36,18 @@ export const channels = pgTable(
     kind: text('kind').notNull(),
     /** Set exactly for task chats. Lazy reference: tasks/schema.ts imports this file too. */
     taskId: text('task_id').references((): AnyPgColumn => tasks.id, { onDelete: 'cascade' }),
+    /** Set exactly for ticket chats (Phase 21). */
+    ticketId: text('ticket_id').references(() => tickets.id, { onDelete: 'cascade' }),
     lastSeq: bigint('last_seq', { mode: 'number' }).notNull().default(0),
     createdAt: timestamptz('created_at').notNull().defaultNow(),
   },
   (t) => [
-    check('channels_kind_check', sql`${t.kind} in ('group', 'task')`),
+    check('channels_kind_check', sql`${t.kind} in ('group', 'task', 'ticket')`),
     check('channels_task_check', sql`(${t.kind} = 'task') = (${t.taskId} is not null)`),
+    check('channels_ticket_check', sql`(${t.kind} = 'ticket') = (${t.ticketId} is not null)`),
+    uniqueIndex('channels_ticket_unique')
+      .on(t.ticketId)
+      .where(sql`${t.ticketId} is not null`),
     uniqueIndex('channels_group_unique')
       .on(t.groupId)
       .where(sql`${t.kind} = 'group'`),

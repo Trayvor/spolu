@@ -220,6 +220,13 @@ Each branch is cut from the latest `main`. The ticket page of 21.4 renders the c
 
 ## Part 21.3 — Ticket chat (spec §2 channels, §5 realtime)
 
+**As built (2026-10-16, branch `phase-21-3-ticket-chat`, stacked on 21.2).** For later parts:
+- `modules/chat/access.ts`: `registerChannelKind(kind, { canRead, extraRooms, extraPeople, allRecipients })`, `actorReadsChannel`, `extraRoomsOf`, `channelKindAccess`. The tickets module registers `ticket` in `tickets/chat.ts` (`registerTicketChat()`, called in `app.ts`), together with the create/move hook and the file read rule.
+- Chat service: `ensureTicketChannel`, `getTicketChannel`, `moveTicketChannel` (moves the messages' files to the new group with `moveFilesToGroup`).
+- Routes: `GET /api/tickets/:id/chat` (a `GroupChannel`; 404 while the ticket has no client) and `GET /api/channels/:id/people` (pickable people plus the initiator; the web ticket chat must use it, not `/groups/:id/people`).
+- A ticket chat records **no** chat notifications (no `chat.message`, `chat.mention`, `chat.thread_reply`); part 21.6 adds `ticket.message` for followers and decides how mentions in a ticket chat notify. `allRecipients` (the reading followers) is ready for it.
+- Files: `files/read-rules.ts` (`registerFileReadRule`); a ziadatel downloads files attached to their ticket chat. A ziadatel cannot upload yet (the upload route needs the group); 21.4 either hides attaching for them or adds a ticket upload route.
+
 ### Task 3.1: Channel kind `ticket`
 
 **Files:**

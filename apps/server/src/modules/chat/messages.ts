@@ -25,10 +25,9 @@ import {
 import { listGroupPeople } from '../groups/service.js';
 import { recordNotifications, requestDelivery } from '../notifications/service.js';
 import { listTasksForMessages } from '../tasks/service.js';
-import { isAdmin } from '../users/policy.js';
 import { user } from '../users/schema.js';
 import { selectMessages, toMessageDtos, type MessageRow } from './dto.js';
-import { canReadChannel } from './policy.js';
+import { actorReadsChannel, channelKindAccess } from './access.js';
 import { channels, messageAttachments, messageMentions, messages } from './schema.js';
 import {
   getChannel,
@@ -37,7 +36,6 @@ import {
   settleThreadReads,
   type ChannelRow,
 } from './service.js';
-import { clientGroupIds } from '../groups/memberships.js';
 
 const EXCERPT_LENGTH = 140;
 
@@ -143,6 +141,12 @@ export async function sendMessage(
   const nameById = new Map(people.map((p) => [p.id, p.name]));
   // New mentions and @all reach clients and managers only; chat.message and threads reach readers.
   const pickable = new Set(people.filter(isPickable).map((p) => p.id));
+  // Another module's chat (a ticket's) adds its own people and decides who @all is.
+  const access = channelKindAccess(channel);
+  for (const p of access ? await access.extraPeople(db, channel) : []) {
+    nameById.set(p.id, p.name);
+    pickable.add(p.id);
+  }
   if (mentions.userIds.some((id) => !pickable.has(id))) throw new InvalidMentionError();
 
   const messageId = randomUUID();
@@ -239,12 +243,16 @@ export async function sendMessage(
         for (const id of recorded) notified.add(id);
       };
       const everyone = people.map((p) => p.id);
-      // Replies only notify the thread; the channel hears about top-level messages.
-      if (parentId === null) await notify('chat.message', everyone);
-      await notify('chat.mention', mentions.all ? [...pickable] : mentions.userIds);
+      // A ticket chat records no chat notifications: its followers hear about it through the
+      // ticket's own events (part 21.6), which link to the ticket, not to a group chat.
+      if (access === null) {
+        // Replies only notify the thread; the channel hears about top-level messages.
+        if (parentId === null) await notify('chat.message', everyone);
+        await notify('chat.mention', mentions.all ? [...pickable] : mentions.userIds);
+      }
       if (parentId !== null) {
         // The named people already get chat.mention; the thread notice stays with the old people.
-        await notify('chat.thread_reply', threadPeople);
+        if (access === null) await notify('chat.thread_reply', threadPeople);
         const named = others(mentions.userIds).filter((id) => nameById.has(id));
         threadPeople = [...new Set([...threadPeople, ...named])];
       }
@@ -368,8 +376,7 @@ export async function findReadableMessage(
   const message = ID_RE.test(id) ? await getMessage(db, id) : null;
   const channel = message ? await getChannel(db, message.channelId) : null;
   if (!message || !channel) return null;
-  const actorGroupIds = isAdmin(actor) ? [] : await clientGroupIds(db, actor.id);
-  return canReadChannel(actor, channel, actorGroupIds) ? { message, channel } : null;
+  return (await actorReadsChannel(db, actor, channel)) ? { message, channel } : null;
 }
 
 async function loadDto(db: Db, groupId: string, id: string): Promise<MessageDto> {
@@ -393,6 +400,8 @@ export async function editMessage(
   const mentions = extractMentions(body);
   const people = await listGroupPeople(db, channel.groupId);
   const known = new Set(people.filter(isPickable).map((p) => p.id));
+  const access = channelKindAccess(channel);
+  for (const p of access ? await access.extraPeople(db, channel) : []) known.add(p.id);
   // Mentions already on the message stay valid even if that person has left the group since.
   const stored = await db
     .select({ userId: messageMentions.userId })

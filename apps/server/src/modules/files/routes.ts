@@ -17,6 +17,7 @@ import {
 } from './service.js';
 import { IMAGE_TYPES, sniffImageType } from './sniff.js';
 import { clientGroupIds } from '../groups/memberships.js';
+import { readableByRule } from './read-rules.js';
 
 const MAX_PREVIEW_BYTES = 300 * 1024;
 const MAX_PREVIEW_SIDE = 20_000;
@@ -54,7 +55,8 @@ export const filesRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { 
     const actor = request.user!;
     const file = await getFile(db, id);
     if (!file) return null;
-    return canReadFile(actor, file, await clientGroupIds(db, actor.id)) ? file : null;
+    if (canReadFile(actor, file, await clientGroupIds(db, actor.id))) return file;
+    return (await readableByRule(db, actor, file)) ? file : null;
   };
 
   const sendStored = async (reply: FastifyReply, key: string, headers: Record<string, string>) => {

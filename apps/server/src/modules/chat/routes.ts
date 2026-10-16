@@ -4,6 +4,7 @@ import {
   EditMessageInputSchema,
   ID_RE,
   ErrorCodes,
+  isPickable,
   MarkReadInputSchema,
   MESSAGE_PAGE_SIZE,
   SendMessageInputSchema,
@@ -15,7 +16,7 @@ import { InvalidAttachmentError } from '../files/service.js';
 import { requireUser } from '../auth/session.js';
 import { isAdmin } from '../users/policy.js';
 import { canReadGroup } from '../groups/policy.js';
-import { getGroup } from '../groups/service.js';
+import { getGroup, listGroupPeople } from '../groups/service.js';
 import { getTaskRef } from '../tasks/task-service.js';
 import { emitMessage, emitRead, emitThreadReply } from './events.js';
 import {
@@ -28,7 +29,8 @@ import {
   findReadableMessage,
   sendMessage,
 } from './messages.js';
-import { canDeleteMessage, canEditMessage, canReadChannel, isMessageAuthor } from './policy.js';
+import { canDeleteMessage, canEditMessage, isMessageAuthor } from './policy.js';
+import { actorReadsChannel, channelKindAccess, extraRoomsOf } from './access.js';
 import {
   changesAfter,
   getThread,
@@ -43,6 +45,7 @@ import {
   ensureTaskChannel,
   getChannel,
   getLastReadAt,
+  getTicketChannel,
   markAllRead,
   markRead,
   markThreadRead,
@@ -91,10 +94,7 @@ export const chatRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { d
     const actor = request.user!;
     // A malformed id cannot exist; checking first keeps NUL and the like away from Postgres.
     const channel = ID_RE.test(channelId) ? await getChannel(db, channelId) : null;
-    if (channel) {
-      const actorGroupIds = isAdmin(actor) ? [] : await clientGroupIds(db, actor.id);
-      if (canReadChannel(actor, channel, actorGroupIds)) return channel;
-    }
+    if (channel && (await actorReadsChannel(db, actor, channel))) return channel;
     notFound(reply);
     return null;
   };
@@ -137,6 +137,33 @@ export const chatRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { d
     if (!canReadGroup(actor, id, await clientGroupIds(db, actor.id))) return notFound(reply);
     if (!(await getGroup(db, id))) return notFound(reply);
     return taskChatSummaries(db, actor.id, id);
+  });
+
+  // A ticket's chat (Phase 21): read by whoever reads the ticket (the ticket module's rules). A
+  // ticket without a client has no chat yet: 404 like an unreadable one.
+  app.get<IdParams>('/tickets/:id/chat', { preHandler: anyUser }, async (request, reply) => {
+    const { id } = request.params;
+    const channel = ID_RE.test(id) ? await getTicketChannel(db, id) : null;
+    if (!channel || !(await actorReadsChannel(db, request.user!, channel))) {
+      return notFound(reply);
+    }
+    return channelInfo(request.user!.id, channel);
+  });
+
+  // Who can be mentioned in a channel: the group's pickable people (its clients and managers)
+  // plus the channel kind's own (a ticket's initiator). For anyone who reads the channel, so a
+  // ziadatel, who cannot read the group's people, still sees names in a ticket chat.
+  app.get<IdParams>('/channels/:id/people', { preHandler: anyUser }, async (request, reply) => {
+    const channel = await readableChannel(request, reply, request.params.id);
+    if (!channel) return reply;
+    const people = (await listGroupPeople(db, channel.groupId)).filter(isPickable);
+    const access = channelKindAccess(channel);
+    const known = new Set(people.map((p) => p.id));
+    for (const p of access ? await access.extraPeople(db, channel) : []) {
+      if (!known.has(p.id))
+        people.push({ id: p.id, name: p.name, isAdmin: false, isManager: false });
+    }
+    return people;
   });
 
   // A task chat is read by whoever can read the task's group, like the group chat.
@@ -212,9 +239,10 @@ export const chatRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { d
     try {
       const sent = await sendMessage(deps, { channel, author: actor, data: body.data });
       if (!sent.created) return reply.code(200).send(sent.message);
-      emitMessage(app.io, channel, sent.message, true);
+      const rooms = await extraRoomsOf(db, channel);
+      emitMessage(app.io, channel, sent.message, true, rooms);
       if (sent.parent) {
-        emitMessage(app.io, channel, sent.parent, false);
+        emitMessage(app.io, channel, sent.parent, false, rooms);
         emitThreadReply(app.io, sent.threadPeople, {
           groupId: channel.groupId,
           channelId: channel.id,
@@ -250,7 +278,7 @@ export const chatRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { d
     }
     try {
       const message = await editMessage(deps, { ...found, body: body.data.body });
-      emitMessage(app.io, found.channel, message, false);
+      emitMessage(app.io, found.channel, message, false, await extraRoomsOf(db, found.channel));
       return message;
     } catch (error) {
       if (error instanceof InvalidMentionError) {
@@ -277,7 +305,7 @@ export const chatRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { d
         onFileCleanupError: (error) =>
           request.log.error({ err: error }, 'chat: file cleanup after message delete failed'),
       });
-      emitMessage(app.io, found.channel, message, false);
+      emitMessage(app.io, found.channel, message, false, await extraRoomsOf(db, found.channel));
       return reply.code(204).send();
     } catch (error) {
       // The chat went with its task (or group) while this delete waited for the channel lock.

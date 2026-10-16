@@ -17,6 +17,7 @@ import { listGroupManagers, managedGroupIds } from '../groups/managers.js';
 import { groups } from '../groups/schema.js';
 import { getGroup } from '../groups/service.js';
 import { countTasksFromTicket } from '../tasks/task-service.js';
+import { getTicketChannel } from '../chat/service.js';
 import { isAdmin } from '../users/policy.js';
 import { getUserById, getUserNames } from '../users/service.js';
 import { canReadTicket } from './policy.js';
@@ -174,10 +175,11 @@ async function groupNameOf(db: Db, groupId: string | null): Promise<string | nul
 
 /** The ticket as the viewer sees it. */
 export async function toTicketDto(db: Db, row: TicketRow, viewerId: string): Promise<TicketDto> {
-  const [groupName, following, taskCount] = await Promise.all([
+  const [groupName, following, taskCount, channel] = await Promise.all([
     groupNameOf(db, row.groupId),
     isFollowing(db, row.id, viewerId),
     countTasksFromTicket(db, row.id),
+    getTicketChannel(db, row.id),
   ]);
   return {
     id: row.id,
@@ -206,7 +208,7 @@ export async function toTicketDto(db: Db, row: TicketRow, viewerId: string): Pro
     resolvedAt: row.resolvedAt?.toISOString() ?? null,
     following,
     taskCount,
-    channelId: null,
+    channelId: channel?.id ?? null,
   };
 }
 
