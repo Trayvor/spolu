@@ -309,6 +309,26 @@ export async function getMessageFiles(
   );
 }
 
+/**
+ * The newest `limit` messages of a channel that are not deleted, thread replies included, oldest
+ * first, with the author's name (for the AI's view of a ticket chat). Same read-only exception
+ * as `selectMessages` for the name.
+ */
+export async function listRecentMessages(
+  db: Db,
+  channelId: string,
+  limit: number,
+): Promise<{ authorName: string; body: string }[]> {
+  const rows = await db
+    .select({ authorName: user.name, body: messages.body, createdAt: messages.createdAt })
+    .from(messages)
+    .innerJoin(user, eq(user.id, messages.authorId))
+    .where(and(eq(messages.channelId, channelId), isNull(messages.deletedAt)))
+    .orderBy(sql`${messages.createdAt} desc`, sql`${messages.id} desc`)
+    .limit(limit);
+  return rows.reverse().map(({ authorName, body }) => ({ authorName, body }));
+}
+
 // Same read-only exception as `selectMessages`: author and mentioned names come from `user`.
 /**
  * The message a task was made from, for the task panel: author name, a one-line excerpt with

@@ -48,7 +48,8 @@
     "turnedInto_one": "Premenený na {{count}} úlohu",
     "turnedInto_few": "Premenený na {{count}} úlohy",
     "turnedInto_many": "Premenený na {{count}} úlohy",
-    "turnedInto_other": "Premenený na {{count}} úloh"
+    "turnedInto_other": "Premenený na {{count}} úloh",
+    "back": "Späť"
   },
   "fields": {
     "status": "Stav",
@@ -76,17 +77,12 @@
     "none": "Tento tiket nikto nesleduje."
   },
   "assign": {
-    "label": "Klient",
-    "moveLabel": "Presunúť k inému klientovi",
     "choose": "Vyberte klienta",
-    "assign": "Priradiť klienta",
-    "move": "Presunúť",
-    "change": "Zmeniť klienta",
     "hasTasks": "Tento tiket má úlohy na nástenke svojho klienta, preto zostáva pri ňom."
   },
   "noClient": {
     "title": "Zatiaľ bez klienta",
-    "adminHint": "eGrant neposlal odkaz na inštanciu, ktorý by patril klientovi. Priraďte klienta: tiket dostane chat a iniciátor e-mail.",
+    "adminHint": "eGrant neposlal odkaz na inštanciu, ktorý by patril klientovi. Klienta vyberte v „Upraviť“: tiket dostane chat a iniciátor e-mail.",
     "hint": "Klienta najprv priradí administrátor."
   },
   "form": {

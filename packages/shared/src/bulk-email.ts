@@ -263,3 +263,5 @@ export type BulkNotReadyAnswer = { error: 'not_ready'; problems: BulkNotReadyPro
 
 /** `202` of `POST …/test`: the test goes to the signed-in admin's own address only. */
 export type BulkTestSendResult = { to: string };
+/** `GET /api/bulk-email/sender`: the From address bulk email goes out with (`MAIL_FROM_BULK`). */
+export type BulkSenderDto = { sender: string };

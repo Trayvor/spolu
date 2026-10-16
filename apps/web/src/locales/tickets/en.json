@@ -46,7 +46,8 @@
     "save": "Save changes",
     "cancel": "Cancel",
     "turnedInto_one": "Turned into {{count}} task",
-    "turnedInto_other": "Turned into {{count}} tasks"
+    "turnedInto_other": "Turned into {{count}} tasks",
+    "back": "Back"
   },
   "fields": {
     "status": "Status",
@@ -74,17 +75,12 @@
     "none": "Nobody follows this ticket."
   },
   "assign": {
-    "label": "Client",
-    "moveLabel": "Move to another client",
     "choose": "Choose a client",
-    "assign": "Assign client",
-    "move": "Move",
-    "change": "Change client",
     "hasTasks": "This ticket has tasks on its client's board, so it stays with that client."
   },
   "noClient": {
     "title": "No client yet",
-    "adminHint": "eGrant sent no instance link that matches a client. Assign the client: the ticket gets its chat and the initiator gets their email.",
+    "adminHint": "eGrant sent no instance link that matches a client. Choose the client in Edit: the ticket gets its chat and the initiator gets their email.",
     "hint": "An admin assigns the client first."
   },
   "form": {

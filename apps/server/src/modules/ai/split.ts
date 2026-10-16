@@ -9,8 +9,8 @@ import {
 import type { AppDeps } from '../../deps.js';
 import type { Db } from '../../infra/db/client.js';
 import type { MessageRow } from '../chat/dto.js';
-import { getMessage, getMessageFiles } from '../chat/messages.js';
-import type { ChannelRow } from '../chat/service.js';
+import { getMessage, getMessageFiles, listRecentMessages } from '../chat/messages.js';
+import { getTicketChannel, type ChannelRow } from '../chat/service.js';
 import { listPickablePeople } from '../groups/service.js';
 import { ticketFiles, type TicketRow } from '../tickets/service.js';
 import { getUserById } from '../users/service.js';
@@ -51,6 +51,9 @@ const bratislavaDate = new Intl.DateTimeFormat('en-CA', {
   day: '2-digit',
 });
 
+/** The first `max` code points (never half of a surrogate pair). */
+const cut = (text: string, max: number): string => Array.from(text).slice(0, max).join('');
+
 /** Mention tokens as `@Name` (`@all` for everyone); newlines stay. */
 async function withNames(db: Db, body: string, nameById: Map<string, string>): Promise<string> {
   const missing = [...body.matchAll(MENTION_RE)]
@@ -81,6 +84,9 @@ export async function buildSplitRequest(
   const nameById = new Map(people.map((p) => [p.id, p.name]));
   const quoted = replyTo && replyTo.deletedAt === null ? replyTo.body : null;
   return {
+    source: 'message',
+    details: [],
+    conversation: [],
     text: await withNames(db, message.body, nameById),
     quoted: quoted === null ? null : await withNames(db, quoted, nameById),
     files: files.map((f) => ({ id: f.id, name: f.name })),
@@ -89,10 +95,15 @@ export async function buildSplitRequest(
   };
 }
 
+/** The newest ticket chat messages the AI gets, and the length each is cut to. */
+export const CONVERSATION_MAX = 30;
+const CONVERSATION_MESSAGE_MAX = 2000;
+
 /**
- * What the AI gets for a ticket (part 21.5): its subject, area, programme, due date and its text
- * as one labelled message; its files (uploaded with it or sent to the intake); the group's
- * pickable people; today. The ticket must have a client.
+ * What the AI gets for a ticket (part 21.5): its subject and text; its area and programme as
+ * context only; its chat, oldest first (the newest `CONVERSATION_MAX` messages); its files
+ * (uploaded with it or sent to the intake); the group's pickable people; today. No number, dates or labels
+ * in the text: the AI copied them into the cards. The ticket must have a client.
  */
 export async function buildTicketSplitRequest(
   db: Db,
@@ -100,27 +111,34 @@ export async function buildTicketSplitRequest(
   now: Date = new Date(),
 ): Promise<SplitRequest> {
   const groupId = ticket.groupId!;
-  const [people, files] = await Promise.all([
+  const [people, files, channel] = await Promise.all([
     listPickablePeople(db, groupId),
     ticketFiles(db, ticket),
+    getTicketChannel(db, ticket.id),
   ]);
+  const messages = channel ? await listRecentMessages(db, channel.id, CONVERSATION_MAX) : [];
   const nameById = new Map(people.map((p) => [p.id, p.name]));
-  const line = (label: string, value: string | null) =>
-    value === null || value.trim() === '' ? [] : [`${label}: ${value}`];
-  const text = [
-    `Support ticket #${ticket.number}`,
-    ...line('Subject', ticket.subject),
-    ...line('Area', ticket.area),
-    ...line('Programme', ticket.programme),
-    ...line('Due date', ticket.dueDate),
-    ...(ticket.body ? ['', await withNames(db, ticket.body, nameById)] : []),
-  ].join('\n');
+  const filled = (value: string | null): value is string => value !== null && value.trim() !== '';
+  const body = filled(ticket.body) ? await withNames(db, ticket.body, nameById) : null;
+  const detail = (label: string, value: string | null) =>
+    filled(value) ? [{ label, value: value.trim() }] : [];
+  const conversation = [];
+  for (const m of messages) {
+    const text = cut((await withNames(db, m.body, nameById)).trim(), CONVERSATION_MESSAGE_MAX);
+    if (text !== '') conversation.push({ author: m.authorName, text });
+  }
   return {
-    text,
+    source: 'ticket',
+    text: [ticket.subject, body].filter(filled).join('\n\n'),
     quoted: null,
     files: files.map((f) => ({ id: f.id, name: f.name })),
     people: people.map((p) => ({ id: p.id, name: p.name })),
     today: bratislavaDate.format(now),
+    details: [
+      ...detail('Area', ticket.area),
+      ...detail('Programme', ticket.programme),
+    ],
+    conversation,
   };
 }
 
@@ -129,9 +147,6 @@ const isCalendarDate = (value: string): boolean => {
   const date = new Date(`${value}T00:00:00Z`);
   return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
 };
-
-/** The first `max` code points (never half of a surrogate pair). */
-const cut = (text: string, max: number): string => Array.from(text).slice(0, max).join('');
 
 const allowedIds = (ids: string[], allowed: Set<string>) =>
   [...new Set(ids)].filter((id) => allowed.has(id));

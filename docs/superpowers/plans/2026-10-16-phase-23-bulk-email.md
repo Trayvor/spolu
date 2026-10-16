@@ -329,17 +329,27 @@ Each branch is cut from the latest `main`. 23.6 shows **Send a test to me** only
 
 ## Part 23.7 — Send flow, report, e2e (spec §6, §8, §10)
 
+**As built (2026-10-16, branch `phase-23-7-bulk-send-report`).** No migration. Differences and details:
+- **Server: one new route** `GET /api/bulk-email/sender` → `BulkSenderDto = { sender }` (`config.bulkEmail.from`, admins only), because the confirm dialog must name the sender before anything is sent and no existing answer carried it (a draft's `sender` is null until sending starts). Test in `routes.test.ts` (and in the 401/403 sweep).
+- **Web files**: `send-dialog.tsx` (`SendStep`, section 4 of `DraftEditor`, and its `SendDialog` on `SheetDialog`), `report-view.tsx` (`ReportView`, which replaced `CampaignSummary`), tests `send-dialog.test.tsx`, `report-view.test.tsx`; `api.ts` gained `sendCampaign`, `cancelCampaign`, `senderQuery`, `recipientsQuery(id, status)` (key under the campaign's key, so `bulk:updated` refreshes it with the campaign); `test-send.tsx` exports `notReadyProblems`. Locale keys `bulkEmail.send.*` and `bulkEmail.report.*` (`bulkEmail.summary.*` removed).
+- **Autosave flush**: `useAutosave` returns `flush(): Promise<boolean>` (saves a pending change at once, waits for a running save and then saves what changed meanwhile, false for an invalid draft, a failed save or a conflict). "Send…" awaits it before the dialog opens; the button is disabled while a field is marked, after `409 changed` and after `409 not_draft`.
+- **Dialog**: the count is asked again on open (`staleTime: 0`, `refetchOnMount: 'always'`), and the confirm button ("Send to 248 people") stays disabled until it is back; a count of 0 or `400 empty_audience` says nobody would get it; `400 not_ready` closes the dialog, marks the blocks and lists block-less reasons under the Send button; `409 not_draft` offers "Show the report" (refetches the campaign). On `200` the answer goes into the campaign query, so the page turns into the report at once.
+- **Report**: the six numbers in one list (`aria-label` "Numbers"), a `progressbar` (handled = sent + failed + skipped + cancelled over `recipientCount`) only while sending, the note on opens and clicks, Cancel sending with an inline confirm (only while sending; `409 not_sending` refetches and says sending finished), Duplicate, and the per-person list with a native status select and "Show more". Known row errors (`unsubscribed`, `disabled`, `unknown`) are translated; provider messages are shown as they are.
+- **Bundle**: everything joined the existing `screens` chunk (11.6 kB gzip, from 9.6 kB); initial JS 199.4 kB gzip.
+- **e2e** `e2e/bulk-email.spec.ts` (one test, about 20 s): two clients join a new group; the admin creates an email in the UI (name, subject, heading with `{{name}}`, text with `**bold**`, button, logo), ticks Clients and the group (count 2), sends a test (Mailpit `[Test] <subject>`), sends through the dialog (subject, sender `Spolu <noreply@localhost>`, "Poslať 2 osobám?"), the report reaches Sent with Recipients 2 / Sent 2 / Failed 0 and both people; both mails carry the person's name, the bold text, the logo, `List-Unsubscribe` (one-click URL) and `List-Unsubscribe-Post`; one client opens the footer link (unsubscribed page), the other's "mail app" posts the one-click URL (204); the report shows Unsubscribed 2; the first client's Settings checkbox is unticked and she ticks it, the second subscribes again on the public page and his checkbox is ticked; the audience count is 2 again. It replaces the spec §10 sequence of three campaigns with the unsubscribe and subscribe-again checks on one campaign (same coverage of the skip rule is in the server tests).
+- Not run here: `bash scripts/ci.sh` (left to the orchestrator); the live Elastic checks (23.1 Task 1.3 step 5, P5) wait for the owner's key and are now the [pre-launch checklist](../../runbooks/deploy.md#bulk-email-pre-launch-checklist).
+
 ### Task 7.1: Send dialog and report
 
 **Files:** `features/bulk-email/send-dialog.tsx`, `report-view.tsx` (+ tests); `editor-page.tsx` switches to `report-view` when the status is not `draft`
 
-- [ ] **Step 1: Invoke `frontend-design:frontend-design`.** Failing tests: `send dialog shows subject, sender and the live count`; `confirm posts send and shows the report`; `report shows recipients, sent, failed, skipped, cancelled, unsubscribed and the "opens are not measured" note`; `progress bar updates on bulk:updated`; `Cancel sending only while sending`; `Duplicate opens the new draft`; `status filter of the per-person list`.
-- [ ] **Step 2–4:** run, implement, run. Commit `feat(web): bulk email sending and report`.
+- [x] **Step 1: Invoke `frontend-design:frontend-design`.** Failing tests: `send dialog shows subject, sender and the live count`; `confirm posts send and shows the report`; `report shows recipients, sent, failed, skipped, cancelled, unsubscribed and the "opens are not measured" note`; `progress bar updates on bulk:updated`; `Cancel sending only while sending`; `Duplicate opens the new draft`; `status filter of the per-person list`.
+- [x] **Step 2–4:** run, implement, run. Commit `feat(web): bulk email sending and report`.
 
 ### Task 7.2: e2e, docs, roadmap
 
-- [ ] Write `e2e/bulk-email.spec.ts` exactly as spec §10 (Mailpit API: message list, headers, HTML body).
-- [ ] `update-kb`: `product/bulk-email.md` as built, `runbooks/deploy.md` (the server env for bulk email and the owner checklist of spec "What the owner must do"), `glossary.md` (campaign, audience, unsubscribe), `roadmap.md` Phase 23 status.
+- [x] Write `e2e/bulk-email.spec.ts` exactly as spec §10 (Mailpit API: message list, headers, HTML body).
+- [x] `update-kb`: `product/bulk-email.md` as built, `runbooks/deploy.md` (the server env for bulk email and the owner checklist of spec "What the owner must do"), `glossary.md` (campaign, audience, unsubscribe), `roadmap.md` Phase 23 status.
 - [ ] `bash scripts/ci.sh` green; push; PR.
 
 ---

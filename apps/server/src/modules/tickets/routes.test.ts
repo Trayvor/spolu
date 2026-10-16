@@ -20,6 +20,7 @@ import { tasks } from '../tasks/schema.js';
 import { files } from '../files/schema.js';
 import { tickets } from './schema.js';
 import { findTicketByRequestId } from './service.js';
+import { user } from '../users/schema.js';
 import { getBoard } from '../tasks/service.js';
 
 const KEY = 'test-tickets-key-0123456789';
@@ -602,6 +603,106 @@ describe('tickets API', () => {
       expect((await latestEmail(email)).subject).toContain(`#${dto.number}`);
       const account = await findUserByEmail(db(), email);
       expect((await getMembership(db(), account!.id, g.id))?.role).toBe('ziadatel');
+    });
+  });
+
+  describe("an admin's email as the initiator", () => {
+    const accountsWith = async (email: string) =>
+      (
+        await db()
+          .select({ id: user.id })
+          .from(user)
+          .where(eq(user.email, email.trim().toLowerCase()))
+      ).length;
+    // Gmail ignores dots and a "+tag" in the local part; googlemail.com is gmail.com.
+    const gmailAdmin = async () => {
+      const local = `ad.${randomUUID().slice(0, 8)}`;
+      const a = await admin();
+      const email = `${local}@gmail.com`;
+      await db().execute(sql`update "user" set email = ${email} where id = ${a.id}`);
+      return { ...a, email, local };
+    };
+
+    it('manual create by another admin, email in another case and with spaces: that admin, no new account', async () => {
+      const g = await group();
+      const owner = await admin();
+      const manager = await admin();
+      const res = await call('POST', '/api/tickets', owner.cookie, {
+        groupId: g.id,
+        subject: 'Chyba',
+        requesterEmail: `  ${manager.email.toUpperCase()} `,
+        requesterName: 'Iné meno',
+      });
+      expect(res.statusCode).toBe(201);
+      expect(res.json<TicketDto>().requester.userId).toBe(manager.id);
+      expect(await accountsWith(manager.email)).toBe(1);
+      expect(await listMemberships(db(), manager.id)).toEqual([]);
+    });
+
+    it('intake with an admin email: that admin, no new account and no membership', async () => {
+      const g = await group();
+      const manager = await admin();
+      const res = await intake({
+        subject: 'x',
+        email: ` ${manager.email.toUpperCase()}`,
+        name: 'Niekto',
+        instance_url: `https://${g.host}.egrant.sk`,
+      });
+      expect(res.statusCode).toBe(201);
+      const [row] = await db().select().from(tickets).where(eq(tickets.id, res.json().id));
+      expect(row!.requesterUserId).toBe(manager.id);
+      expect(await accountsWith(manager.email)).toBe(1);
+      expect(await listMemberships(db(), manager.id)).toEqual([]);
+    });
+
+    it('a disabled admin: no account linked, no new account', async () => {
+      const g = await group();
+      const owner = await admin();
+      const gone = await admin();
+      await deactivateUser(db(), gone.id);
+      const res = await call('POST', '/api/tickets', owner.cookie, {
+        groupId: g.id,
+        subject: 'x',
+        requesterEmail: gone.email.toUpperCase(),
+      });
+      expect(res.statusCode).toBe(201);
+      expect(res.json<TicketDto>().requester.userId).toBeNull();
+      expect(await accountsWith(gone.email)).toBe(1);
+      expect(await listMemberships(db(), gone.id)).toEqual([]);
+    });
+
+    it('a ticket assigned a client later: the admin, no new account', async () => {
+      const g = await group();
+      const owner = await admin();
+      const manager = await admin();
+      const res = await intake({
+        subject: 'x',
+        email: manager.email,
+        instance_url: 'https://nobody.egrant.sk',
+      });
+      const id = res.json().id as string;
+      const moved = await call('PUT', `/api/tickets/${id}/group`, owner.cookie, { groupId: g.id });
+      expect(moved.statusCode).toBe(200);
+      expect(moved.json<TicketDto>().requester.userId).toBe(manager.id);
+      expect(await accountsWith(manager.email)).toBe(1);
+      expect(await listMemberships(db(), manager.id)).toEqual([]);
+    });
+
+    it('a gmail admin typed with dots, a +tag or googlemail.com: that admin, no new account', async () => {
+      const g = await group();
+      const owner = await admin();
+      const manager = await gmailAdmin();
+      const variant = `${manager.local.replaceAll('.', '')}+spolu@googlemail.com`;
+      const res = await call('POST', '/api/tickets', owner.cookie, {
+        groupId: g.id,
+        subject: 'x',
+        requesterEmail: variant,
+        requesterName: 'Iné meno',
+      });
+      expect(res.statusCode).toBe(201);
+      expect(res.json<TicketDto>().requester.userId).toBe(manager.id);
+      expect(await accountsWith(variant)).toBe(0);
+      expect(await listMemberships(db(), manager.id)).toEqual([]);
     });
   });
 

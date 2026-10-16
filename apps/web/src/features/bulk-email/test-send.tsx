@@ -8,7 +8,7 @@ import { ApiError } from '@/lib/api';
 import { sendTest } from './api';
 
 /** The `400 not_ready` reasons in an error body, if any. */
-function notReadyProblems(error: unknown): BulkNotReadyProblem[] | null {
+export function notReadyProblems(error: unknown): BulkNotReadyProblem[] | null {
   if (!(error instanceof ApiError) || error.code !== ErrorCodes.notReady) return null;
   const body = error.body as { problems?: unknown };
   return Array.isArray(body.problems) ? (body.problems as BulkNotReadyProblem[]) : [];
