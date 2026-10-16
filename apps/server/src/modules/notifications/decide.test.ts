@@ -10,6 +10,7 @@ const table: [NotificationKind, Record<GroupMode, boolean>][] = [
   ['task.assigned', { all: true, mentions: true, off: false }],
   ['task.deadline', { all: true, mentions: true, off: false }],
   ['task.urgent', { all: true, mentions: true, off: false }],
+  ['reminder.due', { all: true, mentions: true, off: false }],
 ];
 const cases = table.flatMap(([kind, modes]) =>
   (['all', 'mentions', 'off'] as const).map((mode) => [kind, mode, modes[mode]] as const),

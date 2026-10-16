@@ -25,7 +25,9 @@ const NAMESPACES = [
   'group',
   'groups',
   'join',
+  'knowledge',
   'notifications',
+  'reminders',
   'settings',
   'system',
   'taskSplit',
@@ -93,9 +95,20 @@ describe('locales', () => {
       const byCode = namespaceLocales(name);
       expect(Object.keys(byCode).sort()).toEqual(codes);
       const enKeys = baseKeys(byCode.en ?? {}).sort();
-      expect(enKeys.length).toBeGreaterThan(0);
+      // A new namespace may start as a skeleton of empty sections that later tasks fill.
+      const sections = (json: Record<string, unknown>) => [
+        ...new Set(
+          Object.keys(json).map((key) => key.replace(/_(zero|one|two|few|many|other)$/, '')),
+        ),
+      ];
+      const enSections = sections(byCode.en ?? {}).sort();
+      expect(enSections.length).toBeGreaterThan(0);
       for (const [code, json] of Object.entries(byCode)) {
-        expect({ code, keys: baseKeys(json).sort() }).toEqual({ code, keys: enKeys });
+        expect({ code, sections: sections(json).sort(), keys: baseKeys(json).sort() }).toEqual({
+          code,
+          sections: enSections,
+          keys: enKeys,
+        });
       }
     });
 

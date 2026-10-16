@@ -1,0 +1,25 @@
+{
+  "types": {
+    "note": "Poznámka",
+    "file": "Súbor",
+    "link": "Odkaz",
+    "reminder": "Pripomienka",
+    "notes": "Poznámky",
+    "files": "Súbory",
+    "links": "Odkazy",
+    "reminders": "Pripomienky",
+    "all": "Všetko"
+  },
+  "visibility": {
+    "public": "Všetci v skupine",
+    "admins": "Len eGrant"
+  },
+  "list": {},
+  "row": {},
+  "form": {},
+  "detail": {},
+  "tab": {},
+  "newMenu": {},
+  "global": {},
+  "clientFilter": {}
+}

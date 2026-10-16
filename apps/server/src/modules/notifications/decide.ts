@@ -16,6 +16,7 @@ export const KIND_RANK: Record<NotificationKind, number> = {
   'task.assigned': 2,
   'task.deadline': 2,
   'task.urgent': 2,
+  'reminder.due': 2,
 };
 
 type Ranked = { id: string; kind: NotificationKind };
