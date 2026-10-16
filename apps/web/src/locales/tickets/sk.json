@@ -67,7 +67,7 @@
     "client": "Klient",
     "created": "Vytvorený",
     "fromEgrant": "z eGrantu",
-    "inSpolu": "v Spolu",
+    "inSpolu": "v aplikácii Help",
     "resolved": "Vyriešený"
   },
   "followers": {
@@ -89,7 +89,7 @@
     "title": "Nový tiket",
     "back": "Späť",
     "initiator": "Iniciátor",
-    "initiatorHint": "Dostane e-mail a môže tiket sledovať v Spolu.",
+    "initiatorHint": "Dostane e-mail a môže tiket sledovať v aplikácii Help.",
     "email": "E-mail iniciátora",
     "name": "Meno iniciátora",
     "phone": "Telefón iniciátora",

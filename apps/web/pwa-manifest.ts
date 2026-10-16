@@ -3,8 +3,8 @@ import type { ManifestOptions } from 'vite-plugin-pwa';
 /** The web app manifest. The page base color keeps the browser bar blending with the light header. */
 export const pwaManifest: Partial<ManifestOptions> = {
   id: '/',
-  name: 'Spolu by eGrant',
-  short_name: 'Spolu',
+  name: 'Help by eGrant',
+  short_name: 'Help',
   description: 'Client communication by eGrant',
   lang: 'sk',
   display: 'standalone',

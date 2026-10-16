@@ -49,7 +49,7 @@ describe('the ticket shell', () => {
       .getAllByRole('link')
       .map((l) => l.textContent);
     // The brand link, then Tickets: no group, tasks or knowledge links.
-    expect(links).toEqual([expect.stringContaining('Spolu'), t('nav.tickets')]);
+    expect(links).toEqual([expect.stringContaining('Help'), t('nav.tickets')]);
   });
 
   it('admin header has Tickets next to Tasks', async () => {

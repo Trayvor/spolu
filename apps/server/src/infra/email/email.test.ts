@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { EmailSendError, createEmailSender } from './index.js';
 import { createElasticSender } from './elastic-sender.js';
 
-const from = 'Spolu <noreply@example.com>';
+const from = 'Help by eGrant <noreply@example.com>';
 const msg = (subject: string) => ({
   to: ['a@example.com'],
   cc: ['b@example.com'],

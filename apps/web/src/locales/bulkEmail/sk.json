@@ -7,7 +7,7 @@
   },
   "list": {
     "title": "Hromadné e-maily",
-    "intro": "Napíšte jeden e-mail mnohým ľuďom v Spolu: poskladajte ho z blokov, vyberte, kto ho dostane, a najprv si pošlite test.",
+    "intro": "Napíšte jeden e-mail mnohým ľuďom v aplikácii Help: poskladajte ho z blokov, vyberte, kto ho dostane, a najprv si pošlite test.",
     "new": "Nový e-mail",
     "defaultName": "E-mail z {{date}}",
     "empty": "Zatiaľ žiadne e-maily. Začnite tlačidlom Nový e-mail.",
@@ -201,7 +201,7 @@
     "unsubscribed": "Odhlásení",
     "skippedHint": "Odhlásení alebo so zablokovaným účtom pred odoslaním.",
     "unsubscribedHint": "Cez odkaz v tomto e-maile, stále odhlásení.",
-    "note": "Spolu zatiaľ nemeria otvorenia ani kliknutia. „Odoslané“ znamená, že Elastic Email e-mail prijal, nie že prišiel do schránky.",
+    "note": "Aplikácia Help zatiaľ nemeria otvorenia ani kliknutia. „Odoslané“ znamená, že Elastic Email e-mail prijal, nie že prišiel do schránky.",
     "readOnly": "Tento e-mail sa už nedá meniť. Duplikujte ho, ak chcete poslať novú verziu.",
     "duplicate": "Duplikovať",
     "cancelSending": "Zrušiť odosielanie",

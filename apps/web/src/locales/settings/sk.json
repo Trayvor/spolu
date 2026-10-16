@@ -35,7 +35,7 @@
     "deviceUnsupported": "Tento prehliadač nevie prijímať upozornenia",
     "turnOnDevice": "Zapnúť na tomto zariadení",
     "unblock": "Povoľte upozornenia pre túto stránku v nastaveniach stránky v prehliadači a potom stránku obnovte.",
-    "iosHint": "Na iPhone fungujú upozornenia len z aplikácie na ploche. Ťuknite na Zdieľať, potom na Pridať na plochu a otvorte Spolu z ikony.",
+    "iosHint": "Na iPhone fungujú upozornenia len z aplikácie na ploche. Ťuknite na Zdieľať, potom na Pridať na plochu a otvorte aplikáciu Help z ikony.",
     "groups": {
       "chat": "Chat",
       "tasks": "Nástenka úloh",

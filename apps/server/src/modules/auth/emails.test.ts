@@ -28,14 +28,14 @@ describe('loginCodeEmail', () => {
   it('puts the code in the subject and the body, in English', () => {
     const msg = loginCodeEmail('a@example.com', '123456', 'en');
     expect(msg.to).toEqual(['a@example.com']);
-    expect(msg.subject).toBe('Your Spolu login code: 123456');
+    expect(msg.subject).toBe('Your Help by eGrant login code: 123456');
     expect(msg.text).toContain('Your login code is 123456. It is valid for 5 minutes.');
     expect(msg.html).toContain('123456');
   });
 
   it('is in Slovak', () => {
     const msg = loginCodeEmail('a@example.com', '654321', 'sk');
-    expect(msg.subject).toBe('Váš prihlasovací kód do Spolu: 654321');
+    expect(msg.subject).toBe('Váš prihlasovací kód do aplikácie Help: 654321');
     expect(msg.text).toContain('Váš prihlasovací kód je 654321. Platí 5 minút.');
   });
 });
@@ -46,16 +46,16 @@ describe('adminAddedEmail', () => {
   it('tells who added the admin and how to log in, in English', () => {
     const msg = adminAddedEmail('eva@example.com', params, 'en');
     expect(msg.to).toEqual(['eva@example.com']);
-    expect(msg.subject).toBe('You were added to Spolu');
+    expect(msg.subject).toBe('You were added to Help by eGrant');
     expect(msg.text).toContain(
-      'Jana added you as an administrator of Spolu by eGrant. Log in with your email eva@example.com: https://spolu.example/login',
+      'Jana added you as an administrator of Help by eGrant. Log in with your email eva@example.com: https://spolu.example/login',
     );
   });
 
   it('is in Slovak', () => {
     const msg = adminAddedEmail('eva@example.com', params, 'sk');
-    expect(msg.subject).toBe('Pridali vás do Spolu');
-    expect(msg.text).toContain('Jana vás pridal(a) ako administrátora v Spolu by eGrant.');
+    expect(msg.subject).toBe('Pridali vás do aplikácie Help');
+    expect(msg.text).toContain('Jana vás pridal(a) ako administrátora v aplikácii Help by eGrant.');
   });
 
   it('escapes HTML in names', () => {
@@ -75,7 +75,7 @@ describe('emailChangeCodeEmail', () => {
   it('puts the code first and names the new address, in English', () => {
     const msg = emailChangeCodeEmail('new@example.com', '123456', 'en');
     expect(msg.to).toEqual(['new@example.com']);
-    expect(msg.subject).toBe('Your Spolu email change code: 123456');
+    expect(msg.subject).toBe('Your Help by eGrant email change code: 123456');
     expect(msg.text).toContain('Your code is 123456.');
     expect(msg.text).toContain('new@example.com');
     expect(msg.text).toContain('valid for 5 minutes');
@@ -83,7 +83,7 @@ describe('emailChangeCodeEmail', () => {
 
   it('is in Slovak', () => {
     const msg = emailChangeCodeEmail('new@example.com', '654321', 'sk');
-    expect(msg.subject).toBe('Kód na zmenu e-mailu v Spolu: 654321');
+    expect(msg.subject).toBe('Kód na zmenu e-mailu v aplikácii Help: 654321');
     expect(msg.text).toContain('Váš kód je 654321.');
     expect(msg.text).toContain('Platí 5 minút.');
   });
@@ -93,13 +93,13 @@ describe('emailChangedNoticeEmail', () => {
   it('tells the old address the new one, in English', () => {
     const msg = emailChangedNoticeEmail('old@example.com', 'new@example.com', 'en');
     expect(msg.to).toEqual(['old@example.com']);
-    expect(msg.subject).toBe('Your Spolu email was changed');
+    expect(msg.subject).toBe('Your Help by eGrant email was changed');
     expect(msg.text).toContain('changed to new@example.com');
   });
 
   it('is in Slovak and escapes HTML', () => {
     const msg = emailChangedNoticeEmail('old@example.com', '<b>@example.com', 'sk');
-    expect(msg.subject).toBe('Váš e-mail v Spolu bol zmenený');
+    expect(msg.subject).toBe('Váš e-mail v aplikácii Help bol zmenený');
     expect(msg.text).toContain('bol zmenený na <b>@example.com');
     expect(msg.html).toContain('&lt;b&gt;@example.com');
   });
@@ -112,17 +112,17 @@ describe('memberInvitedEmail', () => {
   it('names the group and links the login with the email, in English', () => {
     const msg = memberInvitedEmail('eva@example.com', params, 'en');
     expect(msg.to).toEqual(['eva@example.com']);
-    expect(msg.subject).toBe('Invitation to Spolu – Firma s.r.o.');
+    expect(msg.subject).toBe('Invitation to Help by eGrant – Firma s.r.o.');
     expect(msg.text).toContain(
-      `Jana invited you to the group Firma s.r.o. in Spolu by eGrant. Log in with your email eva@example.com: ${loginUrl}`,
+      `Jana invited you to the group Firma s.r.o. in Help by eGrant. Log in with your email eva@example.com: ${loginUrl}`,
     );
   });
 
   it('is in Slovak', () => {
     const msg = memberInvitedEmail('eva@example.com', params, 'sk');
-    expect(msg.subject).toBe('Pozvánka do Spolu – Firma s.r.o.');
+    expect(msg.subject).toBe('Pozvánka do aplikácie Help – Firma s.r.o.');
     expect(msg.text).toContain(
-      `Jana vás pozval(a) do skupiny Firma s.r.o. v Spolu by eGrant. Prihláste sa svojím e-mailom eva@example.com: ${loginUrl}`,
+      `Jana vás pozval(a) do skupiny Firma s.r.o. v aplikácii Help by eGrant. Prihláste sa svojím e-mailom eva@example.com: ${loginUrl}`,
     );
   });
 });
@@ -135,7 +135,7 @@ describe('memberAddedEmail', () => {
     const msg = memberAddedEmail('eva@example.com', params, 'en');
     expect(msg.subject).toBe('You were added to Firma s.r.o.');
     expect(msg.text).toContain(
-      `Jana added you to the group Firma s.r.o. in Spolu by eGrant: ${groupUrl}`,
+      `Jana added you to the group Firma s.r.o. in Help by eGrant: ${groupUrl}`,
     );
   });
 
@@ -143,7 +143,7 @@ describe('memberAddedEmail', () => {
     const msg = memberAddedEmail('eva@example.com', params, 'sk');
     expect(msg.subject).toBe('Pridali vás do skupiny Firma s.r.o.');
     expect(msg.text).toContain(
-      `Jana vás pridal(a) do skupiny Firma s.r.o. v Spolu by eGrant: ${groupUrl}`,
+      `Jana vás pridal(a) do skupiny Firma s.r.o. v aplikácii Help by eGrant: ${groupUrl}`,
     );
   });
 });

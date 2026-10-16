@@ -138,12 +138,12 @@ test('bulk email: write, test, send, report, unsubscribe and subscribe again', a
     const dialog = page.getByTestId('send-dialog');
     await expect(dialog.getByRole('heading', { name: 'Poslať 2 osobám?' })).toBeVisible();
     await expect(dialog.getByText(subject)).toBeVisible();
-    await expect(dialog.getByText('Spolu <noreply@localhost>')).toBeVisible();
+    await expect(dialog.getByText('Help by eGrant <noreply@localhost>')).toBeVisible();
     await dialog.getByRole('button', { name: 'Poslať 2 osobám' }).click();
 
     // 6. The report: sent to both, live through bulk:updated.
     await expect(
-      page.getByText('Spolu zatiaľ nemeria otvorenia ani kliknutia', { exact: false }),
+      page.getByText('Aplikácia Help zatiaľ nemeria otvorenia ani kliknutia', { exact: false }),
     ).toBeVisible();
     await expect(page.getByText('Odoslaný', { exact: true })).toBeVisible({ timeout: 30_000 });
     await expect(figure(page, 'Príjemcovia')).toHaveText('2');

@@ -179,11 +179,11 @@ describe('email code login', () => {
   it('the code email follows Accept-Language (en: English, missing: Slovak)', async () => {
     const en = await createUser('admin');
     await requestCode(app, en.email, { 'accept-language': 'en-GB,en;q=0.9' });
-    expect((await latestEmail(en.email)).subject).toMatch(/^Your Spolu login code: \d{6}$/);
+    expect((await latestEmail(en.email)).subject).toMatch(/^Your Help by eGrant login code: \d{6}$/);
 
     const sk = await createUser('admin');
     await requestCode(app, sk.email);
-    expect((await latestEmail(sk.email)).subject).toMatch(/^Váš prihlasovací kód do Spolu: \d{6}$/);
+    expect((await latestEmail(sk.email)).subject).toMatch(/^Váš prihlasovací kód do aplikácie Help: \d{6}$/);
   });
 });
 

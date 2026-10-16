@@ -1,11 +1,11 @@
 {
   "done": {
     "title": "Odhlásenie prebehlo",
-    "body": "Hromadné e-maily od eGrantu vám už nebudú chodiť. Prihlasovacie kódy a upozornenia zo Spolu dostávate naďalej."
+    "body": "Hromadné e-maily od eGrantu vám už nebudú chodiť. Prihlasovacie kódy a upozornenia z aplikácie Help dostávate naďalej."
   },
   "subscribed": {
     "title": "Znova ste prihlásení",
-    "body": "Hromadné e-maily od eGrantu vám budú opäť chodiť. Kedykoľvek to zmeníte v Nastaveniach Spolu."
+    "body": "Hromadné e-maily od eGrantu vám budú opäť chodiť. Kedykoľvek to zmeníte v Nastaveniach aplikácie Help."
   },
   "subscribeAgain": "Znova prihlásiť",
   "unsubscribeButton": "Odhlásiť",

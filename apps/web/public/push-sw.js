@@ -10,7 +10,7 @@ self.addEventListener('push', (event) => {
     // A malformed payload still gets a generic notification (userVisibleOnly requires one).
   }
   event.waitUntil(
-    self.registration.showNotification(payload.title || 'Spolu', {
+    self.registration.showNotification(payload.title || 'Help', {
       body: payload.body,
       // `renotify` needs a tag: without one the browser rejects and shows nothing.
       tag: payload.tag || 'spolu',

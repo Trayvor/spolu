@@ -909,7 +909,7 @@ describe('groups API', () => {
           payload: { email: newEmail() },
         }),
       );
-      expect(sent[0]!.subject).toBe('Invitation to Spolu – Lang');
+      expect(sent[0]!.subject).toBe('Invitation to Help by eGrant – Lang');
     });
 
     it('POST a verified client of another group: 201 added, the added email, and they read the group', async () => {

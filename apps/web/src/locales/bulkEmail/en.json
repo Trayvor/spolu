@@ -7,7 +7,7 @@
   },
   "list": {
     "title": "Bulk email",
-    "intro": "Write one email to many people in Spolu: build it from blocks, choose who gets it, and send a test to yourself first.",
+    "intro": "Write one email to many people in the Help app: build it from blocks, choose who gets it, and send a test to yourself first.",
     "new": "New email",
     "defaultName": "Email of {{date}}",
     "empty": "No emails yet. Start with New email.",
@@ -191,7 +191,7 @@
     "unsubscribed": "Unsubscribed",
     "skippedHint": "Unsubscribed or disabled before their turn.",
     "unsubscribedHint": "Through this email's link, still unsubscribed.",
-    "note": "Spolu does not measure opens and clicks yet. 'Sent' means Elastic Email accepted the email, not that it reached the inbox.",
+    "note": "The Help app does not measure opens and clicks yet. 'Sent' means Elastic Email accepted the email, not that it reached the inbox.",
     "readOnly": "This email can no longer be changed. Duplicate it to send a new version.",
     "duplicate": "Duplicate",
     "cancelSending": "Cancel sending",
