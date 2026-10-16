@@ -24,7 +24,8 @@ test('admin creates a group, a client joins by invite and is removed', async ({
 
   await createGroup(page, name, `https://e2e-${stamp}.egrant.sk`, 'e2e/fixtures/logo.png');
   await page.goto('/groups');
-  const row = page.getByRole('link', { name: new RegExp(name) });
+  // The groups list's row, not the admin sidebar's link (it may list the new group too).
+  const row = page.locator('a[href^="/groups/"]:not([href$="/chat"])', { hasText: name });
   await expect(row).toBeVisible();
   // The logo is decorative (alt=""), so find it by tag and check it really loaded.
   await expect(row.locator('img')).toBeVisible();
@@ -53,7 +54,9 @@ test('admin creates a group, a client joins by invite and is removed', async ({
   // A second group, so the client can try to open a group that is not theirs.
   await createGroup(page, `${name} other`, `https://e2e-other-${stamp}.egrant.sk`);
   await page.goto('/groups');
-  await page.getByRole('link', { name: new RegExp(`${name} other`) }).click();
+  await page
+    .locator('a[href^="/groups/"]:not([href$="/chat"])', { hasText: `${name} other` })
+    .click();
   await expect(page.getByRole('heading', { name: `${name} other` })).toBeVisible();
   const otherUrl = page.url().replace(/\/chat$/, '');
 
