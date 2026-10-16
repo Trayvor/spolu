@@ -2,6 +2,7 @@ import type { Config } from './infra/config/config.js';
 import { createAiProvider } from './modules/ai/index.js';
 import type { TaskSplitProvider } from './modules/ai/provider.js';
 import { authJobHandlers, AUTH_CLEANUP_JOB } from './modules/auth/jobs.js';
+import { bulkEmailJobHandlers, bulkEmailSchedules } from './modules/bulk-email/jobs.js';
 import { filesJobHandlers, FILES_CLEANUP_JOB } from './modules/files/jobs.js';
 import {
   notificationQueues,
@@ -64,6 +65,7 @@ export async function createDeps(
       ...notificationsJobHandlers({ db, config, push, jobs: forward.queue }),
       ...tasksJobHandlers({ db, jobs: forward.queue }),
       ...remindersJobHandlers({ db, jobs: forward.queue }),
+      ...bulkEmailJobHandlers({ db, config }),
     },
     [
       { name: AUTH_CLEANUP_JOB, cron: '15 3 * * *' }, // daily, 03:15
@@ -71,6 +73,7 @@ export async function createDeps(
       ...notificationSchedules, // delivery sweep every minute, purge at 03:45
       ...taskSchedules, // deadline and urgent reminders, Bratislava time
       ...reminderSchedules, // fire due reminders every minute
+      ...bulkEmailSchedules(config), // Elastic suppression sync at 04:30, only with the elastic driver
     ],
     { ...emailQueues, ...notificationQueues }, // concurrency and policies; the rest: defaults
   );

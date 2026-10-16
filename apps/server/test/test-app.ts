@@ -6,6 +6,7 @@ import { buildApp } from '../src/app.js';
 import type { AppDeps } from '../src/deps.js';
 import type { Config } from '../src/infra/config/config.js';
 import type { TaskSplitProvider } from '../src/modules/ai/provider.js';
+import { bulkEmailJobHandlers } from '../src/modules/bulk-email/jobs.js';
 import { filesJobHandlers } from '../src/modules/files/jobs.js';
 import { registerKnowledgeReminderSubject } from '../src/modules/knowledge/reminder-subject.js';
 import { remindersJobHandlers } from '../src/modules/reminders/jobs.js';
@@ -24,6 +25,10 @@ import { createFakePushSender, type FakePushSender } from '../src/infra/push/ind
 import { createDiskStorage } from '../src/infra/storage/index.js';
 import { testConfig } from './test-config.js';
 
+const refuseFetch = (async () => {
+  throw new Error('No live Elastic calls in tests: pass buildTestApp({ bulkFetch })');
+}) as unknown as typeof fetch;
+
 /**
  * A full app on the test database: SMTP to Mailpit (bulk email too), temp-dir storage, jobs run
  * inline, no AI unless `overrides.ai` gives a provider.
@@ -34,6 +39,8 @@ export async function buildTestApp(
     ai?: TaskSplitProvider | null;
     /** The bulk sender; default: the smtp driver to Mailpit (tests of the batch job pass a fake). */
     bulkEmail?: BulkEmailSender;
+    /** The fetch the bulk email jobs call Elastic with; default: refuses (no live calls in tests). */
+    bulkFetch?: typeof fetch;
     /** Receives the app's info log as JSON lines (otherwise the app does not log). */
     logStream?: { write(line: string): void };
   } = {},
@@ -59,6 +66,7 @@ export async function buildTestApp(
       { scopedDelivery: true }, // test files run at once: deliver only the job's users
     ),
     ...remindersJobHandlers({ db, jobs: forward.queue }),
+    ...bulkEmailJobHandlers({ db, config }, overrides.bulkFetch ?? refuseFetch),
   });
   forward.resolve(jobs);
   const deps: AppDeps = {
