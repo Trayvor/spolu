@@ -41,14 +41,15 @@ export function bratislavaToday(now: Date): string {
 }
 
 /**
- * The board's client scope: the explicit `clients`, else the groups the viewer manages, else
- * every group (null).
+ * The board's client scope: the explicit `clients` (`all`: every group, null), else the groups
+ * the viewer manages, else every group (null).
  */
 export async function resolveClientIds(
   db: Db,
   viewerId: string,
-  clients: string[] | undefined,
+  clients: string[] | 'all' | undefined,
 ): Promise<string[] | null> {
+  if (clients === 'all') return null;
   if (clients) return clients;
   const managed = await managedGroupIds(db, viewerId);
   return managed.length > 0 ? managed : null;

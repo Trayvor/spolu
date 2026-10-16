@@ -41,6 +41,15 @@ describe('GlobalBoardFilterSchema', () => {
     expect(GlobalBoardFilterSchema.safeParse({ clients: ok }).success).toBe(true);
   });
 
+  it('filter: clients=all is every client', () => {
+    expect(GlobalBoardFilterSchema.parse({ clients: 'all' }).clients).toBe('all');
+  });
+
+  it('filter: a cursor up to 1000 characters passes', () => {
+    const after = 'x'.repeat(1000);
+    expect(GlobalBoardFilterSchema.safeParse({ column: 'todo', after }).success).toBe(true);
+  });
+
   it('filter: a malformed client id fails', () => {
     expect(GlobalBoardFilterSchema.safeParse({ clients: 'ok,bad id' }).success).toBe(false);
     expect(GlobalBoardFilterSchema.safeParse({ clients: 'ok,,x' }).success).toBe(false);

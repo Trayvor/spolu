@@ -4,7 +4,7 @@ import type { AssignedTask, HomeReminder, MentionItem } from '@spolu/shared';
 import { Badge } from '@/components/ui/badge';
 import { formatDue, isOverdue, todayInBratislava } from '@/features/tasks/dates';
 import { cn } from '@/lib/utils';
-import { assignedQuery, mentionsQuery, remindersQuery, sidebarQuery } from './api';
+import { assignedQuery, mentionsQuery, remindersQuery } from './api';
 import type { CardTarget, CountCardProps } from './count-card';
 
 const stateOf = (query: UseQueryResult<unknown>): CountCardProps['state'] =>
@@ -74,10 +74,8 @@ function AssignedRow({ task, today }: { task: AssignedTask; today: string }) {
 export function useAssignedCard(): CountCardProps {
   const { t } = useTranslation();
   const query = useQuery(assignedQuery);
-  const sidebar = useQuery(sidebarQuery);
   const today = todayInBratislava();
   const data = query.data;
-  const allClients = (sidebar.data ?? []).map((c) => c.groupId).join(',');
   return {
     title: t('adminHome.cards.assigned.title'),
     count: data?.total ?? 0,
@@ -102,7 +100,8 @@ export function useAssignedCard(): CountCardProps {
             label: t('adminHome.cards.assigned.showAll', { count: data.total }),
             to: {
               to: '/tasks',
-              search: { assignee: 'me', ...(allClients ? { clients: allClients } : {}) },
+              // `all`: every client, without sending hundreds of ids.
+              search: { assignee: 'me', clients: 'all' },
             },
           }
         : undefined,

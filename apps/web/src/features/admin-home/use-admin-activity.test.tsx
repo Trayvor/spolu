@@ -20,19 +20,28 @@ vi.mock('@/lib/socket', () => ({ getSocket: () => socket }));
 const fire = (event: string, payload: unknown = {}) =>
   act(() => handlers.get(event)?.forEach((fn) => fn(payload)));
 
-function Probe({ keys }: { keys: readonly (readonly string[])[] }) {
-  useAdminActivityRefetch(keys);
+function Probe({
+  keys,
+  options,
+}: {
+  keys: readonly (readonly string[])[];
+  options?: Parameters<typeof useAdminActivityRefetch>[1];
+}) {
+  useAdminActivityRefetch(keys, options);
   return null;
 }
 
 let visibility: DocumentVisibilityState = 'visible';
 
-function setup(keys: readonly (readonly string[])[]) {
+function setup(
+  keys: readonly (readonly string[])[],
+  options?: Parameters<typeof useAdminActivityRefetch>[1],
+) {
   const queryClient = new QueryClient();
   const invalidate = vi.spyOn(queryClient, 'invalidateQueries');
   render(
     <QueryClientProvider client={queryClient}>
-      <Probe keys={keys} />
+      <Probe keys={keys} options={options} />
     </QueryClientProvider>,
   );
   const refetched = () =>
@@ -76,7 +85,7 @@ describe('useAdminActivityRefetch', () => {
     const { refetched, invalidate } = setup([homeKeys.sidebar]);
     visibility = 'hidden';
     act(() => void document.dispatchEvent(new Event('visibilitychange')));
-    fire(AdminEvents.activity);
+    fire(AdminEvents.activity, { groupId: 'g1', kind: 'chat' });
     await act(() => vi.advanceTimersByTimeAsync(2000));
     expect(refetched()).toHaveLength(0);
     expect(invalidate).toHaveBeenCalledWith({ queryKey: homeKeys.sidebar, refetchType: 'none' });
@@ -84,6 +93,17 @@ describe('useAdminActivityRefetch', () => {
     act(() => void document.dispatchEvent(new Event('visibilitychange')));
     expect(refetched()).toHaveLength(1);
     act(() => void document.dispatchEvent(new Event('visibilitychange')));
+    expect(refetched()).toHaveLength(1);
+  });
+
+  it('kinds and chatRead filter what counts (the global board: tasks only)', async () => {
+    const { refetched } = setup([['tasks', 'global']], { kinds: ['task'], chatRead: false });
+    fire(AdminEvents.activity, { groupId: 'g1', kind: 'chat' });
+    fire(ChatEvents.read, { groupId: 'g1', channelId: 'c1' });
+    await act(() => vi.advanceTimersByTimeAsync(2000));
+    expect(refetched()).toHaveLength(0);
+    fire(AdminEvents.activity, { groupId: 'g1', kind: 'task' });
+    await act(() => vi.advanceTimersByTimeAsync(2000));
     expect(refetched()).toHaveLength(1);
   });
 });

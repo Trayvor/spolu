@@ -502,6 +502,28 @@ describe('socket.io', () => {
       await settle();
       expect(got).toEqual([{ groupId: g.id, kind: 'task' }]);
     });
+
+    it('deleting a custom bucket sends kind task (its tasks moved to To do)', async () => {
+      const g = await mkGroup();
+      const admin = await loggedIn(test);
+      const socket = await connected(admin.cookie);
+      const created = await test.app.inject({
+        method: 'POST',
+        url: `/api/groups/${g.id}/buckets`,
+        headers: { cookie: admin.cookie, origin: 'http://localhost:3000' },
+        payload: { name: 'Step' },
+      });
+      expect(created.statusCode).toBe(201);
+      const got = collect(socket);
+      const res = await test.app.inject({
+        method: 'DELETE',
+        url: `/api/buckets/${created.json<{ id: string }>().id}`,
+        headers: { cookie: admin.cookie, origin: 'http://localhost:3000' },
+      });
+      expect(res.statusCode).toBe(204);
+      await settle();
+      expect(got).toEqual([{ groupId: g.id, kind: 'task' }]);
+    });
   });
 });
 

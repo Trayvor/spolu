@@ -226,6 +226,16 @@ describe('GlobalBoardPage', () => {
     expect(router.state.location.search).toEqual({ task: 't1' });
   });
 
+  it('clients=all (the dashboard\'s "Show all") asks for every client and the pill says so', async () => {
+    const { calls } = mockBoardApi();
+    renderBoard('/tasks?assignee=me&clients=all');
+    await screen.findByRole('link', { name: /Fix budget table/ });
+    expect(globalCalls(calls)).toEqual(['/api/tasks/global?clients=all&assignee=me']);
+    expect(
+      await screen.findByRole('button', { name: t('knowledge.clientFilter.pillAll') }),
+    ).toBeInTheDocument();
+  });
+
   it('cards are not draggable', async () => {
     mockBoardApi();
     renderBoard();

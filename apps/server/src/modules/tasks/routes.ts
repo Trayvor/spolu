@@ -4,6 +4,7 @@ import type { AppDeps } from '../../deps.js';
 import { createRateLimiter } from '../../infra/http/rate-limit.js';
 import { requireUser } from '../auth/session.js';
 import { getGroup, getMembershipGroupId } from '../groups/service.js';
+import { emitAdminActivity } from '../../infra/realtime/rooms.js';
 import { emitBuckets } from './events.js';
 import { canManageBuckets, canUseBoard } from './policy.js';
 import { taskRoutes } from './task-routes.js';
@@ -110,6 +111,8 @@ export const tasksRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { 
       const deleted = await deleteBucket(db, current.id);
       if (!deleted) return notFound(reply);
       emitBuckets(app.io, deleted.groupId, await listBuckets(db, deleted.groupId));
+      // Its tasks moved to To do: the admin home's global board must refetch.
+      emitAdminActivity(app.io, { groupId: deleted.groupId, kind: 'task' });
       return reply.code(204).send();
     } catch (error) {
       if (error instanceof FixedBucketError) {

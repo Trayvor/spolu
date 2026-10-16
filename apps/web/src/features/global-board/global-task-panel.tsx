@@ -55,7 +55,8 @@ export function GlobalTaskPanel({ taskId }: { taskId: string }) {
     },
     [navigate, queryClient],
   );
-  const gone = query.error instanceof ApiError && query.error.status === 404;
+  // Only before the panel is open: once it is, `TaskPanel` itself closes on a gone task.
+  const gone = query.error instanceof ApiError && query.error.status === 404 && !query.data;
   useEffect(() => {
     if (gone) onExit({ replace: true });
   }, [gone, onExit]);

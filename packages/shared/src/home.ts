@@ -145,10 +145,15 @@ export type DueFilter = (typeof DueFilters)[number];
 /** The global board's query string. Every field is optional; see the Phase 20 spec. */
 export const GlobalBoardFilterSchema = z
   .object({
+    /** Comma-separated group ids (at most 200), or `all` for every client. */
     clients: z
-      .string()
-      .transform((value) => value.split(','))
-      .pipe(z.array(id).min(1).max(200))
+      .union([
+        z.literal('all'),
+        z
+          .string()
+          .transform((value) => value.split(','))
+          .pipe(z.array(id).min(1).max(200)),
+      ])
       .optional(),
     /** `me`, `anyone` (default), `none` (unassigned) or a person id. */
     assignee: z.union([z.enum(['me', 'anyone', 'none']), id]).default('anyone'),
@@ -169,7 +174,8 @@ export const GlobalBoardFilterSchema = z
       .transform(() => true)
       .optional(),
     column: z.enum(BoardColumnKinds).optional(),
-    after: z.string().min(1).max(500).optional(),
+    // The cursor carries the client's name (up to 100 characters, more bytes in base64url).
+    after: z.string().min(1).max(1000).optional(),
   })
   .refine((v) => (v.column === undefined) === (v.after === undefined), {
     message: 'column and after go together',

@@ -40,6 +40,9 @@ function SearchIcon() {
 
 const DUE = ['any', 'overdue', 'week', 'none'] as const;
 
+/** `clients=all`: every client, now and later, without listing the ids. */
+const ALL = 'all';
+
 /** Every filter as a pill (a dropdown, a toggle, the search field and "Show completed"). */
 function FilterControls({ board, people }: { board: Search; people: TaskPerson[] }) {
   const { t } = useTranslation();
@@ -75,8 +78,14 @@ function FilterControls({ board, people }: { board: Search; people: TaskPerson[]
       <ClientFilter
         groups={options}
         managedIds={managedIds}
-        value={board.clients}
-        onChange={board.setClients}
+        value={board.clients?.[0] === ALL ? options.map((o) => o.id) : board.clients}
+        onChange={(next) =>
+          board.setClients(
+            next !== null && options.length > 0 && options.every((o) => next.includes(o.id))
+              ? [ALL]
+              : next,
+          )
+        }
         disabled={groups === undefined}
       />
       <DropdownMenu>

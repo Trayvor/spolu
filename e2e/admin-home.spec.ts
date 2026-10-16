@@ -119,9 +119,11 @@ test('admin home: dashboard, sidebar, Úlohy and global board', async ({ page: s
     await expect(n.getByRole('link', { name: new RegExp(`Rozpočet ${stamp}`) })).toBeVisible();
     await expect(n.getByRole('link', { name: new RegExp(`Iná úloha ${stamp}`) })).toHaveCount(0);
     await n.getByRole('button', { name: /^Klienti: Moji klienti/ }).click();
-    await n.getByRole('searchbox', { name: 'Nájsť klienta' }).fill(g2Name);
-    await n.getByRole('checkbox', { name: new RegExp(g2Name) }).check();
-    await n.getByRole('button', { name: 'Hotovo' }).click();
+    // The sidebar has its own "Nájsť klienta" field: scope to the filter's popover.
+    const picker = n.getByRole('dialog', { name: 'Klienti' });
+    await picker.getByRole('searchbox', { name: 'Nájsť klienta' }).fill(g2Name);
+    await picker.getByRole('checkbox', { name: new RegExp(g2Name) }).check();
+    await picker.getByRole('button', { name: 'Hotovo' }).click();
     await expect(n.getByRole('link', { name: new RegExp(`Iná úloha ${stamp}`) })).toBeVisible();
 
     // 7. On a phone the home shows the count tiles and the client list.

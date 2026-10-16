@@ -27,7 +27,8 @@ export function GlobalBoardPage() {
   const board = useGlobalSearch();
   const { filters, search } = board;
   const query = useQuery(globalBoardQuery(filters));
-  useAdminActivityRefetch(BOARD_KEYS);
+  // Only task changes move cards; chat activity and reads leave the board as it is.
+  useAdminActivityRefetch(BOARD_KEYS, { kinds: ['task'], chatRead: false });
   const today = todayInBratislava();
 
   // "Show 50 more" pages, per column, until the first page or the filters change.

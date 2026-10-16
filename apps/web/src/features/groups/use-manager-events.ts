@@ -12,7 +12,7 @@ import { busyGroups } from './manager-busy';
  * signed-in session; mounted once in the authed layout. Refreshes the group's people (the
  * pickers), patches the groups list if it is loaded (`managers`, and `managedByMe` from the
  * session id), and refetches the notification modes when the signed-in user was added or
- * removed (becoming a manager can change their mode there). While the user's own toggle for
+ * removed (becoming a manager can change their mode there). The admin sidebar refetches. While the user's own toggle for
  * that group is busy (`busyGroups`), only the people are refreshed.
  */
 export function useManagerEvents(): void {
@@ -22,6 +22,8 @@ export function useManagerEvents(): void {
     const socket = getSocket();
     function onManagers({ groupId, managers }: GroupManagersEvent) {
       void queryClient.invalidateQueries({ queryKey: ['groups', groupId, 'people'] });
+      // The admin home's sidebar sorts managed clients apart (Phase 20; `homeKeys.sidebar`).
+      void queryClient.invalidateQueries({ queryKey: ['home', 'sidebar'] });
       // The signed-in user's own toggle is mid-burst here: it reconciles with its last answer.
       if (busyGroups.has(groupId)) return;
       const me = queryClient.getQueryData<Me | null>(sessionQuery.queryKey);

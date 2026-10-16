@@ -68,6 +68,7 @@ describe('resolveClientIds', () => {
   it('explicit clients win', async () => {
     const admin = await newAdmin(db, 'Ada');
     expect(await resolveClientIds(db, admin.id, ['a', 'b'])).toEqual(['a', 'b']);
+    expect(await resolveClientIds(db, admin.id, 'all')).toBeNull();
   });
 });
 

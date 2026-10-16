@@ -181,7 +181,7 @@ describe('HomePage', () => {
     expect(within(card).getByText('37')).toBeInTheDocument();
     expect(within(card).getByText('5 urgent')).toBeInTheDocument();
     const all = await within(card).findByRole('link', { name: 'Show all 37' });
-    await waitFor(() => expect(all).toHaveAttribute('href', '/tasks?assignee=me&clients=g1%2Cg2'));
+    await waitFor(() => expect(all).toHaveAttribute('href', '/tasks?assignee=me&clients=all'));
   });
 
   it('mentions link to the message, with the thread for a reply and the task chat for a task message', async () => {
