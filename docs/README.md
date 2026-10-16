@@ -18,6 +18,7 @@ Spolu is the eGrant team's internal web app for working with clients: group chat
 | [decisions/](decisions/) | ADRs: one file per technical decision (`NNNN-title.md`) |
 | [design/](design/README.md) | the egrant.sk design rule and design tokens |
 | [runbooks/](runbooks/README.md) | server setup, deploy, rollback, backup |
+| [integrations/](integrations/egrant-ticket-intake.md) | guides for outside developers: [eGrant ticket intake](integrations/egrant-ticket-intake.md) |
 | [superpowers/specs/](superpowers/specs/) | per-phase designs |
 | [superpowers/plans/](superpowers/plans/) | per-phase implementation plans |
 | [superpowers/briefs/](superpowers/briefs/) | owner briefs for work not yet specced |

@@ -33,6 +33,7 @@ import {
   assignTicketGroup,
   claimRequesterEmail,
   createTicket,
+  findTicketByRequestId,
   follow,
   getTicketForActor,
   getTicketRow,
@@ -51,6 +52,11 @@ type IdParams = { Params: { id: string } };
 const send = (reply: FastifyReply, code: number, error: string) => reply.code(code).send({ error });
 const notFound = (reply: FastifyReply) => send(reply, 404, ErrorCodes.notFound);
 const invalid = (reply: FastifyReply) => send(reply, 400, ErrorCodes.validationFailed);
+
+const intakeAnswer = (ticket: TicketRow): TicketIntakeResponse => ({
+  id: ticket.id,
+  number: ticket.number,
+});
 
 /** Constant-time comparison of the Bearer key. */
 function keyMatches(header: string | undefined, key: string): boolean {
@@ -121,8 +127,11 @@ export const ticketsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, 
       });
     }
     const b = body.data;
+    // A retry of a request already taken answers its ticket and repeats nothing.
+    const earlier = b.request_id ? await findTicketByRequestId(db, b.request_id) : null;
+    if (earlier) return reply.code(200).send(intakeAnswer(earlier));
     const group = await findGroupByEgrantUrl(db, b.instance_url);
-    const { ticket, notifyRequester } = await createTicket(deps, {
+    const { ticket, notifyRequester, duplicate } = await createTicket(deps, {
       source: 'api',
       groupId: group?.id ?? null,
       createdBy: null,
@@ -138,10 +147,12 @@ export const ticketsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, 
       requester: { email: b.email, name: b.requester_name, phone: b.phone },
       // Kept as received, so admins see what eGrant sent even when no client matched.
       instanceUrl: b.instance_url,
+      requestId: b.request_id,
     });
+    // A concurrent duplicate lost the race to the unique key: the winner does the rest.
+    if (duplicate) return reply.code(200).send(intakeAnswer(ticket));
     await afterCreate(request, ticket, notifyRequester);
-    const answer: TicketIntakeResponse = { id: ticket.id, number: ticket.number };
-    return reply.code(201).send(answer);
+    return reply.code(201).send(intakeAnswer(ticket));
   });
 
   // ---- Manual creation ------------------------------------------------------------------------

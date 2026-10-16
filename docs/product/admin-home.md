@@ -13,7 +13,7 @@ What an administrator sees after signing in: a dashboard of what needs them, a c
 - **Dashboard cards.** Each card has a count on the left and a list on the right; clicking an item opens it.
   - **Assigned to me** (a wide card): the number of open tasks assigned to me and how many are urgent. The list: urgent tasks first, then by the nearest deadline, then later deadlines, then tasks with no deadline.
   - **Upcoming reminders**: my next reminders in time order, with the count for the next 7 days. It comes from the reminders of the knowledge base and the task board (Phases 17 and 19) and appears once they exist.
-  - **Mentions**: unread messages where I was mentioned (by name, or by @all in a client I manage). Clicking one opens the chat at that message.
+  - **Mentions**: unread messages where I was mentioned (by name, or by @all in a client I manage). Clicking one opens the chat at that message (a ticket chat's message opens the ticket page). A ticket chat's message is listed only while the viewer can read the ticket (checked when the card loads, in one batch).
 - **Tasks tab (Úlohy).** In a group's tab bar, the Tasks tab shows a black dot with the number of tasks with unread chat messages and a yellow dot with the number of open tasks assigned to me. Clients see it too.
 - **Global task board.** Administrators have a task board across all clients:
   - columns by step: To do, Other steps (custom buckets), eGrant review, Client review, Completed (Completed hidden unless chosen);

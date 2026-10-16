@@ -27,7 +27,7 @@ Requirements per module: [product/](product/README.md). Phases after 1 get their
 | 18 | [Client managers](#phase-18--client-managers) | in progress | 9, 6 | [spec](superpowers/specs/2026-10-16-phase-18-client-managers-design.md), [plan](superpowers/plans/2026-10-16-phase-18-client-managers.md) |
 | 19 | [Task reminders](#phase-19--task-reminders) | in progress | 17 | [spec](superpowers/specs/2026-10-16-phase-19-task-reminders-design.md), [plan](superpowers/plans/2026-10-16-phase-19-task-reminders.md) |
 | 20 | [Admin home](#phase-20--admin-home) | in progress | 17, 18 | [spec](superpowers/specs/2026-10-16-phase-20-admin-home-design.md), [plan](superpowers/plans/2026-10-16-phase-20-admin-home.md) |
-| 21 | [Tickets & the ziadatel role](#phase-21--tickets--the-ziadatel-role) | in progress | 18, 20; item C for 21.6 | [spec](superpowers/specs/2026-10-16-phase-21-tickets-and-requesters-design.md), [plan](superpowers/plans/2026-10-16-phase-21-tickets-and-requesters.md) |
+| 21 | [Tickets & the ziadatel role](#phase-21--tickets--the-ziadatel-role) | done (local) | 18, 20; item C for 21.6 | [spec](superpowers/specs/2026-10-16-phase-21-tickets-and-requesters-design.md), [plan](superpowers/plans/2026-10-16-phase-21-tickets-and-requesters.md) |
 | 22 | [Members & groups page](#phase-22--members--groups-page) | in progress | 18, 20, 21.1 | [plan](superpowers/plans/2026-10-16-phase-22-members-and-groups-page.md) |
 | 23 | [Bulk email](#phase-23--bulk-email) | in progress | 3, 18, 21.1 | [spec](superpowers/specs/2026-10-16-phase-23-bulk-email-design.md), [plan](superpowers/plans/2026-10-16-phase-23-bulk-email.md) |
 
@@ -300,7 +300,7 @@ Part 23.3 (renderer, public images, preview, email logo PNG) is built. Built in 
 
 Done when: eGrant sends a ticket, a new requester gets the email, logs in with a code and sees only that ticket and its chat; an admin replies and the requester is notified; the ticket becomes tasks that link back to it; a client works in two groups.
 
-Status: part 21.1 (clients in several groups, membership roles, invites applied on sign-in) built on branch `phase-21-1-memberships`; part 21.2 (tickets server core) built on branch `phase-21-2-tickets-core`, stacked on 21.1; part 21.3 (ticket chat, server) on `phase-21-3-ticket-chat`, stacked on 21.2; part 21.4 (ticket screens: lists, ticket page with its chat, new-ticket dialog, requester shell, Requesters section, task line, ticket uploads) on `phase-21-4-tickets-web`, stacked on 21.3; part 21.6 (notifications) on its own branch; part 21.5 (ticket to tasks with AI) on `phase-21-5-ticket-tasks`; part 21.7 not started.
+Status: done (local). All seven parts are merged into `main`: 21.1 memberships, 21.2 tickets server core, 21.3 ticket chat, 21.4 ticket screens, 21.5 ticket to tasks with AI, 21.6 following and notifications, 21.7 e2e and wrap-up (`e2e/tickets.spec.ts` walks the whole "Done when" flow; the intake's `request_id` for safe retries; mentions of unreadable tickets dropped from the admin home; task changes refresh the ticket page; the [eGrant integration guide](integrations/egrant-ticket-intake.md)). Not yet deployed to a server.
 
 ## Phase 22 — Members & groups page
 

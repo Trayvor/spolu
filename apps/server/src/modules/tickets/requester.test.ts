@@ -31,11 +31,16 @@ describe('resolveRequester', () => {
   it("an admin's email: that admin, no membership", async () => {
     const g = await newGroup();
     const admin = await addAdmin(db, { email: newEmail(), name: 'Ad' });
-    expect(await resolveRequester(db, g.id, admin.email, 'X')).toEqual({
-      userId: admin.id,
-      notify: true,
-    });
-    expect(await getMembership(db, admin.id, g.id)).toBeNull();
+    try {
+      expect(await resolveRequester(db, g.id, admin.email, 'X')).toEqual({
+        userId: admin.id,
+        notify: true,
+      });
+      expect(await getMembership(db, admin.id, g.id)).toBeNull();
+    } finally {
+      // Left active, it would get every ticket-without-client notification of later tests.
+      await deactivateUser(db, admin.id);
+    }
   });
 
   it('an active client of the group: that client, unchanged', async () => {

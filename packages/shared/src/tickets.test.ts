@@ -26,6 +26,18 @@ describe('TicketIntakeBodySchema', () => {
     });
   });
 
+  it('takes an optional request_id of 1 to 100 characters', () => {
+    expect(TicketIntakeBodySchema.parse({ subject: 'x' }).request_id).toBeNull();
+    expect(TicketIntakeBodySchema.parse({ subject: 'x', request_id: ' abc-1 ' }).request_id).toBe(
+      'abc-1',
+    );
+    expect(TicketIntakeBodySchema.safeParse({ subject: 'x', request_id: '' }).success).toBe(false);
+    expect(
+      TicketIntakeBodySchema.safeParse({ subject: 'x', request_id: 'a'.repeat(101) }).success,
+    ).toBe(false);
+    expect(TicketIntakeBodySchema.safeParse({ subject: 'x', request_id: 7 }).success).toBe(false);
+  });
+
   it('trims and lower-cases the email; empty strings are not given', () => {
     const parsed = TicketIntakeBodySchema.parse({ body: 'x', email: ' Jana@X.sk ', phone: '' });
     expect(parsed.email).toBe('jana@x.sk');
