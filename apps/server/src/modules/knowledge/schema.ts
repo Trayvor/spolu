@@ -116,9 +116,9 @@ export const knowledgeItems = pgTable(
     index('knowledge_items_chat_channel_idx')
       .on(t.chatChannelId)
       .where(sql`${t.chatChannelId} is not null`),
-    // A group's chat files, newest first (by kind for the default "group chat only").
+    // A group's chat files, newest first (the `chats` filter's kind is checked on top).
     index('knowledge_items_group_chat_created_idx')
-      .on(t.groupId, t.chatKind, t.createdAt.desc().nullsFirst(), t.id.desc().nullsFirst())
+      .on(t.groupId, t.createdAt.desc().nullsFirst(), t.id.desc().nullsFirst())
       .where(sql`${t.type} = 'chat_file'`),
     // The folder view's top level, which never lists chat files (they have no folder either).
     index('knowledge_items_root_created_idx')

@@ -1,5 +1,5 @@
 {
-  "id": "d639af24-eb93-405c-bad9-e3afc124ef6e",
+  "id": "888a905d-1b8b-4d14-aa2a-ca409b0e1034",
   "prevId": "01fca0bb-4e95-4c40-9428-14b28733e2f7",
   "version": "7",
   "dialect": "postgresql",
@@ -2472,12 +2472,6 @@
           "columns": [
             {
               "expression": "group_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "chat_kind",
               "isExpression": false,
               "asc": true,
               "nulls": "last"

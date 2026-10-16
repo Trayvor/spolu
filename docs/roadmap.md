@@ -31,7 +31,7 @@ Requirements per module: [product/](product/README.md). Phases after 1 get their
 | 22 | [Members & groups page](#phase-22--members--groups-page) | in progress | 18, 20, 21.1 | [plan](superpowers/plans/2026-10-16-phase-22-members-and-groups-page.md) |
 | 23 | [Bulk email](#phase-23--bulk-email) | done (local) | 3, 18, 21.1 | [spec](superpowers/specs/2026-10-16-phase-23-bulk-email-design.md), [plan](superpowers/plans/2026-10-16-phase-23-bulk-email.md) |
 | 24 | [Knowledge folders](#phase-24--knowledge-folders) | in progress | 17 | [spec](superpowers/specs/2026-10-16-phase-24-knowledge-folders-design.md), [plan](superpowers/plans/2026-10-16-phase-24-knowledge-folders.md) |
-| 25 | [Chat files in the knowledge base](#phase-25--chat-files-in-the-knowledge-base) | in progress | 17, 24 | [spec](superpowers/specs/2026-10-16-knowledge-chat-files-design.md), [plan](superpowers/plans/2026-10-16-knowledge-chat-files.md) |
+| 25 | [Chat files in the knowledge base](#phase-25--chat-files-in-the-knowledge-base) | done (local) | 17, 24 | [spec](superpowers/specs/2026-10-16-knowledge-chat-files-design.md), [plan](superpowers/plans/2026-10-16-knowledge-chat-files.md) |
 
 Phases 8 and 14 do not depend on each other, so their order can change by priority.
 
@@ -349,6 +349,6 @@ Requirements: [knowledge-base](product/knowledge-base.md) and the [design](super
 
 Scope: every file attached to a chat message (group chat, task chat, ticket chat) becomes a read-only knowledge item of the type "From chat" ("Z chatu"), created automatically, removed with the message, and opening the chat at that message; the type filter and a "tasks and tickets too" checkbox in the group's tab and the admins' global view; a backfill for files already in chats.
 
-Status: in progress on branch `knowledge-chat-files`.
+Status: built in one pull request on branch `knowledge-chat-files` (server, web, end-to-end test in `e2e/knowledge.spec.ts`); migration 0024 with the backfill. Waiting for the owner's walkthrough.
 
 Done when: a client uploads a file in the group chat, an admin finds it under "From chat" in the client's Knowledge tab and in the global view, opens the chat at the message from it, and the entry disappears when the message is deleted.

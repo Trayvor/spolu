@@ -39,7 +39,7 @@ Checks: `type` adds `chat_file`; `(type = 'chat_file') = (chat_message_id is not
 Indexes:
 - unique `(chat_message_id, chat_file_id)` where set: the cascade lookup and one entry per file;
 - `(chat_channel_id)` where set: the ticket move;
-- `(group_id, chat_kind, created_at desc, id desc)` where `type = 'chat_file'`: a group's chat files page;
+- `(group_id, created_at desc, id desc)` where `type = 'chat_file'`: a group's chat files page (the kind filtered on top);
 - `(group_id, created_at desc, id desc)` where `folder_id is null and type <> 'chat_file'`: the top level of the folder view, which would otherwise skip over every chat file.
 
 ## API

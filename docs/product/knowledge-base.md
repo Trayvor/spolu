@@ -5,7 +5,7 @@ Each group has a Knowledge tab where clients and admins keep what the group need
 ## Requirements
 
 - **Knowledge tab** in every group (sk: "Znalosti"), between Tasks and Members.
-- **Four item types:**
+- **Four item types** people create (and a fifth, "From chat", added by the chat: see below):
   1. **Note**: a title and a body with the same formatting as the chat composer, plus files.
      - In the list: the title, the number of attached files, and the start of the body on one line, ending with "…".
   2. **File**: one file, with a title and a description.
@@ -51,13 +51,24 @@ Design and the defaults we chose: [Phase 24 spec](../superpowers/specs/2026-10-1
 - **Global list:** without a search it is a folder view: the clients of the client filter by name (logo and name), then a client's folders and items (`?at=<group>&folder=<id>`, breadcrumbs "All clients › Client › Folder"). The type filter applies to the items there. Typing a search switches to the flat list across clients, each row with its client and folder path.
 - **Realtime:** folder changes reach the tab live (`knowledge:folder`, `knowledge:folder_deleted`); the folder list and the item lists refetch.
 
+## Files from chats (Phase 25, built)
+
+Owner request of 2026-10-16. Design and the defaults we chose: [spec](../superpowers/specs/2026-10-16-knowledge-chat-files-design.md).
+
+- **Type "From chat"** (sk "Z chatu"): every file attached to a chat message (the group chat, a task chat, a ticket chat) becomes one knowledge item of its group, automatically, in the same write as the message. Nobody creates, edits, moves or deletes one by hand ("+ New" does not offer it; the detail has no "…" menu). Deleting the message (or the file, task, ticket or group) removes it. Files already in chats were added by migration 0024.
+- **Who sees them:** exactly who reads the chat. Every chat of a group is read by the admins and the group's clients, so a chat file is a public item of that group; a ziadatel never sees knowledge. A ticket moved to another client takes its chat files along.
+- **The row:** a chat icon, the file name (it downloads the file, or opens an image), the source ("Group chat", "Task: <title>", "Ticket #12") and the size, then the author and time of the message. Clicking the row elsewhere opens the chat at the message: the group's Chat tab, the task panel's Chat tab, or the ticket page; a reply opens its thread. `?k=<id>` of a chat file shows a read-only detail with the file and "Show in chat".
+- **Not in folders:** the folder view (also "All") lists only hand-made items. Ticking "From chat" makes the list flat like a search: breadcrumbs and folders hide and it runs newest first across the whole group (in the global view: across the chosen clients). Search finds chat files by file name.
+- **Tasks and tickets too:** while "From chat" is ticked, a checkbox "Also from tasks and tickets" (sk "Aj z úloh a tiketov", `?chats=all`) appears next to the type filter, in the tab and in the global view. Unticked (the default) only the group chat's files are listed, also in a search with "All".
+- **Live:** a new chat file appears at once in an open list that shows chat files; a deleted message removes it. A ticket moved to another client or a deleted task changes the lists on their next load.
+
 ## Status
 
 Built on the server (Phase 17): the HTTP API (`modules/knowledge/routes.ts`: the tab list, the global list and its scope, create, read, edit, delete; 120 writes per minute per user), the reminder endpoints (`modules/reminders/routes.ts`: the set, subscribe and unsubscribe, the `.ics` file) and realtime (public items to the group room, admins-only items to the group's admins room). Built on the web: the Knowledge tab with live updates, the detail dialog (view, create, edit, delete), the reminder block, and the admins' global list with the client filter. Phase 24 adds folders (above), on the server (`modules/knowledge/folders.ts`, routes in `routes.ts`) and on the web (`folder-browser.tsx`, `folder-dialog.tsx`, `move-dialog.tsx`, `breadcrumbs.tsx`). End-to-end tests: `e2e/knowledge.spec.ts`. Waiting for the owner's walkthrough on the server.
 
 ## Phase
 
-Phase 17 (the tab, the four types, visibility, the global list; reminders from `reminders.md`). Phase 24: folders. The global list's default client filter is the clients the admin manages (Phase 18, client managers).
+Phase 17 (the tab, the four types, visibility, the global list; reminders from `reminders.md`). Phase 24: folders. Phase 25: files from chats. The global list's default client filter is the clients the admin manages (Phase 18, client managers).
 
 ## Global list (built)
 
