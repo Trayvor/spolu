@@ -13,7 +13,9 @@
     "knowledge": "Knowledge",
     "myGroups": "My groups",
     "myTickets": "My tickets",
-    "bulkEmail": "Bulk email"
+    "bulkEmail": "Bulk email",
+    "menu": "Menu",
+    "menuCurrent": "Menu: {{name}}"
   },
   "user": {
     "menu": "Account menu",

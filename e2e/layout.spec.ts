@@ -44,3 +44,51 @@ for (const { name, width, height, gap, mobile } of [
     }
   });
 }
+
+// On a phone the sections are one menu pill with a bottom sheet; the account menu holds only the
+// person's own things (Settings, the languages, Log out).
+test('on a phone, the section menu moves between sections and the account menu has no sections', async ({
+  browser,
+}) => {
+  const context = await browser.newContext({
+    viewport: { width: 390, height: 844 },
+    isMobile: true,
+    hasTouch: true,
+    locale: 'sk-SK',
+    storageState: 'e2e/.auth/superadmin.json',
+  });
+  const page = await context.newPage();
+  try {
+    await page.goto('/settings');
+    const header = page.getByRole('banner');
+    // No language pill and no section links on a phone: the menu pill says where you are.
+    await expect(header.getByRole('button', { name: /^Jazyk:/ })).toBeHidden();
+    await expect(header.getByRole('link', { name: 'Úlohy' })).toBeHidden();
+    await header.getByRole('button', { name: 'Menu' }).tap();
+    const sheet = page.getByRole('dialog', { name: 'Menu' });
+    await expect(sheet.getByRole('link')).toHaveText([
+      'Domov',
+      /^Úlohy/,
+      /^Tikety/,
+      'Znalosti',
+      'Skupiny',
+      'Administrátori',
+      'Hromadné e-maily',
+    ]);
+    const row = (await sheet.getByRole('link').first().boundingBox())!;
+    expect(row.height).toBe(48);
+    await sheet.getByRole('link', { name: /^Úlohy/ }).tap();
+    await expect(page).toHaveURL(/\/tasks/);
+    await expect(sheet).toHaveCount(0);
+    await expect(header.getByRole('button', { name: 'Menu: Úlohy' })).toBeVisible();
+
+    await header.getByRole('button', { name: 'Menu účtu' }).tap();
+    const menu = page.getByRole('menu');
+    await expect(menu.getByRole('menuitem')).toHaveText(['Nastavenia', 'Odhlásiť sa']);
+    await expect(menu.getByRole('menuitemradio', { name: 'Slovenčina' })).toBeVisible();
+    // Nothing on the page is wider than the window.
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
+  } finally {
+    await context.close();
+  }
+});

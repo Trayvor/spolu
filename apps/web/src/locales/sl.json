@@ -13,7 +13,9 @@
     "knowledge": "Znanje",
     "myGroups": "Moje skupine",
     "myTickets": "Moji zahtevki",
-    "bulkEmail": "Množična e-pošta"
+    "bulkEmail": "Množična e-pošta",
+    "menu": "Meni",
+    "menuCurrent": "Meni: {{name}}"
   },
   "user": {
     "menu": "Meni računa",

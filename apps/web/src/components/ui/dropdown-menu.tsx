@@ -5,8 +5,9 @@ import { cn } from '@/lib/utils';
 /*
  * shadcn/ui dropdown menu (Radix), trimmed to the egrant language dropdown
  * (docs/design/tokens.md): `bg-popover` panel with `shadow-lift`, `rounded-xl`, 8px padding;
- * `rounded-lg` items with an `accent` hover; no open/close animation. Sub-menus and shortcuts are
- * left out until a screen needs them.
+ * `rounded-lg` items with an `accent` hover, 44 px tall on phones. It grows in from the side it
+ * opens on and fades out faster (`animate-menu-in` / `-out`, transform and opacity only, off under
+ * reduced motion). Sub-menus and shortcuts are left out until a screen needs them.
  */
 
 const DropdownMenu = DropdownMenuPrimitive.Root;
@@ -15,7 +16,7 @@ const DropdownMenuGroup = DropdownMenuPrimitive.Group;
 const DropdownMenuRadioGroup = DropdownMenuPrimitive.RadioGroup;
 
 const itemClasses =
-  'relative flex cursor-default items-center gap-2.5 rounded-lg px-3 py-2.5 text-button font-medium outline-hidden select-none transition-colors duration-(--duration-fast) focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50';
+  'relative flex cursor-default items-center gap-2.5 rounded-lg px-3 py-2.5 text-button max-[640px]:min-h-11 font-medium outline-hidden select-none transition-colors duration-(--duration-fast) focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50';
 
 function DropdownMenuContent({
   className,
@@ -28,7 +29,7 @@ function DropdownMenuContent({
         data-slot="dropdown-menu-content"
         sideOffset={sideOffset}
         className={cn(
-          'z-50 flex max-h-(--radix-dropdown-menu-content-available-height) min-w-[190px] flex-col gap-0.5 overflow-y-auto rounded-xl bg-popover p-2 text-popover-foreground shadow-lift',
+          'z-50 flex max-h-(--radix-dropdown-menu-content-available-height) min-w-[190px] origin-(--radix-dropdown-menu-content-transform-origin) flex-col gap-0.5 overflow-y-auto rounded-xl bg-popover p-2 text-popover-foreground shadow-lift data-[state=closed]:animate-menu-out data-[state=open]:animate-menu-in',
           className,
         )}
         {...props}

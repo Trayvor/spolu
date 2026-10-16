@@ -212,39 +212,99 @@ describe('logged-in shell', () => {
     expect(screen.queryByRole('link', { name: t('nav.groups') })).not.toBeInTheDocument();
   });
 
-  it('the user menu offers Groups to admins for narrow screens', async () => {
+  it('the user menu holds only Settings, the languages and Log out', async () => {
     mockApi({ role: 'admin' });
     const { user } = renderAt();
     await user.click(await screen.findByRole('button', { name: t('user.menu') }));
-    expect(await screen.findByRole('menuitem', { name: t('nav.groups') })).toBeInTheDocument();
+    const menu = await screen.findByRole('menu');
+    expect(within(menu).getAllByRole('menuitem').map((item) => item.textContent)).toEqual([
+      t('nav.settings'),
+      t('user.logout'),
+    ]);
+    // The phone header has no language pill: the languages are here (hidden from 641 px).
+    expect(within(menu).getAllByRole('menuitemradio')).toHaveLength(9);
+    expect(within(menu).getByRole('menuitemradio', { name: 'English' })).toHaveAttribute(
+      'aria-checked',
+      'true',
+    );
   });
 
-  it('admins see Home, Tasks, Knowledge, Groups, Admins in that order', async () => {
+  it('the section menu lists the admin sections in header order and marks the current one', async () => {
     mockApi({ role: 'admin' });
-    const { user } = renderAt();
+    const { user, router } = renderAt('/settings');
     const order = [
       t('nav.home'),
       t('nav.tasks'),
+      t('nav.tickets'),
       t('nav.knowledge'),
       t('nav.groups'),
       t('nav.admins'),
+      t('nav.bulkEmail'),
     ];
     await screen.findByRole('link', { name: t('nav.admins') });
     const header = screen.getByRole('banner');
-    const names = within(header)
-      .getAllByRole('link')
-      .map((link) => link.textContent)
-      .filter((name) => order.includes(name ?? ''));
-    expect(names).toEqual(order);
+    expect(
+      within(header)
+        .getAllByRole('link')
+        .map((link) => link.textContent)
+        .filter((name) => order.includes(name ?? '')),
+    ).toEqual(order);
     expect(within(header).getByRole('link', { name: t('nav.tasks') })).toHaveAttribute(
       'href',
       '/tasks',
     );
-    await user.click(screen.getByRole('button', { name: t('user.menu') }));
-    const items = (await screen.findAllByRole('menuitem'))
-      .map((item) => item.textContent)
-      .filter((name) => order.includes(name ?? ''));
-    expect(items).toEqual(order);
+
+    // Settings belongs to no section: the pill says "Menu".
+    const pill = within(header).getByRole('button', { name: t('nav.menu') });
+    expect(pill).toHaveAttribute('aria-expanded', 'false');
+    await user.click(pill);
+    const sheet = await screen.findByRole('dialog', { name: t('nav.menu') });
+    expect(within(sheet).getAllByRole('link').map((link) => link.textContent)).toEqual(order);
+    expect(pill).toHaveAttribute('aria-expanded', 'true');
+
+    await user.click(within(sheet).getByRole('link', { name: t('nav.groups') }));
+    await waitFor(() => expect(router.state.location.pathname).toBe('/groups'));
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog', { name: t('nav.menu') })).not.toBeInTheDocument(),
+    );
+    const named = within(header).getByRole('button', {
+      name: t('nav.menuCurrent').replace('{{name}}', t('nav.groups')),
+    });
+    expect(named).toHaveTextContent(t('nav.groups'));
+    await user.click(named);
+    const again = await screen.findByRole('dialog', { name: t('nav.menu') });
+    expect(within(again).getByRole('link', { name: t('nav.groups') })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+  });
+
+  it('a client of one group who reports tickets gets their group and My tickets in the section menu', async () => {
+    mockApi({
+      role: 'client',
+      groups: [
+        { id: 'g1', name: 'Firma', role: 'client', hasLogo: false, updatedAt: '' },
+        { id: 'g2', name: 'Iná', role: 'ziadatel', hasLogo: false, updatedAt: '' },
+      ],
+    });
+    const { user } = renderAt('/settings');
+    await user.click(await screen.findByRole('button', { name: t('nav.menu') }));
+    const sheet = await screen.findByRole('dialog', { name: t('nav.menu') });
+    expect(within(sheet).getAllByRole('link').map((link) => link.textContent)).toEqual([
+      'Firma',
+      t('nav.myTickets'),
+    ]);
+    expect(within(sheet).getByRole('link', { name: 'Firma' })).toHaveAttribute('href', '/');
+  });
+
+  it('a client of one group who reports nothing has no section menu', async () => {
+    mockApi({
+      role: 'client',
+      groups: [{ id: 'g1', name: 'Firma', role: 'client', hasLogo: false, updatedAt: '' }],
+    });
+    renderAt('/settings');
+    await screen.findByRole('button', { name: t('user.menu') });
+    expect(screen.queryByRole('button', { name: t('nav.menu') })).not.toBeInTheDocument();
   });
 
   it('/ renders the dashboard for an admin and redirects a client to their group', async () => {
