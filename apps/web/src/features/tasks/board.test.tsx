@@ -180,6 +180,23 @@ describe('Board', () => {
     expect(calls).toHaveLength(1);
   });
 
+  it('the bell shows when upcomingReminders > 0, before the paperclip, labelled Has reminders', async () => {
+    board.tasks = [task('t1', 'b-todo', { upcomingReminders: 2, fileCount: 1 })];
+    renderBoard();
+    await screen.findByText('Task t1');
+    const bell = screen.getByText(t('tasks.card.reminders'));
+    expect(bell).toHaveClass('sr-only');
+    const files = screen.getByText(t('tasks.card.files', { count: 1 }));
+    expect(bell.compareDocumentPosition(files) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('no bell at 0', async () => {
+    board.tasks = [task('t1', 'b-todo', { dueDate: '2030-01-15' })];
+    renderBoard();
+    await screen.findByText('Task t1');
+    expect(screen.queryByText(t('tasks.card.reminders'))).toBeNull();
+  });
+
   it('shows the Urgent pill on an urgent card only', async () => {
     board.tasks = [task('t1', 'b-todo', { urgent: true }), task('t2', 'b-todo')];
     renderBoard();

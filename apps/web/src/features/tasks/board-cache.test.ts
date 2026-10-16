@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import type { BoardDto, BucketDto, TaskDto } from '@spolu/shared';
-import { byPosition, removeTask, replaceBuckets, tasksByBucket, upsertTask } from './board-cache';
+import {
+  byPosition,
+  removeTask,
+  replaceBuckets,
+  setUpcomingReminders,
+  tasksByBucket,
+  upsertTask,
+} from './board-cache';
 
 const bucket = (id: string, position: string): BucketDto => ({
   id,
@@ -67,5 +74,14 @@ describe('board cache', () => {
     expect(kept.board.buckets.map((b) => b.id)).toEqual(['b1', 'b2']);
     const dropped = replaceBuckets(board(), [bucket('b1', 'a0')]);
     expect(dropped.removedBucket).toBe(true);
+  });
+
+  it('setUpcomingReminders updates one task and keeps identity when unchanged', () => {
+    const b = board();
+    const next = setUpcomingReminders(b, 't2', 3);
+    expect(next.tasks.find((x) => x.id === 't2')!.upcomingReminders).toBe(3);
+    expect(next.tasks.find((x) => x.id === 't1')).toBe(b.tasks[0]);
+    expect(setUpcomingReminders(next, 't2', 3)).toBe(next);
+    expect(setUpcomingReminders(b, 'missing', 1)).toBe(b);
   });
 });

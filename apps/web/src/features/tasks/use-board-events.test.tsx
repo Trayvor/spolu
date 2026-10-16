@@ -108,6 +108,15 @@ describe('useBoardEvents', () => {
     await waitFor(() => expect(fetchBoard).toHaveBeenCalledTimes(2));
   });
 
+  it("reminders:task updates the card's count; another group's event is ignored", async () => {
+    render(tree(1));
+    await waitFor(() => expect(cached()).toBeDefined());
+    act(() => fake.fire('reminders:task', { groupId: 'g2', taskId: 't1', upcomingReminders: 4 }));
+    expect(cached().tasks[0]!.upcomingReminders).toBe(0);
+    act(() => fake.fire('reminders:task', { groupId: 'g1', taskId: 't1', upcomingReminders: 2 }));
+    expect(cached().tasks[0]!.upcomingReminders).toBe(2);
+  });
+
   it('removes its listeners on unmount', async () => {
     const view = render(tree(1));
     await waitFor(() => expect(cached()).toBeDefined());
