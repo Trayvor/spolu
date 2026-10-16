@@ -36,6 +36,7 @@ import { boardQuery } from './api';
 import { boardNoticeKey, showBoardNotice, type BoardNotice } from './board-cache';
 import { byPosition, bucketTitle, tasksByBucket } from './board-model';
 import { BucketColumn, bucketSortId, type DropMark } from './bucket-column';
+import { taskChatsQuery } from './task-chats';
 import { todayInBratislava } from './dates';
 import { dndAccessibility, dragData } from './dnd-announcements';
 import {
@@ -85,6 +86,8 @@ export function Board({ groupId }: { groupId: string }) {
   useBoardEvents(groupId);
   const { data: board, isError, refetch } = useQuery(boardQuery(groupId));
   const { data: group } = useQuery(groupQuery(groupId));
+  // One query for every card; the Tasks tab badge keeps it live. Without it cards just show no chat.
+  const { data: chats } = useQuery(taskChatsQuery(groupId));
   // Set by a failed drop or by the task panel (see `showBoardNotice`); never fetched.
   const { data: notice } = useQuery<BoardNotice | null>({
     queryKey: boardNoticeKey(groupId),
@@ -235,6 +238,7 @@ export function Board({ groupId }: { groupId: string }) {
                 }
                 dragging={dragging?.type ?? null}
                 dropMark={dropTarget?.bucketId === bucket.id ? dropTarget.mark : null}
+                chats={chats}
                 onToggleDone={onToggleDone}
               />
             ))}
@@ -250,6 +254,7 @@ export function Board({ groupId }: { groupId: string }) {
                 bucketKind={liftedKind ?? 'todo'}
                 today={today}
                 lifted={dragging.via}
+                chat={chats?.[liftedTask.id]}
               />
             </div>
           )}

@@ -72,14 +72,23 @@ function renderTaskChat() {
     history: createMemoryHistory({ initialEntries: ['/'] }),
   });
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  return render(
+  const view = render(
     <QueryClientProvider client={client}>
       <RouterProvider router={router} />
     </QueryClientProvider>,
   );
+  return { ...view, client };
 }
 
 describe('TaskChat', () => {
+  it("refreshes the group's chat summaries after reading the chat", async () => {
+    const { client } = renderTaskChat();
+    const spy = vi.spyOn(client, 'invalidateQueries');
+    await waitFor(() =>
+      expect(spy).toHaveBeenCalledWith({ queryKey: ['tasks', 'g1', 'chats'], exact: true }),
+    );
+  });
+
   it('offers "Turn into tasks" and shows the "Turned into tasks" footer, like the group chat', async () => {
     renderTaskChat();
     expect(

@@ -27,6 +27,7 @@ import { getSocket } from '@/lib/socket';
 import { useUpdateSearch } from '@/lib/use-update-search';
 import { cn } from '@/lib/utils';
 import { boardQuery, deleteTask, moveTask, taskQuery, updateTask } from './api';
+import { taskChatsQuery } from './task-chats';
 import { removeTask, showBoardNotice, upsertTask } from './board-cache';
 import { doneTarget, tasksByBucket } from './board-model';
 import { formatCreated } from './dates';
@@ -161,6 +162,7 @@ function TaskEditor({
   const me = useSession();
   const { data: board } = useQuery(boardQuery(groupId));
   const { data: group } = useQuery(groupQuery(groupId));
+  const { data: chats } = useQuery(taskChatsQuery(groupId));
 
   // `base` is the version the draft was started from; saving sends its `updatedAt`.
   const [base, setBase] = useState(initial);
@@ -435,8 +437,7 @@ function TaskEditor({
         )}
       </div>
 
-      {/* Task 9 provides the real count from the board's task-chat summaries. */}
-      <PanelTabs tab={tab} chatCount={0} onChange={setTab} />
+      <PanelTabs tab={tab} chatCount={chats?.[initial.id]?.count ?? 0} onChange={setTab} />
 
       {/* Details stays mounted while Chat shows: the draft and the unsaved-changes guard live on. */}
       <div

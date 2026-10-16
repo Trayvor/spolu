@@ -181,6 +181,8 @@
     "turnedIntoTasks": "Turned into tasks:"
   },
   "tasks": {
+    "unreadTasks_one": "{{count}} task with unread messages",
+    "unreadTasks_other": "{{count}} tasks with unread messages",
     "buckets": {
       "todo": "To do",
       "egrantReview": "eGrant review",
@@ -228,7 +230,11 @@
       "moreAssignees": "+{{count}}",
       "markDone": "Mark as done",
       "markNotDone": "Mark as not done",
-      "completed": "Completed"
+      "completed": "Completed",
+      "messages_one": "{{count}} message",
+      "messages_other": "{{count}} messages",
+      "messagesUnread_one": "{{count}} message, unread",
+      "messagesUnread_other": "{{count}} messages, unread"
     },
     "form": {
       "title": "Title",

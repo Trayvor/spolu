@@ -66,6 +66,7 @@ const task = (id: string, bucketId: string, extra: Partial<TaskDto> = {}): TaskD
 });
 
 let board: BoardDto;
+let chats: Record<string, { count: number; unread: boolean }>;
 let me: typeof ADMIN | typeof CLIENT;
 let fetchMock: ReturnType<typeof vi.fn>;
 const writes = () =>
@@ -88,6 +89,7 @@ function renderBoard() {
 beforeEach(() => {
   setLanguage('en');
   me = ADMIN;
+  chats = {};
   board = { buckets: BUCKETS, tasks: [task('t1', 'b-todo')] };
   fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
     const reply = (status: number, body?: unknown) =>
@@ -96,6 +98,7 @@ beforeEach(() => {
     if (url === '/api/me') return reply(200, me);
     if (url === '/api/groups/g1') return reply(200, GROUP);
     if (url === '/api/groups/g1/board') return reply(200, board);
+    if (url === '/api/groups/g1/task-chats') return reply(200, chats);
     if (url === '/api/groups/g1/tasks' && method === 'POST') {
       const body = JSON.parse(init!.body as string);
       return reply(201, {
@@ -145,6 +148,35 @@ describe('Board', () => {
     expect(within(columns[0]!).getByText(t('tasks.board.emptyBoard'))).toBeInTheDocument();
     expect(within(columns[1]!).getByText(t('tasks.board.empty'))).toBeInTheDocument();
     expect(screen.getAllByText('Nothing here yet.')).toHaveLength(4);
+  });
+
+  it('marks an unread task: bold title, chat count with a dot', async () => {
+    board.tasks = [task('t1', 'b-todo'), task('t2', 'b-todo'), task('t3', 'b-todo')];
+    chats = { t1: { count: 3, unread: true }, t2: { count: 1, unread: false } };
+    renderBoard();
+    const card = await screen.findByRole('link', { name: /Task t1/ });
+    await waitFor(() =>
+      expect(
+        within(card).getByText(t('tasks.card.messagesUnread', { count: 3 })),
+      ).toBeInTheDocument(),
+    );
+    expect(within(card).getByText('Task t1')).toHaveClass('font-bold');
+    const read = screen.getByRole('link', { name: /Task t2/ });
+    expect(within(read).getByText(t('tasks.card.messages', { count: 1 }))).toBeInTheDocument();
+    expect(within(read).getByText('Task t2')).toHaveClass('font-medium');
+    // No chat entry: no chat icon, no extra meta row.
+    expect(
+      within(screen.getByRole('link', { name: /Task t3/ })).queryByText(/messages?$/),
+    ).not.toBeInTheDocument();
+  });
+
+  it('fetches the chat summaries once per board load', async () => {
+    board.tasks = [task('t1', 'b-todo'), task('t2', 'b-custom')];
+    renderBoard();
+    await screen.findByText('Task t1');
+    await screen.findByText('Task t2');
+    const calls = fetchMock.mock.calls.filter(([u]) => u === '/api/groups/g1/task-chats');
+    expect(calls).toHaveLength(1);
   });
 
   it('shows the Urgent pill on an urgent card only', async () => {

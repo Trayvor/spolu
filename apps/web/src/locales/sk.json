@@ -183,6 +183,10 @@
     "turnedIntoTasks": "Premenené na úlohy:"
   },
   "tasks": {
+    "unreadTasks_one": "{{count}} úloha s neprečítanými správami",
+    "unreadTasks_few": "{{count}} úlohy s neprečítanými správami",
+    "unreadTasks_many": "{{count}} úlohy s neprečítanými správami",
+    "unreadTasks_other": "{{count}} úloh s neprečítanými správami",
     "buckets": {
       "todo": "Na spracovanie",
       "egrantReview": "Kontrola eGrant",
@@ -234,7 +238,15 @@
       "moreAssignees": "+{{count}}",
       "markDone": "Označiť ako hotové",
       "markNotDone": "Označiť ako nehotové",
-      "completed": "Hotová"
+      "completed": "Hotová",
+      "messages_one": "{{count}} správa",
+      "messages_few": "{{count}} správy",
+      "messages_many": "{{count}} správy",
+      "messages_other": "{{count}} správ",
+      "messagesUnread_one": "{{count}} správa, neprečítaná",
+      "messagesUnread_few": "{{count}} správy, neprečítané",
+      "messagesUnread_many": "{{count}} správy, neprečítané",
+      "messagesUnread_other": "{{count}} správ, neprečítaných"
     },
     "form": {
       "title": "Názov",

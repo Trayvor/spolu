@@ -1,10 +1,11 @@
 import { useEffect, useRef } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { markAllRead, taskChatQuery } from '@/features/chat/api';
 import { ChatLoadError } from '@/features/chat/chat-load-error';
 import { Conversation } from '@/features/chat/conversation';
 import { useDocumentVisible } from '@/features/chat/use-document-visible';
 import { useMessageTaskTools } from '@/features/task-split/use-message-task-tools';
+import { taskChatsQuery } from './task-chats';
 
 /**
  * The task's chat in the panel's Chat tab: the shared `<Conversation>` for the task's channel
@@ -18,6 +19,7 @@ export function TaskChat({ groupId, taskId }: { groupId: string; taskId: string 
   const { data, isError, refetch } = useQuery(taskChatQuery(taskId));
   const tools = useMessageTaskTools(groupId);
   const visible = useDocumentVisible();
+  const queryClient = useQueryClient();
   const channelId = data?.id;
 
   // Once per opening of the tab (and per channel): a failure is left alone, the next opening
@@ -26,10 +28,13 @@ export function TaskChat({ groupId, taskId }: { groupId: string; taskId: string 
   useEffect(() => {
     if (channelId === undefined || !visible || marked.current === channelId) return;
     marked.current = channelId;
-    // Task 9 invalidates the board's task-chat summaries here.
     // A failed mark only leaves the chat unread; the next opening of the tab tries again.
-    markAllRead(channelId).catch(() => undefined);
-  }, [channelId, visible]);
+    markAllRead(channelId)
+      .then(() =>
+        queryClient.invalidateQueries({ queryKey: taskChatsQuery(groupId).queryKey, exact: true }),
+      )
+      .catch(() => undefined);
+  }, [channelId, visible, groupId, queryClient]);
 
   if (data) {
     return (

@@ -8,51 +8,51 @@ egrant.sk is a WordPress block theme. Its design system is the `theme.json` outp
 
 Reference screenshots (Playwright, Chromium, PNG compressed with pngquant) are in [screenshots/](screenshots/):
 
-| File | Page | Shows |
-|---|---|---|
-| `home-desktop.png` | `/` at 1440×900 | nav pill, hero type, primary button, blog card |
-| `home-mobile.png` | `/` at 390×844 | mobile nav pill, mobile type scale |
-| `challenges-desktop.png` | `/vyzvy/` at 1440×900 | search field, selects, filter pills, white cards with progress bar |
-| `contact-desktop.png` | `/kontakt/` at 1440×900 | form fields, labels, accent-border contact block |
-| `demo-desktop.png` | `/demo/` at 1440×900 | form with submit button, screenshot of the eGrant app itself |
+| File                     | Page                    | Shows                                                              |
+| ------------------------ | ----------------------- | ------------------------------------------------------------------ |
+| `home-desktop.png`       | `/` at 1440×900         | nav pill, hero type, primary button, blog card                     |
+| `home-mobile.png`        | `/` at 390×844          | mobile nav pill, mobile type scale                                 |
+| `challenges-desktop.png` | `/vyzvy/` at 1440×900   | search field, selects, filter pills, white cards with progress bar |
+| `contact-desktop.png`    | `/kontakt/` at 1440×900 | form fields, labels, accent-border contact block                   |
+| `demo-desktop.png`       | `/demo/` at 1440×900    | form with submit button, screenshot of the eGrant app itself       |
 
 egrant.sk has **no dark mode** (no `prefers-color-scheme` rule anywhere). Spolu has none either; `theme.css` has no `.dark` block. Add one only if the owner asks.
 
 ## Colors
 
-| shadcn variable | Value | egrant.sk name | Observed on |
-|---|---|---|---|
-| `--background` | `#F5F3F1` | `base` | `body` background; header pill, dropdowns, modal panel |
-| `--foreground` | `#141414` | `ink` | `body` text, headings |
-| `--card` | `#FFFFFF` | `surface` | `.egrant-challenge-card`, `.egrant-field__input`, open nav panel |
-| `--card-foreground` | `#141414` | `ink` | card text |
-| `--popover` | `#F5F3F1` | `base` | `.egrant-header__lang-dropdown` (with lift shadow) |
-| `--popover-foreground` | `#141414` | `ink` | dropdown items |
-| `--primary` | `#141414` | `ink` | `.wp-element-button`, `.egrant-header__cta` background |
-| `--primary-foreground` | `#FFFFFF` | `surface` | button text |
-| `--secondary` | `#E4E2DD` | `surface-2` | `.egrant-header__lang-toggle`, `.egrant-header__subscribe`, "Odoberať výzvy" pill |
-| `--secondary-foreground` | `#141414` | `ink` | text on those |
-| `--muted` | `#F0EDEA` | `tile` | `.egrant-bottom-nav__items`, feature tiles |
-| `--muted-foreground` | `#6B6B6B` | `muted` | `.egrant-field__label`, placeholders, result counts |
-| `--accent` | `#E4E2DD` | `surface-2` | hover background of `.egrant-header__lang-option`, `.egrant-bottom-nav__item` |
-| `--accent-foreground` | `#141414` | `ink` | |
-| `--destructive` | `#E90000` | `error` | `.egrant-field--error .egrant-field__input` border, filled destructive button or badge. **Fills and borders only; never as text color** (use `text-error-ink`) |
-| `--destructive-foreground` | `#FFFFFF` | — | text on a filled destructive button (egrant.sk has none; white chosen for contrast) |
-| `--border` | `#E3DEDA` | `line` | hairlines, `.egrant-challenge-card__bar` track |
-| `--input` | `#6B6B6B` | `custom.border.field` (`2px solid #6B6B6B`) | `.egrant-field__input` border at rest |
-| `--ring` | `#141414` | `ink` | `.wp-element-button:focus-visible` outline (2px, offset 3px); focused input border |
+| shadcn variable            | Value     | egrant.sk name                              | Observed on                                                                                                                                                    |
+| -------------------------- | --------- | ------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--background`             | `#F5F3F1` | `base`                                      | `body` background; header pill, dropdowns, modal panel                                                                                                         |
+| `--foreground`             | `#141414` | `ink`                                       | `body` text, headings                                                                                                                                          |
+| `--card`                   | `#FFFFFF` | `surface`                                   | `.egrant-challenge-card`, `.egrant-field__input`, open nav panel                                                                                               |
+| `--card-foreground`        | `#141414` | `ink`                                       | card text                                                                                                                                                      |
+| `--popover`                | `#F5F3F1` | `base`                                      | `.egrant-header__lang-dropdown` (with lift shadow)                                                                                                             |
+| `--popover-foreground`     | `#141414` | `ink`                                       | dropdown items                                                                                                                                                 |
+| `--primary`                | `#141414` | `ink`                                       | `.wp-element-button`, `.egrant-header__cta` background                                                                                                         |
+| `--primary-foreground`     | `#FFFFFF` | `surface`                                   | button text                                                                                                                                                    |
+| `--secondary`              | `#E4E2DD` | `surface-2`                                 | `.egrant-header__lang-toggle`, `.egrant-header__subscribe`, "Odoberať výzvy" pill                                                                              |
+| `--secondary-foreground`   | `#141414` | `ink`                                       | text on those                                                                                                                                                  |
+| `--muted`                  | `#F0EDEA` | `tile`                                      | `.egrant-bottom-nav__items`, feature tiles                                                                                                                     |
+| `--muted-foreground`       | `#6B6B6B` | `muted`                                     | `.egrant-field__label`, placeholders, result counts                                                                                                            |
+| `--accent`                 | `#E4E2DD` | `surface-2`                                 | hover background of `.egrant-header__lang-option`, `.egrant-bottom-nav__item`                                                                                  |
+| `--accent-foreground`      | `#141414` | `ink`                                       |                                                                                                                                                                |
+| `--destructive`            | `#E90000` | `error`                                     | `.egrant-field--error .egrant-field__input` border, filled destructive button or badge. **Fills and borders only; never as text color** (use `text-error-ink`) |
+| `--destructive-foreground` | `#FFFFFF` | —                                           | text on a filled destructive button (egrant.sk has none; white chosen for contrast)                                                                            |
+| `--border`                 | `#E3DEDA` | `line`                                      | hairlines, `.egrant-challenge-card__bar` track                                                                                                                 |
+| `--input`                  | `#6B6B6B` | `custom.border.field` (`2px solid #6B6B6B`) | `.egrant-field__input` border at rest                                                                                                                          |
+| `--ring`                   | `#141414` | `ink`                                       | `.wp-element-button:focus-visible` outline (2px, offset 3px); focused input border                                                                             |
 
 Extra colors (Tailwind names in brackets):
 
-| Variable | Value | egrant.sk name | Use |
-|---|---|---|---|
-| `--ink-hover` (`ink-hover`) | `#3B3A33` | `ink-hover` | filled button hover, card link hover text |
-| `--surface-3` (`surface-3`) | `#D6D2C8` | `surface-3` | hover of secondary (`.egrant-header__lang-toggle:hover`) |
-| `--neutral` (`neutral`) | `#5E5E5E` | `neutral` | link hover color (`a:hover` in global styles) |
-| `--error-ink` (`error-ink`) | `#D60004` | `error-ink` | all error text: field messages, destructive menu items. Tailwind class `text-error-ink` (there is no `text-destructive` in components) |
-| `--success` (`success`) | `#007A37` | `green` | positive states (logo gradient stop) |
-| `--success-light` (`success-light`) | `#52C083` | `green-light` | |
-| `--brand-purple`, `--brand-pink`, `--brand-blue`, `--brand-coral` | `#7654FF`, `#EB5ED4`, `#3242DC`, `#FF8A4C` | `purple`, `pink`, `blue`, `coral` | logo gradient and illustration accents; use sparingly (avatars, labels), never as large fills |
+| Variable                                                          | Value                                      | egrant.sk name                    | Use                                                                                                                                    |
+| ----------------------------------------------------------------- | ------------------------------------------ | --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `--ink-hover` (`ink-hover`)                                       | `#3B3A33`                                  | `ink-hover`                       | filled button hover, card link hover text                                                                                              |
+| `--surface-3` (`surface-3`)                                       | `#D6D2C8`                                  | `surface-3`                       | hover of secondary (`.egrant-header__lang-toggle:hover`)                                                                               |
+| `--neutral` (`neutral`)                                           | `#5E5E5E`                                  | `neutral`                         | link hover color (`a:hover` in global styles)                                                                                          |
+| `--error-ink` (`error-ink`)                                       | `#D60004`                                  | `error-ink`                       | all error text: field messages, destructive menu items. Tailwind class `text-error-ink` (there is no `text-destructive` in components) |
+| `--success` (`success`)                                           | `#007A37`                                  | `green`                           | positive states (logo gradient stop)                                                                                                   |
+| `--success-light` (`success-light`)                               | `#52C083`                                  | `green-light`                     |                                                                                                                                        |
+| `--brand-purple`, `--brand-pink`, `--brand-blue`, `--brand-coral` | `#7654FF`, `#EB5ED4`, `#3242DC`, `#FF8A4C` | `purple`, `pink`, `blue`, `coral` | logo gradient and illustration accents; use sparingly (avatars, labels), never as large fills                                          |
 
 Avatar (`components/avatar.tsx`): a round initials badge, `size` px square (24, 32 or 40; default 32), weight 600, text white on purple, blue and success and ink on pink and coral (every pair at least 4.5:1, WCAG AA), font size `size * 0.4`. Initials are the first letters of the first and last word of the name, upper-case (`?` when empty). The background is picked from `bg-brand-purple`, `bg-brand-pink`, `bg-brand-blue`, `bg-brand-coral`, `bg-success` by a 32-bit FNV-1a hash of the user id modulo 5, so a person keeps one color everywhere. It is `aria-hidden`: the name always appears next to it.
 
@@ -60,13 +60,13 @@ The live dot in the header "Výzvy" pill is `#64D01C` (hard-coded in `.egrant-he
 
 ## Typography
 
-| Token | Value | Observed on |
-|---|---|---|
-| `--font-sans` (source `--font-family-base`) | `"Saans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif` | `--wp--preset--font-family--saans`, set on `body` |
-| Weight 500 | `Saans-Medium.woff2` | `body` (`font-weight: 500`) — the site's normal text weight; there is no 400 |
-| Weight 600 | `Saans-SemiBold.woff2` | `h1`–`h6`, buttons, field labels, nav links |
-| Letter spacing | `0.2px` | `body`, buttons, headings; `h1` uses `-0.6px`, `h2` `0`, captions `0.25px` |
-| Line height | `1.25` body; `1.2` h3–h4; `1` h1–h2 (`38/36` under 900px) | global styles |
+| Token                                       | Value                                                                | Observed on                                                                  |
+| ------------------------------------------- | -------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| `--font-sans` (source `--font-family-base`) | `"Saans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif` | `--wp--preset--font-family--saans`, set on `body`                            |
+| Weight 500                                  | `Saans-Medium.woff2`                                                 | `body` (`font-weight: 500`) — the site's normal text weight; there is no 400 |
+| Weight 600                                  | `Saans-SemiBold.woff2`                                               | `h1`–`h6`, buttons, field labels, nav links                                  |
+| Letter spacing                              | `0.2px`                                                              | `body`, buttons, headings; `h1` uses `-0.6px`, `h2` `0`, captions `0.25px`   |
+| Line height                                 | `1.25` body; `1.2` h3–h4; `1` h1–h2 (`38/36` under 900px)            | global styles                                                                |
 
 There is one family; no separate heading font, so no `--font-heading`.
 
@@ -76,37 +76,37 @@ Font files are self-hosted in `apps/web/public/fonts/` (copied from `https://egr
 
 Type scale (Tailwind `text-*` utilities; desktop value, then the value under 900px):
 
-| Utility | Desktop | ≤ 900px | egrant.sk preset | Used for |
-|---|---|---|---|---|
-| `text-nano` | 11.2px | 11.2px | `nano` | tiny meta |
-| `text-micro` | 12.8px | 12.8px | `micro` | field labels, captions, `h6` |
-| `text-tiny` | 14px | 14px | `tiny` | header buttons, pills, bottom nav |
-| `text-button` | 14.4px | 14.4px | `button` | buttons, input text, `h5` |
-| `text-body` | 17.6px | 16.6px | `small` | body text, `h4` |
-| `text-medium` | 22.4px | 17.6px | `medium` | `h3`, lead text, modal titles |
-| `text-large` | 36px | 36px | `large` | |
-| `text-xlarge` | 64px | 36px | `x-large` | `h1`, `h2` (page titles) |
-| `text-wordmark` | 32px | 24px (≤ 640px) | — (Spolu's own) | the "Spolu" wordmark in the header only |
+| Utility         | Desktop | ≤ 900px        | egrant.sk preset | Used for                                |
+| --------------- | ------- | -------------- | ---------------- | --------------------------------------- |
+| `text-nano`     | 11.2px  | 11.2px         | `nano`           | tiny meta                               |
+| `text-micro`    | 12.8px  | 12.8px         | `micro`          | field labels, captions, `h6`            |
+| `text-tiny`     | 14px    | 14px           | `tiny`           | header buttons, pills, bottom nav       |
+| `text-button`   | 14.4px  | 14.4px         | `button`         | buttons, input text, `h5`               |
+| `text-body`     | 17.6px  | 16.6px         | `small`          | body text, `h4`                         |
+| `text-medium`   | 22.4px  | 17.6px         | `medium`         | `h3`, lead text, modal titles           |
+| `text-large`    | 36px    | 36px           | `large`          |                                         |
+| `text-xlarge`   | 64px    | 36px           | `x-large`        | `h1`, `h2` (page titles)                |
+| `text-wordmark` | 32px    | 24px (≤ 640px) | — (Spolu's own)  | the "Spolu" wordmark in the header only |
 
 For the app, page titles should normally use `text-medium` or `text-large`; `text-xlarge` is the website's hero size and is too big for app screens.
 
 ## Radius
 
-| Tailwind | Value | egrant.sk name | Observed on |
-|---|---|---|---|
-| `rounded-sm` | 4px | `radius.sm` | small chips |
-| `rounded-md` (`--radius`) | 8px | `radius.md` | `.egrant-field__input` |
-| `rounded-lg` | 12px | `radius.lg` | |
-| `rounded-xl` | 16px | `radius.xl` | `.egrant-challenge-card`, `.egrant-footer__box`, `.egrant-modal` |
-| `rounded-nav` | 32px | `radius.nav` | header pill `.egrant-header__bar` |
-| `rounded-full` | pill | `radius.pill` / `80px` | every button, filter pill, language toggle (circle) |
+| Tailwind                  | Value | egrant.sk name         | Observed on                                                      |
+| ------------------------- | ----- | ---------------------- | ---------------------------------------------------------------- |
+| `rounded-sm`              | 4px   | `radius.sm`            | small chips                                                      |
+| `rounded-md` (`--radius`) | 8px   | `radius.md`            | `.egrant-field__input`                                           |
+| `rounded-lg`              | 12px  | `radius.lg`            |                                                                  |
+| `rounded-xl`              | 16px  | `radius.xl`            | `.egrant-challenge-card`, `.egrant-footer__box`, `.egrant-modal` |
+| `rounded-nav`             | 32px  | `radius.nav`           | header pill `.egrant-header__bar`                                |
+| `rounded-full`            | pill  | `radius.pill` / `80px` | every button, filter pill, language toggle (circle)              |
 
 Dropdown panels use 20px and their items 14px; in Spolu use `rounded-xl` and `rounded-lg` for those.
 
 ## Shadow
 
-| Tailwind | Value | Observed on |
-|---|---|---|
+| Tailwind      | Value                        | Observed on                                |
+| ------------- | ---------------------------- | ------------------------------------------ |
 | `shadow-lift` | `0 0 8px 0 rgb(0 0 0 / 0.1)` | header pill, language dropdown, bottom nav |
 
 Cards have **no shadow** (`.egrant-challenge-card { box-shadow: none }`): a white card on the `base` background is the separation. The theme also defines WordPress default shadows (`crisp`, `natural`, `deep` …) that the site does not use; they are left out.
@@ -195,6 +195,7 @@ egrant.sk spacing presets are 4, 8, 12, 16, 20, 24, 32, 40, 48, 54, 64px — all
 - Board: columns in a horizontal row (`flex gap-3`, scrolls sideways; snap scrolling under 641px), no animations besides dnd-kit's own transform while dragging. The lifted card and the dragged column use `shadow-lift`.
 - Column (`bucket-column.tsx`): `rounded-xl bg-muted p-3`, `w-72` from 641px, nearly full width (`100vw - 56px`) below it, `min-h-40`, at most `100dvh - 14rem` tall with the card list scrolling inside. Header: a grip handle on every column in admin view (fixed ones included; clients see none), a 8px kind square, the name (`h2`, `text-button` weight 600, truncated), the card count (`text-micro text-muted-foreground`) and, for custom columns in admin view, a "More" menu (Rename, Delete). Kind squares: To do an outlined square (`border-[1.5px] border-foreground`), eGrant review `bg-brand-purple`, client review `bg-brand-blue`, Completed `bg-success`, custom columns none. The delete confirmation is inline (`bg-card` panel with a destructive "Delete" and a secondary "Cancel"), no modal.
 - Card (`task-card.tsx`): a link, `rounded-lg bg-card p-3` with 40px left padding, 8px gap, title `text-button` weight 600 clamped to 3 lines (muted and struck through in Completed). The done circle (`done-circle.tsx`) sits in that left padding on the title's line, as a sibling of the link (never a button inside a link): an 18px circle with a 2px `border-input` ring on `bg-card` (hover: ink ring and a faint ink check), filled `success` with a white check in Completed; a 36px hit area around it; named "Mark as done" / "Mark as not done". It is the only color on a card besides the Urgent pill and an overdue date. Above the title the urgent pill: `Badge` variant `destructive`, text "Urgent". Meta row (`text-micro text-muted-foreground`): up to 3 overlapping 24px avatars with "+n", the due date (`text-error-ink` weight 600 when overdue and not in Completed) and, pushed right, a paperclip icon with the file count. A card picked up by the keyboard keeps the focus ring (`outline-ring`) on its lifted copy; the slot it left stays in the list, faded.
+- Chat meta and unread task (`TaskCardMeta`, `icons.tsx`, Phase 9): after the paperclip, on the right of the meta row, a 16px outline speech bubble (`ChatIcon`) with the message count, shown when the task chat has messages; screen readers get "N messages" or "N messages, unread". An unread chat adds a filled 8px `foreground` dot on the bubble's top right corner (ringed in the card colour) and turns the count to `foreground`. An unread task's title is weight 700 (`font-bold`), a read one's 500 (`font-medium`; it was 600), a visible pair on Inter at 15px without any colour change. The Tasks tab carries an `UnreadPill` with the number of unread tasks (`tasks.unreadTasks` for screen readers).
 - Drop marks: a 2px line before or after the card the drag is over, and an end-of-column zone under the last card.
 - Add task: a ghost "+ Add task" link at the foot of each column opens the task panel in create mode with that column chosen. Add column: an inline name field (Enter creates, Esc cancels) behind a `secondary` pill "+ Add column" after the last column (admins).
 - Create mode (`task-create-panel.tsx`): the same panel and `<TaskForm>`, heading "New task", the title field focused, the bucket select preset to the column that opened it, then a primary "Create" and an outline "Cancel". Nothing is saved before Create; closing discards the draft without asking.
@@ -276,11 +277,11 @@ A dark box: `bg-foreground` (ink), `rounded-xl`, padding 32px, white logo (`egra
 
 Saved in `apps/web/public/brand/` (egrant.sk belongs to the owner's company; reuse is allowed):
 
-| File | Source |
-|---|---|
-| `egrant-logo.svg` | inline `<svg class="egrant-header__logo">` on egrant.sk, 212×40, ink text + gradient mark |
-| `egrant-logo-on-dark.svg` | inline `<svg class="egrant-footer__logo">`, white text + gradient mark |
-| `favicon.svg`, `favicon.ico` | `https://egrant.sk/app/themes/egrant/assets/favicon/` |
+| File                         | Source                                                                                    |
+| ---------------------------- | ----------------------------------------------------------------------------------------- |
+| `egrant-logo.svg`            | inline `<svg class="egrant-header__logo">` on egrant.sk, 212×40, ink text + gradient mark |
+| `egrant-logo-on-dark.svg`    | inline `<svg class="egrant-footer__logo">`, white text + gradient mark                    |
+| `favicon.svg`, `favicon.ico` | `https://egrant.sk/app/themes/egrant/assets/favicon/`                                     |
 
 PWA icons are not copied from egrant.sk: `apps/web/public/icons/` is generated from `favicon.svg` (see [overview.md](../architecture/overview.md), "PWA"). egrant.sk's `site.webmanifest` uses `theme_color #140700` and `background_color #F5F3F1`; Spolu uses `#F5F3F1` for both, so the browser bar blends with the light header pill instead of showing a near-black strip.
 

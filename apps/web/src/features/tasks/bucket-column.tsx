@@ -4,7 +4,13 @@ import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-
 import { useQueryClient } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
-import type { BoardDto, BucketDto, TaskDto } from '@spolu/shared';
+import type {
+  BoardDto,
+  BucketDto,
+  TaskChatSummaries,
+  TaskChatSummary,
+  TaskDto,
+} from '@spolu/shared';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -56,6 +62,7 @@ function SortableTask({
   today,
   disabled,
   mark,
+  chat,
   onToggleDone,
 }: {
   task: TaskDto;
@@ -63,6 +70,7 @@ function SortableTask({
   today: string;
   disabled: boolean;
   mark: 'before' | 'after' | null;
+  chat?: TaskChatSummary;
   onToggleDone: (task: TaskDto) => void;
 }) {
   const data: DragData = { type: 'task', title: task.title, bucketId: task.bucketId };
@@ -92,6 +100,7 @@ function SortableTask({
         task={task}
         bucketKind={bucketKind}
         today={today}
+        chat={chat}
         ref={setActivatorNodeRef}
         onToggleDone={() => onToggleDone(task)}
         // Not dnd-kit's role="button": the card stays a link (Enter opens it, Space lifts it).
@@ -122,6 +131,7 @@ export function BucketColumn({
   emptyText,
   dragging,
   dropMark,
+  chats,
   onToggleDone,
 }: {
   bucket: BucketDto;
@@ -133,6 +143,8 @@ export function BucketColumn({
   /** What is being dragged on the board: only matching drop targets are enabled. */
   dragging: 'task' | 'bucket' | null;
   dropMark: DropMark;
+  /** The group's task chat summaries, by task id. */
+  chats?: TaskChatSummaries;
   /** The done circle of one of the column's cards was pressed. */
   onToggleDone: (task: TaskDto) => void;
 }) {
@@ -315,6 +327,7 @@ export function BucketColumn({
               task={task}
               bucketKind={bucket.kind}
               today={today}
+              chat={chats?.[task.id]}
               disabled={dragging === 'bucket'}
               onToggleDone={onToggleDone}
               mark={

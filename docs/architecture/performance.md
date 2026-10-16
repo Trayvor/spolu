@@ -44,6 +44,8 @@ Phase 9 review dialog ("Turn into tasks", measured 2026-10-16 the same way): ini
 
 Phase 9 integration (task chat, message tasks footer and AI review dialog merged, task chat wired to "Turn into tasks"; measured 2026-10-16, gzip level 9 of every script `index.html` loads): initial JS 197.1 kB gzip (entry 120.2 kB, API client chunk 52.5 kB, router chunks 19.6 kB and 0.6 kB, i18n 4.1 kB, `registerSW.js` 0.1 kB). `useMessageTaskTools` and the footer sit in the lazy `conversation` chunk that the Chat tab and the task panel share, so nothing of them is in the initial load.
 
+Phase 9 unread tasks (measured 2026-10-16 the same way): initial JS 197.2 kB gzip, practically unchanged. The Tasks tab badge (`tasks-tab-badge.tsx`, `task-chats.ts`) is eager: it imports only the API client, the socket helper and shared types, and is about 1 kB. The board loads the cards' chat counts and unread flags with one query per board load (`GET /api/groups/:id/task-chats`, key `['tasks', groupId, 'chats']`, shared by the board, the task panel's tab and the badge) instead of one request per card; chat events update it in place.
+
 Budget history: 150 kB → 175 kB (2026-10-15): the Radix dropdown menu for the header language selector (about +29 kB), which later menus reuse at no extra cost. 175 kB → 200 kB (2026-10-15, Phase 2): the session guard checks `/api/me` (validated with zod) before the first screen, so zod and the API client moved into the initial load (about +26 kB); every later screen needs them anyway, and the service worker caches them after the first visit.
 
 The budget is an **alarm, not a target to squeeze under**. When a change crosses it:

@@ -25,6 +25,18 @@ export const PaperclipIcon = () => (
   </Icon>
 );
 
+/** A speech bubble; `unread` adds a filled dot at its top right corner. */
+export const ChatIcon = ({ unread }: { unread?: boolean }) => (
+  <span className="relative flex shrink-0">
+    <Icon>
+      <path d="M21 12a8 8 0 0 1-11.6 7.1L4 20.5l1.5-4.6A8 8 0 1 1 21 12Z" />
+    </Icon>
+    {unread && (
+      <span className="absolute -top-0.5 -right-0.5 size-2 rounded-full bg-foreground ring-2 ring-card" />
+    )}
+  </span>
+);
+
 export const MoreIcon = () => (
   <Icon>
     <circle cx="5" cy="12" r="1" />
