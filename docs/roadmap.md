@@ -334,4 +334,6 @@ Requirements: [knowledge-base](product/knowledge-base.md) and the [design](super
 
 Scope: folders and subfolders in each group's knowledge base, with breadcrumbs; admins and the group's clients create, rename, move and delete them; a folder can be admins-only, and everything inside it is then admins-only too; "Move to…" for items and folders; the admins' global view browses client → folders → items, and search stays a flat list across folders with each result's client and folder path.
 
+Status: built in one pull request (server, web, end-to-end test in `e2e/knowledge.spec.ts`); migration 0022.
+
 Done when: an admin and a client sort a group's knowledge into folders, the client never sees an admins-only folder or anything in it, and a search finds an item in a subfolder and shows its path.
