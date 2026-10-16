@@ -2,6 +2,7 @@ import type { Config } from './infra/config/config.js';
 import { authJobHandlers, AUTH_CLEANUP_JOB } from './modules/auth/jobs.js';
 import { filesJobHandlers, FILES_CLEANUP_JOB } from './modules/files/jobs.js';
 import { notificationSchedules, notificationsJobHandlers } from './modules/notifications/jobs.js';
+import { tasksJobHandlers, taskSchedules } from './modules/tasks/jobs.js';
 import { createDb, type Db } from './infra/db/client.js';
 import { createEmailSender, emailJobHandlers, type EmailSender } from './infra/email/index.js';
 import { createDeferredQueue, startJobs, type JobQueue } from './infra/jobs/jobs.js';
@@ -27,8 +28,8 @@ export async function createDeps(
   const email = createEmailSender(config.email);
   const storage = createDiskStorage(config.filesDir, config.appSecret);
   const push = createPushSender(config.push);
-  // The notification handlers send jobs to the queue built from them; a job that runs before
-  // startJobs returns waits for it.
+  // The notification and reminder handlers send jobs to the queue built from them; a job that
+  // runs before startJobs returns waits for it.
   const forward = createDeferredQueue();
   const jobs = await startJobs(
     config.databaseUrl,
@@ -37,11 +38,13 @@ export async function createDeps(
       ...authJobHandlers(db),
       ...filesJobHandlers({ db, storage }),
       ...notificationsJobHandlers({ db, config, push, jobs: forward.queue }),
+      ...tasksJobHandlers({ db, jobs: forward.queue }),
     },
     [
       { name: AUTH_CLEANUP_JOB, cron: '15 3 * * *' }, // daily, 03:15
       { name: FILES_CLEANUP_JOB, cron: '30 3 * * *' },
       ...notificationSchedules, // delivery sweep every minute, purge at 03:45
+      ...taskSchedules, // deadline and urgent reminders, Bratislava time
     ],
   );
   forward.resolve(jobs.queue);
