@@ -1,7 +1,7 @@
 import { afterAll, describe, expect, it } from 'vitest';
 import { and, eq, sql } from 'drizzle-orm';
 import type { Server as SocketIOServer } from 'socket.io';
-import { BulkEvents } from '@spolu/shared';
+import { BulkEvents, type SessionUser } from '@spolu/shared';
 import { createDb } from '../../infra/db/client.js';
 import {
   BulkSendError,
@@ -27,6 +27,10 @@ afterAll(() => close());
 
 const config = testConfig();
 
+// One admin per file: every active admin slows the ticket tests that notify all admins.
+let shared: Promise<SessionUser> | undefined;
+const sharedAdmin = () => (shared ??= newBulkAdmin(db));
+
 /** A fake Socket.IO server that records `to(room).emit(event, payload)`. */
 function fakeIo() {
   const emitted: { room: string; event: string; payload: unknown }[] = [];
@@ -40,7 +44,7 @@ function fakeIo() {
 
 /** A sending campaign to `count` new people, plus the deps of its batch runs. */
 async function sendingCampaign(count: number) {
-  const admin = await newBulkAdmin(db);
+  const admin = await sharedAdmin();
   const people = [];
   for (let i = 0; i < count; i++) people.push(await newBulkPerson(db, { name: `P${i}` }));
   const id = await newReadyCampaign(

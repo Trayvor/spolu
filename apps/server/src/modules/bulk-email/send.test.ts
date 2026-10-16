@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, describe, expect, it } from 'vitest';
 import { and, eq } from 'drizzle-orm';
-import type { BulkBlock } from '@spolu/shared';
+import type { BulkBlock, SessionUser } from '@spolu/shared';
 import { createDb } from '../../infra/db/client.js';
 import { createFakeBulkSender } from '../../infra/email/bulk.js';
 import { testConfig, testDatabaseUrl } from '../../../test/test-config.js';
@@ -36,6 +36,10 @@ const { db, close } = createDb(testDatabaseUrl);
 afterAll(() => close());
 
 const config = testConfig();
+
+// One admin per file: every active admin slows the ticket tests that notify all admins.
+let shared: Promise<SessionUser> | undefined;
+const sharedAdmin = () => (shared ??= newBulkAdmin(db));
 
 const recipientsOf = (campaignId: string) =>
   db.select().from(bulkRecipients).where(eq(bulkRecipients.campaignId, campaignId));
@@ -79,7 +83,7 @@ describe('validateForSend', () => {
 
 describe('startSending', () => {
   it('freezes recipients and sets sending, sender, recipient_count, then queues the batch', async () => {
-    const admin = await newBulkAdmin(db);
+    const admin = await sharedAdmin();
     const a = await newBulkPerson(db, { name: 'Anna', language: 'en' });
     const b = await newBulkPerson(db, { name: 'Boris' });
     const id = await newReadyCampaign(db, admin, [a.id, b.id]);
@@ -107,7 +111,7 @@ describe('startSending', () => {
   });
 
   it('leaves out an unsubscribed person', async () => {
-    const admin = await newBulkAdmin(db);
+    const admin = await sharedAdmin();
     const a = await newBulkPerson(db);
     const b = await newBulkPerson(db);
     await db.insert(bulkSubscriptions).values({
@@ -123,7 +127,7 @@ describe('startSending', () => {
   });
 
   it('with no recipients → EmptyAudienceError and still a draft without rows', async () => {
-    const admin = await newBulkAdmin(db);
+    const admin = await sharedAdmin();
     const id = await newReadyCampaign(db, admin, []);
     const jobs = createRecordingJobs();
     await expect(startSending({ db, config, jobs }, admin, id)).rejects.toBeInstanceOf(
@@ -135,7 +139,7 @@ describe('startSending', () => {
   });
 
   it('a campaign that is not ready → NotReadyError with the problems', async () => {
-    const admin = await newBulkAdmin(db);
+    const admin = await sharedAdmin();
     const a = await newBulkPerson(db);
     const id = await newReadyCampaign(db, admin, [a.id], { subject: '' });
     const error = await startSending({ db, config, jobs: createRecordingJobs() }, admin, id).catch(
@@ -147,7 +151,7 @@ describe('startSending', () => {
   });
 
   it('two concurrent sends: one starts, the other is NotDraftError', async () => {
-    const admin = await newBulkAdmin(db);
+    const admin = await sharedAdmin();
     const a = await newBulkPerson(db);
     const id = await newReadyCampaign(db, admin, [a.id]);
     const jobs = createRecordingJobs();
@@ -163,7 +167,7 @@ describe('startSending', () => {
   });
 
   it('an unknown campaign → CampaignNotFoundError', async () => {
-    const admin = await newBulkAdmin(db);
+    const admin = await sharedAdmin();
     await expect(
       startSending({ db, config, jobs: createRecordingJobs() }, admin, randomUUID()),
     ).rejects.toBeInstanceOf(CampaignNotFoundError);
@@ -172,7 +176,7 @@ describe('startSending', () => {
 
 describe('cancelSending', () => {
   it('marks queued rows cancelled and the campaign cancelled; a sending row finishes', async () => {
-    const admin = await newBulkAdmin(db);
+    const admin = await sharedAdmin();
     const a = await newBulkPerson(db);
     const b = await newBulkPerson(db);
     const id = await newReadyCampaign(db, admin, [a.id, b.id]);
@@ -190,7 +194,7 @@ describe('cancelSending', () => {
   });
 
   it('a draft or a cancelled campaign → NotSendingError; unknown → not found', async () => {
-    const admin = await newBulkAdmin(db);
+    const admin = await sharedAdmin();
     const a = await newBulkPerson(db);
     const id = await newReadyCampaign(db, admin, [a.id]);
     await expect(cancelSending({ db }, id)).rejects.toBeInstanceOf(NotSendingError);
@@ -203,7 +207,7 @@ describe('cancelSending', () => {
 
 describe('test send', () => {
   it('queues a job for the actor only and answers their address', async () => {
-    const admin = await newBulkAdmin(db);
+    const admin = await sharedAdmin();
     const id = await newReadyCampaign(db, admin, []);
     const jobs = createRecordingJobs();
     const result = await queueTestSend({ db, jobs }, admin, id);
@@ -216,7 +220,7 @@ describe('test send', () => {
   });
 
   it('a campaign that is not ready → NotReadyError, nothing queued', async () => {
-    const admin = await newBulkAdmin(db);
+    const admin = await sharedAdmin();
     const id = await newReadyCampaign(db, admin, [], { blocks: [] });
     const jobs = createRecordingJobs();
     await expect(queueTestSend({ db, jobs }, admin, id)).rejects.toBeInstanceOf(NotReadyError);
@@ -248,7 +252,7 @@ describe('test send', () => {
   });
 
   it('a retried test job reuses its idempotency key; a new test gets a new one', async () => {
-    const admin = await newBulkAdmin(db);
+    const admin = await sharedAdmin();
     const id = await newReadyCampaign(db, admin, []);
     const jobs = createRecordingJobs();
     await queueTestSend({ db, jobs }, admin, id);
@@ -261,7 +265,7 @@ describe('test send', () => {
   });
 
   it('a final provider error is not retried (no throw); a retryable one throws', async () => {
-    const admin = await newBulkAdmin(db);
+    const admin = await sharedAdmin();
     const id = await newReadyCampaign(db, admin, []);
     const jobs = createRecordingJobs();
     await queueTestSend({ db, jobs }, admin, id);
