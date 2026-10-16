@@ -128,10 +128,13 @@ describe('ticket notifications (Phase 21.6)', () => {
       ['ticket.unassigned', null],
       ['ticket.unassigned', null],
     ]);
-    await vi.waitFor(() =>
-      expect(pushesTo(a1.endpoint).map((p) => p.title)).toContain(
-        `Nový tiket #${t.number} bez klienta`,
-      ),
+    // Every active admin of the shared test database gets one, so delivery takes a while.
+    await vi.waitFor(
+      () =>
+        expect(pushesTo(a1.endpoint).map((p) => p.title)).toContain(
+          `Nový tiket #${t.number} bez klienta`,
+        ),
+      { timeout: 10_000 },
     );
   });
 

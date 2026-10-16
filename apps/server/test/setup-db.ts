@@ -15,4 +15,20 @@ export default async function setup(): Promise<void> {
     await admin.end({ timeout: 5 });
   }
   await runMigrations(testUrl);
+  await retireLeftoverAdmins(dbName);
+}
+
+/**
+ * Deactivates the admins earlier runs left in the shared test database. Each test makes its own
+ * admins, but a ticket without a client notifies every active admin, so leftovers made every run
+ * slower than the last. Superadmins stay.
+ */
+async function retireLeftoverAdmins(dbName: string): Promise<void> {
+  if (!dbName.includes('test')) return;
+  const db = postgres(testUrl, { max: 1, connect_timeout: 5, onnotice: () => {} });
+  try {
+    await db`update "user" set disabled_at = now() where role = 'admin' and disabled_at is null`;
+  } finally {
+    await db.end({ timeout: 5 });
+  }
 }
