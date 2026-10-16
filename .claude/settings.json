@@ -1,9 +1,20 @@
 {
   "enabledPlugins": {
-    "superpowers@superpowers-marketplace": true,
-    "frontend-design@claude-plugins-official": true
+    "superpowers@superpowers-marketplace": false,
+    "frontend-design@claude-plugins-official": false
   },
   "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/scripts/cloud-session.sh",
+            "timeout": 600
+          }
+        ]
+      }
+    ],
     "Stop": [
       {
         "hooks": [

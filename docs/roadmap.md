@@ -30,6 +30,13 @@ Requirements per module: [product/](product/README.md). Phases after 1 get their
 
 Phases 8, 12 and 14 do not depend on each other, so their order can change by priority.
 
+**Next (owner brief, 2026-10-16):** [superpowers/briefs/2026-10-16-next-work.md](superpowers/briefs/2026-10-16-next-work.md). In order:
+- A: internal knowledge and tasks across clients;
+- C: notification groups in the profile;
+- B: the tickets module with the `ziadatel` role, which supersedes Phases 12–13.
+
+Each one needs a spec and a plan before code.
+
 ## Server deployment (deferred)
 
 Owner decision (2026-10-15): build and verify locally first; deploy to the server later as one separate step.

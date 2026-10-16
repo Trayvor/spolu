@@ -20,6 +20,7 @@ Spolu is the eGrant team's internal web app for working with clients: group chat
 | [runbooks/](runbooks/README.md) | server setup, deploy, rollback, backup |
 | [superpowers/specs/](superpowers/specs/) | per-phase designs |
 | [superpowers/plans/](superpowers/plans/) | per-phase implementation plans |
+| [superpowers/briefs/](superpowers/briefs/) | owner briefs for work not yet specced |
 | [roadmap.md](roadmap.md) | phases with status |
 | [glossary.md](glossary.md) | terms used in the project |
 

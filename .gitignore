@@ -16,3 +16,4 @@ test-results/
 .superpowers/
 .vitest/
 e2e/.auth/
+.claude/worktrees/
