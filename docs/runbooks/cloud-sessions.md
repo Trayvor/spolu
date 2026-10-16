@@ -1,6 +1,6 @@
 # Cloud sessions (Claude Code on the web)
 
-How to work on Spolu from claude.ai/code instead of the local CLI. Facts are from the Claude Code docs as of 2026-10-16: [web](https://code.claude.com/docs/en/claude-code-on-the-web), [cloud environments](https://code.claude.com/docs/en/cloud-environments).
+How to work on Spolu from claude.ai/code instead of the local CLI. Since 2026-10-16 the work runs in the local CLI (parallel agents in worktrees); this runbook stays for when cloud sessions are used again. Facts are from the Claude Code docs as of 2026-10-16: [web](https://code.claude.com/docs/en/claude-code-on-the-web), [cloud environments](https://code.claude.com/docs/en/cloud-environments).
 
 ## What the repo already provides
 
@@ -47,7 +47,7 @@ What cloud sessions do not have:
 
 ## Working rules in the cloud
 
-- Work on a branch and open a pull request. Never push to `main`: every push to `main` deploys to spolu.egrant.sk (`deploy-test.yml`). The `CI` workflow checks every pull request.
+- Work on a branch and open a pull request. Never push to `main`: every push to `main` deploys to help.egrant.sk (`deploy-test.yml`). The `CI` workflow checks every pull request.
 - On the pull request, the session can watch CI and fix failures ("Auto-fix" in the CI bar at claude.ai/code).
 - Merging the pull request deploys it.
 - To continue a cloud session locally: `claude --teleport` in a clean checkout of the repo.

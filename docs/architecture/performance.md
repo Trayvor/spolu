@@ -32,7 +32,7 @@ Spolu must feel instant: faster than Microsoft Teams on a cheap phone over mobil
 
 ## Bundle budget
 
-The initial JS that the browser downloads before showing the first screen: **200 kB gzip**, reported by the build. Today (Phase 3, groups and invites) it is about 193 kB: the entry chunk about 108 kB, the API client with zod and the session code about 48 kB (+3 kB: the router eagerly imports `features/groups/api` for the 404 loader), the router's shared chunks about 20 kB and 12 kB, and the i18n chunk 4 kB. `socket.io-client` (about 13 kB) stays out of it: only the lazy signed-in layout and the settings status card import it (there is no home screen).
+The initial JS that the browser downloads before showing the first screen: **200 kB gzip**, measured as in "How to check" below. **Now (`main` at `5081a23`, 2026-10-17): 199.95 kB, practically full**; the next eager growth must first move something out. The paragraphs below are the measurement history, oldest first except where noted. At Phase 3 (groups and invites) it was about 193 kB: the entry chunk about 108 kB, the API client with zod and the session code about 48 kB (+3 kB: the router eagerly imports `features/groups/api` for the 404 loader), the router's shared chunks about 20 kB and 12 kB, and the i18n chunk 4 kB. `socket.io-client` (about 13 kB) stays out of it: only the lazy signed-in layout and the settings status card import it (there is no home screen).
 
 Lazy screen chunks worth watching: the Tasks tab (`tasks-tab`, the board with drag and drop: `@dnd-kit/core`, `@dnd-kit/sortable`, `fractional-indexing`) is about 24 kB gzip (Phase 8; about 4 kB before drag and drop). dnd-kit appears in no other chunk. With the board in place the initial JS is about 194 kB gzip (entry 169.5 kB, router chunks 19.7 kB and 0.6 kB, i18n 4.1 kB); all `tasks.*` texts (English and Slovak) add about 2.2 kB gzip to the entry chunk.
 
@@ -86,7 +86,15 @@ Lazy chunks for individual screens have no hard budget. Keep them reasonable and
 
 ## How to check
 
-- `pnpm --filter @spolu/web build` prints every chunk with its gzip size.
+- `pnpm --filter @spolu/web build` prints every chunk with its gzip size (Vite's default gzip level, a little above the budget's numbers).
+- The budget's number is gzip -9 of every script `dist/index.html` loads (the module, its modulepreloads and `registerSW.js`), in kB of 1000 bytes. After the build:
+
+  ```bash
+  cd apps/web/dist && grep -oE '(src|href)="/[^"]+\.js"' index.html | sed -E 's/.*="\/(.*)"/\1/' | sort -u \
+    | while read -r f; do gzip -9c "$f" | wc -c; done | awk '{ s += $1 } END { printf "%.2f kB\n", s / 1000 }'
+  ```
+
+  Compare with the same command on `origin/main` and write the result here when it changes.
 - Lighthouse in Chrome DevTools (mobile, throttled) on the test server: aim for Performance 90+ on the home screen.
 
 Phase 18 client managers (end-to-end test added; measured 2026-10-16, gzip level 9 of every script `index.html` loads): initial JS 193.6 kB gzip (entry 114.5 kB, API client chunk 41.3 kB, router chunk 19.6 kB, shared dependency chunk 16.2 kB, notifications 0.7 kB, i18n 0.5 kB, small chunk 0.6 kB, `registerSW.js` 0.1 kB), under the 200 kB budget.

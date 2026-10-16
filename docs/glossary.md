@@ -13,7 +13,7 @@ Terms used across the docs and code, in alphabetical order.
 - **bulk email** ("Hromadné e-maily"): an email an admin writes from blocks and sends to many people in Spolu at once (Phase 23); one email is a **campaign** (`bulk_campaigns`: draft, sending, sent or cancelled). Only bulk email can be unsubscribed from; login codes and notifications always arrive.
 - **audience** (bulk email): who a campaign goes to, stored as a filter (`BulkAudience`: client groups, managers' groups, roles, people added or left out by hand); disabled and unsubscribed people are left out. It is frozen into the recipient list (`bulk_recipients`) when sending starts.
 - **campaign**: see bulk email.
-- **channel**: a place where messages are posted. In Spolu: a group chat, a direct message chat or a task chat.
+- **channel**: a place where messages are posted. In Spolu: a group chat, a task chat or a ticket chat (`channels.kind`); direct message chats come with Phase 7.
 - **custom reminders**: reminder times someone sets on a task themselves (Phase 19), for themselves, the people they add and anyone who subscribes. They sit beside the automatic reminders, do not move with the deadline, and export to a calendar with the deadline.
 - **client**: a person from a customer organization. Sees only their own groups (one or several, Phase 21); in the database the role of their membership in each group.
 - **contract**: a record of an agreement with a client (dates, amount, files, notes). Admin-only.
@@ -40,7 +40,7 @@ Terms used across the docs and code, in alphabetical order.
 - **notification group**: one of chat, task board, ticket board, knowledge base: every notification event belongs to one, and the user picks its channel (Email, Push, Email and push, None) in the profile. Keys `chat`, `tasks`, `tickets`, `knowledge`. Not the same as a client group's notification mode (bell), which decides what arrives.
 - **notification event**: one stored notification for one recipient (kind, optional group, payload, delivered or not). Recorded in the same transaction as the change that caused it and deleted after 30 days.
 - **OTP code**: the one-time code sent by email that is used to log in.
-- **owner walkthrough**: the final check of a phase, where the owner tries the "Done when" items by hand before the phase is marked done.
+- **owner walkthrough**: the final check of a phase, where the owner tries the "Done when" items by hand on the test server after the phase is merged; what is still to walk is noted in the phase's roadmap section.
 - **pending client**: a client who entered an email on an invite link but never signed in (`email_verified` false, empty name). A later invite link replaces their pending invite; once they sign in they are a normal client of that group.
 - **pending invite**: the invite a person typed their email on, kept until they sign in with a code (`pending_invites`, Phase 21); the latest one wins.
 - **pickable people**: who can be picked as an assignee in a group: its named, verified, active clients and its active managers. Every other admin is a reader of the group (can be mentioned and read it) but is not pickable. See `listPickablePeople`.
@@ -62,7 +62,7 @@ Terms used across the docs and code, in alphabetical order.
 - **superadmin**: the first admin, created automatically at start from `SUPERADMIN_EMAIL` (name from `SUPERADMIN_NAME`). Cannot be deleted or demoted; creates other admins.
 - **task**: a card on the task board with title, description, one or more assignees, deadline, an urgent flag and attachments.
 - **task chat**: the discussion inside one task, with threads, mentions and attachments.
-- **test environment**: the Oracle Cloud VM where Spolu is deployed for checks before real use; environment name `test`.
+- **test environment**: the Oracle Cloud VM where Spolu is deployed, at https://help.egrant.sk; every merge into `main` deploys there; environment name `test`.
 - **thread**: replies grouped under one top-level message (the thread root); a reply cannot start another thread. Opens in a side panel, linked by `?thread=<rootId>&c=<channelId>`.
 - **ticket**: a support request (from eGrant's API, a client or an admin) with a number `#123` and a status (New / In progress / Resolved), shown in its client's Tickets tab, in My tickets and in the admins' global view; without a client only in the global view.
 - **ticket follower**: someone notified about a ticket's changes: its initiator, the client's managers and the creating admin from the start, plus anyone who pressed Follow.
