@@ -127,12 +127,22 @@ export async function updateUserName(db: Db, id: string, name: string): Promise<
 }
 
 /** A client who typed their email on an invite: not verified yet, no name yet. */
-export async function createUnverifiedClient(db: Db, email: string): Promise<UserRow> {
+export async function createUnverifiedClient(db: Db, email: string, name = ''): Promise<UserRow> {
   const [row] = await db
     .insert(user)
-    .values({ id: randomUUID(), email: normalizeEmail(email), name: '', role: 'client' })
+    .values({ id: randomUUID(), email: normalizeEmail(email), name: name.trim(), role: 'client' })
     .returning();
   return row as UserRow;
+}
+
+/** Sets the name only when the account has none: an invite never renames someone. */
+export async function setNameIfEmpty(db: Db, id: string, name: string): Promise<void> {
+  const trimmed = name.trim();
+  if (trimmed === '') return;
+  await db
+    .update(user)
+    .set({ name: trimmed, updatedAt: new Date() })
+    .where(and(eq(user.id, id), sql`trim(${user.name}) = ''`));
 }
 
 /**

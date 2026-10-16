@@ -94,6 +94,8 @@ export const ErrorCodes = {
   invalidFilter: 'invalid_filter',
   // Phase 21 — memberships
   removedMember: 'removed',
+  // Phase 22b — member invites
+  alreadyMember: 'already_member',
   // Phase 21 — tickets
   intakeDisabled: 'intake_disabled',
   hasTasks: 'has_tasks',
