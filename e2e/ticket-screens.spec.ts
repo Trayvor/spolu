@@ -130,7 +130,8 @@ test('an admin turns a ticket into tasks that link back to it', async ({ page })
   await expect(dialog).toHaveCount(0);
 
   const tasks = page.getByRole('region', { name: /^Úlohy/ });
-  await expect(tasks.getByRole('link')).toHaveText([
+  // The section also links to the board; only the list holds the tasks.
+  await expect(tasks.getByRole('list').getByRole('link')).toHaveText([
     'Opraviť krok rozpočtu',
     'Odpísať žiadateľovi',
   ]);
