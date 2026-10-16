@@ -65,6 +65,36 @@ describe('jobs', () => {
     }
   }, 15_000);
 
+  // With notify on, pg-boss polls only every 30 s, and a delayed job sends no NOTIFY when due.
+  it('startJobs runs a delayed job of a notify: false queue within seconds of its start', async () => {
+    const name = `test-delayed-${randomUUID()}`;
+    const boss = new PgBoss(testDatabaseUrl);
+    await boss.start();
+    try {
+      await boss.createQueue(name, { notify: true }); // as created before the queue had the setting
+      let ranAt = 0;
+      const jobs = await startJobs(
+        testDatabaseUrl,
+        { [name]: async () => void (ranAt = Date.now()) },
+        [],
+        { [name]: { notify: false } },
+      );
+      try {
+        expect((await boss.getQueue(name))?.notify).toBe(false);
+        // Sent after the worker's first poll, so only a later poll can pick it up.
+        await new Promise((r) => setTimeout(r, 500));
+        await jobs.queue.send(name, {}, { startAfter: 1 });
+        const deadline = Date.now() + 6000;
+        while (ranAt === 0 && Date.now() < deadline) await new Promise((r) => setTimeout(r, 50));
+        expect(ranAt).toBeGreaterThan(0);
+      } finally {
+        await jobs.stop();
+      }
+    } finally {
+      await boss.stop({ graceful: false });
+    }
+  }, 20_000);
+
   it('startJobs runs localConcurrency jobs of a queue at once', async () => {
     const name = `test-concurrency-${randomUUID()}`;
     let running = 0;
