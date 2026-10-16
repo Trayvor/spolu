@@ -6,7 +6,12 @@ import type { Db } from '../../infra/db/client.js';
 import { getUserById } from '../users/service.js';
 import { onTicketChange } from './hooks.js';
 import { ticketPayload } from './notify.js';
-import { actorReadsTicket, getTicketRow, readingFollowerIds } from './service.js';
+import {
+  actorReadsTicket,
+  fileOfReadableTicket,
+  getTicketRow,
+  readingFollowerIds,
+} from './service.js';
 
 const ticketOf = (db: Db, channel: ChannelRef) =>
   channel.ticketId ? getTicketRow(db, channel.ticketId) : Promise.resolve(null);
@@ -16,7 +21,8 @@ const ticketOf = (db: Db, channel: ChannelRef) =>
  * rules, pushes its messages to the initiator's own sockets too (a ziadatel is in no group room),
  * lets the initiator be mentioned, makes `@all` mean the ticket's followers and tells the
  * followers about each message (`ticket.message`, part 21.6). A ticket gets its
- * chat when it gets a client; the chat moves with the ticket. Call once at start-up.
+ * chat when it gets a client; the chat moves with the ticket. The files uploaded with a ticket are
+ * read by whoever reads it. Call once at start-up.
  */
 export function registerTicketChat(): void {
   registerChannelKind('ticket', {
@@ -53,6 +59,7 @@ export function registerTicketChat(): void {
   });
   onTicketChange(createOrMoveChat);
   registerFileReadRule(fileInReadableChannel);
+  registerFileReadRule(fileOfReadableTicket);
 }
 
 async function createOrMoveChat(

@@ -14,6 +14,7 @@ import { ApiError } from '@/lib/api';
 import { groupQuery } from '@/features/groups/api';
 import { normalizeTypes, singleType, validateKnowledgeSearch } from '@/features/knowledge/search';
 import { linkEmail, safeRedirect } from '@/features/auth/redirect';
+import { validateTicketsSearch } from '@/features/tickets/search';
 import { clientGroups, isAdmin } from '@/features/auth/roles';
 import { sessionQuery } from '@/features/auth/use-session';
 import { RootError } from '@/routes/root-error';
@@ -54,7 +55,8 @@ const authedRoute = createRoute({
 const homeRoute = createRoute({
   getParentRoute: () => authedRoute,
   path: '/',
-  // An admin's dashboard (Phase 20); a client goes to their group, or picks one of several.
+  // An admin's dashboard (Phase 20); a client goes to their group, or picks one of several; a
+  // requester to their tickets.
   beforeLoad: async ({ context }) => {
     const user = await context.queryClient.ensureQueryData(sessionQuery);
     if (!user) throw redirect({ to: '/login' });
@@ -66,6 +68,8 @@ const homeRoute = createRoute({
         params: { groupId: mine[0]!.id },
       });
     if (mine.length > 1) throw redirect({ to: '/my-groups' });
+    // Only requester memberships (Phase 21): their tickets are all they have.
+    if (user.groups.length > 0) throw redirect({ to: '/tickets' });
     throw redirect({ to: '/settings' });
   },
   component: lazyRouteComponent(
@@ -250,12 +254,57 @@ const groupKnowledgeRoute = createRoute({
   component: lazyRouteComponent(() => import('@/features/knowledge/knowledge-tab'), 'KnowledgeTab'),
 });
 
+const groupTicketsRoute = createRoute({
+  getParentRoute: () => groupRoute,
+  path: 'tickets',
+  validateSearch: validateTicketsSearch,
+  component: lazyRouteComponent(
+    withNamespaces(['tickets', 'forms'], () => import('@/features/tickets/tickets-page')),
+    'TicketsTab',
+  ),
+});
+
 const groupMembersRoute = createRoute({
   getParentRoute: () => groupRoute,
   path: 'members',
   component: lazyRouteComponent(
     withNamespaces(['group', 'groups', 'admins'], () => import('@/features/groups/members-tab')),
     'MembersTab',
+  ),
+});
+
+// Tickets (Phase 21): the admins' global view, or My tickets for everyone else.
+const ticketsRoute = createRoute({
+  getParentRoute: () => authedRoute,
+  path: '/tickets',
+  validateSearch: validateTicketsSearch,
+  component: lazyRouteComponent(
+    // `knowledge`: the client filter's texts.
+    withNamespaces(
+      ['tickets', 'forms', 'knowledge'],
+      () => import('@/features/tickets/tickets-page'),
+    ),
+    'TicketsPage',
+  ),
+});
+
+// One ticket with its chat. A ticket the visitor may not read answers 404: the not-found page.
+const ticketRoute = createRoute({
+  getParentRoute: () => authedRoute,
+  path: '/tickets/$ticketId',
+  loader: async ({ context, params }) => {
+    // Imported here, not at the top: the ticket schemas stay out of the entry chunk.
+    const { ticketQuery } = await import('@/features/tickets/api');
+    try {
+      await context.queryClient.ensureQueryData(ticketQuery(params.ticketId));
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 404) throw notFound();
+      throw error;
+    }
+  },
+  component: lazyRouteComponent(
+    withNamespaces(['tickets', 'chat', 'forms'], () => import('@/features/tickets/ticket-page')),
+    'TicketPageRoute',
   ),
 });
 
@@ -357,9 +406,12 @@ const routeTree = rootRoute.addChildren([
       groupIndexRoute,
       groupChatRoute.addChildren([]), // Phase 5 adds its child routes here
       groupTasksRoute.addChildren([newTaskRoute, taskRoute]),
+      groupTicketsRoute,
       groupKnowledgeRoute,
       groupMembersRoute,
     ]),
+    ticketsRoute,
+    ticketRoute,
     welcomeRoute,
   ]),
   loginRoute,

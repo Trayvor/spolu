@@ -104,6 +104,7 @@ beforeEach(() => {
     description: 'Some details',
     files: [],
     sourceMessage: null,
+    sourceTicket: null,
   };
   fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
     const method = init?.method ?? 'GET';
@@ -134,6 +135,7 @@ beforeEach(() => {
         description: body.description,
         files: [],
         sourceMessage: null,
+        sourceTicket: null,
       });
     }
     if (url === '/api/tasks/t1' && method === 'DELETE') return reply(204);
@@ -408,6 +410,16 @@ describe('TaskPanel', () => {
     expect(screen.getByRole('link', { name: t('tasks.panel.openMessage') })).toHaveAttribute(
       'href',
       chatMessageHref('g1', { messageId: 'm1', channelId: 'c1', taskId: null }),
+    );
+  });
+
+  it('task panel shows the ticket line', async () => {
+    detail = { ...detail, sourceTicket: { id: 'k1', number: 123, subject: 'Login fails' } };
+    renderPanel();
+    expect(await screen.findByText(t('tasks.panel.fromTicket'))).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: '#123 Login fails' })).toHaveAttribute(
+      'href',
+      '/tickets/k1',
     );
   });
 

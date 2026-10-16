@@ -17,12 +17,11 @@ function parseJson(text: string): unknown {
 }
 
 function send(
-  groupId: string,
+  path: string,
   file: File,
   onProgress?: (fraction: number) => void,
 ): Promise<FileInfo> {
   return new Promise((resolve, reject) => {
-    const path = `/groups/${encodeURIComponent(groupId)}/files`;
     const xhr = new XMLHttpRequest();
     xhr.open('POST', `/api${path}`);
     xhr.withCredentials = true;
@@ -74,15 +73,27 @@ async function uploadPreview(info: FileInfo, file: File): Promise<FileInfo> {
  * (status 0 for a network error; code `file_too_large` for a file over 25 MB). A PNG, JPEG or
  * WebP also gets a browser-made preview; a preview that fails is ignored, the upload succeeded.
  */
-export async function uploadFile(
+export function uploadFile(
   groupId: string,
+  file: File,
+  onProgress?: (fraction: number) => void,
+): Promise<FileInfo> {
+  return uploadFileTo(`/groups/${encodeURIComponent(groupId)}/files`, file, onProgress);
+}
+
+/**
+ * `uploadFile` to another upload route of the API (`path` under `/api`), such as a ticket's
+ * `/tickets/<id>/files` (Phase 21: a requester cannot upload to the group itself).
+ */
+export async function uploadFileTo(
+  path: string,
   file: File,
   onProgress?: (fraction: number) => void,
 ): Promise<FileInfo> {
   if (file.size > MAX_FILE_BYTES) {
     throw new ApiError('File is too large (over 25 MB)', 413, { error: ErrorCodes.fileTooLarge });
   }
-  const info = await send(groupId, file, onProgress);
+  const info = await send(path, file, onProgress);
   if (!PREVIEW_MIMES.has(info.mime)) return info;
   try {
     return await uploadPreview(info, file);

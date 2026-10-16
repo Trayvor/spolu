@@ -59,6 +59,8 @@ export default defineConfig({
       MAIL_FROM: 'Spolu <noreply@localhost>',
       // The canned task splitter; production mode refuses it without AI_ALLOW_FAKE=1.
       AI_PROVIDER: 'fake',
+      // The ticket intake API (Phase 21); the specs post tickets with this key.
+      TICKETS_API_KEY: 'e2e-tickets-key-0123456789',
       AI_ALLOW_FAKE: '1',
     },
   },

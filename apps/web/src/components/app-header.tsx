@@ -1,9 +1,10 @@
 import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { LanguageSwitcher } from '@/components/language-switcher';
-import { clientGroups, isAdmin } from '@/features/auth/roles';
+import { clientGroups, isAdmin, isRequester } from '@/features/auth/roles';
 import { UserMenu } from '@/features/auth/user-menu';
 import { useSession } from '@/features/auth/use-session';
+import { cn } from '@/lib/utils';
 
 const navLink =
   'hidden h-[38px] items-center rounded-full px-4 text-tiny font-semibold transition-colors duration-(--duration-fast) hover:bg-accent min-[641px]:inline-flex';
@@ -11,9 +12,11 @@ const navLink =
 /**
  * The egrant.sk header pill, kept still (no hide-on-scroll). On the left the brand
  * "Spolu by eGrant": the product name as the wordmark, a small "by" and the egrant logo,
- * one link to `/` named by `app.fullName`. On the right, for a signed-in user: the "Home", "Tasks", "Knowledge", "Groups" and "Admins" links (admins only, hidden under 641 px where
- * the user menu offers them), "My groups" for a client of several groups (Phase 21), the user
- * menu and the language menu.
+ * one link to `/` named by `app.fullName`. On the right, for a signed-in user: the "Home", "Tasks",
+ * "Tickets", "Knowledge", "Groups" and "Admins" links (admins only, hidden under 641 px where
+ * the user menu offers them), "My groups" for a client of several groups (Phase 21), "Tickets"
+ * for a requester who is no client anywhere (their whole app) or "My tickets" for a client who
+ * also reported tickets elsewhere, the user menu and the language menu.
  */
 export function AppHeader() {
   const { t } = useTranslation();
@@ -46,6 +49,9 @@ export function AppHeader() {
             <Link to="/tasks" className={navLink}>
               {t('nav.tasks')}
             </Link>
+            <Link to="/tickets" className={navLink}>
+              {t('nav.tickets')}
+            </Link>
             <Link to="/knowledge" className={navLink}>
               {t('nav.knowledge')}
             </Link>
@@ -60,6 +66,15 @@ export function AppHeader() {
         {user && !isAdmin(user) && clientGroups(user).length > 1 && (
           <Link to="/my-groups" className={navLink}>
             {t('nav.myGroups')}
+          </Link>
+        )}
+        {user && !isAdmin(user) && isRequester(user) && (
+          // A requester-only person sees it at every width: it is their only screen.
+          <Link
+            to="/tickets"
+            className={cn(navLink, clientGroups(user).length === 0 && 'inline-flex')}
+          >
+            {t(clientGroups(user).length === 0 ? 'nav.tickets' : 'nav.myTickets')}
           </Link>
         )}
         {user && <UserMenu user={user} />}

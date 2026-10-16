@@ -11,7 +11,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { signOut } from './api';
-import { clientGroups, isAdmin } from './roles';
+import { clientGroups, isAdmin, isRequester } from './roles';
 import { clearSession } from './use-session';
 
 /** First letters of the first two words of the name, upper-case ("Jana Nováková" gives "JN"). */
@@ -29,7 +29,8 @@ export function initials(name: string, email: string): string {
  * the same size and colour as the language button. The menu shows who is signed in
  * (name and email, not clickable), then "Settings" (the profile and notification settings
  * page, for every role) and "Log out". Under 641 px the header has no room for
- * the "Home", "Tasks", "Knowledge", "Groups" and "Admins" links, so admins get them here instead.
+ * the "Home", "Tasks", "Tickets", "Knowledge", "Groups" and "Admins" links, so admins get them here
+ * instead (and a client who also reported tickets elsewhere gets "My tickets").
  */
 export function UserMenu({ user }: { user: Me }) {
   const { t } = useTranslation();
@@ -67,6 +68,9 @@ export function UserMenu({ user }: { user: Me }) {
                 <Link to="/tasks">{t('nav.tasks')}</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild className="min-[641px]:hidden">
+                <Link to="/tickets">{t('nav.tickets')}</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild className="min-[641px]:hidden">
                 <Link to="/knowledge">{t('nav.knowledge')}</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild className="min-[641px]:hidden">
@@ -76,6 +80,11 @@ export function UserMenu({ user }: { user: Me }) {
                 <Link to="/admins">{t('nav.admins')}</Link>
               </DropdownMenuItem>
             </>
+          )}
+          {!isAdmin(user) && isRequester(user) && clientGroups(user).length > 0 && (
+            <DropdownMenuItem asChild className="min-[641px]:hidden">
+              <Link to="/tickets">{t('nav.myTickets')}</Link>
+            </DropdownMenuItem>
           )}
           {!isAdmin(user) && clientGroups(user).length > 1 && (
             <DropdownMenuItem asChild className="min-[641px]:hidden">

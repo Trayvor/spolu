@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { MessageDto } from '@spolu/shared';
-import { useGroupPeople } from '@/features/groups/use-group-people';
+import { useChatPeople } from './chat-scope';
 import type { ChannelWindow } from './channel-window';
 import { MessageItem, type MessageAction } from './message-item';
 import { buildRows, localDay, pendingAsMessage } from './message-rows';
@@ -112,7 +112,7 @@ export function MessageList({
   endSignal = 0,
 }: MessageListProps) {
   const { t } = useTranslation();
-  const people = useGroupPeople(groupId).data;
+  const people = useChatPeople(groupId).data;
   const scroller = useRef<HTMLDivElement>(null);
   const content = useRef<HTMLDivElement>(null);
   const names = useMemo(() => new Map((people ?? []).map((p) => [p.id, p.name])), [people]);

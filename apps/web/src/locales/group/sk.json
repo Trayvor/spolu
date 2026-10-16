@@ -3,6 +3,7 @@
     "label": "Časti skupiny",
     "chat": "Chat",
     "tasks": "Úlohy",
+    "tickets": "Tikety",
     "knowledge": "Znalosti",
     "members": "Členovia"
   },
@@ -40,5 +41,10 @@
     "invited": "Pozvaný",
     "resend": "Poslať znova",
     "confirmCancelInvite": "Zrušiť pozvánku pre {{email}}?"
+  },
+  "requesters": {
+    "title": "Žiadatelia",
+    "hint": "Ľudia, ktorí nahlásili tikety pre tohto klienta. Vidia iba svoje tikety, nikdy nie skupinu.",
+    "removedTitle": "Odobraní žiadatelia ({{count}})"
   }
 }

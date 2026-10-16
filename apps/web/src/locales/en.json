@@ -6,11 +6,13 @@
   "nav": {
     "home": "Home",
     "tasks": "Tasks",
+    "tickets": "Tickets",
     "settings": "Settings",
     "admins": "Admins",
     "groups": "Groups",
     "knowledge": "Knowledge",
-    "myGroups": "My groups"
+    "myGroups": "My groups",
+    "myTickets": "My tickets"
   },
   "user": {
     "menu": "Account menu",

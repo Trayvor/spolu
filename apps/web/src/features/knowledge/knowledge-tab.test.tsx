@@ -111,7 +111,7 @@ describe('knowledge tab', () => {
   });
   afterEach(() => vi.unstubAllGlobals());
 
-  it('the tab pill sits between Tasks and Members', async () => {
+  it('the tab pill sits between Tickets and Members', async () => {
     mockApi();
     renderTab();
     const nav = await screen.findByRole('navigation', { name: t('group.tabs.label') });
@@ -122,6 +122,7 @@ describe('knowledge tab', () => {
     expect(names).toEqual([
       t('group.tabs.chat'),
       t('group.tabs.tasks'),
+      t('group.tabs.tickets'),
       t('group.tabs.knowledge'),
       t('group.tabs.members'),
     ]);

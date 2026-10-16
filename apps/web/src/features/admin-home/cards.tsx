@@ -17,13 +17,19 @@ const taskTarget = (groupId: string, taskId: string): CardTarget => ({
   params: { groupId, taskId },
 });
 
-/** The chat link of a mention: the group chat or the task's Chat tab, at the message (and thread). */
+/**
+ * The chat link of a mention: the group chat, the task's Chat tab or the ticket page (Phase 21),
+ * at the message (and thread).
+ */
 export function mentionTarget(item: MentionItem): CardTarget {
   const at = {
     ...(item.parentId ? { thread: item.parentId } : {}),
     message: item.messageId,
     c: item.channelId,
   };
+  if (item.ticketId) {
+    return { to: '/tickets/$ticketId', params: { ticketId: item.ticketId }, search: at };
+  }
   return item.taskId
     ? {
         to: '/groups/$groupId/tasks/$taskId',

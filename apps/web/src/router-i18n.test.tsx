@@ -84,8 +84,39 @@ const TASK_DETAIL = {
     authorName: 'Jana',
     excerpt: 'Send the report',
   },
+  sourceTicket: { id: 'k1', number: 7, subject: 'Cannot submit' },
 };
 const CHANNEL = { lastSeq: 1, lastReadAt: null, unread: 0 };
+const TICKET_ITEM = {
+  id: 'k1',
+  number: 7,
+  groupId: 'g1',
+  groupName: 'Acme',
+  status: 'in_progress',
+  area: 'Login',
+  subject: 'Cannot submit',
+  dueDate: '2026-10-10',
+  createdAt: NOW,
+  following: true,
+  requesterName: 'Eva',
+  excerpt: 'The form fails',
+};
+const TICKET = {
+  ...TICKET_ITEM,
+  source: 'api',
+  requester: { userId: 'u1', name: 'Eva', email: 'eva@acme.sk', phone: null },
+  programme: null,
+  body: 'The form fails',
+  url: null,
+  instanceUrl: 'https://acme.egrant.sk',
+  fileLinks: [],
+  files: [],
+  createdBy: null,
+  updatedAt: NOW,
+  resolvedAt: null,
+  taskCount: 2,
+  channelId: 'c3',
+};
 const PAGE = { messages: [MESSAGE], hasMore: false, lastSeq: 1, lastReadAt: null };
 
 function mockApi(me: typeof ADMIN | typeof CLIENT | null) {
@@ -105,6 +136,16 @@ function mockApi(me: typeof ADMIN | typeof CLIENT | null) {
     '/api/channels/c1/unread-threads': [],
     '/api/channels/c2/unread-threads': [],
     '/api/chat/unread': { g1: 2 },
+    '/api/groups/g1/tickets': { items: [TICKET_ITEM], nextCursor: null },
+    '/api/tickets/global': { items: [TICKET_ITEM], nextCursor: null },
+    '/api/tickets/mine': { items: [TICKET_ITEM], nextCursor: null },
+    '/api/knowledge/scope': { managedGroupIds: [] },
+    '/api/tickets/k1': TICKET,
+    '/api/tickets/k1/followers': [{ id: 'u1', name: 'Eva' }],
+    '/api/tickets/k1/chat': { id: 'c3', ...CHANNEL },
+    '/api/channels/c3/messages': PAGE,
+    '/api/channels/c3/unread-threads': [],
+    '/api/channels/c3/people': [{ ...PERSON, isAdmin: true }],
     '/api/ai/status': { taskSplit: true },
     '/api/notifications/modes': {
       defaultMode: null,
@@ -200,6 +241,25 @@ interface Case {
 }
 
 const CASES: Case[] = [
+  {
+    path: '/tickets',
+    me: ADMIN,
+    shows: 'New ticket',
+    namespaces: ['tickets', 'forms', 'knowledge'],
+  },
+  { path: '/tickets', me: CLIENT, shows: 'My tickets', namespaces: ['tickets'] },
+  {
+    path: '/groups/g1/tickets',
+    me: CLIENT,
+    shows: 'Cannot submit',
+    namespaces: ['group', 'tickets', 'forms'],
+  },
+  {
+    path: '/tickets/k1',
+    me: ADMIN,
+    shows: 'Followers (1)',
+    namespaces: ['tickets', 'chat', 'forms'],
+  },
   { path: '/groups', me: ADMIN, shows: 'Create group', namespaces: ['groups', 'chat'] },
   {
     path: '/groups/g1/chat',

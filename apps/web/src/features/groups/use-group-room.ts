@@ -14,13 +14,14 @@ import { getSocket } from '@/lib/socket';
  * acknowledged join (the first one and every rejoin after a reconnect); it is 0 until then.
  * Consumers run their catch-up / refetch when it changes, so nothing written between
  * `connect` and the join is missed. A `not_found` ack is not permanent: the next `connect`
- * tries again, nothing else retries.
+ * tries again, nothing else retries. `null` joins nothing and stays 0.
  */
-export function useGroupRoom(groupId: string): number {
+export function useGroupRoom(groupId: string | null): number {
   // Tagged with the group so a switch reads as 0 until the new room is joined.
   const [state, setState] = useState({ groupId, joins: 0 });
 
   useEffect(() => {
+    if (groupId === null) return; // nothing to join (a requester on a ticket page, Phase 21)
     const socket = getSocket();
     const payload: GroupRoomPayload = { groupId };
     let active = true;
@@ -42,7 +43,7 @@ export function useGroupRoom(groupId: string): number {
     };
   }, [groupId]);
 
-  return state.groupId === groupId ? state.joins : 0;
+  return groupId !== null && state.groupId === groupId ? state.joins : 0;
 }
 
 export const GroupRoomContext = createContext(0);

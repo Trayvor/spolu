@@ -55,6 +55,8 @@ export const MentionItemSchema = z.object({
   channelId: z.string(),
   /** Set when the message is in a task chat. */
   taskId: z.string().nullable(),
+  /** Set when the message is in a ticket chat (Phase 21): the link opens `/tickets/<id>`. */
+  ticketId: z.string().nullable(),
   /** Set when the message is a thread reply: the thread's root. */
   parentId: z.string().nullable(),
   groupId: z.string(),
