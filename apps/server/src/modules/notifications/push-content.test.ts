@@ -42,7 +42,7 @@ describe('buildPushPayload chat', () => {
       buildPushPayload({ ...base, payload: { ...chat, taskId: 't1' }, taskTitle: 'Report' }),
     ).toMatchObject({
       title: 'Report · Firma',
-      url: '/groups/g1/tasks/t1?tab=chat&message=m1',
+      url: '/groups/g1/tasks/t1?tab=chat&message=m1&c=c1',
       tag: 'chat:c1',
     });
     expect(
@@ -52,7 +52,7 @@ describe('buildPushPayload chat', () => {
         taskTitle: 'Report',
         parentId: 'r1',
       }).url,
-    ).toBe('/groups/g1/tasks/t1?tab=chat&thread=r1&message=m1');
+    ).toBe('/groups/g1/tasks/t1?tab=chat&thread=r1&message=m1&c=c1');
   });
   it('encodes ids in urls', () => {
     expect(buildPushPayload({ ...base, payload: { ...chat, messageId: 'a b' } }).url).toBe(

@@ -17,6 +17,7 @@ import * as filesService from '../files/service.js';
 import { files } from '../files/schema.js';
 import { createFile, getFile, InvalidAttachmentError } from '../files/service.js';
 import { addMember, createGroup } from '../groups/service.js';
+import { DELIVER_JOB } from '../notifications/service.js';
 import { notificationEvents } from '../notifications/schema.js';
 import { user } from '../users/schema.js';
 import { addAdmin, deactivateUser } from '../users/service.js';
@@ -811,6 +812,23 @@ describe('createTasksFromMessage', () => {
     await deleteTask(deps, a!.id);
     expect(await getFile(db, copy.id)).toBeNull();
     expect(await getFile(db, file.id)).not.toBeNull(); // the message keeps its file
+  });
+
+  it('asks for delivery of the task.assigned events after the commit', async () => {
+    const { group, admin, ana, m } = await setup();
+    const send = vi.fn(async () => {});
+    await createTasksFromMessage(
+      { ...deps, jobs: { send } },
+      admin,
+      group.id,
+      input(m.id, [
+        { title: 'A', assigneeIds: [ana.id] },
+        { title: 'B', assigneeIds: [ana.id, admin.id] },
+      ]),
+      { id: m.id, fileIds: [] },
+    );
+    // One request for every recipient of every card, never the actor.
+    expect(send.mock.calls).toEqual([[DELIVER_JOB, { userIds: [ana.id] }]]);
   });
 
   it('attaches files uploaded in the review next to the copies', async () => {

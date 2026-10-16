@@ -59,8 +59,10 @@ export function buildPushPayload(i: PushContentInput): PushPayload {
   const messageId = enc(str(p.messageId) ?? '');
   const channelId = str(p.channelId) ?? '';
   const thread = i.parentId ? `thread=${enc(i.parentId)}&` : '';
+  // `c` scopes the params to the task chat (the web's `useChatSearch`): the task panel ignores
+  // unscoped ones, which only the group's Chat tab adopts.
   const url = taskId
-    ? `/groups/${groupId}/tasks/${enc(taskId)}?tab=chat&${thread}message=${messageId}`
+    ? `/groups/${groupId}/tasks/${enc(taskId)}?tab=chat&${thread}message=${messageId}&c=${enc(channelId)}`
     : `/groups/${groupId}/chat?${thread}message=${messageId}`;
   const tag = i.parentId ? `thread:${i.parentId}` : `chat:${channelId}`;
   return { title, body: chatBody(p, i.lang), url, tag };

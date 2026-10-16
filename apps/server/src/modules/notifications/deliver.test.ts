@@ -13,7 +13,12 @@ import { createDeferredQueue } from '../../infra/jobs/jobs.js';
 import type { FakePushSender } from '../../infra/push/index.js';
 import { buildTestApp } from '../../../test/test-app.js';
 import { deleteMessage, getMessage, sendMessage } from '../chat/messages.js';
-import { ensureGroupChannel, markRead, type ChannelRow } from '../chat/service.js';
+import {
+  ensureGroupChannel,
+  ensureTaskChannel,
+  markRead,
+  type ChannelRow,
+} from '../chat/service.js';
 import { groupMembers } from '../groups/schema.js';
 import { addMember, createGroup } from '../groups/service.js';
 import { listBuckets } from '../tasks/service.js';
@@ -335,7 +340,7 @@ describe('deliverPending', () => {
     expect(theirs!.emailDueAt).toBeNull();
   });
 
-  it('a task chat payload links to the task chat', async () => {
+  it('a task chat message (Phase 9) pushes a link to the task chat', async () => {
     const s = await setup();
     const task = await createTask(
       quiet,
@@ -343,19 +348,19 @@ describe('deliverPending', () => {
       s.group.id,
       TaskCreateSchema.parse({ title: 'Report' }),
     );
-    const m = await send(s.channel, s.admin);
-    // Task chats (Phase 9) record `chat.message` with `taskId` in the payload.
-    await deps.db
-      .update(notificationEvents)
-      .set({
-        payload: sql`${notificationEvents.payload} || ${JSON.stringify({ taskId: task.id })}::jsonb`,
-      })
-      .where(eq(notificationEvents.userId, s.client.id));
-    await deliverPending(deps, { userIds: [s.client.id] });
-    const [sent] = sentTo(s.endpoint);
-    expect(sent!.payload).toMatchObject({
+    const taskChannel = await ensureTaskChannel(deps.db, task);
+    const m = await send(taskChannel, s.admin, { body: 'Hotovo?' });
+    const [event] = await eventsOf(s.client.id);
+    expect(event).toMatchObject({ kind: 'chat.message' });
+    expect(event!.payload).toMatchObject({ taskId: task.id, channelId: taskChannel.id });
+    expect(await deliverPending(deps, { userIds: [s.client.id] })).toBe(1);
+    const sent = sentTo(s.endpoint);
+    expect(sent).toHaveLength(1);
+    expect(sent[0]!.payload).toEqual({
       title: `Report · ${s.group.name}`,
-      url: `/groups/${s.group.id}/tasks/${task.id}?tab=chat&message=${m.id}`,
+      body: 'Admin: Hotovo?',
+      url: `/groups/${s.group.id}/tasks/${task.id}?tab=chat&message=${m.id}&c=${taskChannel.id}`,
+      tag: `chat:${taskChannel.id}`,
     });
   });
 

@@ -280,6 +280,7 @@ export async function createTasksFromMessage(
   );
   const copyIds = copied.flatMap((r) => (r.status === 'fulfilled' ? [r.value.id] : []));
   let ids: string[];
+  let notified: string[];
   try {
     const failed = copied.find((r) => r.status === 'rejected');
     if (failed) throw failed.reason;
@@ -287,7 +288,7 @@ export async function createTasksFromMessage(
     const copiesOf = drafts.map((_, index) =>
       pairs.flatMap((pair, i) => (pair.index === index ? [copyIds[i]!] : [])),
     );
-    ids = await db.transaction(async (tx) => {
+    ({ ids, notified } = await db.transaction(async (tx) => {
       const [found] = await tx
         .select({ id: buckets.id })
         .from(buckets)
@@ -342,15 +343,19 @@ export async function createTasksFromMessage(
         );
         await tx.insert(taskAttachments).values(attachments);
       }
+      const recipients = new Set<string>();
       for (const [index, row] of rows.entries()) {
-        await notifyAssigned(tx, actor, row, drafts[index]!.assigneeIds);
+        for (const id of await notifyAssigned(tx, actor, row, drafts[index]!.assigneeIds)) {
+          recipients.add(id);
+        }
       }
-      return rows.map((row) => row.id);
-    });
+      return { ids: rows.map((row) => row.id), notified: [...recipients] };
+    }));
   } catch (error) {
     await deleteFiles(deps, copyIds).catch(() => undefined);
     throw error;
   }
+  await requestDelivery(deps.jobs, notified);
   return (await Promise.all(ids.map((id) => getTask(db, id)))).flatMap((task) =>
     task ? [task] : [],
   );
