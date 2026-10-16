@@ -156,6 +156,16 @@ Each branch is cut from the latest `main`. 23.6 shows **Send a test to me** only
 
 ## Part 23.3 — Renderer, images, preview (spec §3)
 
+**As built (2026-10-16, branch `phase-23-3-bulk-render`).** No migration (the `bulk_images` table came with 23.1). Differences and details later parts must use:
+- The routes live in `bulk-email/render-routes.ts` (`bulkEmailRenderRoutes`, registered in `app.ts` after the tickets routes), not in `routes.ts`, so this part and 23.2 do not both create `routes.ts`; 23.5 may move them or leave them.
+- `renderCampaign(input)` has the spec's signature plus an optional `imageSizes?: ReadonlyMap<imageId, { width, height }>` (from `imageSizes(db, ids)`): an image is shown at its stored width capped at the 520 px column, with the matching `height`; without it at 520 px. 23.5 should pass it for test and real sends (one query per batch). The renderer is deterministic, so a retried send has the same body (Elastic's `422` cannot happen).
+- `render.ts` also exports `RenderInput`; `texts.ts` exports `BULK_FOOTER` (sk: "Tento e-mail dostávate, pretože máte účet v Spolu by eGrant." / "Odhlásiť sa z odberu"; en: "You get this email because you have an account in Spolu by eGrant." / "Unsubscribe"). The text part ends with `---` and the footer (`<reason>\n<unsubscribe>: <href>`); dividers are `---`, the logo is left out. A button whose URL is not http(s)/`mailto:` or an image `href` that is not http(s) renders without a link (defence in depth behind the shared schema).
+- `images.ts`: `saveImage(deps: { db, storage, config }, actor: { id }, body: Readable)`, `getImage(db, id)` (null for a non-UUID id), `imageSizes(db, ids)`, `imageExists(db, ids): Promise<Set<string>>`, `imageSize(buf)` (PNG IHDR / JPEG SOF, 1–20 000 px), errors `ImageTooLargeError` (→ `413 file_too_large`) and `UnsupportedImageError` (→ `415 unsupported_type`).
+- The public image GET also sends `cross-origin-resource-policy: cross-origin` (webmail shows it on its own origin) and `content-length`; it never reads the session.
+- Preview: the admin's name and language come from `getUserById`; the unsubscribe link is `#`; the body is checked with `BulkCampaignDraftSchema.pick({ subject, preheader, blocks })` (`400 validation_failed`), an unknown campaign answers `404`. The campaign row is read directly from `bulk_campaigns` (same module) until 23.2's `getCampaign` exists.
+- Test helpers for image bytes: `apps/server/test/bulk-images.ts` (`pngBytes`, `jpegBytes`, `GIF`).
+- `product/bulk-email.md` is written by 23.2; the block and image rules of this part are in `architecture/overview.md` (Bulk email renderer), `architecture/permissions.md` and `design/README.md` (Bulk email look). 23.7 adds the block rules to the product doc when it sweeps the docs.
+
 ### Task 3.1: `renderCampaign`
 
 **Files:**
@@ -165,8 +175,8 @@ Each branch is cut from the latest `main`. 23.6 shows **Send a test to me** only
 - Produces: `renderCampaign(input)` with the exact signature of spec §3; `BULK_FOOTER: Record<'sk' | 'en', { reason: string; unsubscribe: string }>`.
 - Produces: `imageUrl(publicUrl, imageId) = ${publicUrl}/api/bulk-email/images/${imageId}`, `LOGO_PATH = '/brand/egrant-logo-email.png'`.
 
-- [ ] **Step 1: Failing tests:** `escapes <script> and quotes in every text field` (Review Focus 4); `{{name}} is replaced in heading and text, escaped`; `a lone {{ stays`; `text: blank line → paragraphs, **bold** → <strong>, URLs → links`; `image renders width, alt, display:block and its link`; `button is a table cell with background and a link`; `logo uses LOGO_PATH on publicUrl`; `footer is Slovak for sk, English for en, with unsubscribeHref`; `preheader is hidden text at the top`; `text part: heading in capitals, button as "label: url", image as [alt], unsubscribe line last`; `html has role=presentation tables 600 wide and the 620px media rule`.
-- [ ] **Step 2–4:** run, implement, run. Commit `feat(bulk-email): email renderer`.
+- [x] **Step 1: Failing tests:** `escapes <script> and quotes in every text field` (Review Focus 4); `{{name}} is replaced in heading and text, escaped`; `a lone {{ stays`; `text: blank line → paragraphs, **bold** → <strong>, URLs → links`; `image renders width, alt, display:block and its link`; `button is a table cell with background and a link`; `logo uses LOGO_PATH on publicUrl`; `footer is Slovak for sk, English for en, with unsubscribeHref`; `preheader is hidden text at the top`; `text part: heading in capitals, button as "label: url", image as [alt], unsubscribe line last`; `html has role=presentation tables 600 wide and the 620px media rule`.
+- [x] **Step 2–4:** run, implement, run. Commit `feat(bulk-email): email renderer`.
 
 ### Task 3.2: Images and preview
 
@@ -178,9 +188,9 @@ Each branch is cut from the latest `main`. 23.6 shows **Send a test to me** only
 - Produces: `saveImage(deps, actor, body: Readable): Promise<{ id: string; url: string; width: number; height: number }>` (reads ≤ 2 MB, sniffs with `files/sniff.ts` limited to PNG and JPEG, reads width and height from the PNG IHDR or the JPEG SOF marker); `imageExists(db, ids: string[]): Promise<Set<string>>`.
 - Routes: `POST /api/bulk-email/images` (admins, raw body, 30/min), `GET /api/bulk-email/images/:id` (public, headers of spec §3), `POST /api/bulk-email/campaigns/:id/preview` (`{ subject, preheader, blocks }` → `{ html }`).
 
-- [ ] **Step 1: Failing tests:** `PNG and JPEG upload answer 201 with width and height`; `a GIF named .png → 415 unsupported_type`; `3 MB → 413`; `client upload → 403`; `public GET has nosniff, inline, CSP default-src 'none', public immutable cache`; `unknown id → 404`; `GET with a path-like id (../x) → 404`; `preview renders with the admin's name and is 403 for a client`.
-- [ ] **Step 2–4:** run, implement, run. Run `pnpm --filter @spolu/web icons`. Commit `feat(bulk-email): images and preview`.
-- [ ] **Step 5: Docs and PR.** `update-kb`: `product/bulk-email.md` (blocks, images are public by URL), `architecture/overview.md` (public image route), `design/README.md` (the email logo PNG). PR.
+- [x] **Step 1: Failing tests:** `PNG and JPEG upload answer 201 with width and height`; `a GIF named .png → 415 unsupported_type`; `3 MB → 413`; `client upload → 403`; `public GET has nosniff, inline, CSP default-src 'none', public immutable cache`; `unknown id → 404`; `GET with a path-like id (../x) → 404`; `preview renders with the admin's name and is 403 for a client`.
+- [x] **Step 2–4:** run, implement, run. Run `pnpm --filter @spolu/web icons`. Commit `feat(bulk-email): images and preview`.
+- [x] **Step 5: Docs and PR.** `update-kb`: `product/bulk-email.md` (blocks, images are public by URL), `architecture/overview.md` (public image route), `design/README.md` (the email logo PNG). PR.
 
 ---
 
