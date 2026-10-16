@@ -1,4 +1,4 @@
-import { and, asc, eq, isNull, sql } from 'drizzle-orm';
+import { and, asc, eq, isNull, sql, type AnyColumn, type SQL } from 'drizzle-orm';
 import type { MemberRole, SessionUser } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
 import { isAdmin } from '../users/policy.js';
@@ -137,4 +137,13 @@ export async function applyPendingInvite(db: Db, userId: string): Promise<string
 export async function isRequesterOnly(db: Db, user: SessionUser): Promise<boolean> {
   if (isAdmin(user)) return false;
   return (await clientGroupIds(db, user.id)).length === 0;
+}
+
+/**
+ * "The user has an active membership (any role) of the group in `groupColumn`", as SQL for
+ * other modules' one-statement queries (the tickets' My tickets list).
+ */
+export function activeMemberOfSql(userId: string, groupColumn: SQL | AnyColumn): SQL {
+  return sql`exists (select 1 from group_members gm where gm.user_id = ${userId}
+    and gm.group_id = ${groupColumn} and gm.removed_at is null)`;
 }

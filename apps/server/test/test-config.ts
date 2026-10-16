@@ -27,6 +27,7 @@ export function testConfig(overrides: Partial<Config> = {}): Config {
     emailBatchDelayMs: 600_000,
     loginCodesPerMinute: 10,
     ai: null,
+    ticketsApiKey: null,
     ...overrides,
   };
 }

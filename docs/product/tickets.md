@@ -1,49 +1,39 @@
-# Technical support (tickets from eGrant)
+# Technical support (tickets)
 
-The existing error-reporting system in eGrant sends tickets to the Spolu API. The server finds the right group by the client's eGrant URL. Admins see all tickets globally, can assign them to groups, change status and reply by email from Spolu. Clients see the tickets of their group.
+Support tickets come from eGrant's API, from clients and from admins. Each ticket belongs to one client (group), found by the client's eGrant instance link, or to no client yet. A ticket has its own chat, can be followed, and can be turned into tasks with AI. A person who reported a ticket but is not a client of that group gets a narrow **ziadatel** (requester) membership that sees only their own tickets.
+
+Design: [Phase 21 spec](../superpowers/specs/2026-10-16-phase-21-tickets-and-requesters-design.md). Phase 21 supersedes Phases 12 and 13.
 
 ## Requirements
 
-- **Intake:**
-  - the existing eGrant error-reporting system sends an **HTTP request (JSON)** to the Spolu API;
-  - the request is authenticated by an **API key**.
-- **JSON fields** (all required):
+- **Sources.**
+  - eGrant sends a ticket to `POST /api/tickets/intake` with one shared Bearer key (`TICKETS_API_KEY`); the field list is in [integrations](integrations.md). Every field is optional, but a ticket needs a subject, a body or an area.
+  - A client creates a ticket in one of their groups and is its initiator.
+  - An admin creates a ticket for any client and names the initiator (email, name, phone), as eGrant does.
+  - A ziadatel never creates tickets.
+- **Fields**: subject, question area, grant programme, text, due date, a URL, links to files (up to 20 external links, never downloaded), the instance link as received, the initiator's name, email and phone, the number `#123` (one sequence for all tickets), status, source (`api` or `manual`), who created it, when it was created, changed and resolved. A ticket created by hand can also carry uploaded files.
+- **Client by instance link.** The instance link is compared with the groups' eGrant URLs by host: scheme, a leading `www.`, the path and the case do not matter (`https://WWW.X.egrant.sk/app` matches `https://x.egrant.sk`). No match, or no link: the ticket is saved **without a client**. Only admins see it (global view, "Without client"); an admin assigns a client by hand. Until then there is no requester account and no email.
+- **Initiator** (for a ticket with a client, by its email):
+  - an admin's email: that admin;
+  - a client of the group: that client;
+  - anyone else (a client of another group, a ziadatel of another client, a new person): gets a **ziadatel** membership of this group; a new person gets an account first (named from the ticket, Slovak);
+  - someone an admin removed from this group, or a disabled account: no account is linked, only the name and email are kept, no email is sent.
+- **"Ticket created" email.** The initiator gets one email per ticket (in their language) with the number, the subject, the first lines of the text and **Open the ticket**, which goes through the code login to `/tickets/<id>`. It is sent whatever the notification settings, never twice (not on a later move), and not when the initiator created the ticket themselves.
+- **Statuses**: New, In progress, Resolved. Only admins change the status and the fields; resolving records the time, reopening clears it.
+- **Assign or move the client** (admins). The initiator is found again for the new client and the "Ticket created" email goes if it never went. Followers who cannot read the ticket in the new client are dropped. A ticket with tasks cannot move (`409 has_tasks`): its tasks live on that client's board.
+- **Following.** The initiator, the client's managers and the admin who created the ticket by hand follow it from the start. Anyone who reads a ticket can follow or stop following it. Notifications to followers come in part 21.6 (through the `tickets` notification group of brief item C).
+- **Who sees what**:
 
-  | Field | Required | Description |
-  |---|---|---|
-  | `subject` | yes | subject |
-  | `thematic_area` | yes | thematic area |
-  | `body` | yes | message text |
-  | `email` | **yes, cannot be empty** | email of the client who reported the error; the reply goes to it |
-  | `client_url` | yes | client URL in eGrant |
+  | | admin | client of the group | ziadatel of the group |
+  |---|---|---|---|
+  | tickets of the group | all, also without client | all | only their own |
+  | create | for any client | in this group | no |
+  | change status, fields, client | yes | no | no |
+  | follow | yes | yes | own tickets |
 
-- A request with an empty or missing required field is rejected with a validation error.
-- The server compares `client_url` with the "client URL in eGrant" field of groups.
-  - **URL normalization:** before comparing, both URLs are brought to one form: no protocol, no `www.`, no trailing slash, lowercase. Example: `https://www.X.egrant.sk/` becomes `x.egrant.sk`.
-  - **match:** the ticket goes into that group and into the global list;
-  - **no match:** the ticket is **still accepted and saved**, but without a group. It is visible **only in the admin's global ticket list**.
-- **Manual assignment:** an administrator can manually attach a ticket without a group (or move a ticket) to any group.
-- **Ticket statuses** (exactly three):
-  1. New
-  2. In progress
-  3. Resolved
-- **Replying to a ticket:**
-  - an administrator (manager) can reply to a ticket from the Spolu interface;
-  - the reply is **stored in the ticket itself**: the conversation is visible in Spolu, not only in email;
-  - the reply is sent by **email through Elastic Email** at the same time:
-    - to the **client** (address from the ticket);
-    - to the **manager** who replied (in copy, visible to the client);
-  - the client sees the email is addressed to both them and the manager; if they press "Reply all", the manager receives the reply;
-  - the client's email reply is **not imported** into the Spolu ticket; it is enough that the manager receives it in their own mailbox.
-- **Visibility:**
-  - a client sees the tickets of their group (a "Technical support" section inside the group, visible to the client);
-  - an administrator sees tickets globally.
-- **Global "Technical support" section (admin only):**
-  - one list of tickets from **all groups**, plus tickets **without a group** (client URL not found);
-  - filters: group / client, status, date, "without group".
-- Admins are notified about new tickets (see `notifications.md`).
-- Example of done: eGrant sends an error and the ticket appears in the right group, or in the global list as "without group".
+- **Lists**: the group's Tickets tab, **My tickets** (the initiator's tickets across their groups) and the admins' **global view** with the client filter (default the clients I manage, "All", "Without client", chosen clients). Filters: status (default Open = New and In progress; Resolved; All), area, "Following". Newest first, 50 per page.
+- Each ticket has its own chat (part 21.3) and can be turned into tasks with AI (part 21.5).
 
 ## Phase
 
-Phase 12 (intake, URL normalization, statuses, global list, manual assignment, group section, admin notification). Phase 13 (replies).
+Phase 21. Built so far: part 21.1 (memberships) and part 21.2 (server core: intake API, manual creation, initiator, "Ticket created" email, statuses and fields, assigning the client, following, lists). Parts 21.3–21.7: ticket chat, screens, ticket to tasks, notifications, e2e.

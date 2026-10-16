@@ -298,4 +298,4 @@ Built in 7 parts, one pull request each (21.1 memberships first; 21.3, 21.4 and 
 
 Done when: eGrant sends a ticket, a new requester gets the email, logs in with a code and sees only that ticket and its chat; an admin replies and the requester is notified; the ticket becomes tasks that link back to it; a client works in two groups.
 
-Status: part 21.1 (clients in several groups, membership roles, invites applied on sign-in) built on branch `phase-21-1-memberships`; parts 21.2–21.7 not started.
+Status: part 21.1 (clients in several groups, membership roles, invites applied on sign-in) built on branch `phase-21-1-memberships`; part 21.2 (tickets server core) built on branch `phase-21-2-tickets-core`, stacked on 21.1; parts 21.3–21.7 not started.

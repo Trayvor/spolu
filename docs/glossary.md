@@ -5,7 +5,7 @@ Terms used across the docs and code, in alphabetical order.
 - **@all**: a mention of everyone in the group (shown as "Everyone in this group" in the picker, stored as `<@all>`). It marks the message for every person in the group, like a mention of each of them.
 - **admin**: an eGrant team member. Sees all groups and can manage them. Created by the superadmin.
 - **ADR**: architecture decision record, a short file in `docs/decisions/` that records one decision and why it was made.
-- **API key**: a secret token that eGrant sends with each ticket request to prove who it is.
+- **API key**: the shared secret (`TICKETS_API_KEY`) eGrant sends as `Authorization: Bearer` with each ticket to the intake API.
 - **AppPrompt**: the one card at the bottom of every signed-in screen that asks to install Spolu as an app on a phone, then to turn on notifications on this device, or tells an old iPhone that only email works (`<AppPrompt>`, `features/notifications/app-prompt.tsx`). "Not now" hides it for 6 hours on that device.
 - **assigned to me**: the open tasks (not in Completed) a person is one of the assignees of. Counted in yellow (the `attention` colour) on the Úlohy tab, in the admin client sidebar and on the dashboard's "Assigned to me" card.
 - **automatic reminders**: the task board's built-in reminders (Phase 6): every assignee of an open task is reminded 3, 2 and 1 days before its deadline at 09:00, and every 3 hours while it is urgent. They need no setup and cannot be turned off; compare custom reminders.
@@ -54,6 +54,7 @@ Terms used across the docs and code, in alphabetical order.
 - **task chat**: the discussion inside one task, with threads, mentions and attachments.
 - **test environment**: the Oracle Cloud VM where Spolu is deployed for checks before real use; environment name `test`.
 - **thread**: replies grouped under one top-level message (the thread root); a reply cannot start another thread. Opens in a side panel, linked by `?thread=<rootId>&c=<channelId>`.
-- **ticket**: a support request sent from eGrant, with a status (New / In progress / Resolved), shown in the matching group or in the global list.
+- **ticket**: a support request (from eGrant's API, a client or an admin) with a number `#123` and a status (New / In progress / Resolved), shown in its client's Tickets tab, in My tickets and in the admins' global view; without a client only in the global view.
+- **ticket follower**: someone notified about a ticket's changes: its initiator, the client's managers and the creating admin from the start, plus anyone who pressed Follow.
 - **ziadatel** (requester): a person who reported a ticket but is not a client of that group (Phase 21). Their membership has the role `ziadatel`: they see only their own tickets of the group, never its chat, tasks, knowledge or members. One person can be a ziadatel of several clients.
 - **urgent**: a flag on a task. An urgent card shows a red "Urgent" pill on the board, and (from Phase 6) its assignees are reminded every 3 hours between 08:00 and 20:00 until it is in Completed or no longer urgent.

@@ -143,6 +143,15 @@ Each branch is cut from the latest `main`. The ticket page of 21.4 renders the c
 
 ## Part 21.2 — Tickets core, server (spec §2, §3)
 
+**As built (2026-10-16, branch `phase-21-2-tickets-core`).** Differences from the tasks below that later parts must use:
+- Socket events carry only `{ ticketId, groupId }` (`TicketEventPayload`); listeners refetch. Rooms: `admins`, `group:<id>`, the initiator's `user:<id>`.
+- `TicketDto.requester` is `{ userId, name, email, phone }`; `TicketListItem` adds `requesterName` and `excerpt`. `channelId` is always null until 21.3 fills it in `toTicketDto`.
+- Hooks: `onTicketChange((deps, change) => Promise<void>)` in `tickets/hooks.ts`; `TicketChange = { kind: 'created' | 'status' | 'updated' | 'moved' | 'tasks', ticket: TicketRow, actorId, previousGroupId? }`. Assigning a client to a ticket without one fires `created` (with `previousGroupId: null`), a move fires `moved`.
+- Instance matching is `findGroupByEgrantUrl` in the groups service: by host, ignoring scheme, `www.`, path and case.
+- The "Ticket created" link is `/login?redirect=/tickets/<id>`; `requester_notified_at` makes it once per ticket.
+- `readingFollowerIds(db, ticket)` (followers who can still read it) and `roleIn(db, actor, groupId)` are exported for 21.3 and 21.6.
+- `TICKETS_API_KEY` needs at least 16 characters.
+
 ### Task 2.1: Shared contracts, schema, policy
 
 **Files:**

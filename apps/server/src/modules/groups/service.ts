@@ -149,6 +149,24 @@ export async function regenerateInvite(db: Db, id: string): Promise<string> {
   return inviteToken;
 }
 
+/**
+ * The group whose eGrant URL names the same host as `url` (tickets, Phase 21), else null. The
+ * scheme, a leading `www.`, the path and the case do not matter: `https://www.X.egrant.sk/app`
+ * matches a group saved as `http://x.egrant.sk`.
+ */
+export async function findGroupByEgrantUrl(db: Db, url: string | null): Promise<GroupRow | null> {
+  const normalized = url === null ? null : normalizeEgrantUrl(url);
+  if (!normalized) return null;
+  const host = new URL(normalized).host.replace(/^www\./, '');
+  const [row] = await db
+    .select()
+    .from(groups)
+    .where(sql`regexp_replace(${groups.egrantUrl}, '^https?://(www\.)?', '') = ${host}`)
+    .orderBy(asc(groups.createdAt))
+    .limit(1);
+  return row ?? null;
+}
+
 export async function getGroupByInviteToken(db: Db, token: string): Promise<GroupRow | null> {
   const [row] = await db.select().from(groups).where(eq(groups.inviteToken, token));
   return row ?? null;

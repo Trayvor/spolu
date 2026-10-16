@@ -21,6 +21,7 @@ import { countUpcomingForUser, listUpcomingForUser } from './modules/reminders/s
 import { registerTaskReminderSubject } from './modules/tasks/reminder-subject.js';
 import { systemRoutes } from './modules/system/routes.js';
 import { tasksRoutes } from './modules/tasks/routes.js';
+import { ticketsRoutes } from './modules/tickets/routes.js';
 import { usersRoutes } from './modules/users/routes.js';
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
@@ -69,6 +70,7 @@ export async function buildApp(
   await app.register(chatRoutes, { prefix: '/api', deps });
   await app.register(notificationsRoutes, { prefix: '/api', deps });
   await app.register(aiRoutes, { prefix: '/api', deps });
+  await app.register(ticketsRoutes, { prefix: '/api', deps });
   // Knowledge writes and reminder subscription changes share one limit: 120 a minute per user.
   const allowKnowledgeWrite = createRateLimiter({ windowMs: 60_000, max: 120 });
   await app.register(knowledgeRoutes, { prefix: '/api', deps, allowWrite: allowKnowledgeWrite });

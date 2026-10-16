@@ -94,5 +94,9 @@ export const ErrorCodes = {
   invalidFilter: 'invalid_filter',
   // Phase 21 — memberships
   removedMember: 'removed',
+  // Phase 21 — tickets
+  intakeDisabled: 'intake_disabled',
+  hasTasks: 'has_tasks',
+  noClient: 'no_client',
 } as const;
 export type ErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes];

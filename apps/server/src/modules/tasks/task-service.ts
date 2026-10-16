@@ -630,3 +630,12 @@ export async function moveTask(
   if (!task) throw new NotFoundError(); // deleted right after the move committed
   return { task, moved };
 }
+
+/** How many tasks were made from the ticket (Phase 21). */
+export async function countTasksFromTicket(db: Db, ticketId: string): Promise<number> {
+  const [row] = await db
+    .select({ n: sql<number>`count(*)::int` })
+    .from(tasks)
+    .where(eq(tasks.sourceTicketId, ticketId));
+  return row?.n ?? 0;
+}

@@ -84,6 +84,10 @@ A visibility change from public to admins sends `knowledge:item_deleted` to the 
 
 `reminders:task` (`RemindersEvents.task`, payload `TaskRemindersEvent` = `{ groupId, taskId, upcomingReminders }`, Phase 19) goes to `group:<id>` when a task's count of unfired custom reminder times may have changed: after the fire job commits a batch that handled one of its times (fired or silent), and after `PUT /api/tasks/:id/reminders` commits (before the HTTP answer). The board sets the card's bell from the count; an open task panel refetches the task's reminders. The fire job is built before the app, so `buildApp` attaches its Socket.IO server to the reminders module (`attachRemindersRealtime` in `modules/reminders/realtime.ts`); `notifyTimesChanged` calls each subject adapter's `onTimesChanged`, which for tasks counts the times in one query (`countUpcomingReminders`) and emits. Errors there are logged, never thrown. Subscription changes are personal and push nothing.
 
+## Ticket events
+
+`ticket:created`, `ticket:updated` and `ticket:moved` (`TicketEvents`, Phase 21) carry only `{ ticketId, groupId }`; listeners refetch what they show, so an event never carries more than its room may read. `emitTicket` (`modules/tickets/events.ts`) sends them, after the write commits, to the `admins` room, the group's room (`group:<id>`) and the initiator's user room (a ziadatel is in no group room). A ticket without a client goes to the `admins` room and the initiator only. `ticket:moved` names the group the ticket left and goes to that group's room and the old initiator's user room; the new group gets `ticket:updated`.
+
 ## Chat events
 
 All are pushed after the transaction committed, by the chat routes, or for `chat:message_tasks` by the task routes, through `modules/chat/events.ts`. Payload types are `ChatMessageEvent`, `ChatReadEvent`, `ChatThreadReplyEvent` and `ChatMessageTasksEvent` in `packages/shared/src/chat.ts`; the event names are `ChatEvents.message`, `ChatEvents.read`, `ChatEvents.threadReply` and `ChatEvents.messageTasks`.

@@ -15,6 +15,7 @@ import {
 import { messages } from '../chat/schema.js';
 import { files } from '../files/schema.js';
 import { groups } from '../groups/schema.js';
+import { tickets } from '../tickets/schema.js';
 import { user } from '../users/schema.js';
 
 /** Fractional-index keys compare byte-wise, so the column is collated "C", not the database default. */
@@ -81,6 +82,10 @@ export const tasks = pgTable(
     sourceMessageId: text('source_message_id').references((): AnyPgColumn => messages.id, {
       onDelete: 'set null',
     }),
+    /** The ticket the task was made from (Phase 21); cleared when the ticket is deleted. */
+    sourceTicketId: text('source_ticket_id').references(() => tickets.id, {
+      onDelete: 'set null',
+    }),
     // Always written from JS `new Date()` (millisecond precision) so the ISO string round-trips.
     createdAt: timestamp('created_at', { withTimezone: true }).notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull(),
@@ -97,6 +102,9 @@ export const tasks = pgTable(
       .on(t.urgent)
       .where(sql`${t.urgent}`),
     // Serves the set-null cascade when a task chat goes, and listing a message's tasks.
+    index('tasks_source_ticket_id_idx')
+      .on(t.sourceTicketId)
+      .where(sql`${t.sourceTicketId} is not null`),
     index('tasks_source_message_id_idx')
       .on(t.sourceMessageId)
       .where(sql`${t.sourceMessageId} is not null`),

@@ -25,7 +25,8 @@ erDiagram
     FILE ||--o{ TASK_ATTACHMENT : "is used by"
     MESSAGE ||--o| TASK : "converted to"
     GROUP ||--o{ TICKET : receives
-    TICKET ||--o{ TICKET_REPLY : has
+    TICKET ||--o{ TICKET_FOLLOWER : "followed by"
+    TICKET ||--o{ TASK : "turned into"
     GROUP ||--o{ CONTRACT : has
     USER ||--o{ GROUP_NOTIFICATION_SETTING : sets
     USER ||--o{ PUSH_SUBSCRIPTION : "has devices"
@@ -43,7 +44,7 @@ erDiagram
     USER ||--o{ REMINDER_RECIPIENT : "is reminded"
 ```
 
-`ApiKey` (eGrant ticket ingestion) stands alone and has no relations.
+The ticket intake key is configuration (`TICKETS_API_KEY`), not a table. Ticket replies are the ticket's chat (part 21.3), not a table of their own. `tasks.source_ticket_id` (set null, partial index) links a task to the ticket it was made from.
 
 | entity | purpose | phase | status |
 |---|---|---|---|
@@ -72,9 +73,9 @@ erDiagram
 | ReminderSet | the reminders of one subject; `reminder_sets` table: `group_id` (cascade), `knowledge_item_id` (FK, cascade, nullable, unique index `reminder_sets_knowledge_item_unique`), `task_id` (FK `tasks.id`, cascade, nullable, unique index `reminder_sets_task_unique`, migration 0013: a task's custom reminders), `created_by`, `created_at`; index `reminder_sets_group_id_idx` on `group_id` (the group cascade and group-scoped lists). CHECK `reminder_sets_subject_check` `num_nonnulls(knowledge_item_id, task_id) = 1`: one FK column per subject kind, so deleting the subject deletes its reminders in the database. The board's per-task count of unfired times (`upcomingReminders`) reads `reminder_sets_task_unique` and `reminder_times_set_at_idx` | 17, 19 | built |
 | ReminderTime | one date-time of a set; `reminder_times`: `set_id` (cascade), `at` timestamptz, `fired_at` (nullable; set once the fire job handled it), `updated_at` (when `at` was last set; the `.ics` SEQUENCE and LAST-MODIFIED). Partial index `reminder_times_due_idx` on `at` where `fired_at is null` (the fire job's due query) and `reminder_times_set_at_idx` `(set_id, at)` | 17 | built |
 | ReminderRecipient | who a set notifies; `reminder_recipients`: `(set_id, user_id)` primary key (both cascade), `source` (CHECK `reminder_recipients_source_check`: `author`, `added` by the author, `subscribed` by themselves), `added_by` (FK user, no `ON DELETE` rule), index on `user_id` | 17 | built |
-| Ticket | support request from eGrant, status `new`, `in_progress`, `resolved` | 12 | planned |
-| ApiKey | secret used by eGrant to send tickets | 12 | planned |
-| TicketReply | an admin reply on a ticket | 13 | planned |
+| Ticket | support request; `tickets`: `id`, `number` (identity, unique, shown `#123`), `group_id` (null = without client; cascade), `status` (`new`, `in_progress`, `resolved`), `source` (`api`, `manual`), `requester_user_id` (set null), `requester_name`, `requester_email`, `requester_phone`, `area`, `subject`, `programme`, `body`, `due_date`, `url`, `instance_url`, `file_links` (text[]), `created_by` (set null), `requester_notified_at` (the "Ticket created" email, once), `created_at`, `updated_at`, `resolved_at`. Indexes `(group_id, status, created_at desc)`, `(requester_user_id, created_at desc)`, `(created_at desc) where group_id is null`, `(due_date) where status <> 'resolved'` | 21 | built |
+| TicketFollower | `ticket_followers`, primary key `(ticket_id, user_id)`, `source` (`auto`, `manual`), index on `user_id`; both cascade | 21 | built |
+| TicketAttachment | files uploaded with a ticket made by hand; `ticket_attachments`, primary key `(ticket_id, file_id)`, index on `file_id`; both cascade | 21 | built |
 | Contract | agreement with a client; admin-only; reminder and draft fields | 14 | planned |
 | app_meta | technical table proving migrations work (not a product entity) | 1 | built |
 

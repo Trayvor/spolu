@@ -124,6 +124,26 @@ export async function createUnverifiedClient(db: Db, email: string): Promise<Use
   return row as UserRow;
 }
 
+/**
+ * A person who reported a ticket and has no account yet (Phase 21): a client account, not
+ * verified, with the name the ticket gave (empty asks for it at the first login).
+ */
+export async function createRequesterAccount(
+  db: Db,
+  input: { email: string; name: string | null },
+): Promise<UserRow> {
+  const [row] = await db
+    .insert(user)
+    .values({
+      id: randomUUID(),
+      email: normalizeEmail(input.email),
+      name: input.name?.trim() ?? '',
+      role: 'client',
+    })
+    .returning();
+  return row as UserRow;
+}
+
 /** What notification delivery needs to know about a recipient. */
 export type NotificationProfile = {
   id: string;

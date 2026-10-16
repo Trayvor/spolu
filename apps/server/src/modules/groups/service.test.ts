@@ -24,6 +24,7 @@ import {
   regenerateInvite,
   setLogoKey,
   updateGroup,
+  findGroupByEgrantUrl,
   rememberInvite,
 } from './service.js';
 
@@ -386,5 +387,23 @@ describe('readers versus pickable people', () => {
     expect(await isPickablePerson(db, s.g.id, removed.id)).toBe(false);
     const reader = (await listGroupPeople(db, s.g.id)).find((p) => p.id === removed.id);
     expect(reader?.isManager ?? false).toBe(false);
+  });
+});
+
+describe('findGroupByEgrantUrl', () => {
+  it('ignores the scheme, a leading www., the path and the case', async () => {
+    const h = `g${randomUUID().replaceAll('-', '').slice(0, 16)}`;
+    const g = await createGroup(db, { name: 'Firma', egrantUrl: `http://${h}.egrant.sk` });
+    for (const url of [
+      `https://WWW.${h}.egrant.sk/app/login`,
+      `http://${h}.egrant.sk.`,
+      `${h}.egrant.sk`,
+    ]) {
+      const found = await findGroupByEgrantUrl(db, url);
+      if (url.startsWith('http')) expect(found?.id).toBe(g.id);
+      else expect(found).toBeNull(); // not a URL
+    }
+    expect(await findGroupByEgrantUrl(db, `https://x${h}.egrant.sk`)).toBeNull();
+    expect(await findGroupByEgrantUrl(db, null)).toBeNull();
   });
 });

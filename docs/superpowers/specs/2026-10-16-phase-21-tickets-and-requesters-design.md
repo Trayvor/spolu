@@ -85,7 +85,7 @@ Today `group_members` has one row per client (`user_id` is the primary key) and 
 | `created_by` | text null → `user` | null for the API |
 | `created_at`, `updated_at`, `resolved_at` | timestamptz | `resolved_at` set on Resolved, cleared when reopened |
 
-Indexes: `(group_id, status, created_at desc)`, `(requester_user_id, created_at desc)`, `(created_at desc) where group_id is null`, `(due_date) where status <> 'resolved'`. Lengths: subject 300, area and programme 200, name 200, email 254, phone 50, URLs 2000, body 20 000.
+Indexes: `(group_id, status, created_at desc)`, `(requester_user_id, created_at desc)`, `(created_at desc) where group_id is null`, `(due_date) where status <> 'resolved'`. Lengths: subject 300, area and programme 200, name 200, email 254, phone 50, URLs 2048 (the shared `MAX_URL_LENGTH`), body 20 000.
 
 **`ticket_followers`**: `(ticket_id, user_id)` pk, `source text check in ('auto', 'manual')`, `created_at`; index `(user_id)`.
 
@@ -135,7 +135,7 @@ A body with none of `subject`, `body`, `area` set answers `400 validation_failed
    - a membership in this group removed by an admin → no account link; the name and email stay as text; no email is sent;
    - otherwise (an account with no membership here, or no account) → add a **ziadatel** membership in this group; a new account gets `role = 'client'`, the name from the ticket and the language `sk`;
    - no email → no initiator account, no email.
-3. Auto followers: the initiator account and the group's active managers. Event `ticket.created` to the managers. The initiator gets the **"Ticket created"** email (their language; subject, `#number`, the first lines of the text, an **Open** button to `/login?next=/tickets/<id>`). It is sent whatever the notification settings, because it is the person's first contact and their way in; it is not sent when the initiator created the ticket themselves.
+3. Auto followers: the initiator account and the group's active managers. Event `ticket.created` to the managers. The initiator gets the **"Ticket created"** email (their language; subject, `#number`, the first lines of the text, an **Open the ticket** button to `/login?redirect=/tickets/<id>`). It is sent whatever the notification settings, because it is the person's first contact and their way in; it is not sent when the initiator created the ticket themselves.
 
 **Manual creation** — `POST /api/tickets`. An admin chooses the client (required), the initiator's email and name, and the same fields plus uploaded files; a client creates in their group's Tickets tab and is the initiator. Steps 2–3 run, and the creating admin is an auto follower too. The creator gets no event about their own ticket.
 
