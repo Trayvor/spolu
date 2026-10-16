@@ -24,19 +24,27 @@ export function isUniqueViolation(error: unknown): boolean {
   return code(error) === '23505' || code((error as { cause?: unknown } | null)?.cause) === '23505';
 }
 
-/** Makes sure the configured superadmin exists, is active and has the superadmin role. */
+/**
+ * Makes sure the configured superadmin exists and is active. Only a row that is already the
+ * superadmin is re-enabled; an existing admin or client with that email is never promoted
+ * (whoever holds the address could otherwise become superadmin on the next start), and the
+ * answer is `refused`, for the caller to log. Promoting someone is a manual database change.
+ */
 export async function ensureSuperadmin(
   db: Db,
   input: { email: string; name: string },
-): Promise<void> {
+): Promise<'ok' | 'refused'> {
   const email = normalizeEmail(input.email);
   await db
     .insert(user)
     .values({ id: randomUUID(), email, name: input.name, role: 'superadmin', emailVerified: true })
-    .onConflictDoUpdate({
-      target: user.email,
-      set: { role: 'superadmin', disabledAt: null, updatedAt: new Date() },
-    });
+    .onConflictDoNothing({ target: user.email });
+  const rows = await db
+    .update(user)
+    .set({ disabledAt: null, updatedAt: new Date() })
+    .where(and(eq(user.email, email), eq(user.role, 'superadmin')))
+    .returning({ id: user.id });
+  return rows.length > 0 ? 'ok' : 'refused';
 }
 
 export async function findUserByEmail(db: Db, email: string): Promise<UserRow | null> {
@@ -193,15 +201,18 @@ export async function setUserLanguage(db: Db, id: string, language: UserLanguage
 
 /**
  * Stores a new, already confirmed email address. Throws `EmailTakenError` (with the other
- * account's kind) when another account has it.
+ * account's kind) when another account has it. Runs in a savepoint (a transaction when `db` is
+ * not one), so a caller's transaction survives the unique violation and can roll back cleanly.
  */
 export async function changeUserEmail(db: Db, id: string, email: string): Promise<void> {
   const normalized = normalizeEmail(email);
   try {
-    await db
-      .update(user)
-      .set({ email: normalized, emailVerified: true, updatedAt: new Date() })
-      .where(eq(user.id, id));
+    await db.transaction(async (sp) => {
+      await sp
+        .update(user)
+        .set({ email: normalized, emailVerified: true, updatedAt: new Date() })
+        .where(eq(user.id, id));
+    });
   } catch (error) {
     if (!isUniqueViolation(error)) throw error;
     const owner = await findUserByEmail(db, normalized);

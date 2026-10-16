@@ -26,3 +26,33 @@ export function createRateLimiter(options: {
     return current.count <= max;
   };
 }
+
+/**
+ * In-memory rolling-window rate limiter: `allow(key)` is true while the key has fewer than `max`
+ * allowed calls in the last `windowMs`. Refused calls are not recorded. Keeps one timestamp per
+ * allowed call, so use it for small `max`; idle keys are swept once per window. In one process
+ * (ADR 0005); a restart forgets every count.
+ */
+export function createSlidingRateLimiter(options: {
+  windowMs: number;
+  max: number;
+}): (key: string) => boolean {
+  const { windowMs, max } = options;
+  const hits = new Map<string, number[]>();
+  let nextSweep = 0;
+
+  return (key) => {
+    const now = Date.now();
+    const since = now - windowMs;
+    if (now >= nextSweep) {
+      for (const [k, times] of hits) if (times[times.length - 1]! <= since) hits.delete(k);
+      nextSweep = now + windowMs;
+    }
+    const times = (hits.get(key) ?? []).filter((t) => t > since);
+    const allowed = times.length < max;
+    if (allowed) times.push(now);
+    if (times.length > 0) hits.set(key, times);
+    else hits.delete(key);
+    return allowed;
+  };
+}
