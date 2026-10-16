@@ -5,7 +5,7 @@ import type { Db } from '../../infra/db/client.js';
 import type { JobQueue } from '../../infra/jobs/jobs.js';
 import { notificationEvents } from './schema.js';
 
-/** Delivers the pending events of `{ userIds }`, or of everyone (the one-minute sweep, `{}`). */
+/** Delivers everyone's pending events; a stately queue, so requests coalesce (see `notificationQueues`). */
 export const DELIVER_JOB = 'notifications.deliver';
 /** Emails the due digests of `{ userIds }`, or of everyone (the one-minute sweep, `{}`). */
 export const DIGEST_JOB = 'notifications.email-digest';
@@ -64,6 +64,9 @@ export async function recordNotifications(
 /**
  * Asks for delivery of the users' pending events; call it after the events committed. Never
  * throws: a failed send is logged and the one-minute sweep delivers the events instead.
+ * The deliver queue keeps one job waiting, so a request while one waits is dropped and the
+ * waiting job delivers these events too. `userIds` go in the data only for the tests' scoped
+ * delivery (see `notificationsJobHandlers`).
  */
 export async function requestDelivery(jobs: JobQueue, userIds: string[]): Promise<void> {
   const unique = [...new Set(userIds)];

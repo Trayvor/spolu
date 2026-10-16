@@ -229,7 +229,10 @@ describe('deliverPending', () => {
     await send(s.channel, s.admin);
     // As in createDeps: pg-boss may run a job before startJobs has returned the queue.
     const forward = createDeferredQueue();
-    const handlers = notificationsJobHandlers({ ...deps, jobs: forward.queue });
+    const handlers = notificationsJobHandlers(
+      { ...deps, jobs: forward.queue },
+      { scopedDelivery: true },
+    );
     const running = handlers[DELIVER_JOB]!({ userIds: [s.client.id] });
     await vi.waitFor(async () =>
       expect((await eventsOf(s.client.id))[0]!.deliveredAt).toBeInstanceOf(Date),

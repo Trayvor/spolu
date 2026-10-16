@@ -1,10 +1,19 @@
 import type { Config } from './infra/config/config.js';
 import { authJobHandlers, AUTH_CLEANUP_JOB } from './modules/auth/jobs.js';
 import { filesJobHandlers, FILES_CLEANUP_JOB } from './modules/files/jobs.js';
-import { notificationSchedules, notificationsJobHandlers } from './modules/notifications/jobs.js';
+import {
+  notificationQueues,
+  notificationSchedules,
+  notificationsJobHandlers,
+} from './modules/notifications/jobs.js';
 import { tasksJobHandlers, taskSchedules } from './modules/tasks/jobs.js';
 import { createDb, type Db } from './infra/db/client.js';
-import { createEmailSender, emailJobHandlers, type EmailSender } from './infra/email/index.js';
+import {
+  createEmailSender,
+  emailJobHandlers,
+  emailQueues,
+  type EmailSender,
+} from './infra/email/index.js';
 import { createDeferredQueue, startJobs, type JobQueue } from './infra/jobs/jobs.js';
 import { createPushSender, type PushSender } from './infra/push/index.js';
 import { createDiskStorage, type Storage } from './infra/storage/index.js';
@@ -46,6 +55,7 @@ export async function createDeps(
       ...notificationSchedules, // delivery sweep every minute, purge at 03:45
       ...taskSchedules, // deadline and urgent reminders, Bratislava time
     ],
+    { ...emailQueues, ...notificationQueues }, // concurrency and policies; the rest: defaults
   );
   forward.resolve(jobs.queue);
   return {

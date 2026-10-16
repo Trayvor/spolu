@@ -47,6 +47,54 @@ describe('jobs', () => {
     }
   }, 15_000);
 
+  it('startJobs gives a queue its policy and recreates one created with another policy', async () => {
+    const name = `test-policy-${randomUUID()}`;
+    const boss = new PgBoss(testDatabaseUrl);
+    await boss.start();
+    try {
+      await boss.createQueue(name); // standard, as before the queue had a policy
+      const jobs = await startJobs(testDatabaseUrl, { [name]: async () => {} }, [], {
+        [name]: { policy: 'stately' },
+      });
+      await jobs.stop();
+      const queue = await boss.getQueue(name);
+      expect(queue?.policy).toBe('stately');
+      expect(queue?.notify).toBe(true);
+    } finally {
+      await boss.stop({ graceful: false });
+    }
+  }, 15_000);
+
+  it('startJobs runs localConcurrency jobs of a queue at once', async () => {
+    const name = `test-concurrency-${randomUUID()}`;
+    let running = 0;
+    let peak = 0;
+    let done = 0;
+    const jobs = await startJobs(
+      testDatabaseUrl,
+      {
+        [name]: async () => {
+          running++;
+          peak = Math.max(peak, running);
+          await new Promise((r) => setTimeout(r, 300));
+          running--;
+          done++;
+        },
+      },
+      [],
+      { [name]: { localConcurrency: 4, pollingIntervalSeconds: 0.5 } },
+    );
+    try {
+      for (let i = 0; i < 4; i++) await jobs.queue.send(name, { i });
+      const deadline = Date.now() + 5000;
+      while (done < 4 && Date.now() < deadline) await new Promise((r) => setTimeout(r, 50));
+      expect(done).toBe(4);
+      expect(peak).toBeGreaterThan(1);
+    } finally {
+      await jobs.stop();
+    }
+  }, 15_000);
+
   it('createInlineJobs runs the handler before send resolves', async () => {
     const seen: unknown[] = [];
     const queue = createInlineJobs({ greet: async (data) => void seen.push(data) });

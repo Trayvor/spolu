@@ -41,25 +41,59 @@ export interface JobSchedule {
   tz?: string;
 }
 
+/** How one queue is created and worked; every field is optional. */
+export interface QueueSettings {
+  /**
+   * pg-boss queue policy (default `standard`). `stately` keeps at most one job queued and one
+   * active, so a burst of sends coalesces into one run. pg-boss cannot change the policy of an
+   * existing queue: `startJobs` deletes and recreates a queue whose policy differs, which drops
+   * its waiting jobs, so give a policy only to queues whose jobs a sweep recovers.
+   */
+  policy?: 'standard' | 'stately';
+  /** Jobs of this queue run at once in this process (default 1). */
+  localConcurrency?: number;
+  /** Idle poll in seconds when LISTEN/NOTIFY is down (default 2, at least 0.5). */
+  pollingIntervalSeconds?: number;
+}
+
 /**
  * Starts the pg-boss job queue in the app's PostgreSQL (schema `pgboss`, created on first start)
- * with a queue and a worker for each handler.
+ * with a queue and a worker for each handler, set up by `queues[name]` when given.
+ * LISTEN/NOTIFY is on, so a sent job wakes its worker at once; polling stays as the fallback.
  */
 export async function startJobs(
   databaseUrl: string,
   handlers: JobHandlers,
   schedules: JobSchedule[] = [],
+  queues: Record<string, QueueSettings> = {},
 ): Promise<{ queue: JobQueue; stop(): Promise<void> }> {
-  const boss = new PgBoss(databaseUrl);
+  const boss = new PgBoss({ connectionString: databaseUrl, useListenNotify: true });
   // Without a listener an 'error' event would crash the process; log and keep running.
   boss.on('error', (error) => console.error('pg-boss error:', error));
+  // E.g. LISTEN/NOTIFY could not be set up (pg-boss keeps polling).
+  boss.on('warning', (warning) => console.warn('pg-boss warning:', warning));
   await boss.start();
 
   for (const [name, handler] of Object.entries(handlers)) {
-    await boss.createQueue(name);
-    await boss.work(name, async (jobs) => {
-      for (const job of jobs) await handler(job.data as object);
-    });
+    const { policy = 'standard', localConcurrency, pollingIntervalSeconds } = queues[name] ?? {};
+    let existing = await boss.getQueue(name);
+    if (existing && existing.policy !== policy) {
+      console.warn(`pg-boss: recreating queue ${name} (policy ${existing.policy} -> ${policy})`);
+      await boss.deleteQueue(name);
+      existing = null;
+    }
+    if (!existing) await boss.createQueue(name, { policy, notify: true });
+    else if (!existing.notify) await boss.updateQueue(name, { notify: true });
+    await boss.work(
+      name,
+      {
+        ...(localConcurrency ? { localConcurrency } : {}),
+        ...(pollingIntervalSeconds ? { pollingIntervalSeconds } : {}),
+      },
+      async (jobs) => {
+        for (const job of jobs) await handler(job.data as object);
+      },
+    );
   }
 
   // The queue exists by now; a schedule with the same name replaces the earlier one.

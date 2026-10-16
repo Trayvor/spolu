@@ -36,7 +36,10 @@ export async function buildTestApp(overrides: { config?: Partial<Config> } = {})
   const jobs = createInlineJobs({
     ...emailJobHandlers(email),
     ...filesJobHandlers({ db, storage }),
-    ...notificationsJobHandlers({ db, config, push: pushSender, jobs: forward.queue }),
+    ...notificationsJobHandlers(
+      { db, config, push: pushSender, jobs: forward.queue },
+      { scopedDelivery: true }, // test files run at once: deliver only the job's users
+    ),
   });
   forward.resolve(jobs);
   const deps: AppDeps = { config, db, email, storage, push: pushSender, jobs };
