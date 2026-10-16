@@ -28,7 +28,7 @@ import {
 } from '../files/service.js';
 import { getSourceMessage } from '../chat/messages.js';
 import { taskChatFileIds } from '../chat/service.js';
-import { getGroup, isGroupPerson } from '../groups/service.js';
+import { getGroup, isPickablePerson } from '../groups/service.js';
 import { recordNotifications, requestDelivery } from '../notifications/service.js';
 import { keyAfter, keysBefore } from './positions.js';
 import { buckets, taskAssignees, taskAttachments, tasks } from './schema.js';
@@ -95,10 +95,14 @@ export function toTaskDto(detail: TaskDetailDto): TaskDto {
   return TaskDtoSchema.parse(detail);
 }
 
-/** Throws `InvalidAssigneeError` unless every id is a person of the group. */
+/**
+ * Throws `InvalidAssigneeError` unless every id is a pickable person of the group: a client or
+ * one of its managers. Callers pass only ids that are new to the task, so an existing assignee
+ * who has since stopped being pickable stays on it.
+ */
 async function checkAssignees(tx: Tx, groupId: string, ids: string[]): Promise<void> {
   for (const id of ids) {
-    if (!(await isGroupPerson(tx, groupId, id))) throw new InvalidAssigneeError();
+    if (!(await isPickablePerson(tx, groupId, id))) throw new InvalidAssigneeError();
   }
 }
 

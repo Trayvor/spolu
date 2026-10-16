@@ -21,7 +21,7 @@ Each group has a Kanban board with four fixed buckets (columns) and custom bucke
   - title;
   - description;
   - creator (who created it);
-  - assignees (one or more people: clients of the group or admins);
+  - assignees (one or more people: clients of the group or its managers; an admin who is not a manager of the group cannot be chosen). Existing assignments are kept when a task is edited, even if the person has since stopped being a manager; only newly added assignees are checked (400 `invalid_assignee`);
   - deadline (date);
   - **urgent** flag;
   - attachments (files, images);

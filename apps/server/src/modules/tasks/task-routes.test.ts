@@ -24,6 +24,7 @@ import { getFile } from '../files/service.js';
 import { addMember, createGroup } from '../groups/service.js';
 import { notificationEvents } from '../notifications/schema.js';
 import { user } from '../users/schema.js';
+import { addManager } from '../groups/managers.js';
 import { addAdmin } from '../users/service.js';
 import { tasks } from './schema.js';
 
@@ -201,9 +202,19 @@ describe('tasks API: tasks', () => {
     expect(res.json()).toEqual({ error: 'invalid_assignee' });
   });
 
-  it('an active admin and a client of the group are valid assignees', async () => {
+  it('POST with a non-manager assignee answers 400 invalid_assignee', async () => {
+    const admin = await adminSession('Nina');
+    const g = await newGroup();
+    const client = await clientIn(g.id);
+    const res = await create(g.id, client.cookie, { title: 'X', assigneeIds: [admin.id] });
+    expect(res.statusCode).toBe(400);
+    expect(res.json()).toEqual({ error: 'invalid_assignee' });
+  });
+
+  it('a manager and a client of the group are valid assignees', async () => {
     const admin = await adminSession('Abe');
     const g = await newGroup();
+    await addManager(test.deps.db, g.id, admin.id);
     const client = await clientIn(g.id, 'Bea');
     const res = await create(g.id, client.cookie, {
       title: 'X',
@@ -287,6 +298,7 @@ describe('tasks API: tasks', () => {
   it('PATCH { title } keeps assignees, files and urgent; urgent can be set and cleared', async () => {
     const admin = await adminSession();
     const g = await newGroup();
+    await addManager(test.deps.db, g.id, admin.id);
     const client = await clientIn(g.id);
     const file = await upload(g.id, client.cookie);
     const task = (

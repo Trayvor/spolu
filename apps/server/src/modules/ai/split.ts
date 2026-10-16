@@ -11,7 +11,7 @@ import type { Db } from '../../infra/db/client.js';
 import type { MessageRow } from '../chat/dto.js';
 import { getMessage, getMessageFiles } from '../chat/messages.js';
 import type { ChannelRow } from '../chat/service.js';
-import { listGroupPeople } from '../groups/service.js';
+import { listPickablePeople } from '../groups/service.js';
 import { getUserById } from '../users/service.js';
 import {
   AiFailedError,
@@ -65,7 +65,7 @@ async function withNames(db: Db, body: string, nameById: Map<string, string>): P
   );
 }
 
-/** What the AI gets for a message: text, quoted parent, file names, group people, today. */
+/** What the AI gets for a message: text, quoted parent, file names, pickable group people (clients and managers), today. */
 export async function buildSplitRequest(
   db: Db,
   found: Found,
@@ -73,7 +73,7 @@ export async function buildSplitRequest(
 ): Promise<SplitRequest> {
   const { message, channel } = found;
   const [people, files, replyTo] = await Promise.all([
-    listGroupPeople(db, channel.groupId),
+    listPickablePeople(db, channel.groupId),
     getMessageFiles(db, channel.groupId, message.id),
     message.replyToId === null ? null : getMessage(db, message.replyToId),
   ]);
