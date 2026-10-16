@@ -14,6 +14,7 @@ A group is one client (organization). It has a name, a logo and the client's eGr
   - an administrator can **copy the invite link** for a specific group;
   - a new user who registers through it automatically lands in that group;
   - the link is permanent until an admin generates a new one; the old link then stops working (404, "no longer valid");
+  - entering an email on an invite link is limited to 10 per minute from one address (`JOIN_REQUESTS_PER_MINUTE`; the e2e server sets 200);
   - a client can belong to several groups (Phase 21): opening another group's link with the email of an existing client adds that group, but only after they sign in with the code sent to that email, so typing someone else's email never adds them anywhere;
   - a client who is already signed in sees "You are signed in as …" with **Join the group** instead of the email form, and joins at once (`POST /api/join/:token/accept`; an admin is sent to `/`; a membership an admin removed answers `403 removed`: "An eGrant admin removed you from this group.");
   - the invite is remembered until the person signs in, and the latest invite they used wins;
