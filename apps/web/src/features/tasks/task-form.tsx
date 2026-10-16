@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef } from 'react';
+import { useEffect, useId, useRef, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { TaskDraftSchema, type FileInfo, type TaskDraft, type TaskPerson } from '@spolu/shared';
 import { i18n } from '@/i18n';
@@ -88,6 +88,7 @@ export function TaskForm({
   onFilesChange,
   knownPeople,
   autoFocusTitle = false,
+  remindersSlot,
 }: {
   value: TaskDraft;
   onChange: (next: TaskDraft) => void;
@@ -100,6 +101,12 @@ export function TaskForm({
   knownPeople?: TaskPerson[];
   /** Focus the title on mount (the create panel). */
   autoFocusTitle?: boolean;
+  /**
+   * The task panel's reminders section (or, in create mode, its hint), between the urgent switch
+   * and the files, between 2 px rules. Not part of the draft: the section saves on its own. The
+   * AI review does not pass it.
+   */
+  remindersSlot?: ReactNode;
 }) {
   const { t } = useTranslation();
   const people = useGroupPeople(groupId).data;
@@ -179,6 +186,8 @@ export function TaskForm({
       </div>
 
       <UrgentSwitch checked={value.urgent} onChange={(urgent) => set({ urgent })} />
+
+      {remindersSlot && <div className="border-y-2 border-border py-5">{remindersSlot}</div>}
 
       <div className={FIELD}>
         <Label id={id('files-label')}>{t('tasks.form.files')}</Label>

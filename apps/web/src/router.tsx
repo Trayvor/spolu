@@ -135,7 +135,7 @@ const taskRoute = createRoute({
   path: '$taskId',
   component: lazyRouteComponent(
     withNamespaces(
-      ['tasks', 'chat', 'taskSplit', 'forms'],
+      ['tasks', 'chat', 'taskSplit', 'forms', 'reminders'],
       () => import('@/features/tasks/task-panel'),
     ),
     'TaskPanelRoute',
@@ -149,7 +149,10 @@ const newTaskRoute = createRoute({
   validateSearch: (search: Record<string, unknown>): { bucket?: string } =>
     typeof search.bucket === 'string' ? { bucket: search.bucket } : {},
   component: lazyRouteComponent(
-    withNamespaces(['tasks', 'chat', 'forms'], () => import('@/features/tasks/task-create-panel')),
+    withNamespaces(
+      ['tasks', 'chat', 'forms', 'reminders'],
+      () => import('@/features/tasks/task-create-panel'),
+    ),
     'NewTaskPanelRoute',
   ),
 });

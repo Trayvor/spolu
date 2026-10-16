@@ -38,5 +38,21 @@
     "remove": "Remove reminder",
     "date": "Date",
     "time": "Time"
+  },
+  "task": {
+    "title": "Reminders",
+    "autoDeadline": "Assignees are reminded automatically 3, 2 and 1 days before the deadline.",
+    "autoDeadlineUrgent": "Assignees are reminded automatically 3, 2 and 1 days before the deadline, and every 3 hours while urgent.",
+    "autoUrgent": "Assignees are reminded automatically every 3 hours while urgent.",
+    "afterDeadline": "after the deadline",
+    "reminded": "Reminded:",
+    "setThem": "(set them)",
+    "change": "Change",
+    "done": "Done",
+    "addAssignees": "Add assignees",
+    "saved": "Saved",
+    "saveFailed": "Could not save. Try again.",
+    "inPast": "This time has passed. Pick a later one.",
+    "createHint": "Add reminders after creating the task"
   }
 }

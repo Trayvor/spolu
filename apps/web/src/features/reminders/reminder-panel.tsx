@@ -24,6 +24,22 @@ const CalendarIcon = () => (
   </Icon>
 );
 
+/** The outline pill that downloads a subject's `.ics` ("Export to calendar"). */
+export function CalendarLink({ prefix, subjectId }: { prefix: string; subjectId: string }) {
+  const { t } = useTranslation();
+  const route = prefix.startsWith('/') ? prefix : `/${prefix}`;
+  return (
+    <a
+      href={reminderCalendarUrl(route, subjectId)}
+      download
+      className="inline-flex h-8 items-center gap-1.5 rounded-full border-2 border-primary px-4 text-tiny font-semibold text-foreground hover:bg-accent hover:text-foreground max-[640px]:h-11"
+    >
+      <CalendarIcon />
+      {t('reminders.panel.addToCalendar')}
+    </a>
+  );
+}
+
 /** Names shown in full before "and N more". */
 const SHOWN_NAMES = 3;
 
@@ -51,6 +67,9 @@ export function ReminderPanel({
   children,
   recipientsAction,
   calendarAvailable,
+  intro,
+  remindedLabel,
+  authorMark,
 }: {
   prefix: string;
   subjectId: string;
@@ -63,6 +82,12 @@ export function ReminderPanel({
   children?: ReactNode;
   recipientsAction?: ReactNode;
   calendarAvailable?: boolean;
+  /** Under the heading (a task's automatic-reminder line). */
+  intro?: ReactNode;
+  /** Replaces "Reminded" (a task: "Reminded:"). */
+  remindedLabel?: string;
+  /** After the author's name in the list (a task: "(set them)"). */
+  authorMark?: string;
 }) {
   const { t, i18n } = useTranslation();
   const me = useSession();
@@ -84,7 +109,9 @@ export function ReminderPanel({
   const recipients = [...set.recipients].sort(
     (a, b) => Number(b.user.id === authorId) - Number(a.user.id === authorId),
   );
-  const names = recipients.map((r) => r.user.name);
+  const names = recipients.map((r) =>
+    authorMark && r.user.id === authorId ? `${r.user.name} ${authorMark}` : r.user.name,
+  );
   const list = (items: string[]) =>
     new Intl.ListFormat(i18n.language, { type: 'conjunction' }).format(items);
   const namesText =
@@ -121,6 +148,7 @@ export function ReminderPanel({
       <h3 id={`reminders-${subjectId}`} className="text-button font-semibold">
         {t('reminders.panel.title')}
       </h3>
+      {intro}
 
       <ul className="flex flex-col gap-2">
         {upcoming.map((time) => {
@@ -161,7 +189,9 @@ export function ReminderPanel({
 
       {recipients.length > 0 && (
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-          <span className="text-micro text-muted-foreground">{t('reminders.panel.reminded')}</span>
+          <span className="text-micro text-muted-foreground">
+            {remindedLabel ?? t('reminders.panel.reminded')}
+          </span>
           <span className="flex -space-x-1.5" aria-hidden="true">
             {recipients.slice(0, 5).map(({ user }) => (
               <Avatar
@@ -201,14 +231,7 @@ export function ReminderPanel({
           )}
         </div>
         {(calendarAvailable ?? upcoming.length > 0) ? (
-          <a
-            href={reminderCalendarUrl(route, subjectId)}
-            download
-            className="inline-flex h-8 items-center gap-1.5 rounded-full border-2 border-primary px-4 text-tiny font-semibold text-foreground hover:bg-accent hover:text-foreground"
-          >
-            <CalendarIcon />
-            {t('reminders.panel.addToCalendar')}
-          </a>
+          <CalendarLink prefix={route} subjectId={subjectId} />
         ) : (
           <span className="text-micro text-muted-foreground">
             {t('reminders.panel.noUpcoming')}

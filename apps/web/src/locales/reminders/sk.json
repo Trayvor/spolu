@@ -38,5 +38,21 @@
     "remove": "Odstrániť pripomienku",
     "date": "Dátum",
     "time": "Čas"
+  },
+  "task": {
+    "title": "Pripomienky",
+    "autoDeadline": "Riešiteľom automaticky pripomenieme termín 3, 2 a 1 deň vopred.",
+    "autoDeadlineUrgent": "Riešiteľom automaticky pripomenieme termín 3, 2 a 1 deň vopred a každé 3 hodiny, kým je úloha urgentná.",
+    "autoUrgent": "Riešiteľom automaticky pripomíname každé 3 hodiny, kým je úloha urgentná.",
+    "afterDeadline": "po termíne",
+    "reminded": "Pripomenieme:",
+    "setThem": "(nastavil/a ich)",
+    "change": "Zmeniť",
+    "done": "Hotovo",
+    "addAssignees": "Pridať riešiteľov",
+    "saved": "Uložené",
+    "saveFailed": "Nepodarilo sa uložiť. Skúste znova.",
+    "inPast": "Tento čas už uplynul. Vyberte neskorší.",
+    "createHint": "Pripomienky pridáte po vytvorení úlohy"
   }
 }

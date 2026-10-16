@@ -40,4 +40,4 @@ Each group has a Kanban board with four fixed buckets (columns) and custom bucke
 
 ## Phase
 
-Phase 8 (built: board, buckets, tasks with attachments and the urgent flag, drag & drop with pointer, touch and keyboard, realtime, the task panel; end-to-end test in `e2e/tasks.spec.ts`). Phase 9 (task chat, tasks from chat messages). Phase 6 (task notifications and reminders). Phase 19 (custom task reminders; in progress: the server endpoints `GET|PUT /api/tasks/:id/reminders`, the subscription and the calendar file are built).
+Phase 8 (built: board, buckets, tasks with attachments and the urgent flag, drag & drop with pointer, touch and keyboard, realtime, the task panel; end-to-end test in `e2e/tasks.spec.ts`). Phase 9 (task chat, tasks from chat messages). Phase 6 (task notifications and reminders). Phase 19 (custom task reminders; in progress: the server endpoints `GET|PUT /api/tasks/:id/reminders`, the subscription, the calendar file and the reminders section in the task panel's Details tab are built). The section saves each change on its own, not with the task form; in create mode it is replaced by the hint "Add reminders after creating the task".

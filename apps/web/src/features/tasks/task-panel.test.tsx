@@ -576,6 +576,14 @@ describe('TaskPanel in create mode', () => {
     expect(calls('POST', '/api/groups/g1/tasks')).toHaveLength(0);
   });
 
+  it('create mode shows the hint and no section', async () => {
+    renderPanel(NEW);
+    await titleField();
+    expect(screen.getByText(t('reminders.task.createHint'))).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: t('reminders.row.add') })).toBeNull();
+    expect(fetchMock.mock.calls.some(([u]) => String(u).includes('/reminders'))).toBe(false);
+  });
+
   it('Create posts the whole draft to the chosen bucket and returns to the board', async () => {
     const { user, router } = renderPanel(NEW);
     await user.type(await titleField(), 'Budget');
