@@ -55,9 +55,12 @@ const CHAT_TABLES = ['messages', 'message_mentions'];
  * queries may scan `tasks` and `task_assignees`: with a third of the seeded tasks assigned to the
  * one admin, a hash join over the tables is cheaper than thousands of index lookups, and the
  * planner rightly picks it. They still have to stay under 50 ms.
+ *
+ * Timing on a machine busy with the rest of the suite is noisy: the test retries twice (a new
+ * seeding each time) before it fails; a plan with a sequential scan fails every attempt anyway.
  */
 describe('admin home query plans on a seeded volume', () => {
-  it('the admin home queries use indexes under 50 ms', { timeout: 180_000 }, async () => {
+  it('the admin home queries use indexes under 50 ms', { timeout: 300_000, retry: 2 }, async () => {
     await withVolume(db, async (tx, { adminId, managedIds }) => {
       // sidebar and assigned use indexes under 50 ms
       await expectIndexed(tx, sidebarSql(adminId), CHAT_TABLES);

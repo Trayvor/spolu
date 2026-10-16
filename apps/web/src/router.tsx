@@ -112,7 +112,7 @@ const globalBoardRoute = createRoute({
   },
   component: lazyRouteComponent(
     withNamespaces(
-      ['adminHome', 'tasks', 'chat', 'taskSplit', 'forms'],
+      ['adminHome', 'knowledge', 'tasks', 'chat', 'taskSplit', 'forms'],
       () => import('@/features/global-board/global-board'),
     ),
     'GlobalBoardPage',
