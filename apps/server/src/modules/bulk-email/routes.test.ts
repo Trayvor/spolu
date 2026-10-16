@@ -129,6 +129,7 @@ describe('bulk email API', () => {
     ['POST', '/api/bulk-email/audience/people'],
     ['GET', '/api/bulk-email/people?q=ab'],
     ['POST', '/api/bulk-email/people/lookup'],
+    ['GET', '/api/bulk-email/sender'],
   ];
 
   it('client gets 403 on every route, anonymous 401', async () => {
@@ -141,6 +142,12 @@ describe('bulk email API', () => {
     expect((await call('GET', `/api/bulk-email/campaigns/${c.id}`, admin.cookie)).json()).toEqual(
       c,
     );
+  });
+
+  it('GET /sender answers the bulk From address', async () => {
+    const res = await call('GET', '/api/bulk-email/sender', admin.cookie);
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({ sender: 'eGrant <news@example.com>' });
   });
 
   it('creates, reads, saves and deletes a draft', async () => {

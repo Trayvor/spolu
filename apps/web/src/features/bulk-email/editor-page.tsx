@@ -11,15 +11,11 @@ import { ApiError } from '@/lib/api';
 import { AudienceBuilder } from './audience-builder';
 import { BlockList } from './block-list';
 import { blocksReducer, type BlocksAction } from './blocks';
-import {
-  campaignListKey,
-  campaignQuery,
-  deleteCampaign,
-  duplicateCampaign,
-  saveCampaign,
-} from './api';
-import { FieldNote, StatusBadge, formatDateTime } from './parts';
+import { campaignListKey, campaignQuery, deleteCampaign, saveCampaign } from './api';
+import { FieldNote, StatusBadge } from './parts';
 import { PreviewFrame } from './preview-frame';
+import { ReportView } from './report-view';
+import { SendStep } from './send-dialog';
 import { TestSend } from './test-send';
 import { useAutosave, type SaveState } from './use-autosave';
 import { useBulkEvents } from './use-bulk-events';
@@ -47,7 +43,7 @@ function BackLink() {
 
 /**
  * `/bulk-email/$campaignId`: the editor for a draft; for a campaign that is sending, sent or
- * cancelled a read-only summary with Duplicate (part 23.7 replaces it with the report).
+ * cancelled the report.
  */
 export function CampaignPage({ campaignId }: { campaignId: string }) {
   const { t } = useTranslation();
@@ -74,7 +70,9 @@ export function CampaignPage({ campaignId }: { campaignId: string }) {
     );
   }
   if (!campaign.data) return null;
-  if (campaign.data.status !== 'draft') return <CampaignSummary campaign={campaign.data} />;
+  if (campaign.data.status !== 'draft') {
+    return <ReportView campaign={campaign.data} back={<BackLink />} />;
+  }
   return (
     <DraftEditor
       key={`${campaign.data.id}:${loadKey}`}
@@ -318,6 +316,17 @@ function DraftEditor({
         />
       </Section>
 
+      <Section n={4} title={t('bulkEmail.send.title')}>
+        <SendStep
+          campaignId={campaign.id}
+          subject={draft.subject}
+          audience={draft.audience}
+          saveState={autosave.state}
+          flush={autosave.flush}
+          onProblems={setServerProblems}
+        />
+      </Section>
+
       <div className="flex flex-col gap-3 min-[641px]:flex-row min-[641px]:items-center">
         {confirmDelete ? (
           <>
@@ -352,66 +361,6 @@ function DraftEditor({
           </p>
         )}
       </div>
-    </div>
-  );
-}
-
-/** A campaign past its draft: read-only, with Duplicate. Part 23.7 adds the full report here. */
-function CampaignSummary({ campaign }: { campaign: BulkCampaignDto }) {
-  const { t, i18n } = useTranslation();
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  const duplicate = useMutation({
-    mutationFn: () => duplicateCampaign(campaign.id),
-    onSuccess: async (copy) => {
-      void queryClient.invalidateQueries({ queryKey: campaignListKey });
-      await navigate({ to: '/bulk-email/$campaignId', params: { campaignId: copy.id } });
-    },
-  });
-  const { counts } = campaign;
-
-  return (
-    <div className="flex max-w-[720px] flex-col gap-5">
-      <BackLink />
-      <div className="flex flex-wrap items-center gap-3">
-        <h1 className="min-w-0 text-medium leading-tight font-semibold break-words">
-          {campaign.name}
-        </h1>
-        <StatusBadge status={campaign.status} />
-      </div>
-      <Card className="gap-3 px-5">
-        <p className="text-body font-semibold break-words">{campaign.subject}</p>
-        {campaign.sendStartedAt && (
-          <p className="text-button text-muted-foreground">
-            {t('bulkEmail.summary.started', {
-              date: formatDateTime(campaign.sendStartedAt, i18n.language),
-              name: campaign.sentByName ?? '',
-              sender: campaign.sender ?? '',
-            })}
-          </p>
-        )}
-        <p className="text-button">
-          {t('bulkEmail.summary.counts', {
-            recipients: campaign.recipientCount ?? 0,
-            sent: counts.sent,
-            failed: counts.failed,
-          })}
-        </p>
-        <p className="text-micro text-muted-foreground">{t('bulkEmail.summary.readOnly')}</p>
-      </Card>
-      <Button
-        type="button"
-        className="self-start"
-        disabled={duplicate.isPending}
-        onClick={() => duplicate.mutate()}
-      >
-        {t('bulkEmail.summary.duplicate')}
-      </Button>
-      {duplicate.isError && (
-        <p role="alert" className="text-micro text-error-ink">
-          {t('errors.generic')}
-        </p>
-      )}
     </div>
   );
 }

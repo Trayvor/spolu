@@ -11,6 +11,10 @@ import { ApiError } from '@/lib/api';
 export type SaveState =
   'saved' | 'pending' | 'saving' | 'invalid' | 'error' | 'changed' | 'notDraft';
 
+/** Resolves and empties the waiting `flush` calls. */
+const settle = (waiting: ((saved: boolean) => void)[], saved: boolean) =>
+  waiting.splice(0).forEach((resolve) => resolve(saved));
+
 type Options<D> = {
   draft: D;
   /** The version the draft was loaded with. */
@@ -43,13 +47,22 @@ export function useAutosave<D>({ draft, version, save, isValid, delay = 1000 }: 
   const inFlight = useRef(false);
   const blocked = useRef(false);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  // `flush` callers waiting for the draft to be saved as it is now.
+  const waiters = useRef<((saved: boolean) => void)[]>([]);
 
   const run = useCallback(() => {
     clearTimeout(timer.current);
     const { draft: toSave, serialized: snapshot, save: doSave, isValid: valid } = latest.current;
-    if (blocked.current || inFlight.current) return;
-    if (snapshot === lastSaved.current) return setState('saved');
-    if (!valid(toSave)) return setState('invalid');
+    if (blocked.current) return settle(waiters.current, false);
+    if (inFlight.current) return;
+    if (snapshot === lastSaved.current) {
+      settle(waiters.current, true);
+      return setState('saved');
+    }
+    if (!valid(toSave)) {
+      settle(waiters.current, false);
+      return setState('invalid');
+    }
     inFlight.current = true;
     setState('saving');
     doSave(toSave, versionRef.current).then(
@@ -62,6 +75,7 @@ export function useAutosave<D>({ draft, version, save, isValid, delay = 1000 }: 
       },
       (error: unknown) => {
         inFlight.current = false;
+        settle(waiters.current, false);
         const code = error instanceof ApiError && error.status === 409 ? error.code : undefined;
         if (code === ErrorCodes.changed || code === ErrorCodes.notDraft) {
           blocked.current = true;
@@ -76,13 +90,17 @@ export function useAutosave<D>({ draft, version, save, isValid, delay = 1000 }: 
   useEffect(() => {
     if (blocked.current || inFlight.current) return;
     if (serialized === lastSaved.current) {
+      settle(waiters.current, true);
       setState('saved');
       return;
     }
     if (!latest.current.isValid(latest.current.draft)) {
+      settle(waiters.current, false);
       setState('invalid');
       return;
     }
+    // A flush waits for a save that just ended: save what changed meanwhile at once.
+    if (waiters.current.length > 0) return run();
     setState('pending');
     timer.current = setTimeout(run, delay);
     return () => clearTimeout(timer.current);
@@ -91,5 +109,18 @@ export function useAutosave<D>({ draft, version, save, isValid, delay = 1000 }: 
   // Leaving the editor: save what is still pending (fire and forget).
   useEffect(() => () => run(), [run]);
 
-  return { state, version: currentVersion, retry: run };
+  /**
+   * Save now whatever waits (skipping the debounce) and resolve true once the draft as it is
+   * now is saved; false when it cannot be (invalid, failed, or a conflict).
+   */
+  const flush = useCallback(
+    () =>
+      new Promise<boolean>((resolve) => {
+        waiters.current.push(resolve);
+        run();
+      }),
+    [run],
+  );
+
+  return { state, version: currentVersion, retry: run, flush };
 }

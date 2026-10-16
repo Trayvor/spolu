@@ -4,6 +4,7 @@ import {
   BulkAudienceSchema,
   BulkBlockSchema,
   BulkCampaignStatusSchema,
+  BulkRecipientStatusSchema,
   type BulkAudience,
   type BulkAudienceCount,
   type BulkAudiencePage,
@@ -13,6 +14,9 @@ import {
   type BulkCampaignListItem,
   type BulkCampaignPage,
   type BulkPerson,
+  type BulkRecipientPage,
+  type BulkRecipientStatus,
+  type BulkSenderDto,
 } from '@spolu/shared';
 import { i18n } from '@/i18n';
 import { ApiError, apiGet, apiSend } from '@/lib/api';
@@ -75,6 +79,20 @@ const AudienceCountSchema = z.object({
   count,
   leftOut: z.object({ unsubscribed: count, disabled: count }),
 }) satisfies z.ZodType<BulkAudienceCount>;
+const RecipientPageSchema = z.object({
+  items: z.array(
+    z.object({
+      userId: z.string(),
+      name: z.string(),
+      email: z.string(),
+      status: BulkRecipientStatusSchema,
+      error: z.string().nullable(),
+      sentAt: z.string().nullable(),
+    }),
+  ),
+  nextCursor: z.string().nullable(),
+}) satisfies z.ZodType<BulkRecipientPage>;
+const SenderSchema = z.object({ sender: z.string() }) satisfies z.ZodType<BulkSenderDto>;
 const PreviewSchema = z.object({ html: z.string() });
 const ImageSchema = z.object({ id: z.string(), url: z.string(), width: count, height: count });
 
@@ -136,6 +154,41 @@ export async function previewCampaign(
 export async function sendTest(id: string): Promise<void> {
   await apiSend('POST', `/bulk-email/campaigns/${enc(id)}/test`);
 }
+
+/** Start sending (part 23.5): answers the campaign, now `sending` (or already `sent`). */
+export function sendCampaign(id: string): Promise<BulkCampaignDto> {
+  return apiSend('POST', `/bulk-email/campaigns/${enc(id)}/send`, undefined, CampaignSchema);
+}
+
+/** Stop a campaign that is sending; `409 not_sending` once it finished. */
+export function cancelCampaign(id: string): Promise<BulkCampaignDto> {
+  return apiSend('POST', `/bulk-email/campaigns/${enc(id)}/cancel`, undefined, CampaignSchema);
+}
+
+/** The From address bulk email goes out with, for the send dialog. */
+export const senderQuery = queryOptions({
+  queryKey: [...BULK_KEY, 'sender'],
+  queryFn: async () => (await apiGet('/bulk-email/sender', SenderSchema)).sender,
+  staleTime: Infinity,
+});
+
+/**
+ * The per-person report list, by name, 50 a page. The key starts with the campaign's key, so
+ * `bulk:updated` (which invalidates the campaign) refreshes it too.
+ */
+export const recipientsQuery = (id: string, status: BulkRecipientStatus | null) =>
+  infiniteQueryOptions({
+    queryKey: [...campaignQuery(id).queryKey, 'recipients', status],
+    initialPageParam: null as string | null,
+    queryFn: ({ pageParam }) => {
+      const params = new URLSearchParams();
+      if (status) params.set('status', status);
+      if (pageParam) params.set('cursor', pageParam);
+      const search = params.size ? `?${params.toString()}` : '';
+      return apiGet(`/bulk-email/campaigns/${enc(id)}/recipients${search}`, RecipientPageSchema);
+    },
+    getNextPageParam: (last) => last.nextCursor,
+  });
 
 export const audienceCountQuery = (audience: BulkAudience) =>
   queryOptions({

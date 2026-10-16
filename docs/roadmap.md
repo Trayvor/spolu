@@ -29,7 +29,7 @@ Requirements per module: [product/](product/README.md). Phases after 1 get their
 | 20 | [Admin home](#phase-20--admin-home) | in progress | 17, 18 | [spec](superpowers/specs/2026-10-16-phase-20-admin-home-design.md), [plan](superpowers/plans/2026-10-16-phase-20-admin-home.md) |
 | 21 | [Tickets & the ziadatel role](#phase-21--tickets--the-ziadatel-role) | done (local) | 18, 20; item C for 21.6 | [spec](superpowers/specs/2026-10-16-phase-21-tickets-and-requesters-design.md), [plan](superpowers/plans/2026-10-16-phase-21-tickets-and-requesters.md) |
 | 22 | [Members & groups page](#phase-22--members--groups-page) | in progress | 18, 20, 21.1 | [plan](superpowers/plans/2026-10-16-phase-22-members-and-groups-page.md) |
-| 23 | [Bulk email](#phase-23--bulk-email) | in progress | 3, 18, 21.1 | [spec](superpowers/specs/2026-10-16-phase-23-bulk-email-design.md), [plan](superpowers/plans/2026-10-16-phase-23-bulk-email.md) |
+| 23 | [Bulk email](#phase-23--bulk-email) | done (local) | 3, 18, 21.1 | [spec](superpowers/specs/2026-10-16-phase-23-bulk-email-design.md), [plan](superpowers/plans/2026-10-16-phase-23-bulk-email.md) |
 | 24 | [Knowledge folders](#phase-24--knowledge-folders) | in progress | 17 | [spec](superpowers/specs/2026-10-16-phase-24-knowledge-folders-design.md), [plan](superpowers/plans/2026-10-16-phase-24-knowledge-folders.md) |
 
 Phases 8 and 14 do not depend on each other, so their order can change by priority.
@@ -324,7 +324,7 @@ Scope: admins write an email from blocks (heading, text, image, button, divider,
 
 Built in 7 parts, one pull request each (23.1 first; 23.2, 23.3 and 23.4 in parallel; then 23.5 and 23.6 in parallel; 23.7 last). The owner answered the five open decisions on 2026-10-16 (spec, P1–P5): people who never signed in are included, Spolu is the source of truth for unsubscribing, and a "Receive mailings" checkbox in Settings lets people subscribe again.
 
-Status: parts 23.1 (foundation), 23.2 (campaigns and audience API), 23.3 (renderer, public images, preview, email logo PNG) 23.4 (unsubscribe page and API, one-click, subscribe again, the "Receive mailings" checkbox, Elastic suppression lift and daily sync), 23.5 (test send, start sending, the batch job and daily sweep, cancel, the per-person report API) and 23.6 (web: campaign list, block builder with preview, audience builder, test send button) are built.
+Status: parts 23.1 (foundation), 23.2 (campaigns and audience API), 23.3 (renderer, public images, preview, email logo PNG) 23.4 (unsubscribe page and API, one-click, subscribe again, the "Receive mailings" checkbox, Elastic suppression lift and daily sync), 23.5 (test send, start sending, the batch job and daily sweep, cancel, the per-person report API) 23.6 (web: campaign list, block builder with preview, audience builder, test send button) and 23.7 (web: the Send step with its confirm dialog, the report with live progress, the per-person list and Cancel sending; e2e `e2e/bulk-email.spec.ts`; docs) are built: Phase 23 is done locally. Before the first real send the owner works through the [pre-launch checklist](runbooks/deploy.md#bulk-email-pre-launch-checklist) (Elastic plan and key, `MAIL_FROM_BULK`, the List-Unsubscribe setting, the live sender check and the P5 check).
 
 Done when: an admin sends a campaign to a client group, each client gets it with their name, one client unsubscribes through the link and the next campaign skips them, and the report shows the counts.
 

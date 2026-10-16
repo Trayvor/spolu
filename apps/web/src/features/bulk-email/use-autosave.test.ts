@@ -131,4 +131,64 @@ describe('useAutosave', () => {
     unmount();
     expect(save).toHaveBeenCalledWith({ text: 'b' }, 3);
   });
+
+  it('flush saves a pending change at once and resolves true when saved', async () => {
+    const save = vi.fn(async () => ({ version: 4 }));
+    const { result, rerender } = setup(save);
+    rerender({ draft: { text: 'ab' } });
+    let flushed: Promise<boolean> = Promise.resolve(false);
+    act(() => {
+      flushed = result.current.flush();
+    });
+    await settle();
+    await expect(flushed).resolves.toBe(true);
+    expect(save).toHaveBeenCalledTimes(1);
+    expect(save).toHaveBeenCalledWith({ text: 'ab' }, 3);
+    expect(result.current.state).toBe('saved');
+  });
+
+  it('flush with nothing to save resolves true without a PUT', async () => {
+    const save = vi.fn();
+    const { result } = setup(save);
+    await expect(result.current.flush()).resolves.toBe(true);
+    expect(save).not.toHaveBeenCalled();
+  });
+
+  it('flush waits for a running save, then saves the newer change', async () => {
+    let finish: (v: { version: number }) => void = () => undefined;
+    const save = vi
+      .fn<(d: Draft, v: number) => Promise<{ version: number }>>()
+      .mockImplementationOnce(() => new Promise((resolve) => (finish = resolve)))
+      .mockResolvedValue({ version: 5 });
+    const { result, rerender } = setup(save);
+    rerender({ draft: { text: 'ab' } });
+    await act(async () => vi.advanceTimersByTime(1000));
+    rerender({ draft: { text: 'abc' } });
+    let flushed: Promise<boolean> = Promise.resolve(false);
+    act(() => {
+      flushed = result.current.flush();
+    });
+    await act(async () => finish({ version: 4 }));
+    await settle();
+    await expect(flushed).resolves.toBe(true);
+    expect(save).toHaveBeenCalledTimes(2);
+    expect(save).toHaveBeenLastCalledWith({ text: 'abc' }, 4);
+  });
+
+  it('flush resolves false for an invalid draft or a failed save', async () => {
+    const save = vi.fn(async () => {
+      throw new ApiError('down', 500, {});
+    });
+    const { result, rerender } = setup(save);
+    rerender({ draft: { text: 'bad' } });
+    await expect(result.current.flush()).resolves.toBe(false);
+    rerender({ draft: { text: 'good' } });
+    let flushed: Promise<boolean> = Promise.resolve(true);
+    act(() => {
+      flushed = result.current.flush();
+    });
+    await settle();
+    await expect(flushed).resolves.toBe(false);
+    expect(result.current.state).toBe('error');
+  });
 });

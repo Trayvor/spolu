@@ -15,18 +15,37 @@ Every administrator can write an email to many people in Spolu at once ("Hromadn
 - **Cancel.** "Cancel sending" on a sending campaign sets it `cancelled` and every person still queued `cancelled`; emails already on their way finish. Any other state: `409 not_sending`.
 - **Report.** The campaign (`GET …/:id`) carries the counts: recipients (`recipientCount`), queued, sending, sent, failed, skipped, cancelled and unsubscribed through this campaign's link; the per-person list (name, email, status, error, sent time) is 50 a page by name with a status filter. "Sent" means the provider accepted the email; opens and clicks are not measured.
 
-## Screens (part 23.6)
+## Blocks and images
+
+An email is at most 50 blocks, in the order the admin puts them; admins choose content and order only, never colours or fonts (the look is fixed, see [design/README.md](../design/README.md#bulk-email-look)).
+
+| block | content | limits and rules |
+|---|---|---|
+| heading | one line of text, left or centred | at most 200 characters; `{{name}}` becomes each person's name |
+| text | paragraphs, left or centred | at most 5 000 characters; a blank line starts a paragraph, a single newline breaks the line, `**bold**` is bold, `http(s)://` addresses become links; `{{name}}` becomes each person's name |
+| image | an uploaded PNG or JPEG, a description (alt) and an optional link | the browser shrinks it to at most 1 200 px wide (JPEG, a PNG stays PNG) before the upload; the upload is at most 2 MB; the alt is required, at most 200 characters; the link is `http(s)://` only. Shown at its own width, at most the 520 px column |
+| button | a label and a link, left or centred | label at most 60 characters; link `http(s)://` or `mailto:<address>` |
+| divider | a thin line | — |
+| eGrant logo | the egrant logo (PNG, 180 px wide) | — |
+
+- Name, subject and preview line are at most 200 characters each; the subject is needed only to test or send.
+- Only `{{name}}` is a merge field (owner answer P2); any other `{{…}}` stays as typed. Everything an admin types is escaped, so markup or scripts never reach the email, and a link that is not `http(s)` (or `mailto:` on a button) is refused when saving (`400 validation_failed`).
+- **Images are public by URL**: `<PUBLIC_URL>/api/bulk-email/images/<id>`, a random id, no login, because mail apps load them from their own servers. They stay as long as the server does, so a sent email keeps showing them. Do not upload anything that must stay private.
+- Every email ends with a footer in the person's language (sk or en): why they get it and the unsubscribe link. The plain-text part carries the same content.
+
+## Screens
 
 The header link "Hromadné e-maily" / "Bulk email" (beside Admins; in the account menu under 641 px) is shown to admins only; a client who opens `/bulk-email` gets the not-found page.
 
 - **`/bulk-email`**: the list of emails, last changed first, 50 a page with "Show more": internal name, status badge (Draft, Sending, Sent, Cancelled), subject, "248 sent, 2 failed" for an email past its draft, author and the last change. **New email** creates a draft named "Email of <date and time>" / "E-mail z <…>" and opens it; the name can be changed in the editor. The list refreshes on `bulk:updated`.
-- **`/bulk-email/<id>`, a draft**: three numbered sections on one page.
+- **`/bulk-email/<id>`, a draft**: four numbered sections on one page.
   1. **Content**: internal name, subject, preview line, then the blocks and the preview (side by side when the page is wide enough, the preview below the blocks otherwise). Each block has its form, **Move up**, **Move down** (not on the first or last block) and **Delete**; **Add block** offers the six types (at most 50 blocks). Heading and text accept `{{name}}`. An image is shrunk in the browser to at most 1 200 px wide, as JPEG (PNG stays PNG), before the upload, and needs a description (alt); a button needs a link (`https://…` or `mailto:`). A field the server would refuse is marked at once with the reason. The **preview** is the server's rendering in a sandboxed frame (no scripts) with a **Computer** (600 px) / **Phone** (375 px) switch, refreshed 500 ms after the last edit, with the signed-in admin's name; blocks with problems are left out of it until fixed.
   2. **Recipients**: roles (Clients, Requesters, Admins), the groups managed by chosen admins, client groups (with a search; none ticked = every group), **Add a person** and **Leave out a person** (search by name or email; adding a person to one list removes them from the other), and the live count ("248 people get this email", asked 300 ms after the last change) with the left-out numbers (unsubscribed, disabled) and **Show recipients** (a dialog, 50 a page).
-  3. **Test**: **Send a test to me** sends the email as saved to the signed-in admin's own address and says where it went. It is disabled while changes are not saved yet. Reasons the email is not ready (`400 not_ready`) show at their block (or under the button for the subject and "no blocks"); 10 tests a minute (`429`) shows a wait message. Until the test route exists on the server (part 23.5) the button gives way to "Test sending is not available on this server yet".
+  3. **Test**: **Send a test to me** sends the email as saved to the signed-in admin's own address and says where it went. It is disabled while changes are not saved yet. Reasons the email is not ready (`400 not_ready`) show at their block (or under the button for the subject and "no blocks"); 10 tests a minute (`429`) shows a wait message. (A server without the test route answers its generic 404; the button then gives way to "Test sending is not available on this server yet".)
+  4. **Send**: **Send…** first saves any change still waiting (skipping the 1 s wait), then opens a dialog "Send to 248 people?" with the subject, the sender address (`GET /api/bulk-email/sender`) and the recipient count asked again at that moment. **Send to 248 people** starts sending and the page turns into the report; **Not now** closes the dialog. When the email is not ready (`400 not_ready`) the dialog closes and the reasons show at their block, as for the test; nobody to send to (`400 empty_audience`, or a count of 0) and "sending already started" (`409 not_draft`, with **Show the report**) are told in the dialog. The button is disabled while a field is marked (an unsaved draft cannot be sent).
 
   **Saving** is automatic, 1 s after the last change, with the `version` read last; the status line says "All changes saved", "Saving…", "Not saved: fix the marked fields" or "Not saved. Check your connection." (with Try again). When another admin saved first (`409 changed`) or sending started (`409 not_draft`) the editor stops saving, says so, and offers **Reload**, which loads the server's version; it never overwrites the other edit. When another admin saves while nothing waits to be saved here, the editor takes their version at once. A pending change is saved when the editor is left. **Delete draft** asks first.
-- **`/bulk-email/<id>`, sending, sent or cancelled**: read-only: status, subject, who started sending when and from which address, recipients, sent and failed, and **Duplicate**, which opens the new draft. Part 23.7 replaces it with the full report and adds Send and Cancel sending.
+- **`/bulk-email/<id>`, sending, sent or cancelled**: the report, read-only. Status badge, subject, "Sending started <date> by <admin>, from <sender>" and the finish time; the numbers **Recipients**, **Sent**, **Failed**, **Skipped** (unsubscribed or disabled before their turn), **Cancelled** and **Unsubscribed** (through this email's link, still unsubscribed); while sending a progress bar "120 of 248 handled" (sent, failed, skipped and cancelled people over the recipients); the note "Spolu does not measure opens and clicks yet. 'Sent' means Elastic Email accepted the email, not that it reached the inbox." Below, **People**: every recipient by name with email, status (Waiting, Sending, Sent, Failed, Skipped, Cancelled), the reason (Unsubscribed, Account disabled, Unknown result, or the provider's message) and the sent time, 50 a page with **Show more**, and a **Show** filter by status. Everything refreshes on `bulk:updated`, so the numbers and the list move while the email goes out. **Cancel sending** (only while sending) asks first ("Stop sending? People who have not got the email yet will not get it."); if sending finished meanwhile it says so. **Duplicate** opens a new draft with the same content and audience.
 
 ## Audience rules
 
@@ -40,7 +59,7 @@ The audience is a filter stored on the campaign (`BulkAudience`): `groupIds`, `m
 
 The builder shows the live count with the "left out" numbers, and "Show recipients" lists the people who would get it (name, email, role, their groups), 50 a page by name. "Add a person" and "Leave out a person" search active people by name or email (at least 2 characters, 20 results). The list is frozen when sending starts.
 
-## API (parts 23.2 and 23.5, admins only; clients 403, no session 401)
+## API (admins only; clients 403, no session 401)
 
 | route | does |
 |---|---|
@@ -50,6 +69,7 @@ The builder shows the live count with the "left out" numbers, and "Show recipien
 | `PUT /api/bulk-email/campaigns/:id` | save a draft (`BulkCampaignDraftSchema`, body ≤ 200 kB, else 413); 400 `validation_failed`, 404, 409 `not_draft` (wins over a stale version), 409 `changed` |
 | `DELETE /api/bulk-email/campaigns/:id` | 204; 404; 409 `not_draft` |
 | `POST /api/bulk-email/campaigns/:id/duplicate` | 201 with the new draft; 404 |
+| `GET /api/bulk-email/sender` | `{ sender }` (`BulkSenderDto`): the From address bulk email goes out with (`MAIL_FROM_BULK`), for the send dialog |
 | `POST /api/bulk-email/campaigns/:id/test` | 202 `{ to }` (the admin's own address; `BulkTestSendResult`), the test is queued; 400 `not_ready` with `problems` (`BulkNotReadyAnswer`); 404; 429 `rate_limited` after 10 a minute |
 | `POST /api/bulk-email/campaigns/:id/send` | 200 with the campaign (`BulkCampaignDto`, `sending`, or already `sent` when the first run finished at once); 400 `not_ready` with `problems`; 400 `empty_audience`; 404; 409 `not_draft` |
 | `POST /api/bulk-email/campaigns/:id/cancel` | 200 with the campaign (`cancelled`); 404; 409 `not_sending` |
@@ -84,4 +104,4 @@ The public routes allow 30 calls a minute per IP (`429 rate_limited`); all of th
 
 ## Status
 
-Phase 23 in progress: part 23.1 (tables, policy, config, sender), part 23.2 (campaigns and audience API), part 23.3 (renderer, images, preview), part 23.4 (unsubscribe, subscribe again, the Settings checkbox, the Elastic suppression jobs), part 23.5 (test send, sending, cancel, report API) and part 23.6 (the list, block builder, preview, audience builder and test send screens) are built; the web send flow and report screens come with 23.7.
+Phase 23 is built and tested locally (`done (local)` in the [roadmap](../roadmap.md)), all seven parts, with the end-to-end test `e2e/bulk-email.spec.ts` (write, test, send, report, unsubscribe through the link and the one-click header, Settings, subscribe again) against Mailpit. Before the first real send the owner sets up Elastic Email: see the pre-launch checklist in [runbooks/deploy.md](../runbooks/deploy.md#bulk-email-pre-launch-checklist).
