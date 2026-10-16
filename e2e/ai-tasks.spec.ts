@@ -95,8 +95,10 @@ test('a message with 5 jobs becomes 4 reviewed tasks with links both ways and wo
   await send(page, 'Napíšte správu…', 'Bank opens at nine');
   const taskMessage = row(page, 'Bank opens at nine');
   await expect(taskMessage).toBeVisible();
-  await taskMessage.hover();
-  await taskMessage.getByRole('button', { name: 'Odpovedať vo vlákne' }).click();
+  // From the keyboard: the hover bar sits above the row, over the day divider, and is clipped
+  // whenever the pointer is not on the row (content-visibility), which a retried click can hit.
+  await taskMessage.getByRole('button', { name: 'Odpovedať vo vlákne' }).focus();
+  await page.keyboard.press('Enter');
   await send(page, 'Odpovedať…', 'Thanks, noted');
   await expect(
     page.getByRole('region', { name: 'Vlákno' }).getByText('Thanks, noted'),

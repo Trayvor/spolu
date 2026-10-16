@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { ReminderSetDto } from '@spolu/shared';
 import { Avatar } from '@/components/avatar';
-import { Icon } from '@/components/icons';
+import { CloseIcon, Icon } from '@/components/icons';
 import { Button } from '@/components/ui/button';
 import { ApiError } from '@/lib/api';
 import { cn } from '@/lib/utils';
@@ -24,6 +24,22 @@ const CalendarIcon = () => (
   </Icon>
 );
 
+/** The outline pill that downloads a subject's `.ics` ("Export to calendar"). */
+export function CalendarLink({ prefix, subjectId }: { prefix: string; subjectId: string }) {
+  const { t } = useTranslation();
+  const route = prefix.startsWith('/') ? prefix : `/${prefix}`;
+  return (
+    <a
+      href={reminderCalendarUrl(route, subjectId)}
+      download
+      className="inline-flex h-8 items-center gap-1.5 rounded-full border-2 border-primary px-4 text-tiny font-semibold text-foreground hover:bg-accent hover:text-foreground max-[640px]:h-11"
+    >
+      <CalendarIcon />
+      {t('reminders.panel.addToCalendar')}
+    </a>
+  );
+}
+
 /** Names shown in full before "and N more". */
 const SHOWN_NAMES = 3;
 
@@ -32,6 +48,12 @@ const SHOWN_NAMES = 3;
  * a calendar leaf, the fired ones muted as "sent", the recipients (author first), the viewer's
  * "Remind me" toggle and the `.ics` download. `prefix` is the subject's API route ("/knowledge",
  * "/tasks"; a missing leading slash is added). `onChanged` refetches the subject after a toggle.
+ *
+ * Options for subjects edited on their own (tasks, Phase 19); their defaults keep the knowledge
+ * rendering: `hideFired`, `timeTag` (a muted tag after a time's date), `onRemoveTime` (a remove
+ * button per upcoming time), `children` (under the times: the add row), `recipientsAction` (at the
+ * end of the "Reminded" line) and `calendarAvailable` (the `.ics` link without upcoming times, for
+ * a task's deadline).
  */
 export function ReminderPanel({
   prefix,
@@ -39,12 +61,39 @@ export function ReminderPanel({
   set,
   authorId,
   onChanged,
+  hideFired = false,
+  timeTag,
+  onRemoveTime,
+  children,
+  recipientsAction,
+  calendarAvailable,
+  intro,
+  remindedLabel,
+  authorMark,
+  authorHint,
+  unavailableText,
 }: {
   prefix: string;
   subjectId: string;
   set: ReminderSetDto;
   authorId: string;
   onChanged: () => void;
+  hideFired?: boolean;
+  timeTag?: (iso: string) => string | null;
+  onRemoveTime?: (id: string) => void;
+  children?: ReactNode;
+  recipientsAction?: ReactNode;
+  calendarAvailable?: boolean;
+  /** Under the heading (a task's automatic-reminder line). */
+  intro?: ReactNode;
+  /** Replaces "Reminded" (a task: "Reminded:"). */
+  remindedLabel?: string;
+  /** After the author's name in the list (a task: "(set them)"). */
+  authorMark?: string;
+  /** Replaces "You created this reminder" beside the author's toggle. */
+  authorHint?: string;
+  /** Replaces "This item has no reminders any more." (`no_reminder_set`). */
+  unavailableText?: string;
 }) {
   const { t, i18n } = useTranslation();
   const me = useSession();
@@ -61,12 +110,14 @@ export function ReminderPanel({
     .filter((time) => time.firedAt === null)
     .sort((a, b) => a.at.localeCompare(b.at));
   const fired = set.times
-    .filter((time) => time.firedAt !== null)
+    .filter((time) => !hideFired && time.firedAt !== null)
     .sort((a, b) => b.at.localeCompare(a.at));
   const recipients = [...set.recipients].sort(
     (a, b) => Number(b.user.id === authorId) - Number(a.user.id === authorId),
   );
-  const names = recipients.map((r) => r.user.name);
+  const names = recipients.map((r) =>
+    authorMark && r.user.id === authorId ? `${r.user.name} ${authorMark}` : r.user.name,
+  );
   const list = (items: string[]) =>
     new Intl.ListFormat(i18n.language, { type: 'conjunction' }).format(items);
   const namesText =
@@ -89,7 +140,7 @@ export function ReminderPanel({
       setPending(null);
       setNotice(
         error instanceof ApiError && error.code === 'no_reminder_set'
-          ? t('reminders.panel.unavailable')
+          ? (unavailableText ?? t('reminders.panel.unavailable'))
           : t('reminders.panel.failed'),
       );
     } finally {
@@ -103,16 +154,35 @@ export function ReminderPanel({
       <h3 id={`reminders-${subjectId}`} className="text-button font-semibold">
         {t('reminders.panel.title')}
       </h3>
+      {intro}
 
       <ul className="flex flex-col gap-2">
-        {upcoming.map((time) => (
-          <li key={time.id} className="flex items-center gap-3">
-            <CalendarLeaf iso={time.at} size={40} />
-            <span className="text-button font-semibold">
-              {formatReminderDate(time.at, i18n.language)}
-            </span>
-          </li>
-        ))}
+        {upcoming.map((time) => {
+          const tag = timeTag?.(time.at) ?? null;
+          return (
+            <li key={time.id} className="flex items-center gap-3">
+              <CalendarLeaf iso={time.at} size={40} />
+              <span className="flex min-w-0 flex-wrap items-baseline gap-x-2">
+                <span className="text-button font-semibold">
+                  {formatReminderDate(time.at, i18n.language)}
+                </span>
+                {tag && <span className="text-micro text-muted-foreground">{tag}</span>}
+              </span>
+              {onRemoveTime && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  aria-label={t('reminders.row.remove')}
+                  onClick={() => onRemoveTime(time.id)}
+                  className="ml-auto size-8 max-[640px]:size-11"
+                >
+                  <CloseIcon />
+                </Button>
+              )}
+            </li>
+          );
+        })}
         {fired.map((time) => (
           <li key={time.id} className="flex items-center gap-3 text-button text-muted-foreground">
             <span>{formatReminderDate(time.at, i18n.language)}</span>
@@ -121,9 +191,13 @@ export function ReminderPanel({
         ))}
       </ul>
 
+      {children}
+
       {recipients.length > 0 && (
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-          <span className="text-micro text-muted-foreground">{t('reminders.panel.reminded')}</span>
+          <span className="text-micro text-muted-foreground">
+            {remindedLabel ?? t('reminders.panel.reminded')}
+          </span>
           <span className="flex -space-x-1.5" aria-hidden="true">
             {recipients.slice(0, 5).map(({ user }) => (
               <Avatar
@@ -138,6 +212,7 @@ export function ReminderPanel({
           <span data-testid="reminder-recipients" className="min-w-0 text-button">
             {namesText}
           </span>
+          {recipientsAction}
         </div>
       )}
 
@@ -157,19 +232,12 @@ export function ReminderPanel({
           </Button>
           {isAuthor && (
             <span id={`reminders-hint-${subjectId}`} className="text-micro text-muted-foreground">
-              {t('reminders.panel.authorHint')}
+              {authorHint ?? t('reminders.panel.authorHint')}
             </span>
           )}
         </div>
-        {upcoming.length > 0 ? (
-          <a
-            href={reminderCalendarUrl(route, subjectId)}
-            download
-            className="inline-flex h-8 items-center gap-1.5 rounded-full border-2 border-primary px-4 text-tiny font-semibold text-foreground hover:bg-accent hover:text-foreground"
-          >
-            <CalendarIcon />
-            {t('reminders.panel.addToCalendar')}
-          </a>
+        {(calendarAvailable ?? upcoming.length > 0) ? (
+          <CalendarLink prefix={route} subjectId={subjectId} />
         ) : (
           <span className="text-micro text-muted-foreground">
             {t('reminders.panel.noUpcoming')}

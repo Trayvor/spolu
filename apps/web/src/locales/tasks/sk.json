@@ -51,6 +51,7 @@
     "files_few": "{{count}} súbory",
     "files_many": "{{count}} súboru",
     "files_other": "{{count}} súborov",
+    "reminders": "Má pripomienky",
     "moreAssignees": "+{{count}}",
     "markDone": "Označiť ako hotové",
     "markNotDone": "Označiť ako nehotové",

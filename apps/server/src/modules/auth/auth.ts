@@ -80,9 +80,10 @@ export function createAuth({ config, db, jobs }: AppDeps) {
         otpLength: 6,
         expiresIn: LOGIN_CODE_TTL_SECONDS,
         allowedAttempts: CODE_ATTEMPTS,
-        // Colleagues behind one office IP share the limit (default 3 per minute); the brute-force
-        // guard is allowedAttempts. Plugin rules win over the library's /sign-in special rule.
-        rateLimit: { window: 60, max: 10 },
+        // Colleagues behind one office IP share the limit (library default 3 per minute; ours 10,
+        // raised for e2e, whose browsers all log in from 127.0.0.1); the brute-force guard is
+        // allowedAttempts. Plugin rules win over the library's /sign-in special rule.
+        rateLimit: { window: 60, max: config.loginCodesPerMinute },
         disableSignUp: true, // unknown emails get 200 but no code and no account
         storeOTP: 'hashed',
         async sendVerificationOTP({ email, otp, type }, ctx) {

@@ -22,7 +22,7 @@ A client joins a group through an invite link and only needs to enter an email. 
 - Anyone may ask for a code: an email that has no account (or a removed account) gets the same generic "if this email has an account, we sent a code" answer, but no email is sent. The answer never reveals whether an account exists.
 - A removed (disabled) user gets no code and cannot log in, even with a code sent earlier.
 - The code email is in Slovak, or in English when the browser prefers English.
-- Asking for codes, and signing in, is limited to 10 per minute from one address (in production), so colleagues in one office can log in together. Guessing a code is limited by the 3 tries per code, not by this limit.
+- Asking for codes, and signing in, is limited to 10 per minute from one address (in production; `LOGIN_CODES_PER_MINUTE` changes it), so colleagues in one office can log in together. Guessing a code is limited by the 3 tries per code, not by this limit.
 - **Changing the email** (Phase 6, see `profile.md`) uses a code of the same kind: 6 digits, sent to the **new** address, valid for 5 minutes, 3 tries, and a new request replaces the old one. Limits: 10 requests a minute and 20 in any 24 hours per user, 5 an hour to one address across all users, 10 code entries a minute per user. The code works only for the signed-in user who asked for it and only for the address it was sent to. Wrong, expired and used-up codes all answer `invalid_code`; a taken address answers `email_taken` only after a correct code. The change keeps existing sessions; the old address gets a notice.
 
 ## Phase

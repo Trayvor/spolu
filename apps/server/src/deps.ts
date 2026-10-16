@@ -9,6 +9,7 @@ import {
   notificationsJobHandlers,
 } from './modules/notifications/jobs.js';
 import { registerKnowledgeReminderSubject } from './modules/knowledge/reminder-subject.js';
+import { registerTaskReminderSubject } from './modules/tasks/reminder-subject.js';
 import { reminderSchedules, remindersJobHandlers } from './modules/reminders/jobs.js';
 import { tasksJobHandlers, taskSchedules } from './modules/tasks/jobs.js';
 import { createDb, type Db } from './infra/db/client.js';
@@ -46,7 +47,9 @@ export async function createDeps(
   // The notification and reminder handlers send jobs to the queue built from them; a job that
   // runs before startJobs returns waits for it.
   const forward = createDeferredQueue();
-  registerKnowledgeReminderSubject(); // the fire job loads subjects through the registry
+  // The fire job loads subjects through the registry.
+  registerKnowledgeReminderSubject();
+  registerTaskReminderSubject();
   const jobs = await startJobs(
     config.databaseUrl,
     {

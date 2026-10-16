@@ -71,6 +71,7 @@ const card = (id: string, bucketId: string): TaskDto => ({
   createdBy: { id: 'a1', name: 'Jana Nováková' },
   assignees: [],
   fileCount: 0,
+  upcomingReminders: 0,
   sourceMessageId: null,
   createdAt: '2026-10-15T10:00:00.000Z',
   updatedAt: '2026-10-15T10:00:00.000Z',
@@ -573,6 +574,14 @@ describe('TaskPanel in create mode', () => {
     expect(screen.queryByRole('button', { name: t('tasks.panel.more') })).toBeNull();
     expect(screen.queryByRole('tablist')).toBeNull();
     expect(calls('POST', '/api/groups/g1/tasks')).toHaveLength(0);
+  });
+
+  it('create mode shows the hint and no section', async () => {
+    renderPanel(NEW);
+    await titleField();
+    expect(screen.getByText(t('reminders.task.createHint'))).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: t('reminders.row.add') })).toBeNull();
+    expect(fetchMock.mock.calls.some(([u]) => String(u).includes('/reminders'))).toBe(false);
   });
 
   it('Create posts the whole draft to the chosen bucket and returns to the board', async () => {

@@ -198,6 +198,13 @@ describe('loadConfig', () => {
       ).toEqual(['VAPID_PRIVATE_KEY']);
     });
 
+    it("LOGIN_CODES_PER_MINUTE defaults to 10 and parses '200'", () => {
+      expect(loadConfig(validEnv).loginCodesPerMinute).toBe(10);
+      expect(loadConfig({ ...validEnv, LOGIN_CODES_PER_MINUTE: '200' }).loginCodesPerMinute).toBe(
+        200,
+      );
+    });
+
     it("EMAIL_BATCH_DELAY_MS defaults to 600000 and parses '3000'", () => {
       expect(loadConfig(validEnv).emailBatchDelayMs).toBe(600_000);
       expect(loadConfig({ ...validEnv, EMAIL_BATCH_DELAY_MS: '3000' }).emailBatchDelayMs).toBe(

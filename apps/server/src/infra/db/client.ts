@@ -7,8 +7,17 @@ export type Db = PostgresJsDatabase;
 const PING_TIMEOUT_MS = 2000;
 const POOL_SIZE = 10;
 
-export function createDb(databaseUrl: string): { db: Db; close(): Promise<void> } {
-  const client = postgres(databaseUrl, { max: POOL_SIZE, connect_timeout: 2 });
+/** `onQuery` sees every query sent (tests count them, `test/query-counter.ts`). */
+export function createDb(
+  databaseUrl: string,
+  opts: { onQuery?: (query: string) => void } = {},
+): { db: Db; close(): Promise<void> } {
+  const { onQuery } = opts;
+  const client = postgres(databaseUrl, {
+    max: POOL_SIZE,
+    connect_timeout: 2,
+    ...(onQuery ? { debug: (_connection: number, query: string) => onQuery(query) } : {}),
+  });
   return { db: drizzle(client), close: () => client.end({ timeout: 1 }) };
 }
 

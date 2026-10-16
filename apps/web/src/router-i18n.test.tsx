@@ -61,6 +61,7 @@ const TASK = {
   createdBy: PERSON,
   assignees: [PERSON],
   fileCount: 1,
+  upcomingReminders: 0,
   sourceMessageId: 'm1',
   createdAt: NOW,
   updatedAt: NOW,

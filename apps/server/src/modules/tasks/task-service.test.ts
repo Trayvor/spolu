@@ -145,6 +145,7 @@ describe('createTask', () => {
       assignees: [],
       files: [],
       fileCount: 0,
+      upcomingReminders: 0,
       description: '',
       urgent: false,
       dueDate: null,

@@ -22,6 +22,7 @@ const base = {
   PUSH_FAKE_FILE: z.string().min(1).optional(),
   PUSH_ALLOW_FAKE: z.enum(['1']).optional(),
   EMAIL_BATCH_DELAY_MS: z.coerce.number().int().min(0).default(600_000),
+  LOGIN_CODES_PER_MINUTE: z.coerce.number().int().min(1).default(10),
   // `fake` is for local development and e2e only, never on a server: in production it needs
   // AI_ALLOW_FAKE=1 (set only by the e2e web server).
   AI_PROVIDER: z.enum(['openai', 'fake']).default('openai'),
@@ -88,6 +89,8 @@ export type Config = {
     | null;
   /** How long a group's email notifications wait so several events go out as one email. */
   emailBatchDelayMs: number;
+  /** Login code requests allowed per minute and IP (production only; e2e raises it). */
+  loginCodesPerMinute: number;
   /** The task split provider; null when OpenAI is chosen but no key is set (AI is off). */
   ai: { provider: 'openai'; apiKey: string; model: string } | { provider: 'fake' } | null;
   /** Calls a minute per admin to become or stop being a manager; unset = 120 (tests lower it). */
@@ -126,6 +129,7 @@ export function loadConfig(env: NodeJS.ProcessEnv): Config {
     webDistDir: e.WEB_DIST_DIR,
     push: pushConfig(e),
     emailBatchDelayMs: e.EMAIL_BATCH_DELAY_MS,
+    loginCodesPerMinute: e.LOGIN_CODES_PER_MINUTE,
     email:
       e.EMAIL_DRIVER === 'smtp'
         ? {

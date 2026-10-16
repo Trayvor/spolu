@@ -19,10 +19,14 @@ import {
   NotReadableError,
   ReminderInPastError,
 } from './errors.js';
+import { insertTask } from '../../../test/tasks.js';
+import { tasks } from '../tasks/schema.js';
 import { reminderRecipients, reminderTimes } from './schema.js';
 import {
   buildIcs,
+  emptyReminderSet,
   getReminderSet,
+  getSetAuthorId,
   listUpcomingForUser,
   pruneRecipientsForAdminsOnly,
   replaceReminderSet,
@@ -608,4 +612,334 @@ describe('getUserNames', () => {
     );
     expect(await getUserNames(db, [])).toEqual(new Map());
   });
+});
+
+describe('task subjects (stand-alone edits)', () => {
+  // A stub `task` adapter over real rows: admins and the group's clients read and edit.
+  beforeAll(() => {
+    registerReminderSubject({
+      kind: 'task',
+      routePrefix: 'tasks',
+      standaloneEdit: true,
+      addEditorsAsRecipients: true,
+      async loadMany(db: Db, ids: string[]) {
+        const map = new Map<string, SubjectInfo>();
+        if (ids.length === 0) return map;
+        const rows = await db.select().from(tasks).where(inArray(tasks.id, ids));
+        for (const row of rows) {
+          map.set(row.id, {
+            groupId: row.groupId,
+            title: row.title,
+            body: row.description,
+            dueDate: row.dueDate,
+            adminsOnly: false,
+            active: row.completedAt === null,
+            authorId: row.createdBy,
+            link: `/groups/${row.groupId}/tasks/${row.id}`,
+            canRead: (actor, actorGroupId) => isAdmin(actor) || actorGroupId === row.groupId,
+            canEdit: () => true,
+          });
+        }
+        return map;
+      },
+    });
+  });
+
+  async function newTask(opts: { dueDate?: string | null; description?: string } = {}) {
+    const group = await newGroup();
+    const [admin, client] = await Promise.all([newAdmin(), newClient(group.id)]);
+    const id = await insertTask(db, {
+      groupId: group.id,
+      createdBy: admin.id,
+      description: opts.description ?? 'Check the totals',
+      dueDate: opts.dueDate ?? null,
+    });
+    const task = { kind: 'task' as const, id };
+    return { group, admin, client, task };
+  }
+
+  type TaskRef = { kind: 'task'; id: string };
+  type PutInput = {
+    times: { id?: string; at: string }[];
+    recipientIds?: string[];
+    baseTimeIds?: string[];
+  };
+
+  /** What the route does: the set's author, or the actor on the first time. */
+  const put = (task: TaskRef, input: PutInput, actor: SessionUser, now = new Date()) =>
+    db.transaction(async (tx) => {
+      const [row] = await tx.select().from(tasks).where(eq(tasks.id, task.id));
+      const authorId = (await getSetAuthorId(tx, task)) ?? actor.id;
+      await replaceReminderSet(
+        tx,
+        { ...task, groupId: row!.groupId, adminsOnly: false, authorId },
+        { baseTimeIds: [], ...input },
+        actor,
+        now,
+      );
+    });
+
+  const recipientsOf = async (task: TaskRef, actor: SessionUser) =>
+    (await getReminderSet(db, task, actor))!.recipients.map((r) => [r.user.id, r.source]);
+  const upcoming = async (task: TaskRef, actor: SessionUser) =>
+    (await getReminderSet(db, task, actor))!.times.filter((t) => !t.firedAt);
+  /** The upcoming times as a `PUT` sends them back. */
+  const asInput = (times: { id: string; at: string }[]) => times.map(({ id, at }) => ({ id, at }));
+
+  it('the first time creates the set with the actor as author', async () => {
+    const { client, task } = await newTask();
+    expect(await getSetAuthorId(db, task)).toBeNull();
+    await put(task, { times: [{ at: inMs(DAY) }] }, client);
+    expect(await getSetAuthorId(db, task)).toBe(client.id);
+    expect(await recipientsOf(task, client)).toEqual([[client.id, 'author']]);
+  });
+
+  it('a second editor who adds a time becomes added, by themselves', async () => {
+    const { admin, client, task } = await newTask();
+    await put(task, { times: [{ at: inMs(DAY) }] }, admin);
+    const loaded = await upcoming(task, client);
+    await put(
+      task,
+      {
+        times: [...asInput(loaded), { at: inMs(2 * DAY) }],
+        baseTimeIds: loaded.map((t) => t.id),
+      },
+      client,
+    );
+    expect(await recipientsOf(task, admin)).toEqual([
+      [admin.id, 'author'],
+      [client.id, 'added'],
+    ]);
+    const [row] = await db
+      .select()
+      .from(reminderRecipients)
+      .where(eq(reminderRecipients.userId, client.id));
+    expect(row!.addedBy).toBe(client.id);
+  });
+
+  it('an editor who only removes a time does not become a recipient', async () => {
+    const { admin, client, task } = await newTask();
+    await put(task, { times: [{ at: inMs(DAY) }, { at: inMs(2 * DAY) }] }, admin);
+    const loaded = await upcoming(task, client);
+    await put(
+      task,
+      { times: asInput(loaded.slice(1)), baseTimeIds: loaded.map((t) => t.id) },
+      client,
+    );
+    expect(await upcoming(task, admin)).toHaveLength(1);
+    expect(await recipientsOf(task, admin)).toEqual([[admin.id, 'author']]);
+  });
+
+  it('fired times are kept', async () => {
+    const { admin, task } = await newTask();
+    await put(
+      task,
+      { times: [{ at: inMs(DAY) }, { at: inMs(2 * DAY) }, { at: inMs(3 * DAY) }] },
+      admin,
+    );
+    const [first, second, third] = await upcoming(task, admin);
+    await markFired(first!.id);
+    // The panel hides fired times: it sends only the upcoming ones.
+    await put(
+      task,
+      { times: [{ id: third!.id, at: third!.at }], baseTimeIds: [second!.id, third!.id] },
+      admin,
+    );
+    const times = (await getReminderSet(db, task, admin))!.times;
+    expect(times.map((t) => t.id)).toEqual([third!.id, first!.id]);
+  });
+
+  it('removing the last upcoming time deletes the set; the next adder becomes the author', async () => {
+    const { admin, client, task } = await newTask();
+    await put(task, { times: [{ at: inMs(DAY) }], recipientIds: [client.id] }, admin);
+    const loaded = await upcoming(task, admin);
+    await put(task, { times: [], baseTimeIds: loaded.map((t) => t.id) }, admin);
+    expect(await getSetAuthorId(db, task)).toBeNull();
+    await put(task, { times: [{ at: inMs(2 * DAY) }] }, client);
+    expect(await recipientsOf(task, admin)).toEqual([[client.id, 'author']]);
+  });
+
+  it('an instant someone else added meanwhile is stored once', async () => {
+    const { admin, client, task } = await newTask();
+    const at = inMs(DAY);
+    await put(task, { times: [{ at }] }, admin);
+    await put(task, { times: [{ at }] }, client);
+    expect(await upcoming(task, admin)).toHaveLength(1);
+  });
+
+  it('times added concurrently by others survive a PUT that did not know them', async () => {
+    const { admin, client, task } = await newTask();
+    await put(task, { times: [{ at: inMs(DAY) }] }, admin);
+    const loadedByAdmin = await upcoming(task, admin);
+    // The client adds a time the admin has not loaded.
+    await put(
+      task,
+      {
+        times: [...asInput(loadedByAdmin), { at: inMs(3 * DAY) }],
+        baseTimeIds: loadedByAdmin.map((t) => t.id),
+      },
+      client,
+    );
+    // The admin removes their time, from the list they loaded.
+    await put(task, { times: [], baseTimeIds: loadedByAdmin.map((t) => t.id) }, admin);
+    const left = await upcoming(task, admin);
+    expect(left).toHaveLength(1);
+    expect(left[0]!.at).not.toBe(loadedByAdmin[0]!.at);
+  });
+
+  it('a time removed by someone else is neither re-created nor an error', async () => {
+    const { admin, client, task } = await newTask();
+    await put(task, { times: [{ at: inMs(DAY) }, { at: inMs(2 * DAY) }] }, admin);
+    const loaded = await upcoming(task, client);
+    // The admin removes the first time.
+    await put(
+      task,
+      { times: asInput(loaded.slice(1)), baseTimeIds: loaded.map((t) => t.id) },
+      admin,
+    );
+    // The client, with the old list, adds a time.
+    await put(
+      task,
+      { times: [...asInput(loaded), { at: inMs(3 * DAY) }], baseTimeIds: loaded.map((t) => t.id) },
+      client,
+    );
+    const left = await upcoming(task, admin);
+    expect(left.map((t) => t.id)).not.toContain(loaded[0]!.id);
+    expect(left).toHaveLength(2);
+    // An id that was never loaded and does not exist is still invalid.
+    await expect(
+      put(task, { times: [{ id: randomUUID(), at: inMs(DAY) }], baseTimeIds: [] }, admin),
+    ).rejects.toBeInstanceOf(InvalidReminderError);
+  });
+
+  it('a PUT without recipientIds keeps the added recipients', async () => {
+    const { group, admin, client, task } = await newTask();
+    const other = await newClient(group.id, 'Dana');
+    await put(task, { times: [{ at: inMs(DAY) }], recipientIds: [client.id, other.id] }, admin);
+    const loaded = await upcoming(task, admin);
+    await put(
+      task,
+      { times: [...asInput(loaded), { at: inMs(2 * DAY) }], baseTimeIds: loaded.map((t) => t.id) },
+      admin,
+    );
+    expect(await recipientsOf(task, admin)).toEqual([
+      [admin.id, 'author'],
+      [client.id, 'added'],
+      [other.id, 'added'],
+    ]);
+    // With recipientIds, the added list is replaced; the author stays.
+    await put(task, { times: asInput(await upcoming(task, admin)), recipientIds: [] }, admin);
+    expect(await recipientsOf(task, admin)).toEqual([[admin.id, 'author']]);
+  });
+
+  it('the 21st unfired time counts others times', async () => {
+    const { admin, client, task } = await newTask();
+    const many = Array.from({ length: 19 }, (_, i) => ({ at: inMs(DAY + i * MIN) }));
+    await put(task, { times: many }, admin);
+    // The client loaded nothing (an old view) and adds two: 21 unfired after the merge.
+    await expect(
+      put(task, { times: [{ at: inMs(2 * DAY) }, { at: inMs(3 * DAY) }] }, client),
+    ).rejects.toBeInstanceOf(InvalidReminderError);
+    await put(task, { times: [{ at: inMs(2 * DAY) }] }, client);
+    expect(await upcoming(task, admin)).toHaveLength(20);
+  });
+
+  it('past times are refused and recipients must be group people', async () => {
+    const { admin, task } = await newTask();
+    await expect(put(task, { times: [{ at: inMs(-MIN) }] }, admin)).rejects.toBeInstanceOf(
+      ReminderInPastError,
+    );
+    const stranger = await newClient((await newGroup()).id);
+    await expect(
+      put(task, { times: [{ at: inMs(DAY) }], recipientIds: [stranger.id] }, admin),
+    ).rejects.toBeInstanceOf(InvalidRecipientError);
+  });
+
+  it('zero times on a task without a set writes nothing', async () => {
+    const { admin, task } = await newTask();
+    await put(task, { times: [], recipientIds: [] }, admin);
+    expect(await getSetAuthorId(db, task)).toBeNull();
+    expect(await getReminderSet(db, task, admin)).toBeNull();
+  });
+
+  it('knowledge without baseTimeIds still deletes missing unfired times', async () => {
+    const { admin, subject } = await setup();
+    await replace(
+      subject,
+      { times: [{ at: inMs(DAY) }, { at: inMs(2 * DAY) }], recipientIds: [] },
+      admin,
+    );
+    const [first] = await timesOf(subject, admin);
+    await replace(subject, { times: [{ id: first!.id, at: first!.at }], recipientIds: [] }, admin);
+    expect((await timesOf(subject, admin)).map((t) => t.id)).toEqual([first!.id]);
+  });
+
+  it('subscribe without a set is no_reminder_set; the task creator who is not the set author can unsubscribe', async () => {
+    const { admin, client, task } = await newTask();
+    await expect(subscribe(db, task, client)).rejects.toBeInstanceOf(NoReminderSetError);
+    // The client sets the first time: the set is theirs, not the task creator's.
+    await put(task, { times: [{ at: inMs(DAY) }] }, client);
+    await subscribe(db, task, admin);
+    await unsubscribe(db, task, admin);
+    await expect(unsubscribe(db, task, client)).rejects.toBeInstanceOf(AuthorRecipientError);
+  });
+
+  it('emptyReminderSet', () => {
+    expect(emptyReminderSet(true)).toEqual({
+      times: [],
+      recipients: [],
+      subscribed: false,
+      canEdit: true,
+    });
+  });
+
+  it('buildIcs for a task has the deadline event then the timed events', async () => {
+    const { admin, client, task } = await newTask({ dueDate: '2030-01-15' });
+    const now = new Date();
+    await put(task, { times: [{ at: inMs(DAY, now) }] }, admin, now);
+    const [time] = await upcoming(task, admin);
+    const ics = await buildIcs(db, task, client, 'https://spolu.example', now);
+    const text = ics!.text.replace(/\r\n /g, '');
+    expect(ics!.filename).toBe('fix-the-budget-table.ics');
+    const uids = [...text.matchAll(/^UID:(.+)$/gm)].map((m) => m[1]!.trim());
+    expect(uids).toEqual([`task-${task.id}-deadline@spolu`, `reminder-${time!.id}@spolu`]);
+    expect(text).toContain('DTSTART;VALUE=DATE:20300115');
+    expect(text).toContain('DTEND;VALUE=DATE:20300116');
+    expect(text).toContain('SUMMARY:Deadline: Fix the budget table');
+    const link = `https://spolu.example/groups/${await getSetGroup(task)}/tasks/${task.id}`;
+    expect(text).toContain(`DESCRIPTION:Check the totals\\n\\n${link}`);
+    expect(text.match(/BEGIN:VALARM/g)).toHaveLength(1);
+  });
+
+  it('buildIcs with a deadline and no times is not null; with neither it is null', async () => {
+    const withDeadline = await newTask({ dueDate: '2030-01-15' });
+    const ics = await buildIcs(db, withDeadline.task, withDeadline.admin, 'https://x');
+    expect(ics!.text.match(/BEGIN:VEVENT/g)).toHaveLength(1);
+    const neither = await newTask();
+    expect(await buildIcs(db, neither.task, neither.admin, 'https://x')).toBeNull();
+  });
+
+  it("the deadline summary follows the requester's language", async () => {
+    const { admin, task } = await newTask({ dueDate: '2030-01-15' });
+    const ics = await buildIcs(db, task, admin, 'https://x', new Date(), 'sk');
+    expect(ics!.text).toContain('SUMMARY:Termín: Fix the budget table');
+  });
+
+  it('listUpcomingForUser gives task targets', async () => {
+    const { group, admin, client, task } = await newTask();
+    await put(task, { times: [{ at: inMs(DAY) }], recipientIds: [client.id] }, admin);
+    const mine = await listUpcomingForUser(db, client, { limit: 10 });
+    expect(mine).toEqual([
+      expect.objectContaining({
+        title: 'Fix the budget table',
+        groupId: group.id,
+        target: { kind: 'task', taskId: task.id },
+      }),
+    ]);
+  });
+
+  async function getSetGroup(task: TaskRef) {
+    const [row] = await db.select().from(tasks).where(eq(tasks.id, task.id));
+    return row!.groupId;
+  }
 });

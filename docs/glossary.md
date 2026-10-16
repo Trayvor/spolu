@@ -7,8 +7,10 @@ Terms used across the docs and code, in alphabetical order.
 - **ADR**: architecture decision record, a short file in `docs/decisions/` that records one decision and why it was made.
 - **API key**: a secret token that eGrant sends with each ticket request to prove who it is.
 - **AppPrompt**: the one card at the bottom of every signed-in screen that asks to install Spolu as an app on a phone, then to turn on notifications on this device, or tells an old iPhone that only email works (`<AppPrompt>`, `features/notifications/app-prompt.tsx`). "Not now" hides it for 6 hours on that device.
+- **automatic reminders**: the task board's built-in reminders (Phase 6): every assignee of an open task is reminded 3, 2 and 1 days before its deadline at 09:00, and every 3 hours while it is urgent. They need no setup and cannot be turned off; compare custom reminders.
 - **bucket**: a column on a task board. Each group has four fixed buckets (To do, eGrant review, client review, Completed) and admins can add custom buckets and reorder every bucket, fixed ones included. Cards can be dragged between and inside buckets.
 - **channel**: a place where messages are posted. In Spolu: a group chat, a direct message chat or a task chat.
+- **custom reminders**: reminder times someone sets on a task themselves (Phase 19), for themselves, the people they add and anyone who subscribes. They sit beside the automatic reminders, do not move with the deadline, and export to a calendar with the deadline.
 - **client**: a person from a customer organization. Sees only their own group.
 - **contract**: a record of an agreement with a client (dates, amount, files, notes). Admin-only.
 - **deactivated admin**: an admin who was removed. The row is kept with `disabled_at` set; the person cannot log in, gets no codes and loses open sessions and sockets. Adding the same email again reactivates them.
@@ -35,8 +37,8 @@ Terms used across the docs and code, in alphabetical order.
 - **PWA**: progressive web app. The web app can be installed on a phone or desktop and receive push notifications.
 - **read state**: what a user has already read in a channel, and in each thread they started or replied in; used for the unread indicator.
 - **recipient (of a reminder)**: someone a reminder notifies: its author (always), people the author added, and people who subscribed themselves. Recipients get it in every group mode, Off included.
-- **reminder**: a scheduled notification. A knowledge reminder (Phase 17) notifies its recipients at the chosen times; a contract reminder (Phase 15) tells admins that a contract is about to need attention.
-- **reminder set**: the times and recipients of one subject (a knowledge item; later a task), kept by the reminders module. Each time fires once, by the every-minute `reminders.fire` job, as a `reminder.due` notification to every recipient.
+- **reminder**: a scheduled notification. A knowledge reminder (Phase 17) and a task's custom reminders (Phase 19) notify their recipients at the chosen times; a task's automatic reminders (Phase 6) remind its assignees of the deadline and urgency; a contract reminder (Phase 15) tells admins that a contract is about to need attention.
+- **reminder set**: the times and recipients of one subject (a knowledge reminder item or a task), kept by the reminders module; its author is the knowledge item's author, or the person who added a task's first custom time. Each time fires once, by the every-minute `reminders.fire` job, as a `reminder.due` notification to every recipient.
 - **removed member**: a client an admin removed from a group. The user row is kept with `disabled_at` set and the membership stays, so the admin can restore them; they get no code and lose sessions and sockets. Listed under the group's removed members.
 - **room**: a Socket.IO room; users join rooms to receive live events for a group, DM or task channel.
 - **seq**: a per-channel increasing number on each message. Clients use it to find and load messages missed during a disconnect.

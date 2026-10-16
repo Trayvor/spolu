@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { FileInfo, GroupPerson, TaskDraft } from '@spolu/shared';
 import { ErrorCodes } from '@spolu/shared';
@@ -39,7 +39,9 @@ function Harness({
   initialFiles = [],
   known,
   onValue,
+  slot,
 }: {
+  slot?: ReactNode;
   initial?: TaskDraft;
   errors?: TaskFormErrors;
   initialFiles?: FileInfo[];
@@ -60,6 +62,7 @@ function Harness({
       files={files}
       onFilesChange={setFiles}
       knownPeople={known}
+      remindersSlot={slot}
     />
   );
 }
@@ -88,6 +91,15 @@ async function choose(user: ReturnType<typeof userEvent.setup>, name: string) {
 describe('TaskForm', () => {
   beforeEach(async () => {
     await setLanguage('en');
+  });
+
+  it('remindersSlot renders between the urgent switch and the files', () => {
+    renderForm({ slot: <p>reminders here</p> });
+    const slot = screen.getByText('reminders here');
+    const urgent = screen.getByRole('switch', { name: t('tasks.form.urgent') });
+    const files = screen.getByText(t('tasks.form.files'));
+    expect(urgent.compareDocumentPosition(slot) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(slot.compareDocumentPosition(files) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   it('typing in title calls onChange with the new value and keeps the rest', async () => {
