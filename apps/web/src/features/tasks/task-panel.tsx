@@ -45,6 +45,7 @@ import {
 import { SourceMessage } from './source-message';
 import { TaskChat } from './task-chat';
 import { TaskForm, validateTaskDraft, type TaskFormErrors } from './task-form';
+import { TaskReminders } from './task-reminders';
 
 const toDraft = (task: TaskDetailDto): TaskDraft => ({
   title: task.title,
@@ -492,6 +493,15 @@ function TaskEditor({
             files={files}
             onFilesChange={setFiles}
             knownPeople={base.assignees}
+            remindersSlot={
+              <TaskReminders
+                task={base}
+                onTaskGone={() => {
+                  showBoardNotice(queryClient, groupId, 'taskDeleted');
+                  backToBoard(true);
+                }}
+              />
+            }
           />
 
           {dirty && (

@@ -25,6 +25,7 @@ export function testConfig(overrides: Partial<Config> = {}): Config {
     },
     push: { provider: 'fake', publicKey: 'test-vapid-public-key', file: undefined },
     emailBatchDelayMs: 600_000,
+    loginCodesPerMinute: 10,
     ai: null,
     ...overrides,
   };

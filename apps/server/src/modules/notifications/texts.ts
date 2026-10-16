@@ -13,6 +13,8 @@ export type Texts = {
   digestButton(group: string): string;
   reminderDue(time: string): string;
   reminderLine(title: string, time: string): string;
+  /** The SUMMARY of a task's all-day deadline event in the calendar export. */
+  deadlineEvent(title: string): string;
 };
 
 const en: Texts = {
@@ -40,6 +42,7 @@ const en: Texts = {
   digestButton: (g) => `Open ${g}`,
   reminderDue: (time) => `Reminder for ${time}`,
   reminderLine: (title, time) => `Reminder: ${title}, ${time}`,
+  deadlineEvent: (title) => `Deadline: ${title}`,
 };
 
 function skMessages(n: number): string {
@@ -73,10 +76,23 @@ const sk: Texts = {
   digestButton: (g) => `Otvoriť ${g}`,
   reminderDue: (time) => `Pripomienka na ${time}`,
   reminderLine: (title, time) => `Pripomienka: ${title}, ${time}`,
+  deadlineEvent: (title) => `Termín: ${title}`,
 };
 
 export function texts(lang: UserLanguage): Texts {
   return lang === 'sk' ? sk : en;
+}
+
+/** The wall clock of a reminder time in Bratislava, `HH:mm` (a task reminder on time). */
+export function formatReminderClock(iso: string | undefined | null, lang: UserLanguage): string {
+  const at = new Date(iso ?? NaN);
+  if (Number.isNaN(at.getTime())) return '';
+  return new Intl.DateTimeFormat(lang === 'sk' ? 'sk-SK' : 'en-GB', {
+    timeZone: 'Europe/Bratislava',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).format(at);
 }
 
 /** A reminder time as the team reads it: Bratislava wall clock, e.g. "Sun 25 Oct, 10:00". */

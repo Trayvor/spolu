@@ -88,7 +88,10 @@
     "search": "Hľadať v znalostiach",
     "empty": "Zatiaľ tu nič nie je. Pridajte poznámky, súbory, odkazy a pripomienky, ktoré nájde celá skupina.",
     "noMatch": "Hľadaniu „{{q}}“ nezodpovedajú žiadne znalosti.",
-    "noMatchType": "Znalosti tohto typu tu zatiaľ nie sú.",
+    "noMatchType_one": "Znalosti tohto typu tu zatiaľ nie sú.",
+    "noMatchType_few": "Znalosti týchto typov tu zatiaľ nie sú.",
+    "noMatchType_many": "Znalosti týchto typov tu zatiaľ nie sú.",
+    "noMatchType_other": "Znalosti týchto typov tu zatiaľ nie sú.",
     "clearFilters": "Zrušiť filtre"
   },
   "newMenu": {
@@ -102,6 +105,10 @@
     "title": "Znalosti",
     "filters": "Filtre",
     "allTypes": "Všetky typy",
+    "typesCount_one": "{{count}} typ",
+    "typesCount_few": "{{count}} typy",
+    "typesCount_many": "{{count}} typu",
+    "typesCount_other": "{{count}} typov",
     "search": "Hľadať v názve, popise, súbore alebo odkaze",
     "empty": "Pre týchto klientov zatiaľ nie sú žiadne znalosti.",
     "noMatch": "Výrazu „{{q}}“ nezodpovedajú žiadne znalosti."

@@ -255,6 +255,7 @@ describe('tasks API: tasks', () => {
       description: 'Details',
       files: [file],
       fileCount: 1,
+      upcomingReminders: 0,
       sourceMessage: null,
     });
   });

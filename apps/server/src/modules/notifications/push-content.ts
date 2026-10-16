@@ -1,5 +1,5 @@
 import type { BucketLabel, NotificationKind, PushPayload, UserLanguage } from '@spolu/shared';
-import { formatReminderTime, texts } from './texts.js';
+import { formatReminderClock, formatReminderTime, texts } from './texts.js';
 
 const EXCERPT_MAX = 120;
 
@@ -10,7 +10,12 @@ export type PushContentInput = {
   taskTitle: string | null;
   parentId: string | null;
   lang: UserLanguage;
+  /** When the push is built (default now): a task reminder sent late names its day. */
+  now?: Date;
 };
+
+/** A task reminder delivered more than this after its time names the day, not only the clock. */
+const LATE_REMINDER_MS = 5 * 60_000;
 
 const str = (v: unknown): string | null => (typeof v === 'string' && v !== '' ? v : null);
 const enc = encodeURIComponent;
@@ -44,6 +49,19 @@ export function buildPushPayload(i: PushContentInput): PushPayload {
     taskId && (i.taskTitle ?? str(p.title))
       ? `${i.taskTitle ?? str(p.title)} · ${i.groupName}`
       : i.groupName;
+
+  if (i.kind === 'reminder.due' && p.subjectKind === 'task') {
+    // Shares the URL and the tag of the automatic task reminders: one notification per task on
+    // the device.
+    const at = str(p.at);
+    const late = (i.now ?? new Date()).getTime() - new Date(at ?? NaN).getTime() > LATE_REMINDER_MS;
+    return {
+      title,
+      body: t.reminderDue(late ? formatReminderTime(at, i.lang) : formatReminderClock(at, i.lang)),
+      url: `/groups/${groupId}/tasks/${enc(taskId ?? '')}`,
+      tag: `task:${taskId ?? ''}`,
+    };
+  }
 
   if (i.kind === 'reminder.due') {
     const subjectId = str(p.subjectId) ?? '';

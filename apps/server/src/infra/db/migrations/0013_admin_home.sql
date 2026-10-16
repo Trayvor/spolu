@@ -1,4 +1,0 @@
-CREATE INDEX "message_mentions_user_message_idx" ON "message_mentions" USING btree ("user_id","message_id");--> statement-breakpoint
-CREATE INDEX "messages_mentions_all_top_idx" ON "messages" USING btree ("channel_id","created_at") WHERE "messages"."mentions_all" and "messages"."deleted_at" is null and "messages"."parent_id" is null;--> statement-breakpoint
-CREATE INDEX "messages_mentions_all_reply_idx" ON "messages" USING btree ("channel_id","created_at") WHERE "messages"."mentions_all" and "messages"."deleted_at" is null and "messages"."parent_id" is not null;--> statement-breakpoint
-CREATE INDEX "tasks_open_group_idx" ON "tasks" USING btree ("group_id","completed_at");

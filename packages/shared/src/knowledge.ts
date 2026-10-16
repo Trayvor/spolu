@@ -7,6 +7,19 @@ import { TaskPersonSchema } from './tasks.js';
 export const KnowledgeTypes = ['note', 'file', 'link', 'reminder'] as const;
 export type KnowledgeType = (typeof KnowledgeTypes)[number];
 
+/**
+ * A list filter's `type` query param: one type, a comma list (`note,link`) or repeated params.
+ * Empty means every type. The result has no duplicates and follows `KnowledgeTypes` order; an
+ * unknown type fails.
+ */
+export const KnowledgeTypeListSchema = z
+  .union([z.string().max(100), z.array(z.string().max(100)).max(KnowledgeTypes.length)])
+  .transform((value) =>
+    (Array.isArray(value) ? value : [value]).flatMap((part) => part.split(',')).filter(Boolean),
+  )
+  .pipe(z.array(z.enum(KnowledgeTypes)))
+  .transform((types) => KnowledgeTypes.filter((type) => types.includes(type)));
+
 /** `public`: everyone in the group; `admins`: eGrant only. */
 export const Visibilities = ['public', 'admins'] as const;
 export type Visibility = (typeof Visibilities)[number];

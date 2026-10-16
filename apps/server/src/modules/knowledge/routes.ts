@@ -6,7 +6,7 @@ import {
   KNOWLEDGE_LIMITS,
   KnowledgeDraftSchema,
   KnowledgePatchSchema,
-  KnowledgeTypes,
+  KnowledgeTypeListSchema,
   type KnowledgeScope,
   type SessionUser,
 } from '@spolu/shared';
@@ -46,8 +46,9 @@ const send = (reply: FastifyReply, code: number, error: string) => reply.code(co
 const notFound = (reply: FastifyReply) => send(reply, 404, ErrorCodes.notFound);
 const invalid = (reply: FastifyReply) => send(reply, 400, ErrorCodes.validationFailed);
 
+/** `type`: one type, a comma list or repeated params (see `KnowledgeTypeListSchema`). */
 const filters = {
-  type: z.enum(KnowledgeTypes).optional(),
+  type: KnowledgeTypeListSchema.optional(),
   q: z.string().max(200).optional(),
   cursor: z.string().max(200).optional(),
 };
@@ -125,8 +126,9 @@ export const knowledgeRoutes: FastifyPluginAsync<{
     if (!query.success) return invalid(reply);
     const actor = request.user!;
     if (!(await canOpenGroup(actor, request.params.id))) return notFound(reply);
+    const { type: types, ...opts } = query.data;
     try {
-      return await listGroupItems(db, actor, request.params.id, query.data);
+      return await listGroupItems(db, actor, request.params.id, { ...opts, types });
     } catch (error) {
       return knowledgeError(reply, error);
     }
@@ -136,7 +138,7 @@ export const knowledgeRoutes: FastifyPluginAsync<{
   app.get('/knowledge', { preHandler: adminOnly }, async (request, reply) => {
     const query = GlobalListQuerySchema.safeParse(request.query);
     if (!query.success) return invalid(reply);
-    const { clients, scope, ...opts } = query.data;
+    const { clients, scope, type: types, ...opts } = query.data;
     if (scope === 'all' && clients !== undefined && clients.length > 0) return invalid(reply);
     let groupIds: string[] | null;
     if (scope === 'all') groupIds = null;
@@ -147,7 +149,7 @@ export const knowledgeRoutes: FastifyPluginAsync<{
       groupIds = managed.length > 0 ? managed : null;
     }
     try {
-      return await listAllItems(db, { ...opts, groupIds });
+      return await listAllItems(db, { ...opts, types, groupIds });
     } catch (error) {
       return knowledgeError(reply, error);
     }

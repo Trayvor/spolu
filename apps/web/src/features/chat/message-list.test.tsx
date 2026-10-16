@@ -313,7 +313,12 @@ describe('MessageList scroll anchoring', () => {
     Object.defineProperty(HTMLElement.prototype, 'offsetTop', {
       configurable: true,
       get(this: HTMLElement) {
-        return this.dataset.messageId ? rowIndex(this) * 100 : 0;
+        if (this.dataset.messageId) return rowIndex(this) * 100;
+        // The "new messages" line sits right at the top of the row after it.
+        if (this.dataset.newMessages !== undefined) {
+          return rowIndex(this.nextElementSibling as HTMLElement) * 100;
+        }
+        return 0;
       },
     });
     Object.defineProperty(HTMLElement.prototype, 'offsetHeight', {
@@ -332,13 +337,13 @@ describe('MessageList scroll anchoring', () => {
     });
   });
 
-  function setup(initial: MessageDto[]) {
+  function setup(initial: MessageDto[], win: Partial<ChannelWindow> = {}) {
     const client = new QueryClient();
     client.setQueryData(groupPeopleQuery('g1').queryKey, people);
     const view = (messages: MessageDto[]) => (
       <QueryClientProvider client={client}>
         <MessageList
-          window={{ ...initialWindow, loaded: true, messages }}
+          window={{ ...initialWindow, loaded: true, messages, ...win }}
           meId={ME}
           groupId="g1"
           onLoadOlder={vi.fn()}
@@ -348,7 +353,9 @@ describe('MessageList scroll anchoring', () => {
       </QueryClientProvider>
     );
     const utils = render(view(initial));
-    const scroller = utils.container.querySelector('[data-message-id]')!.parentElement!;
+    const scroller = utils.container
+      .querySelector<HTMLElement>('[data-message-id]')!
+      .closest<HTMLElement>('.overflow-y-auto')!;
     return { scroller, rerender: (m: MessageDto[]) => utils.rerender(view(m)) };
   }
 
@@ -368,5 +375,60 @@ describe('MessageList scroll anchoring', () => {
     fireEvent.scroll(scroller);
     rerender([b, c]);
     expect(scroller.scrollTop).toBe(50);
+  });
+
+  it('opens at the end when nothing is unread', () => {
+    const { scroller } = setup([msg(), msg(), msg()]);
+    expect(scroller.scrollTop).toBe(1000);
+  });
+
+  it('opens at the first unread message, just under the "new messages" line', () => {
+    const [a, b, c, d] = [msg(), msg(), msg(), msg()] as [
+      MessageDto,
+      MessageDto,
+      MessageDto,
+      MessageDto,
+    ];
+    const { scroller } = setup([a, b, c, d], { unreadAnchor: b.createdAt });
+    // c is the first unread (row 2 at 200px); the line above it lands at the top with a gap.
+    expect(scroller.scrollTop).toBe(200 - 8);
+  });
+
+  it('opens at the end in a chat never read before', () => {
+    const { scroller } = setup([msg(), msg()], { unreadAnchor: null });
+    expect(scroller.scrollTop).toBe(1000);
+  });
+
+  describe('when rows change height after the first layout', () => {
+    let resize: () => void = () => {};
+    beforeAll(() => {
+      vi.stubGlobal(
+        'ResizeObserver',
+        class {
+          constructor(cb: () => void) {
+            resize = cb;
+          }
+          observe() {}
+          disconnect() {}
+        },
+      );
+    });
+
+    it('stays at the end while the reader is at the end', () => {
+      const { scroller } = setup([msg(), msg()]);
+      scroller.scrollTop = 600; // rows measured taller: the end moved away, with no scroll event
+      resize();
+      expect(scroller.scrollTop).toBe(1000);
+    });
+
+    it('keeps the first visible row in place while the reader is away from the end', () => {
+      const [a, b, c] = [msg(), msg(), msg()] as [MessageDto, MessageDto, MessageDto];
+      const { scroller } = setup([a, b, c]);
+      scroller.scrollTop = 150;
+      fireEvent.scroll(scroller);
+      scroller.scrollTop = 0; // a row above grew or shrank and the browser did not compensate
+      resize();
+      expect(scroller.scrollTop).toBe(150);
+    });
   });
 });

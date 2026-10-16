@@ -1,5 +1,6 @@
 import type { AnyPgColumn } from 'drizzle-orm/pg-core';
 import type { ReminderSubjectKind, SessionUser } from '@spolu/shared';
+import type { Server as SocketIOServer } from 'socket.io';
 import type { Db } from '../../infra/db/client.js';
 import { reminderSets } from './schema.js';
 
@@ -12,7 +13,10 @@ export type SubjectInfo = {
   adminsOnly: boolean;
   /** False when the subject should not remind now (Phase 19: the task is in Completed). */
   active: boolean;
+  /** The subject's creator (a knowledge item's author, a task's creator). */
   authorId: string;
+  /** `YYYY-MM-DD`: subjects with a deadline (tasks) export it as an all-day event. */
+  dueDate?: string | null;
   /** App-relative URL of the subject, e.g. `/groups/g/knowledge?k=id`. */
   link: string;
   canRead(actor: SessionUser, actorGroupId: string | null): boolean;
@@ -26,6 +30,18 @@ export type ReminderSubject = {
   routePrefix: string;
   /** Bulk load (one query) for the fire job and the endpoints; missing ids are left out. */
   loadMany(db: Db, ids: string[]): Promise<Map<string, SubjectInfo>>;
+  /**
+   * The times are edited on their own through `PUT /api/<routePrefix>/:id/reminders` (tasks), not
+   * as part of the subject's own form (knowledge items).
+   */
+  standaloneEdit?: boolean;
+  /** An editor who adds a time and is not yet a recipient becomes one (`added`, by themselves). */
+  addEditorsAsRecipients?: boolean;
+  /**
+   * Runs after a write or a firing that changed the upcoming times of these subjects committed
+   * (the board's reminder bell). Errors are logged and swallowed by the caller.
+   */
+  onTimesChanged?: (deps: { db: Db; io: SocketIOServer }, ids: string[]) => Promise<void>;
 };
 
 export type ReminderSubjectRef = { kind: ReminderSubjectKind; id: string };
@@ -50,10 +66,11 @@ export function listReminderSubjects(): ReminderSubject[] {
 
 /**
  * The foreign key column of `reminder_sets` that points at a subject of this kind, and its
- * property name for inserts. Phase 19 adds `task: taskId`.
+ * property name for inserts.
  */
 const SUBJECT_COLUMNS = {
   knowledge: { column: reminderSets.knowledgeItemId, key: 'knowledgeItemId' },
+  task: { column: reminderSets.taskId, key: 'taskId' },
 } as const satisfies Record<ReminderSubjectKind, { column: AnyPgColumn; key: string }>;
 
 export function subjectColumn(kind: ReminderSubjectKind): AnyPgColumn {

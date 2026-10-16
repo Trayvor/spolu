@@ -3,14 +3,14 @@ import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { useSearch } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { KnowledgeTypes, type KnowledgeType } from '@spolu/shared';
-import type { KnowledgePageSearch } from './search';
+import { formatTypes, parseTypes, type KnowledgePageSearch } from './search';
 import { ClientFilter, type ClientOption } from '@/components/client-filter';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
+  DropdownMenuCheckboxItem,
   DropdownMenuContent,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
@@ -67,7 +67,8 @@ function SearchIcon() {
 }
 
 /**
- * The admins' global knowledge list (`/knowledge`): the client filter, a type menu and a search
+ * The admins' global knowledge list (`/knowledge`): the client filter, a type menu (any set of
+ * types, ticked in a menu that stays open) and a search
  * over every client's items, newest first, each row with its group. Filters and the open item
  * (`?k`) live in the URL. No live updates: it refetches on focus and on opening.
  */
@@ -117,11 +118,12 @@ export function KnowledgePage() {
   // Without a `clients` param the server uses the default scope (the managed clients, or every
   // client while the admin manages none); `scope=all` is every client without sending the ids.
   const managedIds = scope?.managedGroupIds ?? null;
+  const types = parseTypes(search.type);
   const query = useInfiniteQuery({
     ...globalKnowledgeQuery(
       everyClient
-        ? { scope: 'all', type: search.type, q: search.q }
-        : { clients: clients ?? undefined, type: search.type, q: search.q },
+        ? { scope: 'all', types, q: search.q }
+        : { clients: clients ?? undefined, types, q: search.q },
     ),
     enabled: !noClients,
     refetchOnWindowFocus: true,
@@ -177,6 +179,24 @@ export function KnowledgePage() {
     );
   };
 
+  // Ticking keeps the menu open; every tick is its own history entry, like the old radio choice.
+  const changeTypes = (next: KnowledgeType[]) => {
+    const value = formatTypes(next);
+    update(
+      (s) => {
+        if (value) s.type = value;
+        else delete s.type;
+      },
+      { replace: false },
+    );
+  };
+  const typeLabel =
+    types.length === 0
+      ? t('knowledge.global.allTypes')
+      : types.length === 1
+        ? t(TYPE_LABEL[types[0]!])
+        : t('knowledge.global.typesCount', { count: types.length });
+
   const [unavailable, setUnavailable] = useState(false);
   const closeItem = () => update((s) => void delete s.k, { replace: false });
 
@@ -205,34 +225,31 @@ export function KnowledgePage() {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="secondary" size="sm">
-              {search.type ? t(TYPE_LABEL[search.type]) : t('knowledge.global.allTypes')}
+              {typeLabel}
               <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
                 <path d="m3 4.5 3 3 3-3" stroke="currentColor" strokeWidth="1.5" />
               </svg>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start">
-            <DropdownMenuRadioGroup
-              value={search.type ?? 'all'}
-              onValueChange={(value) =>
-                update(
-                  (s) => {
-                    if (value === 'all') delete s.type;
-                    else s.type = value;
-                  },
-                  { replace: false },
-                )
-              }
+            <DropdownMenuCheckboxItem
+              checked={types.length === 0}
+              onCheckedChange={() => changeTypes([])}
             >
-              <DropdownMenuRadioItem value="all">
-                {t('knowledge.global.allTypes')}
-              </DropdownMenuRadioItem>
-              {KnowledgeTypes.map((type) => (
-                <DropdownMenuRadioItem key={type} value={type}>
-                  {t(TYPE_LABEL[type])}
-                </DropdownMenuRadioItem>
-              ))}
-            </DropdownMenuRadioGroup>
+              {t('knowledge.global.allTypes')}
+            </DropdownMenuCheckboxItem>
+            <DropdownMenuSeparator />
+            {KnowledgeTypes.map((type) => (
+              <DropdownMenuCheckboxItem
+                key={type}
+                checked={types.includes(type)}
+                onCheckedChange={(checked) =>
+                  changeTypes(checked ? [...types, type] : types.filter((x) => x !== type))
+                }
+              >
+                {t(TYPE_LABEL[type])}
+              </DropdownMenuCheckboxItem>
+            ))}
           </DropdownMenuContent>
         </DropdownMenu>
         <label className="relative w-full min-[641px]:ml-auto min-[641px]:w-[300px]">

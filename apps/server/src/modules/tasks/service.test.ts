@@ -6,6 +6,9 @@ import { testDatabaseUrl } from '../../../test/test-config.js';
 import { createGroup } from '../groups/service.js';
 import { groups } from '../groups/schema.js';
 import { addAdmin } from '../users/service.js';
+import { createCountingDb } from '../../../test/query-counter.js';
+import { insertTask } from '../../../test/tasks.js';
+import { reminderSets, reminderTimes } from '../reminders/schema.js';
 import { buckets, tasks } from './schema.js';
 import { newAdmin, newClient, newTask, bucketOf as bucketIdOf } from '../home/test-fixtures.js';
 import {
@@ -78,8 +81,58 @@ describe('ensureBoard / getBoard', () => {
       createdBy: { id: admin.id, name: 'Ada' },
       assignees: [],
       fileCount: 0,
+      upcomingReminders: 0,
       createdAt: now.toISOString(),
     });
+  });
+
+  /** A task with `fired` fired and `unfired` unfired custom reminder times. */
+  async function taskWithReminders(groupId: string, adminId: string, unfired: number, fired = 0) {
+    const taskId = await insertTask(db, { groupId, createdBy: adminId });
+    const setId = randomUUID();
+    await db.insert(reminderSets).values({ id: setId, groupId, taskId, createdBy: adminId });
+    const at = new Date(Date.now() + 60 * 60_000);
+    const rows = [
+      ...Array.from({ length: unfired }, () => ({ firedAt: null })),
+      ...Array.from({ length: fired }, () => ({ firedAt: new Date() })),
+    ].map((r) => ({ id: randomUUID(), setId, at, ...r }));
+    if (rows.length > 0) await db.insert(reminderTimes).values(rows);
+    return taskId;
+  }
+
+  it('the board counts unfired custom reminders per task', async () => {
+    const group = await newGroup();
+    const admin = await addAdmin(db, { email: `${randomUUID()}@example.com`, name: 'Ada' });
+    const withTimes = await taskWithReminders(group.id, admin.id, 2, 1);
+    const without = await insertTask(db, { groupId: group.id, createdBy: admin.id });
+    const board = await getBoard(db, group.id);
+    const count = (id: string) => board.tasks.find((t) => t.id === id)?.upcomingReminders;
+    expect(count(withTimes)).toBe(2);
+    expect(count(without)).toBe(0);
+  });
+
+  it('the board query count does not change with reminders', async () => {
+    const counting = createCountingDb();
+    try {
+      const admin = await addAdmin(db, { email: `${randomUUID()}@example.com`, name: 'Ada' });
+      const plain = await newGroup();
+      await insertTask(db, { groupId: plain.id, createdBy: admin.id });
+      const reminded = await newGroup();
+      await taskWithReminders(reminded.id, admin.id, 3);
+      await taskWithReminders(reminded.id, admin.id, 1, 2);
+      // Warm both boards up, so `ensureBoard` does the same work on each.
+      await getBoard(counting.db, plain.id);
+      await getBoard(counting.db, reminded.id);
+      counting.reset();
+      await getBoard(counting.db, plain.id);
+      const without = counting.count();
+      counting.reset();
+      await getBoard(counting.db, reminded.id);
+      expect(counting.count()).toBe(without);
+      expect(without).toBeGreaterThan(0);
+    } finally {
+      await counting.close();
+    }
   });
 });
 

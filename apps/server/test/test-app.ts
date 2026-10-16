@@ -9,6 +9,7 @@ import type { TaskSplitProvider } from '../src/modules/ai/provider.js';
 import { filesJobHandlers } from '../src/modules/files/jobs.js';
 import { registerKnowledgeReminderSubject } from '../src/modules/knowledge/reminder-subject.js';
 import { remindersJobHandlers } from '../src/modules/reminders/jobs.js';
+import { registerTaskReminderSubject } from '../src/modules/tasks/reminder-subject.js';
 import { notificationsJobHandlers } from '../src/modules/notifications/jobs.js';
 import { createDb } from '../src/infra/db/client.js';
 import { createEmailSender, emailJobHandlers } from '../src/infra/email/index.js';
@@ -42,6 +43,7 @@ export async function buildTestApp(
   // The notification handlers send jobs (push) to the queue built from them.
   const forward = createDeferredQueue();
   registerKnowledgeReminderSubject();
+  registerTaskReminderSubject();
   const jobs = createInlineJobs({
     ...emailJobHandlers(email),
     ...filesJobHandlers({ db, storage }),

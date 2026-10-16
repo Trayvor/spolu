@@ -12,6 +12,16 @@ export function upsertTask(board: BoardDto, task: TaskDto): BoardDto {
   return { ...board, tasks: tasks.sort(byPosition) };
 }
 
+/** A task's upcoming reminder count; the same board when the task is absent or the count unchanged. */
+export function setUpcomingReminders(board: BoardDto, taskId: string, count: number): BoardDto {
+  const task = board.tasks.find((t) => t.id === taskId);
+  if (!task || task.upcomingReminders === count) return board;
+  return {
+    ...board,
+    tasks: board.tasks.map((t) => (t.id === taskId ? { ...t, upcomingReminders: count } : t)),
+  };
+}
+
 export function removeTask(board: BoardDto, taskId: string): BoardDto {
   return { ...board, tasks: board.tasks.filter((t) => t.id !== taskId) };
 }

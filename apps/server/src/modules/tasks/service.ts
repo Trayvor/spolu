@@ -9,6 +9,7 @@ import type {
   TaskPerson,
 } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
+import { reminderSets, reminderTimes } from '../reminders/schema.js';
 import { user } from '../users/schema.js';
 import { FIXED_POSITIONS, keyAfter, keysAfter } from './positions.js';
 import { buckets, taskAssignees, taskAttachments, tasks } from './schema.js';
@@ -109,7 +110,10 @@ export async function getBucket(db: Db, id: string): Promise<BucketDto | null> {
 // Deliberate read-only exception to "no other module's tables" (the same as `listGroups`):
 // names of creators and assignees come from a join on `user`, so a board is a fixed number of
 // queries. Writes to users go through the users service.
-/** Tasks matching `where` as DTOs: one query, creator joined, assignees and file count as subqueries. */
+/**
+ * Tasks matching `where` as DTOs: one query, creator joined, assignees, file count and upcoming
+ * reminder count as subqueries.
+ */
 export async function selectTasks(db: Db, where: SQL): Promise<TaskDto[]> {
   const rows = await db
     .select({
@@ -134,6 +138,13 @@ export async function selectTasks(db: Db, where: SQL): Promise<TaskDto[]> {
       ), '[]'::json)`,
       fileCount: sql<number>`(
         select count(*)::int from ${taskAttachments} where ${taskAttachments.taskId} = ${tasks.id}
+      )`,
+      // The same read-only exception as the `user` join: the board card's reminder bell, one
+      // correlated count on `reminder_sets_task_unique` and `reminder_times_set_at_idx`.
+      upcomingReminders: sql<number>`(
+        select count(*)::int from ${reminderSets}
+        join ${reminderTimes} on ${reminderTimes.setId} = ${reminderSets.id}
+        where ${reminderSets.taskId} = ${tasks.id} and ${reminderTimes.firedAt} is null
       )`,
     })
     .from(tasks)

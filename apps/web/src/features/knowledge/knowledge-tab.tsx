@@ -13,11 +13,15 @@ import { groupKnowledgeQuery } from './api';
 import { KnowledgeDialog, type KnowledgeDialogTarget } from './knowledge-dialog';
 import { KnowledgeList } from './knowledge-list';
 import { NewItemMenu } from './new-item-menu';
+import { formatTypes, parseTypes } from './search';
 import { useKnowledgeEvents } from './use-knowledge-events';
 
-/** The tab's URL search: the list filter, and the open item (`k`, "new" with `kind` to create). */
+/**
+ * The tab's URL search: the list filter (`type`, the ticked types as one canonical comma list),
+ * and the open item (`k`, "new" with `kind` to create).
+ */
 type KnowledgeTabSearch = {
-  type?: KnowledgeType;
+  type?: string;
   q?: string;
   k?: string;
   kind?: KnowledgeType;
@@ -27,7 +31,20 @@ type KnowledgeTabSearch = {
 const MIN_QUERY = 2;
 const DEBOUNCE_MS = 300;
 
-const pill = 'inline-flex h-8 items-center rounded-full px-4 text-tiny font-semibold';
+// 32 px pills with a 44 px tap area (a `before:` inset), as the manager toggle.
+const pill =
+  "relative inline-flex h-8 items-center gap-1.5 rounded-full px-4 text-tiny font-semibold before:absolute before:inset-x-0 before:-inset-y-1.5 before:content-['']";
+const pillOn = 'bg-primary text-primary-foreground';
+const pillOff = 'bg-secondary text-secondary-foreground hover:bg-surface-3';
+
+/** The 16 px check of a ticked type pill (stroke 2.5, as on the manager toggle). */
+function PillCheck() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="size-4 shrink-0">
+      <path d="m5 12.5 4.5 4.5L19 7.5" stroke="currentColor" strokeWidth="2.5" />
+    </svg>
+  );
+}
 
 const PLURAL: Record<KnowledgeType, string> = {
   note: 'notes',
@@ -41,14 +58,15 @@ export function KnowledgeTab() {
   return groupId ? <GroupKnowledge groupId={groupId} /> : null;
 }
 
-/** The group's knowledge: header, type pills, search, the list, and the dialog from `?k`. */
+/** The group's knowledge: header, type pills (any set of types), search, the list, and the dialog from `?k`. */
 function GroupKnowledge({ groupId }: { groupId: string }) {
   const { t } = useTranslation();
   // The route's `validateSearch` (router.tsx) has checked these.
   const { type, q, k, kind }: KnowledgeTabSearch = useSearch({ strict: false });
   const updateSearch = useUpdateSearch();
   const canSeeAdmins = isAdmin(useSession());
-  const filter = { type, q };
+  const types = parseTypes(type);
+  const filter = { types, q };
   const query = useInfiniteQuery(groupKnowledgeQuery(groupId, filter));
   const [notice, setNotice] = useState(false);
 
@@ -78,14 +96,19 @@ function GroupKnowledge({ groupId }: { groupId: string }) {
     return () => clearTimeout(timer);
   }, [text, q, updateSearch]);
 
-  const setType = (next: KnowledgeType | undefined) =>
+  // Each tick is its own history entry, like the old single choice.
+  const setTypes = (next: KnowledgeType[]) => {
+    const value = formatTypes(next);
     updateSearch(
       (s) => {
-        if (next) s.type = next;
+        if (value) s.type = value;
         else delete s.type;
       },
       { replace: false },
     );
+  };
+  const toggleType = (option: KnowledgeType) =>
+    setTypes(types.includes(option) ? types.filter((x) => x !== option) : [...types, option]);
   const clearFilters = () => {
     written.current = undefined;
     setText('');
@@ -160,7 +183,9 @@ function GroupKnowledge({ groupId }: { groupId: string }) {
   const empty = filtered ? (
     <div className="flex flex-col items-start gap-3 py-6">
       <p className="text-button text-muted-foreground">
-        {q ? t('knowledge.tab.noMatch', { q }) : t('knowledge.tab.noMatchType')}
+        {q
+          ? t('knowledge.tab.noMatch', { q })
+          : t('knowledge.tab.noMatchType', { count: types.length })}
       </p>
       <Button variant="ghost" size="sm" onClick={clearFilters}>
         {t('knowledge.tab.clearFilters')}
@@ -181,22 +206,27 @@ function GroupKnowledge({ groupId }: { groupId: string }) {
       </div>
       <div className="flex flex-col gap-3 min-[641px]:flex-row min-[641px]:items-center min-[641px]:justify-between">
         <div role="group" aria-label={t('knowledge.tab.filters')} className="flex flex-wrap gap-2">
-          {[undefined, ...KnowledgeTypes].map((option) => {
-            const current = option === type;
+          <button
+            type="button"
+            aria-pressed={types.length === 0}
+            onClick={() => setTypes([])}
+            className={cn(pill, types.length === 0 ? pillOn : pillOff)}
+          >
+            {t('knowledge.types.all')}
+          </button>
+          {KnowledgeTypes.map((option) => {
+            const checked = types.includes(option);
             return (
               <button
-                key={option ?? 'all'}
+                key={option}
                 type="button"
-                aria-pressed={current}
-                onClick={() => setType(option)}
-                className={cn(
-                  pill,
-                  current
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-secondary text-secondary-foreground hover:bg-surface-3',
-                )}
+                role="checkbox"
+                aria-checked={checked}
+                onClick={() => toggleType(option)}
+                className={cn(pill, checked ? cn(pillOn, 'pl-3') : pillOff)}
               >
-                {t(`knowledge.types.${option ? PLURAL[option] : 'all'}`)}
+                {checked && <PillCheck />}
+                {t(`knowledge.types.${PLURAL[option]}`)}
               </button>
             );
           })}

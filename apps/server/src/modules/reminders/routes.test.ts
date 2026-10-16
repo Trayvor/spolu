@@ -19,7 +19,7 @@ describe('reminders API (knowledge subjects)', () => {
   let test: TestApp;
 
   const call = (
-    method: 'GET' | 'POST' | 'PATCH' | 'DELETE',
+    method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
     url: string,
     cookie?: string,
     payload?: unknown,
@@ -142,7 +142,10 @@ describe('reminders API (knowledge subjects)', () => {
       expect(sub.statusCode).toBe(404);
       expect(sub.json()).toEqual({ error: 'no_reminder_set' });
     }
-    expect((await call('GET', reminders(id), admin.cookie)).statusCode).toBe(404);
+    // Reading a readable subject's reminders answers the empty set (Phase 19).
+    const read = await call('GET', reminders(id), admin.cookie);
+    expect(read.statusCode).toBe(200);
+    expect(read.json()).toEqual({ times: [], recipients: [], subscribed: false, canEdit: true });
     expect((await call('GET', `${reminders(id)}/calendar.ics`, admin.cookie)).statusCode).toBe(404);
   });
 
@@ -193,6 +196,15 @@ describe('reminders API (knowledge subjects)', () => {
     expect(res.body).toContain(`UID:reminder-${set.times[1]!.id}@spolu`);
     expect(res.body).not.toContain(`UID:reminder-${set.times[0]!.id}@spolu`);
     expect(res.body).toContain('SUMMARY:Pay the VAT!');
+  });
+
+  it('PUT on a knowledge item is 404 (its times are edited with the item)', async () => {
+    const admin = await newAdmin();
+    const g = await newGroup();
+    const item = await reminderItem(admin.cookie, g.id);
+    const res = await call('PUT', reminders(item.id), admin.cookie, { times: [] });
+    expect(res.statusCode).toBe(404);
+    expect((await setOf(item.id, admin.cookie)).times).toHaveLength(1);
   });
 
   it('no upcoming time is 404', async () => {

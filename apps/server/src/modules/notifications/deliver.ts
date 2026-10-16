@@ -223,6 +223,7 @@ async function decideBatch(
       taskTitle: taskId ? (taskTitles.get(taskId) ?? null) : null,
       parentId: message?.parentId ?? null,
       lang: profile.language,
+      now: new Date(),
     });
     for (const sub of subs) pushes.push({ subscriptionId: sub.id, payload });
   }

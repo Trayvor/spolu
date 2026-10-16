@@ -12,7 +12,7 @@ import type { KnowledgeType } from '@spolu/shared';
 import { loadNamespace, withNamespaces } from '@/i18n/namespaces';
 import { ApiError } from '@/lib/api';
 import { groupQuery } from '@/features/groups/api';
-import { validateKnowledgeSearch } from '@/features/knowledge/search';
+import { normalizeTypes, singleType, validateKnowledgeSearch } from '@/features/knowledge/search';
 import { safeRedirect } from '@/features/auth/redirect';
 import { isAdmin } from '@/features/auth/roles';
 import { sessionQuery } from '@/features/auth/use-session';
@@ -186,7 +186,7 @@ const taskRoute = createRoute({
   path: '$taskId',
   component: lazyRouteComponent(
     withNamespaces(
-      ['tasks', 'chat', 'taskSplit', 'forms'],
+      ['tasks', 'chat', 'taskSplit', 'forms', 'reminders'],
       () => import('@/features/tasks/task-panel'),
     ),
     'TaskPanelRoute',
@@ -200,7 +200,10 @@ const newTaskRoute = createRoute({
   validateSearch: (search: Record<string, unknown>): { bucket?: string } =>
     typeof search.bucket === 'string' ? { bucket: search.bucket } : {},
   component: lazyRouteComponent(
-    withNamespaces(['tasks', 'chat', 'forms'], () => import('@/features/tasks/task-create-panel')),
+    withNamespaces(
+      ['tasks', 'chat', 'forms', 'reminders'],
+      () => import('@/features/tasks/task-create-panel'),
+    ),
     'NewTaskPanelRoute',
   ),
 });
@@ -210,19 +213,17 @@ const groupKnowledgeRoute = createRoute({
   path: 'knowledge',
   validateSearch: (
     search: Record<string, unknown>,
-  ): { type?: KnowledgeType; q?: string; k?: string; kind?: KnowledgeType } => {
-    // Spelled out: importing `KnowledgeTypes` would pull the knowledge schemas into the eager bundle.
-    const isType = (v: unknown): v is KnowledgeType =>
-      typeof v === 'string' && ['note', 'file', 'link', 'reminder'].includes(v);
+  ): { type?: string; q?: string; k?: string; kind?: KnowledgeType } => {
     // A search runs from 2 characters, trimmed (the tab writes it that way too).
     const q = typeof search.q === 'string' ? search.q.trim() : '';
     // Every key is set, an invalid one to undefined: the router keeps the raw params under
-    // the validated ones, so an omitted key would let the raw value through.
+    // the validated ones, so an omitted key would let the raw value through. `type` is the
+    // ticked types as one canonical comma list (see `normalizeTypes`).
     return {
-      type: isType(search.type) ? search.type : undefined,
+      type: normalizeTypes(search.type),
       q: q.length >= 2 ? q : undefined,
       k: typeof search.k === 'string' && search.k ? search.k : undefined,
-      kind: isType(search.kind) ? search.kind : undefined,
+      kind: singleType(search.kind),
     };
   },
   loader: () =>

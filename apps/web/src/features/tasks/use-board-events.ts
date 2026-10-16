@@ -2,16 +2,18 @@ import { useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   BoardEvents,
+  RemindersEvents,
   type BoardBucketsEvent,
   type BoardDto,
   type BoardTaskDeletedEvent,
   type BoardTaskEvent,
   type TaskDetailDto,
+  type TaskRemindersEvent,
 } from '@spolu/shared';
 import { useGroupRoomJoins } from '@/features/groups/use-group-room';
 import { getSocket } from '@/lib/socket';
 import { boardQuery, taskQuery } from './api';
-import { removeTask, replaceBuckets, upsertTask } from './board-cache';
+import { removeTask, replaceBuckets, setUpcomingReminders, upsertTask } from './board-cache';
 
 /** Prefix of every cached task detail (see `taskQuery`). */
 const TASK_DETAILS_KEY = ['tasks', 'task'] as const;
@@ -64,13 +66,21 @@ export function useBoardEvents(groupId: string): void {
       if (removedBucket) void queryClient.invalidateQueries({ queryKey: key, exact: true });
     };
 
+    // A task's upcoming custom reminders changed (a save, or the fire job): the card's bell.
+    const onReminders = (event: TaskRemindersEvent) => {
+      if (event.groupId !== groupId) return;
+      update((board) => setUpcomingReminders(board, event.taskId, event.upcomingReminders));
+    };
+
     socket.on(BoardEvents.task, onTask);
     socket.on(BoardEvents.taskDeleted, onTaskDeleted);
     socket.on(BoardEvents.buckets, onBuckets);
+    socket.on(RemindersEvents.task, onReminders);
     return () => {
       socket.off(BoardEvents.task, onTask);
       socket.off(BoardEvents.taskDeleted, onTaskDeleted);
       socket.off(BoardEvents.buckets, onBuckets);
+      socket.off(RemindersEvents.task, onReminders);
     };
   }, [groupId, queryClient]);
 

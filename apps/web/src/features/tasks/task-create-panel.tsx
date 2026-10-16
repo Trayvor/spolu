@@ -89,6 +89,9 @@ export function NewTaskPanel({ groupId, bucketId }: { groupId: string; bucketId?
           files={files}
           onFilesChange={setFiles}
           autoFocusTitle
+          remindersSlot={
+            <p className="text-micro text-muted-foreground">{t('reminders.task.createHint')}</p>
+          }
         />
         <div className="flex gap-3">
           <Button disabled={busy || !target} onClick={() => void create()}>

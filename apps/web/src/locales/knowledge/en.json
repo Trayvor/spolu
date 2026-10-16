@@ -86,7 +86,8 @@
     "search": "Search knowledge",
     "empty": "Nothing here yet. Add notes, files, links and reminders the whole group can find.",
     "noMatch": "No knowledge matches “{{q}}”.",
-    "noMatchType": "No knowledge of this type yet.",
+    "noMatchType_one": "No knowledge of this type yet.",
+    "noMatchType_other": "No knowledge of these types yet.",
     "clearFilters": "Clear filters"
   },
   "newMenu": {
@@ -100,6 +101,8 @@
     "title": "Knowledge",
     "filters": "Filters",
     "allTypes": "All types",
+    "typesCount_one": "{{count}} type",
+    "typesCount_other": "{{count}} types",
     "search": "Search title, description, file or link",
     "empty": "No knowledge for these clients yet.",
     "noMatch": "No knowledge matches \"{{q}}\"."

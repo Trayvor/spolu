@@ -25,7 +25,7 @@ Requirements per module: [product/](product/README.md). Phases after 1 get their
 | 16 | [Password & polish](#phase-16--password--polish) | planned | 5 | - |
 | 17 | [Knowledge base](#phase-17--knowledge-base) | in progress | 9, 6 | [spec](superpowers/specs/2026-10-16-phase-17-knowledge-base-design.md), [plan](superpowers/plans/2026-10-16-phase-17-knowledge-base.md) |
 | 18 | [Client managers](#phase-18--client-managers) | in progress | 9, 6 | [spec](superpowers/specs/2026-10-16-phase-18-client-managers-design.md), [plan](superpowers/plans/2026-10-16-phase-18-client-managers.md) |
-| 19 | [Task reminders](#phase-19--task-reminders) | planned | 17 | [spec](superpowers/specs/2026-10-16-phase-19-task-reminders-design.md), [plan](superpowers/plans/2026-10-16-phase-19-task-reminders.md) |
+| 19 | [Task reminders](#phase-19--task-reminders) | in progress | 17 | [spec](superpowers/specs/2026-10-16-phase-19-task-reminders-design.md), [plan](superpowers/plans/2026-10-16-phase-19-task-reminders.md) |
 | 20 | [Admin home](#phase-20--admin-home) | in progress | 17, 18 | [spec](superpowers/specs/2026-10-16-phase-20-admin-home-design.md), [plan](superpowers/plans/2026-10-16-phase-20-admin-home.md) |
 
 Phases 8, 12 and 14 do not depend on each other, so their order can change by priority.
@@ -265,6 +265,8 @@ Requirements: [reminders](product/reminders.md), [task-board](product/task-board
 Scope: custom reminders on tasks with recipients and subscription, beside the automatic deadline and urgent reminders; calendar export of the deadline and reminders.
 
 Done when: a task reminder arrives at its time for its recipients and the task exports to a calendar.
+
+Status: built locally on branch `phase-19` (all tasks of the plan; unit, integration and web tests pass); the end-to-end test `e2e/task-reminders.spec.ts` is written but not yet run, and the owner walkthrough is pending.
 
 ## Phase 20 — Admin home
 

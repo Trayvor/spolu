@@ -42,7 +42,12 @@ function set(overrides: Partial<ReminderSetDto> = {}): ReminderSetDto {
   };
 }
 
-function renderPanel(reminder: ReminderSetDto, authorId = 'u1', onChanged = vi.fn()) {
+function renderPanel(
+  reminder: ReminderSetDto,
+  authorId = 'u1',
+  onChanged = vi.fn(),
+  extra: Partial<Parameters<typeof ReminderPanel>[0]> = {},
+) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   client.setQueryData(['session'], ME);
   render(
@@ -53,6 +58,7 @@ function renderPanel(reminder: ReminderSetDto, authorId = 'u1', onChanged = vi.f
         set={reminder}
         authorId={authorId}
         onChanged={onChanged}
+        {...extra}
       />
     </QueryClientProvider>,
   );
@@ -111,5 +117,53 @@ describe('ReminderPanel', () => {
     const link = screen.getByRole('link', { name: t('reminders.panel.addToCalendar') });
     expect(link).toHaveAttribute('href', '/api/knowledge/k1/reminders/calendar.ics');
     expect(link).toHaveAttribute('download');
+  });
+
+  it('hideFired hides fired times', () => {
+    renderPanel(set(), 'u1', vi.fn(), { hideFired: true });
+    expect(screen.queryByText(t('reminders.panel.sent'))).toBeNull();
+  });
+
+  it('onRemoveTime adds a Remove reminder button per upcoming time', async () => {
+    const onRemoveTime = vi.fn();
+    const user = userEvent.setup();
+    renderPanel(
+      set({
+        times: [
+          { id: 't1', at: future(48), firedAt: null },
+          { id: 't2', at: future(72), firedAt: null },
+          { id: 't0', at: future(-48), firedAt: future(-48) },
+        ],
+      }),
+      'u1',
+      vi.fn(),
+      { onRemoveTime },
+    );
+    const buttons = screen.getAllByRole('button', { name: t('reminders.row.remove') });
+    expect(buttons).toHaveLength(2);
+    await user.click(buttons[1]!);
+    expect(onRemoveTime).toHaveBeenCalledWith('t2');
+  });
+
+  it('timeTag renders its text', () => {
+    renderPanel(set(), 'u1', vi.fn(), { timeTag: (iso) => (iso ? 'after the deadline' : null) });
+    expect(screen.getByText('after the deadline')).toBeInTheDocument();
+  });
+
+  it('calendarAvailable enables Add to calendar without upcoming times', () => {
+    renderPanel(set({ times: [] }), 'u1', vi.fn(), { calendarAvailable: true });
+    expect(screen.getByRole('link', { name: t('reminders.panel.addToCalendar') })).toHaveAttribute(
+      'href',
+      '/api/knowledge/k1/reminders/calendar.ics',
+    );
+  });
+
+  it('children and recipientsAction render', () => {
+    renderPanel(set(), 'u1', vi.fn(), {
+      children: <p>add row here</p>,
+      recipientsAction: <button type="button">Change</button>,
+    });
+    expect(screen.getByText('add row here')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Change' })).toBeInTheDocument();
   });
 });

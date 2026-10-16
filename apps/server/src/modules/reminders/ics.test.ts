@@ -150,3 +150,34 @@ describe('icsFilename', () => {
     expect(long).not.toMatch(/-\.ics$/);
   });
 });
+
+describe('all-day (date) events', () => {
+  const dateEvent = (date: string) => ({
+    uid: 'task-t1-deadline@spolu',
+    date,
+    title: 'Deadline: Fix the budget table',
+    description: 'Body',
+    url: 'https://spolu.example/groups/g/tasks/t1',
+    updatedAt: new Date('2026-10-16T08:00:00Z'),
+  });
+
+  it('a date event is all-day with the next day as end and no alarm', () => {
+    const all = lines(buildIcsText({ now, events: [dateEvent('2026-10-20'), event()] }));
+    const first = all.slice(all.indexOf('BEGIN:VEVENT'), all.indexOf('END:VEVENT') + 1);
+    expect(first).toContain('UID:task-t1-deadline@spolu');
+    expect(first).toContain('DTSTART;VALUE=DATE:20261020');
+    expect(first).toContain('DTEND;VALUE=DATE:20261021');
+    expect(first).toContain('SUMMARY:Deadline: Fix the budget table');
+    expect(first).not.toContain('BEGIN:VALARM');
+    // The timed event after it keeps its alarm.
+    expect(all.filter((l) => l === 'BEGIN:VALARM')).toHaveLength(1);
+  });
+
+  it('the deadline event ends the next day across a year end', () => {
+    const all = lines(buildIcsText({ now, events: [dateEvent('2026-12-31')] }));
+    expect(all).toContain('DTSTART;VALUE=DATE:20261231');
+    expect(all).toContain('DTEND;VALUE=DATE:20270101');
+    const leap = lines(buildIcsText({ now, events: [dateEvent('2028-02-28')] }));
+    expect(leap).toContain('DTEND;VALUE=DATE:20280229');
+  });
+});
