@@ -8,7 +8,8 @@
     "off": "Off",
     "offHint": "No notifications from this group",
     "mixed": "Mixed",
-    "allGroups": "All groups:"
+    "allGroups": "All groups:",
+    "managerNote": "All messages, because you manage this client."
   },
   "prompt": {
     "installTitle": "Install Spolu as an app",

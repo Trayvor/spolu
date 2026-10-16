@@ -20,6 +20,17 @@
   "managers": {
     "title": "eGrant managers",
     "none": "No eGrant manager yet.",
-    "changeLink": "Change on the Groups page"
+    "changeLink": "Change on the Groups page",
+    "manage": "Manage",
+    "managing": "Managing",
+    "toggleLabel": "Manage {{name}}",
+    "started": "You manage {{name}} now.",
+    "startedMode": "Notifications: all messages.",
+    "stopped": "You no longer manage {{name}}.",
+    "stoppedMode": "Notifications: {{mode}}",
+    "error": "Could not change it. Try again.",
+    "more": "+{{count}}",
+    "listLabel": "Managers of {{name}}",
+    "noManagerHint": "Clients with no manager: only their own people can be mentioned or assigned."
   }
 }

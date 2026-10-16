@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Outlet, useRouter } from '@tanstack/react-router';
+import { useManagerEvents } from '@/features/groups/use-manager-events';
 import { AppPrompt } from '@/features/notifications/app-prompt';
 import { saveLanguage } from '@/features/profile/api';
 import { i18n } from '@/i18n';
@@ -23,7 +24,8 @@ const RECONNECT_MAX_MS = 30_000;
  * /login.
  * It also mounts `<AppPrompt>`, the install and enable-notifications banner above the page,
  * and once per signed-in user stores the UI language on the server (the language of their
- * emails and pushes; best effort).
+ * emails and pushes; best effort). It listens for manager changes of every group
+ * (`useManagerEvents`) for the whole session.
  */
 
 export function AuthedLayout() {
@@ -31,6 +33,7 @@ export function AuthedLayout() {
   const queryClient = useQueryClient();
   const router = useRouter();
   const languageSavedFor = useRef<string | null>(null);
+  useManagerEvents();
 
   useEffect(() => {
     if (!userId || languageSavedFor.current === userId) return;

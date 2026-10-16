@@ -52,6 +52,8 @@ export function useGroupMode(groupId: string) {
     });
   return {
     mode: mode || undefined,
+    /** The mode there was set by becoming the group's manager. */
+    managed: data?.managerSet.includes(groupId) ?? false,
     setMode: mutation.mutate,
     isError: mutation.isError,
     clearError: mutation.reset,

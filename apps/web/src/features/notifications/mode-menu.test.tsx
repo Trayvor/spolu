@@ -136,6 +136,26 @@ describe('GroupBell review fixes', () => {
   });
 });
 
+describe('GroupBell manager line', () => {
+  beforeEach(() => setLanguage('en'));
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('shows the manager line when the group is in managerSet, not otherwise', async () => {
+    const { queryClient, user } = setup(() => Promise.resolve(new Response(null, { status: 204 })));
+    await user.click(await bell(t('notifications.mode.all')));
+    await screen.findByRole('menu');
+    expect(screen.queryByText(t('notifications.mode.managerNote'))).toBeNull();
+    await user.keyboard('{Escape}');
+    queryClient.setQueryData(['notifications', 'modes'], {
+      ...MODES,
+      overrides: { g1: 'all' },
+      managerSet: ['g1'],
+    });
+    await user.click(await bell(t('notifications.mode.all')));
+    expect(await screen.findByText(t('notifications.mode.managerNote'))).toBeInTheDocument();
+  });
+});
+
 describe('allGroupsValue', () => {
   const modes = (m: Partial<NotificationModes>): NotificationModes => ({ ...MODES, ...m });
 
