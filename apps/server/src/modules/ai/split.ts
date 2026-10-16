@@ -89,25 +89,9 @@ export async function buildSplitRequest(
   };
 }
 
-/** A file link's name for the AI: its last path segment, or its host (never the query). */
-export function linkName(url: string): string {
-  try {
-    const parsed = new URL(url);
-    const last = parsed.pathname.split('/').filter(Boolean).at(-1);
-    if (!last) return parsed.hostname;
-    try {
-      return decodeURIComponent(last);
-    } catch {
-      return last;
-    }
-  } catch {
-    return url;
-  }
-}
-
 /**
- * What the AI gets for a ticket (part 21.5): its subject, area, programme, due date, the names of
- * its file links and its text as one labelled message; the files uploaded with it; the group's
+ * What the AI gets for a ticket (part 21.5): its subject, area, programme, due date and its text
+ * as one labelled message; its files (uploaded with it or sent to the intake); the group's
  * pickable people; today. The ticket must have a client.
  */
 export async function buildTicketSplitRequest(
@@ -129,7 +113,6 @@ export async function buildTicketSplitRequest(
     ...line('Area', ticket.area),
     ...line('Programme', ticket.programme),
     ...line('Due date', ticket.dueDate),
-    ...line('Links to files', ticket.fileLinks.map(linkName).join(', ')),
     ...(ticket.body ? ['', await withNames(db, ticket.body, nameById)] : []),
   ].join('\n');
   return {

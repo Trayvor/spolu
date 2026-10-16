@@ -32,9 +32,18 @@ describe('canReadFile on admins-only files', () => {
   });
 });
 
+describe('canReadFile on files of no group', () => {
+  it('only admins read a file of a ticket without a client', () => {
+    const file = { groupId: null, adminsOnly: false };
+    expect(canReadFile(actor('admin'), file, [])).toBe(true);
+    expect(canReadFile(actor('client'), file, ['g1'])).toBe(false);
+  });
+});
+
 describe('canSetPreview', () => {
   it('allows the uploader only', () => {
     expect(canSetPreview(actor('client', 'u1'), { uploadedBy: 'u1' })).toBe(true);
     expect(canSetPreview(actor('admin', 'u2'), { uploadedBy: 'u1' })).toBe(false);
+    expect(canSetPreview(actor('admin', 'u2'), { uploadedBy: null })).toBe(false);
   });
 });

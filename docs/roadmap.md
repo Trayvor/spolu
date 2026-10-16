@@ -303,6 +303,8 @@ Done when: eGrant sends a ticket, a new requester gets the email, logs in with a
 
 Status: done (local). All seven parts are merged into `main`: 21.1 memberships, 21.2 tickets server core, 21.3 ticket chat, 21.4 ticket screens, 21.5 ticket to tasks with AI, 21.6 following and notifications, 21.7 e2e and wrap-up (`e2e/tickets.spec.ts` walks the whole "Done when" flow; the intake's `request_id` for safe retries; mentions of unreadable tickets dropped from the admin home; task changes refresh the ticket page; the [eGrant integration guide](integrations/egrant-ticket-intake.md)). Not yet deployed to a server.
 
+Follow-up (owner decision 2026-10-16, branch `ticket-intake-files`): the intake takes the files themselves as base64 (`files`, up to 10, 10 MiB each, 20 MiB per request; body limit 28 MiB on the intake only), stored in the client's files and attached to the ticket; `file_links` is removed everywhere (migration 0023). See [ADR 0017](decisions/0017-intake-files-as-base64.md) and the [integration guide](integrations/egrant-ticket-intake.md).
+
 ## Phase 22 — Members & groups page
 
 Requirements: [groups](product/groups.md), [client-managers](product/client-managers.md). Owner decisions (2026-10-16) are in the [plan](superpowers/plans/2026-10-16-phase-22-members-and-groups-page.md), split into two parts.

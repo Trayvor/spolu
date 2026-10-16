@@ -4,6 +4,8 @@ import {
   TicketIntakeBodySchema,
   TicketListQuerySchema,
   TicketPatchBodySchema,
+  base64DecodedSize,
+  intakeFieldNames,
 } from './tickets.js';
 
 describe('TicketIntakeBodySchema', () => {
@@ -20,7 +22,7 @@ describe('TicketIntakeBodySchema', () => {
       subject: 'Chyba',
       email: null,
       body: null,
-      file_links: [],
+      files: [],
       due_date: null,
       instance_url: null,
     });
@@ -44,12 +46,7 @@ describe('TicketIntakeBodySchema', () => {
     expect(parsed.phone).toBeNull();
   });
 
-  it('rejects 21 file links, a ftp: link, a bad date and a bad email', () => {
-    const many = Array.from({ length: 21 }, (_, i) => `https://f.sk/${i}`);
-    expect(TicketIntakeBodySchema.safeParse({ body: 'x', file_links: many }).success).toBe(false);
-    expect(
-      TicketIntakeBodySchema.safeParse({ body: 'x', file_links: ['ftp://f.sk/a'] }).success,
-    ).toBe(false);
+  it('rejects a bad date, a bad email and a bad url', () => {
     expect(TicketIntakeBodySchema.safeParse({ body: 'x', due_date: '2026-02-30' }).success).toBe(
       false,
     );
@@ -57,6 +54,60 @@ describe('TicketIntakeBodySchema', () => {
     expect(TicketIntakeBodySchema.safeParse({ body: 'x', url: 'javascript:1' }).success).toBe(
       false,
     );
+  });
+
+  it('ignores the removed file_links', () => {
+    const parsed = TicketIntakeBodySchema.parse({ body: 'x', file_links: ['ftp://f.sk/a'] });
+    expect(parsed).not.toHaveProperty('file_links');
+  });
+
+  describe('files', () => {
+    const parse = (files: unknown) => TicketIntakeBodySchema.safeParse({ body: 'x', files });
+    const fieldsOf = (files: unknown) => {
+      const result = parse(files);
+      return result.success ? [] : intakeFieldNames(result.error.issues);
+    };
+
+    it('takes name and strict base64; the path is dropped, content_type is optional', () => {
+      const result = parse([
+        { name: ' C:\\Users\\jana\\shot.png ', content_base64: 'iVBORw0KGgo=' },
+        { name: 'a.pdf', content_base64: 'JVBERi0xLjcK', content_type: 'application/pdf' },
+      ]);
+      expect(result.success && result.data.files).toEqual([
+        { name: 'shot.png', content_base64: 'iVBORw0KGgo=', content_type: null },
+        { name: 'a.pdf', content_base64: 'JVBERi0xLjcK', content_type: 'application/pdf' },
+      ]);
+      expect(TicketIntakeBodySchema.parse({ body: 'x' }).files).toEqual([]);
+    });
+
+    it('names a bad file field as files[i].field', () => {
+      const ok = { name: 'a.png', content_base64: 'QUJD' };
+      expect(fieldsOf([ok, { ...ok, content_base64: 'QUJD\n' }])).toEqual([
+        'files[1].content_base64',
+      ]);
+      for (const bad of ['QUJ', 'QU=D', 'QUJD====', 'Q+J_', '', 'QUJD QUJD', 42]) {
+        expect(fieldsOf([{ ...ok, content_base64: bad }])).toEqual(['files[0].content_base64']);
+      }
+      expect(fieldsOf([{ ...ok, name: '' }])).toEqual(['files[0].name']);
+      expect(fieldsOf([{ ...ok, name: 'dir/' }])).toEqual(['files[0].name']);
+      expect(fieldsOf([{ ...ok, name: `${'a'.repeat(197)}.png` }])).toEqual(['files[0].name']);
+      expect(fieldsOf([{ ...ok, name: `${'a'.repeat(196)}.png` }])).toEqual([]);
+      expect(fieldsOf([{ content_base64: 'QUJD' }])).toEqual(['files[0].name']);
+    });
+
+    it('takes at most 10 files', () => {
+      const file = { name: 'a.txt', content_base64: 'QUJD' };
+      expect(fieldsOf(Array.from({ length: 10 }, () => file))).toEqual([]);
+      expect(fieldsOf(Array.from({ length: 11 }, () => file))).toEqual(['files']);
+      expect(fieldsOf('nope')).toEqual(['files']);
+    });
+
+    it('base64DecodedSize counts the decoded bytes without decoding', () => {
+      expect(base64DecodedSize('')).toBe(0);
+      expect(base64DecodedSize('QQ==')).toBe(1);
+      expect(base64DecodedSize('QUI=')).toBe(2);
+      expect(base64DecodedSize('QUJD')).toBe(3);
+    });
   });
 
   it('rejects a subject over 300 characters', () => {

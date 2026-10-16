@@ -9,7 +9,7 @@ import type { Db } from '../../infra/db/client.js';
 export type FileReadRule = (
   db: Db,
   actor: SessionUser,
-  file: { id: string; groupId: string; adminsOnly: boolean },
+  file: { id: string; groupId: string | null; adminsOnly: boolean },
 ) => Promise<boolean>;
 
 const rules: FileReadRule[] = [];
@@ -22,7 +22,7 @@ export function registerFileReadRule(rule: FileReadRule): void {
 export async function readableByRule(
   db: Db,
   actor: SessionUser,
-  file: { id: string; groupId: string; adminsOnly: boolean },
+  file: { id: string; groupId: string | null; adminsOnly: boolean },
 ): Promise<boolean> {
   if (file.adminsOnly) return false;
   for (const rule of rules) if (await rule(db, actor, file)) return true;

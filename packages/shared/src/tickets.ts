@@ -19,7 +19,6 @@ export const TICKET_LIMITS = {
   email: 254,
   phone: 50,
   body: 20_000,
-  fileLinks: 20,
   /** Files uploaded in the manual form. */
   files: 20,
   pageSize: 50,
@@ -27,6 +26,13 @@ export const TICKET_LIMITS = {
   clients: 200,
   /** The intake's idempotency key. */
   requestId: 100,
+  /** Files sent as base64 to the intake: count, name length and decoded sizes. */
+  intakeFiles: 10,
+  intakeFileName: 200,
+  intakeFileBytes: 10 * 1024 * 1024,
+  intakeTotalBytes: 20 * 1024 * 1024,
+  /** The intake's JSON body (base64 adds a third); every other route keeps 1 MiB. */
+  intakeBodyBytes: 28 * 1024 * 1024,
 } as const;
 
 const isCalendarDate = (value: string): boolean => {
@@ -70,16 +76,33 @@ const dueDate = z
   .nullish()
   .transform((v) => v ?? null);
 
-const fileLinks = z
-  .array(
-    z
-      .string()
-      .trim()
-      .refine((v) => isHttpUrl(v), { message: 'not an http(s) URL' }),
-  )
-  .max(TICKET_LIMITS.fileLinks)
-  .nullish()
-  .transform((v) => v ?? []);
+// Standard alphabet with padding, no whitespace: the length check makes the padding correct.
+const BASE64 = /^[A-Za-z0-9+/]*={0,2}$/;
+
+/** The decoded length of strict base64, without decoding it. */
+export function base64DecodedSize(value: string): number {
+  const padding = value.endsWith('==') ? 2 : value.endsWith('=') ? 1 : 0;
+  return (value.length / 4) * 3 - padding;
+}
+
+/** A file sent whole to the intake. The name loses any path; the type is sniffed from the bytes. */
+const intakeFile = z.object({
+  name: z
+    .string()
+    .transform((v) => (v.split(/[\\/]/).pop() ?? '').trim())
+    .pipe(z.string().min(1).max(TICKET_LIMITS.intakeFileName)),
+  content_base64: z
+    .string()
+    .min(1)
+    .refine((v) => v.length % 4 === 0 && BASE64.test(v), { message: 'not strict base64' }),
+  /** Informational only. */
+  content_type: z
+    .string()
+    .max(255)
+    .nullish()
+    .transform((v) => v ?? null),
+});
+export type TicketIntakeFile = z.infer<typeof intakeFile>;
 
 /** The content of a ticket, whoever sends it. */
 const ticketContent = {
@@ -89,7 +112,6 @@ const ticketContent = {
   body: text(TICKET_LIMITS.body),
   dueDate,
   url: httpUrl,
-  fileLinks,
 };
 
 const hasContent = (t: { subject: string | null; body: string | null; area: string | null }) =>
@@ -108,7 +130,11 @@ export const TicketIntakeBodySchema = z
     subject: ticketContent.subject,
     programme: ticketContent.programme,
     body: ticketContent.body,
-    file_links: ticketContent.fileLinks,
+    files: z
+      .array(intakeFile)
+      .max(TICKET_LIMITS.intakeFiles)
+      .nullish()
+      .transform((v) => v ?? []),
     due_date: ticketContent.dueDate,
     url: ticketContent.url,
     instance_url: text(2048),
@@ -126,6 +152,18 @@ export const TicketIntakeBodySchema = z
   })
   .refine(hasContent, { message: 'subject, body or area is required' });
 export type TicketIntakeBody = z.infer<typeof TicketIntakeBodySchema>;
+
+/**
+ * The field names of failed checks as the intake answers them (`files[3].content_base64`);
+ * `body` for a check of the whole body.
+ */
+export function intakeFieldNames(issues: readonly { path: readonly PropertyKey[] }[]): string[] {
+  const name = (path: readonly PropertyKey[]) =>
+    path
+      .map((key, i) => (typeof key === 'number' ? `[${key}]` : `${i > 0 ? '.' : ''}${String(key)}`))
+      .join('') || 'body';
+  return [...new Set(issues.map((i) => name(i.path)))];
+}
 
 export const TicketIntakeResponseSchema = z.object({ id: z.string(), number: z.number().int() });
 export type TicketIntakeResponse = z.infer<typeof TicketIntakeResponseSchema>;
@@ -192,8 +230,7 @@ export const TicketDtoSchema = z.object({
   dueDate: z.string().nullable(),
   url: z.string().nullable(),
   instanceUrl: z.string().nullable(),
-  fileLinks: z.array(z.string()),
-  /** Files uploaded in the manual form (`ticket_attachments`). */
+  /** Files uploaded in the manual form or sent to the intake (`ticket_attachments`). */
   files: z.array(FileInfoSchema),
   createdBy: z.string().nullable(),
   createdAt: z.string(),

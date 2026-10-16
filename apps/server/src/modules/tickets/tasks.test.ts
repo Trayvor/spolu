@@ -111,13 +111,12 @@ describe('ticket to tasks (Phase 21.5)', () => {
     });
 
   describe('buildTicketSplitRequest', () => {
-    it('the request carries subject, area, programme, body, due date and file link names', async () => {
+    it('the request carries subject, area, programme, body and due date', async () => {
       const g = await group();
       const t = await ticket(g, {
         area: 'Granty',
         programme: 'Plán obnovy',
         due_date: '2026-11-20',
-        file_links: ['https://drive.example.com/docs/rozpocet.xlsx?x=1', 'https://example.com/'],
       });
       const request = await buildTicketSplitRequest(
         db(),
@@ -128,10 +127,7 @@ describe('ticket to tasks (Phase 21.5)', () => {
       expect(request.text).toContain('Granty');
       expect(request.text).toContain('Plán obnovy');
       expect(request.text).toContain('2026-11-20');
-      expect(request.text).toContain('rozpocet.xlsx');
-      expect(request.text).toContain('example.com');
       expect(request.text).toContain('- Write the report');
-      expect(request.text).not.toContain('?x=1');
       expect(request.quoted).toBeNull();
       expect(request.today).toBe('2026-10-16');
     });

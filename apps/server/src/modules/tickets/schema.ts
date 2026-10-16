@@ -41,10 +41,6 @@ export const tickets = pgTable(
     instanceUrl: text('instance_url'),
     /** eGrant's idempotency key from the intake: one ticket per key; null for manual tickets. */
     requestId: text('request_id').unique('tickets_request_id_unique'),
-    fileLinks: text('file_links')
-      .array()
-      .notNull()
-      .default(sql`'{}'::text[]`),
     createdBy: text('created_by').references(() => user.id, { onDelete: 'set null' }),
     /** When the "Ticket created" email went to the initiator; it goes at most once. */
     requesterNotifiedAt: timestamp('requester_notified_at', { withTimezone: true }),
@@ -86,7 +82,7 @@ export const ticketFollowers = pgTable(
   ],
 );
 
-/** Files uploaded with a ticket created by hand. */
+/** Files uploaded with a ticket created by hand, or sent with it to the intake. */
 export const ticketAttachments = pgTable(
   'ticket_attachments',
   {
@@ -96,6 +92,8 @@ export const ticketAttachments = pgTable(
     fileId: text('file_id')
       .notNull()
       .references(() => files.id, { onDelete: 'cascade' }),
+    /** The order the files were sent or picked in. */
+    position: integer('position').notNull().default(0),
   },
   (t) => [
     primaryKey({ columns: [t.ticketId, t.fileId] }),
