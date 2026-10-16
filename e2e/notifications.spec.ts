@@ -1,5 +1,7 @@
-import { expect, test } from '@playwright/test';
+import { randomUUID } from 'node:crypto';
+import { expect, test, type BrowserContext } from '@playwright/test';
 import { clearMailFor, latestLoginCode } from './mailpit';
+import { fakeSubscription, pushesFor, waitForPush } from './push-log';
 
 // One client logs in once (production rate limits allow only a few code requests per minute).
 test('the client switches the bell to Mentions and replies and it sticks after reload', async ({
@@ -43,4 +45,92 @@ test('the client switches the bell to Mentions and replies and it sticks after r
     client.getByRole('button', { name: 'Upozornenia: Zmienky a odpovede' }),
   ).toBeVisible();
   await context.close();
+});
+
+// Push delivery by group mode. The e2e server runs the fake sender, which appends every send to a
+// file. One client logs in once for both tests.
+test.describe.serial('push delivery by group mode', () => {
+  let groupId = '';
+  let channelId = '';
+  let clientId = '';
+  let clientContext: BrowserContext;
+  let adminContext: BrowserContext;
+  const endpoint = fakeSubscription();
+
+  test.beforeAll(async ({ browser }) => {
+    const stamp = Date.now();
+    const email = `e2e-push-${stamp}@example.com`;
+    adminContext = await browser.newContext({ storageState: 'e2e/.auth/superadmin.json' });
+    const created = await adminContext.request.post('/api/groups', {
+      data: { name: `E2E Push ${stamp}`, egrantUrl: `https://e2e-push-${stamp}.egrant.sk` },
+    });
+    groupId = ((await created.json()) as { id: string }).id;
+    channelId = (
+      (await (await adminContext.request.get(`/api/groups/${groupId}/chat`)).json()) as {
+        id: string;
+      }
+    ).id;
+
+    const admin = await adminContext.newPage();
+    await admin.goto(`/groups/${groupId}/members`);
+    const inviteUrl = await admin.getByRole('textbox', { name: 'Odkaz na pozvánku' }).inputValue();
+
+    clientContext = await browser.newContext({
+      locale: 'sk-SK',
+      storageState: undefined,
+      permissions: ['notifications'],
+    });
+    // The install card can cover controls on a phone; dismissed here, as in chat-mobile.spec.ts.
+    await clientContext.addInitScript(() => {
+      localStorage.setItem('spolu.prompt.install.dismissedAt', String(Date.now()));
+    });
+    const client = await clientContext.newPage();
+    await client.goto(new URL(inviteUrl).pathname);
+    await clearMailFor(clientContext.request, email);
+    await client.getByLabel('E-mail').fill(email);
+    await client.getByRole('button', { name: 'Poslať kód' }).click();
+    await client.getByLabel('Kód').fill(await latestLoginCode(clientContext.request, email));
+    await client.getByLabel('Vaše meno').fill('E2E Push Client');
+    await client.getByRole('button', { name: 'Pokračovať' }).click();
+    await expect(client).toHaveURL(new RegExp(`/groups/${groupId}/chat$`));
+
+    clientId = ((await (await client.request.get('/api/me')).json()) as { id: string }).id;
+    const saved = await client.request.post('/api/push/subscriptions', { data: endpoint });
+    expect(saved.status()).toBe(204);
+    // An open chat marks messages read at once, and a read message sends no push.
+    await client.close();
+  });
+
+  test.afterAll(async () => {
+    await clientContext?.close();
+    await adminContext?.close();
+  });
+
+  const send = async (body: string) => {
+    const res = await adminContext.request.post(`/api/channels/${channelId}/messages`, {
+      data: { body, clientId: randomUUID() },
+    });
+    expect(res.status()).toBe(201);
+  };
+
+  test('a client in mode All gets a push for an admin message', async () => {
+    const text = `plain-all-${Date.now()}`;
+    await send(text);
+    const push = await waitForPush(endpoint.endpoint, (p) => p.body.includes(text));
+    expect(push.url.startsWith(`/groups/${groupId}/chat?message=`)).toBe(true);
+  });
+
+  test('in Mentions and replies the client gets none for a plain message but one for an @mention', async () => {
+    const set = await clientContext.request.put(`/api/groups/${groupId}/notification-mode`, {
+      data: { mode: 'mentions' },
+    });
+    expect(set.status()).toBe(204);
+
+    const plain = `plain-mode-${Date.now()}`;
+    const mention = `mention-${Date.now()}`;
+    await send(plain);
+    await send(`<@${clientId}> ${mention}`);
+    await waitForPush(endpoint.endpoint, (p) => p.body.includes(mention));
+    expect(pushesFor(endpoint.endpoint).some((p) => p.body.includes(plain))).toBe(false);
+  });
 });
