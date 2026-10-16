@@ -51,12 +51,6 @@ export const CloseIcon = () => (
   </Icon>
 );
 
-export const BackIcon = () => (
-  <Icon>
-    <path d="m15 18-6-6 6-6" />
-  </Icon>
-);
-
 /** Six dots: the handle a custom bucket is dragged by. */
 export const GripIcon = () => (
   <Icon>

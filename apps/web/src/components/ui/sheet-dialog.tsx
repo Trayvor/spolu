@@ -1,0 +1,71 @@
+import type { KeyboardEvent as ReactKeyboardEvent, ReactNode, RefObject } from 'react';
+import { Dialog } from 'radix-ui';
+import { cn } from '@/lib/utils';
+
+/**
+ * Phones: every control is at least 44 px to tap (the task panel's rule, `PanelShell` in
+ * `features/tasks/panel-parts.tsx`), except those that carry their own larger hit area
+ * (`data-hit`), and the formatting toolbar wraps without gaps.
+ */
+export const PHONE_TARGETS =
+  'max-[640px]:[&_:is(button,a,select,input):not([data-hit])]:min-h-11 max-[640px]:[&_:is(button,a,select):not([data-hit])]:min-w-11 max-[640px]:[&_[role=toolbar]]:flex-wrap max-[640px]:[&_[role=toolbar]]:gap-0 max-[640px]:[&_[role=toolbar]]:px-0';
+
+/**
+ * A modal sheet: a centred 720 px dialog from 641 px (at most 880 px tall, 24 px clear of the
+ * viewport), a full-screen sheet below with no backdrop. Always open while mounted: the caller
+ * unmounts it to close. Clicks outside do nothing, and Escape goes to `onEscape`, which decides
+ * (ask first, close a layer, or close). Keys typed inside never reach the page's own handlers.
+ * Name it with a `SheetDialogTitle` inside, or with `labelledBy`.
+ */
+export function SheetDialog({
+  children,
+  onEscape,
+  initialFocus,
+  testId,
+  labelledBy,
+}: {
+  children: ReactNode;
+  onEscape: (event: KeyboardEvent) => void;
+  /** Gets the focus on open; without it Radix focuses the first focusable element. */
+  initialFocus?: RefObject<HTMLElement | null>;
+  /** `data-testid` of the sheet; its backdrop gets `<testId>-backdrop`. */
+  testId?: string;
+  labelledBy?: string;
+}) {
+  return (
+    <Dialog.Root open onOpenChange={() => undefined}>
+      <Dialog.Portal>
+        <Dialog.Overlay
+          data-testid={testId && `${testId}-backdrop`}
+          className="fixed inset-0 z-50 bg-foreground/30 max-[640px]:hidden"
+        />
+        <Dialog.Content
+          data-testid={testId}
+          aria-describedby={undefined}
+          {...(labelledBy ? { 'aria-labelledby': labelledBy } : {})}
+          onEscapeKeyDown={onEscape}
+          onOpenAutoFocus={(event) => {
+            if (!initialFocus) return;
+            event.preventDefault();
+            initialFocus.current?.focus();
+          }}
+          onPointerDownOutside={(event) => event.preventDefault()}
+          onInteractOutside={(event) => event.preventDefault()}
+          // React events bubble through portals: keys typed here must not reach the page's
+          // handlers (the task panel closes on Escape).
+          onKeyDown={(event: ReactKeyboardEvent) => event.stopPropagation()}
+          className={cn(
+            'fixed inset-0 z-50 flex flex-col bg-popover text-popover-foreground outline-none',
+            'min-[641px]:inset-auto min-[641px]:top-1/2 min-[641px]:left-1/2 min-[641px]:max-h-[min(880px,calc(100dvh-48px))] min-[641px]:w-[720px] min-[641px]:max-w-[calc(100vw-48px)] min-[641px]:-translate-x-1/2 min-[641px]:-translate-y-1/2 min-[641px]:rounded-xl min-[641px]:shadow-lift',
+            PHONE_TARGETS,
+          )}
+        >
+          {children}
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
+  );
+}
+
+/** The sheet's accessible name (Radix `Dialog.Title`). */
+export const SheetDialogTitle = Dialog.Title;

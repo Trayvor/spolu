@@ -5,10 +5,15 @@ import { i18n } from '@/i18n';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
-import { AssigneeSelect } from './assignee-select';
-import { DescriptionField } from './description-field';
-import { TaskFilesField } from './task-files-field';
+import { FilesField } from '@/components/files-field';
+import { FormattedTextField } from '@/components/formatted-text-field';
+import { PeopleSelect } from '@/components/people-select';
+import { useGroupPeople } from '@/features/groups/use-group-people';
 import { UrgentSwitch } from './urgent-switch';
+
+/** The most assignees and files a task has (the shared `TaskDraftSchema` checks the same). */
+const MAX_ASSIGNEES = 10;
+const MAX_TASK_FILES = 20;
 
 export type TaskFormErrors = Partial<
   Record<'title' | 'description' | 'assigneeIds' | 'form', string>
@@ -97,6 +102,7 @@ export function TaskForm({
   autoFocusTitle?: boolean;
 }) {
   const { t } = useTranslation();
+  const people = useGroupPeople(groupId).data;
   const uid = useId();
   const id = (name: string) => `${uid}-${name}`;
   // Uploads finish after the render that started them; they must add to the latest draft.
@@ -132,11 +138,13 @@ export function TaskForm({
       </div>
 
       <div className={FIELD}>
-        <DescriptionField
+        <FormattedTextField
           id={id('description')}
           groupId={groupId}
           value={value.description}
           onChange={(description) => set({ description })}
+          label={t('tasks.form.description')}
+          editLabel={t('tasks.form.editDescription')}
           error={errors.description}
           errorId={id('description-error')}
         />
@@ -145,9 +153,11 @@ export function TaskForm({
 
       <div className={FIELD}>
         <Label htmlFor={id('assignees')}>{t('tasks.form.assignees')}</Label>
-        <AssigneeSelect
-          groupId={groupId}
+        <PeopleSelect
+          people={people}
           inputId={id('assignees')}
+          max={MAX_ASSIGNEES}
+          label={t('tasks.form.assignees')}
           value={value.assigneeIds}
           knownPeople={knownPeople}
           onChange={(assigneeIds) => set({ assigneeIds })}
@@ -172,9 +182,10 @@ export function TaskForm({
 
       <div className={FIELD}>
         <Label id={id('files-label')}>{t('tasks.form.files')}</Label>
-        <TaskFilesField
+        <FilesField
           groupId={groupId}
           labelId={id('files-label')}
+          max={MAX_TASK_FILES}
           fileIds={value.fileIds}
           files={files}
           onAdd={(file) => {

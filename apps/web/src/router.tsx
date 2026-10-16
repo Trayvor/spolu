@@ -110,7 +110,10 @@ const groupChatRoute = createRoute({
   path: 'chat',
   component: lazyRouteComponent(
     // Messages show the tasks made from them and offer "Turn into tasks".
-    withNamespaces(['chat', 'tasks', 'taskSplit'], () => import('@/features/chat/chat-tab')),
+    withNamespaces(
+      ['chat', 'tasks', 'taskSplit', 'forms'],
+      () => import('@/features/chat/chat-tab'),
+    ),
     'ChatTab',
   ),
 });
@@ -129,7 +132,10 @@ const taskRoute = createRoute({
   getParentRoute: () => groupTasksRoute,
   path: '$taskId',
   component: lazyRouteComponent(
-    withNamespaces(['tasks', 'chat', 'taskSplit'], () => import('@/features/tasks/task-panel')),
+    withNamespaces(
+      ['tasks', 'chat', 'taskSplit', 'forms'],
+      () => import('@/features/tasks/task-panel'),
+    ),
     'TaskPanelRoute',
   ),
 });
@@ -141,7 +147,7 @@ const newTaskRoute = createRoute({
   validateSearch: (search: Record<string, unknown>): { bucket?: string } =>
     typeof search.bucket === 'string' ? { bucket: search.bucket } : {},
   component: lazyRouteComponent(
-    withNamespaces(['tasks', 'chat'], () => import('@/features/tasks/task-create-panel')),
+    withNamespaces(['tasks', 'chat', 'forms'], () => import('@/features/tasks/task-create-panel')),
     'NewTaskPanelRoute',
   ),
 });

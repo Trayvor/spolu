@@ -7,7 +7,6 @@ import {
   type KeyboardEvent,
   type MouseEvent,
 } from 'react';
-import { useTranslation } from 'react-i18next';
 import { applyFormat, type FormatKind } from '@/features/chat/composer-text';
 import { MessageBody } from '@/features/chat/format/render';
 import { FormatToolbar, formatShortcut } from '@/features/chat/format-toolbar';
@@ -19,15 +18,19 @@ import { cn } from '@/lib/utils';
 const MIN_ROWS = 12;
 
 /**
- * The task description: the chat composer's formatting (toolbar, shortcuts, Markdown marks) on
- * a textarea at least 12 lines tall that grows with its text. A filled description is shown
- * rendered like a chat message until "Edit description"; leaving the field shows it rendered again.
+ * A long text with the chat composer's formatting (toolbar, shortcuts, Markdown marks) on a
+ * textarea at least 12 lines tall that grows with its text, such as the task description. A
+ * filled text is shown rendered like a chat message until `editLabel` ("Edit description") is
+ * pressed; leaving the field shows it rendered again. Mentions are named from `groupId`'s people.
+ * The toolbar's texts are in the `chat` locale namespace.
  */
-export function DescriptionField({
+export function FormattedTextField({
   id,
   groupId,
   value,
   onChange,
+  label,
+  editLabel,
   error,
   errorId,
 }: {
@@ -35,10 +38,12 @@ export function DescriptionField({
   groupId: string;
   value: string;
   onChange: (next: string) => void;
+  label: string;
+  /** The button that switches a filled, rendered text back to editing. */
+  editLabel: string;
   error?: string;
   errorId?: string;
 }) {
-  const { t } = useTranslation();
   const people = useGroupPeople(groupId).data;
   const nameOf = (userId: string) => people?.find((p) => p.id === userId)?.name;
   const [editing, setEditing] = useState(value.trim() === '');
@@ -110,12 +115,12 @@ export function DescriptionField({
     <div className="flex flex-col gap-2.5">
       <div className="flex min-h-6 items-center justify-between gap-2">
         {editing ? (
-          <Label htmlFor={id}>{t('tasks.form.description')}</Label>
+          <Label htmlFor={id}>{label}</Label>
         ) : (
           <>
-            <Label id={`${id}-label`}>{t('tasks.form.description')}</Label>
+            <Label id={`${id}-label`}>{label}</Label>
             <Button type="button" variant="ghost" size="sm" onClick={edit} className="h-6 px-2">
-              {t('tasks.form.editDescription')}
+              {editLabel}
             </Button>
           </>
         )}

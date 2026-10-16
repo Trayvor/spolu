@@ -192,7 +192,7 @@ describe('ReviewDialog', () => {
     ).toHaveValue('Pay the invoice');
     // The proposed message file is in the form and can be removed.
     await user.click(
-      screen.getByRole('button', { name: t('tasks.form.removeFile', { name: 'invoice.pdf' }) }),
+      screen.getByRole('button', { name: t('forms.files.remove', { name: 'invoice.pdf' }) }),
     );
 
     await user.click(

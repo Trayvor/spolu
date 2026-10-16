@@ -6,9 +6,10 @@ import { TaskDtoSchema, type BoardDto, type FileInfo, type TaskDraft } from '@sp
 import { groupQuery } from '@/features/groups/api';
 import { Button } from '@/components/ui/button';
 import { ApiError } from '@/lib/api';
+import { PanelHeader } from '@/components/ui/panel-header';
 import { boardQuery, createTask } from './api';
 import { upsertTask } from './board-cache';
-import { BucketSelect, PanelHeader, PanelShell } from './panel-parts';
+import { BucketSelect, PanelShell } from './panel-parts';
 import { EMPTY_TASK_DRAFT, TaskForm, validateTaskDraft, type TaskFormErrors } from './task-form';
 
 /** Route component: `/groups/:groupId/tasks/new?bucket=<id>`. */
