@@ -11,7 +11,7 @@ import { addMember, createGroup } from '../groups/service.js';
 import { user } from '../users/schema.js';
 import { addAdmin } from '../users/service.js';
 import { files } from './schema.js';
-import { attachFiles, getFilesForGroup } from './service.js';
+import { attachFiles, getFilesForGroup, setFilesAdminsOnly } from './service.js';
 
 type TestApp = Awaited<ReturnType<typeof buildTestApp>>;
 
@@ -156,6 +156,17 @@ describe('files API', () => {
       expect((await get(`/api/files/${file.id}`, other.cookie)).statusCode).toBe(404);
       expect((await get(`/api/files/${file.id}/preview`, other.cookie)).statusCode).toBe(404);
       expect((await putPreview(file.id, other.cookie, WEBP)).statusCode).toBe(404);
+    });
+
+    it('a client gets 404 for an admins-only file of their own group; an admin reads it', async () => {
+      const { file, client } = await withPng();
+      await setFilesAdminsOnly(test.deps.db, [file.id], true);
+      expect((await get(`/api/files/${file.id}`, client.cookie)).statusCode).toBe(404);
+      expect((await get(`/api/files/${file.id}/preview`, client.cookie)).statusCode).toBe(404);
+      const { cookie } = await admin();
+      expect((await get(`/api/files/${file.id}`, cookie)).statusCode).toBe(200);
+      await setFilesAdminsOnly(test.deps.db, [file.id], false);
+      expect((await get(`/api/files/${file.id}`, client.cookie)).statusCode).toBe(200);
     });
 
     it('unknown group or file answers 404', async () => {

@@ -239,6 +239,16 @@ export async function detachFiles(tx: Db, fileIds: string[]): Promise<void> {
   await tx.update(files).set({ attachedAt: null }).where(inArray(files.id, fileIds));
 }
 
+/**
+ * Marks files as readable by admins only (`true`) or by the whole group again. The knowledge
+ * service calls it in its transaction when files join an admins-only item or the item's
+ * visibility changes.
+ */
+export async function setFilesAdminsOnly(tx: Db, fileIds: string[], value: boolean): Promise<void> {
+  if (fileIds.length === 0) return;
+  await tx.update(files).set({ adminsOnly: value }).where(inArray(files.id, fileIds));
+}
+
 /** In the order of `ids`; ids that are unknown or in another group are skipped. */
 export async function getFilesForGroup(
   db: Db,
