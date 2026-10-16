@@ -4,6 +4,7 @@ import { eq, inArray } from 'drizzle-orm';
 import type { SessionUser } from '@spolu/shared';
 import { createDb, type Db } from '../../infra/db/client.js';
 import { testDatabaseUrl } from '../../../test/test-config.js';
+import { groupMembers } from '../groups/schema.js';
 import { addMember, createGroup } from '../groups/service.js';
 import { knowledgeItems } from '../knowledge/schema.js';
 import { user } from '../users/schema.js';
@@ -13,6 +14,7 @@ import {
   AuthorRecipientError,
   InvalidRecipientError,
   InvalidReminderError,
+  NoReminderSetError,
   NotReadableError,
   ReminderInPastError,
 } from './errors.js';
@@ -219,6 +221,81 @@ describe('replaceReminderSet', () => {
     ).rejects.toBeInstanceOf(InvalidReminderError);
   });
 
+  it('accepts a time exactly 5 years ahead and refuses one past it', async () => {
+    const { admin, subject } = await setup();
+    const now = new Date('2026-10-16T10:00:00.000Z');
+    const max = '2031-10-16T10:00:00.000Z';
+    await replace(subject, { times: [{ at: max }], recipientIds: [] }, admin, now);
+    await expect(
+      replace(
+        subject,
+        { times: [{ at: '2031-10-16T10:00:00.001Z' }], recipientIds: [] },
+        admin,
+        now,
+      ),
+    ).rejects.toBeInstanceOf(InvalidReminderError);
+  });
+
+  it('a duplicate time id is invalid_reminder', async () => {
+    const { admin, subject } = await setup();
+    await replace(subject, { times: [{ at: inMs(DAY) }], recipientIds: [] }, admin);
+    const [time] = await timesOf(subject, admin);
+    await expect(
+      replace(
+        subject,
+        {
+          times: [
+            { id: time!.id, at: time!.at },
+            { id: time!.id, at: inMs(2 * DAY) },
+          ],
+          recipientIds: [],
+        },
+        admin,
+      ),
+    ).rejects.toBeInstanceOf(InvalidReminderError);
+  });
+
+  it('a time changed to under one minute ahead is reminder_in_past', async () => {
+    const { admin, subject } = await setup();
+    const now = new Date();
+    await replace(subject, { times: [{ at: inMs(DAY, now) }], recipientIds: [] }, admin, now);
+    const [time] = await timesOf(subject, admin);
+    await expect(
+      replace(
+        subject,
+        { times: [{ id: time!.id, at: inMs(30_000, now) }], recipientIds: [] },
+        admin,
+        now,
+      ),
+    ).rejects.toBeInstanceOf(ReminderInPastError);
+    // An unchanged time that has come within the minute is still accepted.
+    const later = new Date(new Date(time!.at).getTime() - 30_000);
+    await replace(
+      subject,
+      { times: [{ id: time!.id, at: time!.at }], recipientIds: [] },
+      admin,
+      later,
+    );
+  });
+
+  it('removing an added recipient deletes their row', async () => {
+    const { group, admin, client, subject } = await setup();
+    const dana = await newClient(group.id, 'Dana');
+    await replace(
+      subject,
+      { times: [{ at: inMs(DAY) }], recipientIds: [client.id, dana.id] },
+      admin,
+    );
+    const times = await timesOf(subject, admin);
+    await replace(subject, { times, recipientIds: [dana.id] }, admin);
+    const set = await getReminderSet(db, subject, admin);
+    expect(set!.recipients.map((r) => [r.user.id, r.source])).toEqual([
+      [admin.id, 'author'],
+      [dana.id, 'added'],
+    ]);
+    expect((await getReminderSet(db, subject, client))!.subscribed).toBe(false);
+  });
+
   it('refuses the 21st time', async () => {
     const { admin, subject } = await setup();
     const times = (n: number) => Array.from({ length: n }, (_, i) => ({ at: inMs((i + 1) * DAY) }));
@@ -326,6 +403,12 @@ describe('subscription', () => {
     expect((await getReminderSet(db, subject, client))!.subscribed).toBe(false);
   });
 
+  it('subscribing to a readable subject with no set is no_reminder_set', async () => {
+    const { client, subject } = await setup();
+    await expect(subscribe(db, subject, client)).rejects.toBeInstanceOf(NoReminderSetError);
+    await expect(unsubscribe(db, subject, client)).rejects.toBeInstanceOf(NoReminderSetError);
+  });
+
   it('a reader who cannot read the subject gets NotReadableError', async () => {
     const { admin, client, subject } = await setup({ visibility: 'admins' });
     await replace(subject, { times: [{ at: inMs(DAY) }], recipientIds: [] }, admin);
@@ -392,9 +475,43 @@ describe('buildIcs', () => {
     expect(text).toContain(`URL:${link}`);
     expect(text).toContain(`DESCRIPTION:Do it\\n\\n${link}`);
 
+    expect(text).toMatch(/LAST-MODIFIED:\d{8}T\d{6}Z/);
+
+    // Moving a time bumps its SEQUENCE, so a calendar re-import updates the event.
+    const seq = (t: string) => Number(/SEQUENCE:(\d+)/.exec(t)![1]);
+    await db
+      .update(reminderTimes)
+      .set({ updatedAt: new Date(Date.now() - DAY) })
+      .where(eq(reminderTimes.id, times[0]!.id));
+    const before = seq((await buildIcs(db, subject, client, 'https://spolu.example', now))!.text);
+    await replace(
+      subject,
+      { times: [{ id: times[0]!.id, at: inMs(3 * DAY, now) }, times[1]!], recipientIds: [] },
+      admin,
+      now,
+    );
+    const after = seq((await buildIcs(db, subject, client, 'https://spolu.example', now))!.text);
+    expect(after).toBeGreaterThan(before);
+
     const hidden = await setup({ visibility: 'admins' });
     await replace(hidden.subject, { times: [{ at: inMs(DAY) }], recipientIds: [] }, hidden.admin);
     expect(await buildIcs(db, hidden.subject, hidden.client, 'https://x')).toBeNull();
+  });
+});
+
+describe('listUpcomingForUser by group', () => {
+  it('a client who moved groups does not get the old group rows, even before the limit', async () => {
+    const { admin, client, subject } = await setup();
+    const now = new Date();
+    const old = Array.from({ length: 5 }, (_, i) => ({ at: inMs((i + 1) * MIN * 10, now) }));
+    await replace(subject, { times: old, recipientIds: [client.id] }, admin);
+    const newHome = await newGroup();
+    await db.delete(groupMembers).where(eq(groupMembers.userId, client.id));
+    await addMember(db, newHome.id, client.id);
+    const item = await newItem(newHome.id, admin);
+    await replace(item, { times: [{ at: inMs(DAY, now) }], recipientIds: [client.id] }, admin);
+    const mine = await listUpcomingForUser(db, client, { limit: 2 });
+    expect(mine.map((r) => r.groupId)).toEqual([newHome.id]);
   });
 });
 

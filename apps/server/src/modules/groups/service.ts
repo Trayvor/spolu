@@ -186,6 +186,27 @@ export async function isGroupPerson(db: Db, groupId: string, userId: string): Pr
   return row !== undefined;
 }
 
+/**
+ * The same condition as `listGroupPeople`, for many users in one query: the ids among `userIds`
+ * that are people of the group, each with whether they are an admin.
+ */
+export async function getGroupPeopleRoles(
+  db: Db,
+  groupId: string,
+  userIds: string[],
+): Promise<Map<string, { isAdmin: boolean }>> {
+  if (userIds.length === 0) return new Map();
+  const rows = await db
+    .select({ id: user.id, role: user.role })
+    .from(user)
+    .leftJoin(
+      groupMembers,
+      and(eq(groupMembers.userId, user.id), eq(groupMembers.groupId, groupId)),
+    )
+    .where(and(inArray(user.id, userIds), or(isActiveAdmin, isNamedActiveMember(groupId))));
+  return new Map(rows.map((r) => [r.id, { isAdmin: r.role !== 'client' }]));
+}
+
 /** Idempotent: a client is in one group, joining twice changes nothing. */
 export async function addMember(db: Db, groupId: string, userId: string): Promise<void> {
   await db.insert(groupMembers).values({ userId, groupId }).onConflictDoNothing();

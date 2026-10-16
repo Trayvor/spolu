@@ -10,6 +10,8 @@ export type IcsEvent = {
   title: string;
   description: string;
   url: string;
+  /** When the time was last set: SEQUENCE and LAST-MODIFIED, so a re-import updates the event. */
+  updatedAt: Date;
 };
 
 const EVENT_MINUTES = 15;
@@ -23,13 +25,35 @@ function utc(date: Date): string {
     .replace(/[-:]/g, '');
 }
 
-/** TEXT value escaping (RFC 5545 3.3.11). */
+/** Seconds since this epoch make SEQUENCE: it grows with each update and fits in 32 bits. */
+const SEQUENCE_EPOCH = Date.UTC(2026, 0, 1);
+
+/** Whole seconds since 2026-01-01, never negative. */
+function sequence(updatedAt: Date): number {
+  return Math.max(0, Math.floor((updatedAt.getTime() - SEQUENCE_EPOCH) / 1000));
+}
+
+/**
+ * TEXT value escaping (RFC 5545 3.3.11). Line breaks become `\n`; every other control character
+ * except tab is removed, since content lines may not contain them.
+ */
 function escapeText(value: string): string {
-  return value
-    .replace(/\\/g, '\\\\')
-    .replace(/;/g, '\\;')
-    .replace(/,/g, '\\,')
-    .replace(/\r\n|\r|\n/g, '\\n');
+  return (
+    value
+      .replace(/\r\n|\r|\n/g, '\n')
+      // eslint-disable-next-line no-control-regex
+      .replace(/[\x00-\x08\x0b-\x1f\x7f]/g, '')
+      .replace(/\\/g, '\\\\')
+      .replace(/;/g, '\\;')
+      .replace(/,/g, '\\,')
+      .replace(/\n/g, '\\n')
+  );
+}
+
+/** A URI value is not escaped; control characters (CR, LF, tab included) are removed. */
+function cleanUri(value: string): string {
+  // eslint-disable-next-line no-control-regex
+  return value.replace(/[\x00-\x1f\x7f]/g, '');
 }
 
 /**
@@ -67,14 +91,15 @@ export function buildIcsText(input: { now: Date; events: IcsEvent[] }): string {
     const end = new Date(event.start.getTime() + EVENT_MINUTES * 60_000);
     lines.push(
       'BEGIN:VEVENT',
-      `UID:${event.uid}`,
+      `UID:${cleanUri(event.uid)}`,
       `DTSTAMP:${stamp}`,
       `DTSTART:${utc(event.start)}`,
       `DTEND:${utc(end)}`,
+      `LAST-MODIFIED:${utc(event.updatedAt)}`,
+      `SEQUENCE:${sequence(event.updatedAt)}`,
       `SUMMARY:${escapeText(event.title)}`,
       `DESCRIPTION:${escapeText(event.description)}`,
-      // URI value: not TEXT, so not escaped.
-      `URL:${event.url}`,
+      `URL:${cleanUri(event.url)}`,
       'BEGIN:VALARM',
       'TRIGGER:PT0M',
       'ACTION:DISPLAY',

@@ -37,3 +37,11 @@ export class NotReadableError extends Error {
     this.name = 'NotReadableError';
   }
 }
+
+/** The subject is readable but has no reminder set to subscribe to (404 `no_reminder_set`). */
+export class NoReminderSetError extends Error {
+  constructor() {
+    super('No reminder set');
+    this.name = 'NoReminderSetError';
+  }
+}

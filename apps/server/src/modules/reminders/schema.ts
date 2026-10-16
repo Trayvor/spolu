@@ -50,6 +50,8 @@ export const reminderTimes = pgTable(
       .references(() => reminderSets.id, { onDelete: 'cascade' }),
     at: timestamp('at', { withTimezone: true }).notNull(),
     firedAt: timestamp('fired_at', { withTimezone: true }),
+    /** When `at` was set; the calendar export's SEQUENCE and LAST-MODIFIED come from it. */
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
     index('reminder_times_due_idx')

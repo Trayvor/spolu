@@ -8,6 +8,7 @@ const event = (over: Partial<Parameters<typeof buildIcsText>[0]['events'][number
   title: 'Submit the report',
   description: 'Body',
   url: 'https://spolu.example/groups/g/knowledge?k=i',
+  updatedAt: new Date('2026-10-16T08:00:00Z'),
   ...over,
 });
 
@@ -72,6 +73,38 @@ describe('buildIcsText', () => {
     );
     expect(all).toContain('SUMMARY:a\\\\b\\;c\\,d');
     expect(all).toContain('DESCRIPTION:line 1\\nline 2\\nline 3');
+  });
+
+  it('strips control characters, keeping tab in text', () => {
+    const all = lines(
+      buildIcsText({
+        now,
+        events: [
+          event({
+            title: 'a\u0000b\u0007c\td\u007f',
+            description: 'x\u001by\nz',
+            url: 'https://spolu.example/\r\nX-EVIL:1\t?k=i',
+          }),
+        ],
+      }),
+    );
+    expect(all).toContain('SUMMARY:abc\td');
+    expect(all).toContain('DESCRIPTION:xy\\nz');
+    expect(all).toContain('URL:https://spolu.example/X-EVIL:1?k=i');
+    expect(all.some((l) => l.startsWith('X-EVIL'))).toBe(false);
+  });
+
+  it('SEQUENCE and LAST-MODIFIED follow the time update, so re-import updates the event', () => {
+    const first = lines(buildIcsText({ now, events: [event()] }));
+    expect(first).toContain('LAST-MODIFIED:20261016T080000Z');
+    const seq = (all: string[]) => Number(all.find((l) => l.startsWith('SEQUENCE:'))!.slice(9));
+    const later = lines(
+      buildIcsText({ now, events: [event({ updatedAt: new Date('2026-10-16T08:00:01Z') })] }),
+    );
+    expect(Number.isInteger(seq(first))).toBe(true);
+    expect(seq(first)).toBeGreaterThanOrEqual(0);
+    expect(seq(later)).toBeGreaterThan(seq(first));
+    expect(later).toContain('LAST-MODIFIED:20261016T080001Z');
   });
 
   it('every line ends in CRLF and is at most 75 octets', () => {

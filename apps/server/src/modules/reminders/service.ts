@@ -3,7 +3,7 @@ import { and, asc, eq, gt, gte, inArray, isNull, ne, notInArray, sql, type SQL }
 import type { RecipientSource, ReminderSetDto, SessionUser, UpcomingReminder } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
 import { groups } from '../groups/schema.js';
-import { getMembershipGroupId, isGroupPerson } from '../groups/service.js';
+import { getGroupPeopleRoles, getMembershipGroupId } from '../groups/service.js';
 import { isAdmin } from '../users/policy.js';
 import { user } from '../users/schema.js';
 import { getUserNames } from '../users/service.js';
@@ -11,6 +11,7 @@ import {
   AuthorRecipientError,
   InvalidRecipientError,
   InvalidReminderError,
+  NoReminderSetError,
   NotReadableError,
   ReminderInPastError,
 } from './errors.js';
@@ -148,7 +149,7 @@ export async function replaceReminderSet(
   }
   if (changed.length > 0) {
     const values = changed.map((c) => sql`(${c.id}, ${c.at.toISOString()}::timestamptz)`);
-    parts.push(sql`u as (update reminder_times t set at = v.at
+    parts.push(sql`u as (update reminder_times t set at = v.at, updated_at = now()
       from (values ${sql.join(values, sql`, `)}) as v(id, at)
       where t.id = v.id and t.set_id = ${setId} and t.fired_at is null)`);
   }
@@ -183,15 +184,11 @@ async function validateRecipients(
 ): Promise<void> {
   if (ids.length > REMINDER_LIMITS.recipients) throw new InvalidRecipientError();
   if (ids.length === 0) return;
-  if (subject.adminsOnly) {
-    const admins = await tx
-      .select({ id: user.id })
-      .from(user)
-      .where(and(inArray(user.id, ids), inArray(user.role, ADMIN_ROLES)));
-    if (admins.length !== ids.length) throw new InvalidRecipientError();
+  const people = await getGroupPeopleRoles(tx, subject.groupId, ids);
+  for (const id of ids) {
+    const person = people.get(id);
+    if (!person || (subject.adminsOnly && !person.isAdmin)) throw new InvalidRecipientError();
   }
-  const people = await Promise.all(ids.map((id) => isGroupPerson(tx, subject.groupId, id)));
-  if (people.includes(false)) throw new InvalidRecipientError();
 }
 
 /** After a subject became admins-only: drops every non-admin recipient except the author. */
@@ -270,11 +267,15 @@ export async function getReminderSet(
   };
 }
 
-/** The set of a subject the actor can read; `NotReadableError` otherwise. */
+/**
+ * The set of a subject the actor can read: `NotReadableError` when the subject is missing or
+ * unreadable, `NoReminderSetError` when it has no set.
+ */
 async function readableSet(db: Db, subject: ReminderSubjectRef, actor: SessionUser) {
   const info = await readableSubject(db, subject, actor);
-  const setId = info ? await findSetId(db, subject) : null;
-  if (!info || !setId) throw new NotReadableError();
+  if (!info) throw new NotReadableError();
+  const setId = await findSetId(db, subject);
+  if (!setId) throw new NoReminderSetError();
   return { info, setId };
 }
 
@@ -338,7 +339,7 @@ export async function buildIcs(
   const info = await readableSubject(db, subject, actor);
   if (!info) return null;
   const times = await db
-    .select({ id: reminderTimes.id, at: reminderTimes.at })
+    .select({ id: reminderTimes.id, at: reminderTimes.at, updatedAt: reminderTimes.updatedAt })
     .from(reminderTimes)
     .innerJoin(reminderSets, eq(reminderSets.id, reminderTimes.setId))
     .where(
@@ -363,6 +364,7 @@ export async function buildIcs(
         title: info.title,
         description,
         url,
+        updatedAt: t.updatedAt,
       })),
     }),
   };
@@ -378,6 +380,10 @@ export async function listUpcomingForUser(
   actor: SessionUser,
   opts: { from?: Date; limit: number },
 ): Promise<UpcomingReminder[]> {
+  // A client only ever reads their current group: old sets from a group they left never fill
+  // the limit.
+  const actorGroupId = isAdmin(actor) ? null : await getMembershipGroupId(db, actor.id);
+  if (!isAdmin(actor) && actorGroupId === null) return [];
   const rows = await db
     .select({
       id: reminderTimes.id,
@@ -393,7 +399,13 @@ export async function listUpcomingForUser(
       and(eq(reminderRecipients.setId, reminderSets.id), eq(reminderRecipients.userId, actor.id)),
     )
     .innerJoin(groups, eq(groups.id, reminderSets.groupId))
-    .where(and(isNull(reminderTimes.firedAt), gte(reminderTimes.at, opts.from ?? new Date())))
+    .where(
+      and(
+        isNull(reminderTimes.firedAt),
+        gte(reminderTimes.at, opts.from ?? new Date()),
+        actorGroupId === null ? undefined : eq(reminderSets.groupId, actorGroupId),
+      ),
+    )
     .orderBy(asc(reminderTimes.at), asc(reminderTimes.id))
     .limit(opts.limit);
   if (rows.length === 0) return [];
@@ -401,7 +413,6 @@ export async function listUpcomingForUser(
   // Phase 19 adds the task column and kind here.
   const ids = [...new Set(rows.flatMap((r) => (r.knowledgeItemId ? [r.knowledgeItemId] : [])))];
   const subjects = await getReminderSubject('knowledge').loadMany(db, ids);
-  const actorGroupId = isAdmin(actor) ? null : await getMembershipGroupId(db, actor.id);
   return rows.flatMap((row) => {
     const info = row.knowledgeItemId ? subjects.get(row.knowledgeItemId) : undefined;
     if (!info || !info.canRead(actor, actorGroupId)) return [];
