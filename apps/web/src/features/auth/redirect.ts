@@ -8,3 +8,13 @@ export function safeRedirect(value: unknown): string {
   if (value.startsWith('//') || /[\\\t\r\n]/.test(value)) return '/';
   return value;
 }
+
+/**
+ * The `?email=` of an invitation's login link, used to prefill the field: a string of at most
+ * 254 characters with an `@`, else undefined.
+ */
+export function linkEmail(value: unknown): string | undefined {
+  return typeof value === 'string' && value.length <= 254 && value.includes('@')
+    ? value
+    : undefined;
+}

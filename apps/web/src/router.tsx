@@ -13,7 +13,7 @@ import { loadNamespace, withNamespaces } from '@/i18n/namespaces';
 import { ApiError } from '@/lib/api';
 import { groupQuery } from '@/features/groups/api';
 import { normalizeTypes, singleType, validateKnowledgeSearch } from '@/features/knowledge/search';
-import { safeRedirect } from '@/features/auth/redirect';
+import { linkEmail, safeRedirect } from '@/features/auth/redirect';
 import { clientGroups, isAdmin } from '@/features/auth/roles';
 import { sessionQuery } from '@/features/auth/use-session';
 import { RootError } from '@/routes/root-error';
@@ -332,8 +332,11 @@ const knowledgeRoute = createRoute({
 const loginRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/login',
-  validateSearch: (search: Record<string, unknown>): { redirect?: string } =>
-    typeof search.redirect === 'string' ? { redirect: safeRedirect(search.redirect) } : {},
+  // `email`: an invitation's login link carries it to prefill the field (Phase 22b).
+  validateSearch: (search: Record<string, unknown>): { redirect?: string; email?: string } => ({
+    ...(typeof search.redirect === 'string' ? { redirect: safeRedirect(search.redirect) } : {}),
+    ...(linkEmail(search.email) ? { email: linkEmail(search.email) } : {}),
+  }),
   beforeLoad: async ({ context }) => {
     const user = await context.queryClient.ensureQueryData(sessionQuery);
     if (user) throw redirect({ to: '/' });
