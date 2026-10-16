@@ -19,7 +19,11 @@
     "done": "Vaša e-mailová adresa je teraz {{email}}",
     "invalidCode": "Kód je nesprávny alebo vypršal",
     "emailTaken": "Táto adresa patrí inému účtu",
-    "tooMany": "Príliš veľa pokusov. Skúste to znova o pár minút."
+    "tooMany": "Príliš veľa pokusov. Skúste to znova o pár minút.",
+    "bulkEmail": {
+      "label": "Dostávať hromadné e-maily",
+      "hint": "Novinky od eGrantu posielané viacerým ľuďom naraz. Prihlasovacie kódy a upozornenia chodia vždy."
+    }
   },
   "notifications": {
     "title": "Upozornenia",

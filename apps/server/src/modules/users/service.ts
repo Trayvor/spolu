@@ -342,3 +342,16 @@ export async function getActiveRoles(db: Db, ids: string[]): Promise<Map<string,
     .where(and(inArray(user.id, [...new Set(ids)]), isNull(user.disabledAt)));
   return new Map(rows.map((r) => [r.id, r.role as Role]));
 }
+
+/** Ids and addresses of the users with the given emails (any case), in one query; unknown ones are left out. */
+export async function getUsersByEmails(
+  db: Db,
+  emails: string[],
+): Promise<{ id: string; email: string }[]> {
+  const wanted = [...new Set(emails.map(normalizeEmail))];
+  if (wanted.length === 0) return [];
+  return db
+    .select({ id: user.id, email: user.email })
+    .from(user)
+    .where(inArray(user.email, wanted));
+}

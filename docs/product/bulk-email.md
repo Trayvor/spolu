@@ -8,7 +8,7 @@ Every administrator can write an email to many people in Spolu at once ("Hromadn
 - **Drafts.** A new campaign is a draft with only its name, an empty audience and no blocks. Any admin edits any draft; edits are saved with the `version` read last, so when two admins edit the same draft the later save is refused (`409 changed`) and the editor offers to reload. Only a draft can be edited or deleted (`409 not_draft` otherwise).
 - **Duplicate.** Any campaign, also a sent or cancelled one, can be duplicated into a new draft with the same subject, preheader, blocks and audience, version 1, named "<name> (kópia)" / "<name> (copy)" in the admin's language.
 - **List.** All campaigns, last changed first, 50 a page, with status, counts (queued, sending, sent, failed, skipped, cancelled, unsubscribed through this campaign's link), author and dates.
-- Test sends, sending, cancelling, the report, the preview and images arrive with the later parts (23.3–23.7); unsubscribing and the "Receive mailings" setting with part 23.4.
+- Test sends, sending, cancelling and the report arrive with the later parts (23.5–23.7).
 
 ## Audience rules
 
@@ -39,6 +39,27 @@ The builder shows the live count with the "left out" numbers, and "Show recipien
 
 A malformed `cursor` is `400 validation_failed`. Every write pushes `bulk:updated { campaignId }` to the admins room.
 
+## Unsubscribing and subscribing again (part 23.4)
+
+Spolu is the source of truth (owner answer P3). Every person is subscribed until they unsubscribe; people who never signed in too.
+
+- **The link.** Every bulk email's footer link and its `List-Unsubscribe` header lead to Spolu with a signed token for that person and campaign (`<userId>.<campaignId>.<signature>`; nothing is stored, rotating `APP_SECRET` invalidates old links). The page `/unsubscribe/<token>` needs no login. When it opens it unsubscribes the person and says "You will no longer get bulk emails from eGrant. Login codes and notifications from Spolu still arrive.", with **Subscribe again** (and, after that, **Unsubscribe** again). It is shown in the person's language. A link scanner that only fetches the page changes nothing (the page's script does the unsubscribe). A broken or forged link shows "This link is not valid"; the link of a test email shows "This was a test email; nothing changed." The page never shows the person's name or address.
+- **One-click.** Mail apps that offer "Unsubscribe" next to the sender (RFC 8058) post to `/api/bulk-email/unsubscribe/<token>/one-click`; it works from the provider's servers, whatever the body.
+- **Settings.** Every signed-in person (admins, clients and requesters) has the checkbox **"Dostávať hromadné e-maily" / "Receive mailings"** in the Profile card of Settings, ticked by default; unticking unsubscribes, ticking subscribes again (owner answer P4). It saves at once and says "Saved".
+- **Effect.** An unsubscribed person is left out of the audience count and of every later send (a running send checks again before each person, part 23.5). The campaign's "unsubscribed" count is the people whose current setting is unsubscribed through that campaign's link. **Only bulk email is affected**: login codes, invites, notifications and ticket emails always arrive (P5).
+- **Elastic Email.** Until Elastic's support removes its forced unsubscribe link (`BULK_EMAIL_UNSUBSCRIBE=elastic`, the default), the footer link passes through Elastic, which also suppresses the address; when the person subscribes again in Spolu, Spolu asks Elastic to drop that suppression (best effort, not documented to work for unsubscribes). In `spolu` mode Elastic records nothing and no call is made. With `BULK_EMAIL_DRIVER=elastic` a daily job at 04:30 copies the unsubscribes and complaints recorded on Elastic's side into Spolu (source `provider`), but never over a change the person made in Spolu after Elastic's date: it is only a safety net.
+
+| route | does |
+|---|---|
+| `GET /api/bulk-email/unsubscribe/:token` | public: `{ language, subscribed, test }`; 404 for a bad link |
+| `POST /api/bulk-email/unsubscribe/:token` | public: unsubscribe (source `link`), 204 |
+| `POST /api/bulk-email/unsubscribe/:token/one-click` | public: the same with source `one_click`, any body, 204 |
+| `POST /api/bulk-email/subscribe/:token` | public: subscribe again, 204 |
+| `GET /api/me/bulk-email` | signed in: `{ subscribed }` |
+| `PUT /api/me/bulk-email` | signed in: `{ subscribed }` → 204 (source `profile`) |
+
+The public routes allow 30 calls a minute per IP (`429 rate_limited`); all of them are idempotent.
+
 ## Status
 
-Phase 23 in progress: part 23.1 (tables, policy, config, sender) and part 23.2 (campaigns and audience API) are built.
+Phase 23 in progress: part 23.1 (tables, policy, config, sender), part 23.2 (campaigns and audience API), part 23.3 (renderer, images, preview) and part 23.4 (unsubscribe, subscribe again, the Settings checkbox, the Elastic suppression jobs) are built.

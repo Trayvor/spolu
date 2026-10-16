@@ -7,13 +7,15 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { updateName } from '@/features/auth/api';
 import { sessionQuery, useSession } from '@/features/auth/use-session';
+import { BulkEmailSetting } from './bulk-email-setting';
 import { EmailChange } from './email-change';
 
 const NAME_MAX = 100;
 
 /**
  * The Profile card of /settings: the name (Save, then an inline "Saved") and the email address
- * with its inline change flow (`email-change.tsx`). Both rows sit in one card, split by a hairline.
+ * with its inline change flow (`email-change.tsx`), then the "Receive mailings" setting
+ * (`bulk-email-setting.tsx`). The rows sit in one card, split by hairlines.
  */
 export function ProfileSection() {
   const { t } = useTranslation();
@@ -32,6 +34,7 @@ export function ProfileSection() {
         <div className="mt-5 border-t border-border pt-5">
           <EmailChange current={user.email} canChange={user.role !== 'superadmin'} />
         </div>
+        <BulkEmailSetting />
       </CardContent>
     </Card>
   );
