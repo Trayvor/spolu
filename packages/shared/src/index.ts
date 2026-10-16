@@ -3,6 +3,7 @@ export * from './chat.js';
 export * from './files.js';
 export * from './groups.js';
 export * from './health.js';
+export * from './home.js';
 export * from './knowledge.js';
 export * from './notifications.js';
 export * from './reminders.js';

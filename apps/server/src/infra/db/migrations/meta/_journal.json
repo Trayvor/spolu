@@ -92,6 +92,13 @@
       "when": 1792139919686,
       "tag": "0012_knowledge_and_reminders",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1792142035270,
+      "tag": "0013_admin_home",
+      "breakpoints": true
     }
   ]
 }

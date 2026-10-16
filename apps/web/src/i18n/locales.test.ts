@@ -20,6 +20,7 @@ const locales = Object.fromEntries(files.map(([path, json]) => [codeOf(path), js
  * chunks that render them and merged under the key `<name>` (see `src/i18n/namespaces.ts`).
  */
 const NAMESPACES = [
+  'adminHome',
   'admins',
   'chat',
   'forms',

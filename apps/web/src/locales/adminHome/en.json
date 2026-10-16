@@ -1,0 +1,6 @@
+{
+  "shell": {
+    "loadError": "Could not load this. Try again.",
+    "retry": "Try again"
+  }
+}

@@ -85,6 +85,13 @@ export const messages = pgTable(
     unique('messages_author_client_unique').on(t.authorId, t.clientId),
     index('messages_channel_parent_created_idx').on(t.channelId, t.parentId, t.createdAt),
     index('messages_channel_seq_idx').on(t.channelId, t.changeSeq),
+    // The admin home's unread mentions: @all messages of a channel after the read mark.
+    index('messages_mentions_all_top_idx')
+      .on(t.channelId, t.createdAt)
+      .where(sql`${t.mentionsAll} and ${t.deletedAt} is null and ${t.parentId} is null`),
+    index('messages_mentions_all_reply_idx')
+      .on(t.channelId, t.createdAt)
+      .where(sql`${t.mentionsAll} and ${t.deletedAt} is null and ${t.parentId} is not null`),
   ],
 );
 
@@ -98,7 +105,11 @@ export const messageMentions = pgTable(
       .notNull()
       .references(() => user.id, { onDelete: 'cascade' }),
   },
-  (t) => [primaryKey({ columns: [t.messageId, t.userId] })],
+  (t) => [
+    primaryKey({ columns: [t.messageId, t.userId] }),
+    // The admin home's unread mentions: the messages that name one user.
+    index('message_mentions_user_message_idx').on(t.userId, t.messageId),
+  ],
 );
 
 export const messageAttachments = pgTable(

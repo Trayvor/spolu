@@ -72,5 +72,7 @@ export const ErrorCodes = {
   invalidRecipient: 'invalid_recipient',
   authorRecipient: 'author_recipient',
   noReminderSet: 'no_reminder_set',
+  // Phase 20 — admin home and the global task board
+  invalidFilter: 'invalid_filter',
 } as const;
 export type ErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes];

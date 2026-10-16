@@ -86,6 +86,8 @@ export const tasks = pgTable(
   (t) => [
     uniqueIndex('tasks_bucket_position_unique').on(t.bucketId, t.position),
     index('tasks_group_id_idx').on(t.groupId),
+    // The global task board: the chosen clients' tasks, open or recently completed.
+    index('tasks_open_group_idx').on(t.groupId, t.completedAt),
     index('tasks_due_date_open_idx')
       .on(t.dueDate)
       .where(sql`${t.completedAt} is null`),

@@ -1,0 +1,6 @@
+{
+  "shell": {
+    "loadError": "Nepodarilo sa to načítať. Skúste to znova.",
+    "retry": "Skúsiť znova"
+  }
+}
