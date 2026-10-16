@@ -31,3 +31,12 @@ export const CloseIcon = () => (
     <path d="M18 6 6 18M6 6l12 12" />
   </Icon>
 );
+
+/** Three dots: a "More" menu trigger. */
+export const MoreIcon = () => (
+  <Icon>
+    <circle cx="5" cy="12" r="1" />
+    <circle cx="12" cy="12" r="1" />
+    <circle cx="19" cy="12" r="1" />
+  </Icon>
+);

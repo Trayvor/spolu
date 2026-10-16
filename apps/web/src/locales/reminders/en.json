@@ -14,7 +14,18 @@
       "duplicate": "This time is already in the list."
     }
   },
-  "panel": {},
+  "panel": {
+    "title": "Reminders",
+    "sent": "sent",
+    "reminded": "Reminded",
+    "remindMe": "Remind me",
+    "authorHint": "You created this reminder",
+    "addToCalendar": "Export to calendar",
+    "noUpcoming": "No upcoming reminders",
+    "andMore": "{{names}} and {{count}} more",
+    "unavailable": "This item has no reminders any more.",
+    "failed": "Could not change your reminder. Try again."
+  },
   "time": {
     "today": "Today, {{time}}",
     "tomorrow": "Tomorrow, {{time}}",

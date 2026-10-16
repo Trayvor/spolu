@@ -1,0 +1,136 @@
+import { forwardRef } from 'react';
+import { useTranslation } from 'react-i18next';
+import type { FileInfo, KnowledgeItemDto } from '@spolu/shared';
+import { Avatar } from '@/components/avatar';
+import { SheetDialogTitle } from '@/components/ui/sheet-dialog';
+import { MessageBody } from '@/features/chat/format/render';
+import { FileChip } from '@/features/files/file-chip';
+import { ImagePreview } from '@/features/files/image-preview';
+import { ReminderPanel } from '@/features/reminders/reminder-panel';
+import { ArrowOutIcon, LockIcon } from './icons';
+
+type NameOf = (id: string) => string | undefined;
+
+function Attachments({ files }: { files: FileInfo[] }) {
+  if (files.length === 0) return null;
+  return (
+    <div className="flex flex-wrap items-start gap-2">
+      {files.map((file) =>
+        file.mime.startsWith('image/') ? (
+          <ImagePreview
+            key={file.id}
+            file={file}
+            maxWidth={
+              file.width && file.height ? Math.min(320, (240 * file.width) / file.height) : 320
+            }
+          />
+        ) : (
+          <FileChip key={file.id} file={file} />
+        ),
+      )}
+    </div>
+  );
+}
+
+function Body({ body, nameOf }: { body: string; nameOf: NameOf }) {
+  if (!body.trim()) return null;
+  return (
+    <div className="break-words text-body">
+      <MessageBody body={body} nameOf={nameOf} />
+    </div>
+  );
+}
+
+/**
+ * The read-only detail of an item: the type, the title (the sheet's accessible name), the author
+ * line with the visibility, a rule, then the content of its type. `onChanged` refetches the item
+ * after the viewer's reminder subscription changes.
+ */
+export const KnowledgeView = forwardRef<
+  HTMLHeadingElement,
+  { item: KnowledgeItemDto; nameOf: NameOf; onChanged: () => void }
+>(function KnowledgeView({ item, nameOf, onChanged }, titleRef) {
+  const { t, i18n } = useTranslation();
+  const date = new Date(item.createdAt).toLocaleDateString(
+    /^en\b/.test(i18n.language) ? 'en-GB' : i18n.language,
+    { day: 'numeric', month: 'short', year: 'numeric' },
+  );
+  return (
+    <article className="flex flex-col gap-4">
+      <div className="flex flex-col gap-1.5">
+        <p className="text-micro text-muted-foreground">{t(`knowledge.types.${item.type}`)}</p>
+        <SheetDialogTitle
+          ref={titleRef}
+          tabIndex={-1}
+          className="break-words text-medium font-semibold outline-none"
+        >
+          {item.title}
+        </SheetDialogTitle>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-tiny text-muted-foreground">
+          <span className="flex items-center gap-2">
+            <Avatar userId={item.createdBy.id} name={item.createdBy.name} size={24} />
+            {t('knowledge.detail.byline', { name: item.createdBy.name, date })}
+          </span>
+          <span className="flex items-center gap-1">
+            {item.visibility === 'admins' && <LockIcon />}
+            {t(`knowledge.visibility.${item.visibility}`)}
+          </span>
+        </div>
+      </div>
+      <hr className="border-t-2 border-border" />
+
+      {item.type === 'note' && (
+        <>
+          <Body body={item.body} nameOf={nameOf} />
+          <Attachments files={item.files} />
+        </>
+      )}
+
+      {item.type === 'file' && (
+        <>
+          {(item.file ?? item.files[0]) && (
+            <FileChip file={(item.file ?? item.files[0])!} className="w-full py-3" />
+          )}
+          <Body body={item.body} nameOf={nameOf} />
+        </>
+      )}
+
+      {item.type === 'link' && (
+        <>
+          {item.url && (
+            <a
+              href={item.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-start gap-1.5 break-all text-body font-semibold underline underline-offset-4"
+            >
+              <span className="sr-only">{t('knowledge.detail.openLink')}: </span>
+              {item.url}
+              <span className="mt-1.5">
+                <ArrowOutIcon />
+              </span>
+            </a>
+          )}
+          <Body body={item.body} nameOf={nameOf} />
+        </>
+      )}
+
+      {item.type === 'reminder' && (
+        <>
+          <Body body={item.body} nameOf={nameOf} />
+          {item.reminder && (
+            <div className="border-t-2 border-border pt-4">
+              <ReminderPanel
+                prefix="/knowledge"
+                subjectId={item.id}
+                set={item.reminder}
+                authorId={item.createdBy.id}
+                onChanged={onChanged}
+              />
+            </div>
+          )}
+        </>
+      )}
+    </article>
+  );
+});
