@@ -11,7 +11,7 @@ import { useTranslation } from 'react-i18next';
 import type { MessageDto } from '@spolu/shared';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { useGroupPeople } from '@/features/groups/use-group-people';
+import { useChatPeople } from './chat-scope';
 import type { Pending } from './channel-window';
 import { Composer } from './composer';
 import { BackIcon, CloseIcon } from './icons';
@@ -68,7 +68,7 @@ export function ThreadPanel({
 }: ThreadPanelProps) {
   const { t } = useTranslation();
   const { data: thread, isError, refetch } = useThread(rootId);
-  const people = useGroupPeople(groupId).data;
+  const people = useChatPeople(groupId).data;
   const names = useMemo(() => new Map((people ?? []).map((p) => [p.id, p.name])), [people]);
   const nameOf = useMemo(() => (id: string) => names.get(id), [names]);
   const panel = useRef<HTMLElement>(null);
