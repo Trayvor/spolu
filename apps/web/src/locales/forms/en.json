@@ -1,0 +1,22 @@
+{
+  "panel": {
+    "back": "Back to the board",
+    "close": "Close"
+  },
+  "files": {
+    "attach": "Attach a file",
+    "remove": "Remove {{name}}",
+    "uploading": "Uploading {{name}}",
+    "uploadFailed": "Could not upload {{name}}.",
+    "tooLarge": "{{name}} is over 25 MB.",
+    "unknown": "File"
+  },
+  "people": {
+    "search": "Search people",
+    "empty": "No one found.",
+    "remove": "Remove {{name}}",
+    "removed": "{{name}} (removed)",
+    "adminPill": "eGrant",
+    "full": "Choose at most {{max}} people."
+  }
+}

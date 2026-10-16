@@ -7,11 +7,12 @@ import {
   type KeyboardEvent,
   type MouseEvent,
 } from 'react';
-import { useTranslation } from 'react-i18next';
 import { applyFormat, type FormatKind } from '@/features/chat/composer-text';
 import { MessageBody } from '@/features/chat/format/render';
 import { FormatToolbar, formatShortcut } from '@/features/chat/format-toolbar';
-import { useGroupPeople } from '@/features/groups/use-group-people';
+import { useQuery } from '@tanstack/react-query';
+import type { GroupPerson } from '@spolu/shared';
+import { groupPeopleQuery } from '@/features/groups/api';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
@@ -19,27 +20,39 @@ import { cn } from '@/lib/utils';
 const MIN_ROWS = 12;
 
 /**
- * The task description: the chat composer's formatting (toolbar, shortcuts, Markdown marks) on
- * a textarea at least 12 lines tall that grows with its text. A filled description is shown
- * rendered like a chat message until "Edit description"; leaving the field shows it rendered again.
+ * A long text with the chat composer's formatting (toolbar, shortcuts, Markdown marks) on a
+ * textarea at least 12 lines tall that grows with its text, such as the task description. A
+ * filled text is shown rendered like a chat message until `editLabel` ("Edit description") is
+ * pressed; leaving the field shows it rendered again. Mentions are named from `people`, or, when
+ * it is not given, from `groupId`'s people (fetched).
+ * The toolbar's texts are in the `chat` locale namespace.
  */
-export function DescriptionField({
+export function FormattedTextField({
   id,
   groupId,
   value,
   onChange,
+  label,
+  editLabel,
   error,
   errorId,
+  people: givenPeople,
 }: {
   id: string;
   groupId: string;
   value: string;
   onChange: (next: string) => void;
+  label: string;
+  /** The button that switches a filled, rendered text back to editing. */
+  editLabel: string;
   error?: string;
   errorId?: string;
+  /** The people mentions are named from; without it, the group's people are fetched. */
+  people?: GroupPerson[];
 }) {
-  const { t } = useTranslation();
-  const people = useGroupPeople(groupId).data;
+  // `useGroupPeople`, unless the caller already has the people.
+  const fetched = useQuery({ ...groupPeopleQuery(groupId), enabled: givenPeople === undefined });
+  const people = givenPeople ?? fetched.data;
   const nameOf = (userId: string) => people?.find((p) => p.id === userId)?.name;
   const [editing, setEditing] = useState(value.trim() === '');
   const textarea = useRef<HTMLTextAreaElement>(null);
@@ -110,12 +123,12 @@ export function DescriptionField({
     <div className="flex flex-col gap-2.5">
       <div className="flex min-h-6 items-center justify-between gap-2">
         {editing ? (
-          <Label htmlFor={id}>{t('tasks.form.description')}</Label>
+          <Label htmlFor={id}>{label}</Label>
         ) : (
           <>
-            <Label id={`${id}-label`}>{t('tasks.form.description')}</Label>
+            <Label id={`${id}-label`}>{label}</Label>
             <Button type="button" variant="ghost" size="sm" onClick={edit} className="h-6 px-2">
-              {t('tasks.form.editDescription')}
+              {editLabel}
             </Button>
           </>
         )}

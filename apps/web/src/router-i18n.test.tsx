@@ -193,14 +193,14 @@ const CASES: Case[] = [
     me: ADMIN,
     shows: 'Write a message…',
     placeholder: true,
-    namespaces: ['group', 'groups', 'chat', 'tasks', 'taskSplit'],
+    namespaces: ['group', 'groups', 'chat', 'tasks', 'taskSplit', 'forms'],
   },
   {
     path: '/groups/g1/chat',
     me: CLIENT,
     shows: 'Write a message…',
     placeholder: true,
-    namespaces: ['group', 'chat', 'tasks', 'taskSplit'],
+    namespaces: ['group', 'chat', 'tasks', 'taskSplit', 'forms'],
   },
   {
     path: '/groups/g1/tasks',
@@ -212,13 +212,13 @@ const CASES: Case[] = [
     path: '/groups/g1/tasks/t1',
     me: ADMIN,
     shows: 'Created from a message',
-    namespaces: ['group', 'chat', 'tasks', 'taskSplit'],
+    namespaces: ['group', 'chat', 'tasks', 'taskSplit', 'forms'],
   },
   {
     path: '/groups/g1/tasks/new',
     me: CLIENT,
     shows: 'New task',
-    namespaces: ['group', 'chat', 'tasks', 'taskSplit'],
+    namespaces: ['group', 'chat', 'tasks', 'taskSplit', 'forms'],
   },
   {
     path: '/groups/g1/members',

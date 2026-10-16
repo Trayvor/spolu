@@ -2,12 +2,10 @@ import { useLayoutEffect, useRef, type KeyboardEvent, type ReactNode } from 'rea
 import { useNavigate } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import type { BucketDto } from '@spolu/shared';
-import { Button } from '@/components/ui/button';
 import { useScrollLock } from '@/lib/use-scroll-lock';
 import { cn } from '@/lib/utils';
 import { Select } from '@/components/ui/select';
 import { bucketTitle, byPosition } from './board-model';
-import { BackIcon } from './icons';
 
 /**
  * The panel frame shared by the detail and the create mode: 560 px on the right from 1024 px,
@@ -77,28 +75,6 @@ export function PanelShell({
     >
       {children}
     </aside>
-  );
-}
-
-/** The panel's top bar: "Back to the board" on phones, "Close" from 1024 px, then `children`. */
-export function PanelHeader({ onClose, children }: { onClose: () => void; children: ReactNode }) {
-  const { t } = useTranslation();
-  return (
-    <header className="flex items-center gap-2 border-b-2 border-border px-3 py-2 min-[641px]:px-4 min-[641px]:py-3">
-      {/* Phones: a back arrow only (the label stays for screen readers), so the bucket select fits. */}
-      <Button
-        variant="ghost"
-        onClick={onClose}
-        className="lg:hidden max-[640px]:size-11 max-[640px]:px-0"
-      >
-        <BackIcon />
-        <span className="max-[640px]:sr-only">{t('tasks.panel.back')}</span>
-      </Button>
-      <Button variant="ghost" onClick={onClose} className="max-lg:hidden">
-        {t('tasks.panel.close')}
-      </Button>
-      <div className="ml-auto flex min-w-0 flex-1 items-center justify-end gap-2">{children}</div>
-    </header>
   );
 }
 

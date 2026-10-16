@@ -6,10 +6,12 @@ import type { MessageDto, TaskDetailDto } from '@spolu/shared';
 import { Toast } from '@/components/ui/toast';
 import type { MessageAction } from '@/features/chat/conversation';
 import { renderMessageTasks } from '@/features/chat/message-tasks';
+import { withNamespaces } from '@/i18n/namespaces';
 import { aiStatusQuery } from './api';
 
 // The review dialog (and the task form inside it) loads only when a message is chosen.
-const ReviewDialog = lazy(() => import('./review-dialog'));
+// Its form fields need the `forms` namespace, which the chat and task panel routes load already.
+const ReviewDialog = lazy(withNamespaces(['forms'], () => import('./review-dialog')));
 
 const NO_ACTIONS: MessageAction[] = [];
 

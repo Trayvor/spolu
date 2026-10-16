@@ -1,0 +1,22 @@
+{
+  "panel": {
+    "back": "Späť na nástenku",
+    "close": "Zavrieť"
+  },
+  "files": {
+    "attach": "Priložiť súbor",
+    "remove": "Odstrániť {{name}}",
+    "uploading": "Nahráva sa {{name}}",
+    "uploadFailed": "Súbor {{name}} sa nepodarilo nahrať.",
+    "tooLarge": "Súbor {{name}} má viac ako 25 MB.",
+    "unknown": "Súbor"
+  },
+  "people": {
+    "search": "Hľadať ľudí",
+    "empty": "Nikto sa nenašiel.",
+    "remove": "Odobrať {{name}}",
+    "removed": "{{name}} (odstránený)",
+    "adminPill": "eGrant",
+    "full": "Vyberte najviac {{max}} ľudí."
+  }
+}

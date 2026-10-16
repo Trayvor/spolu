@@ -333,12 +333,12 @@ describe('TaskPanel', () => {
   it('Close with unsaved changes asks first; Keep editing stays, Discard leaves', async () => {
     const { user, router } = renderPanel();
     await user.type(await titleField(), '!');
-    await user.click(screen.getByRole('button', { name: t('tasks.panel.close') }));
+    await user.click(screen.getByRole('button', { name: t('forms.panel.close') }));
     expect(await screen.findByText(t('tasks.panel.unsaved'))).toBeInTheDocument();
     expect(router.state.location.pathname).toBe('/groups/g1/tasks/t1');
     await user.click(screen.getByRole('button', { name: t('tasks.panel.keepEditing') }));
     expect(screen.queryByText(t('tasks.panel.unsaved'))).toBeNull();
-    await user.click(screen.getByRole('button', { name: t('tasks.panel.close') }));
+    await user.click(screen.getByRole('button', { name: t('forms.panel.close') }));
     await user.click(await screen.findByRole('button', { name: t('tasks.panel.discard') }));
     await waitFor(() => expect(router.state.location.pathname).toBe('/groups/g1/tasks'));
   });
@@ -435,7 +435,7 @@ describe('TaskPanel', () => {
       expect(await screen.findByTestId('conversation')).toBeInTheDocument();
       await user.click(tab(/Details/));
       expect(screen.getByLabelText(t('tasks.form.title'))).toHaveValue('Task t1 more');
-      await user.click(screen.getByRole('button', { name: t('tasks.panel.close') }));
+      await user.click(screen.getByRole('button', { name: t('forms.panel.close') }));
       expect(await screen.findByText(t('tasks.panel.unsaved'))).toBeInTheDocument();
     });
 
@@ -499,7 +499,7 @@ describe('TaskPanel', () => {
     const heading = await screen.findByRole('heading', { name: 'Task t1' });
     await waitFor(() => expect(heading).toHaveFocus());
     const card = await screen.findByRole('link', { name: /Task t1/ });
-    await user.click(screen.getByRole('button', { name: t('tasks.panel.close') }));
+    await user.click(screen.getByRole('button', { name: t('forms.panel.close') }));
     await waitFor(() => expect(router.state.location.pathname).toBe('/groups/g1/tasks'));
     await waitFor(() => expect(card).toHaveFocus());
   });
@@ -601,7 +601,7 @@ describe('TaskPanel in create mode', () => {
   it('closing discards the draft without asking', async () => {
     const { user, router } = renderPanel(NEW);
     await user.type(await titleField(), 'Draft');
-    await user.click(screen.getByRole('button', { name: t('tasks.panel.close') }));
+    await user.click(screen.getByRole('button', { name: t('forms.panel.close') }));
     await waitFor(() => expect(router.state.location.pathname).toBe('/groups/g1/tasks'));
     expect(screen.queryByText(t('tasks.panel.unsaved'))).toBeNull();
     expect(calls('POST', '/api/groups/g1/tasks')).toHaveLength(0);
@@ -645,7 +645,7 @@ describe('TaskPanel scroll lock', () => {
     expect(document.documentElement.style.overflow).toBe('');
     change(true);
     expect(document.documentElement.style.overflow).toBe('hidden');
-    await user.click(screen.getByRole('button', { name: t('tasks.panel.close') }));
+    await user.click(screen.getByRole('button', { name: t('forms.panel.close') }));
     await waitFor(() => expect(router.state.location.pathname).toBe('/groups/g1/tasks'));
     expect(document.documentElement.style.overflow).toBe('');
     expect(listeners).toHaveLength(0);

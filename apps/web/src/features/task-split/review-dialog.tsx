@@ -1,13 +1,6 @@
-import {
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type KeyboardEvent as ReactKeyboardEvent,
-} from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { Dialog } from 'radix-ui';
 import {
   ErrorCodes,
   plainExcerpt,
@@ -16,12 +9,12 @@ import {
   type TaskProposals,
 } from '@spolu/shared';
 import { Button } from '@/components/ui/button';
+import { SheetDialog, SheetDialogTitle } from '@/components/ui/sheet-dialog';
 import { useGroupPeople } from '@/features/groups/use-group-people';
 import { todayInBratislava } from '@/features/tasks/dates';
 import { TaskForm, validateTaskDraft, type TaskFormErrors } from '@/features/tasks/task-form';
 import { ApiError } from '@/lib/api';
 import { useMediaQuery } from '@/lib/use-media-query';
-import { cn } from '@/lib/utils';
 import { aiStatusQuery } from './api';
 import { createTasksFromMessage, proposeTasks } from './split-api';
 import { DecisionButtons, ReviewCardView } from './review-card';
@@ -36,13 +29,6 @@ import {
 
 const QUOTE_EXCERPT = 280;
 const OUTLINES = [0, 1, 2];
-
-/**
- * Phones: every control is at least 44 px to tap (the task panel's rule, `panel-parts.tsx`), and
- * the formatting toolbar wraps without gaps.
- */
-const PHONE_TARGETS =
-  'max-[640px]:[&_:is(button,a,select,input):not([data-hit])]:min-h-11 max-[640px]:[&_:is(button,a,select):not([data-hit])]:min-w-11 max-[640px]:[&_[role=toolbar]]:flex-wrap max-[640px]:[&_[role=toolbar]]:gap-0 max-[640px]:[&_[role=toolbar]]:px-0';
 
 type Problem = 'failed' | 'noTasks' | 'unavailable' | 'gone';
 
@@ -72,7 +58,8 @@ function createProblemKey(error: unknown): string {
 
 /**
  * "Turn into tasks": the AI's proposed cards for one message, reviewed before anything exists.
- * A centred 720 px dialog from 641 px, a full-screen sheet below with the footer always in view.
+ * A `SheetDialog`: a centred 720 px dialog from 641 px, a full-screen sheet below with the footer
+ * always in view.
  * Every card shows as a compact summary; opening one shows its `TaskForm` (in place on desktop,
  * one at a time; a full-screen layer with Done on phones). "Create N tasks" sends the approved
  * cards once every card is approved or rejected. The backdrop does nothing; Escape and Cancel
@@ -314,197 +301,166 @@ export function ReviewDialog({
   );
 
   return (
-    <Dialog.Root open onOpenChange={() => undefined}>
-      <Dialog.Portal>
-        <Dialog.Overlay
-          data-testid="review-backdrop"
-          className="fixed inset-0 z-50 bg-foreground/30 max-[640px]:hidden"
-        />
-        <Dialog.Content
-          aria-describedby={undefined}
-          onEscapeKeyDown={onEscape}
-          // The dialog opens loading, with nothing to act on yet: the focus starts on its title.
-          onOpenAutoFocus={(event) => {
-            event.preventDefault();
-            titleRef.current?.focus();
-          }}
-          onPointerDownOutside={(event) => event.preventDefault()}
-          onInteractOutside={(event) => event.preventDefault()}
-          // React events bubble through portals: keys typed here must not reach the page's
-          // handlers (the task panel closes on Escape).
-          onKeyDown={(event: ReactKeyboardEvent) => event.stopPropagation()}
-          className={cn(
-            'fixed inset-0 z-50 flex flex-col bg-popover text-popover-foreground outline-none',
-            'min-[641px]:inset-auto min-[641px]:top-1/2 min-[641px]:left-1/2 min-[641px]:max-h-[min(880px,calc(100dvh-48px))] min-[641px]:w-[720px] min-[641px]:max-w-[calc(100vw-48px)] min-[641px]:-translate-x-1/2 min-[641px]:-translate-y-1/2 min-[641px]:rounded-xl min-[641px]:shadow-lift',
-            PHONE_TARGETS,
-          )}
+    // The dialog opens loading, with nothing to act on yet: the focus starts on its title.
+    <SheetDialog onEscape={onEscape} initialFocus={titleRef} testId="review">
+      <p role="status" data-testid="review-live" className="sr-only">
+        {live}
+      </p>
+      <header className="flex items-center gap-3 px-4 pt-4 pb-3 min-[641px]:px-6 min-[641px]:pt-6">
+        <SheetDialogTitle
+          ref={titleRef}
+          tabIndex={-1}
+          className="text-medium font-semibold outline-none"
         >
-          <p role="status" data-testid="review-live" className="sr-only">
-            {live}
-          </p>
-          <header className="flex items-center gap-3 px-4 pt-4 pb-3 min-[641px]:px-6 min-[641px]:pt-6">
-            <Dialog.Title
-              ref={titleRef}
-              tabIndex={-1}
-              className="text-medium font-semibold outline-none"
-            >
-              {t('taskSplit.title')}
-            </Dialog.Title>
-          </header>
+          {t('taskSplit.title')}
+        </SheetDialogTitle>
+      </header>
 
-          {/* Hidden, not unmounted, under the phone layer: the list keeps its scroll position. */}
-          <div hidden={layer} className="min-h-0 flex-1 overflow-y-auto px-4 pb-4 min-[641px]:px-6">
-            <figure className="rounded-lg bg-muted px-4 py-3">
-              <figcaption className="text-tiny font-semibold">{message.author.name}</figcaption>
-              <blockquote className="mt-1 line-clamp-3 break-words text-button text-muted-foreground">
-                {plainExcerpt(message.body, nameOf, QUOTE_EXCERPT, t('chat.mention.all'))}
-              </blockquote>
-            </figure>
+      {/* Hidden, not unmounted, under the phone layer: the list keeps its scroll position. */}
+      <div hidden={layer} className="min-h-0 flex-1 overflow-y-auto px-4 pb-4 min-[641px]:px-6">
+        <figure className="rounded-lg bg-muted px-4 py-3">
+          <figcaption className="text-tiny font-semibold">{message.author.name}</figcaption>
+          <blockquote className="mt-1 line-clamp-3 break-words text-button text-muted-foreground">
+            {plainExcerpt(message.body, nameOf, QUOTE_EXCERPT, t('chat.mention.all'))}
+          </blockquote>
+        </figure>
 
-            {loading && (
-              <div className="mt-4">
-                <p className="text-button text-muted-foreground">{t('taskSplit.loading')}</p>
+        {loading && (
+          <div className="mt-4">
+            <p className="text-button text-muted-foreground">{t('taskSplit.loading')}</p>
+            <div aria-hidden="true" className="mt-3 flex flex-col gap-2 motion-safe:animate-pulse">
+              {OUTLINES.map((i) => (
                 <div
-                  aria-hidden="true"
-                  className="mt-3 flex flex-col gap-2 motion-safe:animate-pulse"
+                  key={i}
+                  data-testid="card-outline"
+                  className="flex flex-col gap-2.5 rounded-lg border-2 border-dashed border-surface-3 p-4"
                 >
-                  {OUTLINES.map((i) => (
-                    <div
-                      key={i}
-                      data-testid="card-outline"
-                      className="flex flex-col gap-2.5 rounded-lg border-2 border-dashed border-surface-3 p-4"
-                    >
-                      <span className="h-3 w-3/5 rounded-full bg-secondary" />
-                      <span className="h-2.5 w-full rounded-full bg-secondary" />
-                      <span className="h-2.5 w-2/5 rounded-full bg-secondary" />
-                    </div>
-                  ))}
+                  <span className="h-3 w-3/5 rounded-full bg-secondary" />
+                  <span className="h-2.5 w-full rounded-full bg-secondary" />
+                  <span className="h-2.5 w-2/5 rounded-full bg-secondary" />
                 </div>
-              </div>
-            )}
+              ))}
+            </div>
+          </div>
+        )}
 
-            {problem && (
-              <div className="mt-4 flex flex-col items-start gap-3 rounded-lg bg-card p-4">
-                <p className="text-body">{t(PROBLEM_KEYS[problem])}</p>
-                {problem === 'failed' && (
-                  <Button variant="outline" size="lg" onClick={retry}>
-                    {t('taskSplit.retry')}
-                  </Button>
-                )}
-                {problem === 'noTasks' && (
-                  <Button variant="outline" size="lg" onClick={byHand}>
-                    {t('taskSplit.byHand')}
-                  </Button>
-                )}
-              </div>
+        {problem && (
+          <div className="mt-4 flex flex-col items-start gap-3 rounded-lg bg-card p-4">
+            <p className="text-body">{t(PROBLEM_KEYS[problem])}</p>
+            {problem === 'failed' && (
+              <Button variant="outline" size="lg" onClick={retry}>
+                {t('taskSplit.retry')}
+              </Button>
             )}
-
-            {cards && (
-              <>
-                <p className="mt-4 text-tiny text-muted-foreground">{t('taskSplit.intro')}</p>
-                <div className="mt-3 flex flex-col gap-2">
-                  {cards.map((card) => (
-                    <ReviewCardView
-                      key={card.key}
-                      card={card}
-                      people={people}
-                      today={today}
-                      expanded={desktop && card.key === openKey ? form(card) : undefined}
-                      focusSignal={focus.key === card.key ? focus.n : 0}
-                      onOpen={() => setOpenKey(card.key)}
-                      onCollapse={collapse}
-                      onApprove={() => toggleApprove(card)}
-                      onReject={() => reject(card.key)}
-                      onUndo={() => undo(card.key)}
-                    />
-                  ))}
-                </div>
-              </>
+            {problem === 'noTasks' && (
+              <Button variant="outline" size="lg" onClick={byHand}>
+                {t('taskSplit.byHand')}
+              </Button>
             )}
           </div>
+        )}
 
-          {layer && openCard && (
-            <section
-              aria-label={openTitle}
-              className="absolute inset-0 z-10 flex flex-col bg-popover"
-            >
-              <div className="flex items-center gap-3 border-b-2 border-border px-4 py-2">
-                <h3 className="min-w-0 flex-1 truncate text-body font-semibold">
-                  {t('taskSplit.editCard')}
-                </h3>
-                <Button size="lg" className="px-5" onClick={collapse}>
-                  {t('taskSplit.done')}
-                </Button>
-              </div>
-              <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">{form(openCard)}</div>
-              <div className="flex justify-end border-t-2 border-border px-2 pt-2 pb-[max(8px,env(safe-area-inset-bottom))]">
-                <DecisionButtons
-                  card={openCard}
-                  onApprove={() => {
-                    // A valid approval goes back to the list; an invalid one stays with its errors.
-                    const valid = Object.keys(validateTaskDraft(openCard.draft)).length === 0;
-                    toggleApprove(openCard);
-                    if (openCard.decision !== 'approved' && valid) collapse();
-                  }}
-                  onReject={() => reject(openCard.key)}
+        {cards && (
+          <>
+            <p className="mt-4 text-tiny text-muted-foreground">{t('taskSplit.intro')}</p>
+            <div className="mt-3 flex flex-col gap-2">
+              {cards.map((card) => (
+                <ReviewCardView
+                  key={card.key}
+                  card={card}
+                  people={people}
+                  today={today}
+                  expanded={desktop && card.key === openKey ? form(card) : undefined}
+                  focusSignal={focus.key === card.key ? focus.n : 0}
+                  onOpen={() => setOpenKey(card.key)}
+                  onCollapse={collapse}
+                  onApprove={() => toggleApprove(card)}
+                  onReject={() => reject(card.key)}
+                  onUndo={() => undo(card.key)}
                 />
-              </div>
-            </section>
-          )}
+              ))}
+            </div>
+          </>
+        )}
+      </div>
 
-          <footer
-            hidden={layer}
-            className="flex flex-col gap-2 border-t-2 border-border px-4 pt-3 pb-[max(12px,env(safe-area-inset-bottom))] min-[641px]:px-6 min-[641px]:pb-4"
-          >
-            {confirming ? (
-              <div role="alert" className="flex flex-wrap items-center gap-2">
-                <p className="mr-auto text-button font-semibold">{t('taskSplit.discardConfirm')}</p>
-                <Button variant="outline" size="lg" onClick={() => setConfirming(false)}>
-                  {t('taskSplit.keep')}
+      {layer && openCard && (
+        <section aria-label={openTitle} className="absolute inset-0 z-10 flex flex-col bg-popover">
+          <div className="flex items-center gap-3 border-b-2 border-border px-4 py-2">
+            <h3 className="min-w-0 flex-1 truncate text-body font-semibold">
+              {t('taskSplit.editCard')}
+            </h3>
+            <Button size="lg" className="px-5" onClick={collapse}>
+              {t('taskSplit.done')}
+            </Button>
+          </div>
+          <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">{form(openCard)}</div>
+          <div className="flex justify-end border-t-2 border-border px-2 pt-2 pb-[max(8px,env(safe-area-inset-bottom))]">
+            <DecisionButtons
+              card={openCard}
+              onApprove={() => {
+                // A valid approval goes back to the list; an invalid one stays with its errors.
+                const valid = Object.keys(validateTaskDraft(openCard.draft)).length === 0;
+                toggleApprove(openCard);
+                if (openCard.decision !== 'approved' && valid) collapse();
+              }}
+              onReject={() => reject(openCard.key)}
+            />
+          </div>
+        </section>
+      )}
+
+      <footer
+        hidden={layer}
+        className="flex flex-col gap-2 border-t-2 border-border px-4 pt-3 pb-[max(12px,env(safe-area-inset-bottom))] min-[641px]:px-6 min-[641px]:pb-4"
+      >
+        {confirming ? (
+          <div role="alert" className="flex flex-wrap items-center gap-2">
+            <p className="mr-auto text-button font-semibold">{t('taskSplit.discardConfirm')}</p>
+            <Button variant="outline" size="lg" onClick={() => setConfirming(false)}>
+              {t('taskSplit.keep')}
+            </Button>
+            <Button variant="destructive" size="lg" onClick={onClose}>
+              {t('taskSplit.discard')}
+            </Button>
+          </div>
+        ) : (
+          <>
+            {createError && <p className="text-button text-error-ink">{createError.text}</p>}
+            <div className="flex flex-wrap items-center gap-2">
+              {cards && anyPending && (
+                <Button variant="secondary" size="lg" className="px-5" onClick={approveAll}>
+                  {t('taskSplit.approveAll')}
                 </Button>
-                <Button variant="destructive" size="lg" onClick={onClose}>
-                  {t('taskSplit.discard')}
+              )}
+              <div className="ml-auto flex items-center gap-2">
+                <Button variant="outline" size="lg" className="px-5" onClick={requestClose}>
+                  {t('taskSplit.cancel')}
                 </Button>
+                {cards && (
+                  <Button
+                    ref={createRef}
+                    size="lg"
+                    // Not `disabled`: a disabled button drops the focus when the request
+                    // starts. `submit` ignores clicks until it may send.
+                    aria-disabled={busy || !canSubmit(cards)}
+                    className="px-5 aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
+                    // The second click of a double click never sends again, even when the
+                    // first request has already failed and re-enabled the button.
+                    onClick={(event) => {
+                      if (event.detail > 1) return;
+                      void submit();
+                    }}
+                  >
+                    {t('taskSplit.create', { count: approvedCount })}
+                  </Button>
+                )}
               </div>
-            ) : (
-              <>
-                {createError && <p className="text-button text-error-ink">{createError.text}</p>}
-                <div className="flex flex-wrap items-center gap-2">
-                  {cards && anyPending && (
-                    <Button variant="secondary" size="lg" className="px-5" onClick={approveAll}>
-                      {t('taskSplit.approveAll')}
-                    </Button>
-                  )}
-                  <div className="ml-auto flex items-center gap-2">
-                    <Button variant="outline" size="lg" className="px-5" onClick={requestClose}>
-                      {t('taskSplit.cancel')}
-                    </Button>
-                    {cards && (
-                      <Button
-                        ref={createRef}
-                        size="lg"
-                        // Not `disabled`: a disabled button drops the focus when the request
-                        // starts. `submit` ignores clicks until it may send.
-                        aria-disabled={busy || !canSubmit(cards)}
-                        className="px-5 aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
-                        // The second click of a double click never sends again, even when the
-                        // first request has already failed and re-enabled the button.
-                        onClick={(event) => {
-                          if (event.detail > 1) return;
-                          void submit();
-                        }}
-                      >
-                        {t('taskSplit.create', { count: approvedCount })}
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </>
-            )}
-          </footer>
-        </Dialog.Content>
-      </Dialog.Portal>
-    </Dialog.Root>
+            </div>
+          </>
+        )}
+      </footer>
+    </SheetDialog>
   );
 }
 

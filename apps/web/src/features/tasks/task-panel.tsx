@@ -16,6 +16,7 @@ import { isAdmin } from '@/features/auth/roles';
 import { useSession } from '@/features/auth/use-session';
 import { groupQuery } from '@/features/groups/api';
 import { Button } from '@/components/ui/button';
+import { PanelHeader } from '@/components/ui/panel-header';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -35,7 +36,6 @@ import { DoneCircle } from './done-circle';
 import { MoreIcon } from './icons';
 import {
   BucketSelect,
-  PanelHeader,
   PanelNotice,
   PanelShell,
   PanelTabs,
