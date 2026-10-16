@@ -224,3 +224,60 @@ describe('texts', () => {
     expect(texts('en').digestButton('Firma')).toBe('Open Firma');
   });
 });
+
+describe('buildPushPayload tickets (Phase 21.6)', () => {
+  const ticket = { ticketId: 'k1', number: 123, subject: 'Login fails', groupId: 'g1' };
+  const t = (kind: string, payload: Record<string, unknown>, lang: 'sk' | 'en') =>
+    buildPushPayload({
+      ...base,
+      kind: kind as Parameters<typeof buildPushPayload>[0]['kind'],
+      payload: { ...ticket, ...payload },
+      lang,
+    });
+
+  it.each([
+    ['ticket.created', {}, 'en', 'New ticket #123 · Firma', 'Login fails'],
+    ['ticket.created', {}, 'sk', 'Nový tiket #123 · Firma', 'Login fails'],
+    ['ticket.unassigned', { groupId: null }, 'en', 'New ticket #123 without client', 'Login fails'],
+    ['ticket.unassigned', { groupId: null }, 'sk', 'Nový tiket #123 bez klienta', 'Login fails'],
+    [
+      'ticket.message',
+      { authorName: 'Jana', excerpt: 'text' },
+      'en',
+      '#123 Login fails',
+      'Jana: text',
+    ],
+    [
+      'ticket.message',
+      { authorName: 'Jana', excerpt: 'text' },
+      'sk',
+      '#123 Login fails',
+      'Jana: text',
+    ],
+    ['ticket.status', { status: 'in_progress' }, 'en', '#123 is now In progress', 'Login fails'],
+    ['ticket.status', { status: 'in_progress' }, 'sk', '#123 je teraz V riešení', 'Login fails'],
+    ['ticket.status', { status: 'resolved' }, 'sk', '#123 je teraz Vyriešený', 'Login fails'],
+    ['ticket.updated', {}, 'en', '#123 was changed', 'Login fails'],
+    ['ticket.updated', {}, 'sk', '#123 bol zmenený', 'Login fails'],
+    ['ticket.tasks', { count: 2 }, 'en', '#123 turned into 2 tasks', 'Login fails'],
+    ['ticket.tasks', { count: 1 }, 'en', '#123 turned into 1 task', 'Login fails'],
+    ['ticket.tasks', { count: 2 }, 'sk', '#123 rozdelený na 2 úlohy', 'Login fails'],
+    ['ticket.tasks', { count: 5 }, 'sk', '#123 rozdelený na 5 úloh', 'Login fails'],
+    [
+      'chat.mention',
+      { authorName: 'Jana', excerpt: 'pozri' },
+      'sk',
+      '#123 Login fails',
+      'Jana: pozri',
+    ],
+  ] as const)('%s %j (%s): "%s" / "%s"', (kind, payload, lang, title, body) => {
+    expect(t(kind, payload, lang)).toEqual({ title, body, url: '/tickets/k1', tag: 'ticket:k1' });
+  });
+
+  it('a ticket without a subject is named by its number only', () => {
+    expect(
+      t('ticket.message', { subject: null, authorName: 'Jana', excerpt: 'x' }, 'en').title,
+    ).toBe('#123');
+    expect(t('ticket.updated', { subject: null }, 'en').body).toBe('');
+  });
+});

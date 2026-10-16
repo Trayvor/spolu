@@ -174,6 +174,14 @@ Item C (notification groups in the profile) is built in parallel: spec [2026-10-
 6. Push: B adds a branch to `buildPushPayload` (`notifications/push-content.ts`) and puts the number, subject, author and excerpt into the payload when recording (`recordNotifications`).
 7. Migrations: C's `notification_channels` migration comes from `db:generate`. Whichever branch merges second regenerates its own migration.
 
+**Contract check (part 21.6, 2026-10-16).** Each point was compared with the merged code of C and 21.1 before coding. All seven hold; the details that 21.6 builds on, or adds:
+- Points 1, 4, 7 as written. 21.6 needs no migration (its kinds are values of existing text columns).
+- Point 2: the compiler requires both maps once the kinds are in `NotificationKinds`. Ranks: `ticket.message` is 1 (like `chat.message`), the other ticket kinds 2. A `ticket.message` carries the chat message's `messageId`, so the read marks apply (a message already read gets nothing) and a `chat.mention` of the same message outranks it (one notification per message).
+- Point 3: `ticket.unassigned` with `groupId = null` skips the membership check in delivery, and gets its own digest pair. `notificationAudience` for `tickets` adds the group's active `ziadatel` members by `activeMemberIds`, without `listGroupPeople`'s "verified and named" filter, so a requester who has never signed in still gets the ticket emails; `listGroupPeople` excludes the `ziadatel` role, so a ziadatel is no group person for `chat`, `tasks` and `knowledge`.
+- Point 5: `digestEntry` returns null for any event without a group today; the ticket branch runs before that check.
+- Point 6: delivery passes `groupName: ''` for an event without a client group, so the ticket branch never relies on it for `ticket.unassigned`.
+- Added by 21.6 (open point 2 of the plan's handoff): `notificationGroupOf` maps a `chat.*` event whose payload has `ticketId` (a mention in a ticket chat) to `tickets`, as one with `taskId` maps to `tasks`. Such a mention passes every bell mode, follows the `tickets` channel and opens `/tickets/<id>`.
+
 ## 5. Interface
 
 Design replicates egrant.sk; every web part starts with the `frontend-design` skill. Texts live in a lazy `tickets` namespace (sk, en). All ticket screens are lazy routes.

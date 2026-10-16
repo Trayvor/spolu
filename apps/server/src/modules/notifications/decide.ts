@@ -34,6 +34,13 @@ export const KIND_RANK: Record<NotificationKind, number> = {
   'task.deadline': 2,
   'task.urgent': 2,
   'reminder.due': 2,
+  // A ticket chat message ranks like a chat message: a mention of the same message wins.
+  'ticket.message': 1,
+  'ticket.created': 2,
+  'ticket.unassigned': 2,
+  'ticket.status': 2,
+  'ticket.updated': 2,
+  'ticket.tasks': 2,
 };
 
 type Ranked = { id: string; kind: NotificationKind };

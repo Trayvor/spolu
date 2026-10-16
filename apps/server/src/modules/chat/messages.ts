@@ -148,6 +148,14 @@ export async function sendMessage(
     pickable.add(p.id);
   }
   if (mentions.userIds.some((id) => !pickable.has(id))) throw new InvalidMentionError();
+  // Another module's chat notifies its own readers (a ticket's followers) and decides who @all
+  // reaches; read before the transaction, like the people above.
+  const notice = access ? await access.messageNotice(db, channel) : null;
+  const named = !mentions.all
+    ? mentions.userIds
+    : access
+      ? await access.allRecipients(db, channel)
+      : [...pickable];
 
   const messageId = randomUUID();
   const parentId = data.parentId ?? null;
@@ -232,6 +240,7 @@ export async function sendMessage(
         groupId,
         authorName: author.name,
         excerpt: plainExcerpt(data.body, (id) => nameById.get(id), EXCERPT_LENGTH),
+        ...notice?.payload,
       };
       const notify = async (kind: NotificationKind, recipients: string[]) => {
         const recorded = await recordNotifications(tx, {
@@ -243,13 +252,16 @@ export async function sendMessage(
         for (const id of recorded) notified.add(id);
       };
       const everyone = people.map((p) => p.id);
-      // A ticket chat records no chat notifications: its followers hear about it through the
-      // ticket's own events (part 21.6), which link to the ticket, not to a group chat.
       if (access === null) {
         // Replies only notify the thread; the channel hears about top-level messages.
         if (parentId === null) await notify('chat.message', everyone);
-        await notify('chat.mention', mentions.all ? [...pickable] : mentions.userIds);
+      } else if (notice) {
+        // A ticket chat: every message, reply or not, goes to the ticket's followers as the
+        // ticket's own kind, which opens the ticket (Phase 21.6).
+        await notify(notice.kind, notice.recipients);
       }
+      // In a ticket chat the mention carries the ticket, so it is a ticket board event.
+      await notify('chat.mention', named);
       if (parentId !== null) {
         // The named people already get chat.mention; the thread notice stays with the old people.
         if (access === null) await notify('chat.thread_reply', threadPeople);

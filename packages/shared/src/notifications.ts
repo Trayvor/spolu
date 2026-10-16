@@ -11,6 +11,13 @@ export const NotificationKinds = [
   'task.deadline',
   'task.urgent',
   'reminder.due',
+  // Phase 21: support tickets (the `tickets` notification group).
+  'ticket.created',
+  'ticket.unassigned',
+  'ticket.message',
+  'ticket.status',
+  'ticket.updated',
+  'ticket.tasks',
 ] as const;
 export type NotificationKind = (typeof NotificationKinds)[number];
 

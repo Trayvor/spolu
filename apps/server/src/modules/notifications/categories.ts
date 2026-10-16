@@ -10,7 +10,7 @@ import { listGroupPeople } from '../groups/service.js';
 
 /**
  * The notification group of every event kind: the one place that maps a kind to a group. A new
- * kind (item B's `ticket.*`) is added here, and `notificationGroupOf` refines two cases by payload.
+ * kind is added here, and `notificationGroupOf` refines three cases by payload.
  */
 export const NOTIFICATION_GROUP_OF: Record<NotificationKind, NotificationCategory> = {
   'chat.message': 'chat',
@@ -21,11 +21,17 @@ export const NOTIFICATION_GROUP_OF: Record<NotificationKind, NotificationCategor
   'task.deadline': 'tasks',
   'task.urgent': 'tasks',
   'reminder.due': 'tasks',
+  'ticket.created': 'tickets',
+  'ticket.unassigned': 'tickets',
+  'ticket.message': 'tickets',
+  'ticket.status': 'tickets',
+  'ticket.updated': 'tickets',
+  'ticket.tasks': 'tickets',
 };
 
 /**
- * The group an event belongs to: a task chat message is the task board's, a Knowledge base
- * reminder the knowledge base's. A kind that is not in the map (an old row of a removed kind)
+ * The group an event belongs to: a ticket chat event (a mention, Phase 21) is the ticket board's,
+ * a task chat message the task board's, a Knowledge base reminder the knowledge base's. A kind that is not in the map (an old row of a removed kind)
  * gives null; callers treat such an event as deliverable to no one, never as an error.
  */
 export function notificationGroupOf(
@@ -34,6 +40,9 @@ export function notificationGroupOf(
 ): NotificationCategory | null {
   if (!Object.hasOwn(NOTIFICATION_GROUP_OF, kind)) return null;
   const group = NOTIFICATION_GROUP_OF[kind as NotificationKind];
+  if (group === 'chat' && typeof payload.ticketId === 'string' && payload.ticketId !== '') {
+    return 'tickets';
+  }
   if (group === 'chat' && typeof payload.taskId === 'string' && payload.taskId !== '') {
     return 'tasks';
   }

@@ -1,4 +1,10 @@
-import type { BucketLabel, NotificationKind, PushPayload, UserLanguage } from '@spolu/shared';
+import type {
+  BucketLabel,
+  NotificationKind,
+  PushPayload,
+  TicketStatus,
+  UserLanguage,
+} from '@spolu/shared';
 import { formatReminderClock, formatReminderTime, texts } from './texts.js';
 
 const EXCERPT_MAX = 120;
@@ -40,9 +46,41 @@ function movedBody(toBucket: unknown, lang: UserLanguage): string {
   return t.moved(t.bucket({ kind: b.kind, name: typeof b.name === 'string' ? b.name : null }));
 }
 
+/** Whether the event is about a ticket: a `ticket.*` kind, or a mention in a ticket chat. */
+export function isTicketEvent(kind: string, payload: Record<string, unknown>): boolean {
+  return kind.startsWith('ticket.') || str(payload.ticketId) !== null;
+}
+
+/**
+ * A ticket's push (Phase 21): a message or a mention is titled "#123 Subject" with "Jana: text";
+ * the other kinds say what happened in the title and show the subject. Every ticket push opens
+ * the ticket's page and shares its device tag.
+ */
+function ticketPush(i: PushContentInput): PushPayload {
+  const t = texts(i.lang);
+  const p = i.payload;
+  const id = str(p.ticketId) ?? '';
+  const n = Number(p.number);
+  const subject = str(p.subject);
+  const named = subject ? `#${n} ${subject}` : `#${n}`;
+  let title: string;
+  let body = subject ?? '';
+  if (i.kind === 'ticket.created') title = t.ticketNew(n, i.groupName);
+  else if (i.kind === 'ticket.unassigned') title = t.ticketUnassigned(n);
+  else if (i.kind === 'ticket.status') title = t.ticketStatus(n, p.status as TicketStatus);
+  else if (i.kind === 'ticket.updated') title = t.ticketUpdated(n);
+  else if (i.kind === 'ticket.tasks') title = t.ticketTasks(n, Number(p.count));
+  else {
+    title = named;
+    body = chatBody(p, i.lang);
+  }
+  return { title, body, url: `/tickets/${enc(id)}`, tag: `ticket:${id}` };
+}
+
 export function buildPushPayload(i: PushContentInput): PushPayload {
   const t = texts(i.lang);
   const p = i.payload;
+  if (isTicketEvent(i.kind, p)) return ticketPush(i);
   const groupId = enc(str(p.groupId) ?? '');
   const taskId = str(p.taskId);
   const title =

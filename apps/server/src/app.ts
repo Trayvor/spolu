@@ -22,6 +22,7 @@ import { registerTaskReminderSubject } from './modules/tasks/reminder-subject.js
 import { systemRoutes } from './modules/system/routes.js';
 import { tasksRoutes } from './modules/tasks/routes.js';
 import { registerTicketChat } from './modules/tickets/chat.js';
+import { registerTicketNotifications } from './modules/tickets/notify.js';
 import { ticketsRoutes } from './modules/tickets/routes.js';
 import { usersRoutes } from './modules/users/routes.js';
 
@@ -78,8 +79,10 @@ export async function buildApp(
   // The reminder endpoints are registered per subject: register the subjects first.
   registerKnowledgeReminderSubject();
   registerTaskReminderSubject();
-  // The ticket chat's access rules and its create/move hook (Phase 21).
+  // The ticket chat's access rules and its create/move hook, then the ticket notifications
+  // (Phase 21): the chat exists before its followers hear about the ticket.
   registerTicketChat();
+  registerTicketNotifications();
   await app.register(remindersRoutes, {
     prefix: '/api',
     deps,
