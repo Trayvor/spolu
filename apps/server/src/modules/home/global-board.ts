@@ -145,7 +145,7 @@ export function globalBoardSql(q: GlobalBoardQuery): SQL {
   const page = HOME_LIMITS.columnPage;
   return sql`
     with scope as (
-      select t.id, t.group_id, t.bucket_id, t.position, t.title, t.urgent, t.due_date,
+      select t.id, t.group_id, t.bucket_id, t.position, t.title, t.urgent, t.due_date, t.link,
         t.completed_at, t.source_message_id, t.created_at, t.updated_at, t.created_by,
         b.kind as bucket_kind, b.name as bucket_name,
         case b.kind when 'custom' then 'other' else b.kind end as col,
@@ -189,6 +189,7 @@ export function globalBoardSql(q: GlobalBoardQuery): SQL {
           'title', p.title,
           'urgent', p.urgent,
           'dueDate', p.due_date,
+          'link', p.link,
           'completedAt', p.completed_at,
           'createdBy', json_build_object('id', p.created_by, 'name', p.creator_name),
           'assignees', coalesce((
@@ -199,6 +200,13 @@ export function globalBoardSql(q: GlobalBoardQuery): SQL {
           ), '[]'::json),
           'fileCount', (select count(*)::int from task_attachments tf where tf.task_id = p.id),
           'sourceMessageId', p.source_message_id,
+          -- The board card's reminder bell, as on the group board (one correlated count, read
+          -- only, on reminder_sets_task_unique and reminder_times_set_at_idx).
+          'upcomingReminders', (
+            select count(*)::int from reminder_sets rs
+            join reminder_times rt on rt.set_id = rs.id
+            where rs.task_id = p.id and rt.fired_at is null
+          ),
           'createdAt', p.created_at,
           'updatedAt', p.updated_at,
           'groupName', p.group_name,

@@ -99,6 +99,30 @@ describe('getGlobalBoard', () => {
     });
   });
 
+  it("cards carry the task's link and its upcoming custom reminder count", async () => {
+    const { g, admin, task } = await oneGroup('Card fields');
+    const id = await task('with link');
+    await db.execute(sql`update tasks set link = 'https://egrant.sk/ziadost/1' where id = ${id}`);
+    const setId = randomUUID();
+    await db.execute(sql`insert into reminder_sets (id, group_id, task_id, created_by)
+      values (${setId}, ${g.id}, ${id}, ${admin.id})`);
+    await db.execute(sql`insert into reminder_times (id, set_id, at, fired_at) values
+      (${randomUUID()}, ${setId}, now() + interval '1 day', null),
+      (${randomUUID()}, ${setId}, now() + interval '2 days', null),
+      (${randomUUID()}, ${setId}, now() - interval '1 day', now())`);
+    await task('plain');
+    const board = await getGlobalBoard(db, query({ clientIds: [g.id], viewerId: admin.id }));
+    const items = column(board, 'todo')!.items;
+    expect(items.find((t) => t.title === 'with link')).toMatchObject({
+      link: 'https://egrant.sk/ziadost/1',
+      upcomingReminders: 2,
+    });
+    expect(items.find((t) => t.title === 'plain')).toMatchObject({
+      link: null,
+      upcomingReminders: 0,
+    });
+  });
+
   it('Completed only with completed=1 and within 30 days', async () => {
     const { g, admin, task } = await oneGroup('Done');
     const done = await bucketOf(db, g.id, 'done');
