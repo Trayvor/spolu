@@ -20,7 +20,6 @@
   "managers": {
     "title": "Manažéri z eGrantu",
     "none": "Zatiaľ žiadny manažér z eGrantu.",
-    "changeLink": "Zmeniť na stránke Skupiny",
     "manage": "Spravovať",
     "managing": "Spravujem",
     "toggleLabel": "Spravovať {{name}}",
@@ -31,7 +30,12 @@
     "error": "Nepodarilo sa to zmeniť. Skúste to znova.",
     "more": "+{{count}}",
     "listLabel": "Správcovia {{name}}",
-    "noManagerHint": "Klienti bez správcu: spomenúť alebo priradiť sa dajú len ich vlastní ľudia."
+    "noManagerHint": "Klienti bez správcu: spomenúť alebo priradiť sa dajú len ich vlastní ľudia.",
+    "add": "Pridať manažéra",
+    "find": "Nájsť administrátora",
+    "allAdded": "Všetci administrátori už spravujú túto skupinu.",
+    "noMatch": "Výrazu „{{q}}“ nezodpovedá žiadny administrátor.",
+    "remove": "Odobrať {{name}}"
   },
   "mine": {
     "title": "Moje skupiny",
