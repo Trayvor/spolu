@@ -317,6 +317,18 @@
   }
 }
 
+/*
+ * Phones: Safari zooms the page into any field whose text is under 16px, and does not zoom back.
+ * Fields are 16px there. Outside `@layer` on purpose, so it wins over the text-size utilities.
+ */
+@media (max-width: 640px) {
+  input:not([type='checkbox'], [type='radio'], [type='file'], [type='range'], [type='color']),
+  textarea,
+  select {
+    font-size: 16px;
+  }
+}
+
 /* Owner rule: no motion when the user asks for less. */
 @media (prefers-reduced-motion: reduce) {
   *,

@@ -32,7 +32,7 @@ import {
   type FormatKind,
   type PickedPerson,
 } from './composer-text';
-import { FormatToolbar, formatShortcut, iconButton } from './format-toolbar';
+import { FormatToolbar, formatShortcut, iconButton, phoneIconButton } from './format-toolbar';
 import { CloseIcon, PaperclipIcon } from './icons';
 import { MentionPicker, type MentionChoice, type MentionPickerHandle } from './mention-picker';
 
@@ -340,7 +340,7 @@ export function Composer({
             aria-label={t('chat.composer.cancelReply')}
             title={t('chat.composer.cancelReply')}
             onClick={replyTo.onCancel}
-            className={iconButton}
+            className={phoneIconButton}
           >
             <CloseIcon />
           </button>
@@ -429,21 +429,21 @@ export function Composer({
             <li
               key={u.key}
               className={cn(
-                'relative flex max-w-full items-center gap-2 overflow-hidden rounded-lg bg-secondary py-1 pl-3 pr-1 text-button text-secondary-foreground',
+                'relative flex max-w-full animate-fade-in items-center gap-2 overflow-hidden rounded-lg bg-secondary py-1 pl-3 pr-1 text-button text-secondary-foreground',
                 u.status === 'error' && 'text-error-ink',
               )}
             >
               <span title={u.name} className="min-w-0 truncate font-semibold">
                 {u.name}
               </span>
-              <span className="shrink-0 text-micro text-muted-foreground">
+              <span className="shrink-0 text-micro text-neutral">
                 {u.status === 'error' ? u.error : formatFileSize(u.size, i18n.language)}
               </span>
               {u.status === 'error' && (
                 <button
                   type="button"
                   onClick={() => retryUpload(u)}
-                  className="shrink-0 rounded-md px-2 py-1 text-micro font-semibold underline"
+                  className="shrink-0 rounded-md px-2 py-1 text-micro font-semibold underline max-[640px]:min-h-11"
                 >
                   {t('errors.retry')}
                 </button>
@@ -453,7 +453,7 @@ export function Composer({
                 aria-label={t('chat.composer.removeFile')}
                 title={t('chat.composer.removeFile')}
                 onClick={() => commitUploads(uploadsRef.current.filter((x) => x.key !== u.key))}
-                className={iconButton}
+                className={phoneIconButton}
               >
                 <CloseIcon />
               </button>

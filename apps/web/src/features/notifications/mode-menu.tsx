@@ -55,7 +55,7 @@ export function ModeMenu({
       <DropdownMenuTrigger
         aria-label={triggerLabel}
         className={cn(
-          'inline-flex h-[38px] min-w-[38px] shrink-0 items-center justify-center gap-2 rounded-full text-button font-medium text-muted-foreground transition-colors duration-(--duration-fast) hover:bg-surface-3 hover:text-foreground data-[state=open]:bg-surface-3 data-[state=open]:text-foreground',
+          "relative inline-flex h-[38px] min-w-[38px] shrink-0 items-center justify-center gap-2 rounded-full after:absolute after:-inset-[3px] after:rounded-full after:content-[''] text-button font-medium text-muted-foreground transition-colors duration-(--duration-fast) hover:bg-surface-3 hover:text-foreground data-[state=open]:bg-surface-3 data-[state=open]:text-foreground",
           withText && 'px-3',
         )}
       >

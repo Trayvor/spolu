@@ -401,7 +401,8 @@ export const MessageItem = memo(function MessageItem({
         if (sheetOpen || longPressed.current) event.preventDefault();
       }}
       className={cn(
-        'group relative flex gap-3 border-l-2 px-4 pb-1',
+        // The highlight of a linked message eases in and out instead of snapping.
+        'group relative flex gap-3 border-l-2 px-4 pb-1 transition-colors duration-500',
         // content-visibility clips overflow: the editing row must show the mention list above it,
         // and a hovered or focused row its toolbar, which sits just above it.
         mode !== 'edit' &&
@@ -418,7 +419,9 @@ export const MessageItem = memo(function MessageItem({
       <div className="min-w-0 flex-1">
         {showHeader && (
           <div className="flex flex-wrap items-baseline gap-x-2">
-            <span className="text-button font-semibold">{message.author.name}</span>
+            <span className="min-w-0 text-button font-semibold [overflow-wrap:anywhere]">
+              {message.author.name}
+            </span>
             {message.author.isAdmin && (
               <span className="self-center rounded-full bg-secondary px-2 text-nano font-semibold text-secondary-foreground">
                 {t('chat.egrant')}
@@ -448,7 +451,7 @@ export const MessageItem = memo(function MessageItem({
           <button
             type="button"
             onClick={() => onQuoteClick?.(quote.id)}
-            className="mb-1 flex max-w-full items-baseline gap-1.5 border-l-2 border-border pl-2 text-left text-micro text-muted-foreground"
+            className="mb-1 flex max-w-full items-baseline gap-1.5 border-l-2 border-border pl-2 text-left text-micro text-muted-foreground max-[640px]:py-1.5"
           >
             <span className="shrink-0 font-semibold">{quote.author.name}</span>
             <span className="truncate">
@@ -486,7 +489,8 @@ export const MessageItem = memo(function MessageItem({
               : t('chat.notSent')}{' '}
             <button
               type="button"
-              className="font-semibold underline underline-offset-2"
+              // A 44 px tap area around the short word.
+              className="relative font-semibold underline underline-offset-2 after:absolute after:-inset-x-2 after:-inset-y-3.5 after:content-['']"
               onClick={() => message.clientId && onRetry?.(message.clientId)}
             >
               {t('chat.retry')}
@@ -498,7 +502,7 @@ export const MessageItem = memo(function MessageItem({
             type="button"
             onClick={() => onOpenThread(message)}
             data-thread-link=""
-            className="mt-1 flex items-center gap-1.5 text-left text-micro font-semibold text-brand-purple underline-offset-2 hover:underline"
+            className="mt-1 flex items-center gap-1.5 text-left text-micro font-semibold text-brand-purple underline-offset-2 hover:underline max-[640px]:-my-1.5 max-[640px]:min-h-11"
           >
             {unreadReplies && (
               <>

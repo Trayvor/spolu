@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
  * (`data-hit`), and the formatting toolbar wraps without gaps.
  */
 export const PHONE_TARGETS =
-  'max-[640px]:[&_:is(button,a,select,input):not([data-hit])]:min-h-11 max-[640px]:[&_:is(button,a,select):not([data-hit])]:min-w-11 max-[640px]:[&_[role=toolbar]]:flex-wrap max-[640px]:[&_[role=toolbar]]:gap-0 max-[640px]:[&_[role=toolbar]]:px-0';
+  'max-[640px]:[&_:is(button,a,select,input:not([type=checkbox],[type=radio])):not([data-hit])]:min-h-11 max-[640px]:[&_:is(button,a,select):not([data-hit])]:min-w-11 max-[640px]:[&_[role=toolbar]]:flex-wrap max-[640px]:[&_[role=toolbar]]:gap-0 max-[640px]:[&_[role=toolbar]]:px-0';
 
 /**
  * A modal sheet: a centred 720 px dialog from 641 px (at most 880 px tall, 24 px clear of the
@@ -57,7 +57,8 @@ export function SheetDialog({
           onKeyDown={(event: ReactKeyboardEvent) => event.stopPropagation()}
           className={cn(
             // Phones: the sheet rises from the bottom edge; wider: the dialog grows in a little.
-            'fixed inset-0 z-50 flex flex-col bg-popover text-popover-foreground outline-none max-[640px]:animate-sheet-in min-[641px]:animate-menu-in',
+            // Full screen on phones: its top clears the notch (each footer clears the home bar).
+            'fixed inset-0 z-50 flex flex-col bg-popover text-popover-foreground outline-none max-[640px]:animate-sheet-in max-[640px]:pt-[env(safe-area-inset-top)] min-[641px]:animate-menu-in',
             'min-[641px]:inset-auto min-[641px]:top-1/2 min-[641px]:left-1/2 min-[641px]:max-h-[min(880px,calc(100dvh-48px))] min-[641px]:w-[720px] min-[641px]:max-w-[calc(100vw-48px)] min-[641px]:-translate-x-1/2 min-[641px]:-translate-y-1/2 min-[641px]:rounded-xl min-[641px]:shadow-lift',
             PHONE_TARGETS,
           )}

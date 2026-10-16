@@ -69,12 +69,14 @@ export function PanelShell({
       aria-label={t('tasks.panel.label')}
       data-testid="task-panel"
       className={cn(
-        'fixed inset-0 z-40 flex flex-col bg-background lg:left-auto lg:w-[560px] lg:border-l-2 lg:border-border',
+        // Full screen under 1024 px: it rises in and its top clears the notch; from 1024 px a
+        // column on the right that fades in.
+        'fixed inset-0 z-40 flex flex-col bg-background max-lg:animate-sheet-in max-lg:pt-[env(safe-area-inset-top)] lg:left-auto lg:w-[560px] lg:animate-fade-in lg:border-l-2 lg:border-border',
         // Phones: every control in the sheet is at least 44 px to tap, except those that carry
         // their own larger hit area (`data-hit`) and the task chat (`data-own-touch`), which is
         // sized for phones already, like the group chat. The formatting toolbar drops its gaps so
         // its eight 44 px buttons fit one line at 390 px, and wraps on narrower screens.
-        'max-[640px]:[&_:is(button,a,select,input):not([data-hit],[data-own-touch]_*)]:min-h-11 max-[640px]:[&_:is(button,a,select):not([data-hit],[data-own-touch]_*)]:min-w-11 max-[640px]:[&_[role=toolbar]:not([data-own-touch]_*)]:flex-wrap max-[640px]:[&_[role=toolbar]:not([data-own-touch]_*)]:gap-0 max-[640px]:[&_[role=toolbar]:not([data-own-touch]_*)]:px-0',
+        'max-[640px]:[&_:is(button,a,select,input:not([type=checkbox],[type=radio])):not([data-hit],[data-own-touch]_*)]:min-h-11 max-[640px]:[&_:is(button,a,select):not([data-hit],[data-own-touch]_*)]:min-w-11 max-[640px]:[&_[role=toolbar]:not([data-own-touch]_*)]:flex-wrap max-[640px]:[&_[role=toolbar]:not([data-own-touch]_*)]:gap-0 max-[640px]:[&_[role=toolbar]:not([data-own-touch]_*)]:px-0',
       )}
     >
       {children}

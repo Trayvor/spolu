@@ -1,3 +1,4 @@
+import { Skeleton } from '@/components/ui/skeleton';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useBlocker, useLocation, useNavigate, useParams } from '@tanstack/react-router';
@@ -139,10 +140,15 @@ export function TaskPanel({
       </div>
     );
   } else if (!gone) {
+    // The title, a field and two lines, grey, in the details' own spacing.
     body = (
-      <p role="status" className="p-6 text-body text-muted-foreground">
-        {t('tasks.panel.loading')}
-      </p>
+      <div role="status" className="space-y-5 p-4 min-[641px]:p-6">
+        <span className="sr-only">{t('tasks.panel.loading')}</span>
+        <Skeleton className="h-7 w-3/4" />
+        <Skeleton className="h-11" />
+        <Skeleton className="h-4 w-1/2" />
+        <Skeleton className="h-24" />
+      </div>
     );
   }
 
@@ -528,7 +534,7 @@ function TaskEditor({
           )}
         </div>
 
-        <footer className="border-t-2 border-border px-6 py-3 text-tiny text-muted-foreground">
+        <footer className="border-t-2 border-border px-4 pt-3 pb-[max(12px,env(safe-area-inset-bottom))] text-tiny text-muted-foreground min-[641px]:px-6">
           {t('tasks.panel.createdBy', {
             name: base.createdBy.name,
             date: formatCreated(base.createdAt, i18n.language),
@@ -542,7 +548,7 @@ function TaskEditor({
           id={panelTabIds('chat').panel}
           aria-labelledby={panelTabIds('chat').tab}
           data-own-touch
-          className="min-h-0 flex-1 p-2 min-[641px]:p-4"
+          className="min-h-0 flex-1 p-2 pb-[max(8px,env(safe-area-inset-bottom))] min-[641px]:p-4 min-[641px]:pb-[max(16px,env(safe-area-inset-bottom))]"
         >
           <TaskChat groupId={groupId} taskId={base.id} />
         </div>

@@ -386,7 +386,7 @@ export function ReviewDialog({
         {loading && (
           <div className="mt-4">
             <p className="text-button text-muted-foreground">{t('taskSplit.loading')}</p>
-            <div aria-hidden="true" className="mt-3 flex flex-col gap-2 motion-safe:animate-pulse">
+            <div aria-hidden="true" className="mt-3 flex flex-col gap-2 animate-skeleton">
               {OUTLINES.map((i) => (
                 <div
                   key={i}

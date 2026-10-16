@@ -11,6 +11,7 @@ for (const { name, width, height, gap, mobile } of [
     const context = await browser.newContext({
       viewport: { width, height },
       isMobile: mobile,
+      reducedMotion: 'reduce',
       locale: 'sk-SK',
       storageState: 'e2e/.auth/superadmin.json',
     });
@@ -53,6 +54,7 @@ test('on a phone, the section menu moves between sections and the account menu h
   const context = await browser.newContext({
     viewport: { width: 390, height: 844 },
     isMobile: true,
+    reducedMotion: 'reduce', // measured boxes: no sheet animation in flight
     hasTouch: true,
     locale: 'sk-SK',
     storageState: 'e2e/.auth/superadmin.json',

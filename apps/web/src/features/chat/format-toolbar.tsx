@@ -17,6 +17,12 @@ import {
 export const iconButton =
   'inline-flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground disabled:opacity-50';
 
+/**
+ * The same, 44 px on phones (a finger's size) with its focus ring drawn inside, as the row that
+ * holds it scrolls sideways and would clip a ring outside.
+ */
+export const phoneIconButton = `${iconButton} shrink-0 max-[640px]:size-11 focus-visible:outline-offset-[-2px]`;
+
 const FORMATS: { kind: FormatKind; key: string; icon: ReactNode; shortcut?: string }[] = [
   { kind: 'bold', key: 'bold', icon: <BoldIcon />, shortcut: 'B' },
   { kind: 'italic', key: 'italic', icon: <ItalicIcon />, shortcut: 'I' },
@@ -80,7 +86,7 @@ export function FormatToolbar({
               aria-label={label}
               title={shortcut ? `${label} (${modKey}${shortcut})` : label}
               onClick={() => onFormat(kind)}
-              className={iconButton}
+              className={phoneIconButton}
             >
               {icon}
             </button>

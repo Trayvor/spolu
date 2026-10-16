@@ -41,14 +41,14 @@ export function JoinPage({ token }: { token: string }) {
   const invalid = expired || (info.error instanceof ApiError && info.error.status === 404);
   if (invalid) {
     return (
-      <Card className="mx-auto w-full max-w-[440px] gap-6 p-8">
+      <Card className="mx-auto w-full max-w-[440px] gap-6 p-8 max-[640px]:p-6">
         <p role="alert">{t('join.invalid')}</p>
       </Card>
     );
   }
   if (!info.data) {
     return (
-      <Card className="mx-auto w-full max-w-[440px] gap-6 p-8">
+      <Card className="mx-auto w-full max-w-[440px] gap-6 p-8 max-[640px]:p-6">
         <p role="alert">{t('errors.generic')}</p>
       </Card>
     );
@@ -81,7 +81,7 @@ export function JoinPage({ token }: { token: string }) {
   }
 
   return (
-    <Card className="mx-auto w-full max-w-[440px] gap-6 p-8">
+    <Card className="mx-auto w-full max-w-[440px] gap-6 p-8 max-[640px]:p-6">
       {info.data.hasLogo && (
         <img
           src={joinLogoUrl(token, info.data.updatedAt)}
@@ -174,7 +174,7 @@ function AcceptStep({
 
   return (
     <div className="flex flex-col gap-6">
-      <p>{t('join.signedInAs', { email })}</p>
+      <p className="[overflow-wrap:anywhere]">{t('join.signedInAs', { email })}</p>
       {error && (
         <p role="alert" className="text-micro text-error-ink">
           {error}

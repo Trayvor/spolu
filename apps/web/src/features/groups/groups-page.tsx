@@ -1,3 +1,4 @@
+import { ListSkeleton } from '@/components/ui/skeleton';
 import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate, useSearch } from '@tanstack/react-router';
@@ -81,6 +82,7 @@ export function GroupsPage() {
           </Button>
         </div>
       )}
+      {!groups && !isError && <ListSkeleton rows={5} rowClassName="min-h-[68px]" />}
       {groups && groups.length === 0 && !formOpen && (
         <p className="text-body text-muted-foreground">{t('groups.empty')}</p>
       )}

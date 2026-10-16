@@ -135,7 +135,7 @@ export function PeopleSelect({
                 <span className="min-w-0 truncate">{chip}</span>
                 {person?.isAdmin && <Badge variant="outline">{t('forms.people.adminPill')}</Badge>}
                 {person?.notPickable && !fixedIds.includes(id) && (
-                  <span className="shrink-0 font-normal text-muted-foreground">
+                  <span className="shrink-0 font-normal text-neutral">
                     {t('forms.people.notManager')}
                   </span>
                 )}

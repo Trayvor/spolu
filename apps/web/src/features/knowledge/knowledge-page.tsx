@@ -391,7 +391,7 @@ export function KnowledgePage() {
         <Card
           role="status"
           aria-busy="true"
-          className="h-24 w-full animate-pulse bg-muted"
+          className="h-24 w-full animate-skeleton bg-muted"
           aria-label={t('knowledge.list.loading')}
         />
       ) : shownClients.length === 0 ? (

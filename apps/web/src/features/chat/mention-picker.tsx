@@ -38,7 +38,8 @@ export function filterPeople(people: GroupPerson[], query: string): GroupPerson[
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 
-const optionClass = 'flex cursor-pointer items-center gap-2 px-3 py-1.5 text-button';
+const optionClass =
+  'flex cursor-pointer items-center gap-2 px-3 py-1.5 text-button max-[640px]:min-h-11';
 
 /**
  * The list under an `@` in the composer: "Everyone in this group" first, then matching people.
@@ -98,8 +99,9 @@ export const MentionPicker = forwardRef<MentionPickerHandle, MentionPickerProps>
         role="listbox"
         aria-label={t('chat.mention.label')}
         className={cn(
-          'absolute inset-x-0 z-10 max-h-60 overflow-y-auto rounded-lg border border-border bg-card py-1',
-          below ? 'top-full mt-1' : 'bottom-full mb-1',
+          // At most 40% of the window: with the keyboard open the card is short.
+          'absolute inset-x-0 z-10 max-h-[min(15rem,40dvh)] animate-menu-in overflow-y-auto rounded-lg border border-border bg-card py-1',
+          below ? 'top-full mt-1 origin-top' : 'bottom-full mb-1 origin-bottom',
         )}
       >
         {choices.map((choice, i) => (

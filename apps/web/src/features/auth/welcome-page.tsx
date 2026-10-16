@@ -49,7 +49,7 @@ export function WelcomePage({ redirectTo }: { redirectTo: string }) {
   }
 
   return (
-    <Card className="mx-auto w-full max-w-[440px] gap-6 p-8">
+    <Card className="mx-auto w-full max-w-[440px] gap-6 p-8 max-[640px]:p-6">
       <h1 className="text-medium leading-tight font-semibold">{t('welcome.title')}</h1>
       <form noValidate onSubmit={onSubmit} className="flex flex-col gap-6">
         <div className="flex flex-col gap-2.5">

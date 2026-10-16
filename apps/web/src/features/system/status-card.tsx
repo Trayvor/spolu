@@ -49,7 +49,7 @@ export function StatusCard({ socket = getSocket() }: StatusCardProps) {
             {t(realtime.connected ? 'system.realtime.connected' : 'system.realtime.disconnected')}
           </Badge>
         </div>
-        <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 text-button">
+        <dl className="grid grid-cols-[auto_minmax(0,1fr)] [&_dd]:[overflow-wrap:anywhere] gap-x-6 gap-y-2 text-button">
           <dt className="text-muted-foreground">{t('system.version')}</dt>
           <dd>{health.isError ? '–' : (health.data?.version ?? '–')}</dd>
           <dt className="text-muted-foreground">{t('system.lastPing')}</dt>

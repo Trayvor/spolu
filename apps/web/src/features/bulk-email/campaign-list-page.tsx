@@ -1,3 +1,4 @@
+import { ListSkeleton } from '@/components/ui/skeleton';
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
@@ -60,6 +61,7 @@ export function CampaignListPage() {
           {t('errors.generic')}
         </p>
       )}
+      {list.isPending && <ListSkeleton rows={3} rowClassName="min-h-[88px]" />}
       {list.isSuccess && items.length === 0 && (
         <Card className="px-5 text-button text-muted-foreground">{t('bulkEmail.list.empty')}</Card>
       )}

@@ -43,7 +43,7 @@ export function TaskCardMeta({
   const shown = assignees.slice(0, MAX_AVATARS);
   const extra = assignees.length - shown.length;
   return (
-    <span className="flex w-full items-center gap-3 text-micro text-muted-foreground">
+    <span className="flex w-full flex-wrap items-center gap-x-3 gap-y-1 text-micro text-muted-foreground">
       {shown.length > 0 && (
         <span className="flex items-center">
           {shown.map((person) => (

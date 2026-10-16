@@ -1,3 +1,4 @@
+import { ColumnSkeletons } from '@/components/ui/skeleton';
 import {
   useEffect,
   useMemo,
@@ -137,9 +138,10 @@ export function Board({ groupId }: { groupId: string }) {
         </Button>
       </div>
     ) : (
-      <p role="status" className="py-6 text-body text-muted-foreground">
-        {t('tasks.board.loading')}
-      </p>
+      <div role="status">
+        <span className="sr-only">{t('tasks.board.loading')}</span>
+        <ColumnSkeletons />
+      </div>
     );
   }
   const buckets = [...board.buckets].sort(byPosition);

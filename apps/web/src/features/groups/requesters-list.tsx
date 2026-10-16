@@ -6,12 +6,12 @@ import { Card } from '@/components/ui/card';
 import { removeMember, requestersQuery, restoreMember } from './api';
 
 const ROW =
-  'flex flex-col gap-3 px-5 py-3 min-[641px]:flex-row min-[641px]:items-center min-[641px]:justify-between [&:not(:last-child)]:border-b [&:not(:last-child)]:border-border';
+  'flex flex-col items-start gap-3 px-5 py-3 min-[641px]:flex-row min-[641px]:items-center min-[641px]:justify-between [&:not(:last-child)]:border-b [&:not(:last-child)]:border-border';
 
 function Who({ member }: { member: Member }) {
   return (
     <div className="min-w-0">
-      <div className="font-semibold">{member.name || member.email}</div>
+      <div className="font-semibold [overflow-wrap:anywhere]">{member.name || member.email}</div>
       {member.name && (
         <div className="truncate text-button text-muted-foreground">{member.email}</div>
       )}
@@ -68,7 +68,7 @@ export function RequestersList({ groupId, admin }: { groupId: string; admin: boo
       )}
       {admin && removed && removed.length > 0 && (
         <details>
-          <summary className="cursor-pointer py-2 text-button font-semibold">
+          <summary className="min-h-11 cursor-pointer py-3 text-button font-semibold">
             {t('group.requesters.removedTitle', { count: removed.length })}
           </summary>
           <Card className="mt-2 gap-0 py-2">

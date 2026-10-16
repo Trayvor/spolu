@@ -1,3 +1,4 @@
+import { MessageSkeletons } from '@/components/ui/skeleton';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { MessageDto } from '@spolu/shared';
@@ -264,8 +265,10 @@ export function MessageList({
         ref={scroller}
         onScroll={onScroll}
         className="relative h-full overflow-y-auto overscroll-contain pt-9 pb-3"
+        aria-busy={!win.loaded || undefined}
       >
         <div ref={content}>
+          {!win.loaded && rows.length === 0 && <MessageSkeletons />}
           {empty && (
             <p className="px-6 py-10 text-center text-body text-muted-foreground">
               {t('chat.empty')}
@@ -294,19 +297,21 @@ export function MessageList({
             );
           })}
           {/* Unsent rows get no messageActions and no footer: they are not saved yet. */}
+          {/* A message just sent fades in where it lands. */}
           {pending.map((p, i) => (
-            <MessageItem
-              key={p.clientId}
-              message={pendingAsMessage(p, lastMessage?.channelId ?? '', author)}
-              groupId={groupId}
-              showHeader={i === 0 && lastMessage?.author.id !== meId}
-              mentionsMe={false}
-              meId={meId}
-              nameOf={nameOf}
-              pending={p.status}
-              failReason={p.failReason}
-              onRetry={onRetry}
-            />
+            <div key={p.clientId} className="animate-fade-in">
+              <MessageItem
+                message={pendingAsMessage(p, lastMessage?.channelId ?? '', author)}
+                groupId={groupId}
+                showHeader={i === 0 && lastMessage?.author.id !== meId}
+                mentionsMe={false}
+                meId={meId}
+                nameOf={nameOf}
+                pending={p.status}
+                failReason={p.failReason}
+                onRetry={onRetry}
+              />
+            </div>
           ))}
         </div>
       </div>
@@ -314,7 +319,7 @@ export function MessageList({
         <button
           type="button"
           onClick={jump}
-          className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-primary px-4 py-2 text-tiny font-semibold text-primary-foreground shadow-lift hover:bg-ink-hover"
+          className="absolute bottom-3 left-1/2 min-h-11 -translate-x-1/2 animate-fade-in rounded-full bg-primary px-4 py-2 text-tiny font-semibold text-primary-foreground shadow-lift hover:bg-ink-hover"
         >
           {t('chat.jumpToLatest')}
         </button>

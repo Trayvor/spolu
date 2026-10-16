@@ -175,7 +175,7 @@ export function ClientFilter({
           {trigger}
           {open && (
             <SheetDialog onEscape={() => setOpen(false)}>
-              <div className="flex min-h-0 flex-1 flex-col p-4">
+              <div className="flex min-h-0 flex-1 flex-col p-4 pb-[max(16px,env(safe-area-inset-bottom))]">
                 <SheetDialogTitle className="pb-3 text-medium font-semibold">
                   {t('knowledge.clientFilter.title')}
                 </SheetDialogTitle>

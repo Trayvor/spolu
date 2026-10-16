@@ -96,7 +96,7 @@ export function UnsubscribePage({ token }: { token: string }) {
   }
 
   return (
-    <Card className="mx-auto w-full max-w-[440px] gap-5 p-8" aria-live="polite">
+    <Card className="mx-auto w-full max-w-[440px] gap-5 p-8 max-[640px]:p-6" aria-live="polite">
       {content}
     </Card>
   );
