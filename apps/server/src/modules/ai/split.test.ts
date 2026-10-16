@@ -6,7 +6,7 @@ import { MENTION_ALL_TOKEN, mentionToken, type SessionUser } from '@spolu/shared
 import type { AppDeps } from '../../deps.js';
 import { buildTestApp } from '../../../test/test-app.js';
 import { createFile } from '../files/service.js';
-import { addManager } from '../groups/managers.js';
+import { addManager, removeManager } from '../groups/managers.js';
 import { addMember, createGroup } from '../groups/service.js';
 import { deleteMessage, findReadableMessage, sendMessage } from '../chat/messages.js';
 import { ensureGroupChannel, type ChannelRow } from '../chat/service.js';
@@ -224,9 +224,11 @@ describe('split service', () => {
 
   it('the message text still names a mentioned non-manager', async () => {
     const s = await setup();
+    await addManager(deps.db, s.group.id, s.admin.id);
     const { message } = await send(s.channel, s.ana, {
       body: `Ask ${mentionToken(s.admin.id)}`,
     });
+    await removeManager(deps.db, s.group.id, s.admin.id);
     const request = await buildSplitRequest(deps.db, await found(s.ana, message.id));
     expect(request.text).toBe('Ask @Admin');
   });
@@ -234,10 +236,12 @@ describe('split service', () => {
   it('quotes the reply-to message and dates today in Bratislava', async () => {
     const s = await setup();
     const { message: root } = await send(s.channel, s.ana, { body: 'Root' });
+    await addManager(deps.db, s.group.id, s.admin.id);
     const { message: first } = await send(s.channel, s.ana, {
       body: `Is it ready, ${mentionToken(s.admin.id)}?`,
       parentId: root.id,
     });
+    await removeManager(deps.db, s.group.id, s.admin.id);
     const { message: reply } = await send(s.channel, s.admin, {
       body: '- Finish it',
       parentId: root.id,

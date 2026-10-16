@@ -19,6 +19,10 @@ An administrator can be a **manager** of a client group: one of the eGrant peopl
 - **Visibility.** The Groups page shows each group's managers; the group's Members tab lists its managers.
 - Managers are used by later features: the default client filter of the global knowledge list and the global task board ("the clients I manage"), and the admin home's client list.
 
+## Status
+
+Built in Phase 18. The migration seeds managers: each active admin becomes a manager of the groups where they are assigned to an open task or wrote in a chat in the last 60 days. Their notification modes are not touched by the seed. An end-to-end test (`e2e/managers.spec.ts`) covers two admins and a client.
+
 ## Phase
 
 Phase 18 ([spec](../superpowers/specs/2026-10-16-phase-18-client-managers-design.md)). Used by Phases 17 and 20.

@@ -74,3 +74,5 @@ Lazy chunks for individual screens have no hard budget. Keep them reasonable and
 
 - `pnpm --filter @spolu/web build` prints every chunk with its gzip size.
 - Lighthouse in Chrome DevTools (mobile, throttled) on the test server: aim for Performance 90+ on the home screen.
+
+Phase 18 client managers (end-to-end test added; measured 2026-10-16, gzip level 9 of every script `index.html` loads): initial JS 193.6 kB gzip (entry 114.5 kB, API client chunk 41.3 kB, router chunk 19.6 kB, shared dependency chunk 16.2 kB, notifications 0.7 kB, i18n 0.5 kB, small chunk 0.6 kB, `registerSW.js` 0.1 kB), under the 200 kB budget.

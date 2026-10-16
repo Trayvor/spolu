@@ -19,6 +19,7 @@ import {
   markRead,
   type ChannelRow,
 } from '../chat/service.js';
+import { addManager } from '../groups/managers.js';
 import { groupMembers } from '../groups/schema.js';
 import { addMember, createGroup } from '../groups/service.js';
 import { listBuckets } from '../tasks/service.js';
@@ -150,6 +151,9 @@ describe('deliverPending', () => {
     await delivered(plain.id);
     expect(mine()).toHaveLength(0);
 
+    // Only clients and managers can be mentioned; keep the default mode the test is about.
+    await addManager(deps.db, s.group.id, admin2.id);
+    await setGroupMode(deps.db, admin2.id, s.group.id, 'mentions');
     const mention = await send(s.channel, s.client, { body: `Hi ${mentionToken(admin2.id)}` });
     await delivered(mention.id);
     await vi.waitFor(async () =>
@@ -193,6 +197,9 @@ describe('deliverPending', () => {
 
   it("a message's events share one created_at (the sibling lookup relies on it)", async () => {
     const s = await setup();
+    // Only clients and managers can be mentioned; keep the default mode the test is about.
+    await addManager(deps.db, s.group.id, s.admin.id);
+    await setGroupMode(deps.db, s.admin.id, s.group.id, 'mentions');
     const root = await send(s.channel, s.client, { body: `Hi ${mentionToken(s.admin.id)}` });
     // A reply that mentions the root's author: chat.mention and chat.thread_reply for one user.
     const reply = await send(s.channel, s.admin, {
