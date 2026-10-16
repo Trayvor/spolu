@@ -44,7 +44,7 @@ export function validateTaskDraft(value: TaskDraft): TaskFormErrors {
     } else if (field === 'description' && !errors.description) {
       errors.description = i18n.t('tasks.form.errors.descriptionTooLong');
     } else if (field === 'assigneeIds' && !errors.assigneeIds) {
-      errors.assigneeIds = i18n.t('tasks.form.errors.tooManyAssignees');
+      errors.assigneeIds = i18n.t('forms.people.full', { max: MAX_ASSIGNEES });
     } else if (field !== 'title' && field !== 'description' && field !== 'assigneeIds') {
       // Fields without an input of their own (files, deadline) report through the form error.
       errors.form ??= i18n.t(

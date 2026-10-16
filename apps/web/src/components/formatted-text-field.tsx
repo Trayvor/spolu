@@ -10,7 +10,9 @@ import {
 import { applyFormat, type FormatKind } from '@/features/chat/composer-text';
 import { MessageBody } from '@/features/chat/format/render';
 import { FormatToolbar, formatShortcut } from '@/features/chat/format-toolbar';
-import { useGroupPeople } from '@/features/groups/use-group-people';
+import { useQuery } from '@tanstack/react-query';
+import type { GroupPerson } from '@spolu/shared';
+import { groupPeopleQuery } from '@/features/groups/api';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
@@ -21,7 +23,8 @@ const MIN_ROWS = 12;
  * A long text with the chat composer's formatting (toolbar, shortcuts, Markdown marks) on a
  * textarea at least 12 lines tall that grows with its text, such as the task description. A
  * filled text is shown rendered like a chat message until `editLabel` ("Edit description") is
- * pressed; leaving the field shows it rendered again. Mentions are named from `groupId`'s people.
+ * pressed; leaving the field shows it rendered again. Mentions are named from `people`, or, when
+ * it is not given, from `groupId`'s people (fetched).
  * The toolbar's texts are in the `chat` locale namespace.
  */
 export function FormattedTextField({
@@ -33,6 +36,7 @@ export function FormattedTextField({
   editLabel,
   error,
   errorId,
+  people: givenPeople,
 }: {
   id: string;
   groupId: string;
@@ -43,8 +47,12 @@ export function FormattedTextField({
   editLabel: string;
   error?: string;
   errorId?: string;
+  /** The people mentions are named from; without it, the group's people are fetched. */
+  people?: GroupPerson[];
 }) {
-  const people = useGroupPeople(groupId).data;
+  // `useGroupPeople`, unless the caller already has the people.
+  const fetched = useQuery({ ...groupPeopleQuery(groupId), enabled: givenPeople === undefined });
+  const people = givenPeople ?? fetched.data;
   const nameOf = (userId: string) => people?.find((p) => p.id === userId)?.name;
   const [editing, setEditing] = useState(value.trim() === '');
   const textarea = useRef<HTMLTextAreaElement>(null);

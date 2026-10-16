@@ -128,7 +128,7 @@ describe('TaskForm', () => {
     const combobox = screen.getByRole('combobox');
     expect(combobox).not.toBeDisabled();
     expect(combobox).toHaveAttribute('readonly');
-    expect(combobox).toHaveAccessibleDescription(t('tasks.form.errors.tooManyAssignees'));
+    expect(combobox).toHaveAccessibleDescription(i18n.t('forms.people.full', { max: 10 }));
     await user.click(combobox);
     expect(combobox).toHaveFocus();
     expect(screen.queryByRole('option')).not.toBeInTheDocument();
@@ -178,7 +178,7 @@ describe('TaskForm', () => {
         title: 'ok',
         assigneeIds: Array.from({ length: 11 }, (_, i) => `u${i}`),
       }).assigneeIds,
-    ).toBe(t('tasks.form.errors.tooManyAssignees'));
+    ).toBe(i18n.t('forms.people.full', { max: 10 }));
     expect(validateTaskDraft({ ...EMPTY_TASK_DRAFT, title: 'ok' })).toEqual({});
   });
 

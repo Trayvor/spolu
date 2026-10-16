@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { ApiError } from '@/lib/api';
 import { ImagePreview } from '@/features/files/image-preview';
 import { uploadFile } from '@/features/files/upload';
-import { CloseIcon, PaperclipIcon } from '@/features/tasks/icons';
+import { CloseIcon, PaperclipIcon } from '@/components/icons';
 
 type Pending = { key: number; name: string; progress: number };
 
@@ -24,6 +24,7 @@ export function FilesField({
   onRemove,
   labelId,
   max,
+  inputTestId = 'task-file-input',
 }: {
   groupId: string;
   fileIds: string[];
@@ -34,6 +35,8 @@ export function FilesField({
   labelId: string;
   /** The most files the list may hold (20 on a task). */
   max: number;
+  /** `data-testid` of the hidden file picker. */
+  inputTestId?: string;
 }) {
   const { t } = useTranslation();
   const picker = useRef<HTMLInputElement>(null);
@@ -128,7 +131,7 @@ export function FilesField({
         hidden
         tabIndex={-1}
         aria-hidden="true"
-        data-testid="task-file-input"
+        data-testid={inputTestId}
         onChange={onPick}
       />
       {!(full && max === 1) && (

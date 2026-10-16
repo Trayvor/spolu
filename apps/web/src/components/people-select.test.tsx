@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
@@ -15,10 +15,12 @@ function Harness({
   people = PEOPLE,
   initial = [],
   fixedIds,
+  onChange,
 }: {
   people?: GroupPerson[];
   initial?: string[];
   fixedIds?: string[];
+  onChange?: (ids: string[]) => void;
 }) {
   const [value, setValue] = useState(initial);
   return (
@@ -27,7 +29,10 @@ function Harness({
       <PeopleSelect
         people={people}
         value={value}
-        onChange={setValue}
+        onChange={(ids) => {
+          onChange?.(ids);
+          setValue(ids);
+        }}
         fixedIds={fixedIds}
         inputId="people"
         max={10}
@@ -40,7 +45,8 @@ function Harness({
 describe('PeopleSelect', () => {
   it('a fixed chip has no remove button and Backspace does not remove it', async () => {
     const user = userEvent.setup();
-    render(<Harness initial={['u1', 'u2']} fixedIds={['u1']} />);
+    const onChange = vi.fn();
+    render(<Harness initial={['u1', 'u2']} fixedIds={['u1']} onChange={onChange} />);
     const chips = screen.getAllByRole('listitem');
     expect(within(chips[0]!).getByText('Anna Nováková')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Remove Anna Nováková' })).not.toBeInTheDocument();
@@ -48,6 +54,7 @@ describe('PeopleSelect', () => {
 
     await user.click(screen.getByRole('combobox', { name: 'Recipients' }));
     await user.keyboard('{Backspace}{Backspace}{Backspace}');
+    expect(onChange).not.toHaveBeenCalled();
     expect(screen.getByText('Anna Nováková')).toBeInTheDocument();
     // The fixed person is not offered again either.
     expect(

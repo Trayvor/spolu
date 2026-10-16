@@ -267,7 +267,7 @@ egrant.sk spacing presets are 4, 8, 12, 16, 20, 24, 32, 40, 48, 54, 64px — all
 - `SheetDialog`, on Radix `Dialog`, always open while mounted (the caller unmounts it): from 641px a centred 720px panel (`bg-popover`, `rounded-xl`, `shadow-lift`, at most `min(880px, 100dvh - 48px)` tall and `100vw - 48px` wide) over a `bg-foreground/30` backdrop that does nothing when clicked; up to 640px a full-screen sheet with no backdrop. Named by a `SheetDialogTitle` inside it (or `labelledBy`); `initialFocus` takes the focus on open.
 - Phones (`PHONE_TARGETS`, the task panel's rule, now kept here): under 641px every button, link, select and input inside is at least 44px high (buttons, links and selects also 44px wide), except a control that carries its own larger hit area (`data-hit`, a `before:` pseudo-element); the formatting toolbar wraps and drops its gaps.
 - Escape goes to the caller's `onEscape` (ask first, close a layer or close); keys typed inside never reach the page's handlers behind it (the task panel closes on Escape).
-- Its header can be a `PanelHeader` with `compactBelow={641}`: the back arrow under 641px, "Close" from 641px.
+- Its header can be a `PanelHeader` with `compactBelow={641}`: the back arrow under 641px, "Close" from 641px; `backLabel` replaces "Back to the board" with the place the arrow goes back to.
 - Used by the "Turn into tasks" review; Phase 17's knowledge detail and create dialogs use it too.
 
 ### Turn into tasks review (as built, `src/features/task-split/`, `components/ui/toast.tsx`)

@@ -60,3 +60,21 @@ describe('FilesField', () => {
     expect(screen.getByTestId('task-file-input')).toHaveAttribute('multiple');
   });
 });
+
+describe('FilesField inputTestId', () => {
+  it('names the hidden picker with inputTestId', () => {
+    render(
+      <FilesField
+        groupId="g1"
+        labelId="l"
+        max={1}
+        fileIds={[]}
+        files={[]}
+        onAdd={() => undefined}
+        onRemove={() => undefined}
+        inputTestId="note-file-input"
+      />,
+    );
+    expect(screen.getByTestId('note-file-input')).toHaveAttribute('type', 'file');
+  });
+});

@@ -5,7 +5,7 @@ import { Avatar } from '@/components/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
-import { CloseIcon } from '@/features/tasks/icons';
+import { CloseIcon } from '@/components/icons';
 
 /** Stable defaults, so the memoized lists keep their identity across renders. */
 const NONE: never[] = [];
@@ -34,7 +34,10 @@ export function PeopleSelect({
   value: string[];
   onChange: (ids: string[]) => void;
   knownPeople?: TaskPerson[];
-  /** Chosen people who cannot be removed (such as the author). */
+  /**
+   * Chosen people who cannot be removed (such as the author). They must also be in `value`, and
+   * the caller must keep them there: this field never removes them, but it does not add them.
+   */
   fixedIds?: string[];
   inputId: string;
   describedBy?: string;
