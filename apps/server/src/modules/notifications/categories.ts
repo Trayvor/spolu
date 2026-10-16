@@ -4,6 +4,7 @@ import {
   type NotificationKind,
 } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
+import { listGroupPeople } from '../groups/service.js';
 
 /**
  * The notification group of every event kind: the one place that maps a kind to a group. A new
@@ -51,4 +52,19 @@ export async function visibleCategoriesFor(
 ): Promise<NotificationCategory[]> {
   /* eslint-enable @typescript-eslint/no-unused-vars */
   return [...NotificationCategories];
+}
+
+/**
+ * Who belongs to the event's client group for delivery: the group's people (its clients and every
+ * admin) for every group today. Item B-1 changes only this: for `tickets`, members with the
+ * `ziadatel` role count too; for every other group they do not.
+ */
+export async function notificationAudience(
+  db: Db,
+  groupId: string,
+  // Item B-1's (it widens the audience for `tickets`); unused until then.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _group: NotificationCategory,
+): Promise<Set<string>> {
+  return new Set((await listGroupPeople(db, groupId)).map((p) => p.id));
 }

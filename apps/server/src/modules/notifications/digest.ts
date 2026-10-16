@@ -24,7 +24,8 @@ const str = (v: unknown): string | null => (typeof v === 'string' && v !== '' ? 
 export function digestEmail(i: {
   to: string;
   lang: UserLanguage;
-  groupName: string;
+  /** What the subject names: the group, or item B's ticket. */
+  topic: string;
   url: string;
   button: string;
   count: number;
@@ -33,24 +34,28 @@ export function digestEmail(i: {
   const t = texts(i.lang);
   return buildEmail({
     to: i.to,
-    subject: t.digestSubject(i.count, i.groupName),
+    subject: t.digestSubject(i.count, i.topic),
     paragraphs: i.lines.slice(-MAX_LINES),
     button: { label: i.button, url: i.url },
   });
 }
 
+type DigestSplit = {
+  url: string;
+  button: string;
+  topic: string;
+  lines: string[];
+  rowIds: string[];
+};
+
 /** The entries of one user and group, one email per `url`, in first-seen order. */
-export function splitByUrl(
-  entries: { entry: DigestEntry; rowId: string }[],
-): { url: string; button: string; lines: string[]; rowIds: string[] }[] {
-  const byUrl = new Map<
-    string,
-    { url: string; button: string; lines: string[]; rowIds: string[] }
-  >();
+export function splitByUrl(entries: { entry: DigestEntry; rowId: string }[]): DigestSplit[] {
+  const byUrl = new Map<string, DigestSplit>();
   for (const { entry, rowId } of entries) {
     const split = byUrl.get(entry.url) ?? {
       url: entry.url,
       button: entry.button,
+      topic: entry.topic,
       lines: [],
       rowIds: [],
     };
@@ -106,7 +111,6 @@ async function collectDigests(
     .where(
       and(
         isNull(notificationEvents.emailedAt),
-        isNotNull(notificationEvents.groupId),
         lte(notificationEvents.emailDueAt, now),
         userIds ? inArray(notificationEvents.userId, [...new Set(userIds)]) : undefined,
       ),
@@ -114,10 +118,11 @@ async function collectDigests(
   if (due.length === 0) return [];
   // One lock per pair, in a fixed order: a parallel run waits here, then finds the rows emailed
   // and sends nothing (no early second email for events that arrived in between).
-  const keys = [...new Set(due.map((p) => `${p.userId}${p.groupId}`))].sort();
+  // A ticket event without a client group makes its own pair (group '').
+  const keys = [...new Set(due.map((p) => `${p.userId}${p.groupId ?? ''}`))].sort();
   for (const key of keys) await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${key}))`);
   const pairs = sql.join(
-    due.map((p) => sql`(${p.userId}::text, ${p.groupId}::text)`),
+    due.map((p) => sql`(${p.userId}::text, ${p.groupId ?? ''}::text)`),
     sql`, `,
   );
   // Every pending row of the pairs, also those not yet due: they join the same email.
@@ -128,7 +133,7 @@ async function collectDigests(
       and(
         isNull(notificationEvents.emailedAt),
         isNotNull(notificationEvents.emailDueAt),
-        sql`(${notificationEvents.userId}, ${notificationEvents.groupId}) in (${pairs})`,
+        sql`(${notificationEvents.userId}, coalesce(${notificationEvents.groupId}, '')) in (${pairs})`,
       ),
     )
     .orderBy(notificationEvents.createdAt, notificationEvents.id)
@@ -168,7 +173,7 @@ async function collectDigests(
       await tx
         .select({ id: groups.id, name: groups.name })
         .from(groups)
-        .where(inArray(groups.id, [...new Set(rows.map((r) => r.groupId!))]))
+        .where(inArray(groups.id, [...new Set(rows.flatMap((r) => r.groupId ?? []))]))
     ).map((g) => [g.id, g.name]),
   );
   const digests: { email: EmailMessage; rowIds: string[] }[] = [];
@@ -176,11 +181,12 @@ async function collectDigests(
     const first = events[0]!;
     const profile = profiles.get(first.userId);
     if (!profile || profile.disabled) continue;
-    const groupName = groupNames.get(first.groupId!);
+    const groupId = first.groupId;
+    const groupName = groupId === null ? null : groupNames.get(groupId);
     if (groupName === undefined) continue;
     const ctx = {
       groupName,
-      groupId: first.groupId!,
+      groupId,
       publicUrl: deps.config.publicUrl,
       lang: profile.language,
       taskTitles,
@@ -207,7 +213,7 @@ async function collectDigests(
         email: digestEmail({
           to: profile.email,
           lang: profile.language,
-          groupName,
+          topic: split.topic,
           url: split.url,
           button: split.button,
           count: split.lines.length,

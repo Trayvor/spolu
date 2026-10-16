@@ -68,7 +68,7 @@ const send = async (channel: ChannelRow, author: SessionUser, body: string) =>
 describe('digestEmail', () => {
   const base = {
     to: 'a@example.com',
-    groupName: 'Firma',
+    topic: 'Firma',
     url: 'https://x/groups/g/chat',
     button: 'Open Firma',
   };
@@ -361,7 +361,7 @@ describe('sendDueDigests', () => {
 
 describe('splitByUrl', () => {
   it('groups entries by url in first-seen order, keeping their rows', () => {
-    const e = (line: string, url: string) => ({ line, url, button: 'Open' });
+    const e = (line: string, url: string) => ({ line, url, button: 'Open', topic: 'Firma' });
     const groups = splitByUrl([
       { entry: e('a', '/t/1'), rowId: 'r1' },
       { entry: e('b', '/chat'), rowId: 'r2' },

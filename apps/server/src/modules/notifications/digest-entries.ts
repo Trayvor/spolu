@@ -3,12 +3,16 @@ import { notificationGroupOf } from './categories.js';
 import { buildPushPayload } from './push-content.js';
 import { formatReminderTime, texts } from './texts.js';
 
-/** One event in a digest email: its line, and the page the email's button opens. */
-export type DigestEntry = { line: string; url: string; button: string };
+/**
+ * One event in a digest email: its line, the page the email's button opens, the button's label
+ * and what the subject names ("3 new messages in <topic>").
+ */
+export type DigestEntry = { line: string; url: string; button: string; topic: string };
 
 export type DigestContext = {
-  groupName: string;
-  groupId: string;
+  /** Null for a ticket event without a client group. */
+  groupName: string | null;
+  groupId: string | null;
   publicUrl: string;
   lang: UserLanguage;
   /** Current task titles by id, so task lines show the task's title now. */
@@ -26,7 +30,9 @@ export function digestEntry(
   row: { kind: string; payload: Record<string, unknown> },
   ctx: DigestContext,
 ): DigestEntry | null {
-  if (notificationGroupOf(row.kind, row.payload) === null) return null;
+  const group = notificationGroupOf(row.kind, row.payload);
+  // Only a ticket event may lack a client group, and item B builds those entries.
+  if (group === null || ctx.groupId === null || ctx.groupName === null) return null;
   const t = texts(ctx.lang);
   const p = row.payload;
   const taskId = str(p.taskId);
@@ -49,5 +55,6 @@ export function digestEntry(
     line,
     url: `${ctx.publicUrl}/groups/${encodeURIComponent(ctx.groupId)}/chat`,
     button: t.digestButton(ctx.groupName),
+    topic: ctx.groupName,
   };
 }
