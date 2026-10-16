@@ -21,6 +21,7 @@ import type {
   UserLanguage,
 } from '@spolu/shared';
 import { user } from '../users/schema.js';
+import { languageIn } from '../../infra/db/language-check.js';
 
 /**
  * A bulk email (Phase 23): draft → sending → sent, or sending → cancelled. `blocks` and
@@ -90,7 +91,7 @@ export const bulkRecipients = pgTable(
       'bulk_recipients_status_check',
       sql`${t.status} in ('queued', 'sending', 'sent', 'failed', 'skipped', 'cancelled')`,
     ),
-    check('bulk_recipients_language_check', sql`${t.language} in ('sk', 'en')`),
+    check('bulk_recipients_language_check', languageIn(t.language)),
     index('bulk_recipients_campaign_status_idx').on(t.campaignId, t.status),
     index('bulk_recipients_user_idx').on(t.userId),
   ],

@@ -1,0 +1,222 @@
+{
+  "status": {
+    "draft": "Mustand",
+    "sending": "Saatmisel",
+    "sent": "Saadetud",
+    "cancelled": "Tühistatud"
+  },
+  "list": {
+    "title": "Masskirjad",
+    "intro": "Kirjutage üks e-kiri paljudele Help-rakenduse kasutajatele: koostage see plokkidest, valige saajad ja saatke esmalt endale testkiri.",
+    "new": "Uus e-kiri",
+    "defaultName": "E-kiri {{date}}",
+    "empty": "E-kirju veel ei ole. Alustage nupuga Uus e-kiri.",
+    "noSubject": "Teema puudub",
+    "counts": "Saadetud: {{sent}}, ebaõnnestunud: {{failed}}",
+    "changed": "Muudetud {{date}}",
+    "changedBy": "Muutis {{name}}, {{date}}",
+    "more": "Näita rohkem"
+  },
+  "editor": {
+    "back": "Kõik e-kirjad",
+    "notFound": "Seda e-kirja ei ole enam olemas.",
+    "delete": "Kustuta mustand",
+    "deleteConfirm": "Kas kustutada see mustand? Seda ei saa taastada.",
+    "deleteYes": "Kustuta",
+    "cancel": "Tühista"
+  },
+  "save": {
+    "saved": "Kõik muudatused on salvestatud",
+    "saving": "Salvestamine…",
+    "invalid": "Salvestamata: parandage märgitud väljad.",
+    "error": "Salvestamata. Kontrollige ühendust.",
+    "retry": "Proovi uuesti",
+    "changed": "Teine administraator muutis seda e-kirja Teie muutmise ajal. Laadige leht uuesti, et näha tema versiooni; Teie viimaseid muudatusi siin ei salvestatud.",
+    "notDraft": "Selle e-kirja saatmine on alanud, seega ei saa seda enam muuta.",
+    "reload": "Laadi uuesti"
+  },
+  "content": {
+    "title": "Sisu",
+    "name": "Sisemine nimi",
+    "nameHint": "Näevad ainult administraatorid, e-kirjade loendis.",
+    "subject": "Teema",
+    "preheader": "Eelvaaterida",
+    "preheaderHint": "E-posti rakendused näitavad seda teema kõrval. Valikuline."
+  },
+  "blocks": {
+    "title": "Plokid",
+    "empty": "Plokke veel ei ole. Alustamiseks lisage pealkiri ja natuke teksti.",
+    "add": "Lisa plokk",
+    "limit": "E-kirjas võib olla kuni {{max}} plokki.",
+    "moveUp": "Liiguta plokk {{n}} ({{type}}) üles",
+    "moveDown": "Liiguta plokk {{n}} ({{type}}) alla",
+    "delete": "Kustuta plokk {{n}} ({{type}})",
+    "types": {
+      "heading": "Pealkiri",
+      "text": "Tekst",
+      "image": "Pilt",
+      "button": "Nupp",
+      "divider": "Eraldaja",
+      "logo": "eGranti logo"
+    }
+  },
+  "fields": {
+    "text": "Tekst",
+    "nameHint": "Kirjutage {{placeholder}}, et pöörduda iga inimese poole nimepidi.",
+    "textHint": "Tühi rida alustab uut lõiku. **paks** muudab teksti paksuks, veebiaadressid muutuvad linkideks, {{placeholder}} asendub iga inimese nimega.",
+    "align": "Joondus",
+    "left": "Vasakul",
+    "center": "Keskel",
+    "image": "Pilt",
+    "upload": "Laadi pilt üles",
+    "replace": "Asenda pilt",
+    "uploading": "Üleslaadimine…",
+    "uploadFailed": "Pilti ei õnnestunud üles laadida. Kasutage PNG- või JPEG-faili.",
+    "alt": "Kirjeldus",
+    "altHint": "Kuvatakse, kui e-posti rakendus pilte ei laadi.",
+    "href": "Link (valikuline)",
+    "label": "Nupu tekst",
+    "url": "Link",
+    "urlHint": "Veebiaadress, mis algab https://, või mailto: koos e-posti aadressiga.",
+    "dividerNote": "Õhuke joon e-kirja kahe osa vahel."
+  },
+  "problems": {
+    "required": "Täitke see väli.",
+    "tooLong": "Liiga pikk: kuni {{max}} tähemärki.",
+    "invalidUrl": "Sisestage täielik aadress, mis algab https://.",
+    "imageMissing": "Laadige pilt üles."
+  },
+  "notReady": {
+    "subject_missing": "Lisage enne saatmist teema.",
+    "no_blocks": "Lisage enne saatmist vähemalt üks plokk.",
+    "image_missing": "See pilt puudub. Laadige see uuesti üles.",
+    "invalid_url": "See link ei ole kehtiv."
+  },
+  "preview": {
+    "title": "Eelvaade",
+    "device": "Eelvaate suurus",
+    "computer": "Arvuti",
+    "phone": "Telefon",
+    "frame": "E-kirja eelvaade",
+    "loading": "Eelvaate laadimine…",
+    "failed": "Eelvaadet ei õnnestunud laadida.",
+    "note": "Kuvatakse Teie nimega, nii nagu Teie selle saaksite. Vigadega plokid jäetakse välja, kuni need on parandatud."
+  },
+  "audience": {
+    "title": "Saajad",
+    "roles": "Kes",
+    "rolesHint": "Kliendid ja taotlejad tulevad valitud gruppidest; administraatorid on kõik administraatorid.",
+    "role": {
+      "client": "Kliendid",
+      "ziadatel": "Taotlejad",
+      "admin": "Administraatorid"
+    },
+    "managers": "Grupid, mida haldab",
+    "managersHint": "Lisab kõik grupid, mida märgitud administraator haldab.",
+    "groups": "Kliendigrupid",
+    "groupsHint": "Kui ühtegi gruppi ega haldurit pole märgitud, arvestatakse kõiki gruppe.",
+    "groupSearch": "Otsi gruppi",
+    "groupsNone": "Ükski grupp ei vasta.",
+    "groupsChosen_one": "{{count}} grupp märgitud",
+    "groupsChosen_other": "{{count}} gruppi märgitud",
+    "include": "Lisa inimene",
+    "exclude": "Jäta inimene välja",
+    "count_one": "Selle e-kirja saab {{count}} inimene",
+    "count_other": "Selle e-kirja saavad {{count}} inimest",
+    "leftOut": "Välja jäetud: {{unsubscribed}} loobunut, {{disabled}} keelatud kontoga.",
+    "counting": "Loendamine…",
+    "show": "Näita saajaid"
+  },
+  "picker": {
+    "search": "Nimi või e-posti aadress",
+    "min": "Sisestage vähemalt 2 tähemärki.",
+    "none": "Keegi ei vasta.",
+    "addShort": "Lisa",
+    "add": "Lisa {{name}}",
+    "remove": "Eemalda {{name}}",
+    "unknown": "Tundmatu inimene"
+  },
+  "recipients": {
+    "title": "Saajad",
+    "close": "Sulge",
+    "more": "Näita rohkem",
+    "empty": "Nendele filtritele ei vasta keegi."
+  },
+  "test": {
+    "title": "Test",
+    "intro": "Saatke e-kiri praegu salvestatud kujul oma aadressile {{email}}.",
+    "send": "Saada mulle testkiri",
+    "sending": "Saatmine…",
+    "sent": "Testkiri on saadetud aadressile {{email}}.",
+    "unsaved": "Oodake, kuni Teie muudatused on salvestatud.",
+    "unavailable": "Testkirjade saatmine ei ole selles serveris veel saadaval.",
+    "rateLimited": "Liiga palju teste ühe minuti jooksul. Oodake veidi ja proovige uuesti.",
+    "notReady": "E-kiri ei ole veel valmis. Parandage esmalt märgitud probleemid."
+  },
+  "send": {
+    "title": "Saatmine",
+    "intro": "Saatke e-kiri salvestatud kujul kõigile, kes on jaotises Saajad. Saatmise ajal saate selle peatada, kuid juba saadetud e-kirju tagasi võtta ei saa.",
+    "open": "Saada…",
+    "preparing": "Salvestamine…",
+    "unsaved": "Parandage esmalt märgitud väljad: saata saab ainult salvestatud e-kirja.",
+    "dialogTitle_one": "Kas saata {{count}} inimesele?",
+    "dialogTitle_other": "Kas saata {{count}} inimesele?",
+    "dialogCounting": "Kas saata see e-kiri?",
+    "subject": "Teema",
+    "sender": "Saatja",
+    "recipients": "Saajad",
+    "counting": "Loendamine…",
+    "people_one": "{{count}} inimene",
+    "people_other": "{{count}} inimest",
+    "confirm_one": "Saada {{count}} inimesele",
+    "confirm_other": "Saada {{count}} inimesele",
+    "sending": "Alustamine…",
+    "cancel": "Mitte praegu",
+    "notReady": "E-kiri ei ole veel valmis. Parandage esmalt märgitud probleemid.",
+    "emptyAudience": "Seda e-kirja ei saaks keegi. Valige esmalt saajad.",
+    "notDraft": "Selle e-kirja saatmine on juba alanud.",
+    "reload": "Näita aruannet"
+  },
+  "report": {
+    "started": "Saatmist alustas {{name}} {{date}}, saatja {{sender}}.",
+    "finished": "Lõpetatud {{date}}.",
+    "progress": "Töödeldud {{done}} / {{total}}",
+    "progressLabel": "Saatmise edenemine",
+    "counts": "Arvud",
+    "recipients": "Saajad",
+    "sent": "Saadetud",
+    "failed": "Ebaõnnestunud",
+    "skipped": "Vahele jäetud",
+    "cancelled": "Tühistatud",
+    "unsubscribed": "Loobunud",
+    "skippedHint": "Loobusid või keelati enne nende järjekorda.",
+    "unsubscribedHint": "Selle e-kirja lingi kaudu, endiselt loobunud.",
+    "note": "Help-rakendus ei mõõda veel avamisi ega klikke. „Saadetud“ tähendab, et Elastic Email võttis e-kirja vastu, mitte seda, et see jõudis postkasti.",
+    "readOnly": "Seda e-kirja ei saa enam muuta. Uue versiooni saatmiseks tehke sellest koopia.",
+    "duplicate": "Tee koopia",
+    "cancelSending": "Tühista saatmine",
+    "cancelConfirm": "Kas peatada saatmine? Inimesed, kes pole e-kirja veel saanud, ei saa seda.",
+    "cancelYes": "Peata saatmine",
+    "cancelNo": "Jätka saatmist",
+    "notSending": "Saatmine on juba lõppenud.",
+    "people": "Inimesed",
+    "filter": "Näita",
+    "filterAll": "Kõik",
+    "empty": "Selle olekuga inimesi ei ole.",
+    "more": "Näita rohkem",
+    "sentAt": "Saadetud {{date}}",
+    "recipientStatus": {
+      "queued": "Ootel",
+      "sending": "Saatmisel",
+      "sent": "Saadetud",
+      "failed": "Ebaõnnestunud",
+      "skipped": "Vahele jäetud",
+      "cancelled": "Tühistatud"
+    },
+    "reason": {
+      "unsubscribed": "Loobunud",
+      "disabled": "Konto keelatud",
+      "unknown": "Teadmata tulemus: e-kiri võib olla saadetud või mitte."
+    }
+  }
+}

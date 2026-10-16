@@ -1,13 +1,13 @@
-export type EmailLanguage = 'sk' | 'en';
+import { UserLanguages, type UserLanguage } from '@spolu/shared';
 
-const SUPPORTED: readonly EmailLanguage[] = ['sk', 'en'];
+export type EmailLanguage = UserLanguage;
 
 const isSupported = (tag: string): tag is EmailLanguage =>
-  (SUPPORTED as readonly string[]).includes(tag);
+  (UserLanguages as readonly string[]).includes(tag);
 
 /**
  * The email language from an Accept-Language header: the first listed language whose primary
- * tag we support ("en-GB,en;q=0.9" -> en), else Slovak.
+ * tag we support ("en-GB,en;q=0.9" -> en, "cs-CZ" -> cs), else Slovak.
  */
 export function pickLanguage(acceptLanguage: string | null | undefined): EmailLanguage {
   for (const part of (acceptLanguage ?? '').split(',')) {

@@ -1,0 +1,20 @@
+{
+  "title": "Administratori",
+  "add": "Dodaj administratora",
+  "name": "Ime",
+  "email": "E-pošta",
+  "submit": "Dodaj i pošalji e-poruku",
+  "cancel": "Odustani",
+  "added": "{{name}} je dodan/a.",
+  "remove": "Ukloni",
+  "confirmRemove": "Ukloniti {{name}}? Odmah će izgubiti pristup.",
+  "badge": {
+    "superadmin": "Superadmin",
+    "you": "Vi"
+  },
+  "errors": {
+    "emailTakenAdmin": "Ova adresa e-pošte već pripada administratoru.",
+    "emailTakenClient": "Ova adresa e-pošte pripada klijentu.",
+    "nameRequired": "Unesite ime."
+  }
+}

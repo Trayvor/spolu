@@ -1,0 +1,19 @@
+{
+  "title": "Prijava",
+  "intro": "Na vaš e-poštni naslov vam bomo poslali kodo za prijavo.",
+  "email": "E-pošta",
+  "sendCode": "Pošlji kodo",
+  "codeIntro": "Če ima {{email}} dostop, smo nanj poslali 6-mestno kodo. Velja 5 minut.",
+  "code": "Koda",
+  "submit": "Prijava",
+  "sendAgain": "Pošlji znova",
+  "sendAgainIn": "Pošlji znova čez {{seconds}} s",
+  "changeEmail": "Spremeni e-poštni naslov",
+  "errors": {
+    "invalidEmail": "Vnesite veljaven e-poštni naslov.",
+    "wrongCode": "Koda se ne ujema. Preostali poskusi: {{count}}.",
+    "expired": "Koda je potekla. Pošljite si novo.",
+    "tooMany": "Preveč poskusov. Poskusite znova čez nekaj minut.",
+    "disabled": "Ta račun nima več dostopa."
+  }
+}

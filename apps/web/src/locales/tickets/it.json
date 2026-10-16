@@ -1,0 +1,109 @@
+{
+  "new": "Nuovo ticket",
+  "status": {
+    "new": "Nuovo",
+    "in_progress": "In lavorazione",
+    "resolved": "Risolto"
+  },
+  "filters": {
+    "label": "Filtri dei ticket",
+    "status": "Stato",
+    "open": "Aperti",
+    "resolved": "Risolti",
+    "all": "Tutti",
+    "allAreas": "Tutte le aree",
+    "areaChosen": "Area: {{area}}",
+    "noAreas": "Ancora nessuna area in questo elenco",
+    "following": "Seguiti",
+    "noClient": "Senza cliente"
+  },
+  "list": {
+    "loading": "Caricamento dei ticket…",
+    "error": "Impossibile caricare i ticket.",
+    "empty": "Nessun ticket aperto.",
+    "noMatch": "Nessun ticket corrisponde a questi filtri.",
+    "loadMore": "Carica altri"
+  },
+  "row": {
+    "due": "Scadenza",
+    "overdue": "Scaduto dal",
+    "noSubject": "Senza oggetto",
+    "noClient": "Senza cliente",
+    "following": "Lei segue questo ticket"
+  },
+  "mine": {
+    "title": "I miei ticket",
+    "empty": "Qui non ha ticket. Quando il supporto eGrant ne aprirà uno per Lei, comparirà qui."
+  },
+  "global": {
+    "title": "Ticket"
+  },
+  "page": {
+    "number": "#{{number}}",
+    "details": "Dettagli del ticket",
+    "edit": "Modifica",
+    "editTitle": "Modifica il ticket",
+    "save": "Salva modifiche",
+    "cancel": "Annulla",
+    "turnedInto_one": "Trasformato in {{count}} attività",
+    "turnedInto_many": "Trasformato in {{count}} attività",
+    "turnedInto_other": "Trasformato in {{count}} attività",
+    "back": "Indietro"
+  },
+  "fields": {
+    "status": "Stato",
+    "subject": "Oggetto",
+    "area": "Area della domanda",
+    "programme": "Programma di finanziamento",
+    "body": "Testo",
+    "dueDate": "Scadenza",
+    "overdue": "scaduto",
+    "url": "Link",
+    "instance": "Istanza eGrant",
+    "files": "File",
+    "initiator": "Richiedente",
+    "unknown": "Non noto",
+    "client": "Cliente",
+    "created": "Creato",
+    "fromEgrant": "da eGrant",
+    "inSpolu": "nell'app Help",
+    "resolved": "Risolto"
+  },
+  "followers": {
+    "title": "Follower ({{count}})",
+    "follow": "Segui",
+    "following": "Seguito",
+    "none": "Nessuno segue questo ticket."
+  },
+  "assign": {
+    "choose": "Scegli un cliente",
+    "hasTasks": "Questo ticket ha attività nella bacheca del suo cliente, quindi resta assegnato a quel cliente."
+  },
+  "noClient": {
+    "title": "Ancora nessun cliente",
+    "adminHint": "eGrant non ha inviato un link di istanza corrispondente a un cliente. Scegliere il cliente in Modifica: il ticket avrà la sua chat e il richiedente riceverà la sua email.",
+    "hint": "Prima un amministratore deve assegnare il cliente."
+  },
+  "form": {
+    "title": "Nuovo ticket",
+    "back": "Indietro",
+    "initiator": "Richiedente",
+    "initiatorHint": "Riceve un'email e può seguire il ticket nell'app Help.",
+    "email": "Email del richiedente",
+    "name": "Nome del richiedente",
+    "phone": "Telefono del richiedente",
+    "filesAfterClient": "Scegliere prima il cliente: i file appartengono a lui.",
+    "create": "Crea ticket",
+    "errors": {
+      "content": "Scrivere un oggetto, un testo o un'area della domanda.",
+      "url": "Inserire un link che inizi con https:// o http://.",
+      "client": "Scegliere il cliente.",
+      "email": "Inserire un'email valida."
+    }
+  },
+  "tasks": {
+    "title": "Attività",
+    "none": "Ancora nessuna attività. Trasformi il ticket in attività per portare il lavoro sulla bacheca.",
+    "completed": "Completata"
+  }
+}

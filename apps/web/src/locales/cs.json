@@ -1,0 +1,41 @@
+{
+  "app": {
+    "name": "Help",
+    "fullName": "Help by eGrant"
+  },
+  "nav": {
+    "home": "Domů",
+    "tasks": "Úkoly",
+    "tickets": "Tikety",
+    "settings": "Nastavení",
+    "admins": "Administrátoři",
+    "groups": "Skupiny",
+    "knowledge": "Znalosti",
+    "myGroups": "Moje skupiny",
+    "myTickets": "Moje tikety",
+    "bulkEmail": "Hromadné e-maily"
+  },
+  "user": {
+    "menu": "Nabídka účtu",
+    "logout": "Odhlásit se"
+  },
+  "language": {
+    "current": "Jazyk: {{name}}"
+  },
+  "notFound": {
+    "title": "Stránka nenalezena",
+    "body": "Tato adresa neexistuje. Zkontrolujte odkaz nebo se vraťte na úvodní stránku.",
+    "home": "Přejít na úvodní stránku"
+  },
+  "errors": {
+    "generic": "Něco se pokazilo. Zkuste to znovu.",
+    "retry": "Zkusit znovu"
+  },
+  "files": {
+    "download": "Stáhnout {{name}}",
+    "openImage": "Otevřít {{name}}"
+  },
+  "toast": {
+    "close": "Zavřít"
+  }
+}

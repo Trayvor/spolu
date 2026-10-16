@@ -1,0 +1,71 @@
+{
+  "empty": "Все още няма съобщения. Напишете първото, за да започне разговорът.",
+  "today": "Днес",
+  "yesterday": "Вчера",
+  "newMessages": "Нови съобщения",
+  "jumpToLatest": "Нови съобщения ↓",
+  "edited": "(редактирано)",
+  "deleted": "Съобщението е изтрито",
+  "egrant": "eGrant",
+  "notSent": "Не е изпратено.",
+  "retry": "Опитай отново",
+  "save": "Запази",
+  "cancel": "Отказ",
+  "confirmDelete": "Да се изтрие ли това съобщение?",
+  "actions": {
+    "replyInThread": "Отговор в нишка",
+    "more": "Още",
+    "edit": "Редактиране",
+    "delete": "Изтриване",
+    "quote": "Цитиране",
+    "label": "Действия със съобщението",
+    "open": "Действия със съобщението",
+    "turnIntoTasks": "Превърни в задачи"
+  },
+  "thread": {
+    "summary_one": "{{count}} отговор, последен в {{time}}",
+    "summary_other": "{{count}} отговора, последен в {{time}}",
+    "title": "Нишка",
+    "unreadReplies": "Непрочетени отговори",
+    "close": "Затвори нишката",
+    "back": "Обратно към чата",
+    "replies_one": "{{count}} отговор",
+    "replies_other": "{{count}} отговора"
+  },
+  "mention": {
+    "all": "@all",
+    "unknown": "@неизвестен",
+    "everyone": "Всички в тази група",
+    "label": "Хора",
+    "everyoneHint": "Клиентите на групата и нейните мениджъри от eGrant"
+  },
+  "composer": {
+    "placeholder": "Напишете съобщение…",
+    "threadPlaceholder": "Отговор…",
+    "send": "Изпрати",
+    "save": "Запази",
+    "attach": "Прикачване на файлове",
+    "removeFile": "Премахване на файла",
+    "replyingTo": "Отговор на {{name}}: {{excerpt}}",
+    "cancelReply": "Отказ от отговора",
+    "tooLong": "{{count}} / 10 000 знака",
+    "tooManyFiles": "Най-много 10 файла в съобщение.",
+    "fileTooLarge": "Твърде голям (макс. 25 MB)",
+    "formatting": "Форматиране",
+    "mentionNotAllowed": "Някой, когото споменахте, вече не може да бъде споменаван тук."
+  },
+  "format": {
+    "bold": "Удебелен",
+    "italic": "Курсив",
+    "strike": "Зачертан",
+    "link": "Връзка",
+    "bulletList": "Списък с водачи",
+    "numberedList": "Номериран списък",
+    "quote": "Цитат",
+    "code": "Код"
+  },
+  "unread_other": "{{count}} непрочетени съобщения",
+  "unread_one": "{{count}} непрочетено съобщение",
+  "loadError": "Чатът не можа да се зареди.",
+  "turnedIntoTasks": "Превърнато в задачи:"
+}

@@ -1,0 +1,16 @@
+{
+  "title": "Süsteemi olek",
+  "version": "Serveri versioon",
+  "lastPing": "Viimane ping",
+  "never": "Veel mitte",
+  "checking": "Kontrollimine…",
+  "unreachable": "Server ei ole kättesaadav",
+  "database": {
+    "ok": "Andmebaas: OK",
+    "down": "Andmebaas: kättesaamatu"
+  },
+  "realtime": {
+    "connected": "Reaalajas ühendus: ühendatud",
+    "disconnected": "Reaalajas ühendus: katkenud"
+  }
+}

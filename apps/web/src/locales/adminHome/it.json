@@ -1,0 +1,114 @@
+{
+  "shell": {
+    "loadError": "Impossibile caricare il contenuto. Riprovare.",
+    "retry": "Riprova"
+  },
+  "sidebar": {
+    "title": "Clienti",
+    "find": "Trova un cliente",
+    "managed": "Gestiti da Lei",
+    "others": "Altri clienti",
+    "collapse": "Comprimi l'elenco dei clienti",
+    "expand": "Espandi l'elenco dei clienti",
+    "noMatch": "Nessun cliente corrisponde.",
+    "unread_one": "{{count}} messaggio non letto",
+    "unread_many": "{{count}} messaggi non letti",
+    "unread_other": "{{count}} messaggi non letti",
+    "assigned_one": "{{count}} attività assegnata a Lei",
+    "assigned_many": "{{count}} attività assegnate a Lei",
+    "assigned_other": "{{count}} attività assegnate a Lei"
+  },
+  "home": {
+    "greeting": {
+      "morning": "Buongiorno, {{name}}",
+      "afternoon": "Buon pomeriggio, {{name}}",
+      "evening": "Buonasera, {{name}}"
+    },
+    "clients": "Clienti"
+  },
+  "cards": {
+    "back": "Indietro",
+    "urgent": "Urgente",
+    "tickets": {
+      "title": "Ticket",
+      "caption": "aperti",
+      "fresh_one": "{{count}} nuovo",
+      "fresh_many": "{{count}} nuovi",
+      "fresh_other": "{{count}} nuovi",
+      "unassigned_one": "{{count}} senza cliente",
+      "unassigned_many": "{{count}} senza cliente",
+      "unassigned_other": "{{count}} senza cliente",
+      "new": "Nuovo",
+      "noClient": "Senza cliente",
+      "showAll": "Mostra tutti i ticket",
+      "empty": "Nessun ticket aperto dei Suoi clienti o senza cliente."
+    },
+    "assigned": {
+      "title": "Le mie attività",
+      "caption": "assegnate",
+      "urgent_one": "{{count}} urgente",
+      "urgent_many": "{{count}} urgenti",
+      "urgent_other": "{{count}} urgenti",
+      "noDate": "senza data",
+      "showAll": "Mostra tutte ({{count}})",
+      "empty": "Non Le è stato assegnato nulla."
+    },
+    "reminders": {
+      "title": "Prossimi promemoria",
+      "caption": "prossimi 7 giorni",
+      "empty": "Nessun promemoria in arrivo."
+    },
+    "mentions": {
+      "title": "Menzioni",
+      "caption": "non lette",
+      "empty": "Nessuna menzione non letta."
+    }
+  },
+  "board": {
+    "title": "Attività",
+    "filtersLabel": "Filtri delle attività",
+    "filters": "Filtri ({{count}})",
+    "filtersTitle": "Filtri",
+    "close": "Fatto",
+    "assignee": {
+      "label": "Assegnatario: {{name}}",
+      "me": "Io",
+      "anyone": "Chiunque",
+      "none": "Non assegnate"
+    },
+    "urgent": "Urgenti",
+    "mine": "Solo quelle a cui partecipo",
+    "due": {
+      "label": "Scadenza: {{name}}",
+      "any": "Qualsiasi",
+      "overdue": "Scadute",
+      "week": "Prossimi 7 giorni",
+      "none": "Senza scadenza"
+    },
+    "search": "Cerca attività",
+    "completed": "Mostra completate",
+    "clear": "Cancella filtri",
+    "more": "Mostra altre 50",
+    "moreFailed": "Impossibile caricarne altre. Riprovare.",
+    "emptyFiltered": "Nessuna attività corrisponde a questi filtri.",
+    "empty": "Nessuna attività aperta per questi clienti.",
+    "columns": {
+      "todo": "Da fare",
+      "other": "Altre fasi",
+      "egrant_review": "Revisione eGrant",
+      "client_review": "Revisione cliente",
+      "done": "Completate"
+    },
+    "count_one": "{{count}} attività",
+    "count_many": "{{count}} attività",
+    "count_other": "{{count}} attività"
+  },
+  "navCount": {
+    "tasks_one": "{{count}} attività aperta assegnata a Lei",
+    "tasks_many": "{{count}} attività aperte assegnate a Lei",
+    "tasks_other": "{{count}} attività aperte assegnate a Lei",
+    "tickets_one": "{{count}} ticket aperto dei Suoi clienti o senza cliente",
+    "tickets_many": "{{count}} ticket aperti dei Suoi clienti o senza cliente",
+    "tickets_other": "{{count}} ticket aperti dei Suoi clienti o senza cliente"
+  }
+}

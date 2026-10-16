@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { BulkBlock } from '@spolu/shared';
-import { BULK_FOOTER } from './texts.js';
+import { bulkFooter } from './texts.js';
 import { LOGO_PATH, imageUrl, renderCampaign } from './render.js';
 
 const PUBLIC_URL = 'https://spolu.test';
@@ -235,17 +235,17 @@ describe('renderCampaign: document', () => {
 
   it('footer is Slovak for sk, English for en, with unsubscribeHref', () => {
     const sk = render([heading('H')]).html;
-    expect(sk).toContain(BULK_FOOTER.sk.reason);
+    expect(sk).toContain(bulkFooter('sk').reason);
     expect(sk).toContain(`href="${UNSUB}"`);
-    expect(sk).toContain(`>${BULK_FOOTER.sk.unsubscribe}</a>`);
+    expect(sk).toContain(`>${bulkFooter('sk').unsubscribe}</a>`);
     const en = render([heading('H')], {
       recipient: { name: 'J', language: 'en' },
       unsubscribeHref: '{unsubscribe:https://spolu.test/unsubscribe/x}',
     }).html;
-    expect(en).toContain(BULK_FOOTER.en.reason);
+    expect(en).toContain(bulkFooter('en').reason);
     expect(en).toContain('href="{unsubscribe:https://spolu.test/unsubscribe/x}"');
-    expect(en).toContain(`>${BULK_FOOTER.en.unsubscribe}</a>`);
-    expect(BULK_FOOTER.en.reason).toBe(
+    expect(en).toContain(`>${bulkFooter('en').unsubscribe}</a>`);
+    expect(bulkFooter('en').reason).toBe(
       'You get this email because you have an account in Help by eGrant.',
     );
   });
@@ -271,7 +271,7 @@ describe('renderCampaign: document', () => {
         '---',
         'Otvoriť: https://egrant.sk',
         '---',
-        `${BULK_FOOTER.sk.reason}\n${BULK_FOOTER.sk.unsubscribe}: ${UNSUB}`,
+        `${bulkFooter('sk').reason}\n${bulkFooter('sk').unsubscribe}: ${UNSUB}`,
       ].join('\n\n'),
     );
   });

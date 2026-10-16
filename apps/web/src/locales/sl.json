@@ -1,0 +1,41 @@
+{
+  "app": {
+    "name": "Help",
+    "fullName": "Help by eGrant"
+  },
+  "nav": {
+    "home": "Domov",
+    "tasks": "Naloge",
+    "tickets": "Zahtevki",
+    "settings": "Nastavitve",
+    "admins": "Skrbniki",
+    "groups": "Skupine",
+    "knowledge": "Znanje",
+    "myGroups": "Moje skupine",
+    "myTickets": "Moji zahtevki",
+    "bulkEmail": "Množična e-pošta"
+  },
+  "user": {
+    "menu": "Meni računa",
+    "logout": "Odjava"
+  },
+  "language": {
+    "current": "Jezik: {{name}}"
+  },
+  "notFound": {
+    "title": "Strani ni mogoče najti",
+    "body": "Ta naslov ne obstaja. Preverite povezavo ali se vrnite na domačo stran.",
+    "home": "Na domačo stran"
+  },
+  "errors": {
+    "generic": "Prišlo je do napake. Poskusite znova.",
+    "retry": "Poskusi znova"
+  },
+  "files": {
+    "download": "Prenesi {{name}}",
+    "openImage": "Odpri {{name}}"
+  },
+  "toast": {
+    "close": "Zapri"
+  }
+}

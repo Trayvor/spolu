@@ -1,0 +1,41 @@
+{
+  "app": {
+    "name": "Help",
+    "fullName": "Help by eGrant"
+  },
+  "nav": {
+    "home": "Avaleht",
+    "tasks": "Ülesanded",
+    "tickets": "Pöördumised",
+    "settings": "Seaded",
+    "admins": "Administraatorid",
+    "groups": "Grupid",
+    "knowledge": "Teadmised",
+    "myGroups": "Minu grupid",
+    "myTickets": "Minu pöördumised",
+    "bulkEmail": "Masskirjad"
+  },
+  "user": {
+    "menu": "Konto menüü",
+    "logout": "Logi välja"
+  },
+  "language": {
+    "current": "Keel: {{name}}"
+  },
+  "notFound": {
+    "title": "Lehte ei leitud",
+    "body": "Seda aadressi ei ole olemas. Kontrollige linki või minge tagasi avalehele.",
+    "home": "Mine avalehele"
+  },
+  "errors": {
+    "generic": "Midagi läks valesti. Proovige uuesti.",
+    "retry": "Proovi uuesti"
+  },
+  "files": {
+    "download": "Laadi alla: {{name}}",
+    "openImage": "Ava: {{name}}"
+  },
+  "toast": {
+    "close": "Sulge"
+  }
+}

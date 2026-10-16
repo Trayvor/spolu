@@ -1,0 +1,59 @@
+{
+  "profile": {
+    "title": "Profil",
+    "name": "Ime",
+    "save": "Spremi",
+    "saved": "Spremljeno",
+    "nameRequired": "Unesite svoje ime.",
+    "email": "E-pošta",
+    "change": "Promijeni",
+    "emailFixed": "Postavlja se u konfiguraciji poslužitelja; ovdje se ne može promijeniti.",
+    "cancel": "Odustani",
+    "newEmail": "Nova adresa e-pošte",
+    "sendCode": "Pošalji kôd",
+    "invalidEmail": "Unesite valjanu adresu e-pošte.",
+    "sameEmail": "Unesite adresu različitu od trenutačne.",
+    "codeSent": "Poslali smo kôd na {{email}}",
+    "code": "Kôd",
+    "confirm": "Potvrdi",
+    "done": "Vaša adresa e-pošte sada je {{email}}",
+    "invalidCode": "Kôd je pogrešan ili je istekao",
+    "emailTaken": "Ova adresa pripada drugom računu",
+    "tooMany": "Previše pokušaja. Pokušajte ponovno za nekoliko minuta.",
+    "bulkEmail": {
+      "label": "Primaj skupne e-poruke",
+      "hint": "Novosti od eGranta koje se šalju većem broju ljudi odjednom. Kodovi za prijavu i obavijesti uvijek stižu."
+    }
+  },
+  "notifications": {
+    "title": "Obavijesti",
+    "pushUnavailable": "Push obavijesti nisu dostupne na ovom poslužitelju",
+    "device": "Ovaj uređaj: {{state}}",
+    "deviceOn": "uključeno",
+    "deviceOff": "nije postavljeno",
+    "deviceBlocked": "blokirano u postavkama preglednika",
+    "deviceUnsupported": "Ovaj preglednik ne može primati obavijesti",
+    "turnOnDevice": "Uključi na ovom uređaju",
+    "unblock": "Dopustite obavijesti za ovu stranicu u postavkama web-mjesta u pregledniku, a zatim ponovno učitajte stranicu.",
+    "iosHint": "Na iPhoneu obavijesti rade samo iz aplikacije na početnom zaslonu. Dodirnite Dijeli, zatim Dodaj na početni zaslon i otvorite aplikaciju Help putem ikone.",
+    "groups": {
+      "chat": "Chat",
+      "tasks": "Ploča zadataka",
+      "tickets": "Ploča tiketa",
+      "knowledge": "Baza znanja"
+    },
+    "hints": {
+      "chat": "Poruke, spominjanja i odgovori u grupnim chatovima",
+      "tasks": "Premještanja, dodjele, rokovi, podsjetnici i chatovi zadataka",
+      "tickets": "Tiketi podrške i njihova komunikacija",
+      "knowledge": "Podsjetnici iz baze znanja"
+    },
+    "channels": {
+      "email": "E-pošta",
+      "push": "Push",
+      "both": "E-pošta i push",
+      "none": "Ništa"
+    },
+    "emailNote": "E-poruka je sažetak onoga što još niste pročitali, najviše jednom u 10 minuta."
+  }
+}

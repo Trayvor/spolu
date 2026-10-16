@@ -42,3 +42,4 @@ What gets easier, what gets harder.
 | [0016](0016-bulk-email-through-elastic-v4-emails.md) | Bulk email through Elastic's /v4/emails | accepted |
 | [0017](0017-intake-files-as-base64.md) | Ticket intake files as base64 in the JSON body | accepted |
 | [0018](0018-visible-name-help-and-domain-redirects.md) | Visible name Help, code name Spolu, and old-domain redirects | accepted |
+| [0019](0019-nine-languages-and-one-email-design.md) | Nine languages and one email design | accepted |

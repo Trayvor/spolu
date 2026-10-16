@@ -1,0 +1,11 @@
+{
+  "title": "Liitu grupiga: {{group}}",
+  "intro": "Sisestage oma töö e-posti aadress. Saadame Teile sisselogimiskoodi.",
+  "invalid": "See link ei kehti enam. Küsige eGrantilt uut.",
+  "errors": {
+    "rateLimited": "Liiga palju katseid. Proovige minuti pärast uuesti.",
+    "removed": "eGranti administraator eemaldas Teid sellest grupist. Paluge tal Teid uuesti lisada."
+  },
+  "signedInAs": "Olete sisse logitud kui {{email}}.",
+  "accept": "Liitu grupiga"
+}

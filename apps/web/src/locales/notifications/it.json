@@ -1,0 +1,35 @@
+{
+  "mode": {
+    "bellLabel": "Notifiche: {{mode}}",
+    "all": "Tutti i messaggi",
+    "allHint": "Ogni nuovo messaggio in questo gruppo",
+    "mentions": "Menzioni e risposte",
+    "mentionsHint": "Quando qualcuno La menziona, risponde in un Suo thread o cambia una Sua attività",
+    "off": "Disattivate",
+    "offHint": "Nessuna notifica da questo gruppo",
+    "mixed": "Miste",
+    "allGroups": "Tutti i gruppi:",
+    "managerNote": "Tutti i messaggi, perché Lei gestisce questo cliente."
+  },
+  "prompt": {
+    "installTitle": "Installi l'app Help",
+    "installBody": "La apra dalla schermata Home come qualsiasi altra app e riceva le notifiche.",
+    "install": "Installa",
+    "installMenu": "Apra il menu del browser ⋮ → Installa app / Aggiungi a schermata Home",
+    "notNow": "Non ora",
+    "iosTitle": "Importante: installi l'app Help per ricevere le notifiche.",
+    "iosBody": "Su iPhone le notifiche funzionano solo dall'app nella schermata Home.",
+    "iosStepShare": "Tocchi Condividi",
+    "iosStepAdd": "Aggiungi alla schermata Home",
+    "iosStepOpen": "Apra l'app Help dall'icona",
+    "enableTitle": "Attivi le notifiche su questo dispositivo",
+    "enableBody": "Riceva subito nuovi messaggi e aggiornamenti delle attività.",
+    "turnOn": "Attiva",
+    "enableFailed": "Impossibile attivare le notifiche. Riprovare.",
+    "iosUnsupportedTitle": "La versione di iOS del Suo iPhone non supporta le notifiche delle app.",
+    "iosUnsupportedBody": "Abbiamo attivato per Lei le notifiche via email. Aggiorni iOS alla versione 16.4 o successiva per ricevere le notifiche sul telefono.",
+    "iosUnsupportedEmailOn": "Le notifiche via email sono già attive. Aggiorni iOS alla versione 16.4 o successiva per ricevere le notifiche sul telefono.",
+    "iosUnsupportedEmailOff": "Le notifiche via email sono disattivate; può attivarle nelle Impostazioni. Aggiorni iOS alla versione 16.4 o successiva per ricevere le notifiche sul telefono.",
+    "ok": "OK"
+  }
+}

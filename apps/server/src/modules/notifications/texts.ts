@@ -1,127 +1,18 @@
-import type { BucketLabel, TicketStatus, UserLanguage } from '@spolu/shared';
+import type { UserLanguage } from '@spolu/shared';
+import { serverTexts, type ServerTexts } from '../../infra/i18n/index.js';
 
-/** Server-side copy for push and email, in the user's language. */
-export type Texts = {
-  sentFile(name: string): string;
-  moved(label: string): string;
-  movedGeneric: string;
-  assigned(name: string): string;
-  deadline(daysLeft: number): string;
-  urgent: string;
-  bucket(label: BucketLabel): string;
-  digestSubject(count: number, group: string): string;
-  digestButton(group: string): string;
-  reminderDue(time: string): string;
-  reminderLine(title: string, time: string): string;
-  /** The SUMMARY of a task's all-day deadline event in the calendar export. */
-  deadlineEvent(title: string): string;
-  /** Ticket notifications (Phase 21): push titles, the digest topic and button. */
-  ticketNew(number: number, client: string): string;
-  ticketUnassigned(number: number): string;
-  ticketStatus(number: number, status: TicketStatus): string;
-  ticketUpdated(number: number): string;
-  ticketTasks(number: number, count: number): string;
-  ticketTopic(number: number): string;
-  openTicket: string;
-};
-
-const EN_STATUS: Record<TicketStatus, string> = {
-  new: 'New',
-  in_progress: 'In progress',
-  resolved: 'Resolved',
-};
-const SK_STATUS: Record<TicketStatus, string> = {
-  new: 'Nový',
-  in_progress: 'V riešení',
-  resolved: 'Vyriešený',
-};
-
-const en: Texts = {
-  sentFile: (name) => `${name} sent a file`,
-  moved: (label) => `Moved to ${label}`,
-  movedGeneric: 'Task moved',
-  assigned: (name) => `${name} assigned you to this task`,
-  deadline: (d) => (d === 1 ? 'Due tomorrow' : `Due in ${d} days`),
-  urgent: 'Urgent: still open',
-  bucket: (l) => {
-    switch (l.kind) {
-      case 'todo':
-        return 'To do';
-      case 'egrant_review':
-        return 'eGrant review';
-      case 'client_review':
-        return `${l.name ?? ''} review`.trim();
-      case 'done':
-        return 'Completed';
-      case 'custom':
-        return l.name ?? '';
-    }
-  },
-  digestSubject: (n, g) => (n === 1 ? `1 new message in ${g}` : `${n} new messages in ${g}`),
-  digestButton: (g) => `Open ${g}`,
-  reminderDue: (time) => `Reminder for ${time}`,
-  reminderLine: (title, time) => `Reminder: ${title}, ${time}`,
-  deadlineEvent: (title) => `Deadline: ${title}`,
-  ticketNew: (n, client) => `New ticket #${n} · ${client}`,
-  ticketUnassigned: (n) => `New ticket #${n} without client`,
-  ticketStatus: (n, status) => `#${n} is now ${EN_STATUS[status] ?? status}`,
-  ticketUpdated: (n) => `#${n} was changed`,
-  ticketTasks: (n, c) => `#${n} turned into ${c} ${c === 1 ? 'task' : 'tasks'}`,
-  ticketTopic: (n) => `Ticket #${n}`,
-  openTicket: 'Open ticket',
-};
-
-function skMessages(n: number): string {
-  if (n === 1) return 'nová správa';
-  if (n >= 2 && n <= 4) return 'nové správy';
-  return 'nových správ';
-}
-
-const sk: Texts = {
-  sentFile: (name) => `${name} poslal(a) súbor`,
-  moved: (label) => `Presunuté do ${label}`,
-  movedGeneric: 'Úloha presunutá',
-  assigned: (name) => `${name} vás priradil(a) k úlohe`,
-  deadline: (d) => (d === 1 ? 'Termín zajtra' : d <= 4 ? `Termín o ${d} dni` : `Termín o ${d} dní`),
-  urgent: 'Urgentné: stále otvorené',
-  bucket: (l) => {
-    switch (l.kind) {
-      case 'todo':
-        return 'Na spracovanie';
-      case 'egrant_review':
-        return 'Kontrola eGrant';
-      case 'client_review':
-        return `Kontrola ${l.name ?? ''}`.trim();
-      case 'done':
-        return 'Hotové';
-      case 'custom':
-        return l.name ?? '';
-    }
-  },
-  digestSubject: (n, g) => `${n} ${skMessages(n)} v ${g}`,
-  digestButton: (g) => `Otvoriť ${g}`,
-  reminderDue: (time) => `Pripomienka na ${time}`,
-  reminderLine: (title, time) => `Pripomienka: ${title}, ${time}`,
-  deadlineEvent: (title) => `Termín: ${title}`,
-  ticketNew: (n, client) => `Nový tiket #${n} · ${client}`,
-  ticketUnassigned: (n) => `Nový tiket #${n} bez klienta`,
-  ticketStatus: (n, status) => `#${n} je teraz ${SK_STATUS[status] ?? status}`,
-  ticketUpdated: (n) => `#${n} bol zmenený`,
-  ticketTasks: (n, c) =>
-    `#${n} rozdelený na ${c} ${c === 1 ? 'úlohu' : c >= 2 && c <= 4 ? 'úlohy' : 'úloh'}`,
-  ticketTopic: (n) => `Tiket #${n}`,
-  openTicket: 'Otvoriť tiket',
-};
+/** Server-side copy for push and email, in the user's language (`infra/i18n/<code>.ts`). */
+export type Texts = ServerTexts['notifications'];
 
 export function texts(lang: UserLanguage): Texts {
-  return lang === 'sk' ? sk : en;
+  return serverTexts(lang).notifications;
 }
 
 /** The wall clock of a reminder time in Bratislava, `HH:mm` (a task reminder on time). */
 export function formatReminderClock(iso: string | undefined | null, lang: UserLanguage): string {
   const at = new Date(iso ?? NaN);
   if (Number.isNaN(at.getTime())) return '';
-  return new Intl.DateTimeFormat(lang === 'sk' ? 'sk-SK' : 'en-GB', {
+  return new Intl.DateTimeFormat(serverTexts(lang).intl, {
     timeZone: 'Europe/Bratislava',
     hour: '2-digit',
     minute: '2-digit',
@@ -133,7 +24,7 @@ export function formatReminderClock(iso: string | undefined | null, lang: UserLa
 export function formatReminderTime(iso: string | undefined | null, lang: UserLanguage): string {
   const at = new Date(iso ?? NaN);
   if (Number.isNaN(at.getTime())) return '';
-  return new Intl.DateTimeFormat(lang === 'sk' ? 'sk-SK' : 'en-GB', {
+  return new Intl.DateTimeFormat(serverTexts(lang).intl, {
     timeZone: 'Europe/Bratislava',
     weekday: 'short',
     day: 'numeric',

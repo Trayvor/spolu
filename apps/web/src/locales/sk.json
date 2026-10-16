@@ -27,36 +27,9 @@
     "body": "Táto adresa neexistuje. Skontrolujte odkaz alebo sa vráťte na úvodnú stránku.",
     "home": "Prejsť na úvodnú stránku"
   },
-  "login": {
-    "title": "Prihlásenie",
-    "intro": "Pošleme vám prihlasovací kód na e-mail.",
-    "email": "E-mail",
-    "sendCode": "Poslať kód",
-    "codeIntro": "Ak má {{email}} prístup, poslali sme naň 6-miestny kód. Platí 5 minút.",
-    "code": "Kód",
-    "submit": "Prihlásiť sa",
-    "sendAgain": "Poslať znova",
-    "sendAgainIn": "Poslať znova o {{seconds}} s",
-    "changeEmail": "Zmeniť e-mail",
-    "errors": {
-      "invalidEmail": "Zadajte platný e-mail.",
-      "wrongCode": "Kód nesedí. Zostávajúce pokusy: {{count}}.",
-      "expired": "Kód vypršal. Pošlite si nový.",
-      "tooMany": "Príliš veľa pokusov. Skúste to znova o pár minút.",
-      "disabled": "Tento účet už nemá prístup."
-    }
-  },
   "errors": {
     "generic": "Niečo sa pokazilo. Skúste to znova.",
     "retry": "Skúsiť znova"
-  },
-  "welcome": {
-    "title": "Ako vás máme oslovovať?",
-    "name": "Vaše meno",
-    "submit": "Pokračovať",
-    "errors": {
-      "nameRequired": "Zadajte svoje meno."
-    }
   },
   "files": {
     "download": "Stiahnuť {{name}}",

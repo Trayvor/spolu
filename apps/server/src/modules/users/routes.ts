@@ -45,7 +45,10 @@ export const usersRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (
       const loginUrl = `${config.publicUrl}/login`;
       await sendEmailLater(
         jobs,
-        adminAddedEmail(admin.email, { name: admin.name, addedBy: actor.name, loginUrl }, lang),
+        adminAddedEmail(
+          { to: admin.email, lang, publicUrl: config.publicUrl },
+          { name: admin.name, addedBy: actor.name, loginUrl },
+        ),
       );
     } catch (error) {
       request.log.error({ err: error }, 'could not queue the admin-added email');

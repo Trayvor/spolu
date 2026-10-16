@@ -1,0 +1,50 @@
+{
+  "tabs": {
+    "label": "Dijelovi grupe",
+    "chat": "Chat",
+    "tasks": "Zadaci",
+    "tickets": "Tiketi",
+    "knowledge": "Znanje",
+    "members": "Članovi"
+  },
+  "edit": "Uredi",
+  "invite": {
+    "title": "Poveznica za pozivnicu",
+    "copy": "Kopiraj",
+    "copied": "Poveznica je kopirana.",
+    "copiedShort": "Kopirano",
+    "regenerate": "Generiraj novu poveznicu",
+    "confirm": "Stara poveznica prestat će raditi. Generirati novu?",
+    "generate": "Generiraj"
+  },
+  "members": {
+    "title": "Članovi",
+    "empty": "Još nema članova. Dodajte ih putem e-pošte ili im pošaljite poveznicu za pozivnicu.",
+    "remove": "Ukloni",
+    "confirmRemove": "Ukloniti {{name}}? Odmah će izgubiti pristup.",
+    "removedTitle": "Uklonjeni članovi ({{count}})",
+    "restore": "Vrati",
+    "you": "Vi",
+    "add": "+ Dodaj člana",
+    "formLabel": "Dodaj člana putem e-pošte",
+    "email": "E-pošta",
+    "nameOptional": "Ime (nije obavezno)",
+    "submit": "Dodaj",
+    "cancel": "Odustani",
+    "invalidEmail": "Unesite valjanu adresu e-pošte.",
+    "toastInvited": "Pozivnica je poslana na {{email}}.",
+    "toastAdded": "{{email}} sada je član grupe. Poslali smo mu e-poruku.",
+    "toastResent": "Ponovno smo poslali pozivnicu na {{email}}.",
+    "alreadyMember": "Ova osoba već je član.",
+    "emailTakenAdmin": "Ova adresa e-pošte pripada administratoru. Dodajte ga kao voditelja.",
+    "removedMember": "Ova osoba uklonjena je iz grupe.",
+    "invited": "Pozvan/a",
+    "resend": "Pošalji ponovno",
+    "confirmCancelInvite": "Otkazati pozivnicu za {{email}}?"
+  },
+  "requesters": {
+    "title": "Podnositelji zahtjeva",
+    "hint": "Osobe koje su prijavile tikete za ovog klijenta. Vide samo svoje tikete, nikada grupu.",
+    "removedTitle": "Uklonjeni podnositelji zahtjeva ({{count}})"
+  }
+}

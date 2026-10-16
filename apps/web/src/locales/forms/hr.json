@@ -1,0 +1,24 @@
+{
+  "panel": {
+    "back": "Natrag na ploču",
+    "close": "Zatvori"
+  },
+  "files": {
+    "attach": "Priloži datoteku",
+    "remove": "Ukloni {{name}}",
+    "uploading": "Prenosi se {{name}}",
+    "uploadFailed": "Datoteku {{name}} nije moguće prenijeti.",
+    "tooLarge": "Datoteka {{name}} veća je od 25 MB.",
+    "unknown": "Datoteka"
+  },
+  "people": {
+    "search": "Pretraži osobe",
+    "empty": "Nitko nije pronađen.",
+    "remove": "Ukloni {{name}}",
+    "removed": "{{name}} (uklonjen/a)",
+    "adminPill": "eGrant",
+    "full": "Odaberite najviše {{max}} osoba.",
+    "notManager": "nije voditelj",
+    "noPickable": "Mogu se odabrati samo klijenti i voditelji klijenta."
+  }
+}

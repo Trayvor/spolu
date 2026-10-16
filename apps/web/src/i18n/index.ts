@@ -3,13 +3,15 @@ import { initReactI18next } from 'react-i18next';
 import en from '@/locales/en.json';
 import sk from '@/locales/sk.json';
 import { detectInitialLanguage } from './detect';
-import { DEFAULT_LANGUAGE, type Language } from './languages';
+import { DEFAULT_LANGUAGE, EAGER_LANGUAGES, type Language } from './languages';
+import { isMainLocaleLoaded } from './main-locales';
 import { changeLanguage } from './namespaces';
 
-// The texts of the eager shell (header, menus, sign-in, errors). Feature texts are lazy
+// The texts of the eager shell (header, menus, sign-in, errors) in the eager languages. The
+// other languages' main files load on use (`./main-locales.ts`); feature texts are lazy
 // namespaces in `src/locales/<name>/`, loaded by `./namespaces.ts` with their screens.
-// One translation file per entry in SUPPORTED_LANGUAGES; the Record type makes a missing one a type error.
-const resources: Record<Language, { translation: typeof en }> = {
+// The Record type makes a missing eager file a type error.
+const resources: Record<(typeof EAGER_LANGUAGES)[number], { translation: typeof en }> = {
   sk: { translation: sk },
   en: { translation: en },
 };
@@ -38,7 +40,8 @@ document.documentElement.lang = initial;
 
 void i18next.use(initReactI18next).init({
   resources,
-  lng: initial,
+  // A lazy language starts in the default and switches once its texts are in (`i18nReady`).
+  lng: isMainLocaleLoaded(initial) ? initial : DEFAULT_LANGUAGE,
   fallbackLng: DEFAULT_LANGUAGE,
   interpolation: { escapeValue: false }, // React already escapes
 });
@@ -56,3 +59,17 @@ export async function setLanguage(lang: Language): Promise<boolean> {
   document.documentElement.lang = lang;
   return true;
 }
+
+/**
+ * Settles once the first language is shown: at once for an eager one, after its main file for
+ * a lazy one (`main.tsx` renders after it, so no text flashes in English). A failed load
+ * (offline) keeps the default language.
+ */
+export const i18nReady: Promise<void> = isMainLocaleLoaded(initial)
+  ? Promise.resolve()
+  : changeLanguage(initial).then(
+      () => undefined,
+      () => {
+        document.documentElement.lang = i18next.language;
+      },
+    );

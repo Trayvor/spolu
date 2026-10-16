@@ -1,0 +1,110 @@
+{
+  "new": "Nový tiket",
+  "status": {
+    "new": "Nový",
+    "in_progress": "Řeší se",
+    "resolved": "Vyřešený"
+  },
+  "filters": {
+    "label": "Filtry tiketů",
+    "status": "Stav",
+    "open": "Otevřené",
+    "resolved": "Vyřešené",
+    "all": "Vše",
+    "allAreas": "Všechny oblasti",
+    "areaChosen": "Oblast: {{area}}",
+    "noAreas": "V tomto seznamu zatím nejsou žádné oblasti",
+    "following": "Sledované",
+    "noClient": "Bez klienta"
+  },
+  "list": {
+    "loading": "Načítají se tikety…",
+    "error": "Tikety se nepodařilo načíst.",
+    "empty": "Žádné otevřené tikety.",
+    "noMatch": "Těmto filtrům neodpovídají žádné tikety.",
+    "loadMore": "Načíst další"
+  },
+  "row": {
+    "due": "Termín",
+    "overdue": "Po termínu od",
+    "noSubject": "Bez předmětu",
+    "noClient": "Bez klienta",
+    "following": "Tento tiket sledujete"
+  },
+  "mine": {
+    "title": "Moje tikety",
+    "empty": "Zatím tu nemáte žádné tikety. Když vám podpora eGrant nějaký založí, zobrazí se zde."
+  },
+  "global": {
+    "title": "Tikety"
+  },
+  "page": {
+    "number": "#{{number}}",
+    "details": "Podrobnosti tiketu",
+    "edit": "Upravit",
+    "editTitle": "Upravit tiket",
+    "save": "Uložit změny",
+    "cancel": "Zrušit",
+    "turnedInto_one": "Převedeno na {{count}} úkol",
+    "turnedInto_few": "Převedeno na {{count}} úkoly",
+    "turnedInto_many": "Převedeno na {{count}} úkolu",
+    "turnedInto_other": "Převedeno na {{count}} úkolů",
+    "back": "Zpět"
+  },
+  "fields": {
+    "status": "Stav",
+    "subject": "Předmět",
+    "area": "Oblast dotazu",
+    "programme": "Grantový program",
+    "body": "Text",
+    "dueDate": "Termín",
+    "overdue": "po termínu",
+    "url": "Odkaz",
+    "instance": "Instance eGrant",
+    "files": "Soubory",
+    "initiator": "Zadavatel",
+    "unknown": "Neznámý",
+    "client": "Klient",
+    "created": "Vytvořeno",
+    "fromEgrant": "z eGrant",
+    "inSpolu": "v aplikaci Help",
+    "resolved": "Vyřešeno"
+  },
+  "followers": {
+    "title": "Sledující ({{count}})",
+    "follow": "Sledovat",
+    "following": "Sledujete",
+    "none": "Tento tiket nikdo nesleduje."
+  },
+  "assign": {
+    "choose": "Vyberte klienta",
+    "hasTasks": "Tento tiket má úkoly na nástěnce svého klienta, proto u tohoto klienta zůstává."
+  },
+  "noClient": {
+    "title": "Zatím bez klienta",
+    "adminHint": "eGrant neposlal odkaz na instanci, který by odpovídal některému klientovi. Vyberte klienta v Upravit: tiket získá svůj chat a zadavatel dostane e-mail.",
+    "hint": "Klienta nejdřív přiřadí administrátor."
+  },
+  "form": {
+    "title": "Nový tiket",
+    "back": "Zpět",
+    "initiator": "Zadavatel",
+    "initiatorHint": "Dostane e-mail a může tiket sledovat v aplikaci Help.",
+    "email": "E-mail zadavatele",
+    "name": "Jméno zadavatele",
+    "phone": "Telefon zadavatele",
+    "filesAfterClient": "Nejdřív vyberte klienta: soubory patří jemu.",
+    "create": "Vytvořit tiket",
+    "errors": {
+      "content": "Napište předmět, text nebo oblast dotazu.",
+      "url": "Zadejte odkaz začínající https:// nebo http://.",
+      "client": "Vyberte klienta.",
+      "email": "Zadejte platný e-mail."
+    }
+  },
+  "tasks": {
+    "title": "Úkoly",
+    "none": "Zatím žádné úkoly. Převeďte tiket na úkoly a dejte práci na nástěnku.",
+    "completed": "Dokončeno"
+  }
+}

@@ -328,7 +328,10 @@ const welcomeRoute = createRoute({
   path: '/welcome',
   validateSearch: (search: Record<string, unknown>): { redirect?: string } =>
     typeof search.redirect === 'string' ? { redirect: safeRedirect(search.redirect) } : {},
-  component: lazyRouteComponent(() => import('@/features/auth/welcome-page'), 'WelcomeRoute'),
+  component: lazyRouteComponent(
+    withNamespaces(['welcome'], () => import('@/features/auth/welcome-page')),
+    'WelcomeRoute',
+  ),
 });
 
 const joinRoute = createRoute({
@@ -340,7 +343,7 @@ const joinRoute = createRoute({
     if (user && isAdmin(user)) throw redirect({ to: '/' });
   },
   component: lazyRouteComponent(
-    withNamespaces(['join'], () => import('@/features/join/join-page')),
+    withNamespaces(['join', 'login'], () => import('@/features/join/join-page')),
     'JoinRoute',
   ),
 });
@@ -373,7 +376,7 @@ const adminsRoute = createRoute({
     if (!isAdmin(user)) throw notFound();
   },
   component: lazyRouteComponent(
-    withNamespaces(['admins'], () => import('@/features/admins/admins-page')),
+    withNamespaces(['admins', 'login'], () => import('@/features/admins/admins-page')),
     'AdminsPage',
   ),
 });
@@ -442,7 +445,10 @@ const loginRoute = createRoute({
     const user = await context.queryClient.ensureQueryData(sessionQuery);
     if (user) throw redirect({ to: '/' });
   },
-  component: lazyRouteComponent(() => import('@/features/auth/login-page'), 'LoginRoute'),
+  component: lazyRouteComponent(
+    withNamespaces(['login'], () => import('@/features/auth/login-page')),
+    'LoginRoute',
+  ),
 });
 
 const routeTree = rootRoute.addChildren([

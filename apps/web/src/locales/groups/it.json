@@ -1,0 +1,55 @@
+{
+  "title": "Gruppi",
+  "create": "Crea gruppo",
+  "empty": "Ancora nessun gruppo. Crei il primo per un cliente.",
+  "members": "{{count}} membri",
+  "form": {
+    "name": "Nome",
+    "egrantUrl": "URL eGrant del cliente",
+    "logo": "Logo",
+    "save": "Salva",
+    "cancel": "Annulla",
+    "removeLogo": "Rimuovi logo"
+  },
+  "errors": {
+    "nameRequired": "Inserire un nome.",
+    "invalidUrl": "Inserire un URL valido.",
+    "urlTaken": "Un altro gruppo usa già questo URL eGrant.",
+    "invalidLogo": "Il logo deve essere un'immagine PNG, JPEG o WebP fino a 512 KB."
+  },
+  "managers": {
+    "title": "Responsabili eGrant",
+    "none": "Ancora nessun responsabile eGrant.",
+    "manage": "Gestisci",
+    "managing": "Gestito da Lei",
+    "toggleLabel": "Gestisci {{name}}",
+    "started": "Ora Lei gestisce {{name}}.",
+    "startedMode": "Notifiche: tutti i messaggi.",
+    "stopped": "Lei non gestisce più {{name}}.",
+    "stoppedMode": "Notifiche: {{mode}}",
+    "error": "Impossibile applicare la modifica. Riprovare.",
+    "more": "+{{count}}",
+    "listLabel": "Responsabili di {{name}}",
+    "noManagerHint": "Clienti senza responsabile: si possono menzionare o assegnare solo le loro persone.",
+    "add": "Aggiungi responsabile",
+    "find": "Trova un amministratore",
+    "allAdded": "Tutti gli amministratori gestiscono già questo gruppo.",
+    "noMatch": "Nessun amministratore corrisponde a “{{q}}”.",
+    "remove": "Rimuovi {{name}}"
+  },
+  "mine": {
+    "title": "I miei gruppi",
+    "empty": "Lei non fa ancora parte di alcun gruppo. Apra il link di invito ricevuto."
+  },
+  "count": {
+    "filtered": "{{shown}} di {{total}}"
+  },
+  "filter": {
+    "label": "Responsabile: {{name}}",
+    "all": "Tutti",
+    "me": "Io",
+    "none": "Senza responsabile",
+    "empty": "Nessun gruppo per questo filtro.",
+    "clear": "Cancella filtro"
+  }
+}

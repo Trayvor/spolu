@@ -1,0 +1,8 @@
+{
+  "title": "Jak vás máme oslovovat?",
+  "name": "Vaše jméno",
+  "submit": "Pokračovat",
+  "errors": {
+    "nameRequired": "Zadejte své jméno."
+  }
+}

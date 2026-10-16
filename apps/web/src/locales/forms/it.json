@@ -1,0 +1,24 @@
+{
+  "panel": {
+    "back": "Torna alla bacheca",
+    "close": "Chiudi"
+  },
+  "files": {
+    "attach": "Allega un file",
+    "remove": "Rimuovi {{name}}",
+    "uploading": "Caricamento di {{name}}",
+    "uploadFailed": "Impossibile caricare {{name}}.",
+    "tooLarge": "{{name}} supera i 25 MB.",
+    "unknown": "File"
+  },
+  "people": {
+    "search": "Cerca persone",
+    "empty": "Nessuno trovato.",
+    "remove": "Rimuovi {{name}}",
+    "removed": "{{name}} (rimosso)",
+    "adminPill": "eGrant",
+    "full": "Scegliere al massimo {{max}} persone.",
+    "notManager": "non è responsabile",
+    "noPickable": "Si possono scegliere solo i clienti e i responsabili del cliente."
+  }
+}

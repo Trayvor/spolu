@@ -1,0 +1,20 @@
+{
+  "title": "Administrátoři",
+  "add": "Přidat administrátora",
+  "name": "Jméno",
+  "email": "E-mail",
+  "submit": "Přidat a poslat e-mail",
+  "cancel": "Zrušit",
+  "added": "{{name}} byl(a) přidán(a).",
+  "remove": "Odebrat",
+  "confirmRemove": "Odebrat {{name}}? Okamžitě ztratí přístup.",
+  "badge": {
+    "superadmin": "Superadmin",
+    "you": "Vy"
+  },
+  "errors": {
+    "emailTakenAdmin": "Tento e-mail už patří administrátorovi.",
+    "emailTakenClient": "Tento e-mail patří klientovi.",
+    "nameRequired": "Zadejte jméno."
+  }
+}

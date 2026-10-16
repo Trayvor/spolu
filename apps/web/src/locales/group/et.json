@@ -1,0 +1,50 @@
+{
+  "tabs": {
+    "label": "Grupi jaotised",
+    "chat": "Vestlus",
+    "tasks": "Ülesanded",
+    "tickets": "Pöördumised",
+    "knowledge": "Teadmised",
+    "members": "Liikmed"
+  },
+  "edit": "Muuda",
+  "invite": {
+    "title": "Kutselink",
+    "copy": "Kopeeri",
+    "copied": "Link on kopeeritud.",
+    "copiedShort": "Kopeeritud",
+    "regenerate": "Loo uus link",
+    "confirm": "Vana link lakkab töötamast. Kas luua uus?",
+    "generate": "Loo"
+  },
+  "members": {
+    "title": "Liikmed",
+    "empty": "Liikmeid veel ei ole. Lisage nad e-posti teel või saatke neile kutselink.",
+    "remove": "Eemalda",
+    "confirmRemove": "Kas eemaldada {{name}}? Juurdepääs kaob kohe.",
+    "removedTitle": "Eemaldatud liikmed ({{count}})",
+    "restore": "Taasta",
+    "you": "Teie",
+    "add": "+ Lisa liige",
+    "formLabel": "Lisa liige e-posti teel",
+    "email": "E-post",
+    "nameOptional": "Nimi (valikuline)",
+    "submit": "Lisa",
+    "cancel": "Tühista",
+    "invalidEmail": "Sisestage kehtiv e-posti aadress.",
+    "toastInvited": "Kutse on saadetud aadressile {{email}}.",
+    "toastAdded": "{{email}} on nüüd grupi liige. Saatsime talle e-kirja.",
+    "toastResent": "Saatsime kutse uuesti aadressile {{email}}.",
+    "alreadyMember": "See inimene on juba liige.",
+    "emailTakenAdmin": "See e-posti aadress kuulub administraatorile. Lisage ta halduriks.",
+    "removedMember": "See inimene on grupist eemaldatud.",
+    "invited": "Kutsutud",
+    "resend": "Saada uuesti",
+    "confirmCancelInvite": "Kas tühistada kutse aadressile {{email}}?"
+  },
+  "requesters": {
+    "title": "Taotlejad",
+    "hint": "Inimesed, kes on selle kliendi kohta pöördumisi esitanud. Nad näevad ainult oma pöördumisi, mitte kunagi gruppi.",
+    "removedTitle": "Eemaldatud taotlejad ({{count}})"
+  }
+}

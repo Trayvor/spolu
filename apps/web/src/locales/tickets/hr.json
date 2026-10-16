@@ -1,0 +1,109 @@
+{
+  "new": "Novi tiket",
+  "status": {
+    "new": "Novi",
+    "in_progress": "U obradi",
+    "resolved": "Riješen"
+  },
+  "filters": {
+    "label": "Filtri tiketa",
+    "status": "Status",
+    "open": "Otvoreni",
+    "resolved": "Riješeni",
+    "all": "Svi",
+    "allAreas": "Sva područja",
+    "areaChosen": "Područje: {{area}}",
+    "noAreas": "Na ovom popisu još nema područja",
+    "following": "Praćeni",
+    "noClient": "Bez klijenta"
+  },
+  "list": {
+    "loading": "Učitavam tikete…",
+    "error": "Tikete nije moguće učitati.",
+    "empty": "Nema otvorenih tiketa.",
+    "noMatch": "Nijedan tiket ne odgovara ovim filtrima.",
+    "loadMore": "Učitaj još"
+  },
+  "row": {
+    "due": "Rok",
+    "overdue": "Rok istekao",
+    "noSubject": "Bez predmeta",
+    "noClient": "Bez klijenta",
+    "following": "Pratite ovaj tiket"
+  },
+  "mine": {
+    "title": "Moji tiketi",
+    "empty": "Ovdje još nemate tiketa. Kada Vam podrška eGranta otvori tiket, pojavit će se ovdje."
+  },
+  "global": {
+    "title": "Tiketi"
+  },
+  "page": {
+    "number": "#{{number}}",
+    "details": "Pojedinosti tiketa",
+    "edit": "Uredi",
+    "editTitle": "Uređivanje tiketa",
+    "save": "Spremi promjene",
+    "cancel": "Odustani",
+    "turnedInto_one": "Pretvoren u {{count}} zadatak",
+    "turnedInto_few": "Pretvoren u {{count}} zadatka",
+    "turnedInto_other": "Pretvoren u {{count}} zadataka",
+    "back": "Natrag"
+  },
+  "fields": {
+    "status": "Status",
+    "subject": "Predmet",
+    "area": "Područje pitanja",
+    "programme": "Program potpore",
+    "body": "Tekst",
+    "dueDate": "Rok",
+    "overdue": "istekao rok",
+    "url": "Poveznica",
+    "instance": "Instanca eGranta",
+    "files": "Datoteke",
+    "initiator": "Inicijator",
+    "unknown": "Nepoznato",
+    "client": "Klijent",
+    "created": "Stvoren",
+    "fromEgrant": "iz eGranta",
+    "inSpolu": "u aplikaciji Help",
+    "resolved": "Riješen"
+  },
+  "followers": {
+    "title": "Pratitelji ({{count}})",
+    "follow": "Prati",
+    "following": "Pratite",
+    "none": "Nitko ne prati ovaj tiket."
+  },
+  "assign": {
+    "choose": "Odaberite klijenta",
+    "hasTasks": "Ovaj tiket ima zadatke na ploči svojeg klijenta pa ostaje kod tog klijenta."
+  },
+  "noClient": {
+    "title": "Još bez klijenta",
+    "adminHint": "eGrant nije poslao poveznicu na instancu koja pripada nekom klijentu. Odaberite klijenta pod „Uredi“: tiket dobiva svoj chat, a inicijator e-poruku.",
+    "hint": "Klijenta najprije dodjeljuje administrator."
+  },
+  "form": {
+    "title": "Novi tiket",
+    "back": "Natrag",
+    "initiator": "Inicijator",
+    "initiatorHint": "Primit će e-poruku i moći pratiti tiket u aplikaciji Help.",
+    "email": "E-pošta inicijatora",
+    "name": "Ime inicijatora",
+    "phone": "Telefon inicijatora",
+    "filesAfterClient": "Najprije odaberite klijenta: datoteke pripadaju njemu.",
+    "create": "Stvori tiket",
+    "errors": {
+      "content": "Napišite predmet, tekst ili područje pitanja.",
+      "url": "Unesite poveznicu koja počinje s https:// ili http://.",
+      "client": "Odaberite klijenta.",
+      "email": "Unesite valjanu adresu e-pošte."
+    }
+  },
+  "tasks": {
+    "title": "Zadaci",
+    "none": "Još nema zadataka. Pretvorite tiket u zadatke i stavite posao na ploču.",
+    "completed": "Dovršeno"
+  }
+}

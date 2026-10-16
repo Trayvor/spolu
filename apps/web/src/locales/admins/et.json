@@ -1,0 +1,20 @@
+{
+  "title": "Administraatorid",
+  "add": "Lisa administraator",
+  "name": "Nimi",
+  "email": "E-post",
+  "submit": "Lisa ja saada e-kiri",
+  "cancel": "Tühista",
+  "added": "{{name}} on lisatud.",
+  "remove": "Eemalda",
+  "confirmRemove": "Kas eemaldada {{name}}? Juurdepääs kaob kohe.",
+  "badge": {
+    "superadmin": "Superadmin",
+    "you": "Teie"
+  },
+  "errors": {
+    "emailTakenAdmin": "See e-posti aadress kuulub juba administraatorile.",
+    "emailTakenClient": "See e-posti aadress kuulub kliendile.",
+    "nameRequired": "Sisestage nimi."
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "mode": {
+    "bellLabel": "Obavijesti: {{mode}}",
+    "all": "Sve poruke",
+    "allHint": "Svaka nova poruka u ovoj grupi",
+    "mentions": "Spominjanja i odgovori",
+    "mentionsHint": "Kada Vas netko spomene, odgovori u Vašoj niti ili se promijeni Vaš zadatak",
+    "off": "Isključeno",
+    "offHint": "Bez obavijesti iz ove grupe",
+    "mixed": "Mješovito",
+    "allGroups": "Sve grupe:",
+    "managerNote": "Sve poruke jer upravljate ovim klijentom."
+  },
+  "prompt": {
+    "installTitle": "Instalirajte aplikaciju Help",
+    "installBody": "Otvarajte je s početnog zaslona kao svaku drugu aplikaciju i primajte obavijesti.",
+    "install": "Instaliraj",
+    "installMenu": "Otvorite izbornik preglednika ⋮ → Instaliraj aplikaciju / Dodaj na početni zaslon",
+    "notNow": "Ne sada",
+    "iosTitle": "Važno: instalirajte aplikaciju Help kako biste primali obavijesti.",
+    "iosBody": "Na iPhoneu obavijesti rade samo iz aplikacije na početnom zaslonu.",
+    "iosStepShare": "Dodirnite Dijeli",
+    "iosStepAdd": "Dodaj na početni zaslon",
+    "iosStepOpen": "Otvorite aplikaciju Help putem ikone",
+    "enableTitle": "Uključite obavijesti na ovom uređaju",
+    "enableBody": "Odmah primajte nove poruke i promjene zadataka.",
+    "turnOn": "Uključi",
+    "enableFailed": "Obavijesti nije moguće uključiti. Pokušajte ponovno.",
+    "iosUnsupportedTitle": "iOS na Vašem iPhoneu ne podržava obavijesti aplikacija.",
+    "iosUnsupportedBody": "Uključili smo Vam obavijesti e-poštom. Ažurirajte iOS na verziju 16.4 ili noviju kako biste primali obavijesti na telefonu.",
+    "iosUnsupportedEmailOn": "Obavijesti e-poštom već su Vam uključene. Ažurirajte iOS na verziju 16.4 ili noviju kako biste primali obavijesti na telefonu.",
+    "iosUnsupportedEmailOff": "Obavijesti e-poštom su isključene; možete ih uključiti u Postavkama. Ažurirajte iOS na verziju 16.4 ili noviju kako biste primali obavijesti na telefonu.",
+    "ok": "U redu"
+  }
+}

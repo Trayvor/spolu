@@ -1,0 +1,41 @@
+{
+  "app": {
+    "name": "Help",
+    "fullName": "Help by eGrant"
+  },
+  "nav": {
+    "home": "Home",
+    "tasks": "Attività",
+    "tickets": "Ticket",
+    "settings": "Impostazioni",
+    "admins": "Amministratori",
+    "groups": "Gruppi",
+    "knowledge": "Conoscenze",
+    "myGroups": "I miei gruppi",
+    "myTickets": "I miei ticket",
+    "bulkEmail": "Email massive"
+  },
+  "user": {
+    "menu": "Menu dell'account",
+    "logout": "Esci"
+  },
+  "language": {
+    "current": "Lingua: {{name}}"
+  },
+  "notFound": {
+    "title": "Pagina non trovata",
+    "body": "Questo indirizzo non esiste. Controllare il link o tornare alla pagina iniziale.",
+    "home": "Vai alla pagina iniziale"
+  },
+  "errors": {
+    "generic": "Si è verificato un errore. Riprovare.",
+    "retry": "Riprova"
+  },
+  "files": {
+    "download": "Scarica {{name}}",
+    "openImage": "Apri {{name}}"
+  },
+  "toast": {
+    "close": "Chiudi"
+  }
+}

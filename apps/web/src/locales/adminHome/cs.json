@@ -1,0 +1,122 @@
+{
+  "shell": {
+    "loadError": "Nepodařilo se to načíst. Zkuste to znovu.",
+    "retry": "Zkusit znovu"
+  },
+  "sidebar": {
+    "title": "Klienti",
+    "find": "Najít klienta",
+    "managed": "Spravujete vy",
+    "others": "Ostatní klienti",
+    "collapse": "Sbalit seznam klientů",
+    "expand": "Rozbalit seznam klientů",
+    "noMatch": "Žádný klient neodpovídá.",
+    "unread_one": "{{count}} nepřečtená zpráva",
+    "unread_few": "{{count}} nepřečtené zprávy",
+    "unread_many": "{{count}} nepřečtené zprávy",
+    "unread_other": "{{count}} nepřečtených zpráv",
+    "assigned_one": "{{count}} úkol přidělený vám",
+    "assigned_few": "{{count}} úkoly přidělené vám",
+    "assigned_many": "{{count}} úkolu přiděleného vám",
+    "assigned_other": "{{count}} úkolů přidělených vám"
+  },
+  "home": {
+    "greeting": {
+      "morning": "Dobré ráno, {{name}}",
+      "afternoon": "Dobré odpoledne, {{name}}",
+      "evening": "Dobrý večer, {{name}}"
+    },
+    "clients": "Klienti"
+  },
+  "cards": {
+    "back": "Zpět",
+    "urgent": "Naléhavé",
+    "tickets": {
+      "title": "Tikety",
+      "caption": "otevřených",
+      "fresh_one": "{{count}} nový",
+      "fresh_few": "{{count}} nové",
+      "fresh_many": "{{count}} nového",
+      "fresh_other": "{{count}} nových",
+      "unassigned_one": "{{count}} bez klienta",
+      "unassigned_few": "{{count}} bez klienta",
+      "unassigned_many": "{{count}} bez klienta",
+      "unassigned_other": "{{count}} bez klienta",
+      "new": "Nový",
+      "noClient": "Bez klienta",
+      "showAll": "Zobrazit všechny tikety",
+      "empty": "Vaši klienti nemají žádné otevřené tikety a žádný tiket není bez klienta."
+    },
+    "assigned": {
+      "title": "Moje úkoly",
+      "caption": "přiděleno",
+      "urgent_one": "{{count}} naléhavý",
+      "urgent_few": "{{count}} naléhavé",
+      "urgent_many": "{{count}} naléhavého",
+      "urgent_other": "{{count}} naléhavých",
+      "noDate": "bez data",
+      "showAll": "Zobrazit všechny ({{count}})",
+      "empty": "Nemáte přidělené nic."
+    },
+    "reminders": {
+      "title": "Nadcházející připomínky",
+      "caption": "příštích 7 dní",
+      "empty": "Žádné nadcházející připomínky."
+    },
+    "mentions": {
+      "title": "Zmínky",
+      "caption": "nepřečtené",
+      "empty": "Žádné nepřečtené zmínky."
+    }
+  },
+  "board": {
+    "title": "Úkoly",
+    "filtersLabel": "Filtry úkolů",
+    "filters": "Filtry ({{count}})",
+    "filtersTitle": "Filtry",
+    "close": "Hotovo",
+    "assignee": {
+      "label": "Řešitel: {{name}}",
+      "me": "Já",
+      "anyone": "Kdokoli",
+      "none": "Nepřidělené"
+    },
+    "urgent": "Naléhavé",
+    "mine": "Jen kde se účastním",
+    "due": {
+      "label": "Termín: {{name}}",
+      "any": "Jakýkoli",
+      "overdue": "Po termínu",
+      "week": "Příštích 7 dní",
+      "none": "Bez termínu"
+    },
+    "search": "Hledat úkoly",
+    "completed": "Zobrazit dokončené",
+    "clear": "Zrušit filtry",
+    "more": "Zobrazit dalších 50",
+    "moreFailed": "Další se nepodařilo načíst. Zkuste to znovu.",
+    "emptyFiltered": "Těmto filtrům neodpovídají žádné úkoly.",
+    "empty": "Tito klienti nemají žádné otevřené úkoly.",
+    "columns": {
+      "todo": "K vyřízení",
+      "other": "Další kroky",
+      "egrant_review": "Kontrola eGrant",
+      "client_review": "Kontrola klienta",
+      "done": "Dokončené"
+    },
+    "count_one": "{{count}} úkol",
+    "count_few": "{{count}} úkoly",
+    "count_many": "{{count}} úkolu",
+    "count_other": "{{count}} úkolů"
+  },
+  "navCount": {
+    "tasks_one": "{{count}} otevřený úkol přidělený vám",
+    "tasks_few": "{{count}} otevřené úkoly přidělené vám",
+    "tasks_many": "{{count}} otevřeného úkolu přiděleného vám",
+    "tasks_other": "{{count}} otevřených úkolů přidělených vám",
+    "tickets_one": "{{count}} otevřený tiket vašich klientů nebo bez klienta",
+    "tickets_few": "{{count}} otevřené tikety vašich klientů nebo bez klienta",
+    "tickets_many": "{{count}} otevřeného tiketu vašich klientů nebo bez klienta",
+    "tickets_other": "{{count}} otevřených tiketů vašich klientů nebo bez klienta"
+  }
+}

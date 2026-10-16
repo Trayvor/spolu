@@ -174,7 +174,12 @@ export type TaskDeadlinePayload = {
 };
 export type TaskUrgentPayload = { taskId: string; groupId: string; title: string };
 
-export const UserLanguages = ['sk', 'en'] as const;
+/**
+ * Every UI and email language. `sk` is the default of a new account and the email fallback; the
+ * web lists them in `apps/web/src/i18n/languages.ts`. Adding one needs a migration of the
+ * `language` checks (`user`, `bulk_recipients`) and its texts on the server and the web.
+ */
+export const UserLanguages = ['sk', 'en', 'cs', 'sl', 'bg', 'et', 'it', 'hr', 'uk'] as const;
 export type UserLanguage = (typeof UserLanguages)[number];
 export const LanguageBodySchema = z.object({ language: z.enum(UserLanguages) });
 export type LanguageBody = z.infer<typeof LanguageBodySchema>;

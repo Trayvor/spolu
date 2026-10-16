@@ -1,0 +1,61 @@
+{
+  "fields": {
+    "times": "Časi",
+    "date": "Datum {{n}}",
+    "time": "Čas {{n}}",
+    "add": "Dodaj čas",
+    "remove": "Odstrani čas {{n}}",
+    "sent": "poslano",
+    "recipients": "Prejemniki",
+    "errors": {
+      "incomplete": "Vnesite datum in čas.",
+      "passed": "Ta čas je že minil. Izberite poznejšega.",
+      "tooFar": "Izberite čas v naslednjih 5 letih.",
+      "duplicate": "Ta čas je že na seznamu."
+    }
+  },
+  "panel": {
+    "title": "Opomniki",
+    "sent": "poslano",
+    "reminded": "Opomnjeni",
+    "remindMe": "Opomni me",
+    "authorHint": "Ta opomnik ste ustvarili vi",
+    "addToCalendar": "Izvozi v koledar",
+    "noUpcoming": "Ni prihajajočih opomnikov",
+    "andMore": "{{names}} in še {{count}}",
+    "unavailable": "Ta element nima več opomnikov.",
+    "failed": "Vašega opomnika ni bilo mogoče spremeniti. Poskusite znova."
+  },
+  "time": {
+    "today": "Danes, {{time}}",
+    "tomorrow": "Jutri, {{time}}",
+    "dayTime": "{{day}}, {{time}}"
+  },
+  "row": {
+    "add": "Dodaj opomnik",
+    "confirm": "Dodaj",
+    "cancel": "Prekliči",
+    "remove": "Odstrani opomnik",
+    "date": "Datum",
+    "time": "Čas"
+  },
+  "task": {
+    "title": "Opomniki",
+    "autoDeadline": "Izvajalci prejmejo samodejne opomnike 3, 2 in 1 dan pred rokom.",
+    "autoDeadlineUrgent": "Izvajalci prejmejo samodejne opomnike 3, 2 in 1 dan pred rokom ter vsake 3 ure, dokler je naloga nujna.",
+    "autoUrgent": "Izvajalci prejmejo samodejne opomnike vsake 3 ure, dokler je naloga nujna.",
+    "afterDeadline": "po roku",
+    "reminded": "Opomnjeni:",
+    "setThem": "(nastavite jih)",
+    "change": "Spremeni",
+    "done": "Končano",
+    "addAssignees": "Dodajte izvajalce",
+    "saved": "Shranjeno",
+    "saveFailed": "Shranjevanje ni uspelo. Poskusite znova.",
+    "inPast": "Ta čas je že minil. Izberite poznejšega.",
+    "createHint": "Opomnike dodajte, ko ustvarite nalogo",
+    "completed": "Ta naloga je dokončana: ne pošilja opomnikov.",
+    "authorHint": "Te opomnike ste nastavili vi",
+    "unavailable": "Ta naloga nima več opomnikov."
+  }
+}

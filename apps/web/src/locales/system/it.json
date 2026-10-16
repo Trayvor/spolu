@@ -1,0 +1,16 @@
+{
+  "title": "Stato del sistema",
+  "version": "Versione del server",
+  "lastPing": "Ultimo ping",
+  "never": "Non ancora",
+  "checking": "Verifica…",
+  "unreachable": "Server non raggiungibile",
+  "database": {
+    "ok": "Database: OK",
+    "down": "Database: non disponibile"
+  },
+  "realtime": {
+    "connected": "Tempo reale: connesso",
+    "disconnected": "Tempo reale: disconnesso"
+  }
+}

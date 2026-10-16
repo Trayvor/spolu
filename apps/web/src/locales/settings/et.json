@@ -1,0 +1,59 @@
+{
+  "profile": {
+    "title": "Profiil",
+    "name": "Nimi",
+    "save": "Salvesta",
+    "saved": "Salvestatud",
+    "nameRequired": "Sisestage oma nimi.",
+    "email": "E-post",
+    "change": "Muuda",
+    "emailFixed": "Määratud serveri seadistuses; siin seda muuta ei saa.",
+    "cancel": "Tühista",
+    "newEmail": "Uus e-posti aadress",
+    "sendCode": "Saada kood",
+    "invalidEmail": "Sisestage kehtiv e-posti aadress.",
+    "sameEmail": "Sisestage praegusest erinev aadress.",
+    "codeSent": "Saatsime koodi aadressile {{email}}",
+    "code": "Kood",
+    "confirm": "Kinnita",
+    "done": "Teie e-posti aadress on nüüd {{email}}",
+    "invalidCode": "Kood on vale või aegunud",
+    "emailTaken": "See aadress kuulub teisele kontole",
+    "tooMany": "Liiga palju katseid. Proovige mõne minuti pärast uuesti.",
+    "bulkEmail": {
+      "label": "Soovin saada masskirju",
+      "hint": "eGranti uudised, mis saadetakse korraga paljudele. Sisselogimiskoodid ja teavitused saabuvad alati."
+    }
+  },
+  "notifications": {
+    "title": "Teavitused",
+    "pushUnavailable": "Tõuketeavitused ei ole selles serveris saadaval",
+    "device": "See seade: {{state}}",
+    "deviceOn": "sees",
+    "deviceOff": "seadistamata",
+    "deviceBlocked": "brauseri seadetes blokeeritud",
+    "deviceUnsupported": "See brauser ei saa teavitusi vastu võtta",
+    "turnOnDevice": "Lülita selles seadmes sisse",
+    "unblock": "Lubage selle saidi teavitused brauseri saidiseadetes ja laadige leht uuesti.",
+    "iosHint": "iPhone'is töötavad teavitused ainult avaekraanile lisatud rakenduses. Puudutage nuppu Jaga, seejärel Lisa avaekraanile ja avage Help-rakendus ikoonist.",
+    "groups": {
+      "chat": "Vestlus",
+      "tasks": "Ülesannete tahvel",
+      "tickets": "Pöördumiste tahvel",
+      "knowledge": "Teadmistebaas"
+    },
+    "hints": {
+      "chat": "Sõnumid, mainimised ja vastused grupivestlustes",
+      "tasks": "Ülesannete teisaldamised, määramised, tähtajad, meeldetuletused ja ülesannete vestlused",
+      "tickets": "Tugipöördumised ja nende vestlused",
+      "knowledge": "Teadmistebaasi meeldetuletused"
+    },
+    "channels": {
+      "email": "E-post",
+      "push": "Tõuketeavitus",
+      "both": "E-post ja tõuketeavitus",
+      "none": "Puudub"
+    },
+    "emailNote": "E-kiri on kokkuvõte sellest, mida Te pole veel lugenud, kõige sagedamini iga 10 minuti järel."
+  }
+}

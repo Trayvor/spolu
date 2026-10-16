@@ -1,36 +1,52 @@
+import type { BulkBlock, UserLanguage } from '@spolu/shared';
+import { serverTexts } from '../i18n/index.js';
 import type { EmailMessage } from './email.js';
-
-const escapeHtml = (value: string): string =>
-  value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-
-/** The egrant primary button (ink on white text), inline styles because email clients drop CSS. */
-const BUTTON_STYLE =
-  'display:inline-block;padding:10px 20px;background:#141414;color:#ffffff;' +
-  'text-decoration:none;border-radius:6px;font-weight:600';
+import { renderEmail } from './render.js';
 
 /**
- * Builds a message from plain-text paragraphs; the HTML part escapes every one. A button adds
- * `label: url` to the text part and an `<a>` styled as the primary button to the HTML part.
+ * A system email (login and email-change codes, invites, notification digests, tickets) in the
+ * one email design (`render.ts`, the same as bulk emails): the logo, a heading, an optional code,
+ * plain-text paragraphs and at most one button, with the system footer in `lang`.
+ *
+ * Kept simple for deliverability: no tracking, no images but the logo, no unsubscribe link or
+ * List-Unsubscribe header (transactional mail), and a plain-text part. Texts are shown as written
+ * (no `{{name}}` or `**bold**`); http(s) links in them become clickable.
  */
-export function buildEmail(i: {
+export type SystemEmail = {
   to: string;
+  lang: UserLanguage;
+  /** The app's origin, for the logo. */
+  publicUrl: string;
   subject: string;
+  /** The heading; the subject when left out. */
+  heading?: string;
+  /** A one-time code, shown large under the heading. */
+  code?: string;
   paragraphs: string[];
   button?: { label: string; url: string };
-}): EmailMessage {
-  const text = i.paragraphs.join('\n\n');
-  const html = i.paragraphs.map((p) => `<p>${escapeHtml(p)}</p>`).join('\n');
-  if (!i.button) return { to: [i.to], subject: i.subject, text, html };
-  const { label, url } = i.button;
-  return {
-    to: [i.to],
+};
+
+export function buildEmail(i: SystemEmail): EmailMessage {
+  const block = <T extends BulkBlock['type']>(type: T, rest: object): BulkBlock =>
+    ({ id: type, type, ...rest }) as BulkBlock;
+  const blocks: BulkBlock[] = [
+    block('logo', { align: 'left' }),
+    block('heading', { text: i.heading ?? i.subject, align: 'left' }),
+    ...(i.code ? [block('heading', { text: i.code, align: 'left' })] : []),
+    ...(i.paragraphs.length > 0
+      ? [block('text', { text: i.paragraphs.join('\n\n'), align: 'left' })]
+      : []),
+    ...(i.button ? [block('button', { ...i.button, align: 'left' })] : []),
+  ];
+  const { html, text } = renderEmail({
     subject: i.subject,
-    text: `${text}\n\n${label}: ${url}`,
-    html: `${html}\n<p><a href="${escapeHtml(url)}" style="${BUTTON_STYLE}">${escapeHtml(label)}</a></p>`,
-  };
+    preheader: '',
+    blocks,
+    language: i.lang,
+    name: '',
+    literal: true,
+    footer: { lines: serverTexts(i.lang).email.footer },
+    publicUrl: i.publicUrl,
+  });
+  return { to: [i.to], subject: i.subject, text, html };
 }

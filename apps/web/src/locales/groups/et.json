@@ -1,0 +1,55 @@
+{
+  "title": "Grupid",
+  "create": "Loo grupp",
+  "empty": "Gruppe veel ei ole. Looge esimene grupp kliendile.",
+  "members": "Liikmeid: {{count}}",
+  "form": {
+    "name": "Nimi",
+    "egrantUrl": "Kliendi eGranti URL",
+    "logo": "Logo",
+    "save": "Salvesta",
+    "cancel": "Tühista",
+    "removeLogo": "Eemalda logo"
+  },
+  "errors": {
+    "nameRequired": "Sisestage nimi.",
+    "invalidUrl": "Sisestage kehtiv URL.",
+    "urlTaken": "Seda eGranti URL-i kasutab juba teine grupp.",
+    "invalidLogo": "Logo peab olema PNG-, JPEG- või WebP-pilt suurusega kuni 512 KB."
+  },
+  "managers": {
+    "title": "eGranti haldurid",
+    "none": "eGranti haldurit veel ei ole.",
+    "manage": "Halda",
+    "managing": "Haldan",
+    "toggleLabel": "Halda: {{name}}",
+    "started": "Haldate nüüd: {{name}}.",
+    "startedMode": "Teavitused: kõik sõnumid.",
+    "stopped": "Te ei halda enam: {{name}}.",
+    "stoppedMode": "Teavitused: {{mode}}",
+    "error": "Muutmine ebaõnnestus. Proovige uuesti.",
+    "more": "+{{count}}",
+    "listLabel": "Haldurid – {{name}}",
+    "noManagerHint": "Halduriteta kliendid: mainida või määrata saab ainult nende oma inimesi.",
+    "add": "Lisa haldur",
+    "find": "Otsi administraatorit",
+    "allAdded": "Kõik administraatorid juba haldavad seda gruppi.",
+    "noMatch": "Päringule „{{q}}“ ei vasta ükski administraator.",
+    "remove": "Eemalda {{name}}"
+  },
+  "mine": {
+    "title": "Minu grupid",
+    "empty": "Te ei ole veel üheski grupis. Avage kutselink, mille saite."
+  },
+  "count": {
+    "filtered": "{{shown}} / {{total}}"
+  },
+  "filter": {
+    "label": "Haldur: {{name}}",
+    "all": "Kõik",
+    "me": "Mina",
+    "none": "Haldurita",
+    "empty": "Selle filtriga gruppe ei ole.",
+    "clear": "Tühjenda filter"
+  }
+}

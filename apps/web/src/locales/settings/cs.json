@@ -1,0 +1,59 @@
+{
+  "profile": {
+    "title": "Profil",
+    "name": "Jméno",
+    "save": "Uložit",
+    "saved": "Uloženo",
+    "nameRequired": "Zadejte své jméno.",
+    "email": "E-mail",
+    "change": "Změnit",
+    "emailFixed": "Nastaveno v konfiguraci serveru; zde ho nelze změnit.",
+    "cancel": "Zrušit",
+    "newEmail": "Nová e-mailová adresa",
+    "sendCode": "Poslat kód",
+    "invalidEmail": "Zadejte platnou e-mailovou adresu.",
+    "sameEmail": "Zadejte jinou adresu, než je vaše současná.",
+    "codeSent": "Poslali jsme kód na {{email}}",
+    "code": "Kód",
+    "confirm": "Potvrdit",
+    "done": "Vaše e-mailová adresa je nyní {{email}}",
+    "invalidCode": "Kód je nesprávný nebo vypršela jeho platnost",
+    "emailTaken": "Tato adresa patří jinému účtu",
+    "tooMany": "Příliš mnoho pokusů. Zkuste to znovu za několik minut.",
+    "bulkEmail": {
+      "label": "Dostávat hromadné e-maily",
+      "hint": "Novinky od eGrant posílané mnoha lidem najednou. Přihlašovací kódy a oznámení přicházejí vždy."
+    }
+  },
+  "notifications": {
+    "title": "Oznámení",
+    "pushUnavailable": "Push oznámení nejsou na tomto serveru k dispozici",
+    "device": "Toto zařízení: {{state}}",
+    "deviceOn": "zapnuto",
+    "deviceOff": "nenastaveno",
+    "deviceBlocked": "zablokováno v nastavení prohlížeče",
+    "deviceUnsupported": "Tento prohlížeč nemůže přijímat oznámení",
+    "turnOnDevice": "Zapnout pro toto zařízení",
+    "unblock": "Povolte oznámení pro tento web v nastavení webu v prohlížeči a pak stránku načtěte znovu.",
+    "iosHint": "Na iPhonu fungují oznámení jen z aplikace na ploše. Klepněte na Sdílet, pak na Přidat na plochu a otevřete aplikaci Help z ikony.",
+    "groups": {
+      "chat": "Chat",
+      "tasks": "Nástěnka úkolů",
+      "tickets": "Nástěnka tiketů",
+      "knowledge": "Znalostní báze"
+    },
+    "hints": {
+      "chat": "Zprávy, zmínky a odpovědi v chatech skupin",
+      "tasks": "Přesuny úkolů, přidělení, termíny, připomínky a chaty úkolů",
+      "tickets": "Tikety podpory a jejich konverzace",
+      "knowledge": "Připomínky ze znalostní báze"
+    },
+    "channels": {
+      "email": "E-mail",
+      "push": "Push",
+      "both": "E-mail a push",
+      "none": "Žádné"
+    },
+    "emailNote": "E-mail je souhrn toho, co jste ještě nečetli, nejvýše jednou za 10 minut."
+  }
+}

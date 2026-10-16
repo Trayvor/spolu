@@ -1,0 +1,24 @@
+{
+  "panel": {
+    "back": "Nazaj na tablo",
+    "close": "Zapri"
+  },
+  "files": {
+    "attach": "Priloži datoteko",
+    "remove": "Odstrani {{name}}",
+    "uploading": "Nalaganje {{name}}",
+    "uploadFailed": "Datoteke {{name}} ni bilo mogoče naložiti.",
+    "tooLarge": "{{name}} presega 25 MB.",
+    "unknown": "Datoteka"
+  },
+  "people": {
+    "search": "Iskanje oseb",
+    "empty": "Nihče ni bil najden.",
+    "remove": "Odstrani {{name}}",
+    "removed": "{{name}} (odstranjen)",
+    "adminPill": "eGrant",
+    "full": "Izberete lahko največ toliko oseb: {{max}}.",
+    "notManager": "ni upravitelj",
+    "noPickable": "Izbrati je mogoče samo stranke in upravitelje stranke."
+  }
+}

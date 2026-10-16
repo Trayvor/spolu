@@ -1,0 +1,17 @@
+{
+  "done": {
+    "title": "Olete tellimusest loobunud",
+    "body": "Te ei saa enam eGranti masskirju. Help-rakenduse sisselogimiskoodid ja teavitused saabuvad endiselt."
+  },
+  "subscribed": {
+    "title": "Olete uuesti tellinud",
+    "body": "Saate taas eGranti masskirju. Saate seda igal ajal muuta Help-rakenduse seadetes."
+  },
+  "subscribeAgain": "Telli uuesti",
+  "unsubscribeButton": "Loobu tellimusest",
+  "test": "See oli testkiri; midagi ei muutunud.",
+  "invalid": "See link ei ole kehtiv.",
+  "errors": {
+    "rateLimited": "Liiga palju katseid. Proovige minuti pärast uuesti."
+  }
+}

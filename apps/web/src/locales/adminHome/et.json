@@ -1,0 +1,106 @@
+{
+  "shell": {
+    "loadError": "Laadimine ebaõnnestus. Proovige uuesti.",
+    "retry": "Proovi uuesti"
+  },
+  "sidebar": {
+    "title": "Kliendid",
+    "find": "Otsi klienti",
+    "managed": "Teie hallatavad",
+    "others": "Teised kliendid",
+    "collapse": "Ahenda kliendiloend",
+    "expand": "Laienda kliendiloend",
+    "noMatch": "Ükski klient ei vasta.",
+    "unread_one": "{{count}} lugemata sõnum",
+    "unread_other": "{{count}} lugemata sõnumit",
+    "assigned_one": "{{count}} Teile määratud ülesanne",
+    "assigned_other": "{{count}} Teile määratud ülesannet"
+  },
+  "home": {
+    "greeting": {
+      "morning": "Tere hommikust, {{name}}",
+      "afternoon": "Tere päevast, {{name}}",
+      "evening": "Tere õhtust, {{name}}"
+    },
+    "clients": "Kliendid"
+  },
+  "cards": {
+    "back": "Tagasi",
+    "urgent": "Kiire",
+    "tickets": {
+      "title": "Pöördumised",
+      "caption": "avatud",
+      "fresh_one": "{{count}} uus",
+      "fresh_other": "{{count}} uut",
+      "unassigned_one": "{{count}} kliendita",
+      "unassigned_other": "{{count}} kliendita",
+      "new": "Uus",
+      "noClient": "Kliendita",
+      "showAll": "Näita kõiki pöördumisi",
+      "empty": "Teie klientidel pole avatud pöördumisi ja kliendita pöördumisi pole."
+    },
+    "assigned": {
+      "title": "Minu ülesanded",
+      "caption": "määratud",
+      "urgent_one": "{{count}} kiire",
+      "urgent_other": "{{count}} kiiret",
+      "noDate": "tähtajata",
+      "showAll": "Näita kõiki ({{count}})",
+      "empty": "Teile ei ole midagi määratud."
+    },
+    "reminders": {
+      "title": "Eelseisvad meeldetuletused",
+      "caption": "järgmised 7 päeva",
+      "empty": "Eelseisvaid meeldetuletusi ei ole."
+    },
+    "mentions": {
+      "title": "Mainimised",
+      "caption": "lugemata",
+      "empty": "Lugemata mainimisi ei ole."
+    }
+  },
+  "board": {
+    "title": "Ülesanded",
+    "filtersLabel": "Ülesannete filtrid",
+    "filters": "Filtrid ({{count}})",
+    "filtersTitle": "Filtrid",
+    "close": "Valmis",
+    "assignee": {
+      "label": "Täitja: {{name}}",
+      "me": "Mina",
+      "anyone": "Kõik",
+      "none": "Määramata"
+    },
+    "urgent": "Kiire",
+    "mine": "Ainult need, milles osalen",
+    "due": {
+      "label": "Tähtaeg: {{name}}",
+      "any": "Kõik",
+      "overdue": "Tähtaeg ületatud",
+      "week": "Järgmised 7 päeva",
+      "none": "Tähtajata"
+    },
+    "search": "Otsi ülesandeid",
+    "completed": "Näita lõpetatuid",
+    "clear": "Tühjenda filtrid",
+    "more": "Näita veel 50",
+    "moreFailed": "Rohkem ei õnnestunud laadida. Proovige uuesti.",
+    "emptyFiltered": "Nendele filtritele ei vasta ükski ülesanne.",
+    "empty": "Nendel klientidel ei ole avatud ülesandeid.",
+    "columns": {
+      "todo": "Teha",
+      "other": "Muud etapid",
+      "egrant_review": "eGranti ülevaatus",
+      "client_review": "Kliendi ülevaatus",
+      "done": "Lõpetatud"
+    },
+    "count_one": "{{count}} ülesanne",
+    "count_other": "{{count}} ülesannet"
+  },
+  "navCount": {
+    "tasks_one": "{{count}} Teile määratud avatud ülesanne",
+    "tasks_other": "{{count}} Teile määratud avatud ülesannet",
+    "tickets_one": "{{count}} avatud pöördumine Teie klientidelt või kliendita",
+    "tickets_other": "{{count}} avatud pöördumist Teie klientidelt või kliendita"
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "mode": {
+    "bellLabel": "Teavitused: {{mode}}",
+    "all": "Kõik sõnumid",
+    "allHint": "Iga uus sõnum selles grupis",
+    "mentions": "Mainimised ja vastused",
+    "mentionsHint": "Kui keegi Teid mainib, vastab Teie lõimes või Teie ülesanne muutub",
+    "off": "Väljas",
+    "offHint": "Sellest grupist teavitusi ei tule",
+    "mixed": "Erinevad",
+    "allGroups": "Kõik grupid:",
+    "managerNote": "Kõik sõnumid, sest haldate seda klienti."
+  },
+  "prompt": {
+    "installTitle": "Installige Help-rakendus",
+    "installBody": "Avage see avaekraanilt nagu iga teist rakendust ja saage teavitusi.",
+    "install": "Installi",
+    "installMenu": "Avage brauseri menüü ⋮ → Installi rakendus / Lisa avaekraanile",
+    "notNow": "Mitte praegu",
+    "iosTitle": "Oluline: teavituste saamiseks installige Help-rakendus.",
+    "iosBody": "iPhone'is töötavad teavitused ainult avaekraanile lisatud rakenduses.",
+    "iosStepShare": "Puudutage nuppu Jaga",
+    "iosStepAdd": "Lisa avaekraanile",
+    "iosStepOpen": "Avage Help-rakendus ikoonist",
+    "enableTitle": "Lülitage selles seadmes teavitused sisse",
+    "enableBody": "Saage uued sõnumid ja ülesannete muudatused kohe kätte.",
+    "turnOn": "Lülita sisse",
+    "enableFailed": "Teavitusi ei õnnestunud sisse lülitada. Proovige uuesti.",
+    "iosUnsupportedTitle": "Teie iPhone'i iOS ei toeta rakenduse teavitusi.",
+    "iosUnsupportedBody": "Lülitasime Teile sisse e-posti teavitused. Telefonis teavituste saamiseks uuendage iOS versioonile 16.4 või uuemale.",
+    "iosUnsupportedEmailOn": "E-posti teavitused on Teil juba sees. Telefonis teavituste saamiseks uuendage iOS versioonile 16.4 või uuemale.",
+    "iosUnsupportedEmailOff": "E-posti teavitused on väljas; saate need sisse lülitada seadetes. Telefonis teavituste saamiseks uuendage iOS versioonile 16.4 või uuemale.",
+    "ok": "OK"
+  }
+}

@@ -213,27 +213,25 @@ export const groupsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, {
 
     // The membership is committed; a failed email must not turn this into an error.
     try {
-      const lang = pickLanguage(request.headers['accept-language']);
+      // A signed-in client chose a language; a new person gets the inviting admin's.
+      const lang =
+        outcome === 'added'
+          ? ((await getUserById(db, member.id))?.language ??
+            pickLanguage(request.headers['accept-language']))
+          : pickLanguage(request.headers['accept-language']);
+      const to = { to: member.email, lang, publicUrl: config.publicUrl };
       const email =
         outcome === 'added'
-          ? memberAddedEmail(
-              member.email,
-              {
-                groupName: group.name,
-                addedBy: actor.name,
-                groupUrl: `${config.publicUrl}/groups/${group.id}`,
-              },
-              lang,
-            )
-          : memberInvitedEmail(
-              member.email,
-              {
-                groupName: group.name,
-                invitedBy: actor.name,
-                loginUrl: `${config.publicUrl}/login?email=${encodeURIComponent(member.email)}`,
-              },
-              lang,
-            );
+          ? memberAddedEmail(to, {
+              groupName: group.name,
+              addedBy: actor.name,
+              groupUrl: `${config.publicUrl}/groups/${group.id}`,
+            })
+          : memberInvitedEmail(to, {
+              groupName: group.name,
+              invitedBy: actor.name,
+              loginUrl: `${config.publicUrl}/login?email=${encodeURIComponent(member.email)}`,
+            });
       await sendEmailLater(jobs, email);
     } catch (error) {
       request.log.error({ err: error }, 'could not queue the member invite email');

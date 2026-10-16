@@ -1,0 +1,35 @@
+{
+  "mode": {
+    "bellLabel": "Obvestila: {{mode}}",
+    "all": "Vsa sporočila",
+    "allHint": "Vsako novo sporočilo v tej skupini",
+    "mentions": "Omembe in odgovori",
+    "mentionsHint": "Ko vas kdo omeni, odgovori v vaši niti ali se spremeni vaša naloga",
+    "off": "Izklopljeno",
+    "offHint": "Brez obvestil iz te skupine",
+    "mixed": "Mešano",
+    "allGroups": "Vse skupine:",
+    "managerNote": "Vsa sporočila, ker upravljate to stranko."
+  },
+  "prompt": {
+    "installTitle": "Namestite aplikacijo Help",
+    "installBody": "Odprite jo z začetnega zaslona kot vsako drugo aplikacijo in prejemajte obvestila.",
+    "install": "Namesti",
+    "installMenu": "Odprite meni brskalnika ⋮ → Namesti aplikacijo / Dodaj na začetni zaslon",
+    "notNow": "Ne zdaj",
+    "iosTitle": "Pomembno: za prejemanje obvestil namestite aplikacijo Help.",
+    "iosBody": "Na iPhonu obvestila delujejo samo v aplikaciji, dodani na začetni zaslon.",
+    "iosStepShare": "Tapnite Deli",
+    "iosStepAdd": "Dodaj na začetni zaslon",
+    "iosStepOpen": "Odprite aplikacijo Help z ikone",
+    "enableTitle": "Vklopite obvestila v tej napravi",
+    "enableBody": "Nova sporočila in spremembe nalog prejmete takoj.",
+    "turnOn": "Vklopi",
+    "enableFailed": "Obvestil ni bilo mogoče vklopiti. Poskusite znova.",
+    "iosUnsupportedTitle": "Sistem iOS na vašem iPhonu ne podpira obvestil aplikacij.",
+    "iosUnsupportedBody": "Vklopili smo vam obvestila po e-pošti. Za obvestila v telefonu posodobite iOS na različico 16.4 ali novejšo.",
+    "iosUnsupportedEmailOn": "Obvestila po e-pošti imate že vklopljena. Za obvestila v telefonu posodobite iOS na različico 16.4 ali novejšo.",
+    "iosUnsupportedEmailOff": "Obvestila po e-pošti so izklopljena; vklopite jih lahko v nastavitvah. Za obvestila v telefonu posodobite iOS na različico 16.4 ali novejšo.",
+    "ok": "V redu"
+  }
+}

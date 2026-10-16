@@ -1,0 +1,55 @@
+{
+  "title": "Grupe",
+  "create": "Stvori grupu",
+  "empty": "Još nema grupa. Stvorite prvu za klijenta.",
+  "members": "Članovi: {{count}}",
+  "form": {
+    "name": "Naziv",
+    "egrantUrl": "Adresa klijenta u eGrantu",
+    "logo": "Logotip",
+    "save": "Spremi",
+    "cancel": "Odustani",
+    "removeLogo": "Ukloni logotip"
+  },
+  "errors": {
+    "nameRequired": "Unesite naziv.",
+    "invalidUrl": "Unesite valjanu adresu.",
+    "urlTaken": "Ovu adresu eGranta već koristi druga grupa.",
+    "invalidLogo": "Logotip mora biti slika u formatu PNG, JPEG ili WebP do 512 KB."
+  },
+  "managers": {
+    "title": "Voditelji iz eGranta",
+    "none": "Još nema voditelja iz eGranta.",
+    "manage": "Upravljaj",
+    "managing": "Upravljam",
+    "toggleLabel": "Upravljaj grupom {{name}}",
+    "started": "Sada upravljate grupom {{name}}.",
+    "startedMode": "Obavijesti: sve poruke.",
+    "stopped": "Više ne upravljate grupom {{name}}.",
+    "stoppedMode": "Obavijesti: {{mode}}",
+    "error": "Promjena nije uspjela. Pokušajte ponovno.",
+    "more": "+{{count}}",
+    "listLabel": "Voditelji grupe {{name}}",
+    "noManagerHint": "Klijenti bez voditelja: spomenuti ili dodijeliti mogu se samo njihovi vlastiti ljudi.",
+    "add": "Dodaj voditelja",
+    "find": "Pronađi administratora",
+    "allAdded": "Svi administratori već upravljaju ovom grupom.",
+    "noMatch": "Nijedan administrator ne odgovara pojmu „{{q}}“.",
+    "remove": "Ukloni {{name}}"
+  },
+  "mine": {
+    "title": "Moje grupe",
+    "empty": "Još niste ni u jednoj grupi. Otvorite poveznicu za pozivnicu koju ste primili."
+  },
+  "count": {
+    "filtered": "{{shown}} od {{total}}"
+  },
+  "filter": {
+    "label": "Voditelj: {{name}}",
+    "all": "Svi",
+    "me": "Ja",
+    "none": "Bez voditelja",
+    "empty": "Nema grupa za ovaj filtar.",
+    "clear": "Poništi filtar"
+  }
+}

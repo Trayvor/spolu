@@ -1,0 +1,11 @@
+{
+  "title": "Pridružite se grupi {{group}}",
+  "intro": "Unesite svoju poslovnu adresu e-pošte. Poslat ćemo Vam kôd za prijavu.",
+  "invalid": "Ova poveznica više ne vrijedi. Zatražite novu od eGranta.",
+  "errors": {
+    "rateLimited": "Previše pokušaja. Pokušajte ponovno za minutu.",
+    "removed": "Administrator eGranta uklonio Vas je iz ove grupe. Zamolite ga da Vas ponovno doda."
+  },
+  "signedInAs": "Prijavljeni ste kao {{email}}.",
+  "accept": "Pridruži se grupi"
+}

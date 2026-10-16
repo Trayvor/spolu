@@ -31,7 +31,7 @@ An email is at most 50 blocks, in the order the admin puts them; admins choose c
 - Name, subject and preview line are at most 200 characters each; the subject is needed only to test or send.
 - Only `{{name}}` is a merge field (owner answer P2); any other `{{…}}` stays as typed. Everything an admin types is escaped, so markup or scripts never reach the email, and a link that is not `http(s)` (or `mailto:` on a button) is refused when saving (`400 validation_failed`).
 - **Images are public by URL**: `<PUBLIC_URL>/api/bulk-email/images/<id>`, a random id, no login, because mail apps load them from their own servers. They stay as long as the server does, so a sent email keeps showing them. Do not upload anything that must stay private.
-- Every email ends with a footer in the person's language (sk or en): why they get it and the unsubscribe link. The plain-text part carries the same content.
+- Every email ends with a footer in the person's language (any of the nine UI languages): why they get it and the unsubscribe link. The plain-text part carries the same content.
 
 ## Screens
 
