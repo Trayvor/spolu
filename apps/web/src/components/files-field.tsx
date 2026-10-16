@@ -88,7 +88,7 @@ export function FilesField({
                   {file ? (
                     <ImagePreview file={file} maxWidth={240} />
                   ) : (
-                    <span className="inline-flex rounded-lg bg-secondary px-3 py-2 text-button font-semibold">
+                    <span className="inline-block max-w-full truncate rounded-lg bg-secondary px-3 py-2 text-button font-semibold">
                       {name}
                     </span>
                   )}
@@ -97,7 +97,7 @@ export function FilesField({
                   type="button"
                   aria-label={t('forms.files.remove', { name })}
                   onClick={() => onRemove(id)}
-                  className="rounded-full p-2 hover:bg-secondary"
+                  className="rounded-full p-2 hover:bg-secondary max-[640px]:p-3.5"
                 >
                   <CloseIcon />
                 </button>

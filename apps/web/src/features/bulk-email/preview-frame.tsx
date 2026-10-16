@@ -26,7 +26,12 @@ export function PreviewFrame({
   blocks: BulkBlock[];
 }) {
   const { t } = useTranslation();
-  const [device, setDevice] = useState<Device>('computer');
+  // A phone sees the phone preview first: the 600 px computer one would not fit its screen.
+  const [device, setDevice] = useState<Device>(() =>
+    typeof window.matchMedia === 'function' && window.matchMedia('(max-width: 640px)').matches
+      ? 'phone'
+      : 'computer',
+  );
   // Debounced as text: a new object on every render must not restart the wait.
   const serialized = useDebounced(JSON.stringify({ subject, preheader, blocks }), 500);
   const content = useMemo(
@@ -58,7 +63,7 @@ export function PreviewFrame({
               aria-pressed={device === d}
               onClick={() => setDevice(d)}
               className={cn(
-                'h-8 rounded-full px-4 text-tiny font-semibold transition-colors duration-(--duration-fast)',
+                'h-8 rounded-full px-4 text-tiny font-semibold transition-colors duration-(--duration-fast) max-[640px]:h-11',
                 device === d ? 'bg-card shadow-lift' : 'hover:bg-surface-3',
               )}
             >

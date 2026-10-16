@@ -144,7 +144,7 @@ export function ClientSidebarList({
         value={query}
         onChange={(event) => setQuery(event.target.value)}
         placeholder={t('adminHome.sidebar.find')}
-        className="h-9 w-full rounded-md border-2 border-input bg-card px-3 text-tiny font-medium placeholder:text-muted-foreground focus:border-foreground"
+        className="h-9 w-full rounded-md border-2 border-input bg-card px-3 text-tiny font-medium max-[640px]:h-11 placeholder:text-muted-foreground focus:border-foreground"
       />
       {shown.length === 0 && (
         <p className="px-2 text-micro text-muted-foreground">{t('adminHome.sidebar.noMatch')}</p>

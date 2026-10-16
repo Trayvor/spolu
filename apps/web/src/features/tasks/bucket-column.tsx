@@ -255,7 +255,7 @@ export function BucketColumn({
                 aria-describedby={attributes['aria-describedby']}
                 aria-label={t('tasks.dnd.moveBucket', { title })}
                 className={cn(
-                  '-ml-1 flex size-8 shrink-0 cursor-grab items-center justify-center rounded-full text-muted-foreground hover:bg-accent',
+                  '-ml-1 flex size-8 shrink-0 cursor-grab items-center justify-center rounded-full text-muted-foreground hover:bg-accent max-[640px]:size-11',
                   isDragging && 'cursor-grabbing',
                 )}
               >
@@ -356,7 +356,7 @@ export function BucketColumn({
         to="/groups/$groupId/tasks/new"
         params={{ groupId: bucket.groupId }}
         search={{ bucket: bucket.id }}
-        className="rounded-lg px-3 py-2 text-left text-button font-semibold text-muted-foreground hover:bg-accent hover:text-foreground"
+        className="rounded-lg px-3 py-2 text-left text-button font-semibold text-muted-foreground hover:bg-accent hover:text-foreground max-[640px]:min-h-11"
       >
         <span aria-hidden="true">+ </span>
         {t('tasks.board.addTask')}

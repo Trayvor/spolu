@@ -207,7 +207,7 @@ export function ClientFilter({
                 type="button"
                 aria-label={t('knowledge.clientFilter.remove', { name: group.name })}
                 onClick={() => toggle(group.id)}
-                className="relative inline-flex size-6 items-center justify-center rounded-full transition-colors duration-(--duration-fast) after:absolute after:-inset-2 hover:bg-surface-3"
+                className="relative inline-flex size-6 items-center justify-center rounded-full transition-colors duration-(--duration-fast) after:absolute after:-inset-2.5 hover:bg-surface-3"
               >
                 <CrossIcon />
               </button>

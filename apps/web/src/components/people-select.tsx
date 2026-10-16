@@ -210,7 +210,7 @@ export function PeopleSelect({
                 choose(p.id);
               }}
               className={cn(
-                'flex cursor-pointer items-center gap-2 px-3 py-2 text-button',
+                'flex cursor-pointer items-center gap-2 px-3 py-2 text-button max-[640px]:min-h-11',
                 index === activeIndex && 'bg-accent',
               )}
             >
