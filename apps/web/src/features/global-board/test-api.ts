@@ -40,30 +40,51 @@ export const card = (over: Partial<GlobalTaskDto> & { id: string }): GlobalTaskD
   ...over,
 });
 
+const fixed = (kind: 'todo' | 'other' | 'egrant_review' | 'client_review' | 'done') =>
+  ({ id: kind, kind, name: null }) as const;
+
+/** To do, a merged custom column, Other steps (folded custom buckets), the two reviews. */
 export const board = (over: Partial<GlobalBoard> = {}): GlobalBoard => ({
   columns: [
-    { kind: 'todo', total: 1, items: [card({ id: 't1', title: 'Fix budget table' })], next: null },
     {
-      kind: 'other',
+      ...fixed('todo'),
+      total: 1,
+      items: [card({ id: 't1', title: 'Fix budget table' })],
+      next: null,
+    },
+    {
+      id: 'custom:in translation',
+      kind: 'custom',
+      name: 'In translation',
       total: 1,
       items: [
         card({
           id: 't2',
           title: 'Annex 2',
           bucketKind: 'custom',
-          bucketName: 'In translation',
+          bucketName: 'In Translation',
           groupId: 'g2',
           groupName: 'Obec Lúky',
         }),
       ],
       next: null,
     },
-    { kind: 'egrant_review', total: 0, items: [], next: null },
-    { kind: 'client_review', total: 0, items: [], next: null },
+    {
+      ...fixed('other'),
+      total: 1,
+      items: [
+        card({ id: 't3', title: 'Old minutes', bucketKind: 'custom', bucketName: 'Archive' }),
+      ],
+      next: null,
+    },
+    { ...fixed('egrant_review'), total: 0, items: [], next: null },
+    { ...fixed('client_review'), total: 0, items: [], next: null },
   ],
   people: [{ id: 'p1', name: 'Petra' }],
   ...over,
 });
+
+export const doneColumn = () => ({ ...fixed('done'), total: 0, items: [], next: null });
 
 export type Route = (url: URL, init?: RequestInit) => Response | undefined;
 

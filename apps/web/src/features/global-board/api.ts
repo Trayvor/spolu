@@ -1,5 +1,5 @@
 import { queryOptions } from '@tanstack/react-query';
-import { GlobalBoardSchema, type BoardColumnKind, type GlobalBoard } from '@spolu/shared';
+import { GlobalBoardSchema, type GlobalBoard } from '@spolu/shared';
 import { apiGet } from '@/lib/api';
 
 /** The board's filters as the API takes them (the URL's, minus the open task). */
@@ -14,7 +14,7 @@ export type GlobalFilters = {
   completed?: boolean;
 };
 
-function queryString(filters: GlobalFilters, page?: { column: BoardColumnKind; after: string }) {
+function queryString(filters: GlobalFilters, page?: { column: string; after: string }) {
   const params = new URLSearchParams();
   if (filters.clients) params.set('clients', filters.clients);
   if (filters.assignee && filters.assignee !== 'anyone') params.set('assignee', filters.assignee);
@@ -41,10 +41,10 @@ export const globalBoardQuery = (filters: GlobalFilters) =>
     refetchOnWindowFocus: true,
   });
 
-/** "Show 50 more": the next page of one column. */
+/** "Show 50 more": the next page of one column, by its id (`todo`, `custom:<key>`…). */
 export function fetchColumnPage(
   filters: GlobalFilters,
-  column: BoardColumnKind,
+  column: string,
   after: string,
 ): Promise<GlobalBoard> {
   return apiGet(`/tasks/global${queryString(filters, { column, after })}`, GlobalBoardSchema);

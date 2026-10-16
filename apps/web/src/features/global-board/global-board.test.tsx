@@ -7,7 +7,7 @@ import { AdminEvents, type BucketDto, type TaskDetailDto } from '@spolu/shared';
 import { i18n, setLanguage } from '@/i18n';
 import { createAppRouter } from '@/router';
 import { BOARD_CLIENTS_KEY } from './use-global-search';
-import { board, card, mockBoardApi } from './test-api';
+import { board, card, doneColumn, mockBoardApi } from './test-api';
 
 type Handler = (payload: unknown) => void;
 const handlers = new Map<string, Set<Handler>>();
@@ -97,14 +97,14 @@ describe('GlobalBoardPage', () => {
     vi.useRealTimers();
   });
 
-  it('five columns with Completed only when shown', async () => {
+  it('the fixed columns around the custom ones, Completed only when shown', async () => {
     const { reply } = mockBoardApi([
       (url) =>
         url.pathname === '/api/tasks/global' && url.searchParams.get('completed') === '1'
           ? reply(
               200,
               board({
-                columns: [...board().columns, { kind: 'done', total: 0, items: [], next: null }],
+                columns: [...board().columns, doneColumn()],
               }),
             )
           : undefined,
@@ -113,6 +113,7 @@ describe('GlobalBoardPage', () => {
     await screen.findByRole('link', { name: /Fix budget table/ });
     expect(screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)).toEqual([
       t('adminHome.board.columns.todo'),
+      'In translation',
       t('adminHome.board.columns.other'),
       t('adminHome.board.columns.egrant_review'),
       t('adminHome.board.columns.client_review'),
@@ -124,15 +125,17 @@ describe('GlobalBoardPage', () => {
     ).toBeInTheDocument();
   });
 
-  it('cards show the client line, and the bucket name in Other steps', async () => {
+  it('cards show the client line, and the bucket name only in Other steps', async () => {
     mockBoardApi();
     renderBoard();
     const first = await screen.findByRole('link', { name: /Fix budget table/ });
     expect(first).toHaveTextContent('ABC s.r.o.');
-    expect(first).not.toHaveTextContent('In translation');
-    const other = screen.getByRole('link', { name: /Annex 2/ });
-    expect(other).toHaveTextContent('Obec Lúky');
-    expect(other).toHaveTextContent('In translation');
+    // A custom column names the step in its heading; its cards keep their client.
+    const custom = screen.getByRole('link', { name: /Annex 2/ });
+    expect(custom).toHaveTextContent('Obec Lúky');
+    expect(custom).not.toHaveTextContent('In Translation');
+    const folded = screen.getByRole('link', { name: /Old minutes/ });
+    expect(folded).toHaveTextContent('Archive');
   });
 
   it('the default client scope comes from localStorage when the URL has none, and storage errors are ignored', async () => {
@@ -163,7 +166,9 @@ describe('GlobalBoardPage', () => {
             board({
               columns: [
                 {
+                  id: 'todo',
                   kind: 'todo',
+                  name: null,
                   total: 2,
                   items: [card({ id: 't9', title: 'Page two' })],
                   next: null,
@@ -188,6 +193,39 @@ describe('GlobalBoardPage', () => {
     expect(within(other).getAllByRole('link')).toHaveLength(1);
     expect(globalCalls(calls).at(-1)).toBe('/api/tasks/global?column=todo&after=cursor-1');
     expect(within(todo).queryByRole('button', { name: t('adminHome.board.more') })).toBeNull();
+  });
+
+  it('Show 50 more in a custom column asks for that column by its id', async () => {
+    const { reply, calls } = mockBoardApi([
+      (url) => {
+        if (url.pathname !== '/api/tasks/global') return undefined;
+        const first = board();
+        if (url.searchParams.get('column') === 'custom:in translation') {
+          return reply(
+            200,
+            board({
+              columns: [
+                {
+                  ...first.columns[1]!,
+                  total: 2,
+                  items: [card({ id: 't8', title: 'Annex 3', bucketKind: 'custom' })],
+                },
+              ],
+            }),
+          );
+        }
+        first.columns[1] = { ...first.columns[1]!, total: 2, next: 'cursor-c' };
+        return reply(200, first);
+      },
+    ]);
+    const { user } = renderBoard();
+    await screen.findByRole('link', { name: /Annex 2/ });
+    const custom = screen.getByRole('region', { name: 'In translation' });
+    await user.click(within(custom).getByRole('button', { name: t('adminHome.board.more') }));
+    expect(await within(custom).findByRole('link', { name: /Annex 3/ })).toBeInTheDocument();
+    expect(globalCalls(calls).at(-1)).toBe(
+      '/api/tasks/global?column=custom%3Ain+translation&after=cursor-c',
+    );
   });
 
   it('a card opens the panel over the board at /tasks?…&task=id and closing returns to the same filtered URL', async () => {

@@ -1,13 +1,15 @@
+import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { BoardColumnKind, GlobalTaskDto } from '@spolu/shared';
+import type { GlobalColumn as Column, GlobalTaskDto } from '@spolu/shared';
 import { Button } from '@/components/ui/button';
 import { GroupLogo } from '@/features/groups/group-logo';
 import { TaskCard } from '@/features/tasks/task-card';
 import type { GlobalBoardSearch } from '@/router';
 
-/** The 8 px square of the group board's columns; "Other steps" has none, like custom buckets. */
-const KIND_MARK: Record<BoardColumnKind, string | null> = {
+/** The 8 px square of the group board's columns; custom columns and "Other steps" have none. */
+const KIND_MARK: Record<Column['kind'], string | null> = {
   todo: 'border-[1.5px] border-foreground',
+  custom: null,
   other: null,
   egrant_review: 'bg-brand-purple',
   client_review: 'bg-brand-blue',
@@ -38,11 +40,12 @@ function GroupLine({ task, showBucket }: { task: GlobalTaskDto; showBucket: bool
 
 /**
  * One column of the global board: the group board's column look (288 px on `muted`), its heading
- * with the total, the cards (no drag: a card opens the task panel over this board) and
+ * (a custom column's merged bucket name, like a custom bucket on the group board) with the total, the cards (no drag: a card opens the task panel over this board) and
  * "Show 50 more".
  */
 export function GlobalColumn({
   kind,
+  name,
   total,
   items,
   hasMore,
@@ -52,7 +55,9 @@ export function GlobalColumn({
   search,
   today,
 }: {
-  kind: BoardColumnKind;
+  kind: Column['kind'];
+  /** Custom columns only. */
+  name: string | null;
   total: number;
   items: GlobalTaskDto[];
   hasMore: boolean;
@@ -64,7 +69,7 @@ export function GlobalColumn({
 }) {
   const { t } = useTranslation();
   const mark = KIND_MARK[kind];
-  const headingId = `global-column-${kind}`;
+  const headingId = useId();
   return (
     <section
       aria-labelledby={headingId}
@@ -73,7 +78,7 @@ export function GlobalColumn({
       <header className="flex min-h-8 items-center gap-2">
         {mark && <span aria-hidden="true" className={`size-2 shrink-0 rounded-[2px] ${mark}`} />}
         <h2 id={headingId} className="min-w-0 truncate text-button font-semibold">
-          {t(`adminHome.board.columns.${kind}`)}
+          {kind === 'custom' ? name : t(`adminHome.board.columns.${kind}`)}
         </h2>
         <span className="text-micro text-muted-foreground tabular-nums">
           <span aria-hidden="true">{total}</span>
