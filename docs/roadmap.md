@@ -323,6 +323,6 @@ Scope: admins write an email from blocks (heading, text, image, button, divider,
 
 Built in 7 parts, one pull request each (23.1 first; 23.2, 23.3 and 23.4 in parallel; then 23.5 and 23.6 in parallel; 23.7 last). The owner answered the five open decisions on 2026-10-16 (spec, P1–P5): people who never signed in are included, Spolu is the source of truth for unsubscribing, and a "Receive mailings" checkbox in Settings lets people subscribe again.
 
-Status: parts 23.1 (foundation), 23.2 (campaigns and audience API), 23.3 (renderer, public images, preview, email logo PNG) 23.4 (unsubscribe page and API, one-click, subscribe again, the "Receive mailings" checkbox, Elastic suppression lift and daily sync) and 23.6 (web: campaign list, block builder with preview, audience builder, test send button) are built.
+Status: parts 23.1 (foundation), 23.2 (campaigns and audience API), 23.3 (renderer, public images, preview, email logo PNG) 23.4 (unsubscribe page and API, one-click, subscribe again, the "Receive mailings" checkbox, Elastic suppression lift and daily sync), 23.5 (test send, start sending, the batch job and daily sweep, cancel, the per-person report API) and 23.6 (web: campaign list, block builder with preview, audience builder, test send button) are built.
 
 Done when: an admin sends a campaign to a client group, each client gets it with their name, one client unsubscribes through the link and the next campaign skips them, and the report shows the counts.

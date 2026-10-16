@@ -237,6 +237,19 @@ Each branch is cut from the latest `main`. 23.6 shows **Send a test to me** only
 
 ## Part 23.5 — Sending (spec §4, §6)
 
+**As built (2026-10-16, branch `phase-23-5-bulk-sending`).** No migration. Differences and details later parts must use:
+- Files: `send.ts` (`validateForSend`, `startSending`, `cancelSending`, `queueTestSend`, `runTestSend`, `BULK_TEST_JOB`), `batch.ts` (`runBatch`, `nextDelaySeconds`, `sweepStuck`, `BULK_BATCH_JOB`, `BATCH_SIZE`, `MAX_ATTEMPTS`), `message.ts` (`personalMessage`, `imageIdsOf`: one person's `BulkMessage`, shared by the test and the batch), `send-routes.test.ts`. The job handlers, `BULK_SWEEP_JOB`, the sweep schedule and `bulkEmailQueues` joined 23.4's `jobs.ts` (`bulkEmailJobHandlers({ db, config, bulkEmail, jobs }, fetch)`, `bulkEmailSchedules(config)` now always has the sweep). Errors `NotSendingError`, `NotReadyError { problems }`, `EmptyAudienceError` in `errors.ts`.
+- The batch job reaches Socket.IO through `attachBulkRealtime(io)` / `bulkRealtime()` in `events.ts` (set in `buildApp`, like the reminders), since jobs are built before the app.
+- Shared: `BulkRecipientsQuerySchema`, `BulkRecipientPage`, `BulkNotReadyAnswer = { error: 'not_ready'; problems }`, `BulkTestSendResult = { to }`.
+- Routes for 23.6/23.7 (admins; client 403, anonymous 401): `POST …/:id/test` → `202 { to }` (the signed-in admin's address), `400 not_ready` with `problems`, `404`, `429 rate_limited` (10/min per admin); any campaign state can be tested; it renders the campaign **as saved**, so the editor saves (or flushes the autosave) before it posts. `POST …/:id/send` → `200 BulkCampaignDto`, `400 not_ready` / `400 empty_audience`, `404`, `409 not_draft`. `POST …/:id/cancel` → `200 BulkCampaignDto`, `404`, `409 not_sending`. `GET …/:id/recipients?status=&cursor=` → `BulkRecipientPage` (by name, 50 a page), `400` for a bad status or cursor, `404`. Each write and each batch emits `bulk:updated`.
+- `campaignCounts` was not added: 23.2's `campaignsQuery` already groups the counts over a page in one statement (list and detail), so there is no N+1 to remove; its tests cover "counts per status and unsubscribed" and "one query a page".
+- Test send: idempotency key `test:<uuid>` made when queued (pg-boss retries reuse it, a new test gets a new one), postback `test:<campaignId>:<userId>`; a disabled or deleted admin or campaign is skipped. A final provider error is logged; a retryable one throws for pg-boss.
+- Batch: the subject, preheader and blocks are read once per run, `imageSizes` once per run. A retryable failure after a cancel sets the row `cancelled`, not back to `queued`. Any error that is not a `BulkSendError` is treated as retryable. The campaign becomes `sent` only when no row is `queued` or `sending`.
+- Sweep: besides failing rows stuck 20 h, it re-queues only a sending campaign whose rows did not change for max(10 min, 3 run delays), so a moving campaign never gets a second job chain (pg-boss offers no cheap "job pending?" check, and a second self-requeueing chain would double the rate).
+- In the test app jobs run inline: a send through the API already runs the first batch (≤ 20 people → the answer is `sent`); later runs (`startAfter`) are skipped, tests call `runBatch`.
+- The sending tests share one admin per file: every active admin slows the ticket tests that notify all admins.
+
+
 ### Task 5.1: Send, test send, cancel
 
 **Files:**
@@ -249,8 +262,8 @@ Each branch is cut from the latest `main`. 23.6 shows **Send a test to me** only
 - Jobs: `BULK_BATCH_JOB = 'bulk-email.batch'` (`{ campaignId }`), `BULK_TEST_JOB = 'bulk-email.test'` (`{ campaignId, userId }`), `BULK_SWEEP_JOB = 'bulk-email.sweep'` (cron `15 4 * * *`); queue settings `{ [BULK_BATCH_JOB]: { localConcurrency: 1, notify: false, pollingIntervalSeconds: 2 } }`.
 - Routes: `POST …/:id/send`, `POST …/:id/cancel`, `POST …/:id/test` (10/min per admin).
 
-- [ ] **Step 1: Failing tests:** `validateForSend` (each problem with its block id); `send freezes recipients and sets sending, sender, recipient_count`; `each sent email links /unsubscribe/<signed token for that person and campaign>`; `send with no recipients → 400 empty_audience, still a draft`; `two concurrent sends → one 409 not_draft`; `test send reaches only the actor, subject starts with [Test] , its unsubscribe token carries the campaign id test`; `11th test a minute → 429`; `cancel marks queued rows cancelled and the campaign cancelled`.
-- [ ] **Step 2–4:** run, implement, run. Commit `feat(bulk-email): start, test and cancel sending`.
+- [x] **Step 1: Failing tests:** `validateForSend` (each problem with its block id); `send freezes recipients and sets sending, sender, recipient_count`; `each sent email links /unsubscribe/<signed token for that person and campaign>`; `send with no recipients → 400 empty_audience, still a draft`; `two concurrent sends → one 409 not_draft`; `test send reaches only the actor, subject starts with [Test] , its unsubscribe token carries the campaign id test`; `11th test a minute → 429`; `cancel marks queued rows cancelled and the campaign cancelled`.
+- [x] **Step 2–4:** run, implement, run. Commit `feat(bulk-email): start, test and cancel sending`.
 
 ### Task 5.2: The batch job
 
@@ -259,8 +272,8 @@ Each branch is cut from the latest `main`. 23.6 shows **Send a test to me** only
 **Interfaces:**
 - Produces: `runBatch(deps: { db; bulkEmail; jobs; io?; config }, campaignId): Promise<'more' | 'done' | 'stopped'>` — spec §4 steps 1–5; `nextDelaySeconds(perMinute: number) = Math.ceil(BATCH_SIZE / perMinute * 60)`; `sweepStuck(deps, now)` (rows `sending` with `updated_at` older than 20 h → `failed`, `error = 'unknown'`; re-queue campaigns `sending` with queued rows).
 
-- [ ] **Step 1: Failing tests** (fake sender, test DB): `sends 20, queues the next run with the delay, then finishes with status sent`; `a person unsubscribed after send start is skipped with error unsubscribed` (Review Focus 1); `a disabled person is skipped with error disabled`; `retryable failure goes back to queued, third failure is failed`; `400 is failed at once with the provider message`; `a row left in sending is sent again with the same Idempotency-Key and counted once by the fake` (Review Focus 2); `a cancelled campaign stops`; `Postback is campaignId:userId and provider ids are stored`; `sweep fails rows stuck 21 h and leaves 19 h rows`; `bulk:updated after each run`.
-- [ ] **Step 2–4:** run, implement, run. Commit `feat(bulk-email): batch sending job`.
+- [x] **Step 1: Failing tests** (fake sender, test DB): `sends 20, queues the next run with the delay, then finishes with status sent`; `a person unsubscribed after send start is skipped with error unsubscribed` (Review Focus 1); `a disabled person is skipped with error disabled`; `retryable failure goes back to queued, third failure is failed`; `400 is failed at once with the provider message`; `a row left in sending is sent again with the same Idempotency-Key and counted once by the fake` (Review Focus 2); `a cancelled campaign stops`; `Postback is campaignId:userId and provider ids are stored`; `sweep fails rows stuck 21 h and leaves 19 h rows`; `bulk:updated after each run`.
+- [x] **Step 2–4:** run, implement, run. Commit `feat(bulk-email): batch sending job`.
 
 ### Task 5.3: Report API
 
@@ -270,9 +283,9 @@ Each branch is cut from the latest `main`. 23.6 shows **Send a test to me** only
 - Produces: `campaignCounts(db, ids: string[]): Promise<Map<string, BulkCampaignDto['counts']>>` (one grouped query; also used by the list, so no N+1); `listRecipients(db, id, { status?, cursor? })`.
 - Route: `GET …/:id/recipients?status=&cursor=`.
 
-- [ ] **Step 1: Failing tests:** `counts per status and unsubscribed through this campaign`; `list of 3 campaigns runs one counts query`; `recipients filter by status, 50 per page`.
-- [ ] **Step 2–4:** run, implement, run. Commit `feat(bulk-email): report API`.
-- [ ] **Step 5: Docs and PR.** `update-kb`: `product/bulk-email.md` (states, sending speed, report), `architecture/realtime.md` (`bulk:updated`), `architecture/performance.md` (batch job). PR.
+- [x] **Step 1: Failing tests:** `counts per status and unsubscribed through this campaign`; `list of 3 campaigns runs one counts query`; `recipients filter by status, 50 per page`.
+- [x] **Step 2–4:** run, implement, run. Commit `feat(bulk-email): report API`.
+- [x] **Step 5: Docs and PR.** `update-kb`: `product/bulk-email.md` (states, sending speed, report), `architecture/realtime.md` (`bulk:updated`), `architecture/performance.md` (batch job), `architecture/overview.md`, `architecture/permissions.md`, `roadmap.md`. PR.
 
 ---
 
