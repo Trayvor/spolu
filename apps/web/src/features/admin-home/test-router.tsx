@@ -8,7 +8,7 @@ import {
   createRouter,
 } from '@tanstack/react-router';
 
-/** Tests only: renders `ui` on `/` and on the group chat path inside a router, so `<Link>` works. */
+/** Tests only: renders `ui` on `/` and on the paths the admin home links to, so `<Link>` works. */
 export async function renderWithRouter(
   ui: () => ReactNode,
   path = '/',
@@ -16,13 +16,17 @@ export async function renderWithRouter(
 ) {
   const rootRoute = createRootRoute();
   const index = createRoute({ getParentRoute: () => rootRoute, path: '/', component: ui });
-  const chat = createRoute({
-    getParentRoute: () => rootRoute,
-    path: '/groups/$groupId/chat',
-    component: ui,
-  });
+  const paths = [
+    '/groups/$groupId/chat',
+    '/groups/$groupId/tasks/$taskId',
+    '/groups/$groupId/knowledge',
+    '/tasks',
+  ];
+  const routes = paths.map((path) =>
+    createRoute({ getParentRoute: () => rootRoute, path, component: ui }),
+  );
   const router = createRouter({
-    routeTree: rootRoute.addChildren([index, chat]),
+    routeTree: rootRoute.addChildren([index, ...routes]),
     history: createMemoryHistory({ initialEntries: [path] }),
   });
   const view = render(wrap(<RouterProvider router={router} />));

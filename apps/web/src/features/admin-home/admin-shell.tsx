@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { homeKeys, sidebarQuery } from './api';
-import { ClientSidebarList } from './client-sidebar';
+import { ClientSidebarList, SidebarRowsPlaceholder } from './client-sidebar';
 import { readCollapsed, writeCollapsed } from './sidebar-collapse';
 import { useAdminActivityRefetch } from './use-admin-activity';
 
@@ -22,20 +22,6 @@ function Chevron({ left }: { left: boolean }) {
         strokeWidth="1.6"
       />
     </svg>
-  );
-}
-
-/** The loading rows: static grey bars (no shimmer). */
-export function SidebarRowsPlaceholder({ rows = 3 }: { rows?: number }) {
-  return (
-    <div aria-hidden="true" className="flex flex-col gap-2 px-2">
-      {Array.from({ length: rows }, (_, i) => (
-        <div key={i} className="flex h-10 items-center gap-2">
-          <span className="size-6 rounded-md bg-secondary" />
-          <span className="h-3 flex-1 rounded-full bg-secondary" />
-        </div>
-      ))}
-    </div>
   );
 }
 

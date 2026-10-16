@@ -15,5 +15,36 @@
     "unread_other": "{{count}} unread messages",
     "assigned_one": "{{count}} task assigned to you",
     "assigned_other": "{{count}} tasks assigned to you"
+  },
+  "home": {
+    "greeting": {
+      "morning": "Good morning, {{name}}",
+      "afternoon": "Good afternoon, {{name}}",
+      "evening": "Good evening, {{name}}"
+    },
+    "clients": "Clients"
+  },
+  "cards": {
+    "back": "Back",
+    "urgent": "Urgent",
+    "assigned": {
+      "title": "Assigned to me",
+      "caption": "assigned",
+      "urgent_one": "{{count}} urgent",
+      "urgent_other": "{{count}} urgent",
+      "noDate": "no date",
+      "showAll": "Show all {{count}}",
+      "empty": "Nothing is assigned to you."
+    },
+    "reminders": {
+      "title": "Upcoming reminders",
+      "caption": "next 7 days",
+      "empty": "No reminders coming up."
+    },
+    "mentions": {
+      "title": "Mentions",
+      "caption": "unread",
+      "empty": "No unread mentions."
+    }
   }
 }

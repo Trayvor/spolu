@@ -19,5 +19,38 @@
     "assigned_few": "{{count}} úlohy priradené vám",
     "assigned_many": "{{count}} úlohy priradené vám",
     "assigned_other": "{{count}} úloh priradených vám"
+  },
+  "home": {
+    "greeting": {
+      "morning": "Dobré ráno, {{name}}",
+      "afternoon": "Dobrý deň, {{name}}",
+      "evening": "Dobrý večer, {{name}}"
+    },
+    "clients": "Klienti"
+  },
+  "cards": {
+    "back": "Späť",
+    "urgent": "Urgentné",
+    "assigned": {
+      "title": "Priradené mne",
+      "caption": "priradených",
+      "urgent_one": "{{count}} urgentná",
+      "urgent_few": "{{count}} urgentné",
+      "urgent_many": "{{count}} urgentnej",
+      "urgent_other": "{{count}} urgentných",
+      "noDate": "bez termínu",
+      "showAll": "Zobraziť všetky ({{count}})",
+      "empty": "Nemáte priradenú žiadnu úlohu."
+    },
+    "reminders": {
+      "title": "Najbližšie pripomienky",
+      "caption": "najbližších 7 dní",
+      "empty": "Žiadne pripomienky nie sú naplánované."
+    },
+    "mentions": {
+      "title": "Zmienky",
+      "caption": "neprečítaných",
+      "empty": "Žiadne neprečítané zmienky."
+    }
   }
 }

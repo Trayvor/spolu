@@ -321,6 +321,16 @@ egrant.sk spacing presets are 4, 8, 12, 16, 20, 24, 32, 40, 48, 54, 64px — all
 - Rail (collapsed): logos only, centred; an 8 px dot on the logo's top right corner, ringed in the card colour: ink when there are unread messages, else yellow when something is assigned to me. The name is the tooltip (`title`) and, with the counts, the link's screen-reader text.
 - Loading: three static grey rows (a 24 px square and a bar in `secondary`), no shimmer. Error: "Could not load this. Try again." (`text-micro` muted) and a small secondary "Try again", in the sidebar only.
 
+### Dashboard count cards and tiles (as built, `src/features/admin-home/count-card.tsx`, `count-tile.tsx`, `cards.tsx`, Phase 20)
+
+- The one bold element of the admin home is the counts; everything else is quiet (no icons for decoration, no charts, no colour except the Urgent pill, an overdue date and the yellow "assigned to me" pills).
+- Greeting: the page `h1` at `text-medium` weight 600, "Good morning, Vlad" by the Bratislava hour (04–11 morning, 12–17 afternoon, otherwise evening), the first word of the name. Nothing else in the header area.
+- Card (`CountCard`): a white `card` section (`rounded-xl`, 20 px padding, no shadow, 16 px gaps), named by its title (`text-body` weight 600). Then two columns: a 112 px count column (the count at `text-large`, 36 px, weight 600, `tabular-nums`, `99+` above 99; a `text-micro` muted caption under it; an optional subline) and the list. Rows are 44 px (56 px for two-line rows), hairlines between rows, the whole row one link with an `accent` hover.
+- Assigned to me (full width): caption "assigned", subline "5 urgent" with an 8 px `destructive` dot when above 0. Row: the Urgent `Badge` (destructive) when urgent, the title (`text-button` weight 600, one line), the client (`text-micro` muted, from 641 px), the due date on the right ("18 Oct", `formatDue`; `text-error-ink` weight 600 when overdue; "no date" muted). Above 20 tasks, "Show all 37" (`text-tiny` weight 600, underlined) opens the global board with `assignee=me` and every client.
+- Upcoming reminders and Mentions (half width each, side by side; Mentions takes the whole row when there is no reminder source): two-line rows, the meta line (`text-micro` muted: "Tue 21 Oct 09:00 · ABC s.r.o."; for a mention the author in `foreground` weight 600, then the client) over the title or the 80-character excerpt (`text-button`).
+- Loading: the title, a grey 48x36 block for the count, three static grey rows. Error: "Could not load this. Try again." and a small secondary "Try again", in that card only. Empty: one muted line ("Nothing is assigned to you.", "No reminders coming up.", "No unread mentions.").
+- Phones and tablets (under 1024 px): the cards are count tiles (`CountTile`) in one row (three, or two without reminders), white `rounded-xl` buttons at least 44 px tall with the same count column; a tile is named "Mentions: 3 unread". Tapping one opens its list in the `SheetDialog` (full screen under 641 px, a centred 720 px dialog up to 1023 px) with a 38 px ghost back arrow ("Back") and the title. Below the tiles, "Clients" and the sidebar's list at 48 px rows on a white card.
+
 ### Link
 
 - Inherits color, no underline; hover color `neutral` (`#5E5E5E`). In long text (manuals) links are underlined and lose the underline on hover.

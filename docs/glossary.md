@@ -7,10 +7,12 @@ Terms used across the docs and code, in alphabetical order.
 - **ADR**: architecture decision record, a short file in `docs/decisions/` that records one decision and why it was made.
 - **API key**: a secret token that eGrant sends with each ticket request to prove who it is.
 - **AppPrompt**: the one card at the bottom of every signed-in screen that asks to install Spolu as an app on a phone, then to turn on notifications on this device, or tells an old iPhone that only email works (`<AppPrompt>`, `features/notifications/app-prompt.tsx`). "Not now" hides it for 6 hours on that device.
+- **assigned to me**: the open tasks (not in Completed) a person is one of the assignees of. Counted in yellow (the `attention` colour) on the Úlohy tab, in the admin client sidebar and on the dashboard's "Assigned to me" card.
 - **bucket**: a column on a task board. Each group has four fixed buckets (To do, eGrant review, client review, Completed) and admins can add custom buckets and reorder every bucket, fixed ones included. Cards can be dragged between and inside buckets.
 - **channel**: a place where messages are posted. In Spolu: a group chat, a direct message chat or a task chat.
 - **client**: a person from a customer organization. Sees only their own group.
 - **contract**: a record of an agreement with a client (dates, amount, files, notes). Admin-only.
+- **dashboard**: the admin home at `/` (Phase 20): a greeting and three count cards (Assigned to me, Upcoming reminders, Mentions), each a big count beside a list of items that open where they live. On phones the cards are count tiles above the client list.
 - **deactivated admin**: an admin who was removed. The row is kept with `disabled_at` set; the person cannot log in, gets no codes and loses open sessions and sockets. Adding the same email again reactivates them.
 - **draft contract**: the prepared next contract for a client, with the same fields as a contract.
 - **egrant URL**: the address of a client's eGrant instance, saved on the group. Incoming tickets are matched to a group by it. It is normalized first (case, protocol, trailing slash and similar differences are removed) so that equal addresses compare equal.

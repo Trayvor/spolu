@@ -23,6 +23,14 @@ What an administrator sees after signing in: a dashboard of what needs them, a c
 - **Phones.** The client list and dashboard become one column: three count tiles (each opens its list) above the client list.
 - **Speed.** The dashboard and the client list each load with one request; nothing slows down the first screen for clients.
 
+## As built (Phase 20)
+
+- `/` is the admin's dashboard; clients are still sent to their group. A greeting by the Bratislava time of day ("Good morning, Vlad"), then the three cards: Assigned to me (the first 20, "Show all" opens the global board filtered to me and every client), Upcoming reminders (the next 10, the count of the next 7 days) and Mentions (the newest 20 unread, the count capped at 99+). Each row opens its item: the task panel, the knowledge item, or the chat at the message (in its thread for a reply, in the task's Chat tab for a task chat). Opening a mention and reading it there removes it from the card.
+- The card and the sidebar counts follow changes live: a message or a task change in any group, or reading a chat (also on another device), refetches them within about 2 seconds while the page is visible, and again when the window gets the focus.
+- Upcoming reminders lists the knowledge base reminders the admin receives (author, added or subscribed); task reminders join when Phase 19 is merged, through the same source, with no change to the dashboard.
+- Each card fails on its own: "Could not load this. Try again." with a retry.
+- From 1024 px the client sidebar is on the left of every signed-in page for admins and can be collapsed to a rail of logos (remembered on the device). Under 1024 px the home shows three count tiles that open their lists, then the client list.
+
 ## Phase
 
 Phase 20 ([spec](../superpowers/specs/2026-10-16-phase-20-admin-home-design.md)). Needs Phase 18; the reminders card needs Phases 17 and 19.
