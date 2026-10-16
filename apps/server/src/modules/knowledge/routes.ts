@@ -8,6 +8,7 @@ import {
   KnowledgeFolderDraftSchema,
   KnowledgeFolderPatchSchema,
   KnowledgePatchSchema,
+  KnowledgeChatsFilterSchema,
   KnowledgeTypeListSchema,
   type KnowledgeFolderList,
   type KnowledgeScope,
@@ -59,9 +60,17 @@ const send = (reply: FastifyReply, code: number, error: string) => reply.code(co
 const notFound = (reply: FastifyReply) => send(reply, 404, ErrorCodes.notFound);
 const invalid = (reply: FastifyReply) => send(reply, 400, ErrorCodes.validationFailed);
 
-/** `type`: one type, a comma list or repeated params (see `KnowledgeTypeListSchema`). */
+/**
+ * `type`: one type, a comma list or repeated params (see `KnowledgeTypeListSchema`). `chats`:
+ * `all` adds the files of the task and ticket chats; any other value is the group chat only.
+ */
 const filters = {
   type: KnowledgeTypeListSchema.optional(),
+  chats: z
+    .string()
+    .max(20)
+    .transform((value) => KnowledgeChatsFilterSchema.catch('group').parse(value))
+    .optional(),
   q: z.string().max(200).optional(),
   cursor: z.string().max(200).optional(),
 };

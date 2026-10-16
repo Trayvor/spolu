@@ -14,13 +14,20 @@ export function canReadItem(
   );
 }
 
-/** The author and admins edit a readable item. */
+/**
+ * The author and admins edit a readable item. A chat file (`chat_file`) is read-only: it goes
+ * with its message in the chat.
+ */
 export function canEditItem(
   actor: SessionUser,
-  item: { groupId: string; visibility: Visibility | string; createdBy: string },
+  item: { groupId: string; visibility: Visibility | string; createdBy: string; type?: string },
   actorGroupIds: readonly string[],
 ): boolean {
-  return canReadItem(actor, item, actorGroupIds) && (isAdmin(actor) || item.createdBy === actor.id);
+  return (
+    item.type !== 'chat_file' &&
+    canReadItem(actor, item, actorGroupIds) &&
+    (isAdmin(actor) || item.createdBy === actor.id)
+  );
 }
 
 export const canDeleteItem = canEditItem;

@@ -7,6 +7,10 @@ import {
   KnowledgeFolderPatchSchema,
   KnowledgePatchSchema,
   KnowledgeTypeListSchema,
+  KnowledgeTypes,
+  KnowledgeCreatableTypes,
+  KnowledgeChatSourceSchema,
+  KnowledgeChatsFilterSchema,
   ReminderInputSchema,
 } from './knowledge.js';
 import { isHttpUrl } from './urls.js';
@@ -274,5 +278,41 @@ describe('knowledge folders', () => {
       folderId: null,
       updatedAt: at,
     });
+  });
+});
+
+describe('chat files (the chat_file type)', () => {
+  it('is a list filter type, after the hand-made ones', () => {
+    expect(KnowledgeTypeListSchema.parse('chat_file,note')).toEqual(['note', 'chat_file']);
+    expect(KnowledgeTypes.at(-1)).toBe('chat_file');
+    expect(KnowledgeCreatableTypes).toEqual(['note', 'file', 'link', 'reminder']);
+  });
+
+  it('can never be created by hand', () => {
+    expect(
+      KnowledgeDraftSchema.safeParse({ type: 'chat_file', title: 'a.pdf', fileIds: ['f1'] })
+        .success,
+    ).toBe(false);
+  });
+
+  it('a summary carries its chat source', () => {
+    const chat = {
+      channelId: 'c1',
+      messageId: 'm1',
+      parentId: null,
+      kind: 'task' as const,
+      taskId: 't1',
+      taskTitle: 'Budget',
+      ticketId: null,
+      ticketNumber: null,
+    };
+    expect(KnowledgeChatSourceSchema.parse(chat)).toEqual(chat);
+    expect(KnowledgeChatSourceSchema.safeParse({ ...chat, kind: 'dm' }).success).toBe(false);
+  });
+
+  it('the chats filter is all or the group chat', () => {
+    expect(KnowledgeChatsFilterSchema.parse('all')).toBe('all');
+    expect(KnowledgeChatsFilterSchema.parse('group')).toBe('group');
+    expect(KnowledgeChatsFilterSchema.safeParse('task').success).toBe(false);
   });
 });

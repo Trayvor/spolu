@@ -6,6 +6,8 @@ import {
   KNOWLEDGE_LIMITS,
   plainExcerpt,
   type FileInfo,
+  type KnowledgeChatSource,
+  type KnowledgeChatsFilter,
   type KnowledgeDraft,
   type KnowledgeItemDto,
   type KnowledgePage,
@@ -108,6 +110,16 @@ export type PageRow = {
   next_at: string | null;
   upcoming: number;
   last_at: string | null;
+  /** A chat file's source (null for the other types). */
+  chat_message_id: string | null;
+  chat_file_id: string | null;
+  chat_channel_id: string | null;
+  chat_kind: KnowledgeChatSource['kind'] | null;
+  chat_parent_id: string | null;
+  chat_task_id: string | null;
+  chat_task_title: string | null;
+  chat_ticket_id: string | null;
+  chat_ticket_number: number | null;
   /** Only when the full body was asked for (the detail). */
   body?: string;
 };
@@ -117,7 +129,8 @@ const iso = (expr: SQL) =>
 
 /**
  * The single query of a page (and of the detail): items with author, group, file count and first
- * file, and the reminder aggregate. `limit` rows, newest first.
+ * file (a chat file's own file counts), the reminder aggregate and a chat file's source (its
+ * message's thread, its chat, task or ticket: joins by primary key). `limit` rows, newest first.
  */
 function pageQuery(where: SQL, limit: number, withBody = false): SQL {
   return sql`
@@ -127,15 +140,25 @@ function pageQuery(where: SQL, limit: number, withBody = false): SQL {
            ${withBody ? sql`k.body,` : sql``}
            u.name as author_name, u.role as author_role, g.name as group_name,
            ${iso(sql`g.updated_at`)} as group_updated, g.logo_key is not null as has_logo,
-           f.file_count, f.first_file, r.next_at, r.upcoming, r.last_at
+           f.file_count, f.first_file, r.next_at, r.upcoming, r.last_at,
+           k.chat_message_id, k.chat_file_id, k.chat_channel_id, k.chat_kind,
+           cm.parent_id as chat_parent_id, ch.task_id as chat_task_id,
+           ct.title as chat_task_title, ch.ticket_id as chat_ticket_id,
+           tk.number as chat_ticket_number
     from knowledge_items k
     join "user" u on u.id = k.created_by
     join groups g on g.id = k.group_id
+    left join messages cm on cm.id = k.chat_message_id
+    left join channels ch on ch.id = k.chat_channel_id
+    left join tasks ct on ct.id = ch.task_id
+    left join tickets tk on tk.id = ch.ticket_id
     left join lateral (
       select count(*)::int as file_count,
              (array_agg(to_jsonb(fl) order by fl.created_at, fl.id))[1] as first_file
-      from knowledge_attachments a join files fl on fl.id = a.file_id
-      where a.item_id = k.id) f on true
+      from (select a.file_id from knowledge_attachments a where a.item_id = k.id
+            union all
+            select k.chat_file_id where k.chat_file_id is not null) x
+      join files fl on fl.id = x.file_id) f on true
     left join lateral (
       select ${iso(sql`min(t.at) filter (where t.fired_at is null)`)} as next_at,
              (count(*) filter (where t.fired_at is null))::int as upcoming,
@@ -174,6 +197,23 @@ const pathsOf = (db: Db, rows: PageRow[]) =>
     rows.flatMap((row) => (row.folder_id === null ? [] : [row.folder_id])),
   );
 
+/** A chat file's source message; null for the other types. */
+function chatSource(row: PageRow): KnowledgeChatSource | null {
+  if (row.chat_message_id === null || row.chat_channel_id === null || row.chat_kind === null) {
+    return null;
+  }
+  return {
+    channelId: row.chat_channel_id,
+    messageId: row.chat_message_id,
+    parentId: row.chat_parent_id,
+    kind: row.chat_kind,
+    taskId: row.chat_task_id,
+    taskTitle: row.chat_task_title,
+    ticketId: row.chat_ticket_id,
+    ticketNumber: row.chat_ticket_number,
+  };
+}
+
 /** A list row; `names` resolves the mentions of the excerpt, `folderPath` is the row's path. */
 export function toSummary(
   row: PageRow,
@@ -188,7 +228,10 @@ export function toSummary(
     title: row.title,
     excerpt: plainExcerpt(row.body_head, (id) => names.get(id), KNOWLEDGE_LIMITS.excerpt),
     url: row.url,
-    file: row.type === 'file' && row.first_file ? jsonFileInfo(row.first_file) : null,
+    file:
+      (row.type === 'file' || row.type === 'chat_file') && row.first_file
+        ? jsonFileInfo(row.first_file)
+        : null,
     fileCount: row.file_count ?? 0,
     nextReminderAt: row.next_at,
     upcomingCount: row.upcoming ?? 0,
@@ -198,6 +241,7 @@ export function toSummary(
     updatedAt: row.updated_at,
     folderId: row.folder_id,
     folderPath,
+    chat: chatSource(row),
   };
 }
 
@@ -268,13 +312,16 @@ function cursorWhere(cursor: string): SQL {
 
 /**
  * `types`: any of these types; empty or absent means every type. `folder`: the items directly in
- * that folder, null the top level; absent means every folder (the flat list of a search).
+ * that folder, null the top level; absent means every folder (the flat list of a search). Chat
+ * files are in no folder: a folder view never lists them. `chats`: `all` lists the files of
+ * every chat, otherwise (the default) only the group chat's.
  */
 type ListFilters = {
   types?: KnowledgeType[];
   q?: string;
   cursor?: string;
   folder?: string | null;
+  chats?: KnowledgeChatsFilter;
 };
 
 function filterWhere(scope: SQL, opts: ListFilters): SQL {
@@ -292,8 +339,9 @@ function filterWhere(scope: SQL, opts: ListFilters): SQL {
   for (const term of searchTerms(opts.q ?? '')) {
     parts.push(sql`k.search_text ilike '%' || ${escapeLike(term)} || '%' escape '\\'`);
   }
-  if (opts.folder === null) parts.push(sql`k.folder_id is null`);
+  if (opts.folder === null) parts.push(sql`k.folder_id is null and k.type <> 'chat_file'`);
   else if (opts.folder !== undefined) parts.push(sql`k.folder_id = ${opts.folder}`);
+  if (opts.chats !== 'all') parts.push(sql`(k.type <> 'chat_file' or k.chat_kind = 'group')`);
   if (opts.cursor) parts.push(cursorWhere(opts.cursor));
   return sql.join(parts, sql` and `);
 }
@@ -388,7 +436,8 @@ export async function getItemRef(
   };
 }
 
-async function itemFiles(db: Db, id: string): Promise<FileRow[]> {
+async function itemFiles(db: Db, id: string, chatFileId: string | null): Promise<FileRow[]> {
+  if (chatFileId !== null) return db.select().from(files).where(eq(files.id, chatFileId));
   return db
     .select({ file: files })
     .from(knowledgeAttachments)
@@ -406,12 +455,17 @@ export async function getItem(db: Db, actor: SessionUser, id: string): Promise<K
   ]);
   const row = rows[0];
   if (!row) throw new KnowledgeNotFoundError();
-  const item = { groupId: row.group_id, visibility: row.visibility, createdBy: row.created_by };
+  const item = {
+    groupId: row.group_id,
+    visibility: row.visibility,
+    createdBy: row.created_by,
+    type: row.type,
+  };
   if (!canReadItem(actor, item, actorGroupIds)) throw new KnowledgeNotFoundError();
   const body = row.body ?? '';
   const [names, fileRows, reminder, pathOf] = await Promise.all([
     mentionNames(db, [{ groupId: row.group_id, body }]),
-    itemFiles(db, id),
+    itemFiles(db, id, row.chat_file_id),
     row.type === 'reminder' ? getReminderSet(db, { kind: SUBJECT, id }, actor) : null,
     pathsOf(db, [row]),
   ]);
@@ -562,7 +616,12 @@ async function lockForWrite(tx: Db, actor: SessionUser, id: string): Promise<Loc
   const row = rows[0];
   if (!row) throw new KnowledgeNotFoundError();
   const actorGroupIds = await actorGroupOf(tx, actor);
-  const item = { groupId: row.group_id, visibility: row.visibility, createdBy: row.created_by };
+  const item = {
+    groupId: row.group_id,
+    visibility: row.visibility,
+    createdBy: row.created_by,
+    type: row.type,
+  };
   if (!canReadItem(actor, item, actorGroupIds)) throw new KnowledgeNotFoundError();
   if (!canEditItem(actor, item, actorGroupIds)) throw new KnowledgeForbiddenError();
   return row;
@@ -698,4 +757,18 @@ export async function deleteItem(
   // A failure here leaves detached files, which the daily unattached cleanup removes.
   await deleteDetachedFiles({ db, storage }, fileIds).catch(() => undefined);
   return { groupId: row.group_id, visibility: row.visibility };
+}
+
+// ---------------------------------------------------------------------------------------------
+// Chat files
+// ---------------------------------------------------------------------------------------------
+
+/** The "From chat" items of one message, as list rows (for the live event after a send). */
+export async function chatFileSummaries(db: Db, messageId: string): Promise<KnowledgeSummary[]> {
+  const rows = [
+    ...(await db.execute<PageRow>(
+      pageQuery(sql`k.chat_message_id = ${messageId}`, KNOWLEDGE_LIMITS.pageSize),
+    )),
+  ];
+  return rows.map((row) => toSummary(row, new Map()));
 }

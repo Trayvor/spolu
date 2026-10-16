@@ -22,6 +22,7 @@ import { getGroup, listGroupPeople } from '../groups/service.js';
 import { getTaskRef } from '../tasks/task-service.js';
 import { withoutTaskLinks } from './dto.js';
 import { emitMessage, emitRead, emitThreadReply } from './events.js';
+import { prepareFilesRemoved, runFilesSent } from './file-hooks.js';
 import {
   EmptyMessageError,
   InvalidMentionError,
@@ -267,6 +268,11 @@ export const chatRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { d
       if (!sent.created) return reply.code(200).send(sent.message);
       const rooms = await extraRoomsOf(db, channel);
       emitMessage(app.io, channel, sent.message, true, rooms);
+      if (sent.message.attachments.length > 0) {
+        await runFilesSent(db, app.io, sent.message.id).catch((error: unknown) =>
+          request.log.error({ err: error }, 'chat: file listeners after send failed'),
+        );
+      }
       if (sent.parent) {
         emitMessage(app.io, channel, sent.parent, false, rooms);
         emitThreadReply(app.io, sent.threadPeople, {
@@ -326,12 +332,15 @@ export const chatRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { d
     // Deleting twice is a no-op: nothing changes, so nothing is pushed.
     if (!canDeleteMessage(actor, found.message)) return reply.code(204).send();
     try {
+      // The ids of other modules' rows for its files, read before they cascade away.
+      const pushRemoved = await prepareFilesRemoved(db, found.message.id);
       const message = await deleteMessage(deps, {
         ...found,
         onFileCleanupError: (error) =>
           request.log.error({ err: error }, 'chat: file cleanup after message delete failed'),
       });
       emitMessage(app.io, found.channel, message, false, await extraRoomsOf(db, found.channel));
+      pushRemoved(app.io);
       return reply.code(204).send();
     } catch (error) {
       // The chat went with its task (or group) while this delete waited for the channel lock.
