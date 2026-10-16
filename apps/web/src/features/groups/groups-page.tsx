@@ -5,6 +5,8 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { GroupUnreadCount } from '@/features/chat/unread';
+import { AllGroupsMode } from '@/features/notifications/all-groups-mode';
+import { GroupBell } from '@/features/notifications/mode-menu';
 import { groupsQuery } from './api';
 import { GroupForm } from './group-form';
 import { GroupLogo } from './group-logo';
@@ -44,18 +46,19 @@ export function GroupsPage() {
       {groups && groups.length === 0 && !formOpen && (
         <p className="text-body text-muted-foreground">{t('groups.empty')}</p>
       )}
+      {groups && groups.length > 0 && <AllGroupsMode groupIds={groups.map((g) => g.id)} />}
       {groups && groups.length > 0 && (
         <Card className="gap-0 py-2">
           <ul>
             {groups.map((group) => (
               <li
                 key={group.id}
-                className="[&:not(:last-child)]:border-b [&:not(:last-child)]:border-border"
+                className="flex items-center pr-3 [&:not(:last-child)]:border-b [&:not(:last-child)]:border-border"
               >
                 <Link
                   to="/groups/$groupId"
                   params={{ groupId: group.id }}
-                  className="flex items-center gap-3 px-5 py-3 hover:text-ink-hover"
+                  className="flex min-w-0 flex-1 items-center gap-3 py-3 pl-5 hover:text-ink-hover"
                 >
                   <GroupLogo
                     groupId={group.id}
@@ -69,6 +72,7 @@ export function GroupsPage() {
                     {t('groups.members', { count: group.memberCount })}
                   </span>
                 </Link>
+                <GroupBell groupId={group.id} className="ml-1" />
               </li>
             ))}
           </ul>

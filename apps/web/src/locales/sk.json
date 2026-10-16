@@ -327,5 +327,18 @@
   "files": {
     "download": "Stiahnuť {{name}}",
     "openImage": "Otvoriť {{name}}"
+  },
+  "notifications": {
+    "mode": {
+      "bellLabel": "Upozornenia: {{mode}}",
+      "all": "Všetky správy",
+      "allHint": "Každá nová správa v tejto skupine",
+      "mentions": "Zmienky a odpovede",
+      "mentionsHint": "Keď vás niekto spomenie, odpovie vo vašom vlákne alebo sa zmení vaša úloha",
+      "off": "Vypnuté",
+      "offHint": "Žiadne upozornenia z tejto skupiny",
+      "mixed": "Zmiešané",
+      "allGroups": "Všetky skupiny:"
+    }
   }
 }

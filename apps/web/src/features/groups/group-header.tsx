@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { Group } from '@spolu/shared';
 import { Button } from '@/components/ui/button';
+import { GroupBell } from '@/features/notifications/mode-menu';
 import { GroupForm } from './group-form';
 import { GroupLogo } from './group-logo';
 
@@ -22,7 +23,7 @@ export function GroupHeader({ group, admin }: { group: Group; admin: boolean }) 
     );
   }
   return (
-    <div className="flex items-center justify-between gap-3">
+    <div className="flex items-center gap-3">
       <div className="flex min-w-0 items-center gap-3">
         <GroupLogo
           groupId={group.id}
@@ -47,8 +48,15 @@ export function GroupHeader({ group, admin }: { group: Group; admin: boolean }) 
           )}
         </h1>
       </div>
+      {/* 38px button in a 32px line: the negative margin keeps the header height. */}
+      <GroupBell groupId={group.id} className="-my-[3px]" />
       {admin && (
-        <Button variant="secondary" size="sm" className="shrink-0" onClick={() => setEditing(true)}>
+        <Button
+          variant="secondary"
+          size="sm"
+          className="ml-auto shrink-0"
+          onClick={() => setEditing(true)}
+        >
           {t('group.edit')}
         </Button>
       )}
