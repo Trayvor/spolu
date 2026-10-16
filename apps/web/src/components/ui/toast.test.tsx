@@ -10,7 +10,11 @@ describe('Toast', () => {
     vi.useFakeTimers();
     const onClose = vi.fn();
     render(<Toast onClose={onClose}>3 tasks created</Toast>);
-    expect(screen.getByRole('status')).toHaveTextContent('3 tasks created');
+    // The live region is mounted empty and filled on the next tick, so it is announced.
+    const status = screen.getByRole('status');
+    expect(status).toBeEmptyDOMElement();
+    act(() => vi.advanceTimersByTime(0));
+    expect(status).toHaveTextContent('3 tasks created');
     act(() => vi.advanceTimersByTime(5999));
     expect(onClose).not.toHaveBeenCalled();
     act(() => vi.advanceTimersByTime(1));

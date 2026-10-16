@@ -173,7 +173,6 @@ export function ReviewCardView({
         ref={target}
         type="button"
         aria-label={t('taskSplit.open', { title })}
-        aria-expanded={false}
         onClick={onOpen}
         className="group flex w-full flex-col items-start gap-1.5 rounded-lg px-4 pt-3 text-left"
       >

@@ -1,6 +1,4 @@
 import { z } from 'zod';
-import { AI_MAX_TASKS } from './ai.js';
-import { ID_RE } from './chat.js';
 import { FileInfoSchema } from './files.js';
 
 export const BucketKindSchema = z.enum([
@@ -57,22 +55,6 @@ export type TaskDraft = z.output<typeof TaskDraftSchema>;
 
 export const TaskCreateSchema = TaskDraftSchema.extend({ bucketId: z.string().optional() });
 export type TaskCreate = z.output<typeof TaskCreateSchema>;
-
-/**
- * A reviewed card made from a chat message: `fileIds` are files uploaded in the review,
- * `messageFileIds` files of the source message (copied onto the card). At most 20 files in all.
- */
-export const TaskFromMessageDraftSchema = TaskDraftSchema.extend({
-  messageFileIds: z.array(z.string()).max(20).default([]),
-}).refine((d) => d.fileIds.length + d.messageFileIds.length <= 20, { path: ['fileIds'] });
-export type TaskFromMessageDraft = z.output<typeof TaskFromMessageDraftSchema>;
-
-/** `POST /api/groups/:id/tasks/from-message`: the approved cards, created in this order. */
-export const TasksFromMessageSchema = z.object({
-  messageId: z.string().regex(ID_RE),
-  tasks: z.array(TaskFromMessageDraftSchema).min(1).max(AI_MAX_TASKS),
-});
-export type TasksFromMessage = z.output<typeof TasksFromMessageSchema>;
 
 /** Every field optional without defaults: an omitted field stays unchanged. */
 export const TaskPatchSchema = z.object({
@@ -137,9 +119,6 @@ export const TaskDetailDtoSchema = TaskDtoSchema.extend({
   sourceMessage: SourceMessageSchema.nullable(),
 });
 export type TaskDetailDto = z.infer<typeof TaskDetailDtoSchema>;
-
-export const TasksFromMessageResultSchema = z.object({ tasks: z.array(TaskDetailDtoSchema) });
-export type TasksFromMessageResult = z.infer<typeof TasksFromMessageResultSchema>;
 
 export const BoardDtoSchema = z.object({
   buckets: z.array(BucketDtoSchema),

@@ -326,6 +326,8 @@
   "taskSplit": {
     "title": "Turn into tasks",
     "loading": "AI is reading the message…",
+    "proposed_one": "{{count}} card proposed",
+    "proposed_other": "{{count}} cards proposed",
     "intro": "Open a card to edit it. Approve the cards to create and reject the rest.",
     "failed": "The AI did not answer. Try again.",
     "retry": "Try again",

@@ -332,6 +332,10 @@
   "taskSplit": {
     "title": "Vytvoriť úlohy",
     "loading": "AI číta správu…",
+    "proposed_one": "Navrhnutá {{count}} karta",
+    "proposed_few": "Navrhnuté {{count}} karty",
+    "proposed_many": "Navrhnutých {{count}} kariet",
+    "proposed_other": "Navrhnutých {{count}} kariet",
     "intro": "Kartu upravíte po otvorení. Schváľte karty, ktoré chcete vytvoriť, a ostatné zamietnite.",
     "failed": "AI neodpovedala. Skúste to znova.",
     "retry": "Skúsiť znova",

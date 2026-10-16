@@ -22,7 +22,8 @@ import { TaskForm, validateTaskDraft, type TaskFormErrors } from '@/features/tas
 import { ApiError } from '@/lib/api';
 import { useMediaQuery } from '@/lib/use-media-query';
 import { cn } from '@/lib/utils';
-import { aiStatusQuery, createTasksFromMessage, proposeTasks } from './api';
+import { aiStatusQuery } from './api';
+import { createTasksFromMessage, proposeTasks } from './split-api';
 import { DecisionButtons, ReviewCardView } from './review-card';
 import {
   canSubmit,
@@ -44,6 +45,13 @@ const PHONE_TARGETS =
   'max-[640px]:[&_:is(button,a,select,input):not([data-hit])]:min-h-11 max-[640px]:[&_:is(button,a,select):not([data-hit])]:min-w-11 max-[640px]:[&_[role=toolbar]]:flex-wrap max-[640px]:[&_[role=toolbar]]:gap-0 max-[640px]:[&_[role=toolbar]]:px-0';
 
 type Problem = 'failed' | 'noTasks' | 'unavailable' | 'gone';
+
+const PROBLEM_KEYS: Record<Problem, string> = {
+  failed: 'taskSplit.failed',
+  noTasks: 'taskSplit.noTasks',
+  unavailable: 'taskSplit.unavailable',
+  gone: 'taskSplit.messageGone',
+};
 
 function proposalProblem(error: unknown): Problem {
   if (error instanceof ApiError) {
@@ -110,7 +118,12 @@ export function ReviewDialog({
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
   const sending = useRef(false);
-  const [createError, setCreateError] = useState<string | null>(null);
+  const [createError, setCreateError] = useState<{ text: string; n: number } | null>(null);
+  const titleRef = useRef<HTMLHeadingElement>(null);
+  const createRef = useRef<HTMLButtonElement>(null);
+  // Set by "Try again": once the new cards arrive, the focus goes to the first one.
+  const [refocus, setRefocus] = useState(false);
+  const [focusCreate, setFocusCreate] = useState(0);
 
   // The proposals become cards once, when they arrive.
   if (proposals.data && proposals.data !== seeded) {
@@ -118,6 +131,10 @@ export function ReviewDialog({
     const next = cardsFromProposals(proposals.data.tasks, message.attachments);
     setCards(next);
     setInitial(next);
+    if (refocus) {
+      setRefocus(false);
+      if (next[0]) setFocus((f) => ({ key: next[0]!.key, n: f.n + 1 }));
+    }
   }
 
   const loading = cards === null && (proposals.isPending || proposals.isFetching);
@@ -133,6 +150,31 @@ export function ReviewDialog({
   const anyPending = cards?.some((c) => c.decision === 'pending') ?? false;
   const openCard = cards?.find((c) => c.key === openKey);
   const layer = !desktop && openCard !== undefined;
+  const openTitle = openCard ? openCard.draft.title.trim() || t('taskSplit.untitled') : '';
+
+  // One live region, mounted empty: its text is set after mount (cleared, then filled a tick
+  // later), so every state is announced, a repeated create error too.
+  const liveText = createError
+    ? createError.text
+    : loading
+      ? t('taskSplit.loading')
+      : problem
+        ? t(PROBLEM_KEYS[problem])
+        : seeded && cards
+          ? t('taskSplit.proposed', { count: seeded.tasks.length })
+          : '';
+  const liveKey = `${liveText}#${createError?.n ?? 0}`;
+  const [live, setLive] = useState('');
+  useEffect(() => {
+    setLive('');
+    const fill = setTimeout(() => setLive(liveText), 0);
+    return () => clearTimeout(fill);
+    // liveKey also changes when the same create error comes back.
+  }, [liveKey, liveText]);
+
+  useEffect(() => {
+    if (focusCreate) createRef.current?.focus();
+  }, [focusCreate]);
 
   const nameOf = (id: string) =>
     people?.find((p) => p.id === id)?.name ??
@@ -152,7 +194,7 @@ export function ReviewDialog({
 
   /** Valid cards are approved; the first invalid one opens with its errors. */
   const approve = (keys: string[]) => {
-    if (!cards) return;
+    if (!cards) return false;
     const found: Record<string, TaskFormErrors> = {};
     const ok = new Set<string>();
     for (const key of keys) {
@@ -172,6 +214,22 @@ export function ReviewDialog({
     });
     const firstBad = keys.find((key) => found[key]);
     if (firstBad) setOpenKey(firstBad);
+    return firstBad === undefined;
+  };
+
+  /** "Approve all" disappears once nothing is pending: the focus moves on to Create. */
+  const approveAll = () => {
+    if (!cards) return;
+    const pending = cards.filter((c) => c.decision === 'pending').map((c) => c.key);
+    // An invalid card opens with its title focused instead.
+    if (approve(pending)) setFocusCreate((n) => n + 1);
+  };
+
+  /** "Try again" disappears while loading: the title holds the focus until the cards come. */
+  const retry = () => {
+    titleRef.current?.focus();
+    setRefocus(true);
+    void proposals.refetch();
   };
 
   const toggleApprove = (card: ReviewCard) => {
@@ -219,7 +277,6 @@ export function ReviewDialog({
     }
     sending.current = true;
     setBusy(true);
-    setCreateError(null);
     try {
       const tasks = await createTasksFromMessage(
         groupId,
@@ -227,7 +284,7 @@ export function ReviewDialog({
       );
       onCreated(tasks);
     } catch (error) {
-      setCreateError(t(createProblemKey(error)));
+      setCreateError((e) => ({ text: t(createProblemKey(error)), n: (e?.n ?? 0) + 1 }));
     } finally {
       sending.current = false;
       setBusy(false);
@@ -266,6 +323,11 @@ export function ReviewDialog({
         <Dialog.Content
           aria-describedby={undefined}
           onEscapeKeyDown={onEscape}
+          // The dialog opens loading, with nothing to act on yet: the focus starts on its title.
+          onOpenAutoFocus={(event) => {
+            event.preventDefault();
+            titleRef.current?.focus();
+          }}
           onPointerDownOutside={(event) => event.preventDefault()}
           onInteractOutside={(event) => event.preventDefault()}
           // React events bubble through portals: keys typed here must not reach the page's
@@ -277,8 +339,15 @@ export function ReviewDialog({
             PHONE_TARGETS,
           )}
         >
+          <p role="status" data-testid="review-live" className="sr-only">
+            {live}
+          </p>
           <header className="flex items-center gap-3 px-4 pt-4 pb-3 min-[641px]:px-6 min-[641px]:pt-6">
-            <Dialog.Title className="text-medium font-semibold">
+            <Dialog.Title
+              ref={titleRef}
+              tabIndex={-1}
+              className="text-medium font-semibold outline-none"
+            >
               {t('taskSplit.title')}
             </Dialog.Title>
           </header>
@@ -294,9 +363,7 @@ export function ReviewDialog({
 
             {loading && (
               <div className="mt-4">
-                <p role="status" className="text-button text-muted-foreground">
-                  {t('taskSplit.loading')}
-                </p>
+                <p className="text-button text-muted-foreground">{t('taskSplit.loading')}</p>
                 <div
                   aria-hidden="true"
                   className="mt-3 flex flex-col gap-2 motion-safe:animate-pulse"
@@ -317,23 +384,10 @@ export function ReviewDialog({
             )}
 
             {problem && (
-              <div
-                role="alert"
-                className="mt-4 flex flex-col items-start gap-3 rounded-lg bg-card p-4"
-              >
-                <p className="text-body">
-                  {t(
-                    problem === 'failed'
-                      ? 'taskSplit.failed'
-                      : problem === 'noTasks'
-                        ? 'taskSplit.noTasks'
-                        : problem === 'gone'
-                          ? 'taskSplit.messageGone'
-                          : 'taskSplit.unavailable',
-                  )}
-                </p>
+              <div className="mt-4 flex flex-col items-start gap-3 rounded-lg bg-card p-4">
+                <p className="text-body">{t(PROBLEM_KEYS[problem])}</p>
                 {problem === 'failed' && (
-                  <Button variant="outline" size="lg" onClick={() => void proposals.refetch()}>
+                  <Button variant="outline" size="lg" onClick={retry}>
                     {t('taskSplit.retry')}
                   </Button>
                 )}
@@ -371,7 +425,7 @@ export function ReviewDialog({
 
           {layer && openCard && (
             <section
-              aria-label={t('taskSplit.editCard')}
+              aria-label={openTitle}
               className="absolute inset-0 z-10 flex flex-col bg-popover"
             >
               <div className="flex items-center gap-3 border-b-2 border-border px-4 py-2">
@@ -414,21 +468,10 @@ export function ReviewDialog({
               </div>
             ) : (
               <>
-                {createError && (
-                  <p role="alert" className="text-button text-error-ink">
-                    {createError}
-                  </p>
-                )}
+                {createError && <p className="text-button text-error-ink">{createError.text}</p>}
                 <div className="flex flex-wrap items-center gap-2">
                   {cards && anyPending && (
-                    <Button
-                      variant="secondary"
-                      size="lg"
-                      className="px-5"
-                      onClick={() =>
-                        approve(cards.filter((c) => c.decision === 'pending').map((c) => c.key))
-                      }
-                    >
+                    <Button variant="secondary" size="lg" className="px-5" onClick={approveAll}>
                       {t('taskSplit.approveAll')}
                     </Button>
                   )}
@@ -438,9 +481,12 @@ export function ReviewDialog({
                     </Button>
                     {cards && (
                       <Button
+                        ref={createRef}
                         size="lg"
-                        className="px-5"
-                        disabled={busy || !canSubmit(cards)}
+                        // Not `disabled`: a disabled button drops the focus when the request
+                        // starts. `submit` ignores clicks until it may send.
+                        aria-disabled={busy || !canSubmit(cards)}
+                        className="px-5 aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
                         // The second click of a double click never sends again, even when the
                         // first request has already failed and re-enabled the button.
                         onClick={(event) => {

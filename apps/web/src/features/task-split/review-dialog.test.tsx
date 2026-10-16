@@ -5,11 +5,10 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { FileInfo, GroupPerson, MessageDto, TaskDetailDto, TaskProposal } from '@spolu/shared';
 import { ApiError } from '@/lib/api';
 import { i18n, setLanguage } from '@/i18n';
-import { createTasksFromMessage, proposeTasks } from './api';
+import { createTasksFromMessage, proposeTasks } from './split-api';
 import { ReviewDialog } from './review-dialog';
 
-vi.mock('./api', async (importActual) => ({
-  ...(await importActual<typeof import('./api')>()),
+vi.mock('./split-api', () => ({
   proposeTasks: vi.fn(),
   createTasksFromMessage: vi.fn(),
 }));
@@ -100,6 +99,12 @@ const articles = () => screen.queryAllByRole('article');
 const article = (name: string) => screen.getByRole('article', { name });
 const createButton = () => screen.getByRole('button', { name: /^Create \d+ tasks?$/ });
 
+/** Shown in the dialog and announced through the one live region. */
+async function expectAnnounced(text: string) {
+  await vi.waitFor(() => expect(screen.getByTestId('review-live')).toHaveTextContent(text));
+  expect(screen.getAllByText(text)).toHaveLength(2);
+}
+
 async function shown() {
   await screen.findByRole('article', { name: 'Send the report' });
 }
@@ -127,13 +132,23 @@ describe('ReviewDialog', () => {
     const dialog = screen.getByRole('dialog', { name: t('taskSplit.title') });
     expect(within(dialog).getByText(MESSAGE.body)).toBeInTheDocument();
     expect(within(dialog).getByText('Boris Kováč')).toBeInTheDocument();
-    expect(screen.getByRole('status')).toHaveTextContent(t('taskSplit.loading'));
+    // One live region, mounted empty and filled after mount, so the change is announced.
+    const live = screen.getByTestId('review-live');
+    expect(live).toHaveAttribute('role', 'status');
+    await vi.waitFor(() => expect(live).toHaveTextContent(t('taskSplit.loading')));
+    // While loading, the focus is on the dialog's title.
+    expect(screen.getByRole('heading', { name: t('taskSplit.title') })).toHaveFocus();
     expect(screen.getAllByTestId('card-outline')).toHaveLength(3);
     expect(propose).toHaveBeenCalledWith('m1');
 
     resolve({ tasks: PROPOSALS });
     await shown();
     expect(articles()).toHaveLength(2);
+    await vi.waitFor(() =>
+      expect(screen.getByTestId('review-live')).toHaveTextContent(
+        t('taskSplit.proposed', { count: 2 }),
+      ),
+    );
     expect(screen.queryByTestId('card-outline')).not.toBeInTheDocument();
     // Compact: no form field until a card is opened.
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
@@ -148,7 +163,7 @@ describe('ReviewDialog', () => {
         name: t('files.download', { name: 'invoice.pdf' }),
       }),
     ).toBeInTheDocument();
-    expect(createButton()).toBeDisabled();
+    expect(createButton()).toHaveAttribute('aria-disabled', 'true');
   });
 
   it('desktop: opening a card expands it in place; opening another collapses the first and keeps its edits', async () => {
@@ -203,12 +218,12 @@ describe('ReviewDialog', () => {
     await user.click(
       screen.getByRole('button', { name: t('taskSplit.open', { title: 'Send the report' }) }),
     );
-    const layer = screen.getByRole('region', { name: t('taskSplit.editCard') });
+    const layer = screen.getByRole('region', { name: 'Send the report' });
     expect(articles()).toHaveLength(0);
     await user.type(within(layer).getByRole('textbox', { name: t('tasks.form.title') }), '!');
     await user.click(within(layer).getByRole('button', { name: t('taskSplit.done') }));
 
-    expect(screen.queryByRole('region', { name: t('taskSplit.editCard') })).not.toBeInTheDocument();
+    expect(screen.queryByRole('region')).not.toBeInTheDocument();
     expect(articles()).toHaveLength(2);
     expect(article('Send the report!')).toBeInTheDocument();
   });
@@ -224,7 +239,7 @@ describe('ReviewDialog', () => {
     expect(approve).toHaveAttribute('aria-pressed', 'false');
     await user.click(approve);
     expect(approve).toHaveAttribute('aria-pressed', 'true');
-    expect(createButton()).toBeDisabled();
+    expect(createButton()).toHaveAttribute('aria-disabled', 'true');
     expect(createButton()).toHaveAccessibleName('Create 1 task');
 
     await user.click(
@@ -234,14 +249,17 @@ describe('ReviewDialog', () => {
     const rejected = article('Pay the invoice');
     expect(within(rejected).getByText('Pay the invoice')).toHaveClass('line-through');
     expect(within(rejected).queryByRole('button', { name: t('taskSplit.approve') })).toBeNull();
-    expect(createButton()).toBeEnabled();
+    expect(createButton()).not.toHaveAttribute('aria-disabled', 'true');
 
     await user.click(within(rejected).getByRole('button', { name: t('taskSplit.undo') }));
-    expect(createButton()).toBeDisabled();
+    expect(createButton()).toHaveAttribute('aria-disabled', 'true');
 
-    await decideBoth(user);
-    expect(createButton()).toBeEnabled();
+    await user.click(screen.getByRole('button', { name: t('taskSplit.approveAll') }));
+    expect(createButton()).not.toHaveAttribute('aria-disabled', 'true');
     expect(createButton()).toHaveAccessibleName('Create 2 tasks');
+    // "Approve all" is gone: the focus moved to Create.
+    expect(screen.queryByRole('button', { name: t('taskSplit.approveAll') })).toBeNull();
+    expect(createButton()).toHaveFocus();
   });
 
   it('approving a card with errors opens it with them instead', async () => {
@@ -252,7 +270,7 @@ describe('ReviewDialog', () => {
     await decideBoth(user);
     expect(await screen.findByText(t('tasks.form.errors.titleRequired'))).toBeInTheDocument();
     expect(screen.getByRole('textbox', { name: t('tasks.form.title') })).toHaveValue('');
-    expect(createButton()).toBeDisabled();
+    expect(createButton()).toHaveAttribute('aria-disabled', 'true');
   });
 
   it('sends one request on a double click, and keeps the cards when it fails', async () => {
@@ -264,8 +282,10 @@ describe('ReviewDialog', () => {
 
     await user.dblClick(screen.getByRole('button', { name: /Create 2 tasks/ }));
     expect(create).toHaveBeenCalledTimes(1);
-    expect(await screen.findByText(t('taskSplit.filesChanged'))).toBeInTheDocument();
+    await expectAnnounced(t('taskSplit.filesChanged'));
     expect(screen.getAllByRole('article')).toHaveLength(2);
+    // Create was never disabled, so the focus stayed on it.
+    expect(createButton()).toHaveFocus();
     expect(onCreated).not.toHaveBeenCalled();
     expect(create.mock.calls[0]).toEqual([
       'g1',
@@ -293,7 +313,7 @@ describe('ReviewDialog', () => {
     await decideBoth(user);
 
     await user.click(createButton());
-    expect(await screen.findByText(t('taskSplit.messageGone'))).toBeInTheDocument();
+    await expectAnnounced(t('taskSplit.messageGone'));
     await user.click(createButton());
     await vi.waitFor(() => expect(onCreated).toHaveBeenCalledWith(tasks));
   });
@@ -334,11 +354,14 @@ describe('ReviewDialog', () => {
     propose.mockRejectedValue(new ApiError('none', 422, { error: 'ai_no_tasks' }));
     const { user } = renderDialog();
 
-    expect(await screen.findByText(t('taskSplit.noTasks'))).toBeInTheDocument();
+    await expectAnnounced(t('taskSplit.noTasks'));
     await user.click(screen.getByRole('button', { name: t('taskSplit.byHand') }));
 
     expect(articles()).toHaveLength(1);
-    expect(screen.getByRole('textbox', { name: t('tasks.form.title') })).toHaveValue('');
+    const title = screen.getByRole('textbox', { name: t('tasks.form.title') });
+    expect(title).toHaveValue('');
+    // The By hand button is gone: the focus is in the new card.
+    expect(title).toHaveFocus();
     // The description is the message text (shown rendered until edited).
     expect(within(articles()[0]!).getByText(MESSAGE.body)).toBeInTheDocument();
   });
@@ -348,16 +371,20 @@ describe('ReviewDialog', () => {
     propose.mockResolvedValueOnce({ tasks: PROPOSALS });
     const { user } = renderDialog();
 
-    expect(await screen.findByText(t('taskSplit.failed'))).toBeInTheDocument();
+    await expectAnnounced(t('taskSplit.failed'));
     await user.click(screen.getByRole('button', { name: t('taskSplit.retry') }));
     await shown();
     expect(propose).toHaveBeenCalledTimes(2);
+    // The Try again button is gone: the focus moved to the first card.
+    expect(
+      screen.getByRole('button', { name: t('taskSplit.open', { title: 'Send the report' }) }),
+    ).toHaveFocus();
   });
 
   it('ai_unavailable: says so, without a retry, and hides the action', async () => {
     propose.mockRejectedValue(new ApiError('off', 503, { error: 'ai_unavailable' }));
     const { queryClient } = renderDialog();
-    expect(await screen.findByText(t('taskSplit.unavailable'))).toBeInTheDocument();
+    await expectAnnounced(t('taskSplit.unavailable'));
     expect(screen.queryByRole('button', { name: t('taskSplit.retry') })).not.toBeInTheDocument();
     expect(queryClient.getQueryData(['ai', 'status'])).toEqual({ taskSplit: false });
   });

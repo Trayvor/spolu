@@ -4,11 +4,10 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 import type { MessageDto } from '@spolu/shared';
 import { i18n, setLanguage } from '@/i18n';
-import { proposeTasks } from './api';
+import { proposeTasks } from './split-api';
 import { useMessageTaskTools } from './use-message-task-tools';
 
-vi.mock('./api', async (importActual) => ({
-  ...(await importActual<typeof import('./api')>()),
+vi.mock('./split-api', () => ({
   proposeTasks: vi.fn(),
   createTasksFromMessage: vi.fn(),
 }));
