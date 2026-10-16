@@ -74,6 +74,8 @@ Phase 21 ticket screens (part 21.4, measured 2026-10-16, gzip -9 of the scripts 
 
 Phase 21 ticket to tasks (part 21.5, measured 2026-10-16, gzip -9 of the scripts `dist/index.html` loads): initial JS 197.7 kB gzip, unchanged against `main` (197.8 kB). Nothing went into the entry chunk: the ticket page's Tasks section is in the lazy `ticket-page` chunk (5.2 kB gzip, was 3.9 kB), the review dialog stays its own lazy chunk and loads only on "Turn into tasks".
 
+Phase 23 unsubscribe (part 23.4, measured 2026-10-16, gzip -9 of the scripts `dist/index.html` loads): initial JS 198.8 kB gzip, unchanged against `main` (198.8 kB). The entry chunk gains only the `/unsubscribe/$token` route definition; the page is its own lazy `unsubscribe-page` chunk with its `unsubscribe` locale namespace (not the large `bulkEmail` one of the editor), and the Settings checkbox lives in the lazy settings chunk.
+
 Lazy chunks for individual screens have no hard budget. Keep them reasonable and watch for anything above about 100 kB gzip.
 
 ## How to check

@@ -296,7 +296,7 @@ Requirements: [tickets](product/tickets.md), [roles-and-access](product/roles-an
 
 Scope: clients in several groups and a membership role (`client`, `ziadatel`); tickets from the eGrant API (Bearer key), from clients and from admins, assigned to a client by the instance link or by hand; statuses New / In progress / Resolved; a chat per ticket; following and notifications through the `tickets` notification group of item C; turning a ticket into tasks with AI; requesters who are not clients yet get a `ziadatel` membership that sees only their own tickets.
 
-Part 23.3 (renderer, public images, preview, email logo PNG) is built. Built in 7 parts, one pull request each (21.1 memberships first; 21.3, 21.4 and 21.6 in parallel after 21.2; 21.6 also waits for item C). The plan holds a ready prompt per part.
+Built in 7 parts, one pull request each (21.1 memberships first; 21.3, 21.4 and 21.6 in parallel after 21.2; 21.6 also waits for item C). The plan holds a ready prompt per part.
 
 Done when: eGrant sends a ticket, a new requester gets the email, logs in with a code and sees only that ticket and its chat; an admin replies and the requester is notified; the ticket becomes tasks that link back to it; a client works in two groups.
 
@@ -322,5 +322,7 @@ Requirements: [product/bulk-email.md](product/bulk-email.md) and the [design](su
 Scope: admins write an email from blocks (heading, text, image, button, divider, eGrant logo) with a computer and phone preview, send a test to themselves, pick recipients among Spolu's people (client groups, managers' groups, roles client / ziadatel / admin, individual people), and send through a pg-boss queue in batches via Elastic Email (`POST /v4/emails`, one call per person). Every email has an unsubscribe link to Spolu and `List-Unsubscribe`; people who unsubscribed are left out until they tick "Receive mailings" again. A report shows recipients, sent, failed, skipped and unsubscribed per campaign and per person. First version: the existing egrant.sk sender, no webhooks, no open or click tracking (these come later, see the spec's "Later").
 
 Built in 7 parts, one pull request each (23.1 first; 23.2, 23.3 and 23.4 in parallel; then 23.5 and 23.6 in parallel; 23.7 last). The owner answered the five open decisions on 2026-10-16 (spec, P1–P5): people who never signed in are included, Spolu is the source of truth for unsubscribing, and a "Receive mailings" checkbox in Settings lets people subscribe again.
+
+Status: parts 23.1 (foundation), 23.2 (campaigns and audience API), 23.3 (renderer, public images, preview, email logo PNG) and 23.4 (unsubscribe page and API, one-click, subscribe again, the "Receive mailings" checkbox, Elastic suppression lift and daily sync) are built.
 
 Done when: an admin sends a campaign to a client group, each client gets it with their name, one client unsubscribes through the link and the next campaign skips them, and the report shows the counts.

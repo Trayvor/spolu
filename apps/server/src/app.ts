@@ -155,7 +155,8 @@ function isUnder(path: string, prefix: string): boolean {
 
 /**
  * The single not-found handler. Unknown /api/*, /socket.io/*, non-GET requests and anything
- * that looks like a file (a dot in the last segment, except /unsubscribe/<token>) answer JSON 404. Other GET/HEAD requests get the SPA index.html,
+ * that looks like a file (a dot in the last segment, except /unsubscribe/<token>) answer JSON
+ * 404. Other GET/HEAD requests get the SPA index.html,
  * but only when static serving is registered.
  */
 function registerNotFound(app: FastifyInstance): void {
