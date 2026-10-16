@@ -179,7 +179,10 @@ export async function getNotificationProfiles(
  * SQL for one group's channel of the `"user"` row aliased `alias`, defaults filled in: a stored
  * value that is not a channel counts as unset, as in `resolveChannels`.
  */
-export function channelSql(alias: string, category: NotificationCategory): SQL<NotificationChannel> {
+export function channelSql(
+  alias: string,
+  category: NotificationCategory,
+): SQL<NotificationChannel> {
   const stored = sql`${sql.identifier(alias)}.notification_channels ->> ${category}::text`;
   const known = sql.join(
     NotificationChannels.map((c) => sql`${c}::text`),

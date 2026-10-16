@@ -116,7 +116,8 @@ describe('recordNotifications pending state', () => {
     for (const [category, channel] of Object.entries(channels)) {
       await setNotificationChannel(db, a.id, category as NotificationCategory, channel);
     }
-    if (opts.disabled) await db.update(user).set({ disabledAt: new Date() }).where(eq(user.id, a.id));
+    if (opts.disabled)
+      await db.update(user).set({ disabledAt: new Date() }).where(eq(user.id, a.id));
     const recorded = await recordNotifications(db, {
       kind: kind as NotificationKind,
       groupId: group.id,
@@ -142,9 +143,9 @@ describe('recordNotifications pending state', () => {
     // A task chat message belongs to the task board.
     expect(await pending('chat.message', { taskId: 't1' }, { chat: 'none' })).toBe(true);
     expect(await pending('chat.message', { taskId: 't1' }, { tasks: 'none' })).toBe(false);
-    expect(
-      await pending('reminder.due', { subjectKind: 'knowledge' }, { knowledge: 'none' }),
-    ).toBe(false);
+    expect(await pending('reminder.due', { subjectKind: 'knowledge' }, { knowledge: 'none' })).toBe(
+      false,
+    );
   });
 
   it('a disabled user and an unknown kind are delivered at once', async () => {

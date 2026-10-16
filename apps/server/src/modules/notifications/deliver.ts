@@ -1,5 +1,5 @@
 import { and, asc, inArray, isNull, sql } from 'drizzle-orm';
-import type { NotificationKind, PushPayload } from '@spolu/shared';
+import { wantsEmail, wantsPush, type NotificationKind, type PushPayload } from '@spolu/shared';
 import type { Config } from '../../infra/config/config.js';
 import type { Db } from '../../infra/db/client.js';
 import type { JobOptions, JobQueue } from '../../infra/jobs/jobs.js';
@@ -9,6 +9,7 @@ import { groups } from '../groups/schema.js';
 import { listGroupPeople } from '../groups/service.js';
 import { getTaskTitles } from '../tasks/task-service.js';
 import { getNotificationProfiles } from '../users/service.js';
+import { notificationGroupOf } from './categories.js';
 import { decideEvent, isOutranked, KIND_RANK } from './decide.js';
 import { getEffectiveModes } from './modes.js';
 import { buildPushPayload } from './push-content.js';
@@ -135,8 +136,8 @@ async function deliverBatch(
 
 /**
  * Loads the batch's context in bulk and decides every event. Events whose user could get neither
- * a push nor an email (no profile, disabled, push off or no device, email off) are decided
- * without loading the rest, which is most events of most batches.
+ * a push nor an email by the event group's channel (no profile, disabled, none, push without a
+ * device) are decided without loading the rest, which is most events of most batches.
  */
 async function decideBatch(
   tx: Db,
@@ -146,19 +147,19 @@ async function decideBatch(
   const userIds = unique(batch.map((r) => r.userId));
   const profiles = await getNotificationProfiles(tx, userIds);
   const subscriptions = await listSubscriptions(tx, userIds);
-  const reachable = (userId: string) => {
-    const profile = profiles.get(userId);
-    if (!profile || profile.disabled) return false;
-    const canPush = profile.pushEnabled && deps.push !== null && subscriptions.has(userId);
-    return canPush || profile.emailEnabled;
-  };
+  const groupOf = new Map(batch.map((r) => [r.id, notificationGroupOf(r.kind, payloadOf(r))]));
   const rows = batch.filter((r) => {
-    if (r.groupId === null || !(r.kind in KIND_RANK)) {
+    const group = groupOf.get(r.id) ?? null;
+    if (r.groupId === null || group === null || !(r.kind in KIND_RANK)) {
       // Every kind recorded today has a group; this is a bug upstream, not a user setting.
       console.warn(`notifications: event ${r.id} (${r.kind}) has no group or an unknown kind`);
       return false;
     }
-    return reachable(r.userId);
+    const profile = profiles.get(r.userId);
+    if (!profile || profile.disabled) return false;
+    const channel = profile.channels[group];
+    const canPush = wantsPush(channel) && deps.push !== null && subscriptions.has(r.userId);
+    return canPush || wantsEmail(channel);
   });
   if (rows.length === 0) return { pushes: [], emailIds: [] };
 
@@ -209,8 +210,9 @@ async function decideBatch(
       // Task events have no message to read; chat events need theirs still unread.
       unread: messageId === null || message !== undefined,
       outranked: messageId !== null && isOutranked({ id: row.id, kind }, siblings.get(key) ?? []),
-      pushEnabled: profile.pushEnabled && deps.push !== null,
-      emailEnabled: profile.emailEnabled,
+      group: groupOf.get(row.id)!,
+      channel: profile.channels[groupOf.get(row.id)!],
+      pushAvailable: deps.push !== null,
       hasSubscriptions: subs.length > 0,
     });
     if (decision.email) emailIds.push(row.id);

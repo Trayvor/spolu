@@ -9,9 +9,9 @@ import { sendMessage } from '../chat/messages.js';
 import { ensureGroupChannel, markRead, type ChannelRow } from '../chat/service.js';
 import { addMember, createGroup } from '../groups/service.js';
 import { user } from '../users/schema.js';
-import { addAdmin, deactivateUser, updateNotificationPrefs } from '../users/service.js';
+import { addAdmin, deactivateUser, setNotificationChannel } from '../users/service.js';
 import { deliverPending } from './deliver.js';
-import { digestEmail, sendDueDigests } from './digest.js';
+import { digestEmail, sendDueDigests, splitByUrl } from './digest.js';
 import { notificationEvents } from './schema.js';
 
 let deps: AppDeps;
@@ -29,7 +29,7 @@ afterAll(async () => {
 
 const later = () => new Date(Date.now() + deps.config.emailBatchDelayMs + 1000);
 
-/** A group with an admin author ("Jana") and a client with email on and push off. */
+/** A group with an admin author ("Jana") and a client with every group on email only. */
 async function setup(language: 'sk' | 'en' = 'sk') {
   const group = await createGroup(deps.db, {
     name: `Firma ${randomUUID().slice(0, 8)}`,
@@ -50,7 +50,9 @@ async function setup(language: 'sk' | 'en' = 'sk') {
     .insert(user)
     .values({ id, email, name: 'Anna', role: 'client', emailVerified: true, language });
   await addMember(deps.db, group.id, id);
-  await updateNotificationPrefs(deps.db, id, { emailEnabled: true, pushEnabled: false });
+  for (const group of ['chat', 'tasks', 'tickets', 'knowledge'] as const) {
+    await setNotificationChannel(deps.db, id, group, 'email');
+  }
   return { group, channel, admin, client: { id, email } };
 }
 
@@ -64,7 +66,12 @@ const send = async (channel: ChannelRow, author: SessionUser, body: string) =>
   ).message;
 
 describe('digestEmail', () => {
-  const base = { to: 'a@example.com', groupName: 'Firma', groupUrl: 'https://x/groups/g/chat' };
+  const base = {
+    to: 'a@example.com',
+    groupName: 'Firma',
+    url: 'https://x/groups/g/chat',
+    button: 'Open Firma',
+  };
   it('uses the plural forms of the language', () => {
     const subject = (lang: 'en' | 'sk', count: number) =>
       digestEmail({ ...base, lang, count, lines: [] }).subject;
@@ -82,9 +89,9 @@ describe('digestEmail', () => {
       lines: ['1', '2', '3', '4', '5', '6', '7'],
     });
     expect(m.text).toBe('3\n\n4\n\n5\n\n6\n\n7\n\nOpen Firma: https://x/groups/g/chat');
-    expect(digestEmail({ ...base, lang: 'sk', count: 1, lines: ['a'] }).text).toContain(
-      'Otvoriť Firma: ',
-    );
+    expect(
+      digestEmail({ ...base, button: 'Otvoriť tiket', lang: 'sk', count: 1, lines: ['a'] }).text,
+    ).toContain('Otvoriť tiket: https://x/groups/g/chat');
   });
 });
 
@@ -157,11 +164,11 @@ describe('sendDueDigests', () => {
     expect(await countEmailsTo(s.client.email)).toBe(1);
   });
 
-  it('email switched off before the digest sends nothing', async () => {
+  it('chat switched away from email before the digest sends nothing', async () => {
     const s = await setup();
     await send(s.channel, s.admin, 'Raz');
     await deliverPending(deps, { userIds: [s.client.id] });
-    await updateNotificationPrefs(deps.db, s.client.id, { emailEnabled: false });
+    await setNotificationChannel(deps.db, s.client.id, 'chat', 'push');
     expect(await sendDueDigests(deps, { now: later(), userIds: [s.client.id] })).toBe(0);
     expect(await countEmailsTo(s.client.email)).toBe(0);
   });
@@ -199,6 +206,61 @@ describe('sendDueDigests', () => {
         options: { startAfter: Math.ceil(deps.config.emailBatchDelayMs / 1000) },
       },
     ]);
+  });
+
+  it('only the groups that still want email make lines', async () => {
+    const s = await setup('en');
+    await setNotificationChannel(deps.db, s.client.id, 'chat', 'push');
+    await setNotificationChannel(deps.db, s.client.id, 'tasks', 'both');
+    const pending = { userId: s.client.id, groupId: s.group.id, deliveredAt: new Date() };
+    await deps.db.insert(notificationEvents).values([
+      {
+        ...pending,
+        id: randomUUID(),
+        kind: 'task.assigned',
+        payload: { actorName: 'Jana', title: 'Plan the launch' },
+        emailDueAt: new Date(),
+      },
+      {
+        ...pending,
+        id: randomUUID(),
+        kind: 'task.assigned',
+        // A task chat would be tasks too; a group chat event is not wanted by email now.
+        payload: { actorName: 'Jana', title: 'Second' },
+        emailDueAt: new Date(),
+      },
+    ]);
+    const msg = await send(s.channel, s.admin, 'Chat line');
+    await deps.db
+      .update(notificationEvents)
+      .set({ deliveredAt: new Date(), emailDueAt: new Date() })
+      .where(eq(notificationEvents.userId, s.client.id));
+    expect(msg.id).toBeTruthy();
+    expect(await sendDueDigests(deps, { now: later(), userIds: [s.client.id] })).toBe(1);
+    const mail = await latestEmail(s.client.email);
+    expect(mail.subject).toBe(`2 new messages in ${s.group.name}`);
+    expect(mail.text).toContain('Plan the launch');
+    expect(mail.text).not.toContain('Chat line');
+  });
+
+  it('a group switched to push after delivery: no email, rows stamped', async () => {
+    const s = await setup('en');
+    await deps.db.insert(notificationEvents).values({
+      id: randomUUID(),
+      userId: s.client.id,
+      groupId: s.group.id,
+      kind: 'task.assigned',
+      payload: { actorName: 'Jana', title: 'Plan' },
+      deliveredAt: new Date(),
+      emailDueAt: new Date(),
+    });
+    await setNotificationChannel(deps.db, s.client.id, 'tasks', 'push');
+    expect(await sendDueDigests(deps, { now: later(), userIds: [s.client.id] })).toBe(0);
+    const rows = await deps.db
+      .select()
+      .from(notificationEvents)
+      .where(eq(notificationEvents.userId, s.client.id));
+    expect(rows.every((r) => r.emailedAt !== null)).toBe(true);
   });
 
   it('a task event makes a line "<body>: <task title>"', async () => {
@@ -294,5 +356,20 @@ describe('sendDueDigests', () => {
     const counts = await Promise.all([sendDueDigests(deps, opts), sendDueDigests(deps, opts)]);
     expect(counts.reduce((a, b) => a + b, 0)).toBe(1);
     expect(await countEmailsTo(s.client.email)).toBe(1);
+  });
+});
+
+describe('splitByUrl', () => {
+  it('groups entries by url in first-seen order, keeping their rows', () => {
+    const e = (line: string, url: string) => ({ line, url, button: 'Open' });
+    const groups = splitByUrl([
+      { entry: e('a', '/t/1'), rowId: 'r1' },
+      { entry: e('b', '/chat'), rowId: 'r2' },
+      { entry: e('c', '/t/1'), rowId: 'r3' },
+    ]);
+    expect(groups.map((g) => [g.url, g.lines, g.rowIds])).toEqual([
+      ['/t/1', ['a', 'c'], ['r1', 'r3']],
+      ['/chat', ['b'], ['r2']],
+    ]);
   });
 });

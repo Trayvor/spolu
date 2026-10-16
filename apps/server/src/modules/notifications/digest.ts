@@ -1,5 +1,5 @@
 import { and, inArray, isNotNull, isNull, lte, sql } from 'drizzle-orm';
-import type { NotificationKind, UserLanguage } from '@spolu/shared';
+import { wantsEmail, type UserLanguage } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
 import { sendEmailLater, type EmailMessage } from '../../infra/email/index.js';
 import { buildEmail } from '../../infra/email/layout.js';
@@ -7,10 +7,11 @@ import { unreadForNotify } from '../chat/notify.js';
 import { groups } from '../groups/schema.js';
 import { getTaskTitles } from '../tasks/task-service.js';
 import { getNotificationProfiles } from '../users/service.js';
+import { notificationGroupOf } from './categories.js';
 import type { NotificationJobDeps } from './deliver.js';
-import { buildPushPayload } from './push-content.js';
+import { digestEntry, type DigestEntry } from './digest-entries.js';
 import { notificationEvents } from './schema.js';
-import { formatReminderTime, texts } from './texts.js';
+import { texts } from './texts.js';
 
 const MAX_LINES = 5;
 
@@ -19,12 +20,13 @@ type EventRow = typeof notificationEvents.$inferSelect;
 const payloadOf = (row: EventRow) => (row.payload ?? {}) as Record<string, unknown>;
 const str = (v: unknown): string | null => (typeof v === 'string' && v !== '' ? v : null);
 
-/** The digest for one user and group: the subject counts all events, the body shows the newest 5. */
+/** One digest email: the subject counts all events, the body shows the newest 5. */
 export function digestEmail(i: {
   to: string;
   lang: UserLanguage;
   groupName: string;
-  groupUrl: string;
+  url: string;
+  button: string;
   count: number;
   lines: string[];
 }): EmailMessage {
@@ -33,16 +35,39 @@ export function digestEmail(i: {
     to: i.to,
     subject: t.digestSubject(i.count, i.groupName),
     paragraphs: i.lines.slice(-MAX_LINES),
-    button: { label: t.digestButton(i.groupName), url: i.groupUrl },
+    button: { label: i.button, url: i.url },
   });
 }
 
+/** The entries of one user and group, one email per `url`, in first-seen order. */
+export function splitByUrl(
+  entries: { entry: DigestEntry; rowId: string }[],
+): { url: string; button: string; lines: string[]; rowIds: string[] }[] {
+  const byUrl = new Map<
+    string,
+    { url: string; button: string; lines: string[]; rowIds: string[] }
+  >();
+  for (const { entry, rowId } of entries) {
+    const split = byUrl.get(entry.url) ?? {
+      url: entry.url,
+      button: entry.button,
+      lines: [],
+      rowIds: [],
+    };
+    split.lines.push(entry.line);
+    split.rowIds.push(rowId);
+    byUrl.set(entry.url, split);
+  }
+  return [...byUrl.values()];
+}
+
 /**
- * Emails the digests that are due: one per user and group that has an unsent email-eligible event
+ * Emails the digests that are due: per user and group that has an unsent email-eligible event
  * whose `email_due_at` has passed (scoped to `userIds` when given). The pair's pending rows are
  * locked with `FOR UPDATE SKIP LOCKED` and stamped `emailed_at`, so concurrent workers never email
- * the same rows twice; the rows still unread (task events always count) make the email, if the
- * user still has email on. Emails are queued after the commit; returns how many.
+ * the same rows twice; the rows still unread (task events always count) whose notification group
+ * still wants email make the email, one per entry url (`digestEntry`). Emails are queued after
+ * the commit; returns how many.
  */
 export async function sendDueDigests(
   deps: NotificationJobDeps,
@@ -150,53 +175,46 @@ async function collectDigests(
   for (const events of byPair.values()) {
     const first = events[0]!;
     const profile = profiles.get(first.userId);
-    if (!profile || profile.disabled || !profile.emailEnabled) continue;
+    if (!profile || profile.disabled) continue;
     const groupName = groupNames.get(first.groupId!);
     if (groupName === undefined) continue;
+    const ctx = {
+      groupName,
+      groupId: first.groupId!,
+      publicUrl: deps.config.publicUrl,
+      lang: profile.language,
+      taskTitles,
+    };
     const seen = new Set<string>();
-    const lines: string[] = [];
+    const entries: { entry: DigestEntry; rowId: string }[] = [];
     for (const row of events) {
       const p = payloadOf(row);
+      // The group's channel now decides: switching it away from email before the digest is due
+      // means no email for its events.
+      const group = notificationGroupOf(row.kind, p);
+      if (group === null || !wantsEmail(profile.channels[group])) continue;
       const messageId = str(p.messageId);
       if (messageId !== null) {
         if (!unread.has(`${row.userId}:${messageId}`) || seen.has(messageId)) continue;
         seen.add(messageId);
       }
-      if (row.kind === 'reminder.due') {
-        // A task reminder shows the task's current title, like the other task lines.
-        const reminderTaskId = str(p.taskId);
-        lines.push(
-          texts(profile.language).reminderLine(
-            (reminderTaskId ? taskTitles.get(reminderTaskId) : undefined) ?? str(p.title) ?? '',
-            formatReminderTime(str(p.at), profile.language),
-          ),
-        );
-        continue;
-      }
-      const taskId = str(p.taskId);
-      const title = (taskId ? taskTitles.get(taskId) : undefined) ?? str(p.title);
-      const body = buildPushPayload({
-        kind: row.kind as NotificationKind,
-        payload: p,
-        groupName,
-        taskTitle: title,
-        parentId: null,
-        lang: profile.language,
-      }).body;
-      lines.push(messageId === null && title ? `${body}: ${title}` : body);
+      const entry = digestEntry({ kind: row.kind, payload: p }, ctx);
+      if (entry) entries.push({ entry, rowId: row.id });
     }
-    if (lines.length === 0) continue;
-    digests.push({
-      rowIds: events.map((r) => r.id),
-      email: digestEmail({
-        to: profile.email,
-        lang: profile.language,
-        groupName,
-        groupUrl: `${deps.config.publicUrl}/groups/${encodeURIComponent(first.groupId!)}/chat`,
-        count: lines.length,
-        lines,
-      }),
-    });
+    for (const split of splitByUrl(entries)) {
+      digests.push({
+        rowIds: split.rowIds,
+        email: digestEmail({
+          to: profile.email,
+          lang: profile.language,
+          groupName,
+          url: split.url,
+          button: split.button,
+          count: split.lines.length,
+          lines: split.lines,
+        }),
+      });
+    }
   }
   return digests;
 }
