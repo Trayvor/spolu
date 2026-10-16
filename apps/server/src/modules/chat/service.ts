@@ -248,9 +248,15 @@ export function unreadByGroupSql(userId: string): SQL {
 export async function unreadByGroup(
   db: Db,
   userId: string,
-  onlyGroupId: string | null,
+  onlyGroupIds: readonly string[] | null,
 ): Promise<Record<string, number>> {
-  const onlyGroup = onlyGroupId === null ? sql`` : sql`and group_id = ${onlyGroupId}`;
+  const onlyGroup =
+    onlyGroupIds === null
+      ? sql``
+      : sql`and group_id in (${sql.join(
+          onlyGroupIds.map((id) => sql`${id}`),
+          sql`, `,
+        )})`;
   const rows = await db.execute<{ group_id: string; n: number }>(sql`
     select group_id, n
     from (${unreadByGroupSql(userId)}) by_group

@@ -22,7 +22,7 @@ import {
   detachFiles,
   getFilesForGroup,
 } from '../files/service.js';
-import { getMembershipGroupId, listGroupPeople } from '../groups/service.js';
+import { listGroupPeople } from '../groups/service.js';
 import { recordNotifications, requestDelivery } from '../notifications/service.js';
 import { listTasksForMessages } from '../tasks/service.js';
 import { isAdmin } from '../users/policy.js';
@@ -37,6 +37,7 @@ import {
   settleThreadReads,
   type ChannelRow,
 } from './service.js';
+import { clientGroupIds } from '../groups/memberships.js';
 
 const EXCERPT_LENGTH = 140;
 
@@ -367,8 +368,8 @@ export async function findReadableMessage(
   const message = ID_RE.test(id) ? await getMessage(db, id) : null;
   const channel = message ? await getChannel(db, message.channelId) : null;
   if (!message || !channel) return null;
-  const actorGroupId = isAdmin(actor) ? null : await getMembershipGroupId(db, actor.id);
-  return canReadChannel(actor, channel, actorGroupId) ? { message, channel } : null;
+  const actorGroupIds = isAdmin(actor) ? [] : await clientGroupIds(db, actor.id);
+  return canReadChannel(actor, channel, actorGroupIds) ? { message, channel } : null;
 }
 
 async function loadDto(db: Db, groupId: string, id: string): Promise<MessageDto> {

@@ -39,7 +39,13 @@ const socket = vi.hoisted(() => {
 vi.mock('@/lib/socket', () => ({ getSocket: () => socket }));
 
 const t = (key: string, options?: Record<string, unknown>) => i18n.t(key, options);
-const ME = { id: 'me', name: 'Me Myself', email: 'me@example.com', role: 'client', groupId: 'g1' };
+const ME = {
+  id: 'me',
+  name: 'Me Myself',
+  email: 'me@example.com',
+  role: 'client',
+  groups: [{ id: 'g1', name: 'Firma', role: 'client', hasLogo: false, updatedAt: '' }],
+};
 const people: GroupPerson[] = [
   { id: 'me', name: 'Me Myself', isAdmin: false, isManager: false },
   { id: 'anna', name: 'Anna Nováková', isAdmin: false, isManager: false },

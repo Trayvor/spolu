@@ -2,7 +2,7 @@ import type { FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify';
 import { ErrorCodes, GroupInputSchema, type Group, type ManagersResponse } from '@spolu/shared';
 import type { AppDeps } from '../../deps.js';
 import type { Config } from '../../infra/config/config.js';
-import { disconnectUser } from '../../infra/realtime/rooms.js';
+import { disconnectUser, joinGroupRoom, leaveGroupRoom } from '../../infra/realtime/rooms.js';
 import { createRateLimiter } from '../../infra/http/rate-limit.js';
 import { requireAdmin, requireUser } from '../auth/session.js';
 import { revokeAllSessions } from '../auth/service.js';
@@ -16,7 +16,6 @@ import {
   createGroup,
   EgrantUrlTakenError,
   getGroup,
-  getMembershipGroupId,
   InvalidEgrantUrlError,
   listGroupPeople,
   listGroups,
@@ -25,6 +24,12 @@ import {
   updateGroup,
   type GroupRow,
 } from './service.js';
+import {
+  clientGroupIds,
+  getMembership,
+  removeMembership,
+  restoreMembership,
+} from './memberships.js';
 
 type IdParams = { Params: { id: string } };
 type MemberParams = { Params: { id: string; userId: string } };
@@ -80,7 +85,7 @@ export const groupsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, {
   app.get<IdParams>('/groups/:id', { preHandler: anyUser }, async (request, reply) => {
     const actor = request.user!;
     const { id } = request.params;
-    if (!canReadGroup(actor, id, await getMembershipGroupId(db, actor.id))) return notFound(reply);
+    if (!canReadGroup(actor, id, await clientGroupIds(db, actor.id))) return notFound(reply);
     const group = await getGroup(db, id);
     if (!group) return notFound(reply);
     return toGroup(group, canManageGroups(actor));
@@ -108,7 +113,7 @@ export const groupsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, {
   app.get<IdParams>('/groups/:id/members', { preHandler: anyUser }, async (request, reply) => {
     const actor = request.user!;
     const { id } = request.params;
-    if (!canReadGroup(actor, id, await getMembershipGroupId(db, actor.id))) return notFound(reply);
+    if (!canReadGroup(actor, id, await clientGroupIds(db, actor.id))) return notFound(reply);
     if (!(await getGroup(db, id))) return notFound(reply);
     return listMembers(db, id, { removed: false });
   });
@@ -116,7 +121,7 @@ export const groupsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, {
   app.get<IdParams>('/groups/:id/people', { preHandler: anyUser }, async (request, reply) => {
     const actor = request.user!;
     const { id } = request.params;
-    if (!canReadGroup(actor, id, await getMembershipGroupId(db, actor.id))) return notFound(reply);
+    if (!canReadGroup(actor, id, await clientGroupIds(db, actor.id))) return notFound(reply);
     if (!(await getGroup(db, id))) return notFound(reply);
     return listGroupPeople(db, id);
   });
@@ -131,10 +136,10 @@ export const groupsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, {
     },
   );
 
-  /** The target of remove/restore: a user who is a member of this group, else null (404). */
+  /** The target of remove/restore: a user with a membership of this group, else null (404). */
   const groupMember = async (groupId: string, userId: string) => {
     const target = await getUserById(db, userId);
-    if (!target || (await getMembershipGroupId(db, userId)) !== groupId) return null;
+    if (!target || !(await getMembership(db, userId, groupId))) return null;
     return target;
   };
 
@@ -146,9 +151,15 @@ export const groupsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, {
       const target = await groupMember(request.params.id, request.params.userId);
       if (!target) return notFound(reply);
       if (!canRemoveMember(request.user!, target)) return forbidden(reply);
-      await deactivateUser(db, target.id);
-      await revokeAllSessions(db, target.id);
-      disconnectUser(app.io, target.id);
+      // Removed from this group only; with no active membership left they are signed out.
+      const { lastActive } = await removeMembership(db, request.params.id, target.id);
+      if (lastActive) {
+        await deactivateUser(db, target.id);
+        await revokeAllSessions(db, target.id);
+        disconnectUser(app.io, target.id);
+      } else {
+        leaveGroupRoom(app.io, target.id, request.params.id);
+      }
       return reply.code(204).send();
     },
   );
@@ -161,7 +172,9 @@ export const groupsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, {
       const target = await groupMember(request.params.id, request.params.userId);
       if (!target) return notFound(reply);
       if (!canRemoveMember(request.user!, target)) return forbidden(reply);
+      await restoreMembership(db, request.params.id, target.id);
       await reactivateUser(db, target.id);
+      joinGroupRoom(app.io, target.id, request.params.id);
       return reply.code(204).send();
     },
   );

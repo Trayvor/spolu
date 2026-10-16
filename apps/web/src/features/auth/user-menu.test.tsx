@@ -41,7 +41,13 @@ const USER = {
   name: 'Jana Nováková',
   email: 'jana@example.com',
   role: 'admin',
-  groupId: null as string | null,
+  groups: [] as {
+    id: string;
+    name: string;
+    role: 'client' | 'ziadatel';
+    hasLogo: boolean;
+    updatedAt: string;
+  }[],
 };
 
 /** Fake `fetch`: `/api/me` answers from `state`, sign-out flips it to anonymous. */
@@ -234,15 +240,46 @@ describe('logged-in shell', () => {
     expect(await screen.findByRole('heading', { level: 1 })).toBeInTheDocument();
     expect(admin.router.state.location.pathname).toBe('/');
     cleanup();
-    mockApi({ role: 'client', groupId: 'g1' });
+    mockApi({
+      role: 'client',
+      groups: [{ id: 'g1', name: 'Firma', role: 'client', hasLogo: false, updatedAt: '' }],
+    });
     const client = renderAt('/');
     await waitFor(() => expect(client.router.state.location.pathname).toBe('/groups/g1/chat'));
   });
 
   it('/tasks is not found for a client', async () => {
-    mockApi({ role: 'client', groupId: 'g1' });
+    mockApi({
+      role: 'client',
+      groups: [{ id: 'g1', name: 'Firma', role: 'client', hasLogo: false, updatedAt: '' }],
+    });
     renderAt('/tasks');
     expect(await screen.findByRole('heading', { name: t('notFound.title') })).toBeInTheDocument();
+  });
+
+  it('a client of two groups goes from / to My groups, listed in the header; one group shows no link', async () => {
+    const two = [
+      { id: 'g1', name: 'Alfa', role: 'client' as const, hasLogo: false, updatedAt: '' },
+      { id: 'g2', name: 'Beta', role: 'client' as const, hasLogo: false, updatedAt: '' },
+      { id: 'g3', name: 'Gama', role: 'ziadatel' as const, hasLogo: false, updatedAt: '' },
+    ];
+    mockApi({ role: 'client', groups: two });
+    const { router } = renderAt('/');
+    await waitFor(() => expect(router.state.location.pathname).toBe('/my-groups'));
+    expect(
+      await screen.findByRole('heading', { name: t('groups.mine.title') }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Alfa/ })).toHaveAttribute('href', '/groups/g1/chat');
+    expect(screen.getByRole('link', { name: /Beta/ })).toHaveAttribute('href', '/groups/g2/chat');
+    // A group where the person is only a requester is not one of their groups.
+    expect(screen.queryByRole('link', { name: /Gama/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: t('nav.myGroups') })).toBeInTheDocument();
+    cleanup();
+
+    mockApi({ role: 'client', groups: two.slice(0, 1) });
+    renderAt();
+    await screen.findByRole('button', { name: t('user.menu') });
+    expect(screen.queryByRole('link', { name: t('nav.myGroups') })).not.toBeInTheDocument();
   });
 
   it('a client does not see the Admins link', async () => {

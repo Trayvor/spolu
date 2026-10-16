@@ -5,7 +5,7 @@ import { createRateLimiter } from '../../infra/http/rate-limit.js';
 import { StorageNotFoundError } from '../../infra/storage/storage.js';
 import { requireUser } from '../auth/session.js';
 import { canReadGroup } from '../groups/policy.js';
-import { getGroup, getMembershipGroupId } from '../groups/service.js';
+import { getGroup } from '../groups/service.js';
 import { decodeFileNameHeader } from './file-name.js';
 import { canReadFile, canSetPreview } from './policy.js';
 import {
@@ -16,6 +16,7 @@ import {
   setFilePreview,
 } from './service.js';
 import { IMAGE_TYPES, sniffImageType } from './sniff.js';
+import { clientGroupIds } from '../groups/memberships.js';
 
 const MAX_PREVIEW_BYTES = 300 * 1024;
 const MAX_PREVIEW_SIDE = 20_000;
@@ -53,7 +54,7 @@ export const filesRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { 
     const actor = request.user!;
     const file = await getFile(db, id);
     if (!file) return null;
-    return canReadFile(actor, file, await getMembershipGroupId(db, actor.id)) ? file : null;
+    return canReadFile(actor, file, await clientGroupIds(db, actor.id)) ? file : null;
   };
 
   const sendStored = async (reply: FastifyReply, key: string, headers: Record<string, string>) => {
@@ -81,7 +82,7 @@ export const filesRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { 
     upload.post<IdParams>('/groups/:id/files', { preHandler: anyUser }, async (request, reply) => {
       const actor = request.user!;
       const { id: groupId } = request.params;
-      if (!canReadGroup(actor, groupId, await getMembershipGroupId(db, actor.id))) {
+      if (!canReadGroup(actor, groupId, await clientGroupIds(db, actor.id))) {
         return notFound(reply);
       }
       if (!(await getGroup(db, groupId))) return notFound(reply);

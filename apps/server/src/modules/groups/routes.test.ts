@@ -9,6 +9,8 @@ import { groupRoom, userRoom } from '../../infra/realtime/rooms.js';
 import { user } from '../users/schema.js';
 import { addAdmin } from '../users/service.js';
 import { addMember, createGroup, getGroup, regenerateInvite } from './service.js';
+import { groupMembers } from './schema.js';
+import { eq } from 'drizzle-orm';
 
 type TestApp = Awaited<ReturnType<typeof buildTestApp>>;
 
@@ -256,7 +258,67 @@ describe('groups API', () => {
     const again = await loginAs(test.app, client.email);
     const me = await call('GET', '/api/me', again);
     expect(me.statusCode).toBe(200);
-    expect(me.json<Me>().groupId).toBe(g.id);
+    expect(me.json<Me>().groups.map((x) => x.id)).toEqual([g.id]);
+  });
+
+  it('a client of two groups reads both; removed from one, keeps the other and its socket', async () => {
+    const { cookie } = await adminSession();
+    const [g1, g2] = [await newGroup('Alfa'), await newGroup('Beta')];
+    const client = await clientIn(g1.id);
+    await addMember(test.deps.db, g2.id, client.id);
+    for (const g of [g1, g2]) {
+      expect((await call('GET', `/api/groups/${g.id}`, client.cookie)).statusCode).toBe(200);
+      expect((await call('GET', `/api/groups/${g.id}/chat`, client.cookie)).statusCode).toBe(200);
+      expect((await call('GET', `/api/groups/${g.id}/board`, client.cookie)).statusCode).toBe(200);
+    }
+    const socket = connect(baseUrl, {
+      transports: ['websocket'],
+      extraHeaders: { cookie: client.cookie },
+      reconnection: false,
+    });
+    sockets.push(socket);
+    await new Promise((resolve) => socket.once('connect', () => resolve(null)));
+    const inRoom = async (groupId: string) =>
+      (await test.app.io.in(groupRoom(groupId)).fetchSockets()).some(
+        (s) => s.data.user.id === client.id,
+      );
+    expect([await inRoom(g1.id), await inRoom(g2.id)]).toEqual([true, true]);
+
+    const res = await call('DELETE', `/api/groups/${g1.id}/members/${client.id}`, cookie);
+    expect(res.statusCode).toBe(204);
+    expect((await call('GET', `/api/groups/${g1.id}`, client.cookie)).statusCode).toBe(404);
+    expect((await call('GET', `/api/groups/${g2.id}`, client.cookie)).statusCode).toBe(200);
+    const me = (await call('GET', '/api/me', client.cookie)).json<Me>();
+    expect(me.groups.map((g) => g.id)).toEqual([g2.id]);
+    expect(socket.connected).toBe(true);
+    expect([await inRoom(g1.id), await inRoom(g2.id)]).toEqual([false, true]);
+
+    const restored = await call(
+      'POST',
+      `/api/groups/${g1.id}/members/${client.id}/restore`,
+      cookie,
+    );
+    expect(restored.statusCode).toBe(204);
+    expect(await inRoom(g1.id)).toBe(true);
+    expect((await call('GET', `/api/groups/${g1.id}`, client.cookie)).statusCode).toBe(200);
+  });
+
+  it('a ziadatel membership opens nothing of the group', async () => {
+    const g = await newGroup();
+    const z = await clientIn(g.id);
+    await test.deps.db
+      .update(groupMembers)
+      .set({ role: 'ziadatel' })
+      .where(eq(groupMembers.userId, z.id));
+    for (const path of ['', '/chat', '/board', '/members', '/people']) {
+      expect((await call('GET', `/api/groups/${g.id}${path}`, z.cookie)).statusCode).toBe(404);
+    }
+    expect((await call('GET', '/api/me', z.cookie)).json<Me>().groups).toEqual([
+      expect.objectContaining({ id: g.id, name: g.name, role: 'ziadatel' }),
+    ]);
+    const { cookie } = await adminSession();
+    const listed = await call('GET', `/api/groups/${g.id}/members`, cookie);
+    expect(listed.json<Member[]>().some((m) => m.id === z.id)).toBe(false);
   });
 
   it('remove of an admin via the members route → 403', async () => {
@@ -338,12 +400,14 @@ describe('groups API', () => {
     );
   });
 
-  it('GET /api/me returns groupId for a client and null for an admin', async () => {
+  it('GET /api/me returns the groups of a client and none for an admin', async () => {
     const { cookie } = await adminSession();
     const g = await newGroup();
     const client = await clientIn(g.id);
-    expect((await call('GET', '/api/me', cookie)).json<Me>().groupId).toBeNull();
-    expect((await call('GET', '/api/me', client.cookie)).json<Me>().groupId).toBe(g.id);
+    expect((await call('GET', '/api/me', cookie)).json<Me>().groups).toEqual([]);
+    expect((await call('GET', '/api/me', client.cookie)).json<Me>().groups).toEqual([
+      { id: g.id, name: g.name, role: 'client', hasLogo: false, updatedAt: expect.any(String) },
+    ]);
   });
 
   it("PATCH /api/me changes only the caller's name, validates 1..100", async () => {
@@ -362,7 +426,7 @@ describe('groups API', () => {
       id: client.id,
       name: 'After',
       role: 'client',
-      groupId: g.id,
+      groups: [expect.objectContaining({ id: g.id, name: g.name, role: 'client', hasLogo: false, updatedAt: expect.any(String) })],
     });
     const members = (await call('GET', `/api/groups/${g.id}/members`, cookie)).json<Member[]>();
     expect(members.find((m) => m.id === other.id)?.name).toBe('Untouched');

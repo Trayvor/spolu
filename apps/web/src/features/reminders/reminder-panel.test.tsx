@@ -21,7 +21,7 @@ const ME: Me = {
   email: 'b@example.com',
   name: 'Boris Kováč',
   role: 'admin',
-  groupId: null,
+  groups: [],
 };
 const HOUR = 3_600_000;
 const future = (hours: number) => new Date(Date.now() + hours * HOUR).toISOString();

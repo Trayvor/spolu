@@ -28,7 +28,7 @@ const ME = {
   name: 'Jana',
   email: 'jana@example.com',
   role: 'admin' as const,
-  groupId: null,
+  groups: [],
 };
 const ACME: GroupSummary = {
   id: 'g1',

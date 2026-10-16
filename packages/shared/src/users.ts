@@ -11,8 +11,26 @@ export const SessionUserSchema = z.object({
 });
 export type SessionUser = z.infer<typeof SessionUserSchema>;
 
-/** What `/api/me` returns: the session user plus the client's group (null for admins). */
-export const MeSchema = SessionUserSchema.extend({ groupId: z.string().nullable() });
+/** A person's role in one group (Phase 21): `client` reads the group, `ziadatel` only their own tickets. */
+export const MemberRoleSchema = z.enum(['client', 'ziadatel']);
+export type MemberRole = z.infer<typeof MemberRoleSchema>;
+
+/** One of the signed-in person's active group memberships. */
+export const MeGroupSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  role: MemberRoleSchema,
+  hasLogo: z.boolean(),
+  /** Cache-buster for the logo URL (`?v=`). */
+  updatedAt: z.string(),
+});
+export type MeGroup = z.infer<typeof MeGroupSchema>;
+
+/**
+ * What `/api/me` returns: the session user plus their active memberships, by group name (empty
+ * for admins). A client may belong to several groups.
+ */
+export const MeSchema = SessionUserSchema.extend({ groups: z.array(MeGroupSchema) });
 export type Me = z.infer<typeof MeSchema>;
 
 export const AdminSchema = z.object({

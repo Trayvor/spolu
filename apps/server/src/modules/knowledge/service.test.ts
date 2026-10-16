@@ -603,11 +603,11 @@ describe('knowledge service', () => {
       authorId: admin.id,
       link: `/groups/${group.id}/knowledge?k=${open.id}`,
     });
-    expect(info.canRead(client, group.id)).toBe(true);
-    expect(info.canRead(outsider, outsider.id)).toBe(false);
+    expect(info.canRead(client, [group.id])).toBe(true);
+    expect(info.canRead(outsider, [outsider.id])).toBe(false);
     expect(map.get(hidden.id)!.adminsOnly).toBe(true);
-    expect(map.get(hidden.id)!.canRead(client, group.id)).toBe(false);
-    expect(map.get(hidden.id)!.canRead(admin, null)).toBe(true);
+    expect(map.get(hidden.id)!.canRead(client, [group.id])).toBe(false);
+    expect(map.get(hidden.id)!.canRead(admin, [])).toBe(true);
     expect(info.canEdit(client)).toBe(false);
     expect(info.canEdit(admin)).toBe(true);
   });

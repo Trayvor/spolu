@@ -14,7 +14,6 @@ import { emitMessageTasks } from '../chat/events.js';
 import { findReadableMessage, getMessageFiles, messageTasksEvent } from '../chat/messages.js';
 import { requireUser } from '../auth/session.js';
 import { InvalidAttachmentError } from '../files/service.js';
-import { getMembershipGroupId } from '../groups/service.js';
 import { emitTask, emitTaskDeleted } from './events.js';
 import { canDeleteTask, canUseBoard } from './policy.js';
 import type { WriteGuard } from './routes.js';
@@ -32,6 +31,7 @@ import {
   updateTask,
   ValidationError,
 } from './task-service.js';
+import { clientGroupIds } from '../groups/memberships.js';
 
 type IdParams = { Params: { id: string } };
 
@@ -108,7 +108,7 @@ export const taskRoutes: FastifyPluginAsync<TaskRoutesOptions> = async (
   /** The task's group and creator when the actor may use its board, else null (404). */
   const readableTask = async (actor: SessionUser, id: string) => {
     const ref = await getTaskRef(db, id);
-    if (!ref || !canUseBoard(actor, ref.groupId, await getMembershipGroupId(db, actor.id))) {
+    if (!ref || !canUseBoard(actor, ref.groupId, await clientGroupIds(db, actor.id))) {
       return null;
     }
     return ref;

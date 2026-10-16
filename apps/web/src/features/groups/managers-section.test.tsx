@@ -14,13 +14,13 @@ import { sessionQuery } from '@/features/auth/use-session';
 import { groupPeopleQuery } from './api';
 import { ManagersSection } from './managers-section';
 
-const ADMIN = { id: 'a1', name: 'Eva', email: 'e@example.com', role: 'admin', groupId: null } as Me;
+const ADMIN = { id: 'a1', name: 'Eva', email: 'e@example.com', role: 'admin', groups: [] } as Me;
 const CLIENT = {
   id: 'c1',
   name: 'Anna',
   email: 'a@example.com',
   role: 'client',
-  groupId: 'g1',
+  groups: [{ id: 'g1', name: 'Firma', role: 'client', hasLogo: false, updatedAt: '' }],
 } as Me;
 
 const PEOPLE: GroupPerson[] = [

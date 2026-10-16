@@ -15,7 +15,7 @@ const CLIENT = {
   name: 'Eva',
   email: 'eva@example.com',
   role: 'client' as const,
-  groupId: 'g1',
+  groups: [{ id: 'g1', name: 'Firma', role: 'client' as const, hasLogo: false, updatedAt: '' }],
 };
 const MODES: NotificationModes = {
   defaultMode: null,

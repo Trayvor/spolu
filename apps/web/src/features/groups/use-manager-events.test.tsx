@@ -23,7 +23,7 @@ const ME = {
   name: 'Jana',
   email: 'jana@example.com',
   role: 'admin' as const,
-  groupId: null,
+  groups: [],
 };
 const group = (id: string, managers: GroupSummary['managers']): GroupSummary => ({
   id,

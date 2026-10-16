@@ -32,5 +32,9 @@
     "more": "+{{count}}",
     "listLabel": "Správcovia {{name}}",
     "noManagerHint": "Klienti bez správcu: spomenúť alebo priradiť sa dajú len ich vlastní ľudia."
+  },
+  "mine": {
+    "title": "Moje skupiny",
+    "empty": "Zatiaľ nie ste v žiadnej skupine. Otvorte pozývací odkaz, ktorý ste dostali."
   }
 }

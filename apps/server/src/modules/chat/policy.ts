@@ -5,9 +5,9 @@ import { canReadGroup } from '../groups/policy.js';
 export function canReadChannel(
   actor: SessionUser,
   channel: { groupId: string },
-  actorGroupId: string | null,
+  actorGroupIds: readonly string[],
 ): boolean {
-  return canReadGroup(actor, channel.groupId, actorGroupId);
+  return canReadGroup(actor, channel.groupId, actorGroupIds);
 }
 
 /** Only the author edits a message, and never a deleted one. */

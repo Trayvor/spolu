@@ -17,7 +17,7 @@ const CLIENT = {
   name: 'Jana',
   email: 'jana@example.com',
   role: 'client',
-  groupId: 'g1',
+  groups: [{ id: 'g1', name: 'Firma', role: 'client', hasLogo: false, updatedAt: '' }],
 };
 
 type Reply = { status: number; body: unknown };

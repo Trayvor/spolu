@@ -23,7 +23,7 @@ const ADMIN_ME = {
   name: 'Eva Admin',
   email: 'eva@example.com',
   role: 'admin',
-  groupId: null,
+  groups: [],
 } as Me;
 
 function Harness({

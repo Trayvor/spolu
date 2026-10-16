@@ -6,9 +6,10 @@ import { buildTestApp } from '../../../test/test-app.js';
 import { cookieHeader, requestCode, signIn } from '../../../test/login.js';
 import { countEmailsTo, latestLoginCode } from '../../../test/mailpit.js';
 import { user } from '../users/schema.js';
-import { groupMembers } from './schema.js';
+import { groupMembers, pendingInvites } from './schema.js';
 import { addAdmin, findUserByEmail } from '../users/service.js';
-import { addMember, createGroup, getMembershipGroupId, regenerateInvite } from './service.js';
+import { clientGroupIds } from './memberships.js';
+import { addMember, createGroup, regenerateInvite } from './service.js';
 
 type TestApp = Awaited<ReturnType<typeof buildTestApp>>;
 
@@ -37,6 +38,20 @@ describe('join API', () => {
     });
 
   const newGroup = () => createGroup(test.deps.db, { name: 'Join Co', egrantUrl: newUrl() });
+  const groupsOf = (userId: string) => clientGroupIds(test.deps.db, userId);
+  const pendingOf = async (userId: string) => {
+    const [row] = await test.deps.db
+      .select({ groupId: pendingInvites.groupId })
+      .from(pendingInvites)
+      .where(eq(pendingInvites.userId, userId));
+    return row?.groupId ?? null;
+  };
+  const signInAs = async (email: string) => {
+    await requestCode(test.app, email);
+    const signed = await signIn(test.app, email, await latestLoginCode(email));
+    expect(signed.statusCode).toBe(200);
+    return cookieHeader(signed);
+  };
 
   it('GET returns the name and logo flag, 404 for an unknown token', async () => {
     const group = await newGroup();
@@ -52,7 +67,7 @@ describe('join API', () => {
     expect(bad.json()).toEqual({ error: 'not_found' });
   });
 
-  it('a new email creates an unverified client in the group; code, sign-in and listing follow', async () => {
+  it('a new email creates an unverified client who joins the group on sign-in; listing follows', async () => {
     const group = await newGroup();
     const email = newEmail();
     const res = await join(group.inviteToken, { email: ` ${email.toUpperCase()} ` });
@@ -61,12 +76,15 @@ describe('join API', () => {
 
     const created = await findUserByEmail(test.deps.db, email);
     expect(created).toMatchObject({ role: 'client', name: '', emailVerified: false });
-    expect(await getMembershipGroupId(test.deps.db, created!.id)).toBe(group.id);
+    expect(await groupsOf(created!.id)).toEqual([]);
+    expect(await pendingOf(created!.id)).toBe(group.id);
 
     expect((await requestCode(test.app, email)).statusCode).toBe(200);
     const signed = await signIn(test.app, email, await latestLoginCode(email));
     expect(signed.statusCode).toBe(200);
     expect((await findUserByEmail(test.deps.db, email))?.emailVerified).toBe(true);
+    expect(await groupsOf(created!.id)).toEqual([group.id]);
+    expect(await pendingOf(created!.id)).toBeNull();
 
     const cookie = cookieHeader(signed);
     const me = await test.app.inject({ method: 'GET', url: '/api/me', headers: { cookie } });
@@ -80,7 +98,7 @@ describe('join API', () => {
     expect(mine.json()).toEqual([expect.objectContaining({ email })]);
   });
 
-  it('an admin, a client of another group and a removed client get the same body and nothing changes', async () => {
+  it('an admin, a client of another group and a removed client get the same body and no membership changes', async () => {
     const group = await newGroup();
     const other = await newGroup();
     const adminEmail = newEmail();
@@ -116,8 +134,10 @@ describe('join API', () => {
       [adminEmail, clientEmail, removedEmail].map((e) => findUserByEmail(test.deps.db, e)),
     );
     expect(after).toEqual(before);
-    expect(await getMembershipGroupId(test.deps.db, clientId)).toBe(other.id);
-    expect(await getMembershipGroupId(test.deps.db, before[0]!.id)).toBeNull();
+    expect(await groupsOf(clientId)).toEqual([other.id]);
+    expect(await groupsOf(before[0]!.id)).toEqual([]);
+    expect(await pendingOf(before[0]!.id)).toBeNull();
+    expect(await pendingOf(removedId)).toBeNull();
   });
 
   it('a removed client gets no code after join', async () => {
@@ -167,14 +187,15 @@ describe('join API', () => {
     expect(res.json()).toEqual({ error: 'rate_limited' });
   });
 
-  it('an unverified client follows the latest invite; a verified client stays', async () => {
+  it('the latest invite wins: an unverified client signs in into that group only', async () => {
     const a = await newGroup();
     const b = await newGroup();
     const email = newEmail();
     await join(a.inviteToken, { email });
     await join(b.inviteToken, { email });
     const moved = await findUserByEmail(test.deps.db, email);
-    expect(await getMembershipGroupId(test.deps.db, moved!.id)).toBe(b.id);
+    await signInAs(email);
+    expect(await groupsOf(moved!.id)).toEqual([b.id]);
     const rows = await test.deps.db
       .select()
       .from(groupMembers)
@@ -188,10 +209,29 @@ describe('join API', () => {
       .values({ id, email: verifiedEmail, name: 'V', role: 'client', emailVerified: true });
     await addMember(test.deps.db, a.id, id);
     await join(b.inviteToken, { email: verifiedEmail });
-    expect(await getMembershipGroupId(test.deps.db, id)).toBe(a.id);
+    // Typing the email adds nothing by itself: the code proves it.
+    expect(await groupsOf(id)).toEqual([a.id]);
   });
 
-  it('two parallel joins with the same new email both answer 200 and make one user and membership', async () => {
+  it('a signed-in client of one group joins a second group after the code, keeping the first', async () => {
+    const a = await newGroup();
+    const b = await newGroup();
+    const email = newEmail();
+    await join(a.inviteToken, { email });
+    const first = await signInAs(email);
+    const id = (await findUserByEmail(test.deps.db, email))!.id;
+    expect(await groupsOf(id)).toEqual([a.id]);
+
+    await join(b.inviteToken, { email });
+    const second = await signInAs(email);
+    expect((await groupsOf(id)).sort()).toEqual([a.id, b.id].sort());
+    for (const cookie of [first, second]) {
+      const me = await test.app.inject({ method: 'GET', url: '/api/me', headers: { cookie } });
+      expect((me.json() as Me).groups.map((g) => g.id).sort()).toEqual([a.id, b.id].sort());
+    }
+  });
+
+  it('two parallel joins with the same new email both answer 200 and make one user and invite', async () => {
     const group = await newGroup();
     const email = newEmail();
     const [r1, r2] = await Promise.all([
@@ -201,10 +241,6 @@ describe('join API', () => {
     expect([r1.statusCode, r2.statusCode]).toEqual([200, 200]);
     const users = await test.deps.db.select().from(user).where(eq(user.email, email));
     expect(users).toHaveLength(1);
-    const rows = await test.deps.db
-      .select()
-      .from(groupMembers)
-      .where(eq(groupMembers.userId, users[0]!.id));
-    expect(rows).toHaveLength(1);
+    expect(await pendingOf(users[0]!.id)).toBe(group.id);
   });
 });

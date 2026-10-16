@@ -27,7 +27,13 @@ const socket = vi.hoisted(() => {
 });
 vi.mock('@/lib/socket', () => ({ getSocket: () => socket }));
 
-const ME = { id: 'me', name: 'Me', email: 'me@example.com', role: 'client', groupId: 'g1' };
+const ME = {
+  id: 'me',
+  name: 'Me',
+  email: 'me@example.com',
+  role: 'client',
+  groups: [{ id: 'g1', name: 'Firma', role: 'client', hasLogo: false, updatedAt: '' }],
+};
 const label = (count: number) => i18n.t('chat.unread', { count });
 
 function message(over: Partial<MessageDto> = {}): MessageDto {

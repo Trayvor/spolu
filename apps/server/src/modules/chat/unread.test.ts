@@ -154,7 +154,7 @@ describe('unread thread replies', () => {
     await send(s.channel, s.b, { parentId: root.id });
     await send(s.channel, s.b);
     expect((await unreadByGroup(deps.db, s.a.id, null))[s.group.id]).toBe(2);
-    expect(await unreadByGroup(deps.db, s.a.id, s.group.id)).toEqual({ [s.group.id]: 2 });
+    expect(await unreadByGroup(deps.db, s.a.id, [s.group.id])).toEqual({ [s.group.id]: 2 });
   });
 
   it('a reply that committed first but has a later time is read by the next replier', async () => {
@@ -308,7 +308,7 @@ describe('taskChatSummaries', () => {
     const root = await send(chat, s.a);
     await send(chat, s.b);
     await send(chat, s.b, { parentId: root.id });
-    expect(await unreadByGroup(deps.db, s.a.id, s.group.id)).toEqual({});
+    expect(await unreadByGroup(deps.db, s.a.id, [s.group.id])).toEqual({});
     expect((await unreadByGroup(deps.db, s.a.id, null))[s.group.id]).toBeUndefined();
   });
 

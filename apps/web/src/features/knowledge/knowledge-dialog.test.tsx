@@ -22,7 +22,7 @@ const ME: Me = {
   email: 'b@example.com',
   name: 'Boris Kováč',
   role: 'admin',
-  groupId: null,
+  groups: [],
 };
 const PEOPLE: GroupPerson[] = [
   { id: 'u1', name: 'Anna Nováková', isAdmin: false, isManager: false },

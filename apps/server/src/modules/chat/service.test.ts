@@ -109,7 +109,7 @@ describe('ensureTaskChannel', () => {
     const other = await newUser();
     await addMessage(taskChannel.id, other.id);
     expect(await unreadCount(db, me.id, taskChannel.id)).toBe(1);
-    expect((await unreadByGroup(db, me.id, group.id))[group.id]).toBeUndefined();
+    expect((await unreadByGroup(db, me.id, [group.id]))[group.id]).toBeUndefined();
   });
 });
 
@@ -208,7 +208,7 @@ describe('unreadByGroup', () => {
     const all = await unreadByGroup(db, me.id, null);
     expect(all[g1.id]).toBe(2);
     expect(all[g2.id]).toBe(1);
-    expect(await unreadByGroup(db, me.id, g1.id)).toEqual({ [g1.id]: 2 });
+    expect(await unreadByGroup(db, me.id, [g1.id])).toEqual({ [g1.id]: 2 });
     await markRead(db, me.id, c1.id, new Date());
     expect((await unreadByGroup(db, me.id, null))[g1.id]).toBeUndefined();
   });

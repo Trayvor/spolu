@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { and, eq, inArray, sql, type SQL } from 'drizzle-orm';
+import { and, eq, inArray, isNull, sql, type SQL } from 'drizzle-orm';
 import {
   extractMentions,
   isHttpUrl,
@@ -28,7 +28,6 @@ import {
   type FileRow,
 } from '../files/service.js';
 import { canReadGroup } from '../groups/policy.js';
-import { getMembershipGroupId } from '../groups/service.js';
 import { InvalidReminderError } from '../reminders/errors.js';
 import {
   getReminderSet,
@@ -42,6 +41,7 @@ import { canEditItem, canReadItem, canSetVisibility } from './policy.js';
 import { registerKnowledgeReminderSubject } from './reminder-subject.js';
 import { knowledgeAttachments, knowledgeItems } from './schema.js';
 import { buildSearchText, escapeLike, searchTerms } from './search.js';
+import { clientGroupIds } from '../groups/memberships.js';
 
 // The reminder endpoints and `getReminderSet` resolve items through this adapter.
 registerKnowledgeReminderSubject();
@@ -96,9 +96,9 @@ export class ValidationError extends Error {
 
 const SUBJECT = 'knowledge' as const;
 
-/** The actor's group for the policy checks; admins need none. */
+/** The actor's client groups for the policy checks; admins need none. */
 const actorGroupOf = (db: Db, actor: SessionUser) =>
-  isAdmin(actor) ? Promise.resolve(null) : getMembershipGroupId(db, actor.id);
+  isAdmin(actor) ? Promise.resolve([]) : clientGroupIds(db, actor.id);
 
 // ---------------------------------------------------------------------------------------------
 // Page query
@@ -227,7 +227,14 @@ async function mentionNames(
   const rows = await db
     .select({ id: user.id, name: user.name, role: user.role, groupId: groupMembers.groupId })
     .from(user)
-    .leftJoin(groupMembers, eq(groupMembers.userId, user.id))
+    .leftJoin(
+      groupMembers,
+      and(
+        eq(groupMembers.userId, user.id),
+        eq(groupMembers.role, 'client'),
+        isNull(groupMembers.removedAt),
+      ),
+    )
     .where(inArray(user.id, ids));
   for (const row of rows) {
     for (const [groupId, names] of byGroup) {
@@ -375,14 +382,14 @@ async function itemFiles(db: Db, id: string): Promise<FileRow[]> {
 
 /** The detail of a readable item; an unknown or unreadable one is KnowledgeNotFoundError. */
 export async function getItem(db: Db, actor: SessionUser, id: string): Promise<KnowledgeItemDto> {
-  const [rows, actorGroupId] = await Promise.all([
+  const [rows, actorGroupIds] = await Promise.all([
     db.execute<PageRow>(pageQuery(sql`k.id = ${id}`, 1, true)),
     actorGroupOf(db, actor),
   ]);
   const row = rows[0];
   if (!row) throw new KnowledgeNotFoundError();
   const item = { groupId: row.group_id, visibility: row.visibility, createdBy: row.created_by };
-  if (!canReadItem(actor, item, actorGroupId)) throw new KnowledgeNotFoundError();
+  if (!canReadItem(actor, item, actorGroupIds)) throw new KnowledgeNotFoundError();
   const body = row.body ?? '';
   const [names, fileRows, reminder] = await Promise.all([
     mentionNames(db, [{ groupId: row.group_id, body }]),
@@ -394,7 +401,7 @@ export async function getItem(db: Db, actor: SessionUser, id: string): Promise<K
     body,
     files: fileRows.map(toFileInfo),
     reminder,
-    canEdit: canEditItem(actor, item, actorGroupId),
+    canEdit: canEditItem(actor, item, actorGroupIds),
     visibilityLocked: row.author_role === 'client',
   };
 }
@@ -527,10 +534,10 @@ async function lockForWrite(tx: Db, actor: SessionUser, id: string): Promise<Loc
     where k.id = ${id} for update of k`);
   const row = rows[0];
   if (!row) throw new KnowledgeNotFoundError();
-  const actorGroupId = await actorGroupOf(tx, actor);
+  const actorGroupIds = await actorGroupOf(tx, actor);
   const item = { groupId: row.group_id, visibility: row.visibility, createdBy: row.created_by };
-  if (!canReadItem(actor, item, actorGroupId)) throw new KnowledgeNotFoundError();
-  if (!canEditItem(actor, item, actorGroupId)) throw new KnowledgeForbiddenError();
+  if (!canReadItem(actor, item, actorGroupIds)) throw new KnowledgeNotFoundError();
+  if (!canEditItem(actor, item, actorGroupIds)) throw new KnowledgeForbiddenError();
   return row;
 }
 

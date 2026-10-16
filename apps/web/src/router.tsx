@@ -14,7 +14,7 @@ import { ApiError } from '@/lib/api';
 import { groupQuery } from '@/features/groups/api';
 import { normalizeTypes, singleType, validateKnowledgeSearch } from '@/features/knowledge/search';
 import { safeRedirect } from '@/features/auth/redirect';
-import { isAdmin } from '@/features/auth/roles';
+import { clientGroups, isAdmin } from '@/features/auth/roles';
 import { sessionQuery } from '@/features/auth/use-session';
 import { RootError } from '@/routes/root-error';
 import { RootLayout } from '@/routes/root';
@@ -54,16 +54,18 @@ const authedRoute = createRoute({
 const homeRoute = createRoute({
   getParentRoute: () => authedRoute,
   path: '/',
-  // An admin's dashboard (Phase 20); a client goes to their group.
+  // An admin's dashboard (Phase 20); a client goes to their group, or picks one of several.
   beforeLoad: async ({ context }) => {
     const user = await context.queryClient.ensureQueryData(sessionQuery);
     if (!user) throw redirect({ to: '/login' });
     if (isAdmin(user)) return;
-    if (user.groupId)
+    const mine = clientGroups(user);
+    if (mine.length === 1)
       throw redirect({
         to: '/groups/$groupId/chat',
-        params: { groupId: user.groupId },
+        params: { groupId: mine[0]!.id },
       });
+    if (mine.length > 1) throw redirect({ to: '/my-groups' });
     throw redirect({ to: '/settings' });
   },
   component: lazyRouteComponent(
@@ -125,6 +127,16 @@ const groupsRoute = createRoute({
   component: lazyRouteComponent(
     withNamespaces(['groups', 'chat'], () => import('@/features/groups/groups-page')),
     'GroupsPage',
+  ),
+});
+
+/** A client's groups when they belong to more than one (Phase 21). */
+const myGroupsRoute = createRoute({
+  getParentRoute: () => authedRoute,
+  path: '/my-groups',
+  component: lazyRouteComponent(
+    withNamespaces(['groups', 'chat'], () => import('@/features/groups/my-groups-page')),
+    'MyGroupsPage',
   ),
 });
 
@@ -330,6 +342,7 @@ const routeTree = rootRoute.addChildren([
     adminsRoute,
     knowledgeRoute,
     groupsRoute,
+    myGroupsRoute,
     groupRoute.addChildren([
       groupIndexRoute,
       groupChatRoute.addChildren([]), // Phase 5 adds its child routes here

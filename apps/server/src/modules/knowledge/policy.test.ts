@@ -13,24 +13,24 @@ const hidden = { ...pub, visibility: 'admins' as const };
 
 describe('knowledge policy', () => {
   it('clients read public items of their group only', () => {
-    expect(canReadItem(actor('client'), pub, 'g1')).toBe(true);
-    expect(canReadItem(actor('client'), pub, 'g2')).toBe(false);
-    expect(canReadItem(actor('client'), pub, null)).toBe(false);
-    expect(canReadItem(actor('client'), hidden, 'g1')).toBe(false);
+    expect(canReadItem(actor('client'), pub, ['g1'])).toBe(true);
+    expect(canReadItem(actor('client'), pub, ['g2'])).toBe(false);
+    expect(canReadItem(actor('client'), pub, [])).toBe(false);
+    expect(canReadItem(actor('client'), hidden, ['g1'])).toBe(false);
   });
 
   it('admins read admins-only items', () => {
-    expect(canReadItem(actor('admin'), hidden, null)).toBe(true);
-    expect(canReadItem(actor('superadmin'), hidden, null)).toBe(true);
+    expect(canReadItem(actor('admin'), hidden, [])).toBe(true);
+    expect(canReadItem(actor('superadmin'), hidden, [])).toBe(true);
   });
 
   it('author and admins edit; another client cannot', () => {
-    expect(canEditItem(actor('client', 'author'), pub, 'g1')).toBe(true);
-    expect(canEditItem(actor('admin'), pub, null)).toBe(true);
-    expect(canEditItem(actor('admin'), hidden, null)).toBe(true);
-    expect(canEditItem(actor('client', 'other'), pub, 'g1')).toBe(false);
+    expect(canEditItem(actor('client', 'author'), pub, ['g1'])).toBe(true);
+    expect(canEditItem(actor('admin'), pub, [])).toBe(true);
+    expect(canEditItem(actor('admin'), hidden, [])).toBe(true);
+    expect(canEditItem(actor('client', 'other'), pub, ['g1'])).toBe(false);
     // The author in another group (moved out) cannot edit either.
-    expect(canEditItem(actor('client', 'author'), pub, 'g2')).toBe(false);
+    expect(canEditItem(actor('client', 'author'), pub, ['g2'])).toBe(false);
     expect(canDeleteItem).toBe(canEditItem);
   });
 

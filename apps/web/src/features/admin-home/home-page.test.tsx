@@ -133,7 +133,7 @@ function renderHome() {
     name: 'Vlad Herasymenko',
     email: 'v@x.sk',
     role: 'admin',
-    groupId: null,
+    groups: [],
   };
   queryClient.setQueryData(sessionQuery.queryKey, me);
   return renderWithRouter(

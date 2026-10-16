@@ -11,8 +11,14 @@ vi.mock('@/features/admin-home/admin-shell', () => {
   return { AdminSidebar: () => <aside>admin-sidebar</aside> };
 });
 
-const ADMIN: Me = { id: 'a1', name: 'Ada', email: 'a@x.sk', role: 'admin', groupId: null };
-const CLIENT: Me = { id: 'c1', name: 'Cyril', email: 'c@x.sk', role: 'client', groupId: 'g1' };
+const ADMIN: Me = { id: 'a1', name: 'Ada', email: 'a@x.sk', role: 'admin', groups: [] };
+const CLIENT: Me = {
+  id: 'c1',
+  name: 'Cyril',
+  email: 'c@x.sk',
+  role: 'client',
+  groups: [{ id: 'g1', name: 'Firma', role: 'client', hasLogo: false, updatedAt: '' }],
+};
 
 let wide = true;
 const original = window.matchMedia;

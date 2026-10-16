@@ -58,8 +58,8 @@ beforeAll(() => {
           active: true,
           authorId: row.createdBy,
           link: `/groups/${row.groupId}/knowledge?k=${row.id}`,
-          canRead: (actor, actorGroupId) =>
-            isAdmin(actor) || (!adminsOnly && actorGroupId === row.groupId),
+          canRead: (actor, actorGroupIds) =>
+            isAdmin(actor) || (!adminsOnly && actorGroupIds.includes(row.groupId)),
           canEdit: (actor) => isAdmin(actor) || actor.id === row.createdBy,
         });
       }
@@ -636,7 +636,8 @@ describe('task subjects (stand-alone edits)', () => {
             active: row.completedAt === null,
             authorId: row.createdBy,
             link: `/groups/${row.groupId}/tasks/${row.id}`,
-            canRead: (actor, actorGroupId) => isAdmin(actor) || actorGroupId === row.groupId,
+            canRead: (actor, actorGroupIds) =>
+              isAdmin(actor) || actorGroupIds.includes(row.groupId),
             canEdit: () => true,
           });
         }

@@ -15,7 +15,13 @@ import { LanguageSwitcher } from './language-switcher';
 function render(ui: ReactElement, signedIn = false) {
   // Fresh forever: the session is given, not fetched, so the only requests are the saves.
   const queryClient = new QueryClient({ defaultOptions: { queries: { staleTime: Infinity } } });
-  const me: Me = { id: 'u1', name: 'Eva', email: 'eva@example.com', role: 'client', groupId: 'g1' };
+  const me: Me = {
+    id: 'u1',
+    name: 'Eva',
+    email: 'eva@example.com',
+    role: 'client',
+    groups: [{ id: 'g1', name: 'Firma', role: 'client', hasLogo: false, updatedAt: '' }],
+  };
   queryClient.setQueryData(sessionQuery.queryKey, signedIn ? me : null);
   return rtlRender(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>);
 }

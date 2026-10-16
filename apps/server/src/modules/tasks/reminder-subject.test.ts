@@ -77,11 +77,11 @@ describe('the task reminder subject', () => {
   it('read follows canUseBoard', async () => {
     const { group, admin, client, taskId } = await setup();
     const info = (await taskReminderSubject.loadMany(db, [taskId])).get(taskId)!;
-    expect(info.canRead(client, group.id)).toBe(true);
-    expect(info.canRead(admin, null)).toBe(true);
+    expect(info.canRead(client, [group.id])).toBe(true);
+    expect(info.canRead(admin, [])).toBe(true);
     const other = await newGroup();
     const stranger = await newClient(other.id);
-    expect(info.canRead(stranger, other.id)).toBe(false);
+    expect(info.canRead(stranger, [other.id])).toBe(false);
     expect(info.canEdit(client)).toBe(true);
   });
 

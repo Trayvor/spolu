@@ -4,14 +4,14 @@ import { isAdmin } from '../users/policy.js';
 
 /**
  * A file is read by whoever reads its group, except a file of an admins-only knowledge item
- * (`adminsOnly`), which only admins read. `actorGroupId` comes from `getMembershipGroupId`.
+ * (`adminsOnly`), which only admins read. `actorGroupIds` comes from `clientGroupIds`.
  */
 export function canReadFile(
   actor: SessionUser,
   file: { groupId: string; adminsOnly: boolean },
-  actorGroupId: string | null,
+  actorGroupIds: readonly string[],
 ): boolean {
-  return canReadGroup(actor, file.groupId, actorGroupId) && (!file.adminsOnly || isAdmin(actor));
+  return canReadGroup(actor, file.groupId, actorGroupIds) && (!file.adminsOnly || isAdmin(actor));
 }
 
 /** Only the uploader sets the preview of a file. */

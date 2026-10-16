@@ -19,7 +19,7 @@ export type SubjectInfo = {
   dueDate?: string | null;
   /** App-relative URL of the subject, e.g. `/groups/g/knowledge?k=id`. */
   link: string;
-  canRead(actor: SessionUser, actorGroupId: string | null): boolean;
+  canRead(actor: SessionUser, actorGroupIds: readonly string[]): boolean;
   canEdit(actor: SessionUser): boolean;
 };
 

@@ -42,17 +42,18 @@ Today `group_members` has one row per client (`user_id` is the primary key) and 
 
 **Schema.**
 - `group_members`: primary key `(user_id, group_id)`; new `role text not null default 'client'` with check `role in ('client', 'ziadatel')`; new `removed_at timestamptz` (null = active). Indexes: `(group_id, role) where removed_at is null`, `(user_id) where removed_at is null`.
-- Migration keeps every existing row as `role = 'client'`. Today's removal of a client (user disabled) becomes `removed_at` on the membership: existing disabled clients get `removed_at = disabled_at` on their one membership, and `user.disabled_at` is reserved for admins and for accounts with no active membership left.
+- Migration keeps every existing row as `role = 'client'`; existing disabled clients get `removed_at = disabled_at` on their one membership. `user.disabled_at` stays set for accounts with no active membership left.
+- New table `pending_invites (user_id pk, group_id, created_at)`: the invite a person used before signing in.
 
 **Service (`groups/service.ts`).**
 - `getMembership(db, userId, groupId) → { role, removedAt } | null` and `listMemberships(db, userId) → [{ groupId, role }]` (active only). `getMembershipGroupId` is removed; every caller moves to one of these.
 - `addMembership(db, userId, groupId, role)`: insert, or update a ziadatel row to client (never client to ziadatel), or reactivate only when the caller is an admin restoring it.
 
-**Policy.** `canReadGroup(actor, groupId, membership)` = admin, or an active **client** membership in `groupId`. A ziadatel membership never opens the group (chat, tasks, knowledge, members all answer `404`). Every module policy that took `actorGroupId` now takes the membership of the group in question (one indexed lookup per request; routes already know the group).
+**Policy.** `canReadGroup(actor, groupId, actorGroupIds)` = admin, or `groupId` among the actor's active **client** memberships (`clientGroupIds`, one indexed query per request). A ziadatel membership never opens the group (chat, tasks, knowledge, members all answer `404`). Every module policy that took `actorGroupId` now takes `actorGroupIds`.
 
-**Removal.** "Remove from group" (Members tab) sets `removed_at` on that membership only, drops that group's room from the person's sockets and, when no active membership is left, signs them out everywhere (today's behaviour). Restore clears `removed_at`. A login code is refused only when the account has no active membership (or is disabled).
+**Removal.** "Remove from group" (Members tab) sets `removed_at` on that membership only and drops that group's room from the person's sockets; when no active membership is left the account is disabled and signed out everywhere (today's behaviour), so it gets no login code. Restore clears `removed_at` and re-enables the account.
 
-**Invites.** The invite flow adds a client membership to the group (or turns a ziadatel membership in it into client). The rule "a client belongs to exactly one group, other links do nothing" is dropped. The unverified-client rule stays: someone who never signed in follows the latest invite they used (their one unverified membership moves).
+**Invites.** The invite flow adds a client membership to the group (or turns a ziadatel membership in it into client). The rule "a client belongs to exactly one group, other links do nothing" is dropped. As built: typing an email on an invite only stores it as the person's pending invite (`pending_invites`, the latest wins); it becomes a membership when they sign in with the code sent to that email, so nobody can add someone else's account to a group by knowing the link and the email.
 
 **Realtime.** A client socket joins the rooms of all its active client groups, and `user:<id>`. Membership changes join or leave rooms live.
 

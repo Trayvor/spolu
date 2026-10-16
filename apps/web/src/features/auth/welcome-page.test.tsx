@@ -12,15 +12,15 @@ vi.mock('@/lib/socket', () => ({
   disconnectSocket: vi.fn(),
 }));
 
-type Me = { id: string; name: string; email: string; role: string; groupId: string | null };
+type Me = import('@spolu/shared').Me;
 const client = (name: string): Me => ({
   id: 'u1',
   name,
   email: 'jana@example.com',
   role: 'client',
-  groupId: 'g1',
+  groups: [{ id: 'g1', name: 'Firma', role: 'client', hasLogo: false, updatedAt: '' }],
 });
-const admin: Me = { id: 'a1', name: 'Eva', email: 'eva@example.com', role: 'admin', groupId: null };
+const admin: Me = { id: 'a1', name: 'Eva', email: 'eva@example.com', role: 'admin', groups: [] };
 
 function mockApi(me: Me | null, patchStatus = 200) {
   const patches: unknown[] = [];
@@ -142,7 +142,7 @@ describe('home redirect', () => {
   });
 
   it('a client without a group goes to /settings', async () => {
-    mockApi({ ...client('Jana'), groupId: null });
+    mockApi({ ...client('Jana'), groups: [] });
     const { router } = renderAt('/');
     await waitFor(() => expect(router.state.location.pathname).toBe('/settings'));
   });

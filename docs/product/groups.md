@@ -14,12 +14,14 @@ A group is one client (organization). It has a name, a logo and the client's eGr
   - an administrator can **copy the invite link** for a specific group;
   - a new user who registers through it automatically lands in that group;
   - the link is permanent until an admin generates a new one; the old link then stops working (404, "no longer valid");
-  - a client belongs to exactly one group: opening another group's link with an email that is already a client does nothing;
-  - a person who entered an email on an invite but never signed in follows the latest invite they used (a link cannot reserve someone else's email into a group); once they have signed in, other links do nothing;
-  - a removed client is blocked: the link sends them no code, and an admin can restore them.
+  - a client can belong to several groups (Phase 21): opening another group's link with the email of an existing client adds that group, but only after they sign in with the code sent to that email, so typing someone else's email never adds them anywhere;
+  - the invite is remembered until the person signs in, and the latest invite they used wins;
+  - a person who is a requester (`ziadatel`, Phase 21) in the group becomes its client the same way;
+  - a client removed from the group stays removed: the link does not bring them back, an admin restores them; a client whose every membership was removed is blocked and gets no code.
 - Group page: tabs Chat, Tasks, Knowledge (Phase 17, sk "Znalosti") and Members, in that order (Chat opens first). Knowledge is described in `knowledge-base.md`.
 - Members list (Members tab): the group shows its signed-in members (clients who have entered a code). Above them, "eGrant managers" lists the group's managers (avatar and name; "No eGrant manager yet." when there are none); admins also get the link "Change on the Groups page".
-- An admin can remove a client from a group and restore them from the removed list; a removed client loses sessions and sockets and gets no new code.
+- An admin can remove a client from a group and restore them from the removed list. The client loses only that group (its pages answer not found and its live events stop); when it was their last group they lose their sessions and sockets and get no new code.
+- A client of several groups has "My groups" (`/my-groups`) in the header (in the user menu under 641 px): their groups with logo, name and unread count. `/` takes a client with one group straight into it and a client of several groups to "My groups".
 - Global "All groups" section (admin only):
   - list of all groups and quick access to each;
   - create and edit a group (name, logo, client URL in eGrant);

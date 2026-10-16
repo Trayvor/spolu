@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link, useRouter } from '@tanstack/react-router';
-import type { SessionUser } from '@spolu/shared';
+import type { Me } from '@spolu/shared';
 import { useTranslation } from 'react-i18next';
 import {
   DropdownMenu,
@@ -11,7 +11,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { signOut } from './api';
-import { isAdmin } from './roles';
+import { clientGroups, isAdmin } from './roles';
 import { clearSession } from './use-session';
 
 /** First letters of the first two words of the name, upper-case ("Jana Nováková" gives "JN"). */
@@ -30,7 +30,7 @@ export function initials(name: string, email: string): string {
  * (name and email, not clickable) and "Log out". Under 641 px the header has no room for
  * the "Home", "Tasks", "Knowledge", "Groups" and "Admins" links, so admins get them here instead.
  */
-export function UserMenu({ user }: { user: SessionUser }) {
+export function UserMenu({ user }: { user: Me }) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const router = useRouter();
@@ -75,6 +75,11 @@ export function UserMenu({ user }: { user: SessionUser }) {
                 <Link to="/admins">{t('nav.admins')}</Link>
               </DropdownMenuItem>
             </>
+          )}
+          {!isAdmin(user) && clientGroups(user).length > 1 && (
+            <DropdownMenuItem asChild className="min-[641px]:hidden">
+              <Link to="/my-groups">{t('nav.myGroups')}</Link>
+            </DropdownMenuItem>
           )}
           <DropdownMenuSeparator />
           <DropdownMenuItem onSelect={() => logout.mutate()}>{t('user.logout')}</DropdownMenuItem>

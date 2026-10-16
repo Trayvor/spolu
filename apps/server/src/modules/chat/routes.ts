@@ -15,7 +15,7 @@ import { InvalidAttachmentError } from '../files/service.js';
 import { requireUser } from '../auth/session.js';
 import { isAdmin } from '../users/policy.js';
 import { canReadGroup } from '../groups/policy.js';
-import { getGroup, getMembershipGroupId } from '../groups/service.js';
+import { getGroup } from '../groups/service.js';
 import { getTaskRef } from '../tasks/task-service.js';
 import { emitMessage, emitRead, emitThreadReply } from './events.js';
 import {
@@ -53,6 +53,7 @@ import {
   TaskGoneError,
   type ChannelRow,
 } from './service.js';
+import { clientGroupIds } from '../groups/memberships.js';
 
 type IdParams = { Params: { id: string } };
 
@@ -91,8 +92,8 @@ export const chatRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { d
     // A malformed id cannot exist; checking first keeps NUL and the like away from Postgres.
     const channel = ID_RE.test(channelId) ? await getChannel(db, channelId) : null;
     if (channel) {
-      const actorGroupId = isAdmin(actor) ? null : await getMembershipGroupId(db, actor.id);
-      if (canReadChannel(actor, channel, actorGroupId)) return channel;
+      const actorGroupIds = isAdmin(actor) ? [] : await clientGroupIds(db, actor.id);
+      if (canReadChannel(actor, channel, actorGroupIds)) return channel;
     }
     notFound(reply);
     return null;
@@ -123,7 +124,7 @@ export const chatRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { d
     const actor = request.user!;
     const { id } = request.params;
     if (!ID_RE.test(id)) return notFound(reply);
-    if (!canReadGroup(actor, id, await getMembershipGroupId(db, actor.id))) return notFound(reply);
+    if (!canReadGroup(actor, id, await clientGroupIds(db, actor.id))) return notFound(reply);
     if (!(await getGroup(db, id))) return notFound(reply);
     return channelInfo(actor.id, await ensureGroupChannel(db, id));
   });
@@ -133,7 +134,7 @@ export const chatRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { d
     const actor = request.user!;
     const { id } = request.params;
     if (!ID_RE.test(id)) return notFound(reply);
-    if (!canReadGroup(actor, id, await getMembershipGroupId(db, actor.id))) return notFound(reply);
+    if (!canReadGroup(actor, id, await clientGroupIds(db, actor.id))) return notFound(reply);
     if (!(await getGroup(db, id))) return notFound(reply);
     return taskChatSummaries(db, actor.id, id);
   });
@@ -145,7 +146,7 @@ export const chatRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { d
     if (!ID_RE.test(id)) return notFound(reply);
     const task = await getTaskRef(db, id);
     if (!task) return notFound(reply);
-    if (!canReadGroup(actor, task.groupId, await getMembershipGroupId(db, actor.id))) {
+    if (!canReadGroup(actor, task.groupId, await clientGroupIds(db, actor.id))) {
       return notFound(reply);
     }
     try {
@@ -358,8 +359,8 @@ export const chatRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { d
   app.get('/chat/unread', { preHandler: anyUser }, async (request) => {
     const actor = request.user!;
     if (isAdmin(actor)) return unreadByGroup(db, actor.id, null);
-    // unreadByGroup checks no permissions: a client only ever asks for their own group.
-    const groupId = await getMembershipGroupId(db, actor.id);
-    return groupId === null ? {} : unreadByGroup(db, actor.id, groupId);
+    // unreadByGroup checks no permissions: a client only ever asks for their own client groups.
+    const groupIds = await clientGroupIds(db, actor.id);
+    return groupIds.length === 0 ? {} : unreadByGroup(db, actor.id, groupIds);
   });
 };

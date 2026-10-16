@@ -42,8 +42,14 @@ vi.mock('@/features/chat/api', async (importOriginal) => ({
 
 const t = (key: string, options?: Record<string, unknown>) => i18n.t(key, options);
 
-const ADMIN = { id: 'a1', name: 'Jana', email: 'j@example.com', role: 'admin', groupId: null };
-const CLIENT = { id: 'c1', name: 'Klient', email: 'k@example.com', role: 'client', groupId: 'g1' };
+const ADMIN = { id: 'a1', name: 'Jana', email: 'j@example.com', role: 'admin', groups: [] };
+const CLIENT = {
+  id: 'c1',
+  name: 'Klient',
+  email: 'k@example.com',
+  role: 'client',
+  groups: [{ id: 'g1', name: 'Firma', role: 'client', hasLogo: false, updatedAt: '' }],
+};
 const GROUP = {
   id: 'g1',
   name: 'Acme',
