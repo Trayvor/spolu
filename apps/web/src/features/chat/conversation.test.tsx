@@ -446,6 +446,22 @@ describe('Conversation', () => {
     }
   });
 
+  it('a visible window without focus is not marked read until it gets focus', async () => {
+    // A desktop browser behind another app is still "visible"; reading it there would stop the push.
+    const focus = vi.spyOn(document, 'hasFocus').mockReturnValue(false);
+    try {
+      renderAt('/groups/g1/chat');
+      await screen.findByText('text of m3');
+      await wait(1300);
+      expect(readCalls()).toHaveLength(0);
+      focus.mockReturnValue(true);
+      act(() => window.dispatchEvent(new Event('focus')));
+      await waitFor(() => expect(readCalls()).toHaveLength(1), { timeout: 2000 });
+    } finally {
+      focus.mockRestore();
+    }
+  });
+
   describe('unread thread replies', () => {
     const summary = (scope: HTMLElement) =>
       within(row(scope, 'm2')!).getByRole('button', { name: /2 replies/ });

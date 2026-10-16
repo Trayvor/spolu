@@ -9,7 +9,7 @@ import type { MessageAction } from './message-item';
 import { MessageList } from './message-list';
 import { HIGHLIGHT_MS, ThreadPanel } from './thread-panel';
 import { useChannelMessages } from './use-channel-messages';
-import { useDocumentVisible } from './use-document-visible';
+import { useDocumentAttended } from './use-document-attended';
 import { useChatSearch } from './use-chat-search';
 import { useUnreadThreads } from './use-unread-threads';
 
@@ -60,8 +60,8 @@ export function Conversation({
   const chat = useChannelMessages(channelId, { groupId, aroundMessageId: linked });
   const { window: win, markRead, jumpToLatest, send, around } = chat;
   const column = useRef<HTMLDivElement>(null);
-  const visible = useDocumentVisible();
-  // The open thread is read while the page is visible.
+  const visible = useDocumentAttended();
+  // The open thread is read while the reader is in front of the page (visible and focused).
   const unreadThreads = useUnreadThreads(channelId, groupId, visible ? threadId : undefined);
   // Below 1024 px (or always, in `over` mode) an open thread covers the list.
   const wide = useMediaQuery('(min-width: 1024px)');
