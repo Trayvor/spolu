@@ -400,6 +400,42 @@ export async function buildIcs(
   };
 }
 
+/** Counts stop here (the dashboard shows "99+"). */
+export const UPCOMING_COUNT_CAP = 100;
+
+/**
+ * How many unfired reminder times the actor has in `[from, to)` across groups (a client: only in
+ * their current group), at most `UPCOMING_COUNT_CAP`. One query (a client: two), for the
+ * dashboard's count.
+ * Unlike `listUpcomingForUser` it does not check each subject's readability: the dashboard is for
+ * admins, who read every subject.
+ */
+export async function countUpcomingForUser(
+  db: Db,
+  actor: SessionUser,
+  range: { from: Date; to: Date },
+): Promise<number> {
+  const actorGroupId = isAdmin(actor) ? null : await getMembershipGroupId(db, actor.id);
+  if (!isAdmin(actor) && actorGroupId === null) return 0;
+  const onlyGroup = actorGroupId === null ? sql`` : sql`and s.group_id = ${actorGroupId}`;
+  const rows = await db.execute<{ n: number }>(sql`
+    select count(*)::int as n
+    from (
+      select 1
+      from reminder_recipients r
+      join reminder_sets s on s.id = r.set_id
+      join reminder_times t on t.set_id = s.id
+      where r.user_id = ${actor.id}
+        and t.fired_at is null
+        and t.at >= ${range.from.toISOString()}::timestamptz
+        and t.at < ${range.to.toISOString()}::timestamptz
+        ${onlyGroup}
+      limit ${UPCOMING_COUNT_CAP}
+    ) capped
+  `);
+  return [...rows][0]?.n ?? 0;
+}
+
 /**
  * The actor's next unfired reminder times (`>= from`, default now) across groups, earliest first:
  * one query, then one `loadMany` per kind; subjects the actor can no longer read are dropped, so

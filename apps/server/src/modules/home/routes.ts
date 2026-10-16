@@ -1,8 +1,10 @@
 import type { FastifyPluginAsync } from 'fastify';
+import { HOME_LIMITS, type HomeReminders } from '@spolu/shared';
 import type { AppDeps } from '../../deps.js';
 import { requireAdmin } from '../auth/session.js';
 import { getAssignedTasks } from './assigned.js';
 import { getMentions } from './mentions.js';
+import { getReminderSource } from './reminder-source.js';
 import { getSidebar } from './sidebar.js';
 
 export type HomeRoutesOptions = {
@@ -16,8 +18,9 @@ export type HomeRoutesOptions = {
  * Read-only, admins only (`requireAdmin`: clients get 403); admins read every group, so no
  * further permission filter applies.
  */
-export const homeRoutes: FastifyPluginAsync<HomeRoutesOptions> = async (app, { deps }) => {
-  const { db } = deps;
+export const homeRoutes: FastifyPluginAsync<HomeRoutesOptions> = async (app, options) => {
+  const { db } = options.deps;
+  const now = options.now ?? (() => new Date());
   const adminOnly = requireAdmin(app.auth);
 
   app.get('/me/home/sidebar', { preHandler: adminOnly }, async (request) =>
@@ -30,5 +33,27 @@ export const homeRoutes: FastifyPluginAsync<HomeRoutesOptions> = async (app, { d
 
   app.get('/me/home/mentions', { preHandler: adminOnly }, async (request) =>
     getMentions(db, request.user!.id),
+  );
+
+  app.get(
+    '/me/home/reminders',
+    { preHandler: adminOnly },
+    async (request): Promise<HomeReminders> => {
+      const source = getReminderSource();
+      if (!source) return { available: false };
+      const actor = request.user!;
+      const from = now();
+      try {
+        const [items, nextWeek] = await Promise.all([
+          source.upcoming(db, actor, { from, limit: HOME_LIMITS.reminders }),
+          source.countNextWeek(db, actor, from),
+        ]);
+        return { available: true, nextWeek, items };
+      } catch (error) {
+        // One card's failure never breaks the dashboard: the card shows its error line.
+        request.log.error({ err: error }, 'the reminder source failed');
+        return { available: true, nextWeek: 0, items: [], error: true };
+      }
+    },
   );
 };

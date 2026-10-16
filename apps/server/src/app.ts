@@ -8,6 +8,7 @@ import { authRoutes } from './modules/auth/routes.js';
 import { chatRoutes } from './modules/chat/routes.js';
 import { filesRoutes } from './modules/files/routes.js';
 import { joinRoutes } from './modules/groups/join-routes.js';
+import { registerReminderSource } from './modules/home/reminder-source.js';
 import { homeRoutes } from './modules/home/routes.js';
 import { groupsRoutes } from './modules/groups/routes.js';
 import { registerKnowledgeReminderSubject } from './modules/knowledge/reminder-subject.js';
@@ -15,9 +16,12 @@ import { createRateLimiter } from './infra/http/rate-limit.js';
 import { knowledgeRoutes } from './modules/knowledge/routes.js';
 import { notificationsRoutes } from './modules/notifications/routes.js';
 import { remindersRoutes } from './modules/reminders/routes.js';
+import { countUpcomingForUser, listUpcomingForUser } from './modules/reminders/service.js';
 import { systemRoutes } from './modules/system/routes.js';
 import { tasksRoutes } from './modules/tasks/routes.js';
 import { usersRoutes } from './modules/users/routes.js';
+
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
 /** Builds the HTTP app and attaches Socket.IO (`app.io`); `app.close()` closes both. */
 export async function buildApp(
@@ -71,6 +75,12 @@ export async function buildApp(
     allowWrite: allowKnowledgeWrite,
   });
 
+  // The dashboard's reminders card reads the reminders module through this slot (Phase 20).
+  registerReminderSource({
+    upcoming: (db, actor, opts) => listUpcomingForUser(db, actor, opts),
+    countNextWeek: (db, actor, from) =>
+      countUpcomingForUser(db, actor, { from, to: new Date(from.getTime() + WEEK_MS) }),
+  });
   await app.register(homeRoutes, { prefix: '/api', deps });
 
   registerNotFound(app);
