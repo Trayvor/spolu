@@ -1,5 +1,9 @@
 {
   "fields": {},
   "panel": {},
-  "time": {}
+  "time": {
+    "today": "Today, {{time}}",
+    "tomorrow": "Tomorrow, {{time}}",
+    "dayTime": "{{day}}, {{time}}"
+  }
 }

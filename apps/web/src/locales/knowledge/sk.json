@@ -14,8 +14,20 @@
     "public": "Všetci v skupine",
     "admins": "Len eGrant"
   },
-  "list": {},
-  "row": {},
+  "list": {
+    "loadMore": "Načítať viac",
+    "loading": "Načítava sa…",
+    "error": "Zoznam sa nepodarilo načítať. Skúste to znova."
+  },
+  "row": {
+    "open": "Otvoriť {{title}}",
+    "done": "Hotovo",
+    "moreTimes": "a ešte {{count}}",
+    "files_one": "{{count}} priložený súbor",
+    "files_few": "{{count}} priložené súbory",
+    "files_many": "{{count}} priloženého súboru",
+    "files_other": "{{count}} priložených súborov"
+  },
   "form": {},
   "detail": {},
   "tab": {},
