@@ -170,6 +170,9 @@ export function MessageList({
     const row = kept && el.querySelector<HTMLElement>(`[data-message-id="${CSS.escape(kept.id)}"]`);
     if (kept && row) el.scrollTop = row.offsetTop - kept.offset;
     anchor.current = captureAnchor(el);
+    // Runs when rows arrive or leave at an end. The opening reads highlightId and the unread
+    // anchor once; a later change of either must not move the reader.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [firstId, lastId, pending.length, win.loaded, endSignal]);
 
   /**
