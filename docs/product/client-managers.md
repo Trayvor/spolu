@@ -21,7 +21,7 @@ An administrator can be a **manager** of a client group: one of the eGrant peopl
 
 ## Status
 
-Built in Phase 18. The migration seeds managers: each active admin becomes a manager of the groups where they are assigned to an open task or wrote in a chat in the last 60 days. Their notification modes are not touched by the seed. An end-to-end test (`e2e/managers.spec.ts`) covers two admins and a client.
+Built in Phase 18. The migration seeds managers: each active admin becomes a manager of the groups where they are assigned to an open task or wrote in a chat in the last 60 days. Their notification modes are not touched by the seed. An end-to-end test (`e2e/managers.spec.ts`) covers two admins and a client. Phase 22a added setting any admin as a manager from the group's Members tab (`PUT`/`DELETE /api/groups/:id/managers/:userId`), covered by a second test in the same file.
 
 ## Phase
 
