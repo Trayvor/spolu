@@ -35,7 +35,8 @@ const base = {
   // EMAIL_DRIVER or BULK_EMAIL_DRIVER is `elastic`.
   ELASTIC_EMAIL_API_KEY: z.string().min(1).optional(),
   MAIL_FROM_BULK: z.string().min(1).optional(),
-  BULK_EMAIL_DRIVER: z.enum(['smtp', 'elastic']).default('smtp'),
+  // Unset: the same as EMAIL_DRIVER, so a server already on elastic keeps starting.
+  BULK_EMAIL_DRIVER: z.enum(['smtp', 'elastic']).optional(),
   BULK_EMAIL_PER_MINUTE: z.coerce.number().int().min(1).default(120),
   BULK_EMAIL_UNSUBSCRIBE: z.enum(['elastic', 'spolu']).default('elastic'),
 };
@@ -186,11 +187,12 @@ function bulkEmailConfig(e: {
   ELASTIC_EMAIL_API_KEY?: string | undefined;
   MAIL_FROM: string;
   MAIL_FROM_BULK?: string | undefined;
-  BULK_EMAIL_DRIVER: 'smtp' | 'elastic';
+  BULK_EMAIL_DRIVER?: 'smtp' | 'elastic' | undefined;
   BULK_EMAIL_UNSUBSCRIBE: 'elastic' | 'spolu';
 }): Config['bulkEmail'] {
   const from = e.MAIL_FROM_BULK ?? e.MAIL_FROM;
-  if (e.BULK_EMAIL_DRIVER === 'smtp') {
+  const driver = e.BULK_EMAIL_DRIVER ?? e.EMAIL_DRIVER;
+  if (driver === 'smtp') {
     // The smtp bulk driver reuses the transactional SMTP settings; with EMAIL_DRIVER=elastic
     // there are none.
     if (e.EMAIL_DRIVER !== 'smtp') throw new ConfigError(['BULK_EMAIL_DRIVER']);

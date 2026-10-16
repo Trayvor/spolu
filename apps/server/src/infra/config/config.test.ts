@@ -304,8 +304,19 @@ describe('loadConfig: bulk email', () => {
     });
   });
 
+  it('BULK_EMAIL_DRIVER defaults to EMAIL_DRIVER, so a server on elastic keeps starting', () => {
+    const config = loadConfig({ ...validEnv, EMAIL_DRIVER: 'elastic', ELASTIC_EMAIL_API_KEY: 'k' });
+    expect(config.bulkEmail).toMatchObject({ driver: 'elastic', apiKey: 'k' });
+    expect(loadConfig(validEnv).bulkEmail).toMatchObject({ driver: 'smtp' });
+  });
+
   it('BULK_EMAIL_DRIVER=smtp with EMAIL_DRIVER=elastic is a ConfigError', () => {
-    const error = errorOf({ ...validEnv, EMAIL_DRIVER: 'elastic', ELASTIC_EMAIL_API_KEY: 'k' });
+    const error = errorOf({
+      ...validEnv,
+      EMAIL_DRIVER: 'elastic',
+      ELASTIC_EMAIL_API_KEY: 'k',
+      BULK_EMAIL_DRIVER: 'smtp',
+    });
     expect(error.variables).toEqual(['BULK_EMAIL_DRIVER']);
     expect(error.message).not.toContain('k,');
   });
