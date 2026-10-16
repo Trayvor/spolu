@@ -196,8 +196,10 @@ describe('audience', () => {
     const withAdmins = audience({ ...a, roles: ['client', 'admin'] });
     const rows = await resolveAudience(db, withAdmins);
     expect(rows.filter((r) => r.userId === admin.id)).toHaveLength(1);
-    const people = await listAudience(db, withAdmins);
-    expect(people.items.filter((p) => p.id === admin.id)).toHaveLength(1);
+    // Every admin of the shared test database matches `withAdmins`: list the scoped audience.
+    const people = await listAudience(db, a);
+    expect(people.items.map((p) => p.id)).toEqual([admin.id]);
+    expect(people.items[0]).toMatchObject({ role: 'admin', groups: ['Firma', 'Firma'] });
   });
 
   it('disabled and unsubscribed people are left out and counted per reason', async () => {
