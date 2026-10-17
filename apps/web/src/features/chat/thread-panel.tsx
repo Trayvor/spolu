@@ -299,6 +299,7 @@ export function ThreadPanel({
         <Composer
           mode="thread"
           groupId={groupId}
+          channelId={channelId}
           // Files dropped on this panel go to the thread; the main composer owns the chat column.
           dropTarget={panel}
           replyTo={replyTo ? { message: replyTo, onCancel: () => setReplyTo(null) } : undefined}

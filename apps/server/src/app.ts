@@ -4,6 +4,7 @@ import type { AppDeps } from './deps.js';
 import { attachSocket } from './infra/realtime/socket.js';
 import { createAuth, type Auth } from './modules/auth/auth.js';
 import { aiRoutes } from './modules/ai/routes.js';
+import { textToolRoutes } from './modules/ai/text-routes.js';
 import { bulkEmailRenderRoutes } from './modules/bulk-email/render-routes.js';
 import { authRoutes } from './modules/auth/routes.js';
 import { attachBulkRealtime } from './modules/bulk-email/events.js';
@@ -86,6 +87,7 @@ export async function buildApp(
   await app.register(chatRoutes, { prefix: '/api', deps });
   await app.register(notificationsRoutes, { prefix: '/api', deps });
   await app.register(aiRoutes, { prefix: '/api', deps });
+  await app.register(textToolRoutes, { prefix: '/api', deps });
   await app.register(ticketsRoutes, { prefix: '/api', deps });
   await app.register(bulkEmailRoutes, { prefix: '/api', deps });
   await app.register(bulkEmailRenderRoutes, { prefix: '/api', deps });
