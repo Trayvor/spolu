@@ -184,14 +184,16 @@ describe('group layout', () => {
     expect(await screen.findByText('Petr')).toBeInTheDocument();
   });
 
-  it('the admin group: Chat, Tasks, Knowledge, no Tickets or Members, no link (Phase 34)', async () => {
+  it('the admin group: Overview, Chat, Tasks, Knowledge, no Tickets or Members, no link (Phase 34)', async () => {
     mockApi({ admin: true, me: { ...ADMIN, finance: true } });
     renderGroup('/groups/g1/chat');
     const nav = await screen.findByRole('navigation', { name: t('group.tabs.label') });
     const names = within(nav)
       .getAllByRole('link')
       .map((link) => link.getAttribute('href'));
+    // Its own projects too (Phase 34 spec): the Overview pill stays.
     expect(names).toEqual([
+      '/groups/g1/overview',
       '/groups/g1/chat',
       '/groups/g1/tasks',
       '/groups/g1/knowledge',

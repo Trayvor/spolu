@@ -267,6 +267,13 @@
       "when": 1792267833965,
       "tag": "0037_admin_group",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1792269239356,
+      "tag": "0038_projects_foundation",
+      "breakpoints": true
     }
   ]
 }

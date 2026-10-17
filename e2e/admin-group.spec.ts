@@ -22,7 +22,13 @@ test('admins share "eGrant tím"; a client never reaches it; it holds no tickets
 
   const tabs = admin.getByRole('navigation', { name: 'Časti skupiny' });
   // The e2e superadmin holds the finance right, so Financie is there too (Phase 34 P34-E fills it).
-  await expect(tabs.getByRole('link')).toHaveText([/^Chat/, /^Úlohy/, /^Znalosti/, /^Financie/]);
+  await expect(tabs.getByRole('link')).toHaveText([
+    /^Prehľad/,
+    /^Chat/,
+    /^Úlohy/,
+    /^Znalosti/,
+    /^Financie/,
+  ]);
   await expect(tabs.getByRole('link', { name: 'Tikety' })).toHaveCount(0);
   await expect(tabs.getByRole('link', { name: 'Členovia' })).toHaveCount(0);
   // No Tickets or Members screen even by address.

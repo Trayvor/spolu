@@ -19,6 +19,7 @@ Requirements for Spolu, one topic per file. The product is shown to users as "He
 | [tickets.md](tickets.md) | tickets from eGrant, clients and admins, statuses, ticket chat, riešitelia and watching | 21 |
 | [solve-with-claude.md](solve-with-claude.md) | admins open a ticket or task in Claude with its context and the eGrant MCP instructions | 29 |
 | [contracts.md](contracts.md) | admin-only contracts, next-contract draft, reminders, global list (to be replaced by Finance, spec decision 3) | 14, 15 |
+| [projects.md](projects.md) | projects and dated events per client, the Prehľad tab; later the timeline, eGrant projects and filters | 33 |
 | [finance.md](finance.md) | Finance (Finančná správa): the finance right, the client tab and `/finance`, time on tasks and tickets, contracts, work log, rates | 32 |
 | [bulk-email.md](bulk-email.md) | admins' bulk email: campaigns, drafts, audience rules, unsubscribe, report | 23 |
 | [notifications.md](notifications.md) | notification groups, modes per group, push and email channels | 6 (and 7, 15, 21) |

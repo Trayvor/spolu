@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { MessageAttachedTaskSchema } from './chat.js';
 import { FileInfoSchema } from './files.js';
+import { EventRefSchema, ProjectRefSchema } from './projects/common.js';
 import { isHttpUrl } from './urls.js';
 
 export const BucketKindSchema = z.enum([
@@ -51,6 +52,9 @@ const linkField = z
   .refine((value) => value === null || isHttpUrl(value))
   .nullable();
 
+/** A project's or event's id in a body (Phase 33); null clears it. */
+const projectIdField = z.string().min(1).max(100).nullable();
+
 /** The editable content of a task; the create endpoint and the task form share it. */
 export const TaskDraftSchema = z.object({
   title: titleField,
@@ -60,6 +64,9 @@ export const TaskDraftSchema = z.object({
   urgent: z.boolean().default(false),
   fileIds: fileIdsField.default([]),
   link: linkField.default(null),
+  /** The project and event (Phase 33 part P2; optional, absent = none). */
+  projectId: projectIdField.optional(),
+  eventId: projectIdField.optional(),
 });
 export type TaskDraft = z.output<typeof TaskDraftSchema>;
 
@@ -75,6 +82,9 @@ export const TaskPatchSchema = z.object({
   urgent: z.boolean().optional(),
   fileIds: fileIdsField.optional(),
   link: linkField.optional(),
+  /** Phase 33 part P2: absent leaves them; `projectId: null` clears both. */
+  projectId: projectIdField.optional(),
+  eventId: projectIdField.optional(),
   /** `updatedAt` of the version being edited; a stale value answers 409 `task_changed`. */
   updatedAt: z.iso.datetime({ offset: true }),
 });
@@ -113,6 +123,9 @@ export const TaskDtoSchema = z.object({
   /** Unfired custom reminder times (Phase 19): the board card's bell. */
   upcomingReminders: z.number().int(),
   sourceMessageId: z.string().nullable(),
+  /** The task's project and event (Phase 33); null until part P2 sets them. */
+  project: ProjectRefSchema.nullable(),
+  event: EventRefSchema.nullable(),
   createdAt: z.string(),
   updatedAt: z.string(),
 });

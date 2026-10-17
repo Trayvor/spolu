@@ -38,7 +38,7 @@ Requirements per module: [product/](product/README.md). Phases after 1 get their
 | 29 | [Solve with AI](#phase-29--solve-with-ai) | done | 21 | [spec](superpowers/specs/2026-10-17-phase-29-open-in-claude-design.md) |
 | 31 | [Bulk email builder v2](#phase-31--bulk-email-builder-v2) | in progress (v2 merged in PR #59; layout follow-up in review) | 23 | [spec](superpowers/specs/2026-10-17-phase-31-bulk-email-builder-v2-design.md), [plan](superpowers/plans/2026-10-17-phase-31-bulk-email-builder-v2.md), [layout spec](superpowers/specs/2026-10-17-bulk-email-builder-layout-design.md) |
 | 32 | [Finančná správa](#phase-32--finančná-správa) | done | 17, 19, 20, 24 | [spec](superpowers/specs/2026-10-17-finance-module-design.md), [plan](superpowers/plans/2026-10-17-finance-module.md) |
-| 33 | [Projects per client and closer eGrant integration](#phase-33--projects-per-client-and-closer-egrant-integration) | spec approved | 32 (P6 only), 28 | [spec](superpowers/specs/2026-10-17-phase-33-projects-design.md), [plan](superpowers/plans/2026-10-17-phase-33-projects.md) |
+| 33 | [Projects per client and closer eGrant integration](#phase-33--projects-per-client-and-closer-egrant-integration) | in progress | 32 (P6 only), 28 | [spec](superpowers/specs/2026-10-17-phase-33-projects-design.md), [plan](superpowers/plans/2026-10-17-phase-33-projects.md) |
 | 34 | [Internal admin group](#phase-34--internal-admin-group) | in progress (P34-B done) | 33, 32 (P34-E only), 28 | [spec](superpowers/specs/2026-10-17-phase-34-admin-group-design.md), [plan](superpowers/plans/2026-10-17-phase-34-admin-group.md) |
 
 Phases 8 and 14 do not depend on each other, so their order can change by priority.
@@ -481,7 +481,9 @@ Final eGrant API:
 - Projects arrive by their own webhook `PUT /api/egrant/projects/:project_id`, which creates and updates them. It carries the name, the description and the full events list with `dd.mm.yyyy` dates; there are no event ids.
 - The ticket intake sends only `project_id`. It links the new ticket to its project, now or when the project arrives. It never sets an event, and eGrant never updates a ticket.
 
-The API is planned in [the integration guide](integrations/egrant-ticket-intake.md#projects-planned). Ready to start with P1.
+The API is planned in [the integration guide](integrations/egrant-ticket-intake.md#projects-planned).
+
+**Part P1 (foundation) done** on `feat/projects-foundation`: migration 0038 with every table of the phase (projects, events, files, name keys, eGrant changes and inbox, `knowledge_links`, the task and ticket columns with composite FKs, [ADR 0030](decisions/0030-projects-composite-keys-and-egrant-matching.md)), the policy, the projects API with name keys and aliases, the shared types of every part, the stubs of P2–P5, and the Prehľad tab with the projects card, the project sheet and the project and event dialogs; see [projects.md](product/projects.md#foundation-part-p1). Merge is part P3's. Next: P2, P3, P4, P5 in parallel. Owner to check after the merge on https://help.egrant.sk: in a client group open **Prehľad** (the first pill), create a project with a file, add two events in its sheet, then as a client of that group add a third event and archive the project (it moves to **Archivované**); a client of another group gets "Stránka sa nenašla" for the tab.
 
 Done when: eGrant's project call creates a client's project with its events and later changes wait for review, a ticket with its `project_id` lands in that project by itself, an admin puts it and a task on an event, the client and the admin browse the project's life on the timeline with Today marked, both tabs filter by the project, every description field offers AI, voice and knowledge, and a finance admin sees the project's cost.
 

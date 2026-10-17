@@ -19,6 +19,9 @@ export async function insertTask(
     urgent?: boolean;
     done?: boolean;
     assignees?: string[];
+    /** Phase 33: the task's project and event (until part P2 sets them through the service). */
+    projectId?: string | null;
+    eventId?: string | null;
   },
 ): Promise<string> {
   await ensureBoard(db, opts.groupId);
@@ -39,6 +42,8 @@ export async function insertTask(
     dueDate: opts.dueDate ?? null,
     urgent: opts.urgent ?? false,
     completedAt: opts.done ? at : null,
+    projectId: opts.projectId ?? null,
+    eventId: opts.eventId ?? null,
     createdAt: at,
     updatedAt: at,
   });

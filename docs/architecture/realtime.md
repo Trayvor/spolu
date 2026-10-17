@@ -161,6 +161,14 @@ sequenceDiagram
 
 The catch-up read is an ordinary HTTP read, so it uses the same permission checks as everything else.
 
+## Project events (Phase 33)
+
+| event | payload | room | when |
+|---|---|---|---|
+| `project:changed` | `{ groupId, projectId, kind: 'project' \| 'event' \| 'egrant' }` | `group:<id>` | after a project or event write commits (`emitProjectChanged`, `modules/projects/events.ts`): create, edit, archive, restore, delete, alias removal (kind `project`); an event's create, edit, delete (kind `event`); part P3 adds kind `egrant` after a delivery or a review changed pending changes |
+
+The web's `useProjectEvents(groupId)` (the Prehľad tab) invalidates every `['projects', groupId, …]` query 2 s after the last event of a burst; the writer's own screen refetches at once. Task and ticket events are unchanged: their DTOs carry `project` and `event`.
+
 ## Finance events (Phase 32)
 
 | event | payload | room | when |

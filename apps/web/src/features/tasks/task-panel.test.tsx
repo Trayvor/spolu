@@ -98,6 +98,8 @@ const card = (id: string, bucketId: string): TaskDto => ({
   fileCount: 0,
   upcomingReminders: 0,
   sourceMessageId: null,
+  project: null,
+  event: null,
   createdAt: '2026-10-15T10:00:00.000Z',
   updatedAt: '2026-10-15T10:00:00.000Z',
 });
