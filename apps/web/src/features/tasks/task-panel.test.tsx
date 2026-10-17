@@ -647,7 +647,9 @@ describe('TaskPanel in create mode', () => {
     renderPanel(NEW);
     expect(await titleField()).toHaveValue('');
     expect(screen.getByRole('heading', { name: t('tasks.panel.newTask') })).toBeInTheDocument();
-    expect(screen.getByLabelText(t('tasks.form.description'))).toHaveValue('');
+    expect(
+      await screen.findByRole('textbox', { name: t('tasks.form.description') }),
+    ).toHaveTextContent('');
     expect(screen.getByRole('combobox', { name: t('tasks.form.assignees') })).toBeInTheDocument();
     expect(screen.getByLabelText(t('tasks.form.deadline'))).toBeInTheDocument();
     expect(screen.getByRole('switch', { name: t('tasks.form.urgent') })).toBeInTheDocument();

@@ -62,7 +62,12 @@ describe('knowledge attached to descriptions (Phase 33 part P5)', () => {
   async function item(
     groupId: string,
     cookie: string,
-    draft: { title: string; visibility?: 'public' | 'admins'; fileIds?: string[] } & object,
+    draft: {
+      title: string;
+      visibility?: 'public' | 'admins';
+      fileIds?: string[];
+      knowledgeIds?: string[];
+    },
   ) {
     const res = await call('POST', `/api/groups/${groupId}/knowledge`, cookie, {
       type: 'note',

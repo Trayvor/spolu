@@ -106,6 +106,12 @@ Phase 17 (the tab, the four types, visibility, the global list; reminders from `
 - The last filters (clients, types, chat files; not the search) are kept in the browser per admin and restored when the admin opens `/knowledge` without filters; each group's Knowledge tab remembers its types and chat files the same way. Reset clears them. Blocked storage is ignored. See non-functional.md, "Lists remember their filters".
 - No live updates: the list refetches when the window regains focus and when the page opens.
 
+## Items attached to descriptions (Phase 33 part P5)
+
+- An item's body (note, reminder, file and link description, meeting notes) is the description editor with the AI button, the microphone and "Attach from the knowledge base": an item can link other shareable items of its group, shown as cards in its view (never itself). Tasks, tickets, projects and events link items the same way.
+- The meeting's AI summary paragraph is edited in the same editor (AI and voice, no knowledge) and shown as Markdown; decisions and open questions stay one per line.
+- Making an item admins-only (or deleting it) turns its cards in every description into "Item unavailable". See [projects.md](projects.md#description-editor-part-p5).
+
 ## Items attached to chat messages (Phase 28)
 
 A group's items can travel in its chats (group chat, task and ticket chats): the chat's book button opens a search over the items everyone in the group can see (`GET /api/groups/:id/knowledge?shareable=1`: public items; an item inside an admins-only folder is admins-only itself) and attaches up to 5 to a message. The card in the chat opens the item with the reader's own rights. Only items visible to everyone in the group can be attached, and the check runs again on every display: an item made admins-only, moved into an admins-only folder or to another client, or deleted is shown as unavailable. A žiadateľ, who never sees the knowledge base, opens an item attached in their ticket chat read-only through that message (no reminders, no folder browsing, no edits) and can download its files. See [chat.md](chat.md) and the [design](../superpowers/specs/2026-10-17-phase-28-reactions-and-attachments-design.md).

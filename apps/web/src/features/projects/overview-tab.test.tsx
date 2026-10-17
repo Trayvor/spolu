@@ -162,6 +162,7 @@ describe('the Prehľad tab', () => {
       name: 'Šport',
       description: '',
       fileIds: [],
+      knowledgeIds: [],
     });
   });
 

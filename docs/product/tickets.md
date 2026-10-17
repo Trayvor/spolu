@@ -53,6 +53,11 @@ Design: [Phase 21 spec](../superpowers/specs/2026-10-16-phase-21-tickets-and-req
 - **Solve with Claude** (Phase 29, see [solve-with-claude](solve-with-claude.md)): admins open the ticket in Claude with its fields, text, chat, file names, the instance link and optional notes, to solve it through the eGrant MCP.
 - **Turn into tasks** (part 21.5, see [ai-task-split](ai-task-split.md)): admins and the group's clients turn a ticket, or a message of its chat, into task cards on the client's board with the Phase 9 AI split and review dialog. The cards link to the ticket ("Ticket: #123 subject" in the task panel), and the ticket lists them; the list stays live when such a task is renamed, completed, moved or deleted. A requester sees only "Turned into N tasks", without links, and never the action. A ticket without a client cannot be turned into tasks. The people who hear the ticket's updates get `ticket.tasks` ("#123 turned into 2 tasks").
 
+## Ticket text with AI, voice and knowledge (Phase 33 part P5)
+
+- The text field of the new-ticket dialog and of an admin's edit is the description editor once the ticket has a client (AI button, microphone, "Attach from the knowledge base"); without a client it stays a plain textarea. The text is shown with the chat renderer (Markdown, line breaks kept).
+- Attached knowledge shows as cards under the text for everyone who reads the ticket, the žiadateľ included, who opens the items read-only through the ticket (`GET /api/tickets/:id/knowledge/:itemId`) and downloads their files. A ticket moved to another client shows its old attachments as "Item unavailable". See [projects.md](projects.md#description-editor-part-p5).
+
 ## Screens (part 21.4)
 
 - **Where.** Admins: "Tickets" in the header (after Tasks) opens the global view `/tickets`, with a count of the active tickets I am a riešiteľ of, those without a riešiteľ of the clients I watch and those without a client; the admin dashboard's **Tickets** card lists the same tickets (see [admin-home](admin-home.md)); every group has a **Tickets** tab (Chat, Tasks, Tickets, Knowledge, Members). Clients: the group's Tickets tab; a client who also reported tickets for another client gets "My tickets" in the header. A requester with no client membership lands on **My tickets** (`/tickets`) and the header shows only "Tickets" and the user menu.
