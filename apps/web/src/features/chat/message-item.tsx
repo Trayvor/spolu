@@ -25,7 +25,8 @@ import { deleteMessage, editMessage } from './api';
 import type { PendingFailReason } from './channel-window';
 import { Composer } from './composer';
 import { MessageBody } from './format/render';
-import { EditIcon, MoreIcon, ReplyIcon, ThreadIcon, TrashIcon } from './icons';
+import { Toast } from '@/components/ui/toast';
+import { CopyIcon, EditIcon, MoreIcon, ReplyIcon, ThreadIcon, TrashIcon } from './icons';
 
 /**
  * An extra action on a message, shown in the desktop hover toolbar and as a row of the phone
@@ -79,12 +80,22 @@ export interface MessageItemProps {
 const REPLY_EXCERPT = 80;
 /** A finger held this long on a message opens its actions (touch screens). */
 const LONG_PRESS_MS = 450;
-/** Moving the finger further than this (px) is a scroll, not a long press. */
+/** After this long a held finger shows the press (the row shrinks a little); a quick scroll does not. */
+const PRESS_FEEDBACK_MS = 120;
+/** Moving the finger further than this (px) is a scroll, not a long press or a tap. */
 const LONG_PRESS_SLOP = 10;
+/** Two taps this close in time (ms) and space (px) are a double tap. */
+const DOUBLE_TAP_MS = 300;
+const DOUBLE_TAP_SLOP = 30;
+/** A tap on one of these does its own thing (opens the link, the file, the image): never a double tap. */
+const OWN_TAP =
+  'a,button,input,textarea,select,label,summary,video,audio,img,[role=button],[contenteditable=true]';
 
 /**
  * Desktop (a pointer that hovers, 641 px and wider) shows the hover toolbar; everything else
- * shows the "⋯" button and the action sheet. One media query, in CSS, so no listener per row.
+ * opens the action sheet on a long press or a double tap, with a visually hidden "Message
+ * actions" button for keyboards and screen readers. One media query, in CSS, so no listener per
+ * row.
  */
 const DESKTOP_ONLY = 'hidden [@media(hover:hover)_and_(min-width:641px)]:flex';
 const TOUCH_ONLY = '[@media(hover:hover)_and_(min-width:641px)]:hidden';
@@ -99,6 +110,8 @@ type RowAction = {
   icon: ReactNode;
   inMenu?: boolean;
   danger?: boolean;
+  /** Only in the touch sheet, not on the desktop toolbar or its "More" menu. */
+  touchOnly?: boolean;
   run(): void;
 };
 
@@ -229,7 +242,11 @@ function DeleteConfirm({
   );
 }
 
-/** Touch screens: the muted "⋯" that opens a message's action sheet; a 44 px hit area. */
+/**
+ * Touch screens: the "Message actions" button that opens the sheet. Visually hidden (fingers use
+ * a long press or a double tap); screen readers and keyboards reach it, and it shows, as the
+ * muted "⋯" with a 44 px hit area, while it has the keyboard focus.
+ */
 function SheetOpener({
   ref,
   label,
@@ -249,7 +266,7 @@ function SheetOpener({
       aria-haspopup="dialog"
       onClick={onOpen}
       className={cn(
-        "relative inline-flex size-6 items-center justify-center rounded-md text-muted-foreground before:absolute before:-inset-2.5 before:content-['']",
+        "sr-only focus-visible:relative focus-visible:m-0 focus-visible:overflow-visible focus-visible:[clip:auto] focus-visible:[clip-path:none] focus-visible:whitespace-normal focus-visible:inline-flex focus-visible:size-6 focus-visible:items-center focus-visible:justify-center focus-visible:rounded-md focus-visible:text-muted-foreground focus-visible:before:absolute focus-visible:before:-inset-2.5 focus-visible:before:content-['']",
         className,
       )}
     >
@@ -261,7 +278,8 @@ function SheetOpener({
 /**
  * One chat message as a row. Serves top-level messages, thread roots, thread replies and rows
  * still being sent. The hover toolbar sits inside the row (rows use `content-visibility`, which
- * clips overflow); it fades in on hover and focus and stays visible on touch screens.
+ * clips overflow); it fades in on hover and focus. Touch screens have no toolbar: a long press or
+ * a double tap on the row opens the action sheet.
  */
 export const MessageItem = memo(function MessageItem({
   message,
@@ -286,6 +304,7 @@ export const MessageItem = memo(function MessageItem({
 }: MessageItemProps) {
   const { t, i18n } = useTranslation();
   const [mode, setMode] = useState<'view' | 'edit' | 'confirmDelete'>('view');
+  const [copied, setCopied] = useState(false);
   const deleted = message.deletedAt !== null;
   const canManage = message.author.id === meId && !deleted && !pending;
   // Unsent rows get no toolbar and no footer: a message that is not saved cannot be turned into
@@ -311,6 +330,27 @@ export const MessageItem = memo(function MessageItem({
       label: t('chat.actions.replyInThread'),
       icon: <ThreadIcon />,
       run: () => onOpenThread(message),
+    });
+  }
+  // Copy (touch sheet only): a long press opens the sheet instead of selecting text; desktop
+  // selects text as usual, so its toolbar stays as it was.
+  if (message.body.trim() !== '') {
+    actions.push({
+      id: 'copy',
+      label: t('chat.actions.copy'),
+      icon: <CopyIcon />,
+      touchOnly: true,
+      run: () => {
+        // The text as shown (mentions as names); a thread root shown twice has the same text.
+        const node = document.querySelector<HTMLElement>(
+          `[data-message-id="${CSS.escape(message.id)}"] [data-message-text]`,
+        );
+        const text = node?.innerText || node?.textContent || '';
+        void navigator.clipboard?.writeText(text).then(
+          () => setCopied(true),
+          () => undefined,
+        );
+      },
     });
   }
   for (const action of messageActions ?? []) {
@@ -342,67 +382,140 @@ export const MessageItem = memo(function MessageItem({
       },
     );
   }
-  const menu = actions.filter((a) => a.inMenu);
+  const desktopActions = actions.filter((a) => !a.touchOnly);
+  const menu = desktopActions.filter((a) => a.inMenu);
 
-  // Touch: "⋯" or a long press opens the sheet; the focus goes back to "⋯" when it closes.
+  // Touch: a long press or a double tap opens the sheet (the hidden "Message actions" button for
+  // assistive tech); the focus goes back to that button when it closes.
   const [sheetOpen, setSheetOpen] = useState(false);
   const opener = useRef<HTMLButtonElement>(null);
-  const press = useRef<{ x: number; y: number; timer: ReturnType<typeof setTimeout> } | null>(null);
+  const rowRef = useRef<HTMLDivElement>(null);
+  const press = useRef<{
+    x: number;
+    y: number;
+    /** The finger moved past the slop: a scroll, so neither a long press nor a tap. */
+    moved: boolean;
+    timers: ReturnType<typeof setTimeout>[];
+  } | null>(null);
+  const lastTap = useRef<{ x: number; y: number; at: number } | null>(null);
   const longPressed = useRef(false);
   const closeSheet = useCallback(() => {
     setSheetOpen(false);
-    opener.current?.focus();
+    opener.current?.focus({ preventScroll: true });
   }, []);
-  const cancelPress = () => {
-    if (press.current) clearTimeout(press.current.timer);
-    press.current = null;
+  // The press styles go straight on the row (no re-render per touch): no iOS callout or text
+  // selection while the finger is down, and the subtle shrink (`data-pressed`).
+  const releasePress = () => {
+    const node = rowRef.current;
+    if (!node) return;
+    node.style.removeProperty('-webkit-touch-callout');
+    node.style.removeProperty('-webkit-user-select');
+    node.style.removeProperty('user-select');
+    delete node.dataset.pressed;
   };
-  const onTouchStart = (event: TouchEvent) => {
+  const cancelTimers = () => {
+    press.current?.timers.forEach(clearTimeout);
+  };
+  const openFromTouch = () => {
+    releasePress();
+    navigator.vibrate?.(10);
+    setSheetOpen(true);
+  };
+  const onTouchStart = (event: TouchEvent<HTMLDivElement>) => {
     const touch = event.touches[0];
-    if (!showActions || !touch || event.touches.length > 1) return;
-    cancelPress();
+    if (!showActions || !touch || event.touches.length > 1) {
+      cancelTimers();
+      press.current = null;
+      releasePress();
+      return;
+    }
+    cancelTimers();
     longPressed.current = false;
+    const node = event.currentTarget;
+    node.style.setProperty('-webkit-touch-callout', 'none');
+    node.style.setProperty('-webkit-user-select', 'none');
+    node.style.setProperty('user-select', 'none');
     press.current = {
       x: touch.clientX,
       y: touch.clientY,
-      timer: setTimeout(() => {
-        press.current = null;
-        longPressed.current = true;
-        setSheetOpen(true);
-      }, LONG_PRESS_MS),
+      moved: false,
+      timers: [
+        setTimeout(() => {
+          node.dataset.pressed = '';
+        }, PRESS_FEEDBACK_MS),
+        setTimeout(() => {
+          longPressed.current = true;
+          lastTap.current = null;
+          openFromTouch();
+        }, LONG_PRESS_MS),
+      ],
     };
   };
   const onTouchMove = (event: TouchEvent) => {
     const touch = event.touches[0];
     const start = press.current;
-    if (!start || !touch) return;
+    if (!start || start.moved || !touch) return;
     if (Math.hypot(touch.clientX - start.x, touch.clientY - start.y) > LONG_PRESS_SLOP) {
-      cancelPress();
+      start.moved = true;
+      cancelTimers();
+      releasePress();
     }
   };
   const onTouchEnd = (event: TouchEvent) => {
-    cancelPress();
+    const start = press.current;
+    cancelTimers();
+    press.current = null;
+    releasePress();
     // The finger lifting after a long press must not click whatever is under it (the backdrop).
     if (longPressed.current) {
       longPressed.current = false;
       event.preventDefault();
+      return;
     }
+    if (!start || start.moved || !showActions) return;
+    // A tap on a link, file, image or button keeps its single-tap meaning and is no double tap.
+    if ((event.target as Element).closest(OWN_TAP)) {
+      lastTap.current = null;
+      return;
+    }
+    const now = Date.now();
+    const before = lastTap.current;
+    if (
+      before &&
+      now - before.at < DOUBLE_TAP_MS &&
+      Math.hypot(start.x - before.x, start.y - before.y) < DOUBLE_TAP_SLOP
+    ) {
+      lastTap.current = null;
+      // No click from the second tap (it would land on the backdrop) and no zoom.
+      event.preventDefault();
+      openFromTouch();
+      return;
+    }
+    lastTap.current = { x: start.x, y: start.y, at: now };
+  };
+  const onTouchCancel = () => {
+    cancelTimers();
+    press.current = null;
+    releasePress();
   };
 
   return (
     <div
+      ref={rowRef}
       data-message-id={message.id}
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
-      onTouchCancel={cancelPress}
+      onTouchCancel={onTouchCancel}
       // Android opens the link menu on a long press; the sheet replaces it.
       onContextMenu={(event) => {
-        if (sheetOpen || longPressed.current) event.preventDefault();
+        if (sheetOpen || longPressed.current || press.current) event.preventDefault();
       }}
       className={cn(
-        // The highlight of a linked message eases in and out instead of snapping.
-        'group relative flex gap-3 border-l-2 px-4 pb-1 transition-colors duration-500',
+        // The highlight of a linked message eases in and out instead of snapping; a held finger
+        // shrinks the row a little (`data-pressed`, 150 ms). `touch-action: manipulation` stops
+        // a double tap from zooming the page (pinch zoom still works).
+        'group relative flex touch-manipulation gap-3 border-l-2 px-4 pb-1 transition-[background-color,border-color,color,scale] duration-500 data-pressed:scale-[0.98] data-pressed:duration-(--duration-fast)',
         // content-visibility clips overflow: the editing row must show the mention list above it,
         // and a hovered or focused row its toolbar, which sits just above it.
         mode !== 'edit' &&
@@ -444,7 +557,10 @@ export const MessageItem = memo(function MessageItem({
             ref={opener}
             label={t('chat.actions.open')}
             onOpen={() => setSheetOpen(true)}
-            className={cn('absolute top-0.5 right-3', TOUCH_ONLY)}
+            className={cn(
+              'focus-visible:absolute focus-visible:top-0.5 focus-visible:right-3',
+              TOUCH_ONLY,
+            )}
           />
         )}
         {quote && (
@@ -472,7 +588,9 @@ export const MessageItem = memo(function MessageItem({
           />
         ) : (
           <div className="text-body">
-            <MessageBody body={message.body} nameOf={nameOf} />
+            <div data-message-text="">
+              <MessageBody body={message.body} nameOf={nameOf} />
+            </div>
             {!showHeader && edited}
           </div>
         )}
@@ -529,7 +647,7 @@ export const MessageItem = memo(function MessageItem({
             DESKTOP_ONLY,
           )}
         >
-          {actions
+          {desktopActions
             .filter((a) => !a.inMenu)
             .map((action) => (
               <ToolButton key={action.id} label={action.label} onClick={action.run}>
@@ -577,6 +695,7 @@ export const MessageItem = memo(function MessageItem({
           />
         ))}
       </ActionSheet>
+      {copied && <Toast onClose={() => setCopied(false)}>{t('chat.copied')}</Toast>}
     </div>
   );
 });

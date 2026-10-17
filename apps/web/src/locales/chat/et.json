@@ -20,7 +20,8 @@
     "quote": "Tsiteeri",
     "label": "Sõnumi toimingud",
     "open": "Sõnumi toimingud",
-    "turnIntoTasks": "Loo ülesanded"
+    "turnIntoTasks": "Loo ülesanded",
+    "copy": "Kopeeri tekst"
   },
   "thread": {
     "summary_one": "{{count}} vastus, viimane kell {{time}}",
@@ -67,5 +68,6 @@
   "unread_other": "{{count}} lugemata sõnumit",
   "unread_one": "{{count}} lugemata sõnum",
   "loadError": "Vestlust ei õnnestunud laadida.",
-  "turnedIntoTasks": "Muudetud ülesanneteks:"
+  "turnedIntoTasks": "Muudetud ülesanneteks:",
+  "copied": "Tekst kopeeritud"
 }

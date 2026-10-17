@@ -20,7 +20,8 @@
     "quote": "Citiraj",
     "label": "Radnje s porukom",
     "open": "Radnje s porukom",
-    "turnIntoTasks": "Pretvori u zadatke"
+    "turnIntoTasks": "Pretvori u zadatke",
+    "copy": "Kopiraj tekst"
   },
   "thread": {
     "summary_one": "{{count}} odgovor, posljednji u {{time}}",
@@ -70,5 +71,6 @@
   "unread_few": "{{count}} nepročitane poruke",
   "unread_other": "{{count}} nepročitanih poruka",
   "loadError": "Chat nije moguće učitati.",
-  "turnedIntoTasks": "Pretvoreno u zadatke:"
+  "turnedIntoTasks": "Pretvoreno u zadatke:",
+  "copied": "Tekst kopiran"
 }

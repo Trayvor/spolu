@@ -274,18 +274,30 @@
     line-height: 1.25;
   }
 
-  /* Tailwind v4 preflight sets `cursor: default` on buttons; restore the hand. */
+  /* Tailwind v4 preflight sets `cursor: default` on buttons; restore the hand on everything that
+     is clicked: buttons, selects, menu items, options, tabs, checkboxes and radios and the labels
+     around them (not text field labels: a click there only focuses the field). */
   button:not(:disabled),
   [role='button']:not([aria-disabled='true']),
-  [role='menuitem']:not([aria-disabled='true']),
-  [role='menuitemradio']:not([aria-disabled='true']),
-  [role='menuitemcheckbox']:not([aria-disabled='true']),
+  [role='menuitem']:not([aria-disabled='true'], [data-disabled]),
+  [role='menuitemradio']:not([aria-disabled='true'], [data-disabled]),
+  [role='menuitemcheckbox']:not([aria-disabled='true'], [data-disabled]),
+  [role='option']:not([aria-disabled='true']),
+  [role='tab']:not([aria-disabled='true']),
+  [role='switch']:not([aria-disabled='true']),
+  select:not(:disabled),
   summary,
+  label:has(input[type='checkbox']:not(:disabled)),
+  label:has(input[type='radio']:not(:disabled)),
+  input[type='checkbox']:not(:disabled),
+  input[type='radio']:not(:disabled),
   input[type='file']:not(:disabled) {
     cursor: pointer;
   }
 
   button:disabled,
+  select:disabled,
+  input:disabled,
   [aria-disabled='true'] {
     cursor: not-allowed;
   }
@@ -338,5 +350,11 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+
+  /* A held chat message shrinks a little; without its transition that would jump: drop it.
+     Unlayered, so it wins over the `data-pressed:` utility. */
+  [data-message-id] {
+    scale: none;
   }
 }
