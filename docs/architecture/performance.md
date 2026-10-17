@@ -96,6 +96,19 @@ Keep `cn` out of the eager shell: use it where classes from props may conflict, 
 
 Lazy chunks for individual screens have no hard budget. Keep them reasonable and watch for anything above about 100 kB gzip.
 
+## Docker image
+
+The production image (root `Dockerfile`, see [overview.md](overview.md), "Production image and compose") ships the `node` binary on plain `debian:bookworm-slim`, the server's production dependencies without type definitions, source maps and docs, and the built server and web. Phase 27 (finding K1, measured 2026-10-17 on an arm64 laptop, `docker build` of one platform, `docker image ls`):
+
+| | Before | After |
+|---|---|---|
+| Image on disk | 467 MB | 380 MB |
+| Compressed content (what a server pulls) | 94.7 MB | 82.8 MB |
+| Rebuild after a source-only change | 26–31 s | 17 s |
+| Build without layer cache (`--no-cache`, pnpm store cache kept) | 54–116 s | 51–74 s (noise of a loaded machine; no real change) |
+
+Where the bytes went: npm, corepack and yarn (about 24 MB) and the C headers (6.7 MB) of the node image are not shipped (deleting them in a later layer would not shrink the image, so the runtime stage starts from Debian and copies only `node`); `*.d.ts`, `*.map` and `*.md` files of `node_modules` (about 40 MB raw) are deleted before the copy. The rebuild is faster because the production dependencies are their own stage (`prod-deps`, only the lockfile and manifests), so a code change no longer reruns `pnpm deploy`. What remains: the node binary 118 MB, `node_modules` about 55 MB (`react-dom` and `@types/node` are still in it, finding K2), the built server and web about 6 MB.
+
 ## How to check
 
 - `pnpm --filter @spolu/web build` prints every chunk with its gzip size (Vite's default gzip level, a little above the budget's numbers).
