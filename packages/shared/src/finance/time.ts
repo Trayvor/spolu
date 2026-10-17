@@ -89,7 +89,8 @@ export const TimeRequestRowSchema = z.object({
   taskId: z.string().nullable(),
   /** Set for a ticket request. */
   ticketId: z.string().nullable(),
-  groupId: z.string(),
+  /** Null: a ticket without a client (owner decision 24); the entry has no client yet. */
+  groupId: z.string().nullable(),
   title: z.string(),
   /** The Bratislava day of the task's first completion or the ticket's first resolution. */
   workedOn: DaySchema,
@@ -97,7 +98,7 @@ export const TimeRequestRowSchema = z.object({
 export type TimeRequestRow = z.infer<typeof TimeRequestRowSchema>;
 
 /** A dashboard row: the request with its client's name. */
-export const TimeRequestSchema = TimeRequestRowSchema.extend({ groupName: z.string() });
+export const TimeRequestSchema = TimeRequestRowSchema.extend({ groupName: z.string().nullable() });
 export type TimeRequest = z.infer<typeof TimeRequestSchema>;
 
 /**

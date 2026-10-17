@@ -7,9 +7,11 @@ import type {
   HomeReminder,
   HomeTicket,
   MentionItem,
+  TimeRequest,
 } from '@spolu/shared';
 import { Badge } from '@/components/ui/badge';
 import { formatDue, isOverdue, todayInBratislava } from '@/features/tasks/dates';
+import { askForTime } from '@/features/tasks/time-queue';
 import { cn } from '@/lib/utils';
 import { assignedQuery, meetingsQuery, mentionsQuery, remindersQuery, ticketsQuery } from './api';
 import type { CardTarget, CountCardProps } from './count-card';
@@ -128,6 +130,89 @@ function AssignedRow({ task, today }: { task: AssignedTask; today: string }) {
   );
 }
 
+function ClockIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      width="16"
+      height="16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      className="shrink-0"
+    >
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3 2" />
+    </svg>
+  );
+}
+
+/**
+ * A "Fill in your time" row (Phase 32): the clock on the attention yellow, the task's or ticket's
+ * title, its client and the day of its completion (resolution).
+ */
+function TimeRow({ request, detail = false }: { request: TimeRequest; detail?: boolean }) {
+  const { t, i18n } = useTranslation();
+  const day = formatDue(request.workedOn, i18n.language);
+  const icon = (
+    <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-attention text-attention-foreground">
+      <ClockIcon />
+    </span>
+  );
+  if (detail) {
+    return (
+      <>
+        {icon}
+        <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+          <span className="line-clamp-2 text-button font-semibold">{request.title}</span>
+          <MetaLine
+            parts={[
+              <span key="what">{t('adminHome.cards.assigned.fillTime')}</span>,
+              <span key="client" className="truncate">
+                {request.groupName ?? t('adminHome.cards.tickets.noClient')}
+              </span>,
+              <span key="day" className="tabular-nums">
+                {day}
+              </span>,
+            ]}
+          />
+        </span>
+      </>
+    );
+  }
+  return (
+    <>
+      {icon}
+      <span className="min-w-0 flex-1 truncate text-button font-semibold">{request.title}</span>
+      <span className="hidden max-w-[40%] truncate text-micro text-muted-foreground min-[641px]:inline">
+        {request.groupName ?? t('adminHome.cards.tickets.noClient')}
+      </span>
+      <span className="shrink-0 text-micro text-muted-foreground tabular-nums">{day}</span>
+    </>
+  );
+}
+
+/** Opens the time dialog in place for a request (no navigation). */
+function askAbout(request: TimeRequest) {
+  if (request.kind === 'task' && request.taskId && request.groupId) {
+    askForTime({
+      kind: 'task',
+      id: request.taskId,
+      groupId: request.groupId,
+      title: request.title,
+    });
+  } else if (request.ticketId) {
+    askForTime({
+      kind: 'ticket',
+      id: request.ticketId,
+      groupId: request.groupId,
+      title: request.title,
+    });
+  }
+}
+
 function AssignedDetail({ task, today }: { task: AssignedTask; today: string }) {
   const { t, i18n } = useTranslation();
   const overdue = isOverdue(task.dueDate, task.bucketKind, today);
@@ -158,7 +243,21 @@ export function useAssignedCard(): CountCardProps {
   const query = useQuery(assignedQuery);
   const today = todayInBratislava();
   const data = query.data;
-  const rows = (data?.items ?? []).map((task) => ({
+  // Phase 32: the viewer's open time requests come first, whatever the notification settings.
+  const timeRows = (data?.timeRequests ?? []).map((request) => ({
+    key: `time:${request.entryId}`,
+    to:
+      request.kind === 'task' && request.taskId && request.groupId
+        ? taskTarget(request.groupId, request.taskId)
+        : { to: '/tickets/$ticketId', params: { ticketId: request.ticketId ?? '' } },
+    onSelect: () => askAbout(request),
+    label: t('adminHome.cards.assigned.fillTimeFor', { title: request.title }),
+    content: <TimeRow request={request} />,
+    group: t('adminHome.cards.assigned.fillTime'),
+    detail: <TimeRow request={request} detail />,
+    rank: -1,
+  }));
+  const taskRows = (data?.items ?? []).map((task) => ({
     key: task.id,
     to: taskTarget(task.groupId, task.id),
     content: <AssignedRow task={task} today={today} />,
@@ -166,6 +265,8 @@ export function useAssignedCard(): CountCardProps {
     detail: <AssignedDetail task={task} today={today} />,
     rank: TASK_GROUPS.indexOf(taskGroup(task.dueDate, today)),
   }));
+  const rows = [...timeRows, ...taskRows];
+  const withoutTime = data?.timeRequestCount ?? 0;
   return {
     id: 'tasks',
     title: t('adminHome.cards.assigned.title'),
@@ -177,12 +278,20 @@ export function useAssignedCard(): CountCardProps {
     count: data?.total ?? 0,
     caption: t('adminHome.cards.assigned.caption'),
     subline: (
-      <span className="flex items-center gap-1.5 text-micro text-muted-foreground">
-        {(data?.urgent ?? 0) > 0 && (
-          <span aria-hidden="true" className="size-2 rounded-full bg-destructive" />
+      <>
+        <span className="flex items-center gap-1.5 text-micro text-muted-foreground">
+          {(data?.urgent ?? 0) > 0 && (
+            <span aria-hidden="true" className="size-2 rounded-full bg-destructive" />
+          )}
+          {t('adminHome.cards.assigned.urgent', { count: data?.urgent ?? 0 })}
+        </span>
+        {withoutTime > 0 && (
+          <span className="flex items-center gap-1.5 text-micro text-muted-foreground">
+            <span aria-hidden="true" className="size-2 rounded-full bg-attention" />
+            {t('adminHome.cards.assigned.withoutTime', { n: withoutTime })}
+          </span>
         )}
-        {t('adminHome.cards.assigned.urgent', { count: data?.urgent ?? 0 })}
-      </span>
+      </>
     ),
     rows,
     // The server sends urgent first, then soonest; the sheet groups by due date (stable sort, so

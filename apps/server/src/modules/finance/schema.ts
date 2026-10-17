@@ -166,9 +166,12 @@ export const financeTimeEntries = pgTable(
   'finance_time_entries',
   {
     id: text('id').primaryKey(),
-    groupId: text('group_id')
-      .notNull()
-      .references(() => groups.id, { onDelete: 'cascade' }),
+    /**
+     * The client. Null only for a ticket entry of a ticket without a client (owner decision 24,
+     * 2026-10-17): shown on the system-wide page as "Bez klienta", in no client's tab; it moves to
+     * the client the ticket gets (`onTicketMoved`).
+     */
+    groupId: text('group_id').references(() => groups.id, { onDelete: 'cascade' }),
     /** The admin who worked (never a client: checked by the service). */
     userId: text('user_id')
       .notNull()
@@ -204,6 +207,11 @@ export const financeTimeEntries = pgTable(
       sql`${t.minutes} is null or ${t.minutes} between 0 and 6000`,
     ),
     check('finance_time_entries_note_check', sql`char_length(${t.note}) <= 500`),
+    // Only a ticket entry may lack a client (decision 24: a ticket without a client).
+    check(
+      'finance_time_entries_group_check',
+      sql`${t.groupId} is not null or ${t.source} = 'ticket'`,
+    ),
     // The subject columns follow the source (both may be null once the subject is deleted).
     check(
       'finance_time_entries_subject_check',

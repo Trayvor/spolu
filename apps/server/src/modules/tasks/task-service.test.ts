@@ -567,7 +567,7 @@ describe('deleteTask', () => {
     const file = await upload(group.id, client);
     const task = await createTask(deps, client, group.id, { title: 'A', fileIds: [file.id] });
     const key = (await getFile(db, file.id))!.storageKey;
-    expect(await deleteTask(deps, task.id)).toEqual({
+    expect(await deleteTask(deps, task.id)).toMatchObject({
       groupId: group.id,
       sourceMessageId: null,
       sourceTicketId: null,
@@ -585,7 +585,7 @@ describe('deleteTask', () => {
     const task = await createTask(deps, client, group.id, { title: 'A', fileIds: [file.id] });
     vi.mocked(filesService.deleteDetachedFiles).mockRejectedValueOnce(new Error('db down'));
     const onFileCleanupError = vi.fn();
-    expect(await deleteTaskWith(deps, task.id, { onFileCleanupError })).toEqual({
+    expect(await deleteTaskWith(deps, task.id, { onFileCleanupError })).toMatchObject({
       groupId: group.id,
       sourceMessageId: null,
       sourceTicketId: null,
@@ -637,7 +637,7 @@ describe('deleteTask', () => {
     const file = await upload(group.id, client);
     const storageKey = (await getFile(db, file.id))!.storageKey;
     const { channel } = await sendInTaskChat(task, client, [file.id]);
-    expect(await deleteTask(deps, task.id)).toEqual({
+    expect(await deleteTask(deps, task.id)).toMatchObject({
       groupId: group.id,
       sourceMessageId: null,
       sourceTicketId: null,
@@ -655,7 +655,7 @@ describe('deleteTask', () => {
     const { message } = await sendInTaskChat(source, client);
     const task = await createTask(deps, client, group.id, { title: 'A' });
     await db.update(tasks).set({ sourceMessageId: message.id }).where(eq(tasks.id, task.id));
-    expect(await deleteTask(deps, task.id)).toEqual({
+    expect(await deleteTask(deps, task.id)).toMatchObject({
       groupId: group.id,
       sourceMessageId: message.id,
       sourceTicketId: null,

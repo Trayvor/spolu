@@ -123,5 +123,37 @@
       "details": "Podrobnosti",
       "chat": "Chat ({{count}})"
     }
+  },
+  "time": {
+    "title": "Kolik času jste na tom strávili?",
+    "ticketTitle": "Kolik času jste strávili na {{ticket}}?",
+    "duration": "Strávený čas",
+    "hint": "Například 1:30, 1,5, 90m nebo 2h 15m",
+    "readback": "To je {{value}}",
+    "invalid": "Zadejte čas jako 1:30, 1,5, 90m nebo 2h 15m, nejvýše 100 h.",
+    "long": "To je víc než pracovní den. Je to správně?",
+    "chips": "Rychlý výběr",
+    "none": "Žádný čas",
+    "save": "Uložit",
+    "later": "Později",
+    "saveFailed": "Nepodařilo se uložit. Zkuste to znovu.",
+    "loadFailed": "Váš čas se nepodařilo načíst.",
+    "retry": "Zkusit znovu",
+    "options": "Co zapsat",
+    "optionTicket": "Čas na tiket",
+    "optionTicketHint": "Přičte se k hodinám na souvisejících úkolech.",
+    "optionCovered": "Hodiny na souvisejících úkolech to pokrývají",
+    "optionCoveredHint": "Nic dalšího se nepřičte.",
+    "linkedTasks": "Váš čas na souvisejících úkolech",
+    "notFilled": "Nevyplněno",
+    "mine": "Můj čas",
+    "fill": "Vyplnit",
+    "edit": "Upravit",
+    "covered": "Pokryto úkoly",
+    "everyone": "Čas: {{list}}",
+    "units": {
+      "hours": "h",
+      "minutes": "min"
+    }
   }
 }

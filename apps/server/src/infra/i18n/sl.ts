@@ -116,5 +116,8 @@ export const sl: ServerTexts = {
     meetingSummaryReady: 'Povzetek AI je pripravljen',
     meetingSummaryFailed: 'Obdelava z AI ni uspela',
     openMeeting: 'Odpri sestanek',
+    timeMissing: 'Vpišite, koliko časa ste porabili',
+    timeMissingLine: (title) => `${title}: vpišite svoj čas`,
+    openTask: 'Odpri nalogo',
   },
 };

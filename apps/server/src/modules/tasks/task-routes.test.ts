@@ -657,7 +657,8 @@ describe('tasks API: tasks', () => {
     ).toBe(404);
     const res = await move(task.id, client.cookie, { bucketId: review.id, afterTaskId: null });
     expect(res.statusCode).toBe(200);
-    const moved = res.json<TaskDto>();
+    const { askTime, ...moved } = res.json<TaskDto & { askTime: boolean }>();
+    expect(askTime).toBe(false); // a client is never asked for time (Phase 32)
     expect(moved).toMatchObject({ id: task.id, bucketId: review.id, updatedAt: task.updatedAt });
     expect(moved).not.toHaveProperty('description');
     const event = await pushed;

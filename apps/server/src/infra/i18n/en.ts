@@ -108,5 +108,8 @@ export const en: ServerTexts = {
     meetingSummaryReady: 'AI summary is ready',
     meetingSummaryFailed: 'AI processing failed',
     openMeeting: 'Open meeting',
+    timeMissing: 'Fill in how much time you spent',
+    timeMissingLine: (title) => `${title}: fill in your time`,
+    openTask: 'Open task',
   },
 };

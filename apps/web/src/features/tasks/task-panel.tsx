@@ -49,6 +49,8 @@ import { SourceMeetingLine, SourceMessage, SourceTicketLine } from './source-mes
 import { TaskChat } from './task-chat';
 import { TaskForm, validateTaskDraft, type TaskFormErrors } from './task-form';
 import { TaskReminders } from './task-reminders';
+import { seesTime, TaskMyTime } from './my-time';
+import { askForTime } from './time-queue';
 
 const toDraft = (task: TaskDetailDto): TaskDraft => ({
   title: task.title,
@@ -179,6 +181,29 @@ function usePanelTab(): [PanelTab, (tab: PanelTab) => void] {
   return [tab, setTab];
 }
 
+/**
+ * `?time=1` (the time request's push and email, Phase 32): an admin assignee gets the time
+ * dialog over the panel; the param is dropped so Back or a reload does not ask again.
+ */
+function useTimeParam(task: TaskDetailDto, me: ReturnType<typeof useSession>) {
+  const updateSearch = useUpdateSearch();
+  const asked = useLocation({ select: (l) => (l.search as Record<string, unknown>).time });
+  useEffect(() => {
+    if (asked === undefined || !me) return;
+    updateSearch(
+      (search) => {
+        delete search.time;
+      },
+      { replace: true },
+    );
+    if (String(asked) === '1' && isAdmin(me) && task.assignees.some((p) => p.id === me.id)) {
+      askForTime({ kind: 'task', id: task.id, groupId: task.groupId, title: task.title });
+    }
+    // Once per arrival of the param.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [asked, me?.id]);
+}
+
 function TaskEditor({
   groupId,
   initial,
@@ -219,6 +244,7 @@ function TaskEditor({
   });
 
   const [tab, setTab] = usePanelTab();
+  useTimeParam(initial, me);
 
   // Leaving the task asks while the draft is unsaved; the tabs and the chat's own params
   // (thread, message) only change the search, so they never ask.
@@ -517,6 +543,12 @@ function TaskEditor({
             files={files}
             onFilesChange={setFiles}
             knownPeople={base.assignees}
+            timeSlot={
+              seesTime(
+                me,
+                base.assignees.map((p) => p.id),
+              ) && <TaskMyTime task={base} />
+            }
             remindersSlot={
               <TaskReminders
                 task={base}
