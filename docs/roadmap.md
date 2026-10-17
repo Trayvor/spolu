@@ -463,15 +463,25 @@ Done when: a superadmin grants Finance to an admin; that admin keeps a client's 
 
 Owner request (2026-10-17), one of the last two big phases before the final testing. Design: [spec](superpowers/specs/2026-10-17-phase-33-projects-design.md) with the **Owner decisions** table at its top; [plan](superpowers/plans/2026-10-17-phase-33-projects.md).
 
-Scope: a new first tab **Prehľad** in every group with **projects** (name, description, files) and their dated **events**; tasks and tickets placed on a project and an event (set by hand, and for tickets matched or created automatically from a new `project` / `project_id` field of the eGrant intake, with aliases and merge); a **timeline** card (a straight line of events, Today marker, each event's open tasks and tickets and a done pile; one project's whole life or all projects; on phones a tap opens the event); cards of the client's active tickets and tasks with mine first; project and event filters on the Tasks and Tickets tabs; the Phase 28 **AI text tools, voice input and knowledge attachments in every description field** (one lazy description editor); Finance costs filtered by project and event (after Phase 32 C and D).
+Scope: a new first tab **Prehľad** in every group with **projects** (name, description, files) and their dated **events**; tasks and tickets placed on a project and an event (set by hand; projects and events created and updated by an eGrant webhook with pending changes reviewed field by field; tickets linked by the intake's new `project_id`); a **timeline** card (a straight line of events, Today marker, each event's open tasks and tickets and a done pile; one project's whole life or all projects; on phones a tap opens the event); cards of the client's active tickets and tasks with mine first; project and event filters on the Tasks and Tickets tabs; the Phase 28 **AI text tools, voice input and knowledge attachments in every description field** (one lazy description editor); Finance costs filtered by project and event (after Phase 32 C and D).
 
 Built in six pull requests: P1 foundation first (the one migration, policy, projects API, empty tab), then P2 (task and ticket fields, filters), P3 (eGrant intake matching), P4 (timeline and cards) and P5 (description editor) in parallel, then P6 (finance filters). The joint merge order with Phases 32 and 34 is at the end of the plan.
 
 Small feature with this phase (owner request 2026-10-17): a knowledge item of type "From chat" can be changed to a plain file; built separately on `feat/knowledge-chat-file-to-file` (spec §15).
 
-Status: spec approved by the owner on 2026-10-17, with two amendments: changes from eGrant are never applied silently (a pending change reviewed field by field on the project, and Apply / Dismiss on a ticket whose project was chosen by hand; decision 6), and the group's clients create and edit projects and events and set them on tasks and tickets (decision 8; recommended 8a: clients archive, admins alone merge and delete). Final eGrant API: projects by their own webhook `PUT /api/egrant/projects/:project_id` (name, description, the full events list with `dd.mm.yyyy` dates, no event ids), tickets linking `project_id` and `project`, and ticket updates by `external_id` (planned in [the integration guide](integrations/egrant-ticket-intake.md#projects-and-updates-planned)). Ready to start with P1.
+Status: spec approved by the owner on 2026-10-17, with these amendments of the same day:
 
-Done when: eGrant's project call creates a client's project with its events and later changes wait for review, a ticket from eGrant lands in its project by itself, an admin puts it and a task on an event, the client and the admin browse the project's life on the timeline with Today marked, both tabs filter by the project, every description field offers AI, voice and knowledge, and a finance admin sees the project's cost.
+- Changes from the eGrant project webhook are never applied silently: they are pending changes on the project, reviewed field by field (decision 6).
+- The group's clients create, edit, archive, merge and delete projects and events, and set them on tasks and tickets; a žiadateľ stays read-only (decisions 8, 8a).
+
+Final eGrant API:
+
+- Projects arrive by their own webhook `PUT /api/egrant/projects/:project_id`, which creates and updates them. It carries the name, the description and the full events list with `dd.mm.yyyy` dates; there are no event ids.
+- The ticket intake sends only `project_id`. It links the new ticket to its project, now or when the project arrives. It never sets an event, and eGrant never updates a ticket.
+
+The API is planned in [the integration guide](integrations/egrant-ticket-intake.md#projects-planned). Ready to start with P1.
+
+Done when: eGrant's project call creates a client's project with its events and later changes wait for review, a ticket with its `project_id` lands in that project by itself, an admin puts it and a task on an event, the client and the admin browse the project's life on the timeline with Today marked, both tabs filter by the project, every description field offers AI, voice and knowledge, and a finance admin sees the project's cost.
 
 ## Phase 34 — Internal admin group
 

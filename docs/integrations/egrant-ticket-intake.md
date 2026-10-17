@@ -13,11 +13,10 @@ Live today, on `POST /api/tickets/intake`:
 - [ ] A new `request_id` for every request, reused for its retries.
 - [ ] At least one of `subject`, `body` or `area`; files as base64 in `files`.
 
-Planned with Help's Phase 33 (projects; **not live yet**, details in [Projects and updates (planned)](#projects-and-updates-planned)):
+Planned with Help's Phase 33 (projects; **not live yet**, details in [Projects (planned)](#projects-planned)):
 
 - [ ] **Projects, by their own call** `PUT /api/egrant/projects/<project id>`, whenever you decide (a project is created or changes, or simply again): `instance_url`, `sent_at`, `name`, `description` and the **full** `events` list, each event with `name`, `date` as `dd.mm.yyyy` and `description`. No event ids.
-- [ ] **On every ticket:** `project_id` and `project` (the project's name) when the request is about a project, plus `external_id` (your stable id of the request) and `sent_at`.
-- [ ] **When a request's project changes:** the same `POST /api/tickets/intake` again with the same `external_id`, a **new** `request_id`, the new `project_id` and `project`, and a later `sent_at`.
+- [ ] **On a ticket about a project:** `project_id`, the same id as in the project call. Nothing else is new on tickets: no project name, no event and no updates. Every request stays a new ticket.
 
 A project:
 
@@ -45,14 +44,11 @@ A ticket about that project (the fields of "The JSON body" below, plus):
 ```json
 {
   "request_id": "mesto-x-4711",
-  "external_id": "4711",
-  "sent_at": "2026-10-20T10:02:00+02:00",
   "instance_url": "https://mesto-x.egrant.sk",
   "email": "jana.nova@example.sk",
   "subject": "Cannot submit the application",
   "body": "Step 3 shows an error after I upload the budget.",
-  "project_id": "prj-208",
-  "project": "Kultúra 2026 – festivaly"
+  "project_id": "prj-208"
 }
 ```
 
@@ -70,7 +66,7 @@ Answer: `201 { "id": "…", "number": 123 }`.
 
 Call the endpoint once when a user of an eGrant instance submits a support request (the help or contact form, an error report). Call it from your server, never from the user's browser: the key must not reach the browser.
 
-Do not call it for updates of the same request. Everything after the first message happens in Help: the eGrant team and the requester talk in the ticket's chat. (Planned: once Phase 33 is live, call it again when a request's **project** changes, and send projects by their own call; see [Projects and updates (planned)](#projects-and-updates-planned).)
+Do not call it for updates of the same request. Everything after the first message happens in Help: the eGrant team and the requester talk in the ticket's chat. (Planned with Phase 33: send projects by their own call, and the project's id on each ticket; see [Projects (planned)](#projects-planned).)
 
 ## Authentication
 
@@ -199,11 +195,11 @@ A request can reach Help even when your side sees a timeout. To make retries saf
 3. **"Ticket created" email.** The requester gets one email (Slovak by default) with the number, the subject, the first lines of the text and an **Open the ticket** button. The button leads to Help's login: they enter their email, get a 6-digit code by email and land on the ticket. There is no password. The email goes once per ticket, and only when a client matched (for a ticket without a client, it goes when an admin assigns one).
 4. **The eGrant team** hears about the new ticket (the people who watch the client's tickets, by default its managers and its clients, or every admin for a ticket without a client), answers in the ticket's chat, changes its status (New, In progress, Resolved) and may turn it into tasks. The requester follows all of it in Help and gets their own notifications by email.
 
-## Projects and updates (planned)
+## Projects (planned)
 
-**Not live yet.** This section describes Help's Phase 33 ([design](../superpowers/specs/2026-10-17-phase-33-projects-design.md), §5). Until it is deployed, `PUT /api/egrant/projects/…` answers `404`, Help ignores the new ticket fields like any unknown field, and a second ticket request makes a second ticket. The eGrant team will say when it is live.
+**Not live yet.** This section describes Help's Phase 33 ([design](../superpowers/specs/2026-10-17-phase-33-projects-design.md), §5). Until it is deployed, `PUT /api/egrant/projects/…` answers `404` and Help ignores `project_id` on tickets like any unknown field. The eGrant team will say when it is live.
 
-Help groups each client's tickets into **projects**, and shows each project's **events** on a timeline. Projects reach Help by their own call; a ticket only names its project.
+Help groups each client's tickets into **projects**, and shows each project's **events** on a timeline. Projects reach Help by their own call, which creates and updates them; a ticket only names its project by id.
 
 ### The project call
 
@@ -223,7 +219,7 @@ Help groups each client's tickets into **projects**, and shows each project's **
 | answer | body | meaning |
 |---|---|---|
 | `201` | `{ "project_id", "state": "created", "skipped" }` | Help did not know the project: it created it with its events |
-| `200` | `{ "project_id", "state", "pending", "skipped" }` | Help knew it. `state`: `unchanged` (nothing differs), `applied` (Help had only the name from a ticket and took everything), `pending` (differences wait for the eGrant team's review, `pending` = how many), `stale` (your `sent_at` is older than a version Help already has) |
+| `200` | `{ "project_id", "state", "pending", "skipped" }` | Help knew it. `state`: `unchanged` (nothing differs), `pending` (differences wait for the eGrant team's review, `pending` = how many), `stale` (your `sent_at` is older than a version Help already has) |
 | `202` | `{ "project_id", "state": "stored" }` | no client in Help has this instance yet; Help keeps the latest version for 180 days and uses it when the client is created |
 | `400` | `{ "error": "validation_failed", "fields": [...] }` | a malformed field; nothing was stored |
 | `401`, `413`, `429`, `503` | | as for the intake; at most 120 project calls a minute from one IP address |
@@ -237,54 +233,23 @@ Help groups each client's tickets into **projects**, and shows each project's **
   - same date, another name: Help proposes a rename;
   - **renamed and moved in the same version, or two events with the same name or the same date:** Help cannot tell, and proposes a new event plus the removal of the old one. If you can, change the name and the date in two separate versions.
 
-### Tickets: the project and later updates
+### Tickets: the project id
 
-New fields on `POST /api/tickets/intake`, all optional:
+One new optional field on `POST /api/tickets/intake`:
 
 | field | meaning | rules |
 |---|---|---|
-| `project_id` | your id of the project the request is about | 1 to 100 characters; the same id as in the project call |
-| `project` | the project's name | up to 200 characters; Help uses it only to create the project if the project call has not arrived yet |
-| `external_id` | your own stable id of this support request | 1 to 100 characters; unique within your instance; the same in every later update; never reused |
-| `sent_at` | when the request, or this change of it, was made in eGrant | ISO 8601 with a time zone; **required on an update** |
+| `project_id` | your id of the project the request is about | 1 to 100 characters; the same id as in the project call; empty or missing means no project |
 
-Help reads every `POST /api/tickets/intake` in this order:
+Every request is still a new ticket; many tickets can share one project. There are no ticket updates: send each request once (with retries, as above).
 
-1. A `request_id` Help has already seen: the first answer again, nothing changes (the retry rule below, for creates and updates alike).
-2. An `external_id` Help already has **from the same instance** (`instance_url`, by host): an **update** of that ticket.
-3. Anything else: a new ticket.
+- **The project is known** to Help for that client: the ticket is placed in it.
+- **Not known yet**, because the project call has not arrived: Help keeps the id, and the ticket joins the project as soon as the project call delivers it.
+- **The ticket has no client**: Help keeps the id and places the ticket when the eGrant team assigns the client.
+- Help never sets a ticket's **event** from eGrant: the eGrant team and the client choose it in Help.
+- Once the ticket has a project, it belongs to the people in Help. Nothing you send later changes it.
 
-| answer | when |
-|---|---|
-| `201 { "id", "number" }` | a new ticket was created |
-| `200 { "id", "number", "updated": true, "state", "ignored" }` | an update was received |
-| `200 { "id", "number" }` | a repeat of a `request_id` already handled |
-
-An update changes **only the ticket's project** (`project_id`, `project`). Every other field you send in it (subject, text, files, status, …) is ignored and named in `ignored`, so you may send the full request each time. `state`: `applied` (the ticket now has the new project), `pending` (someone in Help had chosen the ticket's project by hand, so Help keeps it and shows your value with Apply and Dismiss), `unchanged`, `stale` (an older `sent_at`), `stored` (the ticket has no client yet). An update without `sent_at` answers `400 validation_failed` with `["sent_at"]`.
-
-Example: the project of request 4711 changed.
-
-```bash
-curl -sS https://help.egrant.sk/api/tickets/intake \
-  -H "Authorization: Bearer $SPOLU_TICKETS_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "request_id": "mesto-x-4711-update-2",
-    "external_id": "4711",
-    "instance_url": "https://mesto-x.egrant.sk",
-    "sent_at": "2026-10-21T08:40:00+02:00",
-    "project_id": "prj-215",
-    "project": "Šport 2026"
-  }'
-```
-
-Answer:
-
-```json
-{ "id": "3f0c9a52-1d7e-4f43-9a51-2b8c1e6d7a10", "number": 123, "updated": true, "state": "applied", "ignored": [] }
-```
-
-Give every update a **new** `request_id` and reuse it for that update's retries, exactly as for a new ticket: Help answers a repeated `request_id` with its first answer and applies nothing twice.
+The answers do not change (`201`, or `200` for a repeated `request_id`).
 
 ## What Help does not do
 

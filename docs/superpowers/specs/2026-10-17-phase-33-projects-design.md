@@ -18,26 +18,26 @@ Small feature noted with this phase: a knowledge item's type "From chat" can be 
 
 ## Owner decisions
 
-Approved by the owner on 2026-10-17. Decisions 6 and 8 were amended by the owner. Decision 8a is the one sub-question the amendment left open; its recommendation is below. **B** marks a business choice; the others are technical defaults.
+Approved by the owner on 2026-10-17. Decisions 6 and 8 were amended by the owner, and 8a and 6a were answered the same day (clients may also merge and delete; the intake sends only `project_id`, never an event, and eGrant never updates a ticket). **B** marks a business choice; the others are technical defaults.
 
 | # | Question | Recommendation | Why |
 |---|---|---|---|
-| 1 | **B** What does eGrant send about projects? (final shape set by the owner 2026-10-17) | **Projects come through their own endpoint, `PUT /api/egrant/projects/:project_id`** (decision 6c), with the instance URL, the name, the description and the full events array (each a name, a date as `dd.mm.yyyy` and a description; no event ids, decision 6b). **The ticket intake carries only `project_id` and `project` (the name)** to link the ticket, plus `external_id` and `sent_at` for updates. `programme` stays a separate field and is not the project; `TICKETS_PROJECT_FIELD=programme` remains the fallback switch only if eGrant cannot send projects. Full shape in §5. | The owner's API shape; the project id survives renames on either side. |
-| 2 | **B** The first delivery of a project. | **Created automatically** in the client from the delivered data: the project with its name and description, and every valid event, all marked **"From eGrant"**. A ticket that names a project Help does not know yet creates it from its name; the project endpoint's first delivery then completes it. Admins rename, archive or **merge** duplicates later (decision 4). | Owner's words ("the project and its events are created from this data"). |
-| 3 | Matching rules. | Per client only, in this order: (1) `project_id` equals a project's stored eGrant id; (2) the **name key** (trimmed, inner spaces collapsed, lower-case, without diacritics: the existing `normalizeSearch`) equals the name key or an **alias** of a project that has no eGrant id yet (one a person created): it is linked, and its differences become pending changes (§5.2); (3) otherwise create (decision 2). Archived projects match too (the ticket goes to the archived project, which shows a "New ticket in an archived project" hint to admins; it is not unarchived). A rename keeps the old name key as an alias; a merge moves the merged project's keys and ids to the survivor. A per-client lock and a primary key on the keys make concurrent intakes create one project, not two. | Exact keys are predictable; fuzzy matching (edit distance) would merge "Projekt A" and "Projekt B". Aliases make renames and merges safe for future tickets. |
+| 1 | **B** What does eGrant send about projects? (final shape set by the owner 2026-10-17) | **Projects come through their own endpoint, `PUT /api/egrant/projects/:project_id`** (decision 6c), with the instance URL, the name, the description and the full events array (each a name, a date as `dd.mm.yyyy` and a description; no event ids, decision 6b). It creates and updates projects. **The ticket intake sends only `project_id`** to link the new ticket (decision 6a). `programme` stays a separate field and is not the project; `TICKETS_PROJECT_FIELD=programme` remains the fallback switch only if eGrant cannot send projects. Full shape in §5. | The owner's API shape; the project id survives renames on either side. |
+| 2 | **B** The first delivery of a project. | **Created automatically** by the project endpoint in the client from the delivered data: the project with its name and description, and every valid event, all marked **"From eGrant"**. Tickets that arrived earlier with its `project_id` are linked in the same transaction. The ticket intake never creates a project. People rename, archive or **merge** duplicates later (decision 4). | Owner's words ("the project and its events are created from this data"; "projects are created and updated by the webhook"). |
+| 3 | Matching rules (project endpoint). | Per client only, in this order: (1) `project_id` equals a project's stored eGrant id; (2) the **name key** (trimmed, inner spaces collapsed, lower-case, without diacritics: the existing `normalizeSearch`) equals the name key or an **alias** of a project that has no eGrant id yet (one a person created): it is linked, and its differences become pending changes (§5.2); (3) otherwise create (decision 2). Archived projects match too (the ticket goes to the archived project, which shows a "New ticket in an archived project" hint to admins; it is not unarchived). A rename keeps the old name key as an alias; a merge moves the merged project's keys and ids to the survivor. A per-client lock and a primary key on the keys make concurrent deliveries create one project, not two. Tickets match by the eGrant id only (§5.5). | Exact keys are predictable; fuzzy matching (edit distance) would merge "Projekt A" and "Projekt B". Aliases make renames and merges safe for future tickets. |
 | 4 | **B** Merging projects. | **Admins merge project A into B** (A's events, tasks, tickets, files, aliases and eGrant ids move to B; A is deleted), from A's menu, with a confirmation that names the counts. | Automatic creation (decision 2) will create a few duplicates from typos in eGrant; merge is the cleanup. |
-| 5 | A ticket without a client arrives with a project. | **Keep the reference on the ticket** (`tickets.egrant_project_ref`) and link it when a client is assigned; moving a ticket to another client links it there (its old project and event are cleared, since projects belong to one client). | Projects are per client; there is nothing to match against before the client is known. |
-| 6 | **B** eGrant later sends values that differ from what Help has (amended by the owner 2026-10-17). | **Never overwrite silently.** (a) **The project:** every differing field of a later delivery becomes a **pending change from eGrant on the project**: project name, project description, and per event its name, date and description; new events are proposed as **additions**, eGrant events missing from a delivery as **removals** (never deleted automatically). The person accepts or dismisses **each field** (and each event's fields) separately in the project sheet. (b) **The ticket's own project:** applied at once while nobody changed it by hand; after a manual change, a different incoming project becomes a pending change on the ticket with **Apply** and **Dismiss**. In both, a **dismissed value stays dismissed** until eGrant sends a different one. Shown as a badge on the project in Prehľad ("eGrant changes (3)"), on the project's tickets (page and list rows, with a filter "eGrant changes") and on the admin home's Tickets rows. Approval: admins and the group's clients (decision 8); accepting a removal deletes an event, so admins only (8a). eGrant cannot update a ticket today, so P3 adds `external_id`: a repeat `POST /api/tickets/intake` with the same `external_id` from the same instance is an **update** (`200`), a new one a **create** (`201`). Storage, rules and screens: §5.4, §5.5. No notification (decision 26 stands). | A person's choice must not vanish, and a newer eGrant fact must not be lost either; the person decides, field by field. |
-| 6a | **B** Which fields may an eGrant update of a ticket change? | **Only the ticket's project (`project_id`, `project`).** Every other field in an update (subject, body, area, programme, requester, phone, due date, url, files, a status) is **ignored** and named in the answer's `ignored` list; a status from eGrant is never accepted (Help's status is the team's own workflow). *Owner to confirm*; subject and due date are the likely next candidates, each with its own pending rule. | Project data travels by the project endpoint; the conversation and status live in Help. |
+| 5 | A ticket without a client, or with a `project_id` Help does not know yet. | **Keep the raw id on the ticket** (`tickets.egrant_project_id`). Link it when the client is assigned (if the project is known there) or when the project endpoint delivers that project to the client. Moving a ticket to another client clears its project and event and matches the raw id there. | Projects are per client, and the webhook may arrive after the first tickets. |
+| 6 | **B** eGrant later sends project data that differs from what Help has (amended by the owner 2026-10-17). | **Never overwrite silently.** Every differing field of a later delivery of the **project endpoint** becomes a **pending change from eGrant on the project**: project name, project description, and per event its name, date and description; new events are proposed as **additions**, eGrant events missing from a delivery as **removals** (never deleted automatically). The person accepts or dismisses **each field** (and each event's fields) separately in the project sheet. A **dismissed value stays dismissed** until eGrant sends a different one. Shown as a badge on the project in Prehľad ("eGrant changes (3)"), on the project's tickets (page and list rows, with a filter "eGrant changes") and on the admin home's Tickets rows. Approval: admins and the group's clients (decision 8). **Tickets are never updated by eGrant** (owner 2026-10-17): every intake is a new ticket, so a ticket's project or event set by hand is never touched again. §5.4, §5.5. No notification (decision 26 stands). | A person's choice must not vanish, and a newer eGrant fact must not be lost either; the person decides, field by field. |
+| 6a | What does the intake set on a ticket? (owner 2026-10-17) | **Only the project, from `project_id`**, when it matches a project of the ticket's client (now or when the project arrives). **Never the event**: admins and the group's clients set it by hand. An empty or missing `project_id` means no project. A ticket's project is linked once; a project or event set by hand is never touched by eGrant. | Owner's decision; one field keeps the eGrant side simple. |
 | 6b | Events without ids (owner 2026-10-17: eGrant cannot send event ids). | **Match by name key + date, then pair the rest by name alone, then by date alone:** exactly one existing eGrant event fitting → proposed as a **redate** or **rename**; otherwise **addition + removal**. Each eGrant event keeps the identity eGrant last gave it (`egrant_name_key`, `egrant_date`), so a person's rename in Help does not break the pairing. Limits: a rename and a redate in one step, and two events with the same name or date, show as addition + removal; the review shows such pairs side by side ("Maybe the same event"). §5.4. | The owner's rule; ambiguity always falls back to a proposal, never to a silent change. |
 | 6c | The project endpoint (owner 2026-10-17: use it). | **`PUT /api/egrant/projects/:project_id`**, a webhook eGrant calls whenever it decides; same Bearer key; 120 a minute per IP; idempotent (the body is the full state; `sent_at` orders versions); `201` created, `200` otherwise; an **unknown instance answers `202` and the delivery is stored** (latest per project, 180 days) and processed when a client with that eGrant URL is created or edited. | Stored rather than ignored: eGrant may set up projects before the team creates the client in Help, and a re-send would otherwise be needed. |
 | 6d | Review of eGrant changes. | **One review section in the project sheet**, one row per field (current → incoming), each **Accept** or **Dismiss**, rows left alone stay pending, "Save choices" applies them in one transaction. | Owner's words (per field, per event; some accepted, others dismissed). |
 | 7 | **B** Who sees projects and events? | **Admins and the client's people** (everyone who reads the group, `canReadGroup`). A **žiadateľ** sees on their own ticket only the **project's name** (read-only), never the event, the dashboard or other projects. | The client's tasks and tickets are already visible to its clients; the timeline is their story too. A requester came from eGrant with that project, so its name is not new to them; event names can be internal. |
 | 8 | **B** Who creates and edits projects and events? (amended by the owner 2026-10-17) | **Admins and the group's clients** (everyone who reads the group) create and edit projects and events: name, description, files, date, attached knowledge. They also set the project and event on **tasks and tickets**. A ticket's project and event get their own route, so clients still do not edit the ticket's other fields. A **žiadateľ** stays read-only (decision 7). Archive, restore, merge, delete and alias removal: decision 8a. | Owner's decision: the client plans together with the eGrant team. |
-| 8a | **B** May clients also archive, merge or delete? | **Recommended: clients archive and restore**, which can be undone. **Merge, delete and removing an alias stay with admins**: they change eGrant matching for the client's future tickets and cannot be undone. Each is one policy function, so the owner can move any of them with one line. *Owner to confirm.* | Actions that can be undone are safe to share; the others also steer the intake. |
+| 8a | **B** May clients also archive, merge or delete? (owner 2026-10-17) | **Yes.** The group's clients archive, restore, merge and delete projects and events, remove aliases, and accept eGrant event removals, like admins ("it's not a problem"). A žiadateľ stays read-only. | Owner's decision. |
 | 9 | **B** Admins-only events or projects? | **No visibility switch in this phase**: everything in a client's projects is visible to the client's people. | Every visibility rule doubles the queries and tests (see Knowledge). Internal planning belongs in the admin group (Phase 34). Can be added later as a column on events. |
 | 10 | Event date. | **One date, required** (`occurs_on date`), no time and no end date. Events of the same day are ordered by creation. | Owner's words; a time or a range can be added later without changing the timeline API. |
-| 11 | **B** Deleting a project or event that has tasks or tickets. | Allowed for admins (decision 8a) with a confirmation naming the counts; their tasks and tickets **keep existing** and lose the project (or only the event). **Archive** is the normal way to end a project: archived projects leave the pickers and the timeline's default view, stay filterable, and still match eGrant (decision 3). | Deleting work items because their label went would be destructive; archive keeps the history browsable. |
+| 11 | **B** Deleting a project or event that has tasks or tickets. | Allowed for admins and the group's clients (decision 8a) with a confirmation naming the counts; their tasks and tickets **keep existing** and lose the project (or only the event). **Archive** is the normal way to end a project: archived projects leave the pickers and the timeline's default view, stay filterable, and still match eGrant (decision 3). | Deleting work items because their label went would be destructive; archive keeps the history browsable. |
 | 12 | Tasks made from a ticket (Turn into tasks). | **They inherit the ticket's project and event** (editable in the review cards). Tasks made from a chat message or a meeting get none by default. | The ticket's project is the obvious context; a group chat has none. |
 | 13 | **B** The new tab's name, place and whether it opens first. | Tab **Prehľad** (EN "Overview"), the **first pill**; the group still **opens on Chat** as today. | The team lives in the chat; the overview is one tap away. Option: open on Prehľad (one line in the router). |
 | 14 | Timeline spacing. | **Equal spacing by order** (each event a column of the same width, the date written under the dot), not a proportional time scale; long gaps get a small "4 months" mark on the line. Opens scrolled so **Today** is visible, with Today as a vertical marker between the last past and the first future event. | A proportional scale piles a week's events into one dot and leaves months empty; equal columns keep every event readable and leave room for its rows of tasks and tickets. |
@@ -81,14 +81,13 @@ projects (
   source text in ('manual','egrant'),
   egrant_project_id text null (≤ 100),
   created_by → user on delete set null, created_at, updated_at (precision 3), archived_at null,
-  egrant_delivered_at timestamptz null, egrant_sent_at timestamptz null,   -- the project endpoint's last processed delivery
-  edited_by_person_at timestamptz null                    -- last edit by a person (§5.2's "applies directly" test)
+  egrant_delivered_at timestamptz null, egrant_sent_at timestamptz null    -- the project endpoint's last processed delivery
 )
   unique (id, group_id)                                   -- target of the composite FKs below
   idx (group_id, status, name_key)                        -- pickers and the projects card
   idx (created_by)
 
-project_name_keys (                                       -- what an intake matches: names, aliases, eGrant ids
+project_name_keys (                                       -- what eGrant matches: names, aliases, eGrant ids
   project_id → projects on delete cascade, group_id,
   kind text in ('name', 'egrant_id'), key text,           -- normalizeSearch(name), or the eGrant id as sent
   pk (group_id, kind, key)                                -- one project per key and client
@@ -130,11 +129,8 @@ tasks:   project_id text null, event_id text null,
          idx (event_id) where event_id is not null      -- the timeline rows, the FK
 
 tickets: project_id, event_id as for tasks (same FKs and CHECK; group_id is nullable: CHECK project_id is null or group_id is not null),
-         egrant_project_ref jsonb null           -- { id, name } as delivered, kept for a ticket without a client (decision 5)
-         egrant_sent_at timestamptz null          -- eGrant's time of the latest value applied or held (out-of-order guard)
-         external_id text null (≤ 100), external_key text null unique   -- eGrant's ticket id; host|external_id (§5.5)
-         project_origin text null in ('egrant','manual')   -- who set the current project and event (decision 6)
-         -- pending and dismissed eGrant changes live in egrant_changes (§5.4), not on the ticket
+         egrant_project_id text null (≤ 100)    -- the raw project_id from the intake (decision 5)
+         idx (group_id, egrant_project_id) where project_id is null and egrant_project_id is not null   -- tickets waiting for their project
          idx (group_id, project_id, event_id), idx (event_id) where event_id is not null
 ```
 
@@ -142,7 +138,6 @@ tickets: project_id, event_id as for tasks (same FKs and CHECK; group_id is null
 - `on delete set null (project_id, event_id)` is PostgreSQL 15+ column-list syntax (we run 17). Drizzle cannot express it, so the migration's SQL is written by hand after `db:generate` (as for other partial or composite constraints) and the schema files carry the plain columns with a comment.
 - Files: project and event files are ordinary group files (the client's storage, `canReadFile` by the group rule), attached through the files module's `attachFiles` like knowledge does; a finance-only file is refused there already.
 - Attached knowledge in descriptions: `knowledge_links` in the knowledge module, §10.3 (same migration, so later parts need none).
-- `ticket_intake_updates` (tickets module): the `request_id` of every eGrant update, for retries (§5.5).
 - `egrant_changes` and `egrant_project_inbox` (projects module): pending and dismissed changes from eGrant (§5.4), deliveries for instances without a client yet (§5.1).
 - Finance columns: part P6, its own migration after Phase 32 is merged (§11).
 
@@ -160,14 +155,14 @@ tickets: project_id, event_id as for tasks (same FKs and CHECK; group_id is null
 | `canReadProjects(actor, groupId, actorGroupIds)` | `canReadGroup`: admins and the group's clients. A žiadateľ never (404). |
 | `canEditProjects(actor, groupId, actorGroupIds)` | `canReadGroup` (decision 8): admins and the group's clients create and edit projects and events, upload their files, attach knowledge. |
 | `canArchiveProject(actor, groupId, actorGroupIds)` | `canReadGroup` (decision 8a): archive and restore. |
-| `canMergeOrDeleteProject(actor)` | `isAdmin` (decision 8a): merge, delete a project or an event, remove an alias. |
+| `canMergeOrDeleteProject(actor, groupId, actorGroupIds)` | `canReadGroup` (decision 8a): merge, delete a project or an event, remove an alias, accept an eGrant event removal. |
 | `canSetTaskProject(actor, groupId, actorGroupIds)` | `canUseBoard` (admins and the group's clients). |
-| `canSetTicketProject(actor, ticket, role)` | an admin, or a `client` of the ticket's group (decision 8); never a žiadateľ, never on a ticket without a client. Also guards Apply and Dismiss of a pending eGrant change. |
+| `canSetTicketProject(actor, ticket, role)` | an admin, or a `client` of the ticket's group (decision 8); never a žiadateľ, never on a ticket without a client. |
 
-- A project, event or file of a group the caller cannot read answers `404 not_found`, as everywhere; a client's merge, delete or alias removal answers `403 forbidden`.
+- A project, event or file of a group the caller cannot read answers `404 not_found`, as everywhere; every write of a žiadateľ answers `404` (they never read the group).
 - A žiadateľ: `TicketDto.project` is `{ id, name }` only (no colour, no link), `event` is always `null` for them (decision 7); built in the ticket routes' `forReader` like the task links.
-- `PUT /api/egrant/projects/:project_id` and the intake (no session, the Bearer key) create projects and record changes through `receiveProjectDelivery` and `linkTicketProject`, never through the user routes.
-- Reviewing eGrant changes: `canEditProjects` (admins and the group's clients); accepting an event removal also needs `canMergeOrDeleteProject` (admins); a ticket's assignment change `canSetTicketProject`.
+- `PUT /api/egrant/projects/:project_id` and the intake (no session, the Bearer key) create projects and record changes through `receiveProjectDelivery` and `linkTicketProject` (one link on a ticket without a project), never through the user routes.
+- Reviewing eGrant changes: `canEditProjects` (admins and the group's clients); accepting an event removal uses `canMergeOrDeleteProject`, which is the same rule (decision 8a).
 
 ## 5. eGrant projects and the ticket intake (part P3)
 
@@ -193,7 +188,7 @@ Answers:
 | status | body | when |
 |---|---|---|
 | `201` | `{ "project_id", "state": "created", "skipped": [] }` | the client had no such project: it was created with its events |
-| `200` | `{ "project_id", "state": "unchanged" \| "applied" \| "pending", "pending": <n>, "skipped": [] }` | the project existed; `applied` only for a project that had never had a delivery and nobody had edited (§5.2) |
+| `200` | `{ "project_id", "state": "unchanged" \| "pending", "pending": <n>, "skipped": [] }` | the project existed |
 | `202` | `{ "project_id", "state": "stored" }` | no client has this instance yet: the delivery is **stored for later** (decision 6c) |
 | `200` | `{ "project_id", "state": "stale" }` | `sent_at` is older than the last delivery Help processed for this project; nothing changed |
 | `400` | `{ "error": "validation_failed", "fields": [...] }` | a malformed field (an invalid event **date** is not a 400: §5.3) |
@@ -207,9 +202,8 @@ Answers:
 
 In one transaction under `lockGroupProjects`, for the client found by `instance_url`:
 
-- **No project with this eGrant id** (key row `egrant_id`): create the project (`source = 'egrant'`, name, description, the `egrant_id` and name key rows) and every valid event (`source = 'egrant'`, shown as **"From eGrant"** on the timeline, in the sheet and in the pickers). `201 created`.
-- **A project created by a person with the same name key and no eGrant id:** it is linked (the `egrant_id` key row is added) and every difference becomes a pending change (§5.4); nothing the person wrote is overwritten. `200 pending`.
-- **A project created from a ticket** (a ticket arrived before the project endpoint, §5.5): it has `egrant_delivered_at` null. If no person has edited it since (`edited_by_person_at` null), the first delivery **applies directly** (name, description, events); otherwise the differences are pending. `200 applied` / `pending`.
+- **No project with this eGrant id** (key row `egrant_id`): create the project (`source = 'egrant'`, name, description, the `egrant_id` and name key rows) and every valid event (`source = 'egrant'`, shown as **"From eGrant"** on the timeline, in the sheet and in the pickers), and link the client's tickets waiting for this `project_id` (`linkWaitingTickets`, §5.5). `201 created`.
+- **A project created by a person with the same name key and no eGrant id:** it is linked (the `egrant_id` key row is added), the waiting tickets are linked, and every difference becomes a pending change (§5.4); nothing the person wrote is overwritten. `200 pending`.
 
 Every processed delivery sets `projects.egrant_delivered_at` and `egrant_sent_at`.
 
@@ -244,68 +238,60 @@ Nothing that exists is changed silently. Every difference between the delivery a
 ```
 egrant_changes (
   id, group_id → groups on delete cascade,
-  project_id → projects on delete cascade null,          -- project and event changes
+  project_id → projects on delete cascade not null,      -- project and event changes
   event_id → project_events on delete cascade null,      -- an existing event's field change or removal
-  ticket_id → tickets on delete cascade null,            -- a ticket's own project (decision 6)
   kind text in ('project_name','project_description','event_name','event_date',
-                'event_description','event_add','event_remove','ticket_project'),
+                'event_description','event_add','event_remove'),
   event_key text null,                -- event_add: '<name key>|<yyyy-mm-dd>'
-  value jsonb,                        -- the incoming value: text, a date, a whole event, or { projectId, name }
+  value jsonb,                        -- the incoming value: text, a date, or a whole event
   value_hash text,                    -- sha256 of the normalised value: "dismissed stays dismissed"
   state text in ('pending','dismissed'),
   sent_at timestamptz, received_at timestamptz,
-  via_ticket_id → tickets on delete set null null,       -- for ticket_project: none; reserved for a later field
-  CHECK (kind = 'ticket_project') = (ticket_id is not null and project_id is null)
-  CHECK kind = 'ticket_project' or project_id is not null
+  CHECK project_id is not null
 )
-  unique (coalesce(ticket_id, project_id), kind, coalesce(event_id, event_key, ''))   -- one row per field
-  idx (project_id) where state = 'pending', idx (ticket_id) where state = 'pending',
-  idx (group_id) where state = 'pending', idx (event_id), idx (via_ticket_id)
+  unique (project_id, kind, coalesce(event_id, event_key, ''))   -- one row per field
+  idx (project_id) where state = 'pending', idx (group_id) where state = 'pending', idx (event_id)
 ```
 
 Per field and delivery: the incoming value **equals the current value** → the row is deleted; it equals a **dismissed** row's `value_hash` → the row stays dismissed (no badge); otherwise the row becomes `pending` with the new value (a newer delivery replaces an older pending value).
 
-**Review.** Admins and the group's clients (`canEditProjects`, decision 8); accepting an **event removal** deletes an event, so admins only (decision 8a), while a client can dismiss it. The project sheet has a section **"Changes from eGrant (n)"**: one row per field with the current and the incoming value (descriptions as a before / after pair) and the time of the delivery; each row **Accept** or **Dismiss**; rows left alone stay pending; **Save choices** applies the accepted rows in one transaction (an accepted name adds an alias key; an accepted addition creates a "From eGrant" event; an accepted removal deletes the event after the confirmation) and marks the dismissed ones. `GET /api/projects/:id/egrant-changes`, `POST /api/projects/:id/egrant-changes { accept: [ids], dismiss: [ids] }` (`409 change_outdated` when a row changed meanwhile).
+**Review.** Admins and the group's clients (`canEditProjects`, decision 8); accepting an **event removal** deletes the event (decision 8a: clients may too) after the usual confirmation naming its tasks and tickets. The project sheet has a section **"Changes from eGrant (n)"**: one row per field with the current and the incoming value (descriptions as a before / after pair) and the time of the delivery; each row **Accept** or **Dismiss**; rows left alone stay pending; **Save choices** applies the accepted rows in one transaction (an accepted name adds an alias key; an accepted addition creates a "From eGrant" event; an accepted removal deletes the event after the confirmation) and marks the dismissed ones. `GET /api/projects/:id/egrant-changes`, `POST /api/projects/:id/egrant-changes { accept: [ids], dismiss: [ids] }` (`409 change_outdated` when a row changed meanwhile).
 
 **Where it shows:** the project's row in the Prehľad projects card ("eGrant changes (3)", opening the sheet on the section); a small mark on the timeline's affected events and in the project select; on the project's **tickets**: the ticket page ("This ticket's project has changes from eGrant · Review") and the row badge "eGrant change" in the group and global lists, with the filter `egrant=pending`; the same mark on the admin home's Tickets rows (which tickets it lists does not change). A žiadateľ sees none of it. No notification (decision 26).
 
 ### 5.5 The ticket intake links the ticket to its project
 
-`POST /api/tickets/intake` gains only what links the ticket:
+Every ticket eGrant sends is a new ticket in support, as today (owner, 2026-10-17); many tickets can share one project and one event. eGrant never updates a ticket, so there is no ticket update path. `POST /api/tickets/intake` gains **one field**:
 
 | field | meaning | rules |
 |---|---|---|
-| `project_id` | eGrant's project id | 1–100 |
-| `project` | the project's name, used only if Help does not know the project yet | 1–200 |
-| `external_id` | eGrant's own stable id of the support request | 1–100, unique per instance, never reused |
-| `sent_at` | when eGrant made this version | ISO 8601 with a zone; required on an update |
+| `project_id` | eGrant's id of the project the request is about | 1–100 characters; empty or missing = no project |
 
-No events on a ticket: the ticket's event is chosen by people.
+What Help does with it (`linkTicketProject`, in the intake transaction):
 
-- **The project is known** in the ticket's client (key row `egrant_id`) → the ticket gets it.
-- **Unknown** → a project is created from `project` (`source = 'egrant'`, no description, no events, `egrant_delivered_at` null); the project endpoint's first delivery completes it (§5.2). Without `project` the name is "eGrant project <id>".
-- **No client** → `tickets.egrant_project_ref` (`{ id, name }`) is kept and processed when a client is assigned or the ticket moves.
+- **Known** in the ticket's client (key row `egrant_id`) → the ticket gets that project, `tickets.egrant_project_id` keeps the raw id.
+- **Not known yet** (the webhook has not delivered that project to this client) → the ticket keeps the raw id in `tickets.egrant_project_id` and has no project for now. When the project endpoint creates the project (§5.2, also from the inbox, §5.1), the same transaction links every waiting ticket of that client: those with that `egrant_project_id` and no project. It does this through the tickets module's exported `linkWaitingTickets(tx, groupId, egrantProjectId, projectId)`, one update on the index `(group_id, egrant_project_id) where project_id is null and egrant_project_id is not null`, and emits `ticket:updated` for them.
+- **No client** → the raw id is kept, and matched when an admin assigns the client or the ticket moves. A match links the ticket at once; no match means it waits as above.
+- **Empty or missing** → no project. People set the project and the event by hand.
 
-**Create or update.** Today eGrant sends a ticket once: a repeat `request_id` answers the first ticket and changes nothing, and the intake has no stable ticket id. With `external_id`, the intake decides:
+**The event is never set by the intake.** Admins and the group's clients (decision 8) choose it on the ticket.
 
-1. a `request_id` already seen (on a ticket or in `ticket_intake_updates`) → the first answer again, nothing changes;
-2. `external_id` known for the same instance (`external_key` = normalized host of `instance_url` + `|` + `external_id`, unique) → an **update**: `200 { id, number, updated: true, state, ignored }`;
-3. otherwise a **create**: `201 { id, number }`.
+**A link happens only once.** The intake and `linkWaitingTickets` set the project only on a ticket that has none. A ticket whose project or event was set or changed by hand is never touched by eGrant again; there are no later ticket deliveries. A project merged away keeps linking: its `egrant_id` key row moves to the survivor (§5.6).
 
-An update changes **only the ticket's project** (`project_id`, `project`; decision 6a); every other field (subject, body, area, programme, requester, phone, due date, url, files, a status) is ignored and named in `ignored`. `sent_at` is required on an update; an older one than the ticket's `egrant_sent_at` answers `state: "stale"`. Each update carries a new `request_id`, recorded in `ticket_intake_updates (request_id pk, ticket_id → tickets on delete cascade, state, received_at)`, so its retries answer the first result.
+The answers stay as today: `201 { id, number }`, and a repeated `request_id` answers `200` with the first ticket.
 
-The ticket's project follows the same pending mechanism (kind `ticket_project`):
+DTOs, for admins and the group's clients only (stripped in `forReader` for a žiadateľ):
 
-- **`project_origin` is `egrant` or null** (nobody chose the project by hand): the incoming project applies at once and the event is cleared if it belonged to the old project (`state: "applied"`; `unchanged` when equal; `stored` without a client).
-- **`project_origin` is `manual`:** a different incoming project becomes a pending `ticket_project` change (`state: "pending"`), shown on the ticket as a banner "New change from eGrant: project *Kultúra 2026*" with **Apply** and **Dismiss** (`POST /api/tickets/:id/egrant-change/apply` · `…/dismiss`, `canSetTicketProject`; `409 no_pending_change`). Apply sets the project (created by the rules above if needed), clears an event of the old project and sets `project_origin = 'egrant'`; Dismiss keeps the manual value, and only a different later value raises it again.
-- A manual change of the ticket's project or event sets `project_origin = 'manual'` and drops a pending `ticket_project` row.
+- `TicketDto.egrantChanges: boolean`: the ticket's project has pending eGrant changes.
+- `TicketListItem.egrantChanges: boolean`, the same for list rows.
+- `TicketDto.waitingForProject: boolean`: a raw id is kept, but the project has not arrived yet. The ticket page shows "eGrant project prj-208 has not arrived yet" there.
 
-DTOs: `TicketDto.egrantChange: { kind: 'ticket' | 'project', project } | null` and `TicketListItem.egrantChange: 'ticket' | 'project' | null`, for admins and the group's clients only (stripped in `forReader` for a žiadateľ); `ProjectDto.egrantChanges: number`.
+The project DTO carries `ProjectDto.egrantChanges: number`.
 
 ### 5.6 Name keys and aliases
 
 - `name_key = normalizeSearch(name)` (the existing helper of `knowledge/search.ts`, moved to `infra/text/search.ts` by Phase 32 part B; if B has not merged, P3 imports it from knowledge).
-- Creating a project inserts its key; a rename (by hand or by an accepted eGrant change) inserts the new key and keeps the old one (alias); an admin can remove an alias in the project's edit dialog ("Also matches: …" chips). Two projects can never share a key in one client (`409 project_name_taken` on create or rename, with the other project's name). Name keys matter only for the person-created project of §5.2 and for people searching; eGrant matching itself goes by the eGrant id.
+- Creating a project inserts its key; a rename (by hand or by an accepted eGrant change) inserts the new key and keeps the old one (alias); admins and the group's clients can remove an alias in the project's edit dialog ("Also matches: …" chips). Two projects can never share a key in one client (`409 project_name_taken` on create or rename, with the other project's name). Name keys matter only for the person-created project of §5.2 and for people searching; eGrant matching itself goes by the eGrant id.
 - Merge: in one transaction under `lockGroupProjects`: move events, tasks and tickets (through their modules), files, linked knowledge, pending eGrant changes and **every key row** (`kind = 'name'` and `kind = 'egrant_id'`) to the survivor, then delete A. A's eGrant id keeps matching (and A's later deliveries become pending changes on the survivor).
 
 ## 6. Tasks and tickets (part P2)
@@ -313,8 +299,8 @@ DTOs: `TicketDto.egrantChange: { kind: 'ticket' | 'project', project } | null` a
 - **Task form** (create and edit, the panel's Details tab): under the deadline a **Project** select (the client's active projects by name, "No project") and, when a project is chosen, an **Event** select (its events by date, coming ones first, then past, "No event"). Changing the project clears the event. Saved with the form (`project_id`, `event_id` in the create and PATCH bodies; `400 invalid_project` for a pair that does not fit).
 - **AI review cards** (Turn into tasks from a ticket): inherit the ticket's project and event (decision 12), shown as the same two selects on each card.
 - **Task card** on the boards: a small chip with the project's colour dot and name (and "· event" when set), after the deadline, truncated; hidden on cards of the global board when space is short (the panel shows it).
-- **Ticket page**: Project and Event in the details list, as two selects that save at once (like the riešitelia field). Admins and the group's clients use them (`PUT /api/tickets/:id/project { projectId, eventId }`, `canSetTicketProject`); a žiadateľ sees the project's name only. A pending eGrant change shows as a banner above the details with Apply and Dismiss (§5.4). A ticket without a client shows the raw eGrant project (and event) name as text ("eGrant project: Culture 2026 – Jana") until a client is assigned.
-- **Ticket list rows**: the project chip next to the area. While a change is pending, admins and the group's clients also see the "eGrant change" badge. The status filter row gets an "eGrant changes" pill (`egrant=pending`).
+- **Ticket page**: Project and Event in the details list, as two selects that save at once (like the riešitelia field). Admins and the group's clients use them (`PUT /api/tickets/:id/project { projectId, eventId }`, `canSetTicketProject`); a žiadateľ sees the project's name only. When the ticket's project has pending eGrant changes, a line "This ticket's project has changes from eGrant · Review" opens the project sheet (§5.4). A ticket without a client shows the raw eGrant project (and event) name as text ("eGrant project: Culture 2026 – Jana") until a client is assigned.
+- **Ticket list rows**: the project chip next to the area. While the ticket's project has pending eGrant changes, admins and the group's clients also see the "eGrant change" badge. The status filter row gets an "eGrant changes" pill (`egrant=pending`).
 - **Filters** (decision 19): the group Tasks tab gets a "Project" menu pill and, with a project chosen, an "Event" menu pill (`?project=<id>|none&event=<id>|none`); the group Tickets tab the same; both remembered (`useRememberedFilters`, per group). The global board and the global tickets list show the Project pill only while exactly one client is chosen; choosing a second client drops it. Server: the group board has **no filters today** (`GET /api/groups/:id/board` and `/board/done`, `BoardQuerySchema`), so P2 adds its first two: `project` and `event` on both board routes (the Completed column's paging keeps them). `GET /api/groups/:id/tickets` (`TicketListQuerySchema`) gains `project` and `event`; `GET /api/tasks/global` (`GlobalBoardFilterSchema`, `home/global-board.ts`) and `GET /api/tickets/global` accept `project` only with exactly one client in `clients` (`400 invalid_filter` otherwise). Each query uses the `(group_id, project_id, event_id)` index. On the web: `features/tasks/board.tsx` gets a filter row (it has none), `features/tickets/ticket-filters.tsx` and `search.ts` the two pills, `features/global-board/board-filters.tsx` the Project pill.
 - **Socket**: `task:upserted` and `ticket:updated` already carry the DTO, which now has `project` and `event`; the board's filter drops a task that left the filtered project.
 
@@ -360,7 +346,7 @@ Design (egrant.sk tokens only; `design/tokens.md`):
 - **Today** is a vertical 2 px `ink` rule with a small "Today" label (sk "Dnes"), placed between the last past and the first coming event (on an event of today, just before it). The strip opens scrolled so Today sits at about a third from the left. A "Today" button in the header scrolls back to it after browsing.
 - **Gaps:** when two neighbouring events are more than 60 days apart, the line between them shows a small break with the gap ("4 months", `Intl.RelativeTimeFormat`-free: our own short formatter in `projects` texts).
 - **Under each event** (computer and tablet): "Tasks" with up to 5 open tasks (done circle state, title, assignee avatars, deadline in red when overdue), then "Tickets" with up to 5 active tickets (`#number`, subject, status pill), each list hidden when empty; "Show all (n)" when there are more, opening the Tasks or Tickets tab filtered by the event. At the bottom the **done pile**: one muted line "▤ 7 done" (a stack icon); a click expands it in place to the done tasks (struck through) and resolved tickets, 10 at a time. The column heights differ; the strip aligns them to the top.
-- **Clicking** the event's name opens the **event sheet** (side sheet on a computer, full-screen on phones): name, date, project, description (rendered Markdown), files, attached knowledge, and the same three lists without caps (paged). Admins and the group's clients get "Edit" there; "Delete" is for admins (decision 8a). A task row opens the task panel (`?task=<id>` on the overview route, like the admin home); a ticket row opens the ticket page.
+- **Clicking** the event's name opens the **event sheet** (side sheet on a computer, full-screen on phones): name, date, project, description (rendered Markdown), files, attached knowledge, and the same three lists without caps (paged). Admins and the group's clients get "Edit" and "Delete" there (decision 8a). A task row opens the task panel (`?task=<id>` on the overview route, like the admin home); a ticket row opens the ticket page.
 - **Phones:** the strip shows only the line, the dots, the dates and the names (no rows). Tapping an event opens the event sheet (decision 17). The strip scrolls sideways with momentum; the dots have a 44 px tap area.
 - **Header:** the project select (All projects [default]; each active project; "Archived" group below), "Earlier" and "Later" at the strip's ends (they load the next 15 events in that direction and keep the scroll position), "Today", and "+ Event" for admins and the group's clients (asks the project when "All projects" is shown).
 - **Empty states:** no projects: "No projects yet. Projects group this client's tasks and tickets along a timeline." with "+ New project". A project without events: "No events yet." with "+ Event". A žiadateľ never reaches the tab.
@@ -382,7 +368,7 @@ Design (egrant.sk tokens only; `design/tokens.md`):
 
 ### 7.5 The projects card and dialogs
 
-- Rows: colour dot, name, "From eGrant" badge for `source = 'egrant'`, the number of events, the next coming event, open tasks and tickets counts (one grouped query each through the tasks and tickets modules). Active by default; an "Archived" pill shows the archived ones. A row opens the **project sheet** (description, files, knowledge, its events in date order with "+ Event", "Show on the timeline" which selects it in the timeline). Admins and the group's clients: "Edit", "Archive"/"Restore"; admins also "Merge into…" and "Delete" (decision 8a).
+- Rows: colour dot, name, "From eGrant" badge for `source = 'egrant'`, the number of events, the next coming event, open tasks and tickets counts (one grouped query each through the tasks and tickets modules). Active by default; an "Archived" pill shows the archived ones. A row opens the **project sheet** (description, files, knowledge, its events in date order with "+ Event", "Show on the timeline" which selects it in the timeline). Admins and the group's clients: "Edit", "Archive"/"Restore", "Merge into…" and "Delete" (decision 8a).
 - **Project dialog:** name, description (§10), files, and for an existing project "Also matches" (aliases, removable) and the eGrant id (read-only).
 - **Event dialog:** project (fixed when opened from a project), name, date (date picker, past dates allowed), description (§10), files.
 - **Merge dialog:** "Merge Kultúra 2026 (dup) into …" with a project picker and the counts that move; confirm button "Merge".
@@ -490,9 +476,9 @@ New `product/projects.md` (requirements as built, sections per part); `product/R
 
 1. **Projects and events.** An admin opens a client's Prehľad, creates the project "Kultúra 2026" with a description and a PDF, adds three events (one past, one today, two coming); the timeline shows them in order with Today between. The client sees the same, adds an event and archives a project, and is offered no Merge or Delete.
 2. **Tasks and tickets on events.** The admin sets a task's project and event in the panel; the event's column lists it under Tasks; completing it moves it into the done pile ("1 done"); the Tasks tab filtered by the event shows only it.
-3. **eGrant projects.** `PUT /api/egrant/projects/prj-208` with a description and three events (`04.11.2026`, `20.12.2026`, `31.02.2026`) answers `201`: the project and two events are created "From eGrant", `skipped` names the third; the same body again answers `200 unchanged`. A delivery for an instance without a client answers `202`, and the project appears once the admin creates that client. A ticket with `project_id: "prj-208"` lands in the project; one with an unknown `project_id` and `project: "Šport 2026"` creates that project, which the next project delivery completes; a ticket without a client gets its project once the admin assigns the client.
-4. **eGrant changes.** A later delivery renames the project, moves *Hodnotenie* from `04.11.2026` to `06.11.2026` (paired by name: a redate), renames the `20.12.2026` event (paired by date: a rename), adds one event and leaves one out: Prehľad and the project's tickets show "eGrant changes (5)"; the client accepts the name and the redate and dismisses the addition; the admin accepts the removal; the same delivery again raises nothing; a different date for the dismissed addition raises it again. An event renamed and moved at once shows as an addition plus a removal. A ticket whose project an admin changed by hand gets an update (same `external_id`, new `request_id`, `200`, `state: pending`) and shows the Apply / Dismiss banner; on an untouched ticket the update applies at once; a `subject` in the update is ignored and listed.
-5. **Merge.** The admin merges "Nový projekt" into "Kultúra 2026"; its ticket moves; a new intake with "Nový projekt" lands in "Kultúra 2026".
+3. **eGrant projects.** `PUT /api/egrant/projects/prj-208` with a description and three events (`04.11.2026`, `20.12.2026`, `31.02.2026`) answers `201`: the project and two events are created "From eGrant", `skipped` names the third; the same body again answers `200 unchanged`. A delivery for an instance without a client answers `202`, and the project appears once the admin creates that client. A ticket with `project_id: "prj-208"` lands in the project with no event, and a client sets its event by hand. A ticket with `project_id: "prj-300"`, which Help does not know yet, shows "has not arrived yet" and is linked when `PUT /api/egrant/projects/prj-300` arrives. A ticket without a client gets its project once the admin assigns the client. A ticket without `project_id` has no project.
+4. **eGrant changes.** A later delivery renames the project, moves *Hodnotenie* from `04.11.2026` to `06.11.2026` (paired by name: a redate), renames the `20.12.2026` event (paired by date: a rename), adds one event and leaves one out: Prehľad and the project's tickets show "eGrant changes (5)". The client accepts the name, the redate and the removal and dismisses the addition; the same delivery again raises nothing; a different date for the dismissed addition raises it again. An event renamed and moved at once shows as an addition plus a removal. A ticket whose project or event a person set by hand is never changed by a delivery.
+5. **Merge.** A client merges the duplicate "Kultúra 2026 (2)" (eGrant id `prj-209`) into "Kultúra 2026"; its tickets move; a new ticket with `project_id: "prj-209"` lands in "Kultúra 2026", and a later delivery of `prj-209` becomes pending changes on the survivor.
 6. **Active cards.** The admin assigned to one ticket and one task sees them first on the cards; a client sees their own first.
 7. **Phone.** At 390 px the timeline shows dots only; tapping an event opens the sheet with its tasks, tickets and done pile.
 8. **Description editor.** In a task description the admin dictates with the fake transcription, runs "Make it formal" (fake provider), attaches a public note, saves; a client sees the note card; making the note admins-only shows "Item unavailable".
@@ -504,7 +490,31 @@ Owner request of 2026-10-17: a knowledge item of type "From chat" can be turned 
 
 ## 16. Testing (test-first)
 
-Server: the policy table of §4 for admin, client, žiadateľ and outsider. A client creates, edits and archives projects and sets a ticket's project; a client's merge, delete and alias removal answer `403`; a žiadateľ gets `404` on every write. the composite FKs (a task cannot point at another client's project; an event of another project is refused; moving a ticket clears or re-matches); matching (id, key, alias, archived, create, concurrency of two intakes, id-only, none); merge (events, tasks, tickets, keys, ids move; future matches). Project deliveries: first creation, a ticket-created project completed directly or by pending changes (edited by a person or not), a person's project of the same name linked, strict `dd.mm.yyyy` parsing and skipped events, every change kind of §5.4, the pairing order (name and date, name alone, date alone, ambiguity, rename plus redate, a person's rename in Help), dismissed values staying dismissed, a newer pending value replacing an older one, a stale `sent_at`, idempotent repeats, the inbox (`202`, processed on client create or URL change, the 180-day cleanup), the rate limit, the review's accept and dismiss with a client and an admin (a client's removal `403`), `409 change_outdated`. The create-or-update rule: `request_id` replay before `external_id`, the same `external_id` from another instance creates a new ticket, `201` and `200` answers, `ignored` fields, `sent_at` required on an update, recorded update `request_id`s. The update states: every `state`, a stale `sent_at`, no client, origin `egrant` applies, origin `manual` holds, the dismissed key, a different value after a dismiss, Apply creating the project and the event, a manual change clearing the pending one, and a žiadateľ never seeing it. the filters and their `400`s; the timeline page (order around today, paging both ways, caps and counts, archived projects, six queries); the active cards' order; the description routes (AI tools per role, shared rate limits) and `knowledge_links` (shareable only, re-check on display, žiadateľ read-through, files rule, moved ticket); the finance hooks and filters (P6); EXPLAIN. Web: the selects (clearing the event), the filters (remembered, the one-client rule), the timeline (Today placement, gaps, done pile, keyboard, phones' sheet), the cards, the dialogs, the description field (lazy load, AI, voice, attach, undo).
+Server tests, test-first:
+
+- **The policy table of §4** for admin, client, žiadateľ and outsider. A client creates, edits, archives, merges and deletes projects and events, removes aliases and sets a ticket's project and event; a žiadateľ gets `404` on every write.
+- **The composite FKs:** a task cannot point at another client's project; an event of another project is refused; moving a ticket clears its project and matches the raw id again.
+- **Matching:** eGrant id, a person's project linked by name key, archived projects, concurrency of two deliveries.
+- **Merge:** events, tasks, tickets, keys and ids move; later deliveries and tickets match the survivor.
+- **Project deliveries:**
+  - first creation, with waiting tickets linked;
+  - strict `dd.mm.yyyy` parsing and skipped events;
+  - every change kind of §5.4;
+  - the pairing order: name and date, name alone, date alone, ambiguity, a rename plus a redate, a person's rename in Help;
+  - dismissed values staying dismissed, a newer pending value replacing an older one;
+  - a stale `sent_at`, idempotent repeats;
+  - the inbox: `202`, processed on client create or URL change, the 180-day cleanup;
+  - the rate limit;
+  - the review's accept and dismiss by a client and an admin, a client accepting a removal, `409 change_outdated`.
+- **The ticket link:**
+  - a known `project_id`;
+  - an unknown one kept and linked when the project arrives, also through the inbox;
+  - no client: matched on assignment and on a move;
+  - empty or missing: no project;
+  - never an event;
+  - a ticket with a project set by hand never relinked;
+  - `waitingForProject`, and a žiadateľ never seeing it.
+- **The other parts:** the filters and their `400`s; the timeline page (order around today, paging both ways, caps and counts, archived projects, six queries); the active cards' order; the description routes (AI tools per role, shared rate limits) and `knowledge_links` (shareable only, re-check on display, žiadateľ read-through, files rule, moved ticket); the finance hooks and filters (P6); EXPLAIN. Web: the selects (clearing the event), the filters (remembered, the one-client rule), the timeline (Today placement, gaps, done pile, keyboard, phones' sheet), the cards, the dialogs, the description field (lazy load, AI, voice, attach, undo).
 
 ## 17. Risks
 
