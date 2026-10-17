@@ -1,6 +1,12 @@
 import { performance } from 'node:perf_hooks';
 import type { FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify';
-import { ErrorCodes, type AiStatus, type TaskProposals } from '@spolu/shared';
+import {
+  ClaudePromptRequestSchema,
+  ErrorCodes,
+  type AiStatus,
+  type ClaudePrompt,
+  type TaskProposals,
+} from '@spolu/shared';
 import type { AppDeps } from '../../deps.js';
 import { requireUser } from '../auth/session.js';
 import { findReadableMessage } from '../chat/messages.js';
@@ -8,6 +14,9 @@ import { clientGroupIds } from '../groups/memberships.js';
 import { canReadGroup } from '../groups/policy.js';
 import { canReadTicket, canSplitTicket } from '../tickets/policy.js';
 import { getTicketRow, roleIn } from '../tickets/service.js';
+import { getUserById } from '../users/service.js';
+import { taskClaudePrompt, ticketClaudePrompt } from './claude-context.js';
+import { canOpenInClaude } from './policy.js';
 import { AiFailedError, AiTimeoutError, type SplitResult } from './provider.js';
 import {
   AiNoTasksError,
@@ -69,6 +78,49 @@ export const aiRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { dep
       throw error;
     }
   }
+
+  // "Vyriešiť s Claude" (Phase 29): builds the prompt text only; nothing runs AI and nothing is
+  // written. POST for the admin's notes. Admins only, checked before the lookup so others cannot
+  // probe ids. Answers null after sending the error.
+  async function promptOptions(request: FastifyRequest, reply: FastifyReply) {
+    if (!canOpenInClaude(request.user!)) {
+      await reply.code(403).send({ error: ErrorCodes.forbidden });
+      return null;
+    }
+    const parsed = ClaudePromptRequestSchema.safeParse(request.body ?? {});
+    if (!parsed.success) {
+      await reply.code(400).send({ error: ErrorCodes.validationFailed });
+      return null;
+    }
+    return {
+      publicUrl: deps.config.publicUrl,
+      language: (await getUserById(deps.db, request.user!.id))?.language ?? 'sk',
+      notes: parsed.data.notes,
+    };
+  }
+  app.post<IdParams>(
+    '/tickets/:id/claude-prompt',
+    { preHandler: anyUser },
+    async (request, reply) => {
+      const options = await promptOptions(request, reply);
+      if (options === null) return reply;
+      const ticket = await getTicketRow(deps.db, request.params.id);
+      if (!ticket) return reply.code(404).send({ error: ErrorCodes.notFound });
+      const body: ClaudePrompt = await ticketClaudePrompt(deps.db, ticket, options);
+      return body;
+    },
+  );
+  app.post<IdParams>(
+    '/tasks/:id/claude-prompt',
+    { preHandler: anyUser },
+    async (request, reply) => {
+      const options = await promptOptions(request, reply);
+      if (options === null) return reply;
+      const body: ClaudePrompt | null = await taskClaudePrompt(deps.db, request.params.id, options);
+      if (body === null) return reply.code(404).send({ error: ErrorCodes.notFound });
+      return body;
+    },
+  );
 
   app.get('/ai/status', { preHandler: anyUser }, async (): Promise<AiStatus> => {
     return {

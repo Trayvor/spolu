@@ -1,5 +1,9 @@
 import { z } from 'zod';
 
+/** The text tools' `reasoning_effort`; `off` sends none. */
+export const REASONING_EFFORTS = ['off', 'none', 'minimal', 'low', 'medium'] as const;
+export type ReasoningEffort = (typeof REASONING_EFFORTS)[number];
+
 const base = {
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.coerce.number().int().min(1).max(65535).default(3000),
@@ -30,6 +34,10 @@ const base = {
   AI_ALLOW_FAKE: z.enum(['1']).optional(),
   OPENAI_API_KEY: z.string().min(1).optional(),
   OPENAI_MODEL: z.string().min(1).default('gpt-5-mini'),
+  // Phase 28 — the chat composer's AI text tools: a fast, cheap model of their own.
+  OPENAI_TEXT_MODEL: z.string().min(1).default('gpt-5.4-mini'),
+  // `off` omits reasoning_effort (for models without reasoning, such as gpt-4.1-mini).
+  OPENAI_TEXT_REASONING_EFFORT: z.enum(REASONING_EFFORTS).default('low'),
   // Phase 30 — meeting transcription. `openai` uses OPENAI_API_KEY (off without it);
   // `elevenlabs` needs ELEVENLABS_API_KEY; `fake` is refused in production like AI_PROVIDER.
   TRANSCRIPTION_PROVIDER: z.enum(['openai', 'elevenlabs', 'fake']).default('openai'),
@@ -112,6 +120,11 @@ export type Config = {
   joinRequestsPerMinute: number;
   /** The task split provider; null when OpenAI is chosen but no key is set (AI is off). */
   ai: { provider: 'openai'; apiKey: string; model: string } | { provider: 'fake' } | null;
+  /** The chat composer's AI text tools (Phase 28); null like `ai`, with their own model. */
+  textAi:
+    | { provider: 'openai'; apiKey: string; model: string; reasoningEffort: ReasoningEffort }
+    | { provider: 'fake' }
+    | null;
   /**
    * Speech to text for meeting recordings (Phase 30); null when OpenAI is chosen but no key is
    * set (transcription is off; pasted transcripts still work).
@@ -212,6 +225,17 @@ export function loadConfig(env: NodeJS.ProcessEnv): Config {
         : e.OPENAI_API_KEY === undefined
           ? null
           : { provider: 'openai', apiKey: e.OPENAI_API_KEY, model: e.OPENAI_MODEL },
+    textAi:
+      e.AI_PROVIDER === 'fake'
+        ? { provider: 'fake' }
+        : e.OPENAI_API_KEY === undefined
+          ? null
+          : {
+              provider: 'openai',
+              apiKey: e.OPENAI_API_KEY,
+              model: e.OPENAI_TEXT_MODEL,
+              reasoningEffort: e.OPENAI_TEXT_REASONING_EFFORT,
+            },
   };
 }
 

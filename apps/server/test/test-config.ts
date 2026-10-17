@@ -28,6 +28,7 @@ export function testConfig(overrides: Partial<Config> = {}): Config {
     loginCodesPerMinute: 10,
     joinRequestsPerMinute: 10,
     ai: null,
+    textAi: null,
     transcription: null,
     ffmpegPath: 'ffmpeg',
     ticketsApiKey: null,

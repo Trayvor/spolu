@@ -76,6 +76,12 @@ export async function getTicketChannel(db: Db, ticketId: string): Promise<Channe
   return row ?? null;
 }
 
+/** The task's chat channel, or null while nobody has opened it (it is created on first use). */
+export async function getTaskChannel(db: Db, taskId: string): Promise<ChannelRow | null> {
+  const [row] = await db.select().from(channels).where(eq(channels.taskId, taskId));
+  return row ?? null;
+}
+
 /**
  * Moves a ticket's chat to the ticket's new group, with the files of its messages, so the
  * messages and their attachments stay readable there. One transaction; no-op without a chat.

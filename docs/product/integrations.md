@@ -11,6 +11,7 @@ Spolu talks to three external systems: eGrant (incoming error reports), Elastic 
   | **eGrant** | Incoming support requests (JSON + one shared Bearer key) become tickets (see `tickets.md`). |
   | **Elastic Email** | Emails: invites, login codes, "Ticket created", email notifications (transactional); bulk email (Phase 23) through the marketing endpoint `POST /v4/emails`, one call per person, no open or click tracking ([ADR 0016](../decisions/0016-bulk-email-through-elastic-v4-emails.md)). |
   | **AI (LLM API)** | Splitting a message into tasks (see `ai-task-split.md`). |
+  | **claude.ai** (link out, no API) | "Vyriešiť s Claude": admins open a prefilled Claude chat with a ticket's or task's context and work through the eGrant MCP connector in their own Claude account (see `solve-with-claude.md`). Spolu sends nothing to Anthropic itself. |
 
 ## Ticket intake API (for the eGrant team)
 
