@@ -25,6 +25,7 @@ Spolu must feel instant: faster than Microsoft Teams on a cheap phone over mobil
 ### Server and database
 
 - Every column used to filter, join or sort has an index. Add it in the same migration as the query.
+- Every foreign key column leads an index too, or deleting a parent scans the child table once per deleted row (`infra/db/foreign-key-indexes.test.ts` checks it; see [data-model.md](data-model.md)).
 - No N+1: load related rows with one join or one `in (...)` query, not one query per row.
 - Endpoints return only the fields the screen needs, and every list endpoint is paginated.
 - Realtime events carry small payloads (ids and changed fields) and go only to the rooms that need them.

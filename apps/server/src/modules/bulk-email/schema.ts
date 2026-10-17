@@ -121,6 +121,10 @@ export const bulkSubscriptions = pgTable(
       'bulk_subscriptions_source_check',
       sql`${t.source} in ('link', 'one_click', 'profile', 'provider')`,
     ),
+    // The `set null` from a deleted campaign, and the report's unsubscribed count per campaign.
+    index('bulk_subscriptions_campaign_idx')
+      .on(t.campaignId)
+      .where(sql`${t.campaignId} is not null`),
   ],
 );
 

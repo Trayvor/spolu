@@ -40,6 +40,10 @@ export const notificationEvents = pgTable(
   (t) => [
     index('notification_events_user_delivered_idx').on(t.userId, t.deliveredAt),
     index('notification_events_created_at_idx').on(t.createdAt),
+    // The cascade from a deleted group (the table is the largest one).
+    index('notification_events_group_idx')
+      .on(t.groupId)
+      .where(sql`${t.groupId} is not null`),
     uniqueIndex('notification_events_dedupe_unique')
       .on(t.userId, t.dedupeKey)
       .where(sql`${t.dedupeKey} is not null`),

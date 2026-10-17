@@ -50,15 +50,20 @@ export const groupMembers = pgTable(
  * client membership when they sign in (`applyPendingInvite`), so typing an email on an invite
  * never adds an existing account to a group by itself.
  */
-export const pendingInvites = pgTable('pending_invites', {
-  userId: text('user_id')
-    .primaryKey()
-    .references(() => user.id, { onDelete: 'cascade' }),
-  groupId: text('group_id')
-    .notNull()
-    .references(() => groups.id, { onDelete: 'cascade' }),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-});
+export const pendingInvites = pgTable(
+  'pending_invites',
+  {
+    userId: text('user_id')
+      .primaryKey()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    groupId: text('group_id')
+      .notNull()
+      .references(() => groups.id, { onDelete: 'cascade' }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  // The cascade from a deleted group.
+  (t) => [index('pending_invites_group_idx').on(t.groupId)],
+);
 
 /**
  * The admins who manage a group (its account managers). Many per group, many groups per admin.

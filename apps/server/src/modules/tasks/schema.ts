@@ -137,5 +137,9 @@ export const taskAttachments = pgTable(
       .notNull()
       .references(() => files.id, { onDelete: 'cascade' }),
   },
-  (t) => [primaryKey({ columns: [t.taskId, t.fileId] })],
+  (t) => [
+    primaryKey({ columns: [t.taskId, t.fileId] }),
+    // The cascade from a deleted file.
+    index('task_attachments_file_idx').on(t.fileId),
+  ],
 );

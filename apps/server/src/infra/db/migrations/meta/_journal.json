@@ -197,6 +197,13 @@
       "when": 1792197069968,
       "tag": "0027_ticket_sign_in_links",
       "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1792198748949,
+      "tag": "0028_perf_foreign_key_indexes",
+      "breakpoints": true
     }
   ]
 }
