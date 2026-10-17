@@ -102,7 +102,8 @@ Impact: **high** = a user waits seconds, or the server does far more work than n
 - About 4 queries per due reminder time in the fire batch (`reminders/jobs.ts:96-135`).
 - One audience query per (group, category) in the delivery batch (`notifications/deliver.ts:182`), and one `jobs.send` per push device (`deliver.ts:69`).
 - One advisory lock statement per (user, group) in the minutely digest (`notifications/digest.ts:127`).
-- Proposed: batch each with one `insert … select` / `unnest`, test-first with `test/query-counter.ts`. Not done tonight: each touches delivery semantics (dedupe keys, savepoints) and needs careful tests. Listed as the next server batch.
+- Proposed: batch each with one `insert … select` / `unnest`, test-first with `test/query-counter.ts`.
+- **Done** (PR #S7PR, branch `perf/job-batching`), behaviour kept: same dedupe keys and pending states, the fire batch still falls back to a savepoint per time if its insert fails, and push jobs fall back to one by one. Queries on the probe volume (warm run): delivery batch over 50 groups with 3 devices each 58 → 9 (and 150 push sends → 1 insert); digest of 50 pairs 57 → 8; deadline reminders for 200 tasks 201 → 2; reminder fire batch of 200 times 606 → 9. Details in [performance.md](../../architecture/performance.md).
 
 **S8. The group board loads every task ever, including all completed ones.** Impact med as groups age, effort M, risk med (visible).
 - Evidence: `tasks/service.ts:209` (`getBoard`) runs `selectTasks(eq(groupId))` with no limit. It is 1.8 ms for 200 tasks on the volume. It also runs `ensureBoard` (an insert … on conflict) on every GET.
@@ -281,11 +282,12 @@ Each batch is one branch and one PR from fresh `origin/main`, independent of the
 | 8 | `perf/docker-runtime-slim` | K1 | low-med | low | PR #57: image 467 → 380 MB (94.7 → 82.8 MB compressed), source-only rebuild 26–31 → 17 s |
 | 9 | `ci/parallel-static-checks` | T5 | med (CI) | low-med | PR #56: lint, format check and typecheck in parallel, 27–55 → 18–28 s |
 | 10 | `test/deterministic-deliveries` | T3 | med (CI) | low | PR #58: the tests' delivery is scoped by event id; push checks no longer wait |
+| 11 | `perf/job-batching` | S7 | med | low-med | PR #S7PR: job queries per batch 58 → 9 (delivery), 57 → 8 (digest), 201 → 2 (deadline reminders), 606 → 9 (reminder fire) |
 
 Proposed, not done (owner decision or later work):
-- **Server:** S4, S5, S6, S7 (in progress), S8, S9, S10, S11.
+- **Server:** S4, S5, S6, S8, S9, S10, S11.
 - **Web:** W2, W5, W6, W7, W8.
 - **Tests and CI:** T2, T4.
 - **Docker:** K2.
 
-The next server batch should be S7 (job N+1s, test-first). The next web batch should be W5 together with S4.
+The next web batch should be W5 together with S4.

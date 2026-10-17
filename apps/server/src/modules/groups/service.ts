@@ -1,5 +1,5 @@
 import { randomBytes, randomUUID } from 'node:crypto';
-import { and, asc, eq, inArray, isNotNull, isNull, or, sql } from 'drizzle-orm';
+import { and, asc, eq, inArray, isNotNull, isNull, or, sql, type SQL } from 'drizzle-orm';
 import { unionAll } from 'drizzle-orm/pg-core';
 import {
   isPickable,
@@ -228,7 +228,7 @@ export async function listMembers(
 // One definition of "a person of this group", shared by the list and the single check.
 const isActiveAdmin = and(inArray(user.role, ['admin', 'superadmin']), isNull(user.disabledAt));
 // A ziadatel (requester) is not a person of the group: they never read its chat or board.
-const isNamedActiveMember = (groupId: string) =>
+const isNamedActiveMember = (groupId: string | SQL) =>
   and(
     eq(groupMembers.groupId, groupId),
     eq(groupMembers.role, 'client'),
@@ -268,6 +268,38 @@ export async function listGroupPeople(db: Db, groupId: string): Promise<GroupPer
     .where(isActiveAdmin);
   return unionAll(clients, admins).orderBy(asc(sql`name`), asc(sql`id`));
 }
+
+/**
+ * Which of the (user, group) pairs are people of their group by `listGroupPeople`'s rule (an
+ * active admin, or a verified, named, active client member); a pair with `requesters` also counts
+ * an active `ziadatel` member. One query for any number of pairs (the delivery batch, Phase 27
+ * S7). Returns the keys `pairKey(userId, groupId, requesters)` of the pairs that are.
+ */
+export async function groupPeopleAmong(
+  db: Db,
+  pairs: { userId: string; groupId: string; requesters: boolean }[],
+): Promise<Set<string>> {
+  if (pairs.length === 0) return new Set();
+  const values = sql.join(
+    pairs.map((p) => sql`(${p.userId}::text, ${p.groupId}::text, ${p.requesters}::boolean)`),
+    sql`, `,
+  );
+  const rows = await db.execute<{ user_id: string; group_id: string; requesters: boolean }>(sql`
+    select v.user_id, v.group_id, v.requesters
+    from (values ${values}) as v(user_id, group_id, requesters)
+    join ${user} on ${user.id} = v.user_id
+    where ${isActiveAdmin}
+      or exists (select 1 from ${groupMembers}
+        where ${groupMembers.userId} = v.user_id and (${isNamedActiveMember(sql`v.group_id`)}
+          or (v.requesters and ${groupMembers.groupId} = v.group_id
+            and ${groupMembers.role} = 'ziadatel' and ${groupMembers.removedAt} is null)))
+  `);
+  return new Set([...rows].map((r) => pairKey(r.user_id, r.group_id, r.requesters)));
+}
+
+/** The key of a pair in `groupPeopleAmong`'s result. */
+export const pairKey = (userId: string, groupId: string, requesters: boolean) =>
+  `${userId}\u0000${groupId}\u0000${requesters ? 1 : 0}`;
 
 /** Who can be assigned or picked: the group's clients and its active managers. */
 export async function listPickablePeople(db: Db, groupId: string): Promise<GroupPerson[]> {

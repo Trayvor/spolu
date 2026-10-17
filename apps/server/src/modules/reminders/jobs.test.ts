@@ -4,6 +4,7 @@ import { eq } from 'drizzle-orm';
 import type { SessionUser } from '@spolu/shared';
 import type { AppDeps } from '../../deps.js';
 import type { FakePushSender } from '../../infra/push/index.js';
+import { createCountingDb } from '../../../test/query-counter.js';
 import { buildTestApp } from '../../../test/test-app.js';
 import { groupMembers } from '../groups/schema.js';
 import { addMember, createGroup } from '../groups/service.js';
@@ -200,6 +201,42 @@ describe('reminders.fire', () => {
     release();
     expect((await a).count).toBe(1);
     expect(await eventsOf(s.timeId)).toHaveLength(2);
+  });
+
+  it('a batch of 30 due times takes as many queries as a batch of 2 (Phase 27 S7)', async () => {
+    const counting = createCountingDb();
+    try {
+      const fireCounting = async (n: number) => {
+        const s = await setup();
+        // n - 1 more due times on the same set, so one batch fires n times.
+        await deps.db.insert(reminderTimes).values(
+          Array.from({ length: n - 1 }, (_, i) => ({
+            id: randomUUID(),
+            setId: s.setId,
+            at: new Date(Date.now() - (i + 2) * 60_000),
+          })),
+        );
+        counting.reset();
+        const batch = await counting.db.transaction((tx) =>
+          fireBatch(tx, new Date(), 200, [s.setId]),
+        );
+        const queries = counting.count();
+        expect(batch.count).toBe(n);
+        expect(batch.eventIds).toHaveLength(2 * n); // the admin author and the client
+        const fired = await deps.db
+          .select()
+          .from(reminderTimes)
+          .where(eq(reminderTimes.setId, s.setId));
+        expect(fired.every((t) => t.firedAt !== null)).toBe(true);
+        return queries;
+      };
+      // A statement shape the connection has not seen costs an extra round trip (postgres.js
+      // describes it first), so each size runs twice and the second count is compared.
+      const warm = async (n: number) => (await fireCounting(n), fireCounting(n));
+      expect(await warm(30)).toBe(await warm(2));
+    } finally {
+      await counting.close();
+    }
   });
 
   it('times whose set has no subject are still marked fired', async () => {

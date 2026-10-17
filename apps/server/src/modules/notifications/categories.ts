@@ -5,8 +5,8 @@ import {
   type SessionUser,
 } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
-import { activeMemberIds, isRequesterOnly } from '../groups/memberships.js';
-import { listGroupPeople } from '../groups/service.js';
+import { isRequesterOnly } from '../groups/memberships.js';
+import { groupPeopleAmong, pairKey } from '../groups/service.js';
 
 /**
  * The notification group of every event kind: the one place that maps a kind to a group. A new
@@ -63,17 +63,18 @@ export async function visibleCategoriesFor(
 }
 
 /**
- * Who belongs to the event's client group for delivery: the group's people (its clients and every
- * admin); for `tickets` also its `ziadatel` members (Phase 21), who belong to no other group.
+ * Who belongs to an event's client group for delivery: the group's people (its clients and every
+ * admin, `listGroupPeople`'s rule); for `tickets` also its `ziadatel` members (Phase 21), who
+ * belong to no other group. For a whole delivery batch in one query (Phase 27 S7): returns a check
+ * of whether a (user, client group, notification group) triple of `items` is in the audience.
  */
-export async function notificationAudience(
+export async function audienceAmong(
   db: Db,
-  groupId: string,
-  group: NotificationCategory,
-): Promise<Set<string>> {
-  const people = new Set((await listGroupPeople(db, groupId)).map((p) => p.id));
-  if (group === 'tickets') {
-    for (const id of await activeMemberIds(db, groupId, 'ziadatel')) people.add(id);
-  }
-  return people;
+  items: { userId: string; groupId: string; group: NotificationCategory }[],
+): Promise<(userId: string, groupId: string, group: NotificationCategory) => boolean> {
+  const found = await groupPeopleAmong(
+    db,
+    items.map((i) => ({ userId: i.userId, groupId: i.groupId, requesters: i.group === 'tickets' })),
+  );
+  return (userId, groupId, group) => found.has(pairKey(userId, groupId, group === 'tickets'));
 }

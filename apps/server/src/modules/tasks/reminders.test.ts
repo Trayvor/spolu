@@ -3,6 +3,7 @@ import { afterAll, describe, expect, it, vi } from 'vitest';
 import { and, eq, inArray } from 'drizzle-orm';
 import { createDb } from '../../infra/db/client.js';
 import type { JobQueue } from '../../infra/jobs/jobs.js';
+import { createCountingDb } from '../../../test/query-counter.js';
 import { testDatabaseUrl } from '../../../test/test-config.js';
 import { createGroup } from '../groups/service.js';
 import { notificationEvents } from '../notifications/schema.js';
@@ -234,5 +235,57 @@ describe('recordUrgentReminders', () => {
     expect((await events('task.urgent')).map((r) => r.dedupeKey)).toEqual([
       `urgent:${id}:2026-03-29T08`,
     ]);
+  });
+});
+
+describe('reminder batching (Phase 27 S7)', () => {
+  const counting = createCountingDb();
+  afterAll(counting.close);
+  // A statement shape the connection has not seen yet costs an extra round trip (postgres.js
+  // describes it first), so each size runs twice and the second count is compared.
+  const warm = async (run: () => Promise<number>) => (await run(), run());
+
+  it('records the deadline reminders of 40 tasks in as many queries as of 1', async () => {
+    const { addTask, events } = await setup();
+    const second = await createUnverifiedClient(db, `${randomUUID()}@example.com`);
+    const send = vi.fn(async () => {});
+    const deps = { db: counting.db, jobs: { send } as JobQueue };
+    // A random far-future day, so only this run's tasks are due on it.
+    const run = async (tasks: number) => {
+      const day = new Date(Date.UTC(2100 + Math.floor(Math.random() * 800), 0, 10));
+      const due = new Date(day.getTime() + 24 * 60 * 60_000).toISOString().slice(0, 10);
+      const ids: string[] = [];
+      for (let i = 0; i < tasks; i++) ids.push(await addTask({ dueDate: due }));
+      await db.insert(taskAssignees).values(ids.map((taskId) => ({ taskId, userId: second.id })));
+      counting.reset();
+      expect(await recordDeadlineReminders(deps, new Date(day.getTime() + 8 * 60 * 60_000))).toBe(
+        2 * tasks,
+      );
+      return counting.count();
+    };
+    expect(await warm(() => run(40))).toBe(await warm(() => run(1)));
+    const deadline = await events('task.deadline', [second.id]);
+    expect(deadline).toHaveLength(82);
+    expect(new Set(deadline.map((e) => e.dedupeKey)).size).toBe(82);
+  });
+
+  it('records the urgent reminders of every open urgent task in a fixed number of queries', async () => {
+    const { addTask, events } = await setup();
+    const send = vi.fn(async () => {});
+    const deps = { db: counting.db, jobs: { send } as JobQueue };
+    // Every open urgent task of the shared database is reminded, ours among them.
+    const run = async (tasks: number, at: Date) => {
+      for (let i = 0; i < tasks; i++) await addTask({ urgent: true });
+      counting.reset();
+      await recordUrgentReminders(deps, at);
+      return counting.count();
+    };
+    const hour = (h: number) =>
+      new Date(Date.UTC(2100 + Math.floor(Math.random() * 800), 0, 10, h));
+    const large = await warm(() => run(20, hour(8 + Math.floor(Math.random() * 1000))));
+    const small = await warm(() => run(1, hour(8 + Math.floor(Math.random() * 1000))));
+    expect(large).toBe(small);
+    // Four slots, each reminding every one of this group's open urgent tasks so far.
+    expect(await events('task.urgent')).toHaveLength(20 + 40 + 41 + 42);
   });
 });
