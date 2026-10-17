@@ -58,6 +58,11 @@ function sample(t: ServerTexts): string[] {
     ...counts.map((c) => n.ticketTasks(7, c)),
     n.ticketTopic(7),
     n.openTicket,
+    n.meetingScheduled('Thu 22 Oct, 10:00'),
+    n.meetingRescheduled('Thu 22 Oct, 10:00'),
+    n.meetingSummaryReady,
+    n.meetingSummaryFailed,
+    n.openMeeting,
   ];
 }
 

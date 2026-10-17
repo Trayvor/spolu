@@ -17,6 +17,8 @@ export type SubjectInfo = {
   authorId: string;
   /** `YYYY-MM-DD`: subjects with a deadline (tasks) export it as an all-day event. */
   dueDate?: string | null;
+  /** A meeting item (2026-10-17): its reminders belong to the `meetings` notification group. */
+  meeting?: boolean;
   /** App-relative URL of the subject, e.g. `/groups/g/knowledge?k=id`. */
   link: string;
   canRead(actor: SessionUser, actorGroupIds: readonly string[]): boolean;

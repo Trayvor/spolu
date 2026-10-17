@@ -104,5 +104,10 @@ export const bg: ServerTexts = {
       `#${n} е превърнат в ${c} ${plural('bg', c, { one: 'задача', other: 'задачи' })}`,
     ticketTopic: (n) => `Тикет #${n}`,
     openTicket: 'Отвори тикета',
+    meetingScheduled: (when) => `Нова среща: ${when}`,
+    meetingRescheduled: (when) => `Срещата е преместена за ${when}`,
+    meetingSummaryReady: 'AI резюмето е готово',
+    meetingSummaryFailed: 'Обработката с AI не успя',
+    openMeeting: 'Отвори срещата',
   },
 };

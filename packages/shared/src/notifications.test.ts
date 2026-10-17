@@ -109,6 +109,7 @@ describe('notification groups', () => {
       tasks: 'push',
       tickets: 'both',
       knowledge: 'push',
+      meetings: 'push',
     });
     expect(DEFAULT_CHANNELS).toEqual(resolveChannels({}));
   });
@@ -119,6 +120,7 @@ describe('notification groups', () => {
       tasks: 'push',
       tickets: 'both',
       knowledge: 'push',
+      meetings: 'push',
     });
     expect(resolveChannels(null)).toEqual(DEFAULT_CHANNELS);
     expect(resolveChannels(['email'])).toEqual(DEFAULT_CHANNELS);
@@ -135,6 +137,12 @@ describe('notification groups', () => {
   });
 
   it('groups are in the profile order', () => {
-    expect([...NotificationCategories]).toEqual(['chat', 'tasks', 'tickets', 'knowledge']);
+    expect([...NotificationCategories]).toEqual([
+      'chat',
+      'tasks',
+      'tickets',
+      'knowledge',
+      'meetings',
+    ]);
   });
 });

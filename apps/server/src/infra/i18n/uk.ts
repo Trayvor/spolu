@@ -111,5 +111,10 @@ export const uk: ServerTexts = {
       `#${n} перетворено на ${c} ${plural('uk', c, { one: 'завдання', few: 'завдання', many: 'завдань', other: 'завдання' })}`,
     ticketTopic: (n) => `Тікет #${n}`,
     openTicket: 'Відкрити тікет',
+    meetingScheduled: (when) => `Нова зустріч: ${when}`,
+    meetingRescheduled: (when) => `Зустріч перенесено на ${when}`,
+    meetingSummaryReady: 'AI-підсумок готовий',
+    meetingSummaryFailed: 'Не вдалося обробити за допомогою AI',
+    openMeeting: 'Відкрити зустріч',
   },
 };

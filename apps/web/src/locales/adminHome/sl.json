@@ -143,7 +143,7 @@
       "description": "Opomniki za naloge in elemente znanja v naslednjih 7 dneh."
     },
     "mentions": {
-      "description": "Sporočila, v katerih ste omenjeni in jih še niste prebrali."
+      "description": "Neprebrana sporočila, ki vas omenjajo, v klepetih, iz katerih prejemate obvestila."
     },
     "groups": {
       "overdue": "Zamuja",
@@ -159,7 +159,7 @@
       "noSummary": "Pretekli, brez povzetka"
     },
     "meetings": {
-      "description": "Sestanki vaših strank v naslednjih 7 dneh, nato pretekli sestanki zadnjih 30 dni, ki še nimajo povzetka.",
+      "description": "Sestanki, o katerih prejemate obvestila: naslednjih 7 dni, nato pretekli sestanki zadnjih 30 dni, ki še nimajo povzetka.",
       "openAll": "Odpri vse sestanke"
     }
   }

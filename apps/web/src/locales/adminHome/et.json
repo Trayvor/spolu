@@ -125,7 +125,7 @@
       "description": "Ülesannete ja teadmusbaasi kirjete meeldetuletused järgmise 7 päeva jooksul."
     },
     "mentions": {
-      "description": "Sõnumid, milles sind mainiti ja mida sa pole veel lugenud."
+      "description": "Lugemata sõnumid, mis teid mainivad, vestlustes, millest saate teavitusi."
     },
     "groups": {
       "overdue": "Hilinenud",
@@ -141,7 +141,7 @@
       "noSummary": "Möödunud, kokkuvõtteta"
     },
     "meetings": {
-      "description": "Sinu klientide kohtumised järgmise 7 päeva jooksul, seejärel viimase 30 päeva kohtumised, millel pole veel kokkuvõtet.",
+      "description": "Kohtumised, mille kohta saate teavitusi: järgmised 7 päeva, seejärel viimase 30 päeva möödunud kohtumised, millel pole veel kokkuvõtet.",
       "openAll": "Ava kõik kohtumised"
     }
   }

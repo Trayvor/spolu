@@ -14,8 +14,8 @@ import { getDeviceState, subscribeThisDevice } from './push-device';
 import { NotificationsSection } from './notifications-section';
 
 const PREFS: NotificationPrefs = {
-  channels: { chat: 'push', tasks: 'push', tickets: 'both', knowledge: 'push' },
-  visibleCategories: ['chat', 'tasks', 'tickets', 'knowledge'],
+  channels: { chat: 'push', tasks: 'push', tickets: 'both', knowledge: 'push', meetings: 'push' },
+  visibleCategories: ['chat', 'tasks', 'tickets', 'knowledge', 'meetings'],
   vapidPublicKey: 'KEY',
 };
 
@@ -104,7 +104,11 @@ describe('NotificationsSection', () => {
     expect(await select('Task board')).toHaveValue('push');
     expect(await select('Ticket board')).toHaveValue('both');
     expect(await select('Knowledge base')).toHaveValue('push');
+    expect(await select('Meetings')).toHaveValue('push');
     expect(screen.getByText('Support tickets and their conversations')).toBeInTheDocument();
+    expect(
+      screen.getByText('New and moved meetings, their reminders and AI summaries'),
+    ).toBeInTheDocument();
     const options = within(await select('Chat')).getAllByRole('option');
     expect(options.map((o) => o.textContent)).toEqual(['Email', 'Push', 'Email and push', 'None']);
     cleanup();
@@ -162,7 +166,13 @@ describe('NotificationsSection', () => {
   it('choosing push while this device is not set up subscribes it first', async () => {
     const none = {
       ...PREFS,
-      channels: { chat: 'none', tasks: 'none', tickets: 'email', knowledge: 'none' },
+      channels: {
+        chat: 'none',
+        tasks: 'none',
+        tickets: 'email',
+        knowledge: 'none',
+        meetings: 'none',
+      },
     } as const;
     const { patches, user } = setup(none);
     // No group wants push, so there is no device line yet.

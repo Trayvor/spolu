@@ -23,6 +23,7 @@ import {
   NothingToProcessError,
 } from './errors.js';
 import { findMeetingItem, meetingFor } from './meeting-access.js';
+import { notifyMeetingAiResult } from './meeting-notify.js';
 import { announceMeeting } from './meeting-realtime.js';
 import { recordingPath } from './meeting-recording.js';
 import { getMeetingRow, touchItem } from './meeting-store.js';
@@ -89,13 +90,14 @@ export async function requestMeetingAi(
   await touchItem(db, itemId);
   await jobs.send(
     MEETING_AI_JOB,
-    { itemId, run: started.run, attempt: 1 },
+    { itemId, run: started.run, attempt: 1, requestedBy: actor.id },
     { expireInSeconds: 3 * 60 * 60, retryLimit: 1, retryDelay: RETRY_SECONDS },
   );
   await announceMeeting(db, itemId);
 }
 
-type AiJob = { itemId: string; run: number; attempt: number };
+/** `requestedBy`: the admin who pressed the button (told how the run ended); absent on jobs queued before 2026-10-17. */
+type AiJob = { itemId: string; run: number; attempt: number; requestedBy?: string };
 
 /** A step's failure, with the code the meeting shows. */
 class StepError extends Error {
@@ -190,6 +192,12 @@ async function runMeetingAi(deps: JobDeps, job: AiJob): Promise<void> {
   if (!row || row.aiRun !== job.run) return;
   const item = await findMeetingItem(db, job.itemId);
   if (!item) return;
+  const meetingOf = () => ({
+    itemId: job.itemId,
+    groupId: item.groupId,
+    title: item.title,
+    startsAt: row.startsAt,
+  });
   try {
     let transcript = row.transcript;
     if (transcript.trim() === '') {
@@ -245,6 +253,7 @@ async function runMeetingAi(deps: JobDeps, job: AiJob): Promise<void> {
       return;
     }
     await refreshSearchText(db, job.itemId);
+    await notifyMeetingAiResult(deps, 'meeting.summary_ready', meetingOf(), job.requestedBy);
   } catch (error) {
     const code: MeetingAiError = error instanceof StepError ? error.code : 'summary_failed';
     const reason = error instanceof Error ? error.message : 'unknown';
@@ -257,7 +266,9 @@ async function runMeetingAi(deps: JobDeps, job: AiJob): Promise<void> {
       );
       return;
     }
-    await setState(db, job, { aiState: 'failed', aiError: code });
+    if (await setState(db, job, { aiState: 'failed', aiError: code })) {
+      await notifyMeetingAiResult(deps, 'meeting.summary_failed', meetingOf(), job.requestedBy);
+    }
   }
 }
 

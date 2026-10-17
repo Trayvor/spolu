@@ -8,6 +8,7 @@ import { canReadItem } from './policy.js';
 type SubjectRow = {
   id: string;
   group_id: string;
+  type: string;
   title: string;
   body: string;
   visibility: string;
@@ -21,7 +22,7 @@ async function loadMany(db: Db, ids: string[]): Promise<Map<string, SubjectInfo>
   const map = new Map<string, SubjectInfo>();
   if (ids.length === 0) return map;
   const rows = await db.execute<SubjectRow>(sql`
-    select k.id, k.group_id, k.title, k.body, k.visibility, k.created_by,
+    select k.id, k.group_id, k.type, k.title, k.body, k.visibility, k.created_by,
            (select jsonb_object_agg(m.id, m.name) from "user" m
              where m.id in (select (regexp_matches(k.body, '<@([A-Za-z0-9_-]+)>', 'g'))[1])
                and (m.role <> 'client' or exists (select 1 from group_members gm
@@ -38,6 +39,7 @@ async function loadMany(db: Db, ids: string[]): Promise<Map<string, SubjectInfo>
       // Plain text for the calendar export: mentions as names, whitespace collapsed.
       body: plainExcerpt(row.body, (id) => names[id], Number.POSITIVE_INFINITY),
       adminsOnly: row.visibility === 'admins',
+      meeting: row.type === 'meeting',
       active: true,
       authorId: row.created_by,
       link: `/groups/${row.group_id}/knowledge?k=${row.id}`,

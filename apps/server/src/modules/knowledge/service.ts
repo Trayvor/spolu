@@ -19,6 +19,7 @@ import {
   type Visibility,
 } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
+import type { JobQueue } from '../../infra/jobs/jobs.js';
 import type { Storage } from '../../infra/storage/index.js';
 import { files } from '../files/schema.js';
 import {
@@ -49,6 +50,8 @@ import {
   ValidationError,
 } from './errors.js';
 import { folderChains, folderForItem, folderPaths, lockGroupKnowledge } from './folders.js';
+import { recordMeetingScheduled } from './meeting-notify.js';
+import { requestDelivery } from '../notifications/service.js';
 import { canEditItem, canReadItem, canSetVisibility, isShareable } from './policy.js';
 import { registerKnowledgeReminderSubject } from './reminder-subject.js';
 import { knowledgeAttachments, knowledgeItems } from './schema.js';
@@ -697,9 +700,13 @@ function checkFileCount(type: KnowledgeType, count: number): void {
   if (!ok) throw new InvalidAttachmentError();
 }
 
-/** Creates an item in one transaction. A client cannot create an admins-only item. */
+/**
+ * Creates an item in one transaction. A client cannot create an admins-only item. A meeting with
+ * a start in the future records `meeting.scheduled` in the same transaction; with `jobs` its
+ * delivery is requested after the commit (otherwise the one-minute sweep delivers it).
+ */
 export async function createItem(
-  deps: { db: Db },
+  deps: { db: Db; jobs?: JobQueue },
   actor: SessionUser,
   groupId: string,
   draft: DraftArg,
@@ -711,13 +718,30 @@ export async function createItem(
   if (!canSetVisibility(actor, null, draft.visibility)) throw new InvalidVisibilityError();
   if (draft.type === 'link' && !isHttpUrl(draft.url)) throw new InvalidUrlError();
   checkFileCount(draft.type, new Set(draft.fileIds).size);
-  const { id, fileIds } = await db.transaction(async (tx) => {
+  const { id, fileIds, eventIds } = await db.transaction(async (tx) => {
     await lockGroupKnowledge(tx, groupId);
     const folder = await folderForItem(tx, actor, groupId, draft.folderId ?? null);
     // Inside an admins-only folder everything is admins-only (only admins see such a folder).
     const visibility = folder?.visibility === 'admins' ? 'admins' : draft.visibility;
-    return insertItem(tx, actor, groupId, { ...draft, visibility });
+    const inserted = await insertItem(tx, actor, groupId, { ...draft, visibility });
+    const eventIds =
+      draft.type === 'meeting'
+        ? await recordMeetingScheduled(
+            tx,
+            'meeting.scheduled',
+            {
+              itemId: inserted.id,
+              groupId,
+              title: draft.title,
+              startsAt: new Date(draft.meeting.startsAt),
+              adminsOnly: visibility === 'admins',
+            },
+            actor.id,
+          )
+        : [];
+    return { ...inserted, eventIds };
   });
+  if (deps.jobs) await requestDelivery(deps.jobs, eventIds);
   return { item: await getItem(db, actor, id), fileIds };
 }
 
@@ -759,10 +783,11 @@ async function lockForWrite(tx: Db, actor: SessionUser, id: string): Promise<Loc
 /**
  * Edits an item in one transaction: the stale check, per-type rules, files, visibility (files
  * follow it, non-admin recipients are dropped on a switch to admins), the reminder and
- * `search_text`. The caller deletes `removedFileIds` after the commit (`deleteDetachedFiles`).
+ * `search_text`. The caller deletes `removedFileIds` after the commit (`deleteDetachedFiles`). A
+ * meeting whose start moves (to the future) records `meeting.rescheduled`, delivered like `createItem`'s.
  */
 export async function updateItem(
-  deps: { db: Db },
+  deps: { db: Db; jobs?: JobQueue },
   actor: SessionUser,
   id: string,
   patch: KnowledgePatch,
@@ -853,15 +878,30 @@ export async function updateItem(
       await pruneRecipientsForAdminsOnly(tx, { kind: SUBJECT, id });
     }
 
+    const title = patch.title ?? row.title;
     let meetingExtras: string[] = [];
+    let eventIds: string[] = [];
     if (row.type === 'meeting') {
       const current = await getMeetingRow(tx, id, true);
       if (!current) throw new KnowledgeNotFoundError();
       const meeting = patch.meeting ? await patchMeeting(tx, id, patch.meeting, current) : current;
       meetingExtras = meetingSearchExtras(meeting);
+      if (meeting.startsAt.getTime() !== current.startsAt.getTime()) {
+        eventIds = await recordMeetingScheduled(
+          tx,
+          'meeting.rescheduled',
+          {
+            itemId: id,
+            groupId: row.group_id,
+            title,
+            startsAt: meeting.startsAt,
+            adminsOnly: visibility === 'admins',
+          },
+          actor.id,
+        );
+      }
     }
 
-    const title = patch.title ?? row.title;
     const body = patch.body ?? row.body;
     const searchText = await computeSearchText(tx, {
       groupId: row.group_id,
@@ -875,9 +915,11 @@ export async function updateItem(
       .update(knowledgeItems)
       .set({ title, body, url, visibility, folderId, searchText, updatedAt: sql`now()` })
       .where(eq(knowledgeItems.id, id));
-    return { previousVisibility: row.visibility, removedFileIds: removed };
+    return { previousVisibility: row.visibility, removedFileIds: removed, eventIds };
   });
-  return { item: await getItem(db, actor, id), ...result };
+  const { eventIds, ...rest } = result;
+  if (deps.jobs) await requestDelivery(deps.jobs, eventIds);
+  return { item: await getItem(db, actor, id), ...rest };
 }
 
 /**

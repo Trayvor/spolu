@@ -102,5 +102,14 @@ export type ServerTexts = {
     ticketTasks(number: number, count: number): string;
     ticketTopic(number: number): string;
     openTicket: string;
+    /** A meeting was created; `when` is its start, e.g. "Thu 22 Oct, 10:00" (Bratislava). */
+    meetingScheduled(when: string): string;
+    /** A meeting's start moved to `when`. */
+    meetingRescheduled(when: string): string;
+    /** To the admin who started "Spracovať s AI": the summary is there, or the run failed. */
+    meetingSummaryReady: string;
+    meetingSummaryFailed: string;
+    /** The digest email's button for a meeting. */
+    openMeeting: string;
   };
 };

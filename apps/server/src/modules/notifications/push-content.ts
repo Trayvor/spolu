@@ -78,6 +78,35 @@ function ticketPush(i: PushContentInput): PushPayload {
   return { title, body, url: `/tickets/${enc(id)}`, tag: `ticket:${id}` };
 }
 
+/** What a meeting event says (2026-10-17): the start in Bratislava time, or the AI result. */
+export function meetingBody(
+  kind: NotificationKind,
+  p: Record<string, unknown>,
+  lang: UserLanguage,
+): string {
+  const t = texts(lang);
+  const when = formatReminderTime(str(p.startsAt), lang);
+  if (kind === 'meeting.scheduled') return t.meetingScheduled(when);
+  if (kind === 'meeting.rescheduled') return t.meetingRescheduled(when);
+  if (kind === 'meeting.summary_ready') return t.meetingSummaryReady;
+  return t.meetingSummaryFailed;
+}
+
+/**
+ * A meeting's push: "<title> · <client>" with what happened; it opens the item in the group's
+ * Knowledge tab and shares the device tag of the meeting's reminder.
+ */
+function meetingPush(i: PushContentInput): PushPayload {
+  const p = i.payload;
+  const itemId = str(p.itemId) ?? '';
+  return {
+    title: `${str(p.title) ?? ''} · ${i.groupName}`,
+    body: meetingBody(i.kind, p, i.lang),
+    url: `/groups/${enc(str(p.groupId) ?? '')}/knowledge?k=${enc(itemId)}`,
+    tag: `knowledge:${itemId}`,
+  };
+}
+
 export function buildPushPayload(i: PushContentInput): PushPayload {
   const t = texts(i.lang);
   const p = i.payload;
@@ -101,6 +130,8 @@ export function buildPushPayload(i: PushContentInput): PushPayload {
       tag: `task:${taskId ?? ''}`,
     };
   }
+
+  if (i.kind.startsWith('meeting.')) return meetingPush(i);
 
   if (i.kind === 'reminder.due') {
     const subjectId = str(p.subjectId) ?? '';

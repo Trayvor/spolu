@@ -20,6 +20,7 @@ import {
   type TranscriptionProvider,
 } from '../ai/transcription.js';
 import { files } from '../files/schema.js';
+import { addManager } from '../groups/managers.js';
 import { addMember, createGroup } from '../groups/service.js';
 import { user } from '../users/schema.js';
 import { addAdmin } from '../users/service.js';
@@ -679,6 +680,8 @@ describe('meetings API', () => {
     it('lists the coming meetings and the past ones without a summary', async () => {
       const group = await newGroup();
       const admin = await newAdmin();
+      // A manager hears about the client's meetings (All messages): the card lists them.
+      await addManager(test.deps.db, group.id, admin.id);
       const soon = await create(
         admin.cookie,
         group.id,

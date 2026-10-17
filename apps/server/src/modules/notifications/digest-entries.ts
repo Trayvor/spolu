@@ -1,6 +1,6 @@
 import type { NotificationKind, UserLanguage } from '@spolu/shared';
 import { notificationGroupOf } from './categories.js';
-import { buildPushPayload, isTicketEvent } from './push-content.js';
+import { buildPushPayload, isTicketEvent, meetingBody } from './push-content.js';
 import { formatReminderTime, texts } from './texts.js';
 
 /**
@@ -53,6 +53,16 @@ export function digestEntry(
   }
   // Only a ticket event may lack a client group.
   if (ctx.groupId === null || ctx.groupName === null) return null;
+  if (row.kind.startsWith('meeting.')) {
+    // 2026-10-17: one email per meeting, opening the item.
+    const itemId = encodeURIComponent(str(p.itemId) ?? '');
+    return {
+      line: `${str(p.title) ?? ''}: ${meetingBody(row.kind as NotificationKind, p, ctx.lang)}`,
+      url: `${ctx.publicUrl}/groups/${encodeURIComponent(ctx.groupId)}/knowledge?k=${itemId}`,
+      button: t.openMeeting,
+      topic: ctx.groupName,
+    };
+  }
   const taskId = str(p.taskId);
   const title = (taskId ? ctx.taskTitles.get(taskId) : undefined) ?? str(p.title);
   let line: string;

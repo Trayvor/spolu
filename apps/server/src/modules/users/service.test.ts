@@ -246,6 +246,7 @@ describe('applyEmailFallback', () => {
       tasks: 'both',
       tickets: 'both',
       knowledge: 'both',
+      meetings: 'both',
     });
     expect(await applyEmailFallback(db, id, [...NotificationCategories])).toBe(false);
   });
@@ -260,6 +261,7 @@ describe('applyEmailFallback', () => {
       tasks: 'email',
       tickets: 'both',
       knowledge: 'push',
+      meetings: 'push',
     });
   });
 

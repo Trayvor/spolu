@@ -161,8 +161,14 @@ function mockApi(me: typeof ADMIN | typeof CLIENT | null) {
       managerSet: [],
     },
     '/api/notifications/preferences': {
-      channels: { chat: 'email', tasks: 'email', tickets: 'both', knowledge: 'email' },
-      visibleCategories: ['chat', 'tasks', 'tickets', 'knowledge'],
+      channels: {
+        chat: 'email',
+        tasks: 'email',
+        tickets: 'both',
+        knowledge: 'email',
+        meetings: 'email',
+      },
+      visibleCategories: ['chat', 'tasks', 'tickets', 'knowledge', 'meetings'],
       vapidPublicKey: null,
     },
     '/api/health': { status: 'ok', db: 'ok', version: '1.0.0' },

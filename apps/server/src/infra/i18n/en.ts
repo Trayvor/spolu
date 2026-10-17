@@ -103,5 +103,10 @@ export const en: ServerTexts = {
       `#${n} turned into ${c} ${plural('en', c, { one: 'task', other: 'tasks' })}`,
     ticketTopic: (n) => `Ticket #${n}`,
     openTicket: 'Open ticket',
+    meetingScheduled: (when) => `New meeting: ${when}`,
+    meetingRescheduled: (when) => `Meeting moved to ${when}`,
+    meetingSummaryReady: 'AI summary is ready',
+    meetingSummaryFailed: 'AI processing failed',
+    openMeeting: 'Open meeting',
   },
 };

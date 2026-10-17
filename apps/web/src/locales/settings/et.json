@@ -40,13 +40,15 @@
       "chat": "Vestlus",
       "tasks": "Ülesannete tahvel",
       "tickets": "Pöördumiste tahvel",
-      "knowledge": "Teadmistebaas"
+      "knowledge": "Teadmistebaas",
+      "meetings": "Kohtumised"
     },
     "hints": {
       "chat": "Sõnumid, mainimised ja vastused grupivestlustes",
       "tasks": "Ülesannete teisaldamised, määramised, tähtajad, meeldetuletused ja ülesannete vestlused",
       "tickets": "Tugipöördumised ja nende vestlused",
-      "knowledge": "Teadmistebaasi meeldetuletused"
+      "knowledge": "Teadmistebaasi meeldetuletused, v.a kohtumised",
+      "meetings": "Uued ja edasi lükatud kohtumised, nende meeldetuletused ja AI kokkuvõtted"
     },
     "channels": {
       "email": "E-post",

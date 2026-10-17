@@ -104,5 +104,10 @@ export const sk: ServerTexts = {
       `#${n} rozdelený na ${c} ${plural('sk', c, { one: 'úlohu', few: 'úlohy', other: 'úloh' })}`,
     ticketTopic: (n) => `Tiket #${n}`,
     openTicket: 'Otvoriť tiket',
+    meetingScheduled: (when) => `Nové stretnutie: ${when}`,
+    meetingRescheduled: (when) => `Stretnutie presunuté na ${when}`,
+    meetingSummaryReady: 'AI zhrnutie je hotové',
+    meetingSummaryFailed: 'Spracovanie s AI zlyhalo',
+    openMeeting: 'Otvoriť stretnutie',
   },
 };

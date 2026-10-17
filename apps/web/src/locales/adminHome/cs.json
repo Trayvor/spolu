@@ -143,7 +143,7 @@
       "description": "Připomínky k úkolům a položkám znalostí na příštích 7 dní."
     },
     "mentions": {
-      "description": "Zprávy, ve kterých vás někdo zmínil a které jste ještě nečetli."
+      "description": "Nepřečtené zprávy, které vás zmiňují, v chatech, ze kterých dostáváte upozornění."
     },
     "groups": {
       "overdue": "Po termínu",
@@ -159,7 +159,7 @@
       "noSummary": "Minulé, bez shrnutí"
     },
     "meetings": {
-      "description": "Schůzky vašich klientů na příštích 7 dní, potom minulé schůzky za posledních 30 dní, které ještě nemají shrnutí.",
+      "description": "Schůzky, o kterých dostáváte upozornění: příštích 7 dní, pak minulé schůzky za posledních 30 dní, které ještě nemají shrnutí.",
       "openAll": "Otevřít všechny schůzky"
     }
   }

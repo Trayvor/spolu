@@ -77,8 +77,14 @@ describe('notifications API', () => {
     const res = await call('GET', '/api/notifications/preferences', a.cookie);
     expect(res.statusCode).toBe(200);
     expect(res.json<NotificationPrefs>()).toEqual({
-      channels: { chat: 'push', tasks: 'push', tickets: 'both', knowledge: 'push' },
-      visibleCategories: ['chat', 'tasks', 'tickets', 'knowledge'],
+      channels: {
+        chat: 'push',
+        tasks: 'push',
+        tickets: 'both',
+        knowledge: 'push',
+        meetings: 'push',
+      },
+      visibleCategories: ['chat', 'tasks', 'tickets', 'knowledge', 'meetings'],
       vapidPublicKey: 'test-vapid-public-key',
     });
     const off = await call(

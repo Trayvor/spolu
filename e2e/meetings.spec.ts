@@ -71,7 +71,34 @@ test('a meeting: recording, AI summary, tasks from its action items, the dashboa
   // The dashboard's Meetings card lists it (tomorrow is within the next 7 days).
   await page.goto('/');
   const card = page.getByRole('region', { name: 'Stretnutia' });
+  const row = card.getByRole('link', { name: new RegExp(`Úvodné stretnutie ${stamp}`) });
+  await expect(row).toBeVisible();
+
+  // The card follows the notification settings (2026-10-17): on Mentions and replies the admin
+  // hears nothing about this client's meetings, except the reminder they get (the author is its
+  // recipient), so it stays; with the Meetings group on None it goes.
+  const mode = (value: string) =>
+    page.request.put(`/api/groups/${group.id}/notification-mode`, { data: { mode: value } });
+  const meetingsChannel = (channel: string) =>
+    page.request.patch('/api/notifications/preferences', {
+      data: { category: 'meetings', channel },
+    });
+  expect((await mode('mentions')).status()).toBe(204);
+  await page.reload();
+  await expect(row).toBeVisible();
+  expect((await meetingsChannel('none')).status()).toBe(200);
+  await page.reload();
+  await expect(card.getByText(`Úvodné stretnutie ${stamp}`)).toHaveCount(0);
+  expect((await meetingsChannel('push')).status()).toBe(200);
+  expect((await mode('all')).status()).toBe(204);
+});
+
+test('the profile lists the Meetings notification group', async ({ page }) => {
+  await page.goto('/settings');
+  await expect(page.getByRole('combobox', { name: 'Stretnutia' })).toHaveValue(
+    /^(push|email|both|none)$/,
+  );
   await expect(
-    card.getByRole('link', { name: new RegExp(`Úvodné stretnutie ${stamp}`) }),
+    page.getByText('Nové a presunuté stretnutia, ich pripomienky a AI zhrnutia'),
   ).toBeVisible();
 });

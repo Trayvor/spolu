@@ -31,13 +31,13 @@ vi.mock('./prompt-rules', async (importOriginal) => ({
 }));
 
 const PREFS: NotificationPrefs = {
-  channels: { chat: 'push', tasks: 'push', tickets: 'push', knowledge: 'push' },
-  visibleCategories: ['chat', 'tasks', 'tickets', 'knowledge'],
+  channels: { chat: 'push', tasks: 'push', tickets: 'push', knowledge: 'push', meetings: 'push' },
+  visibleCategories: ['chat', 'tasks', 'tickets', 'knowledge', 'meetings'],
   vapidPublicKey: 'KEY',
 };
 const WITH_EMAIL: NotificationPrefs = {
   ...PREFS,
-  channels: { chat: 'both', tasks: 'both', tickets: 'both', knowledge: 'both' },
+  channels: { chat: 'both', tasks: 'both', tickets: 'both', knowledge: 'both', meetings: 'both' },
 };
 
 import { canInstall, promptInstall } from '@/lib/install-prompt';
@@ -189,7 +189,13 @@ describe('AppPrompt', () => {
     vi.mocked(iosVersion).mockReturnValue(15.8);
     vi.mocked(requestEmailFallback).mockResolvedValueOnce({
       ...PREFS,
-      channels: { chat: 'none', tasks: 'push', tickets: 'none', knowledge: 'push' },
+      channels: {
+        chat: 'none',
+        tasks: 'push',
+        tickets: 'none',
+        knowledge: 'push',
+        meetings: 'push',
+      },
       turnedOn: false,
     });
     renderPrompt();

@@ -40,13 +40,15 @@
       "chat": "Chat",
       "tasks": "Ploča zadataka",
       "tickets": "Ploča tiketa",
-      "knowledge": "Baza znanja"
+      "knowledge": "Baza znanja",
+      "meetings": "Sastanci"
     },
     "hints": {
       "chat": "Poruke, spominjanja i odgovori u grupnim chatovima",
       "tasks": "Premještanja, dodjele, rokovi, podsjetnici i chatovi zadataka",
       "tickets": "Tiketi podrške i njihova komunikacija",
-      "knowledge": "Podsjetnici iz baze znanja"
+      "knowledge": "Podsjetnici iz baze znanja, osim sastanaka",
+      "meetings": "Novi i premješteni sastanci, njihovi podsjetnici i AI sažeci"
     },
     "channels": {
       "email": "E-pošta",

@@ -20,7 +20,13 @@ import { getMentions } from '../home/mentions.js';
 import { addMembership } from '../groups/memberships.js';
 import { createGroup } from '../groups/service.js';
 import { tasks } from '../tasks/schema.js';
-import { addAdmin, createUnverifiedClient, deactivateUser } from '../users/service.js';
+import { setGroupMode } from '../notifications/modes.js';
+import {
+  addAdmin,
+  createUnverifiedClient,
+  deactivateUser,
+  setNotificationChannel,
+} from '../users/service.js';
 import { user } from '../users/schema.js';
 
 /** Server support the ticket screens of part 21.4 need. */
@@ -245,6 +251,28 @@ describe('ticket screens: server support', () => {
       });
       const mentions = (await call('GET', '/api/me/home/mentions', a.cookie)).json<Mentions>();
       expect(mentions.items[0]).toMatchObject({ channelId: chat.id, ticketId: id, taskId: null });
+    });
+
+    it('follows the ticket board channel, not the group mode (as delivery does)', async () => {
+      const g = await group();
+      const a = await admin();
+      await addManager(db(), g.id, a.id);
+      const client = await member(g.id, 'client');
+      const id = await ticket(g);
+      const chat = (await call('GET', `/api/tickets/${id}/chat`, a.cookie)).json<GroupChannel>();
+      await call('POST', `/api/channels/${chat.id}/messages`, client.cookie, {
+        clientId: randomUUID(),
+        body: `<@${a.id}> pozrite sa`,
+      });
+      const listed = async () =>
+        (await call('GET', '/api/me/home/mentions', a.cookie))
+          .json<Mentions>()
+          .items.some((i) => i.ticketId === id);
+      await setGroupMode(db(), a.id, g.id, 'off');
+      await setNotificationChannel(db(), a.id, 'chat', 'none');
+      expect(await listed()).toBe(true);
+      await setNotificationChannel(db(), a.id, 'tickets', 'none');
+      expect(await listed()).toBe(false);
     });
   });
 

@@ -383,6 +383,8 @@ Done when: the findings report is written and agreed with the owner, every accep
 
 Status: findings report written ([2026-10-17 findings](superpowers/specs/2026-10-17-phase-27-review-findings.md)): 8 fix batches (foreign-key indexes, JIT off, faster web tests, entry chunk, precache, first-join refetch, dead code, Docker image) in their own pull requests; the rest is listed there as proposed, for the owner to decide. Batch 2 (`perf/phase-27-batch-2`, accepted by the owner): S5 (no notification event for a category set to none), S8 (the group board's Completed column paged by 15), W5 (the global board keeps its "Show 50 more" pages) and, by owner request, remembered filters on every list (see [product/non-functional.md](product/non-functional.md), "Lists remember their filters").
 
+Follow-up, owner request (2026-10-17): **the dashboard follows the notification settings** ([spec](superpowers/specs/2026-10-17-dashboard-follows-notifications-design.md)). The Mentions card and the sidebar's unread counts show only what would notify the admin (channel None or group mode Off hide them, as delivery decides), and a new **Meetings** notification group (meeting scheduled or moved, the AI summary result, a meeting's reminder) lets the Meetings card follow the same rule. No migration. Status: built (`feat/dashboard-follows-notifications`); e2e (`e2e/meetings.spec.ts`) written, not yet run.
+
 ## Phase 28 — Chat editor and AI text tools
 
 Owner request (2026-10-17). Starts after Phase 27. Needs a spec (brainstorming) and an ADR for the editor library.
