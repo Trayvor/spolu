@@ -11,12 +11,15 @@
     "collapse": "Comprimi l'elenco dei clienti",
     "expand": "Espandi l'elenco dei clienti",
     "noMatch": "Nessun cliente corrisponde.",
-    "unread_one": "{{count}} messaggio non letto",
-    "unread_many": "{{count}} messaggi non letti",
-    "unread_other": "{{count}} messaggi non letti",
-    "assigned_one": "{{count}} attività assegnata a Lei",
-    "assigned_many": "{{count}} attività assegnate a Lei",
-    "assigned_other": "{{count}} attività assegnate a Lei",
+    "messages_one": "{{count}} messaggio",
+    "messages_many": "{{count}} messaggi",
+    "messages_other": "{{count}} messaggi",
+    "tasks_one": "{{count}} attività",
+    "tasks_many": "{{count}} attività",
+    "tasks_other": "{{count}} attività",
+    "tickets_one": "{{count}} ticket",
+    "tickets_many": "{{count}} ticket",
+    "tickets_other": "{{count}} ticket",
     "internal": "Interno"
   },
   "home": {
@@ -75,7 +78,8 @@
       "unsummarized_one": "{{count}} senza riepilogo",
       "unsummarized_many": "{{count}} senza riepilogo",
       "unsummarized_other": "{{count}} senza riepilogo"
-    }
+    },
+    "unseen": "Nuova modifica"
   },
   "board": {
     "title": "Attività",
@@ -117,12 +121,12 @@
     "count_other": "{{count}} attività"
   },
   "navCount": {
-    "tasks_one": "{{count}} attività aperta assegnata a Lei",
-    "tasks_many": "{{count}} attività aperte assegnate a Lei",
-    "tasks_other": "{{count}} attività aperte assegnate a Lei",
-    "tickets_one": "{{count}} ticket aperto da gestire",
-    "tickets_many": "{{count}} ticket aperti da gestire",
-    "tickets_other": "{{count}} ticket aperti da gestire"
+    "tasks_one": "{{count}} attività con una nuova modifica",
+    "tasks_many": "{{count}} attività con nuove modifiche",
+    "tasks_other": "{{count}} attività con nuove modifiche",
+    "tickets_one": "{{count}} ticket con una nuova modifica",
+    "tickets_many": "{{count}} ticket con nuove modifiche",
+    "tickets_other": "{{count}} ticket con nuove modifiche"
   },
   "sheet": {
     "tickets": {

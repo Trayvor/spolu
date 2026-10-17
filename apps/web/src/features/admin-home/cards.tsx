@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { UnseenDot } from '@/components/unseen-dot';
 import { useQuery, type UseQueryResult } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import type {
@@ -115,7 +116,15 @@ function AssignedRow({ task, today }: { task: AssignedTask; today: string }) {
   return (
     <>
       {task.urgent && <Badge variant="destructive">{t('adminHome.cards.urgent')}</Badge>}
-      <span className="min-w-0 flex-1 truncate text-button font-semibold">{task.title}</span>
+      <span
+        className={cn(
+          'min-w-0 flex-1 truncate text-button',
+          task.unseen ? 'font-bold' : 'font-semibold',
+        )}
+      >
+        <UnseenDot unseen={task.unseen} label={t('adminHome.cards.unseen')} />
+        {task.title}
+      </span>
       <span className="hidden max-w-[40%] truncate text-micro text-muted-foreground min-[641px]:inline">
         {task.groupName}
       </span>
@@ -227,7 +236,12 @@ function AssignedDetail({ task, today }: { task: AssignedTask; today: string }) 
     <span className="flex min-w-0 flex-1 flex-col gap-0.5">
       <span className="flex min-w-0 items-center gap-2">
         {task.urgent && <Badge variant="destructive">{t('adminHome.cards.urgent')}</Badge>}
-        <span className="line-clamp-2 text-button font-semibold">{task.title}</span>
+        <span
+          className={cn('line-clamp-2 text-button', task.unseen ? 'font-bold' : 'font-semibold')}
+        >
+          <UnseenDot unseen={task.unseen} label={t('adminHome.cards.unseen')} />
+          {task.title}
+        </span>
       </span>
       <MetaLine
         parts={[
@@ -330,7 +344,13 @@ function TicketRow({ ticket, today }: { ticket: HomeTicket; today: string }) {
         #{ticket.number}
       </span>
       {ticket.status === 'new' && <Badge>{t('adminHome.cards.tickets.new')}</Badge>}
-      <span className="min-w-0 flex-1 truncate text-button font-semibold">
+      <span
+        className={cn(
+          'min-w-0 flex-1 truncate text-button',
+          ticket.unseen ? 'font-bold' : 'font-semibold',
+        )}
+      >
+        <UnseenDot unseen={ticket.unseen} label={t('adminHome.cards.unseen')} />
         {ticket.subject ?? ticket.excerpt ?? ''}
       </span>
       <span className="hidden max-w-[40%] truncate text-micro text-muted-foreground min-[641px]:inline">
@@ -359,7 +379,10 @@ function TicketDetail({ ticket, today }: { ticket: HomeTicket; today: string }) 
         <span className="shrink-0 text-micro text-muted-foreground tabular-nums">
           #{ticket.number}
         </span>
-        <span className="line-clamp-2 text-button font-semibold">
+        <span
+          className={cn('line-clamp-2 text-button', ticket.unseen ? 'font-bold' : 'font-semibold')}
+        >
+          <UnseenDot unseen={ticket.unseen} label={t('adminHome.cards.unseen')} />
           {ticket.subject ?? ticket.excerpt ?? ''}
         </span>
       </span>

@@ -32,7 +32,7 @@ Done when: a client attaches their task and ticket to a message and everyone see
 
 ## Part P34-B — Admin group foundation (branch `feat/admin-group`)
 
-Status: **done** (migration 0036, ADR 0029; tests in `modules/groups/admin-group.test.ts`, e2e `e2e/admin-group.spec.ts` written, run by whoever merges). The groups have no delete route, so "the delete refuses it" needs nothing; the header group switcher is the sidebar.
+Status: **done** (migration 0037, ADR 0029; tests in `modules/groups/admin-group.test.ts`, e2e `e2e/admin-group.spec.ts` written, run by whoever merges). The groups have no delete route, so "the delete refuses it" needs nothing; the header group switcher is the sidebar.
 
 Server: the migration; `ensureAdminGroup` at start (buckets, channel); `GroupDto.kind`; the rules table of spec §1.2 (pickable people, refusals with `409 admin_group` / `400 invalid_group`, no tickets, the notification default `all`, the sidebar's `internal` section, managed-groups default inclusion, bulk email exclusion, the client filter option); ADR `00NN-admin-group-as-a-group-row.md`.
 

@@ -11,10 +11,12 @@
     "collapse": "Ahenda kliendiloend",
     "expand": "Laienda kliendiloend",
     "noMatch": "Ükski klient ei vasta.",
-    "unread_one": "{{count}} lugemata sõnum",
-    "unread_other": "{{count}} lugemata sõnumit",
-    "assigned_one": "{{count}} Teile määratud ülesanne",
-    "assigned_other": "{{count}} Teile määratud ülesannet",
+    "messages_one": "{{count}} sõnum",
+    "messages_other": "{{count}} sõnumit",
+    "tasks_one": "{{count}} ülesanne",
+    "tasks_other": "{{count}} ülesannet",
+    "tickets_one": "{{count}} pöördumine",
+    "tickets_other": "{{count}} pöördumist",
     "internal": "Sisemine"
   },
   "home": {
@@ -69,7 +71,8 @@
       "empty": "Järgmise 7 päeva jooksul pole kohtumisi ja ükski ei oota kokkuvõtet.",
       "unsummarized_one": "{{count}} kokkuvõtteta",
       "unsummarized_other": "{{count}} kokkuvõtteta"
-    }
+    },
+    "unseen": "Uus muudatus"
   },
   "board": {
     "title": "Ülesanded",
@@ -110,10 +113,10 @@
     "count_other": "{{count}} ülesannet"
   },
   "navCount": {
-    "tasks_one": "{{count}} Teile määratud avatud ülesanne",
-    "tasks_other": "{{count}} Teile määratud avatud ülesannet",
-    "tickets_one": "{{count}} avatud pöördumine Teile lahendada",
-    "tickets_other": "{{count}} avatud pöördumist Teile lahendada"
+    "tasks_one": "{{count}} uue muudatusega ülesanne",
+    "tasks_other": "{{count}} uue muudatusega ülesannet",
+    "tickets_one": "{{count}} uue muudatusega pöördumine",
+    "tickets_other": "{{count}} uue muudatusega pöördumist"
   },
   "sheet": {
     "tickets": {

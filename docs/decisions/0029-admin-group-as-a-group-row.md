@@ -8,7 +8,7 @@ The eGrant team wants its own internal group "eGrant tím": chat, tasks, knowled
 
 ## Decision
 
-- The admin group is **one row in `groups`** with a new column `kind` (`client` default, `admin`), exactly one (partial unique index `groups_one_admin`), inserted by migration 0036 and kept by `ensureAdminGroup` at server start (which also creates its board and chat, since migrations do not call services).
+- The admin group is **one row in `groups`** with a new column `kind` (`client` default, `admin`), exactly one (partial unique index `groups_one_admin`), inserted by migration 0037 and kept by `ensureAdminGroup` at server start (which also creates its board and chat, since migrations do not call services).
 - `egrant_url` becomes nullable, only for that row (a check constraint); its invite token stays (the column is not null) but is never shown and opens nothing.
 - **No membership rows:** `canReadGroup` already lets every admin read every group and admins have no `group_members` rows, so no client reads it. Routes that would add people (invite, members, managers, requesters) answer `409 admin_group`; tickets cannot live there (`400 invalid_group`).
 - The kind is read in one place per rule (`isAdminGroup`, `canHoldTickets`, `isAdminGroupSql`, `withAdminGroup`), not spread through the modules.

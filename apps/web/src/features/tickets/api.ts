@@ -104,6 +104,8 @@ export function toListItem(ticket: TicketDto): TicketListItem {
     requesterName: ticket.requester.name,
     excerpt: ticket.body === null ? null : ticket.body.slice(0, 140),
     assignees: ticket.assignees,
+    // Per viewer, from the list's own answer: a patched row keeps its mark (`patchTicketInLists`).
+    unseen: false,
   };
 }
 
@@ -147,12 +149,26 @@ export function patchTicketInLists(
       pages: data.pages.map((page) => ({
         ...page,
         items: keep
-          ? page.items.map((i) => (i.id === ticket.id ? item : i))
+          ? page.items.map((i) => (i.id === ticket.id ? { ...item, unseen: i.unseen } : i))
           : page.items.filter((i) => i.id !== ticket.id),
       })),
     });
   }
   return found;
+}
+
+/** The viewer opened the ticket (2026-10-17, `seen:changed`): its rows lose their unseen mark. */
+export function markTicketSeenInLists(queryClient: QueryClient, ticketId: string): void {
+  for (const [key, data] of queryClient.getQueriesData<ListData>({ queryKey: ticketListPrefix })) {
+    if (!data?.pages.some((p) => p.items.some((i) => i.id === ticketId && i.unseen))) continue;
+    queryClient.setQueryData<ListData>(key, {
+      ...data,
+      pages: data.pages.map((page) => ({
+        ...page,
+        items: page.items.map((i) => (i.id === ticketId ? { ...i, unseen: false } : i)),
+      })),
+    });
+  }
 }
 
 /** Drops a ticket from the cached lists (it moved away or can no longer be read). */

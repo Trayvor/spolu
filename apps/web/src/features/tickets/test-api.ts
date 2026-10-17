@@ -34,6 +34,7 @@ export const GROUPS = [
 ].map((g) => ({ ...g, hasLogo: false, memberCount: 1, updatedAt: NOW, managers: [] }));
 
 export const item = (over: Partial<TicketListItem> & { id: string }): TicketListItem => ({
+  unseen: false,
   number: 100,
   groupId: 'g1',
   groupName: 'ABC s.r.o.',

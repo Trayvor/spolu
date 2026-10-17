@@ -1,4 +1,52 @@
 {
   "clients": "Klienti",
-  "allClients": "Všichni klienti"
+  "allClients": "Všichni klienti",
+  "noClient": "Bez klienta",
+  "rates": "Hodinové sazby",
+  "loadFailed": "Seznam se nepodařilo načíst.",
+  "retry": "Zkusit znovu",
+  "showMore": "Zobrazit dalších 20",
+  "contracts": {
+    "search": "Hledat smlouvy, dokumenty a poznámky",
+    "sortLabel": "Seřadit smlouvy",
+    "sort": {
+      "start": "Nejnovější začátek",
+      "end": "Nejdříve končící",
+      "amount": "Nejvyšší částka"
+    },
+    "columns": {
+      "client": "Klient",
+      "contract": "Smlouva",
+      "period": "Období",
+      "amount": "Částka"
+    },
+    "kinds": {
+      "contract": "smlouva",
+      "document": "dokument",
+      "note": "poznámka"
+    },
+    "empty": "Vybraní klienti zatím nemají žádné smlouvy.",
+    "noMatch": "Nic neodpovídá „{{q}}“.",
+    "showMore": "Zobrazit další"
+  },
+  "paid": {
+    "year": "Rok",
+    "month": "Měsíc",
+    "wholeYear": "Celý rok",
+    "currency": "Měna",
+    "total": "Celkem zaplaceno: {{amount}}",
+    "empty": "V tomto období nezačala žádná smlouva vybraných klientů."
+  },
+  "hours": {
+    "rankBy": "Pořadí podle",
+    "hours": "Hodiny",
+    "cost": "Peníze",
+    "admin": "Admin",
+    "allAdmins": "Všichni admini",
+    "empty": "V tomto období nebyl zapsán žádný čas.",
+    "missingRate": "{{hours}} bez sazby"
+  },
+  "workLog": {
+    "topClients": "Nejvíce hodin:"
+  }
 }

@@ -235,3 +235,10 @@ export const EmailChangeConfirmSchema = z.object({
   code: z.string().regex(/^\d{6}$/),
 });
 export type EmailChangeConfirm = z.infer<typeof EmailChangeConfirmSchema>;
+
+/**
+ * Sent to the user's own room after they opened a task or a ticket (`POST /tasks/:id/seen`,
+ * `POST /tickets/:id/seen`, 2026-10-17): their other devices refetch the unseen marks and counts.
+ */
+export const SeenEvents = { changed: 'seen:changed' } as const;
+export type SeenChangedEvent = { kind: 'task' | 'ticket'; id: string };

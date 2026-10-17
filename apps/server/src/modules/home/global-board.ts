@@ -12,6 +12,7 @@ import {
 import type { Db } from '../../infra/db/client.js';
 import { withAdminGroup } from '../groups/admin-group.js';
 import { managedGroupIds } from '../groups/managers.js';
+import { taskUnseenSql } from '../notifications/unseen.js';
 
 /** The `after` cursor does not parse (route: 400 `invalid_filter`). */
 export class InvalidCursorError extends Error {
@@ -280,7 +281,10 @@ export function globalBoardSql(q: GlobalBoardQuery): SQL {
           'groupHasLogo', p.group_has_logo,
           'groupUpdatedAt', p.group_updated_at,
           'bucketKind', p.bucket_kind,
-          'bucketName', p.bucket_name
+          'bucketName', p.bucket_name,
+          -- 2026-10-17: a change the viewer has not seen (per card of the page, on
+          -- notification_events_unseen_task_idx).
+          'unseen', ${taskUnseenSql(q.viewerId, sql`p.id`)}
         )) order by p.col, p.rn), '[]'::json)
         from page p
       ) as tasks,

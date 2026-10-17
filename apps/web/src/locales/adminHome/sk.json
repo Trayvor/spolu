@@ -11,14 +11,18 @@
     "collapse": "Zbaliť zoznam klientov",
     "expand": "Rozbaliť zoznam klientov",
     "noMatch": "Žiadny klient nezodpovedá.",
-    "unread_one": "{{count}} neprečítaná správa",
-    "unread_few": "{{count}} neprečítané správy",
-    "unread_many": "{{count}} neprečítanej správy",
-    "unread_other": "{{count}} neprečítaných správ",
-    "assigned_one": "{{count}} úloha priradená vám",
-    "assigned_few": "{{count}} úlohy priradené vám",
-    "assigned_many": "{{count}} úlohy priradené vám",
-    "assigned_other": "{{count}} úloh priradených vám",
+    "messages_one": "{{count}} správa",
+    "messages_few": "{{count}} správy",
+    "messages_many": "{{count}} správy",
+    "messages_other": "{{count}} správ",
+    "tasks_one": "{{count}} úloha",
+    "tasks_few": "{{count}} úlohy",
+    "tasks_many": "{{count}} úlohy",
+    "tasks_other": "{{count}} úloh",
+    "tickets_one": "{{count}} tiket",
+    "tickets_few": "{{count}} tikety",
+    "tickets_many": "{{count}} tiketu",
+    "tickets_other": "{{count}} tiketov",
     "internal": "Interné"
   },
   "home": {
@@ -81,7 +85,8 @@
       "unsummarized_few": "{{count}} bez zhrnutia",
       "unsummarized_many": "{{count}} bez zhrnutia",
       "unsummarized_other": "{{count}} bez zhrnutia"
-    }
+    },
+    "unseen": "Nová zmena"
   },
   "board": {
     "title": "Úlohy",
@@ -124,14 +129,14 @@
     "count_other": "{{count}} úloh"
   },
   "navCount": {
-    "tasks_one": "{{count}} otvorená úloha priradená vám",
-    "tasks_few": "{{count}} otvorené úlohy priradené vám",
-    "tasks_many": "{{count}} otvorenej úlohy priradenej vám",
-    "tasks_other": "{{count}} otvorených úloh priradených vám",
-    "tickets_one": "{{count}} otvorený tiket na riešenie",
-    "tickets_few": "{{count}} otvorené tikety na riešenie",
-    "tickets_many": "{{count}} otvoreného tiketu na riešenie",
-    "tickets_other": "{{count}} otvorených tiketov na riešenie"
+    "tasks_one": "{{count}} úloha s novou zmenou",
+    "tasks_few": "{{count}} úlohy s novou zmenou",
+    "tasks_many": "{{count}} úlohy s novou zmenou",
+    "tasks_other": "{{count}} úloh s novou zmenou",
+    "tickets_one": "{{count}} tiket s novou zmenou",
+    "tickets_few": "{{count}} tikety s novou zmenou",
+    "tickets_many": "{{count}} tiketu s novou zmenou",
+    "tickets_other": "{{count}} tiketov s novou zmenou"
   },
   "sheet": {
     "tickets": {

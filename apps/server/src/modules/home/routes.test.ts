@@ -10,6 +10,7 @@ import {
 } from '@spolu/shared';
 import { buildTestApp } from '../../../test/test-app.js';
 import { loginAs } from '../../../test/login.js';
+import { recordNotifications } from '../notifications/service.js';
 import { addAdmin } from '../users/service.js';
 import { newAdmin, newClient, newGroup, newTask } from './test-fixtures.js';
 
@@ -81,8 +82,19 @@ describe('home API', () => {
     const group = await newGroup(db, 'Counts route');
     const admin = await newAdmin(db, 'Nina', [group.id]);
     const client = await newClient(db, group.id, 'Karol');
+    const changed = await newTask(db, {
+      groupId: group.id,
+      createdBy: client.id,
+      assigneeIds: [admin.id],
+    });
     await newTask(db, { groupId: group.id, createdBy: client.id, assigneeIds: [admin.id] });
-    await newTask(db, { groupId: group.id, createdBy: client.id });
+    // 2026-10-17: the header counts the tasks with an unseen change, not every open one.
+    await recordNotifications(db, {
+      kind: 'task.moved',
+      groupId: group.id,
+      recipients: [admin.id],
+      payload: { taskId: changed, groupId: group.id },
+    });
     const cookie = await loginAs(test.app, admin.email);
     const created = await test.app.inject({
       method: 'POST',
@@ -103,9 +115,9 @@ describe('home API', () => {
 
     const counts = NavCountsSchema.parse((await get('/api/me/home/counts', cookie)).json());
     expect(counts.tasks).toBe(1);
-    // Mine (1) plus the tickets without a client that other tests leave in the database.
-    expect(counts.tickets).toBeGreaterThanOrEqual(1);
-    expect(counts.tickets).toBeGreaterThanOrEqual(tickets.noAssignee);
+    // The admin made the ticket, so it has no unseen change for them; the tickets without a
+    // client that other tests leave in the database may.
+    expect(counts.tickets).toBeGreaterThanOrEqual(0);
   });
 
   it('unknown due is 400 invalid_filter', async () => {

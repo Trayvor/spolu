@@ -20,7 +20,8 @@ const SIDEBAR = [
     updatedAt: '2026-10-15T10:00:00.000Z',
     managed: true,
     unread: 2,
-    assigned: 1,
+    unseenTasks: 1,
+    unseenTickets: 0,
   },
 ];
 

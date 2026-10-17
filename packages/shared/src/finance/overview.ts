@@ -78,9 +78,10 @@ export type TimeEntrySource = (typeof TimeEntrySources)[number];
  */
 export const WorkLogEntrySchema = z.object({
   id: z.string(),
-  groupId: z.string(),
-  /** Set on the system-wide work log (D), where entries of several clients mix. */
-  groupName: z.string().optional(),
+  /** Null only on the all-clients work log (D): time without a client ("Bez klienta"). */
+  groupId: z.string().nullable(),
+  /** Set on the system-wide work log (D), where entries of several clients mix; null without one. */
+  groupName: z.string().nullable().optional(),
   userId: z.string(),
   userName: z.string(),
   source: z.enum(TimeEntrySources),
@@ -114,7 +115,9 @@ export const WorkLogMonthSchema = z.object({
   byAdmin: z.array(AdminTimeSchema),
   /** System-wide work log (D): the clients with the most minutes that month. */
   topClients: z
-    .array(z.object({ groupId: z.string(), name: z.string(), minutes: z.number().int() }))
+    .array(
+      z.object({ groupId: z.string().nullable(), name: z.string(), minutes: z.number().int() }),
+    )
     .optional(),
 });
 export type WorkLogMonth = z.infer<typeof WorkLogMonthSchema>;

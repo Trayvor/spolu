@@ -134,6 +134,28 @@ export async function getGroup(db: Db, id: string): Promise<GroupRow | null> {
   return row ?? null;
 }
 
+/** What a list of other modules shows of a client: name and logo (one query, by primary key). */
+export type GroupLabel = { name: string; hasLogo: boolean; updatedAt: string };
+
+export async function getGroupLabels(db: Db, ids: string[]): Promise<Map<string, GroupLabel>> {
+  if (ids.length === 0) return new Map();
+  const rows = await db
+    .select({
+      id: groups.id,
+      name: groups.name,
+      logoKey: groups.logoKey,
+      updatedAt: groups.updatedAt,
+    })
+    .from(groups)
+    .where(inArray(groups.id, [...new Set(ids)]));
+  return new Map(
+    rows.map((r) => [
+      r.id,
+      { name: r.name, hasLogo: r.logoKey !== null, updatedAt: r.updatedAt.toISOString() },
+    ]),
+  );
+}
+
 export async function createGroup(db: Db, input: GroupInput): Promise<GroupRow> {
   const egrantUrl = normalizedOrThrow(input.egrantUrl);
   try {

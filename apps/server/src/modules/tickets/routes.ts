@@ -66,6 +66,7 @@ import {
 import { setTicketWatch, watchesTickets } from './watch.js';
 import { announceTimeChange, type TimeChange } from '../finance/task-time.js';
 import { requestDelivery } from '../notifications/service.js';
+import { emitSeen, markTicketSeen } from '../notifications/unseen.js';
 
 type IdParams = { Params: { id: string } };
 
@@ -356,6 +357,16 @@ export const ticketsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, 
   app.get<IdParams>('/tickets/:id', { preHandler: anyUser }, async (request, reply) => {
     const dto = await getTicketForActor(db, request.user!, request.params.id);
     return dto ?? notFound(reply);
+  });
+
+  // 2026-10-17: the viewer opened the ticket's page: its changes so far are seen.
+  app.post<IdParams>('/tickets/:id/seen', { preHandler: anyUser }, async (request, reply) => {
+    const actor = request.user!;
+    const row = await readable(actor, request.params.id, reply);
+    if (!row) return reply;
+    await markTicketSeen(db, actor.id, row.id);
+    emitSeen(app.io, actor.id, { kind: 'ticket', id: row.id });
+    return reply.code(204).send();
   });
 
   app.patch<IdParams>('/tickets/:id', { preHandler: anyUser }, async (request, reply) => {

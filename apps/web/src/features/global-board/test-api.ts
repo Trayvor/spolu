@@ -24,6 +24,7 @@ export const GROUPS = [
 }));
 
 export const card = (over: Partial<GlobalTaskDto> & { id: string }): GlobalTaskDto => ({
+  unseen: false,
   groupId: 'g1',
   bucketId: 'b-todo',
   position: over.id,

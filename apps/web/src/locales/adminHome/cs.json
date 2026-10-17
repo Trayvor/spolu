@@ -11,14 +11,18 @@
     "collapse": "Sbalit seznam klientů",
     "expand": "Rozbalit seznam klientů",
     "noMatch": "Žádný klient neodpovídá.",
-    "unread_one": "{{count}} nepřečtená zpráva",
-    "unread_few": "{{count}} nepřečtené zprávy",
-    "unread_many": "{{count}} nepřečtené zprávy",
-    "unread_other": "{{count}} nepřečtených zpráv",
-    "assigned_one": "{{count}} úkol přidělený vám",
-    "assigned_few": "{{count}} úkoly přidělené vám",
-    "assigned_many": "{{count}} úkolu přiděleného vám",
-    "assigned_other": "{{count}} úkolů přidělených vám",
+    "messages_one": "{{count}} zpráva",
+    "messages_few": "{{count}} zprávy",
+    "messages_many": "{{count}} zprávy",
+    "messages_other": "{{count}} zpráv",
+    "tasks_one": "{{count}} úkol",
+    "tasks_few": "{{count}} úkoly",
+    "tasks_many": "{{count}} úkolu",
+    "tasks_other": "{{count}} úkolů",
+    "tickets_one": "{{count}} tiket",
+    "tickets_few": "{{count}} tikety",
+    "tickets_many": "{{count}} tiketu",
+    "tickets_other": "{{count}} tiketů",
     "internal": "Interní"
   },
   "home": {
@@ -81,7 +85,8 @@
       "unsummarized_few": "{{count}} bez shrnutí",
       "unsummarized_many": "{{count}} bez shrnutí",
       "unsummarized_other": "{{count}} bez shrnutí"
-    }
+    },
+    "unseen": "Nová změna"
   },
   "board": {
     "title": "Úkoly",
@@ -124,14 +129,14 @@
     "count_other": "{{count}} úkolů"
   },
   "navCount": {
-    "tasks_one": "{{count}} otevřený úkol přidělený vám",
-    "tasks_few": "{{count}} otevřené úkoly přidělené vám",
-    "tasks_many": "{{count}} otevřeného úkolu přiděleného vám",
-    "tasks_other": "{{count}} otevřených úkolů přidělených vám",
-    "tickets_one": "{{count}} otevřený tiket k řešení",
-    "tickets_few": "{{count}} otevřené tikety k řešení",
-    "tickets_many": "{{count}} otevřeného tiketu k řešení",
-    "tickets_other": "{{count}} otevřených tiketů k řešení"
+    "tasks_one": "{{count}} úkol s novou změnou",
+    "tasks_few": "{{count}} úkoly s novou změnou",
+    "tasks_many": "{{count}} úkolu s novou změnou",
+    "tasks_other": "{{count}} úkolů s novou změnou",
+    "tickets_one": "{{count}} tiket s novou změnou",
+    "tickets_few": "{{count}} tikety s novou změnou",
+    "tickets_many": "{{count}} tiketu s novou změnou",
+    "tickets_other": "{{count}} tiketů s novou změnou"
   },
   "sheet": {
     "tickets": {

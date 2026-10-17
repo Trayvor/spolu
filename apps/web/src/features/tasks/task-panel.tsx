@@ -1,4 +1,5 @@
 import { Skeleton } from '@/components/ui/skeleton';
+import { useMarkSeen } from '@/lib/use-mark-seen';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useBlocker, useLocation, useNavigate, useParams, useRouter } from '@tanstack/react-router';
@@ -102,6 +103,8 @@ export function TaskPanel({
   const gone =
     (query.error instanceof ApiError && query.error.status === 404) ||
     (task !== undefined && task.groupId !== groupId);
+  // 2026-10-17: open (either tab) and visible, its changes are seen.
+  useMarkSeen(task && !gone ? { kind: 'task', id: taskId } : null);
 
   // Gone, foreign or unreadable: back to the board, which says so.
   const exit = useRef(onExit);

@@ -183,7 +183,7 @@ export function WorkLogCard({ view }: { view: FinanceView }) {
         {dialog?.kind === 'edit' && (
           <EntryDialog
             view={view}
-            groupId={dialog.entry.groupId}
+            groupId={dialog.entry.groupId ?? ''}
             entry={dialog.entry}
             onClose={() => setDialog(null)}
           />
@@ -285,7 +285,29 @@ function MonthHeader({
         )}
       </h3>
       {totals && totals.byAdmin.length > 1 && <AdminLines admins={totals.byAdmin} />}
+      {totals?.topClients && totals.topClients.length > 0 && <TopClients totals={totals} />}
     </header>
+  );
+}
+
+/** The system-wide log's month header (D): the clients with the most hours that month. */
+function TopClients({
+  totals,
+}: {
+  totals: NonNullable<ReturnType<typeof chronology>[number]['totals']>;
+}) {
+  const { t } = useTranslation();
+  const f = useFinanceFormat();
+  return (
+    <p className="text-tiny text-muted-foreground" data-testid="work-log-top-clients">
+      <span className="font-semibold">{t('financeSystem.workLog.topClients')}</span>{' '}
+      {totals.topClients!.map((c, i) => (
+        <span key={c.groupId ?? ''} className="tabular-nums">
+          {i > 0 && ', '}
+          {c.groupId === null ? t('financeSystem.noClient') : c.name} {f.duration(c.minutes)}
+        </span>
+      ))}
+    </p>
   );
 }
 
@@ -359,7 +381,7 @@ function EntryRow({
   let subject;
   if (entry.source === 'manual') {
     subject = entry.note || t('financeLog.workLog.manual');
-  } else if (entry.source === 'task' && entry.taskId && !entry.subjectDeleted) {
+  } else if (entry.source === 'task' && entry.taskId && entry.groupId && !entry.subjectDeleted) {
     subject = (
       <Link
         to="/groups/$groupId/tasks/$taskId"
@@ -386,8 +408,11 @@ function EntryRow({
       <div className="flex min-w-0 flex-1 flex-col">
         <p className="truncate text-tiny">
           <span className="font-semibold">{entry.userName}</span>
-          {view.kind === 'all' && entry.groupName && (
-            <span className="text-muted-foreground"> · {entry.groupName}</span>
+          {view.kind === 'all' && entry.groupName !== undefined && (
+            <span className="text-muted-foreground">
+              {' · '}
+              {entry.groupName ?? t('financeSystem.noClient')}
+            </span>
           )}
           {showDay && <span className="text-muted-foreground"> · {f.day(entry.workedOn)}</span>}
         </p>
