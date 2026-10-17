@@ -1,0 +1,24 @@
+{
+  "button": "Risolvi con Claude",
+  "title": "Risolvi con Claude",
+  "intro": "Prepariamo un prompt con tutto il contesto, la chat e le istruzioni per eGrant MCP. Claude spiega prima la causa e propone una soluzione, e non cambia nulla senza la tua conferma.",
+  "notesLabel": "Note per Claude (facoltative)",
+  "notesPlaceholder": "Ad esempio su cosa concentrarsi. Puoi lasciare il campo vuoto.",
+  "notesHint": "Facoltative. Senza note basta premere Genera.",
+  "generate": "Genera",
+  "regenerate": "Genera di nuovo",
+  "cancel": "Annulla",
+  "generating": "Preparo il prompt…",
+  "loadFailed": "Non è stato possibile preparare il prompt. Riprova.",
+  "ready": "Il prompt è pronto",
+  "open": "Apri in Claude",
+  "copy": "Copia il prompt",
+  "filesReminder": "I file non arrivano a Claude tramite il link. Scaricali e allegali a mano nella chat di Claude:",
+  "preview": "Mostra il prompt",
+  "status": {
+    "opened": "Claude si è aperto in una nuova scheda.",
+    "pasteInClaude": "Il prompt è troppo lungo per un link, quindi è negli appunti. Incollalo nella nuova chat di Claude (Ctrl+V o ⌘V).",
+    "copied": "Il prompt è copiato.",
+    "copyFailed": "Non è stato possibile copiare il prompt. Prova Copia il prompt."
+  }
+}

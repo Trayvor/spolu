@@ -33,7 +33,9 @@
     "loading": "Nalaganje table.",
     "loadFailed": "Table ni bilo mogoče naložiti.",
     "retry": "Poskusi znova",
-    "moveFailed": "Naloge ni bilo mogoče premakniti."
+    "moveFailed": "Naloge ni bilo mogoče premakniti.",
+    "showMore": "Prikaži še 15",
+    "moreFailed": "Več ni bilo mogoče naložiti. Poskusite znova."
   },
   "dnd": {
     "instructions": "Če želite nalogo prijeti, pritisnite preslednico. S puščičnimi tipkami jo premaknite in jo z vnovičnim pritiskom preslednice spustite. Za preklic pritisnite Escape.",

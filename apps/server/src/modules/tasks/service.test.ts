@@ -18,6 +18,7 @@ import {
   ensureBoard,
   FixedBucketError,
   getBoard,
+  getDonePage,
   InvalidPlacementError,
   listBuckets,
   updateBucket,
@@ -132,6 +133,88 @@ describe('ensureBoard / getBoard', () => {
       expect(without).toBeGreaterThan(0);
     } finally {
       await counting.close();
+    }
+  });
+});
+
+describe('getBoard: the Completed column is paged (S8)', () => {
+  /** A group with `open` tasks in To do and `done` in Completed, positions p001… in order. */
+  async function boardWith(open: number, done: number) {
+    const group = await newGroup();
+    const admin = await addAdmin(db, { email: `${randomUUID()}@example.com`, name: 'Ada' });
+    const todo = await bucketOf(group.id, 'todo');
+    const completed = await bucketOf(group.id, 'done');
+    const now = new Date();
+    const row = (i: number, isDone: boolean) => ({
+      id: randomUUID(),
+      groupId: group.id,
+      bucketId: isDone ? completed.id : todo.id,
+      position: `p${String(i).padStart(3, '0')}`,
+      title: `${isDone ? 'Done' : 'Open'} ${i}`,
+      createdBy: admin.id,
+      completedAt: isDone ? now : null,
+      createdAt: now,
+      updatedAt: now,
+    });
+    const rows = [
+      ...Array.from({ length: open }, (_, i) => row(i, false)),
+      ...Array.from({ length: done }, (_, i) => row(i, true)),
+    ];
+    if (rows.length > 0) await db.insert(tasks).values(rows);
+    return { group, completed };
+  }
+  const titles = (list: { title: string }[]) => list.map((t) => t.title);
+  const doneTitles = (from: number, to: number) =>
+    Array.from({ length: to - from }, (_, i) => `Done ${from + i}`);
+
+  it('brings every open task and the first 15 completed ones in column order', async () => {
+    const { group, completed } = await boardWith(20, 40);
+    const board = await getBoard(db, group.id);
+    const done = board.tasks.filter((t) => t.bucketId === completed.id);
+    expect(board.tasks.filter((t) => t.completedAt === null)).toHaveLength(20);
+    expect(titles(done)).toEqual(doneTitles(0, 15));
+    expect(board.done).toEqual({ total: 40, next: 'p014' });
+  });
+
+  it('"Show more" pages through the rest, 15 at a time, then next is null', async () => {
+    const { group } = await boardWith(1, 40);
+    const second = await getDonePage(db, group.id, 'p014');
+    expect(titles(second.tasks)).toEqual(doneTitles(15, 30));
+    expect(second.next).toBe('p029');
+    const last = await getDonePage(db, group.id, 'p029');
+    expect(titles(last.tasks)).toEqual(doneTitles(30, 40));
+    expect(last.next).toBeNull();
+  });
+
+  it('a refetch may keep more pages (done = 30), and a short column has no next', async () => {
+    const { group } = await boardWith(0, 40);
+    const board = await getBoard(db, group.id, { done: 30 });
+    expect(titles(board.tasks)).toEqual(doneTitles(0, 30));
+    expect(board.done).toEqual({ total: 40, next: 'p029' });
+    const small = await boardWith(2, 15);
+    expect((await getBoard(db, small.group.id)).done).toEqual({ total: 15, next: null });
+  });
+
+  it('an empty board has no completed tasks and no next', async () => {
+    const group = await newGroup();
+    expect((await getBoard(db, group.id)).done).toEqual({ total: 0, next: null });
+  });
+
+  it('a warm board writes nothing: the fixed buckets are created on the first read only', async () => {
+    const statements: string[] = [];
+    const { db: logged, close: closeLogged } = createDb(testDatabaseUrl, {
+      onQuery: (query) => void statements.push(query),
+    });
+    try {
+      const group = await newGroup();
+      await getBoard(logged, group.id);
+      expect(statements.some((q) => /^\s*insert/i.test(q))).toBe(true);
+      statements.length = 0;
+      await getBoard(logged, group.id);
+      expect(statements.length).toBeGreaterThan(0);
+      expect(statements.some((q) => /^\s*(insert|update|delete)/i.test(q))).toBe(false);
+    } finally {
+      await closeLogged();
     }
   });
 });

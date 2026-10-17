@@ -30,7 +30,9 @@
     "loading": "Učitava se ploča.",
     "loadFailed": "Ploču nije moguće učitati.",
     "retry": "Pokušaj ponovno",
-    "moveFailed": "Zadatak nije moguće premjestiti."
+    "moveFailed": "Zadatak nije moguće premjestiti.",
+    "showMore": "Prikaži još 15",
+    "moreFailed": "Učitavanje dodatnih nije uspjelo. Pokušajte ponovno."
   },
   "dnd": {
     "instructions": "Zadatak podižete razmaknicom. Strelicama ga premještate, a ponovnim pritiskom razmaknice spuštate. Tipkom Escape poništavate premještanje.",

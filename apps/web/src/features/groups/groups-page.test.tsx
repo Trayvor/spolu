@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RouterProvider, createMemoryHistory } from '@tanstack/react-router';
@@ -325,6 +325,22 @@ describe('groups page', () => {
     expect(screen.queryByRole('link', { name: /Acme/ })).toBeNull();
     await user.click(screen.getByRole('button', { name: t('groups.filter.clear') }));
     await waitFor(() => expect(router.state.location.search).toEqual({}));
+    expect(await screen.findByRole('link', { name: /Acme/ })).toBeInTheDocument();
+  });
+
+  it('the manager filter comes back on the next visit; Clear filter forgets it', async () => {
+    mockApi([ACME]);
+    renderGroups('/groups?manager=none');
+    expect(await screen.findByText(t('groups.filter.empty'))).toBeInTheDocument();
+    cleanup();
+    mockApi([ACME]);
+    const { user, router } = renderGroups('/groups');
+    await waitFor(() => expect(router.state.location.search).toEqual({ manager: 'none' }));
+    await user.click(await screen.findByRole('button', { name: t('groups.filter.clear') }));
+    await waitFor(() => expect(router.state.location.search).toEqual({}));
+    cleanup();
+    mockApi([ACME]);
+    renderGroups('/groups');
     expect(await screen.findByRole('link', { name: /Acme/ })).toBeInTheDocument();
   });
 

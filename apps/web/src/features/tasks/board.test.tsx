@@ -77,6 +77,8 @@ let board: BoardDto;
 let chats: Record<string, { count: number; unread: boolean }>;
 let me: typeof ADMIN | typeof CLIENT;
 let fetchMock: ReturnType<typeof vi.fn>;
+/** Answers the Completed column's paged requests (`board?done=`, `board/done?after=`). */
+let pageReply: ((url: string) => Response) | null;
 const writes = () =>
   fetchMock.mock.calls.filter(([, init]) => init && (init as RequestInit).method);
 
@@ -98,7 +100,8 @@ beforeEach(() => {
   setLanguage('en');
   me = ADMIN;
   chats = {};
-  board = { buckets: BUCKETS, tasks: [task('t1', 'b-todo')] };
+  pageReply = null;
+  board = { buckets: BUCKETS, tasks: [task('t1', 'b-todo')], done: { total: 0, next: null } };
   fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
     const reply = (status: number, body?: unknown) =>
       new Response(body === undefined ? null : JSON.stringify(body), { status });
@@ -106,6 +109,8 @@ beforeEach(() => {
     if (url === '/api/me') return reply(200, me);
     if (url === '/api/groups/g1') return reply(200, GROUP);
     if (url === '/api/groups/g1/board') return reply(200, board);
+    if (url.startsWith('/api/groups/g1/board?') || url.startsWith('/api/groups/g1/board/done?'))
+      return pageReply ? pageReply(url) : reply(404, { error: 'not_found' });
     if (url === '/api/groups/g1/task-chats') return reply(200, chats);
     if (url === '/api/groups/g1/tasks' && method === 'POST') {
       const body = JSON.parse(init!.body as string);
@@ -147,6 +152,65 @@ describe('Board', () => {
     expect(within(columns[0]!).getByText('2 tasks')).toBeInTheDocument();
     expect(within(columns[4]!).getByText('1 task')).toBeInTheDocument();
     expect(within(columns[1]!).getByText('0 tasks')).toBeInTheDocument();
+  });
+
+  it('Completed shows its total and "Show 15 more" loads the next page into the column (S8)', async () => {
+    board.tasks = [task('d1', 'b-done', { completedAt: 'x' })];
+    board.done = { total: 3, next: 'd1' };
+    let release!: () => void;
+    const loaded = new Promise<void>((resolve) => (release = resolve));
+    pageReply = (url) => {
+      expect(url).toBe('/api/groups/g1/board/done?after=d1');
+      release();
+      const page = {
+        tasks: [task('d2', 'b-done', { completedAt: 'x' }), task('d3', 'b-done')],
+        next: null,
+      };
+      return new Response(JSON.stringify(page), { status: 200 });
+    };
+    const user = renderBoard();
+    const columns = await screen.findAllByRole('region');
+    const done = columns[4]!;
+    expect(within(done).getByText('3 tasks')).toBeInTheDocument();
+    await user.click(within(done).getByRole('button', { name: 'Show 15 more' }));
+    await loaded;
+    expect(await within(done).findByText('Task d3')).toBeInTheDocument();
+    expect(within(done).getByText('Task d2')).toBeInTheDocument();
+    expect(within(done).queryByRole('button', { name: 'Show 15 more' })).toBeNull();
+    expect(within(done).getByText('3 tasks')).toBeInTheDocument();
+    // Other columns never page.
+    expect(within(columns[0]!).queryByRole('button', { name: 'Show 15 more' })).toBeNull();
+  });
+
+  it('a failed "Show 15 more" says so and keeps the button', async () => {
+    board.tasks = [task('d1', 'b-done')];
+    board.done = { total: 2, next: 'd1' };
+    pageReply = () => new Response(null, { status: 500 });
+    const user = renderBoard();
+    const done = (await screen.findAllByRole('region'))[4]!;
+    await user.click(within(done).getByRole('button', { name: 'Show 15 more' }));
+    expect(await within(done).findByRole('alert')).toHaveTextContent(t('tasks.board.moreFailed'));
+    expect(within(done).getByRole('button', { name: 'Show 15 more' })).toBeEnabled();
+  });
+
+  it('a refetch keeps the Completed pages already shown (asks for done=30)', async () => {
+    const shown = Array.from({ length: 16 }, (_, i) =>
+      task(`d${String(i).padStart(2, '0')}`, 'b-done'),
+    );
+    board.tasks = shown;
+    board.done = { total: 40, next: 'd15' };
+    pageReply = (url) => {
+      expect(url).toBe('/api/groups/g1/board?done=30');
+      return new Response(JSON.stringify(board), { status: 200 });
+    };
+    const { queryClient } = renderBoard();
+    await screen.findAllByRole('region');
+    await queryClient.invalidateQueries({ queryKey: ['tasks', 'g1', 'board'] });
+    await waitFor(() =>
+      expect(fetchMock.mock.calls.some(([url]) => url === '/api/groups/g1/board?done=30')).toBe(
+        true,
+      ),
+    );
   });
 
   it('says the board is empty in To do and "Nothing here yet." elsewhere', async () => {

@@ -56,7 +56,9 @@
     "tooManyFiles": "Najviac 10 súborov v jednej správe.",
     "fileTooLarge": "Príliš veľký (max 25 MB)",
     "formatting": "Formátovanie",
-    "mentionNotAllowed": "Niekoho, koho ste spomenuli, tu už nemožno spomenúť."
+    "mentionNotAllowed": "Niekoho, koho ste spomenuli, tu už nemožno spomenúť.",
+    "linkUrl": "Adresa odkazu",
+    "addLink": "Pridať odkaz"
   },
   "format": {
     "bold": "Tučné",
@@ -75,6 +77,28 @@
   "loadError": "Chat sa nepodarilo načítať.",
   "turnedIntoTasks": "Premenené na úlohy:",
   "copied": "Text skopírovaný",
+  "ai": {
+    "button": "AI nástroje",
+    "working": "Upravujem…",
+    "fix": "Opraviť chyby",
+    "formal": "Formálnejšie",
+    "translateTo": "Preložiť: {{language}}",
+    "undo": "Späť",
+    "failed": "AI nedokázala text upraviť. Skúste to znova.",
+    "limited": "Priveľa požiadaviek. Skúste to o minútu."
+  },
+  "voice": {
+    "start": "Diktovať",
+    "stop": "Zastaviť a prepísať",
+    "cancel": "Zrušiť nahrávanie",
+    "recording": "Čas nahrávania",
+    "transcribing": "Prepisujem…",
+    "denied": "Na diktovanie povoľte mikrofón v prehliadači.",
+    "unsupported": "Tento prehliadač nevie nahrávať zvuk.",
+    "failed": "Nahrávku sa nepodarilo prepísať. Skúste to znova.",
+    "limited": "Priveľa nahrávok. Skúste to o minútu.",
+    "atLimit": "Nahrávanie sa zastavilo po 5 minútach."
+  },
   "reactions": {
     "add": "Pridať reakciu",
     "more": "Ďalšie emoji",

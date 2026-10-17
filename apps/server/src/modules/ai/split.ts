@@ -55,7 +55,11 @@ const bratislavaDate = new Intl.DateTimeFormat('en-CA', {
 const cut = (text: string, max: number): string => Array.from(text).slice(0, max).join('');
 
 /** Mention tokens as `@Name` (`@all` for everyone); newlines stay. */
-async function withNames(db: Db, body: string, nameById: Map<string, string>): Promise<string> {
+export async function withNames(
+  db: Db,
+  body: string,
+  nameById: Map<string, string>,
+): Promise<string> {
   const missing = [...body.matchAll(MENTION_RE)]
     .map((m) => m[1]!)
     .filter((id) => id !== 'all' && !nameById.has(id));

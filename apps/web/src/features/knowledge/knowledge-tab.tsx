@@ -6,6 +6,7 @@ import { backOr, samePath } from '@/lib/back';
 import { KnowledgeTypes, type KnowledgeCreatableType, type KnowledgeType } from '@spolu/shared';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useRememberedFilters } from '@/lib/use-remembered-filters';
 import { useUpdateSearch } from '@/lib/use-update-search';
 import { cn } from '@/lib/utils';
 import { isAdmin } from '@/features/auth/roles';
@@ -68,11 +69,19 @@ export function KnowledgeTab() {
   return groupId ? <GroupKnowledge groupId={groupId} /> : null;
 }
 
+/** The filters remembered per group (`useRememberedFilters`): not the search, the folder or the item. */
+const REMEMBERED_KEYS = ['type', 'chats'] as const;
+
 /** The group's knowledge: header, type pills (any set of types), search, the list, and the dialog from `?k`. */
 function GroupKnowledge({ groupId }: { groupId: string }) {
   const { t } = useTranslation();
   // The route's `validateSearch` (router.tsx) has checked these.
-  const { type, q, chats, k, kind, folder }: KnowledgeTabSearch = useSearch({ strict: false });
+  // The last type pills and chat-file choice of this group come back on the next visit.
+  const { type, q, chats, k, kind, folder } = useRememberedFilters(
+    `knowledge:${groupId}`,
+    REMEMBERED_KEYS,
+    useSearch({ strict: false }) as KnowledgeTabSearch,
+  );
   const updateSearch = useUpdateSearch();
   const canSeeAdmins = isAdmin(useSession());
   const types = parseTypes(type);

@@ -2,8 +2,10 @@ import type { Config } from './infra/config/config.js';
 import {
   createAiProvider,
   createMeetingSummaryProvider,
+  createTextToolsProvider,
   createTranscriptionProvider,
 } from './modules/ai/index.js';
+import type { TextToolsProvider } from './modules/ai/text-tools.js';
 import type { MeetingSummaryProvider } from './modules/ai/meeting-summary.js';
 import type { TaskSplitProvider } from './modules/ai/provider.js';
 import type { TranscriptionProvider } from './modules/ai/transcription.js';
@@ -58,6 +60,8 @@ export type AppDeps = {
   transcription: TranscriptionProvider | null;
   /** The meeting summary AI (Phase 30); null when AI is off. */
   meetingSummary: MeetingSummaryProvider | null;
+  /** The chat composer's AI text tools (Phase 28); null when AI is off. */
+  textTools: TextToolsProvider | null;
 };
 
 /** Creates the real dependencies. `close` stops the jobs, then the database. */
@@ -129,6 +133,7 @@ export async function createDeps(
       media,
       transcription,
       meetingSummary,
+      textTools: createTextToolsProvider(config.textAi),
     },
     async close() {
       await jobs.stop();

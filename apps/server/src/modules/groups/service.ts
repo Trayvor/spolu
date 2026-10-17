@@ -225,6 +225,26 @@ export async function listMembers(
     .orderBy(asc(user.name), asc(user.email));
 }
 
+/**
+ * The profile languages of the group's active clients, one entry per client (Phase 28: the
+ * translate target of the AI text tools). Uses `group_members_group_active_idx`.
+ */
+export async function clientLanguages(db: Db, groupId: string): Promise<string[]> {
+  const rows = await db
+    .select({ language: user.language })
+    .from(groupMembers)
+    .innerJoin(user, eq(user.id, groupMembers.userId))
+    .where(
+      and(
+        eq(groupMembers.groupId, groupId),
+        eq(groupMembers.role, 'client'),
+        isNull(groupMembers.removedAt),
+        isNull(user.disabledAt),
+      ),
+    );
+  return rows.map((r) => r.language);
+}
+
 // One definition of "a person of this group", shared by the list and the single check.
 const isActiveAdmin = and(inArray(user.role, ['admin', 'superadmin']), isNull(user.disabledAt));
 // A ziadatel (requester) is not a person of the group: they never read its chat or board.

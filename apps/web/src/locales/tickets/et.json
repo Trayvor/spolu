@@ -21,7 +21,8 @@
       "anyone": "Igaüks",
       "me": "Mina",
       "none": "Keegi"
-    }
+    },
+    "clear": "Tühjenda filtrid"
   },
   "list": {
     "loading": "Pöördumiste laadimine…",

@@ -8,6 +8,11 @@ import {
 import { createOpenAiProvider } from './openai-provider.js';
 import type { TaskSplitProvider } from './provider.js';
 import {
+  createFakeTextTools,
+  createOpenAiTextTools,
+  type TextToolsProvider,
+} from './text-tools.js';
+import {
   createElevenLabsTranscription,
   createFakeTranscription,
   createOpenAiTranscription,
@@ -38,4 +43,15 @@ export function createTranscriptionProvider(
     return createElevenLabsTranscription({ apiKey: config.apiKey, model: config.model });
   }
   return createOpenAiTranscription({ apiKey: config.apiKey, model: config.model });
+}
+
+/** The chat composer's AI text tools (Phase 28, `OPENAI_TEXT_MODEL`); null when AI is off. */
+export function createTextToolsProvider(config: Config['textAi']): TextToolsProvider | null {
+  if (config === null) return null;
+  if (config.provider === 'fake') return createFakeTextTools();
+  return createOpenAiTextTools({
+    apiKey: config.apiKey,
+    model: config.model,
+    reasoningEffort: config.reasoningEffort,
+  });
 }

@@ -18,6 +18,7 @@ Spolu must feel instant: faster than Microsoft Teams on a cheap phone over mobil
 - Feature texts are lazy locale namespaces (`src/locales/<name>/<code>.json`), loaded with the route that renders them (`withNamespaces` in `router.tsx`, see [overview.md](overview.md), "i18n"). Only the eager shell's texts go in the main locale files.
 - Before adding a dependency, check its gzip size (bundlephobia or the build output). Prefer a few lines of our own code to a large library used for one function. A new runtime dependency needs an ADR anyway.
 - Lists that grow (messages, tasks, tickets, members) are paginated by cursor and virtualized when long. Never load a whole list.
+- A list with filters remembers them with `useRememberedFilters(list, keys, search)` (`lib/use-remembered-filters.ts`; `useRememberedState` for a filter kept in component state). The URL stays the source of truth: filter params in the URL are used and saved; a list opened without any gets the saved ones written into the URL with `replace`, and the hook already returns them on the first render, so the first request is the right one (no default fetch first). Saved per user in `localStorage` under `spolu.filters.<userId>.<list>`, the list key carrying the group id where filters are per group; every access is in try/catch. Free text search is never a remembered key. Emptying the filters (a "Clear filters" button) forgets the saved value. A new list with filters uses the hook; `src/test/setup.ts` clears the saved filters before each test.
 - A socket (re)join or `connect` refetches only what may have missed events: use `firstJoinCheck` (`lib/socket-history.ts`, see [realtime.md](realtime.md)) so the first join of a screen does not refetch what its mount just loaded. Measured in the hooks' tests (Phase 27, W4): a cold load of the Tasks tab sends 1 board request instead of 2 (the second also invalidated every cached task detail), the Knowledge tab 1 list request instead of 2 (plus the folders), and the ticket and bulk email lists 1 instead of 2 when the socket connects after they loaded.
 - Optimistic UI for the user's own writes (a sent message appears at once, then is confirmed).
 - Images: resized and compressed on upload; lists and chat show thumbnails; full size only on open.
@@ -99,6 +100,8 @@ Phase 27 entry chunk (2026-10-17, gzip -9 of every script `dist/index.html` load
 
 Keep `cn` out of the eager shell: use it where classes from props may conflict, which is inside the lazy screens.
 
+Phase 28 chat editor (2026-10-17, gzip -9 of every script `dist/index.html` loads): initial JS 162.60 kB gzip, 0.18 kB above `main` (162.42 kB). The editor is not in it: ProseMirror and the composer's editor code are the lazy `chat-editor` chunk (69.7 kB gzip; [ADR 0025](../decisions/0025-prosemirror-chat-editor.md)), requested by the lazy `conversation` chunk (15.2 kB, from 14.8 kB) as soon as it runs. The 0.18 kB is the bundler regrouping: the entry chunk grew 60 bytes and the eager API chunk was split into `api` and a shared `schemas` chunk (about 0.1 kB worse compression), because the editor chunk also imports `@spolu/shared`.
+
 Lazy chunks for individual screens have no hard budget. Keep them reasonable and watch for anything above about 100 kB gzip.
 
 ## Docker image
@@ -168,6 +171,8 @@ What changed:
 - **Reminders.** The deadline and urgent reminders (`tasks/reminders.ts`) and the reminder fire batch (`reminders/jobs.ts`) record every event with one `recordManyNotifications`: one `INSERT … SELECT` per notification group, in chunks of 1000 rows. The fire batch falls back to a savepoint per time only if the batch insert fails.
 
 The tests compare a large batch's query count with a small one's: `notifications/batching.test.ts`, `tasks/reminders.test.ts`, `reminders/jobs.test.ts` and `notifications/categories.test.ts` (which also checks that the batched audience matches `listGroupPeople`). The first run of a statement shape costs one more round trip (postgres.js describes it first), so each size runs twice and the second count is compared.
+
+Group board Completed column (Phase 27 S8, measured 2026-10-17 through `getBoard` on the local test database, a group with 50 open and 2 000 completed tasks, median of 15 warm runs): 38.1 → 3.8 ms, 2 050 → 65 tasks and 1.01 MB → 31.7 kB of JSON per board, and a warm read writes nothing (the `ensureBoard` insert ran on every GET). The board brings every open task and the first 15 completed ones; "Show 15 more" pages by position on `tasks_bucket_position_unique`, and a refetch asks for the completed tasks already shown (`?done=N`, at most 300).
 
 ## Test suite speed
 

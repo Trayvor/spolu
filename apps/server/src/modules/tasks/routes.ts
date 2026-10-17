@@ -1,5 +1,12 @@
 import type { FastifyPluginAsync, FastifyReply, preHandlerAsyncHookHandler } from 'fastify';
-import { BucketCreateSchema, BucketPatchSchema, ErrorCodes, type SessionUser } from '@spolu/shared';
+import {
+  BoardDoneQuerySchema,
+  BoardQuerySchema,
+  BucketCreateSchema,
+  BucketPatchSchema,
+  ErrorCodes,
+  type SessionUser,
+} from '@spolu/shared';
 import type { AppDeps } from '../../deps.js';
 import { createRateLimiter } from '../../infra/http/rate-limit.js';
 import { requireUser } from '../auth/session.js';
@@ -15,6 +22,7 @@ import {
   FixedBucketError,
   getBoard,
   getBucket,
+  getDonePage,
   InvalidPlacementError,
   listBuckets,
   updateBucket,
@@ -62,10 +70,24 @@ export const tasksRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { 
   );
 
   app.get<GroupParams>('/groups/:id/board', { preHandler: anyUser }, async (request, reply) => {
+    const query = BoardQuerySchema.safeParse(request.query);
+    if (!query.success) return invalid(reply);
     // Group check first: ensureBoard must never run for an unknown group.
     if (!(await canOpenGroup(request.user!, request.params.id))) return notFound(reply);
-    return getBoard(db, request.params.id);
+    return getBoard(db, request.params.id, { done: query.data.done });
   });
+
+  // "Show more" in the Completed column (Phase 27 S8).
+  app.get<GroupParams>(
+    '/groups/:id/board/done',
+    { preHandler: anyUser },
+    async (request, reply) => {
+      const query = BoardDoneQuerySchema.safeParse(request.query);
+      if (!query.success) return invalid(reply);
+      if (!(await canOpenGroup(request.user!, request.params.id))) return notFound(reply);
+      return getDonePage(db, request.params.id, query.data.after);
+    },
+  );
 
   app.post<GroupParams>(
     '/groups/:id/buckets',

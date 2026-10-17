@@ -52,7 +52,9 @@
     "tooManyFiles": "Ühes sõnumis kuni 10 faili.",
     "fileTooLarge": "Liiga suur (max 25 MB)",
     "formatting": "Vormindus",
-    "mentionNotAllowed": "Kedagi, keda mainisite, ei saa siin enam mainida."
+    "mentionNotAllowed": "Kedagi, keda mainisite, ei saa siin enam mainida.",
+    "linkUrl": "Lingi aadress",
+    "addLink": "Lisa link"
   },
   "format": {
     "bold": "Paks",
@@ -69,6 +71,28 @@
   "loadError": "Vestlust ei õnnestunud laadida.",
   "turnedIntoTasks": "Muudetud ülesanneteks:",
   "copied": "Tekst kopeeritud",
+  "ai": {
+    "button": "AI tööriistad",
+    "working": "Muudan…",
+    "fix": "Paranda vead",
+    "formal": "Ametlikumaks",
+    "translateTo": "Tõlgi: {{language}}",
+    "undo": "Võta tagasi",
+    "failed": "AI ei suutnud teksti muuta. Proovige uuesti.",
+    "limited": "Liiga palju päringuid. Proovige minuti pärast."
+  },
+  "voice": {
+    "start": "Dikteeri",
+    "stop": "Peata ja kirjuta üles",
+    "cancel": "Tühista salvestus",
+    "recording": "Salvestuse aeg",
+    "transcribing": "Kirjutan üles…",
+    "denied": "Dikteerimiseks lubage brauseris mikrofon.",
+    "unsupported": "See brauser ei saa heli salvestada.",
+    "failed": "Salvestust ei õnnestunud üles kirjutada. Proovige uuesti.",
+    "limited": "Liiga palju salvestusi. Proovige minuti pärast.",
+    "atLimit": "Salvestus peatus 5 minuti järel."
+  },
   "reactions": {
     "add": "Lisa reaktsioon",
     "more": "Rohkem emojisid",

@@ -56,7 +56,9 @@
     "tooManyFiles": "Nejvýše 10 souborů na zprávu.",
     "fileTooLarge": "Příliš velký (max. 25 MB)",
     "formatting": "Formátování",
-    "mentionNotAllowed": "Někoho, koho jste zmínili, tu už nelze zmínit."
+    "mentionNotAllowed": "Někoho, koho jste zmínili, tu už nelze zmínit.",
+    "linkUrl": "Adresa odkazu",
+    "addLink": "Přidat odkaz"
   },
   "format": {
     "bold": "Tučně",
@@ -75,6 +77,28 @@
   "loadError": "Chat se nepodařilo načíst.",
   "turnedIntoTasks": "Převedeno na úkoly:",
   "copied": "Text zkopírován",
+  "ai": {
+    "button": "AI nástroje",
+    "working": "Upravuji…",
+    "fix": "Opravit chyby",
+    "formal": "Formálněji",
+    "translateTo": "Přeložit: {{language}}",
+    "undo": "Zpět",
+    "failed": "AI nedokázala text upravit. Zkuste to znovu.",
+    "limited": "Příliš mnoho požadavků. Zkuste to za minutu."
+  },
+  "voice": {
+    "start": "Diktovat",
+    "stop": "Zastavit a přepsat",
+    "cancel": "Zrušit nahrávání",
+    "recording": "Čas nahrávání",
+    "transcribing": "Přepisuji…",
+    "denied": "K diktování povolte mikrofon v prohlížeči.",
+    "unsupported": "Tento prohlížeč neumí nahrávat zvuk.",
+    "failed": "Nahrávku se nepodařilo přepsat. Zkuste to znovu.",
+    "limited": "Příliš mnoho nahrávek. Zkuste to za minutu.",
+    "atLimit": "Nahrávání se zastavilo po 5 minutách."
+  },
   "reactions": {
     "add": "Přidat reakci",
     "more": "Další emoji",

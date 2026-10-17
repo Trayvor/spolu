@@ -116,6 +116,7 @@ beforeEach(() => {
       return reply(200, {
         buckets: BUCKETS,
         tasks: [{ ...card('t1', detail.bucketId) }, card('t9', 'b-done'), card('t8', 'b-done')],
+        done: { total: 2, next: null },
       });
     if (url === '/api/groups/g1/people') return reply(200, []);
     if (url === '/api/tasks/t1' && method === 'GET') return reply(200, detail);
@@ -546,7 +547,8 @@ describe('TaskPanel', () => {
         new Response(JSON.stringify(body), { status });
       if (url === '/api/me') return reply(200, me);
       if (url === '/api/groups/g1') return reply(200, GROUP);
-      if (url === '/api/groups/g1/board') return reply(200, { buckets: BUCKETS, tasks: [] });
+      if (url === '/api/groups/g1/board')
+        return reply(200, { buckets: BUCKETS, tasks: [], done: { total: 0, next: null } });
       return reply(404, { error: 'not_found' });
     });
     const { router } = renderPanel();

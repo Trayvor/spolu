@@ -6,7 +6,7 @@ import { RouterProvider, createMemoryHistory } from '@tanstack/react-router';
 import { AdminEvents, type BucketDto, type TaskDetailDto } from '@spolu/shared';
 import { i18n, setLanguage } from '@/i18n';
 import { createAppRouter } from '@/router';
-import { BOARD_CLIENTS_KEY } from './use-global-search';
+import { rememberedFiltersKey } from '@/lib/use-remembered-filters';
 import { board, card, doneColumn, mockBoardApi } from './test-api';
 
 type Handler = (payload: unknown) => void;
@@ -63,7 +63,11 @@ const panelRoutes = (reply = json) => [
   (url: URL) => (url.pathname === '/api/tasks/t1' ? reply(200, DETAIL) : undefined),
   (url: URL) =>
     url.pathname === '/api/groups/g1/board'
-      ? reply(200, { buckets: BUCKETS, tasks: [card({ id: 't1' })] })
+      ? reply(200, {
+          buckets: BUCKETS,
+          tasks: [card({ id: 't1' })],
+          done: { total: 0, next: null },
+        })
       : undefined,
   (url: URL) =>
     url.pathname === '/api/groups/g1'
@@ -138,13 +142,18 @@ describe('GlobalBoardPage', () => {
     expect(folded).toHaveTextContent('Archive');
   });
 
-  it('the default client scope comes from localStorage when the URL has none, and storage errors are ignored', async () => {
-    localStorage.setItem(BOARD_CLIENTS_KEY, 'g2');
+  it('the last filters come back when the URL has none, and storage errors are ignored', async () => {
+    localStorage.setItem(
+      rememberedFiltersKey('a1', 'globalBoard'),
+      JSON.stringify({ clients: 'g2', urgent: 1 }),
+    );
     const { calls } = mockBoardApi();
     const { router } = renderBoard();
     await screen.findByRole('link', { name: /Fix budget table/ });
-    expect(globalCalls(calls)).toEqual(['/api/tasks/global?clients=g2']);
-    await waitFor(() => expect(router.state.location.search).toMatchObject({ clients: 'g2' }));
+    expect(globalCalls(calls)).toEqual(['/api/tasks/global?clients=g2&urgent=1']);
+    await waitFor(() =>
+      expect(router.state.location.search).toMatchObject({ clients: 'g2', urgent: 1 }),
+    );
 
     cleanup();
     vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
@@ -193,6 +202,61 @@ describe('GlobalBoardPage', () => {
     expect(within(other).getAllByRole('link')).toHaveLength(1);
     expect(globalCalls(calls).at(-1)).toBe('/api/tasks/global?column=todo&after=cursor-1');
     expect(within(todo).queryByRole('button', { name: t('adminHome.board.more') })).toBeNull();
+  });
+
+  it('the loaded pages stay, refreshed, when tasks change; a filter change drops them (W5)', async () => {
+    let pageTitle = 'Page two';
+    const { reply, calls } = mockBoardApi([
+      (url) => {
+        if (url.pathname !== '/api/tasks/global') return undefined;
+        const column = (title: string, total: number, next: string | null) => ({
+          id: 'todo',
+          kind: 'todo' as const,
+          name: null,
+          total,
+          items: [card({ id: 't9', title })],
+          next,
+        });
+        if (url.searchParams.get('column') === 'todo') {
+          return reply(200, board({ columns: [column(pageTitle, 2, null)] }));
+        }
+        const first = board();
+        first.columns[0] = { ...first.columns[0]!, total: 2, next: 'cursor-1' };
+        return reply(200, first);
+      },
+    ]);
+    const { user, router } = renderBoard();
+    await screen.findByRole('link', { name: /Fix budget table/ });
+    const todo = () => screen.getByRole('region', { name: t('adminHome.board.columns.todo') });
+    await user.click(within(todo()).getByRole('button', { name: t('adminHome.board.more') }));
+    expect(await within(todo()).findByRole('link', { name: /Page two/ })).toBeInTheDocument();
+
+    // A task changed somewhere: the board refetches, the loaded page stays and is reloaded.
+    pageTitle = 'Page two, renamed';
+    const before = globalCalls(calls).length;
+    vi.useFakeTimers();
+    act(() =>
+      handlers.get(AdminEvents.activity)?.forEach((fn) => fn({ groupId: 'g1', kind: 'task' })),
+    );
+    await act(() => vi.advanceTimersByTimeAsync(2000));
+    // The refetch's answer is handed to the screen on a timer too.
+    for (let i = 0; i < 5; i++) await act(() => vi.advanceTimersByTimeAsync(20));
+    vi.useRealTimers();
+    expect(
+      await within(todo()).findByRole('link', { name: /Page two, renamed/ }),
+    ).toBeInTheDocument();
+    expect(globalCalls(calls).slice(before)).toEqual([
+      '/api/tasks/global',
+      '/api/tasks/global?column=todo&after=cursor-1',
+    ]);
+    expect(within(todo()).getAllByRole('link')).toHaveLength(2);
+
+    // Another filter: back to the first page.
+    await router.navigate({ to: '/tasks', search: { urgent: 1 } });
+    await waitFor(() =>
+      expect(within(todo()).queryByRole('link', { name: /Page two/ })).toBeNull(),
+    );
+    expect(within(todo()).getByRole('button', { name: t('adminHome.board.more') })).toBeEnabled();
   });
 
   it('Show 50 more in a custom column asks for that column by its id', async () => {

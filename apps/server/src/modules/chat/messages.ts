@@ -332,22 +332,58 @@ export async function getMessageFiles(
 
 /**
  * The newest `limit` messages of a channel that are not deleted, thread replies included, oldest
- * first, with the author's name (for the AI's view of a ticket chat). Same read-only exception
- * as `selectMessages` for the name.
+ * first, with the author's name (for the AI's view of a ticket chat and the "Open in Claude"
+ * prompt). Same read-only exception as `selectMessages` for the name.
  */
 export async function listRecentMessages(
   db: Db,
   channelId: string,
   limit: number,
-): Promise<{ authorName: string; body: string }[]> {
+): Promise<{ id: string; authorName: string; body: string; createdAt: Date }[]> {
   const rows = await db
-    .select({ authorName: user.name, body: messages.body, createdAt: messages.createdAt })
+    .select({
+      id: messages.id,
+      authorName: user.name,
+      body: messages.body,
+      createdAt: messages.createdAt,
+    })
     .from(messages)
     .innerJoin(user, eq(user.id, messages.authorId))
     .where(and(eq(messages.channelId, channelId), isNull(messages.deletedAt)))
     .orderBy(sql`${messages.createdAt} desc`, sql`${messages.id} desc`)
     .limit(limit);
-  return rows.reverse().map(({ authorName, body }) => ({ authorName, body }));
+  return rows.reverse();
+}
+
+/**
+ * The files (id and name) attached to the given messages of one group, keyed by message id, in
+ * their order (two queries; messages without files are absent).
+ */
+export async function messageFileNames(
+  db: Db,
+  groupId: string,
+  messageIds: string[],
+): Promise<Map<string, { id: string; name: string }[]>> {
+  const result = new Map<string, { id: string; name: string }[]>();
+  if (messageIds.length === 0) return result;
+  const rows = await db
+    .select({ messageId: messageAttachments.messageId, fileId: messageAttachments.fileId })
+    .from(messageAttachments)
+    .where(inArray(messageAttachments.messageId, messageIds))
+    .orderBy(asc(messageAttachments.messageId), asc(messageAttachments.position));
+  if (rows.length === 0) return result;
+  const files = await getFilesForGroup(
+    db,
+    groupId,
+    rows.map((r) => r.fileId),
+  );
+  const nameById = new Map(files.map((f) => [f.id, f.name]));
+  for (const { messageId, fileId } of rows) {
+    const name = nameById.get(fileId);
+    if (name === undefined) continue;
+    result.set(messageId, [...(result.get(messageId) ?? []), { id: fileId, name }]);
+  }
+  return result;
 }
 
 // Same read-only exception as `selectMessages`: author and mentioned names come from `user`.

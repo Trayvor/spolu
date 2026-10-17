@@ -21,7 +21,8 @@
       "anyone": "Anyone",
       "me": "Me",
       "none": "Nobody"
-    }
+    },
+    "clear": "Clear filters"
   },
   "list": {
     "loading": "Loading tickets…",

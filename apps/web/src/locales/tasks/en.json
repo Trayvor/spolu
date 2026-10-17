@@ -27,7 +27,9 @@
     "loading": "Loading the board.",
     "loadFailed": "Could not load the board.",
     "retry": "Try again",
-    "moveFailed": "The task could not be moved."
+    "moveFailed": "The task could not be moved.",
+    "showMore": "Show 15 more",
+    "moreFailed": "Could not load more. Try again."
   },
   "dnd": {
     "instructions": "To pick up a task, press Space. Use the arrow keys to move it and press Space again to drop it. Press Escape to cancel.",

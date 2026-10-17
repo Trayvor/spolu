@@ -34,8 +34,8 @@ Requirements per module: [product/](product/README.md). Phases after 1 get their
 | 25 | [Chat files in the knowledge base](#phase-25--chat-files-in-the-knowledge-base) | done | 17, 24 | [spec](superpowers/specs/2026-10-16-knowledge-chat-files-design.md), [plan](superpowers/plans/2026-10-16-knowledge-chat-files.md) |
 | 26 | [One email design and nine languages](#phase-26--one-email-design-and-nine-languages) | done | 23 | [ADR 0019](decisions/0019-nine-languages-and-one-email-design.md) |
 | 27 | [Whole-project review: performance and cleanup](#phase-27--whole-project-review-performance-and-cleanup) | planned | the UI/UX polish work | - |
-| 28 | [Chat editor and AI text tools](#phase-28--chat-editor-and-ai-text-tools) | planned | 27 | - |
-| 29 | [Solve with AI](#phase-29--solve-with-ai) | planned | 27 | - |
+| 28 | [Chat editor and AI text tools](#phase-28--chat-editor-and-ai-text-tools) | in progress | 27 | [editor spec](superpowers/specs/2026-10-17-phase-28-chat-editor-design.md), [ADR 0025](decisions/0025-prosemirror-chat-editor.md), [AI text tools and voice spec](superpowers/specs/2026-10-17-phase-28-ai-text-tools-and-voice-design.md) |
+| 29 | [Solve with AI](#phase-29--solve-with-ai) | done | 21 | [spec](superpowers/specs/2026-10-17-phase-29-open-in-claude-design.md) |
 | 31 | [Bulk email builder v2](#phase-31--bulk-email-builder-v2) | in progress (PR #59) | 23 | [spec](superpowers/specs/2026-10-17-phase-31-bulk-email-builder-v2-design.md), [plan](superpowers/plans/2026-10-17-phase-31-bulk-email-builder-v2.md) |
 
 Phases 8 and 14 do not depend on each other, so their order can change by priority.
@@ -381,7 +381,7 @@ Scope: review the whole project for places where performance can sag, for dead o
 
 Done when: the findings report is written and agreed with the owner, every accepted finding is fixed in its own merged pull request with before/after numbers, and the remaining ones are listed as later work.
 
-Status: findings report written ([2026-10-17 findings](superpowers/specs/2026-10-17-phase-27-review-findings.md)): 8 fix batches (foreign-key indexes, JIT off, faster web tests, entry chunk, precache, first-join refetch, dead code, Docker image) in their own pull requests; the rest is listed there as proposed, for the owner to decide.
+Status: findings report written ([2026-10-17 findings](superpowers/specs/2026-10-17-phase-27-review-findings.md)): 8 fix batches (foreign-key indexes, JIT off, faster web tests, entry chunk, precache, first-join refetch, dead code, Docker image) in their own pull requests; the rest is listed there as proposed, for the owner to decide. Batch 2 (`perf/phase-27-batch-2`, accepted by the owner): S5 (no notification event for a category set to none), S8 (the group board's Completed column paged by 15), W5 (the global board keeps its "Show 50 more" pages) and, by owner request, remembered filters on every list (see [product/non-functional.md](product/non-functional.md), "Lists remember their filters").
 
 ## Phase 28 — Chat editor and AI text tools
 
@@ -398,7 +398,9 @@ Owner request (2026-10-17). Starts after Phase 27. Needs a spec (brainstorming) 
 - **Attach a knowledge item** (owner request 2026-10-17): in a group's chats (group chat, and the task and ticket chats of that group) a message can carry one or more items from that group's knowledge base, picked from a search dialog next to the file button. Only items visible to everyone in the group can be attached (never "admins only" items or items in admins-only folders); the server checks this on send and again when the message is shown (an item later made admins-only, moved or deleted shows as unavailable). The message shows a card with the item's type icon, title and folder, opening the item. In a ticket chat a žiadateľ (who does not see the knowledge base) gets no picker, but sees the attached items and can open and read them (owner decision 2026-10-17): read-only, only the attached item itself — no browsing the folder or the rest of the knowledge base, no edits, comments or reminders. The server grants that access through the message the item is attached to.
 - **Voice input** (owner request 2026-10-17), for everyone in every chat: a microphone button records; the person decides when to stop (tap again, like Claude's voice input; no automatic cut-off on silence), sees a timer while recording, can cancel, and the speech is transcribed into the draft (not sent) for review. Transcription on the server with the transcription provider of the knowledge meetings phase (`TRANSCRIPTION_PROVIDER`), so no browser speech API differences; a length limit (e.g. 5 minutes) and a per-user rate limit.
 
-Status: reactions and attached knowledge items in progress ([design](superpowers/specs/2026-10-17-phase-28-reactions-and-attachments-design.md): server, web, e2e `e2e/chat-reactions.spec.ts`; migration 0031); the editor, the AI text tools and voice input are built in their own pull requests.
+Status: the AI text tools and voice input are built ([design](superpowers/specs/2026-10-17-phase-28-ai-text-tools-and-voice-design.md), its "Owner decisions" list what to confirm: the client's language rule, no text tools for a ziadatel, `gpt-5.4-mini`, the rate limits). The owner still has to try them on a phone and a computer with the real OpenAI key (Safari's recording format included). The rich editor is built too ([spec](superpowers/specs/2026-10-17-phase-28-chat-editor-design.md) with the owner's decisions in its last section, [ADR 0025](decisions/0025-prosemirror-chat-editor.md): ProseMirror core in a lazy `chat-editor` chunk, about 70 kB gzip; initial JS +0.2 kB). The composer exposes the draft as Markdown (`ComposerHandle`: `getMarkdown`, `setMarkdown`, `focus`, and an `extraActions` slot before Send); the AI and voice buttons read and replace the draft through the editor (an AI answer is one undo step, a transcript is appended at the end). To walk after the merge on https://help.egrant.sk: in a group chat, a ticket chat and a task chat, type `**bold**`, `_italic_`, `- ` and `1. ` lists, `> `, `# ` and ```` ``` ````, mention someone, attach a file, paste Markdown from a text editor and formatted text from a web page, edit a sent message, run "Make it formal" on a dictated list and check it shows as a numbered list; on a phone check that Enter makes a new line and Send sends.
+
+Status: reactions and attached knowledge items in progress ([design](superpowers/specs/2026-10-17-phase-28-reactions-and-attachments-design.md): server, web, e2e `e2e/chat-reactions.spec.ts`; migration 0031).
 
 ## Phase 29 — Solve with AI
 
@@ -407,6 +409,12 @@ Owner decision (2026-10-17). Starts after Phase 27 (order with Phase 28 by the o
 - On tickets and tasks, admins get an **"Otvoriť v Claude"** button: it opens claude.ai with a prefilled prompt carrying the full context — the ticket or task, its chat, file names, the eGrant instance link — and the instruction to solve it with the eGrant MCP that admins already have connected in Claude. It uses the admin's own Claude subscription; nothing runs on the server, no API cost.
 - When the prompt is too long for a URL, the button copies it to the clipboard and opens an empty Claude chat with a short note.
 - Test the prompt against the eGrant MCP only on the instance **Supermesto** (owner rule).
+
+Requirements: [product/solve-with-claude.md](product/solve-with-claude.md); [design](superpowers/specs/2026-10-17-phase-29-open-in-claude-design.md) with the owner decisions (§5). Built as "Vyriešiť s Claude": a dialog with optional notes, then "Otvoriť v Claude" (`claude.ai/new?q=…` up to 8 000 characters, else the clipboard and an empty chat), "Kopírovať prompt", and the reminder to attach the files by hand with a download link each. The prompt asks Claude for a first reply with the cause, the impact, the steps, the risks and the question whether to fix it, and forbids writes until the admin confirms. Admins only (`canOpenInClaude`); no migration. Built ahead of Phase 27 at the owner's request (night run).
+
+Status: done (server, web, tests; e2e `e2e/open-in-claude.spec.ts` is run by the orchestrator).
+
+Owner walks on https://help.egrant.sk: open a Supermesto ticket as an admin, press "Vyriešiť s Claude", generate without notes, then with a note, open in Claude and check that Claude finds the instance, reads only, and answers with (a)–(e) before touching anything; open a ticket with a long chat and check the paste note; check that a client sees no button.
 
 ## Phase 30 — Knowledge: meetings with AI summary
 

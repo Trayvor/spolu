@@ -1,11 +1,17 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RouterProvider, createMemoryHistory } from '@tanstack/react-router';
 import { i18n, setLanguage } from '@/i18n';
 import { createAppRouter } from '@/router';
+import { rememberedFiltersKey } from '@/lib/use-remembered-filters';
 import { mockBoardApi } from './test-api';
+
+const saved = () => {
+  const raw = localStorage.getItem(rememberedFiltersKey('a1', 'globalBoard'));
+  return raw === null ? null : JSON.parse(raw);
+};
 
 vi.mock('@/lib/socket', () => ({
   getSocket: () => ({ on: vi.fn(), off: vi.fn(), emit: vi.fn(), connected: false }),
@@ -112,9 +118,24 @@ describe('BoardFilters', () => {
     mockBoardApi();
     const { router, user } = renderBoard('/tasks?urgent=1&due=overdue');
     const clear = await screen.findByRole('button', { name: t('adminHome.board.clear') });
+    await waitFor(() => expect(saved()).toEqual({ urgent: 1, due: 'overdue' }));
     await user.click(clear);
     await waitFor(() => expect(router.state.location.search).toEqual({}));
     expect(screen.queryByRole('button', { name: t('adminHome.board.clear') })).toBeNull();
+    // Cleared filters are forgotten too: the next visit starts from the defaults.
+    await waitFor(() => expect(saved()).toBeNull());
+  });
+
+  it('the last filters come back on the next visit, but not the search text', async () => {
+    mockBoardApi();
+    renderBoard('/tasks?mine=1&due=week&q=budget');
+    await screen.findByRole('group', { name: t('adminHome.board.filtersLabel') });
+    await waitFor(() => expect(saved()).toEqual({ mine: 1, due: 'week' }));
+    cleanup();
+    const { calls } = mockBoardApi();
+    const { router } = renderBoard('/tasks');
+    await waitFor(() => expect(router.state.location.search).toEqual({ mine: 1, due: 'week' }));
+    expect(globalCalls(calls)).toEqual(['/api/tasks/global?mine=1&due=week']);
   });
 
   it('under 641 px the filters collapse into one pill and a sheet', async () => {

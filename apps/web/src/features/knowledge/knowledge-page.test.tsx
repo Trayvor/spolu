@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RouterProvider, createMemoryHistory } from '@tanstack/react-router';
 import type { KnowledgeSummary } from '@spolu/shared';
+import { rememberedFiltersKey } from '@/lib/use-remembered-filters';
 import { i18n } from '@/i18n';
 import { createAppRouter } from '@/router';
 
@@ -14,7 +15,8 @@ vi.mock('@/lib/socket', () => ({
 }));
 
 const t = (key: string, opts?: Record<string, unknown>) => i18n.t(key, opts);
-const STORAGE_KEY = 'spolu.knowledge.clients';
+const STORAGE_KEY = rememberedFiltersKey('a1', 'knowledge');
+const stored = () => JSON.parse(localStorage.getItem(STORAGE_KEY) ?? 'null');
 
 const ADMIN = { id: 'a1', name: 'Jana', email: 'jana@example.com', role: 'admin', groups: [] };
 const CLIENT = {
@@ -147,7 +149,7 @@ describe('KnowledgePage', () => {
   });
 
   it('without parameters the stored selection is restored', async () => {
-    localStorage.setItem(STORAGE_KEY, 'g3');
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ clients: 'g3' }));
     const { listCalls } = mockApi();
     const { router } = renderPage('/knowledge');
     expect(
@@ -175,7 +177,13 @@ describe('KnowledgePage', () => {
       await screen.findByRole('button', { name: t('knowledge.clientFilter.pillAll') }),
     );
     await user.click(screen.getByRole('checkbox', { name: 'Mesto Nitra' }));
-    await waitFor(() => expect(localStorage.getItem(STORAGE_KEY)).toBe('g1,g2'));
+    await waitFor(() => expect(stored()).toEqual({ clients: 'g1,g2' }));
+  });
+
+  it('the types and chat files are remembered too, the search text is not', async () => {
+    mockApi();
+    renderPage('/knowledge?type=link&chats=all&q=budget');
+    await waitFor(() => expect(stored()).toEqual({ type: 'link', chats: 'all' }));
   });
 
   it('storage that throws is ignored', async () => {

@@ -1,0 +1,24 @@
+{
+  "button": "Lahenda Claude’iga",
+  "title": "Lahenda Claude’iga",
+  "intro": "Koostame viiba kogu konteksti, vestluse ja eGrant MCP juhistega. Claude selgitab kõigepealt põhjust ja pakub lahenduse ega muuda midagi ilma teie kinnituseta.",
+  "notesLabel": "Märkmed Claude’ile (valikuline)",
+  "notesPlaceholder": "Näiteks millele keskenduda. Välja võib tühjaks jätta.",
+  "notesHint": "Valikuline. Ilma märkmeteta vajutage lihtsalt Koosta.",
+  "generate": "Koosta",
+  "regenerate": "Koosta uuesti",
+  "cancel": "Tühista",
+  "generating": "Koostan viipa…",
+  "loadFailed": "Viipa ei õnnestunud koostada. Proovige uuesti.",
+  "ready": "Viip on valmis",
+  "open": "Ava Claude’is",
+  "copy": "Kopeeri viip",
+  "filesReminder": "Failid ei jõua lingi kaudu Claude’ini. Laadige need alla ja lisage Claude’i vestlusse käsitsi:",
+  "preview": "Näita viipa",
+  "status": {
+    "opened": "Claude avanes uuel vahelehel.",
+    "pasteInClaude": "Viip on lingi jaoks liiga pikk, seepärast on see lõikelaual. Kleepige see uude Claude’i vestlusse (Ctrl+V või ⌘V).",
+    "copied": "Viip on kopeeritud.",
+    "copyFailed": "Viipa ei õnnestunud kopeerida. Proovige Kopeeri viip."
+  }
+}

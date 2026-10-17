@@ -196,7 +196,13 @@ export function Conversation({
           )}
           <div className="shrink-0 px-4 pb-4">
             {/* The only composer that takes dropped files on the chat column. */}
-            <Composer mode="new" groupId={groupId} dropTarget={column} onSubmit={onSend} />
+            <Composer
+              mode="new"
+              groupId={groupId}
+              channelId={channelId}
+              dropTarget={column}
+              onSubmit={onSend}
+            />
           </div>
         </div>
         {threadId !== undefined && (
