@@ -125,6 +125,7 @@
     "empty": "This group has no shared knowledge items yet.",
     "loadMore": "Show more",
     "limit": "At most {{count}} items per message.",
+    "limitDescription": "At most {{count}} knowledge items per description.",
     "unavailable": "Item unavailable",
     "back": "Back to chat",
     "types": {

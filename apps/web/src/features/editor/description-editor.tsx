@@ -222,6 +222,7 @@ export default function DescriptionEditor({
             picked={picked}
             // Unavailable links stay and count toward the limit.
             max={KNOWLEDGE_LINKS_MAX - (items.length - picked.length)}
+            limitKey="chat.knowledge.limitDescription"
             onDone={(chosen) => {
               knowledge.onChange(pick(chosen));
               setPickerOpen(false);

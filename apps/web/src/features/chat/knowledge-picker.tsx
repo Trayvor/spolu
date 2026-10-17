@@ -26,6 +26,7 @@ export default function KnowledgePicker({
   groupId,
   picked,
   max = MESSAGE_MAX_KNOWLEDGE,
+  limitKey = 'chat.knowledge.limit',
   onDone,
   onClose,
 }: {
@@ -33,6 +34,8 @@ export default function KnowledgePicker({
   picked: PickedKnowledge[];
   /** How many items one pick may hold; the caller subtracts the links it keeps elsewhere. */
   max?: number;
+  /** The note shown at the limit; the description editor has its own wording. */
+  limitKey?: 'chat.knowledge.limit' | 'chat.knowledge.limitDescription';
   onDone: (items: PickedKnowledge[]) => void;
   onClose: () => void;
 }) {
@@ -55,7 +58,13 @@ export default function KnowledgePicker({
         >
           {t('chat.knowledge.pickerTitle')}
         </SheetDialogTitle>
-        <KnowledgePickList groupId={groupId} chosen={chosen} setChosen={setChosen} max={max} />
+        <KnowledgePickList
+          groupId={groupId}
+          chosen={chosen}
+          setChosen={setChosen}
+          max={max}
+          limitKey={limitKey}
+        />
       </div>
     </SheetDialog>
   );
@@ -67,10 +76,13 @@ export function KnowledgePickList({
   chosen,
   setChosen,
   max = MESSAGE_MAX_KNOWLEDGE,
+  limitKey = 'chat.knowledge.limit',
 }: {
   groupId: string;
   chosen: PickedKnowledge[];
   max?: number;
+  /** The note shown at the limit; the description editor has its own wording. */
+  limitKey?: 'chat.knowledge.limit' | 'chat.knowledge.limitDescription';
   setChosen: (update: (list: PickedKnowledge[]) => PickedKnowledge[]) => void;
 }) {
   const { t } = useTranslation();
@@ -177,11 +189,7 @@ export function KnowledgePickList({
           </li>
         )}
       </ul>
-      {full && (
-        <p className="text-micro text-muted-foreground">
-          {t('chat.knowledge.limit', { count: max })}
-        </p>
-      )}
+      {full && <p className="text-micro text-muted-foreground">{t(limitKey, { count: max })}</p>}
     </>
   );
 }

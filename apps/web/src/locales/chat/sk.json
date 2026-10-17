@@ -131,6 +131,7 @@
     "empty": "Táto skupina zatiaľ nemá žiadne zdieľané položky znalostí.",
     "loadMore": "Zobraziť viac",
     "limit": "Najviac {{count}} položiek v jednej správe.",
+    "limitDescription": "Najviac {{count}} položiek v jednom popise.",
     "unavailable": "Položka nie je dostupná",
     "back": "Späť na chat",
     "types": {

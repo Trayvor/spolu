@@ -39,7 +39,11 @@ function stubApi() {
   );
 }
 
-function renderPicker(props: { picked?: PickedKnowledge[]; max?: number }) {
+function renderPicker(props: {
+  picked?: PickedKnowledge[];
+  max?: number;
+  limitKey?: 'chat.knowledge.limitDescription';
+}) {
   render(
     <QueryClientProvider
       client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
@@ -48,6 +52,7 @@ function renderPicker(props: { picked?: PickedKnowledge[]; max?: number }) {
         groupId="g1"
         picked={props.picked ?? []}
         max={props.max}
+        limitKey={props.limitKey}
         onDone={vi.fn()}
         onClose={vi.fn()}
       />
@@ -78,13 +83,15 @@ describe('KnowledgePicker limit', () => {
       title: `Item ${i}`,
       folderPath: [],
     }));
-    renderPicker({ picked: already, max: 10 });
+    renderPicker({ picked: already, max: 10, limitKey: 'chat.knowledge.limitDescription' });
     const boxes = await screen.findAllByRole('checkbox');
     expect(boxes[7]).toBeEnabled();
     await userEvent.click(boxes[7]!);
     await userEvent.click(boxes[8]!);
     await userEvent.click(boxes[9]!);
     expect(boxes[10]).toBeDisabled();
-    expect(screen.getByText(i18n.t('chat.knowledge.limit', { count: 10 }))).toBeInTheDocument();
+    expect(
+      screen.getByText(i18n.t('chat.knowledge.limitDescription', { count: 10 })),
+    ).toBeInTheDocument();
   });
 });
