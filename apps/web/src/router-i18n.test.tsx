@@ -87,6 +87,7 @@ const TASK = {
 const TASK_DETAIL = {
   ...TASK,
   description: 'Before Friday',
+  linkedKnowledge: [],
   files: [],
   sourceMessage: {
     id: 'm1',
@@ -119,6 +120,7 @@ const TICKET_ITEM = {
 const TICKET = {
   ...TICKET_ITEM,
   source: 'api',
+  linkedKnowledge: [],
   requester: { userId: 'u1', name: 'Eva', email: 'eva@acme.sk', phone: null },
   programme: null,
   body: 'The form fails',

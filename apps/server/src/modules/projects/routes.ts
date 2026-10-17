@@ -14,6 +14,7 @@ import { requireUser } from '../auth/session.js';
 import { InvalidAttachmentError } from '../files/service.js';
 import { clientGroupIds } from '../groups/memberships.js';
 import { getGroup } from '../groups/service.js';
+import { InvalidKnowledgeLinkError } from '../knowledge/links.js';
 import {
   ProjectChangedError,
   ProjectNameTakenError,
@@ -63,6 +64,9 @@ function projectError(reply: FastifyReply, error: unknown): FastifyReply {
   }
   if (error instanceof InvalidAttachmentError) {
     return send(reply, 400, ErrorCodes.invalidAttachment);
+  }
+  if (error instanceof InvalidKnowledgeLinkError) {
+    return send(reply, 400, ErrorCodes.invalidKnowledgeItem);
   }
   if (error instanceof ProjectValidationError || error instanceof InvalidProjectCursorError) {
     return invalid(reply);

@@ -176,5 +176,8 @@
       "in_progress": "V obdelavi",
       "resolved": "Rešen"
     }
+  },
+  "editor": {
+    "knowledgeUnavailable": "Priloženega elementa znanja tu ni več mogoče deliti. Odstranite ga in znova shranite."
   }
 }

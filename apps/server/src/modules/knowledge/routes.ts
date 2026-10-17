@@ -35,6 +35,7 @@ import {
   emitKnowledgeItem,
 } from './events.js';
 import { createFolder, deleteFolder, listFolders, updateFolder } from './folders.js';
+import { InvalidKnowledgeLinkError } from './links.js';
 import { managedGroupIdsOf } from './scope.js';
 import {
   convertChatFile,
@@ -128,6 +129,9 @@ export function knowledgeError(reply: FastifyReply, error: unknown): FastifyRepl
     return send(reply, 400, ErrorCodes.invalidVisibility);
   }
   if (error instanceof InvalidUrlError) return send(reply, 400, ErrorCodes.invalidUrl);
+  if (error instanceof InvalidKnowledgeLinkError) {
+    return send(reply, 400, ErrorCodes.invalidKnowledgeItem);
+  }
   if (error instanceof InvalidAttachmentError) {
     return send(reply, 400, ErrorCodes.invalidAttachment);
   }

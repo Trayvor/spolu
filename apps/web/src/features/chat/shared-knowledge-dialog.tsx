@@ -4,28 +4,29 @@ import { useTranslation } from 'react-i18next';
 import { PanelHeader } from '@/components/ui/panel-header';
 import { SheetDialog, SheetDialogTitle } from '@/components/ui/sheet-dialog';
 import { KnowledgeView } from '@/features/knowledge/knowledge-view';
-import { sharedKnowledgeQuery } from './api';
+import { sharedKnowledgeQuery, type KnowledgeVia } from './api';
 import { useChatPeople } from './chat-scope';
 
 /**
- * Phase 28: a knowledge item attached to a message, read-only, for a reader who reaches it only
+ * Phase 28: a knowledge item attached to a message (or, Phase 33, linked to a ticket's text),
+ * read-only, for a reader who reaches it only
  * through that message (a žiadateľ in their ticket chat): `GET /api/messages/:id/knowledge/:itemId`.
  * No edits, reminders or links into the knowledge base. A lazy chunk.
  */
 export default function SharedKnowledgeDialog({
-  messageId,
+  via,
   itemId,
   groupId,
   onClose,
 }: {
-  messageId: string;
+  via: KnowledgeVia;
   itemId: string;
   groupId: string;
   onClose: () => void;
 }) {
   const { t } = useTranslation();
   const titleRef = useRef<HTMLHeadingElement>(null);
-  const query = useQuery(sharedKnowledgeQuery(messageId, itemId));
+  const query = useQuery(sharedKnowledgeQuery(via, itemId));
   // Mentions in the body resolve against the chat's people (the žiadateľ reads no group list).
   const people = useChatPeople(groupId).data;
   const nameOf = (id: string) => people?.find((p) => p.id === id)?.name;

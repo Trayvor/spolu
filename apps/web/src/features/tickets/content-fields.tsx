@@ -1,8 +1,9 @@
 import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
-import { TICKET_LIMITS } from '@spolu/shared';
+import { TICKET_LIMITS, type LinkedKnowledge } from '@spolu/shared';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { DescriptionField } from '@/features/editor/description-field';
 import { cn } from '@/lib/utils';
 
 /** The ticket's content as the forms edit it: every field a string, '' for "not given". */
@@ -13,6 +14,8 @@ export type ContentDraft = {
   body: string;
   dueDate: string;
   url: string;
+  /** Knowledge attached to the text (Phase 33 part P5); absent: none. */
+  linked?: LinkedKnowledge;
 };
 
 export const EMPTY_CONTENT: ContentDraft = {
@@ -50,14 +53,18 @@ export function contentErrors(draft: ContentDraft): Partial<Record<keyof Content
 /**
  * The content fields of a ticket, one per row with the label above (the task form's rhythm):
  * subject, area, grant programme, text, due date, URL. Used by the new-ticket dialog and by an
- * admin's edit of the ticket page.
+ * admin's edit of the ticket page. With a client (`groupId`), the text is the description editor
+ * with AI, voice and attached knowledge (Phase 33 part P5); without one, a plain textarea.
  */
 export function ContentFields({
   draft,
   onChange,
   errors,
   subjectRef,
+  groupId,
 }: {
+  /** The ticket's client; null or '' while there is none. */
+  groupId: string | null;
   draft: ContentDraft;
   onChange: (next: ContentDraft) => void;
   errors: Partial<Record<keyof ContentDraft, string>>;
@@ -110,17 +117,32 @@ export function ContentFields({
           />
         </div>
       </div>
-      <div className="flex flex-col gap-2.5">
-        <Label htmlFor={id('body')}>{t('tickets.fields.body')}</Label>
-        <textarea
+      {groupId ? (
+        <DescriptionField
           id={id('body')}
-          rows={6}
+          groupId={groupId}
           value={draft.body}
-          maxLength={TICKET_LIMITS.body}
-          onChange={(e) => set('body')(e.target.value)}
-          className={cn(textareaClass, 'min-h-32 resize-y')}
+          onChange={set('body')}
+          label={t('tickets.fields.body')}
+          editLabel={t('tickets.form.editBody')}
+          knowledge={{
+            items: draft.linked ?? [],
+            onChange: (linked) => onChange({ ...draft, linked }),
+          }}
         />
-      </div>
+      ) : (
+        <div className="flex flex-col gap-2.5">
+          <Label htmlFor={id('body')}>{t('tickets.fields.body')}</Label>
+          <textarea
+            id={id('body')}
+            rows={6}
+            value={draft.body}
+            maxLength={TICKET_LIMITS.body}
+            onChange={(e) => set('body')(e.target.value)}
+            className={cn(textareaClass, 'min-h-32 resize-y')}
+          />
+        </div>
+      )}
       <div className="grid gap-4 min-[641px]:grid-cols-[auto_1fr]">
         <div className="flex flex-col gap-2.5">
           <Label htmlFor={id('due')}>{t('tickets.fields.dueDate')}</Label>

@@ -148,10 +148,19 @@ export const reactionPeopleQuery = (messageId: string, changeSeq: number) =>
     staleTime: 30_000,
   });
 
-/** An item attached to a message, read through the message (a ziadatel in a ticket chat). */
-export const sharedKnowledgeQuery = (messageId: string, itemId: string) =>
+/**
+ * What a shared item is read through: a message (a ziadatel in a ticket chat) or, Phase 33 part
+ * P5, a ticket whose text links it (`GET /api/tickets/:id/knowledge/:itemId`).
+ */
+export type KnowledgeVia = { kind: 'message' | 'ticket'; id: string };
+
+/** An item attached to a message or a ticket's text, read through it. */
+export const sharedKnowledgeQuery = (via: KnowledgeVia, itemId: string) =>
   queryOptions({
-    queryKey: ['chat', 'knowledge', messageId, itemId],
+    queryKey: ['chat', 'knowledge', via.kind, via.id, itemId],
     queryFn: (): Promise<KnowledgeItemDto> =>
-      apiGet(`/messages/${enc(messageId)}/knowledge/${enc(itemId)}`, KnowledgeItemDtoSchema),
+      apiGet(
+        `/${via.kind === 'message' ? 'messages' : 'tickets'}/${enc(via.id)}/knowledge/${enc(itemId)}`,
+        KnowledgeItemDtoSchema,
+      ),
   });

@@ -173,5 +173,8 @@
       "in_progress": "U obradi",
       "resolved": "Riješen"
     }
+  },
+  "editor": {
+    "knowledgeUnavailable": "Priloženu stavku znanja ovdje više nije moguće dijeliti. Uklonite je i spremite ponovno."
   }
 }

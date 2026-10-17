@@ -19,6 +19,7 @@ import type { Storage } from '../../infra/storage/storage.js';
 import { normalizeSearch } from '../../infra/text/search.js';
 import { files } from '../files/schema.js';
 import { attachFiles, deleteDetachedFiles, detachFiles, toFileInfo } from '../files/service.js';
+import { linkedCardsOf, setLinkedItems } from '../knowledge/links.js';
 import { openTaskCountsByProject } from '../tasks/by-project.js';
 import { openTicketCountsByProject } from '../tickets/by-project.js';
 import { getUserNames } from '../users/service.js';
@@ -215,7 +216,7 @@ export async function getProject(db: Db, id: string): Promise<ProjectDto> {
   const [row] = await db.select().from(projects).where(eq(projects.id, id));
   if (!row) throw new ProjectNotFoundError();
   const [listRow] = await listRows(db, sql`p.id = ${id}`, 1);
-  const [[item], fileList, keys, createdBy] = await Promise.all([
+  const [[item], fileList, keys, createdBy, linkedKnowledge] = await Promise.all([
     toListItems(db, row.groupId, [listRow!]),
     attachedFiles(db, { projectId: id }),
     db
@@ -231,6 +232,7 @@ export async function getProject(db: Db, id: string): Promise<ProjectDto> {
       )
       .orderBy(asc(projectNameKeys.key)),
     person(db, row.createdBy),
+    linkedCardsOf(db, 'project', id, row.groupId),
   ]);
   return {
     ...item!,
@@ -241,6 +243,7 @@ export async function getProject(db: Db, id: string): Promise<ProjectDto> {
     createdBy,
     createdAt: row.createdAt.toISOString(),
     archivedAt: iso(row.archivedAt),
+    linkedKnowledge,
   };
 }
 
@@ -267,9 +270,10 @@ export async function getEvent(db: Db, id: string): Promise<ProjectEventDto> {
     .where(eq(projectEvents.id, id));
   if (!row) throw new ProjectNotFoundError();
   const e: EventRow = row.event;
-  const [fileList, createdBy] = await Promise.all([
+  const [fileList, createdBy, linkedKnowledge] = await Promise.all([
     attachedFiles(db, { eventId: id }),
     person(db, e.createdBy),
+    linkedCardsOf(db, 'event', id, e.groupId),
   ]);
   return {
     id: e.id,
@@ -284,6 +288,7 @@ export async function getEvent(db: Db, id: string): Promise<ProjectEventDto> {
     createdBy,
     createdAt: e.createdAt.toISOString(),
     updatedAt: e.updatedAt.toISOString(),
+    linkedKnowledge,
   };
 }
 
@@ -425,6 +430,9 @@ export async function createProject(
     });
     await claimNameKey(tx, groupId, id, nameKey);
     await syncFiles(tx, groupId, actorId, { projectId: id }, body.fileIds);
+    if (body.knowledgeIds) {
+      await setLinkedItems(tx, { kind: 'project', id }, groupId, body.knowledgeIds);
+    }
   });
   return getProject(db, id);
 }
@@ -466,6 +474,9 @@ export async function updateProject(
     const removed = patch.fileIds
       ? await syncFiles(tx, groupId, actorId, { projectId: id }, patch.fileIds)
       : [];
+    if (patch.knowledgeIds) {
+      await setLinkedItems(tx, { kind: 'project', id }, groupId, patch.knowledgeIds);
+    }
     await tx
       .update(projects)
       .set({
@@ -555,6 +566,9 @@ export async function createEvent(
       createdBy: actorId,
     });
     await syncFiles(tx, groupId, actorId, { eventId: id }, body.fileIds);
+    if (body.knowledgeIds) {
+      await setLinkedItems(tx, { kind: 'event', id }, groupId, body.knowledgeIds);
+    }
   });
   return getEvent(db, id);
 }
@@ -581,6 +595,9 @@ export async function updateEvent(
     const removed = patch.fileIds
       ? await syncFiles(tx, owner.groupId, actorId, { eventId: id }, patch.fileIds)
       : [];
+    if (patch.knowledgeIds) {
+      await setLinkedItems(tx, { kind: 'event', id }, owner.groupId, patch.knowledgeIds);
+    }
     const name = patch.name ?? row.name;
     await tx
       .update(projectEvents)

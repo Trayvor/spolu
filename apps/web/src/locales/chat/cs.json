@@ -176,5 +176,8 @@
       "in_progress": "Řeší se",
       "resolved": "Vyřešený"
     }
+  },
+  "editor": {
+    "knowledgeUnavailable": "Přiloženou položku znalostí zde již nelze sdílet. Odeberte ji a uložte znovu."
   }
 }

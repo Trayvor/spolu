@@ -101,7 +101,8 @@
       "url": "Zadajte odkaz, ktorý začína https:// alebo http://.",
       "client": "Vyberte klienta.",
       "email": "Zadajte platný e-mail."
-    }
+    },
+    "editBody": "Upraviť text"
   },
   "tasks": {
     "title": "Úlohy",

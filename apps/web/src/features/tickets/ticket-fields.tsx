@@ -17,6 +17,7 @@ import { formatCreated, formatDue, todayInBratislava } from '@/features/tasks/da
 import { ApiError } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { useAssignGroup, usePatchTicket } from './api';
+import { DescriptionView } from '@/features/editor/description-field';
 import { ContentFields, contentErrors, type ContentDraft } from './content-fields';
 import { LinkOutIcon } from './icons';
 import { isTicketOverdue, StatusBadge } from './status-badge';
@@ -31,6 +32,7 @@ const draftOf = (ticket: TicketDto): Draft => ({
   body: ticket.body ?? '',
   dueDate: ticket.dueDate ?? '',
   url: ticket.url ?? '',
+  linked: ticket.linkedKnowledge,
 });
 
 function Row({ label, children }: { label: string; children: ReactNode }) {
@@ -94,8 +96,13 @@ export function StatusControl({ ticket, editable }: { ticket: TicketDto; editabl
 function contentPatch(ticket: TicketDto, draft: Draft): TicketPatchBody | null {
   const before = draftOf(ticket);
   const keys = ['subject', 'area', 'programme', 'body', 'dueDate', 'url'] as const;
-  if (keys.every((key) => draft[key] === before[key])) return null;
-  return Object.fromEntries(keys.map((key) => [key, draft[key]])) as TicketPatchBody;
+  const ids = (draft.linked ?? []).map((k) => k.id);
+  const linksChanged = ids.join() !== (before.linked ?? []).map((k) => k.id).join();
+  if (!linksChanged && keys.every((key) => draft[key] === before[key])) return null;
+  return {
+    ...(Object.fromEntries(keys.map((key) => [key, draft[key]])) as TicketPatchBody),
+    ...(linksChanged ? { knowledgeIds: ids } : {}),
+  };
 }
 
 /**
@@ -209,6 +216,8 @@ function TicketEditor({ ticket, onClose }: { ticket: TicketDto; onClose: () => v
         error={clientError}
       />
       <ContentFields
+        // The editor and its knowledge follow the ticket's saved client; a move saves first.
+        groupId={ticket.groupId}
         draft={draft}
         onChange={(next) => setDraft({ ...next, groupId: draft.groupId })}
         errors={errors}
@@ -247,8 +256,17 @@ export function TicketFields({ ticket, editable }: { ticket: TicketDto; editable
   const { requester } = ticket;
   return (
     <div className="flex flex-col gap-4">
-      {ticket.body && (
-        <p className="text-button font-medium whitespace-pre-wrap break-words">{ticket.body}</p>
+      {/* Phase 33 part P5: the text is Markdown now, shown like a chat message. A reader who
+          does not use the board (a žiadateľ) opens the attached items through the ticket. */}
+      {(ticket.body || ticket.linkedKnowledge.length > 0) && (
+        <DescriptionView
+          body={ticket.body ?? ''}
+          groupId={ticket.groupId}
+          linked={ticket.linkedKnowledge}
+          nameOf={() => undefined}
+          via={ticket.tasks === null ? { kind: 'ticket', id: ticket.id } : null}
+          className="text-button font-medium break-words"
+        />
       )}
       <dl className="grid gap-x-6 gap-y-4 min-[641px]:grid-cols-2 lg:grid-cols-1">
         <Row label={t('tickets.fields.initiator')}>

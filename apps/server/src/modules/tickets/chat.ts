@@ -8,6 +8,7 @@ import { getUserById } from '../users/service.js';
 import { onTicketChange } from './hooks.js';
 import { ticketPayload } from './notify.js';
 import { ticketAudienceIds } from './audience.js';
+import { fileOfTicketLinkedKnowledge } from './knowledge.js';
 import {
   actorReadsTicket,
   fileOfReadableTicket,
@@ -81,6 +82,8 @@ export function registerTicketChat(): void {
   // Phase 28: the files of knowledge items attached in the chat, for the initiator.
   registerFileReadRule(fileOfAttachedKnowledge);
   registerFileReadRule(fileOfReadableTicket);
+  // Phase 33 part P5: the files of knowledge linked to the ticket's text.
+  registerFileReadRule(fileOfTicketLinkedKnowledge);
 }
 
 async function createOrMoveChat(

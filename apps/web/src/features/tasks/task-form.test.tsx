@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState, type ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -289,58 +289,24 @@ describe('TaskForm description', () => {
     await setLanguage('en');
   });
 
-  it('is at least 12 lines tall and offers the chat formatting toolbar', () => {
-    renderForm();
-    expect(screen.getByLabelText('Description')).toHaveAttribute('rows', '12');
-    const toolbar = screen.getByRole('toolbar', { name: t('chat.composer.formatting') });
-    for (const name of ['Bold', 'Italic', 'Strikethrough', 'Link', 'Quote', 'Code']) {
-      expect(within(toolbar).getByRole('button', { name })).toBeInTheDocument();
-    }
-  });
-
-  it('Bold wraps the selection in the chat markup', async () => {
-    const onValue = vi.fn();
-    const user = renderForm({ initial: { ...EMPTY_TASK_DRAFT, description: 'go' }, onValue });
-    await user.click(screen.getByRole('button', { name: 'Edit description' }));
-    const field = screen.getByLabelText('Description') as HTMLTextAreaElement;
-    field.setSelectionRange(0, 2);
-    await user.click(screen.getByRole('button', { name: 'Bold' }));
-    expect(onValue).toHaveBeenLastCalledWith({ ...EMPTY_TASK_DRAFT, description: '**go**' });
-  });
-
-  it('keeps the editor open when the toolbar takes no focus (Safari) and applies the format', async () => {
-    const onValue = vi.fn();
-    const user = renderForm({ initial: { ...EMPTY_TASK_DRAFT, description: 'go' }, onValue });
-    await user.click(screen.getByRole('button', { name: 'Edit description' }));
-    const field = screen.getByLabelText('Description') as HTMLTextAreaElement;
-    field.setSelectionRange(0, 2);
-    const bold = screen.getByRole('button', { name: 'Bold' });
-    // The toolbar keeps the focus in the textarea: its mousedown is cancelled.
-    expect(fireEvent.mouseDown(bold)).toBe(false);
-    // Safari moves the focus nowhere when a button is clicked: blur without a related target.
-    fireEvent.blur(field, { relatedTarget: null });
-    fireEvent.click(bold);
-    expect(onValue).toHaveBeenLastCalledWith({ ...EMPTY_TASK_DRAFT, description: '**go**' });
-    await new Promise((resolve) => setTimeout(resolve, 10));
-    expect(screen.getByLabelText('Description')).toBeInTheDocument();
-  });
-
-  it('collapses to the rendered view when the focus really leaves the field', async () => {
-    const user = renderForm({ initial: { ...EMPTY_TASK_DRAFT, description: 'go' } });
-    await user.click(screen.getByRole('button', { name: 'Edit description' }));
-    await user.click(screen.getByLabelText('Title'));
-    await waitFor(() => expect(screen.queryByRole('textbox', { name: 'Description' })).toBeNull());
-  });
-
-  it('shows a saved description rendered like a chat message until Edit', async () => {
+  // The editor itself is tested in `features/editor/description-field.test.tsx`.
+  it('shows a saved description rendered like a chat message until Edit, then the editor', async () => {
     const user = renderForm({
       initial: { ...EMPTY_TASK_DRAFT, description: 'Check **totals**' },
     });
     expect(screen.getByText('totals').tagName).toBe('STRONG');
     expect(screen.queryByRole('textbox', { name: 'Description' })).toBeNull();
     await user.click(screen.getByRole('button', { name: 'Edit description' }));
-    expect(screen.getByLabelText('Description')).toHaveValue('Check **totals**');
-    expect(screen.getByLabelText('Description')).toHaveFocus();
+    const box = await screen.findByRole('textbox', { name: 'Description' });
+    expect(box).toHaveTextContent('Check totals');
+    expect(
+      screen.getByRole('toolbar', { name: t('chat.composer.formatting') }),
+    ).toBeInTheDocument();
+  });
+
+  it('a new task opens its description in the editor', async () => {
+    renderForm();
+    expect(await screen.findByRole('textbox', { name: 'Description' })).toBeInTheDocument();
   });
 });
 

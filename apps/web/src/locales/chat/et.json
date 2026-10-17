@@ -170,5 +170,8 @@
       "in_progress": "Töös",
       "resolved": "Lahendatud"
     }
+  },
+  "editor": {
+    "knowledgeUnavailable": "Lisatud teadmuse kirjet ei saa siin enam jagada. Eemaldage see ja salvestage uuesti."
   }
 }

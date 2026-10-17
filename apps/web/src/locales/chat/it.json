@@ -173,5 +173,8 @@
       "in_progress": "In lavorazione",
       "resolved": "Risolto"
     }
+  },
+  "editor": {
+    "knowledgeUnavailable": "Un elemento della knowledge base allegato non può più essere condiviso qui. Rimuovilo e salva di nuovo."
   }
 }

@@ -547,8 +547,8 @@ export function Composer({
                 )}
                 {channelId && (
                   <>
-                    <VoiceButton channelId={channelId} {...draftTools} />
-                    <AiTextButton channelId={channelId} {...draftTools} />
+                    <VoiceButton target={{ kind: 'channel', id: channelId }} {...draftTools} />
+                    <AiTextButton target={{ kind: 'channel', id: channelId }} {...draftTools} />
                   </>
                 )}
               </>

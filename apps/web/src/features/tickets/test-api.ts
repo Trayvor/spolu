@@ -78,6 +78,7 @@ export const ticket = (over: Partial<TicketDto> = {}): TicketDto => ({
   canAssign: false,
   project: null,
   event: null,
+  linkedKnowledge: [],
   ...over,
 });
 

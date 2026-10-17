@@ -54,6 +54,7 @@ import {
   ValidationError,
 } from './errors.js';
 import { folderChains, folderForItem, folderPaths, lockGroupKnowledge } from './folders.js';
+import { linkedCardsOf, setLinkedItems } from './links.js';
 import { recordMeetingScheduled } from './meeting-notify.js';
 import { requestDelivery } from '../notifications/service.js';
 import {
@@ -513,7 +514,7 @@ export async function getItem(db: Db, actor: SessionUser, id: string): Promise<K
   const hasReminder = row.type === 'reminder' || row.type === 'meeting';
   const isMeeting = row.type === 'meeting';
   // Whoever reads the item reads its group's board (admins and its clients): the meeting's tasks.
-  const [names, fileRows, reminder, pathOf, meeting, meetingTasks] = await Promise.all([
+  const [names, fileRows, reminder, pathOf, meeting, meetingTasks, linked] = await Promise.all([
     mentionNames(db, [{ groupId: row.group_id, body }]),
     itemFiles(db, id, row.chat_file_id),
     hasReminder ? getReminderSet(db, { kind: SUBJECT, id }, actor) : null,
@@ -522,9 +523,11 @@ export async function getItem(db: Db, actor: SessionUser, id: string): Promise<K
     isMeeting && canUseBoard(actor, row.group_id, actorGroupIds)
       ? listTasksFromMeeting(db, id)
       : [],
+    linkedCardsOf(db, 'knowledge', id, row.group_id),
   ]);
   const fileInfos = fileRows.map(toFileInfo);
   return {
+    linkedKnowledge: linked,
     ...toSummary(row, namesIn(names, row.group_id), rowPath(row, pathOf)),
     body,
     files: fileInfos,
@@ -749,6 +752,9 @@ export async function createItem(
     // Inside an admins-only folder everything is admins-only (only admins see such a folder).
     const visibility = folder?.visibility === 'admins' ? 'admins' : draft.visibility;
     const inserted = await insertItem(tx, actor, groupId, { ...draft, visibility });
+    if (draft.knowledgeIds) {
+      await setLinkedItems(tx, { kind: 'knowledge', id: inserted.id }, groupId, draft.knowledgeIds);
+    }
     const eventIds =
       draft.type === 'meeting'
         ? await recordMeetingScheduled(
@@ -935,6 +941,9 @@ export async function updateItem(
       }
     }
 
+    if (patch.knowledgeIds) {
+      await setLinkedItems(tx, { kind: 'knowledge', id }, row.group_id, patch.knowledgeIds);
+    }
     const body = patch.body ?? row.body;
     const searchText = await computeSearchText(tx, {
       groupId: row.group_id,

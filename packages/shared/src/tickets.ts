@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { MessageTaskLinkSchema } from './chat.js';
 import { FileInfoSchema } from './files.js';
+import { KnowledgeIdsSchema, LinkedKnowledgeSchema } from './knowledge-links.js';
 import { EventRefSchema, ProjectRefSchema } from './projects/common.js';
 import { isHttpUrl } from './urls.js';
 
@@ -189,6 +190,8 @@ export const TicketCreateBodySchema = z
     /** The project and event (Phase 33 part P2; optional, absent = none). */
     projectId: z.string().min(1).max(100).nullable().optional(),
     eventId: z.string().min(1).max(100).nullable().optional(),
+    /** Knowledge attached to the text (Phase 33 part P5); absent = none. */
+    knowledgeIds: KnowledgeIdsSchema.optional(),
   })
   .refine(hasContent, { message: 'subject, body or area is required' });
 export type TicketCreateBody = z.infer<typeof TicketCreateBodySchema>;
@@ -203,6 +206,8 @@ export const TicketPatchBodySchema = z
     body: ticketContent.body,
     dueDate: ticketContent.dueDate,
     url: ticketContent.url,
+    /** Knowledge attached to the text (Phase 33 part P5); `[]` removes it. */
+    knowledgeIds: KnowledgeIdsSchema,
   })
   .partial()
   .refine((p) => Object.keys(p).length > 0, { message: 'nothing to change' });
@@ -263,6 +268,8 @@ export const TicketDtoSchema = z.object({
    */
   project: ProjectRefSchema.nullable(),
   event: EventRefSchema.nullable(),
+  /** Knowledge attached to the text (Phase 33 part P5); a moved ticket's show as unavailable. */
+  linkedKnowledge: LinkedKnowledgeSchema,
 });
 export type TicketDto = z.infer<typeof TicketDtoSchema>;
 

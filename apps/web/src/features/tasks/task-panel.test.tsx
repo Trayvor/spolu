@@ -126,6 +126,7 @@ beforeEach(() => {
     sourceMessage: null,
     sourceTicket: null,
     sourceMeeting: null,
+    linkedKnowledge: [],
   };
   fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
     const method = init?.method ?? 'GET';
@@ -159,6 +160,7 @@ beforeEach(() => {
         sourceMessage: null,
         sourceTicket: null,
         sourceMeeting: null,
+        linkedKnowledge: [],
       });
     }
     if (url === '/api/tasks/t1' && method === 'DELETE') return reply(204);
@@ -645,7 +647,9 @@ describe('TaskPanel in create mode', () => {
     renderPanel(NEW);
     expect(await titleField()).toHaveValue('');
     expect(screen.getByRole('heading', { name: t('tasks.panel.newTask') })).toBeInTheDocument();
-    expect(screen.getByLabelText(t('tasks.form.description'))).toHaveValue('');
+    expect(
+      await screen.findByRole('textbox', { name: t('tasks.form.description') }),
+    ).toHaveTextContent('');
     expect(screen.getByRole('combobox', { name: t('tasks.form.assignees') })).toBeInTheDocument();
     expect(screen.getByLabelText(t('tasks.form.deadline'))).toBeInTheDocument();
     expect(screen.getByRole('switch', { name: t('tasks.form.urgent') })).toBeInTheDocument();

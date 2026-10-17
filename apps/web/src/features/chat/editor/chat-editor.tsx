@@ -48,6 +48,11 @@ export interface ChatEditorProps {
   ariaControls?: string;
   ariaActiveDescendant?: string;
   autoFocus?: boolean;
+  /**
+   * Document mode (Phase 33 part P5, a description field): at least 6 lines, grows to 16, then
+   * scrolls. The caller's `onEnter` answers false, so Enter always makes a new line.
+   */
+  document?: boolean;
   onEnter(): boolean;
   /** Runs before the editor's own keys; true when the composer used the key (the mention list). */
   onKeyDown?(event: KeyboardEvent): boolean;
@@ -63,16 +68,17 @@ const editorClass = [
   '[&_blockquote]:gap-0',
   '[&_.is-empty]:before:pointer-events-none [&_.is-empty]:before:float-left [&_.is-empty]:before:h-0 [&_.is-empty]:before:text-muted-foreground [&_.is-empty]:before:content-[attr(data-placeholder)]',
 ].join(' ');
+const documentClass = editorClass.replace('max-h-52 min-h-10', 'max-h-[25rem] min-h-40');
 
 function attributesOf(
-  p: Pick<ChatEditorProps, 'ariaLabel' | 'ariaControls' | 'ariaActiveDescendant'>,
+  p: Pick<ChatEditorProps, 'ariaLabel' | 'ariaControls' | 'ariaActiveDescendant' | 'document'>,
 ): Record<string, string> {
   const attrs: Record<string, string> = {
     role: 'textbox',
     'aria-multiline': 'true',
     'aria-label': p.ariaLabel,
     'aria-autocomplete': 'list',
-    class: editorClass,
+    class: p.document ? documentClass : editorClass,
   };
   if (p.ariaControls) attrs['aria-controls'] = p.ariaControls;
   if (p.ariaActiveDescendant) attrs['aria-activedescendant'] = p.ariaActiveDescendant;
@@ -91,7 +97,7 @@ export default function ChatEditor({ ref, ...props }: ChatEditorProps) {
     latest.current = props;
   });
   const markdown = useRef(props.initialMarkdown);
-  const { ariaLabel, ariaControls, ariaActiveDescendant } = props;
+  const { ariaLabel, ariaControls, ariaActiveDescendant, document: documentMode } = props;
 
   // One options object for the editor's life; it reads the latest props on every use.
   const [options] = useState<EditorOptions>(() => ({
@@ -135,9 +141,14 @@ export default function ChatEditor({ ref, ...props }: ChatEditorProps) {
   }, []);
 
   useEffect(() => {
-    const attributes = attributesOf({ ariaLabel, ariaControls, ariaActiveDescendant });
+    const attributes = attributesOf({
+      ariaLabel,
+      ariaControls,
+      ariaActiveDescendant,
+      document: documentMode,
+    });
     view.current?.setProps({ attributes });
-  }, [ariaLabel, ariaControls, ariaActiveDescendant]);
+  }, [ariaLabel, ariaControls, ariaActiveDescendant, documentMode]);
 
   useImperativeHandle(ref, () => {
     const run = (command: Command) => {

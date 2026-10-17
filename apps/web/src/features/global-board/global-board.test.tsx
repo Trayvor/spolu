@@ -54,6 +54,7 @@ const DETAIL: TaskDetailDto = {
   sourceMessage: null,
   sourceTicket: null,
   sourceMeeting: null,
+  linkedKnowledge: [],
 };
 
 const json = (status: number, body?: unknown) =>

@@ -175,6 +175,7 @@ describe('useBoardEvents', () => {
       sourceMessage: null,
       sourceTicket: null,
       sourceMeeting: null,
+      linkedKnowledge: [],
     });
     const old = taskQuery('t1').queryKey;
     client.setQueryData(old, detail('t1'), { updatedAt: Date.now() - 10_000 });
@@ -199,6 +200,7 @@ describe('useBoardEvents', () => {
       sourceMessage: null,
       sourceTicket: null,
       sourceMeeting: null,
+      linkedKnowledge: [],
     });
     act(() => fake.fire('board:task', { task: task('t1'), actor: { id: 'u2', name: 'Bo' } }));
     expect(client.getQueryState(key)!.isInvalidated).toBe(false);
@@ -222,6 +224,7 @@ describe('useBoardEvents', () => {
       sourceMessage: null,
       sourceTicket: null,
       sourceMeeting: null,
+      linkedKnowledge: [],
     });
     view.rerender(tree(2));
     await waitFor(() => expect(client.getQueryState(key)!.isInvalidated).toBe(true));

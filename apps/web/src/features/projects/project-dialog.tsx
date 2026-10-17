@@ -1,14 +1,19 @@
 import { useId, useState, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { PROJECT_LIMITS, type FileInfo, type ProjectDto } from '@spolu/shared';
+import {
+  PROJECT_LIMITS,
+  type FileInfo,
+  type LinkedKnowledge,
+  type ProjectDto,
+} from '@spolu/shared';
 import { CloseIcon } from '@/components/icons';
 import { FilesField } from '@/components/files-field';
-import { FormattedTextField } from '@/components/formatted-text-field';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { SheetDialog, SheetDialogTitle } from '@/components/ui/sheet-dialog';
+import { DescriptionField } from '@/features/editor/description-field';
 import { ApiError } from '@/lib/api';
 import { createProject, projectsKey, removeAlias, updateProject } from './api';
 
@@ -83,8 +88,8 @@ export function validateProject(
 }
 
 /**
- * Create or edit a project (spec §7.5): name, description (Markdown with the chat toolbar; part
- * P5 swaps in the description editor), files, and for an existing project the aliases ("Also
+ * Create or edit a project (spec §7.5): name, description (the description editor with AI,
+ * voice and attached knowledge, part P5), files, and for an existing project the aliases ("Also
  * matches", removable) and the eGrant id (read-only). `onClose` gets the saved project.
  */
 export function ProjectDialog({
@@ -103,6 +108,7 @@ export function ProjectDialog({
   const [name, setName] = useState(project?.name ?? '');
   const [description, setDescription] = useState(project?.description ?? '');
   const [files, setFiles] = useState<FileInfo[]>(project?.files ?? []);
+  const [linked, setLinked] = useState<LinkedKnowledge>(project?.linkedKnowledge ?? []);
   const [aliases, setAliases] = useState(project?.aliases ?? []);
   const [updatedAt, setUpdatedAt] = useState(project?.updatedAt);
   const [errors, setErrors] = useState<ProjectFormErrors>({});
@@ -118,15 +124,17 @@ export function ProjectDialog({
     if (Object.keys(found).length > 0 || busy) return;
     setBusy(true);
     const fileIds = files.map((f) => f.id);
+    const knowledgeIds = linked.map((k) => k.id);
     try {
       const saved = project
         ? await updateProject(project.id, {
             name: name.trim(),
             description,
             fileIds,
+            knowledgeIds,
             updatedAt: updatedAt ?? project.updatedAt,
           })
-        : await createProject(groupId, { name: name.trim(), description, fileIds });
+        : await createProject(groupId, { name: name.trim(), description, fileIds, knowledgeIds });
       void refresh();
       onClose(saved);
     } catch (error) {
@@ -136,6 +144,8 @@ export function ProjectDialog({
         setErrors({ name: k('errors.nameTaken', { name: other }) });
       } else if (error instanceof ApiError && error.code === 'project_changed') {
         setErrors({ form: k('errors.changed') });
+      } else if (error instanceof ApiError && error.code === 'invalid_knowledge_item') {
+        setErrors({ form: t('chat.editor.knowledgeUnavailable') });
       } else if (error instanceof ApiError && error.code === 'invalid_attachment') {
         setErrors({ form: k('errors.files') });
       } else {
@@ -199,7 +209,7 @@ export function ProjectDialog({
             </p>
           )}
         </div>
-        <FormattedTextField
+        <DescriptionField
           id={`${uid}-description`}
           groupId={groupId}
           value={description}
@@ -208,6 +218,7 @@ export function ProjectDialog({
           editLabel={k('editDescription')}
           error={errors.description}
           errorId={`${uid}-description-error`}
+          knowledge={{ items: linked, onChange: setLinked }}
         />
         <div className={FIELD}>
           <span id={`${uid}-files`} className="text-button font-semibold">

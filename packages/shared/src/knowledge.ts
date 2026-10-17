@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { IdSchema, MENTION_RE } from './chat.js';
 import { FileInfoSchema } from './files.js';
+import { KnowledgeIdsSchema, LinkedKnowledgeSchema } from './knowledge-links.js';
 import {
   MeetingDetailSchema,
   MeetingInputSchema,
@@ -174,6 +175,8 @@ const draftBase = z.object({
   body: bodyField.default(''),
   visibility: visibilityField.default('public'),
   folderId: folderIdField.default(null),
+  /** Other items attached to the body (Phase 33 part P5); absent = none. */
+  knowledgeIds: KnowledgeIdsSchema.optional(),
 });
 
 /** A new item; each type has its own fields. */
@@ -218,6 +221,8 @@ export const KnowledgePatchSchema = z
     folderId: folderIdField.optional(),
     /** A meeting's own fields (Phase 30); only on a meeting. */
     meeting: MeetingPatchSchema.optional(),
+    /** Phase 33 part P5: absent leaves the attached items; `[]` removes them. */
+    knowledgeIds: KnowledgeIdsSchema.optional(),
     updatedAt: isoDateTime,
   })
   .strict();
@@ -285,6 +290,8 @@ export const KnowledgeItemDtoSchema = KnowledgeSummarySchema.extend({
   visibilityLocked: z.boolean(),
   /** A meeting's fields, transcript and summary (Phase 30); null for the other types. */
   meetingDetail: MeetingDetailSchema.nullable().optional(),
+  /** Other items attached to the body (Phase 33 part P5); absent on older answers: none. */
+  linkedKnowledge: LinkedKnowledgeSchema.optional(),
 });
 export type KnowledgeItemDto = z.infer<typeof KnowledgeItemDtoSchema>;
 

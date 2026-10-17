@@ -20,7 +20,7 @@ Each group has a Kanban board with four fixed buckets (columns) and custom bucke
 - Realtime: changes by other users are visible immediately.
 - **Task card:**
   - title;
-  - description;
+  - description: the description editor (Phase 33 part P5): chat formatting, the AI button, the microphone and "Attach from the knowledge base"; attached items show as cards under it for everyone who reads the board (see [projects.md](projects.md#description-editor-part-p5));
   - creator (who created it);
   - assignees (one or more people: clients of the group or its managers; an admin who is not a manager of the group cannot be chosen). Existing assignments are kept when a task is edited, even if the person has since stopped being a manager; only newly added assignees are checked (400 `invalid_assignee`);
     - Picker (Phase 18): the list offers only the group's clients and its eGrant managers. An existing assignee who is an admin but not a manager keeps their chip with a muted "not a manager" and can be removed, but is not offered again. An admin who does not manage the group and finds no one to pick sees "Only clients and the client's managers can be assigned." A save refused with `invalid_assignee` shows "Someone you chose can't be assigned here any more." and refetches the group's people. See [client-managers.md](client-managers.md).

@@ -100,7 +100,8 @@
       "url": "Unesite poveznicu koja počinje s https:// ili http://.",
       "client": "Odaberite klijenta.",
       "email": "Unesite valjanu adresu e-pošte."
-    }
+    },
+    "editBody": "Uredi tekst"
   },
   "tasks": {
     "title": "Zadaci",
