@@ -4,6 +4,7 @@ import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import {
   RouterProvider,
+  createBrowserHistory,
   createMemoryHistory,
   createRootRoute,
   createRoute,
@@ -31,14 +32,51 @@ function Layer() {
   );
 }
 
-async function setup(start = '/a') {
+/** Like `BottomSheet`: it slides out for a while after closing, inactive for Back meanwhile. */
+function AnimatedLayer() {
+  const [open, setOpen] = useState(false);
+  const [leaving, setLeaving] = useState(false);
+  const close = () => {
+    setLeaving(true);
+    setTimeout(() => {
+      setOpen(false);
+      setLeaving(false);
+    }, 50);
+  };
+  useBackCloses(open && !leaving, close);
+  return (
+    <div>
+      <button type="button" onClick={() => setOpen(true)}>
+        Open
+      </button>
+      {open && (
+        <div role="dialog" aria-label="Layer">
+          <button type="button" onClick={close}>
+            Close
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+const indexOf = (router: { history: { location: { state: unknown } } }) =>
+  (router.history.location.state as { __TSR_index: number }).__TSR_index;
+
+/**
+ * `browser`: jsdom's own history, where a step back lands later (a `popstate`), as in a browser;
+ * the memory history steps back at once.
+ */
+async function setup(start = '/a', component = Layer, browser = false) {
   const rootRoute = createRootRoute();
   const routes = ['/a', '/b'].map((path) =>
-    createRoute({ getParentRoute: () => rootRoute, path, component: Layer }),
+    createRoute({ getParentRoute: () => rootRoute, path, component }),
   );
   const router = createRouter({
     routeTree: rootRoute.addChildren(routes),
-    history: createMemoryHistory({ initialEntries: [start] }),
+    history: browser
+      ? (window.history.replaceState(null, '', start), createBrowserHistory())
+      : createMemoryHistory({ initialEntries: [start] }),
   });
   trackHistory(router);
   render(<RouterProvider router={router} />);
@@ -88,6 +126,32 @@ describe('useBackCloses', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Close' }));
     await waitFor(() => expect(router.state.location.state).not.toHaveProperty('layer'));
     expect(router.state.location.pathname).toBe('/a');
+  });
+
+  it('Back on a layer that animates out does not give it a new entry', async () => {
+    const router = await setup('/a', AnimatedLayer, true);
+    await userEvent.click(await screen.findByRole('button', { name: 'Open' }));
+    await waitFor(() => expect(indexOf(router)).toBe(1));
+    act(() => router.history.back());
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(indexOf(router)).toBe(0);
+    expect(router.state.location.state).not.toHaveProperty('layer');
+  });
+
+  it('closed in the app and opened again at once: one entry, open, at the right place', async () => {
+    const router = await setup('/a', AnimatedLayer, true);
+    await userEvent.click(await screen.findByRole('button', { name: 'Open' }));
+    await waitFor(() => expect(indexOf(router)).toBe(1));
+    await userEvent.click(screen.getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    await userEvent.click(screen.getByRole('button', { name: 'Open' }));
+    await waitFor(() => expect(router.state.location.state).toHaveProperty('layer'));
+    expect(indexOf(router)).toBe(1);
+    // Back closes it and lands on the page itself.
+    act(() => router.history.back());
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(indexOf(router)).toBe(0);
   });
 
   it('a navigation that replaces the URL inside the layer keeps it open', async () => {

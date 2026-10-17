@@ -68,22 +68,37 @@ test('on a phone, Back closes the section menu and stays on the page', async ({ 
     storageState: 'e2e/.auth/superadmin.json',
   });
   const page = await context.newPage();
+  // The open sheet's own history entry (`state.layer`, lib/use-back-closes.ts) and the entry's
+  // position: the signals to wait on, instead of time.
+  const entry = () =>
+    page.evaluate(() => {
+      const state = (window.history.state ?? {}) as { layer?: string; __TSR_index?: number };
+      return { layer: state.layer ?? null, index: state.__TSR_index ?? null };
+    });
   try {
     await page.goto('/tasks');
     await page.goto('/settings');
     const header = page.getByRole('banner');
+    const settings = await entry();
     await header.getByRole('button', { name: 'Menu', exact: true }).tap();
     const sheet = page.getByRole('dialog', { name: 'Menu' });
     await expect(sheet).toBeVisible();
+    await expect.poll(async () => (await entry()).layer).not.toBeNull();
     await page.goBack();
     await expect(sheet).toHaveCount(0);
     await expect(page).toHaveURL(/\/settings$/);
+    // Back took the sheet's entry away for good: no new one while it slid out.
+    await expect.poll(entry).toEqual(settings);
 
     // A row replaces the menu's own step: Back from the section returns to the page it was
     // opened on, once.
     await header.getByRole('button', { name: 'Menu', exact: true }).tap();
+    await expect.poll(async () => (await entry()).layer).not.toBeNull();
+    expect((await entry()).index).toBe(settings.index! + 1);
     await sheet.getByRole('link', { name: 'Znalosti' }).tap();
     await expect(page).toHaveURL(/\/knowledge/);
+    await expect(sheet).toHaveCount(0);
+    expect(await entry()).toEqual({ layer: null, index: settings.index! + 1 });
     await page.goBack();
     await expect(page).toHaveURL(/\/settings$/);
     await page.goBack();

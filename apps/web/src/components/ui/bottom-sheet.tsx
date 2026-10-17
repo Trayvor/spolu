@@ -2,6 +2,7 @@ import {
   useCallback,
   useEffect,
   useRef,
+  useState,
   type ReactNode,
   type TouchEvent,
   type MouseEvent,
@@ -40,6 +41,9 @@ export function BottomSheet({
   const dialog = useRef<HTMLDialogElement>(null);
   const startY = useRef<number | null>(null);
   const closing = useRef(false);
+  // Closing (sliding down) already counts as closed for Back: its history entry goes at once,
+  // and a Back that started the close does not give it a new one.
+  const [leaving, setLeaving] = useState(false);
   useScrollLock(true);
 
   useEffect(() => {
@@ -54,6 +58,7 @@ export function BottomSheet({
     const node = dialog.current;
     if (!node || closing.current) return;
     closing.current = true;
+    setLeaving(true);
     let done = false;
     const finish = () => {
       if (done) return;
@@ -66,7 +71,7 @@ export function BottomSheet({
     setTimeout(finish, CLOSE_MS);
   }, [onClose]);
   // Back closes the sheet first instead of leaving the page.
-  useBackCloses(true, close);
+  useBackCloses(!leaving, close);
 
   const onTouchStart = (event: TouchEvent) => {
     startY.current = event.touches[0]?.clientY ?? null;
