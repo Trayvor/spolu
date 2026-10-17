@@ -358,7 +358,7 @@ Requirements: [knowledge-base](product/knowledge-base.md) and the [design](super
 
 Scope: every file attached to a chat message (group chat, task chat, ticket chat) becomes a read-only knowledge item of the type "From chat" ("Z chatu"), created automatically, removed with the message, and opening the chat at that message; the type filter and a "tasks and tickets too" checkbox in the group's tab and the admins' global view; a backfill for files already in chats.
 
-Status: done (pull request #32: server, web, end-to-end test in `e2e/knowledge.spec.ts`); migration 0024 with the backfill. Waiting for the owner's walkthrough.
+Status: done (pull request #32: server, web, end-to-end test in `e2e/knowledge.spec.ts`); migration 0024 with the backfill. Waiting for the owner's walkthrough. Follow-up (owner request of 2026-10-17): "Save as a file" turns a chat file into a normal file item with its own copy of the file (no migration; see the design, "Save as a file").
 
 Done when: a client uploads a file in the group chat, an admin finds it under "From chat" in the client's Knowledge tab and in the global view, opens the chat at the message from it, and the entry disappears when the message is deleted.
 

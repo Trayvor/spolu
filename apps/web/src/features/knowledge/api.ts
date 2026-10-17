@@ -11,6 +11,7 @@ import {
   type KnowledgeFolderPatch,
   type KnowledgeItemDto,
   type KnowledgePatch,
+  type KnowledgeToFile,
   type KnowledgeType,
 } from '@spolu/shared';
 import { apiGet, apiSend } from '@/lib/api';
@@ -107,6 +108,14 @@ export function createKnowledge(groupId: string, draft: KnowledgeDraft): Promise
 
 export function updateKnowledge(id: string, patch: KnowledgePatch): Promise<KnowledgeItemDto> {
   return apiSend('PATCH', `/knowledge/${enc(id)}`, patch, KnowledgeItemDtoSchema);
+}
+
+/** A chat file becomes a normal file item ("Save as a file", one way). */
+export function convertKnowledgeToFile(
+  id: string,
+  input: KnowledgeToFile,
+): Promise<KnowledgeItemDto> {
+  return apiSend('POST', `/knowledge/${enc(id)}/to-file`, input, KnowledgeItemDtoSchema);
 }
 
 /** Items this browser is deleting: their socket `item_deleted` is the viewer's own delete. */

@@ -175,7 +175,10 @@
     "ticket": "Ticket #{{number}}",
     "open": "Show {{title}} in the chat",
     "show": "Show in chat",
-    "alsoTasksTickets": "Also from tasks and tickets"
+    "alsoTasksTickets": "Also from tasks and tickets",
+    "toFile": "Save as a file",
+    "toFileTitle": "Save as a file",
+    "toFileHelp": "It becomes a normal file in the knowledge base, with its own copy of the file. The chat message keeps its attachment. This cannot be undone."
   },
   "meeting": {
     "when": "Date and time",

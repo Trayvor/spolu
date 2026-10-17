@@ -181,7 +181,10 @@
     "ticket": "Zahtevek #{{number}}",
     "open": "Prikaži {{title}} v klepetu",
     "show": "Prikaži v klepetu",
-    "alsoTasksTickets": "Tudi iz nalog in zahtevkov"
+    "alsoTasksTickets": "Tudi iz nalog in zahtevkov",
+    "toFile": "Shrani kot datoteko",
+    "toFileTitle": "Shrani kot datoteko",
+    "toFileHelp": "Postane navadna datoteka v bazi znanja z lastno kopijo datoteke. Sporočilo v klepetu obdrži svojo prilogo. Tega ni mogoče razveljaviti."
   },
   "meeting": {
     "when": "Datum in ura",

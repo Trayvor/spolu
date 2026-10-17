@@ -9,6 +9,7 @@ import {
   KnowledgeFolderPatchSchema,
   KnowledgePatchSchema,
   KnowledgeChatsFilterSchema,
+  KnowledgeToFileSchema,
   KnowledgeTypeListSchema,
   type KnowledgeFolderList,
   type KnowledgeScope,
@@ -36,6 +37,7 @@ import {
 import { createFolder, deleteFolder, listFolders, updateFolder } from './folders.js';
 import { managedGroupIdsOf } from './scope.js';
 import {
+  convertChatFile,
   createItem,
   deleteItem,
   FolderLimitError,
@@ -250,6 +252,25 @@ export const knowledgeRoutes: FastifyPluginAsync<{
     emitKnowledgeItem(app.io, item, previousVisibility);
     return withMeetingAi(item, request.user!, meetingAiOf(deps));
   });
+
+  // A chat file becomes a normal file item (one way). Lists follow through `knowledge:item`: a
+  // known item of another type leaves a "From chat" list and joins its folder's.
+  app.post<IdParams>(
+    '/knowledge/:id/to-file',
+    { preHandler: writeGuard },
+    async (request, reply) => {
+      const body = KnowledgeToFileSchema.safeParse(request.body);
+      if (!body.success) return invalid(reply);
+      let result;
+      try {
+        result = await convertChatFile(deps, request.user!, request.params.id, body.data);
+      } catch (error) {
+        return knowledgeError(reply, error);
+      }
+      emitKnowledgeItem(app.io, result.item, result.previousVisibility);
+      return withMeetingAi(result.item, request.user!, meetingAiOf(deps));
+    },
+  );
 
   app.delete<IdParams>('/knowledge/:id', { preHandler: writeGuard }, async (request, reply) => {
     let deleted;

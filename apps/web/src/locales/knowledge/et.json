@@ -175,7 +175,10 @@
     "ticket": "Pöördumine #{{number}}",
     "open": "Näita vestluses: {{title}}",
     "show": "Näita vestluses",
-    "alsoTasksTickets": "Ka ülesannetest ja pöördumistest"
+    "alsoTasksTickets": "Ka ülesannetest ja pöördumistest",
+    "toFile": "Salvesta failina",
+    "toFileTitle": "Salvesta failina",
+    "toFileHelp": "Sellest saab teadmusbaasis tavaline fail oma failikoopiaga. Vestluse sõnum jätab oma manuse alles. Seda ei saa tagasi võtta."
   },
   "meeting": {
     "when": "Kuupäev ja kellaaeg",

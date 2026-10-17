@@ -33,6 +33,22 @@ export function canEditItem(
 export const canDeleteItem = canEditItem;
 
 /**
+ * Who turns a chat file into a normal file item ("Save as a file"): the people who could edit
+ * it, were it hand-made: its author (the message's author) and admins, while they read it.
+ */
+export function canConvertChatFile(
+  actor: SessionUser,
+  item: { groupId: string; visibility: Visibility | string; createdBy: string; type?: string },
+  actorGroupIds: readonly string[],
+): boolean {
+  return (
+    item.type === 'chat_file' &&
+    canReadItem(actor, item, actorGroupIds) &&
+    (isAdmin(actor) || item.createdBy === actor.id)
+  );
+}
+
+/**
  * `admins` needs an admin actor and an admin author: a client's own item always stays public.
  * `item` is null on create, where the author is the actor.
  */

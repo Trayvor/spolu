@@ -181,7 +181,10 @@
     "ticket": "Tiket #{{number}}",
     "open": "Zobrazit {{title}} v chatu",
     "show": "Zobrazit v chatu",
-    "alsoTasksTickets": "Také z úkolů a tiketů"
+    "alsoTasksTickets": "Také z úkolů a tiketů",
+    "toFile": "Uložit jako soubor",
+    "toFileTitle": "Uložit jako soubor",
+    "toFileHelp": "Stane se z něj běžný soubor ve znalostní bázi s vlastní kopií souboru. Zpráva v chatu si přílohu ponechá. Změnu nelze vrátit."
   },
   "meeting": {
     "when": "Datum a čas",
