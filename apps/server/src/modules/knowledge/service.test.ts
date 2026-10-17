@@ -380,6 +380,33 @@ describe('knowledge service', () => {
     expect(info.body).toBe('@Mira @? @Adela');
   });
 
+  it('the excerpt keeps several lines of the body as plain text, cut at 360 characters', async () => {
+    const group = await newGroup();
+    const admin = await newAdmin();
+    const body = `# Plan\n\n**Send** the _budget_ to [the office](https://example.com)\n- first\n${'x'.repeat(500)}`;
+    await createItem({ db }, admin, group.id, note({ body }));
+    const [row] = (await listGroupItems(db, admin, group.id, {})).items;
+    const lines = row!.excerpt.split('\n');
+    expect(lines.slice(0, 3)).toEqual(['Plan', 'Send the budget to the office', '• first']);
+    expect(Array.from(row!.excerpt)).toHaveLength(361);
+    expect(row!.excerpt.endsWith('…')).toBe(true);
+  });
+
+  it('a page of 30 long notes stays small: excerpts only, never the bodies', async () => {
+    const group = await newGroup();
+    const admin = await newAdmin();
+    const body = 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. '.repeat(170); // ~9.7k
+    for (let i = 0; i < 31; i += 1) {
+      await createItem({ db }, admin, group.id, note({ title: `Note ${i}`, body }));
+    }
+    const page = await listGroupItems(db, admin, group.id, {});
+    expect(page.items).toHaveLength(30);
+    const size = Buffer.byteLength(JSON.stringify(page));
+    // Measured 2026-10-17: 25.0 KB with 360-character excerpts, 18.5 KB at 140.
+    expect(size).toBeLessThan(30_000);
+    expect(JSON.stringify(page)).not.toContain(body.slice(0, 1000));
+  });
+
   it('type filter', async () => {
     const group = await newGroup();
     const admin = await newAdmin();

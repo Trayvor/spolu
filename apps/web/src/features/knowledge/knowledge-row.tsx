@@ -26,7 +26,7 @@ import {
 export const displayUrl = (url: string): string =>
   url.replace(/^https?:\/\//i, '').replace(/^www\./i, '');
 
-const linkClass = 'pointer-events-auto font-semibold underline hover:text-neutral';
+export const linkClass = 'pointer-events-auto font-semibold underline hover:text-neutral';
 
 const TILE_ICONS = {
   note: NoteIcon,
@@ -36,10 +36,11 @@ const TILE_ICONS = {
   chat_file: ChatFileIcon,
 } as const;
 
-const overlayClass =
+export const overlayClass =
   'absolute inset-0 cursor-pointer focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring';
 
-function Tile({ item, done }: { item: KnowledgeSummary; done: boolean }) {
+/** The leading tile of a row or card: a dated reminder's or meeting's leaf, else the type icon. */
+export function Tile({ item, done }: { item: KnowledgeSummary; done: boolean }) {
   if (item.type === 'reminder' || (item.type === 'meeting' && item.meeting)) {
     const iso =
       item.type === 'meeting'
@@ -71,6 +72,117 @@ function Tile({ item, done }: { item: KnowledgeSummary; done: boolean }) {
   );
 }
 
+/** Whether a meeting's recording or AI run is still in progress. */
+export const isMeetingBusy = (item: KnowledgeSummary): boolean =>
+  item.meeting?.recording === 'processing' ||
+  (item.meeting !== null &&
+    item.meeting !== undefined &&
+    ['queued', 'transcribing', 'summarizing'].includes(item.meeting.ai));
+
+/**
+ * What opens the item, laid over the whole row or card: a button for the detail, or for a chat
+ * file a link to the chat at its message. Inner links are its siblings, never nested in it.
+ */
+export function ItemOverlay({
+  item,
+  onOpen,
+}: {
+  item: KnowledgeSummary;
+  onOpen: (id: string) => void;
+}) {
+  const { t } = useTranslation();
+  return item.type === 'chat_file' && item.chat ? (
+    <Link
+      {...chatSourceLocation(item.groupId, item.chat)}
+      aria-label={t('knowledge.chat.open', { title: item.title })}
+      className={overlayClass}
+    />
+  ) : (
+    <button
+      type="button"
+      aria-label={t('knowledge.row.open', { title: item.title })}
+      onClick={() => onOpen(item.id)}
+      className={overlayClass}
+    />
+  );
+}
+
+/**
+ * The type's own line under the title: a chat file's source, a file's name, a link's address, a
+ * meeting's date and state, a reminder's next time. Nothing for a note.
+ */
+export function TypeLine({ item }: { item: KnowledgeSummary }) {
+  const { t, i18n } = useTranslation();
+  const done = item.type === 'reminder' && item.nextReminderAt === null;
+  const meetingBusy = isMeetingBusy(item);
+  return (
+    <>
+      {item.type === 'chat_file' && item.chat && (
+        <p className="flex min-w-0 items-center gap-2 text-button text-muted-foreground">
+          <ChatSourceLabel chat={item.chat} />
+          {item.file && (
+            <span className="shrink-0">{formatFileSize(item.file.size, i18n.language)}</span>
+          )}
+        </p>
+      )}
+      {item.type === 'file' && item.file && (
+        <p className="flex min-w-0 items-baseline gap-2 text-button">
+          <a href={fileUrl(item.file.id)} className={`${linkClass} min-w-0 truncate`}>
+            {item.file.name}
+          </a>
+          <span className="shrink-0 text-muted-foreground">
+            {formatFileSize(item.file.size, i18n.language)}
+          </span>
+        </p>
+      )}
+      {item.type === 'link' && item.url && (
+        <p className="flex min-w-0 items-center gap-1 text-button">
+          <a
+            href={item.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`${linkClass} min-w-0 truncate`}
+          >
+            {displayUrl(item.url)}
+          </a>
+          <ArrowOutIcon />
+        </p>
+      )}
+      {item.type === 'meeting' && item.meeting && (
+        <p className="flex min-w-0 items-center gap-2 text-button">
+          <span className="truncate">
+            {formatReminderTime(item.meeting.startsAt, i18n.language)}
+          </span>
+          {meetingBusy ? (
+            <Badge variant="secondary">{t('knowledge.meeting.row.processing')}</Badge>
+          ) : (
+            item.meeting.hasSummary && (
+              <Badge variant="outline">{t('knowledge.meeting.row.summary')}</Badge>
+            )
+          )}
+        </p>
+      )}
+      {item.type === 'reminder' && (
+        <p className="truncate text-button">
+          {done ? (
+            <span className="text-muted-foreground">{t('knowledge.row.done')}</span>
+          ) : (
+            <>
+              {formatReminderTime(item.nextReminderAt!, i18n.language)}
+              {item.upcomingCount > 1 && (
+                <span className="text-muted-foreground">
+                  {' '}
+                  {t('knowledge.row.moreTimes', { count: item.upcomingCount - 1 })}
+                </span>
+              )}
+            </>
+          )}
+        </p>
+      )}
+    </>
+  );
+}
+
 /**
  * One list row. The row is a div: a full-row button underneath opens the detail (for a chat
  * file, a full-row link opens the chat at its message), and the inner links are siblings of it
@@ -90,31 +202,12 @@ export function KnowledgeRow({
 }) {
   const { t, i18n } = useTranslation();
   const done = item.type === 'reminder' && item.nextReminderAt === null;
-  const meetingBusy =
-    item.meeting?.recording === 'processing' ||
-    (item.meeting !== null &&
-      item.meeting !== undefined &&
-      ['queued', 'transcribing', 'summarizing'].includes(item.meeting.ai));
-  // The server cuts the excerpt at 140 characters; a full-length one was probably cut.
-  const excerpt =
-    item.excerpt.length >= 140 && !item.excerpt.endsWith('…') ? `${item.excerpt}…` : item.excerpt;
+  // The server cuts the excerpt (with "…"); a row shows one line of it.
+  const excerpt = item.excerpt;
 
   return (
     <div className="relative flex gap-4 px-4 py-4 hover:bg-muted/50 sm:px-5">
-      {item.type === 'chat_file' && item.chat ? (
-        <Link
-          {...chatSourceLocation(item.groupId, item.chat)}
-          aria-label={t('knowledge.chat.open', { title: item.title })}
-          className={overlayClass}
-        />
-      ) : (
-        <button
-          type="button"
-          aria-label={t('knowledge.row.open', { title: item.title })}
-          onClick={() => onOpen(item.id)}
-          className={overlayClass}
-        />
-      )}
+      <ItemOverlay item={item} onOpen={onOpen} />
       <div className="pointer-events-none relative flex min-w-0 flex-1 gap-4">
         <Tile item={item} done={done} />
         <div className="flex min-w-0 flex-1 flex-col gap-0.5">
@@ -153,68 +246,7 @@ export function KnowledgeRow({
           {item.type === 'note' && excerpt && (
             <p className="truncate text-button text-muted-foreground">{excerpt}</p>
           )}
-          {item.type === 'chat_file' && item.chat && (
-            <p className="flex min-w-0 items-center gap-2 text-button text-muted-foreground">
-              <ChatSourceLabel chat={item.chat} />
-              {item.file && (
-                <span className="shrink-0">{formatFileSize(item.file.size, i18n.language)}</span>
-              )}
-            </p>
-          )}
-          {item.type === 'file' && item.file && (
-            <p className="flex min-w-0 items-baseline gap-2 text-button">
-              <a href={fileUrl(item.file.id)} className={`${linkClass} min-w-0 truncate`}>
-                {item.file.name}
-              </a>
-              <span className="shrink-0 text-muted-foreground">
-                {formatFileSize(item.file.size, i18n.language)}
-              </span>
-            </p>
-          )}
-          {item.type === 'link' && item.url && (
-            <p className="flex min-w-0 items-center gap-1 text-button">
-              <a
-                href={item.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={`${linkClass} min-w-0 truncate`}
-              >
-                {displayUrl(item.url)}
-              </a>
-              <ArrowOutIcon />
-            </p>
-          )}
-          {item.type === 'meeting' && item.meeting && (
-            <p className="flex min-w-0 items-center gap-2 text-button">
-              <span className="truncate">
-                {formatReminderTime(item.meeting.startsAt, i18n.language)}
-              </span>
-              {meetingBusy ? (
-                <Badge variant="secondary">{t('knowledge.meeting.row.processing')}</Badge>
-              ) : (
-                item.meeting.hasSummary && (
-                  <Badge variant="outline">{t('knowledge.meeting.row.summary')}</Badge>
-                )
-              )}
-            </p>
-          )}
-          {item.type === 'reminder' && (
-            <p className="truncate text-button">
-              {done ? (
-                <span className="text-muted-foreground">{t('knowledge.row.done')}</span>
-              ) : (
-                <>
-                  {formatReminderTime(item.nextReminderAt!, i18n.language)}
-                  {item.upcomingCount > 1 && (
-                    <span className="text-muted-foreground">
-                      {' '}
-                      {t('knowledge.row.moreTimes', { count: item.upcomingCount - 1 })}
-                    </span>
-                  )}
-                </>
-              )}
-            </p>
-          )}
+          <TypeLine item={item} />
           {item.type !== 'note' && item.type !== 'chat_file' && excerpt && (
             <p className="truncate text-button text-muted-foreground">{excerpt}</p>
           )}

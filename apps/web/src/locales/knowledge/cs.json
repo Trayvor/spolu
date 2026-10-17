@@ -264,5 +264,10 @@
       "processing": "Zpracovává se",
       "summary": "Shrnutí"
     }
+  },
+  "view": {
+    "label": "Zobrazení",
+    "list": "Seznam",
+    "cards": "Karty"
   }
 }

@@ -260,5 +260,10 @@
       "processing": "In elaborazione",
       "summary": "Riepilogo"
     }
+  },
+  "view": {
+    "label": "Vista",
+    "list": "Elenco",
+    "cards": "Schede"
   }
 }

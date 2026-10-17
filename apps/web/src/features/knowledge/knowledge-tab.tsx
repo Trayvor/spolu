@@ -20,6 +20,7 @@ import { NewItemMenu } from './new-item-menu';
 import { ChatsCheckbox } from './chats-checkbox';
 import { chatsFilter, formatTypes, isFlatList, parseTypes } from './search';
 import { useKnowledgeEvents } from './use-knowledge-events';
+import { useKnowledgeView, ViewToggle } from './view-toggle';
 
 /**
  * The tab's URL search: the list filter (`type`, the ticked types as one canonical comma list),
@@ -83,6 +84,7 @@ function GroupKnowledge({ groupId }: { groupId: string }) {
     useSearch({ strict: false }) as KnowledgeTabSearch,
   );
   const updateSearch = useUpdateSearch();
+  const [view, setView] = useKnowledgeView();
   const canSeeAdmins = isAdmin(useSession());
   const types = parseTypes(type);
   const folderId = folder ?? null;
@@ -304,15 +306,18 @@ function GroupKnowledge({ groupId }: { groupId: string }) {
           })}
           {chatFiles && <ChatsCheckbox checked={chats === 'all'} onChange={setChats} />}
         </div>
-        <Input
-          type="search"
-          value={text}
-          onChange={(event) => setText(event.target.value)}
-          placeholder={t('knowledge.tab.search')}
-          maxLength={200}
-          aria-label={t('knowledge.tab.search')}
-          className="min-[641px]:w-72"
-        />
+        <div className="flex items-center gap-2">
+          <Input
+            type="search"
+            value={text}
+            onChange={(event) => setText(event.target.value)}
+            placeholder={t('knowledge.tab.search')}
+            maxLength={200}
+            aria-label={t('knowledge.tab.search')}
+            className="min-w-0 flex-1 min-[641px]:w-72 min-[641px]:flex-none"
+          />
+          <ViewToggle view={view} onChange={setView} />
+        </div>
       </div>
       {notice && (
         <p role="status" className="rounded-lg bg-secondary p-3 text-button font-semibold">
@@ -320,7 +325,7 @@ function GroupKnowledge({ groupId }: { groupId: string }) {
         </p>
       )}
       {searching ? (
-        <KnowledgeList query={query} onOpen={open} empty={empty} showPath />
+        <KnowledgeList query={query} onOpen={open} empty={empty} showPath view={view} />
       ) : (
         <FolderBrowser
           groupId={groupId}
@@ -332,6 +337,7 @@ function GroupKnowledge({ groupId }: { groupId: string }) {
           onFolderGone={folderGone}
           canSeeAdmins={canSeeAdmins}
           emptyHint={folderEmpty}
+          view={view}
         />
       )}
       {newFolder && (

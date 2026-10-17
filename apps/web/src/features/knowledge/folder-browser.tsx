@@ -20,6 +20,7 @@ import { childFolders, folderPath } from './folder-tree';
 import { ChevronIcon, FolderIcon, LockIcon } from './icons';
 import { KnowledgeList } from './knowledge-list';
 import { MoveDialog } from './move-dialog';
+import type { KnowledgeView } from './view-toggle';
 
 type Action =
   | { kind: 'edit'; folder: KnowledgeFolderDto }
@@ -106,6 +107,7 @@ export function FolderBrowser({
   canSeeAdmins,
   emptyHint,
   showItemGroup,
+  view,
 }: {
   groupId: string;
   folderId: string | null;
@@ -119,6 +121,8 @@ export function FolderBrowser({
   /** Shown when the folder has no subfolders and no items, and no type is ticked. */
   emptyHint: ReactNode;
   showItemGroup?: boolean;
+  /** The items as rows (default) or cards; the folders stay rows above them. */
+  view?: KnowledgeView;
 }) {
   const { t, i18n } = useTranslation();
   const client = useQueryClient();
@@ -204,7 +208,13 @@ export function FolderBrowser({
         </Card>
       )}
       {(folderId === null || !gone) && (
-        <KnowledgeList query={items} onOpen={onOpenItem} showGroup={showItemGroup} empty={empty} />
+        <KnowledgeList
+          query={items}
+          onOpen={onOpenItem}
+          showGroup={showItemGroup}
+          empty={empty}
+          view={view}
+        />
       )}
       {action?.kind === 'edit' && (
         <FolderDialog

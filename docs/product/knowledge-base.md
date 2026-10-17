@@ -7,7 +7,7 @@ Each group has a Knowledge tab where clients and admins keep what the group need
 - **Knowledge tab** in every group (sk: "Znalosti"), between Tasks and Members.
 - **Four item types** people create (and a fifth, "From chat", added by the chat: see below):
   1. **Note**: a title and a body with the same formatting as the chat composer, plus files.
-     - In the list: the title, the number of attached files, and the start of the body on one line, ending with "…".
+     - In the list: the title, the number of attached files, and the start of the body on one line, ending with "…" (the card view shows several lines, see "Card view").
   2. **File**: one file, with a title and a description.
      - In the list: a file icon and the file name.
      - Clicking the file name downloads the file, or opens it in the browser for images.
@@ -50,6 +50,15 @@ Design and the defaults we chose: [Phase 24 spec](../superpowers/specs/2026-10-1
 - **Item detail:** the folder path next to the type; "Move to…" in the "…" menu opens a picker of the group's folders as an indented tree under "Top level" (the current place cannot be chosen; for a folder, neither can the folder itself or anything below it).
 - **Global list:** without a search it is a folder view: the clients of the client filter by name (logo and name), then a client's folders and items (`?at=<group>&folder=<id>`, breadcrumbs "All clients › Client › Folder"). The type filter applies to the items there. Typing a search switches to the flat list across clients, each row with its client and folder path.
 - **Realtime:** folder changes reach the tab live (`knowledge:folder`, `knowledge:folder_deleted`); the folder list and the item lists refetch.
+
+## Card view (built)
+
+Owner request of 2026-10-17. Design and the defaults we chose: [spec](../superpowers/specs/2026-10-17-knowledge-card-view-design.md).
+
+- **Toggle** "List / Cards" (sk "Zoznam / Karty") next to the search field, in each group's Knowledge tab and in the global list. List is the default. The choice is one per person for all knowledge lists, kept in the browser (like the remembered filters, not in the URL).
+- **Cards:** one column on phones, two or three as the width allows (the global list widens to fit three). Each card has the row's icon or date leaf, the title (two lines), "Only eGrant", the type's line (file, address, next reminder time, meeting date and state, chat source), up to five lines of the text, and at the bottom the author and date, a note's file count, and where the row shows them the client and folder path. The whole card opens the detail (`?k=<id>`), a chat file the chat; the file name and address keep working as links.
+- **Folders** stay rows above the cards; breadcrumbs, search, filters and "Load more" work as in the list.
+- **The text shown** is the list's excerpt: the first 360 characters of the body (a note's text, a file's or link's description, a reminder's or meeting's notes) as plain text with its lines, formatting marks dropped, "…" when cut. Rows show one line of it. Never the meeting transcript or summary.
 
 ## Files from chats (Phase 25, built)
 

@@ -256,5 +256,10 @@
       "processing": "Processing",
       "summary": "Summary"
     }
+  },
+  "view": {
+    "label": "View",
+    "list": "List",
+    "cards": "Cards"
   }
 }

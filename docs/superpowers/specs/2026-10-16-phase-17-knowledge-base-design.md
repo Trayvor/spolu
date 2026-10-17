@@ -279,7 +279,7 @@ The item's reminder times and recipients live in the reminders module (below), k
 Shared types in `packages/shared/src/knowledge.ts`:
 
 - `KnowledgeDraft`: `{ type, title, body, url?, fileIds, visibility, reminder?: { times: { id?, at }[], recipientIds } }`, validated per type with a discriminated union.
-- `KnowledgeSummary`: `id`, `groupId`, `type`, `visibility`, `title`, `excerpt` (≤ 140 characters, computed by the server), `url`, `file` (`FileInfo` of a file item), `fileCount`, `nextReminderAt`, `upcomingCount`, `lastReminderAt`, `createdBy` (`TaskPerson`-like `{ id, name }`), `createdAt`, and in the global list `group: { id, name, logoUrl }`.
+- `KnowledgeSummary`: `id`, `groupId`, `type`, `visibility`, `title`, `excerpt` (computed by the server; ≤ 140 characters, 360 with its line breaks since the [card view](2026-10-17-knowledge-card-view-design.md)), `url`, `file` (`FileInfo` of a file item), `fileCount`, `nextReminderAt`, `upcomingCount`, `lastReminderAt`, `createdBy` (`TaskPerson`-like `{ id, name }`), `createdAt`, and in the global list `group: { id, name, logoUrl }`.
 
 A page is one query: the items joined with a lateral aggregate for the file count and the first file, a lateral aggregate over `reminder_times` for `nextReminderAt`, `upcomingCount` and `lastReminderAt`, and the authors' names. There are no per-row queries.
 
