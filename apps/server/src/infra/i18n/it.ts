@@ -65,6 +65,8 @@ export const it: ServerTexts = {
       received: (n, title) => `Abbiamo ricevuto il Suo ticket di supporto #${n}: ${title}.`,
       followUp:
         "Nell'app Help può seguirlo e scrivere a eGrant. Acceda con questo indirizzo email; Le invieremo un codice.",
+      followUpLink:
+        "Nell'app Help può seguirlo e scrivere a eGrant. Il pulsante La fa accedere direttamente, senza codice, ed è valido 7 giorni. Non inoltri questa email.",
       button: 'Apri il ticket',
     },
   },

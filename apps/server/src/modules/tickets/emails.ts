@@ -12,18 +12,29 @@ export function bodyExcerpt(body: string | null): string | null {
 
 /**
  * "Ticket created" to the ticket's initiator (Phase 21): its number and subject, the first lines
- * of the text and a button to the ticket, which goes through the code login.
+ * of the text and a button to the ticket: a one-click sign-in link for a client (`oneClick`,
+ * ADR 0020), the code login for an admin.
  */
 export function ticketCreatedEmail(
   r: { to: string; lang: UserLanguage; publicUrl: string },
-  p: { number: number; subject: string | null; excerpt: string | null; url: string },
+  p: {
+    number: number;
+    subject: string | null;
+    excerpt: string | null;
+    url: string;
+    oneClick: boolean;
+  },
 ): EmailMessage {
   const t = serverTexts(r.lang).tickets.created;
   const title = p.subject ?? t.untitled;
   return buildEmail({
     ...r,
     subject: t.subject(p.number, title),
-    paragraphs: [t.received(p.number, title), ...(p.excerpt ? [p.excerpt] : []), t.followUp],
+    paragraphs: [
+      t.received(p.number, title),
+      ...(p.excerpt ? [p.excerpt] : []),
+      p.oneClick ? t.followUpLink : t.followUp,
+    ],
     button: { label: t.button, url: p.url },
   });
 }

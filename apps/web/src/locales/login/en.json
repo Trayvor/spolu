@@ -15,5 +15,6 @@
     "expired": "The code has expired. Send a new one.",
     "tooMany": "Too many attempts. Try again in a few minutes.",
     "disabled": "This account no longer has access."
-  }
+  },
+  "linkExpired": "The link has expired. Sign in with your email."
 }

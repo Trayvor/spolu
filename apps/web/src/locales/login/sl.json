@@ -15,5 +15,6 @@
     "expired": "Koda je potekla. Pošljite si novo.",
     "tooMany": "Preveč poskusov. Poskusite znova čez nekaj minut.",
     "disabled": "Ta račun nima več dostopa."
-  }
+  },
+  "linkExpired": "Povezava je potekla. Prijavite se s svojim e-poštnim naslovom."
 }

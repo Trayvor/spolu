@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { clearMailFor, latestLoginCode, subjectsFor, waitForMessage } from './mailpit';
+import { subjectsFor, waitForMessage } from './mailpit';
 
 // Phase 21, part 21.7: the whole ticket flow, from eGrant's intake to tasks on the board.
 const KEY = 'e2e-tickets-key-0123456789';
@@ -59,23 +59,20 @@ test('a ticket from eGrant: requester login, chat, status, email and tasks', asy
   });
   const foreignId = ((await foreign.json()) as { id: string }).id;
 
-  // 2. The "Ticket created" email arrives once and links to the ticket through the login.
+  // 2. The "Ticket created" email arrives once, with a one-click sign-in link (ADR 0020).
   const mail = await waitForMessage(page.request, email, /bol vytvorený/);
   expect(mail.Subject).toBe(`Tiket #${number} bol vytvorený: ${subject}`);
-  const link = /https?:\/\/\S+\/login\?redirect=\S+/.exec(mail.Text)?.[0];
-  expect(link).toContain(encodeURIComponent(`/tickets/${id}`));
+  const link = /https?:\/\/\S+\/t#[A-Za-z0-9_-]+/.exec(mail.Text)?.[0];
+  expect(link).toBeDefined();
   expect((await subjectsFor(page.request, email)).filter((s) => /bol vytvorený/.test(s))).toEqual([
     mail.Subject,
   ]);
 
-  // 3. The requester follows the link and logs in with an emailed code: no password.
+  // 3. The requester opens the link: signed in at once, no code, no password.
   const context = await browser.newContext({ locale: 'sk-SK', storageState: undefined });
   const requester = await context.newPage();
-  await clearMailFor(context.request, email);
-  await requester.goto(new URL(link!).pathname + new URL(link!).search);
-  await requester.getByLabel('E-mail').fill(email);
-  await requester.getByRole('button', { name: 'Poslať kód' }).click();
-  await requester.getByLabel('Kód').fill(await latestLoginCode(context.request, email));
+  const url = new URL(link!);
+  await requester.goto(url.pathname + url.hash);
   await expect(requester).toHaveURL(new RegExp(`/tickets/${id}$`));
   await expect(requester.getByRole('heading', { name: subject })).toBeVisible();
   // The file eGrant sent is on the ticket, and the requester downloads it.

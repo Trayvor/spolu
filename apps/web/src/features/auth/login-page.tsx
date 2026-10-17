@@ -10,15 +10,27 @@ import { sendCode } from './api';
 import { CodeStep } from './code-step';
 import { linkEmail, safeRedirect } from './redirect';
 
+// The `/t` and `/welcome` pages ship in this chunk (`loginScreens` in router.tsx).
+export { TicketLinkRoute } from './ticket-link-page';
+export { WelcomeRoute } from './welcome-page';
+
 /**
  * The route component: reads `?redirect=` once and hands a safe target to the page, and the
  * `?email=` of an invitation link as the field's first value. Both are checked again here: the
  * root route passes the raw search through.
  */
 export function LoginRoute() {
-  const search = useSearch({ strict: false }) as { redirect?: unknown; email?: unknown };
+  const search = useSearch({ strict: false }) as {
+    redirect?: unknown;
+    email?: unknown;
+    notice?: unknown;
+  };
   return (
-    <LoginPage redirectTo={safeRedirect(search.redirect)} initialEmail={linkEmail(search.email)} />
+    <LoginPage
+      redirectTo={safeRedirect(search.redirect)}
+      initialEmail={linkEmail(search.email)}
+      linkExpired={search.notice === 'linkExpired'}
+    />
   );
 }
 
@@ -26,9 +38,12 @@ export function LoginRoute() {
 export function LoginPage({
   redirectTo,
   initialEmail = '',
+  linkExpired = false,
 }: {
   redirectTo: string;
   initialEmail?: string;
+  /** Came from a refused ticket sign-in link: say so above the email field. */
+  linkExpired?: boolean;
 }) {
   const { t } = useTranslation();
 
@@ -70,6 +85,7 @@ export function LoginPage({
 
       {step === 'email' ? (
         <form noValidate onSubmit={onEmailSubmit} className="flex flex-col gap-6">
+          {linkExpired && <p role="status">{t('login.linkExpired')}</p>}
           <p>{t('login.intro')}</p>
           <div className="flex flex-col gap-2.5">
             <Label htmlFor="login-email">{t('login.email')}</Label>

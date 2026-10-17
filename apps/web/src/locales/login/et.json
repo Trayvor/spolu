@@ -15,5 +15,6 @@
     "expired": "Kood on aegunud. Laske saata uus.",
     "tooMany": "Liiga palju katseid. Proovige mõne minuti pärast uuesti.",
     "disabled": "Sellel kontol ei ole enam juurdepääsu."
-  }
+  },
+  "linkExpired": "Link on aegunud. Logige sisse oma e-posti aadressiga."
 }

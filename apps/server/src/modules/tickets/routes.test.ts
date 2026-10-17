@@ -4,7 +4,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { io as connect, type Socket } from 'socket.io-client';
 import type { TicketDto, TicketListResponse } from '@spolu/shared';
 import { buildTestApp } from '../../../test/test-app.js';
-import { loginAs } from '../../../test/login.js';
+import { cookieHeader, loginAs } from '../../../test/login.js';
 import { countEmailsTo, latestEmail } from '../../../test/mailpit.js';
 import { addManager } from '../groups/managers.js';
 import { addMembership, getMembership, listMemberships } from '../groups/memberships.js';
@@ -149,7 +149,19 @@ describe('tickets API', () => {
 
       const mail = await latestEmail(email);
       expect(mail.subject).toBe(`Tiket #${number} bol vytvorený: Nejde odoslať žiadosť`);
-      expect(mail.text).toContain(`/login?redirect=${encodeURIComponent(`/tickets/${id}`)}`);
+      // A one-click sign-in link (ADR 0020): it signs the requester in and answers the ticket.
+      const token = /\/t#([A-Za-z0-9_-]{43,})/.exec(mail.text)?.[1];
+      expect(token).toBeDefined();
+      expect(mail.text).toContain('bez kódu');
+      const opened = await test.app.inject({
+        method: 'POST',
+        url: '/api/auth/ticket-link/sign-in',
+        payload: { token },
+      });
+      expect(opened.statusCode).toBe(200);
+      expect(opened.json()).toEqual({ ticketId: id });
+      const own = await call('GET', `/api/tickets/${id}`, cookieHeader(opened));
+      expect(own.statusCode).toBe(200);
 
       const dto = (await call('GET', `/api/tickets/${id}`, manager.cookie)).json<TicketDto>();
       expect(dto).toMatchObject({
@@ -655,6 +667,12 @@ describe('tickets API', () => {
       expect(row!.requesterUserId).toBe(manager.id);
       expect(await accountsWith(manager.email)).toBe(1);
       expect(await listMemberships(db(), manager.id)).toEqual([]);
+      // No one-click link for an admin: the login page with the email filled in.
+      const mail = await latestEmail(manager.email);
+      expect(mail.text).toContain(
+        `/login?redirect=${encodeURIComponent(`/tickets/${res.json().id}`)}&email=`,
+      );
+      expect(mail.text).not.toContain('/t#');
     });
 
     it('a disabled admin: no account linked, no new account', async () => {

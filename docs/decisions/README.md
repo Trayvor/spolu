@@ -45,3 +45,4 @@ What gets easier, what gets harder.
 | [0019](0019-nine-languages-and-one-email-design.md) | Nine languages and one email design | accepted |
 | [0020](0020-header-menus-on-first-use-and-native-dialog-sheets.md) | Header menus on first use and native dialog sheets | accepted |
 | [0021](0021-ticket-riesitelia-and-watching.md) | Ticket riešitelia, and watching tickets instead of managing the client | accepted |
+| [0022](0022-one-click-ticket-sign-in-link.md) | One-click sign-in link in the "Ticket created" email | accepted |

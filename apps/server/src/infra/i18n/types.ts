@@ -70,7 +70,10 @@ export type ServerTexts = {
       /** The title when the ticket has no subject. */
       untitled: string;
       received(number: number, title: string): string;
+      /** Asks to sign in with a code (an admin's email). */
       followUp: string;
+      /** Says the button signs in without a code (a client's email, ADR 0020). */
+      followUpLink: string;
       button: string;
     };
   };

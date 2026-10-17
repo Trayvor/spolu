@@ -323,15 +323,19 @@ const ticketRoute = createRoute({
   ),
 });
 
+// One chunk for the login, welcome and ticket link pages (a link can lead to the name step):
+// every route chunk costs the entry, and the initial JS budget is full.
+const loginScreens = withNamespaces(
+  ['login', 'welcome'],
+  () => import('@/features/auth/login-page'),
+);
+
 const welcomeRoute = createRoute({
   getParentRoute: () => authedRoute,
   path: '/welcome',
   validateSearch: (search: Record<string, unknown>): { redirect?: string } =>
     typeof search.redirect === 'string' ? { redirect: safeRedirect(search.redirect) } : {},
-  component: lazyRouteComponent(
-    withNamespaces(['welcome'], () => import('@/features/auth/welcome-page')),
-    'WelcomeRoute',
-  ),
+  component: lazyRouteComponent(loginScreens, 'WelcomeRoute'),
 });
 
 const joinRoute = createRoute({
@@ -436,7 +440,8 @@ const knowledgeRoute = createRoute({
 const loginRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/login',
-  // `email`: an invitation's login link carries it to prefill the field (Phase 22b).
+  // `email`: an invitation's login link carries it to prefill the field (Phase 22b). A refused
+  // ticket sign-in link adds `notice=linkExpired`, kept raw and checked by the page (ADR 0020).
   validateSearch: (search: Record<string, unknown>): { redirect?: string; email?: string } => ({
     ...(typeof search.redirect === 'string' ? { redirect: safeRedirect(search.redirect) } : {}),
     ...(linkEmail(search.email) ? { email: linkEmail(search.email) } : {}),
@@ -445,10 +450,14 @@ const loginRoute = createRoute({
     const user = await context.queryClient.ensureQueryData(sessionQuery);
     if (user) throw redirect({ to: '/' });
   },
-  component: lazyRouteComponent(
-    withNamespaces(['login'], () => import('@/features/auth/login-page')),
-    'LoginRoute',
-  ),
+  component: lazyRouteComponent(loginScreens, 'LoginRoute'),
+});
+
+// Public: the one-click sign-in link of a "Ticket created" email, token in the fragment (ADR 0020).
+const ticketLinkRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/t',
+  component: lazyRouteComponent(loginScreens, 'TicketLinkRoute'),
 });
 
 const routeTree = rootRoute.addChildren([
@@ -475,6 +484,7 @@ const routeTree = rootRoute.addChildren([
     welcomeRoute,
   ]),
   loginRoute,
+  ticketLinkRoute,
   joinRoute,
   unsubscribeRoute,
 ]);
