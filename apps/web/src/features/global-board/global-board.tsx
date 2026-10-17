@@ -1,5 +1,5 @@
 import { ColumnSkeletons } from '@/components/ui/skeleton';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import type { GlobalTaskDto } from '@spolu/shared';
@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { useAdminActivityRefetch } from '@/features/admin-home/use-admin-activity';
 import { todayInBratislava } from '@/features/tasks/dates';
 import { ApiError } from '@/lib/api';
-import { fetchColumnPage, globalBoardKey, globalBoardQuery } from './api';
+import { fetchColumnPage, globalBoardKey, globalBoardQuery, type GlobalFilters } from './api';
 import { BoardFilters } from './board-filters';
 import { GlobalColumn } from './global-column';
 import { GlobalTaskPanel } from './global-task-panel';
@@ -15,8 +15,33 @@ import { useGlobalSearch } from './use-global-search';
 
 const BOARD_KEYS = [globalBoardKey] as const;
 
-/** Extra pages by column id (`todo`, `custom:<key>`…). */
-type Extra = Partial<Record<string, { items: GlobalTaskDto[]; next: string | null }>>;
+/** Extra pages by column id (`todo`, `custom:<key>`…); `pages` is how many were loaded. */
+type Extra = Partial<
+  Record<string, { items: GlobalTaskDto[]; next: string | null; pages: number }>
+>;
+
+/**
+ * Loads `pages` pages of one column after `after` again, one after another, for a refetched
+ * first page: the same depth the person had opened, with today's cards.
+ */
+async function reloadPages(
+  filters: GlobalFilters,
+  id: string,
+  after: string | null,
+  pages: number,
+): Promise<NonNullable<Extra[string]>> {
+  const items: GlobalTaskDto[] = [];
+  let next = after;
+  let loaded = 0;
+  while (next !== null && loaded < pages) {
+    const page = await fetchColumnPage(filters, id, next);
+    const column = page.columns.find((c) => c.id === id);
+    items.push(...(column?.items ?? []));
+    next = column?.next ?? null;
+    loaded += 1;
+  }
+  return { items, next, pages: loaded };
+}
 
 /**
  * The admins' task board across clients (`/tasks`): the filter row, then the columns the server
@@ -35,16 +60,48 @@ export function GlobalBoardPage() {
   useAdminActivityRefetch(BOARD_KEYS, { kinds: ['task'], chatRead: false });
   const today = todayInBratislava();
 
-  // "Show 50 more" pages, per column, until the first page or the filters change.
+  // "Show 50 more" pages, per column, until the filters change (Phase 27 W5). A refetch of the
+  // first page (a task changed, a refocus) keeps them and reloads them to the same depth.
   const [extra, setExtra] = useState<Extra>({});
   const [loadingMore, setLoadingMore] = useState<string | null>(null);
   const [moreFailed, setMoreFailed] = useState<string | null>(null);
-  const [seen, setSeen] = useState(query.dataUpdatedAt);
-  if (seen !== query.dataUpdatedAt) {
-    setSeen(query.dataUpdatedAt);
+  const filterKey = JSON.stringify(filters);
+  const [extraFor, setExtraFor] = useState(filterKey);
+  if (extraFor !== filterKey) {
+    setExtraFor(filterKey);
     setExtra({});
     setMoreFailed(null);
   }
+  const extraRef = useRef(extra);
+  extraRef.current = extra;
+  const keyRef = useRef(filterKey);
+  keyRef.current = filterKey;
+  const seen = useRef(query.dataUpdatedAt);
+  useEffect(() => {
+    if (seen.current === query.dataUpdatedAt) return;
+    seen.current = query.dataUpdatedAt;
+    const columns = query.data?.columns ?? [];
+    const open = Object.entries(extraRef.current).filter(([, e]) => e && e.pages > 0);
+    if (open.length === 0) return;
+    const forKey = filterKey;
+    const at = query.dataUpdatedAt;
+    void Promise.all(
+      open.map(async ([id, e]) => {
+        const base = columns.find((c) => c.id === id);
+        return [
+          id,
+          base ? await reloadPages(filters, id, base.next, e!.pages) : undefined,
+        ] as const;
+      }),
+    )
+      .then((reloaded) => {
+        // Dropped when the filters changed or a newer refetch started its own reload.
+        if (keyRef.current !== forKey || seen.current !== at) return;
+        setExtra((all) => ({ ...all, ...Object.fromEntries(reloaded) }));
+      })
+      // A failed reload keeps the pages as they were; the next refetch tries again.
+      .catch(() => undefined);
+  }, [query.dataUpdatedAt, query.data, filters, filterKey]);
 
   // A filter the server refuses (an old bookmark): back to the defaults.
   const invalid = query.error instanceof ApiError && query.error.status === 400;
@@ -64,6 +121,7 @@ export function GlobalBoardPage() {
         [id]: {
           items: [...(all[id]?.items ?? []), ...(column?.items ?? [])],
           next: column?.next ?? null,
+          pages: (all[id]?.pages ?? 0) + 1,
         },
       }));
     } catch {
@@ -104,13 +162,18 @@ export function GlobalBoardPage() {
           {data.columns.map((column) => {
             const added = extra[column.id];
             const next = added ? added.next : column.next;
+            // A card that moved up into the first page meanwhile is shown once.
+            const shown = new Set(column.items.map((item) => item.id));
             return (
               <GlobalColumn
                 key={column.id}
                 kind={column.kind}
                 name={column.name}
                 total={column.total}
-                items={[...column.items, ...(added?.items ?? [])]}
+                items={[
+                  ...column.items,
+                  ...(added?.items ?? []).filter((item) => !shown.has(item.id)),
+                ]}
                 hasMore={next !== null}
                 loadingMore={loadingMore === column.id}
                 moreFailed={moreFailed === column.id}
