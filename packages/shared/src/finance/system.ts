@@ -11,11 +11,15 @@ import { FinanceItemSchema } from './documents.js';
 
 export const RANKING_PAGE_SIZE = 20;
 
-/** `GET /api/finance/overview?clients=&from=&to=` and `/api/finance/work-log?clients=…`. */
-export const SystemRangeQuerySchema = z
-  .object({ clients: FinanceClientsFilterSchema, from: MonthSchema, to: MonthSchema })
-  .refine((q) => q.from <= q.to, { message: 'from after to' });
-export type SystemRangeQuery = z.output<typeof SystemRangeQuerySchema>;
+/**
+ * The `clients=` filter of `GET /api/finance/overview` and `/api/finance/work-log`; the rest of
+ * their query is part C's `OverviewQuerySchema` / `WorkLogQuerySchema` (all time when no months).
+ */
+export const SystemClientsQuerySchema = z.object({ clients: FinanceClientsFilterSchema });
+export type SystemClientsQuery = z.output<typeof SystemClientsQuerySchema>;
+
+/** The contracts table's page size. */
+export const CONTRACTS_PAGE_SIZE = 30;
 
 export const ContractSorts = ['start', 'end', 'amount'] as const;
 
@@ -23,6 +27,8 @@ export const ContractSorts = ['start', 'end', 'amount'] as const;
 export const ContractsQuerySchema = z.object({
   clients: FinanceClientsFilterSchema,
   sort: z.enum(ContractSorts).default('start'),
+  /** Newest start, latest end, largest amount first (`desc`, default) or the other way. */
+  dir: z.enum(['asc', 'desc']).default('desc'),
   q: z
     .string()
     .trim()
@@ -33,7 +39,10 @@ export const ContractsQuerySchema = z.object({
 });
 export type ContractsQuery = z.output<typeof ContractsQuerySchema>;
 
-/** A row of the global contracts table (or a search hit, which may be a document or a note). */
+/**
+ * A row of the global contracts table. Without `q` only contracts; with `q` (from 2 characters)
+ * a search over every finance item of the chosen clients, so a hit may be a document or a note.
+ */
 export const ContractRowSchema = FinanceItemSchema.extend({
   groupName: z.string(),
   hasLogo: z.boolean(),
@@ -57,6 +66,7 @@ export const PaidRankingQuerySchema = z.object({
 });
 export type PaidRankingQuery = z.output<typeof PaidRankingQuerySchema>;
 
+/** `rank` is shared by equal values (1, 1, 3). */
 const RankedClient = {
   rank: z.number().int(),
   groupId: z.string(),
@@ -72,6 +82,8 @@ export type PaidRankingRow = z.infer<typeof PaidRankingRowSchema>;
 export const PaidRankingPageSchema = z.object({
   rows: z.array(PaidRankingRowSchema),
   total: z.number().int(),
+  /** The first row's amount, the bars' full width. */
+  max: z.number().int(),
   nextCursor: z.string().nullable(),
 });
 export type PaidRankingPage = z.infer<typeof PaidRankingPageSchema>;
@@ -89,15 +101,24 @@ export const HoursRankingQuerySchema = z
   .refine((q) => q.from <= q.to, { message: 'from after to' });
 export type HoursRankingQuery = z.output<typeof HoursRankingQuerySchema>;
 
+/**
+ * A row of the hours ranking. `groupId` null: the time without a client (owner decision 24,
+ * "Bez klienta"), ranked like a client on the all-clients view only; `groupName` is then ''.
+ * `cost` (EUR minor units) is null when none of the minutes has a rate; the cost sort counts it 0.
+ */
 export const HoursRankingRowSchema = z.object({
   ...RankedClient,
+  groupId: z.string().nullable(),
   minutes: z.number().int(),
   cost: z.number().int().nullable(),
+  missingRateMinutes: z.number().int(),
 });
 export type HoursRankingRow = z.infer<typeof HoursRankingRowSchema>;
 
+/** One page of 20; `max` is the first row's value (minutes or cost), the bars' full width. */
 export const HoursRankingPageSchema = z.object({
   rows: z.array(HoursRankingRowSchema),
+  max: z.number().int(),
   nextCursor: z.string().nullable(),
 });
 export type HoursRankingPage = z.infer<typeof HoursRankingPageSchema>;

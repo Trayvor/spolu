@@ -17,11 +17,8 @@
     "workLog": "Evidencija rada",
     "workLogSoon": "Ovdje će biti sati koje su administratori radili za ovog klijenta, po mjesecima i danima.",
     "contracts": "Ugovori",
-    "contractsSoon": "Ovdje će biti ugovori svih klijenata i pretraživanje svih financijskih dokumenata.",
     "paidRanking": "Klijenti po plaćenim iznosima",
-    "paidRankingSoon": "Ovdje će biti klijenti poredani po plaćenim iznosima.",
-    "hoursRanking": "Klijenti po satima",
-    "hoursRankingSoon": "Ovdje će biti klijenti poredani po satima ili njihovoj cijeni."
+    "hoursRanking": "Klijenti po satima"
   },
   "periods": {
     "next12": "Zadnjih 12 i sljedećih 12 mjeseci",

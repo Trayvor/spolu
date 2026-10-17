@@ -1,4 +1,52 @@
 {
   "clients": "Clienti",
-  "allClients": "Tutti i clienti"
+  "allClients": "Tutti i clienti",
+  "noClient": "Senza cliente",
+  "rates": "Tariffe orarie",
+  "loadFailed": "Impossibile caricare l’elenco.",
+  "retry": "Riprova",
+  "showMore": "Mostra altri 20",
+  "contracts": {
+    "search": "Cerca contratti, documenti e note",
+    "sortLabel": "Ordina i contratti",
+    "sort": {
+      "start": "Inizio più recente",
+      "end": "In scadenza prima",
+      "amount": "Importo più alto"
+    },
+    "columns": {
+      "client": "Cliente",
+      "contract": "Contratto",
+      "period": "Periodo",
+      "amount": "Importo"
+    },
+    "kinds": {
+      "contract": "contratto",
+      "document": "documento",
+      "note": "nota"
+    },
+    "empty": "I clienti scelti non hanno ancora contratti.",
+    "noMatch": "Nessun risultato per «{{q}}».",
+    "showMore": "Mostra altri"
+  },
+  "paid": {
+    "year": "Anno",
+    "month": "Mese",
+    "wholeYear": "Tutto l’anno",
+    "currency": "Valuta",
+    "total": "Pagato in totale: {{amount}}",
+    "empty": "In questo periodo non è iniziato alcun contratto dei clienti scelti."
+  },
+  "hours": {
+    "rankBy": "Classifica per",
+    "hours": "Ore",
+    "cost": "Denaro",
+    "admin": "Admin",
+    "allAdmins": "Tutti gli admin",
+    "empty": "In questo periodo non è stato registrato tempo.",
+    "missingRate": "{{hours}} senza tariffa"
+  },
+  "workLog": {
+    "topClients": "Più ore:"
+  }
 }

@@ -8,6 +8,7 @@ import {
   type WorkLogPageDto,
 } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
+import { getGroupLabels } from '../groups/service.js';
 import { getTaskTitles } from '../tasks/task-service.js';
 import { getTicketRefs } from '../tickets/refs.js';
 import { getUserNames } from '../users/service.js';
@@ -74,7 +75,7 @@ export function decodeCursor(text: string): Cursor {
 
 type EntryRow = {
   id: string;
-  group_id: string;
+  group_id: string | null;
   user_id: string;
   source: TimeEntrySource;
   task_id: string | null;
@@ -134,6 +135,29 @@ export function workLogEntriesSql(
   `;
 }
 
+/** How many clients a month header of the system-wide work log names. */
+export const TOP_CLIENTS = 3;
+
+/**
+ * The system-wide work log's month headers (D): per month of the page, the clients with the most
+ * minutes (the time without a client, `group_id` null, is one of them on the `all` scope). One
+ * grouped read of the same index range as the month totals.
+ */
+export function topClientsSql(scope: FinanceScope, range: MonthRange): SQL {
+  const month = sql`to_char(${e.workedOn}, 'YYYY-MM')`;
+  return sql`
+    select month, group_id, minutes from (
+      select ${month} as month, ${e.groupId} as group_id, sum(${e.minutes})::int as minutes,
+        row_number() over (partition by ${month}
+          order by sum(${e.minutes}) desc, ${e.groupId} nulls last) as n
+      from ${e}
+      where ${countedEntriesSql(scope, dayBounds(range))}
+      group by 1, 2
+    ) ranked
+    where n <= ${TOP_CLIENTS} and minutes > 0
+    order by month, n`;
+}
+
 function monthOf(row: TotalsRow, rows: TotalsRow[], names: Map<string, string>): WorkLogMonth {
   return {
     month: row.month!,
@@ -170,15 +194,25 @@ export async function workLogPage(
       : null;
 
   // The full totals of every month the page touches: from the oldest entry's month to the newest's.
+  // The system-wide log (D) names each entry's client and each month's top clients.
+  const manyClients = scope.kind !== 'group';
   let monthRows: TotalsRow[] = [];
+  let topRows: { month: Month; group_id: string | null; minutes: number }[] = [];
   if (rows.length > 0) {
     const newest = rows[0]!.worked_on.slice(0, 7) as Month;
     const oldest = rows.at(-1)!.worked_on.slice(0, 7) as Month;
-    monthRows = await timeTotals(
-      db,
-      countedEntriesSql(scope, dayBounds({ from: oldest, to: newest })),
-      ['adminMonth', 'month'],
-    );
+    const pageMonths = { from: oldest, to: newest };
+    monthRows = await timeTotals(db, countedEntriesSql(scope, dayBounds(pageMonths)), [
+      'adminMonth',
+      'month',
+    ]);
+    if (manyClients) {
+      topRows = [
+        ...(await db.execute<{ month: Month; group_id: string | null; minutes: number }>(
+          topClientsSql(scope, pageMonths),
+        )),
+      ];
+    }
   }
   const summaryRows =
     cursor === null
@@ -191,7 +225,7 @@ export async function workLogPage(
   const ticketIds = rows.flatMap((r) =>
     [r.ticket_id, r.linked_ticket_id].filter((id) => id !== null),
   );
-  const [taskTitles, ticketRefs, names] = await Promise.all([
+  const [taskTitles, ticketRefs, names, labels] = await Promise.all([
     getTaskTitles(
       db,
       rows.flatMap((r) => (r.task_id ? [r.task_id] : [])),
@@ -202,6 +236,12 @@ export async function workLogPage(
       ...monthRows.flatMap((r) => (r.userId ? [r.userId] : [])),
       ...(summaryRows ?? []).flatMap((r) => (r.userId ? [r.userId] : [])),
     ]),
+    manyClients
+      ? getGroupLabels(db, [
+          ...rows.flatMap((r) => (r.group_id ? [r.group_id] : [])),
+          ...topRows.flatMap((r) => (r.group_id ? [r.group_id] : [])),
+        ])
+      : null,
   ]);
 
   const entries: WorkLogEntry[] = rows.map((r) => {
@@ -218,6 +258,7 @@ export async function workLogPage(
     return {
       id: r.id,
       groupId: r.group_id,
+      ...(labels ? { groupName: r.group_id ? (labels.get(r.group_id)?.name ?? '') : null } : {}),
       userId: r.user_id,
       userName: names.get(r.user_id) ?? '',
       source: r.source,
@@ -247,7 +288,20 @@ export async function workLogPage(
   const months = monthRows
     .filter((r) => r.set === 'month')
     .sort((a, b) => b.month!.localeCompare(a.month!))
-    .map((r) => monthOf(r, monthRows, names));
+    .map((r) => {
+      const month = monthOf(r, monthRows, names);
+      if (!labels) return month;
+      return {
+        ...month,
+        topClients: topRows
+          .filter((top) => top.month === r.month)
+          .map((top) => ({
+            groupId: top.group_id,
+            name: top.group_id ? (labels.get(top.group_id)?.name ?? '') : '',
+            minutes: top.minutes,
+          })),
+      };
+    });
 
   let summary: WorkLogPageDto['summary'] = null;
   if (summaryRows) {

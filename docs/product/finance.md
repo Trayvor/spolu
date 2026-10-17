@@ -58,4 +58,12 @@ Built in part C (spec §6.1–6.3).
 
 ## System-wide
 
-Part D (spec §6.2): not built yet.
+Built in part D (spec §6.2), at `/finance` (header link **Financie**, finance admins only; anyone else gets "Page not found").
+
+- **Filters.** On top the **client filter** of the knowledge list (a pill with a popover, a sheet on phones, chips of the chosen clients): every client by default, remembered per person; choosing all of them, none, or **Predvolené** means every client, also those added later. **Hodinové sadzby** (top right) opens the rates dialog. Each card keeps its own period as on a client's tab (no event or project filter: Phase 33 adds those per client only).
+- **The same grid across the chosen clients.** **Overview** (money and cost of the chosen clients; in the hours view one chart per admin across them) and **Work log** (the chronology across clients: each entry names its client, each month header adds "Most hours:" with the top three clients). With every client chosen, both also count the **time without a client** (owner decision 24: time on a ticket that has no client), shown as **Bez klienta**; it is in no client's tab.
+- **Contracts** (owner decision 16, in place of the old Phases 14–15): the chosen clients' contracts as a table — client (logo and name), number and title, period with **Ending soon** (the end within 60 days) and **Ended**, amount — sorted by newest start, soonest end or largest amount, 30 a page with **Show more**. The search (from 2 characters) covers every finance contract, document and note of those clients, a document or note marked as such. A row opens the item in its client's Financie tab. On phones each row stacks into lines.
+- **Clients by money paid.** A year (this year by default, next year back to six years ago) and an optional month; the amounts of the contracts that **started** in the period and no later than today (owner decision 12), one currency at a time (a currency switch appears once UAH is enabled, decision 11). Rows: rank, logo, client, amount, a bar, the share of the total; the total above. Equal amounts share a rank.
+- **Clients by hours.** A period (this year by default; last year, this or last month, a custom range), **all admins** or one, and **Hodiny · Peniaze**: rank by the counted hours or by their cost (hours × rates). Rows: rank, client, hours and cost, "N h without a rate" when some minutes have none (they cost nothing in the Money ranking). With every client chosen the time without a client ranks as one row, **Bez klienta**.
+- Both rankings show 20 rows and **Show 20 more**; from 641 px they sit side by side under the grid, on phones they are the fourth segment **Rebríčky**.
+- **Live.** Every finance write refreshes the open page (`finance:changed`, 2 s debounce).

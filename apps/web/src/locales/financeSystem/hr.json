@@ -1,4 +1,52 @@
 {
   "clients": "Klijenti",
-  "allClients": "Svi klijenti"
+  "allClients": "Svi klijenti",
+  "noClient": "Bez klijenta",
+  "rates": "Satnice",
+  "loadFailed": "Popis se nije učitao.",
+  "retry": "Pokušaj ponovno",
+  "showMore": "Prikaži još 20",
+  "contracts": {
+    "search": "Traži ugovore, dokumente i bilješke",
+    "sortLabel": "Poredaj ugovore",
+    "sort": {
+      "start": "Najnoviji početak",
+      "end": "Prvo oni koji istječu",
+      "amount": "Najveći iznos"
+    },
+    "columns": {
+      "client": "Klijent",
+      "contract": "Ugovor",
+      "period": "Razdoblje",
+      "amount": "Iznos"
+    },
+    "kinds": {
+      "contract": "ugovor",
+      "document": "dokument",
+      "note": "bilješka"
+    },
+    "empty": "Odabrani klijenti još nemaju ugovora.",
+    "noMatch": "Ništa ne odgovara „{{q}}”.",
+    "showMore": "Prikaži još"
+  },
+  "paid": {
+    "year": "Godina",
+    "month": "Mjesec",
+    "wholeYear": "Cijela godina",
+    "currency": "Valuta",
+    "total": "Ukupno plaćeno: {{amount}}",
+    "empty": "U ovom razdoblju nije započeo nijedan ugovor odabranih klijenata."
+  },
+  "hours": {
+    "rankBy": "Poredak po",
+    "hours": "Sati",
+    "cost": "Novac",
+    "admin": "Admin",
+    "allAdmins": "Svi admini",
+    "empty": "U ovom razdoblju nije upisano vrijeme.",
+    "missingRate": "{{hours}} bez satnice"
+  },
+  "workLog": {
+    "topClients": "Najviše sati:"
+  }
 }
