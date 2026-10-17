@@ -34,6 +34,8 @@ Requirements per module: [product/](product/README.md). Phases after 1 get their
 | 25 | [Chat files in the knowledge base](#phase-25--chat-files-in-the-knowledge-base) | done | 17, 24 | [spec](superpowers/specs/2026-10-16-knowledge-chat-files-design.md), [plan](superpowers/plans/2026-10-16-knowledge-chat-files.md) |
 | 26 | [One email design and nine languages](#phase-26--one-email-design-and-nine-languages) | done | 23 | [ADR 0019](decisions/0019-nine-languages-and-one-email-design.md) |
 | 27 | [Whole-project review: performance and cleanup](#phase-27--whole-project-review-performance-and-cleanup) | planned | the UI/UX polish work | - |
+| 28 | [Chat editor and AI text tools](#phase-28--chat-editor-and-ai-text-tools) | planned | 27 | - |
+| 29 | [Solve with AI](#phase-29--solve-with-ai) | planned | 27 | - |
 
 Phases 8 and 14 do not depend on each other, so their order can change by priority.
 
@@ -377,3 +379,24 @@ Scope: review the whole project for places where performance can sag, for dead o
 - **Docker image:** its size and build time.
 
 Done when: the findings report is written and agreed with the owner, every accepted finding is fixed in its own merged pull request with before/after numbers, and the remaining ones are listed as later work.
+
+## Phase 28 — Chat editor and AI text tools
+
+Owner request (2026-10-17). Starts after Phase 27. Needs a spec (brainstorming) and an ADR for the editor library.
+
+- **Rich text editor in every chat** (group chat, ticket chat, task chat): formatting shows while typing (WYSIWYG, not a preview), with full Markdown support: typing Markdown syntax (`**bold**`, `_italic_`, `` `code` ``, lists, quotes, links, headings, code blocks) turns into formatting at once, pasted Markdown renders, and messages are stored as Markdown so the existing rendering, search, notifications and digests keep working. Mentions and file attachments keep working inside it. The bulk email builder is out of scope (emails take HTML only). The editor is lazy-loaded so the initial JS budget holds.
+- **AI text tools, admins only:** an AI button next to Send (like Telegram's) offers:
+  1. **Fix mistakes** — only commas, full stops, diacritics, typos; nothing else changes.
+  2. **Make it formal** — a professional tone, but explicitly not an email (no greeting/sign-off unless the text already looks like an email); keeps natural, human wording and allows anglicisms.
+  3. **Translate** — shown only in groups whose eGrant instance link is not a `.sk` domain, with two options: to English and to the client's language (decide in the spec how the client's language is found: the instance's TLD or the client members' profile language).
+  The result replaces the draft for review before sending (undo available); nothing is sent automatically. Available in group chat, ticket chat and task chat.
+- **Model:** a fast, cheap OpenAI model so the result comes back in about a second (check OpenAI's current small models when the spec is written; low reasoning effort, streaming if it helps). Configurable separately from the task-split model (e.g. `OPENAI_TEXT_MODEL`). Prompts live in the server; the client never sends a prompt, only the text and the chosen action. Rate-limited per admin.
+
+## Phase 29 — Solve with AI
+
+Owner decision (2026-10-17). Starts after Phase 27 (order with Phase 28 by the owner's priority).
+
+- On tickets and tasks, admins get an **"Otvoriť v Claude"** button: it opens claude.ai with a prefilled prompt carrying the full context — the ticket or task, its chat, file names, the eGrant instance link — and the instruction to solve it with the eGrant MCP that admins already have connected in Claude. It uses the admin's own Claude subscription; nothing runs on the server, no API cost.
+- When the prompt is too long for a URL, the button copies it to the clipboard and opens an empty Claude chat with a short note.
+- Test the prompt against the eGrant MCP only on the instance **Supermesto** (owner rule).
+
