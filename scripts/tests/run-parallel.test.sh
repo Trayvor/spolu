@@ -30,6 +30,13 @@ check "one fails: exit 1" "$(is test "$rc" -eq 1)" "exit $rc"
 check "one fails: its output and exit code are shown" "$(is has "$out" broken "Bad: FAILED with exit 3")" "$out"
 check "one fails: the others still run to the end" "$(is has "$out" late "Late: ok")" "$out"
 
+# ci.sh runs with `set -e`: a failing step must still report its own exit code and its seconds.
+out="$(set -e; run_parallel "Strict" "sleep 1; exit 4" 2>&1)"; rc=$?
+check "under set -e: exit 1" "$(is test "$rc" -eq 1)" "exit $rc"
+seconds_shown=false
+[[ "$out" =~ "Strict: FAILED with exit 4 ("[1-9][0-9]*" s)" ]] && seconds_shown=true
+check "under set -e: a failure shows its exit code and seconds" "$seconds_shown" "$out"
+
 # Concurrency: each step waits until both have started, so a sequential run would never finish.
 out="$(run_parallel \
   "A" "touch '$d/a'; for _ in \$(seq 50); do [[ -f '$d/b' ]] && exit 0; sleep 0.1; done; exit 1" \

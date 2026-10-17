@@ -110,7 +110,7 @@ async function checkAssignees(tx: Tx, groupId: string, ids: string[]): Promise<v
 
 /**
  * `task.assigned` to the new assignees, never to the actor. In the write's transaction; returns
- * the recipients, for `requestDelivery` after the commit.
+ * the recorded event ids, for `requestDelivery` after the commit.
  */
 async function notifyAssigned(
   tx: Tx,

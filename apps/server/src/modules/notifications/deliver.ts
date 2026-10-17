@@ -48,22 +48,23 @@ const payloadOf = (row: EventRow) => (row.payload ?? {}) as Record<string, unkno
 const unique = <T>(items: T[]): T[] => [...new Set(items)];
 
 /**
- * Delivers undelivered events, oldest first, in batches of `limit` (scoped to `userIds` when
- * given) until a batch comes back short; returns how many events it processed. Each batch is one
+ * Delivers undelivered events, oldest first, in batches of `limit` (scoped to `userIds` and to
+ * `eventIds` when given) until a batch comes back short; returns how many events it processed. Each batch is one
  * transaction: the rows are locked with `FOR UPDATE SKIP LOCKED`, so concurrent workers take
  * disjoint rows and no event is delivered twice; every locked row gets `delivered_at` (and
  * `email_due_at` when it qualifies for the email batch). Push jobs are sent after the commit.
  */
 export async function deliverPending(
   deps: NotificationJobDeps,
-  opts: { userIds?: string[]; limit?: number } = {},
+  opts: { userIds?: string[]; eventIds?: string[]; limit?: number } = {},
 ): Promise<number> {
   const limit = opts.limit ?? BATCH_SIZE;
-  if (opts.userIds && opts.userIds.length === 0) return 0;
+  if (opts.userIds?.length === 0 || opts.eventIds?.length === 0) return 0;
+  const scope = { userIds: opts.userIds, eventIds: opts.eventIds };
   let total = 0;
   for (;;) {
     const { count, pushes, emailUserIds } = await deps.db.transaction((tx) =>
-      deliverBatch(tx, deps, opts.userIds, limit),
+      deliverBatch(tx, deps, scope, limit),
     );
     total += count;
     for (const job of pushes) {
@@ -93,9 +94,10 @@ export async function deliverPending(
 async function deliverBatch(
   tx: Db,
   deps: NotificationJobDeps,
-  userIds: string[] | undefined,
+  scope: { userIds?: string[]; eventIds?: string[] },
   limit: number,
 ): Promise<{ count: number; pushes: PushJob[]; emailUserIds: string[] }> {
+  const { userIds, eventIds } = scope;
   const rows = await tx
     .select()
     .from(notificationEvents)
@@ -103,6 +105,7 @@ async function deliverBatch(
       and(
         isNull(notificationEvents.deliveredAt),
         userIds ? inArray(notificationEvents.userId, unique(userIds)) : undefined,
+        eventIds ? inArray(notificationEvents.id, unique(eventIds)) : undefined,
       ),
     )
     .orderBy(asc(notificationEvents.createdAt), asc(notificationEvents.id))

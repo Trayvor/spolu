@@ -954,8 +954,18 @@ describe('createTasksFromMessage', () => {
       ]),
       { id: m.id, fileIds: [] },
     );
-    // One request for every recipient of every card, never the actor.
-    expect(send.mock.calls).toEqual([[DELIVER_JOB, { userIds: [ana.id] }]]);
+    // One request for the events of every card, never the actor's.
+    const events = await deps.db
+      .select({ id: notificationEvents.id })
+      .from(notificationEvents)
+      .where(
+        and(eq(notificationEvents.userId, ana.id), eq(notificationEvents.kind, 'task.assigned')),
+      );
+    expect(events).toHaveLength(2);
+    expect(send.mock.calls).toHaveLength(1);
+    const [name, data] = send.mock.calls[0]! as unknown as [string, { eventIds: string[] }];
+    expect(name).toBe(DELIVER_JOB);
+    expect(data.eventIds.sort()).toEqual(events.map((e) => e.id).sort());
   });
 
   it('attaches files uploaded in the review next to the copies', async () => {
