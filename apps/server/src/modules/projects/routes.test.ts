@@ -516,16 +516,14 @@ describe('projects API', () => {
       await expect(insertTicket(g.id, mine.id, theirEvent.id)).rejects.toThrow();
       // A ticket without a client never has a project.
       await expect(
-        db()
-          .insert(tickets)
-          .values({
-            id: randomUUID(),
-            groupId: null,
-            source: 'manual',
-            projectId: mine.id,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          }),
+        db().insert(tickets).values({
+          id: randomUUID(),
+          groupId: null,
+          source: 'manual',
+          projectId: mine.id,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        }),
       ).rejects.toThrow();
       expect(
         await insertTask(db(), {
