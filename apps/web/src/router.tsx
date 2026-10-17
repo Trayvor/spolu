@@ -11,7 +11,6 @@ import {
 import type { KnowledgeType } from '@spolu/shared';
 import { loadNamespace, withNamespaces } from '@/i18n/namespaces';
 import { ApiError } from '@/lib/api';
-import { groupQuery } from '@/features/groups/api';
 import {
   normalizeTypes,
   singleType,
@@ -162,6 +161,8 @@ const groupRoute = createRoute({
   path: '/groups/$groupId',
   // A group the visitor may not read answers 404: show the not-found page.
   loader: async ({ context, params }) => {
+    // Imported here, not at the top: the groups API and its schemas stay out of the initial JS.
+    const { groupQuery } = await import('@/features/groups/api');
     try {
       await context.queryClient.ensureQueryData(groupQuery(params.groupId));
     } catch (error) {

@@ -5,7 +5,7 @@ import { RouteFade } from '@/components/route-fade';
 import { readCollapsed } from '@/features/admin-home/sidebar-collapse';
 import { useManagerEvents } from '@/features/groups/use-manager-events';
 import { AppPrompt } from '@/features/notifications/app-prompt';
-import { saveLanguage } from '@/features/profile/api';
+import { saveLanguage } from '@/features/profile/language-api';
 import { i18n } from '@/i18n';
 import { withNamespaces } from '@/i18n/namespaces';
 import { useMediaQuery } from '@/lib/use-media-query';

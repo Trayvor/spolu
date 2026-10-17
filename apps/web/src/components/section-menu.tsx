@@ -10,7 +10,9 @@ import { useRouterState } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { ChevronDownIcon } from '@/components/language-switcher';
 import { currentSection, type NavSection } from '@/components/nav-sections';
-import { cn } from '@/lib/utils';
+// `clsx`, not `cn`: these classes never conflict, and `cn` would bring tailwind-merge into the
+// initial JS.
+import { clsx } from 'clsx';
 
 const loadSheet = () => import('./section-sheet');
 // A chunk that fails to load (offline, new deploy) closes again instead of breaking the header.
@@ -57,7 +59,7 @@ export function SectionMenu({
         onTouchStart={warm}
         onFocus={warm}
         onClick={() => setOpen(true)}
-        className={cn(
+        className={clsx(
           'relative inline-flex h-[38px] min-w-0 items-center gap-1 rounded-full bg-secondary pr-2 pl-3 text-tiny font-semibold text-secondary-foreground transition-colors duration-(--duration-fast) after:absolute after:-inset-[3px] after:rounded-full hover:bg-surface-3 aria-expanded:bg-surface-3',
           className,
         )}
