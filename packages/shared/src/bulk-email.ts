@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { isHttpUrl, MAX_URL_LENGTH } from './urls.js';
 import { UserLanguages } from './notifications.js';
+import { countBlocks, textOfNodes } from './bulk-email-content.js';
 
 /** Phase 23 — bulk email. Limits pinned by the spec (§2, §3). */
 export const BULK_LIMITS = {
@@ -20,6 +21,14 @@ export const BULK_LIMITS = {
   /** Uploaded images: bytes and the width the browser shrinks to. */
   imageBytes: 2 * 1024 * 1024,
   imageWidth: 1200,
+  /** Phase 31: nodes of one text block and runs of one node. */
+  textNodes: 200,
+  textRuns: 200,
+  /** Phase 31: an image's chosen width; px at most the 520 px content column. */
+  imagePercent: { min: 10, max: 100 },
+  imagePx: { min: 40, max: 520 },
+  /** Phase 31: the editor warns when the HTML gets close to Gmail's ~102 kB clipping. */
+  htmlWarnBytes: 90_000,
 } as const;
 
 export const BulkCampaignStatuses = ['draft', 'sending', 'sent', 'cancelled'] as const;
@@ -45,8 +54,36 @@ export type BulkSubscriptionSource = (typeof BulkSubscriptionSources)[number];
 export const BulkImageMimes = ['image/png', 'image/jpeg'] as const;
 export type BulkImageMime = (typeof BulkImageMimes)[number];
 
-export const BulkAlignSchema = z.enum(['left', 'center']);
+export const BulkAlignSchema = z.enum(['left', 'center', 'right']);
 export type BulkAlign = z.infer<typeof BulkAlignSchema>;
+
+/**
+ * Phase 31: the stored content version. 1 = Phase 23 (a text block is `{ text }` with
+ * `**bold**`), 2 = builder v2 (a text block is a document tree). Reading upgrades 1 → 2
+ * (`upgradeBlocks`); every save writes 2.
+ */
+export const BULK_CONTENT_VERSION = 2;
+
+/**
+ * The email palette (docs/design/tokens.md): the only colours an admin can pick, by key. The
+ * renderer maps a key to its hex; a CSS value never reaches the email.
+ */
+export const BulkPalette = {
+  ink: '#141414',
+  muted: '#6B6B6B',
+  green: '#007A37',
+  red: '#D60004',
+  purple: '#7654FF',
+  blue: '#3242DC',
+  line: '#E3DEDA',
+} as const;
+export type BulkColor = keyof typeof BulkPalette;
+/** Text colours: every palette key but `line` (too light on white). */
+export const BulkTextColors = ['ink', 'muted', 'green', 'red', 'purple', 'blue'] as const;
+export type BulkTextColor = (typeof BulkTextColors)[number];
+/** Divider colours of a split container; `line` is the default. */
+export const BulkLineColors = ['line', 'ink', 'muted', 'green', 'purple', 'blue'] as const;
+export type BulkLineColor = (typeof BulkLineColors)[number];
 
 /** An absolute http(s) URL of at most `MAX_URL_LENGTH` characters; never `javascript:`. */
 const httpUrl = z
@@ -63,40 +100,154 @@ const buttonUrl = z
   .trim()
   .refine((v) => isHttpUrl(v) || isMailto(v), { message: 'not an http(s) or mailto: URL' });
 
+/** `http(s)://` or `mailto:<address>` (buttons and links in a text). */
+export const isBulkLinkUrl = (v: string): boolean => isHttpUrl(v) || isMailto(v);
+
 const blockId = z.string().min(1).max(BULK_LIMITS.blockId);
 
+export const BulkMarks = ['bold', 'italic', 'underline', 'strike'] as const;
+export type BulkMark = (typeof BulkMarks)[number];
+
+/**
+ * A run of text with one formatting. `text` may hold `\n` (a line break) and `{{name}}`.
+ * Unknown keys are dropped: the browser never sends HTML or styles, only this tree, and this
+ * schema is the allowlist of what a text may hold (spec §2).
+ */
+export const BulkInlineSchema = z.object({
+  text: z.string().max(BULK_LIMITS.text),
+  marks: z
+    .array(z.enum(BulkMarks))
+    .max(BulkMarks.length)
+    .refine((m) => new Set(m).size === m.length, { message: 'repeated mark' })
+    .optional(),
+  href: buttonUrl.optional(),
+  color: z.enum(BulkTextColors).optional(),
+});
+export type BulkInline = z.infer<typeof BulkInlineSchema>;
+
+/** A paragraph, a heading level 2 or 3, or one item of a bulleted or numbered list. */
+export const BulkTextNodeTypes = ['paragraph', 'h2', 'h3', 'bullet', 'ordered'] as const;
+export type BulkTextNodeType = (typeof BulkTextNodeTypes)[number];
+export const BulkTextNodeSchema = z.object({
+  type: z.enum(BulkTextNodeTypes),
+  /** Left out: the block's `align`. */
+  align: BulkAlignSchema.optional(),
+  content: z.array(BulkInlineSchema).max(BULK_LIMITS.textRuns),
+});
+export type BulkTextNode = z.infer<typeof BulkTextNodeSchema>;
+
+export const BulkImageShapes = ['square', 'rounded', 'roundedLarge', 'circle'] as const;
+export type BulkImageShape = (typeof BulkImageShapes)[number];
+export const BulkImageWidthSchema = z.discriminatedUnion('unit', [
+  z.object({
+    unit: z.literal('percent'),
+    value: z.number().int().min(BULK_LIMITS.imagePercent.min).max(BULK_LIMITS.imagePercent.max),
+  }),
+  z.object({
+    unit: z.literal('px'),
+    value: z.number().int().min(BULK_LIMITS.imagePx.min).max(BULK_LIMITS.imagePx.max),
+  }),
+]);
+export type BulkImageWidth = z.infer<typeof BulkImageWidthSchema>;
+
+export const BulkSpacerSizes = ['small', 'medium', 'large'] as const;
+export type BulkSpacerSize = (typeof BulkSpacerSizes)[number];
+export const BulkColumnRatios = ['50-50', '33-67', '67-33'] as const;
+export type BulkColumnRatio = (typeof BulkColumnRatios)[number];
+export const BulkVAligns = ['top', 'middle', 'bottom'] as const;
+export type BulkVAlign = (typeof BulkVAligns)[number];
+
+const headingBlock = z.object({
+  id: blockId,
+  type: z.literal('heading'),
+  text: z.string().max(BULK_LIMITS.heading),
+  align: BulkAlignSchema,
+});
+const textBlock = z.object({
+  id: blockId,
+  type: z.literal('text'),
+  /** The nodes' default alignment and the cell's `align` (Outlook reads the attribute). */
+  align: BulkAlignSchema,
+  content: z
+    .array(BulkTextNodeSchema)
+    .max(BULK_LIMITS.textNodes)
+    .refine((nodes) => textOfNodes(nodes).length <= BULK_LIMITS.text, {
+      message: 'text too long',
+    }),
+});
+const imageBlock = z.object({
+  id: blockId,
+  type: z.literal('image'),
+  imageId: z.string().min(1).max(100),
+  alt: z.string().trim().min(1).max(BULK_LIMITS.alt),
+  href: httpUrl.optional(),
+  /** Left out: centred (Phase 23). */
+  align: BulkAlignSchema.optional(),
+  /** Left out: the image's own width, at most the column (Phase 23). */
+  width: BulkImageWidthSchema.optional(),
+  /** Left out: square corners. */
+  shape: z.enum(BulkImageShapes).optional(),
+});
+const buttonBlock = z.object({
+  id: blockId,
+  type: z.literal('button'),
+  label: z.string().max(BULK_LIMITS.buttonLabel),
+  url: buttonUrl,
+  align: BulkAlignSchema,
+});
+const dividerBlock = z.object({ id: blockId, type: z.literal('divider') });
+const logoBlock = z.object({ id: blockId, type: z.literal('logo'), align: BulkAlignSchema });
+const spacerBlock = z.object({
+  id: blockId,
+  type: z.literal('spacer'),
+  size: z.enum(BulkSpacerSizes),
+});
+
+/** Any block that may stand inside a split container: every type but `columns`. */
+export const BulkLeafBlockSchema = z.discriminatedUnion('type', [
+  headingBlock,
+  textBlock,
+  imageBlock,
+  buttonBlock,
+  dividerBlock,
+  logoBlock,
+  spacerBlock,
+]);
+export type BulkLeafBlock = z.infer<typeof BulkLeafBlockSchema>;
+
+const columnSide = z.array(BulkLeafBlockSchema).max(BULK_LIMITS.blocks);
+
+/** The split container: two columns of leaf blocks (no container in a container). */
+export const BulkColumnsBlockSchema = z.object({
+  id: blockId,
+  type: z.literal('columns'),
+  ratio: z.enum(BulkColumnRatios),
+  valign: z.enum(BulkVAligns),
+  divider: z.boolean(),
+  dividerColor: z.enum(BulkLineColors),
+  left: columnSide,
+  right: columnSide,
+});
+export type BulkColumnsBlock = z.infer<typeof BulkColumnsBlockSchema>;
+
 export const BulkBlockSchema = z.discriminatedUnion('type', [
-  z.object({
-    id: blockId,
-    type: z.literal('heading'),
-    text: z.string().max(BULK_LIMITS.heading),
-    align: BulkAlignSchema,
-  }),
-  z.object({
-    id: blockId,
-    type: z.literal('text'),
-    text: z.string().max(BULK_LIMITS.text),
-    align: BulkAlignSchema,
-  }),
-  z.object({
-    id: blockId,
-    type: z.literal('image'),
-    imageId: z.string().min(1).max(100),
-    alt: z.string().trim().min(1).max(BULK_LIMITS.alt),
-    href: httpUrl.optional(),
-  }),
-  z.object({
-    id: blockId,
-    type: z.literal('button'),
-    label: z.string().max(BULK_LIMITS.buttonLabel),
-    url: buttonUrl,
-    align: BulkAlignSchema,
-  }),
-  z.object({ id: blockId, type: z.literal('divider') }),
-  z.object({ id: blockId, type: z.literal('logo'), align: BulkAlignSchema }),
+  headingBlock,
+  textBlock,
+  imageBlock,
+  buttonBlock,
+  dividerBlock,
+  logoBlock,
+  spacerBlock,
+  BulkColumnsBlockSchema,
 ]);
 export type BulkBlock = z.infer<typeof BulkBlockSchema>;
 export type BulkBlockType = BulkBlock['type'];
+
+/** One version of the email: at most `BULK_LIMITS.blocks`, counting blocks inside containers. */
+export const BulkBlocksSchema = z
+  .array(BulkBlockSchema)
+  .max(BULK_LIMITS.blocks)
+  .refine((blocks) => countBlocks(blocks) <= BULK_LIMITS.blocks, { message: 'too many blocks' });
 
 export const BulkAudienceRoleSchema = z.enum(['client', 'ziadatel', 'admin']);
 export type BulkAudienceRole = z.infer<typeof BulkAudienceRoleSchema>;
@@ -122,7 +273,13 @@ export const BulkCampaignDraftSchema = z.object({
   name: z.string().trim().min(1).max(BULK_LIMITS.name),
   subject: z.string().trim().max(BULK_LIMITS.subject),
   preheader: z.string().trim().max(BULK_LIMITS.preheader),
-  blocks: z.array(BulkBlockSchema).max(BULK_LIMITS.blocks),
+  /** The desktop version. */
+  blocks: BulkBlocksSchema,
+  /**
+   * The phone version (Phase 31): `null` = it follows the desktop version; left out = keep the
+   * stored one (an editor that does not know it never drops it).
+   */
+  phoneBlocks: BulkBlocksSchema.nullable().optional(),
   audience: BulkAudienceSchema,
   version: z.number().int().min(1),
 });
@@ -137,7 +294,12 @@ export type BulkCampaignDto = {
   name: string;
   subject: string;
   preheader: string;
+  /** The desktop version, always content version 2 (older rows are upgraded on read). */
   blocks: BulkBlock[];
+  /** The phone version; `null` while it follows the desktop version. */
+  phoneBlocks: BulkBlock[] | null;
+  /** The one-time "check the phone version" warning was shown before a send (spec §5). */
+  phoneCheckShown: boolean;
   audience: BulkAudience;
   status: BulkCampaignStatus;
   version: number;
@@ -193,6 +355,8 @@ export type BulkRecipientItem = {
 /** One reason of `400 not_ready`, shown next to the block when `blockId` is set. */
 export type BulkNotReadyProblem = {
   blockId?: string;
+  /** The problem is in the phone version (Phase 31). */
+  phone?: true;
   problem: 'subject_missing' | 'no_blocks' | 'image_missing' | 'invalid_url';
 };
 

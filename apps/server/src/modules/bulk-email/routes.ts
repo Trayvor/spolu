@@ -33,14 +33,18 @@ import {
   getCampaign,
   listCampaigns,
   listRecipients,
+  markPhoneCheckShown,
   saveDraft,
 } from './service.js';
 import { cancelSending, queueTestSend, startSending } from './send.js';
 
 type IdParams = { Params: { id: string } };
 
-/** The save route's body limit (spec §9): 50 blocks of at most 5 000 characters fit. */
-const SAVE_BODY_LIMIT = 200_000;
+/**
+ * The save route's body limit (spec §9): two versions (Phase 31) of 50 blocks, with the text
+ * trees' overhead, fit.
+ */
+const SAVE_BODY_LIMIT = 600_000;
 
 const CursorQuerySchema = z.object({ cursor: z.string().min(1).max(500).optional() });
 const SearchQuerySchema = z.object({
@@ -212,6 +216,21 @@ export const bulkEmailRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app
       return bulkError(reply, error);
     }
   });
+
+  // Phase 31: the one-time "check the phone version" warning was shown (spec §5).
+  app.post<IdParams>(
+    '/bulk-email/campaigns/:id/phone-check',
+    { preHandler },
+    async (request, reply) => {
+      try {
+        await markPhoneCheckShown(db, request.params.id);
+      } catch (error) {
+        return bulkError(reply, error);
+      }
+      emitBulkUpdated(app.io, request.params.id);
+      return reply.code(204).send();
+    },
+  );
 
   app.get<IdParams>(
     '/bulk-email/campaigns/:id/recipients',

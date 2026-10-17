@@ -1,43 +1,38 @@
 import { useQuery } from '@tanstack/react-query';
-import { useMemo, useState } from 'react';
+import { forwardRef, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { BulkBlock } from '@spolu/shared';
-import { cn } from '@/lib/utils';
+import { BULK_LIMITS, type BulkBlock } from '@spolu/shared';
 import { BULK_KEY, previewCampaign } from './api';
 import { useDebounced } from './parts';
+import type { EditMode } from './phone-version';
 
 const WIDTHS = { computer: 600, phone: 375 } as const;
-type Device = keyof typeof WIDTHS;
+
+/** The size of the HTML in bytes, as Gmail counts it before clipping (~102 kB). */
+const htmlBytes = (html: string) => new TextEncoder().encode(html).length;
+
+type Content = {
+  subject: string;
+  preheader: string;
+  blocks: BulkBlock[];
+  phoneBlocks: BulkBlock[] | null;
+};
 
 /**
  * The email as the server renders it (the only renderer, so the preview is what is sent), for
  * the signed-in admin, refreshed 500 ms after the last edit. Shown in an `<iframe sandbox>`
- * without any allowance: no scripts, no same-origin access. Computer = 600 px, Phone = 375 px.
+ * without any allowance: no scripts, no same-origin access. `device` is the editor's edit mode
+ * (Phase 31): Computer = 600 px, Phone = 375 px, where the email's own media rules show the
+ * phone version. Warns when the HTML gets close to Gmail's clipping.
  */
-export function PreviewFrame({
-  campaignId,
-  subject,
-  preheader,
-  blocks,
-}: {
-  campaignId: string;
-  subject: string;
-  preheader: string;
-  blocks: BulkBlock[];
-}) {
+export const PreviewFrame = forwardRef<
+  HTMLElement,
+  Content & { campaignId: string; device: EditMode }
+>(function PreviewFrame({ campaignId, device, subject, preheader, blocks, phoneBlocks }, ref) {
   const { t } = useTranslation();
-  // A phone sees the phone preview first: the 600 px computer one would not fit its screen.
-  const [device, setDevice] = useState<Device>(() =>
-    typeof window.matchMedia === 'function' && window.matchMedia('(max-width: 640px)').matches
-      ? 'phone'
-      : 'computer',
-  );
   // Debounced as text: a new object on every render must not restart the wait.
-  const serialized = useDebounced(JSON.stringify({ subject, preheader, blocks }), 500);
-  const content = useMemo(
-    () => JSON.parse(serialized) as { subject: string; preheader: string; blocks: BulkBlock[] },
-    [serialized],
-  );
+  const serialized = useDebounced(JSON.stringify({ subject, preheader, blocks, phoneBlocks }), 500);
+  const content = useMemo(() => JSON.parse(serialized) as Content, [serialized]);
   const preview = useQuery({
     queryKey: [...BULK_KEY, 'preview', campaignId, serialized],
     queryFn: () => previewCampaign(campaignId, content),
@@ -45,33 +40,17 @@ export function PreviewFrame({
     staleTime: Infinity,
   });
 
+  const bytes = preview.data === undefined ? 0 : htmlBytes(preview.data);
+
   return (
-    <section aria-labelledby="preview-title" className="flex min-w-0 flex-col gap-3">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h3 id="preview-title" className="text-button font-semibold">
-          {t('bulkEmail.preview.title')}
-        </h3>
-        <div
-          role="group"
-          aria-label={t('bulkEmail.preview.device')}
-          className="flex rounded-full bg-secondary p-1"
-        >
-          {(Object.keys(WIDTHS) as Device[]).map((d) => (
-            <button
-              key={d}
-              type="button"
-              aria-pressed={device === d}
-              onClick={() => setDevice(d)}
-              className={cn(
-                'h-8 rounded-full px-4 text-tiny font-semibold transition-colors duration-(--duration-fast) max-[640px]:h-11',
-                device === d ? 'bg-card shadow-lift' : 'hover:bg-surface-3',
-              )}
-            >
-              {t(`bulkEmail.preview.${d}`)}
-            </button>
-          ))}
-        </div>
-      </div>
+    <section
+      ref={ref}
+      aria-labelledby="preview-title"
+      className="flex min-w-0 scroll-mt-4 flex-col gap-3"
+    >
+      <h3 id="preview-title" className="text-button font-semibold">
+        {t(device === 'phone' ? 'bulkEmail.preview.titlePhone' : 'bulkEmail.preview.title')}
+      </h3>
       <div className="overflow-x-auto rounded-xl bg-muted p-3">
         {preview.data !== undefined ? (
           <iframe
@@ -92,7 +71,12 @@ export function PreviewFrame({
       {preview.isError && preview.data !== undefined && (
         <p className="text-micro text-error-ink">{t('bulkEmail.preview.failed')}</p>
       )}
+      {bytes > BULK_LIMITS.htmlWarnBytes && (
+        <p role="status" className="rounded-md bg-attention/30 px-3 py-2 text-micro">
+          {t('bulkEmail.preview.tooBig', { kb: Math.round(bytes / 1000) })}
+        </p>
+      )}
       <p className="text-micro text-muted-foreground">{t('bulkEmail.preview.note')}</p>
     </section>
   );
-}
+});

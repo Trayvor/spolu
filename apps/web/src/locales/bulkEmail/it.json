@@ -60,13 +60,15 @@
       "image": "Immagine",
       "button": "Pulsante",
       "divider": "Separatore",
-      "logo": "Logo eGrant"
+      "logo": "Logo eGrant",
+      "spacer": "Spazio",
+      "columns": "Blocco diviso"
     }
   },
   "fields": {
     "text": "Testo",
     "nameHint": "Scriva {{placeholder}} per salutare ogni persona per nome.",
-    "textHint": "Una riga vuota inizia un nuovo paragrafo. **grassetto** rende il testo in grassetto, gli indirizzi web diventano link, {{placeholder}} diventa il nome di ogni persona.",
+    "textHint": "Selezioni il testo per formattarlo. {{placeholder}} diventa il nome di ogni persona, gli indirizzi web diventano link e **parola** mette una parola in grassetto.",
     "align": "Allineamento",
     "left": "Sinistra",
     "center": "Centro",
@@ -81,7 +83,8 @@
     "label": "Testo del pulsante",
     "url": "Link",
     "urlHint": "Un indirizzo web che inizia con https://, oppure mailto: con un indirizzo email.",
-    "dividerNote": "Una linea sottile tra due parti dell'email."
+    "dividerNote": "Una linea sottile tra due parti dell'email.",
+    "right": "Destra"
   },
   "problems": {
     "required": "Compilare questo campo.",
@@ -103,7 +106,9 @@
     "frame": "Anteprima dell'email",
     "loading": "Caricamento dell'anteprima…",
     "failed": "Impossibile caricare l'anteprima.",
-    "note": "Mostrata con il Suo nome, come la riceverebbe Lei. I blocchi con problemi sono esclusi finché non vengono corretti."
+    "note": "Mostrata con il Suo nome, come la riceverebbe Lei. I blocchi con problemi sono esclusi finché non vengono corretti.",
+    "titlePhone": "Anteprima su telefono",
+    "tooBig": "Questa email è di circa {{kb}} kB. Gmail taglia le email oltre circa 102 kB: la accorci o rimuova la versione per telefono."
   },
   "audience": {
     "title": "Destinatari",
@@ -226,5 +231,107 @@
       "disabled": "Account disattivato",
       "unknown": "Esito sconosciuto: l'email potrebbe essere stata inviata o no."
     }
+  },
+  "rich": {
+    "toolbar": "Formattazione del testo",
+    "style": "Stile",
+    "paragraph": "Paragrafo",
+    "h2": "Titolo 2",
+    "h3": "Titolo 3",
+    "bold": "Grassetto",
+    "italic": "Corsivo",
+    "underline": "Sottolineato",
+    "strikeThrough": "Barrato",
+    "boldGlyph": "B",
+    "italicGlyph": "I",
+    "underlineGlyph": "U",
+    "strikeThroughGlyph": "S",
+    "link": "Aggiungi link",
+    "unlink": "Rimuovi link",
+    "bullet": "Elenco puntato",
+    "ordered": "Elenco numerato",
+    "alignLeft": "Allinea a sinistra",
+    "alignCenter": "Centra",
+    "alignRight": "Allinea a destra",
+    "color": "Colore",
+    "linkAddress": "Indirizzo del link",
+    "linkApply": "Aggiungi link",
+    "linkInvalid": "Usare un indirizzo web che inizia con https://, oppure mailto: con un indirizzo email."
+  },
+  "colors": {
+    "ink": "Nero",
+    "muted": "Grigio",
+    "green": "Verde",
+    "red": "Rosso",
+    "purple": "Viola",
+    "blue": "Blu",
+    "line": "Grigio chiaro"
+  },
+  "image": {
+    "size": "Dimensione",
+    "sizes": {
+      "original": "Dimensione originale",
+      "percent": "Percentuale della colonna",
+      "px": "Pixel"
+    },
+    "widthPercent": "Larghezza (%)",
+    "widthPx": "Larghezza (px)",
+    "widthHint": "Da {{min}} a {{max}}.",
+    "shape": "Forma",
+    "shapes": {
+      "square": "Angoli vivi",
+      "rounded": "Angoli arrotondati",
+      "roundedLarge": "Angoli più arrotondati",
+      "circle": "Cerchio"
+    },
+    "circleHint": "Ideale per immagini quadrate; le altre diventano ovali. Outlook per Windows mostra angoli vivi."
+  },
+  "spacer": {
+    "size": "Altezza",
+    "sizes": {
+      "small": "Piccolo (16 px)",
+      "medium": "Medio (32 px)",
+      "large": "Grande (48 px)"
+    }
+  },
+  "columns": {
+    "ratio": "Larghezza delle colonne",
+    "ratios": {
+      "50-50": "Metà e metà",
+      "33-67": "Un terzo e due terzi",
+      "67-33": "Due terzi e un terzo"
+    },
+    "valign": "Allineamento verticale",
+    "valigns": {
+      "top": "In alto",
+      "middle": "Al centro",
+      "bottom": "In basso"
+    },
+    "divider": "Linea tra le colonne",
+    "dividerColor": "Colore della linea",
+    "left": "Colonna sinistra del blocco {{n}}",
+    "right": "Colonna destra del blocco {{n}}",
+    "empty": "Ancora vuoto. Sui telefoni la colonna sinistra viene per prima.",
+    "add": "Aggiungi blocco a: {{side}}",
+    "moveTo": "Sposta il blocco {{n}} ({{type}}) in…",
+    "moveToShort": "Sposta in…",
+    "toMain": "Email principale",
+    "toLeft": "Colonna sinistra del blocco {{n}}",
+    "toRight": "Colonna destra del blocco {{n}}"
+  },
+  "mode": {
+    "label": "Versione da modificare",
+    "follows": "Versione per telefono: segue la versione per computer",
+    "separate": "Versione per telefono: modificata a parte",
+    "followsHint": "La prima modifica qui crea una versione per telefono separata. Da quel momento le modifiche in Computer non vi verranno più applicate.",
+    "return": "Torna alla versione per computer",
+    "returnConfirm": "Eliminare la versione per telefono? I telefoni mostreranno di nuovo la versione per computer.",
+    "returnYes": "Elimina la versione per telefono"
+  },
+  "phoneCheck": {
+    "title": "Controlli come appare l'email su un telefono",
+    "body": "La versione per telefono segue ancora la versione per computer: sui telefoni i blocchi divisi si impilano e le immagini larghe si rimpiccioliscono. Guardi l'anteprima su telefono prima di inviare. Questo promemoria viene mostrato una sola volta per questa email.",
+    "show": "Mostra anteprima su telefono",
+    "sendAnyway": "Invia comunque"
   }
 }

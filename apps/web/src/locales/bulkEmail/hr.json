@@ -60,13 +60,15 @@
       "image": "Slika",
       "button": "Gumb",
       "divider": "Razdjelnik",
-      "logo": "Logotip eGranta"
+      "logo": "Logotip eGranta",
+      "spacer": "Razmak",
+      "columns": "Podijeljeni blok"
     }
   },
   "fields": {
     "text": "Tekst",
     "nameHint": "Napišite {{placeholder}} kako biste svaku osobu oslovili imenom.",
-    "textHint": "Prazan redak započinje novi odlomak. **podebljano** podebljava tekst, web-adrese postaju poveznice, a {{placeholder}} postaje ime svake osobe.",
+    "textHint": "Označite tekst kako biste ga oblikovali. {{placeholder}} postaje ime svake osobe, web-adrese postaju poveznice, a **riječ** postaje podebljana.",
     "align": "Poravnanje",
     "left": "Lijevo",
     "center": "Sredina",
@@ -81,7 +83,8 @@
     "label": "Tekst gumba",
     "url": "Poveznica",
     "urlHint": "Web-adresa koja počinje s https:// ili mailto: s adresom e-pošte.",
-    "dividerNote": "Tanka crta između dvaju dijelova e-poruke."
+    "dividerNote": "Tanka crta između dvaju dijelova e-poruke.",
+    "right": "Desno"
   },
   "problems": {
     "required": "Ispunite ovo polje.",
@@ -103,7 +106,9 @@
     "frame": "Pretpregled e-poruke",
     "loading": "Učitava se pretpregled…",
     "failed": "Pretpregled nije moguće učitati.",
-    "note": "Prikazano s Vašim imenom, onako kako biste je primili. Blokovi s problemima izostavljeni su dok se ne isprave."
+    "note": "Prikazano s Vašim imenom, onako kako biste je primili. Blokovi s problemima izostavljeni su dok se ne isprave.",
+    "titlePhone": "Pretpregled na telefonu",
+    "tooBig": "Ova e-poruka ima oko {{kb}} kB. Gmail skraćuje e-poruke veće od otprilike 102 kB: skratite je ili uklonite verziju za telefon."
   },
   "audience": {
     "title": "Primatelji",
@@ -226,5 +231,107 @@
       "disabled": "Račun onemogućen",
       "unknown": "Nepoznat ishod: e-poruka je možda poslana, a možda i nije."
     }
+  },
+  "rich": {
+    "toolbar": "Oblikovanje teksta",
+    "style": "Stil",
+    "paragraph": "Odlomak",
+    "h2": "Naslov 2",
+    "h3": "Naslov 3",
+    "bold": "Podebljano",
+    "italic": "Kurziv",
+    "underline": "Podcrtano",
+    "strikeThrough": "Precrtano",
+    "boldGlyph": "B",
+    "italicGlyph": "I",
+    "underlineGlyph": "U",
+    "strikeThroughGlyph": "S",
+    "link": "Dodaj poveznicu",
+    "unlink": "Ukloni poveznicu",
+    "bullet": "Popis s grafičkim oznakama",
+    "ordered": "Numerirani popis",
+    "alignLeft": "Poravnaj lijevo",
+    "alignCenter": "Centriraj",
+    "alignRight": "Poravnaj desno",
+    "color": "Boja",
+    "linkAddress": "Adresa poveznice",
+    "linkApply": "Dodaj poveznicu",
+    "linkInvalid": "Upišite web-adresu koja počinje s https:// ili mailto: s adresom e-pošte."
+  },
+  "colors": {
+    "ink": "Crna",
+    "muted": "Siva",
+    "green": "Zelena",
+    "red": "Crvena",
+    "purple": "Ljubičasta",
+    "blue": "Plava",
+    "line": "Svijetlosiva"
+  },
+  "image": {
+    "size": "Veličina",
+    "sizes": {
+      "original": "Izvorna veličina",
+      "percent": "Postotak širine stupca",
+      "px": "Pikseli"
+    },
+    "widthPercent": "Širina (%)",
+    "widthPx": "Širina (px)",
+    "widthHint": "Od {{min}} do {{max}}.",
+    "shape": "Oblik",
+    "shapes": {
+      "square": "Oštri kutovi",
+      "rounded": "Zaobljeni kutovi",
+      "roundedLarge": "Više zaobljeni kutovi",
+      "circle": "Krug"
+    },
+    "circleHint": "Najbolje za kvadratne slike; ostale postaju ovalne. Outlook za Windows prikazuje oštre kutove."
+  },
+  "spacer": {
+    "size": "Visina",
+    "sizes": {
+      "small": "Mali (16 px)",
+      "medium": "Srednji (32 px)",
+      "large": "Veliki (48 px)"
+    }
+  },
+  "columns": {
+    "ratio": "Širina stupaca",
+    "ratios": {
+      "50-50": "Pola-pola",
+      "33-67": "Jedna trećina i dvije trećine",
+      "67-33": "Dvije trećine i jedna trećina"
+    },
+    "valign": "Okomito poravnanje",
+    "valigns": {
+      "top": "Gore",
+      "middle": "Sredina",
+      "bottom": "Dolje"
+    },
+    "divider": "Crta između stupaca",
+    "dividerColor": "Boja crte",
+    "left": "Lijevi stupac bloka {{n}}",
+    "right": "Desni stupac bloka {{n}}",
+    "empty": "Ovdje još nema ničega. Na telefonu je lijevi stupac prvi.",
+    "add": "Dodaj blok u: {{side}}",
+    "moveTo": "Premjesti blok {{n}} ({{type}}) u…",
+    "moveToShort": "Premjesti u…",
+    "toMain": "Glavni dio e-poruke",
+    "toLeft": "Lijevi stupac bloka {{n}}",
+    "toRight": "Desni stupac bloka {{n}}"
+  },
+  "mode": {
+    "label": "Verzija za uređivanje",
+    "follows": "Verzija za telefon: prati verziju za računalo",
+    "separate": "Verzija za telefon: uređuje se zasebno",
+    "followsHint": "Vašom prvom promjenom ovdje nastaje zasebna verzija za telefon. Promjene u načinu Računalo nakon toga se neće prenositi u nju.",
+    "return": "Vrati se na verziju za računalo",
+    "returnConfirm": "Odbaciti verziju za telefon? Telefoni će ponovno prikazivati verziju za računalo.",
+    "returnYes": "Odbaci verziju za telefon"
+  },
+  "phoneCheck": {
+    "title": "Provjerite kako e-poruka izgleda na telefonu",
+    "body": "Verzija za telefon i dalje prati verziju za računalo: na telefonima se podijeljeni blokovi slažu jedan ispod drugoga, a široke slike se smanjuju. Prije slanja pogledajte pretpregled na telefonu. Ovaj se podsjetnik za ovu e-poruku prikazuje samo jednom.",
+    "show": "Prikaži pretpregled na telefonu",
+    "sendAnyway": "Ipak pošalji"
   }
 }

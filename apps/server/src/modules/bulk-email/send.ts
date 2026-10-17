@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { sql } from 'drizzle-orm';
 import {
   BulkBlockSchema,
+  flattenBlocks,
   type BulkBlock,
   type BulkCampaignDto,
   type BulkCampaignStatus,
@@ -22,7 +23,7 @@ import {
   NotSendingError,
 } from './errors.js';
 import { imageExists, imageSizes } from './images.js';
-import { imageIdsOf, personalMessage } from './message.js';
+import { contentOf, imageIdsOf, personalMessage } from './message.js';
 import { getCampaign } from './service.js';
 import { TEST_CAMPAIGN_ID } from './token.js';
 
@@ -43,29 +44,41 @@ export const TEST_SUBJECT_PREFIX = '[Test] ';
  * are checked by the shared schema on every save; a block that fails it here has a bad link.
  */
 export function validateForSend(
-  campaign: { subject: string; blocks: readonly BulkBlock[] },
+  campaign: {
+    subject: string;
+    blocks: readonly BulkBlock[];
+    /** Phase 31: checked too when it is its own version; its problems say `phone: true`. */
+    phoneBlocks?: readonly BulkBlock[] | null;
+  },
   existingImageIds: ReadonlySet<string>,
 ): BulkNotReadyProblem[] {
   const problems: BulkNotReadyProblem[] = [];
   if (campaign.subject.trim() === '') problems.push({ problem: 'subject_missing' });
-  if (campaign.blocks.length === 0) problems.push({ problem: 'no_blocks' });
-  for (const block of campaign.blocks) {
-    if (block.type === 'image' && !existingImageIds.has(block.imageId)) {
-      problems.push({ blockId: block.id, problem: 'image_missing' });
-    } else if (
-      (block.type === 'button' || block.type === 'image') &&
-      !BulkBlockSchema.safeParse(block).success
-    ) {
-      problems.push({ blockId: block.id, problem: 'invalid_url' });
+  const check = (blocks: readonly BulkBlock[], tag: { phone?: true }) => {
+    if (blocks.length === 0) problems.push({ problem: 'no_blocks', ...tag });
+    for (const block of flattenBlocks(blocks)) {
+      if (block.type === 'image' && !existingImageIds.has(block.imageId)) {
+        problems.push({ blockId: block.id, problem: 'image_missing', ...tag });
+      } else if (
+        (block.type === 'button' || block.type === 'image') &&
+        !BulkBlockSchema.safeParse(block).success
+      ) {
+        problems.push({ blockId: block.id, problem: 'invalid_url', ...tag });
+      }
     }
-  }
+  };
+  check(campaign.blocks, {});
+  if (campaign.phoneBlocks) check(campaign.phoneBlocks, { phone: true });
   return problems;
 }
 
 type LockedCampaign = {
   status: BulkCampaignStatus;
   subject: string;
-  blocks: BulkBlock[];
+  preheader: string;
+  blocks: unknown;
+  phone_blocks: unknown;
+  content_version: number;
   audience: BulkCampaignDto['audience'];
 };
 
@@ -82,10 +95,12 @@ export async function startSending(
   const { db, config, jobs } = deps;
   await db.transaction(async (tx) => {
     const [campaign] = await tx.execute<LockedCampaign>(sql`
-      select status, subject, blocks, audience from bulk_campaigns where id = ${id} for update`);
+      select status, subject, preheader, blocks, phone_blocks, content_version, audience
+      from bulk_campaigns where id = ${id} for update`);
     if (!campaign) throw new CampaignNotFoundError();
     if (campaign.status !== 'draft') throw new NotDraftError();
-    const problems = validateForSend(campaign, await imageExists(tx, imageIdsOf(campaign.blocks)));
+    const content = contentOf(campaign);
+    const problems = validateForSend(content, await imageExists(tx, imageIdsOf(content)));
     if (problems.length > 0) throw new NotReadyError(problems);
 
     const [inserted] = await tx.execute<{ count: number }>(sql`
@@ -149,7 +164,7 @@ export async function queueTestSend(
   const { db, jobs } = deps;
   const campaign = await getCampaign(db, id);
   if (!campaign) throw new CampaignNotFoundError();
-  const problems = validateForSend(campaign, await imageExists(db, imageIdsOf(campaign.blocks)));
+  const problems = validateForSend(campaign, await imageExists(db, imageIdsOf(campaign)));
   if (problems.length > 0) throw new NotReadyError(problems);
   const me = await getUserById(db, actor.id);
   const to = me?.email ?? actor.email;
@@ -177,7 +192,7 @@ export async function runTestSend(
   const message = personalMessage(
     deps,
     campaign,
-    await imageSizes(db, imageIdsOf(campaign.blocks)),
+    await imageSizes(db, imageIdsOf(campaign)),
     { userId: me.id, email: me.email, name: me.name, language: me.language },
     {
       tokenCampaignId: TEST_CAMPAIGN_ID,

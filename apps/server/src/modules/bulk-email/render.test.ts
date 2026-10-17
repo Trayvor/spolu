@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { BulkBlock } from '@spolu/shared';
+import { upgradeBlocks, type BulkBlock } from '@spolu/shared';
 import { bulkFooter } from './texts.js';
 import { LOGO_PATH, imageUrl, renderCampaign } from './render.js';
 
@@ -27,12 +27,9 @@ const heading = (text: string, align: 'left' | 'center' = 'left'): BulkBlock => 
   text,
   align,
 });
-const textBlock = (text: string, align: 'left' | 'center' = 'left'): BulkBlock => ({
-  id: 't',
-  type: 'text',
-  text,
-  align,
-});
+/** A Phase 23 text (`**bold**`, blank-line paragraphs), upgraded to content version 2. */
+const textBlock = (text: string, align: 'left' | 'center' = 'left'): BulkBlock =>
+  upgradeBlocks(1, [{ id: 't', type: 'text', text, align }])[0]!;
 
 describe('imageUrl and LOGO_PATH', () => {
   it('builds the public image URL and strips a trailing slash of the public URL', () => {

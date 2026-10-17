@@ -40,7 +40,12 @@ function campaignRoutes(initial: Partial<BulkCampaignDto> = {}, put?: Route) {
 
 const blocks = (): BulkBlock[] => [
   { id: 'h', type: 'heading', text: 'Hello {{name}}', align: 'left' },
-  { id: 't', type: 'text', text: 'Body', align: 'left' },
+  {
+    id: 't',
+    type: 'text',
+    align: 'left',
+    content: [{ type: 'paragraph', content: [{ text: 'Body' }] }],
+  },
   { id: 'd', type: 'divider' },
 ];
 const blockTitles = () =>
@@ -70,14 +75,87 @@ describe('bulk email editor', () => {
     socket.current?.reset();
   });
 
-  it('adds each of the six block types', async () => {
+  it('adds each block type', async () => {
     const { user } = await openEditor();
     expect(screen.getByText(t('bulkEmail.blocks.empty'))).toBeInTheDocument();
     const add = screen.getByRole('group', { name: 'Add block' });
-    for (const name of ['Heading', 'Text', 'Image', 'Button', 'Divider', 'eGrant logo']) {
+    const names = [
+      'Heading',
+      'Text',
+      'Image',
+      'Button',
+      'Divider',
+      'Space',
+      'eGrant logo',
+      'Split container',
+    ];
+    for (const name of names) {
       await user.click(within(add).getByRole('button', { name }));
     }
-    expect(blockTitles()).toEqual(['Heading', 'Text', 'Image', 'Button', 'Divider', 'eGrant logo']);
+    expect(blockTitles()).toEqual(names);
+  });
+
+  it('a split container takes blocks on either side and they move between sides', async () => {
+    const { user } = await openEditor({ blocks: blocks() });
+    await user.click(
+      within(screen.getByRole('group', { name: 'Add block' })).getByRole('button', {
+        name: 'Split container',
+      }),
+    );
+    const left = screen.getByRole('region', { name: 'Left column of block 4' });
+    await user.click(
+      within(
+        within(left).getByRole('group', { name: 'Add block to Left column of block 4' }),
+      ).getByRole('button', { name: 'Button' }),
+    );
+    expect(within(left).getByRole('heading', { name: 'Button', level: 3 })).toBeInTheDocument();
+    // The heading of the main list goes into the right column.
+    await user.selectOptions(
+      screen.getByRole('combobox', { name: 'Move block 1 (Heading) to…' }),
+      'Right column of block 4',
+    );
+    const right = screen.getByRole('region', { name: 'Right column of block 3' });
+    expect(within(right).getByRole('heading', { name: 'Heading', level: 3 })).toBeInTheDocument();
+    expect(blockTitles()[0]).toBe('Text');
+  });
+
+  it('Phone mode: follows desktop until the first edit, then is separate until Return', async () => {
+    const { user, callsTo } = await openEditor({ blocks: blocks() });
+    const state = screen.getByTestId('phone-version-state');
+    expect(state).toHaveTextContent(t('bulkEmail.mode.follows'));
+    await user.click(screen.getByRole('button', { name: 'Phone' }));
+    expect(blockTitles()).toEqual(['Heading', 'Text', 'Divider']);
+    await user.click(screen.getByRole('button', { name: 'Delete block 3 (Divider)' }));
+    expect(state).toHaveTextContent(t('bulkEmail.mode.separate'));
+    expect(blockTitles()).toEqual(['Heading', 'Text']);
+    await waitFor(() => expect(callsTo('PUT', PATH)).toHaveLength(1), { timeout: 3000 });
+    expect(callsTo('PUT', PATH)[0]!.body).toMatchObject({
+      blocks: blocks(),
+      phoneBlocks: blocks().slice(0, 2),
+    });
+
+    // Desktop is untouched, and its edits do not reach the phone version.
+    await user.click(screen.getByRole('button', { name: 'Computer' }));
+    expect(blockTitles()).toEqual(['Heading', 'Text', 'Divider']);
+    await user.click(screen.getByRole('button', { name: 'Delete block 1 (Heading)' }));
+    await user.click(screen.getByRole('button', { name: 'Phone' }));
+    expect(blockTitles()).toEqual(['Heading', 'Text']);
+
+    await user.click(screen.getByRole('button', { name: t('bulkEmail.mode.return') }));
+    await user.click(screen.getByRole('button', { name: t('bulkEmail.mode.returnYes') }));
+    expect(state).toHaveTextContent(t('bulkEmail.mode.follows'));
+    expect(blockTitles()).toEqual(['Text', 'Divider']);
+    await waitFor(
+      () => expect(callsTo('PUT', PATH).at(-1)!.body).toMatchObject({ phoneBlocks: null }),
+      { timeout: 3000 },
+    );
+  });
+
+  it('opens a saved separate phone version as separate', async () => {
+    await openEditor({ blocks: blocks(), phoneBlocks: [{ id: 'd', type: 'divider' }] });
+    expect(screen.getByTestId('phone-version-state')).toHaveTextContent(
+      t('bulkEmail.mode.separate'),
+    );
   });
 
   it('moves blocks up and down; the first has no Move up and the last no Move down', async () => {

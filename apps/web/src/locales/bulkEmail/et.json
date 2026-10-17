@@ -60,13 +60,15 @@
       "image": "Pilt",
       "button": "Nupp",
       "divider": "Eraldaja",
-      "logo": "eGranti logo"
+      "logo": "eGranti logo",
+      "spacer": "Vahe",
+      "columns": "Jagatud plokk"
     }
   },
   "fields": {
     "text": "Tekst",
     "nameHint": "Kirjutage {{placeholder}}, et pöörduda iga inimese poole nimepidi.",
-    "textHint": "Tühi rida alustab uut lõiku. **paks** muudab teksti paksuks, veebiaadressid muutuvad linkideks, {{placeholder}} asendub iga inimese nimega.",
+    "textHint": "Vormindamiseks valige tekst. {{placeholder}} asendub iga inimese nimega, veebiaadressid muutuvad linkideks ja **sõna** muudab sõna paksuks.",
     "align": "Joondus",
     "left": "Vasakul",
     "center": "Keskel",
@@ -81,7 +83,8 @@
     "label": "Nupu tekst",
     "url": "Link",
     "urlHint": "Veebiaadress, mis algab https://, või mailto: koos e-posti aadressiga.",
-    "dividerNote": "Õhuke joon e-kirja kahe osa vahel."
+    "dividerNote": "Õhuke joon e-kirja kahe osa vahel.",
+    "right": "Paremal"
   },
   "problems": {
     "required": "Täitke see väli.",
@@ -103,7 +106,9 @@
     "frame": "E-kirja eelvaade",
     "loading": "Eelvaate laadimine…",
     "failed": "Eelvaadet ei õnnestunud laadida.",
-    "note": "Kuvatakse Teie nimega, nii nagu Teie selle saaksite. Vigadega plokid jäetakse välja, kuni need on parandatud."
+    "note": "Kuvatakse Teie nimega, nii nagu Teie selle saaksite. Vigadega plokid jäetakse välja, kuni need on parandatud.",
+    "titlePhone": "Eelvaade telefonis",
+    "tooBig": "See e-kiri on umbes {{kb}} kB. Gmail lõikab umbes 102 kB suuremad e-kirjad ära: lühendage seda või eemaldage telefoni versioon."
   },
   "audience": {
     "title": "Saajad",
@@ -221,5 +226,107 @@
       "disabled": "Konto keelatud",
       "unknown": "Teadmata tulemus: e-kiri võib olla saadetud või mitte."
     }
+  },
+  "rich": {
+    "toolbar": "Teksti vormindamine",
+    "style": "Laad",
+    "paragraph": "Lõik",
+    "h2": "Pealkiri 2",
+    "h3": "Pealkiri 3",
+    "bold": "Paks",
+    "italic": "Kursiiv",
+    "underline": "Allakriipsutus",
+    "strikeThrough": "Läbikriipsutus",
+    "boldGlyph": "B",
+    "italicGlyph": "I",
+    "underlineGlyph": "U",
+    "strikeThroughGlyph": "S",
+    "link": "Lisa link",
+    "unlink": "Eemalda link",
+    "bullet": "Täpploend",
+    "ordered": "Nummerdatud loend",
+    "alignLeft": "Joonda vasakule",
+    "alignCenter": "Keskele",
+    "alignRight": "Joonda paremale",
+    "color": "Värv",
+    "linkAddress": "Lingi aadress",
+    "linkApply": "Lisa link",
+    "linkInvalid": "Sisestage veebiaadress, mis algab https://, või mailto: koos e-posti aadressiga."
+  },
+  "colors": {
+    "ink": "Must",
+    "muted": "Hall",
+    "green": "Roheline",
+    "red": "Punane",
+    "purple": "Lilla",
+    "blue": "Sinine",
+    "line": "Helehall"
+  },
+  "image": {
+    "size": "Suurus",
+    "sizes": {
+      "original": "Algne suurus",
+      "percent": "Protsent veeru laiusest",
+      "px": "Pikslid"
+    },
+    "widthPercent": "Laius (%)",
+    "widthPx": "Laius (px)",
+    "widthHint": "{{min}} kuni {{max}}.",
+    "shape": "Kuju",
+    "shapes": {
+      "square": "Teravad nurgad",
+      "rounded": "Ümarad nurgad",
+      "roundedLarge": "Ümaramad nurgad",
+      "circle": "Ring"
+    },
+    "circleHint": "Sobib kõige paremini ruudukujulistele piltidele, teised muutuvad ovaalseks. Outlook for Windows näitab teravaid nurki."
+  },
+  "spacer": {
+    "size": "Kõrgus",
+    "sizes": {
+      "small": "Väike (16 px)",
+      "medium": "Keskmine (32 px)",
+      "large": "Suur (48 px)"
+    }
+  },
+  "columns": {
+    "ratio": "Veergude laius",
+    "ratios": {
+      "50-50": "Pool ja pool",
+      "33-67": "Üks kolmandik ja kaks kolmandikku",
+      "67-33": "Kaks kolmandikku ja üks kolmandik"
+    },
+    "valign": "Vertikaalne joondus",
+    "valigns": {
+      "top": "Üleval",
+      "middle": "Keskel",
+      "bottom": "All"
+    },
+    "divider": "Joon veergude vahel",
+    "dividerColor": "Joone värv",
+    "left": "Ploki {{n}} vasak veerg",
+    "right": "Ploki {{n}} parem veerg",
+    "empty": "Siin pole veel midagi. Telefonis on vasak veerg esimene.",
+    "add": "Lisa plokk: {{side}}",
+    "moveTo": "Teisalda plokk {{n}} ({{type}})…",
+    "moveToShort": "Teisalda…",
+    "toMain": "E-kirja põhiosa",
+    "toLeft": "Ploki {{n}} vasak veerg",
+    "toRight": "Ploki {{n}} parem veerg"
+  },
+  "mode": {
+    "label": "Muudetav versioon",
+    "follows": "Telefoni versioon: järgib arvuti versiooni",
+    "separate": "Telefoni versioon: muudetud eraldi",
+    "followsHint": "Teie esimene muudatus siin loob eraldi telefoni versiooni. Pärast seda režiimis Arvuti tehtud muudatused sinna enam ei jõua.",
+    "return": "Naase arvuti versiooni juurde",
+    "returnConfirm": "Kas loobuda telefoni versioonist? Telefonid näitavad jälle arvuti versiooni.",
+    "returnYes": "Loobu telefoni versioonist"
+  },
+  "phoneCheck": {
+    "title": "Vaadake, kuidas e-kiri telefonis välja näeb",
+    "body": "Telefoni versioon järgib endiselt arvuti versiooni: telefonis paigutuvad jagatud plokid üksteise alla ja laiad pildid muutuvad väiksemaks. Enne saatmist vaadake telefoni eelvaadet. See meeldetuletus kuvatakse selle e-kirja puhul ainult üks kord.",
+    "show": "Näita telefoni eelvaadet",
+    "sendAnyway": "Saada ikkagi"
   }
 }

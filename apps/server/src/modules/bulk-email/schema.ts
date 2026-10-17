@@ -36,7 +36,14 @@ export const bulkCampaigns = pgTable(
     name: text('name').notNull(),
     subject: text('subject').notNull().default(''),
     preheader: text('preheader').notNull().default(''),
+    /** The desktop version, in `content_version`'s format (read through `upgradeBlocks`). */
     blocks: jsonb('blocks').$type<BulkBlock[]>().notNull().default([]),
+    /** The phone version (Phase 31); null while it follows the desktop version. */
+    phoneBlocks: jsonb('phone_blocks').$type<BulkBlock[]>(),
+    /** 1 = Phase 23 blocks, 2 = builder v2 (`BULK_CONTENT_VERSION`); every save writes 2. */
+    contentVersion: smallint('content_version').notNull().default(1),
+    /** When the one-time "check the phone version" warning was shown before a send. */
+    phoneCheckShownAt: timestamp('phone_check_shown_at', { withTimezone: true }),
     audience: jsonb('audience').$type<BulkAudience>().notNull(),
     status: text('status').$type<BulkCampaignStatus>().notNull().default('draft'),
     version: integer('version').notNull().default(1),
@@ -55,6 +62,7 @@ export const bulkCampaigns = pgTable(
       'bulk_campaigns_status_check',
       sql`${t.status} in ('draft', 'sending', 'sent', 'cancelled')`,
     ),
+    check('bulk_campaigns_content_version_check', sql`${t.contentVersion} in (1, 2)`),
     index('bulk_campaigns_status_updated_idx').on(t.status, t.updatedAt.desc()),
   ],
 );
