@@ -167,15 +167,13 @@ describe('finance overview, work log, rates and manual entries (part C)', () => 
     sharedGroup = await newGroup();
     const clientEmail = newEmail();
     const clientId = randomUUID();
-    await db()
-      .insert(user)
-      .values({
-        id: clientId,
-        email: clientEmail,
-        name: 'Client',
-        role: 'client',
-        emailVerified: true,
-      });
+    await db().insert(user).values({
+      id: clientId,
+      email: clientEmail,
+      name: 'Client',
+      role: 'client',
+      emailVerified: true,
+    });
     await addMember(db(), sharedGroup, clientId);
     client = { id: clientId, cookie: await loginAs(test.app, clientEmail) };
   });
