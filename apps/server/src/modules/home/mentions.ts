@@ -78,10 +78,10 @@ export function mentionsSql(userId: string): SQL {
       left join read_states rs on rs.channel_id = m.channel_id and rs.user_id = ${userId}
       left join thread_read_states trs on trs.root_id = m.parent_id and trs.user_id = ${userId}
       where ${mentionNotifiesSql(userId, {
-          groupId: sql`c.group_id`,
-          taskId: sql`c.task_id`,
-          ticketId: sql`c.ticket_id`,
-        })}
+        groupId: sql`c.group_id`,
+        taskId: sql`c.task_id`,
+        ticketId: sql`c.ticket_id`,
+      })}
         and m.created_at > case
           when m.parent_id is null then coalesce(rs.last_read_at, '-infinity'::timestamptz)
           else coalesce(trs.last_read_at, rs.last_read_at, '-infinity'::timestamptz)
