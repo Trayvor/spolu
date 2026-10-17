@@ -38,8 +38,8 @@ Requirements per module: [product/](product/README.md). Phases after 1 get their
 | 29 | [Solve with AI](#phase-29--solve-with-ai) | done | 21 | [spec](superpowers/specs/2026-10-17-phase-29-open-in-claude-design.md) |
 | 31 | [Bulk email builder v2](#phase-31--bulk-email-builder-v2) | in progress (v2 merged in PR #59; layout follow-up in review) | 23 | [spec](superpowers/specs/2026-10-17-phase-31-bulk-email-builder-v2-design.md), [plan](superpowers/plans/2026-10-17-phase-31-bulk-email-builder-v2.md), [layout spec](superpowers/specs/2026-10-17-bulk-email-builder-layout-design.md) |
 | 32 | [Finančná správa](#phase-32--finančná-správa) | in progress (A1 done; A2, B, C next) | 17, 19, 20, 24 | [spec](superpowers/specs/2026-10-17-finance-module-design.md), [plan](superpowers/plans/2026-10-17-finance-module.md) |
-| 33 | [Projects per client and closer eGrant integration](#phase-33--projects-per-client-and-closer-egrant-integration) | spec written, waiting for the owner | 32 (P6 only), 28 | [spec](superpowers/specs/2026-10-17-phase-33-projects-design.md), [plan](superpowers/plans/2026-10-17-phase-33-projects.md) |
-| 34 | [Internal admin group](#phase-34--internal-admin-group) | spec written, waiting for the owner | 33, 32 (P34-E only), 28 | [spec](superpowers/specs/2026-10-17-phase-34-admin-group-design.md), [plan](superpowers/plans/2026-10-17-phase-34-admin-group.md) |
+| 33 | [Projects per client and closer eGrant integration](#phase-33--projects-per-client-and-closer-egrant-integration) | spec approved | 32 (P6 only), 28 | [spec](superpowers/specs/2026-10-17-phase-33-projects-design.md), [plan](superpowers/plans/2026-10-17-phase-33-projects.md) |
+| 34 | [Internal admin group](#phase-34--internal-admin-group) | spec approved | 33, 32 (P34-E only), 28 | [spec](superpowers/specs/2026-10-17-phase-34-admin-group-design.md), [plan](superpowers/plans/2026-10-17-phase-34-admin-group.md) |
 
 Phases 8 and 14 do not depend on each other, so their order can change by priority.
 
@@ -469,9 +469,9 @@ Built in six pull requests: P1 foundation first (the one migration, policy, proj
 
 Small feature with this phase (owner request 2026-10-17): a knowledge item of type "From chat" can be changed to a plain file; built separately on `feat/knowledge-chat-file-to-file` (spec §15).
 
-Status: spec written, waiting for the owner. To decide first: which eGrant field carries the project (decision 1, with the eGrant developers), automatic creation (2), who sees and edits projects (7, 8), the tab's place (13), the description fields (20), the finance filters (23, 24).
+Status: spec approved by the owner on 2026-10-17, with two amendments: changes from eGrant are never applied silently (a pending change reviewed field by field on the project, and Apply / Dismiss on a ticket whose project was chosen by hand; decision 6), and the group's clients create and edit projects and events and set them on tasks and tickets (decision 8; recommended 8a: clients archive, admins alone merge and delete). Final eGrant API: projects by their own webhook `PUT /api/egrant/projects/:project_id` (name, description, the full events list with `dd.mm.yyyy` dates, no event ids), tickets linking `project_id` and `project`, and ticket updates by `external_id` (planned in [the integration guide](integrations/egrant-ticket-intake.md#projects-and-updates-planned)). Ready to start with P1.
 
-Done when: a ticket from eGrant lands in its project by itself, an admin puts it and a task on an event, the client and the admin browse the project's life on the timeline with Today marked, both tabs filter by the project, every description field offers AI, voice and knowledge, and a finance admin sees the project's cost.
+Done when: eGrant's project call creates a client's project with its events and later changes wait for review, a ticket from eGrant lands in its project by itself, an admin puts it and a task on an event, the client and the admin browse the project's life on the timeline with Today marked, both tabs filter by the project, every description field offers AI, voice and knowledge, and a finance admin sees the project's cost.
 
 ## Phase 34 — Internal admin group
 
@@ -481,6 +481,6 @@ Scope: one internal group **"eGrant tím"** (a `groups` row with `kind = 'admin'
 
 Built in five pull requests: P34-A (the picker in client groups, can start before the rest) and P34-B (the admin group) first, then P34-C (knowledge sharing), P34-D (the picker in the admin group) and P34-E (finance in the admin group).
 
-Status: spec written, waiting for the owner. To decide first: the name (decision 3), its place for admins (5), its default notification mode (6), who opens its knowledge in client chats (10), its finance (13), the attachment limits (16) and what a žiadateľ sees of attached tasks and tickets (17).
+Status: spec approved by the owner on 2026-10-17 (every decision as written). P34-A and P34-B can start with Phase 33's first wave.
 
 Done when: every admin works in "eGrant tím" (chat, tasks, projects, knowledge, finance for finance admins) with no way in for a client; an admin shares one internal note with a client chat on purpose and the client opens only that; a message in a client chat carries a task and a ticket card, and in the admin group any client's work with the client filter.

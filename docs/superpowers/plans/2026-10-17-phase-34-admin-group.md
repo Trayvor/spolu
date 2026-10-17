@@ -1,6 +1,6 @@
 # Phase 34 — Internal admin group and the three-tab attachment picker: plan
 
-Spec: [2026-10-17-phase-34-admin-group-design.md](../specs/2026-10-17-phase-34-admin-group-design.md) (read its "Owner decisions" first). Status: **spec written, waiting for the owner**; the **B** decisions (3, 5, 6, 10, 13, 16, 17) are answered before the parts that need them start. The joint merge order with Phases 32 and 33 is in the [Phase 33 plan](2026-10-17-phase-33-projects.md#joint-merge-order-of-phases-32-rest-33-and-34).
+Spec: [2026-10-17-phase-34-admin-group-design.md](../specs/2026-10-17-phase-34-admin-group-design.md) (read its "Owner decisions" first). Status: **approved** by the owner on 2026-10-17 (every decision as written); ready to start. The joint merge order with Phases 32 and 33 is in the [Phase 33 plan](2026-10-17-phase-33-projects.md#joint-merge-order-of-phases-32-rest-33-and-34).
 
 Five pull requests. **P34-A** (the picker in client groups) and **P34-B** (the admin group) are independent and start at once. **P34-C** (knowledge sharing) follows P34-B and Phase 33 P5; **P34-D** (cross-client picker) follows P34-A and P34-B; **P34-E** (finance) follows P34-B and Phase 32 D. Each part is test-first, runs `bash scripts/ci.sh` before merging and updates its docs with `update-kb`; screen work starts with the `frontend-design:frontend-design` skill.
 

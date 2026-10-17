@@ -1,6 +1,6 @@
 # Phase 34 — Internal admin group and the three-tab attachment picker: design
 
-Date: 2026-10-17 · Status: **spec written, waiting for the owner** (nothing is built). Plan: [2026-10-17-phase-34-admin-group.md](../plans/2026-10-17-phase-34-admin-group.md). Roadmap: [Phase 34](../../roadmap.md#phase-34--internal-admin-group). Builds on [Phase 33](2026-10-17-phase-33-projects-design.md) (projects dashboard, description editor), [Phase 32](2026-10-17-finance-module-design.md) (Finance), [Phase 28 attachments](2026-10-17-phase-28-reactions-and-attachments-design.md) (knowledge items in messages), [groups](../../product/groups.md), [client managers](../../product/client-managers.md), [notifications](../../product/notifications.md). Rules: [permissions](../../architecture/permissions.md), [performance](../../architecture/performance.md), [realtime](../../architecture/realtime.md).
+Date: 2026-10-17 · Status: **approved** by the owner on 2026-10-17: every row of the "Owner decisions" table is accepted as written (nothing is built yet). Plan: [2026-10-17-phase-34-admin-group.md](../plans/2026-10-17-phase-34-admin-group.md). Roadmap: [Phase 34](../../roadmap.md#phase-34--internal-admin-group). Builds on [Phase 33](2026-10-17-phase-33-projects-design.md) (projects dashboard, description editor), [Phase 32](2026-10-17-finance-module-design.md) (Finance), [Phase 28 attachments](2026-10-17-phase-28-reactions-and-attachments-design.md) (knowledge items in messages), [groups](../../product/groups.md), [client managers](../../product/client-managers.md), [notifications](../../product/notifications.md). Rules: [permissions](../../architecture/permissions.md), [performance](../../architecture/performance.md), [realtime](../../architecture/realtime.md).
 
 ## Owner's request (2026-10-17, translated from Ukrainian, intent kept)
 
@@ -10,7 +10,7 @@ Date: 2026-10-17 · Status: **spec written, waiting for the owner** (nothing is 
 
 ## Owner decisions
 
-Each row is a recommendation we build unless the owner says otherwise. **B** marks a business choice the owner must confirm.
+Approved by the owner on 2026-10-17. **B** marks a business choice.
 
 | # | Question | Recommendation | Why |
 |---|---|---|---|
