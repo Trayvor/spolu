@@ -329,12 +329,12 @@ describe('deliverPending', () => {
     });
   });
 
-  it('chat set to none sends nothing but still marks delivered', async () => {
+  it('chat set to none records no event and sends nothing', async () => {
     const s = await setup();
     await setNotificationChannel(deps.db, s.client.id, 'chat', 'none');
     await send(s.channel, s.admin);
-    // Nothing could be sent, so the event is recorded as delivered and the worker skips it.
-    expect((await eventsOf(s.client.id))[0]!.deliveredAt).toBeInstanceOf(Date);
+    // Nothing could ever be sent, so no event is recorded at all (Phase 27 S5).
+    expect(await eventsOf(s.client.id)).toEqual([]);
     expect(await deliverPending(deps, { userIds: [s.client.id] })).toBe(0);
     expect(sentTo(s.endpoint)).toHaveLength(0);
   });
