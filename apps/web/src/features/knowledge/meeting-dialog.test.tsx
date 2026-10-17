@@ -2,6 +2,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import {
+  RouterProvider,
+  createMemoryHistory,
+  createRootRoute,
+  createRouter,
+} from '@tanstack/react-router';
 import type { GroupPerson, KnowledgeItemDto, MeetingDetail, Me } from '@spolu/shared';
 import { i18n } from '@/i18n';
 import { createKnowledge } from './api';
@@ -111,9 +117,17 @@ function renderDialog(
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   client.setQueryData(['session'], me);
   const onClose = vi.fn();
+  // In a router: the dialog guards unsaved edits against Back (`useBlocker`).
+  const rootRoute = createRootRoute({
+    component: () => <KnowledgeDialog target={target} onClose={onClose} onUnavailable={vi.fn()} />,
+  });
+  const router = createRouter({
+    routeTree: rootRoute,
+    history: createMemoryHistory({ initialEntries: ['/'] }),
+  });
   render(
     <QueryClientProvider client={client}>
-      <KnowledgeDialog target={target} onClose={onClose} onUnavailable={vi.fn()} />
+      <RouterProvider router={router} />
     </QueryClientProvider>,
   );
   return { client, onClose };
