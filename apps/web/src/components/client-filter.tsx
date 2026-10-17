@@ -1,12 +1,35 @@
 import { useId, useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Popover } from 'radix-ui';
+import type { GroupSummary } from '@spolu/shared';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { SheetDialog, SheetDialogTitle } from '@/components/ui/sheet-dialog';
 import { useMediaQuery } from '@/lib/use-media-query';
 
-export type ClientOption = { id: string; name: string; logoUrl: string | null };
+/** `internal`: the admin group "eGrant tím" (Phase 34), the option at the top. */
+export type ClientOption = { id: string; name: string; logoUrl: string | null; internal?: boolean };
+
+/**
+ * The filter's options from `/api/groups`: the client groups, and with `adminGroup` the admin
+ * group first as the internal option (the global board and knowledge list); without it the admin
+ * group is left out (lists where it can hold nothing, like tickets).
+ */
+export function toClientOptions(
+  groups: readonly GroupSummary[],
+  adminGroup: boolean,
+): ClientOption[] {
+  const option = (group: GroupSummary): ClientOption => ({
+    id: group.id,
+    name: group.name,
+    logoUrl: group.hasLogo
+      ? `/api/groups/${encodeURIComponent(group.id)}/logo?v=${encodeURIComponent(group.updatedAt)}`
+      : null,
+    ...(group.kind === 'admin' ? { internal: true } : {}),
+  });
+  const internal = adminGroup ? groups.filter((g) => g.kind === 'admin') : [];
+  return [...internal, ...groups.filter((g) => g.kind === 'client')].map(option);
+}
 
 /** Lower case without diacritics, so "lu" finds "Lúčky". */
 const fold = (text: string) => text.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
@@ -27,8 +50,22 @@ function CrossIcon() {
   );
 }
 
-/** The client's 24 px logo, or its first letter (drawn by CSS, so it is not part of the name). */
+/**
+ * The client's 24 px logo, or its first letter (drawn by CSS, so it is not part of the name); the
+ * admin group without a logo shows the egrant mark.
+ */
 function ClientLogo({ client }: { client: ClientOption }) {
+  if (!client.logoUrl && client.internal) {
+    return (
+      <span
+        aria-hidden="true"
+        data-egrant-mark=""
+        className="inline-flex size-6 shrink-0 items-center justify-center rounded-md bg-secondary"
+      >
+        <img src="/brand/favicon.svg" alt="" width={14} height={14} decoding="async" />
+      </span>
+    );
+  }
   if (client.logoUrl) {
     return (
       <img
@@ -60,6 +97,8 @@ function ClientLogo({ client }: { client: ClientOption }) {
  *   is null (client managers do not exist) or empty (the admin manages none, with a hint).
  * - With managed clients the list splits into "Managed by you" and "Other clients"; managed
  *   chips carry a 6 px ink dot so the two kinds stay apart outside the popover too.
+ * - An `internal` option (the admin group, Phase 34) sits on top in its own section and belongs
+ *   to the default scope with the managed clients (every admin is effectively its manager).
  * - Every change calls `onChange` at once with the ids in the order of `groups`; "Only my
  *   clients" and "Reset" give null, "All clients" every id.
  *
@@ -90,12 +129,14 @@ export function ClientFilter({
     const collator = new Intl.Collator(i18n.language);
     return [...groups].sort((a, b) => collator.compare(a.name, b.name));
   }, [groups, i18n.language]);
-  const mine = sorted.filter((group) => managed.has(group.id));
-  const others = sorted.filter((group) => !managed.has(group.id));
+  const internal = sorted.filter((group) => group.internal);
+  const mine = sorted.filter((group) => !group.internal && managed.has(group.id));
+  const others = sorted.filter((group) => !group.internal && !managed.has(group.id));
   // Two sections only once the data says which clients are managed.
   const split = mine.length > 0;
+  const mineScope = [...internal, ...mine];
 
-  const defaultIds = split ? mine.map((group) => group.id) : groups.map((group) => group.id);
+  const defaultIds = split ? mineScope.map((group) => group.id) : groups.map((group) => group.id);
   // Ids of clients that no longer exist (an old link, stored choice) are ignored.
   const known = new Set(groups.map((group) => group.id));
   const selected = new Set(value === null ? defaultIds : value.filter((id) => known.has(id)));
@@ -108,7 +149,9 @@ export function ClientFilter({
         : t('knowledge.clientFilter.pillAll')
       : allChosen
         ? t('knowledge.clientFilter.pillAll')
-        : split && selected.size === mine.length && mine.every((group) => selected.has(group.id))
+        : split &&
+            selected.size === mineScope.length &&
+            mineScope.every((group) => selected.has(group.id))
           ? t('knowledge.clientFilter.pillMine', { count: mine.length })
           : t('knowledge.clientFilter.pillSelected', { count: selected.size });
 
@@ -123,10 +166,13 @@ export function ClientFilter({
   const chooseAll = () => emit(known);
 
   // Chips: the chosen clients, managed first, unless the choice is every client.
-  const chips = allChosen ? [] : [...mine, ...others].filter((group) => selected.has(group.id));
+  const chips = allChosen
+    ? []
+    : [...internal, ...mine, ...others].filter((group) => selected.has(group.id));
 
   const panel = (
     <Panel
+      internal={internal}
       mine={mine}
       others={others}
       split={split}
@@ -195,7 +241,7 @@ export function ClientFilter({
               key={group.id}
               className="inline-flex h-8 items-center gap-1.5 rounded-full bg-secondary pr-1 pl-3 text-tiny font-semibold text-secondary-foreground"
             >
-              {managed.has(group.id) && (
+              {!group.internal && managed.has(group.id) && (
                 <span
                   data-managed-dot=""
                   aria-hidden="true"
@@ -262,6 +308,7 @@ function Section({
 }
 
 function Panel({
+  internal,
   mine,
   others,
   split,
@@ -273,6 +320,7 @@ function Panel({
   onAll,
   onDone,
 }: {
+  internal: ClientOption[];
   mine: ClientOption[];
   others: ClientOption[];
   split: boolean;
@@ -289,11 +337,20 @@ function Panel({
   const needle = fold(find.trim());
   const match = (list: ClientOption[]) =>
     needle ? list.filter((client) => fold(client.name).includes(needle)) : list;
+  const shownInternal = match(internal);
   const shownMine = match(mine);
   const shownOthers = match(others);
+  const internalSection = (
+    <Section
+      title={t('knowledge.clientFilter.internal')}
+      clients={shownInternal}
+      selected={selected}
+      onToggle={onToggle}
+    />
+  );
 
   let sections: ReactNode;
-  if (shownMine.length + shownOthers.length === 0) {
+  if (shownInternal.length + shownMine.length + shownOthers.length === 0) {
     sections = (
       <p className="px-3 py-2 text-button text-muted-foreground">
         {t('knowledge.clientFilter.noMatch', { q: find.trim() })}
@@ -302,6 +359,7 @@ function Panel({
   } else if (split) {
     sections = (
       <>
+        {internalSection}
         <Section
           title={t('knowledge.clientFilter.managed')}
           clients={shownMine}
@@ -318,12 +376,15 @@ function Panel({
     );
   } else {
     sections = (
-      <Section
-        title={t('knowledge.clientFilter.clients')}
-        clients={shownOthers}
-        selected={selected}
-        onToggle={onToggle}
-      />
+      <>
+        {internalSection}
+        <Section
+          title={t('knowledge.clientFilter.clients')}
+          clients={shownOthers}
+          selected={selected}
+          onToggle={onToggle}
+        />
+      </>
     );
   }
 

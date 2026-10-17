@@ -10,7 +10,8 @@ import { unseenTaskIdsSql, unseenTicketIdsSql } from '../notifications/unseen.js
  * The admin sidebar in one statement: every group with the viewer's unread group chat count
  * (the Chat tab number), the tasks and the tickets of it with a change the viewer has not seen
  * (2026-10-17, `unseen.ts`; the row's one black badge adds the three), and whether they manage
- * it. Ordered managed first; inside each section those with a badge, then the rest, by name (a
+ * it. Ordered the admin group first (its own `internal` section, Phase 34), then managed;
+ * inside each section those with a badge, then the rest, by name (a
  * stable order, so rows do not jump while the admin reads).
  *
  * The unread number is 0 for a group whose chat never notifies the viewer (2026-10-17, the
@@ -27,6 +28,7 @@ export function sidebarSql(userId: string): SQL {
       select
         g.id as group_id,
         g.name,
+        g.kind = 'admin' as internal,
         g.logo_key is not null as has_logo,
         g.updated_at,
         g.id in ${managedGroupsSql(userId)} as managed,
@@ -50,13 +52,14 @@ export function sidebarSql(userId: string): SQL {
         group by k.group_id
       ) uk on uk.group_id = g.id
     ) s
-    order by managed desc, (unread + unseen_tasks + unseen_tickets > 0) desc, name, group_id
+    order by internal desc, managed desc, (unread + unseen_tasks + unseen_tickets > 0) desc, name, group_id
   `;
 }
 
 type Row = {
   group_id: string;
   name: string;
+  internal: boolean;
   has_logo: boolean;
   updated_at: string | Date;
   managed: boolean;
@@ -73,6 +76,7 @@ export async function getSidebar(db: Db, userId: string): Promise<SidebarClient[
     hasLogo: r.has_logo,
     updatedAt: new Date(r.updated_at).toISOString(),
     managed: r.managed,
+    section: r.internal ? 'internal' : 'client',
     unread: r.unread,
     unseenTasks: r.unseen_tasks,
     unseenTickets: r.unseen_tickets,

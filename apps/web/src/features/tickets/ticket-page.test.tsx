@@ -406,6 +406,8 @@ describe('ticket page', () => {
         tasks: [{ id: 't1', title: 'Fix the budget step', completed: false }],
         reactions: [],
         knowledge: [],
+        attachedTasks: [],
+        attachedTickets: [],
       };
       const chat: Parameters<typeof mockTicketApi>[1] = [
         ...aiOn,

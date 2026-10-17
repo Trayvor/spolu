@@ -6,7 +6,7 @@ Requirements as built. Design: [Phase 33 spec](../superpowers/specs/2026-10-17-p
 
 - **Project** (sk "Projekt"): belongs to one client group. Name (1–200, required), description (Markdown, ≤ 10 000), files (0–20 ordinary group files), status **active** or **archived**, source **manual** or **egrant** ("From eGrant"), eGrant's project id (read-only), **aliases** (the name keys of its earlier names).
 - **Event** (sk "Udalosť"): belongs to one project. Name (1–200), description, files, **date** (one day, required, past dates allowed). Events of one day are ordered by creation.
-- A task or a ticket has at most one project and, inside it, at most one event (part P2 sets them). The database refuses another client's project and an event of another project ([ADR 0029](../decisions/0029-projects-composite-keys-and-egrant-matching.md)).
+- A task or a ticket has at most one project and, inside it, at most one event (part P2 sets them). The database refuses another client's project and an event of another project ([ADR 0030](../decisions/0030-projects-composite-keys-and-egrant-matching.md)).
 - Each project has a **colour** from the brand accents (purple, pink, blue, coral, green), picked by a hash of its id like avatars; shown only as a small dot.
 - **Name key**: the name trimmed, inner spaces collapsed, lower-cased, without diacritics. Two projects of one client never share a name key; a rename keeps the old key as an alias ("Also matches"), which anyone who edits the project can remove.
 
@@ -24,6 +24,7 @@ Admins and the group's clients (everyone who reads the group) see projects and e
 - **Archive** is the normal way to end a project: it leaves the active list and the pickers' active section, stays in the Archived list and stays selectable for tasks and tickets. **Delete** removes the project, its events, files, aliases and links; its tasks and tickets keep existing without it. Deleting an event clears only the event on its tasks and tickets.
 - **Live**: every write tells the group's room `project:changed`; an open Prehľad refetches 2 s after the last change.
 - Merge ("Merge into…") is part P3's; "Show on the timeline" is part P4's.
+- **The admin group** "eGrant tím" (Phase 34, `kind = 'admin'`) has the Prehľad tab and its own projects too: the project routes check `canReadGroup`, which only admins pass there. Its card counts no tickets (the admin group has none); the eGrant webhook and ticket links (part P3) concern client groups only.
 
 ## Links and filters (part P2)
 

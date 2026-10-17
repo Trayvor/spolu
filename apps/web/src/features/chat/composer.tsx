@@ -34,6 +34,8 @@ import { safeHref } from './format/parse';
 import { FormatToolbar, iconButton, phoneIconButton } from './format-toolbar';
 import { BookIcon, CloseIcon, PaperclipIcon, SendIcon } from './icons';
 import type { PickedKnowledge } from './knowledge-picker';
+import { PickedChips } from './attach-picker/chips';
+import type { PickedTask, PickedTicket } from './attach-picker/picked';
 import { MentionPicker, type MentionChoice, type MentionPickerHandle } from './mention-picker';
 import { AiTextButton } from './ai-tools/ai-text-button';
 import { VoiceButton } from './voice-input/voice-button';
@@ -56,8 +58,8 @@ export interface ComposerHandle {
   focus(): void;
 }
 
-// Phase 28: the knowledge picker loads when it is first opened.
-const KnowledgePicker = lazy(withNamespaces(['forms'], () => import('./knowledge-picker')));
+// Phase 28 and 34: the attachment picker (knowledge, tasks, tickets) loads when first opened.
+const AttachPicker = lazy(withNamespaces(['forms'], () => import('./attach-picker')));
 
 export interface ComposerProps {
   ref?: Ref<ComposerHandle>;
@@ -83,6 +85,8 @@ export interface ComposerProps {
     body: string;
     fileIds: string[];
     knowledgeIds?: string[];
+    taskIds?: string[];
+    ticketIds?: string[];
     replyToId?: string;
   }): void | Promise<void>;
   onCancel?(): void;
@@ -155,6 +159,9 @@ export function Composer({
   // Phase 28: knowledge items to attach, and whether their picker is open.
   const [knowledge, setKnowledge] = useState<PickedKnowledge[]>([]);
   const [knowledgeOpen, setKnowledgeOpen] = useState(false);
+  // Phase 34: tasks and tickets to attach, picked in the same dialog.
+  const [tasks, setTasks] = useState<PickedTask[]>([]);
+  const [tickets, setTickets] = useState<PickedTicket[]>([]);
   // A reader who reaches knowledge only through messages (a žiadateľ) attaches none.
   const canAttachKnowledge = mode !== 'edit' && !scope.knowledgeViaMessage;
 
@@ -264,7 +271,12 @@ export function Composer({
     !uploading &&
     !uploadFailed &&
     body.length <= MESSAGE_MAX_LENGTH &&
-    (body.trim().length > 0 || fileIds.length > 0 || knowledge.length > 0 || hasAttachments);
+    (body.trim().length > 0 ||
+      fileIds.length > 0 ||
+      knowledge.length > 0 ||
+      tasks.length > 0 ||
+      tickets.length > 0 ||
+      hasAttachments);
   const canSend = canSendBody(storedBody);
 
   async function submit() {
@@ -276,12 +288,16 @@ export function Composer({
       body,
       fileIds,
       ...(knowledge.length > 0 ? { knowledgeIds: knowledge.map((k) => k.id) } : {}),
+      ...(tasks.length > 0 ? { taskIds: tasks.map((k) => k.id) } : {}),
+      ...(tickets.length > 0 ? { ticketIds: tickets.map((k) => k.id) } : {}),
       ...(replyTo ? { replyToId: replyTo.message.id } : {}),
     };
     if (mode !== 'edit') {
       editor.current?.clear();
       setMarkdown('');
       setKnowledge([]);
+      setTasks([]);
+      setTickets([]);
       commitUploads([]);
       setNotice(null);
       replyTo?.onCancel();
@@ -521,8 +537,8 @@ export function Composer({
                 {canAttachKnowledge && (
                   <button
                     type="button"
-                    aria-label={t('chat.knowledge.attach')}
-                    title={t('chat.knowledge.attach')}
+                    aria-label={t('chat.work.attach')}
+                    title={t('chat.work.attach')}
                     onClick={() => setKnowledgeOpen(true)}
                     className={cn(iconButton, 'relative shrink-0', HIT)}
                   >
@@ -595,13 +611,24 @@ export function Composer({
           ))}
         </ul>
       )}
+      <PickedChips
+        picked={{ knowledge: [], tasks, tickets }}
+        kinds={['tasks', 'tickets']}
+        onRemove={(kind, id) =>
+          kind === 'tasks'
+            ? setTasks((list) => list.filter((x) => x.id !== id))
+            : setTickets((list) => list.filter((x) => x.id !== id))
+        }
+      />
       {knowledgeOpen && (
         <Suspense fallback={null}>
-          <KnowledgePicker
+          <AttachPicker
             groupId={groupId}
-            picked={knowledge}
-            onDone={(items) => {
-              setKnowledge(items);
+            picked={{ knowledge, tasks, tickets }}
+            onDone={(picked) => {
+              setKnowledge(picked.knowledge);
+              setTasks(picked.tasks);
+              setTickets(picked.tickets);
               setKnowledgeOpen(false);
               editor.current?.focus();
             }}

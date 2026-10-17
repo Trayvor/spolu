@@ -53,7 +53,7 @@ export const tickets = pgTable(
     /**
      * The ticket's project and event (Phase 33; set by part P2, linked from eGrant by part P3).
      * The same composite FKs as tasks (column-list `set null`, written by hand in migration
-     * 0037); a ticket without a client has none. Moving a ticket to
+     * 0038); a ticket without a client has none. Moving a ticket to
      * another client must clear (or re-match) them in the same statement.
      */
     projectId: text('project_id'),
@@ -105,6 +105,8 @@ export const tickets = pgTable(
     index('tickets_unassigned_created_idx')
       .on(t.createdAt.desc())
       .where(sql`${t.groupId} is null`),
+    // The picker's subject search (Phase 34); trigram as in ADR 0015.
+    index('tickets_subject_trgm_idx').using('gin', t.subject.op('gin_trgm_ops')),
     index('tickets_due_open_idx')
       .on(t.dueDate)
       .where(sql`${t.status} <> 'resolved'`),

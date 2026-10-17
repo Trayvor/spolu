@@ -33,6 +33,7 @@ const ME = {
 };
 const ACME: GroupSummary = {
   id: 'g1',
+  kind: 'client',
   name: 'Acme',
   hasLogo: false,
   memberCount: 3,

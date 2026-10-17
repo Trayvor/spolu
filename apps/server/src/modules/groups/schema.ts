@@ -1,18 +1,43 @@
 import { sql } from 'drizzle-orm';
-import { check, index, pgTable, primaryKey, text, timestamp } from 'drizzle-orm/pg-core';
-import type { MemberRole } from '@spolu/shared';
+import {
+  check,
+  index,
+  pgTable,
+  primaryKey,
+  text,
+  timestamp,
+  uniqueIndex,
+} from 'drizzle-orm/pg-core';
+import type { GroupKind, MemberRole } from '@spolu/shared';
 import { user } from '../users/schema.js';
 
-export const groups = pgTable('groups', {
-  id: text('id').primaryKey(),
-  name: text('name').notNull(),
-  logoKey: text('logo_key'),
-  /** Normalized origin, e.g. `https://firma.egrant.sk`. */
-  egrantUrl: text('egrant_url').notNull().unique('groups_egrant_url_unique'),
-  inviteToken: text('invite_token').notNull().unique('groups_invite_token_unique'),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-});
+/**
+ * A client's group, or (`kind = 'admin'`, Phase 34) the one internal group "eGrant tím": read by
+ * every admin, with no eGrant URL, no members and no tickets. `ensureAdminGroup` keeps it.
+ */
+export const groups = pgTable(
+  'groups',
+  {
+    id: text('id').primaryKey(),
+    name: text('name').notNull(),
+    kind: text('kind').$type<GroupKind>().notNull().default('client'),
+    logoKey: text('logo_key'),
+    /** Normalized origin, e.g. `https://firma.egrant.sk`; null only for the admin group. */
+    egrantUrl: text('egrant_url').unique('groups_egrant_url_unique'),
+    /** The admin group's token is never shown and never opens anything. */
+    inviteToken: text('invite_token').notNull().unique('groups_invite_token_unique'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    check('groups_kind_check', sql`${t.kind} in ('client', 'admin')`),
+    check('groups_egrant_url_check', sql`${t.kind} = 'admin' or ${t.egrantUrl} is not null`),
+    // Exactly one admin group: every row of that kind has the same key.
+    uniqueIndex('groups_one_admin')
+      .on(sql`(true)`)
+      .where(sql`${t.kind} = 'admin'`),
+  ],
+);
 
 /**
  * A person's membership of a group (Phase 21): one row per user and group. `client` reads the

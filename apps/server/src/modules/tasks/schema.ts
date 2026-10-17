@@ -100,7 +100,7 @@ export const tasks = pgTable(
     /**
      * The task's project and event (Phase 33; set by part P2). Composite FKs: the project is of
      * the task's own client, the event of that project. Deleting an event clears `event_id`,
-     * deleting a project `project_id` (column-list `set null`, written by hand in migration 0037;
+     * deleting a project `project_id` (column-list `set null`, written by hand in migration 0038;
      * the projects service deletes the events first, so the CHECK holds).
      */
     projectId: text('project_id'),
@@ -150,6 +150,8 @@ export const tasks = pgTable(
     index('tasks_source_meeting_id_idx')
       .on(t.sourceMeetingId)
       .where(sql`${t.sourceMeetingId} is not null`),
+    // The picker's title search (Phase 34); trigram as in ADR 0015.
+    index('tasks_title_trgm_idx').using('gin', t.title.op('gin_trgm_ops')),
     index('tasks_source_message_id_idx')
       .on(t.sourceMessageId)
       .where(sql`${t.sourceMessageId} is not null`),

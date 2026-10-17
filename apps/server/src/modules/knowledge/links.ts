@@ -6,7 +6,7 @@ import { knowledgeLinks } from './schema.js';
 
 /**
  * Knowledge attached to descriptions (Phase 33 part P5, spec §10.3), on the `knowledge_links`
- * table of migration 0037. The owners of the descriptions (tasks, tickets, projects, events,
+ * table of migration 0038. The owners of the descriptions (tasks, tickets, projects, events,
  * knowledge items) call these inside their writes and DTO builds and never read the table.
  * Only items everyone who reads the description may see are attached: a client group's public,
  * shareable items (`isShareable`, the chat's rule), checked on save and again on display.

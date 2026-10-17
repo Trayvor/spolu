@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { PanelHeader } from '@/components/ui/panel-header';
 import { Select } from '@/components/ui/select';
 import { SheetDialog, SheetDialogTitle } from '@/components/ui/sheet-dialog';
-import { groupsQuery } from '@/features/groups/api';
+import { groupsQuery, onlyClientGroups } from '@/features/groups/api';
 import { useCreateTicket } from './api';
 import { ContentFields, contentErrors, EMPTY_CONTENT, type ContentDraft } from './content-fields';
 
@@ -38,7 +38,11 @@ export function NewTicketDialog({
   const uid = useId();
   const id = (name: string) => `${uid}-${name}`;
   const subjectRef = useRef<HTMLInputElement>(null);
-  const groups = useQuery({ ...groupsQuery, enabled: admin && !fixedGroupId }).data;
+  const groups = useQuery({
+    ...groupsQuery,
+    select: onlyClientGroups,
+    enabled: admin && !fixedGroupId,
+  }).data;
   const [groupId, setGroupId] = useState(fixedGroupId ?? '');
   const [content, setContent] = useState<ContentDraft>(EMPTY_CONTENT);
   const [email, setEmail] = useState('');

@@ -24,6 +24,15 @@ describe('group modes', () => {
     expect(effectiveGroupMode({ override: null, defaultMode: 'off', role: 'client' })).toBe('off');
     expect(effectiveGroupMode({ override: 'all', defaultMode: 'off', role: 'admin' })).toBe('all');
   });
+
+  it('the admin group falls back to all before the user default; an override still wins', () => {
+    const admin = { role: 'admin' as const, adminGroup: true };
+    expect(effectiveGroupMode({ ...admin, override: null, defaultMode: null })).toBe('all');
+    expect(effectiveGroupMode({ ...admin, override: null, defaultMode: 'off' })).toBe('all');
+    expect(effectiveGroupMode({ ...admin, override: 'mentions', defaultMode: null })).toBe(
+      'mentions',
+    );
+  });
 });
 
 describe('schemas', () => {

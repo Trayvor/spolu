@@ -139,6 +139,41 @@
       "chat_file": "Iz chata"
     }
   },
+  "work": {
+    "attach": "Priloži znanje, zadatak ili tiket",
+    "pickerTitle": "Priloži poruci",
+    "tabs": {
+      "knowledge": "Znanje",
+      "tasks": "Zadaci",
+      "tickets": "Tiketi"
+    },
+    "searchTasks": "Traži zadatke po naslovu",
+    "searchTickets": "Traži tikete po broju ili predmetu",
+    "includeResolved": "Uključi riješene tikete",
+    "noTasks": "Ova grupa još nema zadataka.",
+    "noTickets": "Ova grupa nema otvorenih tiketa.",
+    "noResults": "Ništa ne odgovara pretraživanju.",
+    "limitTasks": "Najviše {{count}} zadataka po poruci.",
+    "limitTickets": "Najviše {{count}} tiketa po poruci.",
+    "attached": "Priložene stavke",
+    "taskUnavailable": "Zadatak nije dostupan",
+    "ticketUnavailable": "Tiket nije dostupan",
+    "noSubject": "Bez predmeta",
+    "completed": "Dovršeno",
+    "overdue": "Istekao rok",
+    "urgent": "Hitno",
+    "bucket": {
+      "todo": "Za obradu",
+      "egrant_review": "Pregled eGranta",
+      "client_review": "Pregled klijenta",
+      "done": "Dovršeno"
+    },
+    "status": {
+      "new": "Novi",
+      "in_progress": "U obradi",
+      "resolved": "Riješen"
+    }
+  },
   "editor": {
     "knowledgeUnavailable": "Priloženu stavku znanja ovdje više nije moguće dijeliti. Uklonite je i spremite ponovno."
   }

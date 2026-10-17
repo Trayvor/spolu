@@ -4,6 +4,7 @@ Terms used across the docs and code, in alphabetical order.
 
 - **@all**: a mention of everyone in the group (shown as "Everyone in this group" in the picker, stored as `<@all>`). It marks the message for every person in the group, like a mention of each of them.
 - **admin**: an eGrant team member. Sees all groups and can manage them. Created by the superadmin.
+- **admin group**: the one internal group "eGrant tím" (Phase 34), a `groups` row with `kind = 'admin'`. Every admin reads it, no client ever does; it has chat, tasks and knowledge but no tickets, members or managers. Shown first as "Internal" in the admin's client list.
 - **ADR**: architecture decision record, a short file in `docs/decisions/` that records one decision and why it was made.
 - **API key**: the shared secret (`TICKETS_API_KEY`) eGrant sends as `Authorization: Bearer` with each ticket to the intake API.
 - **AppPrompt**: the one card at the bottom of every signed-in screen that asks to install the app on a phone, then to turn on notifications on this device, or tells an old iPhone that only email works (`<AppPrompt>`, `features/notifications/app-prompt.tsx`). "Not now" hides it for 6 hours on that device.
@@ -48,6 +49,7 @@ Terms used across the docs and code, in alphabetical order.
 - **manager**: an admin who manages a group (an eGrant account manager for that client). A per-group flag, not a role: a group can have several managers and an admin can manage several groups; each admin becomes or stops being one only for themselves. A disabled admin does not count. Becoming manager turns the group's mode to All messages unless the admin chose one.
 - **member**: a user who belongs to a group: a `group_members` row with a role (`client` or `ziadatel`); removed by an admin when `removed_at` is set.
 - **mention**: tagging a user with @ in a message so they are notified.
+- **attached work**: a task or ticket of the channel's group attached to a chat message with the attachment picker (Phase 34); shown as a live card, "unavailable" once deleted or moved to another client.
 - **message**: one post in a channel. Can have attachments, a thread and mentions.
 - **module**: a self-contained feature area of the server (for example chat or tasks) that owns its routes, policies and tables.
 - **notification group**: one of chat, task board, ticket board, knowledge base: every notification event belongs to one, and the user picks its channel (Email, Push, Email and push, None) in the profile. Keys `chat`, `tasks`, `tickets`, `knowledge`. Not the same as a client group's notification mode (bell), which decides what arrives.

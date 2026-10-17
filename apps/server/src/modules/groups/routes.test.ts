@@ -107,6 +107,7 @@ describe('groups API', () => {
     expect(list.find((g) => g.id === group.id)).toEqual({
       id: group.id,
       name: 'Acme 2',
+      kind: 'client',
       hasLogo: false,
       memberCount: 0,
       updatedAt: edited.json<Group>().updatedAt,

@@ -11,7 +11,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
-import { groupsQuery } from '@/features/groups/api';
+import { groupsQuery, onlyClientGroups } from '@/features/groups/api';
 import { ImagePreview } from '@/features/files/image-preview';
 import { formatCreated, formatDue, todayInBratislava } from '@/features/tasks/dates';
 import { ApiError } from '@/lib/api';
@@ -123,7 +123,7 @@ function ClientSelect({
 }) {
   const { t } = useTranslation();
   const id = useId();
-  const groups = useQuery(groupsQuery).data;
+  const groups = useQuery({ ...groupsQuery, select: onlyClientGroups }).data;
   const locked = ticket.groupId !== null && ticket.taskCount > 0;
   const reason = locked ? t('tickets.assign.hasTasks') : error;
   return (

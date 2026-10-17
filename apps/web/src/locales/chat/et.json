@@ -136,6 +136,41 @@
       "chat_file": "Vestlusest"
     }
   },
+  "work": {
+    "attach": "Lisa teadmine, ülesanne või pilet",
+    "pickerTitle": "Lisa sõnumile",
+    "tabs": {
+      "knowledge": "Teadmised",
+      "tasks": "Ülesanded",
+      "tickets": "Piletid"
+    },
+    "searchTasks": "Otsi ülesandeid pealkirja järgi",
+    "searchTickets": "Otsi pileteid numbri või teema järgi",
+    "includeResolved": "Kaasa lahendatud piletid",
+    "noTasks": "Sellel grupil pole veel ülesandeid.",
+    "noTickets": "Sellel grupil pole avatud pileteid.",
+    "noResults": "Otsingule ei vasta midagi.",
+    "limitTasks": "Kuni {{count}} ülesannet sõnumi kohta.",
+    "limitTickets": "Kuni {{count}} piletit sõnumi kohta.",
+    "attached": "Lisatud kirjed",
+    "taskUnavailable": "Ülesanne pole saadaval",
+    "ticketUnavailable": "Pilet pole saadaval",
+    "noSubject": "Teema puudub",
+    "completed": "Lõpetatud",
+    "overdue": "Tähtaeg ületatud",
+    "urgent": "Kiire",
+    "bucket": {
+      "todo": "Teha",
+      "egrant_review": "eGranti ülevaatus",
+      "client_review": "Kliendi ülevaatus",
+      "done": "Lõpetatud"
+    },
+    "status": {
+      "new": "Uus",
+      "in_progress": "Töös",
+      "resolved": "Lahendatud"
+    }
+  },
   "editor": {
     "knowledgeUnavailable": "Lisatud teadmuse kirjet ei saa siin enam jagada. Eemaldage see ja salvestage uuesti."
   }

@@ -13,6 +13,7 @@ const t = (key: string) => i18n.t(key);
 
 const SAVED: Group = {
   id: 'g1',
+  kind: 'client',
   name: 'Acme',
   egrantUrl: 'https://acme.egrant.sk',
   hasLogo: false,

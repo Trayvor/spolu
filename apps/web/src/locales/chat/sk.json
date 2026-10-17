@@ -142,6 +142,41 @@
       "chat_file": "Z chatu"
     }
   },
+  "work": {
+    "attach": "Priložiť znalosť, úlohu alebo tiket",
+    "pickerTitle": "Priložiť k správe",
+    "tabs": {
+      "knowledge": "Znalosti",
+      "tasks": "Úlohy",
+      "tickets": "Tikety"
+    },
+    "searchTasks": "Hľadať úlohy podľa názvu",
+    "searchTickets": "Hľadať tikety podľa čísla alebo predmetu",
+    "includeResolved": "Zahrnúť vyriešené tikety",
+    "noTasks": "Táto skupina zatiaľ nemá žiadne úlohy.",
+    "noTickets": "Táto skupina nemá žiadne otvorené tikety.",
+    "noResults": "Vášmu hľadaniu nič nezodpovedá.",
+    "limitTasks": "Najviac {{count}} úloh na správu.",
+    "limitTickets": "Najviac {{count}} tiketov na správu.",
+    "attached": "Priložené položky",
+    "taskUnavailable": "Úloha nie je dostupná",
+    "ticketUnavailable": "Tiket nie je dostupný",
+    "noSubject": "Bez predmetu",
+    "completed": "Hotová",
+    "overdue": "Po termíne",
+    "urgent": "Urgentné",
+    "bucket": {
+      "todo": "Na spracovanie",
+      "egrant_review": "Kontrola eGrant",
+      "client_review": "Kontrola klienta",
+      "done": "Hotové"
+    },
+    "status": {
+      "new": "Nový",
+      "in_progress": "V riešení",
+      "resolved": "Vyriešený"
+    }
+  },
   "editor": {
     "knowledgeUnavailable": "Priložená položka znalostí sa tu už nedá zdieľať. Odstráňte ju a uložte znova."
   }

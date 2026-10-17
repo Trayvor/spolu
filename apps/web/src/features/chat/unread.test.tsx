@@ -58,6 +58,8 @@ function message(over: Partial<MessageDto> = {}): MessageDto {
     tasks: [],
     reactions: [],
     knowledge: [],
+    attachedTasks: [],
+    attachedTickets: [],
     ...over,
   };
 }

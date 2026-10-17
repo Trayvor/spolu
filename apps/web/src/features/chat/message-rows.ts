@@ -85,5 +85,7 @@ export function pendingAsMessage(
     tasks: [],
     reactions: [],
     knowledge: [],
+    attachedTasks: [],
+    attachedTickets: [],
   };
 }

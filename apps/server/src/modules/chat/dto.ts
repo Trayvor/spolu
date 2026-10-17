@@ -6,13 +6,11 @@ import { listTasksForMessages } from '../tasks/service.js';
 import { user } from '../users/schema.js';
 import { loadMessageKnowledge } from './knowledge-links.js';
 import { loadReactions } from './reactions.js';
+import { loadMessageWork } from './work-links.js';
 import { messageAttachments, messageMentions, messages } from './schema.js';
 
 export type MessageRow = typeof messages.$inferSelect;
 
-/** The message without its task links, for a reader who cannot open the group's board. */
-export const withoutTaskLinks = (message: MessageDto): MessageDto =>
-  message.tasks.length === 0 ? message : { ...message, tasks: [] };
 export type MessageWithAuthor = MessageRow & { author: ChatAuthor };
 
 // Deliberate read-only exception to "no other module's tables": the author's name and role are
@@ -57,7 +55,7 @@ export async function toMessageDtos(
   rows: MessageWithAuthor[],
 ): Promise<MessageDto[]> {
   const liveIds = rows.filter((r) => r.deletedAt === null).map((r) => r.id);
-  const [mentionRows, attachmentRows, tasksOf, reactionsOf, knowledgeOf] =
+  const [mentionRows, attachmentRows, tasksOf, reactionsOf, knowledgeOf, workOf] =
     liveIds.length === 0
       ? [
           [],
@@ -65,6 +63,10 @@ export async function toMessageDtos(
           new Map<string, MessageDto['tasks']>(),
           new Map<string, MessageDto['reactions']>(),
           new Map<string, MessageDto['knowledge']>(),
+          {
+            tasks: new Map<string, MessageDto['attachedTasks']>(),
+            tickets: new Map<string, MessageDto['attachedTickets']>(),
+          },
         ]
       : await Promise.all([
           db.select().from(messageMentions).where(inArray(messageMentions.messageId, liveIds)),
@@ -76,6 +78,7 @@ export async function toMessageDtos(
           listTasksForMessages(db, liveIds),
           loadReactions(db, liveIds),
           loadMessageKnowledge(db, groupId, liveIds),
+          loadMessageWork(db, groupId, liveIds),
         ]);
   const files = await getFilesForGroup(
     db,
@@ -116,6 +119,8 @@ export async function toMessageDtos(
       tasks: deleted ? [] : (tasksOf.get(r.id) ?? []),
       reactions: deleted ? [] : (reactionsOf.get(r.id) ?? []),
       knowledge: deleted ? [] : (knowledgeOf.get(r.id) ?? []),
+      attachedTasks: deleted ? [] : (workOf.tasks.get(r.id) ?? []),
+      attachedTickets: deleted ? [] : (workOf.tickets.get(r.id) ?? []),
     };
   });
 }

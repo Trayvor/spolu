@@ -16,7 +16,8 @@
     "tasks_one": "{{count}} task",
     "tasks_other": "{{count}} tasks",
     "tickets_one": "{{count}} ticket",
-    "tickets_other": "{{count}} tickets"
+    "tickets_other": "{{count}} tickets",
+    "internal": "Internal"
   },
   "home": {
     "greeting": {

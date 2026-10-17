@@ -139,6 +139,41 @@
       "chat_file": "Dalla chat"
     }
   },
+  "work": {
+    "attach": "Allega una conoscenza, un compito o un ticket",
+    "pickerTitle": "Allega al messaggio",
+    "tabs": {
+      "knowledge": "Conoscenze",
+      "tasks": "Compiti",
+      "tickets": "Ticket"
+    },
+    "searchTasks": "Cerca compiti per titolo",
+    "searchTickets": "Cerca ticket per numero o oggetto",
+    "includeResolved": "Includi i ticket risolti",
+    "noTasks": "Questo gruppo non ha ancora compiti.",
+    "noTickets": "Questo gruppo non ha ticket aperti.",
+    "noResults": "Nessun risultato per la ricerca.",
+    "limitTasks": "Al massimo {{count}} compiti per messaggio.",
+    "limitTickets": "Al massimo {{count}} ticket per messaggio.",
+    "attached": "Elementi allegati",
+    "taskUnavailable": "Compito non disponibile",
+    "ticketUnavailable": "Ticket non disponibile",
+    "noSubject": "Senza oggetto",
+    "completed": "Completata",
+    "overdue": "Scaduta",
+    "urgent": "Urgente",
+    "bucket": {
+      "todo": "Da fare",
+      "egrant_review": "Revisione eGrant",
+      "client_review": "Revisione cliente",
+      "done": "Completate"
+    },
+    "status": {
+      "new": "Nuovo",
+      "in_progress": "In lavorazione",
+      "resolved": "Risolto"
+    }
+  },
   "editor": {
     "knowledgeUnavailable": "Un elemento della knowledge base allegato non può più essere condiviso qui. Rimuovilo e salva di nuovo."
   }

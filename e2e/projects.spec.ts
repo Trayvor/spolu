@@ -125,6 +125,10 @@ test.describe.serial('projects: the Prehľad tab (P1)', () => {
     await admin.request.post(`/api/groups/${otherId}/members`, { data: { email: outsiderEmail } });
     const { context, page } = await signIn(browser, outsiderEmail);
     try {
+      // A new person names themselves first; only then does the app route anywhere.
+      await page.getByLabel('Vaše meno').fill('E2E Iný klient');
+      await page.getByRole('button', { name: 'Pokračovať' }).click();
+      await expect(page.getByLabel('Vaše meno')).toHaveCount(0);
       expect((await context.request.get(`/api/groups/${groupId}/projects`)).status()).toBe(404);
       await page.goto(`/groups/${groupId}/overview`);
       await expect(page.getByRole('heading', { name: 'Stránka sa nenašla' })).toBeVisible();

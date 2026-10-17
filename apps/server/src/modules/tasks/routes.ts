@@ -4,6 +4,7 @@ import {
   BoardQuerySchema,
   BucketCreateSchema,
   BucketPatchSchema,
+  TaskSearchQuerySchema,
   ErrorCodes,
   type BoardUnseen,
   type SessionUser,
@@ -13,6 +14,7 @@ import { createRateLimiter } from '../../infra/http/rate-limit.js';
 import { requireUser } from '../auth/session.js';
 import { getGroup } from '../groups/service.js';
 import { emitAdminActivity } from '../../infra/realtime/rooms.js';
+import { InvalidTaskSearchCursorError, searchTasks } from './attachable.js';
 import { emitBuckets } from './events.js';
 import { canManageBuckets, canUseBoard } from './policy.js';
 import { taskRoutes } from './task-routes.js';
@@ -68,6 +70,23 @@ export const tasksRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { 
       const actor = request.user!;
       if (!(await canOpenGroup(actor, request.params.id))) return notFound(reply);
       return { open: await countMyOpenTasks(db, actor.id, request.params.id) };
+    },
+  );
+
+  // Phase 34: the attachment picker's Tasks tab, for the readers of the group's board.
+  app.get<GroupParams>(
+    '/groups/:id/tasks/search',
+    { preHandler: anyUser },
+    async (request, reply) => {
+      const query = TaskSearchQuerySchema.safeParse(request.query);
+      if (!query.success) return invalid(reply);
+      if (!(await canOpenGroup(request.user!, request.params.id))) return notFound(reply);
+      try {
+        return await searchTasks(db, request.params.id, query.data);
+      } catch (error) {
+        if (error instanceof InvalidTaskSearchCursorError) return invalid(reply);
+        throw error;
+      }
     },
   );
 

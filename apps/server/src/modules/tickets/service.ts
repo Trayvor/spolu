@@ -12,6 +12,7 @@ import type {
   TicketSource,
 } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
+import { escapeLike } from '../../infra/text/search.js';
 import type { FileReadRule } from '../files/read-rules.js';
 import {
   attachFiles,
@@ -41,7 +42,13 @@ import { getTicketChannel } from '../chat/service.js';
 import { ticketUnseenSql } from '../notifications/unseen.js';
 import { isAdmin } from '../users/policy.js';
 import { getActiveRoles, getUserNames, listAdmins } from '../users/service.js';
-import { canAssignTicket, canBeTicketAssignee, canReadTicket, canSplitTicket } from './policy.js';
+import {
+  canAssignTicket,
+  canBeTicketAssignee,
+  canHoldTickets,
+  canReadTicket,
+  canSplitTicket,
+} from './policy.js';
 import { resolveRequester } from './requester.js';
 import { ticketAssignees, ticketAttachments, tickets } from './schema.js';
 import { noTimeEffect, type TimeEffect } from '../finance/task-time.js';
@@ -59,6 +66,14 @@ export type TicketFields = {
   dueDate: string | null;
   url: string | null;
 };
+
+/** The group cannot hold tickets: the admin group (Phase 34, `canHoldTickets`). */
+export class InvalidTicketGroupError extends Error {
+  constructor() {
+    super('The admin group has no tickets');
+    this.name = 'InvalidTicketGroupError';
+  }
+}
 
 export class TicketHasTasksError extends Error {
   constructor() {
@@ -156,6 +171,8 @@ export async function createTicket(
   input: CreateTicketInput,
 ): Promise<{ ticket: TicketRow; notifyRequester: boolean; duplicate: boolean }> {
   const { db } = deps;
+  const target = input.groupId === null ? null : await getGroup(db, input.groupId);
+  if (target && !canHoldTickets(target)) throw new InvalidTicketGroupError();
   const resolved =
     input.groupId === null
       ? { userId: null, notify: false }
@@ -408,6 +425,20 @@ export async function listTickets(
   } else if (query.assignee === 'none') {
     where.push(
       sql`not exists (select 1 from ticket_assignees a where a.ticket_id = ${tickets.id})`,
+    );
+  }
+  if (query.q) {
+    // Phase 34 (the picker): `123` or `#123` is the number; else the subject (trigram index) or
+    // the start of the body.
+    const number = /^#?(\d{1,9})$/.exec(query.q);
+    const like = escapeLike(query.q);
+    where.push(
+      number
+        ? eq(tickets.number, Number(number[1]))
+        : or(
+            sql`${tickets.subject} ilike ${`%${like}%`} escape '\\'`,
+            sql`${tickets.body} ilike ${`${like}%`} escape '\\'`,
+          ),
     );
   }
   if (query.cursor) {

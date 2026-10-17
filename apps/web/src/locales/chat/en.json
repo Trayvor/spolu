@@ -136,6 +136,41 @@
       "chat_file": "From chat"
     }
   },
+  "work": {
+    "attach": "Attach knowledge, a task or a ticket",
+    "pickerTitle": "Attach to the message",
+    "tabs": {
+      "knowledge": "Knowledge",
+      "tasks": "Tasks",
+      "tickets": "Tickets"
+    },
+    "searchTasks": "Search tasks by title",
+    "searchTickets": "Search tickets by number or subject",
+    "includeResolved": "Include resolved tickets",
+    "noTasks": "This group has no tasks yet.",
+    "noTickets": "This group has no open tickets.",
+    "noResults": "Nothing matches your search.",
+    "limitTasks": "At most {{count}} tasks per message.",
+    "limitTickets": "At most {{count}} tickets per message.",
+    "attached": "Attached items",
+    "taskUnavailable": "Task unavailable",
+    "ticketUnavailable": "Ticket unavailable",
+    "noSubject": "No subject",
+    "completed": "Completed",
+    "overdue": "Overdue",
+    "urgent": "Urgent",
+    "bucket": {
+      "todo": "To do",
+      "egrant_review": "eGrant review",
+      "client_review": "Client review",
+      "done": "Completed"
+    },
+    "status": {
+      "new": "New",
+      "in_progress": "In progress",
+      "resolved": "Resolved"
+    }
+  },
   "editor": {
     "knowledgeUnavailable": "An attached knowledge item can no longer be shared here. Remove it and save again."
   }

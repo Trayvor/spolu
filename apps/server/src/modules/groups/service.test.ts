@@ -159,6 +159,7 @@ describe('members', () => {
     expect(row).toEqual({
       id: g.id,
       name: 'Count',
+      kind: 'client',
       hasLogo: false,
       memberCount: 1,
       updatedAt: g.updatedAt.toISOString(),
@@ -182,6 +183,7 @@ describe('members', () => {
     expect(row).toEqual({
       id: g.id,
       name: 'Empty',
+      kind: 'client',
       hasLogo: false,
       memberCount: 0,
       updatedAt: g.updatedAt.toISOString(),

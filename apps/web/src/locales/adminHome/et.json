@@ -16,7 +16,8 @@
     "tasks_one": "{{count}} ülesanne",
     "tasks_other": "{{count}} ülesannet",
     "tickets_one": "{{count}} pöördumine",
-    "tickets_other": "{{count}} pöördumist"
+    "tickets_other": "{{count}} pöördumist",
+    "internal": "Sisemine"
   },
   "home": {
     "greeting": {

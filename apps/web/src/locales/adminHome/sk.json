@@ -22,7 +22,8 @@
     "tickets_one": "{{count}} tiket",
     "tickets_few": "{{count}} tikety",
     "tickets_many": "{{count}} tiketu",
-    "tickets_other": "{{count}} tiketov"
+    "tickets_other": "{{count}} tiketov",
+    "internal": "Interné"
   },
   "home": {
     "greeting": {

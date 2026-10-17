@@ -40,6 +40,8 @@ export type TicketFilter = {
   assignee?: 'me' | 'none';
   clients?: string[] | 'all' | null;
   noClient?: boolean;
+  /** Search (Phase 34, the chat's attachment picker): a number, a subject fragment or a body start. */
+  q?: string;
 };
 
 const sourceKey = (source: TicketSource) =>
@@ -55,6 +57,7 @@ function listSearch(source: TicketSource, filter: TicketFilter, cursor?: string)
   if (filter.status !== 'open') qs.set('status', filter.status);
   if (filter.area) qs.set('area', filter.area);
   if (filter.assignee) qs.set('assignee', filter.assignee);
+  if (filter.q) qs.set('q', filter.q);
   if (source.kind === 'global') {
     if (filter.noClient) qs.set('scope', 'none');
     else if (filter.clients === 'all') qs.set('scope', 'all');

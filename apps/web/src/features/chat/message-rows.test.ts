@@ -27,6 +27,8 @@ function msg(over: Partial<MessageDto> & { at: Date }): MessageDto {
     tasks: [],
     reactions: [],
     knowledge: [],
+    attachedTasks: [],
+    attachedTickets: [],
     ...rest,
   };
 }
