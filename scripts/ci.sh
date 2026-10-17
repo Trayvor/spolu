@@ -72,7 +72,7 @@ fi
 # may hold dev data.
 cleanup() {
   drop_run_databases
-  if [[ -n "${stop_services:-}" ]] && ! pgrep -f 'scripts/ci\.sh' | grep -qvx "$$"; then
+  if [[ -n "${stop_services:-}" ]] && ! pgrep -f '^(/[^ ]*/)?bash( -[a-z]+)* ([^ ]*/)?ci\.sh$' | grep -qvx "$$"; then
     "${compose[@]}" down
   fi
 }
