@@ -1,10 +1,11 @@
 import { randomUUID } from 'node:crypto';
 import { and, eq, sql, type SQL } from 'drizzle-orm';
 import {
+  BULK_CONTENT_VERSION,
   BULK_LIMITS,
   BulkAudienceSchema,
+  upgradeBlocks,
   type BulkAudience,
-  type BulkBlock,
   type BulkCampaignCounts,
   type BulkCampaignDraft,
   type BulkCampaignDto,
@@ -44,7 +45,10 @@ type CampaignRow = {
   name: string;
   subject: string;
   preheader: string;
-  blocks?: BulkBlock[];
+  blocks?: unknown;
+  phone_blocks?: unknown;
+  content_version?: number;
+  phone_check_shown?: boolean;
   audience?: BulkAudience;
   status: BulkCampaignStatus;
   version: number;
@@ -68,7 +72,9 @@ type CampaignRow = {
  * (the `(campaign_id, status)` index), so a page is one statement whatever its size.
  */
 function campaignsQuery(where: SQL, limit: number, withContent: boolean): SQL {
-  const content = withContent ? sql`c.blocks, c.audience,` : sql``;
+  const content = withContent
+    ? sql`c.blocks, c.phone_blocks, c.content_version, c.phone_check_shown_at, c.audience,`
+    : sql``;
   return sql`
     with page as (
       select c.id, c.name, c.subject, c.preheader, ${content} c.status, c.version, c.sender,
@@ -97,7 +103,12 @@ function campaignsQuery(where: SQL, limit: number, withContent: boolean): SQL {
       where s.subscribed = false and s.campaign_id in (select id from page)
       group by s.campaign_id
     )
-    select p.id, p.name, p.subject, p.preheader, ${withContent ? sql`p.blocks, p.audience,` : sql``}
+    select p.id, p.name, p.subject, p.preheader, ${
+      withContent
+        ? sql`p.blocks, p.phone_blocks, p.content_version,
+          p.phone_check_shown_at is not null as phone_check_shown, p.audience,`
+        : sql``
+    }
       p.status, p.version, p.sender, p.recipient_count, p.created_by, p.updated_by, p.sent_by,
       ${iso(sql`p.created_at`)} as created_at, ${iso(sql`p.updated_at`)} as updated_at,
       ${iso(sql`p.send_started_at`)} as send_started_at, ${iso(sql`p.finished_at`)} as finished_at,
@@ -146,7 +157,13 @@ function toDto(row: CampaignRow): BulkCampaignDto {
   return {
     ...toListItem(row),
     preheader: row.preheader,
-    blocks: row.blocks ?? [],
+    // Rows saved before Phase 30 are content version 1: upgraded here, on every read.
+    blocks: upgradeBlocks(row.content_version ?? 1, row.blocks),
+    phoneBlocks:
+      row.phone_blocks === null || row.phone_blocks === undefined
+        ? null
+        : upgradeBlocks(row.content_version ?? 1, row.phone_blocks),
+    phoneCheckShown: row.phone_check_shown ?? false,
     audience: row.audience ?? BulkAudienceSchema.parse({}),
     version: row.version,
     sender: row.sender,
@@ -206,6 +223,7 @@ export async function createCampaign(
     id,
     name,
     audience: BulkAudienceSchema.parse({}),
+    contentVersion: BULK_CONTENT_VERSION,
     createdBy: actor.id,
     updatedBy: actor.id,
   });
@@ -241,6 +259,9 @@ export async function saveDraft(
       subject: draft.subject,
       preheader: draft.preheader,
       blocks: draft.blocks,
+      // Left out: the stored phone version stays (spec §6); `null`: it follows desktop.
+      ...(draft.phoneBlocks === undefined ? {} : { phoneBlocks: draft.phoneBlocks }),
+      contentVersion: BULK_CONTENT_VERSION,
       audience: draft.audience,
       version: sql`${bulkCampaigns.version} + 1`,
       updatedBy: actor.id,
@@ -280,13 +301,29 @@ export async function duplicateCampaign(
   const suffix = sql`(case (select u.language from "user" u where u.id = ${actor.id})
     when 'en' then ${COPY_SUFFIX.en}::text else ${COPY_SUFFIX.sk}::text end)`;
   const inserted = await db.execute<{ id: string }>(sql`
-    insert into bulk_campaigns (id, name, subject, preheader, blocks, audience, created_by, updated_by)
+    insert into bulk_campaigns (id, name, subject, preheader, blocks, phone_blocks,
+      content_version, audience, created_by, updated_by)
     select ${newId}, left(c.name, ${BULK_LIMITS.name} - char_length(${suffix})) || ${suffix},
-      c.subject, c.preheader, c.blocks, c.audience, ${actor.id}, ${actor.id}
+      c.subject, c.preheader, c.blocks, c.phone_blocks, c.content_version, c.audience,
+      ${actor.id}, ${actor.id}
     from bulk_campaigns c where c.id = ${id}
     returning id`);
   if (inserted.length === 0) throw new CampaignNotFoundError();
   return (await getCampaign(db, newId))!;
+}
+
+/**
+ * Remembers that the one-time "check the phone version" warning was shown before a send (spec
+ * §5). Idempotent, any state; it changes neither `version` nor `updated_at`, so an open editor
+ * is not disturbed. `CampaignNotFoundError` for an unknown id.
+ */
+export async function markPhoneCheckShown(db: Db, id: string): Promise<void> {
+  const updated = await db
+    .update(bulkCampaigns)
+    .set({ phoneCheckShownAt: sql`coalesce(${bulkCampaigns.phoneCheckShownAt}, now())` })
+    .where(eq(bulkCampaigns.id, id))
+    .returning({ id: bulkCampaigns.id });
+  if (updated.length === 0) throw new CampaignNotFoundError();
 }
 
 type RecipientRow = {

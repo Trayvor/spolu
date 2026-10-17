@@ -12,6 +12,7 @@ import {
   imageSizes,
   saveImage,
 } from './images.js';
+import { imageIdsOf } from './message.js';
 import { renderCampaign } from './render.js';
 import { getCampaign } from './service.js';
 
@@ -20,9 +21,10 @@ const PreviewSchema = BulkCampaignDraftSchema.pick({
   subject: true,
   preheader: true,
   blocks: true,
+  phoneBlocks: true,
 });
-/** Matches the save route's limit (spec §9). */
-const PREVIEW_BODY_LIMIT = 200_000;
+/** Matches the save route's limit (spec §9; two versions since Phase 30). */
+const PREVIEW_BODY_LIMIT = 600_000;
 /** The preview's unsubscribe link goes nowhere: it is never a real token. */
 const PREVIEW_UNSUBSCRIBE_HREF = '#';
 
@@ -104,9 +106,10 @@ export const bulkEmailRenderRoutes: FastifyPluginAsync<{ deps: AppDeps }> = asyn
 
       const actor = request.user!;
       const me = await getUserById(db, actor.id);
-      const imageIds = draft.data.blocks.flatMap((b) => (b.type === 'image' ? [b.imageId] : []));
+      const imageIds = imageIdsOf(draft.data);
       const { html } = renderCampaign({
         ...draft.data,
+        phoneBlocks: draft.data.phoneBlocks ?? null,
         recipient: { name: me?.name ?? actor.name, language: me?.language ?? 'sk' },
         unsubscribeHref: PREVIEW_UNSUBSCRIBE_HREF,
         publicUrl: config.publicUrl,

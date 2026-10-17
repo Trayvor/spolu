@@ -157,7 +157,14 @@ describe('bulk email API', () => {
       c,
     );
 
-    const blocks = [{ id: 'b1', type: 'text', text: 'Hi {{name}}', align: 'left' }];
+    const blocks = [
+      {
+        id: 'b1',
+        type: 'text',
+        align: 'left',
+        content: [{ type: 'paragraph', content: [{ text: 'Hi {{name}}' }] }],
+      },
+    ];
     const saved = await call(
       'PUT',
       `/api/bulk-email/campaigns/${c.id}`,
@@ -194,13 +201,13 @@ describe('bulk email API', () => {
     expect(res.json()).toEqual({ error: 'validation_failed' });
   });
 
-  it('a save body over 200 kB is refused', async () => {
+  it('a save body over 600 kB is refused', async () => {
     const c = await create();
     const res = await call(
       'PUT',
       `/api/bulk-email/campaigns/${c.id}`,
       admin.cookie,
-      draftOf(c, { preheader: 'x'.repeat(210_000) }),
+      draftOf(c, { preheader: 'x'.repeat(610_000) }),
     );
     expect(res.statusCode).toBe(413);
   });

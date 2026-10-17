@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { upgradeBlocks } from '@spolu/shared';
 import { renderCampaign } from './render.js';
 
 /**
@@ -38,8 +39,8 @@ function renderV1(blocks: unknown[], language: 'sk' | 'en' = 'sk') {
   return renderCampaign({
     subject: 'Novinky',
     preheader: 'Skrytý riadok',
-    // Stored v1 JSON, as read from `bulk_campaigns.blocks`.
-    blocks: blocks as never,
+    // Stored v1 JSON, as read from `bulk_campaigns.blocks`, upgraded as the service does.
+    blocks: upgradeBlocks(1, blocks),
     recipient: { name: 'Jana <Nováková>', language },
     unsubscribeHref: 'https://spolu.test/unsubscribe/u1.c1.sig',
     publicUrl: 'https://spolu.test/',

@@ -44,10 +44,18 @@ describe('BulkBlockSchema', () => {
     expect(BulkBlockSchema.safeParse({ ...image, href: 'https://egrant.sk' }).success).toBe(true);
   });
 
-  it('a text of 5 001 characters is rejected', () => {
-    const block = { id: 't1', type: 'text', text: 'a'.repeat(5000), align: 'left' };
-    expect(BulkBlockSchema.safeParse(block).success).toBe(true);
-    expect(BulkBlockSchema.safeParse({ ...block, text: 'a'.repeat(5001) }).success).toBe(false);
+  it('a text of 5 001 characters is rejected, also split over nodes and runs', () => {
+    const text = (...runs: string[]) => ({
+      id: 't1',
+      type: 'text',
+      align: 'left',
+      content: runs.map((r) => ({ type: 'paragraph', content: [{ text: r }] })),
+    });
+    expect(BulkBlockSchema.safeParse(text('a'.repeat(5000))).success).toBe(true);
+    expect(BulkBlockSchema.safeParse(text('a'.repeat(5001))).success).toBe(false);
+    expect(BulkBlockSchema.safeParse(text('a'.repeat(2500), 'a'.repeat(2501))).success).toBe(
+      false,
+    );
   });
 
   it('a heading over 200 and a button label over 60 are rejected', () => {
@@ -68,9 +76,10 @@ describe('BulkBlockSchema', () => {
     expect(BulkBlockSchema.safeParse({ id: 'x', type: 'html', html: '<b>' }).success).toBe(false);
   });
 
-  it('an unknown align is rejected', () => {
-    const block = { id: 't1', type: 'text', text: 'a', align: 'right' };
+  it('an unknown align is rejected; right is allowed', () => {
+    const block = { id: 't1', type: 'text', content: [], align: 'justify' };
     expect(BulkBlockSchema.safeParse(block).success).toBe(false);
+    expect(BulkBlockSchema.safeParse({ ...block, align: 'right' }).success).toBe(true);
   });
 });
 

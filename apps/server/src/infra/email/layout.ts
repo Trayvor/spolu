@@ -1,4 +1,4 @@
-import type { BulkBlock, UserLanguage } from '@spolu/shared';
+import { splitParagraphs, type BulkBlock, type UserLanguage } from '@spolu/shared';
 import { serverTexts } from '../i18n/index.js';
 import type { EmailMessage } from './email.js';
 import { renderEmail } from './render.js';
@@ -34,7 +34,16 @@ export function buildEmail(i: SystemEmail): EmailMessage {
     block('heading', { text: i.heading ?? i.subject, align: 'left' }),
     ...(i.code ? [block('heading', { text: i.code, align: 'left' })] : []),
     ...(i.paragraphs.length > 0
-      ? [block('text', { text: i.paragraphs.join('\n\n'), align: 'left' })]
+      ? [
+          block('text', {
+            align: 'left',
+            // One plain run a paragraph: shown as written (`literal`), no `**` or `{{name}}`.
+            content: splitParagraphs(i.paragraphs.join('\n\n')).map((text) => ({
+              type: 'paragraph',
+              content: [{ text }],
+            })),
+          }),
+        ]
       : []),
     ...(i.button ? [block('button', { ...i.button, align: 'left' })] : []),
   ];

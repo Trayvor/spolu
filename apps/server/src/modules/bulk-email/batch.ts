@@ -1,11 +1,11 @@
 import { sql } from 'drizzle-orm';
 import type { Server as SocketIOServer } from 'socket.io';
-import type { BulkBlock, UserLanguage } from '@spolu/shared';
+import type { UserLanguage } from '@spolu/shared';
 import type { AppDeps } from '../../deps.js';
 import { BulkSendError } from '../../infra/email/bulk.js';
 import { emitBulkUpdated } from './events.js';
 import { imageSizes } from './images.js';
-import { imageIdsOf, personalMessage } from './message.js';
+import { contentOf, imageIdsOf, personalMessage } from './message.js';
 import { unsubscribedSql } from './subscriptions.js';
 
 /**
@@ -56,13 +56,18 @@ export async function runBatch(
   campaignId: string,
 ): Promise<'more' | 'done' | 'stopped'> {
   const { db, config, bulkEmail, jobs } = deps;
-  const [campaign] = await db.execute<{
+  const [row] = await db.execute<{
     status: string;
     subject: string;
     preheader: string;
-    blocks: BulkBlock[];
-  }>(sql`select status, subject, preheader, blocks from bulk_campaigns where id = ${campaignId}`);
-  if (!campaign || campaign.status !== 'sending') return 'stopped';
+    blocks: unknown;
+    phone_blocks: unknown;
+    content_version: number;
+  }>(sql`select status, subject, preheader, blocks, phone_blocks, content_version
+    from bulk_campaigns where id = ${campaignId}`);
+  if (!row || row.status !== 'sending') return 'stopped';
+  // A campaign sending since before Phase 30 is content version 1: upgraded like every read.
+  const campaign = contentOf(row);
 
   const taken = await db.transaction(async (tx) => {
     // Re-check under a share lock, so a cancel that committed first is seen.
@@ -98,7 +103,7 @@ export async function runBatch(
 
   const sending = [...taken].filter((r) => r.status === 'sending');
   if (sending.length > 0) {
-    const sizes = await imageSizes(db, imageIdsOf(campaign.blocks));
+    const sizes = await imageSizes(db, imageIdsOf(campaign));
     for (const row of sending) {
       const key = `${campaignId}:${row.user_id}`;
       const message = personalMessage(
