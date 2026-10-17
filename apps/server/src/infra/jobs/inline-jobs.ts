@@ -11,5 +11,8 @@ export function createInlineJobs(handlers: JobHandlers): JobQueue {
       if (!handler) throw new Error(`No handler for job "${name}"`);
       await handler(data);
     },
+    async sendMany(name, items, options) {
+      for (const data of items) await this.send(name, data, options);
+    },
   };
 }

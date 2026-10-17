@@ -4,13 +4,14 @@ import { eq } from 'drizzle-orm';
 import { NotificationCategories, NotificationKinds } from '@spolu/shared';
 import { createDb } from '../../infra/db/client.js';
 import { testDatabaseUrl } from '../../../test/test-config.js';
-import { addMembership } from '../groups/memberships.js';
-import { createGroup } from '../groups/service.js';
+import { createCountingDb } from '../../../test/query-counter.js';
+import { addMembership, removeMembership } from '../groups/memberships.js';
+import { createGroup, listGroupPeople } from '../groups/service.js';
 import { user } from '../users/schema.js';
-import { createUnverifiedClient } from '../users/service.js';
+import { addAdmin, createUnverifiedClient, deactivateUser } from '../users/service.js';
 import {
   NOTIFICATION_GROUP_OF,
-  notificationAudience,
+  audienceAmong,
   notificationGroupOf,
   visibleCategoriesFor,
 } from './categories.js';
@@ -83,9 +84,51 @@ describe('requesters (Phase 21.1)', () => {
     const [client, z] = [await named(), await named()];
     await addMembership(db, client.id, g.id, 'client');
     await addMembership(db, z.id, g.id, 'ziadatel');
-    const tickets = await notificationAudience(db, g.id, 'tickets');
-    expect([tickets.has(client.id), tickets.has(z.id)]).toEqual([true, true]);
-    const chat = await notificationAudience(db, g.id, 'chat');
-    expect([chat.has(client.id), chat.has(z.id)]).toEqual([true, false]);
+    const items = [client.id, z.id].flatMap((userId) =>
+      (['tickets', 'chat'] as const).map((group) => ({ userId, groupId: g.id, group })),
+    );
+    const inAudience = await audienceAmong(db, items);
+    expect(items.map((i) => inAudience(i.userId, i.groupId, i.group))).toEqual([
+      true, // client, tickets
+      true, // client, chat
+      true, // ziadatel, tickets
+      false, // ziadatel, chat
+    ]);
+  });
+
+  it("matches the group's people (listGroupPeople) for every kind of user, in one query", async () => {
+    const [g, other] = [await newGroup(), await newGroup()];
+    const client = await named();
+    await addMembership(db, client.id, g.id, 'client');
+    const removed = await named();
+    await addMembership(db, removed.id, g.id, 'client');
+    await removeMembership(db, g.id, removed.id);
+    const unnamed = await createUnverifiedClient(db, `${randomUUID()}@example.com`);
+    await db.update(user).set({ emailVerified: true }).where(eq(user.id, unnamed.id));
+    await addMembership(db, unnamed.id, g.id, 'client');
+    const elsewhere = await named();
+    await addMembership(db, elsewhere.id, other.id, 'client');
+    const admin = await addAdmin(db, { email: `${randomUUID()}@example.com`, name: 'Ada' });
+    const disabled = await addAdmin(db, { email: `${randomUUID()}@example.com`, name: 'Dis' });
+    await deactivateUser(db, disabled.id);
+    const ids = [client, removed, unnamed, elsewhere, admin, disabled].map((u) => u.id);
+
+    const people = new Set((await listGroupPeople(db, g.id)).map((p) => p.id));
+    const counting = createCountingDb();
+    try {
+      const items = ids.map((userId) => ({ userId, groupId: g.id, group: 'chat' as const }));
+      // The first run of a statement shape adds a describe round trip; count the second.
+      await audienceAmong(counting.db, items);
+      counting.reset();
+      const inAudience = await audienceAmong(counting.db, items);
+      expect(counting.count()).toBe(1);
+      expect(ids.map((id) => inAudience(id, g.id, 'chat'))).toEqual(
+        ids.map((id) => people.has(id)),
+      );
+      expect(ids.map((id) => people.has(id))).toEqual([true, false, false, false, true, false]);
+    } finally {
+      await counting.close();
+      await deactivateUser(db, admin.id);
+    }
   });
 });

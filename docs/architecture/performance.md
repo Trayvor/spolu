@@ -148,6 +148,23 @@ Phase 24 knowledge folders (measured 2026-10-16, gzip level 9 of every script `i
 
 Ticket riešitelia and "Watch tickets" (owner request 2026-10-17, measured on top of the UI polish and the Cyrillic font, gzip level 9 of every script `index.html` loads): initial JS 173.9 kB gzip, 0.1 kB above main (173.8 kB; entry 95.5 kB, API client chunk 27.2 kB, router chunk 19.5 kB, i18n namespaces chunk 15.2 kB, the rest under 8 kB each). The new texts are in the lazy `tickets` and `adminHome` namespaces and the picker ships with the ticket page. Lesson: `features/tickets/api.ts` is loaded alone by the ticket route's loader, so it must not import `features/auth/use-session` (measured before the UI polish, doing so added 1.2 kB to the initial JS). The dashboard's ticket query reads `ticket_assignees` by `ticket_assignees_user_idx`; its "no riešiteľ yet" anti-join may hash the small table, which `home/explain.test.ts` allows (it still bans sequential scans of `tickets` and holds the 50 ms bound).
 
+Job batching (Phase 27 S7, measured 2026-10-17 on the local test database with a throwaway probe; queries counted with `test/query-counter.ts`, warm second run; the machine was loaded, so the times are only indicative):
+
+| Job step | Before | After |
+|---|---|---|
+| Delivery batch: 50 groups, 3 devices | 58 queries, 150 push job sends, 30 ms | 9 queries, 1 push insert, 5 ms |
+| Digest: 50 (user, group) pairs | 57 queries (one advisory lock each), 13 ms | 8 queries, 5 ms |
+| Deadline reminders: 200 tasks, 2 assignees each | 201 queries (an insert per task), 94 ms | 2 queries, 14 ms |
+| Reminder fire batch: 200 due times | 606 queries (savepoint, insert, release, update per time), 157 ms | 9 queries, 11 ms |
+
+What changed:
+- **Delivery audience.** One `groupPeopleAmong` query for the whole batch, instead of `listGroupPeople` and, for tickets, `activeMemberIds` per (group, notification group).
+- **Push jobs.** All of a batch's push jobs in one pg-boss `insert` (`JobQueue.sendMany`), instead of a `send` per device.
+- **Digest locks.** The advisory locks of a digest run are one statement over the sorted keys (`unnest … with ordinality`, still taken in order).
+- **Reminders.** The deadline and urgent reminders (`tasks/reminders.ts`) and the reminder fire batch (`reminders/jobs.ts`) record every event with one `recordManyNotifications`: one `INSERT … SELECT` per notification group, in chunks of 1000 rows. The fire batch falls back to a savepoint per time only if the batch insert fails.
+
+The tests compare a large batch's query count with a small one's: `notifications/batching.test.ts`, `tasks/reminders.test.ts`, `reminders/jobs.test.ts` and `notifications/categories.test.ts` (which also checks that the batched audience matches `listGroupPeople`). The first run of a statement shape costs one more round trip (postgres.js describes it first), so each size runs twice and the second count is compared.
+
 ## Test suite speed
 
 `scripts/ci.sh` takes about 13 minutes on GitHub (Phase 27): unit and integration tests 7 minutes (the server and web suites run in parallel), e2e 4.7 minutes. Lint, format check and typecheck are independent, so `ci.sh` runs them at the same time (`run_parallel` in `scripts/lib.sh`, Phase 27 T5): on GitHub they took 71 s one after another (29 + 15 + 27 s). Measured locally on a loaded 8-core laptop (two rounds each, same tree): 27 to 55 s one after another, 18 to 28 s in parallel, so about 10 to 27 s saved per run; on the 4-vCPU runner the expected saving is about 30 s (the PR's GitHub run gives the real number). e2e stays serial: its tests share one database. The web suite runs Vitest's `vmThreads` pool (`apps/web/vitest.config.ts`): every file still gets its own VM context, but workers and their jsdom are reused. With the default `forks` pool jsdom was set up once per file, a third of the run: 31 to 44 s locally, 13.5 to 17 s with `vmThreads`, all tests passing. The server suite keeps `forks`: under `vmThreads` (34 s to 24.5 s locally) a time-based reminder test failed under the extra load, so that switch waits until the load-sensitive tests are fixed (Phase 27 findings, T2 and T3).

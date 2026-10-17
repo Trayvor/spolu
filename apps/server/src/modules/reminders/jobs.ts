@@ -2,7 +2,11 @@ import { and, asc, eq, inArray, isNull, lte, sql } from 'drizzle-orm';
 import type { ReminderDuePayload, ReminderSubjectKind } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
 import type { JobHandlers, JobQueue, JobSchedule } from '../../infra/jobs/jobs.js';
-import { recordNotifications, requestDelivery } from '../notifications/service.js';
+import {
+  recordManyNotifications,
+  requestDelivery,
+  type NotificationInput,
+} from '../notifications/service.js';
 import { user } from '../users/schema.js';
 import { reminderRecipients, reminderSets, reminderTimes } from './schema.js';
 import { notifyTimesChanged } from './realtime.js';
@@ -22,6 +26,36 @@ type Deps = { db: Db; jobs: JobQueue };
 /** Job handlers of the reminders module; passed to `startJobs`. */
 export function remindersJobHandlers(deps: Deps): JobHandlers {
   return { [REMINDERS_FIRE_JOB]: async () => void (await fireDueReminders(deps)) };
+}
+
+/**
+ * Records the events of the due times in one savepoint. If that fails, it falls back to one
+ * savepoint per time, so one failing time does not cost the others their events.
+ */
+async function recordDue(
+  tx: Db,
+  due: { timeId: string; input: NotificationInput }[],
+): Promise<string[]> {
+  if (due.length === 0) return [];
+  try {
+    return await tx.transaction((sp) =>
+      recordManyNotifications(
+        sp,
+        due.map((d) => d.input),
+      ),
+    );
+  } catch (error) {
+    console.error('reminders: recording the batch failed; recording time by time', error);
+  }
+  const recorded: string[] = [];
+  for (const { timeId, input } of due) {
+    try {
+      recorded.push(...(await tx.transaction((sp) => recordManyNotifications(sp, [input]))));
+    } catch (error) {
+      console.error(`reminders: firing time ${timeId} failed`, error);
+    }
+  }
+  return recorded;
 }
 
 /** What one batch processed: times, the users to deliver to, and the subjects whose times fired. */
@@ -92,47 +126,46 @@ export async function fireBatch(
     recipientsOf.set(r.setId, list);
   }
 
-  const recorded: string[] = [];
+  // Every due time's events in one statement (Phase 27 S7), not a savepoint and an insert each.
+  const due: { timeId: string; input: NotificationInput }[] = [];
   for (const time of times) {
-    try {
-      const ref = subjectOf.get(time.setId);
-      const info = ref ? subjects.get(ref.kind)?.get(ref.id) : undefined;
-      const stale = now.getTime() - time.at.getTime() > MAX_LATE_MS;
-      if (ref && info && info.active && !stale) {
-        const all = recipientsOf.get(time.setId) ?? [];
-        const recipients = (info.adminsOnly ? all.filter((r) => r.isAdmin) : all).map(
-          (r) => r.userId,
-        );
-        const payload: ReminderDuePayload = {
-          subjectKind: ref.kind,
-          subjectId: ref.id,
-          groupId: info.groupId,
-          title: info.title,
-          at: time.at.toISOString(),
-          // The task title lookup of the delivery shows the current title.
-          ...(ref.kind === 'task' ? { taskId: ref.id } : {}),
-        };
-        // A savepoint, so one failing set does not abort the batch's transaction.
-        await tx.transaction(async (sp) => {
-          recorded.push(
-            ...(await recordNotifications(sp, {
-              kind: 'reminder.due',
-              groupId: info.groupId,
-              recipients,
-              payload,
-              dedupeKey: `reminder:${time.id}`,
-            })),
-          );
-        });
-      }
-    } catch (error) {
-      console.error(`reminders: firing time ${time.id} failed`, error);
-    }
-    await tx
-      .update(reminderTimes)
-      .set({ firedAt: sql`now()` })
-      .where(eq(reminderTimes.id, time.id));
+    const ref = subjectOf.get(time.setId);
+    const info = ref ? subjects.get(ref.kind)?.get(ref.id) : undefined;
+    const stale = now.getTime() - time.at.getTime() > MAX_LATE_MS;
+    if (!ref || !info || !info.active || stale) continue;
+    const all = recipientsOf.get(time.setId) ?? [];
+    const recipients = (info.adminsOnly ? all.filter((r) => r.isAdmin) : all).map((r) => r.userId);
+    const payload: ReminderDuePayload = {
+      subjectKind: ref.kind,
+      subjectId: ref.id,
+      groupId: info.groupId,
+      title: info.title,
+      at: time.at.toISOString(),
+      // The task title lookup of the delivery shows the current title.
+      ...(ref.kind === 'task' ? { taskId: ref.id } : {}),
+    };
+    due.push({
+      timeId: time.id,
+      input: {
+        kind: 'reminder.due',
+        groupId: info.groupId,
+        recipients,
+        payload,
+        dedupeKey: `reminder:${time.id}`,
+      },
+    });
   }
+  const recorded = await recordDue(tx, due);
+  // Fired with or without a notification: a failed time is not retried every minute.
+  await tx
+    .update(reminderTimes)
+    .set({ firedAt: sql`now()` })
+    .where(
+      inArray(
+        reminderTimes.id,
+        times.map((t) => t.id),
+      ),
+    );
   return {
     count: times.length,
     eventIds: recorded,

@@ -122,9 +122,18 @@ async function collectDigests(
   if (due.length === 0) return [];
   // One lock per pair, in a fixed order: a parallel run waits here, then finds the rows emailed
   // and sends nothing (no early second email for events that arrived in between).
-  // A ticket event without a client group makes its own pair (group '').
+  // A ticket event without a client group makes its own pair (group ''). All the locks are one
+  // statement (Phase 27 S7); `with ordinality` keeps them taken in the sorted order.
   const keys = [...new Set(due.map((p) => `${p.userId}${p.groupId ?? ''}`))].sort();
-  for (const key of keys) await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${key}))`);
+  const list = sql.join(
+    keys.map((k) => sql`${k}::text`),
+    sql`, `,
+  );
+  await tx.execute(sql`
+    select pg_advisory_xact_lock(hashtext(k.key))
+    from unnest(array[${list}]) with ordinality as k(key, n)
+    order by k.n
+  `);
   const pairs = sql.join(
     due.map((p) => sql`(${p.userId}::text, ${p.groupId ?? ''}::text)`),
     sql`, `,

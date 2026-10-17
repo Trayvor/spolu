@@ -1,7 +1,11 @@
 import { and, eq, inArray, isNull } from 'drizzle-orm';
 import type { TaskDeadlinePayload, TaskUrgentPayload } from '@spolu/shared';
 import type { AppDeps } from '../../deps.js';
-import { recordNotifications, requestDelivery } from '../notifications/service.js';
+import {
+  recordManyNotifications,
+  requestDelivery,
+  type NotificationInput,
+} from '../notifications/service.js';
 import { taskAssignees, tasks } from './schema.js';
 
 const TIME_ZONE = 'Europe/Bratislava';
@@ -84,25 +88,24 @@ export async function recordDeadlineReminders(
     and(isNull(tasks.completedAt), inArray(tasks.dueDate, [...daysLeftByDate.keys()])),
   );
 
-  const recorded: string[] = [];
-  for (const { task, userIds } of found.values()) {
+  const inputs: NotificationInput[] = [...found.values()].map(({ task, userIds }) => {
     const payload: TaskDeadlinePayload = {
       taskId: task.id,
       groupId: task.groupId,
       title: task.title,
       daysLeft: daysLeftByDate.get(task.dueDate!)!,
     };
-    recorded.push(
-      ...(await recordNotifications(db, {
-        kind: 'task.deadline',
-        groupId: task.groupId,
-        recipients: userIds,
-        payload,
-        dedupeKey: `deadline:${task.id}:${today}`,
-      })),
-    );
-  }
-  await requestDelivery(jobs, [...new Set(recorded)]);
+    return {
+      kind: 'task.deadline',
+      groupId: task.groupId,
+      recipients: userIds,
+      payload,
+      dedupeKey: `deadline:${task.id}:${today}`,
+    };
+  });
+  // Every task in one statement (Phase 27 S7), not one per task.
+  const recorded = await recordManyNotifications(db, inputs);
+  await requestDelivery(jobs, recorded);
   return recorded.length;
 }
 
@@ -118,23 +121,21 @@ export async function recordUrgentReminders(
   const slot = `${bratislavaDay(now)}T${String(bratislavaHour(now)).padStart(2, '0')}`;
   const found = await assigneesOf(db, and(isNull(tasks.completedAt), eq(tasks.urgent, true)));
 
-  const recorded: string[] = [];
-  for (const { task, userIds } of found.values()) {
+  const inputs: NotificationInput[] = [...found.values()].map(({ task, userIds }) => {
     const payload: TaskUrgentPayload = {
       taskId: task.id,
       groupId: task.groupId,
       title: task.title,
     };
-    recorded.push(
-      ...(await recordNotifications(db, {
-        kind: 'task.urgent',
-        groupId: task.groupId,
-        recipients: userIds,
-        payload,
-        dedupeKey: `urgent:${task.id}:${slot}`,
-      })),
-    );
-  }
-  await requestDelivery(jobs, [...new Set(recorded)]);
+    return {
+      kind: 'task.urgent',
+      groupId: task.groupId,
+      recipients: userIds,
+      payload,
+      dedupeKey: `urgent:${task.id}:${slot}`,
+    };
+  });
+  const recorded = await recordManyNotifications(db, inputs);
+  await requestDelivery(jobs, recorded);
   return recorded.length;
 }
