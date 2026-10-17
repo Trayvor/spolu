@@ -79,6 +79,8 @@ const TASK = {
   upcomingReminders: 0,
   link: null,
   sourceMessageId: 'm1',
+  project: null,
+  event: null,
   createdAt: NOW,
   updatedAt: NOW,
 };
@@ -110,6 +112,8 @@ const TICKET_ITEM = {
   requesterName: 'Eva',
   excerpt: 'The form fails',
   assignees: [{ id: 'u1', name: 'Eva' }],
+  project: null,
+  event: null,
 };
 const TICKET = {
   ...TICKET_ITEM,
@@ -150,6 +154,25 @@ function mockApi(me: typeof ADMIN | typeof CLIENT | null) {
     '/api/channels/c1/unread-threads': [],
     '/api/channels/c2/unread-threads': [],
     '/api/chat/unread': { g1: 2 },
+    '/api/groups/g1/projects?status=active': {
+      items: [
+        {
+          id: 'p1',
+          groupId: 'g1',
+          name: 'Culture 2026',
+          color: 'blue',
+          status: 'active',
+          source: 'egrant',
+          eventCount: 2,
+          nextEvent: { id: 'e1', name: 'Evaluation', occursOn: '2099-11-04' },
+          openTasks: 3,
+          openTickets: 1,
+          egrantChanges: 0,
+          updatedAt: NOW,
+        },
+      ],
+      nextCursor: null,
+    },
     '/api/groups/g1/tickets': { items: [TICKET_ITEM], nextCursor: null },
     '/api/tickets/global': { items: [TICKET_ITEM], nextCursor: null },
     '/api/tickets/mine': { items: [TICKET_ITEM], nextCursor: null },
@@ -313,6 +336,12 @@ const CASES: Case[] = [
     me: CLIENT,
     shows: 'New task',
     namespaces: ['group', 'chat', 'tasks', 'taskSplit', 'forms'],
+  },
+  {
+    path: '/groups/g1/overview',
+    me: CLIENT,
+    shows: 'Culture 2026',
+    namespaces: ['group', 'projects', 'chat', 'forms'],
   },
   {
     path: '/groups/g1/members',

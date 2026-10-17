@@ -9,11 +9,11 @@ const pill =
 
 /** Per-tab extras, e.g. Phase 5's unread badge on the Chat tab. */
 export type GroupTabBadges = Partial<
-  Record<'chat' | 'tasks' | 'tickets' | 'knowledge' | 'members' | 'finance', ReactNode>
+  Record<'overview' | 'chat' | 'tasks' | 'tickets' | 'knowledge' | 'members' | 'finance', ReactNode>
 >;
 
 /**
- * Chat, Tasks, Tickets, Knowledge, Members as filter pills: the current tab is the filled ink pill;
+ * Overview (Phase 33), Chat, Tasks, Tickets, Knowledge, Members as filter pills: the current tab is the filled ink pill;
  * a finance admin (Phase 32) also has Financie, last.
  * They wrap from 641 px; on phones they stay on one line that scrolls sideways (no scrollbar), so
  * the chat keeps its height. The 6 px padding of that line holds the tap areas and focus rings.
@@ -23,6 +23,7 @@ export function GroupTabs({ groupId, badges }: { groupId: string; badges?: Group
   const { t } = useTranslation();
   const finance = useSession()?.finance === true;
   const tabs = [
+    { key: 'overview', to: '/groups/$groupId/overview' },
     { key: 'chat', to: '/groups/$groupId/chat' },
     { key: 'tasks', to: '/groups/$groupId/tasks' },
     { key: 'tickets', to: '/groups/$groupId/tickets' },
