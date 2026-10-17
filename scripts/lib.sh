@@ -133,3 +133,23 @@ caddy_redirects() {
   printf '\tredir https://{$DOMAIN}{uri} permanent\n'
   echo '}'
 }
+
+# Number of CPU cores (nproc on Linux, sysctl on macOS, 1 if neither works).
+cpu_count() {
+  nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 1
+}
+
+# limit_local_parallelism: on a laptop (CI unset) cap the load the checks create themselves.
+# The server, web and shared suites ran at once with one heavy worker per core: the load average
+# reached 60-80 on 8 cores and tests with a 15 s timeout failed at random. So:
+#   - packages run their tests one after the other (npm_config_workspace_concurrency=1),
+#   - Vitest gets half the cores (VITEST_MAX_WORKERS), Playwright a quarter (E2E_WORKERS).
+# A value already set by the caller wins. Under CI (GitHub runner, 4 cores) nothing is changed.
+limit_local_parallelism() {
+  [[ -z "${CI:-}" ]] || return 0
+  local cores
+  cores="$(cpu_count)"
+  export npm_config_workspace_concurrency="${npm_config_workspace_concurrency:-1}"
+  export VITEST_MAX_WORKERS="${VITEST_MAX_WORKERS:-$(( cores / 2 > 0 ? cores / 2 : 1 ))}"
+  export E2E_WORKERS="${E2E_WORKERS:-$(( cores / 4 > 0 ? cores / 4 : 1 ))}"
+}
