@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { createDb, pingDb } from './client.js';
 import { runMigrations } from './migrate.js';
 import { appMeta } from './schema.js';
@@ -19,6 +19,11 @@ describe('database layer', () => {
     await db.insert(appMeta).values({ key: 'k', value: 'v' });
     const rows = await db.select().from(appMeta).where(eq(appMeta.key, 'k'));
     expect(rows).toEqual([{ key: 'k', value: 'v' }]);
+  });
+
+  it('turns JIT off on its connections (short statements; JIT cost 620 ms on the global board)', async () => {
+    const rows = await db.execute<{ jit: string }>(sql`select current_setting('jit') as jit`);
+    expect([...rows]).toEqual([{ jit: 'off' }]);
   });
 
   it('pingDb is true on a reachable database', async () => {
