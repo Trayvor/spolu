@@ -223,6 +223,15 @@ export const KnowledgePatchSchema = z
   .strict();
 export type KnowledgePatch = z.output<typeof KnowledgePatchSchema>;
 
+/**
+ * `POST /api/knowledge/:id/to-file`: a chat file becomes a normal file item with these fields
+ * (one way). It keeps its id, author and time, and gets its own copy of the file, so the chat
+ * message keeps its attachment and deleting the message no longer touches the item.
+ * `updatedAt` of the version seen; a stale one answers 409 `knowledge_changed`.
+ */
+export const KnowledgeToFileSchema = draftBase.extend({ updatedAt: isoDateTime }).strict();
+export type KnowledgeToFile = z.output<typeof KnowledgeToFileSchema>;
+
 /** A list row. */
 export const KnowledgeSummarySchema = z.object({
   id: z.string(),
@@ -270,6 +279,8 @@ export const KnowledgeItemDtoSchema = KnowledgeSummarySchema.extend({
   files: z.array(FileInfoSchema),
   reminder: ReminderSetDtoSchema.nullable(),
   canEdit: z.boolean(),
+  /** A chat file the viewer may turn into a file item ("Save as a file"); absent: false. */
+  canConvert: z.boolean().optional(),
   /** The author is a client, so the item stays public. */
   visibilityLocked: z.boolean(),
   /** A meeting's fields, transcript and summary (Phase 30); null for the other types. */

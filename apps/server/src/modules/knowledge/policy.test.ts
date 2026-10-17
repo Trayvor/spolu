@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Role, SessionUser } from '@spolu/shared';
 import {
+  canConvertChatFile,
   canDeleteItem,
   canEditItem,
   canReadFolder,
@@ -100,5 +101,18 @@ describe('knowledge policy', () => {
     expect(canSetFolderVisibility(actor('client'), 'public')).toBe(true);
     expect(canSetFolderVisibility(actor('client'), 'admins')).toBe(false);
     expect(canSetFolderVisibility(actor('admin'), 'admins')).toBe(true);
+  });
+});
+
+describe('changing a chat file into a file item', () => {
+  const chatFile = { ...pub, type: 'chat_file' };
+
+  it('its author and admins may; another client, another group or a non-chat file never', () => {
+    expect(canConvertChatFile(actor('client', 'author'), chatFile, ['g1'])).toBe(true);
+    expect(canConvertChatFile(actor('admin'), chatFile, [])).toBe(true);
+    expect(canConvertChatFile(actor('superadmin'), chatFile, [])).toBe(true);
+    expect(canConvertChatFile(actor('client', 'other'), chatFile, ['g1'])).toBe(false);
+    expect(canConvertChatFile(actor('client', 'author'), chatFile, ['g2'])).toBe(false);
+    expect(canConvertChatFile(actor('admin'), { ...pub, type: 'file' }, [])).toBe(false);
   });
 });

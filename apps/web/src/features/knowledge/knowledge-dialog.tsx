@@ -18,6 +18,7 @@ import { ApiError } from '@/lib/api';
 import { useSession } from '@/features/auth/use-session';
 import { useGroupPeople } from '@/features/groups/use-group-people';
 import {
+  convertKnowledgeToFile,
   createKnowledge,
   deleteKnowledge,
   groupFoldersQuery,
@@ -34,6 +35,7 @@ import {
   type KnowledgeFormErrors,
   type KnowledgeFormValue,
 } from './knowledge-form';
+import { FolderSelect } from './folder-select';
 import { KnowledgeView } from './knowledge-view';
 import { meetingInProgress } from './meeting-view';
 import { MoveDialog } from './move-dialog';
@@ -66,6 +68,8 @@ function saveErrors(error: unknown, t: (key: string) => string): KnowledgeFormEr
       return { times: t('reminders.fields.errors.passed') };
     case 'invalid_recipient':
       return { recipients: t('knowledge.detail.recipientInvalid') };
+    case 'invalid_visibility':
+      return { form: t('knowledge.folders.clientItem') };
     default:
       return { form: t('knowledge.detail.saveFailed') };
   }
@@ -99,7 +103,15 @@ export function KnowledgeDialog({
   const groupId = target.mode === 'create' ? target.groupId : (item?.groupId ?? '');
   const people = useGroupPeople(groupId).data;
   const folders = useQuery({ ...groupFoldersQuery(groupId), enabled: groupId !== '' }).data;
-  const folderId = target.mode === 'create' ? (target.folderId ?? null) : (item?.folderId ?? null);
+  // "Save as a file" of a chat file: the file form, with a folder to choose.
+  const [converting, setConverting] = useState(false);
+  const [convertFolder, setConvertFolder] = useState<string | null>(null);
+  const folderId =
+    target.mode === 'create'
+      ? (target.folderId ?? null)
+      : converting
+        ? convertFolder
+        : (item?.folderId ?? null);
   // Inside an admins-only folder everything is admins-only: "Visible to" is locked.
   const inAdminsFolder =
     folderId !== null && folders?.find((f) => f.id === folderId)?.visibility === 'admins';
@@ -135,7 +147,8 @@ export function KnowledgeDialog({
     titleRef.current?.focus();
   }, [editing, shownId, target.mode]);
 
-  const type: KnowledgeType | undefined = target.mode === 'create' ? target.type : item?.type;
+  const type: KnowledgeType | undefined =
+    target.mode === 'create' ? target.type : converting ? 'file' : item?.type;
   const dirty = editing && !same(value, initial);
 
   // Browser Back (or any route change) with unsaved edits asks first, like "Close" does. A close
@@ -168,8 +181,23 @@ export function KnowledgeDialog({
     setEditing(true);
   }
 
+  /** A chat file in the file form: its file fixed, the title its name, the top level, public. */
+  function startConvert(source: KnowledgeItemDto) {
+    startEdit(source);
+    const next = {
+      ...emptyKnowledgeValue('file'),
+      title: source.title,
+      fileIds: source.files.map((f) => f.id),
+    };
+    setInitial(next);
+    setValue(next);
+    setConvertFolder(null);
+    setConverting(true);
+  }
+
   function leave(then: 'close' | 'view') {
     setAsk(null);
+    setConverting(false);
     if (then === 'close' || target.mode === 'create') {
       leaving.current = true;
       return onClose();
@@ -207,6 +235,15 @@ export function KnowledgeDialog({
             folderId,
           }),
         );
+      } else if (converting) {
+        if (!item) return;
+        saved = await convertKnowledgeToFile(item.id, {
+          title: value.title.trim(),
+          body: value.body,
+          folderId,
+          visibility: inAdminsFolder ? 'admins' : value.visibility,
+          updatedAt: item.updatedAt,
+        });
       } else {
         if (!item) return;
         const patch = toPatch(item, value, { people });
@@ -258,6 +295,11 @@ export function KnowledgeDialog({
         compactBelow={641}
         backLabel={t('knowledge.detail.back')}
       >
+        {!editing && item?.canConvert && (
+          <Button variant="secondary" size="sm" onClick={() => startConvert(item)}>
+            {t('knowledge.chat.toFile')}
+          </Button>
+        )}
         {!editing && item?.canEdit && (
           <>
             <Button variant="secondary" size="sm" onClick={() => startEdit(item)}>
@@ -317,8 +359,17 @@ export function KnowledgeDialog({
               tabIndex={-1}
               className="break-words text-medium font-semibold outline-none"
             >
-              {target.mode === 'create' ? t(`knowledge.detail.new.${type}`) : item?.title}
+              {target.mode === 'create'
+                ? t(`knowledge.detail.new.${type}`)
+                : converting
+                  ? t('knowledge.chat.toFileTitle')
+                  : item?.title}
             </SheetDialogTitle>
+            {converting && (
+              <p className="-mt-2 text-tiny text-muted-foreground">
+                {t('knowledge.chat.toFileHelp')}
+              </p>
+            )}
             <KnowledgeForm
               value={value}
               onChange={setValue}
@@ -333,6 +384,16 @@ export function KnowledgeDialog({
               authorId={item?.createdBy.id ?? me?.id ?? ''}
               autoFocusTitle={target.mode === 'create'}
               onUploadingChange={setUploading}
+              fileLocked={converting}
+              beforeVisibility={
+                converting && (
+                  <FolderSelect
+                    folders={folders ?? []}
+                    value={convertFolder}
+                    onChange={setConvertFolder}
+                  />
+                )
+              }
             />
           </div>
         ) : item ? (
@@ -421,7 +482,9 @@ export function KnowledgeDialog({
               >
                 {target.mode === 'create'
                   ? t('knowledge.detail.create')
-                  : t('knowledge.detail.save')}
+                  : converting
+                    ? t('knowledge.chat.toFile')
+                    : t('knowledge.detail.save')}
               </Button>
             </div>
           )}

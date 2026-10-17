@@ -12,13 +12,14 @@ import type { FileInfo, GroupPerson, KnowledgeItemDto, Me } from '@spolu/shared'
 import { ApiError } from '@/lib/api';
 import { i18n } from '@/i18n';
 import { uploadFile } from '@/features/files/upload';
-import { createKnowledge, deleteKnowledge, updateKnowledge } from './api';
+import { convertKnowledgeToFile, createKnowledge, deleteKnowledge, updateKnowledge } from './api';
 import { KnowledgeDialog } from './knowledge-dialog';
 
 vi.mock('@/features/files/upload', () => ({ uploadFile: vi.fn() }));
 vi.mock('./api', async (importOriginal) => ({
   ...(await importOriginal<typeof import('./api')>()),
   createKnowledge: vi.fn(),
+  convertKnowledgeToFile: vi.fn(),
   updateKnowledge: vi.fn(),
   deleteKnowledge: vi.fn(async () => undefined),
 }));
@@ -423,6 +424,90 @@ describe('KnowledgeDialog', () => {
       );
       expect(await within(picker).findByRole('alert')).toHaveTextContent(
         t('knowledge.folders.clientItem'),
+      );
+    });
+  });
+
+  describe('Save as a file', () => {
+    const chatFile = (overrides: Partial<KnowledgeItemDto> = {}) =>
+      item({
+        type: 'chat_file',
+        title: 'checklist.pdf',
+        body: '',
+        file: PDF,
+        files: [PDF],
+        fileCount: 1,
+        canEdit: false,
+        canConvert: true,
+        visibilityLocked: false,
+        createdBy: { id: 'u2', name: 'Boris Kováč' },
+        chat: {
+          channelId: 'c1',
+          messageId: 'm1',
+          parentId: null,
+          kind: 'group',
+          taskId: null,
+          taskTitle: null,
+          ticketId: null,
+          ticketNumber: null,
+        },
+        ...overrides,
+      });
+
+    it('only when the viewer may', async () => {
+      current = chatFile({ canConvert: false });
+      renderDialog();
+      await heading('checklist.pdf');
+      expect(screen.queryByRole('button', { name: t('knowledge.chat.toFile') })).toBeNull();
+    });
+
+    it('opens the file form with the file fixed and sends title, description and folder', async () => {
+      current = chatFile();
+      const saved = item({ type: 'file', title: 'Checklist', file: PDF, files: [PDF] });
+      vi.mocked(convertKnowledgeToFile).mockResolvedValue(saved);
+      const user = userEvent.setup();
+      const { client } = renderDialog();
+      await heading('checklist.pdf');
+      await user.click(screen.getByRole('button', { name: t('knowledge.chat.toFile') }));
+      await heading(t('knowledge.chat.toFileTitle'));
+      // The file is shown, not replaceable.
+      expect(screen.queryByTestId('knowledge-file-input')).toBeNull();
+      expect(
+        screen.getByRole('link', { name: t('files.download', { name: 'checklist.pdf' }) }),
+      ).toBeInTheDocument();
+      const title = screen.getByLabelText(t('knowledge.form.title'));
+      expect(title).toHaveValue('checklist.pdf');
+      await user.clear(title);
+      await user.type(title, 'Checklist');
+      const folder = screen.getByLabelText(t('knowledge.folders.label'));
+      await screen.findByRole('option', { name: /2026/ });
+      await user.selectOptions(folder, 'f2');
+      await user.click(screen.getByRole('button', { name: t('knowledge.chat.toFile') }));
+      expect(convertKnowledgeToFile).toHaveBeenCalledWith('k1', {
+        title: 'Checklist',
+        body: '',
+        folderId: 'f2',
+        visibility: 'public',
+        updatedAt: '2026-10-14T10:00:00.000Z',
+      });
+      await heading('Checklist');
+      expect(client.getQueryData(['knowledge', 'item', 'k1'])).toEqual(saved);
+    });
+
+    it('an admins-only folder makes it Only eGrant', async () => {
+      current = chatFile();
+      vi.mocked(convertKnowledgeToFile).mockResolvedValue(item({ type: 'file' }));
+      const user = userEvent.setup();
+      renderDialog();
+      await heading('checklist.pdf');
+      await user.click(screen.getByRole('button', { name: t('knowledge.chat.toFile') }));
+      await screen.findByRole('option', { name: /Secret/ });
+      await user.selectOptions(screen.getByLabelText(t('knowledge.folders.label')), 'f3');
+      expect(screen.getByText(t('knowledge.folders.inAdmins'))).toBeInTheDocument();
+      await user.click(screen.getByRole('button', { name: t('knowledge.chat.toFile') }));
+      expect(convertKnowledgeToFile).toHaveBeenCalledWith(
+        'k1',
+        expect.objectContaining({ folderId: 'f3', visibility: 'admins' }),
       );
     });
   });

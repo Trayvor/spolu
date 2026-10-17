@@ -415,4 +415,181 @@ describe('knowledge: files from chats', () => {
       .where(eq(messages.id, message.id));
     expect(live).toHaveLength(1);
   });
+
+  describe('changing a chat file into a file item', () => {
+    const toFile = (id: string, cookie: string, payload: object) =>
+      call('POST', `/api/knowledge/${id}/to-file`, cookie, payload);
+
+    it('the author makes it a normal file item with its own copy of the file', async () => {
+      const g = await group();
+      const client = await member(g.id);
+      const channel = await ensureGroupChannel(db(), g.id);
+      const message = await sendFiles(channel.id, g.id, client, ['Zmluva.pdf']);
+      const [item] = await list(client.cookie, g.id, '?type=chat_file');
+      const folder = await call('POST', `/api/groups/${g.id}/knowledge/folders`, client.cookie, {
+        name: 'Zmluvy',
+      });
+      expect(folder.statusCode, folder.body).toBe(201);
+      const folderId = folder.json<{ id: string }>().id;
+
+      const res = await toFile(item!.id, client.cookie, {
+        title: 'Zmluva o dielo',
+        body: 'Podpísaná verzia',
+        folderId,
+        visibility: 'public',
+        updatedAt: item!.updatedAt,
+      });
+      expect(res.statusCode, res.body).toBe(200);
+      const saved = res.json<KnowledgeItemDto>();
+      expect(saved).toMatchObject({
+        id: item!.id,
+        type: 'file',
+        title: 'Zmluva o dielo',
+        body: 'Podpísaná verzia',
+        folderId,
+        visibility: 'public',
+        chat: null,
+        canEdit: true,
+        createdBy: { id: client.id },
+        createdAt: item!.createdAt,
+      });
+      // Its own copy: the chat message keeps its file unchanged.
+      expect(saved.files).toHaveLength(1);
+      const copy = saved.files[0]!;
+      expect(copy.id).not.toBe(message.attachments[0]!.id);
+      expect(copy).toMatchObject({ name: 'Zmluva.pdf', size: message.attachments[0]!.size });
+      expect(saved.file?.id).toBe(copy.id);
+
+      // It left "From chat" and shows in its folder; the search finds its new title and body.
+      expect(await list(client.cookie, g.id, '?type=chat_file')).toEqual([]);
+      expect((await list(client.cookie, g.id, `?folder=${folderId}`)).map((i) => i.id)).toEqual([
+        item!.id,
+      ]);
+      expect((await list(client.cookie, g.id, '?q=podpisana')).map((i) => i.id)).toEqual([
+        item!.id,
+      ]);
+      // A normal file item now: its author edits it.
+      const patch = await call('PATCH', `/api/knowledge/${item!.id}`, client.cookie, {
+        title: 'Zmluva 2',
+        updatedAt: saved.updatedAt,
+      });
+      expect(patch.statusCode, patch.body).toBe(200);
+
+      // Deleting the message no longer touches the item or its file.
+      const del = await call('DELETE', `/api/messages/${message.id}`, client.cookie);
+      expect(del.statusCode).toBe(204);
+      const after = await call('GET', `/api/knowledge/${item!.id}`, client.cookie);
+      expect(after.statusCode).toBe(200);
+      expect(after.json<KnowledgeItemDto>().files.map((f) => f.id)).toEqual([copy.id]);
+      const download = await call('GET', `/api/files/${copy.id}`, client.cookie);
+      expect(download.statusCode).toBe(200);
+      expect(download.body).toBe('%PDF-1.4 content');
+    });
+
+    it('the chat message still shows its original attachment', async () => {
+      const g = await group();
+      const a = await admin();
+      const channel = await ensureGroupChannel(db(), g.id);
+      const message = await sendFiles(channel.id, g.id, a, ['Faktura.pdf']);
+      const [item] = await list(a.cookie, g.id, '?type=chat_file');
+      const res = await toFile(item!.id, a.cookie, {
+        title: 'Faktúra',
+        updatedAt: item!.updatedAt,
+      });
+      expect(res.statusCode, res.body).toBe(200);
+      const rows = await db()
+        .select({ fileId: messageAttachments.fileId })
+        .from(messageAttachments)
+        .where(eq(messageAttachments.messageId, message.id));
+      expect(rows.map((r) => r.fileId)).toEqual([message.attachments[0]!.id]);
+      // Defaults: the top level, public, no description.
+      expect(res.json<KnowledgeItemDto>()).toMatchObject({
+        folderId: null,
+        visibility: 'public',
+        body: '',
+      });
+      expect((await list(a.cookie, g.id, '?folder=root')).map((i) => i.id)).toEqual([item!.id]);
+    });
+
+    it('only the author and admins; others are refused, and it happens once', async () => {
+      const g = await group();
+      const other = await group();
+      const author = await member(g.id);
+      const colleague = await member(g.id);
+      const outsider = await member(other.id);
+      const z = await member(g.id, 'ziadatel');
+      const channel = await ensureGroupChannel(db(), g.id);
+      await sendFiles(channel.id, g.id, author, ['a.pdf']);
+      const [item] = await list(author.cookie, g.id, '?type=chat_file');
+      const body = { title: 'A', updatedAt: item!.updatedAt };
+
+      expect((await toFile(item!.id, colleague.cookie, body)).statusCode).toBe(403);
+      expect((await toFile(item!.id, outsider.cookie, body)).statusCode).toBe(404);
+      expect((await toFile(item!.id, z.cookie, body)).statusCode).toBe(404);
+      expect((await toFile(randomUUID(), author.cookie, body)).statusCode).toBe(404);
+      // A stale version is 409; an empty title 400.
+      const stale = await toFile(item!.id, author.cookie, {
+        title: 'A',
+        updatedAt: new Date(0).toISOString(),
+      });
+      expect(stale.statusCode).toBe(409);
+      expect((await toFile(item!.id, author.cookie, { ...body, title: ' ' })).statusCode).toBe(400);
+      // A client's item stays public.
+      const hidden = await toFile(item!.id, author.cookie, { ...body, visibility: 'admins' });
+      expect(hidden.statusCode).toBe(400);
+      expect(hidden.json<{ error: string }>().error).toBe('invalid_visibility');
+
+      const a = await admin();
+      const ok = await toFile(item!.id, a.cookie, body);
+      expect(ok.statusCode, ok.body).toBe(200);
+      // One-way: a file item is no chat file any more.
+      const again = await toFile(item!.id, a.cookie, {
+        title: 'A',
+        updatedAt: ok.json<KnowledgeItemDto>().updatedAt,
+      });
+      expect(again.statusCode).toBe(400);
+      // No leftover copies: exactly one attachment row for the item.
+      const [count] = await db().execute<{ n: number }>(
+        sql`select count(*)::int as n from knowledge_attachments where item_id = ${item!.id}`,
+      );
+      expect(count!.n).toBe(1);
+    });
+
+    it('an admin may hide it from clients, and the group hears the change live', async () => {
+      const g = await group();
+      const a = await admin();
+      const client = await member(g.id);
+      const channel = await ensureGroupChannel(db(), g.id);
+      await sendFiles(channel.id, g.id, a, ['Interné.pdf']);
+      const [item] = await list(a.cookie, g.id, '?type=chat_file');
+
+      const clientSocket = await socketOf(client.cookie);
+      await clientSocket.emitWithAck(SocketEvents.groupJoin, { groupId: g.id });
+      const clientEvents = record(clientSocket);
+      const adminSocket = await socketOf(a.cookie);
+      await adminSocket.emitWithAck(SocketEvents.groupJoin, { groupId: g.id });
+      const adminEvents = record(adminSocket);
+
+      const res = await toFile(item!.id, a.cookie, {
+        title: 'Interné',
+        visibility: 'admins',
+        updatedAt: item!.updatedAt,
+      });
+      expect(res.statusCode, res.body).toBe(200);
+      const fileId = res.json<KnowledgeItemDto>().files[0]!.id;
+
+      await until(() => adminEvents.some((e) => e.name === KnowledgeEvents.item));
+      const pushed = (
+        adminEvents.find((e) => e.name === KnowledgeEvents.item)!.payload as KnowledgeItemEvent
+      ).item;
+      expect(pushed).toMatchObject({ id: item!.id, type: 'file', visibility: 'admins' });
+      await until(() => clientEvents.some((e) => e.name === KnowledgeEvents.itemDeleted));
+      expect(clientEvents.some((e) => e.name === KnowledgeEvents.item)).toBe(false);
+
+      // The client no longer reads the item nor its file copy.
+      expect((await call('GET', `/api/knowledge/${item!.id}`, client.cookie)).statusCode).toBe(404);
+      expect((await call('GET', `/api/files/${fileId}`, client.cookie)).statusCode).toBe(404);
+      expect(await list(client.cookie, g.id)).toEqual([]);
+    });
+  });
 });

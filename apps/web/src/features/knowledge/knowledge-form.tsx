@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef } from 'react';
+import { useEffect, useId, useRef, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   KNOWLEDGE_LIMITS,
@@ -20,6 +20,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { useGroupPeople } from '@/features/groups/use-group-people';
+import { FileChip } from '@/features/files/file-chip';
 import { VisibilityControl } from './visibility-control';
 import { MeetingTranscriptField, MeetingWhenAndLinks, timeBefore } from './meeting-fields';
 import { RecipientsField } from '@/features/reminders/recipients-field';
@@ -387,6 +388,8 @@ export function KnowledgeForm({
   authorId,
   autoFocusTitle = false,
   onUploadingChange,
+  fileLocked = false,
+  beforeVisibility,
 }: {
   value: KnowledgeFormValue;
   onChange: (next: KnowledgeFormValue) => void;
@@ -406,6 +409,10 @@ export function KnowledgeForm({
   autoFocusTitle?: boolean;
   /** True while a file uploads; the dialog keeps Save disabled until it is false. */
   onUploadingChange?: (uploading: boolean) => void;
+  /** A file item's file is shown, not changed (a chat file being saved as a file). */
+  fileLocked?: boolean;
+  /** Extra fields before "Visible to" (the folder of a chat file being saved as a file). */
+  beforeVisibility?: ReactNode;
 }) {
   const { t } = useTranslation();
   const people = useGroupPeople(groupId).data;
@@ -463,17 +470,21 @@ export function KnowledgeForm({
       {type === 'file' && (
         <div className={FIELD}>
           <Label id={id('file-label')}>{t('knowledge.form.file')}</Label>
-          <FilesField
-            groupId={groupId}
-            labelId={id('file-label')}
-            max={1}
-            inputTestId="knowledge-file-input"
-            fileIds={value.fileIds}
-            files={files}
-            onAdd={onAdd}
-            onPendingChange={onUploadingChange}
-            onRemove={onRemove}
-          />
+          {fileLocked ? (
+            files[0] && <FileChip file={files[0]} className="w-full py-3" />
+          ) : (
+            <FilesField
+              groupId={groupId}
+              labelId={id('file-label')}
+              max={1}
+              inputTestId="knowledge-file-input"
+              fileIds={value.fileIds}
+              files={files}
+              onAdd={onAdd}
+              onPendingChange={onUploadingChange}
+              onRemove={onRemove}
+            />
+          )}
           <FieldError id={id('file-error')} message={errors.file} />
         </div>
       )}
@@ -606,6 +617,8 @@ export function KnowledgeForm({
           />
         </>
       )}
+
+      {beforeVisibility}
 
       {canChooseVisibility && (
         <VisibilityControl

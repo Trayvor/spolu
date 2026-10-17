@@ -178,7 +178,10 @@
     "ticket": "Tiket #{{number}}",
     "open": "Prikaži {{title}} u chatu",
     "show": "Prikaži u chatu",
-    "alsoTasksTickets": "I iz zadataka i tiketa"
+    "alsoTasksTickets": "I iz zadataka i tiketa",
+    "toFile": "Spremi kao datoteku",
+    "toFileTitle": "Spremi kao datoteku",
+    "toFileHelp": "Postaje obična datoteka u bazi znanja, s vlastitom kopijom datoteke. Poruka u chatu zadržava svoj privitak. Ovo se ne može poništiti."
   },
   "meeting": {
     "when": "Datum i vrijeme",
