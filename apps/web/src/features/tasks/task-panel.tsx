@@ -14,6 +14,7 @@ import {
   type TaskDraft,
 } from '@spolu/shared';
 import { isAdmin } from '@/features/auth/roles';
+import { OpenInClaude } from '@/features/open-in-claude/open-in-claude';
 import { useSession } from '@/features/auth/use-session';
 import { groupPeopleQuery, groupQuery } from '@/features/groups/api';
 import { Button } from '@/components/ui/button';
@@ -400,6 +401,7 @@ function TaskEditor({
   return (
     <>
       <PanelHeader onClose={close}>
+        <OpenInClaude source={{ kind: 'task', id: base.id }} compact />
         <BucketSelect
           buckets={board?.buckets}
           groupName={group?.name ?? ''}

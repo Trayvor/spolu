@@ -1,0 +1,24 @@
+{
+  "button": "Reši s Claude",
+  "title": "Reši s Claude",
+  "intro": "Pripravimo poziv s celotnim kontekstom, klepetom in navodili za eGrant MCP. Claude najprej pojasni vzrok in predlaga rešitev, brez vaše potrditve pa ničesar ne spremeni.",
+  "notesLabel": "Opombe za Claude (neobvezno)",
+  "notesPlaceholder": "Na primer, na kaj naj se osredotoči. Polje lahko pustite prazno.",
+  "notesHint": "Neobvezno. Brez opomb samo pritisnite Ustvari.",
+  "generate": "Ustvari",
+  "regenerate": "Ustvari znova",
+  "cancel": "Prekliči",
+  "generating": "Pripravljam poziv…",
+  "loadFailed": "Poziva ni bilo mogoče pripraviti. Poskusite znova.",
+  "ready": "Poziv je pripravljen",
+  "open": "Odpri v Claude",
+  "copy": "Kopiraj poziv",
+  "filesReminder": "Datoteke prek povezave ne pridejo do Claude. Prenesite jih in jih ročno priložite v klepet v Claude:",
+  "preview": "Pokaži poziv",
+  "status": {
+    "opened": "Claude se je odprl v novem zavihku.",
+    "pasteInClaude": "Poziv je predolg za povezavo, zato je v odložišču. Prilepite ga v nov klepet v Claude (Ctrl+V ali ⌘V).",
+    "copied": "Poziv je kopiran.",
+    "copyFailed": "Poziva ni bilo mogoče kopirati. Poskusite Kopiraj poziv."
+  }
+}

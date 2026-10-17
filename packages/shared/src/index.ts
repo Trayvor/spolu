@@ -8,6 +8,7 @@ export * from './home.js';
 export * from './knowledge.js';
 export * from './meetings.js';
 export * from './notifications.js';
+export * from './open-in-claude.js';
 export * from './reminders.js';
 export * from './socket.js';
 export * from './task-split.js';
