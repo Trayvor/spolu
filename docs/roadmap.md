@@ -37,6 +37,7 @@ Requirements per module: [product/](product/README.md). Phases after 1 get their
 | 28 | [Chat editor and AI text tools](#phase-28--chat-editor-and-ai-text-tools) | in progress | 27 | [editor spec](superpowers/specs/2026-10-17-phase-28-chat-editor-design.md), [ADR 0025](decisions/0025-prosemirror-chat-editor.md), [AI text tools and voice spec](superpowers/specs/2026-10-17-phase-28-ai-text-tools-and-voice-design.md) |
 | 29 | [Solve with AI](#phase-29--solve-with-ai) | done | 21 | [spec](superpowers/specs/2026-10-17-phase-29-open-in-claude-design.md) |
 | 31 | [Bulk email builder v2](#phase-31--bulk-email-builder-v2) | in progress (v2 merged in PR #59; layout follow-up in review) | 23 | [spec](superpowers/specs/2026-10-17-phase-31-bulk-email-builder-v2-design.md), [plan](superpowers/plans/2026-10-17-phase-31-bulk-email-builder-v2.md), [layout spec](superpowers/specs/2026-10-17-bulk-email-builder-layout-design.md) |
+| 32 | [Finančná správa](#phase-32--finančná-správa) | spec written, waiting for the owner | 17, 19, 20, 24 | [spec](superpowers/specs/2026-10-17-finance-module-design.md), [plan](superpowers/plans/2026-10-17-finance-module.md) |
 
 Phases 8 and 14 do not depend on each other, so their order can change by priority.
 
@@ -235,6 +236,8 @@ Scope:
 - Global contract list with sorting and filters.
 
 Done when: an admin keeps the contracts of all clients and sees them in one list.
+
+Proposed (2026-10-17): merged into [Phase 32](#phase-32--finančná-správa), where contracts are visible to finance admins only; waits for the owner's decision 3 in the Phase 32 spec. The same applies to Phase 15.
 
 ## Phase 15 — Contract reminders
 
@@ -439,3 +442,15 @@ Scope: text formatting in text blocks (bold, italic, underline, strikethrough, l
 Status: v2 merged and deployed (PR #59; decisions for the owner in the spec §9). Follow-up of the same day, on `feat/bulk-email-builder-layout` ([layout spec](superpowers/specs/2026-10-17-bulk-email-builder-layout-design.md), [ADR 0026](decisions/0026-bulk-email-wide-layout-and-linked-preview.md)): the builder page uses the full window width with the blocks on the left and a sticky live preview on the right (Blocks / Preview tabs on tablets and phones), the hovered or edited block is outlined in the preview and a click in the preview selects it, the split container's controls no longer overlap, and an email with a split container is 680 px wide on a computer instead of 600 px. E2E `e2e/bulk-email-builder.spec.ts` updated, run by the orchestrator. Owner to check: a real send of a container email in Outlook for Windows, Gmail and Apple Mail.
 
 Done when: an admin formats a text, builds a split container with an image and a button, edits the phone version separately, sends, and the email shows the computer version in Outlook and Gmail on a computer and the phone version on a phone.
+
+## Phase 32 — Finančná správa
+
+Owner request (2026-10-17). Design: [spec](superpowers/specs/2026-10-17-finance-module-design.md) with the **Owner decisions** table at its top; [plan](superpowers/plans/2026-10-17-finance-module.md).
+
+Scope: a finance right that only the superadmin grants, to admins only; a **Financie** tab per client for finance admins with three cards (Overview: money paid and to be paid by contract, the cost of the work, hours per admin as charts; Documents: contracts with amount, currency, period and reminders, documents, notes and folders; Work log: the hours by month and day with totals per admin and cost); a time question when an admin assignee completes a task, a notification to the other admin assignees and a "fill in your time" row on their dashboard until they answer; hourly rates with effective dates; manual entries; a system-wide page `/finance` with a client filter and rankings of clients by money paid and by hours or cost. Money is integer minor units with a currency code (EUR now, UAH later, never converted). Finance data lives in its own tables, room and finance-only files, so it never reaches the knowledge base, search, chat, digests or clients.
+
+Built in five pull requests: A1 foundation first (schema, permission, empty screens), then A2 (time on done), B (documents and contracts) and C (overview, work log, rates, charts) in parallel, then D (system-wide page and rankings). Proposes to replace Phases 14–15 (owner decision 3).
+
+Status: spec written, waiting for the owner.
+
+Done when: a superadmin grants Finance to an admin; that admin keeps a client's contract with its reminder, completed tasks fill the work log (the other admin assignee is asked and fills 0), rates turn hours into cost, and `/finance` ranks the clients by money paid and by hours; no client and no admin without the right sees any of it.
