@@ -29,7 +29,7 @@ The docs are the source of truth. This file only holds rules and pointers; do no
 
 ## Workflow
 
-- Never push to `main`: every push to `main` deploys to help.egrant.sk. Work on a branch from a fresh `origin/main` and open a pull request; merging deploys it. Cloud sessions: see [docs/runbooks/cloud-sessions.md](docs/runbooks/cloud-sessions.md).
+- Never push to `main`: `main` is what runs on help.egrant.sk. Work on a branch from a fresh `origin/main` and open a pull request. Since 2026-10-18 GitHub Actions run only by hand (minutes exhausted): the orchestrator merges after a green local `scripts/ci.sh` and deploys with `scripts/deploy-local.sh`. Cloud sessions: see [docs/runbooks/cloud-sessions.md](docs/runbooks/cloud-sessions.md).
 - Owner briefs (work not yet specced) are in `docs/superpowers/briefs/`; each says at the top whether it is done.
 - Start any phase with the `implement-phase` skill.
 - Add a server module or web feature with the `new-module` skill.
@@ -51,8 +51,9 @@ One-time setup: `pnpm install`, `cp .env.example .env`, `pnpm exec playwright in
 - `pnpm --filter @spolu/server vapid:generate` — a VAPID key pair for push (once per environment, see `docs/runbooks/deploy.md`).
 - `bash scripts/ci.sh` — every CI check in one go (install, shellcheck, script tests, lint, typecheck, tests, e2e, docs check); needs Docker. Run it before pushing. `--bench` (or `RUN_BENCH=1`) also runs the wall-clock benchmarks; off by default, use it on a quiet machine.
 - `scripts/build-image.sh`, `scripts/deploy.sh`, `scripts/server-setup.sh` — build/push the image, deploy an env, prepare a server; see `docs/runbooks/`.
+- `scripts/deploy-local.sh [--force-ref] [<env> [<sha>]]` — deploy test from the Mac without GitHub or a registry (build for the server's arch, `docker save | ssh docker load`); settings in `~/.config/spolu/<env>.deploy` (chmod 600), see `docs/runbooks/deploy.md`, "Local deploy".
 - `bash scripts/check-docs.sh <base-ref>` — warns when code changed without docs.
-- `bash scripts/tests/<name>.test.sh` — tests of the scripts and hooks (`check-docs`, `docs-reminder`, `deploy-env`, `caddy-redirects`, `cloud-session`, `run-parallel`, `ci-bench`, `limit-parallelism`, `isolate-run`); `ci.sh` runs them all.
+- `bash scripts/tests/<name>.test.sh` — tests of the scripts and hooks (`check-docs`, `docs-reminder`, `deploy-env`, `deploy-local`, `caddy-redirects`, `cloud-session`, `run-parallel`, `ci-bench`, `limit-parallelism`, `isolate-run`); `ci.sh` runs them all.
 
 ## Tips for agents
 

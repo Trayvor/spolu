@@ -1,6 +1,6 @@
 # Roadmap
 
-35 phases (0-34). Each phase ends with something that works and can be used. Update the `Status` column when a phase starts or finishes (values: `planned`, `in progress`, `done` = merged into `main`, which deploys it to the test server https://help.egrant.sk, `merged into N`). What the owner still has to walk by hand is written in the phase's section. The `implement-phase` and `update-kb` skills do this.
+35 phases (0-34). Each phase ends with something that works and can be used. Update the `Status` column when a phase starts or finishes (values: `planned`, `in progress`, `done` = merged into `main`, which is deployed to the test server https://help.egrant.sk, `merged into N`). What the owner still has to walk by hand is written in the phase's section. The `implement-phase` and `update-kb` skills do this.
 
 Requirements per module: [product/](product/README.md). Phases after 1 get their own short design and plan when they start.
 
@@ -54,7 +54,7 @@ Also agreed on 2026-10-16: the global task board shows the chosen clients' custo
 
 ## Server deployment
 
-Owner decision (2026-10-15): build and verify locally first, deploy to the server as one separate step. That step is done: the first deploy to the Oracle test VM ran on 2026-10-15 (Phase 1 Task 18), and since then every merge into `main` deploys to the test server, now https://help.egrant.sk ([runbooks/deploy.md](runbooks/deploy.md)). The status `done (local)` is retired: the phases verified locally before that are `done`. Still open from the server step: the Phase 6 check on real devices ([runbooks/deploy.md](runbooks/deploy.md#phase-6-check-on-real-devices)) and HSTS.
+Owner decision (2026-10-15): build and verify locally first, deploy to the server as one separate step. That step is done: the first deploy to the Oracle test VM ran on 2026-10-15 (Phase 1 Task 18), and since then `main` is deployed to the test server (on every merge until 2026-10-18, then by hand with `scripts/deploy-local.sh`), now https://help.egrant.sk ([runbooks/deploy.md](runbooks/deploy.md)). The status `done (local)` is retired: the phases verified locally before that are `done`. Still open from the server step: the Phase 6 check on real devices ([runbooks/deploy.md](runbooks/deploy.md#phase-6-check-on-real-devices)) and HSTS.
 
 ## Phase 0 — AI workflow & knowledge base
 

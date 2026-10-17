@@ -134,6 +134,75 @@ caddy_redirects() {
   echo '}'
 }
 
+# deploy_ssh <work dir>: sets the global arrays ssh_cmd (ssh to $DEPLOY_USER@$DEPLOY_HOST; append the
+# remote command) and scp_cmd (scp with the same options; append sources and target) from
+# DEPLOY_SSH_KEY, DEPLOY_PORT (default 22) and DEPLOY_KNOWN_HOSTS. The host key is pinned through
+# <work dir>/known_hosts, so the caller's own ~/.ssh is never used or changed. Without
+# DEPLOY_KNOWN_HOSTS any new host key is accepted and a warning is printed.
+deploy_ssh() {
+  local known_hosts="$1/known_hosts" check=yes opts port="${DEPLOY_PORT:-22}"
+  if [[ -n "${DEPLOY_KNOWN_HOSTS:-}" ]]; then
+    printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$known_hosts"
+  else
+    : > "$known_hosts"
+    check=accept-new
+    log "WARNING: DEPLOY_KNOWN_HOSTS is not set; the server's host key is not verified"
+  fi
+  opts=(
+    -i "$DEPLOY_SSH_KEY"
+    -o IdentitiesOnly=yes
+    -o BatchMode=yes
+    -o ConnectTimeout=20
+    -o "UserKnownHostsFile=$known_hosts"
+    -o "StrictHostKeyChecking=$check"
+  )
+  # shellcheck disable=SC2034 # read by the caller
+  ssh_cmd=(ssh "${opts[@]}" -p "$port" "$DEPLOY_USER@$DEPLOY_HOST")
+  # shellcheck disable=SC2034 # read by the caller
+  scp_cmd=(scp "${opts[@]}" -P "$port")
+}
+
+# load_deploy_config <file> <allowed key>...: sets shell variables from a KEY=value file without
+# running it as shell code. Blank lines and lines starting with # are skipped; "export " is allowed
+# before a key. The value is everything after "=", trailing spaces removed, so spaces need no
+# quotes (MAIL_FROM_NAME=Help by eGrant); one pair of surrounding '…' or "…" is removed; a leading
+# ~/ becomes $HOME/. No comments after a value. Exits on a malformed line or a key not in the list;
+# the message names the line, never the value.
+load_deploy_config() {
+  local file="$1" line key value n=0 allowed
+  shift
+  allowed=" $* "
+  local kv='^[[:space:]]*(export[[:space:]]+)?([A-Za-z_][A-Za-z0-9_]*)=(.*)$'
+  local single="^'(.*)'$" double='^"(.*)"$'
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    n=$((n + 1))
+    line="${line%$'\r'}"
+    [[ "$line" =~ ^[[:space:]]*(#|$) ]] && continue
+    [[ "$line" =~ $kv ]] || die "$file line $n is not KEY=value"
+    key="${BASH_REMATCH[2]}" value="${BASH_REMATCH[3]}"
+    [[ "$allowed" == *" $key "* ]] || die "$file line $n: unknown key $key"
+    value="${value%"${value##*[![:space:]]}"}"
+    if [[ "$value" =~ $single || "$value" =~ $double ]]; then value="${BASH_REMATCH[1]}"; fi
+    # shellcheck disable=SC2088 # a literal "~/" is matched here and expanded by hand
+    if [[ "$value" == "~" ]]; then value="$HOME"; elif [[ "$value" == "~/"* ]]; then value="$HOME/${value:2}"; fi
+    printf -v "$key" '%s' "$value"
+  done < "$file"
+}
+
+# file_mode <file>: prints its permission bits in octal, e.g. 600 (GNU stat, else BSD/macOS stat).
+file_mode() {
+  stat -c %a "$1" 2>/dev/null || stat -f %Lp "$1"
+}
+
+# require_private_file <what> <file>: exits unless <file> exists and only its owner may read or
+# write it (no group or other bits, e.g. chmod 600).
+require_private_file() {
+  local mode
+  [[ -f "$2" ]] || die "$1 not found: $2"
+  mode="$(file_mode "$2")" || die "cannot read the permissions of $1: $2"
+  (( (8#$mode & 8#077) == 0 )) || die "$1 must be private to you (chmod 600 $2); its mode is $mode"
+}
+
 # Number of CPU cores (nproc on Linux, sysctl on macOS, 1 if neither works).
 cpu_count() {
   nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 1

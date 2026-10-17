@@ -47,9 +47,9 @@ What cloud sessions do not have:
 
 ## Working rules in the cloud
 
-- Work on a branch and open a pull request. Never push to `main`: every push to `main` deploys to help.egrant.sk (`deploy-test.yml`). The `CI` workflow checks every pull request.
-- On the pull request, the session can watch CI and fix failures ("Auto-fix" in the CI bar at claude.ai/code).
-- Merging the pull request deploys it.
+- Work on a branch and open a pull request. Never push to `main`: `main` is what gets deployed to help.egrant.sk.
+- Since 2026-10-18 GitHub runs no CI on pull requests (Actions minutes exhausted; the `CI` workflow is manual only). The orchestrator checks a pull request with a local `scripts/ci.sh`, merges it and deploys with `scripts/deploy-local.sh` ([deploy.md](deploy.md#local-deploy-2026-10-18-github-minutes-exhausted)).
+- Merging the pull request does not deploy it by itself.
 - To continue a cloud session locally: `claude --teleport` in a clean checkout of the repo.
 
 ## Optional: `@claude` in issues and pull requests

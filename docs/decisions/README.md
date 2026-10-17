@@ -54,3 +54,4 @@ What gets easier, what gets harder.
 | [0028](0028-finance-charts-own-svg.md) | Finance charts as our own SVG components, no chart library | accepted |
 | [0029](0029-admin-group-as-a-group-row.md) | The internal admin group as one `groups` row with `kind = 'admin'` | accepted |
 | [0030](0030-projects-composite-keys-and-egrant-matching.md) | Projects: composite keys, exact-key matching with aliases, and created by eGrant | accepted |
+| [0031](0031-local-deploy-without-registry.md) | Local deploy from the orchestrator's Mac, without a registry | accepted |
