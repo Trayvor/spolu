@@ -251,7 +251,8 @@ Impact: **high** = a user waits seconds, or the server does far more work than n
 **T5. CI steps run one after another.** Impact med, effort S, risk low-med.
 - Lint (29 s), format check (15 s) and typecheck (27 s) are independent.
 - e2e uses 1 worker for 45 tests (4 min 20 s).
-- Proposed: run lint, format and typecheck concurrently in `ci.sh` (about 40 s). Keep e2e serial: its tests share one database. Not done tonight: the owner runs `ci.sh` for every PR, so a change to it should be reviewed on its own.
+- Proposed: run lint, format and typecheck concurrently in `ci.sh` (about 40 s). Keep e2e serial: its tests share one database.
+- **Done** (PR #56, branch `ci/parallel-static-checks`): `run_parallel` in `scripts/lib.sh` runs the three at once, prints each step's output whole and in order with its result and seconds, and fails after all finish if any failed (tests: `scripts/tests/run-parallel.test.sh`). Local, loaded laptop: 27 to 55 s one after another, 18 to 28 s in parallel.
 
 **T6. 59 leftover `spolu_test_*` databases in the dev PostgreSQL.** Impact low. CLAUDE.md already says to drop them now and then; they slow Postgres down. No code change.
 
@@ -274,14 +275,15 @@ Each batch is one branch and one PR from fresh `origin/main`, independent of the
 | 3 | `perf/web-vitest-vmthreads` | T1 | high (CI) | low | PR #46: web suite 31.4 → 13.9 s locally, 429 → 173 s on GitHub (the tests step is now bound by the server suite, about 390 s) |
 | 4 | `perf/web-entry-chunk` | W1 | med | low | PR #47: initial JS 174.59 → 161.94 kB |
 | 5 | `perf/pwa-precache-languages` | W3 | med | low | PR #48: precache 307 files / 758.6 kB → 167 / 613.3 kB gzip |
-| 6 | `perf/web-first-join-refetch` | W4 | med | low | handed to a second agent (own PR) |
-| 7 | `chore/dead-code` | D1, D2 | low | low | `chore/dead-code`: 6 symbols, 2 keys in nine languages, 4 dead English plural forms |
-| 8 | `perf/docker-runtime-slim` | K1 | low-med | low | handed to a second agent (own PR) |
+| 6 | `perf/web-first-join-refetch` | W4 | med | low | PR #53: a cold load sends 1 request instead of 2 (board, knowledge, tickets, bulk email) |
+| 7 | `chore/dead-code` | D1, D2 | low | low | PR #52: 6 symbols, 2 keys in nine languages, 4 dead English plural forms |
+| 8 | `perf/docker-runtime-slim` | K1 | low-med | low | PR #57: image 467 → 380 MB (94.7 → 82.8 MB compressed), source-only rebuild 26–31 → 17 s |
+| 9 | `ci/parallel-static-checks` | T5 | med (CI) | low-med | PR #56: lint, format check and typecheck in parallel, 27–55 → 18–28 s |
 
 Proposed, not done (owner decision or later work):
-- **Server:** S4, S5, S6, S7, S8, S9, S10, S11.
+- **Server:** S4, S5, S6, S7 (in progress), S8, S9, S10, S11.
 - **Web:** W2, W5, W6, W7, W8.
-- **Tests and CI:** T2, T3, T4, T5.
+- **Tests and CI:** T2, T3 (in progress), T4.
 - **Docker:** K2.
 
 The next server batch should be S7 (job N+1s, test-first). The next web batch should be W5 together with S4.
