@@ -23,7 +23,7 @@ export function emitTicket(
 
 /**
  * Tells the ticket's readers to refetch it after a change made elsewhere, such as a task made from
- * it being edited, moved or deleted (its page lists those tasks). No hook runs: followers are not
+ * it being edited, moved or deleted (its page lists those tasks). No hook runs: nobody is
  * notified. Call it after the write committed.
  */
 export async function emitTicketRefresh(

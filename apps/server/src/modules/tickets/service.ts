@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { and, desc, eq, inArray, isNull, lt, notInArray, or, sql, type SQL } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNull, lt, or, sql, type SQL } from 'drizzle-orm';
 import type {
   MemberRole,
   SessionUser,
@@ -33,10 +33,10 @@ import { getGroup, listGroupPeople } from '../groups/service.js';
 import { countTasksFromTicket, listTasksFromTicket } from '../tasks/task-service.js';
 import { getTicketChannel } from '../chat/service.js';
 import { isAdmin } from '../users/policy.js';
-import { getActiveRoles, getUserById, getUserNames, listAdmins } from '../users/service.js';
+import { getActiveRoles, getUserNames, listAdmins } from '../users/service.js';
 import { canAssignTicket, canBeTicketAssignee, canReadTicket, canSplitTicket } from './policy.js';
 import { resolveRequester } from './requester.js';
-import { ticketAssignees, ticketAttachments, ticketFollowers, tickets } from './schema.js';
+import { ticketAssignees, ticketAttachments, tickets } from './schema.js';
 
 export type TicketRow = typeof tickets.$inferSelect;
 
@@ -106,26 +106,6 @@ export async function getTicketRow(db: Db, id: string): Promise<TicketRow | null
   return row ?? null;
 }
 
-/**
- * Who follows from the start: the initiator's account and the admin who created the ticket by
- * hand. The group's managers no longer follow by themselves: they hear about a new ticket by
- * watching the group's tickets (`watch.ts`) and follow it by choice or by becoming its riešiteľ.
- * Idempotent.
- */
-async function addAutoFollowers(db: Db, ticket: TicketRow): Promise<void> {
-  const ids = new Set<string>();
-  if (ticket.requesterUserId) ids.add(ticket.requesterUserId);
-  if (ticket.createdBy && ticket.source === 'manual') {
-    const creator = await getUserById(db, ticket.createdBy);
-    if (creator && creator.role !== 'client') ids.add(ticket.createdBy);
-  }
-  if (ids.size === 0) return;
-  await db
-    .insert(ticketFollowers)
-    .values([...ids].map((userId) => ({ ticketId: ticket.id, userId, source: 'auto' as const })))
-    .onConflictDoNothing();
-}
-
 export type CreateTicketInput = {
   source: TicketSource;
   groupId: string | null;
@@ -154,7 +134,7 @@ export async function findTicketByRequestId(db: Db, requestId: string): Promise<
 
 /**
  * Saves a ticket. With a client, the initiator is resolved first (it may add a ziadatel
- * membership), then the ticket and its auto followers are written in one transaction. Returns
+ * membership), then the ticket and its files are written in one transaction. Returns
  * the row and whether the initiator should get the "Ticket created" email. When another ticket
  * already holds `requestId` (a concurrent retry), nothing is written and `duplicate` is true
  * with that ticket.
@@ -209,7 +189,6 @@ export async function createTicket(
         })),
       );
     }
-    await addAutoFollowers(tx, created);
     return created;
   });
   if (!ticket) {
@@ -232,14 +211,6 @@ export async function claimRequesterEmail(db: Db, ticketId: string): Promise<boo
     .where(and(eq(tickets.id, ticketId), isNull(tickets.requesterNotifiedAt)))
     .returning({ id: tickets.id });
   return rows.length === 1;
-}
-
-async function isFollowing(db: Db, ticketId: string, userId: string): Promise<boolean> {
-  const [row] = await db
-    .select({ id: ticketFollowers.userId })
-    .from(ticketFollowers)
-    .where(and(eq(ticketFollowers.ticketId, ticketId), eq(ticketFollowers.userId, userId)));
-  return row !== undefined;
 }
 
 async function groupNameOf(db: Db, groupId: string | null): Promise<string | null> {
@@ -285,13 +256,11 @@ export const fileOfReadableTicket: FileReadRule = async (db, actor, file) => {
 export async function toTicketDto(
   db: Db,
   row: TicketRow,
-  viewerId: string,
   seesTasks: boolean,
   canAssign = false,
 ): Promise<TicketDto> {
-  const [groupName, following, taskList, channel, files, assignees] = await Promise.all([
+  const [groupName, taskList, channel, files, assignees] = await Promise.all([
     groupNameOf(db, row.groupId),
-    isFollowing(db, row.id, viewerId),
     seesTasks ? listTasksFromTicket(db, row.id) : countTasksFromTicket(db, row.id),
     getTicketChannel(db, row.id),
     ticketFiles(db, row),
@@ -323,7 +292,6 @@ export async function toTicketDto(
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
     resolvedAt: row.resolvedAt?.toISOString() ?? null,
-    following,
     taskCount,
     tasks: typeof taskList === 'number' ? null : taskList,
     channelId: channel?.id ?? null,
@@ -344,7 +312,7 @@ export async function getTicketForActor(
   if (!canReadTicket(actor, row, role)) return null;
   // A ticket without a client has no board: admins see its (empty) task list all the same.
   const seesTasks = row.groupId === null || canSplitTicket(actor, row, role);
-  return toTicketDto(db, row, actor.id, seesTasks, canAssignTicket(actor, row, role));
+  return toTicketDto(db, row, seesTasks, canAssignTicket(actor, row, role));
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -408,9 +376,6 @@ export async function listTickets(
   if (query.status === 'open') where.push(inArray(tickets.status, ['new', 'in_progress']));
   if (query.status === 'resolved') where.push(eq(tickets.status, 'resolved'));
   if (query.area) where.push(sql`lower(${tickets.area}) = lower(${query.area})`);
-  const following = sql<boolean>`exists (select 1 from ticket_followers f
-    where f.ticket_id = ${tickets.id} and f.user_id = ${actor.id})`;
-  if (query.following) where.push(following);
   if (query.assignee === 'me') {
     where.push(sql`exists (select 1 from ticket_assignees a
       where a.ticket_id = ${tickets.id} and a.user_id = ${actor.id})`);
@@ -440,7 +405,6 @@ export async function listTickets(
       subject: tickets.subject,
       dueDate: tickets.dueDate,
       createdAt: tickets.createdAt,
-      following,
       requesterName: tickets.requesterName,
       excerpt: sql<string | null>`left(${tickets.body}, ${EXCERPT})`,
     })
@@ -497,8 +461,7 @@ export async function updateTicket(
 
 /**
  * Gives a ticket its client, or moves it to another one. The initiator is resolved for the new
- * group, auto followers are added and followers who cannot read it there are dropped. A ticket
- * with tasks stays where it is (`TicketHasTasksError`): its tasks live on that client's board.
+ * group and the riešitelia who cannot be one there are dropped. A ticket with tasks stays where it is (`TicketHasTasksError`): its tasks live on that client's board.
  */
 export async function assignTicketGroup(
   db: Db,
@@ -523,17 +486,7 @@ export async function assignTicketGroup(
     const moved = row!;
     // The ticket's files (form or intake) belong to its client, like its chat's files.
     await moveFilesToGroup(tx, await attachmentIds(tx, id), groupId);
-    await addAutoFollowers(tx, moved);
     await dropInvalidAssignees(tx, moved);
-    const readers = await readingFollowerIds(tx, moved);
-    await tx
-      .delete(ticketFollowers)
-      .where(
-        and(
-          eq(ticketFollowers.ticketId, id),
-          readers.length > 0 ? notInArray(ticketFollowers.userId, readers) : undefined,
-        ),
-      );
     return moved;
   });
   return {
@@ -543,50 +496,14 @@ export async function assignTicketGroup(
   };
 }
 
-/** Follow a ticket (idempotent); an existing auto row stays auto. */
-export async function follow(db: Db, ticketId: string, userId: string): Promise<void> {
-  await db
-    .insert(ticketFollowers)
-    .values({ ticketId, userId, source: 'manual' })
-    .onConflictDoNothing();
-}
-
-/** Stop following, whatever made the person a follower. */
-export async function unfollow(db: Db, ticketId: string, userId: string): Promise<void> {
-  await db
-    .delete(ticketFollowers)
-    .where(and(eq(ticketFollowers.ticketId, ticketId), eq(ticketFollowers.userId, userId)));
-}
-
-/** The followers of a ticket, by name. */
-export async function listFollowers(
-  db: Db,
-  ticketId: string,
-): Promise<{ id: string; name: string }[]> {
-  const rows = await db
-    .select({ userId: ticketFollowers.userId })
-    .from(ticketFollowers)
-    .where(eq(ticketFollowers.ticketId, ticketId));
-  const names = await getUserNames(
-    db,
-    rows.map((r) => r.userId),
-  );
-  return [...names]
-    .map(([id, name]) => ({ id, name }))
-    .sort((a, b) => a.name.localeCompare(b.name, 'sk') || a.id.localeCompare(b.id));
-}
-
 /**
- * The ids of the followers who can still read the ticket, by `canReadTicket`: not disabled, and an
- * admin or a member of its group with the right role. Three queries whatever the number of
- * followers (it runs for every message of the ticket's chat).
+ * Which of these users can still read the ticket, by `canReadTicket`: not disabled, and an admin
+ * or a member of its group with the right role. Three queries whatever the number of people (it
+ * runs for every message of the ticket's chat).
  */
-export async function readingFollowerIds(db: Db, ticket: TicketRow): Promise<string[]> {
-  const followers = await db
-    .select({ userId: ticketFollowers.userId })
-    .from(ticketFollowers)
-    .where(eq(ticketFollowers.ticketId, ticket.id));
-  const ids = followers.map((f) => f.userId);
+export async function readingIds(db: Db, ticket: TicketRow, userIds: string[]): Promise<string[]> {
+  const ids = [...new Set(userIds)];
+  if (ids.length === 0) return [];
   const roles = await getActiveRoles(db, ids);
   const memberRoles =
     ticket.groupId === null ? new Map() : await activeRolesIn(db, ticket.groupId, ids);
@@ -675,7 +592,7 @@ async function assignableIds(db: Db, ticket: TicketRow, userIds: string[]): Prom
 }
 
 /**
- * Makes the user a riešiteľ of the ticket, and a follower of it, in one transaction. Answers
+ * Makes the user a riešiteľ of the ticket, in one transaction. Answers
  * whether they were new. Throws `InvalidTicketAssigneeError` for someone who cannot be one or
  * when the ticket already has `MAX_TICKET_ASSIGNEES`.
  */
@@ -697,15 +614,11 @@ export async function addAssignee(db: Db, ticket: TicketRow, userId: string): Pr
     if (current.some((r) => r.userId === userId)) return false;
     if (current.length >= MAX_TICKET_ASSIGNEES) throw new InvalidTicketAssigneeError();
     await tx.insert(ticketAssignees).values({ ticketId: ticket.id, userId });
-    await tx
-      .insert(ticketFollowers)
-      .values({ ticketId: ticket.id, userId, source: 'auto' })
-      .onConflictDoNothing();
     return true;
   });
 }
 
-/** Removes a riešiteľ; they keep following. Answers whether they were one. */
+/** Removes a riešiteľ. Answers whether they were one. */
 export async function removeAssignee(db: Db, ticketId: string, userId: string): Promise<boolean> {
   const rows = await db
     .delete(ticketAssignees)

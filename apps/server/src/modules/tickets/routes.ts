@@ -45,17 +45,14 @@ import {
   claimRequesterEmail,
   createTicket,
   findTicketByRequestId,
-  follow,
   getTicketForActor,
   getTicketRow,
   InvalidTicketAssigneeError,
   InvalidTicketCursorError,
-  listFollowers,
   listTickets,
   removeAssignee,
   roleIn,
   TicketHasTasksError,
-  unfollow,
   updateTicket,
   type TicketRow,
 } from './service.js';
@@ -114,7 +111,7 @@ function keyMatches(header: string | undefined, key: string): boolean {
   return given.length === wanted.length && timingSafeEqual(given, wanted);
 }
 
-/** Tickets (Phase 21): the intake API for eGrant, manual creation, lists, edits and following. */
+/** Tickets (Phase 21): the intake API for eGrant, manual creation, lists, edits, riešitelia and watching. */
 export const ticketsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { deps }) => {
   const { db, config, jobs } = deps;
   const anyUser = requireUser(app.auth);
@@ -388,20 +385,6 @@ export const ticketsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, 
     }
   });
 
-  app.put<IdParams>('/tickets/:id/follow', { preHandler: anyUser }, async (request, reply) => {
-    const actor = request.user!;
-    if (!(await readable(actor, request.params.id, reply))) return reply;
-    await follow(db, request.params.id, actor.id);
-    return reply.code(204).send();
-  });
-
-  app.delete<IdParams>('/tickets/:id/follow', { preHandler: anyUser }, async (request, reply) => {
-    const actor = request.user!;
-    if (!(await readable(actor, request.params.id, reply))) return reply;
-    await unfollow(db, request.params.id, actor.id);
-    return reply.code(204).send();
-  });
-
   // ---- Files for the ticket chat ------------------------------------------------------------------
   // Whoever reads the ticket uploads into its client's files, so a ziadatel, who cannot use
   // `POST /api/groups/:id/files`, can attach files in the ticket chat. Streamed like that route.
@@ -530,10 +513,5 @@ export const ticketsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, 
     if (!(await watchable(actor, request.params.id, reply))) return reply;
     await setTicketWatch(db, actor.id, request.params.id, body.data.watching);
     return { watching: body.data.watching };
-  });
-
-  app.get<IdParams>('/tickets/:id/followers', { preHandler: anyUser }, async (request, reply) => {
-    if (!(await readable(request.user!, request.params.id, reply))) return reply;
-    return listFollowers(db, request.params.id);
   });
 };

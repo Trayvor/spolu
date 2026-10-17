@@ -4,9 +4,10 @@ import type { Db } from '../../infra/db/client.js';
 import { watchedGroupsSql } from './watch.js';
 
 // The admin dashboard's tickets (the Tickets card and the header's Tickets count): the active
-// tickets (New, In progress) that are the viewer's to answer: those they are a riešiteľ of, those
-// without a riešiteľ of the clients whose tickets they watch (`watch.ts`: by default the clients
-// they manage), and those without a client, which nobody has placed yet. Admins only: the caller
+// tickets (New, In progress) that are the viewer's to answer, the same people their updates
+// notify (`audience.ts`): those they are a riešiteľ of, those without a riešiteľ of the clients
+// whose tickets they watch (`watch.ts`: by default the clients they manage), and those without a
+// client and without a riešiteľ, which every admin hears about. Admins only: the caller
 // checks it. Three disjoint branches joined with `union all`, so each reads its own index
 // (`ticket_assignees_user_idx`, `tickets_group_status_created_idx`,
 // `tickets_unassigned_created_idx`) instead of one `or` that would scan the table.
@@ -27,12 +28,10 @@ function activeTicketsSql(userId: string): SQL {
     where t.group_id in ${watchedGroupsSql(userId)} and t.status in ${ACTIVE}
       and not exists (select 1 from ticket_assignees x where x.ticket_id = t.id)
     union all
-    select ${COLUMNS},
-      exists (select 1 from ticket_assignees x where x.ticket_id = t.id) as has_assignee
+    select ${COLUMNS}, false as has_assignee
     from tickets t
     where t.group_id is null and t.status in ${ACTIVE}
-      and not exists (select 1 from ticket_assignees x
-        where x.ticket_id = t.id and x.user_id = ${userId})
+      and not exists (select 1 from ticket_assignees x where x.ticket_id = t.id)
   `;
 }
 

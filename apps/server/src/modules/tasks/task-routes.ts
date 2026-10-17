@@ -111,8 +111,9 @@ export const taskRoutes: FastifyPluginAsync<TaskRoutesOptions> = async (
   };
 
   /**
-   * After cards were made from a ticket (or a message of its chat): its page refetches, and its
-   * followers hear `ticket.tasks` with the count. A failure is logged; the write succeeded.
+   * After cards were made from a ticket (or a message of its chat): its page refetches, and the
+   * ticket's audience hears `ticket.tasks` with the count. A failure is logged; the write
+   * succeeded.
    */
   const afterTicketTasks = async (
     request: FastifyRequest,

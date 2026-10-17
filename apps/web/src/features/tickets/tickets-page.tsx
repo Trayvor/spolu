@@ -20,7 +20,7 @@ import { filterFromSearch, writeFilter, type TicketsSearch } from './search';
 import { TicketList } from './ticket-list';
 
 /** The ticket filters remembered for the next visit (`useRememberedFilters`). */
-const REMEMBERED_KEYS = ['status', 'area', 'following', 'assignee', 'clients', 'none'] as const;
+const REMEMBERED_KEYS = ['status', 'area', 'assignee', 'clients', 'none'] as const;
 
 /**
  * The filter in the URL: every change is one history entry, as on the knowledge list. A visit
@@ -196,7 +196,8 @@ export function TicketsTab() {
 
 /**
  * "Watch tickets" for the signed-in user and this client: on, every new ticket of the client
- * notifies them; off, only the tickets they follow do. Saved at once.
+ * notifies them, and so do its updates while it has no riešiteľ; off, only the tickets they are a
+ * riešiteľ of (or are named in) do. Saved at once.
  */
 function WatchCheckbox({ groupId }: { groupId: string }) {
   const { t } = useTranslation();

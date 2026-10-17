@@ -136,43 +136,119 @@ describe('ticket notifications (Phase 21.6)', () => {
     }
   });
 
-  it('a status change notifies the followers but not the actor', async () => {
-    const g = await group();
-    const z = await member(g.id, 'ziadatel');
-    const [m, actor] = [await admin(), await admin()];
-    await addManager(db(), g.id, m.id);
-    const t = await ticket(g, z.email);
-    await call('PUT', `/api/tickets/${t.id}/follow`, m.cookie);
-    await call('PUT', `/api/tickets/${t.id}/follow`, actor.cookie);
-    await call('PATCH', `/api/tickets/${t.id}`, actor.cookie, { status: 'in_progress' });
-    const events = (await eventsOf(t.id, [z.id, m.id, actor.id])).filter(
-      (e) => e.kind === 'ticket.status',
-    );
-    expect(events.map((e) => e.userId).sort()).toEqual([z.id, m.id].sort());
-    expect(events[0]!.payload).toMatchObject({ status: 'in_progress', number: t.number });
-    expect(pushesTo(z.endpoint).map((p) => p.title)).toContain(`#${t.number} je teraz V riešení`);
+  const assign = (ticketId: string, userId: string, cookie: string) =>
+    call('PUT', `/api/tickets/${ticketId}/assignees/${userId}`, cookie);
+  const unassign = (ticketId: string, userId: string, cookie: string) =>
+    test.app.inject({
+      method: 'DELETE',
+      url: `/api/tickets/${ticketId}/assignees/${userId}`,
+      headers: { cookie },
+    });
+  const setWatch = (groupId: string, cookie: string, watching: boolean) =>
+    call('PUT', `/api/groups/${groupId}/ticket-watch`, cookie, { watching });
+  const kindsFor = async (ticketId: string, userIds: string[], kind: string) =>
+    (await eventsOf(ticketId, userIds))
+      .filter((e) => e.kind === kind)
+      .map((e) => e.userId)
+      .sort();
 
-    await call('PATCH', `/api/tickets/${t.id}`, actor.cookie, { subject: 'Nové' });
-    const updated = (await eventsOf(t.id, [z.id, actor.id])).filter(
-      (e) => e.kind === 'ticket.updated',
-    );
-    expect(updated.map((e) => e.userId)).toEqual([z.id]);
+  describe('who hears a ticket update (owner decision 2026-10-17)', () => {
+    it('without a riešiteľ: the watchers and the initiator, never the actor or a non-watcher', async () => {
+      const g = await group();
+      const z = await member(g.id, 'ziadatel');
+      const c = await member(g.id, 'client', 'Klient');
+      const quiet = await member(g.id, 'client', 'Tichý');
+      const [m, actor, other] = [await admin(), await admin(), await admin()];
+      await addManager(db(), g.id, m.id);
+      await addManager(db(), g.id, actor.id);
+      await setWatch(g.id, quiet.cookie, false);
+      const t = await ticket(g, z.email);
+      await call('PATCH', `/api/tickets/${t.id}`, actor.cookie, { status: 'in_progress' });
+      const everyone = [z, c, quiet, m, actor, other].map((p) => p.id);
+      expect(await kindsFor(t.id, everyone, 'ticket.status')).toEqual([z.id, c.id, m.id].sort());
+      const [event] = (await eventsOf(t.id, [z.id])).filter((e) => e.kind === 'ticket.status');
+      expect(event!.payload).toMatchObject({ status: 'in_progress', number: t.number });
+      expect(pushesTo(z.endpoint).map((p) => p.title)).toContain(`#${t.number} je teraz V riešení`);
+
+      await call('PATCH', `/api/tickets/${t.id}`, actor.cookie, { subject: 'Nové' });
+      expect(await kindsFor(t.id, everyone, 'ticket.updated')).toEqual([z.id, c.id, m.id].sort());
+    });
+
+    it('with a riešiteľ: only the riešitelia and the initiator; removing the last one falls back', async () => {
+      const g = await group();
+      const z = await member(g.id, 'ziadatel');
+      const c = await member(g.id, 'client', 'Klient');
+      const [m, r, actor] = [await admin(), await admin(), await admin()];
+      await addManager(db(), g.id, m.id);
+      const t = await ticket(g, z.email);
+      expect((await assign(t.id, r.id, actor.cookie)).statusCode).toBe(200);
+      const everyone = [z, c, m, r, actor].map((p) => p.id);
+      expect(await kindsFor(t.id, everyone, 'ticket.assigned')).toEqual([r.id]);
+
+      await call('PATCH', `/api/tickets/${t.id}`, actor.cookie, { status: 'in_progress' });
+      expect(await kindsFor(t.id, everyone, 'ticket.status')).toEqual([z.id, r.id].sort());
+
+      // The riešiteľ makes the change: only the initiator hears it.
+      await call('PATCH', `/api/tickets/${t.id}`, r.cookie, { subject: 'Nové' });
+      expect(await kindsFor(t.id, everyone, 'ticket.updated')).toEqual([z.id]);
+
+      expect((await unassign(t.id, r.id, actor.cookie)).statusCode).toBe(200);
+      await call('PATCH', `/api/tickets/${t.id}`, actor.cookie, { status: 'resolved' });
+      const resolved = (await eventsOf(t.id, everyone)).filter(
+        (e) =>
+          e.kind === 'ticket.status' && (e.payload as { status: string }).status === 'resolved',
+      );
+      expect(resolved.map((e) => e.userId).sort()).toEqual([z.id, c.id, m.id].sort());
+    });
+
+    it('a ticket without a client: every admin while it has no riešiteľ, then its riešitelia', async () => {
+      const [a1, a2, actor] = [await admin(), await admin(), await admin()];
+      const t = await ticket(null);
+      await call('PATCH', `/api/tickets/${t.id}`, actor.cookie, { subject: 'Prvá' });
+      const ours = [a1.id, a2.id, actor.id];
+      expect(await kindsFor(t.id, ours, 'ticket.updated')).toEqual([a1.id, a2.id].sort());
+
+      expect((await assign(t.id, a1.id, actor.cookie)).statusCode).toBe(200);
+      await call('PATCH', `/api/tickets/${t.id}`, actor.cookie, { status: 'in_progress' });
+      expect(await kindsFor(t.id, ours, 'ticket.status')).toEqual([a1.id]);
+    });
+
+    it('moving to another client: its watchers hear a new ticket while it has no riešiteľ, else the riešitelia hear the change', async () => {
+      const [g1, g2] = [await group(), await group()];
+      const c2 = await member(g2.id, 'client', 'Druhý');
+      const [m1, m2, r, actor] = [await admin(), await admin(), await admin(), await admin()];
+      await addManager(db(), g1.id, m1.id);
+      await addManager(db(), g2.id, m2.id);
+      const everyone = [c2, m1, m2, r, actor].map((p) => p.id);
+
+      const free = await ticket(g1);
+      await call('PUT', `/api/tickets/${free.id}/group`, actor.cookie, { groupId: g2.id });
+      expect(await kindsFor(free.id, everyone, 'ticket.created')).toEqual(
+        [m1.id, m2.id, c2.id].sort(),
+      );
+
+      const owned = await ticket(g1);
+      await assign(owned.id, r.id, actor.cookie);
+      await call('PUT', `/api/tickets/${owned.id}/group`, actor.cookie, { groupId: g2.id });
+      // m1 heard of the new ticket in g1 only; of the move only the riešiteľ hears.
+      expect(await kindsFor(owned.id, everyone, 'ticket.created')).toEqual([m1.id]);
+      expect(await kindsFor(owned.id, everyone, 'ticket.updated')).toEqual([r.id]);
+    });
+
+    it('a watcher removed from the group gets nothing', async () => {
+      const g = await group();
+      const a = await admin();
+      const c = await member(g.id, 'client');
+      await member(g.id, 'client'); // c is not the last client: the account stays active
+      const t = await ticket(g);
+      await removeMembership(db(), g.id, c.id);
+      await call('PATCH', `/api/tickets/${t.id}`, a.cookie, { status: 'resolved' });
+      // The new ticket reached c as a watcher before; nothing after the removal.
+      expect((await eventsOf(t.id, [c.id])).filter((e) => e.kind !== 'ticket.created')).toEqual([]);
+    });
   });
 
-  it('a follower removed from the group gets nothing', async () => {
-    const g = await group();
-    const a = await admin();
-    const c = await member(g.id, 'client');
-    await member(g.id, 'client'); // c is not the last client: the account stays active
-    const t = await ticket(g);
-    await call('PUT', `/api/tickets/${t.id}/follow`, c.cookie);
-    await removeMembership(db(), g.id, c.id);
-    await call('PATCH', `/api/tickets/${t.id}`, a.cookie, { status: 'resolved' });
-    // The new ticket reached c as a watcher before; nothing after the removal.
-    expect((await eventsOf(t.id, [c.id])).filter((e) => e.kind !== 'ticket.created')).toEqual([]);
-  });
-
-  it('turning into tasks notifies the followers with the count', async () => {
+  it('turning into tasks notifies the initiator with the count', async () => {
     const g = await group();
     const z = await member(g.id, 'ziadatel');
     const a = await admin();
@@ -184,7 +260,7 @@ describe('ticket notifications (Phase 21.6)', () => {
     expect(pushesTo(z.endpoint).map((p) => p.title)).toContain(`#${t.number} rozdelený na 2 úlohy`);
   });
 
-  it('a ziadatel follower gets ticket.message even with the group mode Off', async () => {
+  it('a ziadatel initiator gets ticket.message even with the group mode Off', async () => {
     const g = await group();
     const z = await member(g.id, 'ziadatel', 'Žiadateľ');
     const a = await admin();
@@ -230,23 +306,40 @@ describe('ticket notifications (Phase 21.6)', () => {
     expect(pushesTo(z.endpoint)).toEqual([]);
   });
 
-  it('a mentioned reader who does not follow gets chat.mention linking to the ticket', async () => {
+  it('a chat message goes to the watchers and the initiator while there is no riešiteľ', async () => {
     const g = await group();
     const z = await member(g.id, 'ziadatel');
     const c = await member(g.id, 'client', 'Klient');
-    const a = await admin();
+    const [a, other] = [await admin(), await admin()];
     const t = await ticket(g, z.email);
     const chat = await chatOf(t.id, a.cookie);
+    await send(chat.id, a.cookie, 'Pozrieme sa');
+    expect(await kindsFor(t.id, [z.id, c.id, a.id, other.id], 'ticket.message')).toEqual(
+      [z.id, c.id].sort(),
+    );
+  });
+
+  it('with a riešiteľ a message reaches the riešitelia and the initiator; a named reader gets the mention', async () => {
+    const g = await group();
+    const z = await member(g.id, 'ziadatel');
+    const c = await member(g.id, 'client', 'Klient');
+    const [a, r] = [await admin(), await admin()];
+    const t = await ticket(g, z.email);
+    await assign(t.id, r.id, a.cookie);
+    const chat = await chatOf(t.id, a.cookie);
     await send(chat.id, a.cookie, `<@${c.id}> <@${z.id}> pozrite`);
-    // The clients watch the group's tickets by default: c heard about the new ticket too.
-    const events = (await eventsOf(t.id, [c.id, z.id])).filter((e) => e.kind !== 'ticket.created');
+    const events = (await eventsOf(t.id, [c.id, z.id, r.id, a.id])).filter(
+      (e) => e.kind === 'ticket.message' || e.kind === 'chat.mention',
+    );
     expect(events.map((e) => [e.userId, e.kind]).sort()).toEqual(
       [
         [c.id, 'chat.mention'],
+        [r.id, 'ticket.message'],
         [z.id, 'chat.mention'],
         [z.id, 'ticket.message'],
       ].sort(),
     );
+    // The named client opens the ticket from the mention.
     expect(pushesTo(c.endpoint).filter((p) => !p.title.startsWith('Nový tiket'))).toEqual([
       {
         title: `#${t.number} Login fails`,
@@ -255,20 +348,20 @@ describe('ticket notifications (Phase 21.6)', () => {
         tag: `ticket:${t.id}`,
       },
     ]);
-    // The follower who is also named gets one push for the message.
+    // The initiator who is also named gets one push for the message.
     expect(pushesTo(z.endpoint)).toHaveLength(1);
   });
 
-  it('@all in a ticket chat reaches its followers only', async () => {
+  it('@all in a ticket chat reaches the people who hear its updates', async () => {
     const g = await group();
     const z = await member(g.id, 'ziadatel');
     const c = await member(g.id, 'client');
-    const a = await admin();
+    const [a, r] = [await admin(), await admin()];
     const t = await ticket(g, z.email);
+    await assign(t.id, r.id, a.cookie);
     const chat = await chatOf(t.id, a.cookie);
     await send(chat.id, a.cookie, '<@all> pozor');
-    const mentions = (await eventsOf(t.id, [z.id, c.id])).filter((e) => e.kind === 'chat.mention');
-    expect(mentions.map((e) => e.userId)).toEqual([z.id]);
+    expect(await kindsFor(t.id, [z.id, c.id, r.id], 'chat.mention')).toEqual([z.id, r.id].sort());
   });
 
   it('two tickets give two digest emails', async () => {

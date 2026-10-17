@@ -14,7 +14,6 @@
     "allAreas": "All areas",
     "areaChosen": "Area: {{area}}",
     "noAreas": "No areas in this list yet",
-    "following": "Following",
     "noClient": "Without client",
     "assignee": "Assignee: {{name}}",
     "assignees": {
@@ -36,7 +35,6 @@
     "overdue": "Overdue since",
     "noSubject": "No subject",
     "noClient": "Without client",
-    "following": "You follow this ticket",
     "assignees": "Assignees: {{names}}"
   },
   "mine": {
@@ -76,12 +74,6 @@
     "inSpolu": "in the Help app",
     "resolved": "Resolved"
   },
-  "followers": {
-    "title": "Followers ({{count}})",
-    "follow": "Follow",
-    "following": "Following",
-    "none": "Nobody follows this ticket."
-  },
   "assign": {
     "choose": "Choose a client",
     "hasTasks": "This ticket has tasks on its client's board, so it stays with that client."
@@ -117,11 +109,11 @@
     "title": "Assignees ({{count}})",
     "suggestions": "People who can handle the ticket",
     "none": "Nobody handles this ticket yet.",
-    "hint": "An assignee gets a notification and follows the ticket."
+    "hint": "An assignee gets a notification and, from then on, every update of the ticket."
   },
   "watch": {
     "label": "Watch tickets",
-    "on": "You get a notification about every new ticket of this client.",
-    "off": "You get notifications only about the tickets you follow."
+    "on": "You get a notification about every new ticket of this client, and its updates until someone is assigned.",
+    "off": "You get notifications only about the tickets you are assigned to or named in."
   }
 }

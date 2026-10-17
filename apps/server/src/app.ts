@@ -100,7 +100,7 @@ export async function buildApp(
   registerKnowledgeReminderSubject();
   registerTaskReminderSubject();
   // The ticket chat's access rules and its create/move hook, then the ticket notifications
-  // (Phase 21): the chat exists before its followers hear about the ticket.
+  // (Phase 21): the chat exists before anyone hears about the ticket.
   registerTicketChat();
   // Files attached in any chat become "From chat" knowledge items.
   registerKnowledgeChatFiles();

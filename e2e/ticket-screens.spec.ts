@@ -161,7 +161,7 @@ test('an admin picks a riešiteľ, filters by it and watches the client tickets'
   const { id } = (await res.json()) as { id: string };
   const me = (await (await page.request.get('/api/me')).json()) as { name: string };
 
-  // The picker offers every admin; the pick saves at once and makes the admin a follower.
+  // The picker offers every admin; the pick saves at once. There is no Follow button any more.
   await page.goto(`/tickets/${id}`);
   const picker = page.getByRole('combobox', { name: 'Riešitelia (0)' });
   await picker.click();
@@ -171,7 +171,7 @@ test('an admin picks a riešiteľ, filters by it and watches the client tickets'
     .first()
     .click();
   await expect(page.getByRole('heading', { name: 'Riešitelia (1)' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Sledujete' })).toBeVisible();
+  await expect(page.getByRole('button', { name: /^Sledovať$|^Sledujete$/ })).toHaveCount(0);
 
   // The group list shows the riešiteľ; the riešiteľ filter narrows the list.
   await page.goto(`${groupPath}/tickets`);
@@ -191,7 +191,9 @@ test('an admin picks a riešiteľ, filters by it and watches the client tickets'
   await expect(watch).not.toBeChecked();
   await watch.check();
   await expect(
-    page.getByText('Dostanete upozornenie na každý nový tiket tohto klienta.'),
+    page.getByText(
+      'Dostanete upozornenie na každý nový tiket tohto klienta a na jeho novinky, kým nemá riešiteľa.',
+    ),
   ).toBeVisible();
   await page.reload();
   await expect(page.getByRole('checkbox', { name: 'Sledovať tikety' })).toBeChecked();

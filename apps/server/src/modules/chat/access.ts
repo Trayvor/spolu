@@ -29,11 +29,11 @@ export type ChannelKindAccess = {
   extraRooms(db: Db, channel: ChannelRef): Promise<string[]>;
   /** People who can be mentioned besides the group's pickable people (a ticket's initiator). */
   extraPeople(db: Db, channel: ChannelRef): Promise<{ id: string; name: string }[]>;
-  /** Who `@all` reaches in this channel (a ticket's followers), instead of the pickable people. */
+  /** Who `@all` reaches in this channel (the people who hear a ticket's updates), instead of the pickable people. */
   allRecipients(db: Db, channel: ChannelRef): Promise<string[]>;
   /**
    * How a message here notifies, instead of the chat kinds: the event kind for its readers (a
-   * ticket's followers get `ticket.message`), who they are, and what the payload adds (the
+   * ticket's audience gets `ticket.message`), who they are, and what the payload adds (the
    * ticket's id, number and subject). Mentions here carry the same additions, so they open the
    * owner's page. Null: the message notifies nobody but the people it names.
    */

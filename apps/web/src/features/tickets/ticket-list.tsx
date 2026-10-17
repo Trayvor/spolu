@@ -9,7 +9,6 @@ import { Card } from '@/components/ui/card';
 import { formatDue, todayInBratislava } from '@/features/tasks/dates';
 import { cn } from '@/lib/utils';
 import { ticketsQuery, type TicketFilter, type TicketSource } from './api';
-import { EyeIcon } from './icons';
 import { isTicketOverdue, StatusBadge } from './status-badge';
 import { TicketFilters } from './ticket-filters';
 import { useTicketEvents } from './use-ticket-events';
@@ -42,8 +41,7 @@ export function TicketList({
   const items = useMemo(() => query.data?.pages.flatMap((p) => p.items) ?? [], [query.data]);
   const areas = useSeenAreas(items);
   const showClient = source.kind !== 'group';
-  const filtered =
-    filter.status !== 'open' || !!filter.area || !!filter.following || !!filter.assignee;
+  const filtered = filter.status !== 'open' || !!filter.area || !!filter.assignee;
 
   let body: ReactNode;
   if (disabled || query.isPending) {
@@ -175,14 +173,6 @@ function TicketRow({ item, showClient }: { item: TicketListItem; showClient: boo
           {due && <span className="hidden text-micro min-[641px]:inline">{due}</span>}
           <RowAssignees people={item.assignees} />
           <StatusBadge status={item.status} />
-          <span className="flex w-4 justify-center text-muted-foreground">
-            {item.following && (
-              <>
-                <EyeIcon />
-                <span className="sr-only">{t('tickets.row.following')}</span>
-              </>
-            )}
-          </span>
         </span>
       </Link>
     </li>

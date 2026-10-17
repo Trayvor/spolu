@@ -215,7 +215,7 @@ export const TicketRequesterSchema = z.object({
   phone: z.string().nullable(),
 });
 
-/** A person on a ticket: a follower or a riešiteľ (assignee). */
+/** A person on a ticket: a riešiteľ (assignee) or a candidate. */
 export const TicketPersonSchema = z.object({ id: z.string(), name: z.string() });
 export type TicketPerson = z.infer<typeof TicketPersonSchema>;
 
@@ -240,8 +240,6 @@ export const TicketDtoSchema = z.object({
   createdAt: z.string(),
   updatedAt: z.string(),
   resolvedAt: z.string().nullable(),
-  /** Whether the viewer follows the ticket. */
-  following: z.boolean(),
   /** Tasks made from the ticket (part 21.5). */
   taskCount: z.number().int(),
   /**
@@ -268,7 +266,6 @@ export const TicketListItemSchema = TicketDtoSchema.pick({
   subject: true,
   dueDate: true,
   createdAt: true,
-  following: true,
   assignees: true,
 }).extend({
   requesterName: z.string().nullable(),
@@ -283,10 +280,6 @@ export const TicketListResponseSchema = z.object({
 });
 export type TicketListResponse = z.infer<typeof TicketListResponseSchema>;
 
-const flag = z
-  .union([z.literal('true'), z.literal('1'), z.literal('false'), z.literal('0'), z.boolean()])
-  .transform((v) => v === true || v === 'true' || v === '1');
-
 /**
  * Query of the ticket lists. `status`: `open` (New and In progress, the default), `resolved`
  * or `all`. Only the global list reads `scope` and `clients`: `scope=mine` (default) is the
@@ -296,7 +289,6 @@ const flag = z
 export const TicketListQuerySchema = z.object({
   status: z.enum(['open', 'resolved', 'all']).default('open'),
   area: z.string().trim().max(TICKET_LIMITS.area).optional(),
-  following: flag.optional(),
   /** Riešiteľ: `me` (I am one of them) or `none` (the ticket has none); absent = anyone. */
   assignee: z.enum(['me', 'none']).optional(),
   scope: z.enum(['mine', 'all', 'none']).default('mine'),
@@ -309,9 +301,6 @@ export const TicketListQuerySchema = z.object({
   cursor: z.string().max(200).optional(),
 });
 export type TicketListQuery = z.infer<typeof TicketListQuerySchema>;
-
-export const TicketFollowerSchema = TicketPersonSchema;
-export const TicketFollowerListSchema = z.array(TicketFollowerSchema);
 
 /**
  * Who can be a riešiteľ of a ticket (`GET /api/tickets/:id/assignee-candidates`): every active

@@ -72,12 +72,14 @@ describe('ticket lists', () => {
     expect(within(done).queryByText(/Overdue since/)).toBeNull();
   });
 
-  it('the "Following" filter sends following=true', async () => {
+  it('has no "Following" filter and drops an old following param from the URL', async () => {
     const { calls } = mockTicketApi(CLIENT, groupRoutes());
-    renderAt('/groups/g1/tickets');
+    renderAt('/groups/g1/tickets?following=1');
     await screen.findByText('Ticket k1');
-    await userEvent.click(screen.getByRole('button', { name: t('tickets.filters.following') }));
-    await waitFor(() => expect(calls).toContain('GET /api/groups/g1/tickets?following=true'));
+    expect(screen.queryByRole('button', { name: 'Following' })).toBeNull();
+    expect(calls.filter((c) => c.startsWith('GET /api/groups/g1/tickets'))).toEqual([
+      'GET /api/groups/g1/tickets',
+    ]);
   });
 
   it('a group tab remembers its filters for the next visit; Clear filters forgets them', async () => {
@@ -85,17 +87,19 @@ describe('ticket lists', () => {
     renderAt('/groups/g1/tickets');
     await screen.findByText('Ticket k1');
     expect(screen.queryByRole('button', { name: t('tickets.filters.clear') })).toBeNull();
-    await userEvent.click(screen.getByRole('button', { name: t('tickets.filters.following') }));
-    await waitFor(() => expect(first.calls).toContain('GET /api/groups/g1/tickets?following=true'));
+    await userEvent.click(screen.getByRole('button', { name: t('tickets.filters.resolved') }));
+    await waitFor(() =>
+      expect(first.calls).toContain('GET /api/groups/g1/tickets?status=resolved'),
+    );
     cleanup();
 
     const second = mockTicketApi(CLIENT, groupRoutes());
     const router = renderAt('/groups/g1/tickets');
     await screen.findByText('Ticket k1');
-    await waitFor(() => expect(router.state.location.search).toMatchObject({ following: 1 }));
+    await waitFor(() => expect(router.state.location.search).toMatchObject({ status: 'resolved' }));
     // The first request already had the remembered filter.
     expect(second.calls.filter((c) => c.startsWith('GET /api/groups/g1/tickets'))).toEqual([
-      'GET /api/groups/g1/tickets?following=true',
+      'GET /api/groups/g1/tickets?status=resolved',
     ]);
     await userEvent.click(screen.getByRole('button', { name: t('tickets.filters.clear') }));
     await waitFor(() => expect(router.state.location.search).toEqual({}));

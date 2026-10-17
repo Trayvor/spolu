@@ -44,7 +44,7 @@ What gets easier, what gets harder.
 | [0018](0018-visible-name-help-and-domain-redirects.md) | Visible name Help, code name Spolu, and old-domain redirects | accepted |
 | [0019](0019-nine-languages-and-one-email-design.md) | Nine languages and one email design | accepted |
 | [0020](0020-header-menus-on-first-use-and-native-dialog-sheets.md) | Header menus on first use and native dialog sheets | accepted |
-| [0021](0021-ticket-riesitelia-and-watching.md) | Ticket riešitelia, and watching tickets instead of managing the client | accepted |
+| [0021](0021-ticket-riesitelia-and-watching.md) | Ticket riešitelia, and watching tickets instead of managing the client (amended 2026-10-17: watch until assigned, no per-ticket following) | accepted |
 | [0022](0022-one-click-ticket-sign-in-link.md) | One-click sign-in link in the "Ticket created" email | accepted |
 | [0023](0023-ffmpeg-static-build-for-meeting-audio.md) | A static ffmpeg build for meeting audio, and speech-to-text over plain fetch | accepted |
 | [0024](0024-bulk-email-content-v2.md) | Bulk email content v2: a document tree, a phone version and an upgrade on read | accepted |

@@ -1,10 +1,9 @@
 import type { NotificationKind } from '@spolu/shared';
 import type { AppDeps } from '../../deps.js';
 import { recordNotifications, requestDelivery } from '../notifications/service.js';
-import { listAdmins } from '../users/service.js';
+import { hasAssignees, ticketAudienceIds, ticketOwnerIds } from './audience.js';
 import { onTicketChange, type TicketChange } from './hooks.js';
-import { readingFollowerIds, type TicketRow } from './service.js';
-import { ticketWatcherIds } from './watch.js';
+import type { TicketRow } from './service.js';
 
 /** What every ticket event carries: enough for its push, its digest line and its link. */
 export function ticketPayload(ticket: TicketRow): Record<string, unknown> {
@@ -17,11 +16,13 @@ export function ticketPayload(ticket: TicketRow): Record<string, unknown> {
 }
 
 /**
- * Who hears about a ticket change, and as which kind. A new ticket (also one that gets or changes
- * its client) goes to the people who watch the client's tickets (`watch.ts`) as
- * `ticket.created`; without a client to every active admin as `ticket.unassigned` (`groupId`
- * null). Status, field and task changes go to the followers who can still read the ticket (the
- * riešitelia follow it). A new riešiteľ hears `ticket.assigned`.
+ * Who hears about a ticket change, and as which kind (owner decision 2026-10-17, ADR 0021
+ * amendment). A new ticket (also one that gets or changes its client) goes, while it has no
+ * riešiteľ, to the people who watch the client's tickets (`watch.ts`) as `ticket.created`, or
+ * without a client to every active admin as `ticket.unassigned` (`groupId` null); one that
+ * already has riešitelia goes to them as `ticket.updated`. Status, field and task changes go to
+ * `ticketAudienceIds`: the riešitelia, or the watchers (every admin without a client) while it has
+ * none, and the initiator. A new riešiteľ hears `ticket.assigned`.
  */
 async function audience(
   deps: AppDeps,
@@ -30,34 +31,31 @@ async function audience(
   const { ticket } = change;
   switch (change.kind) {
     case 'created':
-    case 'moved':
-      return ticket.groupId === null
-        ? {
-            kind: 'ticket.unassigned',
-            recipients: (await listAdmins(deps.db)).map((a) => a.id),
-            extra: {},
-          }
-        : {
-            kind: 'ticket.created',
-            recipients: await ticketWatcherIds(deps.db, ticket.groupId),
-            extra: {},
-          };
+    case 'moved': {
+      const owners = await ticketOwnerIds(deps.db, ticket);
+      const kind: NotificationKind = (await hasAssignees(deps.db, ticket.id))
+        ? 'ticket.updated'
+        : ticket.groupId === null
+          ? 'ticket.unassigned'
+          : 'ticket.created';
+      return { kind, recipients: owners, extra: {} };
+    }
     case 'status':
       return {
         kind: 'ticket.status',
-        recipients: await readingFollowerIds(deps.db, ticket),
+        recipients: await ticketAudienceIds(deps.db, ticket),
         extra: { status: ticket.status },
       };
     case 'updated':
       return {
         kind: 'ticket.updated',
-        recipients: await readingFollowerIds(deps.db, ticket),
+        recipients: await ticketAudienceIds(deps.db, ticket),
         extra: {},
       };
     case 'tasks':
       return {
         kind: 'ticket.tasks',
-        recipients: await readingFollowerIds(deps.db, ticket),
+        recipients: await ticketAudienceIds(deps.db, ticket),
         extra: { count: change.count ?? 0 },
       };
     case 'assigned':
@@ -85,7 +83,7 @@ export async function notifyTicketChange(deps: AppDeps, change: TicketChange): P
   await requestDelivery(deps.jobs, recorded);
 }
 
-/** Tells followers, watchers, riešitelia and admins about ticket changes. Call once at start-up. */
+/** Tells watchers, riešitelia, initiators and admins about ticket changes. Call once at start-up. */
 export function registerTicketNotifications(): void {
   onTicketChange(notifyTicketChange);
 }

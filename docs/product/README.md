@@ -16,7 +16,7 @@ Requirements for Spolu, one topic per file. The product is shown to users as "He
 | [knowledge-base.md](knowledge-base.md) | Knowledge tab (notes, files, links, reminders, files from chats), folders, visibility, global list | 17, 24, 25 |
 | [reminders.md](reminders.md) | reminders of knowledge items and tasks, recipients, calendar export | 17, 19 |
 | [ai-task-split.md](ai-task-split.md) | AI split of one message (or ticket) into several tasks | 9, 21 |
-| [tickets.md](tickets.md) | tickets from eGrant, clients and admins, statuses, ticket chat, followers | 21 |
+| [tickets.md](tickets.md) | tickets from eGrant, clients and admins, statuses, ticket chat, riešitelia and watching | 21 |
 | [solve-with-claude.md](solve-with-claude.md) | admins open a ticket or task in Claude with its context and the eGrant MCP instructions | 29 |
 | [contracts.md](contracts.md) | admin-only contracts, next-contract draft, reminders, global list | 14, 15 |
 | [bulk-email.md](bulk-email.md) | admins' bulk email: campaigns, drafts, audience rules, unsubscribe, report | 23 |

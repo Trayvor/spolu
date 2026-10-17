@@ -315,6 +315,8 @@ Status: done. All seven parts are merged into `main`: 21.1 memberships, 21.2 tic
 
 Follow-up (owner decision 2026-10-16, branch `ticket-intake-files`): the intake takes the files themselves as base64 (`files`, up to 10, 10 MiB each, 20 MiB per request; body limit 28 MiB on the intake only), stored in the client's files and attached to the ticket; `file_links` is removed everywhere (migration 0023). See [ADR 0017](decisions/0017-intake-files-as-base64.md) and the [integration guide](integrations/egrant-ticket-intake.md).
 
+Follow-up (owner decision 2026-10-17, branch `feat/tickets-watch-until-assigned`): "Watch tickets" (per client) now also brings every update of a ticket while it has no riešiteľ; once it has one, its updates go only to its riešitelia (and its initiator; every admin for a ticket without a client and riešiteľ). Per-ticket following is removed everywhere (migration 0033 drops `ticket_followers`). See the [ADR 0021 amendment](decisions/0021-ticket-riesitelia-and-watching.md) and [tickets](product/tickets.md).
+
 ## Phase 22 — Members & groups page
 
 Requirements: [groups](product/groups.md), [client-managers](product/client-managers.md). Owner decisions (2026-10-16) are in the [plan](superpowers/plans/2026-10-16-phase-22-members-and-groups-page.md), split into two parts.

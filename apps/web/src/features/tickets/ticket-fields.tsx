@@ -156,7 +156,7 @@ function ClientSelect({
 
 /**
  * An admin's edit of the ticket: the client and the content fields of the new-ticket dialog.
- * Save moves the client first (`PUT /group`: the initiator is found again, followers are checked,
+ * Save moves the client first (`PUT /group`: the initiator is found again, riešitelia are checked,
  * the "Ticket created" email goes if it never went), then saves the content when it changed. A
  * failed move saves nothing; a ticket with tasks cannot move.
  */

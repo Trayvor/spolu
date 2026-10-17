@@ -14,7 +14,6 @@
     "allAreas": "Sva područja",
     "areaChosen": "Područje: {{area}}",
     "noAreas": "Na ovom popisu još nema područja",
-    "following": "Praćeni",
     "noClient": "Bez klijenta",
     "assignee": "Rješavatelj: {{name}}",
     "assignees": {
@@ -36,7 +35,6 @@
     "overdue": "Rok istekao",
     "noSubject": "Bez predmeta",
     "noClient": "Bez klijenta",
-    "following": "Pratite ovaj tiket",
     "assignees": "Rješavatelji: {{names}}"
   },
   "mine": {
@@ -77,12 +75,6 @@
     "inSpolu": "u aplikaciji Help",
     "resolved": "Riješen"
   },
-  "followers": {
-    "title": "Pratitelji ({{count}})",
-    "follow": "Prati",
-    "following": "Pratite",
-    "none": "Nitko ne prati ovaj tiket."
-  },
   "assign": {
     "choose": "Odaberite klijenta",
     "hasTasks": "Ovaj tiket ima zadatke na ploči svojeg klijenta pa ostaje kod tog klijenta."
@@ -118,11 +110,11 @@
     "title": "Rješavatelji ({{count}})",
     "suggestions": "Tko može rješavati tiket",
     "none": "Ovaj tiket još nitko ne rješava.",
-    "hint": "Rješavatelj dobiva obavijest i prati tiket."
+    "hint": "Rješavatelj dobiva obavijest i od tada sve novosti o tiketu."
   },
   "watch": {
     "label": "Prati tikete",
-    "on": "Dobivate obavijest o svakom novom tiketu ovog klijenta.",
-    "off": "Dobivate obavijesti samo o tiketima koje pratite."
+    "on": "Dobivate obavijest o svakom novom tiketu ovog klijenta i o njegovim novostima dok nema rješavatelja.",
+    "off": "Dobivate obavijesti samo o tiketima kojima ste rješavatelj ili u kojima vas netko spomene."
   }
 }

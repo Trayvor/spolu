@@ -136,9 +136,8 @@ describe('TicketPatchBodySchema', () => {
 describe('TicketListQuerySchema', () => {
   it('defaults to open tickets of my clients and parses the clients list', () => {
     expect(TicketListQuerySchema.parse({})).toMatchObject({ status: 'open', scope: 'mine' });
-    expect(TicketListQuerySchema.parse({ clients: 'a,b,a', following: 'true' })).toMatchObject({
+    expect(TicketListQuerySchema.parse({ clients: 'a,b,a' })).toMatchObject({
       clients: ['a', 'b'],
-      following: true,
     });
   });
 });

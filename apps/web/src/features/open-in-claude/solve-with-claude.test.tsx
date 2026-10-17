@@ -30,7 +30,6 @@ function renderTicket(me: unknown, dto: TicketDto, answer: { prompt: string; fil
       if (url.pathname === '/api/tickets/k1' && (init?.method ?? 'GET') === 'GET') {
         return reply(200, dto);
       }
-      if (url.pathname === '/api/tickets/k1/followers') return reply(200, []);
       if (url.pathname === '/api/tickets/k1/claude-prompt' && init?.method === 'POST') {
         return reply(200, answer);
       }

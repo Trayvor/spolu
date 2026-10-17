@@ -9,7 +9,6 @@ import type { TicketFilter } from './api';
 export type TicketsSearch = {
   status?: 'resolved' | 'all';
   area?: string;
-  following?: 1;
   assignee?: 'me' | 'none';
   clients?: string;
   none?: 1;
@@ -24,7 +23,6 @@ export function validateTicketsSearch(search: Record<string, unknown>): TicketsS
   return {
     status: search.status === 'resolved' || search.status === 'all' ? search.status : undefined,
     area: text(search.area)?.slice(0, 200),
-    following: flag(search.following),
     assignee: search.assignee === 'me' || search.assignee === 'none' ? search.assignee : undefined,
     clients: text(search.clients),
     none: flag(search.none),
@@ -35,7 +33,6 @@ export function filterFromSearch(search: TicketsSearch): TicketFilter {
   return {
     status: search.status ?? 'open',
     area: search.area,
-    following: search.following === 1 || undefined,
     assignee: search.assignee,
     clients:
       search.clients === undefined
@@ -55,7 +52,8 @@ export function writeFilter(next: Record<string, unknown>, filter: TicketFilter)
   };
   set('status', filter.status === 'open' ? undefined : filter.status);
   set('area', filter.area || undefined);
-  set('following', filter.following ? 1 : undefined);
+  // The removed "Following" filter (2026-10-17) leaves the URL.
+  delete next.following;
   set('assignee', filter.assignee);
   const { clients } = filter;
   set('clients', clients == null ? undefined : clients === 'all' ? 'all' : clients.join(','));
