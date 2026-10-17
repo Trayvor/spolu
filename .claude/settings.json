@@ -1,7 +1,8 @@
 {
   "enabledPlugins": {
     "superpowers@superpowers-marketplace": false,
-    "frontend-design@claude-plugins-official": false
+    "frontend-design@claude-plugins-official": false,
+    "ui-ux-pro-max@ui-ux-pro-max-skill": true
   },
   "hooks": {
     "SessionStart": [
