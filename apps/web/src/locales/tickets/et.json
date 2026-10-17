@@ -15,7 +15,13 @@
     "areaChosen": "Valdkond: {{area}}",
     "noAreas": "Selles loendis pole veel valdkondi",
     "following": "Jälgitavad",
-    "noClient": "Kliendita"
+    "noClient": "Kliendita",
+    "assignee": "Lahendaja: {{name}}",
+    "assignees": {
+      "anyone": "Igaüks",
+      "me": "Mina",
+      "none": "Keegi"
+    }
   },
   "list": {
     "loading": "Pöördumiste laadimine…",
@@ -29,7 +35,8 @@
     "overdue": "Tähtaeg ületatud alates",
     "noSubject": "Teemata",
     "noClient": "Kliendita",
-    "following": "Te jälgite seda pöördumist"
+    "following": "Te jälgite seda pöördumist",
+    "assignees": "Lahendajad: {{names}}"
   },
   "mine": {
     "title": "Minu pöördumised",
@@ -104,5 +111,16 @@
     "title": "Ülesanded",
     "none": "Ülesandeid veel ei ole. Muutke pöördumine ülesanneteks, et töö tahvlile panna.",
     "completed": "Lõpetatud"
+  },
+  "assignees": {
+    "title": "Lahendajad ({{count}})",
+    "suggestions": "Kes saab pöördumist lahendada",
+    "none": "Seda pöördumist ei lahenda veel keegi.",
+    "hint": "Lahendaja saab teavituse ja jälgib pöördumist."
+  },
+  "watch": {
+    "label": "Jälgi pöördumisi",
+    "on": "Saate teavituse iga selle kliendi uue pöördumise kohta.",
+    "off": "Saate teavitusi ainult pöördumiste kohta, mida jälgite."
   }
 }

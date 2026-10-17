@@ -40,6 +40,7 @@ export function PeopleSelect({
   invalid,
   max,
   label,
+  pickable,
 }: {
   people: GroupPerson[] | undefined;
   value: string[];
@@ -55,6 +56,11 @@ export function PeopleSelect({
   invalid?: boolean;
   max: number;
   label: string;
+  /**
+   * Who can be picked, when not the group's clients and managers (`isPickable`): the ticket's
+   * riešiteľ picker offers every admin.
+   */
+  pickable?: (person: GroupPerson) => boolean;
 }) {
   const { t } = useTranslation();
   const me = useSession();
@@ -69,24 +75,24 @@ export function PeopleSelect({
     for (const p of knownPeople)
       map.set(p.id, { ...p, isAdmin: false, removed: true, notPickable: false });
     for (const p of people ?? [])
-      map.set(p.id, { ...p, removed: false, notPickable: !isPickable(p) });
+      map.set(p.id, { ...p, removed: false, notPickable: !(pickable ?? isPickable)(p) });
     return map;
-  }, [people, knownPeople]);
+  }, [people, knownPeople, pickable]);
 
   const full = value.length >= max;
   const options = useMemo(() => {
     const needle = query.trim().toLocaleLowerCase();
     return (people ?? []).filter(
       (p) =>
-        isPickable(p) &&
+        (pickable ?? isPickable)(p) &&
         !value.includes(p.id) &&
         !fixedIds.includes(p.id) &&
         p.name.toLocaleLowerCase().includes(needle),
     );
-  }, [people, value, fixedIds, query]);
+  }, [people, value, fixedIds, query, pickable]);
   // An admin who does not manage the group cannot pick themselves: say who can be picked.
   const nonManagerAdmin =
-    !!people && isAdmin(me) && !people.some((p) => p.id === me?.id && p.isManager);
+    !pickable && !!people && isAdmin(me) && !people.some((p) => p.id === me?.id && p.isManager);
   const emptyLine =
     nonManagerAdmin && query.trim() === '' ? 'forms.people.noPickable' : 'forms.people.empty';
   const showList = open && !full;

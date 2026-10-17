@@ -96,6 +96,7 @@ export const sk: ServerTexts = {
     ticketNew: (n, client) => `Nový tiket #${n} · ${client}`,
     ticketUnassigned: (n) => `Nový tiket #${n} bez klienta`,
     ticketStatus: (n, status) => `#${n} je teraz ${STATUS[status] ?? status}`,
+    ticketAssigned: (n) => `Ste riešiteľom tiketu #${n}`,
     ticketUpdated: (n) => `#${n} bol zmenený`,
     ticketTasks: (n, c) =>
       `#${n} rozdelený na ${c} ${plural('sk', c, { one: 'úlohu', few: 'úlohy', other: 'úloh' })}`,

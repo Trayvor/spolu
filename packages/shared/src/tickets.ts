@@ -215,6 +215,10 @@ export const TicketRequesterSchema = z.object({
   phone: z.string().nullable(),
 });
 
+/** A person on a ticket: a follower or a riešiteľ (assignee). */
+export const TicketPersonSchema = z.object({ id: z.string(), name: z.string() });
+export type TicketPerson = z.infer<typeof TicketPersonSchema>;
+
 export const TicketDtoSchema = z.object({
   id: z.string(),
   number: z.number().int(),
@@ -247,6 +251,10 @@ export const TicketDtoSchema = z.object({
   tasks: z.array(MessageTaskLinkSchema).nullable(),
   /** The ticket's chat; null until the chat exists (part 21.3) or while it has no client. */
   channelId: z.string().nullable(),
+  /** The ticket's riešitelia (assignees), by name. */
+  assignees: z.array(TicketPersonSchema),
+  /** Whether the viewer may add and remove riešitelia (admins, and the group's clients). */
+  canAssign: z.boolean(),
 });
 export type TicketDto = z.infer<typeof TicketDtoSchema>;
 
@@ -261,6 +269,7 @@ export const TicketListItemSchema = TicketDtoSchema.pick({
   dueDate: true,
   createdAt: true,
   following: true,
+  assignees: true,
 }).extend({
   requesterName: z.string().nullable(),
   /** The first words of the body, for a ticket without a subject. */
@@ -288,6 +297,8 @@ export const TicketListQuerySchema = z.object({
   status: z.enum(['open', 'resolved', 'all']).default('open'),
   area: z.string().trim().max(TICKET_LIMITS.area).optional(),
   following: flag.optional(),
+  /** Riešiteľ: `me` (I am one of them) or `none` (the ticket has none); absent = anyone. */
+  assignee: z.enum(['me', 'none']).optional(),
   scope: z.enum(['mine', 'all', 'none']).default('mine'),
   clients: z
     .string()
@@ -299,8 +310,23 @@ export const TicketListQuerySchema = z.object({
 });
 export type TicketListQuery = z.infer<typeof TicketListQuerySchema>;
 
-export const TicketFollowerSchema = z.object({ id: z.string(), name: z.string() });
+export const TicketFollowerSchema = TicketPersonSchema;
 export const TicketFollowerListSchema = z.array(TicketFollowerSchema);
+
+/**
+ * Who can be a riešiteľ of a ticket (`GET /api/tickets/:id/assignee-candidates`): every active
+ * admin and the ticket's client's clients, by name; only admins for a ticket without a client.
+ */
+export const TicketCandidateSchema = TicketPersonSchema.extend({ isAdmin: z.boolean() });
+export type TicketCandidate = z.infer<typeof TicketCandidateSchema>;
+export const TicketCandidateListSchema = z.array(TicketCandidateSchema);
+
+/**
+ * "Watch tickets" of one client group for the signed-in user (`GET`/`PUT
+ * /api/groups/:id/ticket-watch`): on, they hear about the group's new tickets.
+ */
+export const TicketWatchSchema = z.object({ watching: z.boolean() });
+export type TicketWatch = z.infer<typeof TicketWatchSchema>;
 
 /**
  * Socket events of tickets (Phase 21). The payload is only `{ ticketId, groupId }` (`groupId`:

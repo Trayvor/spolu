@@ -98,6 +98,7 @@ export const et: ServerTexts = {
     ticketNew: (n, client) => `Uus pöördumine #${n} · ${client}`,
     ticketUnassigned: (n) => `Uus pöördumine #${n} kliendita`,
     ticketStatus: (n, status) => `#${n} olek: ${STATUS[status] ?? status}`,
+    ticketAssigned: (n) => `Olete pileti #${n} lahendaja`,
     ticketUpdated: (n) => `#${n} on muudetud`,
     ticketTasks: (n, c) =>
       `#${n} muudeti ${c} ${plural('et', c, { one: 'ülesandeks', other: 'ülesandeks' })}`,

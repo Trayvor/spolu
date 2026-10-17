@@ -3,6 +3,7 @@ import { useInfiniteQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import type { TicketListItem } from '@spolu/shared';
+import { Avatar } from '@/components/avatar';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { formatDue, todayInBratislava } from '@/features/tasks/dates';
@@ -41,7 +42,8 @@ export function TicketList({
   const items = useMemo(() => query.data?.pages.flatMap((p) => p.items) ?? [], [query.data]);
   const areas = useSeenAreas(items);
   const showClient = source.kind !== 'group';
-  const filtered = filter.status !== 'open' || !!filter.area || !!filter.following;
+  const filtered =
+    filter.status !== 'open' || !!filter.area || !!filter.following || !!filter.assignee;
 
   let body: ReactNode;
   if (disabled || query.isPending) {
@@ -171,6 +173,7 @@ function TicketRow({ item, showClient }: { item: TicketListItem; showClient: boo
         </span>
         <span className="flex shrink-0 items-center gap-3">
           {due && <span className="hidden text-micro min-[641px]:inline">{due}</span>}
+          <RowAssignees people={item.assignees} />
           <StatusBadge status={item.status} />
           <span className="flex w-4 justify-center text-muted-foreground">
             {item.following && (
@@ -183,5 +186,34 @@ function TicketRow({ item, showClient }: { item: TicketListItem; showClient: boo
         </span>
       </Link>
     </li>
+  );
+}
+
+const MAX_AVATARS = 3;
+
+/** Up to three overlapping avatars of the riešitelia with "+n", like a task card. */
+function RowAssignees({ people }: { people: TicketListItem['assignees'] }) {
+  const { t } = useTranslation();
+  if (people.length === 0) return null;
+  const shown = people.slice(0, MAX_AVATARS);
+  const extra = people.length - shown.length;
+  return (
+    <span className="flex items-center" title={people.map((p) => p.name).join(', ')}>
+      {shown.map((person) => (
+        <Avatar
+          key={person.id}
+          userId={person.id}
+          name={person.name}
+          size={24}
+          className="-ml-1.5 border-2 border-card first:ml-0"
+        />
+      ))}
+      {extra > 0 && (
+        <span className="ml-1 text-micro font-semibold text-muted-foreground">+{extra}</span>
+      )}
+      <span className="sr-only">
+        {t('tickets.row.assignees', { names: people.map((p) => p.name).join(', ') })}
+      </span>
+    </span>
   );
 }

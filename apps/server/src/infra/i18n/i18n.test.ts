@@ -52,6 +52,7 @@ function sample(t: ServerTexts): string[] {
     n.ticketNew(7, 'Firma'),
     n.ticketUnassigned(7),
     ...(['new', 'in_progress', 'resolved'] as const).map((s) => n.ticketStatus(7, s)),
+    n.ticketAssigned(7),
     n.ticketUpdated(7),
     ...counts.map((c) => n.ticketTasks(7, c)),
     n.ticketTopic(7),

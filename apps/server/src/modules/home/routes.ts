@@ -55,7 +55,7 @@ export const homeRoutes: FastifyPluginAsync<HomeRoutesOptions> = async (app, opt
       countAssignedTasks(db, userId),
       countDashboardTickets(db, userId),
     ]);
-    return { tasks, tickets: tickets.mine + tickets.unassigned };
+    return { tasks, tickets };
   });
 
   app.get('/me/home/mentions', { preHandler: adminOnly }, async (request) =>

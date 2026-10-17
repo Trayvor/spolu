@@ -98,6 +98,7 @@ export const hr: ServerTexts = {
     ticketNew: (n, client) => `Novi tiket #${n} · ${client}`,
     ticketUnassigned: (n) => `Novi tiket #${n} bez klijenta`,
     ticketStatus: (n, status) => `#${n} sada ima status: ${STATUS[status] ?? status}`,
+    ticketAssigned: (n) => `Vi ste rješavatelj tiketa #${n}`,
     ticketUpdated: (n) => `#${n} je promijenjen`,
     ticketTasks: (n, c) =>
       `#${n} pretvoren u ${c} ${plural('hr', c, { one: 'zadatak', few: 'zadatka', other: 'zadataka' })}`,

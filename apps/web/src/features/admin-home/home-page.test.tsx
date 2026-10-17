@@ -61,6 +61,7 @@ const ticket = (over: Partial<HomeTicket> & { id: string; number: number }): Hom
   groupName: 'ABC s.r.o.',
   dueDate: null,
   createdAt: '2026-10-16T08:00:00.000Z',
+  hasAssignee: false,
   ...over,
 });
 
@@ -86,7 +87,7 @@ function mockApi(answers: Answers = {}) {
     tickets: {
       total: 25,
       fresh: 2,
-      unassigned: 1,
+      noAssignee: 1,
       items: [
         ticket({ id: 'k1', number: 41, status: 'new', subject: 'Login fails' }),
         ticket({
@@ -240,7 +241,7 @@ describe('HomePage', () => {
     expect(within(progress).getByText('1 Oct')).toHaveClass('text-error-ink');
     expect(within(card).getByText('25')).toBeInTheDocument();
     expect(within(card).getByText('2 new')).toBeInTheDocument();
-    expect(within(card).getByText('1 without client')).toBeInTheDocument();
+    expect(within(card).getByText('1 without assignee')).toBeInTheDocument();
     expect(within(card).getByRole('link', { name: 'Show all tickets' })).toHaveAttribute(
       'href',
       '/tickets',

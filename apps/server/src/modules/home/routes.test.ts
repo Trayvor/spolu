@@ -99,7 +99,7 @@ describe('home API', () => {
     expect(counts.tasks).toBe(1);
     // Mine (1) plus the tickets without a client that other tests leave in the database.
     expect(counts.tickets).toBeGreaterThanOrEqual(1);
-    expect(counts.tickets).toBeGreaterThanOrEqual(tickets.unassigned);
+    expect(counts.tickets).toBeGreaterThanOrEqual(tickets.noAssignee);
   });
 
   it('unknown due is 400 invalid_filter', async () => {

@@ -146,8 +146,9 @@ function TicketRow({ ticket, today }: { ticket: HomeTicket; today: string }) {
 }
 
 /**
- * The Tickets card: the active tickets (New, In progress) of the clients I manage and those
- * without a client, New first, each marked "New". "Show all" opens the global ticket list.
+ * The Tickets card: the active tickets (New, In progress) I am a riešiteľ of, those without a
+ * riešiteľ of the clients whose tickets I watch, and those without a client; New first, each
+ * marked "New". "Show all" opens the global ticket list.
  */
 export function useTicketsCard(): CountCardProps {
   const { t } = useTranslation();
@@ -166,7 +167,7 @@ export function useTicketsCard(): CountCardProps {
           )}
           {t('adminHome.cards.tickets.fresh', { count: data?.fresh ?? 0 })}
         </span>
-        <span>{t('adminHome.cards.tickets.unassigned', { count: data?.unassigned ?? 0 })}</span>
+        <span>{t('adminHome.cards.tickets.noAssignee', { count: data?.noAssignee ?? 0 })}</span>
       </span>
     ),
     rows: (data?.items ?? []).map((ticket) => ({

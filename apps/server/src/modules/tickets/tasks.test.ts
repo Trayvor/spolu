@@ -53,7 +53,7 @@ describe('ticket to tasks (Phase 21.5)', () => {
 
   const db = () => test.deps.db;
   const call = (
-    method: 'GET' | 'POST' | 'PATCH' | 'DELETE',
+    method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
     url: string,
     cookie: string,
     payload?: object,
@@ -225,6 +225,7 @@ describe('ticket to tasks (Phase 21.5)', () => {
       const manager = await admin();
       await addManager(db(), g.id, manager.id);
       const t = await ticket(g);
+      await call('PUT', `/api/tickets/${t.id}/follow`, manager.cookie);
       const res = await create(g.id, t.id, a.cookie);
       expect(res.statusCode).toBe(201);
       const created = res.json<{ tasks: TaskDetailDto[] }>().tasks;

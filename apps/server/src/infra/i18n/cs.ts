@@ -103,6 +103,7 @@ export const cs: ServerTexts = {
     ticketNew: (n, client) => `Nový tiket #${n} · ${client}`,
     ticketUnassigned: (n) => `Nový tiket #${n} bez klienta`,
     ticketStatus: (n, status) => `#${n} je nyní ve stavu ${STATUS[status] ?? status}`,
+    ticketAssigned: (n) => `Jste řešitelem tiketu #${n}`,
     ticketUpdated: (n) => `#${n} byl změněn`,
     ticketTasks: (n, c) =>
       `#${n} převeden na ${c} ${plural('cs', c, { one: 'úkol', few: 'úkoly', many: 'úkolu', other: 'úkolů' })}`,

@@ -35,13 +35,13 @@
       "fresh_one": "{{count}} nuovo",
       "fresh_many": "{{count}} nuovi",
       "fresh_other": "{{count}} nuovi",
-      "unassigned_one": "{{count}} senza cliente",
-      "unassigned_many": "{{count}} senza cliente",
-      "unassigned_other": "{{count}} senza cliente",
+      "noAssignee_one": "{{count}} senza assegnatario",
+      "noAssignee_many": "{{count}} senza assegnatario",
+      "noAssignee_other": "{{count}} senza assegnatario",
       "new": "Nuovo",
       "noClient": "Senza cliente",
       "showAll": "Mostra tutti i ticket",
-      "empty": "Nessun ticket aperto dei Suoi clienti o senza cliente."
+      "empty": "Niente da gestire: nessun ticket aperto assegnato a Lei, senza assegnatario presso i clienti che segue o senza cliente."
     },
     "assigned": {
       "title": "Le mie attività",
@@ -107,8 +107,8 @@
     "tasks_one": "{{count}} attività aperta assegnata a Lei",
     "tasks_many": "{{count}} attività aperte assegnate a Lei",
     "tasks_other": "{{count}} attività aperte assegnate a Lei",
-    "tickets_one": "{{count}} ticket aperto dei Suoi clienti o senza cliente",
-    "tickets_many": "{{count}} ticket aperti dei Suoi clienti o senza cliente",
-    "tickets_other": "{{count}} ticket aperti dei Suoi clienti o senza cliente"
+    "tickets_one": "{{count}} ticket aperto da gestire",
+    "tickets_many": "{{count}} ticket aperti da gestire",
+    "tickets_other": "{{count}} ticket aperti da gestire"
   }
 }

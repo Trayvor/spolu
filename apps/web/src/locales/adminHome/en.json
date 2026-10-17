@@ -32,12 +32,12 @@
       "caption": "open",
       "fresh_one": "{{count}} new",
       "fresh_other": "{{count}} new",
-      "unassigned_one": "{{count}} without client",
-      "unassigned_other": "{{count}} without client",
+      "noAssignee_one": "{{count}} without assignee",
+      "noAssignee_other": "{{count}} without assignee",
       "new": "New",
       "noClient": "Without client",
       "showAll": "Show all tickets",
-      "empty": "No open tickets for your clients or without a client."
+      "empty": "Nothing to handle: no open tickets assigned to you, without an assignee at the clients you watch, or without a client."
     },
     "assigned": {
       "title": "My tasks",
@@ -100,7 +100,7 @@
   "navCount": {
     "tasks_one": "{{count}} open task assigned to you",
     "tasks_other": "{{count}} open tasks assigned to you",
-    "tickets_one": "{{count}} open ticket of your clients or without a client",
-    "tickets_other": "{{count}} open tickets of your clients or without a client"
+    "tickets_one": "{{count}} open ticket for you to handle",
+    "tickets_other": "{{count}} open tickets for you to handle"
   }
 }

@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm';
 import {
+  boolean,
   check,
   date,
   index,
@@ -79,6 +80,48 @@ export const ticketFollowers = pgTable(
     primaryKey({ columns: [t.ticketId, t.userId] }),
     check('ticket_followers_source_check', sql`${t.source} in ('auto', 'manual')`),
     index('ticket_followers_user_idx').on(t.userId),
+  ],
+);
+
+/**
+ * The riešitelia (assignees) of a ticket: admins, or clients of the ticket's group. Adding one
+ * also makes them a follower; removing one leaves the follow alone.
+ */
+export const ticketAssignees = pgTable(
+  'ticket_assignees',
+  {
+    ticketId: text('ticket_id')
+      .notNull()
+      .references(() => tickets.id, { onDelete: 'cascade' }),
+    userId: text('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.ticketId, t.userId] }),
+    index('ticket_assignees_user_idx').on(t.userId),
+  ],
+);
+
+/**
+ * A user's own "Watch tickets" choice for one client group. Without a row the default applies:
+ * on for the group's clients and its managers, off for other admins (`watch.ts`).
+ */
+export const ticketWatchSettings = pgTable(
+  'ticket_watch_settings',
+  {
+    userId: text('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    groupId: text('group_id')
+      .notNull()
+      .references(() => groups.id, { onDelete: 'cascade' }),
+    watching: boolean('watching').notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.userId, t.groupId] }),
+    index('ticket_watch_settings_group_idx').on(t.groupId),
   ],
 );
 

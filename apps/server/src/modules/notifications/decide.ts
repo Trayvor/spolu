@@ -41,6 +41,7 @@ export const KIND_RANK: Record<NotificationKind, number> = {
   'ticket.status': 2,
   'ticket.updated': 2,
   'ticket.tasks': 2,
+  'ticket.assigned': 2,
 };
 
 type Ranked = { id: string; kind: NotificationKind };

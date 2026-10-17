@@ -15,7 +15,13 @@
     "areaChosen": "Area: {{area}}",
     "noAreas": "No areas in this list yet",
     "following": "Following",
-    "noClient": "Without client"
+    "noClient": "Without client",
+    "assignee": "Assignee: {{name}}",
+    "assignees": {
+      "anyone": "Anyone",
+      "me": "Me",
+      "none": "Nobody"
+    }
   },
   "list": {
     "loading": "Loading tickets…",
@@ -29,7 +35,8 @@
     "overdue": "Overdue since",
     "noSubject": "No subject",
     "noClient": "Without client",
-    "following": "You follow this ticket"
+    "following": "You follow this ticket",
+    "assignees": "Assignees: {{names}}"
   },
   "mine": {
     "title": "My tickets",
@@ -104,5 +111,16 @@
     "title": "Tasks",
     "none": "No tasks yet. Turn the ticket into tasks to put the work on the board.",
     "completed": "Completed"
+  },
+  "assignees": {
+    "title": "Assignees ({{count}})",
+    "suggestions": "People who can handle the ticket",
+    "none": "Nobody handles this ticket yet.",
+    "hint": "An assignee gets a notification and follows the ticket."
+  },
+  "watch": {
+    "label": "Watch tickets",
+    "on": "You get a notification about every new ticket of this client.",
+    "off": "You get notifications only about the tickets you follow."
   }
 }

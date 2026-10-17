@@ -38,14 +38,14 @@
       "fresh_few": "{{count}} nové",
       "fresh_many": "{{count}} nového",
       "fresh_other": "{{count}} nových",
-      "unassigned_one": "{{count}} bez klienta",
-      "unassigned_few": "{{count}} bez klienta",
-      "unassigned_many": "{{count}} bez klienta",
-      "unassigned_other": "{{count}} bez klienta",
+      "noAssignee_one": "{{count}} bez řešitele",
+      "noAssignee_few": "{{count}} bez řešitele",
+      "noAssignee_many": "{{count}} bez řešitele",
+      "noAssignee_other": "{{count}} bez řešitele",
       "new": "Nový",
       "noClient": "Bez klienta",
       "showAll": "Zobrazit všechny tikety",
-      "empty": "Vaši klienti nemají žádné otevřené tikety a žádný tiket není bez klienta."
+      "empty": "Nic k řešení: žádný otevřený tiket není váš, bez řešitele u sledovaných klientů ani bez klienta."
     },
     "assigned": {
       "title": "Moje úkoly",
@@ -114,9 +114,9 @@
     "tasks_few": "{{count}} otevřené úkoly přidělené vám",
     "tasks_many": "{{count}} otevřeného úkolu přiděleného vám",
     "tasks_other": "{{count}} otevřených úkolů přidělených vám",
-    "tickets_one": "{{count}} otevřený tiket vašich klientů nebo bez klienta",
-    "tickets_few": "{{count}} otevřené tikety vašich klientů nebo bez klienta",
-    "tickets_many": "{{count}} otevřeného tiketu vašich klientů nebo bez klienta",
-    "tickets_other": "{{count}} otevřených tiketů vašich klientů nebo bez klienta"
+    "tickets_one": "{{count}} otevřený tiket k řešení",
+    "tickets_few": "{{count}} otevřené tikety k řešení",
+    "tickets_many": "{{count}} otevřeného tiketu k řešení",
+    "tickets_other": "{{count}} otevřených tiketů k řešení"
   }
 }

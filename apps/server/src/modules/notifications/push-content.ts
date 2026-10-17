@@ -69,6 +69,7 @@ function ticketPush(i: PushContentInput): PushPayload {
   else if (i.kind === 'ticket.unassigned') title = t.ticketUnassigned(n);
   else if (i.kind === 'ticket.status') title = t.ticketStatus(n, p.status as TicketStatus);
   else if (i.kind === 'ticket.updated') title = t.ticketUpdated(n);
+  else if (i.kind === 'ticket.assigned') title = t.ticketAssigned(n);
   else if (i.kind === 'ticket.tasks') title = t.ticketTasks(n, Number(p.count));
   else {
     title = named;

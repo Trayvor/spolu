@@ -1,4 +1,4 @@
-import type { MemberRole, SessionUser } from '@spolu/shared';
+import type { MemberRole, Role, SessionUser } from '@spolu/shared';
 import { isAdmin } from '../users/policy.js';
 
 /** What the policy needs of a ticket. */
@@ -37,4 +37,36 @@ export function canSplitTicket(
   role: MemberRole | null,
 ): boolean {
   return ticket.groupId !== null && (isAdmin(actor) || role === 'client');
+}
+
+/**
+ * Add or remove riešitelia (assignees): admins and the group's clients; on a ticket without a
+ * client admins only. A ziadatel never, not even on their own ticket.
+ */
+export function canAssignTicket(
+  actor: SessionUser,
+  ticket: TicketRef,
+  role: MemberRole | null,
+): boolean {
+  if (isAdmin(actor)) return true;
+  return ticket.groupId !== null && role === 'client';
+}
+
+/**
+ * Who can be a riešiteľ: any active admin, and a client of the ticket's group (whether or not
+ * they watch its tickets). `role` is the person's account role, `memberRole` their active role
+ * in the ticket's group. Never a ziadatel.
+ */
+export function canBeTicketAssignee(
+  role: Role,
+  ticket: TicketRef,
+  memberRole: MemberRole | null,
+): boolean {
+  if (role !== 'client') return true;
+  return ticket.groupId !== null && memberRole === 'client';
+}
+
+/** "Watch tickets" of a group: admins and its clients; a ziadatel keeps following only. */
+export function canWatchTickets(actor: SessionUser, role: MemberRole | null): boolean {
+  return isAdmin(actor) || role === 'client';
 }

@@ -96,6 +96,7 @@ export const bg: ServerTexts = {
     ticketNew: (n, client) => `Нов тикет #${n} · ${client}`,
     ticketUnassigned: (n) => `Нов тикет #${n} без клиент`,
     ticketStatus: (n, status) => `#${n} вече е със статус „${STATUS[status] ?? status}“`,
+    ticketAssigned: (n) => `Вие сте отговорник за #${n}`,
     ticketUpdated: (n) => `#${n} е променен`,
     ticketTasks: (n, c) =>
       `#${n} е превърнат в ${c} ${plural('bg', c, { one: 'задача', other: 'задачи' })}`,

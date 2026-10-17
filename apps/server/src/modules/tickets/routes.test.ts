@@ -159,7 +159,9 @@ describe('tickets API', () => {
         requester: { userId: requester!.id, name: 'Jana Nová', email },
         files: [],
         dueDate: '2026-11-01',
-        following: true, // the manager follows from the start
+        // Managers watch the client's tickets (they hear about new ones) but do not follow them.
+        following: false,
+        assignees: [],
       });
       // The removed file_links is ignored.
       expect(dto).not.toHaveProperty('fileLinks');

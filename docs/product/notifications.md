@@ -30,7 +30,7 @@ Each user chooses a notification mode per client group (what arrives) and, in th
   - Above the groups the page shows this device while some group uses push: "on", "not set up" (with "Turn on for this device") or "blocked in the browser settings" (with how to unblock it); on an iPhone outside the Home Screen app it shows the install hint instead. Without VAPID keys on the server the page says push is not available, and Push and Email and push cannot be chosen (a group already on Email and push still gets its email).
   - Under the groups one line says what the email is: a summary of unread items, at most every 10 minutes.
   - **Email is batched**: one email per user and client group, sent 10 minutes after the first event that qualifies for email, and only if those events are still unread then. It lists up to 5 lines ("Jana: text") with an "Open" button to the group chat, in the user's language. Ticket events make one email per ticket ("N new messages in Ticket #123", lines such as "#123 Subject: Jana: text", button "Open ticket"). Events that arrive within the 10 minutes join the same email. Reading the messages, switching that group away from email or deactivating the user before it is due means no email for them.
-  - **Ticket board** events (Phase 21) pass every mode, Off included: they go to the people who follow the ticket or manage its client, an explicit choice, so only the ticket board channel decides. A ticket without a client notifies every admin, without a client group. A requester-only person (Phase 21: not an admin, no client membership, only `ziadatel` memberships) sees only the Ticket board group on `/settings`, and is in the audience of their groups for ticket events only, never for chat, task or knowledge events.
+  - **Ticket board** events (Phase 21) pass every mode, Off included: a new ticket goes to the people who watch its client's tickets ("Watch tickets", see `tickets.md`), a ticket's own events to its followers (the riešitelia follow it), and a new riešiteľ hears `ticket.assigned`; each is an explicit choice, so only the ticket board channel decides. All messages and Mentions and replies change nothing for them, and Off does not silence them (kept as before, on purpose). A ticket without a client notifies every admin, without a client group. A requester-only person (Phase 21: not an admin, no client membership, only `ziadatel` memberships) sees only the Ticket board group on `/settings`, and is in the audience of their groups for ticket events only, never for chat, task or knowledge events.
 - Which events arrive, by mode:
 
   | Event | All messages | Mentions and replies | Off |
@@ -48,6 +48,7 @@ Each user chooses a notification mode per client group (what arrives) and, in th
   |---|---|---|
   | new ticket | New ticket #123 · <client> | subject |
   | new ticket without client | New ticket #123 without client | subject |
+  | riešiteľ added | You were assigned #123 (SK "Ste riešiteľom tiketu #123") | subject |
   | chat message, mention in the ticket chat | #123 <subject> | Jana: text |
   | status change | #123 is now In progress | subject |
   | other change | #123 was changed | subject |
