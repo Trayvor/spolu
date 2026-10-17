@@ -157,7 +157,7 @@ function toDto(row: CampaignRow): BulkCampaignDto {
   return {
     ...toListItem(row),
     preheader: row.preheader,
-    // Rows saved before Phase 30 are content version 1: upgraded here, on every read.
+    // Rows saved before Phase 31 are content version 1: upgraded here, on every read.
     blocks: upgradeBlocks(row.content_version ?? 1, row.blocks),
     phoneBlocks:
       row.phone_blocks === null || row.phone_blocks === undefined

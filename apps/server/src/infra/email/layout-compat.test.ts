@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { buildEmail } from './layout.js';
 
 /**
- * Phase 30 compatibility: system emails render byte for byte as before the bulk email builder
+ * Phase 31 compatibility: system emails render byte for byte as before the bulk email builder
  * v2. The snapshot was recorded with the Phase 26 renderer; never update it to make it pass.
  */
 describe('system email renders as before', () => {

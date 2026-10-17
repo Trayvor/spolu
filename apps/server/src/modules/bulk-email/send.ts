@@ -47,7 +47,7 @@ export function validateForSend(
   campaign: {
     subject: string;
     blocks: readonly BulkBlock[];
-    /** Phase 30: checked too when it is its own version; its problems say `phone: true`. */
+    /** Phase 31: checked too when it is its own version; its problems say `phone: true`. */
     phoneBlocks?: readonly BulkBlock[] | null;
   },
   existingImageIds: ReadonlySet<string>,

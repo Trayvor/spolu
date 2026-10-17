@@ -66,7 +66,7 @@ export async function runBatch(
   }>(sql`select status, subject, preheader, blocks, phone_blocks, content_version
     from bulk_campaigns where id = ${campaignId}`);
   if (!row || row.status !== 'sending') return 'stopped';
-  // A campaign sending since before Phase 30 is content version 1: upgraded like every read.
+  // A campaign sending since before Phase 31 is content version 1: upgraded like every read.
   const campaign = contentOf(row);
 
   const taken = await db.transaction(async (tx) => {

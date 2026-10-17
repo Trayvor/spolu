@@ -74,7 +74,7 @@ export const campaign = (over: Partial<BulkCampaignDto> = {}): BulkCampaignDto =
   preheader: '',
   blocks: [],
   phoneBlocks: null,
-  // Most tests are not about the one-time phone warning (Phase 30): shown already.
+  // Most tests are not about the one-time phone warning (Phase 31): shown already.
   phoneCheckShown: true,
   audience: EMPTY_AUDIENCE,
   version: 3,

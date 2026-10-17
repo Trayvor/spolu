@@ -135,7 +135,7 @@ test('bulk email: write, test, send, report, unsubscribe and subscribe again', a
 
     // 5. Send: the dialog names the subject, the sender and the live count.
     await page.getByRole('button', { name: 'Odoslať…' }).click();
-    // Phase 30: the phone version follows the computer one, so a one-time reminder comes first.
+    // Phase 31: the phone version follows the computer one, so a one-time reminder comes first.
     await page
       .getByTestId('phone-check-dialog')
       .getByRole('button', { name: 'Napriek tomu odoslať' })

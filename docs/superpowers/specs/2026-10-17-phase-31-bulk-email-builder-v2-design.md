@@ -1,6 +1,6 @@
-# Phase 30 — Bulk email builder v2: design
+# Phase 31 — Bulk email builder v2: design
 
-Date: 2026-10-17. Owner request of 2026-10-17 (approved to build the same night; the decisions below were taken by the builder and are listed for the owner in §9). Requirements: [product/bulk-email.md](../../product/bulk-email.md). Decision record: [ADR 0023](../../decisions/0023-bulk-email-content-v2.md). Plan: [Phase 30 plan](../plans/2026-10-17-phase-30-bulk-email-builder-v2.md).
+Date: 2026-10-17. Owner request of 2026-10-17 (approved to build the same night; the decisions below were taken by the builder and are listed for the owner in §9). Requirements: [product/bulk-email.md](../../product/bulk-email.md). Decision record: [ADR 0024](../../decisions/0024-bulk-email-content-v2.md). Plan: [Phase 31 plan](../plans/2026-10-17-phase-31-bulk-email-builder-v2.md).
 
 ## 1. Goal
 
@@ -37,7 +37,7 @@ At most 50 blocks in a version, counting the blocks inside containers. A contain
 
 ### 2.3 Versions and the upgrade (decision: in-code upgrade on read)
 
-`bulk_campaigns.content_version` (smallint, `1` for every row saved before Phase 30, check `in (1, 2)`). Reading a campaign calls `upgradeBlocks(version, raw)`: version 1 text blocks `{ text, align }` become paragraphs (split on a blank line, `**bold**` runs as `bold`, the same rules as the Phase 23 renderer); other blocks are unchanged. Every save writes version 2. A Drizzle (SQL) migration cannot parse `**bold**`, and a one-off data job would have to run before the first read; the upgrade on read has no window where old and new code disagree and is one pure, tested function. Sent campaigns keep version 1 forever, and that is fine: they render identically (snapshot tests recorded with the Phase 23 renderer before any change).
+`bulk_campaigns.content_version` (smallint, `1` for every row saved before Phase 31, check `in (1, 2)`). Reading a campaign calls `upgradeBlocks(version, raw)`: version 1 text blocks `{ text, align }` become paragraphs (split on a blank line, `**bold**` runs as `bold`, the same rules as the Phase 23 renderer); other blocks are unchanged. Every save writes version 2. A Drizzle (SQL) migration cannot parse `**bold**`, and a one-off data job would have to run before the first read; the upgrade on read has no window where old and new code disagree and is one pure, tested function. Sent campaigns keep version 1 forever, and that is fine: they render identically (snapshot tests recorded with the Phase 23 renderer before any change).
 
 `phone_blocks jsonb null` holds the phone version, `phone_check_shown_at timestamptz null` the send warning (§5). Duplicate copies both versions and the content version, not the warning.
 

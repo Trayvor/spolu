@@ -40,7 +40,7 @@ export function SendStep({
   saveState: SaveState;
   flush: () => Promise<boolean>;
   onProblems: (problems: BulkNotReadyProblem[]) => void;
-  /** The phone version still follows the desktop one (Phase 30). */
+  /** The phone version still follows the desktop one (Phase 31). */
   phoneFollows: boolean;
   /** The one-time phone warning was shown for this campaign already (server-side). */
   phoneCheckShown: boolean;

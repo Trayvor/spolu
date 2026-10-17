@@ -26,7 +26,7 @@ import {
  * is no raw HTML, no script, no form. Only `{{name}}` in headings and texts is replaced, and
  * nothing at all in `literal` emails.
  *
- * Phase 30 (builder v2): formatted text, image size/alignment/shape, spacer, the split container
+ * Phase 31 (builder v2): formatted text, image size/alignment/shape, spacer, the split container
  * and a phone version. Blocks without the new options render byte for byte as in Phase 23
  * (`render-compat.test.ts`), and the extra CSS is only added when an email needs it.
  */
@@ -45,7 +45,7 @@ export type EmailRenderInput = {
   /** The desktop version (the only one of system emails). */
   blocks: BulkBlock[];
   /**
-   * The phone version (Phase 30): shown instead of `blocks` on screens up to 600 px. Left out
+   * The phone version (Phase 31): shown instead of `blocks` on screens up to 600 px. Left out
    * or `null`: the phone follows the desktop version and the blocks are rendered once.
    */
   phoneBlocks?: BulkBlock[] | null;
@@ -94,10 +94,10 @@ const LINK_STYLE = `color:${C.ink};text-decoration:underline`;
 /** The phone layout of the card (Phase 23). Clients that drop it keep 600 px. */
 const CARD_CSS =
   '@media (max-width: 620px) { .sp-container { width:100% !important; } .sp-card { padding:28px 20px !important; } .sp-footer { padding:20px 20px 0 20px !important; } }';
-/** Split containers stack, left first, on phones (Phase 30). */
+/** Split containers stack, left first, on phones (Phase 31). */
 const COLUMNS_CSS =
   '.sp-col { display:block !important; width:100% !important; max-width:100% !important; } .sp-col-r { padding-top:24px !important; } .sp-gap { display:none !important; width:0 !important; }';
-/** A separate phone version replaces the desktop one on phones (Phase 30). */
+/** A separate phone version replaces the desktop one on phones (Phase 31). */
 const PHONE_CSS =
   '.sp-desktop { display:none !important; } .sp-phone { display:block !important; max-height:none !important; overflow:visible !important; }';
 

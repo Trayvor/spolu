@@ -9,7 +9,7 @@ import { addAdmin } from '../users/service.js';
 import { bulkCampaigns } from './schema.js';
 import { validateForSend } from './send.js';
 
-/** Phase 30: content version 2, the phone version and the one-time send warning (spec §2–§6). */
+/** Phase 31: content version 2, the phone version and the one-time send warning (spec §2–§6). */
 
 type TestApp = Awaited<ReturnType<typeof buildTestApp>>;
 

@@ -3,7 +3,7 @@ import { upgradeBlocks } from '@spolu/shared';
 import { renderCampaign } from './render.js';
 
 /**
- * Phase 30 compatibility: campaigns saved before the builder v2 (content version 1) must render
+ * Phase 31 compatibility: campaigns saved before the builder v2 (content version 1) must render
  * byte for byte as they did. The snapshots in `__snapshots__/render-compat.test.ts.snap` were
  * recorded with the Phase 23 renderer, before any v2 change; never update them to make a
  * failing test pass.

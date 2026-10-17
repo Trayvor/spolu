@@ -41,7 +41,7 @@ import { cancelSending, queueTestSend, startSending } from './send.js';
 type IdParams = { Params: { id: string } };
 
 /**
- * The save route's body limit (spec §9): two versions (Phase 30) of 50 blocks, with the text
+ * The save route's body limit (spec §9): two versions (Phase 31) of 50 blocks, with the text
  * trees' overhead, fit.
  */
 const SAVE_BODY_LIMIT = 600_000;
@@ -217,7 +217,7 @@ export const bulkEmailRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app
     }
   });
 
-  // Phase 30: the one-time "check the phone version" warning was shown (spec §5).
+  // Phase 31: the one-time "check the phone version" warning was shown (spec §5).
   app.post<IdParams>(
     '/bulk-email/campaigns/:id/phone-check',
     { preHandler },

@@ -21,13 +21,13 @@ export const BULK_LIMITS = {
   /** Uploaded images: bytes and the width the browser shrinks to. */
   imageBytes: 2 * 1024 * 1024,
   imageWidth: 1200,
-  /** Phase 30: nodes of one text block and runs of one node. */
+  /** Phase 31: nodes of one text block and runs of one node. */
   textNodes: 200,
   textRuns: 200,
-  /** Phase 30: an image's chosen width; px at most the 520 px content column. */
+  /** Phase 31: an image's chosen width; px at most the 520 px content column. */
   imagePercent: { min: 10, max: 100 },
   imagePx: { min: 40, max: 520 },
-  /** Phase 30: the editor warns when the HTML gets close to Gmail's ~102 kB clipping. */
+  /** Phase 31: the editor warns when the HTML gets close to Gmail's ~102 kB clipping. */
   htmlWarnBytes: 90_000,
 } as const;
 
@@ -58,7 +58,7 @@ export const BulkAlignSchema = z.enum(['left', 'center', 'right']);
 export type BulkAlign = z.infer<typeof BulkAlignSchema>;
 
 /**
- * Phase 30: the stored content version. 1 = Phase 23 (a text block is `{ text }` with
+ * Phase 31: the stored content version. 1 = Phase 23 (a text block is `{ text }` with
  * `**bold**`), 2 = builder v2 (a text block is a document tree). Reading upgrades 1 → 2
  * (`upgradeBlocks`); every save writes 2.
  */
@@ -276,7 +276,7 @@ export const BulkCampaignDraftSchema = z.object({
   /** The desktop version. */
   blocks: BulkBlocksSchema,
   /**
-   * The phone version (Phase 30): `null` = it follows the desktop version; left out = keep the
+   * The phone version (Phase 31): `null` = it follows the desktop version; left out = keep the
    * stored one (an editor that does not know it never drops it).
    */
   phoneBlocks: BulkBlocksSchema.nullable().optional(),
@@ -355,7 +355,7 @@ export type BulkRecipientItem = {
 /** One reason of `400 not_ready`, shown next to the block when `blockId` is set. */
 export type BulkNotReadyProblem = {
   blockId?: string;
-  /** The problem is in the phone version (Phase 30). */
+  /** The problem is in the phone version (Phase 31). */
   phone?: true;
   problem: 'subject_missing' | 'no_blocks' | 'image_missing' | 'invalid_url';
 };

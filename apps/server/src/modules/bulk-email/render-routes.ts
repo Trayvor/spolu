@@ -23,7 +23,7 @@ const PreviewSchema = BulkCampaignDraftSchema.pick({
   blocks: true,
   phoneBlocks: true,
 });
-/** Matches the save route's limit (spec §9; two versions since Phase 30). */
+/** Matches the save route's limit (spec §9; two versions since Phase 31). */
 const PREVIEW_BODY_LIMIT = 600_000;
 /** The preview's unsubscribe link goes nowhere: it is never a real token. */
 const PREVIEW_UNSUBSCRIBE_HREF = '#';

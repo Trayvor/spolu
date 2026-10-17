@@ -14,7 +14,7 @@ export type EditableDraft = {
   preheader: string;
   /** The desktop version. */
   blocks: BulkBlock[];
-  /** The phone version; `null` while it follows the desktop version (Phase 30). */
+  /** The phone version; `null` while it follows the desktop version (Phase 31). */
   phoneBlocks: BulkBlock[] | null;
   audience: BulkAudience;
 };

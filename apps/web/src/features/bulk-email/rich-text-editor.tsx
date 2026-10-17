@@ -15,7 +15,7 @@ import { FieldNote } from './parts';
 import { applyBoldShortcuts, domToNodes, nodesToEditorHtml } from './rich-text';
 
 /**
- * The text block's editor (Phase 30, spec §4): a `contenteditable` box with a toolbar. The
+ * The text block's editor (Phase 31, spec §4): a `contenteditable` box with a toolbar. The
  * commands are the browser's editing commands; after every input the DOM is read back into the
  * document tree (`domToNodes`), which keeps only what an email may hold. A paste is inserted
  * through the same filter, so pasted styles and images never even show. Uncontrolled: `value`

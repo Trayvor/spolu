@@ -305,7 +305,7 @@ function omit(block: ImageBlock, key: 'href' | 'width' | 'shape'): ImageBlock {
 }
 type SizeMode = 'original' | BulkImageWidth['unit'];
 
-/** Size, alignment and shape of an image (Phase 30). */
+/** Size, alignment and shape of an image (Phase 31). */
 function ImageLook({ block, onChange }: { block: ImageBlock; onChange: (b: BulkBlock) => void }) {
   const { t } = useTranslation();
   const mode: SizeMode = block.width?.unit ?? 'original';

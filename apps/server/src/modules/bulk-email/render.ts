@@ -6,7 +6,7 @@ export { LOGO_PATH } from '../../infra/email/render.js';
 
 /**
  * The bulk email renderer (spec §3): the admin's blocks through the one email design
- * (`infra/email/render.ts`, shared with the system emails), with `{{name}}` and the formatted texts (Phase 30), and
+ * (`infra/email/render.ts`, shared with the system emails), with `{{name}}` and the formatted texts (Phase 31), and
  * the footer that says why the person gets it and links the unsubscribe.
  */
 
@@ -19,7 +19,7 @@ export type RenderInput = {
   subject: string;
   preheader: string;
   blocks: BulkBlock[];
-  /** The phone version (Phase 30); `null` or left out while it follows the desktop version. */
+  /** The phone version (Phase 31); `null` or left out while it follows the desktop version. */
   phoneBlocks?: BulkBlock[] | null;
   recipient: { name: string; language: UserLanguage };
   /** Already wrapped by the bulk sender (`unsubscribeHref`), e.g. `{unsubscribe:<url>}`. */

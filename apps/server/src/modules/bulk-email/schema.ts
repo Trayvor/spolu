@@ -38,7 +38,7 @@ export const bulkCampaigns = pgTable(
     preheader: text('preheader').notNull().default(''),
     /** The desktop version, in `content_version`'s format (read through `upgradeBlocks`). */
     blocks: jsonb('blocks').$type<BulkBlock[]>().notNull().default([]),
-    /** The phone version (Phase 30); null while it follows the desktop version. */
+    /** The phone version (Phase 31); null while it follows the desktop version. */
     phoneBlocks: jsonb('phone_blocks').$type<BulkBlock[]>(),
     /** 1 = Phase 23 blocks, 2 = builder v2 (`BULK_CONTENT_VERSION`); every save writes 2. */
     contentVersion: smallint('content_version').notNull().default(1),

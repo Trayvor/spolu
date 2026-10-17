@@ -7,7 +7,7 @@ import type { EditMode } from './phone-version';
 const MODES: EditMode[] = ['computer', 'phone'];
 
 /**
- * The Computer / Phone switch above the blocks (Phase 30, spec §4): it sets what the preview
+ * The Computer / Phone switch above the blocks (Phase 31, spec §4): it sets what the preview
  * shows and which version the blocks edit. Beside it, the state of the phone version and, when
  * it is edited separately, "Return to the computer version" (asks first).
  */

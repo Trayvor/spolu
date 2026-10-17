@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { BulkBlock, BulkInline, BulkLeafBlock, BulkTextNode } from '@spolu/shared';
 import { renderCampaign } from './render.js';
 
-/** Phase 30: the builder v2 blocks (spec §3). */
+/** Phase 31: the builder v2 blocks (spec §3). */
 
 function render(
   blocks: BulkBlock[],

@@ -2,7 +2,7 @@ import type { BulkBlock } from '@spolu/shared';
 import { blocksReducer, type BlocksAction } from './blocks';
 
 /**
- * The phone version (Phase 30, spec §4). `phoneBlocks: null` = the phone version follows the
+ * The phone version (Phase 31, spec §4). `phoneBlocks: null` = the phone version follows the
  * desktop one: it shows and sends the desktop blocks. The first edit made in Phone mode copies
  * the desktop blocks as they are at that moment and applies the edit to the copy; from then on
  * the two versions are separate trees, until "Return to the computer version".

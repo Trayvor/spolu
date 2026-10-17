@@ -36,6 +36,7 @@ Requirements per module: [product/](product/README.md). Phases after 1 get their
 | 27 | [Whole-project review: performance and cleanup](#phase-27--whole-project-review-performance-and-cleanup) | planned | the UI/UX polish work | - |
 | 28 | [Chat editor and AI text tools](#phase-28--chat-editor-and-ai-text-tools) | planned | 27 | - |
 | 29 | [Solve with AI](#phase-29--solve-with-ai) | planned | 27 | - |
+| 31 | [Bulk email builder v2](#phase-31--bulk-email-builder-v2) | in progress (PR #59) | 23 | [spec](superpowers/specs/2026-10-17-phase-31-bulk-email-builder-v2-design.md), [plan](superpowers/plans/2026-10-17-phase-31-bulk-email-builder-v2.md) |
 
 Phases 8 and 14 do not depend on each other, so their order can change by priority.
 
@@ -414,3 +415,13 @@ Scope: a knowledge type **Meeting** ("Stretnutie": date and time, meeting, recor
 Status: in progress (one pull request: server, web, e2e `e2e/meetings.spec.ts`); migration 0029.
 
 Done when: an admin adds a meeting with its Teams link to a client's knowledge base, uploads the call's video, sees it kept as audio, presses "Spracovať s AI", gets a summary with action items, creates two tasks from them in the client's board, and finds the meeting on the dashboard's Meetings card.
+
+## Phase 31 — Bulk email builder v2
+
+Owner request (2026-10-17, approved to build the same night). Requirements: [product/bulk-email.md](product/bulk-email.md); [design](superpowers/specs/2026-10-17-phase-31-bulk-email-builder-v2-design.md), [plan](superpowers/plans/2026-10-17-phase-31-bulk-email-builder-v2.md), [ADR 0024](decisions/0024-bulk-email-content-v2.md).
+
+Scope: text formatting in text blocks (bold, italic, underline, strikethrough, links, lists, headings 2/3, alignment, palette colours; stored as a document tree, never HTML); image size, alignment and shape; a space block; a split container with two columns (ratio, divider, vertical alignment; stacked on phones); a phone version that follows the computer one until it is edited in Phone mode, with "Return to the computer version"; a one-time "check on a phone" warning before the first send; the content version (migration 0030) with an upgrade on read, so older campaigns render byte for byte as before.
+
+Status: built locally on `feat/bulk-email-builder-v2` (server, web, tests; e2e `e2e/bulk-email-builder.spec.ts` written, run by the owner). Decisions for the owner are listed in the spec §9.
+
+Done when: an admin formats a text, builds a split container with an image and a button, edits the phone version separately, sends, and the email shows the computer version in Outlook and Gmail on a computer and the phone version on a phone.

@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 /**
- * Phase 30 — bulk email builder v2: an admin builds a split container, edits the phone version
+ * Phase 31 — bulk email builder v2: an admin builds a split container, edits the phone version
  * separately, returns it to the computer version, and gets the one-time "check the phone"
  * warning before sending (never sent here: the dialog is closed with "Teraz nie").
  */

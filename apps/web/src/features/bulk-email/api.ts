@@ -157,7 +157,7 @@ export async function previewCampaign(
     .html;
 }
 
-/** Remembers that the one-time "check the phone version" warning was shown (Phase 30). */
+/** Remembers that the one-time "check the phone version" warning was shown (Phase 31). */
 export async function markPhoneCheckShown(id: string): Promise<void> {
   await apiSend('POST', `/bulk-email/campaigns/${enc(id)}/phone-check`);
 }

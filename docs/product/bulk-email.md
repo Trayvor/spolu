@@ -4,7 +4,7 @@ Every administrator can write an email to many people in Spolu at once ("Hromadn
 
 ## What admins can do
 
-- **Campaigns.** A campaign is an email with an internal name, a subject, a preheader (the hidden preview line), up to 50 blocks (heading, text, image, button, divider, space, eGrant logo, split container; blocks inside containers count), a phone version (Phase 30, see below) and an audience. States: `draft` → `sending` → `sent`, or `sending` → `cancelled`.
+- **Campaigns.** A campaign is an email with an internal name, a subject, a preheader (the hidden preview line), up to 50 blocks (heading, text, image, button, divider, space, eGrant logo, split container; blocks inside containers count), a phone version (Phase 31, see below) and an audience. States: `draft` → `sending` → `sent`, or `sending` → `cancelled`.
 - **Drafts.** A new campaign is a draft with only its name, an empty audience and no blocks. Any admin edits any draft; edits are saved with the `version` read last, so when two admins edit the same draft the later save is refused (`409 changed`) and the editor offers to reload. Only a draft can be edited or deleted (`409 not_draft` otherwise).
 - **Duplicate.** Any campaign, also a sent or cancelled one, can be duplicated into a new draft with the same subject, preheader, blocks (both versions) and audience, version 1, named "<name> (kópia)" / "<name> (copy)" in the admin's language.
 - **List.** All campaigns, last changed first, 50 a page, with status, counts (queued, sending, sent, failed, skipped, cancelled, unsubscribed through this campaign's link), author and dates.
@@ -17,7 +17,7 @@ Every administrator can write an email to many people in Spolu at once ("Hromadn
 
 ## Blocks and images
 
-An email is at most 50 blocks, in the order the admin puts them (blocks inside split containers count). Admins choose content, order, text formatting, image size and shape and a few palette colours; fonts and the rest of the look are fixed (see [design/README.md](../design/README.md#bulk-email-look)). Builder v2 (Phase 30, [spec](../superpowers/specs/2026-10-17-phase-30-bulk-email-builder-v2-design.md), [ADR 0023](../decisions/0023-bulk-email-content-v2.md)) added formatting, image options, the space and the split container, and the phone version.
+An email is at most 50 blocks, in the order the admin puts them (blocks inside split containers count). Admins choose content, order, text formatting, image size and shape and a few palette colours; fonts and the rest of the look are fixed (see [design/README.md](../design/README.md#bulk-email-look)). Builder v2 (Phase 31, [spec](../superpowers/specs/2026-10-17-phase-31-bulk-email-builder-v2-design.md), [ADR 0024](../decisions/0024-bulk-email-content-v2.md)) added formatting, image options, the space and the split container, and the phone version.
 
 | block | content | limits and rules |
 |---|---|---|
@@ -37,7 +37,7 @@ Every email has a computer version (what the admin builds first) and a phone ver
 - While the phone version **follows the computer version** ("Phone version: follows the computer version"), Phone mode shows the computer blocks and every computer change shows on phones too; the email holds the blocks once and stacks split containers on phones.
 - The **first change made in Phone mode** copies the computer blocks at that moment, applies the change to the copy and saves it as the phone version ("Phone version: edited separately"). From then on changes on Computer no longer reach it. **Return to the computer version** asks first, then drops the phone version.
 - A separate phone version is sent in the same email: phones (screens up to 600 px wide, in mail apps that read media queries) show it, every other client shows the computer version, and Outlook for Windows never shows it. The plain-text part is the computer version. The email gets about twice as large: the editor warns when its HTML is over 90 kB (Gmail cuts off emails over about 102 kB).
-- **Check on a phone.** The first time **Send…** is pressed while the phone version follows the computer version, a dialog "Check how the email looks on a phone" offers **Show phone preview** (switches to Phone) or **Send anyway**. It is shown once per campaign (remembered on the campaign, `POST /api/bulk-email/campaigns/:id/phone-check`), never for the test send. Campaigns saved before Phase 30 keep rendering exactly as they did.
+- **Check on a phone.** The first time **Send…** is pressed while the phone version follows the computer version, a dialog "Check how the email looks on a phone" offers **Show phone preview** (switches to Phone) or **Send anyway**. It is shown once per campaign (remembered on the campaign, `POST /api/bulk-email/campaigns/:id/phone-check`), never for the test send. Campaigns saved before Phase 31 keep rendering exactly as they did.
 
 - Name, subject and preview line are at most 200 characters each; the subject is needed only to test or send.
 - Only `{{name}}` is a merge field (owner answer P2); any other `{{…}}` stays as typed. Everything an admin types is escaped, so markup or scripts never reach the email, and a link that is not `http(s)` (or `mailto:` on a button) is refused when saving (`400 validation_failed`).

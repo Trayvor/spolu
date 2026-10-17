@@ -1,7 +1,7 @@
 import type { BulkBlock, BulkInline, BulkLeafBlock, BulkTextNode } from './bulk-email.js';
 
 /**
- * Phase 30 — helpers over the bulk email content (types only from `bulk-email.ts`, so the
+ * Phase 31 — helpers over the bulk email content (types only from `bulk-email.ts`, so the
  * schema can use them without an import cycle at runtime): the 1 → 2 upgrade, walking the
  * blocks of split containers, and counting.
  */

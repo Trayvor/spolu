@@ -22,7 +22,7 @@ type Content = {
  * The email as the server renders it (the only renderer, so the preview is what is sent), for
  * the signed-in admin, refreshed 500 ms after the last edit. Shown in an `<iframe sandbox>`
  * without any allowance: no scripts, no same-origin access. `device` is the editor's edit mode
- * (Phase 30): Computer = 600 px, Phone = 375 px, where the email's own media rules show the
+ * (Phase 31): Computer = 600 px, Phone = 375 px, where the email's own media rules show the
  * phone version. Warns when the HTML gets close to Gmail's clipping.
  */
 export const PreviewFrame = forwardRef<

@@ -11,7 +11,7 @@ import {
 } from '@spolu/shared';
 
 /**
- * Phase 30 — the text block's document tree ↔ the editor's `contenteditable` DOM (spec §4).
+ * Phase 31 — the text block's document tree ↔ the editor's `contenteditable` DOM (spec §4).
  * `domToNodes` keeps only what the shared schema allows: marks, http(s)/mailto links, palette
  * colours, paragraphs, headings 2/3, list items and alignment. Anything else in the DOM
  * (pasted styles, images, scripts, tables) is dropped; their text stays. The server checks
