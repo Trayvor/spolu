@@ -3,7 +3,7 @@ import { QueryClient, QueryClientProvider, useInfiniteQuery } from '@tanstack/re
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { KnowledgeEvents, type KnowledgeSummary, type KnowledgeType } from '@spolu/shared';
 import { GroupRoomProvider } from '@/features/groups/use-group-room';
-import { deleteKnowledge, groupKnowledgeQuery } from './api';
+import { deleteKnowledge, groupFoldersQuery, groupKnowledgeQuery } from './api';
 import { useKnowledgeEvents } from './use-knowledge-events';
 
 const fake = vi.hoisted(() => {
@@ -185,6 +185,45 @@ describe('useKnowledgeEvents', () => {
     const before = fetchMock.mock.calls.length;
     view.rerender(tree({}, 2));
     await waitFor(() => expect(fetchMock.mock.calls.length).toBe(before + 1));
+  });
+
+  it('the first join of a cold load refetches nothing the mount loaded', async () => {
+    // The join ack arrives after the list loaded, or while it loads.
+    for (const ackFirst of [false, true]) {
+      fetchMock.mockClear();
+      client.clear();
+      const view = render(tree({}, 0));
+      if (ackFirst) view.rerender(tree({}, 1));
+      await waitFor(() => expect(cachedIds({})).toEqual(['k1']));
+      const folders = groupFoldersQuery('g1').queryKey;
+      client.setQueryData(folders, []);
+      view.rerender(tree({}, 1));
+      await new Promise((r) => setTimeout(r, 20));
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(client.getQueryState(folders)!.isInvalidated).toBe(false);
+      view.unmount();
+    }
+  });
+
+  it('the first join refetches the first page of a list cached before the mount', async () => {
+    const key = groupKnowledgeQuery('g1', {}).queryKey;
+    client.setQueryDefaults(key, { staleTime: 60_000 });
+    const page = (id: string) => ({ items: [summary(id)], nextCursor: 'c' });
+    const old = Date.now() - 10_000;
+    client.setQueryData(
+      key,
+      { pages: [page('k0'), page('k9')], pageParams: [undefined, 'c'] },
+      { updatedAt: old },
+    );
+    const folders = groupFoldersQuery('g1').queryKey;
+    client.setQueryData(folders, [], { updatedAt: old });
+    const view = render(tree({}, 0));
+    await new Promise((r) => setTimeout(r, 20));
+    expect(fetchMock).not.toHaveBeenCalled(); // still fresh (staleTime)
+    view.rerender(tree({}, 1));
+    await waitFor(() => expect(cachedIds({})).toEqual(['k1']));
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(client.getQueryState(folders)!.isInvalidated).toBe(true);
   });
 
   it('in a folder, only items of that folder are upserted; one moved away leaves', async () => {

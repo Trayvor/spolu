@@ -1,4 +1,5 @@
 import { io, type Socket } from 'socket.io-client';
+import { trackSocket } from './socket-history';
 
 let socket: Socket | undefined;
 
@@ -11,7 +12,10 @@ let socket: Socket | undefined;
  * handshake without the app `Origin` in production. A WebSocket handshake always sends it.
  */
 export function getSocket(): Socket {
-  socket ??= io({ path: '/socket.io', transports: ['websocket'], autoConnect: false });
+  if (!socket) {
+    socket = io({ path: '/socket.io', transports: ['websocket'], autoConnect: false });
+    trackSocket(socket);
+  }
   return socket;
 }
 
