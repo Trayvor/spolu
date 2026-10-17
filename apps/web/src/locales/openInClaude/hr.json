@@ -1,0 +1,24 @@
+{
+  "button": "Riješi s Claudeom",
+  "title": "Riješi s Claudeom",
+  "intro": "Pripremamo upit s cijelim kontekstom, razgovorom i uputama za eGrant MCP. Claude najprije objasni uzrok i predloži rješenje, a bez vaše potvrde ništa ne mijenja.",
+  "notesLabel": "Bilješke za Claudea (neobavezno)",
+  "notesPlaceholder": "Na primjer, na što se usredotočiti. Polje možete ostaviti prazno.",
+  "notesHint": "Neobavezno. Bez bilješki samo pritisnite Generiraj.",
+  "generate": "Generiraj",
+  "regenerate": "Generiraj ponovno",
+  "cancel": "Odustani",
+  "generating": "Pripremam upit…",
+  "loadFailed": "Upit nije moguće pripremiti. Pokušajte ponovno.",
+  "ready": "Upit je spreman",
+  "open": "Otvori u Claudeu",
+  "copy": "Kopiraj upit",
+  "filesReminder": "Datoteke ne mogu doći do Claudea putem poveznice. Preuzmite ih i ručno priložite u razgovor u Claudeu:",
+  "preview": "Prikaži upit",
+  "status": {
+    "opened": "Claude se otvorio u novoj kartici.",
+    "pasteInClaude": "Upit je predug za poveznicu, zato je u međuspremniku. Zalijepite ga u novi razgovor u Claudeu (Ctrl+V ili ⌘V).",
+    "copied": "Upit je kopiran.",
+    "copyFailed": "Upit nije moguće kopirati. Pokušajte Kopiraj upit."
+  }
+}

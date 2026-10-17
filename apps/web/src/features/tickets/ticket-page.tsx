@@ -7,6 +7,7 @@ import { clientGroups, isAdmin } from '@/features/auth/roles';
 import { useSession } from '@/features/auth/use-session';
 import { ApiError } from '@/lib/api';
 import { useMediaQuery } from '@/lib/use-media-query';
+import { OpenInClaude } from '@/features/open-in-claude/open-in-claude';
 import { NotFoundPage } from '@/routes/not-found';
 import { ticketQuery } from './api';
 import { ChevronDown, ChevronLeft } from './icons';
@@ -158,6 +159,11 @@ function TicketHeader({
           ) : (
             <span className="text-tiny font-semibold">{ticket.groupName}</span>
           ))}
+        {admin && (
+          <div className="ml-auto">
+            <OpenInClaude source={{ kind: 'ticket', id: ticket.id }} />
+          </div>
+        )}
       </div>
       <h1 className="text-medium leading-tight font-semibold break-words">
         {title || t('tickets.row.noSubject')}

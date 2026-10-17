@@ -57,6 +57,7 @@ Terms used across the docs and code, in alphabetical order.
 - **room**: a Socket.IO room; users join rooms to receive live events for a group, DM or task channel.
 - **seq**: a per-channel increasing number on each message. Clients use it to find and load messages missed during a disconnect.
 - **session**: a long-lived login on one device, kept after the code is entered. A `session` row plus the httpOnly cookie `better-auth.session_token`; removing a user deletes their sessions.
+- **Vyriešiť s Claude** (solve with Claude, Phase 29): the admins' action on a ticket or task that prepares a prompt with its context and optional notes and opens it in the admin's own claude.ai, to solve it through the eGrant MCP connector; Spolu runs no AI for it. See [solve-with-claude](product/solve-with-claude.md).
 - **Spolu**: the code name (Slovak for "together") used in code, package names (`@spolu/*`), databases, Docker and these docs. It was the visible name ("Spolu by eGrant") until 2026-10-16, when it became Help. Formerly the working title eHub.
 - **Stretnutie** (meeting): a knowledge item for a meeting or call (Phase 30): date and time, links, notes, transcript, a compact audio copy of the recording, and an AI summary with decisions, action items and open questions.
 - **subscribe (to a reminder)**: "Remind me" on a reminder: anyone who can read the item adds themselves as a recipient, and can leave again. The author cannot leave their own reminder.

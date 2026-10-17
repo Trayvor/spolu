@@ -35,7 +35,7 @@ Requirements per module: [product/](product/README.md). Phases after 1 get their
 | 26 | [One email design and nine languages](#phase-26--one-email-design-and-nine-languages) | done | 23 | [ADR 0019](decisions/0019-nine-languages-and-one-email-design.md) |
 | 27 | [Whole-project review: performance and cleanup](#phase-27--whole-project-review-performance-and-cleanup) | planned | the UI/UX polish work | - |
 | 28 | [Chat editor and AI text tools](#phase-28--chat-editor-and-ai-text-tools) | in progress | 27 | [editor spec](superpowers/specs/2026-10-17-phase-28-chat-editor-design.md), [ADR 0025](decisions/0025-prosemirror-chat-editor.md), [AI text tools and voice spec](superpowers/specs/2026-10-17-phase-28-ai-text-tools-and-voice-design.md) |
-| 29 | [Solve with AI](#phase-29--solve-with-ai) | planned | 27 | - |
+| 29 | [Solve with AI](#phase-29--solve-with-ai) | done | 21 | [spec](superpowers/specs/2026-10-17-phase-29-open-in-claude-design.md) |
 | 31 | [Bulk email builder v2](#phase-31--bulk-email-builder-v2) | in progress (PR #59) | 23 | [spec](superpowers/specs/2026-10-17-phase-31-bulk-email-builder-v2-design.md), [plan](superpowers/plans/2026-10-17-phase-31-bulk-email-builder-v2.md) |
 
 Phases 8 and 14 do not depend on each other, so their order can change by priority.
@@ -407,6 +407,12 @@ Owner decision (2026-10-17). Starts after Phase 27 (order with Phase 28 by the o
 - On tickets and tasks, admins get an **"Otvoriť v Claude"** button: it opens claude.ai with a prefilled prompt carrying the full context — the ticket or task, its chat, file names, the eGrant instance link — and the instruction to solve it with the eGrant MCP that admins already have connected in Claude. It uses the admin's own Claude subscription; nothing runs on the server, no API cost.
 - When the prompt is too long for a URL, the button copies it to the clipboard and opens an empty Claude chat with a short note.
 - Test the prompt against the eGrant MCP only on the instance **Supermesto** (owner rule).
+
+Requirements: [product/solve-with-claude.md](product/solve-with-claude.md); [design](superpowers/specs/2026-10-17-phase-29-open-in-claude-design.md) with the owner decisions (§5). Built as "Vyriešiť s Claude": a dialog with optional notes, then "Otvoriť v Claude" (`claude.ai/new?q=…` up to 8 000 characters, else the clipboard and an empty chat), "Kopírovať prompt", and the reminder to attach the files by hand with a download link each. The prompt asks Claude for a first reply with the cause, the impact, the steps, the risks and the question whether to fix it, and forbids writes until the admin confirms. Admins only (`canOpenInClaude`); no migration. Built ahead of Phase 27 at the owner's request (night run).
+
+Status: done (server, web, tests; e2e `e2e/open-in-claude.spec.ts` is run by the orchestrator).
+
+Owner walks on https://help.egrant.sk: open a Supermesto ticket as an admin, press "Vyriešiť s Claude", generate without notes, then with a note, open in Claude and check that Claude finds the instance, reads only, and answers with (a)–(e) before touching anything; open a ticket with a long chat and check the paste note; check that a client sees no button.
 
 ## Phase 30 — Knowledge: meetings with AI summary
 
