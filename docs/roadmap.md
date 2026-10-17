@@ -387,12 +387,13 @@ Status: findings report written ([2026-10-17 findings](superpowers/specs/2026-10
 Owner request (2026-10-17). Starts after Phase 27. Needs a spec (brainstorming) and an ADR for the editor library.
 
 - **Rich text editor in every chat** (group chat, ticket chat, task chat): formatting shows while typing (WYSIWYG, not a preview), with full Markdown support: typing Markdown syntax (`**bold**`, `_italic_`, `` `code` ``, lists, quotes, links, headings, code blocks) turns into formatting at once, pasted Markdown renders, and messages are stored as Markdown so the existing rendering, search, notifications and digests keep working. Mentions and file attachments keep working inside it. The bulk email builder is out of scope (emails take HTML only). The editor is lazy-loaded so the initial JS budget holds.
-- **AI text tools, admins only:** an AI button next to Send (like Telegram's) offers:
+- **AI text tools, for admins and clients** (owner change 2026-10-17: clients get them by the same rules): an AI button next to Send (like Telegram's) offers:
   1. **Fix mistakes** — only commas, full stops, diacritics, typos; nothing else changes.
   2. **Make it formal** — a professional tone, but explicitly not an email (no greeting/sign-off unless the text already looks like an email); keeps natural, human wording and allows anglicisms.
   3. **Translate** — shown only in groups whose eGrant instance link is not a `.sk` domain, with two options: to English and to the client's language (decide in the spec how the client's language is found: the instance's TLD or the client members' profile language).
   The result replaces the draft for review before sending (undo available); nothing is sent automatically. Available in group chat, ticket chat and task chat.
-- **Model:** a fast, cheap OpenAI model so the result comes back in about a second (check OpenAI's current small models when the spec is written; low reasoning effort, streaming if it helps). Configurable separately from the task-split model (e.g. `OPENAI_TEXT_MODEL`). Prompts live in the server; the client never sends a prompt, only the text and the chosen action. Rate-limited per admin.
+- **Model:** a fast, cheap OpenAI model so the result comes back in about a second (check OpenAI's current small models when the spec is written; low reasoning effort, streaming if it helps). Configurable separately from the task-split model (e.g. `OPENAI_TEXT_MODEL`). Prompts live in the server; the browser never sends a prompt, only the text and the chosen action. Rate-limited per user.
+- **Voice input** (owner request 2026-10-17), for everyone in every chat: a microphone button records; the person decides when to stop (tap again, like Claude's voice input; no automatic cut-off on silence), sees a timer while recording, can cancel, and the speech is transcribed into the draft (not sent) for review. Transcription on the server with the transcription provider of the knowledge meetings phase (`TRANSCRIPTION_PROVIDER`), so no browser speech API differences; a length limit (e.g. 5 minutes) and a per-user rate limit.
 
 ## Phase 29 — Solve with AI
 
