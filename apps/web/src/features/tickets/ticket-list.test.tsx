@@ -163,6 +163,29 @@ describe('ticket lists', () => {
     expect(listCalls()).toBe(before);
   });
 
+  it('the first connect keeps the lists just loaded; a reconnect refetches them', async () => {
+    const { calls } = mockTicketApi(CLIENT, groupRoutes());
+    socket.connected = false; // a cold load: the socket connects after the screen mounted
+    try {
+      renderAt('/groups/g1/tickets');
+      await screen.findByText('Ticket k1');
+      const listCalls = () =>
+        calls.filter((c) => c.startsWith('GET /api/groups/g1/tickets')).length;
+      expect(listCalls()).toBe(1);
+      socket.connected = true;
+      act(() => socket.fire('connect'));
+      await new Promise((r) => setTimeout(r, 20));
+      expect(listCalls()).toBe(1);
+      socket.connected = false;
+      act(() => socket.fire('disconnect'));
+      socket.connected = true;
+      act(() => socket.fire('connect'));
+      await waitFor(() => expect(listCalls()).toBe(2));
+    } finally {
+      socket.connected = true;
+    }
+  });
+
   it("My tickets of a client ignores the group's other tickets", async () => {
     const BOTH = {
       ...CLIENT,

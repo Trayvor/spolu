@@ -268,22 +268,22 @@ Impact: **high** = a user waits seconds, or the server does far more work than n
 
 Each batch is one branch and one PR from fresh `origin/main`, independent of the others. Merge in this order:
 
-| # | Branch | Findings | Impact | Risk | Status |
+| # | Branch | Findings | Impact | Risk | Status and measured gain |
 |---|---|---|---|---|---|
-| 1 | `perf/db-fk-indexes` | S1, S3 | high | low | building |
-| 2 | `perf/db-jit-off` | S2 | high | low | building |
-| 3 | `perf/web-vitest-vmthreads` | T1 | high (CI) | low | building |
-| 4 | `perf/web-entry-chunk` | W1 | med | low | building |
-| 5 | `perf/pwa-precache-languages` | W3 | med | low | building |
-| 6 | `perf/web-first-join-refetch` | W4 | med | low | building |
-| 7 | `chore/dead-code` | D1, D2 | low | low | building (trivial; part of the phase's scope) |
-| 8 | `perf/docker-runtime-slim` | K1 | low-med | low | building |
-| 9 | `ci/parallel-static-checks` | T5 | med (CI) | low-med | done, PR #56 |
+| 1 | `perf/db-fk-indexes` | S1, S3 | high | low | PR #44: channel delete with 2 000 messages 94.9 s → 39 ms; global ticket list 32–64 ms → 0.1 ms |
+| 2 | `perf/db-jit-off` | S2 | high | low | PR #45: global board without client scope 720 → 100 ms (EXPLAIN); sidebar with 3 100 groups 350 → 125 ms |
+| 3 | `perf/web-vitest-vmthreads` | T1 | high (CI) | low | PR #46: web suite 31.4 → 13.9 s locally, 429 → 173 s on GitHub (the tests step is now bound by the server suite, about 390 s) |
+| 4 | `perf/web-entry-chunk` | W1 | med | low | PR #47: initial JS 174.59 → 161.94 kB |
+| 5 | `perf/pwa-precache-languages` | W3 | med | low | PR #48: precache 307 files / 758.6 kB → 167 / 613.3 kB gzip |
+| 6 | `perf/web-first-join-refetch` | W4 | med | low | PR #53: a cold load sends 1 request instead of 2 (board, knowledge, tickets, bulk email) |
+| 7 | `chore/dead-code` | D1, D2 | low | low | PR #52: 6 symbols, 2 keys in nine languages, 4 dead English plural forms |
+| 8 | `perf/docker-runtime-slim` | K1 | low-med | low | PR #57: image 467 → 380 MB (94.7 → 82.8 MB compressed), source-only rebuild 26–31 → 17 s |
+| 9 | `ci/parallel-static-checks` | T5 | med (CI) | low-med | PR #56: lint, format check and typecheck in parallel, 27–55 → 18–28 s |
 
 Proposed, not done (owner decision or later work):
-- **Server:** S4, S5, S6, S7, S8, S9, S10, S11.
+- **Server:** S4, S5, S6, S7 (in progress), S8, S9, S10, S11.
 - **Web:** W2, W5, W6, W7, W8.
-- **Tests and CI:** T2, T3, T4.
+- **Tests and CI:** T2, T3 (in progress), T4.
 - **Docker:** K2.
 
 The next server batch should be S7 (job N+1s, test-first). The next web batch should be W5 together with S4.

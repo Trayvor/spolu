@@ -146,6 +146,8 @@ curl -k https://localhost/api/health      # {"status":"ok","db":"ok","version":"
 docker compose --project-name spolutest down -v   # separate project = separate volumes; removes them
 ```
 
+The image has only `node`, no npm, corepack or yarn (see [overview.md](../architecture/overview.md), "Production image and compose"): in the container run `node` directly, e.g. `docker compose exec app node -e '…'`. A system package the app needs at runtime (for example ffmpeg) goes into the `RUNTIME_PACKAGES` default in the `Dockerfile` (space-separated Debian package names); try one locally with `docker build --build-arg RUNTIME_PACKAGES=ffmpeg -t spolu:local .`.
+
 To walk the phase "Done when" locally (login codes included) catch the email in Mailpit (`docker compose -f docker-compose.dev.yml up -d --wait` from the repo root; UI on http://localhost:8025). For that set `EMAIL_DRIVER=smtp`, `SMTP_HOST=host.docker.internal` and `SMTP_PORT=1025` in `deploy/.env` before `up` (and clear `SMTP_USER` and `SMTP_PASSWORD`).
 
 **Ticket intake (Phase 21).** Set `TICKETS_API_KEY` (at least 16 characters, for example `openssl rand -hex 24`) as its own secret of the `test` environment in GitHub (`gh secret set TICKETS_API_KEY --env test`); the deploy writes it into the server's `.env` (it replaces a `TICKETS_API_KEY=` line of `TEST_ENV_FILE`). Give it to the eGrant team with [integrations/egrant-ticket-intake.md](../integrations/egrant-ticket-intake.md). Without it `POST /api/tickets/intake` answers 503 `intake_disabled`.

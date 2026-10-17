@@ -18,6 +18,7 @@ Spolu must feel instant: faster than Microsoft Teams on a cheap phone over mobil
 - Feature texts are lazy locale namespaces (`src/locales/<name>/<code>.json`), loaded with the route that renders them (`withNamespaces` in `router.tsx`, see [overview.md](overview.md), "i18n"). Only the eager shell's texts go in the main locale files.
 - Before adding a dependency, check its gzip size (bundlephobia or the build output). Prefer a few lines of our own code to a large library used for one function. A new runtime dependency needs an ADR anyway.
 - Lists that grow (messages, tasks, tickets, members) are paginated by cursor and virtualized when long. Never load a whole list.
+- A socket (re)join or `connect` refetches only what may have missed events: use `firstJoinCheck` (`lib/socket-history.ts`, see [realtime.md](realtime.md)) so the first join of a screen does not refetch what its mount just loaded. Measured in the hooks' tests (Phase 27, W4): a cold load of the Tasks tab sends 1 board request instead of 2 (the second also invalidated every cached task detail), the Knowledge tab 1 list request instead of 2 (plus the folders), and the ticket and bulk email lists 1 instead of 2 when the socket connects after they loaded.
 - Optimistic UI for the user's own writes (a sent message appears at once, then is confirmed).
 - Images: resized and compressed on upload; lists and chat show thumbnails; full size only on open.
 - No fancy effects (see [design/README.md](../design/README.md), "Keep it light").
@@ -95,6 +96,19 @@ Phase 27 entry chunk (2026-10-17, gzip -9 of every script `dist/index.html` load
 Keep `cn` out of the eager shell: use it where classes from props may conflict, which is inside the lazy screens.
 
 Lazy chunks for individual screens have no hard budget. Keep them reasonable and watch for anything above about 100 kB gzip.
+
+## Docker image
+
+The production image (root `Dockerfile`, see [overview.md](overview.md), "Production image and compose") ships the `node` binary on plain `debian:bookworm-slim`, the server's production dependencies without type definitions, source maps and docs, and the built server and web. Phase 27 (finding K1, measured 2026-10-17 on an arm64 laptop, `docker build` of one platform, `docker image ls`):
+
+| | Before | After |
+|---|---|---|
+| Image on disk | 467 MB | 380 MB |
+| Compressed content (what a server pulls) | 94.7 MB | 82.8 MB |
+| Rebuild after a source-only change | 26–31 s | 17 s |
+| Build without layer cache (`--no-cache`, pnpm store cache kept) | 54–116 s | 51–74 s (noise of a loaded machine; no real change) |
+
+Where the bytes went: npm, corepack and yarn (about 24 MB) and the C headers (6.7 MB) of the node image are not shipped (deleting them in a later layer would not shrink the image, so the runtime stage starts from Debian and copies only `node`); `*.d.ts`, `*.map` and `*.md` files of `node_modules` (about 40 MB raw) are deleted before the copy. The rebuild is faster because the production dependencies are their own stage (`prod-deps`, only the lockfile and manifests), so a code change no longer reruns `pnpm deploy`. What remains: the node binary 118 MB, `node_modules` about 55 MB (`react-dom` and `@types/node` are still in it, finding K2), the built server and web about 6 MB.
 
 ## How to check
 

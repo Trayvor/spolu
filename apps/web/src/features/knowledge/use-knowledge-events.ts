@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { useQueryClient, type InfiniteData } from '@tanstack/react-query';
+import { useQueryClient, type InfiniteData, type Query } from '@tanstack/react-query';
 import {
   KnowledgeEvents,
   type KnowledgeFolderDeletedEvent,
@@ -12,6 +12,7 @@ import {
 } from '@spolu/shared';
 import { useGroupRoomJoins } from '@/features/groups/use-group-room';
 import { getSocket } from '@/lib/socket';
+import { firstJoinCheck } from '@/lib/socket-history';
 import {
   groupFoldersQuery,
   groupKnowledgeQuery,
@@ -32,7 +33,8 @@ type Data = InfiniteData<KnowledgePage>;
  * `onOpenGone` fires when it is the one open. A viewer who cannot see admins-only items
  * (`canSeeAdmins` false, a client) removes such an item instead of showing it; the server never
  * sends one to the group room, this is defence in depth. After every later (re)join the first page is
- * refetched, since events sent while the socket was out of the room are lost.
+ * refetched, since events sent while the socket was out of the room are lost; the first join after
+ * the mount refetches only what `firstJoinCheck` says may have missed events (like `useBoardEvents`).
  */
 export function useKnowledgeEvents(
   groupId: string,
@@ -44,6 +46,8 @@ export function useKnowledgeEvents(
   const queryClient = useQueryClient();
   const joins = useGroupRoomJoins();
   const seenJoins = useRef(joins);
+  // Set while the room is not joined yet; `null` once its first join has been handled.
+  const firstJoin = useRef<ReturnType<typeof firstJoinCheck> | null>(null);
   const { q, folder, chats } = filter;
   // A string, so a new array with the same types does not resubscribe.
   const typeKey = (filter.types ?? []).join(',');
@@ -114,16 +118,32 @@ export function useKnowledgeEvents(
   }, [groupId, typeKey, q, folder, chats, canSeeAdmins, queryClient]);
 
   useEffect(() => {
+    if (joins === 0) {
+      // Not in the room yet (the mount, or a group switch): its first join may skip a refetch.
+      seenJoins.current = 0;
+      firstJoin.current = firstJoinCheck(getSocket());
+      return;
+    }
     if (seenJoins.current === joins) return;
     seenJoins.current = joins;
+    const stale = firstJoin.current;
+    firstJoin.current = null;
+    const predicate = stale ? (query: Query) => stale(query.state) : undefined;
     const types = typeKey ? (typeKey.split(',') as KnowledgeType[]) : [];
     const key = groupKnowledgeQuery(groupId, { types, q, folder, chats }).queryKey;
-    // Only the first page refetches: later pages are dropped, "Load more" fetches them again.
-    queryClient.setQueryData<Data>(
-      key,
-      (data) => data && { pages: data.pages.slice(0, 1), pageParams: data.pageParams.slice(0, 1) },
-    );
-    void queryClient.invalidateQueries({ queryKey: key, exact: true });
-    void queryClient.invalidateQueries({ queryKey: groupFoldersQuery(groupId).queryKey });
+    const listState = queryClient.getQueryState(key);
+    if (!stale || (listState && stale(listState))) {
+      // Only the first page refetches: later pages are dropped, "Load more" fetches them again.
+      queryClient.setQueryData<Data>(
+        key,
+        (data) =>
+          data && { pages: data.pages.slice(0, 1), pageParams: data.pageParams.slice(0, 1) },
+      );
+      void queryClient.invalidateQueries({ queryKey: key, exact: true });
+    }
+    void queryClient.invalidateQueries({
+      queryKey: groupFoldersQuery(groupId).queryKey,
+      predicate,
+    });
   }, [joins, groupId, typeKey, q, folder, chats, queryClient]);
 }

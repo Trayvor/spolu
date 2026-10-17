@@ -2,12 +2,14 @@ import { useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { BulkEvents, type BulkEventPayload } from '@spolu/shared';
 import { getSocket } from '@/lib/socket';
+import { firstJoinCheck } from '@/lib/socket-history';
 import { campaignListKey, campaignQuery } from './api';
 
 /**
  * Keeps the campaign list and an open campaign fresh: `bulk:updated { campaignId }` (admins
  * room) refetches the list and that campaign. After a reconnect everything refetches, since
- * events sent while the socket was down are lost.
+ * events sent while the socket was down are lost; the first `connect` after the mount refetches
+ * only what `firstJoinCheck` says may have missed events, not the list the mount just loaded.
  */
 export function useBulkEvents(): void {
   const queryClient = useQueryClient();
@@ -17,8 +19,14 @@ export function useBulkEvents(): void {
       void queryClient.invalidateQueries({ queryKey: campaignListKey });
       void queryClient.invalidateQueries({ queryKey: campaignQuery(payload.campaignId).queryKey });
     };
+    let firstConnect: ReturnType<typeof firstJoinCheck> | null = firstJoinCheck(socket);
     const onConnect = () => {
-      void queryClient.invalidateQueries({ queryKey: campaignListKey });
+      const stale = firstConnect;
+      firstConnect = null;
+      void queryClient.invalidateQueries({
+        queryKey: campaignListKey,
+        predicate: stale ? (query) => stale(query.state) : undefined,
+      });
     };
     socket.on(BulkEvents.updated, onUpdated);
     socket.on('connect', onConnect);
