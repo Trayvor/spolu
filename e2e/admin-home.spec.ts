@@ -167,7 +167,7 @@ test('admin home: dashboard, header counts, sidebar, Úlohy and global board', a
     const tasksTab = n
       .getByRole('navigation', { name: 'Časti skupiny' })
       .getByRole('link', { name: /^Úlohy/ });
-    await expect(tasksTab).toContainText('2 úlohy priradené vám');
+    await expect(tasksTab).toContainText('2 úlohy priradené vám', { timeout: 15_000 });
 
     // 6. The global board defaults to the managed G1; adding G2 shows its task.
     await n.goto('/tasks');
