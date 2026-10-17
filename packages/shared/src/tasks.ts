@@ -135,11 +135,19 @@ export const SourceTicketSchema = z.object({
 });
 export type SourceTicket = z.infer<typeof SourceTicketSchema>;
 
+/**
+ * The meeting a task was made from (a knowledge item of type meeting), for the task panel's
+ * "Meeting: <title>" line. Sent only to people who can read that meeting.
+ */
+export const SourceMeetingSchema = z.object({ id: z.string(), title: z.string() });
+export type SourceMeeting = z.infer<typeof SourceMeetingSchema>;
+
 export const TaskDetailDtoSchema = TaskDtoSchema.extend({
   description: z.string(),
   files: z.array(FileInfoSchema),
   sourceMessage: SourceMessageSchema.nullable(),
   sourceTicket: SourceTicketSchema.nullable(),
+  sourceMeeting: SourceMeetingSchema.nullable(),
 });
 export type TaskDetailDto = z.infer<typeof TaskDetailDtoSchema>;
 
@@ -196,7 +204,8 @@ export type BoardTaskDeletedEvent = { groupId: string; taskId: string };
 export type BoardBucketsEvent = { groupId: string; buckets: BucketDto[] };
 
 /** A bucket as shown in a notification: custom name, the group name for `client_review`, else null. */
-export type BucketLabel = { kind: BucketKind; name: string | null };
+export const BucketLabelSchema = z.object({ kind: BucketKindSchema, name: z.string().nullable() });
+export type BucketLabel = z.infer<typeof BucketLabelSchema>;
 
 export type TaskMovedPayload = {
   taskId: string;

@@ -1,6 +1,7 @@
 import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import type {
+  SourceMeeting as SourceMeetingDto,
   SourceMessage as SourceMessageDto,
   SourceTicket as SourceTicketDto,
 } from '@spolu/shared';
@@ -62,6 +63,35 @@ export function SourceTicketLine({ ticket }: { ticket: SourceTicketDto }) {
       >
         #{ticket.number}
         {ticket.subject ? ` ${ticket.subject}` : ''}
+      </Link>
+    </p>
+  );
+}
+
+/**
+ * "Meeting: <title>": the meeting a task was made from, one line opening it in the group's
+ * Knowledge tab. The server sends it only to people who can read the meeting.
+ */
+export function SourceMeetingLine({
+  groupId,
+  meeting,
+}: {
+  groupId: string;
+  meeting: SourceMeetingDto;
+}) {
+  const { t } = useTranslation();
+  return (
+    <p className="flex min-w-0 items-baseline gap-1.5 text-button">
+      <span className="shrink-0 font-semibold text-muted-foreground">
+        {t('tasks.panel.fromMeeting')}
+      </span>
+      <Link
+        to="/groups/$groupId/knowledge"
+        params={{ groupId }}
+        search={{ k: meeting.id }}
+        className="min-w-0 truncate font-semibold underline underline-offset-4 hover:text-neutral"
+      >
+        {meeting.title}
       </Link>
     </p>
   );

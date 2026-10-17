@@ -50,6 +50,8 @@ function detail(over: Partial<MeetingDetail> = {}): MeetingDetail {
     ai: { state: 'idle', error: null, updatedAt: null },
     summary: null,
     canProcess: true,
+    tasks: [],
+    actionItemsLeft: 0,
     ...over,
   };
 }
@@ -252,6 +254,92 @@ describe('meeting dialog', () => {
       screen.queryByRole('button', { name: t('knowledge.meeting.ai.createTasks') }),
     ).toBeNull();
     expect(screen.getByText(t('knowledge.meeting.transcript'))).toBeInTheDocument();
+  });
+
+  it('view: once tasks were made, they show as links instead of the action items', async () => {
+    const summary = {
+      summary: 'We agreed on the budget.',
+      decisions: [],
+      actionItems: [
+        { text: 'Send the list', assignee: 'Anna', deadline: null },
+        { text: 'Book the room', assignee: null, deadline: null },
+      ],
+      openQuestions: [],
+      language: 'en',
+    };
+    current = meeting(
+      {},
+      {
+        ai: { state: 'done', error: null, updatedAt: null },
+        summary,
+        actionItemsLeft: 1,
+        tasks: [
+          {
+            id: 't1',
+            title: 'Send the list',
+            completed: false,
+            bucket: { kind: 'egrant_review', name: null },
+            assignees: [{ id: 'u1', name: 'Anna' }],
+          },
+          {
+            id: 't2',
+            title: 'Old one',
+            completed: true,
+            bucket: { kind: 'done', name: null },
+            assignees: [],
+          },
+        ],
+      },
+    );
+    renderDialog();
+    const link = await screen.findByRole('link', { name: 'Send the list' });
+    expect(link).toHaveAttribute('href', '/groups/g1/tasks/t1');
+    const done = screen.getByRole('link', { name: /^Old one/ });
+    expect(done).toHaveAttribute('href', '/groups/g1/tasks/t2');
+    expect(done).toHaveTextContent(t('knowledge.meeting.ai.taskCompleted'));
+    expect(screen.getByText(`${t('tasks.buckets.egrantReview')}, Anna`)).toBeInTheDocument();
+    expect(screen.getByText(t('knowledge.meeting.ai.tasksTitle'), { exact: false })).toBeVisible();
+    // The proposals are gone: no action item list, no "Create tasks".
+    expect(screen.queryByText('Book the room')).toBeNull();
+    expect(
+      screen.queryByRole('button', { name: t('knowledge.meeting.ai.createTasks') }),
+    ).toBeNull();
+    expect(
+      screen.getByRole('button', { name: t('knowledge.meeting.ai.createMoreTasks') }),
+    ).toBeInTheDocument();
+  });
+
+  it('view: a client sees the task links but never "Create more tasks"', async () => {
+    current = meeting(
+      { canEdit: false },
+      {
+        canProcess: false,
+        ai: { state: 'done', error: null, updatedAt: null },
+        summary: {
+          summary: 'S',
+          decisions: [],
+          actionItems: [{ text: 'Send the list', assignee: null, deadline: null }],
+          openQuestions: [],
+          language: 'en',
+        },
+        actionItemsLeft: 1,
+        tasks: [
+          {
+            id: 't1',
+            title: 'Renamed',
+            completed: false,
+            bucket: { kind: 'custom', name: 'Later' },
+            assignees: [],
+          },
+        ],
+      },
+    );
+    renderDialog({ mode: 'view', id: 'k1' }, CLIENT);
+    expect(await screen.findByRole('link', { name: 'Renamed' })).toBeInTheDocument();
+    expect(screen.getByText('Later')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: t('knowledge.meeting.ai.createMoreTasks') }),
+    ).toBeNull();
   });
 
   it('view: a run in progress shows its step instead of the button', async () => {

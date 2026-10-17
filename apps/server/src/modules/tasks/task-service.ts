@@ -4,6 +4,7 @@ import {
   TaskDtoSchema,
   type BucketKind,
   type BucketLabel,
+  type MeetingTaskLink,
   type MessageTaskLink,
   type SessionUser,
   type TaskCreate,
@@ -12,6 +13,7 @@ import {
   type TaskMove,
   type TaskMovedPayload,
   type TaskPatch,
+  type TaskPerson,
   type TasksFromMessage,
 } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
@@ -30,8 +32,10 @@ import {
 import { getSourceMessage } from '../chat/messages.js';
 import { taskChatFileIds } from '../chat/service.js';
 import { getGroup, isPickablePerson } from '../groups/service.js';
+import { getMeetingRef } from '../knowledge/meeting-ref.js';
 import { getTicketRef } from '../tickets/refs.js';
 import { recordNotifications, requestDelivery } from '../notifications/service.js';
+import { user } from '../users/schema.js';
 import { keyAfter, keysBefore } from './positions.js';
 import { buckets, taskAssignees, taskAttachments, tasks } from './schema.js';
 import { ensureBoard, lockBuckets, selectTasks, type Tx } from './service.js';
@@ -130,12 +134,18 @@ async function notifyAssigned(
 export async function getTaskRef(
   db: Db,
   id: string,
-): Promise<{ groupId: string; createdBy: string; sourceTicketId: string | null } | null> {
+): Promise<{
+  groupId: string;
+  createdBy: string;
+  sourceTicketId: string | null;
+  sourceMeetingId: string | null;
+} | null> {
   const [row] = await db
     .select({
       groupId: tasks.groupId,
       createdBy: tasks.createdBy,
       sourceTicketId: tasks.sourceTicketId,
+      sourceMeetingId: tasks.sourceMeetingId,
     })
     .from(tasks)
     .where(eq(tasks.id, id));
@@ -155,9 +165,15 @@ export async function getTaskTitles(db: Db, ids: string[]): Promise<Map<string, 
 /**
  * A task with description, files, the message it was made from (`sourceMessage`, null when
  * there is none or it was deleted; the chat module builds it) and the ticket it was made from
- * (`sourceTicket`, Phase 21; the tickets module builds it).
+ * (`sourceTicket`, Phase 21; the tickets module builds it) and the meeting it was made from
+ * (`sourceMeeting`; the knowledge module builds it, only when `viewer` may read the meeting; a
+ * missing viewer never sees it). `viewer` reads the task's board (the caller checked it).
  */
-export async function getTask(db: Db, id: string): Promise<TaskDetailDto | null> {
+export async function getTask(
+  db: Db,
+  id: string,
+  viewer: SessionUser | null = null,
+): Promise<TaskDetailDto | null> {
   // The board shape and the detail-only columns (description, attached file ids) in parallel.
   const [[task], [extra]] = await Promise.all([
     selectTasks(db, eq(tasks.id, id)),
@@ -165,6 +181,7 @@ export async function getTask(db: Db, id: string): Promise<TaskDetailDto | null>
       .select({
         description: tasks.description,
         sourceTicketId: tasks.sourceTicketId,
+        sourceMeetingId: tasks.sourceMeetingId,
         fileIds: sql<string[]>`coalesce((
           select array_agg(${taskAttachments.fileId} order by ${taskAttachments.fileId})
           from ${taskAttachments} where ${taskAttachments.taskId} = ${tasks.id}
@@ -174,12 +191,22 @@ export async function getTask(db: Db, id: string): Promise<TaskDetailDto | null>
       .where(eq(tasks.id, id)),
   ]);
   if (!task || !extra) return null;
-  const [files, sourceMessage, sourceTicket] = await Promise.all([
+  const [files, sourceMessage, sourceTicket, sourceMeeting] = await Promise.all([
     getFilesForGroup(db, task.groupId, extra.fileIds),
     task.sourceMessageId === null ? null : getSourceMessage(db, task.sourceMessageId),
     extra.sourceTicketId === null ? null : getTicketRef(db, extra.sourceTicketId, task.groupId),
+    extra.sourceMeetingId === null || viewer === null
+      ? null
+      : getMeetingRef(db, extra.sourceMeetingId, task.groupId, viewer),
   ]);
-  return { ...task, description: extra.description, files, sourceMessage, sourceTicket };
+  return {
+    ...task,
+    description: extra.description,
+    files,
+    sourceMessage,
+    sourceTicket,
+    sourceMeeting,
+  };
 }
 
 /**
@@ -249,13 +276,18 @@ export async function createTask(
     return { id: taskId, notified };
   });
   await requestDelivery(deps.jobs, notified);
-  return (await getTask(db, id))!;
+  return (await getTask(db, id, actor))!;
 }
 
-/** Where reviewed cards come from: a chat message, a ticket, or a message of a ticket's chat. */
+/**
+ * Where reviewed cards come from: a chat message, a ticket, a message of a ticket's chat, or a
+ * meeting's action items.
+ */
 export type TaskSource = {
   messageId?: string;
   ticketId?: string;
+  /** The meeting (knowledge item) the cards are made from. */
+  meetingId?: string;
   /** The source's files the cards may copy (the message's, or the files uploaded with the ticket). */
   fileIds: string[];
   /**
@@ -370,6 +402,7 @@ export async function createTasksFromSource(
         completedAt: null,
         sourceMessageId: source.messageId ?? null,
         sourceTicketId: source.ticketId ?? null,
+        sourceMeetingId: source.meetingId ?? null,
         // Distinct, ascending in input order: the first card is the oldest (a newest-first list
         // shows them reversed; the board orders by position, not by this).
         createdAt: new Date(now + index),
@@ -408,7 +441,7 @@ export async function createTasksFromSource(
     throw error;
   }
   await requestDelivery(deps.jobs, notified);
-  return (await Promise.all(ids.map((id) => getTask(db, id)))).flatMap((task) =>
+  return (await Promise.all(ids.map((id) => getTask(db, id, actor)))).flatMap((task) =>
     task ? [task] : [],
   );
 }
@@ -501,7 +534,7 @@ export async function updateTask(
 
   await requestDelivery(deps.jobs, notified);
   await cleanUpFiles(deps, removedFiles, options);
-  const task = await getTask(db, id);
+  const task = await getTask(db, id, actor);
   if (!task) throw new NotFoundError(); // deleted right after this edit committed
   return task;
 }
@@ -514,7 +547,12 @@ export async function deleteTask(
   deps: TaskDeps,
   id: string,
   options: CleanupOptions,
-): Promise<{ groupId: string; sourceMessageId: string | null; sourceTicketId: string | null }> {
+): Promise<{
+  groupId: string;
+  sourceMessageId: string | null;
+  sourceTicketId: string | null;
+  sourceMeetingId: string | null;
+}> {
   const { db } = deps;
   const deleteInTx = () =>
     db.transaction(async (tx) => {
@@ -524,6 +562,7 @@ export async function deleteTask(
           groupId: tasks.groupId,
           sourceMessageId: tasks.sourceMessageId,
           sourceTicketId: tasks.sourceTicketId,
+          sourceMeetingId: tasks.sourceMeetingId,
         })
         .from(tasks)
         .where(eq(tasks.id, id))
@@ -701,4 +740,47 @@ export async function countTasksFromTicket(db: Db, ticketId: string): Promise<nu
     .from(tasks)
     .where(eq(tasks.sourceTicketId, ticketId));
   return row?.n ?? 0;
+}
+
+/**
+ * The tasks made from a meeting, oldest first (`created_at`, then `position`), for the meeting's
+ * detail: one query on `tasks_source_meeting_id_idx`, with each task's bucket (a custom name, the
+ * group name for `client_review`) and assignees (by name, the board's read-only `user` join).
+ */
+export async function listTasksFromMeeting(db: Db, meetingId: string): Promise<MeetingTaskLink[]> {
+  const rows = await db
+    .select({
+      id: tasks.id,
+      title: tasks.title,
+      completedAt: tasks.completedAt,
+      bucketKind: buckets.kind,
+      bucketName: buckets.name,
+      groupId: tasks.groupId,
+      assignees: sql<TaskPerson[]>`coalesce((
+        select json_agg(json_build_object('id', ${user.id}, 'name', ${user.name}) order by ${user.name}, ${user.id})
+        from ${taskAssignees}
+        join ${user} on ${user.id} = ${taskAssignees.userId}
+        where ${taskAssignees.taskId} = ${tasks.id}
+      ), '[]'::json)`,
+    })
+    .from(tasks)
+    .innerJoin(buckets, eq(buckets.id, tasks.bucketId))
+    .where(eq(tasks.sourceMeetingId, meetingId))
+    .orderBy(asc(tasks.createdAt), asc(tasks.position), asc(tasks.id));
+  // The meeting's group, unless it moved to another client since: one read per group.
+  const groupIds = [...new Set(rows.map((r) => r.groupId))];
+  const names = new Map(
+    await Promise.all(
+      groupIds.map(
+        async (groupId) => [groupId, (await getGroup(db, groupId))?.name ?? ''] as const,
+      ),
+    ),
+  );
+  return rows.map((r) => ({
+    id: r.id,
+    title: r.title,
+    completed: r.completedAt !== null,
+    bucket: bucketLabel({ kind: r.bucketKind, name: r.bucketName }, names.get(r.groupId) ?? ''),
+    assignees: r.assignees,
+  }));
 }

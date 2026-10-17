@@ -47,7 +47,7 @@ erDiagram
     USER ||--o| BULK_SUBSCRIPTION : "bulk email setting"
 ```
 
-The ticket intake key is configuration (`TICKETS_API_KEY`), not a table. Ticket replies are the ticket's chat (part 21.3), not a table of their own. `tasks.source_ticket_id` (set null, partial index) links a task to the ticket it was made from; part 21.5 sets it through `createTasksFromSource` (also together with `source_message_id` for a message of a ticket chat).
+The ticket intake key is configuration (`TICKETS_API_KEY`), not a table. Ticket replies are the ticket's chat (part 21.3), not a table of their own. `tasks.source_ticket_id` (set null, partial index) links a task to the ticket it was made from; part 21.5 sets it through `createTasksFromSource` (also together with `source_message_id` for a message of a ticket chat). `tasks.source_meeting_id` (migration 0032, FK to `knowledge_items`, on delete set null, partial index `tasks_source_meeting_id_idx` where not null) links a task to the meeting it was made from (`POST /api/knowledge/:id/meeting/tasks`, through `createTasksFromSource`); the meeting's detail lists those tasks (`listTasksFromMeeting`).
 
 | entity | purpose | phase | status |
 |---|---|---|---|

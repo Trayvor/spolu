@@ -53,6 +53,7 @@ const DETAIL: TaskDetailDto = {
   files: [],
   sourceMessage: null,
   sourceTicket: null,
+  sourceMeeting: null,
 };
 
 const json = (status: number, body?: unknown) =>

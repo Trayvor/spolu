@@ -1,14 +1,17 @@
 import { eq, sql } from 'drizzle-orm';
 import {
+  AI_TITLE_MAX,
   MeetingSummarySchema,
   type FileInfo,
   type MeetingAiError,
   type MeetingAiState,
+  type MeetingActionItem,
   type MeetingDetail,
   type MeetingInput,
   type MeetingPatch,
   type MeetingRecordingState,
   type MeetingSummary,
+  type MeetingTaskLink,
 } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
 import { knowledgeMeetings } from './schema.js';
@@ -100,8 +103,35 @@ export async function patchMeeting(
   return row!;
 }
 
-/** The detail of a meeting; `file` is its stored audio. `canProcess` is set by the route. */
-export function toMeetingDetail(row: MeetingRow, file: FileInfo | null): MeetingDetail {
+const cut = (text: string, max: number) => Array.from(text).slice(0, max).join('').trim();
+const titleKey = (title: string) => title.trim().toLocaleLowerCase();
+
+/** An action item's task title: its text, cut to the task title's limit. */
+export const actionItemTitle = (action: MeetingActionItem) => cut(action.text, AI_TITLE_MAX);
+
+/**
+ * The action items no task of the meeting covers yet: none of `taskTitles` is the item's title
+ * (case and surrounding spaces ignored). A task renamed in the review counts as no match.
+ */
+export function actionItemsLeft(
+  summary: MeetingSummary | null,
+  taskTitles: readonly string[],
+): MeetingActionItem[] {
+  if (!summary) return [];
+  const taken = new Set(taskTitles.map(titleKey));
+  return summary.actionItems.filter((action) => !taken.has(titleKey(actionItemTitle(action))));
+}
+
+/**
+ * The detail of a meeting; `file` is its stored audio, `tasks` the tasks made from it.
+ * `canProcess` is set by the route.
+ */
+export function toMeetingDetail(
+  row: MeetingRow,
+  file: FileInfo | null,
+  tasks: MeetingTaskLink[],
+): MeetingDetail {
+  const summary = parseSummary(row.summary);
   return {
     startsAt: row.startsAt.toISOString(),
     meetingUrl: row.meetingUrl,
@@ -118,8 +148,13 @@ export function toMeetingDetail(row: MeetingRow, file: FileInfo | null): Meeting
       error: (row.aiError as MeetingAiError | null) ?? null,
       updatedAt: row.aiUpdatedAt?.toISOString() ?? null,
     },
-    summary: parseSummary(row.summary),
+    summary,
     canProcess: false,
+    tasks,
+    actionItemsLeft: actionItemsLeft(
+      summary,
+      tasks.map((t) => t.title),
+    ).length,
   };
 }
 

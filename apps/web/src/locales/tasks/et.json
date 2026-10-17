@@ -103,6 +103,7 @@
     "fromMessage": "Loodud sõnumist",
     "openMessage": "Ava vestluses",
     "fromTicket": "Pöördumine:",
+    "fromMeeting": "Kohtumine:",
     "newTask": "Uus ülesanne",
     "create": "Loo",
     "tabs": {

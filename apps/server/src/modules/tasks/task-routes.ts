@@ -33,6 +33,7 @@ import {
   ValidationError,
 } from './task-service.js';
 import { clientGroupIds } from '../groups/memberships.js';
+import { emitMeetingTasks } from '../knowledge/events.js';
 import { emitTicket, emitTicketRefresh } from '../tickets/events.js';
 import { runTicketChange } from '../tickets/hooks.js';
 import { actorReadsTicket, attachmentIds, getTicketRow } from '../tickets/service.js';
@@ -145,7 +146,19 @@ export const taskRoutes: FastifyPluginAsync<TaskRoutesOptions> = async (
     }
   };
 
-  /** The task's group, creator and source ticket when the actor may use its board, else null (404). */
+  /**
+   * After a task made from a meeting changed (edited, moved, deleted): the meeting's detail lists
+   * its tasks, so its readers refetch. A failure is logged; the write succeeded.
+   */
+  const refreshMeeting = async (request: FastifyRequest, meetingId: string | null) => {
+    try {
+      await emitMeetingTasks(app.io, db, meetingId);
+    } catch (error) {
+      request.log.error({ err: error, meetingId }, 'could not refresh the meeting of a task');
+    }
+  };
+
+  /** The task's group, creator and source ticket and meeting when the actor may use its board, else null (404). */
   const readableTask = async (actor: SessionUser, id: string) => {
     const ref = await getTaskRef(db, id);
     if (!ref || !canUseBoard(actor, ref.groupId, await clientGroupIds(db, actor.id))) {
@@ -244,7 +257,7 @@ export const taskRoutes: FastifyPluginAsync<TaskRoutesOptions> = async (
 
   app.get<IdParams>('/tasks/:id', { preHandler: anyUser }, async (request, reply) => {
     if (!(await readableTask(request.user!, request.params.id))) return notFound(reply);
-    const task = await getTask(db, request.params.id);
+    const task = await getTask(db, request.params.id, request.user!);
     return task ?? notFound(reply);
   });
 
@@ -262,6 +275,7 @@ export const taskRoutes: FastifyPluginAsync<TaskRoutesOptions> = async (
       emitTask(app.io, toTaskDto(task), person(actor));
       await pushMessageTasks(request, task.sourceMessageId);
       await refreshTicket(request, ref.sourceTicketId);
+      await refreshMeeting(request, ref.sourceMeetingId);
       return task;
     } catch (error) {
       return writeError(reply, error);
@@ -281,6 +295,7 @@ export const taskRoutes: FastifyPluginAsync<TaskRoutesOptions> = async (
         emitTask(app.io, task, person(actor));
         await pushMessageTasks(request, task.sourceMessageId);
         await refreshTicket(request, ref.sourceTicketId);
+        await refreshMeeting(request, ref.sourceMeetingId);
       }
       return task;
     } catch (error) {
@@ -294,7 +309,7 @@ export const taskRoutes: FastifyPluginAsync<TaskRoutesOptions> = async (
     if (!ref) return notFound(reply);
     if (!canDeleteTask(actor, ref)) return reply.code(403).send({ error: ErrorCodes.forbidden });
     try {
-      const { groupId, sourceMessageId, sourceTicketId } = await deleteTask(
+      const { groupId, sourceMessageId, sourceTicketId, sourceMeetingId } = await deleteTask(
         deps,
         request.params.id,
         { onFileCleanupError: logCleanupError(request) },
@@ -302,6 +317,7 @@ export const taskRoutes: FastifyPluginAsync<TaskRoutesOptions> = async (
       emitTaskDeleted(app.io, groupId, request.params.id);
       await pushMessageTasks(request, sourceMessageId);
       await refreshTicket(request, sourceTicketId);
+      await refreshMeeting(request, sourceMeetingId);
       return reply.code(204).send();
     } catch (error) {
       return writeError(reply, error);

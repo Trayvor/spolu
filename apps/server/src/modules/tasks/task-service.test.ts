@@ -571,6 +571,7 @@ describe('deleteTask', () => {
       groupId: group.id,
       sourceMessageId: null,
       sourceTicketId: null,
+      sourceMeetingId: null,
     });
     expect(await getTask(db, task.id)).toBeNull();
     expect(await getFile(db, file.id)).toBeNull();
@@ -588,6 +589,7 @@ describe('deleteTask', () => {
       groupId: group.id,
       sourceMessageId: null,
       sourceTicketId: null,
+      sourceMeetingId: null,
     });
     expect(onFileCleanupError).toHaveBeenCalledOnce();
     expect(await getTask(db, task.id)).toBeNull();
@@ -639,6 +641,7 @@ describe('deleteTask', () => {
       groupId: group.id,
       sourceMessageId: null,
       sourceTicketId: null,
+      sourceMeetingId: null,
     });
     expect(await getChannel(db, channel.id)).toBeNull();
     expect(await getFile(db, file.id)).toBeNull();
@@ -656,6 +659,7 @@ describe('deleteTask', () => {
       groupId: group.id,
       sourceMessageId: message.id,
       sourceTicketId: null,
+      sourceMeetingId: null,
     });
   });
 

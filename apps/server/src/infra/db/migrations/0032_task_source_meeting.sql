@@ -1,0 +1,3 @@
+ALTER TABLE "tasks" ADD COLUMN "source_meeting_id" text;--> statement-breakpoint
+ALTER TABLE "tasks" ADD CONSTRAINT "tasks_source_meeting_id_knowledge_items_id_fk" FOREIGN KEY ("source_meeting_id") REFERENCES "public"."knowledge_items"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+CREATE INDEX "tasks_source_meeting_id_idx" ON "tasks" USING btree ("source_meeting_id") WHERE "tasks"."source_meeting_id" is not null;

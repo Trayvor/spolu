@@ -72,7 +72,7 @@ Switching is one line: `TRANSCRIPTION_PROVIDER=openai|elevenlabs|fake` (default 
 - "Vytvoriť úlohy" (admins, when the summary has action items) opens the existing task review dialog with a new source `meeting`.
 - `POST /api/knowledge/:id/meeting/task-proposals` turns the action items into proposals without another AI call: the title is the text (cut to 200), the description the text when it is longer plus "From the meeting <title>, <date>"; the suggested assignee is matched to the group's pickable people by name (case and diacritics ignored, a unique full or first-name match only); the deadline when it is a real date.
 - The review is the same (edit, approve, reject). New for this source: a **bucket** select (the group's buckets except Completed, default To do) above "Create N tasks".
-- `POST /api/knowledge/:id/meeting/tasks` (`{ bucketId?, tasks }`, admins) creates the approved cards at the top of the chosen bucket through `createTasksFromSource` (now taking an optional bucket), all or none, and pushes the board events. No source link on the task yet (later).
+- `POST /api/knowledge/:id/meeting/tasks` (`{ bucketId?, tasks }`, admins) creates the approved cards at the top of the chosen bucket through `createTasksFromSource` (now taking an optional bucket), all or none, and pushes the board events. Since the owner's bug report of 2026-10-17 the cards are linked to the meeting (`tasks.source_meeting_id`, migration 0032): the meeting shows links to them instead of the action items, admins get "Create more tasks" for the action items no task has the title of, and the task panel links back to the meeting (see `docs/product/knowledge-base.md`, "Meetings").
 
 ## Dashboard card "Meetings"
 
@@ -96,4 +96,4 @@ Switching is one line: `TRANSCRIPTION_PROVIDER=openai|elevenlabs|fake` (default 
 
 ## Later
 
-Speaker labels (diarization), a task's link back to its meeting, re-summarizing only a part, calendar invites from the meeting.
+Speaker labels (diarization), re-summarizing only a part, calendar invites from the meeting.

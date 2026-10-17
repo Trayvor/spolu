@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { FileInfoSchema } from './files.js';
+import { BucketLabelSchema, TaskPersonSchema } from './tasks.js';
 import { isHttpUrl } from './urls.js';
 
 // Phase 30 — the knowledge type "meeting": its fields, its recording and AI states, its summary.
@@ -105,6 +106,19 @@ export const MeetingListInfoSchema = z.object({
 export type MeetingListInfo = z.infer<typeof MeetingListInfoSchema>;
 
 /** The detail of a meeting. */
+/**
+ * A task made from the meeting's action items, for the meeting's task list: its bucket (a custom
+ * name, the group name for `client_review`) and assignees.
+ */
+export const MeetingTaskLinkSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  completed: z.boolean(),
+  bucket: BucketLabelSchema,
+  assignees: z.array(TaskPersonSchema),
+});
+export type MeetingTaskLink = z.infer<typeof MeetingTaskLinkSchema>;
+
 export const MeetingDetailSchema = z.object({
   startsAt: z.string(),
   meetingUrl: z.string().nullable(),
@@ -126,6 +140,12 @@ export const MeetingDetailSchema = z.object({
   summary: MeetingSummarySchema.nullable(),
   /** The viewer may press "Spracovať s AI" (an admin, and the server has the AI it needs). */
   canProcess: z.boolean(),
+  /** The tasks made from this meeting, oldest first; a deleted task leaves the list. */
+  tasks: z.array(MeetingTaskLinkSchema),
+  /**
+   * Action items no task of `tasks` has the title of: what "Create more tasks" would propose.
+   */
+  actionItemsLeft: z.number().int(),
 });
 export type MeetingDetail = z.infer<typeof MeetingDetailSchema>;
 

@@ -1,15 +1,18 @@
-import { lazy, Suspense, useId, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useId, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import {
   ErrorCodes,
   isMeetingAiBusy,
+  KnowledgeEvents,
   MEETING_LIMITS,
   type KnowledgeItemDto,
+  type KnowledgeMeetingTasksEvent,
   type MeetingActionItem,
   type MeetingDetail,
   type MeetingSummary,
+  type MeetingTaskLink,
 } from '@spolu/shared';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,9 +22,12 @@ import { useSession } from '@/features/auth/use-session';
 import { fileUrl } from '@/features/files/urls';
 import { formatFileSize } from '@/features/files/format-size';
 import { TasksIcon } from '@/features/task-split/use-message-task-tools';
-import { withNamespaces } from '@/i18n/namespaces';
+import { bucketTitle } from '@/features/tasks/board-model';
+import { useNamespaces, withNamespaces } from '@/i18n/namespaces';
 import { ApiError } from '@/lib/api';
-import { updateKnowledge } from './api';
+import { getSocket } from '@/lib/socket';
+import { cn } from '@/lib/utils';
+import { knowledgeItemQuery, updateKnowledge } from './api';
 import { CalendarLeaf } from './calendar-leaf';
 import { ArrowOutIcon } from './icons';
 import { deleteRecording, processMeeting, uploadRecording } from './meeting-api';
@@ -424,9 +430,75 @@ function processProblem(error: unknown): string {
 }
 
 /**
+ * The tasks made from the meeting's action items, in place of the items once there are any: a
+ * link per task to its panel on the board (struck through when completed), with its bucket and
+ * assignees. `onCreateMore` (admins, while some action items have no task yet) opens the review
+ * with the rest. Loads the task texts for the bucket names, so it renders under a `Suspense`.
+ */
+function MeetingTasks({
+  groupId,
+  tasks,
+  onCreateMore,
+}: {
+  groupId: string;
+  tasks: MeetingTaskLink[];
+  onCreateMore?: () => void;
+}) {
+  useNamespaces(['tasks']);
+  const { t } = useTranslation();
+  const uid = useId();
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h4 id={`${uid}-tasks`} className="text-button font-semibold">
+          {t('knowledge.meeting.ai.tasksTitle')}
+          <span className="ml-1.5 font-normal text-muted-foreground tabular-nums">
+            {tasks.length}
+          </span>
+        </h4>
+        {onCreateMore && (
+          <Button variant="ghost" size="sm" onClick={onCreateMore}>
+            {t('knowledge.meeting.ai.createMoreTasks')}
+          </Button>
+        )}
+      </div>
+      <ul aria-labelledby={`${uid}-tasks`} className="flex flex-col gap-1.5">
+        {tasks.map((task) => (
+          <li
+            key={task.id}
+            className="flex flex-col gap-0.5 rounded-lg bg-muted px-3 py-2 min-[641px]:flex-row min-[641px]:items-baseline min-[641px]:gap-3"
+          >
+            <Link
+              to="/groups/$groupId/tasks/$taskId"
+              params={{ groupId, taskId: task.id }}
+              className={cn(
+                'min-w-0 flex-1 truncate text-button font-semibold underline underline-offset-4 hover:text-neutral',
+                task.completed && 'text-muted-foreground line-through',
+              )}
+            >
+              {task.title}
+              {task.completed && (
+                <span className="sr-only"> {t('knowledge.meeting.ai.taskCompleted')}</span>
+              )}
+            </Link>
+            <span className="shrink-0 text-micro text-muted-foreground">
+              {[
+                bucketTitle(t, task.bucket, task.bucket.name ?? ''),
+                ...task.assignees.map((p) => p.name),
+              ].join(', ')}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+/**
  * The AI summary: its state while a run is queued or running, "Process with AI" (admins, when
  * the server can run it), the summary itself (editable by the item's editors) and "Create tasks"
- * from its action items (admins).
+ * from its action items (admins). Once tasks were made from the meeting they show instead of the
+ * action items, and change live (`knowledge:meeting_tasks` refetches the item).
  */
 export function SummarySection({
   item,
@@ -448,6 +520,23 @@ export function SummarySection({
   const [tasksOpen, setTasksOpen] = useState(false);
   const [created, setCreated] = useState<number | null>(null);
   const busy = isMeetingAiBusy(ai.state);
+  const tasks = meeting.tasks;
+
+  // A task made from this meeting changed somewhere (created, edited, moved, deleted): refetch.
+  useEffect(() => {
+    const socket = getSocket();
+    const onTasks = (event: KnowledgeMeetingTasksEvent) => {
+      if (event.id !== item.id) return;
+      void queryClient.invalidateQueries({
+        queryKey: knowledgeItemQuery(item.id).queryKey,
+        exact: true,
+      });
+    };
+    socket.on(KnowledgeEvents.meetingTasks, onTasks);
+    return () => {
+      socket.off(KnowledgeEvents.meetingTasks, onTasks);
+    };
+  }, [item.id, queryClient]);
 
   async function start() {
     setConfirmAgain(false);
@@ -528,36 +617,48 @@ export function SummarySection({
         <div className="flex flex-col gap-4">
           {summary.summary && <p className="text-body">{summary.summary}</p>}
           <List title={t('knowledge.meeting.ai.decisions')} items={summary.decisions} />
-          {summary.actionItems.length > 0 && (
-            <div className="flex flex-col gap-1.5">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <h4 className="text-button font-semibold">
-                  {t('knowledge.meeting.ai.actionItems')}
-                </h4>
-                {isAdmin && (
-                  <Button variant="secondary" size="sm" onClick={() => setTasksOpen(true)}>
-                    {t('knowledge.meeting.ai.createTasks')}
-                  </Button>
-                )}
+          {tasks.length > 0 ? (
+            <Suspense fallback={null}>
+              <MeetingTasks
+                groupId={item.groupId}
+                tasks={tasks}
+                {...(isAdmin && meeting.actionItemsLeft > 0
+                  ? { onCreateMore: () => setTasksOpen(true) }
+                  : {})}
+              />
+            </Suspense>
+          ) : (
+            summary.actionItems.length > 0 && (
+              <div className="flex flex-col gap-1.5">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <h4 className="text-button font-semibold">
+                    {t('knowledge.meeting.ai.actionItems')}
+                  </h4>
+                  {isAdmin && (
+                    <Button variant="secondary" size="sm" onClick={() => setTasksOpen(true)}>
+                      {t('knowledge.meeting.ai.createTasks')}
+                    </Button>
+                  )}
+                </div>
+                <ul className="flex flex-col gap-1.5">
+                  {summary.actionItems.map((action, index) => (
+                    <li
+                      key={index}
+                      className="flex flex-col gap-0.5 rounded-lg bg-muted px-3 py-2 min-[641px]:flex-row min-[641px]:items-baseline min-[641px]:gap-3"
+                    >
+                      <span className="min-w-0 flex-1 text-button">{action.text}</span>
+                      {(action.assignee || action.deadline) && (
+                        <span className="shrink-0 text-micro text-muted-foreground tabular-nums">
+                          {[action.assignee, action.deadline ? deadline(action.deadline) : null]
+                            .filter(Boolean)
+                            .join(', ')}
+                        </span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
               </div>
-              <ul className="flex flex-col gap-1.5">
-                {summary.actionItems.map((action, index) => (
-                  <li
-                    key={index}
-                    className="flex flex-col gap-0.5 rounded-lg bg-muted px-3 py-2 min-[641px]:flex-row min-[641px]:items-baseline min-[641px]:gap-3"
-                  >
-                    <span className="min-w-0 flex-1 text-button">{action.text}</span>
-                    {(action.assignee || action.deadline) && (
-                      <span className="shrink-0 text-micro text-muted-foreground tabular-nums">
-                        {[action.assignee, action.deadline ? deadline(action.deadline) : null]
-                          .filter(Boolean)
-                          .join(', ')}
-                      </span>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            </div>
+            )
           )}
           <List title={t('knowledge.meeting.ai.openQuestions')} items={summary.openQuestions} />
           <p className="text-micro text-muted-foreground">{t('knowledge.meeting.ai.aiMade')}</p>
@@ -580,6 +681,10 @@ export function SummarySection({
             onCreated={(list) => {
               setTasksOpen(false);
               setCreated(list.length);
+              void queryClient.invalidateQueries({
+                queryKey: knowledgeItemQuery(item.id).queryKey,
+                exact: true,
+              });
             }}
           />
         </Suspense>
