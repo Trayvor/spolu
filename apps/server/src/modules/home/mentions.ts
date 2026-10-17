@@ -20,6 +20,14 @@ const recent = sql.raw(`now() - interval '${HOME_LIMITS.mentionDays} days'`);
  * `messages_mentions_all_top_idx` / `_reply_idx` from the read mark (or 90 days) on. The newest
  * 100 are counted (the total is capped like other unread counts); the first 20 are returned.
  *
+ * Each candidate reads its message by `messages_pkey`, in a `lateral` subquery that `offset 0`
+ * keeps from being flattened into a join. As a plain join the planner may instead hash the
+ * candidates against a parallel sequential scan of `messages`: with a viewer named in a few per
+ * cent of the mention rows and `messages` still small (the seeded volume, a young database), its
+ * cost model puts that scan below a thousand index lookups, although the lookups run several
+ * times faster on a warm cache, and the scan grows with every message while the lookups grow only
+ * with the viewer's mentions.
+ *
  * Only mentions that would notify the viewer count (2026-10-17, the dashboard follows the
  * notification settings): `mentionNotifiesSql` (the notifications module's mirror of delivery)
  * drops a chat or task chat whose channel is None or whose group is Off, and a ticket chat whose
@@ -57,18 +65,23 @@ export function mentionsSql(userId: string): SQL {
       select m.id, m.channel_id, m.parent_id, m.author_id, m.body, m.created_at, c.task_id,
         c.ticket_id, c.group_id
       from candidates x
-      join messages m on m.id = x.id
+      cross join lateral (
+        select m.id, m.channel_id, m.parent_id, m.author_id, m.body, m.created_at
+        from messages m
+        where m.id = x.id
+          and m.author_id <> ${userId}
+          and m.deleted_at is null
+          and m.created_at > ${recent}
+        offset 0
+      ) m
       join channels c on c.id = m.channel_id
       left join read_states rs on rs.channel_id = m.channel_id and rs.user_id = ${userId}
       left join thread_read_states trs on trs.root_id = m.parent_id and trs.user_id = ${userId}
-      where m.author_id <> ${userId}
-        and ${mentionNotifiesSql(userId, {
+      where ${mentionNotifiesSql(userId, {
           groupId: sql`c.group_id`,
           taskId: sql`c.task_id`,
           ticketId: sql`c.ticket_id`,
         })}
-        and m.deleted_at is null
-        and m.created_at > ${recent}
         and m.created_at > case
           when m.parent_id is null then coalesce(rs.last_read_at, '-infinity'::timestamptz)
           else coalesce(trs.last_read_at, rs.last_read_at, '-infinity'::timestamptz)
