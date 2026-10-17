@@ -44,6 +44,7 @@ export function NewTaskPanel({ groupId, bucketId }: { groupId: string; bucketId?
   const [errors, setErrors] = useState<TaskFormErrors>({});
   const [chosen, setChosen] = useState<string | undefined>(bucketId);
   const [busy, setBusy] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const linkWarning = useEmptyLinkWarning();
 
   // An unknown or missing bucket falls back to To do once the board is known.
@@ -58,7 +59,7 @@ export function NewTaskPanel({ groupId, bucketId }: { groupId: string; bucketId?
     );
 
   async function create() {
-    if (busy || !target) return;
+    if (busy || uploading || !target) return;
     const found = validateTaskDraft(draft);
     setErrors(found);
     if (Object.keys(found).length > 0) return;
@@ -115,12 +116,22 @@ export function NewTaskPanel({ groupId, bucketId }: { groupId: string; bucketId?
           linkWarning={linkWarning.shown}
           linkInputRef={linkWarning.inputRef}
           autoFocusTitle
+          onUploadingChange={setUploading}
           remindersSlot={
             <p className="text-micro text-muted-foreground">{t('reminders.task.createHint')}</p>
           }
         />
+        {uploading && (
+          <p id="task-create-upload-wait" role="status" className="text-tiny text-muted-foreground">
+            {t('forms.files.waiting')}
+          </p>
+        )}
         <div className="flex gap-3">
-          <Button disabled={busy || !target} onClick={() => void create()}>
+          <Button
+            disabled={busy || uploading || !target}
+            aria-describedby={uploading ? 'task-create-upload-wait' : undefined}
+            onClick={() => void create()}
+          >
             {t('tasks.panel.create')}
           </Button>
           <Button variant="outline" onClick={close}>

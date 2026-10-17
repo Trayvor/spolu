@@ -78,3 +78,28 @@ describe('FilesField inputTestId', () => {
     expect(screen.getByTestId('note-file-input')).toHaveAttribute('type', 'file');
   });
 });
+
+describe('FilesField onPendingChange', () => {
+  it('reports true while a file uploads and false once it is done', async () => {
+    let finish!: (file: FileInfo) => void;
+    vi.mocked(uploadFile).mockImplementation(() => new Promise((resolve) => (finish = resolve)));
+    const onPendingChange = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <FilesField
+        groupId="g1"
+        labelId="l"
+        max={3}
+        fileIds={[]}
+        files={[]}
+        onAdd={() => undefined}
+        onRemove={() => undefined}
+        onPendingChange={onPendingChange}
+      />,
+    );
+    await user.upload(screen.getByTestId('task-file-input'), new File(['x'], 'brief.pdf'));
+    expect(onPendingChange).toHaveBeenLastCalledWith(true);
+    await act(async () => finish(FILE));
+    expect(onPendingChange).toHaveBeenLastCalledWith(false);
+  });
+});

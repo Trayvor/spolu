@@ -191,6 +191,8 @@ export function ReviewDialog({
   const [focus, setFocus] = useState<{ key: string; n: number }>({ key: '', n: 0 });
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
+  // Only one card's form is open at a time, so one flag covers every upload.
+  const [uploading, setUploading] = useState(false);
   const sending = useRef(false);
   const [createError, setCreateError] = useState<{ text: string; n: number } | null>(null);
   const titleRef = useRef<HTMLHeadingElement>(null);
@@ -347,7 +349,7 @@ export function ReviewDialog({
   };
 
   const submit = async () => {
-    if (sending.current || !cards || !canSubmit(cards)) return;
+    if (sending.current || uploading || !cards || !canSubmit(cards)) return;
     const invalid = cards.find(
       (c) => c.decision === 'approved' && Object.keys(validateTaskDraft(c.draft)).length > 0,
     );
@@ -398,6 +400,7 @@ export function ReviewDialog({
       files={card.files}
       onFilesChange={(files) => update(card.key, { files })}
       autoFocusTitle
+      onUploadingChange={setUploading}
     />
   );
 
@@ -556,13 +559,23 @@ export function ReviewDialog({
                 <Button variant="outline" size="lg" className="px-5" onClick={requestClose}>
                   {t('taskSplit.cancel')}
                 </Button>
+                {uploading && (
+                  <p
+                    id="review-upload-wait"
+                    role="status"
+                    className="text-tiny text-muted-foreground"
+                  >
+                    {t('forms.files.waiting')}
+                  </p>
+                )}
                 {cards && (
                   <Button
                     ref={createRef}
                     size="lg"
                     // Not `disabled`: a disabled button drops the focus when the request
                     // starts. `submit` ignores clicks until it may send.
-                    aria-disabled={busy || !canSubmit(cards)}
+                    aria-disabled={busy || uploading || !canSubmit(cards)}
+                    aria-describedby={uploading ? 'review-upload-wait' : undefined}
                     className="px-5 aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
                     // The second click of a double click never sends again, even when the
                     // first request has already failed and re-enabled the button.

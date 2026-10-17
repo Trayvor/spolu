@@ -114,6 +114,7 @@ export function ItemSheet({
   const [conflict, setConflict] = useState(false);
   const [ask, setAsk] = useState<Ask>(null);
   const [busy, setBusy] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const titleRef = useRef<HTMLHeadingElement>(null);
   const k = (key: string, options?: Record<string, unknown>) =>
@@ -186,7 +187,7 @@ export function ItemSheet({
   }
 
   async function save() {
-    if (busy || !type) return;
+    if (busy || uploading || !type) return;
     const found = validateItem(type, value, t);
     setErrors(found);
     if (Object.keys(found).length > 0) return;
@@ -316,6 +317,7 @@ export function ItemSheet({
               files={files}
               onFilesChange={setFiles}
               isNew={target.mode === 'create'}
+              onUploadingChange={setUploading}
             />
             {errors.form && (
               <p role="alert" className="text-button text-error-ink">
@@ -389,9 +391,19 @@ export function ItemSheet({
               >
                 {k('cancel')}
               </Button>
+              {uploading && (
+                <p
+                  id="finance-upload-wait"
+                  role="status"
+                  className="text-tiny text-muted-foreground"
+                >
+                  {t('forms.files.waiting')}
+                </p>
+              )}
               <Button
                 size="lg"
-                aria-disabled={busy}
+                aria-disabled={busy || uploading}
+                aria-describedby={uploading ? 'finance-upload-wait' : undefined}
                 className="px-5 aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
                 onClick={() => void save()}
               >

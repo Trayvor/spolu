@@ -133,6 +133,7 @@ export function TaskForm({
   timeSlot,
   linkWarning = false,
   linkInputRef,
+  onUploadingChange,
 }: {
   value: TaskDraft;
   onChange: (next: TaskDraft) => void;
@@ -156,6 +157,8 @@ export function TaskForm({
   /** Show the empty-link warning under the link field (see `useEmptyLinkWarning`). */
   linkWarning?: boolean;
   linkInputRef?: Ref<HTMLInputElement>;
+  /** True while a file uploads; the parent keeps Save disabled until it is false. */
+  onUploadingChange?: (uploading: boolean) => void;
 }) {
   const { t } = useTranslation();
   const people = useGroupPeople(groupId).data;
@@ -288,6 +291,7 @@ export function TaskForm({
           groupId={groupId}
           labelId={id('files-label')}
           max={MAX_TASK_FILES}
+          onPendingChange={onUploadingChange}
           fileIds={value.fileIds}
           files={files}
           onAdd={(file) => {
