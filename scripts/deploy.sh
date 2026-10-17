@@ -21,6 +21,9 @@
 #                       server's host key is NOT verified (a warning is printed). Set it.
 #   REGISTRY_USER, REGISTRY_TOKEN  registry login on the server before pulling (private images);
 #                       the server logs out again right after the pull.
+#   IMAGE_PRELOADED     "1": $IMAGE:<tag> is already on the server (scripts/deploy-local.sh streams
+#                       it there with docker save | docker load), so the app image is not pulled and
+#                       there is no registry login; the server checks that the image is there.
 #
 # On the server everything lives in /opt/spolu/<env>/: docker-compose.yml, Caddyfile,
 # redirects.caddy, backup/ and .env (mode 600). IMAGE= and TAG= in that .env are set to the deployed version, so a manual
@@ -41,7 +44,6 @@ require_cmd ssh scp curl
 
 remote_dir="/opt/spolu/$env_name"
 target="$DEPLOY_USER@$DEPLOY_HOST"
-port="${DEPLOY_PORT:-22}"
 health_url="https://$DOMAIN/api/health"
 # Before anything reaches the server: a bad REDIRECT_DOMAINS stops the deploy here.
 redirects_block="$(caddy_redirects)" || die "fix the REDIRECT_DOMAINS variable"
@@ -50,25 +52,7 @@ redirects_block="$(caddy_redirects)" || die "fix the REDIRECT_DOMAINS variable"
 work_dir="$(mktemp -d)"
 trap 'rm -rf "$work_dir"' EXIT
 printf '%s\n' "$redirects_block" > "$work_dir/redirects.caddy"
-known_hosts="$work_dir/known_hosts"
-if [[ -n "${DEPLOY_KNOWN_HOSTS:-}" ]]; then
-  printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$known_hosts"
-  host_key_check=yes
-else
-  : > "$known_hosts"
-  host_key_check=accept-new
-  log "WARNING: DEPLOY_KNOWN_HOSTS is not set; the server's host key is not verified"
-fi
-common_opts=(
-  -i "$DEPLOY_SSH_KEY"
-  -o IdentitiesOnly=yes
-  -o BatchMode=yes
-  -o ConnectTimeout=20
-  -o "UserKnownHostsFile=$known_hosts"
-  -o "StrictHostKeyChecking=$host_key_check"
-)
-ssh_cmd=(ssh "${common_opts[@]}" -p "$port" "$target")
-scp_cmd=(scp "${common_opts[@]}" -P "$port")
+deploy_ssh "$work_dir" # sets ssh_cmd and scp_cmd (scripts/lib.sh)
 
 # The tag running now, for the rollback hint if this deploy fails. Empty on the first deploy.
 previous_tag="$("${ssh_cmd[@]}" "sed -n 's/^TAG=//p' '$remote_dir/.env' 2>/dev/null | tail -n 1" || true)"
@@ -86,7 +70,8 @@ log "Starting $IMAGE:$tag on $DEPLOY_HOST"
 # never shows up in a process list.
 {
   echo 'set -euo pipefail'
-  printf 'DEPLOY_DIR=%q IMAGE=%q TAG=%q\n' "$remote_dir" "$IMAGE" "$tag"
+  printf 'DEPLOY_DIR=%q IMAGE=%q TAG=%q IMAGE_PRELOADED=%q\n' \
+    "$remote_dir" "$IMAGE" "$tag" "${IMAGE_PRELOADED:-}"
   printf 'REGISTRY=%q REGISTRY_USER=%q REGISTRY_TOKEN=%q\n' \
     "${IMAGE%%/*}" "${REGISTRY_USER:-}" "${REGISTRY_TOKEN:-}"
   cat <<'REMOTE'
@@ -100,12 +85,22 @@ mv .env.next .env
 chmod 600 .env
 export IMAGE TAG
 
-if [ -n "$REGISTRY_TOKEN" ]; then
-  printf '%s' "$REGISTRY_TOKEN" | docker login "$REGISTRY" -u "$REGISTRY_USER" --password-stdin >/dev/null
-  trap 'docker logout "$REGISTRY" >/dev/null' EXIT
-fi
 # "< /dev/null": this script itself arrives on stdin, so commands must not read from it.
-docker compose pull --quiet < /dev/null
+if [ "$IMAGE_PRELOADED" = 1 ]; then
+  # scripts/deploy-local.sh loaded the app image with "docker load"; there is no registry to pull
+  # it from. The other services (postgres, caddy, backup) are pulled as usual.
+  docker image inspect "$IMAGE:$TAG" > /dev/null < /dev/null \
+    || { echo "image $IMAGE:$TAG is not on this server" >&2; exit 1; }
+  # Unquoted on purpose: one word per service name (they never contain spaces).
+  others="$(docker compose config --services < /dev/null | grep -vx app | tr '\n' ' ')"
+  docker compose pull --quiet $others < /dev/null
+else
+  if [ -n "$REGISTRY_TOKEN" ]; then
+    printf '%s' "$REGISTRY_TOKEN" | docker login "$REGISTRY" -u "$REGISTRY_USER" --password-stdin >/dev/null
+    trap 'docker logout "$REGISTRY" >/dev/null' EXIT
+  fi
+  docker compose pull --quiet < /dev/null
+fi
 docker compose up -d --remove-orphans < /dev/null
 # "up" does not restart Caddy when only its mounted files changed (Caddyfile, redirects.caddy),
 # so it reloads them; a running Caddy keeps its old config if the new one is invalid.
@@ -143,6 +138,10 @@ log "Health check did not report version $tag within 120s. Last response: $respo
 log "Containers and the last 50 app log lines on $DEPLOY_HOST:"
 "${ssh_cmd[@]}" "cd '$remote_dir' && docker compose ps && docker compose logs --no-color --tail 50 app" || true
 if [[ -n "$previous_tag" && "$previous_tag" != "$tag" ]]; then
-  log "To roll back: scripts/deploy.sh $env_name $previous_tag"
+  if [[ "${IMAGE_PRELOADED:-}" == 1 ]]; then
+    log "To roll back: scripts/deploy-local.sh $env_name $previous_tag"
+  else
+    log "To roll back: scripts/deploy.sh $env_name $previous_tag"
+  fi
 fi
 die "deploy of $tag to $env_name failed"

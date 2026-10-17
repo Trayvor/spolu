@@ -1,18 +1,18 @@
 # Deploy
 
-How a new version of Spolu (shown to users as Help by eGrant) gets to an environment. The only environment now is `test`, at https://help.egrant.sk (first deployed 2026-10-15): every push to `main` deploys it.
+How a new version of Spolu (shown to users as Help by eGrant) gets to an environment. The only environment now is `test`, at https://help.egrant.sk (first deployed 2026-10-15). Since 2026-10-18 it is deployed by hand from the orchestrator's Mac with `scripts/deploy-local.sh` after merging (GitHub Actions minutes exhausted; see [Local deploy](#local-deploy-2026-10-18-github-minutes-exhausted) and [ADR 0031](../decisions/0031-local-deploy-without-registry.md)); before that every push to `main` deployed it.
 
 ## How it works
 
 All logic lives in `scripts/` ([ADR 0004](../decisions/0004-scripts-first-ci.md)); any CI system only prepares a runner, passes settings in as environment variables and calls:
 
 1. `scripts/ci.sh` — every check: `pnpm install --frozen-lockfile`, shellcheck of `scripts/*.sh` and `deploy/backup/backup.sh`, `scripts/tests/*.test.sh`, the dev services from `docker-compose.dev.yml`, `pnpm lint`, `prettier --check .` and `pnpm typecheck` at the same time (`run_parallel` in `scripts/lib.sh`: each step's output is printed whole, in order, with its result and seconds; the script fails if any of them fails, after all three finish), `pnpm test`, Playwright Chromium + `pnpm test:e2e`, and `scripts/check-docs.sh "$CI_BASE_REF"` (default `origin/main`). `ci.sh --bench` (or `RUN_BENCH=1 scripts/ci.sh`) also runs the wall-clock benchmarks; CI never passes it ([performance.md](../architecture/performance.md#no-wall-clock-budgets-in-ci-tests)). No `.env` is needed. If the dev services were already running (your laptop) they are reused and left running; otherwise the script starts them and removes them on exit. `playwright install --with-deps` installs system packages, so the CI agent needs root or passwordless sudo (GitHub runners have it; a future Jenkins agent must too).
-2. `scripts/build-image.sh <sha>` — `docker buildx build` for `linux/amd64,linux/arm64` with `APP_VERSION=<sha>`, pushed as `$IMAGE:<sha>`. The caller logs in to the registry first and provides a buildx builder with QEMU. Optional env: `EXTRA_TAG` also pushes `$IMAGE:$EXTRA_TAG` (the test deploy pushes `test`, so that tag always means "what test runs"); `BUILDX_CACHE=gha` uses the GitHub Actions layer cache (`mode=max`: build-stage layers are cached too, which speeds up the QEMU arm64 build; they hold no secrets since `.env` is in `.dockerignore`).
+2. `scripts/build-image.sh <sha>` — `docker buildx build` for `linux/amd64,linux/arm64` with `APP_VERSION=<sha>`, pushed as `$IMAGE:<sha>`. The caller logs in to the registry first and provides a buildx builder with QEMU. Optional env: `EXTRA_TAG` also pushes `$IMAGE:$EXTRA_TAG` (the test deploy pushes `test`, so that tag always means "what test runs"); `BUILDX_CACHE=gha` uses the GitHub Actions layer cache (`mode=max`: build-stage layers are cached too, which speeds up the QEMU arm64 build; they hold no secrets since `.env` is in `.dockerignore`). `build-image.sh --load <sha>` builds only `BUILD_PLATFORM` (default `linux/amd64`) and loads it into the local Docker instead of pushing (no registry, no login); `BUILD_CONTEXT` (default the repository root) is the directory built.
 3. `scripts/deploy.sh <env> <sha>` — over SSH:
    - checks `REDIRECT_DOMAINS` and writes `redirects.caddy` from it (`caddy_redirects` in `scripts/lib.sh`; a bad name stops the deploy before anything reaches the server);
    - uploads `deploy/docker-compose.yml`, `deploy/Caddyfile`, `redirects.caddy`, `deploy/backup/` and the env file to `/opt/spolu/<env>/` (the env file becomes `.env`, mode 600, written with umask 077; `DOMAIN`, `PUBLIC_URL` and `REDIRECT_DOMAINS` in it always come from the deploy variables, see `deploy_env`);
    - sets `IMAGE=` and `TAG=` in that `.env` to the deployed image, so a manual `docker compose up -d` on the server runs the same version;
-   - logs in to the registry if `REGISTRY_TOKEN` is set (and logs out after the pull), then `docker compose pull`, `docker compose up -d --remove-orphans`, `caddy reload` inside the `caddy` container (`up` does not restart Caddy when only its mounted Caddyfile or `redirects.caddy` changed), `docker image prune -af --filter until=168h` (removes unused images older than 7 days, old releases included, so the small disk does not fill; last week's images stay for a quick rollback);
+   - logs in to the registry if `REGISTRY_TOKEN` is set (and logs out after the pull), then `docker compose pull` (with `IMAGE_PRELOADED=1`, set by `scripts/deploy-local.sh`: no login, the server checks that `$IMAGE:<sha>` is already loaded and pulls only the other services), `docker compose up -d --remove-orphans`, `caddy reload` inside the `caddy` container (`up` does not restart Caddy when only its mounted Caddyfile or `redirects.caddy` changed), `docker image prune -af --filter until=168h` (removes unused images older than 7 days, old releases included, so the small disk does not fill; last week's images stay for a quick rollback);
    - polls `https://$DOMAIN/api/health` every 5 s for up to 120 s until `version` equals `<sha>`. On timeout it prints the last response, `docker compose ps` and the last 50 app log lines (the health body is shown even for a 503), the rollback command `scripts/deploy.sh <env> <previous tag>` (read from the server's `.env` before the deploy), and exits 1.
 
 | deploy.sh variable | required | meaning |
@@ -27,6 +27,7 @@ All logic lives in `scripts/` ([ADR 0004](../decisions/0004-scripts-first-ci.md)
 | `DEPLOY_PORT` | no | SSH port, default 22 |
 | `DEPLOY_KNOWN_HOSTS` | no | `known_hosts` line(s) of the server (`ssh-keyscan <host>`); pins its host key. Recommended: without it there is no host verification (a warning is printed) |
 | `REGISTRY_USER`, `REGISTRY_TOKEN` | no | registry login on the server for a private image |
+| `IMAGE_PRELOADED` | no | `1`: the image is already on the server (`docker load`); no login, no pull of the app image |
 
 Secrets are never printed. The SSH settings use a per-run `known_hosts` file, never the runner's `~/.ssh`.
 
@@ -74,8 +75,10 @@ To be walked by the owner and one test client on the test server (https://help.e
 
 The workflows in `.github/workflows/` only check out, set up tools, pass settings and call the scripts. Actions are pinned to major versions, except `crazy-max/ghaction-github-runtime` (third party, exposes the cache token to `docker buildx`), which is pinned to a commit SHA.
 
-- `ci.yml` — on every pull request: Node 24, pnpm (version from `packageManager`), then `scripts/ci.sh` with `CI_BASE_REF=origin/<base branch>`.
-- `deploy-test.yml` — on every push to `main` that changes more than docs (a push touching only `docs/**` and `*.md` files is skipped through `paths-ignore`: the image would not change; owner decision 2026-10-17), or by hand (**Actions → Deploy test → Run workflow**, optional `ref` = branch, tag or SHA, so a branch can be tried on test before merge). Job `ci` runs `scripts/ci.sh` on that ref; when it fails, it uploads `test-results/` (Playwright traces and page snapshots) as the `e2e-test-results` artifact for 7 days; job `deploy` (needs `ci`, GitHub environment `test`) sets up QEMU and buildx, logs in to `ghcr.io` with `GITHUB_TOKEN`, runs `scripts/build-image.sh <sha>` (`EXTRA_TAG=test`, `BUILDX_CACHE=gha`), writes the secrets to files with umask 077 and runs `scripts/deploy.sh test <sha>`. `<sha>` is `git rev-parse HEAD` of the `ci` job's checkout, passed as a job output; `deploy` checks out exactly that SHA, so the deployed commit is the tested one, also for a manual run with a `ref`. Concurrency group `deploy-test`: deploys queue, never cancel each other.
+Since 2026-10-18 both workflows run **only by hand** (`workflow_dispatch`): the Actions minutes are exhausted. Pull requests are checked by a local `scripts/ci.sh`, and test is deployed with [Local deploy](#local-deploy-2026-10-18-github-minutes-exhausted). The files stay for later; their header comment says what to put back.
+
+- `ci.yml` — by hand (before 2026-10-18: on every pull request): Node 24, pnpm (version from `packageManager`), then `scripts/ci.sh` with `CI_BASE_REF=origin/<base branch>`.
+- `deploy-test.yml` — by hand only (before 2026-10-18 also on every push to `main` that changed more than docs) (**Actions → Deploy test → Run workflow**, optional `ref` = branch, tag or SHA, so a branch can be tried on test before merge). Job `ci` runs `scripts/ci.sh` on that ref; when it fails, it uploads `test-results/` (Playwright traces and page snapshots) as the `e2e-test-results` artifact for 7 days; job `deploy` (needs `ci`, GitHub environment `test`) sets up QEMU and buildx, logs in to `ghcr.io` with `GITHUB_TOKEN`, runs `scripts/build-image.sh <sha>` (`EXTRA_TAG=test`, `BUILDX_CACHE=gha`), writes the secrets to files with umask 077 and runs `scripts/deploy.sh test <sha>`. `<sha>` is `git rev-parse HEAD` of the `ci` job's checkout, passed as a job output; `deploy` checks out exactly that SHA, so the deployed commit is the tested one, also for a manual run with a `ref`. Concurrency group `deploy-test`: deploys queue, never cancel each other.
 
 Settings of the GitHub environment `test` (**Settings → Environments → test**):
 
@@ -105,7 +108,7 @@ The product became **Help by eGrant** on 2026-10-16 and moved from `spolu.egrant
 
 1. In the GitHub environment `test`, set the variable `DOMAIN=help.egrant.sk` and add `REDIRECT_DOMAINS=spolu.egrant.sk`.
 2. In the secret `TEST_ENV_FILE`, change the From display name: `MAIL_FROM=Help by eGrant <…>` (and `MAIL_FROM_BULK` if set). `PUBLIC_URL` there is overridden anyway.
-3. Deploy (**Actions → Deploy test → Run workflow**, or the next push to `main`). The health check now polls `https://help.egrant.sk/api/health`.
+3. Deploy (now `scripts/deploy-local.sh test`; then **Actions → Deploy test → Run workflow** or the next push to `main`). The health check now polls `https://help.egrant.sk/api/health`.
 4. Check: `curl -sI https://spolu.egrant.sk/groups?x=1` answers `301` with `location: https://help.egrant.sk/groups?x=1`; the app opens on `https://help.egrant.sk`; a login email links to `help.egrant.sk`.
 5. Tell eGrant's developers the new intake URL `https://help.egrant.sk/api/tickets/intake` ([integrations/egrant-ticket-intake.md](../integrations/egrant-ticket-intake.md)). The old URL keeps answering through the redirect only for clients that follow redirects and resend the POST body (a 301 makes many HTTP clients switch to GET), so the switch must be made.
 
@@ -119,7 +122,87 @@ The product became **Help by eGrant** on 2026-10-16 and moved from `spolu.egrant
 
 Keep `REDIRECT_DOMAINS` for at least a few months; removing it later (empty variable, deploy) makes the old domain stop answering.
 
+## Local deploy (2026-10-18, GitHub minutes exhausted)
+
+The GitHub Actions minutes are exhausted, so the test environment is deployed from the orchestrator's Mac (Apple M3, Docker Desktop) after a green local `scripts/ci.sh`, with no GitHub Actions and no registry ([ADR 0031](../decisions/0031-local-deploy-without-registry.md)). Jenkins can later call the same script.
+
+```bash
+scripts/deploy-local.sh                  # env test, sha = HEAD
+scripts/deploy-local.sh test <sha>       # another commit (e.g. a rollback)
+scripts/deploy-local.sh --force-ref      # allow a dirty tree / a commit not on origin/main
+```
+
+What `scripts/deploy-local.sh [--force-ref] [<env> [<sha>]]` does:
+
+1. Refuses a working tree with uncommitted changes and a commit that is not on `origin/main` (it fetches `origin main` first). `--force-ref` lifts both, e.g. to try a branch on test. The image is always built from the commit (`git archive <sha>`), never from the files on disk.
+2. Reads the config file `$SPOLU_DEPLOY_CONFIG`, default `~/.config/spolu/<env>.deploy` (parsed, never run as shell code; see below). It, the SSH key and the env file must be private to you (no group or other permission bits, `chmod 600`), otherwise it stops. Variables already set in your shell are ignored for these keys (a stray `REGISTRY_TOKEN` too). Nothing secret is printed.
+3. If the server already has `$IMAGE:<sha>` (a redeploy, or a rollback within the 7 days the server keeps images) it skips the build. Otherwise it builds only the server's platform with `scripts/build-image.sh --load` (tags `$IMAGE:<sha>` and `$IMAGE:<env>`): `DEPLOY_PLATFORM` from the config, default `linux/arm64` (the test server is aarch64, and the M3 builds arm64 natively); `linux/amd64` builds through QEMU and is slower; `auto` asks the server's `uname -m` (`aarch64` → `linux/arm64`, `x86_64` → `linux/amd64`).
+4. Streams the image: `docker save $IMAGE:<sha> $IMAGE:<env> | gzip | ssh … 'gunzip | docker load'` (about 135 MB).
+5. Runs `scripts/deploy.sh <env> <sha>` with `IMAGE_PRELOADED=1` and `DEPLOY_ENV_FILE=$ENV_FILE`: same upload, `.env`, Caddy reload and health check as above, but no registry login and no pull of the app image.
+
+Tests: `scripts/tests/deploy-local.test.sh` (stubbed docker, ssh, scp and curl; a throwaway git repository).
+
+### The config file
+
+Create it once, outside the repository (the directory `chmod 700`, every file in it `chmod 600`):
+
+```bash
+mkdir -p ~/.config/spolu && chmod 700 ~/.config/spolu
+touch ~/.config/spolu/test.deploy && chmod 600 ~/.config/spolu/test.deploy
+```
+
+The file is **parsed, never run** (`load_deploy_config` in `scripts/lib.sh`): one `KEY=value` per line; blank lines and lines starting with `#` are skipped; the value is everything after `=` (spaces need no quotes; one pair of surrounding `'…'` or `"…"` is removed); a leading `~/` is expanded; no comment after a value; an unknown key or a malformed line stops the script. Template, with every key:
+
+```bash
+# ~/.config/spolu/test.deploy (chmod 600), read by scripts/deploy-local.sh test
+# GitHub variable DEPLOY_HOST: server hostname or IP
+DEPLOY_HOST=<server hostname or IP>
+# GitHub variable DEPLOY_USER
+DEPLOY_USER=deploy
+# optional, default 22
+DEPLOY_PORT=22
+# ssh-keyscan lines of the server (see below); or one inline line in DEPLOY_KNOWN_HOSTS=
+DEPLOY_KNOWN_HOSTS_FILE=~/.config/spolu/test.known_hosts
+# path; content = the GitHub secret TEST_SSH_KEY (the deploy user's private key)
+DEPLOY_SSH_KEY=~/.config/spolu/test.key
+# path; content = the GitHub secret TEST_ENV_FILE (the server env file)
+ENV_FILE=~/.config/spolu/test.env
+# GitHub variable DOMAIN
+DOMAIN=help.egrant.sk
+# GitHub variable IMAGE; only a name now, nothing is pushed or pulled
+IMAGE=ghcr.io/trayvor/spolu
+# GitHub variable REDIRECT_DOMAINS; empty = no redirect
+REDIRECT_DOMAINS=spolu.egrant.sk
+# GitHub variable MAIL_FROM_NAME; optional
+MAIL_FROM_NAME=Help by eGrant
+# optional; the GitHub secret TICKETS_API_KEY; empty = keep the env file's
+TICKETS_API_KEY=
+# optional; default linux/arm64 (the test server is aarch64); linux/amd64; auto = ask the server (uname -m)
+DEPLOY_PLATFORM=
+```
+
+Where the values come from:
+
+- **Variables**: GitHub → the repository → **Settings → Environments → test** → *Environment variables*. Copy each one as it is.
+- **Secrets cannot be read back from GitHub**, so the owner enters them again from the original source:
+  - `TEST_SSH_KEY` → the private key of the `deploy` user (`~/.ssh/spolu_test` from [server-setup.md](server-setup.md), or a new key added with `server-setup.sh`), saved as the file `DEPLOY_SSH_KEY` points to, `chmod 600`;
+  - `TEST_ENV_FILE` → the full server env file (template `deploy/test.env.example`, or a copy of the server's current `/opt/spolu/test/.env`, whose `IMAGE=` and `TAG=` lines `deploy.sh` replaces anyway), saved as the file `ENV_FILE` points to, `chmod 600`. `SUPERADMIN_EMAIL` (and `SUPERADMIN_NAME`) live in this file;
+  - `TICKETS_API_KEY` → only if it was set as a separate secret; otherwise leave it empty (the env file's value is used).
+- These files stay outside the repository; never commit them.
+
+Pin the server's host key once (required: the script refuses to run without known hosts):
+
+```bash
+ssh-keyscan <DEPLOY_HOST> 2>/dev/null > ~/.config/spolu/test.known_hosts
+chmod 600 ~/.config/spolu/test.known_hosts
+ssh-keygen -lf ~/.config/spolu/test.known_hosts   # compare the fingerprints with the server console once
+```
+
+Instead of the file, `DEPLOY_KNOWN_HOSTS=<one ssh-keyscan line>` works too (the GitHub variable holds such a line); with both set, both are used.
+
 ## Manual deploy from a laptop
+
+With a registry (GHCR); the local deploy above needs none.
 
 Use it when CI is down, or to redeploy an older SHA (see [rollback.md](rollback.md)).
 

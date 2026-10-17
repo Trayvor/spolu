@@ -1,8 +1,11 @@
-# Checks every pull request. All logic lives in scripts/ci.sh; this file only prepares the runner.
+# Runs scripts/ci.sh. All logic lives there; this file only prepares the runner.
+# Manual only since 2026-10-18 (owner decision): the GitHub Actions minutes are exhausted, so pull
+# requests are checked by a local `bash scripts/ci.sh` before merging (docs/runbooks/deploy.md,
+# "Local deploy"). Kept for later; put `pull_request:` back under `on:` to check every PR again.
 name: CI
 
 on:
-  pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read

@@ -1,5 +1,9 @@
-# Deploys to the test environment: on every push to main that changes more than docs, or by hand
-# for any branch or SHA.
+# Deploys to the test environment, by hand only, for any branch or SHA.
+# Manual only since 2026-10-18 (owner decision): the GitHub Actions minutes are exhausted, so test
+# is deployed from the orchestrator's Mac with scripts/deploy-local.sh after a green local
+# scripts/ci.sh (docs/runbooks/deploy.md, "Local deploy"). Kept for later (Jenkins replaces it);
+# to deploy on every push to main again, put back under `on:`
+#   push: { branches: [main], paths-ignore: ['docs/**', '**/*.md'] }
 # Logic lives in scripts/ci.sh, scripts/build-image.sh and scripts/deploy.sh; this file only
 # prepares the runner and passes settings in. Settings live in the "test" GitHub environment:
 #   secrets TEST_SSH_KEY, TEST_ENV_FILE, optional TICKETS_API_KEY; variables DEPLOY_HOST, DEPLOY_USER, DOMAIN, IMAGE,
@@ -7,13 +11,6 @@
 name: Deploy test
 
 on:
-  push:
-    branches: [main]
-    # A push that changes only docs deploys nothing (owner decision 2026-10-17): the image would be
-    # the same. A push with any other file deploys as usual; a manual run always deploys.
-    paths-ignore:
-      - 'docs/**'
-      - '**/*.md'
   workflow_dispatch:
     inputs:
       ref:

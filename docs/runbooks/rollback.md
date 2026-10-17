@@ -4,20 +4,21 @@ How to go back to the previous version by redeploying the previous image tag. Ev
 
 ## Find the tag
 
-- A failed deploy prints it: `To roll back: scripts/deploy.sh <env> <previous tag>` (read from `TAG=` of the server's `.env` before that deploy).
+- A failed deploy prints it: `To roll back: scripts/deploy-local.sh <env> <previous tag>` (or `scripts/deploy.sh …` for a registry deploy; read from `TAG=` of the server's `.env` before that deploy).
 - Otherwise take the SHA of the last good merge on `main` (`git log --first-parent origin/main`) or of the last green **Deploy test** run (`gh run list --workflow deploy-test.yml`).
 - `https://<domain>/api/health` shows the running version (`version` is the SHA).
 
-The server keeps unused images for 7 days (`docker image prune --filter until=168h` in `deploy.sh`), so last week's tags start without a download; older tags are pulled from GHCR.
+The server keeps unused images for 7 days (`docker image prune --filter until=168h` in `deploy.sh`), so last week's tags start without a download; older tags are pulled from GHCR (registry deploy) or built and sent again (local deploy).
 
 ## Redeploy it
 
 Either:
 
-- **GitHub:** Actions → **Deploy test** → Run workflow, with `ref` = the old SHA. It runs `scripts/ci.sh` on that SHA again, builds (layers cached) and deploys it.
+- **Local deploy** (the way since 2026-10-18): `scripts/deploy-local.sh test <old SHA>`. An old SHA is on `origin/main`, so no `--force-ref` is needed; if the server still has the image it is neither built nor sent. See [deploy.md](deploy.md#local-deploy-2026-10-18-github-minutes-exhausted).
+- **GitHub** (manual workflow, needs Actions minutes): Actions → **Deploy test** → Run workflow, with `ref` = the old SHA. It runs `scripts/ci.sh` on that SHA again, builds (layers cached) and deploys it.
 - **Laptop** (faster; the image already exists): the "Manual deploy from a laptop" command in [deploy.md](deploy.md) with `sha=<old SHA>` and without the build step.
 
-`deploy.sh` waits until `/api/health` reports the old SHA. The next push to `main` deploys `main` again, so revert the bad commit on `main` (a pull request) before anything else is merged.
+`deploy.sh` waits until `/api/health` reports the old SHA. The next deploy of `main` deploys the bad commit again, so revert the bad commit on `main` (a pull request) before anything else is merged.
 
 ## Migrations
 

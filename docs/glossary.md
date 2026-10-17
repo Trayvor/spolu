@@ -79,7 +79,7 @@ Terms used across the docs and code, in alphabetical order.
 - **superadmin**: the first admin, created automatically at start from `SUPERADMIN_EMAIL` (name from `SUPERADMIN_NAME`). Cannot be deleted or demoted; creates other admins.
 - **task**: a card on the task board with title, description, one or more assignees, deadline, an urgent flag and attachments.
 - **task chat**: the discussion inside one task, with threads, mentions and attachments.
-- **test environment**: the Oracle Cloud VM where Spolu is deployed, at https://help.egrant.sk; every merge into `main` deploys there; environment name `test`.
+- **test environment**: the Oracle Cloud VM where Spolu is deployed, at https://help.egrant.sk; `main` is deployed there with `scripts/deploy-local.sh` (since 2026-10-18; before, every merge deployed it); environment name `test`.
 - **thread**: replies grouped under one top-level message (the thread root); a reply cannot start another thread. Opens in a side panel, linked by `?thread=<rootId>&c=<channelId>`.
 - **ticket**: a support request (from eGrant's API, a client or an admin) with a number `#123` and a status (New / In progress / Resolved), shown in its client's Tickets tab, in My tickets and in the admins' global view; without a client only in the global view.
 - **ticket follower**: removed 2026-10-17 (no per-ticket following). A ticket's updates go to its riešitelia, or to the people who watch its client's tickets while it has none (every admin without a client), and to its initiator.
