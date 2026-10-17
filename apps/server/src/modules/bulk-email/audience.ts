@@ -78,11 +78,6 @@ function matchesSql(audience: BulkAudience): SQL {
 const deliverable = sql`u.disabled_at is null and s.subscribed is not false`;
 const subscriptionJoin = sql`left join bulk_subscriptions s on s.user_id = u.id`;
 
-/** The ids of everyone the audience matches, before "left out", as a parenthesized subquery. */
-export function audienceSql(audience: BulkAudience): SQL {
-  return sql`(select u.id from "user" u where ${matchesSql(audience)})`;
-}
-
 /**
  * `select user_id, email, name, language` of the people who get the campaign (matched, not
  * disabled, not unsubscribed), each once: the source of the one `insert … select` of

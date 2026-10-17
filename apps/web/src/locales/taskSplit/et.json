@@ -21,7 +21,6 @@
   "create_one": "Loo {{count}} ülesanne",
   "create_other": "Loo {{count}} ülesannet",
   "cancel": "Tühista",
-  "close": "Sulge",
   "discardConfirm": "Kas loobuda pakutud ülesannetest?",
   "discard": "Loobu",
   "keep": "Jätka ülevaatamist",
