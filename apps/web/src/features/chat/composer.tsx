@@ -32,6 +32,8 @@ import { safeHref } from './format/parse';
 import { FormatToolbar, iconButton, phoneIconButton } from './format-toolbar';
 import { CloseIcon, PaperclipIcon } from './icons';
 import { MentionPicker, type MentionChoice, type MentionPickerHandle } from './mention-picker';
+import { AiTextButton } from './ai-tools/ai-text-button';
+import { VoiceButton } from './voice-input/voice-button';
 import type { ChatEditorHandle, EditorChange } from './editor/chat-editor';
 import type { MentionQuery } from './editor/setup';
 
@@ -55,6 +57,8 @@ export interface ComposerProps {
   ref?: Ref<ComposerHandle>;
   mode: 'new' | 'edit' | 'thread';
   groupId: string;
+  /** The channel written to: shows the AI text tools and voice input it offers (Phase 28). */
+  channelId?: string;
   /** Edit mode: the stored body being edited (mention tokens). */
   initialBody?: string;
   /** Edit mode: the message already has files, so an empty text is still a valid message. */
@@ -101,6 +105,7 @@ export function Composer({
   ref,
   mode,
   groupId,
+  channelId,
   initialBody = '',
   hasAttachments = false,
   replyTo,
@@ -144,6 +149,13 @@ export function Composer({
   const listId = useId();
 
   const pickerOpen = mention !== null && mention.from !== closedAt && people !== undefined;
+
+  // The AI and voice tools read the draft when their answer arrives, not when they were clicked;
+  // the editor holds the current one. A replacement is one undo step (Cmd/Ctrl+Z restores).
+  const draftTools = {
+    getText: () => editor.current?.getMarkdown() ?? markdown,
+    setText: (text: string) => editor.current?.setMarkdown(text),
+  };
 
   useImperativeHandle(ref, () => ({
     getMarkdown: () => editor.current?.getMarkdown() ?? markdown,
@@ -463,6 +475,12 @@ export function Composer({
                 >
                   <PaperclipIcon />
                 </button>
+                {channelId && (
+                  <>
+                    <VoiceButton channelId={channelId} {...draftTools} />
+                    <AiTextButton channelId={channelId} {...draftTools} />
+                  </>
+                )}
               </>
             )}
             {extraActions}

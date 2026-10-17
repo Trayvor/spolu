@@ -73,5 +73,27 @@
   "unread_other": "{{count}} nepročitanih poruka",
   "loadError": "Chat nije moguće učitati.",
   "turnedIntoTasks": "Pretvoreno u zadatke:",
-  "copied": "Tekst kopiran"
+  "copied": "Tekst kopiran",
+  "ai": {
+    "button": "AI alati",
+    "working": "Uređujem…",
+    "fix": "Ispravi pogreške",
+    "formal": "Formalnije",
+    "translateTo": "Prevedi: {{language}}",
+    "undo": "Poništi",
+    "failed": "AI nije uspjela urediti tekst. Pokušajte ponovno.",
+    "limited": "Previše zahtjeva. Pokušajte za minutu."
+  },
+  "voice": {
+    "start": "Diktiraj",
+    "stop": "Zaustavi i prepiši",
+    "cancel": "Odustani od snimanja",
+    "recording": "Vrijeme snimanja",
+    "transcribing": "Prepisujem…",
+    "denied": "Za diktiranje dopustite mikrofon u pregledniku.",
+    "unsupported": "Ovaj preglednik ne može snimati zvuk.",
+    "failed": "Snimku nije bilo moguće prepisati. Pokušajte ponovno.",
+    "limited": "Previše snimki. Pokušajte za minutu.",
+    "atLimit": "Snimanje se zaustavilo nakon 5 minuta."
+  }
 }

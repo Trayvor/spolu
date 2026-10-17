@@ -76,5 +76,27 @@
   "unread_other": "{{count}} neprebranih sporočil",
   "loadError": "Klepeta ni bilo mogoče naložiti.",
   "turnedIntoTasks": "Pretvorjeno v naloge:",
-  "copied": "Besedilo kopirano"
+  "copied": "Besedilo kopirano",
+  "ai": {
+    "button": "Orodja AI",
+    "working": "Urejam…",
+    "fix": "Popravi napake",
+    "formal": "Bolj formalno",
+    "translateTo": "Prevedi: {{language}}",
+    "undo": "Razveljavi",
+    "failed": "AI besedila ni mogla urediti. Poskusite znova.",
+    "limited": "Preveč zahtev. Poskusite čez minuto."
+  },
+  "voice": {
+    "start": "Nareki",
+    "stop": "Ustavi in prepiši",
+    "cancel": "Prekliči snemanje",
+    "recording": "Čas snemanja",
+    "transcribing": "Prepisujem…",
+    "denied": "Za narekovanje v brskalniku dovolite mikrofon.",
+    "unsupported": "Ta brskalnik ne more snemati zvoka.",
+    "failed": "Posnetka ni bilo mogoče prepisati. Poskusite znova.",
+    "limited": "Preveč posnetkov. Poskusite čez minuto.",
+    "atLimit": "Snemanje se je ustavilo po 5 minutah."
+  }
 }

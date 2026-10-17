@@ -73,5 +73,27 @@
   "unread_many": "{{count}} messaggi non letti",
   "loadError": "Impossibile caricare la chat.",
   "turnedIntoTasks": "Trasformato in attività:",
-  "copied": "Testo copiato"
+  "copied": "Testo copiato",
+  "ai": {
+    "button": "Strumenti AI",
+    "working": "Riscrivo…",
+    "fix": "Correggi errori",
+    "formal": "Rendi formale",
+    "translateTo": "Traduci: {{language}}",
+    "undo": "Annulla",
+    "failed": "L'AI non è riuscita a riscrivere il testo. Riprova.",
+    "limited": "Troppe richieste. Riprova tra un minuto."
+  },
+  "voice": {
+    "start": "Detta",
+    "stop": "Ferma e trascrivi",
+    "cancel": "Annulla registrazione",
+    "recording": "Durata della registrazione",
+    "transcribing": "Trascrivo…",
+    "denied": "Consenti il microfono nel browser per dettare.",
+    "unsupported": "Questo browser non può registrare audio.",
+    "failed": "Non è stato possibile trascrivere la registrazione. Riprova.",
+    "limited": "Troppe registrazioni. Riprova tra un minuto.",
+    "atLimit": "La registrazione si è fermata a 5 minuti."
+  }
 }

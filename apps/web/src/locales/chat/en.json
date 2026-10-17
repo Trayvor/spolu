@@ -70,5 +70,27 @@
   "unread_one": "{{count}} unread message",
   "loadError": "The chat could not be loaded.",
   "turnedIntoTasks": "Turned into tasks:",
-  "copied": "Text copied"
+  "copied": "Text copied",
+  "ai": {
+    "button": "AI tools",
+    "working": "Rewriting…",
+    "fix": "Fix mistakes",
+    "formal": "Make it formal",
+    "translateTo": "Translate to {{language}}",
+    "undo": "Undo",
+    "failed": "The AI couldn't rewrite the text. Try again.",
+    "limited": "Too many requests. Try again in a minute."
+  },
+  "voice": {
+    "start": "Dictate",
+    "stop": "Stop and transcribe",
+    "cancel": "Cancel recording",
+    "recording": "Recording time",
+    "transcribing": "Transcribing…",
+    "denied": "Allow the microphone in your browser to dictate.",
+    "unsupported": "This browser can't record audio.",
+    "failed": "The recording couldn't be transcribed. Try again.",
+    "limited": "Too many recordings. Try again in a minute.",
+    "atLimit": "The recording stopped at 5 minutes."
+  }
 }

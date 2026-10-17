@@ -1,4 +1,4 @@
-import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -494,5 +494,44 @@ describe('FormatToolbar alone (task description)', () => {
     expect(screen.queryByRole('button', { name: 'Attach files' })).toBeNull();
     expect(screen.getAllByRole('button')).toHaveLength(8);
     expect(screen.getByRole('button', { name: 'Bold' })).not.toHaveAttribute('aria-pressed');
+  });
+});
+
+describe('Composer AI and voice tools (Phase 28)', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('shows them next to Send for a channel, and the AI result replaces the draft', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string) =>
+        String(url).endsWith('/ai-tools')
+          ? new Response(JSON.stringify({ text: true, translate: null, voice: true }))
+          : new Response(JSON.stringify({ text: 'Fixed draft.' })),
+      ),
+    );
+    const { ref } = await renderComposer({ channelId: 'c1' });
+    await userEvent.type(box(), 'fixd **draft**');
+    const inside = within(frame());
+    expect(await inside.findByRole('button', { name: 'Dictate' })).toBeInTheDocument();
+    await userEvent.click(inside.getByRole('button', { name: 'AI tools' }));
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Fix mistakes' }));
+    // The AI reads the draft as Markdown, and its answer is rendered as Markdown again.
+    await waitFor(() => expect(box()).toHaveTextContent('Fixed draft.'));
+    const sent = (vi.mocked(fetch).mock.calls as unknown as [string, RequestInit?][]).find(
+      ([url]) => String(url).endsWith('/ai-text'),
+    );
+    expect(JSON.parse(String(sent?.[1]?.body))).toMatchObject({ text: 'fixd **draft**' });
+    // One undo step brings the typed draft back.
+    await userEvent.click(box());
+    await userEvent.keyboard('{Control>}z{/Control}');
+    expect(ref.current?.getMarkdown()).toBe('fixd **draft**');
+  });
+
+  it('the edit composer has no AI or voice tools', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    await renderComposer({ mode: 'edit', channelId: 'c1', initialBody: 'x' });
+    expect(screen.queryByRole('button', { name: 'AI tools' })).not.toBeInTheDocument();
+    expect(fetchMock.mock.calls.some(([url]) => String(url).endsWith('/ai-tools'))).toBe(false);
   });
 });

@@ -16,3 +16,4 @@ export * from './urls.js';
 export * from './users.js';
 export * from './tickets.js';
 export * from './bulk-email-content.js';
+export * from './text-tools.js';
