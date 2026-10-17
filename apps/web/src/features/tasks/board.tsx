@@ -38,6 +38,7 @@ import { boardNoticeKey, showBoardNotice, type BoardNotice } from './board-cache
 import { byPosition, bucketTitle, tasksByBucket } from './board-model';
 import { BucketColumn, bucketSortId, type DropMark } from './bucket-column';
 import { taskChatsQuery } from './task-chats';
+import { boardUnseenQuery, useBoardUnseenEvents } from './unseen';
 import { todayInBratislava } from './dates';
 import { dndAccessibility, dragData } from './dnd-announcements';
 import {
@@ -89,6 +90,9 @@ export function Board({ groupId }: { groupId: string }) {
   const { data: group } = useQuery(groupQuery(groupId));
   // One query for every card; the Tasks tab badge keeps it live. Without it cards just show no chat.
   const { data: chats } = useQuery(taskChatsQuery(groupId));
+  // 2026-10-17: the cards with a change I have not seen; without it no card is marked.
+  useBoardUnseenEvents(groupId);
+  const { data: unseen } = useQuery(boardUnseenQuery(groupId));
   // Set by a failed drop or by the task panel (see `showBoardNotice`); never fetched.
   const { data: notice } = useQuery<BoardNotice | null>({
     queryKey: boardNoticeKey(groupId),
@@ -241,6 +245,7 @@ export function Board({ groupId }: { groupId: string }) {
                 dragging={dragging?.type ?? null}
                 dropMark={dropTarget?.bucketId === bucket.id ? dropTarget.mark : null}
                 chats={chats}
+                unseen={unseen}
                 onToggleDone={onToggleDone}
                 done={bucket.kind === 'done' ? board.done : undefined}
               />

@@ -392,6 +392,8 @@ Status: findings report written ([2026-10-17 findings](superpowers/specs/2026-10
 
 Follow-up, owner request (2026-10-17): **the dashboard follows the notification settings** ([spec](superpowers/specs/2026-10-17-dashboard-follows-notifications-design.md)). The Mentions card and the sidebar's unread counts show only what would notify the admin (channel None or group mode Off hide them, as delivery decides), and a new **Meetings** notification group (meeting scheduled or moved, the AI summary result, a meeting's reminder) lets the Meetings card follow the same rule. No migration. Status: built (`feat/dashboard-follows-notifications`); e2e (`e2e/meetings.spec.ts`) written, not yet run.
 
+Follow-up, owner request (2026-10-17): **unseen changes** ([spec](superpowers/specs/2026-10-17-unseen-changes-design.md)). A task or ticket with a notification after I last opened it has an unseen change: the header counts them, the sidebar's one black badge adds them to the unread messages (no yellow pill), and the global and group boards, the global ticket list and the My tasks and Tickets cards mark them. Migration 0036 (`task_seen`, `ticket_seen`, two partial indexes on `notification_events`). Status: built (`feat/unseen-changes`); e2e (`e2e/admin-home.spec.ts`) updated, not yet run.
+
 ## Phase 28 — Chat editor and AI text tools
 
 Owner request (2026-10-17). Starts after Phase 27. Needs a spec (brainstorming) and an ADR for the editor library.

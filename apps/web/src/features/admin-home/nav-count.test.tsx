@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, render, screen } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { AdminEvents, TicketEvents } from '@spolu/shared';
+import { AdminEvents, ChatEvents, SeenEvents, TicketEvents } from '@spolu/shared';
 import { i18n, setLanguage } from '@/i18n';
 import NavCount from './nav-count';
 
@@ -71,21 +71,30 @@ describe('NavCount', () => {
     expect(await screen.findByTestId('nav-count-tickets')).toHaveTextContent('99+');
   });
 
-  it('a task activity or a ticket event refetches after 2 s; chat activity does not', async () => {
+  it('chat activity, a ticket event or seen:changed refetches after 2 s; a read does not', async () => {
     renderCounts();
     await screen.findByTestId('nav-count-tasks');
     vi.useFakeTimers();
     act(() =>
-      handlers.get(AdminEvents.activity)?.forEach((fn) => fn({ groupId: 'g1', kind: 'chat' })),
+      handlers.get(ChatEvents.read)?.forEach((fn) => fn({ groupId: 'g1', channelId: 'c' })),
     );
     await act(() => vi.advanceTimersByTimeAsync(2000));
     expect(calls).toHaveLength(1);
+    // A task chat message is an unseen change (2026-10-17).
+    act(() =>
+      handlers.get(AdminEvents.activity)?.forEach((fn) => fn({ groupId: 'g1', kind: 'chat' })),
+    );
+    await act(() => vi.advanceTimersByTimeAsync(2000));
+    expect(calls).toHaveLength(2);
+    act(() => handlers.get(SeenEvents.changed)?.forEach((fn) => fn({ kind: 'task', id: 't' })));
+    await act(() => vi.advanceTimersByTimeAsync(2000));
+    expect(calls).toHaveLength(3);
     answer = { tasks: 3, tickets: 2 };
     act(() =>
       handlers.get(TicketEvents.created)?.forEach((fn) => fn({ ticketId: 'k', groupId: null })),
     );
     await act(() => vi.advanceTimersByTimeAsync(2000));
-    expect(calls).toHaveLength(2);
+    expect(calls).toHaveLength(4);
     // React Query batches its notifications on a timer: let it flush before the real clock.
     await act(() => vi.advanceTimersByTimeAsync(100));
     vi.useRealTimers();

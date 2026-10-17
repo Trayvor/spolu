@@ -56,8 +56,9 @@ export function GlobalBoardPage() {
   const board = useGlobalSearch();
   const { filters, search } = board;
   const query = useQuery(globalBoardQuery(filters));
-  // Only task changes move cards; chat activity and reads leave the board as it is.
-  useAdminActivityRefetch(BOARD_KEYS, { kinds: ['task'], chatRead: false });
+  // Task changes move cards; chat activity and opening a task change their unseen marks
+  // (2026-10-17). Reads leave the board as it is.
+  useAdminActivityRefetch(BOARD_KEYS, { chatRead: false });
   const today = todayInBratislava();
 
   // "Show 50 more" pages, per column, until the filters change (Phase 27 W5). A refetch of the

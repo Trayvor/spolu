@@ -35,6 +35,7 @@ import {
 } from './task-service.js';
 import { clientGroupIds } from '../groups/memberships.js';
 import { emitMeetingTasks } from '../knowledge/events.js';
+import { emitSeen, markTaskSeen } from '../notifications/unseen.js';
 import { emitTicket, emitTicketRefresh } from '../tickets/events.js';
 import { runTicketChange } from '../tickets/hooks.js';
 import { actorReadsTicket, attachmentIds, getTicketRow } from '../tickets/service.js';
@@ -275,6 +276,15 @@ export const taskRoutes: FastifyPluginAsync<TaskRoutesOptions> = async (
     if (!(await readableTask(request.user!, request.params.id))) return notFound(reply);
     const task = await getTask(db, request.params.id, request.user!);
     return task ?? notFound(reply);
+  });
+
+  // 2026-10-17: the viewer opened the task's panel (either tab): its changes so far are seen.
+  app.post<IdParams>('/tasks/:id/seen', { preHandler: anyUser }, async (request, reply) => {
+    const actor = request.user!;
+    if (!(await readableTask(actor, request.params.id))) return notFound(reply);
+    await markTaskSeen(db, actor.id, request.params.id);
+    emitSeen(app.io, actor.id, { kind: 'task', id: request.params.id });
+    return reply.code(204).send();
   });
 
   app.patch<IdParams>('/tasks/:id', { preHandler: writeGuard }, async (request, reply) => {

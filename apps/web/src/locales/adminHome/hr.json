@@ -11,12 +11,15 @@
     "collapse": "Sažmi popis klijenata",
     "expand": "Proširi popis klijenata",
     "noMatch": "Nijedan klijent ne odgovara.",
-    "unread_one": "{{count}} nepročitana poruka",
-    "unread_few": "{{count}} nepročitane poruke",
-    "unread_other": "{{count}} nepročitanih poruka",
-    "assigned_one": "{{count}} zadatak dodijeljen Vama",
-    "assigned_few": "{{count}} zadatka dodijeljena Vama",
-    "assigned_other": "{{count}} zadataka dodijeljenih Vama"
+    "messages_one": "{{count}} poruka",
+    "messages_few": "{{count}} poruke",
+    "messages_other": "{{count}} poruka",
+    "tasks_one": "{{count}} zadatak",
+    "tasks_few": "{{count}} zadatka",
+    "tasks_other": "{{count}} zadataka",
+    "tickets_one": "{{count}} tiket",
+    "tickets_few": "{{count}} tiketa",
+    "tickets_other": "{{count}} tiketa"
   },
   "home": {
     "greeting": {
@@ -74,7 +77,8 @@
       "unsummarized_one": "{{count}} bez sažetka",
       "unsummarized_few": "{{count}} bez sažetka",
       "unsummarized_other": "{{count}} bez sažetka"
-    }
+    },
+    "unseen": "Nova promjena"
   },
   "board": {
     "title": "Zadaci",
@@ -116,12 +120,12 @@
     "count_other": "{{count}} zadataka"
   },
   "navCount": {
-    "tasks_one": "{{count}} otvoreni zadatak dodijeljen Vama",
-    "tasks_few": "{{count}} otvorena zadatka dodijeljena Vama",
-    "tasks_other": "{{count}} otvorenih zadataka dodijeljenih Vama",
-    "tickets_one": "{{count}} otvoreni tiket za rješavanje",
-    "tickets_few": "{{count}} otvorena tiketa za rješavanje",
-    "tickets_other": "{{count}} otvorenih tiketa za rješavanje"
+    "tasks_one": "{{count}} zadatak s novom promjenom",
+    "tasks_few": "{{count}} zadatka s novom promjenom",
+    "tasks_other": "{{count}} zadataka s novom promjenom",
+    "tickets_one": "{{count}} tiket s novom promjenom",
+    "tickets_few": "{{count}} tiketa s novom promjenom",
+    "tickets_other": "{{count}} tiketa s novom promjenom"
   },
   "sheet": {
     "tickets": {

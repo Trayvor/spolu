@@ -33,6 +33,7 @@ vi.mock('@/lib/socket', () => ({ getSocket: () => socket }));
 const t = (key: string, options?: Record<string, unknown>) => i18n.t(key, options);
 
 const task = (over: Partial<AssignedTask> & { id: string; title: string }): AssignedTask => ({
+  unseen: false,
   groupId: 'g1',
   groupName: 'ABC s.r.o.',
   urgent: false,
@@ -55,6 +56,7 @@ const mention = (over: Partial<MentionItem> & { messageId: string }): MentionIte
 });
 
 const ticket = (over: Partial<HomeTicket> & { id: string; number: number }): HomeTicket => ({
+  unseen: false,
   subject: 'Budget question',
   excerpt: null,
   status: 'in_progress',
@@ -157,7 +159,8 @@ function mockApi(answers: Answers = {}) {
         updatedAt: '2026-10-15T10:00:00.000Z',
         managed: true,
         unread: 4,
-        assigned: 2,
+        unseenTasks: 2,
+        unseenTickets: 0,
       },
       {
         groupId: 'g2',
@@ -166,7 +169,8 @@ function mockApi(answers: Answers = {}) {
         updatedAt: '2026-10-15T10:00:00.000Z',
         managed: false,
         unread: 0,
-        assigned: 0,
+        unseenTasks: 0,
+        unseenTickets: 0,
       },
     ],
   };

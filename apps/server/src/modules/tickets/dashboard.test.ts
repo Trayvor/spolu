@@ -5,7 +5,9 @@ import type { HomeTickets, TicketStatus } from '@spolu/shared';
 import { createDb } from '../../infra/db/client.js';
 import { testDatabaseUrl } from '../../../test/test-config.js';
 import { newAdmin, newGroup } from '../home/test-fixtures.js';
-import { countDashboardTickets, getDashboardTickets } from './dashboard.js';
+import { recordNotifications } from '../notifications/service.js';
+import { markTicketSeen } from '../notifications/unseen.js';
+import { countUnseenTickets, getDashboardTickets } from './dashboard.js';
 import { ticketAssignees, tickets } from './schema.js';
 import { setTicketWatch } from './watch.js';
 
@@ -192,27 +194,49 @@ describe('riešitelia and watching on the dashboard', () => {
   });
 });
 
-describe('countDashboardTickets', () => {
-  it("counts the card's tickets: mine, the watched ones without a riešiteľ, no client", async () => {
+describe('unseen tickets (2026-10-17)', () => {
+  const status = (userId: string, groupId: string | null, ticketId: string) =>
+    recordNotifications(db, {
+      kind: 'ticket.status',
+      groupId,
+      recipients: [userId],
+      payload: { ticketId, groupId },
+    });
+
+  it('the header counts the tickets with an unseen change, resolved ones too', async () => {
     const g = await newGroup(db, 'Count');
-    const other = await newGroup(db, 'Count other');
     const me = await newAdmin(db, 'Ada', [g.id]);
-    const colleague = await newAdmin(db, 'Bob');
+    const fresh = await newTicket({ groupId: g.id, status: 'new' });
+    const resolved = await newTicket({ groupId: g.id, status: 'resolved' });
+    const none = await newTicket({ groupId: null, status: 'new' });
     await newTicket({ groupId: g.id, status: 'new' });
-    await newTicket({ groupId: g.id, status: 'in_progress' });
-    await newTicket({ groupId: g.id, status: 'resolved' });
-    const taken = await newTicket({ groupId: g.id, status: 'new' });
-    await db.insert(ticketAssignees).values({ ticketId: taken, userId: colleague.id });
-    const mine = await newTicket({ groupId: other.id, status: 'new' });
-    await db.insert(ticketAssignees).values({ ticketId: mine, userId: me.id });
-    await newTicket({ groupId: other.id, status: 'new' });
-    await newTicket({ groupId: null, status: 'new' });
-    const count = await countDashboardTickets(db, me.id);
-    // 2 watched without a riešiteľ + 1 mine + 1 without a client, plus the shared database's
-    // other tickets without a client.
-    expect(count).toBeGreaterThanOrEqual(4);
+    expect(await countUnseenTickets(db, me.id)).toBe(0);
+    for (const id of [fresh, resolved]) await status(me.id, g.id, id);
+    await status(me.id, null, none);
+    expect(await countUnseenTickets(db, me.id)).toBe(3);
+    await markTicketSeen(db, me.id, resolved);
+    expect(await countUnseenTickets(db, me.id)).toBe(2);
   });
 
+  it('a card is marked while its ticket has a change I have not seen', async () => {
+    const g = await newGroup(db, 'Unseen card');
+    const me = await newAdmin(db, 'Ada', [g.id]);
+    const changed = await newTicket({ groupId: g.id, status: 'new' });
+    const quiet = await newTicket({ groupId: g.id, status: 'new' });
+    await status(me.id, g.id, changed);
+    const unseen = async () =>
+      Object.fromEntries(
+        (await getDashboardTickets(db, me.id)).items
+          .filter((t) => t.groupId === g.id)
+          .map((t) => [t.id, t.unseen]),
+      );
+    expect(await unseen()).toEqual({ [changed]: true, [quiet]: false });
+    await markTicketSeen(db, me.id, changed);
+    expect(await unseen()).toEqual({ [changed]: false, [quiet]: false });
+  });
+});
+
+describe('the Tickets card', () => {
   it('an admin who manages and watches nothing counts only the tickets without a client', async () => {
     const me = await newAdmin(db, 'Ada');
     const card = await getDashboardTickets(db, me.id);
