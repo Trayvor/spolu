@@ -12,6 +12,8 @@ import {
 } from '@/features/knowledge/icons';
 import { withNamespaces } from '@/i18n/namespaces';
 import { Toast } from '@/components/ui/toast';
+import { cn } from '@/lib/utils';
+import type { KnowledgeVia } from './api';
 import { useChatScope } from './chat-scope';
 
 // Both dialogs load on the first click, with the knowledge texts they render.
@@ -77,21 +79,47 @@ function Card({ item, onOpen }: { item: MessageKnowledge; onOpen: () => void }) 
  * a žiadateľ in a ticket chat) opens the read-only view.
  */
 export function KnowledgeCards({ message, groupId }: { message: MessageDto; groupId: string }) {
-  const { t } = useTranslation();
   const { knowledgeViaMessage } = useChatScope();
+  return (
+    <KnowledgeCardList
+      items={message.knowledge}
+      groupId={groupId}
+      via={knowledgeViaMessage ? { kind: 'message', id: message.id } : null}
+      className="mt-1.5"
+    />
+  );
+}
+
+/**
+ * The cards of attached items (a message's, or a description's in Phase 33 part P5). `via`: the
+ * reader reaches the items only through it (a žiadateľ), so they open read-only; null opens the
+ * knowledge dialog.
+ */
+export function KnowledgeCardList({
+  items,
+  groupId,
+  via,
+  className,
+}: {
+  items: MessageKnowledge[];
+  groupId: string;
+  via: KnowledgeVia | null;
+  className?: string;
+}) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState<string | null>(null);
   const [gone, setGone] = useState(false);
-  if (message.knowledge.length === 0) return null;
+  if (items.length === 0) return null;
   return (
-    <div className="mt-1.5 flex flex-col items-start gap-1.5">
-      {message.knowledge.map((item) => (
+    <div className={cn('flex flex-col items-start gap-1.5', className)}>
+      {items.map((item) => (
         <Card key={item.id} item={item} onOpen={() => setOpen(item.id)} />
       ))}
       {open !== null && (
         <Suspense fallback={null}>
-          {knowledgeViaMessage ? (
+          {via ? (
             <SharedKnowledgeDialog
-              messageId={message.id}
+              via={via}
               itemId={open}
               groupId={groupId}
               onClose={() => setOpen(null)}

@@ -19,6 +19,8 @@ import { Input } from '@/components/ui/input';
 import { PanelNotice } from '@/components/ui/panel-notice';
 import { Toast } from '@/components/ui/toast';
 import { useSession } from '@/features/auth/use-session';
+import { MessageBody } from '@/features/chat/format/render';
+import { DescriptionField } from '@/features/editor/description-field';
 import { fileUrl } from '@/features/files/urls';
 import { formatFileSize } from '@/features/files/format-size';
 import { TasksIcon } from '@/features/task-split/use-message-task-tools';
@@ -252,12 +254,17 @@ const lines = (text: string) =>
     .filter(Boolean)
     .slice(0, MEETING_LIMITS.listItems);
 
-/** The summary's fields as plain inputs: a paragraph, lists one per line, action item rows. */
+/**
+ * The summary's fields: the paragraph in the description editor (AI and voice, Phase 33 part
+ * P5), the lists one per line, action item rows.
+ */
 function SummaryEditor({
+  groupId,
   summary,
   onCancel,
   onSave,
 }: {
+  groupId: string;
   summary: MeetingSummary;
   onCancel: () => void;
   onSave: (next: MeetingSummary) => Promise<void>;
@@ -301,16 +308,14 @@ function SummaryEditor({
 
   return (
     <div className="flex flex-col gap-4">
-      <label className="flex flex-col gap-2 text-button font-semibold">
-        {t('knowledge.meeting.ai.summary')}
-        <textarea
-          value={text}
-          rows={4}
-          maxLength={MEETING_LIMITS.summary}
-          onChange={(event) => setText(event.target.value)}
-          className={area}
-        />
-      </label>
+      <DescriptionField
+        id={`${uid}-summary`}
+        groupId={groupId}
+        value={text}
+        onChange={setText}
+        label={t('knowledge.meeting.ai.summary')}
+        editLabel={t('knowledge.meeting.ai.edit')}
+      />
       <label className="flex flex-col gap-2 text-button font-semibold">
         {t('knowledge.meeting.ai.decisions')}
         <textarea
@@ -612,10 +617,19 @@ export function SummarySection({
         </p>
       )}
       {editing && summary ? (
-        <SummaryEditor summary={summary} onCancel={() => setEditing(false)} onSave={saveSummary} />
+        <SummaryEditor
+          groupId={item.groupId}
+          summary={summary}
+          onCancel={() => setEditing(false)}
+          onSave={saveSummary}
+        />
       ) : summary ? (
         <div className="flex flex-col gap-4">
-          {summary.summary && <p className="text-body">{summary.summary}</p>}
+          {summary.summary && (
+            <div className="text-body">
+              <MessageBody body={summary.summary} nameOf={() => undefined} />
+            </div>
+          )}
           <List title={t('knowledge.meeting.ai.decisions')} items={summary.decisions} />
           {tasks.length > 0 ? (
             <Suspense fallback={null}>

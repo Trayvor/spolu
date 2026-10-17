@@ -56,6 +56,7 @@ const PROJECT: ProjectDto = {
   createdBy: null,
   createdAt: NOW,
   archivedAt: null,
+  linkedKnowledge: [],
 };
 
 function mockApi(page: { items: ProjectListItem[]; nextCursor: string | null }) {

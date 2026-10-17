@@ -13,7 +13,7 @@ import {
   type FinanceItemType,
 } from '@spolu/shared';
 import { FilesField } from '@/components/files-field';
-import { FormattedTextField } from '@/components/formatted-text-field';
+import { DescriptionField } from '@/features/editor/description-field';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -330,7 +330,7 @@ export function ItemForm({
         </>
       )}
 
-      <FormattedTextField
+      <DescriptionField
         id={`${uid}-body`}
         groupId={groupId}
         value={value.body}

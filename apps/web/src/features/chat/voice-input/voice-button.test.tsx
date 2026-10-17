@@ -51,7 +51,7 @@ function Harness({ initial }: { initial: string }) {
   return (
     <>
       <textarea aria-label="Draft" value={text} onChange={(e) => setText(e.target.value)} />
-      <VoiceButton channelId="c1" getText={() => text} setText={setText} />
+      <VoiceButton target={{ kind: 'channel', id: 'c1' }} getText={() => text} setText={setText} />
     </>
   );
 }

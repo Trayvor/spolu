@@ -10,15 +10,16 @@ import {
   type KnowledgeItemDto,
   type KnowledgePatch,
   type KnowledgeType,
+  type LinkedKnowledge,
   type ReminderInput,
   type Visibility,
 } from '@spolu/shared';
 import { i18n } from '@/i18n';
 import { FilesField } from '@/components/files-field';
-import { FormattedTextField } from '@/components/formatted-text-field';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
+import { DescriptionField } from '@/features/editor/description-field';
 import { useGroupPeople } from '@/features/groups/use-group-people';
 import { FileChip } from '@/features/files/file-chip';
 import { VisibilityControl } from './visibility-control';
@@ -56,6 +57,8 @@ export type KnowledgeFormValue = {
   times: ReminderTimeValue[];
   recipientIds: string[];
   meeting: MeetingFormValue;
+  /** Other items attached to the body (Phase 33 part P5); absent: none. */
+  linked?: LinkedKnowledge;
 };
 
 export type KnowledgeFormErrors = Partial<
@@ -122,6 +125,7 @@ export function fromItem(item: KnowledgeItemDto): KnowledgeFormValue {
       .filter((r) => r.source !== 'subscribed')
       .map((r) => r.user.id),
     meeting: meetingFormValue(item),
+    linked: item.linkedKnowledge ?? [],
   };
 }
 
@@ -210,6 +214,7 @@ export function toDraft(
     body: value.body,
     visibility: value.visibility,
     folderId: context.folderId ?? null,
+    ...(value.linked?.length ? { knowledgeIds: value.linked.map((k) => k.id) } : {}),
   };
   switch (type) {
     case 'note':
@@ -250,6 +255,14 @@ export function toPatch(
   if (value.title.trim() !== before.title) patch.title = value.title.trim();
   if (value.body !== before.body) patch.body = value.body;
   if (value.visibility !== before.visibility) patch.visibility = value.visibility;
+  const linkedIds = (value.linked ?? []).map((k) => k.id);
+  if (
+    !same(
+      linkedIds,
+      (before.linked ?? []).map((k) => k.id),
+    )
+  )
+    patch.knowledgeIds = linkedIds;
   if (item.type === 'link' && value.url.trim() !== before.url) patch.url = value.url.trim();
   if ((item.type === 'note' || item.type === 'file') && !same(value.fileIds, before.fileIds)) {
     patch.fileIds = value.fileIds;
@@ -530,7 +543,7 @@ export function KnowledgeForm({
       )}
 
       <div className={FIELD}>
-        <FormattedTextField
+        <DescriptionField
           id={id('body')}
           groupId={groupId}
           people={people}
@@ -552,6 +565,7 @@ export function KnowledgeForm({
           )}
           error={errors.body}
           errorId={id('body-error')}
+          knowledge={{ items: value.linked ?? [], onChange: (linked) => set({ linked }) }}
         />
         <FieldError id={id('body-error')} message={errors.body} />
       </div>

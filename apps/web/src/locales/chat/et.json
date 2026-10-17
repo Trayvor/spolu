@@ -135,5 +135,8 @@
       "meeting": "Koosolek",
       "chat_file": "Vestlusest"
     }
+  },
+  "editor": {
+    "knowledgeUnavailable": "Lisatud teadmuse kirjet ei saa siin enam jagada. Eemaldage see ja salvestage uuesti."
   }
 }

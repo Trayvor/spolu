@@ -4,14 +4,15 @@ import { VOICE_LIMITS } from '@spolu/shared';
 import { Toast } from '@/components/ui/toast';
 import { ApiError } from '@/lib/api';
 import { cn } from '@/lib/utils';
-import { useAiTools } from '../ai-tools/api';
+import { useAiTools, type AiTarget } from '../ai-tools/api';
 import { iconButton } from '../format-toolbar';
 import { CloseIcon } from '../icons';
 import { appendTranscript, transcribe } from './api';
 import { useRecorder } from './use-recorder';
 
 export interface VoiceButtonProps {
-  channelId: string;
+  /** The channel (composer) or group (description field) the calls go to. */
+  target: AiTarget;
   /** The draft as it is now (read when the transcript arrives). */
   getText(): string;
   /** Replaces the draft (Markdown); the transcript is appended, nothing is sent. */
@@ -28,11 +29,11 @@ type Notice = 'denied' | 'unsupported' | 'failed' | 'limited' | 'atLimit';
  * Voice input (Phase 28): the microphone records until the person taps Stop (no cut-off on
  * silence, only the 5-minute limit), shows a timer and a Cancel, then the server transcribes the
  * audio and the text is added to the draft for review. Hidden when the server has no
- * transcription. Self-contained: it only needs the channel and the draft callbacks.
+ * transcription. Self-contained: it only needs the target and the draft callbacks.
  */
-export function VoiceButton({ channelId, getText, setText, className }: VoiceButtonProps) {
+export function VoiceButton({ target, getText, setText, className }: VoiceButtonProps) {
   const { t } = useTranslation();
-  const tools = useAiTools(channelId);
+  const tools = useAiTools(target);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<Notice | null>(null);
 
@@ -40,7 +41,7 @@ export function VoiceButton({ channelId, getText, setText, className }: VoiceBut
     if (!audio || audio.size === 0) return;
     setBusy(true);
     try {
-      const text = await transcribe(channelId, audio);
+      const text = await transcribe(target, audio);
       setText(appendTranscript(getText(), text));
       if (atLimit) setNotice('atLimit');
     } catch (error) {

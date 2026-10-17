@@ -101,7 +101,8 @@
       "url": "Vnesite povezavo, ki se začne s https:// ali http://.",
       "client": "Izberite stranko.",
       "email": "Vnesite veljaven e-poštni naslov."
-    }
+    },
+    "editBody": "Uredi besedilo"
   },
   "tasks": {
     "title": "Naloge",

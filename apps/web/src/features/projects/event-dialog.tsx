@@ -1,14 +1,19 @@
 import { useId, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { PROJECT_LIMITS, type FileInfo, type ProjectEventDto } from '@spolu/shared';
+import {
+  PROJECT_LIMITS,
+  type FileInfo,
+  type LinkedKnowledge,
+  type ProjectEventDto,
+} from '@spolu/shared';
 import { FilesField } from '@/components/files-field';
-import { FormattedTextField } from '@/components/formatted-text-field';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { PanelNotice } from '@/components/ui/panel-notice';
 import { SheetDialog, SheetDialogTitle } from '@/components/ui/sheet-dialog';
+import { DescriptionField } from '@/features/editor/description-field';
 import { ApiError } from '@/lib/api';
 import { createEvent, deleteEvent, projectsKey, updateEvent } from './api';
 import { DialogFrame, FIELD, validateProject, type ProjectFormErrors } from './project-dialog';
@@ -39,6 +44,7 @@ export function EventDialog({
   const [occursOn, setOccursOn] = useState(event?.occursOn ?? '');
   const [description, setDescription] = useState(event?.description ?? '');
   const [files, setFiles] = useState<FileInfo[]>(event?.files ?? []);
+  const [linked, setLinked] = useState<LinkedKnowledge>(event?.linkedKnowledge ?? []);
   const [errors, setErrors] = useState<EventErrors>({});
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -52,6 +58,8 @@ export function EventDialog({
     setBusy(false);
     if (error instanceof ApiError && error.code === 'project_changed') {
       setErrors({ form: k('errors.changed') });
+    } else if (error instanceof ApiError && error.code === 'invalid_knowledge_item') {
+      setErrors({ form: t('chat.editor.knowledgeUnavailable') });
     } else if (error instanceof ApiError && error.code === 'invalid_attachment') {
       setErrors({ form: k('errors.files') });
     } else {
@@ -65,7 +73,13 @@ export function EventDialog({
     setErrors(found);
     if (Object.keys(found).length > 0 || busy) return;
     setBusy(true);
-    const body = { name: name.trim(), occursOn, description, fileIds: files.map((f) => f.id) };
+    const body = {
+      name: name.trim(),
+      occursOn,
+      description,
+      fileIds: files.map((f) => f.id),
+      knowledgeIds: linked.map((k) => k.id),
+    };
     try {
       if (event) await updateEvent(event.id, { ...body, updatedAt: event.updatedAt });
       else await createEvent(project.id, body);
@@ -170,7 +184,7 @@ export function EventDialog({
             )}
           </div>
         </div>
-        <FormattedTextField
+        <DescriptionField
           id={`${uid}-description`}
           groupId={groupId}
           value={description}
@@ -179,6 +193,7 @@ export function EventDialog({
           editLabel={k('editDescription')}
           error={errors.description}
           errorId={`${uid}-description-error`}
+          knowledge={{ items: linked, onChange: setLinked }}
         />
         <div className={FIELD}>
           <span id={`${uid}-files`} className="text-button font-semibold">

@@ -5,6 +5,7 @@ import type { FileInfo, KnowledgeItemDto } from '@spolu/shared';
 import { Avatar } from '@/components/avatar';
 import { SheetDialogTitle } from '@/components/ui/sheet-dialog';
 import { MessageBody } from '@/features/chat/format/render';
+import { DescriptionView } from '@/features/editor/description-field';
 import { FileChip } from '@/features/files/file-chip';
 import { ImagePreview } from '@/features/files/image-preview';
 import { ReminderPanel } from '@/features/reminders/reminder-panel';
@@ -105,6 +106,15 @@ export const KnowledgeView = forwardRef<
           )}
           <Body body={item.body} nameOf={nameOf} />
         </>
+      )}
+
+      {(item.linkedKnowledge?.length ?? 0) > 0 && (
+        <DescriptionView
+          body=""
+          groupId={item.groupId}
+          linked={item.linkedKnowledge!}
+          nameOf={nameOf}
+        />
       )}
 
       {item.type === 'chat_file' && (

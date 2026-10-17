@@ -141,5 +141,8 @@
       "meeting": "Sestanek",
       "chat_file": "Iz klepeta"
     }
+  },
+  "editor": {
+    "knowledgeUnavailable": "Priloženega elementa znanja tu ni več mogoče deliti. Odstranite ga in znova shranite."
   }
 }

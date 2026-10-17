@@ -15,7 +15,7 @@ import { PanelHeader } from '@/components/ui/panel-header';
 import { PanelNotice } from '@/components/ui/panel-notice';
 import { SheetDialog, SheetDialogTitle } from '@/components/ui/sheet-dialog';
 import { Skeleton } from '@/components/ui/skeleton';
-import { MessageBody } from '@/features/chat/format/render';
+import { DescriptionView } from '@/features/editor/description-field';
 import { FileChip } from '@/features/files/file-chip';
 import { ImagePreview } from '@/features/files/image-preview';
 import { useGroupPeople } from '@/features/groups/use-group-people';
@@ -175,11 +175,13 @@ export function ProjectSheet({
                 )}
               </div>
             </div>
-            {project.description.trim() !== '' && (
-              <div className="text-button">
-                <MessageBody body={project.description} nameOf={nameOf} />
-              </div>
-            )}
+            <DescriptionView
+              body={project.description}
+              groupId={project.groupId}
+              linked={project.linkedKnowledge}
+              nameOf={nameOf}
+              className="text-button"
+            />
             {project.files.length > 0 && <Files files={project.files} />}
 
             <section aria-labelledby="project-events-title" className="flex flex-col gap-2">

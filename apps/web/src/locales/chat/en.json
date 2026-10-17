@@ -135,5 +135,8 @@
       "meeting": "Meeting",
       "chat_file": "From chat"
     }
+  },
+  "editor": {
+    "knowledgeUnavailable": "An attached knowledge item can no longer be shared here. Remove it and save again."
   }
 }

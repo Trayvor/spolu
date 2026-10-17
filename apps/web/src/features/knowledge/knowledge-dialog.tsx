@@ -70,6 +70,8 @@ function saveErrors(error: unknown, t: (key: string) => string): KnowledgeFormEr
       return { recipients: t('knowledge.detail.recipientInvalid') };
     case 'invalid_visibility':
       return { form: t('knowledge.folders.clientItem') };
+    case 'invalid_knowledge_item':
+      return { form: t('chat.editor.knowledgeUnavailable') };
     default:
       return { form: t('knowledge.detail.saveFailed') };
   }

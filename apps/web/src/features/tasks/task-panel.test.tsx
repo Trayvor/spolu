@@ -126,6 +126,7 @@ beforeEach(() => {
     sourceMessage: null,
     sourceTicket: null,
     sourceMeeting: null,
+    linkedKnowledge: [],
   };
   fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
     const method = init?.method ?? 'GET';
@@ -159,6 +160,7 @@ beforeEach(() => {
         sourceMessage: null,
         sourceTicket: null,
         sourceMeeting: null,
+        linkedKnowledge: [],
       });
     }
     if (url === '/api/tasks/t1' && method === 'DELETE') return reply(204);

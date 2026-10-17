@@ -12,6 +12,7 @@ import {
   type BoardTaskEvent,
   type FileInfo,
   type TaskDetailDto,
+  type LinkedKnowledge,
   type TaskDraft,
 } from '@spolu/shared';
 import { isAdmin } from '@/features/auth/roles';
@@ -61,6 +62,7 @@ const toDraft = (task: TaskDetailDto): TaskDraft => ({
   urgent: task.urgent,
   fileIds: task.files.map((f) => f.id),
   link: task.link,
+  knowledgeIds: task.linkedKnowledge.map((k) => k.id),
 });
 
 const sameDraft = (a: TaskDraft, b: TaskDraft) =>
@@ -70,7 +72,8 @@ const sameDraft = (a: TaskDraft, b: TaskDraft) =>
   a.urgent === b.urgent &&
   a.link === b.link &&
   a.assigneeIds.join() === b.assigneeIds.join() &&
-  a.fileIds.join() === b.fileIds.join();
+  a.fileIds.join() === b.fileIds.join() &&
+  (a.knowledgeIds ?? []).join() === (b.knowledgeIds ?? []).join();
 
 /** Route component: reads the ids from the URL. */
 export function TaskPanelRoute() {
@@ -231,6 +234,7 @@ function TaskEditor({
   const [base, setBase] = useState(initial);
   const [draft, setDraft] = useState<TaskDraft>(() => toDraft(initial));
   const [files, setFiles] = useState<FileInfo[]>(initial.files);
+  const [linked, setLinked] = useState<LinkedKnowledge>(initial.linkedKnowledge);
   const [errors, setErrors] = useState<TaskFormErrors>({});
   const [uploading, setUploading] = useState(false);
   const [stale, setStale] = useState<{ by: string | null } | null>(null);
@@ -272,6 +276,7 @@ function TaskEditor({
     setBase(next);
     setDraft(toDraft(next));
     setFiles(next.files);
+    setLinked(next.linkedKnowledge);
     setErrors({});
     setStale(null);
   };
@@ -363,6 +368,8 @@ function TaskEditor({
         setStale({ by: null });
       } else if (error instanceof ApiError && error.code === 'invalid_url') {
         setErrors({ link: t('tasks.form.errors.invalidLink') });
+      } else if (error instanceof ApiError && error.code === 'invalid_knowledge_item') {
+        setErrors({ form: t('chat.editor.knowledgeUnavailable') });
       } else if (error instanceof ApiError && error.code === 'invalid_assignee') {
         // Someone chosen left the group or stopped managing it: refresh who can be assigned.
         setErrors({ assigneeIds: t('tasks.form.errors.assigneeNotAllowed') });
@@ -546,6 +553,7 @@ function TaskEditor({
             errors={errors}
             files={files}
             onFilesChange={setFiles}
+            knowledge={{ items: linked, onChange: setLinked }}
             knownPeople={base.assignees}
             onUploadingChange={setUploading}
             timeSlot={
@@ -588,6 +596,7 @@ function TaskEditor({
                 onClick={() => {
                   setDraft(toDraft(base));
                   setFiles(base.files);
+                  setLinked(base.linkedKnowledge);
                   setErrors({});
                 }}
               >

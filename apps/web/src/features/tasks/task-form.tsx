@@ -13,8 +13,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { FilesField } from '@/components/files-field';
-import { FormattedTextField } from '@/components/formatted-text-field';
 import { PeopleSelect } from '@/components/people-select';
+import { DescriptionField, type DescriptionKnowledge } from '@/features/editor/description-field';
 import { useGroupPeople } from '@/features/groups/use-group-people';
 import { LinkIcon } from './icons';
 import { UrgentSwitch } from './urgent-switch';
@@ -134,6 +134,7 @@ export function TaskForm({
   linkWarning = false,
   linkInputRef,
   onUploadingChange,
+  knowledge,
 }: {
   value: TaskDraft;
   onChange: (next: TaskDraft) => void;
@@ -159,6 +160,11 @@ export function TaskForm({
   linkInputRef?: Ref<HTMLInputElement>;
   /** True while a file uploads; the parent keeps Save disabled until it is false. */
   onUploadingChange?: (uploading: boolean) => void;
+  /**
+   * The knowledge attached to the description (Phase 33 part P5): its cards, kept by the parent
+   * like `files`; a change also sets `value.knowledgeIds`. Absent (the AI review): none.
+   */
+  knowledge?: DescriptionKnowledge;
 }) {
   const { t } = useTranslation();
   const people = useGroupPeople(groupId).data;
@@ -201,11 +207,20 @@ export function TaskForm({
       </div>
 
       <div className={FIELD}>
-        <FormattedTextField
+        <DescriptionField
           id={id('description')}
           groupId={groupId}
           value={value.description}
           onChange={(description) => set({ description })}
+          knowledge={
+            knowledge && {
+              items: knowledge.items,
+              onChange: (next) => {
+                knowledge.onChange(next);
+                set({ knowledgeIds: next.map((k) => k.id) });
+              },
+            }
+          }
           label={t('tasks.form.description')}
           editLabel={t('tasks.form.editDescription')}
           error={errors.description}

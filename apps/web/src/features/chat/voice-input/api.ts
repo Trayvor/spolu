@@ -1,10 +1,11 @@
 import { AiTextResultSchema } from '@spolu/shared';
 import { i18n } from '@/i18n';
 import { ApiError } from '@/lib/api';
+import { aiPath, type AiTarget } from '../ai-tools/api';
 
 /** Sends one recording to the server and returns its transcript; the audio is not stored. */
-export async function transcribe(channelId: string, audio: Blob): Promise<string> {
-  const path = `/channels/${encodeURIComponent(channelId)}/transcribe`;
+export async function transcribe(target: AiTarget, audio: Blob): Promise<string> {
+  const path = `${aiPath(target)}/transcribe`;
   const res = await fetch(`/api${path}`, {
     method: 'POST',
     credentials: 'include',

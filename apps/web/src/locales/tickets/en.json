@@ -99,7 +99,8 @@
       "url": "Enter a link that starts with https:// or http://.",
       "client": "Choose the client.",
       "email": "Enter a valid email."
-    }
+    },
+    "editBody": "Edit text"
   },
   "tasks": {
     "title": "Tasks",

@@ -99,7 +99,8 @@
       "url": "Sisestage link, mis algab https:// või http://.",
       "client": "Valige klient.",
       "email": "Sisestage kehtiv e-posti aadress."
-    }
+    },
+    "editBody": "Muuda teksti"
   },
   "tasks": {
     "title": "Ülesanded",

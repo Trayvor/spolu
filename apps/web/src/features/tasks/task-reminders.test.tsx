@@ -73,6 +73,7 @@ const TASK: TaskDetailDto = {
   sourceMessage: null,
   sourceTicket: null,
   sourceMeeting: null,
+  linkedKnowledge: [],
 };
 
 const EMPTY: ReminderSetDto = { times: [], recipients: [], subscribed: false, canEdit: true };

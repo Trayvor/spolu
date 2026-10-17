@@ -52,6 +52,7 @@ export function NewTicketDialog({
   const chooseGroup = (next: string) => {
     setGroupId(next);
     setFiles([]); // uploads belong to the client they were made for
+    setContent((c) => ({ ...c, linked: [] })); // and so does its knowledge
   };
 
   const submit = () => {
@@ -75,6 +76,7 @@ export function NewTicketDialog({
         dueDate: content.dueDate || null,
         url: content.url,
         fileIds: files.map((f) => f.id),
+        ...(content.linked?.length ? { knowledgeIds: content.linked.map((k) => k.id) } : {}),
       },
       { onSuccess: onCreated },
     );
@@ -165,6 +167,7 @@ export function NewTicketDialog({
             </fieldset>
           )}
           <ContentFields
+            groupId={groupId}
             draft={content}
             onChange={setContent}
             errors={errors}

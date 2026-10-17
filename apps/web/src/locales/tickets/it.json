@@ -100,7 +100,8 @@
       "url": "Inserire un link che inizi con https:// o http://.",
       "client": "Scegliere il cliente.",
       "email": "Inserire un'email valida."
-    }
+    },
+    "editBody": "Modifica il testo"
   },
   "tasks": {
     "title": "Attività",

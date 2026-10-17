@@ -138,5 +138,8 @@
       "meeting": "Sastanak",
       "chat_file": "Iz chata"
     }
+  },
+  "editor": {
+    "knowledgeUnavailable": "Priloženu stavku znanja ovdje više nije moguće dijeliti. Uklonite je i spremite ponovno."
   }
 }

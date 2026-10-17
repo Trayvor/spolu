@@ -141,5 +141,8 @@
       "meeting": "Stretnutie",
       "chat_file": "Z chatu"
     }
+  },
+  "editor": {
+    "knowledgeUnavailable": "Priložená položka znalostí sa tu už nedá zdieľať. Odstráňte ju a uložte znova."
   }
 }

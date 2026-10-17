@@ -12,10 +12,11 @@ import { Toast } from '@/components/ui/toast';
 import { ApiError } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { iconButton } from '../format-toolbar';
-import { rewriteText, useAiTools } from './api';
+import { rewriteText, useAiTools, type AiTarget } from './api';
 
 export interface AiTextButtonProps {
-  channelId: string;
+  /** The channel (composer) or group (description field) the calls go to. */
+  target: AiTarget;
   /** The draft as it is now (Markdown). */
   getText(): string;
   /** Replaces the draft with the AI's version (or back, on Undo). Nothing is sent. */
@@ -39,11 +40,11 @@ function languageLabel(code: string, uiLanguage: string): string {
  * The AI text tools (Phase 28), a button next to Send like Telegram's: Fix mistakes, Make it
  * formal and, off `.sk` instances, Translate to English and to the client's language. The answer
  * replaces the draft for review, with Undo; nothing is sent. Hidden unless the server offers the
- * tools to this reader. Self-contained: it only needs the channel and the draft callbacks.
+ * tools to this reader. Self-contained: it only needs the target and the draft callbacks.
  */
-export function AiTextButton({ channelId, getText, setText, className }: AiTextButtonProps) {
+export function AiTextButton({ target, getText, setText, className }: AiTextButtonProps) {
   const { t, i18n } = useTranslation();
-  const tools = useAiTools(channelId);
+  const tools = useAiTools(target);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<Notice | null>(null);
   // The draft lives in the composer's ref, so typing does not render this button: render it again
@@ -58,7 +59,7 @@ export function AiTextButton({ channelId, getText, setText, className }: AiTextB
     setBusy(true);
     setNotice(null);
     try {
-      const after = await rewriteText(channelId, { ...choice, text: before } as AiTextBody);
+      const after = await rewriteText(target, { ...choice, text: before } as AiTextBody);
       setText(after);
       setNotice({ kind: 'done', before, after });
     } catch (error) {

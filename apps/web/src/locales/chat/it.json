@@ -138,5 +138,8 @@
       "meeting": "Riunione",
       "chat_file": "Dalla chat"
     }
+  },
+  "editor": {
+    "knowledgeUnavailable": "Un elemento della knowledge base allegato non può più essere condiviso qui. Rimuovilo e salva di nuovo."
   }
 }

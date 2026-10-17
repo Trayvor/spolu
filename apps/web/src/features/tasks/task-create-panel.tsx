@@ -2,7 +2,13 @@ import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams, useRouter, useSearch } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
-import { TaskDtoSchema, type BoardDto, type FileInfo, type TaskDraft } from '@spolu/shared';
+import {
+  TaskDtoSchema,
+  type BoardDto,
+  type FileInfo,
+  type LinkedKnowledge,
+  type TaskDraft,
+} from '@spolu/shared';
 import { groupPeopleQuery, groupQuery } from '@/features/groups/api';
 import { Button } from '@/components/ui/button';
 import { ApiError } from '@/lib/api';
@@ -41,6 +47,7 @@ export function NewTaskPanel({ groupId, bucketId }: { groupId: string; bucketId?
   const { data: group } = useQuery(groupQuery(groupId));
   const [draft, setDraft] = useState<TaskDraft>(EMPTY_TASK_DRAFT);
   const [files, setFiles] = useState<FileInfo[]>([]);
+  const [linked, setLinked] = useState<LinkedKnowledge>([]);
   const [errors, setErrors] = useState<TaskFormErrors>({});
   const [chosen, setChosen] = useState<string | undefined>(bucketId);
   const [busy, setBusy] = useState(false);
@@ -77,6 +84,8 @@ export function NewTaskPanel({ groupId, bucketId }: { groupId: string; bucketId?
       const invalidAssignee = error instanceof ApiError && error.code === 'invalid_assignee';
       if (error instanceof ApiError && error.code === 'invalid_url') {
         setErrors({ link: t('tasks.form.errors.invalidLink') });
+      } else if (error instanceof ApiError && error.code === 'invalid_knowledge_item') {
+        setErrors({ form: t('chat.editor.knowledgeUnavailable') });
       } else {
         setErrors({
           form: t(invalidAssignee ? 'tasks.form.errors.assigneeNotAllowed' : 'tasks.board.error'),
@@ -113,6 +122,7 @@ export function NewTaskPanel({ groupId, bucketId }: { groupId: string; bucketId?
           errors={errors}
           files={files}
           onFilesChange={setFiles}
+          knowledge={{ items: linked, onChange: setLinked }}
           linkWarning={linkWarning.shown}
           linkInputRef={linkWarning.inputRef}
           autoFocusTitle
