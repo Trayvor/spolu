@@ -30,6 +30,7 @@ function GroupFrame({ groupId }: { groupId: string }) {
           <GroupHeader group={group} admin={admin} />
           <GroupTabs
             groupId={group.id}
+            kind={group.kind}
             badges={{
               chat: <ChatTabBadge groupId={group.id} />,
               tasks: <TasksTabBadge groupId={group.id} />,

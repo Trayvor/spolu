@@ -52,3 +52,4 @@ What gets easier, what gets harder.
 | [0026](0026-bulk-email-wide-layout-and-linked-preview.md) | A wider email for split containers, and a preview linked to the builder | accepted |
 | [0027](0027-sealed-finance-module.md) | A sealed finance module: own tables, own room, finance-only files | accepted |
 | [0028](0028-finance-charts-own-svg.md) | Finance charts as our own SVG components, no chart library | accepted |
+| [0029](0029-admin-group-as-a-group-row.md) | The internal admin group as one `groups` row with `kind = 'admin'` | accepted |

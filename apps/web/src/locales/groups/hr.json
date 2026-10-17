@@ -51,5 +51,8 @@
     "none": "Bez voditelja",
     "empty": "Nema grupa za ovaj filtar.",
     "clear": "Poništi filtar"
+  },
+  "adminGroup": {
+    "hint": "Interni chat tima eGrant. Vide ga samo administratori."
   }
 }

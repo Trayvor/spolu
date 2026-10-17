@@ -62,7 +62,8 @@ describe('getSidebar', () => {
     const ids = Object.values(groups).map((g) => g.id);
     const rows = own(await getSidebar(db, admin.id), ids);
     expect(rows.map((r) => r.managed)).toEqual([true, true, true, false, false, false]);
-    const all = await getSidebar(db, admin.id);
+    // The admin group's internal section comes first (Phase 34, admin-group.test.ts).
+    const all = (await getSidebar(db, admin.id)).filter((r) => r.section === 'client');
     const firstOther = all.findIndex((r) => !r.managed);
     expect(all.slice(firstOther).every((r) => !r.managed)).toBe(true);
   });

@@ -51,5 +51,8 @@
     "none": "Bez správcu",
     "empty": "Žiadne skupiny pre tento filter.",
     "clear": "Zrušiť filter"
+  },
+  "adminGroup": {
+    "hint": "Interný chat tímu eGrant. Vidia ho iba administrátori."
   }
 }

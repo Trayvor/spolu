@@ -4,6 +4,7 @@ Terms used across the docs and code, in alphabetical order.
 
 - **@all**: a mention of everyone in the group (shown as "Everyone in this group" in the picker, stored as `<@all>`). It marks the message for every person in the group, like a mention of each of them.
 - **admin**: an eGrant team member. Sees all groups and can manage them. Created by the superadmin.
+- **admin group**: the one internal group "eGrant tím" (Phase 34), a `groups` row with `kind = 'admin'`. Every admin reads it, no client ever does; it has chat, tasks and knowledge but no tickets, members or managers. Shown first as "Internal" in the admin's client list.
 - **ADR**: architecture decision record, a short file in `docs/decisions/` that records one decision and why it was made.
 - **API key**: the shared secret (`TICKETS_API_KEY`) eGrant sends as `Authorization: Bearer` with each ticket to the intake API.
 - **AppPrompt**: the one card at the bottom of every signed-in screen that asks to install the app on a phone, then to turn on notifications on this device, or tells an old iPhone that only email works (`<AppPrompt>`, `features/notifications/app-prompt.tsx`). "Not now" hides it for 6 hours on that device.

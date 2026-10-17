@@ -1,4 +1,4 @@
-import type { MemberRole, Role, SessionUser } from '@spolu/shared';
+import type { GroupKind, MemberRole, Role, SessionUser } from '@spolu/shared';
 import { isAdmin } from '../users/policy.js';
 
 /** What the policy needs of a ticket. */
@@ -18,6 +18,14 @@ export function canReadTicket(
   if (ticket.groupId === null) return false;
   if (role === 'client') return true;
   return role === 'ziadatel' && ticket.requesterUserId === actor.id;
+}
+
+/**
+ * Whether a group can hold tickets: every client group, never the admin group (Phase 34). A ticket
+ * is never created in, moved into or matched to it.
+ */
+export function canHoldTickets(group: { kind: GroupKind }): boolean {
+  return group.kind !== 'admin';
 }
 
 /** Admins create a ticket for any client; a client in their own group; a ziadatel never. */

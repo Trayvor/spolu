@@ -69,6 +69,9 @@ export const ErrorCodes = {
   emailTakenClient: 'email_taken_client',
   invalidLogo: 'invalid_logo',
   egrantUrlTaken: 'egrant_url_taken',
+  // Phase 34 — the admin group: no members, invites or managers there; no tickets in it
+  adminGroup: 'admin_group',
+  invalidGroup: 'invalid_group',
   rateLimited: 'rate_limited',
   fileTooLarge: 'file_too_large',
   invalidAttachment: 'invalid_attachment',

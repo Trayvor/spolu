@@ -7,7 +7,7 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ApiError } from '@/lib/api';
-import { createGroup, removeLogo, updateGroup, uploadLogo } from './api';
+import { createGroup, removeLogo, updateAdminGroup, updateGroup, uploadLogo } from './api';
 import { GroupLogo } from './group-logo';
 import { resizeImage } from '@/lib/resize-image';
 
@@ -31,7 +31,8 @@ class LogoUploadError extends Error {
 }
 
 /**
- * Inline create / edit form (no modal). Without `group` it creates one, then uploads the logo:
+ * Inline create / edit form (no modal). The admin group (Phase 34) has name and logo only.
+ * Without `group` it creates one, then uploads the logo:
  * if only the logo fails, the group exists, so the form carries on as the edit form of that
  * group with the logo error shown. Removing the logo takes effect on Save, like every other field.
  */
@@ -47,6 +48,7 @@ export function GroupForm({
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [current, setCurrent] = useState<Group | undefined>(group);
+  const adminGroup = group?.kind === 'admin';
   const [name, setName] = useState(group?.name ?? '');
   const [egrantUrl, setEgrantUrl] = useState(group?.egrantUrl ?? '');
   const [logoFile, setLogoFile] = useState<File | null>(null);
@@ -61,7 +63,12 @@ export function GroupForm({
 
   const save = useMutation({
     mutationFn: async (input: { name: string; egrantUrl: string }) => {
-      const saved = current ? await updateGroup(current.id, input) : await createGroup(input);
+      const saved =
+        current && adminGroup
+          ? await updateAdminGroup(current.id, input.name)
+          : current
+            ? await updateGroup(current.id, input)
+            : await createGroup(input);
       // The group is saved from here on: a later failure must not lose it.
       setCurrent(saved);
       if (logoFile) {
@@ -101,9 +108,11 @@ export function GroupForm({
     setUrlError(null);
     setLogoError(null);
     setFormError(null);
-    const parsed = GroupInputSchema.safeParse({ name, egrantUrl });
+    // The admin group has no URL: a placeholder keeps one check for the name.
+    const url = adminGroup ? 'https://egrant.sk' : egrantUrl;
+    const parsed = GroupInputSchema.safeParse({ name, egrantUrl: url });
     const nameBad = !parsed.success && parsed.error.issues.some((i) => i.path[0] === 'name');
-    const urlBad = !isHttpUrl(egrantUrl);
+    const urlBad = !isHttpUrl(url);
     if (nameBad) setNameError(t('groups.errors.nameRequired'));
     if (urlBad) setUrlError(t('groups.errors.invalidUrl'));
     if (nameBad || urlBad || !parsed.success) {
@@ -136,25 +145,27 @@ export function GroupForm({
             </p>
           )}
         </div>
-        <div className="flex flex-col gap-2.5">
-          <Label htmlFor="group-url">{t('groups.form.egrantUrl')}</Label>
-          <Input
-            id="group-url"
-            inputMode="url"
-            autoComplete="off"
-            autoCapitalize="none"
-            placeholder="https://firma.egrant.sk"
-            value={egrantUrl}
-            onChange={(e) => setEgrantUrl(e.target.value)}
-            aria-invalid={urlError ? true : undefined}
-            aria-describedby={urlError ? 'group-url-error' : undefined}
-          />
-          {urlError && (
-            <p id="group-url-error" className="-mt-0.5 text-micro text-error-ink">
-              {urlError}
-            </p>
-          )}
-        </div>
+        {!adminGroup && (
+          <div className="flex flex-col gap-2.5">
+            <Label htmlFor="group-url">{t('groups.form.egrantUrl')}</Label>
+            <Input
+              id="group-url"
+              inputMode="url"
+              autoComplete="off"
+              autoCapitalize="none"
+              placeholder="https://firma.egrant.sk"
+              value={egrantUrl}
+              onChange={(e) => setEgrantUrl(e.target.value)}
+              aria-invalid={urlError ? true : undefined}
+              aria-describedby={urlError ? 'group-url-error' : undefined}
+            />
+            {urlError && (
+              <p id="group-url-error" className="-mt-0.5 text-micro text-error-ink">
+                {urlError}
+              </p>
+            )}
+          </div>
+        )}
         <div className="flex flex-col gap-2.5">
           <Label htmlFor="group-logo">{t('groups.form.logo')}</Label>
           <div className="flex items-center gap-3">
@@ -173,6 +184,7 @@ export function GroupForm({
                 hasLogo={showCurrentLogo}
                 version={current?.updatedAt}
                 size={56}
+                admin={adminGroup}
               />
             )}
             <input

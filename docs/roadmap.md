@@ -39,7 +39,7 @@ Requirements per module: [product/](product/README.md). Phases after 1 get their
 | 31 | [Bulk email builder v2](#phase-31--bulk-email-builder-v2) | in progress (v2 merged in PR #59; layout follow-up in review) | 23 | [spec](superpowers/specs/2026-10-17-phase-31-bulk-email-builder-v2-design.md), [plan](superpowers/plans/2026-10-17-phase-31-bulk-email-builder-v2.md), [layout spec](superpowers/specs/2026-10-17-bulk-email-builder-layout-design.md) |
 | 32 | [Finančná správa](#phase-32--finančná-správa) | done | 17, 19, 20, 24 | [spec](superpowers/specs/2026-10-17-finance-module-design.md), [plan](superpowers/plans/2026-10-17-finance-module.md) |
 | 33 | [Projects per client and closer eGrant integration](#phase-33--projects-per-client-and-closer-egrant-integration) | spec approved | 32 (P6 only), 28 | [spec](superpowers/specs/2026-10-17-phase-33-projects-design.md), [plan](superpowers/plans/2026-10-17-phase-33-projects.md) |
-| 34 | [Internal admin group](#phase-34--internal-admin-group) | spec approved | 33, 32 (P34-E only), 28 | [spec](superpowers/specs/2026-10-17-phase-34-admin-group-design.md), [plan](superpowers/plans/2026-10-17-phase-34-admin-group.md) |
+| 34 | [Internal admin group](#phase-34--internal-admin-group) | in progress (P34-B done) | 33, 32 (P34-E only), 28 | [spec](superpowers/specs/2026-10-17-phase-34-admin-group-design.md), [plan](superpowers/plans/2026-10-17-phase-34-admin-group.md) |
 
 Phases 8 and 14 do not depend on each other, so their order can change by priority.
 
@@ -493,6 +493,8 @@ Scope: one internal group **"eGrant tím"** (a `groups` row with `kind = 'admin'
 
 Built in five pull requests: P34-A (the picker in client groups, can start before the rest) and P34-B (the admin group) first, then P34-C (knowledge sharing), P34-D (the picker in the admin group) and P34-E (finance in the admin group).
 
-Status: spec approved by the owner on 2026-10-17 (every decision as written). P34-A and P34-B can start with Phase 33's first wave.
+Status: spec approved by the owner on 2026-10-17 (every decision as written). **P34-B done** (branch `feat/admin-group`, migration 0037, [ADR 0029](decisions/0029-admin-group-as-a-group-row.md)): the admin group row with `kind`, the refusals (`409 admin_group`, `400 invalid_group`, `404`), every admin pickable there, All messages by default, the sidebar's Internal section, the pinned `/groups` row, the tabs without Tickets and Members, the client filter option. P34-A, P34-C, P34-D and P34-E remain; the Overview tab comes with Phase 33.
+
+To walk on https://help.egrant.sk after the P34-B merge: "eGrant tím" is first in the home sidebar under Internal and pinned on `/groups`; its tabs are Chat, Tasks, Knowledge (and Financie for finance admins); a second admin hears its messages without touching the bell; every admin is offered as an assignee; a client opening its address gets "Page not found"; rename it from its header (name and logo only).
 
 Done when: every admin works in "eGrant tím" (chat, tasks, projects, knowledge, finance for finance admins) with no way in for a client; an admin shares one internal note with a client chat on purpose and the client opens only that; a message in a client chat carries a task and a ticket card, and in the admin group any client's work with the client filter.

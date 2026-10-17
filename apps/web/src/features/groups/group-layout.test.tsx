@@ -61,6 +61,8 @@ function mockApi(
     invited?: unknown[];
     group?: number;
     egrantUrl?: string;
+    /** The admin group "eGrant tím" (Phase 34). */
+    admin?: boolean;
     taskChats?: Record<string, { count: number; unread: boolean }>;
   } = {},
 ) {
@@ -73,7 +75,9 @@ function mockApi(
     if (url === '/api/me') return reply(200, me);
     if (url === '/api/groups/g1' && method === 'GET') {
       if (options.group) return reply(options.group, { error: 'not_found' });
-      const group = { ...GROUP, egrantUrl: options.egrantUrl ?? GROUP.egrantUrl };
+      const group = options.admin
+        ? { ...GROUP, name: 'eGrant tím', kind: 'admin', egrantUrl: null }
+        : { ...GROUP, egrantUrl: options.egrantUrl ?? GROUP.egrantUrl };
       return reply(200, me.role === 'client' ? group : { ...group, inviteUrl: INVITE });
     }
     if (url === '/api/groups/g1/invite' && method === 'POST') {
@@ -179,6 +183,33 @@ describe('group layout', () => {
     await user.click(link('group.tabs.members'));
     expect(await screen.findByText('Petr')).toBeInTheDocument();
   });
+
+  it('the admin group: Chat, Tasks, Knowledge, no Tickets or Members, no link (Phase 34)', async () => {
+    mockApi({ admin: true, me: { ...ADMIN, finance: true } });
+    renderGroup('/groups/g1/chat');
+    const nav = await screen.findByRole('navigation', { name: t('group.tabs.label') });
+    const names = within(nav)
+      .getAllByRole('link')
+      .map((link) => link.getAttribute('href'));
+    expect(names).toEqual([
+      '/groups/g1/chat',
+      '/groups/g1/tasks',
+      '/groups/g1/knowledge',
+      '/groups/g1/finance',
+    ]);
+    const title = screen.getByRole('heading', { level: 1, name: 'eGrant tím' });
+    expect(within(title).queryByRole('link')).toBeNull();
+    expect(document.querySelector('[data-egrant-mark]')).not.toBeNull();
+  });
+
+  it.each(['tickets', 'members'])(
+    'the admin group has no %s screen: not found (Phase 34)',
+    async (tab) => {
+      mockApi({ admin: true });
+      renderGroup(`/groups/g1/${tab}`);
+      expect(await screen.findByText(t('notFound.title'))).toBeInTheDocument();
+    },
+  );
 
   it('only a finance admin has the Financie tab, last, and it opens the three cards (Phase 32)', async () => {
     mockApi();

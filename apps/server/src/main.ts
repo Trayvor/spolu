@@ -2,6 +2,9 @@ import { ConfigError, loadConfig } from './infra/config/config.js';
 import { createDeps } from './deps.js';
 import { runMigrations } from './infra/db/migrate.js';
 import { buildApp } from './app.js';
+import { ensureGroupChannel } from './modules/chat/service.js';
+import { ensureAdminGroup } from './modules/groups/admin-group.js';
+import { ensureBoard } from './modules/tasks/service.js';
 import { ensureSuperadmin } from './modules/users/service.js';
 import { registerStatic } from './static.js';
 
@@ -28,6 +31,10 @@ async function main(): Promise<void> {
       `SUPERADMIN_EMAIL ${config.superadminEmail} belongs to an admin or client account; it was not promoted. See docs/runbooks/deploy.md.`,
     );
   }
+  // The admin group "eGrant tím" (Phase 34) with its board and chat, idempotent like the superadmin.
+  const adminGroup = await ensureAdminGroup(deps.db);
+  await ensureBoard(deps.db, adminGroup);
+  await ensureGroupChannel(deps.db, adminGroup);
   const app = await buildApp(deps);
   if (config.webDistDir) await registerStatic(app, config.webDistDir);
   await app.listen({ host: '0.0.0.0', port: config.port });

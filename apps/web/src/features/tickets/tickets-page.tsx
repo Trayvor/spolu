@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useNavigate, useParams, useRouter, useSearch } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import type { TicketDto } from '@spolu/shared';
-import { ClientFilter, type ClientOption } from '@/components/client-filter';
+import { ClientFilter, type ClientOption, toClientOptions } from '@/components/client-filter';
 import { Button } from '@/components/ui/button';
 import { clientGroups, isAdmin } from '@/features/auth/roles';
 import { useSession } from '@/features/auth/use-session';
@@ -89,17 +89,7 @@ function GlobalTickets() {
   const openTicket = useOpenTicket();
   const groups = useQuery(groupsQuery).data;
   const scope = useQuery(knowledgeScopeQuery).data;
-  const options = useMemo<ClientOption[]>(
-    () =>
-      (groups ?? []).map((group) => ({
-        id: group.id,
-        name: group.name,
-        logoUrl: group.hasLogo
-          ? `/api/groups/${encodeURIComponent(group.id)}/logo?v=${encodeURIComponent(group.updatedAt)}`
-          : null,
-      })),
-    [groups],
-  );
+  const options = useMemo<ClientOption[]>(() => toClientOptions(groups ?? [], false), [groups]);
   const loaded = groups !== undefined && scope !== undefined;
   const allIds = options.map((g) => g.id);
   const clients = filter.clients === 'all' ? allIds : (filter.clients ?? null);

@@ -4,6 +4,7 @@ import { filterByManager, sortMineFirst } from './group-list';
 
 const group = (id: string, managers: string[], managedByMe = false): GroupSummary => ({
   id,
+  kind: 'client',
   name: id,
   hasLogo: false,
   memberCount: 0,
