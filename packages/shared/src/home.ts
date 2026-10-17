@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { BucketKindSchema, TaskDtoSchema, TaskPersonSchema } from './tasks.js';
 import { TicketStatusSchema } from './tickets.js';
+import { TimeRequestSchema } from './finance/time.js';
 
 /**
  * Phase 20: the admin home (dashboard, client sidebar) and the global task board. Its own module,
@@ -9,6 +10,8 @@ import { TicketStatusSchema } from './tickets.js';
 
 export const HOME_LIMITS = {
   tasks: 20,
+  /** Phase 32: the "Fill in your time" rows on My tasks. */
+  timeRequests: 20,
   tickets: 20,
   mentions: 20,
   mentionCap: 100,
@@ -51,6 +54,13 @@ export const AssignedTasksSchema = z.object({
   total: z.number().int(),
   urgent: z.number().int(),
   items: z.array(AssignedTaskSchema),
+  /**
+   * Phase 32: the viewer's own open time requests (tasks and tickets), oldest first, at most
+   * `HOME_LIMITS.timeRequests`; shown above the tasks whatever the notification settings.
+   */
+  timeRequests: z.array(TimeRequestSchema).default([]),
+  /** Every open time request of the viewer ("N without time"). */
+  timeRequestCount: z.number().int().default(0),
 });
 export type AssignedTasks = z.infer<typeof AssignedTasksSchema>;
 

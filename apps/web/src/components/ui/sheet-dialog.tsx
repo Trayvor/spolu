@@ -28,6 +28,7 @@ export function SheetDialog({
   testId,
   labelledBy,
   urlOwned = false,
+  compact = false,
 }: {
   children: ReactNode;
   onEscape: (event: KeyboardEvent) => void;
@@ -38,6 +39,8 @@ export function SheetDialog({
   labelledBy?: string;
   /** Its open state is in the URL, so Back already closes it: no entry of its own. */
   urlOwned?: boolean;
+  /** A short form (the time dialog, Phase 32): 480 px wide from 641 px instead of 720 px. */
+  compact?: boolean;
 }) {
   useBackCloses(!urlOwned, () =>
     onEscape(new KeyboardEvent('keydown', { key: 'Escape', cancelable: true })),
@@ -68,7 +71,8 @@ export function SheetDialog({
             // Phones: the sheet rises from the bottom edge; wider: the dialog grows in a little.
             // Full screen on phones: its top clears the notch (each footer clears the home bar).
             'fixed inset-0 z-50 flex flex-col bg-popover text-popover-foreground outline-none max-[640px]:animate-sheet-in max-[640px]:pt-[env(safe-area-inset-top)] min-[641px]:animate-menu-in',
-            'min-[641px]:inset-auto min-[641px]:top-1/2 min-[641px]:left-1/2 min-[641px]:max-h-[min(880px,calc(100dvh-48px))] min-[641px]:w-[720px] min-[641px]:max-w-[calc(100vw-48px)] min-[641px]:-translate-x-1/2 min-[641px]:-translate-y-1/2 min-[641px]:rounded-xl min-[641px]:shadow-lift',
+            'min-[641px]:inset-auto min-[641px]:top-1/2 min-[641px]:left-1/2 min-[641px]:max-h-[min(880px,calc(100dvh-48px))] min-[641px]:max-w-[calc(100vw-48px)] min-[641px]:-translate-x-1/2 min-[641px]:-translate-y-1/2 min-[641px]:rounded-xl min-[641px]:shadow-lift',
+            compact ? 'min-[641px]:w-[480px]' : 'min-[641px]:w-[720px]',
             PHONE_TARGETS,
           )}
         >

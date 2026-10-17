@@ -109,5 +109,8 @@ export const sk: ServerTexts = {
     meetingSummaryReady: 'AI zhrnutie je hotové',
     meetingSummaryFailed: 'Spracovanie s AI zlyhalo',
     openMeeting: 'Otvoriť stretnutie',
+    timeMissing: 'Vyplňte, koľko času ste strávili',
+    timeMissingLine: (title) => `${title}: vyplňte svoj čas`,
+    openTask: 'Otvoriť úlohu',
   },
 };

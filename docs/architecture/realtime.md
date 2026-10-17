@@ -164,8 +164,10 @@ The catch-up read is an ordinary HTTP read, so it uses the same permission check
 
 | event | payload | room | when |
 |---|---|---|---|
-| `finance:changed` | `{ groupId: string \| null, kind: 'items' \| 'time' \| 'rates' }` | `finance` | after a finance write commits (`emitFinanceChanged`; `groupId` null for rates); emitted by parts A2, B, C |
-| `time:requests` | `{ count }` | `user:<id>` | the user's open time requests changed (`emitTimeRequests`; part A2) |
+| `finance:changed` | `{ groupId: string \| null, kind: 'items' \| 'time' \| 'rates' }` | `finance` | after a finance write commits (`emitFinanceChanged`; `groupId` null for rates and for time without a client); emitted by parts A2, B, C. Part A2: kind `time` after a task completion, reopen, assignee removal or delete, a ticket resolution, reopen or riešiteľ removal that changed entries, and after `PUT …/time/me` (`announceTimeChange`) |
+| `time:requests` | `{ count }` | `user:<id>` | the user's open time requests changed (`emitTimeRequests`; part A2: to every user whose request was added or dropped, and to the caller after filling). The web's `TimeDialogHost` (signed-in layout, admins) refetches My tasks and any open "My time" |
 | `me:changed` | `{}` | `user:<id>` | the superadmin granted or removed the user's finance right |
 
 Finance events never go to `group:<id>`, `group:<id>:admins` or `admins`. The grant routes move the target's sockets (`moveFinanceSockets`: `socketsJoin` / `socketsLeave` of `finance`, and `socket.data.user.finance` follows) before `me:changed`. The web: `useMeChanged` (signed-in layout) refetches `/api/me` and drops cached finance data when the right went; `useFinanceEvents(view)` (the Finance tab and page) invalidates `['finance', groupId | 'all']` 2 s after the last `finance:changed` of a burst — a client's tab reacts to its own client and to client-less changes, `/finance` to all.
+
+Part C emits `finance:changed` with kind `time` (and the client's `groupId`) after a manual entry is added, edited or deleted and after a finance admin corrects any entry, and kind `rates` (`groupId` null) after a rate is added, corrected or deleted; filling or deleting a request also sends the admin `time:requests` with their new count. Its consumers are the Overview and Work log cards through `useFinanceEvents` (a client's tab refetches on its own client's `time` and on every `rates`); the writer's own card refetches at once.

@@ -57,6 +57,8 @@ import {
   type TicketRow,
 } from './service.js';
 import { setTicketWatch, watchesTickets } from './watch.js';
+import { announceTimeChange, type TimeChange } from '../finance/task-time.js';
+import { requestDelivery } from '../notifications/service.js';
 
 type IdParams = { Params: { id: string } };
 
@@ -316,6 +318,19 @@ export const ticketsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, 
     );
   });
 
+  /**
+   * After a write changed time entries (Phase 32): delivers the time requests, tells the finance
+   * room and the users whose requests changed. A failure is logged; the write succeeded.
+   */
+  const announceTime = async (request: FastifyRequest, time: TimeChange) => {
+    try {
+      await requestDelivery(jobs, time.eventIds);
+      await announceTimeChange(db, app.io, time);
+    } catch (error) {
+      request.log.error({ err: error }, 'could not announce a time change');
+    }
+  };
+
   // ---- One ticket ---------------------------------------------------------------------------------
   /** The ticket if the actor reads it, else a 404 already sent. */
   const readable = async (actor: SessionUser, id: string, reply: FastifyReply) => {
@@ -338,16 +353,17 @@ export const ticketsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, 
     if (!canEditTicket(actor)) return send(reply, 403, ErrorCodes.forbidden);
     const body = TicketPatchBodySchema.safeParse(request.body);
     if (!body.success) return invalid(reply);
-    const result = await updateTicket(db, request.params.id, body.data);
+    const result = await updateTicket(db, request.params.id, body.data, actor);
     if (!result) return notFound(reply);
-    const { ticket, statusChanged, fieldsChanged } = result;
+    const { ticket, statusChanged, fieldsChanged, askTime, time } = result;
     if (statusChanged || fieldsChanged) {
       emitTicket(app.io, 'updated', ticket);
       const change = { ticket, actorId: actor.id };
       if (statusChanged) await runTicketChange(deps, { ...change, kind: 'status' }, request.log);
       if (fieldsChanged) await runTicketChange(deps, { ...change, kind: 'updated' }, request.log);
+      await announceTime(request, time);
     }
-    return getTicketForActor(db, actor, ticket.id);
+    return { ...(await getTicketForActor(db, actor, ticket.id)), askTime };
   });
 
   app.put<IdParams>('/tickets/:id/group', { preHandler: anyUser }, async (request, reply) => {
@@ -480,6 +496,13 @@ export const ticketsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, 
       if (!row) return reply;
       if (await removeAssignee(db, row.id, request.params.userId)) {
         emitTicket(app.io, 'updated', row);
+        // Their time request went with them (Phase 32).
+        await announceTime(request, {
+          groupId: row.groupId,
+          changed: true,
+          users: [request.params.userId],
+          eventIds: [],
+        });
       }
       return getTicketForActor(db, actor, row.id);
     },

@@ -51,7 +51,10 @@
       "urgent_other": "{{count}} urgenti",
       "noDate": "senza data",
       "showAll": "Mostra tutte ({{count}})",
-      "empty": "Non Le è stato assegnato nulla."
+      "empty": "Non Le è stato assegnato nulla.",
+      "fillTime": "Indica il tuo tempo",
+      "fillTimeFor": "Indica il tuo tempo: {{title}}",
+      "withoutTime": "Senza tempo: {{n}}"
     },
     "reminders": {
       "title": "Prossimi promemoria",

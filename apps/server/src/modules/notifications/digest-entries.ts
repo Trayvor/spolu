@@ -35,6 +35,28 @@ export function digestEntry(
   if (group === null) return null;
   const t = texts(ctx.lang);
   const p = row.payload;
+  if (row.kind === 'ticket.time_missing' || row.kind === 'task.time_missing') {
+    // Phase 32: "<title>: fill in your time", opening the task or ticket with the time dialog.
+    const ticket = row.kind === 'ticket.time_missing';
+    const taskId = str(p.taskId);
+    const title = ticket
+      ? `#${Number(p.number)} ${str(p.title) ?? ''}`.trim()
+      : ((taskId ? ctx.taskTitles.get(taskId) : undefined) ?? str(p.title) ?? '');
+    const push = buildPushPayload({
+      kind: row.kind,
+      payload: p,
+      groupName: ctx.groupName ?? '',
+      taskTitle: null,
+      parentId: null,
+      lang: ctx.lang,
+    });
+    return {
+      line: t.timeMissingLine(title),
+      url: `${ctx.publicUrl}${push.url}`,
+      button: ticket ? t.openTicket : t.openTask,
+      topic: ticket ? t.ticketTopic(Number(p.number)) : (ctx.groupName ?? ''),
+    };
+  }
   if (group === 'tickets' && isTicketEvent(row.kind, p)) {
     const push = buildPushPayload({
       kind: row.kind as NotificationKind,

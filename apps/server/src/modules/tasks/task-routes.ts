@@ -18,8 +18,9 @@ import { InvalidAttachmentError } from '../files/service.js';
 import { emitTask, emitTaskDeleted } from './events.js';
 import { canDeleteTask, canUseBoard } from './policy.js';
 import type { WriteGuard } from './routes.js';
+import { announceTimeChange, type TimeChange } from '../finance/task-time.js';
 import {
-  createTask,
+  createTaskTimed,
   createTasksFromSource,
   deleteTask,
   getTask,
@@ -29,7 +30,7 @@ import {
   NotFoundError,
   TaskChangedError,
   toTaskDto,
-  updateTask,
+  updateTaskTimed,
   ValidationError,
 } from './task-service.js';
 import { clientGroupIds } from '../groups/memberships.js';
@@ -159,6 +160,18 @@ export const taskRoutes: FastifyPluginAsync<TaskRoutesOptions> = async (
     }
   };
 
+  /**
+   * After a write changed time entries (Phase 32): the finance room and the users whose time
+   * requests changed hear it. A failure is logged; the write succeeded.
+   */
+  const announceTime = async (request: FastifyRequest, time: TimeChange) => {
+    try {
+      await announceTimeChange(db, app.io, time);
+    } catch (error) {
+      request.log.error({ err: error }, 'could not announce a time change');
+    }
+  };
+
   /** The task's group, creator and source ticket and meeting when the actor may use its board, else null (404). */
   const readableTask = async (actor: SessionUser, id: string) => {
     const ref = await getTaskRef(db, id);
@@ -173,15 +186,17 @@ export const taskRoutes: FastifyPluginAsync<TaskRoutesOptions> = async (
     const body = TaskCreateSchema.safeParse(request.body);
     if (!body.success) return invalidBody(reply, body.error);
     if (!(await canOpenGroup(actor, request.params.id))) return notFound(reply);
-    let task;
+    let created;
     try {
-      task = await createTask(deps, actor, request.params.id, body.data);
+      created = await createTaskTimed(deps, actor, request.params.id, body.data);
     } catch (error) {
       return writeError(reply, error);
     }
     // After the commit, outside the try: nothing here may be mapped as a failed write.
+    const { task, askTime, time } = created;
     emitTask(app.io, toTaskDto(task), person(actor));
-    return reply.code(201).send(task);
+    await announceTime(request, time);
+    return reply.code(201).send({ ...task, askTime });
   });
 
   /**
@@ -270,14 +285,19 @@ export const taskRoutes: FastifyPluginAsync<TaskRoutesOptions> = async (
     const ref = await readableTask(actor, request.params.id);
     if (!ref) return notFound(reply);
     try {
-      const task = await updateTask(deps, actor, request.params.id, body.data, {
-        onFileCleanupError: logCleanupError(request),
-      });
+      const { task, askTime, time } = await updateTaskTimed(
+        deps,
+        actor,
+        request.params.id,
+        body.data,
+        { onFileCleanupError: logCleanupError(request) },
+      );
       emitTask(app.io, toTaskDto(task), person(actor));
       await pushMessageTasks(request, task.sourceMessageId);
       await refreshTicket(request, ref.sourceTicketId);
       await refreshMeeting(request, ref.sourceMeetingId);
-      return task;
+      await announceTime(request, time);
+      return { ...task, askTime };
     } catch (error) {
       return writeError(reply, error);
     }
@@ -291,14 +311,20 @@ export const taskRoutes: FastifyPluginAsync<TaskRoutesOptions> = async (
     const ref = await readableTask(actor, request.params.id);
     if (!ref) return notFound(reply);
     try {
-      const { task, moved } = await moveTask(deps, actor, request.params.id, body.data);
+      const { task, moved, askTime, time } = await moveTask(
+        deps,
+        actor,
+        request.params.id,
+        body.data,
+      );
       if (moved) {
         emitTask(app.io, task, person(actor));
         await pushMessageTasks(request, task.sourceMessageId);
         await refreshTicket(request, ref.sourceTicketId);
         await refreshMeeting(request, ref.sourceMeetingId);
+        await announceTime(request, time);
       }
-      return task;
+      return { ...task, askTime };
     } catch (error) {
       return writeError(reply, error);
     }
@@ -310,7 +336,7 @@ export const taskRoutes: FastifyPluginAsync<TaskRoutesOptions> = async (
     if (!ref) return notFound(reply);
     if (!canDeleteTask(actor, ref)) return reply.code(403).send({ error: ErrorCodes.forbidden });
     try {
-      const { groupId, sourceMessageId, sourceTicketId, sourceMeetingId } = await deleteTask(
+      const { groupId, sourceMessageId, sourceTicketId, sourceMeetingId, time } = await deleteTask(
         deps,
         request.params.id,
         { onFileCleanupError: logCleanupError(request) },
@@ -319,6 +345,7 @@ export const taskRoutes: FastifyPluginAsync<TaskRoutesOptions> = async (
       await pushMessageTasks(request, sourceMessageId);
       await refreshTicket(request, sourceTicketId);
       await refreshMeeting(request, sourceMeetingId);
+      await announceTime(request, time);
       return reply.code(204).send();
     } catch (error) {
       return writeError(reply, error);
