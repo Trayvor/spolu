@@ -80,7 +80,7 @@ function AlignField({
       <Label htmlFor={id}>{t('bulkEmail.fields.align')}</Label>
       <Select
         id={id}
-        containerClassName="w-full min-[641px]:w-[200px]"
+        containerClassName="w-full min-w-0 max-w-[320px]"
         value={block.align}
         onChange={(e) => onChange({ ...block, align: e.target.value as BulkAlign } as BulkBlock)}
       >
@@ -113,7 +113,7 @@ function ChoiceField<V extends string>({
       <Label htmlFor={id}>{label}</Label>
       <Select
         id={id}
-        containerClassName="w-full min-[641px]:w-[220px]"
+        containerClassName="w-full min-w-0 max-w-[320px]"
         value={value}
         onChange={(e) => onChange(e.target.value as V)}
       >
@@ -321,7 +321,7 @@ function ImageLook({ block, onChange }: { block: ImageBlock; onChange: (b: BulkB
     mode !== 'original' &&
     (Number(typed) < limits.min || Number(typed) > limits.max || !Number.isInteger(Number(typed)));
   return (
-    <div className="grid gap-4 min-[641px]:grid-cols-2">
+    <div className="grid gap-4 @min-[480px]:grid-cols-2 [&>*]:min-w-0">
       <ChoiceField<SizeMode>
         id={`b-${block.id}-size`}
         label={t('bulkEmail.image.size')}
@@ -409,7 +409,7 @@ export function ColumnsSettings({
   const { t } = useTranslation();
   const dividerId = `b-${block.id}-divider`;
   return (
-    <div className="grid gap-4 min-[641px]:grid-cols-2">
+    <div className="grid gap-4 @min-[480px]:grid-cols-2 [&>*]:min-w-0">
       <ChoiceField
         id={`b-${block.id}-ratio`}
         label={t('bulkEmail.columns.ratio')}

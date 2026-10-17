@@ -108,7 +108,9 @@
     "failed": "Predogleda ni bilo mogoče naložiti.",
     "note": "Prikazano z vašim imenom, kot bi ga prejeli vi. Bloki s težavami so izpuščeni, dokler jih ne popravite.",
     "titlePhone": "Predogled na telefonu",
-    "tooBig": "To e-sporočilo ima približno {{kb}} kB. Gmail odreže e-sporočila, večja od približno 102 kB: skrajšajte ga ali odstranite različico za telefon."
+    "tooBig": "To e-sporočilo ima približno {{kb}} kB. Gmail odreže e-sporočila, večja od približno 102 kB: skrajšajte ga ali odstranite različico za telefon.",
+    "scaled": "Prikazano v merilu {{percent}} %",
+    "clickHint": "Kliknite del e-pošte, da ga uredite."
   },
   "audience": {
     "title": "Prejemniki",
@@ -338,5 +340,10 @@
     "body": "Različica za telefon še vedno sledi različici za računalnik: na telefonih se razdeljeni bloki zložijo drug pod drugega, široke slike pa se pomanjšajo. Pred pošiljanjem si oglejte predogled na telefonu. To opozorilo se za to e-sporočilo prikaže le enkrat.",
     "show": "Prikaži predogled na telefonu",
     "sendAnyway": "Vseeno pošlji"
+  },
+  "workspace": {
+    "label": "Bloki in predogled",
+    "blocks": "Bloki",
+    "preview": "Predogled"
   }
 }

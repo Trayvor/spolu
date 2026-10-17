@@ -12,6 +12,7 @@ import { previousHref } from '@/lib/back';
 import { AudienceBuilder } from './audience-builder';
 import { BlockList } from './block-list';
 import type { BlocksAction } from './blocks';
+import { BuilderWorkspace, type WorkspaceTab } from './builder-workspace';
 import { ModeBar } from './mode-bar';
 import { applyEdit, returnToDesktop, shownBlocks, type EditMode } from './phone-version';
 import { campaignListKey, campaignQuery, deleteCampaign, saveCampaign } from './api';
@@ -33,6 +34,19 @@ import {
 export function CampaignPageRoute() {
   const { campaignId } = useParams({ strict: false });
   return <CampaignPage campaignId={campaignId ?? ''} />;
+}
+
+/**
+ * The builder uses the whole window width (up to 1600 px) instead of the app's 1152 px column:
+ * `data-wide-page` on `<html>` while it is open widens the header and the main column
+ * (`in-data-[wide-page]:` in `root.tsx` and `app-header.tsx`).
+ */
+function useWidePage() {
+  useEffect(() => {
+    const root = document.documentElement;
+    root.setAttribute('data-wide-page', '');
+    return () => root.removeAttribute('data-wide-page');
+  }, []);
 }
 
 const isList = (href: string) => new URL(href, 'http://app.invalid').pathname === '/bulk-email';
@@ -226,7 +240,10 @@ function DraftEditor({
   }));
   // The Computer / Phone switch: what the preview shows and which version the blocks edit.
   const [mode, setMode] = useState<EditMode>('computer');
+  // Below 840 px of workspace one pane shows at a time (Blocks / Preview).
+  const [tab, setTab] = useState<WorkspaceTab>('blocks');
   const previewRef = useRef<HTMLElement>(null);
+  useWidePage();
   // Bumped by "Return to the computer version": the text editors start again from desktop.
   const [returned, setReturned] = useState(0);
   const [serverProblems, setServerProblems] = useState<BulkNotReadyProblem[]>([]);
@@ -272,6 +289,7 @@ function DraftEditor({
   );
   const showPhone = useCallback(() => {
     setMode('phone');
+    setTab('preview');
     previewRef.current?.scrollIntoView?.({ block: 'start' });
   }, []);
   const editingPhone = mode === 'phone' && draft.phoneBlocks !== null;
@@ -320,7 +338,7 @@ function DraftEditor({
       </div>
 
       <Section n={1} title={t('bulkEmail.content.title')}>
-        <div className="grid gap-4 min-[641px]:grid-cols-2">
+        <div className="grid gap-4 min-[641px]:grid-cols-2 min-[1280px]:grid-cols-3">
           <TextField
             id="campaign-name"
             label={t('bulkEmail.content.name')}
@@ -338,7 +356,7 @@ function DraftEditor({
             max={BULK_LIMITS.subject}
             onChange={(subject) => set({ subject })}
           />
-          <div className="min-[641px]:col-span-2">
+          <div className="min-[641px]:col-span-2 min-[1280px]:col-span-1">
             <TextField
               id="campaign-preheader"
               label={t('bulkEmail.content.preheader')}
@@ -350,7 +368,7 @@ function DraftEditor({
             />
           </div>
         </div>
-        <div className="@container flex flex-col gap-5">
+        <div className="flex flex-col gap-5">
           <ModeBar
             mode={mode}
             onMode={setMode}
@@ -360,19 +378,24 @@ function DraftEditor({
               setReturned((n) => n + 1);
             }}
           />
-          <div className="grid gap-6 @min-[1000px]:grid-cols-[minmax(0,1fr)_632px] @min-[1000px]:items-start">
-            <BlockList
-              // Another version on screen: the text editors start from its content. Not on the
-              // first phone edit: the phone copy is what the editors already show.
-              key={`${mode}:${returned}`}
-              blocks={shownBlocks(draft, mode)}
-              problems={editingPhone ? problems.phoneBlocks : problems.blocks}
-              serverProblems={serverProblems.filter((p) => Boolean(p.phone) === editingPhone)}
-              dispatch={dispatch}
-            />
-            <div className="@min-[1000px]:sticky @min-[1000px]:top-4">
+          <BuilderWorkspace
+            tab={tab}
+            onTab={setTab}
+            blocks={
+              <BlockList
+                // Another version on screen: the text editors start from its content. Not on the
+                // first phone edit: the phone copy is what the editors already show.
+                key={`${mode}:${returned}`}
+                blocks={shownBlocks(draft, mode)}
+                problems={editingPhone ? problems.phoneBlocks : problems.blocks}
+                serverProblems={serverProblems.filter((p) => Boolean(p.phone) === editingPhone)}
+                dispatch={dispatch}
+              />
+            }
+            preview={
               <PreviewFrame
                 ref={previewRef}
+                className="min-h-0 flex-1"
                 campaignId={campaign.id}
                 device={mode}
                 subject={draft.subject.slice(0, BULK_LIMITS.subject)}
@@ -380,70 +403,73 @@ function DraftEditor({
                 blocks={validBlocks(draft.blocks)}
                 phoneBlocks={draft.phoneBlocks && validBlocks(draft.phoneBlocks)}
               />
-            </div>
-          </div>
+            }
+          />
         </div>
       </Section>
 
-      <Section n={2} title={t('bulkEmail.audience.title')}>
-        <AudienceBuilder audience={draft.audience} onChange={(audience) => set({ audience })} />
-      </Section>
+      {/* The steps after the builder keep a readable width on a wide screen. */}
+      <div className="flex w-full max-w-[1104px] flex-col gap-5">
+        <Section n={2} title={t('bulkEmail.audience.title')}>
+          <AudienceBuilder audience={draft.audience} onChange={(audience) => set({ audience })} />
+        </Section>
 
-      <Section n={3} title={t('bulkEmail.test.title')}>
-        <TestSend
-          campaignId={campaign.id}
-          canSend={autosave.state === 'saved'}
-          onProblems={setServerProblems}
-        />
-      </Section>
+        <Section n={3} title={t('bulkEmail.test.title')}>
+          <TestSend
+            campaignId={campaign.id}
+            canSend={autosave.state === 'saved'}
+            onProblems={setServerProblems}
+          />
+        </Section>
 
-      <Section n={4} title={t('bulkEmail.send.title')}>
-        <SendStep
-          campaignId={campaign.id}
-          subject={draft.subject}
-          audience={draft.audience}
-          saveState={autosave.state}
-          flush={autosave.flush}
-          onProblems={setServerProblems}
-          phoneFollows={draft.phoneBlocks === null}
-          phoneCheckShown={campaign.phoneCheckShown}
-          onShowPhone={showPhone}
-        />
-      </Section>
+        <Section n={4} title={t('bulkEmail.send.title')}>
+          <SendStep
+            campaignId={campaign.id}
+            subject={draft.subject}
+            audience={draft.audience}
+            saveState={autosave.state}
+            flush={autosave.flush}
+            onProblems={setServerProblems}
+            phoneFollows={draft.phoneBlocks === null}
+            phoneCheckShown={campaign.phoneCheckShown}
+            onShowPhone={showPhone}
+          />
+        </Section>
 
-      <div className="flex flex-col gap-3 min-[641px]:flex-row min-[641px]:items-center">
-        {confirmDelete ? (
-          <>
-            <p className="text-button">{t('bulkEmail.editor.deleteConfirm')}</p>
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                variant="destructive"
-                disabled={remove.isPending}
-                onClick={() => remove.mutate()}
-              >
-                {t('bulkEmail.editor.deleteYes')}
-              </Button>
-              <Button type="button" variant="ghost" onClick={() => setConfirmDelete(false)}>
-                {t('bulkEmail.editor.cancel')}
-              </Button>
-            </div>
-          </>
-        ) : (
-          <Button
-            type="button"
-            variant="ghost"
-            className="self-start"
-            onClick={() => setConfirmDelete(true)}
-          >
-            {t('bulkEmail.editor.delete')}
-          </Button>
-        )}
-        {remove.isError && (
-          <p role="alert" className="text-micro text-error-ink">
-            {t('errors.generic')}
-          </p>
-        )}
+        <div className="flex flex-col gap-3 min-[641px]:flex-row min-[641px]:items-center">
+          {confirmDelete ? (
+            <>
+              <p className="text-button">{t('bulkEmail.editor.deleteConfirm')}</p>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="destructive"
+                  disabled={remove.isPending}
+                  onClick={() => remove.mutate()}
+                >
+                  {t('bulkEmail.editor.deleteYes')}
+                </Button>
+                <Button type="button" variant="ghost" onClick={() => setConfirmDelete(false)}>
+                  {t('bulkEmail.editor.cancel')}
+                </Button>
+              </div>
+            </>
+          ) : (
+            <Button
+              type="button"
+              variant="ghost"
+              className="self-start"
+              onClick={() => setConfirmDelete(true)}
+            >
+              {t('bulkEmail.editor.delete')}
+            </Button>
+          )}
+          {remove.isError && (
+            <p role="alert" className="text-micro text-error-ink">
+              {t('errors.generic')}
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -178,6 +178,9 @@ describe('bulk email images and preview API', () => {
       expect(html).toContain('<title>Novinky</title>');
       expect(html).toContain('Krátko');
       expect(html).toContain('Tento e-mail dostávate');
+      // The builder's highlight finds each block by its id (never in a sent email).
+      expect(html).toContain('data-sp-block="h"');
+      expect(html).toContain('data-sp-block="b"');
     });
 
     it('uses the stored size of an uploaded image', async () => {

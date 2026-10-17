@@ -224,7 +224,8 @@ describe('images: size, alignment, shape', () => {
     const inColumn = render([columns([image({ width: { unit: 'px', value: 520 } })], [])], {
       imageSizes: sizes,
     }).html;
-    expect(inColumn).toMatch(/<img [^>]*width="247" height="124"/);
+    // A container widens the email: its column is 600 px, so the left half is 287 px.
+    expect(inColumn).toMatch(/<img [^>]*width="287" height="144"/);
   });
 
   it('alignment sets the cell attribute and the margins', () => {
@@ -275,18 +276,18 @@ describe('split container', () => {
         { ratio: '33-67', valign: 'middle', dividerColor: 'purple' },
       ),
     ]);
-    // 520 − 2 × 12 − 1 = 495: 165 + 330.
+    // The wide email's 600 px column − 2 × 12 − 1 = 575: 192 + 383.
     expect(html).toMatch(
-      /<td class="sp-col" width="165" valign="middle" style="width:165px;vertical-align:middle">[\s\S]*Left[\s\S]*<\/td>\s*<td class="sp-gap" width="12"[^>]*>&nbsp;<\/td>\s*<td class="sp-gap sp-line" width="1" bgcolor="#7654FF" style="[^"]*background-color:#7654FF[^"]*">&nbsp;<\/td>\s*<td class="sp-gap" width="12"[^>]*>&nbsp;<\/td>\s*<td class="sp-col sp-col-r" width="330" valign="middle"/,
+      /<td class="sp-col" width="192" valign="middle" style="width:192px;vertical-align:middle">[\s\S]*Left[\s\S]*<\/td>\s*<td class="sp-gap" width="12"[^>]*>&nbsp;<\/td>\s*<td class="sp-gap sp-line" width="1" bgcolor="#7654FF" style="[^"]*background-color:#7654FF[^"]*">&nbsp;<\/td>\s*<td class="sp-gap" width="12"[^>]*>&nbsp;<\/td>\s*<td class="sp-col sp-col-r" width="383" valign="middle"/,
     );
     expect(html).toContain('>Go</a>');
   });
 
-  it('without a divider the gap is 24 px and the ratio splits 496 px', () => {
+  it('without a divider the gap is 24 px and the ratio splits 576 px', () => {
     const { html } = render([columns([], [], { divider: false, ratio: '67-33' })]);
     expect(html).not.toContain('sp-line');
     expect(html).toMatch(
-      /class="sp-col" width="331"[\s\S]*class="sp-gap" width="24"[\s\S]*class="sp-col sp-col-r" width="165"/,
+      /class="sp-col" width="384"[\s\S]*class="sp-gap" width="24"[\s\S]*class="sp-col sp-col-r" width="192"/,
     );
   });
 
@@ -339,5 +340,63 @@ describe('desktop and phone versions', () => {
   it('an empty phone version still hides the desktop one on phones', () => {
     const { html } = render(desktop, { phoneBlocks: [] });
     expect(html).toContain('sp-phone');
+  });
+});
+
+describe('wide layout for split containers (2026-10-17)', () => {
+  const plain = [text(para({ text: 'x' }))];
+  const container = (html: string) =>
+    /<table [^>]*class="sp-container" width="(\d+)" style="width:(\d+)px;max-width:(\d+)px">/.exec(
+      html,
+    );
+
+  it('an email without a container keeps the 600 px card and the 620 px phone rule', () => {
+    const { html } = render(plain);
+    expect(container(html)?.slice(1)).toEqual(['600', '600', '600']);
+    expect(html).toContain('@media (max-width: 620px)');
+    expect(html).not.toContain('704px');
+  });
+
+  it('a container on the computer version widens the card to 680 px (600 px column)', () => {
+    const { html } = render([...plain, columns([], [])]);
+    expect(container(html)?.slice(1)).toEqual(['680', '680', '680']);
+    // The card goes fluid below 680 + 2 × 12 px of outer padding, so no client scrolls sideways.
+    expect(html).toContain('@media (max-width: 704px) { .sp-container { width:100% !important; }');
+    expect(html).not.toContain('max-width: 620px');
+    // Phones still stack the columns at 600 px.
+    expect(html).toMatch(/@media \(max-width: 600px\) \{ \.sp-col \{ display:block !important;/);
+    // 50-50 with a divider: (600 − 25) / 2.
+    expect(html).toMatch(/class="sp-col" width="287"[\s\S]*class="sp-col sp-col-r" width="288"/);
+  });
+
+  it('full-width images outside the container follow the wider column', () => {
+    const sizes = new Map([['img', { width: 1200, height: 600 }]]);
+    const { html } = render([image(), columns([], [])], { imageSizes: sizes });
+    expect(html).toMatch(/<img [^>]*width="600" height="300"/);
+  });
+
+  it('a container only in the phone version leaves the computer card at 600 px', () => {
+    const { html } = render(plain, { phoneBlocks: [columns([], [])] });
+    expect(container(html)?.slice(1)).toEqual(['600', '600', '600']);
+    expect(html).toContain('.sp-col { display:block');
+  });
+
+  it('the phone copy of a wide email uses the same column', () => {
+    const { html } = render([columns([], [])], { phoneBlocks: [columns([], [])] });
+    expect(html.match(/class="sp-col" width="287"/g)).toHaveLength(2);
+  });
+});
+
+describe('preview markers', () => {
+  it('only the preview marks each block cell with its id, nested blocks too, escaped', () => {
+    const blocks = [text(para({ text: 'x' })), columns([{ id: 'in"<', type: 'divider' }], [])];
+    const marked = render(blocks, { markBlocks: true }).html;
+    expect(marked).toMatch(/<td data-sp-block="t" align="left" style="padding:0 0 24px 0">/);
+    expect(marked).toContain('data-sp-block="c"');
+    expect(marked).toContain('data-sp-block="in&quot;&lt;"');
+    const sent = render(blocks).html;
+    expect(sent).not.toContain('data-sp-block');
+    // Apart from the markers the preview is the email that is sent.
+    expect(marked.replace(/ data-sp-block="[^"]*"/g, '')).toBe(sent);
   });
 });

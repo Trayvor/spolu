@@ -113,6 +113,7 @@ describe('runBatch', () => {
     expect(msg.to).toEqual([person.email]);
     expect(msg.subject).toBe('News');
     expect(msg.html).toContain(`Hello ${person.name}`);
+    expect(msg.html).not.toContain('data-sp-block'); // preview markers never go out
     expect(msg.unsubscribeUrl).toBe(`${config.publicUrl}/unsubscribe/${token}`);
     expect(msg.oneClickUrl).toBe(
       `${config.publicUrl}/api/bulk-email/unsubscribe/${token}/one-click`,

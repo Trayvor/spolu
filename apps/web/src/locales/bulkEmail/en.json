@@ -108,7 +108,9 @@
     "failed": "The preview could not be loaded.",
     "note": "Shown with your name, as you would get it. Blocks with problems are left out until they are fixed.",
     "titlePhone": "Preview on a phone",
-    "tooBig": "This email is about {{kb}} kB. Gmail cuts off emails over about 102 kB: shorten it or remove the phone version."
+    "tooBig": "This email is about {{kb}} kB. Gmail cuts off emails over about 102 kB: shorten it or remove the phone version.",
+    "scaled": "Shown at {{percent}} %",
+    "clickHint": "Click a part of the email to edit it."
   },
   "audience": {
     "title": "Recipients",
@@ -328,5 +330,10 @@
     "body": "The phone version still follows the computer version: on phones, split containers stack and wide images shrink. Look at the phone preview before you send. This reminder is shown once for this email.",
     "show": "Show phone preview",
     "sendAnyway": "Send anyway"
+  },
+  "workspace": {
+    "label": "Builder and preview",
+    "blocks": "Blocks",
+    "preview": "Preview"
   }
 }

@@ -220,12 +220,13 @@ describe('bulk email editor', () => {
     expect(screen.queryByRole('alert')).toBeNull();
   });
 
-  it('shows the preview in a sandboxed iframe and switches between 600 and 375 px', async () => {
+  it('shows the preview in a sandboxed iframe and switches between 720 and 375 px', async () => {
     const { user, callsTo } = await openEditor({ blocks: blocks() });
     const frame = await screen.findByTitle(t('bulkEmail.preview.frame'));
-    expect(frame.getAttribute('sandbox')).toBe('');
-    expect(frame).toHaveAttribute('srcdoc', '<p>Preview</p>');
-    expect(frame).toHaveAttribute('width', '600');
+    // No scripts, popups or forms; same origin only so the editor can outline blocks.
+    expect(frame.getAttribute('sandbox')).toBe('allow-same-origin');
+    await waitFor(() => expect(frame).toHaveAttribute('srcdoc', '<p>Preview</p>'));
+    expect(frame).toHaveAttribute('width', '720');
     await user.click(screen.getByRole('button', { name: 'Phone' }));
     expect(frame).toHaveAttribute('width', '375');
     expect(screen.getByRole('button', { name: 'Phone' })).toHaveAttribute('aria-pressed', 'true');
