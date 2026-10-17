@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
@@ -11,9 +11,11 @@ import {
 import type { FileInfo, GroupPerson, KnowledgeItemDto, Me } from '@spolu/shared';
 import { ApiError } from '@/lib/api';
 import { i18n } from '@/i18n';
+import { uploadFile } from '@/features/files/upload';
 import { convertKnowledgeToFile, createKnowledge, deleteKnowledge, updateKnowledge } from './api';
 import { KnowledgeDialog } from './knowledge-dialog';
 
+vi.mock('@/features/files/upload', () => ({ uploadFile: vi.fn() }));
 vi.mock('./api', async (importOriginal) => ({
   ...(await importOriginal<typeof import('./api')>()),
   createKnowledge: vi.fn(),
@@ -247,6 +249,29 @@ describe('KnowledgeDialog', () => {
       fileIds: [],
       folderId: null,
     });
+    await waitFor(() => expect(onClose).toHaveBeenCalledWith('k9'));
+  });
+
+  it('Create waits for an upload: aria-disabled with a reason, ignored, then works', async () => {
+    let finish!: (file: FileInfo) => void;
+    vi.mocked(uploadFile).mockImplementation(() => new Promise((resolve) => (finish = resolve)));
+    vi.mocked(createKnowledge).mockResolvedValue(item({ id: 'k9' }));
+    const user = userEvent.setup();
+    const { onClose } = renderDialog({ mode: 'create', type: 'note', groupId: 'g1' });
+    await heading(t('knowledge.detail.new.note'));
+    await user.type(screen.getByLabelText(t('knowledge.form.title')), 'Hours');
+    await user.upload(
+      screen.getByTestId('knowledge-files-input'),
+      new File(['x'], 'checklist.pdf'),
+    );
+    const create = screen.getByRole('button', { name: t('knowledge.detail.create') });
+    await waitFor(() => expect(create).toHaveAttribute('aria-disabled', 'true'));
+    expect(create).toHaveAccessibleDescription(t('forms.files.waiting'));
+    await user.click(create);
+    expect(createKnowledge).not.toHaveBeenCalled();
+    await act(async () => finish(PDF));
+    await waitFor(() => expect(create).toHaveAttribute('aria-disabled', 'false'));
+    await user.click(create);
     await waitFor(() => expect(onClose).toHaveBeenCalledWith('k9'));
   });
 

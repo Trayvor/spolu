@@ -53,7 +53,7 @@ export const tickets = pgTable(
     /**
      * The ticket's project and event (Phase 33; set by part P2, linked from eGrant by part P3).
      * The same composite FKs as tasks (column-list `set null`, written by hand in migration
-     * 0036); a ticket without a client has none. Moving a ticket to
+     * 0037); a ticket without a client has none. Moving a ticket to
      * another client must clear (or re-match) them in the same statement.
      */
     projectId: text('project_id'),

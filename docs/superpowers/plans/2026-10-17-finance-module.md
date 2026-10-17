@@ -1,6 +1,6 @@
 # Phase 32 — Finančná správa: plan
 
-Spec: [2026-10-17-finance-module-design.md](../specs/2026-10-17-finance-module-design.md) (read its "Owner decisions" first). Status: **approved** by the owner on 2026-10-17 (every recommendation accepted); part A1 merged; part B built (`feat/finance-b-documents`).
+Spec: [2026-10-17-finance-module-design.md](../specs/2026-10-17-finance-module-design.md) (read its "Owner decisions" first). Status: **approved** by the owner on 2026-10-17 (every recommendation accepted); parts A1, A2, B and C merged; part D built (`feat/finance-d-system`), which completes the phase.
 
 Five pull requests. **A1 is merged first**: it fixes the schema, the shared types, the permission and the empty screens, so the other parts only add code in files of their own. Then **A2, B and C run in parallel** (separate worktrees, any merge order, each rebases on the previous merge). **D** starts when B and C are merged (it reuses their list and aggregate functions and their cards). Each part is test-first (`superpowers:test-driven-development`), runs `bash scripts/ci.sh` before merging, and updates its docs with `update-kb`. Any screen work starts with the `frontend-design:frontend-design` skill (CLAUDE.md).
 

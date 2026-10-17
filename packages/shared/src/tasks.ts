@@ -205,6 +205,10 @@ export const BoardDonePageSchema = z.object({
 });
 export type BoardDonePage = z.infer<typeof BoardDonePageSchema>;
 
+/** `GET /groups/:id/board/unseen`: the group's tasks with a change the viewer has not seen. */
+export const BoardUnseenSchema = z.object({ taskIds: z.array(z.string()) });
+export type BoardUnseen = z.infer<typeof BoardUnseenSchema>;
+
 /** Socket events pushed to the group room after a board write commits. */
 export const BoardEvents = {
   task: 'board:task',

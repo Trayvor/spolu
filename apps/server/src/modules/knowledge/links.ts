@@ -5,7 +5,7 @@ import type { ItemCard } from './chat-items.js';
 
 /**
  * Knowledge attached to descriptions (Phase 33 part P5, spec §10.3), on the `knowledge_links`
- * table of migration 0036. Stubs written by P1; the owners of the descriptions (tasks, tickets,
+ * table of migration 0037. Stubs written by P1; the owners of the descriptions (tasks, tickets,
  * projects, knowledge) call these inside their writes and DTO builds and never read the table.
  */
 

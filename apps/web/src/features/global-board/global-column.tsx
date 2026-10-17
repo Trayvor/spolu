@@ -93,6 +93,7 @@ export function GlobalColumn({
               bucketKind={task.bucketKind}
               today={today}
               showDone={false}
+              unseen={task.unseen}
               groupLine={<GroupLine task={task} showBucket={kind === 'other'} />}
               link={{ to: '/tasks', search: { ...search, task: task.id } }}
             />

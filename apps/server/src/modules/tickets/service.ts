@@ -32,6 +32,7 @@ import { groups } from '../groups/schema.js';
 import { getGroup, listGroupPeople } from '../groups/service.js';
 import { countTasksFromTicket, listTasksFromTicket } from '../tasks/task-service.js';
 import { getTicketChannel } from '../chat/service.js';
+import { ticketUnseenSql } from '../notifications/unseen.js';
 import { isAdmin } from '../users/policy.js';
 import { getActiveRoles, getUserNames, listAdmins } from '../users/service.js';
 import { canAssignTicket, canBeTicketAssignee, canReadTicket, canSplitTicket } from './policy.js';
@@ -413,6 +414,9 @@ export async function listTickets(
       createdAt: tickets.createdAt,
       requesterName: tickets.requesterName,
       excerpt: sql<string | null>`left(${tickets.body}, ${EXCERPT})`,
+      // 2026-10-17: a change the viewer has not seen. An expensive expression: PostgreSQL
+      // evaluates it after the sort and the limit, for the page only.
+      unseen: ticketUnseenSql(actor.id, sql`${tickets.id}`),
     })
     .from(tickets)
     .leftJoin(groups, eq(groups.id, tickets.groupId))

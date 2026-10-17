@@ -17,11 +17,8 @@
     "workLog": "Registro ore",
     "workLogSoon": "Qui si vedranno le ore che gli amministratori hanno dedicato a questo cliente, per mese e giorno.",
     "contracts": "Contratti",
-    "contractsSoon": "Qui si vedranno i contratti di tutti i clienti e una ricerca in tutti i documenti finanziari.",
     "paidRanking": "Clienti per importo pagato",
-    "paidRankingSoon": "Qui si vedranno i clienti ordinati per importo pagato.",
-    "hoursRanking": "Clienti per ore",
-    "hoursRankingSoon": "Qui si vedranno i clienti ordinati per ore o per il loro costo."
+    "hoursRanking": "Clienti per ore"
   },
   "periods": {
     "next12": "Ultimi 12 e prossimi 12 mesi",

@@ -3,7 +3,9 @@ import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import { createDb } from '../../infra/db/client.js';
 import { testDatabaseUrl } from '../../../test/test-config.js';
-import { countAssignedTasks, getAssignedTasks } from './assigned.js';
+import { markTaskSeen } from '../notifications/unseen.js';
+import { recordNotifications } from '../notifications/service.js';
+import { countUnseenTasks, getAssignedTasks } from './assigned.js';
 import { bucketOf, newAdmin, newGroup, newTask } from './test-fixtures.js';
 
 const { db, close } = createDb(testDatabaseUrl);
@@ -92,19 +94,50 @@ describe('getAssignedTasks', () => {
   });
 });
 
-describe('countAssignedTasks', () => {
-  it("counts my open tasks only: not Completed, not unassigned, not others'", async () => {
+const moved = (userId: string, groupId: string, taskId: string) =>
+  recordNotifications(db, {
+    kind: 'task.moved',
+    groupId,
+    recipients: [userId],
+    payload: { taskId, groupId },
+  });
+
+describe('unseen tasks (2026-10-17)', () => {
+  it('a card is marked while its task has a change I have not seen', async () => {
+    const g = await newGroup(db, 'Unseen card');
+    const me = await newAdmin(db, 'Ada', [g.id]);
+    const changed = await newTask(db, { groupId: g.id, createdBy: me.id, assigneeIds: [me.id] });
+    const quiet = await newTask(db, { groupId: g.id, createdBy: me.id, assigneeIds: [me.id] });
+    await moved(me.id, g.id, changed);
+    const unseen = async () =>
+      Object.fromEntries((await getAssignedTasks(db, me.id)).items.map((t) => [t.id, t.unseen]));
+    expect(await unseen()).toEqual({ [changed]: true, [quiet]: false });
+    await markTaskSeen(db, me.id, changed);
+    expect(await unseen()).toEqual({ [changed]: false, [quiet]: false });
+  });
+
+  it("the header counts my tasks with an unseen change, completed and others' too", async () => {
     const g = await newGroup(db, 'Count');
     const me = await newAdmin(db, 'Ada', [g.id]);
     const other = await newAdmin(db, 'Bob', [g.id]);
     const done = await bucketOf(db, g.id, 'done');
     const base = { groupId: g.id, createdBy: me.id };
+    const open = await newTask(db, { ...base, assigneeIds: [me.id] });
+    const completed = await newTask(db, {
+      ...base,
+      assigneeIds: [me.id],
+      bucketId: done,
+      completedAt: new Date(),
+    });
+    const created = await newTask(db, { ...base, assigneeIds: [other.id] });
     await newTask(db, { ...base, assigneeIds: [me.id] });
-    await newTask(db, { ...base, assigneeIds: [me.id, other.id], urgent: true });
-    await newTask(db, { ...base, assigneeIds: [me.id], bucketId: done, completedAt: new Date() });
-    await newTask(db, { ...base, assigneeIds: [other.id] });
-    await newTask(db, base);
-    expect(await countAssignedTasks(db, me.id)).toBe(2);
-    expect(await countAssignedTasks(db, (await newAdmin(db, 'Cyril')).id)).toBe(0);
+    expect(await countUnseenTasks(db, me.id)).toBe(0);
+    for (const id of [open, completed, created]) await moved(me.id, g.id, id);
+    await moved(other.id, g.id, created);
+    expect(await countUnseenTasks(db, me.id)).toBe(3);
+    await markTaskSeen(db, me.id, completed);
+    expect(await countUnseenTasks(db, me.id)).toBe(2);
+    expect(await countUnseenTasks(db, other.id)).toBe(1);
+    expect(await countUnseenTasks(db, (await newAdmin(db, 'Cyril')).id)).toBe(0);
   });
 });

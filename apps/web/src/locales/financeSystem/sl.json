@@ -1,4 +1,52 @@
 {
   "clients": "Stranke",
-  "allClients": "Vse stranke"
+  "allClients": "Vse stranke",
+  "noClient": "Brez stranke",
+  "rates": "Urne postavke",
+  "loadFailed": "Seznama ni bilo mogoče naložiti.",
+  "retry": "Poskusi znova",
+  "showMore": "Pokaži naslednjih 20",
+  "contracts": {
+    "search": "Išči pogodbe, dokumente in zapiske",
+    "sortLabel": "Razvrsti pogodbe",
+    "sort": {
+      "start": "Najnovejši začetek",
+      "end": "Najprej iztekajoče",
+      "amount": "Najvišji znesek"
+    },
+    "columns": {
+      "client": "Stranka",
+      "contract": "Pogodba",
+      "period": "Obdobje",
+      "amount": "Znesek"
+    },
+    "kinds": {
+      "contract": "pogodba",
+      "document": "dokument",
+      "note": "zapisek"
+    },
+    "empty": "Izbrane stranke še nimajo pogodb.",
+    "noMatch": "Nič se ne ujema z »{{q}}«.",
+    "showMore": "Pokaži več"
+  },
+  "paid": {
+    "year": "Leto",
+    "month": "Mesec",
+    "wholeYear": "Vse leto",
+    "currency": "Valuta",
+    "total": "Skupaj plačano: {{amount}}",
+    "empty": "V tem obdobju se ni začela nobena pogodba izbranih strank."
+  },
+  "hours": {
+    "rankBy": "Razvrsti po",
+    "hours": "Ure",
+    "cost": "Denar",
+    "admin": "Admin",
+    "allAdmins": "Vsi admini",
+    "empty": "V tem obdobju ni bil zapisan noben čas.",
+    "missingRate": "{{hours}} brez postavke"
+  },
+  "workLog": {
+    "topClients": "Največ ur:"
+  }
 }

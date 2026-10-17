@@ -458,7 +458,11 @@ const financeRoute = createRoute({
   path: '/finance',
   beforeLoad: financeGuard,
   component: lazyRouteComponent(
-    withNamespaces(FINANCE_NAMESPACES, () => import('@/features/finance/finance-page')),
+    // `knowledge`: the client filter's texts.
+    withNamespaces(
+      [...FINANCE_NAMESPACES, 'knowledge'],
+      () => import('@/features/finance/finance-page'),
+    ),
     'FinancePage',
   ),
 });

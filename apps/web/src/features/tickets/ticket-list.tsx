@@ -1,4 +1,5 @@
 import { useMemo, useState, type ReactNode } from 'react';
+import { UnseenDot } from '@/components/unseen-dot';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
@@ -152,8 +153,10 @@ function TicketRow({ item, showClient }: { item: TicketListItem; showClient: boo
             className={cn(
               'truncate text-button font-semibold',
               item.subject === null && 'font-medium text-muted-foreground',
+              item.unseen && 'font-bold',
             )}
           >
+            <UnseenDot unseen={item.unseen} label={t('tickets.row.unseen')} />
             {title || t('tickets.row.noSubject')}
           </span>
           <span className="flex flex-wrap gap-x-3 gap-y-0.5 text-micro text-muted-foreground">

@@ -114,6 +114,7 @@ const TICKET_ITEM = {
   assignees: [{ id: 'u1', name: 'Eva' }],
   project: null,
   event: null,
+  unseen: false,
 };
 const TICKET = {
   ...TICKET_ITEM,

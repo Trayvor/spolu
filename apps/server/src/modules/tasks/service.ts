@@ -11,6 +11,7 @@ import {
   type TaskPerson,
 } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
+import { unseenTaskIdsSql } from '../notifications/unseen.js';
 import { reminderSets, reminderTimes } from '../reminders/schema.js';
 import { user } from '../users/schema.js';
 import { FIXED_POSITIONS, keyAfter, keysAfter } from './positions.js';
@@ -171,6 +172,29 @@ export async function selectTasks(db: Db, where: SQL, limit?: number): Promise<T
  * How many open tasks (not in Completed) of the group are assigned to the user: one indexed count
  * (`task_assignees_user_id_idx`), for the yellow "assigned to me" pill on the Tasks tab.
  */
+/**
+ * The tasks of the group with a change the user has not seen (2026-10-17), for the board's
+ * marks: one statement, driven by the user's own counted events (`unseen.ts`), not by the board.
+ */
+export function boardUnseenSql(userId: string, groupId: string): SQL {
+  return sql`
+    select t.id
+    from (${unseenTaskIdsSql(userId)}) x
+    join tasks t on t.id = x.task_id
+    where t.group_id = ${groupId}
+    order by t.id
+  `;
+}
+
+export async function listUnseenTaskIds(
+  db: Db,
+  userId: string,
+  groupId: string,
+): Promise<string[]> {
+  const rows = await db.execute<{ id: string }>(boardUnseenSql(userId, groupId));
+  return [...rows].map((r) => r.id);
+}
+
 export async function countMyOpenTasks(db: Db, userId: string, groupId: string): Promise<number> {
   const [row] = await db
     .select({ n: sql<number>`count(*)::int` })

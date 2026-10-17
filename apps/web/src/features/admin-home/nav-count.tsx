@@ -9,19 +9,20 @@ import { useAdminActivityRefetch } from './use-admin-activity';
 const COUNT_KEYS = [homeKeys.counts] as const;
 
 /**
- * Keeps the header's counts fresh: a task write anywhere (`admin:activity` of kind `task`) or a
- * ticket created, changed or moved refetches them after the usual 2 s debounce. Mounted once,
- * by the header's Tasks count.
+ * Keeps the header's counts fresh: a task or chat write anywhere (`admin:activity`; a task or
+ * ticket chat message is a change too), a ticket created, changed or moved, or the viewer opening
+ * a task or ticket (`seen:changed`) refetches them after the usual 2 s debounce. Mounted once, by
+ * the header's Tasks count.
  */
 function LiveCounts() {
-  useAdminActivityRefetch(COUNT_KEYS, { kinds: ['task'], chatRead: false, tickets: true });
+  useAdminActivityRefetch(COUNT_KEYS, { chatRead: false, tickets: true });
   return null;
 }
 
 /**
- * A count beside the header's "Tasks" (my open tasks) or "Tickets" (the active tickets of the
- * clients I manage plus those without a client) link: a small ink pill, `99+` above 99, nothing at
- * 0 or while loading. Both share one request. `live` subscribes to the events that change them.
+ * A count beside the header's "Tasks" or "Tickets" link (2026-10-17): the tasks or tickets with a
+ * change I have not seen yet (a ticket without a client counts for every admin until opened), a
+ * small ink pill, `99+` above 99, nothing at 0 or while loading. Both share one request. `live` subscribes to the events that change them.
  */
 export default function NavCount({
   kind,

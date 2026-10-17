@@ -1,4 +1,4 @@
-import { useRef, useState, type ChangeEvent } from 'react';
+import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ErrorCodes, type FileInfo } from '@spolu/shared';
 import { Button } from '@/components/ui/button';
@@ -25,6 +25,7 @@ export function FilesField({
   labelId,
   max,
   inputTestId = 'task-file-input',
+  onPendingChange,
   uploadPath,
 }: {
   groupId: string;
@@ -38,6 +39,8 @@ export function FilesField({
   max: number;
   /** `data-testid` of the hidden file picker. */
   inputTestId?: string;
+  /** Called with true while any upload runs, false when none does: the form waits to save. */
+  onPendingChange?: (pending: boolean) => void;
   /** Another upload route under `/api` than the group's files (finance: finance-only files). */
   uploadPath?: string;
 }) {
@@ -46,6 +49,13 @@ export function FilesField({
   const counter = useRef(0);
   const [pending, setPending] = useState<Pending[]>([]);
   const [errors, setErrors] = useState<string[]>([]);
+
+  const uploading = pending.length > 0;
+  // `onPendingChange` should be stable (a state setter); the cleanup clears it on unmount.
+  useEffect(() => {
+    onPendingChange?.(uploading);
+    return () => onPendingChange?.(false);
+  }, [uploading, onPendingChange]);
 
   const full = fileIds.length + pending.length >= max;
 

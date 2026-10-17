@@ -1,7 +1,8 @@
 import type { NotificationKind } from '@spolu/shared';
 import type { AppDeps } from '../../deps.js';
 import { recordNotifications, requestDelivery } from '../notifications/service.js';
-import { hasAssignees, ticketAudienceIds, ticketOwnerIds } from './audience.js';
+import { clearTicketUnseenForAdmins } from '../notifications/unseen.js';
+import { hasAssignees, ticketAssigneeIds, ticketAudienceIds, ticketOwnerIds } from './audience.js';
 import { onTicketChange, type TicketChange } from './hooks.js';
 import type { TicketRow } from './service.js';
 
@@ -73,6 +74,13 @@ async function audience(
  * (`messageNotice` in `chat.ts`).
  */
 export async function notifyTicketChange(deps: AppDeps, change: TicketChange): Promise<void> {
+  if (change.kind === 'assigned' && change.ticket.groupId === null) {
+    // 2026-10-17: every admin heard about the ticket without a client; once it has its first
+    // riešiteľ nobody else needs to look, so it is seen for all of them (the new riešiteľ's
+    // `ticket.assigned`, recorded next, still counts for them).
+    const assignees = await ticketAssigneeIds(deps.db, change.ticket.id);
+    if (assignees.length === 1) await clearTicketUnseenForAdmins(deps.db, change.ticket.id);
+  }
   const { kind, recipients, extra } = await audience(deps, change);
   const recorded = await recordNotifications(deps.db, {
     kind,

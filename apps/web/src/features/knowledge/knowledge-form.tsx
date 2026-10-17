@@ -387,6 +387,7 @@ export function KnowledgeForm({
   inAdminsFolder = false,
   authorId,
   autoFocusTitle = false,
+  onUploadingChange,
   fileLocked = false,
   beforeVisibility,
 }: {
@@ -406,6 +407,8 @@ export function KnowledgeForm({
   /** The item's author (the current user on create): a fixed reminder recipient. */
   authorId: string;
   autoFocusTitle?: boolean;
+  /** True while a file uploads; the dialog keeps Save disabled until it is false. */
+  onUploadingChange?: (uploading: boolean) => void;
   /** A file item's file is shown, not changed (a chat file being saved as a file). */
   fileLocked?: boolean;
   /** Extra fields before "Visible to" (the folder of a chat file being saved as a file). */
@@ -478,6 +481,7 @@ export function KnowledgeForm({
               fileIds={value.fileIds}
               files={files}
               onAdd={onAdd}
+              onPendingChange={onUploadingChange}
               onRemove={onRemove}
             />
           )}
@@ -563,6 +567,7 @@ export function KnowledgeForm({
             fileIds={value.fileIds}
             files={files}
             onAdd={onAdd}
+            onPendingChange={onUploadingChange}
             onRemove={onRemove}
           />
         </div>

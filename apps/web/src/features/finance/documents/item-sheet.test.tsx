@@ -1,9 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RouterProvider, createMemoryHistory } from '@tanstack/react-router';
-import type { FinanceItemDetail } from '@spolu/shared';
+import type { FileInfo, FinanceItemDetail } from '@spolu/shared';
+import { uploadFileTo } from '@/features/files/upload';
 import { i18n } from '@/i18n';
 import { createAppRouter } from '@/router';
 
@@ -13,6 +14,7 @@ vi.mock('@/lib/socket', () => ({
   connectSocket: vi.fn(),
   disconnectSocket: vi.fn(),
 }));
+vi.mock('@/features/files/upload', () => ({ uploadFile: vi.fn(), uploadFileTo: vi.fn() }));
 vi.mock('@/features/chat/chat-tab-badge', () => ({ ChatTabBadge: () => null }));
 vi.mock('@/features/tasks/tasks-tab-badge', () => ({ TasksTabBadge: () => null }));
 
@@ -151,5 +153,44 @@ describe('the finance item sheet', () => {
     await waitFor(() =>
       expect((router.state.location.search as Record<string, unknown>).item).toBe('c9'),
     );
+  });
+
+  it('Create waits for an upload: aria-disabled with a reason, ignored, then enabled', async () => {
+    let finish!: (file: FileInfo) => void;
+    vi.mocked(uploadFileTo).mockImplementation(() => new Promise((resolve) => (finish = resolve)));
+    const fetchMock = mockApi();
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const router = createAppRouter(
+      queryClient,
+      createMemoryHistory({ initialEntries: ['/groups/g1/finance'] }),
+    );
+    render(
+      <QueryClientProvider client={queryClient}>
+        <RouterProvider router={router} />
+      </QueryClientProvider>,
+    );
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('button', { name: t('financeDocuments.card.new') }));
+    await user.click(within(await screen.findByRole('menu')).getAllByRole('menuitem')[0]!);
+    const sheet = await screen.findByTestId('finance-item-sheet', {}, { timeout: 5000 });
+    const create = within(sheet).getByRole('button', { name: t('financeDocuments.sheet.create') });
+    await user.upload(within(sheet).getByTestId('finance-file-input'), new File(['x'], 'a.pdf'));
+    await waitFor(() => expect(create).toHaveAttribute('aria-disabled', 'true'));
+    expect(create).toHaveAccessibleDescription(t('forms.files.waiting'));
+    await user.click(create);
+    expect(within(sheet).queryByText(t('financeDocuments.form.errors.titleRequired'))).toBeNull();
+    expect(fetchMock.mock.calls.some(([, init]) => init?.method === 'POST')).toBe(false);
+    await act(async () =>
+      finish({
+        id: 'f1',
+        name: 'a.pdf',
+        mime: 'application/pdf',
+        size: 1,
+        width: null,
+        height: null,
+        hasPreview: false,
+      }),
+    );
+    await waitFor(() => expect(create).toHaveAttribute('aria-disabled', 'false'));
   });
 });

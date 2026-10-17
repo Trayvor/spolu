@@ -70,7 +70,8 @@
     "messagesUnread_one": "{{count}} повідомлення, непрочитане",
     "messagesUnread_few": "{{count}} повідомлення, непрочитані",
     "messagesUnread_many": "{{count}} повідомлень, непрочитані",
-    "messagesUnread_other": "{{count}} повідомлення, непрочитані"
+    "messagesUnread_other": "{{count}} повідомлення, непрочитані",
+    "unseen": "Нова зміна"
   },
   "form": {
     "title": "Назва",

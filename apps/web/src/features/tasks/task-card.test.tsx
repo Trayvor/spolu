@@ -46,6 +46,21 @@ async function renderCard(ui: () => ReactNode) {
 }
 
 describe('TaskCard', () => {
+  it('an unseen change: an ink dot, a bold title and a spoken "New change" (2026-10-17)', async () => {
+    await renderCard(() => <TaskCard task={TASK} bucketKind="todo" today="2026-10-16" unseen />);
+    await screen.findByRole('link', { name: /Fix budget table/ });
+    const dot = screen.getByTestId('unseen-dot');
+    expect(dot.nextElementSibling).toHaveClass('sr-only');
+    expect(dot.parentElement).toHaveClass('font-bold');
+  });
+
+  it('no mark without an unseen change', async () => {
+    await renderCard(() => <TaskCard task={TASK} bucketKind="todo" today="2026-10-16" />);
+    await screen.findByRole('link', { name: /Fix budget table/ });
+    expect(screen.queryByTestId('unseen-dot')).toBeNull();
+    expect(screen.getByText('Fix budget table')).toHaveClass('font-medium');
+  });
+
   it('links to the task panel over the group board by default, with the done circle', async () => {
     await renderCard(() => <TaskCard task={TASK} bucketKind="todo" today="2026-10-16" />);
     expect(await screen.findByRole('link', { name: /Fix budget table/ })).toHaveAttribute(

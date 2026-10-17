@@ -7,6 +7,7 @@
     "attach": "Attach a file",
     "remove": "Remove {{name}}",
     "uploading": "Uploading {{name}}",
+    "waiting": "Waiting for the files to finish uploading",
     "uploadFailed": "Could not upload {{name}}.",
     "tooLarge": "{{name}} is over 25 MB.",
     "unknown": "File"

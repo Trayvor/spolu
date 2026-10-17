@@ -198,6 +198,7 @@ export function ItemForm({
   files,
   onFilesChange,
   isNew,
+  onUploadingChange,
 }: {
   type: FinanceItemType;
   groupId: string;
@@ -207,6 +208,8 @@ export function ItemForm({
   files: FileInfo[];
   onFilesChange: Dispatch<SetStateAction<FileInfo[]>>;
   isNew: boolean;
+  /** True while a file uploads; the sheet keeps Create/Save disabled until it is false. */
+  onUploadingChange?: (uploading: boolean) => void;
 }) {
   const { t } = useTranslation();
   const uid = useId();
@@ -359,6 +362,7 @@ export function ItemForm({
           labelId={`${uid}-files`}
           max={FINANCE_LIMITS.filesPerItem}
           inputTestId="finance-file-input"
+          onPendingChange={onUploadingChange}
         />
       </div>
 

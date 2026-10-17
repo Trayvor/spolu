@@ -3,10 +3,17 @@ import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RouterProvider, createBrowserHistory, createMemoryHistory } from '@tanstack/react-router';
-import { BoardEvents, type BucketDto, type TaskDetailDto, type TaskDto } from '@spolu/shared';
+import {
+  BoardEvents,
+  type BucketDto,
+  type FileInfo,
+  type TaskDetailDto,
+  type TaskDto,
+} from '@spolu/shared';
 import { i18n, setLanguage } from '@/i18n';
 import { createAppRouter } from '@/router';
 import { chatMessageHref } from '@/features/chat/links';
+import { uploadFile } from '@/features/files/upload';
 import { taskQuery } from './api';
 
 const handlers = new Map<string, (payload: unknown) => void>();
@@ -16,11 +23,14 @@ const socket = {
   emit: vi.fn(),
   connected: false,
 };
+// Marking seen (2026-10-17) has its own test; here it would add requests and listeners.
+vi.mock('@/lib/use-mark-seen', () => ({ useMarkSeen: () => {} }));
 vi.mock('@/lib/socket', () => ({
   getSocket: () => socket,
   connectSocket: vi.fn(),
   disconnectSocket: vi.fn(),
 }));
+vi.mock('@/features/files/upload', () => ({ uploadFile: vi.fn() }));
 vi.mock('@/features/chat/chat-tab-badge', () => ({ ChatTabBadge: () => null }));
 // The conversation has its own tests; here it only has to be mounted for the right channel.
 vi.mock('@/features/chat/conversation', () => ({
@@ -825,4 +835,40 @@ describe('TaskPanel scroll lock', () => {
     expect(document.documentElement.style.overflow).toBe('');
     expect(listeners).toHaveLength(0);
   });
+
+  it('Save changes waits for an upload: disabled with a reason, enabled after', async () => {
+    let finish!: (file: FileInfo) => void;
+    vi.mocked(uploadFile).mockImplementation(() => new Promise((resolve) => (finish = resolve)));
+    const { user } = renderPanel();
+    await user.type(await titleField(), '!');
+    await user.upload(screen.getByTestId('task-file-input'), new File(['x'], 'a.pdf'));
+    const save = screen.getByRole('button', { name: t('tasks.panel.save') });
+    await waitFor(() => expect(save).toBeDisabled());
+    expect(save).toHaveAccessibleDescription(t('forms.files.waiting'));
+    await act(async () => finish(UPLOADED));
+    await waitFor(() => expect(save).toBeEnabled());
+  });
+
+  it('Create task waits for an upload: disabled with a reason, enabled after', async () => {
+    let finish!: (file: FileInfo) => void;
+    vi.mocked(uploadFile).mockImplementation(() => new Promise((resolve) => (finish = resolve)));
+    const { user } = renderPanel('/groups/g1/tasks/new');
+    await user.type(await titleField(), 'New');
+    await user.upload(screen.getByTestId('task-file-input'), new File(['x'], 'a.pdf'));
+    const create = screen.getByRole('button', { name: t('tasks.panel.create') });
+    await waitFor(() => expect(create).toBeDisabled());
+    expect(create).toHaveAccessibleDescription(t('forms.files.waiting'));
+    await act(async () => finish(UPLOADED));
+    await waitFor(() => expect(create).toBeEnabled());
+  });
 });
+
+const UPLOADED: FileInfo = {
+  id: 'f1',
+  name: 'a.pdf',
+  mime: 'application/pdf',
+  size: 1,
+  width: null,
+  height: null,
+  hasPreview: false,
+};

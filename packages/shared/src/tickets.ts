@@ -283,6 +283,8 @@ export const TicketListItemSchema = TicketDtoSchema.pick({
   requesterName: z.string().nullable(),
   /** The first words of the body, for a ticket without a subject. */
   excerpt: z.string().nullable(),
+  /** The ticket has a change the viewer has not seen yet (2026-10-17). */
+  unseen: z.boolean(),
 });
 export type TicketListItem = z.infer<typeof TicketListItemSchema>;
 

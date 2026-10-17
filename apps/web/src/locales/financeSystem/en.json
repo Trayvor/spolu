@@ -1,4 +1,52 @@
 {
   "clients": "Clients",
-  "allClients": "All clients"
+  "allClients": "All clients",
+  "noClient": "Without client",
+  "rates": "Hourly rates",
+  "loadFailed": "This list did not load.",
+  "retry": "Try again",
+  "showMore": "Show 20 more",
+  "contracts": {
+    "search": "Search contracts, documents and notes",
+    "sortLabel": "Sort contracts",
+    "sort": {
+      "start": "Newest start first",
+      "end": "Ending first",
+      "amount": "Largest amount first"
+    },
+    "columns": {
+      "client": "Client",
+      "contract": "Contract",
+      "period": "Period",
+      "amount": "Amount"
+    },
+    "kinds": {
+      "contract": "contract",
+      "document": "document",
+      "note": "note"
+    },
+    "empty": "The chosen clients have no contracts yet.",
+    "noMatch": "Nothing matches “{{q}}”.",
+    "showMore": "Show more"
+  },
+  "paid": {
+    "year": "Year",
+    "month": "Month",
+    "wholeYear": "Whole year",
+    "currency": "Currency",
+    "total": "Paid in total: {{amount}}",
+    "empty": "No contract of the chosen clients started in this period."
+  },
+  "hours": {
+    "rankBy": "Rank by",
+    "hours": "Hours",
+    "cost": "Money",
+    "admin": "Admin",
+    "allAdmins": "All admins",
+    "empty": "No time was logged in this period.",
+    "missingRate": "{{hours}} without a rate"
+  },
+  "workLog": {
+    "topClients": "Most hours:"
+  }
 }

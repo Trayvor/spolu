@@ -65,6 +65,7 @@ function SortableTask({
   disabled,
   mark,
   chat,
+  unseen,
   onToggleDone,
 }: {
   task: TaskDto;
@@ -73,6 +74,7 @@ function SortableTask({
   disabled: boolean;
   mark: 'before' | 'after' | null;
   chat?: TaskChatSummary;
+  unseen: boolean;
   onToggleDone: (task: TaskDto) => void;
 }) {
   const data: DragData = { type: 'task', title: task.title, bucketId: task.bucketId };
@@ -103,6 +105,7 @@ function SortableTask({
         bucketKind={bucketKind}
         today={today}
         chat={chat}
+        unseen={unseen}
         ref={setActivatorNodeRef}
         onToggleDone={() => onToggleDone(task)}
         // Not dnd-kit's role="button": the card stays a link (Enter opens it, Space lifts it).
@@ -180,6 +183,7 @@ export function BucketColumn({
   dragging,
   dropMark,
   chats,
+  unseen,
   onToggleDone,
   done,
 }: {
@@ -194,6 +198,8 @@ export function BucketColumn({
   dropMark: DropMark;
   /** The group's task chat summaries, by task id. */
   chats?: TaskChatSummaries;
+  /** The cards with a change the viewer has not seen (2026-10-17). */
+  unseen?: ReadonlySet<string>;
   /** The done circle of one of the column's cards was pressed. */
   onToggleDone: (task: TaskDto) => void;
   /** Completed only: its paging state (the column shows the first pages, Phase 27 S8). */
@@ -380,6 +386,7 @@ export function BucketColumn({
               bucketKind={bucket.kind}
               today={today}
               chat={chats?.[task.id]}
+              unseen={unseen?.has(task.id) ?? false}
               disabled={dragging === 'bucket'}
               onToggleDone={onToggleDone}
               mark={

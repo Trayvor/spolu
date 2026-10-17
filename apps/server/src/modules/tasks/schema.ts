@@ -100,7 +100,7 @@ export const tasks = pgTable(
     /**
      * The task's project and event (Phase 33; set by part P2). Composite FKs: the project is of
      * the task's own client, the event of that project. Deleting an event clears `event_id`,
-     * deleting a project `project_id` (column-list `set null`, written by hand in migration 0036;
+     * deleting a project `project_id` (column-list `set null`, written by hand in migration 0037;
      * the projects service deletes the events first, so the CHECK holds).
      */
     projectId: text('project_id'),

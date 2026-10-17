@@ -58,7 +58,8 @@
     "messages_one": "{{count}} message",
     "messages_other": "{{count}} messages",
     "messagesUnread_one": "{{count}} message, unread",
-    "messagesUnread_other": "{{count}} messages, unread"
+    "messagesUnread_other": "{{count}} messages, unread",
+    "unseen": "New change"
   },
   "form": {
     "title": "Title",
