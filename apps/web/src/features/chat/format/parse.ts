@@ -18,6 +18,7 @@ export type Inline =
 
 export type Block =
   | { type: 'paragraph'; children: Inline[] }
+  | { type: 'heading'; level: 1 | 2 | 3; children: Inline[] }
   | { type: 'codeBlock'; text: string }
   | { type: 'quote'; children: Block[] }
   | { type: 'list'; ordered: boolean; start: number; items: Inline[][] };
@@ -26,6 +27,8 @@ export type Block =
 const MAX_QUOTE_DEPTH = 3;
 const FENCE = '```';
 const ORDERED_ITEM_RE = /^(\d{1,9})\. /;
+/** `# `, `## ` or `### ` followed by some text. */
+const HEADING_RE = /^(#{1,3}) (?=\S)/;
 const SAFE_PROTOCOLS = new Set(['http:', 'https:', 'mailto:']);
 /** Trailing characters that end a sentence rather than a bare URL. */
 const URL_TRAILING = '.,;:!?*~';
@@ -89,7 +92,8 @@ function startsBlock(text: string, depth: number): boolean {
     text.startsWith(FENCE) ||
     (depth < MAX_QUOTE_DEPTH && isQuote(text)) ||
     text.startsWith('- ') ||
-    ORDERED_ITEM_RE.test(text)
+    ORDERED_ITEM_RE.test(text) ||
+    HEADING_RE.test(text)
   );
 }
 
@@ -141,6 +145,14 @@ function parseBlocks(lines: Line[], depth: number, mentions: MentionMap): Block[
         inner.push({ text: current.text.slice(cut), at: current.at + cut });
       }
       blocks.push({ type: 'quote', children: parseBlocks(inner, depth + 1, mentions) });
+    } else if (HEADING_RE.test(text)) {
+      const cut = (HEADING_RE.exec(text) as RegExpExecArray)[0].length;
+      blocks.push({
+        type: 'heading',
+        level: (cut - 1) as 1 | 2 | 3,
+        children: parseInline([{ text: text.slice(cut), at: line.at + cut }], mentions),
+      });
+      i++;
     } else if (text.startsWith('- ')) {
       const items: Inline[][] = [];
       for (; i < lines.length && (lines[i] as Line).text.startsWith('- '); i++) {

@@ -1,6 +1,16 @@
 import { useMemo, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { parseMessage, safeHref, type Block, type Inline } from './parse';
+import {
+  bulletListClass,
+  codeBlockClass,
+  codeClass,
+  headingClass,
+  linkClass,
+  orderedListClass,
+  pillClass,
+  quoteClass,
+} from './styles';
 
 type NameOf = (id: string) => string | undefined;
 
@@ -10,8 +20,7 @@ interface Labels {
   unknown: string;
 }
 
-const pillClass = 'rounded-sm bg-secondary px-1 font-semibold text-secondary-foreground';
-const codeClass = 'rounded-sm bg-muted px-1 font-mono text-[0.875em]';
+const HEADING_TAG = { 1: 'h3', 2: 'h4', 3: 'h5' } as const;
 
 /**
  * A message body as React elements. Text only ever reaches the DOM as React text children, so
@@ -37,18 +46,24 @@ function renderBlocks(blocks: Block[], labels: Labels): ReactNode[] {
             {renderInlines(block.children, labels)}
           </p>
         );
+      case 'heading': {
+        // h3–h5: a message sits under the page's own headings.
+        const Tag = HEADING_TAG[block.level];
+        return (
+          <Tag key={key} className={headingClass[block.level]}>
+            {renderInlines(block.children, labels)}
+          </Tag>
+        );
+      }
       case 'codeBlock':
         return (
-          <pre
-            key={key}
-            className="overflow-x-auto rounded-md bg-muted px-3 py-2 font-mono text-[0.875em] leading-snug [overflow-wrap:normal]"
-          >
+          <pre key={key} className={codeBlockClass}>
             <code>{block.text}</code>
           </pre>
         );
       case 'quote':
         return (
-          <blockquote key={key} className="flex flex-col gap-1.5 border-l-2 border-surface-3 pl-3">
+          <blockquote key={key} className={quoteClass}>
             {renderBlocks(block.children, labels)}
           </blockquote>
         );
@@ -59,11 +74,11 @@ function renderBlocks(blocks: Block[], labels: Labels): ReactNode[] {
           </li>
         ));
         return block.ordered ? (
-          <ol key={key} start={block.start} className="list-decimal pl-6">
+          <ol key={key} start={block.start} className={orderedListClass}>
             {items}
           </ol>
         ) : (
-          <ul key={key} className="list-disc pl-5">
+          <ul key={key} className={bulletListClass}>
             {items}
           </ul>
         );
@@ -105,7 +120,7 @@ function renderInlines(nodes: Inline[], labels: Labels): ReactNode[] {
             title={href}
             target="_blank"
             rel="noreferrer noopener"
-            className="underline decoration-1 underline-offset-2"
+            className={linkClass}
           >
             {renderInlines(node.children, labels)}
           </a>

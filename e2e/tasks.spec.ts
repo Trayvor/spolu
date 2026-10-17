@@ -206,3 +206,34 @@ test('the task panel is a full-screen sheet on a phone', async ({ browser }) => 
     await context.close();
   }
 });
+
+// Phase 27 S8: the Completed column shows 15 tasks, "Show 15 more" brings the next ones.
+test('the Completed column pages its tasks', async ({ page }) => {
+  const stamp = Date.now();
+  const created = await page.request.post('/api/groups', {
+    data: { name: `E2E Done ${stamp}`, egrantUrl: `https://e2e-done-${stamp}.egrant.sk` },
+  });
+  expect(created.status()).toBe(201);
+  const group = (await created.json()) as { id: string };
+  const board = (await (await page.request.get(`/api/groups/${group.id}/board`)).json()) as {
+    buckets: { id: string; kind: string }[];
+  };
+  const done = board.buckets.find((b) => b.kind === 'done')!;
+  for (let i = 1; i <= 17; i++) {
+    const res = await page.request.post(`/api/groups/${group.id}/tasks`, {
+      data: { title: `Hotovo ${String(i).padStart(2, '0')}`, bucketId: done.id },
+    });
+    expect(res.status()).toBe(201);
+  }
+
+  await page.goto(`/groups/${group.id}/tasks`);
+  const column = page.getByRole('region', { name: 'Hotové' });
+  const cards = column.getByRole('link', { name: /Hotovo \d\d/ });
+  const more = column.getByRole('button', { name: 'Zobraziť ďalších 15' });
+  await expect(column.getByText('17 úloh')).toBeAttached();
+  await expect(cards).toHaveCount(15);
+  await expect(column.getByRole('link', { name: /Hotovo 16/ })).toHaveCount(0);
+  await more.click();
+  await expect(cards).toHaveCount(17);
+  await expect(more).toHaveCount(0);
+});

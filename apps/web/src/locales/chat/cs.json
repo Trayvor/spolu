@@ -56,7 +56,9 @@
     "tooManyFiles": "Nejvýše 10 souborů na zprávu.",
     "fileTooLarge": "Příliš velký (max. 25 MB)",
     "formatting": "Formátování",
-    "mentionNotAllowed": "Někoho, koho jste zmínili, tu už nelze zmínit."
+    "mentionNotAllowed": "Někoho, koho jste zmínili, tu už nelze zmínit.",
+    "linkUrl": "Adresa odkazu",
+    "addLink": "Přidat odkaz"
   },
   "format": {
     "bold": "Tučně",

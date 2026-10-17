@@ -1,9 +1,16 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { io as connect, type Socket } from 'socket.io-client';
-import { BoardEvents, type BoardBucketsEvent, type BoardDto, type BucketDto } from '@spolu/shared';
+import {
+  BoardEvents,
+  type BoardBucketsEvent,
+  type BoardDonePage,
+  type BoardDto,
+  type BucketDto,
+} from '@spolu/shared';
 import { buildTestApp } from '../../../test/test-app.js';
 import { loginAs } from '../../../test/login.js';
+import { insertTask } from '../../../test/tasks.js';
 import { addMember, createGroup } from '../groups/service.js';
 import { user } from '../users/schema.js';
 import { addAdmin } from '../users/service.js';
@@ -117,6 +124,44 @@ describe('tasks API: board and buckets', () => {
       404,
     );
     expect((await call('DELETE', '/api/buckets/nope', adminCookie)).statusCode).toBe(404);
+  });
+
+  it('the Completed column pages: board?done=N and board/done?after=, readers only (S8)', async () => {
+    const { cookie } = await adminSession();
+    const g = await newGroup();
+    const other = await newGroup();
+    const mine = await clientIn(g.id);
+    const stranger = await clientIn(other.id);
+    const admin = await addAdmin(test.deps.db, { email: newEmail(), name: 'Ada' });
+    for (let i = 0; i < 20; i++) {
+      await insertTask(test.deps.db, { groupId: g.id, createdBy: admin.id, done: true });
+    }
+    const first = await board(mine.cookie, g.id);
+    expect(first.tasks).toHaveLength(15);
+    expect(first.done.total).toBe(20);
+    expect(first.done.next).not.toBeNull();
+    const page = await call(
+      'GET',
+      `/api/groups/${g.id}/board/done?after=${encodeURIComponent(first.done.next!)}`,
+      mine.cookie,
+    );
+    expect(page.statusCode).toBe(200);
+    const body = page.json<BoardDonePage>();
+    expect(body.tasks).toHaveLength(5);
+    expect(body.next).toBeNull();
+    expect(new Set([...first.tasks, ...body.tasks].map((t) => t.id)).size).toBe(20);
+    expect((await board(cookie, g.id)).tasks).toHaveLength(15);
+    const all = await call('GET', `/api/groups/${g.id}/board?done=30`, cookie);
+    expect(all.json<BoardDto>().tasks).toHaveLength(20);
+    expect(all.json<BoardDto>().done.next).toBeNull();
+
+    const done = `/api/groups/${g.id}/board/done?after=a`;
+    expect((await call('GET', done, stranger.cookie)).statusCode).toBe(404);
+    expect((await call('GET', `/api/groups/nope/board/done?after=a`, cookie)).statusCode).toBe(404);
+    expect((await call('GET', `/api/groups/${g.id}/board/done`, cookie)).statusCode).toBe(400);
+    expect((await call('GET', `/api/groups/${g.id}/board?done=0`, cookie)).statusCode).toBe(400);
+    expect((await call('GET', `/api/groups/${g.id}/board?done=301`, cookie)).statusCode).toBe(400);
+    expect((await call('GET', `/api/groups/${g.id}/board/done?after=a`)).statusCode).toBe(401);
   });
 
   it('client POST / PATCH / DELETE bucket → 403', async () => {

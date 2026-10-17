@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { act, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RouterProvider, createMemoryHistory } from '@tanstack/react-router';
@@ -78,6 +78,35 @@ describe('ticket lists', () => {
     await screen.findByText('Ticket k1');
     await userEvent.click(screen.getByRole('button', { name: t('tickets.filters.following') }));
     await waitFor(() => expect(calls).toContain('GET /api/groups/g1/tickets?following=true'));
+  });
+
+  it('a group tab remembers its filters for the next visit; Clear filters forgets them', async () => {
+    const first = mockTicketApi(CLIENT, groupRoutes());
+    renderAt('/groups/g1/tickets');
+    await screen.findByText('Ticket k1');
+    expect(screen.queryByRole('button', { name: t('tickets.filters.clear') })).toBeNull();
+    await userEvent.click(screen.getByRole('button', { name: t('tickets.filters.following') }));
+    await waitFor(() => expect(first.calls).toContain('GET /api/groups/g1/tickets?following=true'));
+    cleanup();
+
+    const second = mockTicketApi(CLIENT, groupRoutes());
+    const router = renderAt('/groups/g1/tickets');
+    await screen.findByText('Ticket k1');
+    await waitFor(() => expect(router.state.location.search).toMatchObject({ following: 1 }));
+    // The first request already had the remembered filter.
+    expect(second.calls.filter((c) => c.startsWith('GET /api/groups/g1/tickets'))).toEqual([
+      'GET /api/groups/g1/tickets?following=true',
+    ]);
+    await userEvent.click(screen.getByRole('button', { name: t('tickets.filters.clear') }));
+    await waitFor(() => expect(router.state.location.search).toEqual({}));
+    cleanup();
+
+    const third = mockTicketApi(CLIENT, groupRoutes());
+    renderAt('/groups/g1/tickets');
+    await screen.findByText('Ticket k1');
+    expect(third.calls.filter((c) => c.startsWith('GET /api/groups/g1/tickets'))).toEqual([
+      'GET /api/groups/g1/tickets',
+    ]);
   });
 
   it('the riešiteľ filter sends assignee=me and the rows show the riešitelia', async () => {

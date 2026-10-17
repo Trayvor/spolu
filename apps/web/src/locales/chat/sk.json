@@ -56,7 +56,9 @@
     "tooManyFiles": "Najviac 10 súborov v jednej správe.",
     "fileTooLarge": "Príliš veľký (max 25 MB)",
     "formatting": "Formátovanie",
-    "mentionNotAllowed": "Niekoho, koho ste spomenuli, tu už nemožno spomenúť."
+    "mentionNotAllowed": "Niekoho, koho ste spomenuli, tu už nemožno spomenúť.",
+    "linkUrl": "Adresa odkazu",
+    "addLink": "Pridať odkaz"
   },
   "format": {
     "bold": "Tučné",

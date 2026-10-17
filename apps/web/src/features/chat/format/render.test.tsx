@@ -31,6 +31,13 @@ describe('MessageBody', () => {
     expect(container.querySelector('ul li')).toHaveTextContent('dash');
   });
 
+  it('renders headings as h3 to h5 elements, so they stay under the page headings', () => {
+    const { container } = render(<MessageBody body={'# One\n## Two\n### Three'} nameOf={nameOf} />);
+    expect(container.querySelector('h3')).toHaveTextContent('One');
+    expect(container.querySelector('h4')).toHaveTextContent('Two');
+    expect(container.querySelector('h5')).toHaveTextContent('Three');
+  });
+
   it('links open in a new tab with rel noreferrer noopener', () => {
     render(
       <MessageBody

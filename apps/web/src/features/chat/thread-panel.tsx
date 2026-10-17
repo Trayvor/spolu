@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useChatPeople } from './chat-scope';
 import type { Pending } from './channel-window';
-import { Composer } from './composer';
+import { Composer, type ComposerHandle } from './composer';
 import { BackIcon, CloseIcon } from './icons';
 import { MessageItem, type MessageAction } from './message-item';
 import { DayDivider } from './message-list';
@@ -73,6 +73,7 @@ export function ThreadPanel({
   const names = useMemo(() => new Map((people ?? []).map((p) => [p.id, p.name])), [people]);
   const nameOf = useMemo(() => (id: string) => names.get(id), [names]);
   const panel = useRef<HTMLElement>(null);
+  const composer = useRef<ComposerHandle>(null);
   const scroller = useRef<HTMLDivElement>(null);
   const heading = useRef<HTMLHeadingElement>(null);
   /** The reader is at (or near) the end of the thread, so new replies are followed. */
@@ -150,7 +151,7 @@ export function ThreadPanel({
 
   function reply(message: MessageDto) {
     setReplyTo(message);
-    panel.current?.querySelector('textarea')?.focus();
+    composer.current?.focus();
   }
 
   const me = people?.find((p) => p.id === meId);
@@ -297,6 +298,7 @@ export function ThreadPanel({
 
       <div className="shrink-0 px-4 pb-4">
         <Composer
+          ref={composer}
           mode="thread"
           groupId={groupId}
           channelId={channelId}

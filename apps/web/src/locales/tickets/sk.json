@@ -21,7 +21,8 @@
       "anyone": "Ktokoľvek",
       "me": "Ja",
       "none": "Nikto"
-    }
+    },
+    "clear": "Zrušiť filtre"
   },
   "list": {
     "loading": "Načítavam tikety…",

@@ -22,12 +22,13 @@ export const PUSH_JOB = 'notifications.push';
  * All events of one message must be recorded in one transaction (delivery finds a message's
  * events by their shared `created_at`).
  *
- * A recipient who can get neither a push nor an email by the channel of the event's notification
- * group (disabled; none; push without a device; a kind with no group) gets the event already
- * delivered: the delivery decision would be "nothing" anyway, and
- * most recipients of a message (every admin is in every group) are like this, so the worker only
- * touches the events that may send something. Returns the ids of the events recorded (one per
- * recipient an event was recorded for), for `requestDelivery`.
+ * A recipient the event never notifies gets no row at all (Phase 27 S5): a disabled user, or one
+ * whose channel for the event's notification group is `none`. Nothing reads an event except its
+ * own delivery and digest, so such a row would only be purged after 30 days. A recipient who
+ * still cannot get anything now (push without a device; a kind with no group) gets the event
+ * already delivered: the delivery decision would be "nothing" anyway, so the worker only touches
+ * the events that may send something. Returns the ids of the events recorded (one per recipient
+ * an event was recorded for), for `requestDelivery`.
  */
 export async function recordNotifications(tx: Db, input: NotificationInput): Promise<string[]> {
   return recordManyNotifications(tx, [input]);
@@ -47,8 +48,8 @@ export type NotificationInput = {
 /**
  * `recordNotifications` for many inputs at once (a job's batch: one event per task or reminder
  * time): one `INSERT … SELECT` per notification group among the inputs, however many inputs.
- * Same rules per input: recipients deduplicated, `dedupeKey` skips a recipient who has it,
- * the pending state from the channel of the input's group. Returns the recorded event ids.
+ * Same rules per input: recipients deduplicated, `dedupeKey` skips a recipient who has it, no
+ * row for a recipient it never notifies, the pending state from the channel of the input's group. Returns the recorded event ids.
  */
 export async function recordManyNotifications(
   tx: Db,
@@ -69,11 +70,15 @@ export async function recordManyNotifications(
   }
   const ids: string[] = [];
   for (const [group, all] of byGroup) {
+    // Only a known kind has a channel to skip on; an unknown kind stays recorded as delivered.
+    const notified =
+      group === null
+        ? sql`true`
+        : sql`u.disabled_at is null and ${channelSql('u', group)} <> 'none'`;
     const deliveredAt =
       group === null
         ? sql`now()`
         : sql`case
-          when u.disabled_at is not null then now()
           when ${channelSql('u', group)} in ('email', 'both') then null
           when ${channelSql('u', group)} = 'push'
             and exists (select 1 from push_subscriptions s where s.user_id = u.id) then null
@@ -88,6 +93,7 @@ export async function recordManyNotifications(
         select v.id, v.user_id, v.group_id, v.kind, v.payload, v.dedupe_key, ${deliveredAt}
         from (values ${sql.join(rows, sql`, `)}) as v(id, user_id, group_id, kind, payload, dedupe_key)
         join "user" u on u.id = v.user_id
+        where ${notified}
         on conflict do nothing
         returning id
       `);

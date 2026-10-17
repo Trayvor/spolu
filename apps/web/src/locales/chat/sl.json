@@ -56,7 +56,9 @@
     "tooManyFiles": "Največ 10 datotek na sporočilo.",
     "fileTooLarge": "Prevelika (največ 25 MB)",
     "formatting": "Oblikovanje",
-    "mentionNotAllowed": "Nekoga, ki ste ga omenili, tukaj ni več mogoče omeniti."
+    "mentionNotAllowed": "Nekoga, ki ste ga omenili, tukaj ni več mogoče omeniti.",
+    "linkUrl": "Naslov povezave",
+    "addLink": "Dodaj povezavo"
   },
   "format": {
     "bold": "Krepko",

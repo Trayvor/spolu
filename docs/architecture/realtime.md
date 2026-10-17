@@ -48,7 +48,7 @@ Pushed to the `group:<id>` room after the write commits, by `modules/tasks/event
 | `board:task`         | `{ task, actor }`                                   | a task is created (one event per card when cards are made from a message), edited or moved (`task` is a `TaskDto`) |
 | `board:task_deleted` | `{ groupId, taskId }`                               | a task is deleted                                     |
 
-`actor` (`{ id, name }`) is who made the change, so a client can skip its own echo or say who changed a card. The board has no `seq`: after a reconnect (a new `useGroupRoomJoins()` value) the web refetches `GET /api/groups/:id/board` instead of catching up event by event; boards are small.
+`actor` (`{ id, name }`) is who made the change, so a client can skip its own echo or say who changed a card. The board has no `seq`: after a reconnect (a new `useGroupRoomJoins()` value) the web refetches `GET /api/groups/:id/board` instead of catching up event by event; boards are small (the Completed column is paged, and the refetch asks for the completed tasks already shown).
 
 After a bucket is deleted its tasks moved to To do without a `board:task` event; `useBoardEvents` (web) refetches the board when a `board:buckets` list drops a bucket the cache had.
 

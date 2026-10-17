@@ -30,7 +30,9 @@
     "loading": "Caricamento della bacheca.",
     "loadFailed": "Impossibile caricare la bacheca.",
     "retry": "Riprova",
-    "moveFailed": "Impossibile spostare l'attività."
+    "moveFailed": "Impossibile spostare l'attività.",
+    "showMore": "Mostra altre 15",
+    "moreFailed": "Impossibile caricarne altre. Riprovare."
   },
   "dnd": {
     "instructions": "Per prendere un'attività, premere Spazio. Spostarla con i tasti freccia e premere di nuovo Spazio per rilasciarla. Premere Esc per annullare.",

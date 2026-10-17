@@ -21,7 +21,8 @@
       "anyone": "Chiunque",
       "me": "Io",
       "none": "Nessuno"
-    }
+    },
+    "clear": "Cancella filtri"
   },
   "list": {
     "loading": "Caricamento dei ticket…",

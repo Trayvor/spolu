@@ -11,6 +11,11 @@ const strike = (...children: Inline[]): Inline => ({ type: 'strike', children })
 const code = (t: string): Inline => ({ type: 'code', text: t });
 const link = (href: string, ...children: Inline[]): Inline => ({ type: 'link', href, children });
 const br: Inline = { type: 'break' };
+const h = (level: 1 | 2 | 3, ...children: Inline[]): Block => ({
+  type: 'heading',
+  level,
+  children,
+});
 
 const cases: [name: string, body: string, expected: Block[]][] = [
   ['plain text', 'hello world', [p(text('hello world'))]],
@@ -194,6 +199,23 @@ const cases: [name: string, body: string, expected: Block[]][] = [
   ],
   ['empty body', '', []],
   ['CRLF line ends', 'a\r\nb', [p(text('a'), br, text('b'))]],
+  [
+    'heading levels 1 to 3',
+    '# One\n## Two\n### Three',
+    [h(1, text('One')), h(2, text('Two')), h(3, text('Three'))],
+  ],
+  [
+    'a heading ends a paragraph',
+    'text\n# Title\nmore',
+    [p(text('text')), h(1, text('Title')), p(text('more'))],
+  ],
+  ['a heading keeps its marks', '## **Big** news', [h(2, bold(text('Big')), text(' news'))]],
+  [
+    'four hashes, no space or an empty heading stay text',
+    '#### four\n#tag\n# ',
+    [p(text('#### four'), br, text('#tag'), br, text('# '))],
+  ],
+  ['a heading inside a quote', '> # Quoted', [{ type: 'quote', children: [h(1, text('Quoted'))] }]],
 ];
 
 describe('parseMessage', () => {
@@ -213,7 +235,7 @@ describe('parseMessage', () => {
     };
     const walk = (blocks: Block[]) => {
       for (const b of blocks) {
-        if (b.type === 'paragraph') walkInline(b.children);
+        if (b.type === 'paragraph' || b.type === 'heading') walkInline(b.children);
         else if (b.type === 'quote') walk(b.children);
         else if (b.type === 'list') b.items.forEach(walkInline);
       }
