@@ -120,11 +120,14 @@ export const messageMentions = pgTable(
     userId: text('user_id')
       .notNull()
       .references(() => user.id, { onDelete: 'cascade' }),
+    /** The message's `created_at`, copied on every write (an edit keeps it), so the home's
+     * mentions read only one user's recent rows. */
+    createdAt: timestamptz('created_at').notNull(),
   },
   (t) => [
     primaryKey({ columns: [t.messageId, t.userId] }),
-    // The admin home's unread mentions: the messages that name one user.
-    index('message_mentions_user_message_idx').on(t.userId, t.messageId),
+    // The admin home's unread mentions: the messages that name one user, newest first.
+    index('message_mentions_user_created_idx').on(t.userId, t.createdAt.desc()),
   ],
 );
 

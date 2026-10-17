@@ -14,12 +14,15 @@ const TICKETS = 20_000;
 const MESSAGES = 200_000;
 const MESSAGES_PER_CHANNEL = MESSAGES / GROUPS;
 const EVENTS = 200_000;
+/** Older than the home's 90 days: messages that named the admin long ago. */
+const OLD_MENTIONS = 5_000;
 
 /**
  * Opens a transaction and seeds it with `generate_series`: 100 groups (a group chat and the five
  * buckets each, one client each; the custom one named "Step <group % 15>"), 20 000 tasks (a third assigned to the admin, a tenth completed),
  * 20 000 tickets (a tenth active, a fiftieth without a client),
- * 200 000 messages (a quarter name someone, 0.5 % the admin; 1 % @all; 10 % replies), the admin's read marks,
+ * 200 000 messages (a quarter name someone, 0.5 % the admin; 1 % @all; 10 % replies) plus 5 000 older
+ * than 90 days that name the admin, the admin's read marks,
  * the admin managing 10 groups, and 200 000 notification events (a seventh the admin's; of tasks,
  * hourly urgent reminders among them, and of tickets) with the admin's seen marks for a sixth of
  * the tasks and a fifth of the tickets (2026-10-17, unseen changes). Runs `analyze`, calls `fn`,
@@ -123,11 +126,26 @@ export async function withVolume(
       // 22 a day over the seeded 46 days), the rest name the group's client. A user's share of the
       // mention rows stays small, as with many users in production.
       await tx.execute(sql`
-        insert into message_mentions (message_id, user_id)
+        insert into message_mentions (message_id, user_id, created_at)
         select ${p} || '-m' || i,
           case when i % 200 = 3 then ${adminId}
-            else ${p} || '-c' || ((i - 1) / ${MESSAGES_PER_CHANNEL} + 1) end
+            else ${p} || '-c' || ((i - 1) / ${MESSAGES_PER_CHANNEL} + 1) end,
+          now() - (${MESSAGES} - i) * interval '20 seconds'
         from generate_series(1, ${MESSAGES}) i where i % 4 = 3
+      `);
+      // And messages from 100 to about 350 days ago, in the managed groups' chats, each naming the
+      // admin: the home's mentions must not read them (their candidates are bounded by time).
+      await tx.execute(sql`
+        insert into messages (id, channel_id, author_id, body, client_id, change_seq, created_at)
+        select ${p} || '-o' || i, ${p} || '-ch' || (i % 10 + 1), ${p} || '-c' || (i % 10 + 1),
+          'Old ' || i, ${p} || '-o' || i, ${MESSAGES} + i,
+          now() - interval '100 days' - i * interval '1 hour'
+        from generate_series(1, ${OLD_MENTIONS}) i
+      `);
+      await tx.execute(sql`
+        insert into message_mentions (message_id, user_id, created_at)
+        select ${p} || '-o' || i, ${adminId}, now() - interval '100 days' - i * interval '1 hour'
+        from generate_series(1, ${OLD_MENTIONS}) i
       `);
       await tx.execute(sql`
         insert into read_states (user_id, channel_id, last_read_at)

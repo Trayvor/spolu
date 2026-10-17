@@ -101,6 +101,7 @@ export async function newMessage(
   },
 ) {
   const id = randomUUID();
+  const createdAt = input.createdAt ?? new Date();
   await db.insert(messages).values({
     id,
     channelId: input.channelId,
@@ -110,12 +111,14 @@ export async function newMessage(
     mentionsAll: input.mentionsAll ?? false,
     clientId: randomUUID(),
     changeSeq: 0,
-    createdAt: input.createdAt ?? new Date(),
+    createdAt,
     deletedAt: input.deletedAt ?? null,
   });
   const mentions = input.mentions ?? [];
   if (mentions.length > 0) {
-    await db.insert(messageMentions).values(mentions.map((userId) => ({ messageId: id, userId })));
+    await db
+      .insert(messageMentions)
+      .values(mentions.map((userId) => ({ messageId: id, userId, createdAt })));
   }
   return id;
 }

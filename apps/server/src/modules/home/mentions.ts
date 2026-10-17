@@ -16,7 +16,9 @@ const recent = sql.raw(`now() - interval '${HOME_LIMITS.mentionDays} days'`);
  * chat's message to its ticket page).
  *
  * The candidates are a `union` (not `union all`), so a message that names the viewer and also says
- * @all is one item. The @all parts start from the managed groups' channels and read
+ * @all is one item. The direct mentions read `message_mentions_user_created_idx` for the last 90
+ * days only (each mention row carries its message's `created_at`), so the viewer's older mentions
+ * are never looked up. The @all parts start from the managed groups' channels and read
  * `messages_mentions_all_top_idx` / `_reply_idx` from the read mark (or 90 days) on. The newest
  * 100 are counted (the total is capped like other unread counts); the first 20 are returned.
  *
@@ -38,7 +40,7 @@ export function mentionsSql(userId: string): SQL {
     with candidates as (
       select mm.message_id as id
       from message_mentions mm
-      where mm.user_id = ${userId}
+      where mm.user_id = ${userId} and mm.created_at > ${recent}
       union
       select m.id
       from channels c

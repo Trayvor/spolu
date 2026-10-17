@@ -18,8 +18,16 @@ afterAll(() => close());
 type PlanNode = {
   'Node Type': string;
   'Relation Name'?: string;
+  'Index Name'?: string;
+  'Index Cond'?: string;
   Plans?: PlanNode[];
 };
+
+/** Every index read of the plan as `<index>: <condition>`. */
+function indexReads(node: PlanNode): string[] {
+  const own = node['Index Name'] ? [`${node['Index Name']}: ${node['Index Cond'] ?? ''}`] : [];
+  return [...own, ...(node.Plans ?? []).flatMap(indexReads)];
+}
 
 function seqScans(node: PlanNode): string[] {
   const own =
@@ -35,7 +43,7 @@ type Explained = { Plan: PlanNode; 'Execution Time': number };
  * is wall time, so it is opt-in (`RUN_BENCH=1`, for a quiet machine): the query runs once to warm
  * the cache and the best of three timed runs counts. `EXPLAIN_DEBUG=1` prints the plan.
  */
-async function expectIndexed(tx: Db, query: SQL, tables: string[]): Promise<void> {
+async function expectIndexed(tx: Db, query: SQL, tables: string[]): Promise<PlanNode> {
   await tx.execute(query);
   const plans: Explained[] = [];
   for (let run = 0; run < 3; run++) {
@@ -50,6 +58,7 @@ async function expectIndexed(tx: Db, query: SQL, tables: string[]): Promise<void
   const scanned = seqScans(plan.Plan).filter((t) => tables.includes(t));
   expect({ scanned }).toEqual({ scanned: [] });
   if (process.env.RUN_BENCH) expect(time).toBeLessThan(50);
+  return plan.Plan;
 }
 
 const CHAT_TABLES = ['messages', 'message_mentions'];
@@ -84,8 +93,15 @@ describe('admin home query plans on a seeded volume', () => {
         // riešiteľ yet" anti-join may hash the small `ticket_assignees` (a few rows per active
         // ticket), which the planner rightly prefers to one index lookup per ticket
         await expectIndexed(tx, dashboardTicketsSql(adminId), ['tickets', ...UNSEEN_TABLES]);
-        // mentions uses indexes under 50 ms
-        await expectIndexed(tx, mentionsSql(adminId), CHAT_TABLES);
+        // mentions uses indexes under 50 ms; the direct mentions are read from the last 90 days
+        // only (the seeded volume also names the admin in older messages)
+        const mentionsPlan = await expectIndexed(tx, mentionsSql(adminId), CHAT_TABLES);
+        expect(
+          indexReads(mentionsPlan).some(
+            (read) =>
+              read.startsWith('message_mentions_user_created_idx:') && read.includes('created_at'),
+          ),
+        ).toBe(true);
         // global board uses tasks_open_group_idx under 50 ms, for the 10 managed groups
         // and so does its "only where I take part" filter, and a merged custom column's next page
         const board = {
