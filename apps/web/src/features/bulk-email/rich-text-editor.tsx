@@ -300,7 +300,7 @@ export function RichTextEditor({
           <label htmlFor={linkId} className="text-tiny font-semibold">
             {t('bulkEmail.rich.linkAddress')}
           </label>
-          <div className="flex flex-col gap-2 min-[641px]:flex-row">
+          <div className="flex flex-col gap-2 @min-[480px]:flex-row">
             <Input
               id={linkId}
               inputMode="url"

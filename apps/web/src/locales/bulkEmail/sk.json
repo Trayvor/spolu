@@ -108,7 +108,9 @@
     "failed": "Náhľad sa nepodarilo načítať.",
     "note": "S vaším menom, tak ako by ste ho dostali. Bloky s problémom sa ukážu, keď ich opravíte.",
     "titlePhone": "Náhľad na telefóne",
-    "tooBig": "Tento e-mail má asi {{kb}} kB. Gmail skracuje e-maily nad približne 102 kB: skráťte ho alebo odstráňte verziu pre telefón."
+    "tooBig": "Tento e-mail má asi {{kb}} kB. Gmail skracuje e-maily nad približne 102 kB: skráťte ho alebo odstráňte verziu pre telefón.",
+    "scaled": "Zobrazené na {{percent}} %",
+    "clickHint": "Kliknutím na časť e-mailu ju otvoríte na úpravu."
   },
   "audience": {
     "title": "Príjemcovia",
@@ -338,5 +340,10 @@
     "body": "Verzia pre telefón je rovnaká ako pre počítač: na telefóne sa rozdelené bloky poskladajú pod seba a široké obrázky zmenšia. Pred odoslaním si pozrite náhľad na telefóne. Toto upozornenie sa pri tomto e-maile ukáže iba raz.",
     "show": "Ukázať náhľad na telefóne",
     "sendAnyway": "Napriek tomu odoslať"
+  },
+  "workspace": {
+    "label": "Bloky a náhľad",
+    "blocks": "Bloky",
+    "preview": "Náhľad"
   }
 }

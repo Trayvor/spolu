@@ -108,7 +108,9 @@
     "failed": "Náhled se nepodařilo načíst.",
     "note": "Zobrazeno s vaším jménem, jak byste ho dostali vy. Bloky s problémy jsou vynechány, dokud je neopravíte.",
     "titlePhone": "Náhled na telefonu",
-    "tooBig": "Tento e-mail má asi {{kb}} kB. Gmail zkracuje e-maily nad přibližně 102 kB: zkraťte ho nebo odstraňte verzi pro telefon."
+    "tooBig": "Tento e-mail má asi {{kb}} kB. Gmail zkracuje e-maily nad přibližně 102 kB: zkraťte ho nebo odstraňte verzi pro telefon.",
+    "scaled": "Zobrazeno na {{percent}} %",
+    "clickHint": "Kliknutím na část e-mailu ji otevřete k úpravě."
   },
   "audience": {
     "title": "Příjemci",
@@ -338,5 +340,10 @@
     "body": "Verze pro telefon je stejná jako pro počítač: na telefonu se rozdělené bloky složí pod sebe a široké obrázky se zmenší. Před odesláním si prohlédněte náhled na telefonu. Toto upozornění se u tohoto e-mailu zobrazí jen jednou.",
     "show": "Zobrazit náhled na telefonu",
     "sendAnyway": "Přesto odeslat"
+  },
+  "workspace": {
+    "label": "Bloky a náhled",
+    "blocks": "Bloky",
+    "preview": "Náhled"
   }
 }

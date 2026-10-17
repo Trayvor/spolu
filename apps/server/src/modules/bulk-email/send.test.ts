@@ -243,6 +243,7 @@ describe('test send', () => {
     expect(msg.to).toEqual([admin.email]);
     expect(msg.subject).toBe('[Test] News');
     expect(msg.html).toContain('Hello Tess');
+    expect(msg.html).not.toContain('data-sp-block'); // preview markers never go out
     expect(msg.html).toContain('Unsubscribe'); // English footer
     const token = signUnsubscribeToken(config.appSecret, admin.id, TEST_CAMPAIGN_ID);
     expect(msg.unsubscribeUrl).toBe(`${config.publicUrl}/unsubscribe/${token}`);

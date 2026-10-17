@@ -67,3 +67,61 @@ describe('content version 1 renders as before (snapshots of the Phase 23 rendere
     expect(text).toMatchSnapshot('text');
   });
 });
+
+/**
+ * The wide split-container layout (spec 2026-10-17-bulk-email-builder-layout-design.md) must not
+ * change a content version 2 email without a container. Recorded with the Phase 31 renderer
+ * before the wide layout was added; never update it to make a failing test pass.
+ */
+describe('content version 2 without a split container renders as before the wide layout', () => {
+  const V2_BLOCKS = [
+    { id: 'l', type: 'logo', align: 'right' },
+    {
+      id: 't',
+      type: 'text',
+      align: 'left',
+      content: [
+        { type: 'h2', content: [{ text: 'Novinky, {{name}}' }] },
+        {
+          type: 'paragraph',
+          align: 'center',
+          content: [
+            { text: 'Tučné', marks: ['bold', 'italic'] },
+            { text: ' a ' },
+            { text: 'odkaz', href: 'https://egrant.sk', color: 'purple' },
+          ],
+        },
+        { type: 'bullet', content: [{ text: 'Jeden' }] },
+        { type: 'bullet', content: [{ text: 'Dva', marks: ['strike'] }] },
+      ],
+    },
+    {
+      id: 'i',
+      type: 'image',
+      imageId: 'img-large',
+      alt: 'Foto',
+      align: 'right',
+      width: { unit: 'percent', value: 50 },
+      shape: 'rounded',
+    },
+    { id: 's', type: 'spacer', size: 'large' },
+    { id: 'b', type: 'button', label: 'Otvoriť', url: 'https://egrant.sk', align: 'right' },
+  ];
+
+  it('one version, and a separate phone version', () => {
+    const blocks = upgradeBlocks(2, V2_BLOCKS);
+    const base = {
+      subject: 'Novinky',
+      preheader: 'Riadok',
+      blocks,
+      recipient: { name: 'Jana', language: 'sk' as const },
+      unsubscribeHref: 'https://spolu.test/unsubscribe/u1.c1.sig',
+      publicUrl: 'https://spolu.test',
+      imageSizes: SIZES,
+    };
+    expect(renderCampaign(base).html).toMatchSnapshot('html');
+    expect(renderCampaign({ ...base, phoneBlocks: blocks.slice(1) }).html).toMatchSnapshot(
+      'html with phone version',
+    );
+  });
+});

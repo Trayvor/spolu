@@ -43,7 +43,7 @@ At most 50 blocks in a version, counting the blocks inside containers. A contain
 
 ## 3. Rendering (`apps/server/src/infra/email/render.ts`)
 
-The renderer stays pure and deterministic, all inline styles, tables for layout.
+The renderer stays pure and deterministic, all inline styles, tables for layout. (Follow-up of the same day: an email whose computer version has a split container is 680 px wide with a 600 px column, and the editor's preview sits beside the blocks and highlights them; see the [builder layout spec](2026-10-17-bulk-email-builder-layout-design.md). The widths below are those of the 600 px email.)
 
 - **Text nodes.** `paragraph` → `<p>` exactly as Phase 23 (16 px gap); `h2` 22/28 px and `h3` 18/24 px weight 600 with a 12 px gap; lists → `<ul>`/`<ol>` with `padding-left:24px` and `<li>` 4 px apart. Marks: `bold` → `<strong style="font-weight:600">` (as before), `italic` → `<em>`, `underline` / `strike` → one `<span style="text-decoration:…">`, `color` → `<span style="color:#…">`, a link → `<a href target="_blank" style="color:…;text-decoration:underline">`. The plain-text part: headings in capitals, `- item` / `1. item`, a link as `text (url)` unless the text is the URL.
 - **Images.** Without `width` as before (own width, at most the column). With `width`: percent of the column it is in, or px capped at that column; the `width` attribute (Outlook reads it) and `width:100%;max-width:Npx` (fluid on phones); `height` from the stored ratio. `align` sets the cell's `align` and the margins. `shape` adds `border-radius`; Outlook for Windows ignores it and shows square corners (graceful fallback).

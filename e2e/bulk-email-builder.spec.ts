@@ -57,6 +57,23 @@ test('bulk email builder: split container, phone version and the send warning', 
   const frame = page.frameLocator('iframe[title="Náhľad e-mailu"]');
   await expect(frame.getByText('Vľavo')).toBeVisible();
 
+  // Layout (2026-10-17): the preview sits beside the blocks (1280 px window: no tabs), in a
+  // 720 px window, and the email with a container is 680 px wide instead of 600 px.
+  await expect(page.getByRole('tablist')).toBeHidden();
+  await expect(page.locator('iframe[title="Náhľad e-mailu"]')).toHaveAttribute('width', '720');
+  await expect(frame.locator('.sp-container')).toHaveAttribute('width', '680');
+
+  // Hovering a card outlines its block in the preview; a click in the preview focuses the card.
+  const leftCard = left.locator('li[data-block-id]').first();
+  const leftId = await leftCard.getAttribute('data-block-id');
+  await leftCard.locator('h3').hover();
+  await expect(frame.locator(`[data-sp-block="${leftId}"]`)).toHaveAttribute('style', /dashed/);
+  await page.getByLabel('Predmet').focus();
+  await frame.getByText('Vľavo').click();
+  await expect(leftCard).toBeFocused();
+  await expect(leftCard).toHaveAttribute('data-hl', 'active');
+  await expect(frame.locator(`[data-sp-block="${leftId}"]`)).toHaveAttribute('style', /solid/);
+
   // 3. Phone mode follows the computer version until the first edit there.
   const state = page.getByTestId('phone-version-state');
   await expect(state).toHaveText('Verzia pre telefón: rovnaká ako pre počítač');
