@@ -21,6 +21,7 @@ import {
   SameEmailError,
 } from './email-change.js';
 import { getSessionFromHeaders, requireUser, toSessionUser } from './session.js';
+import { TICKET_LINK_PATH, ticketTokenLogId } from './ticket-link.js';
 import { listMemberships } from '../groups/memberships.js';
 import { EmailTakenError, setUserLanguage, updateUserName } from '../users/service.js';
 import { sessionRoom } from '../../infra/realtime/rooms.js';
@@ -37,8 +38,15 @@ export const authRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { d
   const allowChangeToAddress = createSlidingRateLimiter({ windowMs: 3_600_000, max: 5 });
   const allowConfirm = createRateLimiter({ windowMs: 60_000, max: 10 });
 
+  // The ticket email's sign-in link, per address: the login code's limit (10 a minute). The
+  // token's 256 bits are the guard against guessing; this only stops floods.
+  const allowTicketLink = createRateLimiter({
+    windowMs: 60_000,
+    max: deps.config.loginCodesPerMinute,
+  });
+
   // better-auth's own endpoints, in a child plugin so its raw-body parser stays local.
-  await app.register(async (child) => registerAuthHandler(child, auth));
+  await app.register(async (child) => registerAuthHandler(child, auth, allowTicketLink));
 
   const meGroups = async (u: SessionUser): Promise<MeGroup[]> =>
     u.role === 'client'
@@ -143,25 +151,46 @@ const AUTH_ENDPOINTS = [
   { method: 'POST', path: '/email-otp/send-verification-otp' },
   { method: 'POST', path: '/sign-in/email-otp' },
   { method: 'POST', path: '/sign-out' },
+  { method: 'POST', path: TICKET_LINK_PATH }, // ours, ticket-link.ts
 ] as const;
 
 /** Forwards the allowed `/api/auth/...` endpoints to better-auth as a Web Request. */
-function registerAuthHandler(app: FastifyInstance, auth: Auth): void {
+function registerAuthHandler(
+  app: FastifyInstance,
+  auth: Auth,
+  allowTicketLink: (ip: string) => boolean,
+): void {
   // Keep the body as the raw string better-auth will parse itself. Any content type is
   // accepted, so an empty JSON body (e.g. a bare sign-out) is not rejected by Fastify.
   app.removeAllContentTypeParsers();
   app.addContentTypeParser('*', { parseAs: 'string' }, (_request, body, done) => done(null, body));
 
   const handler = async (request: FastifyRequest, reply: FastifyReply) => {
-    // Sign-out: remember whose session it is before better-auth deletes it.
-    const signingOut =
-      request.routeOptions.url === '/api/auth/sign-out'
+    const route = request.routeOptions.url;
+    const ticketLink = route === `/api/auth${TICKET_LINK_PATH}`;
+    if (ticketLink && !allowTicketLink(request.ip)) {
+      return reply.code(429).send({ error: ErrorCodes.rateLimited });
+    }
+    // Sign-out, and a ticket link that may end another user's session: remember the session
+    // before better-auth deletes it.
+    const before =
+      route === '/api/auth/sign-out' || ticketLink
         ? await getSessionFromHeaders(auth, request.headers)
         : null;
     const response = await auth.handler(toWebRequest(request));
-    if (signingOut && response.status === 200) {
-      app.io.in(sessionRoom(signingOut.sessionId)).disconnectSockets(true);
+    if (ticketLink) {
+      // Never the token, nor its full hash: a prefix is enough to match the database row.
+      request.log.info(
+        { ticketLink: ticketTokenLogId(tokenOf(request.body)), status: response.status },
+        'ticket link sign-in',
+      );
     }
+    // The old session is gone after a sign-out, or after a link that replaced another user's.
+    const gone =
+      before !== null &&
+      response.status === 200 &&
+      (!ticketLink || (await getSessionFromHeaders(auth, request.headers)) === null);
+    if (gone) app.io.in(sessionRoom(before.sessionId)).disconnectSockets(true);
     reply.status(response.status);
     response.headers.forEach((value, key) => {
       if (key !== 'set-cookie') reply.header(key, value);
@@ -171,6 +200,16 @@ function registerAuthHandler(app: FastifyInstance, auth: Auth): void {
   };
   for (const { method, path } of AUTH_ENDPOINTS) {
     app.route({ method, url: `/auth${path}`, handler });
+  }
+}
+
+/** The `token` of a ticket link's raw JSON body, or '' (only for the log line). */
+function tokenOf(body: unknown): string {
+  try {
+    const token = (JSON.parse(String(body)) as { token?: unknown }).token;
+    return typeof token === 'string' ? token : '';
+  } catch {
+    return '';
   }
 }
 

@@ -1,4 +1,5 @@
 import { index, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
+import { tickets } from '../tickets/schema.js';
 import { user } from '../users/schema.js';
 
 // Tables owned by better-auth; the shape must match what the library expects.
@@ -52,4 +53,32 @@ export const verification = pgTable(
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index('verification_identifier_idx').on(t.identifier)],
+);
+
+/**
+ * One-click sign-in links from the "Ticket created" email (ADR 0022). Only the SHA-256 hash of
+ * the token is stored; a link signs its user in until `expires_at`, as often as it is used.
+ * Owned by us, not by better-auth.
+ */
+export const ticketSignInLinks = pgTable(
+  'ticket_sign_in_links',
+  {
+    id: text('id').primaryKey(),
+    /** Hex SHA-256 of the token in the link. */
+    tokenHash: text('token_hash').notNull().unique(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    ticketId: text('ticket_id')
+      .notNull()
+      .references(() => tickets.id, { onDelete: 'cascade' }),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    lastUsedAt: timestamp('last_used_at', { withTimezone: true }),
+  },
+  (t) => [
+    index('ticket_sign_in_links_user_id_idx').on(t.userId),
+    index('ticket_sign_in_links_ticket_id_idx').on(t.ticketId),
+    index('ticket_sign_in_links_expires_at_idx').on(t.expiresAt),
+  ],
 );

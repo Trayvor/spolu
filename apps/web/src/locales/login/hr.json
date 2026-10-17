@@ -15,5 +15,6 @@
     "expired": "Kôd je istekao. Zatražite novi.",
     "tooMany": "Previše pokušaja. Pokušajte ponovno za nekoliko minuta.",
     "disabled": "Ovaj račun više nema pristup."
-  }
+  },
+  "linkExpired": "Poveznica je istekla. Prijavite se svojom adresom e-pošte."
 }

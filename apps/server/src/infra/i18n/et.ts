@@ -62,6 +62,8 @@ export const et: ServerTexts = {
       received: (n, title) => `Saime kätte Teie tugipöördumise #${n}: ${title}.`,
       followUp:
         'Help-rakenduses saate seda jälgida ja eGrantile kirjutada. Logige sisse selle e-posti aadressiga, saadame Teile koodi.',
+      followUpLink:
+        'Help-rakenduses saate seda jälgida ja eGrantile kirjutada. Nupp logib Teid otse sisse, ilma koodita, ja kehtib 7 päeva. Ärge edastage seda e-kirja.',
       button: 'Ava pöördumine',
     },
   },

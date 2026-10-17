@@ -62,6 +62,8 @@ export const en: ServerTexts = {
       received: (n, title) => `We received your support ticket #${n}: ${title}.`,
       followUp:
         'You can follow it and write to eGrant in the Help app. Log in with this email address; we will send you a code.',
+      followUpLink:
+        'You can follow it and write to eGrant in the Help app. The button signs you in directly, without a code, and works for 7 days. Do not forward this email.',
       button: 'Open the ticket',
     },
   },

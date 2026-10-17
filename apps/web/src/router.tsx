@@ -436,7 +436,8 @@ const knowledgeRoute = createRoute({
 const loginRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/login',
-  // `email`: an invitation's login link carries it to prefill the field (Phase 22b).
+  // `email`: an invitation's login link carries it to prefill the field (Phase 22b). A refused
+  // ticket sign-in link adds `notice=linkExpired`, kept raw and checked by the page (ADR 0022).
   validateSearch: (search: Record<string, unknown>): { redirect?: string; email?: string } => ({
     ...(typeof search.redirect === 'string' ? { redirect: safeRedirect(search.redirect) } : {}),
     ...(linkEmail(search.email) ? { email: linkEmail(search.email) } : {}),
@@ -448,6 +449,16 @@ const loginRoute = createRoute({
   component: lazyRouteComponent(
     withNamespaces(['login'], () => import('@/features/auth/login-page')),
     'LoginRoute',
+  ),
+});
+
+// Public: the one-click sign-in link of a "Ticket created" email, token in the fragment (ADR 0022).
+const ticketLinkRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/t',
+  component: lazyRouteComponent(
+    withNamespaces(['login'], () => import('@/features/auth/ticket-link-page')),
+    'TicketLinkRoute',
   ),
 });
 
@@ -475,6 +486,7 @@ const routeTree = rootRoute.addChildren([
     welcomeRoute,
   ]),
   loginRoute,
+  ticketLinkRoute,
   joinRoute,
   unsubscribeRoute,
 ]);

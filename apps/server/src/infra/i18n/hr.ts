@@ -62,6 +62,8 @@ export const hr: ServerTexts = {
       received: (n, title) => `Primili smo Vaš tiket tehničke podrške #${n}: ${title}.`,
       followUp:
         'U aplikaciji Help možete ga pratiti i pisati eGrantu. Prijavite se ovom adresom e-pošte; poslat ćemo Vam kôd.',
+      followUpLink:
+        'U aplikaciji Help možete ga pratiti i pisati eGrantu. Gumb Vas prijavljuje izravno, bez kôda, i vrijedi 7 dana. Ne prosljeđujte ovu e-poruku.',
       button: 'Otvori tiket',
     },
   },

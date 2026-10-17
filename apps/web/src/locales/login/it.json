@@ -15,5 +15,6 @@
     "expired": "Il codice è scaduto. Richiederne uno nuovo.",
     "tooMany": "Troppi tentativi. Riprovare tra qualche minuto.",
     "disabled": "Questo account non ha più accesso."
-  }
+  },
+  "linkExpired": "Il link è scaduto. Acceda con la sua email."
 }

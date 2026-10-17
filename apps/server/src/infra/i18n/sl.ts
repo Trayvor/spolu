@@ -62,6 +62,8 @@ export const sl: ServerTexts = {
       received: (n, title) => `Prejeli smo vaš zahtevek za tehnično podporo #${n}: ${title}.`,
       followUp:
         'V aplikaciji Help ga lahko spremljate in pišete eGrant. Prijavite se s tem e-poštnim naslovom; poslali vam bomo kodo.',
+      followUpLink:
+        'V aplikaciji Help ga lahko spremljate in pišete eGrant. Gumb vas prijavi neposredno, brez kode, in velja 7 dni. Tega e-poštnega sporočila ne posredujte naprej.',
       button: 'Odpri zahtevek',
     },
   },

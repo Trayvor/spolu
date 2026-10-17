@@ -15,5 +15,6 @@
     "expired": "Platnost kódu vypršela. Pošlete si nový.",
     "tooMany": "Příliš mnoho pokusů. Zkuste to znovu za několik minut.",
     "disabled": "Tento účet už nemá přístup."
-  }
+  },
+  "linkExpired": "Odkaz už neplatí. Přihlaste se svým e-mailem."
 }

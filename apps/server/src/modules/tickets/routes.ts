@@ -19,6 +19,7 @@ import type { AppDeps } from '../../deps.js';
 import { sendEmailLater } from '../../infra/email/index.js';
 import { createRateLimiter } from '../../infra/http/rate-limit.js';
 import { requireAdmin, requireUser } from '../auth/session.js';
+import { TICKET_LINK_EMAIL_JOB_OPTIONS, ticketEmailUrl } from '../auth/ticket-link.js';
 import { decodeFileNameHeader } from '../files/file-name.js';
 import {
   createFile,
@@ -127,7 +128,8 @@ export const ticketsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, 
     try {
       const account = await getUserById(db, ticket.requesterUserId);
       if (!account || account.disabledAt || !(await claimRequesterEmail(db, ticket.id))) return;
-      const url = `${config.publicUrl}/login?redirect=${encodeURIComponent(`/tickets/${ticket.id}`)}`;
+      // A ziadatel's button signs them in at once (ADR 0022); anyone else's goes to the login page.
+      const { url, oneClick } = await ticketEmailUrl(db, config.publicUrl, account, ticket.id);
       await sendEmailLater(
         jobs,
         ticketCreatedEmail(
@@ -137,8 +139,10 @@ export const ticketsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, 
             subject: ticket.subject,
             excerpt: bodyExcerpt(ticket.body),
             url,
+            oneClick,
           },
         ),
+        TICKET_LINK_EMAIL_JOB_OPTIONS,
       );
     } catch (error) {
       log.error({ err: error, ticketId: ticket.id }, 'ticket created email failed');

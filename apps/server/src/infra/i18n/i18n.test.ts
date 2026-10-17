@@ -34,6 +34,7 @@ function sample(t: ServerTexts): string[] {
     t.tickets.created.untitled,
     t.tickets.created.received(7, 'Title'),
     t.tickets.created.followUp,
+    t.tickets.created.followUpLink,
     t.tickets.created.button,
     n.sentFile('Jana'),
     n.moved('Done'),

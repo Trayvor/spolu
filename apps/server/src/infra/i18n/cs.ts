@@ -62,6 +62,8 @@ export const cs: ServerTexts = {
       received: (n, title) => `Přijali jsme váš tiket technické podpory #${n}: ${title}.`,
       followUp:
         'V aplikaci Help ho můžete sledovat a psát eGrantu. Přihlaste se touto e-mailovou adresou, pošleme vám kód.',
+      followUpLink:
+        'V aplikaci Help ho můžete sledovat a psát eGrantu. Tlačítko vás přihlásí přímo, bez kódu, a platí 7 dní. Tento e-mail nikomu nepřeposílejte.',
       button: 'Otevřít tiket',
     },
   },
