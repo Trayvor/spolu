@@ -264,5 +264,10 @@
       "processing": "V obdelavi",
       "summary": "Povzetek"
     }
+  },
+  "view": {
+    "label": "Pogled",
+    "list": "Seznam",
+    "cards": "Kartice"
   }
 }

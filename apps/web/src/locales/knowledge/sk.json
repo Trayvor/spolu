@@ -264,5 +264,10 @@
       "processing": "Spracúva sa",
       "summary": "Zhrnutie"
     }
+  },
+  "view": {
+    "label": "Zobrazenie",
+    "list": "Zoznam",
+    "cards": "Karty"
   }
 }

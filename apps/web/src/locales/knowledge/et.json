@@ -256,5 +256,10 @@
       "processing": "Töötlemisel",
       "summary": "Kokkuvõte"
     }
+  },
+  "view": {
+    "label": "Vaade",
+    "list": "Loend",
+    "cards": "Kaardid"
   }
 }

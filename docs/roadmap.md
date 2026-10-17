@@ -424,6 +424,8 @@ Scope: a knowledge type **Meeting** ("Stretnutie": date and time, meeting, recor
 
 Status: in progress (one pull request: server, web, e2e `e2e/meetings.spec.ts`); migration 0029.
 
+Follow-up (owner request, 2026-10-17, branch `feat/knowledge-card-view`): a **card view** of the knowledge lists (a List / Cards toggle remembered per person; cards show up to five lines of the text from a 360-character plain-text excerpt; folders stay rows above). [Design](superpowers/specs/2026-10-17-knowledge-card-view-design.md); requirements in [knowledge-base](product/knowledge-base.md), "Card view". E2E in `e2e/knowledge.spec.ts`, run by the orchestrator.
+
 Done when: an admin adds a meeting with its Teams link to a client's knowledge base, uploads the call's video, sees it kept as audio, presses "Spracovať s AI", gets a summary with action items, creates two tasks from them in the client's board, and finds the meeting on the dashboard's Meetings card.
 
 ## Phase 31 — Bulk email builder v2

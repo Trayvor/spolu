@@ -291,6 +291,31 @@ describe('knowledge tab', () => {
     expect(screen.getByRole('button', { name: t('knowledge.tab.clearFilters') })).toBeVisible();
   });
 
+  it('the view toggle shows cards (folders stay rows above them) and is remembered', async () => {
+    mockApi([summary('k1', { excerpt: 'Line one\nLine two' })]);
+    const { user, unmount } = renderTab();
+    const toggle = await screen.findByRole('group', { name: t('knowledge.view.label') });
+    const list = within(toggle).getByRole('button', { name: t('knowledge.view.list') });
+    const cards = within(toggle).getByRole('button', { name: t('knowledge.view.cards') });
+    expect(list).toHaveAttribute('aria-pressed', 'true');
+    expect(await screen.findByText('Item k1')).toBeInTheDocument();
+    expect(screen.queryByRole('listitem')).not.toBeInTheDocument();
+    await user.click(cards);
+    expect(cards).toHaveAttribute('aria-pressed', 'true');
+    expect(await screen.findByRole('listitem')).toHaveTextContent('Item k1');
+    expect(
+      screen.getByRole('button', { name: t('knowledge.folders.open', { name: 'Grants' }) }),
+    ).toBeInTheDocument();
+    expect(JSON.parse(localStorage.getItem('spolu.filters.a1.knowledge:view')!)).toEqual({
+      value: 'cards',
+    });
+    unmount();
+    renderTab();
+    expect(await screen.findByRole('listitem')).toHaveTextContent('Item k1');
+    await user.click(screen.getByRole('button', { name: t('knowledge.view.list') }));
+    expect(localStorage.getItem('spolu.filters.a1.knowledge:view')).toBeNull();
+  });
+
   it('Clear filters removes type and q', async () => {
     mockApi([], []);
     const { search, user } = renderTab('/groups/g1/knowledge?q=budget&type=file');

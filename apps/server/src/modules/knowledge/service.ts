@@ -4,7 +4,7 @@ import {
   extractMentions,
   isHttpUrl,
   KNOWLEDGE_LIMITS,
-  plainExcerpt,
+  knowledgeExcerpt,
   type FileInfo,
   type KnowledgeChatSource,
   type KnowledgeChatsFilter,
@@ -242,7 +242,7 @@ export function toSummary(
     type: row.type,
     visibility: row.visibility,
     title: row.title,
-    excerpt: plainExcerpt(row.body_head, (id) => names.get(id), KNOWLEDGE_LIMITS.excerpt),
+    excerpt: knowledgeExcerpt(row.body_head, (id) => names.get(id), KNOWLEDGE_LIMITS.excerpt),
     url: row.url,
     file:
       (row.type === 'file' || row.type === 'chat_file') && row.first_file

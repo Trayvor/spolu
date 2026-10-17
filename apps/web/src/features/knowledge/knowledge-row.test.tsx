@@ -120,12 +120,11 @@ describe('KnowledgeRow', () => {
     expect(meta.textContent!.indexOf('Acme Ltd')).toBeLessThan(meta.textContent!.indexOf('Jana'));
   });
 
-  it('adds an ellipsis when the excerpt was cut at 140 characters', () => {
-    const long = 'a'.repeat(140);
-    const { rerender } = render(<KnowledgeRow item={item({ excerpt: long })} onOpen={vi.fn()} />);
-    expect(screen.getByText(`${long}…`)).toBeInTheDocument();
-    rerender(<KnowledgeRow item={item({ excerpt: 'short' })} onOpen={vi.fn()} />);
-    expect(screen.getByText('short')).toBeInTheDocument();
+  it('shows the excerpt as the server cut it, on one truncated line', () => {
+    render(<KnowledgeRow item={item({ excerpt: 'first line\nsecond line…' })} onOpen={vi.fn()} />);
+    const p = screen.getByText(/first line/);
+    expect(p.textContent).toBe('first line\nsecond line…');
+    expect(p).toHaveClass('truncate');
   });
 
   it('the paperclip count is an image with a label', () => {

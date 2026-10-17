@@ -260,5 +260,10 @@
       "processing": "U obradi",
       "summary": "Sažetak"
     }
+  },
+  "view": {
+    "label": "Prikaz",
+    "list": "Popis",
+    "cards": "Kartice"
   }
 }

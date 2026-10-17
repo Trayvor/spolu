@@ -305,6 +305,36 @@ test.describe.serial('knowledge base', () => {
     await admin.close();
   });
 
+  test('card view: several lines of a note, remembered, and a card opens the detail', async () => {
+    const note = await create(adminContext.request, {
+      type: 'note',
+      title: `Karta ${stamp}`,
+      body: `# Postup\n**Prvý** riadok poznámky\n- druhý riadok ${stamp}`,
+      fileIds: [],
+    });
+    const page = await adminContext.newPage();
+    // An explicit filter: an earlier test left "Z chatu" remembered for this group.
+    await page.goto(`/groups/${groupId}/knowledge?type=note`);
+    await page.getByRole('button', { name: 'Karty' }).click();
+    const card = page.getByRole('listitem').filter({ hasText: note.title });
+    await expect(card).toContainText('Prvý riadok poznámky');
+    await expect(card).toContainText(`• druhý riadok ${stamp}`);
+    await expect(card).not.toContainText('**');
+
+    // The choice is kept: the next visit (and the global list) opens in cards.
+    await page.reload();
+    await expect(page.getByRole('button', { name: 'Karty' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    await page.getByRole('button', { name: `Otvoriť ${note.title}` }).click();
+    await expect(page).toHaveURL(new RegExp(`k=${note.id}`));
+    await expect(page.getByRole('dialog').getByRole('heading', { name: note.title })).toBeVisible();
+    await page.keyboard.press('Escape');
+    await page.getByRole('button', { name: 'Zoznam' }).click();
+    await page.close();
+  });
+
   test('phone viewport: the detail is a full-screen sheet and its controls are at least 44 px', async () => {
     const note = await create(adminContext.request, {
       type: 'note',
