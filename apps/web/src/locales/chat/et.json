@@ -52,7 +52,9 @@
     "tooManyFiles": "Ühes sõnumis kuni 10 faili.",
     "fileTooLarge": "Liiga suur (max 25 MB)",
     "formatting": "Vormindus",
-    "mentionNotAllowed": "Kedagi, keda mainisite, ei saa siin enam mainida."
+    "mentionNotAllowed": "Kedagi, keda mainisite, ei saa siin enam mainida.",
+    "linkUrl": "Lingi aadress",
+    "addLink": "Lisa link"
   },
   "format": {
     "bold": "Paks",
@@ -90,5 +92,48 @@
     "failed": "Salvestust ei õnnestunud üles kirjutada. Proovige uuesti.",
     "limited": "Liiga palju salvestusi. Proovige minuti pärast.",
     "atLimit": "Salvestus peatus 5 minuti järel."
+  },
+  "reactions": {
+    "add": "Lisa reaktsioon",
+    "more": "Rohkem emojisid",
+    "quick": "Kiirreaktsioonid",
+    "react": "Reageeri {{emoji}}",
+    "chip": "Reaktsioon {{emoji}}, kokku {{count}}",
+    "chipMine": "Reaktsioon {{emoji}}, kokku {{count}}, sh sinu oma",
+    "who": "{{emoji}} {{names}}",
+    "loading": "Laadimine…",
+    "failed": "Reaktsiooni ei salvestatud. Proovi uuesti.",
+    "pickerTitle": "Vali reaktsioon",
+    "groups": {
+      "smileys": "Näod",
+      "gestures": "Žestid",
+      "hearts": "Südamed",
+      "work": "Töö",
+      "celebration": "Pidu",
+      "symbols": "Sümbolid"
+    }
+  },
+  "knowledge": {
+    "attach": "Lisa teadmusbaasist",
+    "attached": "Lisatud teadmusbaasi kirjed",
+    "remove": "Eemalda {{title}}",
+    "pickerTitle": "Lisa teadmusbaasist",
+    "pickerHint": "Näidatakse ainult kirjeid, mida kõik selle grupi liikmed näevad.",
+    "search": "Otsi teadmusbaasist",
+    "attachCount": "Lisa ({{count}})",
+    "noResults": "Otsingule ei vasta midagi.",
+    "empty": "Sellel grupil pole veel jagatud teadmusbaasi kirjeid.",
+    "loadMore": "Näita rohkem",
+    "limit": "Ühes sõnumis kuni {{count}} kirjet.",
+    "unavailable": "Kirje pole saadaval",
+    "back": "Tagasi vestlusesse",
+    "types": {
+      "note": "Märge",
+      "file": "Fail",
+      "link": "Link",
+      "reminder": "Meeldetuletus",
+      "meeting": "Koosolek",
+      "chat_file": "Vestlusest"
+    }
   }
 }

@@ -68,6 +68,11 @@ export type EmailRenderInput = {
    * image is shown at the column width.
    */
   imageSizes?: ReadonlyMap<string, { width: number; height: number }>;
+  /**
+   * The editor's preview only: each block's cell gets `data-sp-block="<id>"`, so the builder can
+   * highlight the block and select it on a click. Never set for an email that is sent.
+   */
+  markBlocks?: boolean;
 };
 
 // egrant.sk tokens (docs/design/tokens.md). Mail apps cannot load Saans, so the stack falls
@@ -81,9 +86,16 @@ const C = {
 };
 const FONT = `'Saans',-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif`;
 const WIDTH = 600;
+/**
+ * The card of an email whose computer version holds a split container (2026-10-17): 680 px, a
+ * 600 px content column, so two columns fit side by side. 680 px still fits Outlook's reading
+ * pane and Gmail's message view on a laptop; emails without a container keep 600 px, byte for
+ * byte.
+ */
+const WIDE_WIDTH = 680;
 const PAD = 40;
-/** The width of the content column inside the card. */
-const COLUMN = WIDTH - 2 * PAD;
+/** Space around the card on each side (the outer cell's padding). */
+const OUTER = 12;
 /** Space between a split container's columns and its divider, each side. */
 const GAP = 12;
 
@@ -91,9 +103,12 @@ const TABLE = 'role="presentation" cellpadding="0" cellspacing="0" border="0"';
 const TEXT_STYLE = `font-family:${FONT};font-size:16px;line-height:26px;font-weight:500;letter-spacing:0.2px;color:${C.ink}`;
 const LINK_STYLE = `color:${C.ink};text-decoration:underline`;
 
-/** The phone layout of the card (Phase 23). Clients that drop it keep 600 px. */
-const CARD_CSS =
-  '@media (max-width: 620px) { .sp-container { width:100% !important; } .sp-card { padding:28px 20px !important; } .sp-footer { padding:20px 20px 0 20px !important; } }';
+/**
+ * The phone layout of the card (Phase 23): fluid once the window is narrower than the card and
+ * its outer padding (620 px; 704 px for the wide card). Clients that drop it keep the card's width.
+ */
+const cardCss = (width: number) =>
+  `@media (max-width: ${width === WIDTH ? 620 : width + 2 * OUTER}px) { .sp-container { width:100% !important; } .sp-card { padding:28px 20px !important; } .sp-footer { padding:20px 20px 0 20px !important; } }`;
 /** Split containers stack, left first, on phones (Phase 31). */
 const COLUMNS_CSS =
   '.sp-col { display:block !important; width:100% !important; max-width:100% !important; } .sp-col-r { padding-top:24px !important; } .sp-gap { display:none !important; width:0 !important; }';
@@ -137,24 +152,28 @@ function renderHtml(i: EmailRenderInput): string {
   const { language, footer } = i;
   const phone = Array.isArray(i.phoneBlocks) ? i.phoneBlocks : null;
   const hasColumns = [...i.blocks, ...(phone ?? [])].some((b) => b.type === 'columns');
+  // Only the computer version decides the width: the phone version shows on phones, fluid.
+  const width = i.blocks.some((b) => b.type === 'columns') ? WIDE_WIDTH : WIDTH;
+  const column = width - 2 * PAD;
+  const cardRule = cardCss(width);
   const extraCss = [hasColumns ? COLUMNS_CSS : '', phone ? PHONE_CSS : '']
     .filter(Boolean)
     .join(' ');
-  const css = extraCss ? `${CARD_CSS} @media (max-width: 600px) { ${extraCss} }` : CARD_CSS;
+  const css = extraCss ? `${cardRule} @media (max-width: 600px) { ${extraCss} }` : cardRule;
   const card = phone
     ? [
         '<div class="sp-desktop">',
-        ...rowsTable(i.blocks, i, COLUMN),
+        ...rowsTable(i.blocks, i, column),
         '</div>',
         // Outlook for Windows never sees the phone version; other clients without media queries
         // keep it hidden by the inline style.
         '<!--[if !mso]><!-->',
         '<div class="sp-phone" style="display:none;max-height:0;overflow:hidden;mso-hide:all">',
-        ...rowsTable(phone, i, COLUMN),
+        ...rowsTable(phone, i, column),
         '</div>',
         '<!--<![endif]-->',
       ]
-    : rowsTable(i.blocks, i, COLUMN);
+    : rowsTable(i.blocks, i, column);
   const small = [
     ...footer.lines.map(esc),
     ...(footer.link
@@ -178,8 +197,8 @@ function renderHtml(i: EmailRenderInput): string {
     `<body style="margin:0;padding:0;background-color:${C.base};-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%">`,
     preheader(i.preheader),
     `<table ${TABLE} width="100%" bgcolor="${C.base}" style="background-color:${C.base}">`,
-    '<tr><td align="center" style="padding:32px 12px">',
-    `<table ${TABLE} class="sp-container" width="${WIDTH}" style="width:${WIDTH}px;max-width:${WIDTH}px">`,
+    `<tr><td align="center" style="padding:32px ${OUTER}px">`,
+    `<table ${TABLE} class="sp-container" width="${width}" style="width:${width}px;max-width:${width}px">`,
     `<tr><td class="sp-card" bgcolor="${C.surface}" style="background-color:${C.surface};border-radius:16px;padding:${PAD}px">`,
     ...card,
     '</td></tr>',
@@ -199,7 +218,8 @@ function rowsTable(blocks: readonly BulkBlock[], i: EmailRenderInput, width: num
   const shown = blocks.filter((block) => block.type !== 'image' || i.imageUrl);
   const rows = shown.map((block, n) => {
     const last = n === shown.length - 1;
-    return `<tr><td${blockCell(block)} style="padding:0 0 ${last ? 0 : 24}px 0">${renderBlock(block, i, width)}</td></tr>`;
+    const mark = i.markBlocks ? ` data-sp-block="${esc(String(block.id))}"` : '';
+    return `<tr><td${mark}${blockCell(block)} style="padding:0 0 ${last ? 0 : 24}px 0">${renderBlock(block, i, width)}</td></tr>`;
   });
   return [`<table ${TABLE} width="100%">`, ...rows, '</table>'];
 }

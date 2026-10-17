@@ -73,4 +73,23 @@ describe('KnowledgeList', () => {
     expect(screen.getByRole('alert')).toBeInTheDocument();
     expect(screen.queryByText('Nothing here yet')).not.toBeInTheDocument();
   });
+
+  it('cards view: one list item per card, then Load more', () => {
+    const q = query([{ items: [row('a'), row('b'), row('c')], nextCursor: 'c1' }]);
+    render(<KnowledgeList query={q} onOpen={vi.fn()} empty={<p>none</p>} view="cards" />);
+    expect(screen.getAllByRole('listitem')).toHaveLength(3);
+    expect(screen.getByRole('button', { name: 'Open Item b' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Load more' })).toBeInTheDocument();
+  });
+
+  it('list view has no list of cards', () => {
+    render(
+      <KnowledgeList
+        query={query([{ items: [row('a')], nextCursor: null }])}
+        onOpen={vi.fn()}
+        empty={<p>none</p>}
+      />,
+    );
+    expect(screen.queryByRole('listitem')).not.toBeInTheDocument();
+  });
 });

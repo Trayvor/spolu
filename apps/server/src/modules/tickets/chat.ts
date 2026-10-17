@@ -1,5 +1,6 @@
 import { userRoom } from '../../infra/realtime/rooms.js';
 import { fileInReadableChannel, registerChannelKind, type ChannelRef } from '../chat/access.js';
+import { fileOfAttachedKnowledge } from '../chat/knowledge-links.js';
 import { registerFileReadRule } from '../files/read-rules.js';
 import { ensureTicketChannel, moveTicketChannel } from '../chat/service.js';
 import type { Db } from '../../infra/db/client.js';
@@ -20,7 +21,8 @@ const ticketOf = (db: Db, channel: ChannelRef) =>
  * The ticket chat (Phase 21, part 21.3): the chat module reads a `ticket` channel by the ticket's
  * rules, pushes its messages to the initiator's own sockets too (a ziadatel is in no group room),
  * lets the initiator be mentioned, makes `@all` mean the ticket's followers and tells the
- * followers about each message (`ticket.message`, part 21.6). A ticket gets its
+ * followers about each message (`ticket.message`, part 21.6). The initiator also reads the files
+ * of knowledge items attached there (Phase 28). A ticket gets its
  * chat when it gets a client; the chat moves with the ticket. The files uploaded with a ticket are
  * read by whoever reads it. Call once at start-up.
  */
@@ -59,6 +61,8 @@ export function registerTicketChat(): void {
   });
   onTicketChange(createOrMoveChat);
   registerFileReadRule(fileInReadableChannel);
+  // Phase 28: the files of knowledge items attached in the chat, for the initiator.
+  registerFileReadRule(fileOfAttachedKnowledge);
   registerFileReadRule(fileOfReadableTicket);
 }
 

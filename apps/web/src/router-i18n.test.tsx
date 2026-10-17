@@ -246,9 +246,9 @@ function renderAt(path: string) {
 interface Case {
   path: string;
   me: typeof ADMIN | typeof CLIENT | null;
-  /** A text (or a field placeholder) of the screen in English, found once it has rendered. */
+  /** A text (or a text field's name) of the screen in English, found once it has rendered. */
   shows: string | RegExp;
-  placeholder?: boolean;
+  field?: boolean;
   /** Namespaces the screen needs, loaded before it renders. */
   namespaces: string[];
 }
@@ -278,14 +278,14 @@ const CASES: Case[] = [
     path: '/groups/g1/chat',
     me: ADMIN,
     shows: 'Write a message…',
-    placeholder: true,
+    field: true,
     namespaces: ['group', 'groups', 'chat', 'tasks', 'taskSplit', 'forms'],
   },
   {
     path: '/groups/g1/chat',
     me: CLIENT,
     shows: 'Write a message…',
-    placeholder: true,
+    field: true,
     namespaces: ['group', 'chat', 'tasks', 'taskSplit', 'forms'],
   },
   {
@@ -353,13 +353,13 @@ describe('routes render no raw locale keys', () => {
     vi.unstubAllGlobals();
   });
 
-  for (const { path, me, shows, placeholder, namespaces } of CASES) {
+  for (const { path, me, shows, field, namespaces } of CASES) {
     it(`${path} (${me?.role ?? 'anonymous'})`, async () => {
       const { isNamespaceLoaded } = app;
       mockApi(me);
       renderAt(path);
-      const found = placeholder
-        ? await screen.findAllByPlaceholderText(shows)
+      const found = field
+        ? await screen.findAllByRole('textbox', { name: shows })
         : await screen.findAllByText(shows);
       expect(found.length).toBeGreaterThan(0);
       // Let the queries settle so loaded data renders too.

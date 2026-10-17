@@ -70,6 +70,8 @@ function msg(id: string, n: number, over: Partial<MessageDto> = {}): MessageDto 
     createdAt: new Date(Date.UTC(2026, 9, 15, 9, n)).toISOString(),
     changeSeq: n,
     tasks: [],
+    reactions: [],
+    knowledge: [],
     ...over,
   };
 }

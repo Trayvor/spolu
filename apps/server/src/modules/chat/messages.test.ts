@@ -400,8 +400,8 @@ describe('toMessageDtos', () => {
       statements = 0;
       await toMessageDtos(counted, s.group.id, rows.slice(0, 1));
       expect(forFifty).toBe(statements);
-      // Mentions, attachment rows and task links, then the files.
-      expect(forFifty).toBe(4);
+      // Mentions, attachment rows, task links, reactions and knowledge rows, then the files.
+      expect(forFifty).toBe(6);
     } finally {
       await client.end({ timeout: 1 });
     }

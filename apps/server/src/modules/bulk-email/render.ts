@@ -31,6 +31,8 @@ export type RenderInput = {
    * image is shown at the column width.
    */
   imageSizes?: ReadonlyMap<string, { width: number; height: number }>;
+  /** The editor's preview only: block ids on the cells (`data-sp-block`), never sent. */
+  markBlocks?: boolean;
 };
 
 export function renderCampaign(input: RenderInput): { html: string; text: string } {
@@ -50,5 +52,6 @@ export function renderCampaign(input: RenderInput): { html: string; text: string
     publicUrl: input.publicUrl,
     imageUrl: (id) => imageUrl(input.publicUrl, id),
     imageSizes: input.imageSizes,
+    markBlocks: input.markBlocks,
   });
 }

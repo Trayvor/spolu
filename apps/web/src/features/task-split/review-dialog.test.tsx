@@ -75,6 +75,8 @@ const MESSAGE: MessageDto = {
   createdAt: '2026-10-15T10:00:00Z',
   changeSeq: 1,
   tasks: [],
+  reactions: [],
+  knowledge: [],
 };
 
 const PROPOSALS: TaskProposal[] = [

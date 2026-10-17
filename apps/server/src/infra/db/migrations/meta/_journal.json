@@ -218,6 +218,13 @@
       "when": 1792204789269,
       "tag": "0030_bulk_email_builder_v2",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1792241024206,
+      "tag": "0031_chat_reactions_knowledge",
+      "breakpoints": true
     }
   ]
 }

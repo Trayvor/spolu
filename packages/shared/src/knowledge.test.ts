@@ -12,6 +12,7 @@ import {
   KnowledgeChatSourceSchema,
   KnowledgeChatsFilterSchema,
   ReminderInputSchema,
+  knowledgeExcerpt,
 } from './knowledge.js';
 import { isHttpUrl } from './urls.js';
 
@@ -314,5 +315,55 @@ describe('chat files (the chat_file type)', () => {
     expect(KnowledgeChatsFilterSchema.parse('all')).toBe('all');
     expect(KnowledgeChatsFilterSchema.parse('group')).toBe('group');
     expect(KnowledgeChatsFilterSchema.safeParse('task').success).toBe(false);
+  });
+});
+
+describe('knowledgeExcerpt', () => {
+  const nameOf = (id: string) => (id === 'u1' ? 'Anna' : undefined);
+
+  it('keeps line breaks, drops blank lines and resolves mentions', () => {
+    expect(knowledgeExcerpt('Hi <@u1>,\n\n\n  second   line \n<@u9> <@all>', nameOf, 400)).toBe(
+      'Hi @Anna,\nsecond line\n@? @all',
+    );
+  });
+
+  it('strips the formatting marks of the chat subset', () => {
+    const body = [
+      '# Budget',
+      '> quoted **bold** and _italic_ and ~~gone~~',
+      '- first `code`',
+      '* second',
+      '1. ordered',
+      '```',
+      'const x = 1;',
+      '```',
+      'See [the call](https://example.com/x) and snake_case_name.',
+    ].join('\n');
+    expect(knowledgeExcerpt(body, nameOf, 400)).toBe(
+      [
+        'Budget',
+        'quoted bold and italic and gone',
+        '• first code',
+        '• second',
+        '1. ordered',
+        'const x = 1;',
+        'See the call and snake_case_name.',
+      ].join('\n'),
+    );
+  });
+
+  it('cuts at the limit with an ellipsis, never half a character', () => {
+    expect(knowledgeExcerpt('a'.repeat(500), nameOf, 360)).toBe(`${'a'.repeat(360)}…`);
+    expect(knowledgeExcerpt('a'.repeat(360), nameOf, 360)).toBe('a'.repeat(360));
+    const cut = knowledgeExcerpt(`${'a'.repeat(359)}😀😀`, nameOf, 360);
+    expect(cut).toBe(`${'a'.repeat(359)}😀…`);
+  });
+
+  it('an empty or whitespace body gives an empty excerpt', () => {
+    expect(knowledgeExcerpt('  \n\n ', nameOf, 360)).toBe('');
+  });
+
+  it('the list shows up to 360 characters', () => {
+    expect(KNOWLEDGE_LIMITS.excerpt).toBe(360);
   });
 });

@@ -29,7 +29,15 @@ import { user } from '../users/schema.js';
 import { selectMessages, toMessageDtos, type MessageRow } from './dto.js';
 import { actorReadsChannel, channelKindAccess } from './access.js';
 import { runFilesAttached } from './file-hooks.js';
-import { channels, messageAttachments, messageMentions, messages } from './schema.js';
+import { attachKnowledge, checkKnowledgeIds } from './knowledge-links.js';
+import {
+  channels,
+  messageAttachments,
+  messageKnowledgeItems,
+  messageMentions,
+  messageReactions,
+  messages,
+} from './schema.js';
 import {
   getChannel,
   nextSeq,
@@ -149,6 +157,9 @@ export async function sendMessage(
     pickable.add(p.id);
   }
   if (mentions.userIds.some((id) => !pickable.has(id))) throw new InvalidMentionError();
+  const knowledgeIds = data.knowledgeIds ?? [];
+  // Phase 28: only readers of the group attach its items, and only items everyone here may read.
+  await checkKnowledgeIds(db, author, groupId, knowledgeIds);
   // Another module's chat notifies its own readers (a ticket's followers) and decides who @all
   // reaches; read before the transaction, like the people above.
   const notice = access ? await access.messageNotice(db, channel) : null;
@@ -201,6 +212,7 @@ export async function sendMessage(
           fileIds,
         });
       }
+      await attachKnowledge(tx, messageId, knowledgeIds);
 
       if (parentId !== null) {
         const [root] = await tx
@@ -464,7 +476,7 @@ async function loadDto(db: Db, groupId: string, id: string): Promise<MessageDto>
 /**
  * Replaces the body of a live message in one transaction: mentions are re-parsed and validated
  * against the pickable people (mentions already on the message stay valid), `edited_at` and `change_seq` move. No notifications are recorded.
- * An empty body is allowed only while the message has attachments.
+ * An empty body is allowed only while the message has attachments or knowledge items.
  */
 export async function editMessage(
   deps: AppDeps,
@@ -502,8 +514,15 @@ export async function editMessage(
         .from(messageAttachments)
         .where(eq(messageAttachments.messageId, message.id))
         .limit(1);
+      const [item] = attachment
+        ? [attachment]
+        : await tx
+            .select({ itemId: messageKnowledgeItems.itemId })
+            .from(messageKnowledgeItems)
+            .where(eq(messageKnowledgeItems.messageId, message.id))
+            .limit(1);
       // Throwing rolls the whole transaction back, the update included.
-      if (!attachment) throw new EmptyMessageError();
+      if (!attachment && !item) throw new EmptyMessageError();
     }
     await tx.delete(messageMentions).where(eq(messageMentions.messageId, message.id));
     if (mentions.userIds.length > 0) {
@@ -517,7 +536,7 @@ export async function editMessage(
 
 /**
  * Soft-deletes a message in one transaction: the row stays (threads keep working), body and
- * mentions are cleared, attachment rows go, `change_seq` moves. Its files are deleted after the
+ * mentions are cleared, attachment, reaction and knowledge rows go, `change_seq` moves. Its files are deleted after the
  * commit, best effort (leftovers are unattached for the daily cleanup). A reply's deletion leaves the root's `reply_count` as it is. Deleting twice is a no-op.
  */
 export async function deleteMessage(
@@ -540,6 +559,8 @@ export async function deleteMessage(
       .set({ deletedAt: sql`now()`, body: '', mentionsAll: false, changeSeq: seq })
       .where(eq(messages.id, message.id));
     await tx.delete(messageMentions).where(eq(messageMentions.messageId, message.id));
+    await tx.delete(messageReactions).where(eq(messageReactions.messageId, message.id));
+    await tx.delete(messageKnowledgeItems).where(eq(messageKnowledgeItems.messageId, message.id));
     const removed = await tx
       .delete(messageAttachments)
       .where(eq(messageAttachments.messageId, message.id))

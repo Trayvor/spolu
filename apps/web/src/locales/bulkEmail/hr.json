@@ -108,7 +108,9 @@
     "failed": "Pretpregled nije moguće učitati.",
     "note": "Prikazano s Vašim imenom, onako kako biste je primili. Blokovi s problemima izostavljeni su dok se ne isprave.",
     "titlePhone": "Pretpregled na telefonu",
-    "tooBig": "Ova e-poruka ima oko {{kb}} kB. Gmail skraćuje e-poruke veće od otprilike 102 kB: skratite je ili uklonite verziju za telefon."
+    "tooBig": "Ova e-poruka ima oko {{kb}} kB. Gmail skraćuje e-poruke veće od otprilike 102 kB: skratite je ili uklonite verziju za telefon.",
+    "scaled": "Prikazano na {{percent}} %",
+    "clickHint": "Kliknite dio e-pošte da biste ga uredili."
   },
   "audience": {
     "title": "Primatelji",
@@ -333,5 +335,10 @@
     "body": "Verzija za telefon i dalje prati verziju za računalo: na telefonima se podijeljeni blokovi slažu jedan ispod drugoga, a široke slike se smanjuju. Prije slanja pogledajte pretpregled na telefonu. Ovaj se podsjetnik za ovu e-poruku prikazuje samo jednom.",
     "show": "Prikaži pretpregled na telefonu",
     "sendAnyway": "Ipak pošalji"
+  },
+  "workspace": {
+    "label": "Blokovi i pregled",
+    "blocks": "Blokovi",
+    "preview": "Pregled"
   }
 }

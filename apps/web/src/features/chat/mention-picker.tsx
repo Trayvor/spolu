@@ -1,5 +1,4 @@
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useState } from 'react';
-import type { KeyboardEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { GroupPerson } from '@spolu/shared';
 import { Avatar } from '@/components/avatar';
@@ -9,7 +8,7 @@ export type MentionChoice = { type: 'all' } | { type: 'person'; person: GroupPer
 
 export interface MentionPickerHandle {
   /** Handles ArrowUp/Down, Enter/Tab and Escape; true when the key was used. */
-  handleKey(event: KeyboardEvent): boolean;
+  handleKey(event: { key: string; preventDefault(): void }): boolean;
 }
 
 interface MentionPickerProps {
@@ -17,7 +16,7 @@ interface MentionPickerProps {
   people: GroupPerson[];
   onPick(choice: MentionChoice): void;
   onClose(): void;
-  /** DOM id of this listbox (the textarea points at it with `aria-controls`). */
+  /** DOM id of this listbox (the field points at it with `aria-controls`). */
   id: string;
   /** Reports the DOM id of the highlighted option for `aria-activedescendant`. */
   onActiveChange?(optionId: string | undefined): void;
@@ -43,7 +42,7 @@ const optionClass =
 
 /**
  * The list under an `@` in the composer: "Everyone in this group" first, then matching people.
- * Focus stays in the textarea; the composer forwards keys to `handleKey`.
+ * Focus stays in the field; the composer forwards keys to `handleKey`.
  */
 export const MentionPicker = forwardRef<MentionPickerHandle, MentionPickerProps>(
   function MentionPicker(
@@ -112,7 +111,7 @@ export const MentionPicker = forwardRef<MentionPickerHandle, MentionPickerProps>
             aria-selected={i === active}
             // The option's name stays "Everyone in this group"; the hint is its description.
             aria-describedby={choice.type === 'all' ? `${id}-all-hint` : undefined}
-            // mouseDown keeps the focus (and the caret) in the textarea.
+            // mouseDown keeps the focus (and the caret) in the field.
             onMouseDown={(e) => {
               e.preventDefault();
               onPick(choice);

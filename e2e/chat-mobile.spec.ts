@@ -67,15 +67,18 @@ test('on a phone, a long press opens the action sheet and Reply in thread opens 
     await text.dispatchEvent('touchstart', { touches: [touch], changedTouches: [touch] });
     await expect(sheet).toBeVisible();
     await text.dispatchEvent('touchend', { touches: [], changedTouches: [touch] });
+    // The quick reactions row sits on top (Phase 28); the actions follow it.
+    await expect(sheet.getByRole('group', { name: 'Rýchle reakcie' })).toBeVisible();
+    const actions = sheet.locator('button:not([role="group"] button)');
     // "Vytvoriť úlohy" (Turn into tasks): the e2e server runs the fake AI provider.
-    await expect(sheet.getByRole('button')).toHaveText([
+    await expect(actions).toHaveText([
       'Odpovedať vo vlákne',
       'Kopírovať text',
       'Vytvoriť úlohy',
       'Upraviť',
       'Odstrániť',
     ]);
-    const row = (await sheet.getByRole('button').first().boundingBox())!;
+    const row = (await actions.first().boundingBox())!;
     expect(row.height).toBe(48);
     await sheet.getByRole('button', { name: 'Odpovedať vo vlákne' }).tap();
     await expect(sheet).toHaveCount(0);

@@ -28,11 +28,13 @@ import { Toast } from '@/components/ui/toast';
 import { groupsQuery } from '@/features/groups/api';
 import { useRememberedFilters } from '@/lib/use-remembered-filters';
 import { useUpdateSearch } from '@/lib/use-update-search';
+import { cn } from '@/lib/utils';
 import { globalKnowledgeQuery, knowledgeScopeQuery } from './api';
 import { KnowledgeDialog } from './knowledge-dialog';
 import { KnowledgeList } from './knowledge-list';
 import { FolderBrowser } from './folder-browser';
 import { ChevronIcon } from './icons';
+import { useKnowledgeView, ViewToggle } from './view-toggle';
 
 /** The filters remembered for the next visit (`useRememberedFilters`): not the search. */
 const REMEMBERED_KEYS = ['clients', 'type', 'chats'] as const;
@@ -105,6 +107,7 @@ export function KnowledgePage() {
     useSearch({ strict: false }) as KnowledgePageSearch,
   );
   const update = useUpdateSearch();
+  const [view, setView] = useKnowledgeView();
   const clientsParam = search.clients;
 
   const groups = useQuery(groupsQuery).data;
@@ -262,7 +265,10 @@ export function KnowledgePage() {
   );
 
   return (
-    <div className="flex max-w-[720px] flex-col gap-6">
+    // Cards get a wider page: up to three columns.
+    <div
+      className={cn('flex flex-col gap-6', view === 'cards' ? 'max-w-[1120px]' : 'max-w-[720px]')}
+    >
       <h1 className="text-medium leading-tight font-semibold">{t('knowledge.global.title')}</h1>
 
       <div
@@ -321,20 +327,23 @@ export function KnowledgePage() {
             }
           />
         )}
-        <label className="relative w-full min-[641px]:ml-auto min-[641px]:w-[300px]">
-          <span className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-muted-foreground">
-            <SearchIcon />
-          </span>
-          <Input
-            type="search"
-            value={text}
-            onChange={(event) => changeText(event.target.value)}
-            placeholder={t('knowledge.global.search')}
-            maxLength={200}
-            aria-label={t('knowledge.global.search')}
-            className="py-2 pl-10"
-          />
-        </label>
+        <div className="flex w-full items-center gap-2 min-[641px]:ml-auto min-[641px]:w-auto">
+          <label className="relative min-w-0 flex-1 min-[641px]:w-[300px] min-[641px]:flex-none">
+            <span className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-muted-foreground">
+              <SearchIcon />
+            </span>
+            <Input
+              type="search"
+              value={text}
+              onChange={(event) => changeText(event.target.value)}
+              placeholder={t('knowledge.global.search')}
+              maxLength={200}
+              aria-label={t('knowledge.global.search')}
+              className="py-2 pl-10"
+            />
+          </label>
+          <ViewToggle view={view} onChange={setView} />
+        </div>
       </div>
 
       {searching ? (
@@ -347,6 +356,7 @@ export function KnowledgePage() {
             showGroup
             showPath
             empty={empty}
+            view={view}
           />
         )
       ) : search.at ? (
@@ -367,6 +377,7 @@ export function KnowledgePage() {
           onOpenItem={(id) => update((s) => void (s.k = id), { replace: false })}
           onFolderGone={folderGone}
           canSeeAdmins
+          view={view}
           emptyHint={
             <p className="py-6 text-button text-muted-foreground">
               {t('knowledge.folders.emptyFolderBrowse')}

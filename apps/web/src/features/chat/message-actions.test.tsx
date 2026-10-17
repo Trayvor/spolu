@@ -28,6 +28,8 @@ const message = (over: Partial<MessageDto> = {}): MessageDto => ({
   createdAt: '2026-10-14T09:00:00.000Z',
   changeSeq: 1,
   tasks: [],
+  reactions: [],
+  knowledge: [],
   ...over,
 });
 
@@ -56,9 +58,11 @@ function renderItem(props: Partial<MessageItemProps> = {}) {
 const row = () => document.querySelector<HTMLElement>('[data-message-id="m1"]')!;
 const touchButton = () => screen.getByRole('button', { name: t('chat.actions.open') });
 const sheet = () => screen.getByRole('dialog', { name: t('chat.actions.open') });
+/** The sheet's action rows, without the quick reactions above them (Phase 28). */
 const sheetRows = () =>
   within(sheet())
     .getAllByRole('button')
+    .filter((b) => !b.closest('[role=group]'))
     .map((b) => b.textContent);
 
 beforeEach(() => setLanguage('en'));
@@ -199,7 +203,9 @@ describe('message actions: touch and desktop', () => {
     const { user } = renderItem();
     await user.click(touchButton());
     await user.click(within(sheet()).getByRole('button', { name: t('chat.actions.edit') }));
-    expect(screen.getByRole('textbox', { name: t('chat.actions.edit') })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('textbox', { name: t('chat.actions.edit') }),
+    ).toBeInTheDocument();
   });
 
   it('closes on Escape and on a tap outside, and gives the focus back to the actions button', async () => {

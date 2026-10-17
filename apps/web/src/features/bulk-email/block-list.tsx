@@ -110,8 +110,9 @@ function MoveTo({
     <Select
       id={id}
       aria-label={t('bulkEmail.columns.moveTo', { n, type })}
-      containerClassName="w-full min-[641px]:w-auto"
-      className="h-8 py-0 text-tiny"
+      // A narrow card (a container's column) puts it on its own line under the title.
+      containerClassName="order-last w-full min-w-0 @min-[440px]:order-none @min-[440px]:w-auto @min-[440px]:max-w-[220px]"
+      className="h-8 min-w-0 py-0 text-tiny max-[640px]:h-11"
       value=""
       onChange={(e) => {
         const target = places.find((p) => placeKey(p) === e.target.value);
@@ -151,8 +152,14 @@ function BlockItems({
           <li
             key={block.id}
             data-testid={`block-${block.id}`}
+            // The preview's highlight finds the card by this id and marks it `data-hl`
+            // (`preview-highlight.ts`); a click in the preview focuses it.
+            data-block-id={block.id}
+            tabIndex={-1}
             className={cn(
-              'flex flex-col gap-4 rounded-xl border-2 border-border bg-card p-4 aria-invalid:border-destructive',
+              // Its own container: the forms lay out by the card's width, so a card inside a
+              // split container's column never overflows.
+              '@container flex min-w-0 flex-col gap-4 rounded-xl border-2 border-border bg-card p-4 outline-none transition-colors duration-(--duration-fast) data-[hl=active]:border-brand-purple data-[hl=hover]:border-brand-purple/45 aria-invalid:border-destructive',
               place !== null && 'p-3',
             )}
             aria-invalid={invalid ? true : undefined}
@@ -202,13 +209,15 @@ function BlockItems({
             />
             {block.type === 'columns' && (
               <div
+                // The two sides stack (left first) until the card is wide enough for both
+                // sides' forms; side by side they follow the ratio, never below 300 px each.
                 className={cn(
-                  'grid gap-3 @min-[560px]:gap-0',
+                  'grid gap-3 @min-[720px]:gap-0',
                   block.ratio === '33-67'
-                    ? '@min-[560px]:grid-cols-[1fr_auto_2fr]'
+                    ? '@min-[720px]:grid-cols-[minmax(300px,1fr)_auto_minmax(300px,2fr)]'
                     : block.ratio === '67-33'
-                      ? '@min-[560px]:grid-cols-[2fr_auto_1fr]'
-                      : '@min-[560px]:grid-cols-[1fr_auto_1fr]',
+                      ? '@min-[720px]:grid-cols-[minmax(300px,2fr)_auto_minmax(300px,1fr)]'
+                      : '@min-[720px]:grid-cols-[minmax(300px,1fr)_auto_minmax(300px,1fr)]',
                 )}
               >
                 {(['left', 'right'] as const).map((side) => {
@@ -220,7 +229,7 @@ function BlockItems({
                         key="line"
                         aria-hidden="true"
                         className={cn(
-                          'hidden @min-[560px]:mx-3 @min-[560px]:block @min-[560px]:w-0.5 @min-[560px]:rounded-full',
+                          'hidden @min-[720px]:mx-3 @min-[720px]:block @min-[720px]:w-0.5 @min-[720px]:rounded-full',
                           block.divider ? 'bg-foreground/25' : 'bg-transparent',
                         )}
                       />

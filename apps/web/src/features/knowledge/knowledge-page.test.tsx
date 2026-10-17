@@ -292,6 +292,18 @@ describe('KnowledgePage', () => {
     expect(screen.getAllByText('ABC s.r.o.').length).toBeGreaterThan(0);
   });
 
+  it('search results as cards, with the group; the choice is the same as in the tabs', async () => {
+    mockApi();
+    localStorage.setItem(rememberedFiltersKey('a1', 'knowledge:view'), '{"value":"cards"}');
+    const { user } = renderPage('/knowledge?q=portal');
+    const card = await screen.findByRole('listitem');
+    expect(card).toHaveTextContent('Ministry call portal');
+    expect(card).toHaveTextContent('ABC s.r.o.');
+    await user.click(screen.getByRole('button', { name: t('knowledge.view.list') }));
+    expect(screen.queryByRole('listitem')).not.toBeInTheDocument();
+    expect(screen.getByText('Ministry call portal')).toBeInTheDocument();
+  });
+
   it('clients cannot open /knowledge', async () => {
     const { listCalls } = mockApi(CLIENT);
     renderPage('/knowledge');

@@ -109,3 +109,20 @@ export const SmallChatIcon = () => (
     <path d="M4 5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9l-5 4z" />
   </Tile>
 );
+
+/** The list view of the view toggle: three rows. */
+export const ListViewIcon = () => (
+  <Tile name="list-view">
+    <path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01" />
+  </Tile>
+);
+
+/** The card view of the view toggle: four tiles. */
+export const CardsViewIcon = () => (
+  <Tile name="cards-view">
+    <rect x="3" y="3" width="7.5" height="7.5" rx="1.5" />
+    <rect x="13.5" y="3" width="7.5" height="7.5" rx="1.5" />
+    <rect x="3" y="13.5" width="7.5" height="7.5" rx="1.5" />
+    <rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.5" />
+  </Tile>
+);

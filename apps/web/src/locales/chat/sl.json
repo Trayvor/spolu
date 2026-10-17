@@ -56,7 +56,9 @@
     "tooManyFiles": "Največ 10 datotek na sporočilo.",
     "fileTooLarge": "Prevelika (največ 25 MB)",
     "formatting": "Oblikovanje",
-    "mentionNotAllowed": "Nekoga, ki ste ga omenili, tukaj ni več mogoče omeniti."
+    "mentionNotAllowed": "Nekoga, ki ste ga omenili, tukaj ni več mogoče omeniti.",
+    "linkUrl": "Naslov povezave",
+    "addLink": "Dodaj povezavo"
   },
   "format": {
     "bold": "Krepko",
@@ -96,5 +98,48 @@
     "failed": "Posnetka ni bilo mogoče prepisati. Poskusite znova.",
     "limited": "Preveč posnetkov. Poskusite čez minuto.",
     "atLimit": "Snemanje se je ustavilo po 5 minutah."
+  },
+  "reactions": {
+    "add": "Dodaj odziv",
+    "more": "Več emojijev",
+    "quick": "Hitri odzivi",
+    "react": "Odzovi se z {{emoji}}",
+    "chip": "Odziv {{emoji}}, skupaj {{count}}",
+    "chipMine": "Odziv {{emoji}}, skupaj {{count}}, vključno z vašim",
+    "who": "{{emoji}} {{names}}",
+    "loading": "Nalaganje …",
+    "failed": "Odziv ni bil shranjen. Poskusite znova.",
+    "pickerTitle": "Izberite odziv",
+    "groups": {
+      "smileys": "Smeški",
+      "gestures": "Kretnje",
+      "hearts": "Srca",
+      "work": "Delo",
+      "celebration": "Praznovanje",
+      "symbols": "Simboli"
+    }
+  },
+  "knowledge": {
+    "attach": "Priloži iz baze znanja",
+    "attached": "Priloženi elementi znanja",
+    "remove": "Odstrani {{title}}",
+    "pickerTitle": "Priloži iz baze znanja",
+    "pickerHint": "Prikazani so le elementi, ki jih vidijo vsi v tej skupini.",
+    "search": "Išči po bazi znanja",
+    "attachCount": "Priloži ({{count}})",
+    "noResults": "Iskanju nič ne ustreza.",
+    "empty": "Ta skupina še nima deljenih elementov znanja.",
+    "loadMore": "Pokaži več",
+    "limit": "Največ {{count}} elementov na sporočilo.",
+    "unavailable": "Element ni na voljo",
+    "back": "Nazaj na klepet",
+    "types": {
+      "note": "Zapisek",
+      "file": "Datoteka",
+      "link": "Povezava",
+      "reminder": "Opomnik",
+      "meeting": "Sestanek",
+      "chat_file": "Iz klepeta"
+    }
   }
 }

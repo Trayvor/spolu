@@ -7,7 +7,7 @@ Each group has a Knowledge tab where clients and admins keep what the group need
 - **Knowledge tab** in every group (sk: "Znalosti"), between Tasks and Members.
 - **Four item types** people create (and a fifth, "From chat", added by the chat: see below):
   1. **Note**: a title and a body with the same formatting as the chat composer, plus files.
-     - In the list: the title, the number of attached files, and the start of the body on one line, ending with "…".
+     - In the list: the title, the number of attached files, and the start of the body on one line, ending with "…" (the card view shows several lines, see "Card view").
   2. **File**: one file, with a title and a description.
      - In the list: a file icon and the file name.
      - Clicking the file name downloads the file, or opens it in the browser for images.
@@ -50,6 +50,15 @@ Design and the defaults we chose: [Phase 24 spec](../superpowers/specs/2026-10-1
 - **Item detail:** the folder path next to the type; "Move to…" in the "…" menu opens a picker of the group's folders as an indented tree under "Top level" (the current place cannot be chosen; for a folder, neither can the folder itself or anything below it).
 - **Global list:** without a search it is a folder view: the clients of the client filter by name (logo and name), then a client's folders and items (`?at=<group>&folder=<id>`, breadcrumbs "All clients › Client › Folder"). The type filter applies to the items there. Typing a search switches to the flat list across clients, each row with its client and folder path.
 - **Realtime:** folder changes reach the tab live (`knowledge:folder`, `knowledge:folder_deleted`); the folder list and the item lists refetch.
+
+## Card view (built)
+
+Owner request of 2026-10-17. Design and the defaults we chose: [spec](../superpowers/specs/2026-10-17-knowledge-card-view-design.md).
+
+- **Toggle** "List / Cards" (sk "Zoznam / Karty") next to the search field, in each group's Knowledge tab and in the global list. List is the default. The choice is one per person for all knowledge lists, kept in the browser (like the remembered filters, not in the URL).
+- **Cards:** one column on phones, two or three as the width allows (the global list widens to fit three). Each card has the row's icon or date leaf, the title (two lines), "Only eGrant", the type's line (file, address, next reminder time, meeting date and state, chat source), up to five lines of the text, and at the bottom the author and date, a note's file count, and where the row shows them the client and folder path. The whole card opens the detail (`?k=<id>`), a chat file the chat; the file name and address keep working as links.
+- **Folders** stay rows above the cards; breadcrumbs, search, filters and "Load more" work as in the list.
+- **The text shown** is the list's excerpt: the first 360 characters of the body (a note's text, a file's or link's description, a reminder's or meeting's notes) as plain text with its lines, formatting marks dropped, "…" when cut. Rows show one line of it. Never the meeting transcript or summary.
 
 ## Files from chats (Phase 25, built)
 
@@ -94,3 +103,7 @@ Phase 17 (the tab, the four types, visibility, the global list; reminders from `
 - Client filter: "Clients: All", "Clients: My clients (n)" or "Clients: n selected". The list splits into "Managed by you" and "Other clients" as soon as `GET /api/knowledge/scope` names managed clients (the admin's `group_managers` rows); a `null` answer, which the server no longer sends, would show every client in one list headed "Clients". An admin who manages none sees all clients with the hint "You don't manage any clients yet. Showing all clients." "Only my clients" and "Reset" go back to the default; "All clients" (or choosing every client by hand) writes `?clients=all`, which stays "every client" as clients are added. The request then sends `scope=all` instead of any ids. A choice equal to the managed clients reads "My clients (n)"; ids of clients that no longer exist are ignored. The pill is disabled until the clients and the managed ids have loaded. The chosen clients show as removable chips on their own row under the filters, managed ones with an ink dot; "Reset" ("Predvolené") sits in the filter row, after the other controls.
 - The last filters (clients, types, chat files; not the search) are kept in the browser per admin and restored when the admin opens `/knowledge` without filters; each group's Knowledge tab remembers its types and chat files the same way. Reset clears them. Blocked storage is ignored. See non-functional.md, "Lists remember their filters".
 - No live updates: the list refetches when the window regains focus and when the page opens.
+
+## Items attached to chat messages (Phase 28)
+
+A group's items can travel in its chats (group chat, task and ticket chats): the chat's book button opens a search over the items everyone in the group can see (`GET /api/groups/:id/knowledge?shareable=1`: public items; an item inside an admins-only folder is admins-only itself) and attaches up to 5 to a message. The card in the chat opens the item with the reader's own rights. Only items visible to everyone in the group can be attached, and the check runs again on every display: an item made admins-only, moved into an admins-only folder or to another client, or deleted is shown as unavailable. A žiadateľ, who never sees the knowledge base, opens an item attached in their ticket chat read-only through that message (no reminders, no folder browsing, no edits) and can download its files. See [chat.md](chat.md) and the [design](../superpowers/specs/2026-10-17-phase-28-reactions-and-attachments-design.md).

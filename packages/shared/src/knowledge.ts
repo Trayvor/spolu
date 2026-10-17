@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { IdSchema } from './chat.js';
+import { IdSchema, MENTION_RE } from './chat.js';
 import { FileInfoSchema } from './files.js';
 import {
   MeetingDetailSchema,
@@ -76,11 +76,54 @@ export const KNOWLEDGE_LIMITS = {
   /** Recipients a reminder's author may add. */
   recipients: 50,
   pageSize: 30,
-  /** Characters of the body shown on a list row. */
-  excerpt: 140,
+  /**
+   * Characters of the body in a list row's `excerpt` (`knowledgeExcerpt`): a row shows one line
+   * of it, a card (card view) several.
+   */
+  excerpt: 360,
   /** Group ids in the global list's `clients` filter. */
   clients: 200,
 } as const;
+
+const FENCE_LINE = /^\s*```/;
+const QUOTE_MARKS = /^(\s*>\s?)+/;
+const HEADING_MARK = /^#{1,3} (?=\S)/;
+const BULLET_MARK = /^\s*[-*] (?=\S)/;
+const LINK = /\[([^\]\n`[]+)\]\((?:https?:|mailto:)[^)\s]*\)/g;
+const PAIR_MARKS = /\*\*|~~|`/g;
+/** `_x_` as the chat's italic: not inside a word, so `snake_case` keeps its underscores. */
+const ITALIC = /(^|[^\p{L}\p{N}_])_(?=\S)([^_\n]*?\S)_(?![\p{L}\p{N}_])/gu;
+
+/**
+ * The start of a knowledge body as plain text for the lists (a row shows one line, a card a few):
+ * mentions as names (`nameOf`, `@?` when unknown), the chat's formatting marks dropped (headings,
+ * quotes, bold, italic, strike, code, link targets; bullets become "•"), one line per non-empty
+ * line, at most `max` characters (whole characters) and "…" when cut.
+ */
+export function knowledgeExcerpt(
+  body: string,
+  nameOf: (id: string) => string | undefined,
+  max: number,
+): string {
+  const lines: string[] = [];
+  for (const raw of body
+    .replace(MENTION_RE, (_, id: string) => (id === 'all' ? '@all' : `@${nameOf(id) ?? '?'}`))
+    .split('\n')) {
+    if (FENCE_LINE.test(raw)) continue;
+    const line = raw
+      .replace(QUOTE_MARKS, '')
+      .replace(HEADING_MARK, '')
+      .replace(BULLET_MARK, '• ')
+      .replace(LINK, '$1')
+      .replace(PAIR_MARKS, '')
+      .replace(ITALIC, '$1$2')
+      .replace(/\s+/g, ' ')
+      .trim();
+    if (line) lines.push(line);
+  }
+  const chars = Array.from(lines.join('\n'));
+  return chars.length > max ? `${chars.slice(0, max).join('').trimEnd()}…` : chars.join('');
+}
 
 const unique = (ids: string[]) => [...new Set(ids)];
 const isoDateTime = z.iso.datetime({ offset: true });
@@ -187,7 +230,10 @@ export const KnowledgeSummarySchema = z.object({
   type: z.enum(KnowledgeTypes),
   visibility: visibilityField,
   title: z.string(),
-  /** The start of the body as plain text, at most 140 characters. */
+  /**
+   * The start of the body as plain text (`knowledgeExcerpt`): its lines joined by "\n", at most
+   * 360 characters plus "…".
+   */
   excerpt: z.string(),
   url: z.string().nullable(),
   /** The file of a file item. */

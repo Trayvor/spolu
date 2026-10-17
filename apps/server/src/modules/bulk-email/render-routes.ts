@@ -114,6 +114,8 @@ export const bulkEmailRenderRoutes: FastifyPluginAsync<{ deps: AppDeps }> = asyn
         unsubscribeHref: PREVIEW_UNSUBSCRIBE_HREF,
         publicUrl: config.publicUrl,
         imageSizes: await imageSizes(db, imageIds),
+        // The builder highlights the block being edited and selects one on a click.
+        markBlocks: true,
       });
       return { html };
     },

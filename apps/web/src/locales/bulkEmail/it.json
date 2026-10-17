@@ -108,7 +108,9 @@
     "failed": "Impossibile caricare l'anteprima.",
     "note": "Mostrata con il Suo nome, come la riceverebbe Lei. I blocchi con problemi sono esclusi finché non vengono corretti.",
     "titlePhone": "Anteprima su telefono",
-    "tooBig": "Questa email è di circa {{kb}} kB. Gmail taglia le email oltre circa 102 kB: la accorci o rimuova la versione per telefono."
+    "tooBig": "Questa email è di circa {{kb}} kB. Gmail taglia le email oltre circa 102 kB: la accorci o rimuova la versione per telefono.",
+    "scaled": "Mostrata al {{percent}} %",
+    "clickHint": "Fai clic su una parte dell'email per modificarla."
   },
   "audience": {
     "title": "Destinatari",
@@ -333,5 +335,10 @@
     "body": "La versione per telefono segue ancora la versione per computer: sui telefoni i blocchi divisi si impilano e le immagini larghe si rimpiccioliscono. Guardi l'anteprima su telefono prima di inviare. Questo promemoria viene mostrato una sola volta per questa email.",
     "show": "Mostra anteprima su telefono",
     "sendAnyway": "Invia comunque"
+  },
+  "workspace": {
+    "label": "Blocchi e anteprima",
+    "blocks": "Blocchi",
+    "preview": "Anteprima"
   }
 }

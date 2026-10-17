@@ -40,7 +40,7 @@ export function AppHeader() {
   const folded = sections.length > 1;
   const wide = WIDE[isAdmin(user) ? 'admin' : 'other'];
   return (
-    <header className="mx-auto mt-[max(12px,env(safe-area-inset-top))] flex h-[54px] w-full max-w-[1152px] items-center gap-2 rounded-nav bg-background px-3 shadow-lift min-[641px]:mt-6 min-[641px]:h-16 min-[641px]:gap-3 min-[641px]:px-6">
+    <header className="mx-auto mt-[max(12px,env(safe-area-inset-top))] flex h-[54px] w-full max-w-[1152px] items-center in-data-[wide-page]:max-w-[1600px] gap-2 rounded-nav bg-background px-3 shadow-lift min-[641px]:mt-6 min-[641px]:h-16 min-[641px]:gap-3 min-[641px]:px-6">
       <Link
         to="/"
         aria-label={t('app.fullName')}

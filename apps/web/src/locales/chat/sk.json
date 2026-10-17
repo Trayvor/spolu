@@ -56,7 +56,9 @@
     "tooManyFiles": "Najviac 10 súborov v jednej správe.",
     "fileTooLarge": "Príliš veľký (max 25 MB)",
     "formatting": "Formátovanie",
-    "mentionNotAllowed": "Niekoho, koho ste spomenuli, tu už nemožno spomenúť."
+    "mentionNotAllowed": "Niekoho, koho ste spomenuli, tu už nemožno spomenúť.",
+    "linkUrl": "Adresa odkazu",
+    "addLink": "Pridať odkaz"
   },
   "format": {
     "bold": "Tučné",
@@ -96,5 +98,48 @@
     "failed": "Nahrávku sa nepodarilo prepísať. Skúste to znova.",
     "limited": "Priveľa nahrávok. Skúste to o minútu.",
     "atLimit": "Nahrávanie sa zastavilo po 5 minútach."
+  },
+  "reactions": {
+    "add": "Pridať reakciu",
+    "more": "Ďalšie emoji",
+    "quick": "Rýchle reakcie",
+    "react": "Reagovať {{emoji}}",
+    "chip": "Reakcia {{emoji}}, spolu {{count}}",
+    "chipMine": "Reakcia {{emoji}}, spolu {{count}}, vrátane vašej",
+    "who": "{{emoji}} {{names}}",
+    "loading": "Načítava sa…",
+    "failed": "Reakcia sa neuložila. Skúste to znova.",
+    "pickerTitle": "Vyberte reakciu",
+    "groups": {
+      "smileys": "Smajlíky",
+      "gestures": "Gestá",
+      "hearts": "Srdcia",
+      "work": "Práca",
+      "celebration": "Oslava",
+      "symbols": "Symboly"
+    }
+  },
+  "knowledge": {
+    "attach": "Priložiť z databázy znalostí",
+    "attached": "Priložené položky znalostí",
+    "remove": "Odobrať {{title}}",
+    "pickerTitle": "Priložiť z databázy znalostí",
+    "pickerHint": "Zobrazujú sa len položky, ktoré vidia všetci v tejto skupine.",
+    "search": "Hľadať v databáze znalostí",
+    "attachCount": "Priložiť ({{count}})",
+    "noResults": "Hľadaniu nič nezodpovedá.",
+    "empty": "Táto skupina zatiaľ nemá žiadne zdieľané položky znalostí.",
+    "loadMore": "Zobraziť viac",
+    "limit": "Najviac {{count}} položiek v jednej správe.",
+    "unavailable": "Položka nie je dostupná",
+    "back": "Späť na chat",
+    "types": {
+      "note": "Poznámka",
+      "file": "Súbor",
+      "link": "Odkaz",
+      "reminder": "Pripomienka",
+      "meeting": "Stretnutie",
+      "chat_file": "Z chatu"
+    }
   }
 }

@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import type { Role, SessionUser } from '@spolu/shared';
-import { canDeleteMessage, canEditMessage, canReadChannel } from './policy.js';
+import { canDeleteMessage, canEditMessage, canReact, canReadChannel } from './policy.js';
+
+describe('canReact (Phase 28)', () => {
+  it('a live message takes reactions from its readers, a deleted one none', () => {
+    expect(canReact({ deletedAt: null })).toBe(true);
+    expect(canReact({ deletedAt: new Date() })).toBe(false);
+  });
+});
 
 const actor = (role: Role, id = 'actor'): SessionUser => ({
   id,

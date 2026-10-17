@@ -54,8 +54,10 @@ export function TicketChat({
     () => ({
       peopleChannelId: channelId,
       uploadPath: `/tickets/${encodeURIComponent(ticketId)}/files`,
+      // Phase 28: a requester reads attached knowledge items only through their messages.
+      knowledgeViaMessage: !readsGroup,
     }),
-    [channelId, ticketId],
+    [channelId, ticketId, readsGroup],
   );
 
   if (data) {

@@ -4,7 +4,7 @@ import {
   extractMentions,
   isHttpUrl,
   KNOWLEDGE_LIMITS,
-  plainExcerpt,
+  knowledgeExcerpt,
   type FileInfo,
   type KnowledgeChatSource,
   type KnowledgeChatsFilter,
@@ -49,10 +49,10 @@ import {
   KnowledgeNotFoundError,
   ValidationError,
 } from './errors.js';
-import { folderForItem, folderPaths, lockGroupKnowledge } from './folders.js';
+import { folderChains, folderForItem, folderPaths, lockGroupKnowledge } from './folders.js';
 import { recordMeetingScheduled } from './meeting-notify.js';
 import { requestDelivery } from '../notifications/service.js';
-import { canEditItem, canReadItem, canSetVisibility } from './policy.js';
+import { canEditItem, canReadItem, canSetVisibility, isShareable } from './policy.js';
 import { registerKnowledgeReminderSubject } from './reminder-subject.js';
 import { knowledgeAttachments, knowledgeItems } from './schema.js';
 import { buildSearchText, escapeLike, searchTerms } from './search.js';
@@ -245,7 +245,7 @@ export function toSummary(
     type: row.type,
     visibility: row.visibility,
     title: row.title,
-    excerpt: plainExcerpt(row.body_head, (id) => names.get(id), KNOWLEDGE_LIMITS.excerpt),
+    excerpt: knowledgeExcerpt(row.body_head, (id) => names.get(id), KNOWLEDGE_LIMITS.excerpt),
     url: row.url,
     file:
       (row.type === 'file' || row.type === 'chat_file') && row.first_file
@@ -353,6 +353,11 @@ type ListFilters = {
   cursor?: string;
   folder?: string | null;
   chats?: KnowledgeChatsFilter;
+  /**
+   * Phase 28: only items that may be attached to a chat message (public; an item inside an
+   * admins-only folder is admins-only itself, so the folders need no check here).
+   */
+  shareable?: boolean;
 };
 
 function filterWhere(scope: SQL, opts: ListFilters): SQL {
@@ -373,6 +378,7 @@ function filterWhere(scope: SQL, opts: ListFilters): SQL {
   if (opts.folder === null) parts.push(sql`k.folder_id is null and k.type <> 'chat_file'`);
   else if (opts.folder !== undefined) parts.push(sql`k.folder_id = ${opts.folder}`);
   if (opts.chats !== 'all') parts.push(sql`(k.type <> 'chat_file' or k.chat_kind = 'group')`);
+  if (opts.shareable) parts.push(sql`k.visibility = 'public'`);
   if (opts.cursor) parts.push(cursorWhere(opts.cursor));
   return sql.join(parts, sql` and `);
 }
@@ -510,6 +516,52 @@ export async function getItem(db: Db, actor: SessionUser, id: string): Promise<K
     reminder,
     canEdit: canEditItem(actor, item, actorGroupIds),
     visibilityLocked: row.author_role === 'client',
+    meetingDetail: meeting
+      ? toMeetingDetail(meeting, fileInfos.find((f) => f.id === meeting.recordingFileId) ?? null)
+      : null,
+  };
+}
+
+/**
+ * Phase 28: the read-only detail of an item for a reader who reaches it through a chat message
+ * of `groupId` (a ziadatel in a ticket chat). The chat checked the message; here the item must
+ * still be shareable there (`isShareable`), else null. No reminders, no link to a chat the reader
+ * may not open, never editable.
+ */
+export async function getSharedItem(
+  db: Db,
+  id: string,
+  groupId: string,
+): Promise<KnowledgeItemDto | null> {
+  const [row] = await db.execute<PageRow>(pageQuery(sql`k.id = ${id}`, 1, true));
+  if (!row) return null;
+  const chainOf = await folderChains(db, row.folder_id === null ? [] : [row.folder_id]);
+  const chain = row.folder_id === null ? [] : chainOf(row.folder_id);
+  const item = { groupId: row.group_id, visibility: row.visibility };
+  if (
+    !isShareable(
+      item,
+      chain.map((f) => f.visibility),
+      groupId,
+    )
+  )
+    return null;
+  const body = row.body ?? '';
+  const [names, fileRows, meeting] = await Promise.all([
+    mentionNames(db, [{ groupId: row.group_id, body }]),
+    itemFiles(db, id, row.chat_file_id),
+    row.type === 'meeting' ? getMeetingRow(db, id) : null,
+  ]);
+  const fileInfos = fileRows.map(toFileInfo);
+  const folderPath = chain.map((f) => ({ id: f.id, name: f.name }));
+  return {
+    ...toSummary(row, namesIn(names, row.group_id), folderPath),
+    chat: null,
+    body,
+    files: fileInfos,
+    reminder: null,
+    canEdit: false,
+    visibilityLocked: true,
     meetingDetail: meeting
       ? toMeetingDetail(meeting, fileInfos.find((f) => f.id === meeting.recordingFileId) ?? null)
       : null,

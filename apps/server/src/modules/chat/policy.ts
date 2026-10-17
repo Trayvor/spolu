@@ -26,6 +26,14 @@ export function canDeleteMessage(
   return canEditMessage(actor, message);
 }
 
+/**
+ * Phase 28: whoever reads the channel (the caller checked that) reacts to any live message, their
+ * own too; a deleted message takes no reactions.
+ */
+export function canReact(message: { deletedAt: Date | null }): boolean {
+  return message.deletedAt === null;
+}
+
 /** Whether the actor wrote the message (deleted or not); decides 403 versus a quiet no-op. */
 export function isMessageAuthor(actor: SessionUser, message: { authorId: string }): boolean {
   return message.authorId === actor.id;

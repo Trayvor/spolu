@@ -108,7 +108,9 @@
     "failed": "Eelvaadet ei õnnestunud laadida.",
     "note": "Kuvatakse Teie nimega, nii nagu Teie selle saaksite. Vigadega plokid jäetakse välja, kuni need on parandatud.",
     "titlePhone": "Eelvaade telefonis",
-    "tooBig": "See e-kiri on umbes {{kb}} kB. Gmail lõikab umbes 102 kB suuremad e-kirjad ära: lühendage seda või eemaldage telefoni versioon."
+    "tooBig": "See e-kiri on umbes {{kb}} kB. Gmail lõikab umbes 102 kB suuremad e-kirjad ära: lühendage seda või eemaldage telefoni versioon.",
+    "scaled": "Näidatud {{percent}} % suuruses",
+    "clickHint": "Klõpsa e-kirja osal, et seda muuta."
   },
   "audience": {
     "title": "Saajad",
@@ -328,5 +330,10 @@
     "body": "Telefoni versioon järgib endiselt arvuti versiooni: telefonis paigutuvad jagatud plokid üksteise alla ja laiad pildid muutuvad väiksemaks. Enne saatmist vaadake telefoni eelvaadet. See meeldetuletus kuvatakse selle e-kirja puhul ainult üks kord.",
     "show": "Näita telefoni eelvaadet",
     "sendAnyway": "Saada ikkagi"
+  },
+  "workspace": {
+    "label": "Plokid ja eelvaade",
+    "blocks": "Plokid",
+    "preview": "Eelvaade"
   }
 }
