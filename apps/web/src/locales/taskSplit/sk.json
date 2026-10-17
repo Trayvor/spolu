@@ -25,7 +25,6 @@
   "create_many": "Vytvoriť {{count}} úloh",
   "create_other": "Vytvoriť {{count}} úloh",
   "cancel": "Zrušiť",
-  "close": "Zavrieť",
   "discardConfirm": "Zahodiť navrhnuté úlohy?",
   "discard": "Zahodiť",
   "keep": "Pokračovať v kontrole",
@@ -37,5 +36,7 @@
   "created_few": "{{count}} úlohy vytvorené",
   "created_many": "{{count}} úloh vytvorených",
   "created_other": "{{count}} úloh vytvorených",
-  "openBoard": "Otvoriť nástenku"
+  "openBoard": "Otvoriť nástenku",
+  "bucket": "Pridať do",
+  "meetingGone": "Stretnutie už neexistuje, úlohy sa nevytvorili."
 }

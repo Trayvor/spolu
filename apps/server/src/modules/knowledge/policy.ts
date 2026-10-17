@@ -62,3 +62,11 @@ export function canReadFolder(
 export function canSetFolderVisibility(actor: SessionUser, visibility: Visibility): boolean {
   return visibility === 'public' || isAdmin(actor);
 }
+
+/**
+ * Runs the AI on a meeting ("Spracovať s AI") and turns its action items into tasks (Phase 30):
+ * admins only, on a meeting they read (every admin reads every item).
+ */
+export function canProcessMeeting(actor: SessionUser): boolean {
+  return isAdmin(actor);
+}

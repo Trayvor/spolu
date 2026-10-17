@@ -42,8 +42,6 @@ export type TicketFilter = {
   noClient?: boolean;
 };
 
-export const DEFAULT_FILTER: TicketFilter = { status: 'open' };
-
 const sourceKey = (source: TicketSource) =>
   source.kind === 'group' ? ['group', source.groupId] : [source.kind];
 

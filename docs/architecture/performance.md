@@ -18,6 +18,7 @@ Spolu must feel instant: faster than Microsoft Teams on a cheap phone over mobil
 - Feature texts are lazy locale namespaces (`src/locales/<name>/<code>.json`), loaded with the route that renders them (`withNamespaces` in `router.tsx`, see [overview.md](overview.md), "i18n"). Only the eager shell's texts go in the main locale files.
 - Before adding a dependency, check its gzip size (bundlephobia or the build output). Prefer a few lines of our own code to a large library used for one function. A new runtime dependency needs an ADR anyway.
 - Lists that grow (messages, tasks, tickets, members) are paginated by cursor and virtualized when long. Never load a whole list.
+- A socket (re)join or `connect` refetches only what may have missed events: use `firstJoinCheck` (`lib/socket-history.ts`, see [realtime.md](realtime.md)) so the first join of a screen does not refetch what its mount just loaded. Measured in the hooks' tests (Phase 27, W4): a cold load of the Tasks tab sends 1 board request instead of 2 (the second also invalidated every cached task detail), the Knowledge tab 1 list request instead of 2 (plus the folders), and the ticket and bulk email lists 1 instead of 2 when the socket connects after they loaded.
 - Optimistic UI for the user's own writes (a sent message appears at once, then is confirmed).
 - Images: resized and compressed on upload; lists and chat show thumbnails; full size only on open.
 - No fancy effects (see [design/README.md](../design/README.md), "Keep it light").
@@ -96,6 +97,21 @@ Keep `cn` out of the eager shell: use it where classes from props may conflict, 
 
 Lazy chunks for individual screens have no hard budget. Keep them reasonable and watch for anything above about 100 kB gzip.
 
+## Docker image
+
+The production image (root `Dockerfile`, see [overview.md](overview.md), "Production image and compose") ships the `node` binary on plain `debian:bookworm-slim`, the server's production dependencies without type definitions, source maps and docs, and the built server and web. Phase 27 (finding K1, measured 2026-10-17 on an arm64 laptop, `docker build` of one platform, `docker image ls`):
+
+| | Before | After |
+|---|---|---|
+| Image on disk | 467 MB | 380 MB |
+| Compressed content (what a server pulls) | 94.7 MB | 82.8 MB |
+| Rebuild after a source-only change | 26–31 s | 17 s |
+| Build without layer cache (`--no-cache`, pnpm store cache kept) | 54–116 s | 51–74 s (noise of a loaded machine; no real change) |
+
+Where the bytes went: npm, corepack and yarn (about 24 MB) and the C headers (6.7 MB) of the node image are not shipped (deleting them in a later layer would not shrink the image, so the runtime stage starts from Debian and copies only `node`); `*.d.ts`, `*.map` and `*.md` files of `node_modules` (about 40 MB raw) are deleted before the copy. The rebuild is faster because the production dependencies are their own stage (`prod-deps`, only the lockfile and manifests), so a code change no longer reruns `pnpm deploy`. What remains: the node binary 118 MB, `node_modules` about 55 MB (`react-dom` and `@types/node` are still in it, finding K2), the built server and web about 6 MB.
+
+Phase 30 adds the static ffmpeg binary for meeting recordings ([ADR 0023](../decisions/0023-ffmpeg-static-build-for-meeting-audio.md)): measured 535 MB on disk and 133 MB compressed content with it (2026-10-17, one build on a loaded machine).
+
 ## How to check
 
 - `pnpm --filter @spolu/web build` prints every chunk with its gzip size (Vite's default gzip level, a little above the budget's numbers).
@@ -134,4 +150,11 @@ Ticket riešitelia and "Watch tickets" (owner request 2026-10-17, measured on to
 
 ## Test suite speed
 
-`scripts/ci.sh` takes about 13 minutes on GitHub (Phase 27): unit and integration tests 7 minutes (the server and web suites run in parallel), e2e 4.7 minutes. The web suite runs Vitest's `vmThreads` pool (`apps/web/vitest.config.ts`): every file still gets its own VM context, but workers and their jsdom are reused. With the default `forks` pool jsdom was set up once per file, a third of the run: 31 to 44 s locally, 13.5 to 17 s with `vmThreads`, all tests passing. The server suite keeps `forks`: under `vmThreads` (34 s to 24.5 s locally) a time-based reminder test failed under the extra load, so that switch waits until the load-sensitive tests are fixed (Phase 27 findings, T2 and T3).
+`scripts/ci.sh` takes about 13 minutes on GitHub (Phase 27): unit and integration tests 7 minutes (the server and web suites run in parallel), e2e 4.7 minutes. Lint, format check and typecheck are independent, so `ci.sh` runs them at the same time (`run_parallel` in `scripts/lib.sh`, Phase 27 T5): on GitHub they took 71 s one after another (29 + 15 + 27 s). Measured locally on a loaded 8-core laptop (two rounds each, same tree): 27 to 55 s one after another, 18 to 28 s in parallel, so about 10 to 27 s saved per run; on the 4-vCPU runner the expected saving is about 30 s (the PR's GitHub run gives the real number). e2e stays serial: its tests share one database. The web suite runs Vitest's `vmThreads` pool (`apps/web/vitest.config.ts`): every file still gets its own VM context, but workers and their jsdom are reused. With the default `forks` pool jsdom was set up once per file, a third of the run: 31 to 44 s locally, 13.5 to 17 s with `vmThreads`, all tests passing. The server suite keeps `forks`: under `vmThreads` (34 s to 24.5 s locally) a time-based reminder test failed under the extra load, so that switch waits until the load-sensitive tests are fixed (Phase 27 findings, T2 and T3).
+
+## Meetings (Phase 30)
+
+- A recording is streamed to disk (never buffered) and transcoded by one ffmpeg at a time (`knowledge.meeting-transcode`, concurrency 1, 2 h kill timer); the AI run splits audio with `-c copy` (no re-encode) and sends parts one by one.
+- The list row reads a meeting's date and states by one primary-key join in the page query; the transcript is never in a list row or the search column (only the detail loads it).
+- The dashboard card reads `knowledge_meetings_starts_at_idx` (two range scans, 10 rows each).
+- The meeting UI lives in the knowledge chunks (`meeting-view.tsx`, `meeting-fields.tsx`, `meeting-api.ts`); the review dialog stays lazy. The dialog polls every 5 s only while a conversion or run is in progress.

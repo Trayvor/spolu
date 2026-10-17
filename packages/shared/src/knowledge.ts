@@ -1,19 +1,25 @@
 import { z } from 'zod';
 import { IdSchema } from './chat.js';
 import { FileInfoSchema } from './files.js';
+import {
+  MeetingDetailSchema,
+  MeetingInputSchema,
+  MeetingListInfoSchema,
+  MeetingPatchSchema,
+} from './meetings.js';
 import { ReminderSetDtoSchema } from './reminders.js';
 import { TaskPersonSchema } from './tasks.js';
 import { isHttpUrl, MAX_URL_LENGTH } from './urls.js';
 
 /**
  * Every item type. `chat_file` ("From chat") is a file attached to a chat message: created only
- * by the chat, read-only, never in a folder.
+ * by the chat, read-only, never in a folder. `meeting` (Phase 30): a meeting or call.
  */
-export const KnowledgeTypes = ['note', 'file', 'link', 'reminder', 'chat_file'] as const;
+export const KnowledgeTypes = ['note', 'file', 'link', 'reminder', 'meeting', 'chat_file'] as const;
 export type KnowledgeType = (typeof KnowledgeTypes)[number];
 
 /** The types people create by hand (the "+ New" menu). */
-export const KnowledgeCreatableTypes = ['note', 'file', 'link', 'reminder'] as const;
+export const KnowledgeCreatableTypes = ['note', 'file', 'link', 'reminder', 'meeting'] as const;
 export type KnowledgeCreatableType = (typeof KnowledgeCreatableTypes)[number];
 
 /**
@@ -86,11 +92,11 @@ const allDistinct = (values: unknown[]) => new Set(values).size === values.lengt
  * Two times may not share an instant (whatever their offsets) or an id. `maxTimes` is 20 for a
  * new item and `timesSent` for an edit, which also carries the sent times.
  */
-const reminderInput = (maxTimes: number) =>
+const reminderInput = (maxTimes: number, minTimes = 1) =>
   z.object({
     times: z
       .array(z.object({ id: IdSchema.optional(), at: isoDateTime }))
-      .min(1)
+      .min(minTimes)
       .max(maxTimes)
       .refine((times) => allDistinct(times.map((t) => Date.parse(t.at))), {
         message: 'Duplicate time',
@@ -101,7 +107,13 @@ const reminderInput = (maxTimes: number) =>
     recipientIds: z.array(IdSchema).max(KNOWLEDGE_LIMITS.recipients).transform(unique),
   });
 export const ReminderInputSchema = reminderInput(KNOWLEDGE_LIMITS.times);
-export const ReminderEditSchema = reminderInput(KNOWLEDGE_LIMITS.timesSent);
+/**
+ * An edit may carry no time at all: a meeting's reminder is optional (Phase 30). A reminder item
+ * keeps at least one, which the service checks.
+ */
+export const ReminderEditSchema = reminderInput(KNOWLEDGE_LIMITS.timesSent, 0);
+/** A meeting's optional reminder (Phase 30): no time means no reminder. */
+export const MeetingReminderInputSchema = reminderInput(KNOWLEDGE_LIMITS.times, 0);
 export type ReminderInput = z.output<typeof ReminderInputSchema>;
 
 const titleField = z.string().trim().min(1).max(KNOWLEDGE_LIMITS.title);
@@ -137,6 +149,12 @@ export const KnowledgeDraftSchema = z.discriminatedUnion('type', [
     reminder: ReminderInputSchema,
     fileIds: noFiles,
   }),
+  draftBase.extend({
+    type: z.literal('meeting'),
+    meeting: MeetingInputSchema,
+    reminder: MeetingReminderInputSchema.optional(),
+    fileIds: noFiles,
+  }),
 ]);
 export type KnowledgeDraft = z.output<typeof KnowledgeDraftSchema>;
 
@@ -155,6 +173,8 @@ export const KnowledgePatchSchema = z
     reminder: ReminderEditSchema.optional(),
     /** Moves the item: a folder of its group, or null for the top level. */
     folderId: folderIdField.optional(),
+    /** A meeting's own fields (Phase 30); only on a meeting. */
+    meeting: MeetingPatchSchema.optional(),
     updatedAt: isoDateTime,
   })
   .strict();
@@ -187,6 +207,8 @@ export const KnowledgeSummarySchema = z.object({
   group: z.object({ id: z.string(), name: z.string(), logoUrl: z.string().nullable() }).optional(),
   /** The source message of a chat file; null (or absent) for the other types. */
   chat: KnowledgeChatSourceSchema.nullable().optional(),
+  /** A meeting's date and states (Phase 30); null (or absent) for the other types. */
+  meeting: MeetingListInfoSchema.nullable().optional(),
 });
 export type KnowledgeSummary = z.infer<typeof KnowledgeSummarySchema>;
 
@@ -204,6 +226,8 @@ export const KnowledgeItemDtoSchema = KnowledgeSummarySchema.extend({
   canEdit: z.boolean(),
   /** The author is a client, so the item stays public. */
   visibilityLocked: z.boolean(),
+  /** A meeting's fields, transcript and summary (Phase 30); null for the other types. */
+  meetingDetail: MeetingDetailSchema.nullable().optional(),
 });
 export type KnowledgeItemDto = z.infer<typeof KnowledgeItemDtoSchema>;
 

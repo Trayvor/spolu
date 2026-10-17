@@ -1,0 +1,623 @@
+import { lazy, Suspense, useId, useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { Link } from '@tanstack/react-router';
+import { useTranslation } from 'react-i18next';
+import {
+  ErrorCodes,
+  isMeetingAiBusy,
+  MEETING_LIMITS,
+  type KnowledgeItemDto,
+  type MeetingActionItem,
+  type MeetingDetail,
+  type MeetingSummary,
+} from '@spolu/shared';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { PanelNotice } from '@/components/ui/panel-notice';
+import { Toast } from '@/components/ui/toast';
+import { useSession } from '@/features/auth/use-session';
+import { fileUrl } from '@/features/files/urls';
+import { formatFileSize } from '@/features/files/format-size';
+import { TasksIcon } from '@/features/task-split/use-message-task-tools';
+import { withNamespaces } from '@/i18n/namespaces';
+import { ApiError } from '@/lib/api';
+import { updateKnowledge } from './api';
+import { CalendarLeaf } from './calendar-leaf';
+import { ArrowOutIcon } from './icons';
+import { deleteRecording, processMeeting, uploadRecording } from './meeting-api';
+
+// The review dialog and its task form load only when "Create tasks" is pressed.
+const ReviewDialog = lazy(
+  withNamespaces(
+    ['forms', 'tasks', 'taskSplit'],
+    () => import('@/features/task-split/review-dialog'),
+  ),
+);
+
+const locale = (language: string) => (/^en\b/.test(language) ? 'en-GB' : language);
+
+/** Whether the meeting is being worked on in the background (the dialog polls meanwhile). */
+export function meetingInProgress(item: KnowledgeItemDto | undefined): boolean {
+  const meeting = item?.meetingDetail;
+  if (!meeting) return false;
+  return meeting.recording.state === 'processing' || isMeetingAiBusy(meeting.ai.state);
+}
+
+const SECTION = 'flex flex-col gap-3 border-t-2 border-border pt-4';
+
+function SectionTitle({ id, children }: { id: string; children: string }) {
+  return (
+    <h3 id={id} className="text-body font-semibold">
+      {children}
+    </h3>
+  );
+}
+
+/** The date leaf, the full date and time, and the meeting's links as pills. */
+export function MeetingWhen({ meeting }: { meeting: MeetingDetail }) {
+  const { t, i18n } = useTranslation();
+  const when = new Intl.DateTimeFormat(locale(i18n.language), {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(meeting.startsAt));
+  const links = [
+    { url: meeting.meetingUrl, label: t('knowledge.meeting.join'), primary: true },
+    { url: meeting.recordingUrl, label: t('knowledge.meeting.openRecording'), primary: false },
+    { url: meeting.transcriptUrl, label: t('knowledge.meeting.openTranscript'), primary: false },
+  ].filter((link): link is { url: string; label: string; primary: boolean } => !!link.url);
+  return (
+    <div className="flex flex-col gap-3">
+      <p className="flex items-center gap-3">
+        <CalendarLeaf iso={meeting.startsAt} size={40} />
+        <span className="text-body font-semibold first-letter:uppercase">{when}</span>
+      </p>
+      {links.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {links.map((link) => (
+            <Button
+              key={link.label}
+              asChild
+              variant={link.primary ? 'default' : 'outline'}
+              size="sm"
+            >
+              <a href={link.url} target="_blank" rel="noopener noreferrer" className="gap-1.5">
+                {link.label}
+                <ArrowOutIcon />
+              </a>
+            </Button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function uploadProblem(error: unknown): string {
+  if (error instanceof ApiError) {
+    if (error.code === ErrorCodes.fileTooLarge) return 'knowledge.meeting.recording.tooLarge';
+    if (error.code === ErrorCodes.invalidRecording) return 'knowledge.meeting.recording.notMedia';
+    if (error.code === ErrorCodes.recordingBusy) return 'knowledge.meeting.recording.busy';
+    if (error.code === ErrorCodes.rateLimited) return 'knowledge.meeting.recording.rateLimited';
+  }
+  return 'knowledge.meeting.recording.uploadFailed';
+}
+
+/**
+ * The stored recording: a player when ready, the state while it is converted or after it
+ * failed, and (for the item's editors) upload, replace and delete.
+ */
+export function RecordingSection({
+  item,
+  onChanged,
+}: {
+  item: KnowledgeItemDto;
+  onChanged: () => void;
+}) {
+  const { t, i18n } = useTranslation();
+  const uid = useId();
+  const meeting = item.meetingDetail!;
+  const input = useRef<HTMLInputElement>(null);
+  const [progress, setProgress] = useState<number | null>(null);
+  const [problem, setProblem] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const { state, file } = meeting.recording;
+
+  async function upload(chosen: File) {
+    setProblem(null);
+    setProgress(0);
+    try {
+      await uploadRecording(item.id, chosen, setProgress);
+      onChanged();
+    } catch (error) {
+      setProblem(t(uploadProblem(error)));
+    } finally {
+      setProgress(null);
+    }
+  }
+
+  async function remove() {
+    setConfirmDelete(false);
+    try {
+      await deleteRecording(item.id);
+      onChanged();
+    } catch {
+      setProblem(t('knowledge.meeting.recording.deleteFailed'));
+    }
+  }
+
+  const uploading = progress !== null;
+  const canUpload = item.canEdit && !uploading && state !== 'processing';
+  if (!item.canEdit && state !== 'ready' && state !== 'processing') return null;
+
+  return (
+    <section aria-labelledby={`${uid}-title`} className={SECTION}>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <SectionTitle id={`${uid}-title`}>{t('knowledge.meeting.recording.title')}</SectionTitle>
+        {canUpload && (
+          <div className="flex gap-2">
+            <Button variant="secondary" size="sm" onClick={() => input.current?.click()}>
+              {state === 'ready'
+                ? t('knowledge.meeting.recording.replace')
+                : t('knowledge.meeting.recording.upload')}
+            </Button>
+            {state === 'ready' && (
+              <Button variant="ghost" size="sm" onClick={() => setConfirmDelete(true)}>
+                {t('knowledge.meeting.recording.delete')}
+              </Button>
+            )}
+          </div>
+        )}
+        <input
+          ref={input}
+          type="file"
+          accept="audio/*,video/*"
+          className="hidden"
+          data-testid="meeting-recording-input"
+          onChange={(event) => {
+            const chosen = event.target.files?.[0];
+            event.target.value = '';
+            if (chosen) void upload(chosen);
+          }}
+        />
+      </div>
+      {confirmDelete && (
+        <PanelNotice text={t('knowledge.meeting.recording.deleteConfirm')}>
+          <Button variant="ghost" onClick={() => setConfirmDelete(false)}>
+            {t('knowledge.detail.cancel')}
+          </Button>
+          <Button variant="destructive" onClick={() => void remove()}>
+            {t('knowledge.meeting.recording.delete')}
+          </Button>
+        </PanelNotice>
+      )}
+      {uploading ? (
+        <div role="status" className="flex flex-col gap-1.5">
+          <p className="text-button text-muted-foreground">
+            {t('knowledge.meeting.recording.uploading', { percent: Math.round(progress * 100) })}
+          </p>
+          <span
+            aria-hidden="true"
+            className="h-1.5 w-full overflow-hidden rounded-full bg-secondary"
+          >
+            <span
+              className="block h-full rounded-full bg-primary"
+              style={{ width: `${Math.round(progress * 100)}%` }}
+            />
+          </span>
+        </div>
+      ) : state === 'processing' ? (
+        <p role="status" className="text-button text-muted-foreground">
+          {t('knowledge.meeting.recording.processing')}
+        </p>
+      ) : state === 'failed' ? (
+        <p className="text-button text-error-ink">{t('knowledge.meeting.recording.failed')}</p>
+      ) : state === 'ready' && file ? (
+        <div className="flex flex-col gap-1.5">
+          <audio controls preload="metadata" src={fileUrl(file.id)} className="w-full">
+            <a href={fileUrl(file.id)}>{file.name}</a>
+          </audio>
+          <p className="text-micro text-muted-foreground">
+            <a href={fileUrl(file.id)} className="font-semibold underline underline-offset-4">
+              {file.name}
+            </a>{' '}
+            {formatFileSize(file.size, i18n.language)}
+          </p>
+        </div>
+      ) : (
+        <p className="text-button text-muted-foreground">{t('knowledge.meeting.recording.none')}</p>
+      )}
+      {problem && (
+        <p role="alert" className="text-button text-error-ink">
+          {problem}
+        </p>
+      )}
+    </section>
+  );
+}
+
+const lines = (text: string) =>
+  text
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .slice(0, MEETING_LIMITS.listItems);
+
+/** The summary's fields as plain inputs: a paragraph, lists one per line, action item rows. */
+function SummaryEditor({
+  summary,
+  onCancel,
+  onSave,
+}: {
+  summary: MeetingSummary;
+  onCancel: () => void;
+  onSave: (next: MeetingSummary) => Promise<void>;
+}) {
+  const { t } = useTranslation();
+  const uid = useId();
+  const [text, setText] = useState(summary.summary);
+  const [decisions, setDecisions] = useState(summary.decisions.join('\n'));
+  const [questions, setQuestions] = useState(summary.openQuestions.join('\n'));
+  const [actions, setActions] = useState<MeetingActionItem[]>(summary.actionItems);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(false);
+  const area =
+    'w-full rounded-md border-2 border-input bg-card px-[18px] py-[13px] text-button focus:border-foreground focus:outline-none';
+  const setAction = (index: number, patch: Partial<MeetingActionItem>) =>
+    setActions((list) => list.map((a, i) => (i === index ? { ...a, ...patch } : a)));
+
+  async function save() {
+    if (busy) return;
+    setBusy(true);
+    setError(false);
+    try {
+      await onSave({
+        summary: text.trim().slice(0, MEETING_LIMITS.summary),
+        decisions: lines(decisions),
+        openQuestions: lines(questions),
+        actionItems: actions
+          .map((a) => ({
+            text: a.text.trim(),
+            assignee: a.assignee?.trim() ? a.assignee.trim() : null,
+            deadline: a.deadline || null,
+          }))
+          .filter((a) => a.text !== ''),
+        language: summary.language,
+      });
+    } catch {
+      setError(true);
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-4">
+      <label className="flex flex-col gap-2 text-button font-semibold">
+        {t('knowledge.meeting.ai.summary')}
+        <textarea
+          value={text}
+          rows={4}
+          maxLength={MEETING_LIMITS.summary}
+          onChange={(event) => setText(event.target.value)}
+          className={area}
+        />
+      </label>
+      <label className="flex flex-col gap-2 text-button font-semibold">
+        {t('knowledge.meeting.ai.decisions')}
+        <textarea
+          value={decisions}
+          rows={3}
+          aria-describedby={`${uid}-lines`}
+          onChange={(event) => setDecisions(event.target.value)}
+          className={area}
+        />
+      </label>
+      <fieldset className="flex flex-col gap-2">
+        <legend className="mb-2 text-button font-semibold">
+          {t('knowledge.meeting.ai.actionItems')}
+        </legend>
+        {actions.map((action, index) => (
+          <div
+            key={index}
+            className="flex flex-col gap-2 rounded-lg bg-muted p-3 min-[641px]:flex-row"
+          >
+            <Input
+              aria-label={t('knowledge.meeting.ai.actionText', { n: index + 1 })}
+              value={action.text}
+              maxLength={MEETING_LIMITS.listItem}
+              onChange={(event) => setAction(index, { text: event.target.value })}
+              className="min-w-0 flex-[3]"
+            />
+            <Input
+              aria-label={t('knowledge.meeting.ai.assignee')}
+              placeholder={t('knowledge.meeting.ai.assignee')}
+              value={action.assignee ?? ''}
+              maxLength={MEETING_LIMITS.assignee}
+              onChange={(event) => setAction(index, { assignee: event.target.value })}
+              className="min-w-0 flex-[2]"
+            />
+            <Input
+              type="date"
+              aria-label={t('knowledge.meeting.ai.deadline')}
+              value={action.deadline ?? ''}
+              onChange={(event) => setAction(index, { deadline: event.target.value || null })}
+              className="min-w-0 flex-[2] px-3"
+            />
+            <Button
+              variant="ghost"
+              size="sm"
+              className="self-start min-[641px]:self-center"
+              onClick={() => setActions((list) => list.filter((_, i) => i !== index))}
+            >
+              {t('knowledge.meeting.ai.remove')}
+            </Button>
+          </div>
+        ))}
+        {actions.length < MEETING_LIMITS.listItems && (
+          <Button
+            variant="secondary"
+            size="sm"
+            className="self-start"
+            onClick={() =>
+              setActions((list) => [...list, { text: '', assignee: null, deadline: null }])
+            }
+          >
+            {t('knowledge.meeting.ai.addAction')}
+          </Button>
+        )}
+      </fieldset>
+      <label className="flex flex-col gap-2 text-button font-semibold">
+        {t('knowledge.meeting.ai.openQuestions')}
+        <textarea
+          value={questions}
+          rows={3}
+          aria-describedby={`${uid}-lines`}
+          onChange={(event) => setQuestions(event.target.value)}
+          className={area}
+        />
+      </label>
+      <p id={`${uid}-lines`} className="text-tiny text-muted-foreground">
+        {t('knowledge.meeting.ai.oneLine')}
+      </p>
+      {error && (
+        <p role="alert" className="text-button text-error-ink">
+          {t('knowledge.detail.saveFailed')}
+        </p>
+      )}
+      <div className="flex justify-end gap-2">
+        <Button variant="outline" onClick={onCancel}>
+          {t('knowledge.detail.cancel')}
+        </Button>
+        <Button aria-disabled={busy} onClick={() => void save()}>
+          {t('knowledge.meeting.ai.save')}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function List({ title, items }: { title: string; items: string[] }) {
+  if (items.length === 0) return null;
+  return (
+    <div className="flex flex-col gap-1.5">
+      <h4 className="text-button font-semibold">{title}</h4>
+      <ul className="flex list-disc flex-col gap-1 pl-5 text-button">
+        {items.map((entry, index) => (
+          <li key={index}>{entry}</li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function processProblem(error: unknown): string {
+  if (error instanceof ApiError) {
+    if (error.code === ErrorCodes.nothingToProcess) return 'knowledge.meeting.ai.nothing';
+    if (error.code === ErrorCodes.meetingBusy) return 'knowledge.meeting.ai.busy';
+    if (error.code === ErrorCodes.aiUnavailable) return 'knowledge.meeting.ai.unavailable';
+    if (error.code === ErrorCodes.rateLimited) return 'knowledge.meeting.ai.rateLimited';
+  }
+  return 'knowledge.meeting.ai.startFailed';
+}
+
+/**
+ * The AI summary: its state while a run is queued or running, "Process with AI" (admins, when
+ * the server can run it), the summary itself (editable by the item's editors) and "Create tasks"
+ * from its action items (admins).
+ */
+export function SummarySection({
+  item,
+  onChanged,
+}: {
+  item: KnowledgeItemDto;
+  onChanged: () => void;
+}) {
+  const { t, i18n } = useTranslation();
+  const uid = useId();
+  const queryClient = useQueryClient();
+  const role = useSession()?.role;
+  const isAdmin = role === 'admin' || role === 'superadmin';
+  const meeting = item.meetingDetail!;
+  const { summary, ai } = meeting;
+  const [editing, setEditing] = useState(false);
+  const [confirmAgain, setConfirmAgain] = useState(false);
+  const [problem, setProblem] = useState<string | null>(null);
+  const [tasksOpen, setTasksOpen] = useState(false);
+  const [created, setCreated] = useState<number | null>(null);
+  const busy = isMeetingAiBusy(ai.state);
+
+  async function start() {
+    setConfirmAgain(false);
+    setProblem(null);
+    try {
+      await processMeeting(item.id);
+      onChanged();
+    } catch (error) {
+      setProblem(t(processProblem(error)));
+    }
+  }
+
+  async function saveSummary(next: MeetingSummary) {
+    const saved = await updateKnowledge(item.id, {
+      updatedAt: item.updatedAt,
+      meeting: { summary: next },
+    });
+    queryClient.setQueryData(['knowledge', 'item', saved.id], saved);
+    setEditing(false);
+  }
+
+  if (!summary && !isAdmin && !busy) return null;
+  const deadline = (date: string) =>
+    new Date(`${date}T12:00:00Z`).toLocaleDateString(locale(i18n.language), {
+      day: 'numeric',
+      month: 'short',
+    });
+
+  return (
+    <section aria-labelledby={`${uid}-title`} className={SECTION}>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <SectionTitle id={`${uid}-title`}>{t('knowledge.meeting.ai.title')}</SectionTitle>
+        <div className="flex flex-wrap gap-2">
+          {summary && !editing && item.canEdit && !busy && (
+            <Button variant="ghost" size="sm" onClick={() => setEditing(true)}>
+              {t('knowledge.meeting.ai.edit')}
+            </Button>
+          )}
+          {meeting.canProcess && !busy && !editing && (
+            <Button
+              variant={summary ? 'secondary' : 'default'}
+              size="sm"
+              className="pl-3"
+              onClick={() => (summary ? setConfirmAgain(true) : void start())}
+            >
+              <TasksIcon />
+              {summary ? t('knowledge.meeting.ai.processAgain') : t('knowledge.meeting.ai.process')}
+            </Button>
+          )}
+        </div>
+      </div>
+      {confirmAgain && (
+        <PanelNotice text={t('knowledge.meeting.ai.againConfirm')}>
+          <Button variant="ghost" onClick={() => setConfirmAgain(false)}>
+            {t('knowledge.detail.cancel')}
+          </Button>
+          <Button onClick={() => void start()}>{t('knowledge.meeting.ai.processAgain')}</Button>
+        </PanelNotice>
+      )}
+      {busy && (
+        <p role="status" className="text-button text-muted-foreground">
+          {t(`knowledge.meeting.ai.${ai.state}`)}
+        </p>
+      )}
+      {ai.state === 'failed' && !busy && (
+        <p className="text-button text-error-ink">
+          {t(`knowledge.meeting.ai.failed_${ai.error ?? 'summary_failed'}`)}
+        </p>
+      )}
+      {problem && (
+        <p role="alert" className="text-button text-error-ink">
+          {problem}
+        </p>
+      )}
+      {editing && summary ? (
+        <SummaryEditor summary={summary} onCancel={() => setEditing(false)} onSave={saveSummary} />
+      ) : summary ? (
+        <div className="flex flex-col gap-4">
+          {summary.summary && <p className="text-body">{summary.summary}</p>}
+          <List title={t('knowledge.meeting.ai.decisions')} items={summary.decisions} />
+          {summary.actionItems.length > 0 && (
+            <div className="flex flex-col gap-1.5">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h4 className="text-button font-semibold">
+                  {t('knowledge.meeting.ai.actionItems')}
+                </h4>
+                {isAdmin && (
+                  <Button variant="secondary" size="sm" onClick={() => setTasksOpen(true)}>
+                    {t('knowledge.meeting.ai.createTasks')}
+                  </Button>
+                )}
+              </div>
+              <ul className="flex flex-col gap-1.5">
+                {summary.actionItems.map((action, index) => (
+                  <li
+                    key={index}
+                    className="flex flex-col gap-0.5 rounded-lg bg-muted px-3 py-2 min-[641px]:flex-row min-[641px]:items-baseline min-[641px]:gap-3"
+                  >
+                    <span className="min-w-0 flex-1 text-button">{action.text}</span>
+                    {(action.assignee || action.deadline) && (
+                      <span className="shrink-0 text-micro text-muted-foreground tabular-nums">
+                        {[action.assignee, action.deadline ? deadline(action.deadline) : null]
+                          .filter(Boolean)
+                          .join(', ')}
+                      </span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          <List title={t('knowledge.meeting.ai.openQuestions')} items={summary.openQuestions} />
+          <p className="text-micro text-muted-foreground">{t('knowledge.meeting.ai.aiMade')}</p>
+        </div>
+      ) : (
+        !busy && (
+          <p className="text-button text-muted-foreground">
+            {meeting.canProcess
+              ? t('knowledge.meeting.ai.noneAdmin')
+              : t('knowledge.meeting.ai.none')}
+          </p>
+        )
+      )}
+      {tasksOpen && (
+        <Suspense fallback={null}>
+          <ReviewDialog
+            groupId={item.groupId}
+            source={{ kind: 'meeting', item }}
+            onClose={() => setTasksOpen(false)}
+            onCreated={(list) => {
+              setTasksOpen(false);
+              setCreated(list.length);
+            }}
+          />
+        </Suspense>
+      )}
+      {created !== null && (
+        <Toast onClose={() => setCreated(null)}>
+          <span>{t('knowledge.meeting.ai.tasksCreated', { count: created })}</span>
+          <Link
+            to="/groups/$groupId/tasks"
+            params={{ groupId: item.groupId }}
+            onClick={() => setCreated(null)}
+            className="font-semibold underline underline-offset-4 hover:text-neutral"
+          >
+            {t('knowledge.meeting.ai.openBoard')}
+          </Link>
+        </Toast>
+      )}
+    </section>
+  );
+}
+
+/** The transcript, folded: it can be long. */
+export function TranscriptSection({ meeting }: { meeting: MeetingDetail }) {
+  const { t } = useTranslation();
+  if (meeting.transcript.trim() === '') return null;
+  return (
+    <details className={`${SECTION} group`}>
+      <summary className="cursor-pointer text-body font-semibold">
+        {t('knowledge.meeting.transcript')}
+        {meeting.transcriptSource === 'ai' && (
+          <span className="ml-2 text-micro font-normal text-muted-foreground">
+            {t('knowledge.meeting.transcriptByAi')}
+          </span>
+        )}
+      </summary>
+      <div className="max-h-96 overflow-y-auto rounded-lg bg-muted px-4 py-3 text-button whitespace-pre-wrap break-words">
+        {meeting.transcript}
+      </div>
+    </details>
+  );
+}

@@ -22,7 +22,7 @@ What an administrator sees after signing in: a dashboard of what needs them, a c
   - a client filter that by default shows the clients I manage; I can add or remove clients, with managed and other clients shown separately;
   - filters by assignee (me, anyone, unassigned, a person), urgent, "only where I take part" (tasks I created or am an assignee of), deadline (overdue, next 7 days, none), title search, and showing completed tasks;
   - clicking a task opens it; tasks are moved from the task panel, not dragged.
-- **Phones.** The client list and dashboard become one column: four count tiles, two per row (Tickets, My tasks, Upcoming reminders, Mentions; each shows its title and opens its list) above the client list. A tile's list opens full screen with the count, a sentence on what it holds, the items in groups (tasks by due date: overdue, today, this week, later, no date; tickets: New first; mentions and reminders by day), each with its client and due date, and "Open all" to the full list (tickets, tasks). Back closes the list and returns to the home screen as it was.
+- **Phones.** The client list and dashboard become one column: four count tiles, two per row (Tickets, My tasks, Upcoming reminders, Mentions; each shows its title and opens its list) above the client list. A tile's list opens full screen with the count, a sentence on what it holds, the items in groups (tasks by due date: overdue, today, this week, later, no date; tickets: New first; meetings: the coming ones by day, then past ones without a summary; mentions and reminders by day), each with its client and due date, and "Open all" to the full list (tickets, tasks, meetings). Back closes the list and returns to the home screen as it was.
 - **Speed.** The dashboard and the client list each load with one request; nothing slows down the first screen for clients.
 
 ## As built (Phase 20)
@@ -55,6 +55,10 @@ The owner decided that the global board shows the custom buckets of the clients 
 - **Decision (default): Show 50 more.** Each custom column pages on its own, like the fixed ones. The column is identified by `custom:<the merged name's key>` (the name as compared: lower case, without diacritics), which the page request sends as `column`; the cursor is the last card's sort key, as before.
 - **Moving cards.** The global board has no drag and drop (a card opens the task panel, whose bucket select lists the buckets of that card's own client), so a card always moves inside its own client's board; nothing changes here.
 - Filters, counts, the live refresh and the URL are unchanged. The board is still one SQL statement (see `architecture/overview.md`, Admin home API).
+
+## Meetings card (Phase 30)
+
+A wide card "Meetings" under "My tasks" (the Tickets card stays first): meetings of the clients the admin manages (every client when they manage none, as in the global knowledge list) that start in the next 7 days, soonest first, then those of the last 30 days without a summary, marked "No summary"; 10 of each. The count is the coming week's, the line under it the number without a summary. A row shows the day and time, the client and the title, and opens the item in its group's Knowledge tab. On phones it is one more tile. `GET /api/me/home/meetings` (`modules/knowledge/meeting-dashboard.ts`, read through the knowledge module's service).
 
 ## Phase
 

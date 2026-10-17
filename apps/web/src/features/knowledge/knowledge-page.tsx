@@ -90,6 +90,7 @@ const TYPE_LABEL: Record<KnowledgeType, string> = {
   file: 'knowledge.types.files',
   link: 'knowledge.types.links',
   reminder: 'knowledge.types.reminders',
+  meeting: 'knowledge.types.meetings',
   chat_file: 'knowledge.types.fromChat',
 };
 

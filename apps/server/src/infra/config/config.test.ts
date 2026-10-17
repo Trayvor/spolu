@@ -257,6 +257,41 @@ describe('loadConfig', () => {
   });
 });
 
+describe('loadConfig: meeting transcription (Phase 30)', () => {
+  it('openai by default: on with OPENAI_API_KEY (default model gpt-transcribe), off without', () => {
+    expect(loadConfig(validEnv).transcription).toBeNull();
+    expect(loadConfig({ ...validEnv, OPENAI_API_KEY: 'sk' }).transcription).toEqual({
+      provider: 'openai',
+      apiKey: 'sk',
+      model: 'gpt-transcribe',
+    });
+    expect(
+      loadConfig({
+        ...validEnv,
+        OPENAI_API_KEY: 'sk',
+        OPENAI_TRANSCRIBE_MODEL: 'gpt-4o-mini-transcribe',
+      }).transcription,
+    ).toMatchObject({ model: 'gpt-4o-mini-transcribe' });
+    expect(loadConfig(validEnv).ffmpegPath).toBe('ffmpeg');
+  });
+
+  it('elevenlabs needs ELEVENLABS_API_KEY; one line switches', () => {
+    expect(errorOf({ ...validEnv, TRANSCRIPTION_PROVIDER: 'elevenlabs' }).variables).toEqual([
+      'ELEVENLABS_API_KEY',
+    ]);
+    expect(
+      loadConfig({ ...validEnv, TRANSCRIPTION_PROVIDER: 'elevenlabs', ELEVENLABS_API_KEY: 'el' })
+        .transcription,
+    ).toEqual({ provider: 'elevenlabs', apiKey: 'el', model: 'scribe_v2' });
+  });
+
+  it('fake is refused in production unless AI_ALLOW_FAKE=1', () => {
+    const prod = { ...validEnv, NODE_ENV: 'production', TRANSCRIPTION_PROVIDER: 'fake' };
+    expect(errorOf(prod).variables).toEqual(['TRANSCRIPTION_PROVIDER']);
+    expect(loadConfig({ ...prod, AI_ALLOW_FAKE: '1' }).transcription).toEqual({ provider: 'fake' });
+  });
+});
+
 describe('loadConfig: bulk email', () => {
   it('MAIL_FROM_BULK defaults to MAIL_FROM', () => {
     const config = loadConfig(validEnv);

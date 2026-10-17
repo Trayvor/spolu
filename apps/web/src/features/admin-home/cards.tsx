@@ -1,11 +1,17 @@
 import type { ReactNode } from 'react';
 import { useQuery, type UseQueryResult } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import type { AssignedTask, HomeReminder, HomeTicket, MentionItem } from '@spolu/shared';
+import type {
+  AssignedTask,
+  HomeMeeting,
+  HomeReminder,
+  HomeTicket,
+  MentionItem,
+} from '@spolu/shared';
 import { Badge } from '@/components/ui/badge';
 import { formatDue, isOverdue, todayInBratislava } from '@/features/tasks/dates';
 import { cn } from '@/lib/utils';
-import { assignedQuery, mentionsQuery, remindersQuery, ticketsQuery } from './api';
+import { assignedQuery, meetingsQuery, mentionsQuery, remindersQuery, ticketsQuery } from './api';
 import type { CardTarget, CountCardProps } from './count-card';
 
 const stateOf = (query: UseQueryResult<unknown>): CountCardProps['state'] =>
@@ -385,6 +391,97 @@ export function useMentionsCard(): CountCardProps {
       ),
     })),
     empty: t('adminHome.cards.mentions.empty'),
+    state: stateOf(query),
+    onRetry: () => void query.refetch(),
+  };
+}
+
+const meetingTarget = (meeting: HomeMeeting): CardTarget => ({
+  to: '/groups/$groupId/knowledge',
+  params: { groupId: meeting.groupId },
+  search: { k: meeting.id },
+});
+
+/**
+ * The Meetings card (Phase 30): meetings of my clients in the next 7 days, soonest first, then
+ * past meetings of the last 30 days still without a summary, marked "No summary". The count is
+ * the coming week's.
+ */
+export function useMeetingsCard(): CountCardProps {
+  const { t, i18n } = useTranslation();
+  const query = useQuery(meetingsQuery);
+  const data = query.data;
+  const today = todayInBratislava();
+  const when = new Intl.DateTimeFormat(locale(i18n.language), {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone: 'Europe/Bratislava',
+  });
+  const row = (meeting: HomeMeeting, past: boolean) => ({
+    key: meeting.id,
+    to: meetingTarget(meeting),
+    tall: true,
+    content: (
+      <span className="flex min-w-0 flex-1 items-center gap-3">
+        <span className="flex min-w-0 flex-1 flex-col">
+          <span className="truncate text-micro text-muted-foreground tabular-nums">
+            {when.format(new Date(meeting.startsAt))}, {meeting.groupName}
+          </span>
+          <span className="truncate text-button font-semibold">{meeting.title}</span>
+        </span>
+        {past && <Badge variant="outline">{t('adminHome.cards.meetings.noSummary')}</Badge>}
+      </span>
+    ),
+    // The phone sheet: upcoming by day, then the past ones still without a summary.
+    group: t(
+      past
+        ? 'adminHome.sheet.groups.noSummary'
+        : `adminHome.sheet.groups.${dayGroup(meeting.startsAt, today)}`,
+    ),
+    detail: (
+      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <span className="line-clamp-2 text-button font-semibold">{meeting.title}</span>
+        <MetaLine
+          parts={[
+            <span key="when" className="tabular-nums">
+              {when.format(new Date(meeting.startsAt))}
+            </span>,
+            <span key="client" className="truncate">
+              {meeting.groupName}
+            </span>,
+            past && (
+              <span key="summary" className="font-semibold text-foreground">
+                {t('adminHome.cards.meetings.noSummary')}
+              </span>
+            ),
+          ]}
+        />
+      </span>
+    ),
+  });
+  return {
+    id: 'meetings',
+    title: t('adminHome.cards.meetings.title'),
+    description: t('adminHome.sheet.meetings.description'),
+    openAll: {
+      label: t('adminHome.sheet.meetings.openAll'),
+      to: { to: '/knowledge', search: { type: 'meeting' } },
+    },
+    count: data?.upcomingTotal ?? 0,
+    caption: t('adminHome.cards.meetings.caption'),
+    subline: (
+      <span className="text-micro text-muted-foreground">
+        {t('adminHome.cards.meetings.unsummarized', { count: data?.unsummarizedTotal ?? 0 })}
+      </span>
+    ),
+    rows: [
+      ...(data?.upcoming ?? []).map((m) => row(m, false)),
+      ...(data?.unsummarized ?? []).map((m) => row(m, true)),
+    ],
+    empty: t('adminHome.cards.meetings.empty'),
     state: stateOf(query),
     onRetry: () => void query.refetch(),
   };

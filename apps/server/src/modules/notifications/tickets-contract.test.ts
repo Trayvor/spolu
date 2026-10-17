@@ -64,22 +64,29 @@ async function subscribedAdmin() {
   return { id: row.id, email: row.email, endpoint };
 }
 
-const event = (userId: string, kind: string, groupId: string | null) =>
-  deps.db.insert(notificationEvents).values({
-    id: randomUUID(),
+/**
+ * Inserts one pending event and returns its id. Tests deliver by that id: the users here are
+ * admins, who are people of every group, so other test files record events for them too.
+ */
+async function event(userId: string, kind: string, groupId: string | null): Promise<string> {
+  const id = randomUUID();
+  await deps.db.insert(notificationEvents).values({
+    id,
     userId,
     groupId,
     kind,
     // A chat event with `ticketId` is a ticket chat's (Phase 21.6): this one is a group chat's.
     payload: kind === 'test.ticket' ? { ticketId: 't1' } : { channelId: 'c1' },
   });
+  return id;
+}
 const sentTo = (endpoint: string) => push.sent.filter((s) => s.endpoint === endpoint);
 
 describe('ticket events (item B contract)', () => {
   it('a ticket event without a client group reaches its recipient', async () => {
     const a = await subscribedAdmin();
-    await event(a.id, 'test.ticket', null);
-    await deliverPending(deps, { userIds: [a.id] });
+    const eventId = await event(a.id, 'test.ticket', null);
+    await deliverPending(deps, { eventIds: [eventId] });
     expect(sentTo(a.endpoint)).toHaveLength(1);
   });
 
@@ -103,20 +110,20 @@ describe('ticket events (item B contract)', () => {
     await addMember(deps.db, other.id, id);
     const endpoint = `https://push.example.test/${randomUUID()}`;
     await saveSubscription(deps.db, id, { endpoint, p256dh: 'pk', auth: 'au', userAgent: null });
-    await event(id, 'test.ticket', group.id);
-    await deliverPending(deps, { userIds: [id] });
+    const eventId = await event(id, 'test.ticket', group.id);
+    await deliverPending(deps, { eventIds: [eventId] });
     expect(sentTo(endpoint)).toHaveLength(0);
   });
 
   it('an event of another group without a client group is still dropped', async () => {
     const a = await subscribedAdmin();
-    await event(a.id, 'chat.message', null);
-    await deliverPending(deps, { userIds: [a.id] });
+    const eventId = await event(a.id, 'chat.message', null);
+    await deliverPending(deps, { eventIds: [eventId] });
     expect(sentTo(a.endpoint)).toHaveLength(0);
     const [row] = await deps.db
       .select()
       .from(notificationEvents)
-      .where(eq(notificationEvents.userId, a.id));
+      .where(eq(notificationEvents.id, eventId));
     expect(row!.deliveredAt).toBeInstanceOf(Date);
   });
 
@@ -124,8 +131,8 @@ describe('ticket events (item B contract)', () => {
     const a = await subscribedAdmin();
     await setNotificationChannel(deps.db, a.id, 'tickets', 'email');
     await deps.db.update(user).set({ language: 'en' }).where(eq(user.id, a.id));
-    await event(a.id, 'test.ticket', null);
-    await deliverPending(deps, { userIds: [a.id] });
+    const eventId = await event(a.id, 'test.ticket', null);
+    await deliverPending(deps, { eventIds: [eventId] });
     const later = new Date(Date.now() + deps.config.emailBatchDelayMs + 1000);
     expect(await sendDueDigests(deps, { now: later, userIds: [a.id] })).toBe(1);
     const mail = await latestEmail(a.email);

@@ -9,7 +9,6 @@
   "egrant": "eGrant",
   "notSent": "Neodesláno.",
   "retry": "Zkusit znovu",
-  "save": "Uložit",
   "cancel": "Zrušit",
   "confirmDelete": "Smazat tuto zprávu?",
   "actions": {
@@ -20,7 +19,8 @@
     "quote": "Citovat",
     "label": "Akce se zprávou",
     "open": "Akce se zprávou",
-    "turnIntoTasks": "Převést na úkoly"
+    "turnIntoTasks": "Převést na úkoly",
+    "copy": "Kopírovat text"
   },
   "thread": {
     "summary_one": "{{count}} odpověď, poslední v {{time}}",
@@ -73,5 +73,6 @@
   "unread_few": "{{count}} nepřečtené zprávy",
   "unread_many": "{{count}} nepřečtené zprávy",
   "loadError": "Chat se nepodařilo načíst.",
-  "turnedIntoTasks": "Převedeno na úkoly:"
+  "turnedIntoTasks": "Převedeno na úkoly:",
+  "copied": "Text zkopírován"
 }

@@ -23,7 +23,6 @@
   "create_few": "Stvori {{count}} zadatka",
   "create_other": "Stvori {{count}} zadataka",
   "cancel": "Odustani",
-  "close": "Zatvori",
   "discardConfirm": "Odbaciti predložene zadatke?",
   "discard": "Odbaci",
   "keep": "Nastavi pregled",
@@ -34,5 +33,7 @@
   "created_one": "{{count}} zadatak je stvoren",
   "created_few": "{{count}} zadatka su stvorena",
   "created_other": "{{count}} zadataka je stvoreno",
-  "openBoard": "Otvori ploču"
+  "openBoard": "Otvori ploču",
+  "bucket": "Dodaj u",
+  "meetingGone": "Sastanak više ne postoji pa zadaci nisu izrađeni."
 }

@@ -79,7 +79,7 @@ describe('recordNotifications', () => {
     ).resolves.toEqual([]);
   });
 
-  it('returns the recipients recorded; a repeated dedupeKey records nothing', async () => {
+  it('returns the ids of the events recorded; a repeated dedupeKey records nothing', async () => {
     const { group, a, b } = await setup();
     const input = {
       kind: 'task.deadline' as const,
@@ -87,12 +87,11 @@ describe('recordNotifications', () => {
       payload: { taskId: 't1' },
       dedupeKey: `deadline:${randomUUID()}`,
     };
-    expect((await recordNotifications(db, { ...input, recipients: [a.id] })).sort()).toEqual([
-      a.id,
-    ]);
-    expect((await recordNotifications(db, { ...input, recipients: [a.id, b.id] })).sort()).toEqual([
-      b.id,
-    ]);
+    const first = await recordNotifications(db, { ...input, recipients: [a.id] });
+    const second = await recordNotifications(db, { ...input, recipients: [a.id, b.id] });
+    const idOf = async (userId: string) => (await rowsFor([userId])).map((r) => r.id);
+    expect(first).toEqual(await idOf(a.id));
+    expect(second).toEqual(await idOf(b.id));
     expect(await rowsFor([a.id, b.id])).toHaveLength(2);
   });
 });
@@ -124,8 +123,8 @@ describe('recordNotifications pending state', () => {
       recipients: [a.id],
       payload,
     });
-    expect(recorded).toEqual([a.id]);
     const [row] = await rowsFor([a.id]);
+    expect(recorded).toEqual([row!.id]);
     return row!.deliveredAt === null;
   };
 
@@ -155,12 +154,12 @@ describe('recordNotifications pending state', () => {
 });
 
 describe('requestDelivery', () => {
-  it('sends one deliver job with the unique users, nothing for none, and never throws', async () => {
+  it('sends one deliver job with the unique event ids, nothing for none, and never throws', async () => {
     const sent: { name: string; data: object }[] = [];
     const jobs = { send: async (name: string, data: object) => void sent.push({ name, data }) };
     await requestDelivery(jobs, []);
-    await requestDelivery(jobs, ['u1', 'u2', 'u1']);
-    expect(sent).toEqual([{ name: DELIVER_JOB, data: { userIds: ['u1', 'u2'] } }]);
+    await requestDelivery(jobs, ['u1', 'u2', 'u1']); // event ids
+    expect(sent).toEqual([{ name: DELIVER_JOB, data: { eventIds: ['u1', 'u2'] } }]);
     const error = vi.spyOn(console, 'error').mockImplementation(() => {});
     const failing = { send: async () => Promise.reject(new Error('queue down')) };
     await expect(requestDelivery(failing, ['u1'])).resolves.toBeUndefined();

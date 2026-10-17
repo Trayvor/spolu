@@ -17,9 +17,15 @@ import { TaskForm, validateTaskDraft, type TaskFormErrors } from '@/features/tas
 import { ApiError } from '@/lib/api';
 import { useMediaQuery } from '@/lib/use-media-query';
 import { aiStatusQuery } from './api';
+import { Select } from '@/components/ui/select';
+import { groupQuery } from '@/features/groups/api';
+import { boardQuery } from '@/features/tasks/api';
+import { bucketTitle } from '@/features/tasks/board-model';
 import {
+  createTasksFromMeeting,
   createTasksFromMessage,
   createTasksFromTicket,
+  proposeMeetingTasks,
   proposeTasks,
   proposeTicketTasks,
 } from './split-api';
@@ -65,8 +71,14 @@ type SourceView = {
   authorName: string | null;
   files: FileInfo[];
   goneKey: string;
+  /** The reviewer picks the bucket (a meeting); otherwise the cards go to To do. */
+  chooseBucket: boolean;
   propose(): Promise<TaskProposals>;
-  create(groupId: string, tasks: TaskFromMessageDraft[]): Promise<TaskDetailDto[]>;
+  create(
+    groupId: string,
+    tasks: TaskFromMessageDraft[],
+    bucketId?: string,
+  ): Promise<TaskDetailDto[]>;
 };
 
 function viewOf(source: SplitSource): SourceView {
@@ -80,8 +92,25 @@ function viewOf(source: SplitSource): SourceView {
       authorName: message.author.name,
       files: message.attachments,
       goneKey: 'taskSplit.messageGone',
+      chooseBucket: false,
       propose: () => proposeTasks(message.id),
       create: (groupId, tasks) => createTasksFromMessage(groupId, { messageId: message.id, tasks }),
+    };
+  }
+  if (source.kind === 'meeting') {
+    const { item } = source;
+    return {
+      id: `meeting:${item.id}`,
+      caption: item.title,
+      text: (item.meetingDetail?.summary?.actionItems ?? []).map((a) => `- ${a.text}`).join('\n'),
+      authorId: null,
+      authorName: null,
+      files: [],
+      goneKey: 'taskSplit.meetingGone',
+      chooseBucket: true,
+      propose: () => proposeMeetingTasks(item.id),
+      create: (_groupId, tasks, bucketId) =>
+        createTasksFromMeeting(item.id, { tasks, ...(bucketId ? { bucketId } : {}) }),
     };
   }
   const { ticket } = source;
@@ -93,6 +122,7 @@ function viewOf(source: SplitSource): SourceView {
     authorName: null,
     files: ticket.files,
     goneKey: 'taskSplit.ticketGone',
+    chooseBucket: false,
     propose: () => proposeTicketTasks(ticket.id),
     create: (groupId, tasks) => createTasksFromTicket(groupId, { ticketId: ticket.id, tasks }),
   };
@@ -135,6 +165,12 @@ export function ReviewDialog({
   // The dialog is keyed by its source, which never changes while it is open.
   const [view] = useState(() => viewOf(source));
   const sourceFileIds = useMemo(() => new Set(view.files.map((f) => f.id)), [view]);
+  // A meeting's cards go to a bucket the reviewer picks (not Completed); To do by default.
+  const board = useQuery({ ...boardQuery(groupId), enabled: view.chooseBucket });
+  const groupName = useQuery({ ...groupQuery(groupId), enabled: view.chooseBucket }).data?.name;
+  const buckets = (board.data?.buckets ?? []).filter((b) => b.kind !== 'done');
+  const [bucketId, setBucketId] = useState('');
+  const chosenBucket = bucketId || buckets.find((b) => b.kind === 'todo')?.id || '';
 
   // One request per source; gcTime 0 drops it on close, so reopening asks the AI afresh.
   const proposals = useQuery({
@@ -182,7 +218,12 @@ export function ReviewDialog({
   const queryClient = useQueryClient();
   useEffect(() => {
     if (problem === 'unavailable')
-      queryClient.setQueryData(aiStatusQuery.queryKey, { taskSplit: false });
+      queryClient.setQueryData(aiStatusQuery.queryKey, (old) => ({
+        meetingSummary: false,
+        transcription: false,
+        ...old,
+        taskSplit: false,
+      }));
   }, [problem, queryClient]);
   const touched = cards !== null && isTouched(cards, initial);
   const approvedCount = cards?.filter((c) => c.decision === 'approved').length ?? 0;
@@ -317,7 +358,11 @@ export function ReviewDialog({
     sending.current = true;
     setBusy(true);
     try {
-      const tasks = await view.create(groupId, toDrafts(cards, sourceFileIds));
+      const tasks = await view.create(
+        groupId,
+        toDrafts(cards, sourceFileIds),
+        view.chooseBucket && chosenBucket ? chosenBucket : undefined,
+      );
       onCreated(tasks);
     } catch (error) {
       // A chosen person may have stopped being a client or manager: the picker needs the new list.
@@ -485,6 +530,22 @@ export function ReviewDialog({
         ) : (
           <>
             {createError && <p className="text-button text-error-ink">{createError.text}</p>}
+            {view.chooseBucket && cards && buckets.length > 0 && (
+              <label className="flex flex-wrap items-center gap-2 text-button font-semibold">
+                {t('taskSplit.bucket')}
+                <Select
+                  value={chosenBucket}
+                  onChange={(event) => setBucketId(event.target.value)}
+                  className="py-2"
+                >
+                  {buckets.map((bucket) => (
+                    <option key={bucket.id} value={bucket.id}>
+                      {bucketTitle(t, bucket, groupName ?? '')}
+                    </option>
+                  ))}
+                </Select>
+              </label>
+            )}
             <div className="flex flex-wrap items-center gap-2">
               {cards && anyPending && (
                 <Button variant="secondary" size="lg" className="px-5" onClick={approveAll}>

@@ -12,11 +12,10 @@ import { cn } from '@/lib/utils';
 
 const DropdownMenu = DropdownMenuPrimitive.Root;
 const DropdownMenuTrigger = DropdownMenuPrimitive.Trigger;
-const DropdownMenuGroup = DropdownMenuPrimitive.Group;
 const DropdownMenuRadioGroup = DropdownMenuPrimitive.RadioGroup;
 
 const itemClasses =
-  'relative flex cursor-default items-center gap-2.5 rounded-lg px-3 py-2.5 text-button max-[640px]:min-h-11 font-medium outline-hidden select-none transition-colors duration-(--duration-fast) focus:bg-accent focus:text-accent-foreground focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring data-[disabled]:pointer-events-none data-[disabled]:opacity-50';
+  'relative flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-button max-[640px]:min-h-11 font-medium outline-hidden select-none transition-colors duration-(--duration-fast) focus:bg-accent focus:text-accent-foreground focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring data-[disabled]:pointer-events-none data-[disabled]:opacity-50';
 
 function DropdownMenuContent({
   className,
@@ -143,7 +142,6 @@ export {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
-  DropdownMenuGroup,
   DropdownMenuCheckboxItem,
   DropdownMenuLabel,
   DropdownMenuItem,

@@ -21,7 +21,6 @@
   "create_one": "Loo {{count}} ülesanne",
   "create_other": "Loo {{count}} ülesannet",
   "cancel": "Tühista",
-  "close": "Sulge",
   "discardConfirm": "Kas loobuda pakutud ülesannetest?",
   "discard": "Loobu",
   "keep": "Jätka ülevaatamist",
@@ -31,5 +30,7 @@
   "filesChanged": "Mõni kaardil olev fail ei ole enam saadaval. Eemaldage see ja proovige uuesti.",
   "created_one": "{{count}} ülesanne loodud",
   "created_other": "{{count}} ülesannet loodud",
-  "openBoard": "Ava tahvel"
+  "openBoard": "Ava tahvel",
+  "bucket": "Lisa",
+  "meetingGone": "Kohtumist enam pole, seega ülesandeid ei loodud."
 }

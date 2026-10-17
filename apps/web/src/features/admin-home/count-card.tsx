@@ -23,7 +23,7 @@ export type CardRow = {
 };
 
 /** Which card: also the `?card=` value that opens its phone sheet. */
-export type CardId = 'tickets' | 'tasks' | 'reminders' | 'mentions';
+export type CardId = 'tickets' | 'tasks' | 'meetings' | 'reminders' | 'mentions';
 
 export type CountCardProps = {
   id: CardId;

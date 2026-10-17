@@ -1,4 +1,6 @@
 import { randomUUID } from 'node:crypto';
+import { createReadStream } from 'node:fs';
+import { stat } from 'node:fs/promises';
 import { Transform, type Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import { and, eq, inArray, isNull, lt, sql } from 'drizzle-orm';
@@ -156,6 +158,39 @@ export async function createReceivedFile(
         name: sanitizeFileName(input.name),
         mime: input.mime,
         size: input.bytes.length,
+        storageKey: key,
+      })
+      .returning();
+    return toFileInfo(row!);
+  } catch (error) {
+    await storage.delete(key).catch(() => undefined);
+    throw error;
+  }
+}
+
+/**
+ * Stores a file the server made itself (a meeting's compact audio, Phase 30) from a local path,
+ * streamed, as an unattached file of `groupId` with no uploader, like `createReceivedFile`. The
+ * owner attaches it with `attachReceivedFiles`. If the insert fails, the stored object is removed.
+ */
+export async function createStoredFile(
+  { db, storage }: FileDeps,
+  input: { groupId: string; name: string; mime: string; path: string },
+): Promise<FileInfo> {
+  const id = randomUUID();
+  const key = `files/${input.groupId}/${id}`;
+  const { size } = await stat(input.path);
+  await storage.put(key, createReadStream(input.path), input.mime);
+  try {
+    const [row] = await db
+      .insert(files)
+      .values({
+        id,
+        groupId: input.groupId,
+        uploadedBy: null,
+        name: sanitizeFileName(input.name),
+        mime: input.mime,
+        size,
         storageKey: key,
       })
       .returning();

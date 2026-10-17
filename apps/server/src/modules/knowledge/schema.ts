@@ -3,6 +3,8 @@ import {
   check,
   foreignKey,
   index,
+  integer,
+  jsonb,
   pgTable,
   primaryKey,
   text,
@@ -94,7 +96,7 @@ export const knowledgeItems = pgTable(
   (t) => [
     check(
       'knowledge_items_type_check',
-      sql`${t.type} in ('note', 'file', 'link', 'reminder', 'chat_file')`,
+      sql`${t.type} in ('note', 'file', 'link', 'reminder', 'meeting', 'chat_file')`,
     ),
     check(
       'knowledge_items_chat_check',
@@ -165,5 +167,56 @@ export const knowledgeAttachments = pgTable(
   (t) => [
     primaryKey({ columns: [t.itemId, t.fileId] }),
     index('knowledge_attachments_file_id_idx').on(t.fileId),
+  ],
+);
+
+/**
+ * A meeting item's own fields (Phase 30), one row per `meeting` item. The compact audio is a
+ * `files` row attached through `knowledge_attachments` (so it follows the item's visibility);
+ * `recording_file_id` names it. `upload_key` is the original upload while it waits for the
+ * transcoder (deleted after). `summary` is `MeetingSummary` JSON.
+ */
+export const knowledgeMeetings = pgTable(
+  'knowledge_meetings',
+  {
+    itemId: text('item_id')
+      .primaryKey()
+      .references(() => knowledgeItems.id, { onDelete: 'cascade' }),
+    startsAt: timestamp('starts_at', { withTimezone: true, precision: 3 }).notNull(),
+    meetingUrl: text('meeting_url'),
+    recordingUrl: text('recording_url'),
+    transcriptUrl: text('transcript_url'),
+    transcript: text('transcript').notNull().default(''),
+    /** `manual` or `ai`; null while there is no transcript. */
+    transcriptSource: text('transcript_source'),
+    /** `none`, `processing`, `ready` or `failed`. */
+    recordingState: text('recording_state').notNull().default('none'),
+    recordingFileId: text('recording_file_id').references(() => files.id, {
+      onDelete: 'set null',
+    }),
+    uploadKey: text('upload_key'),
+    /** `idle`, `queued`, `transcribing`, `summarizing`, `done` or `failed`. */
+    aiState: text('ai_state').notNull().default('idle'),
+    aiError: text('ai_error'),
+    /** Bumped by every run, so a stale job of an earlier run stops. */
+    aiRun: integer('ai_run').notNull().default(0),
+    aiUpdatedAt: timestamp('ai_updated_at', { withTimezone: true, precision: 3 }),
+    summary: jsonb('summary'),
+  },
+  (t) => [
+    check(
+      'knowledge_meetings_recording_state_check',
+      sql`${t.recordingState} in ('none', 'processing', 'ready', 'failed')`,
+    ),
+    check(
+      'knowledge_meetings_ai_state_check',
+      sql`${t.aiState} in ('idle', 'queued', 'transcribing', 'summarizing', 'done', 'failed')`,
+    ),
+    check(
+      'knowledge_meetings_transcript_source_check',
+      sql`${t.transcriptSource} is null or ${t.transcriptSource} in ('manual', 'ai')`,
+    ),
+    index('knowledge_meetings_starts_at_idx').on(t.startsAt),
+    index('knowledge_meetings_recording_file_idx').on(t.recordingFileId),
   ],
 );

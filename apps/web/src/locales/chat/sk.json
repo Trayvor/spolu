@@ -9,7 +9,6 @@
   "egrant": "eGrant",
   "notSent": "Neodoslané.",
   "retry": "Skúsiť znova",
-  "save": "Uložiť",
   "cancel": "Zrušiť",
   "confirmDelete": "Odstrániť túto správu?",
   "actions": {
@@ -20,7 +19,8 @@
     "quote": "Citovať",
     "label": "Akcie správy",
     "open": "Akcie správy",
-    "turnIntoTasks": "Vytvoriť úlohy"
+    "turnIntoTasks": "Vytvoriť úlohy",
+    "copy": "Kopírovať text"
   },
   "thread": {
     "summary_one": "{{count}} odpoveď, posledná o {{time}}",
@@ -73,5 +73,6 @@
   "unread_other": "Neprečítané správy: {{count}}",
   "unread_one": "Neprečítaná správa: {{count}}",
   "loadError": "Chat sa nepodarilo načítať.",
-  "turnedIntoTasks": "Premenené na úlohy:"
+  "turnedIntoTasks": "Premenené na úlohy:",
+  "copied": "Text skopírovaný"
 }

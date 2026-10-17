@@ -25,7 +25,7 @@ export function remindersJobHandlers(deps: Deps): JobHandlers {
 }
 
 /** What one batch processed: times, the users to deliver to, and the subjects whose times fired. */
-type Batch = { count: number; recipients: string[]; subjects: ReminderSubjectRef[] };
+type Batch = { count: number; eventIds: string[]; subjects: ReminderSubjectRef[] };
 
 /** `afterSelect` is a test hook: it runs once the times are locked. */
 export async function fireBatch(
@@ -49,7 +49,7 @@ export async function fireBatch(
     .limit(limit)
     .for('update', { skipLocked: true });
   await afterSelect?.();
-  if (times.length === 0) return { count: 0, recipients: [], subjects: [] };
+  if (times.length === 0) return { count: 0, eventIds: [], subjects: [] };
 
   // The sets, with the subject id of whichever kind they belong to.
   const setRows = await tx
@@ -135,7 +135,7 @@ export async function fireBatch(
   }
   return {
     count: times.length,
-    recipients: recorded,
+    eventIds: recorded,
     subjects: [...subjectOf.values()].map(({ kind, id }) => ({ kind, id })),
   };
 }
@@ -157,7 +157,7 @@ export async function fireDueReminders(
   for (;;) {
     const batch = await deps.db.transaction((tx) => fireBatch(tx, now, limit, opts.setIds));
     total += batch.count;
-    await requestDelivery(deps.jobs, batch.recipients);
+    await requestDelivery(deps.jobs, batch.eventIds);
     // Fired or silent, these subjects have fewer upcoming times now (the board's bell).
     await notifyTimesChanged(deps.db, batch.subjects);
     if (batch.count < limit) return total;

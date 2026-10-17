@@ -25,7 +25,6 @@
   "create_many": "Vytvořit {{count}} úkolu",
   "create_other": "Vytvořit {{count}} úkolů",
   "cancel": "Zrušit",
-  "close": "Zavřít",
   "discardConfirm": "Zahodit navržené úkoly?",
   "discard": "Zahodit",
   "keep": "Pokračovat v kontrole",
@@ -37,5 +36,7 @@
   "created_few": "Vytvořeny {{count}} úkoly",
   "created_many": "Vytvořeno {{count}} úkolu",
   "created_other": "Vytvořeno {{count}} úkolů",
-  "openBoard": "Otevřít nástěnku"
+  "openBoard": "Otevřít nástěnku",
+  "bucket": "Přidat do",
+  "meetingGone": "Schůzka už neexistuje, úkoly se nevytvořily."
 }

@@ -57,6 +57,14 @@
       "title": "Mainimised",
       "caption": "lugemata",
       "empty": "Lugemata mainimisi ei ole."
+    },
+    "meetings": {
+      "title": "Kohtumised",
+      "caption": "järgmised 7 päeva",
+      "noSummary": "Kokkuvõtteta",
+      "empty": "Järgmise 7 päeva jooksul pole kohtumisi ja ükski ei oota kokkuvõtet.",
+      "unsummarized_one": "{{count}} kokkuvõtteta",
+      "unsummarized_other": "{{count}} kokkuvõtteta"
     }
   },
   "board": {
@@ -129,7 +137,12 @@
       "inProgress": "Töös",
       "yesterday": "Eile",
       "earlier": "Varem",
-      "tomorrow": "Homme"
+      "tomorrow": "Homme",
+      "noSummary": "Möödunud, kokkuvõtteta"
+    },
+    "meetings": {
+      "description": "Sinu klientide kohtumised järgmise 7 päeva jooksul, seejärel viimase 30 päeva kohtumised, millel pole veel kokkuvõtet.",
+      "openAll": "Ava kõik kohtumised"
     }
   }
 }

@@ -57,6 +57,14 @@
       "title": "Mentions",
       "caption": "unread",
       "empty": "No unread mentions."
+    },
+    "meetings": {
+      "title": "Meetings",
+      "caption": "next 7 days",
+      "noSummary": "No summary",
+      "empty": "No meetings in the next 7 days and none waiting for a summary.",
+      "unsummarized_one": "{{count}} without a summary",
+      "unsummarized_other": "{{count}} without a summary"
     }
   },
   "board": {
@@ -129,7 +137,12 @@
       "inProgress": "In progress",
       "yesterday": "Yesterday",
       "earlier": "Earlier",
-      "tomorrow": "Tomorrow"
+      "tomorrow": "Tomorrow",
+      "noSummary": "Past, no summary"
+    },
+    "meetings": {
+      "description": "Meetings of your clients in the next 7 days, then past meetings of the last 30 days that still have no summary.",
+      "openAll": "Open all meetings"
     }
   }
 }

@@ -67,6 +67,16 @@
       "title": "Zmínky",
       "caption": "nepřečtené",
       "empty": "Žádné nepřečtené zmínky."
+    },
+    "meetings": {
+      "title": "Schůzky",
+      "caption": "příštích 7 dní",
+      "noSummary": "Bez shrnutí",
+      "empty": "Žádné schůzky v příštích 7 dnech a žádné nečekají na shrnutí.",
+      "unsummarized_one": "{{count}} bez shrnutí",
+      "unsummarized_few": "{{count}} bez shrnutí",
+      "unsummarized_many": "{{count}} bez shrnutí",
+      "unsummarized_other": "{{count}} bez shrnutí"
     }
   },
   "board": {
@@ -145,7 +155,12 @@
       "inProgress": "Řeší se",
       "yesterday": "Včera",
       "earlier": "Dříve",
-      "tomorrow": "Zítra"
+      "tomorrow": "Zítra",
+      "noSummary": "Minulé, bez shrnutí"
+    },
+    "meetings": {
+      "description": "Schůzky vašich klientů na příštích 7 dní, potom minulé schůzky za posledních 30 dní, které ještě nemají shrnutí.",
+      "openAll": "Otevřít všechny schůzky"
     }
   }
 }

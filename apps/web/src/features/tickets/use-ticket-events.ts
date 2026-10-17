@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useQueryClient, type InfiniteData } from '@tanstack/react-query';
+import { useQueryClient, type InfiniteData, type Query } from '@tanstack/react-query';
 import {
   TicketEvents,
   type TicketDto,
@@ -10,6 +10,7 @@ import { useSession } from '@/features/auth/use-session';
 import { channelPeopleQuery } from '@/features/chat/chat-scope';
 import { ApiError } from '@/lib/api';
 import { getSocket } from '@/lib/socket';
+import { firstJoinCheck } from '@/lib/socket-history';
 import {
   patchTicketInLists,
   removeTicketFromLists,
@@ -32,8 +33,9 @@ import {
  * only an open or listed ticket.
  * A ticket that answers 404 (moved out of reach) leaves every list and an open ticket page shows
  * not found. A ticket whose client changed refreshes its chat's people. After a reconnect the
- * lists refetch, since events sent while the socket was down are lost. `source` null listens for
- * the open ticket only.
+ * lists refetch, since events sent while the socket was down are lost; the first `connect` after
+ * the mount refetches only the lists `firstJoinCheck` says may have missed events, not the ones
+ * the mount just loaded. `source` null listens for the open ticket only.
  */
 export function useTicketEvents(source: TicketSource | null): void {
   const queryClient = useQueryClient();
@@ -53,8 +55,8 @@ export function useTicketEvents(source: TicketSource | null): void {
     const mine = parsed?.kind === 'mine';
     const concerns = (payload: TicketEventPayload) =>
       parsed !== null && (parsed.kind !== 'group' || payload.groupId === parsed.groupId);
-    const refetchLists = () => {
-      if (prefix) void queryClient.invalidateQueries({ queryKey: prefix });
+    const refetchLists = (predicate?: (query: Query) => boolean) => {
+      if (prefix) void queryClient.invalidateQueries({ queryKey: prefix, predicate });
     };
     const isOpen = (ticketId: string) =>
       queryClient.getQueryData(ticketQuery(ticketId).queryKey) !== undefined;
@@ -120,7 +122,12 @@ export function useTicketEvents(source: TicketSource | null): void {
         refetchLists();
       }
     };
-    const onConnect = () => refetchLists();
+    let firstConnect: ReturnType<typeof firstJoinCheck> | null = firstJoinCheck(socket);
+    const onConnect = () => {
+      const stale = firstConnect;
+      firstConnect = null;
+      refetchLists(stale ? (query) => stale(query.state) : undefined);
+    };
 
     socket.on(TicketEvents.created, onCreated);
     socket.on(TicketEvents.updated, onUpdated);

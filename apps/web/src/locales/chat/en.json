@@ -9,7 +9,6 @@
   "egrant": "eGrant",
   "notSent": "Not sent.",
   "retry": "Retry",
-  "save": "Save",
   "cancel": "Cancel",
   "confirmDelete": "Delete this message?",
   "actions": {
@@ -20,20 +19,17 @@
     "quote": "Quote",
     "label": "Message actions",
     "open": "Message actions",
-    "turnIntoTasks": "Turn into tasks"
+    "turnIntoTasks": "Turn into tasks",
+    "copy": "Copy text"
   },
   "thread": {
     "summary_one": "{{count}} reply, last at {{time}}",
-    "summary_few": "{{count}} replies, last at {{time}}",
-    "summary_many": "{{count}} replies, last at {{time}}",
     "summary_other": "{{count}} replies, last at {{time}}",
     "title": "Thread",
     "unreadReplies": "Unread replies",
     "close": "Close thread",
     "back": "Back to chat",
     "replies_one": "{{count}} reply",
-    "replies_few": "{{count}} replies",
-    "replies_many": "{{count}} replies",
     "replies_other": "{{count}} replies"
   },
   "mention": {
@@ -71,5 +67,6 @@
   "unread_other": "{{count}} unread messages",
   "unread_one": "{{count}} unread message",
   "loadError": "The chat could not be loaded.",
-  "turnedIntoTasks": "Turned into tasks:"
+  "turnedIntoTasks": "Turned into tasks:",
+  "copied": "Text copied"
 }

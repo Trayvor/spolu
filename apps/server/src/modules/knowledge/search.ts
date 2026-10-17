@@ -31,7 +31,11 @@ export function buildSearchText(input: {
   url: string | null;
   fileNames: string[];
   nameOf: (id: string) => string | undefined;
+  /** More text of the type (a meeting's links and summary). */
+  extra?: string[];
 }): string {
   const body = plainExcerpt(input.body, input.nameOf, Number.POSITIVE_INFINITY);
-  return normalizeSearch([input.title, body, input.url ?? '', ...input.fileNames].join(' '));
+  return normalizeSearch(
+    [input.title, body, input.url ?? '', ...input.fileNames, ...(input.extra ?? [])].join(' '),
+  );
 }

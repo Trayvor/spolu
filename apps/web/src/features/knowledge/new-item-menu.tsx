@@ -12,13 +12,14 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useMediaQuery } from '@/lib/use-media-query';
 import { cn } from '@/lib/utils';
-import { BellIcon, FileIcon, FolderIcon, LinkIcon, NoteIcon } from './icons';
+import { BellIcon, FileIcon, FolderIcon, LinkIcon, MeetingIcon, NoteIcon } from './icons';
 
 const ICONS: Record<KnowledgeCreatableType, () => ReactNode> = {
   note: NoteIcon,
   file: FileIcon,
   link: LinkIcon,
   reminder: BellIcon,
+  meeting: MeetingIcon,
 };
 
 const PlusIcon = () => (

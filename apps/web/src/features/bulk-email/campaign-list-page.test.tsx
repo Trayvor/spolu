@@ -115,6 +115,32 @@ describe('bulk email list', () => {
     );
   });
 
+  it('the first connect keeps the list just loaded; a reconnect refetches it', async () => {
+    const { callsTo } = mockBulkApi(ADMIN, [
+      (url) =>
+        url.pathname === '/api/bulk-email/campaigns'
+          ? reply(200, { items: ITEMS, nextCursor: null })
+          : undefined,
+    ]);
+    const s = socket.current!;
+    s.connected = false; // a cold load: the socket connects after the screen mounted
+    try {
+      renderAt('/bulk-email');
+      await screen.findByRole('link', { name: 'October news' });
+      const listCalls = () => callsTo('GET', '/api/bulk-email/campaigns').length;
+      const loaded = listCalls();
+      s.connected = true;
+      act(() => s.fire('connect'));
+      await new Promise((r) => setTimeout(r, 20));
+      expect(listCalls()).toBe(loaded);
+      act(() => s.fire('disconnect'));
+      act(() => s.fire('connect'));
+      await waitFor(() => expect(listCalls()).toBe(loaded + 1));
+    } finally {
+      s.connected = true;
+    }
+  });
+
   it('shows the header link to admins only', async () => {
     mockBulkApi(ADMIN, [
       (url) =>

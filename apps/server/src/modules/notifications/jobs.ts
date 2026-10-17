@@ -15,8 +15,10 @@ const isStringArray = (v: unknown): v is string[] =>
  * Job handlers of the notifications module; passed to `startJobs`.
  * A deliver job delivers everyone's pending events: its queue is stately, so a burst of requests
  * coalesces into one job and the `userIds` of the others are not in its data.
- * `scopedDelivery` (tests only, with the inline queue): a deliver job delivers only the `userIds`
- * in its data, so test files running at once do not deliver each other's events.
+ * `scopedDelivery` (tests only, with the inline queue): a deliver job delivers only the events
+ * named by the `eventIds` in its data, so test files running at once never deliver each other's
+ * events (every admin is a person of every group, so they share recipients). A scoped job
+ * without `eventIds` delivers nothing.
  */
 export function notificationsJobHandlers(
   deps: NotificationJobDeps,
@@ -24,9 +26,13 @@ export function notificationsJobHandlers(
 ): JobHandlers {
   return {
     [DELIVER_JOB]: async (data) => {
-      const { userIds } = data as { userIds?: unknown };
-      const scoped = opts.scopedDelivery && isStringArray(userIds);
-      await deliverPending(deps, scoped ? { userIds } : {});
+      if (!opts.scopedDelivery) {
+        await deliverPending(deps);
+        return;
+      }
+      // Scoped, a job without event ids delivers nothing: a global run would take other files' events.
+      const { eventIds } = data as { eventIds?: unknown };
+      if (isStringArray(eventIds)) await deliverPending(deps, { eventIds });
     },
     // `{ userIds }` ten minutes after a delivery; `{}` from the sweep emails every due digest.
     [DIGEST_JOB]: async (data) => {

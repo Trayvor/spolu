@@ -53,6 +53,7 @@ import {
   ValidationError,
 } from './service.js';
 import { clientGroupIds } from '../groups/memberships.js';
+import { meetingAiOf, withMeetingAi } from './meeting-routes.js';
 
 type IdParams = { Params: { id: string } };
 
@@ -215,13 +216,14 @@ export const knowledgeRoutes: FastifyPluginAsync<{
       }
       // After the commit, outside the try: nothing here may be mapped as a failed write.
       emitKnowledgeItem(app.io, item);
-      return reply.code(201).send(item);
+      return reply.code(201).send(withMeetingAi(item, actor, meetingAiOf(deps)));
     },
   );
 
   app.get<IdParams>('/knowledge/:id', { preHandler: anyUser }, async (request, reply) => {
     try {
-      return await getItem(db, request.user!, request.params.id);
+      const item = await getItem(db, request.user!, request.params.id);
+      return withMeetingAi(item, request.user!, meetingAiOf(deps));
     } catch (error) {
       return knowledgeError(reply, error);
     }
@@ -243,7 +245,7 @@ export const knowledgeRoutes: FastifyPluginAsync<{
       request.log.error({ err: error }, 'could not delete the files of a knowledge item'),
     );
     emitKnowledgeItem(app.io, item, previousVisibility);
-    return item;
+    return withMeetingAi(item, request.user!, meetingAiOf(deps));
   });
 
   app.delete<IdParams>('/knowledge/:id', { preHandler: writeGuard }, async (request, reply) => {

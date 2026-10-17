@@ -71,3 +71,53 @@ export class FolderLimitError extends Error {
     this.name = 'FolderLimitError';
   }
 }
+
+// Phase 30 — meetings.
+
+/** A recording upload that is not audio or video (400 `invalid_recording`). */
+export class InvalidRecordingError extends Error {
+  constructor() {
+    super('Not an audio or video file');
+    this.name = 'InvalidRecordingError';
+  }
+}
+
+/** A recording is still being transcoded (409 `recording_busy`). */
+export class RecordingBusyError extends Error {
+  constructor() {
+    super('A recording is being processed');
+    this.name = 'RecordingBusyError';
+  }
+}
+
+/** An AI run of this meeting is queued or running (409 `meeting_busy`). */
+export class MeetingBusyError extends Error {
+  constructor() {
+    super('The meeting is being processed');
+    this.name = 'MeetingBusyError';
+  }
+}
+
+/** No transcript and no ready recording (400 `nothing_to_process`). */
+export class NothingToProcessError extends Error {
+  constructor() {
+    super('Nothing to process');
+    this.name = 'NothingToProcessError';
+  }
+}
+
+/** The AI a run needs is not configured (503 `ai_unavailable`). */
+export class MeetingAiUnavailableError extends Error {
+  constructor() {
+    super('The meeting AI is not configured');
+    this.name = 'MeetingAiUnavailableError';
+  }
+}
+
+/** A transcript file that is not .txt, .vtt, .srt or a readable .docx (400). */
+export class InvalidTranscriptFileError extends Error {
+  constructor() {
+    super('Invalid transcript file');
+    this.name = 'InvalidTranscriptFileError';
+  }
+}

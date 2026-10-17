@@ -59,6 +59,7 @@ const PLURAL: Record<KnowledgeType, string> = {
   file: 'files',
   link: 'links',
   reminder: 'reminders',
+  meeting: 'meetings',
   chat_file: 'fromChat',
 };
 

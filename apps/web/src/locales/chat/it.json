@@ -9,7 +9,6 @@
   "egrant": "eGrant",
   "notSent": "Non inviato.",
   "retry": "Riprova",
-  "save": "Salva",
   "cancel": "Annulla",
   "confirmDelete": "Eliminare questo messaggio?",
   "actions": {
@@ -20,7 +19,8 @@
     "quote": "Cita",
     "label": "Azioni sul messaggio",
     "open": "Azioni sul messaggio",
-    "turnIntoTasks": "Trasforma in attività"
+    "turnIntoTasks": "Trasforma in attività",
+    "copy": "Copia testo"
   },
   "thread": {
     "summary_one": "{{count}} risposta, l'ultima alle {{time}}",
@@ -70,5 +70,6 @@
   "unread_one": "{{count}} messaggio non letto",
   "unread_many": "{{count}} messaggi non letti",
   "loadError": "Impossibile caricare la chat.",
-  "turnedIntoTasks": "Trasformato in attività:"
+  "turnedIntoTasks": "Trasformato in attività:",
+  "copied": "Testo copiato"
 }

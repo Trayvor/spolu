@@ -71,7 +71,11 @@ export const aiRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { dep
   }
 
   app.get('/ai/status', { preHandler: anyUser }, async (): Promise<AiStatus> => {
-    return { taskSplit: deps.ai !== null };
+    return {
+      taskSplit: deps.ai !== null,
+      meetingSummary: deps.meetingSummary !== null,
+      transcription: deps.transcription !== null,
+    };
   });
 
   app.post<IdParams>(

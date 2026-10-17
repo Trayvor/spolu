@@ -115,7 +115,7 @@ describe('recordDeadlineReminders', () => {
       dedupeKey: `deadline:${due1}:2026-10-16`,
     });
     expect(send).toHaveBeenCalledWith('notifications.deliver', {
-      userIds: expect.arrayContaining([assignee.id]),
+      eventIds: expect.arrayContaining(rows.map((r) => r.id)),
     });
   });
 
@@ -199,7 +199,7 @@ describe('recordUrgentReminders', () => {
       dedupeKey: `urgent:${urgent}:2026-10-16T08`,
     });
     expect(send).toHaveBeenCalledWith('notifications.deliver', {
-      userIds: expect.arrayContaining([assignee.id]),
+      eventIds: expect.arrayContaining([rows[0]!.id]),
     });
   });
 

@@ -21,7 +21,6 @@
   "create_one": "Create {{count}} task",
   "create_other": "Create {{count}} tasks",
   "cancel": "Cancel",
-  "close": "Close",
   "discardConfirm": "Discard the proposed tasks?",
   "discard": "Discard",
   "keep": "Keep reviewing",
@@ -31,5 +30,7 @@
   "filesChanged": "A file on a card is no longer available. Remove it and try again.",
   "created_one": "{{count}} task created",
   "created_other": "{{count}} tasks created",
-  "openBoard": "Open the board"
+  "openBoard": "Open the board",
+  "bucket": "Add to",
+  "meetingGone": "The meeting is no longer there, so no tasks were created."
 }

@@ -285,7 +285,7 @@ describe('chat files (the chat_file type)', () => {
   it('is a list filter type, after the hand-made ones', () => {
     expect(KnowledgeTypeListSchema.parse('chat_file,note')).toEqual(['note', 'chat_file']);
     expect(KnowledgeTypes.at(-1)).toBe('chat_file');
-    expect(KnowledgeCreatableTypes).toEqual(['note', 'file', 'link', 'reminder']);
+    expect(KnowledgeCreatableTypes).toEqual(['note', 'file', 'link', 'reminder', 'meeting']);
   });
 
   it('can never be created by hand', () => {

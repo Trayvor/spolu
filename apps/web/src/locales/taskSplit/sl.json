@@ -25,7 +25,6 @@
   "create_few": "Ustvari {{count}} naloge",
   "create_other": "Ustvari {{count}} nalog",
   "cancel": "Prekliči",
-  "close": "Zapri",
   "discardConfirm": "Želite zavreči predlagane naloge?",
   "discard": "Zavrzi",
   "keep": "Nadaljuj pregled",
@@ -37,5 +36,7 @@
   "created_two": "Ustvarjeni {{count}} nalogi",
   "created_few": "Ustvarjene {{count}} naloge",
   "created_other": "Ustvarjenih {{count}} nalog",
-  "openBoard": "Odpri tablo"
+  "openBoard": "Odpri tablo",
+  "bucket": "Dodaj v",
+  "meetingGone": "Sestanka ni več, zato naloge niso bile ustvarjene."
 }

@@ -30,6 +30,13 @@ const base = {
   AI_ALLOW_FAKE: z.enum(['1']).optional(),
   OPENAI_API_KEY: z.string().min(1).optional(),
   OPENAI_MODEL: z.string().min(1).default('gpt-5-mini'),
+  // Phase 30 — meeting transcription. `openai` uses OPENAI_API_KEY (off without it);
+  // `elevenlabs` needs ELEVENLABS_API_KEY; `fake` is refused in production like AI_PROVIDER.
+  TRANSCRIPTION_PROVIDER: z.enum(['openai', 'elevenlabs', 'fake']).default('openai'),
+  OPENAI_TRANSCRIBE_MODEL: z.string().min(1).default('gpt-transcribe'),
+  ELEVENLABS_API_KEY: z.string().min(1).optional(),
+  ELEVENLABS_STT_MODEL: z.string().min(1).default('scribe_v2'),
+  FFMPEG_PATH: z.string().min(1).default('ffmpeg'),
   TICKETS_API_KEY: z.string().min(16).optional(),
   // Phase 23 — bulk email. The API key is optional here and required (below) when either
   // EMAIL_DRIVER or BULK_EMAIL_DRIVER is `elastic`.
@@ -105,6 +112,17 @@ export type Config = {
   joinRequestsPerMinute: number;
   /** The task split provider; null when OpenAI is chosen but no key is set (AI is off). */
   ai: { provider: 'openai'; apiKey: string; model: string } | { provider: 'fake' } | null;
+  /**
+   * Speech to text for meeting recordings (Phase 30); null when OpenAI is chosen but no key is
+   * set (transcription is off; pasted transcripts still work).
+   */
+  transcription:
+    | { provider: 'openai'; apiKey: string; model: string }
+    | { provider: 'elevenlabs'; apiKey: string; model: string }
+    | { provider: 'fake' }
+    | null;
+  /** The ffmpeg binary for meeting recordings (Phase 30); `fake` (e2e) copies bytes instead. */
+  ffmpegPath: string;
   /** The shared Bearer key of the ticket intake API (Phase 21); null = intake is off. */
   ticketsApiKey: string | null;
   /** Calls a minute per admin to become or stop being a manager; unset = 120 (tests lower it). */
@@ -141,6 +159,19 @@ export function loadConfig(env: NodeJS.ProcessEnv): Config {
   if (e.NODE_ENV === 'production' && e.AI_PROVIDER === 'fake' && e.AI_ALLOW_FAKE !== '1') {
     throw new ConfigError(['AI_PROVIDER']);
   }
+  if (
+    e.NODE_ENV === 'production' &&
+    e.TRANSCRIPTION_PROVIDER === 'fake' &&
+    e.AI_ALLOW_FAKE !== '1'
+  ) {
+    throw new ConfigError(['TRANSCRIPTION_PROVIDER']);
+  }
+  if (e.NODE_ENV === 'production' && e.FFMPEG_PATH === 'fake' && e.AI_ALLOW_FAKE !== '1') {
+    throw new ConfigError(['FFMPEG_PATH']);
+  }
+  if (e.TRANSCRIPTION_PROVIDER === 'elevenlabs' && e.ELEVENLABS_API_KEY === undefined) {
+    throw new ConfigError(['ELEVENLABS_API_KEY']);
+  }
   const bulkEmail = bulkEmailConfig(e);
   return {
     nodeEnv: e.NODE_ENV,
@@ -173,6 +204,8 @@ export function loadConfig(env: NodeJS.ProcessEnv): Config {
         : { driver: 'elastic', apiKey: e.ELASTIC_EMAIL_API_KEY, from: e.MAIL_FROM },
     bulkEmail,
     bulkEmailPerMinute: e.BULK_EMAIL_PER_MINUTE,
+    transcription: transcriptionConfig(e),
+    ffmpegPath: e.FFMPEG_PATH,
     ai:
       e.AI_PROVIDER === 'fake'
         ? { provider: 'fake' }
@@ -180,6 +213,21 @@ export function loadConfig(env: NodeJS.ProcessEnv): Config {
           ? null
           : { provider: 'openai', apiKey: e.OPENAI_API_KEY, model: e.OPENAI_MODEL },
   };
+}
+
+function transcriptionConfig(e: {
+  TRANSCRIPTION_PROVIDER: 'openai' | 'elevenlabs' | 'fake';
+  OPENAI_API_KEY?: string | undefined;
+  OPENAI_TRANSCRIBE_MODEL: string;
+  ELEVENLABS_API_KEY?: string | undefined;
+  ELEVENLABS_STT_MODEL: string;
+}): Config['transcription'] {
+  if (e.TRANSCRIPTION_PROVIDER === 'fake') return { provider: 'fake' };
+  if (e.TRANSCRIPTION_PROVIDER === 'elevenlabs') {
+    return { provider: 'elevenlabs', apiKey: e.ELEVENLABS_API_KEY!, model: e.ELEVENLABS_STT_MODEL };
+  }
+  if (e.OPENAI_API_KEY === undefined) return null;
+  return { provider: 'openai', apiKey: e.OPENAI_API_KEY, model: e.OPENAI_TRANSCRIBE_MODEL };
 }
 
 function bulkEmailConfig(e: {

@@ -9,7 +9,6 @@
   "egrant": "eGrant",
   "notSent": "Ni poslano.",
   "retry": "Poskusi znova",
-  "save": "Shrani",
   "cancel": "Prekliči",
   "confirmDelete": "Želite izbrisati to sporočilo?",
   "actions": {
@@ -20,7 +19,8 @@
     "quote": "Citiraj",
     "label": "Dejanja za sporočilo",
     "open": "Dejanja za sporočilo",
-    "turnIntoTasks": "Pretvori v naloge"
+    "turnIntoTasks": "Pretvori v naloge",
+    "copy": "Kopiraj besedilo"
   },
   "thread": {
     "summary_one": "{{count}} odgovor, zadnji ob {{time}}",
@@ -73,5 +73,6 @@
   "unread_few": "{{count}} neprebrana sporočila",
   "unread_other": "{{count}} neprebranih sporočil",
   "loadError": "Klepeta ni bilo mogoče naložiti.",
-  "turnedIntoTasks": "Pretvorjeno v naloge:"
+  "turnedIntoTasks": "Pretvorjeno v naloge:",
+  "copied": "Besedilo kopirano"
 }

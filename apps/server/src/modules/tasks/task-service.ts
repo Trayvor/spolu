@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { and, asc, desc, eq, gt, inArray, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gt, inArray, ne, sql } from 'drizzle-orm';
 import {
   TaskDtoSchema,
   type BucketKind,
@@ -110,7 +110,7 @@ async function checkAssignees(tx: Tx, groupId: string, ids: string[]): Promise<v
 
 /**
  * `task.assigned` to the new assignees, never to the actor. In the write's transaction; returns
- * the recipients, for `requestDelivery` after the commit.
+ * the recorded event ids, for `requestDelivery` after the commit.
  */
 async function notifyAssigned(
   tx: Tx,
@@ -258,6 +258,11 @@ export type TaskSource = {
   ticketId?: string;
   /** The source's files the cards may copy (the message's, or the files uploaded with the ticket). */
   fileIds: string[];
+  /**
+   * The bucket the cards go to the top of (Phase 30, a meeting's tasks); absent: To do. It must
+   * be a bucket of the group other than Completed, else `NotFoundError`.
+   */
+  bucketId?: string;
 };
 
 /** The cards of a chat message (Phase 9); see `createTasksFromSource`. */
@@ -329,7 +334,15 @@ export async function createTasksFromSource(
       const [found] = await tx
         .select({ id: buckets.id })
         .from(buckets)
-        .where(and(eq(buckets.groupId, groupId), eq(buckets.kind, 'todo')));
+        .where(
+          source.bucketId === undefined
+            ? and(eq(buckets.groupId, groupId), eq(buckets.kind, 'todo'))
+            : and(
+                eq(buckets.groupId, groupId),
+                eq(buckets.id, source.bucketId),
+                ne(buckets.kind, 'done'),
+              ),
+        );
       if (!found) throw new NotFoundError();
       const [todo] = await lockBuckets(tx, [found.id]);
       if (!todo) throw new NotFoundError();

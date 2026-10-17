@@ -66,7 +66,7 @@ const ticket = (over: Partial<HomeTicket> & { id: string; number: number }): Hom
 });
 
 type Answers = Partial<
-  Record<'tasks' | 'tickets' | 'mentions' | 'reminders' | 'sidebar', unknown>
+  Record<'tasks' | 'tickets' | 'mentions' | 'reminders' | 'sidebar' | 'meetings', unknown>
 > & {
   fail?: string[];
 };
@@ -121,6 +121,30 @@ function mockApi(answers: Answers = {}) {
           groupId: 'g1',
           groupName: 'ABC s.r.o.',
           target: { kind: 'knowledge', itemId: 'k1' },
+        },
+      ],
+    },
+    meetings: {
+      upcomingTotal: 2,
+      upcoming: [
+        {
+          id: 'mt1',
+          groupId: 'g1',
+          groupName: 'ABC s.r.o.',
+          title: 'Kickoff call',
+          startsAt: '2999-10-21T08:00:00.000Z',
+          hasSummary: false,
+        },
+      ],
+      unsummarizedTotal: 1,
+      unsummarized: [
+        {
+          id: 'mt2',
+          groupId: 'g2',
+          groupName: 'Obec Lúky',
+          title: 'Budget review',
+          startsAt: '2026-10-01T08:00:00.000Z',
+          hasSummary: false,
         },
       ],
     },
@@ -315,18 +339,19 @@ describe('HomePage', () => {
     expect(await screen.findByRole('link', { name: /Fix budget table/ })).toBeInTheDocument();
   });
 
-  it('under 1024 px: four tiles, a tile opens its sheet, and the client list follows', async () => {
+  it('under 1024 px: five tiles, a tile opens its sheet, and the client list follows', async () => {
     wide = false;
     mockApi();
     await renderHome();
     const tiles = await screen.findAllByRole('button', { name: /:/ });
-    expect(tiles).toHaveLength(4);
+    expect(tiles).toHaveLength(5);
     expect(tiles[0]).toHaveTextContent(t('adminHome.cards.tickets.title'));
     expect(tiles[1]).toHaveTextContent(t('adminHome.cards.assigned.title'));
     expect(screen.queryByRole('region', { name: t('adminHome.cards.assigned.title') })).toBeNull();
     expect(await screen.findByRole('link', { name: /Obec Lúky/ })).toHaveClass('h-12');
-    await waitFor(() => expect(tiles[3]).toHaveAccessibleName(/Mentions: 3 unread/));
-    await userEvent.click(tiles[3]!);
+    expect(tiles[2]).toHaveTextContent(t('adminHome.cards.meetings.title'));
+    await waitFor(() => expect(tiles[4]).toHaveAccessibleName(/Mentions: 3 unread/));
+    await userEvent.click(tiles[4]!);
     const sheet = await screen.findByRole('dialog', { name: t('adminHome.cards.mentions.title') });
     expect(within(sheet).getAllByRole('link')).toHaveLength(3);
     await userEvent.click(within(sheet).getByRole('button', { name: t('adminHome.cards.back') }));
@@ -397,12 +422,49 @@ describe('HomePage', () => {
     ).toHaveAttribute('href', '/tickets');
   });
 
-  it('three tiles without reminders', async () => {
+  it('four tiles without reminders', async () => {
     wide = false;
     mockApi({ reminders: { available: false } });
     await renderHome();
     await screen.findByRole('link', { name: /Obec Lúky/ });
-    await waitFor(() => expect(screen.getAllByRole('button', { name: /:/ })).toHaveLength(3));
+    await waitFor(() => expect(screen.getAllByRole('button', { name: /:/ })).toHaveLength(4));
+  });
+
+  it('the Meetings card: the coming ones, then past ones without a summary, each opening its item', async () => {
+    mockApi();
+    await renderHome();
+    const card = await screen.findByRole('region', { name: t('adminHome.cards.meetings.title') });
+    const links = await within(card).findAllByRole('link');
+    expect(links).toHaveLength(2);
+    expect(links[0]).toHaveTextContent('Kickoff call');
+    expect(links[0]).toHaveAttribute('href', '/groups/g1/knowledge?k=mt1');
+    expect(links[1]).toHaveTextContent('Budget review');
+    expect(links[1]).toHaveTextContent(t('adminHome.cards.meetings.noSummary'));
+    expect(
+      within(card).getByText(t('adminHome.cards.meetings.unsummarized', { count: 1 })),
+    ).toBeInTheDocument();
+  });
+
+  it('the meetings sheet: upcoming by day, then past ones without a summary, and Open all', async () => {
+    wide = false;
+    mockApi();
+    await renderHome('/?card=meetings');
+    const sheet = await screen.findByRole('dialog', { name: t('adminHome.cards.meetings.title') });
+    expect(within(sheet).getByText(t('adminHome.sheet.meetings.description'))).toBeInTheDocument();
+    const groups = within(sheet)
+      .getAllByRole('heading', { level: 3 })
+      .map((h) => h.firstChild?.textContent);
+    expect(groups).toEqual([
+      t('adminHome.sheet.groups.later'),
+      t('adminHome.sheet.groups.noSummary'),
+    ]);
+    expect(within(sheet).getByRole('link', { name: /Budget review.*Obec Lúky/ })).toHaveAttribute(
+      'href',
+      '/groups/g2/knowledge?k=mt2',
+    );
+    expect(
+      within(sheet).getByRole('link', { name: t('adminHome.sheet.meetings.openAll') }),
+    ).toHaveAttribute('href', '/knowledge?type=meeting');
   });
 
   it('an admin:activity refetches the cards after 2 s', async () => {

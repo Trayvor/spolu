@@ -67,6 +67,16 @@
       "title": "Omembe",
       "caption": "neprebrane",
       "empty": "Ni neprebranih omemb."
+    },
+    "meetings": {
+      "title": "Sestanki",
+      "caption": "naslednjih 7 dni",
+      "noSummary": "Brez povzetka",
+      "empty": "V naslednjih 7 dneh ni sestankov in noben ne čaka na povzetek.",
+      "unsummarized_one": "{{count}} brez povzetka",
+      "unsummarized_two": "{{count}} brez povzetka",
+      "unsummarized_few": "{{count}} brez povzetka",
+      "unsummarized_other": "{{count}} brez povzetka"
     }
   },
   "board": {
@@ -145,7 +155,12 @@
       "inProgress": "V obdelavi",
       "yesterday": "Včeraj",
       "earlier": "Prej",
-      "tomorrow": "Jutri"
+      "tomorrow": "Jutri",
+      "noSummary": "Pretekli, brez povzetka"
+    },
+    "meetings": {
+      "description": "Sestanki vaših strank v naslednjih 7 dneh, nato pretekli sestanki zadnjih 30 dni, ki še nimajo povzetka.",
+      "openAll": "Odpri vse sestanke"
     }
   }
 }

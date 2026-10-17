@@ -245,13 +245,15 @@ Impact: **high** = a user waits seconds, or the server does far more work than n
 - Another agent removed a similar wait in the every-admin case today.
 - Pattern: tests that wait on deliveries to "every admin of the shared test DB", or on wall time.
 - Proposed: assert the recorded events and pushes of the test's own users only, like `scopedDelivery`, and never a count of all admins.
+- **Done** (PR #58, branch `test/deterministic-deliveries`). Cause: delivery in tests is inline, so a push is in the fake before the request returns. But the tests' scoped delivery was scoped by user. Every admin is a person of every group, so another test file's message recorded events for this file's admins, and that file's delivery locked and delivered this file's pending admin events (`FOR UPDATE SKIP LOCKED`), pushing to *its* fake: the push never arrived here, and the 10 s wait timed out. Fix: `recordNotifications` returns the recorded event ids, `requestDelivery` sends `{ eventIds }`, and the tests' scoped deliver job delivers exactly those events (a job without ids delivers nothing). Then the waits went: `tickets/notify.test.ts` checks every push (managers and the every-admin `ticket.unassigned` case again) with no `vi.waitFor`; `notifications/deliver.test.ts` (admin default mode) and `tickets-contract.test.ts` deliver by event id and assert exact pushes, not "whichever process sent it". New test: a scoped job delivers only the events it names. Production delivery is unchanged; it ignores the job data. Left alone: `tickets-contract.test.ts`'s digest case still counts digests by user, so a foreign `ticket.unassigned` arriving in the same instant could add a second email (rare; not a timing wait). The other `vi.waitFor` calls wait on real pg-boss workers, sockets or SMTP, not on the size of the shared database.
 
 **T4. The EXPLAIN suite takes 14 to 62 s.** Impact low-med, effort S, risk low. One seeding takes about 6 s here. The rest is retries: the test retries twice on a slow timing and reseeds each time. On GitHub it takes 60 s. With JIT off (S2), the heaviest board statement no longer risks the 50 ms bound. Proposed: add the `clientIds: null` board case and a few thousand groups to the volume, once S2 is in.
 
 **T5. CI steps run one after another.** Impact med, effort S, risk low-med.
 - Lint (29 s), format check (15 s) and typecheck (27 s) are independent.
 - e2e uses 1 worker for 45 tests (4 min 20 s).
-- Proposed: run lint, format and typecheck concurrently in `ci.sh` (about 40 s). Keep e2e serial: its tests share one database. Not done tonight: the owner runs `ci.sh` for every PR, so a change to it should be reviewed on its own.
+- Proposed: run lint, format and typecheck concurrently in `ci.sh` (about 40 s). Keep e2e serial: its tests share one database.
+- **Done** (PR #56, branch `ci/parallel-static-checks`): `run_parallel` in `scripts/lib.sh` runs the three at once, prints each step's output whole and in order with its result and seconds, and fails after all finish if any failed (tests: `scripts/tests/run-parallel.test.sh`). Local, loaded laptop: 27 to 55 s one after another, 18 to 28 s in parallel.
 
 **T6. 59 leftover `spolu_test_*` databases in the dev PostgreSQL.** Impact low. CLAUDE.md already says to drop them now and then; they slow Postgres down. No code change.
 
@@ -267,21 +269,23 @@ Impact: **high** = a user waits seconds, or the server does far more work than n
 
 Each batch is one branch and one PR from fresh `origin/main`, independent of the others. Merge in this order:
 
-| # | Branch | Findings | Impact | Risk | Status |
+| # | Branch | Findings | Impact | Risk | Status and measured gain |
 |---|---|---|---|---|---|
-| 1 | `perf/db-fk-indexes` | S1, S3 | high | low | building |
-| 2 | `perf/db-jit-off` | S2 | high | low | building |
-| 3 | `perf/web-vitest-vmthreads` | T1 | high (CI) | low | building |
-| 4 | `perf/web-entry-chunk` | W1 | med | low | building |
-| 5 | `perf/pwa-precache-languages` | W3 | med | low | building |
-| 6 | `perf/web-first-join-refetch` | W4 | med | low | building |
-| 7 | `chore/dead-code` | D1, D2 | low | low | building (trivial; part of the phase's scope) |
-| 8 | `perf/docker-runtime-slim` | K1 | low-med | low | building |
+| 1 | `perf/db-fk-indexes` | S1, S3 | high | low | PR #44: channel delete with 2 000 messages 94.9 s → 39 ms; global ticket list 32–64 ms → 0.1 ms |
+| 2 | `perf/db-jit-off` | S2 | high | low | PR #45: global board without client scope 720 → 100 ms (EXPLAIN); sidebar with 3 100 groups 350 → 125 ms |
+| 3 | `perf/web-vitest-vmthreads` | T1 | high (CI) | low | PR #46: web suite 31.4 → 13.9 s locally, 429 → 173 s on GitHub (the tests step is now bound by the server suite, about 390 s) |
+| 4 | `perf/web-entry-chunk` | W1 | med | low | PR #47: initial JS 174.59 → 161.94 kB |
+| 5 | `perf/pwa-precache-languages` | W3 | med | low | PR #48: precache 307 files / 758.6 kB → 167 / 613.3 kB gzip |
+| 6 | `perf/web-first-join-refetch` | W4 | med | low | PR #53: a cold load sends 1 request instead of 2 (board, knowledge, tickets, bulk email) |
+| 7 | `chore/dead-code` | D1, D2 | low | low | PR #52: 6 symbols, 2 keys in nine languages, 4 dead English plural forms |
+| 8 | `perf/docker-runtime-slim` | K1 | low-med | low | PR #57: image 467 → 380 MB (94.7 → 82.8 MB compressed), source-only rebuild 26–31 → 17 s |
+| 9 | `ci/parallel-static-checks` | T5 | med (CI) | low-med | PR #56: lint, format check and typecheck in parallel, 27–55 → 18–28 s |
+| 10 | `test/deterministic-deliveries` | T3 | med (CI) | low | PR #58: the tests' delivery is scoped by event id; push checks no longer wait |
 
 Proposed, not done (owner decision or later work):
-- **Server:** S4, S5, S6, S7, S8, S9, S10, S11.
+- **Server:** S4, S5, S6, S7 (in progress), S8, S9, S10, S11.
 - **Web:** W2, W5, W6, W7, W8.
-- **Tests and CI:** T2, T3, T4, T5.
+- **Tests and CI:** T2, T4.
 - **Docker:** K2.
 
 The next server batch should be S7 (job N+1s, test-first). The next web batch should be W5 together with S4.

@@ -4,14 +4,25 @@ import { Button } from '@/components/ui/button';
 import { useSession } from '@/features/auth/use-session';
 import { useMediaQuery } from '@/lib/use-media-query';
 import { homeKeys, sidebarQuery } from './api';
-import { useAssignedCard, useMentionsCard, useRemindersCard, useTicketsCard } from './cards';
+import {
+  useAssignedCard,
+  useMeetingsCard,
+  useMentionsCard,
+  useRemindersCard,
+  useTicketsCard,
+} from './cards';
 import { ClientSidebarList, SidebarRowsPlaceholder } from './client-sidebar';
 import { CountCard } from './count-card';
 import { CountTile } from './count-tile';
 import { firstName, greetingKey } from './greeting';
 import { useAdminActivityRefetch } from './use-admin-activity';
 
-const CARD_KEYS = [homeKeys.tasks, homeKeys.mentions, homeKeys.reminders] as const;
+const CARD_KEYS = [
+  homeKeys.tasks,
+  homeKeys.mentions,
+  homeKeys.reminders,
+  homeKeys.meetings,
+] as const;
 const PHONE_KEYS = [...CARD_KEYS, homeKeys.sidebar] as const;
 const TICKET_KEYS = [homeKeys.tickets] as const;
 
@@ -42,7 +53,7 @@ function PhoneClientList() {
 
 /**
  * The admin dashboard: a greeting, then "Tickets" (wide: mine and those without a client), "My
- * tasks" (wide), "Upcoming reminders" and "Mentions" (half each; Mentions takes the row when
+ * tasks" (wide), "Meetings" (wide, Phase 30), "Upcoming reminders" and "Mentions" (half each; Mentions takes the row when
  * there is no reminder source). Under 1024 px the cards become count tiles (two per row) that open
  * their lists, followed by the client list. The Tickets card refetches on ticket events only.
  */
@@ -56,7 +67,8 @@ export function HomePage() {
   const assigned = useAssignedCard();
   const reminders = useRemindersCard();
   const mentions = useMentionsCard();
-  const cards = [tickets, assigned, ...(reminders ? [reminders] : []), mentions];
+  const meetings = useMeetingsCard();
+  const cards = [tickets, assigned, meetings, ...(reminders ? [reminders] : []), mentions];
 
   return (
     <div className="flex flex-col gap-4">
@@ -67,6 +79,7 @@ export function HomePage() {
         <>
           <CountCard {...tickets} />
           <CountCard {...assigned} />
+          <CountCard {...meetings} />
           <div className={reminders ? 'grid grid-cols-2 gap-4' : 'grid grid-cols-1 gap-4'}>
             {reminders && <CountCard {...reminders} />}
             <CountCard {...mentions} />

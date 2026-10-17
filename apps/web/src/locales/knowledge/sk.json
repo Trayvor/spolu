@@ -10,7 +10,9 @@
     "reminders": "Pripomienky",
     "chat_file": "Z chatu",
     "fromChat": "Z chatu",
-    "all": "Všetko"
+    "all": "Všetko",
+    "meeting": "Stretnutie",
+    "meetings": "Stretnutia"
   },
   "visibility": {
     "public": "Všetci v skupine",
@@ -73,7 +75,8 @@
       "note": "Nová poznámka",
       "file": "Nový súbor",
       "link": "Nový odkaz",
-      "reminder": "Nová pripomienka"
+      "reminder": "Nová pripomienka",
+      "meeting": "Nové stretnutie"
     },
     "loading": "Načítava sa…",
     "loadFailed": "Položku sa nepodarilo načítať. Skúste to znova.",
@@ -101,7 +104,8 @@
     "note": "Text s formátovaním a súbormi",
     "file": "Jeden súbor s popisom",
     "link": "Webová adresa s poznámkou",
-    "reminder": "Text s dátumami na pripomenutie"
+    "reminder": "Text s dátumami na pripomenutie",
+    "meeting": "Stretnutie alebo hovor s odkazmi, nahrávkou a poznámkami"
   },
   "global": {
     "title": "Znalosti",
@@ -178,5 +182,87 @@
     "open": "Zobraziť {{title}} v chate",
     "show": "Zobraziť v chate",
     "alsoTasksTickets": "Aj z úloh a tiketov"
+  },
+  "meeting": {
+    "when": "Dátum a čas",
+    "date": "Dátum",
+    "time": "Čas",
+    "whenRequired": "Vyberte dátum a čas.",
+    "meetingUrl": "Odkaz na stretnutie",
+    "meetingUrlHint": "Teams, Google Meet alebo Zoom",
+    "recordingUrl": "Odkaz na nahrávku",
+    "transcriptUrl": "Odkaz na prepis",
+    "transcript": "Prepis",
+    "transcriptHint": "Vložte text alebo načítajte súbor .txt, .vtt, .srt či .docx.",
+    "loadTranscript": "Načítať zo súboru",
+    "readingTranscript": "Načítavam súbor…",
+    "transcriptFileFailed": "Tento súbor sa nedá prečítať. Použite súbor .txt, .vtt, .srt alebo .docx.",
+    "transcriptTooLong": "Použite najviac 400 000 znakov.",
+    "transcriptByAi": "prepísala AI",
+    "notes": "Poznámky",
+    "editNotes": "Upraviť poznámky",
+    "remind": "Pripomienka",
+    "remindBefore": "Pripomenúť 15 minút vopred",
+    "join": "Pripojiť sa",
+    "openRecording": "Nahrávka",
+    "openTranscript": "Prepis",
+    "recording": {
+      "title": "Nahrávka",
+      "upload": "Nahrať nahrávku",
+      "replace": "Nahradiť",
+      "delete": "Vymazať nahrávku",
+      "deleteConfirm": "Vymazať uloženú nahrávku?",
+      "uploading": "Nahrávam… {{percent}} %",
+      "processing": "Prevádzam na zvuk. Trvá to niekoľko minút.",
+      "failed": "Nahrávku sa nepodarilo spracovať. Nahrajte ju znova.",
+      "none": "Nahrávka nie je uložená. Nahrajte zvuk alebo video: uloží sa len úsporná zvuková kópia.",
+      "tooLarge": "Súbor je väčší ako 2 GB.",
+      "notMedia": "Vyberte zvukový alebo video súbor.",
+      "busy": "Nahrávka sa ešte prevádza.",
+      "rateLimited": "Priveľa nahrávaní. Skúste to o hodinu.",
+      "uploadFailed": "Nahrať sa nepodarilo. Skúste znova.",
+      "deleteFailed": "Vymazať sa nepodarilo. Skúste znova."
+    },
+    "ai": {
+      "title": "Zhrnutie",
+      "process": "Spracovať s AI",
+      "processAgain": "Spracovať znova",
+      "againConfirm": "Spracovať znova? Nové zhrnutie nahradí toto aj s vašimi úpravami.",
+      "queued": "Čaká na spustenie…",
+      "transcribing": "Prepisujem nahrávku…",
+      "summarizing": "Píšem zhrnutie…",
+      "failed_transcription_failed": "Nahrávku sa nepodarilo prepísať. Skúste znova.",
+      "failed_summary_failed": "Zhrnutie sa nepodarilo napísať. Skúste znova.",
+      "nothing": "Najprv pridajte prepis alebo nahrajte nahrávku.",
+      "busy": "Toto stretnutie sa už spracúva.",
+      "unavailable": "Spracovanie s AI teraz nie je dostupné.",
+      "rateLimited": "Priveľa spracovaní. Skúste to o hodinu.",
+      "startFailed": "Spustiť sa nepodarilo. Skúste znova.",
+      "none": "Zatiaľ bez zhrnutia.",
+      "noneAdmin": "Zatiaľ bez zhrnutia. Spracovať s AI ho napíše z prepisu alebo z nahrávky.",
+      "edit": "Upraviť zhrnutie",
+      "save": "Uložiť zhrnutie",
+      "summary": "Stručne",
+      "decisions": "Rozhodnutia",
+      "actionItems": "Úlohy",
+      "openQuestions": "Otvorené otázky",
+      "aiMade": "Napísala AI z prepisu. Skontrolujte ho, kým sa naň spoľahnete.",
+      "createTasks": "Vytvoriť úlohy",
+      "tasksCreated_one": "Vytvorená {{count}} úloha",
+      "tasksCreated_few": "Vytvorené {{count}} úlohy",
+      "tasksCreated_many": "Vytvorených {{count}} úlohy",
+      "tasksCreated_other": "Vytvorených {{count}} úloh",
+      "openBoard": "Otvoriť nástenku",
+      "actionText": "Úloha {{n}}",
+      "assignee": "Kto",
+      "deadline": "Do kedy",
+      "remove": "Odstrániť",
+      "addAction": "Pridať úlohu",
+      "oneLine": "Rozhodnutia a otázky: každé na samostatný riadok."
+    },
+    "row": {
+      "processing": "Spracúva sa",
+      "summary": "Zhrnutie"
+    }
   }
 }
