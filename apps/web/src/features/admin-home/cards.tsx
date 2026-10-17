@@ -91,13 +91,20 @@ export function mentionTarget(item: MentionItem): CardTarget {
 }
 
 export function reminderTarget(item: HomeReminder): CardTarget {
-  return item.target.kind === 'task'
-    ? taskTarget(item.groupId, item.target.taskId)
-    : {
-        to: '/groups/$groupId/knowledge',
-        params: { groupId: item.groupId },
-        search: { k: item.target.itemId },
-      };
+  if (item.target.kind === 'task') return taskTarget(item.groupId, item.target.taskId);
+  // Phase 32: a contract's reminder opens the item in the client's Finance tab.
+  if (item.target.kind === 'finance') {
+    return {
+      to: '/groups/$groupId/finance',
+      params: { groupId: item.groupId },
+      search: { item: item.target.itemId },
+    };
+  }
+  return {
+    to: '/groups/$groupId/knowledge',
+    params: { groupId: item.groupId },
+    search: { k: item.target.itemId },
+  };
 }
 
 function AssignedRow({ task, today }: { task: AssignedTask; today: string }) {

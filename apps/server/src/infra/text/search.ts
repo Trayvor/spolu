@@ -1,3 +1,4 @@
+/** Search text helpers (Phase 17), shared by the knowledge base and the finance documents (Phase 32). */
 import { plainExcerpt } from '@spolu/shared';
 
 const MAX_TERMS = 5;

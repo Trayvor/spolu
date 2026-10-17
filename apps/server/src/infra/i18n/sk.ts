@@ -109,5 +109,8 @@ export const sk: ServerTexts = {
     meetingSummaryReady: 'AI zhrnutie je hotové',
     meetingSummaryFailed: 'Spracovanie s AI zlyhalo',
     openMeeting: 'Otvoriť stretnutie',
+    contractEnds: (date) => `Zmluva končí ${date}`,
+    contractLine: (title, client, date) => `Zmluva ${title} · ${client}: končí ${date}`,
+    openContract: 'Otvoriť zmluvu',
   },
 };

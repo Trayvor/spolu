@@ -111,5 +111,8 @@ export const hr: ServerTexts = {
     meetingSummaryReady: 'AI sažetak je spreman',
     meetingSummaryFailed: 'Obrada s AI-jem nije uspjela',
     openMeeting: 'Otvori sastanak',
+    contractEnds: (date) => `Ugovor istječe ${date}`,
+    contractLine: (title, client, date) => `Ugovor ${title} · ${client}: istječe ${date}`,
+    openContract: 'Otvori ugovor',
   },
 };

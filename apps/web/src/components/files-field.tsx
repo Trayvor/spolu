@@ -4,7 +4,7 @@ import { ErrorCodes, type FileInfo } from '@spolu/shared';
 import { Button } from '@/components/ui/button';
 import { ApiError } from '@/lib/api';
 import { ImagePreview } from '@/features/files/image-preview';
-import { uploadFile } from '@/features/files/upload';
+import { uploadFile, uploadFileTo } from '@/features/files/upload';
 import { CloseIcon, PaperclipIcon } from '@/components/icons';
 
 type Pending = { key: number; name: string; progress: number };
@@ -25,6 +25,7 @@ export function FilesField({
   labelId,
   max,
   inputTestId = 'task-file-input',
+  uploadPath,
 }: {
   groupId: string;
   fileIds: string[];
@@ -37,6 +38,8 @@ export function FilesField({
   max: number;
   /** `data-testid` of the hidden file picker. */
   inputTestId?: string;
+  /** Another upload route under `/api` than the group's files (finance: finance-only files). */
+  uploadPath?: string;
 }) {
   const { t } = useTranslation();
   const picker = useRef<HTMLInputElement>(null);
@@ -50,9 +53,11 @@ export function FilesField({
     const key = ++counter.current;
     setPending((list) => [...list, { key, name: file.name, progress: 0 }]);
     try {
-      const info = await uploadFile(groupId, file, (progress) =>
-        setPending((list) => list.map((p) => (p.key === key ? { ...p, progress } : p))),
-      );
+      const onProgress = (progress: number) =>
+        setPending((list) => list.map((p) => (p.key === key ? { ...p, progress } : p)));
+      const info = uploadPath
+        ? await uploadFileTo(uploadPath, file, onProgress)
+        : await uploadFile(groupId, file, onProgress);
       onAdd(info);
     } catch (error) {
       const tooLarge =

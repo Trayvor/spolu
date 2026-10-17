@@ -109,5 +109,8 @@ export const bg: ServerTexts = {
     meetingSummaryReady: 'AI резюмето е готово',
     meetingSummaryFailed: 'Обработката с AI не успя',
     openMeeting: 'Отвори срещата',
+    contractEnds: (date) => `Договорът изтича на ${date}`,
+    contractLine: (title, client, date) => `Договор ${title} · ${client}: изтича на ${date}`,
+    openContract: 'Отвори договора',
   },
 };

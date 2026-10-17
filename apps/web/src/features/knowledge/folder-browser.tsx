@@ -20,6 +20,7 @@ import { childFolders, folderPath } from './folder-tree';
 import { ChevronIcon, FolderIcon, LockIcon } from './icons';
 import { KnowledgeList } from './knowledge-list';
 import { MoveDialog } from './move-dialog';
+import { saveKnowledgeFolder } from './folder-save';
 import type { KnowledgeView } from './view-toggle';
 
 type Action =
@@ -218,10 +219,12 @@ export function FolderBrowser({
       )}
       {action?.kind === 'edit' && (
         <FolderDialog
-          groupId={groupId}
           folder={action.folder}
           parent={parentOf(action.folder)}
           canChooseVisibility={canSeeAdmins}
+          save={(change) =>
+            saveKnowledgeFolder(client, groupId, { folderId: action.folder.id }, change)
+          }
           onDone={() => {
             setAction(null);
             refresh();
@@ -231,7 +234,7 @@ export function FolderBrowser({
       )}
       {action?.kind === 'move' && (
         <MoveDialog
-          groupId={groupId}
+          folders={folders.data}
           name={action.folder.name}
           currentFolderId={action.folder.parentId}
           movingFolderId={action.folder.id}

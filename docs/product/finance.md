@@ -20,7 +20,16 @@ Part A2 (spec §5): the time question when an admin assignee completes a task, a
 
 ## Documents and contracts
 
-Part B (spec §6.1): not built yet.
+Built in part B (spec §6.1). The client tab's bottom-left card keeps the client's contracts, documents and notes, in folders, like the knowledge base in a smaller frame.
+
+- **Four kinds.** "+ New" offers **Contract** (title, optional number up to 60 characters, an amount with its currency, a period from–to, a description, files, reminders), **Document** (title, description, files), **Note** (title, text, optional files) and **Folder**. Up to 20 files per item; a contract may have none and its row then says "No file" (decision 13).
+- **Money.** The amount is typed as people write it (`12 000`, `1200,50`, `1.200,50`; `parseMoney`) and stored as integer cents with its currency. Only **EUR** can be entered now (`ENABLED_CURRENCIES`); the currency select appears once a second currency is enabled. The server refuses a contract without an amount or period, a period that ends before it starts, a disabled currency, and contract fields on a document or a note (`400`).
+- **The list.** Breadcrumbs, the open folder's folders first, then its items newest first, 30 a page with "Show more". The type filter (All · Contracts · Documents · Notes) and the search (from 2 characters, without diacritics, over title, number, description and file names) list every folder flat, each result naming its folder path. A contract row shows its number, title, period ("1. 1. 2026 – 31. 12. 2026"), the amount on the right, a bell when a reminder time is ahead, **Ending soon** (the end within 60 days) or **Ended**, and "No file".
+- **The item sheet.** Opening an item shows it in a sheet (also from a link, `?item=<id>`, which notifications and the dashboard use): the amount, period and number, the description, the files, and for a contract its reminders. Edit in place (a stale edit answers "Someone changed this item meanwhile" with "Load their version"), **Move to…**, **Delete** (with its files and reminders). Folders: rename, move (never into themselves), delete (the contents move one level up).
+- **Reminders.** A new contract's form proposes one reminder **30 days before the end at 09:00** (it follows the end date until edited; none when that moment has passed), saved with the contract; its author gets it. Afterwards the sheet edits the times and the recipients on their own, as on a task. **Recipients can only be finance admins**: the picker lists them only and the server refuses anyone else; a recipient who loses the right gets nothing when a time fires. The notification is in the **Finance** group ("Contract ends on 31 Dec 2026"; the digest line "Contract <title> · <client>: ends on …", button "Open contract"), never with the amount, and opens the item. The upcoming reminders on the admin home list it for its recipients only. The calendar export works as everywhere.
+- **Files** are uploaded as finance files from the start: readable by finance admins only, attachable to finance items only.
+- **Live.** Every change refreshes the card of the other finance admins who have the client open (`finance:changed`, kind `items`).
+- **Never elsewhere.** No contract, document, note or finance file shows in the knowledge tab, the global knowledge list or search, the chat's knowledge picker or the "Open in Claude" prompt (tests in `modules/finance/documents-leaks.test.ts`).
 
 ## Overview and work log
 

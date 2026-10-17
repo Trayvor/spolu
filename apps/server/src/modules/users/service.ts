@@ -203,6 +203,26 @@ export async function setFinanceAccess(
 }
 
 /**
+ * Every active holder of the finance right (the superadmin always), by name: who a finance
+ * reminder may notify (Phase 32 part B). Admins are few; one query.
+ */
+export async function listFinanceHolders(db: Db): Promise<{ id: string; name: string }[]> {
+  return db
+    .select({ id: user.id, name: user.name })
+    .from(user)
+    .where(
+      and(
+        isNull(user.disabledAt),
+        or(
+          eq(user.role, 'superadmin'),
+          and(eq(user.role, 'admin'), isNotNull(user.financeAccessAt)),
+        ),
+      ),
+    )
+    .orderBy(asc(user.name), asc(user.id));
+}
+
+/**
  * Which of the given users hold the finance right now (active; the superadmin always), in one
  * query: the delivery of a `finance` notification re-checks it at send time.
  */

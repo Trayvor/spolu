@@ -116,5 +116,8 @@ export const uk: ServerTexts = {
     meetingSummaryReady: 'AI-підсумок готовий',
     meetingSummaryFailed: 'Не вдалося обробити за допомогою AI',
     openMeeting: 'Відкрити зустріч',
+    contractEnds: (date) => `Договір закінчується ${date}`,
+    contractLine: (title, client, date) => `Договір ${title} · ${client}: закінчується ${date}`,
+    openContract: 'Відкрити договір',
   },
 };

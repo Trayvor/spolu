@@ -114,5 +114,8 @@ export const it: ServerTexts = {
     meetingSummaryReady: 'Il riepilogo AI è pronto',
     meetingSummaryFailed: 'Elaborazione AI non riuscita',
     openMeeting: 'Apri la riunione',
+    contractEnds: (date) => `Il contratto scade il ${date}`,
+    contractLine: (title, client, date) => `Contratto ${title} · ${client}: scade il ${date}`,
+    openContract: 'Apri il contratto',
   },
 };

@@ -170,3 +170,11 @@ export const FinanceItemPatchSchema = z
   })
   .strict();
 export type FinanceItemPatch = z.infer<typeof FinanceItemPatchSchema>;
+
+/** A finance admin a finance reminder may notify (`GET /api/finance/recipients`). */
+export const FinancePersonSchema = z.object({ id: z.string(), name: z.string() });
+export type FinancePerson = z.infer<typeof FinancePersonSchema>;
+export const FinancePeopleSchema = z.array(FinancePersonSchema);
+
+/** The reminder a new contract's form proposes: this many days before its end, at 09:00. */
+export const CONTRACT_REMINDER_DAYS_BEFORE = 30;

@@ -19,6 +19,8 @@ export type SubjectInfo = {
   dueDate?: string | null;
   /** A meeting item (2026-10-17): its reminders belong to the `meetings` notification group. */
   meeting?: boolean;
+  /** A finance contract's last day (Phase 32), for the "ends on …" texts. */
+  endsOn?: string | null;
   /** App-relative URL of the subject, e.g. `/groups/g/knowledge?k=id`. */
   link: string;
   canRead(actor: SessionUser, actorGroupIds: readonly string[]): boolean;
@@ -44,6 +46,13 @@ export type ReminderSubject = {
    * (the board's reminder bell). Errors are logged and swallowed by the caller.
    */
   onTimesChanged?: (deps: { db: Db; io: SocketIOServer }, ids: string[]) => Promise<void>;
+  /**
+   * Who may be a recipient at all, of the given users (Phase 32: finance keeps finance admins
+   * only). When set it replaces the group-people rule: `replaceReminderSet` refuses a new
+   * recipient it leaves out and drops a current one quietly, `subscribe` refuses the actor, and
+   * the fire job skips such a recipient (a right removed after they were added).
+   */
+  filterRecipients?: (db: Db, userIds: string[]) => Promise<Set<string>>;
 };
 
 export type ReminderSubjectRef = { kind: ReminderSubjectKind; id: string };

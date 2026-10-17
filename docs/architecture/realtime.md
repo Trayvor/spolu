@@ -164,7 +164,7 @@ The catch-up read is an ordinary HTTP read, so it uses the same permission check
 
 | event | payload | room | when |
 |---|---|---|---|
-| `finance:changed` | `{ groupId: string \| null, kind: 'items' \| 'time' \| 'rates' }` | `finance` | after a finance write commits (`emitFinanceChanged`; `groupId` null for rates); emitted by parts A2, B, C |
+| `finance:changed` | `{ groupId: string \| null, kind: 'items' \| 'time' \| 'rates' }` | `finance` | after a finance write commits (`emitFinanceChanged`; `groupId` null for rates); emitted by parts A2, B (kind `items`: every item, folder and file write of `documents-routes.ts`, and a finance item's reminder times changing, through the adapter's `onTimesChanged`), C |
 | `time:requests` | `{ count }` | `user:<id>` | the user's open time requests changed (`emitTimeRequests`; part A2) |
 | `me:changed` | `{}` | `user:<id>` | the superadmin granted or removed the user's finance right |
 

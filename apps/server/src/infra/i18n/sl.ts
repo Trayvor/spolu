@@ -116,5 +116,8 @@ export const sl: ServerTexts = {
     meetingSummaryReady: 'Povzetek AI je pripravljen',
     meetingSummaryFailed: 'Obdelava z AI ni uspela',
     openMeeting: 'Odpri sestanek',
+    contractEnds: (date) => `Pogodba se izteče ${date}`,
+    contractLine: (title, client, date) => `Pogodba ${title} · ${client}: izteče se ${date}`,
+    openContract: 'Odpri pogodbo',
   },
 };

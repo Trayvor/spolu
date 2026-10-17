@@ -42,6 +42,28 @@ describe('digestEntry', () => {
     expect(entry?.line).toBe('Reminder: Current title, Sun 25 Oct, 10:00');
   });
 
+  it('a finance contract reminder: "Contract <title> · <client>: ends on …", opening the item', () => {
+    const entry = digestEntry(
+      {
+        kind: 'reminder.due',
+        payload: {
+          subjectKind: 'finance',
+          subjectId: 'f1',
+          title: 'Zmluva 2026',
+          at: '2026-12-01T08:00:00Z',
+          endsOn: '2026-12-31',
+        },
+      },
+      ctx,
+    );
+    expect(entry).toEqual({
+      line: expect.stringMatching(/^Contract Zmluva 2026 · Firma: ends on .*2026$/),
+      url: 'https://spolu.test/groups/g1/finance?item=f1',
+      button: 'Open contract',
+      topic: 'Firma',
+    });
+  });
+
   it('an event of a non-ticket group without a client group gives null', () => {
     expect(
       digestEntry(

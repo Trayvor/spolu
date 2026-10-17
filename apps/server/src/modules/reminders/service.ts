@@ -306,12 +306,19 @@ export function emptyReminderSet(canEdit: boolean): ReminderSetDto {
  */
 async function validateRecipients(
   tx: Db,
-  subject: { groupId: string; adminsOnly: boolean },
+  subject: { kind: ReminderSubjectKind; groupId: string; adminsOnly: boolean },
   ids: string[],
   current: Set<string>,
 ): Promise<string[]> {
   if (ids.length > REMINDER_LIMITS.recipients) throw new InvalidRecipientError();
   if (ids.length === 0) return [];
+  const filter = getReminderSubject(subject.kind).filterRecipients;
+  if (filter) {
+    // The adapter's own rule (finance admins only) replaces the group-people rule.
+    const allowed = await filter(tx, ids);
+    if (ids.some((id) => !allowed.has(id) && !current.has(id))) throw new InvalidRecipientError();
+    return ids.filter((id) => allowed.has(id));
+  }
   const people = await getGroupPeopleRoles(tx, subject.groupId, ids);
   const kept: string[] = [];
   for (const id of ids) {
@@ -489,6 +496,8 @@ export async function subscribe(
   actor: SessionUser,
 ): Promise<void> {
   const { setId } = await readableSet(db, subject, actor);
+  const filter = getReminderSubject(subject.kind).filterRecipients;
+  if (filter && !(await filter(db, [actor.id])).has(actor.id)) throw new NotReadableError();
   await db
     .insert(reminderRecipients)
     .values({ setId, userId: actor.id, source: 'subscribed', addedBy: actor.id })
@@ -648,6 +657,7 @@ export async function listUpcomingForUser(
       groupName: groups.name,
       knowledgeItemId: reminderSets.knowledgeItemId,
       taskId: reminderSets.taskId,
+      financeItemId: reminderSets.financeItemId,
     })
     .from(reminderTimes)
     .innerJoin(reminderSets, eq(reminderSets.id, reminderTimes.setId))
@@ -674,20 +684,26 @@ export async function listUpcomingForUser(
       ? getReminderSubject(kind).loadMany(db, ids)
       : Promise.resolve(new Map<string, SubjectInfo>());
   };
-  const [items, taskInfos] = await Promise.all([
+  const [items, taskInfos, financeInfos] = await Promise.all([
     load('knowledge', (r) => r.knowledgeItemId),
     load('task', (r) => r.taskId),
+    load('finance', (r) => r.financeItemId),
   ]);
   return rows.flatMap((row) => {
     const info = row.knowledgeItemId
       ? items.get(row.knowledgeItemId)
       : row.taskId
         ? taskInfos.get(row.taskId)
-        : undefined;
+        : row.financeItemId
+          ? financeInfos.get(row.financeItemId)
+          : undefined;
+    // A finance item reads only for a finance admin (`canSeeFinance`): never listed to others.
     if (!info || !info.canRead(actor, actorGroupIds)) return [];
     const target: UpcomingReminder['target'] = row.knowledgeItemId
       ? { kind: 'knowledge', itemId: row.knowledgeItemId }
-      : { kind: 'task', taskId: row.taskId! };
+      : row.financeItemId
+        ? { kind: 'finance', itemId: row.financeItemId }
+        : { kind: 'task', taskId: row.taskId! };
     return [
       {
         id: row.id,

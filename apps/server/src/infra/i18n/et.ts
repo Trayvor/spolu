@@ -111,5 +111,8 @@ export const et: ServerTexts = {
     meetingSummaryReady: 'AI kokkuvõte on valmis',
     meetingSummaryFailed: 'AI-töötlus ebaõnnestus',
     openMeeting: 'Ava kohtumine',
+    contractEnds: (date) => `Leping lõpeb ${date}`,
+    contractLine: (title, client, date) => `Leping ${title} · ${client}: lõpeb ${date}`,
+    openContract: 'Ava leping',
   },
 };

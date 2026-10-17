@@ -108,5 +108,8 @@ export const en: ServerTexts = {
     meetingSummaryReady: 'AI summary is ready',
     meetingSummaryFailed: 'AI processing failed',
     openMeeting: 'Open meeting',
+    contractEnds: (date) => `Contract ends on ${date}`,
+    contractLine: (title, client, date) => `Contract ${title} · ${client}: ends on ${date}`,
+    openContract: 'Open contract',
   },
 };
