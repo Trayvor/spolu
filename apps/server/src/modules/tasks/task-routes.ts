@@ -35,6 +35,7 @@ import {
 } from './task-service.js';
 import { clientGroupIds } from '../groups/memberships.js';
 import { emitMeetingTasks } from '../knowledge/events.js';
+import { InvalidKnowledgeLinkError } from '../knowledge/links.js';
 import { emitSeen, markTaskSeen } from '../notifications/unseen.js';
 import { emitTicket, emitTicketRefresh } from '../tickets/events.js';
 import { runTicketChange } from '../tickets/hooks.js';
@@ -82,6 +83,9 @@ const writeError = (reply: FastifyReply, error: unknown) => {
   }
   if (error instanceof TaskChangedError) {
     return reply.code(409).send({ error: ErrorCodes.taskChanged });
+  }
+  if (error instanceof InvalidKnowledgeLinkError) {
+    return reply.code(400).send({ error: ErrorCodes.invalidKnowledgeItem });
   }
   throw error;
 };

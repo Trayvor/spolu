@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { FileInfoSchema } from '../files.js';
+import { KnowledgeIdsSchema, LinkedKnowledgeSchema } from '../knowledge-links.js';
 
 /**
  * Projects and their events (Phase 33, spec §2, §3, §7.5, §7.6). One file per part, re-exported
@@ -144,6 +145,8 @@ export const ProjectDtoSchema = ProjectListItemSchema.extend({
   createdBy: ProjectPersonSchema.nullable(),
   createdAt: z.string(),
   archivedAt: z.string().nullable(),
+  /** Knowledge attached to the description (Phase 33 part P5). */
+  linkedKnowledge: LinkedKnowledgeSchema,
 });
 export type ProjectDto = z.infer<typeof ProjectDtoSchema>;
 
@@ -160,6 +163,7 @@ export const ProjectCreateBodySchema = z.object({
   name: nameField,
   description: descriptionField.default(''),
   fileIds: fileIdsField.default([]),
+  knowledgeIds: KnowledgeIdsSchema.optional(),
 });
 export type ProjectCreateBody = z.output<typeof ProjectCreateBodySchema>;
 
@@ -168,6 +172,7 @@ export const ProjectPatchBodySchema = z.object({
   name: nameField.optional(),
   description: descriptionField.optional(),
   fileIds: fileIdsField.optional(),
+  knowledgeIds: KnowledgeIdsSchema.optional(),
   updatedAt: updatedAtField,
 });
 export type ProjectPatchBody = z.output<typeof ProjectPatchBodySchema>;
@@ -190,6 +195,8 @@ export const ProjectEventDtoSchema = z.object({
   createdBy: ProjectPersonSchema.nullable(),
   createdAt: z.string(),
   updatedAt: z.string(),
+  /** Knowledge attached to the description (Phase 33 part P5). */
+  linkedKnowledge: LinkedKnowledgeSchema,
 });
 export type ProjectEventDto = z.infer<typeof ProjectEventDtoSchema>;
 
@@ -199,6 +206,7 @@ export const EventCreateBodySchema = z.object({
   occursOn: EventDateSchema,
   description: descriptionField.default(''),
   fileIds: fileIdsField.default([]),
+  knowledgeIds: KnowledgeIdsSchema.optional(),
 });
 export type EventCreateBody = z.output<typeof EventCreateBodySchema>;
 
@@ -208,6 +216,7 @@ export const EventPatchBodySchema = z.object({
   occursOn: EventDateSchema.optional(),
   description: descriptionField.optional(),
   fileIds: fileIdsField.optional(),
+  knowledgeIds: KnowledgeIdsSchema.optional(),
   updatedAt: updatedAtField,
 });
 export type EventPatchBody = z.output<typeof EventPatchBodySchema>;

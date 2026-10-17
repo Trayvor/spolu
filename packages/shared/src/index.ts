@@ -8,6 +8,7 @@ export * from './groups.js';
 export * from './health.js';
 export * from './home.js';
 export * from './knowledge.js';
+export * from './knowledge-links.js';
 export * from './meetings.js';
 export * from './money.js';
 export * from './notifications.js';

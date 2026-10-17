@@ -27,6 +27,12 @@ import {
   listMemberships,
 } from '../groups/memberships.js';
 import { managedGroupIds } from '../groups/managers.js';
+import {
+  InvalidKnowledgeLinkError,
+  linkedCardsOf,
+  linkedItemIds,
+  setLinkedItems,
+} from '../knowledge/links.js';
 // Deliberate read-only exception: the list joins the group's name in its one query.
 import { groups } from '../groups/schema.js';
 import { getGroup, listGroupPeople } from '../groups/service.js';
@@ -128,6 +134,8 @@ export type CreateTicketInput = {
   instanceUrl?: string | null;
   /** The intake's idempotency key: a second ticket with the same key is never written. */
   requestId?: string | null;
+  /** Knowledge attached to the text (Phase 33 part P5; the manual form only, needs `groupId`). */
+  knowledgeIds?: string[];
 };
 
 /** The ticket the intake already made for `requestId`, if any. */
@@ -191,6 +199,15 @@ export async function createTicket(
           fileId,
           position,
         })),
+      );
+    }
+    if (input.knowledgeIds && input.knowledgeIds.length > 0) {
+      if (input.groupId === null) throw new InvalidKnowledgeLinkError();
+      await setLinkedItems(
+        tx,
+        { kind: 'ticket', id: created.id },
+        input.groupId,
+        input.knowledgeIds,
       );
     }
     return created;
@@ -263,12 +280,13 @@ export async function toTicketDto(
   seesTasks: boolean,
   canAssign = false,
 ): Promise<TicketDto> {
-  const [groupName, taskList, channel, files, assignees] = await Promise.all([
+  const [groupName, taskList, channel, files, assignees, linkedKnowledge] = await Promise.all([
     groupNameOf(db, row.groupId),
     seesTasks ? listTasksFromTicket(db, row.id) : countTasksFromTicket(db, row.id),
     getTicketChannel(db, row.id),
     ticketFiles(db, row),
     assigneesOf(db, [row.id]),
+    linkedCardsOf(db, 'ticket', row.id, row.groupId),
   ]);
   const taskCount = typeof taskList === 'number' ? taskList : taskList.length;
   return {
@@ -304,6 +322,7 @@ export async function toTicketDto(
     // Phase 33: part P2 fills these (and strips them for a žiadateľ in `forReader`).
     project: null,
     event: null,
+    linkedKnowledge,
   };
 }
 
@@ -460,11 +479,16 @@ export async function updateTicket(
 > {
   const before = await getTicketRow(db, id);
   if (!before) return null;
-  const { status, ...fields } = patch;
+  const { status, knowledgeIds, ...fields } = patch;
   const statusChanged = status !== undefined && status !== before.status;
-  const fieldsChanged = (Object.keys(fields) as (keyof typeof fields)[]).some(
-    (key) => fields[key] !== before[key],
-  );
+  // Phase 33 part P5: a changed list of attached knowledge is an edit of the text.
+  const linksChanged =
+    knowledgeIds !== undefined &&
+    (await linkedItemIds(db, { kind: 'ticket', id })).join() !== knowledgeIds.join();
+  if (linksChanged && before.groupId === null) throw new InvalidKnowledgeLinkError();
+  const fieldsChanged =
+    linksChanged ||
+    (Object.keys(fields) as (keyof typeof fields)[]).some((key) => fields[key] !== before[key]);
   if (!statusChanged && !fieldsChanged) {
     return { ticket: before, statusChanged, fieldsChanged, ...noTimeEffect(before.groupId) };
   }
@@ -479,6 +503,9 @@ export async function updateTicket(
       })
       .where(eq(tickets.id, id))
       .returning();
+    if (linksChanged) {
+      await setLinkedItems(tx, { kind: 'ticket', id }, before.groupId!, knowledgeIds!);
+    }
     const effect = statusChanged
       ? await ticketStatusTime(tx, actor, before, row!)
       : noTimeEffect(row!.groupId);

@@ -31,6 +31,7 @@ import {
 } from '../files/service.js';
 import { sniffAllowedType } from '../files/sniff.js';
 import { findGroupByEgrantUrl, getGroup } from '../groups/service.js';
+import { InvalidKnowledgeLinkError } from '../knowledge/links.js';
 import { getUserById } from '../users/service.js';
 import { isAdmin } from '../users/policy.js';
 import { bodyExcerpt, ticketCreatedEmail } from './emails.js';
@@ -271,12 +272,16 @@ export const ticketsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, 
         },
         requester,
         fileIds: b.fileIds,
+        knowledgeIds: b.knowledgeIds,
       });
       await afterCreate(request, ticket, notifyRequester);
       return reply.code(201).send(await getTicketForActor(db, actor, ticket.id));
     } catch (error) {
       if (error instanceof InvalidAttachmentError)
         return send(reply, 400, ErrorCodes.invalidAttachment);
+      if (error instanceof InvalidKnowledgeLinkError) {
+        return send(reply, 400, ErrorCodes.invalidKnowledgeItem);
+      }
       throw error;
     }
   });
@@ -364,7 +369,13 @@ export const ticketsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, 
     if (!canEditTicket(actor)) return send(reply, 403, ErrorCodes.forbidden);
     const body = TicketPatchBodySchema.safeParse(request.body);
     if (!body.success) return invalid(reply);
-    const result = await updateTicket(db, request.params.id, body.data, actor);
+    let result;
+    try {
+      result = await updateTicket(db, request.params.id, body.data, actor);
+    } catch (error) {
+      if (!(error instanceof InvalidKnowledgeLinkError)) throw error;
+      return send(reply, 400, ErrorCodes.invalidKnowledgeItem);
+    }
     if (!result) return notFound(reply);
     const { ticket, statusChanged, fieldsChanged, askTime, time } = result;
     if (statusChanged || fieldsChanged) {

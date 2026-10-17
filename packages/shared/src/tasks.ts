@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { FileInfoSchema } from './files.js';
+import { KnowledgeIdsSchema, LinkedKnowledgeSchema } from './knowledge-links.js';
 import { EventRefSchema, ProjectRefSchema } from './projects/common.js';
 import { isHttpUrl } from './urls.js';
 
@@ -66,6 +67,8 @@ export const TaskDraftSchema = z.object({
   /** The project and event (Phase 33 part P2; optional, absent = none). */
   projectId: projectIdField.optional(),
   eventId: projectIdField.optional(),
+  /** Knowledge attached to the description (Phase 33 part P5); absent = none. */
+  knowledgeIds: KnowledgeIdsSchema.optional(),
 });
 export type TaskDraft = z.output<typeof TaskDraftSchema>;
 
@@ -84,6 +87,8 @@ export const TaskPatchSchema = z.object({
   /** Phase 33 part P2: absent leaves them; `projectId: null` clears both. */
   projectId: projectIdField.optional(),
   eventId: projectIdField.optional(),
+  /** Phase 33 part P5: absent leaves the attached knowledge; `[]` removes it. */
+  knowledgeIds: KnowledgeIdsSchema.optional(),
   /** `updatedAt` of the version being edited; a stale value answers 409 `task_changed`. */
   updatedAt: z.iso.datetime({ offset: true }),
 });
@@ -161,6 +166,8 @@ export const TaskDetailDtoSchema = TaskDtoSchema.extend({
   sourceMessage: SourceMessageSchema.nullable(),
   sourceTicket: SourceTicketSchema.nullable(),
   sourceMeeting: SourceMeetingSchema.nullable(),
+  /** Knowledge attached to the description (Phase 33 part P5). */
+  linkedKnowledge: LinkedKnowledgeSchema,
 });
 export type TaskDetailDto = z.infer<typeof TaskDetailDtoSchema>;
 

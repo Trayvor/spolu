@@ -33,6 +33,7 @@ import { systemRoutes } from './modules/system/routes.js';
 import { tasksRoutes } from './modules/tasks/routes.js';
 import { registerTicketChat } from './modules/tickets/chat.js';
 import { registerTicketNotifications } from './modules/tickets/notify.js';
+import { ticketKnowledgeRoutes } from './modules/tickets/knowledge.js';
 import { ticketsRoutes } from './modules/tickets/routes.js';
 import { usersRoutes } from './modules/users/routes.js';
 
@@ -91,6 +92,7 @@ export async function buildApp(
   await app.register(aiRoutes, { prefix: '/api', deps });
   await app.register(textToolRoutes, { prefix: '/api', deps });
   await app.register(ticketsRoutes, { prefix: '/api', deps });
+  await app.register(ticketKnowledgeRoutes, { prefix: '/api', deps });
   await app.register(bulkEmailRoutes, { prefix: '/api', deps });
   await app.register(bulkEmailRenderRoutes, { prefix: '/api', deps });
   await app.register(bulkEmailUnsubscribeRoutes, { prefix: '/api', deps });

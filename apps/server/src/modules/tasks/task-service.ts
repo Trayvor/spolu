@@ -32,6 +32,7 @@ import {
 import { getSourceMessage } from '../chat/messages.js';
 import { taskChatFileIds } from '../chat/service.js';
 import { getGroup, isPickablePerson } from '../groups/service.js';
+import { linkedCardsOf, setLinkedItems } from '../knowledge/links.js';
 import { getMeetingRef } from '../knowledge/meeting-ref.js';
 import { getTicketRef } from '../tickets/refs.js';
 import { recordNotifications, requestDelivery } from '../notifications/service.js';
@@ -230,13 +231,14 @@ export async function getTask(
       .where(eq(tasks.id, id)),
   ]);
   if (!task || !extra) return null;
-  const [files, sourceMessage, sourceTicket, sourceMeeting] = await Promise.all([
+  const [files, sourceMessage, sourceTicket, sourceMeeting, linkedKnowledge] = await Promise.all([
     getFilesForGroup(db, task.groupId, extra.fileIds),
     task.sourceMessageId === null ? null : getSourceMessage(db, task.sourceMessageId),
     extra.sourceTicketId === null ? null : getTicketRef(db, extra.sourceTicketId, task.groupId),
     extra.sourceMeetingId === null || viewer === null
       ? null
       : getMeetingRef(db, extra.sourceMeetingId, task.groupId, viewer),
+    linkedCardsOf(db, 'task', id, task.groupId),
   ]);
   return {
     ...task,
@@ -245,6 +247,7 @@ export async function getTask(
     sourceMessage,
     sourceTicket,
     sourceMeeting,
+    linkedKnowledge,
   };
 }
 
@@ -318,6 +321,9 @@ export async function createTaskTimed(
     if (fileIds.length > 0) {
       await attachFiles(tx, groupId, fileIds, actor.id);
       await tx.insert(taskAttachments).values(fileIds.map((fileId) => ({ taskId, fileId })));
+    }
+    if (input.knowledgeIds) {
+      await setLinkedItems(tx, { kind: 'task', id: taskId }, groupId, input.knowledgeIds);
     }
     const notified = await notifyAssigned(
       tx,
@@ -592,6 +598,9 @@ export async function updateTaskTimed(
       notified = await notifyAssigned(tx, actor, row, added);
     }
 
+    if (patch.knowledgeIds) {
+      await setLinkedItems(tx, { kind: 'task', id }, row.groupId, patch.knowledgeIds);
+    }
     if (!patch.fileIds) return [];
     const wanted = [...new Set(patch.fileIds)];
     const current = (
