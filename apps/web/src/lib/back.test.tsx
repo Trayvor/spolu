@@ -94,7 +94,9 @@ describe('useBackCloses', () => {
     const router = await setup();
     await userEvent.click(await screen.findByRole('button', { name: 'Open' }));
     await waitFor(() => expect(router.history.length).toBe(2));
-    await act(() => router.navigate({ to: '/a' as never, search: { q: 'x' } as never, replace: true }));
+    await act(() =>
+      router.navigate({ to: '/a' as never, search: { q: 'x' } as never, replace: true }),
+    );
     expect(screen.getByRole('dialog', { name: 'Layer' })).toBeInTheDocument();
   });
 });
