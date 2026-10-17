@@ -96,8 +96,11 @@ test('on a phone, Back closes the section menu and stays on the page', async ({ 
 test('a page that needs a session replaces itself with the login: Back stays out of the app', async ({
   browser,
 }) => {
-  // No stored session.
-  const context = await browser.newContext({ locale: 'sk-SK' });
+  // No stored session: an explicit empty state, since the project's default would sign in.
+  const context = await browser.newContext({
+    locale: 'sk-SK',
+    storageState: { cookies: [], origins: [] },
+  });
   const page = await context.newPage();
   try {
     await page.goto('/login');
