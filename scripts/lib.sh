@@ -48,8 +48,10 @@ run_parallel() {
     names+=("$1")
     (
       start=$SECONDS
-      bash -c "$2" >"$dir/$i.out" 2>&1
-      echo "$? $((SECONDS - start))" >"$dir/$i.status"
+      # `|| code=$?` keeps a caller's `set -e` from ending this subshell before the status is written.
+      code=0
+      bash -c "$2" >"$dir/$i.out" 2>&1 || code=$?
+      echo "$code $((SECONDS - start))" >"$dir/$i.status"
     ) &
     pids+=("$!")
     shift 2
