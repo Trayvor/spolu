@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ReactNode } from 'react';
-import { act, screen, waitFor, within } from '@testing-library/react';
+import { act, renderHook, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
@@ -13,6 +13,7 @@ import {
 } from '@spolu/shared';
 import { i18n, setLanguage } from '@/i18n';
 import { sessionQuery } from '@/features/auth/use-session';
+import { clearTimeAsks, useTimeAsk } from '@/features/tasks/time-queue';
 import { HomePage } from './home-page';
 import { renderWithRouter } from './test-router';
 
@@ -229,6 +230,58 @@ describe('HomePage', () => {
     mockApi();
     await renderHome();
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/Vlad$/);
+  });
+
+  it('"Fill in your time" rows come first and open the time dialog in place (Phase 32)', async () => {
+    clearTimeAsks();
+    mockApi({
+      tasks: {
+        total: 1,
+        urgent: 0,
+        items: [task({ id: 't1', title: 'Fix budget table' })],
+        timeRequests: [
+          {
+            entryId: 'e1',
+            kind: 'task',
+            taskId: 't9',
+            ticketId: null,
+            groupId: 'g1',
+            groupName: 'ABC s.r.o.',
+            title: 'Old report',
+            workedOn: '2026-10-15',
+          },
+          {
+            entryId: 'e2',
+            kind: 'ticket',
+            taskId: null,
+            ticketId: 'k1',
+            groupId: null,
+            groupName: null,
+            title: '#41 Login fails',
+            workedOn: '2026-10-16',
+          },
+        ],
+        timeRequestCount: 2,
+      },
+    });
+    await renderHome();
+    const card = await screen.findByRole('region', { name: t('adminHome.cards.assigned.title') });
+    const row = await within(card).findByRole('button', {
+      name: t('adminHome.cards.assigned.fillTimeFor', { title: 'Old report' }),
+    });
+    expect(
+      within(card).getByText(t('adminHome.cards.assigned.withoutTime', { n: 2 })),
+    ).toBeInTheDocument();
+    expect(within(card).getByText(t('adminHome.cards.tickets.noClient'))).toBeInTheDocument();
+    const queue = renderHook(() => useTimeAsk());
+    await userEvent.click(row);
+    expect(queue.result.current).toEqual({
+      kind: 'task',
+      id: 't9',
+      groupId: 'g1',
+      title: 'Old report',
+    });
+    clearTimeAsks();
   });
 
   it('assigned rows link to the task; overdue date uses error ink; Show all 37 links to the global board with assignee=me and all clients', async () => {

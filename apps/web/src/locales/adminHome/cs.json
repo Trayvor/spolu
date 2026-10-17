@@ -56,7 +56,10 @@
       "urgent_other": "{{count}} naléhavých",
       "noDate": "bez data",
       "showAll": "Zobrazit všechny ({{count}})",
-      "empty": "Nemáte přidělené nic."
+      "empty": "Nemáte přidělené nic.",
+      "fillTime": "Vyplňte svůj čas",
+      "fillTimeFor": "Vyplňte svůj čas: {{title}}",
+      "withoutTime": "Bez času: {{n}}"
     },
     "reminders": {
       "title": "Nadcházející připomínky",

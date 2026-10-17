@@ -36,6 +36,18 @@ import { getMeetingRef } from '../knowledge/meeting-ref.js';
 import { getTicketRef } from '../tickets/refs.js';
 import { recordNotifications, requestDelivery } from '../notifications/service.js';
 import { user } from '../users/schema.js';
+import {
+  droppedRequests,
+  noTimeChange,
+  noTimeEffect,
+  onAssigneesRemoved,
+  onTaskCompleted,
+  onTaskDeleting,
+  onTaskReopened,
+  type TaskTimeSubject,
+  type TimeChange,
+  type TimeEffect,
+} from '../finance/task-time.js';
 import { keyAfter, keysBefore } from './positions.js';
 import { buckets, taskAssignees, taskAttachments, tasks } from './schema.js';
 import { ensureBoard, lockBuckets, selectTasks, type Tx } from './service.js';
@@ -152,6 +164,33 @@ export async function getTaskRef(
   return row ?? null;
 }
 
+/**
+ * What the finance time routes need of a task (Phase 32): its group, title, completion, source
+ * ticket and assignees; null when it does not exist. Two indexed reads.
+ */
+export async function getTaskTimeSubject(
+  db: Db,
+  id: string,
+): Promise<(TaskTimeSubject & { assigneeIds: string[] }) | null> {
+  const [[row], assignees] = await Promise.all([
+    db
+      .select({
+        groupId: tasks.groupId,
+        title: tasks.title,
+        completedAt: tasks.completedAt,
+        sourceTicketId: tasks.sourceTicketId,
+      })
+      .from(tasks)
+      .where(eq(tasks.id, id)),
+    db
+      .select({ userId: taskAssignees.userId })
+      .from(taskAssignees)
+      .where(eq(taskAssignees.taskId, id)),
+  ]);
+  if (!row) return null;
+  return { taskId: id, ...row, assigneeIds: assignees.map((a) => a.userId) };
+}
+
 /** Titles of the given tasks, keyed by id, in one query; unknown ids are absent. */
 export async function getTaskTitles(db: Db, ids: string[]): Promise<Map<string, string>> {
   if (ids.length === 0) return new Map();
@@ -219,13 +258,26 @@ export async function createTask(
   groupId: string,
   input: TaskCreate,
 ): Promise<TaskDetailDto> {
+  return (await createTaskTimed(deps, actor, groupId, input)).task;
+}
+
+/**
+ * `createTask` with its time effect: a task created straight in Completed is a completion
+ * (`onTaskCompleted`, Phase 32).
+ */
+export async function createTaskTimed(
+  deps: TaskDeps,
+  actor: SessionUser,
+  groupId: string,
+  input: TaskCreate,
+): Promise<{ task: TaskDetailDto } & TimeEffect> {
   const { db } = deps;
   await ensureBoard(db, groupId);
   const assigneeIds = [...new Set(input.assigneeIds)];
   const fileIds = [...new Set(input.fileIds)];
   if (assigneeIds.length > MAX_ASSIGNEES) throw new InvalidAssigneeError();
 
-  const { id, notified } = await db.transaction(async (tx) => {
+  const created = await db.transaction(async (tx) => {
     const target = input.bucketId
       ? and(eq(buckets.id, input.bucketId), eq(buckets.groupId, groupId))
       : and(eq(buckets.groupId, groupId), eq(buckets.kind, 'todo'));
@@ -273,10 +325,26 @@ export async function createTask(
       { id: taskId, groupId, title: input.title },
       assigneeIds,
     );
-    return { id: taskId, notified };
+    if (bucket.kind !== 'done') return { id: taskId, notified, effect: noTimeEffect(groupId) };
+    const asked = await onTaskCompleted(tx, {
+      taskId,
+      groupId,
+      title: input.title,
+      completedAt: now,
+      actorId: actor.id,
+      actorName: actor.name,
+      assigneeIds,
+      sourceTicketId: null,
+    });
+    return {
+      id: taskId,
+      notified: [...notified, ...asked.eventIds],
+      effect: { askTime: asked.askActor, time: asked },
+    };
   });
+  const { id, notified, effect } = created;
   await requestDelivery(deps.jobs, notified);
-  return (await getTask(db, id, actor))!;
+  return { task: (await getTask(db, id, actor))!, ...effect };
 }
 
 /**
@@ -459,6 +527,20 @@ export async function updateTask(
   patch: TaskPatch,
   options: CleanupOptions,
 ): Promise<TaskDetailDto> {
+  return (await updateTaskTimed(deps, actor, id, patch, options)).task;
+}
+
+/**
+ * `updateTask` with its time effect: removed admin assignees lose their unanswered request
+ * (`onAssigneesRemoved`). An edit never completes a task, so `askTime` is false.
+ */
+export async function updateTaskTimed(
+  deps: TaskDeps,
+  actor: SessionUser,
+  id: string,
+  patch: TaskPatch,
+  options: CleanupOptions,
+): Promise<{ task: TaskDetailDto } & TimeEffect> {
   const { db } = deps;
   const expected = new Date(patch.updatedAt);
   if (patch.assigneeIds && new Set(patch.assigneeIds).size > MAX_ASSIGNEES) {
@@ -466,6 +548,7 @@ export async function updateTask(
   }
 
   let notified: string[] = [];
+  let time = noTimeChange();
   const removedFiles = await db.transaction(async (tx) => {
     // Always strictly later than the edited version, even within the same millisecond.
     const updatedAt = new Date(Math.max(Date.now(), expected.getTime() + 1));
@@ -501,6 +584,7 @@ export async function updateTask(
         await tx
           .delete(taskAssignees)
           .where(and(eq(taskAssignees.taskId, id), inArray(taskAssignees.userId, removed)));
+        time = droppedRequests(row.groupId, await onAssigneesRemoved(tx, id, removed));
       }
       if (added.length > 0) {
         await tx.insert(taskAssignees).values(added.map((userId) => ({ taskId: id, userId })));
@@ -536,7 +620,7 @@ export async function updateTask(
   await cleanUpFiles(deps, removedFiles, options);
   const task = await getTask(db, id, actor);
   if (!task) throw new NotFoundError(); // deleted right after this edit committed
-  return task;
+  return { task, askTime: false, time };
 }
 
 /**
@@ -552,6 +636,8 @@ export async function deleteTask(
   sourceMessageId: string | null;
   sourceTicketId: string | null;
   sourceMeetingId: string | null;
+  /** Its unanswered time requests went (Phase 32); filled time stays. */
+  time: TimeChange;
 }> {
   const { db } = deps;
   const deleteInTx = () =>
@@ -574,11 +660,12 @@ export async function deleteTask(
         .where(eq(taskAttachments.taskId, id));
       // The task chat goes with the task (FK cascade), and with it its messages' attachments.
       const chatFileIds = await taskChatFileIds(tx, id);
+      const time = droppedRequests(row.groupId, await onTaskDeleting(tx, id));
       await tx.delete(tasks).where(eq(tasks.id, id));
       const ids = [...attachments.map((a) => a.fileId), ...chatFileIds];
       // If the removal after the commit fails, the daily unattached-files cleanup picks them up.
       await detachFiles(tx, ids);
-      return { task: row, fileIds: ids };
+      return { task: { ...row, time }, fileIds: ids };
     });
   // Two tasks each made from a message in the other's chat, deleted at once, lock each other's
   // rows through the set-null cascade; Postgres aborts one (40P01), which then succeeds alone.
@@ -600,8 +687,11 @@ function bucketLabel(
   return { kind, name: kind === 'client_review' ? groupName : null };
 }
 
-/** `moved` is false when the task already sat there: nothing was written and nothing is emitted. */
-export type MoveResult = { task: TaskDto; moved: boolean };
+/**
+ * `moved` is false when the task already sat there: nothing was written and nothing is emitted.
+ * `askTime` and `time`: entering Completed is a completion, leaving it a reopen (Phase 32).
+ */
+export type MoveResult = { task: TaskDto; moved: boolean } & TimeEffect;
 
 /**
  * Moves a task into `bucketId`, right after `afterTaskId` (null = first). One transaction: the
@@ -621,6 +711,7 @@ export async function moveTask(
   if (input.afterTaskId === id) throw new ValidationError();
 
   let notified: string[] = [];
+  let effect = noTimeEffect();
   const moved = await db.transaction(async (tx) => {
     const [source] = await tx
       .select({ bucketId: tasks.bucketId, groupId: tasks.groupId })
@@ -639,6 +730,7 @@ export async function moveTask(
         position: tasks.position,
         title: tasks.title,
         createdBy: tasks.createdBy,
+        sourceTicketId: tasks.sourceTicketId,
       })
       .from(tasks)
       .where(eq(tasks.id, id))
@@ -710,6 +802,22 @@ export async function moveTask(
         ),
         payload,
       });
+      if (completedAt instanceof Date) {
+        const asked = await onTaskCompleted(tx, {
+          taskId: id,
+          groupId,
+          title: task.title,
+          completedAt,
+          actorId: actor.id,
+          actorName: actor.name,
+          assigneeIds: assignees.map((a) => a.userId),
+          sourceTicketId: task.sourceTicketId,
+        });
+        notified = [...notified, ...asked.eventIds];
+        effect = { askTime: asked.askActor, time: asked };
+      } else if (completedAt === null && from.kind === 'done') {
+        effect = { askTime: false, time: droppedRequests(groupId, await onTaskReopened(tx, id)) };
+      }
     }
     return true;
   });
@@ -717,7 +825,7 @@ export async function moveTask(
   await requestDelivery(deps.jobs, notified);
   const [task] = await selectTasks(db, eq(tasks.id, id));
   if (!task) throw new NotFoundError(); // deleted right after the move committed
-  return { task, moved };
+  return { task, moved, ...effect };
 }
 
 /**

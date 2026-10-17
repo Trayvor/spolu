@@ -46,7 +46,10 @@
       "urgent_other": "{{count}} urgent",
       "noDate": "no date",
       "showAll": "Show all {{count}}",
-      "empty": "Nothing is assigned to you."
+      "empty": "Nothing is assigned to you.",
+      "fillTime": "Fill in your time",
+      "fillTimeFor": "Fill in your time: {{title}}",
+      "withoutTime": "Without time: {{n}}"
     },
     "reminders": {
       "title": "Upcoming reminders",

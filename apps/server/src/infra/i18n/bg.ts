@@ -109,5 +109,8 @@ export const bg: ServerTexts = {
     meetingSummaryReady: 'AI резюмето е готово',
     meetingSummaryFailed: 'Обработката с AI не успя',
     openMeeting: 'Отвори срещата',
+    timeMissing: 'Попълнете колко време отделихте',
+    timeMissingLine: (title) => `${title}: попълнете времето си`,
+    openTask: 'Отвори задачата',
   },
 };

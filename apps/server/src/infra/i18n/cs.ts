@@ -116,5 +116,8 @@ export const cs: ServerTexts = {
     meetingSummaryReady: 'AI shrnutí je hotové',
     meetingSummaryFailed: 'Zpracování s AI selhalo',
     openMeeting: 'Otevřít schůzku',
+    timeMissing: 'Vyplňte, kolik času jste strávili',
+    timeMissingLine: (title) => `${title}: vyplňte svůj čas`,
+    openTask: 'Otevřít úkol',
   },
 };

@@ -116,5 +116,8 @@ export const uk: ServerTexts = {
     meetingSummaryReady: 'AI-підсумок готовий',
     meetingSummaryFailed: 'Не вдалося обробити за допомогою AI',
     openMeeting: 'Відкрити зустріч',
+    timeMissing: 'Вкажіть, скільки часу ви витратили',
+    timeMissingLine: (title) => `${title}: вкажіть свій час`,
+    openTask: 'Відкрити завдання',
   },
 };

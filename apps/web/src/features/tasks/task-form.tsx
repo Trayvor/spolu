@@ -130,6 +130,7 @@ export function TaskForm({
   knownPeople,
   autoFocusTitle = false,
   remindersSlot,
+  timeSlot,
   linkWarning = false,
   linkInputRef,
 }: {
@@ -150,6 +151,8 @@ export function TaskForm({
    * AI review does not pass it.
    */
   remindersSlot?: ReactNode;
+  /** The task panel's "My time" (Phase 32), under the assignees; saves on its own. */
+  timeSlot?: ReactNode;
   /** Show the empty-link warning under the link field (see `useEmptyLinkWarning`). */
   linkWarning?: boolean;
   linkInputRef?: Ref<HTMLInputElement>;
@@ -261,6 +264,8 @@ export function TaskForm({
         />
         <FieldError id={id('assigneeIds-error')} message={errors.assigneeIds} />
       </div>
+
+      {timeSlot}
 
       <div className={cn(FIELD, 'min-[641px]:items-start')}>
         <Label htmlFor={id('deadline')}>{t('tasks.form.deadline')}</Label>

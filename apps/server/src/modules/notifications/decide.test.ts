@@ -19,6 +19,9 @@ const table: [NotificationKind, Record<GroupMode, boolean>][] = [
   ['ticket.updated', { all: true, mentions: true, off: true }],
   ['ticket.tasks', { all: true, mentions: true, off: true }],
   ['ticket.assigned', { all: true, mentions: true, off: true }],
+  // Phase 32: a time request is a direct request to one person, like a reminder.
+  ['task.time_missing', { all: true, mentions: true, off: true }],
+  ['ticket.time_missing', { all: true, mentions: true, off: true }],
   // Scheduling reads like a plain message; an AI result was asked for by its one recipient.
   ['meeting.scheduled', { all: true, mentions: false, off: false }],
   ['meeting.rescheduled', { all: true, mentions: false, off: false }],

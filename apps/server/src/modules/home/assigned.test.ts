@@ -57,7 +57,13 @@ describe('getAssignedTasks', () => {
 
   it('nothing assigned gives zeros', async () => {
     const me = await newAdmin(db, 'Ada');
-    expect(await getAssignedTasks(db, me.id)).toEqual({ total: 0, urgent: 0, items: [] });
+    expect(await getAssignedTasks(db, me.id)).toEqual({
+      total: 0,
+      urgent: 0,
+      items: [],
+      timeRequests: [],
+      timeRequestCount: 0,
+    });
   });
 
   it('first 20 only, total counts all', async () => {
@@ -71,14 +77,15 @@ describe('getAssignedTasks', () => {
     expect(result.items).toHaveLength(20);
   });
 
-  it('one statement', async () => {
+  // Phase 32: plus one statement for the time requests (rows and count together).
+  it('two statements', async () => {
     const me = await newAdmin(db, 'Ada');
     const client = postgres(testDatabaseUrl, { max: 1 });
     let statements = 0;
     const counted = drizzle(client, { logger: { logQuery: () => void statements++ } });
     try {
       await getAssignedTasks(counted, me.id);
-      expect(statements).toBe(1);
+      expect(statements).toBe(2);
     } finally {
       await client.end({ timeout: 1 });
     }

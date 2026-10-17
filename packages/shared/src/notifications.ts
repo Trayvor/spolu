@@ -11,6 +11,8 @@ export const NotificationKinds = [
   'task.deadline',
   'task.urgent',
   'reminder.due',
+  // Phase 32: a completed task asks its other admin assignees for their time (Task board group).
+  'task.time_missing',
   // Phase 21: support tickets (the `tickets` notification group).
   'ticket.created',
   'ticket.unassigned',
@@ -20,6 +22,8 @@ export const NotificationKinds = [
   'ticket.tasks',
   // A person became a riešiteľ (assignee) of a ticket.
   'ticket.assigned',
+  // Phase 32: a resolved ticket asks its other admin riešitelia for their time.
+  'ticket.time_missing',
   // 2026-10-17: meetings (the `meetings` notification group). A meeting was created with a start
   // in the future, or its start moved (to the future); an AI run ended with a summary or failed.
   'meeting.scheduled',

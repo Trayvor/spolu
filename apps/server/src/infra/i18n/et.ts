@@ -111,5 +111,8 @@ export const et: ServerTexts = {
     meetingSummaryReady: 'AI kokkuvõte on valmis',
     meetingSummaryFailed: 'AI-töötlus ebaõnnestus',
     openMeeting: 'Ava kohtumine',
+    timeMissing: 'Sisestage, kui palju aega kulus',
+    timeMissingLine: (title) => `${title}: sisestage oma aeg`,
+    openTask: 'Ava ülesanne',
   },
 };

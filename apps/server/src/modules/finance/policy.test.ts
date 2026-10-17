@@ -86,7 +86,8 @@ describe('canLogOwnTicketTime (2026-10-17)', () => {
     ['admin riešiteľ of a client ticket', actor('admin'), ['me'], 'g1', true],
     ['superadmin riešiteľ', actor('superadmin', true), ['me', 'x'], 'g1', true],
     ['admin, not a riešiteľ', actor('admin', true), ['x'], 'g1', false],
-    ['a ticket without a client', actor('admin'), ['me'], null, false],
+    // Owner decision 24 (2026-10-17): time is recorded without a client too.
+    ['a ticket without a client', actor('admin'), ['me'], null, true],
     ['client riešiteľ', actor('client'), ['me'], 'g1', false],
   ] as const)('%s', (_label, who, assignees, groupId, expected) => {
     expect(canLogOwnTicketTime(who, { assigneeIds: assignees, groupId })).toBe(expected);

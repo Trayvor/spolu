@@ -46,7 +46,10 @@
       "urgent_other": "{{count}} kiiret",
       "noDate": "tähtajata",
       "showAll": "Näita kõiki ({{count}})",
-      "empty": "Teile ei ole midagi määratud."
+      "empty": "Teile ei ole midagi määratud.",
+      "fillTime": "Sisestage oma aeg",
+      "fillTimeFor": "Sisestage oma aeg: {{title}}",
+      "withoutTime": "Ilma ajata: {{n}}"
     },
     "reminders": {
       "title": "Eelseisvad meeldetuletused",

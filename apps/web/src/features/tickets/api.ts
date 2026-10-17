@@ -7,6 +7,7 @@ import {
   type QueryClient,
 } from '@tanstack/react-query';
 import {
+  AskTimeSchema,
   TicketCandidateListSchema,
   TicketDtoSchema,
   TicketListResponseSchema,
@@ -19,6 +20,7 @@ import {
 } from '@spolu/shared';
 import { channelPeopleQuery } from '@/features/chat/chat-scope';
 import { apiGet, apiSend } from '@/lib/api';
+import { askForTime, ticketAskTitle } from '@/features/tasks/time-queue';
 
 const enc = encodeURIComponent;
 
@@ -193,11 +195,30 @@ export function useCreateTicket() {
   });
 }
 
+/**
+ * An edit of the ticket. Resolving it as one of its admin riešitelia answers `askTime` (Phase
+ * 32), which queues the time dialog; the stored ticket has no time.
+ */
 export function usePatchTicket(id: string) {
   const store = useStoreTicket();
   return useMutation({
-    mutationFn: (patch: TicketPatchBody) =>
-      apiSend('PATCH', `/tickets/${enc(id)}`, patch, TicketDtoSchema),
+    mutationFn: async (patch: TicketPatchBody): Promise<TicketDto> => {
+      const { askTime, ...ticket } = await apiSend(
+        'PATCH',
+        `/tickets/${enc(id)}`,
+        patch,
+        TicketDtoSchema.extend(AskTimeSchema.partial().shape),
+      );
+      if (askTime) {
+        askForTime({
+          kind: 'ticket',
+          id: ticket.id,
+          groupId: ticket.groupId,
+          title: ticketAskTitle(ticket.number, ticket.subject),
+        });
+      }
+      return ticket;
+    },
     onSuccess: store,
   });
 }

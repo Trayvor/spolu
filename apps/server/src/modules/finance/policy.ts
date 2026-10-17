@@ -35,13 +35,14 @@ export function canLogOwnTaskTime(actor: SessionUser, assigneeIds: readonly stri
 
 /**
  * An admin (or the superadmin) who is a riešiteľ of the ticket now logs their own time on it
- * (2026-10-17). A ticket without a client has no finance to belong to: no time (spec §5.6).
+ * (2026-10-17). Also on a ticket without a client (owner decision 24): the entry has no client
+ * until the ticket gets one.
  */
 export function canLogOwnTicketTime(
   actor: SessionUser,
   ticket: { assigneeIds: readonly string[]; groupId: string | null },
 ): boolean {
-  return isAdmin(actor) && ticket.groupId !== null && ticket.assigneeIds.includes(actor.id);
+  return isAdmin(actor) && ticket.assigneeIds.includes(actor.id);
 }
 
 /** A finance admin edits any entry; another admin only their own task or ticket entry. */
