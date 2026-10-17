@@ -1,12 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import source from './composer-text.ts?raw';
-import {
-  applyFormat,
-  mentionQueryAt,
-  toEditable,
-  toStored,
-  type FormatKind,
-} from './composer-text';
+import { applyFormat, mentionQueryAt, type FormatKind } from './composer-text';
 
 describe('applyFormat', () => {
   const wraps: [FormatKind, string][] = [
@@ -66,44 +60,8 @@ describe('mentionQueryAt', () => {
   });
 });
 
-describe('toStored / toEditable', () => {
-  const nameOf = (id: string) => ({ a: 'Jana Nováková', b: 'Jana', c: 'Jana Nováková' })[id];
-  it('round-trips names and @all', () => {
-    const stored = 'hi <@a> and <@b>, <@all>';
-    const { text, picked } = toEditable(stored, nameOf, '@all');
-    expect(text).toBe('hi @Jana Nováková and @Jana, @all');
-    expect(toStored(text, picked, '@all')).toBe(stored);
-  });
-
-  it('tells people with the same name apart by pick order', () => {
-    const text = '@Jana Nováková and @Jana Nováková';
-    const picked = [
-      { id: 'a', name: 'Jana Nováková' },
-      { id: 'c', name: 'Jana Nováková' },
-    ];
-    expect(toStored(text, picked, '@all')).toBe('<@a> and <@c>');
-  });
-
-  it('leaves unpicked names, code and email addresses alone', () => {
-    const picked = [{ id: 'b', name: 'Jana' }];
-    expect(toStored('@Jana `@Jana` x@Jana @Janas @Tom', picked, '@all')).toBe(
-      '<@b> `@Jana` x@Jana @Janas @Tom',
-    );
-  });
-
-  it('converts mentions at the start, after a newline and back to back', () => {
-    const picked = [
-      { id: 'b', name: 'Jana' },
-      { id: 'd', name: 'Tom' },
-    ];
-    expect(toStored('@Jana @Tom\n@Tom,@Jana', picked, '@all')).toBe('<@b> <@d>\n<@d>,<@b>');
-  });
-
+describe('composer-text', () => {
   it('uses no regex lookbehind (Safari before 16.4 throws a SyntaxError on it)', () => {
     expect(source).not.toContain('(?<');
-  });
-
-  it('keeps a token whose person is unknown', () => {
-    expect(toEditable('<@gone>', () => undefined, '@all')).toEqual({ text: '<@gone>', picked: [] });
   });
 });

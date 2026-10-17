@@ -61,10 +61,13 @@ export function formatShortcut(e: KeyboardEvent): FormatKind | null {
  */
 export function FormatToolbar({
   onFormat,
+  active,
   children,
   className,
 }: {
   onFormat: (kind: FormatKind) => void;
+  /** The formats at the caret, shown as pressed buttons (the chat editor); absent: no state. */
+  active?: ReadonlySet<FormatKind>;
   children?: ReactNode;
   className?: string;
 }) {
@@ -85,8 +88,14 @@ export function FormatToolbar({
               type="button"
               aria-label={label}
               title={shortcut ? `${label} (${modKey}${shortcut})` : label}
+              aria-pressed={active ? active.has(kind) : undefined}
+              // Keeps the focus and the selection in the field (and the phone keyboard open).
+              onMouseDown={(e) => e.preventDefault()}
               onClick={() => onFormat(kind)}
-              className={phoneIconButton}
+              className={cn(
+                phoneIconButton,
+                'aria-pressed:bg-accent aria-pressed:text-accent-foreground',
+              )}
             >
               {icon}
             </button>
