@@ -128,7 +128,7 @@ export const ticketsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, 
     try {
       const account = await getUserById(db, ticket.requesterUserId);
       if (!account || account.disabledAt || !(await claimRequesterEmail(db, ticket.id))) return;
-      // A client's button signs them in at once (ADR 0020); an admin's goes to the login page.
+      // A ziadatel's button signs them in at once (ADR 0020); anyone else's goes to the login page.
       const { url, oneClick } = await ticketEmailUrl(db, config.publicUrl, account, ticket.id);
       await sendEmailLater(
         jobs,

@@ -8,12 +8,14 @@ import { revokeUnprovenAccountAccess } from 'better-auth/db';
 import type { Role } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
 import type { JobOptions } from '../../infra/jobs/jobs.js';
+import { clientGroupIds } from '../groups/memberships.js';
 import { ticketSignInLinks } from './schema.js';
 
 /**
  * One-click sign-in from the "Ticket created" email (ADR 0020): the button carries a random
- * token that signs its user in and opens the ticket, without a login code. Only for users who
- * are neither admins nor deactivated, checked when the link is made and again when it is used.
+ * token that signs its user in and opens the ticket, without a login code. Only for a
+ * ziadatel: not an admin, no active `client` membership of any group, not deactivated; checked
+ * when the link is made and again when it is used.
  */
 
 /** A link works for 7 days, as often as it is used (people click twice, or on two devices). */
@@ -22,7 +24,7 @@ export const TICKET_LINK_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 /** The better-auth path of the sign-in endpoint (under /api/auth). */
 export const TICKET_LINK_PATH = '/ticket-link/sign-in';
 
-/** The error code of every refused link: unknown, expired, an admin's or a deactivated user's. */
+/** The error code of every refused link: unknown, expired, or its user no longer a ziadatel only. */
 export const TICKET_LINK_INVALID = 'TICKET_LINK_INVALID';
 
 /**
@@ -64,12 +66,23 @@ export async function deleteExpiredTicketLinks(db: Db, before = new Date()): Pro
   return deleted.length;
 }
 
-const mayUseLink = (u: { role: string; disabledAt?: Date | null }) =>
-  u.role === 'client' && !u.disabledAt;
+/**
+ * Only a ziadatel may sign in with a link: role `client` (not an admin), not deactivated and no
+ * active `client` membership (a full client of a group reaches the whole group, so they keep
+ * the code login).
+ */
+async function mayUseLink(
+  db: Db,
+  u: { id: string; role: string; disabledAt?: Date | null },
+): Promise<boolean> {
+  if (u.role !== 'client' || u.disabledAt) return false;
+  return (await clientGroupIds(db, u.id)).length === 0;
+}
 
 /**
- * The "Ticket created" email's button: a one-click sign-in link for a client (`oneClick`), the
- * login page (email filled in, back to the ticket) for an admin or anyone else.
+ * The "Ticket created" email's button: a one-click sign-in link for a ziadatel (`oneClick`), the
+ * login page (email filled in, back to the ticket) for an admin, a client of a group or anyone
+ * else.
  */
 export async function ticketEmailUrl(
   db: Db,
@@ -77,7 +90,7 @@ export async function ticketEmailUrl(
   account: { id: string; email: string; role: Role; disabledAt?: Date | null },
   ticketId: string,
 ): Promise<{ url: string; oneClick: boolean }> {
-  if (mayUseLink(account)) {
+  if (await mayUseLink(db, account)) {
     const token = await createTicketLink(db, { userId: account.id, ticketId });
     // A fragment, not a path: it never reaches a server, proxy or log; the page posts it.
     return { url: `${publicUrl}/t#${token}`, oneClick: true };
@@ -113,7 +126,7 @@ export function ticketLinkPlugin(db: Db) {
             ? ((await ctx.context.internalAdapter.findUserById(link.userId)) as
                 (LinkUser & Parameters<typeof setSessionCookie>[1]['user']) | null)
             : null;
-          if (!link || !owner || link.expiresAt <= new Date() || !mayUseLink(owner)) {
+          if (!link || !owner || link.expiresAt <= new Date() || !(await mayUseLink(db, owner))) {
             throw new APIError('BAD_REQUEST', {
               code: TICKET_LINK_INVALID,
               message: 'The link is not valid',

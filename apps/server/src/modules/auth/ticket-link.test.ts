@@ -4,6 +4,8 @@ import { eq } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import type { Role } from '@spolu/shared';
 import { buildTestApp } from '../../../test/test-app.js';
+import { addMembership } from '../groups/memberships.js';
+import { createGroup } from '../groups/service.js';
 import { cookieHeader, loginAs } from '../../../test/login.js';
 import { tickets } from '../tickets/schema.js';
 import { user } from '../users/schema.js';
@@ -120,6 +122,35 @@ describe('ticket links: the token', () => {
     expect(adminLinks).toHaveLength(0);
   });
 
+  it('a client of a group gets the login page; a ziadatel of a group gets the link', async () => {
+    const g = await createGroup(db(), {
+      name: 'Firma',
+      egrantUrl: `https://${randomUUID().slice(0, 8)}.egrant.sk`,
+    });
+    const ticketId = await createTicketRow();
+    const client = await createUser('client');
+    await addMembership(db(), client.id, g.id, 'client');
+    const forClient = await ticketEmailUrl(
+      db(),
+      'https://h.sk',
+      { ...client, role: 'client' },
+      ticketId,
+    );
+    expect(forClient.oneClick).toBe(false);
+    expect(forClient.url).toContain(`/login?redirect=`);
+    expect(forClient.url).toContain(`&email=${encodeURIComponent(client.email)}`);
+
+    const requester = await createUser('client');
+    await addMembership(db(), requester.id, g.id, 'ziadatel');
+    const forRequester = await ticketEmailUrl(
+      db(),
+      'https://h.sk',
+      { ...requester, role: 'client' },
+      ticketId,
+    );
+    expect(forRequester.oneClick).toBe(true);
+  });
+
   it('the daily cleanup deletes expired links only', async () => {
     const live = await linkFor();
     const old = await linkFor();
@@ -208,6 +239,19 @@ describe('ticket links: signing in', () => {
     const superadmin = await linkFor('superadmin');
     expect((await useLink(superadmin.token)).statusCode).toBe(400);
     expect(await sessionsOf(superadmin.owner.id)).toHaveLength(0);
+  });
+
+  it('never signs in a ziadatel who became a client of a group after the email', async () => {
+    const { owner, token } = await linkFor('client');
+    const g = await createGroup(db(), {
+      name: 'Firma',
+      egrantUrl: `https://${randomUUID().slice(0, 8)}.egrant.sk`,
+    });
+    await addMembership(db(), owner.id, g.id, 'client');
+    const res = await useLink(token);
+    expect(res.statusCode).toBe(400);
+    expect(res.json()).toMatchObject({ code: 'TICKET_LINK_INVALID', email: owner.email });
+    expect(await sessionsOf(owner.id)).toHaveLength(0);
   });
 
   it('never signs a deactivated user in', async () => {

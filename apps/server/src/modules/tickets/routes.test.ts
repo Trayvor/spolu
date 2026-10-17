@@ -179,6 +179,22 @@ describe('tickets API', () => {
       expect(dto).not.toHaveProperty('fileLinks');
     });
 
+    it('a client of the group as the requester: the email links to the code login, not a one-click link', async () => {
+      const g = await group();
+      const c = await clientIn(g.id);
+      const res = await intake({
+        subject: 'Klient',
+        email: c.email,
+        instance_url: `https://${g.host}.egrant.sk`,
+      });
+      expect(res.statusCode).toBe(201);
+      const mail = await latestEmail(c.email);
+      expect(mail.text).toContain(
+        `/login?redirect=${encodeURIComponent(`/tickets/${res.json().id}`)}&email=`,
+      );
+      expect(mail.text).not.toContain('/t#');
+    });
+
     it('a repeat with the same request_id answers the first ticket and does nothing else', async () => {
       const g = await group();
       const manager = await admin();
