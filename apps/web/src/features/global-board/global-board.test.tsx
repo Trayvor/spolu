@@ -63,7 +63,11 @@ const panelRoutes = (reply = json) => [
   (url: URL) => (url.pathname === '/api/tasks/t1' ? reply(200, DETAIL) : undefined),
   (url: URL) =>
     url.pathname === '/api/groups/g1/board'
-      ? reply(200, { buckets: BUCKETS, tasks: [card({ id: 't1' })] })
+      ? reply(200, {
+          buckets: BUCKETS,
+          tasks: [card({ id: 't1' })],
+          done: { total: 0, next: null },
+        })
       : undefined,
   (url: URL) =>
     url.pathname === '/api/groups/g1'

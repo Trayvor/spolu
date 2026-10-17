@@ -9,7 +9,7 @@ Each group has a Kanban board with four fixed buckets (columns) and custom bucke
   1. **To do**;
   2. **eGrant review** (eGrant checks the work);
   3. **<client> review** (the client checks the work; the name follows the group name);
-  4. **Completed**.
+  4. **Completed**. It shows its first 15 tasks in the column's order (the done circle puts a task on top, so these are the latest ones) and the total; "Show 15 more" loads the next 15, like the global board's "Show 50 more" (Phase 27, owner's choice). The pages loaded stay when the board reloads.
 - **Custom buckets**: admins create, rename, delete and reorder them; a new one goes after the last bucket, where "Add column" sits. Deleting a custom bucket moves its tasks to To do.
 - **Bucket order**: admins drag any bucket, fixed ones included, by its handle (mouse, touch or keyboard) to reorder the board. The order is stored per group and everyone looking at the board sees it change live. Clients cannot reorder buckets. "Add column" sits after the last bucket.
 - **Drag & drop** of tasks between buckets and inside a bucket.

@@ -45,7 +45,11 @@ const task = (id: string, groupId = 'g1'): TaskDto => ({
   createdAt: '2026-10-15T10:00:00.000Z',
   updatedAt: '2026-10-15T10:00:00.000Z',
 });
-const initial: BoardDto = { buckets: [bucket('b1'), bucket('b2')], tasks: [task('t1')] };
+const initial: BoardDto = {
+  buckets: [bucket('b1'), bucket('b2')],
+  tasks: [task('t1')],
+  done: { total: 0, next: null },
+};
 
 let fetchBoard: ReturnType<typeof vi.fn>;
 let client: QueryClient;

@@ -33,7 +33,9 @@
     "loading": "Načítava sa nástenka.",
     "loadFailed": "Nástenku sa nepodarilo načítať.",
     "retry": "Skúsiť znova",
-    "moveFailed": "Úlohu sa nepodarilo presunúť."
+    "moveFailed": "Úlohu sa nepodarilo presunúť.",
+    "showMore": "Zobraziť ďalších 15",
+    "moreFailed": "Ďalšie sa nepodarilo načítať. Skúste to znova."
   },
   "dnd": {
     "instructions": "Úlohu zdvihnete medzerníkom. Šípkami ju presuniete a ďalším stlačením medzerníka ju položíte. Klávesom Escape presun zrušíte.",

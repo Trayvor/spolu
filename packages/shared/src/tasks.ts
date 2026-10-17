@@ -143,11 +143,46 @@ export const TaskDetailDtoSchema = TaskDtoSchema.extend({
 });
 export type TaskDetailDto = z.infer<typeof TaskDetailDtoSchema>;
 
+/**
+ * The group board's Completed column is paged (Phase 27 S8): the board brings its first
+ * `BOARD_DONE_PAGE` tasks in column order, "Show more" the next ones. A board refetch may ask for
+ * up to `BOARD_DONE_MAX`, to keep the pages already shown.
+ */
+export const BOARD_DONE_PAGE = 15;
+export const BOARD_DONE_MAX = 300;
+
+/** A cursor of the Completed column: the position of the last task shown. */
+const doneCursor = z.string().min(1).max(200);
+
+/** The Completed column's paging state: every completed task, and where the next page starts. */
+export const BoardDoneSchema = z.object({
+  total: z.number().int(),
+  /** Null when every completed task is loaded. */
+  next: doneCursor.nullable(),
+});
+export type BoardDone = z.infer<typeof BoardDoneSchema>;
+
+/** Open tasks all, completed ones up to the page (see `done`). */
 export const BoardDtoSchema = z.object({
   buckets: z.array(BucketDtoSchema),
   tasks: z.array(TaskDtoSchema),
+  done: BoardDoneSchema,
 });
 export type BoardDto = z.infer<typeof BoardDtoSchema>;
+
+/** `GET /groups/:id/board?done=N`: how many completed tasks to bring (default one page). */
+export const BoardQuerySchema = z.object({
+  done: z.coerce.number().int().min(1).max(BOARD_DONE_MAX).default(BOARD_DONE_PAGE),
+});
+
+/** `GET /groups/:id/board/done?after=<cursor>`: the next page of the Completed column. */
+export const BoardDoneQuerySchema = z.object({ after: doneCursor });
+
+export const BoardDonePageSchema = z.object({
+  tasks: z.array(TaskDtoSchema),
+  next: doneCursor.nullable(),
+});
+export type BoardDonePage = z.infer<typeof BoardDonePageSchema>;
 
 /** Socket events pushed to the group room after a board write commits. */
 export const BoardEvents = {

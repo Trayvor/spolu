@@ -27,7 +27,9 @@
     "loading": "Tahvli laadimine.",
     "loadFailed": "Tahvlit ei õnnestunud laadida.",
     "retry": "Proovi uuesti",
-    "moveFailed": "Ülesannet ei õnnestunud teisaldada."
+    "moveFailed": "Ülesannet ei õnnestunud teisaldada.",
+    "showMore": "Näita veel 15",
+    "moreFailed": "Rohkem ei õnnestunud laadida. Proovige uuesti."
   },
   "dnd": {
     "instructions": "Ülesande haaramiseks vajutage tühikut. Liigutage seda nooleklahvidega ja vabastamiseks vajutage uuesti tühikut. Tühistamiseks vajutage Escape.",
