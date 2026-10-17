@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RouterProvider, createMemoryHistory } from '@tanstack/react-router';
@@ -24,12 +24,20 @@ vi.mock('@/features/chat/chat-tab-badge', () => ({
 
 const t = (key: string, options?: Record<string, unknown>) => i18n.t(key, options);
 
-const ADMIN = { id: 'a1', name: 'Jana', email: 'jana@example.com', role: 'admin', groups: [] };
+const ADMIN = {
+  id: 'a1',
+  name: 'Jana',
+  email: 'jana@example.com',
+  role: 'admin',
+  finance: false,
+  groups: [],
+};
 const CLIENT = {
   id: 'u1',
   name: 'Eva',
   email: 'eva@acme.sk',
   role: 'client',
+  finance: false,
   groups: [{ id: 'g1', name: 'Firma', role: 'client', hasLogo: false, updatedAt: '' }],
 };
 const GROUP = {
@@ -170,6 +178,27 @@ describe('group layout', () => {
 
     await user.click(link('group.tabs.members'));
     expect(await screen.findByText('Petr')).toBeInTheDocument();
+  });
+
+  it('only a finance admin has the Financie tab, last, and it opens the three cards (Phase 32)', async () => {
+    mockApi();
+    renderGroup('/groups/g1/chat');
+    const nav = await screen.findByRole('navigation', { name: t('group.tabs.label') });
+    expect(within(nav).queryByRole('link', { name: t('group.tabs.finance') })).toBeNull();
+    cleanup();
+
+    mockApi({ me: { ...ADMIN, finance: true } });
+    const { user } = renderGroup('/groups/g1/chat');
+    const financeNav = await screen.findByRole('navigation', { name: t('group.tabs.label') });
+    const links = within(financeNav).getAllByRole('link');
+    expect(links.at(-1)).toHaveAccessibleName(t('group.tabs.finance'));
+    expect(links.at(-1)).toHaveAttribute('href', '/groups/g1/finance');
+    await user.click(links.at(-1)!);
+    expect(
+      await screen.findByRole('heading', { name: t('finance.cards.workLog') }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: t('finance.cards.overview') })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: t('finance.cards.documents') })).toBeInTheDocument();
   });
 
   it('/ sends a client to /groups/<groupId>/chat', async () => {

@@ -19,12 +19,21 @@ vi.mock('@/lib/socket', () => ({
 }));
 
 const NOW = '2026-10-16T10:00:00.000Z';
-const ADMIN = { id: 'a1', name: 'Jana', email: 'jana@example.com', role: 'admin', groups: [] };
+const ADMIN = {
+  id: 'a1',
+  name: 'Jana',
+  email: 'jana@example.com',
+  role: 'admin',
+  finance: false,
+  groups: [],
+};
+const FINANCE_ADMIN = { ...ADMIN, finance: true };
 const CLIENT = {
   id: 'u1',
   name: 'Eva',
   email: 'eva@acme.sk',
   role: 'client',
+  finance: false,
   groups: [{ id: 'g1', name: 'Firma', role: 'client', hasLogo: false, updatedAt: '' }],
 };
 const GROUP = { id: 'g1', name: 'Acme', egrantUrl: 'https://acme.egrant.sk', hasLogo: false };
@@ -318,6 +327,21 @@ const CASES: Case[] = [
     namespaces: ['settings', 'notifications', 'system'],
   },
   { path: '/admins', me: ADMIN, shows: 'Add admin', namespaces: ['admins'] },
+  {
+    path: '/groups/g1/finance',
+    me: FINANCE_ADMIN,
+    shows: 'Work log',
+    namespaces: ['group', 'finance', 'financeDocuments', 'financeLog', 'financeSystem'],
+  },
+  {
+    path: '/finance',
+    me: FINANCE_ADMIN,
+    shows: 'Financial administration',
+    namespaces: ['finance', 'financeDocuments', 'financeLog', 'financeSystem'],
+  },
+  // Without the right: the not-found screen, whose texts are in the main files.
+  { path: '/groups/g1/finance', me: ADMIN, shows: 'Page not found', namespaces: [] },
+  { path: '/finance', me: ADMIN, shows: 'Page not found', namespaces: [] },
   { path: '/join/tok', me: null, shows: 'Join Acme', namespaces: ['join'] },
   { path: '/login', me: null, shows: /./, namespaces: [] },
   { path: '/no-such-page', me: CLIENT, shows: /./, namespaces: [] },

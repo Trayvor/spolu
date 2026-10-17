@@ -1,0 +1,39 @@
+{
+  "tab": "Finanze",
+  "pageTitle": "Amministrazione finanziaria",
+  "segments": {
+    "label": "Mostra scheda",
+    "overview": "Panoramica",
+    "documents": "Documenti",
+    "workLog": "Registro ore",
+    "contracts": "Contratti",
+    "rankings": "Classifiche"
+  },
+  "cards": {
+    "overview": "Panoramica",
+    "overviewSoon": "Qui si vedrà quanto il cliente ha pagato e pagherà secondo i contratti, quanto è costato il lavoro e le ore di ogni amministratore.",
+    "documents": "Documenti",
+    "documentsSoon": "Qui saranno conservati contratti, documenti, note e cartelle di questo cliente.",
+    "workLog": "Registro ore",
+    "workLogSoon": "Qui si vedranno le ore che gli amministratori hanno dedicato a questo cliente, per mese e giorno.",
+    "contracts": "Contratti",
+    "contractsSoon": "Qui si vedranno i contratti di tutti i clienti e una ricerca in tutti i documenti finanziari.",
+    "paidRanking": "Clienti per importo pagato",
+    "paidRankingSoon": "Qui si vedranno i clienti ordinati per importo pagato.",
+    "hoursRanking": "Clienti per ore",
+    "hoursRankingSoon": "Qui si vedranno i clienti ordinati per ore o per il loro costo."
+  },
+  "periods": {
+    "next12": "Ultimi 12 e prossimi 12 mesi",
+    "thisMonth": "Questo mese",
+    "lastMonth": "Mese scorso",
+    "thisYear": "Quest’anno",
+    "lastYear": "Anno scorso",
+    "allTime": "Tutto il periodo",
+    "custom": "Periodo personalizzato"
+  },
+  "units": {
+    "hours": "h",
+    "minutes": "min"
+  }
+}

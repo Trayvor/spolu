@@ -15,3 +15,8 @@ export async function addAdmin(body: AddAdminBody): Promise<Admin> {
 export async function removeAdmin(id: string): Promise<void> {
   await apiSend('DELETE', `/admins/${encodeURIComponent(id)}`);
 }
+
+/** The superadmin's Finance switch (Phase 32): grants (`on`) or removes the finance right. */
+export async function setFinanceAccess(id: string, on: boolean): Promise<void> {
+  await apiSend(on ? 'PUT' : 'DELETE', `/admins/${encodeURIComponent(id)}/finance-access`);
+}

@@ -31,6 +31,7 @@ const ME = {
   name: 'Me',
   email: 'me@example.com',
   role: 'client',
+  finance: false,
   groups: [{ id: 'g1', name: 'Firma', role: 'client', hasLogo: false, updatedAt: '' }],
 };
 

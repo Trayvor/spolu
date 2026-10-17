@@ -10,8 +10,22 @@ import { createAppRouter } from '@/router';
 /** Tests only: fake data, a fake API and a render helper for the bulk email screens. */
 
 export const NOW = '2026-10-16T10:00:00.000Z';
-export const ADMIN = { id: 'a1', name: 'Ada', email: 'ada@egrant.sk', role: 'admin', groups: [] };
-export const CLIENT = { id: 'c1', name: 'Klára', email: 'k@x.sk', role: 'client', groups: [] };
+export const ADMIN = {
+  id: 'a1',
+  name: 'Ada',
+  email: 'ada@egrant.sk',
+  role: 'admin',
+  finance: false,
+  groups: [],
+};
+export const CLIENT = {
+  id: 'c1',
+  name: 'Klára',
+  email: 'k@x.sk',
+  role: 'client',
+  finance: false,
+  groups: [],
+};
 export const GROUPS = [
   { id: 'g1', name: 'ABC s.r.o.' },
   { id: 'g2', name: 'Obec Lúčky' },

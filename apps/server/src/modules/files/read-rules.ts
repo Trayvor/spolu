@@ -12,19 +12,21 @@ export type FileReadRule = (
   file: { id: string; groupId: string | null; adminsOnly: boolean },
 ) => Promise<boolean>;
 
+/** The file fields `readableByRule` decides on. */
+type RuleFile = { id: string; groupId: string | null; adminsOnly: boolean; financeOnly: boolean };
+
 const rules: FileReadRule[] = [];
 
 export function registerFileReadRule(rule: FileReadRule): void {
   if (!rules.includes(rule)) rules.push(rule);
 }
 
-/** Whether any registered rule lets the actor read the file (an admins-only file never). */
-export async function readableByRule(
-  db: Db,
-  actor: SessionUser,
-  file: { id: string; groupId: string | null; adminsOnly: boolean },
-): Promise<boolean> {
-  if (file.adminsOnly) return false;
+/**
+ * Whether any registered rule lets the actor read the file. An admins-only file never, and a
+ * finance-only file (Phase 32) never: only `canReadFile`'s finance check opens it.
+ */
+export async function readableByRule(db: Db, actor: SessionUser, file: RuleFile): Promise<boolean> {
+  if (file.adminsOnly || file.financeOnly) return false;
   for (const rule of rules) if (await rule(db, actor, file)) return true;
   return false;
 }

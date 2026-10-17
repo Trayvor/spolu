@@ -11,12 +11,20 @@ vi.mock('@/features/admin-home/admin-shell', () => {
   return { AdminSidebar: () => <aside>admin-sidebar</aside> };
 });
 
-const ADMIN: Me = { id: 'a1', name: 'Ada', email: 'a@x.sk', role: 'admin', groups: [] };
+const ADMIN: Me = {
+  id: 'a1',
+  name: 'Ada',
+  email: 'a@x.sk',
+  role: 'admin',
+  finance: false,
+  groups: [],
+};
 const CLIENT: Me = {
   id: 'c1',
   name: 'Cyril',
   email: 'c@x.sk',
   role: 'client',
+  finance: false,
   groups: [{ id: 'g1', name: 'Firma', role: 'client', hasLogo: false, updatedAt: '' }],
 };
 

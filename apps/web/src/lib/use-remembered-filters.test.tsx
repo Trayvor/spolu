@@ -36,6 +36,7 @@ function renderList(path: string, { user = 'u1', list = 'tickets' } = {}) {
     name: 'Ann',
     email: 'a@example.com',
     role: 'admin',
+    finance: false,
     groups: [],
   } as never);
   const root = createRootRoute();

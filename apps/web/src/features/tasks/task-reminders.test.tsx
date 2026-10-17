@@ -33,7 +33,14 @@ vi.mock('@/lib/socket', () => ({ getSocket: () => fake }));
 
 const t = (key: string, options?: Record<string, unknown>) => i18n.t(key, options);
 
-const ME = { id: 'a1', name: 'Jana', email: 'j@example.com', role: 'admin', groups: [] };
+const ME = {
+  id: 'a1',
+  name: 'Jana',
+  email: 'j@example.com',
+  role: 'admin',
+  finance: false,
+  groups: [],
+};
 const PEOPLE: GroupPerson[] = [
   { id: 'a1', name: 'Jana', isAdmin: true, isManager: true },
   { id: 'c1', name: 'Klient', isAdmin: false, isManager: false },

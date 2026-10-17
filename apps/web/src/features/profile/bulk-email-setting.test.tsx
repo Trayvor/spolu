@@ -80,11 +80,14 @@ describe('BulkEmailSetting', () => {
   });
 
   it.each([
-    ['a client', { role: 'client', groups: [{ id: 'g1', name: 'F', role: 'client' }] }],
-    ['an admin', { role: 'admin', groups: [] }],
+    [
+      'a client',
+      { role: 'client', finance: false, groups: [{ id: 'g1', name: 'F', role: 'client' }] },
+    ],
+    ['an admin', { role: 'admin', finance: false, groups: [] }],
     [
       'a ziadatel-only person',
-      { role: 'client', groups: [{ id: 'g1', name: 'F', role: 'ziadatel' }] },
+      { role: 'client', finance: false, groups: [{ id: 'g1', name: 'F', role: 'ziadatel' }] },
     ],
   ] as const)('is shown in the Profile card for %s', async (_who, extra) => {
     setup();

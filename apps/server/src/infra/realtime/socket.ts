@@ -8,6 +8,8 @@ import { isAdmin } from '../../modules/users/policy.js';
 import { canReadGroup } from '../../modules/groups/policy.js';
 import { getGroup } from '../../modules/groups/service.js';
 import { clientGroupIds } from '../../modules/groups/memberships.js';
+import { FINANCE_ROOM } from '../../modules/finance/events.js';
+import { canSeeFinance } from '../../modules/finance/policy.js';
 import type { Db } from '../db/client.js';
 import { ADMINS_ROOM, groupAdminsRoom, groupRoom, sessionRoom, userRoom } from './rooms.js';
 
@@ -59,6 +61,8 @@ export function attachSocket(
       socket.data.wantedGroups = new Set();
       const rooms = [userRoom(found.user.id), sessionRoom(found.sessionId)];
       if (isAdmin(found.user)) rooms.push(ADMINS_ROOM);
+      // Finance events (Phase 32) reach only finance admins; the grant routes move sockets later.
+      if (canSeeFinance(found.user)) rooms.push(FINANCE_ROOM);
       // A client joins the rooms of all their client groups (never an admins room; a ziadatel
       // membership gives none); admins join group rooms and their admins rooms with `group:join`.
       if (found.user.role === 'client') {

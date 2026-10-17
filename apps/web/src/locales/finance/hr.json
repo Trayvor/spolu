@@ -1,0 +1,39 @@
+{
+  "tab": "Financije",
+  "pageTitle": "Financijska uprava",
+  "segments": {
+    "label": "Prikaži karticu",
+    "overview": "Pregled",
+    "documents": "Dokumenti",
+    "workLog": "Evidencija rada",
+    "contracts": "Ugovori",
+    "rankings": "Ljestvice"
+  },
+  "cards": {
+    "overview": "Pregled",
+    "overviewSoon": "Ovdje će se vidjeti koliko je klijent platio i platit će prema ugovorima, koliko je stajao rad i sati svakog administratora.",
+    "documents": "Dokumenti",
+    "documentsSoon": "Ovdje će biti ugovori, dokumenti, bilješke i mape ovog klijenta.",
+    "workLog": "Evidencija rada",
+    "workLogSoon": "Ovdje će biti sati koje su administratori radili za ovog klijenta, po mjesecima i danima.",
+    "contracts": "Ugovori",
+    "contractsSoon": "Ovdje će biti ugovori svih klijenata i pretraživanje svih financijskih dokumenata.",
+    "paidRanking": "Klijenti po plaćenim iznosima",
+    "paidRankingSoon": "Ovdje će biti klijenti poredani po plaćenim iznosima.",
+    "hoursRanking": "Klijenti po satima",
+    "hoursRankingSoon": "Ovdje će biti klijenti poredani po satima ili njihovoj cijeni."
+  },
+  "periods": {
+    "next12": "Zadnjih 12 i sljedećih 12 mjeseci",
+    "thisMonth": "Ovaj mjesec",
+    "lastMonth": "Prošli mjesec",
+    "thisYear": "Ova godina",
+    "lastYear": "Prošla godina",
+    "allTime": "Cijelo razdoblje",
+    "custom": "Vlastito razdoblje"
+  },
+  "units": {
+    "hours": "h",
+    "minutes": "min"
+  }
+}

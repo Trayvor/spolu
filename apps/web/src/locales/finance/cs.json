@@ -1,0 +1,39 @@
+{
+  "tab": "Finance",
+  "pageTitle": "Finanční správa",
+  "segments": {
+    "label": "Zobrazit kartu",
+    "overview": "Přehled",
+    "documents": "Dokumenty",
+    "workLog": "Výkaz práce",
+    "contracts": "Smlouvy",
+    "rankings": "Žebříčky"
+  },
+  "cards": {
+    "overview": "Přehled",
+    "overviewSoon": "Zde bude, kolik klient zaplatil a zaplatí podle smluv, kolik stála práce a hodiny jednotlivých administrátorů.",
+    "documents": "Dokumenty",
+    "documentsSoon": "Zde budou smlouvy, dokumenty, poznámky a složky tohoto klienta.",
+    "workLog": "Výkaz práce",
+    "workLogSoon": "Zde budou hodiny, které administrátoři pro tohoto klienta odpracovali, po měsících a dnech.",
+    "contracts": "Smlouvy",
+    "contractsSoon": "Zde budou smlouvy všech klientů a vyhledávání ve všech finančních dokumentech.",
+    "paidRanking": "Klienti podle zaplacených částek",
+    "paidRankingSoon": "Zde budou klienti seřazení podle zaplacených částek.",
+    "hoursRanking": "Klienti podle hodin",
+    "hoursRankingSoon": "Zde budou klienti seřazení podle hodin nebo jejich ceny."
+  },
+  "periods": {
+    "next12": "Posledních 12 a příštích 12 měsíců",
+    "thisMonth": "Tento měsíc",
+    "lastMonth": "Minulý měsíc",
+    "thisYear": "Tento rok",
+    "lastYear": "Minulý rok",
+    "allTime": "Celé období",
+    "custom": "Vlastní období"
+  },
+  "units": {
+    "hours": "h",
+    "minutes": "min"
+  }
+}

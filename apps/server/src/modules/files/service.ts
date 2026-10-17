@@ -228,7 +228,10 @@ export async function copyFile(
   input: { fileId: string; groupId: string; userId: string },
 ): Promise<FileInfo> {
   const source = await getFile(db, input.fileId);
-  if (!source || source.groupId !== input.groupId) throw new InvalidAttachmentError();
+  // A finance file (Phase 32) never leaves the finance module, not even as a copy.
+  if (!source || source.groupId !== input.groupId || source.financeOnly) {
+    throw new InvalidAttachmentError();
+  }
   const id = randomUUID();
   const storageKey = `files/${source.groupId}/${id}`;
   const preview = source.previewKey
@@ -290,12 +293,17 @@ export async function setFilePreview(
   return true;
 }
 
-/** Marks the caller's own unattached files of the group as used. Call inside the owner's transaction. */
+/**
+ * Marks the caller's own unattached files of the group as used. Call inside the owner's
+ * transaction. A finance-only file (Phase 32) is refused, so chat, tasks, tickets and knowledge
+ * can never attach one; the finance module passes `{ finance: true }` and may attach only those.
+ */
 export async function attachFiles(
   tx: Db,
   groupId: string,
   fileIds: string[],
   userId: string,
+  opts: { finance?: boolean } = {},
 ): Promise<void> {
   const ids = [...new Set(fileIds)];
   if (ids.length === 0) return;
@@ -308,6 +316,7 @@ export async function attachFiles(
         eq(files.groupId, groupId),
         eq(files.uploadedBy, userId),
         isNull(files.attachedAt),
+        eq(files.financeOnly, opts.finance === true),
       ),
     )
     .returning({ id: files.id });
@@ -331,6 +340,15 @@ export async function detachFiles(tx: Db, fileIds: string[]): Promise<void> {
 export async function setFilesAdminsOnly(tx: Db, fileIds: string[], value: boolean): Promise<void> {
   if (fileIds.length === 0) return;
   await tx.update(files).set({ adminsOnly: value }).where(inArray(files.id, fileIds));
+}
+
+/**
+ * Marks files as finance files (Phase 32): readable by finance admins only, attachable only by
+ * the finance module. Set once at upload by the finance upload route, inside its transaction.
+ */
+export async function setFilesFinanceOnly(tx: Db, fileIds: string[]): Promise<void> {
+  if (fileIds.length === 0) return;
+  await tx.update(files).set({ financeOnly: true }).where(inArray(files.id, fileIds));
 }
 
 /**

@@ -17,6 +17,7 @@ const REQUESTER = {
   name: '',
   email: 'jana@example.com',
   role: 'client',
+  finance: false,
   groups: [{ id: 'g1', name: 'Firma', role: 'ziadatel', hasLogo: false, updatedAt: '' }],
 };
 

@@ -3,7 +3,14 @@ import type { GlobalBoard, GlobalTaskDto } from '@spolu/shared';
 
 /** Tests only: a fake API for the global board screens. */
 
-export const ADMIN = { id: 'a1', name: 'Ada', email: 'a@x.sk', role: 'admin', groups: [] };
+export const ADMIN = {
+  id: 'a1',
+  name: 'Ada',
+  email: 'a@x.sk',
+  role: 'admin',
+  finance: false,
+  groups: [],
+};
 
 export const GROUPS = [
   { id: 'g1', name: 'ABC s.r.o.', managedByMe: true },

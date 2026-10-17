@@ -39,7 +39,14 @@ vi.mock('./knowledge-dialog', () => ({
 
 const t = (key: string, options?: Record<string, unknown>) => i18n.t(key, options);
 
-const ADMIN = { id: 'a1', name: 'Jana', email: 'jana@example.com', role: 'admin', groups: [] };
+const ADMIN = {
+  id: 'a1',
+  name: 'Jana',
+  email: 'jana@example.com',
+  role: 'admin',
+  finance: false,
+  groups: [],
+};
 const GROUP = {
   id: 'g1',
   name: 'Acme',

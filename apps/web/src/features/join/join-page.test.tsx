@@ -17,6 +17,7 @@ const CLIENT = {
   name: 'Jana',
   email: 'jana@example.com',
   role: 'client',
+  finance: false,
   groups: [{ id: 'g1', name: 'Firma', role: 'client', hasLogo: false, updatedAt: '' }],
 };
 

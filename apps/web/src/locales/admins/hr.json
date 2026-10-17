@@ -16,5 +16,10 @@
     "emailTakenAdmin": "Ova adresa e-pošte već pripada administratoru.",
     "emailTakenClient": "Ova adresa e-pošte pripada klijentu.",
     "nameRequired": "Unesite ime."
+  },
+  "finance": {
+    "label": "Financije",
+    "labelFor": "Pristup financijama: {{name}}",
+    "failed": "Promjena nije uspjela. Pokušajte ponovno."
   }
 }

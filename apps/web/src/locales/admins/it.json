@@ -16,5 +16,10 @@
     "emailTakenAdmin": "Questa email appartiene già a un amministratore.",
     "emailTakenClient": "Questa email appartiene a un cliente.",
     "nameRequired": "Inserire un nome."
+  },
+  "finance": {
+    "label": "Finanze",
+    "labelFor": "Accesso alle finanze: {{name}}",
+    "failed": "Impossibile modificarlo. Riprova."
   }
 }

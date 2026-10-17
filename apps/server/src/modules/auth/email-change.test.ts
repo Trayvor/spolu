@@ -88,6 +88,7 @@ describe('email change', () => {
       email: newEmail,
       name: `User ${a.id}`,
       role: 'admin',
+      finance: false,
       groups: [],
     });
 

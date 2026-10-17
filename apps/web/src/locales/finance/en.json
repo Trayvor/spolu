@@ -1,0 +1,39 @@
+{
+  "tab": "Finance",
+  "pageTitle": "Financial administration",
+  "segments": {
+    "label": "Show card",
+    "overview": "Overview",
+    "documents": "Documents",
+    "workLog": "Work log",
+    "contracts": "Contracts",
+    "rankings": "Rankings"
+  },
+  "cards": {
+    "overview": "Overview",
+    "overviewSoon": "What the client paid and will pay by contract, what the work cost and each admin’s hours will show here.",
+    "documents": "Documents",
+    "documentsSoon": "This client’s contracts, documents, notes and folders will be kept here.",
+    "workLog": "Work log",
+    "workLogSoon": "The hours admins spent for this client, by month and day, will show here.",
+    "contracts": "Contracts",
+    "contractsSoon": "Every client’s contracts and a search over all finance documents will show here.",
+    "paidRanking": "Clients by money paid",
+    "paidRankingSoon": "Clients ranked by money paid will show here.",
+    "hoursRanking": "Clients by hours",
+    "hoursRankingSoon": "Clients ranked by hours or their cost will show here."
+  },
+  "periods": {
+    "next12": "Last 12 and next 12 months",
+    "thisMonth": "This month",
+    "lastMonth": "Last month",
+    "thisYear": "This year",
+    "lastYear": "Last year",
+    "allTime": "All time",
+    "custom": "Custom range"
+  },
+  "units": {
+    "hours": "h",
+    "minutes": "min"
+  }
+}

@@ -20,6 +20,7 @@ function render(ui: ReactElement, signedIn = false) {
     name: 'Eva',
     email: 'eva@example.com',
     role: 'client',
+    finance: false,
     groups: [{ id: 'g1', name: 'Firma', role: 'client', hasLogo: false, updatedAt: '' }],
   };
   queryClient.setQueryData(sessionQuery.queryKey, signedIn ? me : null);

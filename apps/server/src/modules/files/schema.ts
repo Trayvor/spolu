@@ -25,6 +25,11 @@ export const files = pgTable(
     attachedAt: timestamp('attached_at', { withTimezone: true }),
     /** Attached to an admins-only knowledge item: clients cannot read it. Follows the item. */
     adminsOnly: boolean('admins_only').notNull().default(false),
+    /**
+     * A finance file (Phase 32): set at upload by the finance module and never cleared. Only a
+     * finance admin reads it (`canReadFile` checks it first); no other module attaches it.
+     */
+    financeOnly: boolean('finance_only').notNull().default(false),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [

@@ -2,7 +2,13 @@ import { describe, expect, it } from 'vitest';
 import type { Role, SessionUser } from '@spolu/shared';
 import { canOpenInClaude } from './policy.js';
 
-const actor = (role: Role): SessionUser => ({ id: 'a', email: 'a@example.com', name: 'A', role });
+const actor = (role: Role): SessionUser => ({
+  id: 'a',
+  email: 'a@example.com',
+  name: 'A',
+  role,
+  finance: false,
+});
 
 describe('canOpenInClaude', () => {
   it.each([

@@ -41,14 +41,16 @@
       "tasks": "Task board",
       "tickets": "Ticket board",
       "knowledge": "Knowledge base",
-      "meetings": "Meetings"
+      "meetings": "Meetings",
+      "finance": "Finance"
     },
     "hints": {
       "chat": "Messages, mentions and replies in group chats",
       "tasks": "Task moves, assignments, deadlines, reminders and task chats",
       "tickets": "Support tickets and their conversations",
       "knowledge": "Knowledge base reminders, except meetings",
-      "meetings": "New and moved meetings, their reminders and AI summaries"
+      "meetings": "New and moved meetings, their reminders and AI summaries",
+      "finance": "Reminders of contracts and other finance items"
     },
     "channels": {
       "email": "Email",

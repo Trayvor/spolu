@@ -25,7 +25,7 @@ export function createRecordingJobs(): JobQueue & {
 export async function newBulkAdmin(db: Db, name = 'Sender'): Promise<SessionUser> {
   const email = `${randomUUID()}@example.com`;
   const admin = await addAdmin(db, { email, name });
-  return { id: admin.id, email, name, role: 'admin' };
+  return { id: admin.id, email, name, role: 'admin', finance: false };
 }
 
 export async function newBulkPerson(

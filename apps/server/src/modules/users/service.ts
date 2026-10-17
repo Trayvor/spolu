@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { and, asc, eq, inArray, isNull, sql, type SQL } from 'drizzle-orm';
+import { and, asc, eq, inArray, isNotNull, isNull, or, sql, type SQL } from 'drizzle-orm';
 import {
   DEFAULT_CHANNELS,
   NotificationChannels,
@@ -107,14 +107,22 @@ export async function getUserById(db: Db, id: string): Promise<UserRow | null> {
   return row ?? null;
 }
 
-/** Active admins and superadmins: superadmin first, then by name. */
-export async function listAdmins(db: Db): Promise<Admin[]> {
+/**
+ * Active admins and superadmins: superadmin first, then by name. `withFinance` adds each one's
+ * finance right (Phase 32; the superadmin's answer only, who grants it).
+ */
+export async function listAdmins(db: Db, opts: { withFinance?: boolean } = {}): Promise<Admin[]> {
   const rows = await db
-    .select(adminColumns)
+    .select({ ...adminColumns, financeAccessAt: user.financeAccessAt })
     .from(user)
     .where(and(inArray(user.role, ['superadmin', 'admin']), isNull(user.disabledAt)))
     .orderBy(sql`${user.role} = 'superadmin' desc`, asc(user.name), asc(user.id));
-  return rows as Admin[];
+  return rows.map(({ financeAccessAt, ...admin }) => ({
+    ...(admin as Admin),
+    ...(opts.withFinance
+      ? { finance: admin.role === 'superadmin' || financeAccessAt !== null }
+      : {}),
+  }));
 }
 
 export async function addAdmin(db: Db, input: { email: string; name: string }): Promise<Admin> {
@@ -149,12 +157,71 @@ export async function addAdmin(db: Db, input: { email: string; name: string }): 
   }
 }
 
-/** Marks the user as disabled. Their sessions are revoked by the auth module. */
+/**
+ * Marks the user as disabled and removes the finance right (Phase 32, owner decision 20: coming
+ * back needs a new grant). Their sessions are revoked by the auth module.
+ */
 export async function deactivateUser(db: Db, id: string): Promise<void> {
   await db
     .update(user)
-    .set({ disabledAt: new Date(), updatedAt: new Date() })
+    .set({
+      disabledAt: new Date(),
+      financeAccessAt: null,
+      financeAccessBy: null,
+      updatedAt: new Date(),
+    })
     .where(eq(user.id, id));
+}
+
+/**
+ * Grants (`grantedBy` set) or removes (null) the finance right of an active admin, in one
+ * conditional UPDATE. True only when it changed: a repeat is a no-op (the routes push nothing).
+ * The finance module decides who may call it (`canGrantFinance`).
+ */
+export async function setFinanceAccess(
+  db: Db,
+  id: string,
+  grantedBy: string | null,
+): Promise<boolean> {
+  const rows = await db
+    .update(user)
+    .set(
+      grantedBy === null
+        ? { financeAccessAt: null, financeAccessBy: null, updatedAt: new Date() }
+        : { financeAccessAt: new Date(), financeAccessBy: grantedBy, updatedAt: new Date() },
+    )
+    .where(
+      and(
+        eq(user.id, id),
+        eq(user.role, 'admin'),
+        isNull(user.disabledAt),
+        grantedBy === null ? isNotNull(user.financeAccessAt) : isNull(user.financeAccessAt),
+      ),
+    )
+    .returning({ id: user.id });
+  return rows.length > 0;
+}
+
+/**
+ * Which of the given users hold the finance right now (active; the superadmin always), in one
+ * query: the delivery of a `finance` notification re-checks it at send time.
+ */
+export async function financeHoldersAmong(db: Db, ids: string[]): Promise<Set<string>> {
+  if (ids.length === 0) return new Set();
+  const rows = await db
+    .select({ id: user.id })
+    .from(user)
+    .where(
+      and(
+        inArray(user.id, [...new Set(ids)]),
+        isNull(user.disabledAt),
+        or(
+          eq(user.role, 'superadmin'),
+          and(eq(user.role, 'admin'), isNotNull(user.financeAccessAt)),
+        ),
+      ),
+    );
+  return new Set(rows.map((r) => r.id));
 }
 
 /** Clears `disabled_at`: a removed user comes back (a removed client re-joining). */

@@ -5,8 +5,10 @@ import {
   type SessionUser,
 } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
+import { canSeeFinance } from '../finance/policy.js';
 import { isRequesterOnly } from '../groups/memberships.js';
 import { groupPeopleAmong, pairKey } from '../groups/service.js';
+import { financeHoldersAmong } from '../users/service.js';
 
 /**
  * The notification group of every event kind: the one place that maps a kind to a group. A new
@@ -59,21 +61,25 @@ export function notificationGroupOf(
 }
 
 /**
- * The groups the user can set (and the profile shows): all five, except for a requester-only
- * person (not an admin, no active client membership, Phase 21), who has only `tickets`.
+ * The groups the user can set (and the profile shows): all of them, except for a requester-only
+ * person (not an admin, no active client membership, Phase 21), who has only `tickets`; and
+ * `finance` (Phase 32) only for a finance admin.
  */
 export async function visibleCategoriesFor(
   db: Db,
   user: SessionUser,
 ): Promise<NotificationCategory[]> {
-  return (await isRequesterOnly(db, user)) ? ['tickets'] : [...NotificationCategories];
+  if (await isRequesterOnly(db, user)) return ['tickets'];
+  return NotificationCategories.filter((c) => c !== 'finance' || canSeeFinance(user));
 }
 
 /**
  * Who belongs to an event's client group for delivery: the group's people (its clients and every
  * admin, `listGroupPeople`'s rule); for `tickets` also its `ziadatel` members (Phase 21), who
- * belong to no other group. For a whole delivery batch in one query (Phase 27 S7): returns a check
- * of whether a (user, client group, notification group) triple of `items` is in the audience.
+ * belong to no other group; for `finance` (Phase 32) only those who hold the finance right now, so
+ * an event queued before a removal reaches nobody. For a whole delivery batch in one query (Phase
+ * 27 S7; a second one only when the batch has finance events): returns a check of whether a (user,
+ * client group, notification group) triple of `items` is in the audience.
  */
 export async function audienceAmong(
   db: Db,
@@ -83,5 +89,9 @@ export async function audienceAmong(
     db,
     items.map((i) => ({ userId: i.userId, groupId: i.groupId, requesters: i.group === 'tickets' })),
   );
-  return (userId, groupId, group) => found.has(pairKey(userId, groupId, group === 'tickets'));
+  const financeIds = [...new Set(items.filter((i) => i.group === 'finance').map((i) => i.userId))];
+  const financeHolders = await financeHoldersAmong(db, financeIds);
+  return (userId, groupId, group) =>
+    found.has(pairKey(userId, groupId, group === 'tickets')) &&
+    (group !== 'finance' || financeHolders.has(userId));
 }

@@ -16,5 +16,10 @@
     "emailTakenAdmin": "This email already belongs to an admin.",
     "emailTakenClient": "This email belongs to a client.",
     "nameRequired": "Enter a name."
+  },
+  "finance": {
+    "label": "Finance",
+    "labelFor": "Finance access for {{name}}",
+    "failed": "Could not change it. Try again."
   }
 }

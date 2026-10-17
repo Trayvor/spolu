@@ -72,7 +72,7 @@ describe('notifications API', () => {
     expect(res.statusCode).toBe(401);
   });
 
-  it('preferences default to the group defaults, every group visible, with the VAPID key', async () => {
+  it('preferences default to the group defaults, every group but Finance visible, with the VAPID key', async () => {
     const a = await admin();
     const res = await call('GET', '/api/notifications/preferences', a.cookie);
     expect(res.statusCode).toBe(200);
@@ -83,7 +83,9 @@ describe('notifications API', () => {
         tickets: 'both',
         knowledge: 'push',
         meetings: 'push',
+        finance: 'push',
       },
+      // An admin without the finance right (Phase 32) has no Finance group.
       visibleCategories: ['chat', 'tasks', 'tickets', 'knowledge', 'meetings'],
       vapidPublicKey: 'test-vapid-public-key',
     });

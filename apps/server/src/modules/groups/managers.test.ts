@@ -45,6 +45,7 @@ const asActor = (a: { id: string; email: string; name: string }): SessionUser =>
   email: a.email,
   name: a.name,
   role: 'admin',
+  finance: false,
 });
 
 async function settingsRow(userId: string, groupId: string) {

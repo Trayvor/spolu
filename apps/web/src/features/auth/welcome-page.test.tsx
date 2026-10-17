@@ -18,9 +18,17 @@ const client = (name: string): Me => ({
   name,
   email: 'jana@example.com',
   role: 'client',
+  finance: false,
   groups: [{ id: 'g1', name: 'Firma', role: 'client', hasLogo: false, updatedAt: '' }],
 });
-const admin: Me = { id: 'a1', name: 'Eva', email: 'eva@example.com', role: 'admin', groups: [] };
+const admin: Me = {
+  id: 'a1',
+  name: 'Eva',
+  email: 'eva@example.com',
+  role: 'admin',
+  finance: false,
+  groups: [],
+};
 
 function mockApi(me: Me | null, patchStatus = 200) {
   const patches: unknown[] = [];

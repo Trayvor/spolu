@@ -14,6 +14,7 @@ const actor = (role: Role, id = 'actor'): SessionUser => ({
   email: 'a@example.com',
   name: 'A',
   role,
+  finance: false,
 });
 
 describe('canReadChannel', () => {

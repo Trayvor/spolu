@@ -239,6 +239,13 @@
       "when": 1792251800888,
       "tag": "0033_drop_ticket_followers",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1792252350626,
+      "tag": "0034_finance_foundation",
+      "breakpoints": true
     }
   ]
 }

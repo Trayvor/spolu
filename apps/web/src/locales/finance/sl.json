@@ -1,0 +1,39 @@
+{
+  "tab": "Finance",
+  "pageTitle": "Finančno upravljanje",
+  "segments": {
+    "label": "Prikaži kartico",
+    "overview": "Pregled",
+    "documents": "Dokumenti",
+    "workLog": "Evidenca dela",
+    "contracts": "Pogodbe",
+    "rankings": "Lestvice"
+  },
+  "cards": {
+    "overview": "Pregled",
+    "overviewSoon": "Tukaj bo prikazano, koliko je stranka plačala in bo plačala po pogodbah, koliko je stalo delo in ure posameznih skrbnikov.",
+    "documents": "Dokumenti",
+    "documentsSoon": "Tukaj bodo pogodbe, dokumenti, zapiski in mape te stranke.",
+    "workLog": "Evidenca dela",
+    "workLogSoon": "Tukaj bodo ure, ki so jih skrbniki opravili za to stranko, po mesecih in dneh.",
+    "contracts": "Pogodbe",
+    "contractsSoon": "Tukaj bodo pogodbe vseh strank in iskanje po vseh finančnih dokumentih.",
+    "paidRanking": "Stranke po plačanih zneskih",
+    "paidRankingSoon": "Tukaj bodo stranke, razvrščene po plačanih zneskih.",
+    "hoursRanking": "Stranke po urah",
+    "hoursRankingSoon": "Tukaj bodo stranke, razvrščene po urah ali njihovi ceni."
+  },
+  "periods": {
+    "next12": "Zadnjih 12 in naslednjih 12 mesecev",
+    "thisMonth": "Ta mesec",
+    "lastMonth": "Prejšnji mesec",
+    "thisYear": "To leto",
+    "lastYear": "Lani",
+    "allTime": "Celotno obdobje",
+    "custom": "Lastno obdobje"
+  },
+  "units": {
+    "hours": "h",
+    "minutes": "min"
+  }
+}

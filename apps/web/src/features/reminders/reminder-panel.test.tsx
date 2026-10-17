@@ -21,6 +21,7 @@ const ME: Me = {
   email: 'b@example.com',
   name: 'Boris Kováč',
   role: 'admin',
+  finance: false,
   groups: [],
 };
 const HOUR = 3_600_000;

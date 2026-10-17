@@ -16,5 +16,10 @@
     "emailTakenAdmin": "See e-posti aadress kuulub juba administraatorile.",
     "emailTakenClient": "See e-posti aadress kuulub kliendile.",
     "nameRequired": "Sisestage nimi."
+  },
+  "finance": {
+    "label": "Rahandus",
+    "labelFor": "Ligipääs rahandusele: {{name}}",
+    "failed": "Muutmine ebaõnnestus. Proovi uuesti."
   }
 }

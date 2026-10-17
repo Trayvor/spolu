@@ -27,7 +27,13 @@ describe('notification modes', () => {
     const group = await newGroup();
     const client = await createUnverifiedClient(db, email());
     await addMember(db, group.id, client.id);
-    const actor = { id: client.id, email: client.email, name: 'C', role: 'client' as const };
+    const actor = {
+      id: client.id,
+      email: client.email,
+      name: 'C',
+      role: 'client' as const,
+      finance: false,
+    };
 
     await setGroupMode(db, client.id, group.id, 'off');
     await setGroupMode(db, client.id, group.id, 'mentions');
@@ -69,7 +75,13 @@ describe('notification modes', () => {
     const managed = await newGroup();
     const own = await newGroup();
     const admin = await addAdmin(db, { email: email(), name: 'A' });
-    const actor = { id: admin.id, email: admin.email, name: 'A', role: 'admin' as const };
+    const actor = {
+      id: admin.id,
+      email: admin.email,
+      name: 'A',
+      role: 'admin' as const,
+      finance: false,
+    };
     await startManagerMode(db, admin.id, managed.id);
     await setGroupMode(db, admin.id, own.id, 'off');
     const settings = await getModeSettings(db, actor);

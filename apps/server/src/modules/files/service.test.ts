@@ -27,6 +27,7 @@ import {
   getFilesForGroup,
   InvalidAttachmentError,
   setFilePreview,
+  setFilesFinanceOnly,
   type FileDeps,
 } from './service.js';
 
@@ -236,6 +237,47 @@ describe('attachReceivedFiles', () => {
     expect((await getFile(db, a.id))?.attachedAt).toBeInstanceOf(Date);
     await expect(attachReceivedFiles(db, [a.id])).rejects.toBeInstanceOf(InvalidAttachmentError);
     await attachReceivedFiles(db, []);
+  });
+});
+
+describe('finance-only files (Phase 32)', () => {
+  it('setFilesFinanceOnly marks the files; attachFiles then refuses them', async () => {
+    const { group, owner } = await setup();
+    const a = await upload(group.id, owner.id, Buffer.from('a'));
+    const plain = await upload(group.id, owner.id, Buffer.from('b'));
+    await setFilesFinanceOnly(db, [a.id]);
+    await setFilesFinanceOnly(db, []);
+    expect((await getFile(db, a.id))?.financeOnly).toBe(true);
+    expect((await getFile(db, plain.id))?.financeOnly).toBe(false);
+    // Chat, tasks, tickets and knowledge all attach through attachFiles without the option.
+    await expect(attachFiles(db, group.id, [a.id], owner.id)).rejects.toBeInstanceOf(
+      InvalidAttachmentError,
+    );
+    await expect(attachFiles(db, group.id, [a.id, plain.id], owner.id)).rejects.toBeInstanceOf(
+      InvalidAttachmentError,
+    );
+    expect((await getFile(db, a.id))?.attachedAt).toBeNull();
+  });
+
+  it("finance's own attach takes finance-only files only", async () => {
+    const { group, owner } = await setup();
+    const a = await upload(group.id, owner.id, Buffer.from('a'));
+    const plain = await upload(group.id, owner.id, Buffer.from('b'));
+    await setFilesFinanceOnly(db, [a.id]);
+    await expect(
+      attachFiles(db, group.id, [plain.id], owner.id, { finance: true }),
+    ).rejects.toBeInstanceOf(InvalidAttachmentError);
+    await attachFiles(db, group.id, [a.id], owner.id, { finance: true });
+    expect((await getFile(db, a.id))?.attachedAt).toBeInstanceOf(Date);
+  });
+
+  it('a finance-only file is never copied into another module', async () => {
+    const { group, owner } = await setup();
+    const a = await upload(group.id, owner.id, Buffer.from('a'));
+    await setFilesFinanceOnly(db, [a.id]);
+    await expect(
+      copyFile(deps, { fileId: a.id, groupId: group.id, userId: owner.id }),
+    ).rejects.toBeInstanceOf(InvalidAttachmentError);
   });
 });
 

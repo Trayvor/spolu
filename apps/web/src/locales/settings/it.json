@@ -41,14 +41,16 @@
       "tasks": "Bacheca delle attività",
       "tickets": "Bacheca dei ticket",
       "knowledge": "Base di conoscenza",
-      "meetings": "Riunioni"
+      "meetings": "Riunioni",
+      "finance": "Finanze"
     },
     "hints": {
       "chat": "Messaggi, menzioni e risposte nelle chat dei gruppi",
       "tasks": "Spostamenti, assegnazioni, scadenze, promemoria e chat delle attività",
       "tickets": "Ticket di supporto e relative conversazioni",
       "knowledge": "Promemoria della base di conoscenza, tranne le riunioni",
-      "meetings": "Riunioni nuove e spostate, i loro promemoria e i riepiloghi AI"
+      "meetings": "Riunioni nuove e spostate, i loro promemoria e i riepiloghi AI",
+      "finance": "Promemoria di contratti e altre voci finanziarie"
     },
     "channels": {
       "email": "Email",

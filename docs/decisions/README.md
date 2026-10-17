@@ -50,3 +50,4 @@ What gets easier, what gets harder.
 | [0024](0024-bulk-email-content-v2.md) | Bulk email content v2: a document tree, a phone version and an upgrade on read | accepted |
 | [0025](0025-prosemirror-chat-editor.md) | ProseMirror core for the chat composer, with our own Markdown conversion | accepted |
 | [0026](0026-bulk-email-wide-layout-and-linked-preview.md) | A wider email for split containers, and a preview linked to the builder | accepted |
+| [0027](0027-sealed-finance-module.md) | A sealed finance module: own tables, own room, finance-only files | accepted |

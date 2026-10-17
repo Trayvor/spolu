@@ -83,6 +83,7 @@ describe('email code login', () => {
       email: admin.email,
       name: `User ${admin.id}`,
       role: 'admin',
+      finance: false,
       groups: [],
     });
   });

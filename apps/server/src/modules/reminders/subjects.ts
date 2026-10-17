@@ -73,6 +73,7 @@ export function listReminderSubjects(): ReminderSubject[] {
 const SUBJECT_COLUMNS = {
   knowledge: { column: reminderSets.knowledgeItemId, key: 'knowledgeItemId' },
   task: { column: reminderSets.taskId, key: 'taskId' },
+  finance: { column: reminderSets.financeItemId, key: 'financeItemId' },
 } as const satisfies Record<ReminderSubjectKind, { column: AnyPgColumn; key: string }>;
 
 export function subjectColumn(kind: ReminderSubjectKind): AnyPgColumn {

@@ -1,11 +1,11 @@
 # Phase 32 — Finančná správa: plan
 
-Spec: [2026-10-17-finance-module-design.md](../specs/2026-10-17-finance-module-design.md) (read its "Owner decisions" first). Status: **waiting for the owner**; build only after the owner has answered the decisions marked **B** (or accepted the recommendations).
+Spec: [2026-10-17-finance-module-design.md](../specs/2026-10-17-finance-module-design.md) (read its "Owner decisions" first). Status: **approved** by the owner on 2026-10-17 (every recommendation accepted); part A1 in progress.
 
 Five pull requests. **A1 is merged first**: it fixes the schema, the shared types, the permission and the empty screens, so the other parts only add code in files of their own. Then **A2, B and C run in parallel** (separate worktrees, any merge order, each rebases on the previous merge). **D** starts when B and C are merged (it reuses their list and aggregate functions and their cards). Each part is test-first (`superpowers:test-driven-development`), runs `bash scripts/ci.sh` before merging, and updates its docs with `update-kb`. Any screen work starts with the `frontend-design:frontend-design` skill (CLAUDE.md).
 
 ```
-A1 foundation ──┬── A2 time on done (task board, notification, dashboard)
+A1 foundation ──┬── A2 time on done and on resolve (tasks and tickets, notifications, dashboard)
                 ├── B  documents and contracts (+ reminders)          ──┐
                 └── C  overview, work log, rates, manual entries, charts ┴── D system-wide page and rankings
 ```
@@ -28,7 +28,8 @@ Defined by A1 (signatures, with stubs that throw `not implemented` where another
 canSeeFinance(actor: SessionUser): boolean
 canGrantFinance(actor: SessionUser, target: { id: string; role: Role; disabledAt: Date | null }): boolean
 canLogOwnTaskTime(actor: SessionUser, assigneeIds: readonly string[]): boolean
-canEditTimeEntry(actor: SessionUser, entry: { source: 'task' | 'manual'; userId: string }): boolean
+canLogOwnTicketTime(actor: SessionUser, ticket: { assigneeIds: readonly string[]; groupId: string | null }): boolean
+canEditTimeEntry(actor: SessionUser, entry: { source: 'task' | 'ticket' | 'manual'; userId: string }): boolean
 canManageRates(actor: SessionUser): boolean
 canAddManualEntry(actor: SessionUser): boolean
 
@@ -51,12 +52,22 @@ setFilesFinanceOnly(tx, fileIds: string[]): Promise<void>
 // canReadFile: finance_only checked first; attachFiles refuses finance_only unless { finance: true }
 
 // modules/finance/task-time.ts (A2; must not import modules/tasks)
-onTaskCompleted(tx, e: { taskId; groupId; title; completedAt: Date; actorId; assigneeIds: string[] }): Promise<{ askActor: boolean; notified: string[] }>
+onTaskCompleted(tx, e: { taskId; groupId; title; completedAt: Date; actorId; assigneeIds: string[]; sourceTicketId: string | null }): Promise<{ askActor: boolean; notified: string[] }>
 onTaskReopened(tx, taskId): Promise<string[] /* users whose requests went */>
 onAssigneesRemoved(tx, taskId, userIds: string[]): Promise<void>
 onTaskDeleting(tx, taskId): Promise<string[]>
 listMyTimeRequests(db, userId, limit): Promise<TimeRequestRow[]>
 fillTaskTime(deps, actor, taskId, minutes): Promise<TaskTimeDto>
+// listMyTimeRequests returns task and ticket requests (TimeRequestRow.kind)
+
+// modules/finance/ticket-time.ts (A2; must not import modules/tickets) — extension of 2026-10-17
+onTicketResolved(tx, e: { ticketId; groupId: string | null; title; resolvedAt: Date; actorId; assigneeIds: string[]; linkedTaskIds: string[] }): Promise<{ askActor: boolean; notified: string[]; linkedTasksLogged: boolean }>
+onTicketReopened(tx, ticketId): Promise<string[]>
+onTicketAssigneesRemoved(tx, ticketId, userIds: string[]): Promise<void>
+onTicketMoved(tx, ticketId, groupId: string): Promise<void>
+onTicketDeleting(tx, ticketId): Promise<string[]>
+getTicketTime(db, actor, ticketId): Promise<TicketTimeDto>
+fillTicketTime(deps, actor, ticketId, body: PutMyTicketTimeBody): Promise<TicketTimeDto>
 
 // modules/finance/documents.ts (B)
 listItems(db, scope: FinanceScope, filter: { folderId?; type?; q?; after?; sort? }): Promise<FinanceItemPage>
@@ -66,6 +77,7 @@ listItems(db, scope: FinanceScope, filter: { folderId?; type?; q?; after?; sort?
 costSql(entries alias): SQL                            // the rate lookup (left join lateral)
 overview(db, scope: FinanceScope, range: MonthRange): Promise<FinanceOverviewDto>
 workLogPage(db, scope: FinanceScope, range: MonthRange | null, before: string | null): Promise<WorkLogPageDto>
+// entries carry unitTicketId (ticket_id ?? linked_ticket_id) and the page a `tickets` list: one unit per ticket
 listRates(db) / addRate(deps, actor, input) / deleteRate(deps, actor, id)
 // D calls overview and workLogPage with a multi-group or all scope
 
@@ -80,7 +92,7 @@ listRates(db) / addRate(deps, actor, input) / deleteRate(deps, actor, id)
 **Goal:** the right exists and is enforced; every finance table exists; the tab and the page exist (empty cards) for finance admins only; finance files and finance notifications are sealed.
 
 Server:
-- Migration (next number, today 0032) `finance_foundation`: `user.finance_access_at`, `user.finance_access_by` + CHECK (admins only); `files.finance_only`; `finance_folders`, `finance_items`, `finance_attachments`, `finance_time_entries`, `finance_rates` with every index and CHECK of spec §3; `reminder_sets.finance_item_id` (unique, FK cascade) and the new `reminder_sets_subject_check`. Drizzle in `modules/finance/schema.ts`, `users/schema.ts`, `files/schema.ts`, `reminders/schema.ts` (`SUBJECT_COLUMNS.finance`).
+- Migration (next number: **0034** after `0033_drop_ticket_followers`) `finance_foundation`: `user.finance_access_at`, `user.finance_access_by` + CHECK (admins only); `files.finance_only`; `finance_folders`, `finance_items`, `finance_attachments`, `finance_time_entries` (sources `task`, `ticket`, `manual`; `ticket_id`, `linked_ticket_id`, `covered_by_tasks`, spec §3.3), `finance_rates` with every index and CHECK of spec §3; `reminder_sets.finance_item_id` (unique, FK cascade) and the new `reminder_sets_subject_check`. Drizzle in `modules/finance/schema.ts`, `users/schema.ts`, `files/schema.ts`, `reminders/schema.ts` (`SUBJECT_COLUMNS.finance`).
 - `modules/auth/auth.ts` (`additionalFields.financeAccessAt`), `session.ts` (`finance` on `SessionUser`; superadmin always true), `packages/shared/src/users.ts` (`SessionUserSchema.finance`, `MeSchema`).
 - `modules/finance/{policy,access,events,scope,routes}.ts`; `PUT`/`DELETE /api/admins/:id/finance-access` (in `access.ts`, registered by `routes.ts`); deactivation clears the right (`modules/users/service.ts`); the `finance` room joined on connect (`infra/realtime`), moved on grant/revoke, `me:changed`.
 - `modules/files/policy.ts` (`finance_only` first), `files/service.ts` (`attachFiles` refuses finance-only; `setFilesFinanceOnly`), `files/read-rules.ts` untouched but covered by a test.
@@ -104,13 +116,15 @@ Done when: the superadmin turns Finance on for an admin, who sees the empty Fina
 
 ## Part A2 — Time on done (branch `feat/finance-task-time`; after A1)
 
-**Goal:** spec §5 entirely.
+**Goal:** spec §5 entirely, including §5.6 (tickets, extension of 2026-10-17).
 
 Server:
 - `modules/finance/task-time.ts` (the hooks and `listMyTimeRequests`, `fillTaskTime`), `task-time-routes.ts` (`GET /api/tasks/:id/time`, `PUT /api/tasks/:id/time/me`: `requireAdmin`, the board check, `canLogOwnTaskTime`).
 - `modules/tasks/task-service.ts`: call `onTaskCompleted` in `moveTask` (when `completedAt` is newly set) and `createTask` (created in Completed), `onTaskReopened` (moved out of Completed), `onAssigneesRemoved` in `updateTask`, `onTaskDeleting` in `deleteTask`; return `askTime`; notify after commit with `requestDelivery`; emit `finance:changed` (kind `time`) and `time:requests`. `task-routes.ts`: `askTime` in the move, create and update answers (false for clients).
 - Notifications: kind `task.time_missing` (`NOTIFICATION_GROUP_OF` → `tasks`; passes every mode in `decide.ts`), push and digest texts in nine languages (`texts.ts`, `push-content.ts`, `digest-entries.ts`), the deep link `?task=<id>&time=1`.
-- `modules/home/routes.ts` / `assigned.ts`: `GET /api/me/home/tasks` adds `timeRequests` (from `listMyTimeRequests`, first 20) and `timeRequestCount`.
+- `modules/home/routes.ts` / `assigned.ts`: `GET /api/me/home/tasks` adds `timeRequests` (from `listMyTimeRequests`, first 20, tasks and tickets) and `timeRequestCount`.
+- Tickets (§5.6): `modules/finance/ticket-time.ts` (the stubs of A1), the ticket routes in `task-time-routes.ts` (`GET /api/tickets/:id/time`, `PUT /api/tickets/:id/time/me`: `requireAdmin`, the ticket's read rule, `canLogOwnTicketTime`); `modules/tickets/service.ts` calls `onTicketResolved` when the status becomes `resolved`, `onTicketReopened`, `onTicketAssigneesRemoved`, `onTicketMoved` and `onTicketDeleting`; the status answer carries `askTime`; the notification kind `ticket.time_missing` (Ticket board group); `onTaskCompleted` gets the task's `source_ticket_id`. The riešitelia come from the tickets module's `modules/tickets/audience.ts` (who answers a ticket, PR #76, which removed per-ticket following); the time ask goes to the **admin** riešitelia only, never to client watchers.
+- Web: the ticket dialog with options (a) and (b) and "My time" on the ticket page (`features/tickets/`), reusing the time dialog's parts.
 
 Web:
 - `features/tasks/time-dialog.tsx` (lazy chunk; duration field, chips, 0, the 12 h warning, Later, the queue in `time-queue.ts`), opened after a move/create/update answer with `askTime`, from the done circle, drag and the panel's bucket select (group board and global board), and by `time=1` in the URL.
@@ -154,6 +168,7 @@ Done when: a finance admin keeps a client's contracts, documents and notes in fo
 **Goal:** the Overview and Work log cards of spec §6.1, the rates dialog (§6.2, step 3) and manual entries (§6.3), with the charts.
 
 Server:
+- Ticket units (2026-10-17): the work log groups a ticket with its linked tasks (`unitTicketId`, the page's `tickets` list with numbers and live titles through the tickets module's exported title batch); totals count every row once, (b) answers add 0; the overview and the summaries add `ticketCount`.
 - `modules/finance/rates.ts` (lookup rule, "from the start", history, add, delete), `aggregates.ts` (`costSql`, `overview` per currency and month, hours per admin and month, missing rates), `work-log.ts` (`workLogPage`: 200 entries a page, month totals for the months on the page, period summary, `getTaskTitles` batch, names batch), `manual-entries.ts` (create, edit, delete; edits of task entries by finance admins), `log-routes.ts`.
 - `modules/finance/test-volume.ts` and `explain.test.ts` (spec §10 volume and limits); the EXPLAIN numbers go into `architecture/performance.md`.
 

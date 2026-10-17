@@ -61,6 +61,7 @@ After a bucket is deleted its tasks moved to To do without a `board:task` event;
 | `admins`       | every admin socket, on connect (`ADMINS_ROOM`)                                  | events about all groups for admins: `group:managers`, `admin:activity`, `bulk:updated`                                                             |
 | `group:<id>`   | a client, on connect, for each of their client groups; an admin through `group:join` | every event of the group: chat, board (tasks and buckets), files, members (one room per group, no separate channel or board rooms) |
 | `group:<id>:admins` | an admin's socket, together with `group:<id>` on `group:join` (left with it on `group:leave`); never a client | admins-only events of the group (knowledge items with visibility `admins`) |
+| `finance`      | a socket whose user passes `canSeeFinance`, on connect (`FINANCE_ROOM`); moved by the grant routes | `finance:changed` only (Phase 32) |
 | per DM channel | the two participants                                                            | direct messages (not built yet)                                                                                                    |
 
 ## Group events
@@ -158,3 +159,13 @@ sequenceDiagram
 ```
 
 The catch-up read is an ordinary HTTP read, so it uses the same permission checks as everything else.
+
+## Finance events (Phase 32)
+
+| event | payload | room | when |
+|---|---|---|---|
+| `finance:changed` | `{ groupId: string \| null, kind: 'items' \| 'time' \| 'rates' }` | `finance` | after a finance write commits (`emitFinanceChanged`; `groupId` null for rates); emitted by parts A2, B, C |
+| `time:requests` | `{ count }` | `user:<id>` | the user's open time requests changed (`emitTimeRequests`; part A2) |
+| `me:changed` | `{}` | `user:<id>` | the superadmin granted or removed the user's finance right |
+
+Finance events never go to `group:<id>`, `group:<id>:admins` or `admins`. The grant routes move the target's sockets (`moveFinanceSockets`: `socketsJoin` / `socketsLeave` of `finance`, and `socket.data.user.finance` follows) before `me:changed`. The web: `useMeChanged` (signed-in layout) refetches `/api/me` and drops cached finance data when the right went; `useFinanceEvents(view)` (the Finance tab and page) invalidates `['finance', groupId | 'all']` 2 s after the last `finance:changed` of a burst — a client's tab reacts to its own client and to client-less changes, `/finance` to all.

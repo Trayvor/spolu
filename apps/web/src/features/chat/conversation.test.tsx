@@ -44,6 +44,7 @@ const ME = {
   name: 'Me Myself',
   email: 'me@example.com',
   role: 'client',
+  finance: false,
   groups: [{ id: 'g1', name: 'Firma', role: 'client', hasLogo: false, updatedAt: '' }],
 };
 const people: GroupPerson[] = [
