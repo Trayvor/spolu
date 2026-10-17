@@ -201,3 +201,105 @@ test.describe('finance work log and cost (part C)', () => {
     expect(b.id).toBeTruthy();
   });
 });
+
+// Part D: spec §14 scenarios 6 (system-wide) and 7 (phone, the fourth segment). The page's
+// client filter is remembered per person, so the test stores its two clients before opening
+// `/finance`; every number then comes from this test's own rows.
+test.describe('finance system-wide page and rankings (part D)', () => {
+  test('ranks the client with the contract first and an admin’s cost by Money', async ({
+    page,
+  }) => {
+    const stamp = Date.now();
+    const me = (await (await page.request.get('/api/me')).json()) as { id: string; name: string };
+    const client = async (name: string, slug: string) => {
+      const res = await page.request.post('/api/groups', {
+        data: { name, egrantUrl: `https://e2e-fin-d-${slug}-${stamp}.egrant.sk` },
+      });
+      expect(res.status()).toBe(201);
+      return ((await res.json()) as { id: string }).id;
+    };
+    const paidName = `E2E Platí ${stamp}`;
+    const workName = `E2E Práca ${stamp}`;
+    const paid = await client(paidName, 'p');
+    const work = await client(workName, 'w');
+    const aName = `E2E Admin A ${stamp}`;
+    const added = await page.request.post('/api/admins', {
+      data: { name: aName, email: `e2e-fin-d-${stamp}@example.com` },
+    });
+    expect(added.ok()).toBe(true);
+    const a = (await added.json()) as { id: string };
+
+    // A contract that started today (paid, owner decision 12) for the first client.
+    const today = bratislavaDay();
+    const item = await page.request.post(`/api/groups/${paid}/finance/items`, {
+      data: {
+        type: 'contract',
+        title: `E2E Zmluva D ${stamp}`,
+        amount: { amountMinor: 1_200_000, currency: 'EUR' },
+        startsOn: today,
+        endsOn: today,
+      },
+    });
+    expect(item.status()).toBe(201);
+    // A's rate 80 €/h; A works 1 h on the second client, the superadmin 3 h on the first.
+    expect(
+      (
+        await page.request.post('/api/finance/rates', {
+          data: { userId: a.id, rateMinor: 8000, effectiveFrom: null },
+        })
+      ).status(),
+    ).toBe(201);
+    for (const [groupId, userId, minutes] of [
+      [work, a.id, 60],
+      [paid, me.id, 180],
+    ] as const) {
+      const res = await page.request.post(`/api/groups/${groupId}/finance/time-entries`, {
+        data: { userId, workedOn: today, minutes },
+      });
+      expect(res.status()).toBe(201);
+    }
+
+    await page.goto('/');
+    await page.evaluate(
+      ([key, value]) => localStorage.setItem(key!, value!),
+      [`spolu.filters.${me.id}.finance.clients`, JSON.stringify({ clients: `${paid},${work}` })],
+    );
+    await page.goto('/finance');
+    await expect(page.getByRole('heading', { name: 'Finančná správa' })).toBeVisible();
+
+    // Clients by money paid, this year: the client with the contract, the only one.
+    const paidCard = page.getByRole('region', { name: 'Klienti podľa zaplatených súm' });
+    const paidRows = paidCard.getByTestId('ranking-row');
+    await expect(paidRows).toHaveCount(1);
+    await expect(paidRows.first()).toContainText(paidName);
+    await expect(paidRows.first()).toContainText(/12\s000\s€/);
+
+    // Clients by hours: the superadmin's 3 h rank the first client first; only A, by Money.
+    const hoursCard = page.getByRole('region', { name: 'Klienti podľa hodín' });
+    const hoursRows = hoursCard.getByTestId('ranking-row');
+    await expect(hoursRows.first()).toContainText(paidName);
+    await hoursCard.getByLabel('Admin').selectOption({ label: aName });
+    await hoursCard.getByRole('radio', { name: 'Peniaze' }).click();
+    await expect(hoursRows).toHaveCount(1);
+    await expect(hoursRows.first()).toContainText(workName);
+    await expect(hoursRows.first()).toContainText(/80\s€/);
+
+    // The contracts table names the client.
+    const contracts = page.getByRole('region', { name: 'Zmluvy' });
+    await expect(contracts.getByTestId('contract-row').first()).toContainText(paidName);
+  });
+
+  test('on a phone the page adds the Rankings segment', async ({ browser }) => {
+    const context = await browser.newContext({
+      storageState: 'e2e/.auth/superadmin.json',
+      viewport: { width: 390, height: 844 },
+    });
+    const page = await context.newPage();
+    await page.goto('/finance');
+    const segments = page.getByRole('radiogroup', { name: 'Zobraziť kartu' });
+    await segments.getByRole('radio', { name: 'Rebríčky' }).click();
+    await expect(page.getByRole('region', { name: 'Klienti podľa zaplatených súm' })).toBeVisible();
+    await expect(page.getByRole('region', { name: 'Klienti podľa hodín' })).toBeVisible();
+    await context.close();
+  });
+});

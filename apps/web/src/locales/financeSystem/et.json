@@ -1,4 +1,52 @@
 {
   "clients": "Kliendid",
-  "allClients": "Kõik kliendid"
+  "allClients": "Kõik kliendid",
+  "noClient": "Kliendita",
+  "rates": "Tunnitasud",
+  "loadFailed": "Loendit ei õnnestunud laadida.",
+  "retry": "Proovi uuesti",
+  "showMore": "Näita veel 20",
+  "contracts": {
+    "search": "Otsi lepinguid, dokumente ja märkmeid",
+    "sortLabel": "Sordi lepingud",
+    "sort": {
+      "start": "Uusim algus",
+      "end": "Varem lõppevad",
+      "amount": "Suurim summa"
+    },
+    "columns": {
+      "client": "Klient",
+      "contract": "Leping",
+      "period": "Periood",
+      "amount": "Summa"
+    },
+    "kinds": {
+      "contract": "leping",
+      "document": "dokument",
+      "note": "märge"
+    },
+    "empty": "Valitud klientidel pole veel lepinguid.",
+    "noMatch": "Päringule „{{q}}“ ei vasta midagi.",
+    "showMore": "Näita rohkem"
+  },
+  "paid": {
+    "year": "Aasta",
+    "month": "Kuu",
+    "wholeYear": "Terve aasta",
+    "currency": "Valuuta",
+    "total": "Kokku makstud: {{amount}}",
+    "empty": "Sel perioodil ei alanud ühtegi valitud klientide lepingut."
+  },
+  "hours": {
+    "rankBy": "Järjesta",
+    "hours": "Tunnid",
+    "cost": "Raha",
+    "admin": "Admin",
+    "allAdmins": "Kõik adminid",
+    "empty": "Sel perioodil ei ole aega kirja pandud.",
+    "missingRate": "{{hours}} ilma tasuta"
+  },
+  "workLog": {
+    "topClients": "Kõige rohkem tunde:"
+  }
 }

@@ -17,11 +17,8 @@
     "workLog": "Tööaruanne",
     "workLogSoon": "Siin on tunnid, mille administraatorid selle kliendi heaks töötasid, kuude ja päevade kaupa.",
     "contracts": "Lepingud",
-    "contractsSoon": "Siin on kõigi klientide lepingud ja otsing kõigis finantsdokumentides.",
     "paidRanking": "Kliendid makstud summa järgi",
-    "paidRankingSoon": "Siin on kliendid makstud summa järgi järjestatud.",
-    "hoursRanking": "Kliendid tundide järgi",
-    "hoursRankingSoon": "Siin on kliendid tundide või nende maksumuse järgi järjestatud."
+    "hoursRanking": "Kliendid tundide järgi"
   },
   "periods": {
     "next12": "Viimased 12 ja järgmised 12 kuud",

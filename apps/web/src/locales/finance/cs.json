@@ -17,11 +17,8 @@
     "workLog": "Výkaz práce",
     "workLogSoon": "Zde budou hodiny, které administrátoři pro tohoto klienta odpracovali, po měsících a dnech.",
     "contracts": "Smlouvy",
-    "contractsSoon": "Zde budou smlouvy všech klientů a vyhledávání ve všech finančních dokumentech.",
     "paidRanking": "Klienti podle zaplacených částek",
-    "paidRankingSoon": "Zde budou klienti seřazení podle zaplacených částek.",
-    "hoursRanking": "Klienti podle hodin",
-    "hoursRankingSoon": "Zde budou klienti seřazení podle hodin nebo jejich ceny."
+    "hoursRanking": "Klienti podle hodin"
   },
   "periods": {
     "next12": "Posledních 12 a příštích 12 měsíců",

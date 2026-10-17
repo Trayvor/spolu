@@ -124,7 +124,12 @@ function ordering(filter: ListItemsFilter) {
   const valueOf = (row: PageRow) =>
     sort === 'start' ? row.starts_on : sort === 'end' ? row.ends_on : row.amount_minor;
   return {
-    orderBy: sql`${column} ${dir} nulls last, i.id ${dir}`,
+    // Contracts always have the value (CHECKs), so their order needs no `nulls last`, and
+    // without it `starts_on desc` reads `finance_items_contract_starts_idx` backwards (part D).
+    orderBy:
+      filter.type === 'contract'
+        ? sql`${column} ${dir}, i.id ${dir}`
+        : sql`${column} ${dir} nulls last, i.id ${dir}`,
     after: (cursor: string) => {
       const { value, id } = decodeCursor(cursor);
       // An empty value: the cursor row had none (those come last).
@@ -194,6 +199,12 @@ function toItem(row: PageRow): FinanceItem {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
+}
+
+/** The first page's query of `listItems` / `listContracts` (part D's EXPLAIN checks). */
+export function contractsPageSql(scope: FinanceScope, filter: ListItemsFilter): SQL {
+  const size = Math.max(1, Math.min(filter.limit ?? FINANCE_LIMITS.pageSize, 100));
+  return pageQuery(filterWhere(scope, filter), ordering(filter).orderBy, size + 1);
 }
 
 async function runPage(db: Db, scope: FinanceScope, filter: ListItemsFilter) {
