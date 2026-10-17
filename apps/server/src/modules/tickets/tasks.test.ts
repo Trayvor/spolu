@@ -138,38 +138,46 @@ describe('ticket to tasks (Phase 21.5)', () => {
       expect(request.today).toBe('2026-10-16');
     });
 
-    it('carries the ticket chat, oldest first, without deleted messages, the newest 30', async () => {
-      const g = await group();
-      const a = await admin();
-      const c = await member(g.id, 'client', 'Jana');
-      const t = await ticket(g);
-      const chat = (await call('GET', `/api/tickets/${t.id}/chat`, a.cookie)).json<GroupChannel>();
-      const say = async (cookie: string, body: string) => {
-        const res = await call('POST', `/api/channels/${chat.id}/messages`, cookie, {
-          body,
-          clientId: randomUUID(),
-        });
-        expect(res.statusCode).toBe(201);
-        return res.json<MessageDto>();
-      };
-      await say(a.cookie, 'Dobrý deň, robili ste niečo predtým?');
-      await say(c.cookie, 'Áno, nahrala som prílohu cez Chrome.');
-      const gone = await say(c.cookie, 'preklep');
-      expect((await call('DELETE', `/api/messages/${gone.id}`, c.cookie)).statusCode).toBeLessThan(
-        300,
-      );
-      expect((await build(t.id)).conversation).toEqual([
-        { author: 'Ad Min', text: 'Dobrý deň, robili ste niečo predtým?' },
-        { author: 'Jana', text: 'Áno, nahrala som prílohu cez Chrome.' },
-      ]);
+    // 33 messages go through the HTTP API one by one (each with its notification fan-out), which
+    // takes well over the default 15 s on a busy machine; the test asserts content, not speed.
+    it(
+      'carries the ticket chat, oldest first, without deleted messages, the newest 30',
+      { timeout: 60_000 },
+      async () => {
+        const g = await group();
+        const a = await admin();
+        const c = await member(g.id, 'client', 'Jana');
+        const t = await ticket(g);
+        const chat = (
+          await call('GET', `/api/tickets/${t.id}/chat`, a.cookie)
+        ).json<GroupChannel>();
+        const say = async (cookie: string, body: string) => {
+          const res = await call('POST', `/api/channels/${chat.id}/messages`, cookie, {
+            body,
+            clientId: randomUUID(),
+          });
+          expect(res.statusCode).toBe(201);
+          return res.json<MessageDto>();
+        };
+        await say(a.cookie, 'Dobrý deň, robili ste niečo predtým?');
+        await say(c.cookie, 'Áno, nahrala som prílohu cez Chrome.');
+        const gone = await say(c.cookie, 'preklep');
+        expect(
+          (await call('DELETE', `/api/messages/${gone.id}`, c.cookie)).statusCode,
+        ).toBeLessThan(300);
+        expect((await build(t.id)).conversation).toEqual([
+          { author: 'Ad Min', text: 'Dobrý deň, robili ste niečo predtým?' },
+          { author: 'Jana', text: 'Áno, nahrala som prílohu cez Chrome.' },
+        ]);
 
-      // Two authors: one may send 30 messages a minute.
-      for (let i = 0; i < 30; i++) await say(i % 2 ? c.cookie : a.cookie, `m${i}`);
-      const long = await build(t.id);
-      expect(long.conversation).toHaveLength(30);
-      expect(long.conversation.at(0)!.text).toBe('m0');
-      expect(long.conversation.at(-1)!.text).toBe('m29');
-    });
+        // Two authors: one may send 30 messages a minute.
+        for (let i = 0; i < 30; i++) await say(i % 2 ? c.cookie : a.cookie, `m${i}`);
+        const long = await build(t.id);
+        expect(long.conversation).toHaveLength(30);
+        expect(long.conversation.at(0)!.text).toBe('m0');
+        expect(long.conversation.at(-1)!.text).toBe('m29');
+      },
+    );
   });
 
   describe('POST /api/tickets/:id/task-split', () => {
