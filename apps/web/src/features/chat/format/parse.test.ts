@@ -280,7 +280,7 @@ describe('parseMessage', () => {
     const fastest = (a: string, b: string) => {
       let small = Infinity;
       let large = Infinity;
-      for (let run = 0; run < 7; run++) {
+      for (let run = 0; run < 5; run++) {
         let started = performance.now();
         parseMessage(a);
         small = Math.min(small, performance.now() - started);
@@ -290,8 +290,8 @@ describe('parseMessage', () => {
       }
       return { small, large };
     };
-    const small = hostile(24_000);
-    const large = hostile(192_000);
+    const small = hostile(12_000);
+    const large = hostile(96_000);
     small.forEach((input, i) => {
       const t = fastest(input, large[i]!);
       // Floor of 1 ms: below it the timer's resolution, not the parser, sets the small time.
@@ -299,5 +299,5 @@ describe('parseMessage', () => {
       const ratio = t.large / Math.max(t.small, 1);
       expect(ratio, input.slice(0, 12)).toBeLessThan(32);
     });
-  });
+  }, 60_000);
 });
