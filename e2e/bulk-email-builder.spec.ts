@@ -15,6 +15,12 @@ test('bulk email builder: split container, phone version and the send warning', 
   await page.getByRole('button', { name: 'Nový e-mail' }).click();
   await expect(page).toHaveURL(/\/bulk-email\/[0-9a-f-]{36}$/);
   const id = page.url().split('/').pop()!;
+  const campaign = async () =>
+    (await (await page.request.get(`/api/bulk-email/campaigns/${id}`)).json()) as {
+      blocks: unknown[];
+      phoneBlocks: unknown[] | null;
+      phoneCheckShown: boolean;
+    };
   await page.getByLabel('Interný názov').fill(`E2E builder ${stamp}`);
   await page.getByLabel('Predmet').fill(`Builder ${stamp}`);
 
@@ -60,9 +66,9 @@ test('bulk email builder: split container, phone version and the send warning', 
   await expect(state).toHaveText('Verzia pre telefón: upravená zvlášť');
   await expect(page.getByText('Všetky zmeny sú uložené')).toBeVisible();
 
-  let saved = await (await page.request.get(`/api/bulk-email/campaigns/${id}`)).json();
-  expect(saved.blocks).toHaveLength(2);
-  expect(saved.phoneBlocks).toHaveLength(1);
+  // The status line may still say "saved" from before: wait for the server to have it.
+  await expect.poll(async () => (await campaign()).phoneBlocks?.length).toBe(1);
+  expect((await campaign()).blocks).toHaveLength(2);
 
   // The computer version still has its container.
   await page.getByRole('button', { name: 'Počítač', exact: true }).click();
@@ -73,8 +79,7 @@ test('bulk email builder: split container, phone version and the send warning', 
   await page.getByRole('button', { name: 'Zahodiť verziu pre telefón' }).click();
   await expect(state).toHaveText('Verzia pre telefón: rovnaká ako pre počítač');
   await expect(page.getByText('Všetky zmeny sú uložené')).toBeVisible();
-  saved = await (await page.request.get(`/api/bulk-email/campaigns/${id}`)).json();
-  expect(saved.phoneBlocks).toBeNull();
+  await expect.poll(async () => (await campaign()).phoneBlocks).toBeNull();
 
   // 5. Recipients: the admins (the email is never sent in this test).
   await page.getByRole('checkbox', { name: 'Admini' }).check();
@@ -95,8 +100,7 @@ test('bulk email builder: split container, phone version and the send warning', 
   await expect(page.getByTestId('send-dialog')).toBeHidden();
 
   // Shown once per campaign, also after a reload.
-  saved = await (await page.request.get(`/api/bulk-email/campaigns/${id}`)).json();
-  expect(saved.phoneCheckShown).toBe(true);
+  await expect.poll(async () => (await campaign()).phoneCheckShown).toBe(true);
   await page.reload();
   await page.getByRole('button', { name: 'Odoslať…' }).click();
   await expect(page.getByTestId('send-dialog')).toBeVisible();
