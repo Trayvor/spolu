@@ -87,6 +87,9 @@ describe('ticket link page', () => {
     await waitFor(() => expect(router.state.location.pathname).toBe('/tickets/t1'));
     // The link page is not left in the history with its token.
     expect(router.history.location.hash).toBe('');
+    // Let the lazy ticket screen finish loading (the fake API answers 404), so no import is still
+    // in flight when the file's environment closes.
+    expect(await screen.findByText(t('notFound.title'))).toBeInTheDocument();
   });
 
   it('an expired link goes to the login page with a notice and the email filled in', async () => {
