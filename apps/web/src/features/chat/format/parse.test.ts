@@ -275,21 +275,29 @@ describe('parseMessage', () => {
       '```\n'.repeat(n / 4),
       'a\n'.repeat(n / 2),
     ];
-    const best = (input: string) => {
-      let fastest = Infinity;
-      for (let run = 0; run < 3; run++) {
-        const started = performance.now();
-        parseMessage(input);
-        fastest = Math.min(fastest, performance.now() - started);
+    // The fastest of several runs, the small and the large input interleaved, so a burst of load
+    // on a busy machine hits both sizes alike instead of one of them.
+    const fastest = (a: string, b: string) => {
+      let small = Infinity;
+      let large = Infinity;
+      for (let run = 0; run < 7; run++) {
+        let started = performance.now();
+        parseMessage(a);
+        small = Math.min(small, performance.now() - started);
+        started = performance.now();
+        parseMessage(b);
+        large = Math.min(large, performance.now() - started);
       }
-      return fastest;
+      return { small, large };
     };
     const small = hostile(24_000);
     const large = hostile(192_000);
     small.forEach((input, i) => {
+      const t = fastest(input, large[i]!);
       // Floor of 1 ms: below it the timer's resolution, not the parser, sets the small time.
-      const ratio = best(large[i]!) / Math.max(best(input), 1);
-      expect(ratio, input.slice(0, 12)).toBeLessThan(24);
+      // 8x the input: linear is about 8, quadratic about 64; 32 leaves room for noise.
+      const ratio = t.large / Math.max(t.small, 1);
+      expect(ratio, input.slice(0, 12)).toBeLessThan(32);
     });
   });
 });
