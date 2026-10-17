@@ -1,5 +1,4 @@
 import {
-  AI_TITLE_MAX,
   type SessionUser,
   type TaskDetailDto,
   type TaskProposal,
@@ -7,10 +6,14 @@ import {
 } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
 import { listPickablePeople } from '../groups/service.js';
-import { createTasksFromSource, type TaskDeps } from '../tasks/task-service.js';
+import {
+  createTasksFromSource,
+  listTasksFromMeeting,
+  type TaskDeps,
+} from '../tasks/task-service.js';
 import { KnowledgeNotFoundError } from './errors.js';
 import { meetingFor } from './meeting-access.js';
-import { getMeetingRow, parseSummary } from './meeting-store.js';
+import { actionItemsLeft, actionItemTitle, getMeetingRow, parseSummary } from './meeting-store.js';
 import { normalizeSearch } from './search.js';
 
 // Phase 30: a meeting's action items → the task review dialog → cards on the group's board.
@@ -21,8 +24,6 @@ const dateText = new Intl.DateTimeFormat('en-CA', {
   month: '2-digit',
   day: '2-digit',
 });
-
-const cut = (text: string, max: number) => Array.from(text).slice(0, max).join('').trim();
 
 /**
  * The person a suggested name means: a unique match of the whole name, else a unique match of
@@ -46,7 +47,8 @@ export function matchPerson(
 /**
  * The action items of a meeting's summary as task proposals (admins; no AI call): the text as
  * the title (cut to 200), and as the description when longer, with the meeting's title and date;
- * a named person of the group as the assignee; a said date as the deadline.
+ * a named person of the group as the assignee; a said date as the deadline. An action item a task
+ * made from this meeting already has the title of is left out (`actionItemsLeft`).
  */
 export async function meetingTaskProposals(
   db: Db,
@@ -58,10 +60,17 @@ export async function meetingTaskProposals(
   if (!row) throw new KnowledgeNotFoundError();
   const summary = parseSummary(row.summary);
   if (!summary || summary.actionItems.length === 0) return [];
-  const people = await listPickablePeople(db, item.groupId);
+  const [people, made] = await Promise.all([
+    listPickablePeople(db, item.groupId),
+    listTasksFromMeeting(db, itemId),
+  ]);
+  const left = actionItemsLeft(
+    summary,
+    made.map((t) => t.title),
+  );
   const source = `${item.title}, ${dateText.format(row.startsAt)}`;
-  return summary.actionItems.map((action) => {
-    const title = cut(action.text, AI_TITLE_MAX);
+  return left.map((action) => {
+    const title = actionItemTitle(action);
     const assignee = matchPerson(action.assignee, people);
     const description = [
       ...(title === action.text.trim() ? [] : [action.text.trim()]),
@@ -79,7 +88,10 @@ export async function meetingTaskProposals(
   });
 }
 
-/** Creates the reviewed cards (admins) at the top of `bucketId` (absent: To do), all or none. */
+/**
+ * Creates the reviewed cards (admins) at the top of `bucketId` (absent: To do), all or none,
+ * linked to the meeting (`source_meeting_id`).
+ */
 export async function createMeetingTasks(
   deps: TaskDeps,
   actor: SessionUser,
@@ -92,7 +104,7 @@ export async function createMeetingTasks(
     actor,
     item.groupId,
     { tasks: input.tasks },
-    { fileIds: [], ...(input.bucketId ? { bucketId: input.bucketId } : {}) },
+    { meetingId: item.id, fileIds: [], ...(input.bucketId ? { bucketId: input.bucketId } : {}) },
   );
   return { groupId: item.groupId, tasks };
 }

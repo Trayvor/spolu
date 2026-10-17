@@ -8,10 +8,13 @@ import {
   type KnowledgeItemDeletedEvent,
   type KnowledgeItemDto,
   type KnowledgeItemEvent,
+  type KnowledgeMeetingTasksEvent,
   type KnowledgeSummary,
   type Visibility,
 } from '@spolu/shared';
+import type { Db } from '../../infra/db/client.js';
 import { emitToGroup, emitToGroupAdmins, emitToGroupClients } from '../../infra/realtime/rooms.js';
+import { findMeetingItem } from './meeting-access.js';
 
 const SUMMARY_KEYS = Object.keys(KnowledgeSummarySchema.shape) as (keyof KnowledgeSummary)[];
 
@@ -96,4 +99,23 @@ export function emitKnowledgeFolderDeleted(
   if (folder.visibility === 'public') {
     emitToGroup(io, folder.groupId, KnowledgeEvents.folderDeleted, event);
   } else emitToGroupAdmins(io, folder.groupId, KnowledgeEvents.folderDeleted, event);
+}
+
+/**
+ * Tells a meeting's readers (the group room, or its admins room for an admins-only one) to refetch
+ * its detail after a task made from it was created, edited, moved or deleted (the detail lists
+ * those tasks). Call it after the write committed; a deleted meeting is skipped.
+ */
+export async function emitMeetingTasks(
+  io: SocketIOServer,
+  db: Db,
+  meetingId: string | null,
+): Promise<void> {
+  if (meetingId === null) return;
+  const item = await findMeetingItem(db, meetingId);
+  if (!item) return;
+  const event: KnowledgeMeetingTasksEvent = { groupId: item.groupId, id: item.id };
+  if (item.visibility === 'public')
+    emitToGroup(io, item.groupId, KnowledgeEvents.meetingTasks, event);
+  else emitToGroupAdmins(io, item.groupId, KnowledgeEvents.meetingTasks, event);
 }

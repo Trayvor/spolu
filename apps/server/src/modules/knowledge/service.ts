@@ -33,6 +33,8 @@ import {
 } from '../files/service.js';
 import { canReadGroup } from '../groups/policy.js';
 import { InvalidReminderError } from '../reminders/errors.js';
+import { canUseBoard } from '../tasks/policy.js';
+import { listTasksFromMeeting } from '../tasks/task-service.js';
 import {
   getReminderSet,
   pruneRecipientsForAdminsOnly,
@@ -501,12 +503,17 @@ export async function getItem(db: Db, actor: SessionUser, id: string): Promise<K
   if (!canReadItem(actor, item, actorGroupIds)) throw new KnowledgeNotFoundError();
   const body = row.body ?? '';
   const hasReminder = row.type === 'reminder' || row.type === 'meeting';
-  const [names, fileRows, reminder, pathOf, meeting] = await Promise.all([
+  const isMeeting = row.type === 'meeting';
+  // Whoever reads the item reads its group's board (admins and its clients): the meeting's tasks.
+  const [names, fileRows, reminder, pathOf, meeting, meetingTasks] = await Promise.all([
     mentionNames(db, [{ groupId: row.group_id, body }]),
     itemFiles(db, id, row.chat_file_id),
     hasReminder ? getReminderSet(db, { kind: SUBJECT, id }, actor) : null,
     pathsOf(db, [row]),
-    row.type === 'meeting' ? getMeetingRow(db, id) : null,
+    isMeeting ? getMeetingRow(db, id) : null,
+    isMeeting && canUseBoard(actor, row.group_id, actorGroupIds)
+      ? listTasksFromMeeting(db, id)
+      : [],
   ]);
   const fileInfos = fileRows.map(toFileInfo);
   return {
@@ -517,7 +524,11 @@ export async function getItem(db: Db, actor: SessionUser, id: string): Promise<K
     canEdit: canEditItem(actor, item, actorGroupIds),
     visibilityLocked: row.author_role === 'client',
     meetingDetail: meeting
-      ? toMeetingDetail(meeting, fileInfos.find((f) => f.id === meeting.recordingFileId) ?? null)
+      ? toMeetingDetail(
+          meeting,
+          fileInfos.find((f) => f.id === meeting.recordingFileId) ?? null,
+          meetingTasks,
+        )
       : null,
   };
 }
@@ -562,8 +573,13 @@ export async function getSharedItem(
     reminder: null,
     canEdit: false,
     visibilityLocked: true,
+    // A reader through a chat message (a ziadatel) never uses the board: no task links.
     meetingDetail: meeting
-      ? toMeetingDetail(meeting, fileInfos.find((f) => f.id === meeting.recordingFileId) ?? null)
+      ? toMeetingDetail(
+          meeting,
+          fileInfos.find((f) => f.id === meeting.recordingFileId) ?? null,
+          [],
+        )
       : null,
   };
 }

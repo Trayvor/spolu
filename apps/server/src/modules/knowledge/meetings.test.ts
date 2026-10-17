@@ -7,6 +7,7 @@ import {
   HomeMeetingsSchema,
   KnowledgeItemDtoSchema,
   KnowledgePageSchema,
+  TaskDetailDtoSchema,
   TaskProposalsSchema,
   TasksFromMessageResultSchema,
   type KnowledgeItemDto,
@@ -673,6 +674,134 @@ describe('meetings API', () => {
         },
       );
       expect(completed.statusCode).toBe(404);
+    });
+
+    const card = (title: string, assigneeIds: string[] = []) => ({
+      title,
+      description: '',
+      assigneeIds,
+      dueDate: null,
+      urgent: false,
+      link: null,
+      fileIds: [],
+    });
+    const createFrom = async (
+      cookie: string,
+      itemId: string,
+      cards: unknown[],
+      bucketId?: string,
+    ) => {
+      const res = await call(test, 'POST', `/api/knowledge/${itemId}/meeting/tasks`, cookie, {
+        ...(bucketId ? { bucketId } : {}),
+        tasks: cards,
+      });
+      expect(res.statusCode, res.body).toBe(201);
+      return TasksFromMessageResultSchema.parse(res.json()).tasks;
+    };
+    const taskOf = async (cookie: string, id: string) => {
+      const res = await call(test, 'GET', `/api/tasks/${id}`, cookie);
+      expect(res.statusCode, res.body).toBe(200);
+      return TaskDetailDtoSchema.parse(res.json());
+    };
+
+    it('links the cards to the meeting: the detail lists them, proposals skip them', async () => {
+      const { group, admin, client, item } = await withSummary();
+      const board = BoardDtoSchema.parse(
+        (await call(test, 'GET', `/api/groups/${group.id}/board`, admin.cookie)).json(),
+      );
+      const review = board.buckets.find((b) => b.kind === 'egrant_review')!;
+      const before = await get(admin.cookie, item.id);
+      expect(before.meetingDetail).toMatchObject({ tasks: [], actionItemsLeft: 2 });
+
+      const [task] = await createFrom(
+        admin.cookie,
+        item.id,
+        [card('  prepare THE budget', [client.id])],
+        review.id,
+      );
+      const link = {
+        id: task!.id,
+        title: 'prepare THE budget',
+        completed: false,
+        bucket: { kind: 'egrant_review', name: null },
+        assignees: [{ id: client.id, name: 'Peter Novák' }],
+      };
+      for (const reader of [admin, client]) {
+        const detail = (await get(reader.cookie, item.id)).meetingDetail!;
+        expect(detail.tasks).toEqual([link]);
+        expect(detail.actionItemsLeft).toBe(1);
+        expect((await taskOf(reader.cookie, task!.id)).sourceMeeting).toEqual({
+          id: item.id,
+          title: 'Kickoff',
+        });
+      }
+      const res = await call(
+        test,
+        'POST',
+        `/api/knowledge/${item.id}/meeting/task-proposals`,
+        admin.cookie,
+      );
+      expect(TaskProposalsSchema.parse(res.json()).tasks.map((p) => p.title)).toEqual([
+        'Call the bank',
+      ]);
+
+      // Completed (and in the group's review bucket) shows as such.
+      const done = board.buckets.find((b) => b.kind === 'done')!;
+      const moved = await call(test, 'POST', `/api/tasks/${task!.id}/move`, admin.cookie, {
+        bucketId: done.id,
+        afterTaskId: null,
+      });
+      expect(moved.statusCode, moved.body).toBe(200);
+      const clientReview = board.buckets.find((b) => b.kind === 'client_review')!;
+      await createFrom(admin.cookie, item.id, [card('Call the bank')], clientReview.id);
+      const after = (await get(client.cookie, item.id)).meetingDetail!;
+      expect(after.tasks.map((t) => [t.title, t.completed, t.bucket])).toEqual([
+        ['prepare THE budget', true, { kind: 'done', name: null }],
+        ['Call the bank', false, { kind: 'client_review', name: 'Firma' }],
+      ]);
+      expect(after.actionItemsLeft).toBe(0);
+    });
+
+    it('a deleted task leaves the list; a deleted meeting leaves its tasks without the link', async () => {
+      const { admin, item } = await withSummary();
+      const [first, second] = await createFrom(admin.cookie, item.id, [
+        card('Prepare the budget'),
+        card('Call the bank'),
+      ]);
+      const removed = await call(test, 'DELETE', `/api/tasks/${first!.id}`, admin.cookie);
+      expect(removed.statusCode).toBe(204);
+      const detail = (await get(admin.cookie, item.id)).meetingDetail!;
+      expect(detail.tasks.map((t) => t.id)).toEqual([second!.id]);
+      expect(detail.actionItemsLeft).toBe(1);
+
+      const gone = await call(test, 'DELETE', `/api/knowledge/${item.id}`, admin.cookie);
+      expect(gone.statusCode, gone.body).toBe(204);
+      expect((await taskOf(admin.cookie, second!.id)).sourceMeeting).toBeNull();
+    });
+
+    it("an admins-only meeting's tasks never name it to a client", async () => {
+      const group = await newGroup();
+      const admin = await newAdmin();
+      const client = await clientIn(group.id);
+      const item = await create(admin.cookie, group.id, meeting({ visibility: 'admins' }));
+      const patched = await call(test, 'PATCH', `/api/knowledge/${item.id}`, admin.cookie, {
+        updatedAt: item.updatedAt,
+        meeting: { summary },
+      });
+      expect(patched.statusCode, patched.body).toBe(200);
+      const [task] = await createFrom(admin.cookie, item.id, [card('Prepare the budget')]);
+      expect((await taskOf(admin.cookie, task!.id)).sourceMeeting).toEqual({
+        id: item.id,
+        title: 'Kickoff',
+      });
+      expect((await taskOf(client.cookie, task!.id)).sourceMeeting).toBeNull();
+      // The edit answer too.
+      const edited = await call(test, 'PATCH', `/api/tasks/${task!.id}`, client.cookie, {
+        title: 'Budget',
+        updatedAt: task!.updatedAt,
+      });
+      expect(edited.statusCode, edited.body).toBe(200);
+      expect(TaskDetailDtoSchema.parse(edited.json()).sourceMeeting).toBeNull();
     });
   });
 

@@ -85,6 +85,7 @@ const TASK_DETAIL = {
     excerpt: 'Send the report',
   },
   sourceTicket: { id: 'k1', number: 7, subject: 'Cannot submit' },
+  sourceMeeting: null,
 };
 const CHANNEL = { lastSeq: 1, lastReadAt: null, unread: 0 };
 const TICKET_ITEM = {

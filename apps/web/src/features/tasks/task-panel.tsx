@@ -45,7 +45,7 @@ import {
   panelTabIds,
   type PanelTab,
 } from './panel-parts';
-import { SourceMessage, SourceTicketLine } from './source-message';
+import { SourceMeetingLine, SourceMessage, SourceTicketLine } from './source-message';
 import { TaskChat } from './task-chat';
 import { TaskForm, validateTaskDraft, type TaskFormErrors } from './task-form';
 import { TaskReminders } from './task-reminders';
@@ -504,6 +504,9 @@ function TaskEditor({
       >
         <div className="flex-1 space-y-5 overflow-y-auto overscroll-contain p-4 min-[641px]:p-6">
           {base.sourceTicket && <SourceTicketLine ticket={base.sourceTicket} />}
+          {base.sourceMeeting && (
+            <SourceMeetingLine groupId={groupId} meeting={base.sourceMeeting} />
+          )}
           {base.sourceMessage && <SourceMessage groupId={groupId} message={base.sourceMessage} />}
 
           <TaskForm

@@ -15,6 +15,7 @@ import {
 import { messages } from '../chat/schema.js';
 import { files } from '../files/schema.js';
 import { groups } from '../groups/schema.js';
+import { knowledgeItems } from '../knowledge/schema.js';
 import { tickets } from '../tickets/schema.js';
 import { user } from '../users/schema.js';
 
@@ -86,6 +87,14 @@ export const tasks = pgTable(
     sourceTicketId: text('source_ticket_id').references(() => tickets.id, {
       onDelete: 'set null',
     }),
+    /**
+     * The meeting (a knowledge item of type meeting) the task was made from; cleared when the
+     * item is deleted. Lazy reference: knowledge/schema.ts imports chat/schema.ts, which imports
+     * this file.
+     */
+    sourceMeetingId: text('source_meeting_id').references((): AnyPgColumn => knowledgeItems.id, {
+      onDelete: 'set null',
+    }),
     // Always written from JS `new Date()` (millisecond precision) so the ISO string round-trips.
     createdAt: timestamp('created_at', { withTimezone: true }).notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull(),
@@ -105,6 +114,10 @@ export const tasks = pgTable(
     index('tasks_source_ticket_id_idx')
       .on(t.sourceTicketId)
       .where(sql`${t.sourceTicketId} is not null`),
+    // The meeting's task list and the set-null cascade when the meeting is deleted.
+    index('tasks_source_meeting_id_idx')
+      .on(t.sourceMeetingId)
+      .where(sql`${t.sourceMeetingId} is not null`),
     index('tasks_source_message_id_idx')
       .on(t.sourceMessageId)
       .where(sql`${t.sourceMessageId} is not null`),

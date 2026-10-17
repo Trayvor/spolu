@@ -85,6 +85,7 @@ Phase 30: the meeting jobs (transcode, AI run) bump the item's `updated_at` afte
 |---|---|---|
 | `knowledge:item` | `{ item }` | created or edited: `group:<id>` for a public item, `group:<id>:admins` for an admins-only one; also a chat file (Phase 25), pushed by the chat route after the message with files commits (`chat/file-hooks.ts` `sent`) |
 | `knowledge:item_deleted` | `{ groupId, id }` | deleted: the room the item was in (a chat file when its message is deleted: the ids are read before the delete, `removing`); also sent to the group's clients (`group:<id>` except `group:<id>:admins`) when an item turns admins-only, also by a move into an admins-only folder or a folder turning admins-only |
+| `knowledge:meeting_tasks` | `{ groupId, id }` | a task made from the meeting `id` was created, edited, moved (completed) or deleted: the meeting's room by its visibility (`emitMeetingTasks` in `modules/knowledge/events.ts`, called after the write by the meeting tasks route and the task routes). The open meeting refetches its detail (`SummarySection`) |
 | `knowledge:folder` | `{ folder }` | a folder created or changed (Phase 24): `group:<id>` for a public folder, `group:<id>:admins` for an admins-only one |
 | `knowledge:folder_deleted` | `{ groupId, id }` | a folder deleted: the room it was in; also sent to the group's clients when a folder turns admins-only (before an `item_deleted` for each item that stopped being public) |
 

@@ -330,6 +330,8 @@ export const KnowledgeEvents = {
   itemDeleted: 'knowledge:item_deleted',
   folder: 'knowledge:folder',
   folderDeleted: 'knowledge:folder_deleted',
+  /** A task made from a meeting was created, edited, moved or deleted: refetch its detail. */
+  meetingTasks: 'knowledge:meeting_tasks',
 } as const;
 
 export type KnowledgeFolderEvent = { folder: KnowledgeFolderDto };
@@ -337,3 +339,4 @@ export type KnowledgeFolderDeletedEvent = { groupId: string; id: string };
 
 export type KnowledgeItemEvent = { item: KnowledgeSummary };
 export type KnowledgeItemDeletedEvent = { groupId: string; id: string };
+export type KnowledgeMeetingTasksEvent = { groupId: string; id: string };

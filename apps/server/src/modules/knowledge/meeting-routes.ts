@@ -25,6 +25,7 @@ import {
   NothingToProcessError,
   RecordingBusyError,
 } from './errors.js';
+import { emitMeetingTasks } from './events.js';
 import { canRunMeetingAi, requestMeetingAi, type MeetingAi } from './meeting-ai.js';
 import { deleteRecording, uploadRecording } from './meeting-recording.js';
 import { createMeetingTasks, meetingTaskProposals } from './meeting-tasks.js';
@@ -210,6 +211,12 @@ export const meetingRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, 
       }
       const person = { id: actor.id, name: actor.name };
       for (const task of created.tasks) emitTask(app.io, toTaskDto(task), person);
+      // The meeting's other open views list its tasks: they refetch.
+      try {
+        await emitMeetingTasks(app.io, db, request.params.id);
+      } catch (error) {
+        request.log.error({ err: error }, 'could not refresh the tasks of a meeting');
+      }
       const result: TasksFromMessageResult = { tasks: created.tasks };
       return reply.code(201).send(result);
     },

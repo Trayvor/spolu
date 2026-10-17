@@ -105,6 +105,7 @@ beforeEach(() => {
     files: [],
     sourceMessage: null,
     sourceTicket: null,
+    sourceMeeting: null,
   };
   fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
     const method = init?.method ?? 'GET';
@@ -137,6 +138,7 @@ beforeEach(() => {
         files: [],
         sourceMessage: null,
         sourceTicket: null,
+        sourceMeeting: null,
       });
     }
     if (url === '/api/tasks/t1' && method === 'DELETE') return reply(204);
@@ -421,6 +423,16 @@ describe('TaskPanel', () => {
     expect(screen.getByRole('link', { name: '#123 Login fails' })).toHaveAttribute(
       'href',
       '/tickets/k1',
+    );
+  });
+
+  it('task panel shows the meeting line, opening the meeting in Knowledge', async () => {
+    detail = { ...detail, sourceMeeting: { id: 'm9', title: 'Kickoff' } };
+    renderPanel();
+    expect(await screen.findByText(t('tasks.panel.fromMeeting'))).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Kickoff' })).toHaveAttribute(
+      'href',
+      '/groups/g1/knowledge?k=m9',
     );
   });
 

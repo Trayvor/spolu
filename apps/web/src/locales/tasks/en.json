@@ -103,6 +103,7 @@
     "fromMessage": "Created from a message",
     "openMessage": "Open in chat",
     "fromTicket": "Ticket:",
+    "fromMeeting": "Meeting:",
     "newTask": "New task",
     "create": "Create",
     "tabs": {

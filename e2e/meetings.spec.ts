@@ -3,8 +3,8 @@ import { expect, test } from '@playwright/test';
 // Phase 30 "Done when": an admin creates a meeting in a client's knowledge base, uploads its
 // recording (kept as audio), processes it with AI (the fake transcription and summary, set in
 // playwright.config.ts: TRANSCRIPTION_PROVIDER=fake, AI_PROVIDER=fake, FFMPEG_PATH=fake), edits
-// nothing, turns the action items into tasks in a chosen bucket, and sees the meeting on the
-// dashboard's Meetings card.
+// nothing, turns the action items into tasks in a chosen bucket (the meeting then links to them),
+// and sees the meeting on the dashboard's Meetings card.
 test('a meeting: recording, AI summary, tasks from its action items, the dashboard card', async ({
   page,
 }) => {
@@ -57,6 +57,15 @@ test('a meeting: recording, AI summary, tasks from its action items, the dashboa
   await review.getByLabel('Pridať do').selectOption({ label: 'Kontrola eGrant' });
   await review.getByRole('button', { name: /Vytvoriť 2 úlohy/ }).click();
   await expect(page.getByText('Vytvorené 2 úlohy')).toBeVisible();
+
+  // The meeting now shows links to its two tasks instead of the proposals (owner, 2026-10-17).
+  await expect(dialog.getByText('Úlohy zo stretnutia')).toBeVisible();
+  const budget = dialog.getByRole('link', { name: 'Peter pripraví rozpočet do 2030-01-15.' });
+  await expect(budget).toBeVisible();
+  await expect(dialog.getByRole('link', { name: 'Poslať klientovi zoznam príloh.' })).toBeVisible();
+  await expect(dialog.getByRole('button', { name: 'Vytvoriť úlohy' })).toHaveCount(0);
+  await expect(dialog.getByRole('button', { name: 'Vytvoriť ďalšie úlohy' })).toHaveCount(0);
+  await expect(budget).toHaveAttribute('href', new RegExp(`/groups/${group.id}/tasks/`));
 
   // The board has them in that bucket.
   const board = (await (await page.request.get(`/api/groups/${group.id}/board`)).json()) as {
