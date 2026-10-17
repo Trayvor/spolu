@@ -8,7 +8,12 @@ import { getUserById } from '../users/service.js';
 import { onTicketChange } from './hooks.js';
 import { ticketPayload } from './notify.js';
 import { ticketAudienceIds } from './audience.js';
-import { actorReadsTicket, fileOfReadableTicket, getTicketRow } from './service.js';
+import {
+  actorReadsTicket,
+  fileOfReadableTicket,
+  getTicketRow,
+  readableTicketIds,
+} from './service.js';
 
 const ticketOf = (db: Db, channel: ChannelRef) =>
   channel.ticketId ? getTicketRow(db, channel.ticketId) : Promise.resolve(null);
@@ -49,6 +54,17 @@ export function registerTicketChat(): void {
     async allRecipients(db, channel) {
       const ticket = await ticketOf(db, channel);
       return ticket ? ticketAudienceIds(db, ticket) : [];
+    },
+    async readableTickets(db, channel, ticketIds) {
+      const ticket = await ticketOf(db, channel);
+      if (!ticket?.requesterUserId) return new Set();
+      const initiator = await getUserById(db, ticket.requesterUserId);
+      if (!initiator || initiator.disabledAt) return new Set();
+      return readableTicketIds(
+        db,
+        { ...initiator, role: initiator.role, finance: false },
+        ticketIds,
+      );
     },
     async messageNotice(db, channel) {
       const ticket = await ticketOf(db, channel);

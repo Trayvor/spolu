@@ -55,6 +55,8 @@ const message = (over: Partial<MessageDto> = {}): MessageDto => ({
   tasks: [],
   reactions: [],
   knowledge: [],
+  attachedTasks: [],
+  attachedTickets: [],
   ...over,
 });
 const event = (m: MessageDto, over: Partial<ChatMessageEvent> = {}): ChatMessageEvent => ({

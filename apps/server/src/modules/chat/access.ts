@@ -38,6 +38,11 @@ export type ChannelKindAccess = {
    * owner's page. Null: the message notifies nobody but the people it names.
    */
   messageNotice(db: Db, channel: ChannelRef): Promise<MessageNotice | null>;
+  /**
+   * Which of these tickets the people who read the channel but not its group (the initiator)
+   * read, so a message there shows only the attached tickets meant for them (Phase 34).
+   */
+  readableTickets(db: Db, channel: ChannelRef, ticketIds: string[]): Promise<Set<string>>;
 };
 
 export type MessageNotice = {

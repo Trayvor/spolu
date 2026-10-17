@@ -21,7 +21,6 @@ import { isAdmin } from '../users/policy.js';
 import { canReadGroup } from '../groups/policy.js';
 import { getGroup, listGroupPeople } from '../groups/service.js';
 import { getTaskRef } from '../tasks/task-service.js';
-import { withoutTaskLinks } from './dto.js';
 import { getSharedItem } from '../knowledge/service.js';
 import { emitMessage, emitReactions, emitRead, emitThreadReply } from './events.js';
 import {
@@ -29,6 +28,7 @@ import {
   isAttached,
   KnowledgeShareForbiddenError,
 } from './knowledge-links.js';
+import { forRequester, InvalidWorkError, WorkAttachForbiddenError } from './work-links.js';
 import { reactionPeople, setReaction, TooManyEmojiError } from './reactions.js';
 import { prepareFilesRemoved, runFilesSent } from './file-hooks.js';
 import {
@@ -118,13 +118,21 @@ export const chatRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { d
    */
   const forReader = async <T extends { messages: MessageDto[] }>(
     actor: SessionUser,
-    channel: { groupId: string; kind: string },
+    channel: ChannelRow,
     page: T,
   ): Promise<T> => {
     if (channel.kind === 'group' || channel.kind === 'task') return page;
     if (canReadGroup(actor, channel.groupId, await clientGroupIds(db, actor.id))) return page;
-    return { ...page, messages: page.messages.map(withoutTaskLinks) };
+    return { ...page, messages: await forRequester(db, channel, page.messages) };
   };
+
+  /** What the channel's extra rooms (a ticket's initiator) get: the message as a requester sees it. */
+  const requesterCopy = async (
+    channel: ChannelRow,
+    rooms: string[],
+    message: MessageDto,
+  ): Promise<MessageDto | undefined> =>
+    rooms.length === 0 ? undefined : (await forRequester(db, channel, [message]))[0];
 
   /** A message with its readable channel, or a 404 answer and null. */
   const readableMessage = async (request: FastifyRequest, reply: FastifyReply, id: string) => {
@@ -276,14 +284,22 @@ export const chatRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { d
       const sent = await sendMessage(deps, { channel, author: actor, data: body.data });
       if (!sent.created) return reply.code(200).send(sent.message);
       const rooms = await extraRoomsOf(db, channel);
-      emitMessage(app.io, channel, sent.message, true, rooms);
+      const copy = await requesterCopy(channel, rooms, sent.message);
+      emitMessage(app.io, channel, sent.message, true, rooms, copy);
       if (sent.message.attachments.length > 0) {
         await runFilesSent(db, app.io, sent.message.id).catch((error: unknown) =>
           request.log.error({ err: error }, 'chat: file listeners after send failed'),
         );
       }
       if (sent.parent) {
-        emitMessage(app.io, channel, sent.parent, false, rooms);
+        emitMessage(
+          app.io,
+          channel,
+          sent.parent,
+          false,
+          rooms,
+          await requesterCopy(channel, rooms, sent.parent),
+        );
         emitThreadReply(app.io, sent.threadPeople, {
           groupId: channel.groupId,
           channelId: channel.id,
@@ -302,7 +318,15 @@ export const chatRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { d
       if (error instanceof InvalidKnowledgeItemError) {
         return reply.code(400).send({ error: ErrorCodes.invalidKnowledgeItem });
       }
-      if (error instanceof KnowledgeShareForbiddenError) return forbidden(reply);
+      if (error instanceof InvalidWorkError) {
+        return reply.code(400).send({ error: ErrorCodes.invalidAttachment });
+      }
+      if (
+        error instanceof KnowledgeShareForbiddenError ||
+        error instanceof WorkAttachForbiddenError
+      ) {
+        return forbidden(reply);
+      }
       if (error instanceof InvalidThreadError || error instanceof EmptyMessageError) {
         return invalid(reply);
       }
@@ -323,7 +347,17 @@ export const chatRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { d
     }
     try {
       const message = await editMessage(deps, { ...found, body: body.data.body });
-      emitMessage(app.io, found.channel, message, false, await extraRoomsOf(db, found.channel));
+      {
+        const rooms = await extraRoomsOf(db, found.channel);
+        emitMessage(
+          app.io,
+          found.channel,
+          message,
+          false,
+          rooms,
+          await requesterCopy(found.channel, rooms, message),
+        );
+      }
       return message;
     } catch (error) {
       if (error instanceof InvalidMentionError) {
@@ -352,7 +386,17 @@ export const chatRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { d
         onFileCleanupError: (error) =>
           request.log.error({ err: error }, 'chat: file cleanup after message delete failed'),
       });
-      emitMessage(app.io, found.channel, message, false, await extraRoomsOf(db, found.channel));
+      {
+        const rooms = await extraRoomsOf(db, found.channel);
+        emitMessage(
+          app.io,
+          found.channel,
+          message,
+          false,
+          rooms,
+          await requesterCopy(found.channel, rooms, message),
+        );
+      }
       pushRemoved(app.io);
       return reply.code(204).send();
     } catch (error) {

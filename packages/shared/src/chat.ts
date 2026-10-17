@@ -5,6 +5,8 @@ export const MESSAGE_MAX_LENGTH = 10_000;
 export const MESSAGE_MAX_FILES = 10;
 /** Knowledge items one message may carry (Phase 28). */
 export const MESSAGE_MAX_KNOWLEDGE = 5;
+/** Tasks and tickets one message may carry each (Phase 34). */
+export const MESSAGE_MAX_WORK = 5;
 /** Different emoji one message may carry (Phase 28). */
 export const MESSAGE_MAX_EMOJI = 20;
 /** The quick row of reactions, in this order (Phase 28). */
@@ -53,6 +55,49 @@ export const MessageKnowledgeSchema = z.discriminatedUnion('available', [
 ]);
 export type MessageKnowledge = z.infer<typeof MessageKnowledgeSchema>;
 
+const WorkPersonSchema = z.object({ id: z.string(), name: z.string() });
+
+/**
+ * A task attached to a message (Phase 34): its live card while the task exists, else only its id
+ * (`available: false`). `bucketKind` is a `BucketKind`, `bucketName` set for custom buckets.
+ */
+export const MessageAttachedTaskSchema = z.discriminatedUnion('available', [
+  z.object({
+    id: z.string(),
+    available: z.literal(true),
+    groupId: z.string(),
+    title: z.string(),
+    completed: z.boolean(),
+    bucketKind: z.string(),
+    bucketName: z.string().nullable(),
+    /** At most three, by name. */
+    assignees: z.array(WorkPersonSchema),
+    dueDate: z.string().nullable(),
+    urgent: z.boolean(),
+  }),
+  z.object({ id: z.string(), available: z.literal(false) }),
+]);
+export type MessageAttachedTask = z.infer<typeof MessageAttachedTaskSchema>;
+
+/**
+ * A ticket attached to a message (Phase 34): its live card while it exists in the channel's
+ * group, else only its id. `status` is a `TicketStatus`.
+ */
+export const MessageAttachedTicketSchema = z.discriminatedUnion('available', [
+  z.object({
+    id: z.string(),
+    available: z.literal(true),
+    groupId: z.string().nullable(),
+    number: z.number().int(),
+    subject: z.string().nullable(),
+    status: z.string(),
+    /** At most three, by name. */
+    assignees: z.array(WorkPersonSchema),
+  }),
+  z.object({ id: z.string(), available: z.literal(false) }),
+]);
+export type MessageAttachedTicket = z.infer<typeof MessageAttachedTicketSchema>;
+
 export const MessageSchema = z.object({
   id: z.string(),
   channelId: z.string(),
@@ -76,6 +121,10 @@ export const MessageSchema = z.object({
   reactions: z.array(ReactionSchema),
   /** Phase 28: the attached knowledge items in their order; always empty on a deleted message. */
   knowledge: z.array(MessageKnowledgeSchema),
+  /** Phase 34: the attached tasks in their order; always empty on a deleted message. */
+  attachedTasks: z.array(MessageAttachedTaskSchema),
+  /** Phase 34: the attached tickets in their order; always empty on a deleted message. */
+  attachedTickets: z.array(MessageAttachedTicketSchema),
 });
 export type MessageDto = z.infer<typeof MessageSchema>;
 
@@ -104,11 +153,27 @@ export const SendMessageInputSchema = z
       .max(MESSAGE_MAX_KNOWLEDGE)
       .refine((ids) => new Set(ids).size === ids.length)
       .optional(),
+    /** Tasks of the channel's group (Phase 34). */
+    taskIds: z
+      .array(IdSchema)
+      .max(MESSAGE_MAX_WORK)
+      .refine((ids) => new Set(ids).size === ids.length)
+      .optional(),
+    /** Tickets of the channel's group (Phase 34). */
+    ticketIds: z
+      .array(IdSchema)
+      .max(MESSAGE_MAX_WORK)
+      .refine((ids) => new Set(ids).size === ids.length)
+      .optional(),
     clientId: IdSchema,
   })
   .refine(
     (v) =>
-      v.body.trim().length > 0 || (v.fileIds?.length ?? 0) > 0 || (v.knowledgeIds?.length ?? 0) > 0,
+      v.body.trim().length > 0 ||
+      (v.fileIds?.length ?? 0) > 0 ||
+      (v.knowledgeIds?.length ?? 0) > 0 ||
+      (v.taskIds?.length ?? 0) > 0 ||
+      (v.ticketIds?.length ?? 0) > 0,
     { path: ['body'] },
   )
   .refine((v) => v.replyToId === undefined || v.parentId !== undefined, { path: ['replyToId'] });

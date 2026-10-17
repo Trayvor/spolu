@@ -28,6 +28,7 @@ import { MessageBody } from './format/render';
 import { Toast } from '@/components/ui/toast';
 import { CopyIcon, EditIcon, MoreIcon, ReplyIcon, ThreadIcon, TrashIcon } from './icons';
 import { KnowledgeCards } from './knowledge-cards';
+import { WorkCards } from './work-cards';
 import {
   AddReactionIcon,
   MorePicker,
@@ -614,6 +615,7 @@ export const MessageItem = memo(function MessageItem({
           <Attachments message={message} />
         )}
         {!deleted && mode !== 'edit' && <KnowledgeCards message={message} groupId={groupId} />}
+        {!deleted && mode !== 'edit' && <WorkCards message={message} groupId={groupId} />}
         {!deleted && !pending && (
           <ReactionChips
             message={message}

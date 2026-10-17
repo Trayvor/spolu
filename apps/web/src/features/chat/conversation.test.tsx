@@ -73,6 +73,8 @@ function msg(id: string, n: number, over: Partial<MessageDto> = {}): MessageDto 
     tasks: [],
     reactions: [],
     knowledge: [],
+    attachedTasks: [],
+    attachedTickets: [],
     ...over,
   };
 }
@@ -131,6 +133,21 @@ beforeEach(() => {
       return json(200, thread);
     }
     if (url === '/api/channels/c1/read' && method === 'POST') return json(204);
+    if (url === '/api/groups/g1/tasks/search') {
+      const task = {
+        id: 'tk1',
+        available: true,
+        groupId: 'g1',
+        title: 'Budget task',
+        completed: false,
+        bucketKind: 'todo',
+        bucketName: null,
+        assignees: [],
+        dueDate: null,
+        urgent: false,
+      };
+      return json(200, { items: [task], next: null });
+    }
     if (url === '/api/groups/g1/chat') {
       return json(200, { id: 'c1', lastSeq: 5, lastReadAt: M1.createdAt, unread: 2 });
     }
@@ -267,6 +284,19 @@ describe('Conversation', () => {
     await user.type(within(thread).getByRole('textbox'), 'agreed{Enter}');
     await waitFor(() => expect(postBodies()).toHaveLength(1));
     expect(postBodies()[0]).toMatchObject({ body: 'agreed', parentId: 'm2', replyToId: 'r1' });
+  });
+
+  it('a task picked in the attachment picker is sent with the message', async () => {
+    const { user } = renderAt('/groups/g1/chat?c=c1');
+    await user.click(await screen.findByRole('button', { name: t('chat.work.attach') }));
+    await user.click(await screen.findByRole('tab', { name: t('chat.work.tabs.tasks') }));
+    await user.click(await screen.findByRole('checkbox', { name: /Budget task/ }));
+    await user.click(
+      screen.getByRole('button', { name: t('chat.knowledge.attachCount', { count: 1 }) }),
+    );
+    await user.click(screen.getByRole('button', { name: t('chat.composer.send') }));
+    await waitFor(() => expect(postBodies()).toHaveLength(1));
+    expect(postBodies()[0]).toMatchObject({ taskIds: ['tk1'] });
   });
 
   it('clicking a quote highlights the quoted reply', async () => {
