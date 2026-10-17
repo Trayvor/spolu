@@ -52,6 +52,8 @@ const ListItemSchema = z.object({
 const CampaignSchema = ListItemSchema.extend({
   preheader: z.string(),
   blocks: z.array(BulkBlockSchema),
+  phoneBlocks: z.array(BulkBlockSchema).nullable(),
+  phoneCheckShown: z.boolean(),
   audience: BulkAudienceSchema,
   version: count,
   sender: z.string().nullable(),
@@ -144,10 +146,20 @@ export function duplicateCampaign(id: string): Promise<BulkCampaignDto> {
 
 export async function previewCampaign(
   id: string,
-  content: { subject: string; preheader: string; blocks: BulkBlock[] },
+  content: {
+    subject: string;
+    preheader: string;
+    blocks: BulkBlock[];
+    phoneBlocks: BulkBlock[] | null;
+  },
 ): Promise<string> {
   return (await apiSend('POST', `/bulk-email/campaigns/${enc(id)}/preview`, content, PreviewSchema))
     .html;
+}
+
+/** Remembers that the one-time "check the phone version" warning was shown (Phase 30). */
+export async function markPhoneCheckShown(id: string): Promise<void> {
+  await apiSend('POST', `/bulk-email/campaigns/${enc(id)}/phone-check`);
 }
 
 /** Test send to the signed-in admin only (route of part 23.5). */

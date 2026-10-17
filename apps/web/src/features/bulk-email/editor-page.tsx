@@ -11,7 +11,9 @@ import { ApiError } from '@/lib/api';
 import { previousHref } from '@/lib/back';
 import { AudienceBuilder } from './audience-builder';
 import { BlockList } from './block-list';
-import { blocksReducer, type BlocksAction } from './blocks';
+import type { BlocksAction } from './blocks';
+import { ModeBar } from './mode-bar';
+import { applyEdit, returnToDesktop, shownBlocks, type EditMode } from './phone-version';
 import { campaignListKey, campaignQuery, deleteCampaign, saveCampaign } from './api';
 import { FieldNote, StatusBadge } from './parts';
 import { PreviewFrame } from './preview-frame';
@@ -219,8 +221,14 @@ function DraftEditor({
     subject: campaign.subject,
     preheader: campaign.preheader,
     blocks: campaign.blocks,
+    phoneBlocks: campaign.phoneBlocks,
     audience: campaign.audience,
   }));
+  // The Computer / Phone switch: what the preview shows and which version the blocks edit.
+  const [mode, setMode] = useState<EditMode>('computer');
+  const previewRef = useRef<HTMLElement>(null);
+  // Bumped by "Return to the computer version": the text editors start again from desktop.
+  const [returned, setReturned] = useState(0);
   const [serverProblems, setServerProblems] = useState<BulkNotReadyProblem[]>([]);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const problems = useMemo(() => draftProblems(draft), [draft]);
@@ -259,9 +267,14 @@ function DraftEditor({
   }, [campaign.version, autosave.version, autosave.state, onReload]);
 
   const dispatch = useCallback(
-    (action: BlocksAction) => setDraft((d) => ({ ...d, blocks: blocksReducer(d.blocks, action) })),
-    [],
+    (action: BlocksAction) => setDraft((d) => applyEdit(d, mode, action)),
+    [mode],
   );
+  const showPhone = useCallback(() => {
+    setMode('phone');
+    previewRef.current?.scrollIntoView?.({ block: 'start' });
+  }, []);
+  const editingPhone = mode === 'phone' && draft.phoneBlocks !== null;
   const remove = useMutation({
     mutationFn: () => deleteCampaign(campaign.id),
     onSuccess: async () => {
@@ -337,20 +350,35 @@ function DraftEditor({
             />
           </div>
         </div>
-        <div className="@container">
+        <div className="@container flex flex-col gap-5">
+          <ModeBar
+            mode={mode}
+            onMode={setMode}
+            separate={draft.phoneBlocks !== null}
+            onReturn={() => {
+              setDraft((d) => returnToDesktop(d));
+              setReturned((n) => n + 1);
+            }}
+          />
           <div className="grid gap-6 @min-[1000px]:grid-cols-[minmax(0,1fr)_632px] @min-[1000px]:items-start">
             <BlockList
-              blocks={draft.blocks}
-              problems={problems.blocks}
-              serverProblems={serverProblems}
+              // Another version on screen: the text editors start from its content. Not on the
+              // first phone edit: the phone copy is what the editors already show.
+              key={`${mode}:${returned}`}
+              blocks={shownBlocks(draft, mode)}
+              problems={editingPhone ? problems.phoneBlocks : problems.blocks}
+              serverProblems={serverProblems.filter((p) => Boolean(p.phone) === editingPhone)}
               dispatch={dispatch}
             />
             <div className="@min-[1000px]:sticky @min-[1000px]:top-4">
               <PreviewFrame
+                ref={previewRef}
                 campaignId={campaign.id}
+                device={mode}
                 subject={draft.subject.slice(0, BULK_LIMITS.subject)}
                 preheader={draft.preheader.slice(0, BULK_LIMITS.preheader)}
                 blocks={validBlocks(draft.blocks)}
+                phoneBlocks={draft.phoneBlocks && validBlocks(draft.phoneBlocks)}
               />
             </div>
           </div>
@@ -377,6 +405,9 @@ function DraftEditor({
           saveState={autosave.state}
           flush={autosave.flush}
           onProblems={setServerProblems}
+          phoneFollows={draft.phoneBlocks === null}
+          phoneCheckShown={campaign.phoneCheckShown}
+          onShowPhone={showPhone}
         />
       </Section>
 

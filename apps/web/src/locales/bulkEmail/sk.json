@@ -60,13 +60,15 @@
       "image": "Obrázok",
       "button": "Tlačidlo",
       "divider": "Oddeľovač",
-      "logo": "Logo eGrant"
+      "logo": "Logo eGrant",
+      "spacer": "Medzera",
+      "columns": "Rozdelený blok"
     }
   },
   "fields": {
     "text": "Text",
     "nameHint": "Napíšte {{placeholder}} a každého oslovíte menom.",
-    "textHint": "Prázdny riadok začína nový odsek. **tučné** zvýrazní text, webové adresy sa zmenia na odkazy, {{placeholder}} na meno každého človeka.",
+    "textHint": "Označte text a naformátujte ho. {{placeholder}} sa nahradí menom človeka, webové adresy sa stanú odkazmi a **slovo** bude tučné.",
     "align": "Zarovnanie",
     "left": "Vľavo",
     "center": "Na stred",
@@ -81,7 +83,8 @@
     "label": "Text tlačidla",
     "url": "Odkaz",
     "urlHint": "Webová adresa začínajúca https:// alebo mailto: s e-mailovou adresou.",
-    "dividerNote": "Tenká čiara medzi dvoma časťami e-mailu."
+    "dividerNote": "Tenká čiara medzi dvoma časťami e-mailu.",
+    "right": "Vpravo"
   },
   "problems": {
     "required": "Vyplňte toto pole.",
@@ -103,7 +106,9 @@
     "frame": "Náhľad e-mailu",
     "loading": "Načítava sa náhľad…",
     "failed": "Náhľad sa nepodarilo načítať.",
-    "note": "S vaším menom, tak ako by ste ho dostali. Bloky s problémom sa ukážu, keď ich opravíte."
+    "note": "S vaším menom, tak ako by ste ho dostali. Bloky s problémom sa ukážu, keď ich opravíte.",
+    "titlePhone": "Náhľad na telefóne",
+    "tooBig": "Tento e-mail má asi {{kb}} kB. Gmail skracuje e-maily nad približne 102 kB: skráťte ho alebo odstráňte verziu pre telefón."
   },
   "audience": {
     "title": "Príjemcovia",
@@ -231,5 +236,107 @@
       "disabled": "Zablokovaný účet",
       "unknown": "Neznámy výsledok: e-mail mohol, ale nemusel odísť."
     }
+  },
+  "rich": {
+    "toolbar": "Formátovanie textu",
+    "style": "Štýl",
+    "paragraph": "Odsek",
+    "h2": "Nadpis 2",
+    "h3": "Nadpis 3",
+    "bold": "Tučné",
+    "italic": "Kurzíva",
+    "underline": "Podčiarknuté",
+    "strikeThrough": "Prečiarknuté",
+    "boldGlyph": "B",
+    "italicGlyph": "I",
+    "underlineGlyph": "U",
+    "strikeThroughGlyph": "S",
+    "link": "Pridať odkaz",
+    "unlink": "Odstrániť odkaz",
+    "bullet": "Odrážky",
+    "ordered": "Číslovaný zoznam",
+    "alignLeft": "Zarovnať vľavo",
+    "alignCenter": "Na stred",
+    "alignRight": "Zarovnať vpravo",
+    "color": "Farba",
+    "linkAddress": "Adresa odkazu",
+    "linkApply": "Pridať odkaz",
+    "linkInvalid": "Zadajte webovú adresu začínajúcu https:// alebo mailto: s e-mailovou adresou."
+  },
+  "colors": {
+    "ink": "Čierna",
+    "muted": "Sivá",
+    "green": "Zelená",
+    "red": "Červená",
+    "purple": "Fialová",
+    "blue": "Modrá",
+    "line": "Svetlosivá"
+  },
+  "image": {
+    "size": "Veľkosť",
+    "sizes": {
+      "original": "Pôvodná veľkosť",
+      "percent": "Percento šírky stĺpca",
+      "px": "Pixely"
+    },
+    "widthPercent": "Šírka (%)",
+    "widthPx": "Šírka (px)",
+    "widthHint": "Od {{min}} do {{max}}.",
+    "shape": "Tvar",
+    "shapes": {
+      "square": "Ostré rohy",
+      "rounded": "Zaoblené rohy",
+      "roundedLarge": "Viac zaoblené rohy",
+      "circle": "Kruh"
+    },
+    "circleHint": "Najlepšie pre štvorcové obrázky, ostatné budú oválne. Outlook vo Windows ukáže ostré rohy."
+  },
+  "spacer": {
+    "size": "Výška",
+    "sizes": {
+      "small": "Malá (16 px)",
+      "medium": "Stredná (32 px)",
+      "large": "Veľká (48 px)"
+    }
+  },
+  "columns": {
+    "ratio": "Šírka stĺpcov",
+    "ratios": {
+      "50-50": "Polovica a polovica",
+      "33-67": "Tretina a dve tretiny",
+      "67-33": "Dve tretiny a tretina"
+    },
+    "valign": "Zvislé zarovnanie",
+    "valigns": {
+      "top": "Hore",
+      "middle": "Na stred",
+      "bottom": "Dole"
+    },
+    "divider": "Čiara medzi stĺpcami",
+    "dividerColor": "Farba čiary",
+    "left": "Ľavý stĺpec bloku {{n}}",
+    "right": "Pravý stĺpec bloku {{n}}",
+    "empty": "Zatiaľ prázdne. Na telefóne je ľavý stĺpec prvý.",
+    "add": "Pridať blok do: {{side}}",
+    "moveTo": "Presunúť blok {{n}} ({{type}}) do…",
+    "moveToShort": "Presunúť do…",
+    "toMain": "Hlavná časť e-mailu",
+    "toLeft": "Ľavý stĺpec bloku {{n}}",
+    "toRight": "Pravý stĺpec bloku {{n}}"
+  },
+  "mode": {
+    "label": "Upravovaná verzia",
+    "follows": "Verzia pre telefón: rovnaká ako pre počítač",
+    "separate": "Verzia pre telefón: upravená zvlášť",
+    "followsHint": "Prvou zmenou tu vznikne samostatná verzia pre telefón. Zmeny v režime Počítač sa do nej potom už neprenesú.",
+    "return": "Vrátiť verziu pre počítač",
+    "returnConfirm": "Zahodiť verziu pre telefón? Telefóny znova ukážu verziu pre počítač.",
+    "returnYes": "Zahodiť verziu pre telefón"
+  },
+  "phoneCheck": {
+    "title": "Pozrite sa, ako e-mail vyzerá na telefóne",
+    "body": "Verzia pre telefón je rovnaká ako pre počítač: na telefóne sa rozdelené bloky poskladajú pod seba a široké obrázky zmenšia. Pred odoslaním si pozrite náhľad na telefóne. Toto upozornenie sa pri tomto e-maile ukáže iba raz.",
+    "show": "Ukázať náhľad na telefóne",
+    "sendAnyway": "Napriek tomu odoslať"
   }
 }

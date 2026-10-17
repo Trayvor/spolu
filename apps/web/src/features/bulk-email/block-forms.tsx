@@ -1,6 +1,16 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { BULK_LIMITS, type BulkAlign, type BulkBlock } from '@spolu/shared';
+import {
+  BULK_LIMITS,
+  BulkColumnRatios,
+  BulkImageShapes,
+  BulkLineColors,
+  BulkSpacerSizes,
+  BulkVAligns,
+  type BulkAlign,
+  type BulkBlock,
+  type BulkImageWidth,
+} from '@spolu/shared';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,10 +18,8 @@ import { Select } from '@/components/ui/select';
 import { resizeImageWithSize } from '@/lib/resize-image';
 import { uploadImage } from './api';
 import { FieldNote } from './parts';
+import { RichTextEditor } from './rich-text-editor';
 import type { FieldProblem } from './validation';
-
-export const TEXTAREA =
-  'min-h-[132px] w-full resize-y rounded-md border-2 border-input bg-card px-[18px] py-[13px] text-button font-medium text-foreground transition-colors duration-(--duration-fast) placeholder:text-muted-foreground focus:border-foreground aria-invalid:border-destructive';
 
 type FormProps<B extends BulkBlock> = {
   block: B;
@@ -78,6 +86,42 @@ function AlignField({
       >
         <option value="left">{t('bulkEmail.fields.left')}</option>
         <option value="center">{t('bulkEmail.fields.center')}</option>
+        <option value="right">{t('bulkEmail.fields.right')}</option>
+      </Select>
+    </div>
+  );
+}
+
+/** A labelled select of fixed options (`label(value)` gives each option's text). */
+function ChoiceField<V extends string>({
+  id,
+  label,
+  value,
+  options,
+  optionLabel,
+  onChange,
+}: {
+  id: string;
+  label: string;
+  value: V;
+  options: readonly V[];
+  optionLabel: (value: V) => string;
+  onChange: (value: V) => void;
+}) {
+  return (
+    <div className="flex flex-col gap-2">
+      <Label htmlFor={id}>{label}</Label>
+      <Select
+        id={id}
+        containerClassName="w-full min-[641px]:w-[220px]"
+        value={value}
+        onChange={(e) => onChange(e.target.value as V)}
+      >
+        {options.map((o) => (
+          <option key={o} value={o}>
+            {optionLabel(o)}
+          </option>
+        ))}
       </Select>
     </div>
   );
@@ -123,15 +167,16 @@ function TextForm({ block, problems, onChange }: FormProps<Extract<BulkBlock, { 
         problem={problem(problems?.text, BULK_LIMITS.text)}
       >
         {(aria) => (
-          <textarea
-            {...aria}
-            className={TEXTAREA}
-            value={block.text}
-            onChange={(e) => onChange({ ...block, text: e.target.value })}
+          <RichTextEditor
+            id={aria.id}
+            value={block.content}
+            align={block.align}
+            invalid={aria['aria-invalid']}
+            describedBy={aria['aria-describedby']}
+            onChange={(content) => onChange({ ...block, content })}
           />
         )}
       </Field>
-      <AlignField block={block} onChange={onChange} />
     </>
   );
 }
@@ -239,19 +284,172 @@ function ImageForm({
             placeholder="https://"
             value={block.href ?? ''}
             onChange={(e) => {
-              const { id, type, imageId, alt } = block;
-              onChange({
-                id,
-                type,
-                imageId,
-                alt,
-                ...(e.target.value ? { href: e.target.value } : {}),
-              });
+              const rest = omit(block, 'href');
+              onChange({ ...rest, ...(e.target.value ? { href: e.target.value } : {}) });
             }}
           />
         )}
       </Field>
+      <ImageLook block={block} onChange={onChange} />
     </>
+  );
+}
+
+type ImageBlock = Extract<BulkBlock, { type: 'image' }>;
+
+/** The image block without one of its optional fields. */
+function omit(block: ImageBlock, key: 'href' | 'width' | 'shape'): ImageBlock {
+  const copy = { ...block };
+  delete copy[key];
+  return copy;
+}
+type SizeMode = 'original' | BulkImageWidth['unit'];
+
+/** Size, alignment and shape of an image (Phase 30). */
+function ImageLook({ block, onChange }: { block: ImageBlock; onChange: (b: BulkBlock) => void }) {
+  const { t } = useTranslation();
+  const mode: SizeMode = block.width?.unit ?? 'original';
+  const limits = mode === 'px' ? BULK_LIMITS.imagePx : BULK_LIMITS.imagePercent;
+  // Typed freely, saved when within the limits (an empty or partial number is not saved yet).
+  const [typed, setTyped] = useState(String(block.width?.value ?? ''));
+  const setWidth = (width: BulkImageWidth | undefined) => {
+    const rest = omit(block, 'width');
+    onChange(width ? { ...rest, width } : rest);
+  };
+  const bad =
+    typed !== '' &&
+    mode !== 'original' &&
+    (Number(typed) < limits.min || Number(typed) > limits.max || !Number.isInteger(Number(typed)));
+  return (
+    <div className="grid gap-4 min-[641px]:grid-cols-2">
+      <ChoiceField<SizeMode>
+        id={`b-${block.id}-size`}
+        label={t('bulkEmail.image.size')}
+        value={mode}
+        options={['original', 'percent', 'px']}
+        optionLabel={(o) => t(`bulkEmail.image.sizes.${o}`)}
+        onChange={(next) => {
+          if (next === 'original') return setWidth(undefined);
+          const value = next === 'px' ? BULK_LIMITS.imagePx.max : 100;
+          setTyped(String(value));
+          setWidth({ unit: next, value });
+        }}
+      />
+      {mode !== 'original' && (
+        <Field
+          id={`b-${block.id}-width`}
+          label={t(mode === 'px' ? 'bulkEmail.image.widthPx' : 'bulkEmail.image.widthPercent')}
+          hint={t('bulkEmail.image.widthHint', limits)}
+          problem={bad ? t('bulkEmail.image.widthHint', limits) : undefined}
+        >
+          {(aria) => (
+            <Input
+              {...aria}
+              inputMode="numeric"
+              value={typed}
+              onChange={(e) => {
+                setTyped(e.target.value);
+                const n = Number(e.target.value);
+                if (Number.isInteger(n) && n >= limits.min && n <= limits.max && block.width) {
+                  setWidth({ unit: block.width.unit, value: n });
+                }
+              }}
+            />
+          )}
+        </Field>
+      )}
+      <ChoiceField<BulkAlign>
+        id={`b-${block.id}-align`}
+        label={t('bulkEmail.fields.align')}
+        value={block.align ?? 'center'}
+        options={['left', 'center', 'right']}
+        optionLabel={(o) => t(`bulkEmail.fields.${o}`)}
+        onChange={(align) => onChange({ ...block, align })}
+      />
+      <div className="flex flex-col gap-2">
+        <ChoiceField
+          id={`b-${block.id}-shape`}
+          label={t('bulkEmail.image.shape')}
+          value={block.shape ?? 'square'}
+          options={BulkImageShapes}
+          optionLabel={(o) => t(`bulkEmail.image.shapes.${o}`)}
+          onChange={(shape) => {
+            const rest = omit(block, 'shape');
+            onChange(shape === 'square' ? rest : { ...rest, shape });
+          }}
+        />
+        {block.shape === 'circle' && <FieldNote>{t('bulkEmail.image.circleHint')}</FieldNote>}
+      </div>
+    </div>
+  );
+}
+
+function SpacerForm({ block, onChange }: FormProps<Extract<BulkBlock, { type: 'spacer' }>>) {
+  const { t } = useTranslation();
+  return (
+    <ChoiceField
+      id={`b-${block.id}-spacer`}
+      label={t('bulkEmail.spacer.size')}
+      value={block.size}
+      options={BulkSpacerSizes}
+      optionLabel={(o) => t(`bulkEmail.spacer.sizes.${o}`)}
+      onChange={(size) => onChange({ ...block, size })}
+    />
+  );
+}
+
+/** The split container's own settings; its two sides are block lists (`block-list.tsx`). */
+export function ColumnsSettings({
+  block,
+  onChange,
+}: {
+  block: Extract<BulkBlock, { type: 'columns' }>;
+  onChange: (b: BulkBlock) => void;
+}) {
+  const { t } = useTranslation();
+  const dividerId = `b-${block.id}-divider`;
+  return (
+    <div className="grid gap-4 min-[641px]:grid-cols-2">
+      <ChoiceField
+        id={`b-${block.id}-ratio`}
+        label={t('bulkEmail.columns.ratio')}
+        value={block.ratio}
+        options={BulkColumnRatios}
+        optionLabel={(o) => t(`bulkEmail.columns.ratios.${o}`)}
+        onChange={(ratio) => onChange({ ...block, ratio })}
+      />
+      <ChoiceField
+        id={`b-${block.id}-valign`}
+        label={t('bulkEmail.columns.valign')}
+        value={block.valign}
+        options={BulkVAligns}
+        optionLabel={(o) => t(`bulkEmail.columns.valigns.${o}`)}
+        onChange={(valign) => onChange({ ...block, valign })}
+      />
+      <label
+        htmlFor={dividerId}
+        className="flex min-h-11 items-center gap-3 text-button font-medium"
+      >
+        <input
+          id={dividerId}
+          type="checkbox"
+          className="size-5 accent-foreground"
+          checked={block.divider}
+          onChange={(e) => onChange({ ...block, divider: e.target.checked })}
+        />
+        {t('bulkEmail.columns.divider')}
+      </label>
+      {block.divider && (
+        <ChoiceField
+          id={`b-${block.id}-divider-color`}
+          label={t('bulkEmail.columns.dividerColor')}
+          value={block.dividerColor}
+          options={BulkLineColors}
+          optionLabel={(o) => t(`bulkEmail.colors.${o}`)}
+          onChange={(dividerColor) => onChange({ ...block, dividerColor })}
+        />
+      )}
+    </div>
   );
 }
 
@@ -298,7 +496,7 @@ function ButtonForm({
   );
 }
 
-/** The edit form of one block; a divider has nothing to edit. */
+/** The edit form of one block; a divider has nothing to edit. A container's sides are in `BlockList`. */
 export function BlockForm(props: FormProps<BulkBlock>) {
   const { t } = useTranslation();
   const { block } = props;
@@ -313,6 +511,10 @@ export function BlockForm(props: FormProps<BulkBlock>) {
       return <ButtonForm {...props} block={block} />;
     case 'logo':
       return <AlignField block={block} onChange={props.onChange} />;
+    case 'spacer':
+      return <SpacerForm {...props} block={block} />;
+    case 'columns':
+      return <ColumnsSettings block={block} onChange={props.onChange} />;
     case 'divider':
       return (
         <p className="text-micro text-muted-foreground">{t('bulkEmail.fields.dividerNote')}</p>

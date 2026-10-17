@@ -73,6 +73,9 @@ export const campaign = (over: Partial<BulkCampaignDto> = {}): BulkCampaignDto =
   ...listItem({ id: 'k1' }),
   preheader: '',
   blocks: [],
+  phoneBlocks: null,
+  // Most tests are not about the one-time phone warning (Phase 30): shown already.
+  phoneCheckShown: true,
   audience: EMPTY_AUDIENCE,
   version: 3,
   sender: null,

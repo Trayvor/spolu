@@ -15,7 +15,14 @@ const t = (key: string, options?: Record<string, unknown>) => i18n.t(key, option
 const PATH = '/api/bulk-email/campaigns/k1';
 const SENDER = 'eGrant <info@egrant.sk>';
 
-const blocks: BulkBlock[] = [{ id: 't', type: 'text', text: 'Hello {{name}}', align: 'left' }];
+const blocks: BulkBlock[] = [
+  {
+    id: 't',
+    type: 'text',
+    align: 'left',
+    content: [{ type: 'paragraph', content: [{ text: 'Hello {{name}}' }] }],
+  },
+];
 
 /** GET answers `current`; PUT saves into it; POST /send answers `onSend` (default: sending). */
 function routes(initial: Partial<BulkCampaignDto>, onSend?: () => Response): Route[] {
@@ -35,6 +42,10 @@ function routes(initial: Partial<BulkCampaignDto>, onSend?: () => Response): Rou
         return reply(200, current);
       }
       if (url.pathname === `${PATH}/recipients`) return reply(200, { items: [], nextCursor: null });
+      if (url.pathname === `${PATH}/phone-check` && init.method === 'POST') {
+        current = { ...current, phoneCheckShown: true };
+        return reply(204);
+      }
       if (url.pathname !== PATH) return undefined;
       if (init.method === 'PUT') {
         const body = JSON.parse(init.body as string) as BulkCampaignDto;
@@ -134,6 +145,51 @@ describe('bulk email send step', () => {
     await user.click(await within(dialog).findByRole('button', { name: 'Send to 248 people' }));
     expect(await within(dialog).findByText(t('bulkEmail.send.notDraft'))).toBeInTheDocument();
     expect(within(dialog).getByRole('button', { name: t('bulkEmail.send.reload') })).toBeVisible();
+  });
+
+  it('warns once to check the phone version while it follows desktop; Send anyway goes on', async () => {
+    const { user, callsTo } = await openEditor({ phoneCheckShown: false });
+    await user.click(screen.getByRole('button', { name: t('bulkEmail.send.open') }));
+    const check = await screen.findByTestId('phone-check-dialog');
+    expect(
+      within(check).getByRole('heading', { name: t('bulkEmail.phoneCheck.title') }),
+    ).toBeInTheDocument();
+    await waitFor(() => expect(callsTo('POST', `${PATH}/phone-check`)).toHaveLength(1));
+    await user.click(
+      within(check).getByRole('button', { name: t('bulkEmail.phoneCheck.sendAnyway') }),
+    );
+    expect(await screen.findByTestId('send-dialog')).toBeInTheDocument();
+    expect(screen.queryByTestId('phone-check-dialog')).toBeNull();
+
+    // Not again for this campaign.
+    await user.click(
+      within(screen.getByTestId('send-dialog')).getByRole('button', {
+        name: t('bulkEmail.send.cancel'),
+      }),
+    );
+    await openDialog(user);
+    expect(screen.queryByTestId('phone-check-dialog')).toBeNull();
+    expect(callsTo('POST', `${PATH}/phone-check`)).toHaveLength(1);
+  });
+
+  it('Show phone preview switches to Phone instead of sending', async () => {
+    const { user, callsTo } = await openEditor({ phoneCheckShown: false });
+    await user.click(screen.getByRole('button', { name: t('bulkEmail.send.open') }));
+    const check = await screen.findByTestId('phone-check-dialog');
+    await user.click(within(check).getByRole('button', { name: t('bulkEmail.phoneCheck.show') }));
+    expect(screen.queryByTestId('send-dialog')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Phone' })).toHaveAttribute('aria-pressed', 'true');
+    expect(await screen.findByTitle(t('bulkEmail.preview.frame'))).toHaveAttribute('width', '375');
+    expect(callsTo('POST', `${PATH}/send`)).toHaveLength(0);
+  });
+
+  it('no warning when the phone version is edited separately, nor for the test', async () => {
+    const { user } = await openEditor({
+      phoneCheckShown: false,
+      phoneBlocks: [{ id: 'd', type: 'divider' }],
+    });
+    await openDialog(user);
+    expect(screen.queryByTestId('phone-check-dialog')).toBeNull();
   });
 
   it('Not now closes the dialog without sending', async () => {

@@ -60,13 +60,15 @@
       "image": "Image",
       "button": "Button",
       "divider": "Divider",
-      "logo": "eGrant logo"
+      "logo": "eGrant logo",
+      "spacer": "Space",
+      "columns": "Split container"
     }
   },
   "fields": {
     "text": "Text",
     "nameHint": "Write {{placeholder}} to greet each person by name.",
-    "textHint": "A blank line starts a new paragraph. **bold** makes text bold, web addresses become links, {{placeholder}} becomes each person's name.",
+    "textHint": "Select text to format it. {{placeholder}} becomes each person's name, web addresses become links and **word** makes a word bold.",
     "align": "Alignment",
     "left": "Left",
     "center": "Centre",
@@ -81,7 +83,8 @@
     "label": "Button text",
     "url": "Link",
     "urlHint": "A web address starting with https://, or mailto: with an email address.",
-    "dividerNote": "A thin line between two parts of the email."
+    "dividerNote": "A thin line between two parts of the email.",
+    "right": "Right"
   },
   "problems": {
     "required": "Fill this in.",
@@ -103,7 +106,9 @@
     "frame": "Email preview",
     "loading": "Loading the preview…",
     "failed": "The preview could not be loaded.",
-    "note": "Shown with your name, as you would get it. Blocks with problems are left out until they are fixed."
+    "note": "Shown with your name, as you would get it. Blocks with problems are left out until they are fixed.",
+    "titlePhone": "Preview on a phone",
+    "tooBig": "This email is about {{kb}} kB. Gmail cuts off emails over about 102 kB: shorten it or remove the phone version."
   },
   "audience": {
     "title": "Recipients",
@@ -221,5 +226,107 @@
       "disabled": "Account disabled",
       "unknown": "Unknown result: the email may or may not have gone out."
     }
+  },
+  "rich": {
+    "toolbar": "Text formatting",
+    "style": "Style",
+    "paragraph": "Paragraph",
+    "h2": "Heading 2",
+    "h3": "Heading 3",
+    "bold": "Bold",
+    "italic": "Italic",
+    "underline": "Underline",
+    "strikeThrough": "Strikethrough",
+    "boldGlyph": "B",
+    "italicGlyph": "I",
+    "underlineGlyph": "U",
+    "strikeThroughGlyph": "S",
+    "link": "Add link",
+    "unlink": "Remove link",
+    "bullet": "Bulleted list",
+    "ordered": "Numbered list",
+    "alignLeft": "Align left",
+    "alignCenter": "Centre",
+    "alignRight": "Align right",
+    "color": "Colour",
+    "linkAddress": "Link address",
+    "linkApply": "Add link",
+    "linkInvalid": "Use a web address starting with https://, or mailto: with an email address."
+  },
+  "colors": {
+    "ink": "Black",
+    "muted": "Grey",
+    "green": "Green",
+    "red": "Red",
+    "purple": "Purple",
+    "blue": "Blue",
+    "line": "Light grey"
+  },
+  "image": {
+    "size": "Size",
+    "sizes": {
+      "original": "Original size",
+      "percent": "Percent of the column",
+      "px": "Pixels"
+    },
+    "widthPercent": "Width (%)",
+    "widthPx": "Width (px)",
+    "widthHint": "From {{min}} to {{max}}.",
+    "shape": "Shape",
+    "shapes": {
+      "square": "Square corners",
+      "rounded": "Rounded corners",
+      "roundedLarge": "More rounded corners",
+      "circle": "Circle"
+    },
+    "circleHint": "Best for square images; others become an oval. Outlook for Windows shows square corners."
+  },
+  "spacer": {
+    "size": "Height",
+    "sizes": {
+      "small": "Small (16 px)",
+      "medium": "Medium (32 px)",
+      "large": "Large (48 px)"
+    }
+  },
+  "columns": {
+    "ratio": "Column widths",
+    "ratios": {
+      "50-50": "Half and half",
+      "33-67": "One third and two thirds",
+      "67-33": "Two thirds and one third"
+    },
+    "valign": "Vertical alignment",
+    "valigns": {
+      "top": "Top",
+      "middle": "Middle",
+      "bottom": "Bottom"
+    },
+    "divider": "Line between the columns",
+    "dividerColor": "Line colour",
+    "left": "Left column of block {{n}}",
+    "right": "Right column of block {{n}}",
+    "empty": "Nothing here yet. On phones the left column comes first.",
+    "add": "Add block to {{side}}",
+    "moveTo": "Move block {{n}} ({{type}}) to…",
+    "moveToShort": "Move to…",
+    "toMain": "Main email",
+    "toLeft": "Left column of block {{n}}",
+    "toRight": "Right column of block {{n}}"
+  },
+  "mode": {
+    "label": "Version to edit",
+    "follows": "Phone version: follows the computer version",
+    "separate": "Phone version: edited separately",
+    "followsHint": "Your first change here makes a separate phone version. Changes on Computer will not reach it after that.",
+    "return": "Return to the computer version",
+    "returnConfirm": "Discard the phone version? Phones will show the computer version again.",
+    "returnYes": "Discard phone version"
+  },
+  "phoneCheck": {
+    "title": "Check how the email looks on a phone",
+    "body": "The phone version still follows the computer version: on phones, split containers stack and wide images shrink. Look at the phone preview before you send. This reminder is shown once for this email.",
+    "show": "Show phone preview",
+    "sendAnyway": "Send anyway"
   }
 }

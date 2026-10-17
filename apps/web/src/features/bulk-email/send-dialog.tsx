@@ -9,6 +9,7 @@ import {
   audienceCountQuery,
   campaignListKey,
   campaignQuery,
+  markPhoneCheckShown,
   sendCampaign,
   senderQuery,
 } from './api';
@@ -29,6 +30,9 @@ export function SendStep({
   saveState,
   flush,
   onProblems,
+  phoneFollows,
+  phoneCheckShown,
+  onShowPhone,
 }: {
   campaignId: string;
   subject: string;
@@ -36,10 +40,20 @@ export function SendStep({
   saveState: SaveState;
   flush: () => Promise<boolean>;
   onProblems: (problems: BulkNotReadyProblem[]) => void;
+  /** The phone version still follows the desktop one (Phase 30). */
+  phoneFollows: boolean;
+  /** The one-time phone warning was shown for this campaign already (server-side). */
+  phoneCheckShown: boolean;
+  /** "Show phone preview": switch the editor to Phone and show the preview. */
+  onShowPhone: () => void;
 }) {
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
   const [preparing, setPreparing] = useState(false);
   const [open, setOpen] = useState(false);
+  const [phoneCheck, setPhoneCheck] = useState(false);
+  // Shown in this editor already, before the server's answer reached the campaign.
+  const [warned, setWarned] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   // `not_ready` reasons without a block (e.g. no subject) are shown here; the rest at the block.
   const [general, setGeneral] = useState<BulkNotReadyProblem[]>([]);
@@ -50,8 +64,24 @@ export function SendStep({
     setPreparing(true);
     const saved = await flush();
     setPreparing(false);
-    if (saved) setOpen(true);
-    else setMessage(t('bulkEmail.send.unsaved'));
+    if (!saved) {
+      setMessage(t('bulkEmail.send.unsaved'));
+      return;
+    }
+    if (phoneFollows && !phoneCheckShown && !warned) {
+      // Once per campaign (spec §5): remembered on the server when it is shown.
+      setWarned(true);
+      setPhoneCheck(true);
+      void markPhoneCheckShown(campaignId)
+        .then(() =>
+          queryClient.setQueryData(campaignQuery(campaignId).queryKey, (c) =>
+            c ? { ...c, phoneCheckShown: true } : c,
+          ),
+        )
+        .catch(() => undefined);
+      return;
+    }
+    setOpen(true);
   };
 
   return (
@@ -76,6 +106,45 @@ export function SendStep({
           {t(`bulkEmail.notReady.${p.problem}`)}
         </p>
       ))}
+      {phoneCheck && (
+        <SheetDialog
+          onEscape={() => setPhoneCheck(false)}
+          testId="phone-check-dialog"
+          labelledBy="phone-check-title"
+        >
+          <div className="flex flex-1 flex-col gap-4 overflow-y-auto px-5 py-5 min-[641px]:px-6">
+            <SheetDialogTitle asChild>
+              <h2 id="phone-check-title" className="text-medium leading-tight font-semibold">
+                {t('bulkEmail.phoneCheck.title')}
+              </h2>
+            </SheetDialogTitle>
+            <p className="max-w-[520px] text-button text-muted-foreground">
+              {t('bulkEmail.phoneCheck.body')}
+            </p>
+          </div>
+          <div className="flex flex-col-reverse gap-2 border-t border-border px-5 pt-4 pb-[max(16px,env(safe-area-inset-bottom))] min-[641px]:flex-row min-[641px]:justify-end min-[641px]:px-6">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => {
+                setPhoneCheck(false);
+                setOpen(true);
+              }}
+            >
+              {t('bulkEmail.phoneCheck.sendAnyway')}
+            </Button>
+            <Button
+              type="button"
+              onClick={() => {
+                setPhoneCheck(false);
+                onShowPhone();
+              }}
+            >
+              {t('bulkEmail.phoneCheck.show')}
+            </Button>
+          </div>
+        </SheetDialog>
+      )}
       {open && (
         <SendDialog
           campaignId={campaignId}
