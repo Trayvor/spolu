@@ -1,6 +1,10 @@
 # Phase 33 — Projects per client and closer eGrant integration: plan
 
-Spec: [2026-10-17-phase-33-projects-design.md](../specs/2026-10-17-phase-33-projects-design.md) (read its "Owner decisions" first). Status: **approved** by the owner on 2026-10-17. Decisions 6 and 8 were amended (a pending "change from eGrant" with Apply and Dismiss, and eGrant updates through the intake; clients create and edit projects and events and set them on tickets). The eGrant API is final (owner, 2026-10-17): projects by their own call `PUT /api/egrant/projects/:project_id`, no event ids (pairing by name and date), the ticket intake only linking the ticket's project. Decisions 6a (an update changes only the ticket's project) and 8a (clients archive, admins alone merge and delete) are recommendations for the owner to confirm; nothing waits for them. Phase 34's plan: [2026-10-17-phase-34-admin-group.md](2026-10-17-phase-34-admin-group.md); the joint merge order of both phases is at the end of this file.
+Spec: [2026-10-17-phase-33-projects-design.md](../specs/2026-10-17-phase-33-projects-design.md) (read its "Owner decisions" first). Status: **approved** by the owner on 2026-10-17. Decisions 6 and 8 were amended, and 6a and 8a answered, the same day. Changes from the eGrant project webhook become pending changes reviewed field by field. The group's clients create, edit, archive, merge and delete projects and events and set them on tasks and tickets. The eGrant API is final:
+
+- projects by their own call `PUT /api/egrant/projects/:project_id`, which creates and updates them;
+- no event ids (pairing by name and date);
+- the ticket intake sends only `project_id`; it never sets an event, and eGrant never updates a ticket. Phase 34's plan: [2026-10-17-phase-34-admin-group.md](2026-10-17-phase-34-admin-group.md); the joint merge order of both phases is at the end of this file.
 
 Six pull requests. **P1 is merged first**: it writes the one migration (projects, events, files, name keys, the task and ticket columns, `knowledge_links`), the shared types, the policy, the projects API and the empty Prehľad tab, so the other parts add code in files of their own. Then **P2, P3, P4 and P5 run in parallel** (separate worktrees, any merge order, each rebases on the previous merge). **P6** (finance filters) waits for P2 and for Phase 32 parts C and D. Each part is test-first (`superpowers:test-driven-development`), runs `bash scripts/ci.sh` before merging and updates its docs with `update-kb`; screen work starts with the `frontend-design:frontend-design` skill (CLAUDE.md).
 
@@ -8,7 +12,7 @@ Six pull requests. **P1 is merged first**: it writes the one migration (projects
 Phase 32 A2 · B · C ─┬─ D ─────────────────────────────────────────┐
                      │                                              │
 P1 foundation ───────┼── P2 tasks & tickets: fields, filters ───────┴── P6 finance filters by project/event
-                     ├── P3 eGrant intake: matching, auto-create, merge
+                     ├── P3 eGrant project webhook, ticket links, merge
                      ├── P4 timeline and overview cards
                      └── P5 description editor: AI, voice, knowledge everywhere
 ```
@@ -16,7 +20,7 @@ P1 foundation ───────┼── P2 tasks & tickets: fields, filters
 ## Conflict rules for the parallel parts
 
 - **Migrations:** only P1 writes one for this phase (spec §3 and §10.3). P6 writes the finance one (spec §11). A part that finds it needs another change makes its own migration on top of `main` and renumbers it when it rebases; it says so in its PR. Phase 32 parts and the `chat_file` → file change may land migrations meanwhile: P1 takes the next free number at its merge.
-- **Server:** P1 creates `modules/projects/{schema,policy,service,events,routes,refs}.ts` and empty files owned by later parts: `timeline.ts`, `overview.ts` (P4), `egrant-match.ts`, `merge.ts` (P3). In `modules/tasks` and `modules/tickets`, P2 owns the field and filter changes; P3 adds `modules/projects/egrant-routes.ts` and `egrant-delivery.ts` and touches only the intake route, `assignClient`, the move (one call each) and the groups service's create and URL change (one call to `processInboxFor`); P4 adds new files `tasks/by-event.ts`, `tasks/open-of-group.ts`, `tickets/by-event.ts`, `tickets/active-of-group.ts` and edits nothing else there; P5 adds `knowledge/links.ts` and the AI group routes in `modules/ai/group-text-routes.ts`, and edits the DTO builders of tasks, tickets, projects and knowledge only to add `linkedKnowledge` (one line each, after P2's `project` line when both are open: the later one rebases).
+- **Server:** P1 creates `modules/projects/{schema,policy,service,events,routes,refs}.ts` and empty files owned by later parts: `timeline.ts`, `overview.ts` (P4), `egrant-match.ts`, `merge.ts` (P3). In `modules/tasks` and `modules/tickets`, P2 owns the field and filter changes; P3 adds `modules/projects/egrant-routes.ts`, `egrant-delivery.ts` and `modules/tickets/egrant-link.ts`, and touches only the intake route, `assignClient`, the move (one call each) and the groups service's create and URL change (one call to `processInboxFor`); P4 adds new files `tasks/by-event.ts`, `tasks/open-of-group.ts`, `tickets/by-event.ts`, `tickets/active-of-group.ts` and edits nothing else there; P5 adds `knowledge/links.ts` and the AI group routes in `modules/ai/group-text-routes.ts`, and edits the DTO builders of tasks, tickets, projects and knowledge only to add `linkedKnowledge` (one line each, after P2's `project` line when both are open: the later one rebases).
 - **Shared types:** P1 writes `packages/shared/src/projects/` (`common.ts`, `timeline.ts`, `overview.ts`, `intake.ts`) with every DTO and request schema of the spec, and adds `project`, `event` (nullable, optional in requests) to the task and ticket DTOs and bodies. A part refines only its own file.
 - **Locales:** P1 creates the namespace `projects` in all nine languages with the shared words and registers it on the overview route; P2 writes into `tasks`, `tickets`, `taskSplit`; P4 into `projects` (its own keys under `timeline.*` and `cards.*`); P5 into `chat` (editor buttons are there already) and `knowledge`. P1's own dialog keys live under `projects.dialogs.*`.
 - **Web:** P1 owns `features/projects/{overview-tab,projects-card,project-sheet,project-dialog,event-dialog,api,use-project-events}.tsx` and the tab pill in `group-tabs.tsx`; P4 owns `features/projects/{timeline,timeline-event,event-sheet,done-pile,active-cards}.tsx`, rendered in slots P1 leaves in `overview-tab.tsx`; P2 owns `features/projects/{project-select,event-select}.tsx` and their use in the task, ticket and review forms and the filter pills; P5 owns `features/editor/` and the AI and voice buttons' `target` prop. P1's dialogs use a plain `FormattedTextField` for descriptions; P5 swaps it.
@@ -29,7 +33,7 @@ P1 foundation ───────┼── P2 tasks & tickets: fields, filters
 canReadProjects(actor, groupId, actorGroupIds): boolean
 canEditProjects(actor, groupId, actorGroupIds): boolean     // = canReadGroup (decision 8)
 canArchiveProject(actor, groupId, actorGroupIds): boolean   // = canReadGroup (decision 8a)
-canMergeOrDeleteProject(actor): boolean                     // = isAdmin (decision 8a)
+canMergeOrDeleteProject(actor, groupId, actorGroupIds): boolean   // = canReadGroup (decision 8a, owner 2026-10-17)
 canSetTaskProject(actor, groupId, actorGroupIds): boolean   // = canUseBoard
 canSetTicketProject(actor, ticket, role): boolean           // admin, or a client of the ticket's group; never a žiadateľ or a ticket without a client
 
@@ -41,14 +45,14 @@ lockGroupProjects(tx, groupId): Promise<void>
 colorOf(projectId): ProjectColor
 
 // modules/projects/egrant-match.ts (P3)
-matchOrCreateEgrantProject(tx, groupId, raw: { id: string; name: string | null }): Promise<string>   // a ticket's link
+findEgrantProject(tx, groupId, egrantProjectId): Promise<string | null>   // a ticket's link, by the eGrant id only
 // modules/projects/egrant-delivery.ts (P3)
-receiveProjectDelivery(tx, groupId, egrantProjectId, body: EgrantProjectBody): Promise<{ projectId; state: 'created' | 'applied' | 'unchanged' | 'pending' | 'stale'; pending: number; skipped: string[] }>
+receiveProjectDelivery(tx, groupId, egrantProjectId, body: EgrantProjectBody): Promise<{ projectId; state: 'created' | 'unchanged' | 'pending' | 'stale'; pending: number; skipped: string[] }>   // links waiting tickets on create
 processInboxFor(tx, groupId, host): Promise<void>                    // called by the groups service on client create / URL change
 reviewEgrantChanges(deps, actor, projectId, { accept: string[]; dismiss: string[] }): Promise<ProjectDto>
-// modules/tickets/egrant-update.ts (P3)
-linkTicketProject(tx, ticket, ref: { id: string; name: string | null }, sentAt: Date | null): Promise<'applied' | 'pending' | 'unchanged' | 'stale' | 'stored'>
-applyEgrantChange(deps, actor, ticketId) / dismissEgrantChange(deps, actor, ticketId)
+// modules/tickets/egrant-link.ts (P3)
+linkTicketProject(tx, ticket, egrantProjectId: string | null): Promise<'linked' | 'waiting' | 'none'>   // once, only on a ticket without a project
+linkWaitingTickets(tx, groupId, egrantProjectId, projectId): Promise<string[] /* ticket ids, for ticket:updated */>
 // modules/projects/merge.ts (P3)
 mergeProjects(deps, actor, fromId, intoId): Promise<ProjectDto>
 
@@ -73,10 +77,10 @@ linkedItemCards(db, kind, subjectIds): Promise<Map<subjectId, KnowledgeCardDto[]
 
 ## Part P1 — Foundation (branch `feat/projects-foundation`)
 
-**Goal:** projects and events exist and are enforced; admins and the group's clients create, edit and archive them with files, and admins alone merge and delete (decisions 8 and 8a); the Prehľad tab shows the projects card; every table of the phase exists.
+**Goal:** projects and events exist and are enforced; admins and the group's clients create, edit, archive, merge and delete them with files (decisions 8 and 8a); the Prehľad tab shows the projects card; every table of the phase exists.
 
 Server:
-- Migration `projects_foundation` (spec §3, §10.3): `projects`, `project_name_keys`, `project_events`, `project_attachments`; `tasks.project_id`, `tasks.event_id`, `tickets.project_id`, `tickets.event_id`, `tickets.egrant_project_ref`, `egrant_sent_at`, `project_origin`, `external_id`, `external_key` (unique); `ticket_intake_updates`; `projects.egrant_delivered_at`, `egrant_sent_at`, `edited_by_person_at`; `project_events.source`, `name_key`, `egrant_name_key`, `egrant_date`; `egrant_changes`; `egrant_project_inbox` (spec §3, §5), with the composite FKs (`on delete set null (…)` column lists written by hand in the SQL) and CHECKs; `knowledge_links`; every index (each FK leads one: `infra/db/foreign-key-indexes.test.ts`).
+- Migration `projects_foundation` (spec §3, §10.3): `projects`, `project_name_keys`, `project_events`, `project_attachments`; `tasks.project_id`, `tasks.event_id`, `tickets.project_id`, `tickets.event_id`, `tickets.egrant_project_id` with its partial index for waiting tickets; `projects.egrant_delivered_at`, `egrant_sent_at`; `project_events.source`, `name_key`, `egrant_name_key`, `egrant_date`; `egrant_changes`; `egrant_project_inbox` (spec §3, §5), with the composite FKs (`on delete set null (…)` column lists written by hand in the SQL) and CHECKs; `knowledge_links`; every index (each FK leads one: `infra/db/foreign-key-indexes.test.ts`).
 - `modules/projects/{schema,policy,service,refs,events,routes}.ts`: CRUD for projects and events with `updatedAt` conflicts (`409 project_changed`), archive and restore, delete (the FKs clear tasks and tickets), files through `attachFiles`, name keys on create and rename (`409 project_name_taken`), alias removal; the picker routes; `project:changed` to `group:<id>`.
 - Tasks and tickets: the columns in their Drizzle schemas only (no behaviour; P2 adds it), so the build passes.
 - `packages/shared/src/projects/*`, the DTO additions (`project`, `event` as `null` until P2 fills them).
@@ -87,11 +91,11 @@ Web:
 - `features/projects/overview-tab.tsx` (the grid with slots for the timeline and the active cards, filled by P4), `projects-card.tsx`, `project-sheet.tsx`, `project-dialog.tsx`, `event-dialog.tsx` (descriptions with `FormattedTextField` for now), `api.ts`, `use-project-events.ts`.
 - Locales: `projects` in nine languages; `group.tabs.overview` in the eager files.
 
-Tests (first): policy table (admin, client, žiadateľ, outsider: a client creates, edits, archives and restores; a client's merge, delete and alias removal `403`; a žiadateľ `404` on every route); CRUD and validation; composite FK refusals (another client's project, an event of another project, an event without a project); deleting a project or event clears tasks and tickets but keeps them; name keys and `409`; archive; files readable by the group's readers only; the realtime event's rooms; web: the tab only for group readers, the card's states, the dialogs' validation.
+Tests (first): policy table (admin, client, žiadateľ, outsider: a client creates, edits, archives, restores, merges and deletes and removes aliases; a žiadateľ `404` on every route); CRUD and validation; composite FK refusals (another client's project, an event of another project, an event without a project); deleting a project or event clears tasks and tickets but keeps them; name keys and `409`; archive; files readable by the group's readers only; the realtime event's rooms; web: the tab only for group readers, the card's states, the dialogs' validation.
 
 Docs: `product/projects.md` (new), `product/README.md`, `product/groups.md` (tab), `architecture/data-model.md`, `permissions.md`, `realtime.md`, `overview.md`, `glossary.md`, the ADR, `roadmap.md` (Phase 33 in progress). Bundle: initial JS delta (< +0.3 kB) in `architecture/performance.md`.
 
-Done when: an admin creates a project with two events and a file in a client's Prehľad; the client sees them, adds a third event and archives the project; only the admin can delete or merge.
+Done when: an admin creates a project with two events and a file in a client's Prehľad; the client sees them, adds a third event, archives the project and merges a duplicate into it; a žiadateľ reaches none of it.
 
 ---
 
@@ -101,7 +105,7 @@ Done when: an admin creates a project with two events and a file in a client's P
 
 Server:
 - `modules/tasks`: `project_id`/`event_id` in create, PATCH and the AI review create (`getProjectRef` in the transaction, `400 invalid_project`, `canSetTaskProject`); the DTOs' `project`/`event` through one `projectRefs` per page (board, done page, global board, panel, home cards); filters `project`/`event` on `GET /api/groups/:id/board` and `/board/done`; `project` on `GET /api/tasks/global` only with one client (`invalid_filter`); `reassignTaskProject`.
-- `modules/tickets`: a route of its own, `PUT /api/tickets/:id/project { projectId, eventId }` (`canSetTicketProject`: admins and the group's clients, decision 8; it sets `project_origin = 'manual'` and clears a pending eGrant change), the same pair in the new-ticket body (a client creating a ticket may choose it), the list filters (`TicketListQuerySchema`), `GET /api/tickets/global` with one client; the žiadateľ's `forReader` strips colour and event; tasks made from a ticket inherit its project and event; `reassignTicketProject`; moving a ticket to another client clears project and event in the same statement (P3 then adds the re-match there).
+- `modules/tickets`: a route of its own, `PUT /api/tickets/:id/project { projectId, eventId }` (`canSetTicketProject`: admins and the group's clients, decision 8), the same pair in the new-ticket body (a client creating a ticket may choose it), the list filters (`TicketListQuerySchema`), `GET /api/tickets/global` with one client; the žiadateľ's `forReader` strips colour and event; tasks made from a ticket inherit its project and event; `reassignTicketProject`; moving a ticket to another client clears project and event in the same statement (P3 then adds the re-match there).
 - EXPLAIN cases: the filtered board and ticket list on `home/test-volume.ts`.
 
 Web:
@@ -110,7 +114,7 @@ Web:
 - Filters: `features/tasks/board.tsx` gets its first filter row (Project, Event; `useRememberedFilters` per group; phones: one "Filters (n)" pill); `features/tickets/ticket-filters.tsx` and `search.ts`; `features/global-board/board-filters.tsx` (Project only with one client).
 - Locales: `tasks`, `tickets`, `taskSplit`, `adminHome` (global board pill) in nine languages.
 
-Tests (first): set, change, clear on tasks and tickets per role (a client yes on both; a žiadateľ `404`; a client still `403` on the ticket's other fields; `project_origin` set to `manual`); invalid pairs; inheritance from a ticket; the move clearing; filters and their `400`s; DTO batching (query count); web: selects, the filter pills and URL params, the one-client rule; e2e scenario 2.
+Tests (first): set, change, clear on tasks and tickets per role (a client yes on both; a žiadateľ `404`; a client still `403` on the ticket's other fields); invalid pairs; inheritance from a ticket; the move clearing; filters and their `400`s; DTO batching (query count); web: selects, the filter pills and URL params, the one-client rule; e2e scenario 2.
 
 Docs: `product/task-board.md`, `product/tickets.md`, `product/admin-home.md` (global board), `product/projects.md` (Links and filters), `architecture/permissions.md`, `architecture/overview.md` (API).
 
@@ -118,9 +122,14 @@ Done when: a task and a ticket sit on an event, and both tabs filter by the proj
 
 ---
 
-## Part P3 — eGrant projects, ticket links and updates, merge (branch `feat/projects-intake`; after P1, parallel with P2)
+## Part P3 — eGrant project webhook, ticket links, merge (branch `feat/projects-intake`; after P1, parallel with P2)
 
-**Goal:** spec §5 and decisions 1–6c. This covers the project endpoint (a webhook), the first creation, pending changes from eGrant with the per-field review, the ticket's project link with create-or-update through `external_id`, and merge.
+**Goal:** spec §5 and decisions 1–6c. This part covers:
+
+- the project endpoint (a webhook) that creates and updates projects;
+- pending changes from it, reviewed field by field;
+- the ticket intake's `project_id` link, including tickets that wait for their project;
+- merge.
 
 Server:
 - **Project endpoint** `PUT /api/egrant/projects/:project_id`, in `modules/projects/egrant-routes.ts`:
@@ -129,33 +138,31 @@ Server:
   - The answers are `201`, `200` and `202`, with `skipped` listing the skipped events.
   - Skipped events are logged without their text.
 - **`modules/projects/egrant-delivery.ts`:**
-  - `receiveProjectDelivery(tx, groupId, projectId, body)`: the first creation, or the direct completion of a project made from a ticket (spec §5.2).
+  - `receiveProjectDelivery(tx, groupId, projectId, body)` handles the first creation (spec §5.2) and links the client's waiting tickets through the tickets module's `linkWaitingTickets`.
+  - A person's project with the same name key and no eGrant id is linked, and its differences become pending changes.
   - The event pairing: name and date, then name alone, then date alone, then additions and removals (spec §5.4).
   - Each event's eGrant identity (`egrant_name_key`, `egrant_date`) is updated on every processed delivery.
-  - The pending and dismissed rows of `egrant_changes` follow spec §5.4: equal value deletes, a dismissed hash stays, otherwise pending.
+  - The rows of `egrant_changes`: an equal value deletes the row, a dismissed hash stays dismissed, anything else becomes pending.
   - The `sent_at` stale guard.
-- **`egrant_project_inbox`:** an unknown instance answers `202` and the delivery is stored. Creating a client, or changing its eGrant URL, processes the stored deliveries; this is one call from the groups service into an exported `processInboxFor(tx, groupId, host)`. The daily cleanup job drops rows older than 180 days.
+- **`egrant_project_inbox`:** an unknown instance answers `202` and the delivery is stored. Creating a client, or changing its eGrant URL, processes the stored deliveries and links the waiting tickets; this is one call from the groups service into an exported `processInboxFor(tx, groupId, host)`. The daily cleanup job drops rows older than 180 days.
 - **Review API:**
   - `GET /api/projects/:id/egrant-changes`.
-  - `POST /api/projects/:id/egrant-changes { accept, dismiss }`, guarded by `canEditProjects`. Accepting a removal also needs `canMergeOrDeleteProject`. A row that changed meanwhile answers `409 change_outdated`.
+  - `POST /api/projects/:id/egrant-changes { accept, dismiss }`, guarded by `canEditProjects`; accepting a removal uses `canMergeOrDeleteProject`, the same rule (decision 8a). A row that changed meanwhile answers `409 change_outdated`.
   - `ProjectDto.egrantChanges` (the count).
-- **Ticket link and updates** (spec §5.5):
-  - `project_id`, `project`, `external_id` and `sent_at` join `TicketIntakeBodySchema`.
-  - The create-or-update order: a `request_id` replay first, then `external_key`, then a create. A create answers `201`; an update answers `200 { …, updated: true, state, ignored }`.
-  - An update changes only the ticket's project; the other fields go into `ignored` (decision 6a). Its retries are answered from `ticket_intake_updates`.
-  - `modules/tickets/egrant-update.ts` holds `linkTicketProject`:
-    - a known project links the ticket;
-    - an unknown one creates a project from the name only;
-    - a ticket without a client stores the reference;
-    - `project_origin` decides between applying at once and a pending `ticket_project` row.
-  - `assignClient` and the group move process a stored reference in the new client.
-  - `POST /api/tickets/:id/egrant-change/apply` and `…/dismiss`, guarded by `canSetTicketProject`.
-  - `egrantChange` in `TicketDto` (kind `ticket` or `project`, stripped for a žiadateľ) and in `TicketListItem`; the list filter `egrant=pending`.
-- **Merge:** `modules/projects/merge.ts` and `POST /api/projects/:id/merge` move events, tasks, tickets, files, linked knowledge, pending eGrant changes and key rows, then delete the merged project.
+- **Ticket link** (spec §5.5):
+  - `project_id` joins `TicketIntakeBodySchema`; it is optional, and an empty value means no project.
+  - `modules/tickets/egrant-link.ts` holds `linkTicketProject` and `linkWaitingTickets`:
+    - a known eGrant id links the ticket;
+    - an unknown one keeps the raw id in `tickets.egrant_project_id` until the project arrives;
+    - a ticket without a client keeps the raw id;
+    - there is never an event, and never a second link on a ticket that has a project.
+  - `assignClient` and the group move match the raw id in the new client (the move first clears the old project and event).
+  - DTOs: `TicketDto.waitingForProject`, `TicketDto.egrantChanges` and `TicketListItem.egrantChanges` (all stripped for a žiadateľ); the list filter `egrant=pending`.
+- **Merge:** `modules/projects/merge.ts` and `POST /api/projects/:id/merge` (`canMergeOrDeleteProject`: admins and the group's clients). It moves events, tasks, tickets, files, linked knowledge, pending eGrant changes and key rows, then deletes the merged project.
   - It uses P2's `reassign…` functions when P2 has merged.
   - Otherwise P3 adds them as stubs with the same signatures in the tasks and tickets modules; the part that rebases later keeps one copy.
-- **Fallback switch:** `TICKETS_PROJECT_FIELD=programme`, read in one function and documented in `.env.example`. It is the fallback only, used if eGrant never sends projects.
-- **Archived projects:** the ticket page shows admins a hint when a ticket lands in an archived project (a flag in the ticket DTO).
+- **Fallback switch:** `TICKETS_PROJECT_FIELD=programme`, read in one function and documented in `.env.example`. It is used only if eGrant never sends projects.
+- **Archived projects:** the ticket page shows a hint when a ticket lands in an archived project (a flag in the ticket DTO).
 
 Web:
 - **Project sheet:**
@@ -163,40 +170,38 @@ Web:
   - the **"Changes from eGrant (n)"** section: one row per field with current → incoming, Accept or Dismiss on each row, and "Save choices";
   - the "Maybe the same event" pairs shown side by side;
   - the merge dialog.
-- **Projects card and timeline:** the "eGrant changes (n)" badge on the project's row, a mark on affected events and in the project select.
+- **Projects card and timeline:** the "eGrant changes (n)" badge on the project's row, and a mark on affected events and in the project select.
 - **Tickets:**
   - The ticket page, for admins and the group's clients, shows:
-    - the reference line for a ticket without a client;
-    - the ticket's own pending change banner with Apply and Dismiss;
+    - "eGrant project prj-208 has not arrived yet" for a waiting ticket;
+    - the raw id for a ticket without a client;
     - the line "This ticket's project has changes from eGrant · Review";
     - the move warning.
   - The "eGrant change" badge appears on rows of the group and global lists and on the admin home's Tickets card, and the lists get an "eGrant changes" filter pill.
 - Locales: `projects`, `tickets`.
 
 Tests (first): the lists of spec §16. They cover:
-- project deliveries;
+- project deliveries, with waiting tickets linked;
 - the pairing and its limits;
 - the inbox;
-- the review, per role;
-- create or update, with every `state`;
-- the ticket's pending change;
+- the review, by a client and by an admin;
+- the ticket link: known, waiting, no client, empty, never an event, never relinked;
 - matching a person's project by name;
-- concurrency: two deliveries, or a delivery and a ticket at once, create one project;
+- concurrency: two deliveries at once create one project;
 - merge.
 
 E2e: scenarios 3, 4 and 5 (`e2e/projects-intake.spec.ts`).
 
 Docs:
-- `integrations/egrant-ticket-intake.md`. The "What eGrant must send" checklist with both examples, and the section "Projects and updates (planned)", are drafted already in the spec PR. P3 removes the "planned" marks and adds "Projects" under "What happens in Help".
-- `product/integrations.md`, `product/tickets.md`, `product/projects.md` (eGrant projects), `.env.example`, `architecture/overview.md` (API, config), `architecture/permissions.md` (the two keyed endpoints, the review rights).
+- `integrations/egrant-ticket-intake.md`. The "What eGrant must send" checklist with both examples, and the section "Projects (planned)", are drafted already in the spec PRs. P3 removes the "planned" marks and adds "Projects" under "What happens in Help".
+- `product/integrations.md`, `product/tickets.md`, `product/projects.md` (eGrant projects), `.env.example`, `architecture/overview.md` (API, config), `architecture/permissions.md` (the keyed endpoint, the review rights).
 
 Done when:
 - an eGrant project call creates the project with its events;
-- a later call becomes reviewable changes that a client and an admin accept or dismiss field by field;
-- tickets link to their project and update it through `external_id`;
-- a ticket whose project was changed by hand waits for Apply or Dismiss.
+- a later call becomes changes that a client or an admin accepts or dismisses field by field;
+- tickets with its `project_id` land in it, also those that arrived before the project.
 
-**Before merging, the owner confirms decision 6a with the eGrant developers**, and the eGrant developers confirm they can send the project call, `external_id` and `sent_at`.
+**Before merging, the eGrant developers confirm** they can send the project call and `project_id` on tickets.
 
 ---
 
