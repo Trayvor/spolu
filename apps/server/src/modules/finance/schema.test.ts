@@ -122,6 +122,25 @@ describe('finance migration CHECKs', () => {
     ).toBe('finance_time_entries_minutes_check');
   });
 
+  it('only a ticket or a manual entry may lack a client (decision 24, migration 0041)', async () => {
+    const admin = await addAdmin(db, { email: email(), name: 'A' });
+    const base = { groupId: null, userId: admin.id, createdBy: admin.id, updatedBy: admin.id };
+    await db.insert(financeTimeEntries).values({
+      ...base,
+      id: randomUUID(),
+      source: 'manual',
+      minutes: 30,
+      workedOn: '2026-10-01',
+    });
+    expect(
+      await violated(
+        db
+          .insert(financeTimeEntries)
+          .values({ ...base, id: randomUUID(), source: 'task', title: 'Task' }),
+      ),
+    ).toBe('finance_time_entries_group_check');
+  });
+
   it('a ticket entry has no task; option (b) "covered by the linked tasks" is 0 minutes of a ticket', async () => {
     const g = await newGroup();
     const admin = await addAdmin(db, { email: email(), name: 'A' });

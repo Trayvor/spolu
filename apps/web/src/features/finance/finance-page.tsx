@@ -8,6 +8,8 @@ import { NotFoundPage } from '@/routes/not-found';
 import type { FinanceView } from './api';
 import { FinanceGrid } from './finance-grid';
 import { OverviewCard } from './overview-card';
+import { PAGE_PERIODS } from './period';
+import { PeriodSelect, usePeriod } from './period-select';
 import { FinanceClientFilter, useFinanceClients } from './system/client-filter';
 import { ContractsCard } from './system/contracts-card';
 import { RankingsRow } from './system/rankings-row';
@@ -18,9 +20,9 @@ const RatesDialog = lazy(() => import('./rates-dialog').then((m) => ({ default: 
 
 /**
  * The system-wide page `/finance` (Phase 32, spec §6.2): the client filter (every client by
- * default, remembered) and the Hourly rates button, then the same grid across the chosen clients
- * (Overview, Contracts, Work log) and the rankings under it. Each card keeps its own period, as
- * on a client's tab; the hours ranking has its own (this year by default).
+ * default, remembered), one page period (this year by default, remembered) that drives every
+ * card, and the Hourly rates button; then the same grid across the chosen clients (Overview,
+ * Contracts, Work log with "Add time" and its client picker) and the rankings under it.
  */
 export function FinancePage() {
   const finance = useSession()?.finance === true;
@@ -39,6 +41,7 @@ function FinancePageCards() {
     return stored.filter((id) => known.has(id));
   }, [groups, stored]);
   const view: FinanceView = useMemo(() => ({ kind: 'all', clients }), [clients]);
+  const period = usePeriod('finance.page.period', PAGE_PERIODS);
   const [rates, setRates] = useState(false);
   useFinanceEvents(view);
   return (
@@ -53,13 +56,14 @@ function FinancePageCards() {
       </div>
       <div className="flex flex-wrap items-center gap-2" data-testid="finance-filters">
         <FinanceClientFilter clients={clients} onChange={setClients} />
+        <PeriodSelect state={period} label={t('financeSystem.period')} />
       </div>
       <FinanceGrid
         screen="page"
-        overview={<OverviewCard view={view} />}
-        documents={<ContractsCard view={view} />}
-        workLog={<WorkLogCard view={view} />}
-        rankings={<RankingsRow view={view} />}
+        overview={<OverviewCard view={view} period={period} />}
+        documents={<ContractsCard view={view} range={period.range} />}
+        workLog={<WorkLogCard view={view} period={period} />}
+        rankings={<RankingsRow view={view} range={period.range} />}
         labels={{ documents: t('finance.segments.contracts') }}
       />
       <Suspense fallback={null}>

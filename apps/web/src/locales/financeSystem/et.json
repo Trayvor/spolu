@@ -27,12 +27,10 @@
     },
     "empty": "Valitud klientidel pole veel lepinguid.",
     "noMatch": "Päringule „{{q}}“ ei vasta midagi.",
-    "showMore": "Näita rohkem"
+    "showMore": "Näita rohkem",
+    "emptyPeriod": "Sel perioodil ei kehti ühtegi valitud klientide lepingut."
   },
   "paid": {
-    "year": "Aasta",
-    "month": "Kuu",
-    "wholeYear": "Terve aasta",
     "currency": "Valuuta",
     "total": "Kokku makstud: {{amount}}",
     "empty": "Sel perioodil ei alanud ühtegi valitud klientide lepingut."
@@ -48,5 +46,13 @@
   },
   "workLog": {
     "topClients": "Kõige rohkem tunde:"
+  },
+  "period": "Kõigi kaartide periood",
+  "entry": {
+    "client": "Klient",
+    "chooseClient": "Valige klient",
+    "errors": {
+      "client": "Valige klient või Kliendita."
+    }
   }
 }

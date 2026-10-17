@@ -222,11 +222,37 @@ describe('finance query plans on a seeded volume', () => {
         const today = financeToday();
         await wide(
           'paid ranking (this year, all clients)',
-          paidRankingSql(all, { year, currency: 'EUR' }, today),
+          paidRankingSql(all, { range: thisYear, currency: 'EUR' }, today),
         );
         await wide(
           'paid ranking (one month, 40 clients)',
-          paidRankingSql(chosen, { year, month: 1, currency: 'EUR' }, today),
+          paidRankingSql(
+            chosen,
+            { range: { from: `${year}-01`, to: `${year}-01` }, currency: 'EUR' },
+            today,
+          ),
+        );
+        // The page period "all time" (follow-up of part D): every contract started up to today
+        // is most of `finance_items`, every counted entry all of `finance_time_entries`; reading
+        // them whole is the plan, as for the work log summary (the bound guards it).
+        await wide(
+          'paid ranking (all time, all clients)',
+          paidRankingSql(all, { range: null, currency: 'EUR' }, today),
+          ['finance_items'],
+        );
+        await wide(
+          'paid ranking (all time, 40 clients)',
+          paidRankingSql(chosen, { range: null, currency: 'EUR' }, today),
+        );
+        await wide(
+          'hours ranking (all time, all clients)',
+          hoursRankingSql(all, { range: null, sort: 'hours' }),
+          ['finance_time_entries'],
+          WHOLE_RANGE_MS,
+        );
+        await wide(
+          'hours ranking (all time, 40 clients)',
+          hoursRankingSql(chosen, { range: null, sort: 'hours' }),
         );
         await wide(
           'hours ranking (this year, all clients)',
@@ -244,6 +270,14 @@ describe('finance query plans on a seeded volume', () => {
         await wide(
           'contracts by end, soonest first (all clients)',
           contractsPageSql(all, { type: 'contract', sort: 'end', dir: 'asc' }),
+        );
+        await wide(
+          'contracts by start, this year (all clients)',
+          contractsPageSql(all, { type: 'contract', sort: 'start', period: thisYear }),
+        );
+        await wide(
+          'contracts by end, this year (40 clients)',
+          contractsPageSql(chosen, { type: 'contract', sort: 'end', dir: 'asc', period: thisYear }),
         );
         await wide(
           'contracts by amount (all clients)',

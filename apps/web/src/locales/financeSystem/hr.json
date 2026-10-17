@@ -27,12 +27,10 @@
     },
     "empty": "Odabrani klijenti još nemaju ugovora.",
     "noMatch": "Ništa ne odgovara „{{q}}”.",
-    "showMore": "Prikaži još"
+    "showMore": "Prikaži još",
+    "emptyPeriod": "U ovom razdoblju ne traje nijedan ugovor odabranih klijenata."
   },
   "paid": {
-    "year": "Godina",
-    "month": "Mjesec",
-    "wholeYear": "Cijela godina",
     "currency": "Valuta",
     "total": "Ukupno plaćeno: {{amount}}",
     "empty": "U ovom razdoblju nije započeo nijedan ugovor odabranih klijenata."
@@ -48,5 +46,13 @@
   },
   "workLog": {
     "topClients": "Najviše sati:"
+  },
+  "period": "Razdoblje svih kartica",
+  "entry": {
+    "client": "Klijent",
+    "chooseClient": "Odaberite klijenta",
+    "errors": {
+      "client": "Odaberite klijenta ili Bez klijenta."
+    }
   }
 }

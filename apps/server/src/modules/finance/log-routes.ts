@@ -4,6 +4,7 @@ import {
   ErrorCodes,
   IdSchema,
   ManualEntryBodySchema,
+  SystemManualEntryBodySchema,
   OVERVIEW_MAX_MONTHS,
   OverviewQuerySchema,
   TimeEntryPatchSchema,
@@ -59,6 +60,7 @@ function logError(reply: FastifyReply, error: unknown): FastifyReply {
  *   GET  /api/groups/:id/finance/overview?from=&to=
  *   GET  /api/groups/:id/finance/work-log?from=&to=&before=
  *   POST /api/groups/:id/finance/time-entries · PATCH/DELETE /api/finance/time-entries/:id
+ *   POST /api/finance/time-entries { groupId | null, … } ("Add time" on `/finance`)
  *   GET/POST /api/finance/rates · DELETE /api/finance/rates/:id
  */
 export const financeLogRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (
@@ -118,6 +120,18 @@ export const financeLogRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (
         request.params.id,
         body.data,
       );
+      return reply.code(201).send(created);
+    } catch (error) {
+      return logError(reply, error);
+    }
+  });
+
+  app.post('/finance/time-entries', async (request, reply) => {
+    const body = SystemManualEntryBodySchema.safeParse(request.body);
+    if (!body.success) return send(reply, 400, ErrorCodes.validationFailed);
+    const { groupId, ...entry } = body.data;
+    try {
+      const created = await createManualEntry({ db, io: io() }, request.user!, groupId, entry);
       return reply.code(201).send(created);
     } catch (error) {
       return logError(reply, error);

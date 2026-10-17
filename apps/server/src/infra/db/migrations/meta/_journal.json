@@ -288,6 +288,13 @@
       "when": 1792273419701,
       "tag": "0040_mentions_created_at",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1792274488528,
+      "tag": "0041_finance_manual_without_client",
+      "breakpoints": true
     }
   ]
 }

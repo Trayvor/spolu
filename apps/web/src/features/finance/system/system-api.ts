@@ -32,15 +32,23 @@ export const CONTRACT_ORDERS = {
 } as const;
 export type ContractOrder = keyof typeof CONTRACT_ORDERS;
 
-export const contractsQuery = (view: FinanceView, order: ContractOrder, q: string) =>
+/** `range` (the page period) keeps the contracts running in it; a search ignores it. */
+export const contractsQuery = (
+  view: FinanceView,
+  order: ContractOrder,
+  q: string,
+  range: MonthRange | null,
+) =>
   infiniteQueryOptions({
-    queryKey: financeKey(view, 'contracts', order, q),
+    queryKey: financeKey(view, 'contracts', order, q, range?.from ?? null, range?.to ?? null),
     queryFn: ({ pageParam }) =>
       apiGet(
         `/finance/contracts${query({
           ...clientsParam(view),
           ...CONTRACT_ORDERS[order],
           q: q.length >= 2 ? q : undefined,
+          from: range?.from,
+          to: range?.to,
           after: pageParam ?? undefined,
         })}`,
         ContractsPageSchema,
@@ -49,17 +57,24 @@ export const contractsQuery = (view: FinanceView, order: ContractOrder, q: strin
     getNextPageParam: (page) => page.nextCursor,
   });
 
-export type PaidFilter = { year: number; month: number | null; currency: Currency };
+/** `range` null: all time. */
+export type PaidFilter = { range: MonthRange | null; currency: Currency };
 
 export const paidRankingQuery = (view: FinanceView, filter: PaidFilter) =>
   infiniteQueryOptions({
-    queryKey: financeKey(view, 'paidRanking', filter.year, filter.month, filter.currency),
+    queryKey: financeKey(
+      view,
+      'paidRanking',
+      filter.range?.from ?? null,
+      filter.range?.to ?? null,
+      filter.currency,
+    ),
     queryFn: ({ pageParam }) =>
       apiGet(
         `/finance/rankings/paid${query({
           ...clientsParam(view),
-          year: filter.year,
-          month: filter.month ?? undefined,
+          from: filter.range?.from,
+          to: filter.range?.to,
           currency: filter.currency,
           after: pageParam ?? undefined,
         })}`,
@@ -69,15 +84,20 @@ export const paidRankingQuery = (view: FinanceView, filter: PaidFilter) =>
     getNextPageParam: (page) => page.nextCursor,
   });
 
-export type HoursFilter = { range: MonthRange; admin: string | null; sort: 'hours' | 'cost' };
+/** `range` null: all time. */
+export type HoursFilter = {
+  range: MonthRange | null;
+  admin: string | null;
+  sort: 'hours' | 'cost';
+};
 
 export const hoursRankingQuery = (view: FinanceView, filter: HoursFilter) =>
   infiniteQueryOptions({
     queryKey: financeKey(
       view,
       'hoursRanking',
-      filter.range.from,
-      filter.range.to,
+      filter.range?.from ?? null,
+      filter.range?.to ?? null,
       filter.admin,
       filter.sort,
     ),
@@ -85,8 +105,8 @@ export const hoursRankingQuery = (view: FinanceView, filter: HoursFilter) =>
       apiGet(
         `/finance/rankings/hours${query({
           ...clientsParam(view),
-          from: filter.range.from,
-          to: filter.range.to,
+          from: filter.range?.from,
+          to: filter.range?.to,
           admin: filter.admin ?? undefined,
           sort: filter.sort,
           after: pageParam ?? undefined,

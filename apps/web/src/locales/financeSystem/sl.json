@@ -27,12 +27,10 @@
     },
     "empty": "Izbrane stranke še nimajo pogodb.",
     "noMatch": "Nič se ne ujema z »{{q}}«.",
-    "showMore": "Pokaži več"
+    "showMore": "Pokaži več",
+    "emptyPeriod": "V tem obdobju ne teče nobena pogodba izbranih strank."
   },
   "paid": {
-    "year": "Leto",
-    "month": "Mesec",
-    "wholeYear": "Vse leto",
     "currency": "Valuta",
     "total": "Skupaj plačano: {{amount}}",
     "empty": "V tem obdobju se ni začela nobena pogodba izbranih strank."
@@ -48,5 +46,13 @@
   },
   "workLog": {
     "topClients": "Največ ur:"
+  },
+  "period": "Obdobje vseh kartic",
+  "entry": {
+    "client": "Stranka",
+    "chooseClient": "Izberite stranko",
+    "errors": {
+      "client": "Izberite stranko ali Brez stranke."
+    }
   }
 }

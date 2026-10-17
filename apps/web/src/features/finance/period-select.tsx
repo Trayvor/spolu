@@ -25,14 +25,17 @@ export function usePeriod(list: string, periods: readonly Period[]) {
   return { period, range: rangeOf(period, custom), custom, setCustom, choose, periods };
 }
 
-export function PeriodSelect({ state }: { state: ReturnType<typeof usePeriod> }) {
+/** A period filter's state: a card's own, or `/finance`'s page-wide one. */
+export type PeriodState = ReturnType<typeof usePeriod>;
+
+export function PeriodSelect({ state, label }: { state: PeriodState; label?: string }) {
   const { t } = useTranslation();
   const id = useId();
   const { period, custom, setCustom, choose, periods } = state;
   return (
     <div className="flex flex-wrap items-center gap-2">
       <label htmlFor={id} className="sr-only">
-        {t('financeLog.period')}
+        {label ?? t('financeLog.period')}
       </label>
       <Select
         id={id}

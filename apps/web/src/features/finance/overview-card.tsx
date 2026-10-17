@@ -14,7 +14,7 @@ import { FinanceCard, FinanceCardEmpty } from './finance-card';
 import { useFinanceFormat } from './format';
 import { overviewQuery } from './log-api';
 import { OVERVIEW_PERIODS } from './period';
-import { PeriodSelect, usePeriod } from './period-select';
+import { PeriodSelect, usePeriod, type PeriodState } from './period-select';
 import { SegmentedControl } from './segmented-control';
 
 const RatesDialog = lazy(() => import('./rates-dialog').then((m) => ({ default: m.RatesDialog })));
@@ -31,12 +31,20 @@ type View = (typeof VIEWS)[number];
 const toMap = (rows: readonly { month: Month; value: number }[]) =>
   new Map(rows.map((r) => [r.month, r.value]));
 
-export function OverviewCard({ view }: { view: FinanceView }) {
+export function OverviewCard({
+  view,
+  period: pagePeriod,
+}: {
+  view: FinanceView;
+  /** `/finance`'s page period, which replaces the card's own filter. */
+  period?: PeriodState;
+}) {
   const { t } = useTranslation();
   const titleId = useId();
   const [savedView, setView] = useRememberedState<View>('finance.overview.view', VIEWS);
   const mode = savedView ?? 'money';
-  const period = usePeriod('finance.overview.period', OVERVIEW_PERIODS);
+  const ownPeriod = usePeriod('finance.overview.period', OVERVIEW_PERIODS);
+  const period = pagePeriod ?? ownPeriod;
   const query = useQuery(overviewQuery(view, period.range));
   const [rates, setRates] = useState(false);
 
@@ -78,7 +86,7 @@ export function OverviewCard({ view }: { view: FinanceView }) {
             onChange={(next) => setView(next === 'money' ? null : next)}
             className="w-[200px]"
           />
-          <PeriodSelect state={period} />
+          {!pagePeriod && <PeriodSelect state={period} />}
         </>
       }
     >

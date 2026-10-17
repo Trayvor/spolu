@@ -1,18 +1,21 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import type {
-  ContractsPage,
-  FinanceOverviewDto,
-  HoursRankingPage,
-  PaidRankingPage,
-  WorkLogPageDto,
+import { eq } from 'drizzle-orm';
+import { io as connect, type Socket } from 'socket.io-client';
+import {
+  FinanceEvents,
+  type ContractsPage,
+  type FinanceOverviewDto,
+  type HoursRankingPage,
+  type PaidRankingPage,
+  type WorkLogPageDto,
 } from '@spolu/shared';
 import { buildTestApp } from '../../../test/test-app.js';
 import { loginAs } from '../../../test/login.js';
 import { addMember, createGroup } from '../groups/service.js';
 import { user } from '../users/schema.js';
 import { addAdmin, setFinanceAccess } from '../users/service.js';
-import { hoursRanking, paidRanking } from './rankings.js';
+import { hoursRanking, paidRange, paidRanking } from './rankings.js';
 import { financeItems, financeRates, financeTimeEntries } from './schema.js';
 import { workLogPage } from './work-log.js';
 
@@ -177,11 +180,16 @@ describe('the system-wide finance page (part D)', () => {
         '/api/finance/work-log?before=nonsense',
         '/api/finance/contracts?sort=title',
         '/api/finance/contracts?after=nonsense',
-        '/api/finance/rankings/paid',
+        '/api/finance/rankings/paid?from=2026-01',
+        '/api/finance/rankings/paid?from=2026-05&to=2026-01',
+        '/api/finance/rankings/hours?to=2026-01',
+        '/api/finance/contracts?from=2026-01',
+        '/api/finance/contracts?from=2026-05&to=2026-01',
         '/api/finance/rankings/paid?year=2026&month=13',
         '/api/finance/rankings/paid?year=2026&currency=USD',
         '/api/finance/rankings/paid?year=2026&after=bm9uc2Vuc2U',
         '/api/finance/rankings/hours?from=2026-01',
+        '/api/finance/rankings/hours?from=2026-05&to=2026-01',
         '/api/finance/rankings/hours?from=2026-01&to=2026-12&sort=money',
         '/api/finance/rankings/hours?from=2010-01&to=2026-12',
         '/api/finance/rankings/hours?from=2026-01&to=2026-12&admin=a%20b',
@@ -208,7 +216,12 @@ describe('the system-wide finance page (part D)', () => {
       await contract(c, 800_000, '2025-12-31'); // last year
       await contract(d, 999_999, '2026-04-01', { currency: 'UAH' });
       const scope = { kind: 'groups' as const, groupIds: [a, b, c, d] };
-      const page = await paidRanking(db(), scope, { year: 2026, currency: 'EUR' }, now);
+      const page = await paidRanking(
+        db(),
+        scope,
+        { range: paidRange({ year: 2026 }), currency: 'EUR' },
+        now,
+      );
       expect(byRank(page.rows.map((r) => [r.rank, r.groupName, r.amountMinor]))).toEqual([
         [1, 'Alfa', 600_000],
         [1, 'Beta', 600_000],
@@ -218,9 +231,19 @@ describe('the system-wide finance page (part D)', () => {
       expect(page.max).toBe(600_000);
       expect(page.nextCursor).toBeNull();
 
-      const may = await paidRanking(db(), scope, { year: 2026, month: 5, currency: 'EUR' }, now);
+      const may = await paidRanking(
+        db(),
+        scope,
+        { range: paidRange({ year: 2026, month: 5 }), currency: 'EUR' },
+        now,
+      );
       expect(may.rows.map((r) => [r.groupName, r.amountMinor])).toEqual([['Gama', 300_000]]);
-      const uah = await paidRanking(db(), scope, { year: 2026, currency: 'UAH' }, now);
+      const uah = await paidRanking(
+        db(),
+        scope,
+        { range: paidRange({ year: 2026 }), currency: 'UAH' },
+        now,
+      );
       expect(uah.rows.map((r) => [r.groupName, r.amountMinor])).toEqual([['Delta', 999_999]]);
     });
 
@@ -232,13 +255,18 @@ describe('the system-wide finance page (part D)', () => {
         await contract(id, 1000 * (n % 5) + 1000, '2026-01-10');
       }
       const scope = { kind: 'groups' as const, groupIds: ids };
-      const first = await paidRanking(db(), scope, { year: 2026, currency: 'EUR' }, now);
+      const first = await paidRanking(
+        db(),
+        scope,
+        { range: paidRange({ year: 2026 }), currency: 'EUR' },
+        now,
+      );
       expect(first.rows).toHaveLength(20);
       expect(first.nextCursor).not.toBeNull();
       const second = await paidRanking(
         db(),
         scope,
-        { year: 2026, currency: 'EUR', after: first.nextCursor! },
+        { range: paidRange({ year: 2026 }), currency: 'EUR', after: first.nextCursor! },
         now,
       );
       expect(second.rows).toHaveLength(3);
@@ -453,5 +481,175 @@ describe('the system-wide finance page (part D)', () => {
     expect(res.statusCode).toBe(200);
     const page = res.json() as PaidRankingPage;
     expect(page.rows.map((r) => [r.groupId, r.amountMinor, r.rank])).toEqual([[a, 250_000, 1]]);
+  });
+  describe('the page period (follow-up of part D)', () => {
+    const now = new Date('2026-10-17T10:00:00Z');
+
+    it('the paid ranking takes a month range across years, or all time up to today', async () => {
+      const a = await newGroup('Alfa');
+      const b = await newGroup('Beta');
+      await contract(a, 100_000, '2025-11-10');
+      await contract(a, 200_000, '2026-02-01');
+      await contract(b, 50_000, '2020-01-01');
+      await contract(b, 70_000, '2026-10-18'); // tomorrow: not paid yet
+      const scope = { kind: 'groups' as const, groupIds: [a, b] };
+      const winter = await paidRanking(
+        db(),
+        scope,
+        { range: { from: '2025-11', to: '2026-02' }, currency: 'EUR' },
+        now,
+      );
+      expect(winter.rows.map((r) => [r.groupName, r.amountMinor])).toEqual([['Alfa', 300_000]]);
+      const ever = await paidRanking(db(), scope, { range: null, currency: 'EUR' }, now);
+      expect(ever.rows.map((r) => [r.groupName, r.amountMinor])).toEqual([
+        ['Alfa', 300_000],
+        ['Beta', 50_000],
+      ]);
+
+      const route = (query: string) =>
+        get(`/api/finance/rankings/paid?clients=${a}${query}`, finance.cookie);
+      const ranged = await route('&from=2026-01&to=2026-03');
+      expect(ranged.statusCode).toBe(200);
+      expect((ranged.json() as PaidRankingPage).rows.map((r) => r.amountMinor)).toEqual([200_000]);
+      const allTime = await route('');
+      expect((allTime.json() as PaidRankingPage).rows.map((r) => r.amountMinor)).toEqual([300_000]);
+    });
+
+    it('the hours ranking takes all time when no months are given', async () => {
+      const a = await newGroup('Alfa');
+      const admin = await newAdmin('Ever');
+      await entry({ groupId: a, userId: admin, minutes: 30, workedOn: '2019-04-01' });
+      await entry({ groupId: a, userId: admin, minutes: 15, workedOn: '2026-04-01' });
+      const scope = { kind: 'groups' as const, groupIds: [a] };
+      const ever = await hoursRanking(db(), scope, { range: null, sort: 'hours' });
+      expect(ever.rows.map((r) => r.minutes)).toEqual([45]);
+      const res = await get(`/api/finance/rankings/hours?clients=${a}`, finance.cookie);
+      expect(res.statusCode).toBe(200);
+      expect((res.json() as HoursRankingPage).rows.map((r) => r.minutes)).toEqual([45]);
+    });
+
+    it('the contracts table keeps the contracts that run in the period; a search ignores it', async () => {
+      const a = await newGroup('Alfa');
+      const early = await contract(a, 300_000, '2025-01-01', { endsOn: '2025-12-31' });
+      const spanning = await contract(a, 900_000, '2025-06-01', {
+        endsOn: '2026-11-30',
+        title: 'Servis zmluva',
+      });
+      const late = await contract(a, 100_000, '2026-06-01', { endsOn: '2027-05-31' });
+      const memo = await note(a, 'Servis poznamka');
+      const page = async (query: string) =>
+        (
+          await get(`/api/finance/contracts?clients=${a}${query}`, finance.cookie)
+        ).json() as ContractsPage;
+      expect((await page('&from=2026-01&to=2026-03')).items.map((x) => x.id)).toEqual([spanning]);
+      expect((await page('&from=2025-12&to=2026-06')).items.map((x) => x.id)).toEqual([
+        late,
+        spanning,
+        early,
+      ]);
+      expect((await page('&from=2027-06&to=2027-12')).items).toEqual([]);
+      const found = await page('&from=2027-06&to=2027-12&q=servis');
+      expect(new Set(found.items.map((x) => x.id))).toEqual(new Set([spanning, memo]));
+    });
+  });
+
+  describe('Add time on /finance (follow-up of part D)', () => {
+    const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Bratislava' }).format(
+      new Date(),
+    );
+    const post = (payload: object, cookie?: string) =>
+      test.app.inject({
+        method: 'POST',
+        url: '/api/finance/time-entries',
+        headers: cookie ? { cookie } : {},
+        payload,
+      });
+
+    it('answers 401 without a session and 403 to a client and to an admin without the right', async () => {
+      const body = { groupId: sharedGroup, userId: plain.id, workedOn: today, minutes: 5 };
+      expect((await post(body)).statusCode).toBe(401);
+      expect((await post(body, plain.cookie)).statusCode).toBe(403);
+      expect((await post(body, client.cookie)).statusCode).toBe(403);
+    });
+
+    it('adds a manual entry for a chosen client or without a client', async () => {
+      const a = await newGroup('Alfa');
+      const withClient = await post(
+        { groupId: a, userId: plain.id, workedOn: today, minutes: 90, note: 'Call' },
+        finance.cookie,
+      );
+      expect(withClient.statusCode).toBe(201);
+      const without = await post(
+        { groupId: null, userId: plain.id, workedOn: today, minutes: 30 },
+        finance.cookie,
+      );
+      expect(without.statusCode).toBe(201);
+      const rows = await db()
+        .select()
+        .from(financeTimeEntries)
+        .where(eq(financeTimeEntries.userId, plain.id));
+      const byId = new Map(rows.map((r) => [r.id, r]));
+      expect(byId.get(withClient.json<{ id: string }>().id)).toMatchObject({
+        groupId: a,
+        source: 'manual',
+        minutes: 90,
+        note: 'Call',
+        createdBy: finance.id,
+      });
+      expect(byId.get(without.json<{ id: string }>().id)).toMatchObject({
+        groupId: null,
+        source: 'manual',
+        minutes: 30,
+      });
+      // The time without a client is in no client's tab, only on the all-clients view.
+      const all = await workLogPage(db(), { kind: 'all' }, null, null);
+      expect(all.entries.some((x) => x.id === without.json<{ id: string }>().id)).toBe(true);
+    });
+
+    it('refuses an unknown client, a missing client field, a client or a future day', async () => {
+      const unknown = await post(
+        { groupId: randomUUID(), userId: plain.id, workedOn: today, minutes: 5 },
+        finance.cookie,
+      );
+      expect(unknown.statusCode).toBe(404);
+      const missing = await post({ userId: plain.id, workedOn: today, minutes: 5 }, finance.cookie);
+      expect(missing.json()).toEqual({ error: 'validation_failed' });
+      const forClient = await post(
+        { groupId: null, userId: client.id, workedOn: today, minutes: 5 },
+        finance.cookie,
+      );
+      expect(forClient.json()).toEqual({ error: 'invalid_assignee' });
+      const future = await post(
+        { groupId: null, userId: plain.id, workedOn: '2999-01-01', minutes: 5 },
+        finance.cookie,
+      );
+      expect(future.json()).toEqual({ error: 'validation_failed' });
+    });
+
+    it('tells the finance room live, with no client for an entry without one', async () => {
+      await test.app.listen({ port: 0, host: '127.0.0.1' });
+      const address = test.app.server.address();
+      if (address === null || typeof address === 'string') throw new Error('no port');
+      const socket: Socket = connect(`http://127.0.0.1:${address.port}`, {
+        transports: ['websocket'],
+        extraHeaders: { cookie: finance.cookie },
+        reconnection: false,
+      });
+      try {
+        await new Promise<void>((resolve, reject) => {
+          socket.once('connect', () => resolve());
+          socket.once('connect_error', reject);
+        });
+        const got = new Promise((resolve) => socket.once(FinanceEvents.changed, resolve));
+        const res = await post(
+          { groupId: null, userId: plain.id, workedOn: today, minutes: 10 },
+          finance.cookie,
+        );
+        expect(res.statusCode).toBe(201);
+        expect(await got).toEqual({ groupId: null, kind: 'time' });
+      } finally {
+        socket.close();
+      }
+    });
   });
 });

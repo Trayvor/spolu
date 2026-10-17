@@ -1,0 +1,2 @@
+ALTER TABLE "finance_time_entries" DROP CONSTRAINT "finance_time_entries_group_check";--> statement-breakpoint
+ALTER TABLE "finance_time_entries" ADD CONSTRAINT "finance_time_entries_group_check" CHECK ("finance_time_entries"."group_id" is not null or "finance_time_entries"."source" in ('ticket', 'manual'));

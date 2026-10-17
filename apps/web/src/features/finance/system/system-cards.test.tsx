@@ -14,6 +14,7 @@ import type { ContractRow, HoursRankingPage, Me, PaidRankingPage, RatesDto } fro
 import { sessionQuery } from '@/features/auth/use-session';
 import { setLanguage } from '@/i18n';
 import { financeKey } from '../api';
+import { EntryDialog } from '../manual-entry-dialog';
 import { logEntry, logMonth, logPage } from '../test-data';
 import { WorkLogCard } from '../work-log-card';
 import { ContractsCard } from './contracts-card';
@@ -21,6 +22,7 @@ import { HoursRankingCard } from './hours-ranking-card';
 import { PaidRankingCard } from './paid-ranking-card';
 
 const view = { kind: 'all', clients: [] } as const;
+const year2026 = { from: '2026-01', to: '2026-12' };
 
 type Handler = (url: string) => unknown;
 
@@ -133,12 +135,12 @@ describe('the system-wide cards (part D)', () => {
           }
         : undefined,
     );
-    const { user } = renderIn(<ContractsCard view={view} />);
+    const { user } = renderIn(<ContractsCard view={view} range={year2026} />);
     const row = await screen.findByTestId('contract-row');
     expect(within(row).getByText('Obec Lúčky')).toBeInTheDocument();
     expect(within(row).getByText('Z-12')).toBeInTheDocument();
     expect(within(row).getByRole('link')).toHaveAttribute('href', '/groups/g1/finance?item=c1');
-    expect(urls.at(-1)).toContain('sort=start&dir=desc');
+    expect(urls.at(-1)).toContain('sort=start&dir=desc&from=2026-01&to=2026-12');
 
     await user.selectOptions(screen.getByLabelText('Sort contracts'), 'end');
     await waitFor(() => expect(urls.at(-1)).toContain('sort=end&dir=asc'));
@@ -146,6 +148,9 @@ describe('the system-wide cards (part D)', () => {
     await user.type(screen.getByLabelText('Search contracts, documents and notes'), 'servis');
     expect(await screen.findByText('Servis memo')).toBeInTheDocument();
     expect(screen.getByText('(note)')).toBeInTheDocument();
+    // A search covers every document and note, whatever the page period.
+    expect(urls.at(-1)).toContain('q=servis');
+    expect(urls.at(-1)).not.toContain('from=');
   });
 
   it('ranks clients by money paid with their share, for a year or a month', async () => {
@@ -173,15 +178,23 @@ describe('the system-wide cards (part D)', () => {
       nextCursor: null,
     };
     const urls = serve((url) => (url.startsWith('/api/finance/rankings/paid') ? page : undefined));
-    const { user } = renderIn(<PaidRankingCard view={view} />);
+    renderIn(<PaidRankingCard view={view} range={year2026} />);
     const rows = await screen.findAllByTestId('ranking-row');
     expect(rows).toHaveLength(2);
     expect(within(rows[0]!).getByText('Alfa')).toBeInTheDocument();
     expect(within(rows[0]!).getByText('75%')).toBeInTheDocument();
-    expect(urls.at(-1)).toMatch(/year=\d{4}&currency=EUR/);
+    expect(urls.at(-1)).toContain('from=2026-01&to=2026-12&currency=EUR');
+  });
 
-    await user.selectOptions(screen.getByLabelText('Month'), '3');
-    await waitFor(() => expect(urls.at(-1)).toContain('month=3'));
+  it('the paid ranking over all time sends no months', async () => {
+    const urls = serve((url) =>
+      url.startsWith('/api/finance/rankings/paid')
+        ? { rows: [], total: 0, max: 0, nextCursor: null }
+        : undefined,
+    );
+    renderIn(<PaidRankingCard view={view} range={null} />);
+    expect(await screen.findByText(/No contract of the chosen clients/)).toBeInTheDocument();
+    expect(urls.at(-1)).toBe('/api/finance/rankings/paid?currency=EUR');
   });
 
   it('ranks by hours or money, filters by admin and names the time without a client', async () => {
@@ -216,12 +229,12 @@ describe('the system-wide cards (part D)', () => {
       if (url === '/api/finance/rates') return rates;
       return undefined;
     });
-    const { user } = renderIn(<HoursRankingCard view={view} />);
+    const { user } = renderIn(<HoursRankingCard view={view} range={year2026} />);
     const rows = await screen.findAllByTestId('ranking-row');
     expect(within(rows[0]!).getByText('Without client')).toBeInTheDocument();
     expect(within(rows[0]!).getByText('10 h without a rate')).toBeInTheDocument();
     expect(urls.find((u) => u.includes('/rankings/hours'))).toMatch(
-      /from=\d{4}-01&to=\d{4}-12&sort=hours/,
+      /from=2026-01&to=2026-12&sort=hours/,
     );
 
     await user.click(screen.getByRole('radio', { name: 'Money' }));
@@ -260,5 +273,62 @@ describe('the system-wide cards (part D)', () => {
     ]);
     const top = screen.getByTestId('work-log-top-clients');
     expect(top).toHaveTextContent('Most hours: Alfa 1 h, Without client 1 h');
+  });
+
+  it('"Add time" on /finance picks a client or Without client and posts to the system route', async () => {
+    const sent: { url: string; method: string; body: unknown }[] = [];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: string, init?: RequestInit) => {
+        const method = init?.method ?? 'GET';
+        if (method !== 'GET') {
+          sent.push({ url: input, method, body: JSON.parse(String(init?.body)) });
+          return new Response(JSON.stringify({ id: 'e1' }), {
+            status: 201,
+            headers: { 'content-type': 'application/json' },
+          });
+        }
+        const body =
+          input === '/api/finance/rates'
+            ? rates
+            : input === '/api/groups'
+              ? [
+                  {
+                    id: 'g1',
+                    name: 'Alfa',
+                    hasLogo: false,
+                    memberCount: 1,
+                    updatedAt: '',
+                    managers: [],
+                    managedByMe: false,
+                  },
+                ]
+              : undefined;
+        return new Response(JSON.stringify(body ?? { error: 'not_found' }), {
+          status: body === undefined ? 404 : 200,
+          headers: { 'content-type': 'application/json' },
+        });
+      }),
+    );
+    const onClose = vi.fn();
+    const { user } = renderIn(<EntryDialog view={view} onClose={onClose} />);
+    const clientSelect = await screen.findByLabelText('Client');
+    await user.selectOptions(await screen.findByLabelText('Admin'), 'u1');
+    await user.type(screen.getByLabelText('Time spent'), '1:30');
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+    expect(await screen.findByText('Choose the client, or Without client.')).toBeInTheDocument();
+    expect(sent).toEqual([]);
+
+    await waitFor(() => expect(within(clientSelect).getByText('Alfa')).toBeInTheDocument());
+    await user.selectOptions(clientSelect, 'Without client');
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
+    expect(sent).toEqual([
+      {
+        url: '/api/finance/time-entries',
+        method: 'POST',
+        body: expect.objectContaining({ groupId: null, userId: 'u1', minutes: 90 }),
+      },
+    ]);
   });
 });

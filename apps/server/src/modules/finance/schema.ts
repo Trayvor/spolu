@@ -207,10 +207,11 @@ export const financeTimeEntries = pgTable(
       sql`${t.minutes} is null or ${t.minutes} between 0 and 6000`,
     ),
     check('finance_time_entries_note_check', sql`char_length(${t.note}) <= 500`),
-    // Only a ticket entry may lack a client (decision 24: a ticket without a client).
+    // A ticket entry (decision 24: a ticket without a client) or a manual one added on
+    // `/finance` with "Bez klienta" may lack a client (migration 0041); a task entry never.
     check(
       'finance_time_entries_group_check',
-      sql`${t.groupId} is not null or ${t.source} = 'ticket'`,
+      sql`${t.groupId} is not null or ${t.source} in ('ticket', 'manual')`,
     ),
     // The subject columns follow the source (both may be null once the subject is deleted).
     check(

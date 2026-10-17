@@ -6,6 +6,7 @@ import {
   WorkLogPageDtoSchema,
   type AddRateBody,
   type ManualEntryBody,
+  type SystemManualEntryBody,
   type TimeEntryPatch,
 } from '@spolu/shared';
 import { apiGet, apiSend } from '@/lib/api';
@@ -77,6 +78,15 @@ export function useAddManualEntry(view: FinanceView, groupId: string) {
   return useMutation({
     mutationFn: (body: ManualEntryBody) =>
       apiSend('POST', `/groups/${groupId}/finance/time-entries`, body),
+    onSuccess: refetch,
+  });
+}
+
+/** "Add time" on `/finance`: the chosen client, or none (`groupId` null, "Without client"). */
+export function useAddSystemEntry(view: FinanceView) {
+  const refetch = useRefetchView(view);
+  return useMutation({
+    mutationFn: (body: SystemManualEntryBody) => apiSend('POST', '/finance/time-entries', body),
     onSuccess: refetch,
   });
 }
