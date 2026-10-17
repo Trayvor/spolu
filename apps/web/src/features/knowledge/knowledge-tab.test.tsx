@@ -141,6 +141,7 @@ describe('knowledge tab', () => {
       .getAllByRole('link')
       .map((link) => link.textContent);
     expect(names).toEqual([
+      t('group.tabs.overview'),
       t('group.tabs.chat'),
       t('group.tabs.tasks'),
       t('group.tabs.tickets'),

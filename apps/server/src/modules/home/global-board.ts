@@ -381,6 +381,9 @@ export async function getGlobalBoard(db: Db, q: GlobalBoardQuery): Promise<Globa
         updatedAt: iso(t.updatedAt),
         completedAt: t.completedAt === null ? null : iso(t.completedAt),
         groupUpdatedAt: iso(t.groupUpdatedAt),
+        // Phase 33: part P2 fills these through one `projectRefs` call per page.
+        project: null,
+        event: null,
       })),
       next: last && last.remaining > HOME_LIMITS.columnPage ? encodeCursor(last.cursor) : null,
     };

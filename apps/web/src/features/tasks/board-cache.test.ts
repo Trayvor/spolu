@@ -32,6 +32,8 @@ const task = (id: string, bucketId: string, position: string): TaskDto => ({
   upcomingReminders: 0,
   link: null,
   sourceMessageId: null,
+  project: null,
+  event: null,
   createdAt: '2026-10-15T10:00:00.000Z',
   updatedAt: '2026-10-15T10:00:00.000Z',
 });

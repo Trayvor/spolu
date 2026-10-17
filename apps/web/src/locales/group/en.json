@@ -1,6 +1,7 @@
 {
   "tabs": {
     "label": "Group sections",
+    "overview": "Overview",
     "chat": "Chat",
     "tasks": "Tasks",
     "tickets": "Tickets",

@@ -18,6 +18,8 @@ const card = {
   createdAt: '2026-10-17T09:00:00.000Z',
   updatedAt: '2026-10-17T09:00:00.000Z',
   sourceMessageId: null,
+  project: null,
+  event: null,
   fileCount: 0,
   upcomingReminders: 0,
 };

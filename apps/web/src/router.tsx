@@ -192,6 +192,17 @@ const groupIndexRoute = createRoute({
   },
 });
 
+// The Prehľad tab (Phase 33): projects, and from part P4 the timeline and the active cards.
+const groupOverviewRoute = createRoute({
+  getParentRoute: () => groupRoute,
+  path: 'overview',
+  component: lazyRouteComponent(
+    // `chat` and `forms`: the dialogs' description field, files and sheet header.
+    withNamespaces(['projects', 'chat', 'forms'], () => import('@/features/projects/overview-tab')),
+    'OverviewTab',
+  ),
+});
+
 const groupChatRoute = createRoute({
   getParentRoute: () => groupRoute,
   path: 'chat',
@@ -547,6 +558,7 @@ const routeTree = rootRoute.addChildren([
     myGroupsRoute,
     groupRoute.addChildren([
       groupIndexRoute,
+      groupOverviewRoute,
       groupChatRoute.addChildren([]), // Phase 5 adds its child routes here
       groupTasksRoute.addChildren([newTaskRoute, taskRoute]),
       groupTicketsRoute,

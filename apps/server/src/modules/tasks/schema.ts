@@ -5,6 +5,7 @@ import {
   check,
   customType,
   date,
+  foreignKey,
   index,
   pgTable,
   primaryKey,
@@ -16,6 +17,7 @@ import { messages } from '../chat/schema.js';
 import { files } from '../files/schema.js';
 import { groups } from '../groups/schema.js';
 import { knowledgeItems } from '../knowledge/schema.js';
+import { projectEvents, projects } from '../projects/schema.js';
 import { tickets } from '../tickets/schema.js';
 import { user } from '../users/schema.js';
 
@@ -95,11 +97,41 @@ export const tasks = pgTable(
     sourceMeetingId: text('source_meeting_id').references((): AnyPgColumn => knowledgeItems.id, {
       onDelete: 'set null',
     }),
+    /**
+     * The task's project and event (Phase 33; set by part P2). Composite FKs: the project is of
+     * the task's own client, the event of that project. Deleting an event clears `event_id`,
+     * deleting a project `project_id` (column-list `set null`, written by hand in migration 0038;
+     * the projects service deletes the events first, so the CHECK holds).
+     */
+    projectId: text('project_id'),
+    eventId: text('event_id'),
     // Always written from JS `new Date()` (millisecond precision) so the ISO string round-trips.
     createdAt: timestamp('created_at', { withTimezone: true }).notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull(),
   },
   (t) => [
+    foreignKey({
+      name: 'tasks_project_fk',
+      columns: [t.projectId, t.groupId],
+      foreignColumns: [projects.id, projects.groupId],
+    }).onDelete('set null'),
+    foreignKey({
+      name: 'tasks_event_fk',
+      columns: [t.eventId, t.projectId],
+      foreignColumns: [projectEvents.id, projectEvents.projectId],
+    })
+      .onDelete('set null')
+      .onUpdate('cascade'),
+    check(
+      'tasks_event_needs_project_check',
+      sql`${t.eventId} is null or ${t.projectId} is not null`,
+    ),
+    // The board filters (part P2) and the project FK.
+    index('tasks_group_project_event_idx').on(t.groupId, t.projectId, t.eventId),
+    // The timeline rows (part P4) and the event FK.
+    index('tasks_event_project_idx')
+      .on(t.eventId, t.projectId)
+      .where(sql`${t.eventId} is not null`),
     uniqueIndex('tasks_bucket_position_unique').on(t.bucketId, t.position),
     index('tasks_group_id_idx').on(t.groupId),
     // The global task board: the chosen clients' tasks, open or recently completed.

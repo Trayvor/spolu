@@ -45,6 +45,8 @@ export const item = (over: Partial<TicketListItem> & { id: string }): TicketList
   createdAt: NOW,
   requesterName: 'Jana',
   excerpt: null,
+  project: null,
+  event: null,
   assignees: [],
   ...over,
 });
@@ -74,6 +76,8 @@ export const ticket = (over: Partial<TicketDto> = {}): TicketDto => ({
   channelId: null,
   assignees: [],
   canAssign: false,
+  project: null,
+  event: null,
   ...over,
 });
 
