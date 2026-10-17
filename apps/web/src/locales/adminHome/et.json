@@ -57,6 +57,14 @@
       "title": "Mainimised",
       "caption": "lugemata",
       "empty": "Lugemata mainimisi ei ole."
+    },
+    "meetings": {
+      "title": "Kohtumised",
+      "caption": "järgmised 7 päeva",
+      "noSummary": "Kokkuvõtteta",
+      "empty": "Järgmise 7 päeva jooksul pole kohtumisi ja ükski ei oota kokkuvõtet.",
+      "unsummarized_one": "{{count}} kokkuvõtteta",
+      "unsummarized_other": "{{count}} kokkuvõtteta"
     }
   },
   "board": {

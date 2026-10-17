@@ -405,3 +405,12 @@ Owner decision (2026-10-17). Starts after Phase 27 (order with Phase 28 by the o
 - When the prompt is too long for a URL, the button copies it to the clipboard and opens an empty Claude chat with a short note.
 - Test the prompt against the eGrant MCP only on the instance **Supermesto** (owner rule).
 
+## Phase 30 — Knowledge: meetings with AI summary
+
+Owner request (2026-10-17, approved overnight). Requirements: [knowledge-base](product/knowledge-base.md) ("Meetings") and the [design](superpowers/specs/2026-10-17-knowledge-meetings-design.md); [ADR 0023](decisions/0023-ffmpeg-static-build-for-meeting-audio.md) for ffmpeg in the image.
+
+Scope: a knowledge type **Meeting** ("Stretnutie": date and time, meeting, recording and transcript links, notes, a transcript pasted or read from .txt/.vtt/.srt/.docx, an optional reminder); a recording upload of up to 2 GB, streamed, transcoded by a job to compact speech audio (AAC mono 32 kbps) while the original is deleted; "Spracovať s AI" for admins: a pg-boss job transcribes the stored audio in 20-minute parts (`TranscriptionProvider`: OpenAI `gpt-transcribe` by default, ElevenLabs Scribe, a fake; `TRANSCRIPTION_PROVIDER`) and the LLM writes a structured, editable summary (summary, decisions, action items, open questions) in the meeting's language; "Vytvoriť úlohy" sends the action items through the task review dialog into a chosen bucket; a "Meetings" card on the admin home (the next 7 days and recent meetings without a summary).
+
+Status: in progress (one pull request: server, web, e2e `e2e/meetings.spec.ts`); migration 0029.
+
+Done when: an admin adds a meeting with its Teams link to a client's knowledge base, uploads the call's video, sees it kept as audio, presses "Spracovať s AI", gets a summary with action items, creates two tasks from them in the client's board, and finds the meeting on the dashboard's Meetings card.

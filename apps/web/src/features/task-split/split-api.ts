@@ -4,6 +4,7 @@ import {
   type TaskDetailDto,
   type TaskProposals,
   type TasksFromMessage,
+  type TasksFromMeeting,
   type TasksFromTicket,
 } from '@spolu/shared';
 import { apiSend } from '@/lib/api';
@@ -44,6 +45,30 @@ export async function createTasksFromTicket(
   const result = await apiSend(
     'POST',
     `/groups/${enc(groupId)}/tasks/from-ticket`,
+    input,
+    TasksFromMessageResultSchema,
+  );
+  return result.tasks;
+}
+
+/** A meeting's action items as cards (Phase 30; no AI call, the summary has them). */
+export function proposeMeetingTasks(itemId: string): Promise<TaskProposals> {
+  return apiSend(
+    'POST',
+    `/knowledge/${enc(itemId)}/meeting/task-proposals`,
+    undefined,
+    TaskProposalsSchema,
+  );
+}
+
+/** Creates a meeting's approved cards at the top of the chosen bucket (absent: To do). */
+export async function createTasksFromMeeting(
+  itemId: string,
+  input: TasksFromMeeting,
+): Promise<TaskDetailDto[]> {
+  const result = await apiSend(
+    'POST',
+    `/knowledge/${enc(itemId)}/meeting/tasks`,
     input,
     TasksFromMessageResultSchema,
   );

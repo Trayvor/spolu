@@ -10,7 +10,9 @@
     "reminders": "Připomínky",
     "chat_file": "Z chatu",
     "fromChat": "Z chatu",
-    "all": "Vše"
+    "all": "Vše",
+    "meeting": "Schůzka",
+    "meetings": "Schůzky"
   },
   "visibility": {
     "public": "Všichni ve skupině",
@@ -73,7 +75,8 @@
       "note": "Nová poznámka",
       "file": "Nový soubor",
       "link": "Nový odkaz",
-      "reminder": "Nová připomínka"
+      "reminder": "Nová připomínka",
+      "meeting": "Nová schůzka"
     },
     "loading": "Načítá se…",
     "loadFailed": "Tuto položku se nepodařilo načíst. Zkuste to znovu.",
@@ -101,7 +104,8 @@
     "note": "Text s formátováním a soubory",
     "file": "Jeden soubor s popisem",
     "link": "Webová adresa s poznámkou",
-    "reminder": "Text s termíny připomenutí"
+    "reminder": "Text s termíny připomenutí",
+    "meeting": "Schůzka nebo hovor s odkazy, nahrávkou a poznámkami"
   },
   "global": {
     "title": "Znalosti",
@@ -178,5 +182,87 @@
     "open": "Zobrazit {{title}} v chatu",
     "show": "Zobrazit v chatu",
     "alsoTasksTickets": "Také z úkolů a tiketů"
+  },
+  "meeting": {
+    "when": "Datum a čas",
+    "date": "Datum",
+    "time": "Čas",
+    "whenRequired": "Vyberte datum a čas.",
+    "meetingUrl": "Odkaz na schůzku",
+    "meetingUrlHint": "Teams, Google Meet nebo Zoom",
+    "recordingUrl": "Odkaz na nahrávku",
+    "transcriptUrl": "Odkaz na přepis",
+    "transcript": "Přepis",
+    "transcriptHint": "Vložte text nebo načtěte soubor .txt, .vtt, .srt či .docx.",
+    "loadTranscript": "Načíst ze souboru",
+    "readingTranscript": "Načítám soubor…",
+    "transcriptFileFailed": "Tento soubor nelze přečíst. Použijte soubor .txt, .vtt, .srt nebo .docx.",
+    "transcriptTooLong": "Použijte nejvýše 400 000 znaků.",
+    "transcriptByAi": "přepsala AI",
+    "notes": "Poznámky",
+    "editNotes": "Upravit poznámky",
+    "remind": "Připomínka",
+    "remindBefore": "Připomenout 15 minut předem",
+    "join": "Připojit se",
+    "openRecording": "Nahrávka",
+    "openTranscript": "Přepis",
+    "recording": {
+      "title": "Nahrávka",
+      "upload": "Nahrát nahrávku",
+      "replace": "Nahradit",
+      "delete": "Smazat nahrávku",
+      "deleteConfirm": "Smazat uloženou nahrávku?",
+      "uploading": "Nahrávám… {{percent}} %",
+      "processing": "Převádím na zvuk. Trvá to několik minut.",
+      "failed": "Nahrávku se nepodařilo zpracovat. Nahrajte ji znovu.",
+      "none": "Nahrávka není uložena. Nahrajte zvuk nebo video: uloží se jen úsporná zvuková kopie.",
+      "tooLarge": "Soubor je větší než 2 GB.",
+      "notMedia": "Vyberte zvukový nebo video soubor.",
+      "busy": "Nahrávka se ještě převádí.",
+      "rateLimited": "Příliš mnoho nahrávání. Zkuste to za hodinu.",
+      "uploadFailed": "Nahrání se nepodařilo. Zkuste znovu.",
+      "deleteFailed": "Smazání se nepodařilo. Zkuste znovu."
+    },
+    "ai": {
+      "title": "Shrnutí",
+      "process": "Zpracovat s AI",
+      "processAgain": "Zpracovat znovu",
+      "againConfirm": "Zpracovat znovu? Nové shrnutí nahradí toto i s vašimi úpravami.",
+      "queued": "Čeká na spuštění…",
+      "transcribing": "Přepisuji nahrávku…",
+      "summarizing": "Píšu shrnutí…",
+      "failed_transcription_failed": "Nahrávku se nepodařilo přepsat. Zkuste znovu.",
+      "failed_summary_failed": "Shrnutí se nepodařilo napsat. Zkuste znovu.",
+      "nothing": "Nejdřív přidejte přepis nebo nahrajte nahrávku.",
+      "busy": "Tato schůzka se už zpracovává.",
+      "unavailable": "Zpracování s AI teď není dostupné.",
+      "rateLimited": "Příliš mnoho zpracování. Zkuste to za hodinu.",
+      "startFailed": "Spuštění se nepodařilo. Zkuste znovu.",
+      "none": "Zatím bez shrnutí.",
+      "noneAdmin": "Zatím bez shrnutí. Zpracovat s AI ho napíše z přepisu nebo z nahrávky.",
+      "edit": "Upravit shrnutí",
+      "save": "Uložit shrnutí",
+      "summary": "Stručně",
+      "decisions": "Rozhodnutí",
+      "actionItems": "Úkoly",
+      "openQuestions": "Otevřené otázky",
+      "aiMade": "Napsala AI z přepisu. Než se na něj spolehnete, zkontrolujte ho.",
+      "createTasks": "Vytvořit úkoly",
+      "tasksCreated_one": "Vytvořen {{count}} úkol",
+      "tasksCreated_few": "Vytvořeny {{count}} úkoly",
+      "tasksCreated_many": "Vytvořeno {{count}} úkolu",
+      "tasksCreated_other": "Vytvořeno {{count}} úkolů",
+      "openBoard": "Otevřít nástěnku",
+      "actionText": "Úkol {{n}}",
+      "assignee": "Kdo",
+      "deadline": "Do kdy",
+      "remove": "Odebrat",
+      "addAction": "Přidat úkol",
+      "oneLine": "Rozhodnutí a otázky: každé na samostatný řádek."
+    },
+    "row": {
+      "processing": "Zpracovává se",
+      "summary": "Shrnutí"
+    }
   }
 }

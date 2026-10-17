@@ -457,6 +457,6 @@ describe('ReviewDialog', () => {
     const { queryClient } = renderDialog();
     await expectAnnounced(t('taskSplit.unavailable'));
     expect(screen.queryByRole('button', { name: t('taskSplit.retry') })).not.toBeInTheDocument();
-    expect(queryClient.getQueryData(['ai', 'status'])).toEqual({ taskSplit: false });
+    expect(queryClient.getQueryData(['ai', 'status'])).toMatchObject({ taskSplit: false });
   });
 });

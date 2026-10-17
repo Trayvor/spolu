@@ -36,5 +36,7 @@
   "created_few": "Vytvořeny {{count}} úkoly",
   "created_many": "Vytvořeno {{count}} úkolu",
   "created_other": "Vytvořeno {{count}} úkolů",
-  "openBoard": "Otevřít nástěnku"
+  "openBoard": "Otevřít nástěnku",
+  "bucket": "Přidat do",
+  "meetingGone": "Schůzka už neexistuje, úkoly se nevytvořily."
 }

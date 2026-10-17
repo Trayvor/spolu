@@ -44,6 +44,35 @@ function parseSide(value: string | string[] | undefined): number | null {
   return n >= 1 && n <= MAX_PREVIEW_SIDE ? n : null;
 }
 
+/**
+ * One byte range of an object of `size` bytes from a `Range` header; null to send it whole (no
+ * header, several ranges, another unit, a malformed value).
+ */
+export function parseRange(
+  header: string | undefined,
+  size: number,
+): { start: number; end: number } | 'unsatisfiable' | null {
+  if (header === undefined) return null;
+  const match = /^bytes=(\d*)-(\d*)$/.exec(header.trim());
+  if (!match) return null;
+  const [, from, to] = match;
+  if (from === '' && to === '') return null;
+  let start: number;
+  let end: number;
+  if (from === '') {
+    const suffix = Number(to);
+    if (suffix === 0) return 'unsatisfiable';
+    start = Math.max(0, size - suffix);
+    end = size - 1;
+  } else {
+    start = Number(from);
+    end = to === '' ? size - 1 : Math.min(Number(to), size - 1);
+    if (to !== '' && Number(to) < start) return null;
+  }
+  if (start >= size || size === 0) return 'unsatisfiable';
+  return { start, end };
+}
+
 /** Files API: streamed upload, preview upload and cached downloads. */
 export const filesRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { deps }) => {
   const { db, storage } = deps;
@@ -59,17 +88,46 @@ export const filesRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { 
     return (await readableByRule(db, actor, file)) ? file : null;
   };
 
-  const sendStored = async (reply: FastifyReply, key: string, headers: Record<string, string>) => {
+  /**
+   * Sends a stored object. A single `Range` request (`bytes=a-b`, `a-`, `-n`) answers 206 with
+   * that part (Safari plays and seeks audio only so, Phase 30); an unsatisfiable one 416; several
+   * ranges or a malformed header get the whole object.
+   */
+  const sendStored = async (
+    reply: FastifyReply,
+    key: string,
+    headers: Record<string, string>,
+    rangeHeader?: string,
+  ) => {
     try {
       const stored = await storage.get(key);
-      return reply
-        .headers({
-          ...headers,
-          'x-content-type-options': 'nosniff',
-          'cache-control': IMMUTABLE_CACHE,
-          'content-length': String(stored.size),
-        })
-        .send(stored.stream);
+      const base = {
+        ...headers,
+        'x-content-type-options': 'nosniff',
+        'cache-control': IMMUTABLE_CACHE,
+        'accept-ranges': 'bytes',
+      };
+      const range = parseRange(rangeHeader, stored.size);
+      if (range === 'unsatisfiable') {
+        stored.stream.destroy();
+        return reply
+          .code(416)
+          .headers({ ...base, 'content-range': `bytes */${stored.size}` })
+          .send();
+      }
+      if (range) {
+        stored.stream.destroy();
+        const part = await storage.get(key, range);
+        return reply
+          .code(206)
+          .headers({
+            ...base,
+            'content-range': `bytes ${range.start}-${range.end}/${stored.size}`,
+            'content-length': String(range.end - range.start + 1),
+          })
+          .send(part.stream);
+      }
+      return reply.headers({ ...base, 'content-length': String(stored.size) }).send(stored.stream);
     } catch (error) {
       if (error instanceof StorageNotFoundError) return notFound(reply);
       throw error;
@@ -160,12 +218,17 @@ export const filesRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { 
     const file = await readableFile(request, request.params.id);
     if (!file) return notFound(reply);
     const inline = (IMAGE_TYPES as readonly string[]).includes(file.mime);
-    return sendStored(reply, file.storageKey, {
-      'content-type': file.mime,
-      'content-disposition': inline
-        ? 'inline'
-        : `attachment; filename*=UTF-8''${encodeRfc5987(file.name)}`,
-    });
+    return sendStored(
+      reply,
+      file.storageKey,
+      {
+        'content-type': file.mime,
+        'content-disposition': inline
+          ? 'inline'
+          : `attachment; filename*=UTF-8''${encodeRfc5987(file.name)}`,
+      },
+      request.headers.range,
+    );
   });
 
   app.get<IdParams>('/files/:id/preview', { preHandler: anyUser }, async (request, reply) => {

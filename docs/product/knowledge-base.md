@@ -53,6 +53,7 @@ Design and the defaults we chose: [Phase 24 spec](../superpowers/specs/2026-10-1
 
 ## Files from chats (Phase 25, built)
 
+
 Owner request of 2026-10-16. Design and the defaults we chose: [spec](../superpowers/specs/2026-10-16-knowledge-chat-files-design.md).
 
 - **Type "From chat"** (sk "Z chatu"): every file attached to a chat message (the group chat, a task chat, a ticket chat) becomes one knowledge item of its group, automatically, in the same write as the message. Nobody creates, edits, moves or deletes one by hand ("+ New" does not offer it; the detail has no "…" menu). Deleting the message (or the file, task, ticket or group) removes it. Files already in chats were added by migration 0024.
@@ -61,6 +62,18 @@ Owner request of 2026-10-16. Design and the defaults we chose: [spec](../superpo
 - **Not in folders:** the folder view (also "All") lists only hand-made items. Ticking "From chat" makes the list flat like a search: breadcrumbs and folders hide and it runs newest first across the whole group (in the global view: across the chosen clients). Search finds chat files by file name.
 - **Tasks and tickets too:** while "From chat" is ticked, a checkbox "Also from tasks and tickets" (sk "Aj z úloh a tiketov", `?chats=all`) appears next to the type filter, in the tab and in the global view. Unticked (the default) only the group chat's files are listed, also in a search with "All".
 - **Live:** a new chat file appears at once in an open list that shows chat files; a deleted message removes it. A ticket moved to another client or a deleted task changes the lists on their next load.
+
+## Meetings (Phase 30, built)
+
+Owner request of 2026-10-17. Design and the defaults we chose: [spec](../superpowers/specs/2026-10-17-knowledge-meetings-design.md).
+
+- **Type "Meeting"** (sk "Stretnutie"), in "+ New" with its help line and in the type pills ("Meetings"). Fields: title, date and time (required), meeting link, recording link, transcript link (optional http(s) URLs), notes (the formatted body), the transcript (typed, pasted, or "Load from file": `.txt`, `.vtt`, `.srt`, `.docx`, read by `POST /api/knowledge/transcript-text` and nothing stored), and an optional reminder ("Remind 15 minutes before" adds a time; then the usual times and recipients). Folders, search, visibility, edit and delete as for the other types; the transcript is not searched, the links and the summary are.
+- **List row:** a date leaf of the meeting's day, the title, the date and time and a badge "Processing" (recording being converted, AI running) or "Summary".
+- **Detail:** the date and time with "Join the meeting" and the recording and transcript links as pills; the notes; **Recording** (editors upload audio or video up to 2 GB with a progress bar; "Converting to audio…" until the job is done; then an audio player and the file; Replace and Delete; a failed conversion says so); **Summary**; the transcript folded ("transcribed by AI" when the AI made it); the reminder panel.
+- **Recording storage:** only a compact audio copy (AAC mono, 32 kbps, `.m4a`) is kept on our server, as a file of the item (it follows the item's visibility); the uploaded original is deleted after the conversion or its last failed attempt. Video stays only behind the recording link.
+- **AI ("Spracovať s AI", admins only):** a run transcribes the stored audio when there is no transcript, then writes the summary: a short paragraph, decisions, action items (with the person and the date when the meeting names them) and open questions, in the language the meeting was spoken in. The state shows while it runs (waiting, transcribing, writing); a failure says which step failed, and the button starts a new run. "Process again" asks first, since it replaces the summary. The item's editors can edit the summary. One run per meeting at a time, 20 an hour per admin.
+- **Create tasks** (admins, from the action items): the task review dialog with one card per action item (a named person of the group is preselected, a said date is the deadline), and a bucket choice ("Add to", To do by default, never Completed).
+- **Who sees it:** like every item: the group's clients see a public meeting with its recording, transcript and summary; admins-only keeps all of it to admins.
 
 ## Status
 

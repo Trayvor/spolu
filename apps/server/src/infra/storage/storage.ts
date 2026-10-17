@@ -2,7 +2,19 @@ import type { Readable } from 'node:stream';
 
 export interface Storage {
   put(key: string, data: Buffer | Readable, contentType: string): Promise<void>;
-  get(key: string): Promise<{ stream: Readable; contentType: string; size: number }>;
+  /**
+   * The object's stream; with `range` only bytes `start`..`end` (inclusive, within the object),
+   * while `size` stays the whole object's size.
+   */
+  get(
+    key: string,
+    range?: { start: number; end: number },
+  ): Promise<{ stream: Readable; contentType: string; size: number }>;
+  /**
+   * The object's path on this machine when the storage is a local disk (ffmpeg reads a meeting
+   * recording in place, Phase 30); null otherwise. Throws for an invalid key.
+   */
+  localPath(key: string): string | null;
   /** Duplicates an object (data and content type) under another key; a missing source throws StorageNotFoundError. */
   copy(fromKey: string, toKey: string): Promise<void>;
   delete(key: string): Promise<void>;

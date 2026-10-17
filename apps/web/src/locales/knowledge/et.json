@@ -10,7 +10,9 @@
     "reminders": "Meeldetuletused",
     "chat_file": "Vestlusest",
     "fromChat": "Vestlusest",
-    "all": "Kõik"
+    "all": "Kõik",
+    "meeting": "Kohtumine",
+    "meetings": "Kohtumised"
   },
   "visibility": {
     "public": "Kõik grupis",
@@ -71,7 +73,8 @@
       "note": "Uus märkus",
       "file": "Uus fail",
       "link": "Uus link",
-      "reminder": "Uus meeldetuletus"
+      "reminder": "Uus meeldetuletus",
+      "meeting": "Uus kohtumine"
     },
     "loading": "Laadimine…",
     "loadFailed": "Seda kirjet ei õnnestunud laadida. Proovige uuesti.",
@@ -97,7 +100,8 @@
     "note": "Vormindatud tekst ja failid",
     "file": "Üks fail koos kirjeldusega",
     "link": "Veebiaadress koos märkusega",
-    "reminder": "Tekst meeldetuletuse kuupäevadega"
+    "reminder": "Tekst meeldetuletuse kuupäevadega",
+    "meeting": "Kohtumine või kõne koos linkide, salvestise ja märkmetega"
   },
   "global": {
     "title": "Teadmised",
@@ -172,5 +176,85 @@
     "open": "Näita vestluses: {{title}}",
     "show": "Näita vestluses",
     "alsoTasksTickets": "Ka ülesannetest ja pöördumistest"
+  },
+  "meeting": {
+    "when": "Kuupäev ja kellaaeg",
+    "date": "Kuupäev",
+    "time": "Kellaaeg",
+    "whenRequired": "Valige kuupäev ja kellaaeg.",
+    "meetingUrl": "Kohtumise link",
+    "meetingUrlHint": "Teams, Google Meet või Zoom",
+    "recordingUrl": "Salvestise link",
+    "transcriptUrl": "Transkriptsiooni link",
+    "transcript": "Transkriptsioon",
+    "transcriptHint": "Kleepige tekst või laadige fail .txt, .vtt, .srt või .docx.",
+    "loadTranscript": "Laadi failist",
+    "readingTranscript": "Loen faili…",
+    "transcriptFileFailed": "Seda faili ei saa lugeda. Kasutage faili .txt, .vtt, .srt või .docx.",
+    "transcriptTooLong": "Kasutage kuni 400 000 tähemärki.",
+    "transcriptByAi": "transkribeeris TI",
+    "notes": "Märkmed",
+    "editNotes": "Muuda märkmeid",
+    "remind": "Meeldetuletus",
+    "remindBefore": "Tuleta meelde 15 minutit enne",
+    "join": "Liitu",
+    "openRecording": "Salvestis",
+    "openTranscript": "Transkriptsioon",
+    "recording": {
+      "title": "Salvestis",
+      "upload": "Laadi salvestis üles",
+      "replace": "Asenda",
+      "delete": "Kustuta salvestis",
+      "deleteConfirm": "Kas kustutada salvestatud salvestis?",
+      "uploading": "Laadin üles… {{percent}} %",
+      "processing": "Teisendan heliks. See võtab mõne minuti.",
+      "failed": "Salvestist ei õnnestunud töödelda. Laadige see uuesti üles.",
+      "none": "Salvestist pole salvestatud. Laadige üles heli või video: alles jääb vaid kompaktne helikoopia.",
+      "tooLarge": "Fail on suurem kui 2 GB.",
+      "notMedia": "Valige heli- või videofail.",
+      "busy": "Salvestist alles teisendatakse.",
+      "rateLimited": "Liiga palju üleslaadimisi. Proovige tunni pärast.",
+      "uploadFailed": "Üleslaadimine ebaõnnestus. Proovige uuesti.",
+      "deleteFailed": "Kustutamine ebaõnnestus. Proovige uuesti."
+    },
+    "ai": {
+      "title": "Kokkuvõte",
+      "process": "Töötle TI-ga",
+      "processAgain": "Töötle uuesti",
+      "againConfirm": "Kas töödelda uuesti? Uus kokkuvõte asendab selle koos teie muudatustega.",
+      "queued": "Ootab algust…",
+      "transcribing": "Transkribeerin salvestist…",
+      "summarizing": "Kirjutan kokkuvõtet…",
+      "failed_transcription_failed": "Salvestist ei õnnestunud transkribeerida. Proovige uuesti.",
+      "failed_summary_failed": "Kokkuvõtet ei õnnestunud kirjutada. Proovige uuesti.",
+      "nothing": "Lisage kõigepealt transkriptsioon või laadige üles salvestis.",
+      "busy": "Seda kohtumist juba töödeldakse.",
+      "unavailable": "Töötlemine TI-ga pole praegu saadaval.",
+      "rateLimited": "Liiga palju töötlusi. Proovige tunni pärast.",
+      "startFailed": "Alustamine ebaõnnestus. Proovige uuesti.",
+      "none": "Kokkuvõtet veel pole.",
+      "noneAdmin": "Kokkuvõtet veel pole. Töötle TI-ga kirjutab selle transkriptsioonist või salvestisest.",
+      "edit": "Muuda kokkuvõtet",
+      "save": "Salvesta kokkuvõte",
+      "summary": "Lühidalt",
+      "decisions": "Otsused",
+      "actionItems": "Ülesanded",
+      "openQuestions": "Lahtised küsimused",
+      "aiMade": "Kirjutas TI transkriptsiooni põhjal. Kontrollige seda enne, kui sellele tuginete.",
+      "createTasks": "Loo ülesanded",
+      "tasksCreated_one": "{{count}} ülesanne loodud",
+      "tasksCreated_other": "{{count}} ülesannet loodud",
+      "openBoard": "Ava tahvel",
+      "actionText": "Ülesanne {{n}}",
+      "assignee": "Kes",
+      "deadline": "Mis ajaks",
+      "remove": "Eemalda",
+      "addAction": "Lisa ülesanne",
+      "oneLine": "Otsused ja küsimused: igaüks eraldi real."
+    },
+    "row": {
+      "processing": "Töötlemisel",
+      "summary": "Kokkuvõte"
+    }
   }
 }

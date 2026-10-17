@@ -67,6 +67,14 @@ export const BellIcon = () => (
   </Tile>
 );
 
+/** A meeting or call: a video camera. */
+export const MeetingIcon = () => (
+  <Tile name="meeting">
+    <rect x="3" y="6" width="13" height="12" rx="2" />
+    <path d="m16 10 5-3v10l-5-3" />
+  </Tile>
+);
+
 export const FolderIcon = () => (
   <Tile name="folder">
     <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />

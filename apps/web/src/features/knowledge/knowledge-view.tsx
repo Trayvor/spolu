@@ -11,6 +11,7 @@ import { ReminderPanel } from '@/features/reminders/reminder-panel';
 import { Button } from '@/components/ui/button';
 import { ChatSourceLabel, chatSourceLocation } from './chat-source';
 import { ArrowOutIcon, LockIcon, SmallFolderIcon } from './icons';
+import { MeetingWhen, RecordingSection, SummarySection, TranscriptSection } from './meeting-view';
 
 type NameOf = (id: string) => string | undefined;
 
@@ -141,6 +142,27 @@ export const KnowledgeView = forwardRef<
             </a>
           )}
           <Body body={item.body} nameOf={nameOf} />
+        </>
+      )}
+
+      {item.type === 'meeting' && item.meetingDetail && (
+        <>
+          <MeetingWhen meeting={item.meetingDetail} />
+          <Body body={item.body} nameOf={nameOf} />
+          <RecordingSection item={item} onChanged={onChanged} />
+          <SummarySection item={item} onChanged={onChanged} />
+          <TranscriptSection meeting={item.meetingDetail} />
+          {item.reminder && item.reminder.times.length > 0 && (
+            <div className="border-t-2 border-border pt-4">
+              <ReminderPanel
+                prefix="/knowledge"
+                subjectId={item.id}
+                set={item.reminder}
+                authorId={item.createdBy.id}
+                onChanged={onChanged}
+              />
+            </div>
+          )}
         </>
       )}
 

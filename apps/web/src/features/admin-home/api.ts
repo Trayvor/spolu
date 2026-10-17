@@ -1,6 +1,7 @@
 import { queryOptions } from '@tanstack/react-query';
 import {
   AssignedTasksSchema,
+  HomeMeetingsSchema,
   HomeRemindersSchema,
   HomeTicketsSchema,
   MentionsSchema,
@@ -16,6 +17,7 @@ export const homeKeys = {
   tickets: ['home', 'tickets'],
   mentions: ['home', 'mentions'],
   reminders: ['home', 'reminders'],
+  meetings: ['home', 'meetings'],
   counts: ['home', 'counts'],
 } as const;
 
@@ -53,5 +55,12 @@ export const mentionsQuery = queryOptions({
 export const remindersQuery = queryOptions({
   queryKey: homeKeys.reminders,
   queryFn: () => apiGet('/me/home/reminders', HomeRemindersSchema),
+  refetchOnWindowFocus: true,
+});
+
+/** The Meetings card (Phase 30): the next 7 days, and past meetings without a summary. */
+export const meetingsQuery = queryOptions({
+  queryKey: homeKeys.meetings,
+  queryFn: () => apiGet('/me/home/meetings', HomeMeetingsSchema),
   refetchOnWindowFocus: true,
 });

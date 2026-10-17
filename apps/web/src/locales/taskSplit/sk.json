@@ -36,5 +36,7 @@
   "created_few": "{{count}} úlohy vytvorené",
   "created_many": "{{count}} úloh vytvorených",
   "created_other": "{{count}} úloh vytvorených",
-  "openBoard": "Otvoriť nástenku"
+  "openBoard": "Otvoriť nástenku",
+  "bucket": "Pridať do",
+  "meetingGone": "Stretnutie už neexistuje, úlohy sa nevytvorili."
 }

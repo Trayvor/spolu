@@ -33,5 +33,7 @@
   "created_one": "{{count}} attività creata",
   "created_many": "{{count}} attività create",
   "created_other": "{{count}} attività create",
-  "openBoard": "Apri la bacheca"
+  "openBoard": "Apri la bacheca",
+  "bucket": "Aggiungi a",
+  "meetingGone": "La riunione non esiste più, quindi nessuna attività è stata creata."
 }

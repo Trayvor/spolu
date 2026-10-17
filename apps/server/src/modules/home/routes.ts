@@ -19,6 +19,7 @@ import {
 import { getMentions } from './mentions.js';
 import { getReminderSource } from './reminder-source.js';
 import { getSidebar } from './sidebar.js';
+import { dashboardMeetings } from '../knowledge/meeting-dashboard.js';
 
 export type HomeRoutesOptions = {
   deps: AppDeps;
@@ -57,6 +58,11 @@ export const homeRoutes: FastifyPluginAsync<HomeRoutesOptions> = async (app, opt
     ]);
     return { tasks, tickets };
   });
+
+  // Phase 30: the Meetings card, through the knowledge module's service.
+  app.get('/me/home/meetings', { preHandler: adminOnly }, async (request) =>
+    dashboardMeetings(db, request.user!.id, now()),
+  );
 
   app.get('/me/home/mentions', { preHandler: adminOnly }, async (request) =>
     getMentions(db, request.user!),

@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, type KeyboardEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   KNOWLEDGE_LIMITS,
+  MEETING_LIMITS,
   Visibilities,
   isHttpUrl,
   type FileInfo,
@@ -19,7 +20,9 @@ import { FormattedTextField } from '@/components/formatted-text-field';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 import { useGroupPeople } from '@/features/groups/use-group-people';
+import { MeetingTranscriptField, MeetingWhenAndLinks, timeBefore } from './meeting-fields';
 import { RecipientsField } from '@/features/reminders/recipients-field';
 import {
   ReminderTimesField,
@@ -32,6 +35,16 @@ import {
 
 export type { ReminderTimeValue };
 
+/** A meeting's own fields in the form (Phase 30); empty links are sent as null. */
+export type MeetingFormValue = {
+  date: string;
+  time: string;
+  meetingUrl: string;
+  recordingUrl: string;
+  transcriptUrl: string;
+  transcript: string;
+};
+
 export type KnowledgeFormValue = {
   title: string;
   body: string;
@@ -40,14 +53,32 @@ export type KnowledgeFormValue = {
   visibility: Visibility;
   times: ReminderTimeValue[];
   recipientIds: string[];
+  meeting: MeetingFormValue;
 };
 
 export type KnowledgeFormErrors = Partial<
-  Record<'title' | 'url' | 'file' | 'body' | 'times' | 'recipients' | 'form', string>
+  Record<
+    | 'title'
+    | 'url'
+    | 'file'
+    | 'body'
+    | 'times'
+    | 'recipients'
+    | 'form'
+    | 'when'
+    | 'meetingUrl'
+    | 'recordingUrl'
+    | 'transcriptUrl'
+    | 'transcript',
+    string
+  >
 >;
 
-/** A new item's values: one reminder time, tomorrow at 09:00. */
-export function emptyKnowledgeValue(): KnowledgeFormValue {
+/**
+ * A new item's values: one reminder time, tomorrow at 09:00; a meeting starts tomorrow at 10:00
+ * with no reminder (it offers one 15 minutes before).
+ */
+export function emptyKnowledgeValue(type?: KnowledgeType): KnowledgeFormValue {
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
   return {
@@ -56,8 +87,19 @@ export function emptyKnowledgeValue(): KnowledgeFormValue {
     url: '',
     fileIds: [],
     visibility: 'public',
-    times: [{ key: newRowKey(), date: localDate(tomorrow), time: '09:00', firedAt: null }],
+    times:
+      type === 'meeting'
+        ? []
+        : [{ key: newRowKey(), date: localDate(tomorrow), time: '09:00', firedAt: null }],
     recipientIds: [],
+    meeting: {
+      date: localDate(tomorrow),
+      time: '10:00',
+      meetingUrl: '',
+      recordingUrl: '',
+      transcriptUrl: '',
+      transcript: '',
+    },
   };
 }
 
@@ -77,6 +119,32 @@ export function fromItem(item: KnowledgeItemDto): KnowledgeFormValue {
     recipientIds: (item.reminder?.recipients ?? [])
       .filter((r) => r.source !== 'subscribed')
       .map((r) => r.user.id),
+    meeting: meetingFormValue(item),
+  };
+}
+
+function meetingFormValue(item: KnowledgeItemDto): MeetingFormValue {
+  const meeting = item.meetingDetail;
+  if (!meeting) return emptyKnowledgeValue('meeting').meeting;
+  return {
+    ...isoToLocal(meeting.startsAt),
+    meetingUrl: meeting.meetingUrl ?? '',
+    recordingUrl: meeting.recordingUrl ?? '',
+    transcriptUrl: meeting.transcriptUrl ?? '',
+    transcript: meeting.transcript,
+  };
+}
+
+const urlOrNull = (value: string) => (value.trim() === '' ? null : value.trim());
+
+/** The meeting's fields as the API takes them. */
+export function meetingInput(value: MeetingFormValue) {
+  return {
+    startsAt: localToIso(value.date, value.time),
+    meetingUrl: urlOrNull(value.meetingUrl),
+    recordingUrl: urlOrNull(value.recordingUrl),
+    transcriptUrl: urlOrNull(value.transcriptUrl),
+    transcript: value.transcript,
   };
 }
 
@@ -149,6 +217,16 @@ export function toDraft(
       return { ...base, type, url: value.url.trim(), fileIds: [] };
     case 'reminder':
       return { ...base, type, reminder: reminderInput(value, undefined, context), fileIds: [] };
+    case 'meeting': {
+      const reminder = reminderInput(value, undefined, context);
+      return {
+        ...base,
+        type,
+        meeting: meetingInput(value.meeting),
+        ...(reminder.times.length > 0 ? { reminder } : {}),
+        fileIds: [],
+      };
+    }
     case 'chat_file':
       throw new Error('A chat file comes only from a chat');
   }
@@ -174,9 +252,17 @@ export function toPatch(
   if ((item.type === 'note' || item.type === 'file') && !same(value.fileIds, before.fileIds)) {
     patch.fileIds = value.fileIds;
   }
-  if (item.type === 'reminder') {
+  if (item.type === 'reminder' || item.type === 'meeting') {
     const next = reminderInput(value, item, { ...context, authorId: item.createdBy.id });
     if (!same(next, reminderInput(before, item))) patch.reminder = next;
+  }
+  if (item.type === 'meeting') {
+    const next = meetingInput(value.meeting);
+    const prev = meetingInput(before.meeting);
+    const changed = Object.fromEntries(
+      Object.entries(next).filter(([key, v]) => v !== prev[key as keyof typeof prev]),
+    );
+    if (Object.keys(changed).length > 0) patch.meeting = changed;
   }
   return patch;
 }
@@ -231,6 +317,20 @@ export function validateKnowledge(
   }
   if (type === 'file' && value.fileIds.length !== 1) {
     errors.file = i18n.t('knowledge.form.errors.fileRequired');
+  }
+  if (type === 'meeting') {
+    const m = value.meeting;
+    if (!localToIso(m.date, m.time)) errors.when = i18n.t('knowledge.meeting.whenRequired');
+    for (const field of ['meetingUrl', 'recordingUrl', 'transcriptUrl'] as const) {
+      const url = m[field].trim();
+      if (url && !isHttpUrl(url)) errors[field] = i18n.t('knowledge.form.errors.urlInvalid');
+    }
+    if (m.transcript.length > MEETING_LIMITS.transcript) {
+      errors.transcript = i18n.t('knowledge.meeting.transcriptTooLong');
+    }
+    if (Object.keys(validateTimes(value.times, now)).length > 0) {
+      errors.times = i18n.t('knowledge.form.errors.timesInvalid');
+    }
   }
   if (type === 'reminder') {
     if (value.times.length === 0) errors.times = i18n.t('knowledge.form.errors.timesRequired');
@@ -421,6 +521,8 @@ export function KnowledgeForm({
   };
 
   const isDescription = type === 'file' || type === 'link';
+  const isMeeting = type === 'meeting';
+  const remindBefore = isMeeting ? timeBefore(value.meeting) : null;
 
   return (
     <div className="space-y-5">
@@ -479,6 +581,14 @@ export function KnowledgeForm({
         <FieldError id={id('title-error')} message={errors.title} />
       </div>
 
+      {isMeeting && (
+        <MeetingWhenAndLinks
+          value={value.meeting}
+          onChange={(meeting) => set({ meeting })}
+          errors={errors}
+        />
+      )}
+
       <div className={FIELD}>
         <FormattedTextField
           id={id('body')}
@@ -486,9 +596,19 @@ export function KnowledgeForm({
           people={people}
           value={value.body}
           onChange={(body) => set({ body })}
-          label={t(isDescription ? 'knowledge.form.description' : 'knowledge.form.body')}
+          label={t(
+            isMeeting
+              ? 'knowledge.meeting.notes'
+              : isDescription
+                ? 'knowledge.form.description'
+                : 'knowledge.form.body',
+          )}
           editLabel={t(
-            isDescription ? 'knowledge.form.editDescription' : 'knowledge.form.editBody',
+            isMeeting
+              ? 'knowledge.meeting.editNotes'
+              : isDescription
+                ? 'knowledge.form.editDescription'
+                : 'knowledge.form.editBody',
           )}
           error={errors.body}
           errorId={id('body-error')}
@@ -512,7 +632,31 @@ export function KnowledgeForm({
         </div>
       )}
 
-      {type === 'reminder' && (
+      {isMeeting && (
+        <MeetingTranscriptField
+          value={value.meeting.transcript}
+          onChange={(transcript) => set({ meeting: { ...value.meeting, transcript } })}
+          error={errors.transcript}
+        />
+      )}
+
+      {isMeeting && (
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="text-button font-semibold">{t('knowledge.meeting.remind')}</p>
+          {remindBefore && (
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => set({ times: [...value.times, remindBefore] })}
+            >
+              {t('knowledge.meeting.remindBefore')}
+            </Button>
+          )}
+        </div>
+      )}
+
+      {(type === 'reminder' || (isMeeting && value.times.length > 0)) && (
         <>
           <div className={FIELD}>
             <ReminderTimesField

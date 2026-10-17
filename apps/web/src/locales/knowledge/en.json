@@ -10,7 +10,9 @@
     "reminders": "Reminders",
     "chat_file": "From chat",
     "fromChat": "From chat",
-    "all": "All"
+    "all": "All",
+    "meeting": "Meeting",
+    "meetings": "Meetings"
   },
   "visibility": {
     "public": "Everyone in the group",
@@ -71,7 +73,8 @@
       "note": "New note",
       "file": "New file",
       "link": "New link",
-      "reminder": "New reminder"
+      "reminder": "New reminder",
+      "meeting": "New meeting"
     },
     "loading": "Loading…",
     "loadFailed": "Could not load this item. Try again.",
@@ -97,7 +100,8 @@
     "note": "Text with formatting and files",
     "file": "One file with a description",
     "link": "A web address with a note",
-    "reminder": "Text with dates to be reminded"
+    "reminder": "Text with dates to be reminded",
+    "meeting": "A meeting or call with its links, recording and notes"
   },
   "global": {
     "title": "Knowledge",
@@ -172,5 +176,85 @@
     "open": "Show {{title}} in the chat",
     "show": "Show in chat",
     "alsoTasksTickets": "Also from tasks and tickets"
+  },
+  "meeting": {
+    "when": "Date and time",
+    "date": "Date",
+    "time": "Time",
+    "whenRequired": "Choose the date and time.",
+    "meetingUrl": "Meeting link",
+    "meetingUrlHint": "Teams, Google Meet or Zoom",
+    "recordingUrl": "Recording link",
+    "transcriptUrl": "Transcript link",
+    "transcript": "Transcript",
+    "transcriptHint": "Paste the text, or load a .txt, .vtt, .srt or .docx file.",
+    "loadTranscript": "Load from file",
+    "readingTranscript": "Reading the file…",
+    "transcriptFileFailed": "This file can't be read. Use a .txt, .vtt, .srt or .docx file.",
+    "transcriptTooLong": "Use at most 400,000 characters.",
+    "transcriptByAi": "transcribed by AI",
+    "notes": "Notes",
+    "editNotes": "Edit notes",
+    "remind": "Reminder",
+    "remindBefore": "Remind 15 minutes before",
+    "join": "Join the meeting",
+    "openRecording": "Recording",
+    "openTranscript": "Transcript",
+    "recording": {
+      "title": "Recording",
+      "upload": "Upload recording",
+      "replace": "Replace",
+      "delete": "Delete recording",
+      "deleteConfirm": "Delete the stored recording?",
+      "uploading": "Uploading… {{percent}} %",
+      "processing": "Converting to audio. This takes a few minutes.",
+      "failed": "The recording could not be processed. Upload it again.",
+      "none": "No recording stored. Upload audio or video: only a compact audio copy is kept.",
+      "tooLarge": "The file is larger than 2 GB.",
+      "notMedia": "Choose an audio or video file.",
+      "busy": "A recording is still being converted.",
+      "rateLimited": "Too many uploads. Try again in an hour.",
+      "uploadFailed": "Could not upload. Try again.",
+      "deleteFailed": "Could not delete. Try again."
+    },
+    "ai": {
+      "title": "Summary",
+      "process": "Process with AI",
+      "processAgain": "Process again",
+      "againConfirm": "Process again? The new summary replaces this one, your edits included.",
+      "queued": "Waiting to start…",
+      "transcribing": "Transcribing the recording…",
+      "summarizing": "Writing the summary…",
+      "failed_transcription_failed": "The recording could not be transcribed. Try again.",
+      "failed_summary_failed": "The summary could not be written. Try again.",
+      "nothing": "Add a transcript or upload a recording first.",
+      "busy": "This meeting is already being processed.",
+      "unavailable": "Processing with AI is not available right now.",
+      "rateLimited": "Too many runs. Try again in an hour.",
+      "startFailed": "Could not start. Try again.",
+      "none": "No summary yet.",
+      "noneAdmin": "No summary yet. Process with AI writes one from the transcript or the recording.",
+      "edit": "Edit summary",
+      "save": "Save summary",
+      "summary": "In short",
+      "decisions": "Decisions",
+      "actionItems": "Action items",
+      "openQuestions": "Open questions",
+      "aiMade": "Written by AI from the transcript. Check it before you rely on it.",
+      "createTasks": "Create tasks",
+      "tasksCreated_one": "{{count}} task created",
+      "tasksCreated_other": "{{count}} tasks created",
+      "openBoard": "Open the board",
+      "actionText": "Action item {{n}}",
+      "assignee": "Who",
+      "deadline": "By when",
+      "remove": "Remove",
+      "addAction": "Add action item",
+      "oneLine": "Decisions and questions: one per line."
+    },
+    "row": {
+      "processing": "Processing",
+      "summary": "Summary"
+    }
   }
 }

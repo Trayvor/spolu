@@ -67,6 +67,16 @@
       "title": "Згадки",
       "caption": "непрочитані",
       "empty": "Непрочитаних згадок немає."
+    },
+    "meetings": {
+      "title": "Зустрічі",
+      "caption": "наступні 7 днів",
+      "noSummary": "Без підсумку",
+      "empty": "Немає зустрічей у наступні 7 днів і жодна не чекає на підсумок.",
+      "unsummarized_one": "{{count}} без підсумку",
+      "unsummarized_few": "{{count}} без підсумку",
+      "unsummarized_many": "{{count}} без підсумку",
+      "unsummarized_other": "{{count}} без підсумку"
     }
   },
   "board": {

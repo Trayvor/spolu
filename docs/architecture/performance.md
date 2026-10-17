@@ -110,6 +110,8 @@ The production image (root `Dockerfile`, see [overview.md](overview.md), "Produc
 
 Where the bytes went: npm, corepack and yarn (about 24 MB) and the C headers (6.7 MB) of the node image are not shipped (deleting them in a later layer would not shrink the image, so the runtime stage starts from Debian and copies only `node`); `*.d.ts`, `*.map` and `*.md` files of `node_modules` (about 40 MB raw) are deleted before the copy. The rebuild is faster because the production dependencies are their own stage (`prod-deps`, only the lockfile and manifests), so a code change no longer reruns `pnpm deploy`. What remains: the node binary 118 MB, `node_modules` about 55 MB (`react-dom` and `@types/node` are still in it, finding K2), the built server and web about 6 MB.
 
+Phase 30 adds the static ffmpeg binary for meeting recordings ([ADR 0023](../decisions/0023-ffmpeg-static-build-for-meeting-audio.md)): measured 535 MB on disk and 133 MB compressed content with it (2026-10-17, one build on a loaded machine).
+
 ## How to check
 
 - `pnpm --filter @spolu/web build` prints every chunk with its gzip size (Vite's default gzip level, a little above the budget's numbers).
@@ -149,3 +151,10 @@ Ticket riešitelia and "Watch tickets" (owner request 2026-10-17, measured on to
 ## Test suite speed
 
 `scripts/ci.sh` takes about 13 minutes on GitHub (Phase 27): unit and integration tests 7 minutes (the server and web suites run in parallel), e2e 4.7 minutes. Lint, format check and typecheck are independent, so `ci.sh` runs them at the same time (`run_parallel` in `scripts/lib.sh`, Phase 27 T5): on GitHub they took 71 s one after another (29 + 15 + 27 s). Measured locally on a loaded 8-core laptop (two rounds each, same tree): 27 to 55 s one after another, 18 to 28 s in parallel, so about 10 to 27 s saved per run; on the 4-vCPU runner the expected saving is about 30 s (the PR's GitHub run gives the real number). e2e stays serial: its tests share one database. The web suite runs Vitest's `vmThreads` pool (`apps/web/vitest.config.ts`): every file still gets its own VM context, but workers and their jsdom are reused. With the default `forks` pool jsdom was set up once per file, a third of the run: 31 to 44 s locally, 13.5 to 17 s with `vmThreads`, all tests passing. The server suite keeps `forks`: under `vmThreads` (34 s to 24.5 s locally) a time-based reminder test failed under the extra load, so that switch waits until the load-sensitive tests are fixed (Phase 27 findings, T2 and T3).
+
+## Meetings (Phase 30)
+
+- A recording is streamed to disk (never buffered) and transcoded by one ffmpeg at a time (`knowledge.meeting-transcode`, concurrency 1, 2 h kill timer); the AI run splits audio with `-c copy` (no re-encode) and sends parts one by one.
+- The list row reads a meeting's date and states by one primary-key join in the page query; the transcript is never in a list row or the search column (only the detail loads it).
+- The dashboard card reads `knowledge_meetings_starts_at_idx` (two range scans, 10 rows each).
+- The meeting UI lives in the knowledge chunks (`meeting-view.tsx`, `meeting-fields.tsx`, `meeting-api.ts`); the review dialog stays lazy. The dialog polls every 5 s only while a conversion or run is in progress.
