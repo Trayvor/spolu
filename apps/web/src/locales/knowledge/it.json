@@ -178,7 +178,10 @@
     "ticket": "Ticket #{{number}}",
     "open": "Mostra {{title}} nella chat",
     "show": "Mostra nella chat",
-    "alsoTasksTickets": "Anche da attività e ticket"
+    "alsoTasksTickets": "Anche da attività e ticket",
+    "toFile": "Salva come file",
+    "toFileTitle": "Salva come file",
+    "toFileHelp": "Diventa un normale file nella base di conoscenza, con una propria copia del file. Il messaggio nella chat mantiene il suo allegato. Non si può annullare."
   },
   "meeting": {
     "when": "Data e ora",

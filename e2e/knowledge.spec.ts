@@ -323,6 +323,52 @@ test.describe.serial('knowledge base', () => {
     await admin.close();
   });
 
+  test('an admin saves a chat file as a file: it leaves "Z chatu" and outlives the message', async () => {
+    const name = `faktura-${stamp}.txt`;
+    const fileId = await upload(clientContext.request, name, 'faktura');
+    const channel = (await (
+      await clientContext.request.get(`/api/groups/${groupId}/chat`)
+    ).json()) as { id: string };
+    const sent = await clientContext.request.post(`/api/channels/${channel.id}/messages`, {
+      data: { clientId: `kb-file-${stamp}`, body: '', fileIds: [fileId] },
+    });
+    expect(sent.status()).toBe(201);
+    const messageId = ((await sent.json()) as { id: string }).id;
+    const chatFiles = (await (
+      await adminContext.request.get(`/api/groups/${groupId}/knowledge?type=chat_file`)
+    ).json()) as KnowledgePage;
+    const item = chatFiles.items.find((i) => i.title === name)!;
+
+    const admin = await adminContext.newPage();
+    await admin.goto(`/groups/${groupId}/knowledge?k=${item.id}`);
+    const dialog = admin.getByTestId('knowledge-dialog');
+    await dialog.getByRole('button', { name: 'Uložiť ako súbor' }).click();
+    await dialog.getByLabel('Názov').fill(`Faktúra ${stamp}`);
+    await dialog.getByRole('button', { name: 'Uložiť ako súbor' }).click();
+    await expect(dialog.getByRole('heading', { name: `Faktúra ${stamp}` })).toBeVisible();
+    await expect(dialog.getByRole('button', { name: 'Upraviť' })).toBeVisible();
+    await admin.close();
+
+    // A file item at the top level now, with its own copy; the message keeps its attachment.
+    const detail = (await (
+      await adminContext.request.get(`/api/knowledge/${item.id}`)
+    ).json()) as KnowledgeItemDto;
+    expect(detail).toMatchObject({ type: 'file', folderId: null, chat: null });
+    const copyId = detail.files[0]!.id;
+    expect(copyId).not.toBe(fileId);
+    const after = (await (
+      await clientContext.request.get(`/api/groups/${groupId}/knowledge?type=chat_file`)
+    ).json()) as KnowledgePage;
+    expect(after.items.map((i) => i.id)).not.toContain(item.id);
+
+    // Deleting the message no longer removes the item or its file.
+    expect((await clientContext.request.delete(`/api/messages/${messageId}`)).status()).toBe(204);
+    expect((await clientContext.request.get(`/api/knowledge/${item.id}`)).status()).toBe(200);
+    const download = await clientContext.request.get(`/api/files/${copyId}`);
+    expect(download.status()).toBe(200);
+    expect(await download.text()).toBe('faktura');
+  });
+
   test('card view: several lines of a note, remembered, and a card opens the detail', async () => {
     const note = await create(adminContext.request, {
       type: 'note',

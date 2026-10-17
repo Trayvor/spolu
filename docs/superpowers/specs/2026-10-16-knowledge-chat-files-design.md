@@ -56,6 +56,17 @@ Indexes:
 - The list is flat while `q` is set or "From chat" is ticked.
 - Live updates: a chat file event is kept only in a flat list whose filter admits it (type ticked, or none ticked with a search; group chat unless `chats=all`), never in a folder view.
 
+## Save as a file (owner request of 2026-10-17)
+
+The owner asked for a way to change a chat file into a plain file item. Decisions:
+
+- **Who:** whoever could edit it were it hand-made: its author (the message's author) and admins, while they read it (`canConvertChatFile`; the detail's `canConvert`). Another client of the group gets 403, a ziadatel or another group 404.
+- **One way, same row:** `POST /api/knowledge/:id/to-file` with `title`, `body`, `folderId`, `visibility`, `updatedAt` (`KnowledgeToFileSchema`). The row keeps its id (so `?k=` links and messages that share it keep working), author and `created_at`; `type` becomes `file` and the four `chat_*` columns become null. A file item has no reminders, so there are none to set. No migration: the checks and indexes already allow it.
+- **A copy of the file, not the same file:** the chat's message delete detaches and deletes its files, and a knowledge item's visibility sets `files.admins_only` on its files, which would hide the chat's attachment from clients. So the item gets its own copy (`copyFile`, storage objects copied too), attached through `knowledge_attachments` and uploaded by the converter. The message keeps its attachment unchanged. The copy is made before the transaction (no lock held over storage) and deleted again if the transaction fails.
+- **Rules as for a new item:** an admins-only folder makes it admins-only; a client's file stays public (400 `invalid_visibility`); a stale `updatedAt` 409; an item that is no chat file 400.
+- **Live:** `knowledge:item` with the previous visibility (public), so a "From chat" list drops it and a folder view adds it (the web's existing rules), and an admins-only result is deleted for clients.
+- **UI:** "Save as a file" (sk "Uložiť ako súbor") in the detail header opens the file form with the file fixed, the file name as the title, a folder select and, for admins, "Visible to"; one line says the message keeps its attachment and that it cannot be undone.
+
 ## Tests
 
 Server, test-first: a send with files creates one entry per file (author, time, title, search text, chat source); a client of another group never reaches it (tab list, global list is admin-only, detail, search, socket event to the other group's room); a ziadatel gets 404; the default lists only the group chat's files, `chats=all` adds task and ticket chats; the folder view never lists them; delete of the message removes them and pushes `item_deleted`; a ticket moved to another client moves them (the old client no longer reads them); PATCH/DELETE 403, POST 400; the backfill SQL.

@@ -13,6 +13,7 @@ import {
   type KnowledgePage,
   type KnowledgePatch,
   type KnowledgeSummary,
+  type KnowledgeToFile,
   type KnowledgeType,
   type MeetingListInfo,
   type SessionUser,
@@ -24,6 +25,7 @@ import type { Storage } from '../../infra/storage/index.js';
 import { files } from '../files/schema.js';
 import {
   attachFiles,
+  copyFile,
   deleteDetachedFiles,
   detachFiles,
   InvalidAttachmentError,
@@ -54,7 +56,13 @@ import {
 import { folderChains, folderForItem, folderPaths, lockGroupKnowledge } from './folders.js';
 import { recordMeetingScheduled } from './meeting-notify.js';
 import { requestDelivery } from '../notifications/service.js';
-import { canEditItem, canReadItem, canSetVisibility, isShareable } from './policy.js';
+import {
+  canConvertChatFile,
+  canEditItem,
+  canReadItem,
+  canSetVisibility,
+  isShareable,
+} from './policy.js';
 import { registerKnowledgeReminderSubject } from './reminder-subject.js';
 import { knowledgeAttachments, knowledgeItems } from './schema.js';
 import { buildSearchText, escapeLike, searchTerms } from '../../infra/text/search.js';
@@ -522,6 +530,7 @@ export async function getItem(db: Db, actor: SessionUser, id: string): Promise<K
     files: fileInfos,
     reminder,
     canEdit: canEditItem(actor, item, actorGroupIds),
+    canConvert: canConvertChatFile(actor, item, actorGroupIds),
     visibilityLocked: row.author_role === 'client',
     meetingDetail: meeting
       ? toMeetingDetail(
@@ -775,8 +784,16 @@ type LockedRow = {
   author_role: string;
 };
 
-/** Locks the item row and checks that the actor may change it. */
-async function lockForWrite(tx: Db, actor: SessionUser, id: string): Promise<LockedRow> {
+/**
+ * Locks the item row and checks that the actor may change it (`canEditItem`, or `may` for a
+ * write of its own, such as turning a chat file into a file item).
+ */
+async function lockForWrite(
+  tx: Db,
+  actor: SessionUser,
+  id: string,
+  may: typeof canEditItem = canEditItem,
+): Promise<LockedRow> {
   const rows = await tx.execute<LockedRow>(sql`
     select k.id, k.group_id, k.type, k.visibility, k.title, k.body, k.url, k.folder_id,
            k.created_by, ${iso(sql`k.updated_at`)} as updated_at, u.role as author_role
@@ -792,7 +809,7 @@ async function lockForWrite(tx: Db, actor: SessionUser, id: string): Promise<Loc
     type: row.type,
   };
   if (!canReadItem(actor, item, actorGroupIds)) throw new KnowledgeNotFoundError();
-  if (!canEditItem(actor, item, actorGroupIds)) throw new KnowledgeForbiddenError();
+  if (!may(actor, item, actorGroupIds)) throw new KnowledgeForbiddenError();
   return row;
 }
 
@@ -972,6 +989,107 @@ export async function deleteItem(
 // ---------------------------------------------------------------------------------------------
 // Chat files
 // ---------------------------------------------------------------------------------------------
+
+/**
+ * Turns a chat file into a normal file item, one way ("Save as a file"): same id, author and time,
+ * the given title, description, folder and visibility. The item gets its own copy of the file
+ * (`copyFile`) and loses its link to the message, so the message keeps its attachment unchanged
+ * and deleting it no longer touches the item; the copy follows the item's visibility like any
+ * file item's. The copy is made before the transaction (storage work holds no lock) and removed
+ * again when the transaction fails. An item that is no chat file is ValidationError.
+ */
+export async function convertChatFile(
+  deps: { db: Db; storage: Storage },
+  actor: SessionUser,
+  id: string,
+  input: KnowledgeToFile,
+): Promise<{ item: KnowledgeItemDto; previousVisibility: Visibility }> {
+  const { db } = deps;
+  const [row] = await db.execute<{
+    group_id: string;
+    type: KnowledgeType;
+    visibility: Visibility;
+    created_by: string;
+    chat_file_id: string | null;
+    updated_at: string;
+    author_role: string;
+  }>(sql`
+    select k.group_id, k.type, k.visibility, k.created_by, k.chat_file_id,
+           ${iso(sql`k.updated_at`)} as updated_at, u.role as author_role
+    from knowledge_items k join "user" u on u.id = k.created_by where k.id = ${id}`);
+  if (!row) throw new KnowledgeNotFoundError();
+  const actorGroupIds = await actorGroupOf(db, actor);
+  const ref = {
+    groupId: row.group_id,
+    visibility: row.visibility,
+    createdBy: row.created_by,
+    type: row.type,
+  };
+  if (!canReadItem(actor, ref, actorGroupIds)) throw new KnowledgeNotFoundError();
+  if (row.type !== 'chat_file' || row.chat_file_id === null) {
+    throw new ValidationError('Not a chat file');
+  }
+  if (!canConvertChatFile(actor, ref, actorGroupIds)) throw new KnowledgeForbiddenError();
+  const seen = new Date(input.updatedAt).toISOString();
+  if (row.updated_at !== seen) throw new KnowledgeChangedError();
+  const authorIsClient = row.author_role === 'client';
+  if (!canSetVisibility(actor, { authorIsClient }, input.visibility)) {
+    throw new InvalidVisibilityError();
+  }
+
+  const copy = await copyFile(deps, {
+    fileId: row.chat_file_id,
+    groupId: row.group_id,
+    userId: actor.id,
+  });
+  try {
+    await db.transaction(async (tx) => {
+      await lockGroupKnowledge(tx, row.group_id);
+      const locked = await lockForWrite(tx, actor, id, canConvertChatFile);
+      // A message deleted, a ticket moved or a conversion committed since the read above.
+      if (locked.updated_at !== seen || locked.group_id !== row.group_id) {
+        throw new KnowledgeChangedError();
+      }
+      const folder = await folderForItem(tx, actor, row.group_id, input.folderId);
+      // Inside an admins-only folder everything is admins-only, as for a new item.
+      const visibility: Visibility = folder?.visibility === 'admins' ? 'admins' : input.visibility;
+      if (!canSetVisibility(actor, { authorIsClient }, visibility)) {
+        throw new InvalidVisibilityError();
+      }
+      await attachFiles(tx, row.group_id, [copy.id], actor.id);
+      await tx.insert(knowledgeAttachments).values({ itemId: id, fileId: copy.id });
+      await setFilesAdminsOnly(tx, [copy.id], visibility === 'admins');
+      const searchText = await computeSearchText(tx, {
+        groupId: row.group_id,
+        title: input.title,
+        body: input.body,
+        url: null,
+        fileIds: [copy.id],
+      });
+      await tx
+        .update(knowledgeItems)
+        .set({
+          type: 'file',
+          title: input.title,
+          body: input.body,
+          visibility,
+          folderId: input.folderId,
+          searchText,
+          chatMessageId: null,
+          chatFileId: null,
+          chatChannelId: null,
+          chatKind: null,
+          updatedAt: sql`now()`,
+        })
+        .where(eq(knowledgeItems.id, id));
+    });
+  } catch (error) {
+    // Only removed while still unattached, so a committed copy is never touched.
+    await deleteDetachedFiles(deps, [copy.id]).catch(() => undefined);
+    throw error;
+  }
+  return { item: await getItem(db, actor, id), previousVisibility: row.visibility };
+}
 
 /** The "From chat" items of one message, as list rows (for the live event after a send). */
 export async function chatFileSummaries(db: Db, messageId: string): Promise<KnowledgeSummary[]> {
