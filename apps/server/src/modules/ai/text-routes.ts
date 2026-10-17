@@ -19,6 +19,7 @@ import { canReadGroup } from '../groups/policy.js';
 import { clientLanguages, getGroup } from '../groups/service.js';
 import { isAdmin } from '../users/policy.js';
 import { clientLanguageOf, isSlovakInstance, languageName } from './client-language.js';
+import { adminTextToolRoutes } from './admin-text-routes.js';
 import { groupTextToolRoutes } from './group-text-routes.js';
 import { AiFailedError, AiTimeoutError } from './provider.js';
 import { TEXT_TOOLS_TIMEOUT_MS, withTimeout, type TextToolRequest } from './text-tools.js';
@@ -285,4 +286,5 @@ export const textToolRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app,
   });
 
   await app.register(groupTextToolRoutes, { deps, core });
+  await app.register(adminTextToolRoutes, { deps, core });
 };
