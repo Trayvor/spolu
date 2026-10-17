@@ -116,7 +116,9 @@ export async function newMessage(
   });
   const mentions = input.mentions ?? [];
   if (mentions.length > 0) {
-    await db.insert(messageMentions).values(mentions.map((userId) => ({ messageId: id, userId, createdAt })));
+    await db
+      .insert(messageMentions)
+      .values(mentions.map((userId) => ({ messageId: id, userId, createdAt })));
   }
   return id;
 }

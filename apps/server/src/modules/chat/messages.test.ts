@@ -385,15 +385,13 @@ describe('toMessageDtos', () => {
         createdAt: new Date(Date.UTC(2026, 2, 1, 10, 0, 0, i)),
       })),
     );
-    await deps.db
-      .insert(messageMentions)
-      .values(
-        ids.map((messageId, i) => ({
-          messageId,
-          userId: s.b.id,
-          createdAt: new Date(Date.UTC(2026, 2, 1, 10, 0, 0, i)),
-        })),
-      );
+    await deps.db.insert(messageMentions).values(
+      ids.map((messageId, i) => ({
+        messageId,
+        userId: s.b.id,
+        createdAt: new Date(Date.UTC(2026, 2, 1, 10, 0, 0, i)),
+      })),
+    );
     await deps.db
       .insert(messageAttachments)
       .values(ids.map((messageId, i) => ({ messageId, fileId: fileIds[i]!, position: 0 })));

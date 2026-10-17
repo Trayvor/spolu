@@ -532,15 +532,13 @@ export async function editMessage(
     }
     await tx.delete(messageMentions).where(eq(messageMentions.messageId, message.id));
     if (mentions.userIds.length > 0) {
-      await tx
-        .insert(messageMentions)
-        .values(
-          mentions.userIds.map((userId) => ({
-            messageId: message.id,
-            userId,
-            createdAt: message.createdAt,
-          })),
-        );
+      await tx.insert(messageMentions).values(
+        mentions.userIds.map((userId) => ({
+          messageId: message.id,
+          userId,
+          createdAt: message.createdAt,
+        })),
+      );
     }
   });
   return loadDto(db, channel.groupId, message.id);
