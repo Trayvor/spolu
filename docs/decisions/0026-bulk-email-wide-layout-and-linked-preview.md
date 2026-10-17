@@ -1,4 +1,4 @@
-# 0025 A wider email for split containers, and a preview linked to the builder
+# 0026 A wider email for split containers, and a preview linked to the builder
 
 Date: 2026-10-17
 Status: accepted

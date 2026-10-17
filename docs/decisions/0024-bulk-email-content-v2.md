@@ -1,7 +1,7 @@
 # 0024 Bulk email content v2: a document tree, a phone version and an upgrade on read
 
 Date: 2026-10-17
-Status: accepted (the 600 px card for every email and the preview sandbox without allowances: amended by [0025](0025-bulk-email-wide-layout-and-linked-preview.md))
+Status: accepted (the 600 px card for every email and the preview sandbox without allowances: amended by [0026](0026-bulk-email-wide-layout-and-linked-preview.md))
 
 ## Context
 The owner asked for formatted text (bold, italic, underline, strikethrough, links, lists, headings 2/3, alignment, palette colours), image size, alignment and shape, a split container with two columns, and a phone version of the email that follows the desktop one until it is edited (spec: [Phase 31](../superpowers/specs/2026-10-17-phase-31-bulk-email-builder-v2-design.md)). Phase 23 stored a text block as a plain string with `**bold**`, the renderer built every block itself, and stored content is read again later (a campaign still sending when the new code is deployed, a duplicated sent campaign, a draft), so old campaigns must keep rendering byte for byte (a retried send must also render the same body for Elastic's idempotency key).

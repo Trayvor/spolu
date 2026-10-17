@@ -1,6 +1,6 @@
 # Bulk email builder layout: design
 
-Date: 2026-10-17. Owner request of 2026-10-17, a follow-up to [Phase 31](2026-10-17-phase-31-bulk-email-builder-v2-design.md) (part of that phase in the [roadmap](../../roadmap.md#phase-31--bulk-email-builder-v2)). Requirements: [product/bulk-email.md](../../product/bulk-email.md). Decision record: [ADR 0025](../../decisions/0025-bulk-email-wide-layout-and-linked-preview.md).
+Date: 2026-10-17. Owner request of 2026-10-17, a follow-up to [Phase 31](2026-10-17-phase-31-bulk-email-builder-v2-design.md) (part of that phase in the [roadmap](../../roadmap.md#phase-31--bulk-email-builder-v2)). Requirements: [product/bulk-email.md](../../product/bulk-email.md). Decision record: [ADR 0026](../../decisions/0026-bulk-email-wide-layout-and-linked-preview.md).
 
 ## 1. The problem
 
