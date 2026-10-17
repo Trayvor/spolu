@@ -53,9 +53,7 @@ describe('BulkBlockSchema', () => {
     });
     expect(BulkBlockSchema.safeParse(text('a'.repeat(5000))).success).toBe(true);
     expect(BulkBlockSchema.safeParse(text('a'.repeat(5001))).success).toBe(false);
-    expect(BulkBlockSchema.safeParse(text('a'.repeat(2500), 'a'.repeat(2501))).success).toBe(
-      false,
-    );
+    expect(BulkBlockSchema.safeParse(text('a'.repeat(2500), 'a'.repeat(2501))).success).toBe(false);
   });
 
   it('a heading over 200 and a button label over 60 are rejected', () => {
