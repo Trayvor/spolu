@@ -42,10 +42,10 @@ test('a meeting: recording, AI summary, tasks from its action items, the dashboa
 
   // Process with AI: the fake transcript, then the summary with its action items.
   await dialog.getByRole('button', { name: 'Spracovať s AI' }).click();
-  await expect(dialog.getByText('Poslať klientovi zoznam príloh.')).toBeVisible({
+  await expect(dialog.getByText('Poslať klientovi zoznam príloh.', { exact: true })).toBeVisible({
     timeout: 20_000,
   });
-  await expect(dialog.getByText('Kto podpíše čestné vyhlásenie?')).toBeVisible();
+  await expect(dialog.getByText('Kto podpíše čestné vyhlásenie?', { exact: true })).toBeVisible();
   await expect(dialog.getByText('prepísala AI')).toBeVisible();
 
   // Action items → the review dialog → into the "eGrant review" bucket.
