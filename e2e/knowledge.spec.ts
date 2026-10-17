@@ -313,7 +313,8 @@ test.describe.serial('knowledge base', () => {
       fileIds: [],
     });
     const page = await adminContext.newPage();
-    await page.goto(`/groups/${groupId}/knowledge`);
+    // An explicit filter: an earlier test left "Z chatu" remembered for this group.
+    await page.goto(`/groups/${groupId}/knowledge?type=note`);
     await page.getByRole('button', { name: 'Karty' }).click();
     const card = page.getByRole('listitem').filter({ hasText: note.title });
     await expect(card).toContainText('Prvý riadok poznámky');
