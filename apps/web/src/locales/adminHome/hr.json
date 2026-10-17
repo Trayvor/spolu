@@ -19,7 +19,8 @@
     "tasks_other": "{{count}} zadataka",
     "tickets_one": "{{count}} tiket",
     "tickets_few": "{{count}} tiketa",
-    "tickets_other": "{{count}} tiketa"
+    "tickets_other": "{{count}} tiketa",
+    "internal": "Interno"
   },
   "home": {
     "greeting": {

@@ -77,7 +77,7 @@ linkedItemCards(db, kind, subjectIds): Promise<Map<subjectId, KnowledgeCardDto[]
 
 ## Part P1 — Foundation (branch `feat/projects-foundation`)
 
-Status: **built** on `feat/projects-foundation` (migration 0037). Deviations: merge stays with P3 (its file, route and dialog), so P1's "Done when" checks it there; the shared intake schemas are in `packages/shared/src/projects/intake.ts` (P3 refines that file, not a new `egrant.ts`); the stubs also cover `egrant-delivery.ts`, `tickets/egrant-link.ts`, the four P4 read files, `tasks/project-links.ts` and `tickets/project-links.ts` (`reassign…Project`) and `knowledge/links.ts`, each throwing `NotImplementedError`; the projects card's counts come from new `tasks/by-project.ts` and `tickets/by-project.ts`.
+Status: **built** on `feat/projects-foundation` (migration 0038). Deviations: merge stays with P3 (its file, route and dialog), so P1's "Done when" checks it there; the shared intake schemas are in `packages/shared/src/projects/intake.ts` (P3 refines that file, not a new `egrant.ts`); the stubs also cover `egrant-delivery.ts`, `tickets/egrant-link.ts`, the four P4 read files, `tasks/project-links.ts` and `tickets/project-links.ts` (`reassign…Project`) and `knowledge/links.ts`, each throwing `NotImplementedError`; the projects card's counts come from new `tasks/by-project.ts` and `tickets/by-project.ts`.
 
 **Goal:** projects and events exist and are enforced; admins and the group's clients create, edit, archive, merge and delete them with files (decisions 8 and 8a); the Prehľad tab shows the projects card; every table of the phase exists.
 

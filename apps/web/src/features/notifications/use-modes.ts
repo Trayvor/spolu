@@ -49,6 +49,8 @@ export function useGroupMode(groupId: string) {
       override: data?.overrides[groupId] ?? null,
       defaultMode: data?.defaultMode ?? null,
       role,
+      // The admin group's default is All messages (Phase 34).
+      adminGroup: !!data?.adminGroupId && data.adminGroupId === groupId,
     });
   return {
     mode: mode || undefined,

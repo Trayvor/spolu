@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import type { TaskPerson } from '@spolu/shared';
-import { ClientFilter, type ClientOption } from '@/components/client-filter';
+import { ClientFilter, type ClientOption, toClientOptions } from '@/components/client-filter';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -47,17 +47,7 @@ const ALL = 'all';
 function FilterControls({ board, people }: { board: Search; people: TaskPerson[] }) {
   const { t } = useTranslation();
   const groups = useQuery(groupsQuery).data;
-  const options = useMemo<ClientOption[]>(
-    () =>
-      (groups ?? []).map((group) => ({
-        id: group.id,
-        name: group.name,
-        logoUrl: group.hasLogo
-          ? `/api/groups/${encodeURIComponent(group.id)}/logo?v=${encodeURIComponent(group.updatedAt)}`
-          : null,
-      })),
-    [groups],
-  );
+  const options = useMemo<ClientOption[]>(() => toClientOptions(groups ?? [], true), [groups]);
   const managedIds = useMemo(
     () => (groups ? groups.filter((g) => g.managedByMe).map((g) => g.id) : null),
     [groups],

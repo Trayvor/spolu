@@ -1,6 +1,7 @@
 import { queryOptions } from '@tanstack/react-query';
 import { z } from 'zod';
 import {
+  AdminGroupInputSchema,
   GroupInputSchema,
   GroupPersonListSchema,
   GroupSchema,
@@ -10,8 +11,10 @@ import {
   InviteMemberResponseSchema,
   ManagersResponseSchema,
   MemberListSchema,
+  isClientGroup,
   type Group,
   type GroupInput,
+  type GroupSummary,
   type GroupManagersResponse,
   type InviteMemberBody,
   type InviteMemberResponse,
@@ -26,6 +29,13 @@ export const groupsQuery = queryOptions({
   queryKey: ['groups'],
   queryFn: () => apiGet('/groups', GroupSummaryListSchema),
 });
+
+/**
+ * `select` for client pickers and audiences (tickets, bulk email): every group but the admin
+ * group, which holds no tickets and has no clients (Phase 34).
+ */
+export const onlyClientGroups = (groups: GroupSummary[]): GroupSummary[] =>
+  groups.filter(isClientGroup);
 
 export const groupQuery = (id: string) =>
   queryOptions({
@@ -42,6 +52,16 @@ export function updateGroup(id: string, input: GroupInput): Promise<Group> {
     'PATCH',
     `/groups/${encodeURIComponent(id)}`,
     GroupInputSchema.parse(input),
+    GroupSchema,
+  );
+}
+
+/** Renames the admin group (Phase 34): its name only, it has no eGrant URL. */
+export function updateAdminGroup(id: string, name: string): Promise<Group> {
+  return apiSend(
+    'PATCH',
+    `/groups/${encodeURIComponent(id)}`,
+    AdminGroupInputSchema.parse({ name }),
     GroupSchema,
   );
 }

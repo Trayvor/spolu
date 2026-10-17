@@ -16,7 +16,8 @@
     "tasks_one": "{{count}} задача",
     "tasks_other": "{{count}} задачи",
     "tickets_one": "{{count}} тикет",
-    "tickets_other": "{{count}} тикета"
+    "tickets_other": "{{count}} тикета",
+    "internal": "Вътрешни"
   },
   "home": {
     "greeting": {

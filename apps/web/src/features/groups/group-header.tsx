@@ -6,7 +6,10 @@ import { GroupBell } from '@/features/notifications/mode-menu';
 import { GroupForm } from './group-form';
 import { GroupLogo } from './group-logo';
 
-/** One line: logo, name (a link to the instance) and (admins) Edit. Editing swaps the line for the form. */
+/**
+ * One line: logo, name (a link to the instance; the admin group has none) and (admins) Edit.
+ * Editing swaps the line for the form.
+ */
 export function GroupHeader({ group, admin }: { group: Group; admin: boolean }) {
   const { t } = useTranslation();
   const [editing, setEditing] = useState(false);
@@ -31,6 +34,7 @@ export function GroupHeader({ group, admin }: { group: Group; admin: boolean }) 
           hasLogo={group.hasLogo}
           version={group.updatedAt}
           size={32}
+          admin={group.kind === 'admin'}
         />
         <h1 className="min-w-0 truncate text-medium leading-tight font-semibold">
           {group.egrantUrl ? (

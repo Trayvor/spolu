@@ -132,7 +132,8 @@
     "done": "Gotovo",
     "chosen": "Odabrani klijenti",
     "remove": "Ukloni {{name}}",
-    "reset": "Zadano"
+    "reset": "Zadano",
+    "internal": "Interno"
   },
   "folders": {
     "label": "Mapa",

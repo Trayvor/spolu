@@ -5,7 +5,7 @@ import type { BulkAudience, BulkAudienceRole, BulkPerson } from '@spolu/shared';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { adminsQuery } from '@/features/admins/api';
-import { groupsQuery } from '@/features/groups/api';
+import { groupsQuery, onlyClientGroups } from '@/features/groups/api';
 import { audienceCountQuery, peopleLookupQuery } from './api';
 import { useDebounced } from './parts';
 import { PersonPicker } from './person-picker';
@@ -72,7 +72,7 @@ export function AudienceBuilder({
   onChange: (audience: BulkAudience) => void;
 }) {
   const { t } = useTranslation();
-  const groups = useQuery(groupsQuery);
+  const groups = useQuery({ ...groupsQuery, select: onlyClientGroups });
   const admins = useQuery(adminsQuery);
   const [groupFilter, setGroupFilter] = useState('');
   const [showRecipients, setShowRecipients] = useState(false);

@@ -78,10 +78,13 @@ export const textToolRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app,
     return canReadGroup(actor, channel.groupId, groupIds);
   }
 
-  /** Translate is offered off `.sk`; `clientLanguage` null means only English. */
+  /**
+   * Translate is offered off `.sk`; `clientLanguage` null means only English. Never in the admin
+   * group (Phase 34): it has no eGrant URL, so no foreign domain.
+   */
   async function translateInfo(channel: ChannelRow): Promise<AiToolsInfo['translate']> {
     const group = await getGroup(db, channel.groupId);
-    if (!group || isSlovakInstance(group.egrantUrl)) return null;
+    if (!group?.egrantUrl || isSlovakInstance(group.egrantUrl)) return null;
     return {
       clientLanguage: clientLanguageOf(group.egrantUrl, await clientLanguages(db, group.id)),
     };

@@ -226,6 +226,7 @@ describe('notifications API', () => {
       roleDefault: 'mentions',
       overrides: { [g.id]: 'all' },
       managerSet: [],
+      adminGroupId: expect.any(String),
     });
   });
 
@@ -296,6 +297,7 @@ describe('notifications API', () => {
       roleDefault: 'mentions',
       overrides: {},
       managerSet: [],
+      adminGroupId: expect.any(String),
     });
   });
 

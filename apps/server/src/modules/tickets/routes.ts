@@ -36,7 +36,13 @@ import { isAdmin } from '../users/policy.js';
 import { bodyExcerpt, ticketCreatedEmail } from './emails.js';
 import { emitTicket } from './events.js';
 import { runTicketChange } from './hooks.js';
-import { canAssignTicket, canCreateTicket, canEditTicket, canWatchTickets } from './policy.js';
+import {
+  canAssignTicket,
+  canCreateTicket,
+  canEditTicket,
+  canHoldTickets,
+  canWatchTickets,
+} from './policy.js';
 import {
   actorReadsTicket,
   addAssignee,
@@ -52,6 +58,7 @@ import {
   listTickets,
   removeAssignee,
   roleIn,
+  InvalidTicketGroupError,
   TicketHasTasksError,
   updateTicket,
   type TicketRow,
@@ -248,10 +255,12 @@ export const ticketsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, 
     const body = TicketCreateBodySchema.safeParse(request.body);
     if (!body.success) return invalid(reply);
     const b = body.data;
-    if (!(await getGroup(db, b.groupId))) return notFound(reply);
+    const target = await getGroup(db, b.groupId);
+    if (!target) return notFound(reply);
     const role = await roleIn(db, actor, b.groupId);
     if (!isAdmin(actor) && role === null) return notFound(reply);
     if (!canCreateTicket(actor, role)) return send(reply, 403, ErrorCodes.forbidden);
+    if (!canHoldTickets(target)) return send(reply, 400, ErrorCodes.invalidGroup);
     // A client is the initiator; an admin names one (or none).
     const requester = isAdmin(actor)
       ? { email: b.requesterEmail, name: b.requesterName, phone: b.requesterPhone }
@@ -277,6 +286,8 @@ export const ticketsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, 
     } catch (error) {
       if (error instanceof InvalidAttachmentError)
         return send(reply, 400, ErrorCodes.invalidAttachment);
+      if (error instanceof InvalidTicketGroupError)
+        return send(reply, 400, ErrorCodes.invalidGroup);
       throw error;
     }
   });
@@ -309,9 +320,9 @@ export const ticketsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, 
     const actor = request.user!;
     const groupId = request.params.id;
     const role = await roleIn(db, actor, groupId);
-    if ((!isAdmin(actor) && role === null) || !(await getGroup(db, groupId))) {
-      return notFound(reply);
-    }
+    const group = isAdmin(actor) || role !== null ? await getGroup(db, groupId) : null;
+    // The admin group has no Tickets tab (Phase 34).
+    if (!group || !canHoldTickets(group)) return notFound(reply);
     return listOr400(
       reply,
       (q) => listTickets(db, actor, { kind: 'group', groupId, role }, q),
@@ -383,7 +394,9 @@ export const ticketsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, 
     if (!canEditTicket(actor)) return send(reply, 403, ErrorCodes.forbidden);
     const body = TicketGroupBodySchema.safeParse(request.body);
     if (!body.success) return invalid(reply);
-    if (!(await getGroup(db, body.data.groupId))) return notFound(reply);
+    const target = await getGroup(db, body.data.groupId);
+    if (!target) return notFound(reply);
+    if (!canHoldTickets(target)) return send(reply, 400, ErrorCodes.invalidGroup);
     try {
       const result = await assignTicketGroup(db, request.params.id, body.data.groupId);
       if (!result) return notFound(reply);
@@ -523,7 +536,9 @@ export const ticketsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, 
   /** The actor's role in the group if they may watch its tickets, else a 404 or 403 sent. */
   const watchable = async (actor: SessionUser, groupId: string, reply: FastifyReply) => {
     const role = await roleIn(db, actor, groupId);
-    if ((!isAdmin(actor) && role === null) || !(await getGroup(db, groupId))) {
+    const group = isAdmin(actor) || role !== null ? await getGroup(db, groupId) : null;
+    // "Watch tickets" does not apply to the admin group (Phase 34).
+    if (!group || !canHoldTickets(group)) {
       notFound(reply);
       return false;
     }

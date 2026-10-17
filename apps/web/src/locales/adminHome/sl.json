@@ -22,7 +22,8 @@
     "tickets_one": "{{count}} zahtevek",
     "tickets_two": "{{count}} zahtevka",
     "tickets_few": "{{count}} zahtevki",
-    "tickets_other": "{{count}} zahtevkov"
+    "tickets_other": "{{count}} zahtevkov",
+    "internal": "Interno"
   },
   "home": {
     "greeting": {

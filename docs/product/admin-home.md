@@ -68,6 +68,10 @@ A wide card "Meetings" under "My tasks" (the Tickets card stays first): meetings
 
 Since 2026-10-17 the card lists, inside that scope, only meetings I get meeting notifications for: my Meetings notification group is not None, and my mode for the client is All messages (I hear when its meetings are scheduled or moved) or I am a recipient of the meeting's reminder (reminders pass every mode). The counts follow the same rule. A manager gets All messages for the client, so their clients' meetings show; an admin who manages no client and keeps the default Mentions and replies sees only meetings whose reminder they get.
 
+## The Internal section (Phase 34)
+
+The client list (sidebar from 1024 px, the home's list on phones) starts with an **Internal** section holding one row, the admin group "eGrant tím" (the egrant mark), above "Managed by you" and "Other clients". Its one black badge (unread chat messages plus tasks with an unseen change; it has no tickets) works as for a client. The server sends it first (`section: 'internal'` in `GET /api/me/home/sidebar`).
+
 ## Phase
 
 Phase 20 ([spec](../superpowers/specs/2026-10-16-phase-20-admin-home-design.md), [plan](../superpowers/plans/2026-10-16-phase-20-admin-home.md)), built on top of Phases 17 and 18; in progress until it is walked with the owner. The reminders card shows the knowledge base reminders (Phase 17) now and the task reminders once Phase 19 is merged.

@@ -51,5 +51,8 @@
     "none": "Senza responsabile",
     "empty": "Nessun gruppo per questo filtro.",
     "clear": "Cancella filtro"
+  },
+  "adminGroup": {
+    "hint": "La chat interna del team eGrant. La vedono solo gli amministratori."
   }
 }

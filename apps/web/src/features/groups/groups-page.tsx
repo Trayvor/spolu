@@ -1,5 +1,6 @@
 import { ListSkeleton } from '@/components/ui/skeleton';
 import { useEffect, useMemo, useState } from 'react';
+import { isClientGroup, type GroupSummary } from '@spolu/shared';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate, useSearch } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
@@ -39,7 +40,10 @@ export function GroupsPage() {
     MANAGER_KEYS,
     useSearch({ strict: false }) as { manager?: string },
   );
-  const { data: groups, isError, refetch } = useQuery(groupsQuery);
+  const { data: all, isError, refetch } = useQuery(groupsQuery);
+  // The admin group (Phase 34) is pinned above the list and counts as no client.
+  const adminGroup = all?.find((g) => !isClientGroup(g));
+  const groups = useMemo(() => all?.filter(isClientGroup), [all]);
   const { data: admins } = useQuery(adminsQuery);
   const [formOpen, setFormOpen] = useState(false);
 
@@ -91,6 +95,7 @@ export function GroupsPage() {
         </div>
       )}
       {!groups && !isError && <ListSkeleton rows={5} rowClassName="min-h-[68px]" />}
+      {adminGroup && <AdminGroupRow group={adminGroup} />}
       {groups && groups.length === 0 && !formOpen && (
         <p className="text-body text-muted-foreground">{t('groups.empty')}</p>
       )}
@@ -158,5 +163,39 @@ export function GroupsPage() {
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * The admin group "eGrant tím", pinned above the clients: its logo (the egrant mark by default),
+ * name and unread count, and the bell. No managers, no Manage toggle and no members link: every
+ * admin is in it.
+ */
+function AdminGroupRow({ group }: { group: GroupSummary }) {
+  const { t } = useTranslation();
+  return (
+    <Card data-admin-group="" className="gap-0 py-0">
+      <div className="flex items-center gap-x-3 pr-3">
+        <Link
+          to="/groups/$groupId"
+          params={{ groupId: group.id }}
+          className="flex min-w-0 flex-1 items-center gap-3 py-3 pl-5 hover:text-ink-hover"
+        >
+          <GroupLogo
+            groupId={group.id}
+            name={group.name}
+            hasLogo={group.hasLogo}
+            version={group.updatedAt}
+            admin
+          />
+          <span className="flex min-w-0 flex-1 flex-col">
+            <span className="truncate font-semibold">{group.name}</span>
+            <span className="text-micro text-muted-foreground">{t('groups.adminGroup.hint')}</span>
+          </span>
+          <GroupUnreadCount groupId={group.id} />
+        </Link>
+        <GroupBell groupId={group.id} />
+      </div>
+    </Card>
   );
 }

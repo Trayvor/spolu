@@ -22,7 +22,8 @@
     "tickets_one": "{{count}} тікет",
     "tickets_few": "{{count}} тікети",
     "tickets_many": "{{count}} тікетів",
-    "tickets_other": "{{count}} тікета"
+    "tickets_other": "{{count}} тікета",
+    "internal": "Внутрішнє"
   },
   "home": {
     "greeting": {
