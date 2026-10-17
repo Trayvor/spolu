@@ -49,10 +49,10 @@ One-time setup: `pnpm install`, `cp .env.example .env`, `pnpm exec playwright in
 - `pnpm --filter @spolu/web icons` — regenerate the PWA icons in `apps/web/public/icons/` from the egrant mark (commit the PNGs).
 - `pnpm --filter @spolu/server db:generate` — generate a migration after changing a `schema.ts`.
 - `pnpm --filter @spolu/server vapid:generate` — a VAPID key pair for push (once per environment, see `docs/runbooks/deploy.md`).
-- `bash scripts/ci.sh` — every CI check in one go (install, shellcheck, script tests, lint, typecheck, tests, e2e, docs check); needs Docker. Run it before pushing.
+- `bash scripts/ci.sh` — every CI check in one go (install, shellcheck, script tests, lint, typecheck, tests, e2e, docs check); needs Docker. Run it before pushing. `--bench` (or `RUN_BENCH=1`) also runs the wall-clock benchmarks; off by default, use it on a quiet machine.
 - `scripts/build-image.sh`, `scripts/deploy.sh`, `scripts/server-setup.sh` — build/push the image, deploy an env, prepare a server; see `docs/runbooks/`.
 - `bash scripts/check-docs.sh <base-ref>` — warns when code changed without docs.
-- `bash scripts/tests/<name>.test.sh` — tests of the scripts and hooks (`check-docs`, `docs-reminder`, `deploy-env`, `caddy-redirects`, `cloud-session`); `ci.sh` runs them all.
+- `bash scripts/tests/<name>.test.sh` — tests of the scripts and hooks (`check-docs`, `docs-reminder`, `deploy-env`, `caddy-redirects`, `cloud-session`, `run-parallel`, `ci-bench`); `ci.sh` runs them all.
 
 ## Tips for agents
 
