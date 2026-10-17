@@ -125,6 +125,7 @@
     "empty": "Sellel grupil pole veel jagatud teadmusbaasi kirjeid.",
     "loadMore": "Näita rohkem",
     "limit": "Ühes sõnumis kuni {{count}} kirjet.",
+    "limitDescription": "Ühes kirjelduses kuni {{count}} kirjet.",
     "unavailable": "Kirje pole saadaval",
     "back": "Tagasi vestlusesse",
     "types": {

@@ -131,6 +131,7 @@
     "empty": "Ta skupina še nima deljenih elementov znanja.",
     "loadMore": "Pokaži več",
     "limit": "Največ {{count}} elementov na sporočilo.",
+    "limitDescription": "Največ {{count}} elementov na opis.",
     "unavailable": "Element ni na voljo",
     "back": "Nazaj na klepet",
     "types": {

@@ -23,6 +23,9 @@ import {
   type TicketSource,
 } from './api';
 
+/** After a change: its notification events are recorded by the time the list asks again. */
+export const TICKET_UNSEEN_DEBOUNCE_MS = 2000;
+
 /**
  * Keeps the ticket lists and an open ticket live (Phase 21). Events carry only
  * `{ ticketId, groupId }`, so:
@@ -40,7 +43,8 @@ import {
  * the mount refetches only the lists `firstJoinCheck` says may have missed events, not the ones
  * the mount just loaded. `source` null listens for the open ticket only. Opening a ticket (here or
  * on another device, `seen:changed`, 2026-10-17) clears its rows' unseen mark; a patched row keeps
- * its mark, and new marks come with the next fetch of the list.
+ * its mark, and a ticket that changed while nobody has its page open makes the lists that show it
+ * refetch once, 2 s after the last such change (the server decides who is notified).
  */
 export function useTicketEvents(source: TicketSource | null): void {
   const queryClient = useQueryClient();
@@ -93,7 +97,32 @@ export function useTicketEvents(source: TicketSource | null): void {
       }
     }
 
+    const unseenPending = new Set<string>();
+    let unseenTimer: ReturnType<typeof setTimeout> | undefined;
+    const scheduleUnseen = (ticketId: string) => {
+      unseenPending.add(ticketId);
+      clearTimeout(unseenTimer);
+      unseenTimer = setTimeout(() => {
+        const ids = [...unseenPending];
+        unseenPending.clear();
+        void queryClient.invalidateQueries({
+          queryKey: ticketListPrefix,
+          predicate: (query) =>
+            (query.state.data as InfiniteData<TicketListResponse> | undefined)?.pages.some((p) =>
+              p.items.some((i) => ids.includes(i.id)),
+            ) ?? false,
+        });
+      }, TICKET_UNSEEN_DEBOUNCE_MS);
+    };
+    /** Whether a ticket page is mounted for it: the viewer sees the change as it happens. */
+    const isViewed = (ticketId: string) =>
+      (queryClient
+        .getQueryCache()
+        .find({ queryKey: ticketQuery(ticketId).queryKey })
+        ?.getObserversCount() ?? 0) > 0;
+
     async function refresh(ticketId: string) {
+      const viewed = isViewed(ticketId);
       const ticket = await load(ticketId);
       if (
         ticket &&
@@ -101,6 +130,8 @@ export function useTicketEvents(source: TicketSource | null): void {
         (!mine || ownedByMe(ticket))
       ) {
         refetchLists();
+      } else if (ticket && !viewed) {
+        scheduleUnseen(ticketId);
       }
     }
 
@@ -143,6 +174,7 @@ export function useTicketEvents(source: TicketSource | null): void {
     socket.on(SeenEvents.changed, onSeen);
     socket.on('connect', onConnect);
     return () => {
+      clearTimeout(unseenTimer);
       socket.off(TicketEvents.created, onCreated);
       socket.off(TicketEvents.updated, onUpdated);
       socket.off(TicketEvents.moved, onMoved);
