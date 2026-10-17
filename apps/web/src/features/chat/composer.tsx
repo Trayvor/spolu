@@ -32,7 +32,7 @@ import { withNamespaces } from '@/i18n/namespaces';
 import { toStored, type FormatKind, type PickedPerson } from './composer-text';
 import { safeHref } from './format/parse';
 import { FormatToolbar, iconButton, phoneIconButton } from './format-toolbar';
-import { BookIcon, CloseIcon, PaperclipIcon } from './icons';
+import { BookIcon, CloseIcon, PaperclipIcon, SendIcon } from './icons';
 import type { PickedKnowledge } from './knowledge-picker';
 import { MentionPicker, type MentionChoice, type MentionPickerHandle } from './mention-picker';
 import { AiTextButton } from './ai-tools/ai-text-button';
@@ -543,14 +543,29 @@ export function Composer({
                 {t('chat.cancel')}
               </Button>
             )}
-            <Button
-              size="sm"
-              disabled={!canSend}
-              onClick={() => void submit()}
-              className={cn('relative', HIT)}
-            >
-              {mode === 'edit' ? t('chat.composer.save') : t('chat.composer.send')}
-            </Button>
+            {mode === 'edit' ? (
+              <Button
+                size="sm"
+                disabled={!canSend}
+                onClick={() => void submit()}
+                className={cn('relative', HIT)}
+              >
+                {t('chat.composer.save')}
+              </Button>
+            ) : (
+              // On phones Send is a 44 px filled circle with a paper plane, so the row keeps room
+              // for the marks next to the paperclip, knowledge, voice and AI buttons.
+              <Button
+                size="sm"
+                disabled={!canSend}
+                onClick={() => void submit()}
+                aria-label={t('chat.composer.send')}
+                className={cn('relative', HIT, 'max-[640px]:size-11 max-[640px]:px-0')}
+              >
+                <span className="max-[640px]:hidden">{t('chat.composer.send')}</span>
+                <SendIcon className="hidden size-5 max-[640px]:block" />
+              </Button>
+            )}
           </FormatToolbar>
         </div>
       </div>
