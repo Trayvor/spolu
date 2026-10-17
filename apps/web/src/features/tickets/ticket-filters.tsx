@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,6 +26,7 @@ const pillOn = 'bg-primary text-primary-foreground';
  * The filters of every ticket list: the status (Open = New and In progress, the default;
  * Resolved; All) as three pills, the question area as a menu of the areas seen in the list, the
  * riešiteľ (anyone, me, nobody) as a menu and "Following" as a toggle pill. `children` go first in the bar (the global view's client filter).
+ * "Clear filters" shows while any filter is off its default (filters are remembered per list).
  */
 export function TicketFilters({
   filter,
@@ -40,6 +42,13 @@ export function TicketFilters({
   const { t } = useTranslation();
   const set = (patch: Partial<TicketFilter>) => onChange({ ...filter, ...patch });
   const options = filter.area && !areas.includes(filter.area) ? [filter.area, ...areas] : areas;
+  const changed =
+    filter.status !== 'open' ||
+    !!filter.area ||
+    !!filter.assignee ||
+    !!filter.following ||
+    (filter.clients !== null && filter.clients !== undefined) ||
+    !!filter.noClient;
 
   return (
     <div
@@ -124,6 +133,16 @@ export function TicketFilters({
         {filter.following && <CheckIcon />}
         {t('tickets.filters.following')}
       </button>
+      {changed && (
+        // Back to the defaults; the remembered filters go with them.
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => onChange({ status: 'open', clients: null })}
+        >
+          {t('tickets.filters.clear')}
+        </Button>
+      )}
     </div>
   );
 }

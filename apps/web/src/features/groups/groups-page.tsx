@@ -17,6 +17,9 @@ import { GroupLogo } from './group-logo';
 import { ManagerAvatars } from './manager-avatars';
 import { ManagerFilter } from './manager-filter';
 import { ManagerToggle } from './manager-toggle';
+import { useRememberedFilters } from '@/lib/use-remembered-filters';
+
+const MANAGER_KEYS = ['manager'] as const;
 
 /**
  * Every client group with its unread chat count, its managers (names in a tooltip), the "Manage"
@@ -30,7 +33,12 @@ export function GroupsPage() {
   const { t } = useTranslation();
   const me = useSession();
   const navigate = useNavigate();
-  const { manager } = useSearch({ strict: false }) as { manager?: string };
+  // The last manager filter comes back on the next visit ("Everyone" forgets it).
+  const { manager } = useRememberedFilters(
+    'groups',
+    MANAGER_KEYS,
+    useSearch({ strict: false }) as { manager?: string },
+  );
   const { data: groups, isError, refetch } = useQuery(groupsQuery);
   const { data: admins } = useQuery(adminsQuery);
   const [formOpen, setFormOpen] = useState(false);

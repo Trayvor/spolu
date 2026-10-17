@@ -21,7 +21,8 @@
       "anyone": "Kdokoli",
       "me": "Já",
       "none": "Nikdo"
-    }
+    },
+    "clear": "Zrušit filtry"
   },
   "list": {
     "loading": "Načítají se tikety…",

@@ -10,6 +10,7 @@ import { useSession } from '@/features/auth/use-session';
 import { groupsQuery } from '@/features/groups/api';
 import { isLayerOpen } from '@/lib/use-back-closes';
 import { knowledgeScopeQuery } from '@/features/knowledge/api';
+import { useRememberedFilters } from '@/lib/use-remembered-filters';
 import { useUpdateSearch } from '@/lib/use-update-search';
 import { cn } from '@/lib/utils';
 import { ticketWatchQuery, useSetTicketWatch, type TicketFilter } from './api';
@@ -18,9 +19,19 @@ import { NewTicketDialog } from './new-ticket-dialog';
 import { filterFromSearch, writeFilter, type TicketsSearch } from './search';
 import { TicketList } from './ticket-list';
 
-/** The filter in the URL: every change is one history entry, as on the knowledge list. */
-function useUrlFilter(): [TicketFilter, (next: TicketFilter) => void] {
-  const search = useSearch({ strict: false }) as TicketsSearch;
+/** The ticket filters remembered for the next visit (`useRememberedFilters`). */
+const REMEMBERED_KEYS = ['status', 'area', 'following', 'assignee', 'clients', 'none'] as const;
+
+/**
+ * The filter in the URL: every change is one history entry, as on the knowledge list. A visit
+ * without filters gets the person's last ones for this list (`list`: per group on a tab).
+ */
+function useUrlFilter(list: string): [TicketFilter, (next: TicketFilter) => void] {
+  const search = useRememberedFilters(
+    list,
+    REMEMBERED_KEYS,
+    useSearch({ strict: false }) as TicketsSearch,
+  );
   const update = useUpdateSearch();
   const filter = filterFromSearch(search);
   return [filter, (next) => update((s) => writeFilter(s, next), { replace: false })];
@@ -53,7 +64,7 @@ export function TicketsPage() {
 
 function MyTickets() {
   const { t } = useTranslation();
-  const [filter, setFilter] = useUrlFilter();
+  const [filter, setFilter] = useUrlFilter('tickets');
   return (
     <div className="flex max-w-[880px] flex-col gap-6">
       <h1 className="text-medium leading-tight font-semibold">{t('tickets.mine.title')}</h1>
@@ -73,7 +84,7 @@ function MyTickets() {
 
 function GlobalTickets() {
   const { t } = useTranslation();
-  const [filter, setFilter] = useUrlFilter();
+  const [filter, setFilter] = useUrlFilter('tickets');
   const [creating, setCreating] = useState(false);
   const openTicket = useOpenTicket();
   const groups = useQuery(groupsQuery).data;
@@ -153,7 +164,7 @@ export function TicketsTab() {
   const { t } = useTranslation();
   const { groupId } = useParams({ strict: false });
   const me = useSession();
-  const [filter, setFilter] = useUrlFilter();
+  const [filter, setFilter] = useUrlFilter(`tickets:${groupId ?? ''}`);
   const [creating, setCreating] = useState(false);
   const openTicket = useOpenTicket();
   if (!groupId || !me) return null;

@@ -72,10 +72,13 @@ export function GlobalBoardPage() {
     setExtra({});
     setMoreFailed(null);
   }
+  // The latest pages and filters for the reload below (set first: effects run in order).
   const extraRef = useRef(extra);
-  extraRef.current = extra;
   const keyRef = useRef(filterKey);
-  keyRef.current = filterKey;
+  useEffect(() => {
+    extraRef.current = extra;
+    keyRef.current = filterKey;
+  });
   const seen = useRef(query.dataUpdatedAt);
   useEffect(() => {
     if (seen.current === query.dataUpdatedAt) return;

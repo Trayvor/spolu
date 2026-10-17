@@ -6,7 +6,7 @@ import { RouterProvider, createMemoryHistory } from '@tanstack/react-router';
 import { AdminEvents, type BucketDto, type TaskDetailDto } from '@spolu/shared';
 import { i18n, setLanguage } from '@/i18n';
 import { createAppRouter } from '@/router';
-import { BOARD_CLIENTS_KEY } from './use-global-search';
+import { rememberedFiltersKey } from '@/lib/use-remembered-filters';
 import { board, card, doneColumn, mockBoardApi } from './test-api';
 
 type Handler = (payload: unknown) => void;
@@ -142,13 +142,18 @@ describe('GlobalBoardPage', () => {
     expect(folded).toHaveTextContent('Archive');
   });
 
-  it('the default client scope comes from localStorage when the URL has none, and storage errors are ignored', async () => {
-    localStorage.setItem(BOARD_CLIENTS_KEY, 'g2');
+  it('the last filters come back when the URL has none, and storage errors are ignored', async () => {
+    localStorage.setItem(
+      rememberedFiltersKey('a1', 'globalBoard'),
+      JSON.stringify({ clients: 'g2', urgent: 1 }),
+    );
     const { calls } = mockBoardApi();
     const { router } = renderBoard();
     await screen.findByRole('link', { name: /Fix budget table/ });
-    expect(globalCalls(calls)).toEqual(['/api/tasks/global?clients=g2']);
-    await waitFor(() => expect(router.state.location.search).toMatchObject({ clients: 'g2' }));
+    expect(globalCalls(calls)).toEqual(['/api/tasks/global?clients=g2&urgent=1']);
+    await waitFor(() =>
+      expect(router.state.location.search).toMatchObject({ clients: 'g2', urgent: 1 }),
+    );
 
     cleanup();
     vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
