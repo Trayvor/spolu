@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { AI_MAX_TASKS } from './ai.js';
 import { ID_RE } from './chat.js';
+import { MEETING_LIMITS } from './meetings.js';
 import { TaskDetailDtoSchema, TaskDraftSchema } from './tasks.js';
 
 // The AI task split (Phase 9): proposals, the AI status and creating the reviewed cards. A module
@@ -25,7 +26,13 @@ export const TaskProposalsSchema = z.object({ tasks: z.array(TaskProposalSchema)
 export type TaskProposals = z.infer<typeof TaskProposalsSchema>;
 
 /** Which AI features the server can run (the UI hides the rest). */
-export const AiStatusSchema = z.object({ taskSplit: z.boolean() });
+export const AiStatusSchema = z.object({
+  taskSplit: z.boolean(),
+  /** A meeting's summary can be made (Phase 30). */
+  meetingSummary: z.boolean().default(false),
+  /** A meeting's recording can be transcribed (Phase 30). */
+  transcription: z.boolean().default(false),
+});
 export type AiStatus = z.infer<typeof AiStatusSchema>;
 
 /**
@@ -53,6 +60,16 @@ export const TasksFromTicketSchema = z.object({
   tasks: z.array(TaskFromMessageDraftSchema).min(1).max(AI_MAX_TASKS),
 });
 export type TasksFromTicket = z.output<typeof TasksFromTicketSchema>;
+
+/**
+ * `POST /api/knowledge/:id/meeting/tasks` (Phase 30): the approved cards of a meeting's action
+ * items, at the top of `bucketId` (absent: To do). A meeting has no files to copy.
+ */
+export const TasksFromMeetingSchema = z.object({
+  bucketId: z.string().regex(ID_RE).optional(),
+  tasks: z.array(TaskFromMessageDraftSchema).min(1).max(MEETING_LIMITS.listItems),
+});
+export type TasksFromMeeting = z.output<typeof TasksFromMeetingSchema>;
 
 export const TasksFromMessageResultSchema = z.object({ tasks: z.array(TaskDetailDtoSchema) });
 export type TasksFromMessageResult = z.infer<typeof TasksFromMessageResultSchema>;

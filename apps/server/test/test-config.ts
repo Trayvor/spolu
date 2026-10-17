@@ -28,6 +28,8 @@ export function testConfig(overrides: Partial<Config> = {}): Config {
     loginCodesPerMinute: 10,
     joinRequestsPerMinute: 10,
     ai: null,
+    transcription: null,
+    ffmpegPath: 'ffmpeg',
     ticketsApiKey: null,
     bulkEmail: { driver: 'smtp', from: 'eGrant <news@example.com>' },
     bulkEmailPerMinute: 120,

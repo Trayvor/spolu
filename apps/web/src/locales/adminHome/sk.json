@@ -67,6 +67,16 @@
       "title": "Zmienky",
       "caption": "neprečítaných",
       "empty": "Žiadne neprečítané zmienky."
+    },
+    "meetings": {
+      "title": "Stretnutia",
+      "caption": "najbližších 7 dní",
+      "noSummary": "Bez zhrnutia",
+      "empty": "Žiadne stretnutia v najbližších 7 dňoch a žiadne nečakajú na zhrnutie.",
+      "unsummarized_one": "{{count}} bez zhrnutia",
+      "unsummarized_few": "{{count}} bez zhrnutia",
+      "unsummarized_many": "{{count}} bez zhrnutia",
+      "unsummarized_other": "{{count}} bez zhrnutia"
     }
   },
   "board": {

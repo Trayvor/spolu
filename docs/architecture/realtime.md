@@ -79,6 +79,8 @@ After a bucket is deleted its tasks moved to To do without a `board:task` event;
 
 Pushed after the write commits by `modules/knowledge/events.ts` (names in `KnowledgeEvents`, Phase 17). The payload's `item` is a `KnowledgeSummary` built from an allowlist of the summary's fields, so the detail's body, files, reminder and the writer's own `canEdit` never travel.
 
+Phase 30: the meeting jobs (transcode, AI run) bump the item's `updated_at` after every step and push `knowledge:item` through a slot (`attachMeetingsRealtime`, like the reminders' fire job), routed by visibility as any item. The open dialog refetches on it, and also polls every 5 s while a conversion or a run is in progress (the global list has no live events).
+
 | event | payload | room |
 |---|---|---|
 | `knowledge:item` | `{ item }` | created or edited: `group:<id>` for a public item, `group:<id>:admins` for an admins-only one; also a chat file (Phase 25), pushed by the chat route after the message with files commits (`chat/file-hooks.ts` `sent`) |

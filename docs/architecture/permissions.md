@@ -88,3 +88,7 @@ The profile routes (`modules/auth/routes.ts`) change only the signed-in user the
 Policy functions are written test-first. Confirmed in Phase 3: reading a resource you may not read answers 404, the same as a missing one.
 
 See [realtime.md](realtime.md) for room joins and [overview.md](overview.md) for module boundaries.
+
+## Meetings (Phase 30)
+
+A meeting is a knowledge item: `canReadItem`, `canEditItem` as for the other types (its recording upload and delete, its summary edits). `canProcessMeeting` (admins) guards "Spracovať s AI", the task proposals and creating its tasks; a client gets 403. The compact audio is a file attached to the item, so `adminsOnly` follows the item's visibility as for a note's files. `POST /api/knowledge/transcript-text` reads a file for any signed-in user and stores nothing.

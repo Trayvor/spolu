@@ -10,7 +10,9 @@
     "reminders": "Opomniki",
     "chat_file": "Iz klepeta",
     "fromChat": "Iz klepeta",
-    "all": "Vse"
+    "all": "Vse",
+    "meeting": "Sestanek",
+    "meetings": "Sestanki"
   },
   "visibility": {
     "public": "Vsi v skupini",
@@ -73,7 +75,8 @@
       "note": "Nov zapisek",
       "file": "Nova datoteka",
       "link": "Nova povezava",
-      "reminder": "Nov opomnik"
+      "reminder": "Nov opomnik",
+      "meeting": "Nov sestanek"
     },
     "loading": "Nalaganje…",
     "loadFailed": "Tega elementa ni bilo mogoče naložiti. Poskusite znova.",
@@ -101,7 +104,8 @@
     "note": "Besedilo z oblikovanjem in datotekami",
     "file": "Ena datoteka z opisom",
     "link": "Spletni naslov z zapiskom",
-    "reminder": "Besedilo z datumi za opomnike"
+    "reminder": "Besedilo z datumi za opomnike",
+    "meeting": "Sestanek ali klic s povezavami, posnetkom in zapiski"
   },
   "global": {
     "title": "Znanje",
@@ -178,5 +182,87 @@
     "open": "Prikaži {{title}} v klepetu",
     "show": "Prikaži v klepetu",
     "alsoTasksTickets": "Tudi iz nalog in zahtevkov"
+  },
+  "meeting": {
+    "when": "Datum in ura",
+    "date": "Datum",
+    "time": "Ura",
+    "whenRequired": "Izberite datum in uro.",
+    "meetingUrl": "Povezava do sestanka",
+    "meetingUrlHint": "Teams, Google Meet ali Zoom",
+    "recordingUrl": "Povezava do posnetka",
+    "transcriptUrl": "Povezava do prepisa",
+    "transcript": "Prepis",
+    "transcriptHint": "Prilepite besedilo ali naložite datoteko .txt, .vtt, .srt ali .docx.",
+    "loadTranscript": "Naloži iz datoteke",
+    "readingTranscript": "Berem datoteko…",
+    "transcriptFileFailed": "Te datoteke ni mogoče prebrati. Uporabite datoteko .txt, .vtt, .srt ali .docx.",
+    "transcriptTooLong": "Uporabite največ 400.000 znakov.",
+    "transcriptByAi": "prepisala UI",
+    "notes": "Zapiski",
+    "editNotes": "Uredi zapiske",
+    "remind": "Opomnik",
+    "remindBefore": "Opomni 15 minut prej",
+    "join": "Pridruži se",
+    "openRecording": "Posnetek",
+    "openTranscript": "Prepis",
+    "recording": {
+      "title": "Posnetek",
+      "upload": "Naloži posnetek",
+      "replace": "Zamenjaj",
+      "delete": "Izbriši posnetek",
+      "deleteConfirm": "Izbrišem shranjeni posnetek?",
+      "uploading": "Nalagam… {{percent}} %",
+      "processing": "Pretvarjam v zvok. To traja nekaj minut.",
+      "failed": "Posnetka ni bilo mogoče obdelati. Naložite ga znova.",
+      "none": "Posnetek ni shranjen. Naložite zvok ali video: shrani se le varčna zvočna kopija.",
+      "tooLarge": "Datoteka je večja od 2 GB.",
+      "notMedia": "Izberite zvočno ali video datoteko.",
+      "busy": "Posnetek se še pretvarja.",
+      "rateLimited": "Preveč nalaganj. Poskusite čez eno uro.",
+      "uploadFailed": "Nalaganje ni uspelo. Poskusite znova.",
+      "deleteFailed": "Brisanje ni uspelo. Poskusite znova."
+    },
+    "ai": {
+      "title": "Povzetek",
+      "process": "Obdelaj z UI",
+      "processAgain": "Obdelaj znova",
+      "againConfirm": "Obdelam znova? Nov povzetek nadomesti tega, skupaj z vašimi popravki.",
+      "queued": "Čaka na začetek…",
+      "transcribing": "Prepisujem posnetek…",
+      "summarizing": "Pišem povzetek…",
+      "failed_transcription_failed": "Posnetka ni bilo mogoče prepisati. Poskusite znova.",
+      "failed_summary_failed": "Povzetka ni bilo mogoče napisati. Poskusite znova.",
+      "nothing": "Najprej dodajte prepis ali naložite posnetek.",
+      "busy": "Ta sestanek se že obdeluje.",
+      "unavailable": "Obdelava z UI trenutno ni na voljo.",
+      "rateLimited": "Preveč obdelav. Poskusite čez eno uro.",
+      "startFailed": "Začetek ni uspel. Poskusite znova.",
+      "none": "Povzetka še ni.",
+      "noneAdmin": "Povzetka še ni. Obdelaj z UI ga napiše iz prepisa ali posnetka.",
+      "edit": "Uredi povzetek",
+      "save": "Shrani povzetek",
+      "summary": "Na kratko",
+      "decisions": "Odločitve",
+      "actionItems": "Naloge",
+      "openQuestions": "Odprta vprašanja",
+      "aiMade": "Napisala UI iz prepisa. Preverite ga, preden se nanj zanesete.",
+      "createTasks": "Ustvari naloge",
+      "tasksCreated_one": "Ustvarjena {{count}} naloga",
+      "tasksCreated_two": "Ustvarjeni {{count}} nalogi",
+      "tasksCreated_few": "Ustvarjene {{count}} naloge",
+      "tasksCreated_other": "Ustvarjenih {{count}} nalog",
+      "openBoard": "Odpri tablo",
+      "actionText": "Naloga {{n}}",
+      "assignee": "Kdo",
+      "deadline": "Do kdaj",
+      "remove": "Odstrani",
+      "addAction": "Dodaj nalogo",
+      "oneLine": "Odločitve in vprašanja: vsako v svojo vrstico."
+    },
+    "row": {
+      "processing": "V obdelavi",
+      "summary": "Povzetek"
+    }
   }
 }

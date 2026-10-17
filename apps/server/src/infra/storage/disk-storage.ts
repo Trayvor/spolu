@@ -56,7 +56,11 @@ export function createDiskStorage(rootDir: string, secret: string): Storage {
       await atomicWrite(path, data);
     },
 
-    async get(key) {
+    localPath(key) {
+      return pathFor(key);
+    },
+
+    async get(key, range) {
       const path = pathFor(key);
       let size: number;
       let contentType: string;
@@ -69,7 +73,11 @@ export function createDiskStorage(rootDir: string, secret: string): Storage {
         if ((err as NodeJS.ErrnoException).code === 'ENOENT') throw new StorageNotFoundError(key);
         throw err;
       }
-      return { stream: createReadStream(path), contentType, size };
+      return {
+        stream: createReadStream(path, range ? { start: range.start, end: range.end } : {}),
+        contentType,
+        size,
+      };
     },
 
     async copy(fromKey, toKey) {

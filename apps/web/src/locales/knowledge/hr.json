@@ -10,7 +10,9 @@
     "reminders": "Podsjetnici",
     "chat_file": "Iz chata",
     "fromChat": "Iz chata",
-    "all": "Sve"
+    "all": "Sve",
+    "meeting": "Sastanak",
+    "meetings": "Sastanci"
   },
   "visibility": {
     "public": "Svi u grupi",
@@ -72,7 +74,8 @@
       "note": "Nova bilješka",
       "file": "Nova datoteka",
       "link": "Nova poveznica",
-      "reminder": "Novi podsjetnik"
+      "reminder": "Novi podsjetnik",
+      "meeting": "Novi sastanak"
     },
     "loading": "Učitavanje…",
     "loadFailed": "Stavku nije moguće učitati. Pokušajte ponovno.",
@@ -99,7 +102,8 @@
     "note": "Tekst s oblikovanjem i datotekama",
     "file": "Jedna datoteka s opisom",
     "link": "Web-adresa s bilješkom",
-    "reminder": "Tekst s datumima za podsjećanje"
+    "reminder": "Tekst s datumima za podsjećanje",
+    "meeting": "Sastanak ili poziv s poveznicama, snimkom i bilješkama"
   },
   "global": {
     "title": "Znanje",
@@ -175,5 +179,86 @@
     "open": "Prikaži {{title}} u chatu",
     "show": "Prikaži u chatu",
     "alsoTasksTickets": "I iz zadataka i tiketa"
+  },
+  "meeting": {
+    "when": "Datum i vrijeme",
+    "date": "Datum",
+    "time": "Vrijeme",
+    "whenRequired": "Odaberite datum i vrijeme.",
+    "meetingUrl": "Poveznica na sastanak",
+    "meetingUrlHint": "Teams, Google Meet ili Zoom",
+    "recordingUrl": "Poveznica na snimku",
+    "transcriptUrl": "Poveznica na prijepis",
+    "transcript": "Prijepis",
+    "transcriptHint": "Zalijepite tekst ili učitajte datoteku .txt, .vtt, .srt ili .docx.",
+    "loadTranscript": "Učitaj iz datoteke",
+    "readingTranscript": "Čitam datoteku…",
+    "transcriptFileFailed": "Ova se datoteka ne može pročitati. Upotrijebite datoteku .txt, .vtt, .srt ili .docx.",
+    "transcriptTooLong": "Upotrijebite najviše 400.000 znakova.",
+    "transcriptByAi": "prepisala UI",
+    "notes": "Bilješke",
+    "editNotes": "Uredi bilješke",
+    "remind": "Podsjetnik",
+    "remindBefore": "Podsjeti 15 minuta prije",
+    "join": "Pridruži se",
+    "openRecording": "Snimka",
+    "openTranscript": "Prijepis",
+    "recording": {
+      "title": "Snimka",
+      "upload": "Učitaj snimku",
+      "replace": "Zamijeni",
+      "delete": "Izbriši snimku",
+      "deleteConfirm": "Izbrisati spremljenu snimku?",
+      "uploading": "Učitavam… {{percent}} %",
+      "processing": "Pretvaram u zvuk. To traje nekoliko minuta.",
+      "failed": "Snimku nije bilo moguće obraditi. Učitajte je ponovno.",
+      "none": "Snimka nije spremljena. Učitajte zvuk ili video: sprema se samo štedljiva zvučna kopija.",
+      "tooLarge": "Datoteka je veća od 2 GB.",
+      "notMedia": "Odaberite zvučnu ili video datoteku.",
+      "busy": "Snimka se još pretvara.",
+      "rateLimited": "Previše učitavanja. Pokušajte za sat vremena.",
+      "uploadFailed": "Učitavanje nije uspjelo. Pokušajte ponovno.",
+      "deleteFailed": "Brisanje nije uspjelo. Pokušajte ponovno."
+    },
+    "ai": {
+      "title": "Sažetak",
+      "process": "Obradi s UI",
+      "processAgain": "Obradi ponovno",
+      "againConfirm": "Obraditi ponovno? Novi sažetak zamjenjuje ovaj, zajedno s vašim izmjenama.",
+      "queued": "Čeka na početak…",
+      "transcribing": "Prepisujem snimku…",
+      "summarizing": "Pišem sažetak…",
+      "failed_transcription_failed": "Snimku nije bilo moguće prepisati. Pokušajte ponovno.",
+      "failed_summary_failed": "Sažetak nije bilo moguće napisati. Pokušajte ponovno.",
+      "nothing": "Najprije dodajte prijepis ili učitajte snimku.",
+      "busy": "Ovaj se sastanak već obrađuje.",
+      "unavailable": "Obrada s UI trenutno nije dostupna.",
+      "rateLimited": "Previše obrada. Pokušajte za sat vremena.",
+      "startFailed": "Pokretanje nije uspjelo. Pokušajte ponovno.",
+      "none": "Još nema sažetka.",
+      "noneAdmin": "Još nema sažetka. Obradi s UI napisat će ga iz prijepisa ili snimke.",
+      "edit": "Uredi sažetak",
+      "save": "Spremi sažetak",
+      "summary": "Ukratko",
+      "decisions": "Odluke",
+      "actionItems": "Zadaci",
+      "openQuestions": "Otvorena pitanja",
+      "aiMade": "Napisala UI iz prijepisa. Provjerite ga prije nego što se na njega oslonite.",
+      "createTasks": "Izradi zadatke",
+      "tasksCreated_one": "Izrađen {{count}} zadatak",
+      "tasksCreated_few": "Izrađena {{count}} zadatka",
+      "tasksCreated_other": "Izrađeno {{count}} zadataka",
+      "openBoard": "Otvori ploču",
+      "actionText": "Zadatak {{n}}",
+      "assignee": "Tko",
+      "deadline": "Do kada",
+      "remove": "Ukloni",
+      "addAction": "Dodaj zadatak",
+      "oneLine": "Odluke i pitanja: svako u svoj redak."
+    },
+    "row": {
+      "processing": "U obradi",
+      "summary": "Sažetak"
+    }
   }
 }

@@ -56,6 +56,10 @@ The owner decided that the global board shows the custom buckets of the clients 
 - **Moving cards.** The global board has no drag and drop (a card opens the task panel, whose bucket select lists the buckets of that card's own client), so a card always moves inside its own client's board; nothing changes here.
 - Filters, counts, the live refresh and the URL are unchanged. The board is still one SQL statement (see `architecture/overview.md`, Admin home API).
 
+## Meetings card (Phase 30)
+
+A wide card "Meetings" under "My tasks" (the Tickets card stays first): meetings of the clients the admin manages (every client when they manage none, as in the global knowledge list) that start in the next 7 days, soonest first, then those of the last 30 days without a summary, marked "No summary"; 10 of each. The count is the coming week's, the line under it the number without a summary. A row shows the day and time, the client and the title, and opens the item in its group's Knowledge tab. On phones it is one more tile. `GET /api/me/home/meetings` (`modules/knowledge/meeting-dashboard.ts`, read through the knowledge module's service).
+
 ## Phase
 
 Phase 20 ([spec](../superpowers/specs/2026-10-16-phase-20-admin-home-design.md), [plan](../superpowers/plans/2026-10-16-phase-20-admin-home.md)), built on top of Phases 17 and 18; in progress until it is walked with the owner. The reminders card shows the knowledge base reminders (Phase 17) now and the task reminders once Phase 19 is merged.

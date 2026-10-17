@@ -10,7 +10,9 @@
     "reminders": "Promemoria",
     "chat_file": "Dalla chat",
     "fromChat": "Dalla chat",
-    "all": "Tutti"
+    "all": "Tutti",
+    "meeting": "Riunione",
+    "meetings": "Riunioni"
   },
   "visibility": {
     "public": "Tutti nel gruppo",
@@ -72,7 +74,8 @@
       "note": "Nuova nota",
       "file": "Nuovo file",
       "link": "Nuovo link",
-      "reminder": "Nuovo promemoria"
+      "reminder": "Nuovo promemoria",
+      "meeting": "Nuova riunione"
     },
     "loading": "Caricamento…",
     "loadFailed": "Impossibile caricare questo elemento. Riprovare.",
@@ -99,7 +102,8 @@
     "note": "Testo con formattazione e file",
     "file": "Un file con una descrizione",
     "link": "Un indirizzo web con una nota",
-    "reminder": "Testo con date per i promemoria"
+    "reminder": "Testo con date per i promemoria",
+    "meeting": "Una riunione o chiamata con link, registrazione e note"
   },
   "global": {
     "title": "Conoscenze",
@@ -175,5 +179,86 @@
     "open": "Mostra {{title}} nella chat",
     "show": "Mostra nella chat",
     "alsoTasksTickets": "Anche da attività e ticket"
+  },
+  "meeting": {
+    "when": "Data e ora",
+    "date": "Data",
+    "time": "Ora",
+    "whenRequired": "Scegli la data e l'ora.",
+    "meetingUrl": "Link della riunione",
+    "meetingUrlHint": "Teams, Google Meet o Zoom",
+    "recordingUrl": "Link della registrazione",
+    "transcriptUrl": "Link della trascrizione",
+    "transcript": "Trascrizione",
+    "transcriptHint": "Incolla il testo o carica un file .txt, .vtt, .srt o .docx.",
+    "loadTranscript": "Carica da file",
+    "readingTranscript": "Lettura del file…",
+    "transcriptFileFailed": "Questo file non si può leggere. Usa un file .txt, .vtt, .srt o .docx.",
+    "transcriptTooLong": "Usa al massimo 400.000 caratteri.",
+    "transcriptByAi": "trascritta dall'IA",
+    "notes": "Note",
+    "editNotes": "Modifica le note",
+    "remind": "Promemoria",
+    "remindBefore": "Ricorda 15 minuti prima",
+    "join": "Partecipa",
+    "openRecording": "Registrazione",
+    "openTranscript": "Trascrizione",
+    "recording": {
+      "title": "Registrazione",
+      "upload": "Carica la registrazione",
+      "replace": "Sostituisci",
+      "delete": "Elimina la registrazione",
+      "deleteConfirm": "Eliminare la registrazione salvata?",
+      "uploading": "Caricamento… {{percent}} %",
+      "processing": "Conversione in audio. Ci vogliono alcuni minuti.",
+      "failed": "Non è stato possibile elaborare la registrazione. Caricala di nuovo.",
+      "none": "Nessuna registrazione salvata. Carica un audio o un video: si conserva solo una copia audio compatta.",
+      "tooLarge": "Il file supera i 2 GB.",
+      "notMedia": "Scegli un file audio o video.",
+      "busy": "La registrazione è ancora in conversione.",
+      "rateLimited": "Troppi caricamenti. Riprova tra un'ora.",
+      "uploadFailed": "Caricamento non riuscito. Riprova.",
+      "deleteFailed": "Eliminazione non riuscita. Riprova."
+    },
+    "ai": {
+      "title": "Riepilogo",
+      "process": "Elabora con l'IA",
+      "processAgain": "Elabora di nuovo",
+      "againConfirm": "Elaborare di nuovo? Il nuovo riepilogo sostituisce questo, modifiche comprese.",
+      "queued": "In attesa di avvio…",
+      "transcribing": "Trascrizione della registrazione…",
+      "summarizing": "Scrittura del riepilogo…",
+      "failed_transcription_failed": "Non è stato possibile trascrivere la registrazione. Riprova.",
+      "failed_summary_failed": "Non è stato possibile scrivere il riepilogo. Riprova.",
+      "nothing": "Aggiungi prima una trascrizione o carica una registrazione.",
+      "busy": "Questa riunione è già in elaborazione.",
+      "unavailable": "L'elaborazione con l'IA non è disponibile ora.",
+      "rateLimited": "Troppe elaborazioni. Riprova tra un'ora.",
+      "startFailed": "Avvio non riuscito. Riprova.",
+      "none": "Ancora nessun riepilogo.",
+      "noneAdmin": "Ancora nessun riepilogo. Elabora con l'IA lo scrive dalla trascrizione o dalla registrazione.",
+      "edit": "Modifica il riepilogo",
+      "save": "Salva il riepilogo",
+      "summary": "In breve",
+      "decisions": "Decisioni",
+      "actionItems": "Attività",
+      "openQuestions": "Domande aperte",
+      "aiMade": "Scritto dall'IA dalla trascrizione. Controllalo prima di farci affidamento.",
+      "createTasks": "Crea attività",
+      "tasksCreated_one": "{{count}} attività creata",
+      "tasksCreated_many": "{{count}} attività create",
+      "tasksCreated_other": "{{count}} attività create",
+      "openBoard": "Apri la bacheca",
+      "actionText": "Attività {{n}}",
+      "assignee": "Chi",
+      "deadline": "Entro",
+      "remove": "Rimuovi",
+      "addAction": "Aggiungi attività",
+      "oneLine": "Decisioni e domande: una per riga."
+    },
+    "row": {
+      "processing": "In elaborazione",
+      "summary": "Riepilogo"
+    }
   }
 }

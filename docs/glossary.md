@@ -58,6 +58,7 @@ Terms used across the docs and code, in alphabetical order.
 - **seq**: a per-channel increasing number on each message. Clients use it to find and load messages missed during a disconnect.
 - **session**: a long-lived login on one device, kept after the code is entered. A `session` row plus the httpOnly cookie `better-auth.session_token`; removing a user deletes their sessions.
 - **Spolu**: the code name (Slovak for "together") used in code, package names (`@spolu/*`), databases, Docker and these docs. It was the visible name ("Spolu by eGrant") until 2026-10-16, when it became Help. Formerly the working title eHub.
+- **Stretnutie** (meeting): a knowledge item for a meeting or call (Phase 30): date and time, links, notes, transcript, a compact audio copy of the recording, and an AI summary with decisions, action items and open questions.
 - **subscribe (to a reminder)**: "Remind me" on a reminder: anyone who can read the item adds themselves as a recipient, and can leave again. The author cannot leave their own reminder.
 - **superadmin**: the first admin, created automatically at start from `SUPERADMIN_EMAIL` (name from `SUPERADMIN_NAME`). Cannot be deleted or demoted; creates other admins.
 - **task**: a card on the task board with title, description, one or more assignees, deadline, an urgent flag and attachments.

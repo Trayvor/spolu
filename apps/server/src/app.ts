@@ -19,6 +19,8 @@ import { registerKnowledgeChatFiles } from './modules/knowledge/chat-files.js';
 import { registerKnowledgeReminderSubject } from './modules/knowledge/reminder-subject.js';
 import { createRateLimiter } from './infra/http/rate-limit.js';
 import { knowledgeRoutes } from './modules/knowledge/routes.js';
+import { attachMeetingsRealtime } from './modules/knowledge/meeting-realtime.js';
+import { meetingRoutes } from './modules/knowledge/meeting-routes.js';
 import { notificationsRoutes } from './modules/notifications/routes.js';
 import { attachRemindersRealtime } from './modules/reminders/realtime.js';
 import { remindersRoutes } from './modules/reminders/routes.js';
@@ -63,9 +65,11 @@ export async function buildApp(
   // The fire job reaches the sockets through the reminders module (jobs are built before the app).
   attachRemindersRealtime(app.io);
   attachBulkRealtime(app.io); // the bulk batch job's bulk:updated
+  attachMeetingsRealtime(app.io); // the meeting jobs' knowledge:item (Phase 30)
   app.addHook('preClose', async () => {
     attachRemindersRealtime(null);
     attachBulkRealtime(null);
+    attachMeetingsRealtime(null);
     await app.io.close();
   });
 
@@ -89,6 +93,7 @@ export async function buildApp(
   // Knowledge writes and reminder subscription changes share one limit: 120 a minute per user.
   const allowKnowledgeWrite = createRateLimiter({ windowMs: 60_000, max: 120 });
   await app.register(knowledgeRoutes, { prefix: '/api', deps, allowWrite: allowKnowledgeWrite });
+  await app.register(meetingRoutes, { prefix: '/api', deps });
   // The reminder endpoints are registered per subject: register the subjects first.
   registerKnowledgeReminderSubject();
   registerTaskReminderSubject();

@@ -17,6 +17,7 @@ import {
   FileIcon,
   LinkIcon,
   LockIcon,
+  MeetingIcon,
   NoteIcon,
   SmallFolderIcon,
 } from './icons';
@@ -31,6 +32,7 @@ const TILE_ICONS = {
   note: NoteIcon,
   file: FileIcon,
   link: LinkIcon,
+  meeting: MeetingIcon,
   chat_file: ChatFileIcon,
 } as const;
 
@@ -38,8 +40,13 @@ const overlayClass =
   'absolute inset-0 cursor-pointer focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring';
 
 function Tile({ item, done }: { item: KnowledgeSummary; done: boolean }) {
-  if (item.type === 'reminder') {
-    const iso = done ? item.lastReminderAt : item.nextReminderAt;
+  if (item.type === 'reminder' || (item.type === 'meeting' && item.meeting)) {
+    const iso =
+      item.type === 'meeting'
+        ? item.meeting!.startsAt
+        : done
+          ? item.lastReminderAt
+          : item.nextReminderAt;
     if (iso) {
       return (
         <>
@@ -83,6 +90,11 @@ export function KnowledgeRow({
 }) {
   const { t, i18n } = useTranslation();
   const done = item.type === 'reminder' && item.nextReminderAt === null;
+  const meetingBusy =
+    item.meeting?.recording === 'processing' ||
+    (item.meeting !== null &&
+      item.meeting !== undefined &&
+      ['queued', 'transcribing', 'summarizing'].includes(item.meeting.ai));
   // The server cuts the excerpt at 140 characters; a full-length one was probably cut.
   const excerpt =
     item.excerpt.length >= 140 && !item.excerpt.endsWith('…') ? `${item.excerpt}…` : item.excerpt;
@@ -170,6 +182,20 @@ export function KnowledgeRow({
                 {displayUrl(item.url)}
               </a>
               <ArrowOutIcon />
+            </p>
+          )}
+          {item.type === 'meeting' && item.meeting && (
+            <p className="flex min-w-0 items-center gap-2 text-button">
+              <span className="truncate">
+                {formatReminderTime(item.meeting.startsAt, i18n.language)}
+              </span>
+              {meetingBusy ? (
+                <Badge variant="secondary">{t('knowledge.meeting.row.processing')}</Badge>
+              ) : (
+                item.meeting.hasSummary && (
+                  <Badge variant="outline">{t('knowledge.meeting.row.summary')}</Badge>
+                )
+              )}
             </p>
           )}
           {item.type === 'reminder' && (

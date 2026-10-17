@@ -1,5 +1,6 @@
 import type {
   FileInfo,
+  KnowledgeItemDto,
   MessageDto,
   TaskDraft,
   TaskFromMessageDraft,
@@ -7,9 +8,14 @@ import type {
   TicketDto,
 } from '@spolu/shared';
 
-/** What is turned into tasks: a chat message, or a ticket (Phase 21). */
+/**
+ * What is turned into tasks: a chat message, a ticket (Phase 21), or a meeting's action items
+ * (Phase 30, a knowledge item of type `meeting`).
+ */
 export type SplitSource =
-  { kind: 'message'; message: MessageDto } | { kind: 'ticket'; ticket: TicketDto };
+  | { kind: 'message'; message: MessageDto }
+  | { kind: 'ticket'; ticket: TicketDto }
+  | { kind: 'meeting'; item: KnowledgeItemDto };
 
 /** One proposed card in the review. */
 export type ReviewCard = {

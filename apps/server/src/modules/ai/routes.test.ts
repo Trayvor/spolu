@@ -107,12 +107,20 @@ describe('AI API', () => {
     const s = await setup();
     const on = await call(test, 'GET', '/api/ai/status', s.client.cookie);
     expect(on.statusCode).toBe(200);
-    expect(AiStatusSchema.parse(on.json())).toEqual({ taskSplit: true });
+    expect(AiStatusSchema.parse(on.json())).toEqual({
+      taskSplit: true,
+      meetingSummary: false,
+      transcription: false,
+    });
     const cookie = await loginAs(
       off.app,
       (await addAdmin(off.deps.db, { email: newEmail(), name: 'Admin' })).email,
     );
-    expect((await call(off, 'GET', '/api/ai/status', cookie)).json()).toEqual({ taskSplit: false });
+    expect((await call(off, 'GET', '/api/ai/status', cookie)).json()).toEqual({
+      taskSplit: false,
+      meetingSummary: false,
+      transcription: false,
+    });
     expect((await off.app.inject({ method: 'GET', url: '/api/ai/status' })).statusCode).toBe(401);
   });
 

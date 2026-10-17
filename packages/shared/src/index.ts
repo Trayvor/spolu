@@ -6,6 +6,7 @@ export * from './groups.js';
 export * from './health.js';
 export * from './home.js';
 export * from './knowledge.js';
+export * from './meetings.js';
 export * from './notifications.js';
 export * from './reminders.js';
 export * from './socket.js';

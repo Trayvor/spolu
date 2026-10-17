@@ -204,6 +204,13 @@
       "when": 1792198748949,
       "tag": "0028_perf_foreign_key_indexes",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1792201462261,
+      "tag": "0029_knowledge_meetings",
+      "breakpoints": true
     }
   ]
 }

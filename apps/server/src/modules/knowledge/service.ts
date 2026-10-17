@@ -14,6 +14,7 @@ import {
   type KnowledgePatch,
   type KnowledgeSummary,
   type KnowledgeType,
+  type MeetingListInfo,
   type SessionUser,
   type Visibility,
 } from '@spolu/shared';
@@ -52,6 +53,13 @@ import { canEditItem, canReadItem, canSetVisibility } from './policy.js';
 import { registerKnowledgeReminderSubject } from './reminder-subject.js';
 import { knowledgeAttachments, knowledgeItems } from './schema.js';
 import { buildSearchText, escapeLike, searchTerms } from './search.js';
+import {
+  getMeetingRow,
+  insertMeeting,
+  meetingSearchExtras,
+  patchMeeting,
+  toMeetingDetail,
+} from './meeting-store.js';
 import { clientGroupIds } from '../groups/memberships.js';
 
 // The reminder endpoints and `getReminderSet` resolve items through this adapter.
@@ -120,6 +128,11 @@ export type PageRow = {
   chat_task_title: string | null;
   chat_ticket_id: string | null;
   chat_ticket_number: number | null;
+  /** A meeting's date and states (null for the other types). */
+  m_starts_at: string | null;
+  m_recording_state: MeetingListInfo['recording'] | null;
+  m_ai_state: MeetingListInfo['ai'] | null;
+  m_has_summary: boolean | null;
   /** Only when the full body was asked for (the detail). */
   body?: string;
 };
@@ -144,7 +157,9 @@ function pageQuery(where: SQL, limit: number, withBody = false): SQL {
            k.chat_message_id, k.chat_file_id, k.chat_channel_id, k.chat_kind,
            cm.parent_id as chat_parent_id, ch.task_id as chat_task_id,
            ct.title as chat_task_title, ch.ticket_id as chat_ticket_id,
-           tk.number as chat_ticket_number
+           tk.number as chat_ticket_number,
+           ${iso(sql`m.starts_at`)} as m_starts_at, m.recording_state as m_recording_state,
+           m.ai_state as m_ai_state, m.summary is not null as m_has_summary
     from knowledge_items k
     join "user" u on u.id = k.created_by
     join groups g on g.id = k.group_id
@@ -152,6 +167,7 @@ function pageQuery(where: SQL, limit: number, withBody = false): SQL {
     left join channels ch on ch.id = k.chat_channel_id
     left join tasks ct on ct.id = ch.task_id
     left join tickets tk on tk.id = ch.ticket_id
+    left join knowledge_meetings m on m.item_id = k.id
     left join lateral (
       select count(*)::int as file_count,
              (array_agg(to_jsonb(fl) order by fl.created_at, fl.id))[1] as first_file
@@ -242,6 +258,18 @@ export function toSummary(
     folderId: row.folder_id,
     folderPath,
     chat: chatSource(row),
+    meeting: meetingInfo(row),
+  };
+}
+
+/** A meeting's list info; null for the other types. */
+function meetingInfo(row: PageRow): MeetingListInfo | null {
+  if (row.type !== 'meeting' || row.m_starts_at === null) return null;
+  return {
+    startsAt: row.m_starts_at,
+    recording: row.m_recording_state ?? 'none',
+    ai: row.m_ai_state ?? 'idle',
+    hasSummary: row.m_has_summary === true,
   };
 }
 
@@ -463,19 +491,25 @@ export async function getItem(db: Db, actor: SessionUser, id: string): Promise<K
   };
   if (!canReadItem(actor, item, actorGroupIds)) throw new KnowledgeNotFoundError();
   const body = row.body ?? '';
-  const [names, fileRows, reminder, pathOf] = await Promise.all([
+  const hasReminder = row.type === 'reminder' || row.type === 'meeting';
+  const [names, fileRows, reminder, pathOf, meeting] = await Promise.all([
     mentionNames(db, [{ groupId: row.group_id, body }]),
     itemFiles(db, id, row.chat_file_id),
-    row.type === 'reminder' ? getReminderSet(db, { kind: SUBJECT, id }, actor) : null,
+    hasReminder ? getReminderSet(db, { kind: SUBJECT, id }, actor) : null,
     pathsOf(db, [row]),
+    row.type === 'meeting' ? getMeetingRow(db, id) : null,
   ]);
+  const fileInfos = fileRows.map(toFileInfo);
   return {
     ...toSummary(row, namesIn(names, row.group_id), rowPath(row, pathOf)),
     body,
-    files: fileRows.map(toFileInfo),
+    files: fileInfos,
     reminder,
     canEdit: canEditItem(actor, item, actorGroupIds),
     visibilityLocked: row.author_role === 'client',
+    meetingDetail: meeting
+      ? toMeetingDetail(meeting, fileInfos.find((f) => f.id === meeting.recordingFileId) ?? null)
+      : null,
   };
 }
 
@@ -485,7 +519,14 @@ export async function getItem(db: Db, actor: SessionUser, id: string): Promise<K
 
 async function computeSearchText(
   tx: Db,
-  input: { groupId: string; title: string; body: string; url: string | null; fileIds: string[] },
+  input: {
+    groupId: string;
+    title: string;
+    body: string;
+    url: string | null;
+    fileIds: string[];
+    extra?: string[];
+  },
 ): Promise<string> {
   const [byGroup, fileNames] = await Promise.all([
     mentionNames(tx, [{ groupId: input.groupId, body: input.body }]),
@@ -499,7 +540,34 @@ async function computeSearchText(
     url: input.url,
     fileNames: fileNames.map((f) => f.name),
     nameOf: (id) => namesIn(byGroup, input.groupId).get(id),
+    extra: input.extra,
   });
+}
+
+/**
+ * Writes `search_text` again from the item as stored (a meeting's job changed its summary or its
+ * recording). No access check.
+ */
+export async function refreshSearchText(db: Db, id: string): Promise<void> {
+  const [item] = await db.select().from(knowledgeItems).where(eq(knowledgeItems.id, id));
+  if (!item) return;
+  const [fileIds, meeting] = await Promise.all([
+    db
+      .select({ fileId: knowledgeAttachments.fileId })
+      .from(knowledgeAttachments)
+      .where(eq(knowledgeAttachments.itemId, id))
+      .then((rows) => rows.map((r) => r.fileId)),
+    item.type === 'meeting' ? getMeetingRow(db, id) : null,
+  ]);
+  const searchText = await computeSearchText(db, {
+    groupId: item.groupId,
+    title: item.title,
+    body: item.body,
+    url: item.url,
+    fileIds,
+    extra: meeting ? meetingSearchExtras(meeting) : [],
+  });
+  await db.update(knowledgeItems).set({ searchText }).where(eq(knowledgeItems.id, id));
 }
 
 /**
@@ -522,6 +590,7 @@ export async function insertItem(
     body: draft.body,
     url,
     fileIds,
+    extra: draft.type === 'meeting' ? meetingSearchExtras({ ...draft.meeting, summary: null }) : [],
   });
   await tx.insert(knowledgeItems).values({
     id,
@@ -540,7 +609,10 @@ export async function insertItem(
     // Always set: a reused upload may still carry the flag from an earlier admins-only item.
     await setFilesAdminsOnly(tx, fileIds, draft.visibility === 'admins');
   }
-  if (draft.type === 'reminder') {
+  if (draft.type === 'meeting') await insertMeeting(tx, id, draft.meeting);
+  const reminderInput =
+    draft.type === 'reminder' || draft.type === 'meeting' ? draft.reminder : undefined;
+  if (reminderInput && reminderInput.times.length > 0) {
     await replaceReminderSet(
       tx,
       {
@@ -550,21 +622,26 @@ export async function insertItem(
         adminsOnly: draft.visibility === 'admins',
         authorId: actor.id,
       },
-      draft.reminder,
+      reminderInput,
       actor,
     );
   }
   return { id, fileIds };
 }
 
-/** Per-type file count: a file item exactly one, a note up to 10, links and reminders none. */
+/**
+ * Per-type file count: a file item exactly one, a note up to 10, links and reminders none, a
+ * meeting at most its stored recording (attached by the transcoder, never by a draft).
+ */
 function checkFileCount(type: KnowledgeType, count: number): void {
   const ok =
     type === 'file'
       ? count === 1
       : type === 'note'
         ? count <= KNOWLEDGE_LIMITS.noteFiles
-        : count === 0;
+        : type === 'meeting'
+          ? count <= 1
+          : count === 0;
   if (!ok) throw new InvalidAttachmentError();
 }
 
@@ -666,7 +743,17 @@ export async function updateItem(
       if (row.type !== 'link' || !isHttpUrl(patch.url)) throw new InvalidUrlError();
       url = patch.url;
     }
-    if (patch.reminder !== undefined && row.type !== 'reminder') throw new InvalidReminderError();
+    const remindable = row.type === 'reminder' || row.type === 'meeting';
+    if (patch.reminder !== undefined && !remindable) throw new InvalidReminderError();
+    // A reminder item keeps at least one time; a meeting's reminder is optional.
+    if (row.type === 'reminder' && patch.reminder?.times.length === 0) {
+      throw new InvalidReminderError();
+    }
+    if (patch.meeting !== undefined && row.type !== 'meeting') {
+      throw new ValidationError('Only a meeting has meeting fields');
+    }
+    // A meeting's only file is its recording, which only the transcoder attaches.
+    if (row.type === 'meeting' && patch.fileIds !== undefined) throw new InvalidAttachmentError();
 
     const current = (
       await tx
@@ -714,6 +801,14 @@ export async function updateItem(
       await pruneRecipientsForAdminsOnly(tx, { kind: SUBJECT, id });
     }
 
+    let meetingExtras: string[] = [];
+    if (row.type === 'meeting') {
+      const current = await getMeetingRow(tx, id, true);
+      if (!current) throw new KnowledgeNotFoundError();
+      const meeting = patch.meeting ? await patchMeeting(tx, id, patch.meeting, current) : current;
+      meetingExtras = meetingSearchExtras(meeting);
+    }
+
     const title = patch.title ?? row.title;
     const body = patch.body ?? row.body;
     const searchText = await computeSearchText(tx, {
@@ -722,6 +817,7 @@ export async function updateItem(
       body,
       url,
       fileIds: next,
+      extra: meetingExtras,
     });
     await tx
       .update(knowledgeItems)
@@ -742,7 +838,7 @@ export async function deleteItem(
   id: string,
 ): Promise<{ groupId: string; visibility: Visibility }> {
   const { db, storage } = deps;
-  const { row, fileIds } = await db.transaction(async (tx) => {
+  const { row, fileIds, uploadKey } = await db.transaction(async (tx) => {
     const row = await lockForWrite(tx, actor, id);
     const fileIds = (
       await tx
@@ -751,11 +847,15 @@ export async function deleteItem(
         .where(eq(knowledgeAttachments.itemId, id))
     ).map((r) => r.fileId);
     await detachFiles(tx, fileIds);
+    // A meeting's upload still waiting for the transcoder goes too (the job then finds no row).
+    const uploadKey =
+      row.type === 'meeting' ? ((await getMeetingRow(tx, id))?.uploadKey ?? null) : null;
     await tx.delete(knowledgeItems).where(eq(knowledgeItems.id, id));
-    return { row, fileIds };
+    return { row, fileIds, uploadKey };
   });
   // A failure here leaves detached files, which the daily unattached cleanup removes.
   await deleteDetachedFiles({ db, storage }, fileIds).catch(() => undefined);
+  if (uploadKey) await storage.delete(uploadKey).catch(() => undefined);
   return { groupId: row.group_id, visibility: row.visibility };
 }
 
@@ -771,4 +871,15 @@ export async function chatFileSummaries(db: Db, messageId: string): Promise<Know
     )),
   ];
   return rows.map((row) => toSummary(row, new Map()));
+}
+
+/** One item as a list row, for a live event after a job changed it (no access check). */
+export async function getItemSummary(db: Db, id: string): Promise<KnowledgeSummary | null> {
+  const [row] = [...(await db.execute<PageRow>(pageQuery(sql`k.id = ${id}`, 1)))];
+  if (!row) return null;
+  const [names, pathOf] = await Promise.all([
+    mentionNames(db, [{ groupId: row.group_id, body: row.body_head }]),
+    pathsOf(db, [row]),
+  ]);
+  return toSummary(row, namesIn(names, row.group_id), rowPath(row, pathOf));
 }

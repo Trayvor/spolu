@@ -62,6 +62,15 @@
       "title": "Menzioni",
       "caption": "non lette",
       "empty": "Nessuna menzione non letta."
+    },
+    "meetings": {
+      "title": "Riunioni",
+      "caption": "prossimi 7 giorni",
+      "noSummary": "Senza riepilogo",
+      "empty": "Nessuna riunione nei prossimi 7 giorni e nessuna in attesa di riepilogo.",
+      "unsummarized_one": "{{count}} senza riepilogo",
+      "unsummarized_many": "{{count}} senza riepilogo",
+      "unsummarized_other": "{{count}} senza riepilogo"
     }
   },
   "board": {

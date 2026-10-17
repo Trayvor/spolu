@@ -4,6 +4,11 @@
 ARG NODE_IMAGE=node:24-bookworm-slim
 # The runtime base: the Debian release NODE_IMAGE is built on, without npm, corepack and yarn.
 ARG RUNTIME_IMAGE=debian:bookworm-slim
+# A static ffmpeg build for meeting recordings (Phase 30, ADR 0023): one binary, no shared libs,
+# instead of Debian's ffmpeg package through RUNTIME_PACKAGES (+406 MB).
+ARG FFMPEG_IMAGE=mwader/static-ffmpeg:7.1.1
+
+FROM ${FFMPEG_IMAGE} AS ffmpeg
 
 # Stage 1: download dependencies. pnpm is installed before the lockfile is copied, so a lockfile
 # change does not reinstall it; `pnpm fetch` is cached until the lockfile changes.
@@ -38,7 +43,8 @@ RUN pnpm -r build
 
 # Stage 4: runtime. A plain Debian slim with only the node binary copied in.
 FROM ${RUNTIME_IMAGE} AS runtime
-# System packages the app needs at runtime go into this list (e.g. ffmpeg). Empty today.
+# System packages the app needs at runtime go into this list. Empty today (ffmpeg comes as a
+# static binary from the ffmpeg stage, see ADR 0023).
 ARG RUNTIME_PACKAGES=""
 RUN if [ -n "$RUNTIME_PACKAGES" ]; then \
       apt-get update \
@@ -56,6 +62,7 @@ ENV NODE_ENV=production \
     WEB_DIST_DIR=/app/web \
     FILES_DIR=/data/files
 WORKDIR /app
+COPY --from=ffmpeg /ffmpeg /usr/local/bin/ffmpeg
 COPY --from=prod-deps /out/node_modules ./node_modules
 COPY --from=build /repo/apps/server/dist ./server
 COPY --from=build /repo/apps/web/dist ./web

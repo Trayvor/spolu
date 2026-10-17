@@ -7,11 +7,12 @@ export const KNOWLEDGE_TYPES = [
   'file',
   'link',
   'reminder',
+  'meeting',
   'chat_file',
 ] as const satisfies readonly KnowledgeType[];
 
 /** The types people create (`?kind=`); a chat file only comes from a chat. */
-const CREATABLE_TYPES: readonly string[] = ['note', 'file', 'link', 'reminder'];
+const CREATABLE_TYPES: readonly string[] = ['note', 'file', 'link', 'reminder', 'meeting'];
 
 export type KnowledgePageSearch = {
   clients?: string;

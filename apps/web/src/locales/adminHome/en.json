@@ -57,6 +57,14 @@
       "title": "Mentions",
       "caption": "unread",
       "empty": "No unread mentions."
+    },
+    "meetings": {
+      "title": "Meetings",
+      "caption": "next 7 days",
+      "noSummary": "No summary",
+      "empty": "No meetings in the next 7 days and none waiting for a summary.",
+      "unsummarized_one": "{{count}} without a summary",
+      "unsummarized_other": "{{count}} without a summary"
     }
   },
   "board": {

@@ -34,6 +34,7 @@ import {
   type KnowledgeFormValue,
 } from './knowledge-form';
 import { KnowledgeView } from './knowledge-view';
+import { meetingInProgress } from './meeting-view';
 import { MoveDialog } from './move-dialog';
 
 /** `folderId` of a create: the folder the new item goes into (null or absent: the top level). */
@@ -87,7 +88,12 @@ export function KnowledgeDialog({
   const client = useQueryClient();
   const me = useSession();
   const viewId = target.mode === 'view' ? target.id : '';
-  const query = useQuery({ ...knowledgeItemQuery(viewId), enabled: target.mode === 'view' });
+  // A meeting being converted or processed by the AI is polled: the global list has no events.
+  const query = useQuery({
+    ...knowledgeItemQuery(viewId),
+    enabled: target.mode === 'view',
+    refetchInterval: (q) => (meetingInProgress(q.state.data) ? 5000 : false),
+  });
   const item = query.data;
   const groupId = target.mode === 'create' ? target.groupId : (item?.groupId ?? '');
   const people = useGroupPeople(groupId).data;
@@ -99,7 +105,9 @@ export function KnowledgeDialog({
   const nameOf = (id: string) => people?.find((p) => p.id === id)?.name;
 
   const [editing, setEditing] = useState(target.mode === 'create');
-  const [initial, setInitial] = useState<KnowledgeFormValue>(() => emptyKnowledgeValue());
+  const [initial, setInitial] = useState<KnowledgeFormValue>(() =>
+    emptyKnowledgeValue(target.mode === 'create' ? target.type : undefined),
+  );
   const [value, setValue] = useState<KnowledgeFormValue>(initial);
   const [files, setFiles] = useState<FileInfo[]>([]);
   const [errors, setErrors] = useState<KnowledgeFormErrors>({});

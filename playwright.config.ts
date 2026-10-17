@@ -61,6 +61,10 @@ export default defineConfig({
       MAIL_FROM: 'Help by eGrant <noreply@localhost>',
       // The canned task splitter; production mode refuses it without AI_ALLOW_FAKE=1.
       AI_PROVIDER: 'fake',
+      // Meetings (Phase 30): the fixed fake transcript, and a "transcoder" that copies bytes, so
+      // the specs need neither an API key nor ffmpeg.
+      TRANSCRIPTION_PROVIDER: 'fake',
+      FFMPEG_PATH: 'fake',
       // The ticket intake API (Phase 21); the specs post tickets with this key.
       TICKETS_API_KEY: 'e2e-tickets-key-0123456789',
       AI_ALLOW_FAKE: '1',

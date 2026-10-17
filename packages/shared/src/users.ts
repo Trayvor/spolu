@@ -110,5 +110,11 @@ export const ErrorCodes = {
   // Phase 24 — knowledge folders
   invalidFolder: 'invalid_folder',
   folderLimit: 'folder_limit',
+  // Phase 30 — meetings
+  invalidRecording: 'invalid_recording',
+  recordingBusy: 'recording_busy',
+  meetingBusy: 'meeting_busy',
+  nothingToProcess: 'nothing_to_process',
+  invalidTranscriptFile: 'invalid_transcript_file',
 } as const;
 export type ErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes];

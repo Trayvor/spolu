@@ -62,6 +62,15 @@
       "title": "Spominjanja",
       "caption": "nepročitano",
       "empty": "Nema nepročitanih spominjanja."
+    },
+    "meetings": {
+      "title": "Sastanci",
+      "caption": "sljedećih 7 dana",
+      "noSummary": "Bez sažetka",
+      "empty": "Nema sastanaka u sljedećih 7 dana i nijedan ne čeka sažetak.",
+      "unsummarized_one": "{{count}} bez sažetka",
+      "unsummarized_few": "{{count}} bez sažetka",
+      "unsummarized_other": "{{count}} bez sažetka"
     }
   },
   "board": {
