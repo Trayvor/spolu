@@ -162,3 +162,34 @@ describe('digestEntry meetings (2026-10-17)', () => {
     expect(entry?.line).toBe('Reminder: Kickoff, Thu 22 Oct, 09:45');
   });
 });
+
+describe('digestEntry time requests (Phase 32)', () => {
+  it('a task time request: "<title>: fill in your time", opening the task', () => {
+    expect(
+      digestEntry(
+        { kind: 'task.time_missing', payload: { taskId: 't1', groupId: 'g1', title: 'Old' } },
+        ctx,
+      ),
+    ).toEqual({
+      line: 'Current title: fill in your time',
+      url: 'https://spolu.test/groups/g1/tasks/t1?time=1',
+      button: 'Open task',
+      topic: 'Firma',
+    });
+  });
+  it('a ticket time request opens the ticket', () => {
+    expect(
+      digestEntry(
+        {
+          kind: 'ticket.time_missing',
+          payload: { ticketId: 'k1', groupId: 'g1', number: 12, title: 'Login fails' },
+        },
+        ctx,
+      ),
+    ).toMatchObject({
+      line: '#12 Login fails: fill in your time',
+      url: 'https://spolu.test/tickets/k1?time=1',
+      button: 'Open ticket',
+    });
+  });
+});

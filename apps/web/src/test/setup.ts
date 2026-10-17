@@ -4,7 +4,10 @@ import { configure } from '@testing-library/react';
 import '@/i18n';
 import { loadAllNamespaces } from '@/i18n/namespaces';
 
-configure({ asyncUtilTimeout: 4000 });
+// findBy*, waitFor and waitForElementToBeRemoved give up after this long. It only bounds a real
+// hang: a screen that never renders still fails, just later. A tight value (the default is 1 s)
+// fails healthy tests when the machine is loaded (many parallel runs, load average 30 or more).
+configure({ asyncUtilTimeout: 5000 });
 // jsdom does not implement scrollTo; the router calls it on navigation.
 window.scrollTo = () => undefined;
 // Component tests render parts of screens without their routes: give them every lazy locale

@@ -330,17 +330,20 @@ describe('sendDueDigests', () => {
     const s = await setup();
     await send(s.channel, s.admin, 'Raz');
     await deliverPending(deps, { userIds: [s.client.id] });
-    // Only this event is due now: the sweep must not email every other test file's pending
-    // digests (each ticket without a client notifies every admin, Phase 21.6).
+    // The sweep emails every due digest of the database, and the shared test database holds the
+    // pending digests of every other test file (each ticket without a client notifies every
+    // admin, Phase 21.6) and of old runs: thousands of them on a long-lived local database. So
+    // the sweep runs at a `now` in 1970 and only this test's event is made due then (due at the
+    // epoch): no other row can be due that long ago, whatever the database holds.
+    const epoch = new Date(0);
     await deps.db
       .update(notificationEvents)
-      .set({ emailDueAt: new Date(Date.now() - 1000) })
+      .set({ emailDueAt: epoch })
       .where(eq(notificationEvents.userId, s.client.id));
-    expect(await sendDueDigests(deps, { now: new Date() })).toBeGreaterThanOrEqual(1);
+    expect(await sendDueDigests(deps, { now: new Date(1000) })).toBe(1);
     expect((await latestEmail(s.client.email)).subject).toBe(`1 nová správa v ${s.group.name}`);
-    // The sweep sends every due digest of the shared test database, which the parallel ticket
-    // tests fill with events for every admin: allow it more than the default.
-  }, 30_000);
+    expect(await countEmailsTo(s.client.email)).toBe(1);
+  });
 
   it('a digest that cannot be queued is retried by the next run', async () => {
     const s = await setup();

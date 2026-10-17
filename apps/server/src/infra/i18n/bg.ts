@@ -112,5 +112,8 @@ export const bg: ServerTexts = {
     contractEnds: (date) => `Договорът изтича на ${date}`,
     contractLine: (title, client, date) => `Договор ${title} · ${client}: изтича на ${date}`,
     openContract: 'Отвори договора',
+    timeMissing: 'Попълнете колко време отделихте',
+    timeMissingLine: (title) => `${title}: попълнете времето си`,
+    openTask: 'Отвори задачата',
   },
 };

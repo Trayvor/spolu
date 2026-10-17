@@ -362,3 +362,41 @@ describe('buildPushPayload meetings (2026-10-17)', () => {
     }
   });
 });
+
+describe('buildPushPayload time requests (Phase 32)', () => {
+  it('a task time request: "<title> · <client>", "Fill in…", the task with the dialog', () => {
+    const push = buildPushPayload({
+      ...base,
+      kind: 'task.time_missing',
+      payload: task,
+      lang: 'en',
+    });
+    expect(push).toEqual({
+      title: 'Report · Firma',
+      body: 'Fill in how much time you spent',
+      url: '/groups/g1/tasks/t1?time=1',
+      tag: 'task:t1',
+    });
+  });
+  it('a ticket time request opens the ticket with the dialog', () => {
+    const push = buildPushPayload({
+      ...base,
+      kind: 'ticket.time_missing',
+      payload: { ticketId: 'k1', groupId: 'g1', number: 12, title: 'Login fails', actorName: 'J' },
+      lang: 'en',
+    });
+    expect(push).toEqual({
+      title: '#12 Login fails · Firma',
+      body: 'Fill in how much time you spent',
+      url: '/tickets/k1?time=1',
+      tag: 'ticket:k1',
+    });
+  });
+  it('every language has the texts', () => {
+    for (const lang of UserLanguages) {
+      expect(texts(lang).timeMissing).not.toBe('');
+      expect(texts(lang).timeMissingLine('X')).toContain('X');
+      expect(texts(lang).openTask).not.toBe('');
+    }
+  });
+});

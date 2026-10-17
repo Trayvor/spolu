@@ -114,5 +114,8 @@ export const hr: ServerTexts = {
     contractEnds: (date) => `Ugovor istječe ${date}`,
     contractLine: (title, client, date) => `Ugovor ${title} · ${client}: istječe ${date}`,
     openContract: 'Otvori ugovor',
+    timeMissing: 'Upišite koliko ste vremena utrošili',
+    timeMissingLine: (title) => `${title}: upišite svoje vrijeme`,
+    openTask: 'Otvori zadatak',
   },
 };

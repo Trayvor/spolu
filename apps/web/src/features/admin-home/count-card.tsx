@@ -14,6 +14,13 @@ export type CardTarget = {
 export type CardRow = {
   key: string;
   to: CardTarget;
+  /**
+   * Instead of following `to`, the row is a button that acts in place (Phase 32: a "Fill in your
+   * time" row opens the time dialog).
+   */
+  onSelect?: () => void;
+  /** The button's accessible name, when `onSelect` is set. */
+  label?: string;
   content: ReactNode;
   tall?: boolean;
   /** The phone sheet's group heading (rows of one group come together). */
@@ -68,6 +75,35 @@ export function TargetLink({
   );
 }
 
+/** A row's link, or its button when it acts in place (`onSelect`). */
+export function RowAction({
+  row,
+  className,
+  children,
+}: {
+  row: CardRow;
+  className: string;
+  children: ReactNode;
+}) {
+  if (!row.onSelect) {
+    return (
+      <TargetLink target={row.to} className={className}>
+        {children}
+      </TargetLink>
+    );
+  }
+  return (
+    <button
+      type="button"
+      aria-label={row.label}
+      onClick={row.onSelect}
+      className={cn('w-[calc(100%+1rem)] text-left', className)}
+    >
+      {children}
+    </button>
+  );
+}
+
 /** Three static grey rows (no shimmer). */
 function Placeholder() {
   return (
@@ -107,15 +143,15 @@ export function CardList({
       <ul className="flex flex-col">
         {rows.map((row) => (
           <li key={row.key} className="border-b border-border last:border-b-0">
-            <TargetLink
-              target={row.to}
+            <RowAction
+              row={row}
               className={cn(
                 '-mx-2 flex items-center gap-3 rounded-lg px-2 hover:bg-accent hover:text-foreground',
                 row.tall ? 'min-h-14 py-2' : 'h-11',
               )}
             >
               {row.content}
-            </TargetLink>
+            </RowAction>
           </li>
         ))}
       </ul>

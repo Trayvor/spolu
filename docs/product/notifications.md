@@ -45,6 +45,7 @@ Each user chooses a notification mode per client group (what arrives) and, in th
   | reply in my thread, quote of my message | yes | yes | no |
   | task moved, assigned, deadline, urgent | yes | yes | no |
   | reminder due (Knowledge base, meeting, task) | yes | yes | **yes** |
+  | fill in your time (a completed task or resolved ticket, Phase 32) | yes | yes | **yes** |
   | meeting scheduled or moved | yes | no | no |
   | AI summary ready or failed (to the admin who started it) | yes | yes | **yes** |
 
@@ -76,6 +77,7 @@ Each user chooses a notification mode per client group (what arrives) and, in th
 - **Reminders** (`reminder.due`, from a Knowledge base reminder or a task's custom reminder): sent to the reminder's recipients at the set time. They pass every mode, **Off** included, because the person chose to be reminded; the exception covers only explicit recipients, and someone no longer in the group still gets nothing. In the email digest the line is "Reminder: <title>, <time>"; like task events it always counts as unread.
   - A Knowledge base reminder's push reads "<title> · <group>" with "Reminder for Sun 25 Oct, 10:00" (Bratislava time) and opens the item in the group's Knowledge tab.
   - A task reminder's push reads "<task title> · <group>" (the task's current title) with "Reminder for 14:00", or "Reminder for Thu 16 Oct, 14:00" when it arrives more than 5 minutes late, and opens the task panel. It shares the device tag `task:<taskId>` with the automatic task notifications, so a custom reminder at the same moment as a deadline reminder replaces it on the device instead of stacking; both are still recorded and sent. A task in Completed at the time reminds nobody.
+- **Time requests** (Phase 32, see `finance.md`, "Time on done"): `task.time_missing` (Task board group) goes once to every admin assignee of a completed task without time, except the admin who completed it (they get the dialog); `ticket.time_missing` (Ticket board group) likewise to the admin riešitelia of a resolved ticket, also of a ticket without a client. A direct request to one person: it passes every mode like a reminder, and the channel the person set for that group decides. The push reads "<task title> · <client>" ("#123 Subject · <client>" for a ticket; no client for a ticket without one) with "Fill in how much time you spent" and opens the task panel (the ticket page) with `?time=1`, which opens the time dialog; the digest line is "<title>: fill in your time" with "Open task" ("Open ticket"). The payload carries the task (ticket) id, title and client, never time or money. No repeat reminders; the dashboard row stays until the time is filled.
 - **Task notifications** (they are about the user, so they arrive in All messages and in Mentions and replies):
   - **moved**: a task moved to another bucket notifies its creator and assignees, not the person who moved it ("Moved to eGrant review");
   - **assigned**: a newly assigned person is notified;

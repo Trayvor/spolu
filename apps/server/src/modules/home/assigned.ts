@@ -1,6 +1,9 @@
-import { sql, type SQL } from 'drizzle-orm';
-import { HOME_LIMITS, type AssignedTasks, type BucketKind } from '@spolu/shared';
+import { inArray, sql, type SQL } from 'drizzle-orm';
+import { HOME_LIMITS, type AssignedTasks, type BucketKind, type TimeRequest } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
+import { myTimeRequests } from '../finance/task-time.js';
+import { groups } from '../groups/schema.js';
+import { getTaskTitles } from '../tasks/task-service.js';
 
 /**
  * The viewer's open assigned tasks across groups, in one statement: urgent first (by deadline, no
@@ -42,10 +45,50 @@ type Row = {
   urgent_total: number;
 };
 
+/**
+ * The viewer's own open time requests (Phase 32) for the "Fill in your time" rows, through the
+ * finance module: one indexed query for the rows and their count, one batch of client names
+ * and one of the tasks' current titles (a ticket's title is the entry's own).
+ */
+async function getTimeRequests(
+  db: Db,
+  userId: string,
+): Promise<{ timeRequests: TimeRequest[]; timeRequestCount: number }> {
+  const { rows, total: timeRequestCount } = await myTimeRequests(
+    db,
+    userId,
+    HOME_LIMITS.timeRequests,
+  );
+  if (rows.length === 0) return { timeRequests: [], timeRequestCount };
+  const [names, titles] = await Promise.all([
+    db
+      .select({ id: groups.id, name: groups.name })
+      .from(groups)
+      .where(inArray(groups.id, [...new Set(rows.flatMap((r) => (r.groupId ? [r.groupId] : [])))])),
+    getTaskTitles(
+      db,
+      rows.flatMap((r) => (r.taskId ? [r.taskId] : [])),
+    ),
+  ]);
+  const groupName = new Map(names.map((g) => [g.id, g.name]));
+  return {
+    timeRequests: rows.map((r) => ({
+      ...r,
+      title: (r.taskId ? titles.get(r.taskId) : undefined) ?? r.title,
+      groupName: r.groupId === null ? null : (groupName.get(r.groupId) ?? ''),
+    })),
+    timeRequestCount,
+  };
+}
+
 export async function getAssignedTasks(db: Db, userId: string): Promise<AssignedTasks> {
-  const rows = [...(await db.execute<Row>(assignedSql(userId)))];
+  const [rows, time] = await Promise.all([
+    db.execute<Row>(assignedSql(userId)).then((r) => [...r]),
+    getTimeRequests(db, userId),
+  ]);
   const first = rows[0];
   return {
+    ...time,
     total: first?.total ?? 0,
     urgent: first?.urgent_total ?? 0,
     items: rows.map((r) => ({

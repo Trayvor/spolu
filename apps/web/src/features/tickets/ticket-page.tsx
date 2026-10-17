@@ -1,12 +1,16 @@
-import type { MouseEvent, ReactNode } from 'react';
+import { Suspense, useEffect, type MouseEvent, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Link, useParams, useRouter } from '@tanstack/react-router';
+import { Link, useLocation, useParams, useRouter } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import type { Me, TicketDto } from '@spolu/shared';
 import { clientGroups, isAdmin } from '@/features/auth/roles';
 import { useSession } from '@/features/auth/use-session';
 import { ApiError } from '@/lib/api';
 import { useMediaQuery } from '@/lib/use-media-query';
+import { useUpdateSearch } from '@/lib/use-update-search';
+import { useNamespaces } from '@/i18n/namespaces';
+import { seesTime, TicketMyTime } from '@/features/tasks/my-time';
+import { askForTime, ticketAskTitle } from '@/features/tasks/time-queue';
 import { OpenInClaude } from '@/features/open-in-claude/open-in-claude';
 import { NotFoundPage } from '@/routes/not-found';
 import { ticketQuery } from './api';
@@ -39,6 +43,7 @@ export function TicketPage({ ticketId }: { ticketId: string }) {
   const { data: cached, error } = useQuery(ticketQuery(ticketId));
   const wide = useMediaQuery('(min-width: 1024px)');
   useTicketEvents(null);
+  useTimeParam(cached, me);
   // Moved out of the viewer's reach while open: never keep showing the old ticket.
   if (error instanceof ApiError && error.status === 404) return <NotFoundPage />;
   const ticket = cached;
@@ -179,6 +184,17 @@ function TicketDetails({ ticket, me }: { ticket: TicketDto; me: Me }) {
       <Section>
         <TicketAssignees ticket={ticket} />
       </Section>
+      {/* Phase 32: time on the ticket, with or without a client (owner decision 24). */}
+      {seesTime(
+        me,
+        ticket.assignees.map((p) => p.id),
+      ) && (
+        <Section>
+          <Suspense fallback={null}>
+            <TicketTime ticket={ticket} />
+          </Suspense>
+        </Section>
+      )}
       {ticket.tasks !== null && ticket.groupId !== null ? (
         <TicketTasks ticket={ticket} groupId={ticket.groupId} tasks={ticket.tasks} />
       ) : (
@@ -193,6 +209,42 @@ function TicketDetails({ ticket, me }: { ticket: TicketDto; me: Me }) {
       )}
     </>
   );
+}
+
+/** "My time" with the texts of the time dialog (the `tasks` namespace, loaded here on first use). */
+function TicketTime({ ticket }: { ticket: TicketDto }) {
+  useNamespaces(['tasks']);
+  return <TicketMyTime ticket={ticket} />;
+}
+
+/**
+ * `?time=1` (the time request's push and email, Phase 32): an admin riešiteľ of the ticket gets
+ * the time dialog; the param is dropped so Back or a reload does not ask again.
+ */
+function useTimeParam(ticket: TicketDto | undefined, me: Me | null) {
+  const updateSearch = useUpdateSearch();
+  const asked = useLocation({ select: (l) => (l.search as Record<string, unknown>).time });
+  const ready = ticket !== undefined && me !== null;
+  useEffect(() => {
+    if (asked === undefined || !ticket || !me) return;
+    updateSearch(
+      (search) => {
+        delete search.time;
+      },
+      { replace: true },
+    );
+    const riesitel = ticket.assignees.some((p) => p.id === me.id);
+    if (String(asked) === '1' && isAdmin(me) && riesitel) {
+      askForTime({
+        kind: 'ticket',
+        id: ticket.id,
+        groupId: ticket.groupId,
+        title: ticketAskTitle(ticket.number, ticket.subject),
+      });
+    }
+    // Once per arrival of the param, when the ticket is there.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [asked, ready]);
 }
 
 function Section({ children }: { children: ReactNode }) {

@@ -111,5 +111,37 @@
       "details": "Details",
       "chat": "Chat ({{count}})"
     }
+  },
+  "time": {
+    "title": "How much time did you spend?",
+    "ticketTitle": "How much time did you spend on {{ticket}}?",
+    "duration": "Time spent",
+    "hint": "For example 1:30, 1,5, 90m or 2h 15m",
+    "readback": "That is {{value}}",
+    "invalid": "Write the time as 1:30, 1,5, 90m or 2h 15m, at most 100 h.",
+    "long": "That's more than a working day. Correct?",
+    "chips": "Quick choices",
+    "none": "No time",
+    "save": "Save",
+    "later": "Later",
+    "saveFailed": "Could not save. Try again.",
+    "loadFailed": "Could not load your time.",
+    "retry": "Try again",
+    "options": "What to record",
+    "optionTicket": "Time for the ticket",
+    "optionTicketHint": "Added to the hours on the linked tasks.",
+    "optionCovered": "The hours on the linked tasks cover it",
+    "optionCoveredHint": "Nothing more is added.",
+    "linkedTasks": "Your time on the linked tasks",
+    "notFilled": "Not filled",
+    "mine": "My time",
+    "fill": "Fill in",
+    "edit": "Edit",
+    "covered": "Covered by the tasks",
+    "everyone": "Time: {{list}}",
+    "units": {
+      "hours": "h",
+      "minutes": "min"
+    }
   }
 }

@@ -63,6 +63,17 @@ function ticketPush(i: PushContentInput): PushPayload {
   const n = Number(p.number);
   const subject = str(p.subject);
   const named = subject ? `#${n} ${subject}` : `#${n}`;
+  if (i.kind === 'ticket.time_missing') {
+    // Phase 32: the payload names the subject `title`; it opens the ticket with the time dialog.
+    const title = str(p.title) ? `#${n} ${str(p.title)}` : named;
+    return {
+      // A ticket without a client (decision 24) names no client.
+      title: i.groupName ? `${title} · ${i.groupName}` : title,
+      body: t.timeMissing,
+      url: `/tickets/${enc(id)}?time=1`,
+      tag: `ticket:${id}`,
+    };
+  }
   let title: string;
   let body = subject ?? '';
   if (i.kind === 'ticket.created') title = t.ticketNew(n, i.groupName);
@@ -162,7 +173,10 @@ export function buildPushPayload(i: PushContentInput): PushPayload {
     if (i.kind === 'task.moved') body = movedBody(p.toBucket, i.lang);
     else if (i.kind === 'task.assigned') body = t.assigned(str(p.actorName) ?? '');
     else if (i.kind === 'task.deadline') body = t.deadline(Number(p.daysLeft));
-    else body = t.urgent;
+    else if (i.kind === 'task.time_missing') {
+      // Phase 32: opens the task panel with the time dialog.
+      return { title, body: t.timeMissing, url: `${url}?time=1`, tag };
+    } else body = t.urgent;
     return { title, body, url, tag };
   }
 

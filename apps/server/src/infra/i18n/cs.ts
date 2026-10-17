@@ -119,5 +119,8 @@ export const cs: ServerTexts = {
     contractEnds: (date) => `Smlouva končí ${date}`,
     contractLine: (title, client, date) => `Smlouva ${title} · ${client}: končí ${date}`,
     openContract: 'Otevřít smlouvu',
+    timeMissing: 'Vyplňte, kolik času jste strávili',
+    timeMissingLine: (title) => `${title}: vyplňte svůj čas`,
+    openTask: 'Otevřít úkol',
   },
 };

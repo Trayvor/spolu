@@ -7,6 +7,7 @@ import { useMeChanged } from '@/features/finance/use-me-changed';
 import { useManagerEvents } from '@/features/groups/use-manager-events';
 import { AppPrompt } from '@/features/notifications/app-prompt';
 import { saveLanguage } from '@/features/profile/language-api';
+import { TimeDialogHost } from '@/features/tasks/time-dialog-host';
 import { i18n } from '@/i18n';
 import { withNamespaces } from '@/i18n/namespaces';
 import { useMediaQuery } from '@/lib/use-media-query';
@@ -35,7 +36,8 @@ const RECONNECT_MAX_MS = 30_000;
  */
 
 export function AuthedLayout() {
-  const userId = useSession()?.id;
+  const session = useSession();
+  const userId = session?.id;
   const queryClient = useQueryClient();
   const router = useRouter();
   const languageSavedFor = useRef<string | null>(null);
@@ -95,6 +97,8 @@ export function AuthedLayout() {
   return (
     <>
       <AppPrompt />
+      {/* Time on done (Phase 32): the time dialog and its queue, for admins. */}
+      {isAdmin(session) && <TimeDialogHost />}
       <SignedInFrame>
         {/* Moving to another screen fades it in; the sidebar stays as it is. */}
         <RouteFade level={2} className="flex min-w-0 flex-1 flex-col">

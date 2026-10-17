@@ -119,5 +119,8 @@ export const uk: ServerTexts = {
     contractEnds: (date) => `Договір закінчується ${date}`,
     contractLine: (title, client, date) => `Договір ${title} · ${client}: закінчується ${date}`,
     openContract: 'Відкрити договір',
+    timeMissing: 'Вкажіть, скільки часу ви витратили',
+    timeMissingLine: (title) => `${title}: вкажіть свій час`,
+    openTask: 'Відкрити завдання',
   },
 };

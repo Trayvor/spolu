@@ -19,8 +19,9 @@ export function passesMode(
 ): boolean {
   // Ticket events go to the ticket's riešitelia (or its watchers while it has none) and its
   // initiator, by explicit choices: only the tickets channel decides. A reminder was set for this person (or by them) on purpose, likewise, and an
-  // AI meeting result goes only to the admin who started the run.
-  if (group === 'tickets' || kind === 'reminder.due' || AI_RESULT.has(kind)) return true;
+  // AI meeting result goes only to the admin who started the run. A time request (Phase 32) is
+  // a direct request to one person, like a reminder.
+  if (group === 'tickets' || DIRECT.has(kind) || AI_RESULT.has(kind)) return true;
   if (mode === 'off') return false;
   if (mode === 'all') return true;
   return !ALL_ONLY.has(kind);
@@ -31,6 +32,11 @@ const ALL_ONLY = new Set<NotificationKind>([
   'chat.message',
   'meeting.scheduled',
   'meeting.rescheduled',
+]);
+const DIRECT = new Set<NotificationKind>([
+  'reminder.due',
+  'task.time_missing',
+  'ticket.time_missing',
 ]);
 const AI_RESULT = new Set<NotificationKind>(['meeting.summary_ready', 'meeting.summary_failed']);
 
@@ -44,6 +50,7 @@ export const KIND_RANK: Record<NotificationKind, number> = {
   'task.deadline': 2,
   'task.urgent': 2,
   'reminder.due': 2,
+  'task.time_missing': 2,
   // A ticket chat message ranks like a chat message: a mention of the same message wins.
   'ticket.message': 1,
   'ticket.created': 2,
@@ -52,6 +59,7 @@ export const KIND_RANK: Record<NotificationKind, number> = {
   'ticket.updated': 2,
   'ticket.tasks': 2,
   'ticket.assigned': 2,
+  'ticket.time_missing': 2,
   'meeting.scheduled': 2,
   'meeting.rescheduled': 2,
   'meeting.summary_ready': 2,

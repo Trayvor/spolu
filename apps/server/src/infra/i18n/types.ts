@@ -117,5 +117,11 @@ export type ServerTexts = {
     contractLine(title: string, client: string, date: string): string;
     /** The digest email's button for a contract. */
     openContract: string;
+    /** Phase 32: a time request's push body ("Fill in how much time you spent"). */
+    timeMissing: string;
+    /** Its digest line: "<title>: fill in your time". */
+    timeMissingLine(title: string): string;
+    /** The digest button of a time request on a task. */
+    openTask: string;
   };
 };

@@ -111,5 +111,8 @@ export const en: ServerTexts = {
     contractEnds: (date) => `Contract ends on ${date}`,
     contractLine: (title, client, date) => `Contract ${title} · ${client}: ends on ${date}`,
     openContract: 'Open contract',
+    timeMissing: 'Fill in how much time you spent',
+    timeMissingLine: (title) => `${title}: fill in your time`,
+    openTask: 'Open task',
   },
 };

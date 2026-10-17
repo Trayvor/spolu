@@ -119,5 +119,8 @@ export const sl: ServerTexts = {
     contractEnds: (date) => `Pogodba se izteče ${date}`,
     contractLine: (title, client, date) => `Pogodba ${title} · ${client}: izteče se ${date}`,
     openContract: 'Odpri pogodbo',
+    timeMissing: 'Vpišite, koliko časa ste porabili',
+    timeMissingLine: (title) => `${title}: vpišite svoj čas`,
+    openTask: 'Odpri nalogo',
   },
 };

@@ -51,7 +51,10 @@
       "urgent_other": "{{count}} hitnih",
       "noDate": "bez roka",
       "showAll": "Prikaži sve ({{count}})",
-      "empty": "Nemate dodijeljenih zadataka."
+      "empty": "Nemate dodijeljenih zadataka.",
+      "fillTime": "Upišite svoje vrijeme",
+      "fillTimeFor": "Upišite svoje vrijeme: {{title}}",
+      "withoutTime": "Bez vremena: {{n}}"
     },
     "reminders": {
       "title": "Nadolazeći podsjetnici",
