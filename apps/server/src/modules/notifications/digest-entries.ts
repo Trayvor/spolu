@@ -1,7 +1,7 @@
 import type { NotificationKind, UserLanguage } from '@spolu/shared';
 import { notificationGroupOf } from './categories.js';
 import { buildPushPayload, isTicketEvent, meetingBody } from './push-content.js';
-import { formatReminderTime, texts } from './texts.js';
+import { formatDay, formatReminderTime, texts } from './texts.js';
 
 /**
  * One event in a digest email: its line, the page the email's button opens, the button's label
@@ -35,6 +35,28 @@ export function digestEntry(
   if (group === null) return null;
   const t = texts(ctx.lang);
   const p = row.payload;
+  if (row.kind === 'ticket.time_missing' || row.kind === 'task.time_missing') {
+    // Phase 32: "<title>: fill in your time", opening the task or ticket with the time dialog.
+    const ticket = row.kind === 'ticket.time_missing';
+    const taskId = str(p.taskId);
+    const title = ticket
+      ? `#${Number(p.number)} ${str(p.title) ?? ''}`.trim()
+      : ((taskId ? ctx.taskTitles.get(taskId) : undefined) ?? str(p.title) ?? '');
+    const push = buildPushPayload({
+      kind: row.kind,
+      payload: p,
+      groupName: ctx.groupName ?? '',
+      taskTitle: null,
+      parentId: null,
+      lang: ctx.lang,
+    });
+    return {
+      line: t.timeMissingLine(title),
+      url: `${ctx.publicUrl}${push.url}`,
+      button: ticket ? t.openTicket : t.openTask,
+      topic: ticket ? t.ticketTopic(Number(p.number)) : (ctx.groupName ?? ''),
+    };
+  }
   if (group === 'tickets' && isTicketEvent(row.kind, p)) {
     const push = buildPushPayload({
       kind: row.kind as NotificationKind,
@@ -60,6 +82,19 @@ export function digestEntry(
       line: `${str(p.title) ?? ''}: ${meetingBody(row.kind as NotificationKind, p, ctx.lang)}`,
       url: `${ctx.publicUrl}/groups/${encodeURIComponent(ctx.groupId)}/knowledge?k=${itemId}`,
       button: t.openMeeting,
+      topic: ctx.groupName,
+    };
+  }
+  if (row.kind === 'reminder.due' && p.subjectKind === 'finance') {
+    // Phase 32: one email per contract, opening the item in the client's Finance tab.
+    const itemId = encodeURIComponent(str(p.subjectId) ?? '');
+    const ends = formatDay(str(p.endsOn), ctx.lang);
+    return {
+      line: ends
+        ? t.contractLine(str(p.title) ?? '', ctx.groupName, ends)
+        : t.reminderLine(str(p.title) ?? '', formatReminderTime(str(p.at), ctx.lang)),
+      url: `${ctx.publicUrl}/groups/${encodeURIComponent(ctx.groupId)}/finance?item=${itemId}`,
+      button: t.openContract,
       topic: ctx.groupName,
     };
   }

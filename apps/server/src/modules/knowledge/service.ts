@@ -65,7 +65,7 @@ import {
 } from './policy.js';
 import { registerKnowledgeReminderSubject } from './reminder-subject.js';
 import { knowledgeAttachments, knowledgeItems } from './schema.js';
-import { buildSearchText, escapeLike, searchTerms } from './search.js';
+import { buildSearchText, escapeLike, searchTerms } from '../../infra/text/search.js';
 import {
   getMeetingRow,
   insertMeeting,

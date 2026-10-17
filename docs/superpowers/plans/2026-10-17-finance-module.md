@@ -1,6 +1,6 @@
 # Phase 32 — Finančná správa: plan
 
-Spec: [2026-10-17-finance-module-design.md](../specs/2026-10-17-finance-module-design.md) (read its "Owner decisions" first). Status: **approved** by the owner on 2026-10-17 (every recommendation accepted); part A1 in progress.
+Spec: [2026-10-17-finance-module-design.md](../specs/2026-10-17-finance-module-design.md) (read its "Owner decisions" first). Status: **approved** by the owner on 2026-10-17 (every recommendation accepted); part A1 merged; part B built (`feat/finance-b-documents`).
 
 Five pull requests. **A1 is merged first**: it fixes the schema, the shared types, the permission and the empty screens, so the other parts only add code in files of their own. Then **A2, B and C run in parallel** (separate worktrees, any merge order, each rebases on the previous merge). **D** starts when B and C are merged (it reuses their list and aggregate functions and their cards). Each part is test-first (`superpowers:test-driven-development`), runs `bash scripts/ci.sh` before merging, and updates its docs with `update-kb`. Any screen work starts with the `frontend-design:frontend-design` skill (CLAUDE.md).
 
@@ -117,6 +117,8 @@ Done when: the superadmin turns Finance on for an admin, who sees the empty Fina
 ## Part A2 — Time on done (branch `feat/finance-task-time`; after A1)
 
 **Goal:** spec §5 entirely, including §5.6 (tickets, extension of 2026-10-17).
+
+**As built** (branch `feat/finance-a2-time`). Interface changes against the A1 signatures above, all additive: the hooks' results also carry a `TimeChange` (`groupId`, `changed`, `users` whose requests changed, `eventIds` to deliver) that the callers pass to `announceTimeChange` after the commit; `TaskCompletedEvent` and `TicketResolvedEvent` gain `actorName` (the payload's), `TicketResolvedEvent` gains `number` (a ticket entry's title is `#123 Subject`); `onAssigneesRemoved` and `onTicketAssigneesRemoved` return whose requests went; `fillTaskTime` / `getTaskTime` take a `TaskTimeSubject` and `fillTicketTime` / `getTicketTime` a `TicketTimeSubject` read by the routes through the tasks module (`getTaskTimeSubject`) and the tickets module (`ticketAssigneeIds` in `audience.ts`, `listTasksFromTicket`), since finance reads neither table; `myTimeRequests` returns the rows and their count in one statement. Owner decision 24 was decided on 2026-10-17 (time without a client is recorded with `group_id` null): migration **0035** `finance_time_without_client` makes `finance_time_entries.group_id` nullable with CHECK `finance_time_entries_group_check` (only ticket entries). Parts C and D: a `{ kind: 'group' }` scope never matches those entries; `{ kind: 'all' }` (`scopeSql` gives `true`) includes them, and D shows them as "Bez klienta".
 
 Server:
 - `modules/finance/task-time.ts` (the hooks and `listMyTimeRequests`, `fillTaskTime`), `task-time-routes.ts` (`GET /api/tasks/:id/time`, `PUT /api/tasks/:id/time/me`: `requireAdmin`, the board check, `canLogOwnTaskTime`).

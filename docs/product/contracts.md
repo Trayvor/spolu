@@ -1,5 +1,7 @@
 # Contracts (admins only)
 
+> **Superseded by [Finance](finance.md) (Phase 32, spec decision 3).** Contracts are now finance items, visible only to finance admins, with their period, amount, files and reminders ([Documents and contracts](finance.md#documents-and-contracts)); the global contract list and the "ending soon" mark move to the system-wide finance page (part D). Phases 14 and 15 are not built as described below; the text stays as the original request.
+
 Administrators track client contracts: dates, amount, files, notes, a draft of the next contract and a reminder before signing. The module is never visible to clients. There is also a global list across all groups.
 
 ## Requirements

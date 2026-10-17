@@ -24,6 +24,7 @@ The docs are the source of truth. This file only holds rules and pointers; do no
   The skill lives in `.claude/skills/frontend-design/`. See [docs/design/README.md](docs/design/README.md).
 - Performance is a top priority: lazy-loaded screens, small bundles, indexed queries, no N+1, paginated lists. No fancy visual effects. Readable code still comes first. See [docs/architecture/performance.md](docs/architecture/performance.md).
 - The initial JS budget is 200 kB gzip and is practically full (measure it as in performance.md, "How to check"). New UI texts go into a lazy namespace, never into the eager `locales/<code>.json`; new code that every screen does not need goes into a lazy chunk.
+- No wall-clock budgets in CI tests: use ratios, counts or opt-in benchmarks. See [docs/architecture/performance.md](docs/architecture/performance.md).
 - Keep the system easy to extend: same module pattern everywhere, simple code over clever abstractions.
 
 ## Workflow
@@ -48,15 +49,15 @@ One-time setup: `pnpm install`, `cp .env.example .env`, `pnpm exec playwright in
 - `pnpm --filter @spolu/web icons` — regenerate the PWA icons in `apps/web/public/icons/` from the egrant mark (commit the PNGs).
 - `pnpm --filter @spolu/server db:generate` — generate a migration after changing a `schema.ts`.
 - `pnpm --filter @spolu/server vapid:generate` — a VAPID key pair for push (once per environment, see `docs/runbooks/deploy.md`).
-- `bash scripts/ci.sh` — every CI check in one go (install, shellcheck, script tests, lint, typecheck, tests, e2e, docs check); needs Docker. Run it before pushing.
+- `bash scripts/ci.sh` — every CI check in one go (install, shellcheck, script tests, lint, typecheck, tests, e2e, docs check); needs Docker. Run it before pushing. `--bench` (or `RUN_BENCH=1`) also runs the wall-clock benchmarks; off by default, use it on a quiet machine.
 - `scripts/build-image.sh`, `scripts/deploy.sh`, `scripts/server-setup.sh` — build/push the image, deploy an env, prepare a server; see `docs/runbooks/`.
 - `bash scripts/check-docs.sh <base-ref>` — warns when code changed without docs.
-- `bash scripts/tests/<name>.test.sh` — tests of the scripts and hooks (`check-docs`, `docs-reminder`, `deploy-env`, `caddy-redirects`, `cloud-session`); `ci.sh` runs them all.
+- `bash scripts/tests/<name>.test.sh` — tests of the scripts and hooks (`check-docs`, `docs-reminder`, `deploy-env`, `caddy-redirects`, `cloud-session`, `run-parallel`, `ci-bench`, `limit-parallelism`, `isolate-run`); `ci.sh` runs them all.
 
 ## Tips for agents
 
-- **Parallel agents** (several worktrees at once): give each its own test database, e.g. `TEST_DATABASE_URL=postgres://spolu:spolu@localhost:5432/spolu_test_<branch> pnpm test`. Never run `pnpm test:e2e` or `scripts/ci.sh` concurrently: both use port 3000 and the one `spolu_e2e` database. Leave them to whoever merges, one at a time.
-- Before an e2e or `ci.sh` run after an aborted one, drop the e2e database: `docker exec spolu-postgres-1 psql -U spolu -d postgres -c "drop database if exists spolu_e2e"` (there is no local `psql`; use `docker exec`). Drop old `spolu_test_*` databases now and then the same way: dozens of them slow Postgres down.
+- **Parallel agents** (several worktrees at once): `bash scripts/ci.sh` is safe to run from several worktrees at the same time: each run gets its own test databases (`spolu_test_ci_<id>`, `_explain`), e2e database (`spolu_e2e_<id>`), a free e2e port and its own e2e superadmin address (Mailpit and PostgreSQL are shared), and drops its databases at the end. The id comes from the worktree directory name. Plain `pnpm test` still needs its own database, e.g. `TEST_DATABASE_URL=postgres://spolu:spolu@localhost:5432/spolu_test_<branch> pnpm test`. Never run a bare `pnpm test:e2e` while another one runs (port 3000 and `spolu_e2e`); use `ci.sh`. Agents still run e2e or `ci.sh` only when told to.
+- After an aborted `ci.sh` its `spolu_*_ci_*` and `spolu_e2e_*` databases may stay behind (the next run of the same worktree drops its own). After an aborted bare `pnpm test:e2e`, drop the e2e database: `docker exec spolu-postgres-1 psql -U spolu -d postgres -c "drop database if exists spolu_e2e"` (there is no local `psql`; use `docker exec`). Drop old `spolu_test_*` and `spolu_e2e_*` databases now and then the same way: dozens of them slow Postgres down.
 - RTK (if installed) rewrites command output, Vitest's too; use `rtk proxy <cmd>` for the raw output.
 - **Migrations:** before generating one, check the latest number on `origin/main` (`apps/server/src/infra/db/migrations/`). After a rebase that brings in a migration with the same number, delete yours (the SQL, its `meta/` snapshot and journal entry) and run `db:generate` again.
 - **Locales:** a parallel branch that adds UI texts conflicts in the locale files; after the rebase make sure every new key exists in all nine languages (the locale tests fail otherwise).

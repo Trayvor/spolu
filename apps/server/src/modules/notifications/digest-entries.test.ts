@@ -42,6 +42,28 @@ describe('digestEntry', () => {
     expect(entry?.line).toBe('Reminder: Current title, Sun 25 Oct, 10:00');
   });
 
+  it('a finance contract reminder: "Contract <title> · <client>: ends on …", opening the item', () => {
+    const entry = digestEntry(
+      {
+        kind: 'reminder.due',
+        payload: {
+          subjectKind: 'finance',
+          subjectId: 'f1',
+          title: 'Zmluva 2026',
+          at: '2026-12-01T08:00:00Z',
+          endsOn: '2026-12-31',
+        },
+      },
+      ctx,
+    );
+    expect(entry).toEqual({
+      line: expect.stringMatching(/^Contract Zmluva 2026 · Firma: ends on .*2026$/),
+      url: 'https://spolu.test/groups/g1/finance?item=f1',
+      button: 'Open contract',
+      topic: 'Firma',
+    });
+  });
+
   it('an event of a non-ticket group without a client group gives null', () => {
     expect(
       digestEntry(
@@ -138,5 +160,36 @@ describe('digestEntry meetings (2026-10-17)', () => {
       ctx,
     );
     expect(entry?.line).toBe('Reminder: Kickoff, Thu 22 Oct, 09:45');
+  });
+});
+
+describe('digestEntry time requests (Phase 32)', () => {
+  it('a task time request: "<title>: fill in your time", opening the task', () => {
+    expect(
+      digestEntry(
+        { kind: 'task.time_missing', payload: { taskId: 't1', groupId: 'g1', title: 'Old' } },
+        ctx,
+      ),
+    ).toEqual({
+      line: 'Current title: fill in your time',
+      url: 'https://spolu.test/groups/g1/tasks/t1?time=1',
+      button: 'Open task',
+      topic: 'Firma',
+    });
+  });
+  it('a ticket time request opens the ticket', () => {
+    expect(
+      digestEntry(
+        {
+          kind: 'ticket.time_missing',
+          payload: { ticketId: 'k1', groupId: 'g1', number: 12, title: 'Login fails' },
+        },
+        ctx,
+      ),
+    ).toMatchObject({
+      line: '#12 Login fails: fill in your time',
+      url: 'https://spolu.test/tickets/k1?time=1',
+      button: 'Open ticket',
+    });
   });
 });

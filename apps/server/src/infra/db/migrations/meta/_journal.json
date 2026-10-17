@@ -246,6 +246,13 @@
       "when": 1792252350626,
       "tag": "0034_finance_foundation",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1792256476725,
+      "tag": "0035_finance_time_without_client",
+      "breakpoints": true
     }
   ]
 }

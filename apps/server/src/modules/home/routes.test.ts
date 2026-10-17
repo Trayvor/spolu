@@ -64,7 +64,13 @@ describe('home API', () => {
     expect(SidebarSchema.safeParse(sidebar.json()).success).toBe(true);
     const tasks = await get('/api/me/home/tasks', adminCookie);
     expect(tasks.statusCode).toBe(200);
-    expect(AssignedTasksSchema.parse(tasks.json())).toEqual({ total: 0, urgent: 0, items: [] });
+    expect(AssignedTasksSchema.parse(tasks.json())).toEqual({
+      total: 0,
+      urgent: 0,
+      items: [],
+      timeRequests: [],
+      timeRequestCount: 0,
+    });
     const mentions = await get('/api/me/home/mentions', adminCookie);
     expect(mentions.statusCode).toBe(200);
     expect(MentionsSchema.parse(mentions.json())).toEqual({ total: 0, items: [] });

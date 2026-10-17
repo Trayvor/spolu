@@ -176,7 +176,10 @@ test('the task panel is a full-screen sheet on a phone', async ({ browser }) => 
     await expect(panel.getByLabel('Názov', { exact: true })).toBeVisible();
 
     // The sheet covers exactly the screen, and neither it nor the page scrolls sideways.
-    expect(await panel.boundingBox()).toEqual({ x: 0, y: 0, width: 390, height: 844 });
+    // Poll until the slide-in settles: a single read can land mid-animation.
+    await expect
+      .poll(() => panel.boundingBox(), { message: 'the sheet fills the screen' })
+      .toEqual({ x: 0, y: 0, width: 390, height: 844 });
     const widths = await page.evaluate(() => ({
       page: document.documentElement.scrollWidth,
       panel: document.querySelector('[data-testid="task-panel"]')!.scrollWidth,

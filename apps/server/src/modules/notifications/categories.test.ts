@@ -53,6 +53,8 @@ describe('notificationGroupOf', () => {
     ['meeting.summary_failed', { itemId: 'k1' }, 'meetings'],
     ['reminder.due', { subjectKind: 'knowledge', meeting: true }, 'meetings'],
     ['reminder.due', { subjectKind: 'task', taskId: 't1', meeting: true }, 'tasks'],
+    // Phase 32: a finance item's reminder belongs to the Finance group (finance admins only).
+    ['reminder.due', { subjectKind: 'finance', endsOn: '2026-12-31' }, 'finance'],
   ] as const)('%s %j -> %s', (kind, payload, group) => {
     expect(notificationGroupOf(kind, payload)).toBe(group);
   });

@@ -56,7 +56,10 @@
       "urgent_other": "{{count}} urgentných",
       "noDate": "bez termínu",
       "showAll": "Zobraziť všetky ({{count}})",
-      "empty": "Nemáte priradenú žiadnu úlohu."
+      "empty": "Nemáte priradenú žiadnu úlohu.",
+      "fillTime": "Vyplňte svoj čas",
+      "fillTimeFor": "Vyplňte svoj čas: {{title}}",
+      "withoutTime": "Bez času: {{n}}"
     },
     "reminders": {
       "title": "Najbližšie pripomienky",

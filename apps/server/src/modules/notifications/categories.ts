@@ -23,6 +23,7 @@ export const NOTIFICATION_GROUP_OF: Record<NotificationKind, NotificationCategor
   'task.deadline': 'tasks',
   'task.urgent': 'tasks',
   'reminder.due': 'tasks',
+  'task.time_missing': 'tasks',
   'ticket.created': 'tickets',
   'ticket.unassigned': 'tickets',
   'ticket.message': 'tickets',
@@ -30,6 +31,7 @@ export const NOTIFICATION_GROUP_OF: Record<NotificationKind, NotificationCategor
   'ticket.updated': 'tickets',
   'ticket.tasks': 'tickets',
   'ticket.assigned': 'tickets',
+  'ticket.time_missing': 'tickets',
   'meeting.scheduled': 'meetings',
   'meeting.rescheduled': 'meetings',
   'meeting.summary_ready': 'meetings',
@@ -53,6 +55,8 @@ export function notificationGroupOf(
   if (group === 'chat' && typeof payload.taskId === 'string' && payload.taskId !== '') {
     return 'tasks';
   }
+  // Phase 32: a finance item's reminder goes to finance admins only (the audience re-checks it).
+  if (kind === 'reminder.due' && payload.subjectKind === 'finance') return 'finance';
   if (kind === 'reminder.due' && payload.subjectKind === 'knowledge') {
     // A meeting's own reminder (2026-10-17) belongs with the other meeting notifications.
     return payload.meeting === true ? 'meetings' : 'knowledge';

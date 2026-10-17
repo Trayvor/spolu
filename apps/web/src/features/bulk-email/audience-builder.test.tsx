@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useState } from 'react';
@@ -46,20 +46,33 @@ describe('audience builder', () => {
   });
   afterEach(() => vi.unstubAllGlobals());
 
+  // Fake timers: two clicks on a loaded machine may be more than 300 ms apart in real time.
   it('asks for the count once, 300 ms after the last change', async () => {
-    const { user, callsTo } = setup();
+    const { callsTo } = setup();
     const group = await screen.findByRole('checkbox', { name: 'ABC s.r.o.' });
     await waitFor(() => expect(callsTo('POST', COUNT)).toHaveLength(1));
-    await user.click(screen.getByRole('checkbox', { name: 'Clients' }));
-    await user.click(group);
+    vi.useFakeTimers();
+    try {
+      act(() => {
+        fireEvent.click(screen.getByRole('checkbox', { name: 'Clients' }));
+      });
+      await act(() => vi.advanceTimersByTimeAsync(200));
+      act(() => {
+        fireEvent.click(group);
+      });
+      await act(() => vi.advanceTimersByTimeAsync(299));
+      expect(callsTo('POST', COUNT)).toHaveLength(1);
+      await act(() => vi.advanceTimersByTimeAsync(1));
+      await act(() => vi.advanceTimersByTimeAsync(1000));
+    } finally {
+      vi.useRealTimers();
+    }
     await waitFor(() => expect(callsTo('POST', COUNT)).toHaveLength(2));
     expect(callsTo('POST', COUNT)[1]!.body).toEqual({
       ...EMPTY_AUDIENCE,
       roles: ['client'],
       groupIds: ['g1'],
     });
-    await new Promise((r) => setTimeout(r, 400));
-    expect(callsTo('POST', COUNT)).toHaveLength(2);
   });
 
   it('shows the count and the left-out reasons', async () => {

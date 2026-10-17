@@ -5,7 +5,11 @@ import { ticketAssignees } from './schema.js';
 import { readingIds, type TicketRow } from './service.js';
 import { ticketWatcherIds } from './watch.js';
 
-async function assigneeIds(db: Db, ticketId: string): Promise<string[]> {
+/**
+ * The ticket's riešitelia (`ticket_assignees`), whoever they are; the finance time hooks (Phase
+ * 32) ask the active admins among them for their time on resolve.
+ */
+export async function ticketAssigneeIds(db: Db, ticketId: string): Promise<string[]> {
   const rows = await db
     .select({ userId: ticketAssignees.userId })
     .from(ticketAssignees)
@@ -15,7 +19,7 @@ async function assigneeIds(db: Db, ticketId: string): Promise<string[]> {
 
 /** Whether the ticket has at least one riešiteľ. */
 export async function hasAssignees(db: Db, ticketId: string): Promise<boolean> {
-  return (await assigneeIds(db, ticketId)).length > 0;
+  return (await ticketAssigneeIds(db, ticketId)).length > 0;
 }
 
 /**
@@ -24,7 +28,7 @@ export async function hasAssignees(db: Db, ticketId: string): Promise<boolean> {
  * for a ticket without a client. Only people who can still read the ticket.
  */
 export async function ticketOwnerIds(db: Db, ticket: TicketRow): Promise<string[]> {
-  const assignees = await assigneeIds(db, ticket.id);
+  const assignees = await ticketAssigneeIds(db, ticket.id);
   if (assignees.length > 0) return readingIds(db, ticket, assignees);
   const ids =
     ticket.groupId === null

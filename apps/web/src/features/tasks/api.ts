@@ -3,6 +3,7 @@ import {
   BOARD_DONE_MAX,
   BOARD_DONE_PAGE,
   BoardDonePageSchema,
+  AskTimeSchema,
   BoardDtoSchema,
   BucketDtoSchema,
   TaskDetailDtoSchema,
@@ -18,6 +19,7 @@ import {
   type TaskPatch,
 } from '@spolu/shared';
 import { apiGet, apiSend } from '@/lib/api';
+import { askForTime } from './time-queue';
 
 const enc = encodeURIComponent;
 
@@ -55,19 +57,50 @@ export const taskQuery = (taskId: string) =>
     queryFn: () => apiGet(`/tasks/${enc(taskId)}`, TaskDetailDtoSchema),
   });
 
-export function createTask(
+/**
+ * Time on done (Phase 32): a write that completed the task for an admin assignee answers
+ * `askTime`, which queues the time dialog (whatever screen made the write: the board, a drag,
+ * the done circle, the panel, the global board). The answer is returned without it.
+ */
+function withAskTime<T extends { id: string; groupId: string; title: string }>(
+  answer: T & { askTime?: boolean },
+): T {
+  const { askTime, ...task } = answer;
+  if (askTime) askForTime({ kind: 'task', id: task.id, groupId: task.groupId, title: task.title });
+  return task as unknown as T;
+}
+
+const WithAskTime = AskTimeSchema.partial();
+
+export async function createTask(
   groupId: string,
   input: TaskDraft & { bucketId?: string },
 ): Promise<TaskDetailDto> {
-  return apiSend('POST', `/groups/${enc(groupId)}/tasks`, input, TaskDetailDtoSchema);
+  return withAskTime(
+    await apiSend(
+      'POST',
+      `/groups/${enc(groupId)}/tasks`,
+      input,
+      TaskDetailDtoSchema.extend(WithAskTime.shape),
+    ),
+  );
 }
 
-export function updateTask(id: string, patch: TaskPatch): Promise<TaskDetailDto> {
-  return apiSend('PATCH', `/tasks/${enc(id)}`, patch, TaskDetailDtoSchema);
+export async function updateTask(id: string, patch: TaskPatch): Promise<TaskDetailDto> {
+  return withAskTime(
+    await apiSend(
+      'PATCH',
+      `/tasks/${enc(id)}`,
+      patch,
+      TaskDetailDtoSchema.extend(WithAskTime.shape),
+    ),
+  );
 }
 
-export function moveTask(id: string, body: TaskMove): Promise<TaskDto> {
-  return apiSend('POST', `/tasks/${enc(id)}/move`, body, TaskDtoSchema);
+export async function moveTask(id: string, body: TaskMove): Promise<TaskDto> {
+  return withAskTime(
+    await apiSend('POST', `/tasks/${enc(id)}/move`, body, TaskDtoSchema.extend(WithAskTime.shape)),
+  );
 }
 
 export async function deleteTask(id: string): Promise<void> {

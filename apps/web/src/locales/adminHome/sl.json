@@ -56,7 +56,10 @@
       "urgent_other": "{{count}} nujnih",
       "noDate": "brez datuma",
       "showAll": "Prikaži vse ({{count}})",
-      "empty": "Ničesar vam ni dodeljeno."
+      "empty": "Ničesar vam ni dodeljeno.",
+      "fillTime": "Vpišite svoj čas",
+      "fillTimeFor": "Vpišite svoj čas: {{title}}",
+      "withoutTime": "Brez časa: {{n}}"
     },
     "reminders": {
       "title": "Prihajajoči opomniki",

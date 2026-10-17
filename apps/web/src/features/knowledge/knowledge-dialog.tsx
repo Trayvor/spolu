@@ -480,7 +480,7 @@ export function KnowledgeDialog({
       )}
       {ask?.kind === 'move' && item && (
         <MoveDialog
-          groupId={item.groupId}
+          folders={folders}
           name={item.title}
           currentFolderId={item.folderId}
           clientItemMessage={t('knowledge.folders.clientItem')}

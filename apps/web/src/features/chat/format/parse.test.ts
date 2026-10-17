@@ -244,42 +244,64 @@ describe('parseMessage', () => {
     expect({ userIds: [...found], all: foundAll }).toEqual({ userIds, all });
   });
 
-  // Bodies are capped at 10 000 characters; 10x that makes any quadratic step take seconds
-  // (a linear parse of each input takes a few milliseconds), so the bound is far from flaky.
-  it('stays linear on hostile input (100 000 characters each)', () => {
-    const n = 100_000;
-    const inputs = [
-      '*'.repeat(n),
-      '_'.repeat(n),
-      '~'.repeat(n),
-      '`'.repeat(n),
-      '>'.repeat(n),
-      '> '.repeat(n / 2),
-      '['.repeat(n),
-      '[a]('.repeat(n / 4),
-      '**a _b ~~c '.repeat(n / 11),
-      '_a '.repeat(n / 3),
-      'a_ '.repeat(n / 3),
-      '` x'.repeat(n / 3),
-      '(https://x.y/'.repeat(n / 13),
-      '(https://['.repeat(n / 10),
-      ' https://['.repeat(n / 10),
-      '(mailto:%'.repeat(n / 9),
-      'xhttps://'.repeat(n / 9),
-      'https://' + 'a'.repeat(n),
-      'https://x.y/' + ')'.repeat(n),
-      '- '.repeat(n / 2),
-      '1. '.repeat(n / 3),
-      '<@u1>'.repeat(n / 5),
-      '```\n'.repeat(n / 4),
-      'a\n'.repeat(n / 2),
-    ];
-    // A generous bound, so a loaded machine does not fail it: a quadratic scan of 100 000
-    // characters takes many seconds, a linear one a few milliseconds.
-    for (const input of inputs) {
-      const started = performance.now();
-      parseMessage(input);
-      expect(performance.now() - started, input.slice(0, 12)).toBeLessThan(2000);
-    }
-  });
+  // Bodies are capped at 10 000 characters. This compares growth: the same input at size N and
+  // at 8N is parsed (best of five each), and a linear parse takes about 8 times longer, a quadratic
+  // one about 64 times. It is still wall time and flaked on a loaded machine, so it is a benchmark
+  // that runs only with RUN_BENCH=1 (`scripts/ci.sh --bench`), not in every CI run.
+  it.runIf(import.meta.env.RUN_BENCH)(
+    'stays linear on hostile input (cost grows with the size, not its square)',
+    () => {
+      const hostile = (n: number) => [
+        '*'.repeat(n),
+        '_'.repeat(n),
+        '~'.repeat(n),
+        '`'.repeat(n),
+        '>'.repeat(n),
+        '> '.repeat(n / 2),
+        '['.repeat(n),
+        '[a]('.repeat(n / 4),
+        '**a _b ~~c '.repeat(n / 11),
+        '_a '.repeat(n / 3),
+        'a_ '.repeat(n / 3),
+        '` x'.repeat(n / 3),
+        '(https://x.y/'.repeat(n / 13),
+        '(https://['.repeat(n / 10),
+        ' https://['.repeat(n / 10),
+        '(mailto:%'.repeat(n / 9),
+        'xhttps://'.repeat(n / 9),
+        'https://' + 'a'.repeat(n),
+        'https://x.y/' + ')'.repeat(n),
+        '- '.repeat(n / 2),
+        '1. '.repeat(n / 3),
+        '<@u1>'.repeat(n / 5),
+        '```\n'.repeat(n / 4),
+        'a\n'.repeat(n / 2),
+      ];
+      // The fastest of several runs, the small and the large input interleaved, so a burst of load
+      // on a busy machine hits both sizes alike instead of one of them.
+      const fastest = (a: string, b: string) => {
+        let small = Infinity;
+        let large = Infinity;
+        for (let run = 0; run < 5; run++) {
+          let started = performance.now();
+          parseMessage(a);
+          small = Math.min(small, performance.now() - started);
+          started = performance.now();
+          parseMessage(b);
+          large = Math.min(large, performance.now() - started);
+        }
+        return { small, large };
+      };
+      const small = hostile(12_000);
+      const large = hostile(96_000);
+      small.forEach((input, i) => {
+        const t = fastest(input, large[i]!);
+        // Floor of 1 ms: below it the timer's resolution, not the parser, sets the small time.
+        // 8x the input: linear is about 8, quadratic about 64; 32 leaves room for noise.
+        const ratio = t.large / Math.max(t.small, 1);
+        expect(ratio, input.slice(0, 12)).toBeLessThan(32);
+      });
+    },
+    60_000,
+  );
 });

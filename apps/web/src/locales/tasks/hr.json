@@ -117,5 +117,37 @@
       "details": "Pojedinosti",
       "chat": "Chat ({{count}})"
     }
+  },
+  "time": {
+    "title": "Koliko ste vremena utrošili?",
+    "ticketTitle": "Koliko ste vremena utrošili na {{ticket}}?",
+    "duration": "Utrošeno vrijeme",
+    "hint": "Na primjer 1:30, 1,5, 90m ili 2h 15m",
+    "readback": "To je {{value}}",
+    "invalid": "Upišite vrijeme kao 1:30, 1,5, 90m ili 2h 15m, najviše 100 h.",
+    "long": "To je više od radnog dana. Je li točno?",
+    "chips": "Brzi odabir",
+    "none": "Bez vremena",
+    "save": "Spremi",
+    "later": "Kasnije",
+    "saveFailed": "Spremanje nije uspjelo. Pokušajte ponovno.",
+    "loadFailed": "Vaše vrijeme nije moguće učitati.",
+    "retry": "Pokušaj ponovno",
+    "options": "Što zapisati",
+    "optionTicket": "Vrijeme za tiket",
+    "optionTicketHint": "Dodaje se satima na povezanim zadacima.",
+    "optionCovered": "Sati na povezanim zadacima to pokrivaju",
+    "optionCoveredHint": "Ništa se više ne dodaje.",
+    "linkedTasks": "Vaše vrijeme na povezanim zadacima",
+    "notFilled": "Nije upisano",
+    "mine": "Moje vrijeme",
+    "fill": "Upiši",
+    "edit": "Uredi",
+    "covered": "Pokriveno zadacima",
+    "everyone": "Vrijeme: {{list}}",
+    "units": {
+      "hours": "h",
+      "minutes": "min"
+    }
   }
 }

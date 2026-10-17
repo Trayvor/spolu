@@ -37,6 +37,9 @@ import { getActiveRoles, getUserNames, listAdmins } from '../users/service.js';
 import { canAssignTicket, canBeTicketAssignee, canReadTicket, canSplitTicket } from './policy.js';
 import { resolveRequester } from './requester.js';
 import { ticketAssignees, ticketAttachments, tickets } from './schema.js';
+import { noTimeEffect, type TimeEffect } from '../finance/task-time.js';
+import { onTicketAssigneesRemoved, onTicketMoved } from '../finance/ticket-time.js';
+import { ticketStatusTime } from './time.js';
 
 export type TicketRow = typeof tickets.$inferSelect;
 
@@ -432,12 +435,19 @@ export async function listTickets(
 // Changes
 // ---------------------------------------------------------------------------------------------
 
-/** Applies an admin's edit; says whether the status and whether other fields changed. */
+/**
+ * Applies an admin's edit; says whether the status and whether other fields changed. A status
+ * change to or from `resolved` asks or drops time in the same transaction (`ticketStatusTime`,
+ * Phase 32): `askTime` for the answer, `time` to announce after the commit.
+ */
 export async function updateTicket(
   db: Db,
   id: string,
   patch: TicketPatchBody,
-): Promise<{ ticket: TicketRow; statusChanged: boolean; fieldsChanged: boolean } | null> {
+  actor: { id: string; name: string } | null = null,
+): Promise<
+  ({ ticket: TicketRow; statusChanged: boolean; fieldsChanged: boolean } & TimeEffect) | null
+> {
   const before = await getTicketRow(db, id);
   if (!before) return null;
   const { status, ...fields } = patch;
@@ -445,18 +455,25 @@ export async function updateTicket(
   const fieldsChanged = (Object.keys(fields) as (keyof typeof fields)[]).some(
     (key) => fields[key] !== before[key],
   );
-  if (!statusChanged && !fieldsChanged) return { ticket: before, statusChanged, fieldsChanged };
+  if (!statusChanged && !fieldsChanged) {
+    return { ticket: before, statusChanged, fieldsChanged, ...noTimeEffect(before.groupId) };
+  }
   const now = new Date();
-  const [row] = await db
-    .update(tickets)
-    .set({
-      ...fields,
-      ...(statusChanged ? { status, resolvedAt: status === 'resolved' ? now : null } : {}),
-      updatedAt: now,
-    })
-    .where(eq(tickets.id, id))
-    .returning();
-  return { ticket: row!, statusChanged, fieldsChanged };
+  return db.transaction(async (tx) => {
+    const [row] = await tx
+      .update(tickets)
+      .set({
+        ...fields,
+        ...(statusChanged ? { status, resolvedAt: status === 'resolved' ? now : null } : {}),
+        updatedAt: now,
+      })
+      .where(eq(tickets.id, id))
+      .returning();
+    const effect = statusChanged
+      ? await ticketStatusTime(tx, actor, before, row!)
+      : noTimeEffect(row!.groupId);
+    return { ticket: row!, statusChanged, fieldsChanged, ...effect };
+  });
 }
 
 /**
@@ -486,6 +503,8 @@ export async function assignTicketGroup(
     const moved = row!;
     // The ticket's files (form or intake) belong to its client, like its chat's files.
     await moveFilesToGroup(tx, await attachmentIds(tx, id), groupId);
+    // Its time entries (Phase 32) belong to its client too.
+    await onTicketMoved(tx, id, groupId);
     await dropInvalidAssignees(tx, moved);
     return moved;
   });
@@ -618,13 +637,20 @@ export async function addAssignee(db: Db, ticket: TicketRow, userId: string): Pr
   });
 }
 
-/** Removes a riešiteľ. Answers whether they were one. */
+/**
+ * Removes a riešiteľ, and their unanswered time request (Phase 32; filled time stays). Answers
+ * whether they were one.
+ */
 export async function removeAssignee(db: Db, ticketId: string, userId: string): Promise<boolean> {
-  const rows = await db
-    .delete(ticketAssignees)
-    .where(and(eq(ticketAssignees.ticketId, ticketId), eq(ticketAssignees.userId, userId)))
-    .returning({ userId: ticketAssignees.userId });
-  return rows.length > 0;
+  return db.transaction(async (tx) => {
+    const rows = await tx
+      .delete(ticketAssignees)
+      .where(and(eq(ticketAssignees.ticketId, ticketId), eq(ticketAssignees.userId, userId)))
+      .returning({ userId: ticketAssignees.userId });
+    if (rows.length === 0) return false;
+    await onTicketAssigneesRemoved(tx, ticketId, [userId]);
+    return true;
+  });
 }
 
 /** After a move: the riešitelia who cannot be one in the new client (its old clients) go. */

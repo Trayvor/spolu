@@ -47,6 +47,25 @@ describe('buildPushPayload reminder', () => {
     const bad = { ...reminder, at: 'nonsense' };
     expect(buildPushPayload({ ...r, payload: bad }).body).toBe('Pripomienka na ');
   });
+  it('a finance contract reminder opens the finance tab and says when the contract ends', () => {
+    const payload = {
+      subjectKind: 'finance',
+      subjectId: 'f1',
+      groupId: 'g1',
+      title: 'Zmluva 2026',
+      at: '2026-12-01T08:00:00Z',
+      endsOn: '2026-12-31',
+    };
+    const push = buildPushPayload({ ...base, kind: 'reminder.due', payload, lang: 'en' });
+    expect(push).toMatchObject({
+      title: 'Zmluva 2026 · Firma',
+      url: '/groups/g1/finance?item=f1',
+      tag: 'finance:f1',
+    });
+    expect(push.body).toMatch(/^Contract ends on .*31.*Dec.*2026/);
+    // Never money in a push.
+    expect(JSON.stringify(push)).not.toMatch(/€|EUR/);
+  });
   it('sk body reads "Pripomienka na …"', () => {
     expect(buildPushPayload({ ...r, lang: 'sk' }).body).toMatch(/^Pripomienka na .*10:00/);
   });
@@ -340,6 +359,44 @@ describe('buildPushPayload meetings (2026-10-17)', () => {
       expect(t.meetingSummaryReady).not.toBe('');
       expect(t.meetingSummaryFailed).not.toBe('');
       expect(t.openMeeting).not.toBe('');
+    }
+  });
+});
+
+describe('buildPushPayload time requests (Phase 32)', () => {
+  it('a task time request: "<title> · <client>", "Fill in…", the task with the dialog', () => {
+    const push = buildPushPayload({
+      ...base,
+      kind: 'task.time_missing',
+      payload: task,
+      lang: 'en',
+    });
+    expect(push).toEqual({
+      title: 'Report · Firma',
+      body: 'Fill in how much time you spent',
+      url: '/groups/g1/tasks/t1?time=1',
+      tag: 'task:t1',
+    });
+  });
+  it('a ticket time request opens the ticket with the dialog', () => {
+    const push = buildPushPayload({
+      ...base,
+      kind: 'ticket.time_missing',
+      payload: { ticketId: 'k1', groupId: 'g1', number: 12, title: 'Login fails', actorName: 'J' },
+      lang: 'en',
+    });
+    expect(push).toEqual({
+      title: '#12 Login fails · Firma',
+      body: 'Fill in how much time you spent',
+      url: '/tickets/k1?time=1',
+      tag: 'ticket:k1',
+    });
+  });
+  it('every language has the texts', () => {
+    for (const lang of UserLanguages) {
+      expect(texts(lang).timeMissing).not.toBe('');
+      expect(texts(lang).timeMissingLine('X')).toContain('X');
+      expect(texts(lang).openTask).not.toBe('');
     }
   });
 });

@@ -14,7 +14,7 @@ import {
 import { KnowledgeNotFoundError } from './errors.js';
 import { meetingFor } from './meeting-access.js';
 import { actionItemsLeft, actionItemTitle, getMeetingRow, parseSummary } from './meeting-store.js';
-import { normalizeSearch } from './search.js';
+import { normalizeSearch } from '../../infra/text/search.js';
 
 // Phase 30: a meeting's action items → the task review dialog → cards on the group's board.
 

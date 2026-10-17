@@ -1,12 +1,11 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useQuery } from '@tanstack/react-query';
+import type { Visibility } from '@spolu/shared';
 import { Button } from '@/components/ui/button';
 import { PanelHeader } from '@/components/ui/panel-header';
 import { SheetDialog, SheetDialogTitle } from '@/components/ui/sheet-dialog';
 import { ApiError } from '@/lib/api';
 import { cn } from '@/lib/utils';
-import { groupFoldersQuery } from './api';
 import { descendantIds, treeRows } from './folder-tree';
 import { FolderIcon, LockIcon } from './icons';
 
@@ -14,9 +13,11 @@ import { FolderIcon, LockIcon } from './icons';
  * "Move to…": the group's folders as an indented tree under "Top level". The current place, and
  * for a folder the folder itself and everything below it, cannot be chosen. `onMove` saves; a
  * refusal shows its message here (`clientItemMessage` for 400 `invalid_visibility`).
+ * `folders` are the group's folders, undefined while they load (the caller's query: the
+ * knowledge base's or finance's), so the dialog serves both.
  */
 export function MoveDialog({
-  groupId,
+  folders,
   name,
   currentFolderId,
   movingFolderId,
@@ -24,7 +25,8 @@ export function MoveDialog({
   onMove,
   onClose,
 }: {
-  groupId: string;
+  folders:
+    { id: string; parentId: string | null; name: string; visibility?: Visibility }[] | undefined;
   /** The moved item's title or folder's name, for the heading. */
   name: string;
   currentFolderId: string | null;
@@ -34,12 +36,11 @@ export function MoveDialog({
   onClose: () => void;
 }) {
   const { t, i18n } = useTranslation();
-  const folders = useQuery(groupFoldersQuery(groupId));
   const [choice, setChoice] = useState<string | null | undefined>(undefined);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const all = folders.data ?? [];
+  const all = folders ?? [];
   const blocked = movingFolderId
     ? new Set([movingFolderId, ...descendantIds(all, movingFolderId)])
     : new Set<string>();
@@ -110,7 +111,7 @@ export function MoveDialog({
         <SheetDialogTitle className="break-words text-medium font-semibold">
           {t('knowledge.folders.moveTitle', { name })}
         </SheetDialogTitle>
-        {folders.isPending ? (
+        {folders === undefined ? (
           <p role="status" className="text-button text-muted-foreground">
             {t('knowledge.folders.loading')}
           </p>
