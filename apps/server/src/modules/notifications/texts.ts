@@ -33,3 +33,16 @@ export function formatReminderTime(iso: string | undefined | null, lang: UserLan
     minute: '2-digit',
   }).format(at);
 }
+
+/** A Bratislava calendar day (`YYYY-MM-DD`) as the team reads it, e.g. "31 Dec 2026". */
+export function formatDay(day: string | undefined | null, lang: UserLanguage): string {
+  if (!day || !/^\d{4}-\d{2}-\d{2}$/.test(day)) return '';
+  const at = new Date(`${day}T12:00:00Z`);
+  if (Number.isNaN(at.getTime())) return '';
+  return new Intl.DateTimeFormat(serverTexts(lang).intl, {
+    timeZone: 'UTC',
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  }).format(at);
+}

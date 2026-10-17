@@ -9,6 +9,7 @@ import {
   type Visibility,
 } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
+import { byName, chainTo, descendantIds } from '../../infra/tree.js';
 import { setFilesAdminsOnly } from '../files/service.js';
 import { clientGroupIds } from '../groups/memberships.js';
 import { canReadGroup } from '../groups/policy.js';
@@ -59,33 +60,6 @@ export function toFolderDto(row: FolderRow): KnowledgeFolderDto {
     visibility: row.visibility as Visibility,
     updatedAt: row.updatedAt.toISOString(),
   };
-}
-
-const collator = new Intl.Collator('sk', { sensitivity: 'base', numeric: true });
-
-/** By name (Slovak order, case-insensitive), then by id so equal names keep one order. */
-export function byName(a: { name: string; id: string }, b: { name: string; id: string }): number {
-  return collator.compare(a.name, b.name) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
-}
-
-/** The ids of every folder below `id` (not `id` itself). */
-export function descendantIds(folders: FolderRow[], id: string): Set<string> {
-  const children = new Map<string, string[]>();
-  for (const folder of folders) {
-    if (folder.parentId === null) continue;
-    const list = children.get(folder.parentId) ?? [];
-    list.push(folder.id);
-    children.set(folder.parentId, list);
-  }
-  const found = new Set<string>();
-  const stack = [...(children.get(id) ?? [])];
-  while (stack.length > 0) {
-    const next = stack.pop()!;
-    if (found.has(next)) continue;
-    found.add(next);
-    stack.push(...(children.get(next) ?? []));
-  }
-  return found;
 }
 
 /** The group check of every folder route: an unreadable group is "not found". */
@@ -343,17 +317,10 @@ export async function folderChains(
       select id, parent_id, name, visibility from up`);
     for (const row of rows) byId.set(row.id, row);
   }
-  return (id) => {
-    const path: { id: string; name: string; visibility: string }[] = [];
-    const seen = new Set<string>();
-    let at: string | null = id;
-    while (at !== null && !seen.has(at)) {
-      seen.add(at);
-      const row = byId.get(at);
-      if (!row) break;
-      path.unshift({ id: row.id, name: row.name, visibility: row.visibility });
-      at = row.parent_id;
-    }
-    return path;
-  };
+  return (id) =>
+    chainTo(byId, id, (row) => row.parent_id).map((row) => ({
+      id: row.id,
+      name: row.name,
+      visibility: row.visibility,
+    }));
 }

@@ -10,6 +10,7 @@ Terms used across the docs and code, in alphabetical order.
 - **assigned to me**: the open tasks (not in Completed) a person is one of the assignees of. Counted in yellow (the `attention` colour) on the Úlohy tab, in the admin client sidebar and on the dashboard's "Assigned to me" card.
 - **automatic reminders**: the task board's built-in reminders (Phase 6): every assignee of an open task is reminded 3, 2 and 1 days before its deadline at 09:00, and every 3 hours while it is urgent. They need no setup and cannot be turned off; compare custom reminders.
 - **finance admin**: an admin with the finance right (Phase 32), granted only by the superadmin; the superadmin always has it. Sees the Financie tab, `/finance`, finance files and the Finance notification group. A right, not a role.
+- **finance item**: a contract, document or note of one client in its Finance tab (`finance_items`, Phase 32 part B); a **contract** carries a number, an amount with its currency and a period, and may have reminders for finance admins.
 - **finance-only file**: a file uploaded through Finance (`files.finance_only`); only finance admins read it and no other module can attach or copy it.
 - **time entry** (Finance): the minutes one admin spent on one task, one ticket, or a manual entry of a finance admin; counted on its Bratislava day (`finance_time_entries`).
 - **time request**: a time entry asked for and not answered yet (minutes empty); the admin sees a "Fill in your time" row until they answer, 0 included.

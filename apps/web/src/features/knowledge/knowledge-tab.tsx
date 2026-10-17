@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useParams, useRouter, useSearch } from '@tanstack/react-router';
 import { backOr, samePath } from '@/lib/back';
 import { KnowledgeTypes, type KnowledgeCreatableType, type KnowledgeType } from '@spolu/shared';
@@ -14,6 +14,7 @@ import { useSession } from '@/features/auth/use-session';
 import { groupFoldersQuery, groupKnowledgeQuery } from './api';
 import { FolderBrowser } from './folder-browser';
 import { FolderDialog } from './folder-dialog';
+import { saveKnowledgeFolder } from './folder-save';
 import { KnowledgeDialog, type KnowledgeDialogTarget } from './knowledge-dialog';
 import { KnowledgeList } from './knowledge-list';
 import { NewItemMenu } from './new-item-menu';
@@ -98,6 +99,7 @@ function GroupKnowledge({ groupId }: { groupId: string }) {
     ...groupKnowledgeQuery(groupId, flatFilter),
     enabled: searching,
   });
+  const queryClient = useQueryClient();
   const folders = useQuery(groupFoldersQuery(groupId)).data;
   const openFolderRow = folders?.find((f) => f.id === folderId) ?? null;
   const [notice, setNotice] = useState<'item' | 'folder' | null>(null);
@@ -342,9 +344,16 @@ function GroupKnowledge({ groupId }: { groupId: string }) {
       )}
       {newFolder && (
         <FolderDialog
-          groupId={groupId}
           parent={openFolderRow}
           canChooseVisibility={canSeeAdmins}
+          save={(change) =>
+            saveKnowledgeFolder(
+              queryClient,
+              groupId,
+              { parentId: openFolderRow?.id ?? null },
+              change,
+            )
+          }
           onDone={() => setNewFolder(false)}
           onClose={() => setNewFolder(false)}
         />

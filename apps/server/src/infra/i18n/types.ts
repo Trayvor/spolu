@@ -111,6 +111,12 @@ export type ServerTexts = {
     meetingSummaryFailed: string;
     /** The digest email's button for a meeting. */
     openMeeting: string;
+    /** A finance contract's reminder (Phase 32): its push body; `date` is its last day. */
+    contractEnds(date: string): string;
+    /** The digest line of a contract's reminder. */
+    contractLine(title: string, client: string, date: string): string;
+    /** The digest email's button for a contract. */
+    openContract: string;
     /** Phase 32: a time request's push body ("Fill in how much time you spent"). */
     timeMissing: string;
     /** Its digest line: "<title>: fill in your time". */

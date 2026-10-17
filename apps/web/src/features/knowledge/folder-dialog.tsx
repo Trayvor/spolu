@@ -1,15 +1,13 @@
 import { useRef, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useQueryClient } from '@tanstack/react-query';
-import type { KnowledgeFolderDto, Visibility } from '@spolu/shared';
+import type { Visibility } from '@spolu/shared';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { PanelHeader } from '@/components/ui/panel-header';
 import { SheetDialog, SheetDialogTitle } from '@/components/ui/sheet-dialog';
 import { ApiError } from '@/lib/api';
-import { createFolder, groupFoldersQuery, updateFolder } from './api';
-import { VisibilityControl } from './knowledge-form';
+import { VisibilityControl } from './visibility-control';
 
 const NAME_MAX = 100;
 
@@ -21,27 +19,32 @@ export function folderError(error: unknown, t: (key: string) => string, fallback
   return t(fallback);
 }
 
+/** A folder as the dialog edits it; `visibility` only for knowledge folders. */
+export type FolderDialogFolder = { id: string; name: string; visibility?: Visibility };
+
 /**
  * Create a folder in `parent` (null: the top level), or edit `folder` (name, and for admins who
  * may see both, "Visible to"). Inside an admins-only folder the choice is locked to "Only eGrant".
+ * `save` writes it (the knowledge base: `saveKnowledgeFolder`; finance: its own folder routes)
+ * with the changed fields only; it rejects with the `ApiError` of a refusal.
  */
 export function FolderDialog({
-  groupId,
   folder,
   parent,
   canChooseVisibility,
+  save,
   onDone,
   onClose,
 }: {
-  groupId: string;
-  folder?: KnowledgeFolderDto;
-  parent: KnowledgeFolderDto | null;
+  folder?: FolderDialogFolder;
+  parent: { visibility?: Visibility } | null;
   canChooseVisibility: boolean;
-  onDone: (folder: KnowledgeFolderDto) => void;
+  /** Finance folders have no visibility: their `save` ignores it. */
+  save: (change: { name?: string; visibility?: Visibility }) => Promise<unknown>;
+  onDone: () => void;
   onClose: () => void;
 }) {
   const { t } = useTranslation();
-  const client = useQueryClient();
   const inAdmins = parent?.visibility === 'admins';
   const [name, setName] = useState(folder?.name ?? '');
   const [visibility, setVisibility] = useState<Visibility>(folder?.visibility ?? 'public');
@@ -55,22 +58,22 @@ export function FolderDialog({
     const trimmed = name.trim();
     if (!trimmed) return setError(t('knowledge.folders.nameRequired'));
     if (trimmed.length > NAME_MAX) return setError(t('knowledge.folders.nameTooLong'));
-    if (folder && trimmed === folder.name && visibility === folder.visibility) return onClose();
+    const sameVisibility = folder?.visibility === undefined || visibility === folder.visibility;
+    if (folder && trimmed === folder.name && sameVisibility) return onClose();
     setBusy(true);
     setError(null);
     try {
-      const saved = folder
-        ? await updateFolder(folder.id, {
-            ...(trimmed !== folder.name ? { name: trimmed } : {}),
-            ...(visibility !== folder.visibility ? { visibility } : {}),
-          })
-        : await createFolder(groupId, {
-            name: trimmed,
-            parentId: parent?.id ?? null,
-            visibility: inAdmins ? 'admins' : visibility,
-          });
-      void client.invalidateQueries({ queryKey: groupFoldersQuery(groupId).queryKey });
-      onDone(saved);
+      await save(
+        folder
+          ? {
+              ...(trimmed !== folder.name ? { name: trimmed } : {}),
+              ...(folder.visibility !== undefined && visibility !== folder.visibility
+                ? { visibility }
+                : {}),
+            }
+          : { name: trimmed, visibility: inAdmins ? 'admins' : visibility },
+      );
+      onDone();
     } catch (caught) {
       setError(folderError(caught, t, 'knowledge.folders.saveFailed'));
       setBusy(false);

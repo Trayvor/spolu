@@ -16,7 +16,7 @@ import {
   activeMemberIdsSql,
   hasActiveRoleSql,
 } from '../groups/memberships.js';
-import { escapeLike } from '../knowledge/search.js';
+import { escapeLike } from '../../infra/text/search.js';
 import { InvalidCursorError } from './errors.js';
 
 /**

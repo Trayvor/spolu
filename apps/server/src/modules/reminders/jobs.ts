@@ -92,6 +92,7 @@ export async function fireBatch(
       groupId: reminderSets.groupId,
       knowledge: reminderSets.knowledgeItemId,
       task: reminderSets.taskId,
+      finance: reminderSets.financeItemId,
     })
     .from(reminderSets)
     .where(inArray(reminderSets.id, [...new Set(times.map((t) => t.setId))]));
@@ -100,6 +101,9 @@ export async function fireBatch(
     if (s.knowledge)
       subjectOf.set(s.id, { kind: 'knowledge', id: s.knowledge, groupId: s.groupId });
     else if (s.task) subjectOf.set(s.id, { kind: 'task', id: s.task, groupId: s.groupId });
+    else if (s.finance) {
+      subjectOf.set(s.id, { kind: 'finance', id: s.finance, groupId: s.groupId });
+    }
   }
   const subjects = new Map<ReminderSubjectKind, Map<string, SubjectInfo>>();
   for (const subject of listReminderSubjects()) {
@@ -119,8 +123,20 @@ export async function fireBatch(
         .from(reminderRecipients)
         .innerJoin(user, eq(user.id, reminderRecipients.userId))
         .where(inArray(reminderRecipients.setId, [...subjectOf.keys()]));
+  // An adapter's own recipient rule (finance admins only, Phase 32): one query per such kind.
+  const allowedOf = new Map<ReminderSubjectKind, Set<string>>();
+  for (const subject of listReminderSubjects()) {
+    if (!subject.filterRecipients) continue;
+    const sets = new Set(
+      [...subjectOf].filter(([, ref]) => ref.kind === subject.kind).map(([setId]) => setId),
+    );
+    const ids = recipientRows.filter((r) => sets.has(r.setId)).map((r) => r.userId);
+    allowedOf.set(subject.kind, await subject.filterRecipients(tx, [...new Set(ids)]));
+  }
   const recipientsOf = new Map<string, { userId: string; isAdmin: boolean }[]>();
   for (const r of recipientRows) {
+    const allowed = allowedOf.get(subjectOf.get(r.setId)!.kind);
+    if (allowed && !allowed.has(r.userId)) continue;
     const list = recipientsOf.get(r.setId) ?? [];
     list.push({ userId: r.userId, isAdmin: r.role === 'admin' || r.role === 'superadmin' });
     recipientsOf.set(r.setId, list);
@@ -144,6 +160,7 @@ export async function fireBatch(
       // The task title lookup of the delivery shows the current title.
       ...(ref.kind === 'task' ? { taskId: ref.id } : {}),
       ...(info.meeting ? { meeting: true as const } : {}),
+      ...(info.endsOn ? { endsOn: info.endsOn } : {}),
     };
     due.push({
       timeId: time.id,

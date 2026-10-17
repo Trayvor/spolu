@@ -63,6 +63,9 @@ function sample(t: ServerTexts): string[] {
     n.meetingSummaryReady,
     n.meetingSummaryFailed,
     n.openMeeting,
+    n.contractEnds('31 Dec 2026'),
+    n.contractLine('Zmluva 1', 'Firma', '31 Dec 2026'),
+    n.openContract,
   ];
 }
 

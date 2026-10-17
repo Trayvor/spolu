@@ -62,6 +62,8 @@ export type ReminderDuePayload = {
   taskId?: string;
   /** Set for a meeting's reminder (2026-10-17): it belongs to the `meetings` notification group. */
   meeting?: true;
+  /** A finance contract's last day, `YYYY-MM-DD` (Phase 32): "ends on …" in the texts. */
+  endsOn?: string;
 };
 
 /** One of a user's next reminders across groups (the Phase 20 dashboard card). */
@@ -71,7 +73,10 @@ export type UpcomingReminder = {
   title: string;
   groupId: string;
   groupName: string;
-  target: { kind: 'knowledge'; itemId: string } | { kind: 'task'; taskId: string };
+  target:
+    | { kind: 'knowledge'; itemId: string }
+    | { kind: 'task'; taskId: string }
+    | { kind: 'finance'; itemId: string };
 };
 
 /** Socket events of the reminders module, to the group room after a write or a firing commits. */
