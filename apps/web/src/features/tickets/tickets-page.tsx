@@ -182,7 +182,10 @@ function WatchCheckbox({ groupId }: { groupId: string }) {
   const { t } = useTranslation();
   const watch = useQuery(ticketWatchQuery(groupId));
   const save = useSetTicketWatch(groupId);
-  const checked = save.isPending ? save.variables : (watch.data?.watching ?? false);
+  // Set in the click's own render: the mutation's pending state lands a render later, so without
+  // it the controlled box would snap back for a moment.
+  const [picked, setPicked] = useState<boolean | null>(null);
+  const checked = picked ?? watch.data?.watching ?? false;
   return (
     <div className="flex flex-col gap-0.5 min-[641px]:items-end">
       <label className="inline-flex min-h-8 items-center gap-2 px-1 text-tiny font-semibold">
@@ -192,7 +195,11 @@ function WatchCheckbox({ groupId }: { groupId: string }) {
           checked={checked}
           disabled={!watch.data || save.isPending}
           aria-describedby={`watch-hint-${groupId}`}
-          onChange={(event) => save.mutate(event.target.checked)}
+          onChange={(event) => {
+            const next = event.target.checked;
+            setPicked(next);
+            save.mutate(next, { onSettled: () => setPicked(null) });
+          }}
         />
         {t('tickets.watch.label')}
       </label>

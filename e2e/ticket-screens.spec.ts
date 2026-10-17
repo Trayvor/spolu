@@ -175,7 +175,8 @@ test('an admin picks a riešiteľ, filters by it and watches the client tickets'
 
   // The group list shows the riešiteľ; the riešiteľ filter narrows the list.
   await page.goto(`${groupPath}/tickets`);
-  const row = page.getByRole('link', { name: new RegExp(`Riešiteľ ${stamp}`) });
+  // By href: the group header's instance link also carries the stamp.
+  const row = page.locator(`a[href="/tickets/${id}"]`);
   await expect(row).toContainText(`Riešitelia: ${me.name}`);
   await page.getByRole('button', { name: 'Riešiteľ: Ktokoľvek' }).click();
   await page.getByRole('menuitemradio', { name: 'Nikto' }).click();
