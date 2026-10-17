@@ -102,6 +102,12 @@ test('admin home: dashboard, header counts, sidebar, Úlohy and global board', a
 
     // The header counts: N's one open task; the tickets include G1's (others may have none).
     const header = n.getByRole('banner');
+    // N's own count is read from the API (it counts only N's assignments, whatever other specs
+    // create in the shared database); the pill must show that number.
+    const myOpenTasks = async () =>
+      ((await (await nContext.request.get('/api/me/home/counts')).json()) as { tasks: number })
+        .tasks;
+    await expect.poll(myOpenTasks).toBe(1);
     await expect(header.getByTestId('nav-count-tasks')).toContainText(
       '1 otvorená úloha priradená vám',
     );
@@ -112,8 +118,10 @@ test('admin home: dashboard, header counts, sidebar, Úlohy and global board', a
       data: { title: `Druhá úloha ${stamp}`, assigneeIds: [nId] },
     });
     expect(second.status()).toBe(201);
+    await expect.poll(myOpenTasks).toBe(2);
     await expect(header.getByTestId('nav-count-tasks')).toContainText(
       '2 otvorené úlohy priradené vám',
+      { timeout: 15_000 }, // the pill refetches after a 2 s debounce on the socket event
     );
     const resolved = await nContext.request.patch(`/api/tickets/${ticketId}`, {
       data: { status: 'resolved' },
