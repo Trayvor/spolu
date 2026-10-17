@@ -30,6 +30,8 @@ function mockApi(me: Me | null, patchStatus = 200) {
       if (url === '/api/me' && init?.method === 'PATCH') {
         const body = JSON.parse(String(init.body)) as { name: string };
         patches.push(body);
+        // A saved name stays saved: a later GET /me (a refetch after the redirect) returns it.
+        if (me && patchStatus === 200) me = { ...me, name: body.name };
         return new Response(JSON.stringify({ ...me, name: body.name }), { status: patchStatus });
       }
       if (url === '/api/me') {
