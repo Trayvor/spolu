@@ -35,6 +35,45 @@ require_cmd() {
   done
 }
 
+# run_parallel <name> <command> [<name> <command>...]: runs every command at the same time (each
+# with bash -c), then prints each one's output in the given order, under its name, with its result
+# and seconds. Output is buffered per step, so the steps never interleave. Returns 1 when any
+# command failed (after all have finished and printed), 0 otherwise.
+run_parallel() {
+  (( $# > 0 && $# % 2 == 0 )) || { echo "run_parallel: expects <name> <command> pairs" >&2; return 2; }
+  local dir names=() pids=() i rc=0 status secs
+  dir="$(mktemp -d)"
+  i=0
+  while (( $# > 0 )); do
+    names+=("$1")
+    (
+      start=$SECONDS
+      bash -c "$2" >"$dir/$i.out" 2>&1
+      echo "$? $((SECONDS - start))" >"$dir/$i.status"
+    ) &
+    pids+=("$!")
+    shift 2
+    i=$((i + 1))
+  done
+  for i in "${!pids[@]}"; do
+    wait "${pids[$i]}" || true
+  done
+  for i in "${!names[@]}"; do
+    status=1 secs='?'
+    [[ -s "$dir/$i.status" ]] && read -r status secs <"$dir/$i.status"
+    log "${names[$i]}"
+    cat "$dir/$i.out"
+    if [[ "$status" -eq 0 ]]; then
+      log "${names[$i]}: ok (${secs} s)"
+    else
+      log "${names[$i]}: FAILED with exit $status (${secs} s)"
+      rc=1
+    fi
+  done
+  rm -rf "$dir"
+  return "$rc"
+}
+
 # deploy_env <env file>: prints the env file for the server. DOMAIN and PUBLIC_URL come from the
 # DOMAIN variable (so a domain change is one GitHub variable), REDIRECT_DOMAINS from its own
 # optional variable (empty when unset), and a non-empty TICKETS_API_KEY (its own GitHub secret)

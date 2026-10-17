@@ -45,14 +45,12 @@ else
 fi
 "${compose[@]}" up -d --wait
 
-log "Lint"
-pnpm lint
-
-log "Format check"
-pnpm exec prettier --check .
-
-log "Typecheck"
-pnpm typecheck
+# Independent static checks run at the same time; each one's output is printed whole, in order.
+log "Lint, format check and typecheck (in parallel)"
+run_parallel \
+  "Lint" "pnpm lint" \
+  "Format check" "pnpm exec prettier --check ." \
+  "Typecheck" "pnpm typecheck"
 
 log "Unit and integration tests"
 pnpm test
