@@ -48,7 +48,11 @@ test.describe.serial('finance: documents and contracts (B)', () => {
       mimeType: 'application/pdf',
       buffer: Buffer.from('%PDF-1.4\n12 000 EUR\n'),
     });
-    await expect(sheet.getByText(`zmluva-${stamp}.pdf`)).toBeVisible();
+    // Wait for the finished upload (the attached file's link), not for the name: the
+    // "Nahráva sa <name>" status shows it too, and Create before the upload ends saves no file.
+    await expect(
+      sheet.getByRole('link', { name: new RegExp(`zmluva-${stamp}\\.pdf`) }),
+    ).toBeVisible();
     await sheet.getByRole('button', { name: 'Vytvoriť' }).click();
 
     // The saved contract opens, with its amount, period and reminder.
