@@ -7,5 +7,6 @@ import type { AnyRouter } from '@tanstack/react-router';
 export function redirectToLogin(router: AnyRouter): Promise<void> {
   const { pathname, href } = router.state.location;
   if (pathname === '/login') return Promise.resolve();
-  return router.navigate({ to: '/login', search: { redirect: href } });
+  // In place of the page that needs a session, which would only send Back here again.
+  return router.navigate({ to: '/login', search: { redirect: href }, replace: true });
 }

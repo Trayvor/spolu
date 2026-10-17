@@ -11,10 +11,29 @@ export type CardTarget = {
   search?: Record<string, unknown>;
 };
 
-export type CardRow = { key: string; to: CardTarget; content: ReactNode; tall?: boolean };
+export type CardRow = {
+  key: string;
+  to: CardTarget;
+  content: ReactNode;
+  tall?: boolean;
+  /** The phone sheet's group heading (rows of one group come together). */
+  group?: string;
+  /** The phone sheet's richer row (two lines with the key details); `content` otherwise. */
+  detail?: ReactNode;
+};
+
+/** Which card: also the `?card=` value that opens its phone sheet. */
+export type CardId = 'tickets' | 'tasks' | 'reminders' | 'mentions';
 
 export type CountCardProps = {
+  id: CardId;
   title: string;
+  /** The phone sheet: one sentence on what the list holds. */
+  description?: string;
+  /** The phone sheet: a link to the full list, always shown (unlike `showAll`). */
+  openAll?: { label: string; to: CardTarget };
+  /** The phone sheet's rows when they are ordered differently from the card's. */
+  sheetRows?: CardRow[];
   count: number;
   caption: string;
   subline?: ReactNode;
@@ -132,7 +151,17 @@ export function CountFigure({
  * list, whose every row is one link to its item. Loading shows three grey rows; an error shows
  * "Could not load this. Try again." in this card only.
  */
-export function CountCard({ title, count, caption, subline, state, ...list }: CountCardProps) {
+export function CountCard({
+  title,
+  count,
+  caption,
+  subline,
+  state,
+  rows,
+  empty,
+  showAll,
+  onRetry,
+}: CountCardProps) {
   const titleId = useId();
   return (
     <section aria-labelledby={titleId} className="flex flex-col gap-4 rounded-xl bg-card p-5">
@@ -145,7 +174,7 @@ export function CountCard({ title, count, caption, subline, state, ...list }: Co
         ) : (
           <span aria-hidden="true" className="h-9 w-12 animate-skeleton rounded-lg bg-secondary" />
         )}
-        <CardList state={state} {...list} />
+        <CardList state={state} rows={rows} empty={empty} showAll={showAll} onRetry={onRetry} />
       </div>
     </section>
   );

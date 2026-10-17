@@ -102,5 +102,34 @@
     "tasks_other": "{{count}} Teile määratud avatud ülesannet",
     "tickets_one": "{{count}} avatud pöördumine Teile lahendada",
     "tickets_other": "{{count}} avatud pöördumist Teile lahendada"
+  },
+  "sheet": {
+    "tickets": {
+      "description": "Avatud pöördumised, mis ootavad sind: need, mille lahendaja oled, jälgitavate klientide määramata pöördumised ja kliendita pöördumised.",
+      "openAll": "Ava kõik pöördumised",
+      "noAssignee": "Lahendajata"
+    },
+    "tasks": {
+      "description": "Sinu avatud ülesanded kõigi klientide juures tähtaja järgi. Kiireloomulised on igas rühmas esimesed.",
+      "openAll": "Ava kõik minu ülesanded"
+    },
+    "reminders": {
+      "description": "Ülesannete ja teadmusbaasi kirjete meeldetuletused järgmise 7 päeva jooksul."
+    },
+    "mentions": {
+      "description": "Sõnumid, milles sind mainiti ja mida sa pole veel lugenud."
+    },
+    "groups": {
+      "overdue": "Hilinenud",
+      "today": "Täna",
+      "week": "Sel nädalal",
+      "later": "Hiljem",
+      "noDate": "Tähtajata",
+      "new": "Uued",
+      "inProgress": "Töös",
+      "yesterday": "Eile",
+      "earlier": "Varem",
+      "tomorrow": "Homme"
+    }
   }
 }

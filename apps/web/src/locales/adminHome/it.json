@@ -110,5 +110,34 @@
     "tickets_one": "{{count}} ticket aperto da gestire",
     "tickets_many": "{{count}} ticket aperti da gestire",
     "tickets_other": "{{count}} ticket aperti da gestire"
+  },
+  "sheet": {
+    "tickets": {
+      "description": "Ticket aperti che ti aspettano: quelli che gestisci, quelli non assegnati dei clienti che segui e quelli senza cliente.",
+      "openAll": "Apri tutti i ticket",
+      "noAssignee": "Senza assegnatario"
+    },
+    "tasks": {
+      "description": "Le tue attività aperte presso tutti i clienti, per scadenza. Le urgenti sono prime in ogni gruppo.",
+      "openAll": "Apri tutte le mie attività"
+    },
+    "reminders": {
+      "description": "Promemoria su attività e voci della knowledge base nei prossimi 7 giorni."
+    },
+    "mentions": {
+      "description": "Messaggi in cui sei menzionato e che non hai ancora letto."
+    },
+    "groups": {
+      "overdue": "Scadute",
+      "today": "Oggi",
+      "week": "Questa settimana",
+      "later": "Più avanti",
+      "noDate": "Senza scadenza",
+      "new": "Nuovi",
+      "inProgress": "In corso",
+      "yesterday": "Ieri",
+      "earlier": "Prima",
+      "tomorrow": "Domani"
+    }
   }
 }

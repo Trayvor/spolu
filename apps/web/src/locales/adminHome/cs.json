@@ -118,5 +118,34 @@
     "tickets_few": "{{count}} otevřené tikety k řešení",
     "tickets_many": "{{count}} otevřeného tiketu k řešení",
     "tickets_other": "{{count}} otevřených tiketů k řešení"
+  },
+  "sheet": {
+    "tickets": {
+      "description": "Otevřené tikety, které čekají na vás: ty, které řešíte, nepřidělené tikety klientů, které sledujete, a tikety bez klienta.",
+      "openAll": "Otevřít všechny tikety",
+      "noAssignee": "Bez řešitele"
+    },
+    "tasks": {
+      "description": "Vaše otevřené úkoly u všech klientů podle termínu. Urgentní jsou v každé skupině první.",
+      "openAll": "Otevřít všechny moje úkoly"
+    },
+    "reminders": {
+      "description": "Připomínky k úkolům a položkám znalostí na příštích 7 dní."
+    },
+    "mentions": {
+      "description": "Zprávy, ve kterých vás někdo zmínil a které jste ještě nečetli."
+    },
+    "groups": {
+      "overdue": "Po termínu",
+      "today": "Dnes",
+      "week": "Tento týden",
+      "later": "Později",
+      "noDate": "Bez termínu",
+      "new": "Nové",
+      "inProgress": "Řeší se",
+      "yesterday": "Včera",
+      "earlier": "Dříve",
+      "tomorrow": "Zítra"
+    }
   }
 }

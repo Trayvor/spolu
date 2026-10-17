@@ -23,7 +23,10 @@
     "delete": "Delete draft",
     "deleteConfirm": "Delete this draft? It cannot be restored.",
     "deleteYes": "Delete",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "unsaved": "Your latest changes are not saved. Leave this email anyway?",
+    "stay": "Stay",
+    "leave": "Leave"
   },
   "save": {
     "saved": "All changes saved",

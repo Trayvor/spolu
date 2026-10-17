@@ -25,6 +25,17 @@ Performance comes before decoration (see `docs/product/non-functional.md`). Repl
 
 When invoking `frontend-design`, pass this constraint with the request.
 
+## Navigation and Back
+
+Back (the browser button, Android's Back, the iOS swipe) and every in-app "Back", "Close" and "Done" follow the same rules, so Back always goes one step towards where the person came from:
+
+- **Opening is a step, switching is not.** Opening a ticket, a task, a knowledge item or folder, a chat thread, a bulk email or a phone tile's list pushes a history entry. Switching group tabs, a task panel's tabs, filters and search text replace the entry.
+- **Closing goes back.** "Close", "Back" and "Done" of something opened go one step back when the entry before is the app's own and the same screen without it (`backOr` in `lib/back.ts`; the router records each entry this tab shows), so Back never reopens what was just closed. Opened from a link from outside (an email, a notification, a reload), closing replaces the entry with the parent screen instead (the board, the list, the folder). A closed task panel returns to wherever the task was opened from (the board, home, a ticket, a chat).
+- **Back closes the open layer first.** A sheet or dialog (`SheetDialog`, the phone section menu's `BottomSheet`, the message `ActionSheet`) gets a history entry of its own while open (`useBackCloses` in `lib/use-back-closes.ts`: the same URL with `state.layer`), so Back closes it and stays on the page; a layer closed in the app removes that entry again. Layers whose open state is in the URL (a home tile's `?card=`, a knowledge item's `?k=`) are already a step and opt out (`urlOwned`). Links inside a layer replace its entry (the section menu), and so does the page a form opens after a submit (a new ticket).
+- **Unsaved work asks first.** Back with unsaved changes asks before leaving, with the same question as the screen's own Close: the task panel, a knowledge item being edited, and the bulk email editor when its changes cannot be saved (invalid or failed). Closing the tab asks too.
+- **No Back into a redirect.** Sign-in, the name step, sign-out, a 401 and accepting an invitation replace their entry, so Back never shows the login page, the name step or the invitation again (the route guards' own redirects always replace). `/t` replaces itself. A deleted bulk email draft is replaced by the list.
+- **Scroll comes back.** The router restores the page's scroll position on Back and Forward (`scrollRestoration`); opening and closing a layer never scrolls the page.
+
 ## Tokens
 
 - [tokens.md](tokens.md) — every token with its value, where it was observed on egrant.sk and its shadcn variable; component notes (button, input, card, link, header); what was simplified for performance.

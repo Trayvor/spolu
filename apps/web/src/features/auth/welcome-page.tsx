@@ -41,7 +41,8 @@ export function WelcomePage({ redirectTo }: { redirectTo: string }) {
       const me = await updateName(trimmed);
       // The guard reads the cached session: store the named user before navigating.
       queryClient.setQueryData(sessionQuery.queryKey, me);
-      router.history.push(redirectTo);
+      // In place of the name step: Back from there must not show it again.
+      router.history.replace(redirectTo);
     } catch {
       setFormError(t('errors.generic'));
       setBusy(false);

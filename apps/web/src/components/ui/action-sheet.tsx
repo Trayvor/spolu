@@ -1,5 +1,6 @@
 import { useEffect, useRef, type ReactNode, type TouchEvent } from 'react';
 import { createPortal } from 'react-dom';
+import { useBackCloses } from '@/lib/use-back-closes';
 import { useScrollLock } from '@/lib/use-scroll-lock';
 import { cn } from '@/lib/utils';
 
@@ -11,7 +12,7 @@ const SWIPE_CLOSE = 64;
  * full-width rows (`ActionSheetItem`). Closes on a tap outside, Escape, or a downward swipe.
  * The page behind does not scroll while it is open (the task panel's `useScrollLock`). It rises
  * from the bottom edge over a fading backdrop (`animate-sheet-in`, `animate-fade-in`; none under
- * reduced motion) and goes at once on close. The caller puts the focus back where it came from.
+ * reduced motion) and goes at once on close. Back closes it too (`useBackCloses`). The caller puts the focus back where it came from.
  */
 export function ActionSheet({
   open,
@@ -27,6 +28,8 @@ export function ActionSheet({
   const panel = useRef<HTMLDivElement>(null);
   const startY = useRef<number | null>(null);
   useScrollLock(open);
+  // Back closes the sheet, not the page.
+  useBackCloses(open, onClose);
 
   useEffect(() => {
     if (!open) return;

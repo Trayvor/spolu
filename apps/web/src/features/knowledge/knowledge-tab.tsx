@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
-import { useParams, useSearch } from '@tanstack/react-router';
+import { useParams, useRouter, useSearch } from '@tanstack/react-router';
+import { backOr, samePath } from '@/lib/back';
 import { KnowledgeTypes, type KnowledgeCreatableType, type KnowledgeType } from '@spolu/shared';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -186,17 +187,24 @@ function GroupKnowledge({ groupId }: { groupId: string }) {
       { replace: false },
     );
   };
+  const router = useRouter();
+  // A new item, once saved, stays open under its id. Closing goes back to the list it was opened
+  // from (Back does not reopen it); opened from a link from outside, it replaces itself.
   const close = useCallback(
-    (createdId?: string) =>
-      updateSearch(
-        (s) => {
-          delete s.kind;
-          if (createdId) s.k = createdId;
-          else delete s.k;
-        },
-        { replace: true },
-      ),
-    [updateSearch],
+    (createdId?: string) => {
+      const drop = () =>
+        updateSearch(
+          (s) => {
+            delete s.kind;
+            if (createdId) s.k = createdId;
+            else delete s.k;
+          },
+          { replace: true },
+        );
+      if (createdId) drop();
+      else backOr(router, drop, samePath(router, ['k']));
+    },
+    [updateSearch, router],
   );
   const unavailable = useCallback(() => {
     setNotice('item');

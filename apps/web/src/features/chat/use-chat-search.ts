@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
-import { useLocation } from '@tanstack/react-router';
+import { useLocation, useRouter } from '@tanstack/react-router';
+import { backOr, samePath } from '@/lib/back';
 import { useUpdateSearch } from '@/lib/use-update-search';
 
 /** The chat's own search params: the open thread, the message to show and their channel. */
@@ -35,19 +36,27 @@ export function useChatSearch(channelId: string | undefined) {
     [updateSearch],
   );
 
-  /** Opening or closing a thread is a history step, so Back closes it again. */
+  const router = useRouter();
+  /**
+   * Opening a thread is a history step, so Back closes it again. Closing it goes back to that
+   * step when it is this same screen (so Back does not reopen it), else drops the param in place.
+   */
   const setThread = useCallback(
-    (id?: string) =>
-      update((next) => {
-        if (next.c !== channelId) {
-          // The params of another chat give way.
-          delete next.thread;
-          delete next.message;
-        }
-        if (id === undefined) delete next.thread;
-        else Object.assign(next, { thread: id, c: channelId } satisfies ChatSearch);
-      }, false),
-    [update, channelId],
+    (id?: string) => {
+      const apply = (replace: boolean) =>
+        update((next) => {
+          if (next.c !== channelId) {
+            // The params of another chat give way.
+            delete next.thread;
+            delete next.message;
+          }
+          if (id === undefined) delete next.thread;
+          else Object.assign(next, { thread: id, c: channelId } satisfies ChatSearch);
+        }, replace);
+      if (id !== undefined) apply(false);
+      else backOr(router, () => apply(true), samePath(router, ['thread']));
+    },
+    [update, channelId, router],
   );
 
   /** After the message was shown; replaces the entry so Back does not show it again. */

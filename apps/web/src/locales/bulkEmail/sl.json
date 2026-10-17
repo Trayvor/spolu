@@ -23,7 +23,10 @@
     "delete": "Izbriši osnutek",
     "deleteConfirm": "Želite izbrisati ta osnutek? Obnoviti ga ne bo mogoče.",
     "deleteYes": "Izbriši",
-    "cancel": "Prekliči"
+    "cancel": "Prekliči",
+    "unsaved": "Zadnje spremembe niso shranjene. Vseeno zapustim e-pošto?",
+    "stay": "Ostani",
+    "leave": "Zapusti"
   },
   "save": {
     "saved": "Vse spremembe so shranjene",

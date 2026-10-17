@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { useQuery, type UseQueryResult } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import type { AssignedTask, HomeReminder, HomeTicket, MentionItem } from '@spolu/shared';
@@ -11,6 +12,50 @@ const stateOf = (query: UseQueryResult<unknown>): CountCardProps['state'] =>
   query.isPending ? 'loading' : query.isError ? 'error' : 'ready';
 
 const locale = (language: string) => (/^en\b/.test(language) ? 'en-GB' : language);
+
+/** `YYYY-MM-DD` plus `days` (calendar days; the strings are Bratislava dates). */
+export function addDays(day: string, days: number): string {
+  const date = new Date(`${day}T12:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+/** The phone sheet's task groups, in this order. */
+export type TaskGroup = 'overdue' | 'today' | 'week' | 'later' | 'noDate';
+export const TASK_GROUPS: TaskGroup[] = ['overdue', 'today', 'week', 'later', 'noDate'];
+
+export function taskGroup(dueDate: string | null, today: string): TaskGroup {
+  if (dueDate === null) return 'noDate';
+  if (dueDate < today) return 'overdue';
+  if (dueDate === today) return 'today';
+  return dueDate <= addDays(today, 6) ? 'week' : 'later';
+}
+
+/** The phone sheet's day groups of mentions (past) and reminders (coming). */
+export function dayGroup(
+  iso: string,
+  today: string,
+): 'earlier' | 'yesterday' | 'today' | 'tomorrow' | 'later' {
+  const day = todayInBratislava(new Date(iso));
+  if (day === today) return 'today';
+  if (day < today) return day === addDays(today, -1) ? 'yesterday' : 'earlier';
+  return day === addDays(today, 1) ? 'tomorrow' : 'later';
+}
+
+/** A second, muted line of details, joined by a middle dot. */
+function MetaLine({ parts }: { parts: ReactNode[] }) {
+  const shown = parts.filter(Boolean);
+  return (
+    <span className="flex min-w-0 flex-wrap items-center gap-x-1.5 text-micro text-muted-foreground">
+      {shown.map((part, i) => (
+        <span key={i} className="flex min-w-0 items-center gap-1.5">
+          {i > 0 && <span aria-hidden="true">·</span>}
+          {part}
+        </span>
+      ))}
+    </span>
+  );
+}
 
 const taskTarget = (groupId: string, taskId: string): CardTarget => ({
   to: '/groups/$groupId/tasks/$taskId',
@@ -77,13 +122,52 @@ function AssignedRow({ task, today }: { task: AssignedTask; today: string }) {
   );
 }
 
+function AssignedDetail({ task, today }: { task: AssignedTask; today: string }) {
+  const { t, i18n } = useTranslation();
+  const overdue = isOverdue(task.dueDate, task.bucketKind, today);
+  return (
+    <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+      <span className="flex min-w-0 items-center gap-2">
+        {task.urgent && <Badge variant="destructive">{t('adminHome.cards.urgent')}</Badge>}
+        <span className="line-clamp-2 text-button font-semibold">{task.title}</span>
+      </span>
+      <MetaLine
+        parts={[
+          <span key="client" className="truncate">
+            {task.groupName}
+          </span>,
+          <span key="due" className={cn('tabular-nums', overdue && 'font-semibold text-error-ink')}>
+            {task.dueDate === null
+              ? t('adminHome.cards.assigned.noDate')
+              : formatDue(task.dueDate, i18n.language)}
+          </span>,
+        ]}
+      />
+    </span>
+  );
+}
+
 export function useAssignedCard(): CountCardProps {
   const { t } = useTranslation();
   const query = useQuery(assignedQuery);
   const today = todayInBratislava();
   const data = query.data;
+  const rows = (data?.items ?? []).map((task) => ({
+    key: task.id,
+    to: taskTarget(task.groupId, task.id),
+    content: <AssignedRow task={task} today={today} />,
+    group: t(`adminHome.sheet.groups.${taskGroup(task.dueDate, today)}`),
+    detail: <AssignedDetail task={task} today={today} />,
+    rank: TASK_GROUPS.indexOf(taskGroup(task.dueDate, today)),
+  }));
   return {
+    id: 'tasks',
     title: t('adminHome.cards.assigned.title'),
+    description: t('adminHome.sheet.tasks.description'),
+    openAll: {
+      label: t('adminHome.sheet.tasks.openAll'),
+      to: { to: '/tasks', search: { assignee: 'me', clients: 'all' } },
+    },
     count: data?.total ?? 0,
     caption: t('adminHome.cards.assigned.caption'),
     subline: (
@@ -94,11 +178,10 @@ export function useAssignedCard(): CountCardProps {
         {t('adminHome.cards.assigned.urgent', { count: data?.urgent ?? 0 })}
       </span>
     ),
-    rows: (data?.items ?? []).map((task) => ({
-      key: task.id,
-      to: taskTarget(task.groupId, task.id),
-      content: <AssignedRow task={task} today={today} />,
-    })),
+    rows,
+    // The server sends urgent first, then soonest; the sheet groups by due date (stable sort, so
+    // urgent stays first in each group).
+    sheetRows: [...rows].sort((a, b) => a.rank - b.rank),
     empty: t('adminHome.cards.assigned.empty'),
     showAll:
       data && data.total > data.items.length
@@ -145,6 +228,43 @@ function TicketRow({ ticket, today }: { ticket: HomeTicket; today: string }) {
   );
 }
 
+function TicketDetail({ ticket, today }: { ticket: HomeTicket; today: string }) {
+  const { t, i18n } = useTranslation();
+  const overdue = ticket.dueDate !== null && ticket.dueDate < today;
+  return (
+    <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+      <span className="flex min-w-0 items-baseline gap-2">
+        <span className="shrink-0 text-micro text-muted-foreground tabular-nums">
+          #{ticket.number}
+        </span>
+        <span className="line-clamp-2 text-button font-semibold">
+          {ticket.subject ?? ticket.excerpt ?? ''}
+        </span>
+      </span>
+      <MetaLine
+        parts={[
+          <span key="client" className="truncate">
+            {ticket.groupName ?? t('adminHome.cards.tickets.noClient')}
+          </span>,
+          ticket.dueDate !== null && (
+            <span
+              key="due"
+              className={cn('tabular-nums', overdue && 'font-semibold text-error-ink')}
+            >
+              {formatDue(ticket.dueDate, i18n.language)}
+            </span>
+          ),
+          !ticket.hasAssignee && (
+            <span key="assignee" className="font-semibold text-foreground">
+              {t('adminHome.sheet.tickets.noAssignee')}
+            </span>
+          ),
+        ]}
+      />
+    </span>
+  );
+}
+
 /**
  * The Tickets card: the active tickets (New, In progress) I am a riešiteľ of, those without a
  * riešiteľ of the clients whose tickets I watch, and those without a client; New first, each
@@ -156,7 +276,10 @@ export function useTicketsCard(): CountCardProps {
   const today = todayInBratislava();
   const data = query.data;
   return {
+    id: 'tickets',
     title: t('adminHome.cards.tickets.title'),
+    description: t('adminHome.sheet.tickets.description'),
+    openAll: { label: t('adminHome.sheet.tickets.openAll'), to: { to: '/tickets' } },
     count: data?.total ?? 0,
     caption: t('adminHome.cards.tickets.caption'),
     subline: (
@@ -174,6 +297,12 @@ export function useTicketsCard(): CountCardProps {
       key: ticket.id,
       to: { to: '/tickets/$ticketId', params: { ticketId: ticket.id } },
       content: <TicketRow ticket={ticket} today={today} />,
+      group: t(
+        ticket.status === 'new'
+          ? 'adminHome.sheet.groups.new'
+          : 'adminHome.sheet.groups.inProgress',
+      ),
+      detail: <TicketDetail ticket={ticket} today={today} />,
     })),
     empty: t('adminHome.cards.tickets.empty'),
     showAll:
@@ -202,14 +331,18 @@ export function useRemindersCard(): CountCardProps | null | undefined {
     minute: '2-digit',
     timeZone: 'Europe/Bratislava',
   });
+  const today = todayInBratislava();
   return {
+    id: 'reminders',
     title: t('adminHome.cards.reminders.title'),
+    description: t('adminHome.sheet.reminders.description'),
     count: data?.nextWeek ?? 0,
     caption: t('adminHome.cards.reminders.caption'),
     rows: (data?.items ?? []).map((item) => ({
       key: item.id,
       to: reminderTarget(item),
       tall: true,
+      group: t(`adminHome.sheet.groups.${dayGroup(item.at, today)}`),
       content: (
         <span className="flex min-w-0 flex-1 flex-col">
           <span className="text-micro text-muted-foreground tabular-nums">
@@ -229,14 +362,18 @@ export function useMentionsCard(): CountCardProps {
   const { t } = useTranslation();
   const query = useQuery(mentionsQuery);
   const data = query.data;
+  const today = todayInBratislava();
   return {
+    id: 'mentions',
     title: t('adminHome.cards.mentions.title'),
+    description: t('adminHome.sheet.mentions.description'),
     count: data?.total ?? 0,
     caption: t('adminHome.cards.mentions.caption'),
     rows: (data?.items ?? []).map((item) => ({
       key: item.messageId,
       to: mentionTarget(item),
       tall: true,
+      group: t(`adminHome.sheet.groups.${dayGroup(item.createdAt, today)}`),
       content: (
         <span className="flex min-w-0 flex-1 flex-col">
           <span className="truncate text-micro text-muted-foreground">

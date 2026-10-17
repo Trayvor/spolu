@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useBlocker } from '@tanstack/react-router';
 import { useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import type { FileInfo, KnowledgeItemDto, KnowledgeType } from '@spolu/shared';
 import { MoreIcon } from '@/components/icons';
@@ -128,6 +129,24 @@ export function KnowledgeDialog({
   const type: KnowledgeType | undefined = target.mode === 'create' ? target.type : item?.type;
   const dirty = editing && !same(value, initial);
 
+  // Browser Back (or any route change) with unsaved edits asks first, like "Close" does. A close
+  // the person already confirmed (`leaving`) goes through.
+  const leaving = useRef(false);
+  const dirtyRef = useRef(dirty);
+  useEffect(() => {
+    dirtyRef.current = dirty;
+  });
+  const blocker = useBlocker({
+    shouldBlockFn: ({ current, next }) =>
+      (next.pathname !== current.pathname ||
+        (next.search as Record<string, unknown>).k !==
+          (current.search as Record<string, unknown>).k) &&
+      dirtyRef.current &&
+      !leaving.current,
+    enableBeforeUnload: () => dirtyRef.current && !leaving.current,
+    withResolver: true,
+  });
+
   function startEdit(source: KnowledgeItemDto) {
     const next = fromItem(source);
     setInitial(next);
@@ -142,7 +161,10 @@ export function KnowledgeDialog({
 
   function leave(then: 'close' | 'view') {
     setAsk(null);
-    if (then === 'close' || target.mode === 'create') return onClose();
+    if (then === 'close' || target.mode === 'create') {
+      leaving.current = true;
+      return onClose();
+    }
     setEditing(false);
     setErrors({});
     setConflict(false);
@@ -217,7 +239,7 @@ export function KnowledgeDialog({
   const canChooseVisibility = me !== null && me.role !== 'client';
 
   return (
-    <SheetDialog onEscape={onEscape} initialFocus={titleRef} testId="knowledge-dialog">
+    <SheetDialog onEscape={onEscape} initialFocus={titleRef} testId="knowledge-dialog" urlOwned>
       <PanelHeader
         onClose={() => request('close')}
         compactBelow={641}
@@ -329,17 +351,30 @@ export function KnowledgeDialog({
 
       {editing && (
         <footer className="flex flex-col gap-2 border-t-2 border-border px-4 pt-3 pb-[max(12px,env(safe-area-inset-bottom))] min-[641px]:px-6 min-[641px]:pb-4">
-          {ask?.kind === 'discard' ? (
+          {ask?.kind === 'discard' || blocker.status === 'blocked' ? (
             <div role="alert" className="flex flex-wrap items-center gap-2">
               <p className="mr-auto text-button font-semibold">
                 {target.mode === 'create'
                   ? t('knowledge.detail.discardDraft')
                   : t('knowledge.detail.discardChanges')}
               </p>
-              <Button variant="outline" size="lg" onClick={() => setAsk(null)}>
+              <Button
+                variant="outline"
+                size="lg"
+                onClick={() => (blocker.status === 'blocked' ? blocker.reset() : setAsk(null))}
+              >
                 {t('knowledge.detail.keepEditing')}
               </Button>
-              <Button variant="destructive" size="lg" onClick={() => leave(ask.then)}>
+              <Button
+                variant="destructive"
+                size="lg"
+                onClick={() => {
+                  if (blocker.status === 'blocked') {
+                    leaving.current = true;
+                    blocker.proceed();
+                  } else if (ask?.kind === 'discard') leave(ask.then);
+                }}
+              >
                 {t('knowledge.detail.discard')}
               </Button>
             </div>

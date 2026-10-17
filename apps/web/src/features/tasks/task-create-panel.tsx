@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useNavigate, useParams, useSearch } from '@tanstack/react-router';
+import { useNavigate, useParams, useRouter, useSearch } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { TaskDtoSchema, type BoardDto, type FileInfo, type TaskDraft } from '@spolu/shared';
 import { groupPeopleQuery, groupQuery } from '@/features/groups/api';
 import { Button } from '@/components/ui/button';
 import { ApiError } from '@/lib/api';
+import { backOr } from '@/lib/back';
 import { PanelHeader } from '@/components/ui/panel-header';
 import { boardQuery, createTask } from './api';
 import { upsertTask } from './board-cache';
@@ -35,6 +36,7 @@ export function NewTaskPanel({ groupId, bucketId }: { groupId: string; bucketId?
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const router = useRouter();
   const { data: board } = useQuery(boardQuery(groupId));
   const { data: group } = useQuery(groupQuery(groupId));
   const [draft, setDraft] = useState<TaskDraft>(EMPTY_TASK_DRAFT);
@@ -47,7 +49,13 @@ export function NewTaskPanel({ groupId, bucketId }: { groupId: string; bucketId?
   // An unknown or missing bucket falls back to To do once the board is known.
   const target =
     board?.buckets.find((b) => b.id === chosen) ?? board?.buckets.find((b) => b.kind === 'todo');
-  const close = () => void navigate({ to: '/groups/$groupId/tasks', params: { groupId } });
+  // Cancel and Create both go back to where "+ Add task" was pressed, so Back never reopens
+  // the form; from a link from outside, the form replaces itself with the board.
+  const close = () =>
+    backOr(
+      router,
+      () => void navigate({ to: '/groups/$groupId/tasks', params: { groupId }, replace: true }),
+    );
 
   async function create() {
     if (busy || !target) return;

@@ -166,7 +166,7 @@ function mockApi(answers: Answers = {}) {
 let wide = true;
 const original = window.matchMedia;
 
-function renderHome() {
+function renderHome(path = '/') {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const me: Me = {
     id: 'a1',
@@ -178,7 +178,7 @@ function renderHome() {
   queryClient.setQueryData(sessionQuery.queryKey, me);
   return renderWithRouter(
     () => <HomePage />,
-    '/',
+    path,
     (node: ReactNode) => <QueryClientProvider client={queryClient}>{node}</QueryClientProvider>,
   );
 }
@@ -331,6 +331,70 @@ describe('HomePage', () => {
     expect(within(sheet).getAllByRole('link')).toHaveLength(3);
     await userEvent.click(within(sheet).getByRole('button', { name: t('adminHome.cards.back') }));
     expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('a tile sheet is a history entry: Back closes it and stays on the home screen', async () => {
+    wide = false;
+    mockApi();
+    const { router } = await renderHome();
+    const tiles = await screen.findAllByRole('button', { name: /:/ });
+    await userEvent.click(tiles[1]!);
+    await screen.findByRole('dialog', { name: t('adminHome.cards.assigned.title') });
+    expect(router.state.location.search).toEqual({ card: 'tasks' });
+    router.history.back();
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(router.state.location.pathname).toBe('/');
+    expect(router.state.location.search).toEqual({});
+  });
+
+  it('opened from a link (no entry of its own), the back button drops the param in place', async () => {
+    wide = false;
+    mockApi();
+    const { router } = await renderHome('/?card=tickets');
+    const sheet = await screen.findByRole('dialog', { name: t('adminHome.cards.tickets.title') });
+    const length = router.history.length;
+    await userEvent.click(within(sheet).getByRole('button', { name: t('adminHome.cards.back') }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(router.state.location.search).toEqual({});
+    expect(router.history.length).toBe(length);
+  });
+
+  it('the tasks sheet: count, description, due date groups, details and Open all', async () => {
+    wide = false;
+    mockApi();
+    await renderHome('/?card=tasks');
+    const sheet = await screen.findByRole('dialog', { name: t('adminHome.cards.assigned.title') });
+    expect(within(sheet).getByText(t('adminHome.sheet.tasks.description'))).toBeInTheDocument();
+    const groups = within(sheet)
+      .getAllByRole('heading', { level: 3 })
+      .map((h) => h.firstChild?.textContent);
+    expect(groups).toEqual([
+      t('adminHome.sheet.groups.overdue'),
+      t('adminHome.sheet.groups.later'),
+      t('adminHome.sheet.groups.noDate'),
+    ]);
+    // The client is on the row's second line, on phones too.
+    expect(within(sheet).getByRole('link', { name: /Report.*Krok/ })).toBeInTheDocument();
+    expect(
+      within(sheet).getByRole('link', { name: t('adminHome.sheet.tasks.openAll') }),
+    ).toHaveAttribute('href', '/tasks?assignee=me&clients=all');
+  });
+
+  it('the tickets sheet puts New first and marks tickets without an assignee', async () => {
+    wide = false;
+    mockApi();
+    await renderHome('/?card=tickets');
+    const sheet = await screen.findByRole('dialog', { name: t('adminHome.cards.tickets.title') });
+    const groups = within(sheet)
+      .getAllByRole('heading', { level: 3 })
+      .map((h) => h.firstChild?.textContent);
+    expect(groups[0]).toBe(t('adminHome.sheet.groups.new'));
+    expect(
+      within(sheet).getAllByText(t('adminHome.sheet.tickets.noAssignee')).length,
+    ).toBeGreaterThan(0);
+    expect(
+      within(sheet).getByRole('link', { name: t('adminHome.sheet.tickets.openAll') }),
+    ).toHaveAttribute('href', '/tickets');
   });
 
   it('three tiles without reminders', async () => {

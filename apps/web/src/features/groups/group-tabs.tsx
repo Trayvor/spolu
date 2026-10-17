@@ -15,6 +15,7 @@ export type GroupTabBadges = Partial<
  * Chat, Tasks, Tickets, Knowledge, Members as filter pills: the current tab is the filled ink pill.
  * They wrap from 641 px; on phones they stay on one line that scrolls sideways (no scrollbar), so
  * the chat keeps its height. The 6 px padding of that line holds the tap areas and focus rings.
+ * A tab switch replaces the history entry (docs/design/README.md, "Navigation and Back").
  */
 export function GroupTabs({ groupId, badges }: { groupId: string; badges?: GroupTabBadges }) {
   const { t } = useTranslation();
@@ -35,6 +36,8 @@ export function GroupTabs({ groupId, badges }: { groupId: string; badges?: Group
           key={key}
           to={to}
           params={{ groupId }}
+          // Switching tabs is not a step: Back leaves the group to where it was opened from.
+          replace
           activeOptions={{ exact: false }}
           className={pill}
           activeProps={{ className: 'bg-primary text-primary-foreground' }}

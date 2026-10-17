@@ -102,5 +102,34 @@
     "tasks_other": "{{count}} open tasks assigned to you",
     "tickets_one": "{{count}} open ticket for you to handle",
     "tickets_other": "{{count}} open tickets for you to handle"
+  },
+  "sheet": {
+    "tickets": {
+      "description": "Open tickets that need you: yours as assignee, unassigned ones at the clients you watch, and those without a client.",
+      "openAll": "Open all tickets",
+      "noAssignee": "No assignee"
+    },
+    "tasks": {
+      "description": "Your open tasks across all clients, by due date. Urgent ones come first in each group.",
+      "openAll": "Open all my tasks"
+    },
+    "reminders": {
+      "description": "Reminders set on tasks and knowledge items in the next 7 days."
+    },
+    "mentions": {
+      "description": "Messages that mention you and that you have not read yet."
+    },
+    "groups": {
+      "overdue": "Overdue",
+      "today": "Today",
+      "week": "This week",
+      "later": "Later",
+      "noDate": "No due date",
+      "new": "New",
+      "inProgress": "In progress",
+      "yesterday": "Yesterday",
+      "earlier": "Earlier",
+      "tomorrow": "Tomorrow"
+    }
   }
 }

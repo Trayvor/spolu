@@ -34,7 +34,8 @@ export function AccountMenu({ user, trigger }: { user: Me } & DeferredMenuProps)
     mutationFn: signOut,
     onSuccess: async () => {
       clearSession(queryClient);
-      await router.navigate({ to: '/login' });
+      // In place of the page signed out from (it would only send Back to the login again).
+      await router.navigate({ to: '/login', replace: true });
     },
   });
 

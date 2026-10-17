@@ -1,8 +1,9 @@
-import { Link } from '@tanstack/react-router';
+import { Link, useRouterState } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { NavCount } from '@/components/lazy-nav-count';
 import type { NavSection } from '@/components/nav-sections';
 import { BottomSheet } from '@/components/ui/bottom-sheet';
+import { isLayerOpen } from '@/lib/use-back-closes';
 import { cn } from '@/lib/utils';
 
 /**
@@ -28,6 +29,9 @@ export default function SectionSheet({
   onClose: () => void;
 }) {
   const { t } = useTranslation();
+  // The open sheet has its own history entry: a row replaces it, so Back from the section goes
+  // to the page the menu was opened on, not to that page again with the menu closed.
+  const overSheet = useRouterState({ select: (s) => isLayerOpen(s.location.state) });
   return (
     <BottomSheet label={t('nav.menu')} onClose={onClose} className={PANEL_FROM_641}>
       <nav aria-label={t('nav.menu')}>
@@ -38,6 +42,7 @@ export default function SectionSheet({
               <li key={section.key}>
                 <Link
                   to={section.to}
+                  replace={overSheet}
                   aria-current={active ? 'page' : undefined}
                   className={cn(
                     'flex h-12 items-center gap-3 rounded-lg px-4 text-button transition-colors duration-(--duration-fast) hover:bg-accent hover:text-foreground focus-visible:bg-accent active:bg-accent',
