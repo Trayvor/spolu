@@ -35,7 +35,7 @@ An email is at most 50 blocks, in the order the admin puts them; admins choose c
 
 ## Screens
 
-The header link "Hromadné e-maily" / "Bulk email" (beside Admins; in the account menu under 641 px) is shown to admins only; a client who opens `/bulk-email` gets the not-found page.
+The header link "Hromadné e-maily" / "Bulk email" (beside Admins; in the section menu where the links do not fit) is shown to admins only; a client who opens `/bulk-email` gets the not-found page.
 
 - **`/bulk-email`**: the list of emails, last changed first, 50 a page with "Show more": internal name, status badge (Draft, Sending, Sent, Cancelled), subject, "248 sent, 2 failed" for an email past its draft, author and the last change. **New email** creates a draft named "Email of <date and time>" / "E-mail z <…>" and opens it; the name can be changed in the editor. The list refreshes on `bulk:updated`.
 - **`/bulk-email/<id>`, a draft**: four numbered sections on one page.

@@ -234,7 +234,7 @@ describe('MessageList', () => {
       }),
     ]);
     const image = screen.getByRole('link', { name: 'Open photo.jpg' });
-    expect(image.style.maxWidth).toBe('min(100%, 320px)');
+    expect(image.style.width).toBe('min(100%, 320px)');
     expect(screen.getByRole('link', { name: 'Download budget.xlsx' })).toHaveAttribute('download');
   });
 

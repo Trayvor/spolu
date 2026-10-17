@@ -52,7 +52,7 @@ export function PersonPicker({
                 <button
                   type="button"
                   aria-label={t('bulkEmail.picker.remove', { name })}
-                  className="inline-flex size-6 items-center justify-center rounded-full hover:bg-surface-3"
+                  className="relative inline-flex size-6 items-center justify-center rounded-full after:absolute after:-inset-2.5 after:content-[''] hover:bg-surface-3"
                   onClick={() => onRemove(id)}
                 >
                   <CloseIcon />

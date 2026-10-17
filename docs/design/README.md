@@ -20,7 +20,7 @@ Never hard-code colors or sizes. Use the theme tokens.
 Performance comes before decoration (see `docs/product/non-functional.md`). Replicate egrant.sk's look — colors, fonts, spacing, components — but not heavy effects:
 
 - no heavy animations, parallax, blur/glass, large background images or video, or decorative motion;
-- transitions only where they help the user follow what happened, short (about 150 ms), CSS only, and off under `prefers-reduced-motion`;
+- transitions only where they help the user follow what happened (a menu or sheet opens, a toast arrives, a screen appears), short (90 to 240 ms), CSS only, transform and opacity only, and off under `prefers-reduced-motion`; the motion tokens are in [tokens.md](tokens.md), "Motion";
 - system or self-hosted fonts, few weights; images and icons small (SVG where possible).
 
 When invoking `frontend-design`, pass this constraint with the request.

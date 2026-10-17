@@ -30,7 +30,7 @@ export function ChatTab() {
 
   return (
     <>
-      <div data-testid="chat-card" className="relative min-h-[360px] flex-1">
+      <div data-testid="chat-card" className="relative min-h-[360px] flex-1 max-[640px]:min-h-0">
         <div className="absolute inset-0">
           {data && groupId
             ? !unscoped && (

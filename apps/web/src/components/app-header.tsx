@@ -2,34 +2,48 @@ import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { LanguageSwitcher } from '@/components/language-switcher';
 import { NavCount } from '@/components/lazy-nav-count';
-import { clientGroups, isAdmin, isRequester } from '@/features/auth/roles';
+import { navSections } from '@/components/nav-sections';
+import { SectionMenu } from '@/components/section-menu';
+import { isAdmin } from '@/features/auth/roles';
 import { UserMenu } from '@/features/auth/user-menu';
 import { useSession } from '@/features/auth/use-session';
 import { cn } from '@/lib/utils';
 
 const navLink =
-  'hidden h-[38px] items-center rounded-full px-4 text-tiny font-semibold transition-colors duration-(--duration-fast) hover:bg-accent min-[641px]:inline-flex';
+  'hidden h-[38px] shrink-0 items-center rounded-full px-4 text-tiny font-semibold transition-colors duration-(--duration-fast) hover:bg-accent aria-[current=page]:bg-secondary';
+// Where the section links fit in the pill: an admin's seven need about 1 100 px.
+const WIDE = {
+  admin: { links: 'min-[1280px]:inline-flex', menu: 'min-[1280px]:hidden' },
+  other: { links: 'min-[641px]:inline-flex', menu: 'min-[641px]:hidden' },
+} as const;
 
 /**
  * The egrant.sk header pill, kept still (no hide-on-scroll). On the left the brand
  * "Help by eGrant": the product name as the wordmark, a small "by" and the egrant logo,
- * one link to `/` named by `app.fullName`. On the right, for a signed-in user: the "Home", "Tasks",
- * "Tickets", "Knowledge", "Groups", "Admins" and "Bulk email" links (admins only, hidden under 641 px where
- * the user menu offers them), "My groups" for a client of several groups (Phase 21), "Tickets"
- * for a requester who is no client anywhere (their whole app) or "My tickets" for a client who
- * also reported tickets elsewhere, the user menu and the language menu. For admins "Tasks" and
- * "Tickets" carry a count (my open tasks; the active tickets of my clients and those without a
- * client), hidden at 0.
+ * one link to `/` named by `app.fullName`. On the right, for a signed-in user, the sections
+ * (`navSections`: admins' Home, Tasks, Tickets, Knowledge, Groups, Admins and Bulk email; a
+ * client's My groups and tickets), the account menu and the language menu.
+ * Where they fit (from 1280 px for an admin's seven, from 641 px for a client's one or two) the
+ * sections are links, the current one on a `secondary` pill. Narrower, two or more sections fold
+ * into the section menu (`SectionMenu`: a bottom sheet on phones, a panel under the pill on
+ * tablets and small laptops) and a single one stays a link. Under 641 px the language menu
+ * moves into the account menu.
+ * For admins "Tasks" and "Tickets" carry a count (my open tasks; the active tickets of my clients
+ * and those without a client), hidden at 0, in the links and in the section menu.
+ * Its top margin clears the iPhone notch when the app runs full screen.
  */
 export function AppHeader() {
   const { t } = useTranslation();
   const user = useSession();
+  const sections = user ? navSections(user) : [];
+  const folded = sections.length > 1;
+  const wide = WIDE[isAdmin(user) ? 'admin' : 'other'];
   return (
-    <header className="mx-auto mt-3 flex h-[54px] w-full max-w-[1152px] items-center gap-3 rounded-nav bg-background px-4 shadow-lift min-[641px]:mt-6 min-[641px]:h-16 min-[641px]:px-6">
+    <header className="mx-auto mt-[max(12px,env(safe-area-inset-top))] flex h-[54px] w-full max-w-[1152px] items-center gap-2 rounded-nav bg-background px-3 shadow-lift min-[641px]:mt-6 min-[641px]:h-16 min-[641px]:gap-3 min-[641px]:px-6">
       <Link
         to="/"
         aria-label={t('app.fullName')}
-        className="flex min-w-0 items-baseline gap-2 hover:text-foreground"
+        className="flex shrink-0 items-baseline gap-2 hover:text-foreground"
       >
         <span className="text-wordmark leading-none font-semibold tracking-[-0.4px]">
           {t('app.name')}
@@ -40,51 +54,24 @@ export function AppHeader() {
           alt=""
           width={212}
           height={40}
-          className="h-[17px] w-auto min-[641px]:h-[22px]"
+          className="h-[17px] w-auto max-[399px]:h-[15px] min-[641px]:h-[22px]"
         />
       </Link>
-      <div className="ml-auto flex items-center gap-2">
-        {isAdmin(user) && (
-          <>
-            <Link to="/" activeOptions={{ exact: true }} className={navLink}>
-              {t('nav.home')}
+      <div className="ml-auto flex min-w-0 items-center gap-2">
+        {sections
+          .filter((section) => section.label)
+          .map((section) => (
+            <Link
+              key={section.key}
+              to={section.to}
+              activeOptions={{ exact: section.to === '/' }}
+              className={cn(navLink, folded ? wide.links : 'inline-flex')}
+            >
+              {t(section.label!)}
+              {section.count && <NavCount kind={section.count} live={section.count === 'tasks'} />}
             </Link>
-            <Link to="/tasks" className={navLink}>
-              {t('nav.tasks')}
-              <NavCount kind="tasks" live />
-            </Link>
-            <Link to="/tickets" className={navLink}>
-              {t('nav.tickets')}
-              <NavCount kind="tickets" />
-            </Link>
-            <Link to="/knowledge" className={navLink}>
-              {t('nav.knowledge')}
-            </Link>
-            <Link to="/groups" className={navLink}>
-              {t('nav.groups')}
-            </Link>
-            <Link to="/admins" className={navLink}>
-              {t('nav.admins')}
-            </Link>
-            <Link to="/bulk-email" className={navLink}>
-              {t('nav.bulkEmail')}
-            </Link>
-          </>
-        )}
-        {user && !isAdmin(user) && clientGroups(user).length > 1 && (
-          <Link to="/my-groups" className={navLink}>
-            {t('nav.myGroups')}
-          </Link>
-        )}
-        {user && !isAdmin(user) && isRequester(user) && (
-          // A requester-only person sees it at every width: it is their only screen.
-          <Link
-            to="/tickets"
-            className={cn(navLink, clientGroups(user).length === 0 && 'inline-flex')}
-          >
-            {t(clientGroups(user).length === 0 ? 'nav.tickets' : 'nav.myTickets')}
-          </Link>
-        )}
+          ))}
+        {folded && <SectionMenu sections={sections} className={wide.menu} />}
         {user && <UserMenu user={user} />}
         <LanguageSwitcher />
       </div>

@@ -56,7 +56,11 @@ export function TestSend({
   });
 
   if (unavailable) {
-    return <p className="text-button text-muted-foreground">{t('bulkEmail.test.unavailable')}</p>;
+    return (
+      <p className="text-button text-muted-foreground [overflow-wrap:anywhere]">
+        {t('bulkEmail.test.unavailable')}
+      </p>
+    );
   }
 
   const error = send.error;

@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useRef, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Outlet, useRouter } from '@tanstack/react-router';
+import { RouteFade } from '@/components/route-fade';
 import { readCollapsed } from '@/features/admin-home/sidebar-collapse';
 import { useManagerEvents } from '@/features/groups/use-manager-events';
 import { AppPrompt } from '@/features/notifications/app-prompt';
@@ -93,7 +94,10 @@ export function AuthedLayout() {
     <>
       <AppPrompt />
       <SignedInFrame>
-        <Outlet />
+        {/* Moving to another screen fades it in; the sidebar stays as it is. */}
+        <RouteFade level={2} className="flex min-w-0 flex-1 flex-col">
+          <Outlet />
+        </RouteFade>
       </SignedInFrame>
     </>
   );

@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils';
 import { Slot } from 'radix-ui';
 
 const buttonVariants = cva(
-  "inline-flex shrink-0 items-center justify-center gap-2 rounded-full text-button font-semibold whitespace-nowrap transition-colors duration-(--duration-fast) disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  "inline-flex shrink-0 items-center justify-center gap-2 rounded-full text-button font-semibold whitespace-nowrap transition-colors duration-(--duration-fast) disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 max-[640px]:relative max-[640px]:after:absolute max-[640px]:after:content-['']",
   {
     variants: {
       variant: {
@@ -16,10 +16,11 @@ const buttonVariants = cva(
         link: 'rounded-none text-foreground underline-offset-4 hover:text-neutral hover:underline',
       },
       size: {
-        default: 'h-[38px] px-5',
-        sm: 'h-8 px-4 text-tiny',
+        // On phones each size under 44 px gets a transparent 44 px tap area around it (`after`).
+        default: 'h-[38px] px-5 max-[640px]:after:inset-x-0 max-[640px]:after:-inset-y-[3px]',
+        sm: 'h-8 px-4 text-tiny max-[640px]:after:inset-x-0 max-[640px]:after:-inset-y-1.5',
         lg: 'h-11 px-6',
-        icon: 'size-[38px]',
+        icon: 'size-[38px] max-[640px]:after:-inset-[3px]',
       },
     },
     defaultVariants: {

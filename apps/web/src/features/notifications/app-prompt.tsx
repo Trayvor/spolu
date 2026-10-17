@@ -336,7 +336,9 @@ function PromptCard({
       aria-describedby={bodyId}
       className={cn(
         'mb-3 w-full shrink-0 rounded-xl p-4 shadow-lift motion-safe:animate-prompt-in min-[641px]:mb-4',
-        strong ? 'bg-primary text-primary-foreground' : 'bg-card text-card-foreground',
+        strong
+          ? 'bg-primary text-primary-foreground [&_:focus-visible]:outline-primary-foreground'
+          : 'bg-card text-card-foreground',
       )}
     >
       <div className="flex flex-col gap-3 min-[641px]:flex-row min-[641px]:items-center min-[641px]:justify-between">

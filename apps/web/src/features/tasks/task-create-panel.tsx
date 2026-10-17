@@ -92,7 +92,7 @@ export function NewTaskPanel({ groupId, bucketId }: { groupId: string; bucketId?
         />
       </PanelHeader>
 
-      <div className="flex-1 space-y-5 overflow-y-auto overscroll-contain p-4 min-[641px]:p-6">
+      <div className="flex-1 space-y-5 overflow-y-auto overscroll-contain p-4 pb-[max(16px,env(safe-area-inset-bottom))] min-[641px]:p-6">
         <h2 className="text-medium leading-tight font-semibold">{t('tasks.panel.newTask')}</h2>
         <TaskForm
           value={draft}

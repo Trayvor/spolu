@@ -13,7 +13,9 @@
     "knowledge": "Teadmised",
     "myGroups": "Minu grupid",
     "myTickets": "Minu pöördumised",
-    "bulkEmail": "Masskirjad"
+    "bulkEmail": "Masskirjad",
+    "menu": "Menüü",
+    "menuCurrent": "Menüü: {{name}}"
   },
   "user": {
     "menu": "Konto menüü",

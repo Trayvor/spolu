@@ -122,7 +122,7 @@ export function CodeStep({ email, redirectTo, onResend, onChangeEmail }: CodeSte
 
   return (
     <form noValidate onSubmit={onCodeSubmit} className="flex flex-col gap-6">
-      <p>{t('login.codeIntro', { email })}</p>
+      <p className="[overflow-wrap:anywhere]">{t('login.codeIntro', { email })}</p>
       <div className="flex flex-col gap-2.5">
         <Label htmlFor="login-code">{t('login.code')}</Label>
         <Input

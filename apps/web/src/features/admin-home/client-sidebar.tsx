@@ -144,7 +144,7 @@ export function ClientSidebarList({
         value={query}
         onChange={(event) => setQuery(event.target.value)}
         placeholder={t('adminHome.sidebar.find')}
-        className="h-9 w-full rounded-md border-2 border-input bg-card px-3 text-tiny font-medium placeholder:text-muted-foreground focus:border-foreground"
+        className="h-9 w-full rounded-md border-2 border-input bg-card px-3 text-tiny font-medium max-[640px]:h-11 placeholder:text-muted-foreground focus:border-foreground"
       />
       {shown.length === 0 && (
         <p className="px-2 text-micro text-muted-foreground">{t('adminHome.sidebar.noMatch')}</p>
@@ -178,8 +178,8 @@ export function SidebarRowsPlaceholder({ rows = 3 }: { rows?: number }) {
     <div aria-hidden="true" className="flex flex-col gap-2 px-2">
       {Array.from({ length: rows }, (_, i) => (
         <div key={i} className="flex h-10 items-center gap-2">
-          <span className="size-6 rounded-md bg-secondary" />
-          <span className="h-3 flex-1 rounded-full bg-secondary" />
+          <span className="size-6 animate-skeleton rounded-md bg-secondary" />
+          <span className="h-3 flex-1 animate-skeleton rounded-full bg-secondary" />
         </div>
       ))}
     </div>

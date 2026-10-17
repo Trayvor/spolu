@@ -35,7 +35,10 @@ export function CampaignPageRoute() {
 function BackLink() {
   const { t } = useTranslation();
   return (
-    <Link to="/bulk-email" className="self-start text-tiny font-semibold hover:underline">
+    <Link
+      to="/bulk-email"
+      className="inline-flex self-start text-tiny font-semibold hover:underline max-[640px]:min-h-11 max-[640px]:items-center"
+    >
       {t('bulkEmail.editor.back')}
     </Link>
   );

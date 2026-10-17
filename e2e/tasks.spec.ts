@@ -158,6 +158,7 @@ test('the task panel is a full-screen sheet on a phone', async ({ browser }) => 
   const context = await browser.newContext({
     viewport: { width: 390, height: 844 },
     isMobile: true,
+    reducedMotion: 'reduce', // measured boxes: no sheet animation in flight
     hasTouch: true,
     locale: 'sk-SK',
     storageState: 'e2e/.auth/superadmin.json',

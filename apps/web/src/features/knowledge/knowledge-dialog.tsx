@@ -251,7 +251,7 @@ export function KnowledgeDialog({
         )}
       </PanelHeader>
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 min-[641px]:px-6 min-[641px]:py-5">
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-4 pb-[max(16px,env(safe-area-inset-bottom))] min-[641px]:px-6 min-[641px]:py-5">
         {ask?.kind === 'delete' && (
           <div className="mb-4">
             <PanelNotice text={t('knowledge.detail.deleteConfirm')}>

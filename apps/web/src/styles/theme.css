@@ -186,6 +186,77 @@
       opacity: 0;
     }
   }
+
+  /*
+   * Motion (docs/design/README.md, "Keep it light"): only transform and opacity, short, and
+   * answering what the person did (a menu opens, a sheet comes up, a toast arrives). Closing is
+   * faster than opening. The global `prefers-reduced-motion` rule below turns all of it off.
+   */
+  --ease-out-soft: cubic-bezier(0.2, 0, 0, 1);
+  --ease-sheet: cubic-bezier(0.32, 0.72, 0, 1);
+  /* Dropdowns and popovers: grow from the side they open on (Radix `transform-origin`). */
+  --animate-menu-in: menu-in 140ms var(--ease-out-soft);
+  --animate-menu-out: menu-out 90ms ease-in forwards;
+  /* Bottom sheets rise from the bottom edge; their backdrop fades. */
+  --animate-sheet-in: sheet-in 240ms var(--ease-sheet);
+  --animate-sheet-out: sheet-out 160ms ease-in forwards;
+  --animate-fade-in: fade-in 160ms ease-out;
+  --animate-fade-out: fade-out 160ms ease-in forwards;
+  /* Toasts come up a little from the bottom. */
+  --animate-toast-in: toast-in 200ms var(--ease-out-soft);
+  /* A screen or a tab's content that just mounted: a short fade. Opacity only: a transform would
+     make the screen the containing block of its fixed panels while it runs. */
+  --animate-page-in: page-in 180ms ease-out;
+  /* Skeleton placeholders breathe while a list loads. */
+  --animate-skeleton: skeleton 1.4s ease-in-out infinite;
+  @keyframes menu-in {
+    from {
+      opacity: 0;
+      transform: scale(0.96) translateY(-4px);
+    }
+  }
+  @keyframes menu-out {
+    to {
+      opacity: 0;
+      transform: scale(0.98);
+    }
+  }
+  @keyframes sheet-in {
+    from {
+      transform: translateY(100%);
+    }
+  }
+  @keyframes sheet-out {
+    to {
+      transform: translateY(100%);
+    }
+  }
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+  }
+  @keyframes fade-out {
+    to {
+      opacity: 0;
+    }
+  }
+  @keyframes toast-in {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+  }
+  @keyframes page-in {
+    from {
+      opacity: 0;
+    }
+  }
+  @keyframes skeleton {
+    50% {
+      opacity: 0.55;
+    }
+  }
 }
 
 @layer base {
@@ -243,6 +314,18 @@
   :focus-visible {
     outline: 2px solid var(--ring);
     outline-offset: 3px;
+  }
+}
+
+/*
+ * Phones: Safari zooms the page into any field whose text is under 16px, and does not zoom back.
+ * Fields are 16px there. Outside `@layer` on purpose, so it wins over the text-size utilities.
+ */
+@media (max-width: 640px) {
+  input:not([type='checkbox'], [type='radio'], [type='file'], [type='range'], [type='color']),
+  textarea,
+  select {
+    font-size: 16px;
   }
 }
 

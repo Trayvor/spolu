@@ -56,13 +56,20 @@ describe('LanguageSwitcher', () => {
     expect(screen.queryByRole('menu')).not.toBeInTheDocument();
   });
 
+  it('is hidden on phones for a signed-in user (the account menu has the languages)', () => {
+    render(<LanguageSwitcher />, true);
+    expect(screen.getByRole('button', { name: 'Jazyk: Slovenčina' })).toHaveClass(
+      'max-[640px]:hidden',
+    );
+  });
+
   it('lists every supported language by its own name, the current one checked', async () => {
     const user = userEvent.setup();
     render(<LanguageSwitcher />);
     await user.click(screen.getByRole('button', { name: 'Jazyk: Slovenčina' }));
 
-    // Radix names the menu after its trigger.
-    expect(screen.getByRole('menu', { name: 'Jazyk: Slovenčina' })).toBeInTheDocument();
+    // The menu's code loads on that first click; Radix names the menu after its trigger.
+    expect(await screen.findByRole('menu', { name: 'Jazyk: Slovenčina' })).toBeInTheDocument();
     const items = screen.getAllByRole('menuitemradio');
     expect(items.map((item) => item.textContent)).toEqual(
       SUPPORTED_LANGUAGES.map((lang) => lang.name),
@@ -83,7 +90,7 @@ describe('LanguageSwitcher', () => {
     expect(screen.getByTestId('probe')).toHaveTextContent('Nastavenia');
 
     await user.click(screen.getByRole('button', { name: 'Jazyk: Slovenčina' }));
-    await user.click(screen.getByRole('menuitemradio', { name: 'English' }));
+    await user.click(await screen.findByRole('menuitemradio', { name: 'English' }));
 
     expect(screen.getByTestId('probe')).toHaveTextContent('Settings');
     expect(screen.queryByRole('menu')).not.toBeInTheDocument();
@@ -99,7 +106,7 @@ describe('LanguageSwitcher', () => {
     const user = userEvent.setup();
     render(<LanguageSwitcher />, true);
     await user.click(screen.getByRole('button', { name: 'Jazyk: Slovenčina' }));
-    await user.click(screen.getByRole('menuitemradio', { name: 'English' }));
+    await user.click(await screen.findByRole('menuitemradio', { name: 'English' }));
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalled());
     const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
@@ -114,7 +121,7 @@ describe('LanguageSwitcher', () => {
     const user = userEvent.setup();
     render(<LanguageSwitcher />);
     await user.click(screen.getByRole('button', { name: 'Jazyk: Slovenčina' }));
-    await user.click(screen.getByRole('menuitemradio', { name: 'English' }));
+    await user.click(await screen.findByRole('menuitemradio', { name: 'English' }));
     expect(i18n.language).toBe('en');
     expect(fetchMock).not.toHaveBeenCalled();
   });
@@ -134,7 +141,7 @@ describe('LanguageSwitcher', () => {
       const user = userEvent.setup();
       render(<Probe />, true);
       await user.click(screen.getByRole('button', { name: 'Jazyk: Slovenčina' }));
-      await user.click(screen.getByRole('menuitemradio', { name: 'English' }));
+      await user.click(await screen.findByRole('menuitemradio', { name: 'English' }));
 
       expect(await screen.findByText(i18n.t('errors.generic'))).toBeInTheDocument();
       expect(i18n.language).toBe('sk');
@@ -154,10 +161,10 @@ describe('LanguageSwitcher', () => {
       const user = userEvent.setup();
       render(<Probe />);
       await user.click(screen.getByRole('button', { name: 'Jazyk: Slovenčina' }));
-      await user.click(screen.getByRole('menuitemradio', { name: 'English' }));
+      await user.click(await screen.findByRole('menuitemradio', { name: 'English' }));
       expect(i18n.language).toBe('sk'); // still loading the English texts
       await user.click(screen.getByRole('button', { name: 'Jazyk: Slovenčina' }));
-      await user.click(screen.getByRole('menuitemradio', { name: 'Slovenčina' }));
+      await user.click(await screen.findByRole('menuitemradio', { name: 'Slovenčina' }));
       release();
 
       await waitFor(() => expect(localStorage.getItem('spolu.lang')).toBe('sk'));

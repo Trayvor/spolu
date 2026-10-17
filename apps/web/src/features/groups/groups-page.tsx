@@ -1,3 +1,4 @@
+import { ListSkeleton } from '@/components/ui/skeleton';
 import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate, useSearch } from '@tanstack/react-router';
@@ -81,6 +82,7 @@ export function GroupsPage() {
           </Button>
         </div>
       )}
+      {!groups && !isError && <ListSkeleton rows={5} rowClassName="min-h-[68px]" />}
       {groups && groups.length === 0 && !formOpen && (
         <p className="text-body text-muted-foreground">{t('groups.empty')}</p>
       )}
@@ -133,7 +135,7 @@ export function GroupsPage() {
                     <Link
                       to="/groups/$groupId/members"
                       params={{ groupId: group.id }}
-                      className="ml-auto shrink-0 text-button text-muted-foreground underline-offset-2 hover:text-foreground hover:underline min-[641px]:ml-1"
+                      className="ml-auto inline-flex shrink-0 text-button text-muted-foreground underline-offset-2 hover:text-foreground hover:underline max-[640px]:min-h-11 max-[640px]:items-center max-[640px]:px-2 min-[641px]:ml-1"
                     >
                       {t('groups.members', { count: group.memberCount })}
                     </Link>

@@ -73,7 +73,7 @@ Phase 17 (the tab, the four types, visibility, the global list; reminders from `
 ## Global list (built)
 
 - Without a search the list is the folder view (see Folders above); the rows below are what a search shows.
-- `/knowledge`, for admins only (a client gets the not-found page; the API answers 403). The header shows "Knowledge" before "Groups"; on phones the user menu lists it first.
+- `/knowledge`, for admins only (a client gets the not-found page; the API answers 403). The header shows "Knowledge" before "Groups"; where the links do not fit, the section menu lists it in the same order.
 - The rows are the tab's rows, each with the group's logo and name in its last line, newest first, 30 per page with "Load more". Clicking a row opens the detail over the list (`?k=<id>`).
 - Filters, all in the URL so Back and shared links keep them: `?clients=<id>,<id>` (none means the default scope), `?type=` (any combination of Notes, Files, Links, Reminders as one comma list, e.g. `?type=note,link`; none means all types; an old single value still works, unknown or repeated types are dropped) and `?q=` (applied after 300 ms of typing, from 2 characters; Back or a link that changes `q` updates the field).
 - Type menu: a secondary pill reading "All types", the one ticked type ("Notes"), or "n types" ("2 typy", "4 typov" in Slovak). It opens a menu with "All types" (ticked while no type is; picking it clears the others), a rule, then the four types as checkbox items. The menu stays open while ticking; Escape or a click outside closes it.

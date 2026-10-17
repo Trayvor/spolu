@@ -18,6 +18,8 @@ export default defineConfig({
     // Fixed browser locale so the default UI language (Slovak) is deterministic.
     locale: 'sk-SK',
     trace: 'retain-on-failure',
+    // The UI's open/close animations are off, so sizes and positions are final when measured.
+    contextOptions: { reducedMotion: 'reduce' },
   },
   projects: [
     { name: 'setup', testMatch: /auth\.setup\.ts/ },

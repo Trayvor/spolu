@@ -28,7 +28,7 @@ export function SourceMessage({
   return (
     <section aria-label={t('tasks.panel.fromMessage')} className="rounded-lg bg-secondary p-4">
       <h3 className="text-button font-semibold">{t('tasks.panel.fromMessage')}</h3>
-      <p className="mt-1 text-tiny font-semibold text-muted-foreground">{message.authorName}</p>
+      <p className="mt-1 text-tiny font-semibold text-neutral">{message.authorName}</p>
       <p className="mt-1 break-words text-body">{text}</p>
       <Link
         {...chatMessageLocation(groupId, {

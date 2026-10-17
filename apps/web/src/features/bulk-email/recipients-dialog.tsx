@@ -27,7 +27,7 @@ export function RecipientsDialog({
           {t('bulkEmail.recipients.close')}
         </Button>
       </div>
-      <div className="flex-1 overflow-y-auto px-5 py-3">
+      <div className="flex-1 overflow-y-auto px-5 pt-3 pb-[max(12px,env(safe-area-inset-bottom))]">
         {people.isError && (
           <p role="alert" className="text-button text-error-ink">
             {t('errors.generic')}
@@ -42,8 +42,10 @@ export function RecipientsDialog({
               key={person.id}
               className="flex flex-col gap-0.5 py-2.5 [&:not(:last-child)]:border-b [&:not(:last-child)]:border-border"
             >
-              <span className="text-button font-semibold">{person.name || person.email}</span>
-              <span className="text-micro text-muted-foreground">
+              <span className="text-button font-semibold [overflow-wrap:anywhere]">
+                {person.name || person.email}
+              </span>
+              <span className="text-micro text-muted-foreground [overflow-wrap:anywhere]">
                 {[person.email, t(`bulkEmail.audience.role.${person.role}`), ...person.groups].join(
                   ', ',
                 )}

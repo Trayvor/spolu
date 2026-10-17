@@ -252,7 +252,7 @@ export function BoardFilters({ board, people }: { board: Search; people: TaskPer
           <div
             role="group"
             aria-label={t('adminHome.board.filtersLabel')}
-            className="flex flex-wrap items-center gap-2 overflow-y-auto p-4"
+            className="flex flex-wrap items-center gap-2 overflow-y-auto p-4 pb-[max(16px,env(safe-area-inset-bottom))]"
           >
             <FilterControls board={board} people={people} />
           </div>

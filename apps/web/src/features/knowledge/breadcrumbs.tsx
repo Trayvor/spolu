@@ -5,7 +5,7 @@ import { ChevronIcon } from './icons';
 export type Crumb = { key: string; label: string; onClick?: () => void };
 
 const crumbButton =
-  'max-w-[16rem] truncate rounded-sm font-semibold text-muted-foreground underline-offset-4 hover:text-foreground hover:underline focus-visible:outline-2 focus-visible:outline-ring';
+  'max-w-[16rem] truncate rounded-sm font-semibold max-[640px]:-my-3 max-[640px]:py-3 text-muted-foreground underline-offset-4 hover:text-foreground hover:underline focus-visible:outline-2 focus-visible:outline-ring';
 
 /**
  * Where the open folder is: each crumb but the last is a link-like button. On phones a path of

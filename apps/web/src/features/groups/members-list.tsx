@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Toast } from '@/components/ui/toast';
 import { useSession } from '@/features/auth/use-session';
 import { AddMemberForm } from './add-member-form';
@@ -18,12 +19,12 @@ import {
 import { InvitedRow } from './invited-members';
 
 const ROW =
-  'flex flex-col gap-3 px-5 py-3 min-[641px]:flex-row min-[641px]:items-center min-[641px]:justify-between [&:not(:last-child)]:border-b [&:not(:last-child)]:border-border';
+  'flex flex-col items-start gap-3 px-5 py-3 min-[641px]:flex-row min-[641px]:items-center min-[641px]:justify-between [&:not(:last-child)]:border-b [&:not(:last-child)]:border-border';
 
 function Who({ member }: { member: Member }) {
   return (
     <div className="min-w-0">
-      <div className="font-semibold">{member.name}</div>
+      <div className="font-semibold [overflow-wrap:anywhere]">{member.name}</div>
       <div className="truncate text-button text-muted-foreground">{member.email}</div>
     </div>
   );
@@ -57,6 +58,16 @@ export function MembersList({ groupId, admin }: { groupId: string; admin: boolea
       </div>
       {adding && (
         <AddMemberForm groupId={groupId} onClose={() => setAdding(false)} onSent={setToast} />
+      )}
+      {!members && (
+        <Card aria-busy="true" className="gap-0 py-2">
+          {[0, 1, 2].map((row) => (
+            <div key={row} className="flex flex-col gap-2 px-5 py-3">
+              <Skeleton className="h-4 w-40" />
+              <Skeleton className="h-3 w-56 max-w-full" />
+            </div>
+          ))}
+        </Card>
       )}
       {members && members.length + invited.length === 0 && (
         <p className="text-body text-muted-foreground">{t('group.members.empty')}</p>
@@ -195,7 +206,7 @@ function RemovedMembers({ groupId }: { groupId: string }) {
   if (!removed || removed.length === 0) return null;
   return (
     <details className="group/removed">
-      <summary className="cursor-pointer py-2 text-button font-semibold">
+      <summary className="min-h-11 cursor-pointer py-3 text-button font-semibold">
         {t('group.members.removedTitle', { count: removed.length })}
       </summary>
       <Card className="mt-2 gap-0 py-2">

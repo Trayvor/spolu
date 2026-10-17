@@ -1,3 +1,4 @@
+import { ListSkeleton } from '@/components/ui/skeleton';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AddAdminBodySchema, type Admin } from '@spolu/shared';
@@ -15,7 +16,7 @@ import { addAdmin, adminsQuery, removeAdmin } from './api';
 export function AdminsPage() {
   const { t } = useTranslation();
   const me = useSession();
-  const { data: admins } = useQuery(adminsQuery);
+  const { data: admins, isError, refetch } = useQuery(adminsQuery);
   const [formOpen, setFormOpen] = useState(false);
   const [added, setAdded] = useState<string | null>(null);
 
@@ -50,6 +51,15 @@ export function AdminsPage() {
         {added ? t('admins.added', { name: added }) : null}
       </p>
 
+      {!admins && !isError && <ListSkeleton rows={3} />}
+      {!admins && isError && (
+        <div className="flex flex-col items-start gap-3" role="alert">
+          <p className="text-body">{t('errors.generic')}</p>
+          <Button variant="outline" onClick={() => void refetch()}>
+            {t('errors.retry')}
+          </Button>
+        </div>
+      )}
       {admins && (
         <Card className="gap-0 py-2">
           <ul>
@@ -248,7 +258,7 @@ function AdminRow({
         <>
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="font-semibold">{admin.name}</span>
+              <span className="min-w-0 font-semibold [overflow-wrap:anywhere]">{admin.name}</span>
               {admin.role === 'superadmin' && (
                 <Badge variant="secondary">{t('admins.badge.superadmin')}</Badge>
               )}

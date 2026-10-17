@@ -55,7 +55,7 @@ function Placeholder() {
     <div aria-hidden="true" data-testid="card-placeholder" className="flex flex-col">
       {[0, 1, 2].map((i) => (
         <div key={i} className="flex h-11 items-center border-b border-border last:border-b-0">
-          <span className="h-3 w-2/3 rounded-full bg-secondary" />
+          <span className="h-3 w-2/3 animate-skeleton rounded-full bg-secondary" />
         </div>
       ))}
     </div>
@@ -143,7 +143,7 @@ export function CountCard({ title, count, caption, subline, state, ...list }: Co
         {state === 'ready' ? (
           <CountFigure count={count} caption={caption} subline={subline} />
         ) : (
-          <span aria-hidden="true" className="h-9 w-12 rounded-lg bg-secondary" />
+          <span aria-hidden="true" className="h-9 w-12 animate-skeleton rounded-lg bg-secondary" />
         )}
         <CardList state={state} {...list} />
       </div>

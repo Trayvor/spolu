@@ -20,7 +20,9 @@ export function ImagePreview({ file, maxWidth = 320 }: { file: FileInfo; maxWidt
       className="block overflow-hidden rounded-lg bg-muted"
       style={{
         aspectRatio: `${file.width} / ${file.height}`,
-        maxWidth: `min(100%, ${Math.min(file.width, maxWidth)}px)`,
+        // A definite width: in a column that sizes to its content an auto width would collapse
+        // until the image arrives, then jump.
+        width: `min(100%, ${Math.min(file.width, maxWidth)}px)`,
       }}
     >
       <img

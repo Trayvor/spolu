@@ -135,7 +135,7 @@ export function PeopleSelect({
                 <span className="min-w-0 truncate">{chip}</span>
                 {person?.isAdmin && <Badge variant="outline">{t('forms.people.adminPill')}</Badge>}
                 {person?.notPickable && !fixedIds.includes(id) && (
-                  <span className="shrink-0 font-normal text-muted-foreground">
+                  <span className="shrink-0 font-normal text-neutral">
                     {t('forms.people.notManager')}
                   </span>
                 )}
@@ -210,7 +210,7 @@ export function PeopleSelect({
                 choose(p.id);
               }}
               className={cn(
-                'flex cursor-pointer items-center gap-2 px-3 py-2 text-button',
+                'flex cursor-pointer items-center gap-2 px-3 py-2 text-button max-[640px]:min-h-11',
                 index === activeIndex && 'bg-accent',
               )}
             >

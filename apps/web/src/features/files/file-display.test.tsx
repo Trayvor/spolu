@@ -44,7 +44,7 @@ describe('file display', () => {
     expect(link).toHaveAttribute('target', '_blank');
     expect(link).toHaveAttribute('rel', 'noopener noreferrer');
     expect(link.style.aspectRatio).toBe('1600 / 900');
-    expect(link.style.maxWidth).toBe('min(100%, 200px)');
+    expect(link.style.width).toBe('min(100%, 200px)');
     const img = container.querySelector('img')!;
     expect(img).toHaveAttribute('src', '/api/files/f2/preview');
     expect(img).toHaveAttribute('alt', '');
@@ -55,7 +55,7 @@ describe('file display', () => {
     await setLanguage('en');
     render(<ImagePreview file={{ ...IMG, width: 120, height: 80 }} maxWidth={320} />);
     const link = screen.getByRole('link', { name: i18n.t('files.openImage', { name: IMG.name }) });
-    expect(link.style.maxWidth).toBe('min(100%, 120px)');
+    expect(link.style.width).toBe('min(100%, 120px)');
   });
 
   it('ImagePreview without a preview falls back to FileChip', async () => {

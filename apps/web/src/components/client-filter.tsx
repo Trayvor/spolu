@@ -164,7 +164,7 @@ export function ClientFilter({
               align="start"
               sideOffset={8}
               aria-label={t('knowledge.clientFilter.title')}
-              className="z-50 flex max-h-[min(520px,var(--radix-popover-content-available-height))] w-[360px] max-w-[calc(100vw-24px)] flex-col rounded-xl bg-popover p-2 text-popover-foreground shadow-lift outline-none"
+              className="z-50 flex max-h-[min(520px,var(--radix-popover-content-available-height))] w-[360px] max-w-[calc(100vw-24px)] origin-(--radix-popover-content-transform-origin) flex-col rounded-xl bg-popover p-2 text-popover-foreground shadow-lift outline-none data-[state=closed]:animate-menu-out data-[state=open]:animate-menu-in"
             >
               {panel}
             </Popover.Content>
@@ -175,7 +175,7 @@ export function ClientFilter({
           {trigger}
           {open && (
             <SheetDialog onEscape={() => setOpen(false)}>
-              <div className="flex min-h-0 flex-1 flex-col p-4">
+              <div className="flex min-h-0 flex-1 flex-col p-4 pb-[max(16px,env(safe-area-inset-bottom))]">
                 <SheetDialogTitle className="pb-3 text-medium font-semibold">
                   {t('knowledge.clientFilter.title')}
                 </SheetDialogTitle>
@@ -207,7 +207,7 @@ export function ClientFilter({
                 type="button"
                 aria-label={t('knowledge.clientFilter.remove', { name: group.name })}
                 onClick={() => toggle(group.id)}
-                className="relative inline-flex size-6 items-center justify-center rounded-full transition-colors duration-(--duration-fast) after:absolute after:-inset-2 hover:bg-surface-3"
+                className="relative inline-flex size-6 items-center justify-center rounded-full transition-colors duration-(--duration-fast) after:absolute after:-inset-2.5 hover:bg-surface-3"
               >
                 <CrossIcon />
               </button>

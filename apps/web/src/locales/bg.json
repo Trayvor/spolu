@@ -13,7 +13,9 @@
     "knowledge": "Знания",
     "myGroups": "Моите групи",
     "myTickets": "Моите тикети",
-    "bulkEmail": "Масови имейли"
+    "bulkEmail": "Масови имейли",
+    "menu": "Меню",
+    "menuCurrent": "Меню: {{name}}"
   },
   "user": {
     "menu": "Меню на профила",

@@ -1,3 +1,4 @@
+import { MessageSkeletons } from '@/components/ui/skeleton';
 import {
   useEffect,
   useLayoutEffect,
@@ -171,7 +172,8 @@ export function ThreadPanel({
       aria-label={t('chat.thread.title')}
       onKeyDown={onKeyDown}
       className={cn(
-        'absolute inset-0 z-10 flex flex-col bg-card',
+        // Over the chat (phones, the task panel) it fades in, so the change is clear.
+        'absolute inset-0 z-10 flex animate-page-in flex-col bg-card',
         !over &&
           'min-[1024px]:static min-[1024px]:w-[400px] min-[1024px]:shrink-0 min-[1024px]:border-l min-[1024px]:border-border',
       )}
@@ -218,7 +220,9 @@ export function ThreadPanel({
         ref={scroller}
         onScroll={onScroll}
         className="relative min-h-0 flex-1 overflow-y-auto overscroll-contain pt-9 pb-3"
+        aria-busy={(!thread && !isError) || undefined}
       >
+        {!thread && !isError && <MessageSkeletons rows={3} />}
         {isError && !thread && (
           <div className="flex flex-col items-center gap-3 px-6 py-10 text-center" role="alert">
             <p className="text-body">{t('chat.loadError')}</p>

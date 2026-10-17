@@ -186,7 +186,7 @@ export function GroupForm({
               }}
               aria-invalid={logoError ? true : undefined}
               aria-describedby={logoError ? 'group-logo-error' : undefined}
-              className="min-w-0 text-micro text-muted-foreground file:mr-3 file:cursor-pointer file:rounded-full file:border-0 file:bg-secondary file:px-4 file:py-2 file:text-micro file:font-semibold file:text-secondary-foreground hover:file:bg-surface-3"
+              className="min-w-0 text-micro text-muted-foreground file:mr-3 file:cursor-pointer file:rounded-full file:border-0 file:bg-secondary file:px-4 file:py-2 file:text-micro max-[640px]:file:py-3 max-[640px]:file:text-button file:font-semibold file:text-secondary-foreground hover:file:bg-surface-3"
             />
           </div>
           {showCurrentLogo && (

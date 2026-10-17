@@ -35,7 +35,7 @@ export function CountTile(props: CountCardProps) {
         {state === 'ready' ? (
           <CountFigure count={count} caption={caption} subline={subline} />
         ) : (
-          <span aria-hidden="true" className="h-9 w-10 rounded-lg bg-secondary" />
+          <span aria-hidden="true" className="h-9 w-10 animate-skeleton rounded-lg bg-secondary" />
         )}
       </button>
       {open && (
@@ -51,7 +51,7 @@ export function CountTile(props: CountCardProps) {
             </Button>
             <SheetDialogTitle className="text-body font-semibold">{title}</SheetDialogTitle>
           </div>
-          <div className="min-h-0 flex-1 overflow-y-auto px-4 py-2">
+          <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-2 pb-[max(8px,env(safe-area-inset-bottom))]">
             <CardList
               rows={props.rows}
               empty={props.empty}
