@@ -8,6 +8,11 @@ export const SessionUserSchema = z.object({
   email: z.string(),
   name: z.string(),
   role: RoleSchema,
+  /**
+   * Holds the finance right (Phase 32): the superadmin always, an admin once the superadmin
+   * granted it, a client never. Read from the user row on every request.
+   */
+  finance: z.boolean(),
 });
 export type SessionUser = z.infer<typeof SessionUserSchema>;
 
@@ -38,6 +43,8 @@ export const AdminSchema = z.object({
   name: z.string(),
   email: z.string(),
   role: z.enum(['superadmin', 'admin']),
+  /** The finance right (Phase 32); only in the superadmin's answer, who grants it. */
+  finance: z.boolean().optional(),
 });
 export type Admin = z.infer<typeof AdminSchema>;
 
@@ -118,5 +125,7 @@ export const ErrorCodes = {
   invalidTranscriptFile: 'invalid_transcript_file',
   // Phase 28 — knowledge items in chat
   invalidKnowledgeItem: 'invalid_knowledge_item',
+  // Phase 32 — finance
+  financeChanged: 'finance_changed',
 } as const;
 export type ErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes];

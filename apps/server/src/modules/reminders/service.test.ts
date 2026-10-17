@@ -81,7 +81,7 @@ const newGroup = () =>
 async function newAdmin(name = 'Ada'): Promise<SessionUser> {
   const email = `${randomUUID()}@example.com`;
   const admin = await addAdmin(db, { email, name });
-  return { id: admin.id, email, name, role: 'admin' };
+  return { id: admin.id, email, name, role: 'admin', finance: false };
 }
 
 async function newClient(groupId: string, name = 'Cleo'): Promise<SessionUser> {
@@ -89,7 +89,7 @@ async function newClient(groupId: string, name = 'Cleo'): Promise<SessionUser> {
   const id = randomUUID();
   await db.insert(user).values({ id, email, name, role: 'client', emailVerified: true });
   await addMember(db, groupId, id);
-  return { id, email, name, role: 'client' };
+  return { id, email, name, role: 'client', finance: false };
 }
 
 async function newItem(

@@ -14,7 +14,14 @@ import { getDeviceState, subscribeThisDevice } from './push-device';
 import { NotificationsSection } from './notifications-section';
 
 const PREFS: NotificationPrefs = {
-  channels: { chat: 'push', tasks: 'push', tickets: 'both', knowledge: 'push', meetings: 'push' },
+  channels: {
+    chat: 'push',
+    tasks: 'push',
+    tickets: 'both',
+    knowledge: 'push',
+    meetings: 'push',
+    finance: 'push',
+  },
   visibleCategories: ['chat', 'tasks', 'tickets', 'knowledge', 'meetings'],
   vapidPublicKey: 'KEY',
 };
@@ -172,6 +179,7 @@ describe('NotificationsSection', () => {
         tickets: 'email',
         knowledge: 'none',
         meetings: 'none',
+        finance: 'none',
       },
     } as const;
     const { patches, user } = setup(none);

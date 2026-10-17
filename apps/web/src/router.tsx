@@ -284,6 +284,29 @@ const groupTicketsRoute = createRoute({
   ),
 });
 
+/**
+ * The Finance namespaces (Phase 32): `finance` (shared words) and one per part. A route
+ * loads all four, so a part's card never renders raw keys.
+ */
+const FINANCE_NAMESPACES = ['finance', 'financeDocuments', 'financeLog', 'financeSystem'];
+
+/** Cosmetic guard: only finance admins see a Finance screen; the server answers 403 anyway. */
+const financeGuard = async ({ context }: { context: RouterContext }) => {
+  const user = await context.queryClient.ensureQueryData(sessionQuery);
+  if (!user?.finance) throw notFound();
+};
+
+// A client's Financie tab (Phase 32), finance admins only.
+const groupFinanceRoute = createRoute({
+  getParentRoute: () => groupRoute,
+  path: 'finance',
+  beforeLoad: financeGuard,
+  component: lazyRouteComponent(
+    withNamespaces(FINANCE_NAMESPACES, () => import('@/features/finance/finance-tab')),
+    'FinanceTab',
+  ),
+});
+
 const groupMembersRoute = createRoute({
   getParentRoute: () => groupRoute,
   path: 'members',
@@ -418,6 +441,17 @@ const bulkCampaignRoute = createRoute({
   ),
 });
 
+// The system-wide finance page (Phase 32), finance admins only.
+const financeRoute = createRoute({
+  getParentRoute: () => authedRoute,
+  path: '/finance',
+  beforeLoad: financeGuard,
+  component: lazyRouteComponent(
+    withNamespaces(FINANCE_NAMESPACES, () => import('@/features/finance/finance-page')),
+    'FinancePage',
+  ),
+});
+
 // The admins' global knowledge list across all clients.
 const knowledgeRoute = createRoute({
   getParentRoute: () => authedRoute,
@@ -481,6 +515,7 @@ const routeTree = rootRoute.addChildren([
     bulkEmailRoute,
     bulkCampaignRoute,
     knowledgeRoute,
+    financeRoute,
     groupsRoute,
     myGroupsRoute,
     groupRoute.addChildren([
@@ -489,6 +524,7 @@ const routeTree = rootRoute.addChildren([
       groupTasksRoute.addChildren([newTaskRoute, taskRoute]),
       groupTicketsRoute,
       groupKnowledgeRoute,
+      groupFinanceRoute,
       groupMembersRoute,
     ]),
     ticketsRoute,

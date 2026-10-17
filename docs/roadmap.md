@@ -37,7 +37,7 @@ Requirements per module: [product/](product/README.md). Phases after 1 get their
 | 28 | [Chat editor and AI text tools](#phase-28--chat-editor-and-ai-text-tools) | in progress | 27 | [editor spec](superpowers/specs/2026-10-17-phase-28-chat-editor-design.md), [ADR 0025](decisions/0025-prosemirror-chat-editor.md), [AI text tools and voice spec](superpowers/specs/2026-10-17-phase-28-ai-text-tools-and-voice-design.md) |
 | 29 | [Solve with AI](#phase-29--solve-with-ai) | done | 21 | [spec](superpowers/specs/2026-10-17-phase-29-open-in-claude-design.md) |
 | 31 | [Bulk email builder v2](#phase-31--bulk-email-builder-v2) | in progress (v2 merged in PR #59; layout follow-up in review) | 23 | [spec](superpowers/specs/2026-10-17-phase-31-bulk-email-builder-v2-design.md), [plan](superpowers/plans/2026-10-17-phase-31-bulk-email-builder-v2.md), [layout spec](superpowers/specs/2026-10-17-bulk-email-builder-layout-design.md) |
-| 32 | [Finančná správa](#phase-32--finančná-správa) | spec written, waiting for the owner | 17, 19, 20, 24 | [spec](superpowers/specs/2026-10-17-finance-module-design.md), [plan](superpowers/plans/2026-10-17-finance-module.md) |
+| 32 | [Finančná správa](#phase-32--finančná-správa) | in progress (A1 done; A2, B, C next) | 17, 19, 20, 24 | [spec](superpowers/specs/2026-10-17-finance-module-design.md), [plan](superpowers/plans/2026-10-17-finance-module.md) |
 
 Phases 8 and 14 do not depend on each other, so their order can change by priority.
 
@@ -453,6 +453,6 @@ Scope: a finance right that only the superadmin grants, to admins only; a **Fina
 
 Built in five pull requests: A1 foundation first (schema, permission, empty screens), then A2 (time on done), B (documents and contracts) and C (overview, work log, rates, charts) in parallel, then D (system-wide page and rankings). Proposes to replace Phases 14–15 (owner decision 3).
 
-Status: spec written, waiting for the owner.
+Status: approved by the owner on 2026-10-17 (every recommendation of the Owner decisions table accepted as written), and extended the same day with time on tickets (spec request item 6, decisions 23–26; decision 24, tickets without a client, waits for the owner's confirmation). **Part A1 (foundation) done** on `feat/finance-a1-foundation`: migration 0034 with every finance table (time entries for tasks, tickets and manual entries), the finance right with the superadmin's switch on the Admins page, `requireFinance`, the `finance` room and events, finance-only files, the Finance notification group, the shared money, duration and DTO schemas, the empty Financie tab and `/finance` page, the four locale namespaces and [ADR 0027](decisions/0027-sealed-finance-module.md). Next: A2, B and C in parallel, then D. Owner to check after the merge on https://help.egrant.sk: turn Finance on for one admin on the Admins page; that admin sees the Financie tab and header link at once (empty cards); another admin and a client do not, and get "Page not found" at `/finance`.
 
 Done when: a superadmin grants Finance to an admin; that admin keeps a client's contract with its reminder, completed tasks fill the work log (the other admin assignee is asked and fills 0), rates turn hours into cost, and `/finance` ranks the clients by money paid and by hours; no client and no admin without the right sees any of it.

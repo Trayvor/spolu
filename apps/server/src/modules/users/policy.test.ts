@@ -7,6 +7,7 @@ const actor = (role: Role): SessionUser => ({
   email: 'a@example.com',
   name: 'A',
   role,
+  finance: false,
 });
 
 describe('isAdmin and canManageAdmins', () => {

@@ -38,7 +38,11 @@ export function registerTicketChat(): void {
       if (!ticket?.requesterUserId) return [];
       const initiator = await getUserById(db, ticket.requesterUserId);
       if (!initiator || initiator.disabledAt || initiator.name.trim() === '') return [];
-      return (await actorReadsTicket(db, { ...initiator, role: initiator.role }, ticket))
+      return (await actorReadsTicket(
+        db,
+        { ...initiator, role: initiator.role, finance: false },
+        ticket,
+      ))
         ? [{ id: initiator.id, name: initiator.name }]
         : [];
     },

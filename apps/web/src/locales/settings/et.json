@@ -41,14 +41,16 @@
       "tasks": "Ülesannete tahvel",
       "tickets": "Pöördumiste tahvel",
       "knowledge": "Teadmistebaas",
-      "meetings": "Kohtumised"
+      "meetings": "Kohtumised",
+      "finance": "Rahandus"
     },
     "hints": {
       "chat": "Sõnumid, mainimised ja vastused grupivestlustes",
       "tasks": "Ülesannete teisaldamised, määramised, tähtajad, meeldetuletused ja ülesannete vestlused",
       "tickets": "Tugipöördumised ja nende vestlused",
       "knowledge": "Teadmistebaasi meeldetuletused, v.a kohtumised",
-      "meetings": "Uued ja edasi lükatud kohtumised, nende meeldetuletused ja AI kokkuvõtted"
+      "meetings": "Uued ja edasi lükatud kohtumised, nende meeldetuletused ja AI kokkuvõtted",
+      "finance": "Lepingute ja muude finantskirjete meeldetuletused"
     },
     "channels": {
       "email": "E-post",

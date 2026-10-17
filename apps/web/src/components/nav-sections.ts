@@ -13,6 +13,7 @@ export type NavSection = {
     | '/tasks'
     | '/tickets'
     | '/knowledge'
+    | '/finance'
     | '/groups'
     | '/admins'
     | '/bulk-email'
@@ -34,15 +35,26 @@ const ADMIN_SECTIONS: readonly NavSection[] = [
   { key: 'bulkEmail', to: '/bulk-email', label: 'nav.bulkEmail', match: ['/bulk-email'] },
 ];
 
+/** Finance admins (Phase 32) also have Financie, after Knowledge. */
+const FINANCE_SECTION: NavSection = {
+  key: 'finance',
+  to: '/finance',
+  label: 'nav.finance',
+  match: ['/finance'],
+};
+const FINANCE_ADMIN_SECTIONS: readonly NavSection[] = ADMIN_SECTIONS.flatMap((section) =>
+  section.key === 'knowledge' ? [section, FINANCE_SECTION] : [section],
+);
+
 /**
  * The sections a person moves between, in header order. Admins: Home, Tasks, Tickets, Knowledge,
- * Groups, Admins, Bulk email. Anyone else: "My groups" when they are a client of several groups
+ * (Financie for a finance admin), Groups, Admins, Bulk email. Anyone else: "My groups" when they are a client of several groups
  * (or their one group, by name, when they also report tickets, so the menu leads back to it),
  * and their tickets ("Tickets" for a requester who is no client anywhere, else "My tickets").
  * A client of one group who reports nothing has no sections: the brand link is their way home.
  */
 export function navSections(user: Me): readonly NavSection[] {
-  if (isAdmin(user)) return ADMIN_SECTIONS;
+  if (isAdmin(user)) return user.finance ? FINANCE_ADMIN_SECTIONS : ADMIN_SECTIONS;
   const mine = clientGroups(user);
   const sections: NavSection[] = [];
   if (mine.length > 1) {

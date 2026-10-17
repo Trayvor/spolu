@@ -100,3 +100,24 @@ See [realtime.md](realtime.md) for room joins and [overview.md](overview.md) for
 ## Meetings (Phase 30)
 
 A meeting is a knowledge item: `canReadItem`, `canEditItem` as for the other types (its recording upload and delete, its summary edits). `canProcessMeeting` (admins) guards "Spracovať s AI", the task proposals and creating its tasks; a client gets 403. The compact audio is a file attached to the item, so `adminsOnly` follows the item's visibility as for a note's files. `POST /api/knowledge/transcript-text` reads a file for any signed-in user and stores nothing. The tasks made from a meeting are listed in its detail for whoever reads it there (`canUseBoard`: admins and the group's clients; the chat-message read of a žiadateľ gets none). A task's `sourceMeeting` line is built by `getMeetingRef` (`modules/knowledge/meeting-ref.ts`): a meeting of the task's group that the viewer may read (`canReadItem`), so an admins-only meeting is never named to a client; `getTask` without a viewer leaves it out.
+
+## Finance (Phase 32)
+
+Policy functions in `modules/finance/policy.ts` (test-first, `policy.test.ts`):
+
+| function | rule |
+|---|---|
+| `canSeeFinance(actor)` | the superadmin always; an admin with `SessionUser.finance`; a client never, whatever the session says. Gate of every finance route (`requireFinance`), the `finance` room and the Finance notification group |
+| `canGrantFinance(actor, target)` | the actor is the superadmin; the target is an active `admin` (not the superadmin, not a client, not disabled) |
+| `canLogOwnTaskTime(actor, assigneeIds)` | an admin (or the superadmin) who is an assignee of the task now |
+| `canLogOwnTicketTime(actor, { assigneeIds, groupId })` | an admin who is a riešiteľ of the ticket now, and the ticket has a client (2026-10-17) |
+| `canEditTimeEntry(actor, entry)` | a finance admin; another admin only their own task or ticket entry |
+| `canManageRates(actor)`, `canAddManualEntry(actor)` | `canSeeFinance` |
+
+- `SessionUser.finance` comes from `user.finance_access_at` read with the session on every request (`toSessionUser`: `role === 'superadmin' || (role === 'admin' && finance_access_at not null)`).
+- `PUT` / `DELETE /api/admins/:id/finance-access` (`modules/finance/access.ts`): `requireAdmin`, then the actor must be the superadmin (`403`), then the target must pass `canGrantFinance` (`404` for a client, an unknown id, a disabled admin, the superadmin). Idempotent (a repeat changes nothing and pushes nothing), 120 a minute per superadmin. `GET /api/admins` adds each admin's `finance` only for the superadmin. Deactivating an admin (`deactivateUser`) clears the right.
+- `modules/finance/routes.ts` registers parts B, C and D inside one plugin whose preHandler is `requireFinance` (`401` without a session, `403` without the right) before any handler runs; the grant routes and the task and ticket time routes (part A2) sit outside it with their own guards.
+- **Files:** `canReadFile` checks `financeOnly` first: a finance-only file is readable only by `canSeeFinance`, before the group rule; `readableByRule` never opens one (like an admins-only file), so no registered read rule (the ticket chat's) can. `attachFiles` refuses a finance-only file (`InvalidAttachmentError`, `400 invalid_attachment` in chat, tasks, tickets and knowledge); the finance module passes `{ finance: true }` and may attach only finance-only files. `copyFile` refuses one. `setFilesFinanceOnly` marks them at the finance upload.
+- **Notifications:** `visibleCategoriesFor` adds `finance` only for `canSeeFinance`; `audienceAmong` keeps a `finance` event only for users who hold the right at delivery (`financeHoldersAmong`).
+- **Time and the other modules' DTOs:** `TaskDto`, `TaskDetailDto`, `GlobalTaskDto`, `TicketDto`, `TicketListItem` and `KnowledgeItemDto` carry no time or money (a shared test, `packages/shared/src/finance/leaks.test.ts`, fails on such a field). Task and ticket time have their own routes (part A2) that answer only about the caller unless `canSeeFinance`.
+- Leak tests of part A1: `modules/finance/leaks.test.ts` (a finance file is `404` for the group's client and another admin, refused in a chat message, a task and a knowledge item; `finance:changed` reaches only the finance room; the Finance group cannot be set without the right), `modules/finance/access.test.ts`, `modules/files/*.test.ts`, `modules/notifications/categories.test.ts`.

@@ -14,6 +14,7 @@ const me = (role: Me['role'], groups: Me['groups'] = []): Me => ({
   name: 'Eva',
   email: 'eva@example.com',
   role,
+  finance: false,
   groups,
 });
 const keys = (user: Me) => navSections(user).map((section) => section.key);
@@ -29,6 +30,23 @@ describe('navSections', () => {
       'admins',
       'bulkEmail',
     ]);
+  });
+
+  it('adds Financie after Knowledge for a finance admin (Phase 32)', () => {
+    expect(keys({ ...me('admin'), finance: true })).toEqual([
+      'home',
+      'tasks',
+      'tickets',
+      'knowledge',
+      'finance',
+      'groups',
+      'admins',
+      'bulkEmail',
+    ]);
+    expect(keys({ ...me('superadmin'), finance: true })).toContain('finance');
+    expect(currentSection(navSections({ ...me('admin'), finance: true }), '/finance')?.key).toBe(
+      'finance',
+    );
   });
 
   it('gives clients and requesters only what they can open', () => {

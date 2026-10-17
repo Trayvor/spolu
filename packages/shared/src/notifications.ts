@@ -67,7 +67,8 @@ export type ModeBody = z.infer<typeof ModeBodySchema>;
 /**
  * Notification groups: each event belongs to one, and the user picks a channel per group. The
  * order is the profile's order. Item B (tickets) uses `tickets`; `meetings` (2026-10-17) holds the
- * meeting events and a meeting's reminders.
+ * meeting events and a meeting's reminders; `finance` (Phase 32) the finance reminders, shown
+ * and delivered only to finance admins.
  */
 export const NotificationCategories = [
   'chat',
@@ -75,6 +76,7 @@ export const NotificationCategories = [
   'tickets',
   'knowledge',
   'meetings',
+  'finance',
 ] as const;
 export const NotificationCategorySchema = z.enum(NotificationCategories);
 export type NotificationCategory = z.infer<typeof NotificationCategorySchema>;
@@ -92,6 +94,7 @@ export const DEFAULT_CHANNELS: Readonly<ChannelMap> = Object.freeze({
   tickets: 'both',
   knowledge: 'push',
   meetings: 'push',
+  finance: 'push',
 });
 
 export const wantsPush = (channel: NotificationChannel): boolean =>
@@ -123,6 +126,7 @@ export const NotificationPrefsSchema = z.object({
     tickets: NotificationChannelSchema,
     knowledge: NotificationChannelSchema,
     meetings: NotificationChannelSchema,
+    finance: NotificationChannelSchema,
   }),
   visibleCategories: z.array(NotificationCategorySchema),
   vapidPublicKey: z.string().nullable(),

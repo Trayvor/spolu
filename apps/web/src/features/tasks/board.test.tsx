@@ -18,12 +18,20 @@ vi.mock('@/lib/socket', () => ({
   getSocket: () => ({ on: vi.fn(), off: vi.fn(), connected: false }),
 }));
 
-const ADMIN = { id: 'a1', name: 'Jana', email: 'j@example.com', role: 'admin', groups: [] };
+const ADMIN = {
+  id: 'a1',
+  name: 'Jana',
+  email: 'j@example.com',
+  role: 'admin',
+  finance: false,
+  groups: [],
+};
 const CLIENT = {
   id: 'c1',
   name: 'Klient',
   email: 'k@example.com',
   role: 'client',
+  finance: false,
   groups: [{ id: 'g1', name: 'Firma', role: 'client', hasLogo: false, updatedAt: '' }],
 };
 const GROUP = {

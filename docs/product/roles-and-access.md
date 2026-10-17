@@ -17,6 +17,7 @@ There are exactly two roles: Administrator and Client. Administrators see the wh
 - A client sees only their own group; an administrator sees all groups.
 - A client cannot see users of other organizations and cannot write to them (see `direct-messages.md`).
 - The superadmin is an administrator who cannot be deleted or demoted (see `auth.md`).
+- **Finance admin** (Phase 32) is not a role either: a right on an administrator, granted and removed only by the superadmin on the Admins page; the superadmin always has it. Only finance admins see Finance (the client's Financie tab, `/finance`, finance files, finance notifications); other admins and clients never see any of it. Deactivation removes the right. See `finance.md`.
 
 ## Phase
 

@@ -2,8 +2,11 @@ import { z } from 'zod';
 import { IdSchema } from './chat.js';
 import { TaskPersonSchema } from './tasks.js';
 
-/** What a reminder set belongs to: a knowledge reminder item (Phase 17) or a task (Phase 19). */
-export type ReminderSubjectKind = 'knowledge' | 'task';
+/**
+ * What a reminder set belongs to: a knowledge reminder item (Phase 17), a task (Phase 19) or a
+ * finance item (Phase 32, a contract's reminders; only finance admins read or receive them).
+ */
+export type ReminderSubjectKind = 'knowledge' | 'task' | 'finance';
 
 /** Unfired times per set, and `added` recipients per set (the server's `REMINDER_LIMITS`). */
 export const REMINDER_PUT_LIMITS = { times: 20, recipients: 50 } as const;

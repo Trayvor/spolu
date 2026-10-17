@@ -4,12 +4,20 @@ import type { TicketDto, TicketListItem } from '@spolu/shared';
 /** Tests only: fake data and a fake API for the ticket screens. */
 
 export const NOW = '2026-10-16T10:00:00.000Z';
-export const ADMIN = { id: 'a1', name: 'Ada', email: 'a@x.sk', role: 'admin', groups: [] };
+export const ADMIN = {
+  id: 'a1',
+  name: 'Ada',
+  email: 'a@x.sk',
+  role: 'admin',
+  finance: false,
+  groups: [],
+};
 export const CLIENT = {
   id: 'c1',
   name: 'Klára',
   email: 'k@x.sk',
   role: 'client',
+  finance: false,
   groups: [{ id: 'g1', name: 'ABC s.r.o.', role: 'client', hasLogo: false, updatedAt: NOW }],
 };
 export const REQUESTER = {
@@ -17,6 +25,7 @@ export const REQUESTER = {
   name: 'Žofia',
   email: 'z@x.sk',
   role: 'client',
+  finance: false,
   groups: [{ id: 'g1', name: 'ABC s.r.o.', role: 'ziadatel', hasLogo: false, updatedAt: NOW }],
 };
 export const GROUPS = [

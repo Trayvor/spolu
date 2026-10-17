@@ -1,6 +1,6 @@
 # Phase 32 — Finančná správa (financial administration): design
 
-Date: 2026-10-17 · Status: **spec written, waiting for the owner** (answer the "Owner decisions" below; nothing is built yet). Plan: [2026-10-17-finance-module.md](../plans/2026-10-17-finance-module.md). Roadmap: [Phase 32](../../roadmap.md#phase-32--finančná-správa).
+Date: 2026-10-17 · Status: **approved** by the owner on 2026-10-17: decisions 1–22 of the "Owner decisions" table are accepted as written. The owner extended the phase the same day with time on tickets (request item 6, decisions 23–26, §5.6), built into the data model by part A1; decision 24 (tickets without a client) waits for the owner's confirmation. Plan: [2026-10-17-finance-module.md](../plans/2026-10-17-finance-module.md). Roadmap: [Phase 32](../../roadmap.md#phase-32--finančná-správa).
 
 Builds on the [knowledge base](2026-10-16-phase-17-knowledge-base-design.md) and its [folders](2026-10-16-phase-24-knowledge-folders-design.md), [reminders](2026-10-16-phase-19-task-reminders-design.md), the [admin home](2026-10-16-phase-20-admin-home-design.md), [notification groups](2026-10-16-notification-groups-design.md) and [the dashboard follows the notifications](2026-10-17-dashboard-follows-notifications-design.md). Rules: [permissions](../../architecture/permissions.md), [performance](../../architecture/performance.md), [realtime](../../architecture/realtime.md).
 
@@ -14,6 +14,7 @@ Builds on the [knowledge base](2026-10-16-phase-17-knowledge-base-design.md) and
 3. The finance admin sets each admin's **hourly rate**. Wherever hours per admin and client totals are shown, the money the service cost is shown too. The money card also shows how much we spent on the client.
 4. The finance admin adds **manual entries** to the work log: "admin X spent N hours", choosing when.
 5. A **system-wide finance dashboard**: the same across all clients and admins, plus a client filter, plus two cards: (1) clients ranked by money paid, with a year/month filter; (2) clients ranked by hours spent, with an admin filter and a switch to rank by money instead of hours.
+6. **Extension of 2026-10-17: tickets get time like tasks.** When a ticket is marked resolved, its admin riešitelia are asked how many hours they spent (the resolving admin by the dialog, the others by the "fill in your time" notification and dashboard row until they answer; 0 is valid). When the ticket has linked tasks (`tasks.source_ticket_id`) that are done with hours logged, the dialog offers two answers: (a) hours for the ticket itself, or (b) "the hours on the linked tasks already cover it" — an explicit answer that fills the request and records no extra time. Admins can always add ticket hours on top of the linked tasks' hours, from the dialog and later from the ticket page. The work logs (client tab, `/finance`) and the rankings show a ticket and its linked tasks as one unit (the ticket with its own hours, its tasks under it), and totals never double count. Tickets without a client: see decision 24.
 
 ## Owner decisions
 
@@ -43,6 +44,10 @@ Each one is a recommendation we build unless the owner says otherwise. **B** mar
 | 20 | **B** An admin with finance access is deactivated. | **The right is removed** with the deactivation; reactivating needs a new grant. | Nobody gets financial data back silently. |
 | 21 | Charts. | **Our own small SVG components**, no chart library (§8, ADR in part C). | About 4 kB gzip instead of 20–95 kB; the charts needed are bars only. |
 | 22 | Knowledge code reuse. | **A sibling module `modules/finance`** with its own tables, sharing knowledge's pure helpers (search text, folder tree) and generic web components; nothing in `knowledge_*` tables. | Finance rows can then never appear in any existing knowledge list, search, chat attachment, chat-file mirror or digest; every one of those reads `knowledge_*` only. See §4. |
+| 23 | **B** Tickets ask time like tasks (extension of 2026-10-17). | **Yes, as owner's request item 6.** Every admin riešiteľ of a ticket with a client is asked on resolve; option (b) "covered by the linked tasks" is a stored answer (a filled entry of 0 minutes with `covered_by_tasks`), so no reminder stays and nothing is added. One entry per admin per ticket, as for tasks (decision 6): reopening drops unanswered requests, filled time stays, it counts on the day of the first resolution. The notification is a kind of its own, `ticket.time_missing`, in the **Ticket board** group, passing every mode like `task.time_missing`. | Same habit as tasks, one dialog to learn; storing (b) explicitly tells "answered, nothing extra" from "not answered". |
+| 24 | **B** Tickets without a client. | **Recommended: ask no time** while a ticket has no client (`canLogOwnTicketTime` refuses, no request, no dialog). When it gets a client later, its riešitelia can add their time from the ticket page (no request is created afterwards); entries of a ticket that moves to another client move with it (`onTicketMoved`). Alternative (not built): record such time "without client" and show it only on `/finance`, which would need `group_id` nullable on every finance aggregate and an extra row in every ranking. *To be confirmed by the owner (the coordinator asks).* | Finance is per client: a time entry with no client could not appear in any client tab, and intake tickets without a client are usually triage, not billable work. Keeping `group_id` required keeps every query and index simple. |
+| 25 | A ticket and its tasks as one unit. | A task entry stores its task's ticket (`linked_ticket_id`, copied from `tasks.source_ticket_id` by the hooks, since finance never reads `tasks`); the work log groups rows by `coalesce(ticket_id, linked_ticket_id)`. Ticket entries and task entries are separate rows, so every total sums each row once. Tasks made from a meeting (`tasks.source_meeting_id`, 2026-10-17) are plain task rows, no unit. | Grouping by a stored column needs no join with the tasks module and stays correct after a task or ticket is deleted. |
+| 26 | Ticket time and the leak rules. | Like tasks: `TicketDto` and `TicketListItem` get **no time field**; `GET /api/tickets/:id/time` answers only about the caller (their own entry, their own minutes on the linked tasks, and a yes or no "linked tasks have logged time") unless the caller is a finance admin, who also gets every admin riešiteľ's time. | Asking for time must not show the finance data it feeds (decision 5). |
 
 ## 1. Goal and scope
 
@@ -66,7 +71,8 @@ Out of scope (later): instalments and invoices, exchange rates, a per-client opt
 | `canSeeFinance(actor)` | `isAdmin(actor) && actor.finance` (superadmin: always). Gate of **every** finance route, the `finance` room and every finance notification. |
 | `canGrantFinance(actor, target)` | actor is the superadmin; target is an active `admin`. |
 | `canLogOwnTaskTime(actor, assigneeIds)` | `isAdmin(actor)` and the actor is an assignee of the task now. Used by the task dialog and the panel's "My time". |
-| `canEditTimeEntry(actor, entry)` | `canSeeFinance(actor)`, or the entry is a task entry of the actor themselves. |
+| `canLogOwnTicketTime(actor, ticket)` | `isAdmin(actor)`, the ticket has a client, and the actor is one of its riešitelia now (2026-10-17). |
+| `canEditTimeEntry(actor, entry)` | `canSeeFinance(actor)`, or the entry is a task or ticket entry of the actor themselves. |
 | `canManageRates(actor)` / `canAddManualEntry(actor)` | `canSeeFinance(actor)`. |
 
 - Every finance route sits in one Fastify plugin whose preHandler is `requireFinance` (no session `401`, not `canSeeFinance` `403 forbidden`). Inside, a finance item, folder, entry or rate of an unknown id or of another group than the path's answers `404 not_found`. Clients and non-finance admins therefore never get a finance row, whatever id they send.
@@ -83,13 +89,14 @@ Out of scope (later): instalments and invoices, exchange rates, a per-client opt
 | Notifications (push, email digest, bell) | A new notification group **Finance** (`finance`), visible in Settings only to finance admins (`visibleCategoriesFor`). Delivery of a `finance` event re-checks the right at send time (the audience check), so a revoked admin gets nothing queued earlier. `task.time_missing` carries only the task id, title and client, never money. |
 | Realtime | Finance events go only to the `finance` room (finance admins' sockets), never to `group:<id>`, `group:<id>:admins` or `admins`. |
 | Task DTOs, the board, the global board, "Open in Claude" prompts, AI task split | Time lives in `finance_time_entries`; `TaskDto` and `TaskDetailDto` get no time field. The task panel asks `GET /api/tasks/:id/time` separately (admins only). The Claude prompt builder never reads finance tables. |
-| Admin home | The "fill in your time" rows list only the caller's own requests (task title and client, no money). |
+| Admin home | The "fill in your time" rows list only the caller's own requests (task or ticket title and client, no money). |
+| Tickets (2026-10-17) | `TicketDto` and `TicketListItem` carry no time; `GET /api/tickets/:id/time` answers about the caller only (their entry, their own minutes on the linked tasks, a yes or no for "linked tasks have logged time") unless `canSeeFinance`. `ticket.time_missing` carries only the ticket id, title and client. |
 
 Tests in every part assert these: a client, a ziadatel and a non-finance admin get `403`/`404` on every finance route; the knowledge global search does not find a contract's title; a finance file is `404` for a group's client and a non-finance admin even with its id; chat send with a finance file id is refused; a finance reminder cannot add a non-finance admin; no finance event reaches a group room.
 
 ## 3. Data model
 
-All tables belong to `modules/finance` (`modules/finance/schema.ts`), one migration in part A1 (number after the latest at merge time, 0032 today). Ids are text like elsewhere. Money is integer **minor units** (`bigint`, cents) plus an ISO 4217 code; time is integer **minutes**. Dates of work are `date` in Europe/Bratislava.
+All tables belong to `modules/finance` (`modules/finance/schema.ts`), one migration in part A1 (number after the latest at merge time: 0034, after `0033_drop_ticket_followers`). Ids are text like elsewhere. Money is integer **minor units** (`bigint`, cents) plus an ISO 4217 code; time is integer **minutes**. Dates of work are `date` in Europe/Bratislava.
 
 ### 3.1 Currencies (shared)
 
@@ -131,27 +138,36 @@ finance_attachments (item_id → finance_items cascade, file_id → files cascad
 finance_time_entries (
   id, group_id → groups cascade,
   user_id → user                      -- the admin who worked (never a client: checked by the service)
-  source text in ('task', 'manual'),
-  task_id → tasks on delete set null  -- task entries; null for manual ones and after the task is deleted
-  task_title text                     -- the title when the entry was created or last filled (shown for a deleted task)
+  source text in ('task', 'ticket', 'manual'),
+  task_id → tasks on delete set null      -- task entries; null otherwise and after the task is deleted
+  ticket_id → tickets on delete set null  -- ticket entries (2026-10-17); null otherwise and after the ticket is deleted
+  linked_ticket_id → tickets on delete set null  -- a task entry's ticket (tasks.source_ticket_id): the work-log unit
+  title text                          -- the task's or ticket's title when the entry was created or last filled
   minutes integer null CHECK (minutes between 0 and 6000)   -- null = asked, not answered yet
-  worked_on date null                 -- the Bratislava day it counts on; null only for a task entry
-                                      -- filled before its task was ever completed
+  worked_on date null                 -- the Bratislava day it counts on; null only for a task or ticket entry
+                                      -- filled before its subject was ever completed or resolved
+  covered_by_tasks boolean default false  -- a ticket entry answered "the linked tasks' hours cover it" (option b)
   note text ≤ 500 default ''          -- manual entries
   created_by → user, updated_by → user, created_at, updated_at, filled_at null
 )
   unique (task_id, user_id) where task_id is not null                -- one entry per admin per task
+  unique (ticket_id, user_id) where ticket_id is not null            -- one entry per admin per ticket
   idx (group_id, worked_on, id) where minutes is not null and worked_on is not null   -- the work log, client aggregates
   idx (worked_on, group_id) where minutes is not null and worked_on is not null       -- system-wide aggregates, hours ranking
   idx (user_id, worked_on) where minutes is not null and worked_on is not null        -- per-admin filter, rates join
   idx (user_id) where minutes is null and worked_on is not null                       -- my open requests (dashboard)
-  CHECK source = 'task' or (minutes is not null and worked_on is not null and task_id is null)
-  CHECK source = 'manual' or task_title is not null
+  idx (task_id) where task_id is not null                                             -- a task's entries, the FK
+  idx (coalesce(ticket_id, linked_ticket_id), worked_on) where either is not null     -- a ticket unit's entries
+  idx (linked_ticket_id) where linked_ticket_id is not null                           -- the FK
+  CHECK subject: task → ticket_id null; ticket → task_id and linked_ticket_id null; manual → all three null
+  CHECK source <> 'manual' or (minutes is not null and worked_on is not null)
+  CHECK source = 'manual' or title is not null
+  CHECK not covered_by_tasks or (source = 'ticket' and minutes = 0)
 ```
 
-A task entry keeps `source = 'task'` after its task is deleted (`task_id` null, `task_title` kept), so the CHECKs do not tie `task_id` to the source.
+A task or ticket entry keeps its `source` and `title` after its subject is deleted (`task_id` / `ticket_id` null), so the CHECKs do not require the subject id.
 
-States of a task entry: **requested** (`minutes` null, `worked_on` set: the task was completed and the admin has not answered), **filled** (`minutes` set). Only filled entries with a `worked_on` count anywhere. An entry filled before the task's first completion has `worked_on` null and starts counting when the task completes (its `worked_on` is set then, and no request or dialog follows).
+States of a task or ticket entry: **requested** (`minutes` null, `worked_on` set: the task was completed or the ticket resolved and the admin has not answered), **filled** (`minutes` set; for option (b) `minutes = 0` and `covered_by_tasks`). Only filled entries with a `worked_on` count anywhere. An entry filled before the first completion (resolution) has `worked_on` null and starts counting then (its `worked_on` is set, and no request or dialog follows). No double counting by construction: a ticket's own hours and its linked tasks' hours are different rows, each summed once, and option (b) adds 0.
 
 ### 3.4 Hourly rates
 
@@ -224,6 +240,19 @@ For an admin assignee, the Details tab shows **My time** under the assignees: "N
 - The admin home's **My tasks** card gets, above the tasks, the caller's open requests ("Fill in your time" rows with a clock icon: the task title, client, completion day); a click opens the dialog in place (no navigation); saving removes the row. The card's subline adds "N without time". The phone tile and its full-screen list show the same rows first. They come from `listMyTimeRequests` inside `GET /api/me/home/tasks` (one more indexed query). Whatever the notification settings (decision 9). The header's Tasks count does not change (it stays "my open tasks").
 - Live: filling, a reopen, a removal or a delete emits `time:requests` (`{ count }`) to `user:<id>`, and the card refetches; completion already emits `admin:activity` (kind `task`), which refetches My tasks.
 
+### 5.6 Tickets (extension of 2026-10-17)
+
+"Resolved" is the moment `tickets.status` becomes `resolved` from another status. In that transaction the tickets module calls `onTicketResolved(tx, { ticketId, groupId, title, resolvedAt, actorId, assigneeIds, linkedTaskIds })` (`modules/finance/ticket-time.ts`, which imports nothing from `modules/tickets`):
+
+1. a ticket without a client (`groupId` null) asks nothing (decision 24);
+2. otherwise as §5.1 for the **admin riešitelia** (`ticket_assignees` who are active admins or the superadmin): a requested entry (`source = 'ticket'`, `worked_on` = the Bratislava day of `resolvedAt`) for each without one, `worked_on` set on entries filled before;
+3. records `ticket.time_missing` (Ticket board group, passes every mode, payload `{ ticketId, groupId, title, actorName }`) for each requested riešiteľ except the actor;
+4. returns `askActor` (the status answer's `askTime`) and `linkedTasksLogged` (a linked task is done and has filled time).
+
+The dialog (part A2): "How much time did you spend on #123 <subject>?". When `linkedTasksLogged`, it shows the linked tasks (the caller's own minutes on each, never other admins') and two choices: **(a) time for the ticket** (the duration field; it adds to the tasks' hours) and **(b) "The hours on the linked tasks cover it"** (`PUT /api/tickets/:id/time/me { coveredByTasks: true }`). Without logged linked tasks only (a) shows. "Later" leaves the request (dashboard row, no push), as for tasks. The ticket page shows **My time** for admin riešitelia, editable later (adding hours to a (b) answer turns it into an (a) answer); finance admins also see each admin riešiteľ's time.
+
+The other cases mirror §5.4: reopening (`resolved` → another status) deletes unanswered requests (`onTicketReopened`); removing a riešiteľ deletes their request (`onTicketAssigneesRemoved`); deleting the ticket deletes requests, filled entries keep their `title` (`onTicketDeleting`, FK set null); a ticket moving to another client moves its entries (`onTicketMoved`). Task entries copy their task's `source_ticket_id` into `linked_ticket_id` when written (`TaskCompletedEvent.sourceTicketId`), which the work log groups by (decision 25).
+
 ## 6. Screens
 
 ### 6.1 The client's Finance tab (`/groups/$groupId/finance`)
@@ -248,6 +277,7 @@ Contract form: title (required), number (optional), amount + currency (EUR only 
 #### Work log card (right)
 
 - Top (sticky): the period filter (all time [default], this month, last month, this year, last year, custom) and the summary of the period: **total hours, tasks, cost**, and per admin a row "Eva — 12 h 30 min · 8 tasks · 625 €". "+ Add time" (manual entry, §6.3).
+- A ticket and its linked tasks are **one unit** (2026-10-17): the ticket's row ("#123 Subject — Eva 30 min") with the linked tasks' entries indented under it, on the day of the ticket's entry (or of the first entry of the unit); a ticket answered with (b) shows "covered by the tasks" and no hours. Month and period totals sum every row once (`unitTicketId` on each entry, the page's `tickets` list for the headers).
 - Below: the chronology, **oldest at the top, newest at the bottom**, opening scrolled to the bottom (like a chat). Each month starts with a header row: "October 2026 — 34 h · 21 tasks · 1 700 €" and the per-admin line. Under it, per day: the date, then its entries: the admin's avatar and name, the task title (opens the task panel) or the manual note, the duration and, for finance admins, its cost. Requested entries (not filled yet) show as "Eva — waiting for time" (no hours) so the finance admin sees what is missing, and can fill it.
 - "Show earlier" at the top loads the previous page (keeps the scroll position).
 - Each entry has a menu: Edit (minutes, day, note; for a task entry the minutes only), Delete (manual entries; a task entry can be "reset to 0" instead). Every change is live for other finance admins.
@@ -271,6 +301,8 @@ Finance admins only (`canAddManualEntry`): admin (any active or deactivated admi
 Access: `PUT`/`DELETE /api/admins/:id/finance-access` (superadmin).
 
 Task time (any admin assignee; §2.2): `GET /api/tasks/:id/time`, `PUT /api/tasks/:id/time/me { minutes }`. Move/create/update answers gain `askTime`.
+
+Ticket time (any admin riešiteľ of a ticket with a client; §5.6): `GET /api/tickets/:id/time` (`TicketTimeDto`), `PUT /api/tickets/:id/time/me { minutes } | { coveredByTasks: true }`. The status answer on resolve gains `askTime`.
 
 Finance plugin (`requireFinance`):
 

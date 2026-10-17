@@ -17,6 +17,7 @@ const ME = {
   name: 'Jana Nováková',
   email: 'jana@example.com',
   role: 'admin',
+  finance: false,
   groups: [],
 };
 const SUPER = {
@@ -24,6 +25,7 @@ const SUPER = {
   name: 'Boss',
   email: 'boss@example.com',
   role: 'superadmin',
+  finance: false,
   groups: [],
 };
 const PETER = {
@@ -31,6 +33,7 @@ const PETER = {
   name: 'Peter Horváth',
   email: 'peter@example.com',
   role: 'admin',
+  finance: false,
   groups: [],
 };
 
@@ -219,5 +222,90 @@ describe('admins page', () => {
     renderAdmins();
     expect(await screen.findByText(t('notFound.title'))).toBeInTheDocument();
     expect(screen.queryByText(t('admins.title'))).toBeNull();
+  });
+});
+
+describe('the Finance switch (Phase 32)', () => {
+  beforeEach(async () => {
+    await setLanguage('en');
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    localStorage.clear();
+  });
+
+  /** The superadmin's view: the list carries `finance`, the switch writes it. */
+  function mockSuperadmin(fail = false) {
+    const finance: Record<string, boolean> = { s1: true, a1: false, a2: true };
+    const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+      const method = init?.method ?? 'GET';
+      const json = (status: number, body?: unknown) =>
+        new Response(body === undefined ? null : JSON.stringify(body), { status });
+      if (url === '/api/me') return json(200, { ...SUPER, finance: true });
+      if (url === '/api/admins' && method === 'GET') {
+        return json(
+          200,
+          [SUPER, ME, PETER].map((a) => ({ ...a, groups: undefined, finance: finance[a.id] })),
+        );
+      }
+      const match = /^\/api\/admins\/(\w+)\/finance-access$/.exec(url);
+      if (match && (method === 'PUT' || method === 'DELETE')) {
+        if (fail) return json(500, { error: 'server_error' });
+        finance[match[1]!] = method === 'PUT';
+        return json(204);
+      }
+      return json(404, {});
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    return {
+      calls: (method: string, url: string) =>
+        fetchMock.mock.calls.filter(
+          ([u, init]) =>
+            u === url && ((init as RequestInit | undefined)?.method ?? 'GET') === method,
+        ),
+    };
+  }
+
+  it('the superadmin sees a switch on each admin, none on their own row', async () => {
+    mockSuperadmin();
+    renderAdmins();
+    await screen.findByText('Peter Horváth');
+    const peter = within(rowOf('Peter Horváth')).getByRole('switch');
+    expect(peter).toHaveAccessibleName(t('admins.finance.labelFor', { name: 'Peter Horváth' }));
+    expect(peter).toHaveAttribute('aria-checked', 'true');
+    expect(within(rowOf('Jana Nováková')).getByRole('switch')).toHaveAttribute(
+      'aria-checked',
+      'false',
+    );
+    expect(within(rowOf('Boss')).queryByRole('switch')).toBeNull();
+  });
+
+  it('turning it on and off grants and removes the right', async () => {
+    const { calls } = mockSuperadmin();
+    const user = renderAdmins();
+    await screen.findByText('Peter Horváth');
+    const jana = within(rowOf('Jana Nováková')).getByRole('switch');
+    await user.click(jana);
+    await waitFor(() => expect(calls('PUT', '/api/admins/a1/finance-access')).toHaveLength(1));
+    await waitFor(() => expect(jana).toHaveAttribute('aria-checked', 'true'));
+    await user.click(within(rowOf('Peter Horváth')).getByRole('switch'));
+    await waitFor(() => expect(calls('DELETE', '/api/admins/a2/finance-access')).toHaveLength(1));
+  });
+
+  it('a failed change says so and the switch goes back', async () => {
+    mockSuperadmin(true);
+    const user = renderAdmins();
+    await screen.findByText('Peter Horváth');
+    const jana = within(rowOf('Jana Nováková')).getByRole('switch');
+    await user.click(jana);
+    expect(await screen.findByRole('alert')).toHaveTextContent(t('admins.finance.failed'));
+    expect(jana).toHaveAttribute('aria-checked', 'false');
+  });
+
+  it('another admin sees no switch at all', async () => {
+    mockApi();
+    renderAdmins();
+    await screen.findByText('Peter Horváth');
+    expect(screen.queryByRole('switch')).toBeNull();
   });
 });

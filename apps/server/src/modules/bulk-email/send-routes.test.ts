@@ -43,6 +43,7 @@ describe('bulk email sending API', () => {
     email: admin.email,
     name: 'Route Admin',
     role: 'admin' as const,
+    finance: false,
   });
 
   beforeAll(async () => {

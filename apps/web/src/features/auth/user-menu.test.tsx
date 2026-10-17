@@ -41,6 +41,7 @@ const USER = {
   name: 'Jana Nováková',
   email: 'jana@example.com',
   role: 'admin',
+  finance: false,
   groups: [] as {
     id: string;
     name: string;
@@ -287,6 +288,7 @@ describe('logged-in shell', () => {
   it('a client of one group who reports tickets gets their group and My tickets in the section menu', async () => {
     mockApi({
       role: 'client',
+      finance: false,
       groups: [
         { id: 'g1', name: 'Firma', role: 'client', hasLogo: false, updatedAt: '' },
         { id: 'g2', name: 'Iná', role: 'ziadatel', hasLogo: false, updatedAt: '' },
@@ -306,6 +308,7 @@ describe('logged-in shell', () => {
   it('a client of one group who reports nothing has no section menu', async () => {
     mockApi({
       role: 'client',
+      finance: false,
       groups: [{ id: 'g1', name: 'Firma', role: 'client', hasLogo: false, updatedAt: '' }],
     });
     renderAt('/settings');
@@ -321,6 +324,7 @@ describe('logged-in shell', () => {
     cleanup();
     mockApi({
       role: 'client',
+      finance: false,
       groups: [{ id: 'g1', name: 'Firma', role: 'client', hasLogo: false, updatedAt: '' }],
     });
     const client = renderAt('/');
@@ -330,6 +334,7 @@ describe('logged-in shell', () => {
   it('/tasks is not found for a client', async () => {
     mockApi({
       role: 'client',
+      finance: false,
       groups: [{ id: 'g1', name: 'Firma', role: 'client', hasLogo: false, updatedAt: '' }],
     });
     renderAt('/tasks');
@@ -342,7 +347,7 @@ describe('logged-in shell', () => {
       { id: 'g2', name: 'Beta', role: 'client' as const, hasLogo: false, updatedAt: '' },
       { id: 'g3', name: 'Gama', role: 'ziadatel' as const, hasLogo: false, updatedAt: '' },
     ];
-    mockApi({ role: 'client', groups: two });
+    mockApi({ role: 'client', finance: false, groups: two });
     const { router } = renderAt('/');
     await waitFor(() => expect(router.state.location.pathname).toBe('/my-groups'));
     expect(
@@ -355,7 +360,7 @@ describe('logged-in shell', () => {
     expect(screen.getByRole('link', { name: t('nav.myGroups') })).toBeInTheDocument();
     cleanup();
 
-    mockApi({ role: 'client', groups: two.slice(0, 1) });
+    mockApi({ role: 'client', finance: false, groups: two.slice(0, 1) });
     renderAt();
     await screen.findByRole('button', { name: t('user.menu') });
     expect(screen.queryByRole('link', { name: t('nav.myGroups') })).not.toBeInTheDocument();

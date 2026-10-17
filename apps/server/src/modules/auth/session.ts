@@ -12,13 +12,25 @@ declare module 'fastify' {
   }
 }
 
-type AuthUser = { id: string; email: string; name: string; role: string; disabledAt?: Date | null };
+type AuthUser = {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+  disabledAt?: Date | null;
+  financeAccessAt?: Date | null;
+};
 
-/** Our view of better-auth's user; null for a disabled user even if a session still exists. */
+/**
+ * Our view of better-auth's user; null for a disabled user even if a session still exists.
+ * `finance` (Phase 32): the superadmin always, an admin with a grant; never a client.
+ */
 export function toSessionUser(authUser: AuthUser | undefined): SessionUser | null {
   if (!authUser || authUser.disabledAt) return null;
   const { id, email, name, role } = authUser;
-  return SessionUserSchema.parse({ id, email, name, role }); // throws on an unknown role
+  const finance =
+    role === 'superadmin' || (role === 'admin' && (authUser.financeAccessAt ?? null) !== null);
+  return SessionUserSchema.parse({ id, email, name, role, finance }); // throws on an unknown role
 }
 
 /** The logged-in user from the request's session cookie, or null. */

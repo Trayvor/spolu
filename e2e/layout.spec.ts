@@ -73,6 +73,7 @@ test('on a phone, the section menu moves between sections and the account menu h
       /^Úlohy/,
       /^Tikety/,
       'Znalosti',
+      'Financie',
       'Skupiny',
       'Administrátori',
       'Hromadné e-maily',

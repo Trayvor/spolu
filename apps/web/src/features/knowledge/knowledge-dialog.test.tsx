@@ -28,6 +28,7 @@ const ME: Me = {
   email: 'b@example.com',
   name: 'Boris Kováč',
   role: 'admin',
+  finance: false,
   groups: [],
 };
 const PEOPLE: GroupPerson[] = [

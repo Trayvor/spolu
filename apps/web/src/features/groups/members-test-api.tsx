@@ -11,6 +11,7 @@ export const ADMIN = {
   name: 'Jana',
   email: 'jana@example.com',
   role: 'admin',
+  finance: false,
   groups: [],
 } as Me;
 

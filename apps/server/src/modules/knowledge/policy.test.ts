@@ -12,7 +12,13 @@ import {
 } from './policy.js';
 
 describe('sharing knowledge in a chat (Phase 28)', () => {
-  const who = (role: Role): SessionUser => ({ id: 'x', email: 'x@example.com', name: 'X', role });
+  const who = (role: Role): SessionUser => ({
+    id: 'x',
+    email: 'x@example.com',
+    name: 'X',
+    role,
+    finance: false,
+  });
 
   it('whoever reads the group shares its knowledge; a ziadatel or another group never', () => {
     expect(canShareKnowledge(who('admin'), 'g1', [])).toBe(true);
@@ -38,6 +44,7 @@ const actor = (role: Role, id = 'actor'): SessionUser => ({
   email: 'a@example.com',
   name: 'A',
   role,
+  finance: false,
 });
 const pub = { groupId: 'g1', visibility: 'public' as const, createdBy: 'author' };
 const hidden = { ...pub, visibility: 'admins' as const };

@@ -10,7 +10,13 @@ import {
   canWatchTickets,
 } from './policy.js';
 
-const actor = (role: Role, id = 'me'): SessionUser => ({ id, email: 'a@x.sk', name: 'A', role });
+const actor = (role: Role, id = 'me'): SessionUser => ({
+  id,
+  email: 'a@x.sk',
+  name: 'A',
+  role,
+  finance: false,
+});
 const inGroup = { groupId: 'g1', requesterUserId: 'someone' };
 const mine = { groupId: 'g1', requesterUserId: 'me' };
 const noClient = { groupId: null, requesterUserId: null };

@@ -11,11 +11,29 @@ import { useSession } from '@/features/auth/use-session';
 // Plain strings, no `cn`: tailwind-merge (about 8 kB gzip) stays out of the initial JS. The
 // display is `inline-flex` when the links always fit, else `hidden` until the width in `WIDE`.
 const navLink =
-  'h-[38px] shrink-0 items-center rounded-full px-4 text-tiny font-semibold transition-colors duration-(--duration-fast) hover:bg-accent aria-[current=page]:bg-secondary';
-// Where the section links fit in the pill: an admin's seven need about 1 100 px.
+  'h-[38px] shrink-0 items-center rounded-full text-tiny font-semibold transition-colors duration-(--duration-fast) hover:bg-accent aria-[current=page]:bg-secondary';
+// Where the section links fit in the pill: an admin's seven need about 1 100 px. A finance
+// admin's eight (Phase 32) fit the 1 152 px pill only with 12 px instead of 16 px padding and
+// 4 px gaps (measured in Slovak; Ukrainian overflows a few pixels, as the seven already do).
 const WIDE = {
-  admin: { links: 'min-[1280px]:inline-flex', menu: 'min-[1280px]:hidden' },
-  other: { links: 'min-[641px]:inline-flex', menu: 'min-[641px]:hidden' },
+  admin: {
+    links: 'min-[1280px]:inline-flex',
+    menu: 'min-[1280px]:hidden',
+    pad: 'px-4',
+    gap: 'gap-2',
+  },
+  finance: {
+    links: 'min-[1280px]:inline-flex',
+    menu: 'min-[1280px]:hidden',
+    pad: 'px-3',
+    gap: 'gap-1',
+  },
+  other: {
+    links: 'min-[641px]:inline-flex',
+    menu: 'min-[641px]:hidden',
+    pad: 'px-4',
+    gap: 'gap-2',
+  },
 } as const;
 
 /**
@@ -38,7 +56,7 @@ export function AppHeader() {
   const user = useSession();
   const sections = user ? navSections(user) : [];
   const folded = sections.length > 1;
-  const wide = WIDE[isAdmin(user) ? 'admin' : 'other'];
+  const wide = WIDE[!isAdmin(user) ? 'other' : user?.finance ? 'finance' : 'admin'];
   return (
     <header className="mx-auto mt-[max(12px,env(safe-area-inset-top))] flex h-[54px] w-full max-w-[1152px] items-center in-data-[wide-page]:max-w-[1600px] gap-2 rounded-nav bg-background px-3 shadow-lift min-[641px]:mt-6 min-[641px]:h-16 min-[641px]:gap-3 min-[641px]:px-6">
       <Link
@@ -58,7 +76,7 @@ export function AppHeader() {
           className="h-[17px] w-auto max-[399px]:h-[15px] min-[641px]:h-[22px]"
         />
       </Link>
-      <div className="ml-auto flex min-w-0 items-center gap-2">
+      <div className={`ml-auto flex min-w-0 items-center ${wide.gap}`}>
         {sections
           .filter((section) => section.label)
           .map((section) => (
@@ -66,7 +84,7 @@ export function AppHeader() {
               key={section.key}
               to={section.to}
               activeOptions={{ exact: section.to === '/' }}
-              className={`${navLink} ${folded ? `hidden ${wide.links}` : 'inline-flex'}`}
+              className={`${navLink} ${wide.pad} ${folded ? `hidden ${wide.links}` : 'inline-flex'}`}
             >
               {t(section.label!)}
               {section.count && <NavCount kind={section.count} live={section.count === 'tasks'} />}

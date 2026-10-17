@@ -1,10 +1,20 @@
 import { sql } from 'drizzle-orm';
-import { boolean, check, index, jsonb, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
+import {
+  type AnyPgColumn,
+  boolean,
+  check,
+  index,
+  jsonb,
+  pgTable,
+  text,
+  timestamp,
+} from 'drizzle-orm/pg-core';
 import type { ChannelMap, GroupMode, Role, UserLanguage } from '@spolu/shared';
 import { languageIn } from '../../infra/db/language-check.js';
 
 // Shape required by better-auth (field names are its camelCase names), plus `role`, `disabledAt`
-// and the notification settings (Phase 6; the channel per notification group from brief item C).
+// the notification settings (Phase 6; the channel per notification group from brief item C) and
+// the finance right (Phase 32).
 export const user = pgTable(
   'user',
   {
@@ -23,6 +33,12 @@ export const user = pgTable(
       .default({}),
     language: text('language').$type<UserLanguage>().notNull().default('sk'),
     emailFallbackAt: timestamp('email_fallback_at', { withTimezone: true }),
+    /**
+     * The finance right (Phase 32): when and by whom the superadmin granted it; null = none. Only
+     * an admin holds it (CHECK); the superadmin has it without a row value. Deactivation clears it.
+     */
+    financeAccessAt: timestamp('finance_access_at', { withTimezone: true }),
+    financeAccessBy: text('finance_access_by').references((): AnyPgColumn => user.id),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
@@ -35,5 +51,9 @@ export const user = pgTable(
       sql`${t.defaultGroupMode} in ('all', 'mentions', 'off')`,
     ),
     check('user_language_check', languageIn(t.language)),
+    check(
+      'user_finance_access_check',
+      sql`${t.financeAccessAt} is null or ${t.role} in ('admin', 'superadmin')`,
+    ),
   ],
 );

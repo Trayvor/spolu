@@ -12,6 +12,7 @@ import { bulkEmailRoutes } from './modules/bulk-email/routes.js';
 import { bulkEmailUnsubscribeRoutes } from './modules/bulk-email/unsubscribe-routes.js';
 import { chatRoutes } from './modules/chat/routes.js';
 import { filesRoutes } from './modules/files/routes.js';
+import { financeRoutes } from './modules/finance/routes.js';
 import { joinRoutes } from './modules/groups/join-routes.js';
 import { registerReminderSource } from './modules/home/reminder-source.js';
 import { homeRoutes } from './modules/home/routes.js';
@@ -92,6 +93,8 @@ export async function buildApp(
   await app.register(bulkEmailRoutes, { prefix: '/api', deps });
   await app.register(bulkEmailRenderRoutes, { prefix: '/api', deps });
   await app.register(bulkEmailUnsubscribeRoutes, { prefix: '/api', deps });
+  // Phase 32: the grant switch, the task-time routes and the sealed finance plugin.
+  await app.register(financeRoutes, { prefix: '/api', deps });
   // Knowledge writes and reminder subscription changes share one limit: 120 a minute per user.
   const allowKnowledgeWrite = createRateLimiter({ windowMs: 60_000, max: 120 });
   await app.register(knowledgeRoutes, { prefix: '/api', deps, allowWrite: allowKnowledgeWrite });

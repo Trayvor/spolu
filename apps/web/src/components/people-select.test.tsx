@@ -23,6 +23,7 @@ const ADMIN_ME = {
   name: 'Eva Admin',
   email: 'eva@example.com',
   role: 'admin',
+  finance: false,
   groups: [],
 } as Me;
 

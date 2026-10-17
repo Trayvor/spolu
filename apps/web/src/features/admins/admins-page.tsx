@@ -1,5 +1,5 @@
 import { ListSkeleton } from '@/components/ui/skeleton';
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AddAdminBodySchema, type Admin } from '@spolu/shared';
 import { useTranslation } from 'react-i18next';
@@ -10,7 +10,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ApiError } from '@/lib/api';
 import { useSession } from '@/features/auth/use-session';
-import { addAdmin, adminsQuery, removeAdmin } from './api';
+import { addAdmin, adminsQuery, removeAdmin, setFinanceAccess } from './api';
+import { cn } from '@/lib/utils';
 
 /** Admins list with an inline add form and an inline remove confirmation (no modals). */
 export function AdminsPage() {
@@ -68,6 +69,7 @@ export function AdminsPage() {
                 key={admin.id}
                 admin={admin}
                 isMe={admin.id === me?.id}
+                grantsFinance={me?.role === 'superadmin'}
                 onRemoved={() => setAdded(null)}
               />
             ))}
@@ -186,10 +188,13 @@ function AddAdminForm({
 function AdminRow({
   admin,
   isMe,
+  grantsFinance,
   onRemoved,
 }: {
   admin: Admin;
   isMe: boolean;
+  /** The viewer is the superadmin: the row shows the Finance switch (Phase 32). */
+  grantsFinance: boolean;
   onRemoved: () => void;
 }) {
   const { t } = useTranslation();
@@ -266,21 +271,77 @@ function AdminRow({
             </div>
             <div className="truncate text-button text-muted-foreground">{admin.email}</div>
           </div>
-          {canRemove && (
-            <Button
-              ref={removeRef}
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                toggled.current = true;
-                setConfirming(true);
-              }}
-            >
-              {t('admins.remove')}
-            </Button>
-          )}
+          <div className="flex items-center gap-4">
+            {grantsFinance && admin.role === 'admin' && <FinanceSwitch admin={admin} />}
+            {canRemove && (
+              <Button
+                ref={removeRef}
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  toggled.current = true;
+                  setConfirming(true);
+                }}
+              >
+                {t('admins.remove')}
+              </Button>
+            )}
+          </div>
         </>
       )}
     </li>
+  );
+}
+
+/**
+ * The superadmin's "Finance" switch on an admin's row (Phase 32): grants or removes the finance
+ * right at once. It shows the new state while the request runs and goes back on a failure.
+ */
+function FinanceSwitch({ admin }: { admin: Admin }) {
+  const { t } = useTranslation();
+  const queryClient = useQueryClient();
+  const labelId = useId();
+  const [failed, setFailed] = useState(false);
+  const change = useMutation({
+    mutationFn: (on: boolean) => setFinanceAccess(admin.id, on),
+    onMutate: () => setFailed(false),
+    onError: () => setFailed(true),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: adminsQuery.queryKey }),
+  });
+  const checked = change.isPending ? change.variables : admin.finance === true;
+  return (
+    <div className="flex items-center gap-3">
+      <button
+        type="button"
+        role="switch"
+        aria-checked={checked}
+        aria-labelledby={labelId}
+        aria-describedby={failed ? `${labelId}-error` : undefined}
+        disabled={change.isPending}
+        data-hit
+        onClick={() => change.mutate(!checked)}
+        className={cn(
+          "relative h-6 w-11 shrink-0 rounded-full border-2 transition-colors duration-(--duration-fast) before:absolute before:-inset-x-0.5 before:-inset-y-2.5 before:content-[''] disabled:cursor-wait",
+          checked ? 'border-foreground bg-foreground' : 'border-input bg-card',
+        )}
+      >
+        <span
+          aria-hidden="true"
+          className={cn(
+            'absolute top-0.5 size-4 rounded-full',
+            checked ? 'left-[22px] bg-primary-foreground' : 'left-0.5 bg-input',
+          )}
+        />
+      </button>
+      <span id={labelId} className="text-button font-semibold">
+        <span className="sr-only">{t('admins.finance.labelFor', { name: admin.name })}</span>
+        <span aria-hidden="true">{t('admins.finance.label')}</span>
+      </span>
+      {failed && (
+        <span id={`${labelId}-error`} role="alert" className="text-micro text-error-ink">
+          {t('admins.finance.failed')}
+        </span>
+      )}
+    </div>
   );
 }

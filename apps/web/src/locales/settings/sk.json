@@ -41,14 +41,16 @@
       "tasks": "Nástenka úloh",
       "tickets": "Nástenka tiketov",
       "knowledge": "Znalostná báza",
-      "meetings": "Stretnutia"
+      "meetings": "Stretnutia",
+      "finance": "Financie"
     },
     "hints": {
       "chat": "Správy, zmienky a odpovede v skupinových chatoch",
       "tasks": "Presuny, priradenia, termíny, pripomienky a chaty úloh",
       "tickets": "Tikety podpory a ich komunikácia",
       "knowledge": "Pripomienky zo znalostnej bázy okrem stretnutí",
-      "meetings": "Nové a presunuté stretnutia, ich pripomienky a AI zhrnutia"
+      "meetings": "Nové a presunuté stretnutia, ich pripomienky a AI zhrnutia",
+      "finance": "Pripomienky zmlúv a ďalších finančných položiek"
     },
     "channels": {
       "email": "E-mail",

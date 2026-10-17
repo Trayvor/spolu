@@ -32,6 +32,7 @@ const ME = {
   name: 'Me',
   email: 'me@example.com',
   role: 'client',
+  finance: false,
   groups: [{ id: 'g1', name: 'Firma', role: 'client', hasLogo: false, updatedAt: '' }],
 };
 const label = (count: number) => i18n.t('chat.unread', { count });

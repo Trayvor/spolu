@@ -486,7 +486,13 @@ describe('socket.io', () => {
       const g = await mkGroup();
       const admin = await loggedIn(test);
       const socket = await connected(admin.cookie);
-      const actor = { id: admin.id, email: 'x@example.com', name: 'A', role: 'admin' } as const;
+      const actor = {
+        id: admin.id,
+        email: 'x@example.com',
+        name: 'A',
+        role: 'admin',
+        finance: false,
+      } as const;
       const task = await createTask(test.deps, actor, g.id, TaskCreateSchema.parse({ title: 'T' }));
       const review = (await listBuckets(test.deps.db, g.id)).find(
         (b) => b.kind === 'egrant_review',

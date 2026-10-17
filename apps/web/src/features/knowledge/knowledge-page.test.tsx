@@ -18,12 +18,20 @@ const t = (key: string, opts?: Record<string, unknown>) => i18n.t(key, opts);
 const STORAGE_KEY = rememberedFiltersKey('a1', 'knowledge');
 const stored = () => JSON.parse(localStorage.getItem(STORAGE_KEY) ?? 'null');
 
-const ADMIN = { id: 'a1', name: 'Jana', email: 'jana@example.com', role: 'admin', groups: [] };
+const ADMIN = {
+  id: 'a1',
+  name: 'Jana',
+  email: 'jana@example.com',
+  role: 'admin',
+  finance: false,
+  groups: [],
+};
 const CLIENT = {
   id: 'c1',
   name: 'Klient',
   email: 'k@example.com',
   role: 'client',
+  finance: false,
   groups: [{ id: 'g1', name: 'Firma', role: 'client', hasLogo: false, updatedAt: '' }],
 };
 const GROUPS = [

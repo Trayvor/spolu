@@ -1,0 +1,8 @@
+{
+  "kinds": {
+    "contract": "Zmluva",
+    "document": "Dokument",
+    "note": "Poznámka",
+    "folder": "Priečinok"
+  }
+}

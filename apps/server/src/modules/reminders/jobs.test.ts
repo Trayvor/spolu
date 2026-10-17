@@ -47,7 +47,7 @@ async function newAdmin(): Promise<SessionUser> {
   const email = `${randomUUID()}@example.com`;
   const row = await addAdmin(deps.db, { email, name: 'Ada' });
   admins.push(row.id);
-  return { id: row.id, email, name: 'Ada', role: 'admin' };
+  return { id: row.id, email, name: 'Ada', role: 'admin', finance: false };
 }
 
 async function newClient(groupId: string): Promise<SessionUser> {
@@ -63,7 +63,7 @@ async function newClient(groupId: string): Promise<SessionUser> {
     auth: 'au',
     userAgent: null,
   });
-  return { id, email, name: 'Cleo', role: 'client' };
+  return { id, email, name: 'Cleo', role: 'client', finance: false };
 }
 
 /** A reminder item whose first time is moved into the past by `agoMs`. */

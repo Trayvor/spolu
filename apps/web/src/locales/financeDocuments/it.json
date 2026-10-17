@@ -1,0 +1,8 @@
+{
+  "kinds": {
+    "contract": "Contratto",
+    "document": "Documento",
+    "note": "Nota",
+    "folder": "Cartella"
+  }
+}

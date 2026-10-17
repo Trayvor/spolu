@@ -49,6 +49,8 @@ export function createAuth({ config, db, jobs }: AppDeps) {
       additionalFields: {
         role: { type: 'string', required: true, defaultValue: 'client', input: false },
         disabledAt: { type: 'date', required: false, input: false },
+        // Phase 32: read with the session (no cookie cache), so a grant acts on the next request.
+        financeAccessAt: { type: 'date', required: false, input: false },
       },
     },
     // The library defaults (on only in production: 3 code requests per minute per IP and

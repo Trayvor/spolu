@@ -16,5 +16,10 @@
     "emailTakenAdmin": "Tento e-mail už patří administrátorovi.",
     "emailTakenClient": "Tento e-mail patří klientovi.",
     "nameRequired": "Zadejte jméno."
+  },
+  "finance": {
+    "label": "Finance",
+    "labelFor": "Přístup k financím: {{name}}",
+    "failed": "Nepodařilo se to změnit. Zkuste to znovu."
   }
 }

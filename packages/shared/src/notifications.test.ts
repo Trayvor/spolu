@@ -110,6 +110,7 @@ describe('notification groups', () => {
       tickets: 'both',
       knowledge: 'push',
       meetings: 'push',
+      finance: 'push',
     });
     expect(DEFAULT_CHANNELS).toEqual(resolveChannels({}));
   });
@@ -121,6 +122,7 @@ describe('notification groups', () => {
       tickets: 'both',
       knowledge: 'push',
       meetings: 'push',
+      finance: 'push',
     });
     expect(resolveChannels(null)).toEqual(DEFAULT_CHANNELS);
     expect(resolveChannels(['email'])).toEqual(DEFAULT_CHANNELS);
@@ -143,6 +145,7 @@ describe('notification groups', () => {
       'tickets',
       'knowledge',
       'meetings',
+      'finance',
     ]);
   });
 });

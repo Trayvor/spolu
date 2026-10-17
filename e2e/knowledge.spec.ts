@@ -315,7 +315,7 @@ test.describe.serial('knowledge base', () => {
     const page = await adminContext.newPage();
     // An explicit filter: an earlier test left "Z chatu" remembered for this group.
     await page.goto(`/groups/${groupId}/knowledge?type=note`);
-    await page.getByRole('button', { name: 'Karty' }).click();
+    await page.getByRole('button', { name: 'Karty', exact: true }).click();
     const card = page.getByRole('listitem').filter({ hasText: note.title });
     await expect(card).toContainText('Prvý riadok poznámky');
     await expect(card).toContainText(`• druhý riadok ${stamp}`);
@@ -323,7 +323,7 @@ test.describe.serial('knowledge base', () => {
 
     // The choice is kept: the next visit (and the global list) opens in cards.
     await page.reload();
-    await expect(page.getByRole('button', { name: 'Karty' })).toHaveAttribute(
+    await expect(page.getByRole('button', { name: 'Karty', exact: true })).toHaveAttribute(
       'aria-pressed',
       'true',
     );
@@ -331,7 +331,7 @@ test.describe.serial('knowledge base', () => {
     await expect(page).toHaveURL(new RegExp(`k=${note.id}`));
     await expect(page.getByRole('dialog').getByRole('heading', { name: note.title })).toBeVisible();
     await page.keyboard.press('Escape');
-    await page.getByRole('button', { name: 'Zoznam' }).click();
+    await page.getByRole('button', { name: 'Zoznam', exact: true }).click();
     await page.close();
   });
 

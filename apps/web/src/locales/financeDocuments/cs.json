@@ -1,0 +1,8 @@
+{
+  "kinds": {
+    "contract": "Smlouva",
+    "document": "Dokument",
+    "note": "Poznámka",
+    "folder": "Složka"
+  }
+}

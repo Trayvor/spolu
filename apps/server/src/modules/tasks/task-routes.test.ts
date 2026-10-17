@@ -554,7 +554,7 @@ describe('tasks API: tasks', () => {
     const channel = await ensureGroupChannel(test.deps.db, g.id);
     const root = await sendMessage(test.deps, {
       channel,
-      author: { id: client.id, email: client.email, name: 'Linda', role: 'client' },
+      author: { id: client.id, email: client.email, name: 'Linda', role: 'client', finance: false },
       data: { body: 'Do the report', clientId: randomUUID() },
     });
     const task = (await create(g.id, admin.cookie, { title: 'Report' })).json<TaskDetailDto>();
@@ -732,7 +732,13 @@ describe('tasks API: tasks', () => {
     const client = await clientIn(g.id, name);
     const file = await upload(g.id, client.cookie, 'brief.txt');
     const channel = await ensureGroupChannel(test.deps.db, g.id);
-    const author = { id: client.id, email: client.email, name, role: 'client' as const };
+    const author = {
+      id: client.id,
+      email: client.email,
+      name,
+      role: 'client' as const,
+      finance: false,
+    };
     const { message } = await sendMessage(test.deps, {
       channel,
       author,

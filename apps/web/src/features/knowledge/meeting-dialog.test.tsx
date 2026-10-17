@@ -34,8 +34,22 @@ vi.mock('./meeting-api', async (importOriginal) => ({
 
 const t = (key: string, opts?: Record<string, unknown>) => i18n.t(key, opts);
 
-const ADMIN: Me = { id: 'u2', email: 'b@example.com', name: 'Boris', role: 'admin', groups: [] };
-const CLIENT: Me = { id: 'u1', email: 'a@example.com', name: 'Anna', role: 'client', groups: [] };
+const ADMIN: Me = {
+  id: 'u2',
+  email: 'b@example.com',
+  name: 'Boris',
+  role: 'admin',
+  finance: false,
+  groups: [],
+};
+const CLIENT: Me = {
+  id: 'u1',
+  email: 'a@example.com',
+  name: 'Anna',
+  role: 'client',
+  finance: false,
+  groups: [],
+};
 const PEOPLE: GroupPerson[] = [{ id: 'u1', name: 'Anna', isAdmin: false, isManager: false }];
 
 function detail(over: Partial<MeetingDetail> = {}): MeetingDetail {

@@ -18,7 +18,10 @@ export const usersRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (
 ) => {
   const preHandler = requireAdmin(app.auth);
 
-  app.get('/admins', { preHandler }, async () => listAdmins(db));
+  // The finance right shows only to the superadmin, who grants it (Phase 32).
+  app.get('/admins', { preHandler }, async (request) =>
+    listAdmins(db, { withFinance: request.user!.role === 'superadmin' }),
+  );
 
   app.post('/admins', { preHandler }, async (request, reply) => {
     const actor = request.user!;

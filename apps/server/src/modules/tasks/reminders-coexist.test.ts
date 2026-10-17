@@ -38,7 +38,13 @@ describe('automatic and custom task reminders together', () => {
     });
     const adminEmail = `${randomUUID()}@example.com`;
     const adminRow = await addAdmin(deps.db, { email: adminEmail, name: 'Ada' });
-    const admin = { id: adminRow.id, email: adminEmail, name: 'Ada', role: 'admin' as const };
+    const admin = {
+      id: adminRow.id,
+      email: adminEmail,
+      name: 'Ada',
+      role: 'admin' as const,
+      finance: false,
+    };
     const clientId = randomUUID();
     await deps.db.insert(user).values({
       id: clientId,

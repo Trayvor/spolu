@@ -28,7 +28,14 @@ function mockApi(open: number) {
     vi.fn(async (url: string) => {
       const reply = (body: unknown) => new Response(JSON.stringify(body), { status: 200 });
       if (url === '/api/me') {
-        return reply({ id: 'a1', name: 'Ada', email: 'a@x.sk', role: 'admin', groups: [] });
+        return reply({
+          id: 'a1',
+          name: 'Ada',
+          email: 'a@x.sk',
+          role: 'admin',
+          finance: false,
+          groups: [],
+        });
       }
       if (url === '/api/groups/g1/task-chats') {
         return reply({ t1: { count: 2, unread: true }, t2: { count: 1, unread: true } });

@@ -28,6 +28,7 @@ const ME = {
   name: 'Jana',
   email: 'jana@example.com',
   role: 'admin' as const,
+  finance: false,
   groups: [],
 };
 const ACME: GroupSummary = {

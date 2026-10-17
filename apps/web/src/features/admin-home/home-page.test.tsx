@@ -197,6 +197,7 @@ function renderHome(path = '/') {
     name: 'Vlad Herasymenko',
     email: 'v@x.sk',
     role: 'admin',
+    finance: false,
     groups: [],
   };
   queryClient.setQueryData(sessionQuery.queryKey, me);

@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Outlet, useRouter } from '@tanstack/react-router';
 import { RouteFade } from '@/components/route-fade';
 import { readCollapsed } from '@/features/admin-home/sidebar-collapse';
+import { useMeChanged } from '@/features/finance/use-me-changed';
 import { useManagerEvents } from '@/features/groups/use-manager-events';
 import { AppPrompt } from '@/features/notifications/app-prompt';
 import { saveLanguage } from '@/features/profile/language-api';
@@ -39,6 +40,7 @@ export function AuthedLayout() {
   const router = useRouter();
   const languageSavedFor = useRef<string | null>(null);
   useManagerEvents();
+  useMeChanged();
 
   useEffect(() => {
     if (!userId || languageSavedFor.current === userId) return;

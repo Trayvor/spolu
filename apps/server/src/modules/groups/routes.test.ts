@@ -568,6 +568,7 @@ describe('groups API', () => {
     const asSession = (a: { id: string; email: string; name: string }): SessionUser => ({
       ...a,
       role: 'admin',
+      finance: false,
     });
     const otherAdmin = async () =>
       addAdmin(test.deps.db, { email: newEmail(), name: 'Other Admin' });
@@ -631,7 +632,13 @@ describe('groups API', () => {
       const g = await newGroup();
       await call('PUT', url(g.id, me.id), cookie);
       expect((await call('DELETE', url(g.id, me.id), cookie)).statusCode).toBe(200);
-      const session: SessionUser = { id: me.id, email: me.email, name: me.name, role: 'admin' };
+      const session: SessionUser = {
+        id: me.id,
+        email: me.email,
+        name: me.name,
+        role: 'admin',
+        finance: false,
+      };
       expect(await getEffectiveGroupMode(test.deps.db, session, g.id)).toBe('mentions');
     });
 

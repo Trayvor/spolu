@@ -26,14 +26,14 @@ async function newClient(groupId: string): Promise<SessionUser> {
   const email = `${randomUUID()}@example.com`;
   await db.insert(user).values({ id, email, name: 'Cleo', role: 'client', emailVerified: true });
   await addMember(db, groupId, id);
-  return { id, email, name: 'Cleo', role: 'client' };
+  return { id, email, name: 'Cleo', role: 'client', finance: false };
 }
 
 async function setup(opts: { done?: boolean } = {}) {
   const group = await newGroup();
   const email = `${randomUUID()}@example.com`;
   const row = await addAdmin(db, { email, name: 'Ada' });
-  const admin: SessionUser = { id: row.id, email, name: 'Ada', role: 'admin' };
+  const admin: SessionUser = { id: row.id, email, name: 'Ada', role: 'admin', finance: false };
   const client = await newClient(group.id);
   const taskId = await insertTask(db, {
     groupId: group.id,

@@ -39,7 +39,7 @@ async function newAdmin(name = 'Ada', language: 'sk' | 'en' = 'sk'): Promise<Ses
   const email = `${randomUUID()}@example.com`;
   const admin = await addAdmin(db, { email, name });
   await db.update(user).set({ language }).where(eq(user.id, admin.id));
-  return { id: admin.id, email, name, role: 'admin' };
+  return { id: admin.id, email, name, role: 'admin', finance: false };
 }
 
 async function newClient(): Promise<string> {

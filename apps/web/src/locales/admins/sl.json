@@ -16,5 +16,10 @@
     "emailTakenAdmin": "Ta e-poštni naslov že pripada skrbniku.",
     "emailTakenClient": "Ta e-poštni naslov pripada stranki.",
     "nameRequired": "Vnesite ime."
+  },
+  "finance": {
+    "label": "Finance",
+    "labelFor": "Dostop do financ: {{name}}",
+    "failed": "Spremembe ni bilo mogoče shraniti. Poskusite znova."
   }
 }
