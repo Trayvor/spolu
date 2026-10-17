@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type {
@@ -10,6 +10,7 @@ import type {
   TaskProposal,
   TicketDto,
 } from '@spolu/shared';
+import { uploadFile } from '@/features/files/upload';
 import { ApiError } from '@/lib/api';
 import { i18n, setLanguage } from '@/i18n';
 import {
@@ -319,6 +320,28 @@ describe('ReviewDialog', () => {
     // "Approve all" is gone: the focus moved to Create.
     expect(screen.queryByRole('button', { name: t('taskSplit.approveAll') })).toBeNull();
     expect(createButton()).toHaveFocus();
+  });
+
+  it('Create waits for an upload in an open card', async () => {
+    let finish!: (file: FileInfo) => void;
+    vi.mocked(uploadFile).mockImplementation(() => new Promise((resolve) => (finish = resolve)));
+    propose.mockResolvedValue({ tasks: PROPOSALS });
+    const { user } = renderDialog();
+    await shown();
+    await decideBoth(user);
+    await user.click(
+      within(article('Send the report')).getByRole('button', {
+        name: t('taskSplit.open', { title: 'Send the report' }),
+      }),
+    );
+    await user.upload(screen.getByTestId('task-file-input'), new File(['x'], 'a.pdf'));
+    const button = createButton();
+    await vi.waitFor(() => expect(button).toHaveAttribute('aria-disabled', 'true'));
+    expect(button).toHaveAccessibleDescription(t('forms.files.waiting'));
+    await user.click(button);
+    expect(create).not.toHaveBeenCalled();
+    await act(async () => finish(FILE));
+    await vi.waitFor(() => expect(button).toHaveAttribute('aria-disabled', 'false'));
   });
 
   it('approving a card with errors opens it with them instead', async () => {
