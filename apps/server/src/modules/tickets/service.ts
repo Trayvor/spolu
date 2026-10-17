@@ -12,6 +12,7 @@ import type {
   TicketSource,
 } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
+import { escapeLike } from '../../infra/text/search.js';
 import type { FileReadRule } from '../files/read-rules.js';
 import {
   attachFiles,
@@ -385,6 +386,20 @@ export async function listTickets(
   } else if (query.assignee === 'none') {
     where.push(
       sql`not exists (select 1 from ticket_assignees a where a.ticket_id = ${tickets.id})`,
+    );
+  }
+  if (query.q) {
+    // Phase 34 (the picker): `123` or `#123` is the number; else the subject (trigram index) or
+    // the start of the body.
+    const number = /^#?(\d{1,9})$/.exec(query.q);
+    const like = escapeLike(query.q);
+    where.push(
+      number
+        ? eq(tickets.number, Number(number[1]))
+        : or(
+            sql`${tickets.subject} ilike ${`%${like}%`} escape '\\'`,
+            sql`${tickets.body} ilike ${`${like}%`} escape '\\'`,
+          ),
     );
   }
   if (query.cursor) {

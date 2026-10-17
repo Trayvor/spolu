@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { MessageAttachedTaskSchema } from './chat.js';
 import { FileInfoSchema } from './files.js';
 import { isHttpUrl } from './urls.js';
 
@@ -192,6 +193,20 @@ export const BoardDonePageSchema = z.object({
 });
 export type BoardDonePage = z.infer<typeof BoardDonePageSchema>;
 
+/** `GET /groups/:id/tasks/search?q=&after=` (Phase 34): the picker's task search, 20 a page. */
+export const TASK_SEARCH_PAGE = 20;
+export const TaskSearchQuerySchema = z.object({
+  /** A title fragment from 2 characters; empty lists the newest. */
+  q: z
+    .string()
+    .trim()
+    .max(100)
+    .refine((v) => v === '' || v.length >= 2)
+    .default(''),
+  after: z.string().max(200).optional(),
+});
+export type TaskSearchQuery = z.infer<typeof TaskSearchQuerySchema>;
+
 /** Socket events pushed to the group room after a board write commits. */
 export const BoardEvents = {
   task: 'board:task',
@@ -221,3 +236,13 @@ export type TaskAssignedPayload = {
   title: string;
   actorName: string;
 };
+
+/** One result of the picker's task search: the same card an attached task shows. */
+export const TaskSearchItemSchema = MessageAttachedTaskSchema.options[0];
+export type TaskSearchItem = z.infer<typeof TaskSearchItemSchema>;
+
+export const TaskSearchPageSchema = z.object({
+  items: z.array(TaskSearchItemSchema),
+  next: z.string().nullable(),
+});
+export type TaskSearchPage = z.infer<typeof TaskSearchPageSchema>;

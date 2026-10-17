@@ -5,6 +5,7 @@ import { testDatabaseUrl } from '../../../test/test-config.js';
 import { dashboardTicketCountSql, dashboardTicketsSql } from '../tickets/dashboard.js';
 import { assignedCountSql, assignedSql } from './assigned.js';
 import { bratislavaToday, globalBoardSql } from './global-board.js';
+import { taskSearchQuery } from '../tasks/attachable.js';
 import { mentionsSql } from './mentions.js';
 import { sidebarSql } from './sidebar.js';
 import { withVolume } from './test-volume.js';
@@ -99,6 +100,29 @@ describe('admin home query plans on a seeded volume', () => {
           globalBoardSql({ ...board, mine: false, column: 'custom:step 1', after }),
           ['tasks', ...CHAT_TABLES],
         );
+        // Phase 34, the attachment picker: a group's task search (newest, and by title with the
+        // trigram index available), the cards by primary key, and a group's ticket search.
+        const groupId = managedIds[0]!;
+        for (const q of ['', 'task 1']) {
+          await expectIndexed(tx, taskSearchQuery(tx, groupId, { q }).getSQL(), ['tasks']);
+        }
+        await expectIndexed(
+          tx,
+          sql`select t.id, t.title from tasks t join buckets b on b.id = t.bucket_id
+            where t.id in (${sql.join(
+              [1, 2, 3, 4, 5].map((i) => sql`${`${groupId.split('-g')[0]}-t${i}`}`),
+              sql`, `,
+            )}) and t.group_id = ${groupId}`,
+          ['tasks', 'buckets'],
+        );
+        await expectIndexed(
+          tx,
+          sql`select id, number, subject from tickets where group_id = ${groupId}
+            and (subject ilike ${'%ticket 1%'} or body ilike ${'ticket 1%'})
+            order by created_at desc, id desc limit 51`,
+          ['tickets'],
+        );
+        await expectIndexed(tx, sql`select id from tickets where number = 777`, ['tickets']);
       });
     },
   );

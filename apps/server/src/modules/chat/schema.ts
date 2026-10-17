@@ -189,6 +189,41 @@ export const messageKnowledgeItems = pgTable(
   ],
 );
 
+/**
+ * A task attached to a message (Phase 34). No foreign key to `tasks` (the chat never touches
+ * their tables): a deleted task stays here and shows as unavailable, like a knowledge item.
+ */
+export const messageTaskLinks = pgTable(
+  'message_task_links',
+  {
+    messageId: text('message_id')
+      .notNull()
+      .references(() => messages.id, { onDelete: 'cascade' }),
+    taskId: text('task_id').notNull(),
+    position: integer('position').notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.messageId, t.taskId] }),
+    index('message_task_links_task_idx').on(t.taskId),
+  ],
+);
+
+/** A ticket attached to a message (Phase 34); no foreign key, like `message_task_links`. */
+export const messageTicketLinks = pgTable(
+  'message_ticket_links',
+  {
+    messageId: text('message_id')
+      .notNull()
+      .references(() => messages.id, { onDelete: 'cascade' }),
+    ticketId: text('ticket_id').notNull(),
+    position: integer('position').notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.messageId, t.ticketId] }),
+    index('message_ticket_links_ticket_idx').on(t.ticketId),
+  ],
+);
+
 /** Where a user has read a channel up to: its top-level messages by others created after it are unread. */
 export const readStates = pgTable(
   'read_states',

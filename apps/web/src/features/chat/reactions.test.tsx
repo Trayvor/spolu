@@ -43,6 +43,8 @@ const message = (over: Partial<MessageDto> = {}): MessageDto => ({
   tasks: [],
   reactions: [],
   knowledge: [],
+  attachedTasks: [],
+  attachedTickets: [],
   ...over,
 });
 
@@ -167,7 +169,7 @@ describe('knowledge cards', () => {
           </ChatScopeProvider>
         </QueryClientProvider>,
       );
-    const button = () => screen.queryByRole('button', { name: t('chat.knowledge.attach') });
+    const button = () => screen.queryByRole('button', { name: t('chat.work.attach') });
     const first = composer({});
     expect(button()).toBeInTheDocument();
     first.unmount();

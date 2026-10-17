@@ -30,6 +30,7 @@ import { selectMessages, toMessageDtos, type MessageRow } from './dto.js';
 import { actorReadsChannel, channelKindAccess } from './access.js';
 import { runFilesAttached } from './file-hooks.js';
 import { attachKnowledge, checkKnowledgeIds } from './knowledge-links.js';
+import { attachWork, checkWorkIds, detachWork, hasWork } from './work-links.js';
 import {
   channels,
   messageAttachments,
@@ -160,6 +161,9 @@ export async function sendMessage(
   const knowledgeIds = data.knowledgeIds ?? [];
   // Phase 28: only readers of the group attach its items, and only items everyone here may read.
   await checkKnowledgeIds(db, author, groupId, knowledgeIds);
+  // Phase 34: the same for tasks and tickets, which must belong to the channel's group.
+  const work = { taskIds: data.taskIds ?? [], ticketIds: data.ticketIds ?? [] };
+  await checkWorkIds(db, author, groupId, work);
   // Another module's chat notifies its own readers (the people who hear a ticket's updates) and decides who @all
   // reaches; read before the transaction, like the people above.
   const notice = access ? await access.messageNotice(db, channel) : null;
@@ -213,6 +217,7 @@ export async function sendMessage(
         });
       }
       await attachKnowledge(tx, messageId, knowledgeIds);
+      await attachWork(tx, messageId, work);
 
       if (parentId !== null) {
         const [root] = await tx
@@ -522,7 +527,7 @@ export async function editMessage(
             .where(eq(messageKnowledgeItems.messageId, message.id))
             .limit(1);
       // Throwing rolls the whole transaction back, the update included.
-      if (!attachment && !item) throw new EmptyMessageError();
+      if (!attachment && !item && !(await hasWork(tx, message.id))) throw new EmptyMessageError();
     }
     await tx.delete(messageMentions).where(eq(messageMentions.messageId, message.id));
     if (mentions.userIds.length > 0) {
@@ -561,6 +566,7 @@ export async function deleteMessage(
     await tx.delete(messageMentions).where(eq(messageMentions.messageId, message.id));
     await tx.delete(messageReactions).where(eq(messageReactions.messageId, message.id));
     await tx.delete(messageKnowledgeItems).where(eq(messageKnowledgeItems.messageId, message.id));
+    await detachWork(tx, message.id);
     const removed = await tx
       .delete(messageAttachments)
       .where(eq(messageAttachments.messageId, message.id))

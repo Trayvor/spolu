@@ -141,5 +141,40 @@
       "meeting": "Sestanek",
       "chat_file": "Iz klepeta"
     }
+  },
+  "work": {
+    "attach": "Priloži znanje, nalogo ali tiket",
+    "pickerTitle": "Priloži sporočilu",
+    "tabs": {
+      "knowledge": "Znanje",
+      "tasks": "Naloge",
+      "tickets": "Tiketi"
+    },
+    "searchTasks": "Išči naloge po naslovu",
+    "searchTickets": "Išči tikete po številki ali zadevi",
+    "includeResolved": "Vključi rešene tikete",
+    "noTasks": "Ta skupina še nima nalog.",
+    "noTickets": "Ta skupina nima odprtih tiketov.",
+    "noResults": "Nič ne ustreza iskanju.",
+    "limitTasks": "Največ {{count}} nalog na sporočilo.",
+    "limitTickets": "Največ {{count}} tiketov na sporočilo.",
+    "attached": "Priložene postavke",
+    "taskUnavailable": "Naloga ni na voljo",
+    "ticketUnavailable": "Tiket ni na voljo",
+    "noSubject": "Brez zadeve",
+    "completed": "Dokončano",
+    "overdue": "Zamujeno",
+    "urgent": "Nujno",
+    "bucket": {
+      "todo": "Za narediti",
+      "egrant_review": "Pregled eGrant",
+      "client_review": "Pregled stranke",
+      "done": "Dokončano"
+    },
+    "status": {
+      "new": "Nov",
+      "in_progress": "V obdelavi",
+      "resolved": "Rešen"
+    }
   }
 }

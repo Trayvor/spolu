@@ -77,6 +77,8 @@ const MESSAGE: MessageDto = {
   tasks: [],
   reactions: [],
   knowledge: [],
+  attachedTasks: [],
+  attachedTickets: [],
 };
 
 const PROPOSALS: TaskProposal[] = [

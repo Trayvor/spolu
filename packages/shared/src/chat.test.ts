@@ -117,3 +117,17 @@ describe('SendMessageInputSchema knowledgeIds', () => {
     ).toBe(false);
   });
 });
+
+describe('SendMessageInputSchema taskIds and ticketIds', () => {
+  const base = { body: '', clientId: 'c1' };
+  it('a message may carry only tasks or tickets, at most 5 each and no duplicates', () => {
+    expect(SendMessageInputSchema.safeParse({ ...base, taskIds: ['t1'] }).success).toBe(true);
+    expect(SendMessageInputSchema.safeParse({ ...base, ticketIds: ['k1'] }).success).toBe(true);
+    expect(SendMessageInputSchema.safeParse({ ...base, taskIds: [] }).success).toBe(false);
+    expect(SendMessageInputSchema.safeParse({ ...base, taskIds: ['a', 'a'] }).success).toBe(false);
+    expect(
+      SendMessageInputSchema.safeParse({ ...base, ticketIds: ['a', 'b', 'c', 'd', 'e', 'f'] })
+        .success,
+    ).toBe(false);
+  });
+});

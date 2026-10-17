@@ -10,6 +10,18 @@ export function canReadChannel(
   return canReadGroup(actor, channel.groupId, actorGroupIds);
 }
 
+/**
+ * Phase 34: whoever reads the channel's group attaches its tasks and tickets (admins and the
+ * group's clients); a ziadatel, who reads only their ticket's chat, never does.
+ */
+export function canAttachWork(
+  actor: SessionUser,
+  groupId: string,
+  actorGroupIds: readonly string[],
+): boolean {
+  return canReadGroup(actor, groupId, actorGroupIds);
+}
+
 /** Only the author edits a message, and never a deleted one. */
 export function canEditMessage(
   actor: SessionUser,

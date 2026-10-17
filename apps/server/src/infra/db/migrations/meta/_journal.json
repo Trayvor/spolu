@@ -253,6 +253,13 @@
       "when": 1792256476725,
       "tag": "0035_finance_time_without_client",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1792265307386,
+      "tag": "0036_chat_attach_work",
+      "breakpoints": true
     }
   ]
 }

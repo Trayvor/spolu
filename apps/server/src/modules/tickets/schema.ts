@@ -59,6 +59,8 @@ export const tickets = pgTable(
     index('tickets_unassigned_created_idx')
       .on(t.createdAt.desc())
       .where(sql`${t.groupId} is null`),
+    // The picker's subject search (Phase 34); trigram as in ADR 0015.
+    index('tickets_subject_trgm_idx').using('gin', t.subject.op('gin_trgm_ops')),
     index('tickets_due_open_idx')
       .on(t.dueDate)
       .where(sql`${t.status} <> 'resolved'`),

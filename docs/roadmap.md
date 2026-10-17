@@ -491,6 +491,6 @@ Scope: one internal group **"eGrant tím"** (a `groups` row with `kind = 'admin'
 
 Built in five pull requests: P34-A (the picker in client groups, can start before the rest) and P34-B (the admin group) first, then P34-C (knowledge sharing), P34-D (the picker in the admin group) and P34-E (finance in the admin group).
 
-Status: spec approved by the owner on 2026-10-17 (every decision as written). P34-A and P34-B can start with Phase 33's first wave.
+Status: spec approved by the owner on 2026-10-17 (every decision as written). P34-A (the three-tab picker in client groups, branch `feat/chat-attach-work`, migration 0036) is built; P34-B can start with Phase 33's first wave.
 
 Done when: every admin works in "eGrant tím" (chat, tasks, projects, knowledge, finance for finance admins) with no way in for a client; an admin shares one internal note with a client chat on purpose and the client opens only that; a message in a client chat carries a task and a ticket card, and in the admin group any client's work with the client filter.

@@ -31,6 +31,8 @@ function msg(n: number, over: Partial<MessageDto> = {}): MessageDto {
     tasks: [],
     reactions: [],
     knowledge: [],
+    attachedTasks: [],
+    attachedTickets: [],
     ...over,
   };
 }

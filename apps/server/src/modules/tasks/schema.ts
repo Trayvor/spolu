@@ -118,6 +118,8 @@ export const tasks = pgTable(
     index('tasks_source_meeting_id_idx')
       .on(t.sourceMeetingId)
       .where(sql`${t.sourceMeetingId} is not null`),
+    // The picker's title search (Phase 34); trigram as in ADR 0015.
+    index('tasks_title_trgm_idx').using('gin', t.title.op('gin_trgm_ops')),
     index('tasks_source_message_id_idx')
       .on(t.sourceMessageId)
       .where(sql`${t.sourceMessageId} is not null`),

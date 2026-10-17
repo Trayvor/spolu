@@ -298,6 +298,16 @@ export const TicketListQuerySchema = z.object({
     .transform((v) => [...new Set(v.split(',').filter(Boolean))])
     .pipe(z.array(z.string().max(100)).max(TICKET_LIMITS.clients))
     .optional(),
+  /**
+   * Picker search (Phase 34): `123` or `#123` is the ticket number, anything else (2 characters
+   * or more) a fragment of the subject or the start of the body.
+   */
+  q: z
+    .string()
+    .trim()
+    .max(100)
+    .refine((v) => v === '' || v.length >= 2 || /^\d$/.test(v))
+    .optional(),
   cursor: z.string().max(200).optional(),
 });
 export type TicketListQuery = z.infer<typeof TicketListQuerySchema>;
