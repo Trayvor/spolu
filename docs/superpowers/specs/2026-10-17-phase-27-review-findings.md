@@ -267,16 +267,16 @@ Impact: **high** = a user waits seconds, or the server does far more work than n
 
 Each batch is one branch and one PR from fresh `origin/main`, independent of the others. Merge in this order:
 
-| # | Branch | Findings | Impact | Risk | Status |
+| # | Branch | Findings | Impact | Risk | Status and measured gain |
 |---|---|---|---|---|---|
-| 1 | `perf/db-fk-indexes` | S1, S3 | high | low | building |
-| 2 | `perf/db-jit-off` | S2 | high | low | building |
-| 3 | `perf/web-vitest-vmthreads` | T1 | high (CI) | low | building |
-| 4 | `perf/web-entry-chunk` | W1 | med | low | building |
-| 5 | `perf/pwa-precache-languages` | W3 | med | low | building |
-| 6 | `perf/web-first-join-refetch` | W4 | med | low | building |
-| 7 | `chore/dead-code` | D1, D2 | low | low | building (trivial; part of the phase's scope) |
-| 8 | `perf/docker-runtime-slim` | K1 | low-med | low | building |
+| 1 | `perf/db-fk-indexes` | S1, S3 | high | low | PR #44: channel delete with 2 000 messages 94.9 s → 39 ms; global ticket list 32–64 ms → 0.1 ms |
+| 2 | `perf/db-jit-off` | S2 | high | low | PR #45: global board without client scope 720 → 100 ms (EXPLAIN); sidebar with 3 100 groups 350 → 125 ms |
+| 3 | `perf/web-vitest-vmthreads` | T1 | high (CI) | low | PR #46: web suite 31.4 → 13.9 s locally, 429 → 173 s on GitHub (the tests step is now bound by the server suite, about 390 s) |
+| 4 | `perf/web-entry-chunk` | W1 | med | low | PR #47: initial JS 174.59 → 161.94 kB |
+| 5 | `perf/pwa-precache-languages` | W3 | med | low | PR #48: precache 307 files / 758.6 kB → 167 / 613.3 kB gzip |
+| 6 | `perf/web-first-join-refetch` | W4 | med | low | handed to a second agent (own PR) |
+| 7 | `chore/dead-code` | D1, D2 | low | low | `chore/dead-code`: 6 symbols, 2 keys in nine languages, 4 dead English plural forms |
+| 8 | `perf/docker-runtime-slim` | K1 | low-med | low | handed to a second agent (own PR) |
 
 Proposed, not done (owner decision or later work):
 - **Server:** S4, S5, S6, S7, S8, S9, S10, S11.
