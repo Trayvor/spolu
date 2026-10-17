@@ -133,7 +133,7 @@ function mockApi(me: typeof ADMIN | typeof CLIENT | null) {
     '/api/groups/g1/members': [{ id: 'u1', name: 'Eva', email: 'eva@acme.sk' }],
     '/api/groups/g1/members/removed': [],
     '/api/groups/g1/task-chats': { t1: { count: 1, unread: true } },
-    '/api/groups/g1/board': { buckets: BUCKETS, tasks: [TASK] },
+    '/api/groups/g1/board': { buckets: BUCKETS, tasks: [TASK], done: { total: 0, next: null } },
     '/api/tasks/t1': TASK_DETAIL,
     '/api/tasks/t1/chat': { id: 'c2', ...CHANNEL },
     '/api/channels/c1/messages': PAGE,

@@ -1,50 +1,28 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearch } from '@tanstack/react-router';
 import type { GlobalBoardSearch } from '@/router';
+import { useRememberedFilters } from '@/lib/use-remembered-filters';
 import { useUpdateSearch } from '@/lib/use-update-search';
 import type { GlobalFilters } from './api';
 
-/** The last explicit client choice, restored on a visit without `clients`. */
-export const BOARD_CLIENTS_KEY = 'spolu.globalBoard.clients';
-
-function readStored(): string | null {
-  try {
-    return localStorage.getItem(BOARD_CLIENTS_KEY);
-  } catch {
-    return null;
-  }
-}
-
-function writeStored(clients: string | null) {
-  try {
-    if (clients === null) localStorage.removeItem(BOARD_CLIENTS_KEY);
-    else localStorage.setItem(BOARD_CLIENTS_KEY, clients);
-  } catch {
-    // Blocked storage: the URL still holds the choice.
-  }
-}
-
 /** The filter keys the board writes; "Clear filters" removes them all. */
 const FILTER_KEYS = ['clients', 'assignee', 'urgent', 'mine', 'due', 'q', 'completed'] as const;
+/** The ones remembered for the next visit: all but the free text search. */
+const REMEMBERED_KEYS = FILTER_KEYS.filter((key) => key !== 'q');
 
 const SEARCH_DEBOUNCE_MS = 300;
 
 /**
  * The global board's filters, all in the URL (`/tasks?clients&assignee&urgent&mine&due&q&completed`)
- * plus the open task (`task`). A visit without `clients` restores the last explicit choice from
- * `localStorage`; `null` clients is the default scope (the managed clients, or all).
+ * plus the open task (`task`). A visit without filters restores the person's last ones (all but
+ * the search text, `useRememberedFilters`); `null` clients is the default scope (the managed
+ * clients, or all).
  */
 export function useGlobalSearch() {
-  const search = useSearch({ strict: false }) as GlobalBoardSearch;
+  const raw = useSearch({ strict: false }) as GlobalBoardSearch;
+  const search = useRememberedFilters('globalBoard', REMEMBERED_KEYS, raw);
   const update = useUpdateSearch();
-
-  const [stored] = useState(() => (search.clients === undefined ? readStored() : null));
-  const [restoring, setRestoring] = useState(stored !== null);
-  useEffect(() => {
-    if (stored !== null) update((s) => void (s.clients = stored), { replace: true });
-  }, [stored, update]);
-  if (restoring && search.clients !== undefined) setRestoring(false);
-  const clientsParam = restoring ? (stored ?? undefined) : search.clients;
+  const clientsParam = search.clients;
 
   const filters = useMemo<GlobalFilters>(
     () => ({
@@ -73,7 +51,6 @@ export function useGlobalSearch() {
 
   const setClients = (next: string[] | null) => {
     const value = next === null ? null : next.join(',');
-    writeStored(value);
     set((s) => {
       if (value === null) delete s.clients;
       else s.clients = value;
@@ -109,7 +86,6 @@ export function useGlobalSearch() {
   ).length;
 
   const clear = () => {
-    writeStored(null);
     clearTimeout(timer.current);
     set((s) => {
       for (const key of FILTER_KEYS) delete s[key];
@@ -118,7 +94,6 @@ export function useGlobalSearch() {
 
   /** Back to the defaults after the server refused a filter (400 `invalid_filter`). */
   const reset = () => {
-    writeStored(null);
     update(
       (s) => {
         for (const key of [...FILTER_KEYS, 'column', 'after']) delete s[key];

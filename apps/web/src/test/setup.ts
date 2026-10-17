@@ -1,4 +1,5 @@
 import '@testing-library/jest-dom/vitest';
+import { beforeEach } from 'vitest';
 import { configure } from '@testing-library/react';
 import '@/i18n';
 import { loadAllNamespaces } from '@/i18n/namespaces';
@@ -14,3 +15,15 @@ const noRects = () => [] as unknown as DOMRectList;
 Range.prototype.getClientRects ??= noRects;
 Range.prototype.getBoundingClientRect ??= () => new DOMRect();
 document.elementFromPoint ??= () => null;
+
+// Remembered list filters (`lib/use-remembered-filters.ts`) must not carry over between tests:
+// one test's filters would come back in the next test's list.
+beforeEach(() => {
+  try {
+    for (const key of Object.keys(localStorage)) {
+      if (key.startsWith('spolu.filters.')) localStorage.removeItem(key);
+    }
+  } catch {
+    // A test that blocks storage restores it itself.
+  }
+});

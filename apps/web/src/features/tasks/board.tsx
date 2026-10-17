@@ -242,6 +242,7 @@ export function Board({ groupId }: { groupId: string }) {
                 dropMark={dropTarget?.bucketId === bucket.id ? dropTarget.mark : null}
                 chats={chats}
                 onToggleDone={onToggleDone}
+                done={bucket.kind === 'done' ? board.done : undefined}
               />
             ))}
           </SortableContext>

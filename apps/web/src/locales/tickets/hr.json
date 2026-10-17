@@ -21,7 +21,8 @@
       "anyone": "Bilo tko",
       "me": "Ja",
       "none": "Nitko"
-    }
+    },
+    "clear": "Poništi filtre"
   },
   "list": {
     "loading": "Učitavam tikete…",

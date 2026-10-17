@@ -33,7 +33,9 @@
     "loading": "Načítá se nástěnka.",
     "loadFailed": "Nástěnku se nepodařilo načíst.",
     "retry": "Zkusit znovu",
-    "moveFailed": "Úkol se nepodařilo přesunout."
+    "moveFailed": "Úkol se nepodařilo přesunout.",
+    "showMore": "Zobrazit dalších 15",
+    "moreFailed": "Další se nepodařilo načíst. Zkuste to znovu."
   },
   "dnd": {
     "instructions": "Úkol zvednete mezerníkem. Šipkami ho přesuňte a dalším stisknutím mezerníku ho položte. Klávesou Escape akci zrušíte.",

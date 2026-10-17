@@ -26,6 +26,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Toast } from '@/components/ui/toast';
 import { groupsQuery } from '@/features/groups/api';
+import { useRememberedFilters } from '@/lib/use-remembered-filters';
 import { useUpdateSearch } from '@/lib/use-update-search';
 import { globalKnowledgeQuery, knowledgeScopeQuery } from './api';
 import { KnowledgeDialog } from './knowledge-dialog';
@@ -33,8 +34,8 @@ import { KnowledgeList } from './knowledge-list';
 import { FolderBrowser } from './folder-browser';
 import { ChevronIcon } from './icons';
 
-/** The last explicit client choice, restored on a visit without parameters. */
-export const CLIENTS_STORAGE_KEY = 'spolu.knowledge.clients';
+/** The filters remembered for the next visit (`useRememberedFilters`): not the search. */
+const REMEMBERED_KEYS = ['clients', 'type', 'chats'] as const;
 
 /** The `clients` value meaning every client. */
 const ALL = 'all';
@@ -44,23 +45,6 @@ const toQuery = (text: string) => {
   const trimmed = text.trim();
   return trimmed.length >= 2 ? trimmed : undefined;
 };
-
-function readStored(): string | null {
-  try {
-    return localStorage.getItem(CLIENTS_STORAGE_KEY);
-  } catch {
-    return null;
-  }
-}
-
-function writeStored(clients: string | null) {
-  try {
-    if (clients === null) localStorage.removeItem(CLIENTS_STORAGE_KEY);
-    else localStorage.setItem(CLIENTS_STORAGE_KEY, clients);
-  } catch {
-    // Private mode or blocked storage: the URL still holds the choice.
-  }
-}
 
 /** One client of the folder view's first level: opens its folders. */
 function ClientRow({ client, onOpen }: { client: ClientOption; onOpen: (id: string) => void }) {
@@ -113,21 +97,15 @@ function SearchIcon() {
  */
 export function KnowledgePage() {
   const { t, i18n } = useTranslation();
-  const search = useSearch({ strict: false }) as KnowledgePageSearch;
-  const update = useUpdateSearch();
-
-  // A visit without parameters restores the last explicit client choice. Until the URL has it,
-  // the stored value is used, so the default scope is never fetched first.
-  const [stored] = useState(() =>
-    Object.values(search).every((v) => v === undefined) ? readStored() : null,
+  // A visit without filters gets the person's last ones (clients, types, chat files); until the
+  // URL has them they are already in `search`, so the default scope is never fetched first.
+  const search = useRememberedFilters(
+    'knowledge',
+    REMEMBERED_KEYS,
+    useSearch({ strict: false }) as KnowledgePageSearch,
   );
-  const [restoring, setRestoring] = useState(stored !== null);
-  useEffect(() => {
-    if (stored !== null) update((s) => void (s.clients = stored), { replace: true });
-  }, [stored, update]);
-  // Once the URL carries it, the URL rules again (a later Reset must not bring it back).
-  if (restoring && search.clients !== undefined) setRestoring(false);
-  const clientsParam = restoring ? (stored ?? undefined) : search.clients;
+  const update = useUpdateSearch();
+  const clientsParam = search.clients;
 
   const groups = useQuery(groupsQuery).data;
   const scope = useQuery(knowledgeScopeQuery).data;
@@ -207,7 +185,6 @@ export function KnowledgePage() {
         : allIds.length > 0 && allIds.every((id) => next.includes(id))
           ? ALL
           : next.join(',');
-    writeStored(value);
     update(
       (s) => {
         if (value === null) delete s.clients;

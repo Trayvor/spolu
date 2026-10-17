@@ -14,6 +14,7 @@ import { notificationEvents } from './schema.js';
 import {
   DELIVER_JOB,
   deleteOldNotificationEvents,
+  recordManyNotifications,
   recordNotifications,
   requestDelivery,
 } from './service.js';
@@ -123,9 +124,11 @@ describe('recordNotifications pending state', () => {
       recipients: [a.id],
       payload,
     });
-    const [row] = await rowsFor([a.id]);
-    expect(recorded).toEqual([row!.id]);
-    return row!.deliveredAt === null;
+    const rows = await rowsFor([a.id]);
+    expect(recorded).toEqual(rows.map((r) => r.id));
+    // Phase 27 S5: no row at all for someone the event never notifies.
+    if (rows.length === 0) return 'skipped';
+    return rows[0]!.deliveredAt === null;
   };
 
   it('the default push with a device waits; without a device it is delivered at once', async () => {
@@ -134,22 +137,45 @@ describe('recordNotifications pending state', () => {
   });
 
   it('follows the channel of the event group', async () => {
-    expect(await pending('chat.message', {}, { chat: 'none' })).toBe(false);
     expect(await pending('task.moved', {}, { chat: 'none' })).toBe(true);
     expect(await pending('task.moved', {}, { tasks: 'email' }, { device: false })).toBe(true);
     expect(await pending('task.moved', {}, { tasks: 'both' }, { device: false })).toBe(true);
     expect(await pending('task.moved', {}, { tasks: 'push' }, { device: false })).toBe(false);
     // A task chat message belongs to the task board.
     expect(await pending('chat.message', { taskId: 't1' }, { chat: 'none' })).toBe(true);
-    expect(await pending('chat.message', { taskId: 't1' }, { tasks: 'none' })).toBe(false);
+  });
+
+  it('records nothing for a recipient whose channel for the event group is none (S5)', async () => {
+    expect(await pending('chat.message', {}, { chat: 'none' })).toBe('skipped');
+    expect(await pending('chat.mention', {}, { chat: 'none' })).toBe('skipped');
+    expect(await pending('task.moved', {}, { tasks: 'none' })).toBe('skipped');
+    expect(await pending('chat.message', { taskId: 't1' }, { tasks: 'none' })).toBe('skipped');
+    expect(await pending('chat.mention', { ticketId: 'k1' }, { tickets: 'none' })).toBe('skipped');
     expect(await pending('reminder.due', { subjectKind: 'knowledge' }, { knowledge: 'none' })).toBe(
-      false,
+      'skipped',
     );
   });
 
-  it('a disabled user and an unknown kind are delivered at once', async () => {
-    expect(await pending('chat.message', {}, { chat: 'both' }, { disabled: true })).toBe(false);
+  it('records nothing for a disabled user; an unknown kind is delivered at once', async () => {
+    expect(await pending('chat.message', {}, { chat: 'both' }, { disabled: true })).toBe('skipped');
     expect(await pending('ticket.bogus', {}, {})).toBe(false);
+  });
+
+  it('in one call, records the notified recipients only, and returns their ids', async () => {
+    const { group, a, b } = await setup();
+    await setNotificationChannel(db, a.id, 'chat', 'none');
+    await setNotificationChannel(db, b.id, 'chat', 'email');
+    const recorded = await recordManyNotifications(db, [
+      { kind: 'chat.message', groupId: group.id, recipients: [a.id, b.id], payload: {} },
+      { kind: 'task.moved', groupId: group.id, recipients: [a.id, b.id], payload: {} },
+    ]);
+    const rows = await rowsFor([a.id, b.id]);
+    expect(rows.map((r) => `${r.userId === a.id ? 'a' : 'b'}:${r.kind}`).sort()).toEqual([
+      'a:task.moved',
+      'b:chat.message',
+      'b:task.moved',
+    ]);
+    expect(recorded.sort()).toEqual(rows.map((r) => r.id).sort());
   });
 });
 

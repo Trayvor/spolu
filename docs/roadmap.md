@@ -381,7 +381,7 @@ Scope: review the whole project for places where performance can sag, for dead o
 
 Done when: the findings report is written and agreed with the owner, every accepted finding is fixed in its own merged pull request with before/after numbers, and the remaining ones are listed as later work.
 
-Status: findings report written ([2026-10-17 findings](superpowers/specs/2026-10-17-phase-27-review-findings.md)): 8 fix batches (foreign-key indexes, JIT off, faster web tests, entry chunk, precache, first-join refetch, dead code, Docker image) in their own pull requests; the rest is listed there as proposed, for the owner to decide.
+Status: findings report written ([2026-10-17 findings](superpowers/specs/2026-10-17-phase-27-review-findings.md)): 8 fix batches (foreign-key indexes, JIT off, faster web tests, entry chunk, precache, first-join refetch, dead code, Docker image) in their own pull requests; the rest is listed there as proposed, for the owner to decide. Batch 2 (`perf/phase-27-batch-2`, accepted by the owner): S5 (no notification event for a category set to none), S8 (the group board's Completed column paged by 15), W5 (the global board keeps its "Show 50 more" pages) and, by owner request, remembered filters on every list (see [product/non-functional.md](product/non-functional.md), "Lists remember their filters").
 
 ## Phase 28 — Chat editor and AI text tools
 
