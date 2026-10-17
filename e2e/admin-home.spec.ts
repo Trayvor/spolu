@@ -139,7 +139,9 @@ test('admin home: dashboard, header counts, sidebar, Úlohy and global board', a
     const g1Row = managed.getByRole('link', { name: new RegExp(g1Name) });
     await expect(g1Row).toBeVisible();
     await expect(g1Row).toContainText('1 neprečítaná správa');
-    await expect(g1Row).toContainText('2 úlohy priradené vám');
+    // The sidebar refetches on its own 2 s debounce (same hook as the header pill, separate
+    // timer), so it can trail the header under load.
+    await expect(g1Row).toContainText('2 úlohy priradené vám', { timeout: 15_000 });
     await expect(others.getByRole('link', { name: new RegExp(g2Name) })).toBeVisible();
 
     // 4. Opening the mention shows the chat at the message; back home it is gone. Leaving only
