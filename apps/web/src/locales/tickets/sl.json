@@ -14,7 +14,6 @@
     "allAreas": "Vsa področja",
     "areaChosen": "Področje: {{area}}",
     "noAreas": "Na tem seznamu še ni področij",
-    "following": "Spremljani",
     "noClient": "Brez stranke",
     "assignee": "Reševalec: {{name}}",
     "assignees": {
@@ -36,7 +35,6 @@
     "overdue": "Zamuda od",
     "noSubject": "Brez zadeve",
     "noClient": "Brez stranke",
-    "following": "Ta zahtevek spremljate",
     "assignees": "Reševalci: {{names}}"
   },
   "mine": {
@@ -78,12 +76,6 @@
     "inSpolu": "v aplikaciji Help",
     "resolved": "Rešeno"
   },
-  "followers": {
-    "title": "Spremljevalci ({{count}})",
-    "follow": "Spremljaj",
-    "following": "Spremljate",
-    "none": "Tega zahtevka nihče ne spremlja."
-  },
   "assign": {
     "choose": "Izberite stranko",
     "hasTasks": "Ta zahtevek ima naloge na tabli svoje stranke, zato ostane pri tej stranki."
@@ -119,11 +111,11 @@
     "title": "Reševalci ({{count}})",
     "suggestions": "Kdo lahko rešuje zahtevek",
     "none": "Zahtevka še nihče ne rešuje.",
-    "hint": "Reševalec prejme obvestilo in spremlja zahtevek."
+    "hint": "Reševalec prejme obvestilo in od takrat vse novosti zahtevka."
   },
   "watch": {
     "label": "Spremljaj zahtevke",
-    "on": "Prejmete obvestilo o vsakem novem zahtevku te stranke.",
-    "off": "Prejemate obvestila le o zahtevkih, ki jih spremljate."
+    "on": "Prejmete obvestilo o vsakem novem zahtevku te stranke in o njegovih novostih, dokler nima reševalca.",
+    "off": "Prejemate obvestila le o zahtevkih, katerih reševalec ste ali v katerih vas kdo omeni."
   }
 }

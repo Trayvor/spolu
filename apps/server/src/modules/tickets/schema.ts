@@ -65,29 +65,9 @@ export const tickets = pgTable(
   ],
 );
 
-/** Who follows a ticket: `auto` (initiator, managers, the creating admin) or `manual`. */
-export const ticketFollowers = pgTable(
-  'ticket_followers',
-  {
-    ticketId: text('ticket_id')
-      .notNull()
-      .references(() => tickets.id, { onDelete: 'cascade' }),
-    userId: text('user_id')
-      .notNull()
-      .references(() => user.id, { onDelete: 'cascade' }),
-    source: text('source').$type<'auto' | 'manual'>().notNull(),
-    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-  },
-  (t) => [
-    primaryKey({ columns: [t.ticketId, t.userId] }),
-    check('ticket_followers_source_check', sql`${t.source} in ('auto', 'manual')`),
-    index('ticket_followers_user_idx').on(t.userId),
-  ],
-);
-
 /**
- * The riešitelia (assignees) of a ticket: admins, or clients of the ticket's group. Adding one
- * also makes them a follower; removing one leaves the follow alone.
+ * The riešitelia (assignees) of a ticket: admins, or clients of the ticket's group. While a
+ * ticket has any, its updates go to them (and its initiator) instead of the watchers (`audience.ts`).
  */
 export const ticketAssignees = pgTable(
   'ticket_assignees',

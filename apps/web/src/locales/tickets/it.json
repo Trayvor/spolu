@@ -14,7 +14,6 @@
     "allAreas": "Tutte le aree",
     "areaChosen": "Area: {{area}}",
     "noAreas": "Ancora nessuna area in questo elenco",
-    "following": "Seguiti",
     "noClient": "Senza cliente",
     "assignee": "Assegnatario: {{name}}",
     "assignees": {
@@ -36,7 +35,6 @@
     "overdue": "Scaduto dal",
     "noSubject": "Senza oggetto",
     "noClient": "Senza cliente",
-    "following": "Lei segue questo ticket",
     "assignees": "Assegnatari: {{names}}"
   },
   "mine": {
@@ -77,12 +75,6 @@
     "inSpolu": "nell'app Help",
     "resolved": "Risolto"
   },
-  "followers": {
-    "title": "Follower ({{count}})",
-    "follow": "Segui",
-    "following": "Seguito",
-    "none": "Nessuno segue questo ticket."
-  },
   "assign": {
     "choose": "Scegli un cliente",
     "hasTasks": "Questo ticket ha attività nella bacheca del suo cliente, quindi resta assegnato a quel cliente."
@@ -118,11 +110,11 @@
     "title": "Assegnatari ({{count}})",
     "suggestions": "Chi può gestire il ticket",
     "none": "Nessuno gestisce ancora questo ticket.",
-    "hint": "Un assegnatario riceve una notifica e segue il ticket."
+    "hint": "Un assegnatario riceve una notifica e da allora ogni novità del ticket."
   },
   "watch": {
     "label": "Segui i ticket",
-    "on": "Riceve una notifica per ogni nuovo ticket di questo cliente.",
-    "off": "Riceve notifiche solo per i ticket che segue."
+    "on": "Riceve una notifica per ogni nuovo ticket di questo cliente e per le sue novità finché non ha un assegnatario.",
+    "off": "Riceve notifiche solo per i ticket di cui è assegnatario o in cui viene menzionato."
   }
 }

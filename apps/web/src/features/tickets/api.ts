@@ -9,7 +9,6 @@ import {
 import {
   TicketCandidateListSchema,
   TicketDtoSchema,
-  TicketFollowerListSchema,
   TicketListResponseSchema,
   TicketWatchSchema,
   type TicketCreateBody,
@@ -35,7 +34,6 @@ export type TicketSource =
 export type TicketFilter = {
   status: 'open' | 'resolved' | 'all';
   area?: string;
-  following?: boolean;
   /** Riešiteľ: `me` (I am one), `none` (nobody yet); absent = anyone. */
   assignee?: 'me' | 'none';
   clients?: string[] | 'all' | null;
@@ -54,7 +52,6 @@ function listSearch(source: TicketSource, filter: TicketFilter, cursor?: string)
   const qs = new URLSearchParams();
   if (filter.status !== 'open') qs.set('status', filter.status);
   if (filter.area) qs.set('area', filter.area);
-  if (filter.following) qs.set('following', 'true');
   if (filter.assignee) qs.set('assignee', filter.assignee);
   if (source.kind === 'global') {
     if (filter.noClient) qs.set('scope', 'none');
@@ -90,12 +87,6 @@ export const ticketQuery = (id: string) =>
     queryFn: () => apiGet(`/tickets/${enc(id)}`, TicketDtoSchema),
   });
 
-export const followersQuery = (id: string) =>
-  queryOptions({
-    queryKey: ['tickets', 'followers', id],
-    queryFn: () => apiGet(`/tickets/${enc(id)}/followers`, TicketFollowerListSchema),
-  });
-
 /** The list row of a ticket, as the server builds it, from the full ticket. */
 export function toListItem(ticket: TicketDto): TicketListItem {
   return {
@@ -108,7 +99,6 @@ export function toListItem(ticket: TicketDto): TicketListItem {
     subject: ticket.subject,
     dueDate: ticket.dueDate,
     createdAt: ticket.createdAt,
-    following: ticket.following,
     requesterName: ticket.requester.name,
     excerpt: ticket.body === null ? null : ticket.body.slice(0, 140),
     assignees: ticket.assignees,
@@ -128,7 +118,6 @@ export function matchesFilter(
   if (filter.assignee === 'me' && meId && !item.assignees.some((p) => p.id === meId)) return false;
   if (filter.status === 'open' && item.status === 'resolved') return false;
   if (filter.status === 'resolved' && item.status !== 'resolved') return false;
-  if (filter.following && !item.following) return false;
   if (filter.area && (item.area ?? '').toLowerCase() !== filter.area.toLowerCase()) return false;
   return true;
 }
@@ -220,34 +209,14 @@ export function useAssignGroup(id: string) {
       apiSend('PUT', `/tickets/${enc(id)}/group`, { groupId }, TicketDtoSchema),
     onSuccess: (ticket) => {
       queryClient.setQueryData(ticketQuery(ticket.id).queryKey, ticket);
-      // The client changed: group lists gain or lose it, followers may have been dropped, and
-      // the chat's mention list is the new client's people.
+      // The client changed: group lists gain or lose it, and the chat's mention list is the new
+      // client's people.
       void queryClient.invalidateQueries({ queryKey: ticketListPrefix });
-      void queryClient.invalidateQueries({ queryKey: followersQuery(id).queryKey });
       if (ticket.channelId) {
         void queryClient.invalidateQueries({
           queryKey: channelPeopleQuery(ticket.channelId).queryKey,
         });
       }
-    },
-  });
-}
-
-/** Follow (`true`) or stop following (`false`) as the signed-in user. */
-export function useFollow(id: string) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (follow: boolean) =>
-      apiSend(follow ? 'PUT' : 'DELETE', `/tickets/${enc(id)}/follow`),
-    onSuccess: (_answer, follow) => {
-      const key = ticketQuery(id).queryKey;
-      const ticket = queryClient.getQueryData<TicketDto>(key);
-      if (ticket) {
-        const next = { ...ticket, following: follow };
-        queryClient.setQueryData(key, next);
-        patchTicketInLists(queryClient, next);
-      }
-      void queryClient.invalidateQueries({ queryKey: followersQuery(id).queryKey });
     },
   });
 }
@@ -259,13 +228,9 @@ export const candidatesQuery = (id: string) =>
     queryFn: () => apiGet(`/tickets/${enc(id)}/assignee-candidates`, TicketCandidateListSchema),
   });
 
-/**
- * Adds (`add: true`) or removes a riešiteľ. The answer is the ticket; a new riešiteľ also follows
- * it, so the followers refetch.
- */
+/** Adds (`add: true`) or removes a riešiteľ. The answer is the ticket. */
 export function useAssignee(id: string) {
   const store = useStoreTicket();
-  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ userId, add }: { userId: string; add: boolean }) =>
       apiSend(
@@ -274,10 +239,7 @@ export function useAssignee(id: string) {
         undefined,
         TicketDtoSchema,
       ),
-    onSuccess: (ticket) => {
-      store(ticket);
-      void queryClient.invalidateQueries({ queryKey: followersQuery(id).queryKey });
-    },
+    onSuccess: store,
   });
 }
 

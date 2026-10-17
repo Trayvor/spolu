@@ -14,7 +14,6 @@
     "allAreas": "Všetky oblasti",
     "areaChosen": "Oblasť: {{area}}",
     "noAreas": "V tomto zozname zatiaľ nie sú oblasti",
-    "following": "Sledované",
     "noClient": "Bez klienta",
     "assignee": "Riešiteľ: {{name}}",
     "assignees": {
@@ -36,7 +35,6 @@
     "overdue": "Po termíne od",
     "noSubject": "Bez predmetu",
     "noClient": "Bez klienta",
-    "following": "Tento tiket sledujete",
     "assignees": "Riešitelia: {{names}}"
   },
   "mine": {
@@ -78,12 +76,6 @@
     "inSpolu": "v aplikácii Help",
     "resolved": "Vyriešený"
   },
-  "followers": {
-    "title": "Sledujúci ({{count}})",
-    "follow": "Sledovať",
-    "following": "Sledujete",
-    "none": "Tento tiket nikto nesleduje."
-  },
   "assign": {
     "choose": "Vyberte klienta",
     "hasTasks": "Tento tiket má úlohy na nástenke svojho klienta, preto zostáva pri ňom."
@@ -119,11 +111,11 @@
     "title": "Riešitelia ({{count}})",
     "suggestions": "Kto môže tiket riešiť",
     "none": "Tiket zatiaľ nikto nerieši.",
-    "hint": "Riešiteľ dostane upozornenie a tiket sleduje."
+    "hint": "Riešiteľ dostane upozornenie a odvtedy všetky novinky k tiketu."
   },
   "watch": {
     "label": "Sledovať tikety",
-    "on": "Dostanete upozornenie na každý nový tiket tohto klienta.",
-    "off": "Dostávate upozornenia len na tikety, ktoré sledujete."
+    "on": "Dostanete upozornenie na každý nový tiket tohto klienta a na jeho novinky, kým nemá riešiteľa.",
+    "off": "Dostávate upozornenia len na tikety, ktorých ste riešiteľ alebo kde vás niekto spomenie."
   }
 }

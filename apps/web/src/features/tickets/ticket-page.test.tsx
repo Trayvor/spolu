@@ -29,9 +29,6 @@ function renderTicket(
       if (url.pathname === '/api/tickets/k1' && (init?.method ?? 'GET') === 'GET') {
         return reply(200, dto);
       }
-      if (url.pathname === '/api/tickets/k1/followers')
-        return reply(200, [{ id: 'z1', name: 'Žofia' }]);
-      if (url.pathname === '/api/tickets/k1/follow') return reply(204);
       return undefined;
     },
   ]);
@@ -69,21 +66,15 @@ describe('ticket page', () => {
     expect(screen.getByRole('button', { name: t('tickets.page.edit') })).toBeInTheDocument();
   });
 
-  it('client sees fields read-only and can follow', async () => {
-    const { calls } = renderTicket(CLIENT, ticket());
+  it('client sees fields read-only and no Follow button', async () => {
+    renderTicket(CLIENT, ticket());
     expect(
       await screen.findByRole('heading', { name: 'Cannot submit the application' }),
     ).toBeInTheDocument();
     expect(screen.queryByRole('combobox', { name: t('tickets.fields.status') })).toBeNull();
     expect(screen.queryByRole('button', { name: t('tickets.page.edit') })).toBeNull();
     expect(screen.getAllByText(t('tickets.status.new')).length).toBeGreaterThan(0);
-    const follow = screen.getByRole('button', { name: t('tickets.followers.follow') });
-    expect(follow).toHaveAttribute('aria-pressed', 'false');
-    await userEvent.click(follow);
-    await waitFor(() => expect(calls).toContain('PUT /api/tickets/k1/follow'));
-    expect(
-      await screen.findByRole('button', { name: t('tickets.followers.following') }),
-    ).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.queryByRole('button', { name: 'Follow' })).toBeNull();
   });
 
   it('ziadatel sees no "Turn into tasks" and "Turned into N tasks" without links', async () => {

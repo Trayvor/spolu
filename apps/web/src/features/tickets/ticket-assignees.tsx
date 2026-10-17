@@ -14,7 +14,7 @@ const everyone = () => true;
  * The ticket's riešitelia (assignees). Admins and the group's clients (`ticket.canAssign`) pick
  * them with the task form's people field: every admin and the group's clients are offered, and a
  * chosen person is a removable chip; each change saves at once. A new riešiteľ is notified and
- * follows the ticket. Everyone else sees the avatars and names only.
+ * from then on gets the ticket's updates. Everyone else sees the avatars and names only.
  */
 export function TicketAssignees({ ticket }: { ticket: TicketDto }) {
   const { t } = useTranslation();

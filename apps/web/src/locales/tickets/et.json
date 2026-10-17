@@ -14,7 +14,6 @@
     "allAreas": "Kõik valdkonnad",
     "areaChosen": "Valdkond: {{area}}",
     "noAreas": "Selles loendis pole veel valdkondi",
-    "following": "Jälgitavad",
     "noClient": "Kliendita",
     "assignee": "Lahendaja: {{name}}",
     "assignees": {
@@ -36,7 +35,6 @@
     "overdue": "Tähtaeg ületatud alates",
     "noSubject": "Teemata",
     "noClient": "Kliendita",
-    "following": "Te jälgite seda pöördumist",
     "assignees": "Lahendajad: {{names}}"
   },
   "mine": {
@@ -76,12 +74,6 @@
     "inSpolu": "Help-rakenduses",
     "resolved": "Lahendatud"
   },
-  "followers": {
-    "title": "Jälgijad ({{count}})",
-    "follow": "Jälgi",
-    "following": "Jälgite",
-    "none": "Keegi ei jälgi seda pöördumist."
-  },
   "assign": {
     "choose": "Valige klient",
     "hasTasks": "Sellel pöördumisel on ülesandeid kliendi tahvlil, seega jääb see selle kliendi juurde."
@@ -117,11 +109,11 @@
     "title": "Lahendajad ({{count}})",
     "suggestions": "Kes saab pöördumist lahendada",
     "none": "Seda pöördumist ei lahenda veel keegi.",
-    "hint": "Lahendaja saab teavituse ja jälgib pöördumist."
+    "hint": "Lahendaja saab teavituse ja edaspidi kõik pöördumise uudised."
   },
   "watch": {
     "label": "Jälgi pöördumisi",
-    "on": "Saate teavituse iga selle kliendi uue pöördumise kohta.",
-    "off": "Saate teavitusi ainult pöördumiste kohta, mida jälgite."
+    "on": "Saate teavituse iga selle kliendi uue pöördumise kohta ja selle uudised, kuni sellel pole lahendajat.",
+    "off": "Saate teavitusi ainult pöördumiste kohta, mille lahendaja olete või kus teid mainitakse."
   }
 }

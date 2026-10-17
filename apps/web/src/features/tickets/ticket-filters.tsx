@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import type { TicketFilter } from './api';
-import { CheckIcon, ChevronDown } from './icons';
+import { ChevronDown } from './icons';
 
 const STATUSES = ['open', 'resolved', 'all'] as const;
 const ASSIGNEES = ['anyone', 'me', 'none'] as const;
@@ -25,7 +25,8 @@ const pillOn = 'bg-primary text-primary-foreground';
 /**
  * The filters of every ticket list: the status (Open = New and In progress, the default;
  * Resolved; All) as three pills, the question area as a menu of the areas seen in the list, the
- * riešiteľ (anyone, me, nobody) as a menu and "Following" as a toggle pill. `children` go first in the bar (the global view's client filter).
+ * riešiteľ (anyone, me, nobody) as a menu. `children` go first in the bar (the global view's
+ * client filter).
  * "Clear filters" shows while any filter is off its default (filters are remembered per list).
  */
 export function TicketFilters({
@@ -46,7 +47,6 @@ export function TicketFilters({
     filter.status !== 'open' ||
     !!filter.area ||
     !!filter.assignee ||
-    !!filter.following ||
     (filter.clients !== null && filter.clients !== undefined) ||
     !!filter.noClient;
 
@@ -124,15 +124,6 @@ export function TicketFilters({
           </DropdownMenuRadioGroup>
         </DropdownMenuContent>
       </DropdownMenu>
-      <button
-        type="button"
-        aria-pressed={!!filter.following}
-        className={cn(pill, filter.following ? cn(pillOn, 'pl-3') : pillOff)}
-        onClick={() => set({ following: !filter.following || undefined })}
-      >
-        {filter.following && <CheckIcon />}
-        {t('tickets.filters.following')}
-      </button>
       {changed && (
         // Back to the defaults; the remembered filters go with them.
         <Button

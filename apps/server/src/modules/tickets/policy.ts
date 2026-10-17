@@ -66,7 +66,10 @@ export function canBeTicketAssignee(
   return ticket.groupId !== null && memberRole === 'client';
 }
 
-/** "Watch tickets" of a group: admins and its clients; a ziadatel keeps following only. */
+/**
+ * "Watch tickets" of a group: admins and its clients; a ziadatel hears only their own tickets, as
+ * their initiator.
+ */
 export function canWatchTickets(actor: SessionUser, role: MemberRole | null): boolean {
   return isAdmin(actor) || role === 'client';
 }

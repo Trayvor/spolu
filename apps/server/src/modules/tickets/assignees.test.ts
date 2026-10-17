@@ -11,7 +11,6 @@ import { setGroupMode } from '../notifications/modes.js';
 import { notificationEvents } from '../notifications/schema.js';
 import { user } from '../users/schema.js';
 import { addAdmin, createUnverifiedClient, deactivateUser } from '../users/service.js';
-import { ticketFollowers } from './schema.js';
 
 const KEY = 'test-tickets-key-assignees-0123';
 type TestApp = Awaited<ReturnType<typeof buildTestApp>>;
@@ -85,16 +84,8 @@ describe('ticket riešitelia and watching tickets', () => {
           sql`${notificationEvents.payload}->>'ticketId' = ${ticketId}`,
         ),
       );
-  const followerIds = async (ticketId: string) =>
-    (
-      await db()
-        .select({ userId: ticketFollowers.userId })
-        .from(ticketFollowers)
-        .where(eq(ticketFollowers.ticketId, ticketId))
-    ).map((r) => r.userId);
-
   describe('riešitelia', () => {
-    it('an admin adds an admin: assigned, following, notified; removing keeps the follow', async () => {
+    it('an admin adds an admin: assigned and notified; removing notifies nobody', async () => {
       const g = await group();
       const [actor, other] = [await admin(), await admin('Zora')];
       const t = await ticket(g);
@@ -103,7 +94,6 @@ describe('ticket riešitelia and watching tickets', () => {
       const dto = res.json<TicketDto>();
       expect(dto.assignees).toEqual([{ id: other.id, name: 'Zora' }]);
       expect(dto.canAssign).toBe(true);
-      expect(await followerIds(t.id)).toContain(other.id);
       const events = await eventsOf(t.id, [other.id, actor.id]);
       expect(events.map((e) => [e.userId, e.kind])).toEqual([[other.id, 'ticket.assigned']]);
       expect(events[0]!.payload).toMatchObject({ ticketId: t.id, number: t.number });
@@ -114,7 +104,6 @@ describe('ticket riešitelia and watching tickets', () => {
 
       const removed = await unassign(t.id, other.id, actor.cookie);
       expect(removed.json<TicketDto>().assignees).toEqual([]);
-      expect(await followerIds(t.id)).toContain(other.id);
       expect(await eventsOf(t.id, [other.id])).toHaveLength(1);
     });
 
@@ -277,7 +266,7 @@ describe('ticket riešitelia and watching tickets', () => {
       );
     });
 
-    it('a new ticket notifies the watchers only, and managers no longer follow by themselves', async () => {
+    it('a new ticket notifies the watchers only', async () => {
       const g = await group();
       const client = await member(g.id, 'client', 'On');
       const quiet = await member(g.id, 'client', 'Off');
@@ -299,8 +288,6 @@ describe('ticket riešitelia and watching tickets', () => {
       expect(created.map((e) => e.userId).sort()).toEqual(
         [client.id, manager.id, watcher.id].sort(),
       );
-      // Only the initiator follows from the start.
-      expect(await followerIds(t.id)).toEqual([z.id]);
     });
   });
 });

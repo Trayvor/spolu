@@ -8,7 +8,7 @@ import { cookieHeader, loginAs } from '../../../test/login.js';
 import { countEmailsTo, latestEmail } from '../../../test/mailpit.js';
 import { addManager } from '../groups/managers.js';
 import { addMembership, getMembership, listMemberships } from '../groups/memberships.js';
-import { addMember, createGroup } from '../groups/service.js';
+import { createGroup } from '../groups/service.js';
 import {
   addAdmin,
   createUnverifiedClient,
@@ -171,8 +171,6 @@ describe('tickets API', () => {
         requester: { userId: requester!.id, name: 'Jana Nová', email },
         files: [],
         dueDate: '2026-11-01',
-        // Managers watch the client's tickets (they hear about new ones) but do not follow them.
-        following: false,
         assignees: [],
       });
       // The removed file_links is ignored.
@@ -547,7 +545,7 @@ describe('tickets API', () => {
       ]);
     });
 
-    it('filters by status, follows and pages with a cursor', async () => {
+    it('filters by status and pages with a cursor', async () => {
       const g = await group();
       const a = await admin();
       const made: string[] = [];
@@ -570,15 +568,15 @@ describe('tickets API', () => {
       expect(second.nextCursor).toBeNull();
 
       await call('PATCH', `/api/tickets/${made[0]}`, a.cookie, { status: 'resolved' });
-      await call('PUT', `/api/tickets/${made[1]}/follow`, a.cookie);
       const resolved = (
         await call('GET', `/api/groups/${g.id}/tickets?status=resolved`, a.cookie)
       ).json<TicketListResponse>();
       expect(resolved.items.map((t) => t.id)).toEqual([made[0]]);
-      const followed = (
-        await call('GET', `/api/groups/${g.id}/tickets?following=true&status=all`, a.cookie)
+      // The removed "Following" filter is ignored.
+      const ignored = (
+        await call('GET', `/api/groups/${g.id}/tickets?following=true&status=resolved`, a.cookie)
       ).json<TicketListResponse>();
-      expect(followed.items.map((t) => t.id)).toEqual([made[1]]);
+      expect(ignored.items.map((t) => t.id)).toEqual([made[0]]);
       expect(
         (await call('GET', `/api/groups/${g.id}/tickets?cursor=bad`, a.cookie)).statusCode,
       ).toBe(400);
@@ -599,7 +597,6 @@ describe('tickets API', () => {
       expect(res.json<TicketDto>()).toMatchObject({
         source: 'manual',
         requester: { userId: client.id, email: client.email },
-        following: true,
       });
       expect(await countEmailsTo(client.email)).toBe(before);
     });
@@ -617,7 +614,7 @@ describe('tickets API', () => {
       ).toBe(404);
     });
 
-    it('an admin creates for a new email: a ziadatel account, the email, the admin follows', async () => {
+    it('an admin creates for a new email: a ziadatel account and the email', async () => {
       const g = await group();
       const a = await admin();
       const email = newEmail();
@@ -629,7 +626,6 @@ describe('tickets API', () => {
       });
       expect(res.statusCode).toBe(201);
       const dto = res.json<TicketDto>();
-      expect(dto.following).toBe(true);
       expect((await latestEmail(email)).subject).toContain(`#${dto.number}`);
       const account = await findUserByEmail(db(), email);
       expect((await getMembership(db(), account!.id, g.id))?.role).toBe('ziadatel');
@@ -772,7 +768,7 @@ describe('tickets API', () => {
       expect(reopened).toMatchObject({ status: 'in_progress', resolvedAt: null, subject: 'Nový' });
     });
 
-    it('assigning a client sends the email once; moving drops followers who cannot read it', async () => {
+    it('assigning a client sends the email once; the initiator reads it in the new client', async () => {
       const [g1, g2] = [await group(), await group()];
       const a = await admin();
       const email = newEmail();
@@ -802,27 +798,20 @@ describe('tickets API', () => {
       expect(res.statusCode).toBe(200);
       expect(await moved).toEqual({ ticketId: id, groupId: g1.id });
       expect(await countEmailsTo(email)).toBe(mailsBefore); // never a second "Ticket created"
-      // Same email, so the requester is now the new client's ziadatel and still follows.
+      // Same email, so the requester is now the new client's ziadatel and still reads it.
       expect((await getMembership(db(), requester.id, g2.id))?.role).toBe('ziadatel');
-      const followers = (await call('GET', `/api/tickets/${id}/followers`, a.cookie)).json<
-        { id: string }[]
-      >();
-      expect(followers.map((f) => f.id)).toContain(requester.id);
+      expect((await call('GET', `/api/tickets/${id}`, zCookie)).statusCode).toBe(200);
     });
 
-    it('a follower of the old client who cannot read it in the new one is dropped', async () => {
+    it('a client of the old client cannot read it in the new one', async () => {
       const [g1, g2] = [await group(), await group()];
       const a = await admin();
       const client = await clientIn(g1.id);
       const { id } = (
         await intake({ subject: 'x', instance_url: `https://${g1.host}.egrant.sk` })
       ).json<{ id: string }>();
-      expect((await call('PUT', `/api/tickets/${id}/follow`, client.cookie)).statusCode).toBe(204);
+      expect((await call('GET', `/api/tickets/${id}`, client.cookie)).statusCode).toBe(200);
       await call('PUT', `/api/tickets/${id}/group`, a.cookie, { groupId: g2.id });
-      const followers = (await call('GET', `/api/tickets/${id}/followers`, a.cookie)).json<
-        { id: string }[]
-      >();
-      expect(followers.map((f) => f.id)).not.toContain(client.id);
       expect((await call('GET', `/api/tickets/${id}`, client.cookie)).statusCode).toBe(404);
     });
 
@@ -849,30 +838,18 @@ describe('tickets API', () => {
       expect(res.json()).toEqual({ error: 'has_tasks' });
     });
 
-    it('follow and unfollow are idempotent and need read access', async () => {
+    it('per-ticket following is gone (owner decision 2026-10-17)', async () => {
       const g = await group();
       const client = await clientIn(g.id);
-      await addMember(db(), g.id, client.id);
       const { id } = (
         await intake({ subject: 'x', instance_url: `https://${g.host}.egrant.sk` })
       ).json<{ id: string }>();
-      for (let i = 0; i < 2; i++)
-        expect((await call('PUT', `/api/tickets/${id}/follow`, client.cookie)).statusCode).toBe(
-          204,
-        );
-      expect(
-        (await call('GET', `/api/tickets/${id}`, client.cookie)).json<TicketDto>().following,
-      ).toBe(true);
-      for (let i = 0; i < 2; i++)
-        expect((await call('DELETE', `/api/tickets/${id}/follow`, client.cookie)).statusCode).toBe(
-          204,
-        );
-      expect(
-        (await call('GET', `/api/tickets/${id}`, client.cookie)).json<TicketDto>().following,
-      ).toBe(false);
-      const stranger = await clientIn((await group()).id);
-      expect((await call('PUT', `/api/tickets/${id}/follow`, stranger.cookie)).statusCode).toBe(
+      expect((await call('PUT', `/api/tickets/${id}/follow`, client.cookie)).statusCode).toBe(404);
+      expect((await call('GET', `/api/tickets/${id}/followers`, client.cookie)).statusCode).toBe(
         404,
+      );
+      expect((await call('GET', `/api/tickets/${id}`, client.cookie)).json()).not.toHaveProperty(
+        'following',
       );
     });
   });

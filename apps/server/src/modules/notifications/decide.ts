@@ -17,8 +17,8 @@ export function passesMode(
   group: NotificationCategory,
   mode: GroupMode,
 ): boolean {
-  // Ticket events go to the people who follow the ticket, an explicit choice: only the tickets
-  // channel decides. A reminder was set for this person (or by them) on purpose, likewise, and an
+  // Ticket events go to the ticket's riešitelia (or its watchers while it has none) and its
+  // initiator, by explicit choices: only the tickets channel decides. A reminder was set for this person (or by them) on purpose, likewise, and an
   // AI meeting result goes only to the admin who started the run.
   if (group === 'tickets' || kind === 'reminder.due' || AI_RESULT.has(kind)) return true;
   if (mode === 'off') return false;

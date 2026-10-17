@@ -12,7 +12,7 @@ import { setTicketWatch } from './watch.js';
 const { db, close } = createDb(testDatabaseUrl);
 afterAll(() => close());
 
-/** Inserts a ticket directly (no initiator, followers or email). */
+/** Inserts a ticket directly (no initiator or email). */
 async function newTicket(input: {
   groupId: string | null;
   status?: TicketStatus;
@@ -180,6 +180,15 @@ describe('riešitelia and watching on the dashboard', () => {
     const rows = result.items.filter((t) => t.id === id);
     expect(rows).toHaveLength(1);
     expect(rows[0]!.hasAssignee).toBe(true);
+  });
+
+  it('a ticket without a client that has another riešiteľ is theirs, not on my card', async () => {
+    const me = await newAdmin(db, 'Ada');
+    const colleague = await newAdmin(db, 'Bob');
+    const id = await newTicket({ groupId: null, subject: `no client ${randomUUID()}` });
+    expect((await getDashboardTickets(db, me.id)).items.map((t) => t.id)).toContain(id);
+    await assign(id, colleague.id);
+    expect((await getDashboardTickets(db, me.id)).items.map((t) => t.id)).not.toContain(id);
   });
 });
 

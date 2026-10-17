@@ -153,7 +153,7 @@ describe('ticket chat', () => {
       .select()
       .from(notificationEvents)
       .where(eq(notificationEvents.groupId, g.id));
-    // No group chat kinds: the followers get ticket.message, the named people a mention that
+    // No group chat kinds: the watchers get ticket.message, the named people a mention that
     // carries the ticket (part 21.6).
     const ofChat = recorded.filter(
       (e) => (e.payload as { channelId?: string }).channelId === chat.id,

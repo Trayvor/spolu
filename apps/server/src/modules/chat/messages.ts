@@ -160,7 +160,7 @@ export async function sendMessage(
   const knowledgeIds = data.knowledgeIds ?? [];
   // Phase 28: only readers of the group attach its items, and only items everyone here may read.
   await checkKnowledgeIds(db, author, groupId, knowledgeIds);
-  // Another module's chat notifies its own readers (a ticket's followers) and decides who @all
+  // Another module's chat notifies its own readers (the people who hear a ticket's updates) and decides who @all
   // reaches; read before the transaction, like the people above.
   const notice = access ? await access.messageNotice(db, channel) : null;
   const named = !mentions.all
@@ -277,7 +277,7 @@ export async function sendMessage(
         // Replies only notify the thread; the channel hears about top-level messages.
         if (parentId === null) await notify('chat.message', everyone);
       } else if (notice) {
-        // A ticket chat: every message, reply or not, goes to the ticket's followers as the
+        // A ticket chat: every message, reply or not, goes to the ticket's audience as the
         // ticket's own kind, which opens the ticket (Phase 21.6).
         await notify(notice.kind, notice.recipients);
       }

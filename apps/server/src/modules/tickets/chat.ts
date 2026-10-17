@@ -7,12 +7,8 @@ import type { Db } from '../../infra/db/client.js';
 import { getUserById } from '../users/service.js';
 import { onTicketChange } from './hooks.js';
 import { ticketPayload } from './notify.js';
-import {
-  actorReadsTicket,
-  fileOfReadableTicket,
-  getTicketRow,
-  readingFollowerIds,
-} from './service.js';
+import { ticketAudienceIds } from './audience.js';
+import { actorReadsTicket, fileOfReadableTicket, getTicketRow } from './service.js';
 
 const ticketOf = (db: Db, channel: ChannelRef) =>
   channel.ticketId ? getTicketRow(db, channel.ticketId) : Promise.resolve(null);
@@ -20,8 +16,9 @@ const ticketOf = (db: Db, channel: ChannelRef) =>
 /**
  * The ticket chat (Phase 21, part 21.3): the chat module reads a `ticket` channel by the ticket's
  * rules, pushes its messages to the initiator's own sockets too (a ziadatel is in no group room),
- * lets the initiator be mentioned, makes `@all` mean the ticket's followers and tells the
- * followers about each message (`ticket.message`, part 21.6). The initiator also reads the files
+ * lets the initiator be mentioned, makes `@all` mean the people who hear the ticket's updates
+ * (`ticketAudienceIds`: its riešitelia, or its watchers while it has none, and its initiator) and
+ * tells them about each message (`ticket.message`, part 21.6). The initiator also reads the files
  * of knowledge items attached there (Phase 28). A ticket gets its
  * chat when it gets a client; the chat moves with the ticket. The files uploaded with a ticket are
  * read by whoever reads it. Call once at start-up.
@@ -47,14 +44,14 @@ export function registerTicketChat(): void {
     },
     async allRecipients(db, channel) {
       const ticket = await ticketOf(db, channel);
-      return ticket ? readingFollowerIds(db, ticket) : [];
+      return ticket ? ticketAudienceIds(db, ticket) : [];
     },
     async messageNotice(db, channel) {
       const ticket = await ticketOf(db, channel);
       if (!ticket) return null;
       return {
         kind: 'ticket.message',
-        recipients: await readingFollowerIds(db, ticket),
+        recipients: await ticketAudienceIds(db, ticket),
         payload: ticketPayload(ticket),
       };
     },
