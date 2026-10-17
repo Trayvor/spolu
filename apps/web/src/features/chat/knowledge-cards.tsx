@@ -24,7 +24,8 @@ const SharedKnowledgeDialog = lazy(
   withNamespaces(['knowledge', 'reminders', 'forms'], () => import('./shared-knowledge-dialog')),
 );
 
-const ICONS: Record<string, () => React.JSX.Element> = {
+/** The knowledge type's icon, shared with the picker. */
+export const KNOWLEDGE_ICONS: Record<string, () => React.JSX.Element> = {
   note: NoteIcon,
   file: FileIcon,
   link: LinkIcon,
@@ -45,7 +46,7 @@ function Card({ item, onOpen }: { item: MessageKnowledge; onOpen: () => void }) 
       </p>
     );
   }
-  const Glyph = ICONS[item.type] ?? NoteIcon;
+  const Glyph = KNOWLEDGE_ICONS[item.type] ?? NoteIcon;
   return (
     <button
       type="button"
