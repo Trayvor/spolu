@@ -23,7 +23,10 @@ Each user chooses a notification mode per client group (what arrives) and, in th
   | **Chat** | group chat messages, mentions and replies | Push |
   | **Task board** | task moves, assignments, deadline and urgent reminders, a task's custom reminders, and task chats | Push |
   | **Ticket board** | ticket events and the ticket chats (Phase 21) | Email and push |
-  | **Knowledge base** | Knowledge base reminders | Push |
+  | **Knowledge base** | Knowledge base reminders, except a meeting's | Push |
+  | **Meetings** | new and moved meetings, a meeting's reminders, the AI summary result (2026-10-17) | Push |
+
+  - Requester-only people do not see Meetings (only Ticket board, as below). A meeting reminder used to follow Knowledge base; since 2026-10-17 it follows Meetings.
 
   - The groups replaced the two Phase 6 switches (Push, Email); everyone started on the defaults, except users whose email the iOS fallback had turned on (and who kept it on): their chat, task board and knowledge base groups start on Email and push, since that fallback never runs again.
   - A change saves at once. Choosing Push or Email and push while this device is not set up also sets it up (the browser asks for permission).
@@ -39,7 +42,9 @@ Each user chooses a notification mode per client group (what arrives) and, in th
   | mention, @all | yes | yes | no |
   | reply in my thread, quote of my message | yes | yes | no |
   | task moved, assigned, deadline, urgent | yes | yes | no |
-  | reminder due (Knowledge base, task) | yes | yes | **yes** |
+  | reminder due (Knowledge base, meeting, task) | yes | yes | **yes** |
+  | meeting scheduled or moved | yes | no | no |
+  | AI summary ready or failed (to the admin who started it) | yes | yes | **yes** |
 
   A user gets at most one notification per message; the strongest kind wins. The person who caused an event never gets it, and a message already read gets none. Task chat messages follow the task's group mode and link to the task's chat tab.
 - **Ticket notifications** (Phase 21, part 21.6; who gets which is in `tickets.md`). Every push opens the ticket (`/tickets/<id>`) and shares the device tag `ticket:<id>`, so a newer one replaces the older on the device.
@@ -55,6 +60,17 @@ Each user chooses a notification mode per client group (what arrives) and, in th
   | turned into tasks | #123 turned into 2 tasks | subject |
 
   A chat message of a ticket goes to its followers whether it is a reply or not; someone named in the ticket chat who does not follow it gets the mention; a follower who is named gets one notification. `@all` in a ticket chat means the ticket's followers. Texts are in Slovak or English by the user's language.
+- **Meeting notifications** (2026-10-17, the Meetings group; spec [2026-10-17-dashboard-follows-notifications-design.md](../superpowers/specs/2026-10-17-dashboard-follows-notifications-design.md)). Every push is titled "<meeting title> · <client>", opens the meeting in the group's Knowledge tab and shares the device tag of its reminder; the digest line is "<title>: <text>" with "Open meeting".
+
+  | Event | When | To whom | Push text |
+  |---|---|---|---|
+  | `meeting.scheduled` | a meeting is created with a start in the future | the group's people (its clients and every admin; admins only for an admins-only meeting), not its author; delivered under All messages only | New meeting: Thu 22 Oct, 10:00 |
+  | `meeting.rescheduled` | an edit moves the start (to the future) | the same | Meeting moved to Thu 22 Oct, 10:00 |
+  | `meeting.summary_ready` | "Spracovať s AI" ends with a summary | the admin who pressed it, in every mode | AI summary is ready |
+  | `meeting.summary_failed` | the run failed after its retries | the admin who pressed it, in every mode | AI processing failed |
+
+  A meeting's optional reminder (proposed 15 minutes before it) is its only reminder: there is no automatic "starts soon" on top. A meeting created or moved into the past, and a deleted meeting, notify nobody. Admins who do not manage the client stay on Mentions and replies by default, so scheduling reaches the clients and the client's managers.
+- **The dashboard follows these settings** (owner, 2026-10-17): the admin home's Mentions card, the sidebar's unread numbers and the Meetings card show only what the person was, or would be, notified about by their modes and channels (exact rules in `admin-home.md`). The Tickets, My tasks and Upcoming reminders cards show assigned work whatever the settings.
 - **Reminders** (`reminder.due`, from a Knowledge base reminder or a task's custom reminder): sent to the reminder's recipients at the set time. They pass every mode, **Off** included, because the person chose to be reminded; the exception covers only explicit recipients, and someone no longer in the group still gets nothing. In the email digest the line is "Reminder: <title>, <time>"; like task events it always counts as unread.
   - A Knowledge base reminder's push reads "<title> · <group>" with "Reminder for Sun 25 Oct, 10:00" (Bratislava time) and opens the item in the group's Knowledge tab.
   - A task reminder's push reads "<task title> · <group>" (the task's current title) with "Reminder for 14:00", or "Reminder for Thu 16 Oct, 14:00" when it arrives more than 5 minutes late, and opens the task panel. It shares the device tag `task:<taskId>` with the automatic task notifications, so a custom reminder at the same moment as a deadline reminder replaces it on the device instead of stacking; both are still recorded and sent. A task in Completed at the time reminds nobody.

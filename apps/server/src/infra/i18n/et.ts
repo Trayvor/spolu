@@ -106,5 +106,10 @@ export const et: ServerTexts = {
       `#${n} muudeti ${c} ${plural('et', c, { one: 'ülesandeks', other: 'ülesandeks' })}`,
     ticketTopic: (n) => `Pöördumine #${n}`,
     openTicket: 'Ava pöördumine',
+    meetingScheduled: (when) => `Uus kohtumine: ${when}`,
+    meetingRescheduled: (when) => `Kohtumine viidi aega ${when}`,
+    meetingSummaryReady: 'AI kokkuvõte on valmis',
+    meetingSummaryFailed: 'AI-töötlus ebaõnnestus',
+    openMeeting: 'Ava kohtumine',
   },
 };

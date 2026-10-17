@@ -8,8 +8,9 @@ import {
 } from '@spolu/shared';
 
 /**
- * The spec's mode filter: plain messages need "all"; everything else also passes "mentions";
- * reminders and ticket board events pass "off" too.
+ * The spec's mode filter: plain messages and meeting scheduling need "all"; everything else also
+ * passes "mentions"; reminders, ticket board events and an AI meeting result pass "off" too.
+ * `modules/notifications/follows.ts` mirrors it in SQL for the dashboard: change both together.
  */
 export function passesMode(
   kind: NotificationKind,
@@ -17,12 +18,21 @@ export function passesMode(
   mode: GroupMode,
 ): boolean {
   // Ticket events go to the people who follow the ticket, an explicit choice: only the tickets
-  // channel decides. A reminder was set for this person (or by them) on purpose, likewise.
-  if (group === 'tickets' || kind === 'reminder.due') return true;
+  // channel decides. A reminder was set for this person (or by them) on purpose, likewise, and an
+  // AI meeting result goes only to the admin who started the run.
+  if (group === 'tickets' || kind === 'reminder.due' || AI_RESULT.has(kind)) return true;
   if (mode === 'off') return false;
   if (mode === 'all') return true;
-  return kind !== 'chat.message';
+  return !ALL_ONLY.has(kind);
 }
+
+/** Kinds that only All messages lets through (2026-10-17: a meeting's scheduling too). */
+const ALL_ONLY = new Set<NotificationKind>([
+  'chat.message',
+  'meeting.scheduled',
+  'meeting.rescheduled',
+]);
+const AI_RESULT = new Set<NotificationKind>(['meeting.summary_ready', 'meeting.summary_failed']);
 
 /** A user gets one notification per message; the strongest kind wins. */
 export const KIND_RANK: Record<NotificationKind, number> = {
@@ -42,6 +52,10 @@ export const KIND_RANK: Record<NotificationKind, number> = {
   'ticket.updated': 2,
   'ticket.tasks': 2,
   'ticket.assigned': 2,
+  'meeting.scheduled': 2,
+  'meeting.rescheduled': 2,
+  'meeting.summary_ready': 2,
+  'meeting.summary_failed': 2,
 };
 
 type Ranked = { id: string; kind: NotificationKind };

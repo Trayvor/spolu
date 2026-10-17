@@ -2,6 +2,7 @@ import { sql, type SQL } from 'drizzle-orm';
 import { HOME_LIMITS, plainExcerpt, type Mentions, type SessionUser } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
 import { managedGroupsSql } from '../groups/managers.js';
+import { mentionNotifiesSql } from '../notifications/follows.js';
 import { readableTicketIds } from '../tickets/service.js';
 
 const recent = sql.raw(`now() - interval '${HOME_LIMITS.mentionDays} days'`);
@@ -18,6 +19,11 @@ const recent = sql.raw(`now() - interval '${HOME_LIMITS.mentionDays} days'`);
  * @all is one item. The @all parts start from the managed groups' channels and read
  * `messages_mentions_all_top_idx` / `_reply_idx` from the read mark (or 90 days) on. The newest
  * 100 are counted (the total is capped like other unread counts); the first 20 are returned.
+ *
+ * Only mentions that would notify the viewer count (2026-10-17, the dashboard follows the
+ * notification settings): `mentionNotifiesSql` (the notifications module's mirror of delivery)
+ * drops a chat or task chat whose channel is None or whose group is Off, and a ticket chat whose
+ * ticket board channel is None.
  */
 export function mentionsSql(userId: string): SQL {
   return sql`
@@ -56,6 +62,11 @@ export function mentionsSql(userId: string): SQL {
       left join read_states rs on rs.channel_id = m.channel_id and rs.user_id = ${userId}
       left join thread_read_states trs on trs.root_id = m.parent_id and trs.user_id = ${userId}
       where m.author_id <> ${userId}
+        and ${mentionNotifiesSql(userId, {
+          groupId: sql`c.group_id`,
+          taskId: sql`c.task_id`,
+          ticketId: sql`c.ticket_id`,
+        })}
         and m.deleted_at is null
         and m.created_at > ${recent}
         and m.created_at > case

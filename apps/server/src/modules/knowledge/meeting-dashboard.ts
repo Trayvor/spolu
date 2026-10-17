@@ -1,6 +1,8 @@
 import { sql, type SQL } from 'drizzle-orm';
 import { HOME_MEETING_LIMITS, type HomeMeeting, type HomeMeetings } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
+import { meetingNotifiesSql } from '../notifications/follows.js';
+import { remindsUserSql } from '../reminders/service.js';
 import { managedGroupIdsOf } from './scope.js';
 
 // Phase 30: the dashboard's Meetings card, for admins (they read every item).
@@ -26,8 +28,11 @@ const toMeeting = (row: Row): HomeMeeting => ({
   hasSummary: row.has_summary,
 });
 
-/** One list: meetings in `scope` matching `where`, in `order`, with the count before the limit. */
-function listSql(scope: SQL, where: SQL, order: SQL): SQL {
+/**
+ * One list: meetings in `scope` that the admin `follows` matching `where`, in `order`, with the
+ * count before the limit.
+ */
+function listSql(scope: SQL, follows: SQL, where: SQL, order: SQL): SQL {
   return sql`
     select k.id, k.group_id, g.name as group_name, k.title,
            to_char(m.starts_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as starts_at,
@@ -36,7 +41,7 @@ function listSql(scope: SQL, where: SQL, order: SQL): SQL {
     from knowledge_meetings m
     join knowledge_items k on k.id = m.item_id
     join groups g on g.id = k.group_id
-    where ${scope} and ${where}
+    where ${scope} and ${where} and ${follows}
     order by ${order}
     limit ${HOME_MEETING_LIMITS.items}`;
 }
@@ -45,6 +50,11 @@ function listSql(scope: SQL, where: SQL, order: SQL): SQL {
  * The admin's Meetings card: meetings of the clients they manage (every client when they manage
  * none) starting in the next 7 days, soonest first, and those of the last 30 days without a
  * summary, newest first; 10 each, with the counts. Reads `knowledge_meetings_starts_at_idx`.
+ *
+ * Only meetings the admin gets meeting notifications for (2026-10-17, the dashboard follows the
+ * notification settings): their Meetings channel is not None, and their mode for the client is
+ * All messages (they hear its scheduling) or they get the meeting's reminder (which passes every
+ * mode). `meetingNotifiesSql` is the notifications module's mirror of delivery.
  */
 export async function dashboardMeetings(
   db: Db,
@@ -52,6 +62,7 @@ export async function dashboardMeetings(
   now: Date = new Date(),
 ): Promise<HomeMeetings> {
   const managed = await managedGroupIdsOf(db, adminId);
+  const follows = meetingNotifiesSql(adminId, sql`k.group_id`, remindsUserSql(adminId, sql`k.id`));
   const scope =
     managed.length === 0
       ? sql`true`
@@ -65,6 +76,7 @@ export async function dashboardMeetings(
     db.execute<Row>(
       listSql(
         scope,
+        follows,
         sql`m.starts_at >= ${now.toISOString()}::timestamptz and m.starts_at < ${ahead.toISOString()}::timestamptz`,
         sql`m.starts_at asc, k.id`,
       ),
@@ -72,6 +84,7 @@ export async function dashboardMeetings(
     db.execute<Row>(
       listSql(
         scope,
+        follows,
         sql`m.starts_at < ${now.toISOString()}::timestamptz and m.starts_at >= ${since.toISOString()}::timestamptz and m.summary is null`,
         sql`m.starts_at desc, k.id`,
       ),

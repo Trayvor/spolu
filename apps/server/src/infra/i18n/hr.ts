@@ -106,5 +106,10 @@ export const hr: ServerTexts = {
       `#${n} pretvoren u ${c} ${plural('hr', c, { one: 'zadatak', few: 'zadatka', other: 'zadataka' })}`,
     ticketTopic: (n) => `Tiket #${n}`,
     openTicket: 'Otvori tiket',
+    meetingScheduled: (when) => `Novi sastanak: ${when}`,
+    meetingRescheduled: (when) => `Sastanak premješten na ${when}`,
+    meetingSummaryReady: 'AI sažetak je spreman',
+    meetingSummaryFailed: 'Obrada s AI-jem nije uspjela',
+    openMeeting: 'Otvori sastanak',
   },
 };

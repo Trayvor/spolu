@@ -10,6 +10,8 @@ import { testDatabaseUrl } from '../../../test/test-config.js';
 import { sendMessage } from '../chat/messages.js';
 import { messages } from '../chat/schema.js';
 import { ensureTaskChannel, getChannel, markRead, markThreadRead } from '../chat/service.js';
+import { setDefaultMode, setGroupMode } from '../notifications/modes.js';
+import { setNotificationChannel } from '../users/service.js';
 import { getMentions } from './mentions.js';
 import { newAdmin, newClient, newGroup, newMessage, newTask } from './test-fixtures.js';
 
@@ -136,6 +138,65 @@ describe('getMentions', () => {
     const items = await mine(s.A, [s.GM.id]);
     expect(items).toHaveLength(1);
     expect(items[0]).toMatchObject({ messageId: message.id, channelId: channel.id, taskId });
+  });
+
+  describe('only what would notify (the dashboard follows the notification settings)', () => {
+    /** A name mention of A in the group chat and in a task chat of GM. */
+    async function both() {
+      const s = await setup();
+      const taskId = await newTask(deps.db, { groupId: s.GM.id, createdBy: s.A.id });
+      const taskChannel = await ensureTaskChannel(deps.db, { id: taskId, groupId: s.GM.id });
+      const { message: inChat } = await send(s.gmChannel, s.C, `chat ${mentionToken(s.A.id)}`);
+      const { message: inTask } = await send(taskChannel, s.C, `task ${mentionToken(s.A.id)}`);
+      const ids = async () => (await mine(s.A, [s.GM.id])).map((i) => i.messageId).sort();
+      return { s, inChat, inTask, ids };
+    }
+
+    it('chat None hides the group chat mention; the task chat one stays', async () => {
+      const { s, inTask, ids } = await both();
+      await setNotificationChannel(deps.db, s.A.id, 'chat', 'none');
+      expect(await ids()).toEqual([inTask.id]);
+    });
+
+    it('task board None hides the task chat mention; email still notifies', async () => {
+      const { s, inChat, inTask, ids } = await both();
+      await setNotificationChannel(deps.db, s.A.id, 'tasks', 'none');
+      expect(await ids()).toEqual([inChat.id]);
+      await setNotificationChannel(deps.db, s.A.id, 'tasks', 'email');
+      expect(await ids()).toEqual([inChat.id, inTask.id].sort());
+    });
+
+    it('the group on Off hides both; Mentions and replies and All keep them', async () => {
+      const { s, inChat, inTask, ids } = await both();
+      const all = [inChat.id, inTask.id].sort();
+      await setGroupMode(deps.db, s.A.id, s.GM.id, 'off');
+      expect(await ids()).toEqual([]);
+      await setGroupMode(deps.db, s.A.id, s.GM.id, 'mentions');
+      expect(await ids()).toEqual(all);
+      await setGroupMode(deps.db, s.A.id, s.GM.id, 'all');
+      expect(await ids()).toEqual(all);
+    });
+
+    it('a default of Off hides them unless the group has its own mode', async () => {
+      const { s, inChat, inTask, ids } = await both();
+      // Also clears the manager's All for GM.
+      await setDefaultMode(deps.db, s.A.id, 'off');
+      expect(await ids()).toEqual([]);
+      await setGroupMode(deps.db, s.A.id, s.GM.id, 'mentions');
+      expect(await ids()).toEqual([inChat.id, inTask.id].sort());
+    });
+
+    it('the total counts only the listed mentions', async () => {
+      const s = await setup();
+      const A = await newAdmin(deps.db, 'Counted', [s.GM.id, s.GO.id]);
+      await send(s.gmChannel, s.C, `one ${mentionToken(A.id)}`);
+      await send(s.goChannel, s.D, `two ${mentionToken(A.id)}`);
+      expect((await getMentions(deps.db, A)).total).toBe(2);
+      await setGroupMode(deps.db, A.id, s.GO.id, 'off');
+      const result = await getMentions(deps.db, A);
+      expect(result.total).toBe(1);
+      expect(result.items.map((i) => i.groupId)).toEqual([s.GM.id]);
+    });
   });
 
   it('older than 90 days is excluded', async () => {

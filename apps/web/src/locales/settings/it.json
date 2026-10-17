@@ -40,13 +40,15 @@
       "chat": "Chat",
       "tasks": "Bacheca delle attività",
       "tickets": "Bacheca dei ticket",
-      "knowledge": "Base di conoscenza"
+      "knowledge": "Base di conoscenza",
+      "meetings": "Riunioni"
     },
     "hints": {
       "chat": "Messaggi, menzioni e risposte nelle chat dei gruppi",
       "tasks": "Spostamenti, assegnazioni, scadenze, promemoria e chat delle attività",
       "tickets": "Ticket di supporto e relative conversazioni",
-      "knowledge": "Promemoria della base di conoscenza"
+      "knowledge": "Promemoria della base di conoscenza, tranne le riunioni",
+      "meetings": "Riunioni nuove e spostate, i loro promemoria e i riepiloghi AI"
     },
     "channels": {
       "email": "Email",

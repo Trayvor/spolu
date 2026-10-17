@@ -19,6 +19,11 @@ const table: [NotificationKind, Record<GroupMode, boolean>][] = [
   ['ticket.updated', { all: true, mentions: true, off: true }],
   ['ticket.tasks', { all: true, mentions: true, off: true }],
   ['ticket.assigned', { all: true, mentions: true, off: true }],
+  // Scheduling reads like a plain message; an AI result was asked for by its one recipient.
+  ['meeting.scheduled', { all: true, mentions: false, off: false }],
+  ['meeting.rescheduled', { all: true, mentions: false, off: false }],
+  ['meeting.summary_ready', { all: true, mentions: true, off: true }],
+  ['meeting.summary_failed', { all: true, mentions: true, off: true }],
 ];
 const cases = table.flatMap(([kind, modes]) =>
   (['all', 'mentions', 'off'] as const).map((mode) => [kind, mode, modes[mode]] as const),

@@ -28,6 +28,10 @@ export const NOTIFICATION_GROUP_OF: Record<NotificationKind, NotificationCategor
   'ticket.updated': 'tickets',
   'ticket.tasks': 'tickets',
   'ticket.assigned': 'tickets',
+  'meeting.scheduled': 'meetings',
+  'meeting.rescheduled': 'meetings',
+  'meeting.summary_ready': 'meetings',
+  'meeting.summary_failed': 'meetings',
 };
 
 /**
@@ -47,12 +51,15 @@ export function notificationGroupOf(
   if (group === 'chat' && typeof payload.taskId === 'string' && payload.taskId !== '') {
     return 'tasks';
   }
-  if (kind === 'reminder.due' && payload.subjectKind === 'knowledge') return 'knowledge';
+  if (kind === 'reminder.due' && payload.subjectKind === 'knowledge') {
+    // A meeting's own reminder (2026-10-17) belongs with the other meeting notifications.
+    return payload.meeting === true ? 'meetings' : 'knowledge';
+  }
   return group;
 }
 
 /**
- * The groups the user can set (and the profile shows): all four, except for a requester-only
+ * The groups the user can set (and the profile shows): all five, except for a requester-only
  * person (not an admin, no active client membership, Phase 21), who has only `tickets`.
  */
 export async function visibleCategoriesFor(

@@ -109,5 +109,10 @@ export const it: ServerTexts = {
       `#${n} trasformato in ${c} ${plural('it', c, { one: 'attività', many: 'attività', other: 'attività' })}`,
     ticketTopic: (n) => `Ticket #${n}`,
     openTicket: 'Apri il ticket',
+    meetingScheduled: (when) => `Nuova riunione: ${when}`,
+    meetingRescheduled: (when) => `Riunione spostata a ${when}`,
+    meetingSummaryReady: 'Il riepilogo AI è pronto',
+    meetingSummaryFailed: 'Elaborazione AI non riuscita',
+    openMeeting: 'Apri la riunione',
   },
 };

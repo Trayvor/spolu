@@ -20,6 +20,12 @@ export const NotificationKinds = [
   'ticket.tasks',
   // A person became a riešiteľ (assignee) of a ticket.
   'ticket.assigned',
+  // 2026-10-17: meetings (the `meetings` notification group). A meeting was created with a start
+  // in the future, or its start moved (to the future); an AI run ended with a summary or failed.
+  'meeting.scheduled',
+  'meeting.rescheduled',
+  'meeting.summary_ready',
+  'meeting.summary_failed',
 ] as const;
 export type NotificationKind = (typeof NotificationKinds)[number];
 
@@ -60,9 +66,16 @@ export type ModeBody = z.infer<typeof ModeBodySchema>;
 
 /**
  * Notification groups: each event belongs to one, and the user picks a channel per group. The
- * order is the profile's order. Item B (tickets) uses `tickets`.
+ * order is the profile's order. Item B (tickets) uses `tickets`; `meetings` (2026-10-17) holds the
+ * meeting events and a meeting's reminders.
  */
-export const NotificationCategories = ['chat', 'tasks', 'tickets', 'knowledge'] as const;
+export const NotificationCategories = [
+  'chat',
+  'tasks',
+  'tickets',
+  'knowledge',
+  'meetings',
+] as const;
 export const NotificationCategorySchema = z.enum(NotificationCategories);
 export type NotificationCategory = z.infer<typeof NotificationCategorySchema>;
 
@@ -78,6 +91,7 @@ export const DEFAULT_CHANNELS: Readonly<ChannelMap> = Object.freeze({
   tasks: 'push',
   tickets: 'both',
   knowledge: 'push',
+  meetings: 'push',
 });
 
 export const wantsPush = (channel: NotificationChannel): boolean =>
@@ -108,6 +122,7 @@ export const NotificationPrefsSchema = z.object({
     tasks: NotificationChannelSchema,
     tickets: NotificationChannelSchema,
     knowledge: NotificationChannelSchema,
+    meetings: NotificationChannelSchema,
   }),
   visibleCategories: z.array(NotificationCategorySchema),
   vapidPublicKey: z.string().nullable(),
@@ -175,6 +190,14 @@ export type TaskDeadlinePayload = {
   daysLeft: 1 | 2 | 3;
 };
 export type TaskUrgentPayload = { taskId: string; groupId: string; title: string };
+
+/** Payload of a `meeting.*` event: the knowledge item, its title and its start (ISO). */
+export type MeetingEventPayload = {
+  itemId: string;
+  groupId: string;
+  title: string;
+  startsAt: string;
+};
 
 /**
  * Every UI and email language. `sk` is the default of a new account and the email fallback; the

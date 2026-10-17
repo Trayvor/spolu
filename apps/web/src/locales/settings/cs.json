@@ -40,13 +40,15 @@
       "chat": "Chat",
       "tasks": "Nástěnka úkolů",
       "tickets": "Nástěnka tiketů",
-      "knowledge": "Znalostní báze"
+      "knowledge": "Znalostní báze",
+      "meetings": "Schůzky"
     },
     "hints": {
       "chat": "Zprávy, zmínky a odpovědi v chatech skupin",
       "tasks": "Přesuny úkolů, přidělení, termíny, připomínky a chaty úkolů",
       "tickets": "Tikety podpory a jejich konverzace",
-      "knowledge": "Připomínky ze znalostní báze"
+      "knowledge": "Připomínky ze znalostní báze kromě schůzek",
+      "meetings": "Nové a přesunuté schůzky, jejich připomínky a AI shrnutí"
     },
     "channels": {
       "email": "E-mail",

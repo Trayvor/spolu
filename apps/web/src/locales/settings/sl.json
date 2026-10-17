@@ -40,13 +40,15 @@
       "chat": "Klepet",
       "tasks": "Tabla nalog",
       "tickets": "Tabla zahtevkov",
-      "knowledge": "Baza znanja"
+      "knowledge": "Baza znanja",
+      "meetings": "Sestanki"
     },
     "hints": {
       "chat": "Sporočila, omembe in odgovori v klepetih skupin",
       "tasks": "Premiki nalog, dodelitve, roki, opomniki in klepeti nalog",
       "tickets": "Zahtevki za podporo in pogovori o njih",
-      "knowledge": "Opomniki baze znanja"
+      "knowledge": "Opomniki baze znanja, razen sestankov",
+      "meetings": "Novi in prestavljeni sestanki, njihovi opomniki in povzetki AI"
     },
     "channels": {
       "email": "E-pošta",

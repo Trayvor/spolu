@@ -41,6 +41,13 @@ describe('notificationGroupOf', () => {
     // A mention in a ticket chat (Phase 21.6) belongs to the ticket board.
     ['chat.mention', { ticketId: 'k1' }, 'tickets'],
     ['chat.mention', { ticketId: '' }, 'chat'],
+    // 2026-10-17: meetings, and a meeting's own reminder.
+    ['meeting.scheduled', { itemId: 'k1' }, 'meetings'],
+    ['meeting.rescheduled', { itemId: 'k1' }, 'meetings'],
+    ['meeting.summary_ready', { itemId: 'k1' }, 'meetings'],
+    ['meeting.summary_failed', { itemId: 'k1' }, 'meetings'],
+    ['reminder.due', { subjectKind: 'knowledge', meeting: true }, 'meetings'],
+    ['reminder.due', { subjectKind: 'task', taskId: 't1', meeting: true }, 'tasks'],
   ] as const)('%s %j -> %s', (kind, payload, group) => {
     expect(notificationGroupOf(kind, payload)).toBe(group);
   });

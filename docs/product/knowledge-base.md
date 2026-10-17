@@ -74,6 +74,7 @@ Owner request of 2026-10-17. Design and the defaults we chose: [spec](../superpo
 - **AI ("Spracovať s AI", admins only):** a run transcribes the stored audio when there is no transcript, then writes the summary: a short paragraph, decisions, action items (with the person and the date when the meeting names them) and open questions, in the language the meeting was spoken in. The state shows while it runs (waiting, transcribing, writing); a failure says which step failed, and the button starts a new run. "Process again" asks first, since it replaces the summary. The item's editors can edit the summary. One run per meeting at a time, 20 an hour per admin.
 - **Create tasks** (admins, from the action items): the task review dialog with one card per action item (a named person of the group is preselected, a said date is the deadline), and a bucket choice ("Add to", To do by default, never Completed).
 - **Who sees it:** like every item: the group's clients see a public meeting with its recording, transcript and summary; admins-only keeps all of it to admins.
+- **Notifications** (2026-10-17, the Meetings notification group, see `notifications.md`): a new meeting and a moved start notify the people who can see it (under All messages); the AI result notifies the admin who pressed "Spracovať s AI"; the meeting's optional reminder is its only reminder.
 
 ## Status
 

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { UserLanguages, type NotificationKind } from '@spolu/shared';
 import { buildPushPayload } from './push-content.js';
 import { formatReminderTime, texts } from './texts.js';
 
@@ -279,5 +280,66 @@ describe('buildPushPayload tickets (Phase 21.6)', () => {
       t('ticket.message', { subject: null, authorName: 'Jana', excerpt: 'x' }, 'en').title,
     ).toBe('#123');
     expect(t('ticket.updated', { subject: null }, 'en').body).toBe('');
+  });
+});
+
+describe('buildPushPayload meetings (2026-10-17)', () => {
+  const meeting = {
+    itemId: 'k1',
+    groupId: 'g1',
+    title: 'Kickoff',
+    startsAt: '2026-10-22T08:00:00Z', // 10:00 in Bratislava
+  };
+  const m = (kind: NotificationKind, lang: 'en' | 'sk' = 'en') =>
+    buildPushPayload({ ...base, kind, payload: meeting, lang });
+
+  it('every meeting push is "<title> · <group>", opens the item, tag knowledge:<id>', () => {
+    const kinds: NotificationKind[] = [
+      'meeting.scheduled',
+      'meeting.rescheduled',
+      'meeting.summary_ready',
+      'meeting.summary_failed',
+    ];
+    for (const kind of kinds) {
+      expect(m(kind)).toMatchObject({
+        title: 'Kickoff · Firma',
+        url: '/groups/g1/knowledge?k=k1',
+        tag: 'knowledge:k1',
+      });
+    }
+  });
+
+  it('the bodies, with the Bratislava time', () => {
+    expect(m('meeting.scheduled').body).toBe('New meeting: Thu 22 Oct, 10:00');
+    expect(m('meeting.rescheduled').body).toBe('Meeting moved to Thu 22 Oct, 10:00');
+    expect(m('meeting.summary_ready').body).toBe('AI summary is ready');
+    expect(m('meeting.summary_failed').body).toBe('AI processing failed');
+    expect(m('meeting.scheduled', 'sk').body).toMatch(/^Nové stretnutie: .*10:00/);
+  });
+
+  it('a meeting reminder still opens the item (the knowledge reminder push)', () => {
+    const payload = {
+      subjectKind: 'knowledge',
+      subjectId: 'k1',
+      groupId: 'g1',
+      title: 'Kickoff',
+      at: '2026-10-22T07:45:00Z',
+      meeting: true,
+    };
+    expect(buildPushPayload({ ...base, kind: 'reminder.due', payload, lang: 'en' })).toMatchObject({
+      url: '/groups/g1/knowledge?k=k1',
+      tag: 'knowledge:k1',
+    });
+  });
+
+  it('every language has the meeting texts', () => {
+    for (const lang of UserLanguages) {
+      const t = texts(lang);
+      expect(t.meetingScheduled('X')).toContain('X');
+      expect(t.meetingRescheduled('X')).toContain('X');
+      expect(t.meetingSummaryReady).not.toBe('');
+      expect(t.meetingSummaryFailed).not.toBe('');
+      expect(t.openMeeting).not.toBe('');
+    }
   });
 });

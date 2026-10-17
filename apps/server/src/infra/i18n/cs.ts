@@ -111,5 +111,10 @@ export const cs: ServerTexts = {
       `#${n} převeden na ${c} ${plural('cs', c, { one: 'úkol', few: 'úkoly', many: 'úkolu', other: 'úkolů' })}`,
     ticketTopic: (n) => `Tiket #${n}`,
     openTicket: 'Otevřít tiket',
+    meetingScheduled: (when) => `Nová schůzka: ${when}`,
+    meetingRescheduled: (when) => `Schůzka přesunuta na ${when}`,
+    meetingSummaryReady: 'AI shrnutí je hotové',
+    meetingSummaryFailed: 'Zpracování s AI selhalo',
+    openMeeting: 'Otevřít schůzku',
   },
 };

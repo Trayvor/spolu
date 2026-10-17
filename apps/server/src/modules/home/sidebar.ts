@@ -3,6 +3,7 @@ import type { SidebarClient } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
 import { unreadByGroupSql } from '../chat/service.js';
 import { managedGroupsSql } from '../groups/managers.js';
+import { groupChatNotifiesSql } from '../notifications/follows.js';
 
 /**
  * The admin sidebar in one statement: every group with the viewer's unread group chat count
@@ -10,30 +11,38 @@ import { managedGroupsSql } from '../groups/managers.js';
  * managed first; inside each section unread, then assigned, then the rest, by name (a stable
  * order, so rows do not jump while the admin reads).
  *
+ * The unread number is 0 for a group whose chat never notifies the viewer (2026-10-17, the
+ * dashboard follows the notification settings): their mode for it is Off, or their chat channel
+ * is None (`groupChatNotifiesSql`, the notifications module's mirror of delivery). Mentions and
+ * replies keeps the full count. The order uses the shown number.
+ *
  * Reads the chat, tasks and groups tables directly: the documented read-only exception of
  * `modules/home` (see docs/architecture/overview.md).
  */
 export function sidebarSql(userId: string): SQL {
   return sql`
-    select
-      g.id as group_id,
-      g.name,
-      g.logo_key is not null as has_logo,
-      g.updated_at,
-      g.id in ${managedGroupsSql(userId)} as managed,
-      coalesce(u.n, 0)::int as unread,
-      coalesce(a.n, 0)::int as assigned
-    from groups g
-    left join (${unreadByGroupSql(userId)}) u on u.group_id = g.id
-    left join (
-      select t.group_id, count(*) as n
-      from task_assignees ta
-      join tasks t on t.id = ta.task_id
-      where ta.user_id = ${userId}
-        and t.completed_at is null
-      group by t.group_id
-    ) a on a.group_id = g.id
-    order by managed desc, (coalesce(u.n, 0) > 0) desc, (coalesce(a.n, 0) > 0) desc, g.name, g.id
+    select * from (
+      select
+        g.id as group_id,
+        g.name,
+        g.logo_key is not null as has_logo,
+        g.updated_at,
+        g.id in ${managedGroupsSql(userId)} as managed,
+        (case when ${groupChatNotifiesSql(userId, sql`g.id`)} then coalesce(u.n, 0) else 0 end)::int
+          as unread,
+        coalesce(a.n, 0)::int as assigned
+      from groups g
+      left join (${unreadByGroupSql(userId)}) u on u.group_id = g.id
+      left join (
+        select t.group_id, count(*) as n
+        from task_assignees ta
+        join tasks t on t.id = ta.task_id
+        where ta.user_id = ${userId}
+          and t.completed_at is null
+        group by t.group_id
+      ) a on a.group_id = g.id
+    ) s
+    order by managed desc, (unread > 0) desc, (assigned > 0) desc, name, group_id
   `;
 }
 

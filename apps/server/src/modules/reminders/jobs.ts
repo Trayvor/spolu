@@ -143,6 +143,7 @@ export async function fireBatch(
       at: time.at.toISOString(),
       // The task title lookup of the delivery shows the current title.
       ...(ref.kind === 'task' ? { taskId: ref.id } : {}),
+      ...(info.meeting ? { meeting: true as const } : {}),
     };
     due.push({
       timeId: time.id,

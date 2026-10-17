@@ -125,7 +125,7 @@
       "description": "Reminders set on tasks and knowledge items in the next 7 days."
     },
     "mentions": {
-      "description": "Messages that mention you and that you have not read yet."
+      "description": "Unread messages that mention you, in the chats that notify you."
     },
     "groups": {
       "overdue": "Overdue",
@@ -141,7 +141,7 @@
       "noSummary": "Past, no summary"
     },
     "meetings": {
-      "description": "Meetings of your clients in the next 7 days, then past meetings of the last 30 days that still have no summary.",
+      "description": "Meetings you get notifications for: the next 7 days, then past meetings of the last 30 days that still have no summary.",
       "openAll": "Open all meetings"
     }
   }

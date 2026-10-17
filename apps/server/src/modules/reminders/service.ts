@@ -277,6 +277,20 @@ export async function getSetAuthorId(db: Db, subject: ReminderSubjectRef): Promi
   return row?.createdBy ?? null;
 }
 
+/**
+ * True when the user is a recipient of the reminder of the knowledge item `knowledgeItemId` (an
+ * SQL expression, e.g. `k.id`), for other modules' single statements (the Meetings card, which
+ * shows a meeting whose reminder the admin gets). Reads `reminder_sets_knowledge_item_unique` and
+ * the recipients' primary key.
+ */
+export function remindsUserSql(userId: string, knowledgeItemId: SQL): SQL<boolean> {
+  return sql<boolean>`exists (
+    select 1 from reminder_sets rs
+    join reminder_recipients rr on rr.set_id = rs.id and rr.user_id = ${userId}
+    where rs.knowledge_item_id = ${knowledgeItemId}
+  )`;
+}
+
 /** What `GET …/reminders` answers for a readable subject that has no set yet. */
 export function emptyReminderSet(canEdit: boolean): ReminderSetDto {
   return { times: [], recipients: [], subscribed: false, canEdit };

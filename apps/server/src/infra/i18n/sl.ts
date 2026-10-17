@@ -111,5 +111,10 @@ export const sl: ServerTexts = {
       `Zahtevek #${n} je pretvorjen v ${c} ${plural('sl', c, { one: 'nalogo', two: 'nalogi', few: 'naloge', other: 'nalog' })}`,
     ticketTopic: (n) => `Zahtevek #${n}`,
     openTicket: 'Odpri zahtevek',
+    meetingScheduled: (when) => `Nov sestanek: ${when}`,
+    meetingRescheduled: (when) => `Sestanek prestavljen na ${when}`,
+    meetingSummaryReady: 'Povzetek AI je pripravljen',
+    meetingSummaryFailed: 'Obdelava z AI ni uspela',
+    openMeeting: 'Odpri sestanek',
   },
 };

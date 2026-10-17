@@ -5,7 +5,9 @@ import postgres from 'postgres';
 import { createDb } from '../../infra/db/client.js';
 import { testDatabaseUrl } from '../../../test/test-config.js';
 import { unreadByGroup } from '../chat/service.js';
+import { setDefaultMode, setGroupMode } from '../notifications/modes.js';
 import { user } from '../users/schema.js';
+import { setNotificationChannel } from '../users/service.js';
 import { getSidebar } from './sidebar.js';
 import { bucketOf, newAdmin, newClient, newGroup, newMessage, newTask } from './test-fixtures.js';
 
@@ -69,6 +71,49 @@ describe('getSidebar', () => {
     const expected = await unreadByGroup(db, admin.id, null);
     expect(rows).toHaveLength(6);
     for (const row of rows) expect(row.unread).toBe(expected[row.groupId] ?? 0);
+  });
+
+  describe('only groups whose chat notifies (the dashboard follows the notification settings)', () => {
+    const unread = async (adminId: string, groupId: string) =>
+      own(await getSidebar(db, adminId), [groupId])[0]!.unread;
+
+    it('a group on Off counts 0; Mentions and replies still counts every unread message', async () => {
+      const { admin, groups: g } = await setup();
+      expect(await unread(admin.id, g.mUnread.id)).toBe(1);
+      await setGroupMode(db, admin.id, g.mUnread.id, 'off');
+      expect(await unread(admin.id, g.mUnread.id)).toBe(0);
+      // Off only for that group: the other unread group still counts.
+      expect(await unread(admin.id, g.oUnread.id)).toBe(1);
+      await setGroupMode(db, admin.id, g.mUnread.id, 'mentions');
+      expect(await unread(admin.id, g.mUnread.id)).toBe(1);
+    });
+
+    it('a default of Off counts 0 except where the group has its own mode', async () => {
+      const { admin, groups: g } = await setup();
+      await setDefaultMode(db, admin.id, 'off');
+      expect(await unread(admin.id, g.mUnread.id)).toBe(0);
+      expect(await unread(admin.id, g.oUnread.id)).toBe(0);
+      await setGroupMode(db, admin.id, g.oUnread.id, 'all');
+      expect(await unread(admin.id, g.oUnread.id)).toBe(1);
+    });
+
+    it('chat None counts 0 everywhere; the off group sorts as having nothing unread', async () => {
+      const { admin, groups: g } = await setup();
+      await setNotificationChannel(db, admin.id, 'chat', 'none');
+      const rows = own(
+        await getSidebar(db, admin.id),
+        Object.values(g).map((x) => x.id),
+      );
+      expect(rows.every((r) => r.unread === 0)).toBe(true);
+      // Managed: assigned first, then the rest by name (M nothing, M unread).
+      expect(rows.slice(0, 3).map((r) => r.groupId)).toEqual([
+        g.mAssigned.id,
+        g.mNothing.id,
+        g.mUnread.id,
+      ]);
+      await setNotificationChannel(db, admin.id, 'chat', 'email');
+      expect(await unread(admin.id, g.mUnread.id)).toBe(1);
+    });
   });
 
   it("assigned excludes Completed and other users' tasks", async () => {

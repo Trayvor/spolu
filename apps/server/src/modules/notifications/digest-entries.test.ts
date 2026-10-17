@@ -102,3 +102,41 @@ describe('digestEntry tickets (Phase 21.6)', () => {
     });
   });
 });
+
+describe('digestEntry meetings (2026-10-17)', () => {
+  const meeting = {
+    itemId: 'k1',
+    groupId: 'g1',
+    title: 'Kickoff',
+    startsAt: '2026-10-22T08:00:00Z',
+  };
+
+  it('"<title>: <what happened>", the item, "Open meeting", the group as topic', () => {
+    expect(digestEntry({ kind: 'meeting.scheduled', payload: meeting }, ctx)).toEqual({
+      line: 'Kickoff: New meeting: Thu 22 Oct, 10:00',
+      url: 'https://spolu.test/groups/g1/knowledge?k=k1',
+      button: 'Open meeting',
+      topic: 'Firma',
+    });
+    expect(digestEntry({ kind: 'meeting.summary_ready', payload: meeting }, ctx)?.line).toBe(
+      'Kickoff: AI summary is ready',
+    );
+  });
+
+  it('a meeting reminder is a reminder line', () => {
+    const entry = digestEntry(
+      {
+        kind: 'reminder.due',
+        payload: {
+          subjectKind: 'knowledge',
+          subjectId: 'k1',
+          title: 'Kickoff',
+          at: '2026-10-22T07:45:00Z',
+          meeting: true,
+        },
+      },
+      ctx,
+    );
+    expect(entry?.line).toBe('Reminder: Kickoff, Thu 22 Oct, 09:45');
+  });
+});

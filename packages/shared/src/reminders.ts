@@ -57,6 +57,8 @@ export type ReminderDuePayload = {
   at: string;
   /** Set for task subjects (Phase 19), so the task title lookup shows the current title. */
   taskId?: string;
+  /** Set for a meeting's reminder (2026-10-17): it belongs to the `meetings` notification group. */
+  meeting?: true;
 };
 
 /** One of a user's next reminders across groups (the Phase 20 dashboard card). */
