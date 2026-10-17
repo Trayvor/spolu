@@ -3,12 +3,14 @@ import { useTranslation } from 'react-i18next';
 import { deferredMenu } from '@/components/deferred-menu';
 import { Toast } from '@/components/ui/toast';
 import { useSession } from '@/features/auth/use-session';
-import { saveLanguage } from '@/features/profile/api';
+import { saveLanguage } from '@/features/profile/language-api';
 import { setLanguage } from '@/i18n';
 import { isLanguage } from '@/i18n/detect';
 import { SUPPORTED_LANGUAGES } from '@/i18n/languages';
 import { pendingLanguage } from '@/i18n/namespaces';
-import { cn } from '@/lib/utils';
+// `clsx`, not `cn`: these classes never conflict, and `cn` would bring tailwind-merge into the
+// initial JS.
+import { clsx } from 'clsx';
 
 /**
  * Switching the UI language, shared by the header's language menu and the phone account menu.
@@ -60,7 +62,7 @@ export function LanguageSwitcher() {
         <button
           type="button"
           aria-label={t('language.current', { name: current?.name ?? i18n.language })}
-          className={cn(
+          className={clsx(
             'relative inline-flex h-[38px] items-center gap-1 rounded-full bg-secondary pr-2.5 pl-3 text-tiny font-semibold text-secondary-foreground transition-colors duration-(--duration-fast) after:absolute after:-inset-[3px] hover:bg-surface-3 data-[state=open]:bg-surface-3',
             signedIn && 'max-[640px]:hidden',
           )}

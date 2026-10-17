@@ -7,10 +7,11 @@ import { SectionMenu } from '@/components/section-menu';
 import { isAdmin } from '@/features/auth/roles';
 import { UserMenu } from '@/features/auth/user-menu';
 import { useSession } from '@/features/auth/use-session';
-import { cn } from '@/lib/utils';
 
+// Plain strings, no `cn`: tailwind-merge (about 8 kB gzip) stays out of the initial JS. The
+// display is `inline-flex` when the links always fit, else `hidden` until the width in `WIDE`.
 const navLink =
-  'hidden h-[38px] shrink-0 items-center rounded-full px-4 text-tiny font-semibold transition-colors duration-(--duration-fast) hover:bg-accent aria-[current=page]:bg-secondary';
+  'h-[38px] shrink-0 items-center rounded-full px-4 text-tiny font-semibold transition-colors duration-(--duration-fast) hover:bg-accent aria-[current=page]:bg-secondary';
 // Where the section links fit in the pill: an admin's seven need about 1 100 px.
 const WIDE = {
   admin: { links: 'min-[1280px]:inline-flex', menu: 'min-[1280px]:hidden' },
@@ -65,7 +66,7 @@ export function AppHeader() {
               key={section.key}
               to={section.to}
               activeOptions={{ exact: section.to === '/' }}
-              className={cn(navLink, folded ? wide.links : 'inline-flex')}
+              className={`${navLink} ${folded ? `hidden ${wide.links}` : 'inline-flex'}`}
             >
               {t(section.label!)}
               {section.count && <NavCount kind={section.count} live={section.count === 'tasks'} />}
