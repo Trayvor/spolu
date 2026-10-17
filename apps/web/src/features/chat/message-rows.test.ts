@@ -25,6 +25,8 @@ function msg(over: Partial<MessageDto> & { at: Date }): MessageDto {
     createdAt: at.toISOString(),
     changeSeq: n,
     tasks: [],
+    reactions: [],
+    knowledge: [],
     ...rest,
   };
 }

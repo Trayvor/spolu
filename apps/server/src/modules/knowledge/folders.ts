@@ -317,6 +317,18 @@ export async function folderPaths(
   db: Db,
   folderIds: string[],
 ): Promise<(id: string, publicOnly: boolean) => { id: string; name: string }[]> {
+  const chainOf = await folderChains(db, folderIds);
+  return (id, publicOnly) =>
+    chainOf(id)
+      .filter((row) => !publicOnly || row.visibility === 'public')
+      .map((row) => ({ id: row.id, name: row.name }));
+}
+
+/** Every folder from the top down to each of these folders, with its visibility (one query). */
+export async function folderChains(
+  db: Db,
+  folderIds: string[],
+): Promise<(id: string) => { id: string; name: string; visibility: string }[]> {
   const unique = [...new Set(folderIds)];
   const byId = new Map<string, PathRow>();
   if (unique.length > 0) {
@@ -331,15 +343,15 @@ export async function folderPaths(
       select id, parent_id, name, visibility from up`);
     for (const row of rows) byId.set(row.id, row);
   }
-  return (id, publicOnly) => {
-    const path: { id: string; name: string }[] = [];
+  return (id) => {
+    const path: { id: string; name: string; visibility: string }[] = [];
     const seen = new Set<string>();
     let at: string | null = id;
     while (at !== null && !seen.has(at)) {
       seen.add(at);
       const row = byId.get(at);
       if (!row) break;
-      if (!publicOnly || row.visibility === 'public') path.unshift({ id: row.id, name: row.name });
+      path.unshift({ id: row.id, name: row.name, visibility: row.visibility });
       at = row.parent_id;
     }
     return path;

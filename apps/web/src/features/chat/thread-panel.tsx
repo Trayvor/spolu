@@ -302,8 +302,14 @@ export function ThreadPanel({
           // Files dropped on this panel go to the thread; the main composer owns the chat column.
           dropTarget={panel}
           replyTo={replyTo ? { message: replyTo, onCancel: () => setReplyTo(null) } : undefined}
-          onSubmit={({ body, fileIds, replyToId }) => {
-            void send({ body, fileIds, parentId: rootId, ...(replyToId ? { replyToId } : {}) });
+          onSubmit={({ body, fileIds, knowledgeIds, replyToId }) => {
+            void send({
+              body,
+              fileIds,
+              parentId: rootId,
+              ...(knowledgeIds ? { knowledgeIds } : {}),
+              ...(replyToId ? { replyToId } : {}),
+            });
           }}
         />
       </div>

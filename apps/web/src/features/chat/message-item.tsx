@@ -27,6 +27,15 @@ import { Composer } from './composer';
 import { MessageBody } from './format/render';
 import { Toast } from '@/components/ui/toast';
 import { CopyIcon, EditIcon, MoreIcon, ReplyIcon, ThreadIcon, TrashIcon } from './icons';
+import { KnowledgeCards } from './knowledge-cards';
+import {
+  AddReactionIcon,
+  MorePicker,
+  QuickReactions,
+  ReactionChips,
+  ReactionMenu,
+  useReactions,
+} from './reactions';
 
 /**
  * An extra action on a message, shown in the desktop hover toolbar and as a row of the phone
@@ -311,6 +320,13 @@ export const MessageItem = memo(function MessageItem({
   // a task or carry other actions.
   const showActions = !deleted && !pending && mode === 'view';
   const time = pending ? '' : formatTime(message.createdAt, i18n.language);
+  // Phase 28: reactions, optimistic while a tap is on its way.
+  const {
+    reactions,
+    toggle: toggleReaction,
+    failed: reactionFailed,
+  } = useReactions(message, meId, onChanged);
+  const [morePicker, setMorePicker] = useState(false);
   const edited = message.editedAt !== null && !deleted && (
     <span className="text-micro text-muted-foreground">{t('chat.edited')}</span>
   );
@@ -597,6 +613,16 @@ export const MessageItem = memo(function MessageItem({
         {!deleted && mode !== 'edit' && message.attachments.length > 0 && (
           <Attachments message={message} />
         )}
+        {!deleted && mode !== 'edit' && <KnowledgeCards message={message} groupId={groupId} />}
+        {!deleted && !pending && (
+          <ReactionChips
+            message={message}
+            reactions={reactions}
+            meId={meId}
+            onToggle={toggleReaction}
+            failed={reactionFailed}
+          />
+        )}
         {mode === 'confirmDelete' && (
           <DeleteConfirm message={message} onDone={() => setMode('view')} onChanged={onChanged} />
         )}
@@ -647,6 +673,13 @@ export const MessageItem = memo(function MessageItem({
             DESKTOP_ONLY,
           )}
         >
+          <ReactionMenu
+            reactions={reactions}
+            meId={meId}
+            onPick={toggleReaction}
+            buttonClassName={toolButton}
+            icon={<AddReactionIcon />}
+          />
           {desktopActions
             .filter((a) => !a.inMenu)
             .map((action) => (
@@ -682,6 +715,19 @@ export const MessageItem = memo(function MessageItem({
         </div>
       )}
       <ActionSheet open={sheetOpen} label={t('chat.actions.open')} onClose={closeSheet}>
+        <QuickReactions
+          reactions={reactions}
+          meId={meId}
+          className="mb-1 justify-between border-b border-border px-1 pb-2"
+          onPick={(emoji) => {
+            setSheetOpen(false);
+            toggleReaction(emoji);
+          }}
+          onMore={() => {
+            setSheetOpen(false);
+            setMorePicker(true);
+          }}
+        />
         {actions.map((action) => (
           <ActionSheetItem
             key={action.id}
@@ -695,6 +741,14 @@ export const MessageItem = memo(function MessageItem({
           />
         ))}
       </ActionSheet>
+      <MorePicker
+        open={morePicker}
+        onPick={(emoji) => {
+          setMorePicker(false);
+          toggleReaction(emoji, true);
+        }}
+        onClose={() => setMorePicker(false)}
+      />
       {copied && <Toast onClose={() => setCopied(false)}>{t('chat.copied')}</Toast>}
     </div>
   );

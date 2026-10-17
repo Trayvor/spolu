@@ -68,5 +68,48 @@
   "unread_one": "{{count}} unread message",
   "loadError": "The chat could not be loaded.",
   "turnedIntoTasks": "Turned into tasks:",
-  "copied": "Text copied"
+  "copied": "Text copied",
+  "reactions": {
+    "add": "Add reaction",
+    "more": "More emoji",
+    "quick": "Quick reactions",
+    "react": "React with {{emoji}}",
+    "chip": "Reaction {{emoji}}, {{count}} in total",
+    "chipMine": "Reaction {{emoji}}, {{count}} in total, yours included",
+    "who": "{{emoji}} {{names}}",
+    "loading": "Loading…",
+    "failed": "The reaction was not saved. Try again.",
+    "pickerTitle": "Choose a reaction",
+    "groups": {
+      "smileys": "Smileys",
+      "gestures": "Gestures",
+      "hearts": "Hearts",
+      "work": "Work",
+      "celebration": "Celebration",
+      "symbols": "Symbols"
+    }
+  },
+  "knowledge": {
+    "attach": "Attach from the knowledge base",
+    "attached": "Attached knowledge items",
+    "remove": "Remove {{title}}",
+    "pickerTitle": "Attach from the knowledge base",
+    "pickerHint": "Only items everyone in this group can see are listed.",
+    "search": "Search the knowledge base",
+    "attachCount": "Attach ({{count}})",
+    "noResults": "Nothing matches your search.",
+    "empty": "This group has no shared knowledge items yet.",
+    "loadMore": "Show more",
+    "limit": "At most {{count}} items per message.",
+    "unavailable": "Item unavailable",
+    "back": "Back to chat",
+    "types": {
+      "note": "Note",
+      "file": "File",
+      "link": "Link",
+      "reminder": "Reminder",
+      "meeting": "Meeting",
+      "chat_file": "From chat"
+    }
+  }
 }

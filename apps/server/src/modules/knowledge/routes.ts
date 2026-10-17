@@ -76,9 +76,11 @@ const filters = {
   cursor: z.string().max(200).optional(),
 };
 /** `folder`: the items directly in that folder, or `root` for the top level; absent: all. */
+/** `shareable=1` (Phase 28, the chat's picker): only items that may be attached to a message. */
 const GroupListQuerySchema = z.object({
   ...filters,
   folder: z.union([z.literal('root'), IdSchema]).optional(),
+  shareable: z.literal('1').optional(),
 });
 /** `clients`: comma-separated group ids, at most 200. */
 const GlobalListQuerySchema = z.object({
@@ -159,12 +161,13 @@ export const knowledgeRoutes: FastifyPluginAsync<{
     if (!query.success) return invalid(reply);
     const actor = request.user!;
     if (!(await canOpenGroup(actor, request.params.id))) return notFound(reply);
-    const { type: types, folder, ...opts } = query.data;
+    const { type: types, folder, shareable, ...opts } = query.data;
     try {
       return await listGroupItems(db, actor, request.params.id, {
         ...opts,
         types,
         folder: folder === 'root' ? null : folder,
+        shareable: shareable === '1',
       });
     } catch (error) {
       return knowledgeError(reply, error);

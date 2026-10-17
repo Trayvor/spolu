@@ -83,5 +83,7 @@ export function pendingAsMessage(
     createdAt: '',
     changeSeq: 0,
     tasks: [],
+    reactions: [],
+    knowledge: [],
   };
 }

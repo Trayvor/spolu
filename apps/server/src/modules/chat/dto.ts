@@ -4,6 +4,8 @@ import type { Db } from '../../infra/db/client.js';
 import { getFilesForGroup } from '../files/service.js';
 import { listTasksForMessages } from '../tasks/service.js';
 import { user } from '../users/schema.js';
+import { loadMessageKnowledge } from './knowledge-links.js';
+import { loadReactions } from './reactions.js';
 import { messageAttachments, messageMentions, messages } from './schema.js';
 
 export type MessageRow = typeof messages.$inferSelect;
@@ -44,9 +46,10 @@ const iso = (date: Date | null): string | null => date?.toISOString() ?? null;
 
 /**
  * Builds the DTOs with a fixed number of queries for any number of rows (mentions, attachment
- * rows and task links in parallel, then the files; none of them when no row is live). A deleted
- * message has an empty body, no mentions, no attachments and no tasks. The task links come from
- * the tasks service (the chat module never reads the tasks table itself).
+ * rows, task links, reactions and knowledge rows in parallel, then the files and the knowledge
+ * cards; none of them when no row is live). A deleted message has an empty body, no mentions,
+ * attachments, tasks, reactions or knowledge items. The task links come from the tasks service
+ * and the knowledge cards from the knowledge module (the chat never reads their tables).
  */
 export async function toMessageDtos(
   db: Db,
@@ -54,9 +57,15 @@ export async function toMessageDtos(
   rows: MessageWithAuthor[],
 ): Promise<MessageDto[]> {
   const liveIds = rows.filter((r) => r.deletedAt === null).map((r) => r.id);
-  const [mentionRows, attachmentRows, tasksOf] =
+  const [mentionRows, attachmentRows, tasksOf, reactionsOf, knowledgeOf] =
     liveIds.length === 0
-      ? [[], [], new Map<string, MessageDto['tasks']>()]
+      ? [
+          [],
+          [],
+          new Map<string, MessageDto['tasks']>(),
+          new Map<string, MessageDto['reactions']>(),
+          new Map<string, MessageDto['knowledge']>(),
+        ]
       : await Promise.all([
           db.select().from(messageMentions).where(inArray(messageMentions.messageId, liveIds)),
           db
@@ -65,6 +74,8 @@ export async function toMessageDtos(
             .where(inArray(messageAttachments.messageId, liveIds))
             .orderBy(asc(messageAttachments.messageId), asc(messageAttachments.position)),
           listTasksForMessages(db, liveIds),
+          loadReactions(db, liveIds),
+          loadMessageKnowledge(db, groupId, liveIds),
         ]);
   const files = await getFilesForGroup(
     db,
@@ -103,6 +114,8 @@ export async function toMessageDtos(
       createdAt: r.createdAt.toISOString(),
       changeSeq: r.changeSeq,
       tasks: deleted ? [] : (tasksOf.get(r.id) ?? []),
+      reactions: deleted ? [] : (reactionsOf.get(r.id) ?? []),
+      knowledge: deleted ? [] : (knowledgeOf.get(r.id) ?? []),
     };
   });
 }

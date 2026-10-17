@@ -4,6 +4,7 @@ import {
   ChatEvents,
   type ChatMessageEvent,
   type ChatMessageTasksEvent,
+  type ChatReactionsEvent,
   type MessageDto,
   type SendMessageInput,
 } from '@spolu/shared';
@@ -25,6 +26,7 @@ import {
 } from './api';
 import {
   initialWindow,
+  setReactionsInThread,
   setTasksInThread,
   upsertIntoThread,
   windowReducer,
@@ -347,12 +349,29 @@ export function useChannelMessages(
         queryClient.setQueryData(queryKey, setTasksInThread(thread, event.messageId, event.tasks));
       }
     };
+    // Phase 28: a reaction moves the message's changeSeq, so catch-up repairs a missed one.
+    const onReactions = (event: ChatReactionsEvent) => {
+      if (event.groupId !== groupId || event.channelId !== channelId) return;
+      lastSeqRef.current = Math.max(lastSeqRef.current, event.changeSeq);
+      const { messageId, reactions, changeSeq } = event;
+      dispatch({ type: 'reactionsChanged', messageId, reactions, changeSeq });
+      const { queryKey } = threadQuery(event.parentId ?? messageId);
+      const thread = queryClient.getQueryData(queryKey);
+      if (thread) {
+        queryClient.setQueryData(
+          queryKey,
+          setReactionsInThread(thread, messageId, reactions, changeSeq),
+        );
+      }
+    };
     socket.on(ChatEvents.message, onMessage);
     socket.on(ChatEvents.messageTasks, onMessageTasks);
+    socket.on(ChatEvents.reactions, onReactions);
     socket.on('disconnect', onDisconnect);
     return () => {
       socket.off(ChatEvents.message, onMessage);
       socket.off(ChatEvents.messageTasks, onMessageTasks);
+      socket.off(ChatEvents.reactions, onReactions);
       socket.off('disconnect', onDisconnect);
     };
   }, [groupId, channelId, apply, queryClient]);

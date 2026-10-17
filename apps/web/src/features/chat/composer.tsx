@@ -1,4 +1,6 @@
 import {
+  lazy,
+  Suspense,
   useEffect,
   useId,
   useLayoutEffect,
@@ -33,8 +35,13 @@ import {
   type PickedPerson,
 } from './composer-text';
 import { FormatToolbar, formatShortcut, iconButton, phoneIconButton } from './format-toolbar';
-import { CloseIcon, PaperclipIcon } from './icons';
+import { BookIcon, CloseIcon, PaperclipIcon } from './icons';
+import type { PickedKnowledge } from './knowledge-picker';
+import { withNamespaces } from '@/i18n/namespaces';
 import { MentionPicker, type MentionChoice, type MentionPickerHandle } from './mention-picker';
+
+// Phase 28: the knowledge picker loads when it is first opened.
+const KnowledgePicker = lazy(withNamespaces(['forms'], () => import('./knowledge-picker')));
 
 export interface ComposerProps {
   mode: 'new' | 'edit' | 'thread';
@@ -53,7 +60,12 @@ export interface ComposerProps {
    * Called with the stored body (mention tokens). Edit mode waits for a returned promise and shows
    * an error when it rejects; the other modes clear the composer at once.
    */
-  onSubmit(input: { body: string; fileIds: string[]; replyToId?: string }): void | Promise<void>;
+  onSubmit(input: {
+    body: string;
+    fileIds: string[];
+    knowledgeIds?: string[];
+    replyToId?: string;
+  }): void | Promise<void>;
   onCancel?(): void;
 }
 
@@ -115,6 +127,11 @@ export function Composer({
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState<'generic' | 'mention' | null>(null);
   const [activeOption, setActiveOption] = useState<string | undefined>();
+  // Phase 28: knowledge items to attach, and whether their picker is open.
+  const [knowledge, setKnowledge] = useState<PickedKnowledge[]>([]);
+  const [knowledgeOpen, setKnowledgeOpen] = useState(false);
+  // A reader who reaches knowledge only through messages (a žiadateľ) attaches none.
+  const canAttachKnowledge = mode !== 'edit' && !scope.knowledgeViaMessage;
 
   const textarea = useRef<HTMLTextAreaElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
@@ -231,14 +248,20 @@ export function Composer({
     !uploading &&
     !uploadFailed &&
     !tooLong &&
-    (value.trim().length > 0 || fileIds.length > 0 || hasAttachments);
+    (value.trim().length > 0 || fileIds.length > 0 || knowledge.length > 0 || hasAttachments);
 
   async function submit() {
     if (!canSend) return;
     const body = toStored(value, picked, allLabel).trim();
-    const input = { body, fileIds, ...(replyTo ? { replyToId: replyTo.message.id } : {}) };
+    const input = {
+      body,
+      fileIds,
+      ...(knowledge.length > 0 ? { knowledgeIds: knowledge.map((k) => k.id) } : {}),
+      ...(replyTo ? { replyToId: replyTo.message.id } : {}),
+    };
     if (mode !== 'edit') {
       setValue('');
+      setKnowledge([]);
       setPicked([]);
       setCaret(0);
       commitUploads([]);
@@ -407,6 +430,17 @@ export function Composer({
                 </button>
               </>
             )}
+            {canAttachKnowledge && (
+              <button
+                type="button"
+                aria-label={t('chat.knowledge.attach')}
+                title={t('chat.knowledge.attach')}
+                onClick={() => setKnowledgeOpen(true)}
+                className={cn(iconButton, 'relative shrink-0', HIT)}
+              >
+                <BookIcon />
+              </button>
+            )}
             {mode === 'edit' && (
               <Button size="sm" variant="ghost" onClick={onCancel} className={cn('relative', HIT)}>
                 {t('chat.cancel')}
@@ -423,6 +457,46 @@ export function Composer({
           </FormatToolbar>
         </div>
       </div>
+      {knowledge.length > 0 && (
+        <ul className="flex flex-wrap gap-2" aria-label={t('chat.knowledge.attached')}>
+          {knowledge.map((k) => (
+            <li
+              key={k.id}
+              className="flex max-w-full items-center gap-2 rounded-lg bg-secondary py-1 pl-3 pr-1 text-button text-secondary-foreground"
+            >
+              <span className="shrink-0 text-brand-purple">
+                <BookIcon />
+              </span>
+              <span title={k.title} className="min-w-0 truncate font-semibold">
+                {k.title}
+              </span>
+              <button
+                type="button"
+                aria-label={t('chat.knowledge.remove', { title: k.title })}
+                title={t('chat.knowledge.remove', { title: k.title })}
+                onClick={() => setKnowledge((list) => list.filter((x) => x.id !== k.id))}
+                className={phoneIconButton}
+              >
+                <CloseIcon />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      {knowledgeOpen && (
+        <Suspense fallback={null}>
+          <KnowledgePicker
+            groupId={groupId}
+            picked={knowledge}
+            onDone={(items) => {
+              setKnowledge(items);
+              setKnowledgeOpen(false);
+              textarea.current?.focus();
+            }}
+            onClose={() => setKnowledgeOpen(false)}
+          />
+        </Suspense>
+      )}
       {uploads.length > 0 && (
         <ul className="flex flex-wrap gap-2">
           {uploads.map((u) => (
