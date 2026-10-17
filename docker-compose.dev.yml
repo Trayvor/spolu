@@ -19,6 +19,10 @@ services:
 
   mailpit:
     image: axllent/mailpit
+    environment:
+      # The default keeps 500 messages and drops the oldest: parallel ci.sh runs send more than
+      # that, and a login code could be gone before its e2e spec read it.
+      MP_MAX_MESSAGES: '20000'
     ports:
       - '1025:1025'
       - '8025:8025'
