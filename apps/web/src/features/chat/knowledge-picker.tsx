@@ -7,8 +7,9 @@ import { Input } from '@/components/ui/input';
 import { PanelHeader } from '@/components/ui/panel-header';
 import { SheetDialog, SheetDialogTitle } from '@/components/ui/sheet-dialog';
 import { groupKnowledgeQuery } from '@/features/knowledge/api';
-import { SmallFolderIcon } from '@/features/knowledge/icons';
+import { NoteIcon, SmallFolderIcon } from '@/features/knowledge/icons';
 import { cn } from '@/lib/utils';
+import { KNOWLEDGE_ICONS } from './knowledge-cards';
 
 export type PickedKnowledge = Extract<MessageKnowledge, { available: true }>;
 
@@ -90,6 +91,7 @@ export default function KnowledgePicker({
         <ul className="-mx-2 min-h-0 flex-1 overflow-y-auto" aria-busy={query.isPending}>
           {items.map((item) => {
             const on = isChosen(item.id);
+            const Glyph = KNOWLEDGE_ICONS[item.type] ?? NoteIcon;
             return (
               <li key={item.id}>
                 <label
@@ -105,6 +107,9 @@ export default function KnowledgePicker({
                     onChange={() => toggle(item)}
                     className="size-4 shrink-0 accent-brand-purple"
                   />
+                  <span aria-hidden="true" className="shrink-0 text-brand-purple">
+                    <Glyph />
+                  </span>
                   <span className="flex min-w-0 flex-col">
                     <span className="truncate text-button font-semibold">{item.title}</span>
                     <span className="flex min-w-0 items-center gap-1 text-micro text-muted-foreground">
