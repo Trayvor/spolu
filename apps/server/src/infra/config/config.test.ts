@@ -233,6 +233,28 @@ describe('loadConfig', () => {
     ).toMatchObject({ model: 'gpt-5' });
   });
 
+  it('the text tools (Phase 28) use OPENAI_TEXT_MODEL, default gpt-5.4-mini with low reasoning', () => {
+    expect(loadConfig(validEnv).textAi).toBeNull();
+    expect(loadConfig({ ...validEnv, OPENAI_API_KEY: 'sk-test' }).textAi).toEqual({
+      provider: 'openai',
+      apiKey: 'sk-test',
+      model: 'gpt-5.4-mini',
+      reasoningEffort: 'low',
+    });
+    expect(
+      loadConfig({
+        ...validEnv,
+        OPENAI_API_KEY: 'sk-test',
+        OPENAI_TEXT_MODEL: 'gpt-4.1-mini',
+        OPENAI_TEXT_REASONING_EFFORT: 'off',
+      }).textAi,
+    ).toMatchObject({ model: 'gpt-4.1-mini', reasoningEffort: 'off' });
+    expect(loadConfig({ ...validEnv, AI_PROVIDER: 'fake' }).textAi).toEqual({ provider: 'fake' });
+    expect(errorOf({ ...validEnv, OPENAI_TEXT_REASONING_EFFORT: 'huge' }).variables).toEqual([
+      'OPENAI_TEXT_REASONING_EFFORT',
+    ]);
+  });
+
   it('uses the fake provider when AI_PROVIDER=fake, key or not', () => {
     expect(loadConfig({ ...validEnv, AI_PROVIDER: 'fake' }).ai).toEqual({ provider: 'fake' });
     expect(loadConfig({ ...validEnv, AI_PROVIDER: 'fake', OPENAI_API_KEY: 'k' }).ai).toEqual({

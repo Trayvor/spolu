@@ -1,4 +1,4 @@
-import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -430,5 +430,35 @@ describe('FormatToolbar alone (task description)', () => {
     expect(screen.queryByRole('button', { name: 'Send' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Attach files' })).toBeNull();
     expect(screen.getAllByRole('button')).toHaveLength(8);
+  });
+});
+
+describe('Composer AI and voice tools (Phase 28)', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('shows them next to Send for a channel, and the AI result replaces the draft', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string) =>
+        String(url).endsWith('/ai-tools')
+          ? new Response(JSON.stringify({ text: true, translate: null, voice: true }))
+          : new Response(JSON.stringify({ text: 'Fixed draft.' })),
+      ),
+    );
+    renderComposer({ channelId: 'c1' });
+    await userEvent.type(box(), 'fixd draft');
+    const inside = within(box().parentElement!);
+    expect(await inside.findByRole('button', { name: 'Dictate' })).toBeInTheDocument();
+    await userEvent.click(inside.getByRole('button', { name: 'AI tools' }));
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Fix mistakes' }));
+    await waitFor(() => expect(box()).toHaveValue('Fixed draft.'));
+  });
+
+  it('the edit composer has no AI or voice tools', () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    renderComposer({ mode: 'edit', channelId: 'c1', initialBody: 'x' });
+    expect(screen.queryByRole('button', { name: 'AI tools' })).not.toBeInTheDocument();
+    expect(fetchMock.mock.calls.some(([url]) => String(url).endsWith('/ai-tools'))).toBe(false);
   });
 });

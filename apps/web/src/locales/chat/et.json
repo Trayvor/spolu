@@ -68,5 +68,27 @@
   "unread_one": "{{count}} lugemata sõnum",
   "loadError": "Vestlust ei õnnestunud laadida.",
   "turnedIntoTasks": "Muudetud ülesanneteks:",
-  "copied": "Tekst kopeeritud"
+  "copied": "Tekst kopeeritud",
+  "ai": {
+    "button": "AI tööriistad",
+    "working": "Muudan…",
+    "fix": "Paranda vead",
+    "formal": "Ametlikumaks",
+    "translateTo": "Tõlgi: {{language}}",
+    "undo": "Võta tagasi",
+    "failed": "AI ei suutnud teksti muuta. Proovige uuesti.",
+    "limited": "Liiga palju päringuid. Proovige minuti pärast."
+  },
+  "voice": {
+    "start": "Dikteeri",
+    "stop": "Peata ja kirjuta üles",
+    "cancel": "Tühista salvestus",
+    "recording": "Salvestuse aeg",
+    "transcribing": "Kirjutan üles…",
+    "denied": "Dikteerimiseks lubage brauseris mikrofon.",
+    "unsupported": "See brauser ei saa heli salvestada.",
+    "failed": "Salvestust ei õnnestunud üles kirjutada. Proovige uuesti.",
+    "limited": "Liiga palju salvestusi. Proovige minuti pärast.",
+    "atLimit": "Salvestus peatus 5 minuti järel."
+  }
 }
