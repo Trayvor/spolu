@@ -26,7 +26,9 @@ A group's unread number is 0 when its group chat would never notify the admin: t
 
 ## 3. Unchanged
 
-The Tickets card, My tasks and Upcoming reminders show assigned work whatever the settings (owner).
+The Tickets card, My tasks and Upcoming reminders list assigned work whatever the settings (owner).
+
+> **Reversed in part (2026-10-17, [unseen changes](2026-10-17-unseen-changes-design.md)):** for tasks, tickets and the header the dashboard now points at unseen changes, which follow the settings: the header counts only tasks and tickets with an unseen change, the sidebar badge adds them to the unread messages (the yellow assigned pill is gone), and My tasks and Tickets mark their unseen rows. The cards still list all assigned work.
 
 ## 4. Meeting notifications
 

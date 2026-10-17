@@ -110,6 +110,7 @@ const TICKET_ITEM = {
   requesterName: 'Eva',
   excerpt: 'The form fails',
   assignees: [{ id: 'u1', name: 'Eva' }],
+  unseen: false,
 };
 const TICKET = {
   ...TICKET_ITEM,

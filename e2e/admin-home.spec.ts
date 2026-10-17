@@ -100,27 +100,25 @@ test('admin home: dashboard, header counts, sidebar, Úlohy and global board', a
     await expect(ticketRow).toContainText('Nový');
     await expect(ticketRow).toHaveAttribute('href', `/tickets/${ticketId}`);
 
-    // The header counts: N's one open task; the tickets include G1's (others may have none).
+    // The header counts (2026-10-17): the tasks and tickets with a change N has not seen. N made
+    // the task and the ticket, so nothing is new for N yet. The count is read from the API too (it
+    // counts only N's own events, whatever other specs create in the shared database).
     const header = n.getByRole('banner');
-    // N's own count is read from the API (it counts only N's assignments, whatever other specs
-    // create in the shared database); the pill must show that number.
-    const myOpenTasks = async () =>
+    const myUnseenTasks = async () =>
       ((await (await nContext.request.get('/api/me/home/counts')).json()) as { tasks: number })
         .tasks;
-    await expect.poll(myOpenTasks).toBe(1);
-    await expect(header.getByTestId('nav-count-tasks')).toContainText(
-      '1 otvorená úloha priradená vám',
-    );
-    await expect(header.getByTestId('nav-count-tickets')).toBeVisible();
+    await expect.poll(myUnseenTasks).toBe(0);
+    await expect(header.getByTestId('nav-count-tasks')).toHaveCount(0);
 
-    // Live: a second task for N raises the count; resolving the ticket takes it off the card.
+    // Live: a task someone else assigns to N is a change N has not seen.
     const second = await setup.request.post(`/api/groups/${g1.id}/tasks`, {
       data: { title: `Druhá úloha ${stamp}`, assigneeIds: [nId] },
     });
     expect(second.status()).toBe(201);
-    await expect.poll(myOpenTasks).toBe(2);
+    const secondId = ((await second.json()) as { id: string }).id;
+    await expect.poll(myUnseenTasks).toBe(1);
     await expect(header.getByTestId('nav-count-tasks')).toContainText(
-      '2 otvorené úlohy priradené vám',
+      '1 úloha s novou zmenou',
       { timeout: 15_000 }, // the pill refetches after a 2 s debounce on the socket event
     );
     const resolved = await nContext.request.patch(`/api/tickets/${ticketId}`, {
@@ -138,10 +136,9 @@ test('admin home: dashboard, header counts, sidebar, Úlohy and global board', a
     });
     const g1Row = managed.getByRole('link', { name: new RegExp(g1Name) });
     await expect(g1Row).toBeVisible();
-    await expect(g1Row).toContainText('1 neprečítaná správa');
-    // The sidebar refetches on its own 2 s debounce (same hook as the header pill, separate
-    // timer), so it can trail the header under load.
-    await expect(g1Row).toContainText('2 úlohy priradené vám', { timeout: 15_000 });
+    // One black badge: the unread message and the unseen task. The sidebar refetches on its own
+    // 2 s debounce (same hook as the header pill, separate timer), so it can trail the header.
+    await expect(g1Row).toContainText('1 správa, 1 úloha', { timeout: 15_000 });
     await expect(others.getByRole('link', { name: new RegExp(g2Name) })).toBeVisible();
 
     // 4. Opening the mention shows the chat at the message; back home it is gone. Leaving only
@@ -180,6 +177,19 @@ test('admin home: dashboard, header counts, sidebar, Úlohy and global board', a
     await picker.getByRole('checkbox', { name: new RegExp(g2Name) }).check();
     await picker.getByRole('button', { name: 'Hotovo' }).click();
     await expect(n.getByRole('link', { name: new RegExp(`Iná úloha ${stamp}`) })).toBeVisible();
+
+    // The unseen task is marked on its card; opening it clears the mark and the header count.
+    const secondCard = n.getByRole('link', { name: new RegExp(`Druhá úloha ${stamp}`) });
+    await expect(secondCard).toContainText('Nová zmena');
+    const seen = n.waitForResponse(
+      (r) => r.request().method() === 'POST' && r.url().endsWith(`/api/tasks/${secondId}/seen`),
+    );
+    await secondCard.click();
+    expect((await seen).status()).toBe(204);
+    await expect.poll(myUnseenTasks).toBe(0);
+    await expect(header.getByTestId('nav-count-tasks')).toHaveCount(0, { timeout: 15_000 });
+    await n.keyboard.press('Escape');
+    await expect(secondCard).not.toContainText('Nová zmena', { timeout: 15_000 });
 
     // 7. On a phone the home shows the count tiles and the client list.
     await n.setViewportSize({ width: 390, height: 844 });

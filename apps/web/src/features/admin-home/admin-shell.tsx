@@ -55,7 +55,8 @@ export function AdminSidebar() {
   const [collapsed, setCollapsed] = useState(readCollapsed);
   const { groupId } = useParams({ strict: false });
   const sidebar = useQuery(sidebarQuery);
-  useAdminActivityRefetch(SIDEBAR_KEYS);
+  // Ticket events too: the badge counts the tickets with an unseen change (2026-10-17).
+  useAdminActivityRefetch(SIDEBAR_KEYS, { tickets: true });
 
   const toggle = () => {
     setCollapsed((was) => {

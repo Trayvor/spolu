@@ -34,8 +34,10 @@ export const SidebarClientSchema = z.object({
   managed: z.boolean(),
   /** Unread group chat messages (the Chat tab count). */
   unread: z.number().int(),
-  /** The viewer's open tasks in this client (not in Completed). */
-  assigned: z.number().int(),
+  /** Tasks of this client with an unseen change for the viewer (2026-10-17, completed too). */
+  unseenTasks: z.number().int(),
+  /** Tickets of this client with an unseen change for the viewer. */
+  unseenTickets: z.number().int(),
 });
 export type SidebarClient = z.infer<typeof SidebarClientSchema>;
 export const SidebarSchema = z.array(SidebarClientSchema);
@@ -48,6 +50,8 @@ export const AssignedTaskSchema = z.object({
   urgent: z.boolean(),
   dueDate: z.string().nullable(),
   bucketKind: BucketKindSchema,
+  /** The task has a change the viewer has not seen yet (2026-10-17). */
+  unseen: z.boolean(),
 });
 export type AssignedTask = z.infer<typeof AssignedTaskSchema>;
 export const AssignedTasksSchema = z.object({
@@ -81,6 +85,8 @@ export const HomeTicketSchema = z.object({
   dueDate: z.string().nullable(),
   createdAt: z.string(),
   hasAssignee: z.boolean(),
+  /** The ticket has a change the viewer has not seen yet (2026-10-17). */
+  unseen: z.boolean(),
 });
 export type HomeTicket = z.infer<typeof HomeTicketSchema>;
 export const HomeTicketsSchema = z.object({
@@ -97,7 +103,10 @@ export const HomeTicketsSchema = z.object({
 });
 export type HomeTickets = z.infer<typeof HomeTicketsSchema>;
 
-/** The header's counts for admins: my open tasks and the Tickets card's total. */
+/**
+ * The header's counts for admins (2026-10-17): the tasks and the tickets with a change the viewer
+ * has not seen yet (a ticket without a client counts for every admin until they open it).
+ */
 export const NavCountsSchema = z.object({
   tasks: z.number().int(),
   tickets: z.number().int(),
@@ -188,6 +197,8 @@ export const GlobalTaskDtoSchema = TaskDtoSchema.extend({
   bucketKind: BucketKindSchema,
   /** Custom buckets only. */
   bucketName: z.string().nullable(),
+  /** The task has a change the viewer has not seen yet (2026-10-17). */
+  unseen: z.boolean(),
 });
 export type GlobalTaskDto = z.infer<typeof GlobalTaskDtoSchema>;
 

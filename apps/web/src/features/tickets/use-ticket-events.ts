@@ -1,7 +1,9 @@
 import { useEffect } from 'react';
 import { useQueryClient, type InfiniteData, type Query } from '@tanstack/react-query';
 import {
+  SeenEvents,
   TicketEvents,
+  type SeenChangedEvent,
   type TicketDto,
   type TicketEventPayload,
   type TicketListResponse,
@@ -12,6 +14,7 @@ import { ApiError } from '@/lib/api';
 import { getSocket } from '@/lib/socket';
 import { firstJoinCheck } from '@/lib/socket-history';
 import {
+  markTicketSeenInLists,
   patchTicketInLists,
   removeTicketFromLists,
   ticketListPrefix,
@@ -35,7 +38,9 @@ import {
  * not found. A ticket whose client changed refreshes its chat's people. After a reconnect the
  * lists refetch, since events sent while the socket was down are lost; the first `connect` after
  * the mount refetches only the lists `firstJoinCheck` says may have missed events, not the ones
- * the mount just loaded. `source` null listens for the open ticket only.
+ * the mount just loaded. `source` null listens for the open ticket only. Opening a ticket (here or
+ * on another device, `seen:changed`, 2026-10-17) clears its rows' unseen mark; a patched row keeps
+ * its mark, and new marks come with the next fetch of the list.
  */
 export function useTicketEvents(source: TicketSource | null): void {
   const queryClient = useQueryClient();
@@ -122,6 +127,9 @@ export function useTicketEvents(source: TicketSource | null): void {
         refetchLists();
       }
     };
+    const onSeen = (event: SeenChangedEvent) => {
+      if (event.kind === 'ticket') markTicketSeenInLists(queryClient, event.id);
+    };
     let firstConnect: ReturnType<typeof firstJoinCheck> | null = firstJoinCheck(socket);
     const onConnect = () => {
       const stale = firstConnect;
@@ -132,11 +140,13 @@ export function useTicketEvents(source: TicketSource | null): void {
     socket.on(TicketEvents.created, onCreated);
     socket.on(TicketEvents.updated, onUpdated);
     socket.on(TicketEvents.moved, onMoved);
+    socket.on(SeenEvents.changed, onSeen);
     socket.on('connect', onConnect);
     return () => {
       socket.off(TicketEvents.created, onCreated);
       socket.off(TicketEvents.updated, onUpdated);
       socket.off(TicketEvents.moved, onMoved);
+      socket.off(SeenEvents.changed, onSeen);
       socket.off('connect', onConnect);
     };
   }, [sourceId, queryClient, meId]);

@@ -3,33 +3,40 @@ import { HOME_LIMITS, type AssignedTasks, type BucketKind, type TimeRequest } fr
 import type { Db } from '../../infra/db/client.js';
 import { myTimeRequests } from '../finance/task-time.js';
 import { groups } from '../groups/schema.js';
+import { taskUnseenSql, unseenTaskIdsSql } from '../notifications/unseen.js';
 import { getTaskTitles } from '../tasks/task-service.js';
 
 /**
  * The viewer's open assigned tasks across groups, in one statement: urgent first (by deadline, no
  * deadline last among them), then by deadline ascending (overdue first, their dates are the
  * earliest), then no deadline, oldest first. The window counts give the totals before the limit.
+ * `unseen` (2026-10-17) is computed for the page only, after the limit.
  */
 export function assignedSql(userId: string): SQL {
   return sql`
-    select
-      t.id,
-      t.group_id,
-      g.name as group_name,
-      t.title,
-      t.urgent,
-      t.due_date,
-      b.kind as bucket_kind,
-      (count(*) over ())::int as total,
-      (count(*) filter (where t.urgent) over ())::int as urgent_total
-    from task_assignees ta
-    join tasks t on t.id = ta.task_id
-    join groups g on g.id = t.group_id
-    join buckets b on b.id = t.bucket_id
-    where ta.user_id = ${userId}
-      and t.completed_at is null
-    order by t.urgent desc, t.due_date asc nulls last, t.created_at asc, t.id
-    limit ${HOME_LIMITS.tasks}
+    select p.*, ${taskUnseenSql(userId, sql`p.id`)} as unseen
+    from (
+      select
+        t.id,
+        t.group_id,
+        g.name as group_name,
+        t.title,
+        t.urgent,
+        t.due_date,
+        t.created_at,
+        b.kind as bucket_kind,
+        (count(*) over ())::int as total,
+        (count(*) filter (where t.urgent) over ())::int as urgent_total
+      from task_assignees ta
+      join tasks t on t.id = ta.task_id
+      join groups g on g.id = t.group_id
+      join buckets b on b.id = t.bucket_id
+      where ta.user_id = ${userId}
+        and t.completed_at is null
+      order by t.urgent desc, t.due_date asc nulls last, t.created_at asc, t.id
+      limit ${HOME_LIMITS.tasks}
+    ) p
+    order by p.urgent desc, p.due_date asc nulls last, p.created_at asc, p.id
   `;
 }
 
@@ -41,6 +48,7 @@ type Row = {
   urgent: boolean;
   due_date: string | null;
   bucket_kind: BucketKind;
+  unseen: boolean;
   total: number;
   urgent_total: number;
 };
@@ -99,25 +107,25 @@ export async function getAssignedTasks(db: Db, userId: string): Promise<Assigned
       urgent: r.urgent,
       dueDate: r.due_date,
       bucketKind: r.bucket_kind,
+      unseen: r.unseen,
     })),
   };
 }
 
 /**
- * The header's Tasks count: the viewer's open tasks (not in Completed), the same set as the
- * "My tasks" card's total. Unassigned tasks do not count. Reads `task_assignees_user_id_idx`.
+ * The header's Tasks count (2026-10-17): the tasks with a change the viewer has not seen yet,
+ * completed ones too, until they open them (`unseen.ts`). Reads
+ * `notification_events_unseen_task_idx`.
  */
-export function assignedCountSql(userId: string): SQL {
+export function unseenTaskCountSql(userId: string): SQL {
   return sql`
     select count(*)::int as total
-    from task_assignees ta
-    join tasks t on t.id = ta.task_id
-    where ta.user_id = ${userId}
-      and t.completed_at is null
+    from (${unseenTaskIdsSql(userId)}) x
+    join tasks t on t.id = x.task_id
   `;
 }
 
-export async function countAssignedTasks(db: Db, userId: string): Promise<number> {
-  const [row] = [...(await db.execute<{ total: number }>(assignedCountSql(userId)))];
+export async function countUnseenTasks(db: Db, userId: string): Promise<number> {
+  const [row] = [...(await db.execute<{ total: number }>(unseenTaskCountSql(userId)))];
   return row?.total ?? 0;
 }

@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import type { BucketKind, TaskChatSummary, TaskDto, TaskPerson } from '@spolu/shared';
 import { Avatar } from '@/components/avatar';
 import { Badge } from '@/components/ui/badge';
+import { UnseenDot } from '@/components/unseen-dot';
 import { cn } from '@/lib/utils';
 import { formatDue, isOverdue } from './dates';
 import { DoneCircle } from './done-circle';
@@ -127,6 +128,7 @@ export function TaskCard({
   groupLine,
   link,
   showDone = true,
+  unseen = false,
 }: {
   task: TaskDto;
   bucketKind: BucketKind;
@@ -147,6 +149,8 @@ export function TaskCard({
   link?: { to: string; search?: Record<string, unknown>; params?: Record<string, string> };
   /** The done circle (the global board has none: a task is moved from its panel). */
   showDone?: boolean;
+  /** A change the viewer has not seen yet (2026-10-17): an ink dot and a bold title. */
+  unseen?: boolean;
 }) {
   const { t } = useTranslation();
   const overdue = isOverdue(task.dueDate, bucketKind, today);
@@ -190,10 +194,11 @@ export function TaskCard({
           id={lifted ? undefined : titleId}
           className={cn(
             'line-clamp-3 break-words text-button',
-            chat?.unread ? 'font-bold' : 'font-medium',
+            chat?.unread || unseen ? 'font-bold' : 'font-medium',
             done && 'text-muted-foreground line-through',
           )}
         >
+          <UnseenDot unseen={unseen} label={t('tasks.card.unseen')} />
           {task.title}
         </span>
         {hasMeta && (

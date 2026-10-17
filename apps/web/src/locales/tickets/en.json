@@ -35,7 +35,8 @@
     "overdue": "Overdue since",
     "noSubject": "No subject",
     "noClient": "Without client",
-    "assignees": "Assignees: {{names}}"
+    "assignees": "Assignees: {{names}}",
+    "unseen": "New change"
   },
   "mine": {
     "title": "My tickets",
