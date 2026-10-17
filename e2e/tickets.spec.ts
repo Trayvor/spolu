@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { subjectsFor, waitForMessage } from './mailpit';
+import { clearMailFor, subjectsFor, waitForMessage } from './mailpit';
 
 // Phase 21, part 21.7: the whole ticket flow, from eGrant's intake to tasks on the board.
 const KEY = 'e2e-tickets-key-0123456789';
@@ -71,6 +71,8 @@ test('a ticket from eGrant: requester login, chat, status, email and tasks', asy
   // 3. The requester opens the link: signed in at once, no code, no password.
   const context = await browser.newContext({ locale: 'sk-SK', storageState: undefined });
   const requester = await context.newPage();
+  // Cleared so step 7 finds the notification email, not this one.
+  await clearMailFor(context.request, email);
   const url = new URL(link!);
   await requester.goto(url.pathname + url.hash);
   await expect(requester).toHaveURL(new RegExp(`/tickets/${id}$`));
