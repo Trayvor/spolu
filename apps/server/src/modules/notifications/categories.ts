@@ -27,6 +27,7 @@ export const NOTIFICATION_GROUP_OF: Record<NotificationKind, NotificationCategor
   'ticket.status': 'tickets',
   'ticket.updated': 'tickets',
   'ticket.tasks': 'tickets',
+  'ticket.assigned': 'tickets',
 };
 
 /**

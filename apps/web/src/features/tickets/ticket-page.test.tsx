@@ -441,4 +441,51 @@ describe('ticket page', () => {
       expect(within(requesterChat).queryByRole('link', { name: 'Fix the budget step' })).toBeNull();
     });
   });
+
+  describe('riešitelia', () => {
+    const candidates = (url: URL) =>
+      url.pathname === '/api/tickets/k1/assignee-candidates'
+        ? reply(200, [
+            { id: 'a1', name: 'Ada Admin', isAdmin: true },
+            { id: 'c1', name: 'Cyril Client', isAdmin: false },
+          ])
+        : undefined;
+
+    it('someone who may assign picks a riešiteľ and removes one; each change saves', async () => {
+      const assigned = ticket({ canAssign: true, assignees: [{ id: 'c1', name: 'Cyril Client' }] });
+      const { calls } = renderTicket(CLIENT, ticket({ canAssign: true }), [
+        candidates,
+        (url, init) =>
+          url.pathname === '/api/tickets/k1/assignees/c1' && init?.method === 'PUT'
+            ? reply(200, assigned)
+            : url.pathname === '/api/tickets/k1/assignees/c1' && init?.method === 'DELETE'
+              ? reply(200, ticket({ canAssign: true }))
+              : undefined,
+      ]);
+      const input = await screen.findByRole('combobox', {
+        name: t('tickets.assignees.title', { count: 0 }),
+      });
+      await userEvent.click(input);
+      await userEvent.click(await screen.findByRole('option', { name: /Cyril Client/ }));
+      await waitFor(() => expect(calls).toContain('PUT /api/tickets/k1/assignees/c1'));
+      await userEvent.click(
+        await screen.findByRole('button', {
+          name: t('forms.people.remove', { name: 'Cyril Client' }),
+        }),
+      );
+      await waitFor(() => expect(calls).toContain('DELETE /api/tickets/k1/assignees/c1'));
+    });
+
+    it('a requester sees the riešitelia without the picker', async () => {
+      const { calls } = renderTicket(
+        REQUESTER,
+        ticket({ assignees: [{ id: 'a1', name: 'Ada Admin' }] }),
+      );
+      expect(await screen.findByText('Ada Admin')).toBeInTheDocument();
+      expect(
+        screen.queryByRole('combobox', { name: t('tickets.assignees.title', { count: 1 }) }),
+      ).toBeNull();
+      expect(calls.some((c) => c.includes('assignee-candidates'))).toBe(false);
+    });
+  });
 });

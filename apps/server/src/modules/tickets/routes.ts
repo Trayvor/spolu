@@ -10,6 +10,7 @@ import {
   TicketIntakeBodySchema,
   TicketListQuerySchema,
   TicketPatchBodySchema,
+  TicketWatchSchema,
   type SessionUser,
   type TicketIntakeBody,
   type TicketIntakeResponse,
@@ -34,9 +35,11 @@ import { isAdmin } from '../users/policy.js';
 import { bodyExcerpt, ticketCreatedEmail } from './emails.js';
 import { emitTicket } from './events.js';
 import { runTicketChange } from './hooks.js';
-import { canCreateTicket, canEditTicket } from './policy.js';
+import { canAssignTicket, canCreateTicket, canEditTicket, canWatchTickets } from './policy.js';
 import {
   actorReadsTicket,
+  addAssignee,
+  assigneeCandidates,
   assignTicketGroup,
   claimRequesterEmail,
   createTicket,
@@ -44,15 +47,18 @@ import {
   follow,
   getTicketForActor,
   getTicketRow,
+  InvalidTicketAssigneeError,
   InvalidTicketCursorError,
   listFollowers,
   listTickets,
+  removeAssignee,
   roleIn,
   TicketHasTasksError,
   unfollow,
   updateTicket,
   type TicketRow,
 } from './service.js';
+import { setTicketWatch, watchesTickets } from './watch.js';
 
 type IdParams = { Params: { id: string } };
 
@@ -423,6 +429,103 @@ export const ticketsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, 
         throw error;
       }
     });
+  });
+
+  // ---- Riešitelia (assignees) ----------------------------------------------------------------------
+  /** The ticket if the actor reads it and may change its riešitelia, else a 404 or 403 sent. */
+  const assignable = async (actor: SessionUser, id: string, reply: FastifyReply) => {
+    const row = await readable(actor, id, reply);
+    if (!row) return null;
+    if (!canAssignTicket(actor, row, await roleIn(db, actor, row.groupId))) {
+      send(reply, 403, ErrorCodes.forbidden);
+      return null;
+    }
+    return row;
+  };
+
+  app.get<IdParams>(
+    '/tickets/:id/assignee-candidates',
+    { preHandler: anyUser },
+    async (request, reply) => {
+      const row = await assignable(request.user!, request.params.id, reply);
+      if (!row) return reply;
+      return assigneeCandidates(db, row);
+    },
+  );
+
+  type AssigneeParams = { Params: { id: string; userId: string } };
+
+  app.put<AssigneeParams>(
+    '/tickets/:id/assignees/:userId',
+    { preHandler: anyUser },
+    async (request, reply) => {
+      const actor = request.user!;
+      if (!allowWrite(actor.id)) return send(reply, 429, ErrorCodes.rateLimited);
+      const row = await assignable(actor, request.params.id, reply);
+      if (!row) return reply;
+      try {
+        const added = await addAssignee(db, row, request.params.userId);
+        if (added) {
+          emitTicket(app.io, 'updated', row);
+          await runTicketChange(
+            deps,
+            { kind: 'assigned', ticket: row, actorId: actor.id, assigneeId: request.params.userId },
+            request.log,
+          );
+        }
+      } catch (error) {
+        if (error instanceof InvalidTicketAssigneeError) {
+          return send(reply, 400, ErrorCodes.invalidAssignee);
+        }
+        throw error;
+      }
+      return getTicketForActor(db, actor, row.id);
+    },
+  );
+
+  app.delete<AssigneeParams>(
+    '/tickets/:id/assignees/:userId',
+    { preHandler: anyUser },
+    async (request, reply) => {
+      const actor = request.user!;
+      if (!allowWrite(actor.id)) return send(reply, 429, ErrorCodes.rateLimited);
+      const row = await assignable(actor, request.params.id, reply);
+      if (!row) return reply;
+      if (await removeAssignee(db, row.id, request.params.userId)) {
+        emitTicket(app.io, 'updated', row);
+      }
+      return getTicketForActor(db, actor, row.id);
+    },
+  );
+
+  // ---- Watch tickets (per user and client group) ------------------------------------------------
+  /** The actor's role in the group if they may watch its tickets, else a 404 or 403 sent. */
+  const watchable = async (actor: SessionUser, groupId: string, reply: FastifyReply) => {
+    const role = await roleIn(db, actor, groupId);
+    if ((!isAdmin(actor) && role === null) || !(await getGroup(db, groupId))) {
+      notFound(reply);
+      return false;
+    }
+    if (!canWatchTickets(actor, role)) {
+      send(reply, 403, ErrorCodes.forbidden);
+      return false;
+    }
+    return true;
+  };
+
+  app.get<IdParams>('/groups/:id/ticket-watch', { preHandler: anyUser }, async (request, reply) => {
+    const actor = request.user!;
+    if (!(await watchable(actor, request.params.id, reply))) return reply;
+    return { watching: await watchesTickets(db, actor, request.params.id) };
+  });
+
+  app.put<IdParams>('/groups/:id/ticket-watch', { preHandler: anyUser }, async (request, reply) => {
+    const actor = request.user!;
+    const body = TicketWatchSchema.safeParse(request.body);
+    if (!body.success) return invalid(reply);
+    if (!(await watchable(actor, request.params.id, reply))) return reply;
+    await setTicketWatch(db, actor.id, request.params.id, body.data.watching);
+    return { watching: body.data.watching };
   });
 
   app.get<IdParams>('/tickets/:id/followers', { preHandler: anyUser }, async (request, reply) => {

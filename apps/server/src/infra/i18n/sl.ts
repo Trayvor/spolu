@@ -103,6 +103,7 @@ export const sl: ServerTexts = {
     ticketNew: (n, client) => `Nov zahtevek #${n} · ${client}`,
     ticketUnassigned: (n) => `Nov zahtevek #${n} brez stranke`,
     ticketStatus: (n, status) => `Stanje #${n}: ${STATUS[status] ?? status}`,
+    ticketAssigned: (n) => `Ste reševalec zahtevka #${n}`,
     ticketUpdated: (n) => `Zahtevek #${n} je bil spremenjen`,
     ticketTasks: (n, c) =>
       `Zahtevek #${n} je pretvorjen v ${c} ${plural('sl', c, { one: 'nalogo', two: 'nalogi', few: 'naloge', other: 'nalog' })}`,

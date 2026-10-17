@@ -11,7 +11,7 @@ import { groupsQuery } from '@/features/groups/api';
 import { knowledgeScopeQuery } from '@/features/knowledge/api';
 import { useUpdateSearch } from '@/lib/use-update-search';
 import { cn } from '@/lib/utils';
-import type { TicketFilter } from './api';
+import { ticketWatchQuery, useSetTicketWatch, type TicketFilter } from './api';
 import { CheckIcon } from './icons';
 import { NewTicketDialog } from './new-ticket-dialog';
 import { filterFromSearch, writeFilter, type TicketsSearch } from './search';
@@ -149,13 +149,17 @@ export function TicketsTab() {
   const openTicket = useOpenTicket();
   if (!groupId || !me) return null;
   const admin = isAdmin(me);
+  // Admins and the group's clients create tickets and may watch them; a requester does neither.
   const canCreate = admin || clientGroups(me).some((g) => g.id === groupId);
   return (
     <div className="flex max-w-[880px] flex-col gap-4">
       {canCreate && (
-        <Button className="self-start" onClick={() => setCreating(true)}>
-          {t('tickets.new')}
-        </Button>
+        <div className="flex flex-col gap-3 min-[641px]:flex-row min-[641px]:items-center min-[641px]:justify-between">
+          <Button className="self-start" onClick={() => setCreating(true)}>
+            {t('tickets.new')}
+          </Button>
+          <WatchCheckbox groupId={groupId} />
+        </div>
       )}
       <TicketList source={{ kind: 'group', groupId }} filter={filter} onFilterChange={setFilter} />
       {creating && (
@@ -165,6 +169,47 @@ export function TicketsTab() {
           onClose={() => setCreating(false)}
           onCreated={openTicket}
         />
+      )}
+    </div>
+  );
+}
+
+/**
+ * "Watch tickets" for the signed-in user and this client: on, every new ticket of the client
+ * notifies them; off, only the tickets they follow do. Saved at once.
+ */
+function WatchCheckbox({ groupId }: { groupId: string }) {
+  const { t } = useTranslation();
+  const watch = useQuery(ticketWatchQuery(groupId));
+  const save = useSetTicketWatch(groupId);
+  // Set in the click's own render: the mutation's pending state lands a render later, so without
+  // it the controlled box would snap back for a moment.
+  const [picked, setPicked] = useState<boolean | null>(null);
+  const checked = picked ?? watch.data?.watching ?? false;
+  return (
+    <div className="flex flex-col gap-0.5 min-[641px]:items-end">
+      <label className="inline-flex min-h-8 items-center gap-2 px-1 text-tiny font-semibold">
+        <input
+          type="checkbox"
+          className="size-4 accent-foreground"
+          checked={checked}
+          disabled={!watch.data || save.isPending}
+          aria-describedby={`watch-hint-${groupId}`}
+          onChange={(event) => {
+            const next = event.target.checked;
+            setPicked(next);
+            save.mutate(next, { onSettled: () => setPicked(null) });
+          }}
+        />
+        {t('tickets.watch.label')}
+      </label>
+      <p id={`watch-hint-${groupId}`} className="px-1 text-micro text-muted-foreground">
+        {t(checked ? 'tickets.watch.on' : 'tickets.watch.off')}
+      </p>
+      {save.isError && (
+        <p role="alert" className="px-1 text-micro text-error-ink">
+          {t('errors.generic')}
+        </p>
       )}
     </div>
   );

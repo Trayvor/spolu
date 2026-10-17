@@ -145,3 +145,54 @@ test('an admin turns a ticket into tasks that link back to it', async ({ page })
     await expect(panel.getByRole('link', { name: `#${number} Rozpočet ${stamp}` })).toBeVisible();
   }
 });
+
+// Owner request 2026-10-17: riešitelia and "Watch tickets".
+test('an admin picks a riešiteľ, filters by it and watches the client tickets', async ({
+  page,
+}) => {
+  const stamp = Date.now();
+  const host = `e2e-ticket-assignee-${stamp}.egrant.sk`;
+  const groupPath = await createGroup(page, `E2E Riešiteľ ${stamp}`, `https://${host}`);
+  const res = await page.request.post('/api/tickets/intake', {
+    headers: { authorization: `Bearer ${KEY}` },
+    data: { subject: `Riešiteľ ${stamp}`, instance_url: `https://${host}` },
+  });
+  expect(res.status()).toBe(201);
+  const { id } = (await res.json()) as { id: string };
+  const me = (await (await page.request.get('/api/me')).json()) as { name: string };
+
+  // The picker offers every admin; the pick saves at once and makes the admin a follower.
+  await page.goto(`/tickets/${id}`);
+  const picker = page.getByRole('combobox', { name: 'Riešitelia (0)' });
+  await picker.click();
+  await picker.fill(me.name);
+  await page
+    .getByRole('option', { name: new RegExp(me.name) })
+    .first()
+    .click();
+  await expect(page.getByRole('heading', { name: 'Riešitelia (1)' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Sledujete' })).toBeVisible();
+
+  // The group list shows the riešiteľ; the riešiteľ filter narrows the list.
+  await page.goto(`${groupPath}/tickets`);
+  // By href: the group header's instance link also carries the stamp.
+  const row = page.locator(`a[href="/tickets/${id}"]`);
+  await expect(row).toContainText(`Riešitelia: ${me.name}`);
+  await page.getByRole('button', { name: 'Riešiteľ: Ktokoľvek' }).click();
+  await page.getByRole('menuitemradio', { name: 'Nikto' }).click();
+  await expect(page).toHaveURL(/assignee=none/);
+  await expect(row).toHaveCount(0);
+  await page.getByRole('button', { name: 'Riešiteľ: Nikto' }).click();
+  await page.getByRole('menuitemradio', { name: 'Ja' }).click();
+  await expect(row).toBeVisible();
+
+  // "Watch tickets": off for an admin who does not manage the client; ticking it is kept.
+  const watch = page.getByRole('checkbox', { name: 'Sledovať tikety' });
+  await expect(watch).not.toBeChecked();
+  await watch.check();
+  await expect(
+    page.getByText('Dostanete upozornenie na každý nový tiket tohto klienta.'),
+  ).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole('checkbox', { name: 'Sledovať tikety' })).toBeChecked();
+});

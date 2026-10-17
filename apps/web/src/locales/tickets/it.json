@@ -15,7 +15,13 @@
     "areaChosen": "Area: {{area}}",
     "noAreas": "Ancora nessuna area in questo elenco",
     "following": "Seguiti",
-    "noClient": "Senza cliente"
+    "noClient": "Senza cliente",
+    "assignee": "Assegnatario: {{name}}",
+    "assignees": {
+      "anyone": "Chiunque",
+      "me": "Io",
+      "none": "Nessuno"
+    }
   },
   "list": {
     "loading": "Caricamento dei ticket…",
@@ -29,7 +35,8 @@
     "overdue": "Scaduto dal",
     "noSubject": "Senza oggetto",
     "noClient": "Senza cliente",
-    "following": "Lei segue questo ticket"
+    "following": "Lei segue questo ticket",
+    "assignees": "Assegnatari: {{names}}"
   },
   "mine": {
     "title": "I miei ticket",
@@ -105,5 +112,16 @@
     "title": "Attività",
     "none": "Ancora nessuna attività. Trasformi il ticket in attività per portare il lavoro sulla bacheca.",
     "completed": "Completata"
+  },
+  "assignees": {
+    "title": "Assegnatari ({{count}})",
+    "suggestions": "Chi può gestire il ticket",
+    "none": "Nessuno gestisce ancora questo ticket.",
+    "hint": "Un assegnatario riceve una notifica e segue il ticket."
+  },
+  "watch": {
+    "label": "Segui i ticket",
+    "on": "Riceve una notifica per ogni nuovo ticket di questo cliente.",
+    "off": "Riceve notifiche solo per i ticket che segue."
   }
 }

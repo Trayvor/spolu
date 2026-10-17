@@ -15,7 +15,13 @@
     "areaChosen": "Oblasť: {{area}}",
     "noAreas": "V tomto zozname zatiaľ nie sú oblasti",
     "following": "Sledované",
-    "noClient": "Bez klienta"
+    "noClient": "Bez klienta",
+    "assignee": "Riešiteľ: {{name}}",
+    "assignees": {
+      "anyone": "Ktokoľvek",
+      "me": "Ja",
+      "none": "Nikto"
+    }
   },
   "list": {
     "loading": "Načítavam tikety…",
@@ -29,7 +35,8 @@
     "overdue": "Po termíne od",
     "noSubject": "Bez predmetu",
     "noClient": "Bez klienta",
-    "following": "Tento tiket sledujete"
+    "following": "Tento tiket sledujete",
+    "assignees": "Riešitelia: {{names}}"
   },
   "mine": {
     "title": "Moje tikety",
@@ -106,5 +113,16 @@
     "title": "Úlohy",
     "none": "Zatiaľ žiadne úlohy. Vytvorte z tiketu úlohy a dajte prácu na nástenku.",
     "completed": "Hotová"
+  },
+  "assignees": {
+    "title": "Riešitelia ({{count}})",
+    "suggestions": "Kto môže tiket riešiť",
+    "none": "Tiket zatiaľ nikto nerieši.",
+    "hint": "Riešiteľ dostane upozornenie a tiket sleduje."
+  },
+  "watch": {
+    "label": "Sledovať tikety",
+    "on": "Dostanete upozornenie na každý nový tiket tohto klienta.",
+    "off": "Dostávate upozornenia len na tikety, ktoré sledujete."
   }
 }

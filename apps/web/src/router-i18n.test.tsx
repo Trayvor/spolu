@@ -100,6 +100,7 @@ const TICKET_ITEM = {
   following: true,
   requesterName: 'Eva',
   excerpt: 'The form fails',
+  assignees: [{ id: 'u1', name: 'Eva' }],
 };
 const TICKET = {
   ...TICKET_ITEM,
@@ -119,6 +120,7 @@ const TICKET = {
     { id: 't2', title: 'Write back', completed: true },
   ],
   channelId: 'c3',
+  canAssign: true,
 };
 const PAGE = { messages: [MESSAGE], hasMore: false, lastSeq: 1, lastReadAt: null };
 
@@ -145,6 +147,8 @@ function mockApi(me: typeof ADMIN | typeof CLIENT | null) {
     '/api/knowledge/scope': { managedGroupIds: [] },
     '/api/tickets/k1': TICKET,
     '/api/tickets/k1/followers': [{ id: 'u1', name: 'Eva' }],
+    '/api/tickets/k1/assignee-candidates': [{ id: 'u1', name: 'Eva', isAdmin: true }],
+    '/api/groups/g1/ticket-watch': { watching: true },
     '/api/tickets/k1/chat': { id: 'c3', ...CHANNEL },
     '/api/channels/c3/messages': PAGE,
     '/api/channels/c3/unread-threads': [],

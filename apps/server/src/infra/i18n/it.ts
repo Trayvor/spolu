@@ -101,6 +101,7 @@ export const it: ServerTexts = {
     ticketNew: (n, client) => `Nuovo ticket #${n} · ${client}`,
     ticketUnassigned: (n) => `Nuovo ticket #${n} senza cliente`,
     ticketStatus: (n, status) => `#${n} ora è ${STATUS[status] ?? status}`,
+    ticketAssigned: (n) => `Sei assegnatario del ticket #${n}`,
     ticketUpdated: (n) => `#${n} è stato modificato`,
     ticketTasks: (n, c) =>
       `#${n} trasformato in ${c} ${plural('it', c, { one: 'attività', many: 'attività', other: 'attività' })}`,

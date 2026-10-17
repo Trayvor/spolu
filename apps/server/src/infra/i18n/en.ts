@@ -95,6 +95,7 @@ export const en: ServerTexts = {
     ticketNew: (n, client) => `New ticket #${n} · ${client}`,
     ticketUnassigned: (n) => `New ticket #${n} without client`,
     ticketStatus: (n, status) => `#${n} is now ${STATUS[status] ?? status}`,
+    ticketAssigned: (n) => `You were assigned #${n}`,
     ticketUpdated: (n) => `#${n} was changed`,
     ticketTasks: (n, c) =>
       `#${n} turned into ${c} ${plural('en', c, { one: 'task', other: 'tasks' })}`,

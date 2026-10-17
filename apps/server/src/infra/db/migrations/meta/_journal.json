@@ -183,6 +183,13 @@
       "when": 1792189736848,
       "tag": "0025_more_languages",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1792193234300,
+      "tag": "0026_ticket_assignees_watch",
+      "breakpoints": true
     }
   ]
 }

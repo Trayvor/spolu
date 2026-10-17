@@ -80,6 +80,49 @@ describe('ticket lists', () => {
     await waitFor(() => expect(calls).toContain('GET /api/groups/g1/tickets?following=true'));
   });
 
+  it('the riešiteľ filter sends assignee=me and the rows show the riešitelia', async () => {
+    const { calls } = mockTicketApi(
+      CLIENT,
+      groupRoutes([item({ id: 'k1', assignees: [{ id: 'a1', name: 'Ada Admin' }] })]),
+    );
+    renderAt('/groups/g1/tickets');
+    await screen.findByText('Ticket k1');
+    expect(
+      screen.getByText(t('tickets.row.assignees', { names: 'Ada Admin' })),
+    ).toBeInTheDocument();
+    await userEvent.click(
+      screen.getByRole('button', {
+        name: t('tickets.filters.assignee', { name: t('tickets.filters.assignees.anyone') }),
+      }),
+    );
+    await userEvent.click(
+      await screen.findByRole('menuitemradio', { name: t('tickets.filters.assignees.me') }),
+    );
+    await waitFor(() => expect(calls).toContain('GET /api/groups/g1/tickets?assignee=me'));
+  });
+
+  it('the Tickets tab has "Watch tickets", saved at once', async () => {
+    const { calls, fetchMock } = mockTicketApi(CLIENT, [
+      ...groupRoutes(),
+      (url, init) =>
+        url.pathname === '/api/groups/g1/ticket-watch'
+          ? reply(200, init?.method === 'PUT' ? { watching: false } : { watching: true })
+          : undefined,
+    ]);
+    renderAt('/groups/g1/tickets');
+    const box = await screen.findByRole('checkbox', { name: t('tickets.watch.label') });
+    await waitFor(() => expect(box).toBeChecked());
+    expect(screen.getByText(t('tickets.watch.on'))).toBeInTheDocument();
+    await userEvent.click(box);
+    await waitFor(() => expect(calls).toContain('PUT /api/groups/g1/ticket-watch'));
+    const put = fetchMock.mock.calls.find(
+      ([url, init]) => init?.method === 'PUT' && url.endsWith('/ticket-watch'),
+    )!;
+    expect(JSON.parse(put[1]!.body as string)).toEqual({ watching: false });
+    await waitFor(() => expect(box).not.toBeChecked());
+    expect(screen.getByText(t('tickets.watch.off'))).toBeInTheDocument();
+  });
+
   it('global view has the client filter with "Without client"', async () => {
     const { calls } = mockTicketApi(ADMIN, [
       (url) =>

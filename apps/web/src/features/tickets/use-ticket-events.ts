@@ -88,7 +88,11 @@ export function useTicketEvents(source: TicketSource | null): void {
 
     async function refresh(ticketId: string) {
       const ticket = await load(ticketId);
-      if (ticket && !patchTicketInLists(queryClient, ticket) && (!mine || ownedByMe(ticket))) {
+      if (
+        ticket &&
+        !patchTicketInLists(queryClient, ticket, meId) &&
+        (!mine || ownedByMe(ticket))
+      ) {
         refetchLists();
       }
     }

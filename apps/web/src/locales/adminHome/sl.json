@@ -38,14 +38,14 @@
       "fresh_two": "{{count}} nova",
       "fresh_few": "{{count}} novi",
       "fresh_other": "{{count}} novih",
-      "unassigned_one": "{{count}} brez stranke",
-      "unassigned_two": "{{count}} brez stranke",
-      "unassigned_few": "{{count}} brez stranke",
-      "unassigned_other": "{{count}} brez stranke",
+      "noAssignee_one": "{{count}} brez reševalca",
+      "noAssignee_two": "{{count}} brez reševalca",
+      "noAssignee_few": "{{count}} brez reševalca",
+      "noAssignee_other": "{{count}} brez reševalca",
       "new": "Nov",
       "noClient": "Brez stranke",
       "showAll": "Prikaži vse zahtevke",
-      "empty": "Vaše stranke nimajo odprtih zahtevkov in noben zahtevek ni brez stranke."
+      "empty": "Nič za reševanje: noben odprt zahtevek ni vaš, brez reševalca pri spremljanih strankah ali brez stranke."
     },
     "assigned": {
       "title": "Moje naloge",
@@ -114,9 +114,9 @@
     "tasks_two": "{{count}} odprti nalogi, dodeljeni vam",
     "tasks_few": "{{count}} odprte naloge, dodeljene vam",
     "tasks_other": "{{count}} odprtih nalog, dodeljenih vam",
-    "tickets_one": "{{count}} odprt zahtevek vaših strank ali brez stranke",
-    "tickets_two": "{{count}} odprta zahtevka vaših strank ali brez stranke",
-    "tickets_few": "{{count}} odprti zahtevki vaših strank ali brez stranke",
-    "tickets_other": "{{count}} odprtih zahtevkov vaših strank ali brez stranke"
+    "tickets_one": "{{count}} odprt zahtevek za reševanje",
+    "tickets_two": "{{count}} odprta zahtevka za reševanje",
+    "tickets_few": "{{count}} odprti zahtevki za reševanje",
+    "tickets_other": "{{count}} odprtih zahtevkov za reševanje"
   }
 }

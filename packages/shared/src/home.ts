@@ -55,8 +55,9 @@ export const AssignedTasksSchema = z.object({
 export type AssignedTasks = z.infer<typeof AssignedTasksSchema>;
 
 /**
- * One active ticket on the dashboard's Tickets card: a ticket of a client the viewer manages, or
- * a ticket without a client (nobody looks after it yet). `groupId` null: without client.
+ * One active ticket on the dashboard's Tickets card: a ticket the viewer is a riešiteľ of, a
+ * ticket without a riešiteľ of a client whose tickets the viewer watches, or a ticket without a
+ * client. `groupId` null: without client; `hasAssignee` false: nobody is its riešiteľ yet.
  */
 export const HomeTicketSchema = z.object({
   id: z.string(),
@@ -69,15 +70,19 @@ export const HomeTicketSchema = z.object({
   groupName: z.string().nullable(),
   dueDate: z.string().nullable(),
   createdAt: z.string(),
+  hasAssignee: z.boolean(),
 });
 export type HomeTicket = z.infer<typeof HomeTicketSchema>;
 export const HomeTicketsSchema = z.object({
-  /** Active tickets (New, In progress) of the clients I manage plus those without a client. */
+  /**
+   * Active tickets (New, In progress): mine as a riešiteľ, those without a riešiteľ of the
+   * clients I watch, and those without a client.
+   */
   total: z.number().int(),
   /** Of those, in the New state. */
   fresh: z.number().int(),
-  /** Of those, without a client. */
-  unassigned: z.number().int(),
+  /** Of those, without a riešiteľ. */
+  noAssignee: z.number().int(),
   items: z.array(HomeTicketSchema),
 });
 export type HomeTickets = z.infer<typeof HomeTicketsSchema>;

@@ -18,6 +18,8 @@ export const NotificationKinds = [
   'ticket.status',
   'ticket.updated',
   'ticket.tasks',
+  // A person became a riešiteľ (assignee) of a ticket.
+  'ticket.assigned',
 ] as const;
 export type NotificationKind = (typeof NotificationKinds)[number];
 

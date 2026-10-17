@@ -99,7 +99,7 @@ describe('ticket notifications (Phase 21.6)', () => {
   const pushesTo = (endpoint: string) =>
     test.push.sent.filter((s) => s.endpoint === endpoint).map((s) => s.payload);
 
-  it('ticket.created reaches the managers with the ticket in the payload', async () => {
+  it('ticket.created reaches the managers (they watch by default) with the ticket in the payload', async () => {
     const g = await group();
     const m = await admin();
     await addManager(db(), g.id, m.id);
@@ -147,6 +147,7 @@ describe('ticket notifications (Phase 21.6)', () => {
     const [m, actor] = [await admin(), await admin()];
     await addManager(db(), g.id, m.id);
     const t = await ticket(g, z.email);
+    await call('PUT', `/api/tickets/${t.id}/follow`, m.cookie);
     await call('PUT', `/api/tickets/${t.id}/follow`, actor.cookie);
     await call('PATCH', `/api/tickets/${t.id}`, actor.cookie, { status: 'in_progress' });
     const events = (await eventsOf(t.id, [z.id, m.id, actor.id])).filter(
@@ -178,7 +179,8 @@ describe('ticket notifications (Phase 21.6)', () => {
     await call('PUT', `/api/tickets/${t.id}/follow`, c.cookie);
     await removeMembership(db(), g.id, c.id);
     await call('PATCH', `/api/tickets/${t.id}`, a.cookie, { status: 'resolved' });
-    expect(await eventsOf(t.id, [c.id])).toEqual([]);
+    // The new ticket reached c as a watcher before; nothing after the removal.
+    expect((await eventsOf(t.id, [c.id])).filter((e) => e.kind !== 'ticket.created')).toEqual([]);
   });
 
   it('turning into tasks notifies the followers with the count', async () => {
@@ -251,7 +253,8 @@ describe('ticket notifications (Phase 21.6)', () => {
     const t = await ticket(g, z.email);
     const chat = await chatOf(t.id, a.cookie);
     await send(chat.id, a.cookie, `<@${c.id}> <@${z.id}> pozrite`);
-    const events = await eventsOf(t.id, [c.id, z.id]);
+    // The clients watch the group's tickets by default: c heard about the new ticket too.
+    const events = (await eventsOf(t.id, [c.id, z.id])).filter((e) => e.kind !== 'ticket.created');
     expect(events.map((e) => [e.userId, e.kind]).sort()).toEqual(
       [
         [c.id, 'chat.mention'],
@@ -261,7 +264,7 @@ describe('ticket notifications (Phase 21.6)', () => {
     );
     await vi.waitFor(
       () =>
-        expect(pushesTo(c.endpoint)).toEqual([
+        expect(pushesTo(c.endpoint).filter((p) => !p.title.startsWith('Nový tiket'))).toEqual([
           {
             title: `#${t.number} Login fails`,
             body: 'Ad Min: @Klient @Jana pozrite',

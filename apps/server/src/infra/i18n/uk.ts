@@ -103,6 +103,7 @@ export const uk: ServerTexts = {
     ticketNew: (n, client) => `Новий тікет #${n} · ${client}`,
     ticketUnassigned: (n) => `Новий тікет #${n} без клієнта`,
     ticketStatus: (n, status) => `#${n}: статус «${STATUS[status] ?? status}»`,
+    ticketAssigned: (n) => `Ви — виконавець тікета #${n}`,
     ticketUpdated: (n) => `#${n} змінено`,
     ticketTasks: (n, c) =>
       `#${n} перетворено на ${c} ${plural('uk', c, { one: 'завдання', few: 'завдання', many: 'завдань', other: 'завдання' })}`,

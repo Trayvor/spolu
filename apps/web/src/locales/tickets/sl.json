@@ -15,7 +15,13 @@
     "areaChosen": "Področje: {{area}}",
     "noAreas": "Na tem seznamu še ni področij",
     "following": "Spremljani",
-    "noClient": "Brez stranke"
+    "noClient": "Brez stranke",
+    "assignee": "Reševalec: {{name}}",
+    "assignees": {
+      "anyone": "Kdorkoli",
+      "me": "Jaz",
+      "none": "Nihče"
+    }
   },
   "list": {
     "loading": "Nalaganje zahtevkov…",
@@ -29,7 +35,8 @@
     "overdue": "Zamuda od",
     "noSubject": "Brez zadeve",
     "noClient": "Brez stranke",
-    "following": "Ta zahtevek spremljate"
+    "following": "Ta zahtevek spremljate",
+    "assignees": "Reševalci: {{names}}"
   },
   "mine": {
     "title": "Moji zahtevki",
@@ -106,5 +113,16 @@
     "title": "Naloge",
     "none": "Nalog še ni. Pretvorite zahtevek v naloge, da delo prenesete na tablo.",
     "completed": "Dokončano"
+  },
+  "assignees": {
+    "title": "Reševalci ({{count}})",
+    "suggestions": "Kdo lahko rešuje zahtevek",
+    "none": "Zahtevka še nihče ne rešuje.",
+    "hint": "Reševalec prejme obvestilo in spremlja zahtevek."
+  },
+  "watch": {
+    "label": "Spremljaj zahtevke",
+    "on": "Prejmete obvestilo o vsakem novem zahtevku te stranke.",
+    "off": "Prejemate obvestila le o zahtevkih, ki jih spremljate."
   }
 }

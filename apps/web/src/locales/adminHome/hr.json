@@ -35,13 +35,13 @@
       "fresh_one": "{{count}} novi",
       "fresh_few": "{{count}} nova",
       "fresh_other": "{{count}} novih",
-      "unassigned_one": "{{count}} bez klijenta",
-      "unassigned_few": "{{count}} bez klijenta",
-      "unassigned_other": "{{count}} bez klijenta",
+      "noAssignee_one": "{{count}} bez rješavatelja",
+      "noAssignee_few": "{{count}} bez rješavatelja",
+      "noAssignee_other": "{{count}} bez rješavatelja",
       "new": "Novi",
       "noClient": "Bez klijenta",
       "showAll": "Prikaži sve tikete",
-      "empty": "Vaši klijenti nemaju otvorenih tiketa i nijedan tiket nije bez klijenta."
+      "empty": "Nema ništa za rješavanje: nema otvorenih tiketa dodijeljenih Vama, bez rješavatelja kod praćenih klijenata ni bez klijenta."
     },
     "assigned": {
       "title": "Moji zadaci",
@@ -107,8 +107,8 @@
     "tasks_one": "{{count}} otvoreni zadatak dodijeljen Vama",
     "tasks_few": "{{count}} otvorena zadatka dodijeljena Vama",
     "tasks_other": "{{count}} otvorenih zadataka dodijeljenih Vama",
-    "tickets_one": "{{count}} otvoreni tiket Vaših klijenata ili bez klijenta",
-    "tickets_few": "{{count}} otvorena tiketa Vaših klijenata ili bez klijenta",
-    "tickets_other": "{{count}} otvorenih tiketa Vaših klijenata ili bez klijenta"
+    "tickets_one": "{{count}} otvoreni tiket za rješavanje",
+    "tickets_few": "{{count}} otvorena tiketa za rješavanje",
+    "tickets_other": "{{count}} otvorenih tiketa za rješavanje"
   }
 }

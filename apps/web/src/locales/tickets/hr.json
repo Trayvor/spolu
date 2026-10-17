@@ -15,7 +15,13 @@
     "areaChosen": "Područje: {{area}}",
     "noAreas": "Na ovom popisu još nema područja",
     "following": "Praćeni",
-    "noClient": "Bez klijenta"
+    "noClient": "Bez klijenta",
+    "assignee": "Rješavatelj: {{name}}",
+    "assignees": {
+      "anyone": "Bilo tko",
+      "me": "Ja",
+      "none": "Nitko"
+    }
   },
   "list": {
     "loading": "Učitavam tikete…",
@@ -29,7 +35,8 @@
     "overdue": "Rok istekao",
     "noSubject": "Bez predmeta",
     "noClient": "Bez klijenta",
-    "following": "Pratite ovaj tiket"
+    "following": "Pratite ovaj tiket",
+    "assignees": "Rješavatelji: {{names}}"
   },
   "mine": {
     "title": "Moji tiketi",
@@ -105,5 +112,16 @@
     "title": "Zadaci",
     "none": "Još nema zadataka. Pretvorite tiket u zadatke i stavite posao na ploču.",
     "completed": "Dovršeno"
+  },
+  "assignees": {
+    "title": "Rješavatelji ({{count}})",
+    "suggestions": "Tko može rješavati tiket",
+    "none": "Ovaj tiket još nitko ne rješava.",
+    "hint": "Rješavatelj dobiva obavijest i prati tiket."
+  },
+  "watch": {
+    "label": "Prati tikete",
+    "on": "Dobivate obavijest o svakom novom tiketu ovog klijenta.",
+    "off": "Dobivate obavijesti samo o tiketima koje pratite."
   }
 }

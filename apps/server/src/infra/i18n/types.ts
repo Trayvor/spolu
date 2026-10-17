@@ -93,6 +93,8 @@ export type ServerTexts = {
     ticketNew(number: number, client: string): string;
     ticketUnassigned(number: number): string;
     ticketStatus(number: number, status: TicketStatus): string;
+    /** A person became a riešiteľ (assignee) of the ticket. */
+    ticketAssigned(number: number): string;
     ticketUpdated(number: number): string;
     ticketTasks(number: number, count: number): string;
     ticketTopic(number: number): string;

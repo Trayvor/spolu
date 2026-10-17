@@ -44,3 +44,4 @@ What gets easier, what gets harder.
 | [0018](0018-visible-name-help-and-domain-redirects.md) | Visible name Help, code name Spolu, and old-domain redirects | accepted |
 | [0019](0019-nine-languages-and-one-email-design.md) | Nine languages and one email design | accepted |
 | [0020](0020-header-menus-on-first-use-and-native-dialog-sheets.md) | Header menus on first use and native dialog sheets | accepted |
+| [0021](0021-ticket-riesitelia-and-watching.md) | Ticket riešitelia, and watching tickets instead of managing the client | accepted |

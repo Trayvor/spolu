@@ -13,6 +13,7 @@ import type { TicketFilter } from './api';
 import { CheckIcon, ChevronDown } from './icons';
 
 const STATUSES = ['open', 'resolved', 'all'] as const;
+const ASSIGNEES = ['anyone', 'me', 'none'] as const;
 
 // The knowledge tab's type pills: 32 px, a 44 px tap area, filled ink when chosen.
 const pill =
@@ -22,8 +23,8 @@ const pillOn = 'bg-primary text-primary-foreground';
 
 /**
  * The filters of every ticket list: the status (Open = New and In progress, the default;
- * Resolved; All) as three pills, the question area as a menu of the areas seen in the list and
- * "Following" as a toggle pill. `children` go first in the bar (the global view's client filter).
+ * Resolved; All) as three pills, the question area as a menu of the areas seen in the list, the
+ * riešiteľ (anyone, me, nobody) as a menu and "Following" as a toggle pill. `children` go first in the bar (the global view's client filter).
  */
 export function TicketFilters({
   filter,
@@ -90,6 +91,28 @@ export function TicketFilters({
               {t('tickets.filters.noAreas')}
             </p>
           )}
+        </DropdownMenuContent>
+      </DropdownMenu>
+      <DropdownMenu>
+        <DropdownMenuTrigger className={cn(pill, filter.assignee ? pillOn : pillOff)}>
+          {t('tickets.filters.assignee', {
+            name: t(`tickets.filters.assignees.${filter.assignee ?? 'anyone'}`),
+          })}
+          <ChevronDown />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start">
+          <DropdownMenuRadioGroup
+            value={filter.assignee ?? 'anyone'}
+            onValueChange={(value) =>
+              set({ assignee: value === 'me' || value === 'none' ? value : undefined })
+            }
+          >
+            {ASSIGNEES.map((key) => (
+              <DropdownMenuRadioItem key={key} value={key}>
+                {t(`tickets.filters.assignees.${key}`)}
+              </DropdownMenuRadioItem>
+            ))}
+          </DropdownMenuRadioGroup>
         </DropdownMenuContent>
       </DropdownMenu>
       <button

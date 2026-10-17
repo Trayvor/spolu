@@ -12,6 +12,7 @@ import { ticketQuery } from './api';
 import { ChevronDown, ChevronLeft } from './icons';
 import { TicketChat } from './ticket-chat';
 import { StatusControl, TicketFields } from './ticket-fields';
+import { TicketAssignees } from './ticket-assignees';
 import { TicketFollowers } from './ticket-followers';
 import { TicketTasks } from './ticket-tasks';
 import { ticketTitle } from './ticket-list';
@@ -25,7 +26,8 @@ export function TicketPageRoute() {
 
 /**
  * The ticket page (Phase 21): the ticket's number, status and client over its subject, then from
- * 1024 px two columns, the details on the left (text, fields with the client, followers, tasks)
+ * 1024 px two columns, the details on the left (text, fields with the client, riešitelia,
+ * followers, tasks)
  * and the ticket chat filling the rest of the window on the right; "Back" above returns to the
  * list. Below 1024 px the details fold into a summary above the chat. A ticket without a client
  * shows "No client yet" (admins choose the client in Edit) and no chat. Admins change the status
@@ -164,12 +166,18 @@ function TicketHeader({
   );
 }
 
-/** Left column (or the folded summary): text and fields (with the client), followers, tasks. */
+/**
+ * Left column (or the folded summary): text and fields (with the client), riešitelia, followers,
+ * tasks.
+ */
 function TicketDetails({ ticket, me }: { ticket: TicketDto; me: Me }) {
   const { t } = useTranslation();
   return (
     <>
       <TicketFields ticket={ticket} editable={isAdmin(me)} />
+      <Section>
+        <TicketAssignees ticket={ticket} />
+      </Section>
       <Section>
         <TicketFollowers ticketId={ticket.id} following={ticket.following} />
       </Section>

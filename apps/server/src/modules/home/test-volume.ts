@@ -96,6 +96,13 @@ export async function withVolume(
           now() - i * interval '5 minutes', now()
         from generate_series(1, ${TICKETS}) i
       `);
+      // Every seventh ticket has a riešiteľ: one in ten of those the admin, else the group's client.
+      await tx.execute(sql`
+        insert into ticket_assignees (ticket_id, user_id)
+        select ${p} || '-k' || i,
+          case when i % 70 = 1 then ${adminId} else ${p} || '-c' || (i % ${GROUPS} + 1) end
+        from generate_series(1, ${TICKETS}) i where i % 7 = 1
+      `);
       // Message i is in channel ((i - 1) / 2000) + 1; every tenth replies to the one before it.
       await tx.execute(sql`
         insert into messages (id, channel_id, author_id, parent_id, body, mentions_all, client_id,
@@ -138,6 +145,7 @@ export async function withVolume(
         'tasks',
         'task_assignees',
         'tickets',
+        'ticket_assignees',
         'messages',
         'message_mentions',
         'read_states',
