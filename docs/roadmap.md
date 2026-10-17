@@ -1,6 +1,6 @@
 # Roadmap
 
-28 phases (0-27). Each phase ends with something that works and can be used. Update the `Status` column when a phase starts or finishes (values: `planned`, `in progress`, `done` = merged into `main`, which deploys it to the test server https://help.egrant.sk, `merged into N`). What the owner still has to walk by hand is written in the phase's section. The `implement-phase` and `update-kb` skills do this.
+35 phases (0-34). Each phase ends with something that works and can be used. Update the `Status` column when a phase starts or finishes (values: `planned`, `in progress`, `done` = merged into `main`, which deploys it to the test server https://help.egrant.sk, `merged into N`). What the owner still has to walk by hand is written in the phase's section. The `implement-phase` and `update-kb` skills do this.
 
 Requirements per module: [product/](product/README.md). Phases after 1 get their own short design and plan when they start.
 
@@ -38,6 +38,8 @@ Requirements per module: [product/](product/README.md). Phases after 1 get their
 | 29 | [Solve with AI](#phase-29--solve-with-ai) | done | 21 | [spec](superpowers/specs/2026-10-17-phase-29-open-in-claude-design.md) |
 | 31 | [Bulk email builder v2](#phase-31--bulk-email-builder-v2) | in progress (v2 merged in PR #59; layout follow-up in review) | 23 | [spec](superpowers/specs/2026-10-17-phase-31-bulk-email-builder-v2-design.md), [plan](superpowers/plans/2026-10-17-phase-31-bulk-email-builder-v2.md), [layout spec](superpowers/specs/2026-10-17-bulk-email-builder-layout-design.md) |
 | 32 | [Finančná správa](#phase-32--finančná-správa) | in progress (A1 done; A2, B, C next) | 17, 19, 20, 24 | [spec](superpowers/specs/2026-10-17-finance-module-design.md), [plan](superpowers/plans/2026-10-17-finance-module.md) |
+| 33 | [Projects per client and closer eGrant integration](#phase-33--projects-per-client-and-closer-egrant-integration) | spec written, waiting for the owner | 32 (P6 only), 28 | [spec](superpowers/specs/2026-10-17-phase-33-projects-design.md), [plan](superpowers/plans/2026-10-17-phase-33-projects.md) |
+| 34 | [Internal admin group](#phase-34--internal-admin-group) | spec written, waiting for the owner | 33, 32 (P34-E only), 28 | [spec](superpowers/specs/2026-10-17-phase-34-admin-group-design.md), [plan](superpowers/plans/2026-10-17-phase-34-admin-group.md) |
 
 Phases 8 and 14 do not depend on each other, so their order can change by priority.
 
@@ -456,3 +458,29 @@ Built in five pull requests: A1 foundation first (schema, permission, empty scre
 Status: approved by the owner on 2026-10-17 (every recommendation of the Owner decisions table accepted as written), and extended the same day with time on tickets (spec request item 6, decisions 23–26; decision 24, tickets without a client, waits for the owner's confirmation). **Part A1 (foundation) done** on `feat/finance-a1-foundation`: migration 0034 with every finance table (time entries for tasks, tickets and manual entries), the finance right with the superadmin's switch on the Admins page, `requireFinance`, the `finance` room and events, finance-only files, the Finance notification group, the shared money, duration and DTO schemas, the empty Financie tab and `/finance` page, the four locale namespaces and [ADR 0027](decisions/0027-sealed-finance-module.md). Next: A2, B and C in parallel, then D. Owner to check after the merge on https://help.egrant.sk: turn Finance on for one admin on the Admins page; that admin sees the Financie tab and header link at once (empty cards); another admin and a client do not, and get "Page not found" at `/finance`.
 
 Done when: a superadmin grants Finance to an admin; that admin keeps a client's contract with its reminder, completed tasks fill the work log (the other admin assignee is asked and fills 0), rates turn hours into cost, and `/finance` ranks the clients by money paid and by hours; no client and no admin without the right sees any of it.
+
+## Phase 33 — Projects per client and closer eGrant integration
+
+Owner request (2026-10-17), one of the last two big phases before the final testing. Design: [spec](superpowers/specs/2026-10-17-phase-33-projects-design.md) with the **Owner decisions** table at its top; [plan](superpowers/plans/2026-10-17-phase-33-projects.md).
+
+Scope: a new first tab **Prehľad** in every group with **projects** (name, description, files) and their dated **events**; tasks and tickets placed on a project and an event (set by hand, and for tickets matched or created automatically from a new `project` / `project_id` field of the eGrant intake, with aliases and merge); a **timeline** card (a straight line of events, Today marker, each event's open tasks and tickets and a done pile; one project's whole life or all projects; on phones a tap opens the event); cards of the client's active tickets and tasks with mine first; project and event filters on the Tasks and Tickets tabs; the Phase 28 **AI text tools, voice input and knowledge attachments in every description field** (one lazy description editor); Finance costs filtered by project and event (after Phase 32 C and D).
+
+Built in six pull requests: P1 foundation first (the one migration, policy, projects API, empty tab), then P2 (task and ticket fields, filters), P3 (eGrant intake matching), P4 (timeline and cards) and P5 (description editor) in parallel, then P6 (finance filters). The joint merge order with Phases 32 and 34 is at the end of the plan.
+
+Small feature with this phase (owner request 2026-10-17): a knowledge item of type "From chat" can be changed to a plain file; built separately on `feat/knowledge-chat-file-to-file` (spec §15).
+
+Status: spec written, waiting for the owner. To decide first: which eGrant field carries the project (decision 1, with the eGrant developers), automatic creation (2), who sees and edits projects (7, 8), the tab's place (13), the description fields (20), the finance filters (23, 24).
+
+Done when: a ticket from eGrant lands in its project by itself, an admin puts it and a task on an event, the client and the admin browse the project's life on the timeline with Today marked, both tabs filter by the project, every description field offers AI, voice and knowledge, and a finance admin sees the project's cost.
+
+## Phase 34 — Internal admin group
+
+Owner request (2026-10-17), the second of the last two big phases. Design: [spec](superpowers/specs/2026-10-17-phase-34-admin-group-design.md) with the **Owner decisions** table; [plan](superpowers/plans/2026-10-17-phase-34-admin-group.md).
+
+Scope: one internal group **"eGrant tím"** (a `groups` row with `kind = 'admin'`) whose members are all admins, without Tickets and Members tabs, with chat, tasks, knowledge, the Phase 33 projects dashboard and its own Finance tab; pinned first for admins; knowledge from it attachable to client places only when marked "Shareable with clients", read-only there and marked "eGrant tím"; the **three-tab attachment picker** (Knowledge, Tasks, Tickets) in every chat, limited to the client in client groups and across all clients with a client filter marking my clients in the admin group, with task and ticket cards and the žiadateľ rules.
+
+Built in five pull requests: P34-A (the picker in client groups, can start before the rest) and P34-B (the admin group) first, then P34-C (knowledge sharing), P34-D (the picker in the admin group) and P34-E (finance in the admin group).
+
+Status: spec written, waiting for the owner. To decide first: the name (decision 3), its place for admins (5), its default notification mode (6), who opens its knowledge in client chats (10), its finance (13), the attachment limits (16) and what a žiadateľ sees of attached tasks and tickets (17).
+
+Done when: every admin works in "eGrant tím" (chat, tasks, projects, knowledge, finance for finance admins) with no way in for a client; an admin shares one internal note with a client chat on purpose and the client opens only that; a message in a client chat carries a task and a ticket card, and in the admin group any client's work with the client filter.
