@@ -25,7 +25,6 @@
   "create_many": "Vytvoriť {{count}} úloh",
   "create_other": "Vytvoriť {{count}} úloh",
   "cancel": "Zrušiť",
-  "close": "Zavrieť",
   "discardConfirm": "Zahodiť navrhnuté úlohy?",
   "discard": "Zahodiť",
   "keep": "Pokračovať v kontrole",

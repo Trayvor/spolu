@@ -25,7 +25,6 @@
   "create_many": "Vytvořit {{count}} úkolu",
   "create_other": "Vytvořit {{count}} úkolů",
   "cancel": "Zrušit",
-  "close": "Zavřít",
   "discardConfirm": "Zahodit navržené úkoly?",
   "discard": "Zahodit",
   "keep": "Pokračovat v kontrole",
