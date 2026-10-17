@@ -8,6 +8,7 @@ import {
   MarkReadInputSchema,
   MESSAGE_PAGE_SIZE,
   SendMessageInputSchema,
+  SetReactionInputSchema,
   type GroupChannel,
   type MessageDto,
   type SessionUser,
@@ -21,7 +22,14 @@ import { canReadGroup } from '../groups/policy.js';
 import { getGroup, listGroupPeople } from '../groups/service.js';
 import { getTaskRef } from '../tasks/task-service.js';
 import { withoutTaskLinks } from './dto.js';
-import { emitMessage, emitRead, emitThreadReply } from './events.js';
+import { getSharedItem } from '../knowledge/service.js';
+import { emitMessage, emitReactions, emitRead, emitThreadReply } from './events.js';
+import {
+  InvalidKnowledgeItemError,
+  isAttached,
+  KnowledgeShareForbiddenError,
+} from './knowledge-links.js';
+import { reactionPeople, setReaction, TooManyEmojiError } from './reactions.js';
 import { prepareFilesRemoved, runFilesSent } from './file-hooks.js';
 import {
   EmptyMessageError,
@@ -33,7 +41,7 @@ import {
   findReadableMessage,
   sendMessage,
 } from './messages.js';
-import { canDeleteMessage, canEditMessage, isMessageAuthor } from './policy.js';
+import { canDeleteMessage, canEditMessage, canReact, isMessageAuthor } from './policy.js';
 import { actorReadsChannel, channelKindAccess, extraRoomsOf } from './access.js';
 import {
   changesAfter,
@@ -85,6 +93,7 @@ export const chatRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { d
   const { db } = deps;
   const anyUser = requireUser(app.auth);
   const allowSend = createRateLimiter({ windowMs: 60_000, max: 30 });
+  const allowReact = createRateLimiter({ windowMs: 60_000, max: 60 });
 
   /**
    * The channel when the actor may read it; otherwise answers 404 and returns null (an
@@ -290,6 +299,10 @@ export const chatRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { d
       if (error instanceof InvalidAttachmentError) {
         return reply.code(400).send({ error: ErrorCodes.invalidAttachment });
       }
+      if (error instanceof InvalidKnowledgeItemError) {
+        return reply.code(400).send({ error: ErrorCodes.invalidKnowledgeItem });
+      }
+      if (error instanceof KnowledgeShareForbiddenError) return forbidden(reply);
       if (error instanceof InvalidThreadError || error instanceof EmptyMessageError) {
         return invalid(reply);
       }
@@ -348,6 +361,70 @@ export const chatRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { d
       throw error;
     }
   });
+
+  // Phase 28: the actor's reaction with one emoji is on or off (idempotent). Pushed only when it
+  // changed something; no notification of any kind.
+  app.put<IdParams>('/messages/:id/reactions', { preHandler: anyUser }, async (request, reply) => {
+    const actor = request.user!;
+    const found = await readableMessage(request, reply, request.params.id);
+    if (!found) return reply;
+    if (!canReact(found.message)) return notFound(reply);
+    const body = SetReactionInputSchema.safeParse(request.body);
+    if (!body.success) return invalid(reply);
+    if (!allowReact(actor.id)) return reply.code(429).send({ error: ErrorCodes.rateLimited });
+    try {
+      const result = await setReaction(db, {
+        channel: found.channel,
+        messageId: found.message.id,
+        userId: actor.id,
+        ...body.data,
+      });
+      if (!result) return notFound(reply);
+      const { changed, ...answer } = result;
+      if (changed) {
+        emitReactions(
+          app.io,
+          {
+            groupId: found.channel.groupId,
+            channelId: found.channel.id,
+            taskId: found.channel.taskId,
+            parentId: found.message.parentId,
+            ...answer,
+          },
+          await extraRoomsOf(db, found.channel),
+        );
+      }
+      return answer;
+    } catch (error) {
+      if (error instanceof TooManyEmojiError) return invalid(reply);
+      if (error instanceof ChannelGoneError) return notFound(reply);
+      throw error;
+    }
+  });
+
+  // Who reacted with what (the chips' hover and long press), for any reader of the channel.
+  app.get<IdParams>('/messages/:id/reactions', { preHandler: anyUser }, async (request, reply) => {
+    const found = await readableMessage(request, reply, request.params.id);
+    if (!found) return reply;
+    return found.message.deletedAt === null ? reactionPeople(db, found.message.id) : [];
+  });
+
+  // Phase 28: an item attached to a message, read-only, for any reader of the message's channel
+  // (a ziadatel in their ticket chat opens it here): the message is live, the item attached to
+  // it and still visible to everyone in the chat. Anything else is 404.
+  app.get<{ Params: { id: string; itemId: string } }>(
+    '/messages/:id/knowledge/:itemId',
+    { preHandler: anyUser },
+    async (request, reply) => {
+      const { itemId } = request.params;
+      const found = await readableMessage(request, reply, request.params.id);
+      if (!found) return reply;
+      if (found.message.deletedAt !== null || !ID_RE.test(itemId)) return notFound(reply);
+      if (!(await isAttached(db, found.message.id, itemId))) return notFound(reply);
+      const item = await getSharedItem(db, itemId, found.channel.groupId);
+      return item ?? notFound(reply);
+    },
+  );
 
   app.post<IdParams>('/channels/:id/read', { preHandler: anyUser }, async (request, reply) => {
     const actor = request.user!;

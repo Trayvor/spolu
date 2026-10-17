@@ -112,11 +112,19 @@ export function Conversation({
   }, [unreadSeen, newest, markRead]);
 
   const onSend = useCallback(
-    ({ body, fileIds }: { body: string; fileIds: string[] }) => {
+    ({
+      body,
+      fileIds,
+      knowledgeIds,
+    }: {
+      body: string;
+      fileIds: string[];
+      knowledgeIds?: string[];
+    }) => {
       // The new message is shown at the bottom of the newest page.
       if (win.hasNewer) void jumpToLatest();
       setEndSignal((n) => n + 1);
-      void send({ body, fileIds });
+      void send({ body, fileIds, ...(knowledgeIds ? { knowledgeIds } : {}) });
     },
     [win.hasNewer, jumpToLatest, send],
   );

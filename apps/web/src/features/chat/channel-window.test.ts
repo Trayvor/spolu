@@ -29,6 +29,8 @@ function msg(n: number, over: Partial<MessageDto> = {}): MessageDto {
     createdAt: at,
     changeSeq: n,
     tasks: [],
+    reactions: [],
+    knowledge: [],
     ...over,
   };
 }

@@ -413,6 +413,8 @@ describe('ticket page', () => {
         createdAt: '2026-10-16T09:00:00.000Z',
         changeSeq: 1,
         tasks: [{ id: 't1', title: 'Fix the budget step', completed: false }],
+        reactions: [],
+        knowledge: [],
       };
       const chat: Parameters<typeof mockTicketApi>[1] = [
         ...aiOn,

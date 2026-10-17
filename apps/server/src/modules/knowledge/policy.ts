@@ -64,6 +64,35 @@ export function canSetFolderVisibility(actor: SessionUser, visibility: Visibilit
 }
 
 /**
+ * Phase 28: who attaches the group's knowledge items to chat messages, in the group's chats:
+ * whoever reads the group (admins and its clients). A ziadatel never does: they read no knowledge.
+ */
+export function canShareKnowledge(
+  actor: SessionUser,
+  groupId: string,
+  actorGroupIds: readonly string[],
+): boolean {
+  return canReadGroup(actor, groupId, actorGroupIds);
+}
+
+/**
+ * Phase 28: an item may be attached to (and is shown in) a chat of `groupId` only while everyone
+ * there may read it: an item of that group, public, and every folder up its tree public
+ * (`folderVisibilities`, the item's folder first or last, any order).
+ */
+export function isShareable(
+  item: { groupId: string; visibility: Visibility | string },
+  folderVisibilities: readonly string[],
+  groupId: string,
+): boolean {
+  return (
+    item.groupId === groupId &&
+    item.visibility === 'public' &&
+    folderVisibilities.every((v) => v === 'public')
+  );
+}
+
+/**
  * Runs the AI on a meeting ("Spracovať s AI") and turns its action items into tasks (Phase 30):
  * admins only, on a meeting they read (every admin reads every item).
  */

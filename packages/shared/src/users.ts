@@ -116,5 +116,7 @@ export const ErrorCodes = {
   meetingBusy: 'meeting_busy',
   nothingToProcess: 'nothing_to_process',
   invalidTranscriptFile: 'invalid_transcript_file',
+  // Phase 28 — knowledge items in chat
+  invalidKnowledgeItem: 'invalid_knowledge_item',
 } as const;
 export type ErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes];

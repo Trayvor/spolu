@@ -4,6 +4,7 @@ import {
   mentionToken,
   plainExcerpt,
   SendMessageInputSchema,
+  SetReactionInputSchema,
   splitMentionTokens,
 } from './chat.js';
 import { MENTION_CASES } from './chat-mention-cases.js';
@@ -81,5 +82,38 @@ describe('SendMessageInputSchema', () => {
     expect(SendMessageInputSchema.safeParse({ ...base, body: '', fileIds: ['f1'] }).success).toBe(
       true,
     );
+  });
+});
+
+describe('SetReactionInputSchema', () => {
+  const ok = (emoji: string) => SetReactionInputSchema.safeParse({ emoji, on: true }).success;
+
+  it('takes one emoji with its modifiers, joiners, flags and keycaps', () => {
+    for (const emoji of ['👍', '❤️', '✅', '👍🏽', '👩‍💻', '🇸🇰', '1️⃣', '🏳️‍🌈']) {
+      expect(ok(emoji), emoji).toBe(true);
+    }
+  });
+
+  it('refuses text, digits, empty and overlong values', () => {
+    for (const emoji of ['', 'a', 'ok', '1', '#', ' ', '👍 ', '<b>', '👍👍', '👍'.repeat(17)]) {
+      expect(ok(emoji), emoji).toBe(false);
+    }
+  });
+});
+
+describe('SendMessageInputSchema knowledgeIds', () => {
+  it('a message may carry only knowledge items, at most 5 and no duplicates', () => {
+    const base = { body: '', clientId: 'c1' };
+    expect(SendMessageInputSchema.safeParse({ ...base, knowledgeIds: ['k1'] }).success).toBe(true);
+    expect(SendMessageInputSchema.safeParse({ ...base, knowledgeIds: [] }).success).toBe(false);
+    expect(SendMessageInputSchema.safeParse({ ...base, knowledgeIds: ['k1', 'k1'] }).success).toBe(
+      false,
+    );
+    expect(
+      SendMessageInputSchema.safeParse({
+        ...base,
+        knowledgeIds: ['a', 'b', 'c', 'd', 'e', 'f'],
+      }).success,
+    ).toBe(false);
   });
 });

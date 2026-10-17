@@ -3,6 +3,7 @@ import type {
   MessageDto,
   MessagePage,
   MessageTaskLink,
+  Reaction,
   SendMessageInput,
   Thread,
 } from '@spolu/shared';
@@ -61,6 +62,8 @@ export type WindowAction =
   | { type: 'upsert'; messages: MessageDto[]; local?: boolean }
   /** The tasks made from a message changed; no `changeSeq` moves, so `upsert` would drop it. */
   | { type: 'tasksChanged'; messageId: string; tasks: MessageTaskLink[] }
+  /** Phase 28: a message's reactions changed; applied only over an older `changeSeq`. */
+  | { type: 'reactionsChanged'; messageId: string; reactions: Reaction[]; changeSeq: number }
   | { type: 'pendingAdded'; input: SendMessageInput }
   | { type: 'pendingFailed'; clientId: string; reason?: PendingFailReason }
   | { type: 'pendingRetried'; clientId: string }
@@ -207,6 +210,14 @@ export function windowReducer(state: ChannelWindow, action: WindowAction): Chann
       messages[at] = { ...messages[at]!, tasks: action.tasks };
       return { ...state, messages };
     }
+    case 'reactionsChanged': {
+      const at = state.messages.findIndex((m) => m.id === action.messageId);
+      const old = state.messages[at];
+      if (!old || old.changeSeq >= action.changeSeq) return state;
+      const messages = state.messages.slice();
+      messages[at] = { ...old, reactions: action.reactions, changeSeq: action.changeSeq };
+      return { ...state, lastSeq: Math.max(state.lastSeq, action.changeSeq), messages };
+    }
     case 'pendingAdded':
       return {
         ...state,
@@ -252,4 +263,19 @@ export function setTasksInThread(
     ...thread,
     replies: thread.replies.map((r) => (r.id === messageId ? { ...r, tasks } : r)),
   };
+}
+
+/** A cached thread with the reactions of its root or one of its replies replaced, when newer. */
+export function setReactionsInThread(
+  thread: Thread,
+  messageId: string,
+  reactions: Reaction[],
+  changeSeq: number,
+): Thread {
+  const patch = (m: MessageDto) =>
+    m.id === messageId && m.changeSeq < changeSeq ? { ...m, reactions, changeSeq } : m;
+  const root = patch(thread.root);
+  const replies = thread.replies.map(patch);
+  const same = root === thread.root && replies.every((r, i) => r === thread.replies[i]);
+  return same ? thread : { ...thread, root, replies };
 }

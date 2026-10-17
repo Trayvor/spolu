@@ -95,5 +95,48 @@
     "failed": "Snimku nije bilo moguće prepisati. Pokušajte ponovno.",
     "limited": "Previše snimki. Pokušajte za minutu.",
     "atLimit": "Snimanje se zaustavilo nakon 5 minuta."
+  },
+  "reactions": {
+    "add": "Dodaj reakciju",
+    "more": "Više emojija",
+    "quick": "Brze reakcije",
+    "react": "Reagiraj s {{emoji}}",
+    "chip": "Reakcija {{emoji}}, ukupno {{count}}",
+    "chipMine": "Reakcija {{emoji}}, ukupno {{count}}, uključujući vašu",
+    "who": "{{emoji}} {{names}}",
+    "loading": "Učitavanje…",
+    "failed": "Reakcija nije spremljena. Pokušajte ponovno.",
+    "pickerTitle": "Odaberite reakciju",
+    "groups": {
+      "smileys": "Smajlići",
+      "gestures": "Geste",
+      "hearts": "Srca",
+      "work": "Posao",
+      "celebration": "Slavlje",
+      "symbols": "Simboli"
+    }
+  },
+  "knowledge": {
+    "attach": "Priloži iz baze znanja",
+    "attached": "Priložene stavke znanja",
+    "remove": "Ukloni {{title}}",
+    "pickerTitle": "Priloži iz baze znanja",
+    "pickerHint": "Prikazane su samo stavke koje vide svi u ovoj grupi.",
+    "search": "Pretraži bazu znanja",
+    "attachCount": "Priloži ({{count}})",
+    "noResults": "Ništa ne odgovara pretrazi.",
+    "empty": "Ova grupa još nema dijeljenih stavki znanja.",
+    "loadMore": "Prikaži više",
+    "limit": "Najviše {{count}} stavki po poruci.",
+    "unavailable": "Stavka nije dostupna",
+    "back": "Natrag na chat",
+    "types": {
+      "note": "Bilješka",
+      "file": "Datoteka",
+      "link": "Poveznica",
+      "reminder": "Podsjetnik",
+      "meeting": "Sastanak",
+      "chat_file": "Iz chata"
+    }
   }
 }

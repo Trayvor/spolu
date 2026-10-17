@@ -3,12 +3,17 @@ import {
   AroundPageSchema,
   ChangesSchema,
   GroupChannelSchema,
+  KnowledgeItemDtoSchema,
   MessagePageSchema,
+  MessageReactionsSchema,
+  ReactionPeopleSchema,
   MessageSchema,
   ThreadSchema,
   UnreadByGroupSchema,
   UnreadThreadsSchema,
   type AroundPage,
+  type KnowledgeItemDto,
+  type MessageReactions,
   type Changes,
   type MessageDto,
   type MessagePage,
@@ -120,3 +125,33 @@ export async function markAllRead(channelId: string): Promise<void> {
 export async function markThreadRead(rootId: string): Promise<void> {
   await apiSend('POST', `/messages/${enc(rootId)}/thread/read`);
 }
+
+/** Phase 28: turns the reader's reaction with `emoji` on or off (idempotent). */
+export function setReaction(
+  messageId: string,
+  emoji: string,
+  on: boolean,
+): Promise<MessageReactions> {
+  return apiSend(
+    'PUT',
+    `/messages/${enc(messageId)}/reactions`,
+    { emoji, on },
+    MessageReactionsSchema,
+  );
+}
+
+/** Who reacted with what; `changeSeq` in the key refetches it after a change. */
+export const reactionPeopleQuery = (messageId: string, changeSeq: number) =>
+  queryOptions({
+    queryKey: ['chat', 'reactions', messageId, changeSeq],
+    queryFn: () => apiGet(`/messages/${enc(messageId)}/reactions`, ReactionPeopleSchema),
+    staleTime: 30_000,
+  });
+
+/** An item attached to a message, read through the message (a ziadatel in a ticket chat). */
+export const sharedKnowledgeQuery = (messageId: string, itemId: string) =>
+  queryOptions({
+    queryKey: ['chat', 'knowledge', messageId, itemId],
+    queryFn: (): Promise<KnowledgeItemDto> =>
+      apiGet(`/messages/${enc(messageId)}/knowledge/${enc(itemId)}`, KnowledgeItemDtoSchema),
+  });

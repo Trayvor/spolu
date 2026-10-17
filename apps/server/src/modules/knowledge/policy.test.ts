@@ -7,7 +7,31 @@ import {
   canReadItem,
   canSetFolderVisibility,
   canSetVisibility,
+  canShareKnowledge,
+  isShareable,
 } from './policy.js';
+
+describe('sharing knowledge in a chat (Phase 28)', () => {
+  const who = (role: Role): SessionUser => ({ id: 'x', email: 'x@example.com', name: 'X', role });
+
+  it('whoever reads the group shares its knowledge; a ziadatel or another group never', () => {
+    expect(canShareKnowledge(who('admin'), 'g1', [])).toBe(true);
+    expect(canShareKnowledge(who('superadmin'), 'g1', [])).toBe(true);
+    expect(canShareKnowledge(who('client'), 'g1', ['g1'])).toBe(true);
+    // A ziadatel membership gives no client group ids.
+    expect(canShareKnowledge(who('client'), 'g1', [])).toBe(false);
+    expect(canShareKnowledge(who('client'), 'g1', ['g2'])).toBe(false);
+  });
+
+  it('only a public item of the group with every folder public is shareable', () => {
+    const item = { groupId: 'g1', visibility: 'public' };
+    expect(isShareable(item, ['public', 'public'], 'g1')).toBe(true);
+    expect(isShareable(item, [], 'g1')).toBe(true);
+    expect(isShareable({ ...item, visibility: 'admins' }, [], 'g1')).toBe(false);
+    expect(isShareable(item, ['public', 'admins'], 'g1')).toBe(false);
+    expect(isShareable(item, [], 'g2')).toBe(false);
+  });
+});
 
 const actor = (role: Role, id = 'actor'): SessionUser => ({
   id,

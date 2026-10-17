@@ -27,6 +27,8 @@ export type KnowledgeFilter = {
   folder?: string | null;
   /** `all`: the task and ticket chats' files too; absent: the group chat's only. */
   chats?: 'all';
+  /** Phase 28 (the tab only): only items that may be attached to a chat message. */
+  shareable?: true;
 };
 /** `scope: 'all'` is every client, whatever the admin manages; it never combines with `clients`. */
 export type GlobalKnowledgeFilter = KnowledgeFilter & { clients?: string[]; scope?: 'all' };
@@ -60,6 +62,7 @@ export const groupKnowledgeQuery = (groupId: string, filter: KnowledgeFilter) =>
           type: typeParam(filter.types),
           q: filter.q,
           chats: filter.chats,
+          shareable: filter.shareable ? '1' : undefined,
           folder: filter.folder === null ? 'root' : filter.folder,
           cursor: pageParam,
         })}`,

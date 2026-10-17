@@ -118,6 +118,10 @@ export const knowledgeItems = pgTable(
     index('knowledge_items_chat_channel_idx')
       .on(t.chatChannelId)
       .where(sql`${t.chatChannelId} is not null`),
+    // Phase 28: the items of a file, for a ziadatel reading an item attached in their ticket chat.
+    index('knowledge_items_chat_file_idx')
+      .on(t.chatFileId)
+      .where(sql`${t.chatFileId} is not null`),
     // A group's chat files, newest first (the `chats` filter's kind is checked on top).
     index('knowledge_items_group_chat_created_idx')
       .on(t.groupId, t.createdAt.desc().nullsFirst(), t.id.desc().nullsFirst())

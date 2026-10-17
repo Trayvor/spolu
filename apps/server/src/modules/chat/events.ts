@@ -3,6 +3,7 @@ import {
   ChatEvents,
   type ChatMessageEvent,
   type ChatMessageTasksEvent,
+  type ChatReactionsEvent,
   type ChatReadEvent,
   type ChatThreadReplyEvent,
   type MessageDto,
@@ -62,4 +63,18 @@ export function emitThreadReply(
 /** Pushes a message's current task links to its group room (its chat footer). Call after commit. */
 export function emitMessageTasks(io: SocketIOServer, event: ChatMessageTasksEvent): void {
   emitToGroup(io, event.groupId, ChatEvents.messageTasks, event);
+}
+
+/**
+ * Pushes a message's new reactions (Phase 28) to the group room and `extraRooms` (a ticket chat's
+ * initiator), like `emitMessage` but without `admin:activity`: a reaction is no chat activity.
+ * Call after commit.
+ */
+export function emitReactions(
+  io: SocketIOServer,
+  event: ChatReactionsEvent,
+  extraRooms: string[] = [],
+): void {
+  const room = groupRoom(event.groupId);
+  io.to([room, ...extraRooms]).emit(ChatEvents.reactions, event);
 }

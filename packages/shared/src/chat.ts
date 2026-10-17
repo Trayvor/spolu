@@ -3,6 +3,12 @@ import { FileInfoSchema } from './files.js';
 
 export const MESSAGE_MAX_LENGTH = 10_000;
 export const MESSAGE_MAX_FILES = 10;
+/** Knowledge items one message may carry (Phase 28). */
+export const MESSAGE_MAX_KNOWLEDGE = 5;
+/** Different emoji one message may carry (Phase 28). */
+export const MESSAGE_MAX_EMOJI = 20;
+/** The quick row of reactions, in this order (Phase 28). */
+export const QUICK_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🙏', '✅'] as const;
 export const MESSAGE_PAGE_SIZE = 50;
 export const CHANGES_MAX = 500;
 export const MENTION_ALL_TOKEN = '<@all>';
@@ -23,6 +29,30 @@ export const MessageTaskLinkSchema = z.object({
 });
 export type MessageTaskLink = z.infer<typeof MessageTaskLinkSchema>;
 
+/** One emoji on a message and who added it, oldest first (Phase 28). */
+export const ReactionSchema = z.object({
+  emoji: z.string(),
+  userIds: z.array(z.string()),
+});
+export type Reaction = z.infer<typeof ReactionSchema>;
+
+/**
+ * A knowledge item attached to a message (Phase 28): its card while the item is still visible to
+ * everyone in the channel's group, else only its id (`available: false`, shown as unavailable).
+ * `type` is a `KnowledgeType`; `folderPath` the names of its folders from the top.
+ */
+export const MessageKnowledgeSchema = z.discriminatedUnion('available', [
+  z.object({
+    id: z.string(),
+    available: z.literal(true),
+    type: z.string(),
+    title: z.string(),
+    folderPath: z.array(z.string()),
+  }),
+  z.object({ id: z.string(), available: z.literal(false) }),
+]);
+export type MessageKnowledge = z.infer<typeof MessageKnowledgeSchema>;
+
 export const MessageSchema = z.object({
   id: z.string(),
   channelId: z.string(),
@@ -42,6 +72,10 @@ export const MessageSchema = z.object({
   changeSeq: z.number().int(),
   /** Tasks made from the message, oldest first; always empty on a deleted message. */
   tasks: z.array(MessageTaskLinkSchema),
+  /** Phase 28: always empty on a deleted message. */
+  reactions: z.array(ReactionSchema),
+  /** Phase 28: the attached knowledge items in their order; always empty on a deleted message. */
+  knowledge: z.array(MessageKnowledgeSchema),
 });
 export type MessageDto = z.infer<typeof MessageSchema>;
 
@@ -64,14 +98,64 @@ export const SendMessageInputSchema = z
       .max(MESSAGE_MAX_FILES)
       .refine((ids) => new Set(ids).size === ids.length)
       .optional(),
+    /** Knowledge items of the channel's group, visible to everyone there (Phase 28). */
+    knowledgeIds: z
+      .array(IdSchema)
+      .max(MESSAGE_MAX_KNOWLEDGE)
+      .refine((ids) => new Set(ids).size === ids.length)
+      .optional(),
     clientId: IdSchema,
   })
-  .refine((v) => v.body.trim().length > 0 || (v.fileIds?.length ?? 0) > 0, { path: ['body'] })
+  .refine(
+    (v) =>
+      v.body.trim().length > 0 || (v.fileIds?.length ?? 0) > 0 || (v.knowledgeIds?.length ?? 0) > 0,
+    { path: ['body'] },
+  )
   .refine((v) => v.replyToId === undefined || v.parentId !== undefined, { path: ['replyToId'] });
 export type SendMessageInput = z.infer<typeof SendMessageInputSchema>;
 
 export const EditMessageInputSchema = z.object({ body: BodySchema });
 export type EditMessageInput = z.infer<typeof EditMessageInputSchema>;
+
+/** One emoji: pictographs with their modifiers, joiners, flags and keycaps; never plain text. */
+const EMOJI_CHARS = /^(?:\p{Extended_Pictographic}|\p{Emoji_Component}|\u200d|\ufe0f|\u20e3)+$/u;
+const EMOJI_CORE = /\p{Extended_Pictographic}|\p{Regional_Indicator}|\u20e3/u;
+const graphemes = (v: string): number =>
+  typeof Intl.Segmenter === 'function'
+    ? [...new Intl.Segmenter(undefined, { granularity: 'grapheme' }).segment(v)].length
+    : 1;
+/** At most 32 UTF-16 units and one grapheme: `👍👍` is two reactions, not one. */
+export const EmojiSchema = z
+  .string()
+  .refine(
+    (v) =>
+      v.length > 0 &&
+      v.length <= 32 &&
+      EMOJI_CHARS.test(v) &&
+      EMOJI_CORE.test(v) &&
+      graphemes(v) === 1,
+  );
+
+/** `PUT /api/messages/:id/reactions`: the actor's reaction with this emoji is on or off. */
+export const SetReactionInputSchema = z.object({ emoji: EmojiSchema, on: z.boolean() });
+export type SetReactionInput = z.infer<typeof SetReactionInputSchema>;
+
+/** The answer of a reaction write: the message's reactions after it and its `changeSeq`. */
+export const MessageReactionsSchema = z.object({
+  messageId: z.string(),
+  changeSeq: z.number().int(),
+  reactions: z.array(ReactionSchema),
+});
+export type MessageReactions = z.infer<typeof MessageReactionsSchema>;
+
+/** `GET /api/messages/:id/reactions`: who added each emoji, oldest first. */
+export const ReactionPeopleSchema = z.array(
+  z.object({
+    emoji: z.string(),
+    people: z.array(z.object({ id: z.string(), name: z.string() })),
+  }),
+);
+export type ReactionPeople = z.infer<typeof ReactionPeopleSchema>;
 
 export const MarkReadInputSchema = z.object({
   // Postgres timestamptz rejects years before 1 AD; nothing before 1970 is a real read time.
@@ -137,6 +221,7 @@ export const ChatEvents = {
   read: 'chat:read',
   threadReply: 'chat:thread-reply',
   messageTasks: 'chat:message_tasks',
+  reactions: 'chat:reactions',
 } as const;
 
 /** Chat events name the channel's group and, for a task chat, its task (`taskId`, else null). */
@@ -174,6 +259,17 @@ export interface ChatMessageTasksEvent {
   messageId: string;
   parentId: string | null;
   tasks: MessageTaskLink[];
+}
+
+/** A message's reactions changed (Phase 28); `changeSeq` is the message's new one. */
+export interface ChatReactionsEvent {
+  groupId: string;
+  channelId: string;
+  taskId: string | null;
+  messageId: string;
+  parentId: string | null;
+  changeSeq: number;
+  reactions: Reaction[];
 }
 
 /** Global regexes: use them only with `matchAll`/`replace`, never `exec`/`test` (shared `lastIndex`). */

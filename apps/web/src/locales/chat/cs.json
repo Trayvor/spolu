@@ -98,5 +98,48 @@
     "failed": "Nahrávku se nepodařilo přepsat. Zkuste to znovu.",
     "limited": "Příliš mnoho nahrávek. Zkuste to za minutu.",
     "atLimit": "Nahrávání se zastavilo po 5 minutách."
+  },
+  "reactions": {
+    "add": "Přidat reakci",
+    "more": "Další emoji",
+    "quick": "Rychlé reakce",
+    "react": "Reagovat {{emoji}}",
+    "chip": "Reakce {{emoji}}, celkem {{count}}",
+    "chipMine": "Reakce {{emoji}}, celkem {{count}}, včetně vaší",
+    "who": "{{emoji}} {{names}}",
+    "loading": "Načítá se…",
+    "failed": "Reakce se neuložila. Zkuste to znovu.",
+    "pickerTitle": "Vyberte reakci",
+    "groups": {
+      "smileys": "Smajlíci",
+      "gestures": "Gesta",
+      "hearts": "Srdce",
+      "work": "Práce",
+      "celebration": "Oslava",
+      "symbols": "Symboly"
+    }
+  },
+  "knowledge": {
+    "attach": "Přiložit z databáze znalostí",
+    "attached": "Přiložené položky znalostí",
+    "remove": "Odebrat {{title}}",
+    "pickerTitle": "Přiložit z databáze znalostí",
+    "pickerHint": "Zobrazují se jen položky, které vidí všichni v této skupině.",
+    "search": "Hledat v databázi znalostí",
+    "attachCount": "Přiložit ({{count}})",
+    "noResults": "Hledání nic neodpovídá.",
+    "empty": "Tato skupina zatím nemá žádné sdílené položky znalostí.",
+    "loadMore": "Zobrazit více",
+    "limit": "Nejvýše {{count}} položek v jedné zprávě.",
+    "unavailable": "Položka není dostupná",
+    "back": "Zpět na chat",
+    "types": {
+      "note": "Poznámka",
+      "file": "Soubor",
+      "link": "Odkaz",
+      "reminder": "Připomínka",
+      "meeting": "Schůzka",
+      "chat_file": "Z chatu"
+    }
   }
 }

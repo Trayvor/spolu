@@ -145,6 +145,50 @@ export const messageAttachments = pgTable(
   ],
 );
 
+/**
+ * One person's emoji on a message (Phase 28). A person may add several different emoji; the
+ * rows go with the message (a delete clears them first) and with the user.
+ */
+export const messageReactions = pgTable(
+  'message_reactions',
+  {
+    messageId: text('message_id')
+      .notNull()
+      .references(() => messages.id, { onDelete: 'cascade' }),
+    userId: text('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    emoji: text('emoji').notNull(),
+    createdAt: timestamptz('created_at').notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.messageId, t.userId, t.emoji] }),
+    // The cascade from a deleted user.
+    index('message_reactions_user_idx').on(t.userId),
+  ],
+);
+
+/**
+ * A knowledge item attached to a message (Phase 28). No foreign key to `knowledge_items`: a
+ * deleted item stays here and shows as unavailable, like one made admins-only; the knowledge
+ * service decides on every read whether the item is still shareable.
+ */
+export const messageKnowledgeItems = pgTable(
+  'message_knowledge_items',
+  {
+    messageId: text('message_id')
+      .notNull()
+      .references(() => messages.id, { onDelete: 'cascade' }),
+    itemId: text('item_id').notNull(),
+    position: integer('position').notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.messageId, t.itemId] }),
+    // A ziadatel's file read rule: the messages that carry an item.
+    index('message_knowledge_items_item_idx').on(t.itemId),
+  ],
+);
+
 /** Where a user has read a channel up to: its top-level messages by others created after it are unread. */
 export const readStates = pgTable(
   'read_states',

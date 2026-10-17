@@ -16,6 +16,11 @@ export interface ChatScope {
   peopleChannelId?: string;
   /** Upload to this API path (under `/api`) instead of the group's files. */
   uploadPath?: string;
+  /**
+   * Phase 28: the reader does not read the group's knowledge (a žiadateľ in a ticket chat): no
+   * knowledge picker, and attached items open read-only through their message.
+   */
+  knowledgeViaMessage?: boolean;
 }
 
 const ChatScopeContext = createContext<ChatScope>({});

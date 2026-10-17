@@ -95,5 +95,48 @@
     "failed": "Non è stato possibile trascrivere la registrazione. Riprova.",
     "limited": "Troppe registrazioni. Riprova tra un minuto.",
     "atLimit": "La registrazione si è fermata a 5 minuti."
+  },
+  "reactions": {
+    "add": "Aggiungi reazione",
+    "more": "Altre emoji",
+    "quick": "Reazioni rapide",
+    "react": "Reagisci con {{emoji}}",
+    "chip": "Reazione {{emoji}}, {{count}} in totale",
+    "chipMine": "Reazione {{emoji}}, {{count}} in totale, inclusa la tua",
+    "who": "{{emoji}} {{names}}",
+    "loading": "Caricamento…",
+    "failed": "La reazione non è stata salvata. Riprova.",
+    "pickerTitle": "Scegli una reazione",
+    "groups": {
+      "smileys": "Faccine",
+      "gestures": "Gesti",
+      "hearts": "Cuori",
+      "work": "Lavoro",
+      "celebration": "Festa",
+      "symbols": "Simboli"
+    }
+  },
+  "knowledge": {
+    "attach": "Allega dalla knowledge base",
+    "attached": "Elementi della knowledge base allegati",
+    "remove": "Rimuovi {{title}}",
+    "pickerTitle": "Allega dalla knowledge base",
+    "pickerHint": "Sono elencati solo gli elementi visibili a tutti in questo gruppo.",
+    "search": "Cerca nella knowledge base",
+    "attachCount": "Allega ({{count}})",
+    "noResults": "Nessun risultato per la ricerca.",
+    "empty": "Questo gruppo non ha ancora elementi condivisi nella knowledge base.",
+    "loadMore": "Mostra altro",
+    "limit": "Al massimo {{count}} elementi per messaggio.",
+    "unavailable": "Elemento non disponibile",
+    "back": "Torna alla chat",
+    "types": {
+      "note": "Nota",
+      "file": "File",
+      "link": "Link",
+      "reminder": "Promemoria",
+      "meeting": "Riunione",
+      "chat_file": "Dalla chat"
+    }
   }
 }

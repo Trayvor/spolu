@@ -28,10 +28,12 @@ import { formatFileSize } from '@/features/files/format-size';
 import { chatPeopleQuery, useChatPeople, useChatScope, useChatUpload } from './chat-scope';
 import { ApiError } from '@/lib/api';
 import { cn } from '@/lib/utils';
+import { withNamespaces } from '@/i18n/namespaces';
 import { toStored, type FormatKind, type PickedPerson } from './composer-text';
 import { safeHref } from './format/parse';
 import { FormatToolbar, iconButton, phoneIconButton } from './format-toolbar';
-import { CloseIcon, PaperclipIcon } from './icons';
+import { BookIcon, CloseIcon, PaperclipIcon } from './icons';
+import type { PickedKnowledge } from './knowledge-picker';
 import { MentionPicker, type MentionChoice, type MentionPickerHandle } from './mention-picker';
 import { AiTextButton } from './ai-tools/ai-text-button';
 import { VoiceButton } from './voice-input/voice-button';
@@ -54,6 +56,9 @@ export interface ComposerHandle {
   focus(): void;
 }
 
+// Phase 28: the knowledge picker loads when it is first opened.
+const KnowledgePicker = lazy(withNamespaces(['forms'], () => import('./knowledge-picker')));
+
 export interface ComposerProps {
   ref?: Ref<ComposerHandle>;
   mode: 'new' | 'edit' | 'thread';
@@ -74,7 +79,12 @@ export interface ComposerProps {
    * Called with the stored body (mention tokens). Edit mode waits for a returned promise and shows
    * an error when it rejects; the other modes clear the composer at once.
    */
-  onSubmit(input: { body: string; fileIds: string[]; replyToId?: string }): void | Promise<void>;
+  onSubmit(input: {
+    body: string;
+    fileIds: string[];
+    knowledgeIds?: string[];
+    replyToId?: string;
+  }): void | Promise<void>;
   onCancel?(): void;
   /**
    * Extra buttons in the box's bottom row, just before Send: the slot for draft tools (AI text
@@ -142,6 +152,11 @@ export function Composer({
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState<'generic' | 'mention' | null>(null);
   const [activeOption, setActiveOption] = useState<string | undefined>();
+  // Phase 28: knowledge items to attach, and whether their picker is open.
+  const [knowledge, setKnowledge] = useState<PickedKnowledge[]>([]);
+  const [knowledgeOpen, setKnowledgeOpen] = useState(false);
+  // A reader who reaches knowledge only through messages (a žiadateľ) attaches none.
+  const canAttachKnowledge = mode !== 'edit' && !scope.knowledgeViaMessage;
 
   const editor = useRef<ChatEditorHandle>(null);
   const fileInput = useRef<HTMLInputElement>(null);
@@ -249,7 +264,7 @@ export function Composer({
     !uploading &&
     !uploadFailed &&
     body.length <= MESSAGE_MAX_LENGTH &&
-    (body.trim().length > 0 || fileIds.length > 0 || hasAttachments);
+    (body.trim().length > 0 || fileIds.length > 0 || knowledge.length > 0 || hasAttachments);
   const canSend = canSendBody(storedBody);
 
   async function submit() {
@@ -257,10 +272,16 @@ export function Composer({
     const draft = stored(editor.current?.getMarkdown() ?? markdown);
     if (!canSendBody(draft)) return;
     const body = draft.trim();
-    const input = { body, fileIds, ...(replyTo ? { replyToId: replyTo.message.id } : {}) };
+    const input = {
+      body,
+      fileIds,
+      ...(knowledge.length > 0 ? { knowledgeIds: knowledge.map((k) => k.id) } : {}),
+      ...(replyTo ? { replyToId: replyTo.message.id } : {}),
+    };
     if (mode !== 'edit') {
       editor.current?.clear();
       setMarkdown('');
+      setKnowledge([]);
       commitUploads([]);
       setNotice(null);
       replyTo?.onCancel();
@@ -497,6 +518,17 @@ export function Composer({
                 >
                   <PaperclipIcon />
                 </button>
+                {canAttachKnowledge && (
+                  <button
+                    type="button"
+                    aria-label={t('chat.knowledge.attach')}
+                    title={t('chat.knowledge.attach')}
+                    onClick={() => setKnowledgeOpen(true)}
+                    className={cn(iconButton, 'relative shrink-0', HIT)}
+                  >
+                    <BookIcon />
+                  </button>
+                )}
                 {channelId && (
                   <>
                     <VoiceButton channelId={channelId} {...draftTools} />
@@ -522,6 +554,46 @@ export function Composer({
           </FormatToolbar>
         </div>
       </div>
+      {knowledge.length > 0 && (
+        <ul className="flex flex-wrap gap-2" aria-label={t('chat.knowledge.attached')}>
+          {knowledge.map((k) => (
+            <li
+              key={k.id}
+              className="flex max-w-full items-center gap-2 rounded-lg bg-secondary py-1 pl-3 pr-1 text-button text-secondary-foreground"
+            >
+              <span className="shrink-0 text-brand-purple">
+                <BookIcon />
+              </span>
+              <span title={k.title} className="min-w-0 truncate font-semibold">
+                {k.title}
+              </span>
+              <button
+                type="button"
+                aria-label={t('chat.knowledge.remove', { title: k.title })}
+                title={t('chat.knowledge.remove', { title: k.title })}
+                onClick={() => setKnowledge((list) => list.filter((x) => x.id !== k.id))}
+                className={phoneIconButton}
+              >
+                <CloseIcon />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      {knowledgeOpen && (
+        <Suspense fallback={null}>
+          <KnowledgePicker
+            groupId={groupId}
+            picked={knowledge}
+            onDone={(items) => {
+              setKnowledge(items);
+              setKnowledgeOpen(false);
+              editor.current?.focus();
+            }}
+            onClose={() => setKnowledgeOpen(false)}
+          />
+        </Suspense>
+      )}
       {uploads.length > 0 && (
         <ul className="flex flex-wrap gap-2">
           {uploads.map((u) => (
