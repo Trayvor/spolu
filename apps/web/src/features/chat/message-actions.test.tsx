@@ -199,7 +199,9 @@ describe('message actions: touch and desktop', () => {
     const { user } = renderItem();
     await user.click(touchButton());
     await user.click(within(sheet()).getByRole('button', { name: t('chat.actions.edit') }));
-    expect(screen.getByRole('textbox', { name: t('chat.actions.edit') })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('textbox', { name: t('chat.actions.edit') }),
+    ).toBeInTheDocument();
   });
 
   it('closes on Escape and on a tap outside, and gives the focus back to the actions button', async () => {

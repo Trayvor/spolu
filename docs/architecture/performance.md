@@ -98,6 +98,8 @@ Phase 27 entry chunk (2026-10-17, gzip -9 of every script `dist/index.html` load
 
 Keep `cn` out of the eager shell: use it where classes from props may conflict, which is inside the lazy screens.
 
+Phase 28 chat editor (2026-10-17, gzip -9 of every script `dist/index.html` loads): initial JS 162.60 kB gzip, 0.18 kB above `main` (162.42 kB). The editor is not in it: ProseMirror and the composer's editor code are the lazy `chat-editor` chunk (69.7 kB gzip; [ADR 0025](../decisions/0025-prosemirror-chat-editor.md)), requested by the lazy `conversation` chunk (15.2 kB, from 14.8 kB) as soon as it runs. The 0.18 kB is the bundler regrouping: the entry chunk grew 60 bytes and the eager API chunk was split into `api` and a shared `schemas` chunk (about 0.1 kB worse compression), because the editor chunk also imports `@spolu/shared`.
+
 Lazy chunks for individual screens have no hard budget. Keep them reasonable and watch for anything above about 100 kB gzip.
 
 ## Docker image

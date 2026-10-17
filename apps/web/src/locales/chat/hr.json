@@ -54,7 +54,9 @@
     "tooManyFiles": "Najviše 10 datoteka po poruci.",
     "fileTooLarge": "Prevelika (najviše 25 MB)",
     "formatting": "Oblikovanje",
-    "mentionNotAllowed": "Nekoga koga ste spomenuli ovdje više nije moguće spomenuti."
+    "mentionNotAllowed": "Nekoga koga ste spomenuli ovdje više nije moguće spomenuti.",
+    "linkUrl": "Adresa poveznice",
+    "addLink": "Dodaj poveznicu"
   },
   "format": {
     "bold": "Podebljano",

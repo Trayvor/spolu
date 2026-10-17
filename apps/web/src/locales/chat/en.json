@@ -52,7 +52,9 @@
     "tooManyFiles": "At most 10 files per message.",
     "fileTooLarge": "Too large (max 25 MB)",
     "formatting": "Formatting",
-    "mentionNotAllowed": "Someone you mentioned can't be mentioned here any more."
+    "mentionNotAllowed": "Someone you mentioned can't be mentioned here any more.",
+    "linkUrl": "Link address",
+    "addLink": "Add link"
   },
   "format": {
     "bold": "Bold",

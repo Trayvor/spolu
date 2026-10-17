@@ -1,4 +1,4 @@
-import { mentionToken, MENTION_ALL_TOKEN, CODE_RE, splitMentionTokens } from '@spolu/shared';
+import { CODE_RE, MENTION_ALL_TOKEN, MENTION_RE, mentionToken } from '@spolu/shared';
 
 export type FormatKind =
   'bold' | 'italic' | 'strike' | 'code' | 'link' | 'bulletList' | 'numberedList' | 'quote';
@@ -88,11 +88,14 @@ export interface PickedPerson {
 }
 
 const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+/** Code spans, fences and mention tokens: never converted. */
+const KEEP_RE = new RegExp(`${CODE_RE.source}|${MENTION_RE.source}`, 'g');
 
 /**
- * Turns the typed text into the stored body: `@Name` of picked people and `allLabel` become mention
- * tokens (longest names first, so "@Jana Nováková" wins over "@Jana"). People who share a name are
- * told apart by pick order, one occurrence each; code spans and fences stay untouched.
+ * The typed mentions of a draft, made tokens on send: `allLabel` becomes `<@all>`, and `@Name` of
+ * a person already picked in the draft (a pill) becomes their token (longest names first, so
+ * "@Jana Nováková" wins over "@Jana"; people who share a name take turns in pick order). Only at
+ * word edges; code spans, fences and existing tokens stay untouched.
  */
 export function toStored(text: string, picked: PickedPerson[], allLabel: string): string {
   const queues = new Map<string, string[]>();
@@ -112,39 +115,16 @@ export function toStored(text: string, picked: PickedPerson[], allLabel: string)
       if (label === allLabel) return before + MENTION_ALL_TOKEN;
       const ids = queues.get(label.slice(1));
       if (!ids?.length) return before + label;
-      // The same person picked twice keeps matching; several people take turns.
+      // A person picked once keeps matching; several people with one name take turns.
       const id = ids.length > 1 ? (ids.shift() as string) : (ids[0] as string);
       return before + mentionToken(id);
     });
 
   let result = '';
   let at = 0;
-  for (const m of text.matchAll(CODE_RE)) {
+  for (const m of text.matchAll(KEEP_RE)) {
     result += convert(text.slice(at, m.index)) + m[0];
     at = m.index + m[0].length;
   }
   return result + convert(text.slice(at));
-}
-
-/** The inverse of `toStored`: tokens become `@Name` / `allLabel` and the picked people are returned. */
-export function toEditable(
-  body: string,
-  nameOf: (id: string) => string | undefined,
-  allLabel: string,
-): { text: string; picked: PickedPerson[] } {
-  const picked: PickedPerson[] = [];
-  let text = '';
-  for (const part of splitMentionTokens(body)) {
-    if (part.type === 'text') text += part.text;
-    else if (part.id === 'all') text += allLabel;
-    else {
-      const name = nameOf(part.id);
-      if (name === undefined) text += mentionToken(part.id);
-      else {
-        text += `@${name}`;
-        picked.push({ id: part.id, name });
-      }
-    }
-  }
-  return { text, picked };
 }

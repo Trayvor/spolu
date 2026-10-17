@@ -31,15 +31,20 @@ test('Fix mistakes and Make it formal replace the draft, with Undo, and send not
   // A .sk instance: no translation.
   await expect(page.getByRole('menuitem', { name: /Preložiť/ })).toHaveCount(0);
   await page.getByRole('menuitem', { name: 'Opraviť chyby' }).click();
-  await expect(box).toHaveValue('Ahoj ako sa mas.');
-  // Undo sits in the composer's row, next to the AI button.
-  await box.locator('..').getByRole('button', { name: 'Späť', exact: true }).click();
-  await expect(box).toHaveValue('ahoj ako sa mas');
+  await expect(box).toHaveText('Ahoj ako sa mas.');
+  // Undo sits in the composer's row, next to the AI button (the field is the chat editor, so
+  // its text is checked with toHaveText).
+  await box
+    .locator('xpath=ancestor::div[contains(@class, "rounded-lg")][1]')
+    .getByRole('button', { name: 'Späť', exact: true })
+    .click();
+  await expect(box).toHaveText('ahoj ako sa mas');
 
   await box.fill('task one: call the bank, task two: send the report');
   await page.getByRole('button', { name: 'AI nástroje' }).click();
   await page.getByRole('menuitem', { name: 'Formálnejšie' }).click();
-  await expect(box).toHaveValue('1. Call the bank\n2. Send the report');
+  // The answer is Markdown: the editor shows it as a numbered list.
+  await expect(box.locator('ol li')).toHaveText(['Call the bank', 'Send the report']);
   // Nothing was sent.
   await expect(page.locator('[data-message-id]')).toHaveCount(0);
 });
@@ -50,7 +55,7 @@ test('Translate is offered off .sk, to English and to the client language', asyn
   await page.getByRole('button', { name: 'AI nástroje' }).click();
   await expect(page.getByRole('menuitem', { name: 'Preložiť: angličtina' })).toBeVisible();
   await page.getByRole('menuitem', { name: 'Preložiť: čeština' }).click();
-  await expect(box).toHaveValue('[Czech] dobrý den');
+  await expect(box).toHaveText('[Czech] dobrý den');
 });
 
 test('voice input records until Stop and puts the transcript in the draft', async ({ page }) => {
@@ -59,12 +64,12 @@ test('voice input records until Stop and puts the transcript in the draft', asyn
   await page.getByRole('button', { name: 'Diktovať' }).click();
   await expect(page.getByRole('timer')).toContainText('/ 5:00');
   await page.getByRole('button', { name: 'Zastaviť a prepísať' }).click();
-  await expect(box).toHaveValue(/^Poznámka: Anna: Dobrý deň, poďme na rozpočet projektu\./);
+  await expect(box).toHaveText(/^Poznámka: Anna: Dobrý deň, poďme na rozpočet projektu\./);
   await expect(page.locator('[data-message-id]')).toHaveCount(0);
 
   // Cancel throws the recording away.
   await page.getByRole('button', { name: 'Diktovať' }).click();
   await page.getByRole('button', { name: 'Zrušiť nahrávanie' }).click();
   await expect(page.getByRole('button', { name: 'Diktovať' })).toBeVisible();
-  await expect(box).toHaveValue(/^Poznámka: Anna:/);
+  await expect(box).toHaveText(/^Poznámka: Anna:/);
 });
