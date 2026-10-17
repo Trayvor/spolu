@@ -66,7 +66,7 @@ test('on a phone, the section menu moves between sections and the account menu h
     // No language pill and no section links on a phone: the menu pill says where you are.
     await expect(header.getByRole('button', { name: /^Jazyk:/ })).toBeHidden();
     await expect(header.getByRole('link', { name: 'Úlohy' })).toBeHidden();
-    await header.getByRole('button', { name: 'Menu' }).tap();
+    await header.getByRole('button', { name: 'Menu', exact: true }).tap();
     const sheet = page.getByRole('dialog', { name: 'Menu' });
     await expect(sheet.getByRole('link')).toHaveText([
       'Domov',
