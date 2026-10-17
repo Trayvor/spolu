@@ -1,0 +1,24 @@
+{
+  "button": "Solve with Claude",
+  "title": "Solve with Claude",
+  "intro": "We prepare a prompt with the full context, the chat and the eGrant MCP instructions. Claude first explains the cause and proposes a fix, and changes nothing until you confirm.",
+  "notesLabel": "Notes for Claude (optional)",
+  "notesPlaceholder": "For example what to focus on. You can leave this empty.",
+  "notesHint": "Optional. Without notes, just press Generate.",
+  "generate": "Generate",
+  "regenerate": "Generate again",
+  "cancel": "Cancel",
+  "generating": "Preparing the prompt…",
+  "loadFailed": "The prompt could not be prepared. Try again.",
+  "ready": "The prompt is ready",
+  "open": "Open in Claude",
+  "copy": "Copy prompt",
+  "filesReminder": "Files cannot reach Claude through the link. Download them and attach them to the Claude chat yourself:",
+  "preview": "Show the prompt",
+  "status": {
+    "opened": "Claude opened in a new tab.",
+    "pasteInClaude": "The prompt is too long for a link, so it is on your clipboard. Paste it into the new Claude chat (Ctrl+V or ⌘V).",
+    "copied": "The prompt is copied.",
+    "copyFailed": "The prompt could not be copied. Try Copy prompt."
+  }
+}

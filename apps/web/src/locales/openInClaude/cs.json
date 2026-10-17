@@ -1,0 +1,24 @@
+{
+  "button": "Vyřešit s Claude",
+  "title": "Vyřešit s Claude",
+  "intro": "Připravíme prompt s celým kontextem, chatem a pokyny pro eGrant MCP. Claude nejprve vysvětlí příčinu a navrhne řešení a bez vašeho potvrzení nic nezmění.",
+  "notesLabel": "Poznámky pro Claude (nepovinné)",
+  "notesPlaceholder": "Například na co se má zaměřit. Pole můžete nechat prázdné.",
+  "notesHint": "Nepovinné. Bez poznámek stačí stisknout Vygenerovat.",
+  "generate": "Vygenerovat",
+  "regenerate": "Vygenerovat znovu",
+  "cancel": "Zrušit",
+  "generating": "Připravuji prompt…",
+  "loadFailed": "Prompt se nepodařilo připravit. Zkuste to znovu.",
+  "ready": "Prompt je připravený",
+  "open": "Otevřít v Claude",
+  "copy": "Kopírovat prompt",
+  "filesReminder": "Soubory se do Claude přes odkaz nedostanou. Stáhněte si je a přiložte do chatu v Claude ručně:",
+  "preview": "Zobrazit prompt",
+  "status": {
+    "opened": "Claude se otevřel v nové kartě.",
+    "pasteInClaude": "Prompt je na odkaz příliš dlouhý, proto je ve schránce. Vložte ho do nového chatu v Claude (Ctrl+V nebo ⌘V).",
+    "copied": "Prompt je zkopírovaný.",
+    "copyFailed": "Prompt se nepodařilo zkopírovat. Zkuste Kopírovat prompt."
+  }
+}

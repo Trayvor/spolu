@@ -31,6 +31,7 @@ const NAMESPACES = [
   'knowledge',
   'login',
   'notifications',
+  'openInClaude',
   'reminders',
   'settings',
   'system',
