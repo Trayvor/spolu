@@ -25,6 +25,8 @@ const TASK: TaskDto = {
   assignees: [],
   fileCount: 0,
   sourceMessageId: null,
+  project: null,
+  event: null,
   upcomingReminders: 0,
   createdAt: '2026-10-01T10:00:00.000Z',
   updatedAt: '2026-10-01T10:00:00.000Z',

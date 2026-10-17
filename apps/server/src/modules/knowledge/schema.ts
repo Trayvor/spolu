@@ -15,6 +15,9 @@ import {
 import { messageAttachments } from '../chat/schema.js';
 import { files } from '../files/schema.js';
 import { groups } from '../groups/schema.js';
+import { projectEvents, projects } from '../projects/schema.js';
+import { tasks } from '../tasks/schema.js';
+import { tickets } from '../tickets/schema.js';
 import { user } from '../users/schema.js';
 
 /**
@@ -222,5 +225,56 @@ export const knowledgeMeetings = pgTable(
     ),
     index('knowledge_meetings_starts_at_idx').on(t.startsAt),
     index('knowledge_meetings_recording_file_idx').on(t.recordingFileId),
+  ],
+);
+
+/**
+ * Knowledge items attached to a description (Phase 33 part P5, spec §10.3): of a task, a ticket,
+ * a project, an event or another knowledge item, exactly one. `item_id` has no FK: a deleted item
+ * shows as unavailable, as in chat. Owned here; the other modules go through `links.ts`.
+ * Lazy references: tasks/schema.ts imports this file through chat/schema.ts.
+ */
+export const knowledgeLinks = pgTable(
+  'knowledge_links',
+  {
+    itemId: text('item_id').notNull(),
+    taskId: text('task_id').references((): AnyPgColumn => tasks.id, { onDelete: 'cascade' }),
+    ticketId: text('ticket_id').references((): AnyPgColumn => tickets.id, { onDelete: 'cascade' }),
+    projectId: text('project_id').references((): AnyPgColumn => projects.id, {
+      onDelete: 'cascade',
+    }),
+    eventId: text('event_id').references((): AnyPgColumn => projectEvents.id, {
+      onDelete: 'cascade',
+    }),
+    knowledgeItemId: text('knowledge_item_id').references((): AnyPgColumn => knowledgeItems.id, {
+      onDelete: 'cascade',
+    }),
+    position: integer('position').notNull().default(0),
+  },
+  (t) => [
+    check(
+      'knowledge_links_subject_check',
+      sql`num_nonnulls(${t.taskId}, ${t.ticketId}, ${t.projectId}, ${t.eventId}, ${t.knowledgeItemId}) = 1`,
+    ),
+    // One link per item and subject; it also leads with `item_id` for the file read rule.
+    uniqueIndex('knowledge_links_item_subject_unique').on(
+      t.itemId,
+      sql`coalesce(${t.taskId}, ${t.ticketId}, ${t.projectId}, ${t.eventId}, ${t.knowledgeItemId})`,
+    ),
+    index('knowledge_links_task_idx')
+      .on(t.taskId)
+      .where(sql`${t.taskId} is not null`),
+    index('knowledge_links_ticket_idx')
+      .on(t.ticketId)
+      .where(sql`${t.ticketId} is not null`),
+    index('knowledge_links_project_idx')
+      .on(t.projectId)
+      .where(sql`${t.projectId} is not null`),
+    index('knowledge_links_event_idx')
+      .on(t.eventId)
+      .where(sql`${t.eventId} is not null`),
+    index('knowledge_links_knowledge_item_idx')
+      .on(t.knowledgeItemId)
+      .where(sql`${t.knowledgeItemId} is not null`),
   ],
 );

@@ -127,5 +127,10 @@ export const ErrorCodes = {
   invalidKnowledgeItem: 'invalid_knowledge_item',
   // Phase 32 — finance
   financeChanged: 'finance_changed',
+  // Phase 33 — projects
+  projectChanged: 'project_changed',
+  projectNameTaken: 'project_name_taken',
+  invalidProject: 'invalid_project',
+  changeOutdated: 'change_outdated',
 } as const;
 export type ErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes];

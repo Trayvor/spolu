@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { MessageTaskLinkSchema } from './chat.js';
 import { FileInfoSchema } from './files.js';
+import { EventRefSchema, ProjectRefSchema } from './projects/common.js';
 import { isHttpUrl } from './urls.js';
 
 /** Phase 21. New → In progress → Resolved; an admin may set any of them at any time. */
@@ -185,6 +186,9 @@ export const TicketCreateBodySchema = z
       .max(TICKET_LIMITS.files)
       .nullish()
       .transform((v) => [...new Set(v ?? [])]),
+    /** The project and event (Phase 33 part P2; optional, absent = none). */
+    projectId: z.string().min(1).max(100).nullable().optional(),
+    eventId: z.string().min(1).max(100).nullable().optional(),
   })
   .refine(hasContent, { message: 'subject, body or area is required' });
 export type TicketCreateBody = z.infer<typeof TicketCreateBodySchema>;
@@ -253,6 +257,12 @@ export const TicketDtoSchema = z.object({
   assignees: z.array(TicketPersonSchema),
   /** Whether the viewer may add and remove riešitelia (admins, and the group's clients). */
   canAssign: z.boolean(),
+  /**
+   * The ticket's project and event (Phase 33); null until part P2 sets them. A žiadateľ gets the
+   * project's name only (no colour) and never the event.
+   */
+  project: ProjectRefSchema.nullable(),
+  event: EventRefSchema.nullable(),
 });
 export type TicketDto = z.infer<typeof TicketDtoSchema>;
 
@@ -267,6 +277,8 @@ export const TicketListItemSchema = TicketDtoSchema.pick({
   dueDate: true,
   createdAt: true,
   assignees: true,
+  project: true,
+  event: true,
 }).extend({
   requesterName: z.string().nullable(),
   /** The first words of the body, for a ticket without a subject. */

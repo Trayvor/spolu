@@ -300,6 +300,9 @@ export async function toTicketDto(
     channelId: channel?.id ?? null,
     assignees: assignees.get(row.id) ?? [],
     canAssign,
+    // Phase 33: part P2 fills these (and strips them for a žiadateľ in `forReader`).
+    project: null,
+    event: null,
   };
 }
 
@@ -426,6 +429,9 @@ export async function listTickets(
       ...r,
       createdAt: r.createdAt.toISOString(),
       assignees: assignees.get(r.id) ?? [],
+      // Phase 33: part P2 fills these through one `projectRefs` call per page.
+      project: null,
+      event: null,
     })),
     nextCursor: rows.length > limit ? encodeCursor(page[page.length - 1]!) : null,
   };

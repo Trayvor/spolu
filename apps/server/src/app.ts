@@ -24,6 +24,7 @@ import { knowledgeRoutes } from './modules/knowledge/routes.js';
 import { attachMeetingsRealtime } from './modules/knowledge/meeting-realtime.js';
 import { meetingRoutes } from './modules/knowledge/meeting-routes.js';
 import { notificationsRoutes } from './modules/notifications/routes.js';
+import { projectsRoutes } from './modules/projects/routes.js';
 import { attachRemindersRealtime } from './modules/reminders/realtime.js';
 import { remindersRoutes } from './modules/reminders/routes.js';
 import { countUpcomingForUser, listUpcomingForUser } from './modules/reminders/service.js';
@@ -95,6 +96,8 @@ export async function buildApp(
   await app.register(bulkEmailUnsubscribeRoutes, { prefix: '/api', deps });
   // Phase 32: the grant switch, the task-time routes and the sealed finance plugin.
   await app.register(financeRoutes, { prefix: '/api', deps });
+  // Phase 33: projects and events of a client.
+  await app.register(projectsRoutes, { prefix: '/api', deps });
   // Knowledge writes and reminder subscription changes share one limit: 120 a minute per user.
   const allowKnowledgeWrite = createRateLimiter({ windowMs: 60_000, max: 120 });
   await app.register(knowledgeRoutes, { prefix: '/api', deps, allowWrite: allowKnowledgeWrite });

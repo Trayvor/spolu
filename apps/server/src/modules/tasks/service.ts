@@ -159,6 +159,9 @@ export async function selectTasks(db: Db, where: SQL, limit?: number): Promise<T
     ...row,
     completedAt: row.completedAt?.toISOString() ?? null,
     createdBy: { id: creatorId, name: creatorName },
+    // Phase 33: part P2 fills these through one `projectRefs` call per page.
+    project: null,
+    event: null,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   }));

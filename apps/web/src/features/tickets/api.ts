@@ -104,6 +104,8 @@ export function toListItem(ticket: TicketDto): TicketListItem {
     requesterName: ticket.requester.name,
     excerpt: ticket.body === null ? null : ticket.body.slice(0, 140),
     assignees: ticket.assignees,
+    project: ticket.project,
+    event: ticket.event,
   };
 }
 

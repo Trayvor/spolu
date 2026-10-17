@@ -3,6 +3,7 @@ import {
   boolean,
   check,
   date,
+  foreignKey,
   index,
   integer,
   pgTable,
@@ -13,6 +14,7 @@ import {
 import type { TicketSource, TicketStatus } from '@spolu/shared';
 import { files } from '../files/schema.js';
 import { groups } from '../groups/schema.js';
+import { projectEvents, projects } from '../projects/schema.js';
 import { user } from '../users/schema.js';
 
 /**
@@ -48,8 +50,52 @@ export const tickets = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true }).notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull(),
     resolvedAt: timestamp('resolved_at', { withTimezone: true }),
+    /**
+     * The ticket's project and event (Phase 33; set by part P2, linked from eGrant by part P3).
+     * The same composite FKs as tasks (column-list `set null`, written by hand in migration
+     * 0036); a ticket without a client has none. Moving a ticket to
+     * another client must clear (or re-match) them in the same statement.
+     */
+    projectId: text('project_id'),
+    eventId: text('event_id'),
+    /** The raw `project_id` from the intake (decision 5), kept until the project arrives. */
+    egrantProjectId: text('egrant_project_id'),
   },
   (t) => [
+    foreignKey({
+      name: 'tickets_project_fk',
+      columns: [t.projectId, t.groupId],
+      foreignColumns: [projects.id, projects.groupId],
+    }).onDelete('set null'),
+    foreignKey({
+      name: 'tickets_event_fk',
+      columns: [t.eventId, t.projectId],
+      foreignColumns: [projectEvents.id, projectEvents.projectId],
+    })
+      .onDelete('set null')
+      .onUpdate('cascade'),
+    check(
+      'tickets_event_needs_project_check',
+      sql`${t.eventId} is null or ${t.projectId} is not null`,
+    ),
+    check(
+      'tickets_project_needs_group_check',
+      sql`${t.projectId} is null or ${t.groupId} is not null`,
+    ),
+    check(
+      'tickets_egrant_project_id_check',
+      sql`${t.egrantProjectId} is null or char_length(${t.egrantProjectId}) between 1 and 100`,
+    ),
+    // The list filters (part P2) and the project FK.
+    index('tickets_group_project_event_idx').on(t.groupId, t.projectId, t.eventId),
+    // The timeline rows (part P4) and the event FK.
+    index('tickets_event_project_idx')
+      .on(t.eventId, t.projectId)
+      .where(sql`${t.eventId} is not null`),
+    // Tickets waiting for their eGrant project (part P3).
+    index('tickets_waiting_project_idx')
+      .on(t.groupId, t.egrantProjectId)
+      .where(sql`${t.projectId} is null and ${t.egrantProjectId} is not null`),
     check('tickets_status_check', sql`${t.status} in ('new', 'in_progress', 'resolved')`),
     check('tickets_source_check', sql`${t.source} in ('api', 'manual')`),
     index('tickets_group_status_created_idx').on(t.groupId, t.status, t.createdAt.desc()),
