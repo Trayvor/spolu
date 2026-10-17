@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { SUPERADMIN_EMAIL } from './env';
 import { logInWithCode } from './login';
 
 test('an anonymous visitor is sent to /login', async ({ browser }) => {
@@ -33,7 +34,7 @@ test('superadmin adds an admin, who logs in and sees the list, then is removed',
   await adminPage.goto('/admins');
   await expect(adminPage.getByRole('heading', { name: 'Administrátori' })).toBeVisible();
   await expect(adminPage.getByText(email)).toBeVisible();
-  await expect(adminPage.getByText('admin@example.com')).toBeVisible();
+  await expect(adminPage.getByText(SUPERADMIN_EMAIL)).toBeVisible();
 
   // The superadmin removes them (two clicks: Remove, then confirm).
   await page

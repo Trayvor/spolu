@@ -1,9 +1,10 @@
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test';
+import { SUPERADMIN_EMAIL } from './env';
 import { clearMailFor, latestLoginCode, waitForMessage } from './mailpit';
 
 // Mailpit's API; 127.0.0.1, not localhost (Node DNS issue), as in mailpit.ts.
 const MAILPIT = 'http://127.0.0.1:8025';
-const ADMIN_EMAIL = 'admin@example.com';
+const ADMIN_EMAIL = SUPERADMIN_EMAIL;
 
 /** Log in through the API with an emailed code: production rate limits allow few UI requests. */
 async function signIn(request: APIRequestContext, email: string) {

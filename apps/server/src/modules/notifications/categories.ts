@@ -55,6 +55,8 @@ export function notificationGroupOf(
   if (group === 'chat' && typeof payload.taskId === 'string' && payload.taskId !== '') {
     return 'tasks';
   }
+  // Phase 32: a finance item's reminder goes to finance admins only (the audience re-checks it).
+  if (kind === 'reminder.due' && payload.subjectKind === 'finance') return 'finance';
   if (kind === 'reminder.due' && payload.subjectKind === 'knowledge') {
     // A meeting's own reminder (2026-10-17) belongs with the other meeting notifications.
     return payload.meeting === true ? 'meetings' : 'knowledge';

@@ -5,7 +5,7 @@ import type {
   TicketStatus,
   UserLanguage,
 } from '@spolu/shared';
-import { formatReminderClock, formatReminderTime, texts } from './texts.js';
+import { formatDay, formatReminderClock, formatReminderTime, texts } from './texts.js';
 
 const EXCERPT_MAX = 120;
 
@@ -143,6 +143,18 @@ export function buildPushPayload(i: PushContentInput): PushPayload {
   }
 
   if (i.kind.startsWith('meeting.')) return meetingPush(i);
+
+  if (i.kind === 'reminder.due' && p.subjectKind === 'finance') {
+    // Phase 32: a contract's reminder opens the item in the client's Finance tab; no money.
+    const subjectId = str(p.subjectId) ?? '';
+    const ends = formatDay(str(p.endsOn), i.lang);
+    return {
+      title: `${str(p.title) ?? ''} · ${i.groupName}`,
+      body: ends ? t.contractEnds(ends) : t.reminderDue(formatReminderTime(str(p.at), i.lang)),
+      url: `/groups/${groupId}/finance?item=${enc(subjectId)}`,
+      tag: `finance:${subjectId}`,
+    };
+  }
 
   if (i.kind === 'reminder.due') {
     const subjectId = str(p.subjectId) ?? '';

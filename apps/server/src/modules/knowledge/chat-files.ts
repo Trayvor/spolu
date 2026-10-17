@@ -5,7 +5,7 @@ import { onChatFiles, type ChatFileListener } from '../chat/file-hooks.js';
 import { getFilesForGroup } from '../files/service.js';
 import { emitKnowledgeDeleted, emitKnowledgeItem } from './events.js';
 import { knowledgeItems } from './schema.js';
-import { normalizeSearch } from './search.js';
+import { normalizeSearch } from '../../infra/text/search.js';
 import { chatFileSummaries } from './service.js';
 
 /**

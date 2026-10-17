@@ -47,6 +47,25 @@ describe('buildPushPayload reminder', () => {
     const bad = { ...reminder, at: 'nonsense' };
     expect(buildPushPayload({ ...r, payload: bad }).body).toBe('Pripomienka na ');
   });
+  it('a finance contract reminder opens the finance tab and says when the contract ends', () => {
+    const payload = {
+      subjectKind: 'finance',
+      subjectId: 'f1',
+      groupId: 'g1',
+      title: 'Zmluva 2026',
+      at: '2026-12-01T08:00:00Z',
+      endsOn: '2026-12-31',
+    };
+    const push = buildPushPayload({ ...base, kind: 'reminder.due', payload, lang: 'en' });
+    expect(push).toMatchObject({
+      title: 'Zmluva 2026 · Firma',
+      url: '/groups/g1/finance?item=f1',
+      tag: 'finance:f1',
+    });
+    expect(push.body).toMatch(/^Contract ends on .*31.*Dec.*2026/);
+    // Never money in a push.
+    expect(JSON.stringify(push)).not.toMatch(/€|EUR/);
+  });
   it('sk body reads "Pripomienka na …"', () => {
     expect(buildPushPayload({ ...r, lang: 'sk' }).body).toMatch(/^Pripomienka na .*10:00/);
   });

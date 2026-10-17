@@ -164,7 +164,7 @@ The catch-up read is an ordinary HTTP read, so it uses the same permission check
 
 | event | payload | room | when |
 |---|---|---|---|
-| `finance:changed` | `{ groupId: string \| null, kind: 'items' \| 'time' \| 'rates' }` | `finance` | after a finance write commits (`emitFinanceChanged`; `groupId` null for rates and for time without a client); emitted by parts A2, B, C. Part A2: kind `time` after a task completion, reopen, assignee removal or delete, a ticket resolution, reopen or riešiteľ removal that changed entries, and after `PUT …/time/me` (`announceTimeChange`) |
+| `finance:changed` | `{ groupId: string \| null, kind: 'items' \| 'time' \| 'rates' }` | `finance` | after a finance write commits (`emitFinanceChanged`; `groupId` null for rates and for time without a client); emitted by parts A2, B, C. Part B: kind `items` after every item, folder and file write of `documents-routes.ts` and when a finance item's reminder times change (the adapter's `onTimesChanged`). Part A2: kind `time` after a task completion, reopen, assignee removal or delete, a ticket resolution, reopen or riešiteľ removal that changed entries, and after `PUT …/time/me` (`announceTimeChange`) |
 | `time:requests` | `{ count }` | `user:<id>` | the user's open time requests changed (`emitTimeRequests`; part A2: to every user whose request was added or dropped, and to the caller after filling). The web's `TimeDialogHost` (signed-in layout, admins) refetches My tasks and any open "My time" |
 | `me:changed` | `{}` | `user:<id>` | the superadmin granted or removed the user's finance right |
 

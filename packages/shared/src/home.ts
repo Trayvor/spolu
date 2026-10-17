@@ -140,6 +140,8 @@ export const HomeReminderSchema = z.object({
   target: z.discriminatedUnion('kind', [
     z.object({ kind: z.literal('knowledge'), itemId: z.string() }),
     z.object({ kind: z.literal('task'), taskId: z.string() }),
+    // Phase 32: a finance item's reminder, listed only for its (finance admin) recipients.
+    z.object({ kind: z.literal('finance'), itemId: z.string() }),
   ]),
 });
 export type HomeReminder = z.infer<typeof HomeReminderSchema>;

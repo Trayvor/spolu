@@ -25,7 +25,7 @@ Each user chooses a notification mode per client group (what arrives) and, in th
   | **Ticket board** | ticket events and the ticket chats (Phase 21) | Email and push |
   | **Knowledge base** | Knowledge base reminders, except a meeting's | Push |
   | **Meetings** | new and moved meetings, a meeting's reminders, the AI summary result (2026-10-17) | Push |
-  | **Finance** | reminders of contracts and other finance items (Phase 32; filled by part B) | Push |
+  | **Finance** | reminders of contracts and other finance items (Phase 32 part B: `reminder.due` with `subjectKind: 'finance'`; push "Contract ends on <date>", digest "Contract <title> · <client>: ends on <date>" with "Open contract", opening `/groups/<id>/finance?item=<id>`; never the amount) | Push |
 
   - **Finance** shows only to finance admins (`visibleCategoriesFor`), and only they can set it. A finance event is delivered only to someone who holds the finance right at delivery time, so a reminder queued before the right was removed reaches nobody (the audience check, `audienceAmong`).
   - Requester-only people do not see Meetings (only Ticket board, as below). A meeting reminder used to follow Knowledge base; since 2026-10-17 it follows Meetings.
