@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
-import { lt, sql } from 'drizzle-orm';
-import type { NotificationKind } from '@spolu/shared';
+import { lt, sql, type SQL } from 'drizzle-orm';
+import type { NotificationCategory, NotificationKind } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
 import type { JobQueue } from '../../infra/jobs/jobs.js';
 import { channelSql } from '../users/service.js';
@@ -29,45 +29,72 @@ export const PUSH_JOB = 'notifications.push';
  * touches the events that may send something. Returns the ids of the events recorded (one per
  * recipient an event was recorded for), for `requestDelivery`.
  */
-export async function recordNotifications(
+export async function recordNotifications(tx: Db, input: NotificationInput): Promise<string[]> {
+  return recordManyNotifications(tx, [input]);
+}
+
+const INSERT_CHUNK = 1000;
+
+/** What `recordNotifications` records: one event of `kind` for each of `recipients`. */
+export type NotificationInput = {
+  kind: NotificationKind;
+  groupId: string | null;
+  recipients: string[];
+  payload: Record<string, unknown>;
+  dedupeKey?: string;
+};
+
+/**
+ * `recordNotifications` for many inputs at once (a job's batch: one event per task or reminder
+ * time): one `INSERT … SELECT` per notification group among the inputs, however many inputs.
+ * Same rules per input: recipients deduplicated, `dedupeKey` skips a recipient who has it,
+ * the pending state from the channel of the input's group. Returns the recorded event ids.
+ */
+export async function recordManyNotifications(
   tx: Db,
-  input: {
-    kind: NotificationKind;
-    groupId: string | null;
-    recipients: string[];
-    payload: Record<string, unknown>;
-    dedupeKey?: string;
-  },
+  inputs: NotificationInput[],
 ): Promise<string[]> {
-  const recipients = [...new Set(input.recipients)];
-  if (recipients.length === 0) return [];
-  const values = sql.join(
-    recipients.map((userId) => sql`(${randomUUID()}::text, ${userId}::text)`),
-    sql`, `,
-  );
-  const group = notificationGroupOf(input.kind, input.payload);
-  const deliveredAt =
-    group === null
-      ? sql`now()`
-      : sql`case
-        when u.disabled_at is not null then now()
-        when ${channelSql('u', group)} in ('email', 'both') then null
-        when ${channelSql('u', group)} = 'push'
-          and exists (select 1 from push_subscriptions s where s.user_id = u.id) then null
-        else now()
-      end`;
-  const rows = await tx.execute<{ id: string }>(sql`
-    insert into notification_events
-      (id, user_id, group_id, kind, payload, dedupe_key, delivered_at)
-    select v.id, v.user_id, ${input.groupId}::text, ${input.kind}::text,
-      ${JSON.stringify(input.payload)}::jsonb, ${input.dedupeKey ?? null}::text,
-      ${deliveredAt}
-    from (values ${values}) as v(id, user_id)
-    join "user" u on u.id = v.user_id
-    on conflict do nothing
-    returning id
-  `);
-  return [...rows].map((r) => r.id);
+  // The delivered_at rule depends on the notification group, so each group is one statement.
+  const byGroup = new Map<NotificationCategory | null, SQL[]>();
+  for (const input of inputs) {
+    const group = notificationGroupOf(input.kind, input.payload);
+    const rows = byGroup.get(group) ?? [];
+    const payload = JSON.stringify(input.payload);
+    for (const userId of new Set(input.recipients)) {
+      rows.push(
+        sql`(${randomUUID()}::text, ${userId}::text, ${input.groupId}::text, ${input.kind}::text, ${payload}::jsonb, ${input.dedupeKey ?? null}::text)`,
+      );
+    }
+    byGroup.set(group, rows);
+  }
+  const ids: string[] = [];
+  for (const [group, all] of byGroup) {
+    const deliveredAt =
+      group === null
+        ? sql`now()`
+        : sql`case
+          when u.disabled_at is not null then now()
+          when ${channelSql('u', group)} in ('email', 'both') then null
+          when ${channelSql('u', group)} = 'push'
+            and exists (select 1 from push_subscriptions s where s.user_id = u.id) then null
+          else now()
+        end`;
+    // Chunks keep a statement well under PostgreSQL's 65 535 bind parameters (6 per row).
+    for (let i = 0; i < all.length; i += INSERT_CHUNK) {
+      const rows = all.slice(i, i + INSERT_CHUNK);
+      const recorded = await tx.execute<{ id: string }>(sql`
+        insert into notification_events
+          (id, user_id, group_id, kind, payload, dedupe_key, delivered_at)
+        select v.id, v.user_id, v.group_id, v.kind, v.payload, v.dedupe_key, ${deliveredAt}
+        from (values ${sql.join(rows, sql`, `)}) as v(id, user_id, group_id, kind, payload, dedupe_key)
+        join "user" u on u.id = v.user_id
+        on conflict do nothing
+        returning id
+      `);
+      for (const r of recorded) ids.push(r.id);
+    }
+  }
+  return ids;
 }
 
 /**

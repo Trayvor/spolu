@@ -8,7 +8,7 @@ import { unreadForNotify } from '../chat/notify.js';
 import { groups } from '../groups/schema.js';
 import { getTaskTitles } from '../tasks/task-service.js';
 import { getNotificationProfiles } from '../users/service.js';
-import { notificationAudience, notificationGroupOf } from './categories.js';
+import { audienceAmong, notificationGroupOf } from './categories.js';
 import { decideEvent, isOutranked, KIND_RANK } from './decide.js';
 import { getEffectiveModes } from './modes.js';
 import { buildPushPayload } from './push-content.js';
@@ -67,14 +67,7 @@ export async function deliverPending(
       deliverBatch(tx, deps, scope, limit),
     );
     total += count;
-    for (const job of pushes) {
-      try {
-        await deps.jobs.send(PUSH_JOB, job, PUSH_JOB_OPTIONS);
-      } catch (error) {
-        // The event is already delivered; one lost push must not stop the others.
-        console.error('notifications: push job could not be queued', error);
-      }
-    }
+    await queuePushes(deps.jobs, pushes);
     if (emailUserIds.length > 0) {
       try {
         await deps.jobs.send(
@@ -88,6 +81,30 @@ export async function deliverPending(
       }
     }
     if (count < limit) return total;
+  }
+}
+
+/**
+ * Queues the batch's push jobs in one insert (Phase 27 S7). If that fails, or the queue has no
+ * `sendMany`, one by one: the events are already delivered, so one lost push must not stop the
+ * others.
+ */
+async function queuePushes(jobs: JobQueue, pushes: PushJob[]): Promise<void> {
+  if (pushes.length === 0) return;
+  if (jobs.sendMany) {
+    try {
+      await jobs.sendMany(PUSH_JOB, pushes, PUSH_JOB_OPTIONS);
+      return;
+    } catch (error) {
+      console.error('notifications: push jobs could not be queued together; one by one', error);
+    }
+  }
+  for (const job of pushes) {
+    try {
+      await jobs.send(PUSH_JOB, job, PUSH_JOB_OPTIONS);
+    } catch (error) {
+      console.error('notifications: push job could not be queued', error);
+    }
   }
 }
 
@@ -179,15 +196,11 @@ async function decideBatch(
     grouped.map((r) => ({ userId: r.userId, groupId: r.groupId! })),
     profiles,
   );
-  // Membership as of now: someone removed after the event gets nothing.
-  const audienceKey = (groupId: string, rowId: string) => `${groupId}\u0000${groupOf.get(rowId)}`;
-  const people = new Map<string, Set<string>>();
-  for (const r of grouped) {
-    const key = audienceKey(r.groupId!, r.id);
-    if (!people.has(key)) {
-      people.set(key, await notificationAudience(tx, r.groupId!, groupOf.get(r.id)!));
-    }
-  }
+  // Membership as of now: someone removed after the event gets nothing. One query per batch.
+  const inAudience = await audienceAmong(
+    tx,
+    grouped.map((r) => ({ userId: r.userId, groupId: r.groupId!, group: groupOf.get(r.id)! })),
+  );
   const groupNames = new Map(
     (
       await tx
@@ -215,8 +228,7 @@ async function decideBatch(
       kind,
       mode: modes.get(`${row.userId}:${groupId}`) ?? 'off',
       // A ticket event without a client group: its recorder chose the recipients.
-      isGroupPerson:
-        groupId === null || (people.get(audienceKey(groupId, row.id))?.has(row.userId) ?? false),
+      isGroupPerson: groupId === null || inAudience(row.userId, groupId, groupOf.get(row.id)!),
       // Task events have no message to read; chat events need theirs still unread.
       unread: messageId === null || message !== undefined,
       outranked: messageId !== null && isOutranked({ id: row.id, kind }, siblings.get(key) ?? []),

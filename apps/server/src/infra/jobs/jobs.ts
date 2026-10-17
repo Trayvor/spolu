@@ -14,6 +14,11 @@ export interface JobOptions {
 
 export interface JobQueue {
   send(name: string, data: object, options?: JobOptions): Promise<void>;
+  /**
+   * Sends one job per item with the same options, in one statement (pg-boss `insert`). Optional:
+   * a caller without it sends one by one.
+   */
+  sendMany?(name: string, items: object[], options?: JobOptions): Promise<void>;
 }
 
 /**
@@ -25,7 +30,14 @@ export function createDeferredQueue(): { queue: JobQueue; resolve(queue: JobQueu
   let resolve!: (queue: JobQueue) => void;
   const ready = new Promise<JobQueue>((r) => (resolve = r));
   return {
-    queue: { send: async (...args) => (await ready).send(...args) },
+    queue: {
+      send: async (...args) => (await ready).send(...args),
+      sendMany: async (name, items, options) => {
+        const queue = await ready;
+        if (queue.sendMany) await queue.sendMany(name, items, options);
+        else for (const data of items) await queue.send(name, data, options);
+      },
+    },
     resolve,
   };
 }
@@ -126,6 +138,12 @@ export async function startJobs(
     queue: {
       async send(name, data, options) {
         await boss.send(name, data, options);
+      },
+      async sendMany(name, items, options) {
+        await boss.insert(
+          name,
+          items.map((data) => ({ data, ...options })),
+        );
       },
     },
     // Graceful, but under the 30 s compose stop grace period.
