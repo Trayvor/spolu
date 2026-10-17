@@ -20,6 +20,7 @@ import {
   MESSAGE_MAX_FILES,
   MESSAGE_MAX_LENGTH,
   plainExcerpt,
+  splitMentionTokens,
   type MessageDto,
 } from '@spolu/shared';
 import { Button } from '@/components/ui/button';
@@ -27,7 +28,7 @@ import { formatFileSize } from '@/features/files/format-size';
 import { chatPeopleQuery, useChatPeople, useChatScope, useChatUpload } from './chat-scope';
 import { ApiError } from '@/lib/api';
 import { cn } from '@/lib/utils';
-import type { FormatKind } from './composer-text';
+import { toStored, type FormatKind, type PickedPerson } from './composer-text';
 import { safeHref } from './format/parse';
 import { FormatToolbar, iconButton, phoneIconButton } from './format-toolbar';
 import { CloseIcon, PaperclipIcon } from './icons';
@@ -219,20 +220,41 @@ export function Composer({
   const uploading = uploads.some((u) => u.status === 'uploading');
   const fileIds = uploads.flatMap((u) => (u.fileId ? [u.fileId] : []));
   const uploadFailed = uploads.some((u) => u.status === 'error');
+  /**
+   * The body as sent: a typed `@all` (the label) and a typed `@Name` of someone already picked in
+   * the draft become mention tokens too, as in the plain composer (text pasted or filled in
+   * without the picker).
+   */
+  const stored = (draft: string) => {
+    const picked: PickedPerson[] = [];
+    for (const part of splitMentionTokens(draft)) {
+      if (part.type !== 'mention' || part.id === 'all') continue;
+      const { id } = part;
+      const name = nameOf(id);
+      if (name !== undefined && !picked.some((p) => p.id === id)) picked.push({ id, name });
+    }
+    return toStored(draft, picked, allLabel);
+  };
+  const storedBody = useMemo(
+    () => (markdown.includes('@') ? stored(markdown) : markdown),
+    // `stored` reads the people and the label, both listed.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [markdown, people, allLabel],
+  );
   // The limit applies to the stored body, where a pill is a longer mention token.
-  const storedLength = markdown.length;
+  const storedLength = storedBody.length;
   const tooLong = storedLength > MESSAGE_MAX_LENGTH;
-  const canSendBody = (draft: string) =>
+  const canSendBody = (body: string) =>
     !busy &&
     !uploading &&
     !uploadFailed &&
-    draft.length <= MESSAGE_MAX_LENGTH &&
-    (draft.trim().length > 0 || fileIds.length > 0 || hasAttachments);
-  const canSend = canSendBody(markdown);
+    body.length <= MESSAGE_MAX_LENGTH &&
+    (body.trim().length > 0 || fileIds.length > 0 || hasAttachments);
+  const canSend = canSendBody(storedBody);
 
   async function submit() {
     // Enter can come before the last keystroke has rendered: the editor has the current draft.
-    const draft = editor.current?.getMarkdown() ?? markdown;
+    const draft = stored(editor.current?.getMarkdown() ?? markdown);
     if (!canSendBody(draft)) return;
     const body = draft.trim();
     const input = { body, fileIds, ...(replyTo ? { replyToId: replyTo.message.id } : {}) };

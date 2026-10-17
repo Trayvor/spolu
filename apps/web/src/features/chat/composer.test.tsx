@@ -212,6 +212,26 @@ describe('Composer', () => {
     expect(onSubmit).toHaveBeenCalledWith({ body: '@Every @zzz', fileIds: [] });
   });
 
+  it('a typed @all is sent as <@all>, in code it stays text (filled or typed past the picker)', async () => {
+    const user = userEvent.setup();
+    const { onSubmit, ref } = await renderComposer();
+    // Like Playwright's fill(): the text arrives without the picker.
+    act(() => ref.current?.setMarkdown('@all hotovo `@all`'));
+    await user.keyboard('{Enter}');
+    expect(onSubmit).toHaveBeenCalledWith({ body: '<@all> hotovo `@all`', fileIds: [] });
+  });
+
+  it('a typed @Name of someone picked in the draft is sent as their token, others stay text', async () => {
+    const user = userEvent.setup();
+    const { onSubmit, ref } = await renderComposer();
+    act(() => ref.current?.setMarkdown('<@jana> and @Jana Nováková, not @Peter Horváth'));
+    await user.keyboard('{Enter}');
+    expect(onSubmit).toHaveBeenCalledWith({
+      body: '<@jana> and <@jana>, not @Peter Horváth',
+      fileIds: [],
+    });
+  });
+
   it('one letter that starts an Everyone label does not offer Everyone', async () => {
     const user = userEvent.setup();
     await renderComposer();
