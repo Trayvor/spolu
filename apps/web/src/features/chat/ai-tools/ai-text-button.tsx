@@ -46,6 +46,9 @@ export function AiTextButton({ channelId, getText, setText, className }: AiTextB
   const tools = useAiTools(channelId);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<Notice | null>(null);
+  // The draft lives in the composer's ref, so typing does not render this button: render it again
+  // when the menu opens, so "empty" and Undo read the current draft.
+  const [, setOpenedAt] = useState(0);
 
   if (!tools?.text) return null;
 
@@ -80,7 +83,7 @@ export function AiTextButton({ channelId, getText, setText, className }: AiTextB
 
   return (
     <>
-      <DropdownMenu>
+      <DropdownMenu onOpenChange={() => setOpenedAt(Date.now())}>
         <DropdownMenuTrigger asChild>
           <button
             type="button"
