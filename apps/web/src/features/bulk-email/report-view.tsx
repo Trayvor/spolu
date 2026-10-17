@@ -1,6 +1,7 @@
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { useState, type ReactNode } from 'react';
+import { useRememberedState } from '@/lib/use-remembered-filters';
 import { useTranslation } from 'react-i18next';
 import {
   BulkRecipientStatuses,
@@ -226,7 +227,11 @@ function Actions({ campaign }: { campaign: BulkCampaignDto }) {
 
 function PeopleList({ campaignId }: { campaignId: string }) {
   const { t } = useTranslation();
-  const [status, setStatus] = useState<BulkRecipientStatus | null>(null);
+  // The status filter is remembered per campaign for the next visit.
+  const [status, setStatus] = useRememberedState<BulkRecipientStatus>(
+    `bulkEmailReport:${campaignId}`,
+    BulkRecipientStatuses,
+  );
   const people = useInfiniteQuery(recipientsQuery(campaignId, status));
   const items = people.data?.pages.flatMap((page) => page.items) ?? [];
 

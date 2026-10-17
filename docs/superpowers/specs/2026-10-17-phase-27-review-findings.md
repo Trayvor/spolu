@@ -92,6 +92,7 @@ Impact: **high** = a user waits seconds, or the server does far more work than n
 **S5. A notification event row for every admin on every top-level message.** Impact med, effort M, risk med.
 - Evidence: `chat/messages.ts:263` notifies `listGroupPeople`, and every active admin is in every group (`groups/service.ts:245`). Rows = messages × (admins + clients). Most are stamped delivered at once (`notifications/service.ts:48`); they are written only to be purged after 30 days. The test DB's `notification_events` is 41 MB, the largest table.
 - Proposed: skip recipients whose channel for the category is `none` in the `insert … select`. This touches the notification rules, so it needs the owner's review.
+- **Done** (PR #66, branch `perf/phase-27-batch-2`; the owner's rule: the dashboard and notifications show only what the person was notified about). `recordManyNotifications` writes no row for a disabled recipient or one whose channel for the event's notification group is `none` (`where u.disabled_at is null and channel <> 'none'` in the `insert … select`). Checked first: only the notifications module reads `notification_events` (delivery, its sibling ranking, the digest, the purge); the dashboard cards, mentions, unread counts and socket badges read the chat, tasks and tickets tables. Siblings of one message always share the notification group, so "one push per message" is unchanged. Rows per top-level message, through `sendMessage` (a group with 10 admins and 2 clients, an admin writes, 6 admins with chat `none`): 11 → 5. With everyone on the default channels it stays 11: the gain is exactly the people who turned that category off. Not changed: an admin whose group mode is `off` still gets a row (delivered at once); the mode is read at delivery time, so skipping it at insert would change behaviour.
 
 **S6. The admin sidebar counts unread messages for every group, and returns every group.** Impact med (grows with clients), effort L, risk med.
 - Evidence: 6 ms at 100 groups, 125 ms at 3 100 groups with JIT off (S2). An admin has no `read_states` row for groups they never opened, so each lateral reads up to `UNREAD_CAP` = 100 messages. The response is unbounded. Already noted in performance.md.
@@ -108,6 +109,7 @@ Impact: **high** = a user waits seconds, or the server does far more work than n
 **S8. The group board loads every task ever, including all completed ones.** Impact med as groups age, effort M, risk med (visible).
 - Evidence: `tasks/service.ts:209` (`getBoard`) runs `selectTasks(eq(groupId))` with no limit. It is 1.8 ms for 200 tasks on the volume. It also runs `ensureBoard` (an insert … on conflict) on every GET.
 - Proposed: cap the Done column (e.g. the last 50 plus "Show more", like the global board). This changes what users see, so it is the owner's call.
+- **Done** (PR #66, branch `perf/phase-27-batch-2`; the owner chose 15). The board brings every open task and the first 15 completed ones in column order (the done circle puts a task on top, so these are the latest), with `done: { total, next }`; "Show 15 more" is `GET /groups/:id/board/done?after=<position>` on `tasks_bucket_position_unique`, and a refetch asks `?done=N` for the pages already shown (at most 300). `ensureBoard` runs only when the read finds no Completed bucket, so a warm GET writes nothing (1 → 0 writes per GET). Measured through `getBoard` on a group with 50 open and 2 000 completed tasks (median of 15 warm runs): 38.1 → 3.8 ms, 2 050 → 65 tasks, 1.01 MB → 31.7 kB of JSON. Column order, not `completed_at`, decides the page, so a task dragged low in Completed by hand can fall onto a later page.
 
 **S9. Session lookup on every request and socket event.** Impact low-med, effort S, risk med (security trade-off).
 - Evidence: there is no better-auth `cookieCache` (`auth/auth.ts:45`). A socket handshake does 2 lookups, and every `group:join` one more plus `clientGroupIds` and `getGroup`.
@@ -184,6 +186,7 @@ Impact: **high** = a user waits seconds, or the server does far more work than n
 **W5. The global board drops the "Show 50 more" pages whenever any task changes.** Impact med, effort M, risk med.
 - Evidence: `global-board/global-board.tsx:35,44-48` reset `extra` on every `dataUpdatedAt`, and the query refetches on every task activity anywhere and on focus.
 - Proposed: keep the extra pages unless the filters change. It is a visible fix, so the owner should see it first; next web batch.
+- **Done** (PR #66, branch `perf/phase-27-batch-2`, owner accepted). The extra pages are kept per filter set (`JSON.stringify(filters)`) and dropped only when the filters change. A refetch of the first page reloads each opened column's pages from its new cursor to the same depth, one request per page loaded, and a card that moved up into the first page is shown once. Before: every task change anywhere (2 s debounce) or a refocus folded every column back to 50 cards, and the person had to press "Show 50 more" again (one request per page, by hand). After: the board stays as deep as it was; a refetch costs 1 + (pages loaded) requests instead of 1, sent only while pages are open. Test: `global-board.test.tsx` ("the loaded pages stay, refreshed…").
 
 **W6. Task board re-renders every card on every board or chat event.** Impact low-med, effort S, risk low.
 - Evidence: `memo` is used only in `chat/message-item.tsx`. `board.tsx:179` passes a new `onToggleDone`, and `task-chats.ts:54` replaces the summaries on every task-chat message. `formatDue` builds an Intl formatter per card per render (`tasks/dates.ts:17`).
@@ -283,11 +286,12 @@ Each batch is one branch and one PR from fresh `origin/main`, independent of the
 | 9 | `ci/parallel-static-checks` | T5 | med (CI) | low-med | PR #56: lint, format check and typecheck in parallel, 27–55 → 18–28 s |
 | 10 | `test/deterministic-deliveries` | T3 | med (CI) | low | PR #58: the tests' delivery is scoped by event id; push checks no longer wait |
 | 11 | `perf/job-batching` | S7 | med | low-med | PR #60: job queries per batch 58 → 9 (delivery), 57 → 8 (digest), 201 → 2 (deadline reminders), 606 → 9 (reminder fire) |
+| 12 | `perf/phase-27-batch-2` | S5, S8, W5 (+ remembered filters) | med | med | PR #66: rows per top-level message 11 → 5 with 6 of 10 admins on chat none; group board with 2 000 completed tasks 38.1 → 3.8 ms, 1.01 MB → 31.7 kB, 1 → 0 writes per GET; global board pages kept across refetches |
 
 Proposed, not done (owner decision or later work):
-- **Server:** S4, S5, S6, S8, S9, S10, S11.
-- **Web:** W2, W5, W6, W7, W8.
+- **Server:** S4, S6, S9, S10, S11.
+- **Web:** W2, W6, W7, W8.
 - **Tests and CI:** T2, T4.
 - **Docker:** K2.
 
-The next web batch should be W5 together with S4.
+The next web batch should be S4.

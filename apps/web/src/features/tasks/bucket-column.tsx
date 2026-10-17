@@ -5,6 +5,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import type {
+  BoardDone,
   BoardDto,
   BucketDto,
   TaskChatSummaries,
@@ -14,7 +15,8 @@ import type {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
-import { boardQuery, deleteBucket, updateBucket } from './api';
+import { boardQuery, deleteBucket, fetchDonePage, updateBucket } from './api';
+import { appendDonePage } from './board-cache';
 import { byPosition } from './board-model';
 import { BucketMenu } from './bucket-menu';
 import type { DragData } from './dnd-announcements';
@@ -118,6 +120,52 @@ function SortableTask({
 }
 
 /**
+ * "Show 15 more" under the Completed column: the next page goes into the cached board, so live
+ * events and refetches keep it (see `doneToKeep`). The same look as the global board's button.
+ */
+function ShowMoreDone({ groupId, after }: { groupId: string; after: string }) {
+  const { t } = useTranslation();
+  const queryClient = useQueryClient();
+  const [loading, setLoading] = useState(false);
+  const [failed, setFailed] = useState(false);
+
+  async function more() {
+    setLoading(true);
+    setFailed(false);
+    try {
+      const page = await fetchDonePage(groupId, after);
+      queryClient.setQueryData<BoardDto>(
+        boardQuery(groupId).queryKey,
+        (board) => board && appendDonePage(board, page),
+      );
+    } catch {
+      setFailed(true);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <>
+      {failed && (
+        <p role="alert" className="text-micro text-error-ink">
+          {t('tasks.board.moreFailed')}
+        </p>
+      )}
+      <Button
+        variant="ghost"
+        size="sm"
+        className="self-start"
+        disabled={loading}
+        onClick={() => void more()}
+      >
+        {t('tasks.board.showMore')}
+      </Button>
+    </>
+  );
+}
+
+/**
  * One column: header, scrolling card list, "+ Add task". The list is a droppable (a drop on it
  * puts the card last) holding one sortable per card; the column itself is sortable among the
  * buckets: admins lift any of them, fixed ones included, by its grip.
@@ -133,6 +181,7 @@ export function BucketColumn({
   dropMark,
   chats,
   onToggleDone,
+  done,
 }: {
   bucket: BucketDto;
   title: string;
@@ -147,6 +196,8 @@ export function BucketColumn({
   chats?: TaskChatSummaries;
   /** The done circle of one of the column's cards was pressed. */
   onToggleDone: (task: TaskDto) => void;
+  /** Completed only: its paging state (the column shows the first pages, Phase 27 S8). */
+  done?: BoardDone;
 }) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -155,6 +206,7 @@ export function BucketColumn({
   const [failed, setFailed] = useState(false);
   const busy = useRef(false);
   const mark = KIND_MARK[bucket.kind];
+  const count = done ? Math.max(done.total, tasks.length) : tasks.length;
   const key = boardQuery(bucket.groupId).queryKey;
   const movable = admin;
   const {
@@ -267,8 +319,8 @@ export function BucketColumn({
             )}
             <h2 className="min-w-0 flex-1 truncate text-button font-semibold">{title}</h2>
             <span className="text-micro text-muted-foreground">
-              <span aria-hidden="true">{tasks.length}</span>
-              <span className="sr-only">{t('tasks.board.count', { count: tasks.length })}</span>
+              <span aria-hidden="true">{count}</span>
+              <span className="sr-only">{t('tasks.board.count', { count })}</span>
             </span>
             {admin && bucket.kind === 'custom' && (
               <BucketMenu
@@ -351,6 +403,7 @@ export function BucketColumn({
           </li>
         )}
       </ul>
+      {done?.next && <ShowMoreDone groupId={bucket.groupId} after={done.next} />}
 
       <Link
         to="/groups/$groupId/tasks/new"
