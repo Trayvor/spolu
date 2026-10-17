@@ -153,3 +153,35 @@ limit_local_parallelism() {
   export VITEST_MAX_WORKERS="${VITEST_MAX_WORKERS:-$(( cores / 2 > 0 ? cores / 2 : 1 ))}"
   export E2E_WORKERS="${E2E_WORKERS:-$(( cores / 4 > 0 ? cores / 4 : 1 ))}"
 }
+
+# ci_run_id <directory name> <absolute path>: a short id for one working tree, safe in a database
+# name: the directory name lowercased, every other character turned into "_", cut to 16 characters,
+# plus 6 digits of the path's checksum (two trees with the same name stay apart). Pure function.
+ci_run_id() {
+  local name sum
+  name="$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]' | tr -c 'a-z0-9' '_' | cut -c1-16)"
+  sum="$(printf '%s' "$2" | cksum | cut -d' ' -f1)"
+  printf '%s_%06d' "$name" "$(( sum % 1000000 ))"
+}
+
+# free_port: prints a TCP port nobody listens on right now (asks the OS through Node).
+free_port() {
+  node -e "const s=require('net').createServer();s.listen(0,'127.0.0.1',()=>{console.log(s.address().port);s.close()})"
+}
+
+# isolate_local_run: on a laptop (CI unset) give this ci.sh run its own database names, e2e port and
+# e2e superadmin address, so two runs from two worktrees can go at the same time. Sets:
+#   CI_RUN_ID, TEST_DATABASE_URL (spolu_test_ci_<id>, and <that>_explain next to it),
+#   E2E_DATABASE_URL (spolu_e2e_<id>), E2E_PORT, E2E_SUPERADMIN_EMAIL (Mailpit is shared; the
+#   address is what keeps one run from reading another's login code).
+# A value already set by the caller wins. Under CI (a fresh runner) nothing is changed.
+isolate_local_run() {
+  [[ -z "${CI:-}" ]] || return 0
+  local base="postgres://spolu:spolu@localhost:5432"
+  CI_RUN_ID="${CI_RUN_ID:-$(ci_run_id "$(basename "$PWD")" "$PWD")}"
+  export CI_RUN_ID
+  export TEST_DATABASE_URL="${TEST_DATABASE_URL:-$base/spolu_test_ci_$CI_RUN_ID}"
+  export E2E_DATABASE_URL="${E2E_DATABASE_URL:-$base/spolu_e2e_$CI_RUN_ID}"
+  export E2E_PORT="${E2E_PORT:-$(free_port)}"
+  export E2E_SUPERADMIN_EMAIL="${E2E_SUPERADMIN_EMAIL:-admin-$CI_RUN_ID@example.com}"
+}

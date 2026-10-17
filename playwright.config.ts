@@ -1,7 +1,8 @@
 import { resolve } from 'node:path';
 import { defineConfig, devices } from '@playwright/test';
 
-const PORT = 3000;
+// scripts/ci.sh picks a free port per run (E2E_PORT) so several runs can go at once.
+const PORT = Number(process.env.E2E_PORT) || 3000;
 const baseURL = `http://localhost:${PORT}`;
 
 // Production-like run: build everything, then serve the built web app from the built server.
@@ -53,7 +54,7 @@ export default defineConfig({
       PORT: String(PORT),
       PUBLIC_URL: baseURL,
       DATABASE_URL: process.env.DATABASE_URL ?? 'postgres://spolu:spolu@localhost:5432/spolu_e2e',
-      SUPERADMIN_EMAIL: 'admin@example.com',
+      SUPERADMIN_EMAIL: process.env.E2E_SUPERADMIN_EMAIL ?? 'admin@example.com',
       APP_SECRET: 'e2e-secret-e2e-secret-e2e-secret-e2e-secret',
       FILES_DIR: resolve('data/e2e-files'),
       WEB_DIST_DIR: resolve('apps/web/dist'),
