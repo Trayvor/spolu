@@ -214,7 +214,11 @@ export function KnowledgeDialog({
       }
       client.setQueryData(['knowledge', 'item', saved.id], saved);
       refreshLists(client);
-      if (target.mode === 'create') return onClose(saved.id);
+      if (target.mode === 'create') {
+        // Saved: opening the new item is no unsaved-edits navigation for the Back guard.
+        leaving.current = true;
+        return onClose(saved.id);
+      }
       leave('view');
     } catch (error) {
       if (error instanceof ApiError && error.status === 409) setConflict(true);
