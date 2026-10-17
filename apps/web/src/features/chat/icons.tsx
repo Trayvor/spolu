@@ -2,10 +2,11 @@ import type { ReactNode } from 'react';
 
 /** Small outline icons for the message toolbar (inline SVG, no icon library). */
 
-function Icon({ children }: { children: ReactNode }) {
+function Icon({ children, className }: { children: ReactNode; className?: string }) {
   return (
     <svg
       aria-hidden="true"
+      className={className}
       viewBox="0 0 24 24"
       width="16"
       height="16"
@@ -129,5 +130,13 @@ export const TrashIcon = () => (
 export const BookIcon = () => (
   <Icon>
     <path d="M12 7v14M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z" />
+  </Icon>
+);
+
+/** A paper plane: Send, shown instead of the word on phones (20 px, in the 44 px button). */
+export const SendIcon = ({ className }: { className?: string }) => (
+  <Icon className={className}>
+    <path d="M14.5 21.7a.5.5 0 0 0 .9 0l6.5-19a.5.5 0 0 0-.6-.6l-19 6.5a.5.5 0 0 0 0 .9l7.9 3.2a2 2 0 0 1 1.1 1.1z" />
+    <path d="m21.9 2.1-11 11" />
   </Icon>
 );

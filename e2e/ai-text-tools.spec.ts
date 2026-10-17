@@ -63,6 +63,8 @@ test('voice input records until Stop and puts the transcript in the draft', asyn
   await box.fill('Poznámka:');
   await page.getByRole('button', { name: 'Diktovať' }).click();
   await expect(page.getByRole('timer')).toContainText('/ 5:00');
+  // Record at least a second: a Stop right after the start can leave an empty recording.
+  await expect(page.getByRole('timer')).toContainText(/0:0[1-9] \//);
   await page.getByRole('button', { name: 'Zastaviť a prepísať' }).click();
   await expect(box).toHaveText(/^Poznámka: Anna: Dobrý deň, poďme na rozpočet projektu\./);
   await expect(page.locator('[data-message-id]')).toHaveCount(0);

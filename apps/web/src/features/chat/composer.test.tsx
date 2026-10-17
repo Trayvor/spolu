@@ -75,6 +75,18 @@ describe('Composer', () => {
     expect(send.previousElementSibling).toHaveTextContent('AI');
   });
 
+  it('Send swaps its word for a 44 px paper plane on phones and keeps its name', async () => {
+    await renderComposer();
+    const button = send();
+    expect(button).toHaveAttribute('aria-label', 'Send');
+    expect(button).toHaveClass('max-[640px]:size-11', 'max-[640px]:px-0', 'bg-primary');
+    expect(within(button).getByText('Send')).toHaveClass('max-[640px]:hidden');
+    const icon = button.querySelector('svg');
+    expect(icon).toHaveAttribute('aria-hidden', 'true');
+    expect(icon).toHaveClass('hidden', 'max-[640px]:block');
+    expect(button).toBeDisabled();
+  });
+
   it('edit mode keeps Save and Cancel in the box, without the paperclip', async () => {
     await renderComposer({ mode: 'edit', initialBody: 'a', onCancel: vi.fn() });
     const inside = within(frame());
