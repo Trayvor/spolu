@@ -17,11 +17,8 @@
     "workLog": "Evidenca dela",
     "workLogSoon": "Tukaj bodo ure, ki so jih skrbniki opravili za to stranko, po mesecih in dneh.",
     "contracts": "Pogodbe",
-    "contractsSoon": "Tukaj bodo pogodbe vseh strank in iskanje po vseh finančnih dokumentih.",
     "paidRanking": "Stranke po plačanih zneskih",
-    "paidRankingSoon": "Tukaj bodo stranke, razvrščene po plačanih zneskih.",
-    "hoursRanking": "Stranke po urah",
-    "hoursRankingSoon": "Tukaj bodo stranke, razvrščene po urah ali njihovi ceni."
+    "hoursRanking": "Stranke po urah"
   },
   "periods": {
     "next12": "Zadnjih 12 in naslednjih 12 mesecev",

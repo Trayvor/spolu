@@ -2,7 +2,6 @@ import { useId, useMemo, useState } from 'react';
 import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import type { SidebarClient } from '@spolu/shared';
-import { AssignedPill } from '@/components/assigned-pill';
 import { UnreadPill } from '@/features/chat/unread';
 import { GroupLogo } from '@/features/groups/group-logo';
 import { cn } from '@/lib/utils';
@@ -22,10 +21,15 @@ function Row({
   collapsed: boolean;
 }) {
   const { t } = useTranslation();
-  const unreadLabel = t('adminHome.sidebar.unread', { count: client.unread });
-  const assignedLabel = t('adminHome.sidebar.assigned', { count: client.assigned });
-  // Collapsed: ink dot when unread, else a yellow one when something is assigned to me.
-  const dot = client.unread > 0 ? 'bg-primary' : client.assigned > 0 ? 'bg-attention' : null;
+  // 2026-10-17: one black badge for what is new here, its parts in the screen-reader label.
+  const badge = client.unread + client.unseenTasks + client.unseenTickets;
+  const badgeLabel = [
+    client.unread > 0 && t('adminHome.sidebar.messages', { count: client.unread }),
+    client.unseenTasks > 0 && t('adminHome.sidebar.tasks', { count: client.unseenTasks }),
+    client.unseenTickets > 0 && t('adminHome.sidebar.tickets', { count: client.unseenTickets }),
+  ]
+    .filter(Boolean)
+    .join(', ');
   return (
     <li>
       <Link
@@ -48,30 +52,22 @@ function Row({
             version={client.updatedAt}
             size={24}
             className="rounded-md"
+            admin={client.section === 'internal'}
           />
-          {collapsed && dot && (
+          {collapsed && badge > 0 && (
             <span
               aria-hidden="true"
               data-testid="rail-dot"
-              data-dot={dot}
-              className={cn(
-                'absolute -top-0.5 -right-0.5 size-2 rounded-full ring-2 ring-card',
-                dot,
-              )}
+              className="absolute -top-0.5 -right-0.5 size-2 rounded-full bg-primary ring-2 ring-card"
             />
           )}
         </span>
         {collapsed ? (
-          <span className="sr-only">
-            {[client.name, client.unread > 0 && unreadLabel, client.assigned > 0 && assignedLabel]
-              .filter(Boolean)
-              .join(', ')}
-          </span>
+          <span className="sr-only">{[client.name, badgeLabel].filter(Boolean).join(', ')}</span>
         ) : (
           <>
             <span className="min-w-0 flex-1 truncate">{client.name}</span>
-            <UnreadPill count={client.unread} label={unreadLabel} />
-            <AssignedPill count={client.assigned} label={assignedLabel} />
+            <UnreadPill count={badge} label={badgeLabel} />
           </>
         )}
       </Link>
@@ -80,8 +76,10 @@ function Row({
 }
 
 /**
- * The admin's client list: a find field, then "Managed by you" and "Other clients" in the
- * server's order (unread, then assigned, then the rest, by name). The sidebar uses 40 px rows,
+ * The admin's client list: a find field, then "Internal" (the admin group "eGrant tím", Phase 34),
+ * "Managed by you" and "Other clients" in the
+ * server's order (those with a badge, then the rest, by name). The badge adds the unread group
+ * chat messages and the tasks and tickets with an unseen change (2026-10-17). The sidebar uses 40 px rows,
  * the phone home 48 px; collapsed (the sidebar's rail) shows logos with a dot only.
  */
 export function ClientSidebarList({
@@ -102,9 +100,10 @@ export function ClientSidebarList({
     const needle = fold(query.trim());
     return needle ? clients.filter((c) => fold(c.name).includes(needle)) : clients;
   }, [clients, query]);
-  const managed = shown.filter((c) => c.managed);
-  const others = shown.filter((c) => !c.managed);
-  const anyManaged = clients.some((c) => c.managed);
+  const internal = shown.filter((c) => c.section === 'internal');
+  const managed = shown.filter((c) => c.section !== 'internal' && c.managed);
+  const others = shown.filter((c) => c.section !== 'internal' && !c.managed);
+  const anyManaged = clients.some((c) => c.section !== 'internal' && c.managed);
 
   const list = (items: SidebarClient[]) => (
     <ul className="flex flex-col gap-0.5">
@@ -126,6 +125,10 @@ export function ClientSidebarList({
   if (collapsed) {
     return (
       <nav aria-label={t('adminHome.sidebar.title')} className="flex flex-col gap-2">
+        {list(internal)}
+        {internal.length > 0 && managed.length + others.length > 0 && (
+          <hr className="mx-2 border-border" />
+        )}
         {list(managed)}
         {managed.length > 0 && others.length > 0 && <hr className="mx-2 border-border" />}
         {list(others)}
@@ -149,6 +152,15 @@ export function ClientSidebarList({
       {shown.length === 0 && (
         <p className="px-2 text-micro text-muted-foreground">{t('adminHome.sidebar.noMatch')}</p>
       )}
+      {internal.length > 0 && (
+        <section>
+          {heading(t('adminHome.sidebar.internal'))}
+          {list(internal)}
+        </section>
+      )}
+      {internal.length > 0 && managed.length + others.length > 0 && (
+        <hr className="mx-2 border-border" />
+      )}
       {anyManaged ? (
         <>
           {managed.length > 0 && (
@@ -166,7 +178,7 @@ export function ClientSidebarList({
           )}
         </>
       ) : (
-        shown.length > 0 && list(shown)
+        others.length > 0 && list(others)
       )}
     </nav>
   );

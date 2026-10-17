@@ -16,6 +16,8 @@ import {
 } from '@/features/tickets/test-api';
 
 const socket = fakeSocket();
+// Marking seen (2026-10-17) has its own test; here it would add requests and listeners.
+vi.mock('@/lib/use-mark-seen', () => ({ useMarkSeen: () => {} }));
 vi.mock('@/lib/socket', () => ({
   getSocket: () => socket,
   connectSocket: vi.fn(),

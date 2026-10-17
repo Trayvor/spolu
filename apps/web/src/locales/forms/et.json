@@ -7,6 +7,7 @@
     "attach": "Lisa fail",
     "remove": "Eemalda {{name}}",
     "uploading": "Üleslaadimine: {{name}}",
+    "waiting": "Ootame failide üleslaadimist",
     "uploadFailed": "Faili {{name}} ei õnnestunud üles laadida.",
     "tooLarge": "Fail {{name}} on suurem kui 25 MB.",
     "unknown": "Fail"

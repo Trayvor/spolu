@@ -11,14 +11,19 @@
     "collapse": "Згорнути список клієнтів",
     "expand": "Розгорнути список клієнтів",
     "noMatch": "Жоден клієнт не відповідає.",
-    "unread_one": "{{count}} непрочитане повідомлення",
-    "unread_few": "{{count}} непрочитані повідомлення",
-    "unread_many": "{{count}} непрочитаних повідомлень",
-    "unread_other": "{{count}} непрочитаного повідомлення",
-    "assigned_one": "{{count}} завдання призначено Вам",
-    "assigned_few": "{{count}} завдання призначено Вам",
-    "assigned_many": "{{count}} завдань призначено Вам",
-    "assigned_other": "{{count}} завдання призначено Вам"
+    "messages_one": "{{count}} повідомлення",
+    "messages_few": "{{count}} повідомлення",
+    "messages_many": "{{count}} повідомлень",
+    "messages_other": "{{count}} повідомлення",
+    "tasks_one": "{{count}} завдання",
+    "tasks_few": "{{count}} завдання",
+    "tasks_many": "{{count}} завдань",
+    "tasks_other": "{{count}} завдання",
+    "tickets_one": "{{count}} тікет",
+    "tickets_few": "{{count}} тікети",
+    "tickets_many": "{{count}} тікетів",
+    "tickets_other": "{{count}} тікета",
+    "internal": "Внутрішнє"
   },
   "home": {
     "greeting": {
@@ -80,7 +85,8 @@
       "unsummarized_few": "{{count}} без підсумку",
       "unsummarized_many": "{{count}} без підсумку",
       "unsummarized_other": "{{count}} без підсумку"
-    }
+    },
+    "unseen": "Нова зміна"
   },
   "board": {
     "title": "Завдання",
@@ -123,14 +129,14 @@
     "count_other": "{{count}} завдання"
   },
   "navCount": {
-    "tasks_one": "{{count}} відкрите завдання, призначене Вам",
-    "tasks_few": "{{count}} відкриті завдання, призначені Вам",
-    "tasks_many": "{{count}} відкритих завдань, призначених Вам",
-    "tasks_other": "{{count}} відкритого завдання, призначеного Вам",
-    "tickets_one": "{{count}} відкритий тікет для Вас",
-    "tickets_few": "{{count}} відкриті тікети для Вас",
-    "tickets_many": "{{count}} відкритих тікетів для Вас",
-    "tickets_other": "{{count}} відкритого тікета для Вас"
+    "tasks_one": "{{count}} завдання з новою зміною",
+    "tasks_few": "{{count}} завдання з новими змінами",
+    "tasks_many": "{{count}} завдань з новими змінами",
+    "tasks_other": "{{count}} завдання з новими змінами",
+    "tickets_one": "{{count}} тікет з новою зміною",
+    "tickets_few": "{{count}} тікети з новими змінами",
+    "tickets_many": "{{count}} тікетів з новими змінами",
+    "tickets_other": "{{count}} тікета з новими змінами"
   },
   "sheet": {
     "tickets": {

@@ -23,6 +23,7 @@ import {
   setNameIfEmpty,
   type UserRow,
 } from '../users/service.js';
+import { isAdminGroupSql } from './admin-group.js';
 import { normalizeEgrantUrl } from './egrant-url.js';
 import { addMembership, getMembership, setPendingInvite } from './memberships.js';
 import { groupManagers, groupMembers, groups } from './schema.js';
@@ -101,6 +102,7 @@ export async function listGroups(db: Db, viewerId: string): Promise<GroupSummary
     .select({
       id: groups.id,
       name: groups.name,
+      kind: groups.kind,
       hasLogo: sql<boolean>`${groups.logoKey} is not null`,
       memberCount: sql<number>`count(${user.id})::int`,
       updatedAt: groups.updatedAt,
@@ -132,6 +134,28 @@ export async function getGroup(db: Db, id: string): Promise<GroupRow | null> {
   return row ?? null;
 }
 
+/** What a list of other modules shows of a client: name and logo (one query, by primary key). */
+export type GroupLabel = { name: string; hasLogo: boolean; updatedAt: string };
+
+export async function getGroupLabels(db: Db, ids: string[]): Promise<Map<string, GroupLabel>> {
+  if (ids.length === 0) return new Map();
+  const rows = await db
+    .select({
+      id: groups.id,
+      name: groups.name,
+      logoKey: groups.logoKey,
+      updatedAt: groups.updatedAt,
+    })
+    .from(groups)
+    .where(inArray(groups.id, [...new Set(ids)]));
+  return new Map(
+    rows.map((r) => [
+      r.id,
+      { name: r.name, hasLogo: r.logoKey !== null, updatedAt: r.updatedAt.toISOString() },
+    ]),
+  );
+}
+
 export async function createGroup(db: Db, input: GroupInput): Promise<GroupRow> {
   const egrantUrl = normalizedOrThrow(input.egrantUrl);
   try {
@@ -146,14 +170,24 @@ export async function createGroup(db: Db, input: GroupInput): Promise<GroupRow> 
   }
 }
 
-/** Null when the group does not exist. */
+/** Renames the admin group (it has no eGrant URL). Null when it is not the admin group. */
+export async function renameAdminGroup(db: Db, id: string, name: string): Promise<GroupRow | null> {
+  const [row] = await db
+    .update(groups)
+    .set({ name, updatedAt: new Date() })
+    .where(and(eq(groups.id, id), eq(groups.kind, 'admin')))
+    .returning();
+  return row ?? null;
+}
+
+/** Null when the group does not exist or is the admin group (`renameAdminGroup`). */
 export async function updateGroup(db: Db, id: string, input: GroupInput): Promise<GroupRow | null> {
   const egrantUrl = normalizedOrThrow(input.egrantUrl);
   try {
     const [row] = await db
       .update(groups)
       .set({ name: input.name, egrantUrl, updatedAt: new Date() })
-      .where(eq(groups.id, id))
+      .where(and(eq(groups.id, id), eq(groups.kind, 'client')))
       .returning();
     return row ?? null;
   } catch (error) {
@@ -192,8 +226,12 @@ export async function findGroupByEgrantUrl(db: Db, url: string | null): Promise<
   return row ?? null;
 }
 
+/** The client group of an invite token; the admin group's token never opens anything. */
 export async function getGroupByInviteToken(db: Db, token: string): Promise<GroupRow | null> {
-  const [row] = await db.select().from(groups).where(eq(groups.inviteToken, token));
+  const [row] = await db
+    .select()
+    .from(groups)
+    .where(and(eq(groups.inviteToken, token), eq(groups.kind, 'client')));
   return row ?? null;
 }
 
@@ -259,8 +297,16 @@ const isNamedActiveMember = (groupId: string | SQL) =>
   );
 
 /**
+ * An admin manages the group: a `group_managers` row, or every admin in the admin group
+ * (Phase 34: there every active admin is pickable). Needs `group_managers` left-joined.
+ */
+const managesSql = (groupId: string) =>
+  sql<boolean>`(${groupManagers.userId} is not null or ${isAdminGroupSql(groupId)})`;
+
+/**
  * The readers of the group: its verified, named, active clients and every active admin, each
- * with whether the admin manages this group. One query, ordered by name.
+ * with whether the admin manages this group (in the admin group every admin). One query,
+ * ordered by name.
  */
 export async function listGroupPeople(db: Db, groupId: string): Promise<GroupPerson[]> {
   const clients = db
@@ -278,7 +324,7 @@ export async function listGroupPeople(db: Db, groupId: string): Promise<GroupPer
       id: user.id,
       name: user.name,
       isAdmin: sql<boolean>`true`.as('is_admin'),
-      isManager: sql<boolean>`${groupManagers.userId} is not null`.as('is_manager'),
+      isManager: managesSql(groupId).as('is_manager'),
     })
     .from(user)
     .leftJoin(
@@ -321,7 +367,10 @@ export async function groupPeopleAmong(
 export const pairKey = (userId: string, groupId: string, requesters: boolean) =>
   `${userId}\u0000${groupId}\u0000${requesters ? 1 : 0}`;
 
-/** Who can be assigned or picked: the group's clients and its active managers. */
+/**
+ * Who can be assigned or picked: the group's clients and its active managers; in the admin group
+ * every active admin.
+ */
 export async function listPickablePeople(db: Db, groupId: string): Promise<GroupPerson[]> {
   return (await listGroupPeople(db, groupId)).filter(isPickable);
 }
@@ -342,7 +391,7 @@ export async function isPickablePerson(db: Db, groupId: string, userId: string):
     .where(
       and(
         eq(user.id, userId),
-        or(isNamedActiveMember(groupId), and(isActiveAdmin, isNotNull(groupManagers.userId))),
+        or(isNamedActiveMember(groupId), and(isActiveAdmin, managesSql(groupId))),
       ),
     )
     .limit(1);
@@ -364,7 +413,7 @@ export async function getGroupPeopleRoles(
     .select({
       id: user.id,
       role: user.role,
-      isManager: sql<boolean>`${groupManagers.userId} is not null`,
+      isManager: managesSql(groupId),
     })
     .from(user)
     .leftJoin(

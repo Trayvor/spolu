@@ -11,10 +11,13 @@
     "collapse": "Collapse the client list",
     "expand": "Expand the client list",
     "noMatch": "No client matches.",
-    "unread_one": "{{count}} unread message",
-    "unread_other": "{{count}} unread messages",
-    "assigned_one": "{{count}} task assigned to you",
-    "assigned_other": "{{count}} tasks assigned to you"
+    "messages_one": "{{count}} message",
+    "messages_other": "{{count}} messages",
+    "tasks_one": "{{count}} task",
+    "tasks_other": "{{count}} tasks",
+    "tickets_one": "{{count}} ticket",
+    "tickets_other": "{{count}} tickets",
+    "internal": "Internal"
   },
   "home": {
     "greeting": {
@@ -68,7 +71,8 @@
       "empty": "No meetings in the next 7 days and none waiting for a summary.",
       "unsummarized_one": "{{count}} without a summary",
       "unsummarized_other": "{{count}} without a summary"
-    }
+    },
+    "unseen": "New change"
   },
   "board": {
     "title": "Tasks",
@@ -109,10 +113,10 @@
     "count_other": "{{count}} tasks"
   },
   "navCount": {
-    "tasks_one": "{{count}} open task assigned to you",
-    "tasks_other": "{{count}} open tasks assigned to you",
-    "tickets_one": "{{count}} open ticket for you to handle",
-    "tickets_other": "{{count}} open tickets for you to handle"
+    "tasks_one": "{{count}} task with a new change",
+    "tasks_other": "{{count}} tasks with new changes",
+    "tickets_one": "{{count}} ticket with a new change",
+    "tickets_other": "{{count}} tickets with new changes"
   },
   "sheet": {
     "tickets": {

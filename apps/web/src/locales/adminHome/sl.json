@@ -11,14 +11,19 @@
     "collapse": "Strni seznam strank",
     "expand": "Razširi seznam strank",
     "noMatch": "Nobena stranka se ne ujema.",
-    "unread_one": "{{count}} neprebrano sporočilo",
-    "unread_two": "{{count}} neprebrani sporočili",
-    "unread_few": "{{count}} neprebrana sporočila",
-    "unread_other": "{{count}} neprebranih sporočil",
-    "assigned_one": "{{count}} vam dodeljena naloga",
-    "assigned_two": "{{count}} vam dodeljeni nalogi",
-    "assigned_few": "{{count}} vam dodeljene naloge",
-    "assigned_other": "{{count}} vam dodeljenih nalog"
+    "messages_one": "{{count}} sporočilo",
+    "messages_two": "{{count}} sporočili",
+    "messages_few": "{{count}} sporočila",
+    "messages_other": "{{count}} sporočil",
+    "tasks_one": "{{count}} naloga",
+    "tasks_two": "{{count}} nalogi",
+    "tasks_few": "{{count}} naloge",
+    "tasks_other": "{{count}} nalog",
+    "tickets_one": "{{count}} zahtevek",
+    "tickets_two": "{{count}} zahtevka",
+    "tickets_few": "{{count}} zahtevki",
+    "tickets_other": "{{count}} zahtevkov",
+    "internal": "Interno"
   },
   "home": {
     "greeting": {
@@ -80,7 +85,8 @@
       "unsummarized_two": "{{count}} brez povzetka",
       "unsummarized_few": "{{count}} brez povzetka",
       "unsummarized_other": "{{count}} brez povzetka"
-    }
+    },
+    "unseen": "Nova sprememba"
   },
   "board": {
     "title": "Naloge",
@@ -123,14 +129,14 @@
     "count_other": "{{count}} nalog"
   },
   "navCount": {
-    "tasks_one": "{{count}} odprta naloga, dodeljena vam",
-    "tasks_two": "{{count}} odprti nalogi, dodeljeni vam",
-    "tasks_few": "{{count}} odprte naloge, dodeljene vam",
-    "tasks_other": "{{count}} odprtih nalog, dodeljenih vam",
-    "tickets_one": "{{count}} odprt zahtevek za reševanje",
-    "tickets_two": "{{count}} odprta zahtevka za reševanje",
-    "tickets_few": "{{count}} odprti zahtevki za reševanje",
-    "tickets_other": "{{count}} odprtih zahtevkov za reševanje"
+    "tasks_one": "{{count}} naloga z novo spremembo",
+    "tasks_two": "{{count}} nalogi z novo spremembo",
+    "tasks_few": "{{count}} naloge z novo spremembo",
+    "tasks_other": "{{count}} nalog z novo spremembo",
+    "tickets_one": "{{count}} zahtevek z novo spremembo",
+    "tickets_two": "{{count}} zahtevka z novo spremembo",
+    "tickets_few": "{{count}} zahtevki z novo spremembo",
+    "tickets_other": "{{count}} zahtevkov z novo spremembo"
   },
   "sheet": {
     "tickets": {

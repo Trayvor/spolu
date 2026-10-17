@@ -11,10 +11,13 @@
     "collapse": "Свиване на списъка с клиенти",
     "expand": "Разгъване на списъка с клиенти",
     "noMatch": "Няма съвпадащ клиент.",
-    "unread_one": "{{count}} непрочетено съобщение",
-    "unread_other": "{{count}} непрочетени съобщения",
-    "assigned_one": "{{count}} задача, възложена на Вас",
-    "assigned_other": "{{count}} задачи, възложени на Вас"
+    "messages_one": "{{count}} съобщение",
+    "messages_other": "{{count}} съобщения",
+    "tasks_one": "{{count}} задача",
+    "tasks_other": "{{count}} задачи",
+    "tickets_one": "{{count}} тикет",
+    "tickets_other": "{{count}} тикета",
+    "internal": "Вътрешни"
   },
   "home": {
     "greeting": {
@@ -68,7 +71,8 @@
       "empty": "Няма срещи през следващите 7 дни и никоя не чака резюме.",
       "unsummarized_one": "{{count}} без резюме",
       "unsummarized_other": "{{count}} без резюме"
-    }
+    },
+    "unseen": "Нова промяна"
   },
   "board": {
     "title": "Задачи",
@@ -109,10 +113,10 @@
     "count_other": "{{count}} задачи"
   },
   "navCount": {
-    "tasks_one": "{{count}} отворена задача, възложена на Вас",
-    "tasks_other": "{{count}} отворени задачи, възложени на Вас",
-    "tickets_one": "{{count}} отворен тикет за Вас",
-    "tickets_other": "{{count}} отворени тикета за Вас"
+    "tasks_one": "{{count}} задача с нова промяна",
+    "tasks_other": "{{count}} задачи с нови промени",
+    "tickets_one": "{{count}} тикет с нова промяна",
+    "tickets_other": "{{count}} тикета с нови промени"
   },
   "sheet": {
     "tickets": {

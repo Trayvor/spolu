@@ -10,7 +10,9 @@ import {
   type TaskPerson,
 } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
+import { withAdminGroup } from '../groups/admin-group.js';
 import { managedGroupIds } from '../groups/managers.js';
+import { taskUnseenSql } from '../notifications/unseen.js';
 
 /** The `after` cursor does not parse (route: 400 `invalid_filter`). */
 export class InvalidCursorError extends Error {
@@ -46,7 +48,7 @@ export function bratislavaToday(now: Date): string {
 
 /**
  * The board's client scope: the explicit `clients` (`all`: every group, null), else the groups
- * the viewer manages, else every group (null).
+ * the viewer manages plus the admin group (Phase 34, decision 7), else every group (null).
  */
 export async function resolveClientIds(
   db: Db,
@@ -55,7 +57,7 @@ export async function resolveClientIds(
 ): Promise<string[] | null> {
   if (clients === 'all') return null;
   if (clients) return clients;
-  const managed = await managedGroupIds(db, viewerId);
+  const managed = await withAdminGroup(db, await managedGroupIds(db, viewerId));
   return managed.length > 0 ? managed : null;
 }
 
@@ -279,7 +281,10 @@ export function globalBoardSql(q: GlobalBoardQuery): SQL {
           'groupHasLogo', p.group_has_logo,
           'groupUpdatedAt', p.group_updated_at,
           'bucketKind', p.bucket_kind,
-          'bucketName', p.bucket_name
+          'bucketName', p.bucket_name,
+          -- 2026-10-17: a change the viewer has not seen (per card of the page, on
+          -- notification_events_unseen_task_idx).
+          'unseen', ${taskUnseenSql(q.viewerId, sql`p.id`)}
         )) order by p.col, p.rn), '[]'::json)
         from page p
       ) as tasks,

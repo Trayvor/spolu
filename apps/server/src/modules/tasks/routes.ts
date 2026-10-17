@@ -6,6 +6,7 @@ import {
   BucketPatchSchema,
   TaskSearchQuerySchema,
   ErrorCodes,
+  type BoardUnseen,
   type SessionUser,
 } from '@spolu/shared';
 import type { AppDeps } from '../../deps.js';
@@ -27,6 +28,7 @@ import {
   getDonePage,
   InvalidPlacementError,
   listBuckets,
+  listUnseenTaskIds,
   updateBucket,
 } from './service.js';
 import { clientGroupIds } from '../groups/memberships.js';
@@ -95,6 +97,17 @@ export const tasksRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { 
     if (!(await canOpenGroup(request.user!, request.params.id))) return notFound(reply);
     return getBoard(db, request.params.id, { done: query.data.done });
   });
+
+  // 2026-10-17: the cards with a change the viewer has not seen (per viewer, so not in the board).
+  app.get<GroupParams>(
+    '/groups/:id/board/unseen',
+    { preHandler: anyUser },
+    async (request, reply): Promise<BoardUnseen> => {
+      const actor = request.user!;
+      if (!(await canOpenGroup(actor, request.params.id))) return notFound(reply);
+      return { taskIds: await listUnseenTaskIds(db, actor.id, request.params.id) };
+    },
+  );
 
   // "Show more" in the Completed column (Phase 27 S8).
   app.get<GroupParams>(

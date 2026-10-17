@@ -207,6 +207,10 @@ export const TaskSearchQuerySchema = z.object({
 });
 export type TaskSearchQuery = z.infer<typeof TaskSearchQuerySchema>;
 
+/** `GET /groups/:id/board/unseen`: the group's tasks with a change the viewer has not seen. */
+export const BoardUnseenSchema = z.object({ taskIds: z.array(z.string()) });
+export type BoardUnseen = z.infer<typeof BoardUnseenSchema>;
+
 /** Socket events pushed to the group room after a board write commits. */
 export const BoardEvents = {
   task: 'board:task',

@@ -28,6 +28,7 @@ const ME = {
 };
 const group = (id: string, managers: GroupSummary['managers']): GroupSummary => ({
   id,
+  kind: 'client',
   name: id,
   hasLogo: false,
   memberCount: 1,

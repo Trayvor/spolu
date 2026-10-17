@@ -132,7 +132,8 @@
     "done": "Fatto",
     "chosen": "Clienti scelti",
     "remove": "Rimuovi {{name}}",
-    "reset": "Reimposta"
+    "reset": "Reimposta",
+    "internal": "Interno"
   },
   "folders": {
     "label": "Cartella",

@@ -14,12 +14,20 @@ const client = (over: Partial<SidebarClient> & { groupId: string; name: string }
     updatedAt: '2026-10-15T10:00:00.000Z',
     managed: false,
     unread: 0,
-    assigned: 0,
+    unseenTasks: 0,
+    unseenTickets: 0,
     ...over,
   }) as SidebarClient;
 
 const CLIENTS = [
-  client({ groupId: 'g1', name: 'ABC s.r.o.', managed: true, unread: 4, assigned: 2 }),
+  client({
+    groupId: 'g1',
+    name: 'ABC s.r.o.',
+    managed: true,
+    unread: 3,
+    unseenTasks: 1,
+    unseenTickets: 1,
+  }),
   client({ groupId: 'g2', name: 'Obec Dolany', managed: true, unread: 1 }),
   client({ groupId: 'g3', name: 'Obec Lúky', unread: 12 }),
   client({ groupId: 'g4', name: 'Firma XY' }),
@@ -60,16 +68,21 @@ describe('ClientSidebarList', () => {
     expect(screen.getByText(t('adminHome.sidebar.noMatch'))).toBeInTheDocument();
   });
 
-  it('black and yellow pills, hidden at 0', async () => {
+  it('one black badge adds messages, tasks and tickets; its label lists them; hidden at 0', async () => {
     await renderWithRouter(() => <ClientSidebarList clients={CLIENTS} rowHeight={40} />);
     const abc = screen.getByRole('link', { name: /ABC/ });
-    expect(within(abc).getByText(t('adminHome.sidebar.unread', { count: 4 }))).toBeInTheDocument();
-    expect(
-      within(abc).getByText(t('adminHome.sidebar.assigned', { count: 2 })),
-    ).toBeInTheDocument();
-    expect(within(abc).getByText('2').parentElement).toHaveClass('bg-attention');
+    const label = [
+      t('adminHome.sidebar.messages', { count: 3 }),
+      t('adminHome.sidebar.tasks', { count: 1 }),
+      t('adminHome.sidebar.tickets', { count: 1 }),
+    ].join(', ');
+    expect(label).toBe('3 messages, 1 task, 1 ticket');
+    expect(within(abc).getByText(label)).toBeInTheDocument();
+    expect(within(abc).getByText('5').parentElement).toHaveClass('bg-primary');
+    const dolany = screen.getByRole('link', { name: /Obec Dolany/ });
+    expect(within(dolany).getByText('1 message')).toBeInTheDocument();
     const xy = screen.getByRole('link', { name: /Firma XY/ });
-    expect(within(xy).queryByText(/unread|assigned/)).toBeNull();
+    expect(within(xy).queryByText(/message|task|ticket/)).toBeNull();
   });
 
   it('the current client is marked with aria-current', async () => {
@@ -85,10 +98,10 @@ describe('ClientSidebarList', () => {
     expect(screen.getByRole('link', { name: /ABC/ })).toHaveAttribute('href', '/groups/g1/chat');
   });
 
-  it('collapsed shows logos with an ink dot for unread, else a yellow dot for assigned', async () => {
+  it('collapsed shows logos with an ink dot when the badge is above 0', async () => {
     const clients = [
-      client({ groupId: 'g1', name: 'Unread', unread: 2, assigned: 1, managed: true }),
-      client({ groupId: 'g2', name: 'Assigned', assigned: 3, managed: true }),
+      client({ groupId: 'g1', name: 'Unread', unread: 2, managed: true }),
+      client({ groupId: 'g2', name: 'Changed', unseenTickets: 1, managed: true }),
       client({ groupId: 'g3', name: 'Quiet' }),
     ];
     await renderWithRouter(() => <ClientSidebarList clients={clients} rowHeight={40} collapsed />);
@@ -96,8 +109,24 @@ describe('ClientSidebarList', () => {
     const dotOf = (name: RegExp) =>
       within(screen.getByRole('link', { name })).queryByTestId('rail-dot');
     expect(dotOf(/^Unread/)).toHaveClass('bg-primary');
-    expect(dotOf(/^Assigned/)).toHaveClass('bg-attention');
+    expect(dotOf(/^Changed/)).toHaveClass('bg-primary');
     expect(dotOf(/^Quiet/)).toBeNull();
-    expect(screen.getByRole('link', { name: /^Assigned/ })).toHaveAttribute('title', 'Assigned');
+    expect(screen.getByRole('link', { name: /^Changed/ })).toHaveAttribute('title', 'Changed');
+  });
+
+  it('the admin group sits first in its own Internal section (Phase 34)', async () => {
+    const team = client({ groupId: 'team', name: 'eGrant tím', section: 'internal' });
+    await renderWithRouter(() => <ClientSidebarList clients={[team, ...CLIENTS]} rowHeight={40} />);
+    const headings = screen.getAllByRole('heading').map((h) => h.textContent);
+    expect(headings).toEqual([
+      t('adminHome.sidebar.internal'),
+      t('adminHome.sidebar.managed'),
+      t('adminHome.sidebar.others'),
+    ]);
+    const internal = screen.getByRole('heading', { name: t('adminHome.sidebar.internal') });
+    const links = within(internal.closest('section')!).getAllByRole('link');
+    expect(links).toHaveLength(1);
+    expect(links[0]).toHaveTextContent('eGrant tím');
+    expect(links[0]!.querySelector('[data-egrant-mark]')).not.toBeNull();
   });
 });

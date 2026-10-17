@@ -7,6 +7,7 @@
     "attach": "Priložiť súbor",
     "remove": "Odstrániť {{name}}",
     "uploading": "Nahráva sa {{name}}",
+    "waiting": "Čaká sa na nahratie súborov",
     "uploadFailed": "Súbor {{name}} sa nepodarilo nahrať.",
     "tooLarge": "Súbor {{name}} má viac ako 25 MB.",
     "unknown": "Súbor"

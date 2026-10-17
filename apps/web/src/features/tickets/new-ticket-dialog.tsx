@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { PanelHeader } from '@/components/ui/panel-header';
 import { Select } from '@/components/ui/select';
 import { SheetDialog, SheetDialogTitle } from '@/components/ui/sheet-dialog';
-import { groupsQuery } from '@/features/groups/api';
+import { groupsQuery, onlyClientGroups } from '@/features/groups/api';
 import { useCreateTicket } from './api';
 import { ContentFields, contentErrors, EMPTY_CONTENT, type ContentDraft } from './content-fields';
 
@@ -38,7 +38,11 @@ export function NewTicketDialog({
   const uid = useId();
   const id = (name: string) => `${uid}-${name}`;
   const subjectRef = useRef<HTMLInputElement>(null);
-  const groups = useQuery({ ...groupsQuery, enabled: admin && !fixedGroupId }).data;
+  const groups = useQuery({
+    ...groupsQuery,
+    select: onlyClientGroups,
+    enabled: admin && !fixedGroupId,
+  }).data;
   const [groupId, setGroupId] = useState(fixedGroupId ?? '');
   const [content, setContent] = useState<ContentDraft>(EMPTY_CONTENT);
   const [email, setEmail] = useState('');
@@ -46,6 +50,7 @@ export function NewTicketDialog({
   const [phone, setPhone] = useState('');
   const [files, setFiles] = useState<FileInfo[]>([]);
   const [errors, setErrors] = useState<Errors>({});
+  const [uploading, setUploading] = useState(false);
   const create = useCreateTicket();
 
   const chooseGroup = (next: string) => {
@@ -54,6 +59,7 @@ export function NewTicketDialog({
   };
 
   const submit = () => {
+    if (uploading) return;
     const found: Errors = contentErrors(content);
     if (!groupId) found.client = 'tickets.form.errors.client';
     if (admin && email.trim() && !EMAIL.test(email.trim()))
@@ -182,6 +188,7 @@ export function NewTicketDialog({
                 labelId={id('files')}
                 max={TICKET_LIMITS.files}
                 inputTestId="ticket-file-input"
+                onPendingChange={setUploading}
               />
             ) : (
               <p className="text-tiny text-muted-foreground">
@@ -200,7 +207,21 @@ export function NewTicketDialog({
             <Button type="button" variant="outline" size="lg" onClick={onClose}>
               {t('tickets.page.cancel')}
             </Button>
-            <Button type="submit" size="lg" disabled={create.isPending}>
+            {uploading && (
+              <p
+                id={id('upload-wait')}
+                role="status"
+                className="self-center text-tiny text-muted-foreground"
+              >
+                {t('forms.files.waiting')}
+              </p>
+            )}
+            <Button
+              type="submit"
+              size="lg"
+              disabled={create.isPending || uploading}
+              aria-describedby={uploading ? id('upload-wait') : undefined}
+            >
               {t('tickets.form.create')}
             </Button>
           </div>

@@ -15,6 +15,7 @@ import {
   type GlobalBoardQuery,
 } from './global-board.js';
 import { bucketOf, newAdmin, newClient, newGroup, newTask } from './test-fixtures.js';
+import { ensureAdminGroup } from '../groups/admin-group.js';
 
 const { db, close } = createDb(testDatabaseUrl);
 afterAll(() => close());
@@ -46,11 +47,14 @@ async function oneGroup(name = 'Board') {
 }
 
 describe('resolveClientIds', () => {
-  it('default scope is the managed groups', async () => {
+  it('default scope is the managed groups plus the admin group (Phase 34)', async () => {
     const g1 = await newGroup(db, 'One');
     await newGroup(db, 'Two');
     const admin = await newAdmin(db, 'Ada', [g1.id]);
-    expect(await resolveClientIds(db, admin.id, undefined)).toEqual([g1.id]);
+    expect(await resolveClientIds(db, admin.id, undefined)).toEqual([
+      g1.id,
+      await ensureAdminGroup(db),
+    ]);
   });
 
   it('default scope is all groups for an admin who manages none', async () => {

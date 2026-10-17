@@ -7,13 +7,18 @@ import {
   type SessionUser,
 } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
+import { adminGroupId } from '../groups/admin-group.js';
+import { isAdmin } from '../users/policy.js';
 import { user } from '../users/schema.js';
 import { setDefaultGroupMode, type NotificationProfile } from '../users/service.js';
 import { groupNotificationSettings } from './schema.js';
 
-/** The user's default mode, their role default and their per-group overrides. */
+/**
+ * The user's default mode, their role default and their per-group overrides; for an admin also
+ * the admin group's id (its default is `all`, Phase 34).
+ */
 export async function getModeSettings(db: Db, actor: SessionUser): Promise<NotificationModes> {
-  const [[row], overrides] = await Promise.all([
+  const [[row], overrides, adminGroup] = await Promise.all([
     db.select({ mode: user.defaultGroupMode }).from(user).where(eq(user.id, actor.id)),
     db
       .select({
@@ -23,22 +28,27 @@ export async function getModeSettings(db: Db, actor: SessionUser): Promise<Notif
       })
       .from(groupNotificationSettings)
       .where(eq(groupNotificationSettings.userId, actor.id)),
+    isAdmin(actor) ? adminGroupId(db) : null,
   ]);
   return {
     defaultMode: row?.mode ?? null,
     roleDefault: roleDefaultMode(actor.role),
     overrides: Object.fromEntries(overrides.map((o) => [o.groupId, o.mode])),
     managerSet: overrides.filter((o) => o.origin === 'manager').map((o) => o.groupId),
+    ...(isAdmin(actor) ? { adminGroupId: adminGroup } : {}),
   };
 }
 
-/** The actor's effective mode for one group: their override, else their default, else the role's. */
+/**
+ * The actor's effective mode for one group: their override, else (the admin group) `all`, else
+ * their default, else the role's.
+ */
 export async function getEffectiveGroupMode(
   db: Db,
   actor: SessionUser,
   groupId: string,
 ): Promise<GroupMode> {
-  const [[row], [override]] = await Promise.all([
+  const [[row], [override], adminGroup] = await Promise.all([
     db.select({ mode: user.defaultGroupMode }).from(user).where(eq(user.id, actor.id)),
     db
       .select({ mode: groupNotificationSettings.mode })
@@ -49,11 +59,13 @@ export async function getEffectiveGroupMode(
           eq(groupNotificationSettings.groupId, groupId),
         ),
       ),
+    adminGroupId(db),
   ]);
   return effectiveGroupMode({
     override: override?.mode ?? null,
     defaultMode: row?.mode ?? null,
     role: actor.role,
+    adminGroup: groupId === adminGroup,
   });
 }
 
@@ -109,7 +121,7 @@ export async function setDefaultMode(db: Db, userId: string, mode: GroupMode): P
 }
 
 /**
- * The effective mode for each (user, group) pair, keyed `${userId}:${groupId}`, from one query.
+ * The effective mode for each (user, group) pair (the admin group's default `all` included), keyed `${userId}:${groupId}`, from one query.
  * Pairs whose user has no profile are left out.
  */
 export async function getEffectiveModes(
@@ -119,10 +131,13 @@ export async function getEffectiveModes(
 ): Promise<Map<string, GroupMode>> {
   const result = new Map<string, GroupMode>();
   if (pairs.length === 0) return result;
-  const rows = await db
-    .select()
-    .from(groupNotificationSettings)
-    .where(inArray(groupNotificationSettings.userId, [...new Set(pairs.map((p) => p.userId))]));
+  const [rows, adminGroup] = await Promise.all([
+    db
+      .select()
+      .from(groupNotificationSettings)
+      .where(inArray(groupNotificationSettings.userId, [...new Set(pairs.map((p) => p.userId))])),
+    adminGroupId(db),
+  ]);
   const overrides = new Map(rows.map((r) => [`${r.userId}:${r.groupId}`, r.mode]));
   for (const { userId, groupId } of pairs) {
     const profile = profiles.get(userId);
@@ -134,6 +149,7 @@ export async function getEffectiveModes(
         override: overrides.get(key) ?? null,
         defaultMode: profile.defaultGroupMode,
         role: profile.role,
+        adminGroup: groupId === adminGroup,
       }),
     );
   }

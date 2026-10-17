@@ -40,6 +40,14 @@ A group is one client (organization). It has a name, a logo and the client's eGr
   - the Groups page (`/groups`, Phase 22a): the groups I manage come first, then the rest, by name inside each part. The title shows the count ("Groups 12"), or "Groups 3 of 12" while a filter is set. Each row's "Members: N" links to the group's Members tab. Hovering or focusing the manager avatars shows every manager's name in a small tooltip, including those behind "+N"; on touch a tap toggles it.
   - the manager filter, left of "All groups: …" on the same row (its own line above it on phones): Everyone, Me, No manager, then every other active admin by name. It lives in the URL as `?manager=me|none|<adminId>`; an id that is not an active admin (an old link) falls back to Everyone. With no match the page says "No groups for this filter." with "Clear filter".
 
+## The admin group "eGrant tím" (Phase 34, P34-B)
+
+- One internal group whose members are all admins: **eGrant tím** (EN "eGrant team"). It is a group like a client's, with chat, tasks, knowledge, files, reminders and (for finance admins) Financie, but **no Tickets and no Members tab**, no eGrant link and no invite box. The router shows the not-found page for `/groups/<it>/tickets` and `/members`.
+- Every admin reads it; no client or requester ever does. Admins can rename it and change its logo (the edit form has name and logo only); without a logo it shows the egrant mark.
+- In its task form, mentions and reminders every active admin can be picked.
+- On `/groups` it is a pinned row above the client list (logo, name, unread count, bell; no managers, no Manage toggle, no members link). It is not counted as a client in the title.
+- It is left out of the ticket client pickers, the ticket list's client filter and bulk email audiences. In the global board's and knowledge list's client filter it is the top option, "Internal", included in the default scope.
+
 ## Phase
 
 Phase 3 (groups, invites, members list, removing a client). Phase 22a: managers on the Members tab, the Groups page filter, order, count and member link. Phase 22b: adding members by email, the invited state, resend and cancel.

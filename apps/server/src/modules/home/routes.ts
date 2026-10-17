@@ -8,8 +8,8 @@ import {
 } from '@spolu/shared';
 import type { AppDeps } from '../../deps.js';
 import { requireAdmin } from '../auth/session.js';
-import { countDashboardTickets, getDashboardTickets } from '../tickets/dashboard.js';
-import { countAssignedTasks, getAssignedTasks } from './assigned.js';
+import { countUnseenTickets, getDashboardTickets } from '../tickets/dashboard.js';
+import { countUnseenTasks, getAssignedTasks } from './assigned.js';
 import {
   bratislavaToday,
   getGlobalBoard,
@@ -53,8 +53,8 @@ export const homeRoutes: FastifyPluginAsync<HomeRoutesOptions> = async (app, opt
   app.get('/me/home/counts', { preHandler: adminOnly }, async (request): Promise<NavCounts> => {
     const userId = request.user!.id;
     const [tasks, tickets] = await Promise.all([
-      countAssignedTasks(db, userId),
-      countDashboardTickets(db, userId),
+      countUnseenTasks(db, userId),
+      countUnseenTickets(db, userId),
     ]);
     return { tasks, tickets };
   });

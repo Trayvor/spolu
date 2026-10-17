@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { afterAll, describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/postgres-js';
@@ -6,6 +7,9 @@ import { createDb } from '../../infra/db/client.js';
 import { testDatabaseUrl } from '../../../test/test-config.js';
 import { unreadByGroup } from '../chat/service.js';
 import { setDefaultMode, setGroupMode } from '../notifications/modes.js';
+import { recordNotifications } from '../notifications/service.js';
+import { markTaskSeen, markTicketSeen } from '../notifications/unseen.js';
+import { tickets } from '../tickets/schema.js';
 import { user } from '../users/schema.js';
 import { setNotificationChannel } from '../users/service.js';
 import { getSidebar } from './sidebar.js';
@@ -14,7 +18,10 @@ import { bucketOf, newAdmin, newClient, newGroup, newMessage, newTask } from './
 const { db, close } = createDb(testDatabaseUrl);
 afterAll(() => close());
 
-/** Six groups: managed (M) and other (O), each with nothing, an assigned task or an unread message. */
+/**
+ * Six groups: managed (M) and other (O), each with nothing, a task with an unseen change (the
+ * "assigned" ones, 2026-10-17) or an unread message.
+ */
 async function setup() {
   const names = ['M nothing', 'M assigned', 'M unread', 'O unread', 'O nothing', 'O assigned'];
   const [mNothing, mAssigned, mUnread, oUnread, oNothing, oAssigned] = await Promise.all(
@@ -26,10 +33,24 @@ async function setup() {
     await newMessage(db, { channelId: g.channelId, authorId: client.id });
   }
   for (const g of [mAssigned!, oAssigned!]) {
-    await newTask(db, { groupId: g.id, createdBy: admin.id, assigneeIds: [admin.id] });
+    const taskId = await newTask(db, {
+      groupId: g.id,
+      createdBy: admin.id,
+      assigneeIds: [admin.id],
+    });
+    await moved(admin.id, g.id, taskId);
   }
   const all = { mNothing, mAssigned, mUnread, oUnread, oNothing, oAssigned };
   return { admin, groups: all as { [K in keyof typeof all]: NonNullable<(typeof all)[K]> } };
+}
+
+function moved(userId: string, groupId: string, taskId: string) {
+  return recordNotifications(db, {
+    kind: 'task.moved',
+    groupId,
+    recipients: [userId],
+    payload: { taskId, groupId },
+  });
 }
 
 const own = (rows: Awaited<ReturnType<typeof getSidebar>>, ids: string[]) =>
@@ -41,26 +62,33 @@ describe('getSidebar', () => {
     const ids = Object.values(groups).map((g) => g.id);
     const rows = own(await getSidebar(db, admin.id), ids);
     expect(rows.map((r) => r.managed)).toEqual([true, true, true, false, false, false]);
-    const all = await getSidebar(db, admin.id);
+    // The admin group's internal section comes first (Phase 34, admin-group.test.ts).
+    const all = (await getSidebar(db, admin.id)).filter((r) => r.section === 'client');
     const firstOther = all.findIndex((r) => !r.managed);
     expect(all.slice(firstOther).every((r) => !r.managed)).toBe(true);
   });
 
-  it('inside a section: unread, then assigned, then the rest, by name', async () => {
+  it('inside a section: a badge first, then the rest, by name', async () => {
     const { admin, groups: g } = await setup();
     const ids = Object.values(g).map((x) => x.id);
     const rows = own(await getSidebar(db, admin.id), ids);
     expect(rows.map((r) => r.groupId)).toEqual([
-      g.mUnread.id,
       g.mAssigned.id,
+      g.mUnread.id,
       g.mNothing.id,
-      g.oUnread.id,
       g.oAssigned.id,
+      g.oUnread.id,
       g.oNothing.id,
     ]);
-    const row = rows[0]!;
-    expect(row).toMatchObject({ name: 'M unread', hasLogo: false, unread: 1, assigned: 0 });
-    expect(typeof row.updatedAt).toBe('string');
+    expect(rows[1]).toMatchObject({
+      name: 'M unread',
+      hasLogo: false,
+      unread: 1,
+      unseenTasks: 0,
+      unseenTickets: 0,
+    });
+    expect(rows[0]).toMatchObject({ name: 'M assigned', unread: 0, unseenTasks: 1 });
+    expect(typeof rows[0]!.updatedAt).toBe('string');
   });
 
   it('unread equals unreadByGroup for each group', async () => {
@@ -105,7 +133,7 @@ describe('getSidebar', () => {
         Object.values(g).map((x) => x.id),
       );
       expect(rows.every((r) => r.unread === 0)).toBe(true);
-      // Managed: assigned first, then the rest by name (M nothing, M unread).
+      // Managed: the unseen task first, then the rest by name (M nothing, M unread).
       expect(rows.slice(0, 3).map((r) => r.groupId)).toEqual([
         g.mAssigned.id,
         g.mNothing.id,
@@ -116,23 +144,45 @@ describe('getSidebar', () => {
     });
   });
 
-  it("assigned excludes Completed and other users' tasks", async () => {
-    const g = await newGroup(db, 'Tasks');
+  it('the badge parts: the tasks and tickets of the group with a change I have not seen', async () => {
+    const g = await newGroup(db, 'Unseen parts');
     const admin = await newAdmin(db, 'Ada', [g.id]);
     const other = await newAdmin(db, 'Bob', [g.id]);
     const done = await bucketOf(db, g.id, 'done');
-    await newTask(db, { groupId: g.id, createdBy: admin.id, assigneeIds: [admin.id] });
-    await newTask(db, { groupId: g.id, createdBy: admin.id, assigneeIds: [admin.id, other.id] });
-    await newTask(db, { groupId: g.id, createdBy: admin.id, assigneeIds: [other.id] });
-    await newTask(db, {
+    const open = await newTask(db, { groupId: g.id, createdBy: other.id });
+    const completed = await newTask(db, {
       groupId: g.id,
-      createdBy: admin.id,
-      assigneeIds: [admin.id],
+      createdBy: other.id,
       bucketId: done,
       completedAt: new Date(),
     });
-    const [row] = own(await getSidebar(db, admin.id), [g.id]);
-    expect(row!.assigned).toBe(2);
+    await newTask(db, { groupId: g.id, createdBy: other.id, assigneeIds: [admin.id] });
+    await moved(admin.id, g.id, open);
+    await moved(admin.id, g.id, open);
+    await moved(admin.id, g.id, completed);
+    await moved(other.id, g.id, open);
+    const ticket = randomUUID();
+    const now = new Date();
+    await db.insert(tickets).values({
+      id: ticket,
+      groupId: g.id,
+      status: 'resolved',
+      source: 'manual',
+      subject: 'T',
+      createdAt: now,
+      updatedAt: now,
+    });
+    await recordNotifications(db, {
+      kind: 'ticket.status',
+      groupId: g.id,
+      recipients: [admin.id],
+      payload: { ticketId: ticket, groupId: g.id },
+    });
+    const row = async () => own(await getSidebar(db, admin.id), [g.id])[0]!;
+    expect(await row()).toMatchObject({ unread: 0, unseenTasks: 2, unseenTickets: 1 });
+    await markTaskSeen(db, admin.id, open);
+    await markTicketSeen(db, admin.id, ticket);
+    expect(await row()).toMatchObject({ unseenTasks: 1, unseenTickets: 0 });
   });
 
   it("a disabled manager's group is under Other clients", async () => {

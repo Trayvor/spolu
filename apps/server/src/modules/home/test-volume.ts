@@ -13,13 +13,17 @@ const TASKS = 20_000;
 const TICKETS = 20_000;
 const MESSAGES = 200_000;
 const MESSAGES_PER_CHANNEL = MESSAGES / GROUPS;
+const EVENTS = 200_000;
 
 /**
  * Opens a transaction and seeds it with `generate_series`: 100 groups (a group chat and the five
  * buckets each, one client each; the custom one named "Step <group % 15>"), 20 000 tasks (a third assigned to the admin, a tenth completed),
  * 20 000 tickets (a tenth active, a fiftieth without a client),
- * 200 000 messages (a quarter name someone, 0.5 % the admin; 1 % @all; 10 % replies), the admin's read marks and
- * the admin managing 10 groups. Runs `analyze`, calls `fn`, then rolls everything back.
+ * 200 000 messages (a quarter name someone, 0.5 % the admin; 1 % @all; 10 % replies), the admin's read marks,
+ * the admin managing 10 groups, and 200 000 notification events (a seventh the admin's; of tasks,
+ * hourly urgent reminders among them, and of tickets) with the admin's seen marks for a sixth of
+ * the tasks and a fifth of the tickets (2026-10-17, unseen changes). Runs `analyze`, calls `fn`,
+ * then rolls everything back.
  */
 export async function withVolume(
   db: Db,
@@ -136,7 +140,37 @@ export async function withVolume(
           now() - interval '10 days', now() - (${MESSAGES} - i) * interval '20 seconds'
         from generate_series(1, ${MESSAGES}) i where i % 200 = 0
       `);
+      // Event i is the admin's when i % 7 = 0, else a client's; by i % 5 a task move, an hourly
+      // urgent reminder, a task chat message, a ticket status change or a group chat message.
+      await tx.execute(sql`
+        insert into notification_events (id, user_id, group_id, kind, payload, created_at,
+          delivered_at)
+        select ${p} || '-e' || i,
+          case when i % 7 = 0 then ${adminId} else ${p} || '-c' || (i % ${GROUPS} + 1) end,
+          ${p} || '-g' || ((i % ${TASKS} + 1) % ${GROUPS} + 1),
+          (array['task.moved', 'task.urgent', 'chat.message', 'ticket.status', 'chat.message'])[i % 5 + 1],
+          case
+            when i % 5 = 3 then jsonb_build_object('ticketId', ${p} || '-k' || (i % ${TICKETS} + 1))
+            when i % 5 = 4 then jsonb_build_object('taskId', null)
+            else jsonb_build_object('taskId', ${p} || '-t' || (i % ${TASKS} + 1))
+          end,
+          now() - i * interval '10 seconds', now()
+        from generate_series(1, ${EVENTS}) i
+      `);
+      await tx.execute(sql`
+        insert into task_seen (user_id, task_id, seen_at)
+        select ${adminId}, ${p} || '-t' || i, now() - interval '5 days'
+        from generate_series(1, ${TASKS}) i where i % 6 = 1
+      `);
+      await tx.execute(sql`
+        insert into ticket_seen (user_id, ticket_id, seen_at)
+        select ${adminId}, ${p} || '-k' || i, now() - interval '5 days'
+        from generate_series(1, ${TICKETS}) i where i % 5 = 1
+      `);
       for (const table of [
+        'notification_events',
+        'task_seen',
+        'ticket_seen',
         'user',
         'groups',
         'group_managers',

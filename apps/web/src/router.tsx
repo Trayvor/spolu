@@ -274,9 +274,31 @@ const groupKnowledgeRoute = createRoute({
   component: lazyRouteComponent(() => import('@/features/knowledge/knowledge-tab'), 'KnowledgeTab'),
 });
 
+/**
+ * Tickets and Members exist only in client groups: the admin group "eGrant tím" (Phase 34) shows
+ * the not-found screen there (the server answers 404 / 409 anyway).
+ */
+const clientGroupGuard = async ({
+  context,
+  params,
+}: {
+  context: RouterContext;
+  params: { groupId: string };
+}) => {
+  const { groupQuery } = await import('@/features/groups/api');
+  try {
+    const group = await context.queryClient.ensureQueryData(groupQuery(params.groupId));
+    if (group.kind === 'admin') throw notFound();
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) throw notFound();
+    throw error;
+  }
+};
+
 const groupTicketsRoute = createRoute({
   getParentRoute: () => groupRoute,
   path: 'tickets',
+  beforeLoad: clientGroupGuard,
   validateSearch: validateTicketsSearch,
   component: lazyRouteComponent(
     withNamespaces(['tickets', 'forms'], () => import('@/features/tickets/tickets-page')),
@@ -310,6 +332,7 @@ const groupFinanceRoute = createRoute({
 const groupMembersRoute = createRoute({
   getParentRoute: () => groupRoute,
   path: 'members',
+  beforeLoad: clientGroupGuard,
   component: lazyRouteComponent(
     withNamespaces(['group', 'groups', 'admins'], () => import('@/features/groups/members-tab')),
     'MembersTab',
@@ -447,7 +470,11 @@ const financeRoute = createRoute({
   path: '/finance',
   beforeLoad: financeGuard,
   component: lazyRouteComponent(
-    withNamespaces(FINANCE_NAMESPACES, () => import('@/features/finance/finance-page')),
+    // `knowledge`: the client filter's texts.
+    withNamespaces(
+      [...FINANCE_NAMESPACES, 'knowledge'],
+      () => import('@/features/finance/finance-page'),
+    ),
     'FinancePage',
   ),
 });

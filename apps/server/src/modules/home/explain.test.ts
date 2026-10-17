@@ -2,8 +2,9 @@ import { afterAll, describe, expect, it } from 'vitest';
 import { sql, type SQL } from 'drizzle-orm';
 import { createDb, type Db } from '../../infra/db/client.js';
 import { testDatabaseUrl } from '../../../test/test-config.js';
-import { dashboardTicketCountSql, dashboardTicketsSql } from '../tickets/dashboard.js';
-import { assignedCountSql, assignedSql } from './assigned.js';
+import { boardUnseenSql } from '../tasks/service.js';
+import { dashboardTicketsSql, unseenTicketCountSql } from '../tickets/dashboard.js';
+import { assignedSql, unseenTaskCountSql } from './assigned.js';
 import { bratislavaToday, globalBoardSql } from './global-board.js';
 import { taskSearchQuery } from '../tasks/attachable.js';
 import { mentionsSql } from './mentions.js';
@@ -52,6 +53,8 @@ async function expectIndexed(tx: Db, query: SQL, tables: string[]): Promise<void
 }
 
 const CHAT_TABLES = ['messages', 'message_mentions'];
+/** The unseen changes (2026-10-17) read the user's events on the partial indexes only. */
+const UNSEEN_TABLES = ['notification_events'];
 
 /**
  * One seeding (about 20 s) serves every check, so they share one test. The "my assignments"
@@ -69,14 +72,18 @@ describe('admin home query plans on a seeded volume', () => {
     async () => {
       await withVolume(db, async (tx, { adminId, managedIds }) => {
         // sidebar and assigned use indexes under 50 ms
-        await expectIndexed(tx, sidebarSql(adminId), CHAT_TABLES);
-        await expectIndexed(tx, assignedSql(adminId), CHAT_TABLES);
-        await expectIndexed(tx, assignedCountSql(adminId), CHAT_TABLES);
+        await expectIndexed(tx, sidebarSql(adminId), [...CHAT_TABLES, ...UNSEEN_TABLES]);
+        await expectIndexed(tx, assignedSql(adminId), [...CHAT_TABLES, ...UNSEEN_TABLES]);
+        // the header's counts and the group board's marks read the admin's events on the partial
+        // indexes; with thousands of seeded unseen tasks, joining them to `tasks` (or `tickets`)
+        // by a hash over the table is cheaper than one lookup each, as for "my assignments"
+        await expectIndexed(tx, unseenTaskCountSql(adminId), UNSEEN_TABLES);
+        await expectIndexed(tx, unseenTicketCountSql(adminId), UNSEEN_TABLES);
+        await expectIndexed(tx, boardUnseenSql(adminId, managedIds[0]!), UNSEEN_TABLES);
         // the Tickets card and the header's Tickets count read the tickets indexes; the "no
         // riešiteľ yet" anti-join may hash the small `ticket_assignees` (a few rows per active
         // ticket), which the planner rightly prefers to one index lookup per ticket
-        await expectIndexed(tx, dashboardTicketsSql(adminId), ['tickets']);
-        await expectIndexed(tx, dashboardTicketCountSql(adminId), ['tickets']);
+        await expectIndexed(tx, dashboardTicketsSql(adminId), ['tickets', ...UNSEEN_TABLES]);
         // mentions uses indexes under 50 ms
         await expectIndexed(tx, mentionsSql(adminId), CHAT_TABLES);
         // global board uses tasks_open_group_idx under 50 ms, for the 10 managed groups
@@ -90,7 +97,11 @@ describe('admin home query plans on a seeded volume', () => {
           today: bratislavaToday(new Date()),
         };
         for (const mine of [false, true]) {
-          await expectIndexed(tx, globalBoardSql({ ...board, mine }), ['tasks', ...CHAT_TABLES]);
+          await expectIndexed(tx, globalBoardSql({ ...board, mine }), [
+            'tasks',
+            ...CHAT_TABLES,
+            ...UNSEEN_TABLES,
+          ]);
         }
         const after = Buffer.from(
           JSON.stringify([true, '2026-01-01', 'Volume', '2026-01-01T00:00:00Z', '']),
@@ -98,7 +109,7 @@ describe('admin home query plans on a seeded volume', () => {
         await expectIndexed(
           tx,
           globalBoardSql({ ...board, mine: false, column: 'custom:step 1', after }),
-          ['tasks', ...CHAT_TABLES],
+          ['tasks', ...CHAT_TABLES, ...UNSEEN_TABLES],
         );
         // Phase 34, the attachment picker: a group's task search (newest, and by title with the
         // trigram index available), the cards by primary key, and a group's ticket search.

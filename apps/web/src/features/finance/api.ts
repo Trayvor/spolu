@@ -16,9 +16,18 @@ export function viewKey(view: FinanceView): string {
   return view.kind === 'group' ? view.groupId : 'all';
 }
 
-/** `['finance', groupId | 'all', kind, ...rest]`. */
+/**
+ * `['finance', groupId | 'all', kind, ...rest]`; the system-wide view adds its client filter at
+ * the end, so another choice of clients is another cache entry.
+ */
 export function financeKey(view: FinanceView, kind: string, ...rest: unknown[]): QueryKey {
-  return ['finance', viewKey(view), kind, ...rest];
+  const clients = view.kind === 'all' ? [view.clients.join(',')] : [];
+  return ['finance', viewKey(view), kind, ...rest, ...clients];
+}
+
+/** The `clients=` query of the system-wide view (empty: every client). */
+export function clientsParam(view: FinanceView): Record<string, string> {
+  return view.kind === 'all' && view.clients.length > 0 ? { clients: view.clients.join(',') } : {};
 }
 
 /** The prefix of every query of a view (what a `finance:changed` invalidates). */

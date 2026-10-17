@@ -35,7 +35,8 @@
     "overdue": "Scaduto dal",
     "noSubject": "Senza oggetto",
     "noClient": "Senza cliente",
-    "assignees": "Assegnatari: {{names}}"
+    "assignees": "Assegnatari: {{names}}",
+    "unseen": "Nuova modifica"
   },
   "mine": {
     "title": "I miei ticket",

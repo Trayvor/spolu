@@ -7,6 +7,7 @@
     "attach": "Allega un file",
     "remove": "Rimuovi {{name}}",
     "uploading": "Caricamento di {{name}}",
+    "waiting": "In attesa del caricamento dei file",
     "uploadFailed": "Impossibile caricare {{name}}.",
     "tooLarge": "{{name}} supera i 25 MB.",
     "unknown": "File"

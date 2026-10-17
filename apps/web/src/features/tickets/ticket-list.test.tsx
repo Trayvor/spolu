@@ -55,6 +55,22 @@ describe('ticket lists', () => {
     await waitFor(() => expect(calls).toContain('GET /api/groups/g1/tickets?status=resolved'));
   });
 
+  it('a row with an unseen change has an ink dot, a bold title and "New change" (2026-10-17)', async () => {
+    mockTicketApi(
+      CLIENT,
+      groupRoutes([
+        item({ id: 'new', subject: 'Changed', unseen: true }),
+        item({ id: 'old', subject: 'Quiet' }),
+      ]),
+    );
+    renderAt('/groups/g1/tickets');
+    const changed = (await screen.findByText('Changed')).closest('a')!;
+    const quiet = screen.getByText('Quiet').closest('a')!;
+    expect(within(changed).getByTestId('unseen-dot')).toBeInTheDocument();
+    expect(within(changed).getByText(/New change/)).toHaveClass('sr-only');
+    expect(within(quiet).queryByTestId('unseen-dot')).toBeNull();
+  });
+
   it('overdue due date is red only when not resolved', async () => {
     mockTicketApi(
       CLIENT,

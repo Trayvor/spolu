@@ -11,10 +11,15 @@ interface GroupLogoProps {
   version?: string;
   /** Square side in px. */
   size?: number;
+  /** The admin group "eGrant tím" (Phase 34): without its own logo it shows the egrant mark. */
+  admin?: boolean;
   className?: string;
 }
 
-/** The group's logo, or its first letter on a `bg-secondary` tile. Decorative: the name sits next to it. */
+/**
+ * The group's logo, or its first letter on a `bg-secondary` tile (the admin group: the egrant
+ * mark). Decorative: the name sits next to it.
+ */
 export function GroupLogo({
   groupId,
   token,
@@ -23,6 +28,7 @@ export function GroupLogo({
   version,
   size = 40,
   className,
+  admin = false,
 }: GroupLogoProps) {
   const src = token
     ? `/api/join/${encodeURIComponent(token)}/logo`
@@ -42,6 +48,24 @@ export function GroupLogo({
         className={cn(box, 'object-contain')}
         style={{ width: size, height: size }}
       />
+    );
+  }
+  if (admin) {
+    return (
+      <span
+        aria-hidden="true"
+        data-egrant-mark=""
+        className={cn(box, 'inline-flex items-center justify-center bg-secondary')}
+        style={{ width: size, height: size }}
+      >
+        <img
+          src="/brand/favicon.svg"
+          alt=""
+          width={Math.round(size * 0.6)}
+          height={Math.round(size * 0.6)}
+          decoding="async"
+        />
+      </span>
     );
   }
   return (

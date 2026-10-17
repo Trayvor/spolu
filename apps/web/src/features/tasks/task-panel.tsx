@@ -1,4 +1,5 @@
 import { Skeleton } from '@/components/ui/skeleton';
+import { useMarkSeen } from '@/lib/use-mark-seen';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useBlocker, useLocation, useNavigate, useParams, useRouter } from '@tanstack/react-router';
@@ -102,6 +103,8 @@ export function TaskPanel({
   const gone =
     (query.error instanceof ApiError && query.error.status === 404) ||
     (task !== undefined && task.groupId !== groupId);
+  // 2026-10-17: open (either tab) and visible, its changes are seen.
+  useMarkSeen(task && !gone ? { kind: 'task', id: taskId } : null);
 
   // Gone, foreign or unreadable: back to the board, which says so.
   const exit = useRef(onExit);
@@ -229,6 +232,7 @@ function TaskEditor({
   const [draft, setDraft] = useState<TaskDraft>(() => toDraft(initial));
   const [files, setFiles] = useState<FileInfo[]>(initial.files);
   const [errors, setErrors] = useState<TaskFormErrors>({});
+  const [uploading, setUploading] = useState(false);
   const [stale, setStale] = useState<{ by: string | null } | null>(null);
   const [busy, setBusy] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -345,7 +349,7 @@ function TaskEditor({
   };
 
   async function save() {
-    if (busy) return;
+    if (busy || uploading) return;
     const found = validateTaskDraft(draft);
     setErrors(found);
     if (Object.keys(found).length > 0) return;
@@ -543,6 +547,7 @@ function TaskEditor({
             files={files}
             onFilesChange={setFiles}
             knownPeople={base.assignees}
+            onUploadingChange={setUploading}
             timeSlot={
               seesTime(
                 me,
@@ -562,7 +567,20 @@ function TaskEditor({
 
           {dirty && (
             <div className="flex gap-3">
-              <Button disabled={busy} onClick={() => void save()}>
+              {uploading && (
+                <p
+                  id="task-upload-wait"
+                  role="status"
+                  className="self-center text-tiny text-muted-foreground"
+                >
+                  {t('forms.files.waiting')}
+                </p>
+              )}
+              <Button
+                disabled={busy || uploading}
+                aria-describedby={uploading ? 'task-upload-wait' : undefined}
+                onClick={() => void save()}
+              >
                 {t('tasks.panel.save')}
               </Button>
               <Button
