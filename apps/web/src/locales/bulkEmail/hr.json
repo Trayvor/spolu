@@ -23,7 +23,10 @@
     "delete": "Izbriši nacrt",
     "deleteConfirm": "Izbrisati ovaj nacrt? Neće ga biti moguće vratiti.",
     "deleteYes": "Izbriši",
-    "cancel": "Odustani"
+    "cancel": "Odustani",
+    "unsaved": "Posljednje promjene nisu spremljene. Ipak napustiti e-poruku?",
+    "stay": "Ostani",
+    "leave": "Napusti"
   },
   "save": {
     "saved": "Sve su promjene spremljene",

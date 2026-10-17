@@ -162,7 +162,8 @@ function AcceptStep({
     try {
       const groupId = await acceptInvite(token);
       await queryClient.invalidateQueries({ queryKey: sessionQuery.queryKey });
-      await navigate({ to: '/groups/$groupId/chat', params: { groupId } });
+      // In place of the invitation: Back must not offer to accept it again.
+      await navigate({ to: '/groups/$groupId/chat', params: { groupId }, replace: true });
     } catch (e) {
       if (e instanceof ApiError && e.status === 404) onExpired();
       else if (e instanceof ApiError && e.status === 403) setError(t('join.errors.removed'));

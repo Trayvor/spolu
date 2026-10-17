@@ -23,7 +23,10 @@
     "delete": "Kustuta mustand",
     "deleteConfirm": "Kas kustutada see mustand? Seda ei saa taastada.",
     "deleteYes": "Kustuta",
-    "cancel": "Tühista"
+    "cancel": "Tühista",
+    "unsaved": "Viimased muudatused pole salvestatud. Kas lahkuda e-kirjast ikkagi?",
+    "stay": "Jää",
+    "leave": "Lahku"
   },
   "save": {
     "saved": "Kõik muudatused on salvestatud",

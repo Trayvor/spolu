@@ -21,6 +21,7 @@ export async function renderWithRouter(
     '/groups/$groupId/tasks/$taskId',
     '/groups/$groupId/knowledge',
     '/tasks',
+    '/knowledge',
     '/tickets',
     '/tickets/$ticketId',
   ];

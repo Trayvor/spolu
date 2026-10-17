@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useNavigate, useParams, useSearch } from '@tanstack/react-router';
+import { useNavigate, useParams, useRouter, useSearch } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import type { TicketDto } from '@spolu/shared';
 import { ClientFilter, type ClientOption } from '@/components/client-filter';
@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { clientGroups, isAdmin } from '@/features/auth/roles';
 import { useSession } from '@/features/auth/use-session';
 import { groupsQuery } from '@/features/groups/api';
+import { isLayerOpen } from '@/lib/use-back-closes';
 import { knowledgeScopeQuery } from '@/features/knowledge/api';
 import { useUpdateSearch } from '@/lib/use-update-search';
 import { cn } from '@/lib/utils';
@@ -25,11 +26,19 @@ function useUrlFilter(): [TicketFilter, (next: TicketFilter) => void] {
   return [filter, (next) => update((s) => writeFilter(s, next), { replace: false })];
 }
 
-/** After a ticket is created, its page. */
+/**
+ * After a ticket is created, its page, in place of the closing form's own history entry (so Back
+ * from the ticket goes to the list, not to the list again).
+ */
 function useOpenTicket() {
   const navigate = useNavigate();
+  const router = useRouter();
   return (ticket: TicketDto) =>
-    void navigate({ to: '/tickets/$ticketId', params: { ticketId: ticket.id } });
+    void navigate({
+      to: '/tickets/$ticketId',
+      params: { ticketId: ticket.id },
+      replace: isLayerOpen(router.state.location.state),
+    });
 }
 
 /**

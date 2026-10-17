@@ -2,6 +2,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import {
+  RouterProvider,
+  createMemoryHistory,
+  createRootRoute,
+  createRouter,
+} from '@tanstack/react-router';
 import type { FileInfo, GroupPerson, KnowledgeItemDto, Me } from '@spolu/shared';
 import { ApiError } from '@/lib/api';
 import { i18n } from '@/i18n';
@@ -114,12 +120,22 @@ function renderDialog(target: Target = { mode: 'view', id: 'k1' }) {
   client.setQueryData(['session'], ME);
   const onClose = vi.fn();
   const onUnavailable = vi.fn();
+  // In a router: the dialog guards unsaved edits against Back (`useBlocker`).
+  const rootRoute = createRootRoute({
+    component: () => (
+      <KnowledgeDialog target={target} onClose={onClose} onUnavailable={onUnavailable} />
+    ),
+  });
+  const router = createRouter({
+    routeTree: rootRoute,
+    history: createMemoryHistory({ initialEntries: ['/'] }),
+  });
   render(
     <QueryClientProvider client={client}>
-      <KnowledgeDialog target={target} onClose={onClose} onUnavailable={onUnavailable} />
+      <RouterProvider router={router} />
     </QueryClientProvider>,
   );
-  return { client, onClose, onUnavailable };
+  return { client, onClose, onUnavailable, router };
 }
 
 const heading = (name: string) => screen.findByRole('heading', { name });
@@ -251,6 +267,18 @@ describe('KnowledgeDialog', () => {
     expect(onClose).not.toHaveBeenCalled();
     await user.click(screen.getByRole('button', { name: t('knowledge.detail.discard') }));
     expect(onClose).toHaveBeenCalled();
+  });
+
+  it('Back (any route change) with a typed draft asks first; Keep editing stays', async () => {
+    const user = userEvent.setup();
+    const { router } = renderDialog({ mode: 'create', type: 'link', groupId: 'g1' });
+    await heading(t('knowledge.detail.new.link'));
+    await user.type(screen.getByLabelText(t('knowledge.form.title')), 'Calls');
+    void router.navigate({ to: '/elsewhere' as never });
+    expect(await screen.findByText(t('knowledge.detail.discardDraft'))).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: t('knowledge.detail.keepEditing') }));
+    expect(router.state.location.pathname).toBe('/');
+    expect(screen.getByLabelText(t('knowledge.form.title'))).toHaveValue('Calls');
   });
 
   it('404 calls onUnavailable', async () => {

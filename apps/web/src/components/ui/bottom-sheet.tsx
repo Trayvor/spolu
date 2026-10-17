@@ -2,10 +2,12 @@ import {
   useCallback,
   useEffect,
   useRef,
+  useState,
   type ReactNode,
   type TouchEvent,
   type MouseEvent,
 } from 'react';
+import { useBackCloses } from '@/lib/use-back-closes';
 import { useScrollLock } from '@/lib/use-scroll-lock';
 import { cn } from '@/lib/utils';
 
@@ -19,7 +21,8 @@ const CLOSE_MS = 200;
  * behind inert, closes on Escape and puts the focus back on the button that opened it. No
  * library. Open while mounted; `onClose` asks the caller to unmount it, after the sheet has slid
  * down (`animate-sheet-out`; at once under reduced motion). Closes on a tap on the dimmed
- * backdrop, Escape, a downward swipe, or a tap on a link inside (it navigates, the sheet goes).
+ * backdrop, Escape, Back (`useBackCloses`), a downward swipe, or a tap on a link inside (it
+ * navigates, the sheet goes; such links should `replace` the sheet's history entry).
  * `max-height` leaves the top 10% of the screen visible; the content scrolls inside; the bottom
  * padding clears the iPhone home bar.
  */
@@ -38,6 +41,9 @@ export function BottomSheet({
   const dialog = useRef<HTMLDialogElement>(null);
   const startY = useRef<number | null>(null);
   const closing = useRef(false);
+  // Closing (sliding down) already counts as closed for Back: its history entry goes at once,
+  // and a Back that started the close does not give it a new one.
+  const [leaving, setLeaving] = useState(false);
   useScrollLock(true);
 
   useEffect(() => {
@@ -52,6 +58,7 @@ export function BottomSheet({
     const node = dialog.current;
     if (!node || closing.current) return;
     closing.current = true;
+    setLeaving(true);
     let done = false;
     const finish = () => {
       if (done) return;
@@ -63,6 +70,8 @@ export function BottomSheet({
     node.addEventListener('animationend', finish, { once: true });
     setTimeout(finish, CLOSE_MS);
   }, [onClose]);
+  // Back closes the sheet first instead of leaving the page.
+  useBackCloses(!leaving, close);
 
   const onTouchStart = (event: TouchEvent) => {
     startY.current = event.touches[0]?.clientY ?? null;

@@ -11,6 +11,7 @@ import {
 import type { KnowledgeType } from '@spolu/shared';
 import { loadNamespace, withNamespaces } from '@/i18n/namespaces';
 import { ApiError } from '@/lib/api';
+import { trackHistory } from '@/lib/back';
 import {
   normalizeTypes,
   singleType,
@@ -60,6 +61,9 @@ const authedRoute = createRoute({
 const homeRoute = createRoute({
   getParentRoute: () => authedRoute,
   path: '/',
+  // A phone's open count-tile sheet (`count-tile.tsx`): a history entry, so Back closes it.
+  validateSearch: (search: Record<string, unknown>): { card?: string } =>
+    typeof search.card === 'string' ? { card: search.card } : {},
   // An admin's dashboard (Phase 20); a client goes to their group, or picks one of several; a
   // requester to their tickets.
   beforeLoad: async ({ context }) => {
@@ -329,6 +333,11 @@ const welcomeRoute = createRoute({
   path: '/welcome',
   validateSearch: (search: Record<string, unknown>): { redirect?: string } =>
     typeof search.redirect === 'string' ? { redirect: safeRedirect(search.redirect) } : {},
+  // Named already (Back or Forward to the name step): on to where it would have led.
+  beforeLoad: async ({ context, search }) => {
+    const user = await context.queryClient.ensureQueryData(sessionQuery);
+    if (user?.name.trim()) throw redirect({ href: search.redirect ?? '/' });
+  },
   component: lazyRouteComponent(
     withNamespaces(['welcome'], () => import('@/features/auth/welcome-page')),
     'WelcomeRoute',
@@ -493,7 +502,17 @@ const routeTree = rootRoute.addChildren([
 ]);
 
 export function createAppRouter(queryClient: QueryClient, history?: RouterHistory) {
-  return createRouter({ routeTree, history, context: { queryClient }, defaultPreload: 'intent' });
+  const router = createRouter({
+    routeTree,
+    history,
+    context: { queryClient },
+    defaultPreload: 'intent',
+    // Back and Forward bring the page back where it was scrolled (docs/design/README.md,
+    // "Navigation and Back").
+    scrollRestoration: true,
+  });
+  trackHistory(router);
+  return router;
 }
 
 declare module '@tanstack/react-router' {

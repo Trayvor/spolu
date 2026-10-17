@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Link, useNavigate, useParams } from '@tanstack/react-router';
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { Link, useBlocker, useNavigate, useParams, useRouter } from '@tanstack/react-router';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { BULK_LIMITS, type BulkCampaignDto, type BulkNotReadyProblem } from '@spolu/shared';
 import { Button } from '@/components/ui/button';
@@ -8,6 +8,7 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ApiError } from '@/lib/api';
+import { previousHref } from '@/lib/back';
 import { AudienceBuilder } from './audience-builder';
 import { BlockList } from './block-list';
 import { blocksReducer, type BlocksAction } from './blocks';
@@ -32,11 +33,25 @@ export function CampaignPageRoute() {
   return <CampaignPage campaignId={campaignId ?? ''} />;
 }
 
+const isList = (href: string) => new URL(href, 'http://app.invalid').pathname === '/bulk-email';
+
+/**
+ * "All emails": one step back when the list is the entry before (its scroll and filters come
+ * back), else the list in place of this page, so Back never returns to an email just left.
+ */
 function BackLink() {
   const { t } = useTranslation();
+  const router = useRouter();
   return (
     <Link
       to="/bulk-email"
+      replace
+      onClick={(event) => {
+        const previous = previousHref(router);
+        if (previous === undefined || !isList(previous)) return;
+        event.preventDefault();
+        router.history.back();
+      }}
       className="inline-flex self-start text-tiny font-semibold hover:underline max-[640px]:min-h-11 max-[640px]:items-center"
     >
       {t('bulkEmail.editor.back')}
@@ -221,6 +236,23 @@ function DraftEditor({
   const isValid = useCallback((d: EditableDraft) => !hasProblems(draftProblems(d)), []);
   const autosave = useAutosave({ draft, version: campaign.version, save, isValid });
 
+  // Leaving with changes that cannot be saved (invalid, or the save failed) asks first; closing
+  // the tab also while a save waits. A delete leaves without asking.
+  const leaving = useRef(false);
+  const saveState = useRef(autosave.state);
+  useEffect(() => {
+    saveState.current = autosave.state;
+  });
+  const blocker = useBlocker({
+    shouldBlockFn: ({ current, next }) =>
+      next.pathname !== current.pathname &&
+      (saveState.current === 'invalid' || saveState.current === 'error') &&
+      !leaving.current,
+    enableBeforeUnload: () =>
+      !leaving.current && saveState.current !== 'saved' && saveState.current !== 'notDraft',
+    withResolver: true,
+  });
+
   // Another admin saved while nothing here waits to be saved: take their version.
   useEffect(() => {
     if (campaign.version > autosave.version && autosave.state === 'saved') void onReload();
@@ -234,7 +266,9 @@ function DraftEditor({
     mutationFn: () => deleteCampaign(campaign.id),
     onSuccess: async () => {
       void queryClient.invalidateQueries({ queryKey: campaignListKey });
-      await navigate({ to: '/bulk-email' });
+      leaving.current = true;
+      // In place of the deleted draft: Back must not lead to "This email does not exist".
+      await navigate({ to: '/bulk-email', replace: true });
     },
   });
   const set = (patch: Partial<EditableDraft>) => setDraft((d) => ({ ...d, ...patch }));
@@ -242,6 +276,22 @@ function DraftEditor({
   return (
     <div className="flex flex-col gap-5">
       <BackLink />
+      {blocker.status === 'blocked' && (
+        <div
+          role="alert"
+          className="flex flex-col gap-3 rounded-xl border-2 border-destructive bg-card p-4 min-[641px]:flex-row min-[641px]:items-center min-[641px]:justify-between"
+        >
+          <p className="text-button">{t('bulkEmail.editor.unsaved')}</p>
+          <div className="flex gap-2">
+            <Button type="button" variant="outline" onClick={blocker.reset}>
+              {t('bulkEmail.editor.stay')}
+            </Button>
+            <Button type="button" variant="destructive" onClick={blocker.proceed}>
+              {t('bulkEmail.editor.leave')}
+            </Button>
+          </div>
+        </div>
+      )}
       <div className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center gap-3">
           <h1 className="min-w-0 text-medium leading-tight font-semibold break-words">

@@ -23,7 +23,10 @@
     "delete": "Vymazať koncept",
     "deleteConfirm": "Vymazať tento koncept? Nedá sa obnoviť.",
     "deleteYes": "Vymazať",
-    "cancel": "Zrušiť"
+    "cancel": "Zrušiť",
+    "unsaved": "Posledné zmeny nie sú uložené. Napriek tomu odísť z e-mailu?",
+    "stay": "Zostať",
+    "leave": "Odísť"
   },
   "save": {
     "saved": "Všetky zmeny sú uložené",

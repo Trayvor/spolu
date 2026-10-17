@@ -77,7 +77,8 @@ export function CodeStep({ email, redirectTo, onResend, onChangeEmail }: CodeSte
       await verifyCode(email, value);
       // refetchType 'all': the session query has no observer on this page.
       await queryClient.invalidateQueries({ queryKey: sessionQuery.queryKey, refetchType: 'all' });
-      router.history.push(redirectTo);
+      // In place of the login page: Back from there must not show it again.
+      router.history.replace(redirectTo);
     } catch (error) {
       setCode('');
       setCodeError(true);

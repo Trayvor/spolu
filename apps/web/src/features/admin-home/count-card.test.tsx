@@ -8,6 +8,7 @@ import { renderWithRouter } from './test-router';
 const t = (key: string) => i18n.t(key);
 
 const props = (over: Partial<CountCardProps> = {}): CountCardProps => ({
+  id: 'tasks',
   title: 'Assigned to me',
   count: 37,
   caption: 'assigned',

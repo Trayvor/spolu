@@ -89,7 +89,7 @@ export function HomePage() {
         <>
           <div className="grid grid-cols-2 gap-2">
             {cards.map((card) => (
-              <CountTile key={card.title} {...card} />
+              <CountTile key={card.id} {...card} />
             ))}
           </div>
           <PhoneClientList />

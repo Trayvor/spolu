@@ -181,6 +181,27 @@ test('admin home: dashboard, header counts, sidebar, Úlohy and global board', a
     await expect(n.getByRole('button', { name: /^Najbližšie pripomienky:/ })).toBeVisible();
     await expect(n.getByRole('link', { name: new RegExp(g1Name) })).toBeVisible();
     await expect(n.getByRole('navigation', { name: 'Klienti' })).toHaveCount(1);
+
+    // 8. Back from a tile: the sheet is a history entry. A row opens its task; Back returns to
+    // the open sheet, Back again to the home screen (not to the board or another page).
+    await n.getByRole('button', { name: /^Moje úlohy:/ }).click();
+    const tasksSheet = n.getByRole('dialog', { name: 'Moje úlohy' });
+    await expect(tasksSheet).toBeVisible();
+    await expect(n).toHaveURL(/\/\?card=tasks$/);
+    await expect(tasksSheet.getByRole('link', { name: 'Otvoriť všetky moje úlohy' })).toBeVisible();
+    await tasksSheet.getByRole('listitem').first().getByRole('link').click();
+    await expect(n).toHaveURL(/\/groups\/[^/]+\/tasks\/[^/?]+/);
+    await n.goBack();
+    await expect(n).toHaveURL(/\/\?card=tasks$/);
+    await expect(tasksSheet).toBeVisible();
+    await n.goBack();
+    await expect(n).toHaveURL(/\/$/);
+    await expect(tasksSheet).toHaveCount(0);
+    await expect(n.getByRole('button', { name: /^Moje úlohy:/ })).toBeVisible();
+    // The sheet's own back button closes it the same way.
+    await n.getByRole('button', { name: /^Tikety:/ }).click();
+    await n.getByRole('dialog', { name: 'Tikety' }).getByRole('button', { name: 'Späť' }).click();
+    await expect(n).toHaveURL(/\/$/);
   } finally {
     await nContext.close();
     await cContext.close();

@@ -128,5 +128,39 @@
     "tickets_two": "{{count}} odprta zahtevka za reševanje",
     "tickets_few": "{{count}} odprti zahtevki za reševanje",
     "tickets_other": "{{count}} odprtih zahtevkov za reševanje"
+  },
+  "sheet": {
+    "tickets": {
+      "description": "Odprti zahtevki, ki čakajo na vas: tisti, ki jih rešujete, nedodeljeni zahtevki strank, ki jih spremljate, in zahtevki brez stranke.",
+      "openAll": "Odpri vse zahtevke",
+      "noAssignee": "Brez reševalca"
+    },
+    "tasks": {
+      "description": "Vaše odprte naloge pri vseh strankah, po roku. Nujne so v vsaki skupini prve.",
+      "openAll": "Odpri vse moje naloge"
+    },
+    "reminders": {
+      "description": "Opomniki za naloge in elemente znanja v naslednjih 7 dneh."
+    },
+    "mentions": {
+      "description": "Sporočila, v katerih ste omenjeni in jih še niste prebrali."
+    },
+    "groups": {
+      "overdue": "Zamuja",
+      "today": "Danes",
+      "week": "Ta teden",
+      "later": "Pozneje",
+      "noDate": "Brez roka",
+      "new": "Novi",
+      "inProgress": "V obdelavi",
+      "yesterday": "Včeraj",
+      "earlier": "Prej",
+      "tomorrow": "Jutri",
+      "noSummary": "Pretekli, brez povzetka"
+    },
+    "meetings": {
+      "description": "Sestanki vaših strank v naslednjih 7 dneh, nato pretekli sestanki zadnjih 30 dni, ki še nimajo povzetka.",
+      "openAll": "Odpri vse sestanke"
+    }
   }
 }

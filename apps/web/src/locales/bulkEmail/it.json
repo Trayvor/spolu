@@ -23,7 +23,10 @@
     "delete": "Elimina bozza",
     "deleteConfirm": "Eliminare questa bozza? Non potrà essere ripristinata.",
     "deleteYes": "Elimina",
-    "cancel": "Annulla"
+    "cancel": "Annulla",
+    "unsaved": "Le ultime modifiche non sono salvate. Uscire comunque da questa email?",
+    "stay": "Resta",
+    "leave": "Esci"
   },
   "save": {
     "saved": "Tutte le modifiche sono salvate",

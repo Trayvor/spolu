@@ -19,7 +19,8 @@ test('a meeting: recording, AI summary, tasks from its action items, the dashboa
 
   // Create the meeting from "+ Nové", tomorrow at 10:00 (the form's default).
   await page.goto(`/groups/${group.id}/knowledge`);
-  await page.getByRole('button', { name: 'Nové' }).click();
+  // The header's button; an empty list shows a second one.
+  await page.getByRole('button', { name: 'Nové' }).first().click();
   await page.getByRole('menuitem', { name: /Stretnutie/ }).click();
   const dialog = page.getByTestId('knowledge-dialog');
   await dialog.getByLabel('Názov').fill(`Úvodné stretnutie ${stamp}`);

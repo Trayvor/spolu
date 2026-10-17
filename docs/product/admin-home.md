@@ -22,7 +22,7 @@ What an administrator sees after signing in: a dashboard of what needs them, a c
   - a client filter that by default shows the clients I manage; I can add or remove clients, with managed and other clients shown separately;
   - filters by assignee (me, anyone, unassigned, a person), urgent, "only where I take part" (tasks I created or am an assignee of), deadline (overdue, next 7 days, none), title search, and showing completed tasks;
   - clicking a task opens it; tasks are moved from the task panel, not dragged.
-- **Phones.** The client list and dashboard become one column: four count tiles, two per row (Tickets, My tasks, Upcoming reminders, Mentions; each shows its title and opens its list) above the client list.
+- **Phones.** The client list and dashboard become one column: four count tiles, two per row (Tickets, My tasks, Upcoming reminders, Mentions; each shows its title and opens its list) above the client list. A tile's list opens full screen with the count, a sentence on what it holds, the items in groups (tasks by due date: overdue, today, this week, later, no date; tickets: New first; meetings: the coming ones by day, then past ones without a summary; mentions and reminders by day), each with its client and due date, and "Open all" to the full list (tickets, tasks, meetings). Back closes the list and returns to the home screen as it was.
 - **Speed.** The dashboard and the client list each load with one request; nothing slows down the first screen for clients.
 
 ## As built (Phase 20)

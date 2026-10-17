@@ -1,5 +1,6 @@
 import type { KeyboardEvent as ReactKeyboardEvent, ReactNode, RefObject } from 'react';
 import { Dialog } from 'radix-ui';
+import { useBackCloses } from '@/lib/use-back-closes';
 import { cn } from '@/lib/utils';
 
 /**
@@ -16,7 +17,9 @@ export const PHONE_TARGETS =
  * rises from the bottom edge (no motion under reduced motion; it goes at once on close). Always open while mounted: the caller
  * unmounts it to close. Clicks outside do nothing, and Escape goes to `onEscape`, which decides
  * (ask first, close a layer, or close). Keys typed inside never reach the page's own handlers.
- * Name it with a `SheetDialogTitle` inside, or with `labelledBy`.
+ * Name it with a `SheetDialogTitle` inside, or with `labelledBy`. Back (browser, Android, iOS
+ * swipe) is Escape too: the sheet has a history entry of its own (`useBackCloses`), unless it is
+ * already one by its URL (`urlOwned`: closing it changes a search param).
  */
 export function SheetDialog({
   children,
@@ -24,6 +27,7 @@ export function SheetDialog({
   initialFocus,
   testId,
   labelledBy,
+  urlOwned = false,
 }: {
   children: ReactNode;
   onEscape: (event: KeyboardEvent) => void;
@@ -32,7 +36,12 @@ export function SheetDialog({
   /** `data-testid` of the sheet; its backdrop gets `<testId>-backdrop`. */
   testId?: string;
   labelledBy?: string;
+  /** Its open state is in the URL, so Back already closes it: no entry of its own. */
+  urlOwned?: boolean;
 }) {
+  useBackCloses(!urlOwned, () =>
+    onEscape(new KeyboardEvent('keydown', { key: 'Escape', cancelable: true })),
+  );
   return (
     <Dialog.Root open onOpenChange={() => undefined}>
       <Dialog.Portal>

@@ -1,10 +1,11 @@
 import { useCallback, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from '@tanstack/react-router';
+import { useNavigate, useRouter } from '@tanstack/react-router';
 import { GroupRoomProvider, useGroupRoom } from '@/features/groups/use-group-room';
 import { taskQuery } from '@/features/tasks/api';
 import { TaskPanel } from '@/features/tasks/task-panel';
 import { ApiError } from '@/lib/api';
+import { backOr, samePath } from '@/lib/back';
 import { globalBoardKey } from './api';
 
 type Exit = (opts: { replace: boolean }) => void;
@@ -40,20 +41,26 @@ export function GlobalTaskPanel({ taskId }: { taskId: string }) {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const query = useQuery(taskQuery(taskId));
+  const router = useRouter();
+  // Closing goes back to the board it was opened on (Back does not reopen it); a gone task, or
+  // one opened from outside, replaces itself with the board.
   const onExit = useCallback<Exit>(
     ({ replace }) => {
-      void navigate({
-        to: '/tasks',
-        replace,
-        search: ((prev: Record<string, unknown>) => {
-          const next = { ...prev };
-          for (const key of PANEL_KEYS) delete next[key];
-          return next;
-        }) as never,
-      });
+      const toBoard = () =>
+        void navigate({
+          to: '/tasks',
+          replace: true,
+          search: ((prev: Record<string, unknown>) => {
+            const next = { ...prev };
+            for (const key of PANEL_KEYS) delete next[key];
+            return next;
+          }) as never,
+        });
+      if (replace) toBoard();
+      else backOr(router, toBoard, samePath(router, ['task']));
       void queryClient.invalidateQueries({ queryKey: globalBoardKey });
     },
-    [navigate, queryClient],
+    [navigate, queryClient, router],
   );
   // Only before the panel is open: once it is, `TaskPanel` itself closes on a gone task.
   const gone = query.error instanceof ApiError && query.error.status === 404 && !query.data;

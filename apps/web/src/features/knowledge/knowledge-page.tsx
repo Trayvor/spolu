@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
-import { useSearch } from '@tanstack/react-router';
+import { useRouter, useSearch } from '@tanstack/react-router';
+import { backOr, samePath } from '@/lib/back';
 import { useTranslation } from 'react-i18next';
 import { KnowledgeTypes, type KnowledgeType } from '@spolu/shared';
 import {
@@ -268,7 +269,14 @@ export function KnowledgePage() {
         : t('knowledge.global.typesCount', { count: types.length });
 
   const [unavailable, setUnavailable] = useState(false);
-  const closeItem = () => update((s) => void delete s.k, { replace: false });
+  const router = useRouter();
+  // Back to the list the item was opened from (Back does not reopen it), else drop `k` in place.
+  const closeItem = () =>
+    backOr(
+      router,
+      () => update((s) => void delete s.k, { replace: true }),
+      samePath(router, ['k']),
+    );
 
   const empty = (
     <p className="py-8 text-center text-button text-muted-foreground">

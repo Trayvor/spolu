@@ -1,7 +1,7 @@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useBlocker, useLocation, useNavigate, useParams } from '@tanstack/react-router';
+import { useBlocker, useLocation, useNavigate, useParams, useRouter } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import {
   BoardEvents,
@@ -25,6 +25,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { ApiError } from '@/lib/api';
+import { backOr } from '@/lib/back';
 import { getSocket } from '@/lib/socket';
 import { useUpdateSearch } from '@/lib/use-update-search';
 import { cn } from '@/lib/utils';
@@ -191,6 +192,7 @@ function TaskEditor({
   const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const router = useRouter();
   const me = useSession();
   const { data: board } = useQuery(boardQuery(groupId));
   const { data: group } = useQuery(groupQuery(groupId));
@@ -269,9 +271,15 @@ function TaskEditor({
     if (onExit) onExit({ replace });
     else void navigate({ to: '/groups/$groupId/tasks', params: { groupId }, replace });
   };
+  // Closing goes back where the task was opened from (the board, home, a ticket, a chat), so
+  // Back does not reopen it; opened from a link from outside, it replaces itself with the board.
   const close = () => {
     if (onExit) onExit({ replace: false });
-    else void navigate({ to: '/groups/$groupId/tasks', params: { groupId } });
+    else
+      backOr(
+        router,
+        () => void navigate({ to: '/groups/$groupId/tasks', params: { groupId }, replace: true }),
+      );
   };
 
   // Live: someone else changed or deleted this task.
