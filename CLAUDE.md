@@ -24,6 +24,7 @@ The docs are the source of truth. This file only holds rules and pointers; do no
   The skill lives in `.claude/skills/frontend-design/`. See [docs/design/README.md](docs/design/README.md).
 - Performance is a top priority: lazy-loaded screens, small bundles, indexed queries, no N+1, paginated lists. No fancy visual effects. Readable code still comes first. See [docs/architecture/performance.md](docs/architecture/performance.md).
 - The initial JS budget is 200 kB gzip and is practically full (measure it as in performance.md, "How to check"). New UI texts go into a lazy namespace, never into the eager `locales/<code>.json`; new code that every screen does not need goes into a lazy chunk.
+- No wall-clock budgets in CI tests: use ratios, counts or opt-in benchmarks. See [docs/architecture/performance.md](docs/architecture/performance.md).
 - Keep the system easy to extend: same module pattern everywhere, simple code over clever abstractions.
 
 ## Workflow

@@ -244,11 +244,12 @@ describe('parseMessage', () => {
     expect({ userIds: [...found], all: foundAll }).toEqual({ userIds, all });
   });
 
-  // Bodies are capped at 10 000 characters; 10x that makes any quadratic step take seconds
-  // (a linear parse of each input takes a few milliseconds), so the bound is far from flaky.
-  it('stays linear on hostile input (100 000 characters each)', () => {
-    const n = 100_000;
-    const inputs = [
+  // Bodies are capped at 10 000 characters. A wall-clock bound flakes on a loaded machine, so
+  // this compares growth: the same input at size N and at 8N is parsed (best of three each), and
+  // a linear parse takes about 8 times longer, a quadratic one about 64 times. Both sizes see the
+  // same load, so the ratio does not depend on it.
+  it('stays linear on hostile input (cost grows with the size, not its square)', () => {
+    const hostile = (n: number) => [
       '*'.repeat(n),
       '_'.repeat(n),
       '~'.repeat(n),
@@ -274,12 +275,29 @@ describe('parseMessage', () => {
       '```\n'.repeat(n / 4),
       'a\n'.repeat(n / 2),
     ];
-    // A generous bound, so a loaded machine does not fail it: a quadratic scan of 100 000
-    // characters takes many seconds, a linear one a few milliseconds.
-    for (const input of inputs) {
-      const started = performance.now();
-      parseMessage(input);
-      expect(performance.now() - started, input.slice(0, 12)).toBeLessThan(2000);
-    }
-  });
+    // The fastest of several runs, the small and the large input interleaved, so a burst of load
+    // on a busy machine hits both sizes alike instead of one of them.
+    const fastest = (a: string, b: string) => {
+      let small = Infinity;
+      let large = Infinity;
+      for (let run = 0; run < 5; run++) {
+        let started = performance.now();
+        parseMessage(a);
+        small = Math.min(small, performance.now() - started);
+        started = performance.now();
+        parseMessage(b);
+        large = Math.min(large, performance.now() - started);
+      }
+      return { small, large };
+    };
+    const small = hostile(12_000);
+    const large = hostile(96_000);
+    small.forEach((input, i) => {
+      const t = fastest(input, large[i]!);
+      // Floor of 1 ms: below it the timer's resolution, not the parser, sets the small time.
+      // 8x the input: linear is about 8, quadratic about 64; 32 leaves room for noise.
+      const ratio = t.large / Math.max(t.small, 1);
+      expect(ratio, input.slice(0, 12)).toBeLessThan(32);
+    });
+  }, 60_000);
 });

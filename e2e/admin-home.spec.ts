@@ -102,6 +102,12 @@ test('admin home: dashboard, header counts, sidebar, Úlohy and global board', a
 
     // The header counts: N's one open task; the tickets include G1's (others may have none).
     const header = n.getByRole('banner');
+    // N's own count is read from the API (it counts only N's assignments, whatever other specs
+    // create in the shared database); the pill must show that number.
+    const myOpenTasks = async () =>
+      ((await (await nContext.request.get('/api/me/home/counts')).json()) as { tasks: number })
+        .tasks;
+    await expect.poll(myOpenTasks).toBe(1);
     await expect(header.getByTestId('nav-count-tasks')).toContainText(
       '1 otvorená úloha priradená vám',
     );
@@ -112,8 +118,10 @@ test('admin home: dashboard, header counts, sidebar, Úlohy and global board', a
       data: { title: `Druhá úloha ${stamp}`, assigneeIds: [nId] },
     });
     expect(second.status()).toBe(201);
+    await expect.poll(myOpenTasks).toBe(2);
     await expect(header.getByTestId('nav-count-tasks')).toContainText(
       '2 otvorené úlohy priradené vám',
+      { timeout: 15_000 }, // the pill refetches after a 2 s debounce on the socket event
     );
     const resolved = await nContext.request.patch(`/api/tickets/${ticketId}`, {
       data: { status: 'resolved' },
@@ -131,7 +139,9 @@ test('admin home: dashboard, header counts, sidebar, Úlohy and global board', a
     const g1Row = managed.getByRole('link', { name: new RegExp(g1Name) });
     await expect(g1Row).toBeVisible();
     await expect(g1Row).toContainText('1 neprečítaná správa');
-    await expect(g1Row).toContainText('2 úlohy priradené vám');
+    // The sidebar refetches on its own 2 s debounce (same hook as the header pill, separate
+    // timer), so it can trail the header under load.
+    await expect(g1Row).toContainText('2 úlohy priradené vám', { timeout: 15_000 });
     await expect(others.getByRole('link', { name: new RegExp(g2Name) })).toBeVisible();
 
     // 4. Opening the mention shows the chat at the message; back home it is gone. Leaving only
@@ -157,7 +167,7 @@ test('admin home: dashboard, header counts, sidebar, Úlohy and global board', a
     const tasksTab = n
       .getByRole('navigation', { name: 'Časti skupiny' })
       .getByRole('link', { name: /^Úlohy/ });
-    await expect(tasksTab).toContainText('2 úlohy priradené vám');
+    await expect(tasksTab).toContainText('2 úlohy priradené vám', { timeout: 15_000 });
 
     // 6. The global board defaults to the managed G1; adding G2 shows its task.
     await n.goto('/tasks');

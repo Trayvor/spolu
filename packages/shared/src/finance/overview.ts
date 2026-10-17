@@ -151,6 +151,21 @@ export const WorkLogPageDtoSchema = z.object({
 });
 export type WorkLogPageDto = z.infer<typeof WorkLogPageDtoSchema>;
 
+/**
+ * `?from=&to=` of the overview: both months or neither ("all time": the server answers the
+ * months its data spans, at most ten years). The answer's `from` and `to` say which it used.
+ */
+export const OverviewQuerySchema = z
+  .object({ from: MonthSchema.optional(), to: MonthSchema.optional() })
+  .refine((q) => (q.from === undefined) === (q.to === undefined), { message: 'from and to' })
+  .refine((q) => q.from === undefined || q.to === undefined || q.from <= q.to, {
+    message: 'from after to',
+  });
+export type OverviewQuery = z.infer<typeof OverviewQuerySchema>;
+
+/** The most months one overview spans (ten years; the series stay small). */
+export const OVERVIEW_MAX_MONTHS = 120;
+
 /** `?from=&to=&before=` of the work log: both months or neither (all time). */
 export const WorkLogQuerySchema = z
   .object({
