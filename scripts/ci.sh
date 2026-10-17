@@ -5,6 +5,9 @@
 #
 # Env:
 #   CI_BASE_REF  git ref the docs check diffs against (default origin/main)
+#   CI           when set (GitHub sets it) no worker caps are applied; otherwise Vitest gets half
+#                the cores, Playwright a quarter and packages test one after the other.
+#                VITEST_MAX_WORKERS, E2E_WORKERS and npm_config_workspace_concurrency override.
 #
 # Needs Docker (PostgreSQL and Mailpit from docker-compose.dev.yml), Node 24+ and pnpm.
 # No .env file is needed: tests and e2e use their built-in defaults.
@@ -19,6 +22,9 @@ require_cmd docker pnpm git
 
 base_ref="${CI_BASE_REF:-origin/main}"
 compose=(docker compose -f docker-compose.dev.yml)
+
+# On a laptop, cap the workers so the checks do not overload the machine (see lib.sh).
+limit_local_parallelism
 
 log "Installing dependencies"
 pnpm install --frozen-lockfile
