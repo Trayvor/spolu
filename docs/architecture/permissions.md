@@ -101,6 +101,24 @@ See [realtime.md](realtime.md) for room joins and [overview.md](overview.md) for
 
 A meeting is a knowledge item: `canReadItem`, `canEditItem` as for the other types (its recording upload and delete, its summary edits). `canProcessMeeting` (admins) guards "Spracovať s AI", the task proposals and creating its tasks; a client gets 403. The compact audio is a file attached to the item, so `adminsOnly` follows the item's visibility as for a note's files. `POST /api/knowledge/transcript-text` reads a file for any signed-in user and stores nothing. The tasks made from a meeting are listed in its detail for whoever reads it there (`canUseBoard`: admins and the group's clients; the chat-message read of a žiadateľ gets none). A task's `sourceMeeting` line is built by `getMeetingRef` (`modules/knowledge/meeting-ref.ts`): a meeting of the task's group that the viewer may read (`canReadItem`), so an admins-only meeting is never named to a client; `getTask` without a viewer leaves it out.
 
+## Projects (Phase 33)
+
+Policy functions in `modules/projects/policy.ts` (test-first, `policy.test.ts`); `actorGroupIds` comes from `clientGroupIds`, so a žiadateľ membership never counts:
+
+| function | rule |
+|---|---|
+| `canReadProjects(actor, groupId, actorGroupIds)` | `canReadGroup`: admins and the group's clients. A žiadateľ never (404) |
+| `canEditProjects(…)` | `canReadGroup` (decision 8): create and edit projects and events, their files |
+| `canArchiveProject(…)` | `canReadGroup` (decision 8a): archive and restore |
+| `canMergeOrDeleteProject(…)` | `canReadGroup` (decision 8a): delete a project or an event, remove an alias; part P3: merge, accept an eGrant event removal |
+| `canSetTaskProject(…)` | `canUseBoard` (part P2) |
+| `canSetTicketProject(actor, ticket, role)` | an admin or a `client` of the ticket's group; never a žiadateľ, never a ticket without a client (part P2) |
+
+- Every route of `modules/projects/routes.ts` resolves the project's (or event's) client first and checks `canReadProjects` plus the route's own rule; failing either answers `404 not_found`, the same as an unknown id. Writes share 120 a minute per user.
+- Project and event files are ordinary group files (`canReadFile` by the group rule); they attach through `attachFiles` (the caller's own unattached files of the client; a finance-only file is refused).
+- The database backs the services: composite FKs refuse another client's project and an event of another project on a task or ticket ([ADR 0029](../decisions/0029-projects-composite-keys-and-egrant-matching.md)).
+- The eGrant project endpoint and the intake (part P3) create and link projects with the Bearer key, never through these user routes.
+
 ## Finance (Phase 32)
 
 Policy functions in `modules/finance/policy.ts` (test-first, `policy.test.ts`):
