@@ -39,8 +39,9 @@ const timings: [string, number][] = [];
 
 /**
  * Runs `query` under `explain (analyze, format json)`: no finance table read with a sequential
- * scan, and under `limitMs` (spec §10: a client's overview and work-log page under 50 ms). Warm
- * once, best of three, as `home/explain.test.ts`. `EXPLAIN_DEBUG=1` prints the plan.
+ * scan, always checked. The `limitMs` bound (spec §10: a client's overview and work-log page under
+ * 50 ms) is wall time, so it runs only with `RUN_BENCH=1`, as in `home/explain.test.ts`. Warm
+ * once, best of three. `EXPLAIN_DEBUG=1` prints the plan.
  */
 async function expectIndexed(tx: Db, name: string, query: SQL, limitMs = 50): Promise<void> {
   await tx.execute(query);
@@ -63,18 +64,19 @@ async function expectIndexed(tx: Db, name: string, query: SQL, limitMs = 50): Pr
     name,
     scanned: [],
   });
-  expect(time, name).toBeLessThan(limitMs);
+  if (process.env.RUN_BENCH) expect(time, name).toBeLessThan(limitMs);
 }
 
 /**
  * One seeding (spec §10: 3 100 clients, 40 admins, 300 000 filled and 5 000 requested entries
- * over five years, 20 000 contracts, 200 rates) serves every check. Retries twice on a busy
- * machine, as the admin home's; a sequential scan fails every attempt anyway.
+ * over five years, 20 000 contracts, 200 rates) serves every check. The plan checks do not depend
+ * on timing, so there is no retry (a retry reseeds on top of dead tuples and can hide a scan, see
+ * `architecture/performance.md`); the 50 ms bounds run only with `RUN_BENCH=1`.
  */
 describe('finance query plans on a seeded volume', () => {
   it(
-    'a client’s overview and work log use indexes under 50 ms',
-    { timeout: 300_000, retry: 2 },
+    'a client’s overview and work log use indexes (under 50 ms with RUN_BENCH=1)',
+    { timeout: 300_000 },
     async () => {
       await withFinanceVolume(db, async (tx, { groupIds }) => {
         const scope = { kind: 'group', groupId: groupIds[1234]! } as const;

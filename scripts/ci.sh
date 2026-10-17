@@ -1,10 +1,15 @@
 #!/usr/bin/env bash
-# Usage: ci.sh
+# Usage: ci.sh [--bench]
 # Runs every check a change must pass: install, shellcheck, script tests, lint, typecheck,
 # unit/integration tests, e2e tests and the docs check. Works the same in any CI and on a laptop.
 #
+# Options:
+#   --bench      also run the wall-clock benchmarks (sets RUN_BENCH=1). Off by default: timing
+#                checks fail on a loaded machine, so use it on a quiet one.
+#
 # Env:
 #   CI_BASE_REF  git ref the docs check diffs against (default origin/main)
+#   RUN_BENCH    1 does the same as --bench
 #
 # Needs Docker (PostgreSQL and Mailpit from docker-compose.dev.yml), Node 24+ and pnpm.
 # No .env file is needed: tests and e2e use their built-in defaults.
@@ -14,7 +19,11 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 source scripts/lib.sh
 
-[[ $# -eq 0 ]] || usage "ci.sh   (no arguments; set CI_BASE_REF to change the docs check base, default origin/main)"
+if [[ $# -eq 1 && $1 == --bench ]]; then
+  export RUN_BENCH=1
+elif [[ $# -ne 0 ]]; then
+  usage "ci.sh [--bench]   (--bench or RUN_BENCH=1 also runs the wall-clock benchmarks; set CI_BASE_REF to change the docs check base, default origin/main)"
+fi
 require_cmd docker pnpm git
 
 base_ref="${CI_BASE_REF:-origin/main}"
