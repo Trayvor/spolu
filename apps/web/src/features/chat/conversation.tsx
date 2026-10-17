@@ -9,7 +9,7 @@ import { Composer } from './composer';
 import type { MessageAction } from './message-item';
 import { MessageList } from './message-list';
 import { HIGHLIGHT_MS, ThreadPanel } from './thread-panel';
-import { useChannelMessages } from './use-channel-messages';
+import { useChannelMessages, type SendInput } from './use-channel-messages';
 import { useDocumentVisible } from './use-document-visible';
 import { useChatSearch } from './use-chat-search';
 import { useUnreadThreads } from './use-unread-threads';
@@ -112,19 +112,12 @@ export function Conversation({
   }, [unreadSeen, newest, markRead]);
 
   const onSend = useCallback(
-    ({
-      body,
-      fileIds,
-      knowledgeIds,
-    }: {
-      body: string;
-      fileIds: string[];
-      knowledgeIds?: string[];
-    }) => {
+    // Everything the composer picked goes on as it is: a field named here could be forgotten.
+    (input: SendInput) => {
       // The new message is shown at the bottom of the newest page.
       if (win.hasNewer) void jumpToLatest();
       setEndSignal((n) => n + 1);
-      void send({ body, fileIds, ...(knowledgeIds ? { knowledgeIds } : {}) });
+      void send(input);
     },
     [win.hasNewer, jumpToLatest, send],
   );
