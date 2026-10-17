@@ -88,6 +88,11 @@
   /* Spolu's own (egrant.sk has no yellow): only "assigned to me" pills and dots, ink text. */
   --attention: #ffce3a;
   --attention-foreground: #141414;
+  /* Finance charts (Phase 32, ADR 0028): paid and hours are ink, to be paid the light
+     surface-3 (hatched), the cost of work brand blue. No dark theme, as the rest. */
+  --chart-1: #141414;
+  --chart-2: #d6d2c8;
+  --chart-3: #3242dc;
 
   /* typography */
   --font-family-base:
