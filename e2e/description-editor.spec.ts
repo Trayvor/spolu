@@ -36,7 +36,9 @@ test('a task description with voice, AI and attached knowledge', async ({
   await admin.goto(`/groups/${group.id}/tasks/new`);
   const panel = admin.getByRole('complementary', { name: 'Úloha' });
   await panel.getByLabel('Názov', { exact: true }).fill('Podanie');
-  await panel.getByLabel('Odkaz', { exact: true }).fill('https://egrant.sk/podanie');
+  await panel
+    .getByRole('textbox', { name: 'Odkaz', exact: true })
+    .fill('https://egrant.sk/podanie');
   const box = panel.getByRole('textbox', { name: 'Popis' });
   await expect(box).toBeVisible();
   await panel.getByRole('button', { name: 'Diktovať' }).click();
@@ -76,6 +78,8 @@ test('a task description with voice, AI and attached knowledge', async ({
     expect((await request.post('/api/auth/sign-in/email-otp', { data: { email, otp } })).ok()).toBe(
       true,
     );
+    // A named person skips the welcome page.
+    expect((await request.patch('/api/me', { data: { name: 'E2E Klient' } })).ok()).toBe(true);
     const client = await clientContext.newPage();
     await client.goto(`/groups/${group.id}/tasks`);
     await client.getByRole('link', { name: 'Podanie' }).click();
