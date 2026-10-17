@@ -48,6 +48,16 @@ Built (part P5, `feat/description-editor`). Every long description field is one 
 - **Ticket text** is now shown with the chat renderer (line breaks kept; a body with Markdown characters may render as formatting). A žiadateľ opens the items attached to their own ticket's text read-only, with their files.
 - **Lazy:** the editor (`description-editor`, 2.5 kB gzip) and the cards (`linked-cards`) are lazy chunks with the `chat` texts; the forms carry only the field shell (`description-field`, 1.6 kB gzip shared, mostly the Markdown renderer the old field had too). The initial JS grew 0.04 kB (the shared schemas).
 
+### AI and voice in the other long-text places (`feat/editor-everywhere`)
+
+Plain-stored text keeps its format and gets the same tools through `features/editor/plain-text-field.tsx` (a textarea with the microphone and the AI button in a lazy chunk with the `chat` texts; no Markdown, no knowledge links):
+
+- **Meeting decisions and open questions** (the summary editor): still one entry per line (`lines` mode: a dictation starts a new line, the AI's list markers and blank lines are cut so the stored `string[]` is unchanged). Group routes.
+- **Notes for Claude** ("Solve with Claude", admins) and the **ticket text of a ticket without a client** (admins): admin routes.
+- **Bulk email text block** (`bulk-email/rich-text-editor.tsx`): the toolbar gets the same two buttons (lazy `rich-text-ai-tools`). The block is read as Markdown-like text (`rich-text-ai.ts`: `##`/`###`, `- `, `1. `, `**bold**`, `[link](https://…)`) and written back as the builder's own node tree, so the stored format is unchanged. Underline, strike, italic and colours are not sent to the AI; Undo and an appended dictation keep the original tree. Admin routes.
+
+Fields left as they are: one-line names, titles, subjects, codes, emails, URLs and search boxes; the finance work-log note (one line, 500 characters); the meeting transcript (a verbatim record up to 400 000 characters, which the AI limit would cut and a rewrite would falsify); chat composers (already have the tools).
+
 ## Finance (part P6)
 
 Planned: Finance costs by project and event.

@@ -1,4 +1,13 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   BulkPalette,
@@ -10,6 +19,7 @@ import {
 import { Icon } from '@/components/icons';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { withNamespaces } from '@/i18n/namespaces';
 import { cn } from '@/lib/utils';
 import { FieldNote } from './parts';
 import { applyBoldShortcuts, domToNodes, nodesToEditorHtml } from './rich-text';
@@ -24,6 +34,9 @@ import { applyBoldShortcuts, domToNodes, nodesToEditorHtml } from './rich-text';
 
 type Toggle = 'bold' | 'italic' | 'underline' | 'strikeThrough';
 const TOGGLES: Toggle[] = ['bold', 'italic', 'underline', 'strikeThrough'];
+
+// The microphone and the AI button (and the `chat` texts they show) load on their own.
+const AiTools = lazy(withNamespaces(['chat'], () => import('./rich-text-ai-tools')));
 
 const exec = (command: string, value?: string) => {
   if (typeof document.execCommand !== 'function') return;
@@ -196,6 +209,12 @@ export function RichTextEditor({
     read();
   };
 
+  // The AI and voice tools replace the whole text: write the tree into the editor and report it.
+  const setNodes = (nodes: BulkTextNode[]) => {
+    if (box.current) box.current.innerHTML = nodesToEditorHtml(nodes, align);
+    read();
+  };
+
   const linkId = `${id}-link`;
   return (
     <div
@@ -294,6 +313,14 @@ export function RichTextEditor({
             </option>
           ))}
         </select>
+        <Suspense fallback={null}>
+          <span className="ml-auto flex items-center gap-1">
+            <AiTools
+              getNodes={() => (box.current ? domToNodes(box.current) : [])}
+              setNodes={setNodes}
+            />
+          </span>
+        </Suspense>
       </div>
       {link && (
         <div className="flex flex-col gap-2 border-b-2 border-input px-3 py-3">

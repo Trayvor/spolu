@@ -3,8 +3,9 @@ import { useTranslation } from 'react-i18next';
 import { TICKET_LIMITS, type LinkedKnowledge } from '@spolu/shared';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { ADMIN_AI_TARGET } from '@/features/chat/ai-tools/api';
 import { DescriptionField } from '@/features/editor/description-field';
-import { cn } from '@/lib/utils';
+import { PlainTextField } from '@/features/editor/plain-text-field';
 
 /** The ticket's content as the forms edit it: every field a string, '' for "not given". */
 export type ContentDraft = {
@@ -26,10 +27,6 @@ export const EMPTY_CONTENT: ContentDraft = {
   dueDate: '',
   url: '',
 };
-
-/** The input's look for a multi-line field. */
-export const textareaClass =
-  'w-full rounded-md border-2 border-input bg-card px-[18px] py-[13px] text-button font-medium text-foreground transition-colors duration-(--duration-fast) placeholder:text-muted-foreground focus:border-foreground aria-invalid:border-destructive';
 
 const isHttp = (value: string) => {
   try {
@@ -131,17 +128,15 @@ export function ContentFields({
           }}
         />
       ) : (
-        <div className="flex flex-col gap-2.5">
-          <Label htmlFor={id('body')}>{t('tickets.fields.body')}</Label>
-          <textarea
-            id={id('body')}
-            rows={6}
-            value={draft.body}
-            maxLength={TICKET_LIMITS.body}
-            onChange={(e) => set('body')(e.target.value)}
-            className={cn(textareaClass, 'min-h-32 resize-y')}
-          />
-        </div>
+        <PlainTextField
+          id={id('body')}
+          target={ADMIN_AI_TARGET}
+          label={t('tickets.fields.body')}
+          rows={6}
+          value={draft.body}
+          maxLength={TICKET_LIMITS.body}
+          onChange={set('body')}
+        />
       )}
       <div className="grid gap-4 min-[641px]:grid-cols-[auto_1fr]">
         <div className="flex flex-col gap-2.5">

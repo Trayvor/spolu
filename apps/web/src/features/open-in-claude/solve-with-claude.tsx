@@ -11,9 +11,10 @@ import {
 } from '@spolu/shared';
 import { Icon } from '@/components/icons';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
 import { PanelHeader } from '@/components/ui/panel-header';
 import { SheetDialog, SheetDialogTitle } from '@/components/ui/sheet-dialog';
+import { ADMIN_AI_TARGET } from '@/features/chat/ai-tools/api';
+import { PlainTextField } from '@/features/editor/plain-text-field';
 import { fileUrl } from '@/features/files/urls';
 import { useNamespaces } from '@/i18n/namespaces';
 import { apiSend } from '@/lib/api';
@@ -28,9 +29,6 @@ const SparkIcon = () => (
     <path d="M19 15.5c.2 1.6.8 2.3 2.5 2.5-1.7.2-2.3.9-2.5 2.5-.2-1.6-.8-2.3-2.5-2.5 1.7-.2 2.3-.9 2.5-2.5Z" />
   </Icon>
 );
-
-const textareaClass =
-  'min-h-28 w-full resize-y rounded-md border-2 border-input bg-card px-[18px] py-[13px] text-button font-medium text-foreground transition-colors duration-(--duration-fast) placeholder:text-muted-foreground focus:border-foreground';
 
 /**
  * "Vyriešiť s Claude" (Phase 29), admins only (the server answers anyone else 403). The button
@@ -124,17 +122,17 @@ function SolveDialog({ source, onClose }: { source: ClaudeSource; onClose: () =>
             generate.mutate();
           }}
         >
-          <Label htmlFor={`${uid}-notes`}>{t('openInClaude.notesLabel')}</Label>
-          <textarea
-            ref={notesRef}
+          <PlainTextField
             id={`${uid}-notes`}
+            target={ADMIN_AI_TARGET}
+            label={t('openInClaude.notesLabel')}
+            textareaRef={notesRef}
             rows={4}
             value={notes}
             maxLength={CLAUDE_NOTES_MAX}
             placeholder={t('openInClaude.notesPlaceholder')}
-            aria-describedby={`${uid}-notes-hint`}
-            onChange={(e) => setNotes(e.target.value)}
-            className={textareaClass}
+            describedBy={`${uid}-notes-hint`}
+            onChange={setNotes}
           />
           <p id={`${uid}-notes-hint`} className="text-tiny text-muted-foreground">
             {t('openInClaude.notesHint')}

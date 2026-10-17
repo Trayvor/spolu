@@ -21,6 +21,7 @@ import { Toast } from '@/components/ui/toast';
 import { useSession } from '@/features/auth/use-session';
 import { MessageBody } from '@/features/chat/format/render';
 import { DescriptionField } from '@/features/editor/description-field';
+import { PlainTextField } from '@/features/editor/plain-text-field';
 import { fileUrl } from '@/features/files/urls';
 import { formatFileSize } from '@/features/files/format-size';
 import { TasksIcon } from '@/features/task-split/use-message-task-tools';
@@ -277,8 +278,6 @@ function SummaryEditor({
   const [actions, setActions] = useState<MeetingActionItem[]>(summary.actionItems);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(false);
-  const area =
-    'w-full rounded-md border-2 border-input bg-card px-[18px] py-[13px] text-button focus:border-foreground focus:outline-none';
   const setAction = (index: number, patch: Partial<MeetingActionItem>) =>
     setActions((list) => list.map((a, i) => (i === index ? { ...a, ...patch } : a)));
 
@@ -316,16 +315,16 @@ function SummaryEditor({
         label={t('knowledge.meeting.ai.summary')}
         editLabel={t('knowledge.meeting.ai.edit')}
       />
-      <label className="flex flex-col gap-2 text-button font-semibold">
-        {t('knowledge.meeting.ai.decisions')}
-        <textarea
-          value={decisions}
-          rows={3}
-          aria-describedby={`${uid}-lines`}
-          onChange={(event) => setDecisions(event.target.value)}
-          className={area}
-        />
-      </label>
+      <PlainTextField
+        id={`${uid}-decisions`}
+        target={{ kind: 'group', id: groupId }}
+        label={t('knowledge.meeting.ai.decisions')}
+        value={decisions}
+        onChange={setDecisions}
+        rows={3}
+        lines
+        describedBy={`${uid}-lines`}
+      />
       <fieldset className="flex flex-col gap-2">
         <legend className="mb-2 text-button font-semibold">
           {t('knowledge.meeting.ai.actionItems')}
@@ -380,16 +379,16 @@ function SummaryEditor({
           </Button>
         )}
       </fieldset>
-      <label className="flex flex-col gap-2 text-button font-semibold">
-        {t('knowledge.meeting.ai.openQuestions')}
-        <textarea
-          value={questions}
-          rows={3}
-          aria-describedby={`${uid}-lines`}
-          onChange={(event) => setQuestions(event.target.value)}
-          className={area}
-        />
-      </label>
+      <PlainTextField
+        id={`${uid}-questions`}
+        target={{ kind: 'group', id: groupId }}
+        label={t('knowledge.meeting.ai.openQuestions')}
+        value={questions}
+        onChange={setQuestions}
+        rows={3}
+        lines
+        describedBy={`${uid}-lines`}
+      />
       <p id={`${uid}-lines`} className="text-tiny text-muted-foreground">
         {t('knowledge.meeting.ai.oneLine')}
       </p>
