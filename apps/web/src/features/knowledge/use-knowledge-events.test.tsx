@@ -105,6 +105,23 @@ describe('useKnowledgeEvents', () => {
     expect(cachedIds({})).toEqual(['k2', 'k1']);
   });
 
+  it('an item event during the first load refetches, so the stale response does not hide it', async () => {
+    let release: () => void = () => {};
+    const gate = new Promise<void>((r) => (release = r));
+    const stale = new Response(JSON.stringify({ items: [summary('k1')], nextCursor: null }));
+    const fresh = JSON.stringify({ items: [summary('k2'), summary('k1')], nextCursor: null });
+    fetchMock.mockImplementationOnce(async () => {
+      await gate;
+      return stale;
+    });
+    fetchMock.mockImplementation(async () => new Response(fresh));
+    render(tree({}));
+    act(() => fake.fire(KnowledgeEvents.item, { item: summary('k2') }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+    release();
+    await waitFor(() => expect(cachedIds({})).toEqual(['k2', 'k1']));
+  });
+
   it('a client removes an item that became admins-only instead of showing it', async () => {
     await mount({}, undefined, false);
     act(() => fake.fire(KnowledgeEvents.item, { item: summary('k1', { visibility: 'admins' }) }));

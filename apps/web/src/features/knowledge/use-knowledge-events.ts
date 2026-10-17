@@ -61,8 +61,19 @@ export function useKnowledgeEvents(
     const socket = getSocket();
     const types = typeKey ? (typeKey.split(',') as KnowledgeType[]) : [];
     const key = groupKnowledgeQuery(groupId, { types, q, folder, chats }).queryKey;
-    const update = (apply: (data: Data) => Data) =>
+    // An event that finds no data yet (the first page is still loading) cannot be applied, and
+    // the response in flight may have been read before the write: refetch so it is not lost.
+    const update = (apply: (data: Data) => Data) => {
+      if (queryClient.getQueryData<Data>(key) === undefined) {
+        // A first fetch in flight is not restarted by `invalidateQueries` (it has no data to
+        // cancel for), so cancel it first.
+        void queryClient
+          .cancelQueries({ queryKey: key, exact: true })
+          .then(() => queryClient.invalidateQueries({ queryKey: key, exact: true }));
+        return;
+      }
       queryClient.setQueryData<Data>(key, (data) => data && apply(data));
+    };
 
     const onItem = ({ item }: KnowledgeItemEvent) => {
       if (item.groupId !== groupId) return;

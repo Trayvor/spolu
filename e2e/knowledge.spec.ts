@@ -100,8 +100,26 @@ test.describe.serial('knowledge base', () => {
 
   test("the client's link item appears live for the admin, whose link opens it in a new tab", async () => {
     const admin = await adminContext.newPage();
+    // An event is only delivered once the socket has joined the group room, and the room join is
+    // not visible in the page: watch for its acknowledgement frame (`43<id>[{"ok":true}]`, the
+    // only acknowledged emit the page sends), and for the first page of the list.
+    let joined = false;
+    admin.on('websocket', (ws) =>
+      ws.on('framereceived', (frame) => {
+        if (typeof frame.payload === 'string' && /^43\d*\[\{"ok":true\}\]$/.test(frame.payload))
+          joined = true;
+      }),
+    );
+    const listLoaded = admin.waitForResponse(
+      (res) =>
+        res.url().includes(`/api/groups/${groupId}/knowledge`) &&
+        res.request().method() === 'GET' &&
+        res.ok(),
+    );
     await admin.goto(`/groups/${groupId}/knowledge`);
     await expect(admin.getByRole('heading', { name: 'Znalosti', exact: true })).toBeVisible();
+    await listLoaded;
+    await expect.poll(() => joined, { message: 'the socket joined the group room' }).toBe(true);
 
     const title = `Portál výzvy ${stamp}`;
     const url = `https://opvai.sk/vyzvy/e2e-${stamp}`;
