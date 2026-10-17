@@ -26,7 +26,8 @@ export const PUSH_JOB = 'notifications.push';
  * group (disabled; none; push without a device; a kind with no group) gets the event already
  * delivered: the delivery decision would be "nothing" anyway, and
  * most recipients of a message (every admin is in every group) are like this, so the worker only
- * touches the events that may send something. Returns the recipients an event was recorded for.
+ * touches the events that may send something. Returns the ids of the events recorded (one per
+ * recipient an event was recorded for), for `requestDelivery`.
  */
 export async function recordNotifications(
   tx: Db,
@@ -55,7 +56,7 @@ export async function recordNotifications(
           and exists (select 1 from push_subscriptions s where s.user_id = u.id) then null
         else now()
       end`;
-  const rows = await tx.execute<{ user_id: string }>(sql`
+  const rows = await tx.execute<{ id: string }>(sql`
     insert into notification_events
       (id, user_id, group_id, kind, payload, dedupe_key, delivered_at)
     select v.id, v.user_id, ${input.groupId}::text, ${input.kind}::text,
@@ -64,23 +65,23 @@ export async function recordNotifications(
     from (values ${values}) as v(id, user_id)
     join "user" u on u.id = v.user_id
     on conflict do nothing
-    returning user_id
+    returning id
   `);
-  return [...rows].map((r) => r.user_id);
+  return [...rows].map((r) => r.id);
 }
 
 /**
- * Asks for delivery of the users' pending events; call it after the events committed. Never
- * throws: a failed send is logged and the one-minute sweep delivers the events instead.
- * The deliver queue keeps one job waiting, so a request while one waits is dropped and the
- * waiting job delivers these events too. `userIds` go in the data only for the tests' scoped
- * delivery (see `notificationsJobHandlers`).
+ * Asks for delivery of the recorded events (`recordNotifications`' ids); call it after the
+ * events committed. Never throws: a failed send is logged and the one-minute sweep delivers the
+ * events instead. The deliver queue keeps one job waiting, so a request while one waits is
+ * dropped and the waiting job delivers these events too. `eventIds` go in the data only for the
+ * tests' scoped delivery (see `notificationsJobHandlers`); production delivers every pending event.
  */
-export async function requestDelivery(jobs: JobQueue, userIds: string[]): Promise<void> {
-  const unique = [...new Set(userIds)];
+export async function requestDelivery(jobs: JobQueue, eventIds: string[]): Promise<void> {
+  const unique = [...new Set(eventIds)];
   if (unique.length === 0) return;
   try {
-    await jobs.send(DELIVER_JOB, { userIds: unique });
+    await jobs.send(DELIVER_JOB, { eventIds: unique });
   } catch (error) {
     console.error('notifications: delivery request failed (the sweep retries)', error);
   }

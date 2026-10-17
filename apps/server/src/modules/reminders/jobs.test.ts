@@ -216,7 +216,7 @@ describe('reminders.fire', () => {
           sql`update reminder_sets set knowledge_item_id = null where id = ${s.setId}`,
         );
         const batch = await fireBatch(tx, new Date(), 200, [s.setId]);
-        expect(batch).toMatchObject({ count: 1, recipients: [] });
+        expect(batch).toMatchObject({ count: 1, eventIds: [] });
         const [time] = await tx.select().from(reminderTimes).where(eq(reminderTimes.id, s.timeId));
         expect(time!.firedAt).not.toBeNull();
         throw rollback;

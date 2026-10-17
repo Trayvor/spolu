@@ -130,37 +130,29 @@ describe('deliverPending', () => {
     const s = await setup();
     const admin2 = await newAdmin('Boris');
     const endpoint = await subscribe(admin2.id);
-    // Admins are people of every group, so another test file's inline delivery may deliver this
-    // admin's events (pushing to its own fake) before this test does, and a foreign @all may push
-    // too. So: no push of this group may reach this fake for the plain message, and the mention
-    // marks the subscription's success whichever process sent it.
-    const mine = () =>
-      sentTo(endpoint).filter((x) => x.payload.url.startsWith(`/groups/${s.group.id}/`));
-    const delivered = async (messageId: string) => {
-      await deliverPending(deps, { userIds: [admin2.id] });
-      await vi.waitFor(async () => {
-        const rows = (await eventsOf(admin2.id)).filter(
-          (r) => (r.payload as { messageId?: string }).messageId === messageId,
-        );
-        expect(rows.length).toBeGreaterThan(0);
-        expect(rows.every((r) => r.deliveredAt !== null)).toBe(true);
-      });
+    // Admins are people of every group, so other test files record events for this admin too.
+    // Delivering only this message's events (by id) keeps the check to this test's own events.
+    const deliver = async (messageId: string) => {
+      const ids = (await eventsOf(admin2.id))
+        .filter((r) => (r.payload as { messageId?: string }).messageId === messageId)
+        .map((r) => r.id);
+      expect(ids.length).toBeGreaterThan(0);
+      expect(await deliverPending(deps, { eventIds: ids })).toBe(ids.length);
     };
 
     const plain = await send(s.channel, s.client);
-    await delivered(plain.id);
-    expect(mine()).toHaveLength(0);
+    await deliver(plain.id);
+    expect(sentTo(endpoint)).toEqual([]);
 
     // Only clients and managers can be mentioned; keep the default mode the test is about.
     await addManager(deps.db, s.group.id, admin2.id);
     await setGroupMode(deps.db, admin2.id, s.group.id, 'mentions');
     const mention = await send(s.channel, s.client, { body: `Hi ${mentionToken(admin2.id)}` });
-    await delivered(mention.id);
-    await vi.waitFor(async () =>
-      expect((await getSubscriptionByEndpoint(endpoint))!.lastSuccessAt).toBeInstanceOf(Date),
-    );
-    expect(mine().length).toBeLessThanOrEqual(1);
-    for (const x of mine()) expect(x.payload.url).toContain(`message=${mention.id}`);
+    await deliver(mention.id);
+    const sent = sentTo(endpoint);
+    expect(sent).toHaveLength(1);
+    expect(sent[0]!.payload.url).toContain(`message=${mention.id}`);
+    expect((await getSubscriptionByEndpoint(endpoint))!.lastSuccessAt).toBeInstanceOf(Date);
   });
 
   it('one push per message when mention and message coincide', async () => {
@@ -236,16 +228,40 @@ describe('deliverPending', () => {
     expect(sentTo(s.endpoint)).toHaveLength(1);
   });
 
+  it('a scoped deliver job delivers only the events it names, not other pending events of the same user', async () => {
+    // Every admin is a person of every group, so another test file's message records events
+    // for this file's admins too. Scoping by event id keeps each file's delivery to its own events.
+    const s = await setup();
+    await send(s.channel, s.admin, { body: 'mine' });
+    const [mine] = await eventsOf(s.client.id);
+    const foreign = randomUUID();
+    await deps.db.insert(notificationEvents).values({
+      id: foreign,
+      userId: s.client.id,
+      groupId: s.group.id,
+      kind: 'chat.message',
+      payload: { channelId: s.channel.id, groupId: s.group.id, authorName: 'X', excerpt: 'x' },
+    });
+    const handlers = notificationsJobHandlers(deps, { scopedDelivery: true });
+    await handlers[DELIVER_JOB]!({ eventIds: [mine!.id] });
+    const rows = new Map((await eventsOf(s.client.id)).map((r) => [r.id, r]));
+    expect(rows.get(mine!.id)!.deliveredAt).toBeInstanceOf(Date);
+    expect(rows.get(foreign)!.deliveredAt).toBeNull();
+    expect(sentTo(s.endpoint).map((x) => x.payload.body)).toEqual(['Admin: mine']);
+    expect(await deliverPending(deps, { eventIds: [foreign] })).toBe(1);
+  });
+
   it('a deliver job that runs before the queue is ready still sends its push', async () => {
     const s = await setup();
     await send(s.channel, s.admin);
+    const eventIds = (await eventsOf(s.client.id)).map((r) => r.id);
     // As in createDeps: pg-boss may run a job before startJobs has returned the queue.
     const forward = createDeferredQueue();
     const handlers = notificationsJobHandlers(
       { ...deps, jobs: forward.queue },
       { scopedDelivery: true },
     );
-    const running = handlers[DELIVER_JOB]!({ userIds: [s.client.id] });
+    const running = handlers[DELIVER_JOB]!({ eventIds });
     await vi.waitFor(async () =>
       expect((await eventsOf(s.client.id))[0]!.deliveredAt).toBeInstanceOf(Date),
     );

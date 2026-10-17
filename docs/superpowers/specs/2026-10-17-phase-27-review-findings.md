@@ -245,6 +245,7 @@ Impact: **high** = a user waits seconds, or the server does far more work than n
 - Another agent removed a similar wait in the every-admin case today.
 - Pattern: tests that wait on deliveries to "every admin of the shared test DB", or on wall time.
 - Proposed: assert the recorded events and pushes of the test's own users only, like `scopedDelivery`, and never a count of all admins.
+- **Done** (PR #T3PR, branch `test/deterministic-deliveries`). Cause: delivery in tests is inline, so a push is in the fake before the request returns. But the tests' scoped delivery was scoped by user. Every admin is a person of every group, so another test file's message recorded events for this file's admins, and that file's delivery locked and delivered this file's pending admin events (`FOR UPDATE SKIP LOCKED`), pushing to *its* fake: the push never arrived here, and the 10 s wait timed out. Fix: `recordNotifications` returns the recorded event ids, `requestDelivery` sends `{ eventIds }`, and the tests' scoped deliver job delivers exactly those events (a job without ids delivers nothing). Then the waits went: `tickets/notify.test.ts` checks every push (managers and the every-admin `ticket.unassigned` case again) with no `vi.waitFor`; `notifications/deliver.test.ts` (admin default mode) and `tickets-contract.test.ts` deliver by event id and assert exact pushes, not "whichever process sent it". New test: a scoped job delivers only the events it names. Production delivery is unchanged; it ignores the job data. Left alone: `tickets-contract.test.ts`'s digest case still counts digests by user, so a foreign `ticket.unassigned` arriving in the same instant could add a second email (rare; not a timing wait). The other `vi.waitFor` calls wait on real pg-boss workers, sockets or SMTP, not on the size of the shared database.
 
 **T4. The EXPLAIN suite takes 14 to 62 s.** Impact low-med, effort S, risk low. One seeding takes about 6 s here. The rest is retries: the test retries twice on a slow timing and reseeds each time. On GitHub it takes 60 s. With JIT off (S2), the heaviest board statement no longer risks the 50 ms bound. Proposed: add the `clientIds: null` board case and a few thousand groups to the volume, once S2 is in.
 
@@ -279,11 +280,12 @@ Each batch is one branch and one PR from fresh `origin/main`, independent of the
 | 7 | `chore/dead-code` | D1, D2 | low | low | PR #52: 6 symbols, 2 keys in nine languages, 4 dead English plural forms |
 | 8 | `perf/docker-runtime-slim` | K1 | low-med | low | PR #57: image 467 → 380 MB (94.7 → 82.8 MB compressed), source-only rebuild 26–31 → 17 s |
 | 9 | `ci/parallel-static-checks` | T5 | med (CI) | low-med | PR #56: lint, format check and typecheck in parallel, 27–55 → 18–28 s |
+| 10 | `test/deterministic-deliveries` | T3 | med (CI) | low | PR #T3PR: the tests' delivery is scoped by event id; push checks no longer wait |
 
 Proposed, not done (owner decision or later work):
 - **Server:** S4, S5, S6, S7 (in progress), S8, S9, S10, S11.
 - **Web:** W2, W5, W6, W7, W8.
-- **Tests and CI:** T2, T3 (in progress), T4.
+- **Tests and CI:** T2, T4.
 - **Docker:** K2.
 
 The next server batch should be S7 (job N+1s, test-first). The next web batch should be W5 together with S4.

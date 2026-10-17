@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { and, eq, inArray, sql } from 'drizzle-orm';
 import type { GroupChannel } from '@spolu/shared';
 import { buildTestApp } from '../../../test/test-app.js';
@@ -95,7 +95,8 @@ describe('ticket notifications (Phase 21.6)', () => {
           sql`${notificationEvents.payload}->>'ticketId' = ${ticketId}`,
         ),
       );
-  // Pushes go out after the events are written, so a positive check waits for them.
+  // Delivery runs inline before the request returns, scoped to the events this file recorded
+  // (`scopedDelivery`): no other test file delivers them, so pushes are checked without waiting.
   const pushesTo = (endpoint: string) =>
     test.push.sent.filter((s) => s.endpoint === endpoint).map((s) => s.payload);
 
@@ -110,16 +111,14 @@ describe('ticket notifications (Phase 21.6)', () => {
       groupId: g.id,
       payload: { ticketId: t.id, number: t.number, subject: 'Login fails' },
     });
-    await vi.waitFor(
-      () =>
-        expect(pushesTo(m.endpoint)).toContainEqual({
-          title: `Nový tiket #${t.number} · Firma`,
-          body: 'Login fails',
-          url: `/tickets/${t.id}`,
-          tag: `ticket:${t.id}`,
-        }),
-      { timeout: 10_000 },
-    );
+    expect(pushesTo(m.endpoint)).toEqual([
+      {
+        title: `Nový tiket #${t.number} · Firma`,
+        body: 'Login fails',
+        url: `/tickets/${t.id}`,
+        tag: `ticket:${t.id}`,
+      },
+    ]);
   });
 
   it('ticket.unassigned reaches every admin with groupId null', async () => {
@@ -130,9 +129,11 @@ describe('ticket notifications (Phase 21.6)', () => {
       ['ticket.unassigned', null],
       ['ticket.unassigned', null],
     ]);
-    // No push check here: the push goes to every active admin of the shared test database, which
-    // in a full parallel run is hundreds, so its timing is not this test's to bound. The routing
-    // is asserted above; the push text is covered by push-content.test.ts.
+    // Every active admin of the shared database gets this event; this file delivers only its own
+    // events, so each of ours gets exactly one push for this ticket.
+    for (const a of [a1, a2]) {
+      expect(pushesTo(a.endpoint).filter((p) => p.url === `/tickets/${t.id}`)).toHaveLength(1);
+    }
   });
 
   it('a status change notifies the followers but not the actor', async () => {
@@ -149,13 +150,7 @@ describe('ticket notifications (Phase 21.6)', () => {
     );
     expect(events.map((e) => e.userId).sort()).toEqual([z.id, m.id].sort());
     expect(events[0]!.payload).toMatchObject({ status: 'in_progress', number: t.number });
-    await vi.waitFor(
-      () =>
-        expect(pushesTo(z.endpoint).map((p) => p.title)).toContain(
-          `#${t.number} je teraz V riešení`,
-        ),
-      { timeout: 10_000 },
-    );
+    expect(pushesTo(z.endpoint).map((p) => p.title)).toContain(`#${t.number} je teraz V riešení`);
 
     await call('PATCH', `/api/tickets/${t.id}`, actor.cookie, { subject: 'Nové' });
     const updated = (await eventsOf(t.id, [z.id, actor.id])).filter(
@@ -186,13 +181,7 @@ describe('ticket notifications (Phase 21.6)', () => {
     await notifyTicketChange(test.deps, { kind: 'tasks', ticket: row, actorId: a.id, count: 2 });
     const [event] = (await eventsOf(t.id, [z.id])).filter((e) => e.kind === 'ticket.tasks');
     expect(event?.payload).toMatchObject({ count: 2 });
-    await vi.waitFor(
-      () =>
-        expect(pushesTo(z.endpoint).map((p) => p.title)).toContain(
-          `#${t.number} rozdelený na 2 úlohy`,
-        ),
-      { timeout: 10_000 },
-    );
+    expect(pushesTo(z.endpoint).map((p) => p.title)).toContain(`#${t.number} rozdelený na 2 úlohy`);
   });
 
   it('a ziadatel follower gets ticket.message even with the group mode Off', async () => {
@@ -205,16 +194,12 @@ describe('ticket notifications (Phase 21.6)', () => {
     expect((await send(chat.id, a.cookie, 'Pozrieme sa')).statusCode).toBe(201);
     const [event] = (await eventsOf(t.id, [z.id, a.id])).filter((e) => e.kind === 'ticket.message');
     expect(event).toMatchObject({ userId: z.id, groupId: g.id });
-    await vi.waitFor(
-      () =>
-        expect(pushesTo(z.endpoint)).toContainEqual({
-          title: `#${t.number} Login fails`,
-          body: 'Ad Min: Pozrieme sa',
-          url: `/tickets/${t.id}`,
-          tag: `ticket:${t.id}`,
-        }),
-      { timeout: 10_000 },
-    );
+    expect(pushesTo(z.endpoint)).toContainEqual({
+      title: `#${t.number} Login fails`,
+      body: 'Ad Min: Pozrieme sa',
+      url: `/tickets/${t.id}`,
+      tag: `ticket:${t.id}`,
+    });
   });
 
   it('a ziadatel gets nothing from the group chat (membership counts for tickets only)', async () => {
@@ -226,16 +211,22 @@ describe('ticket notifications (Phase 21.6)', () => {
     }>();
     expect((await send(groupChat.id, a.cookie, 'Ahoj všetci')).statusCode).toBe(201);
     // Even an event recorded for them by mistake is not delivered: they are no group person.
+    const eventId = randomUUID();
     await db()
       .insert(notificationEvents)
       .values({
-        id: randomUUID(),
+        id: eventId,
         userId: z.id,
         groupId: g.id,
         kind: 'chat.message',
         payload: { channelId: groupChat.id, groupId: g.id, authorName: 'A', excerpt: 'x' },
       });
-    await test.deps.jobs.send(DELIVER_JOB, { userIds: [z.id] });
+    await test.deps.jobs.send(DELIVER_JOB, { eventIds: [eventId] });
+    const [row] = await db()
+      .select()
+      .from(notificationEvents)
+      .where(eq(notificationEvents.id, eventId));
+    expect(row!.deliveredAt).toBeInstanceOf(Date);
     expect(pushesTo(z.endpoint)).toEqual([]);
   });
 
@@ -256,20 +247,16 @@ describe('ticket notifications (Phase 21.6)', () => {
         [z.id, 'ticket.message'],
       ].sort(),
     );
-    await vi.waitFor(
-      () =>
-        expect(pushesTo(c.endpoint).filter((p) => !p.title.startsWith('Nový tiket'))).toEqual([
-          {
-            title: `#${t.number} Login fails`,
-            body: 'Ad Min: @Klient @Jana pozrite',
-            url: `/tickets/${t.id}`,
-            tag: `ticket:${t.id}`,
-          },
-        ]),
-      { timeout: 10_000 },
-    );
+    expect(pushesTo(c.endpoint).filter((p) => !p.title.startsWith('Nový tiket'))).toEqual([
+      {
+        title: `#${t.number} Login fails`,
+        body: 'Ad Min: @Klient @Jana pozrite',
+        url: `/tickets/${t.id}`,
+        tag: `ticket:${t.id}`,
+      },
+    ]);
     // The follower who is also named gets one push for the message.
-    await vi.waitFor(() => expect(pushesTo(z.endpoint)).toHaveLength(1), { timeout: 10_000 });
+    expect(pushesTo(z.endpoint)).toHaveLength(1);
   });
 
   it('@all in a ticket chat reaches its followers only', async () => {
