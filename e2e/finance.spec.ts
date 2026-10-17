@@ -289,6 +289,49 @@ test.describe('finance system-wide page and rankings (part D)', () => {
     await expect(contracts.getByTestId('contract-row').first()).toContainText(paidName);
   });
 
+  // Follow-up of part D: "Pridať čas" on `/finance` with its client picker, and one page period
+  // that drives every card.
+  test('adds time for a picked client and the page period drives every card', async ({ page }) => {
+    const stamp = Date.now();
+    const me = (await (await page.request.get('/api/me')).json()) as { id: string; name: string };
+    const name = `E2E Čas ${stamp}`;
+    const res = await page.request.post('/api/groups', {
+      data: { name, egrantUrl: `https://e2e-fin-t-${stamp}.egrant.sk` },
+    });
+    expect(res.status()).toBe(201);
+    const groupId = ((await res.json()) as { id: string }).id;
+
+    await page.goto('/');
+    await page.evaluate(
+      ([key, value]) => localStorage.setItem(key!, value!),
+      [`spolu.filters.${me.id}.finance.clients`, JSON.stringify({ clients: groupId })],
+    );
+    await page.goto('/finance');
+    const log = page.getByRole('region', { name: 'Výkaz práce' });
+    await expect(log.getByText('V tomto období zatiaľ nie je zapísaný čas.')).toBeVisible();
+
+    await log.getByRole('button', { name: 'Pridať čas' }).click();
+    const dialog = page.getByTestId('finance-entry');
+    await dialog.getByLabel('Klient').selectOption({ label: name });
+    await dialog.getByLabel('Admin').selectOption({ label: me.name });
+    await dialog.getByLabel('Strávený čas').fill('2h');
+    await dialog.getByRole('button', { name: 'Uložiť' }).click();
+    await expect(dialog).toBeHidden();
+    const entry = log.getByTestId('work-log-entry').filter({ hasText: me.name });
+    await expect(entry).toContainText(name);
+    await expect(entry).toContainText('2 h');
+    const hoursCard = page.getByRole('region', { name: 'Klienti podľa hodín' });
+    await expect(hoursCard.getByTestId('ranking-row').first()).toContainText(name);
+
+    // Last year: the entry of today is in no card.
+    await page.getByLabel('Obdobie všetkých kariet').selectOption({ label: 'Minulý rok' });
+    await expect(log.getByText('V tomto období zatiaľ nie je zapísaný čas.')).toBeVisible();
+    await expect(hoursCard.getByText('V tomto období nebol zapísaný žiadny čas.')).toBeVisible();
+    // Remembered: a reload keeps last year.
+    await page.reload();
+    await expect(page.getByLabel('Obdobie všetkých kariet')).toHaveValue('lastYear');
+  });
+
   test('on a phone the page adds the Rankings segment', async ({ browser }) => {
     const context = await browser.newContext({
       storageState: 'e2e/.auth/superadmin.json',

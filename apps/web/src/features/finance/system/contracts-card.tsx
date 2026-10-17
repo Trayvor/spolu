@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { ListSkeleton } from '@/components/ui/skeleton';
 import type { FinanceView } from '../api';
+import type { MonthRange } from '../period';
 import { formatPeriod, hasEnded, isEndingSoon, today as todayOf } from '../documents/format';
 import { FinanceCard, FinanceCardEmpty } from '../finance-card';
 import { ClientMark } from './client-mark';
@@ -22,7 +23,14 @@ const ORDERS = Object.keys(CONTRACT_ORDERS) as ContractOrder[];
  * document and note of those clients too. A row opens the item in its client's Finance tab.
  * From 641 px a table; on phones each row stacks into two lines.
  */
-export function ContractsCard({ view }: { view: FinanceView }) {
+export function ContractsCard({
+  view,
+  range = null,
+}: {
+  view: FinanceView;
+  /** The page period: the contracts running in it (null: all); a search ignores it. */
+  range?: MonthRange | null;
+}) {
   const { t, i18n } = useTranslation();
   const titleId = useId();
   const searchId = useId();
@@ -30,7 +38,10 @@ export function ContractsCard({ view }: { view: FinanceView }) {
   const [order, setOrder] = useState<ContractOrder>('start');
   const [search, setSearch] = useState('');
   const q = useDeferredValue(search.trim());
-  const query = useInfiniteQuery(contractsQuery(view, order, q.length >= 2 ? q : ''));
+  const searching = q.length >= 2;
+  const query = useInfiniteQuery(
+    contractsQuery(view, order, searching ? q : '', searching ? null : range),
+  );
   const rows = query.data?.pages.flatMap((page) => page.items) ?? [];
   const today = todayOf();
   const k = (key: string, options?: Record<string, unknown>) =>
@@ -55,7 +66,11 @@ export function ContractsCard({ view }: { view: FinanceView }) {
       </div>
     );
   } else if (rows.length === 0) {
-    body = <FinanceCardEmpty>{q.length >= 2 ? k('noMatch', { q }) : k('empty')}</FinanceCardEmpty>;
+    body = (
+      <FinanceCardEmpty>
+        {q.length >= 2 ? k('noMatch', { q }) : range ? k('emptyPeriod') : k('empty')}
+      </FinanceCardEmpty>
+    );
   } else {
     body = (
       <>

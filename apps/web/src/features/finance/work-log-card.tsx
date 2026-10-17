@@ -21,7 +21,7 @@ import { FinanceCard, FinanceCardEmpty } from './finance-card';
 import { useFinanceFormat } from './format';
 import { fetchWorkLogPage, useDeleteEntry, useUpdateEntry, workLogKey } from './log-api';
 import { WORK_LOG_PERIODS } from './period';
-import { PeriodSelect, usePeriod } from './period-select';
+import { PeriodSelect, usePeriod, type PeriodState } from './period-select';
 import { chronology, type LogItem } from './work-log-groups';
 
 const EntryDialog = lazy(() =>
@@ -36,10 +36,18 @@ const RatesDialog = lazy(() => import('./rates-dialog').then((m) => ({ default: 
  * starts with its full totals. "Add time" (a manual entry) and "Hourly rates" open their dialogs;
  * each entry has a menu to edit, reset to 0 or delete. One client (`group`) or many (`all`, D).
  */
-export function WorkLogCard({ view }: { view: FinanceView }) {
+export function WorkLogCard({
+  view,
+  period: pagePeriod,
+}: {
+  view: FinanceView;
+  /** `/finance`'s page period, which replaces the card's own filter. */
+  period?: PeriodState;
+}) {
   const { t } = useTranslation();
   const titleId = useId();
-  const period = usePeriod('finance.workLog.period', WORK_LOG_PERIODS);
+  const ownPeriod = usePeriod('finance.workLog.period', WORK_LOG_PERIODS);
+  const period = pagePeriod ?? ownPeriod;
   const range = period.range;
   const query = useInfiniteQuery({
     queryKey: workLogKey(view, range),
@@ -156,16 +164,14 @@ export function WorkLogCard({ view }: { view: FinanceView }) {
           <Button variant="secondary" size="sm" onClick={() => setDialog({ kind: 'rates' })}>
             {t('financeLog.rates')}
           </Button>
-          {groupId && (
-            <Button size="sm" onClick={() => setDialog({ kind: 'add' })}>
-              {t('financeLog.addTime')}
-            </Button>
-          )}
+          <Button size="sm" onClick={() => setDialog({ kind: 'add' })}>
+            {t('financeLog.addTime')}
+          </Button>
         </>
       }
     >
       <div className="flex flex-col gap-3 border-b-2 border-border pb-3">
-        <PeriodSelect state={period} />
+        {!pagePeriod && <PeriodSelect state={period} />}
         {summary && <Summary summary={summary} />}
       </div>
       <div
@@ -177,16 +183,15 @@ export function WorkLogCard({ view }: { view: FinanceView }) {
       </div>
       <Suspense fallback={null}>
         {dialog?.kind === 'rates' && <RatesDialog view={view} onClose={() => setDialog(null)} />}
-        {dialog?.kind === 'add' && groupId && (
-          <EntryDialog view={view} groupId={groupId} onClose={() => setDialog(null)} />
-        )}
-        {dialog?.kind === 'edit' && (
+        {dialog?.kind === 'add' && (
           <EntryDialog
             view={view}
-            groupId={dialog.entry.groupId ?? ''}
-            entry={dialog.entry}
+            {...(groupId ? { groupId } : {})}
             onClose={() => setDialog(null)}
           />
+        )}
+        {dialog?.kind === 'edit' && (
+          <EntryDialog view={view} entry={dialog.entry} onClose={() => setDialog(null)} />
         )}
       </Suspense>
     </FinanceCard>

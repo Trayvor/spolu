@@ -13,7 +13,7 @@ import {
 import type { AppDeps } from '../../deps.js';
 import { dataMonthRange, overview } from './aggregates.js';
 import { InvalidCursorError, listContracts } from './documents.js';
-import { hoursRanking, paidRanking, RankingCursorError } from './rankings.js';
+import { hoursRanking, paidRange, paidRanking, RankingCursorError } from './rankings.js';
 import { monthsOf, scopeOfClients } from './scope.js';
 import { WorkLogCursorError, workLogPage } from './work-log.js';
 
@@ -40,8 +40,8 @@ function cursorError(reply: FastifyReply, error: unknown): FastifyReply {
  * reuse parts B and C: `overview`, `workLogPage`, `listContracts` with a `groups` or `all` scope.
  *   GET /api/finance/overview?clients=&from=&to=
  *   GET /api/finance/work-log?clients=&from=&to=&before=
- *   GET /api/finance/contracts?clients=&sort=&dir=&q=&after=
- *   GET /api/finance/rankings/paid?year=&month=&currency=&clients=&after=
+ *   GET /api/finance/contracts?clients=&sort=&dir=&q=&from=&to=&after=
+ *   GET /api/finance/rankings/paid?from=&to=&currency=&clients=&after= (or year=&month=)
  *   GET /api/finance/rankings/hours?from=&to=&admin=&sort=&clients=&after=
  */
 export const financeSystemRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (
@@ -79,11 +79,12 @@ export const financeSystemRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async 
   app.get('/finance/contracts', async (request, reply) => {
     const query = ContractsQuerySchema.safeParse(request.query);
     if (!query.success) return invalidFilter(reply);
-    const { clients, sort, dir, q, after } = query.data;
+    const { clients, sort, dir, q, after, from, to } = query.data;
     try {
-      // Without a search only contracts; a search covers every finance document and note too.
+      // Without a search only contracts (of the page period, when one is given); a search
+      // covers every finance document and note too, whatever the period.
       return await listContracts(db, scopeOfClients(clients), {
-        ...(q ? { q } : { type: 'contract' }),
+        ...(q ? { q } : { type: 'contract', ...(from && to ? { period: { from, to } } : {}) }),
         sort,
         dir,
         ...(after ? { after } : {}),
@@ -97,11 +98,16 @@ export const financeSystemRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async 
   app.get('/finance/rankings/paid', async (request, reply) => {
     const query = PaidRankingQuerySchema.safeParse(request.query);
     if (!query.success) return invalidFilter(reply);
-    const { clients, year, month, currency, after } = query.data;
+    const { clients, from, to, year, month, currency, after } = query.data;
+    const range =
+      year !== undefined
+        ? paidRange({ year, ...(month ? { month } : {}) })
+        : from && to
+          ? { from, to }
+          : null;
     try {
       return await paidRanking(db, scopeOfClients(clients), {
-        year,
-        ...(month ? { month } : {}),
+        range,
         currency,
         ...(after ? { after } : {}),
       });
@@ -114,10 +120,11 @@ export const financeSystemRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async 
     const query = HoursRankingQuerySchema.safeParse(request.query);
     if (!query.success) return invalidFilter(reply);
     const { clients, from, to, admin, sort, after } = query.data;
-    if (monthsOf({ from, to }).length > OVERVIEW_MAX_MONTHS) return invalidFilter(reply);
+    const range = from && to ? { from, to } : null;
+    if (range && monthsOf(range).length > OVERVIEW_MAX_MONTHS) return invalidFilter(reply);
     try {
       return await hoursRanking(db, scopeOfClients(clients), {
-        range: { from, to },
+        range,
         sort,
         ...(admin ? { admin } : {}),
         ...(after ? { after } : {}),

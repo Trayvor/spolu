@@ -3,7 +3,7 @@ import type { Month } from '@spolu/shared';
 /**
  * The finance cards' period filters (spec §6.1, decision 18): presets that turn into an
  * inclusive Bratislava month range, `null` for all time. The overview opens on the last 12 and
- * the next 12 months, the work log on all time.
+ * the next 12 months, the work log on all time; `/finance` has one period for every card.
  */
 
 export type MonthRange = { from: Month; to: Month };
@@ -15,6 +15,16 @@ export const WORK_LOG_PERIODS = [
   'lastMonth',
   'thisYear',
   'lastYear',
+  'custom',
+] as const;
+/** `/finance`'s one period for every card (this year first, the rankings' old default). */
+export const PAGE_PERIODS = [
+  'thisYear',
+  'lastYear',
+  'thisMonth',
+  'lastMonth',
+  'next12',
+  'allTime',
   'custom',
 ] as const;
 export type Period = (typeof OVERVIEW_PERIODS)[number] | (typeof WORK_LOG_PERIODS)[number];

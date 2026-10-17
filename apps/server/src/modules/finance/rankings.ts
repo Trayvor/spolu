@@ -73,14 +73,13 @@ function rankedPage(per: SQL, after: Cursor | null, limit: number): SQL {
 }
 
 export type PaidRankingFilter = {
-  year: number;
-  /** 1–12; absent: the whole year. */
-  month?: number;
+  /** The page period's months; null: all time (every contract started up to today). */
+  range: MonthRange | null;
   currency: Currency;
   after?: string;
 };
 
-/** The year's (or month's) months. */
+/** The year's (or month's) months (the route's older `year=&month=` form). */
 export function paidRange(filter: { year: number; month?: number }): MonthRange {
   const y = String(filter.year);
   if (filter.month === undefined) return { from: `${y}-01`, to: `${y}-12` };
@@ -90,7 +89,7 @@ export function paidRange(filter: { year: number; month?: number }): MonthRange 
 
 /**
  * The paid ranking's query: per client, the amounts of its contracts in `currency` that start in
- * the period and no later than today (owner decision 12: a contract is paid on its start date).
+ * the period (any time without one) and no later than today (owner decision 12: a contract is paid on its start date).
  * Reads `finance_items_contract_starts_idx` (`starts_on, group_id`, contracts only).
  */
 export function paidRankingSql(
@@ -100,13 +99,16 @@ export function paidRankingSql(
   limit: number = RANKING_PAGE_SIZE + 1,
 ): SQL {
   const i = financeItems;
-  const { from, until } = dayBounds(paidRange(filter));
+  const bounds = filter.range ? dayBounds(filter.range) : null;
+  const period = bounds
+    ? sql` and ${i.startsOn} >= ${bounds.from} and ${i.startsOn} < ${bounds.until}`
+    : sql``;
   const after = filter.after ? decodeRankingCursor(filter.after) : null;
   const per = sql`
     select ${i.groupId} as key, ${i.groupId} as group_id, sum(${i.amountMinor})::bigint as value
     from ${i}
-    where ${i.type} = 'contract' and ${i.currency} = ${filter.currency}
-      and ${i.startsOn} >= ${from} and ${i.startsOn} < ${until} and ${i.startsOn} <= ${today}
+    where ${i.type} = 'contract' and ${i.currency} = ${filter.currency}${period}
+      and ${i.startsOn} <= ${today}
       and ${scopeSql(i.groupId, scope)}
     group by ${i.groupId}`;
   return rankedPage(per, after, limit);
@@ -164,7 +166,8 @@ export async function paidRanking(
 }
 
 export type HoursRankingFilter = {
-  range: MonthRange;
+  /** null: all time. */
+  range: MonthRange | null;
   /** One admin's hours only. */
   admin?: string;
   sort: 'hours' | 'cost';
@@ -192,7 +195,7 @@ export function hoursRankingSql(
       sum(${e.minutes})::int as minutes, ${cost} as cost,
       coalesce(sum(${e.minutes}) filter (where rate.rate_minor is null), 0)::int as missing
     from ${e} ${costSql('finance_time_entries')}
-    where ${countedEntriesSql(scope, dayBounds(filter.range))}${admin}
+    where ${countedEntriesSql(scope, filter.range ? dayBounds(filter.range) : null)}${admin}
     group by ${e.groupId}
     having sum(${e.minutes}) > 0`;
   return rankedPage(per, after, limit);

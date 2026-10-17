@@ -64,16 +64,20 @@ async function openRequestCount(db: Db, userId: string): Promise<number> {
   return row?.n ?? 0;
 }
 
-/** `POST /api/groups/:id/finance/time-entries`. Any admin (active or deactivated) may be named. */
+/**
+ * `POST /api/groups/:id/finance/time-entries` (a client's tab) and `POST /api/finance/time-entries`
+ * ("Add time" on `/finance`, any client or `groupId` null: "Bez klienta", shown system-wide
+ * only). Any admin (active or deactivated) may be named.
+ */
 export async function createManualEntry(
   { db, io }: EntryDeps,
   actor: SessionUser,
-  groupId: string,
+  groupId: string | null,
   body: ManualEntryBody,
   now: Date = new Date(),
 ): Promise<{ id: string }> {
   if (!canAddManualEntry(actor)) throw new TimeEntryForbiddenError();
-  if (!(await getGroup(db, groupId))) throw new TimeEntryNotFoundError();
+  if (groupId !== null && !(await getGroup(db, groupId))) throw new TimeEntryNotFoundError();
   const [target] = await db.select({ role: user.role }).from(user).where(eq(user.id, body.userId));
   if (!target || target.role === 'client') throw new TimeEntryUserError();
   checkDay(body.workedOn, now);

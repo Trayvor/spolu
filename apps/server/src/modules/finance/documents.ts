@@ -22,7 +22,7 @@ import { getUserNames } from '../users/service.js';
 import { FinanceChangedError, FinanceNotFoundError, FinanceValidationError } from './errors.js';
 import { folderOfGroup, folderPaths, lockGroupFinance } from './folders.js';
 import { financeAttachments, financeItems } from './schema.js';
-import { scopeSql, type FinanceScope } from './scope.js';
+import { monthAfter, monthStart, scopeSql, type FinanceScope, type MonthRange } from './scope.js';
 
 /**
  * Finance items (Phase 32 part B, spec §3.2, §6.1): one client's contracts, documents and notes.
@@ -45,6 +45,8 @@ export type ListItemsFilter = {
   dir?: 'asc' | 'desc';
   /** Rows a page, default `FINANCE_LIMITS.pageSize` (30). */
   limit?: number;
+  /** Contracts only: those whose period overlaps these months (`/finance`'s page period). */
+  period?: MonthRange;
 };
 
 type PageRow = {
@@ -145,6 +147,12 @@ function ordering(filter: ListItemsFilter) {
 function filterWhere(scope: FinanceScope, filter: ListItemsFilter): SQL {
   const parts: SQL[] = [scopeSql(i.groupId, scope)];
   if (filter.type) parts.push(sql`i.type = ${filter.type}`);
+  if (filter.period) {
+    // Starts before the period ends and ends on or after its first day.
+    parts.push(
+      sql`i.starts_on < ${monthAfter(filter.period.to)} and i.ends_on >= ${monthStart(filter.period.from)}`,
+    );
+  }
   for (const term of searchTerms(filter.q ?? '')) {
     parts.push(sql`i.search_text ilike '%' || ${escapeLike(term)} || '%' escape '\\'`);
   }

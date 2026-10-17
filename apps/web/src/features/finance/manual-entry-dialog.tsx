@@ -7,9 +7,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { SheetDialog, SheetDialogTitle } from '@/components/ui/sheet-dialog';
+import { groupsQuery } from '@/features/groups/api';
 import type { FinanceView } from './api';
 import { DialogFrame } from './dialog-frame';
-import { ratesQuery, useAddManualEntry, useUpdateEntry } from './log-api';
+import { ratesQuery, useAddManualEntry, useAddSystemEntry, useUpdateEntry } from './log-api';
 import { today } from './period';
 
 /**
@@ -17,8 +18,12 @@ import { today } from './period';
  * of an entry from the work log: a manual one takes the day, duration and note; a task or ticket
  * entry its duration only (filling a request answers it). 0 is a valid duration; the day is
  * never in the future. The admins come from the rates list (every active admin, and every
- * deactivated one with a rate).
+ * deactivated one with a rate). Without a `groupId` (the work log of `/finance`) the dialog
+ * starts with a client picker: every client, or "Without client" (decision 24).
  */
+
+/** The picker's value for "Without client". */
+const NO_CLIENT = '-';
 export function EntryDialog({
   view,
   groupId,
@@ -26,7 +31,8 @@ export function EntryDialog({
   onClose,
 }: {
   view: FinanceView;
-  groupId: string;
+  /** The client of a tab; absent on `/finance`, where a new entry picks its client. */
+  groupId?: string;
   entry?: WorkLogEntry;
   onClose: () => void;
 }) {
@@ -35,29 +41,45 @@ export function EntryDialog({
   const id = (name: string) => `${uid}-${name}`;
   const durationRef = useRef<HTMLInputElement>(null);
   const manual = !entry || entry.source === 'manual';
+  const pickClient = !entry && groupId === undefined;
   const admins = useQuery({ ...ratesQuery(view), enabled: !entry }).data?.admins;
+  const clients = useQuery({ ...groupsQuery, enabled: pickClient }).data;
+  const [client, setClient] = useState('');
   const [userId, setUserId] = useState(entry?.userId ?? '');
   const [day, setDay] = useState(entry?.workedOn ?? today());
   const [duration, setDuration] = useState(
     entry?.minutes != null ? formatDuration(entry.minutes, { hours: 'h', minutes: 'm' }) : '',
   );
   const [note, setNote] = useState(entry?.note ?? '');
-  const [errors, setErrors] = useState<{ user?: string; day?: string; duration?: string }>({});
-  const add = useAddManualEntry(view, groupId);
+  const [errors, setErrors] = useState<{
+    client?: string;
+    user?: string;
+    day?: string;
+    duration?: string;
+  }>({});
+  const add = useAddManualEntry(view, groupId ?? '');
+  const addSystem = useAddSystemEntry(view);
   const update = useUpdateEntry(view);
-  const pending = add.isPending || update.isPending;
-  const failed = add.isError || update.isError;
+  const pending = add.isPending || addSystem.isPending || update.isPending;
+  const failed = add.isError || addSystem.isError || update.isError;
 
   const submit = () => {
     const minutes = parseDuration(duration);
     const found: typeof errors = {};
+    if (pickClient && !client) found.client = 'financeSystem.entry.errors.client';
     if (!entry && !userId) found.user = 'financeLog.entry.errors.user';
     if (manual && (!day || day > today())) found.day = 'financeLog.entry.errors.day';
     if (minutes === null) found.duration = 'financeLog.entry.errors.duration';
     setErrors(found);
     if (Object.keys(found).length > 0 || minutes === null) return;
-    if (!entry) {
-      add.mutate({ userId, workedOn: day, minutes, note: note.trim() }, { onSuccess: onClose });
+    const body = { userId, workedOn: day, minutes, note: note.trim() };
+    if (pickClient) {
+      addSystem.mutate(
+        { ...body, groupId: client === NO_CLIENT ? null : client },
+        { onSuccess: onClose },
+      );
+    } else if (!entry) {
+      add.mutate(body, { onSuccess: onClose });
     } else {
       update.mutate(
         {
@@ -108,6 +130,27 @@ export function EntryDialog({
       >
         {entry && !manual && entry.title && (
           <p className="text-button text-muted-foreground">{entry.title}</p>
+        )}
+        {pickClient && (
+          <div className="flex flex-col gap-2.5">
+            <Label htmlFor={id('client')}>{t('financeSystem.entry.client')}</Label>
+            <Select
+              id={id('client')}
+              value={client}
+              disabled={!clients}
+              onChange={(e) => setClient(e.target.value)}
+              {...described('client')}
+            >
+              <option value="">{t('financeSystem.entry.chooseClient')}</option>
+              <option value={NO_CLIENT}>{t('financeSystem.noClient')}</option>
+              {(clients ?? []).map((g) => (
+                <option key={g.id} value={g.id}>
+                  {g.name}
+                </option>
+              ))}
+            </Select>
+            {error('client')}
+          </div>
         )}
         {!entry && (
           <div className="flex flex-col gap-2.5">

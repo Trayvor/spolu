@@ -27,12 +27,10 @@
     },
     "empty": "Vybraní klienti zatiaľ nemajú žiadne zmluvy.",
     "noMatch": "Nič nezodpovedá „{{q}}“.",
-    "showMore": "Zobraziť ďalšie"
+    "showMore": "Zobraziť ďalšie",
+    "emptyPeriod": "V tomto období nebeží žiadna zmluva vybraných klientov."
   },
   "paid": {
-    "year": "Rok",
-    "month": "Mesiac",
-    "wholeYear": "Celý rok",
     "currency": "Mena",
     "total": "Spolu zaplatené: {{amount}}",
     "empty": "V tomto období sa nezačala žiadna zmluva vybraných klientov."
@@ -48,5 +46,13 @@
   },
   "workLog": {
     "topClients": "Najviac hodín:"
+  },
+  "period": "Obdobie všetkých kariet",
+  "entry": {
+    "client": "Klient",
+    "chooseClient": "Vyberte klienta",
+    "errors": {
+      "client": "Vyberte klienta alebo Bez klienta."
+    }
   }
 }

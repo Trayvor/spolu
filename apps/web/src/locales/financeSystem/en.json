@@ -27,12 +27,10 @@
     },
     "empty": "The chosen clients have no contracts yet.",
     "noMatch": "Nothing matches “{{q}}”.",
-    "showMore": "Show more"
+    "showMore": "Show more",
+    "emptyPeriod": "No contract of the chosen clients runs in this period."
   },
   "paid": {
-    "year": "Year",
-    "month": "Month",
-    "wholeYear": "Whole year",
     "currency": "Currency",
     "total": "Paid in total: {{amount}}",
     "empty": "No contract of the chosen clients started in this period."
@@ -48,5 +46,13 @@
   },
   "workLog": {
     "topClients": "Most hours:"
+  },
+  "period": "Period of every card",
+  "entry": {
+    "client": "Client",
+    "chooseClient": "Choose a client",
+    "errors": {
+      "client": "Choose the client, or Without client."
+    }
   }
 }

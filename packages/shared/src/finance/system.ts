@@ -18,25 +18,41 @@ export const RANKING_PAGE_SIZE = 20;
 export const SystemClientsQuerySchema = z.object({ clients: FinanceClientsFilterSchema });
 export type SystemClientsQuery = z.output<typeof SystemClientsQuerySchema>;
 
+/**
+ * The page period's optional `from`/`to` months (follow-up of part D): both or neither (all
+ * time), `from` not after `to`.
+ */
+const monthRangeOk = (q: { from?: string; to?: string }) =>
+  (q.from === undefined) === (q.to === undefined) &&
+  (q.from === undefined || q.to === undefined || q.from <= q.to);
+
 /** The contracts table's page size. */
 export const CONTRACTS_PAGE_SIZE = 30;
 
 export const ContractSorts = ['start', 'end', 'amount'] as const;
 
-/** `GET /api/finance/contracts?clients=&sort=&q=&after=`. */
-export const ContractsQuerySchema = z.object({
-  clients: FinanceClientsFilterSchema,
-  sort: z.enum(ContractSorts).default('start'),
-  /** Newest start, latest end, largest amount first (`desc`, default) or the other way. */
-  dir: z.enum(['asc', 'desc']).default('desc'),
-  q: z
-    .string()
-    .trim()
-    .max(100)
-    .transform((value) => (value.length >= 2 ? value : undefined))
-    .optional(),
-  after: z.string().min(1).max(500).optional(),
-});
+/**
+ * `GET /api/finance/contracts?clients=&sort=&q=&from=&to=&after=`. `from`/`to` (the page period)
+ * keep the contracts whose period overlaps those months; a search ignores them (documents and
+ * notes have no period).
+ */
+export const ContractsQuerySchema = z
+  .object({
+    clients: FinanceClientsFilterSchema,
+    from: MonthSchema.optional(),
+    to: MonthSchema.optional(),
+    sort: z.enum(ContractSorts).default('start'),
+    /** Newest start, latest end, largest amount first (`desc`, default) or the other way. */
+    dir: z.enum(['asc', 'desc']).default('desc'),
+    q: z
+      .string()
+      .trim()
+      .max(100)
+      .transform((value) => (value.length >= 2 ? value : undefined))
+      .optional(),
+    after: z.string().min(1).max(500).optional(),
+  })
+  .refine(monthRangeOk, { message: 'from and to' });
 export type ContractsQuery = z.output<typeof ContractsQuerySchema>;
 
 /**
@@ -56,14 +72,23 @@ export const ContractsPageSchema = z.object({
 });
 export type ContractsPage = z.infer<typeof ContractsPageSchema>;
 
-/** `GET /api/finance/rankings/paid?year=&month=&currency=&clients=&after=`. */
-export const PaidRankingQuerySchema = z.object({
-  clients: FinanceClientsFilterSchema,
-  year: z.coerce.number().int().min(2000).max(2100),
-  month: z.coerce.number().int().min(1).max(12).optional(),
-  currency: CurrencySchema.default(ENABLED_CURRENCIES[0]!),
-  after: z.string().min(1).max(200).optional(),
-});
+/**
+ * `GET /api/finance/rankings/paid?from=&to=&currency=&clients=&after=`: the page period's months
+ * (none: all time, up to today). `year` (and `month`) is the older form of the same range.
+ */
+export const PaidRankingQuerySchema = z
+  .object({
+    clients: FinanceClientsFilterSchema,
+    from: MonthSchema.optional(),
+    to: MonthSchema.optional(),
+    year: z.coerce.number().int().min(2000).max(2100).optional(),
+    month: z.coerce.number().int().min(1).max(12).optional(),
+    currency: CurrencySchema.default(ENABLED_CURRENCIES[0]!),
+    after: z.string().min(1).max(200).optional(),
+  })
+  .refine(monthRangeOk, { message: 'from and to' })
+  .refine((q) => q.month === undefined || q.year !== undefined, { message: 'month needs year' })
+  .refine((q) => q.year === undefined || q.from === undefined, { message: 'year or months' });
 export type PaidRankingQuery = z.output<typeof PaidRankingQuerySchema>;
 
 /** `rank` is shared by equal values (1, 1, 3). */
@@ -88,17 +113,20 @@ export const PaidRankingPageSchema = z.object({
 });
 export type PaidRankingPage = z.infer<typeof PaidRankingPageSchema>;
 
-/** `GET /api/finance/rankings/hours?from=&to=&admin=&sort=hours|cost&clients=&after=`. */
+/**
+ * `GET /api/finance/rankings/hours?from=&to=&admin=&sort=hours|cost&clients=&after=`; no months:
+ * all time.
+ */
 export const HoursRankingQuerySchema = z
   .object({
     clients: FinanceClientsFilterSchema,
-    from: MonthSchema,
-    to: MonthSchema,
+    from: MonthSchema.optional(),
+    to: MonthSchema.optional(),
     admin: IdSchema.optional(),
     sort: z.enum(['hours', 'cost']).default('hours'),
     after: z.string().min(1).max(200).optional(),
   })
-  .refine((q) => q.from <= q.to, { message: 'from after to' });
+  .refine(monthRangeOk, { message: 'from and to' });
 export type HoursRankingQuery = z.output<typeof HoursRankingQuerySchema>;
 
 /**

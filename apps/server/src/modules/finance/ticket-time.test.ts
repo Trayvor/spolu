@@ -138,16 +138,15 @@ describe('onTicketResolved', () => {
     for (const row of await entriesOf(s.ticket.id)) expect(row.groupId).toBe(client);
   });
 
-  it('only a ticket entry may lack a client (the CHECK)', async () => {
+  it('a task entry may not lack a client (the CHECK; a ticket or manual one may, migration 0041)', async () => {
     const a = await admin('Eva');
     await expect(
       db.insert(financeTimeEntries).values({
         id: randomUUID(),
         groupId: null,
         userId: a.id,
-        source: 'manual',
-        minutes: 30,
-        workedOn: '2026-10-17',
+        source: 'task',
+        title: 'Task',
         createdBy: a.id,
         updatedBy: a.id,
       }),

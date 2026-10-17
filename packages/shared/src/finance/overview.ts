@@ -196,6 +196,15 @@ export const ManualEntryBodySchema = z
 export type ManualEntryBody = z.output<typeof ManualEntryBodySchema>;
 
 /**
+ * `POST /api/finance/time-entries` ("Add time" on `/finance`): a manual entry for the chosen
+ * client, or without one (`groupId` null, "Bez klienta", decision 24, migration 0041).
+ */
+export const SystemManualEntryBodySchema = ManualEntryBodySchema.extend({
+  groupId: IdSchema.nullable(),
+}).strict();
+export type SystemManualEntryBody = z.output<typeof SystemManualEntryBodySchema>;
+
+/**
  * `PATCH /api/finance/time-entries/:id`: a task or ticket entry takes `minutes` only (a ticket
  * entry given minutes stops being `coveredByTasks`).
  */

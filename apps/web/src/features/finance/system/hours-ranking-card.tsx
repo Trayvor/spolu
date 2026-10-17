@@ -7,49 +7,30 @@ import type { FinanceView } from '../api';
 import { FinanceCard } from '../finance-card';
 import { useFinanceFormat } from '../format';
 import { ratesQuery } from '../log-api';
-import type { Period } from '../period';
-import { PeriodSelect, usePeriod } from '../period-select';
+import type { MonthRange } from '../period';
 import { SegmentedControl } from '../segmented-control';
 import { RankingList } from './ranking-list';
 import { hoursRankingQuery, logoUrl } from './system-api';
 
-/** The ranking's periods (decision 18: this year first); a ranking needs a bounded range. */
-export const RANKING_PERIODS: readonly Period[] = [
-  'thisYear',
-  'lastYear',
-  'thisMonth',
-  'lastMonth',
-  'custom',
-];
-
 const SORTS = ['hours', 'cost'] as const;
 
 /**
- * Clients by hours (spec §6.2): a period, an admin filter (all admins or one) and a Hours ·
+ * Clients by hours (spec §6.2): the page period (null: all time), an admin filter (all admins or one) and a Hours ·
  * Money switch that ranks by the hours or by their cost (hours × rates; minutes without a rate
  * count nothing and are named). On the all-clients view the time without a client ranks as one
  * row, "Without client" (owner decision 24).
  */
-export function HoursRankingCard({ view }: { view: FinanceView }) {
+export function HoursRankingCard({ view, range }: { view: FinanceView; range: MonthRange | null }) {
   const { t } = useTranslation();
   const f = useFinanceFormat();
   const titleId = useId();
   const adminId = useId();
-  const period = usePeriod('finance.hoursRanking.period', RANKING_PERIODS);
   const [savedSort, setSort] = useRememberedState('finance.hoursRanking.sort', SORTS);
   const sort = savedSort ?? 'hours';
   const [chosenAdmin, setAdmin] = useState<string | null>(null);
   const admins = useQuery(ratesQuery(view)).data?.admins ?? [];
   const admin = admins.some((a) => a.userId === chosenAdmin) ? chosenAdmin : null;
-  const range = period.range;
-  const query = useInfiniteQuery({
-    ...hoursRankingQuery(view, {
-      range: range ?? { from: '2000-01', to: '2000-01' },
-      admin,
-      sort,
-    }),
-    enabled: range !== null,
-  });
+  const query = useInfiniteQuery(hoursRankingQuery(view, { range, admin, sort }));
   const pages = query.data?.pages ?? [];
   const noClient = t('financeSystem.noClient');
 
@@ -68,7 +49,6 @@ export function HoursRankingCard({ view }: { view: FinanceView }) {
       }
     >
       <div className="flex flex-wrap items-center gap-2 pb-3">
-        <PeriodSelect state={period} />
         <label htmlFor={adminId} className="sr-only">
           {t('financeSystem.hours.admin')}
         </label>
@@ -87,7 +67,7 @@ export function HoursRankingCard({ view }: { view: FinanceView }) {
         </Select>
       </div>
       <RankingList
-        state={range === null ? 'success' : query.status}
+        state={query.status}
         tone={sort === 'cost' ? 'cost' : 'solid'}
         max={pages[0]?.max ?? 0}
         empty={t('financeSystem.hours.empty')}
