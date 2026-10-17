@@ -21,6 +21,7 @@ Spolu must feel instant: faster than Microsoft Teams on a cheap phone over mobil
 - Optimistic UI for the user's own writes (a sent message appears at once, then is confirmed).
 - Images: resized and compressed on upload; lists and chat show thumbnails; full size only on open.
 - No fancy effects (see [design/README.md](../design/README.md), "Keep it light").
+- The service worker precaches what most devices use: every script except the seven lazy languages' texts, which are cached on first use (`apps/web/pwa-precache.ts`). Phase 27: 307 files and 759 kB gzip down to 167 files and 613 kB.
 
 ### Server and database
 
