@@ -112,6 +112,7 @@ export function KnowledgeDialog({
   const [value, setValue] = useState<KnowledgeFormValue>(initial);
   const [files, setFiles] = useState<FileInfo[]>([]);
   const [errors, setErrors] = useState<KnowledgeFormErrors>({});
+  const [uploading, setUploading] = useState(false);
   const [conflict, setConflict] = useState(false);
   const [ask, setAsk] = useState<Ask>(null);
   const [busy, setBusy] = useState(false);
@@ -190,7 +191,7 @@ export function KnowledgeDialog({
   }
 
   async function save() {
-    if (busy || !type) return;
+    if (busy || uploading || !type) return;
     const found = validateKnowledge(type, value);
     setErrors(found);
     if (Object.keys(found).length > 0) return;
@@ -331,6 +332,7 @@ export function KnowledgeDialog({
               inAdminsFolder={inAdminsFolder}
               authorId={item?.createdBy.id ?? me?.id ?? ''}
               autoFocusTitle={target.mode === 'create'}
+              onUploadingChange={setUploading}
             />
           </div>
         ) : item ? (
@@ -400,10 +402,20 @@ export function KnowledgeDialog({
               >
                 {t('knowledge.detail.cancel')}
               </Button>
+              {uploading && (
+                <p
+                  id="knowledge-upload-wait"
+                  role="status"
+                  className="text-tiny text-muted-foreground"
+                >
+                  {t('forms.files.waiting')}
+                </p>
+              )}
               <Button
                 size="lg"
                 // Not `disabled`: a disabled button drops the focus when the request starts.
-                aria-disabled={busy}
+                aria-disabled={busy || uploading}
+                aria-describedby={uploading ? 'knowledge-upload-wait' : undefined}
                 className="px-5 aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
                 onClick={() => void save()}
               >

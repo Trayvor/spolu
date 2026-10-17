@@ -7,6 +7,7 @@
     "attach": "Priloži datoteku",
     "remove": "Ukloni {{name}}",
     "uploading": "Prenosi se {{name}}",
+    "waiting": "Čeka se prijenos datoteka",
     "uploadFailed": "Datoteku {{name}} nije moguće prenijeti.",
     "tooLarge": "Datoteka {{name}} veća je od 25 MB.",
     "unknown": "Datoteka"

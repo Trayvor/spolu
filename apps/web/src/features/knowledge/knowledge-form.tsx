@@ -461,6 +461,7 @@ export function KnowledgeForm({
   inAdminsFolder = false,
   authorId,
   autoFocusTitle = false,
+  onUploadingChange,
 }: {
   value: KnowledgeFormValue;
   onChange: (next: KnowledgeFormValue) => void;
@@ -478,6 +479,8 @@ export function KnowledgeForm({
   /** The item's author (the current user on create): a fixed reminder recipient. */
   authorId: string;
   autoFocusTitle?: boolean;
+  /** True while a file uploads; the dialog keeps Save disabled until it is false. */
+  onUploadingChange?: (uploading: boolean) => void;
 }) {
   const { t } = useTranslation();
   const people = useGroupPeople(groupId).data;
@@ -543,6 +546,7 @@ export function KnowledgeForm({
             fileIds={value.fileIds}
             files={files}
             onAdd={onAdd}
+            onPendingChange={onUploadingChange}
             onRemove={onRemove}
           />
           <FieldError id={id('file-error')} message={errors.file} />
@@ -627,6 +631,7 @@ export function KnowledgeForm({
             fileIds={value.fileIds}
             files={files}
             onAdd={onAdd}
+            onPendingChange={onUploadingChange}
             onRemove={onRemove}
           />
         </div>

@@ -229,6 +229,7 @@ function TaskEditor({
   const [draft, setDraft] = useState<TaskDraft>(() => toDraft(initial));
   const [files, setFiles] = useState<FileInfo[]>(initial.files);
   const [errors, setErrors] = useState<TaskFormErrors>({});
+  const [uploading, setUploading] = useState(false);
   const [stale, setStale] = useState<{ by: string | null } | null>(null);
   const [busy, setBusy] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -345,7 +346,7 @@ function TaskEditor({
   };
 
   async function save() {
-    if (busy) return;
+    if (busy || uploading) return;
     const found = validateTaskDraft(draft);
     setErrors(found);
     if (Object.keys(found).length > 0) return;
@@ -543,6 +544,7 @@ function TaskEditor({
             files={files}
             onFilesChange={setFiles}
             knownPeople={base.assignees}
+            onUploadingChange={setUploading}
             timeSlot={
               seesTime(
                 me,
@@ -562,7 +564,20 @@ function TaskEditor({
 
           {dirty && (
             <div className="flex gap-3">
-              <Button disabled={busy} onClick={() => void save()}>
+              {uploading && (
+                <p
+                  id="task-upload-wait"
+                  role="status"
+                  className="self-center text-tiny text-muted-foreground"
+                >
+                  {t('forms.files.waiting')}
+                </p>
+              )}
+              <Button
+                disabled={busy || uploading}
+                aria-describedby={uploading ? 'task-upload-wait' : undefined}
+                onClick={() => void save()}
+              >
                 {t('tasks.panel.save')}
               </Button>
               <Button

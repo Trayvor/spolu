@@ -7,6 +7,7 @@
     "attach": "Прикачване на файл",
     "remove": "Премахване на {{name}}",
     "uploading": "Качване на {{name}}",
+    "waiting": "Изчакване на качването на файловете",
     "uploadFailed": "{{name}} не можа да се качи.",
     "tooLarge": "{{name}} е над 25 MB.",
     "unknown": "Файл"

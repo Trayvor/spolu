@@ -1,10 +1,14 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { i18n } from '@/i18n';
+import type { FileInfo } from '@spolu/shared';
+import { uploadFile } from '@/features/files/upload';
 import { NewTicketDialog } from './new-ticket-dialog';
 import { ADMIN, CLIENT, mockTicketApi, reply, ticket } from './test-api';
+
+vi.mock('@/features/files/upload', () => ({ uploadFile: vi.fn() }));
 
 const t = (key: string, opts?: Record<string, unknown>) => i18n.t(key, opts);
 
@@ -75,5 +79,35 @@ describe('new ticket dialog', () => {
     renderDialog({ admin: false, groupId: 'g1' });
     await userEvent.click(screen.getByRole('button', { name: t('tickets.form.create') }));
     expect(await screen.findByText(t('tickets.form.errors.content'))).toBeInTheDocument();
+  });
+
+  it('Create waits for an upload: disabled with a reason, and Enter does not submit', async () => {
+    let finish!: (file: FileInfo) => void;
+    vi.mocked(uploadFile).mockImplementation(() => new Promise((resolve) => (finish = resolve)));
+    const { fetchMock } = mockTicketApi(CLIENT, [created]);
+    const onCreated = renderDialog({ admin: false, groupId: 'g1' });
+    await userEvent.type(screen.getByLabelText(t('tickets.fields.body')), 'It fails');
+    await userEvent.upload(screen.getByTestId('ticket-file-input'), new File(['x'], 'a.pdf'));
+
+    const create = screen.getByRole('button', { name: t('tickets.form.create') });
+    await waitFor(() => expect(create).toBeDisabled());
+    expect(create).toHaveAccessibleDescription(t('forms.files.waiting'));
+    await userEvent.type(screen.getByLabelText(t('tickets.fields.subject')), 'Hi{Enter}');
+    expect(fetchMock.mock.calls.some(([, init]) => init?.method === 'POST')).toBe(false);
+
+    await act(async () =>
+      finish({
+        id: 'f1',
+        name: 'a.pdf',
+        mime: 'application/pdf',
+        size: 1,
+        width: null,
+        height: null,
+        hasPreview: false,
+      }),
+    );
+    await waitFor(() => expect(create).toBeEnabled());
+    await userEvent.click(create);
+    await waitFor(() => expect(onCreated).toHaveBeenCalled());
   });
 });
