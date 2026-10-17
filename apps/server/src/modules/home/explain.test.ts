@@ -29,9 +29,9 @@ type Explained = { Plan: PlanNode; 'Execution Time': number };
 
 /**
  * Runs `query` under `explain (analyze, format json)` and asserts that no table of `tables` is
- * read with a sequential scan and that it runs in under 50 ms. The bound is for a warm, local
- * database: the query runs once to warm the cache, and the best of three timed runs counts, so a
- * busy machine's scheduling noise does not fail it. `EXPLAIN_DEBUG=1` prints the plan.
+ * read with a sequential scan. That is the deterministic part and always checked. The 50 ms bound
+ * is wall time, so it is opt-in (`RUN_BENCH=1`, for a quiet machine): the query runs once to warm
+ * the cache and the best of three timed runs counts. `EXPLAIN_DEBUG=1` prints the plan.
  */
 async function expectIndexed(tx: Db, query: SQL, tables: string[]): Promise<void> {
   await tx.execute(query);
@@ -47,7 +47,7 @@ async function expectIndexed(tx: Db, query: SQL, tables: string[]): Promise<void
   if (process.env.EXPLAIN_DEBUG) console.log(time, JSON.stringify(plan, null, 1).slice(0, 20000));
   const scanned = seqScans(plan.Plan).filter((t) => tables.includes(t));
   expect({ scanned }).toEqual({ scanned: [] });
-  expect(time).toBeLessThan(50);
+  if (process.env.RUN_BENCH) expect(time).toBeLessThan(50);
 }
 
 const CHAT_TABLES = ['messages', 'message_mentions'];
@@ -58,44 +58,48 @@ const CHAT_TABLES = ['messages', 'message_mentions'];
  * one admin, a hash join over the tables is cheaper than thousands of index lookups, and the
  * planner rightly picks it. They still have to stay under 50 ms.
  *
- * Timing on a machine busy with the rest of the suite is noisy: the test retries twice (a new
- * seeding each time) before it fails; a plan with a sequential scan fails every attempt anyway.
+ * The plan checks do not depend on timing, so there is no retry; the 50 ms bounds run only with
+ * `RUN_BENCH=1`.
  */
 describe('admin home query plans on a seeded volume', () => {
-  it('the admin home queries use indexes under 50 ms', { timeout: 300_000, retry: 2 }, async () => {
-    await withVolume(db, async (tx, { adminId, managedIds }) => {
-      // sidebar and assigned use indexes under 50 ms
-      await expectIndexed(tx, sidebarSql(adminId), CHAT_TABLES);
-      await expectIndexed(tx, assignedSql(adminId), CHAT_TABLES);
-      await expectIndexed(tx, assignedCountSql(adminId), CHAT_TABLES);
-      // the Tickets card and the header's Tickets count read the tickets indexes; the "no
-      // riešiteľ yet" anti-join may hash the small `ticket_assignees` (a few rows per active
-      // ticket), which the planner rightly prefers to one index lookup per ticket
-      await expectIndexed(tx, dashboardTicketsSql(adminId), ['tickets']);
-      await expectIndexed(tx, dashboardTicketCountSql(adminId), ['tickets']);
-      // mentions uses indexes under 50 ms
-      await expectIndexed(tx, mentionsSql(adminId), CHAT_TABLES);
-      // global board uses tasks_open_group_idx under 50 ms, for the 10 managed groups
-      // and so does its "only where I take part" filter, and a merged custom column's next page
-      const board = {
-        clientIds: managedIds,
-        viewerId: adminId,
-        assignee: 'anyone',
-        urgent: false,
-        completed: false,
-        today: bratislavaToday(new Date()),
-      };
-      for (const mine of [false, true]) {
-        await expectIndexed(tx, globalBoardSql({ ...board, mine }), ['tasks', ...CHAT_TABLES]);
-      }
-      const after = Buffer.from(
-        JSON.stringify([true, '2026-01-01', 'Volume', '2026-01-01T00:00:00Z', '']),
-      ).toString('base64url');
-      await expectIndexed(
-        tx,
-        globalBoardSql({ ...board, mine: false, column: 'custom:step 1', after }),
-        ['tasks', ...CHAT_TABLES],
-      );
-    });
-  });
+  it(
+    'the admin home queries use indexes (under 50 ms with RUN_BENCH=1)',
+    { timeout: 300_000 },
+    async () => {
+      await withVolume(db, async (tx, { adminId, managedIds }) => {
+        // sidebar and assigned use indexes under 50 ms
+        await expectIndexed(tx, sidebarSql(adminId), CHAT_TABLES);
+        await expectIndexed(tx, assignedSql(adminId), CHAT_TABLES);
+        await expectIndexed(tx, assignedCountSql(adminId), CHAT_TABLES);
+        // the Tickets card and the header's Tickets count read the tickets indexes; the "no
+        // riešiteľ yet" anti-join may hash the small `ticket_assignees` (a few rows per active
+        // ticket), which the planner rightly prefers to one index lookup per ticket
+        await expectIndexed(tx, dashboardTicketsSql(adminId), ['tickets']);
+        await expectIndexed(tx, dashboardTicketCountSql(adminId), ['tickets']);
+        // mentions uses indexes under 50 ms
+        await expectIndexed(tx, mentionsSql(adminId), CHAT_TABLES);
+        // global board uses tasks_open_group_idx under 50 ms, for the 10 managed groups
+        // and so does its "only where I take part" filter, and a merged custom column's next page
+        const board = {
+          clientIds: managedIds,
+          viewerId: adminId,
+          assignee: 'anyone',
+          urgent: false,
+          completed: false,
+          today: bratislavaToday(new Date()),
+        };
+        for (const mine of [false, true]) {
+          await expectIndexed(tx, globalBoardSql({ ...board, mine }), ['tasks', ...CHAT_TABLES]);
+        }
+        const after = Buffer.from(
+          JSON.stringify([true, '2026-01-01', 'Volume', '2026-01-01T00:00:00Z', '']),
+        ).toString('base64url');
+        await expectIndexed(
+          tx,
+          globalBoardSql({ ...board, mine: false, column: 'custom:step 1', after }),
+          ['tasks', ...CHAT_TABLES],
+        );
+      });
+    },
+  );
 });
