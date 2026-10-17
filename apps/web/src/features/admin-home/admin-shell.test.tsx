@@ -5,6 +5,7 @@ import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { i18n } from '@/i18n';
 import { AdminSidebar } from './admin-shell';
+import { writeCollapsed } from './sidebar-collapse';
 import { renderWithRouter } from './test-router';
 
 vi.mock('@/lib/socket', () => ({
@@ -49,7 +50,11 @@ const renderSidebar = () => {
 };
 
 describe('AdminSidebar', () => {
-  beforeEach(() => window.localStorage.clear());
+  beforeEach(() => {
+    window.localStorage.clear();
+    writeCollapsed(false);
+    window.localStorage.clear();
+  });
   afterEach(() => {
     vi.unstubAllGlobals();
     vi.restoreAllMocks();

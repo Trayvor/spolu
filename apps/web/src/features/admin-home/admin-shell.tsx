@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useParams } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
@@ -6,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { homeKeys, sidebarQuery } from './api';
 import { ClientSidebarList, SidebarRowsPlaceholder } from './client-sidebar';
-import { readCollapsed, writeCollapsed } from './sidebar-collapse';
+import { useCollapsed, writeCollapsed } from './sidebar-collapse';
 import { useAdminActivityRefetch } from './use-admin-activity';
 
 // The lazy `admin-shell` chunk: loaded by the signed-in layout only for admins from 1024 px.
@@ -52,17 +51,14 @@ export function SidebarFrame({
  */
 export function AdminSidebar() {
   const { t } = useTranslation();
-  const [collapsed, setCollapsed] = useState(readCollapsed);
+  const collapsed = useCollapsed();
   const { groupId } = useParams({ strict: false });
   const sidebar = useQuery(sidebarQuery);
   // Ticket events too: the badge counts the tickets with an unseen change (2026-10-17).
   useAdminActivityRefetch(SIDEBAR_KEYS, { tickets: true });
 
   const toggle = () => {
-    setCollapsed((was) => {
-      writeCollapsed(!was);
-      return !was;
-    });
+    writeCollapsed(!collapsed);
   };
 
   return (

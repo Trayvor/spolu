@@ -44,16 +44,16 @@ egrant.sk has **no dark mode** (no `prefers-color-scheme` rule anywhere). Spolu 
 
 Extra colors (Tailwind names in brackets):
 
-| Variable                                                          | Value                                      | egrant.sk name                    | Use                                                                                                                                    |
-| ----------------------------------------------------------------- | ------------------------------------------ | --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| `--ink-hover` (`ink-hover`)                                       | `#3B3A33`                                  | `ink-hover`                       | filled button hover, card link hover text                                                                                              |
-| `--surface-3` (`surface-3`)                                       | `#D6D2C8`                                  | `surface-3`                       | hover of secondary (`.egrant-header__lang-toggle:hover`)                                                                               |
-| `--neutral` (`neutral`)                                           | `#5E5E5E`                                  | `neutral`                         | link hover color (`a:hover` in global styles)                                                                                          |
-| `--error-ink` (`error-ink`)                                       | `#D60004`                                  | `error-ink`                       | all error text: field messages, destructive menu items. Tailwind class `text-error-ink` (there is no `text-destructive` in components) |
-| `--success` (`success`)                                           | `#007A37`                                  | `green`                           | positive states (logo gradient stop)                                                                                                   |
-| `--success-light` (`success-light`)                               | `#52C083`                                  | `green-light`                     |                                                                                                                                        |
-| `--brand-purple`, `--brand-pink`, `--brand-blue`, `--brand-coral` | `#7654FF`, `#EB5ED4`, `#3242DC`, `#FF8A4C` | `purple`, `pink`, `blue`, `coral` | logo gradient and illustration accents; use sparingly (avatars, labels), never as large fills                                          |
-| `--attention` (`attention`), `--attention-foreground` | `#FFCE3A`, `#141414` | none (Spolu's own; egrant.sk has no yellow) | Phase 20: only the "assigned to me" counts (the Úlohy tab's pill; the admin sidebar's yellow pill and dot were removed on 2026-10-17), always with ink text (contrast about 13:1). Never a fill larger than a pill |
+| Variable                                                          | Value                                      | egrant.sk name                              | Use                                                                                                                                                                                                                |
+| ----------------------------------------------------------------- | ------------------------------------------ | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `--ink-hover` (`ink-hover`)                                       | `#3B3A33`                                  | `ink-hover`                                 | filled button hover, card link hover text                                                                                                                                                                          |
+| `--surface-3` (`surface-3`)                                       | `#D6D2C8`                                  | `surface-3`                                 | hover of secondary (`.egrant-header__lang-toggle:hover`)                                                                                                                                                           |
+| `--neutral` (`neutral`)                                           | `#5E5E5E`                                  | `neutral`                                   | link hover color (`a:hover` in global styles)                                                                                                                                                                      |
+| `--error-ink` (`error-ink`)                                       | `#D60004`                                  | `error-ink`                                 | all error text: field messages, destructive menu items. Tailwind class `text-error-ink` (there is no `text-destructive` in components)                                                                             |
+| `--success` (`success`)                                           | `#007A37`                                  | `green`                                     | positive states (logo gradient stop)                                                                                                                                                                               |
+| `--success-light` (`success-light`)                               | `#52C083`                                  | `green-light`                               |                                                                                                                                                                                                                    |
+| `--brand-purple`, `--brand-pink`, `--brand-blue`, `--brand-coral` | `#7654FF`, `#EB5ED4`, `#3242DC`, `#FF8A4C` | `purple`, `pink`, `blue`, `coral`           | logo gradient and illustration accents; use sparingly (avatars, labels), never as large fills                                                                                                                      |
+| `--attention` (`attention`), `--attention-foreground`             | `#FFCE3A`, `#141414`                       | none (Spolu's own; egrant.sk has no yellow) | Phase 20: only the "assigned to me" counts (the Úlohy tab's pill; the admin sidebar's yellow pill and dot were removed on 2026-10-17), always with ink text (contrast about 13:1). Never a fill larger than a pill |
 
 Avatar (`components/avatar.tsx`): a round initials badge, `size` px square (24, 32 or 40; default 32), weight 600, text white on purple, blue and success and ink on pink and coral (every pair at least 4.5:1, WCAG AA), font size `size * 0.4`. Initials are the first letters of the first and last word of the name, upper-case (`?` when empty). The background is picked from `bg-brand-purple`, `bg-brand-pink`, `bg-brand-blue`, `bg-brand-coral`, `bg-success` by a 32-bit FNV-1a hash of the user id modulo 5, so a person keeps one color everywhere. It is `aria-hidden`: the name always appears next to it.
 
@@ -61,13 +61,13 @@ The live dot in the header "Výzvy" pill is `#64D01C` (hard-coded in `.egrant-he
 
 ## Typography
 
-| Token                                       | Value                                                                | Observed on                                                                  |
-| ------------------------------------------- | -------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| Token                                       | Value                                                                                 | Observed on                                                                  |
+| ------------------------------------------- | ------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
 | `--font-sans` (source `--font-family-base`) | `"Saans", "Help Cyrillic", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif` | `--wp--preset--font-family--saans`, set on `body`                            |
-| Weight 500                                  | `Saans-Medium.woff2`                                                 | `body` (`font-weight: 500`) — the site's normal text weight; there is no 400 |
-| Weight 600                                  | `Saans-SemiBold.woff2`                                               | `h1`–`h6`, buttons, field labels, nav links                                  |
-| Letter spacing                              | `0.2px`                                                              | `body`, buttons, headings; `h1` uses `-0.6px`, `h2` `0`, captions `0.25px`   |
-| Line height                                 | `1.25` body; `1.2` h3–h4; `1` h1–h2 (`38/36` under 900px)            | global styles                                                                |
+| Weight 500                                  | `Saans-Medium.woff2`                                                                  | `body` (`font-weight: 500`) — the site's normal text weight; there is no 400 |
+| Weight 600                                  | `Saans-SemiBold.woff2`                                                                | `h1`–`h6`, buttons, field labels, nav links                                  |
+| Letter spacing                              | `0.2px`                                                                               | `body`, buttons, headings; `h1` uses `-0.6px`, `h2` `0`, captions `0.25px`   |
+| Line height                                 | `1.25` body; `1.2` h3–h4; `1` h1–h2 (`38/36` under 900px)                             | global styles                                                                |
 
 There is one family; no separate heading font, so no `--font-heading`.
 
@@ -79,17 +79,17 @@ Font files are self-hosted in `apps/web/public/fonts/` (copied from `https://egr
 
 Type scale (Tailwind `text-*` utilities; desktop value, then the value under 900px):
 
-| Utility         | Desktop | ≤ 900px        | egrant.sk preset | Used for                                |
-| --------------- | ------- | -------------- | ---------------- | --------------------------------------- |
-| `text-nano`     | 11.2px  | 11.2px         | `nano`           | tiny meta                               |
-| `text-micro`    | 12.8px  | 12.8px         | `micro`          | field labels, captions, `h6`            |
-| `text-tiny`     | 14px    | 14px           | `tiny`           | header buttons, pills, bottom nav       |
-| `text-button`   | 14.4px  | 14.4px         | `button`         | buttons, input text, `h5`               |
-| `text-body`     | 17.6px  | 16.6px         | `small`          | body text, `h4`                         |
-| `text-medium`   | 22.4px  | 17.6px         | `medium`         | `h3`, lead text, modal titles           |
-| `text-large`    | 36px    | 36px           | `large`          |                                         |
-| `text-xlarge`   | 64px    | 36px           | `x-large`        | `h1`, `h2` (page titles)                |
-| `text-wordmark` | 32px    | 24px (≤ 640px) | — (Spolu's own)  | the "Help" wordmark in the header only  |
+| Utility         | Desktop | ≤ 900px        | egrant.sk preset | Used for                               |
+| --------------- | ------- | -------------- | ---------------- | -------------------------------------- |
+| `text-nano`     | 11.2px  | 11.2px         | `nano`           | tiny meta                              |
+| `text-micro`    | 12.8px  | 12.8px         | `micro`          | field labels, captions, `h6`           |
+| `text-tiny`     | 14px    | 14px           | `tiny`           | header buttons, pills, bottom nav      |
+| `text-button`   | 14.4px  | 14.4px         | `button`         | buttons, input text, `h5`              |
+| `text-body`     | 17.6px  | 16.6px         | `small`          | body text, `h4`                        |
+| `text-medium`   | 22.4px  | 17.6px         | `medium`         | `h3`, lead text, modal titles          |
+| `text-large`    | 36px    | 36px           | `large`          |                                        |
+| `text-xlarge`   | 64px    | 36px           | `x-large`        | `h1`, `h2` (page titles)               |
+| `text-wordmark` | 32px    | 24px (≤ 640px) | — (Spolu's own)  | the "Help" wordmark in the header only |
 
 For the app, page titles should normally use `text-medium` or `text-large`; `text-xlarge` is the website's hero size and is too big for app screens.
 
@@ -118,16 +118,16 @@ Cards have **no shadow** (`.egrant-challenge-card { box-shadow: none }`): a whit
 
 Spolu's own (egrant.sk animates almost nothing). CSS only, defined in `theme.css` (`--animate-*`), no animation library. Only `transform` and `opacity` move (no layout properties), closing is faster than opening, and the global `prefers-reduced-motion: reduce` rule cuts every animation and transition to 0.01ms.
 
-| Tailwind                                  | Duration, easing                    | Used for                                                                  |
-| ----------------------------------------- | ----------------------------------- | ------------------------------------------------------------------------- |
-| `animate-menu-in` / `animate-menu-out`    | 140ms soft ease-out / 90ms ease-in  | dropdown menus (from Radix `transform-origin`), the tablet section panel |
-| `animate-sheet-in` / `animate-sheet-out`  | 240ms sheet curve / 160ms ease-in   | bottom sheets (section menu, message actions)                             |
-| `animate-fade-in` / `animate-fade-out`    | 160ms                               | sheet backdrops, small inline messages                                    |
-| `animate-toast-in`                        | 200ms, 12px rise                    | toasts                                                                    |
-| `animate-page-in`                         | 180ms fade (opacity only)           | a screen or a tab's content when it mounts                               |
-| `animate-skeleton`                        | 1.4s pulse to 55% opacity, infinite | loading placeholders                                                      |
-| `RouteFade` (`components/route-fade.tsx`) | `animate-page-in`                   | a new signed-in screen (route level 2) and a group tab switch (level 3)  |
-| `duration-(--duration-fast)`              | 150ms                               | hover and state colour transitions                                        |
+| Tailwind                                  | Duration, easing                    | Used for                                                                    |
+| ----------------------------------------- | ----------------------------------- | --------------------------------------------------------------------------- |
+| `animate-menu-in` / `animate-menu-out`    | 140ms soft ease-out / 90ms ease-in  | dropdown menus (from Radix `transform-origin`), the tablet section panel    |
+| `animate-sheet-in` / `animate-sheet-out`  | 240ms sheet curve / 160ms ease-in   | bottom sheets (section menu, message actions)                               |
+| `animate-fade-in` / `animate-fade-out`    | 160ms                               | sheet backdrops, small inline messages                                      |
+| `animate-toast-in`                        | 200ms, 12px rise                    | toasts                                                                      |
+| `animate-page-in`                         | 180ms fade (opacity only)           | a screen or a tab's content when it mounts                                  |
+| `animate-skeleton`                        | 1.4s pulse to 55% opacity, infinite | loading placeholders                                                        |
+| `RouteFade` (`components/route-fade.tsx`) | `animate-page-in`                   | a new signed-in screen (route level 2) and a group tab switch (level 3)     |
+| `duration-(--duration-fast)`              | 150ms                               | hover and state colour transitions                                          |
 | `data-pressed:scale-[0.98]`               | 150ms, after a 120ms hold           | a chat message held by a finger (long press feedback); reduced motion: none |
 
 ## Spacing and layout
@@ -347,6 +347,7 @@ egrant.sk spacing presets are 4, 8, 12, 16, 20, 24, 32, 40, 48, 54, 64px — all
 ### Admin client sidebar (as built, `src/features/admin-home/admin-shell.tsx`, `client-sidebar.tsx`, Phase 20)
 
 - Where: for admins from 1024 px, left of every signed-in page (the dashboard, the global board, each group), inside the 1152 px main column with a 24 px gap; the page column is `min-w-0 flex-1`. Under 1024 px there is no sidebar (the phone home lists the clients instead).
+- Collapsed rail widens the page: pages cap their own column (`max-w-[720px]`, 880, 960, 1120) to fill the space beside the 232 px sidebar. While the rail is collapsed, `SignedInFrame` (`authed-layout.tsx`) sets `data-rail-collapsed` on the page column and `[&>*>*]:max-w-none!` lifts the cap of the page's root, so the content reaches the header pill's right edge (same outer gutter). The state is shared through `useCollapsed()` in `sidebar-collapse.ts`. Expanded and phone layouts are unchanged; no page keeps a reading width.
 - Frame: a white `card` block, `rounded-xl`, 8 px padding, no shadow, 232 px wide (56 px collapsed), `sticky top-4` with its own scroll (`max-h-[calc(100dvh-2rem)]`). While its chunk loads, an empty box of the same width holds the place, so the page never shifts.
 - Head: "Clients" (`text-button` weight 600) and a 32 px ghost round button with a chevron (`«`/`»` drawn as an inline SVG, `aria-expanded`, named "Collapse the client list" / "Expand the client list"). The choice is kept per device in `localStorage` (`spolu.sidebar.collapsed`, read in try/catch: blocked storage means expanded).
 - Find field: a compact 36 px version of the egrant field (2 px `border-input`, `rounded-md`, `text-tiny`), filtering as you type, case- and accent-insensitive ("luky" finds "Obec Lúky"); no match: a `text-micro` muted line.
@@ -439,4 +440,3 @@ These egrant.sk effects are deliberately left out (owner rule "Keep it light", s
 - Forms with a `FilesField` (new ticket, task create and panel, knowledge dialog) keep Create/Save disabled while a file uploads: `FilesField` reports it through `onPendingChange`, the submit handler also ignores Enter, and a short `role="status"` hint (`forms.files.waiting`) describes the button.
 - Requesters (`features/groups/requesters-list.tsx`): the members list's row pattern under its own `text-body` weight 600 title and a muted one-line hint; admins get a ghost "Remove" per row and a closed `<details>` "Removed requesters (n)" with "Restore".
 - Task panel line (`SourceTicketLine` in `features/tasks/source-message.tsx`): "Ticket:" muted weight 600, then `#123 subject` as an underlined weight 600 link to the ticket page, truncated, above the source message.
-
