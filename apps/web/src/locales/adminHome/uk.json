@@ -18,7 +18,8 @@
     "assigned_one": "{{count}} завдання призначено Вам",
     "assigned_few": "{{count}} завдання призначено Вам",
     "assigned_many": "{{count}} завдань призначено Вам",
-    "assigned_other": "{{count}} завдання призначено Вам"
+    "assigned_other": "{{count}} завдання призначено Вам",
+    "internal": "Внутрішнє"
   },
   "home": {
     "greeting": {

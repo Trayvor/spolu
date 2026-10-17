@@ -32,6 +32,8 @@ export const SidebarClientSchema = z.object({
   updatedAt: z.string(),
   /** The viewer manages this client. */
   managed: z.boolean(),
+  /** `internal`: the admin group, first in its own section (Phase 34); `client` otherwise. */
+  section: z.enum(['internal', 'client']).default('client'),
   /** Unread group chat messages (the Chat tab count). */
   unread: z.number().int(),
   /** The viewer's open tasks in this client (not in Completed). */

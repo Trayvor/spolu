@@ -18,7 +18,8 @@
     "assigned_one": "{{count}} úloha priradená vám",
     "assigned_few": "{{count}} úlohy priradené vám",
     "assigned_many": "{{count}} úlohy priradené vám",
-    "assigned_other": "{{count}} úloh priradených vám"
+    "assigned_other": "{{count}} úloh priradených vám",
+    "internal": "Interné"
   },
   "home": {
     "greeting": {

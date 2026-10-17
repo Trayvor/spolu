@@ -3,6 +3,15 @@ import { GroupModeSchema } from './notifications.js';
 
 const groupName = z.string().trim().min(1).max(100);
 
+/**
+ * `client`: a client's group (an eGrant instance). `admin`: the one internal group "eGrant tím"
+ * (Phase 34), read by every admin, never by a client; it has no eGrant URL, members or tickets.
+ */
+export const GroupKindSchema = z.enum(['client', 'admin']);
+export type GroupKind = z.infer<typeof GroupKindSchema>;
+/** A client's group, not the admin group: what client lists, counts and pickers show. */
+export const isClientGroup = (group: { kind: GroupKind }): boolean => group.kind === 'client';
+
 /** An active admin who manages a group. */
 export const GroupManagerSchema = z.object({ id: z.string(), name: z.string() });
 export type GroupManager = z.infer<typeof GroupManagerSchema>;
@@ -10,6 +19,8 @@ export type GroupManager = z.infer<typeof GroupManagerSchema>;
 export const GroupSummarySchema = z.object({
   id: z.string(),
   name: z.string(),
+  /** The server always sends it; the default keeps older payloads (and fixtures) valid. */
+  kind: GroupKindSchema.default('client'),
   hasLogo: z.boolean(),
   memberCount: z.number().int(),
   /** Cache-buster for the logo URL (`?v=`). */
@@ -25,7 +36,10 @@ export const GroupSummaryListSchema = z.array(GroupSummarySchema);
 export const GroupSchema = z.object({
   id: z.string(),
   name: z.string(),
-  egrantUrl: z.string(),
+  /** The server always sends it; the default keeps older payloads (and fixtures) valid. */
+  kind: GroupKindSchema.default('client'),
+  /** Null only for the admin group. */
+  egrantUrl: z.string().nullable(),
   hasLogo: z.boolean(),
   updatedAt: z.string(),
   /** Admins only. */
@@ -35,6 +49,9 @@ export type Group = z.infer<typeof GroupSchema>;
 
 export const GroupInputSchema = z.object({ name: groupName, egrantUrl: z.string().max(2048) });
 export type GroupInput = z.infer<typeof GroupInputSchema>;
+/** Editing the admin group: its name only (the logo has its own route). */
+export const AdminGroupInputSchema = z.object({ name: groupName });
+export type AdminGroupInput = z.infer<typeof AdminGroupInputSchema>;
 
 export const MemberSchema = z.object({ id: z.string(), name: z.string(), email: z.string() });
 export type Member = z.infer<typeof MemberSchema>;

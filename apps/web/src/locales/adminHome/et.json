@@ -14,7 +14,8 @@
     "unread_one": "{{count}} lugemata sõnum",
     "unread_other": "{{count}} lugemata sõnumit",
     "assigned_one": "{{count}} Teile määratud ülesanne",
-    "assigned_other": "{{count}} Teile määratud ülesannet"
+    "assigned_other": "{{count}} Teile määratud ülesannet",
+    "internal": "Sisemine"
   },
   "home": {
     "greeting": {

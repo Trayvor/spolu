@@ -129,7 +129,8 @@
     "done": "Valmis",
     "chosen": "Valitud kliendid",
     "remove": "Eemalda {{name}}",
-    "reset": "Lähtesta"
+    "reset": "Lähtesta",
+    "internal": "Sisemine"
   },
   "folders": {
     "label": "Kaust",

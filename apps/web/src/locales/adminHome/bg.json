@@ -14,7 +14,8 @@
     "unread_one": "{{count}} непрочетено съобщение",
     "unread_other": "{{count}} непрочетени съобщения",
     "assigned_one": "{{count}} задача, възложена на Вас",
-    "assigned_other": "{{count}} задачи, възложени на Вас"
+    "assigned_other": "{{count}} задачи, възложени на Вас",
+    "internal": "Вътрешни"
   },
   "home": {
     "greeting": {

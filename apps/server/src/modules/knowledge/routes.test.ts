@@ -19,6 +19,7 @@ import { addManager } from '../groups/managers.js';
 import { addMember, createGroup } from '../groups/service.js';
 import { user } from '../users/schema.js';
 import { addAdmin } from '../users/service.js';
+import { ensureAdminGroup } from '../groups/admin-group.js';
 
 type TestApp = Awaited<ReturnType<typeof buildTestApp>>;
 type Person = { id: string; cookie: string };
@@ -520,7 +521,10 @@ describe('knowledge API', () => {
       const g = await newGroup();
       await addManager(test.deps.db, g.id, admin.id);
       const res = await call('GET', '/api/knowledge/scope', admin.cookie);
-      expect(res.json()).toEqual({ managedGroupIds: [g.id] });
+      // With managed clients the default scope also has the admin group (Phase 34).
+      expect(res.json()).toEqual({
+        managedGroupIds: [g.id, await ensureAdminGroup(test.deps.db)],
+      });
     });
   });
 

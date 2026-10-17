@@ -14,7 +14,8 @@
     "unread_one": "{{count}} unread message",
     "unread_other": "{{count}} unread messages",
     "assigned_one": "{{count}} task assigned to you",
-    "assigned_other": "{{count}} tasks assigned to you"
+    "assigned_other": "{{count}} tasks assigned to you",
+    "internal": "Internal"
   },
   "home": {
     "greeting": {

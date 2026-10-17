@@ -8,7 +8,7 @@ import { groupChatNotifiesSql } from '../notifications/follows.js';
 /**
  * The admin sidebar in one statement: every group with the viewer's unread group chat count
  * (the Chat tab number), their open assigned tasks there, and whether they manage it. Ordered
- * managed first; inside each section unread, then assigned, then the rest, by name (a stable
+ * the admin group first (its own `internal` section, Phase 34), then managed; inside each section unread, then assigned, then the rest, by name (a stable
  * order, so rows do not jump while the admin reads).
  *
  * The unread number is 0 for a group whose chat never notifies the viewer (2026-10-17, the
@@ -25,6 +25,7 @@ export function sidebarSql(userId: string): SQL {
       select
         g.id as group_id,
         g.name,
+        g.kind = 'admin' as internal,
         g.logo_key is not null as has_logo,
         g.updated_at,
         g.id in ${managedGroupsSql(userId)} as managed,
@@ -42,13 +43,14 @@ export function sidebarSql(userId: string): SQL {
         group by t.group_id
       ) a on a.group_id = g.id
     ) s
-    order by managed desc, (unread > 0) desc, (assigned > 0) desc, name, group_id
+    order by internal desc, managed desc, (unread > 0) desc, (assigned > 0) desc, name, group_id
   `;
 }
 
 type Row = {
   group_id: string;
   name: string;
+  internal: boolean;
   has_logo: boolean;
   updated_at: string | Date;
   managed: boolean;
@@ -64,6 +66,7 @@ export async function getSidebar(db: Db, userId: string): Promise<SidebarClient[
     hasLogo: r.has_logo,
     updatedAt: new Date(r.updated_at).toISOString(),
     managed: r.managed,
+    section: r.internal ? 'internal' : 'client',
     unread: r.unread,
     assigned: r.assigned,
   }));

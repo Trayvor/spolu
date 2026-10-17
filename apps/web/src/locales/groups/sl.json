@@ -51,5 +51,8 @@
     "none": "Brez upravitelja",
     "empty": "Za ta filter ni skupin.",
     "clear": "Počisti filter"
+  },
+  "adminGroup": {
+    "hint": "Notranji klepet ekipe eGrant. Vidijo ga samo skrbniki."
   }
 }

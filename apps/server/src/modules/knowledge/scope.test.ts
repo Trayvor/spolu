@@ -6,6 +6,7 @@ import { addManager } from '../groups/managers.js';
 import { createGroup } from '../groups/service.js';
 import { addAdmin } from '../users/service.js';
 import { managedGroupIdsOf } from './scope.js';
+import { ensureAdminGroup } from '../groups/admin-group.js';
 
 const { db, close } = createDb(testDatabaseUrl);
 afterAll(() => close());
@@ -18,10 +19,10 @@ const newGroup = () =>
 const newAdmin = () => addAdmin(db, { email: `${randomUUID()}@example.com`, name: 'Admin' });
 
 describe('managedGroupIdsOf', () => {
-  it('returns the groups the admin manages (Phase 18)', async () => {
+  it('returns the groups the admin manages (Phase 18) and the admin group (Phase 34)', async () => {
     const [admin, g1, g2] = await Promise.all([newAdmin(), newGroup(), newGroup()]);
     await addManager(db, g1.id, admin.id);
-    expect(await managedGroupIdsOf(db, admin.id)).toEqual([g1.id]);
+    expect(await managedGroupIdsOf(db, admin.id)).toEqual([g1.id, await ensureAdminGroup(db)]);
     expect(g2.id).not.toBe(g1.id);
   });
 

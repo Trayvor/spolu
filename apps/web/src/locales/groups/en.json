@@ -51,5 +51,8 @@
     "none": "No manager",
     "empty": "No groups for this filter.",
     "clear": "Clear filter"
+  },
+  "adminGroup": {
+    "hint": "The eGrant team's internal chat. Only admins see it."
   }
 }

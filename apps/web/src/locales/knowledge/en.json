@@ -129,7 +129,8 @@
     "done": "Done",
     "chosen": "Chosen clients",
     "remove": "Remove {{name}}",
-    "reset": "Reset"
+    "reset": "Reset",
+    "internal": "Internal"
   },
   "folders": {
     "label": "Folder",

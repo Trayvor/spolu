@@ -10,6 +10,7 @@ import {
   type TaskPerson,
 } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
+import { withAdminGroup } from '../groups/admin-group.js';
 import { managedGroupIds } from '../groups/managers.js';
 
 /** The `after` cursor does not parse (route: 400 `invalid_filter`). */
@@ -46,7 +47,7 @@ export function bratislavaToday(now: Date): string {
 
 /**
  * The board's client scope: the explicit `clients` (`all`: every group, null), else the groups
- * the viewer manages, else every group (null).
+ * the viewer manages plus the admin group (Phase 34, decision 7), else every group (null).
  */
 export async function resolveClientIds(
   db: Db,
@@ -55,7 +56,7 @@ export async function resolveClientIds(
 ): Promise<string[] | null> {
   if (clients === 'all') return null;
   if (clients) return clients;
-  const managed = await managedGroupIds(db, viewerId);
+  const managed = await withAdminGroup(db, await managedGroupIds(db, viewerId));
   return managed.length > 0 ? managed : null;
 }
 

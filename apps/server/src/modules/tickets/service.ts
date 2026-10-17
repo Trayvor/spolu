@@ -34,7 +34,13 @@ import { countTasksFromTicket, listTasksFromTicket } from '../tasks/task-service
 import { getTicketChannel } from '../chat/service.js';
 import { isAdmin } from '../users/policy.js';
 import { getActiveRoles, getUserNames, listAdmins } from '../users/service.js';
-import { canAssignTicket, canBeTicketAssignee, canReadTicket, canSplitTicket } from './policy.js';
+import {
+  canAssignTicket,
+  canBeTicketAssignee,
+  canHoldTickets,
+  canReadTicket,
+  canSplitTicket,
+} from './policy.js';
 import { resolveRequester } from './requester.js';
 import { ticketAssignees, ticketAttachments, tickets } from './schema.js';
 import { noTimeEffect, type TimeEffect } from '../finance/task-time.js';
@@ -52,6 +58,14 @@ export type TicketFields = {
   dueDate: string | null;
   url: string | null;
 };
+
+/** The group cannot hold tickets: the admin group (Phase 34, `canHoldTickets`). */
+export class InvalidTicketGroupError extends Error {
+  constructor() {
+    super('The admin group has no tickets');
+    this.name = 'InvalidTicketGroupError';
+  }
+}
 
 export class TicketHasTasksError extends Error {
   constructor() {
@@ -147,6 +161,8 @@ export async function createTicket(
   input: CreateTicketInput,
 ): Promise<{ ticket: TicketRow; notifyRequester: boolean; duplicate: boolean }> {
   const { db } = deps;
+  const target = input.groupId === null ? null : await getGroup(db, input.groupId);
+  if (target && !canHoldTickets(target)) throw new InvalidTicketGroupError();
   const resolved =
     input.groupId === null
       ? { userId: null, notify: false }

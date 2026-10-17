@@ -135,7 +135,8 @@
     "done": "Končano",
     "chosen": "Izbrane stranke",
     "remove": "Odstrani {{name}}",
-    "reset": "Ponastavi"
+    "reset": "Ponastavi",
+    "internal": "Interno"
   },
   "folders": {
     "label": "Mapa",

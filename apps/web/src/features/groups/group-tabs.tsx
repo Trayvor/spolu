@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
+import type { GroupKind } from '@spolu/shared';
 import { useSession } from '@/features/auth/use-session';
 
 // 32 px to see, a 44 px tap area on phones (the transparent `after`); the colour change eases.
@@ -14,20 +15,30 @@ export type GroupTabBadges = Partial<
 
 /**
  * Chat, Tasks, Tickets, Knowledge, Members as filter pills: the current tab is the filled ink pill;
- * a finance admin (Phase 32) also has Financie, last.
+ * a finance admin (Phase 32) also has Financie, last. The admin group (Phase 34) has no Tickets
+ * and no Members.
  * They wrap from 641 px; on phones they stay on one line that scrolls sideways (no scrollbar), so
  * the chat keeps its height. The 6 px padding of that line holds the tap areas and focus rings.
  * A tab switch replaces the history entry (docs/design/README.md, "Navigation and Back").
  */
-export function GroupTabs({ groupId, badges }: { groupId: string; badges?: GroupTabBadges }) {
+export function GroupTabs({
+  groupId,
+  kind = 'client',
+  badges,
+}: {
+  groupId: string;
+  kind?: GroupKind;
+  badges?: GroupTabBadges;
+}) {
   const { t } = useTranslation();
   const finance = useSession()?.finance === true;
+  const client = kind === 'client';
   const tabs = [
     { key: 'chat', to: '/groups/$groupId/chat' },
     { key: 'tasks', to: '/groups/$groupId/tasks' },
-    { key: 'tickets', to: '/groups/$groupId/tickets' },
+    ...(client ? [{ key: 'tickets', to: '/groups/$groupId/tickets' } as const] : []),
     { key: 'knowledge', to: '/groups/$groupId/knowledge' },
-    { key: 'members', to: '/groups/$groupId/members' },
+    ...(client ? [{ key: 'members', to: '/groups/$groupId/members' } as const] : []),
     ...(finance ? [{ key: 'finance', to: '/groups/$groupId/finance' } as const] : []),
   ] as const;
   return (

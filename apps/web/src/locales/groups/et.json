@@ -51,5 +51,8 @@
     "none": "Haldurita",
     "empty": "Selle filtriga gruppe ei ole.",
     "clear": "Tühjenda filter"
+  },
+  "adminGroup": {
+    "hint": "eGranti meeskonna sisevestlus. Seda näevad ainult administraatorid."
   }
 }

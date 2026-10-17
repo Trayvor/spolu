@@ -16,7 +16,8 @@
     "unread_other": "{{count}} nepročitanih poruka",
     "assigned_one": "{{count}} zadatak dodijeljen Vama",
     "assigned_few": "{{count}} zadatka dodijeljena Vama",
-    "assigned_other": "{{count}} zadataka dodijeljenih Vama"
+    "assigned_other": "{{count}} zadataka dodijeljenih Vama",
+    "internal": "Interno"
   },
   "home": {
     "greeting": {

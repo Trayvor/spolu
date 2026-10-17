@@ -3,7 +3,7 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { i18n } from '@/i18n';
-import { ClientFilter } from './client-filter';
+import { ClientFilter, toClientOptions } from './client-filter';
 
 const t = (key: string, opts?: Record<string, unknown>) => i18n.t(key, opts);
 
@@ -222,5 +222,63 @@ describe('ClientFilter', () => {
     expect(
       screen.getByRole('button', { name: t('knowledge.clientFilter.pillAll') }),
     ).toBeDisabled();
+  });
+
+  describe('the admin group (Phase 34)', () => {
+    const TEAM = { id: 'team', name: 'eGrant tím', logoUrl: null, internal: true };
+
+    function TeamHarness({ onChange }: { onChange: (next: string[] | null) => void }) {
+      const [value, setValue] = useState<string[] | null>(null);
+      return (
+        <ClientFilter
+          groups={[...GROUPS, TEAM]}
+          // The server's scope lists the admin group with the managed clients.
+          managedIds={['g1', 'team']}
+          value={value}
+          onChange={(next) => {
+            onChange(next);
+            setValue(next);
+          }}
+        />
+      );
+    }
+
+    it('is the top option, in its own section, chosen by default with my clients', async () => {
+      const user = userEvent.setup();
+      const onChange = vi.fn();
+      render(<TeamHarness onChange={onChange} />);
+      const panel = await open(user, t('knowledge.clientFilter.pillMine', { count: 1 }));
+      const groups = within(panel).getAllByRole('group');
+      expect(groups[0]).toHaveAccessibleName(t('knowledge.clientFilter.internal'));
+      expect(names(groups[0]!)).toEqual(['eGrant tím']);
+      expect((within(groups[0]!).getByRole('checkbox') as HTMLInputElement).checked).toBe(true);
+      const managed = within(panel).getByRole('group', {
+        name: t('knowledge.clientFilter.managed'),
+      });
+      expect(names(managed)).toEqual(['Obec Lúčky']);
+      expect(groups[0]!.querySelector('[data-egrant-mark]')).not.toBeNull();
+      // Unticking it leaves my clients.
+      await user.click(within(groups[0]!).getByRole('checkbox'));
+      expect(onChange).toHaveBeenLastCalledWith(['g1']);
+    });
+
+    it('toClientOptions puts it first, or leaves it out', () => {
+      const summary = (id: string, name: string, kind: 'client' | 'admin') => ({
+        id,
+        name,
+        kind,
+        hasLogo: false,
+        memberCount: 0,
+        updatedAt: 'v',
+        managers: [],
+        managedByMe: false,
+      });
+      const all = [summary('a', 'Acme', 'client'), summary('team', 'eGrant tím', 'admin')];
+      expect(toClientOptions(all, true).map((o) => [o.id, !!o.internal])).toEqual([
+        ['team', true],
+        ['a', false],
+      ]);
+      expect(toClientOptions(all, false).map((o) => o.id)).toEqual(['a']);
+    });
   });
 });

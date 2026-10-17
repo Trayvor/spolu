@@ -18,7 +18,8 @@
     "assigned_one": "{{count}} vam dodeljena naloga",
     "assigned_two": "{{count}} vam dodeljeni nalogi",
     "assigned_few": "{{count}} vam dodeljene naloge",
-    "assigned_other": "{{count}} vam dodeljenih nalog"
+    "assigned_other": "{{count}} vam dodeljenih nalog",
+    "internal": "Interno"
   },
   "home": {
     "greeting": {

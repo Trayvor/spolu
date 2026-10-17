@@ -135,7 +135,8 @@
     "done": "Hotovo",
     "chosen": "Vybraní klienti",
     "remove": "Odstrániť {{name}}",
-    "reset": "Predvolené"
+    "reset": "Predvolené",
+    "internal": "Interné"
   },
   "folders": {
     "label": "Priečinok",

@@ -13,7 +13,7 @@ import {
 } from './search';
 import { ChatsCheckbox } from './chats-checkbox';
 import { Avatar } from '@/components/avatar';
-import { ClientFilter, type ClientOption } from '@/components/client-filter';
+import { ClientFilter, type ClientOption, toClientOptions } from '@/components/client-filter';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
@@ -112,17 +112,7 @@ export function KnowledgePage() {
 
   const groups = useQuery(groupsQuery).data;
   const scope = useQuery(knowledgeScopeQuery).data;
-  const options = useMemo<ClientOption[]>(
-    () =>
-      (groups ?? []).map((group) => ({
-        id: group.id,
-        name: group.name,
-        logoUrl: group.hasLogo
-          ? `/api/groups/${encodeURIComponent(group.id)}/logo?v=${encodeURIComponent(group.updatedAt)}`
-          : null,
-      })),
-    [groups],
-  );
+  const options = useMemo<ClientOption[]>(() => toClientOptions(groups ?? [], true), [groups]);
 
   const loaded = groups !== undefined && scope !== undefined;
   const allIds = options.map((group) => group.id);
@@ -164,7 +154,10 @@ export function KnowledgePage() {
   const collator = new Intl.Collator(i18n.language, { sensitivity: 'base' });
   const shownClients = options
     .filter((option) => shownIds === null || shownIds.has(option.id))
-    .sort((a, b) => collator.compare(a.name, b.name));
+    // The admin group "eGrant tím" first (Phase 34), then the clients by name.
+    .sort(
+      (a, b) => Number(!!b.internal) - Number(!!a.internal) || collator.compare(a.name, b.name),
+    );
   const openClient = options.find((option) => option.id === search.at) ?? null;
   const goTo = (at: string | undefined, folder: string | undefined) =>
     update(

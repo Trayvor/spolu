@@ -100,4 +100,20 @@ describe('ClientSidebarList', () => {
     expect(dotOf(/^Quiet/)).toBeNull();
     expect(screen.getByRole('link', { name: /^Assigned/ })).toHaveAttribute('title', 'Assigned');
   });
+
+  it('the admin group sits first in its own Internal section (Phase 34)', async () => {
+    const team = client({ groupId: 'team', name: 'eGrant tím', section: 'internal' });
+    await renderWithRouter(() => <ClientSidebarList clients={[team, ...CLIENTS]} rowHeight={40} />);
+    const headings = screen.getAllByRole('heading').map((h) => h.textContent);
+    expect(headings).toEqual([
+      t('adminHome.sidebar.internal'),
+      t('adminHome.sidebar.managed'),
+      t('adminHome.sidebar.others'),
+    ]);
+    const internal = screen.getByRole('heading', { name: t('adminHome.sidebar.internal') });
+    const links = within(internal.closest('section')!).getAllByRole('link');
+    expect(links).toHaveLength(1);
+    expect(links[0]).toHaveTextContent('eGrant tím');
+    expect(links[0]!.querySelector('[data-egrant-mark]')).not.toBeNull();
+  });
 });

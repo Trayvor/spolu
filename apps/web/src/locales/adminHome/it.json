@@ -16,7 +16,8 @@
     "unread_other": "{{count}} messaggi non letti",
     "assigned_one": "{{count}} attività assegnata a Lei",
     "assigned_many": "{{count}} attività assegnate a Lei",
-    "assigned_other": "{{count}} attività assegnate a Lei"
+    "assigned_other": "{{count}} attività assegnate a Lei",
+    "internal": "Interno"
   },
   "home": {
     "greeting": {

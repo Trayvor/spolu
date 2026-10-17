@@ -48,6 +48,7 @@ function Row({
             version={client.updatedAt}
             size={24}
             className="rounded-md"
+            admin={client.section === 'internal'}
           />
           {collapsed && dot && (
             <span
@@ -80,7 +81,8 @@ function Row({
 }
 
 /**
- * The admin's client list: a find field, then "Managed by you" and "Other clients" in the
+ * The admin's client list: a find field, then "Internal" (the admin group "eGrant tím", Phase 34),
+ * "Managed by you" and "Other clients" in the
  * server's order (unread, then assigned, then the rest, by name). The sidebar uses 40 px rows,
  * the phone home 48 px; collapsed (the sidebar's rail) shows logos with a dot only.
  */
@@ -102,9 +104,10 @@ export function ClientSidebarList({
     const needle = fold(query.trim());
     return needle ? clients.filter((c) => fold(c.name).includes(needle)) : clients;
   }, [clients, query]);
-  const managed = shown.filter((c) => c.managed);
-  const others = shown.filter((c) => !c.managed);
-  const anyManaged = clients.some((c) => c.managed);
+  const internal = shown.filter((c) => c.section === 'internal');
+  const managed = shown.filter((c) => c.section !== 'internal' && c.managed);
+  const others = shown.filter((c) => c.section !== 'internal' && !c.managed);
+  const anyManaged = clients.some((c) => c.section !== 'internal' && c.managed);
 
   const list = (items: SidebarClient[]) => (
     <ul className="flex flex-col gap-0.5">
@@ -126,6 +129,10 @@ export function ClientSidebarList({
   if (collapsed) {
     return (
       <nav aria-label={t('adminHome.sidebar.title')} className="flex flex-col gap-2">
+        {list(internal)}
+        {internal.length > 0 && managed.length + others.length > 0 && (
+          <hr className="mx-2 border-border" />
+        )}
         {list(managed)}
         {managed.length > 0 && others.length > 0 && <hr className="mx-2 border-border" />}
         {list(others)}
@@ -149,6 +156,15 @@ export function ClientSidebarList({
       {shown.length === 0 && (
         <p className="px-2 text-micro text-muted-foreground">{t('adminHome.sidebar.noMatch')}</p>
       )}
+      {internal.length > 0 && (
+        <section>
+          {heading(t('adminHome.sidebar.internal'))}
+          {list(internal)}
+        </section>
+      )}
+      {internal.length > 0 && managed.length + others.length > 0 && (
+        <hr className="mx-2 border-border" />
+      )}
       {anyManaged ? (
         <>
           {managed.length > 0 && (
@@ -166,7 +182,7 @@ export function ClientSidebarList({
           )}
         </>
       ) : (
-        shown.length > 0 && list(shown)
+        others.length > 0 && list(others)
       )}
     </nav>
   );

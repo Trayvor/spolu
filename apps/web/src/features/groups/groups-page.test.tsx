@@ -106,6 +106,34 @@ describe('groups page', () => {
   beforeEach(() => setLanguage('en'));
   afterEach(() => vi.unstubAllGlobals());
 
+  it('the admin group is pinned above the list, without managers or members (Phase 34)', async () => {
+    const team = {
+      ...BETA,
+      id: 'team',
+      name: 'eGrant tím',
+      kind: 'admin',
+      managers: [],
+      memberCount: 0,
+    };
+    mockApi([ACME, BETA, team]);
+    renderGroups();
+    const pinned = await screen.findByText('eGrant tím');
+    const card = pinned.closest('[data-admin-group]') as HTMLElement;
+    expect(card).not.toBeNull();
+    expect(within(card).getByRole('link', { name: /eGrant tím/ })).toHaveAttribute(
+      'href',
+      '/groups/team',
+    );
+    expect(within(card).queryByText(t('groups.members', { count: 0 }))).toBeNull();
+    expect(within(card).queryByRole('button', { name: t('groups.managers.manage') })).toBeNull();
+    expect(card.querySelector('[data-egrant-mark]')).not.toBeNull();
+    // It is no client: the count and the list are the two client groups.
+    expect(document.querySelector('[data-group-count]')).toHaveTextContent('2');
+    expect(screen.getAllByRole('listitem').map((li) => li.textContent)).not.toContainEqual(
+      expect.stringContaining('eGrant tím'),
+    );
+  });
+
   it('lists groups with logo or placeholder and member count', async () => {
     mockApi([ACME, BETA]);
     renderGroups();

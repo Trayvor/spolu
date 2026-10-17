@@ -1,5 +1,6 @@
 import type { FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify';
 import {
+  AdminGroupInputSchema,
   ErrorCodes,
   GroupInputSchema,
   InviteMemberBodySchema,
@@ -19,6 +20,7 @@ import { requireAdmin, requireUser } from '../auth/session.js';
 import { revokeAllSessions } from '../auth/service.js';
 import { getEffectiveGroupMode } from '../notifications/modes.js';
 import { deactivateUser, EmailTakenError, getUserById, reactivateUser } from '../users/service.js';
+import { isAdminGroup } from './admin-group.js';
 import { emitManagers } from './events.js';
 import { logoRoutes } from './logo.js';
 import { addManager, GroupNotFoundError, NotAnAdminError, removeManager } from './managers.js';
@@ -42,6 +44,7 @@ import {
   listMembers,
   MemberRemovedError,
   regenerateInvite,
+  renameAdminGroup,
   updateGroup,
   type GroupRow,
 } from './service.js';
@@ -58,6 +61,9 @@ type MemberParams = { Params: { id: string; userId: string } };
 
 const notFound = (reply: FastifyReply) => reply.code(404).send({ error: ErrorCodes.notFound });
 const forbidden = (reply: FastifyReply) => reply.code(403).send({ error: ErrorCodes.forbidden });
+/** The admin group has no members, invites or managers (Phase 34). */
+const adminGroupRefused = (reply: FastifyReply) =>
+  reply.code(409).send({ error: ErrorCodes.adminGroup });
 
 /** Calls a minute per admin to become or stop being a manager. */
 export const managerRateLimit = (config: Config): number => config.managerRateLimitPerMinute ?? 120;
@@ -74,11 +80,30 @@ export const groupsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, {
   const toGroup = (row: GroupRow, withInvite: boolean): Group => ({
     id: row.id,
     name: row.name,
+    kind: row.kind,
     egrantUrl: row.egrantUrl,
     hasLogo: row.logoKey !== null,
     updatedAt: row.updatedAt.toISOString(),
-    ...(withInvite ? { inviteUrl: inviteUrl(row.inviteToken) } : {}),
+    // The admin group's token is never shown.
+    ...(withInvite && !isAdminGroup(row) ? { inviteUrl: inviteUrl(row.inviteToken) } : {}),
   });
+
+  /**
+   * A client group for a members, invite or manager route: sends 404 for an unknown id and
+   * `409 admin_group` for the admin group, and returns null then.
+   */
+  const clientGroupOr = async (id: string, reply: FastifyReply): Promise<GroupRow | null> => {
+    const group = await getGroup(db, id);
+    if (!group) {
+      notFound(reply);
+      return null;
+    }
+    if (isAdminGroup(group)) {
+      adminGroupRefused(reply);
+      return null;
+    }
+    return group;
+  };
 
   /** Maps the service errors of create/update to API errors; rethrows anything else. */
   const groupWriteError = (error: unknown, reply: FastifyReply): FastifyReply => {
@@ -118,6 +143,15 @@ export const groupsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, {
 
   app.patch<IdParams>('/groups/:id', { preHandler: anyUser }, async (request, reply) => {
     if (!canManageGroups(request.user!)) return forbidden(reply);
+    const existing = await getGroup(db, request.params.id);
+    if (!existing) return notFound(reply);
+    if (isAdminGroup(existing)) {
+      // Name only: the admin group has no eGrant URL.
+      const named = AdminGroupInputSchema.safeParse(request.body);
+      if (!named.success) return reply.code(400).send({ error: ErrorCodes.validationFailed });
+      const renamed = await renameAdminGroup(db, existing.id, named.data.name);
+      return renamed ? toGroup(renamed, true) : notFound(reply);
+    }
     const body = GroupInputSchema.safeParse(request.body);
     if (!body.success) return reply.code(400).send({ error: ErrorCodes.validationFailed });
     try {
@@ -131,7 +165,7 @@ export const groupsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, {
   app.post<IdParams>('/groups/:id/invite', { preHandler: anyUser }, async (request, reply) => {
     if (!canManageGroups(request.user!)) return forbidden(reply);
     // Check first: regenerateInvite throws a plain Error for an unknown id.
-    if (!(await getGroup(db, request.params.id))) return notFound(reply);
+    if (!(await clientGroupOr(request.params.id, reply))) return reply;
     return { inviteUrl: inviteUrl(await regenerateInvite(db, request.params.id)) };
   });
 
@@ -139,7 +173,9 @@ export const groupsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, {
     const actor = request.user!;
     const { id } = request.params;
     if (!canReadGroup(actor, id, await clientGroupIds(db, actor.id))) return notFound(reply);
-    if (!(await getGroup(db, id))) return notFound(reply);
+    const group = await getGroup(db, id);
+    // The admin group has no Members tab (Phase 34).
+    if (!group || isAdminGroup(group)) return notFound(reply);
     return listMembers(db, id, { removed: false });
   });
 
@@ -156,7 +192,7 @@ export const groupsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, {
     const actor = request.user!;
     const { id } = request.params;
     if (!canReadGroup(actor, id, await clientGroupIds(db, actor.id))) return notFound(reply);
-    if (!(await getGroup(db, id))) return notFound(reply);
+    if (!(await clientGroupOr(id, reply))) return reply;
     return listMembers(db, id, { removed: false, role: 'ziadatel' });
   });
 
@@ -165,7 +201,7 @@ export const groupsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, {
     { preHandler: anyUser },
     async (request, reply) => {
       if (!canManageGroups(request.user!)) return forbidden(reply);
-      if (!(await getGroup(db, request.params.id))) return notFound(reply);
+      if (!(await clientGroupOr(request.params.id, reply))) return reply;
       return listMembers(db, request.params.id, { removed: true, role: 'ziadatel' });
     },
   );
@@ -175,7 +211,7 @@ export const groupsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, {
     { preHandler: anyUser },
     async (request, reply) => {
       if (!canManageGroups(request.user!)) return forbidden(reply);
-      if (!(await getGroup(db, request.params.id))) return notFound(reply);
+      if (!(await clientGroupOr(request.params.id, reply))) return reply;
       return listMembers(db, request.params.id, { removed: true });
     },
   );
@@ -188,8 +224,8 @@ export const groupsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, {
     const actor = request.user!;
     if (!canManageGroups(actor)) return forbidden(reply);
     if (!allowInvite(actor.id)) return reply.code(429).send({ error: ErrorCodes.rateLimited });
-    const group = await getGroup(db, request.params.id);
-    if (!group) return notFound(reply);
+    const group = await clientGroupOr(request.params.id, reply);
+    if (!group) return reply;
     const body = InviteMemberBodySchema.safeParse(request.body);
     if (!body.success) return reply.code(400).send({ error: ErrorCodes.validationFailed });
 
@@ -244,7 +280,7 @@ export const groupsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, {
     { preHandler: anyUser },
     async (request, reply) => {
       if (!canManageGroups(request.user!)) return forbidden(reply);
-      if (!(await getGroup(db, request.params.id))) return notFound(reply);
+      if (!(await clientGroupOr(request.params.id, reply))) return reply;
       return listInvitedMembers(db, request.params.id);
     },
   );
@@ -256,6 +292,7 @@ export const groupsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, {
     async (request, reply) => {
       if (!canManageGroups(request.user!)) return forbidden(reply);
       const { id, userId } = request.params;
+      if (!(await clientGroupOr(id, reply))) return reply;
       if (!(await cancelInvitedMembership(db, id, userId))) return notFound(reply);
       return reply.code(204).send();
     },
@@ -273,6 +310,7 @@ export const groupsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, {
     { preHandler: anyUser },
     async (request, reply) => {
       if (!canManageGroups(request.user!)) return forbidden(reply);
+      if (!(await clientGroupOr(request.params.id, reply))) return reply;
       const target = await groupMember(request.params.id, request.params.userId);
       if (!target) return notFound(reply);
       if (!canRemoveMember(request.user!, target)) return forbidden(reply);
@@ -294,6 +332,7 @@ export const groupsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, {
     { preHandler: anyUser },
     async (request, reply) => {
       if (!canManageGroups(request.user!)) return forbidden(reply);
+      if (!(await clientGroupOr(request.params.id, reply))) return reply;
       const target = await groupMember(request.params.id, request.params.userId);
       if (!target) return notFound(reply);
       if (!canRemoveMember(request.user!, target)) return forbidden(reply);
@@ -327,7 +366,8 @@ export const groupsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, {
       return reply.code(429).send({ error: ErrorCodes.rateLimited });
     }
     // removeManager is idempotent and never sees the group, so check it here for every route.
-    if (!(await getGroup(db, groupId))) return notFound(reply);
+    // The admin group has no managers: every admin is effectively one (Phase 34).
+    if (!(await clientGroupOr(groupId, reply))) return reply;
     try {
       const { changed, managers } = await change(db, groupId, targetId);
       const response = await answer(managers);

@@ -43,13 +43,19 @@ export function roleDefaultMode(role: Role): GroupMode {
   return role === 'client' ? 'all' : 'mentions';
 }
 
-/** The per-group override wins, then the user's own default, then the role default. */
+/**
+ * The per-group override wins, then the user's own default, then the role default. In the admin
+ * group (Phase 34) `all` comes before the user's default: a team chat nobody hears is not a chat.
+ */
 export function effectiveGroupMode(input: {
   override: GroupMode | null;
   defaultMode: GroupMode | null;
   role: Role;
+  adminGroup?: boolean;
 }): GroupMode {
-  return input.override ?? input.defaultMode ?? roleDefaultMode(input.role);
+  if (input.override) return input.override;
+  if (input.adminGroup) return 'all';
+  return input.defaultMode ?? roleDefaultMode(input.role);
 }
 
 /**
@@ -62,6 +68,8 @@ export const NotificationModesSchema = z.object({
   roleDefault: GroupModeSchema,
   overrides: z.record(z.string(), GroupModeSchema),
   managerSet: z.array(z.string()),
+  /** The admin group's id (admins only; its default mode is `all`), else null. */
+  adminGroupId: z.string().nullable().optional(),
 });
 export type NotificationModes = z.infer<typeof NotificationModesSchema>;
 
