@@ -13,7 +13,7 @@ export function bodyExcerpt(body: string | null): string | null {
 /**
  * "Ticket created" to the ticket's initiator (Phase 21): its number and subject, the first lines
  * of the text and a button to the ticket: a one-click sign-in link for a ziadatel (`oneClick`,
- * ADR 0020), the code login for an admin or a client of a group.
+ * ADR 0022), the code login for an admin or a client of a group.
  */
 export function ticketCreatedEmail(
   r: { to: string; lang: UserLanguage; publicUrl: string },

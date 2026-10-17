@@ -59,7 +59,7 @@ test('a ticket from eGrant: requester login, chat, status, email and tasks', asy
   });
   const foreignId = ((await foreign.json()) as { id: string }).id;
 
-  // 2. The "Ticket created" email arrives once, with a one-click sign-in link (ADR 0020).
+  // 2. The "Ticket created" email arrives once, with a one-click sign-in link (ADR 0022).
   const mail = await waitForMessage(page.request, email, /bol vytvorený/);
   expect(mail.Subject).toBe(`Tiket #${number} bol vytvorený: ${subject}`);
   const link = /https?:\/\/\S+\/t#[A-Za-z0-9_-]+/.exec(mail.Text)?.[0];

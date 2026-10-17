@@ -56,7 +56,7 @@ export const verification = pgTable(
 );
 
 /**
- * One-click sign-in links from the "Ticket created" email (ADR 0020). Only the SHA-256 hash of
+ * One-click sign-in links from the "Ticket created" email (ADR 0022). Only the SHA-256 hash of
  * the token is stored; a link signs its user in until `expires_at`, as often as it is used.
  * Owned by us, not by better-auth.
  */

@@ -12,7 +12,7 @@ import { clientGroupIds } from '../groups/memberships.js';
 import { ticketSignInLinks } from './schema.js';
 
 /**
- * One-click sign-in from the "Ticket created" email (ADR 0020): the button carries a random
+ * One-click sign-in from the "Ticket created" email (ADR 0022): the button carries a random
  * token that signs its user in and opens the ticket, without a login code. Only for a
  * ziadatel: not an admin, no active `client` membership of any group, not deactivated; checked
  * when the link is made and again when it is used.

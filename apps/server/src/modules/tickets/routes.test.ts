@@ -149,7 +149,7 @@ describe('tickets API', () => {
 
       const mail = await latestEmail(email);
       expect(mail.subject).toBe(`Tiket #${number} bol vytvorený: Nejde odoslať žiadosť`);
-      // A one-click sign-in link (ADR 0020): it signs the requester in and answers the ticket.
+      // A one-click sign-in link (ADR 0022): it signs the requester in and answers the ticket.
       const token = /\/t#([A-Za-z0-9_-]{43,})/.exec(mail.text)?.[1];
       expect(token).toBeDefined();
       expect(mail.text).toContain('bez kódu');

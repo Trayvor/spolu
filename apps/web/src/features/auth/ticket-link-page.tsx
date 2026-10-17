@@ -14,7 +14,7 @@ async function signInWithTicketLink(token: string): Promise<string> {
 }
 
 /**
- * `/t#<token>`: the one-click link of the "Ticket created" email (ADR 0020). The token is in the
+ * `/t#<token>`: the one-click link of the "Ticket created" email (ADR 0022). The token is in the
  * fragment, so it reaches no server log; it is posted once, and the page is replaced in the
  * history. Signed in, the visitor goes to the ticket (the signed-in layout asks for an empty name
  * first); a refused link goes to the login page with a notice and the email filled in.

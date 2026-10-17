@@ -1,4 +1,4 @@
-# 0020 One-click sign-in link in the "Ticket created" email
+# 0022 One-click sign-in link in the "Ticket created" email
 
 Date: 2026-10-17
 Status: accepted

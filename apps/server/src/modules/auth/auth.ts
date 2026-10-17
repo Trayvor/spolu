@@ -26,7 +26,7 @@ export const LOGIN_CODE_JOB_OPTIONS = {
 };
 
 /**
- * The better-auth instance: email-code login (and the ticket email's one-click link, ADR 0020),
+ * The better-auth instance: email-code login (and the ticket email's one-click link, ADR 0022),
  * sessions in the database.
  * Users are created by us (superadmin on start, admins by admins), never by sign-up.
  */

@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { withDb } from './db';
 import { waitForMessage } from './mailpit';
 
-// ADR 0020: the "Ticket created" email signs the requester in with one click.
+// ADR 0022: the "Ticket created" email signs the requester in with one click.
 const KEY = 'e2e-tickets-key-0123456789';
 
 test('the ticket email link signs a nameless requester in, asks the name, opens the ticket', async ({

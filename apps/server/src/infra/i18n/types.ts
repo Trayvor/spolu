@@ -72,7 +72,7 @@ export type ServerTexts = {
       received(number: number, title: string): string;
       /** Asks to sign in with a code (an admin's or a group client's email). */
       followUp: string;
-      /** Says the button signs in without a code (a ziadatel's email, ADR 0020). */
+      /** Says the button signs in without a code (a ziadatel's email, ADR 0022). */
       followUpLink: string;
       button: string;
     };
