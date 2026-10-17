@@ -380,6 +380,8 @@ Scope: review the whole project for places where performance can sag, for dead o
 
 Done when: the findings report is written and agreed with the owner, every accepted finding is fixed in its own merged pull request with before/after numbers, and the remaining ones are listed as later work.
 
+Status: findings report written ([2026-10-17 findings](superpowers/specs/2026-10-17-phase-27-review-findings.md)): 8 fix batches (foreign-key indexes, JIT off, faster web tests, entry chunk, precache, first-join refetch, dead code, Docker image) in their own pull requests; the rest is listed there as proposed, for the owner to decide.
+
 ## Phase 28 — Chat editor and AI text tools
 
 Owner request (2026-10-17). Starts after Phase 27. Needs a spec (brainstorming) and an ADR for the editor library.
