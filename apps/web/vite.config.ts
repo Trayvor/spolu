@@ -4,6 +4,7 @@ import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { VitePWA } from 'vite-plugin-pwa';
 import { pwaManifest } from './pwa-manifest.js';
+import { lazyLanguageChunk, lazyLanguageGlobs } from './pwa-precache.js';
 
 export default defineConfig({
   plugins: [
@@ -19,6 +20,21 @@ export default defineConfig({
         // Push and notification-click handlers live in public/push-sw.js, outside the generated worker.
         importScripts: ['/push-sw.js'],
         globPatterns: ['**/*.{js,css,html}'],
+        // The seven lazy languages' texts are cached on first use, not precached (see
+        // pwa-precache.ts). Hashed names never change content, so the cache never goes stale.
+        globIgnores: lazyLanguageGlobs,
+        runtimeCaching: [
+          {
+            // A RegExp, not a function: the plugin writes it into the generated worker.
+            urlPattern: lazyLanguageChunk,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'lazy-languages',
+              // Old builds' chunks drop out once newer ones fill it.
+              expiration: { maxEntries: 400 },
+            },
+          },
+        ],
         navigateFallback: '/index.html',
         // API calls and the WebSocket must always reach the server, never the cached shell.
         navigateFallbackDenylist: [/^\/api/, /^\/socket\.io/, /^\/files/],
