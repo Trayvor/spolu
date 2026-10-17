@@ -135,6 +135,52 @@ describe('useBoardEvents', () => {
     await waitFor(() => expect(fetchBoard).toHaveBeenCalledTimes(2));
   });
 
+  it('does not refetch on the first join of a cold load', async () => {
+    // The join ack arrives after the board loaded, or while it loads.
+    for (const ackFirst of [false, true]) {
+      fetchBoard.mockClear();
+      client.clear();
+      const view = render(tree(0));
+      if (ackFirst) view.rerender(tree(1));
+      await waitFor(() => expect(cached()).toBeDefined());
+      view.rerender(tree(1));
+      await new Promise((r) => setTimeout(r, 20));
+      expect(fetchBoard).toHaveBeenCalledTimes(1);
+      view.rerender(tree(2)); // a real rejoin
+      await waitFor(() => expect(fetchBoard).toHaveBeenCalledTimes(2));
+      view.unmount();
+    }
+  });
+
+  it('refetches on the first join a board cached before the mount', async () => {
+    client.setQueryData(boardQuery('g1').queryKey, initial, { updatedAt: Date.now() - 10_000 });
+    const view = render(tree(0));
+    await new Promise((r) => setTimeout(r, 20));
+    expect(fetchBoard).not.toHaveBeenCalled(); // still fresh (staleTime)
+    view.rerender(tree(1));
+    await waitFor(() => expect(fetchBoard).toHaveBeenCalledTimes(1));
+  });
+
+  it('on the first join invalidates only task details cached before the mount', async () => {
+    const detail = (id: string) => ({
+      ...task(id),
+      description: '',
+      files: [],
+      sourceMessage: null,
+      sourceTicket: null,
+    });
+    const old = taskQuery('t1').queryKey;
+    client.setQueryData(old, detail('t1'), { updatedAt: Date.now() - 10_000 });
+    const view = render(tree(0));
+    await waitFor(() => expect(cached()).toBeDefined());
+    const fresh = taskQuery('t2').queryKey;
+    client.setQueryData(fresh, detail('t2'));
+    view.rerender(tree(1));
+    await waitFor(() => expect(client.getQueryState(old)!.isInvalidated).toBe(true));
+    expect(client.getQueryState(fresh)!.isInvalidated).toBe(false);
+    expect(fetchBoard).toHaveBeenCalledTimes(1);
+  });
+
   it('invalidates a cached task detail when a newer board:task arrives', async () => {
     render(tree(1));
     await waitFor(() => expect(cached()).toBeDefined());

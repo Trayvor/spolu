@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient, type Query } from '@tanstack/react-query';
 import {
   BoardEvents,
   RemindersEvents,
@@ -12,6 +12,7 @@ import {
 } from '@spolu/shared';
 import { useGroupRoomJoins } from '@/features/groups/use-group-room';
 import { getSocket } from '@/lib/socket';
+import { firstJoinCheck } from '@/lib/socket-history';
 import { boardQuery, taskQuery } from './api';
 import { removeTask, replaceBuckets, setUpcomingReminders, upsertTask } from './board-cache';
 
@@ -21,12 +22,16 @@ const TASK_DETAILS_KEY = ['tasks', 'task'] as const;
 /**
  * Applies the board events of the open group to the cached board. Room membership comes from
  * the group layout's `useGroupRoom`; after every later (re)join the board is refetched, since
- * events sent while the socket was out of the room are lost.
+ * events sent while the socket was out of the room are lost. The first join after the mount
+ * refetches only what `firstJoinCheck` says may have missed events (a board cached before the
+ * mount, anything after the socket was down), not the board the mount is loading anyway.
  */
 export function useBoardEvents(groupId: string): void {
   const queryClient = useQueryClient();
   const joins = useGroupRoomJoins();
   const seenJoins = useRef(joins);
+  // Set while the room is not joined yet; `null` once its first join has been handled.
+  const firstJoin = useRef<ReturnType<typeof firstJoinCheck> | null>(null);
 
   useEffect(() => {
     const socket = getSocket();
@@ -85,10 +90,20 @@ export function useBoardEvents(groupId: string): void {
   }, [groupId, queryClient]);
 
   useEffect(() => {
+    if (joins === 0) {
+      // Not in the room yet (the mount, or a group switch): its first join may skip a refetch.
+      seenJoins.current = 0;
+      firstJoin.current = firstJoinCheck(getSocket());
+      return;
+    }
     if (seenJoins.current === joins) return;
     seenJoins.current = joins;
-    void queryClient.invalidateQueries({ queryKey: boardQuery(groupId).queryKey, exact: true });
+    const stale = firstJoin.current;
+    firstJoin.current = null;
+    const predicate = stale ? (query: Query) => stale(query.state) : undefined;
+    const key = boardQuery(groupId).queryKey;
+    void queryClient.invalidateQueries({ queryKey: key, exact: true, predicate });
     // Task details cached meanwhile may have missed events too (an open panel refetches).
-    void queryClient.invalidateQueries({ queryKey: TASK_DETAILS_KEY });
+    void queryClient.invalidateQueries({ queryKey: TASK_DETAILS_KEY, predicate });
   }, [joins, groupId, queryClient]);
 }

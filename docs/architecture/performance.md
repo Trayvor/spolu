@@ -18,6 +18,7 @@ Spolu must feel instant: faster than Microsoft Teams on a cheap phone over mobil
 - Feature texts are lazy locale namespaces (`src/locales/<name>/<code>.json`), loaded with the route that renders them (`withNamespaces` in `router.tsx`, see [overview.md](overview.md), "i18n"). Only the eager shell's texts go in the main locale files.
 - Before adding a dependency, check its gzip size (bundlephobia or the build output). Prefer a few lines of our own code to a large library used for one function. A new runtime dependency needs an ADR anyway.
 - Lists that grow (messages, tasks, tickets, members) are paginated by cursor and virtualized when long. Never load a whole list.
+- A socket (re)join or `connect` refetches only what may have missed events: use `firstJoinCheck` (`lib/socket-history.ts`, see [realtime.md](realtime.md)) so the first join of a screen does not refetch what its mount just loaded. Measured in the hooks' tests (Phase 27, W4): a cold load of the Tasks tab sends 1 board request instead of 2 (the second also invalidated every cached task detail), the Knowledge tab 1 list request instead of 2 (plus the folders), and the ticket and bulk email lists 1 instead of 2 when the socket connects after they loaded.
 - Optimistic UI for the user's own writes (a sent message appears at once, then is confirmed).
 - Images: resized and compressed on upload; lists and chat show thumbnails; full size only on open.
 - No fancy effects (see [design/README.md](../design/README.md), "Keep it light").
