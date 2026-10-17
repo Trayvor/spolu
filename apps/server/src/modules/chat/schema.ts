@@ -100,6 +100,14 @@ export const messages = pgTable(
     index('messages_mentions_all_reply_idx')
       .on(t.channelId, t.createdAt)
       .where(sql`${t.mentionsAll} and ${t.deletedAt} is null and ${t.parentId} is not null`),
+    // The self-references' cascades: without them every deleted message (a channel's, with a
+    // task or group) scanned the whole table twice (Phase 27: 95 s for 2 000 messages).
+    index('messages_parent_id_idx')
+      .on(t.parentId)
+      .where(sql`${t.parentId} is not null`),
+    index('messages_reply_to_id_idx')
+      .on(t.replyToId)
+      .where(sql`${t.replyToId} is not null`),
   ],
 );
 
@@ -149,7 +157,11 @@ export const readStates = pgTable(
       .references(() => channels.id, { onDelete: 'cascade' }),
     lastReadAt: timestamptz('last_read_at').notNull(),
   },
-  (t) => [primaryKey({ columns: [t.userId, t.channelId] })],
+  (t) => [
+    primaryKey({ columns: [t.userId, t.channelId] }),
+    // The cascade from a deleted channel.
+    index('read_states_channel_idx').on(t.channelId),
+  ],
 );
 
 /**
@@ -181,5 +193,7 @@ export const threadReadStates = pgTable(
     index('thread_read_states_unread_idx')
       .on(t.userId, t.channelId)
       .where(sql`${t.lastReplyAt} > ${t.lastReadAt}`),
+    // The cascade from a deleted channel.
+    index('thread_read_states_channel_idx').on(t.channelId),
   ],
 );

@@ -54,6 +54,8 @@ export const tickets = pgTable(
     check('tickets_source_check', sql`${t.source} in ('api', 'manual')`),
     index('tickets_group_status_created_idx').on(t.groupId, t.status, t.createdAt.desc()),
     index('tickets_requester_created_idx').on(t.requesterUserId, t.createdAt.desc()),
+    // The admins' global list (`scope=all`), newest first with no group filter.
+    index('tickets_created_idx').on(t.createdAt.desc().nullsFirst(), t.id.desc().nullsFirst()),
     index('tickets_unassigned_created_idx')
       .on(t.createdAt.desc())
       .where(sql`${t.groupId} is null`),
