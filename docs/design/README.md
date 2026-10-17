@@ -29,7 +29,7 @@ When invoking `frontend-design`, pass this constraint with the request.
 
 - [tokens.md](tokens.md) — every token with its value, where it was observed on egrant.sk and its shadcn variable; component notes (button, input, card, link, header); what was simplified for performance.
 - `apps/web/src/styles/theme.css` — the tokens as CSS variables (shadcn names) plus a Tailwind v4 `@theme inline` block, the Saans `@font-face` rules and the global `prefers-reduced-motion` rule. Import it right after `tailwindcss`.
-- `apps/web/public/fonts/` — self-hosted Saans woff2 (weights 500 and 600).
+- `apps/web/public/fonts/` — self-hosted Saans woff2 (weights 500 and 600) and the Inter Cyrillic subset for Ukrainian and Bulgarian (see `tokens.md`).
 - `apps/web/public/brand/` — egrant logo (light and dark backgrounds), favicons and PWA icons, and `egrant-logo-email.png` (the light logo as a 360×68 PNG, shown at 180 px in bulk emails because Gmail and Outlook do not show SVG). `pnpm --filter @spolu/web icons` writes the PNG icons and the email logo from the SVGs.
 
 ## Bulk email look

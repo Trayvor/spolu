@@ -29,6 +29,28 @@
   src: url('/fonts/Saans-SemiBold.woff2') format('woff2');
 }
 
+/* Saans has no Cyrillic, so Ukrainian and Bulgarian get Inter (OFL, Cyrillic subset, ~8 kB per
+   weight; license in /fonts/Inter-LICENSE.txt). It sits after Saans in the stack, so the browser
+   uses it per character, and unicode-range means it is downloaded only when a Cyrillic letter is on
+   the page: Latin languages never load it. */
+@font-face {
+  font-family: 'Help Cyrillic';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/Inter-Cyrillic-Medium.woff2') format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+
+@font-face {
+  font-family: 'Help Cyrillic';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fonts/Inter-Cyrillic-SemiBold.woff2') format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+
 :root {
   /* shadcn/ui semantic colors */
   --background: #f5f3f1; /* egrant "base" — page background */
@@ -68,7 +90,8 @@
   --attention-foreground: #141414;
 
   /* typography */
-  --font-family-base: 'Saans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-family-base:
+    'Saans', 'Help Cyrillic', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-sans: var(--font-family-base); /* shadcn name; same stack */
   --type-nano: 0.7rem; /* 11.2px */
   --type-micro: 0.8rem; /* 12.8px — field labels, captions */
