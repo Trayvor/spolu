@@ -212,6 +212,39 @@ describe('ticket lists', () => {
     expect(listCalls()).toBe(before);
   });
 
+  it('a ticket changed while nobody views it gets its unseen mark by a coalesced list refetch', async () => {
+    let unseen = false;
+    const { calls } = mockTicketApi(CLIENT, [
+      (url: URL) =>
+        url.pathname === '/api/groups/g1'
+          ? reply(200, {
+              id: 'g1',
+              name: 'ABC s.r.o.',
+              egrantUrl: '',
+              hasLogo: false,
+              updatedAt: '',
+            })
+          : undefined,
+      (url: URL) =>
+        url.pathname === '/api/groups/g1/tickets'
+          ? reply(200, { items: [item({ id: 'k1', unseen })], nextCursor: null })
+          : undefined,
+      (url: URL) =>
+        url.pathname === '/api/tickets/k1' ? reply(200, ticket({ id: 'k1' })) : undefined,
+    ]);
+    renderAt('/groups/g1/tickets');
+    await screen.findByText('Ticket k1');
+    expect(screen.queryByTestId('unseen-dot')).toBeNull();
+    const listCalls = () => calls.filter((c) => c.startsWith('GET /api/groups/g1/tickets')).length;
+    const before = listCalls();
+    unseen = true;
+    act(() => socket.fire('ticket:updated', { ticketId: 'k1', groupId: 'g1' }));
+    act(() => socket.fire('ticket:updated', { ticketId: 'k1', groupId: 'g1' }));
+    expect(listCalls()).toBe(before);
+    expect(await screen.findByTestId('unseen-dot', {}, { timeout: 4000 })).toBeInTheDocument();
+    expect(listCalls()).toBe(before + 1);
+  });
+
   it('the first connect keeps the lists just loaded; a reconnect refetches them', async () => {
     const { calls } = mockTicketApi(CLIENT, groupRoutes());
     socket.connected = false; // a cold load: the socket connects after the screen mounted

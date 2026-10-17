@@ -1,6 +1,6 @@
 import { lazy, Suspense, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { LinkedKnowledge } from '@spolu/shared';
+import { KNOWLEDGE_LINKS_MAX, type LinkedKnowledge } from '@spolu/shared';
 import { Button } from '@/components/ui/button';
 import { AiTextButton } from '@/features/chat/ai-tools/ai-text-button';
 import type { AiTarget } from '@/features/chat/ai-tools/api';
@@ -220,6 +220,8 @@ export default function DescriptionEditor({
           <KnowledgePicker
             groupId={groupId}
             picked={picked}
+            // Unavailable links stay and count toward the limit.
+            max={KNOWLEDGE_LINKS_MAX - (items.length - picked.length)}
             onDone={(chosen) => {
               knowledge.onChange(pick(chosen));
               setPickerOpen(false);

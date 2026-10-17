@@ -108,7 +108,7 @@ Phase 17 (the tab, the four types, visibility, the global list; reminders from `
 
 ## Items attached to descriptions (Phase 33 part P5)
 
-- An item's body (note, reminder, file and link description, meeting notes) is the description editor with the AI button, the microphone and "Attach from the knowledge base": an item can link other shareable items of its group, shown as cards in its view (never itself). Tasks, tickets, projects and events link items the same way.
+- An item's body (note, reminder, file and link description, meeting notes) is the description editor with the AI button, the microphone and "Attach from the knowledge base": an item can link other shareable items of its group, shown as cards in its view (never itself). Tasks, tickets, projects and events link items the same way. A description links at most 10 items; the picker counts the ones already linked (and the unavailable ones that stay) toward the 10, while a chat message keeps its limit of 5.
 - The meeting's AI summary paragraph is edited in the same editor (AI and voice, no knowledge) and shown as Markdown; decisions and open questions stay one per line.
 - Making an item admins-only (or deleting it) turns its cards in every description into "Item unavailable". See [projects.md](projects.md#description-editor-part-p5).
 

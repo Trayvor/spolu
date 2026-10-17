@@ -25,11 +25,14 @@ const SEARCH_DELAY_MS = 250;
 export default function KnowledgePicker({
   groupId,
   picked,
+  max = MESSAGE_MAX_KNOWLEDGE,
   onDone,
   onClose,
 }: {
   groupId: string;
   picked: PickedKnowledge[];
+  /** How many items one pick may hold; the caller subtracts the links it keeps elsewhere. */
+  max?: number;
   onDone: (items: PickedKnowledge[]) => void;
   onClose: () => void;
 }) {
@@ -52,7 +55,7 @@ export default function KnowledgePicker({
         >
           {t('chat.knowledge.pickerTitle')}
         </SheetDialogTitle>
-        <KnowledgePickList groupId={groupId} chosen={chosen} setChosen={setChosen} />
+        <KnowledgePickList groupId={groupId} chosen={chosen} setChosen={setChosen} max={max} />
       </div>
     </SheetDialog>
   );
@@ -63,9 +66,11 @@ export function KnowledgePickList({
   groupId,
   chosen,
   setChosen,
+  max = MESSAGE_MAX_KNOWLEDGE,
 }: {
   groupId: string;
   chosen: PickedKnowledge[];
+  max?: number;
   setChosen: (update: (list: PickedKnowledge[]) => PickedKnowledge[]) => void;
 }) {
   const { t } = useTranslation();
@@ -79,13 +84,13 @@ export function KnowledgePickList({
     groupKnowledgeQuery(groupId, { q: q || undefined, shareable: true }),
   );
   const items = query.data?.pages.flatMap((p) => p.items) ?? [];
-  const full = chosen.length >= MESSAGE_MAX_KNOWLEDGE;
+  const full = chosen.length >= max;
   const isChosen = (id: string) => chosen.some((c) => c.id === id);
   const toggle = (item: (typeof items)[number]) =>
     setChosen((list) =>
       list.some((c) => c.id === item.id)
         ? list.filter((c) => c.id !== item.id)
-        : list.length >= MESSAGE_MAX_KNOWLEDGE
+        : list.length >= max
           ? list
           : [
               ...list,
@@ -174,7 +179,7 @@ export function KnowledgePickList({
       </ul>
       {full && (
         <p className="text-micro text-muted-foreground">
-          {t('chat.knowledge.limit', { count: MESSAGE_MAX_KNOWLEDGE })}
+          {t('chat.knowledge.limit', { count: max })}
         </p>
       )}
     </>
