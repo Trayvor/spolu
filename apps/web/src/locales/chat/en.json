@@ -19,7 +19,8 @@
     "quote": "Quote",
     "label": "Message actions",
     "open": "Message actions",
-    "turnIntoTasks": "Turn into tasks"
+    "turnIntoTasks": "Turn into tasks",
+    "copy": "Copy text"
   },
   "thread": {
     "summary_one": "{{count}} reply, last at {{time}}",
@@ -66,5 +67,6 @@
   "unread_other": "{{count}} unread messages",
   "unread_one": "{{count}} unread message",
   "loadError": "The chat could not be loaded.",
-  "turnedIntoTasks": "Turned into tasks:"
+  "turnedIntoTasks": "Turned into tasks:",
+  "copied": "Text copied"
 }
