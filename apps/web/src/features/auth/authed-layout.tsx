@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useRef, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Outlet, useRouter } from '@tanstack/react-router';
 import { RouteFade } from '@/components/route-fade';
-import { readCollapsed } from '@/features/admin-home/sidebar-collapse';
+import { readCollapsed, useCollapsed } from '@/features/admin-home/sidebar-collapse';
 import { useMeChanged } from '@/features/finance/use-me-changed';
 import { useManagerEvents } from '@/features/groups/use-manager-events';
 import { AppPrompt } from '@/features/notifications/app-prompt';
@@ -133,6 +133,10 @@ function SidebarPlaceholder() {
 export function SignedInFrame({ children }: { children: ReactNode }) {
   const admin = isAdmin(useSession());
   const wide = useMediaQuery('(min-width: 1024px)');
+  const railCollapsed = useCollapsed();
+  // Pages cap their column (720 to 1120 px) to fill the space beside the 232 px sidebar. With
+  // the rail (56 px) the page grows to the header's edge: the cap of the page's own root goes.
+  const widened = admin && wide && railCollapsed;
   return (
     <div className="flex flex-1 gap-6">
       {admin && wide && (
@@ -140,7 +144,12 @@ export function SignedInFrame({ children }: { children: ReactNode }) {
           <LazyAdminSidebar />
         </Suspense>
       )}
-      <div className="flex min-w-0 flex-1 flex-col">{children}</div>
+      <div
+        data-rail-collapsed={widened ? '' : undefined}
+        className="flex min-w-0 flex-1 flex-col data-[rail-collapsed]:[&>*>*]:max-w-none!"
+      >
+        {children}
+      </div>
     </div>
   );
 }
