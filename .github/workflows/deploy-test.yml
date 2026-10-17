@@ -1,4 +1,5 @@
-# Deploys to the test environment: on every push to main, or by hand for any branch or SHA.
+# Deploys to the test environment: on every push to main that changes more than docs, or by hand
+# for any branch or SHA.
 # Logic lives in scripts/ci.sh, scripts/build-image.sh and scripts/deploy.sh; this file only
 # prepares the runner and passes settings in. Settings live in the "test" GitHub environment:
 #   secrets TEST_SSH_KEY, TEST_ENV_FILE, optional TICKETS_API_KEY; variables DEPLOY_HOST, DEPLOY_USER, DOMAIN, IMAGE,
@@ -8,6 +9,11 @@ name: Deploy test
 on:
   push:
     branches: [main]
+    # A push that changes only docs deploys nothing (owner decision 2026-10-17): the image would be
+    # the same. A push with any other file deploys as usual; a manual run always deploys.
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
   workflow_dispatch:
     inputs:
       ref:
