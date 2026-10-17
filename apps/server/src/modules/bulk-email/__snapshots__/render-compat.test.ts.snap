@@ -1,0 +1,126 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`content version 1 renders as before (snapshots of the Phase 23 renderer) > a short email in English > html 1`] = `
+"<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="x-apple-disable-message-reformatting" />
+<title>Novinky</title>
+<style type="text/css">@media (max-width: 620px) { .sp-container { width:100% !important; } .sp-card { padding:28px 20px !important; } .sp-footer { padding:20px 20px 0 20px !important; } }</style>
+</head>
+<body style="margin:0;padding:0;background-color:#F5F3F1;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%">
+<div style="display:none;max-height:0;max-width:0;overflow:hidden;mso-hide:all;font-size:1px;line-height:1px;color:#F5F3F1;opacity:0">Skrytý riadok&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;</div>
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" bgcolor="#F5F3F1" style="background-color:#F5F3F1">
+<tr><td align="center" style="padding:32px 12px">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" class="sp-container" width="600" style="width:600px;max-width:600px">
+<tr><td class="sp-card" bgcolor="#FFFFFF" style="background-color:#FFFFFF;border-radius:16px;padding:40px">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+<tr><td align="left" style="padding:0 0 24px 0"><h1 style="margin:0;font-family:'Saans',-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:26px;line-height:32px;font-weight:600;letter-spacing:-0.2px;color:#141414;text-align:left">Hello</h1></td></tr>
+<tr><td align="left" style="padding:0 0 0px 0"><p style="margin:0 0 0px 0;font-family:'Saans',-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:16px;line-height:26px;font-weight:500;letter-spacing:0.2px;color:#141414;text-align:left">One <strong style="font-weight:600">two</strong> three</p></td></tr>
+</table>
+</td></tr>
+<tr><td class="sp-footer" style="padding:24px 40px 0 40px;font-family:'Saans',-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:13px;line-height:20px;font-weight:500;letter-spacing:0.25px;color:#6B6B6B">
+You get this email because you have an account in Help by eGrant.<br />
+<a href="https://spolu.test/unsubscribe/u1.c1.sig" target="_blank" style="color:#6B6B6B;text-decoration:underline">Unsubscribe</a>
+</td></tr>
+</table>
+</td></tr>
+</table>
+</body>
+</html>"
+`;
+
+exports[`content version 1 renders as before (snapshots of the Phase 23 renderer) > a short email in English > text 1`] = `
+"HELLO
+
+One two three
+
+---
+
+You get this email because you have an account in Help by eGrant.
+Unsubscribe: https://spolu.test/unsubscribe/u1.c1.sig"
+`;
+
+exports[`content version 1 renders as before (snapshots of the Phase 23 renderer) > every block type and option > html 1`] = `
+"<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="sk">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="x-apple-disable-message-reformatting" />
+<title>Novinky</title>
+<style type="text/css">@media (max-width: 620px) { .sp-container { width:100% !important; } .sp-card { padding:28px 20px !important; } .sp-footer { padding:20px 20px 0 20px !important; } }</style>
+</head>
+<body style="margin:0;padding:0;background-color:#F5F3F1;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%">
+<div style="display:none;max-height:0;max-width:0;overflow:hidden;mso-hide:all;font-size:1px;line-height:1px;color:#F5F3F1;opacity:0">Skrytý riadok&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;</div>
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" bgcolor="#F5F3F1" style="background-color:#F5F3F1">
+<tr><td align="center" style="padding:32px 12px">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" class="sp-container" width="600" style="width:600px;max-width:600px">
+<tr><td class="sp-card" bgcolor="#FFFFFF" style="background-color:#FFFFFF;border-radius:16px;padding:40px">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+<tr><td align="center" style="padding:0 0 24px 0"><img src="https://spolu.test/brand/egrant-logo-email.png" width="180" height="34" alt="eGrant" style="display:block;margin:0 auto;width:100%;max-width:180px;height:auto;border:0;outline:none;text-decoration:none" /></td></tr>
+<tr><td align="left" style="padding:0 0 24px 0"><h1 style="margin:0;font-family:'Saans',-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:26px;line-height:32px;font-weight:600;letter-spacing:-0.2px;color:#141414;text-align:left">Dobrý deň, Jana &lt;Nováková&gt;</h1></td></tr>
+<tr><td align="center" style="padding:0 0 24px 0"><h1 style="margin:0;font-family:'Saans',-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:26px;line-height:32px;font-weight:600;letter-spacing:-0.2px;color:#141414;text-align:center">Centred &lt;b&gt;&amp;&lt;/b&gt;</h1></td></tr>
+<tr><td align="left" style="padding:0 0 24px 0"><p style="margin:0 0 16px 0;font-family:'Saans',-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:16px;line-height:26px;font-weight:500;letter-spacing:0.2px;color:#141414;text-align:left">Máme pre vás <strong style="font-weight:600">novinky</strong> o výzvach, Jana &lt;Nováková&gt;.<br />Druhý riadok s <a href="https://egrant.sk/a?b=1&amp;c=2" target="_blank" style="color:#141414;text-decoration:underline">https://egrant.sk/a?b=1&amp;c=2</a>.</p>
+<p style="margin:0 0 0px 0;font-family:'Saans',-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:16px;line-height:26px;font-weight:500;letter-spacing:0.2px;color:#141414;text-align:left">Nový <strong style="font-weight:600">odsek</strong> a ** nedokončené.</p></td></tr>
+<tr><td align="center" style="padding:0 0 24px 0"><p style="margin:0 0 0px 0;font-family:'Saans',-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:16px;line-height:26px;font-weight:500;letter-spacing:0.2px;color:#141414;text-align:center">Centred <strong style="font-weight:600">bold Jana &lt;Nováková&gt;</strong> text</p></td></tr>
+<tr><td align="left" style="padding:0 0 24px 0"></td></tr>
+<tr><td style="padding:0 0 24px 0"><img src="https://spolu.test/api/bulk-email/images/img-small" width="300" height="150" alt="Small &quot;photo&quot;" style="display:block;margin:0 auto;width:100%;max-width:300px;height:auto;border:0;outline:none;text-decoration:none" /></td></tr>
+<tr><td style="padding:0 0 24px 0"><a href="https://egrant.sk/x" target="_blank" style="text-decoration:none"><img src="https://spolu.test/api/bulk-email/images/img-large" width="520" height="260" alt="Large" style="display:block;margin:0 auto;width:100%;max-width:520px;height:auto;border:0;outline:none;text-decoration:none" /></a></td></tr>
+<tr><td style="padding:0 0 24px 0"><img src="https://spolu.test/api/bulk-email/images/img-unknown" width="520" alt="Unknown size" style="display:block;margin:0 auto;width:100%;max-width:520px;height:auto;border:0;outline:none;text-decoration:none" /></td></tr>
+<tr><td style="padding:0 0 24px 0"><table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%"><tr><td height="1" style="height:1px;line-height:1px;font-size:1px;background-color:#E3DEDA">&nbsp;</td></tr></table></td></tr>
+<tr><td align="left" style="padding:0 0 24px 0"><table role="presentation" cellpadding="0" cellspacing="0" border="0" align="left">
+<tr>
+<td align="center" bgcolor="#141414" style="background-color:#141414;border-radius:80px"><a href="https://egrant.sk" target="_blank" style="display:inline-block;padding:12px 24px;font-family:'Saans',-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:15px;line-height:20px;font-weight:600;letter-spacing:0.2px;color:#FFFFFF;text-decoration:none;border-radius:80px">Otvoriť eGrant</a></td>
+</tr>
+</table></td></tr>
+<tr><td align="center" style="padding:0 0 24px 0"><table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center">
+<tr>
+<td align="center" bgcolor="#141414" style="background-color:#141414;border-radius:80px"><a href="mailto:info@egrant.sk" target="_blank" style="display:inline-block;padding:12px 24px;font-family:'Saans',-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:15px;line-height:20px;font-weight:600;letter-spacing:0.2px;color:#FFFFFF;text-decoration:none;border-radius:80px">Napísať</a></td>
+</tr>
+</table></td></tr>
+<tr><td align="left" style="padding:0 0 0px 0"><img src="https://spolu.test/brand/egrant-logo-email.png" width="180" height="34" alt="eGrant" style="display:block;margin:0;width:100%;max-width:180px;height:auto;border:0;outline:none;text-decoration:none" /></td></tr>
+</table>
+</td></tr>
+<tr><td class="sp-footer" style="padding:24px 40px 0 40px;font-family:'Saans',-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:13px;line-height:20px;font-weight:500;letter-spacing:0.25px;color:#6B6B6B">
+Tento e-mail dostávate, pretože máte účet v aplikácii Help by eGrant.<br />
+<a href="https://spolu.test/unsubscribe/u1.c1.sig" target="_blank" style="color:#6B6B6B;text-decoration:underline">Odhlásiť sa z odberu</a>
+</td></tr>
+</table>
+</td></tr>
+</table>
+</body>
+</html>"
+`;
+
+exports[`content version 1 renders as before (snapshots of the Phase 23 renderer) > every block type and option > text 1`] = `
+"DOBRÝ DEŇ, JANA <NOVÁKOVÁ>
+
+CENTRED <B>&</B>
+
+Máme pre vás novinky o výzvach, Jana <Nováková>.
+Druhý riadok s https://egrant.sk/a?b=1&c=2.
+
+Nový odsek a ** nedokončené.
+
+Centred bold Jana <Nováková> text
+
+[Small "photo"]
+
+[Large]
+
+[Unknown size]
+
+---
+
+Otvoriť eGrant: https://egrant.sk
+
+Napísať: mailto:info@egrant.sk
+
+---
+
+Tento e-mail dostávate, pretože máte účet v aplikácii Help by eGrant.
+Odhlásiť sa z odberu: https://spolu.test/unsubscribe/u1.c1.sig"
+`;
