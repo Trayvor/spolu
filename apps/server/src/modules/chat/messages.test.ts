@@ -147,6 +147,11 @@ describe('sendMessage', () => {
     expect(new Set(stored.map((m) => m.userId))).toEqual(new Set([s.b.id, s.admin.id]));
     const [row] = await deps.db.select().from(messages).where(eq(messages.id, message.id));
     expect(row!.mentionsAll).toBe(true);
+    // Each mention row carries its message's time (the home's mentions are bounded by it).
+    expect(stored.map((m) => m.createdAt.getTime())).toEqual([
+      row!.createdAt.getTime(),
+      row!.createdAt.getTime(),
+    ]);
   });
 
   it("a mention of another group's client → InvalidMentionError and nothing written", async () => {
@@ -382,7 +387,13 @@ describe('toMessageDtos', () => {
     );
     await deps.db
       .insert(messageMentions)
-      .values(ids.map((messageId) => ({ messageId, userId: s.b.id })));
+      .values(
+        ids.map((messageId, i) => ({
+          messageId,
+          userId: s.b.id,
+          createdAt: new Date(Date.UTC(2026, 2, 1, 10, 0, 0, i)),
+        })),
+      );
     await deps.db
       .insert(messageAttachments)
       .values(ids.map((messageId, i) => ({ messageId, fileId: fileIds[i]!, position: 0 })));
@@ -520,6 +531,12 @@ describe('editMessage and deleteMessage', () => {
     expect(dto.editedAt).not.toBeNull();
     expect(dto.changeSeq).toBeGreaterThan(message.changeSeq);
     expect((await eventsFor(message.id)).length).toBe(eventsBefore.length);
+    // The re-written mention keeps the message's time, not the edit's.
+    const stored = await deps.db
+      .select()
+      .from(messageMentions)
+      .where(eq(messageMentions.messageId, message.id));
+    expect(stored.map((m) => m.createdAt.toISOString())).toEqual([message.createdAt]);
   });
 
   it('edit with a foreign mention → InvalidMentionError, nothing changed', async () => {
@@ -544,7 +561,11 @@ describe('editMessage and deleteMessage', () => {
     const gone = await setup();
     const { message } = await send(s.channel, s.a, { body: 'plain' });
     // The stored mention of someone who is no longer one of the group's people.
-    await deps.db.insert(messageMentions).values({ messageId: message.id, userId: gone.a.id });
+    await deps.db.insert(messageMentions).values({
+      messageId: message.id,
+      userId: gone.a.id,
+      createdAt: new Date(message.createdAt),
+    });
     const dto = await editMessage(deps, {
       message: await load(message.id),
       channel: s.channel,

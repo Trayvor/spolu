@@ -198,9 +198,10 @@ export async function sendMessage(
         })
         .returning({ createdAt: messages.createdAt });
       if (mentions.userIds.length > 0) {
+        const createdAt = row!.createdAt;
         await tx
           .insert(messageMentions)
-          .values(mentions.userIds.map((userId) => ({ messageId, userId })));
+          .values(mentions.userIds.map((userId) => ({ messageId, userId, createdAt })));
       }
       if (fileIds.length > 0) {
         await attachFiles(tx, groupId, fileIds, author.id);
@@ -533,7 +534,13 @@ export async function editMessage(
     if (mentions.userIds.length > 0) {
       await tx
         .insert(messageMentions)
-        .values(mentions.userIds.map((userId) => ({ messageId: message.id, userId })));
+        .values(
+          mentions.userIds.map((userId) => ({
+            messageId: message.id,
+            userId,
+            createdAt: message.createdAt,
+          })),
+        );
     }
   });
   return loadDto(db, channel.groupId, message.id);
