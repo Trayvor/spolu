@@ -213,7 +213,31 @@ export type PushPayload = {
    * addressed to the person or due now; left out, a replacement is silent (a stream of messages).
    */
   renotify?: true;
+  /**
+   * N6a (ADR 0047): at most one contextual button, in the recipient's language. Ids only, the
+   * same ones the URL already carries; the service worker acts through the HTTP API with the
+   * session cookie, so every check stays on the server. Left out where no action fits (and on
+   * finance and meeting pushes).
+   */
+  actions?: PushAction[];
 };
+
+/**
+ * A push notification button. `done` posts `/api/tasks/:taskId/done`; `time` opens `url` (the
+ * time dialog); `reply` sends the platform's inline reply to the channel (in the thread
+ * `parentId`), or opens `url`, the chat with its composer focused, where there is none.
+ */
+export type PushAction =
+  | { action: 'done'; title: string; taskId: string }
+  | { action: 'time'; title: string; url: string }
+  | {
+      action: 'reply';
+      title: string;
+      placeholder: string;
+      channelId: string;
+      parentId: string | null;
+      url: string;
+    };
 
 export type TaskDeadlinePayload = {
   taskId: string;

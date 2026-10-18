@@ -7,8 +7,8 @@ export const CSP_REPORT_PATH = '/api/csp-report';
 /**
  * The enforced Content-Security-Policy of every answer (ADR 0044; the sources are listed in
  * docs/runbooks/deploy.md, "Security headers"). Written from the built web app:
- * - script: Vite's hashed module files, `registerSW.js`, the service worker and `push-sw.js`,
- *   all our own files; no inline script and no `eval` (zod runs `jitless`, `apps/web/src/lib/zod-jitless.ts`).
+ * - script: Vite's hashed module files, `registerSW.js`, the service worker, `push-sw.js` and
+ *   `push-actions.js` (whose notification buttons call the API on this origin), all our own files; no inline script and no `eval` (zod runs `jitless`, `apps/web/src/lib/zod-jitless.ts`).
  * - style 'unsafe-inline': the bulk email preview is an `<iframe srcdoc>`, which inherits this
  *   policy, and email HTML is inline styles and a `<style>` block; ProseMirror pastes keep
  *   `style` attributes. React's `style` props go through the CSSOM, which CSP does not block.

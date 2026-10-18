@@ -146,6 +146,10 @@ export const en: ServerTexts = {
     dueRemoved: 'Due date removed',
     overdue: (date) => `Overdue, was due ${date}`,
     ticketResolved: (n) => `Ticket #${n} resolved`,
+    actionDone: 'Done',
+    actionLogTime: 'Log time',
+    actionReply: 'Reply',
+    replyPlaceholder: 'Write a reply…',
   },
   teams: {
     recordingNotice: 'This call will be recorded and transcribed.',

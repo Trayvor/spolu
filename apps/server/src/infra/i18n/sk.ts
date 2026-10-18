@@ -147,6 +147,10 @@ export const sk: ServerTexts = {
     dueRemoved: 'Termín zrušený',
     overdue: (date) => `Po termíne, termín bol ${date}`,
     ticketResolved: (n) => `Tiket #${n} je vyriešený`,
+    actionDone: 'Hotovo',
+    actionLogTime: 'Zapísať čas',
+    actionReply: 'Odpovedať',
+    replyPlaceholder: 'Napíšte odpoveď…',
   },
   teams: {
     recordingNotice: 'Tento hovor bude nahrávaný a prepisovaný.',

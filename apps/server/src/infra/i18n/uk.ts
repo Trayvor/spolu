@@ -154,6 +154,10 @@ export const uk: ServerTexts = {
     dueRemoved: 'Термін прибрано',
     overdue: (date) => `Прострочено, термін був ${date}`,
     ticketResolved: (n) => `Тікет #${n} вирішено`,
+    actionDone: 'Готово',
+    actionLogTime: 'Записати час',
+    actionReply: 'Відповісти',
+    replyPlaceholder: 'Напишіть відповідь…',
   },
   teams: {
     recordingNotice: 'Цей дзвінок буде записано й транскрибовано.',

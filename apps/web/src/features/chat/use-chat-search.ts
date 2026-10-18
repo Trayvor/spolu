@@ -4,7 +4,7 @@ import { backOr, samePath } from '@/lib/back';
 import { useUpdateSearch } from '@/lib/use-update-search';
 
 /** The chat's own search params: the open thread, the message to show and their channel. */
-type ChatSearch = { thread?: string; message?: string; c?: string };
+type ChatSearch = { thread?: string; message?: string; c?: string; reply?: string };
 
 const text = (v: unknown): string | undefined => (typeof v === 'string' && v ? v : undefined);
 
@@ -68,6 +68,15 @@ export function useChatSearch(channelId: string | undefined) {
     [update, channelId],
   );
 
+  /** After the composer took focus for `reply`; replaces the entry so Back does not ask again. */
+  const clearReply = useCallback(
+    () =>
+      update((next) => {
+        if (next.c === channelId) delete next.reply;
+      }, true),
+    [update, channelId],
+  );
+
   /** Claims params without a channel for this chat (replaces the history entry). */
   const adopt = useCallback(
     () =>
@@ -80,10 +89,16 @@ export function useChatSearch(channelId: string | undefined) {
   return {
     thread: mine ? text(search.thread) : undefined,
     message: mine ? text(search.message) : undefined,
+    /**
+     * `&reply=1` (the push button "Reply" where the platform has no inline reply, N6a): focus the
+     * composer, the open thread's when there is one. The router may parse the value as a number.
+     */
+    reply: mine && String(search.reply) === '1',
     /** A thread or message param without `c`. */
     unscoped: channel === undefined && (text(search.thread) ?? text(search.message)) !== undefined,
     setThread,
     clearMessage,
+    clearReply,
     adopt,
   };
 }

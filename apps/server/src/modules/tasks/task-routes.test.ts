@@ -784,6 +784,92 @@ describe('tasks API: tasks', () => {
     ).toEqual(['done', 'todo']);
   });
 
+  /** The push action "Done" (N6a, ADR 0047): a bodyless POST, as the service worker sends it. */
+  const markDone = (taskId: string, cookie?: string, headers: Record<string, string> = {}) =>
+    test.app.inject({
+      method: 'POST',
+      url: `/api/tasks/${taskId}/done`,
+      headers: { ...(cookie ? { cookie } : {}), ...headers },
+    });
+
+  it('done (push action): moves the task to the top of Completed; a done task stays put', async () => {
+    const admin = await adminSession('Push Admin');
+    const g = await newGroup();
+    const client = await clientIn(g.id, 'Petra');
+    const task = (await create(g.id, admin.cookie, { title: 'Finish' })).json<TaskDetailDto>();
+    const other = (await create(g.id, admin.cookie, { title: 'Other' })).json<TaskDetailDto>();
+    const done = (await board(client.cookie, g.id)).buckets.find((b) => b.kind === 'done')!;
+    await move(other.id, admin.cookie, { bucketId: done.id, afterTaskId: null });
+    const watcher = await clientIn(g.id, 'Watcher');
+    const socket = await listen(watcher.cookie);
+    const pushed = new Promise<BoardTaskEvent>((resolve) => socket.once(BoardEvents.task, resolve));
+
+    const res = await markDone(task.id, client.cookie);
+    expect(res.statusCode).toBe(200);
+    const { askTime, ...moved } = res.json<TaskDto & { askTime: boolean }>();
+    expect(askTime).toBe(false);
+    expect(moved).toMatchObject({ id: task.id, bucketId: done.id });
+    expect(moved.completedAt).not.toBeNull();
+    expect((await pushed).task.bucketId).toBe(done.id);
+    const doneIds = async () =>
+      (await board(client.cookie, g.id)).tasks
+        .filter((t) => t.bucketId === done.id)
+        .map((t) => t.id);
+    expect(await doneIds()).toEqual([task.id, other.id]);
+
+    // Clicked again (a second device, a stale card): no reorder, no new event, same completion.
+    await move(other.id, admin.cookie, { bucketId: done.id, afterTaskId: null });
+    const again = await markDone(task.id, client.cookie);
+    expect(again.statusCode).toBe(200);
+    expect(again.json<TaskDto>().completedAt).toBe(moved.completedAt);
+    expect(await doneIds()).toEqual([other.id, task.id]);
+    const events = await test.deps.db
+      .select({ id: notificationEvents.id })
+      .from(notificationEvents)
+      .where(
+        and(
+          eq(notificationEvents.kind, 'task.moved'),
+          sql`${notificationEvents.payload}->>'taskId' = ${task.id}`,
+        ),
+      );
+    expect(events).toHaveLength(1);
+  });
+
+  it('done: an admin assignee is asked for time, as with a move', async () => {
+    const admin = await adminSession('Assigned Admin');
+    const g = await newGroup();
+    const task = (
+      await create(g.id, admin.cookie, { title: 'Timed', assigneeIds: [admin.id] })
+    ).json<TaskDetailDto>();
+    const res = await markDone(task.id, admin.cookie);
+    expect(res.statusCode).toBe(200);
+    expect(res.json<{ askTime: boolean }>().askTime).toBe(true);
+  });
+
+  it('done: 401 without a session, 404 for a stranger or an unknown task, 403 from another site', async () => {
+    const g = await newGroup();
+    const client = await clientIn(g.id);
+    const stranger = await clientIn((await newGroup()).id);
+    const task = (await create(g.id, client.cookie, { title: 'A' })).json<TaskDetailDto>();
+    expect((await markDone(task.id)).statusCode).toBe(401);
+    expect((await markDone(task.id, stranger.cookie)).statusCode).toBe(404);
+    expect((await markDone(randomUUID(), client.cookie)).statusCode).toBe(404);
+    // The CSRF guard: the session cookie alone is not enough from another site.
+    const crossSite = { 'sec-fetch-site': 'cross-site' };
+    expect((await markDone(task.id, client.cookie, crossSite)).statusCode).toBe(403);
+    const foreign = { origin: 'https://evil.test' };
+    expect((await markDone(task.id, client.cookie, foreign)).statusCode).toBe(403);
+    expect((await board(client.cookie, g.id)).tasks.find((t) => t.id === task.id)).toMatchObject({
+      completedAt: null,
+    });
+    // What a service worker of our origin sends.
+    const ours = {
+      'sec-fetch-site': 'same-origin',
+      origin: new URL(test.deps.config.publicUrl).origin,
+    };
+    expect((await markDone(task.id, client.cookie, ours)).statusCode).toBe(200);
+  });
+
   it('move: an invalid body or an afterTaskId from another bucket → 400; an unknown task → 404', async () => {
     const g = await newGroup();
     const client = await clientIn(g.id);

@@ -8,6 +8,7 @@ import {
   TasksFromMessageSchema,
   TasksFromTicketSchema,
   type SessionUser,
+  type TaskMove,
   type TasksFromMessageResult,
   type UnseenSummary,
 } from '@spolu/shared';
@@ -20,12 +21,14 @@ import { InvalidAttachmentError } from '../files/service.js';
 import { emitTask, emitTaskDeleted, emitTasks } from './events.js';
 import { canDeleteTask, canUseBoard } from './policy.js';
 import type { WriteGuard } from './routes.js';
+import { listBuckets } from './service.js';
 import { announceTimeChange, type TimeChange } from '../finance/task-time.js';
 import {
   createTaskTimed,
   createTasksFromSource,
   deleteTask,
   getTask,
+  getTaskDto,
   getTaskRef,
   InvalidAssigneeError,
   moveTask,
@@ -359,6 +362,24 @@ export const taskRoutes: FastifyPluginAsync<TaskRoutesOptions> = async (
     }
   });
 
+  /** A move, then its events (board, message footer, ticket, meeting, time) when it moved. */
+  const moveAndAnnounce = async (
+    request: FastifyRequest<IdParams>,
+    ref: NonNullable<Awaited<ReturnType<typeof readableTask>>>,
+    input: TaskMove,
+  ) => {
+    const actor = request.user!;
+    const { task, moved, askTime, time } = await moveTask(deps, actor, request.params.id, input);
+    if (moved) {
+      emitTask(app.io, task, person(actor));
+      await pushMessageTasks(request, task.sourceMessageId);
+      await refreshTicket(request, ref.sourceTicketId);
+      await refreshMeeting(request, ref.sourceMeetingId);
+      await announceTime(request, time);
+    }
+    return { ...task, askTime };
+  };
+
   app.post<IdParams>('/tasks/:id/move', { preHandler: writeGuard }, async (request, reply) => {
     const actor = request.user!;
     const body = TaskMoveSchema.safeParse(request.body);
@@ -367,20 +388,27 @@ export const taskRoutes: FastifyPluginAsync<TaskRoutesOptions> = async (
     const ref = await readableTask(actor, request.params.id);
     if (!ref) return notFound(reply);
     try {
-      const { task, moved, askTime, time } = await moveTask(
-        deps,
-        actor,
-        request.params.id,
-        body.data,
-      );
-      if (moved) {
-        emitTask(app.io, task, person(actor));
-        await pushMessageTasks(request, task.sourceMessageId);
-        await refreshTicket(request, ref.sourceTicketId);
-        await refreshMeeting(request, ref.sourceMeetingId);
-        await announceTime(request, time);
-      }
-      return { ...task, askTime };
+      return await moveAndAnnounce(request, ref, body.data);
+    } catch (error) {
+      return writeError(reply, error);
+    }
+  });
+
+  // N6a (ADR 0047): the push button "Done", sent by the service worker with the session cookie.
+  // A move to the top of the board's Completed column with the move's checks; a task already
+  // there stays where it is (a second click, another device), so the request needs no body.
+  app.post<IdParams>('/tasks/:id/done', { preHandler: writeGuard }, async (request, reply) => {
+    const actor = request.user!;
+    const ref = await readableTask(actor, request.params.id);
+    if (!ref) return notFound(reply);
+    const done = (await listBuckets(db, ref.groupId)).find((b) => b.kind === 'done');
+    if (!done) return notFound(reply);
+    if (ref.bucketId === done.id) {
+      const task = await getTaskDto(db, request.params.id);
+      return task ? { ...task, askTime: false } : notFound(reply);
+    }
+    try {
+      return await moveAndAnnounce(request, ref, { bucketId: done.id, afterTaskId: null });
     } catch (error) {
       return writeError(reply, error);
     }

@@ -147,6 +147,10 @@ export const bg: ServerTexts = {
     dueRemoved: 'Срокът е премахнат',
     overdue: (date) => `Просрочена, срокът беше ${date}`,
     ticketResolved: (n) => `Тикет #${n} е решен`,
+    actionDone: 'Готово',
+    actionLogTime: 'Запиши време',
+    actionReply: 'Отговори',
+    replyPlaceholder: 'Напишете отговор…',
   },
   teams: {
     recordingNotice: 'Този разговор ще бъде записан и транскрибиран.',

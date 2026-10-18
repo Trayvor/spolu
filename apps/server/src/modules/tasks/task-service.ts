@@ -220,6 +220,7 @@ export async function getTaskRef(
   id: string,
 ): Promise<{
   groupId: string;
+  bucketId: string;
   createdBy: string;
   sourceTicketId: string | null;
   sourceMeetingId: string | null;
@@ -227,6 +228,7 @@ export async function getTaskRef(
   const [row] = await db
     .select({
       groupId: tasks.groupId,
+      bucketId: tasks.bucketId,
       createdBy: tasks.createdBy,
       sourceTicketId: tasks.sourceTicketId,
       sourceMeetingId: tasks.sourceMeetingId,
@@ -234,6 +236,12 @@ export async function getTaskRef(
     .from(tasks)
     .where(eq(tasks.id, id));
   return row ?? null;
+}
+
+/** One task as the board shows it (no description), or null. */
+export async function getTaskDto(db: Db, id: string): Promise<TaskDto | null> {
+  const [task] = await selectTasks(db, eq(tasks.id, id));
+  return task ?? null;
 }
 
 /**

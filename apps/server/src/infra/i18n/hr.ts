@@ -149,6 +149,10 @@ export const hr: ServerTexts = {
     dueRemoved: 'Rok uklonjen',
     overdue: (date) => `Rok je istekao ${date}`,
     ticketResolved: (n) => `Tiket #${n} je riješen`,
+    actionDone: 'Gotovo',
+    actionLogTime: 'Upiši vrijeme',
+    actionReply: 'Odgovori',
+    replyPlaceholder: 'Napišite odgovor…',
   },
   teams: {
     recordingNotice: 'Ovaj poziv bit će snimljen i transkribiran.',

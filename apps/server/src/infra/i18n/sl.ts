@@ -154,6 +154,10 @@ export const sl: ServerTexts = {
     dueRemoved: 'Rok odstranjen',
     overdue: (date) => `Rok je potekel ${date}`,
     ticketResolved: (n) => `Zahtevek #${n} je rešen`,
+    actionDone: 'Opravljeno',
+    actionLogTime: 'Vpiši čas',
+    actionReply: 'Odgovori',
+    replyPlaceholder: 'Napišite odgovor…',
   },
   teams: {
     recordingNotice: 'Ta klic bo posnet in prepisan.',

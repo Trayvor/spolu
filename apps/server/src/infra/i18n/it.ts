@@ -152,6 +152,10 @@ export const it: ServerTexts = {
     dueRemoved: 'Scadenza rimossa',
     overdue: (date) => `In ritardo, scadeva il ${date}`,
     ticketResolved: (n) => `Ticket #${n} risolto`,
+    actionDone: 'Fatto',
+    actionLogTime: 'Registra tempo',
+    actionReply: 'Rispondi',
+    replyPlaceholder: 'Scrivi una risposta…',
   },
   teams: {
     recordingNotice: 'Questa chiamata sarà registrata e trascritta.',

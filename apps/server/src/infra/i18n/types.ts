@@ -168,6 +168,12 @@ export type ServerTexts = {
     overdue(date: string): string;
     /** The push title of a resolved ticket. */
     ticketResolved(number: number): string;
+    /** N6a push buttons (ADR 0047): "Done" on a task, "Log time" on a time request, "Reply". */
+    actionDone: string;
+    actionLogTime: string;
+    actionReply: string;
+    /** The inline reply field's placeholder, where the platform has one. */
+    replyPlaceholder: string;
   };
   /** Microsoft Teams (T1): the invitation's and the public calendar page's notices. */
   teams: {
