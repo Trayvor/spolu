@@ -325,6 +325,29 @@ describe('the timeline card', () => {
     expect(within(sheet).getByText(PROJECT.name)).toBeVisible();
   });
 
+  it('"Show all" links to the Tasks tab filtered by the event, or to Tickets', async () => {
+    const task = {
+      id: 't1',
+      title: 'Rozpočet',
+      dueDate: null,
+      urgent: false,
+      completedAt: null,
+      assignees: [],
+    };
+    const ticket = { id: 'k1', number: 812, subject: 'Otázka', status: 'new' as const };
+    const tasks = event('e1', TODAY, { openTasks: [task], openTaskCount: 7 });
+    const tickets = event('e2', '2026-10-20', { openTickets: [ticket], openTicketCount: 6 });
+    mockApi({ '': { events: [tasks, tickets], before: null, after: null, today: TODAY } });
+    renderOverview();
+    await stripItems();
+    expect(
+      screen.getByRole('link', { name: t('projects.timeline.showAll', { count: 7 }) }),
+    ).toHaveAttribute('href', '/groups/g1/tasks?project=p1&event=e1');
+    expect(
+      screen.getByRole('link', { name: t('projects.timeline.showAll', { count: 6 }) }),
+    ).toHaveAttribute('href', '/groups/g1/tickets?project=p1&event=e2');
+  });
+
   it('a task row opens the task panel over the overview', async () => {
     const busy = event('1', TODAY, {
       openTasks: [
