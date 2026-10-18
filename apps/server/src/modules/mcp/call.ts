@@ -41,6 +41,7 @@ export class RouteNotAllowedError extends Error {
 }
 
 /**
+ * `token` is the token's id and name, so the routes' audit rows name it (`auditActorOf`).
  * `scope` is the token's: a `read` caller sends GET requests only, whatever a tool asks (defence
  * in depth; `canCallTool` already keeps write tools from read-only tokens).
  */
@@ -49,6 +50,7 @@ export function createApiCaller(
   user: SessionUser,
   remoteAddress: string,
   scope: McpScope,
+  token?: { id: string; name: string },
 ): ApiCaller {
   return async (method, path, options = {}) => {
     if (scope !== 'write' && method !== 'GET') throw new RouteNotAllowedError(method, path);
@@ -56,18 +58,24 @@ export function createApiCaller(
     const search = new URLSearchParams(options.query ?? {}).toString();
     const url = search ? `${path}?${search}` : path;
     const hasBody = options.body !== undefined;
-    const res = await runAsUser(user, (headers) =>
-      app.inject({
-        method,
-        url,
-        remoteAddress,
-        headers: {
-          ...headers,
-          ...(hasBody ? { 'content-type': 'application/json' } : {}),
-          ...(options.range ? { range: options.range } : {}),
-        },
-        ...(hasBody ? { payload: JSON.stringify(options.body) } : {}),
-      }),
+    const via = token
+      ? { kind: 'mcp' as const, tokenId: token.id, tokenName: token.name }
+      : undefined;
+    const res = await runAsUser(
+      user,
+      (headers) =>
+        app.inject({
+          method,
+          url,
+          remoteAddress,
+          headers: {
+            ...headers,
+            ...(hasBody ? { 'content-type': 'application/json' } : {}),
+            ...(options.range ? { range: options.range } : {}),
+          },
+          ...(hasBody ? { payload: JSON.stringify(options.body) } : {}),
+        }),
+      via,
     );
     const contentType = String(res.headers['content-type'] ?? '');
     if (!options.binary && contentType.includes('application/json')) {

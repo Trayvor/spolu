@@ -136,7 +136,8 @@ export async function revokeAllTokens(db: Db, userId: string): Promise<void> {
     .where(and(eq(mcpTokens.userId, userId), isNull(mcpTokens.revokedAt)));
 }
 
-export type TokenAuth = { tokenId: string; scope: McpScope; user: SessionUser };
+/** `tokenName`: the token's (or the OAuth connection's) name, for the audit log's author. */
+export type TokenAuth = { tokenId: string; tokenName: string; scope: McpScope; user: SessionUser };
 
 /**
  * The user behind a raw token, read fresh (role, disabled, finance right) as a session is; null
@@ -149,6 +150,7 @@ export async function authenticateToken(db: Db, raw: string): Promise<TokenAuth 
   const [row] = await db
     .select({
       tokenId: mcpTokens.id,
+      tokenName: mcpTokens.name,
       scope: mcpTokens.scope,
       lastUsedAt: mcpTokens.lastUsedAt,
       id: user.id,
@@ -182,5 +184,5 @@ export async function authenticateToken(db: Db, raw: string): Promise<TokenAuth 
         ),
       );
   }
-  return { tokenId: row.tokenId, scope: row.scope, user: sessionUser };
+  return { tokenId: row.tokenId, tokenName: row.tokenName, scope: row.scope, user: sessionUser };
 }
