@@ -38,7 +38,11 @@ for (const { name, width, height, gap, mobile } of [
       const card = page.getByTestId('chat-card');
       await expect(card.getByRole('toolbar')).toBeVisible();
       const box = (await card.boundingBox())!;
-      expect(Math.round(box.y + box.height)).toBe(height - gap);
+      // On a phone the bottom bar floats over the window's foot: the card ends one gap above it.
+      const bar = mobile
+        ? await page.getByRole('navigation', { name: 'Hlavná navigácia' }).boundingBox()
+        : null;
+      expect(Math.round(box.y + box.height)).toBe(bar ? Math.round(bar.y) - gap : height - gap);
       expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBe(height);
     } finally {
       await context.close();
