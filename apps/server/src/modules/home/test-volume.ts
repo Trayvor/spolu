@@ -222,7 +222,7 @@ export async function withVolume(
       // A trigram (GIN) index keeps fresh rows in a pending list until a vacuum, which no
       // transaction can run; in production autovacuum empties it. A full list makes the planner
       // price the index far above a sequential scan, so empty it here as autovacuum would. The
-      // tickets' trigram indexes have no pending list (`fastupdate = off`, migration 0048).
+      // tickets' trigram indexes have no pending list (`fastupdate = off`, migration 0049).
       await tx.execute(sql`
         select gin_clean_pending_list(i.indexrelid)
         from pg_index i

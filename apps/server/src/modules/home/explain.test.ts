@@ -208,7 +208,7 @@ describe('admin home query plans on a seeded volume', () => {
             order by created_at desc, id desc limit 51`,
           ['tickets'],
         );
-        // 2026-10-18 (migration 0048). A rare term: the search reads both trigram indexes (the
+        // 2026-10-18 (migration 0049). A rare term: the search reads both trigram indexes (the
         // body's start included) instead of walking every ticket by date.
         const used = (plan: PlanNode) => indexReads(plan).map((read) => read.split(':')[0]);
         const rare = await expectIndexed(
