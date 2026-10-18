@@ -128,10 +128,17 @@ export function isDeletingKnowledge(id: string): boolean {
   return deleting.has(id);
 }
 
-export async function deleteKnowledge(id: string): Promise<void> {
+/** `following` (ADR 0049): a recurring call and the later calls of its series. */
+export async function deleteKnowledge(
+  id: string,
+  scope: 'this' | 'following' = 'this',
+): Promise<void> {
   deleting.add(id);
   try {
-    await apiSend('DELETE', `/knowledge/${enc(id)}`);
+    await apiSend(
+      'DELETE',
+      `/knowledge/${enc(id)}${scope === 'following' ? '?scope=following' : ''}`,
+    );
   } finally {
     deleting.delete(id);
   }

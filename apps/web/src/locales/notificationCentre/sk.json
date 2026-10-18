@@ -1,0 +1,23 @@
+{
+  "bell": {
+    "label": "Upozornenia",
+    "labelUnread": "Upozornenia, neprečítané: {{count}}"
+  },
+  "title": "Upozornenia",
+  "markAll": "Označiť všetko ako prečítané",
+  "loading": "Načítavam…",
+  "empty": "Zatiaľ tu nič nie je. Keď vás niekto spomenie, priradí vám úlohu alebo príde tiket, uvidíte to tu.",
+  "more": "Načítať staršie",
+  "today": "Dnes",
+  "yesterday": "Včera",
+  "unread": "neprečítané",
+  "settings": "Nastavenia upozornení",
+  "snooze": {
+    "title": "Push upozornenia",
+    "hour": "Stíšiť na 1 h",
+    "tomorrow": "Stíšiť do zajtra (8:00)",
+    "week": "Stíšiť na týždeň",
+    "until": "Push upozornenia sú stíšené do {{time}}. Zoznam aj e-maily chodia ďalej.",
+    "end": "Zrušiť stíšenie"
+  }
+}

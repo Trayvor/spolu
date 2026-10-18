@@ -1,6 +1,14 @@
 import { eq, lt } from 'drizzle-orm';
 import type { Db } from '../../infra/db/client.js';
-import { session, verification } from './schema.js';
+import { passkeys, session, verification } from './schema.js';
+
+/**
+ * Deletes every passkey of the user (ADR 0050; deactivation: an admin added back registers
+ * again). A passkey of a non-admin is refused at sign-in anyway.
+ */
+export async function deleteAllPasskeys(db: Db, userId: string): Promise<void> {
+  await db.delete(passkeys).where(eq(passkeys.userId, userId));
+}
 
 /**
  * Logs the user out everywhere. Deleting the rows is enough: sessions live only in the

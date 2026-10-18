@@ -192,6 +192,12 @@ export type EgrantManagerResponse = z.infer<typeof EgrantManagerResponseSchema>;
 export const EGRANT_GROUP_LIMITS = {
   /** The decoded logo. */
   logoBytes: 2 * 1024 * 1024,
+  /** A decoded SVG logo (ADR 0039: rendered on the server, so kept small). */
+  svgLogoBytes: 512 * 1024,
+  /** The longest side of a PNG, JPEG or WebP logo, read from its header. */
+  logoPixels: 4096,
+  /** The longest side an SVG logo may declare (width, height or viewBox), in user units. */
+  svgLogoUnits: 16384,
   /** The JSON body: the logo as base64 (a third more) plus the other fields. */
   bodyBytes: 3 * 1024 * 1024,
 } as const;

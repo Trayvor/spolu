@@ -1,6 +1,7 @@
 import type {
   BucketLabel,
   NotificationKind,
+  PushAction,
   PushPayload,
   TicketStatus,
   UserLanguage,
@@ -190,10 +191,72 @@ const RENOTIFY = new Set<NotificationKind>([
   'meeting.summary_failed',
 ]);
 
-/** What the service worker shows for one event (`push-sw.js`). */
+/** What the service worker shows for one event (`push-sw.js`, its buttons `push-actions.js`). */
 export function buildPushPayload(i: PushContentInput): PushPayload {
   const content = pushContent(i);
-  return RENOTIFY.has(i.kind) ? { ...content, renotify: true } : content;
+  const actions = pushActions(i, content.url);
+  return {
+    ...content,
+    ...(RENOTIFY.has(i.kind) && { renotify: true as const }),
+    ...(actions && { actions }),
+  };
+}
+
+/** The pushes about an open task addressed to the person, which get "Done" (N6a). */
+const DONE_KINDS = new Set<NotificationKind>([
+  'task.assigned',
+  'task.deadline',
+  'task.urgent',
+  'task.overdue',
+  'task.due_changed',
+]);
+/** The pushes about a message, which get "Reply" (N6a). */
+const REPLY_KINDS = new Set<NotificationKind>([
+  'chat.message',
+  'chat.mention',
+  'chat.thread_reply',
+  'ticket.message',
+]);
+
+/**
+ * N6a of the 2026-10-18 UX review (ADR 0047): one contextual button. "Log time" on a time request
+ * (it opens the push's own URL, the time dialog); "Done" on what asks the person to do a task;
+ * "Reply" on a message, with the chat (scoped by `c`, its thread open) and `reply=1` to focus the
+ * composer where the platform has no inline reply. Finance, meeting, knowledge and other ticket
+ * pushes get none. Only ids the URL already carries.
+ */
+function pushActions(i: PushContentInput, url: string): PushAction[] | undefined {
+  const t = texts(i.lang);
+  const p = i.payload;
+  if (i.kind === 'task.time_missing' || i.kind === 'ticket.time_missing') {
+    return [{ action: 'time', title: t.actionLogTime, url }];
+  }
+  const taskId = str(p.taskId);
+  const taskReminder = i.kind === 'reminder.due' && p.subjectKind === 'task';
+  if (taskId && (DONE_KINDS.has(i.kind) || taskReminder)) {
+    return [{ action: 'done', title: t.actionDone, taskId }];
+  }
+  const channelId = str(p.channelId);
+  const messageId = str(p.messageId);
+  if (!REPLY_KINDS.has(i.kind) || !channelId || !messageId) return undefined;
+  const chat = `${i.parentId ? `thread=${enc(i.parentId)}&` : ''}message=${enc(messageId)}&c=${enc(channelId)}`;
+  const ticketId = isTicketEvent(i.kind, p) ? str(p.ticketId) : null;
+  const groupId = enc(str(p.groupId) ?? '');
+  const place = ticketId
+    ? `/tickets/${enc(ticketId)}?${chat}`
+    : taskId
+      ? `/groups/${groupId}/tasks/${enc(taskId)}?tab=chat&${chat}`
+      : `/groups/${groupId}/chat?${chat}`;
+  return [
+    {
+      action: 'reply',
+      title: t.actionReply,
+      placeholder: t.replyPlaceholder,
+      channelId,
+      parentId: i.parentId,
+      url: `${place}&reply=1`,
+    },
+  ];
 }
 
 function pushContent(i: PushContentInput): PushPayload {

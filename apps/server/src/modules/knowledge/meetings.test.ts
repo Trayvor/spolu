@@ -22,7 +22,7 @@ import {
 } from '../ai/transcription.js';
 import { files } from '../files/schema.js';
 import { addManager } from '../groups/managers.js';
-import { addMember, createGroup } from '../groups/service.js';
+import { addMember, createGroup, setGroupDeactivated } from '../groups/service.js';
 import { user } from '../users/schema.js';
 import { addAdmin } from '../users/service.js';
 import { MEETING_AI_JOB, meetingAiJobHandlers } from './meeting-ai.js';
@@ -841,6 +841,21 @@ describe('meetings API', () => {
       expect((await call(test, 'GET', '/api/me/home/meetings', client.cookie)).statusCode).toBe(
         403,
       );
+    });
+
+    it("leaves out a deactivated client's meetings, like the sidebar", async () => {
+      const group = await newGroup();
+      const admin = await newAdmin();
+      await addManager(test.deps.db, group.id, admin.id);
+      const soon = await create(admin.cookie, group.id, meeting({}, { startsAt: inHours(2) }));
+      const past = await create(admin.cookie, group.id, meeting({}, { startsAt: inHours(-5) }));
+      await setGroupDeactivated(test.deps.db, group.id, true);
+      const card = HomeMeetingsSchema.parse(
+        (await call(test, 'GET', '/api/me/home/meetings', admin.cookie)).json(),
+      );
+      const ids = [...card.upcoming, ...card.unsummarized].map((m) => m.id);
+      expect(ids).not.toContain(soon.id);
+      expect(ids).not.toContain(past.id);
     });
   });
 

@@ -24,6 +24,13 @@ import { useGroupPeople } from '@/features/groups/use-group-people';
 import { FileChip } from '@/features/files/file-chip';
 import { VisibilityControl } from './visibility-control';
 import { MeetingTranscriptField, MeetingWhenAndLinks, timeBefore } from './meeting-fields';
+import {
+  emptyRepeat,
+  MeetingRepeatField,
+  repeatError,
+  repeatInput,
+  type RepeatFormValue,
+} from './meeting-repeat';
 import { RecipientsField } from '@/features/reminders/recipients-field';
 import {
   ReminderTimesField,
@@ -46,6 +53,8 @@ export type MeetingFormValue = {
   recordingUrl: string;
   transcriptUrl: string;
   transcript: string;
+  /** ADR 0049: how a new call repeats (never sent in an edit). */
+  repeat: RepeatFormValue;
 };
 
 export type KnowledgeFormValue = {
@@ -74,7 +83,8 @@ export type KnowledgeFormErrors = Partial<
     | 'meetingUrl'
     | 'recordingUrl'
     | 'transcriptUrl'
-    | 'transcript',
+    | 'transcript'
+    | 'repeat',
     string
   >
 >;
@@ -104,6 +114,7 @@ export function emptyKnowledgeValue(type?: KnowledgeType): KnowledgeFormValue {
       recordingUrl: '',
       transcriptUrl: '',
       transcript: '',
+      repeat: emptyRepeat(),
     },
   };
 }
@@ -138,6 +149,7 @@ function meetingFormValue(item: KnowledgeItemDto): MeetingFormValue {
     recordingUrl: meeting.recordingUrl ?? '',
     transcriptUrl: meeting.transcriptUrl ?? '',
     transcript: meeting.transcript,
+    repeat: emptyRepeat(),
   };
 }
 
@@ -229,7 +241,7 @@ export function toDraft(
       return {
         ...base,
         type,
-        meeting: meetingInput(value.meeting),
+        meeting: { ...meetingInput(value.meeting), repeat: repeatInput(value.meeting.repeat) },
         ...(reminder.times.length > 0 ? { reminder } : {}),
         fileIds: [],
       };
@@ -337,6 +349,8 @@ export function validateKnowledge(
       const url = m[field].trim();
       if (url && !isHttpUrl(url)) errors[field] = i18n.t('knowledge.form.errors.urlInvalid');
     }
+    const repeatProblem = repeatError(i18n.t, m.repeat, m.date);
+    if (repeatProblem) errors.repeat = repeatProblem;
     if (m.transcript.length > MEETING_LIMITS.transcript) {
       errors.transcript = i18n.t('knowledge.meeting.transcriptTooLong');
     }
@@ -397,6 +411,7 @@ export function KnowledgeForm({
   inAdminsFolder = false,
   authorId,
   autoFocusTitle = false,
+  showRepeat = false,
   onUploadingChange,
   fileLocked = false,
   beforeVisibility,
@@ -418,6 +433,8 @@ export function KnowledgeForm({
   /** The item's author (the current user on create): a fixed reminder recipient. */
   authorId: string;
   autoFocusTitle?: boolean;
+  /** A new call: offer "Repeat" (ADR 0049). */
+  showRepeat?: boolean;
   /** True while a file uploads; the dialog keeps Save disabled until it is false. */
   onUploadingChange?: (uploading: boolean) => void;
   /** A file item's file is shown, not changed (a chat file being saved as a file). */
@@ -539,6 +556,16 @@ export function KnowledgeForm({
           value={value.meeting}
           onChange={(meeting) => set({ meeting })}
           errors={errors}
+        />
+      )}
+
+      {isMeeting && showRepeat && (
+        <MeetingRepeatField
+          value={value.meeting.repeat}
+          onChange={(repeat) => set({ meeting: { ...value.meeting, repeat } })}
+          date={value.meeting.date}
+          time={value.meeting.time}
+          error={errors.repeat}
         />
       )}
 

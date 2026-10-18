@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { jpegWith, pngWith, webpWith } from '../../../test/logo-images.js';
-import { stripImageMetadata } from './logo-metadata.js';
+import { imageSize, stripImageMetadata } from './logo-metadata.js';
 
 const SECRET = 'GPS 48.1486N 17.1077E Jana Nova';
 
@@ -56,5 +56,39 @@ describe('stripImageMetadata', () => {
     expect(stripImageMetadata(jpeg.subarray(0, 10), 'image/jpeg')).toBeNull();
     expect(stripImageMetadata(Buffer.from([0xff, 0xd8, 0xff, 0xd9]), 'image/jpeg')).toBeNull();
     expect(stripImageMetadata(webpWith().subarray(0, 20), 'image/webp')).toBeNull();
+  });
+});
+
+describe('imageSize (read from the header, nothing decoded)', () => {
+  const big = { width: 20000, height: 300 };
+
+  it('reads a PNG IHDR, a JPEG SOF after other segments and a WebP VP8X canvas', () => {
+    expect(imageSize(pngWith(), 'image/png')).toEqual({ width: 1, height: 1 });
+    expect(imageSize(pngWith(SECRET, big), 'image/png')).toEqual(big);
+    expect(imageSize(jpegWith(SECRET, big), 'image/jpeg')).toEqual(big);
+    expect(imageSize(webpWith(SECRET, big), 'image/webp')).toEqual(big);
+  });
+
+  it('reads a simple (VP8) and a lossless (VP8L) WebP', () => {
+    const riff = (chunk: Buffer) => {
+      const body = Buffer.concat([Buffer.from('WEBP'), chunk]);
+      const head = Buffer.from('RIFF\0\0\0\0', 'latin1');
+      head.writeUInt32LE(body.length, 4);
+      return Buffer.concat([head, body]);
+    };
+    const vp8 = Buffer.from('VP8 \x0a\0\0\0\x30\x01\x00\x9d\x01\x2a\0\0\0\0', 'latin1');
+    vp8.writeUInt16LE(5000, 14);
+    vp8.writeUInt16LE(16383, 16);
+    expect(imageSize(riff(vp8), 'image/webp')).toEqual({ width: 5000, height: 16383 });
+    const vp8l = Buffer.from('VP8L\x05\0\0\0\x2f\0\0\0\0\0', 'latin1');
+    // 14 bits of width - 1, then 14 bits of height - 1, least significant bit first.
+    vp8l.writeUInt32LE((4999 | (299 << 14)) >>> 0, 9);
+    expect(imageSize(riff(vp8l), 'image/webp')).toEqual({ width: 5000, height: 300 });
+  });
+
+  it('null when the header is missing or cut', () => {
+    expect(imageSize(pngWith().subarray(0, 20), 'image/png')).toBeNull();
+    expect(imageSize(Buffer.from([0xff, 0xd8, 0xff, 0xd9]), 'image/jpeg')).toBeNull();
+    expect(imageSize(webpWith().subarray(0, 16), 'image/webp')).toBeNull();
   });
 });

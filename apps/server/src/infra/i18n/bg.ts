@@ -54,6 +54,19 @@ export const bg: ServerTexts = {
         `Имейлът на Вашия профил в приложението Help е променен на ${newEmail}. Отсега нататък влизайте с новия адрес.`,
       warning: 'Ако не сте били Вие, свържете се незабавно със своя администратор.',
     },
+    passkeyCode: {
+      subject: (code) => `Код за добавяне на ключ за достъп (passkey) в Help: ${code}`,
+      heading: 'Код за добавяне на ключ за достъп (passkey)',
+      body: 'Въведете го в приложението Help, за да добавите ключ за достъп (passkey) към профила си. Валиден е 5 минути. Ако не сте го поискали, игнорирайте този имейл.',
+    },
+    passkeyAdded: {
+      subject: 'Към профила Ви в Help е добавен нов ключ за достъп (passkey)',
+      body: ({ name, date }) =>
+        `Към профила Ви в Help by eGrant на ${date} е добавен нов ключ за достъп (passkey) „${name}“. С него можете да влизате без код от имейл.`,
+      warning:
+        'Ако не сте били Вие, незабавно го изтрийте в Настройки → Ключове за достъп (passkeys) и се свържете с администратора си.',
+      button: 'Отвори Настройки',
+    },
   },
   mcp: {
     tokenCreated: {
@@ -150,6 +163,10 @@ export const bg: ServerTexts = {
     mentionedInDescription: (name) => `${name} ви спомена в описанието`,
     openKnowledge: 'Отвори елемента',
     openProject: 'Отвори проекта',
+    actionDone: 'Готово',
+    actionLogTime: 'Запиши време',
+    actionReply: 'Отговори',
+    replyPlaceholder: 'Напишете отговор…',
   },
   teams: {
     recordingNotice: 'Този разговор ще бъде записан и транскрибиран.',

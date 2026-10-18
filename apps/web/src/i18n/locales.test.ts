@@ -37,11 +37,14 @@ const NAMESPACES = [
   'knowledge',
   'login',
   'mcp',
+  'notificationCentre',
   'notifications',
   'openInClaude',
+  'passkeys',
   'projects',
   'reminders',
   'savedViews',
+  'search',
   'settings',
   'snippets',
   'system',
@@ -179,6 +182,29 @@ describe('locales', () => {
       // Brand names and a few symbols may match; most texts must not.
       expect({ code, copied: same.length < en.length / 4 }).toEqual({ code, copied: true });
     }
+  });
+
+  /** Every text of a language, namespaces included, as `key: text`. */
+  const textsOf = (code: string) => {
+    const json = merged[code] ?? {};
+    return flatten(json).map((key) => {
+      const text = key
+        .split('.')
+        .reduce<unknown>((o, k) => (o as Record<string, unknown>)?.[k], json);
+      return `${key}: ${String(text)}`;
+    });
+  };
+
+  it('it addresses the reader formally (Lei, ADR 0019): no tu forms', () => {
+    const informal = /\b(sei|ti|tuo|tua|tuoi|tue|puoi|vuoi|hai|riconnetti)\b/i;
+    const value = (line: string) => line.slice(line.indexOf(': ') + 2);
+    expect(textsOf('it').filter((line) => informal.test(value(line)))).toEqual([]);
+  });
+
+  it('sl asks the reader, not itself: no question opening with a first-person verb', () => {
+    const firstPerson = /^[A-ZČŠŽ][a-zčšž]+(im|em|am) [^?]*\?$/;
+    const value = (line: string) => line.slice(line.indexOf(': ') + 2);
+    expect(textsOf('sl').filter((line) => firstPerson.test(value(line)))).toEqual([]);
   });
 
   it('the namespaces have plural keys to check (the plural test sees them)', () => {

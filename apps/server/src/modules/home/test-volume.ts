@@ -19,6 +19,8 @@ const MESSAGES_PER_CHANNEL = MESSAGES / GROUPS;
 const EVENTS = 200_000;
 /** Older than the home's 90 days: messages that named the admin long ago. */
 const OLD_MENTIONS = 5_000;
+/** Mentions in descriptions (2026-10-18), within the 30 days events are kept. */
+const DESCRIPTION_MENTIONS = 20_000;
 
 /** The ids of the seeded volume. */
 export function homeVolumeIds(): VolumeIds {
@@ -38,6 +40,9 @@ export const HOME_VOLUME_TABLES = [
   'notification_events',
   'task_seen',
   'ticket_seen',
+  'projects',
+  'project_seen',
+  'knowledge_seen',
   'user',
   'groups',
   'group_managers',
@@ -61,7 +66,8 @@ export const HOME_VOLUME_TABLES = [
  * than 90 days that name the admin, the admin's read marks,
  * the admin managing 10 groups, and 200 000 notification events (a seventh the admin's; of tasks,
  * hourly urgent reminders among them, and of tickets) with the admin's seen marks for a sixth of
- * the tasks and a fifth of the tickets (2026-10-17, unseen changes).
+ * the tasks and a fifth of the tickets (2026-10-17, unseen changes), and one project per group
+ * with 20 000 mentions in descriptions (2026-10-18, the Mentions card).
  */
 export async function seedHomeVolume(tx: Db): Promise<void> {
   const { adminId } = homeVolumeIds();
@@ -189,7 +195,7 @@ export async function seedHomeVolume(tx: Db): Promise<void> {
   // urgent reminder, a task chat message, a ticket status change or a group chat message.
   await tx.execute(sql`
     insert into notification_events (id, user_id, group_id, kind, payload, created_at,
-      delivered_at)
+      delivered_at, in_centre)
     select ${p} || '-e' || i,
       case when i % 7 = 0 then ${adminId} else ${p} || '-c' || (i % ${GROUPS} + 1) end,
       ${p} || '-g' || ((i % ${TASKS} + 1) % ${GROUPS} + 1),
@@ -199,7 +205,9 @@ export async function seedHomeVolume(tx: Db): Promise<void> {
         when i % 5 = 4 then jsonb_build_object('taskId', null)
         else jsonb_build_object('taskId', ${p} || '-t' || (i % ${TASKS} + 1))
       end,
-      now() - i * interval '10 seconds', now()
+      now() - i * interval '10 seconds', now(),
+      -- 2026-10-18, the notification centre: a third of the events are listed.
+      i % 3 = 0
     from generate_series(1, ${EVENTS}) i
   `);
   await tx.execute(sql`
@@ -223,5 +231,45 @@ export async function seedHomeVolume(tx: Db): Promise<void> {
     insert into knowledge_links (item_id, task_id)
     select ${p} || '-k' || (i % ${GROUPS} + 1), ${p} || '-t' || i
     from generate_series(1, ${TASKS}) i where i % 5 = 0
+  `);
+  // 2026-10-18, the Mentions card's description mentions: one project per group, and 20 000
+  // `description.mention` events over the last 30 days (a fifth the admin's), by i % 4 of a task,
+  // a ticket, a project or a knowledge item, with the admin's seen marks for a tenth of the
+  // projects and items.
+  await tx.execute(sql`
+    insert into projects (id, group_id, name, name_key)
+    select ${p} || '-p' || i, ${p} || '-g' || i, 'Project ' || i, 'project ' || i
+    from generate_series(1, ${GROUPS}) i
+  `);
+  await tx.execute(sql`
+    insert into notification_events (id, user_id, group_id, kind, payload, created_at,
+      delivered_at)
+    select ${p} || '-d' || i,
+      case when i % 5 = 0 then ${adminId} else ${p} || '-c' || (i % ${GROUPS} + 1) end,
+      ${p} || '-g' || (i % ${GROUPS} + 1), 'description.mention',
+      jsonb_build_object('subjectKind', k.kind, 'subjectId', k.id, 'actorName', 'Client',
+        'taskId', case when k.kind = 'task' then k.id end,
+        'ticketId', case when k.kind = 'ticket' then k.id end),
+      now() - i * interval '2 minutes', now()
+    from generate_series(1, ${DESCRIPTION_MENTIONS}) i
+    cross join lateral (
+      select (array['task', 'ticket', 'project', 'knowledge'])[i % 4 + 1] as kind,
+        ${p} || case i % 4
+          when 0 then '-t' || (i % ${TASKS} + 1)
+          when 1 then '-k' || (i % ${TICKETS} + 1)
+          when 2 then '-p' || (i % ${GROUPS} + 1)
+          else '-k' || (i % ${GROUPS} + 1)
+        end as id
+    ) k
+  `);
+  await tx.execute(sql`
+    insert into project_seen (user_id, project_id, seen_at)
+    select ${adminId}, ${p} || '-p' || i, now() - interval '5 days'
+    from generate_series(1, ${GROUPS}) i where i % 10 = 1
+  `);
+  await tx.execute(sql`
+    insert into knowledge_seen (user_id, item_id, seen_at)
+    select ${adminId}, ${p} || '-k' || i, now() - interval '5 days'
+    from generate_series(1, ${GROUPS}) i where i % 10 = 1
   `);
 }

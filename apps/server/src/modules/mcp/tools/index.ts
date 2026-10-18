@@ -6,11 +6,13 @@ import { homeTools } from './home.js';
 import { knowledgeTools } from './knowledge.js';
 import { peopleTools } from './people.js';
 import { projectTools } from './projects.js';
+import { searchTools } from './search.js';
 import { taskTools } from './tasks.js';
 import { ticketTools } from './tickets.js';
 
 /** Every MCP tool, in the order `tools/list` shows them (spec §5). */
 export const ALL_TOOLS: readonly ToolDef[] = [
+  ...searchTools,
   ...peopleTools,
   ...chatTools,
   ...taskTools,

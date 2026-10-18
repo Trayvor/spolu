@@ -10,6 +10,7 @@ import {
   type UserLanguage,
 } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
+import { liveGroupSql } from '../groups/memberships.js';
 import { groups } from '../groups/schema.js';
 import { getGroupPeopleRoles } from '../groups/service.js';
 import { isAdmin } from '../users/policy.js';
@@ -336,6 +337,26 @@ async function validateRecipients(
   return kept;
 }
 
+/**
+ * Of `ids`, the people a new reminder of the group may still have as added recipients (people of
+ * the group who may be picked; admins only for an admins-only subject). For a set written
+ * without a person picking it (a recurring call's next call, ADR 0049): someone who left is
+ * dropped instead of failing the write.
+ */
+export async function pickableRecipients(
+  tx: Db,
+  groupId: string,
+  adminsOnly: boolean,
+  ids: string[],
+): Promise<string[]> {
+  if (ids.length === 0) return [];
+  const people = await getGroupPeopleRoles(tx, groupId, ids);
+  return ids.filter((id) => {
+    const person = people.get(id);
+    return !!person && (!adminsOnly || person.isAdmin) && isPickable({ id, name: '', ...person });
+  });
+}
+
 /** After a subject became admins-only: drops every non-admin recipient except the author. */
 export async function pruneRecipientsForAdminsOnly(
   tx: Db,
@@ -630,6 +651,7 @@ export async function countUpcomingForUser(
         and t.fired_at is null
         and t.at >= ${range.from.toISOString()}::timestamptz
         and t.at < ${range.to.toISOString()}::timestamptz
+        and ${liveGroupSql(sql`s.group_id`)}
         ${onlyGroup}
       limit ${UPCOMING_COUNT_CAP}
     ) capped
@@ -673,6 +695,8 @@ export async function listUpcomingForUser(
       and(
         isNull(reminderTimes.firedAt),
         gte(reminderTimes.at, opts.from ?? new Date()),
+        // A deactivated group's reminders leave the list (no group: the left join gives null).
+        isNull(groups.deactivatedAt),
         isAdmin(actor) ? undefined : inArray(reminderSets.groupId, actorGroupIds),
       ),
     )

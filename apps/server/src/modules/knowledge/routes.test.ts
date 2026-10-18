@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { Readable } from 'node:stream';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { io as connect, type Socket } from 'socket.io-client';
 import {
   KnowledgeEvents,
@@ -185,6 +185,27 @@ describe('knowledge API', () => {
     expect((await call('GET', `/api/groups/${id}/knowledge`, admin.cookie)).statusCode).toBe(404);
     const res = await call('POST', `/api/groups/${id}/knowledge`, admin.cookie, note());
     expect(res.statusCode).toBe(404);
+  });
+
+  it('opening an item marks it seen for a reader only (the Mentions card, 2026-10-18)', async () => {
+    const admin = await newAdmin();
+    const group = await newGroup();
+    const client = await clientIn(group.id);
+    const open = await create(admin.cookie, group.id, note());
+    const secret = await create(admin.cookie, group.id, note({ visibility: 'admins' }));
+    const seen = (id: string) => call('POST', `/api/knowledge/${id}/seen`, client.cookie);
+    expect((await seen(secret.id)).statusCode).toBe(404);
+    expect((await seen(randomUUID())).statusCode).toBe(404);
+    expect((await seen(open.id)).statusCode).toBe(204);
+    expect((await call('POST', `/api/knowledge/${secret.id}/seen`, admin.cookie)).statusCode).toBe(
+      204,
+    );
+    const rows = await test.deps.db.execute<{ user_id: string; item_id: string }>(
+      sql`select user_id, item_id from knowledge_seen where item_id in (${open.id}, ${secret.id})`,
+    );
+    expect([...rows].map((r) => `${r.item_id}:${r.user_id}`).sort()).toEqual(
+      [`${open.id}:${client.id}`, `${secret.id}:${admin.id}`].sort(),
+    );
   });
 
   it('a client gets 404 on an admins-only item, its file and its .ics', async () => {

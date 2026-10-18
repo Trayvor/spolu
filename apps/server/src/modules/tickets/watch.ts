@@ -1,9 +1,10 @@
-import { and, eq, sql, type SQL } from 'drizzle-orm';
-import type { SessionUser } from '@spolu/shared';
+import { and, eq, inArray, sql, type SQL } from 'drizzle-orm';
+import type { GroupKind, SessionUser } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
 import { isGroupManager, managedGroupsSql } from '../groups/managers.js';
 import { listGroupPeople } from '../groups/service.js';
 import { isAdmin } from '../users/policy.js';
+import { canHoldTickets } from './policy.js';
 import { ticketWatchSettings } from './schema.js';
 
 /**
@@ -73,4 +74,39 @@ export function watchedGroupsSql(userId: string): SQL {
     where not exists (select 1 from ticket_watch_settings o
       where o.user_id = ${userId} and o.group_id = m.group_id and not o.watching)
   )`;
+}
+
+/**
+ * `watchesTickets` for many groups at once (the client table of `/settings/notifications`, UX
+ * review X7): the actor's choice, else on for a client and for an admin who manages the group
+ * (`managed`, the caller's set). Groups that cannot hold tickets (the admin group) are null.
+ * One query. The caller checked the actor may read every group.
+ */
+export async function watchStatesFor(
+  db: Db,
+  actor: SessionUser,
+  groupList: { id: string; kind: GroupKind }[],
+  managed: ReadonlySet<string>,
+): Promise<Map<string, boolean | null>> {
+  const result = new Map<string, boolean | null>();
+  const holders = groupList.filter((g) => canHoldTickets(g));
+  for (const g of groupList) if (!canHoldTickets(g)) result.set(g.id, null);
+  if (holders.length === 0) return result;
+  const rows = await db
+    .select({ groupId: ticketWatchSettings.groupId, watching: ticketWatchSettings.watching })
+    .from(ticketWatchSettings)
+    .where(
+      and(
+        eq(ticketWatchSettings.userId, actor.id),
+        inArray(
+          ticketWatchSettings.groupId,
+          holders.map((g) => g.id),
+        ),
+      ),
+    );
+  const choice = new Map(rows.map((r) => [r.groupId, r.watching]));
+  for (const g of holders) {
+    result.set(g.id, choice.get(g.id) ?? (isAdmin(actor) ? managed.has(g.id) : true));
+  }
+  return result;
 }

@@ -9,6 +9,7 @@ import {
   uniqueIndex,
 } from 'drizzle-orm/pg-core';
 import type { GroupKind, MemberRole } from '@spolu/shared';
+import { foldSql } from '../../infra/db/fold.js';
 import { user } from '../users/schema.js';
 
 /**
@@ -43,6 +44,8 @@ export const groups = pgTable(
       .where(sql`${t.kind} = 'admin'`),
     // `GET /groups?limit=` pages by name and id (2026-10-18).
     index('groups_name_id_idx').on(t.name, t.id),
+    // The global search (2026-10-18): a fragment of the folded name, trigram.
+    index('groups_name_fold_trgm_idx').using('gin', sql`${foldSql(t.name)} gin_trgm_ops`),
   ],
 );
 

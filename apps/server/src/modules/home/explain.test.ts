@@ -1,6 +1,9 @@
 import { afterAll, describe, expect, inject, it } from 'vitest';
-import { sql, type SQL } from 'drizzle-orm';
+import { asc, sql, type SQL } from 'drizzle-orm';
 import { createDb, type Db } from '../../infra/db/client.js';
+import { centreListSql, centreUnreadSql } from '../notifications/centre.js';
+import { passWhere } from '../notifications/deliver.js';
+import { notificationEvents } from '../notifications/schema.js';
 import { taskSummarySql, ticketSummarySql } from '../notifications/unseen.js';
 import { boardUnseenSql } from '../tasks/service.js';
 import { dashboardTicketsSql, unseenTicketCountSql } from '../tickets/dashboard.js';
@@ -114,13 +117,36 @@ describe('admin home query plans on a seeded volume', () => {
       await expectIndexed(tx, dashboardTicketsSql(adminId), ['tickets', ...UNSEEN_TABLES]);
       // mentions uses indexes under 50 ms; the direct mentions are read from the last 90 days
       // only (the seeded volume also names the admin in older messages)
-      const mentionsPlan = await expectIndexed(tx, mentionsSql(adminId), CHAT_TABLES);
+      // 2026-10-18: and so do the mentions in descriptions, from the admin's own events on
+      // `notification_events_description_mention_idx`, each subject looked up by its key
+      const mentionsPlan = await expectIndexed(tx, mentionsSql(adminId), [
+        ...CHAT_TABLES,
+        ...UNSEEN_TABLES,
+        'tasks',
+        'tickets',
+      ]);
+      const mentionReads = indexReads(mentionsPlan);
       expect(
-        indexReads(mentionsPlan).some(
+        mentionReads.some(
           (read) =>
             read.startsWith('message_mentions_user_created_idx:') && read.includes('created_at'),
         ),
       ).toBe(true);
+      expect(
+        mentionReads.some(
+          (read) =>
+            read.startsWith('notification_events_description_mention_idx:') &&
+            read.includes('created_at'),
+        ),
+      ).toBe(true);
+      // the volume's description mentions are newer than its chat ones: they are listed
+      const [listed] = [
+        ...(await tx.execute<{ described: number }>(
+          sql`select (count(*) filter (where source = 'description'))::int as described
+            from (${mentionsSql(adminId)}) x`,
+        )),
+      ];
+      expect(listed!.described).toBeGreaterThan(0);
       // global board uses tasks_open_group_idx under 50 ms, for the 10 managed groups
       // and so does its "only where I take part" filter, and a merged custom column's next page
       const board = {
@@ -238,6 +264,58 @@ describe('admin home query plans on a seeded volume', () => {
       // The Tickets card's open tickets without a client skip the resolved ones.
       const tickets = await expectIndexed(tx, dashboardTicketsSql(adminId), ['tickets']);
       expect(used(tickets)).toContain('tickets_unassigned_open_created_idx');
+      // 2026-10-18, the notification centre (migration 0062): a page of the bell, the next
+      // page after a cursor, and the unread count, for the admin (a seventh of all events: the
+      // planner may as well walk `created_at` backwards, as fast) and for a client (on the
+      // partial index); the two delivery passes read their own partial indexes, also with a
+      // thousand events held for a device (inserted in a transaction that is rolled back).
+      const clientId = adminId.replace(/-admin$/, '-c1');
+      for (const userId of [adminId, clientId]) {
+        const first = await expectIndexed(tx, centreListSql(userId, null, 31), UNSEEN_TABLES);
+        const [last] = [
+          ...(await tx.execute<{ at: string; id: string }>(sql`
+            select created_at::text as at, id from notification_events
+            where user_id = ${userId} and in_centre order by created_at desc, id desc
+            offset 30 limit 1
+          `)),
+        ];
+        const next = await expectIndexed(
+          tx,
+          centreListSql(userId, { at: last!.at, id: last!.id }, 31),
+          UNSEEN_TABLES,
+        );
+        const unread = await expectIndexed(tx, centreUnreadSql(userId), UNSEEN_TABLES);
+        if (userId === clientId) {
+          for (const plan of [first, next, unread]) {
+            expect(used(plan)).toContain('notification_events_centre_idx');
+          }
+        }
+      }
+      class Rollback extends Error {}
+      await expect(
+        db.transaction(async (held) => {
+          await held.execute(sql`
+            insert into notification_events (id, user_id, group_id, kind, payload, in_centre)
+            select 'held-' || i, ${adminId}, null, 'ticket.status', '{}'::jsonb, true
+            from generate_series(1, 1000) i
+          `);
+          for (const pass of ['fresh', 'held'] as const) {
+            const pending = held
+              .select({ id: notificationEvents.id })
+              .from(notificationEvents)
+              .where(passWhere(true, pass))
+              .orderBy(asc(notificationEvents.createdAt), asc(notificationEvents.id))
+              .limit(200);
+            const plan = await expectIndexed(held as unknown as Db, pending.getSQL(), UNSEEN_TABLES);
+            expect(used(plan)).toContain(
+              pass === 'fresh'
+                ? 'notification_events_undelivered_idx'
+                : 'notification_events_held_idx',
+            );
+          }
+          throw new Rollback();
+        }),
+      ).rejects.toBeInstanceOf(Rollback);
     },
   );
 });

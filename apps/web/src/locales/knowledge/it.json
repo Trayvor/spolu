@@ -265,12 +265,46 @@
     },
     "row": {
       "processing": "In elaborazione",
-      "summary": "Riepilogo"
+      "summary": "Riepilogo",
+      "recurring": "Si ripete"
     },
     "transcriptFromTeams": "da Teams",
     "transcriptAdminsOnly": "Solo gli amministratori vedono questa trascrizione e il suo riassunto finché non li condivide con il cliente.",
     "shareTranscript": "Condividi con il cliente",
-    "shareFailed": "Condivisione non riuscita. Riprovare."
+    "shareFailed": "Condivisione non riuscita. Riprovare.",
+    "repeat": {
+      "label": "Ripetizione",
+      "none": "Non si ripete",
+      "weekly": "Ogni settimana: {{weekday}}",
+      "biweekly": "Ogni 2 settimane: {{weekday}}",
+      "monthly_date": "Ogni mese, il giorno {{day}}",
+      "monthly_weekday_1": "Ogni mese, 1° {{weekday}} del mese",
+      "monthly_weekday_2": "Ogni mese, 2° {{weekday}} del mese",
+      "monthly_weekday_3": "Ogni mese, 3° {{weekday}} del mese",
+      "monthly_weekday_4": "Ogni mese, 4° {{weekday}} del mese",
+      "monthly_weekday_last": "Ogni mese, {{weekday}} dell'ultima settimana",
+      "ends": "Fine",
+      "endNever": "Mai",
+      "endUntil": "In una data",
+      "endCount": "Dopo un numero di riunioni",
+      "untilLabel": "Ultimo giorno",
+      "countLabel": "Riunioni in tutto",
+      "hint": "Ogni riunione è un elemento a sé, con note, registrazione, trascrizione e promemoria propri. Help aggiunge le riunioni con 60 giorni di anticipo.",
+      "untilInvalid": "Scelga un ultimo giorno uguale o successivo alla prima riunione, al massimo fra 2 anni.",
+      "countInvalid": "Inserisca da 2 a 100 riunioni."
+    },
+    "series": {
+      "repeats": "Si ripete: {{rule}}.",
+      "until": "Fino al {{date}}.",
+      "count": "{{count}} riunioni in tutto.",
+      "ended": "Non verranno aggiunte altre riunioni.",
+      "editScope": "Questa riunione si ripete. Vuole modificare solo questa o anche le riunioni successive?",
+      "onlyThis": "Solo questa riunione",
+      "thisAndFollowing": "Questa e le successive",
+      "deleteScope": "Questa riunione si ripete. Vuole eliminare solo questa o anche le riunioni successive? Le riunioni eliminate non verranno aggiunte di nuovo.",
+      "deleteThis": "Elimina questa riunione",
+      "deleteFollowing": "Elimina questa e le successive"
+    }
   },
   "view": {
     "label": "Vista",

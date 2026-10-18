@@ -68,7 +68,8 @@
     "mentions": {
       "title": "Menzioni",
       "caption": "non lette",
-      "empty": "Nessuna menzione non letta."
+      "empty": "Nessuna menzione non letta.",
+      "inDescription": "Nella descrizione: {{title}}"
     },
     "meetings": {
       "title": "Riunioni",
@@ -147,7 +148,7 @@
       "description": "Promemoria su attività e voci di Conoscenze nei prossimi 7 giorni."
     },
     "mentions": {
-      "description": "Messaggi non letti che La menzionano, nelle chat da cui riceve notifiche."
+      "description": "Messaggi e descrizioni non letti (di attività, ticket, progetti e conoscenze) che La menzionano, dai luoghi da cui riceve notifiche."
     },
     "groups": {
       "overdue": "Scadute",

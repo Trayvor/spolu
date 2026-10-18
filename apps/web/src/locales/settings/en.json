@@ -23,6 +23,12 @@
     "bulkEmail": {
       "label": "Receive mailings",
       "hint": "News from eGrant sent to many people at once. Login codes and notifications always arrive."
+    },
+    "phoneNav": {
+      "label": "Navigation on phones",
+      "hint": "Applies on phones only. Wider screens always show the sections in the header.",
+      "classic": "Classic: the section menu in the header",
+      "bottom": "Bottom bar: sections at the foot of the screen"
     }
   },
   "notifications": {
@@ -58,6 +64,32 @@
       "both": "Email and push",
       "none": "None"
     },
-    "emailNote": "Email is a summary of what you have not read yet, at most every 10 minutes."
+    "emailNote": "Email is a summary of what you have not read yet, at most every 10 minutes.",
+    "channelsTitle": "How notifications arrive",
+    "back": "Settings",
+    "summary": "Channels, this device, and for each client its mode and new tickets, all in one place.",
+    "open": "Set up notifications",
+    "allOff": "All your notifications are off. Choose a channel for what you want to hear about.",
+    "pushUnused": "No notification group uses push now.",
+    "clients": {
+      "title": {
+        "admin": "Clients",
+        "client": "Your groups"
+      },
+      "hint": "The mode decides which messages and task changes reach you. New tickets: a notification about every new ticket of the client and its updates until someone is assigned.",
+      "search": "Search clients",
+      "managed": "Clients you are the manager of",
+      "others": "Other clients",
+      "client": "Client",
+      "mode": "Mode",
+      "tickets": "New tickets",
+      "ticketsFor": "New tickets of {{name}}: notify me",
+      "none": "No client matches the search.",
+      "empty": {
+        "admin": "There are no clients yet.",
+        "client": "You are not in any group yet."
+      },
+      "more": "Show more"
+    }
   }
 }

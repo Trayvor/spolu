@@ -1,0 +1,34 @@
+{
+  "title": "Passkeys",
+  "intro": "Log in with your fingerprint, face or device PIN instead of an email code. The email code keeps working.",
+  "add": {
+    "title": "Add a passkey",
+    "name": "Name",
+    "namePlaceholder": "Work laptop",
+    "nameRequired": "Enter a name for the passkey.",
+    "submit": "Add passkey",
+    "limit": "You have {{count}} passkeys. Delete one before adding another.",
+    "failed": "The passkey was not added. Try again.",
+    "unsupported": "This browser cannot create passkeys.",
+    "added": "Passkey added."
+  },
+  "reauth": {
+    "intro": "To add a passkey, confirm it is you: we sent a 6-digit code to {{email}}.",
+    "code": "Code",
+    "submit": "Confirm and add",
+    "wrong": "The code is not correct or has expired. Send a new one.",
+    "sendAgain": "Send a new code",
+    "cancel": "Cancel"
+  },
+  "list": {
+    "title": "Your passkeys",
+    "empty": "No passkeys yet.",
+    "created": "Added {{date}}",
+    "lastUsed": "Last used {{date}}",
+    "neverUsed": "Not used yet",
+    "delete": "Delete",
+    "confirm": "Delete this passkey? You can still log in with an email code.",
+    "deleteConfirm": "Delete passkey",
+    "keep": "Keep"
+  }
+}

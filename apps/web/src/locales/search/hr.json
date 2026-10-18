@@ -1,0 +1,30 @@
+{
+  "title": "Pretraži",
+  "placeholder": "Potražite grupu, tiket, zadatak…",
+  "cancel": "Odustani",
+  "loading": "Pretraživanje…",
+  "tooShort": "Upišite barem 2 znaka.",
+  "empty": "Za „{{q}}” nema rezultata.",
+  "error": "Pretraživanje nije uspjelo. Pokušajte ponovno.",
+  "rateLimited": "Previše pretraživanja odjednom. Pričekajte trenutak.",
+  "done": "gotov",
+  "resolved": "riješen",
+  "sections": {
+    "recent": "Nedavno otvoreno",
+    "actions": "Idi na",
+    "groups": "Grupe",
+    "tickets": "Tiketi",
+    "tasks": "Zadaci",
+    "knowledge": "Znanje",
+    "projects": "Projekti i događaji",
+    "people": "Osobe"
+  },
+  "actions": {
+    "newTask": "Novi zadatak u ovoj grupi"
+  },
+  "keys": {
+    "move": "odaberi",
+    "open": "otvori",
+    "close": "zatvori"
+  }
+}

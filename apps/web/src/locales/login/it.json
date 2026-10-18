@@ -20,5 +20,11 @@
   "invite": {
     "by": "{{name}} La invita nel gruppo {{group}}.",
     "about": "In Help Lei lavora con il team eGrant: chat, attività, ticket di assistenza e documenti condivisi in un unico posto."
+  },
+  "passkey": {
+    "button": "Acceda con una passkey",
+    "hint": "Per gli amministratori che hanno aggiunto una passkey nelle Impostazioni.",
+    "invalid": "Questa passkey non può essere usata. Acceda con il codice via email.",
+    "failed": "L'accesso con la passkey non è riuscito. Riprovi o acceda con il codice via email."
   }
 }

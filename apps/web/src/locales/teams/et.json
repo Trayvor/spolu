@@ -45,7 +45,9 @@
     "invalidEmail": "Sisestage kehtiv e-posti aadress.",
     "noticeLabel": "Kutses on kirjas:",
     "submit": "Loo koosolek",
-    "creating": "Loomine…"
+    "creating": "Loomine…",
+    "following": "Ka järgmistele kohtumistele",
+    "followingHint": "Help loob nende seadetega eraldi Teamsi koosoleku sarja igale järgmisele kohtumisele, igaühele oma kutse ja transkriptsiooniga."
   },
   "connectForm": {
     "url": "Teamsi koosoleku link",
@@ -75,5 +77,11 @@
     "timeZone": "Aeg teie ajavööndis ({{zone}}).",
     "invalid": "See kutse link ei kehti enam.",
     "rateLimited": "Liiga palju päringuid. Proovige minuti pärast."
+  },
+  "series": {
+    "planned": "Help loob selle sarja igale järgmisele kohtumisele Teamsi koosoleku, korraldaja: {{name}}.",
+    "plannedNoName": "Help loob selle sarja igale järgmisele kohtumisele Teamsi koosoleku.",
+    "stop": "Peata järgmiste kohtumiste jaoks",
+    "stopConfirm": "Kas lõpetada järgmistele kohtumistele Teamsi koosolekute loomine? Juba loodud Teamsi koosolekud jäävad alles."
   }
 }

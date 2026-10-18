@@ -42,6 +42,8 @@ export interface ThreadPanelProps {
   renderMessageFooter?: (message: MessageDto) => ReactNode;
   /** Covers the chat at every width, with the back button (the task panel's chat). */
   over?: boolean;
+  /** Focus the reply composer instead of the heading (N6a's `?reply=1`). */
+  focusComposer?: boolean;
   onClose: () => void;
 }
 
@@ -65,6 +67,7 @@ export function ThreadPanel({
   messageActions,
   renderMessageFooter,
   over = false,
+  focusComposer = false,
   onClose,
 }: ThreadPanelProps) {
   const { t } = useTranslation();
@@ -102,10 +105,16 @@ export function ThreadPanel({
     return () => clearTimeout(timer);
   }, [flash]);
 
-  // Opening a thread moves focus into it (the heading, so screen readers announce it).
+  // Opening a thread moves focus into it (the heading, so screen readers announce it), or to the
+  // reply composer when asked (N6a; a field still loading takes it through `autoFocus`).
   useEffect(() => {
-    heading.current?.focus();
+    if (!focusComposer) heading.current?.focus();
+    // On opening only.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+  useEffect(() => {
+    if (focusComposer) composer.current?.focus();
+  }, [focusComposer]);
 
   // Scroll to the highlighted message once it is rendered; otherwise follow the newest reply
   // when one is added while the reader is at the end, and always after the reader's own send
@@ -299,6 +308,7 @@ export function ThreadPanel({
       <div className="shrink-0 px-4 pb-4">
         <Composer
           ref={composer}
+          autoFocus={focusComposer}
           mode="thread"
           groupId={groupId}
           channelId={channelId}

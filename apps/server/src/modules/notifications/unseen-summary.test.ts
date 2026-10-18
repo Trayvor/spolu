@@ -81,6 +81,14 @@ describe('summarizeUnseen (2026-10-18)', () => {
     ]);
   });
 
+  it('a mention in the description joins the mentions line, by its actor', () => {
+    const chat = row('chat.mention', { authorName: 'Eva' });
+    const description = row('description.mention', { actorName: 'Jana' });
+    expect(summarizeUnseen(newestFirst(chat, description)).lines).toEqual([
+      { kind: 'mentions', count: 2, authors: ['Jana', 'Eva'] },
+    ]);
+  });
+
   it('a deadline names the due day: the day of the reminder plus its days left', () => {
     const rows = [row('task.deadline', { daysLeft: 1 }, '2026-10-31')];
     expect(summarizeUnseen(rows).lines).toEqual([{ kind: 'deadline', dueDate: '2026-11-01' }]);

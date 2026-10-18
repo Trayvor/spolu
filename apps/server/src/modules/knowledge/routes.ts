@@ -11,6 +11,7 @@ import {
   KnowledgeChatsFilterSchema,
   KnowledgeToFileSchema,
   KnowledgeTypeListSchema,
+  MeetingSeriesScopeSchema,
   type KnowledgeFolderList,
   type KnowledgeScope,
   type SessionUser,
@@ -40,6 +41,7 @@ import { createFolder, deleteFolder, listFolders, updateFolder } from './folders
 import { InvalidKnowledgeLinkError } from './links.js';
 import { managedGroupIdsOf } from './scope.js';
 import {
+  canReadItemById,
   convertChatFile,
   createItem,
   deleteItem,
@@ -58,7 +60,10 @@ import {
   ValidationError,
 } from './service.js';
 import { clientGroupIds } from '../groups/memberships.js';
+import { markKnowledgeSeen } from '../notifications/unseen.js';
 import { meetingAiOf, withMeetingAi } from './meeting-routes.js';
+import { announceMeeting } from './meeting-realtime.js';
+import { getItemSummary } from './service.js';
 
 type IdParams = { Params: { id: string } };
 
@@ -242,13 +247,16 @@ export const knowledgeRoutes: FastifyPluginAsync<{
         draft.visibility = 'admins';
       }
       let item;
+      let seriesItemIds: string[];
       try {
-        ({ item } = await createItem(deps, actor, request.params.id, draft));
+        ({ item, seriesItemIds } = await createItem(deps, actor, request.params.id, draft));
       } catch (error) {
         return knowledgeError(reply, error);
       }
       // After the commit, outside the try: nothing here may be mapped as a failed write.
       emitKnowledgeItem(app.io, item);
+      // The later calls of a new recurring series (ADR 0049).
+      for (const id of seriesItemIds) await announceMeeting(db, id);
       return reply.code(201).send(withMeetingAi(item, actor, meetingAiOf(deps)));
     },
   );
@@ -262,6 +270,17 @@ export const knowledgeRoutes: FastifyPluginAsync<{
     }
   });
 
+  // 2026-10-18: the viewer opened the item: a mention in its body from before is read on the
+  // Mentions card.
+  app.post<IdParams>('/knowledge/:id/seen', { preHandler: anyUser }, async (request, reply) => {
+    const actor = request.user!;
+    if (!(await canReadItemById(db, actor, request.params.id))) {
+      return knowledgeError(reply, new KnowledgeNotFoundError());
+    }
+    await markKnowledgeSeen(db, actor.id, request.params.id);
+    return reply.code(204).send();
+  });
+
   app.patch<IdParams>('/knowledge/:id', { preHandler: writeGuard }, async (request, reply) => {
     const body = KnowledgePatchSchema.safeParse(request.body);
     if (!body.success) return send(reply, 400, bodyErrorCode(body.error));
@@ -271,13 +290,18 @@ export const knowledgeRoutes: FastifyPluginAsync<{
     } catch (error) {
       return knowledgeError(reply, error);
     }
-    const { item, previousVisibility, removedFileIds } = result;
+    const { item, previousVisibility, removedFileIds, following } = result;
     // The files taken off the item were detached in the transaction. Not awaited: the answer does
     // not wait for storage, and a failed delete leaves them to the daily unattached cleanup.
     void deleteDetachedFiles({ db, storage }, removedFileIds).catch((error: unknown) =>
       request.log.error({ err: error }, 'could not delete the files of a knowledge item'),
     );
     emitKnowledgeItem(app.io, item, previousVisibility);
+    // "This and following" of a recurring call (ADR 0049): the later calls' rows.
+    for (const changed of following) {
+      const rows = await getItemSummary(db, changed.id);
+      if (rows) emitKnowledgeItem(app.io, rows.admin, changed.previousVisibility, rows.client);
+    }
     return withMeetingAi(item, request.user!, meetingAiOf(deps));
   });
 
@@ -300,14 +324,19 @@ export const knowledgeRoutes: FastifyPluginAsync<{
     },
   );
 
+  // `?scope=following` (ADR 0049): a recurring call and the later calls of its series.
   app.delete<IdParams>('/knowledge/:id', { preHandler: writeGuard }, async (request, reply) => {
-    let deleted;
+    const query = z
+      .object({ scope: MeetingSeriesScopeSchema.optional() })
+      .safeParse(request.query ?? {});
+    if (!query.success) return invalid(reply);
+    let result;
     try {
-      deleted = await deleteItem(deps, request.user!, request.params.id);
+      result = await deleteItem(deps, request.user!, request.params.id, query.data.scope);
     } catch (error) {
       return knowledgeError(reply, error);
     }
-    emitKnowledgeDeleted(app.io, { ...deleted, id: request.params.id });
+    for (const deleted of result.deleted) emitKnowledgeDeleted(app.io, deleted);
     return reply.code(204).send();
   });
 

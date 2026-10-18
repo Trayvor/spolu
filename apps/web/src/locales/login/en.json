@@ -20,5 +20,11 @@
   "invite": {
     "by": "{{name}} invited you to {{group}}.",
     "about": "Help is where you work with the eGrant team: chat, tasks, support tickets and shared documents in one place."
+  },
+  "passkey": {
+    "button": "Log in with a passkey",
+    "hint": "For admins who added a passkey in Settings.",
+    "invalid": "This passkey cannot be used. Log in with an email code.",
+    "failed": "Logging in with the passkey failed. Try again, or log in with an email code."
   }
 }

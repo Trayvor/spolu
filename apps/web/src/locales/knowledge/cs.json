@@ -269,12 +269,46 @@
     },
     "row": {
       "processing": "Zpracovává se",
-      "summary": "Shrnutí"
+      "summary": "Shrnutí",
+      "recurring": "Opakuje se"
     },
     "transcriptFromTeams": "z Teams",
     "transcriptAdminsOnly": "Tento přepis a shrnutí z něj vidí jen admini, dokud je nesdílíte s klientem.",
     "shareTranscript": "Sdílet s klientem",
-    "shareFailed": "Sdílení se nepovedlo. Zkuste to znovu."
+    "shareFailed": "Sdílení se nepovedlo. Zkuste to znovu.",
+    "repeat": {
+      "label": "Opakování",
+      "none": "Neopakuje se",
+      "weekly": "Každý týden: {{weekday}}",
+      "biweekly": "Každé 2 týdny: {{weekday}}",
+      "monthly_date": "Každý měsíc, {{day}}. den",
+      "monthly_weekday_1": "Každý měsíc, 1. {{weekday}} v měsíci",
+      "monthly_weekday_2": "Každý měsíc, 2. {{weekday}} v měsíci",
+      "monthly_weekday_3": "Každý měsíc, 3. {{weekday}} v měsíci",
+      "monthly_weekday_4": "Každý měsíc, 4. {{weekday}} v měsíci",
+      "monthly_weekday_last": "Každý měsíc, {{weekday}} v posledním týdnu",
+      "ends": "Konec",
+      "endNever": "Nikdy",
+      "endUntil": "K datu",
+      "endCount": "Po počtu schůzek",
+      "untilLabel": "Poslední den",
+      "countLabel": "Počet schůzek",
+      "hint": "Každá schůzka je samostatná položka s vlastními poznámkami, nahrávkou, přepisem a připomínkou. Help přidává schůzky 60 dní dopředu.",
+      "untilInvalid": "Zvolte poslední den v den první schůzky nebo později, nejvýše o 2 roky.",
+      "countInvalid": "Zadejte 2 až 100 schůzek."
+    },
+    "series": {
+      "repeats": "Opakuje se: {{rule}}.",
+      "until": "Do {{date}}.",
+      "count": "Celkem {{count}} schůzek.",
+      "ended": "Další schůzky se už nepřidají.",
+      "editScope": "Tato schůzka se opakuje. Změnit jen tuto, nebo i následující schůzky?",
+      "onlyThis": "Jen tuto schůzku",
+      "thisAndFollowing": "Tuto a následující",
+      "deleteScope": "Tato schůzka se opakuje. Smazat jen tuto, nebo i následující schůzky? Smazané schůzky se už znovu nepřidají.",
+      "deleteThis": "Smazat tuto schůzku",
+      "deleteFollowing": "Smazat tuto a následující"
+    }
   },
   "view": {
     "label": "Zobrazení",

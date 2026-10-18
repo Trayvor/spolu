@@ -5,6 +5,7 @@ import { createDb } from '../../infra/db/client.js';
 import { testDatabaseUrl } from '../../../test/test-config.js';
 import { markTaskSeen } from '../notifications/unseen.js';
 import { recordNotifications } from '../notifications/service.js';
+import { setGroupDeactivated } from '../groups/service.js';
 import { countUnseenTasks, getAssignedTasks } from './assigned.js';
 import { bucketOf, newAdmin, newGroup, newTask } from './test-fixtures.js';
 
@@ -139,5 +140,17 @@ describe('unseen tasks (2026-10-17)', () => {
     expect(await countUnseenTasks(db, me.id)).toBe(2);
     expect(await countUnseenTasks(db, other.id)).toBe(1);
     expect(await countUnseenTasks(db, (await newAdmin(db, 'Cyril')).id)).toBe(0);
+  });
+
+  it("a deactivated group's tasks leave the card and the header count, like the sidebar", async () => {
+    const g = await newGroup(db, 'Gone');
+    const me = await newAdmin(db, 'Ada', [g.id]);
+    const task = await newTask(db, { groupId: g.id, createdBy: me.id, assigneeIds: [me.id] });
+    await moved(me.id, g.id, task);
+    expect((await getAssignedTasks(db, me.id)).total).toBe(1);
+    expect(await countUnseenTasks(db, me.id)).toBe(1);
+    await setGroupDeactivated(db, g.id, true);
+    expect(await getAssignedTasks(db, me.id)).toMatchObject({ total: 0, items: [] });
+    expect(await countUnseenTasks(db, me.id)).toBe(0);
   });
 });

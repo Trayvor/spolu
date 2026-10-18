@@ -1,6 +1,7 @@
 import { sql, type SQL } from 'drizzle-orm';
 import { HOME_LIMITS, type HomeTickets, type TicketStatus, type UnseenMark } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
+import { liveGroupSql } from '../groups/memberships.js';
 import { ticketUnseenSql, unseenTicketIdsSql } from '../notifications/unseen.js';
 import { watchedGroupsSql } from './watch.js';
 
@@ -60,6 +61,8 @@ export function dashboardTicketsSql(userId: string): SQL {
         (count(*) filter (where not t.has_assignee) over ())::int as no_assignee_total
       from (${activeTicketsSql(userId)}) t
       left join groups g on g.id = t.group_id
+      -- A deactivated client leaves Home as it leaves the sidebar (no client: g is null).
+      where g.deactivated_at is null
       order by (t.status = 'new') desc, t.created_at desc, t.id desc
       limit ${HOME_LIMITS.tickets}
     ) p
@@ -117,6 +120,7 @@ export function unseenTicketCountSql(userId: string): SQL {
     select count(*)::int as total
     from (${unseenTicketIdsSql(userId)}) x
     join tickets k on k.id = x.ticket_id
+    where ${liveGroupSql(sql`k.group_id`)}
   `;
 }
 

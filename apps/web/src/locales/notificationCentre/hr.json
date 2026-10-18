@@ -1,0 +1,23 @@
+{
+  "bell": {
+    "label": "Obavijesti",
+    "labelUnread": "Obavijesti, nepročitane: {{count}}"
+  },
+  "title": "Obavijesti",
+  "markAll": "Označi sve kao pročitano",
+  "loading": "Učitavanje…",
+  "empty": "Ovdje još nema ničega. Kad vas netko spomene, dodijeli vam zadatak ili stigne tiket, vidjet ćete to ovdje.",
+  "more": "Učitaj starije",
+  "today": "Danas",
+  "yesterday": "Jučer",
+  "unread": "nepročitano",
+  "settings": "Postavke obavijesti",
+  "snooze": {
+    "title": "Push obavijesti",
+    "hour": "Utišaj na 1 h",
+    "tomorrow": "Utišaj do sutra (8:00)",
+    "week": "Utišaj na tjedan dana",
+    "until": "Push obavijesti utišane su do {{time}}. Popis i e-pošta i dalje stižu.",
+    "end": "Prekini utišavanje"
+  }
+}

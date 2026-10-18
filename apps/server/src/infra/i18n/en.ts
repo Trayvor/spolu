@@ -54,6 +54,19 @@ export const en: ServerTexts = {
         `The email of your Help by eGrant account was changed to ${newEmail}. From now on, log in with the new address.`,
       warning: 'If you did not do this, contact your administrator at once.',
     },
+    passkeyCode: {
+      subject: (code) => `Your Help by eGrant code to add a passkey: ${code}`,
+      heading: 'Your code to add a passkey',
+      body: 'Enter it in the Help app to add a passkey to your account. It is valid for 5 minutes. If you did not ask for it, ignore this email.',
+    },
+    passkeyAdded: {
+      subject: 'A new passkey was added to your Help account',
+      body: ({ name, date }) =>
+        `A new passkey “${name}” was added to your Help by eGrant account on ${date}. With it, you can log in without an email code.`,
+      warning:
+        "If this wasn't you, delete it at once in Settings → Passkeys and contact your administrator.",
+      button: 'Open Settings',
+    },
   },
   mcp: {
     tokenCreated: {
@@ -149,6 +162,10 @@ export const en: ServerTexts = {
     mentionedInDescription: (name) => `${name} mentioned you in the description`,
     openKnowledge: 'Open item',
     openProject: 'Open project',
+    actionDone: 'Done',
+    actionLogTime: 'Log time',
+    actionReply: 'Reply',
+    replyPlaceholder: 'Write a reply…',
   },
   teams: {
     recordingNotice: 'This call will be recorded and transcribed.',

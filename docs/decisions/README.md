@@ -54,8 +54,8 @@ What gets easier, what gets harder.
 | [0028](0028-finance-charts-own-svg.md) | Finance charts as our own SVG components, no chart library | accepted |
 | [0029](0029-admin-group-as-a-group-row.md) | The internal admin group as one `groups` row with `kind = 'admin'` | accepted |
 | [0030](0030-projects-composite-keys-and-egrant-matching.md) | Projects: composite keys, exact-key matching with aliases, and created by eGrant | accepted |
-| [0032](0032-finance-items-without-a-client.md) | Finance items without a client, and client shares | accepted |
 | [0031](0031-local-deploy-without-registry.md) | Local deploy from the orchestrator's Mac, without a registry | accepted |
+| [0032](0032-finance-items-without-a-client.md) | Finance items without a client, and client shares | accepted |
 | [0033](0033-mcp-server-over-the-http-api.md) | An MCP server over our own HTTP API, with personal tokens and no SDK | accepted |
 | [0034](0034-mcp-oauth-authorization-server.md) | OAuth for the MCP server: Help as its own authorization server, tokens in `mcp_tokens` | accepted |
 | [0035](0035-in-memory-mail-capture-for-server-tests.md) | Server tests capture email in memory; Mailpit for e2e and one SMTP check | accepted |
@@ -68,4 +68,9 @@ What gets easier, what gets harder.
 | [0042](0042-egrant-webhook-hmac-signing.md) | Optional HMAC signing of the eGrant webhooks, with an in-memory replay cache | accepted |
 | [0043](0043-signed-invitation-context-in-the-login-link.md) | Signed invitation context in the invitation email's login link | accepted |
 | [0044](0044-enforced-csp-set-by-the-app.md) | An enforced Content-Security-Policy, set by the app, with a report endpoint | accepted |
+| [0045](0045-notification-centre-from-the-events-table.md) | The notification centre reads `notification_events`, with a delivery verdict and held events | accepted |
+| [0046](0046-global-search-module-functions-and-fold-index.md) | Global search: one search function per module and an indexed fold function | accepted |
+| [0047](0047-push-actions-through-the-session-api.md) | Push notification buttons act through the session API, with no one-time capability | accepted |
 | [0048](0048-ffmpeg-in-a-media-sandbox-container.md) | ffmpeg runs in a media sandbox container with no network, reached over a Unix socket | accepted |
+| [0049](0049-recurring-calls-rule-and-materialised-occurrences.md) | Recurring calls: a stored rule, occurrences created ahead as items, one Teams event per call | accepted |
+| [0050](0050-admin-passkeys-with-simplewebauthn.md) | Passkeys for admins with SimpleWebAuthn, next to the email code | accepted |

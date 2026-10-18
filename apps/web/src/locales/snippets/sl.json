@@ -6,7 +6,7 @@
   "sharedBy": "Deli {{name}}",
   "edit": "Uredi",
   "delete": "Izbriši",
-  "deleteQuestion": "Izbrišem odgovor »{{title}}«?",
+  "deleteQuestion": "Želite izbrisati odgovor »{{title}}«?",
   "cancel": "Prekliči",
   "picker": {
     "label": "Shranjeni odgovori",

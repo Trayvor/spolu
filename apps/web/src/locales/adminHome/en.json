@@ -62,7 +62,8 @@
     "mentions": {
       "title": "Mentions",
       "caption": "unread",
-      "empty": "No unread mentions."
+      "empty": "No unread mentions.",
+      "inDescription": "In the description: {{title}}"
     },
     "meetings": {
       "title": "Meetings",
@@ -137,7 +138,7 @@
       "description": "Reminders set on tasks and knowledge items in the next 7 days."
     },
     "mentions": {
-      "description": "Unread messages in which someone mentioned you, from the chats you get notifications for."
+      "description": "Unread messages and descriptions (of tasks, tickets, projects and knowledge items) in which someone mentioned you, from the places you get notifications for."
     },
     "groups": {
       "overdue": "Overdue",

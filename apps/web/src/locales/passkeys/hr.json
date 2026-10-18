@@ -1,0 +1,34 @@
+{
+  "title": "Pristupni ključevi (passkeys)",
+  "intro": "Prijavljujte se otiskom prsta, licem ili PIN-om uređaja umjesto kôdom iz e-pošte. Kôd iz e-pošte i dalje radi.",
+  "add": {
+    "title": "Dodajte ključ",
+    "name": "Naziv",
+    "namePlaceholder": "Poslovno prijenosno računalo",
+    "nameRequired": "Unesite naziv ključa.",
+    "submit": "Dodaj ključ",
+    "limit": "Imate {{count}} ključeva. Izbrišite jedan prije dodavanja novog.",
+    "failed": "Ključ nije dodan. Pokušajte ponovno.",
+    "unsupported": "Ovaj preglednik ne može stvoriti pristupni ključ (passkey).",
+    "added": "Ključ je dodan."
+  },
+  "reauth": {
+    "intro": "Prije dodavanja ključa potvrdite da ste to Vi: na {{email}} poslali smo šesteroznamenkasti kôd.",
+    "code": "Kôd",
+    "submit": "Potvrdi i dodaj",
+    "wrong": "Kôd nije točan ili je istekao. Zatražite novi.",
+    "sendAgain": "Pošalji novi kôd",
+    "cancel": "Odustani"
+  },
+  "list": {
+    "title": "Vaši ključevi",
+    "empty": "Još nemate nijedan ključ.",
+    "created": "Dodan {{date}}",
+    "lastUsed": "Zadnji put upotrijebljen {{date}}",
+    "neverUsed": "Još nije upotrijebljen",
+    "delete": "Izbriši",
+    "confirm": "Izbrisati ovaj ključ? I dalje se možete prijaviti kôdom iz e-pošte.",
+    "deleteConfirm": "Izbriši ključ",
+    "keep": "Zadrži"
+  }
+}

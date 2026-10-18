@@ -62,6 +62,21 @@ export type ServerTexts = {
       body(newEmail: string): string;
       warning: string;
     };
+    /** The code that re-checks a stale session before a passkey is added (ADR 0050). */
+    passkeyCode: {
+      subject(code: string): string;
+      heading: string;
+      body: string;
+    };
+    /** To an admin when a passkey was added to their account (an alert in case it was not them). */
+    passkeyAdded: {
+      subject: string;
+      /** `date` is when it was added, formatted in the language (Bratislava time). */
+      body(p: { name: string; date: string }): string;
+      /** Asks to delete it in Settings if it was not them. */
+      warning: string;
+      button: string;
+    };
   };
   mcp: {
     /** To a token's owner when it is made (an alert in case it was not them). */
@@ -173,6 +188,12 @@ export type ServerTexts = {
     /** The digest email's button for a knowledge item and for a project (F16). */
     openKnowledge: string;
     openProject: string;
+    /** N6a push buttons (ADR 0047): "Done" on a task, "Log time" on a time request, "Reply". */
+    actionDone: string;
+    actionLogTime: string;
+    actionReply: string;
+    /** The inline reply field's placeholder, where the platform has one. */
+    replyPlaceholder: string;
   };
   /** Microsoft Teams (T1): the invitation's and the public calendar page's notices. */
   teams: {

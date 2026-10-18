@@ -261,12 +261,46 @@
     },
     "row": {
       "processing": "Töötlemisel",
-      "summary": "Kokkuvõte"
+      "summary": "Kokkuvõte",
+      "recurring": "Kordub"
     },
     "transcriptFromTeams": "Teamsist",
     "transcriptAdminsOnly": "Seda transkriptsiooni ja selle kokkuvõtet näevad ainult adminid, kuni jagate neid kliendiga.",
     "shareTranscript": "Jaga kliendiga",
-    "shareFailed": "Jagamine ebaõnnestus. Proovige uuesti."
+    "shareFailed": "Jagamine ebaõnnestus. Proovige uuesti.",
+    "repeat": {
+      "label": "Kordus",
+      "none": "Ei kordu",
+      "weekly": "Iga nädal: {{weekday}}",
+      "biweekly": "Iga 2 nädala järel: {{weekday}}",
+      "monthly_date": "Iga kuu {{day}}. päeval",
+      "monthly_weekday_1": "Iga kuu 1. {{weekday}}",
+      "monthly_weekday_2": "Iga kuu 2. {{weekday}}",
+      "monthly_weekday_3": "Iga kuu 3. {{weekday}}",
+      "monthly_weekday_4": "Iga kuu 4. {{weekday}}",
+      "monthly_weekday_last": "Iga kuu viimane {{weekday}}",
+      "ends": "Lõpp",
+      "endNever": "Mitte kunagi",
+      "endUntil": "Kuupäeval",
+      "endCount": "Kohtumiste arvu järel",
+      "untilLabel": "Viimane päev",
+      "countLabel": "Kohtumisi kokku",
+      "hint": "Iga kohtumine on eraldi kirje oma märkmete, salvestise, transkriptsiooni ja meeldetuletusega. Help lisab kohtumised 60 päeva ette.",
+      "untilInvalid": "Valige viimaseks päevaks esimese kohtumise päev või hilisem, kõige rohkem 2 aastat ette.",
+      "countInvalid": "Sisestage 2 kuni 100 kohtumist."
+    },
+    "series": {
+      "repeats": "Kordub: {{rule}}.",
+      "until": "Kuni {{date}}.",
+      "count": "Kokku {{count}} kohtumist.",
+      "ended": "Rohkem kohtumisi ei lisata.",
+      "editScope": "See kohtumine kordub. Kas muuta ainult seda või ka järgmisi kohtumisi?",
+      "onlyThis": "Ainult see kohtumine",
+      "thisAndFollowing": "See ja järgmised",
+      "deleteScope": "See kohtumine kordub. Kas kustutada ainult see või ka järgmised kohtumised? Kustutatud kohtumisi enam ei lisata.",
+      "deleteThis": "Kustuta see kohtumine",
+      "deleteFollowing": "Kustuta see ja järgmised"
+    }
   },
   "view": {
     "label": "Vaade",

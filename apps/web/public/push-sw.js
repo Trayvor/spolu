@@ -9,17 +9,30 @@ self.addEventListener('push', (event) => {
   } catch {
     // A malformed payload still gets a generic notification (userVisibleOnly requires one).
   }
+  // N6a: the buttons (push-actions.js), when the payload has any.
+  const extra = self.spoluPushActions ? self.spoluPushActions.options(payload) : null;
+  // The app icon's badge (UX review N6b): a dot here; the open app sets the bell's number.
+  const nav = self.navigator;
+  const badge =
+    nav && typeof nav.setAppBadge === 'function'
+      ? Promise.resolve()
+          .then(() => nav.setAppBadge())
+          .catch(() => {})
+      : Promise.resolve();
   event.waitUntil(
-    self.registration.showNotification(payload.title || 'Help', {
-      body: payload.body,
-      // `renotify` needs a tag: without one the browser rejects and shows nothing. A newer event of
-      // the same tag replaces the card; it sounds again only when the server asks (2026-10-18:
-      // mentions, assignments, reminders, new tickets), so a stream of messages alerts once.
-      tag: payload.tag || 'spolu',
-      renotify: payload.renotify === true,
-      icon: '/icons/icon-192.png',
-      data: { url: payload.url },
-    }),
+    badge.then(() =>
+      self.registration.showNotification(payload.title || 'Help', {
+        body: payload.body,
+        // `renotify` needs a tag: without one the browser rejects and shows nothing. A newer event of
+        // the same tag replaces the card; it sounds again only when the server asks (2026-10-18:
+        // mentions, assignments, reminders, new tickets), so a stream of messages alerts once.
+        tag: payload.tag || 'spolu',
+        renotify: payload.renotify === true,
+        icon: '/icons/icon-192.png',
+        ...(extra && { actions: extra.actions }),
+        data: extra ? { url: payload.url, actions: extra.data } : { url: payload.url },
+      }),
+    ),
   );
 });
 
@@ -35,18 +48,26 @@ function safePath(url) {
   }
 }
 
+/** Shows `url` (a safe path) in an open tab of ours, or a new window. */
+function openApp(url) {
+  return self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
+    // The tab the person is looking at, else a visible one, else any (N9, 2026-10-18).
+    const ours = clients.filter((c) => c.url.startsWith(self.location.origin));
+    const client =
+      ours.find((c) => c.focused) || ours.find((c) => c.visibilityState === 'visible') || ours[0];
+    if (!client) return self.clients.openWindow(url);
+    client.postMessage({ type: 'spolu:navigate', url });
+    return client.focus();
+  });
+}
+
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   const url = safePath(event.notification.data && event.notification.data.url);
-  event.waitUntil(
-    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
-      // The tab the person is looking at, else a visible one, else any (N9, 2026-10-18).
-      const ours = clients.filter((c) => c.url.startsWith(self.location.origin));
-      const client =
-        ours.find((c) => c.focused) || ours.find((c) => c.visibilityState === 'visible') || ours[0];
-      if (!client) return self.clients.openWindow(url);
-      client.postMessage({ type: 'spolu:navigate', url });
-      return client.focus();
-    }),
-  );
+  // N6a: a button (push-actions.js); anything else opens the item.
+  const action =
+    event.action && self.spoluPushActions
+      ? self.spoluPushActions.click(event, openApp, safePath)
+      : null;
+  event.waitUntil(action || openApp(url));
 });

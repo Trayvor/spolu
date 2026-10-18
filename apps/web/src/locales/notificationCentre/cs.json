@@ -1,0 +1,23 @@
+{
+  "bell": {
+    "label": "Oznámení",
+    "labelUnread": "Oznámení, nepřečtená: {{count}}"
+  },
+  "title": "Oznámení",
+  "markAll": "Označit vše jako přečtené",
+  "loading": "Načítám…",
+  "empty": "Zatím tu nic není. Když vás někdo zmíní, přidělí vám úkol nebo přijde tiket, uvidíte to tady.",
+  "more": "Načíst starší",
+  "today": "Dnes",
+  "yesterday": "Včera",
+  "unread": "nepřečtené",
+  "settings": "Nastavení oznámení",
+  "snooze": {
+    "title": "Push oznámení",
+    "hour": "Ztlumit na 1 h",
+    "tomorrow": "Ztlumit do zítřka (8:00)",
+    "week": "Ztlumit na týden",
+    "until": "Push oznámení jsou ztlumená do {{time}}. Seznam i e-maily chodí dál.",
+    "end": "Zrušit ztlumení"
+  }
+}

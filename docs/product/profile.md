@@ -6,13 +6,13 @@ The user profile holds name, avatar and language, the notification channel setti
 
 - Profile fields: name, avatar, language.
 - Optional **password** as an alternative to code login (see `auth.md`).
-- Notification channels are set in the profile (see `notifications.md`).
+- Notification channels, modes per client and new tickets are set on `/settings/notifications`, linked from the profile (see `notifications.md`).
 - Message search within a group.
 - Example of done: the system is ready for the team's full move from Teams.
 
 ## Phase 6: name, email and language
 
-The profile on `/settings` (Phase 6) lets each user change only their own data. Every signed-in user reaches it from the account menu (the initials in the header): "Settings", above "Log out". The page has three sections, in this order: **Profile** (name, email and "Receive mailings"), **Notifications** (this device's push state and a channel per notification group, see `notifications.md`) and **System status**.
+The profile on `/settings` (Phase 6) lets each user change only their own data. Every signed-in user reaches it from the account menu (the initials in the header): "Settings", above "Log out". The page has three sections, in this order: **Profile** (name, email and "Receive mailings"), **Notifications** (one line on what the notifications screen holds and "Set up notifications", a link to `/settings/notifications`, see `notifications.md`; since 2026-10-18, UX review X7, the device state and the channels live there) and **System status**.
 
 - **Name**: saved with "Save" (`PATCH /api/me`); "Saved" appears under the field. An empty name is refused in the page.
 - **Email**: shows the current address with "Change", which opens the steps below inline under it ("We sent a code to …", then "Your email address is now …"). Errors appear under the field and keep the step: "The code is wrong or has expired" (`invalid_code`), "This address belongs to another account" (`email_taken`). On success the page's session is refreshed.
@@ -22,6 +22,7 @@ The profile on `/settings` (Phase 6) lets each user change only their own data. 
   4. The email changes, every existing session stays logged in, and a notice goes to the old address naming the new one. If that notice cannot be queued, the change still succeeds.
 - The **superadmin's** email is fixed by `SUPERADMIN_EMAIL`: the superadmin cannot change their email, and no one can change theirs to it (`validation_failed`). The page shows the superadmin no "Change", only a note that the address comes from the server configuration.
 - **Receive mailings** (Phase 23.4): a checkbox "Dostávať hromadné e-maily" / "Receive mailings" in the Profile card, under the email, for every signed-in person, ticked by default. Unticking unsubscribes from bulk email, ticking subscribes again (`GET`/`PUT /api/me/bulk-email`); it saves at once with "Saved", and a failed save unticks back with an error line. A hint says login codes and notifications always arrive. See `bulk-email.md`.
+- **Navigation on phones**: "Classic" (the default) or "Bottom bar", a radio choice in the Profile card under the mailings row, for every signed-in person. It is listed at every width with the note that it applies on phones only (up to 640px), so it can be set from a laptop. Stored on the user (`user.phone_nav`, `classic | bottom`, `PUT /api/me/phone-nav`) and returned by `GET /api/me` as `phoneNav`; the choice goes into the cached session first, so the header and the bar change at once without a reload, and a failed save rolls back with an error line. Classic: sections are switched with the select in the header (`SectionMenu`) and there is no bottom bar; Bottom bar: the phone bottom bar of design/tokens.md. Existing and new users start on Classic.
 - **Language**: `sk` or `en`, stored on the user (`PUT /api/me/language`); emails and pushes to the user, such as the email-change code, the notice and the email digest, use it. The language stays in the header menu, not on the settings page: choosing a language there while signed in stores it, and every sign-in (once per user and page load) stores the language the app is shown in. Both saves are best effort and never block the switch.
 
 ## Saved replies (F7)
@@ -30,6 +31,10 @@ Since 2026-10-18 admins also see **Saved replies** on `/settings` (after Notific
 
 - **New reply**: Name (up to 80 characters), Text (up to 4000, plain text or the chat's Markdown) and **Share with all admins** ("Other admins can insert it; only you can change it."). "Fill in the name and the text." when one is empty; at most 200 replies per admin ("You have the most saved replies there can be (200)…", `409 snippet_limit`).
 - **The list**, by name: the admin's own replies and every shared one, each with its text (three lines) and a "Shared" tag ("Shared by <name>" on another admin's). Only the author has **Edit** (the same form in place, "Save changes") and **Delete** (the inline confirmation "Delete the reply “<name>”?"). Deleting an admin's account deletes their replies.
+
+## Passkeys
+
+Since 2026-10-18 admins also see **Kľúče (passkeys)** on `/settings` (after Notifications, before Saved replies; a lazy chunk with the lazy `passkeys` namespace; clients never see it). The intro says a passkey logs them in with a fingerprint, face or device PIN instead of an email code, and that the code keeps working. **Add a passkey**: a name (required, up to 60 characters, placeholder "Work laptop") and **Add passkey**, which opens the browser's own dialog; a session older than 10 minutes first shows a code field ("we sent a 6-digit code to <email>", **Confirm and add**, **Send a new code**, **Cancel**). A browser without WebAuthn shows "This browser cannot create passkeys." instead of the form. **Your passkeys** lists each with "Added <date>" and "Last used <date>" or "Not used yet", and **Delete** with an inline confirmation. Rules and limits: `auth.md`, "Passkeys for admins".
 
 ## AI access (MCP)
 

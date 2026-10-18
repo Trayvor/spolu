@@ -2,7 +2,13 @@ import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useBlocker } from '@tanstack/react-router';
 import { useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
-import type { FileInfo, KnowledgeItemDto, KnowledgeType } from '@spolu/shared';
+import type {
+  FileInfo,
+  KnowledgeItemDto,
+  KnowledgePatch,
+  KnowledgeType,
+  MeetingSeriesScope,
+} from '@spolu/shared';
 import { MoreIcon } from '@/components/icons';
 import { Button } from '@/components/ui/button';
 import {
@@ -15,6 +21,7 @@ import { PanelHeader } from '@/components/ui/panel-header';
 import { PanelNotice } from '@/components/ui/panel-notice';
 import { SheetDialog, SheetDialogTitle } from '@/components/ui/sheet-dialog';
 import { ApiError } from '@/lib/api';
+import { useMarkOpened } from '@/lib/use-mark-opened';
 import { useSession } from '@/features/auth/use-session';
 import { groupQuery } from '@/features/groups/api';
 import { useGroupPeople } from '@/features/groups/use-group-people';
@@ -47,7 +54,21 @@ export type KnowledgeDialogTarget =
   | { mode: 'create'; type: KnowledgeType; groupId: string; folderId?: string | null };
 
 type Ask =
-  { kind: 'discard'; then: 'close' | 'view' } | { kind: 'delete' } | { kind: 'move' } | null;
+  | { kind: 'discard'; then: 'close' | 'view' }
+  | { kind: 'delete' }
+  | { kind: 'move' }
+  /** ADR 0049: an edit of a recurring call asks "only this call" or "this and following". */
+  | { kind: 'scope' }
+  | null;
+
+/** Whether an edit touches what "this and following" carries to the later calls (ADR 0049). */
+const reachesFollowing = (patch: KnowledgePatch) =>
+  patch.title !== undefined ||
+  patch.body !== undefined ||
+  patch.visibility !== undefined ||
+  patch.reminder !== undefined ||
+  patch.meeting?.meetingUrl !== undefined ||
+  patch.meeting?.startsAt !== undefined;
 
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 
@@ -103,6 +124,8 @@ export function KnowledgeDialog({
     refetchInterval: (q) => (meetingInProgress(q.state.data) ? 5000 : false),
   });
   const item = query.data;
+  // Opened and readable: a mention in its body is read on the Mentions card (2026-10-18).
+  useMarkOpened('knowledge', item?.id ?? null);
   const groupId = target.mode === 'create' ? target.groupId : (item?.groupId ?? '');
   const people = useGroupPeople(groupId).data;
   const folders = useQuery({ ...groupFoldersQuery(groupId), enabled: groupId !== '' }).data;
@@ -240,11 +263,22 @@ export function KnowledgeDialog({
     request(editing && target.mode === 'view' ? 'view' : 'close');
   }
 
-  async function save() {
+  async function save(scope?: MeetingSeriesScope) {
     if (busy || uploading || !type) return;
     const found = validateKnowledge(type, value);
     setErrors(found);
     if (Object.keys(found).length > 0) return;
+    if (
+      scope === undefined &&
+      target.mode === 'view' &&
+      !converting &&
+      item?.meetingDetail?.series &&
+      item.meetingDetail.series.followingCount > 0 &&
+      reachesFollowing(toPatch(item, value, { people }))
+    ) {
+      return setAsk({ kind: 'scope' });
+    }
+    setAsk(null);
     setBusy(true);
     try {
       let saved: KnowledgeItemDto;
@@ -270,7 +304,10 @@ export function KnowledgeDialog({
         if (!item) return;
         const patch = toPatch(item, value, { people });
         if (Object.keys(patch).length === 1) return leave('view');
-        saved = await updateKnowledge(item.id, patch);
+        saved = await updateKnowledge(
+          item.id,
+          scope === 'following' ? { ...patch, seriesScope: 'following' } : patch,
+        );
       }
       client.setQueryData(['knowledge', 'item', saved.id], saved);
       refreshLists(client);
@@ -293,12 +330,12 @@ export function KnowledgeDialog({
     if (fresh.data) startEdit(fresh.data);
   }
 
-  async function remove() {
+  async function remove(scope: MeetingSeriesScope = 'this') {
     if (busy || !item) return;
     setBusy(true);
     setActionError(null);
     try {
-      await deleteKnowledge(item.id);
+      await deleteKnowledge(item.id, scope);
       client.removeQueries({ queryKey: ['knowledge', 'item', item.id] });
       refreshLists(client);
       onClose();
@@ -353,14 +390,28 @@ export function KnowledgeDialog({
       <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-4 pb-[max(16px,env(safe-area-inset-bottom))] min-[641px]:px-6 min-[641px]:py-5">
         {ask?.kind === 'delete' && (
           <div className="mb-4">
-            <PanelNotice text={t('knowledge.detail.deleteConfirm')}>
-              <Button variant="outline" onClick={() => setAsk(null)}>
-                {t('knowledge.detail.cancel')}
-              </Button>
-              <Button variant="destructive" onClick={() => void remove()}>
-                {t('knowledge.detail.delete')}
-              </Button>
-            </PanelNotice>
+            {item?.meetingDetail?.series && item.meetingDetail.series.followingCount > 0 ? (
+              <PanelNotice text={t('knowledge.meeting.series.deleteScope')}>
+                <Button variant="outline" onClick={() => setAsk(null)}>
+                  {t('knowledge.detail.cancel')}
+                </Button>
+                <Button variant="destructive" onClick={() => void remove('this')}>
+                  {t('knowledge.meeting.series.deleteThis')}
+                </Button>
+                <Button variant="destructive" onClick={() => void remove('following')}>
+                  {t('knowledge.meeting.series.deleteFollowing')}
+                </Button>
+              </PanelNotice>
+            ) : (
+              <PanelNotice text={t('knowledge.detail.deleteConfirm')}>
+                <Button variant="outline" onClick={() => setAsk(null)}>
+                  {t('knowledge.detail.cancel')}
+                </Button>
+                <Button variant="destructive" onClick={() => void remove()}>
+                  {t('knowledge.detail.delete')}
+                </Button>
+              </PanelNotice>
+            )}
             {actionError && <p className="mt-2 text-button text-error-ink">{actionError}</p>}
           </div>
         )}
@@ -406,6 +457,7 @@ export function KnowledgeDialog({
               adminGroup={adminGroup}
               authorId={item?.createdBy.id ?? me?.id ?? ''}
               autoFocusTitle={target.mode === 'create'}
+              showRepeat={target.mode === 'create'}
               onUploadingChange={setUploading}
               fileLocked={converting}
               beforeVisibility={
@@ -474,6 +526,21 @@ export function KnowledgeDialog({
                 }}
               >
                 {t('knowledge.detail.discard')}
+              </Button>
+            </div>
+          ) : ask?.kind === 'scope' ? (
+            <div role="alert" className="flex flex-wrap items-center gap-2">
+              <p className="mr-auto text-button font-semibold">
+                {t('knowledge.meeting.series.editScope')}
+              </p>
+              <Button variant="outline" size="lg" onClick={() => setAsk(null)}>
+                {t('knowledge.detail.keepEditing')}
+              </Button>
+              <Button variant="secondary" size="lg" onClick={() => void save('this')}>
+                {t('knowledge.meeting.series.onlyThis')}
+              </Button>
+              <Button size="lg" onClick={() => void save('following')}>
+                {t('knowledge.meeting.series.thisAndFollowing')}
               </Button>
             </div>
           ) : (

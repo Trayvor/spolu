@@ -12,6 +12,7 @@ import {
   timestamp,
 } from 'drizzle-orm/pg-core';
 import type { TicketSource, TicketStatus } from '@spolu/shared';
+import { foldSql } from '../../infra/db/fold.js';
 import { files } from '../files/schema.js';
 import { groups } from '../groups/schema.js';
 import { projectEvents, projects } from '../projects/schema.js';
@@ -118,6 +119,12 @@ export const tickets = pgTable(
     index('tickets_unassigned_open_created_idx')
       .on(t.createdAt.desc())
       .where(sql`${t.groupId} is null and ${t.status} in ('new', 'in_progress')`),
+    // The global search (2026-10-18): the folded subject, trigram (accents never matter there,
+    // so it cannot read `tickets_subject_trgm_idx`, an `ilike` on the raw subject); no pending
+    // list, like the two above.
+    index('tickets_subject_fold_trgm_idx')
+      .using('gin', sql`${foldSql(t.subject)} gin_trgm_ops`)
+      .with({ fastupdate: false }),
     index('tickets_due_open_idx')
       .on(t.dueDate)
       .where(sql`${t.status} <> 'resolved'`),

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { NotificationKinds, type GroupMode, type NotificationKind } from '@spolu/shared';
 import { NOTIFICATION_GROUP_OF } from './categories.js';
-import { decideEvent, isOutranked, KIND_RANK, passesMode } from './decide.js';
+import { decideEvent, isOutranked, KIND_RANK, listedInCentre, passesMode } from './decide.js';
 
 const table: [NotificationKind, Record<GroupMode, boolean>][] = [
   ['chat.message', { all: true, mentions: false, off: false }],
@@ -104,6 +104,20 @@ describe('decideEvent', () => {
   });
   it('no subscriptions means no push', () => {
     expect(decideEvent({ ...open, hasSubscriptions: false })).toEqual({ push: false, email: true });
+  });
+});
+
+describe('listedInCentre (the notification centre, UX review F2)', () => {
+  it('lists what passes the filter, whatever the channel or the device', () => {
+    expect(listedInCentre(open)).toBe(true);
+    expect(listedInCentre({ ...open, channel: 'push', hasSubscriptions: false })).toBe(true);
+    expect(listedInCentre({ ...open, pushAvailable: false, channel: 'push' })).toBe(true);
+  });
+  it('not what the filter stops', () => {
+    expect(listedInCentre({ ...open, mode: 'off' })).toBe(false);
+    expect(listedInCentre({ ...open, unread: false })).toBe(false);
+    expect(listedInCentre({ ...open, outranked: true })).toBe(false);
+    expect(listedInCentre({ ...open, isGroupPerson: false })).toBe(false);
   });
 });
 

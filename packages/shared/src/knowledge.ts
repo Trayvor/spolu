@@ -8,6 +8,7 @@ import {
   MeetingListInfoSchema,
   MeetingPatchSchema,
 } from './meetings.js';
+import { MeetingSeriesScopeSchema } from './meeting-series.js';
 import { ReminderSetDtoSchema } from './reminders.js';
 import { TaskPersonSchema } from './tasks.js';
 import { isHttpUrl, MAX_URL_LENGTH } from './urls.js';
@@ -223,6 +224,12 @@ export const KnowledgePatchSchema = z
     meeting: MeetingPatchSchema.optional(),
     /** Phase 33 part P5: absent leaves the attached items; `[]` removes them. */
     knowledgeIds: KnowledgeIdsSchema.optional(),
+    /**
+     * A call of a recurring series (ADR 0049): `following` also applies the title, notes,
+     * visibility, folder, meeting link, start and reminder to the later calls of the series.
+     * Absent or `this`: only this call.
+     */
+    seriesScope: MeetingSeriesScopeSchema.optional(),
     updatedAt: isoDateTime,
   })
   .strict();

@@ -19,3 +19,5 @@ The three EXPLAIN files (`modules/home`, `projects`, `finance`) each seeded a la
 - The templates stay on disk, about 690 MB for the three volumes per hash. Drop them by hand with `alter database ... is_template false` and then `drop database`; the old `spolu_test_*` cleanup in CLAUDE.md does not match them.
 - A seed change now only lands in a template through the hash. A seed that depends on another file (for example a helper it imports) must list that file in `VOLUMES` (`setup-explain-db.ts`), or a stale template will hide the change.
 - `scripts/ci.sh` runs the explain suite in parallel with the main server suite (`run_parallel`, one Vitest worker for explain). The two never share a database: the clones are named `<test database>_explain_<volume>`, the main suite uses `<test database>`, and the templates are only read.
+
+- 2026-10-18: a fourth volume, `search` (`modules/search/test-volume.ts`, the global search of [ADR 0046](0046-global-search-module-functions-and-fold-index.md)), with fixed ids (`searchVolumeIds`).

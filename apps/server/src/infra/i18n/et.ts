@@ -54,6 +54,19 @@ export const et: ServerTexts = {
         `Teie Help-rakenduse konto e-posti aadressiks on nüüd ${newEmail}. Edaspidi logige sisse uue aadressiga.`,
       warning: 'Kui Te seda ei teinud, võtke kohe ühendust oma administraatoriga.',
     },
+    passkeyCode: {
+      subject: (code) => `Teie Helpi kood pääsuvõtme (passkey) lisamiseks: ${code}`,
+      heading: 'Kood pääsuvõtme (passkey) lisamiseks',
+      body: 'Sisestage see Help-rakenduses, et lisada oma kontole pääsuvõti (passkey). Kood kehtib 5 minutit. Kui Te seda ei küsinud, jätke see e-kiri tähelepanuta.',
+    },
+    passkeyAdded: {
+      subject: 'Teie Helpi kontole lisati uus pääsuvõti (passkey)',
+      body: ({ name, date }) =>
+        `Teie Help by eGrant kontole lisati ${date} uus pääsuvõti (passkey) „${name}“. Sellega saate sisse logida ilma e-posti koodita.`,
+      warning:
+        'Kui see polnud Teie, kustutage pääsuvõti kohe: Seaded → Pääsuvõtmed (passkeys) ja võtke ühendust oma administraatoriga.',
+      button: 'Ava Seaded',
+    },
   },
   mcp: {
     tokenCreated: {
@@ -152,6 +165,10 @@ export const et: ServerTexts = {
     mentionedInDescription: (name) => `${name} mainis sind kirjelduses`,
     openKnowledge: 'Ava kirje',
     openProject: 'Ava projekt',
+    actionDone: 'Valmis',
+    actionLogTime: 'Sisesta aeg',
+    actionReply: 'Vasta',
+    replyPlaceholder: 'Kirjutage vastus…',
   },
   teams: {
     recordingNotice: 'See kõne salvestatakse ja transkribeeritakse.',

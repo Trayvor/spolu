@@ -3,7 +3,7 @@ import { chmod, mkdtemp, mkdir, readFile, rm, stat, writeFile } from 'node:fs/pr
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { createFakeMedia, createFfmpeg, MediaFailedError } from './media.js';
+import { createFakeMedia, createFfmpeg, INPUT_FORMATS, MediaFailedError } from './media.js';
 
 const binary = process.env.FFMPEG_PATH ?? 'ffmpeg';
 const hasFfmpeg = spawnSync(binary, ['-version']).status === 0;
@@ -38,6 +38,11 @@ describe('media', () => {
     await expect(run).rejects.toThrow(/SIGKILL/);
     const already = AbortSignal.abort();
     await expect(createFfmpeg(slow).split('a', dir, 60, already)).rejects.toThrow(/aborted/);
+  });
+
+  it('the format whitelist opens AIFF (macOS) and MPEG-TS (.ts, .m2ts), which uploads take', () => {
+    expect(INPUT_FORMATS).toContain('aiff');
+    expect(INPUT_FORMATS).toContain('mpegts');
   });
 
   it('a missing ffmpeg fails with MediaFailedError', async () => {

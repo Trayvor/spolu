@@ -16,6 +16,7 @@ import {
   checkTeamsMeeting,
   connectTeamsMeeting,
   createTeamsMeeting,
+  stopTeamsSeries,
   disconnectTeamsMeeting,
   inviteeOptionsQuery,
   teamsStateQuery,
@@ -68,9 +69,22 @@ export function TeamsSection({
 
   function done(next: TeamsMeetingState) {
     queryClient.setQueryData(teamsStateQuery(item.id).queryKey, next);
+    // A disconnect answers without the series part: read it again.
+    if (next.series === undefined && state.data?.series) {
+      void queryClient.invalidateQueries({ queryKey: teamsStateQuery(item.id).queryKey });
+    }
     setMode('idle');
     setProblem(null);
     onChanged();
+  }
+
+  async function stopSeries() {
+    try {
+      await stopTeamsSeries(item.id);
+      await queryClient.invalidateQueries({ queryKey: teamsStateQuery(item.id).queryKey });
+    } catch (error) {
+      setProblem(t(errorKey(error)));
+    }
   }
 
   return (
@@ -105,6 +119,7 @@ export function TeamsSection({
       ) : mode === 'create' ? (
         <CreateForm
           item={item}
+          inSeries={!!state.data?.series}
           onCancel={() => setMode('idle')}
           onDone={done}
           onProblem={(error) => setProblem(t(errorKey(error)))}
@@ -117,24 +132,83 @@ export function TeamsSection({
           onProblem={(error) => setProblem(t(errorKey(error)))}
         />
       ) : null}
+      {state.data?.series?.planned && (
+        <SeriesPlan
+          organizerName={state.data.series.organizerName}
+          lastError={state.data.series.lastError}
+          onStop={() => void stopSeries()}
+        />
+      )}
     </section>
+  );
+}
+
+/**
+ * ADR 0049: Help gives each following call of the series its own Teams meeting; the admin can
+ * stop that (the meetings made stay).
+ */
+function SeriesPlan({
+  organizerName,
+  lastError,
+  onStop,
+}: {
+  organizerName: string | null;
+  lastError: string | null;
+  onStop: () => void;
+}) {
+  const { t } = useTranslation();
+  const [confirm, setConfirm] = useState(false);
+  return (
+    <div className="flex flex-col gap-2 border-t border-border pt-3" data-testid="teams-series">
+      <p className="text-button">
+        {organizerName
+          ? t('teams.series.planned', { name: organizerName })
+          : t('teams.series.plannedNoName')}
+      </p>
+      {lastError && (
+        <p className="text-tiny font-semibold text-error-ink">
+          {lastError === 'teams_not_organizer'
+            ? t('teams.errors.teams_not_organizer')
+            : t('teams.block.error', { code: lastError })}
+        </p>
+      )}
+      {confirm ? (
+        <PanelNotice text={t('teams.series.stopConfirm')}>
+          <Button variant="outline" onClick={() => setConfirm(false)}>
+            {t('teams.block.cancel')}
+          </Button>
+          <Button variant="destructive" onClick={onStop}>
+            {t('teams.series.stop')}
+          </Button>
+        </PanelNotice>
+      ) : (
+        <div>
+          <Button variant="secondary" size="sm" onClick={() => setConfirm(true)}>
+            {t('teams.series.stop')}
+          </Button>
+        </div>
+      )}
+    </div>
   );
 }
 
 type FormProps = {
   item: KnowledgeItemDto;
+  /** The call is one of a recurring series (ADR 0049): offer "also for the following calls". */
+  inSeries?: boolean;
   onCancel: () => void;
   onDone: (state: TeamsMeetingState) => void;
   onProblem: (error: unknown) => void;
 };
 
 /** "Create Teams meeting": length, automatic recording (on), and the invitees picked. */
-function CreateForm({ item, onCancel, onDone, onProblem }: FormProps) {
+function CreateForm({ item, inSeries = false, onCancel, onDone, onProblem }: FormProps) {
   const { t } = useTranslation();
   const uid = useId();
   const people = useQuery(inviteeOptionsQuery(item.id));
   const [duration, setDuration] = useState<number>(TEAMS_LIMITS.defaultMinutes);
   const [record, setRecord] = useState(true);
+  const [following, setFollowing] = useState(true);
   // Nobody is preselected (owner answer 4).
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const [extra, setExtra] = useState<string[]>([]);
@@ -168,6 +242,7 @@ function CreateForm({ item, onCancel, onDone, onProblem }: FormProps) {
           durationMinutes: duration,
           attendees,
           recordAutomatically: record,
+          ...(inSeries ? { following } : {}),
         }),
       );
     } catch (error) {
@@ -207,6 +282,23 @@ function CreateForm({ item, onCancel, onDone, onProblem }: FormProps) {
           <span className="text-tiny text-muted-foreground">{t('teams.create.recordHint')}</span>
         </span>
       </label>
+
+      {inSeries && (
+        <label className="flex items-start gap-2 text-button">
+          <input
+            type="checkbox"
+            className="mt-1 size-4 accent-foreground"
+            checked={following}
+            onChange={(event) => setFollowing(event.target.checked)}
+          />
+          <span className="flex flex-col gap-0.5">
+            <span className="font-semibold">{t('teams.create.following')}</span>
+            <span className="text-tiny text-muted-foreground">
+              {t('teams.create.followingHint')}
+            </span>
+          </span>
+        </label>
+      )}
 
       <fieldset className="flex flex-col gap-2">
         <legend className="text-button font-semibold">{t('teams.create.invitees')}</legend>

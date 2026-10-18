@@ -9,7 +9,8 @@
     "offHint": "Sellest grupist teavitusi ei tule",
     "mixed": "Erinevad",
     "allGroups": "Kõik grupid:",
-    "managerNote": "Kõik sõnumid, sest haldate seda klienti."
+    "managerNote": "Kõik sõnumid, sest haldate seda klienti.",
+    "allSettings": "Kõik teavituste seaded"
   },
   "prompt": {
     "installTitle": "Installige Help-rakendus",

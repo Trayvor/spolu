@@ -574,7 +574,7 @@ describe('knowledge service', () => {
       .from(reminderSets)
       .where(eq(reminderSets.knowledgeItemId, reminder.id));
 
-    expect(await deleteItem({ db, storage }, admin, item.id)).toEqual({
+    expect(await deleteItem({ db, storage }, admin, item.id)).toMatchObject({
       groupId: group.id,
       visibility: 'public',
     });

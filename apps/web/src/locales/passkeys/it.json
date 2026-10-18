@@ -1,0 +1,34 @@
+{
+  "title": "Passkey",
+  "intro": "Acceda con l'impronta digitale, il volto o il PIN del dispositivo invece del codice via email. Il codice via email continua a funzionare.",
+  "add": {
+    "title": "Aggiunga una passkey",
+    "name": "Nome",
+    "namePlaceholder": "Portatile di lavoro",
+    "nameRequired": "Inserisca un nome per la passkey.",
+    "submit": "Aggiungi passkey",
+    "limit": "Ha {{count}} passkey. Ne elimini una prima di aggiungerne un'altra.",
+    "failed": "La passkey non è stata aggiunta. Riprovi.",
+    "unsupported": "Questo browser non può creare passkey.",
+    "added": "Passkey aggiunta."
+  },
+  "reauth": {
+    "intro": "Per aggiungere una passkey, confermi che è Lei: abbiamo inviato un codice di 6 cifre a {{email}}.",
+    "code": "Codice",
+    "submit": "Conferma e aggiungi",
+    "wrong": "Il codice non è corretto o è scaduto. Se ne faccia inviare uno nuovo.",
+    "sendAgain": "Invia un nuovo codice",
+    "cancel": "Annulla"
+  },
+  "list": {
+    "title": "Le Sue passkey",
+    "empty": "Non ha ancora nessuna passkey.",
+    "created": "Aggiunta il {{date}}",
+    "lastUsed": "Ultimo uso {{date}}",
+    "neverUsed": "Non ancora usata",
+    "delete": "Elimina",
+    "confirm": "Eliminare questa passkey? Potrà comunque accedere con il codice via email.",
+    "deleteConfirm": "Elimina passkey",
+    "keep": "Mantieni"
+  }
+}

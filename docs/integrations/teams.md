@@ -104,3 +104,7 @@ Empty the `TEAMS_*` variables and restart (the feature disappears; the stored li
 - The public page `/m/<token>` shows only the title, the time, the join link and the recording notice. The token is 128 random bits, never stored (only its hash), and stops working when the meeting is disconnected.
 - Secrets live only in the server's env file; the access token only in memory. The certificate's key must be an unencrypted RSA key, checked at start.
 - The public links are derived from `APP_SECRET`: changing it invalidates every one of them (copy each meeting's link again from its Teams block).
+
+## Recurring calls
+
+A call of a recurring series ([ADR 0049](../decisions/0049-recurring-calls-rule-and-materialised-occurrences.md)) gets **one Outlook event per call**, never a recurring Graph event: with "Also for the following meetings" Help stores a plan (`teams_series_plans`) and the job `teams.series` (every 5 minutes while Teams is configured) creates the event of each later call that has none and has not started, as the plan's organizer, with a fixed `transactionId` per call. Each call keeps its own online meeting, transcript window and public page. Nothing to set up beyond T1.

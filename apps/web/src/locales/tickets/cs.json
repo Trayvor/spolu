@@ -123,7 +123,7 @@
     "hint": "Řešitel dostane upozornění a od té doby všechny novinky k tiketu."
   },
   "watch": {
-    "label": "Sledovat tikety",
+    "label": "Nové tikety tohoto klienta: upozorňovat",
     "on": "Dostanete upozornění na každý nový tiket tohoto klienta a na jeho novinky, dokud nemá řešitele.",
     "off": "Dostáváte upozornění jen na tikety, jejichž jste řešitelem nebo kde vás někdo zmíní."
   },

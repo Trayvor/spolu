@@ -183,14 +183,31 @@ describe('NotificationsSection', () => {
       },
     } as const;
     const { patches, user } = setup(none);
-    // No group wants push, so there is no device line yet.
+    // N11 (2026-10-18): the device line shows even while no group uses push, and says so.
     expect(await select('Knowledge')).toHaveValue('none');
-    expect(screen.queryByText(/^This device:/)).toBeNull();
+    expect(await screen.findByText('This device: not set up')).toBeInTheDocument();
+    expect(screen.getByText('No notification group uses push now.')).toBeInTheDocument();
     await waitFor(() => expect(getDeviceState).toHaveBeenCalled());
     await user.selectOptions(await select('Knowledge'), 'push');
     expect(subscribeThisDevice).toHaveBeenCalledWith('KEY');
     await waitFor(() => expect(patches()).toEqual([{ category: 'knowledge', channel: 'push' }]));
     expect(await screen.findByText('This device: on')).toBeInTheDocument();
+  });
+
+  it('says when every group is off (N11), and not otherwise', async () => {
+    const off = Object.fromEntries(
+      Object.keys(PREFS.channels).map((key) => [key, 'none']),
+    ) as NotificationPrefs['channels'];
+    setup({ ...PREFS, channels: off });
+    expect(
+      await screen.findByText(
+        'All your notifications are off. Choose a channel for what you want to hear about.',
+      ),
+    ).toBeInTheDocument();
+    cleanup();
+    setup();
+    expect(await select('Chat')).toHaveValue('push');
+    expect(screen.queryByText(/All your notifications are off/)).toBeNull();
   });
 
   it('no VAPID key: the unavailable text, and push choices are disabled', async () => {

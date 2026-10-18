@@ -27,7 +27,8 @@ import {
   type BulkEmailSender,
 } from '../src/infra/email/index.js';
 import { createInlineJobs } from '../src/infra/jobs/inline-jobs.js';
-import { createTeams } from '../src/modules/teams/jobs.js';
+import { createTeams, teamsJobHandlers } from '../src/modules/teams/jobs.js';
+import { meetingSeriesJobHandlers } from '../src/modules/knowledge/meeting-series.js';
 import { createDeferredQueue } from '../src/infra/jobs/jobs.js';
 import { createFakePushSender, type FakePushSender } from '../src/infra/push/index.js';
 import { createDiskStorage } from '../src/infra/storage/index.js';
@@ -108,6 +109,8 @@ export async function buildTestApp(
       jobs: forward.queue,
       ai: { transcription, summary: meetingSummary },
     }),
+    ...meetingSeriesJobHandlers({ db }),
+    ...teamsJobHandlers({ db, config, teams }),
   });
   forward.resolve(jobs);
   const deps: AppDeps = {

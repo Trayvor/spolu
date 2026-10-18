@@ -1,0 +1,30 @@
+{
+  "title": "Cerca",
+  "placeholder": "Cerchi un gruppo, ticket, attività…",
+  "cancel": "Annulla",
+  "loading": "Ricerca in corso…",
+  "tooShort": "Scriva almeno 2 caratteri.",
+  "empty": "Nessun risultato per «{{q}}».",
+  "error": "La ricerca non è riuscita. Riprovare.",
+  "rateLimited": "Troppe ricerche insieme. Attenda un momento.",
+  "done": "completata",
+  "resolved": "risolto",
+  "sections": {
+    "recent": "Aperti di recente",
+    "actions": "Vai a",
+    "groups": "Gruppi",
+    "tickets": "Ticket",
+    "tasks": "Attività",
+    "knowledge": "Conoscenze",
+    "projects": "Progetti ed eventi",
+    "people": "Persone"
+  },
+  "actions": {
+    "newTask": "Nuova attività in questo gruppo"
+  },
+  "keys": {
+    "move": "seleziona",
+    "open": "apri",
+    "close": "chiudi"
+  }
+}

@@ -1,5 +1,5 @@
-import { and, asc, inArray, isNull, sql } from 'drizzle-orm';
-import { wantsEmail, wantsPush, type NotificationKind, type PushPayload } from '@spolu/shared';
+import { and, asc, inArray, sql, type SQL } from 'drizzle-orm';
+import type { NotificationKind, PushPayload } from '@spolu/shared';
 import type { Config } from '../../infra/config/config.js';
 import type { Db } from '../../infra/db/client.js';
 import type { JobOptions, JobQueue } from '../../infra/jobs/jobs.js';
@@ -9,7 +9,14 @@ import { groups } from '../groups/schema.js';
 import { getTaskTitles } from '../tasks/task-service.js';
 import { financeHoldersAmong, getNotificationProfiles } from '../users/service.js';
 import { audienceAmong, notificationGroupOf } from './categories.js';
-import { decideEvent, isOutranked, KIND_RANK } from './decide.js';
+import { snoozedAmong } from './centre.js';
+import {
+  decideEvent,
+  isOutranked,
+  KIND_RANK,
+  listedInCentre,
+  type DecisionInput,
+} from './decide.js';
 import { getEffectiveModes } from './modes.js';
 import { buildPushPayload } from './push-content.js';
 import {
@@ -47,12 +54,24 @@ const str = (v: unknown): string | null => (typeof v === 'string' && v !== '' ? 
 const payloadOf = (row: EventRow) => (row.payload ?? {}) as Record<string, unknown>;
 const unique = <T>(items: T[]): T[] => [...new Set(items)];
 
+/** How long an event for someone on Push without a device waits for one (N7). */
+export const HOLD_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * The two passes of a delivery: `fresh` decides the events nobody decided yet; `held` releases
+ * the events held for a device (N7) once their person has one, or once 24 hours passed.
+ */
+export type Pass = 'fresh' | 'held';
+
 /**
  * Delivers undelivered events, oldest first, in batches of `limit` (scoped to `userIds` and to
- * `eventIds` when given) until a batch comes back short; returns how many events it processed. Each batch is one
+ * `eventIds` when given) until a batch comes back short; returns how many events it processed.
+ * First the undecided events, then the held ones that may go now (`Pass`). Each batch is one
  * transaction: the rows are locked with `FOR UPDATE SKIP LOCKED`, so concurrent workers take
- * disjoint rows and no event is delivered twice; every locked row gets `delivered_at` (and
- * `email_due_at` when it qualifies for the email batch). Push jobs are sent after the commit.
+ * disjoint rows and no event is delivered twice; every locked row gets its centre verdict
+ * (`in_centre`) and `delivered_at` (and `email_due_at` when it qualifies for the email batch),
+ * except an event held for a device, which keeps `delivered_at` null (it then sits in the held
+ * index, out of the first pass). Push jobs are sent after the commit.
  */
 export async function deliverPending(
   deps: NotificationJobDeps,
@@ -62,26 +81,32 @@ export async function deliverPending(
   if (opts.userIds?.length === 0 || opts.eventIds?.length === 0) return 0;
   const scope = { userIds: opts.userIds, eventIds: opts.eventIds };
   let total = 0;
-  for (;;) {
-    const { count, pushes, emailUserIds } = await deps.db.transaction((tx) =>
-      deliverBatch(tx, deps, scope, limit),
-    );
-    total += count;
-    await queuePushes(deps.jobs, pushes);
-    if (emailUserIds.length > 0) {
-      try {
-        await deps.jobs.send(
-          DIGEST_JOB,
-          { userIds: emailUserIds },
-          { startAfter: Math.ceil(deps.config.emailBatchDelayMs / 1000) },
-        );
-      } catch (error) {
-        // The one-minute sweep emails the due digests anyway.
-        console.error('notifications: digest job could not be queued (the sweep sends it)', error);
+  for (const pass of ['fresh', 'held'] as const) {
+    for (;;) {
+      const { count, pushes, emailUserIds } = await deps.db.transaction((tx) =>
+        deliverBatch(tx, deps, scope, limit, pass),
+      );
+      total += count;
+      await queuePushes(deps.jobs, pushes);
+      if (emailUserIds.length > 0) {
+        try {
+          await deps.jobs.send(
+            DIGEST_JOB,
+            { userIds: emailUserIds },
+            { startAfter: Math.ceil(deps.config.emailBatchDelayMs / 1000) },
+          );
+        } catch (error) {
+          // The one-minute sweep emails the due digests anyway.
+          console.error(
+            'notifications: digest job could not be queued (the sweep sends it)',
+            error,
+          );
+        }
       }
+      if (count < limit) break;
     }
-    if (count < limit) return total;
   }
+  return total;
 }
 
 /**
@@ -108,11 +133,27 @@ async function queuePushes(jobs: JobQueue, pushes: PushJob[]): Promise<void> {
   }
 }
 
+/**
+ * The rows of a pass: undecided (`notification_events_undelivered_idx`), or held and now free to
+ * go: the person has a device, the 24 hours passed, or the server has no push any more
+ * (`notification_events_held_idx`).
+ */
+export function passWhere(pushOn: boolean, pass: Pass): SQL {
+  const e = notificationEvents;
+  if (pass === 'fresh') return sql`${e.deliveredAt} is null and ${e.inCentre} is null`;
+  if (!pushOn) return sql`${e.deliveredAt} is null and ${e.inCentre}`;
+  return sql`${e.deliveredAt} is null and ${e.inCentre} and (
+    ${e.createdAt} < now() - ${HOLD_MS}::int * interval '1 millisecond'
+    or exists (select 1 from push_subscriptions s where s.user_id = ${e.userId})
+  )`;
+}
+
 async function deliverBatch(
   tx: Db,
   deps: NotificationJobDeps,
   scope: { userIds?: string[]; eventIds?: string[] },
   limit: number,
+  pass: Pass,
 ): Promise<{ count: number; pushes: PushJob[]; emailUserIds: string[] }> {
   const { userIds, eventIds } = scope;
   const rows = await tx
@@ -120,7 +161,7 @@ async function deliverBatch(
     .from(notificationEvents)
     .where(
       and(
-        isNull(notificationEvents.deliveredAt),
+        passWhere(deps.push !== null, pass),
         userIds ? inArray(notificationEvents.userId, unique(userIds)) : undefined,
         eventIds ? inArray(notificationEvents.id, unique(eventIds)) : undefined,
       ),
@@ -130,9 +171,15 @@ async function deliverBatch(
     .for('update', { skipLocked: true });
   if (rows.length === 0) return { count: 0, pushes: [], emailUserIds: [] };
 
-  const { pushes, emailIds } = await decideBatch(tx, deps, rows);
+  const { pushes, emailIds, centreIds, heldIds } = await decideBatch(tx, deps, rows);
   const email = new Set(emailIds);
-  const plainIds = rows.map((r) => r.id).filter((id) => !email.has(id));
+  const held = new Set(heldIds);
+  const plainIds = rows.map((r) => r.id).filter((id) => !email.has(id) && !held.has(id));
+  // A row of the held pass keeps the verdict of its first pass.
+  const inCentre =
+    centreIds.length > 0
+      ? sql`coalesce(${notificationEvents.inCentre}, ${inArray(notificationEvents.id, centreIds)})`
+      : sql`coalesce(${notificationEvents.inCentre}, false)`;
   // now() is the transaction's start time, so both statements stamp the same instant.
   if (emailIds.length > 0) {
     await tx
@@ -140,32 +187,40 @@ async function deliverBatch(
       .set({
         deliveredAt: sql`now()`,
         emailDueAt: sql`now() + ${deps.config.emailBatchDelayMs}::int * interval '1 millisecond'`,
+        inCentre,
       })
       .where(inArray(notificationEvents.id, emailIds));
   }
   if (plainIds.length > 0) {
     await tx
       .update(notificationEvents)
-      .set({ deliveredAt: sql`now()` })
+      .set({ deliveredAt: sql`now()`, inCentre })
       .where(inArray(notificationEvents.id, plainIds));
+  }
+  if (heldIds.length > 0) {
+    await tx
+      .update(notificationEvents)
+      .set({ inCentre: true })
+      .where(inArray(notificationEvents.id, heldIds));
   }
   const emailUserIds = unique(rows.filter((r) => email.has(r.id)).map((r) => r.userId));
   return { count: rows.length, pushes, emailUserIds };
 }
 
 /**
- * Loads the batch's context in bulk and decides every event. Events whose user could get neither
- * a push nor an email by the event group's channel (no profile, disabled, none, push without a
- * device) are decided without loading the rest, which is most events of most batches.
+ * Loads the batch's context in bulk and decides every event: its push and email, whether the
+ * centre lists it (`listedInCentre`), and whether it waits for a device (N7: listed, on Push
+ * only, no device yet, younger than `HOLD_MS`, the server has push). Events whose user can get
+ * nothing by the event group's channel (no profile, disabled, none) are decided without loading
+ * the rest. A snoozed person (the bell's "Stíšiť") gets no push; email and the centre go on.
  */
 async function decideBatch(
   tx: Db,
   deps: NotificationJobDeps,
   batch: EventRow[],
-): Promise<{ pushes: PushJob[]; emailIds: string[] }> {
+): Promise<{ pushes: PushJob[]; emailIds: string[]; centreIds: string[]; heldIds: string[] }> {
   const userIds = unique(batch.map((r) => r.userId));
   const profiles = await getNotificationProfiles(tx, userIds);
-  const subscriptions = await listSubscriptions(tx, userIds);
   const groupOf = new Map(batch.map((r) => [r.id, notificationGroupOf(r.kind, payloadOf(r))]));
   const rows = batch.filter((r) => {
     const group = groupOf.get(r.id) ?? null;
@@ -178,11 +233,13 @@ async function decideBatch(
     }
     const profile = profiles.get(r.userId);
     if (!profile || profile.disabled) return false;
-    const channel = profile.channels[group];
-    const canPush = wantsPush(channel) && deps.push !== null && subscriptions.has(r.userId);
-    return canPush || wantsEmail(channel);
+    return profile.channels[group] !== 'none';
   });
-  if (rows.length === 0) return { pushes: [], emailIds: [] };
+  if (rows.length === 0) return { pushes: [], emailIds: [], centreIds: [], heldIds: [] };
+
+  const decidedUsers = unique(rows.map((r) => r.userId));
+  const subscriptions = await listSubscriptions(tx, decidedUsers);
+  const snoozed = await snoozedAmong(tx, decidedUsers);
 
   const grouped = rows.filter((r) => r.groupId !== null);
   const groupIds = unique(grouped.map((r) => r.groupId!));
@@ -226,6 +283,9 @@ async function decideBatch(
 
   const pushes: PushJob[] = [];
   const emailIds: string[] = [];
+  const centreIds: string[] = [];
+  const heldIds: string[] = [];
+  const now = Date.now();
   for (const row of rows) {
     const profile = profiles.get(row.userId)!;
     const groupId = row.groupId;
@@ -235,7 +295,7 @@ async function decideBatch(
     const key = `${row.userId}:${messageId}`;
     const message = messageId ? unread.get(key) : undefined;
     const subs = subscriptions.get(row.userId) ?? [];
-    const decision = decideEvent({
+    const input: DecisionInput = {
       kind,
       mode: modes.get(`${row.userId}:${groupId}`) ?? 'off',
       // A ticket event without a client group: its recorder chose the recipients; a finance event
@@ -251,9 +311,22 @@ async function decideBatch(
       channel: profile.channels[groupOf.get(row.id)!],
       pushAvailable: deps.push !== null,
       hasSubscriptions: subs.length > 0,
-    });
+    };
+    const decision = decideEvent(input);
+    if (!listedInCentre(input)) continue;
+    centreIds.push(row.id);
+    // N7: on Push only and no device yet, it waits (listed meanwhile) for a device or 24 hours.
+    if (
+      input.channel === 'push' &&
+      input.pushAvailable &&
+      !input.hasSubscriptions &&
+      now - row.createdAt.getTime() < HOLD_MS
+    ) {
+      heldIds.push(row.id);
+      continue;
+    }
     if (decision.email) emailIds.push(row.id);
-    if (!decision.push) continue;
+    if (!decision.push || snoozed.has(row.userId)) continue;
     const taskId = str(p.taskId);
     const payload = buildPushPayload({
       kind,
@@ -266,7 +339,7 @@ async function decideBatch(
     });
     for (const sub of subs) pushes.push({ subscriptionId: sub.id, payload });
   }
-  return { pushes, emailIds };
+  return { pushes, emailIds, centreIds, heldIds };
 }
 
 /**

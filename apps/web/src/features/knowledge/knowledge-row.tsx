@@ -20,6 +20,7 @@ import {
   LockIcon,
   MeetingIcon,
   NoteIcon,
+  RepeatIcon,
   SmallFolderIcon,
 } from './icons';
 
@@ -153,6 +154,15 @@ export function TypeLine({ item }: { item: KnowledgeSummary }) {
           <span className="truncate">
             {formatReminderTime(item.meeting.startsAt, i18n.language)}
           </span>
+          {item.meeting.recurring && (
+            <span
+              className="shrink-0 text-muted-foreground"
+              title={t('knowledge.meeting.row.recurring')}
+            >
+              <RepeatIcon />
+              <span className="sr-only">{t('knowledge.meeting.row.recurring')}</span>
+            </span>
+          )}
           {meetingBusy ? (
             <Badge variant="secondary">{t('knowledge.meeting.row.processing')}</Badge>
           ) : (

@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import type { MentionItem } from '@spolu/shared';
-import { addDays, dayGroup, mentionTarget, taskGroup } from './cards';
+import type { ChatMentionItem, DescriptionMentionItem } from '@spolu/shared';
+import { addDays, dayGroup, descriptionTitle, mentionTarget, taskGroup } from './cards';
 
-const mention = (over: Partial<MentionItem>): MentionItem => ({
+const mention = (over: Partial<ChatMentionItem>): ChatMentionItem => ({
+  source: 'chat',
   messageId: 'm1',
   channelId: 'c1',
   taskId: null,
@@ -31,6 +32,53 @@ describe('mentionTarget', () => {
       params: { groupId: 'g1' },
       search: { message: 'm1', c: 'c1' },
     });
+  });
+});
+
+describe('mentions in descriptions (2026-10-18)', () => {
+  const described = (over: Partial<DescriptionMentionItem>): DescriptionMentionItem => ({
+    source: 'description',
+    id: 'e1',
+    subjectKind: 'task',
+    subjectId: 's1',
+    title: 'Budget',
+    ticketNumber: null,
+    groupId: 'g1',
+    groupName: 'ABC',
+    authorName: 'Eva',
+    createdAt: '2026-10-16T10:00:00.000Z',
+    ...over,
+  });
+
+  it('each opens its subject where its notification does', () => {
+    expect(mentionTarget(described({}))).toEqual({
+      to: '/groups/$groupId/tasks/$taskId',
+      params: { groupId: 'g1', taskId: 's1' },
+    });
+    expect(mentionTarget(described({ subjectKind: 'ticket' }))).toEqual({
+      to: '/tickets/$ticketId',
+      params: { ticketId: 's1' },
+    });
+    expect(mentionTarget(described({ subjectKind: 'project' }))).toEqual({
+      to: '/groups/$groupId/overview',
+      params: { groupId: 'g1' },
+      search: { project: 's1' },
+    });
+    expect(mentionTarget(described({ subjectKind: 'knowledge' }))).toEqual({
+      to: '/groups/$groupId/knowledge',
+      params: { groupId: 'g1' },
+      search: { k: 's1' },
+    });
+  });
+
+  it('a ticket is named by its number and subject', () => {
+    expect(descriptionTitle(described({}))).toBe('Budget');
+    expect(
+      descriptionTitle(described({ subjectKind: 'ticket', ticketNumber: 7, title: 'Login' })),
+    ).toBe('#7 Login');
+    expect(descriptionTitle(described({ subjectKind: 'ticket', ticketNumber: 7, title: '' }))).toBe(
+      '#7',
+    );
   });
 });
 

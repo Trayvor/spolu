@@ -54,6 +54,19 @@ export const sk: ServerTexts = {
         `E-mail vášho účtu v aplikácii Help bol zmenený na ${newEmail}. Odteraz sa prihlasujte novou adresou.`,
       warning: 'Ak ste to neboli vy, ihneď kontaktujte svojho administrátora.',
     },
+    passkeyCode: {
+      subject: (code) => `Kód na pridanie kľúča (passkey) v aplikácii Help: ${code}`,
+      heading: 'Kód na pridanie kľúča (passkey)',
+      body: 'Zadajte ho v aplikácii Help a k vášmu účtu sa pridá kľúč (passkey). Platí 5 minút. Ak ste oň nežiadali, tento e-mail ignorujte.',
+    },
+    passkeyAdded: {
+      subject: 'K vášmu účtu v aplikácii Help bol pridaný nový kľúč (passkey)',
+      body: ({ name, date }) =>
+        `K vášmu účtu v aplikácii Help bol ${date} pridaný nový kľúč (passkey) „${name}“. Môžete sa ním prihlásiť bez kódu z e-mailu.`,
+      warning:
+        'Ak ste to neboli vy, kľúč ihneď vymažte v Nastaveniach → Kľúče (passkeys) a kontaktujte svojho administrátora.',
+      button: 'Otvoriť Nastavenia',
+    },
   },
   mcp: {
     tokenCreated: {
@@ -150,6 +163,10 @@ export const sk: ServerTexts = {
     mentionedInDescription: (name) => `${name} vás spomenul(a) v popise`,
     openKnowledge: 'Otvoriť položku',
     openProject: 'Otvoriť projekt',
+    actionDone: 'Hotovo',
+    actionLogTime: 'Zapísať čas',
+    actionReply: 'Odpovedať',
+    replyPlaceholder: 'Napíšte odpoveď…',
   },
   teams: {
     recordingNotice: 'Tento hovor bude nahrávaný a prepisovaný.',

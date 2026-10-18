@@ -95,6 +95,30 @@ describe('recordDescriptionMentions', () => {
     expect(ids).toEqual([]);
   });
 
+  it('removing a person and naming them again notifies them once per subject', async () => {
+    const group = await newGroup();
+    const actor = await newAdmin();
+    const client = await newClient(group.id);
+    const subjectId = randomUUID();
+    const subject = { kind: 'task' as const, id: subjectId, title: 'Budget' };
+    const save = (before: string, after: string) =>
+      recordDescriptionMentions(db, { actor, groupId: group.id, subject, before, after });
+    expect(await save('', tok(client.id))).toHaveLength(1);
+    expect(await save(tok(client.id), 'removed')).toEqual([]);
+    expect(await save('removed', `back ${tok(client.id)}`)).toEqual([]);
+    expect(await recipients(subjectId)).toEqual([client.id]);
+    // Another subject still notifies them.
+    const other = randomUUID();
+    await recordDescriptionMentions(db, {
+      actor,
+      groupId: group.id,
+      subject: { kind: 'project', id: other, title: 'Grant' },
+      before: '',
+      after: tok(client.id),
+    });
+    expect(await recipients(other)).toEqual([client.id]);
+  });
+
   it('names only admins in an admins-only subject', async () => {
     const group = await newGroup();
     const actor = await newAdmin();

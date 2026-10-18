@@ -49,6 +49,19 @@ export type TeamsLink = z.infer<typeof TeamsLinkSchema>;
 /** `GET /api/knowledge/:id/teams` (admins only; 404 when Teams is not configured). */
 export const TeamsMeetingStateSchema = z.object({
   link: TeamsLinkSchema.nullable(),
+  /**
+   * Recurring calls (ADR 0049): null when the call is no part of a series. `planned`: Help
+   * creates a Teams meeting for each later call of the series (one Outlook event per call), as
+   * `organizerName`; `lastError` is Microsoft's last error code of that.
+   */
+  series: z
+    .object({
+      planned: z.boolean(),
+      organizerName: z.string().nullable(),
+      lastError: z.string().nullable(),
+    })
+    .nullable()
+    .optional(),
 });
 export type TeamsMeetingState = z.infer<typeof TeamsMeetingStateSchema>;
 
@@ -79,6 +92,11 @@ export const TeamsCreateBodySchema = z
       .default([]),
     /** "Record and transcribe automatically" (owner answer 2: default on). */
     recordAutomatically: z.boolean().default(true),
+    /**
+     * Recurring calls (ADR 0049): also create a Teams meeting, with these settings, for each
+     * later call of the call's series. Ignored for a single call.
+     */
+    following: z.boolean().default(false),
   })
   .strict();
 export type TeamsCreateBody = z.output<typeof TeamsCreateBodySchema>;

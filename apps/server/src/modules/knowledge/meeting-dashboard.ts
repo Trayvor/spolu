@@ -41,7 +41,7 @@ function listSql(scope: SQL, follows: SQL, where: SQL, order: SQL): SQL {
     from knowledge_meetings m
     join knowledge_items k on k.id = m.item_id
     join groups g on g.id = k.group_id
-    where ${scope} and ${where} and ${follows}
+    where ${scope} and ${where} and ${follows} and g.deactivated_at is null
     order by ${order}
     limit ${HOME_MEETING_LIMITS.items}`;
 }

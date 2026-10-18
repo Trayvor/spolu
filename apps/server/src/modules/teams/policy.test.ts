@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import type { Role, SessionUser } from '@spolu/shared';
-import { canLinkTeamsMeeting, canManageTeamsLink, canUseTeams } from './policy.js';
+import {
+  canLinkTeamsMeeting,
+  canManageTeamsLink,
+  canPlanTeamsSeries,
+  canUseTeams,
+} from './policy.js';
 
 const person = (role: Role): SessionUser => ({
   id: `${role}-1`,
@@ -40,5 +45,13 @@ describe('Teams policy (T1)', () => {
     expect(roles.map((r) => canManageTeamsLink(person(r), ok))).toEqual([true, true, false]);
     expect(canManageTeamsLink(person('admin'), { ...ok, linked: false })).toBe(false);
     expect(canManageTeamsLink(person('admin'), { ...ok, configured: false })).toBe(false);
+  });
+
+  it('a series plan (ADR 0049): admins who edit a call of a series', () => {
+    const ok = { configured: true, canEditItem: true, inSeries: true };
+    expect(roles.map((r) => canPlanTeamsSeries(person(r), ok))).toEqual([true, true, false]);
+    expect(canPlanTeamsSeries(person('admin'), { ...ok, inSeries: false })).toBe(false);
+    expect(canPlanTeamsSeries(person('admin'), { ...ok, canEditItem: false })).toBe(false);
+    expect(canPlanTeamsSeries(person('admin'), { ...ok, configured: false })).toBe(false);
   });
 });

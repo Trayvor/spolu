@@ -10,10 +10,12 @@ import {
   type NotificationCategory,
   type NotificationChannel,
   type Role,
+  type PhoneNav,
   type UserLanguage,
 } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
 import { isUniqueViolation } from '../../infra/db/errors.js';
+import { deleteAllPasskeys } from '../auth/service.js';
 import { revokeAllTokens } from '../mcp/tokens.js';
 import { user } from './schema.js';
 
@@ -175,6 +177,7 @@ export async function addAdmin(db: Db, input: { email: string; name: string }): 
 export async function deactivateUser(db: Db, id: string): Promise<void> {
   // Their MCP tokens go too: an admin added back makes new ones (MCP spec §2 #10).
   await revokeAllTokens(db, id);
+  await deleteAllPasskeys(db, id); // and their passkeys (ADR 0050)
   await db
     .update(user)
     .set({
@@ -401,6 +404,16 @@ export async function setDefaultGroupMode(
 
 export async function setUserLanguage(db: Db, id: string, language: UserLanguage): Promise<void> {
   await db.update(user).set({ language, updatedAt: new Date() }).where(eq(user.id, id));
+}
+
+export async function setPhoneNav(db: Db, id: string, phoneNav: PhoneNav): Promise<void> {
+  await db.update(user).set({ phoneNav, updatedAt: new Date() }).where(eq(user.id, id));
+}
+
+/** The phone navigation of one user; `classic` for an unknown id. */
+export async function getPhoneNav(db: Db, id: string): Promise<PhoneNav> {
+  const [row] = await db.select({ phoneNav: user.phoneNav }).from(user).where(eq(user.id, id));
+  return row?.phoneNav ?? 'classic';
 }
 
 /**

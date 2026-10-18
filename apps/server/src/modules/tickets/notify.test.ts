@@ -317,6 +317,15 @@ describe('ticket notifications (Phase 21.6)', () => {
       body: 'Ad Min: Pozrieme sa',
       url: `/tickets/${t.id}`,
       tag: `ticket:${t.id}`,
+      actions: [
+        expect.objectContaining({
+          action: 'reply',
+          channelId: chat.id,
+          url: expect.stringMatching(
+            new RegExp(`^/tickets/${t.id}\\?message=.+&c=${chat.id}&reply=1$`),
+          ),
+        }),
+      ],
     });
   });
 
@@ -389,6 +398,8 @@ describe('ticket notifications (Phase 21.6)', () => {
         url: `/tickets/${t.id}`,
         tag: `ticket:${t.id}`,
         renotify: true,
+        // N6a: "Reply" goes to the ticket chat.
+        actions: [expect.objectContaining({ action: 'reply', channelId: chat.id, parentId: null })],
       },
     ]);
     // The initiator who is also named gets one push for the message.

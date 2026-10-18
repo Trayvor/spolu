@@ -1,0 +1,34 @@
+{
+  "title": "Pääsuvõtmed (passkeys)",
+  "intro": "Logige sisse sõrmejälje, näo või seadme PIN-koodiga e-posti koodi asemel. E-posti kood töötab edasi.",
+  "add": {
+    "title": "Lisage pääsuvõti",
+    "name": "Nimi",
+    "namePlaceholder": "Tööarvuti",
+    "nameRequired": "Sisestage pääsuvõtme nimi.",
+    "submit": "Lisa pääsuvõti",
+    "limit": "Teil on {{count}} pääsuvõtit. Enne uue lisamist kustutage üks.",
+    "failed": "Pääsuvõtit ei lisatud. Proovige uuesti.",
+    "unsupported": "See brauser ei saa pääsuvõtmeid (passkeys) luua.",
+    "added": "Pääsuvõti on lisatud."
+  },
+  "reauth": {
+    "intro": "Pääsuvõtme lisamiseks kinnitage, et see olete Teie: saatsime aadressile {{email}} 6-kohalise koodi.",
+    "code": "Kood",
+    "submit": "Kinnita ja lisa",
+    "wrong": "Kood ei ole õige või on aegunud. Saatke endale uus.",
+    "sendAgain": "Saada uus kood",
+    "cancel": "Loobu"
+  },
+  "list": {
+    "title": "Teie pääsuvõtmed",
+    "empty": "Teil pole veel pääsuvõtmeid.",
+    "created": "Lisatud {{date}}",
+    "lastUsed": "Viimati kasutatud {{date}}",
+    "neverUsed": "Pole veel kasutatud",
+    "delete": "Kustuta",
+    "confirm": "Kas kustutada see pääsuvõti? Saate endiselt sisse logida e-posti koodiga.",
+    "deleteConfirm": "Kustuta pääsuvõti",
+    "keep": "Jäta alles"
+  }
+}

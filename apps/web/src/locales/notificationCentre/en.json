@@ -1,0 +1,23 @@
+{
+  "bell": {
+    "label": "Notifications",
+    "labelUnread": "Notifications, unread: {{count}}"
+  },
+  "title": "Notifications",
+  "markAll": "Mark all as read",
+  "loading": "Loading…",
+  "empty": "Nothing here yet. When someone mentions you, assigns you a task or a ticket comes in, you will see it here.",
+  "more": "Load older",
+  "today": "Today",
+  "yesterday": "Yesterday",
+  "unread": "unread",
+  "settings": "Notification settings",
+  "snooze": {
+    "title": "Push notifications",
+    "hour": "Snooze for 1 hour",
+    "tomorrow": "Snooze until tomorrow (8:00)",
+    "week": "Snooze for a week",
+    "until": "Push notifications are snoozed until {{time}}. The list and emails go on.",
+    "end": "End the snooze"
+  }
+}

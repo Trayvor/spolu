@@ -269,12 +269,46 @@
     },
     "row": {
       "processing": "Spracúva sa",
-      "summary": "Zhrnutie"
+      "summary": "Zhrnutie",
+      "recurring": "Opakuje sa"
     },
     "transcriptFromTeams": "z Teams",
     "transcriptAdminsOnly": "Tento prepis a zhrnutie z neho vidia len admini, kým ich nezdieľate s klientom.",
     "shareTranscript": "Zdieľať s klientom",
-    "shareFailed": "Zdieľanie sa nepodarilo. Skúste to znova."
+    "shareFailed": "Zdieľanie sa nepodarilo. Skúste to znova.",
+    "repeat": {
+      "label": "Opakovanie",
+      "none": "Neopakuje sa",
+      "weekly": "Každý týždeň: {{weekday}}",
+      "biweekly": "Každé 2 týždne: {{weekday}}",
+      "monthly_date": "Každý mesiac, {{day}}. deň",
+      "monthly_weekday_1": "Každý mesiac, 1. {{weekday}} v mesiaci",
+      "monthly_weekday_2": "Každý mesiac, 2. {{weekday}} v mesiaci",
+      "monthly_weekday_3": "Každý mesiac, 3. {{weekday}} v mesiaci",
+      "monthly_weekday_4": "Každý mesiac, 4. {{weekday}} v mesiaci",
+      "monthly_weekday_last": "Každý mesiac, {{weekday}} v poslednom týždni",
+      "ends": "Koniec",
+      "endNever": "Nikdy",
+      "endUntil": "K dátumu",
+      "endCount": "Po počte stretnutí",
+      "untilLabel": "Posledný deň",
+      "countLabel": "Počet stretnutí",
+      "hint": "Každé stretnutie je samostatná položka s vlastnými poznámkami, nahrávkou, prepisom a pripomienkou. Help pridáva stretnutia 60 dní vopred.",
+      "untilInvalid": "Zvoľte posledný deň v deň prvého stretnutia alebo neskôr, najviac o 2 roky.",
+      "countInvalid": "Zadajte 2 až 100 stretnutí."
+    },
+    "series": {
+      "repeats": "Opakuje sa: {{rule}}.",
+      "until": "Do {{date}}.",
+      "count": "Spolu {{count}} stretnutí.",
+      "ended": "Ďalšie stretnutia sa už nepridajú.",
+      "editScope": "Toto stretnutie sa opakuje. Zmeniť len toto, alebo aj nasledujúce stretnutia?",
+      "onlyThis": "Len toto stretnutie",
+      "thisAndFollowing": "Toto a nasledujúce",
+      "deleteScope": "Toto stretnutie sa opakuje. Vymazať len toto, alebo aj nasledujúce stretnutia? Vymazané stretnutia sa už znova nepridajú.",
+      "deleteThis": "Vymazať toto stretnutie",
+      "deleteFollowing": "Vymazať toto a nasledujúce"
+    }
   },
   "view": {
     "label": "Zobrazenie",

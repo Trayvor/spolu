@@ -3,7 +3,9 @@ import { useTranslation } from 'react-i18next';
 import { useBottomNavPlan } from '@/components/bottom-nav';
 import { LanguageSwitcher } from '@/components/language-switcher';
 import { NavCount } from '@/components/lazy-nav-count';
+import { NotificationBell } from '@/components/notification-bell';
 import { navSections } from '@/components/nav-sections';
+import { SearchTrigger } from '@/components/search-trigger';
 import { SectionMenu } from '@/components/section-menu';
 import { isAdmin } from '@/features/auth/roles';
 import { UserMenu } from '@/features/auth/user-menu';
@@ -16,16 +18,18 @@ const navLink =
 // Where the section links fit in the pill: an admin's seven need about 1 100 px. A finance
 // admin's eight (Phase 32) fit the 1 152 px pill only with 12 px instead of 16 px padding and
 // 4 px gaps (measured in Slovak; Ukrainian overflows a few pixels, as the seven already do).
+// The notification bell and the search button (2026-10-18) take 46 px each, so the links wait
+// for 1440 px (an admin) and 1536 px (a finance admin) instead of 1280 px.
 const WIDE = {
   admin: {
-    links: 'min-[1280px]:inline-flex',
-    menu: 'min-[1280px]:hidden',
+    links: 'min-[1440px]:inline-flex',
+    menu: 'min-[1440px]:hidden',
     pad: 'px-4',
     gap: 'gap-2',
   },
   finance: {
-    links: 'min-[1280px]:inline-flex',
-    menu: 'min-[1280px]:hidden',
+    links: 'min-[1536px]:inline-flex',
+    menu: 'min-[1536px]:hidden',
     pad: 'px-3',
     gap: 'gap-1',
   },
@@ -42,8 +46,10 @@ const WIDE = {
  * "Help by eGrant": the product name as the wordmark, a small "by" and the egrant logo,
  * one link to `/` named by `app.fullName`. On the right, for a signed-in user, the sections
  * (`navSections`: admins' Home, Tasks, Tickets, Knowledge, Groups, Admins and Bulk email; a
- * client's My groups and tickets), the account menu and the language menu.
- * Where they fit (from 1280 px for an admin's seven, from 641 px for a client's one or two) the
+ * client's My groups and tickets), the search button (Cmd/Ctrl+K, `SearchTrigger`), the
+ * notification bell (the centre), the account menu and the language menu.
+ * Where they fit (from 1440 px for an admin's seven, 1536 px for a finance admin's eight, from
+ * 641 px for a client's one or two) the
  * sections are links, the current one on a `secondary` pill. Narrower, two or more sections fold
  * into the section menu (`SectionMenu`: a bottom sheet on phones, a panel under the pill on
  * tablets and small laptops) and a single one stays a link. On a phone the bottom bar
@@ -101,6 +107,8 @@ export function AppHeader() {
             className={barOnPhone ? `${wide.menu} max-[640px]:hidden` : wide.menu}
           />
         )}
+        {user && <SearchTrigger />}
+        {user && <NotificationBell />}
         {user && <UserMenu user={user} />}
         <LanguageSwitcher />
       </div>

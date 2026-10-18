@@ -45,7 +45,9 @@
     "invalidEmail": "Enter a valid email address.",
     "noticeLabel": "The invitation says:",
     "submit": "Create meeting",
-    "creating": "Creating…"
+    "creating": "Creating…",
+    "following": "Also for the following meetings",
+    "followingHint": "Help creates a separate Teams meeting with these settings for each following meeting of the series, each with its own invitation and transcript."
   },
   "connectForm": {
     "url": "Teams meeting link",
@@ -75,5 +77,11 @@
     "timeZone": "Times in your time zone ({{zone}}).",
     "invalid": "This invitation link is no longer valid.",
     "rateLimited": "Too many requests. Try again in a minute."
+  },
+  "series": {
+    "planned": "Help creates a Teams meeting for each following meeting of this series, organized by {{name}}.",
+    "plannedNoName": "Help creates a Teams meeting for each following meeting of this series.",
+    "stop": "Stop for the following meetings",
+    "stopConfirm": "Stop creating Teams meetings for the following meetings? The Teams meetings already created stay."
   }
 }

@@ -23,9 +23,17 @@ const isActive = isNull(groupMembers.removedAt);
  */
 const inLiveGroup = sql`not exists (select 1 from groups dg where dg.id = ${groupMembers.groupId}
   and dg.deactivated_at is not null)`;
+/**
+ * `inLiveGroup` for other modules' raw SQL: the group `groupId` (an SQL expression, e.g.
+ * `t.group_id`) is not deactivated. True for a null id (a ticket or reminder without a client),
+ * so only rows of a deactivated group drop out. One primary key lookup per row.
+ */
+export function liveGroupSql(groupId: SQL): SQL<boolean> {
+  return sql<boolean>`not exists (select 1 from groups dg where dg.id = ${groupId}
+    and dg.deactivated_at is not null)`;
+}
 /** `inLiveGroup` for the raw-SQL helpers, on `gm.group_id`. */
-const gmInLiveGroup = sql`not exists (select 1 from groups dg where dg.id = gm.group_id
-  and dg.deactivated_at is not null)`;
+const gmInLiveGroup = liveGroupSql(sql`gm.group_id`);
 
 /** The user's membership of one group, removed or not; null when they never belonged to it. */
 export async function getMembership(
@@ -86,6 +94,42 @@ export async function clientGroupIds(db: Db, userId: string): Promise<string[]> 
       and(eq(groupMembers.userId, userId), eq(groupMembers.role, 'client'), isActive, inLiveGroup),
     );
   return rows.map((r) => r.groupId);
+}
+
+/**
+ * The user's active role in each group, from one query (global search, 2026-10-18): what the
+ * modules' policies need to decide what a non-admin reads. Admins have no rows. A deactivated
+ * group's memberships do not count (`inLiveGroup`).
+ */
+export type GroupAccess = { roles: ReadonlyMap<string, MemberRole> };
+
+export async function groupAccessOf(db: Db, userId: string): Promise<GroupAccess> {
+  const rows = await db
+    .select({ groupId: groupMembers.groupId, role: groupMembers.role })
+    .from(groupMembers)
+    .where(and(eq(groupMembers.userId, userId), isActive, inLiveGroup));
+  return { roles: new Map(rows.map((r) => [r.groupId, r.role])) };
+}
+
+/** The groups of `access` with an active `client` membership (`clientGroupIds`, no query). */
+export function clientIdsOf(access: GroupAccess): string[] {
+  return [...access.roles].filter(([, role]) => role === 'client').map(([id]) => id);
+}
+
+/**
+ * The first group (by name) of the user's active memberships as `{ id, name }` JSON, or null, as
+ * SQL for other modules' one-statement queries (the people of the global search).
+ */
+export function firstActiveGroupSql(
+  userId: SQL | AnyColumn,
+): SQL<{ id: string; name: string } | null> {
+  return sql<{
+    id: string;
+    name: string;
+  } | null>`(select jsonb_build_object('id', g.id, 'name', g.name)
+    from group_members gm inner join groups g on g.id = gm.group_id
+    where gm.user_id = ${userId} and gm.removed_at is null and g.deactivated_at is null
+    order by g.name, g.id limit 1)`;
 }
 
 /**
@@ -183,7 +227,9 @@ export async function setPendingInvite(db: Db, userId: string, groupId: string):
 
 /**
  * On sign-in: turns the pending invite into a client membership (a ziadatel one is promoted; a
- * removed one stays removed). Returns the group joined or promoted in, else null.
+ * removed one stays removed). An invite to a group deactivated since it was typed is dropped
+ * without a membership (reactivating the group later does not bring it back). Returns the group
+ * joined or promoted in, else null.
  */
 export async function applyPendingInvite(db: Db, userId: string): Promise<string | null> {
   const [invite] = await db
@@ -191,6 +237,11 @@ export async function applyPendingInvite(db: Db, userId: string): Promise<string
     .where(eq(pendingInvites.userId, userId))
     .returning({ groupId: pendingInvites.groupId });
   if (!invite) return null;
+  const [group] = await db
+    .select({ deactivatedAt: groups.deactivatedAt })
+    .from(groups)
+    .where(eq(groups.id, invite.groupId));
+  if (!group || group.deactivatedAt !== null) return null;
   const result = await addMembership(db, userId, invite.groupId, 'client');
   return result === 'added' || result === 'promoted' ? invite.groupId : null;
 }
