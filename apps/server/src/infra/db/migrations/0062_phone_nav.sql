@@ -1,0 +1,2 @@
+ALTER TABLE "user" ADD COLUMN "phone_nav" text DEFAULT 'classic' NOT NULL;--> statement-breakpoint
+ALTER TABLE "user" ADD CONSTRAINT "user_phone_nav_check" CHECK ("user"."phone_nav" in ('classic', 'bottom'));
