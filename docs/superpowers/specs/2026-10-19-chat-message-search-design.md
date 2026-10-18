@@ -1,6 +1,8 @@
 # Search in chat messages
 
-Date: 2026-10-19. Status: designed, not built. Builds on the global search ([spec](2026-10-18-global-search-design.md), [ADR 0046](../../decisions/0046-global-search-module-functions-and-fold-index.md), [product/search.md](../../product/search.md)) and closes the "Search over group messages" item of Phase 16 ([roadmap](../../roadmap.md)). Decision record: ADR-XXXX (placeholder, "Message search: a stored folded column with a trigram index"). Migration: `00XX_chat-message-search` (placeholder; the orchestrator assigns the number).
+Date: 2026-10-19, aligned with the owner's decisions of the same day. Status: designed, not built. Builds on the global search (merged on `main` with #143: [spec](2026-10-18-global-search-design.md), [ADR 0046](../../decisions/0046-global-search-module-functions-and-fold-index.md), [product/search.md](../../product/search.md)) and closes the "Search over group messages" item of Phase 16 ([roadmap](../../roadmap.md)). Decision record: ADR-XXXX (placeholder, "Message search: a stored folded column with a trigram index"). Migration: `00XX_chat-message-search` (placeholder; the orchestrator assigns the number: `main`'s newest is `0062_night_integration` and #113 takes `0063`).
+
+**Sequencing (owner decision):** implementation starts after the current phases are done. This is one of seven specs of 2026-10-19 (#169–#175); the final e2e pass runs once, after all seven are implemented.
 
 ## Goal
 
@@ -10,15 +12,15 @@ Find a message by typing a few words of it, wherever it was written: a group cha
 
 Search finds exactly what the person can already read in the chat; nothing more.
 
-| role | messages found |
-|---|---|
-| admin | every channel of every live group: client group chats, the admin group "eGrant tím", task chats, ticket chats; replies in threads |
-| client | the group chat, task chats and ticket chats of the groups where they are an active `client` member |
+| role     | messages found                                                                                                                                                                |
+| -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| admin    | every channel of every live group: client group chats, the admin group "eGrant tím", task chats, ticket chats; replies in threads                                             |
+| client   | the group chat, task chats and ticket chats of the groups where they are an active `client` member                                                                            |
 | žiadateľ | only the ticket chats of the tickets they started (`tickets.requester_user_id = me`), in groups where they are an active `ziadatel` member; never a group chat or a task chat |
 
 Always excluded, for admins too:
 
-- **Deactivated groups** (owner rule: hide everything of a deactivated group). The query joins `groups` and filters `deactivated_at is null`; `groupAccessOf` already drops memberships of a deactivated group.
+- **Deactivated groups** (owner decision, confirmed 2026-10-19: the global search hides everything of a deactivated group, admins included). No message of any channel of a deactivated group (group chat, thread, task chat, ticket chat) is ever a hit, for anyone, through `/api/search`, `/api/search/messages` (also with `groupId` of that group: an empty page) or MCP. The query joins `groups` and filters `deactivated_at is null`; `groupAccessOf` already drops memberships of a deactivated group. This matches what #143 does for the other types (`product/search.md`): people stay findable, but a person hit never links into the deactivated group (`groupId: null` for a person whose only group is deactivated). Message search adds no people hits of its own, so the author of a message in a deactivated group is found only through the people section, under that rule. Reactivating the group brings its messages back (the index row never left).
 - **Deleted messages** (`deleted_at is not null`; the delete also clears `body`). A message deleted after it was found is gone from the next search; opening a stale hit shows the chat's usual "Správa bola vymazaná".
 - **Tickets without a client** have no chat (Phase 21), so nothing to exclude.
 
@@ -32,7 +34,7 @@ The `frontend-design` skill is the first step of the web task (CLAUDE.md). Only 
 - A new section **Správy**, the last one (after Ľudia), up to 5 hits.
 - One hit is two lines with a 16 px outline speech-bubble glyph (the typed-menu rule):
   - line 1: the snippet, up to 160 characters, the matched fragments in `<mark>` styled as `font-semibold` on the `secondary` pill colour (no yellow);
-  - line 2, `muted`: "{author} · {where} · {date}", where *where* is "{group}" for a group chat, "{group} · Úloha: {task title}" for a task chat, "{group} · Tiket #{number}" for a ticket chat, and the suffix " · vo vlákne" for a reply. The date is the chat's short relative date (today's time, "včera", or the date).
+  - line 2, `muted`: "{author} · {where} · {date}", where _where_ is "{group}" for a group chat, "{group} · Úloha: {task title}" for a task chat, "{group} · Tiket #{number}" for a ticket chat, and the suffix " · vo vlákne" for a reply. The date is the chat's short relative date (today's time, "včera", or the date).
 - Under the five hits a row **Zobraziť ďalšie správy** loads the next 20 into the same section (keyset cursor); it is an option of the listbox, so Up/Down reach it and Enter runs it. After the last page the row disappears.
 - Messages need a term of at least 3 characters (the trigram index cannot serve shorter ones on the biggest table). With only 1–2 character terms the section shows one quiet line: "V správach sa hľadá od 3 znakov."
 - If the server answered `tooBroad` (the query hit the 2 s limit): "Príliš veľa správ. Spresnite hľadanie."
@@ -42,17 +44,17 @@ The `frontend-design` skill is the first step of the web task (CLAUDE.md). Only 
 
 ### Texts (Slovak is the source; the other eight in the plan, Task 7)
 
-| key (`search` namespace) | sk |
-|---|---|
-| `placeholder` | Hľadať skupinu, tiket, úlohu, správu… |
-| `sections.messages` | Správy |
-| `messages.more` | Zobraziť ďalšie správy |
-| `messages.minLength` | V správach sa hľadá od 3 znakov. |
-| `messages.tooBroad` | Príliš veľa správ. Spresnite hľadanie. |
-| `messages.task` | Úloha: {{title}} |
-| `messages.ticket` | Tiket #{{number}} |
-| `messages.thread` | vo vlákne |
-| `messages.deletedAuthor` | Odstránený používateľ |
+| key (`search` namespace) | sk                                     |
+| ------------------------ | -------------------------------------- |
+| `placeholder`            | Hľadať skupinu, tiket, úlohu, správu…  |
+| `sections.messages`      | Správy                                 |
+| `messages.more`          | Zobraziť ďalšie správy                 |
+| `messages.minLength`     | V správach sa hľadá od 3 znakov.       |
+| `messages.tooBroad`      | Príliš veľa správ. Spresnite hľadanie. |
+| `messages.task`          | Úloha: {{title}}                       |
+| `messages.ticket`        | Tiket #{{number}}                      |
+| `messages.thread`        | vo vlákne                              |
+| `messages.deletedAuthor` | Odstránený používateľ                  |
 
 Italian and Slovenian use the formal register (Lei, Vi), as the rest of the `search` namespace.
 
@@ -67,7 +69,7 @@ create index messages_search_text_trgm_idx on messages using gin (search_text gi
   where deleted_at is null and search_text <> '';
 ```
 
-- **Stored generated column, not service-written.** It reuses `spolu_fold` (migration 0062) so SQL and the query's `normalizeSearch` fold the same way; every send, edit and delete updates it with no code path to forget (unlike `knowledge_items.search_text`, ADR 0015), and there is no backfill job: the migration computes it for existing rows. The table rewrite takes an `ACCESS EXCLUSIVE` lock for the migration's duration; at today's size (well under a million rows) that is seconds during the deploy's migration step.
+- **Stored generated column, not service-written.** It reuses `spolu_fold` (migration `0062_night_integration`, on `main`) so SQL and the query's `normalizeSearch` fold the same way; every send, edit and delete updates it with no code path to forget (unlike `knowledge_items.search_text`, ADR 0015), and there is no backfill job: the migration computes it for existing rows. The table rewrite takes an `ACCESS EXCLUSIVE` lock for the migration's duration; at today's size (well under a million rows) that is seconds during the deploy's migration step.
 - **Mentions are removed** from the indexed text (`<@id>` becomes a space): a user id is never a match. Names in mentions are therefore not searchable (see open question 2).
 - Markdown stays in the text (`**`, `[text](url)`): fragments still match, and URLs inside links stay findable.
 - **Partial index**: deleted and empty (attachment-only) messages are not in it, and every query repeats the predicate `deleted_at is null and search_text <> ''` so the planner can use it.
@@ -123,7 +125,7 @@ SEARCH_LIMITS.minMessageTerm = 3
 
 ## Permissions
 
-No new policy function: channel reading is `canReadChannel` (chat) and `canReadTicket` (tickets), each module's own. `docs/architecture/permissions.md` gets a "Message search" row. The leak matrix in `modules/search/routes.test.ts` gets messages for each role: admin, client of A (not B), žiadateľ of ticket T1 (not T2, not A's group chat or task chats), a deactivated group (nobody, admins included), a deleted message (nobody), an edited message (found by its new text only), a removed member (nothing of the group).
+No new policy function: channel reading is `canReadChannel` (chat) and `canReadTicket` (tickets), each module's own. `docs/architecture/permissions.md` gets a "Message search" row. The leak matrix in `modules/search/routes.test.ts` gets messages for each role: admin, client of A (not B), žiadateľ of ticket T1 (not T2, not A's group chat or task chats), a deactivated group (no message for anybody, admins included, on both routes and with `groupId`; its client still found under people with `groupId: null`; reactivation brings the messages back), a deleted message (nobody), an edited message (found by its new text only), a removed member (nothing of the group).
 
 ## Notifications and realtime
 

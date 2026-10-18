@@ -10,15 +10,17 @@
 
 **Spec:** [docs/superpowers/specs/2026-10-19-chat-message-search-design.md](../specs/2026-10-19-chat-message-search-design.md)
 
-Branch: `feat/chat-message-search` from a fresh `origin/main`. One pull request. Server tests with an own database: `TEST_DATABASE_URL=postgres://spolu:spolu@localhost:5432/spolu_test_msgsearch`. Do not run `pnpm test:e2e` or `scripts/ci.sh` in parallel with other agents; the final e2e pass runs after all phases (owner instruction), by whoever merges.
+Branch: `feat/chat-message-search` from a fresh `origin/main`. One pull request. Server tests with an own database: `TEST_DATABASE_URL=postgres://spolu:spolu@localhost:5432/spolu_test_msgsearch`. Do not run `pnpm test:e2e` or `scripts/ci.sh` in parallel with other agents.
+
+**Sequencing (owner decision, 2026-10-19):** start this plan only after the current phases are done. It is one of seven plans of 2026-10-19 (#169–#175); the final e2e pass runs once, after all seven are implemented, by whoever merges. Prerequisites already on `main`: the global search (#143, with the `search` module, `spolu_fold` and the deactivated-group rule), the notification centre (#155), mentions (#162) and recurring calls (#165).
 
 ## Global Constraints
 
 - English in code, comments, docs and commits; UI texts in all nine locales (sk, en, cs, sl, bg, et, it, hr, uk); it and sl formal (Lei, Vi).
 - New UI texts only in the lazy `search` namespace (`apps/web/src/locales/search/<code>.json`), never in the eager `locales/<code>.json`; no eager JS change (initial JS budget 200 kB gzip).
 - Permissions only through policy functions: `canReadChannel` (chat), `canReadTicket` (tickets). The chat module never reads the `tickets` or `tasks` tables; it calls `requesterTicketIdsSql`, `readableTicketLabels`, `getTaskTitles`.
-- Nothing of a deactivated group, for admins too; no deleted message (`deleted_at is null`).
-- Migration placeholder name `00XX_chat-message-search` (the orchestrator renumbers); ADR placeholder `ADR-XXXX` (file `docs/decisions/XXXX-message-search-stored-fold-column-trigram.md`).
+- Nothing of a deactivated group, for admins too (owner decision): no message of any of its channels on either route, with or without `groupId`, nor through MCP. People stay findable in the people section, but never linked into the deactivated group (`groupId: null`, as #143 already does); message search adds no people hits. No deleted message (`deleted_at is null`).
+- Migration placeholder name `00XX_chat-message-search` (the orchestrator renumbers; `main`'s newest is `0062_night_integration`, #113 takes `0063`); ADR placeholder `ADR-XXXX` (file `docs/decisions/XXXX-message-search-stored-fold-column-trigram.md`).
 - Query `q` 2–100 characters, at most 5 terms; messages need a term of at least 3 characters (`SEARCH_LIMITS.minMessageTerm = 3`); page size 1–20 (default 20 on `/api/search/messages`, the global `limit` on `/api/search`); snippet ≤ 160 characters plus `…`.
 - Statement timeout of the message search: `2s`; PostgreSQL code `57014` becomes `tooBroad: true`.
 - Rate limit shared with the global search: `SEARCH_RATE` (120 a minute per user).
@@ -40,10 +42,12 @@ Branch: `feat/chat-message-search` from a fresh `origin/main`. One pull request.
 ### Task 1: Shared types and the query schema
 
 **Files:**
+
 - Modify: `packages/shared/src/search.ts`
 - Test: `packages/shared/src/search.test.ts`
 
 **Interfaces:**
+
 - Produces:
   - `SearchTypes` = `['groups','tickets','tasks','knowledge','projects','people','messages']`
   - `SEARCH_LIMITS.minMessageTerm = 3`, `SEARCH_LIMITS.messagesPage = 20`
@@ -64,7 +68,9 @@ it('message search query: limits and defaults', () => {
   expect(MessageSearchQuerySchema.parse({ q: ' zmluva ' })).toEqual({ q: 'zmluva', limit: 20 });
   expect(MessageSearchQuerySchema.safeParse({ q: 'a' }).success).toBe(false);
   expect(MessageSearchQuerySchema.safeParse({ q: 'ab', limit: '21' }).success).toBe(false);
-  expect(MessageSearchQuerySchema.safeParse({ q: 'ab', cursor: 'x'.repeat(201) }).success).toBe(false);
+  expect(MessageSearchQuerySchema.safeParse({ q: 'ab', cursor: 'x'.repeat(201) }).success).toBe(
+    false,
+  );
 });
 ```
 
@@ -76,12 +82,14 @@ it('message search query: limits and defaults', () => {
 ### Task 2: The folded column, its index and the ADR
 
 **Files:**
+
 - Modify: `apps/server/src/modules/chat/schema.ts` (`messages` table)
 - Create: `apps/server/src/infra/db/migrations/00XX_chat-message-search.sql` (+ `meta/` snapshot and journal via `db:generate`)
 - Create: `apps/server/src/modules/chat/search-text.test.ts`
 - Create: `docs/decisions/XXXX-message-search-stored-fold-column-trigram.md`; Modify: `docs/decisions/README.md`, `docs/architecture/data-model.md`
 
 **Interfaces:**
+
 - Produces: column `messages.search_text` (drizzle `searchText`), `generatedAlwaysAs(sql\`spolu_fold(regexp_replace(${t.body}, '<@[A-Za-z0-9_-]+>', ' ', 'g'))\`)`; index `messages_search_text_trgm_idx` `using gin (search_text gin_trgm_ops) where deleted_at is null and search_text <> ''`.
 
 - [ ] **Step 1: Write the failing tests** (`search-text.test.ts`, real test database, messages created through `sendMessage`/`editMessage`/`deleteMessage` of `chat/messages.ts`):
@@ -97,12 +105,12 @@ it('follows an edit and empties on delete', async () => {
 it('the index exists with its predicate', async () => {
   // select indexdef from pg_indexes where indexname = 'messages_search_text_trgm_idx'
   expect(def).toContain('gin_trgm_ops');
-  expect(def).toContain("(deleted_at IS NULL)");
+  expect(def).toContain('(deleted_at IS NULL)');
 });
 ```
 
 - [ ] **Step 2: Run** `rtk proxy pnpm --filter @spolu/server exec vitest run src/modules/chat/search-text.test.ts` — Expected: FAIL (no column).
-- [ ] **Step 3: Implement** the column and index in `schema.ts`; check the latest migration number on `origin/main`, run `pnpm --filter @spolu/server db:generate`, rename the file to `00XX_chat-message-search.sql` (keep the journal tag consistent), and check the SQL is `add column "search_text" text generated always as (...) stored` plus `create index ... using gin ... where`. The migration depends on `spolu_fold` (0062) — add a comment line saying so.
+- [ ] **Step 3: Implement** the column and index in `schema.ts`; check the latest migration number on `origin/main`, run `pnpm --filter @spolu/server db:generate`, rename the file to `00XX_chat-message-search.sql` (keep the journal tag consistent), and check the SQL is `add column "search_text" text generated always as (...) stored` plus `create index ... using gin ... where`. The migration depends on `spolu_fold` (`0062_night_integration`) — add a comment line saying so.
 - [ ] **Step 4: Run** the test — Expected: PASS. Run `src/infra/db/foreign-key-indexes.test.ts` — Expected: PASS.
 - [ ] **Step 5: Write ADR-XXXX** ("Message search: a stored folded column with a trigram index"): context (biggest table, Phase 16), decision (generated column reusing `spolu_fold`, partial trigram GIN, 3-character terms, 2 s timeout, rank tiers), why not `tsvector` (from the spec), consequences (table rewrite on migrate, index size, mentions not searchable, the `tsvector` fallback with its trigger: common-word admin search over 300 ms with `RUN_BENCH=1`). Add its row to `docs/decisions/README.md`; `data-model.md` gets the column and index under `messages`.
 - [ ] **Step 6: Commit** `feat(chat): folded search column on messages`.
@@ -110,10 +118,12 @@ it('the index exists with its predicate', async () => {
 ### Task 3: Snippet and highlight builder
 
 **Files:**
+
 - Create: `apps/server/src/infra/text/highlight.ts`, `apps/server/src/infra/text/highlight.test.ts`
 - Create: `apps/server/src/modules/chat/snippet.ts`, `apps/server/src/modules/chat/snippet.test.ts`
 
 **Interfaces:**
+
 - Produces:
   - `foldWithMap(text: string): { folded: string; map: number[] }` — `folded` as `normalizeSearch` without the whitespace collapse/trim; `map[i]` = index in `text` of the character that produced `folded[i]`.
   - `findRanges(text: string, terms: string[]): [number, number][]` — every occurrence of every (already folded) term in `text`, in original offsets, sorted and merged.
@@ -123,7 +133,10 @@ it('the index exists with its predicate', async () => {
 
 ```ts
 it('highlights the original characters of a folded match', () => {
-  expect(findRanges('Obec Lúky a Ľubica', ['luky', 'lubica'])).toEqual([[5, 9], [12, 18]]);
+  expect(findRanges('Obec Lúky a Ľubica', ['luky', 'lubica'])).toEqual([
+    [5, 9],
+    [12, 18],
+  ]);
   // NFD-decomposed input keeps original offsets
   const nfd = 'Lúky';
   expect(findRanges(nfd, ['luky'])).toEqual([[0, 5]]);
@@ -132,7 +145,9 @@ it('merges overlapping ranges', () => {
   expect(findRanges('rozpocet', ['rozpo', 'pocet'])).toEqual([[0, 8]]);
 });
 it('plain text: mentions as names, markdown markers out, links kept', () => {
-  const s = messageSnippet('**Ahoj** <@u1>, pozri [výzvu](https://x.sk/v)', () => 'Peter', ['vyzvu']);
+  const s = messageSnippet('**Ahoj** <@u1>, pozri [výzvu](https://x.sk/v)', () => 'Peter', [
+    'vyzvu',
+  ]);
   expect(s.snippet).toBe('Ahoj @Peter, pozri výzvu (https://x.sk/v)');
   expect(s.highlights).toEqual([[19, 24]]);
 });
@@ -146,7 +161,10 @@ it('windows around the first match with ellipses', () => {
   expect(s.snippet.slice(a, b)).toBe('zmluva');
 });
 it('no match in the text (it came from a URL cut away or a mention): the start, no highlights', () => {
-  expect(messageSnippet('Krátka správa', () => undefined, ['xyz'])).toEqual({ snippet: 'Krátka správa', highlights: [] });
+  expect(messageSnippet('Krátka správa', () => undefined, ['xyz'])).toEqual({
+    snippet: 'Krátka správa',
+    highlights: [],
+  });
 });
 ```
 
@@ -158,10 +176,12 @@ it('no match in the text (it came from a URL cut away or a mention): the start, 
 ### Task 4: Ticket helpers for the chat's search
 
 **Files:**
+
 - Modify: `apps/server/src/modules/tickets/search.ts`, `apps/server/src/modules/tickets/service.ts`
 - Test: `apps/server/src/modules/tickets/search-helpers.test.ts`
 
 **Interfaces:**
+
 - Consumes: `GroupAccess` (`groups/memberships.ts`), `canReadTicket` (`tickets/policy.ts`).
 - Produces:
   - `requesterTicketIdsSql(actorId: string, groupIds: string[]): SQL` — `select id from tickets where requester_user_id = $actorId and group_id in (...)` as a subquery for `in (...)`.
@@ -170,7 +190,7 @@ it('no match in the text (it came from a URL cut away or a mention): the start, 
 - [ ] **Step 1: Write the failing tests**
 
 ```ts
-it('requesterTicketIdsSql lists only the actor\'s own tickets in the given groups', async () => {
+it("requesterTicketIdsSql lists only the actor's own tickets in the given groups", async () => {
   // tickets T1 (requester z, group A), T2 (requester other, group A), T3 (requester z, group B)
   // select id from tickets where id in (requesterTicketIdsSql(z, [A]))
   expect(ids).toEqual([T1]);
@@ -178,7 +198,10 @@ it('requesterTicketIdsSql lists only the actor\'s own tickets in the given group
 it('readableTicketLabels: client all of the group, ziadatel own only, admin all, one query', async () => {
   expect([...(await readableTicketLabels(db, ziadatel, accessZ, [T1, T2])).keys()]).toEqual([T1]);
   expect((await readableTicketLabels(db, client, accessC, [T1, T2])).size).toBe(2);
-  expect((await readableTicketLabels(db, admin, NO_ACCESS, [T1, T2, T3])).get(T1)).toEqual({ number: t1.number, subject: t1.subject });
+  expect((await readableTicketLabels(db, admin, NO_ACCESS, [T1, T2, T3])).get(T1)).toEqual({
+    number: t1.number,
+    subject: t1.subject,
+  });
   // createCountingDb: count() === 1
 });
 ```
@@ -191,10 +214,12 @@ it('readableTicketLabels: client all of the group, ziadatel own only, admin all,
 ### Task 5: `searchMessages` in the chat module
 
 **Files:**
+
 - Create: `apps/server/src/modules/chat/search.ts`, `apps/server/src/modules/chat/search.test.ts`
 - Modify: `apps/server/src/infra/text/search.ts` (add `hasIndexableTerm`)
 
 **Interfaces:**
+
 - Consumes: Task 1 types; `matchesAllSql`, `escapeLike`, `SearchText` (`infra/text/search.ts`); `canReadChannel` (`chat/policy.ts`); `clientIdsOf`, `GroupAccess` (`groups/memberships.ts`); `groups` schema (join for name and `deactivated_at`); `user` schema (read-only names); Task 3 `messageSnippet`; Task 4 helpers; `getTaskTitles` (`tasks/task-service.ts`).
 - Produces:
   - `hasIndexableTerm(text: SearchText, min = SEARCH_LIMITS.minMessageTerm): boolean`
@@ -214,6 +239,10 @@ it('client of A finds A\'s group, task and ticket chats, never B', ...)
 it('ziadatel finds only their own ticket chat', ...)
   // hits.map(h => h.ticketId) toEqual [T1]
 it('nothing of a deactivated group, for admins too', ...)
+  // messages in D's group chat, a task chat, a ticket chat and a thread reply (seeded before the
+  // deactivation): admin and D's former client get no hit; admin with groupId = D gets an empty page
+it('a reactivated group\'s messages are found again', ...)
+  // setGroupDeactivated(D, false) → admin finds the four messages; back to true in finally
 it('a removed member finds nothing of the group', ...)
 it('never a deleted message; an edited one by its new text only', ...)
 it('labels: task title, ticket number, author name, group name', ...)
@@ -249,12 +278,14 @@ it('one message search is at most six statements', ...)
 ### Task 6: Routes, global search wiring, log redaction
 
 **Files:**
+
 - Modify: `apps/server/src/modules/search/service.ts`, `apps/server/src/modules/search/routes.ts`, `apps/server/src/app.ts` (logger `serializers.req`)
 - Create: `apps/server/src/infra/http/log-redact.ts`, `apps/server/src/infra/http/log-redact.test.ts`
 - Test: `apps/server/src/modules/search/routes.test.ts`
 - Docs: `docs/product/search.md`, `docs/architecture/permissions.md`, `docs/architecture/overview.md` (search module line)
 
 **Interfaces:**
+
 - Consumes: Task 5 `searchMessages`, `decodeMessageCursor`, `encodeMessageCursor`; Task 1 schema.
 - Produces:
   - `SEARCHERS.messages = (db, actor, access, text, limit) => searchMessages(db, actor, access, text, { limit }).then((p) => p.hits)`
@@ -270,6 +301,13 @@ it('messages: the leak matrix per role', ...)
   // equal the expected sets, through both /api/search?types=messages and /api/search/messages
 it('messages page: nextCursor walks every hit once; a broken cursor is 400', ...)
   // cursor 'abc' → 400 { error: 'validation_failed' }
+it('a deactivated group: no message for the admin, its people never linked into it', ...)
+  // extends the existing describe('a deactivated group') of #143: seed a group-chat message, a
+  // task-chat message and a ticket-chat message with w before setGroupDeactivated(g, true);
+  // as admin: /api/search?q=w (all types) → messages [] and people [[client.id, null]];
+  // /api/search/messages?q=w and ?q=w&groupId=g → { hits: [], nextCursor: null };
+  // MCP search (types=messages) and search_messages → no hit; the client's cookie → nothing;
+  // after reactivation (in the existing try/finally) the three messages are among the ids
 it('messages share the search rate limit', ...)
   // 120 mixed calls ok, the 121st on either route → 429 rate_limited
 it('takes at most twelve statements with every type, for an admin and for a client', ...)
@@ -295,12 +333,14 @@ expect(redactSearchQuery('/api/groups?q=x')).toBe('/api/groups?q=x');
 ### Task 7: The palette's Správy section (web)
 
 **Files:**
+
 - Modify: `apps/web/src/features/search/model.ts`, `apps/web/src/features/search/command-palette.tsx`
 - Create: `apps/web/src/features/search/message-hit.tsx`
 - Modify: `apps/web/src/locales/search/{sk,en,cs,sl,bg,et,it,hr,uk}.json`
 - Test: `apps/web/src/features/search/command-palette.test.tsx`, `apps/web/src/features/search/model.test.ts` (create if absent)
 
 **Interfaces:**
+
 - Consumes: `SearchMessageHit`, `MessageSearchPage` (Task 1); `chatMessageLocation` (`features/chat/links.ts`).
 - Produces:
   - `PaletteKind` gains `'message'` and `'more'`; `PaletteItem` gains `highlights?: [number, number][]` and `onSelect?: () => void` (for the more row)
@@ -328,17 +368,17 @@ it('message hits are not remembered among recent items', ...)
 - [ ] **Step 3: Run** `pnpm --filter @spolu/web test -- search` — Expected: FAIL.
 - [ ] **Step 4: Implement** the model, the row, the second query and the texts. Locale keys (add to every file; `placeholder` replaces the old value):
 
-| key | sk | en | cs | sl | bg | et | it | hr | uk |
-|---|---|---|---|---|---|---|---|---|---|
-| placeholder | Hľadať skupinu, tiket, úlohu, správu… | Search for a group, ticket, task, message… | Hledat skupinu, tiket, úkol, zprávu… | Poiščite skupino, zahtevek, nalogo, sporočilo… | Търсете група, тикет, задача, съобщение… | Otsi gruppi, pöördumist, ülesannet, sõnumit… | Cerchi un gruppo, ticket, attività, messaggio… | Potražite grupu, tiket, zadatak, poruku… | Шукайте групу, тікет, завдання, повідомлення… |
-| sections.messages | Správy | Messages | Zprávy | Sporočila | Съобщения | Sõnumid | Messaggi | Poruke | Повідомлення |
-| messages.more | Zobraziť ďalšie správy | Show more messages | Zobrazit další zprávy | Prikažite več sporočil | Покажи още съобщения | Näita rohkem sõnumeid | Mostri altri messaggi | Prikaži još poruka | Показати більше повідомлень |
-| messages.minLength | V správach sa hľadá od 3 znakov. | Messages are searched from 3 characters. | Ve zprávách se hledá od 3 znaků. | Sporočila se iščejo od 3 znakov naprej. | Съобщенията се търсят от 3 знака. | Sõnumitest otsitakse alates 3 märgist. | Nei messaggi si cerca da 3 caratteri. | Poruke se pretražuju od 3 znaka. | Повідомлення шукаються від 3 символів. |
-| messages.tooBroad | Príliš veľa správ. Spresnite hľadanie. | Too many messages. Narrow your search. | Příliš mnoho zpráv. Upřesněte hledání. | Preveč sporočil. Natančneje opredelite iskanje. | Твърде много съобщения. Уточнете търсенето. | Liiga palju sõnumeid. Täpsustage otsingut. | Troppi messaggi. Restringa la ricerca. | Previše poruka. Suzite pretragu. | Забагато повідомлень. Уточніть пошук. |
-| messages.task | Úloha: {{title}} | Task: {{title}} | Úkol: {{title}} | Naloga: {{title}} | Задача: {{title}} | Ülesanne: {{title}} | Attività: {{title}} | Zadatak: {{title}} | Завдання: {{title}} |
-| messages.ticket | Tiket #{{number}} | Ticket #{{number}} | Tiket #{{number}} | Zahtevek #{{number}} | Тикет #{{number}} | Pöördumine #{{number}} | Ticket #{{number}} | Tiket #{{number}} | Тікет #{{number}} |
-| messages.thread | vo vlákne | in a thread | ve vlákně | v niti | в нишка | lõimes | in una discussione | u niti | у гілці |
-| messages.deletedAuthor | Odstránený používateľ | Deleted user | Odstraněný uživatel | Izbrisan uporabnik | Изтрит потребител | Kustutatud kasutaja | Utente eliminato | Izbrisani korisnik | Видалений користувач |
+| key                    | sk                                     | en                                         | cs                                     | sl                                              | bg                                          | et                                           | it                                             | hr                                       | uk                                            |
+| ---------------------- | -------------------------------------- | ------------------------------------------ | -------------------------------------- | ----------------------------------------------- | ------------------------------------------- | -------------------------------------------- | ---------------------------------------------- | ---------------------------------------- | --------------------------------------------- |
+| placeholder            | Hľadať skupinu, tiket, úlohu, správu…  | Search for a group, ticket, task, message… | Hledat skupinu, tiket, úkol, zprávu…   | Poiščite skupino, zahtevek, nalogo, sporočilo…  | Търсете група, тикет, задача, съобщение…    | Otsi gruppi, pöördumist, ülesannet, sõnumit… | Cerchi un gruppo, ticket, attività, messaggio… | Potražite grupu, tiket, zadatak, poruku… | Шукайте групу, тікет, завдання, повідомлення… |
+| sections.messages      | Správy                                 | Messages                                   | Zprávy                                 | Sporočila                                       | Съобщения                                   | Sõnumid                                      | Messaggi                                       | Poruke                                   | Повідомлення                                  |
+| messages.more          | Zobraziť ďalšie správy                 | Show more messages                         | Zobrazit další zprávy                  | Prikažite več sporočil                          | Покажи още съобщения                        | Näita rohkem sõnumeid                        | Mostri altri messaggi                          | Prikaži još poruka                       | Показати більше повідомлень                   |
+| messages.minLength     | V správach sa hľadá od 3 znakov.       | Messages are searched from 3 characters.   | Ve zprávách se hledá od 3 znaků.       | Sporočila se iščejo od 3 znakov naprej.         | Съобщенията се търсят от 3 знака.           | Sõnumitest otsitakse alates 3 märgist.       | Nei messaggi si cerca da 3 caratteri.          | Poruke se pretražuju od 3 znaka.         | Повідомлення шукаються від 3 символів.        |
+| messages.tooBroad      | Príliš veľa správ. Spresnite hľadanie. | Too many messages. Narrow your search.     | Příliš mnoho zpráv. Upřesněte hledání. | Preveč sporočil. Natančneje opredelite iskanje. | Твърде много съобщения. Уточнете търсенето. | Liiga palju sõnumeid. Täpsustage otsingut.   | Troppi messaggi. Restringa la ricerca.         | Previše poruka. Suzite pretragu.         | Забагато повідомлень. Уточніть пошук.         |
+| messages.task          | Úloha: {{title}}                       | Task: {{title}}                            | Úkol: {{title}}                        | Naloga: {{title}}                               | Задача: {{title}}                           | Ülesanne: {{title}}                          | Attività: {{title}}                            | Zadatak: {{title}}                       | Завдання: {{title}}                           |
+| messages.ticket        | Tiket #{{number}}                      | Ticket #{{number}}                         | Tiket #{{number}}                      | Zahtevek #{{number}}                            | Тикет #{{number}}                           | Pöördumine #{{number}}                       | Ticket #{{number}}                             | Tiket #{{number}}                        | Тікет #{{number}}                             |
+| messages.thread        | vo vlákne                              | in a thread                                | ve vlákně                              | v niti                                          | в нишка                                     | lõimes                                       | in una discussione                             | u niti                                   | у гілці                                       |
+| messages.deletedAuthor | Odstránený používateľ                  | Deleted user                               | Odstraněný uživatel                    | Izbrisan uporabnik                              | Изтрит потребител                           | Kustutatud kasutaja                          | Utente eliminato                               | Izbrisani korisnik                       | Видалений користувач                          |
 
 - [ ] **Step 5: Run** `pnpm --filter @spolu/web test` (locale tests included) — Expected: PASS. Build and measure as in `performance.md` "How to check": initial JS unchanged (± 0.05 kB), `command-palette` chunk growth recorded.
 - [ ] **Step 6: Docs.** `performance.md`: the measurement, the index, the guard rails, the query count. Commit `feat(web): messages in the command palette`.
@@ -346,10 +386,12 @@ it('message hits are not remembered among recent items', ...)
 ### Task 8: EXPLAIN volume and checks
 
 **Files:**
+
 - Create: `apps/server/src/modules/chat/test-volume.ts`, `apps/server/src/modules/chat/explain.test.ts`
 - Modify: `apps/server/test/setup-explain-db.ts` (`VOLUMES` gets `messages`), ADR 0040 (dated line for the fifth volume)
 
 **Interfaces:**
+
 - Consumes: Task 5 `messageSearchSql`.
 - Produces: `seedMessageVolume(tx: Db): Promise<void>`, `MESSAGE_VOLUME_TABLES` (`user, groups, group_members, buckets, tasks, tickets, channels, messages`), `messageVolumeIds(): { adminId; clientId; ziadatelId; groupIds: string[] }` (prefix `svmsg0000`).
 
@@ -372,15 +414,17 @@ it('page two (cursor) reads the index too', ...)
 ### Task 9: MCP tools
 
 **Files:**
+
 - Modify: `apps/server/src/modules/mcp/tools/search.ts`, `apps/server/src/modules/mcp/allowlist.ts`
 - Test: `apps/server/src/modules/mcp/tools.test.ts`, `apps/server/src/modules/mcp/leaks.test.ts`
 - Docs: `docs/integrations/mcp.md`
 
 **Interfaces:**
+
 - Consumes: `GET /api/search/messages` (Task 6).
 - Produces: tool `search_messages` (`q` 2–100, `groupId?`, `cursor?`, `limit?` 1–20), description "Finds chat messages (group chats, threads, task and ticket chats) the user may read, best match first, with a snippet; page with nextCursor; nothing of a deactivated client or a deleted message."; `search`'s description and `types` hint mention `messages`; allowlist `{ method: 'GET', path: '/api/search/messages' }`.
 
-- [ ] **Step 1: Write the failing tests:** `it('search_messages pages through a user\'s messages', ...)` (two pages via `nextCursor`); in `leaks.test.ts` a client's token never gets another group's message through `search_messages` or `search`.
+- [ ] **Step 1: Write the failing tests:** `it('search_messages pages through a user\'s messages', ...)` (two pages via `nextCursor`); in `leaks.test.ts` a client's token never gets another group's message through `search_messages` or `search`, and an admin's token gets no message of a deactivated group through either (also with its `groupId`).
 - [ ] **Step 2: Run** `rtk proxy pnpm --filter @spolu/server exec vitest run src/modules/mcp` — Expected: FAIL.
 - [ ] **Step 3: Implement** the tool and the allowlist entry; update `mcp.md`'s search row.
 - [ ] **Step 4: Run** — Expected: PASS. Commit `feat(mcp): search_messages tool`.
@@ -388,9 +432,10 @@ it('page two (cursor) reads the index too', ...)
 ### Task 10: e2e spec, final checks, PR
 
 **Files:**
+
 - Modify: `e2e/search.spec.ts`
 
-- [ ] **Step 1: Add** `test('Ctrl+K finds a chat message and opens the chat at it', ...)`: send a message with a unique word in a group chat, open the palette, type the word without diacritics, expect the Správy section with a `mark`, Enter, expect the URL to contain `message=` and the message highlighted. Do not run e2e here; it runs in the final e2e pass after all phases (owner instruction).
+- [ ] **Step 1: Add** `test('Ctrl+K finds a chat message and opens the chat at it', ...)`: send a message with a unique word in a group chat, open the palette, type the word without diacritics, expect the Správy section with a `mark`, Enter, expect the URL to contain `message=` and the message highlighted. Do not run e2e here; it runs in the final e2e pass after all seven plans of 2026-10-19 are implemented (owner instruction).
 - [ ] **Step 2: Run** `pnpm prettier --check` on changed files, `pnpm lint`, `pnpm typecheck`, `pnpm build`, the server suite with the own database and `pnpm --filter @spolu/web test` — Expected: all PASS.
 - [ ] **Step 3:** `update-kb` skill; `bash scripts/check-docs.sh origin/main` — Expected: no warning.
-- [ ] **Step 4: Commit, push** `feat/chat-message-search`, open the PR (body: summary, owner checks on help.egrant.sk: as an admin Ctrl+K "dobry den" lists Správy with highlights, Enter opens the chat at the message; as a žiadateľ only their ticket's messages; a deactivated client's messages never appear).
+- [ ] **Step 4: Commit, push** `feat/chat-message-search`, open the PR (body: summary, owner checks on help.egrant.sk: as an admin Ctrl+K "dobry den" lists Správy with highlights, Enter opens the chat at the message; as a žiadateľ only their ticket's messages; a deactivated client's messages never appear, also for an admin, while its people are still listed without a link into it).
