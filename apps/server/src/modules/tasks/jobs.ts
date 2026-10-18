@@ -7,14 +7,14 @@ import {
 } from './reminders.js';
 
 /** Daily at 09:00 Bratislava time: deadlines (3 days and 1 day before) and overdue tasks. */
-const TASK_DEADLINE_JOB = 'tasks.deadline-reminders';
-const TASK_DEADLINE_CRON = '0 9 * * *';
+export const TASK_DEADLINE_JOB = 'tasks.deadline-reminders';
+export const TASK_DEADLINE_CRON = '0 9 * * *';
 /**
  * 09:00 and 15:00 Bratislava time (2026-10-18: twice a day, it was five times, 08 to 20). Every
  * day, weekends included (owner: no default silence).
  */
-const TASK_URGENT_JOB = 'tasks.urgent-reminders';
-const TASK_URGENT_CRON = '0 9,15 * * *';
+export const TASK_URGENT_JOB = 'tasks.urgent-reminders';
+export const TASK_URGENT_CRON = '0 9,15 * * *';
 /** Both crons run in this time zone, so daylight saving changes need no care. */
 const TASK_REMINDER_TZ = 'Europe/Bratislava';
 
