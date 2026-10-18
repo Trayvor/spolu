@@ -16,6 +16,7 @@ import {
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import {
+  fillSnippet,
   isPickable,
   MESSAGE_MAX_FILES,
   MESSAGE_MAX_LENGTH,
@@ -24,6 +25,8 @@ import {
   type MessageDto,
 } from '@spolu/shared';
 import { Button } from '@/components/ui/button';
+import { isAdmin } from '@/features/auth/roles';
+import { useSession } from '@/features/auth/use-session';
 import { formatFileSize } from '@/features/files/format-size';
 import { chatPeopleQuery, useChatPeople, useChatScope, useChatUpload } from './chat-scope';
 import { ApiError } from '@/lib/api';
@@ -78,6 +81,10 @@ export interface ComposerHandle {
 // The reactions' emoji set, the same lazy chunk.
 const EmojiPickerSheet = lazy(() => import('./emoji-picker-sheet'));
 const AttachPicker = lazy(withNamespaces(['forms', 'knowledge'], () => import('./attach-picker')));
+// F7: an admin's canned replies under a `/`; loads (with its texts) on the first `/`.
+const SnippetPicker = lazy(
+  withNamespaces(['snippets'], () => import('@/features/snippets/snippet-picker')),
+);
 
 export interface ComposerProps {
   ref?: Ref<ComposerHandle>;
@@ -150,6 +157,7 @@ export function Composer({
   const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
   const scope = useChatScope();
+  const admin = isAdmin(useSession());
   const people = useChatPeople(groupId).data;
   const sendFile = useChatUpload(groupId);
   // Only clients and managers can be mentioned; names still resolve against every reader.
@@ -164,6 +172,9 @@ export function Composer({
 
   const [markdown, setMarkdown] = useState(initialBody);
   const [mention, setMention] = useState<MentionQuery | null>(null);
+  // F7: the `/query` at the caret, and the `/` whose list Escape closed.
+  const [slash, setSlash] = useState<MentionQuery | null>(null);
+  const [slashClosedAt, setSlashClosedAt] = useState<number | null>(null);
   const [active, setActive] = useState<ReadonlySet<FormatKind>>(() => new Set());
   // Escape closes the list for that `@`; typing anything reopens it.
   const [closedAt, setClosedAt] = useState<number | null>(null);
@@ -187,10 +198,12 @@ export function Composer({
   const editor = useRef<ChatEditorHandle>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const picker = useRef<MentionPickerHandle>(null);
+  const snippetPicker = useRef<MentionPickerHandle>(null);
   const nextKey = useRef(0);
   const listId = useId();
 
   const pickerOpen = mention !== null && mention.from !== closedAt && people !== undefined;
+  const snippetsOpen = admin && slash !== null && slash.from !== slashClosedAt;
 
   // The AI and voice tools read the draft when their answer arrives, not when they were clicked;
   // the editor holds the current one. A replacement is one undo step (Cmd/Ctrl+Z restores).
@@ -208,8 +221,12 @@ export function Composer({
   function onEditorChange(change: EditorChange) {
     setMarkdown(change.markdown);
     setMention(change.mention);
+    setSlash(change.slash);
     setActive(change.active);
-    if (change.docChanged) setClosedAt(null);
+    if (change.docChanged) {
+      setClosedAt(null);
+      setSlashClosedAt(null);
+    }
   }
 
   // The ref is the source of truth so two quick drops count against the limit together.
@@ -372,9 +389,23 @@ export function Composer({
     else editor.current?.insertMention(mention, choice.person.id, `@${choice.person.name}`);
   }
 
-  /** Keys the composer takes before the editor: the mention list, and Escape in the edit box. */
+  /**
+   * F7: a canned reply replaces its `/query`; `{{name}}` is the person answered (the quoted
+   * message's author, else the conversation's own, such as a ticket's initiator).
+   */
+  function pickSnippet(body: string) {
+    if (!slash) return;
+    const name = replyTo?.message.author.name ?? scope.replyName ?? null;
+    editor.current?.insertMarkdown(slash, fillSnippet(body, name));
+  }
+
+  /**
+   * Keys the composer takes before the editor: the mention list, the canned replies, and Escape
+   * in the edit box.
+   */
   function onKeyDown(e: KeyboardEvent): boolean {
     if (pickerOpen && picker.current?.handleKey(e)) return true;
+    if (snippetsOpen && snippetPicker.current?.handleKey(e)) return true;
     if (e.key === 'Escape' && mode === 'edit') {
       e.preventDefault();
       onCancel?.();
@@ -461,6 +492,20 @@ export function Composer({
             below={mode === 'edit'}
           />
         )}
+        {snippetsOpen && slash && !pickerOpen && (
+          <Suspense fallback={null}>
+            <SnippetPicker
+              ref={snippetPicker}
+              key={slash.from}
+              id={`${listId}-snippets`}
+              query={slash.query}
+              onPick={(snippet) => pickSnippet(snippet.body)}
+              onClose={() => setSlashClosedAt(slash.from)}
+              onActiveChange={setActiveOption}
+              below={mode === 'edit'}
+            />
+          </Suspense>
+        )}
         <div className="rounded-lg border-2 border-input bg-card focus-within:border-foreground focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ring">
           <Suspense
             fallback={
@@ -479,8 +524,10 @@ export function Composer({
               labels={labels}
               placeholder={placeholder}
               ariaLabel={mode === 'edit' ? t('chat.actions.edit') : placeholder}
-              ariaControls={pickerOpen ? `${listId}-mentions` : undefined}
-              ariaActiveDescendant={pickerOpen ? activeOption : undefined}
+              ariaControls={
+                pickerOpen ? `${listId}-mentions` : snippetsOpen ? `${listId}-snippets` : undefined
+              }
+              ariaActiveDescendant={pickerOpen || snippetsOpen ? activeOption : undefined}
               autoFocus={mode === 'edit'}
               onEnter={onEnter}
               onKeyDown={(e) => handlers.current.onKeyDown(e)}

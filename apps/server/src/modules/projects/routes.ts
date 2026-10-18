@@ -142,7 +142,10 @@ export const projectsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app,
     const body = ProjectCreateBodySchema.safeParse(request.body);
     if (!body.success) return invalid(reply);
     try {
-      const project = await createProject(db, actor.id, groupId, body.data);
+      const project = await createProject(db, actor.id, groupId, body.data, {
+        actor,
+        jobs: deps.jobs,
+      });
       changed(groupId, project.id, 'project');
       return reply.code(201).send(project);
     } catch (error) {
@@ -166,7 +169,10 @@ export const projectsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app,
     const patch = ProjectPatchBodySchema.safeParse(request.body);
     if (!patch.success) return invalid(reply);
     try {
-      const project = await updateProject(deps, actor.id, request.params.id, patch.data);
+      const project = await updateProject(deps, actor.id, request.params.id, patch.data, {
+        actor,
+        jobs: deps.jobs,
+      });
       changed(groupId, project.id, 'project');
       return project;
     } catch (error) {

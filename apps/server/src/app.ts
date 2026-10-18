@@ -38,6 +38,8 @@ import { knowledgeLinkRoutes } from './modules/knowledge/link-routes.js';
 import { registerMcpRouteGuard } from './modules/mcp/guard.js';
 import { mcpConsentRoutes, mcpOAuthRoutes } from './modules/mcp/oauth-routes.js';
 import { mcpTokenRoutes } from './modules/mcp/routes.js';
+import { savedViewsRoutes } from './modules/saved-views/routes.js';
+import { snippetsRoutes } from './modules/snippets/routes.js';
 import { mcpTransportRoutes } from './modules/mcp/transport.js';
 import { notificationsRoutes } from './modules/notifications/routes.js';
 import { projectsRoutes } from './modules/projects/routes.js';
@@ -174,6 +176,8 @@ export async function buildApp(
   // The MCP server (ADR 0033): the user's tokens under /api, the endpoint at /mcp, whose tools
   // call the routes above in process as the token's user.
   await app.register(mcpTokenRoutes, { prefix: '/api', deps });
+  await app.register(snippetsRoutes, { prefix: '/api', deps });
+  await app.register(savedViewsRoutes, { prefix: '/api', deps });
   await app.register(mcpTransportRoutes, { deps, root: app });
   // OAuth for it (ADR 0034): the metadata and endpoints at the root, the consent API under /api.
   await app.register(mcpOAuthRoutes, { deps });

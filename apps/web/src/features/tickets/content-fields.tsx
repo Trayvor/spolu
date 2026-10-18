@@ -117,6 +117,7 @@ export function ContentFields({
       {groupId ? (
         <DescriptionField
           id={id('body')}
+          mentions
           groupId={groupId}
           value={draft.body}
           onChange={set('body')}

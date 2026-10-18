@@ -621,3 +621,46 @@ describe('renotify (2026-10-18)', () => {
     ).toBe(true);
   });
 });
+
+describe('buildPushPayload description.mention (F16)', () => {
+  const mention = (payload: Record<string, unknown>, taskTitle: string | null = null) =>
+    buildPushPayload({ ...base, kind: 'description.mention', payload, taskTitle, lang: 'en' });
+  const common = { groupId: 'g1', actorName: 'Jana' };
+  it('a task opens the task panel under its current title, and alerts again', () => {
+    expect(
+      mention(
+        { ...common, subjectKind: 'task', subjectId: 't1', taskId: 't1', title: 'Old' },
+        'Report',
+      ),
+    ).toEqual({
+      title: 'Report · Firma',
+      body: 'Jana mentioned you in the description',
+      url: '/groups/g1/tasks/t1',
+      tag: 'task:t1',
+      renotify: true,
+    });
+  });
+  it('a ticket opens the ticket', () => {
+    const payload = { ...common, subjectKind: 'ticket', subjectId: 'k1', ticketId: 'k1' };
+    expect(mention({ ...payload, number: 7, subject: 'Login' })).toMatchObject({
+      title: '#7 Login',
+      url: '/tickets/k1',
+      tag: 'ticket:k1',
+    });
+  });
+  it('a knowledge item and a project open on their tabs', () => {
+    expect(
+      mention({ ...common, subjectKind: 'knowledge', subjectId: 'i1', title: 'Notes' }),
+    ).toMatchObject({ title: 'Notes · Firma', url: '/groups/g1/knowledge?k=i1' });
+    expect(
+      mention({ ...common, subjectKind: 'project', subjectId: 'p1', title: 'Grant' }),
+    ).toMatchObject({ title: 'Grant · Firma', url: '/groups/g1/overview?project=p1' });
+  });
+  it('every language has the texts', () => {
+    for (const lang of UserLanguages) {
+      expect(texts(lang).mentionedInDescription('Jana')).toContain('Jana');
+      expect(texts(lang).openKnowledge).not.toBe('');
+      expect(texts(lang).openProject).not.toBe('');
+    }
+  });
+});

@@ -20,6 +20,26 @@ export function mentionQueryAt(
   return null;
 }
 
+/**
+ * F7: the `/query` being typed at `caret` (a canned reply's name): a `/` at the start of the text
+ * or after whitespace, then no whitespace. A path or a URL (`a/b`, `https://`) never opens it.
+ */
+export function slashQueryAt(
+  value: string,
+  caret: number,
+): { start: number; query: string } | null {
+  for (let i = caret - 1; i >= 0; i--) {
+    const ch = value[i] as string;
+    if (ch === '/') {
+      const before = value[i - 1];
+      if (before !== undefined && !/\s/.test(before)) return null;
+      return { start: i, query: value.slice(i + 1, caret) };
+    }
+    if (/\s/.test(ch)) return null;
+  }
+  return null;
+}
+
 export interface PickedPerson {
   id: string;
   name: string;

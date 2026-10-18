@@ -907,4 +907,44 @@ describe('tickets API', () => {
       );
     });
   });
+
+  it('F16: the text naming a client notifies them on create and on an edit, only the new ones', async () => {
+    const g = await group();
+    const a = await admin();
+    const named = async () => {
+      const c = await createUnverifiedClient(db(), newEmail(), 'Klára');
+      await addMembership(db(), c.id, g.id, 'client');
+      await loginAs(test.app, c.email);
+      return c;
+    };
+    const ana = await named();
+    const bea = await named();
+    const mentioned = async (ticketId: string) =>
+      (
+        await db()
+          .select({ userId: notificationEvents.userId })
+          .from(notificationEvents)
+          .where(
+            and(
+              eq(notificationEvents.kind, 'description.mention'),
+              sql`${notificationEvents.payload}->>'ticketId' = ${ticketId}`,
+            ),
+          )
+      )
+        .map((r) => r.userId)
+        .sort();
+    const created = await call('POST', '/api/tickets', a.cookie, {
+      groupId: g.id,
+      subject: 'Prístup',
+      body: `Pozri <@${ana.id}>`,
+    });
+    expect(created.statusCode).toBe(201);
+    const { id } = created.json<TicketDto>();
+    expect(await mentioned(id)).toEqual([ana.id]);
+    const edited = await call('PATCH', `/api/tickets/${id}`, a.cookie, {
+      body: `Pozri <@${ana.id}> a <@${bea.id}>`,
+    });
+    expect(edited.statusCode).toBe(200);
+    expect(await mentioned(id)).toEqual([ana.id, bea.id].sort());
+  });
 });

@@ -1,0 +1,14 @@
+{
+  "label": "Shranjeni pogledi",
+  "save": "Shrani pogled",
+  "name": "Ime pogleda",
+  "confirm": "Shrani",
+  "cancel": "Prekliči",
+  "remove": "Odstrani pogled {{name}}",
+  "limit": "Tu imate največ {{max}} pogledov. Pred shranjevanjem novega enega odstranite.",
+  "starter": {
+    "myOverdue": "Moje zamujene",
+    "thisWeek": "Ta teden",
+    "unassigned": "Zahtevki brez reševalca"
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "title": "Uložené odpovědi",
+  "intro": "Vložíte je v chatu nebo v tiketu tak, že napíšete / a vyberete odpověď. {{placeholder}} se nahradí jménem člověka, kterému odpovídáte.",
+  "empty": "Zatím nemáte žádné uložené odpovědi.",
+  "shared": "Sdílená",
+  "sharedBy": "Sdílí {{name}}",
+  "edit": "Upravit",
+  "delete": "Smazat",
+  "deleteQuestion": "Smazat odpověď „{{title}}“?",
+  "cancel": "Zrušit",
+  "picker": {
+    "label": "Uložené odpovědi",
+    "empty": "Zatím nemáte uložené odpovědi. Přidáte je v Nastavení, v části Uložené odpovědi."
+  },
+  "form": {
+    "newTitle": "Nová odpověď",
+    "title": "Název",
+    "titlePlaceholder": "Děkujeme, podíváme se na to",
+    "body": "Text",
+    "bodyHint": "{{placeholder}} se při vložení nahradí jménem člověka, kterému odpovídáte.",
+    "shared": "Sdílet se všemi administrátory",
+    "sharedHint": "Ostatní administrátoři ji mohou vkládat, měnit ji můžete jen vy.",
+    "save": "Uložit odpověď",
+    "saveChanges": "Uložit změny",
+    "required": "Vyplňte název i text.",
+    "limit": "Máte nejvýše {{max}} uložených odpovědí. Před přidáním další jednu smažte."
+  }
+}

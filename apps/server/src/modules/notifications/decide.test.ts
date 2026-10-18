@@ -31,6 +31,9 @@ const table: [NotificationKind, Record<GroupMode, boolean>][] = [
   ['meeting.rescheduled', { all: true, mentions: false, off: false }],
   ['meeting.summary_ready', { all: true, mentions: true, off: true }],
   ['meeting.summary_failed', { all: true, mentions: true, off: true }],
+  // F16: a mention in a task or project description follows Mentions and replies like a chat
+  // mention (a ticket's, in the ticket board group, passes every mode as ticket events do).
+  ['description.mention', { all: true, mentions: true, off: false }],
 ];
 const cases = table.flatMap(([kind, modes]) =>
   (['all', 'mentions', 'off'] as const).map((mode) => [kind, mode, modes[mode]] as const),

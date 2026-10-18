@@ -92,7 +92,12 @@ export function TicketPage({ ticketId }: { ticketId: string }) {
         {ticket.groupId !== null && ticket.channelId !== null ? (
           <div data-testid="ticket-chat" className="relative min-h-[60dvh] flex-1 lg:min-h-[480px]">
             <div className="absolute inset-0">
-              <TicketChat ticketId={ticket.id} groupId={ticket.groupId} readsGroup={readsGroup} />
+              <TicketChat
+                ticketId={ticket.id}
+                groupId={ticket.groupId}
+                readsGroup={readsGroup}
+                requesterName={ticket.requester.name}
+              />
             </div>
           </div>
         ) : (

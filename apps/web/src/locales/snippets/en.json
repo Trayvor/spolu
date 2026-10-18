@@ -1,0 +1,28 @@
+{
+  "title": "Saved replies",
+  "intro": "Insert one in a chat or a ticket by typing / and picking it. {{placeholder}} becomes the name of the person you are answering.",
+  "empty": "You have no saved replies yet.",
+  "shared": "Shared",
+  "sharedBy": "Shared by {{name}}",
+  "edit": "Edit",
+  "delete": "Delete",
+  "deleteQuestion": "Delete the reply “{{title}}”?",
+  "cancel": "Cancel",
+  "picker": {
+    "label": "Saved replies",
+    "empty": "You have no saved replies yet. Add them in Settings, under Saved replies."
+  },
+  "form": {
+    "newTitle": "New reply",
+    "title": "Name",
+    "titlePlaceholder": "Thanks, we will look into it",
+    "body": "Text",
+    "bodyHint": "{{placeholder}} becomes the name of the person you are answering when you insert it.",
+    "shared": "Share with all admins",
+    "sharedHint": "Other admins can insert it; only you can change it.",
+    "save": "Save reply",
+    "saveChanges": "Save changes",
+    "required": "Fill in the name and the text.",
+    "limit": "You have the most saved replies there can be ({{max}}). Delete one before adding another."
+  }
+}

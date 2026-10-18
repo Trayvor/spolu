@@ -1,0 +1,28 @@
+{
+  "title": "Spremljeni odgovori",
+  "intro": "Umetnite ih u chat ili tiket tako da upišete / i odaberete odgovor. {{placeholder}} se zamjenjuje imenom osobe kojoj odgovarate.",
+  "empty": "Još nemate spremljenih odgovora.",
+  "shared": "Dijeljeno",
+  "sharedBy": "Dijeli {{name}}",
+  "edit": "Uredi",
+  "delete": "Izbriši",
+  "deleteQuestion": "Izbrisati odgovor „{{title}}”?",
+  "cancel": "Odustani",
+  "picker": {
+    "label": "Spremljeni odgovori",
+    "empty": "Još nemate spremljenih odgovora. Dodajte ih u Postavkama, pod Spremljeni odgovori."
+  },
+  "form": {
+    "newTitle": "Novi odgovor",
+    "title": "Naziv",
+    "titlePlaceholder": "Hvala, pogledat ćemo",
+    "body": "Tekst",
+    "bodyHint": "{{placeholder}} se pri umetanju zamjenjuje imenom osobe kojoj odgovarate.",
+    "shared": "Dijeli sa svim administratorima",
+    "sharedHint": "Drugi administratori mogu ga umetati, mijenjati ga možete samo vi.",
+    "save": "Spremi odgovor",
+    "saveChanges": "Spremi promjene",
+    "required": "Ispunite naziv i tekst.",
+    "limit": "Imate najviše {{max}} spremljenih odgovora. Prije dodavanja novog izbrišite jedan."
+  }
+}

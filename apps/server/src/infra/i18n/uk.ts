@@ -154,6 +154,9 @@ export const uk: ServerTexts = {
     dueRemoved: 'Термін прибрано',
     overdue: (date) => `Прострочено, термін був ${date}`,
     ticketResolved: (n) => `Тікет #${n} вирішено`,
+    mentionedInDescription: (name) => `${name} згадав(ла) вас в описі`,
+    openKnowledge: 'Відкрити елемент',
+    openProject: 'Відкрити проєкт',
   },
   teams: {
     recordingNotice: 'Цей дзвінок буде записано й транскрибовано.',

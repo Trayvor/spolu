@@ -68,6 +68,7 @@ import {
   roleIn,
   InvalidTicketGroupError,
   TicketHasTasksError,
+  recordTicketMentions,
   updateTicket,
   type TicketRow,
 } from './service.js';
@@ -299,6 +300,8 @@ export const ticketsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, 
         project: { projectId: b.projectId ?? null, eventId: b.eventId ?? null },
       });
       await afterCreate(request, ticket, notifyRequester);
+      // F16: the people the text names (after the commit: the ticket exists either way).
+      await requestDelivery(deps.jobs, await recordTicketMentions(db, actor, ticket, null));
       return reply.code(201).send(await getTicketForActor(db, actor, ticket.id));
     } catch (error) {
       if (error instanceof InvalidAttachmentError)
@@ -446,7 +449,8 @@ export const ticketsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, 
       return send(reply, 400, ErrorCodes.invalidKnowledgeItem);
     }
     if (!result) return notFound(reply);
-    const { ticket, statusChanged, fieldsChanged, askTime, time } = result;
+    const { ticket, statusChanged, fieldsChanged, askTime, time, mentionEventIds } = result;
+    await requestDelivery(deps.jobs, mentionEventIds);
     if (statusChanged || fieldsChanged) {
       emitTicket(app.io, 'updated', ticket);
       const change = { ticket, actorId: actor.id };

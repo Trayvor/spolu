@@ -147,6 +147,9 @@ export const ErrorCodes = {
   changeOutdated: 'change_outdated',
   // MCP server (2026-10-18)
   mcpTokenLimit: 'mcp_token_limit',
+  // F7 and F5 (2026-10-18): an admin's canned replies and a person's saved views are capped.
+  snippetLimit: 'snippet_limit',
+  savedViewLimit: 'saved_view_limit',
   mcpConnectionLimit: 'mcp_connection_limit',
   // Microsoft Teams (T1)
   teamsNotOrganizer: 'teams_not_organizer',

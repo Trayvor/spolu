@@ -1,0 +1,28 @@
+{
+  "title": "Risposte salvate",
+  "intro": "Le inserisca in una chat o in un ticket digitando / e scegliendo la risposta. {{placeholder}} diventa il nome della persona a cui risponde.",
+  "empty": "Non ha ancora risposte salvate.",
+  "shared": "Condivisa",
+  "sharedBy": "Condivisa da {{name}}",
+  "edit": "Modifica",
+  "delete": "Elimina",
+  "deleteQuestion": "Eliminare la risposta «{{title}}»?",
+  "cancel": "Annulla",
+  "picker": {
+    "label": "Risposte salvate",
+    "empty": "Non ha ancora risposte salvate. Le aggiunga in Impostazioni, alla voce Risposte salvate."
+  },
+  "form": {
+    "newTitle": "Nuova risposta",
+    "title": "Nome",
+    "titlePlaceholder": "Grazie, ce ne occupiamo",
+    "body": "Testo",
+    "bodyHint": "{{placeholder}} diventa il nome della persona a cui risponde quando la inserisce.",
+    "shared": "Condividi con tutti gli amministratori",
+    "sharedHint": "Gli altri amministratori possono inserirla; solo Lei può modificarla.",
+    "save": "Salva risposta",
+    "saveChanges": "Salva modifiche",
+    "required": "Compili il nome e il testo.",
+    "limit": "Ha il numero massimo di risposte salvate ({{max}}). Ne elimini una prima di aggiungerne un’altra."
+  }
+}

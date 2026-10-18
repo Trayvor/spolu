@@ -1,0 +1,14 @@
+{
+  "label": "Uložená zobrazení",
+  "save": "Uložit zobrazení",
+  "name": "Název zobrazení",
+  "confirm": "Uložit",
+  "cancel": "Zrušit",
+  "remove": "Odstranit zobrazení {{name}}",
+  "limit": "Tady máte nejvýše {{max}} zobrazení. Před uložením dalšího jedno odstraňte.",
+  "starter": {
+    "myOverdue": "Moje po termínu",
+    "thisWeek": "Tento týden",
+    "unassigned": "Tikety bez řešitele"
+  }
+}

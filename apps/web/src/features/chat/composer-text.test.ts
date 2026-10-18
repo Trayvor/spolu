@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import source from './composer-text.ts?raw';
-import { mentionQueryAt, toStored } from './composer-text';
+import { mentionQueryAt, slashQueryAt, toStored } from './composer-text';
 
 describe('mentionQueryAt', () => {
   it('finds @ja after a space and not inside an email', () => {
@@ -55,5 +55,18 @@ describe('toStored (typed mentions on send)', () => {
 describe('composer-text', () => {
   it('uses no regex lookbehind (Safari before 16.4 throws a SyntaxError on it)', () => {
     expect(source).not.toContain('(?<');
+  });
+});
+
+describe('slashQueryAt (F7)', () => {
+  it.each([
+    ['/', 1, { start: 0, query: '' }],
+    ['/dak', 4, { start: 0, query: 'dak' }],
+    ['ahoj /pri', 9, { start: 5, query: 'pri' }],
+    ['a/b', 3, null],
+    ['https://egrant.sk', 17, null],
+    ['/dak ujeme', 10, null],
+  ] as const)('%j at %i', (value, caret, expected) => {
+    expect(slashQueryAt(value, caret)).toEqual(expected);
   });
 });

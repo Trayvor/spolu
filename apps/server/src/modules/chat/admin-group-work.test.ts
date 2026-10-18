@@ -233,7 +233,8 @@ describe('cross-client attachments in the admin group (Phase 34 D)', () => {
     const y = await group('Klient Y');
     await admin();
     const a = await admin();
-    const tag = randomUUID().slice(0, 8);
+    // Never all digits: a `q` like `12345678` is a ticket number search (2.3% of UUID slices).
+    const tag = `t${randomUUID().slice(0, 8)}`;
     const tx = await ticket(x.host, newEmail(), `${tag} X`);
     const ty = await ticket(y.host, newEmail(), `${tag} Y`);
     const orphan = await ticket(host(), newEmail(), `${tag} nikto`);

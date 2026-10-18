@@ -545,6 +545,7 @@ export function KnowledgeForm({
       <div className={FIELD}>
         <DescriptionField
           id={id('body')}
+          mentions
           groupId={groupId}
           people={people}
           value={value.body}

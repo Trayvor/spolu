@@ -1,5 +1,5 @@
 import { ColumnSkeletons } from '@/components/ui/skeleton';
-import { useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import type { GlobalTaskDto } from '@spolu/shared';
@@ -11,7 +11,13 @@ import { fetchColumnPage, globalBoardKey, globalBoardQuery, type GlobalFilters }
 import { BoardFilters } from './board-filters';
 import { GlobalColumn } from './global-column';
 import { GlobalTaskPanel } from './global-task-panel';
-import { useGlobalSearch } from './use-global-search';
+import { FILTER_KEYS, useGlobalSearch } from './use-global-search';
+import { withNamespaces } from '@/i18n/namespaces';
+
+// F5: the admin's saved views, a lazy chunk with its texts.
+const SavedViewsBar = lazy(
+  withNamespaces(['savedViews'], () => import('@/features/saved-views/saved-views-bar')),
+);
 
 const BOARD_KEYS = [globalBoardKey] as const;
 
@@ -142,6 +148,9 @@ export function GlobalBoardPage() {
     <div className="flex min-w-0 flex-col gap-4">
       <h1 className="text-medium leading-tight font-semibold">{t('adminHome.board.title')}</h1>
       <BoardFilters board={board} people={data?.people ?? []} />
+      <Suspense fallback={null}>
+        <SavedViewsBar page="board" keys={FILTER_KEYS} />
+      </Suspense>
       {query.isError && !invalid ? (
         <div role="alert" className="flex flex-col items-start gap-2">
           <p className="text-button text-muted-foreground">{t('adminHome.shell.loadError')}</p>

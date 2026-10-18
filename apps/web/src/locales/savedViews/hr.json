@@ -1,0 +1,14 @@
+{
+  "label": "Spremljeni prikazi",
+  "save": "Spremi prikaz",
+  "name": "Naziv prikaza",
+  "confirm": "Spremi",
+  "cancel": "Odustani",
+  "remove": "Ukloni prikaz {{name}}",
+  "limit": "Ovdje imate najviše {{max}} prikaza. Prije spremanja novog uklonite jedan.",
+  "starter": {
+    "myOverdue": "Moji nakon roka",
+    "thisWeek": "Ovaj tjedan",
+    "unassigned": "Tiketi bez rješavatelja"
+  }
+}

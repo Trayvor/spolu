@@ -36,6 +36,7 @@ import { countTasksFromTicket, listTasksFromTicket } from '../tasks/task-service
 import { channelFileIds } from '../chat/messages.js';
 import { getTicketChannel } from '../chat/service.js';
 import { getProjectRef, InvalidProjectError, projectRefs } from '../projects/refs.js';
+import { recordDescriptionMentions } from '../notifications/description-mentions.js';
 import { ticketUnseenSql } from '../notifications/unseen.js';
 import { isAdmin } from '../users/policy.js';
 import { getActiveRoles, getUserNames, listAdmins } from '../users/service.js';
@@ -567,7 +568,14 @@ export async function updateTicket(
   patch: TicketPatchBody,
   actor: { id: string; name: string } | null = null,
 ): Promise<
-  ({ ticket: TicketRow; statusChanged: boolean; fieldsChanged: boolean } & TimeEffect) | null
+  | ({
+      ticket: TicketRow;
+      statusChanged: boolean;
+      fieldsChanged: boolean;
+      /** F16: `description.mention` events of the people the new text names, to deliver. */
+      mentionEventIds: string[];
+    } & TimeEffect)
+  | null
 > {
   const before = await getTicketRow(db, id);
   if (!before) return null;
@@ -582,7 +590,13 @@ export async function updateTicket(
     linksChanged ||
     (Object.keys(fields) as (keyof typeof fields)[]).some((key) => fields[key] !== before[key]);
   if (!statusChanged && !fieldsChanged) {
-    return { ticket: before, statusChanged, fieldsChanged, ...noTimeEffect(before.groupId) };
+    return {
+      ticket: before,
+      statusChanged,
+      fieldsChanged,
+      mentionEventIds: [],
+      ...noTimeEffect(before.groupId),
+    };
   }
   const now = new Date();
   return db.transaction(async (tx) => {
@@ -601,7 +615,38 @@ export async function updateTicket(
     const effect = statusChanged
       ? await ticketStatusTime(tx, actor, before, row!)
       : noTimeEffect(row!.groupId);
-    return { ticket: row!, statusChanged, fieldsChanged, ...effect };
+    const mentionEventIds =
+      actor && fields.body !== undefined
+        ? await recordTicketMentions(tx, actor, row!, before.body)
+        : [];
+    return { ticket: row!, statusChanged, fieldsChanged, mentionEventIds, ...effect };
+  });
+}
+
+/**
+ * F16: records `description.mention` for the people a ticket's text newly names (against
+ * `before`), only those who can read the ticket (`readingIds`). A ticket without a client names
+ * nobody (its text is a plain field). Returns the event ids, for `requestDelivery`.
+ */
+export async function recordTicketMentions(
+  db: Db,
+  actor: { id: string; name: string },
+  ticket: TicketRow,
+  before: string | null,
+): Promise<string[]> {
+  if (ticket.groupId === null || !ticket.body) return [];
+  return recordDescriptionMentions(db, {
+    actor,
+    groupId: ticket.groupId,
+    subject: {
+      kind: 'ticket',
+      id: ticket.id,
+      number: ticket.number,
+      subject: ticket.subject ?? '',
+    },
+    before,
+    after: ticket.body,
+    readers: (ids) => readingIds(db, ticket, ids),
   });
 }
 

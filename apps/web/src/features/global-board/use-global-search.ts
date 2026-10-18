@@ -5,8 +5,8 @@ import { useRememberedFilters } from '@/lib/use-remembered-filters';
 import { useUpdateSearch } from '@/lib/use-update-search';
 import type { GlobalFilters } from './api';
 
-/** The filter keys the board writes; "Clear filters" removes them all. */
-const FILTER_KEYS = [
+/** The filter keys the board writes; "Clear filters" removes them all; a saved view keeps them. */
+export const FILTER_KEYS = [
   'clients',
   'assignee',
   'urgent',

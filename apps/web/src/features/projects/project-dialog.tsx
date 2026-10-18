@@ -211,6 +211,7 @@ export function ProjectDialog({
         </div>
         <DescriptionField
           id={`${uid}-description`}
+          mentions
           groupId={groupId}
           value={description}
           onChange={setDescription}

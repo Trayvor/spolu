@@ -13,8 +13,10 @@ import {
   type ProjectPage,
   type ProjectPatchBody,
   type ProjectStatus,
+  type SessionUser,
 } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
+import type { JobQueue } from '../../infra/jobs/jobs.js';
 import type { Storage } from '../../infra/storage/storage.js';
 import { normalizeSearch } from '../../infra/text/search.js';
 import { files } from '../files/schema.js';
@@ -22,6 +24,8 @@ import { attachFiles, deleteDetachedFiles, detachFiles, toFileInfo } from '../fi
 import { linkedCardsOf, setLinkedItems } from '../knowledge/links.js';
 import { openTaskCountsByProject } from '../tasks/by-project.js';
 import { openTicketCountsByProject } from '../tickets/by-project.js';
+import { recordDescriptionMentions } from '../notifications/description-mentions.js';
+import { requestDelivery } from '../notifications/service.js';
 import { getUserNames } from '../users/service.js';
 import {
   ProjectChangedError,
@@ -39,6 +43,12 @@ import { projectAttachments, projectEvents, projectNameKeys, projects } from './
  */
 
 type Deps = { db: Db; storage: Storage };
+
+/**
+ * F16: who wrote a description and the queue its mention notifications go to. Optional so a
+ * write without a person behind it (a backfill, a test) notifies nobody.
+ */
+export type MentionNotify = { actor: Pick<SessionUser, 'id' | 'name'>; jobs: JobQueue };
 type ProjectRow = typeof projects.$inferSelect;
 type EventRow = typeof projectEvents.$inferSelect;
 
@@ -435,10 +445,11 @@ export async function createProject(
   actorId: string,
   groupId: string,
   body: ProjectCreateBody,
+  notify?: MentionNotify,
 ): Promise<ProjectDto> {
   const id = randomUUID();
   const nameKey = normalizeSearch(body.name);
-  await db.transaction(async (tx) => {
+  const mentions = await db.transaction(async (tx) => {
     await lockGroupProjects(tx, groupId);
     await tx.insert(projects).values({
       id,
@@ -453,7 +464,16 @@ export async function createProject(
     if (body.knowledgeIds) {
       await setLinkedItems(tx, { kind: 'project', id }, groupId, body.knowledgeIds);
     }
+    if (!notify) return [];
+    return recordDescriptionMentions(tx, {
+      actor: notify.actor,
+      groupId,
+      subject: { kind: 'project', id, title: body.name },
+      before: null,
+      after: body.description,
+    });
   });
+  if (notify) await requestDelivery(notify.jobs, mentions);
   return getProject(db, id);
 }
 
@@ -482,11 +502,12 @@ export async function updateProject(
   actorId: string,
   id: string,
   patch: ProjectPatchBody,
+  notify?: MentionNotify,
 ): Promise<ProjectDto> {
   const { db } = deps;
   const groupId = await projectGroupId(db, id);
   if (groupId === null) throw new ProjectNotFoundError();
-  const dropped = await db.transaction(async (tx) => {
+  const { removed: dropped, mentions } = await db.transaction(async (tx) => {
     const row = await lockProject(tx, groupId, id, patch.updatedAt);
     const name = patch.name ?? row.name;
     const nameKey = normalizeSearch(name);
@@ -506,9 +527,20 @@ export async function updateProject(
         updatedAt: sql`now()`,
       })
       .where(eq(projects.id, id));
-    return removed;
+    const mentions =
+      notify && patch.description !== undefined
+        ? await recordDescriptionMentions(tx, {
+            actor: notify.actor,
+            groupId,
+            subject: { kind: 'project', id, title: name },
+            before: row.description,
+            after: patch.description,
+          })
+        : [];
+    return { removed, mentions };
   });
   await dropFiles(deps, dropped);
+  if (notify) await requestDelivery(notify.jobs, mentions);
   return getProject(db, id);
 }
 

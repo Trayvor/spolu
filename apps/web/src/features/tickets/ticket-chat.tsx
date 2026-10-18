@@ -40,10 +40,13 @@ export function TicketChat({
   ticketId,
   groupId,
   readsGroup,
+  requesterName = null,
 }: {
   ticketId: string;
   groupId: string;
   readsGroup: boolean;
+  /** The initiator: an admin's canned reply fills `{{name}}` with it (F7). */
+  requesterName?: string | null;
 }) {
   const { data, isError, refetch } = useQuery(ticketChatQuery(ticketId));
   const groupJoins = useGroupRoom(readsGroup ? groupId : null);
@@ -56,8 +59,9 @@ export function TicketChat({
       uploadPath: `/tickets/${encodeURIComponent(ticketId)}/files`,
       // Phase 28: a requester reads attached knowledge items only through their messages.
       knowledgeViaMessage: !readsGroup,
+      ...(requesterName ? { replyName: requesterName } : {}),
     }),
-    [channelId, ticketId, readsGroup],
+    [channelId, ticketId, readsGroup, requesterName],
   );
 
   if (data) {

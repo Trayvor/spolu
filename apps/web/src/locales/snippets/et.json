@@ -1,0 +1,28 @@
+{
+  "title": "Salvestatud vastused",
+  "intro": "Lisa vastus vestlusesse või piletisse, kirjutades / ja valides selle. {{placeholder}} asendub inimese nimega, kellele vastad.",
+  "empty": "Sul pole veel salvestatud vastuseid.",
+  "shared": "Jagatud",
+  "sharedBy": "Jagab {{name}}",
+  "edit": "Muuda",
+  "delete": "Kustuta",
+  "deleteQuestion": "Kas kustutada vastus „{{title}}“?",
+  "cancel": "Tühista",
+  "picker": {
+    "label": "Salvestatud vastused",
+    "empty": "Sul pole veel salvestatud vastuseid. Lisa need seadetes, jaotises Salvestatud vastused."
+  },
+  "form": {
+    "newTitle": "Uus vastus",
+    "title": "Nimi",
+    "titlePlaceholder": "Aitäh, vaatame üle",
+    "body": "Tekst",
+    "bodyHint": "{{placeholder}} asendub lisamisel inimese nimega, kellele vastad.",
+    "shared": "Jaga kõigi administraatoritega",
+    "sharedHint": "Teised administraatorid saavad seda lisada, muuta saad seda ainult sina.",
+    "save": "Salvesta vastus",
+    "saveChanges": "Salvesta muudatused",
+    "required": "Täida nimi ja tekst.",
+    "limit": "Sul on salvestatud vastuseid suurim lubatud arv ({{max}}). Enne uue lisamist kustuta üks."
+  }
+}

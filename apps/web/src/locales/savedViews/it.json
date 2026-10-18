@@ -1,0 +1,14 @@
+{
+  "label": "Viste salvate",
+  "save": "Salva vista",
+  "name": "Nome della vista",
+  "confirm": "Salva",
+  "cancel": "Annulla",
+  "remove": "Rimuovi la vista {{name}}",
+  "limit": "Qui ha il numero massimo di viste ({{max}}). Ne rimuova una prima di salvarne un’altra.",
+  "starter": {
+    "myOverdue": "Le mie scadute",
+    "thisWeek": "Questa settimana",
+    "unassigned": "Ticket senza assegnatario"
+  }
+}

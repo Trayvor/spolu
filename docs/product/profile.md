@@ -24,6 +24,13 @@ The profile on `/settings` (Phase 6) lets each user change only their own data. 
 - **Receive mailings** (Phase 23.4): a checkbox "Dostávať hromadné e-maily" / "Receive mailings" in the Profile card, under the email, for every signed-in person, ticked by default. Unticking unsubscribes from bulk email, ticking subscribes again (`GET`/`PUT /api/me/bulk-email`); it saves at once with "Saved", and a failed save unticks back with an error line. A hint says login codes and notifications always arrive. See `bulk-email.md`.
 - **Language**: `sk` or `en`, stored on the user (`PUT /api/me/language`); emails and pushes to the user, such as the email-change code, the notice and the email digest, use it. The language stays in the header menu, not on the settings page: choosing a language there while signed in stores it, and every sign-in (once per user and page load) stores the language the app is shown in. Both saves are best effort and never block the switch.
 
+## Saved replies (F7)
+
+Since 2026-10-18 admins also see **Saved replies** on `/settings` (after Notifications, before AI access; a lazy chunk with the lazy `snippets` namespace; clients never see it; anchor `#snippets`). The intro says how to insert one (`/` in a chat or ticket message) and that `{{name}}` becomes the name of the person answered.
+
+- **New reply**: Name (up to 80 characters), Text (up to 4000, plain text or the chat's Markdown) and **Share with all admins** ("Other admins can insert it; only you can change it."). "Fill in the name and the text." when one is empty; at most 200 replies per admin ("You have the most saved replies there can be (200)…", `409 snippet_limit`).
+- **The list**, by name: the admin's own replies and every shared one, each with its text (three lines) and a "Shared" tag ("Shared by <name>" on another admin's). Only the author has **Edit** (the same form in place, "Save changes") and **Delete** (the inline confirmation "Delete the reply “<name>”?"). Deleting an admin's account deletes their replies.
+
 ## AI access (MCP)
 
 Since 2026-10-18 admins see a fourth card on `/settings`, **AI access (MCP)** (after Notifications, before System status; a lazy chunk with the lazy `mcp` namespace; clients never see it). It connects an AI assistant to Help through the MCP server ([guide](../integrations/mcp.md), [spec](../superpowers/specs/2026-10-18-mcp-server-design.md)):
