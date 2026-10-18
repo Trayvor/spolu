@@ -32,10 +32,22 @@ export const MeGroupSchema = z.object({
 export type MeGroup = z.infer<typeof MeGroupSchema>;
 
 /**
+ * The navigation on phones: `classic` switches sections with the select in the header (the
+ * default), `bottom` shows the bottom bar (`BottomNav`). Wider screens ignore it.
+ */
+export const PhoneNavSchema = z.enum(['classic', 'bottom']);
+export type PhoneNav = z.infer<typeof PhoneNavSchema>;
+export const PhoneNavBodySchema = z.object({ phoneNav: PhoneNavSchema });
+
+/**
  * What `/api/me` returns: the session user plus their active memberships, by group name (empty
  * for admins). A client may belong to several groups.
  */
-export const MeSchema = SessionUserSchema.extend({ groups: z.array(MeGroupSchema) });
+export const MeSchema = SessionUserSchema.extend({
+  groups: z.array(MeGroupSchema),
+  /** The phone navigation the person chose; absent (old caches, fixtures) means `classic`. */
+  phoneNav: PhoneNavSchema.optional(),
+});
 export type Me = z.infer<typeof MeSchema>;
 
 export const AdminSchema = z.object({

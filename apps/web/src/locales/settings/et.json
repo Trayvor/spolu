@@ -23,6 +23,12 @@
     "bulkEmail": {
       "label": "Soovin saada masskirju",
       "hint": "eGranti uudised, mis saadetakse korraga paljudele. Sisselogimiskoodid ja teavitused saabuvad alati."
+    },
+    "phoneNav": {
+      "label": "Navigeerimine telefonis",
+      "hint": "Kehtib ainult telefonis. Laiematel ekraanidel on jaotised alati päises.",
+      "classic": "Klassikaline: jaotiste menüü päises",
+      "bottom": "Alumine riba: jaotised ekraani all"
     }
   },
   "notifications": {

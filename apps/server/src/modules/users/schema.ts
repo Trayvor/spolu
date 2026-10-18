@@ -9,7 +9,7 @@ import {
   text,
   timestamp,
 } from 'drizzle-orm/pg-core';
-import type { ChannelMap, GroupMode, Role, UserLanguage } from '@spolu/shared';
+import type { ChannelMap, GroupMode, PhoneNav, Role, UserLanguage } from '@spolu/shared';
 import { foldSql } from '../../infra/db/fold.js';
 import { languageIn } from '../../infra/db/language-check.js';
 
@@ -33,6 +33,8 @@ export const user = pgTable(
       .notNull()
       .default({}),
     language: text('language').$type<UserLanguage>().notNull().default('sk'),
+    /** The navigation on phones: `classic` (the header's section select) or `bottom` (the bar). */
+    phoneNav: text('phone_nav').$type<PhoneNav>().notNull().default('classic'),
     emailFallbackAt: timestamp('email_fallback_at', { withTimezone: true }),
     /**
      * The finance right (Phase 32): when and by whom the superadmin granted it; null = none. Only
@@ -57,6 +59,7 @@ export const user = pgTable(
       sql`${t.defaultGroupMode} in ('all', 'mentions', 'off')`,
     ),
     check('user_language_check', languageIn(t.language)),
+    check('user_phone_nav_check', sql`${t.phoneNav} in ('classic', 'bottom')`),
     check(
       'user_finance_access_check',
       sql`${t.financeAccessAt} is null or ${t.role} in ('admin', 'superadmin')`,

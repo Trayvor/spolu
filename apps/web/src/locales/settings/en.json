@@ -23,6 +23,12 @@
     "bulkEmail": {
       "label": "Receive mailings",
       "hint": "News from eGrant sent to many people at once. Login codes and notifications always arrive."
+    },
+    "phoneNav": {
+      "label": "Navigation on phones",
+      "hint": "Applies on phones only. Wider screens always show the sections in the header.",
+      "classic": "Classic: the section menu in the header",
+      "bottom": "Bottom bar: sections at the foot of the screen"
     }
   },
   "notifications": {

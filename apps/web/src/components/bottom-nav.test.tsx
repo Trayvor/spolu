@@ -22,6 +22,8 @@ vi.mock('@/lib/socket', () => ({
   disconnectSocket: vi.fn(),
 }));
 
+const BOTTOM_ADMIN = { ...ADMIN, phoneNav: 'bottom' };
+
 const t = (key: string, opts?: Record<string, unknown>) => i18n.t(key, opts);
 
 /** The viewport of a phone (the media query `(max-width: 640px)` matches). */
@@ -72,7 +74,7 @@ afterEach(() => {
 
 describe('the phone bottom bar, admin', () => {
   const api = () =>
-    mockTicketApi(ADMIN, [
+    mockTicketApi(BOTTOM_ADMIN, [
       (url) =>
         url.pathname === '/api/tickets/global'
           ? reply(200, { items: [], nextCursor: null })
@@ -92,7 +94,7 @@ describe('the phone bottom bar, admin', () => {
       { timeout: 5000 },
     );
     const names = [...within(nav).getAllByRole('link'), ...within(nav).getAllByRole('button')].map(
-      (el) => el.textContent?.replace(/\d+\+?Nové: \d+/, ''),
+      (el) => el.textContent?.replace(/\d+\+?(?:Nové|New): \d+/, ''),
     );
     expect(names).toEqual([
       t('nav.home'),
@@ -127,6 +129,26 @@ describe('the phone bottom bar, admin', () => {
     expect(rows).not.toContain(t('nav.tasks'));
   });
 
+  it('is not there on a phone with the Classic navigation (the default)', async () => {
+    phone();
+    mockTicketApi(ADMIN, [
+      (url) =>
+        url.pathname === '/api/tickets/global'
+          ? reply(200, { items: [], nextCursor: null })
+          : undefined,
+    ]);
+    renderApp('/tickets');
+    const header = await screen.findByRole('banner');
+    // The header keeps its section select, and the page keeps the normal bottom padding.
+    expect(
+      within(header).getByRole('button', {
+        name: t('nav.menuCurrent', { name: t('nav.tickets') }),
+      }),
+    ).toBeInTheDocument();
+    expect(bar()).toBeNull();
+    expect(screen.getByRole('main').className).not.toContain('68px');
+  });
+
   it('is not there on a wide screen', async () => {
     api();
     renderApp('/tickets');
@@ -159,7 +181,7 @@ describe('the phone bottom bar, admin', () => {
 describe('the phone bottom bar, client', () => {
   it('shows Chat, Tasks, Tickets, Knowledge with the Chat and Tasks counts', async () => {
     phone();
-    mockTicketApi(CLIENT, [
+    mockTicketApi({ ...CLIENT, phoneNav: 'bottom' }, [
       (url) => {
         if (url.pathname === '/api/groups/g1/chat') {
           return reply(200, { id: 'ch1', lastSeq: 9, unread: 4, lastReadAt: null });
@@ -174,7 +196,7 @@ describe('the phone bottom bar, client', () => {
     const nav = await screen.findByRole('navigation', { name: t('bottomNav.label') });
     const labels = within(nav)
       .getAllByRole('link')
-      .map((a) => a.textContent?.replace(/\d+Nové: \d+/, ''));
+      .map((a) => a.textContent?.replace(/\d+(?:Nové|New): \d+/, ''));
     expect(labels).toEqual([
       t('group.tabs.chat'),
       t('group.tabs.tasks'),

@@ -9,13 +9,14 @@ import { updateName } from '@/features/auth/api';
 import { sessionQuery, useSession } from '@/features/auth/use-session';
 import { BulkEmailSetting } from './bulk-email-setting';
 import { EmailChange } from './email-change';
+import { PhoneNavSetting } from './phone-nav-setting';
 
 const NAME_MAX = 100;
 
 /**
  * The Profile card of /settings: the name (Save, then an inline "Saved") and the email address
  * with its inline change flow (`email-change.tsx`), then the "Receive mailings" setting
- * (`bulk-email-setting.tsx`). The rows sit in one card, split by hairlines.
+ * (`bulk-email-setting.tsx`) and the phone navigation choice (`phone-nav-setting.tsx`). The rows sit in one card, split by hairlines.
  */
 export function ProfileSection() {
   const { t } = useTranslation();
@@ -35,6 +36,7 @@ export function ProfileSection() {
           <EmailChange current={user.email} canChange={user.role !== 'superadmin'} />
         </div>
         <BulkEmailSetting />
+        <PhoneNavSetting />
       </CardContent>
     </Card>
   );

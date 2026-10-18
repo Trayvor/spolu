@@ -1,11 +1,21 @@
 import { expect, test } from '@playwright/test';
+import { phoneNavigation } from './phone-nav';
 
 // The chat card fills the window down to the page's bottom gap, at any window size, and the page
-// itself never scrolls (the message list scrolls inside the card).
-for (const { name, width, height, gap, mobile } of [
-  { name: 'desktop 1440x900', width: 1440, height: 900, gap: 32, mobile: false },
-  { name: 'laptop 1280x720', width: 1280, height: 720, gap: 32, mobile: false },
-  { name: 'phone 390x844', width: 390, height: 844, gap: 12, mobile: true },
+// itself never scrolls (the message list scrolls inside the card). On a phone it runs in both
+// navigation modes: Classic (the default, no bar) and the bottom bar the card must clear.
+for (const { name, width, height, gap, mobile, bottomBar } of [
+  { name: 'desktop 1440x900', width: 1440, height: 900, gap: 32, mobile: false, bottomBar: false },
+  { name: 'laptop 1280x720', width: 1280, height: 720, gap: 32, mobile: false, bottomBar: false },
+  { name: 'phone 390x844', width: 390, height: 844, gap: 12, mobile: true, bottomBar: false },
+  {
+    name: 'phone 390x844, bottom bar',
+    width: 390,
+    height: 844,
+    gap: 12,
+    mobile: true,
+    bottomBar: true,
+  },
 ]) {
   test(`the chat fills the window height (${name})`, async ({ browser }) => {
     const context = await browser.newContext({
@@ -15,9 +25,10 @@ for (const { name, width, height, gap, mobile } of [
       locale: 'sk-SK',
       storageState: 'e2e/.auth/superadmin.json',
     });
+    if (bottomBar) await phoneNavigation(context, 'bottom');
     const page = await context.newPage();
     try {
-      const stamp = `${Date.now()}-${width}`; // the three run in parallel: unique group URLs
+      const stamp = `${Date.now()}-${width}-${bottomBar}`; // they run in parallel: unique group URLs
       const created = await page.request.post('/api/groups', {
         data: { name: `E2E Layout ${stamp}`, egrantUrl: `https://e2e-layout-${stamp}.egrant.sk` },
       });
@@ -39,7 +50,7 @@ for (const { name, width, height, gap, mobile } of [
       await expect(card.getByRole('toolbar')).toBeVisible();
       const box = (await card.boundingBox())!;
       // On a phone the bottom bar floats over the window's foot: the card ends one gap above it.
-      const bar = mobile
+      const bar = bottomBar
         ? await page.getByRole('navigation', { name: 'Hlavná navigácia' }).boundingBox()
         : null;
       expect(Math.round(box.y + box.height)).toBe(bar ? Math.round(bar.y) - gap : height - gap);
@@ -50,7 +61,7 @@ for (const { name, width, height, gap, mobile } of [
   });
 }
 
-// On a phone an admin's sections are a bottom bar (four sections and "Viac", whose sheet holds the
+// With the "Bottom bar" phone navigation an admin's sections are a bar (four and "Viac", whose sheet holds the
 // rest); the account menu holds only the person's own things (Settings, the languages, Log out).
 test('on a phone, the bottom bar moves between sections and the account menu has no sections', async ({
   browser,
@@ -63,6 +74,7 @@ test('on a phone, the bottom bar moves between sections and the account menu has
     locale: 'sk-SK',
     storageState: 'e2e/.auth/superadmin.json',
   });
+  await phoneNavigation(context, 'bottom');
   const page = await context.newPage();
   try {
     await page.goto('/settings');

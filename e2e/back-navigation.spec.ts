@@ -1,4 +1,5 @@
 import { expect, test, type APIRequestContext } from '@playwright/test';
+import { phoneNavigation } from './phone-nav';
 
 // Back follows docs/design/README.md, "Navigation and Back": opening is a step, switching is
 // not, closing goes back, and Back closes an open layer first. The UI is Slovak in e2e.
@@ -67,6 +68,7 @@ test('on a phone, Back closes the section menu and stays on the page', async ({ 
     locale: 'sk-SK',
     storageState: 'e2e/.auth/superadmin.json',
   });
+  await phoneNavigation(context, 'bottom');
   const page = await context.newPage();
   // The open sheet's own history entry (`state.layer`, lib/use-back-closes.ts) and the entry's
   // position: the signals to wait on, instead of time.

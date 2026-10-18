@@ -24,14 +24,15 @@ export function useKeyboardOpen(): boolean {
 
 /**
  * The plan of the phone bottom bar, or null where there is none: wider than a phone (the header
- * has the sections), no bar for this role (see `bottomNavPlan`) or a full-screen screen. The
- * header hides its section pill on a phone where this is not null.
+ * has the sections), the person kept the "Classic" phone navigation (the default: the section
+ * select in the header, `me.phoneNav`), no bar for this role (see `bottomNavPlan`) or a
+ * full-screen screen. The header hides its section pill on a phone where this is not null.
  */
 export function useBottomNavPlan(): BottomNavPlan | null {
   const user = useSession();
   const phone = useMediaQuery('(max-width: 640px)');
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  if (!phone || !user) return null;
+  if (!phone || !user || user.phoneNav !== 'bottom') return null;
   return bottomNavPlan(user, pathname);
 }
 

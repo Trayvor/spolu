@@ -23,6 +23,12 @@
     "bulkEmail": {
       "label": "Dostávat hromadné e-maily",
       "hint": "Novinky od eGrantu posílané mnoha lidem najednou. Přihlašovací kódy a oznámení přicházejí vždy."
+    },
+    "phoneNav": {
+      "label": "Navigace v telefonu",
+      "hint": "Platí jen v telefonu. Na širších obrazovkách jsou sekce vždy v záhlaví.",
+      "classic": "Klasická: nabídka sekcí v záhlaví",
+      "bottom": "Spodní lišta: sekce na spodku obrazovky"
     }
   },
   "notifications": {

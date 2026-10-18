@@ -86,6 +86,7 @@ describe('email code login', () => {
       role: 'admin',
       finance: false,
       groups: [],
+      phoneNav: 'classic',
     });
   });
 
