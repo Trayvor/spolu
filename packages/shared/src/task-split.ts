@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { AI_MAX_TASKS } from './ai.js';
 import { ID_RE } from './chat.js';
+import { FileInfoSchema } from './files.js';
 import { MEETING_LIMITS } from './meetings.js';
 import { TaskDetailDtoSchema, TaskDraftSchema } from './tasks.js';
 
@@ -19,10 +20,22 @@ export const TaskProposalSchema = z.object({
    * card (copied when the card is created).
    */
   messageFileIds: z.array(z.string()),
+  /**
+   * The card's link: a web address of the source text the AI chose, or else a ticket's own URL
+   * (owner bug report 2026-10-18); null for none.
+   */
+  link: z.string().nullable().default(null),
 });
 export type TaskProposal = z.infer<typeof TaskProposalSchema>;
 
-export const TaskProposalsSchema = z.object({ tasks: z.array(TaskProposalSchema) });
+export const TaskProposalsSchema = z.object({
+  tasks: z.array(TaskProposalSchema),
+  /**
+   * The source's files the cards may copy, when the screen does not have them all: a ticket's
+   * uploads and the files sent in its chat. Empty for a message and a meeting.
+   */
+  files: z.array(FileInfoSchema).default([]),
+});
 export type TaskProposals = z.infer<typeof TaskProposalsSchema>;
 
 /** Which AI features the server can run (the UI hides the rest). */

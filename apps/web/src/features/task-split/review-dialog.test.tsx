@@ -8,6 +8,7 @@ import type {
   MessageDto,
   TaskDetailDto,
   TaskProposal,
+  TaskProposals,
   TicketDto,
 } from '@spolu/shared';
 import { uploadFile } from '@/features/files/upload';
@@ -90,6 +91,7 @@ const PROPOSALS: TaskProposal[] = [
     dueDate: '2026-10-20',
     urgent: true,
     messageFileIds: [],
+    link: null,
   },
   {
     title: 'Pay the invoice',
@@ -98,6 +100,7 @@ const PROPOSALS: TaskProposal[] = [
     dueDate: null,
     urgent: false,
     messageFileIds: ['mf1'],
+    link: null,
   },
 ];
 
@@ -158,7 +161,7 @@ describe('ReviewDialog', () => {
   });
 
   it('the review dialog quotes the ticket subject and body', async () => {
-    proposeTicket.mockResolvedValue({ tasks: PROPOSALS });
+    proposeTicket.mockResolvedValue({ tasks: PROPOSALS, files: [] });
     createTicket.mockResolvedValue([]);
     const { user, onCreated } = renderDialog({ kind: 'ticket', ticket: TICKET });
 
@@ -186,8 +189,37 @@ describe('ReviewDialog', () => {
     expect(create).not.toHaveBeenCalled();
   });
 
+  it("offers the ticket chat's files the server lists and sends the proposed link", async () => {
+    const shot: FileInfo = { ...FILE, id: 'cf1', name: 'shot.png' };
+    proposeTicket.mockResolvedValue({
+      tasks: [{ ...PROPOSALS[1]!, messageFileIds: ['cf1'], link: 'https://x.egrant.sk/app/7' }],
+      files: [FILE, shot],
+    });
+    createTicket.mockResolvedValue([]);
+    const { user, onCreated } = renderDialog({ kind: 'ticket', ticket: TICKET });
+    await screen.findByRole('article', { name: 'Pay the invoice' });
+    expect(
+      within(article('Pay the invoice')).getByRole('link', {
+        name: t('files.download', { name: 'shot.png' }),
+      }),
+    ).toBeInTheDocument();
+    await decideBoth(user);
+    await user.click(createButton());
+    await vi.waitFor(() => expect(onCreated).toHaveBeenCalled());
+    expect(createTicket).toHaveBeenCalledWith('g1', {
+      ticketId: 'k1',
+      tasks: [
+        expect.objectContaining({
+          messageFileIds: ['cf1'],
+          fileIds: [],
+          link: 'https://x.egrant.sk/app/7',
+        }),
+      ],
+    });
+  });
+
   it('shows the loading outlines, then compact cards', async () => {
-    let resolve!: (value: { tasks: TaskProposal[] }) => void;
+    let resolve!: (value: TaskProposals) => void;
     propose.mockReturnValue(new Promise((r) => (resolve = r)));
     renderDialog();
 
@@ -203,7 +235,7 @@ describe('ReviewDialog', () => {
     expect(screen.getAllByTestId('card-outline')).toHaveLength(3);
     expect(propose).toHaveBeenCalledWith('m1');
 
-    resolve({ tasks: PROPOSALS });
+    resolve({ tasks: PROPOSALS, files: [] });
     await shown();
     expect(articles()).toHaveLength(2);
     await vi.waitFor(() =>
@@ -229,7 +261,7 @@ describe('ReviewDialog', () => {
   });
 
   it('desktop: opening a card expands it in place; opening another collapses the first and keeps its edits', async () => {
-    propose.mockResolvedValue({ tasks: PROPOSALS });
+    propose.mockResolvedValue({ tasks: PROPOSALS, files: [] });
     const { user } = renderDialog();
     await shown();
 
@@ -273,7 +305,7 @@ describe('ReviewDialog', () => {
 
   it('phone: opening a card shows it full screen with Done, back to the list', async () => {
     stubWidth(false);
-    propose.mockResolvedValue({ tasks: PROPOSALS });
+    propose.mockResolvedValue({ tasks: PROPOSALS, files: [] });
     const { user } = renderDialog();
     await shown();
 
@@ -291,7 +323,7 @@ describe('ReviewDialog', () => {
   });
 
   it('approve, reject, undo; Create is enabled only when every card is decided', async () => {
-    propose.mockResolvedValue({ tasks: PROPOSALS });
+    propose.mockResolvedValue({ tasks: PROPOSALS, files: [] });
     const { user } = renderDialog();
     await shown();
 
@@ -327,7 +359,7 @@ describe('ReviewDialog', () => {
   it('Create waits for an upload in an open card', async () => {
     let finish!: (file: FileInfo) => void;
     vi.mocked(uploadFile).mockImplementation(() => new Promise((resolve) => (finish = resolve)));
-    propose.mockResolvedValue({ tasks: PROPOSALS });
+    propose.mockResolvedValue({ tasks: PROPOSALS, files: [] });
     const { user } = renderDialog();
     await shown();
     await decideBoth(user);
@@ -347,7 +379,10 @@ describe('ReviewDialog', () => {
   });
 
   it('approving a card with errors opens it with them instead', async () => {
-    propose.mockResolvedValue({ tasks: [{ ...PROPOSALS[0]!, title: '' }, PROPOSALS[1]!] });
+    propose.mockResolvedValue({
+      tasks: [{ ...PROPOSALS[0]!, title: '' }, PROPOSALS[1]!],
+      files: [],
+    });
     const { user } = renderDialog();
     await screen.findByRole('article', { name: 'Pay the invoice' });
 
@@ -358,7 +393,7 @@ describe('ReviewDialog', () => {
   });
 
   it('shows the assignee error and refetches people', async () => {
-    propose.mockResolvedValue({ tasks: PROPOSALS });
+    propose.mockResolvedValue({ tasks: PROPOSALS, files: [] });
     create.mockRejectedValueOnce(new ApiError('failed', 400, { error: 'invalid_assignee' }));
     const { user, queryClient } = renderDialog();
     await shown();
@@ -372,7 +407,7 @@ describe('ReviewDialog', () => {
   });
 
   it('sends one request on a double click, and keeps the cards when it fails', async () => {
-    propose.mockResolvedValue({ tasks: PROPOSALS });
+    propose.mockResolvedValue({ tasks: PROPOSALS, files: [] });
     create.mockRejectedValueOnce(new ApiError('failed', 400, { error: 'invalid_attachment' }));
     const { user, onCreated } = renderDialog();
     await shown();
@@ -402,7 +437,7 @@ describe('ReviewDialog', () => {
   });
 
   it('a created set is handed to onCreated; a missing message says so', async () => {
-    propose.mockResolvedValue({ tasks: PROPOSALS });
+    propose.mockResolvedValue({ tasks: PROPOSALS, files: [] });
     const tasks = [{ id: 't1' }] as TaskDetailDto[];
     create.mockRejectedValueOnce(new ApiError('gone', 404, { error: 'not_found' }));
     create.mockResolvedValueOnce(tasks);
@@ -417,7 +452,7 @@ describe('ReviewDialog', () => {
   });
 
   it('Escape after a decision asks before discarding; a backdrop click does nothing', async () => {
-    propose.mockResolvedValue({ tasks: PROPOSALS });
+    propose.mockResolvedValue({ tasks: PROPOSALS, files: [] });
     const { user, onClose } = renderDialog();
     await shown();
 
@@ -441,7 +476,7 @@ describe('ReviewDialog', () => {
   });
 
   it('Escape while untouched closes at once', async () => {
-    propose.mockResolvedValue({ tasks: PROPOSALS });
+    propose.mockResolvedValue({ tasks: PROPOSALS, files: [] });
     const { user, onClose } = renderDialog();
     await shown();
     await user.keyboard('{Escape}');
@@ -466,7 +501,7 @@ describe('ReviewDialog', () => {
 
   it('ai_failed: Try again calls the AI again', async () => {
     propose.mockRejectedValueOnce(new ApiError('bad', 502, { error: 'ai_failed' }));
-    propose.mockResolvedValueOnce({ tasks: PROPOSALS });
+    propose.mockResolvedValueOnce({ tasks: PROPOSALS, files: [] });
     const { user } = renderDialog();
 
     await expectAnnounced(t('taskSplit.failed'));

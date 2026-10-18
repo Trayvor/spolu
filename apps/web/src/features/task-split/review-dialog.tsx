@@ -73,6 +73,8 @@ type SourceView = {
   authorId: string | null;
   authorName: string | null;
   files: FileInfo[];
+  /** The link of the card made by hand (a ticket's URL). */
+  link: string | null;
   goneKey: string;
   /** The reviewer picks the bucket (a meeting); otherwise the cards go to To do. */
   chooseBucket: boolean;
@@ -98,6 +100,7 @@ function viewOf(source: SplitSource): SourceView {
       authorId: message.author.id,
       authorName: message.author.name,
       files: message.attachments,
+      link: null,
       goneKey: 'taskSplit.messageGone',
       chooseBucket: false,
       base: {},
@@ -114,6 +117,7 @@ function viewOf(source: SplitSource): SourceView {
       authorId: null,
       authorName: null,
       files: [],
+      link: null,
       goneKey: 'taskSplit.meetingGone',
       chooseBucket: true,
       base: {},
@@ -130,6 +134,7 @@ function viewOf(source: SplitSource): SourceView {
     authorId: null,
     authorName: null,
     files: ticket.files,
+    link: ticket.url ?? null,
     goneKey: 'taskSplit.ticketGone',
     chooseBucket: false,
     base: ticket.project ? { projectId: ticket.project.id, eventId: ticket.event?.id ?? null } : {},
@@ -176,7 +181,6 @@ export function ReviewDialog({
   const [today] = useState(todayInBratislava);
   // The dialog is keyed by its source, which never changes while it is open.
   const [view] = useState(() => viewOf(source));
-  const sourceFileIds = useMemo(() => new Set(view.files.map((f) => f.id)), [view]);
   // A meeting's cards go to a bucket the reviewer picks (not Completed); To do by default.
   const board = useQuery({ ...boardQuery(groupId), enabled: view.chooseBucket });
   const groupName = useQuery({ ...groupQuery(groupId), enabled: view.chooseBucket }).data?.name;
@@ -194,6 +198,14 @@ export function ReviewDialog({
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
   });
+
+  // The source's files: the screen's, plus those only the server lists (a ticket chat's files).
+  const sourceFiles = useMemo(() => {
+    const known = new Set(view.files.map((f) => f.id));
+    const more = (proposals.data?.files ?? []).filter((f) => !known.has(f.id));
+    return [...view.files, ...more];
+  }, [view, proposals.data]);
+  const sourceFileIds = useMemo(() => new Set(sourceFiles.map((f) => f.id)), [sourceFiles]);
 
   const [cards, setCards] = useState<ReviewCard[] | null>(null);
   const [initial, setInitial] = useState<ReviewCard[]>([]);
@@ -216,7 +228,7 @@ export function ReviewDialog({
   // The proposals become cards once, when they arrive.
   if (proposals.data && proposals.data !== seeded) {
     setSeeded(proposals.data);
-    const next = cardsFromProposals(proposals.data.tasks, view.files, view.base);
+    const next = cardsFromProposals(proposals.data.tasks, sourceFiles, view.base);
     setCards(next);
     setInitial(next);
     if (refocus) {
@@ -348,7 +360,7 @@ export function ReviewDialog({
   };
 
   const byHand = () => {
-    const card = cardByHand(view.text, view.base);
+    const card = cardByHand(view.text, view.link, view.base);
     setCards([card]);
     setInitial([card]);
     setOpenKey(card.key);

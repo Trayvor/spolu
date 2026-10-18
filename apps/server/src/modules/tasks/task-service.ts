@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { and, asc, desc, eq, gt, inArray, ne, sql } from 'drizzle-orm';
 import {
+  KNOWLEDGE_LINKS_MAX,
   TaskDtoSchema,
   type BucketKind,
   type BucketLabel,
@@ -367,8 +368,15 @@ export type TaskSource = {
   ticketId?: string;
   /** The meeting (knowledge item) the cards are made from. */
   meetingId?: string;
-  /** The source's files the cards may copy (the message's, or the files uploaded with the ticket). */
+  /**
+   * The source's files the cards may copy (the message's, or a ticket's uploads and chat files).
+   */
   fileIds: string[];
+  /**
+   * The source's knowledge items, already filtered to the ones shareable in the group now: every
+   * card links them after its own (owner bug report 2026-10-18), at most 10 in all.
+   */
+  knowledgeIds?: string[];
   /**
    * The bucket the cards go to the top of (Phase 30, a meeting's tasks); absent: To do. It must
    * be a bucket of the group other than Completed, else `NotFoundError`.
@@ -398,7 +406,7 @@ export function createTasksFromMessage(
  * copy owned by the actor, made before the transaction. One transaction then inserts the cards at
  * the top of To do in input order (the To do row locked, keys before its first task; `createdAt`
  * 1 ms apart), with `sourceMessageId` and `sourceTicketId`, assignees, files (review uploads and
- * copies) and `task.assigned`. If anything fails, the copies are deleted again (best effort;
+ * copies), knowledge (the card's own, then the source's) and `task.assigned`. If anything fails, the copies are deleted again (best effort;
  * leftovers stay unattached and the daily cleanup removes them) and the error is rethrown.
  * Returns the cards in input order.
  */
@@ -513,6 +521,14 @@ export async function createTasksFromSource(
           actor.id,
         );
         await tx.insert(taskAttachments).values(attachments);
+      }
+      for (const [index, row] of rows.entries()) {
+        const knowledgeIds = [
+          ...new Set([...(drafts[index]!.knowledgeIds ?? []), ...(source.knowledgeIds ?? [])]),
+        ].slice(0, KNOWLEDGE_LINKS_MAX);
+        if (knowledgeIds.length > 0) {
+          await setLinkedItems(tx, { kind: 'task', id: row.id }, groupId, knowledgeIds);
+        }
       }
       const recipients = new Set<string>();
       for (const [index, row] of rows.entries()) {

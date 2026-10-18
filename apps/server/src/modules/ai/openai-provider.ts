@@ -10,6 +10,7 @@ const CARD_RULES = [
   'Make one task per distinct job; do not split one job into steps.',
   'A title is a short action (at most 200 characters, best under 80), such as "Fix the error 500 on the Applications tab"; never add a ticket number, a source, a status or a date to it.',
   'A description says only what has to be done, clearly and concretely, with the details the text gives (at most 5000 characters). Never add labelled metadata lines (number, subject, area, programme, files, dates, reporter), and never generic advice or a standard procedure (such as checking logs, reproducing the problem, testing or preparing a fix) that the text does not ask for.',
+  "Keep every web address (URL) the text gives for a job in that task's description, copied exactly; never shorten, change or drop one. Set link to the one web address that shows where the problem is or what the task is about, copied exactly from the text, or null when the text has none.",
   'Only when the text gives useful context beyond the job itself (what was already tried, where or when it happens, an answer or a decision from the conversation), end the description with a short paragraph headed "Notes:" in the output language; otherwise add no notes.',
   'Set assigneeIds, deadline (YYYY-MM-DD) and urgent only when the text states them clearly; otherwise use [], null and false. Use only ids from the lists given. Give each file to the task or tasks it belongs to (fileIds); a file may belong to several tasks or to none.',
   'Return at most 10 tasks, or none if the text describes no job.',
@@ -39,7 +40,7 @@ export const TASK_SPLIT_SCHEMA = {
       items: {
         type: 'object',
         additionalProperties: false,
-        required: ['title', 'description', 'assigneeIds', 'fileIds', 'deadline', 'urgent'],
+        required: ['title', 'description', 'assigneeIds', 'fileIds', 'deadline', 'urgent', 'link'],
         properties: {
           title: { type: 'string', description: `At most ${AI_TITLE_MAX} characters.` },
           description: { type: 'string', description: `At most ${AI_DESCRIPTION_MAX} characters.` },
@@ -50,6 +51,10 @@ export const TASK_SPLIT_SCHEMA = {
             description: 'YYYY-MM-DD, or null unless the message states a deadline clearly.',
           },
           urgent: { type: 'boolean', description: 'True only when the message says so clearly.' },
+          link: {
+            type: ['string', 'null'],
+            description: 'A web address copied exactly from the text, or null.',
+          },
         },
       },
     },
@@ -65,6 +70,7 @@ const RawTasksSchema = z.object({
       fileIds: z.array(z.string()),
       deadline: z.string().nullable(),
       urgent: z.boolean(),
+      link: z.string().nullish(),
     }),
   ),
 });

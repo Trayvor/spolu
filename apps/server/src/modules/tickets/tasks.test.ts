@@ -2,8 +2,10 @@ import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { and, eq } from 'drizzle-orm';
 import { io as connect, type Socket } from 'socket.io-client';
+import { Readable } from 'node:stream';
 import type {
   GroupChannel,
+  KnowledgeItemDto,
   MessageDto,
   MessagePage,
   TaskDetailDto,
@@ -13,6 +15,7 @@ import type {
 import { buildTestApp } from '../../../test/test-app.js';
 import { loginAs } from '../../../test/login.js';
 import { createFakeProvider } from '../ai/fake-provider.js';
+import { createFile } from '../files/service.js';
 import { buildTicketSplitRequest } from '../ai/split.js';
 import { addManager } from '../groups/managers.js';
 import { addMembership } from '../groups/memberships.js';
@@ -326,6 +329,129 @@ describe('ticket to tasks (Phase 21.5)', () => {
       expect((await create(other.id, t.id, a.cookie)).statusCode).toBe(404);
       const rows = await db().select().from(tasks).where(eq(tasks.sourceTicketId, t.id));
       expect(rows).toHaveLength(0);
+    });
+  });
+
+  describe('what the cards carry over (owner bug report 2026-10-18)', () => {
+    const chatOf = async (ticketId: string, cookie: string) =>
+      (await call('GET', `/api/tickets/${ticketId}/chat`, cookie)).json<GroupChannel>();
+    async function say(channelId: string, cookie: string, data: object) {
+      const res = await call('POST', `/api/channels/${channelId}/messages`, cookie, {
+        clientId: randomUUID(),
+        ...data,
+      });
+      expect(res.statusCode).toBe(201);
+      return res.json<MessageDto>();
+    }
+    async function note(groupId: string, cookie: string, title: string) {
+      const res = await call('POST', `/api/groups/${groupId}/knowledge`, cookie, {
+        type: 'note',
+        title,
+        body: 'Text',
+      });
+      expect(res.statusCode).toBe(201);
+      return res.json<KnowledgeItemDto>();
+    }
+    const cardOf = (k: KnowledgeItemDto) => ({
+      id: k.id,
+      available: true,
+      type: 'note',
+      title: k.title,
+      folderPath: [],
+    });
+
+    it("the ticket's URL is a card's link; a URL of its text no card has goes into every description", async () => {
+      const g = await group();
+      const a = await admin();
+      const t = await ticket(g, {
+        url: 'https://x.egrant.sk/app/projekt/7',
+        body: 'See https://x.egrant.sk/app/help\n- Fix the form https://x.egrant.sk/app/form/3\n- Call the bank',
+      });
+      const res = await split(t.id, a.cookie);
+      expect(res.statusCode).toBe(200);
+      const { tasks: proposed } = res.json<TaskProposals>();
+      expect(proposed.map((p) => [p.link, p.description])).toEqual([
+        ['https://x.egrant.sk/app/form/3', 'https://x.egrant.sk/app/help'],
+        ['https://x.egrant.sk/app/projekt/7', 'https://x.egrant.sk/app/help'],
+      ]);
+    });
+
+    it('files sent in the ticket chat are offered and copied onto a card', async () => {
+      const g = await group();
+      const a = await admin();
+      const c = await member(g.id, 'client', 'Jana');
+      const t = await ticket(g);
+      const file = await createFile(
+        { db: db(), storage: test.deps.storage },
+        {
+          groupId: g.id,
+          uploadedBy: c.id,
+          name: 'shot.txt',
+          declaredType: 'text/plain',
+          body: Readable.from([Buffer.from('shot')]),
+        },
+      );
+      const chat = await chatOf(t.id, c.cookie);
+      await say(chat.id, c.cookie, { body: 'Here is the screen', fileIds: [file.id] });
+
+      const proposed = (await split(t.id, a.cookie)).json<TaskProposals>();
+      expect(proposed.files.map((f) => f.name)).toEqual(['shot.txt']);
+      const res = await call('POST', `/api/groups/${g.id}/tasks/from-ticket`, a.cookie, {
+        ticketId: t.id,
+        tasks: [{ ...card('A'), messageFileIds: [file.id] }],
+      });
+      expect(res.statusCode).toBe(201);
+      const [created] = res.json<{ tasks: TaskDetailDto[] }>().tasks;
+      expect(created!.files.map((f) => f.name)).toEqual(['shot.txt']);
+      expect(created!.files[0]!.id).not.toBe(file.id);
+    });
+
+    it("the ticket's shareable knowledge goes onto every card, after the card's own", async () => {
+      const g = await group();
+      const a = await admin();
+      const t = await ticket(g);
+      const shared = await note(g.id, a.cookie, 'Postup');
+      const hidden = await note(g.id, a.cookie, 'Tajné');
+      const own = await note(g.id, a.cookie, 'Vlastné');
+      const linked = await call('PATCH', `/api/tickets/${t.id}`, a.cookie, {
+        knowledgeIds: [shared.id, hidden.id],
+      });
+      expect(linked.statusCode).toBe(200);
+      const made = await call('PATCH', `/api/knowledge/${hidden.id}`, a.cookie, {
+        visibility: 'admins',
+        updatedAt: hidden.updatedAt,
+      });
+      expect(made.statusCode).toBe(200);
+
+      const res = await call('POST', `/api/groups/${g.id}/tasks/from-ticket`, a.cookie, {
+        ticketId: t.id,
+        tasks: [{ ...card('A'), knowledgeIds: [own.id, shared.id] }, card('B')],
+      });
+      expect(res.statusCode).toBe(201);
+      const created = res.json<{ tasks: TaskDetailDto[] }>().tasks;
+      expect(created.map((x) => x.linkedKnowledge)).toEqual([
+        [cardOf(own), cardOf(shared)],
+        [cardOf(shared)],
+      ]);
+    });
+
+    it("a chat message's knowledge goes onto its cards", async () => {
+      const g = await group();
+      const a = await admin();
+      const t = await ticket(g);
+      const shared = await note(g.id, a.cookie, 'Postup');
+      const chat = await chatOf(t.id, a.cookie);
+      const message = await say(chat.id, a.cookie, {
+        body: '- One',
+        knowledgeIds: [shared.id],
+      });
+      const res = await call('POST', `/api/groups/${g.id}/tasks/from-message`, a.cookie, {
+        messageId: message.id,
+        tasks: [card('One')],
+      });
+      expect(res.statusCode).toBe(201);
+      const [created] = res.json<{ tasks: TaskDetailDto[] }>().tasks;
+      expect(created!.linkedKnowledge).toEqual([cardOf(shared)]);
     });
   });
 

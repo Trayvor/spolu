@@ -62,7 +62,7 @@ export const aiRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { dep
     try {
       const result = await propose();
       log('ok', result.usage, result.durationMs);
-      const body: TaskProposals = { tasks: result.tasks };
+      const body: TaskProposals = { tasks: result.tasks, files: result.files ?? [] };
       return body;
     } catch (error) {
       if (error instanceof AiUnavailableError) return unavailable(reply);

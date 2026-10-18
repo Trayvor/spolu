@@ -84,6 +84,7 @@ export async function meetingTaskProposals(
       dueDate: action.deadline,
       urgent: false,
       messageFileIds: [],
+      link: null,
     };
   });
 }

@@ -14,6 +14,11 @@ export type SplitRequest = {
   details: { label: string; value: string }[];
   /** Ticket only: its chat, oldest first, the newest `CONVERSATION_MAX` messages. */
   conversation: { author: string; text: string }[];
+  /**
+   * Server only, never put into the prompt: the people the texts mention (shown to the AI as
+   * `@Name`), so a card's "@Name" becomes a mention again.
+   */
+  mentions?: { id: string; name: string }[];
 };
 
 /** One card as the AI returned it, before `sanitizeProposals`. */
@@ -24,6 +29,8 @@ export type RawTask = {
   fileIds: string[];
   deadline: string | null;
   urgent: boolean;
+  /** One web address copied from the text (kept only when the text has it); absent = none. */
+  link?: string | null;
 };
 
 export type SplitResult = {

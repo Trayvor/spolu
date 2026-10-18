@@ -46,6 +46,7 @@ const proposal = (over: Partial<TaskProposal> = {}): TaskProposal => ({
   dueDate: '2026-10-20',
   urgent: true,
   messageFileIds: [],
+  link: null,
   ...over,
 });
 
@@ -76,8 +77,23 @@ describe('review model', () => {
     const base = { projectId: 'p1', eventId: 'e1' };
     const [first] = cardsFromProposals([proposal()], [], base);
     expect(first!.draft).toMatchObject(base);
-    expect(cardByHand('text', base).draft).toMatchObject(base);
+    expect(cardByHand('text', null, base).draft).toMatchObject(base);
     expect(toDrafts([{ ...first!, decision: 'approved' }], new Set())[0]).toMatchObject(base);
+  });
+
+  it('cardsFromProposals keeps the proposed link (owner bug report 2026-10-18)', () => {
+    const [withLink, without] = cardsFromProposals(
+      [proposal({ link: 'https://x.egrant.sk/app/7' }), proposal()],
+      [],
+    );
+    expect(withLink!.draft.link).toBe('https://x.egrant.sk/app/7');
+    expect(without!.draft.link).toBeNull();
+  });
+
+  it("cardByHand takes the source's link", () => {
+    expect(cardByHand('Call the bank', 'https://x.egrant.sk/app/7').draft.link).toBe(
+      'https://x.egrant.sk/app/7',
+    );
   });
 
   it('cardByHand has an empty title and the message text as description', () => {

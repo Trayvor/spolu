@@ -53,7 +53,7 @@ export function cardsFromProposals(
         dueDate: p.dueDate,
         urgent: p.urgent,
         fileIds: files.map((f) => f.id),
-        link: null,
+        link: p.link ?? null,
         ...base,
       },
       files,
@@ -62,8 +62,15 @@ export function cardsFromProposals(
   });
 }
 
-/** The card offered when the AI found no tasks: empty title, the source's text as description. */
-export function cardByHand(text: string, base: Partial<TaskDraft> = {}): ReviewCard {
+/**
+ * The card offered when the AI found no tasks: empty title, the source's text as description,
+ * the source's link (a ticket's URL), and the source's project and event (`base`).
+ */
+export function cardByHand(
+  text: string,
+  link: string | null = null,
+  base: Partial<TaskDraft> = {},
+): ReviewCard {
   return {
     key: nextKey(),
     draft: {
@@ -73,7 +80,7 @@ export function cardByHand(text: string, base: Partial<TaskDraft> = {}): ReviewC
       dueDate: null,
       urgent: false,
       fileIds: [],
-      link: null,
+      link,
       ...base,
     },
     files: [],

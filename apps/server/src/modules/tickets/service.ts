@@ -38,6 +38,7 @@ import {
 import { groups } from '../groups/schema.js';
 import { getGroup, listGroupPeople } from '../groups/service.js';
 import { countTasksFromTicket, listTasksFromTicket } from '../tasks/task-service.js';
+import { channelFileIds } from '../chat/messages.js';
 import { getTicketChannel } from '../chat/service.js';
 import { getProjectRef, InvalidProjectError, projectRefs } from '../projects/refs.js';
 import { ticketUnseenSql } from '../notifications/unseen.js';
@@ -280,6 +281,20 @@ export async function attachmentIds(db: Db, ticketId: string): Promise<string[]>
 /** The files of the ticket; a ticket without a client keeps the intake's files in no group. */
 export async function ticketFiles(db: Db, row: TicketRow) {
   return getFilesForGroup(db, row.groupId, await attachmentIds(db, row.id));
+}
+
+/**
+ * The files a ticket's task cards may copy: the ticket's own (uploaded with it or sent to the
+ * intake) and those sent in its chat (owner bug report 2026-10-18), without repeats. Everyone
+ * who uses the group's board reads the ticket and its chat, so a copy shows them nothing new.
+ */
+export async function ticketTaskFiles(db: Db, row: TicketRow) {
+  const channel = await getTicketChannel(db, row.id);
+  const [own, chat] = await Promise.all([
+    attachmentIds(db, row.id),
+    channel ? channelFileIds(db, channel.id) : [],
+  ]);
+  return getFilesForGroup(db, row.groupId, [...new Set([...own, ...chat])]);
 }
 
 /**
