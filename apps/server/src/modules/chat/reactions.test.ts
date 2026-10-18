@@ -142,7 +142,8 @@ describe('chat reactions (Phase 28)', () => {
       (await react(s.message.id, s.a.cookie, '😮', false)).json(),
     );
     expect(noop.changeSeq).toBe(once.changeSeq);
-    await new Promise((r) => setTimeout(r, 100));
+    // Sentinel: the ping ack arrives after anything the server pushed before it.
+    await socket.timeout(25_000).emitWithAck('system:ping');
     expect(events).toEqual([]);
   });
 

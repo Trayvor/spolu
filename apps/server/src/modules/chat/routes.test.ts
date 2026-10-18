@@ -227,20 +227,23 @@ describe('chat API', () => {
         call('DELETE', `/api/messages/${mine.id}`, s.a.cookie),
       ]);
       // Wait until all three are blocked on the lock, then delete the task (its chat cascades).
-      for (let i = 0; i < 60; i++) {
+      const deadline = Date.now() + 25_000;
+      for (;;) {
         const [row] = await db.execute<{ n: number }>(sql`
           select count(*)::int as n from pg_stat_activity
-          where query like 'update "channels" set "last_seq"%'
+          where datname = current_database()
+            and query like 'update "channels" set "last_seq"%'
             and cardinality(pg_blocking_pids(pid)) > 0
         `);
         if (row!.n >= 3) break;
+        if (Date.now() > deadline) throw new Error('the three writes never blocked on the lock');
         await new Promise((r) => setTimeout(r, 50));
       }
       await tx.delete(tasks).where(eq(tasks.id, task.id));
     });
     const results = await pending!;
     expect(results.map((r) => r.statusCode)).toEqual([404, 404, 404]);
-  }, 15_000);
+  }, 45_000);
 
   it('a task chat message and its thread reply carry the taskId in their events', async () => {
     const s = await setup();

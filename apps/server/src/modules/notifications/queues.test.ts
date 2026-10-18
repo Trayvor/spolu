@@ -81,12 +81,12 @@ describe('notification queues', () => {
       }
       // Count only ours: pushes left in the queue by an earlier run may be sent too.
       const ours = () => fake.sent.filter((p) => endpoints.has(p.endpoint));
-      await vi.waitFor(() => expect(ours()).toHaveLength(20), { timeout: 10_000, interval: 50 });
+      await vi.waitFor(() => expect(ours()).toHaveLength(20), { timeout: 25_000, interval: 50 });
       expect(maxInFlight).toBeGreaterThan(1);
     } finally {
       await jobs.stop();
     }
-  }, 30_000);
+  }, 45_000);
 
   it('50 delivery requests leave at most 2 deliver jobs', async () => {
     let release!: () => void;

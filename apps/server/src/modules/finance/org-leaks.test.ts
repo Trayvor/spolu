@@ -250,12 +250,14 @@ describe('finance leak guarantees (Phase 32 E)', () => {
 
   it("an organisation item's change reaches the finance room only", async () => {
     const got = { fin: 0, plain: 0, client: 0 };
+    const opened: Socket[] = [];
     for (const [key, session] of [
       ['fin', fin],
       ['plain', plain],
       ['client', client],
     ] as const) {
       const socket = await connected(session.cookie);
+      opened.push(socket);
       if (key !== 'client') {
         await new Promise((resolve) => socket.emit('group:join', { groupId }, resolve));
       }
@@ -266,7 +268,8 @@ describe('finance leak guarantees (Phase 32 E)', () => {
       title: 'Interná poznámka',
     });
     expect(res.statusCode).toBe(201);
-    await new Promise((r) => setTimeout(r, 200));
+    // Sentinel: a ping ack on each socket arrives after anything pushed to it before.
+    await Promise.all(opened.map((x) => x.timeout(25_000).emitWithAck('system:ping')));
     expect(got).toEqual({ fin: 1, plain: 0, client: 0 });
   });
 
