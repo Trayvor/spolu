@@ -26,9 +26,9 @@ The owner wants to add Help to Claude (claude.ai, Claude Desktop) with **Add cus
 | 14 | Discovery | `GET /.well-known/oauth-protected-resource/mcp` and `/.well-known/oauth-protected-resource` (RFC 9728), `GET /.well-known/oauth-authorization-server` (RFC 8414). `401` from `/mcp` carries `WWW-Authenticate: Bearer realm="spolu", resource_metadata="https://<domain>/.well-known/oauth-protected-resource/mcp"` (plus `error="invalid_token"` for a wrong one). No OpenID Connect discovery (Help issues no ID tokens), no client ID metadata documents (DCR is enough for Claude). No CORS: Claude exchanges tokens from its servers. | |
 | 15 | Caddy | No change: the single `reverse_proxy app:3000` passes `/.well-known/*` and `/oauth/*` to the app. | Checked in `deploy/Caddyfile`. |
 | 16 | Email | When an admin approves a connection, they get the same "new access to your account" email as for a new personal token (from PR #121's security fixes). | A stolen session cannot connect an AI silently. |
-| 17 | Migration | **0046** (`0046_mcp_oauth.sql`), the next free number after #121's 0045. | |
+| 17 | Migration | **0047** (`0047_mcp_oauth.sql`). On the orchestrator's plan PR #124 takes 0045 and #121 (MCP tokens) becomes 0046 at merge, so this is 0047 already; until #121 is renumbered the journal skips the file number 0046 (the journal order is what counts). | |
 
-## 3. Data (migration 0046)
+## 3. Data (migration 0047)
 
 - `mcp_oauth_clients`: `id` (the `client_id`, `mcpc_` + 16 random bytes), `secret_hash` (nullable), `auth_method`, `name` (≤ 100, control characters removed; "MCP client" when empty), `redirect_uris` (text[]), `created_at`, `last_used_at`.
 - `mcp_oauth_grants` (a connection): `client_id` (cascade, indexed), `user_id` (cascade, indexed), `scope` (`read` | `write`, CHECK), `redirect_uri`, `created_at`, `expires_at` (follows the newest refresh token), `revoked_at`.

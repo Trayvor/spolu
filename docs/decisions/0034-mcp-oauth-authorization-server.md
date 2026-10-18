@@ -13,7 +13,7 @@ The owner wants to add Help to claude.ai and Claude Desktop as a **custom connec
 - **Redirect addresses are limited to Claude's hosts and loopback**: `https://claude.ai`, `https://claude.com` (exact hosts) and `http://localhost|127.0.0.1|[::1]` (any port). Registration is otherwise open (RFC 7591) but rate limited per IP, capped at 500 clients, and unused clients expire.
 - **PKCE S256 is required**; codes are hashed, single use, two minutes, and reuse revokes what they gave; access tokens last one hour; refresh tokens 30 days, rotating, with **reuse detection that revokes the connection**. Everything secret is stored as SHA-256 only.
 - **Consent POST carries an HMAC consent token** bound to the login session and the exact parameters, on top of the `/api` Origin guard; `/oauth/*` pages may not be framed.
-- Migration 0046.
+- Migration 0047.
 
 ## Consequences
 - Adding the connector in Claude needs only the URL; Claude registers itself, the admin approves once, and Claude refreshes on its own. Personal tokens stay for Claude Code and scripts.
