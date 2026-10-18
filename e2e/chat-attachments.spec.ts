@@ -44,7 +44,8 @@ test('a task and a ticket travel in a message as live cards', async ({ page, con
   await other.goto(`/groups/${groupId}/chat`);
 
   // The picker opens on Knowledge; the Tasks and Tickets tabs search their own lists.
-  await page.getByRole('button', { name: 'Priložiť znalosť, úlohu alebo tiket' }).click();
+  await page.getByRole('button', { name: 'Pridať', exact: true }).click();
+  await page.getByRole('menuitem', { name: 'Znalosti' }).click();
   const picker = page.getByTestId('attach-picker');
   await expect(picker.getByRole('tab')).toHaveCount(3);
   await picker.getByRole('tab', { name: 'Úlohy' }).click();

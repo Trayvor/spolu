@@ -45,7 +45,8 @@ test('an admin shares one internal note with a client chat on purpose', async ({
 
   // "Only eGrant": not offered under "eGrant tím".
   await admin.goto(`/groups/${groupId}/chat`);
-  await admin.getByRole('button', { name: 'Priložiť znalosť, úlohu alebo tiket' }).click();
+  await admin.getByRole('button', { name: 'Pridať', exact: true }).click();
+  await admin.getByRole('menuitem', { name: 'Znalosti' }).click();
   const picker = admin.getByTestId('attach-picker');
   await picker.getByRole('tab', { name: 'Znalosti' }).click();
   await picker.getByRole('radio', { name: 'eGrant tím' }).click();
@@ -59,7 +60,8 @@ test('an admin shares one internal note with a client chat on purpose', async ({
   });
   expect(shared.status()).toBe(200);
   await admin.reload();
-  await admin.getByRole('button', { name: 'Priložiť znalosť, úlohu alebo tiket' }).click();
+  await admin.getByRole('button', { name: 'Pridať', exact: true }).click();
+  await admin.getByRole('menuitem', { name: 'Znalosti' }).click();
   await picker.getByRole('tab', { name: 'Znalosti' }).click();
   await picker.getByRole('radio', { name: 'eGrant tím' }).click();
   await picker.getByRole('searchbox').fill(`${stamp}`);

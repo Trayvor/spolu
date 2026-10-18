@@ -13,7 +13,7 @@ import { pickedCount, type Picked } from './picked';
 import { TasksTab } from './tasks-tab';
 import { TicketsTab } from './tickets-tab';
 
-type Tab = 'knowledge' | 'tasks' | 'tickets';
+export type Tab = 'knowledge' | 'tasks' | 'tickets';
 const TABS: readonly Tab[] = ['knowledge', 'tasks', 'tickets'];
 const TAB_KEY = 'spolu.attachTab';
 
@@ -44,17 +44,20 @@ function remember(tab: Tab): void {
 export default function AttachPicker({
   groupId,
   picked,
+  initialTab,
   onDone,
   onClose,
 }: {
   groupId: string;
   picked: Picked;
+  /** The tab to open on (the composer's menu names one); otherwise the last one used. */
+  initialTab?: Tab;
   onDone: (picked: Picked) => void;
   onClose: () => void;
 }) {
   const { t } = useTranslation();
   const titleRef = useRef<HTMLHeadingElement>(null);
-  const [tab, setTab] = useState<Tab>(rememberedTab);
+  const [tab, setTab] = useState<Tab>(() => initialTab ?? rememberedTab());
   const [chosen, setChosen] = useState<Picked>(picked);
   const directory = useClientDirectory(true);
   const [clients, setClients] = useState<string[] | null>(null);

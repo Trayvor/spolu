@@ -169,7 +169,7 @@ describe('knowledge cards', () => {
           </ChatScopeProvider>
         </QueryClientProvider>,
       );
-    const button = () => screen.queryByRole('button', { name: t('chat.work.attach') });
+    const button = () => screen.queryByRole('button', { name: t('chat.composer.add') });
     const first = composer({});
     expect(button()).toBeInTheDocument();
     first.unmount();

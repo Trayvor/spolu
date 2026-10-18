@@ -49,6 +49,9 @@
     "send": "Odoslať",
     "save": "Uložiť",
     "attach": "Priložiť súbory",
+    "add": "Pridať",
+    "addTicket": "Tiket",
+    "addUpload": "Nahrať súbor zo zariadenia",
     "removeFile": "Odstrániť súbor",
     "replyingTo": "Odpoveď pre {{name}}: {{excerpt}}",
     "cancelReply": "Zrušiť odpoveď",
@@ -150,7 +153,6 @@
     "adminGroupHint": "Zobrazujú sa len položky označené Zdieľateľné s klientmi."
   },
   "work": {
-    "attach": "Priložiť znalosť, úlohu alebo tiket",
     "pickerTitle": "Priložiť k správe",
     "tabs": {
       "knowledge": "Znalosti",

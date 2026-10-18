@@ -47,6 +47,9 @@
     "send": "Invia",
     "save": "Salva",
     "attach": "Allega file",
+    "add": "Aggiungi",
+    "addTicket": "Ticket",
+    "addUpload": "Carica un file dal dispositivo",
     "removeFile": "Rimuovi file",
     "replyingTo": "Risposta a {{name}}: {{excerpt}}",
     "cancelReply": "Annulla risposta",
@@ -147,7 +150,6 @@
     "adminGroupHint": "Sono elencati solo gli elementi segnati come Condivisibile con i clienti."
   },
   "work": {
-    "attach": "Allega una conoscenza, un compito o un ticket",
     "pickerTitle": "Allega al messaggio",
     "tabs": {
       "knowledge": "Conoscenze",

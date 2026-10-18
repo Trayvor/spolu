@@ -49,7 +49,8 @@ test('the admin group attaches another client’s ticket and admins-only note', 
   const adminGroup = groups.find((g) => g.kind === 'admin')!.id;
   await page.goto(`/groups/${adminGroup}/chat`);
 
-  await page.getByRole('button', { name: 'Priložiť znalosť, úlohu alebo tiket' }).click();
+  await page.getByRole('button', { name: 'Pridať', exact: true }).click();
+  await page.getByRole('menuitem', { name: 'Znalosti' }).click();
   const picker = page.getByTestId('attach-picker');
 
   // Knowledge: every client's items, an admins-only one marked "Len eGrant", with its client.
