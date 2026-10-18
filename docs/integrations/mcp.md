@@ -88,6 +88,8 @@ Start with `whoami` and `list_groups`; the other tools take the ids they return.
 | files | `read_file` (up to 2 MB: text, images, other files as base64) | |
 | finance (finance holders only) | `list_finance_documents`, `list_finance_document_folders`, `get_finance_document`, `list_finance_payees`, `get_finance_overview`, `get_work_log`, `list_rates`, `list_contracts`, `get_paid_ranking`, `get_hours_ranking`, `get_task_time`, `get_ticket_time` | `create_finance_document`, `update_finance_document`, `create_organisation_finance_item`, `create_finance_folder`, `update_finance_folder`, `add_time_entry`, `update_time_entry`, `add_rate`, `set_my_task_time`, `set_my_ticket_time` |
 
+The assistant cannot reach your own settings routes that hold secrets: the MCP tokens and connections, passkeys and the calendar subscription (`/api/me/calendar-feed*`, [calendar-feed.md](../product/calendar-feed.md)) are not in the allowlist, so it can neither read nor reveal your calendar link.
+
 A change made through MCP is the app's own request: everyone sees it live and is notified as if you had done it in the app. An edit tool takes an optional `updatedAt`; without it the current version is changed.
 
 ## 4. Limits and audit

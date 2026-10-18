@@ -176,4 +176,18 @@ export const hr: ServerTexts = {
     addToCalendar: 'Dodaj u kalendar:',
     join: 'Pridruži se u Teamsu:',
   },
+  calendarFeed: {
+    name: (userName) => `Help – ${userName}`,
+    eventSummary: (project, event) => `${project} · ${event}`,
+    callSummary: (title) => `Poziv: ${title}`,
+    withGroup: (group, summary) => `${group}: ${summary}`,
+    createdEmail: {
+      subject: 'Izradili ste poveznicu za pretplatu na kalendar',
+      lines: [
+        'Za vaš račun u Helpu izrađena je poveznica za pretplatu na kalendar.',
+        'Ako to niste bili vi, otvorite Postavke i otkažite pretplatu.',
+      ],
+      button: 'Otvori postavke',
+    },
+  },
 };

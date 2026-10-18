@@ -24,6 +24,7 @@ Requirements for Spolu, one topic per file. The product is shown to users as "He
 | [bulk-email.md](bulk-email.md) | admins' bulk email: campaigns, drafts, audience rules, unsubscribe, report | 23 |
 | [notifications.md](notifications.md) | notification groups, modes per group, push and email channels | 6 (and 7, 15, 21) |
 | [search.md](search.md) | global search and the Cmd/Ctrl+K quick switcher: what each role finds, where it opens | outside the phases (2026-10-18) |
+| [calendar-feed.md](calendar-feed.md) | the personal calendar subscription (ICS feed) of events, deadlines and calls, on /settings | outside the phases (2026-10-19) |
 | [profile.md](profile.md) | name, avatar, language, password, message search | 6, 16, 26 |
 | [integrations.md](integrations.md) | eGrant, Elastic Email, LLM API | 2, 9, 21, 23 |
 | [non-functional.md](non-functional.md) | PWA, nine languages, realtime, backups (DB nightly in 1; off-site and files in 16), monitoring (16), design rule | 1, 16, 26 |

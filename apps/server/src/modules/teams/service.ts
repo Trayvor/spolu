@@ -1,4 +1,4 @@
-import { eq, sql } from 'drizzle-orm';
+import { eq, inArray, sql } from 'drizzle-orm';
 import type {
   SessionUser,
   TeamsCreateBody,
@@ -509,4 +509,17 @@ export async function linkByCalendarHash(
   if (!row) return null;
   const meeting = await getMeetingForTeams(db, row.itemId);
   return meeting ? { row, meeting } : null;
+}
+
+/**
+ * The length in minutes of the Teams meeting of each of `itemIds` that has one (the personal
+ * calendar feed's call ends, ADR 0051): one read of `teams_meeting_links` by its primary key.
+ */
+export async function meetingDurations(db: Db, itemIds: string[]): Promise<Map<string, number>> {
+  if (itemIds.length === 0) return new Map();
+  const rows = await db
+    .select({ itemId: teamsMeetingLinks.itemId, minutes: teamsMeetingLinks.durationMinutes })
+    .from(teamsMeetingLinks)
+    .where(inArray(teamsMeetingLinks.itemId, [...new Set(itemIds)]));
+  return new Map(rows.map((r) => [r.itemId, r.minutes]));
 }

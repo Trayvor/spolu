@@ -7,6 +7,7 @@ The user profile holds name, avatar and language, the notification channel setti
 - Profile fields: name, avatar, language.
 - Optional **password** as an alternative to code login (see `auth.md`).
 - Notification channels, modes per client and new tickets are set on `/settings/notifications`, linked from the profile (see `notifications.md`).
+- The calendar subscription (Kalendár card, admins and clients): see [calendar-feed.md](calendar-feed.md).
 - Message search within a group.
 - Example of done: the system is ready for the team's full move from Teams.
 

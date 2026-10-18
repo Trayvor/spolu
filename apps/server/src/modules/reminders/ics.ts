@@ -100,51 +100,75 @@ function fold(line: string): string {
   return out.join('\r\n');
 }
 
-export function buildIcsText(input: { now: Date; events: IcsEvent[] }): string {
-  const lines = [
-    'BEGIN:VCALENDAR',
-    'VERSION:2.0',
-    'PRODID:-//eGrant//Spolu//EN',
-    'CALSCALE:GREGORIAN',
-    'METHOD:PUBLISH',
-  ];
-  const stamp = utc(input.now);
-  for (const event of input.events) {
-    let when: string[];
-    if ('date' in event) {
-      // A date is the same day in every time zone: no VTIMEZONE, no alarm.
-      const { start, end } = allDay(event.date);
-      when = [`DTSTART;VALUE=DATE:${start}`, `DTEND;VALUE=DATE:${end}`];
-    } else {
-      const end = event.end ?? new Date(event.start.getTime() + EVENT_MINUTES * 60_000);
-      when = [`DTSTART:${utc(event.start)}`, `DTEND:${utc(end)}`];
-      if (event.location) when.push(`LOCATION:${escapeText(event.location)}`);
-    }
-    lines.push(
-      'BEGIN:VEVENT',
-      `UID:${cleanUri(event.uid)}`,
-      `DTSTAMP:${stamp}`,
-      ...when,
-      `LAST-MODIFIED:${utc(event.updatedAt)}`,
-      `SEQUENCE:${sequence(event.updatedAt)}`,
-      `SUMMARY:${escapeText(event.title)}`,
-      `DESCRIPTION:${escapeText(event.description)}`,
-      `URL:${cleanUri(event.url)}`,
-    );
-    if (!('date' in event) && event.alarm !== false) {
-      lines.push(
-        'BEGIN:VALARM',
-        'TRIGGER:PT0M',
-        'ACTION:DISPLAY',
-        // DESCRIPTION is required on a DISPLAY alarm.
-        `DESCRIPTION:${escapeText(event.title)}`,
-        'END:VALARM',
-      );
-    }
-    lines.push('END:VEVENT');
+/** The lines of one VEVENT, stamped `stamp`; `alarm` false leaves every display alarm out. */
+function eventLines(event: IcsEvent, stamp: string, alarm: boolean): string[] {
+  let when: string[];
+  if ('date' in event) {
+    // A date is the same day in every time zone: no VTIMEZONE, no alarm.
+    const { start, end } = allDay(event.date);
+    when = [`DTSTART;VALUE=DATE:${start}`, `DTEND;VALUE=DATE:${end}`];
+  } else {
+    const end = event.end ?? new Date(event.start.getTime() + EVENT_MINUTES * 60_000);
+    when = [`DTSTART:${utc(event.start)}`, `DTEND:${utc(end)}`];
+    if (event.location) when.push(`LOCATION:${escapeText(event.location)}`);
   }
+  const lines = [
+    'BEGIN:VEVENT',
+    `UID:${cleanUri(event.uid)}`,
+    `DTSTAMP:${stamp}`,
+    ...when,
+    `LAST-MODIFIED:${utc(event.updatedAt)}`,
+    `SEQUENCE:${sequence(event.updatedAt)}`,
+    `SUMMARY:${escapeText(event.title)}`,
+    `DESCRIPTION:${escapeText(event.description)}`,
+    `URL:${cleanUri(event.url)}`,
+  ];
+  if (alarm && !('date' in event) && event.alarm !== false) {
+    lines.push(
+      'BEGIN:VALARM',
+      'TRIGGER:PT0M',
+      'ACTION:DISPLAY',
+      // DESCRIPTION is required on a DISPLAY alarm.
+      `DESCRIPTION:${escapeText(event.title)}`,
+      'END:VALARM',
+    );
+  }
+  lines.push('END:VEVENT');
+  return lines;
+}
+
+const HEADER = [
+  'BEGIN:VCALENDAR',
+  'VERSION:2.0',
+  'PRODID:-//eGrant//Spolu//EN',
+  'CALSCALE:GREGORIAN',
+];
+
+const finish = (lines: string[]) => lines.map(fold).join('\r\n') + '\r\n';
+
+export function buildIcsText(input: { now: Date; events: IcsEvent[] }): string {
+  const lines = [...HEADER, 'METHOD:PUBLISH'];
+  const stamp = utc(input.now);
+  for (const event of input.events) lines.push(...eventLines(event, stamp, true));
   lines.push('END:VCALENDAR');
-  return lines.map(fold).join('\r\n') + '\r\n';
+  return finish(lines);
+}
+
+/**
+ * The personal calendar feed (ADR 0051), a subscription rather than an import: no METHOD, the
+ * calendar's name, an hourly refresh hint, no alarms (Help notifies on its own), and each event
+ * stamped with its own `updatedAt`, so the same events give the same bytes (the feed's ETag).
+ */
+export function buildIcsFeed(input: { name: string; events: IcsEvent[] }): string {
+  const lines = [
+    ...HEADER,
+    `X-WR-CALNAME:${escapeText(input.name)}`,
+    'REFRESH-INTERVAL;VALUE=DURATION:PT1H',
+    'X-PUBLISHED-TTL:PT1H',
+  ];
+  for (const event of input.events) lines.push(...eventLines(event, utc(event.updatedAt), false));
+  lines.push('END:VCALENDAR');
+  return finish(lines);
 }
 
 const MAX_SLUG = 60;

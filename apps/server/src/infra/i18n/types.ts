@@ -206,4 +206,17 @@ export type ServerTexts = {
     /** Before the join link in the .ics description. */
     join: string;
   };
+  /** The personal calendar feed (ADR 0051): the calendar's texts and the security email. */
+  calendarFeed: {
+    /** The calendar's name (`X-WR-CALNAME`): "Help – Mária Nováková". */
+    name(userName: string): string;
+    /** A project event's SUMMARY: "Projekt Lúky 2026 · Odovzdanie žiadosti". */
+    eventSummary(project: string, event: string): string;
+    /** A call's SUMMARY: "Hovor: Porada". */
+    callSummary(title: string): string;
+    /** An admin's SUMMARY with the client first: "Obec Lúky: Hovor: Porada". */
+    withGroup(group: string, summary: string): string;
+    /** To the owner when a feed link is created or rotated (an alert in case it was not them). */
+    createdEmail: { subject: string; lines: string[]; button: string };
+  };
 };

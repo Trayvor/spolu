@@ -181,4 +181,18 @@ export const uk: ServerTexts = {
     addToCalendar: 'Додати до календаря:',
     join: 'Приєднатися в Teams:',
   },
+  calendarFeed: {
+    name: (userName) => `Help – ${userName}`,
+    eventSummary: (project, event) => `${project} · ${event}`,
+    callSummary: (title) => `Дзвінок: ${title}`,
+    withGroup: (group, summary) => `${group}: ${summary}`,
+    createdEmail: {
+      subject: 'Ви створили посилання для підписки на календар',
+      lines: [
+        'Для вашого облікового запису в Help створено посилання для підписки на календар.',
+        'Якщо це були не ви, відкрийте Налаштування й скасуйте підписку.',
+      ],
+      button: 'Відкрити налаштування',
+    },
+  },
 };
