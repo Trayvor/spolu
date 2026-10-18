@@ -1,0 +1,55 @@
+{
+  "title": "Dostop za AI (MCP)",
+  "intro": "Povežite Claude ali drugega pomočnika AI z aplikacijo Help z osebnim žetonom. Pomočnik dela kot vi: vidi in spreminja le to, kar lahko vi.",
+  "create": {
+    "title": "Nov žeton",
+    "name": "Ime",
+    "namePlaceholder": "Claude na mojem prenosniku",
+    "nameRequired": "Vnesite ime žetona.",
+    "access": "Dostop",
+    "validity": "Veljavnost",
+    "submit": "Ustvari žeton",
+    "limit": "Imate {{count}} aktivnih žetonov. Preden ustvarite novega, enega prekličite."
+  },
+  "scope": {
+    "read": "Samo branje",
+    "write": "Branje in spreminjanje"
+  },
+  "scopeHint": {
+    "read": "Pomočnik bere skupine, klepete, naloge, zahtevke in znanje.",
+    "write": "Pomočnik lahko tudi ustvarja in ureja naloge, zahtevke, sporočila, znanje in projekte. Nikoli ničesar ne izbriše."
+  },
+  "days": {
+    "7": "7 dni",
+    "30": "30 dni",
+    "90": "90 dni",
+    "365": "1 leto"
+  },
+  "created": {
+    "title": "Vaš nov žeton",
+    "once": "Kopirajte ga zdaj. Ne bo več prikazan.",
+    "tokenLabel": "Žeton",
+    "copy": "Kopiraj",
+    "copyCommand": "Kopiraj ukaz",
+    "copied": "Kopirano",
+    "claudeCode": "V Claude Code ga dodate z ukazom:",
+    "done": "Končano"
+  },
+  "tokens": {
+    "title": "Vaši žetoni",
+    "empty": "Še ni žetonov. Ustvarite enega in povežite pomočnika.",
+    "expires": "Velja do {{date}}",
+    "expired": "Veljavnost je potekla {{date}}",
+    "lastUsed": "Nazadnje uporabljen {{date}}",
+    "neverUsed": "Še ni bil uporabljen",
+    "revoke": "Prekliči",
+    "confirm": "Pomočnik s tem žetonom takoj izgubi dostop.",
+    "revokeConfirm": "Prekliči žeton",
+    "keep": "Obdrži"
+  },
+  "audit": {
+    "title": "Nedavne spremembe prek AI",
+    "empty": "Noben pomočnik še ni ničesar spremenil.",
+    "refused": "zavrnjeno"
+  }
+}

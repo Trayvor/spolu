@@ -418,9 +418,9 @@ describe('MCP finance access and leaks', () => {
     admins.push(row.id);
     await setFinanceAccess(db, row.id, row.id);
     const token = await mcpToken(db, row.id, 'read');
-    expect((await callTool(test.app, token, 'list_finance_document_folders', { groupId })).isError).toBe(
-      false,
-    );
+    expect(
+      (await callTool(test.app, token, 'list_finance_document_folders', { groupId })).isError,
+    ).toBe(false);
     await setFinanceAccess(db, row.id, null);
     const res = await callTool(test.app, token, 'list_finance_document_folders', { groupId });
     expect(res.json).toMatchObject({ status: 403 });

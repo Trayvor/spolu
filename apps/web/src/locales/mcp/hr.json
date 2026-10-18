@@ -1,0 +1,55 @@
+{
+  "title": "Pristup za AI (MCP)",
+  "intro": "Povežite Claude ili drugog AI asistenta s aplikacijom Help osobnim tokenom. Asistent radi kao vi: vidi i mijenja samo ono što možete i vi.",
+  "create": {
+    "title": "Novi token",
+    "name": "Naziv",
+    "namePlaceholder": "Claude na mom prijenosniku",
+    "nameRequired": "Unesite naziv tokena.",
+    "access": "Pristup",
+    "validity": "Vrijedi",
+    "submit": "Izradi token",
+    "limit": "Imate {{count}} aktivnih tokena. Opozovite jedan prije izrade novog."
+  },
+  "scope": {
+    "read": "Samo čitanje",
+    "write": "Čitanje i izmjene"
+  },
+  "scopeHint": {
+    "read": "Asistent čita grupe, chatove, zadatke, tikete i znanje.",
+    "write": "Asistent može i stvarati i uređivati zadatke, tikete, poruke, znanje i projekte. Nikada ništa ne briše."
+  },
+  "days": {
+    "7": "7 dana",
+    "30": "30 dana",
+    "90": "90 dana",
+    "365": "1 godina"
+  },
+  "created": {
+    "title": "Vaš novi token",
+    "once": "Kopirajte ga sada. Više se neće prikazati.",
+    "tokenLabel": "Token",
+    "copy": "Kopiraj",
+    "copyCommand": "Kopiraj naredbu",
+    "copied": "Kopirano",
+    "claudeCode": "Za dodavanje u Claude Code pokrenite:",
+    "done": "Gotovo"
+  },
+  "tokens": {
+    "title": "Vaši tokeni",
+    "empty": "Još nema tokena. Izradite jedan i povežite asistenta.",
+    "expires": "Vrijedi do {{date}}",
+    "expired": "Istekao {{date}}",
+    "lastUsed": "Zadnje korišten {{date}}",
+    "neverUsed": "Još nije korišten",
+    "revoke": "Opozovi",
+    "confirm": "Asistent s ovim tokenom odmah gubi pristup.",
+    "revokeConfirm": "Opozovi token",
+    "keep": "Zadrži"
+  },
+  "audit": {
+    "title": "Nedavne izmjene putem AI",
+    "empty": "Nijedan asistent još ništa nije promijenio.",
+    "refused": "odbijeno"
+  }
+}

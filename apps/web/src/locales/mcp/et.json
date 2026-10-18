@@ -1,0 +1,55 @@
+{
+  "title": "AI juurdepääs (MCP)",
+  "intro": "Ühendage Claude või mõni muu AI-assistent isikliku tokeniga Helpiga. Assistent töötab teie nimel: näeb ja muudab ainult seda, mida saate teie.",
+  "create": {
+    "title": "Uus token",
+    "name": "Nimi",
+    "namePlaceholder": "Claude minu sülearvutis",
+    "nameRequired": "Sisestage tokeni nimi.",
+    "access": "Juurdepääs",
+    "validity": "Kehtivus",
+    "submit": "Loo token",
+    "limit": "Teil on {{count}} aktiivset tokenit. Enne uue loomist tühistage üks."
+  },
+  "scope": {
+    "read": "Ainult lugemine",
+    "write": "Lugemine ja muutmine"
+  },
+  "scopeHint": {
+    "read": "Assistent loeb gruppe, vestlusi, ülesandeid, pileteid ja teadmisi.",
+    "write": "Assistent saab ka luua ja muuta ülesandeid, pileteid, sõnumeid, teadmisi ja projekte. Ta ei kustuta kunagi midagi."
+  },
+  "days": {
+    "7": "7 päeva",
+    "30": "30 päeva",
+    "90": "90 päeva",
+    "365": "1 aasta"
+  },
+  "created": {
+    "title": "Teie uus token",
+    "once": "Kopeerige see kohe. Seda ei näidata enam.",
+    "tokenLabel": "Token",
+    "copy": "Kopeeri",
+    "copyCommand": "Kopeeri käsk",
+    "copied": "Kopeeritud",
+    "claudeCode": "Claude Code'i lisamiseks käivitage:",
+    "done": "Valmis"
+  },
+  "tokens": {
+    "title": "Teie tokenid",
+    "empty": "Tokeneid veel pole. Looge üks, et assistent ühendada.",
+    "expires": "Kehtib kuni {{date}}",
+    "expired": "Aegus {{date}}",
+    "lastUsed": "Viimati kasutatud {{date}}",
+    "neverUsed": "Pole veel kasutatud",
+    "revoke": "Tühista",
+    "confirm": "Selle tokeniga assistent kaotab kohe juurdepääsu.",
+    "revokeConfirm": "Tühista token",
+    "keep": "Jäta alles"
+  },
+  "audit": {
+    "title": "Viimased muudatused AI kaudu",
+    "empty": "Ükski assistent pole veel midagi muutnud.",
+    "refused": "keelatud"
+  }
+}
