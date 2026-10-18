@@ -130,6 +130,27 @@ describe('Open in Claude (Phase 29)', () => {
     expect(p).toContain(`https://${g.host}.egrant.sk (hostname: ${g.host}.egrant.sk)`);
     expect(p).toContain('admin_instance_call_write');
     expect(p).toContain('Odpovedaj po ukrajinsky.');
+    expect(p).toMatch(
+      new RegExp(
+        `Vygeneroval: Ad Min <${a.email.replace('.', '\\.')}> \\(admin, Help by eGrant\\), \\d{4}-\\d\\d-\\d\\d \\d\\d:\\d\\d`,
+      ),
+    );
+  });
+
+  it('states the authenticated actor as the author, never a name from the request body', async () => {
+    const a = await admin();
+    const other = await admin();
+    const t = await intake({ subject: 'Autor', body: 'Text' });
+    const res = await call('POST', `/api/tickets/${t.id}/claude-prompt`, a.cookie, {
+      notes: 'x',
+      generatedBy: { name: 'Mallory', email: 'mallory@evil.sk', role: 'superadmin' },
+      name: 'Mallory',
+    });
+    const { prompt: p } = ClaudePromptSchema.parse(res.json());
+    expect(res.statusCode).toBe(200);
+    expect(p).toContain(`Vygeneroval: Ad Min <${a.email}> (admin, Help by eGrant)`);
+    expect(p).not.toContain('Mallory');
+    expect(p).not.toContain(other.email);
   });
 
   it('builds a prompt for a ticket without a client, the instance unknown', async () => {
@@ -176,6 +197,7 @@ describe('Open in Claude (Phase 29)', () => {
     expect(p).toContain('Pridať pole IČO.');
     expect(p).toContain('- zadanie.pdf');
     expect(p).toContain('] Ad Min: Prosím @Anna Klientová o kontrolu.');
+    expect(p).toContain(`Vygeneroval: Ad Min <${a.email}> (admin, Help by eGrant)`);
     expect(p).toContain(`https://${g.host}.egrant.sk (hostname: ${g.host}.egrant.sk)`);
   });
 

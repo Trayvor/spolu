@@ -23,6 +23,7 @@ Admins and the superadmin, on every ticket (also one without a client) and every
 In Slovak, with "answer in <the admin's UI language>":
 
 - the ticket (number, subject, status, client, area, programme, due date, riešitelia, requester's name and email, the page link, created, text) or the task (title, bucket, client, urgent, due date, riešitelia, link, the ticket it came from, created by, created, description), with its link in Help by eGrant;
+- who generated it: a line `Vygeneroval: <name> <<email>> (<admin|superadmin>, Help by eGrant), <time>` (Europe/Bratislava), taken on the server from the signed-in user, never from the request body; no other person's data is added;
 - the file names (never contents or links);
 - its chat: the newest 30 messages, oldest first, with author, time (Europe/Bratislava) and file names, each cut to 1 500 characters;
 - the client's eGrant instance (the ticket's instance link, else the client's eGrant address), or a note that it is unknown;

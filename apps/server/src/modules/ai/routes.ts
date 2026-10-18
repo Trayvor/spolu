@@ -96,6 +96,13 @@ export const aiRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { dep
       publicUrl: deps.config.publicUrl,
       language: (await getUserById(deps.db, request.user!.id))?.language ?? 'sk',
       notes: parsed.data.notes,
+      // The authenticated actor, never the request body.
+      generatedBy: {
+        name: request.user!.name,
+        email: request.user!.email,
+        role: request.user!.role,
+      },
+      generatedAt: new Date(),
     };
   }
   app.post<IdParams>(

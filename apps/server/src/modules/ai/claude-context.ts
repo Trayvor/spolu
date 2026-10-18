@@ -20,7 +20,13 @@ export const PROMPT_MESSAGES_MAX = 30;
 
 type Field = { label: string; value: string };
 type PromptFile = { id: string; name: string };
-type Options = { publicUrl: string; language: UserLanguage; notes: string };
+type Options = {
+  publicUrl: string;
+  language: UserLanguage;
+  notes: string;
+  generatedBy: { name: string; email: string; role: string };
+  generatedAt: Date;
+};
 /** The prompt and every file it names, the item's own first, each once. */
 export type ClaudePromptResult = { prompt: string; files: PromptFile[] };
 
@@ -133,6 +139,8 @@ export async function ticketClaudePrompt(
     instanceUrl,
     notes: options.notes,
     language: options.language,
+    generatedBy: options.generatedBy,
+    generatedAt: options.generatedAt,
   });
   return { prompt, files: unique([...files, ...chat.files]) };
 }
@@ -184,6 +192,8 @@ export async function taskClaudePrompt(
     instanceUrl: group?.egrantUrl ?? null,
     notes: options.notes,
     language: options.language,
+    generatedBy: options.generatedBy,
+    generatedAt: options.generatedAt,
   });
   return { prompt, files: unique([...task.files, ...chat.files]) };
 }
