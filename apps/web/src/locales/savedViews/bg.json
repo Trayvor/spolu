@@ -9,6 +9,7 @@
   "starter": {
     "myOverdue": "Моите просрочени",
     "thisWeek": "Тази седмица",
-    "unassigned": "Тикети без отговорник"
+    "unassigned": "Тикети без отговорник",
+    "thisMonth": "Този месец"
   }
 }

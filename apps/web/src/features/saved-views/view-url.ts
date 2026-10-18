@@ -40,4 +40,5 @@ export const STARTER_VIEWS: Readonly<
     { key: 'thisWeek', url: '/tasks?due=week' },
   ],
   tickets: [{ key: 'unassigned', url: '/tickets?assignee=none' }],
+  finance: [{ key: 'thisMonth', url: '/finance?period=thisMonth' }],
 };

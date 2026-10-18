@@ -1,47 +1,16 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ClientFilter, toClientOptions } from '@/components/client-filter';
-import { useSession } from '@/features/auth/use-session';
 import { groupsQuery } from '@/features/groups/api';
-import {
-  readRemembered,
-  rememberedFiltersKey,
-  writeRemembered,
-} from '@/lib/use-remembered-filters';
-
-const LIST = 'finance.clients';
 
 /**
- * The page's client choice: `clients` (empty: every client, now and later) and `internal`, whether
+ * The page's client choice (spec §6.2, decision 17; in the URL, `useFinancePageFilters`):
+ * `clients` (empty: every client, now and later) and `internal`, whether
  * "every client" includes the admin group "eGrant tím" (Phase 34 part E: on by default, owner
  * decision of 2026-10-18; unticking it leaves the team's time out). Chosen clients name the admin
  * group in `clients` when it is ticked.
  */
 export type FinanceClients = { clients: string[]; internal: boolean };
-
-/**
- * The page's client choice (spec §6.2, decision 17): every client by default, remembered per
- * person (`spolu.filters.<userId>.finance.clients`).
- */
-export function useFinanceClients(): [FinanceClients, (next: FinanceClients) => void] {
-  const userId = useSession()?.id ?? null;
-  const key = userId === null ? null : rememberedFiltersKey(userId, LIST);
-  const [choice, setChoice] = useState<FinanceClients>(() => {
-    const saved = key ? readRemembered(key) : null;
-    const clients = typeof saved?.clients === 'string' ? saved.clients : '';
-    return { clients: clients.split(',').filter(Boolean), internal: saved?.internal !== '0' };
-  });
-  const choose = (next: FinanceClients) => {
-    setChoice(next);
-    if (!key) return;
-    const value = {
-      ...(next.clients.length > 0 ? { clients: next.clients.join(',') } : {}),
-      ...(next.clients.length === 0 && !next.internal ? { internal: '0' } : {}),
-    };
-    writeRemembered(key, Object.keys(value).length > 0 ? value : null);
-  };
-  return [choice, choose];
-}
 
 /**
  * The knowledge list's client filter (pill, popover or sheet, chips) over every client, with the

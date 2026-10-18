@@ -9,6 +9,7 @@
   "starter": {
     "myOverdue": "My overdue",
     "thisWeek": "This week",
-    "unassigned": "Tickets without an assignee"
+    "unassigned": "Tickets without an assignee",
+    "thisMonth": "This month"
   }
 }

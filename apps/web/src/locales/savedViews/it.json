@@ -9,6 +9,7 @@
   "starter": {
     "myOverdue": "Le mie scadute",
     "thisWeek": "Questa settimana",
-    "unassigned": "Ticket senza assegnatario"
+    "unassigned": "Ticket senza assegnatario",
+    "thisMonth": "Questo mese"
   }
 }

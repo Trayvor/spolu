@@ -21,6 +21,6 @@ export const savedViews = pgTable(
   },
   (t) => [
     index('saved_views_user_page_idx').on(t.userId, t.page, t.createdAt),
-    check('saved_views_page_check', sql`${t.page} in ('board', 'tickets', 'knowledge')`),
+    check('saved_views_page_check', sql`${t.page} in ('board', 'tickets', 'knowledge', 'finance')`),
   ],
 );

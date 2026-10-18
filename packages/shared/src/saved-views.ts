@@ -1,10 +1,11 @@
 import { z } from 'zod';
 
 /**
- * Saved views (F5, 2026-10-18): a person's named filter set on one of the admins' list pages,
+ * Saved views (F5, 2026-10-18): a person's named filter set on one of the admins' list pages
+ * (`/finance` too, for finance admins),
  * kept as the page's URL (its path and filter params). A shared link is the URL itself.
  */
-export const SavedViewPages = ['board', 'tickets', 'knowledge'] as const;
+export const SavedViewPages = ['board', 'tickets', 'knowledge', 'finance'] as const;
 export const SavedViewPageSchema = z.enum(SavedViewPages);
 export type SavedViewPage = z.infer<typeof SavedViewPageSchema>;
 
@@ -13,6 +14,7 @@ export const SAVED_VIEW_PATHS: Readonly<Record<SavedViewPage, string>> = Object.
   board: '/tasks',
   tickets: '/tickets',
   knowledge: '/knowledge',
+  finance: '/finance',
 });
 
 export const SAVED_VIEW_LIMITS = { name: 60, url: 1000, perPage: 30 } as const;

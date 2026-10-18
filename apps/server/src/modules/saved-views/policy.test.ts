@@ -18,5 +18,15 @@ describe('saved views policy', () => {
     ['client', user('client'), false],
   ] as const)('%s: %s', (_name, actor, expected) => {
     expect(canUseSavedViews(actor)).toBe(expected);
+    expect(canUseSavedViews(actor, 'board')).toBe(expected);
+  });
+
+  it.each([
+    ['superadmin', user('superadmin'), true],
+    ['admin without the finance right', user('admin'), false],
+    ['finance admin', user('admin', true), true],
+    ['client with a stray finance flag', user('client', true), false],
+  ] as const)('the finance page: %s: %s', (_name, actor, expected) => {
+    expect(canUseSavedViews(actor, 'finance')).toBe(expected);
   });
 });
