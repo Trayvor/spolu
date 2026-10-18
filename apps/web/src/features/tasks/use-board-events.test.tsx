@@ -41,6 +41,7 @@ const task = (id: string, groupId = 'g1'): TaskDto => ({
   fileCount: 0,
   upcomingReminders: 0,
   link: null,
+  knowledgeCount: 0,
   sourceMessageId: null,
   project: null,
   event: null,

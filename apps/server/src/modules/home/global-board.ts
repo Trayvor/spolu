@@ -1,3 +1,4 @@
+import { linkedCountSql } from '../knowledge/links.js';
 import { sql, type SQL } from 'drizzle-orm';
 import {
   CUSTOM_COLUMN_PREFIX,
@@ -267,6 +268,7 @@ export function globalBoardSql(q: GlobalBoardQuery): SQL {
             where ta.task_id = p.id
           ), '[]'::json),
           'fileCount', (select count(*)::int from task_attachments tf where tf.task_id = p.id),
+          'knowledgeCount', ${linkedCountSql(sql`p.id`, sql`p.group_id`)},
           'sourceMessageId', p.source_message_id,
           -- The board card's reminder bell, as on the group board (one correlated count, read
           -- only, on reminder_sets_task_unique and reminder_times_set_at_idx).

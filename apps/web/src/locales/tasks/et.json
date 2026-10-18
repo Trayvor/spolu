@@ -47,6 +47,8 @@
     "overdue": "Tähtaeg ületatud",
     "files_one": "{{count}} fail",
     "files_other": "{{count}} faili",
+    "knowledge_one": "{{count}} teadmusbaasi kirje",
+    "knowledge_other": "{{count}} teadmusbaasi kirjet",
     "reminders": "On meeldetuletusi",
     "link": "On link",
     "moreAssignees": "+{{count}}",

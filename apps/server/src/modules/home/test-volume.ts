@@ -185,7 +185,21 @@ export async function withVolume(
         select ${adminId}, ${p} || '-k' || i, now() - interval '5 days'
         from generate_series(1, ${TICKETS}) i where i % 5 = 1
       `);
+      // 2026-10-18, the cards' knowledge count: one public item per group, linked to a fifth of
+      // the tasks of that group.
+      await tx.execute(sql`
+        insert into knowledge_items (id, group_id, type, visibility, title, search_text, created_by)
+        select ${p} || '-k' || i, ${p} || '-g' || i, 'note', 'public', 'Item ' || i, '', ${adminId}
+        from generate_series(1, ${GROUPS}) i
+      `);
+      await tx.execute(sql`
+        insert into knowledge_links (item_id, task_id)
+        select ${p} || '-k' || (i % ${GROUPS} + 1), ${p} || '-t' || i
+        from generate_series(1, ${TASKS}) i where i % 5 = 0
+      `);
       for (const table of [
+        'knowledge_items',
+        'knowledge_links',
         'notification_events',
         'task_seen',
         'ticket_seen',

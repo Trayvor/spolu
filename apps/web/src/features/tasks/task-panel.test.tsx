@@ -97,6 +97,7 @@ const card = (id: string, bucketId: string): TaskDto => ({
   assignees: [],
   fileCount: 0,
   upcomingReminders: 0,
+  knowledgeCount: 0,
   sourceMessageId: null,
   project: null,
   event: null,
@@ -193,6 +194,25 @@ describe('TaskPanel', () => {
     expect(screen.getByText('Some details')).toBeInTheDocument();
     expect(screen.getByText('Created by Jana Nováková on 15 Oct 2026')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: t('tasks.panel.save') })).toBeNull();
+  });
+
+  it('shows the linked knowledge as cards under the description, and an unavailable one', async () => {
+    detail = {
+      ...detail,
+      linkedKnowledge: [
+        {
+          id: 'k1',
+          available: true,
+          type: 'note',
+          title: 'Postup fakturácie',
+          folderPath: ['Účty'],
+        },
+        { id: 'k2', available: false },
+      ],
+    };
+    renderPanel();
+    expect(await screen.findByRole('button', { name: /Postup fakturácie/ })).toBeInTheDocument();
+    expect(screen.getByText(t('chat.knowledge.unavailable'))).toBeInTheDocument();
   });
 
   it('offers Save changes only after an edit and sends PATCH with updatedAt', async () => {

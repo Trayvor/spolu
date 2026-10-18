@@ -22,6 +22,7 @@ const card = {
   event: null,
   fileCount: 0,
   upcomingReminders: 0,
+  knowledgeCount: 0,
 };
 
 function answer(body: unknown) {

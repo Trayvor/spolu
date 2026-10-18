@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, isNotNull } from 'drizzle-orm';
+import { and, asc, eq, inArray, isNotNull, sql, type SQL } from 'drizzle-orm';
 import { KNOWLEDGE_LINKS_MAX, type LinkedKnowledge } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
 import { knowledgeItemIdsOfFile, shareableItemCards, type ItemCard } from './chat-items.js';
@@ -175,4 +175,31 @@ export async function ticketLinksOfFile(
     .from(knowledgeLinks)
     .where(and(inArray(knowledgeLinks.itemId, itemIds), isNotNull(knowledgeLinks.ticketId)));
   return rows.map((r) => ({ ticketId: r.ticketId!, itemId: r.itemId }));
+}
+
+/**
+ * The number of items linked to a task that its readers may open, as a correlated subquery for
+ * the board cards (one count per card of the page, no extra round trip): the `isShareable` rule
+ * in SQL, so the number matches the cards `linkedItemCards` shows in the panel minus the
+ * "unavailable" ones. Reads `knowledge_links_task_idx`, then the item by its key and its folder
+ * chain by `knowledge_folders` keys. `taskId` and `groupId` are SQL expressions of the task row.
+ */
+export function linkedCountSql(taskId: SQL, groupId: SQL): SQL<number> {
+  return sql<number>`(
+    select count(*)::int
+    from knowledge_links kl
+    join knowledge_items ki on ki.id = kl.item_id
+    where kl.task_id = ${taskId}
+      and ki.group_id = ${groupId}
+      and ki.visibility = 'public'
+      and not exists (
+        with recursive chain(id, parent_id, visibility) as (
+          select f.id, f.parent_id, f.visibility from knowledge_folders f where f.id = ki.folder_id
+          union all
+          select f.id, f.parent_id, f.visibility
+          from knowledge_folders f join chain c on f.id = c.parent_id
+        )
+        select 1 from chain where visibility <> 'public'
+      )
+  )`;
 }

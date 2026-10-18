@@ -47,6 +47,8 @@
     "overdue": "Просрочена",
     "files_one": "{{count}} файл",
     "files_other": "{{count}} файла",
+    "knowledge_one": "{{count}} елемент от базата знания",
+    "knowledge_other": "{{count}} елемента от базата знания",
     "reminders": "Има напомняния",
     "link": "Има връзка",
     "moreAssignees": "+{{count}}",

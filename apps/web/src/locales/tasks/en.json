@@ -47,6 +47,8 @@
     "overdue": "Overdue",
     "files_one": "{{count}} file",
     "files_other": "{{count}} files",
+    "knowledge_one": "{{count}} knowledge item",
+    "knowledge_other": "{{count}} knowledge items",
     "reminders": "Has reminders",
     "link": "Has a link",
     "moreAssignees": "+{{count}}",
