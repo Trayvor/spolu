@@ -56,6 +56,10 @@ The guide with the full contract: [docs/integrations/egrant-managers.md](../inte
 
 `PUT /api/egrant/managers` with the same Bearer key (`TICKETS_API_KEY`; no second key, so one secret to rotate) and `{ "instance_url", "email", "active" }`. The client is found by its eGrant host like the intake; an unknown instance answers `404 unknown_instance` and is not stored (unlike tickets and projects, a manager change has no meaning before the client exists; eGrant resends it). The email must be an existing active admin or the superadmin (exact address, case-insensitive), else `422 unknown_admin`: the webhook never creates an account, re-enables one or grants a role. It goes through the groups module's `addManager` / `removeManager`, so the socket event, the notification mode and the ticket watching are the same as the in-app button; it answers `200` with `state` `added`, `removed` or `unchanged`. A new manager gets one "You are now a manager of <client>" email; removing sends none and may leave a client with no manager (logged). Order of checks, before the body (16 KiB at most) is read: `503` no key configured, `429` over 60 calls a minute from one IP (wrong keys count too), `401` wrong key.
 
+## MCP server (AI assistants)
+
+Since 2026-10-18 an admin connects Claude or another MCP client to Help at `/mcp` with a personal token from `/settings` (read only, or read and change without deletes). The assistant acts as that admin: it reads everything they may (groups, chats, tasks, tickets, knowledge, meetings, projects, bulk email, notifications) and changes tasks, tickets, chat messages, knowledge, projects and events; a finance holder also gets every finance entity, read and write. Guide: [integrations/mcp.md](../integrations/mcp.md); design: [spec](../superpowers/specs/2026-10-18-mcp-server-design.md).
+
 ## Phase
 
 Elastic Email: Phase 2 (login codes), later invites, notifications (Phase 6) and the "Ticket created" email (Phase 21); bulk email (Phase 23: the sender is built in part 23.1, sending in 23.5). eGrant ticket intake: Phase 21 (part 21.2; it supersedes Phases 12 and 13). AI: Phase 9 (OpenAI API).

@@ -18,7 +18,7 @@ Spolu is the code name of **Help by eGrant** (shown as "Help" at https://help.eg
 | [decisions/](decisions/README.md) | ADRs: one file per technical decision (`NNNN-title.md`), indexed in its README |
 | [design/](design/README.md) | the egrant.sk design rule and design tokens |
 | [runbooks/](runbooks/README.md) | server setup, deploy, rollback, backup, cloud sessions |
-| [integrations/](integrations/egrant-ticket-intake.md) | guides for outside developers: [eGrant ticket intake](integrations/egrant-ticket-intake.md), [eGrant managers webhook](integrations/egrant-managers.md) |
+| [integrations/](integrations/egrant-ticket-intake.md) | guides for outside developers: [eGrant ticket intake](integrations/egrant-ticket-intake.md), [eGrant managers webhook](integrations/egrant-managers.md), [MCP server](integrations/mcp.md) (connect an AI assistant) |
 | [superpowers/specs/](superpowers/specs/) | per-phase designs |
 | [superpowers/plans/](superpowers/plans/) | per-phase implementation plans |
 | [superpowers/briefs/](superpowers/briefs/) | owner briefs (each says at the top whether it is done) |

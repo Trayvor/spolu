@@ -55,7 +55,7 @@ None of them is in the MCP allowlist: a token can never make or list tokens.
 
 On `/settings`, for admins only, a card **AI access (MCP)** after Notifications (lazy chunk and lazy namespace `mcp`, so the initial bundle does not grow):
 
-- One line on what it is and a link to the connection guide.
+- One line on what it is (the guide, `docs/integrations/mcp.md`, is not served by the app, so the card carries the Claude Code command itself).
 - The token list: name, scope (Read only / Read and write), created, expires (or "Expired"), last used, **Revoke** (with a confirm).
 - **New token**: name, scope (radio, Read only by default), validity (7 / 30 / 90 / 365 days, 90 by default), **Create**. The new token is shown once in a read-only field with **Copy**, plus the Claude Code command with the token filled in, and a warning that it will not be shown again.
 - **Recent changes by AI**: the last 50 write calls (tool, target, time, ok or refused).
