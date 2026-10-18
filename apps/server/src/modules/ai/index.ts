@@ -13,6 +13,11 @@ import {
   type TextToolsProvider,
 } from './text-tools.js';
 import {
+  createFakeTicketDraft,
+  createOpenAiTicketDraft,
+  type TicketDraftProvider,
+} from './ticket-draft.js';
+import {
   createElevenLabsTranscription,
   createFakeTranscription,
   createOpenAiTranscription,
@@ -31,6 +36,16 @@ export function createMeetingSummaryProvider(config: Config['ai']): MeetingSumma
   if (config === null) return null;
   if (config.provider === 'fake') return createFakeMeetingSummary();
   return createOpenAiMeetingSummary({ apiKey: config.apiKey, model: config.model });
+}
+
+/**
+ * The ticket reply draft ("Navrhnúť odpoveď", 2026-10-19): the task split's model and key (it
+ * needs more reasoning than the composer's rewrites); null when AI is off.
+ */
+export function createTicketDraftProvider(config: Config['ai']): TicketDraftProvider | null {
+  if (config === null) return null;
+  if (config.provider === 'fake') return createFakeTicketDraft();
+  return createOpenAiTicketDraft({ apiKey: config.apiKey, model: config.model });
 }
 
 /** The meeting transcription provider (`TRANSCRIPTION_PROVIDER`); null when it is off. */

@@ -4,6 +4,7 @@ import {
   canAssignTicket,
   canBeTicketAssignee,
   canCreateTicket,
+  canDraftTicketReply,
   canEditTicket,
   canReadTicket,
   canSplitTicket,
@@ -102,5 +103,13 @@ describe('canWatchTickets', () => {
     ['outsider', actor('client'), null, false],
   ] as const)('%s', (_, who, role, expected) => {
     expect(canWatchTickets(who, role as MemberRole | null)).toBe(expected);
+  });
+});
+
+describe('canDraftTicketReply', () => {
+  it('admins only', () => {
+    expect(canDraftTicketReply(actor('admin'))).toBe(true);
+    expect(canDraftTicketReply(actor('superadmin'))).toBe(true);
+    expect(canDraftTicketReply(actor('client'))).toBe(false);
   });
 });

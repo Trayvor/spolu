@@ -8,6 +8,7 @@ import type { Config } from '../src/infra/config/config.js';
 import type { MeetingSummaryProvider } from '../src/modules/ai/meeting-summary.js';
 import type { TaskSplitProvider } from '../src/modules/ai/provider.js';
 import type { TextToolsProvider } from '../src/modules/ai/text-tools.js';
+import type { TicketDraftProvider } from '../src/modules/ai/ticket-draft.js';
 import type { TranscriptionProvider } from '../src/modules/ai/transcription.js';
 import { createFakeMedia, type MediaTools } from '../src/infra/media/media.js';
 import { meetingAiJobHandlers } from '../src/modules/knowledge/meeting-ai.js';
@@ -59,6 +60,8 @@ export async function buildTestApp(
     meetingSummary?: MeetingSummaryProvider | null;
     /** The chat composer's AI text tools (Phase 28); default: off. */
     textTools?: TextToolsProvider | null;
+    /** The ticket reply draft AI ("Navrhnúť odpoveď"); default: off. */
+    ticketDraft?: TicketDraftProvider | null;
     /** The bulk sender; default: the smtp driver to Mailpit (tests of the batch job pass a fake). */
     bulkEmail?: BulkEmailSender;
     /** The fetch the bulk email jobs call Elastic with; default: refuses (no live calls in tests). */
@@ -128,6 +131,7 @@ export async function buildTestApp(
     transcription,
     meetingSummary,
     textTools: overrides.textTools ?? null,
+    ticketDraft: overrides.ticketDraft ?? null,
     teams,
   };
   // Quiet even with nodeEnv 'production', unless a test captures the log.

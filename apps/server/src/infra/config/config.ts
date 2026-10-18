@@ -152,9 +152,14 @@ export type Config = {
   /**
    * Tests only, never read from the environment: lower per-minute limits of the AI text tools and
    * voice input, so a rate-limit test needs a few requests instead of 30 (production and e2e
-   * leave it unset and use `TEXT_TOOL_LIMITS` and `VOICE_RATE_LIMITS`).
+   * leave it unset and use `TEXT_TOOL_LIMITS` and `VOICE_RATE_LIMITS`); `ticketDraftPerMinute` the
+   * ticket reply drafts' (`TICKET_DRAFT_LIMITS`).
    */
-  aiBurstLimits?: { textPerMinute: number; voicePerMinute: number };
+  aiBurstLimits?: {
+    textPerMinute?: number;
+    voicePerMinute?: number;
+    ticketDraftPerMinute?: number;
+  };
   /** The task split provider; null when OpenAI is chosen but no key is set (AI is off). */
   ai: { provider: 'openai'; apiKey: string; model: string } | { provider: 'fake' } | null;
   /** The chat composer's AI text tools (Phase 28); null like `ai`, with their own model. */

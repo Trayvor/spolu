@@ -1,0 +1,25 @@
+{
+  "button": "Suggerisci una risposta",
+  "title": "Bozza di risposta con IA",
+  "subtitle": "Ticket #{{number}} · {{client}}",
+  "instructions": {
+    "label": "Istruzioni per l'IA (facoltativo)",
+    "placeholder": "Ad es. risponda in breve, proponga una data per un incontro…"
+  },
+  "generate": "Suggerisci",
+  "generating": "Preparazione della bozza…",
+  "insert": "Inserisci nel messaggio",
+  "replace": "Sostituisci il testo del messaggio",
+  "again": "Suggerisci di nuovo",
+  "sources": {
+    "title": "Fonti",
+    "none": "La bozza non si basa su alcuna fonte — verifichi i fatti.",
+    "shared": "Condiviso"
+  },
+  "note": "Questa bozza è stata preparata dall'IA. La controlli e la modifichi prima dell'invio; nulla viene inviato automaticamente.",
+  "errors": {
+    "unavailable": "L'IA non è disponibile al momento. Riprovi più tardi.",
+    "rateLimited": "Troppe bozze contemporaneamente. Riprovi tra un momento.",
+    "notFound": "Ticket non trovato."
+  }
+}

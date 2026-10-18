@@ -51,6 +51,7 @@ const NAMESPACES = [
   'taskSplit',
   'tasks',
   'teams',
+  'ticketDraft',
   'tickets',
   'unseen',
   'unsubscribe',

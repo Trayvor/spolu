@@ -125,6 +125,11 @@ export const tickets = pgTable(
     index('tickets_subject_fold_trgm_idx')
       .using('gin', sql`${foldSql(t.subject)} gin_trgm_ops`)
       .with({ fastupdate: false }),
+    // "Navrhnúť odpoveď" (2026-10-19): similar resolved tickets by stemmed, folded terms in the
+    // start of the body (the folded subject has its index above).
+    index('tickets_body_head_fold_trgm_idx')
+      .using('gin', sql`${foldSql(sql`left(${t.body}, 200)`)} gin_trgm_ops`)
+      .with({ fastupdate: false }),
     index('tickets_due_open_idx')
       .on(t.dueDate)
       .where(sql`${t.status} <> 'resolved'`),

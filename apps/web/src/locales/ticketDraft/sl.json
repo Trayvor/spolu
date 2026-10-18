@@ -1,0 +1,25 @@
+{
+  "button": "Predlagaj odgovor",
+  "title": "Osnutek odgovora z UI",
+  "subtitle": "Zahtevek #{{number}} · {{client}}",
+  "instructions": {
+    "label": "Navodilo za UI (neobvezno)",
+    "placeholder": "Npr. odgovorite na kratko, ponudite termin sestanka…"
+  },
+  "generate": "Predlagaj",
+  "generating": "Pripravljam osnutek…",
+  "insert": "Vstavi v sporočilo",
+  "replace": "Zamenjaj besedilo sporočila",
+  "again": "Predlagaj znova",
+  "sources": {
+    "title": "Viri",
+    "none": "Osnutek ne temelji na nobenih virih — preverite dejstva.",
+    "shared": "Skupno"
+  },
+  "note": "Osnutek je pripravila UI. Pred pošiljanjem ga preverite in uredite, nič se ne pošlje samodejno.",
+  "errors": {
+    "unavailable": "UI trenutno ni na voljo. Poskusite znova pozneje.",
+    "rateLimited": "Preveč osnutkov naenkrat. Poskusite znova čez trenutek.",
+    "notFound": "Zahtevka ni bilo mogoče najti."
+  }
+}

@@ -74,3 +74,4 @@ What gets easier, what gets harder.
 | [0048](0048-ffmpeg-in-a-media-sandbox-container.md) | ffmpeg runs in a media sandbox container with no network, reached over a Unix socket | accepted |
 | [0049](0049-recurring-calls-rule-and-materialised-occurrences.md) | Recurring calls: a stored rule, occurrences created ahead as items, one Teams event per call | accepted |
 | [0050](0050-admin-passkeys-with-simplewebauthn.md) | Passkeys for admins with SimpleWebAuthn, next to the email code | accepted |
+| [0053](0053-ai-draft-retrieval-with-trigrams.md) | Retrieval for AI ticket drafts with pg_trgm terms and a folded body index, no embeddings | accepted |

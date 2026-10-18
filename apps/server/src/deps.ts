@@ -3,8 +3,10 @@ import {
   createAiProvider,
   createMeetingSummaryProvider,
   createTextToolsProvider,
+  createTicketDraftProvider,
   createTranscriptionProvider,
 } from './modules/ai/index.js';
+import type { TicketDraftProvider } from './modules/ai/ticket-draft.js';
 import type { TextToolsProvider } from './modules/ai/text-tools.js';
 import type { MeetingSummaryProvider } from './modules/ai/meeting-summary.js';
 import type { TaskSplitProvider } from './modules/ai/provider.js';
@@ -79,6 +81,8 @@ export type AppDeps = {
   meetingSummary: MeetingSummaryProvider | null;
   /** The chat composer's AI text tools (Phase 28); null when AI is off. */
   textTools: TextToolsProvider | null;
+  /** The ticket reply draft AI ("Navrhnúť odpoveď"); null when AI is off. */
+  ticketDraft: TicketDraftProvider | null;
   /** Microsoft Graph for Teams (T1); null when Teams is not configured (the feature is inert). */
   teams: TeamsGraph | null;
 };
@@ -185,6 +189,7 @@ export async function createDeps(
       transcription,
       meetingSummary,
       textTools: createTextToolsProvider(config.textAi),
+      ticketDraft: createTicketDraftProvider(config.ai),
       teams,
     },
     async close() {
