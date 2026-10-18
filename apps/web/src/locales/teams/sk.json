@@ -60,6 +60,7 @@
     "teams_unknown_organizer": "Organizátor tohto stretnutia nie je kolega z eGrantu s účtom v Help.",
     "teams_meeting_not_found": "Žiadny organizátor z eGrantu toto stretnutie nemá. Skontrolujte odkaz.",
     "teams_linked": "Toto stretnutie už je prepojené s Teams.",
+    "teams_meeting_linked": "Toto stretnutie v Teams už je prepojené s iným záznamom v Help.",
     "teams_unavailable": "Microsoft Teams neodpovedal. Skúste to o pár minút.",
     "rate_limited": "Príliš veľa pokusov. Skúste to neskôr.",
     "generic": "Niečo sa nepodarilo. Skúste to znova."

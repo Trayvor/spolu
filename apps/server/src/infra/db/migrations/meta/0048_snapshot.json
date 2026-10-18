@@ -1,5 +1,5 @@
 {
-  "id": "5a0481b6-4141-43d9-9cce-11e22a2fa95e",
+  "id": "b3d90598-a62d-4fab-bd19-38799e013b0d",
   "prevId": "2a232c70-abfa-426f-84f2-3305ca4387a3",
   "version": "7",
   "dialect": "postgresql",
@@ -8636,6 +8636,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "starts_at": {
+          "name": "starts_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
         "duration_minutes": {
           "name": "duration_minutes",
           "type": "integer",
@@ -8734,6 +8740,22 @@
           ],
           "isUnique": false,
           "where": "\"teams_meeting_links\".\"next_poll_at\" is not null",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "teams_meeting_links_online_meeting_unique": {
+          "name": "teams_meeting_links_online_meeting_unique",
+          "columns": [
+            {
+              "expression": "online_meeting_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"teams_meeting_links\".\"online_meeting_id\" is not null",
           "concurrently": false,
           "method": "btree",
           "with": {}

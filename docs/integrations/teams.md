@@ -102,4 +102,5 @@ Empty the `TEAMS_*` variables and restart (the feature disappears; the stored li
 - On the call: the join link (as its meeting link), the Teams meeting's ids, organizer, length, the recording choice, where the transcript import stands, and Microsoft's last error code. Admins only.
 - The transcript, admins-only until an admin shares it (then it follows the call's visibility like a pasted one). The AI summary made from it is held the same way.
 - The public page `/m/<token>` shows only the title, the time, the join link and the recording notice. The token is 128 random bits, never stored (only its hash), and stops working when the meeting is disconnected.
-- Secrets live only in the server's env file; the access token only in memory.
+- Secrets live only in the server's env file; the access token only in memory. The certificate's key must be an unencrypted RSA key, checked at start.
+- The public links are derived from `APP_SECRET`: changing it invalidates every one of them (copy each meeting's link again from its Teams block).

@@ -17,6 +17,9 @@ export function PublicMeetingRoute() {
 
 const locale = (language: string) => (/^en\b/.test(language) ? 'en-GB' : language);
 
+/** Search engines never index the page (React hoists the tag into the head while shown). */
+const noIndex = <meta name="robots" content="noindex" />;
+
 /**
  * Teams T1: the public add-to-calendar page of a meeting Help created (`/m/<token>`), for
  * anyone with the link, in the viewer's language: the title, the time in their time zone, Join,
@@ -25,12 +28,13 @@ const locale = (language: string) => (/^en\b/.test(language) ? 'en-GB' : languag
 export function PublicMeetingPage({ token }: { token: string }) {
   const { t, i18n } = useTranslation();
   const query = useQuery(publicMeetingQuery(token));
-  if (query.isPending) return null;
+  if (query.isPending) return noIndex;
   const meeting = query.data;
   if (!meeting) {
     const status = query.error instanceof ApiError ? query.error.status : 0;
     return (
       <Card className="mx-auto w-full max-w-[440px] gap-5 p-8 max-[640px]:p-6">
+        {noIndex}
         <p role="alert">
           {t(
             status === 404
@@ -59,6 +63,7 @@ export function PublicMeetingPage({ token }: { token: string }) {
 
   return (
     <Card className="mx-auto w-full max-w-[480px] gap-6 p-8 max-[640px]:p-6">
+      {noIndex}
       <div className="flex items-start gap-4">
         <CalendarLeaf iso={meeting.startsAt} size={40} />
         <div className="flex min-w-0 flex-col gap-1">

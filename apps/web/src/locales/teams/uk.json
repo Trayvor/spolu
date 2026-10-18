@@ -60,6 +60,7 @@
     "teams_unknown_organizer": "Організатор цієї зустрічі не є колегою з eGrant з обліковим записом у Help.",
     "teams_meeting_not_found": "Жоден організатор з eGrant не має цієї зустрічі. Перевірте посилання.",
     "teams_linked": "Цю зустріч уже під’єднано до Teams.",
+    "teams_meeting_linked": "Цю зустріч Teams уже під’єднано до іншого запису в Help.",
     "teams_unavailable": "Microsoft Teams не відповів. Спробуйте ще раз за кілька хвилин.",
     "rate_limited": "Забагато спроб. Спробуйте пізніше.",
     "generic": "Щось пішло не так. Спробуйте ще раз."

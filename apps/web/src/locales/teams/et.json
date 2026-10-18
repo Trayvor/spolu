@@ -60,6 +60,7 @@
     "teams_unknown_organizer": "Selle koosoleku korraldaja ei ole eGranti kolleeg, kellel on Helpi konto.",
     "teams_meeting_not_found": "Ühelgi eGranti korraldajal pole seda koosolekut. Kontrollige linki.",
     "teams_linked": "See koosolek on juba Teamsiga ühendatud.",
+    "teams_meeting_linked": "See Teamsi koosolek on juba ühendatud teise Helpi kirjega.",
     "teams_unavailable": "Microsoft Teams ei vastanud. Proovige mõne minuti pärast uuesti.",
     "rate_limited": "Liiga palju katseid. Proovige hiljem uuesti.",
     "generic": "Midagi läks valesti. Proovige uuesti."

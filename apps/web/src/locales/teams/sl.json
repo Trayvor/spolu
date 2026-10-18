@@ -60,6 +60,7 @@
     "teams_unknown_organizer": "Organizator tega sestanka ni sodelavec eGrant z računom Help.",
     "teams_meeting_not_found": "Noben organizator eGrant nima tega sestanka. Preverite povezavo.",
     "teams_linked": "Ta sestanek je že povezan s Teams.",
+    "teams_meeting_linked": "Ta sestanek v Teams je že povezan z drugim zapisom v Help.",
     "teams_unavailable": "Microsoft Teams se ni odzval. Poskusite znova čez nekaj minut.",
     "rate_limited": "Preveč poskusov. Poskusite pozneje.",
     "generic": "Nekaj je šlo narobe. Poskusite znova."

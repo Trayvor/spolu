@@ -13,12 +13,14 @@ import { knowledgeError } from '../knowledge/routes.js';
 import {
   TeamsInvalidLinkError,
   TeamsLinkedError,
+  TeamsMeetingLinkedError,
   TeamsMeetingNotFoundError,
   TeamsNotOrganizerError,
   TeamsOutsideTenantError,
   TeamsUnavailableError,
   TeamsUnknownOrganizerError,
 } from './errors.js';
+import { GraphError } from './graph-client.js';
 import { canUseTeams } from './policy.js';
 import {
   connectTeamsMeeting,
@@ -48,7 +50,11 @@ function teamsError(reply: FastifyReply, error: unknown): FastifyReply {
     return send(reply, 404, ErrorCodes.teamsMeetingNotFound);
   }
   if (error instanceof TeamsLinkedError) return send(reply, 409, ErrorCodes.teamsLinked);
-  if (error instanceof TeamsUnavailableError) {
+  if (error instanceof TeamsMeetingLinkedError) {
+    return send(reply, 409, ErrorCodes.teamsMeetingLinked);
+  }
+  // A Graph failure no service turned into its own error, a network error or a timeout too.
+  if (error instanceof TeamsUnavailableError || error instanceof GraphError) {
     reply.log.warn({ code: error.code }, 'teams: Microsoft Graph failed');
     return send(reply, 502, ErrorCodes.teamsUnavailable);
   }

@@ -1,7 +1,16 @@
 import { createPublicKey, generateKeyPairSync, verify } from 'node:crypto';
+import { mkdtempSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { CLIENT_ID, TENANT } from '../../../test/teams-graph.js';
-import { createGraphClient, GraphError } from './graph-client.js';
+import {
+  createGraphClient,
+  GraphError,
+  MAX_TRANSCRIPT_BYTES,
+  privateKeyFromPem,
+} from './graph-client.js';
+import { createTeams } from './jobs.js';
 
 // Teams T1, token handling: the client-credentials grant with a secret or a certificate
 // assertion, the in-memory cache, a 401 renewal, Retry-After and error codes.
@@ -218,5 +227,119 @@ describe('Graph client calls', () => {
     expect(await graph.transcriptContent('U1', 'M1', 'T1')).toContain('Hello');
     const accepts = calls.slice(1).map((c) => new Headers(c.init.headers).get('accept'));
     expect(accepts).toEqual(['text/vtt', 'application/vnd.microsoft.graph.transcript+text']);
+  });
+});
+
+describe('Graph client failures without an answer', () => {
+  const timeout = () => {
+    throw new DOMException('The operation was aborted due to timeout', 'TimeoutError');
+  };
+  const offline = () => {
+    throw new TypeError('fetch failed');
+  };
+
+  it('a network error or a timeout of a Graph call is a GraphError(0)', async () => {
+    for (const [fail, code] of [
+      [offline, 'network'],
+      [timeout, 'timeout'],
+    ] as const) {
+      const { fetchImpl } = recorder([tokenAnswer(), fail]);
+      const graph = createGraphClient({ config: secretConfig, fetch: fetchImpl });
+      const error = await graph.listTranscripts('U1', 'M1').catch((e: unknown) => e);
+      expect(error, code).toBeInstanceOf(GraphError);
+      expect(error).toMatchObject({ status: 0, code });
+    }
+  });
+
+  it('so is one of the token endpoint', async () => {
+    for (const [fail, code] of [
+      [offline, 'network'],
+      [timeout, 'timeout'],
+    ] as const) {
+      const { fetchImpl } = recorder([fail]);
+      const graph = createGraphClient({ config: secretConfig, fetch: fetchImpl });
+      const error = await graph.getUser('a').catch((e: unknown) => e);
+      expect(error, code).toBeInstanceOf(GraphError);
+      expect(error).toMatchObject({ status: 0, code });
+    }
+  });
+
+  it('stops reading a transcript at the byte cap', async () => {
+    let pulled = 0;
+    const chunk = new TextEncoder().encode('x'.repeat(64 * 1024));
+    const endless = new ReadableStream<Uint8Array>({
+      pull(controller) {
+        pulled += chunk.length;
+        controller.enqueue(chunk);
+      },
+    });
+    const { fetchImpl } = recorder([tokenAnswer(), () => new Response(endless, { status: 200 })]);
+    const graph = createGraphClient({ config: secretConfig, fetch: fetchImpl });
+    const text = await graph.transcriptContent('U1', 'M1', 'T1');
+    expect(text.length).toBe(MAX_TRANSCRIPT_BYTES);
+    expect(pulled).toBeLessThan(MAX_TRANSCRIPT_BYTES + 4 * chunk.length);
+  });
+});
+
+describe('privateKeyFromPem', () => {
+  const rsa = generateKeyPairSync('rsa', { modulusLength: 2048 }).privateKey;
+
+  it('accepts an unencrypted RSA key (PKCS#8 or PKCS#1)', () => {
+    for (const type of ['pkcs8', 'pkcs1'] as const) {
+      const pem = rsa.export({ type, format: 'pem' }).toString();
+      expect(privateKeyFromPem(pem).asymmetricKeyType, type).toBe('rsa');
+    }
+  });
+
+  it('refuses an encrypted key, an EC key or none, clearly', () => {
+    const encrypted = rsa
+      .export({ type: 'pkcs8', format: 'pem', cipher: 'aes-256-cbc', passphrase: 'pw' })
+      .toString();
+    const legacyEncrypted = rsa
+      .export({ type: 'pkcs1', format: 'pem', cipher: 'aes-256-cbc', passphrase: 'pw' })
+      .toString();
+    const ec = generateKeyPairSync('ec', { namedCurve: 'P-256' })
+      .privateKey.export({ type: 'pkcs8', format: 'pem' })
+      .toString();
+    expect(() => privateKeyFromPem(encrypted)).toThrow(/TEAMS_CERT_PATH.*unencrypted RSA/);
+    expect(() => privateKeyFromPem(legacyEncrypted)).toThrow(/TEAMS_CERT_PATH.*unencrypted RSA/);
+    expect(() => privateKeyFromPem(ec)).toThrow(/TEAMS_CERT_PATH.*unencrypted RSA/);
+    expect(() =>
+      privateKeyFromPem('-----BEGIN CERTIFICATE-----\nx\n-----END CERTIFICATE-----'),
+    ).toThrow(/TEAMS_CERT_PATH/);
+  });
+
+  it('a bad key file stops the start, not the first Graph call', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'teams-key-'));
+    const path = join(dir, 'teams.pem');
+    writeFileSync(
+      path,
+      rsa
+        .export({ type: 'pkcs8', format: 'pem', cipher: 'aes-256-cbc', passphrase: 'pw' })
+        .toString(),
+    );
+    const config = {
+      teams: {
+        tenantId: TENANT,
+        clientId: CLIENT_ID,
+        credential: {
+          kind: 'certificate' as const,
+          keyPath: path,
+          thumbprint: 'ABCDEF0123456789ABCDEF0123456789ABCDEF01',
+        },
+      },
+    } as Parameters<typeof createTeams>[0];
+    expect(() => createTeams(config)).toThrow(/TEAMS_CERT_PATH/);
+    writeFileSync(path, rsa.export({ type: 'pkcs8', format: 'pem' }).toString());
+    expect(createTeams(config)).not.toBeNull();
+    expect(() =>
+      createTeams({
+        ...config,
+        teams: {
+          ...config.teams!,
+          credential: { ...config.teams!.credential, keyPath: join(dir, 'missing.pem') },
+        },
+      } as Parameters<typeof createTeams>[0]),
+    ).toThrow(/TEAMS_CERT_PATH/);
   });
 });

@@ -60,6 +60,7 @@
     "teams_unknown_organizer": "L'organizzatore di questa riunione non è un collega eGrant con un account Help.",
     "teams_meeting_not_found": "Nessun organizzatore eGrant ha questa riunione. Controlla il link.",
     "teams_linked": "Questa riunione è già collegata a Teams.",
+    "teams_meeting_linked": "Questa riunione di Teams è già collegata a un altro elemento in Help.",
     "teams_unavailable": "Microsoft Teams non ha risposto. Riprova tra qualche minuto.",
     "rate_limited": "Troppi tentativi. Riprova più tardi.",
     "generic": "Qualcosa è andato storto. Riprova."

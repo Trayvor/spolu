@@ -151,6 +151,8 @@ export type PageRow = {
   m_recording_state: MeetingListInfo['recording'] | null;
   m_ai_state: MeetingListInfo['ai'] | null;
   m_has_summary: boolean | null;
+  /** The meeting's transcript and summary are held for admins (Teams T1). */
+  m_admins_only: boolean | null;
   /** Only when the full body was asked for (the detail). */
   body?: string;
 };
@@ -178,7 +180,8 @@ function pageQuery(where: SQL, limit: number, withBody = false): SQL {
            ct.title as chat_task_title, ch.ticket_id as chat_ticket_id,
            tk.number as chat_ticket_number,
            ${iso(sql`m.starts_at`)} as m_starts_at, m.recording_state as m_recording_state,
-           m.ai_state as m_ai_state, m.summary is not null as m_has_summary
+           m.ai_state as m_ai_state, m.summary is not null as m_has_summary,
+           m.transcript_admins_only as m_admins_only
     from knowledge_items k
     join "user" u on u.id = k.created_by
     join groups g on g.id = k.group_id
@@ -249,11 +252,15 @@ function chatSource(row: PageRow): KnowledgeChatSource | null {
   };
 }
 
-/** A list row; `names` resolves the mentions of the excerpt, `folderPath` is the row's path. */
+/**
+ * A list row; `names` resolves the mentions of the excerpt, `folderPath` is the row's path.
+ * `viewerIsAdmin`: a summary held for admins (Teams T1) shows no badge to anyone else.
+ */
 export function toSummary(
   row: PageRow,
   names: Map<string, string>,
   folderPath: FolderPath = [],
+  viewerIsAdmin = false,
 ): KnowledgeSummary {
   return {
     id: row.id,
@@ -277,19 +284,19 @@ export function toSummary(
     folderId: row.folder_id,
     folderPath,
     chat: chatSource(row),
-    meeting: meetingInfo(row),
+    meeting: meetingInfo(row, viewerIsAdmin),
     ...(row.group_kind === 'admin' ? { source: 'admin_group' as const } : {}),
   };
 }
 
 /** A meeting's list info; null for the other types. */
-function meetingInfo(row: PageRow): MeetingListInfo | null {
+function meetingInfo(row: PageRow, viewerIsAdmin: boolean): MeetingListInfo | null {
   if (row.type !== 'meeting' || row.m_starts_at === null) return null;
   return {
     startsAt: row.m_starts_at,
     recording: row.m_recording_state ?? 'none',
     ai: row.m_ai_state ?? 'idle',
-    hasSummary: row.m_has_summary === true,
+    hasSummary: row.m_has_summary === true && (viewerIsAdmin || row.m_admins_only !== true),
   };
 }
 
@@ -403,6 +410,7 @@ function filterWhere(scope: SQL, opts: ListFilters): SQL {
 async function runPage(
   db: Db,
   where: SQL,
+  viewerIsAdmin: boolean,
   decorate: (row: PageRow, summary: KnowledgeSummary) => KnowledgeSummary = (_, s) => s,
 ): Promise<KnowledgePage> {
   const size = KNOWLEDGE_LIMITS.pageSize;
@@ -417,7 +425,10 @@ async function runPage(
   ]);
   return {
     items: page.map((row) =>
-      decorate(row, toSummary(row, namesIn(names, row.group_id), rowPath(row, pathOf))),
+      decorate(
+        row,
+        toSummary(row, namesIn(names, row.group_id), rowPath(row, pathOf), viewerIsAdmin),
+      ),
     ),
     nextCursor: rows.length > size ? encodeCursor(page[page.length - 1]!) : null,
   };
@@ -438,7 +449,7 @@ export async function listGroupItems(
   const scope = isAdmin(actor)
     ? sql`k.group_id = ${groupId}`
     : sql`k.group_id = ${groupId} and k.visibility = 'public'`;
-  return runPage(db, filterWhere(scope, opts));
+  return runPage(db, filterWhere(scope, opts), isAdmin(actor));
 }
 
 /**
@@ -453,7 +464,7 @@ export async function listAllItems(
   if (opts.groupIds === null) scope = sql`true`;
   else if (opts.groupIds.length === 0) return { items: [], nextCursor: null };
   else scope = sql`k.group_id in (${sql.join([...new Set(opts.groupIds)], sql`, `)})`;
-  return runPage(db, filterWhere(scope, opts), withGroup);
+  return runPage(db, filterWhere(scope, opts), true, withGroup);
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -534,7 +545,7 @@ export async function getItem(db: Db, actor: SessionUser, id: string): Promise<K
   const fileInfos = fileRows.map(toFileInfo);
   return {
     linkedKnowledge: linked,
-    ...toSummary(row, namesIn(names, row.group_id), rowPath(row, pathOf)),
+    ...toSummary(row, namesIn(names, row.group_id), rowPath(row, pathOf), isAdmin(actor)),
     body,
     files: fileInfos,
     reminder,
@@ -1137,15 +1148,23 @@ export async function chatFileSummaries(db: Db, messageId: string): Promise<Know
   return rows.map((row) => toSummary(row, new Map()));
 }
 
-/** One item as a list row, for a live event after a job changed it (no access check). */
-export async function getItemSummary(db: Db, id: string): Promise<KnowledgeSummary | null> {
+/**
+ * One item as a list row, for a live event after a job changed it (no access check): the row
+ * admins get and the one clients get (they differ while a summary is held for admins).
+ */
+export async function getItemSummary(
+  db: Db,
+  id: string,
+): Promise<{ admin: KnowledgeSummary; client: KnowledgeSummary } | null> {
   const [row] = [...(await db.execute<PageRow>(pageQuery(sql`k.id = ${id}`, 1)))];
   if (!row) return null;
   const [names, pathOf] = await Promise.all([
     mentionNames(db, [{ groupId: row.group_id, body: row.body_head }]),
     pathsOf(db, [row]),
   ]);
-  return toSummary(row, namesIn(names, row.group_id), rowPath(row, pathOf));
+  const summary = (viewerIsAdmin: boolean) =>
+    toSummary(row, namesIn(names, row.group_id), rowPath(row, pathOf), viewerIsAdmin);
+  return { admin: summary(true), client: summary(false) };
 }
 
 /** A meeting edit without the transcript and the summary. */

@@ -24,6 +24,7 @@ import { calendarToken, calendarTokenHash, newCalendarNonce } from './calendar-t
 import {
   TeamsInvalidLinkError,
   TeamsLinkedError,
+  TeamsMeetingLinkedError,
   TeamsMeetingNotFoundError,
   TeamsNotOrganizerError,
   TeamsOutsideTenantError,
@@ -49,6 +50,24 @@ export async function getLink(db: Db, itemId: string): Promise<LinkRow | null> {
     .from(teamsMeetingLinks)
     .where(eq(teamsMeetingLinks.itemId, itemId));
   return row ?? null;
+}
+
+/** The item that already follows this Teams meeting, or null. */
+async function itemOfOnlineMeeting(db: Db, onlineMeetingId: string): Promise<string | null> {
+  const [row] = await db
+    .select({ itemId: teamsMeetingLinks.itemId })
+    .from(teamsMeetingLinks)
+    .where(eq(teamsMeetingLinks.onlineMeetingId, onlineMeetingId));
+  return row?.itemId ?? null;
+}
+
+/**
+ * An insert that hit a unique key: this item got a Teams meeting meanwhile (`teams_linked`), or
+ * the Teams meeting went to another item (`teams_meeting_linked`).
+ */
+async function insertConflict(db: Db, itemId: string): Promise<never> {
+  if (await getLink(db, itemId)) throw new TeamsLinkedError();
+  throw new TeamsMeetingLinkedError();
 }
 
 /** The public add-to-calendar page of a Help-made meeting. */
@@ -245,6 +264,7 @@ export async function createTeamsMeeting(
       durationMinutes: body.durationMinutes,
       recordAutomatically: body.recordAutomatically,
       recordApplied,
+      startsAt: meeting.startsAt,
       nextPollAt: nextPollAt(now, times),
       lastError,
       calendarNonce: nonce,
@@ -254,7 +274,7 @@ export async function createTeamsMeeting(
     .onConflictDoNothing()
     .returning();
   // Another admin connected it meanwhile; the event stays in this organizer's Outlook.
-  if (inserted.length === 0) throw new TeamsLinkedError();
+  if (inserted.length === 0) await insertConflict(db, itemId);
   await setMeetingUrlFromTeams(db, itemId, event.joinUrl);
   return { link: toTeamsLink(config, inserted[0]!) };
 }
@@ -301,33 +321,33 @@ export async function connectTeamsMeeting(
     candidates = [hinted];
   }
 
-  let found: { online: GraphOnlineMeeting; via: Organizer } | null = null;
+  let online: GraphOnlineMeeting | null = null;
   for (const candidate of candidates) {
     try {
-      const online = await graph.findOnlineMeeting(
+      online = await graph.findOnlineMeeting(
         candidate.entraUserId,
         parsed.kind === 'meet'
           ? { joinMeetingId: parsed.joinMeetingId }
           : { joinWebUrl: parsed.joinWebUrl },
       );
-      if (online) {
-        found = { online, via: candidate };
-        break;
-      }
+      if (online) break;
     } catch (error) {
       // Not this organizer's (no access policy for them, or not found): ask the next one.
       if (!(error instanceof GraphError)) throw error;
       if (error.status !== 403 && error.status !== 404) throw new TeamsUnavailableError(error.code);
     }
   }
-  if (!found) throw new TeamsMeetingNotFoundError();
-  const { online, via } = found;
+  if (!online) throw new TeamsMeetingNotFoundError();
   if (online.organizerTenantId && online.organizerTenantId !== tenantId) {
     throw new TeamsOutsideTenantError();
   }
-  // The organizer Graph states is stored, never the link's hint.
-  const organizer = byEntraId.get(online.organizerId ?? via.entraUserId);
+  // The organizer Graph states is stored, never the link's hint nor the account asked: a
+  // meeting whose organizer Graph leaves out is refused.
+  if (!online.organizerId) throw new TeamsUnknownOrganizerError();
+  const organizer = byEntraId.get(online.organizerId);
   if (!organizer) throw new TeamsUnknownOrganizerError();
+  // One Teams meeting follows one item: a second item would import the same transcript.
+  if (await itemOfOnlineMeeting(db, online.id)) throw new TeamsMeetingLinkedError();
 
   const durationMinutes = durationOf(online) ?? 60;
   const inserted = await db
@@ -340,13 +360,14 @@ export async function connectTeamsMeeting(
       organizerName: organizer.displayName,
       onlineMeetingId: online.id,
       joinUrl: online.joinWebUrl || parsed.joinWebUrl,
+      startsAt: meeting.startsAt,
       durationMinutes,
       nextPollAt: nextPollAt(now, { startsAt: meeting.startsAt, durationMinutes }),
       createdBy: actor.id,
     })
     .onConflictDoNothing()
     .returning();
-  if (inserted.length === 0) throw new TeamsLinkedError();
+  if (inserted.length === 0) await insertConflict(db, itemId);
   if (meeting.meetingUrl === null) await setMeetingUrlFromTeams(db, itemId, parsed.joinWebUrl);
   return { link: toTeamsLink(config, inserted[0]!) };
 }

@@ -30,10 +30,22 @@ const sameSet = (a: readonly string[], b: readonly string[]) =>
   a.length === b.length && a.every((id) => b.includes(id));
 
 /**
+ * The times a row's window and schedule follow: those stored when it was created or connected,
+ * never the item's current start (a client may edit it, and a recurring series shares one
+ * online meeting: a moved start would pull in another occurrence's transcript).
+ */
+const rowTimes = (row: LinkRow) => ({
+  startsAt: row.startsAt,
+  durationMinutes: row.durationMinutes,
+});
+
+/**
  * One look at one connected meeting at `now`: finds the online meeting if still unknown,
  * applies automatic recording if Graph refused it before, lists the transcripts of the
  * record's time window and imports them (all of them, in order, joined by a blank line) when
- * the set changed. `replace` overwrites a transcript the meeting had of its own.
+ * the set changed. `replace` overwrites a transcript the meeting had of its own. A Graph error,
+ * no answer included (`network`, `timeout`), is kept as `last_error` and the next look is
+ * scheduled as usual, so a failing meeting never blocks the queue and ends as `failed`.
  */
 export async function pollLink(
   deps: { db: Db; graph: TeamsGraph },
@@ -44,7 +56,7 @@ export async function pollLink(
   const { db, graph } = deps;
   const meeting = await getMeetingForTeams(db, row.itemId);
   if (!meeting) return null; // the item is going; its row cascades
-  const times = { startsAt: meeting.startsAt, durationMinutes: row.durationMinutes };
+  const times = rowTimes(row);
   let onlineMeetingId = row.onlineMeetingId;
   let recordApplied = row.recordApplied;
   let state = row.transcriptState as TeamsTranscriptState;
@@ -57,7 +69,7 @@ export async function pollLink(
       });
       onlineMeetingId = online?.id ?? null;
     }
-    if (onlineMeetingId && row.recordAutomatically && !recordApplied && now < meeting.startsAt) {
+    if (onlineMeetingId && row.recordAutomatically && !recordApplied && now < times.startsAt) {
       await graph.setRecordAutomatically(row.organizerEntraId, onlineMeetingId, true);
       recordApplied = true;
     }
@@ -127,11 +139,30 @@ export async function pollDueMeetings(
     try {
       await pollLink(deps, row, now);
     } catch (error) {
-      // One meeting's failure (the database) must not stop the others; the next run retries.
+      // One meeting's failure (the database, a bug) must not stop the others, nor keep this
+      // row first in line: it moves on like a Graph error and ends as failed.
       console.error(`teams: could not poll meeting ${row.itemId}`, error);
+      await moveOn(deps.db, row, now).catch((e: unknown) =>
+        console.error(`teams: could not reschedule meeting ${row.itemId}`, e),
+      );
     }
   }
   return due.length;
+}
+
+/** After an unexpected failure: the next look as scheduled, `failed` once polling is over. */
+async function moveOn(db: Db, row: LinkRow, now: Date): Promise<void> {
+  const next = nextPollAt(now, rowTimes(row));
+  await db
+    .update(teamsMeetingLinks)
+    .set({
+      lastError: 'internal',
+      lastPolledAt: now,
+      nextPollAt: next,
+      ...(next === null && row.transcriptState === 'waiting' ? { transcriptState: 'failed' } : {}),
+      updatedAt: sql`now()`,
+    })
+    .where(eq(teamsMeetingLinks.itemId, row.itemId));
 }
 
 /** "Check now" (or "Replace with the Teams transcript" with `replace`) of one meeting. */

@@ -60,6 +60,7 @@
     "teams_unknown_organizer": "Организаторът на тази среща не е колега от eGrant с акаунт в Help.",
     "teams_meeting_not_found": "Никой организатор от eGrant няма тази среща. Проверете връзката.",
     "teams_linked": "Тази среща вече е свързана с Teams.",
+    "teams_meeting_linked": "Тази среща в Teams вече е свързана с друг запис в Help.",
     "teams_unavailable": "Microsoft Teams не отговори. Опитайте отново след няколко минути.",
     "rate_limited": "Твърде много опити. Опитайте по-късно.",
     "generic": "Нещо се обърка. Опитайте отново."

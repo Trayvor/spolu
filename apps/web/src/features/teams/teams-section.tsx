@@ -34,6 +34,7 @@ const KNOWN_ERRORS = new Set([
   'teams_unknown_organizer',
   'teams_meeting_not_found',
   'teams_linked',
+  'teams_meeting_linked',
   'teams_unavailable',
   'rate_limited',
 ]);

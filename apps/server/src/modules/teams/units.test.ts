@@ -47,6 +47,20 @@ describe('parseTeamsLink', () => {
     });
   });
 
+  it('rebuilds the link from origin, path and query: no userinfo, no fragment', () => {
+    const context = encodeURIComponent(JSON.stringify({ Tid: TID, Oid: OID }));
+    const path = `/l/meetup-join/19%3ameeting_abc%40thread.v2/0?context=${context}`;
+    expect(parseTeamsLink(`https://evil:pw@teams.microsoft.com${path}#frag`)).toMatchObject({
+      kind: 'classic',
+      joinWebUrl: `https://teams.microsoft.com${path}`,
+    });
+    expect(parseTeamsLink('https://u@teams.microsoft.com/meet/38475610293?p=Xy7z#x')).toEqual({
+      kind: 'meet',
+      joinWebUrl: 'https://teams.microsoft.com/meet/38475610293?p=Xy7z',
+      joinMeetingId: '38475610293',
+    });
+  });
+
   it('personal Teams is outside; anything else is no Teams link', () => {
     expect(parseTeamsLink('https://teams.live.com/meet/9876543210')).toEqual({ kind: 'personal' });
     for (const bad of [

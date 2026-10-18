@@ -39,7 +39,11 @@ export const teamsOrganizers = pgTable(
  * - `origin` `help`: Help created the calendar event (`event_id`, `ical_uid`, the public
  *   add-to-calendar page); `linked`: an admin connected a pasted link of a meeting made in Teams.
  * - `online_meeting_id` is null until Graph returns the event's online meeting (the poll job
- *   looks it up again).
+ *   looks it up again). One Teams meeting belongs to one item at most (partial unique index).
+ * - `starts_at` is the item's start when the meeting was created or connected; with
+ *   `duration_minutes` it fixes the transcript window and the poll schedule. A later change of
+ *   the item's start (which its client may edit) does not move them: reconnecting is the
+ *   admin's way to follow a new time.
  * - The public page's token is never stored: `calendar_nonce` derives it with APP_SECRET and
  *   `calendar_token_hash` (SHA-256) finds the row.
  */
@@ -59,6 +63,8 @@ export const teamsMeetingLinks = pgTable(
     joinUrl: text('join_url').notNull(),
     eventId: text('event_id'),
     icalUid: text('ical_uid'),
+    /** The planned start, frozen at create or connect time (the transcript window's anchor). */
+    startsAt: timestamp('starts_at', { withTimezone: true, precision: 3 }).notNull(),
     durationMinutes: integer('duration_minutes').notNull(),
     /** "Record and transcribe automatically" was asked for (owner answer 2). */
     recordAutomatically: boolean('record_automatically').notNull().default(false),
@@ -95,6 +101,9 @@ export const teamsMeetingLinks = pgTable(
     index('teams_meeting_links_next_poll_idx')
       .on(t.nextPollAt)
       .where(sql`${t.nextPollAt} is not null`),
+    uniqueIndex('teams_meeting_links_online_meeting_unique')
+      .on(t.onlineMeetingId)
+      .where(sql`${t.onlineMeetingId} is not null`),
     uniqueIndex('teams_meeting_links_calendar_token_unique')
       .on(t.calendarTokenHash)
       .where(sql`${t.calendarTokenHash} is not null`),

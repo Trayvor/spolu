@@ -24,6 +24,8 @@ export type FakeMeeting = {
   subject: string;
   startDateTime: string;
   endDateTime: string;
+  /** Graph leaves the organizer out of the meeting's participants. */
+  omitOrganizer?: boolean;
 };
 export type FakeTranscript = { id: string; createdDateTime: string; content: string };
 export type GraphCall = { method: string; url: string; body: unknown; accept: string | null };
@@ -40,6 +42,8 @@ export type FakeGraph = {
   events: { organizerId: string; body: Record<string, unknown>; id: string; iCalUId: string }[];
   /** Answers every transcript call with 403 GraphAccessToTranscriptsDisabled. */
   transcriptsDisabled: boolean;
+  /** Every call fails without an answer, as `fetch` does when the network is down. */
+  networkDown: boolean;
   addUser(email: string, name: string, inGroup?: boolean): FakeUser;
   /** A meeting made in Teams by `organizer` (classic link with Tid/Oid). */
   addMeeting(organizer: FakeUser, over?: Partial<FakeMeeting>): FakeMeeting;
@@ -68,6 +72,7 @@ export function createFakeGraph(): FakeGraph {
     inGroup: new Set(),
     events: [],
     transcriptsDisabled: false,
+    networkDown: false,
     fetch: undefined as unknown as typeof fetch,
     addUser(email, name, inGroup = true) {
       const u = { id: randomUUID(), email: email.toLowerCase(), displayName: name };
@@ -115,6 +120,7 @@ export function createFakeGraph(): FakeGraph {
     let body: unknown = raw;
     if (raw && headers.get('content-type') === 'application/json') body = JSON.parse(raw);
     graph.calls.push({ method, url, body, accept: headers.get('accept') });
+    if (graph.networkDown) throw new TypeError('fetch failed');
 
     if (url.startsWith('https://login.microsoftonline.com/')) {
       return json(200, { access_token: `token-${randomUUID()}`, expires_in: 3599 });
@@ -177,9 +183,9 @@ export function createFakeGraph(): FakeGraph {
           subject: x.subject,
           startDateTime: x.startDateTime,
           endDateTime: x.endDateTime,
-          participants: {
-            organizer: { identity: { user: { id: x.organizerId, tenantId: x.tenantId } } },
-          },
+          participants: x.omitOrganizer
+            ? {}
+            : { organizer: { identity: { user: { id: x.organizerId, tenantId: x.tenantId } } } },
         })),
       });
     }

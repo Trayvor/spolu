@@ -52,8 +52,9 @@ export async function organizerOf(
 
 /**
  * The known organizers: every active Help admin with a Microsoft account in the tenant, by
- * Entra id; `first` (the acting admin) is looked up first. An admin whose lookup fails is
- * skipped (a later call tries again).
+ * Entra id; `first` (the acting admin) is looked up first. An admin whose lookup Graph refuses
+ * is skipped (a later call tries again); no answer at all (network, timeout) is thrown, since
+ * every other lookup would fail the same way.
  */
 export async function knownOrganizers(
   deps: { db: Db; graph: TeamsGraph },
@@ -68,7 +69,7 @@ export async function knownOrganizers(
       const organizer = await organizerOf(deps, person, now);
       if (organizer) out.push(organizer);
     } catch (error) {
-      if (!(error instanceof GraphError)) throw error;
+      if (!(error instanceof GraphError) || error.status === 0) throw error;
     }
   }
   return out;

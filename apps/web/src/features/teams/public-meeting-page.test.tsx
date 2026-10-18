@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { cleanup, render, screen } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RouterProvider, createMemoryHistory } from '@tanstack/react-router';
 import type { PublicMeeting } from '@spolu/shared';
@@ -74,6 +74,21 @@ describe('public meeting page (Teams T1)', () => {
     expect(outlook.getAttribute('href')).toMatch(/^https:\/\/outlook\.office\.com\//);
     const google = screen.getByRole('link', { name: t('teams.public.google') });
     expect(google.getAttribute('href')).toMatch(/^https:\/\/calendar\.google\.com\//);
+  });
+
+  it('asks search engines not to index the page, also when the link is invalid', async () => {
+    const robots = () =>
+      document.head.querySelector('meta[name="robots"]')?.getAttribute('content') ?? null;
+    mockApi({ status: 200, body: MEETING });
+    renderAt(`/m/${TOKEN}`);
+    await screen.findByRole('heading', { name: MEETING.title });
+    expect(robots()).toBe('noindex');
+    cleanup();
+    expect(robots()).toBeNull();
+    mockApi({ status: 404, body: { error: 'not_found' } });
+    renderAt(`/m/${TOKEN}`);
+    await screen.findByRole('alert');
+    expect(robots()).toBe('noindex');
   });
 
   it('a meeting without automatic recording says it may be recorded', async () => {

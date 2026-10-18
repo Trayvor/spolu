@@ -1,9 +1,13 @@
 import { randomUUID } from 'node:crypto';
+import { io as connectSocket, type Socket } from 'socket.io-client';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
 import {
+  KnowledgeEvents,
   KnowledgeItemDtoSchema,
   KnowledgePageSchema,
+  SocketEvents,
+  type KnowledgeItemEvent,
   PublicMeetingSchema,
   TeamsInviteeOptionListSchema,
   TeamsMeetingStateSchema,
@@ -45,21 +49,54 @@ describe('Microsoft Teams (T1)', () => {
   /** The same app without Teams configured: everything Teams is inert. */
   let off: TestApp;
   let graph: FakeGraph;
+  let baseUrl = '';
+  const sockets: Socket[] = [];
 
   beforeAll(async () => {
     graph = createFakeGraph();
-    [test, off] = await Promise.all([
-      buildTestApp({ config: { teams: teamsConfig() }, teamsFetch: graph.fetch }),
-      buildTestApp(),
-    ]);
+    // One after the other: the meeting jobs' socket slot is the last app's (`test`).
+    off = await buildTestApp();
+    test = await buildTestApp({ config: { teams: teamsConfig() }, teamsFetch: graph.fetch });
+    await test.app.listen({ port: 0, host: '127.0.0.1' });
+    const address = test.app.server.address();
+    if (address === null || typeof address === 'string') throw new Error('no port');
+    baseUrl = `http://127.0.0.1:${address.port}`;
   });
   afterAll(async () => {
+    sockets.forEach((s) => s.close());
     await Promise.all([test.app.close(), off.app.close()]);
     await Promise.all([test.close(), off.close()]);
   });
   beforeEach(() => {
     graph.calls.length = 0;
+    graph.networkDown = false;
   });
+
+  /** A signed-in socket recording the knowledge rows it gets. */
+  async function knowledgeRows(cookie: string, joinGroupId?: string) {
+    const socket = connectSocket(baseUrl, {
+      transports: ['websocket'],
+      extraHeaders: { cookie },
+      reconnection: false,
+    });
+    sockets.push(socket);
+    await new Promise((resolve) => socket.once('connect', () => resolve(null)));
+    if (joinGroupId) {
+      expect(await socket.emitWithAck(SocketEvents.groupJoin, { groupId: joinGroupId })).toEqual({
+        ok: true,
+      });
+    }
+    const rows: KnowledgeItemEvent['item'][] = [];
+    socket.on(KnowledgeEvents.item, (event: KnowledgeItemEvent) => rows.push(event.item));
+    return rows;
+  }
+  const until = async (check: () => boolean, ms = 3000) => {
+    const start = Date.now();
+    while (!check()) {
+      if (Date.now() - start > ms) throw new Error('timed out');
+      await new Promise((r) => setTimeout(r, 10));
+    }
+  };
 
   const call = (
     method: 'GET' | 'POST' | 'PATCH' | 'DELETE',
@@ -412,6 +449,43 @@ describe('Microsoft Teams (T1)', () => {
       expect(await linkRow(item.id)).toBeUndefined();
     });
 
+    it('one Teams meeting connects to one item only (409 teams_meeting_linked)', async () => {
+      const group = await newGroup();
+      const admin = await newAdmin();
+      const made = graph.addMeeting(admin.ms!);
+      const first = await newMeeting(admin.cookie, group.id);
+      const second = await newMeeting(admin.cookie, group.id);
+      expect((await connect(admin.cookie, first.id, made.joinWebUrl)).statusCode).toBe(200);
+      const again = await connect(admin.cookie, second.id, made.joinWebUrl);
+      expect(again.statusCode, again.body).toBe(409);
+      expect(again.json()).toEqual({ error: 'teams_meeting_linked' });
+      expect(await linkRow(second.id)).toBeUndefined();
+
+      // Nor a meeting Help made for another item.
+      const third = await newMeeting(admin.cookie, group.id);
+      const helpMade = await createTeams(admin.cookie, third.id);
+      expect(helpMade.statusCode, helpMade.body).toBe(201);
+      const joinUrl = TeamsMeetingStateSchema.parse(helpMade.json()).link!.joinUrl;
+      expect((await connect(admin.cookie, second.id, joinUrl)).json()).toEqual({
+        error: 'teams_meeting_linked',
+      });
+    });
+
+    it('refuses a meeting whose organizer Graph does not state', async () => {
+      const group = await newGroup();
+      const admin = await newAdmin();
+      const made = graph.addMeeting(admin.ms!, { omitOrganizer: true });
+      const item = await newMeeting(admin.cookie, group.id);
+      const res = await connect(
+        admin.cookie,
+        item.id,
+        `https://teams.microsoft.com/meet/${made.joinMeetingId}`,
+      );
+      expect(res.statusCode, res.body).toBe(400);
+      expect(res.json()).toEqual({ error: 'teams_unknown_organizer' });
+      expect(await linkRow(item.id)).toBeUndefined();
+    });
+
     it('refuses a meeting Graph says is organised in another tenant', async () => {
       const group = await newGroup();
       const admin = await newAdmin();
@@ -613,6 +687,106 @@ describe('Microsoft Teams (T1)', () => {
       expect((await call('GET', `/api/knowledge/${item.id}/teams`, admin.cookie)).json()).toEqual({
         link: null,
       });
+    });
+
+    const summaryPatch = (word: string) => ({
+      summary: { summary: word, decisions: [], actionItems: [], openQuestions: [], language: 'sk' },
+    });
+
+    it('a held summary shows no summary badge to a client: list, search, socket', async () => {
+      const { admin, client, item, made, startsAt, group } = await connectedMeeting(70);
+      graph.addTranscript(made.id, new Date(startsAt.getTime() + 2 * MIN), vtt([['A', 'Ahoj']]));
+      const check = await call('POST', `/api/knowledge/${item.id}/teams/check`, admin.cookie, {});
+      expect(check.json().link.transcriptState).toBe('imported');
+      const adminRows = await knowledgeRows(admin.cookie, group.id);
+      const clientRows = await knowledgeRows(client.cookie);
+
+      const edit = await call('PATCH', `/api/knowledge/${item.id}`, admin.cookie, {
+        updatedAt: (await getItem(admin.cookie, item.id)).updatedAt,
+        meeting: summaryPatch('Zhrnutie'),
+      });
+      expect(edit.statusCode, edit.body).toBe(200);
+      const badge = (rows: KnowledgeItemEvent['item'][]) =>
+        rows.filter((r) => r.id === item.id).at(-1)?.meeting?.hasSummary;
+      await until(() => badge(adminRows) !== undefined && badge(clientRows) !== undefined);
+      expect(badge(adminRows)).toBe(true);
+      expect(badge(clientRows)).toBe(false);
+
+      const listed = async (cookie: string, q = '') => {
+        const res = await call('GET', `/api/groups/${group.id}/knowledge?q=${q}`, cookie);
+        expect(res.statusCode, res.body).toBe(200);
+        return KnowledgePageSchema.parse(res.json()).items.find((i) => i.id === item.id)?.meeting;
+      };
+      expect((await listed(admin.cookie))?.hasSummary).toBe(true);
+      expect((await listed(client.cookie))?.hasSummary).toBe(false);
+      expect((await listed(client.cookie, 'Kickoff'))?.hasSummary).toBe(false);
+
+      // Shared: the badge reaches the client too.
+      const before = clientRows.length;
+      expect(
+        (await call('POST', `/api/knowledge/${item.id}/meeting/share-transcript`, admin.cookie))
+          .statusCode,
+      ).toBe(204);
+      await until(() => clientRows.length > before);
+      expect(badge(clientRows)).toBe(true);
+      expect((await listed(client.cookie))?.hasSummary).toBe(true);
+    });
+
+    it('a failing network still moves the poll on, ends as failed and is a 502', async () => {
+      const { admin, item, made } = await connectedMeeting(65);
+      const now = new Date();
+      await test.deps.db
+        .update(teamsMeetingLinks)
+        .set({ nextPollAt: new Date(now.getTime() - 1000) })
+        .where(eq(teamsMeetingLinks.itemId, item.id));
+      graph.networkDown = true;
+      await pollDueMeetings(graphDeps(), now);
+      const row = (await linkRow(item.id))!;
+      expect(row.lastError).toBe('network');
+      expect(row.transcriptState).toBe('waiting');
+      // Not first in line any more: the next run looks at the others first.
+      expect(row.nextPollAt!.getTime()).toBeGreaterThan(now.getTime());
+
+      const late = new Date(Date.now() + 4 * 24 * 60 * MIN);
+      await test.deps.db
+        .update(teamsMeetingLinks)
+        .set({ nextPollAt: new Date(late.getTime() - 1000) })
+        .where(eq(teamsMeetingLinks.itemId, item.id));
+      await pollDueMeetings(graphDeps(), late);
+      expect(await linkRow(item.id)).toMatchObject({ transcriptState: 'failed', nextPollAt: null });
+
+      // The admin's actions answer 502 teams_unavailable, never 500.
+      const group = await newGroup();
+      const other = await newMeeting(admin.cookie, group.id);
+      const connected = await connect(admin.cookie, other.id, made.joinWebUrl);
+      expect(connected.statusCode, connected.body).toBe(502);
+      expect(connected.json()).toEqual({ error: 'teams_unavailable' });
+      const fresh = await newAdmin();
+      const created = await createTeams(fresh.cookie, other.id);
+      expect(created.statusCode, created.body).toBe(502);
+      expect(created.json()).toEqual({ error: 'teams_unavailable' });
+    });
+
+    it('a client moving the start onto another occurrence does not import that one', async () => {
+      const { admin, client, item, made, startsAt } = await connectedMeeting(70, {}, true);
+      const nextWeek = new Date(startsAt.getTime() + 7 * 24 * 60 * MIN);
+      const moved = await call('PATCH', `/api/knowledge/${item.id}`, client.cookie, {
+        updatedAt: (await getItem(client.cookie, item.id)).updatedAt,
+        meeting: { startsAt: nextWeek.toISOString() },
+      });
+      expect(moved.statusCode, moved.body).toBe(200);
+      graph.addTranscript(
+        made.id,
+        new Date(nextWeek.getTime() + 2 * MIN),
+        vtt([['X', 'Iná porada']]),
+      );
+      const res = await call('POST', `/api/knowledge/${item.id}/teams/check`, admin.cookie, {});
+      expect(res.statusCode, res.body).toBe(200);
+      expect(res.json().link.transcriptState).toBe('waiting');
+      expect(contentFetches()).toBe(0);
+      expect((await getItem(admin.cookie, item.id)).meetingDetail!.transcript).toBe('');
+      // The window stays the one stored at connect time.
+      expect((await linkRow(item.id))!.startsAt.getTime()).toBe(startsAt.getTime());
     });
 
     it('deleting the meeting item deletes its Teams row', async () => {

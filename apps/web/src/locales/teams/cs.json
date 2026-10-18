@@ -60,6 +60,7 @@
     "teams_unknown_organizer": "Organizátor této schůzky není kolega z eGrantu s účtem v Help.",
     "teams_meeting_not_found": "Žádný organizátor z eGrantu tuto schůzku nemá. Zkontrolujte odkaz.",
     "teams_linked": "Tato schůzka už je propojena s Teams.",
+    "teams_meeting_linked": "Tato schůzka v Teams už je propojena s jiným záznamem v Help.",
     "teams_unavailable": "Microsoft Teams neodpověděl. Zkuste to za pár minut.",
     "rate_limited": "Příliš mnoho pokusů. Zkuste to později.",
     "generic": "Něco se nepovedlo. Zkuste to znovu."

@@ -150,6 +150,7 @@ export const ErrorCodes = {
   teamsUnknownOrganizer: 'teams_unknown_organizer',
   teamsMeetingNotFound: 'teams_meeting_not_found',
   teamsLinked: 'teams_linked',
+  teamsMeetingLinked: 'teams_meeting_linked',
   teamsUnavailable: 'teams_unavailable',
 } as const;
 export type ErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes];

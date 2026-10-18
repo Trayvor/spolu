@@ -5,7 +5,10 @@
 export type ParsedTeamsLink =
   | {
       kind: 'classic';
-      /** The link as pasted (trimmed): Graph's `JoinWebUrl` filter compares it. */
+      /**
+       * The link rebuilt from its origin, path and query (no userinfo, no fragment): Graph's
+       * `JoinWebUrl` filter compares it, and it becomes the meeting's link.
+       */
       joinWebUrl: string;
       tenantId: string | null;
       organizerId: string | null;
@@ -31,9 +34,11 @@ export function parseTeamsLink(input: string): ParsedTeamsLink | null {
   if (PERSONAL_HOSTS.has(host)) return { kind: 'personal' };
   if (!WORK_HOSTS.has(host)) return null;
   const path = url.pathname;
+  // Never `input` itself: `https://user:pass@teams.microsoft.com/…` must not be stored or shown.
+  const joinWebUrl = `${url.origin}${url.pathname}${url.search}`;
   // The short links of invitations since January 2026: /meet/<meeting ID>?p=<passcode>.
   const meet = /^\/meet\/(\d{6,20})\/?$/.exec(path);
-  if (meet) return { kind: 'meet', joinWebUrl: input.trim(), joinMeetingId: meet[1]! };
+  if (meet) return { kind: 'meet', joinWebUrl, joinMeetingId: meet[1]! };
   if (!/^\/l\/meetup-join\/[^/]+/i.test(path)) return null;
   let tenantId: string | null = null;
   let organizerId: string | null = null;
@@ -51,5 +56,5 @@ export function parseTeamsLink(input: string): ParsedTeamsLink | null {
       // No usable hints; the link still works with the JoinWebUrl filter.
     }
   }
-  return { kind: 'classic', joinWebUrl: input.trim(), tenantId, organizerId };
+  return { kind: 'classic', joinWebUrl, tenantId, organizerId };
 }

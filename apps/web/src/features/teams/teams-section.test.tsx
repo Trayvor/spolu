@@ -165,6 +165,24 @@ describe('Teams block (T1)', () => {
     expect(screen.queryByRole('button', { name: t('teams.block.copyInvitation') })).toBeNull();
   });
 
+  it('says when the Teams meeting already belongs to another record', async () => {
+    mockApi(
+      { link: null },
+      {
+        'POST /api/knowledge/k1/teams/connect': {
+          status: 409,
+          body: { error: 'teams_meeting_linked' },
+        },
+      },
+    );
+    const { user } = renderSection();
+    await user.click(await screen.findByRole('button', { name: t('teams.block.connect') }));
+    await user.click(screen.getByRole('button', { name: t('teams.connectForm.submit') }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      t('teams.errors.teams_meeting_linked'),
+    );
+  });
+
   it('a connected meeting offers Replace when Teams has a transcript, and Disconnect asks first', async () => {
     const calls = mockApi(
       { link: LINK },

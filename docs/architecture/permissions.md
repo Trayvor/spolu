@@ -137,7 +137,7 @@ Policy functions in `modules/teams/policy.ts` (test-first, `policy.test.ts`); th
 | function | rule |
 |---|---|
 | `canUseTeams(actor, configured)` | an admin (superadmin included) and Teams is configured. Everyone else, and everyone while it is not configured, gets **404** from every `/api/knowledge/:id/teams*` route: the feature is invisible to clients and žiadatelia |
-| `canLinkTeamsMeeting(actor, { configured, canEditItem, linked })` | create a Teams meeting or connect a pasted link: `canUseTeams`, the actor edits the item, and it has no Teams meeting yet (409 `teams_linked`). Connecting is only this explicit admin action, never saving the link field: the transcript is fetched with the app's power, so a client (an editor of their own call) must not pull another call's transcript |
+| `canLinkTeamsMeeting(actor, { configured, canEditItem, linked })` | create a Teams meeting or connect a pasted link: `canUseTeams`, the actor edits the item, and it has no Teams meeting yet (409 `teams_linked`); the Teams meeting must not follow another item already (409 `teams_meeting_linked`). Connecting is only this explicit admin action, never saving the link field: the transcript is fetched with the app's power, so a client (an editor of their own call) must not pull another call's transcript |
 | `canManageTeamsLink(…)` | Check now, Replace with the Teams transcript, Disconnect: the same on a connected item |
 | `canShareMeetingTranscript(actor)` (`modules/knowledge/policy.ts`) | "Share with the client" (`POST /api/knowledge/:id/meeting/share-transcript`): admins, on a meeting they read (a client 403, a žiadateľ 404) |
 

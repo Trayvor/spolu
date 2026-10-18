@@ -1,4 +1,5 @@
 import { createPrivateKey, randomUUID, sign, type KeyObject } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import type { TeamsConfig } from '../../infra/config/config.js';
 
@@ -16,10 +17,17 @@ const ASSERTION_SECONDS = 10 * 60;
 const RETRIES = 2;
 const MAX_RETRY_WAIT_MS = 10_000;
 const REQUEST_TIMEOUT_MS = 30_000;
+/**
+ * A transcript's download stops after this many bytes (WebVTT of the longest transcript a
+ * meeting keeps, `MEETING_LIMITS.transcript` characters, plus its cue lines); the rest is not
+ * read at all.
+ */
+export const MAX_TRANSCRIPT_BYTES = 4 * 1024 * 1024;
 
 /**
  * A Graph (or token endpoint) answer that was not a success: the HTTP status and the error code
  * (the inner code when Graph gives one, e.g. `GraphAccessToTranscriptsDisabled`). Never the body.
+ * No answer at all is status 0 with the code `network` or `timeout`.
  */
 export class GraphError extends Error {
   constructor(
@@ -82,18 +90,85 @@ export type GraphClientOptions = {
   now?: () => number;
   /** Tests: the certificate's private key PEM instead of reading `keyPath`. */
   readKey?: (path: string) => Promise<string>;
+  /** The certificate's key, already read and checked at start-up (`loadPrivateKey`). */
+  key?: KeyObject;
 };
 
 const base64url = (input: Buffer | string) => Buffer.from(input).toString('base64url');
 
-/** The private key block of a PEM file that may also hold the certificate. */
+const KEY_NEEDED = 'TEAMS_CERT_PATH must hold an unencrypted RSA private key (PEM)';
+
+/**
+ * The private key block of a PEM file that may also hold the certificate. Only an unencrypted
+ * RSA key (PKCS#8 `PRIVATE KEY` or PKCS#1 `RSA PRIVATE KEY`) is accepted: the assertion is
+ * RS256 and there is no passphrase to give.
+ */
 export function privateKeyFromPem(pem: string): KeyObject {
-  const block =
-    /-----BEGIN (?:RSA |EC |ENCRYPTED )?PRIVATE KEY-----[\s\S]+?-----END (?:RSA |EC |ENCRYPTED )?PRIVATE KEY-----/.exec(
-      pem,
-    );
-  if (!block) throw new Error('TEAMS_CERT_PATH holds no private key');
-  return createPrivateKey(block[0]);
+  const block = /-----BEGIN (RSA )?PRIVATE KEY-----[\s\S]+?-----END (?:RSA )?PRIVATE KEY-----/.exec(
+    pem,
+  );
+  // A legacy encrypted PKCS#1 key keeps the plain header and says so in `Proc-Type`.
+  if (!block || /Proc-Type:\s*4,\s*ENCRYPTED/i.test(block[0])) throw new Error(KEY_NEEDED);
+  let key: KeyObject;
+  try {
+    key = createPrivateKey(block[0]);
+  } catch {
+    throw new Error(KEY_NEEDED);
+  }
+  if (key.asymmetricKeyType !== 'rsa') throw new Error(KEY_NEEDED);
+  return key;
+}
+
+/** Reads and checks the certificate's key at start-up, so a bad file stops the server. */
+export function loadPrivateKey(path: string): KeyObject {
+  let pem: string;
+  try {
+    pem = readFileSync(path, 'utf8');
+  } catch {
+    throw new Error(`TEAMS_CERT_PATH cannot be read: ${path}`);
+  }
+  return privateKeyFromPem(pem);
+}
+
+/** A `fetch` that never answered (network down, DNS, reset, our timeout) as `GraphError(0)`. */
+async function answered(request: Promise<Response>): Promise<Response> {
+  try {
+    return await request;
+  } catch (error) {
+    throw noAnswer(error);
+  }
+}
+
+function noAnswer(error: unknown): GraphError {
+  const name = (error as { name?: unknown } | null)?.name;
+  return new GraphError(0, name === 'TimeoutError' ? 'timeout' : 'network');
+}
+
+/** The body as text, reading at most `max` bytes (then the stream is cancelled). */
+async function cappedText(response: Response, max: number): Promise<string> {
+  if (!response.body) return '';
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let text = '';
+  let bytes = 0;
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      const room = max - bytes;
+      const chunk = value.byteLength > room ? value.subarray(0, room) : value;
+      bytes += chunk.byteLength;
+      text += decoder.decode(chunk, { stream: true });
+      if (bytes >= max) {
+        await reader.cancel();
+        break;
+      }
+    }
+  } catch (error) {
+    throw error instanceof GraphError ? error : noAnswer(error);
+  }
+  // A character cut at the cap is dropped, not replaced.
+  return text + decoder.decode().replace(/\uFFFD$/, '');
 }
 
 /**
@@ -138,6 +213,16 @@ async function errorCode(response: Response): Promise<string> {
   }
 }
 
+/** A success's JSON body; a body cut off by the timeout or the network is `GraphError(0)`. */
+async function json<T>(response: Response): Promise<T> {
+  try {
+    return (await response.json()) as T;
+  } catch (error) {
+    if (error instanceof SyntaxError) throw new GraphError(response.status, 'invalid_json');
+    throw noAnswer(error);
+  }
+}
+
 /** `YYYY-MM-DDTHH:mm:ss.sss` in UTC (Graph's dateTimeTimeZone wants no offset). */
 const graphDateTime = (date: Date) => date.toISOString().replace(/Z$/, '');
 
@@ -152,7 +237,7 @@ export function createGraphClient(options: GraphClientOptions): TeamsGraph {
   const readKey = options.readKey ?? ((path: string) => readFile(path, 'utf8'));
   let cached: { token: string; expiresAt: number } | null = null;
   let pending: Promise<string> | null = null;
-  let key: KeyObject | null = null;
+  let key: KeyObject | null = options.key ?? null;
 
   async function fetchToken(): Promise<string> {
     const form = new URLSearchParams({
@@ -177,14 +262,16 @@ export function createGraphClient(options: GraphClientOptions): TeamsGraph {
         }),
       );
     }
-    const response = await doFetch(`${LOGIN_BASE}/${config.tenantId}/oauth2/v2.0/token`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/x-www-form-urlencoded' },
-      body: form.toString(),
-      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-    });
+    const response = await answered(
+      doFetch(`${LOGIN_BASE}/${config.tenantId}/oauth2/v2.0/token`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/x-www-form-urlencoded' },
+        body: form.toString(),
+        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+      }),
+    );
     if (!response.ok) throw new GraphError(response.status, await errorCode(response));
-    const body = (await response.json()) as { access_token?: string; expires_in?: number };
+    const body = await json<{ access_token?: string; expires_in?: number }>(response);
     if (!body.access_token) throw new GraphError(response.status, 'no_token');
     cached = {
       token: body.access_token,
@@ -206,16 +293,19 @@ export function createGraphClient(options: GraphClientOptions): TeamsGraph {
     options: { body?: unknown; accept?: string } = {},
   ): Promise<Response> {
     for (let attempt = 0; ; attempt++) {
-      const response = await doFetch(`${GRAPH_BASE}${path}`, {
-        method,
-        headers: {
-          authorization: `Bearer ${await token()}`,
-          ...(options.body === undefined ? {} : { 'content-type': 'application/json' }),
-          ...(options.accept ? { accept: options.accept } : {}),
-        },
-        ...(options.body === undefined ? {} : { body: JSON.stringify(options.body) }),
-        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-      });
+      const authorization = `Bearer ${await token()}`;
+      const response = await answered(
+        doFetch(`${GRAPH_BASE}${path}`, {
+          method,
+          headers: {
+            authorization,
+            ...(options.body === undefined ? {} : { 'content-type': 'application/json' }),
+            ...(options.accept ? { accept: options.accept } : {}),
+          },
+          ...(options.body === undefined ? {} : { body: JSON.stringify(options.body) }),
+          signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+        }),
+      );
       if (response.status === 401 && attempt === 0) {
         cached = null; // revoked or rotated: one more try with a fresh token
         continue;
@@ -230,7 +320,6 @@ export function createGraphClient(options: GraphClientOptions): TeamsGraph {
     }
   }
 
-  const json = async <T>(response: Response) => (await response.json()) as T;
   const user = (id: string) => `/users/${encodeURIComponent(id)}`;
 
   type RawMeeting = {
@@ -332,13 +421,16 @@ export function createGraphClient(options: GraphClientOptions): TeamsGraph {
     async transcriptContent(userId, meetingId, transcriptId) {
       const path = `${user(userId)}/onlineMeetings/${encodeURIComponent(meetingId)}/transcripts/${encodeURIComponent(transcriptId)}/content`;
       try {
-        return await (await call('GET', path, { accept: 'text/vtt' })).text();
+        return await cappedText(
+          await call('GET', path, { accept: 'text/vtt' }),
+          MAX_TRANSCRIPT_BYTES,
+        );
       } catch (error) {
         if (!(error instanceof GraphError) || error.code !== 'SpeakerAttributionNotAllowed') {
           throw error;
         }
         const plain = 'application/vnd.microsoft.graph.transcript+text';
-        return (await call('GET', path, { accept: plain })).text();
+        return cappedText(await call('GET', path, { accept: plain }), MAX_TRANSCRIPT_BYTES);
       }
     },
   };

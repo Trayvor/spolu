@@ -48,6 +48,14 @@ export class TeamsLinkedError extends Error {
   }
 }
 
+/** The Teams meeting is already connected to another meeting item (409). */
+export class TeamsMeetingLinkedError extends Error {
+  constructor() {
+    super('Teams meeting connected to another item');
+    this.name = 'TeamsMeetingLinkedError';
+  }
+}
+
 /** Graph failed in a way the admin cannot fix in Help (502 `teams_unavailable`). */
 export class TeamsUnavailableError extends Error {
   constructor(readonly code: string) {

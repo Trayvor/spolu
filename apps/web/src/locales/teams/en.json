@@ -60,6 +60,7 @@
     "teams_unknown_organizer": "The organizer of this meeting is not an eGrant colleague with a Help account.",
     "teams_meeting_not_found": "No eGrant organizer has this meeting. Check the link.",
     "teams_linked": "This meeting is already connected to Teams.",
+    "teams_meeting_linked": "This Teams meeting is already connected to another record in Help.",
     "teams_unavailable": "Microsoft Teams did not answer. Try again in a few minutes.",
     "rate_limited": "Too many attempts. Try again later.",
     "generic": "Something went wrong. Try again."

@@ -29,6 +29,19 @@ export function toEventSummary(item: KnowledgeSummary | KnowledgeItemDto): Knowl
 }
 
 /**
+ * The row of `item` for clients: an admin's detail whose transcript is held for admins (Teams
+ * T1, `meetingDetail.transcriptAdminsOnly`) loses its summary badge.
+ */
+function clientRow(
+  item: KnowledgeSummary | KnowledgeItemDto,
+  row: KnowledgeSummary,
+): KnowledgeSummary {
+  const held = 'meetingDetail' in item && item.meetingDetail?.transcriptAdminsOnly === true;
+  if (!held || !row.meeting?.hasSummary) return row;
+  return { ...row, meeting: { ...row.meeting, hasSummary: false } };
+}
+
+/**
  * Pushes a created or edited item after the commit. A public item goes to the group room, an
  * admins-only one to the group's admins room only. Public → admins deletes it for the clients
  * (the group room except its admins, so an admin's open view of it stays) and sends it to the
@@ -38,11 +51,19 @@ export function emitKnowledgeItem(
   io: SocketIOServer,
   item: KnowledgeSummary | KnowledgeItemDto,
   previousVisibility?: Visibility,
+  clientItem?: KnowledgeSummary,
 ): void {
   const event: KnowledgeItemEvent = { item: toEventSummary(item) };
   const { groupId } = item;
   if (item.visibility === 'public') {
-    emitToGroup(io, groupId, KnowledgeEvents.item, event);
+    const forClients = clientItem ? toEventSummary(clientItem) : clientRow(item, event.item);
+    if (forClients.meeting?.hasSummary === event.item.meeting?.hasSummary) {
+      emitToGroup(io, groupId, KnowledgeEvents.item, event);
+      return;
+    }
+    // A summary held for admins (Teams T1): the clients' row shows no summary badge.
+    emitToGroupAdmins(io, groupId, KnowledgeEvents.item, event);
+    emitToGroupClients(io, groupId, KnowledgeEvents.item, { item: forClients });
     return;
   }
   if (previousVisibility === 'public') {

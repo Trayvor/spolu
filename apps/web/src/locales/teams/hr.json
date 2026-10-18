@@ -60,6 +60,7 @@
     "teams_unknown_organizer": "Organizator ovog sastanka nije kolega iz eGranta s računom u Helpu.",
     "teams_meeting_not_found": "Nijedan organizator iz eGranta nema ovaj sastanak. Provjerite poveznicu.",
     "teams_linked": "Ovaj sastanak već je povezan s Teamsom.",
+    "teams_meeting_linked": "Ovaj sastanak u Teamsu već je povezan s drugim zapisom u Helpu.",
     "teams_unavailable": "Microsoft Teams nije odgovorio. Pokušajte ponovno za nekoliko minuta.",
     "rate_limited": "Previše pokušaja. Pokušajte kasnije.",
     "generic": "Nešto nije uspjelo. Pokušajte ponovno."

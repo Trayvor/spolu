@@ -16,8 +16,8 @@ export function attachMeetingsRealtime(server: SocketIOServer | null): void {
 export async function announceMeeting(db: Db, itemId: string): Promise<void> {
   if (!io) return;
   try {
-    const summary = await getItemSummary(db, itemId);
-    if (summary) emitKnowledgeItem(io, summary);
+    const rows = await getItemSummary(db, itemId);
+    if (rows) emitKnowledgeItem(io, rows.admin, undefined, rows.client);
   } catch (error) {
     console.error(`meetings: could not announce item ${itemId}`, error);
   }

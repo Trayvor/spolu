@@ -1,15 +1,28 @@
 import type { Config } from '../../infra/config/config.js';
 import type { Db } from '../../infra/db/client.js';
 import type { JobHandlers, JobSchedule } from '../../infra/jobs/jobs.js';
-import { createGraphClient, type TeamsGraph } from './graph-client.js';
+import { createGraphClient, loadPrivateKey, type TeamsGraph } from './graph-client.js';
 import { pollDueMeetings, TRANSCRIPT_POLL_JOB } from './transcripts.js';
 
 export { TRANSCRIPT_POLL_JOB };
 
-/** The Graph client of the configured app; null when Teams is off (the feature is inert). */
-export function createTeams(config: Config, fetchImpl?: typeof fetch): TeamsGraph | null {
+/**
+ * The Graph client of the configured app; null when Teams is off (the feature is inert). A
+ * certificate's key is read and checked here, so a missing, encrypted or non-RSA key stops the
+ * start with a clear message instead of failing every later Graph call.
+ */
+export function createTeams(
+  config: Pick<Config, 'teams'>,
+  fetchImpl?: typeof fetch,
+): TeamsGraph | null {
   if (!config.teams) return null;
-  return createGraphClient({ config: config.teams, ...(fetchImpl ? { fetch: fetchImpl } : {}) });
+  const credential = config.teams.credential;
+  const key = credential.kind === 'certificate' ? loadPrivateKey(credential.keyPath) : undefined;
+  return createGraphClient({
+    config: config.teams,
+    ...(fetchImpl ? { fetch: fetchImpl } : {}),
+    ...(key ? { key } : {}),
+  });
 }
 
 /** The transcript poll; no handler at all while Teams is off. */
