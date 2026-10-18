@@ -30,6 +30,12 @@ const socket = {
   emit: vi.fn(),
 };
 vi.mock('@/lib/socket', () => ({ getSocket: () => socket }));
+// The workload card is a lazy chunk (2026-10-19): the flag records when the page imports it.
+const workloadModule = vi.hoisted(() => ({ loaded: false }));
+vi.mock('./workload-card', async (importOriginal) => {
+  workloadModule.loaded = true;
+  return importOriginal<typeof import('./workload-card')>();
+});
 
 const t = (key: string, options?: Record<string, unknown>) => i18n.t(key, options);
 
@@ -72,7 +78,10 @@ const ticket = (over: Partial<HomeTicket> & { id: string; number: number }): Hom
 });
 
 type Answers = Partial<
-  Record<'tasks' | 'tickets' | 'mentions' | 'reminders' | 'sidebar' | 'meetings', unknown>
+  Record<
+    'tasks' | 'tickets' | 'mentions' | 'reminders' | 'sidebar' | 'meetings' | 'workload',
+    unknown
+  >
 > & {
   fail?: string[];
 };
@@ -163,6 +172,23 @@ function mockApi(answers: Answers = {}) {
           title: 'Budget review',
           startsAt: '2026-10-01T08:00:00.000Z',
           hasSummary: false,
+        },
+      ],
+    },
+    workload: {
+      today: '2026-10-21',
+      week: null,
+      admins: [
+        {
+          userId: 'a1',
+          name: 'Vlad Herasymenko',
+          self: true,
+          openTasks: 3,
+          overdueTasks: 1,
+          openTickets: 1,
+          unseen: 0,
+          clients: [],
+          moreClients: null,
         },
       ],
     },
@@ -408,6 +434,26 @@ describe('HomePage', () => {
       ).toBeNull(),
     );
     expect(mentions.parentElement).toHaveClass('grid-cols-1');
+  });
+
+  it('shows the workload card last on a wide screen', async () => {
+    mockApi();
+    await renderHome();
+    const card = await screen.findByRole('region', { name: 'Team workload' });
+    const regions = screen.getAllByRole('region');
+    expect(regions.at(-1)).toBe(card);
+    expect(calls).toContain('/api/me/home/workload');
+  });
+
+  it('does not show the workload card on a phone, nor import it', async () => {
+    wide = false;
+    workloadModule.loaded = false;
+    mockApi();
+    await renderHome();
+    await screen.findAllByRole('button', { name: /:/ });
+    expect(screen.queryByRole('region', { name: 'Team workload' })).toBeNull();
+    expect(calls).not.toContain('/api/me/home/workload');
+    expect(workloadModule.loaded).toBe(false);
   });
 
   it('one failing card does not hide the others', async () => {

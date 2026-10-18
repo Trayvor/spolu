@@ -1,0 +1,31 @@
+{
+  "title": "Meeskonna koormus",
+  "caption": "Administraatorite avatud töö",
+  "columns": {
+    "admin": "Administraator",
+    "tasks": "Ülesanded",
+    "overdue": "Tähtaeg möödas",
+    "tickets": "Pöördumised",
+    "unseen": "Nägemata",
+    "week": "See nädal"
+  },
+  "self": "(teie)",
+  "expand": "Näita jaotust klientide kaupa: {{name}}",
+  "collapse": "Peida jaotus klientide kaupa: {{name}}",
+  "noClient": "Kliendita",
+  "more_one": "ja veel {{count}} klient",
+  "more_other": "ja veel {{count}} klienti",
+  "footnote": "Deaktiveeritud kliente ei arvestata.",
+  "footnoteTime": "Deaktiveeritud kliente ei arvestata. Aeg: kanded esmaspäevast pühapäevani.",
+  "empty": "Avatud tööd pole.",
+  "links": {
+    "tasks": "Ülesanded: {{name}}, {{client}}",
+    "overdue": "Tähtaja ületanud ülesanded: {{name}}, {{client}}",
+    "tickets": "Pöördumised: {{client}}"
+  },
+  "allClients": "kõik kliendid",
+  "units": {
+    "hours": "h",
+    "minutes": "min"
+  }
+}

@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { GlobalBoardFilterSchema, HomeReminderSchema, HomeRemindersSchema } from './home.js';
+import {
+  GlobalBoardFilterSchema,
+  HomeReminderSchema,
+  HomeRemindersSchema,
+  HomeWorkloadSchema,
+  WORKLOAD_LIMITS,
+} from './home.js';
 
 describe('GlobalBoardFilterSchema', () => {
   it('filter: an empty query parses to the defaults', () => {
@@ -109,5 +115,64 @@ describe('HomeReminderSchema', () => {
     expect(
       HomeRemindersSchema.parse({ available: true, nextWeek: 0, items: [], error: true }),
     ).toEqual({ available: true, nextWeek: 0, items: [], error: true });
+  });
+});
+
+describe('HomeWorkloadSchema', () => {
+  const counts = { openTasks: 2, overdueTasks: 1, openTickets: 0, unseen: 3 };
+  const admin = {
+    ...counts,
+    userId: 'u1',
+    name: 'Jana',
+    self: false,
+    clients: [{ ...counts, groupId: null, name: null, internal: false }],
+    moreClients: null,
+  };
+
+  it('accepts an answer without time (plain admin)', () => {
+    const parsed = HomeWorkloadSchema.parse({ today: '2026-10-19', week: null, admins: [admin] });
+    expect(parsed.admins[0]).not.toHaveProperty('minutesThisWeek');
+  });
+
+  it('accepts minutes and a week for a finance holder', () => {
+    const parsed = HomeWorkloadSchema.parse({
+      today: '2026-10-19',
+      week: { from: '2026-10-19', until: '2026-10-26' },
+      admins: [{ ...admin, minutesThisWeek: 90 }],
+    });
+    expect(parsed.admins[0]!.minutesThisWeek).toBe(90);
+  });
+
+  it('rejects negative counts and a more row without a count', () => {
+    expect(() =>
+      HomeWorkloadSchema.parse({
+        today: '2026-10-19',
+        week: null,
+        admins: [{ ...admin, openTasks: -1 }],
+      }),
+    ).toThrow();
+    expect(() =>
+      HomeWorkloadSchema.parse({
+        today: '2026-10-19',
+        week: null,
+        admins: [{ ...admin, moreClients: counts }],
+      }),
+    ).toThrow();
+  });
+
+  it('caps the breakdown at WORKLOAD_LIMITS.clientsPerAdmin', () => {
+    const many = Array.from({ length: WORKLOAD_LIMITS.clientsPerAdmin + 1 }, (_, i) => ({
+      ...counts,
+      groupId: `g${i}`,
+      name: `G${i}`,
+      internal: false,
+    }));
+    expect(() =>
+      HomeWorkloadSchema.parse({
+        today: '2026-10-19',
+        week: null,
+        admins: [{ ...admin, clients: many }],
+      }),
+    ).toThrow();
   });
 });

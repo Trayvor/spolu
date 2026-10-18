@@ -13,10 +13,14 @@ import { allTaskSearchQuery, taskSearchQuery } from '../tasks/attachable.js';
 import { mentionsSql } from './mentions.js';
 import { sidebarSql } from './sidebar.js';
 import { homeVolumeIds } from './test-volume.js';
+import { workloadVolumeIds } from './test-volume-workload.js';
+import { workloadSql } from './workload.js';
 
-// This run's clone of the home volume's template (test/setup-explain-db.ts, ADR 0040).
+// This run's clone of the home volume's template (test/setup-explain-db.ts, ADR 0040), and of
+// the workload card's own volume (2026-10-19).
 const { db, close } = createDb(inject('explainDatabaseUrls').home);
-afterAll(() => close());
+const workload = createDb(inject('explainDatabaseUrls').workload);
+afterAll(() => Promise.all([close(), workload.close()]));
 
 type PlanNode = {
   'Node Type': string;
@@ -46,7 +50,12 @@ type Explained = { Plan: PlanNode; 'Execution Time': number };
  * is wall time, so it is opt-in (`RUN_BENCH=1`, for a quiet machine): the query runs once to warm
  * the cache and the best of three timed runs counts. `EXPLAIN_DEBUG=1` prints the plan.
  */
-async function expectIndexed(tx: Db, query: SQL, tables: string[]): Promise<PlanNode> {
+async function expectIndexed(
+  tx: Db,
+  query: SQL,
+  tables: string[],
+  limitMs = 50,
+): Promise<PlanNode> {
   await tx.execute(query);
   const plans: Explained[] = [];
   for (let run = 0; run < 3; run++) {
@@ -60,7 +69,7 @@ async function expectIndexed(tx: Db, query: SQL, tables: string[]): Promise<Plan
   if (process.env.EXPLAIN_DEBUG) console.log(time, JSON.stringify(plan, null, 1).slice(0, 20000));
   const scanned = seqScans(plan.Plan).filter((t) => tables.includes(t));
   expect({ scanned }).toEqual({ scanned: [] });
-  if (process.env.RUN_BENCH) expect(time).toBeLessThan(50);
+  if (process.env.RUN_BENCH) expect(time).toBeLessThan(limitMs);
   return plan.Plan;
 }
 
@@ -320,6 +329,40 @@ describe('admin home query plans on a seeded volume', () => {
           throw new Rollback();
         }),
       ).rejects.toBeInstanceOf(Rollback);
+    },
+  );
+
+  // 2026-10-19: the workload card, one statement over every active admin of the workload
+  // volume (10, with 13 000 assignments and 100 000 events among them). The unseen laterals read
+  // the partial indexes once per admin; the assignment joins may hash, as "my assignments" do,
+  // and so may the join of the admins' unseen tickets to `tickets` (about 2 000 ids: one hash
+  // over the table is cheaper than a lookup each, as for the header's Tickets count above).
+  // The time is the header counts' once per admin (about 12 ms each, measured 150 ms for the
+  // ten), so its bound is 25 ms per admin, not the cards' 50 ms.
+  it(
+    'the workload card reads indexes (under 250 ms with RUN_BENCH=1)',
+    { timeout: 300_000 },
+    async () => {
+      const { adminIds, disabledId } = workloadVolumeIds();
+      const query = workloadSql(bratislavaToday(new Date()), adminIds[0]!);
+      const plan = await expectIndexed(
+        workload.db,
+        query,
+        [...UNSEEN_TABLES, ...CHAT_TABLES, 'task_seen', 'ticket_seen'],
+        25 * adminIds.length,
+      );
+      const used = indexReads(plan).map((read) => read.split(':')[0]);
+      expect(used).toEqual(
+        expect.arrayContaining([
+          'notification_events_unseen_task_idx',
+          'notification_events_unseen_ticket_idx',
+        ]),
+      );
+      // The statement sees every active admin, and the disabled one not.
+      const rows = [...(await workload.db.execute<{ user_id: string }>(query))];
+      const seen = new Set(rows.map((r) => r.user_id));
+      expect(adminIds.every((id) => seen.has(id))).toBe(true);
+      expect(seen.has(disabledId)).toBe(false);
     },
   );
 });

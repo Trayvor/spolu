@@ -170,8 +170,11 @@ const TASK_MESSAGE_KINDS_BUT_CHAT = TASK_MESSAGE_KINDS.filter((k) => k !== 'chat
  * once per such row, not once per event (an admin collects thousands of `chat.message` events a
  * month). The mode then picks the dates, as `taskEventPassesSql` does per event: All counts both,
  * Off nothing, Mentions and replies all but the plain chat messages.
+ *
+ * `userId` is a user id (bound) or an SQL expression naming one (2026-10-19: a lateral join's
+ * `wa.id`, the admin workload card). The fragment's own aliases are `e`, `s`, `x`, `y`, `z`.
  */
-export function unseenTaskIdsSql(userId: string): SQL {
+export function unseenTaskIdsSql(userId: string | SQL): SQL {
   const passing = (chat: SQL, other: SQL) =>
     sql`(case y.mode when 'off' then null when 'all' then greatest(${chat}, ${other}) else ${other} end)`;
   return sql`
@@ -202,9 +205,10 @@ export function unseenTaskIdsSql(userId: string): SQL {
 
 /**
  * The ids of the tickets with an unseen change for the user (`ticket_id`), and whether those
- * include a message (`message`). Join `tickets`.
+ * include a message (`message`). Join `tickets`. `userId` is a user id (bound) or an SQL
+ * expression naming one, as in `unseenTaskIdsSql`.
  */
-export function unseenTicketIdsSql(userId: string): SQL {
+export function unseenTicketIdsSql(userId: string | SQL): SQL {
   return sql`
     select x.ticket_id,
       (x.message_at is not null and (s.seen_at is null or x.message_at > s.seen_at)) as message

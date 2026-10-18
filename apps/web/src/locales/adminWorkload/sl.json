@@ -1,0 +1,33 @@
+{
+  "title": "Obremenjenost ekipe",
+  "caption": "Odprto delo skrbnikov",
+  "columns": {
+    "admin": "Skrbnik",
+    "tasks": "Naloge",
+    "overdue": "Zamujene",
+    "tickets": "Zahtevki",
+    "unseen": "Nepregledano",
+    "week": "Ta teden"
+  },
+  "self": "(vi)",
+  "expand": "Prikaži razčlenitev po strankah: {{name}}",
+  "collapse": "Skrij razčlenitev po strankah: {{name}}",
+  "noClient": "Brez stranke",
+  "more_one": "in še {{count}} stranka",
+  "more_two": "in še {{count}} stranki",
+  "more_few": "in še {{count}} stranke",
+  "more_other": "in še {{count}} strank",
+  "footnote": "Brez deaktiviranih strank.",
+  "footnoteTime": "Brez deaktiviranih strank. Čas: vnosi od ponedeljka do nedelje.",
+  "empty": "Ni odprtega dela.",
+  "links": {
+    "tasks": "Naloge: {{name}}, {{client}}",
+    "overdue": "Zamujene naloge: {{name}}, {{client}}",
+    "tickets": "Zahtevki: {{client}}"
+  },
+  "allClients": "vse stranke",
+  "units": {
+    "hours": "h",
+    "minutes": "min"
+  }
+}

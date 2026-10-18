@@ -4,14 +4,16 @@ import {
   AssignedTasksSchema,
   GlobalBoardSchema,
   HomeTicketsSchema,
+  HomeWorkloadSchema,
   MentionsSchema,
   NavCountsSchema,
   SidebarSchema,
+  WORKLOAD_LIMITS,
 } from '@spolu/shared';
 import { buildTestApp } from '../../../test/test-app.js';
 import { loginAs } from '../../../test/login.js';
 import { recordNotifications } from '../notifications/service.js';
-import { addAdmin } from '../users/service.js';
+import { addAdmin, setFinanceAccess } from '../users/service.js';
 import { newAdmin, newClient, newGroup, newTask } from './test-fixtures.js';
 
 type TestApp = Awaited<ReturnType<typeof buildTestApp>>;
@@ -43,6 +45,7 @@ describe('home API', () => {
       '/api/me/home/counts',
       '/api/me/home/mentions',
       '/api/me/home/reminders',
+      '/api/me/home/workload',
       '/api/tasks/global',
     ]) {
       const res = await get(url, clientCookie);
@@ -182,5 +185,33 @@ describe('home API', () => {
     expect(res.statusCode).toBe(200);
     const todo = GlobalBoardSchema.parse(res.json()).columns.find((c) => c.kind === 'todo')!;
     expect(todo.items.map((t) => t.title).sort()).toEqual(['assigned', 'created']);
+  });
+
+  it('the workload needs a session', async () => {
+    const res = await test.app.inject({ method: 'GET', url: '/api/me/home/workload' });
+    expect(res.statusCode).toBe(401);
+  });
+
+  it('the workload answers the schema and has no time for a plain admin', async () => {
+    const res = await get('/api/me/home/workload', adminCookie);
+    expect(res.statusCode).toBe(200);
+    const body = HomeWorkloadSchema.parse(res.json());
+    expect(body.week).toBeNull();
+    // The shared test database holds hundreds of admins: the answer stays capped.
+    expect(body.admins.length).toBeGreaterThan(0);
+    expect(body.admins.length).toBeLessThanOrEqual(WORKLOAD_LIMITS.admins);
+    // The finance seal (ADR 0027): the key is absent, not zero.
+    expect(res.body).not.toContain('minutesThisWeek');
+  });
+
+  it('the workload has the week and minutes for a finance holder', async () => {
+    const db = test.deps.db;
+    const admin = await newAdmin(db, 'Fina');
+    await setFinanceAccess(db, admin.id, admin.id);
+    const res = await get('/api/me/home/workload', await loginAs(test.app, admin.email));
+    expect(res.statusCode).toBe(200);
+    const body = HomeWorkloadSchema.parse(res.json());
+    expect(body.week).not.toBeNull();
+    expect(typeof body.admins[0]!.minutesThisWeek).toBe('number');
   });
 });

@@ -83,6 +83,21 @@ Since 2026-10-17 the card lists, inside that scope, only meetings I get meeting 
 
 The client list (sidebar from 1024 px, the home's list on phones) starts with an **Internal** section holding one row, the admin group "eGrant tím" (the egrant mark), above "Managed by you" and "Other clients". Its one black badge (unread chat messages plus tasks with an unseen change; it has no tickets) works as for a client. The server sends it first (`section: 'internal'` in `GET /api/me/home/sidebar`).
 
+## Team workload card (owner request, 2026-10-19)
+
+The lowest card of the dashboard, "Vyťaženie tímu" (Team workload), full width under Upcoming reminders and Mentions, from 1024 px only (phones keep the tiles and the client list). It shows how the open work is spread over the team ([spec](../superpowers/specs/2026-10-19-admin-workload-design.md), [plan](../superpowers/plans/2026-10-19-admin-workload.md); the owner accepted the spec's recommended answers).
+
+- **Who sees it:** every admin; a finance holder (the superadmin, an admin with the finance right) also sees the column "Tento týždeň". Clients never (the API answers 403).
+- **Rows:** every active admin (`admin` or `superadmin`, not deactivated), also one with no open work (zeros, so the card shows who has room); the viewer's row is marked "(vy)", not pinned. Ordered by load (Úlohy + Tikety), then Po termíne, then name.
+- **Columns:** Úlohy (open tasks the admin is an assignee of), Po termíne (of those, a due date before the Bratislava today), Tikety (active tickets, New or In progress, the admin is a riešiteľ of; tickets without a riešiteľ count for nobody), Nevidené (tasks plus tickets with a change the admin has not seen, by their own notification settings, the same as their header counts; a ticket without a client and without a riešiteľ adds 1 to every admin until they open it), Tento týždeň (finance holders only: the admin's filled time entries with a day in the current Bratislava week, Monday to Sunday, as `1 h 30 min`, "–" for none; the column is absent for everyone else).
+- **Deactivated clients count nowhere.** The admin group "eGrant tím" counts (marked internal, first among equal loads); tickets without a client are the row "Bez klienta".
+- **Breakdown:** a chevron button per admin (`aria-expanded`, `aria-controls`) shows their clients with any count right under the row, in the same order, at most 20, then "a N ďalších klientov" with the rest summed. More admins can be open at once; it comes in the same answer, so opening makes no request; what is open is kept only while the dashboard is shown.
+- **Links:** Úlohy and Po termíne open the global board for that admin and client (`/tasks?clients=<id>&assignee=<id or me>`, plus `&due=overdue`; the admin's row with `clients=all`). Tikety links only on the viewer's own rows (`/tickets?assignee=me&clients=<id or all>`): the ticket list has no "another person" filter yet. Nevidené, "Bez klienta" and the "more" row have no links.
+- **Colour:** Po termíne above 0 in the overdue red, 0 muted; nothing else is coloured (yellow stays for the unseen marks on items).
+- **Freshness:** loaded with the dashboard, refetched on window focus, kept 60 s; no socket refetch (a team overview; the statement is the home's most expensive).
+- **States:** three placeholder rows while loading; the cards' error line with "Skúsiť znova".
+- Server: `GET /api/me/home/workload` (`HomeWorkload`); texts in the lazy `adminWorkload` namespace (nine languages). The e2e scenario in `e2e/admin-home.spec.ts` is written, not yet run: it runs in the final e2e pass after all seven 2026-10-19 designs are implemented.
+
 ## Phase
 
 Phase 20 ([spec](../superpowers/specs/2026-10-16-phase-20-admin-home-design.md), [plan](../superpowers/plans/2026-10-16-phase-20-admin-home.md)), built on top of Phases 17 and 18; in progress until it is walked with the owner. The reminders card shows the knowledge base reminders (Phase 17) now and the task reminders once Phase 19 is merged.
