@@ -8,8 +8,8 @@ import type {
 } from '@simplewebauthn/server';
 import { MeSchema, PasskeyListSchema, PASSKEY_LIMITS, type Role } from '@spolu/shared';
 import { buildTestApp } from '../../../test/test-app.js';
-import { cookieHeader, loginAs } from '../../../test/login.js';
-import { emailWithSubject, loginCodeIn } from '../../../test/mail.js';
+import { cookieHeader, loginAs, requestCode, signIn } from '../../../test/login.js';
+import { emailWithSubject, latestLoginCode, loginCodeIn } from '../../../test/mail.js';
 import { createPasskey, signInWithPasskey, type SoftPasskey } from '../../../test/webauthn.js';
 import { serverTexts } from '../../infra/i18n/index.js';
 import { user } from '../users/schema.js';
@@ -430,6 +430,57 @@ describe('passkey login', () => {
 });
 
 describe('passkey login rate limits', () => {
+  // Production mode turns better-auth's own limits on (the email code's), as in e2e.
+  it('passkey requests never use up the email code budget of the address, nor the reverse', async () => {
+    const limited = await buildTestApp({
+      config: { nodeEnv: 'production', loginCodesPerMinute: 2 },
+    });
+    try {
+      const inject = (url: string, payload: object) =>
+        limited.app.inject({ method: 'POST', url, payload });
+      // Use up the passkey buckets of 127.0.0.1: options (6 × 2) and sign-ins (2).
+      for (let i = 0; i < 12; i += 1) {
+        expect((await inject('/api/auth/passkey/options', {})).statusCode).toBe(200);
+      }
+      expect((await inject('/api/auth/passkey/options', {})).statusCode).toBe(429);
+      const badAnswer = { response: { id: 'x', type: 'public-key' } };
+      for (let i = 0; i < 2; i += 1) {
+        expect((await inject('/api/auth/passkey/sign-in', badAnswer)).statusCode).toBe(400);
+      }
+      expect((await inject('/api/auth/passkey/sign-in', badAnswer)).statusCode).toBe(429);
+
+      // The email code from the same address is unaffected: sent and usable.
+      const id = randomUUID();
+      const email = `${id}@example.com`;
+      await limited.deps.db
+        .insert(user)
+        .values({ id, email, name: `User ${id}`, role: 'admin', emailVerified: true });
+      expect((await requestCode(limited.app, email)).statusCode).toBe(200);
+      const signedIn = await signIn(limited.app, email, await latestLoginCode(email));
+      expect(signedIn.statusCode).toBe(200);
+
+      // The reverse, from another address: its code requests used up, its passkey options work.
+      // (better-auth keeps its counts per process, so a fresh address, not a fresh app.)
+      const remoteAddress = '192.0.2.7';
+      const fromOther = (url: string, payload: object) =>
+        limited.app.inject({ method: 'POST', url, payload, remoteAddress });
+      const unknown = `${randomUUID()}@example.com`; // 200 and no email, but counted
+      const statuses: number[] = [];
+      for (let i = 0; i < 3; i += 1) {
+        const sent = await fromOther('/api/auth/email-otp/send-verification-otp', {
+          email: unknown,
+          type: 'sign-in',
+        });
+        statuses.push(sent.statusCode);
+      }
+      expect(statuses).toEqual([200, 200, 429]);
+      expect((await fromOther('/api/auth/passkey/options', {})).statusCode).toBe(200);
+    } finally {
+      await limited.app.close();
+      await limited.close();
+    }
+  });
+
   it('limits the options and the sign-in per address', async () => {
     const limited = await buildTestApp({ config: { loginCodesPerMinute: 1 } });
     try {

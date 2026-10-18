@@ -27,11 +27,19 @@ export function webauthnOptions<T>(): ResponseParser<T> {
   };
 }
 
-/** The browser shows saved passkeys in the email field's autofill (conditional mediation). */
+/**
+ * The browser shows saved passkeys in the email field's autofill (conditional mediation). Asks
+ * the browser directly, so a browser without it never loads the WebAuthn chunk or asks the
+ * server for a challenge.
+ */
 export async function passkeyAutofillSupported(): Promise<boolean> {
   if (!passkeysSupported()) return false;
+  const check = (
+    window.PublicKeyCredential as { isConditionalMediationAvailable?: () => Promise<boolean> }
+  ).isConditionalMediationAvailable;
+  if (typeof check !== 'function') return false;
   try {
-    return await (await webauthn()).browserSupportsWebAuthnAutofill();
+    return await check.call(window.PublicKeyCredential);
   } catch {
     return false;
   }

@@ -102,16 +102,20 @@ export function LoginPage({
   const startAutofill = useEffectEvent(() => void runPasskey(true));
 
   // Conditional mediation: saved passkeys show in the email field's suggestions while the
-  // email step is open; leaving it ends the pending request.
+  // email step is open; leaving it ends the pending request. Only where the browser supports
+  // it, and one challenge per visit of the email step.
   useEffect(() => {
     if (!canPasskey || step !== 'email') return;
     let active = true;
+    let started = false;
     void passkeyAutofillSupported().then((ok) => {
-      if (ok && active) startAutofill();
+      if (!ok || !active) return;
+      started = true;
+      startAutofill();
     });
     return () => {
       active = false;
-      void cancelPasskey();
+      if (started) void cancelPasskey();
     };
   }, [canPasskey, step]);
 
