@@ -226,7 +226,7 @@ Policy functions in `modules/finance/policy.ts` (test-first, `policy.test.ts`):
 
 ## Deactivated groups (2026-10-18)
 
-A client group with `deactivated_at` set ([product/groups.md](../product/groups.md#deactivating-a-group-2026-10-18), [ADR 0036](../decisions/0036-egrant-groups-webhook-and-group-deactivation.md)):
+A client group with `deactivated_at` set ([product/groups.md](../product/groups.md#deactivating-a-group-2026-10-18), [ADR 0037](../decisions/0037-egrant-groups-webhook-and-group-deactivation.md)):
 
 - **Clients and requesters read nothing of it.** The membership readers (`clientGroupIds`, `activeRolesIn`, `listMemberships`, `activeMemberOfSql`, `activeMemberIdsSql`, `hasActiveRoleSql`, `activeGroupNamesSql` in `modules/groups/memberships.ts`; the tickets' `roleIn` goes through `activeRolesIn`) ignore memberships of a deactivated group, so every `canReadGroup`, `canUseBoard`, `canReadTicket` and socket check answers not found, with no change in the modules. Their accounts are untouched. The invite token opens nothing (`getGroupByInviteToken`).
 - **Admins read it**, through the unchanged `canReadGroup`, and are the only ones who change its state: `POST /api/groups/:id/deactivate` and `POST /api/groups/:id/reactivate` need `canManageGroups` (`403` otherwise; `404` unknown; `409 admin_group` for the admin group) and answer the group. The webhook's `active` uses the same `setGroupActive`.

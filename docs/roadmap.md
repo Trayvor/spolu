@@ -62,7 +62,7 @@ Work outside the numbered phases that is not merged yet:
 - **eGrant guide**: PR #127.
 - **Security hardening**: PR #132.
 - **Web performance**: PR #133.
-- **eGrant groups webhook and group deactivation** (`PUT /api/egrant/groups`, `POST /api/groups/:id/deactivate|reactivate`, [guide](integrations/egrant.md#groups), [rules](product/groups.md), [eGrant side spec](integrations/egrant-agent-tz.md), ADR 0036): branch `feat/egrant-groups-webhook`.
+- **eGrant groups webhook and group deactivation** (`PUT /api/egrant/groups`, `POST /api/groups/:id/deactivate|reactivate`, [guide](integrations/egrant.md#groups), [rules](product/groups.md), [eGrant side spec](integrations/egrant-agent-tz.md), ADR 0037): branch `feat/egrant-groups-webhook`.
 - **Claude prompt author**: PR #131.
 - **Teams spec**: PR #130 (T1 in progress).
 - **Phase 33, P3**: PR #113, waiting for eGrant.
