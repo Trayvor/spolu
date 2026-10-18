@@ -6,6 +6,12 @@ vi.mock('@tanstack/react-router', () => ({ Outlet: () => <p>Page</p> }));
 vi.mock('@/components/app-header', () => ({
   AppHeader: () => <button type="button">Header</button>,
 }));
+vi.mock('@/components/bottom-nav', () => ({
+  BottomNav: () => null,
+  useBottomNav: () => null,
+}));
+vi.mock('@/components/offline-strip', () => ({ OfflineStrip: () => null }));
+vi.mock('@/components/route-pending', () => ({ RoutePending: () => null }));
 vi.mock('@/lib/use-sw-navigate', () => ({ useSwNavigate: () => undefined }));
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
 

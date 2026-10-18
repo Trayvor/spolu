@@ -39,7 +39,7 @@ export function RootLayout() {
           bottomNav
             ? 'pb-[calc(68px+max(12px,env(safe-area-inset-bottom)))]'
             : 'pb-[max(12px,env(safe-area-inset-bottom))]'
-        }`
+        }`}
       >
         <Outlet />
       </main>
