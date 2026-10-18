@@ -9,7 +9,7 @@ description: Use when starting, resuming or finishing a phase from docs/roadmap.
 
 Every Spolu phase follows the same cycle: design, plan, test-driven implementation, docs, verification, roadmap status, then a pull request. The superpowers skills do the heavy lifting; this skill says which one to use when and adds the Spolu-specific steps. Do not skip or reorder steps, and do not start code before steps 1–4 are done.
 
-Merging a pull request into `main` deploys it to the test server at https://help.egrant.sk (`docs/runbooks/deploy.md`), so a phase is `done` when its pull request is merged; the owner then walks its "Done when" there.
+`main` is what runs on the test server https://help.egrant.sk: the orchestrator merges after a green local `scripts/ci.sh` and deploys with `scripts/deploy-local.sh` (`docs/runbooks/deploy.md`). A phase is `done` when its pull request is merged; the owner then walks its "Done when" there.
 
 To resume a phase, find the first unchecked step whose output is missing (no spec in `docs/superpowers/specs/`, no plan in `docs/superpowers/plans/`, status not `in progress`, and so on) and continue from there.
 
@@ -24,12 +24,12 @@ Create a todo for each step.
 5. **Implement.** `subagent-driven-development`, every task test-first (`test-driven-development`). New feature areas follow the `new-module` skill. Use `requesting-code-review` between tasks as that skill says. When subagent-driven-development reaches `finishing-a-development-branch`, **do not merge, open a PR or discard yet**: finish steps 6–8 first, then do step 9.
 6. **Docs.** Run the `update-kb` skill over the whole phase's changes.
 7. **Verify.** `verification-before-completion`, with evidence for each:
-   - `pnpm lint`, `pnpm typecheck` and `pnpm test` pass (with your own `TEST_DATABASE_URL` when other agents run tests too, see `CLAUDE.md`);
-   - end-to-end tests pass (`pnpm test:e2e`, or all checks at once with `bash scripts/ci.sh`). Only one e2e run at a time on a machine: when other agents work in parallel, leave it to whoever merges and say so in the pull request;
+   - `pnpm lint`, `pnpm typecheck`, `pnpm exec prettier --check .` and `pnpm test` pass (own `TEST_DATABASE_URL`, see `CLAUDE.md`, "Tips for agents");
+   - the phase's e2e specs pass, each run in isolation as in `CLAUDE.md`, "Tips for agents"; the full `bash scripts/ci.sh` only when told to (otherwise say in the pull request that the orchestrator runs it);
    - the initial JS stays under the budget if the phase touched eager code (`docs/architecture/performance.md`, "How to check");
    - optionally, walk the "Done when" on the local production-like stack (`docs/runbooks/deploy.md`, "Prod-like run on your machine").
 8. **Roadmap done.** Set `Status` to `done` in `docs/roadmap.md` in the same pull request, and write in the phase's section what the owner still has to walk on https://help.egrant.sk after the merge. Commit.
-9. **Integrate.** Rebase on `origin/main` (regenerate a migration whose number was taken, translate new keys into all nine languages), then run `finishing-a-development-branch` and open the pull request. Merge only when the owner (or the orchestrator acting for them) says so.
+9. **Integrate.** Rebase on `origin/main` (migrations and locales: `CLAUDE.md`, "Tips for agents"), then run `finishing-a-development-branch` and open the pull request. Merge only when the owner (or the orchestrator acting for them) says so.
 
 ## Red flags
 
@@ -37,7 +37,7 @@ Create a todo for each step.
 |---|---|
 | "The phase is small, skip the spec" | Small phases still get a short spec and plan. |
 | "Tests pass, so it's done" | Done means lint, typecheck, unit and e2e tests green, docs updated and the pull request ready. |
-| "I'll merge it myself, CI is green" | Merging deploys to the server. Merge only when told to. |
+| "I'll merge it myself, CI is green" | `main` is what runs on the server. Merge only when told to. |
 | "This screen is simple, no need for frontend-design" | Any UI work invokes it first. No exceptions. |
 | "Subagent-driven-development says finish the branch, so merge now" | Open the PR only in step 9, after docs, verification and the roadmap status. |
 | "Docs can wait until the end of the phase" | Each commit already carries its docs; step 6 is the final sweep. |

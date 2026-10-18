@@ -1,6 +1,6 @@
 # Bulk email brief (owner, 2026-10-16)
 
-Status: the first version is done as [Phase 23](../../roadmap.md#phase-23--bulk-email); open and click tracking, webhooks and a separate sender are later work (the spec's "Later").
+Status: done (first version) as [Phase 23](../../roadmap.md#phase-23--bulk-email); open and click tracking, webhooks and a separate sender are later work (the spec's "Later").
 
 Translated from the owner's Ukrainian messages. A module for bulk emails, like Mailchimp ("hromadné e-maily"): an email builder, targeted sending to people chosen from the system, and a count of how many opened the email. Planned as the phase after Phases 21 and 22; it needs a spec and a plan before code.
 

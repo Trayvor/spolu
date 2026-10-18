@@ -1,6 +1,6 @@
 # Spolu
 
-Spolu is the code name of **Help by eGrant** (shown as "Help", at https://help.egrant.sk; the old spolu.egrant.sk redirects there): the eGrant team's internal web app for client communication — group chat, task boards, support tickets, knowledge base, bulk email (direct messages and contracts are planned).
+Spolu is the code name of **Help by eGrant** (shown as "Help", at https://help.egrant.sk; the old spolu.egrant.sk redirects there): the eGrant team's internal web app for client communication — group chat, task boards, support tickets, knowledge base, bulk email, finance and projects (direct messages are planned).
 Code, packages, databases and docs say Spolu; only what users see says Help ([ADR 0018](docs/decisions/0018-visible-name-help-and-domain-redirects.md)). TypeScript monorepo (Fastify + PostgreSQL + Socket.IO server, React PWA client), self-hosted.
 
 ## Read first
@@ -43,26 +43,29 @@ One-time setup: `pnpm install`, `cp .env.example .env`, `pnpm exec playwright in
 - `docker compose -f docker-compose.dev.yml up -d --wait` — local PostgreSQL 17 (5432, container `spolu-postgres-1`) and Mailpit (SMTP 1025). Server tests and e2e need it running.
 - `pnpm dev` — server (:3000, reload, reads the root `.env`) and web (Vite on :5173, proxies `/api` and `/socket.io`) in parallel. Open http://localhost:5173.
 - `pnpm test` — unit and integration tests (Vitest) in every package. Server tests use `TEST_DATABASE_URL` (default `postgres://spolu:spolu@localhost:5432/spolu_test`, created and migrated by `apps/server/test/setup-db.ts`) plus `<that name>_explain` for the EXPLAIN checks.
-- `pnpm test:e2e` — Playwright e2e tests (Chromium) against a production-like run: builds all, starts `apps/server/dist/main.js` serving `apps/web/dist` on :3000, with its own database `spolu_e2e` (created automatically; the name comes from `DATABASE_URL` and must contain "e2e").
+- `pnpm test:e2e [e2e/<name>.spec.ts]` — Playwright e2e tests (Chromium) against a production-like run: builds all, starts `apps/server/dist/main.js` serving `apps/web/dist` on `E2E_PORT` (default 3000), with its own database from `DATABASE_URL` (default `spolu_e2e`, created automatically; the name must contain "e2e").
 - `pnpm lint`, `pnpm typecheck`, `pnpm build` — checks and production build for every package.
 - Mailpit UI (catches all dev email): http://localhost:8025.
 - `pnpm --filter @spolu/web icons` — regenerate the PWA icons in `apps/web/public/icons/` from the egrant mark (commit the PNGs).
 - `pnpm --filter @spolu/server db:generate` — generate a migration after changing a `schema.ts`.
 - `pnpm --filter @spolu/server vapid:generate` — a VAPID key pair for push (once per environment, see `docs/runbooks/deploy.md`).
-- `bash scripts/ci.sh` — every CI check in one go (install, shellcheck, script tests, lint, typecheck, tests, e2e, docs check); needs Docker. Run it before pushing. `--bench` (or `RUN_BENCH=1`) also runs the wall-clock benchmarks; off by default, use it on a quiet machine.
-- `scripts/build-image.sh`, `scripts/deploy.sh`, `scripts/server-setup.sh` — build/push the image, deploy an env, prepare a server; see `docs/runbooks/`.
-- `scripts/deploy-local.sh [--force-ref] [<env> [<sha>]]` — deploy test from the Mac without GitHub or a registry (build for the server's arch, `docker save | ssh docker load`); settings in `~/.config/spolu/<env>.deploy` (chmod 600), see `docs/runbooks/deploy.md`, "Local deploy".
+- `bash scripts/ci.sh` — every CI check in one go (install, shellcheck, script tests, lint, typecheck, tests, e2e, docs check); needs Docker. It is the merge gate (GitHub runs no CI now). `--bench` (or `RUN_BENCH=1`) also runs the wall-clock benchmarks; off by default, use it on a quiet machine.
+- `scripts/deploy-local.sh [--force-ref] [<env> [<sha>]]` — how test is deployed now (from the orchestrator's Mac, no GitHub or registry); see `docs/runbooks/deploy.md`, "Local deploy". For `build-image.sh`, `deploy.sh` and `server-setup.sh` see `docs/runbooks/`.
 - `bash scripts/check-docs.sh <base-ref>` — warns when code changed without docs.
-- `bash scripts/tests/<name>.test.sh` — tests of the scripts and hooks (`check-docs`, `docs-reminder`, `deploy-env`, `deploy-local`, `caddy-redirects`, `cloud-session`, `run-parallel`, `ci-bench`, `limit-parallelism`, `isolate-run`); `ci.sh` runs them all.
+- `bash scripts/tests/<name>.test.sh` — tests of the scripts, `lib.sh` helpers and hooks (files in `scripts/tests/`); `ci.sh` runs them all.
 
 ## Tips for agents
 
-- **Parallel agents** (several worktrees at once): `bash scripts/ci.sh` is safe to run from several worktrees at the same time: each run gets its own test databases (`spolu_test_ci_<id>`, `_explain`), e2e database (`spolu_e2e_<id>`), a free e2e port and its own e2e superadmin address (Mailpit and PostgreSQL are shared), and drops its databases at the end. The id comes from the worktree directory name. Plain `pnpm test` still needs its own database, e.g. `TEST_DATABASE_URL=postgres://spolu:spolu@localhost:5432/spolu_test_<branch> pnpm test`. Never run a bare `pnpm test:e2e` while another one runs (port 3000 and `spolu_e2e`); use `ci.sh`. Agents still run e2e or `ci.sh` only when told to.
-- After an aborted `ci.sh` its `spolu_*_ci_*` and `spolu_e2e_*` databases may stay behind (the next run of the same worktree drops its own). After an aborted bare `pnpm test:e2e`, drop the e2e database: `docker exec spolu-postgres-1 psql -U spolu -d postgres -c "drop database if exists spolu_e2e"` (there is no local `psql`; use `docker exec`). Drop old `spolu_test_*` and `spolu_e2e_*` databases now and then the same way: dozens of them slow Postgres down.
-- RTK (if installed) rewrites command output, Vitest's too; use `rtk proxy <cmd>` for the raw output.
-- **Migrations:** before generating one, check the latest number on `origin/main` (`apps/server/src/infra/db/migrations/`). After a rebase that brings in a migration with the same number, delete yours (the SQL, its `meta/` snapshot and journal entry) and run `db:generate` again.
-- **Locales:** a parallel branch that adds UI texts conflicts in the locale files; after the rebase make sure every new key exists in all nine languages (the locale tests fail otherwise).
-- Assert behaviour, not wall time: timing-based tests flake on the loaded CI runner.
+- **Own test database per agent:** `TEST_DATABASE_URL=postgres://spolu:spolu@localhost:5432/spolu_test_<branch> pnpm test` (its `_explain` twin is created too).
+- **Shared machine:** cap Vitest, e.g. `pnpm --filter @spolu/server exec vitest run --maxWorkers 2 [file]`.
+- **One e2e spec in isolation:** `E2E_PORT=<free port> DATABASE_URL=postgres://spolu:spolu@localhost:5432/spolu_e2e_<branch> E2E_SUPERADMIN_EMAIL=admin-<branch>@example.com pnpm test:e2e e2e/<name>.spec.ts`. A bare `pnpm test:e2e` uses :3000 and `spolu_e2e`, and reuses any server already listening there.
+- **`bash scripts/ci.sh` is parallel-safe:** each worktree gets its own databases, e2e port and superadmin, dropped at the end. Run it (or a full e2e run) only when told to.
+- **Before pushing:** `rtk proxy pnpm exec prettier --check .` (ci.sh fails on format; fix with `pnpm exec prettier --write <files>`).
+- **Plain `git` blocked by a hook:** use `/usr/bin/git`.
+- **Migrations:** check the latest number on `origin/main` (`apps/server/src/infra/db/migrations/`) before generating. After a rebase brings in the same number, delete yours (SQL, `meta/` snapshot, journal entry) and run `db:generate` again.
+- **Locales:** after a rebase, every new key must exist in all nine languages (the locale tests fail otherwise).
+- **Leftover databases** (aborted runs, old branches) slow Postgres down; drop them with `docker exec spolu-postgres-1 psql -U spolu -d postgres -c "drop database if exists <name>"` (there is no local `psql`).
+- RTK rewrites command output, Vitest's too; `rtk proxy <cmd>` gives the raw output.
 
 ## Where things live
 
@@ -72,6 +75,6 @@ One-time setup: `pnpm install`, `cp .env.example .env`, `pnpm exec playwright in
 - `apps/` — `server` (Fastify API, Socket.IO, jobs) and `web` (React + Vite PWA).
 - `packages/` — `shared` (zod schemas and types used by server and web).
 - `.env.example` — every environment variable with dev defaults; copy to `.env`.
-- `scripts/` — shell scripts that hold all CI/CD logic (`ci.sh`, `build-image.sh`, `deploy.sh`, `server-setup.sh`, `check-docs.sh`, `cloud-session.sh` for the SessionStart hook, shared helpers in `lib.sh`); CI only calls them. Tests in `scripts/tests/`.
+- `scripts/` — shell scripts that hold all CI/CD logic (`ci.sh`, `deploy-local.sh`, `build-image.sh`, `deploy.sh`, `server-setup.sh`, `check-docs.sh`, `cloud-session.sh` for the SessionStart hook, shared helpers in `lib.sh`); CI only calls them. Tests in `scripts/tests/`.
 - `deploy/` — Docker Compose, Caddyfile, backup script and env examples for servers. The root `Dockerfile` builds the production image.
 - `e2e/` — Playwright end-to-end tests; config in the root `playwright.config.ts`.
