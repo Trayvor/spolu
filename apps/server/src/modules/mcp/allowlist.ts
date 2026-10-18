@@ -120,8 +120,29 @@ const compiled = ALLOWED_ROUTES.map((route) => ({
 }));
 
 /**
+ * Whether a route, named by its registered pattern (`request.routeOptions.url`, e.g.
+ * `/api/tasks/:id`), may be called with the method by the user: an exact entry, and a finance
+ * route only for a finance holder. The route guard (`guard.ts`) checks this on every internal
+ * call, so a static sibling of an entry (`/api/tasks/search` next to `/api/tasks/:id`), which
+ * `isAllowedRoute`'s path regex lets through, is refused.
+ */
+export function isAllowedRoutePattern(
+  method: string,
+  routeUrl: string | undefined,
+  user: SessionUser,
+): boolean {
+  return ALLOWED_ROUTES.some(
+    (route) =>
+      route.method === method &&
+      route.path === routeUrl &&
+      (route.finance !== true || canSeeFinance(user)),
+  );
+}
+
+/**
  * Whether a concrete path (no query) may be called with the method by the user: allowlisted,
- * and a finance route only for a finance holder.
+ * and a finance route only for a finance holder. A first check before the call; the route guard
+ * then matches the resolved route exactly (`isAllowedRoutePattern`).
  */
 export function isAllowedRoute(method: string, path: string, user: SessionUser): boolean {
   return compiled.some(

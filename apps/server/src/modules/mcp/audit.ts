@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { desc, eq } from 'drizzle-orm';
+import { desc, eq, lt } from 'drizzle-orm';
 import { MCP_LIMITS, type McpAuditEntry } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
 import { mcpAuditLog, mcpTokens } from './schema.js';
@@ -41,4 +41,21 @@ export async function listAudit(db: Db, userId: string): Promise<McpAuditEntry[]
     .orderBy(desc(mcpAuditLog.createdAt))
     .limit(MCP_LIMITS.auditPage);
   return rows.map((r) => ({ ...r, createdAt: r.createdAt.toISOString() }));
+}
+
+/** How long a write call stays in the audit log; the daily job deletes older rows. */
+export const AUDIT_RETENTION_DAYS = 180;
+
+/**
+ * Deletes the audit rows older than `AUDIT_RETENTION_DAYS` before `now`; the number deleted. Once
+ * a day on a small table (at most 30 write calls a minute per user), so no index on `created_at`
+ * alone.
+ */
+export async function deleteOldAudit(db: Db, now = new Date()): Promise<number> {
+  const cutoff = new Date(now.getTime() - AUDIT_RETENTION_DAYS * 86_400_000);
+  const deleted = await db
+    .delete(mcpAuditLog)
+    .where(lt(mcpAuditLog.createdAt, cutoff))
+    .returning({ id: mcpAuditLog.id });
+  return deleted.length;
 }

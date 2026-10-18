@@ -58,6 +58,16 @@ export const it: ServerTexts = {
       warning: 'Se non ha effettuato Lei questa modifica, contatti subito il Suo amministratore.',
     },
   },
+  mcp: {
+    tokenCreated: {
+      subject: "È stato creato un nuovo token di accesso per l'AI in Help",
+      body: ({ name, date }) =>
+        `Il ${date} è stato creato in Help by eGrant un nuovo token di accesso per l'AI «${name}». Con esso un assistente AI può leggere e modificare i dati a tuo nome.`,
+      warning:
+        "Se non sei stato tu, revocalo subito in Impostazioni (Accesso per l'AI (MCP)) e contatta il tuo amministratore.",
+      button: 'Apri Impostazioni',
+    },
+  },
   tickets: {
     created: {
       subject: (n, title) => `Ticket #${n} creato: ${title}`,

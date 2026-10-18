@@ -55,6 +55,16 @@ export const sl: ServerTexts = {
       warning: 'Če tega niste storili vi, se takoj obrnite na svojega skrbnika.',
     },
   },
+  mcp: {
+    tokenCreated: {
+      subject: 'V aplikaciji Help je bil ustvarjen nov žeton za dostop AI',
+      body: ({ name, date }) =>
+        `V aplikaciji Help je bil ${date} ustvarjen nov žeton za dostop AI »${name}«. Z njim lahko pomočnik AI v vašem imenu bere in spreminja podatke.`,
+      warning:
+        'Če to niste bili vi, žeton takoj prekličite v Nastavitvah (Dostop za AI (MCP)) in se obrnite na svojega skrbnika.',
+      button: 'Odpri Nastavitve',
+    },
+  },
   tickets: {
     created: {
       subject: (n, title) => `Zahtevek #${n} je ustvarjen: ${title}`,

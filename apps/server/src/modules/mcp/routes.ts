@@ -1,9 +1,12 @@
 import type { FastifyPluginAsync, FastifyReply, preHandlerAsyncHookHandler } from 'fastify';
 import { ErrorCodes, McpTokenCreateBodySchema } from '@spolu/shared';
 import type { AppDeps } from '../../deps.js';
+import { sendEmailLater } from '../../infra/email/index.js';
 import { createRateLimiter } from '../../infra/http/rate-limit.js';
 import { requireAdmin } from '../auth/session.js';
+import { getUserById } from '../users/service.js';
 import { listAudit } from './audit.js';
+import { tokenCreatedEmail } from './emails.js';
 import { canUseMcp } from './policy.js';
 import { createToken, listTokens, revokeToken, TokenLimitError } from './tokens.js';
 
@@ -33,12 +36,29 @@ export const mcpTokenRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app,
     const body = McpTokenCreateBodySchema.safeParse(request.body);
     if (!body.success) return send(reply, 400, ErrorCodes.validationFailed);
     if (!allowCreate(request.user!.id)) return send(reply, 429, ErrorCodes.rateLimited);
+    let created;
     try {
-      return reply.code(201).send(await createToken(db, request.user!.id, body.data));
+      created = await createToken(db, request.user!.id, body.data);
     } catch (error) {
       if (error instanceof TokenLimitError) return send(reply, 409, ErrorCodes.mcpTokenLimit);
       throw error;
     }
+    // Tell the owner, so a token someone else made with their session gets noticed.
+    try {
+      const owner = await getUserById(db, request.user!.id);
+      if (owner) {
+        await sendEmailLater(
+          deps.jobs,
+          tokenCreatedEmail(
+            { to: owner.email, lang: owner.language, publicUrl: deps.config.publicUrl },
+            { name: created.item.name, createdAt: new Date(created.item.createdAt) },
+          ),
+        );
+      }
+    } catch (error) {
+      request.log.error({ err: error }, 'could not queue the MCP token notice');
+    }
+    return reply.code(201).send(created);
   });
 
   app.delete<IdParams>('/me/mcp/tokens/:id', { preHandler: mcpUser }, async (request, reply) => {

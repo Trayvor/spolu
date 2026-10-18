@@ -26,6 +26,7 @@ import { knowledgeRoutes } from './modules/knowledge/routes.js';
 import { attachMeetingsRealtime } from './modules/knowledge/meeting-realtime.js';
 import { meetingRoutes } from './modules/knowledge/meeting-routes.js';
 import { knowledgeLinkRoutes } from './modules/knowledge/link-routes.js';
+import { registerMcpRouteGuard } from './modules/mcp/guard.js';
 import { mcpTokenRoutes } from './modules/mcp/routes.js';
 import { mcpTransportRoutes } from './modules/mcp/transport.js';
 import { notificationsRoutes } from './modules/notifications/routes.js';
@@ -85,6 +86,8 @@ export async function buildApp(
 
   app.decorateRequest('user', null);
   registerCsrfGuard(app, config);
+  // An in-process MCP call reaches only an exact allowlist route (ADR 0033).
+  registerMcpRouteGuard(app);
 
   await app.register(systemRoutes, { prefix: '/api', deps });
   await app.register(authRoutes, { prefix: '/api', deps });

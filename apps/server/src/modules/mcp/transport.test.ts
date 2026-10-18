@@ -8,7 +8,7 @@ import { addMembership } from '../groups/memberships.js';
 import { addAdmin, createUnverifiedClient, deactivateUser } from '../users/service.js';
 import { mcpAuditLog, mcpTokens } from './schema.js';
 import { revokeToken } from './tokens.js';
-import { capText, MCP_MAX_TEXT } from './transport.js';
+import { capText, collectAnswers, MCP_MAX_RESPONSE_BYTES, MCP_MAX_TEXT } from './transport.js';
 
 type TestApp = Awaited<ReturnType<typeof buildTestApp>>;
 
@@ -84,6 +84,81 @@ describe('MCP transport (POST /mcp)', () => {
       ],
     });
     expect(res.json().map((r: { id: number }) => r.id)).toEqual([1, 2]);
+  });
+
+  describe('batches', () => {
+    const batch = (t: string, payload: unknown, headers: Record<string, string> = {}) =>
+      test.app.inject({
+        method: 'POST',
+        url: '/mcp',
+        headers: {
+          authorization: `Bearer ${t}`,
+          'content-type': 'application/json',
+          ...headers,
+        },
+        payload: JSON.stringify(payload),
+      });
+    const pings = (n: number) =>
+      Array.from({ length: n }, (_, i) => ({ jsonrpc: '2.0', id: i + 1, method: 'ping' }));
+
+    it.each(['2025-06-18', '2025-11-25'])('protocol %s refuses a batch', async (version) => {
+      const res = await batch(token, pings(2), { 'mcp-protocol-version': version });
+      expect(res.statusCode).toBe(400);
+      expect(res.json().error).toMatchObject({ code: -32600 });
+      expect(res.json().error.message).toContain('batch');
+    });
+
+    it('protocol 2025-03-26 (or no header) answers a batch of at most 10', async () => {
+      const old = await batch(token, pings(10), { 'mcp-protocol-version': '2025-03-26' });
+      expect(old.statusCode).toBe(200);
+      expect(old.json()).toHaveLength(10);
+      const tooMany = await batch(token, pings(11));
+      expect(tooMany.statusCode).toBe(400);
+      expect(tooMany.json().error).toMatchObject({ code: -32600 });
+      expect(tooMany.json().error.message).toContain('10');
+    });
+
+    it('each message of a batch counts against the rate limit', async () => {
+      const admin = await newAdmin();
+      const t = await mcpToken(test.deps.db, admin.id, 'read');
+      // 12 batches of 10 = the 120 requests of the minute; the next single message is refused.
+      for (let i = 0; i < 12; i += 1) expect((await batch(t, pings(10))).statusCode).toBe(200);
+      expect((await mcpRequest(test.app, t, 'ping')).statusCode).toBe(429);
+    });
+  });
+
+  describe('answer size', () => {
+    const answer = (id: number, size: number) => ({
+      jsonrpc: '2.0' as const,
+      id,
+      result: { text: 'x'.repeat(size) },
+    });
+
+    it('keeps answers under the cap and refuses the rest with a clear error', async () => {
+      const ran: number[] = [];
+      const answers = await collectAnswers(
+        [1, 2, 3, 4].map((id) => ({ jsonrpc: '2.0', id, method: 'ping' })),
+        async (message) => {
+          const id = (message as { id: number }).id;
+          ran.push(id);
+          return answer(id, 400);
+        },
+        1000,
+      );
+      // 1 and 2 fit; 3 ran but its answer crosses the cap; 4 is not run.
+      expect(ran).toEqual([1, 2, 3]);
+      expect(answers.map((a) => a.id)).toEqual([1, 2, 3, 4]);
+      expect(answers[0]).toHaveProperty('result');
+      expect(answers[1]).toHaveProperty('result');
+      expect(answers[2]).toMatchObject({ error: { code: -32603 } });
+      expect((answers[2] as { error: { message: string } }).error.message).toContain('too large');
+      expect(answers[3]).toMatchObject({ error: { code: -32603 } });
+      expect((answers[3] as { error: { message: string } }).error.message).toContain('not run');
+    });
+
+    it('the cap is 5 MB', () => {
+      expect(MCP_MAX_RESPONSE_BYTES).toBe(5 * 1024 * 1024);
+    });
   });
 
   it('answers a parse error and an invalid request', async () => {
@@ -267,6 +342,34 @@ describe('MCP transport (POST /mcp)', () => {
         last = (await mcpRequest(test.app, t, 'ping')).statusCode;
       }
       expect(last).toBe(429);
+    });
+
+    it('rate-limits a user across all their tokens', async () => {
+      const admin = await newAdmin();
+      const first = await mcpToken(test.deps.db, admin.id, 'read');
+      const second = await mcpToken(test.deps.db, admin.id, 'read');
+      for (let i = 0; i < 120; i += 1) {
+        expect((await mcpRequest(test.app, first, 'ping')).statusCode).toBe(200);
+      }
+      expect((await mcpRequest(test.app, second, 'ping')).statusCode).toBe(429);
+    });
+
+    it('an address over the failed-sign-in limit is refused before the token lookup', async () => {
+      const admin = await newAdmin();
+      const good = await mcpToken(test.deps.db, admin.id, 'read');
+      const from = (t: string) =>
+        test.app.inject({
+          method: 'POST',
+          url: '/mcp',
+          remoteAddress: '203.0.113.77',
+          headers: { authorization: `Bearer ${t}`, 'content-type': 'application/json' },
+          payload: { jsonrpc: '2.0', id: 1, method: 'ping' },
+        });
+      for (let i = 0; i < 30; i += 1) expect((await from('spolu_mcp_wrong')).statusCode).toBe(401);
+      expect((await from('spolu_mcp_wrong')).statusCode).toBe(429);
+      // Even a good token from that address waits out the window: no lookup is made.
+      expect((await from(good)).statusCode).toBe(429);
+      expect((await mcpRequest(test.app, good, 'ping')).statusCode).toBe(200);
     });
   });
 

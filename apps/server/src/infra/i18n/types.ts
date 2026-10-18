@@ -63,6 +63,17 @@ export type ServerTexts = {
       warning: string;
     };
   };
+  mcp: {
+    /** To a token's owner when it is made (an alert in case it was not them). */
+    tokenCreated: {
+      subject: string;
+      /** `date` is when it was made, formatted in the language (Bratislava time). */
+      body(p: { name: string; date: string }): string;
+      /** Asks to revoke it in Settings if it was not them. */
+      warning: string;
+      button: string;
+    };
+  };
   tickets: {
     /** "Ticket created" to the ticket's initiator. */
     created: {

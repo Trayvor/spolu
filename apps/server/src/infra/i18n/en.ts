@@ -55,6 +55,16 @@ export const en: ServerTexts = {
       warning: 'If you did not do this, contact your administrator at once.',
     },
   },
+  mcp: {
+    tokenCreated: {
+      subject: 'A new AI access token was created in Help',
+      body: ({ name, date }) =>
+        `A new AI access token “${name}” was created in Help by eGrant on ${date}. With it, an AI assistant can read and change data as you.`,
+      warning:
+        "If this wasn't you, revoke it in Settings (AI access (MCP)) at once and contact your administrator.",
+      button: 'Open Settings',
+    },
+  },
   tickets: {
     created: {
       subject: (n, title) => `Ticket #${n} created: ${title}`,

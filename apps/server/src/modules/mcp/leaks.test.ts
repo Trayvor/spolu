@@ -5,7 +5,7 @@ import { buildTestApp } from '../../../test/test-app.js';
 import { loginAs } from '../../../test/login.js';
 import { callTool, mcpRequest, mcpToken } from '../../../test/mcp.js';
 import { insertTask } from '../../../test/tasks.js';
-import { INTERNAL_CALL_HEADER } from '../auth/internal-calls.js';
+import { INTERNAL_CALL_HEADER, runAsUser } from '../auth/internal-calls.js';
 import { addMembership } from '../groups/memberships.js';
 import { createGroup } from '../groups/service.js';
 import {
@@ -14,7 +14,7 @@ import {
   deactivateUser,
   setFinanceAccess,
 } from '../users/service.js';
-import { ALLOWED_ROUTES, isAllowedRoute } from './allowlist.js';
+import { ALLOWED_ROUTES, isAllowedRoute, isAllowedRoutePattern } from './allowlist.js';
 import { createApiCaller, RouteNotAllowedError } from './call.js';
 import { ALL_TOOLS } from './tools/index.js';
 
@@ -88,7 +88,7 @@ describe('MCP allowlist', () => {
     expect(isAllowedRoute(method, path, userOf('admin', true))).toBe(true);
     for (const user of [userOf('admin', false), userOf('client', false), userOf('client', true)]) {
       expect(isAllowedRoute(method, path, user)).toBe(false);
-      const api = createApiCaller(test.app, user, '127.0.0.1');
+      const api = createApiCaller(test.app, user, '127.0.0.1', 'write');
       await expect(api(method as 'GET', path)).rejects.toBeInstanceOf(RouteNotAllowedError);
     }
   });
@@ -107,8 +107,47 @@ describe('MCP allowlist', () => {
   ])('refuses %s %s to anyone', async (method, path) => {
     const superadmin = userOf('superadmin', true);
     expect(isAllowedRoute(method, path, superadmin)).toBe(false);
-    const api = createApiCaller(test.app, superadmin, '127.0.0.1');
+    const api = createApiCaller(test.app, superadmin, '127.0.0.1', 'write');
     await expect(api(method as 'GET', path)).rejects.toBeInstanceOf(RouteNotAllowedError);
+  });
+
+  it('matches the route pattern exactly: a static sibling of an entry is refused', async () => {
+    const admin = userOf('admin', false);
+    // `/api/tasks/:id` is listed; the static `/api/tasks/search` matches its regex but is not.
+    expect(isAllowedRoutePattern('GET', '/api/tasks/:id', admin)).toBe(true);
+    expect(isAllowedRoutePattern('GET', '/api/tasks/search', admin)).toBe(false);
+    expect(isAllowedRoutePattern('POST', '/api/tasks/:id', admin)).toBe(false);
+    expect(isAllowedRoutePattern('GET', '/api/finance/overview', admin)).toBe(false);
+    expect(isAllowedRoutePattern('GET', '/api/finance/overview', userOf('admin', true))).toBe(true);
+
+    const api = createApiCaller(test.app, admin, '127.0.0.1', 'write');
+    const sibling = await api('GET', '/api/tasks/search', { query: { q: 'x' } });
+    expect(sibling.status).toBe(403);
+    expect(sibling.body).toMatchObject({ error: 'forbidden', detail: 'route not allowed for MCP' });
+    // A listed static route next to it still answers.
+    expect((await api('GET', '/api/tasks/global')).status).not.toBe(403);
+  });
+
+  it('an internal call to a route outside the allowlist is refused by the route guard', async () => {
+    const res = await runAsUser(userOf('superadmin', true), (headers) =>
+      test.app.inject({ method: 'GET', url: '/api/me/mcp/tokens', headers }),
+    );
+    expect(res.statusCode).toBe(403);
+    expect(res.json()).toMatchObject({ detail: 'route not allowed for MCP' });
+  });
+
+  it('a read-only caller never sends a non-GET request', async () => {
+    const superadmin = userOf('superadmin', true);
+    const api = createApiCaller(test.app, superadmin, '127.0.0.1', 'read');
+    for (const [method, path] of [
+      ['POST', '/api/finance/rates'],
+      ['PATCH', '/api/tasks/t1'],
+      ['PUT', '/api/tickets/t1/assignees/u1'],
+      ['DELETE', '/api/tickets/t1/assignees/u1'],
+    ] as const) {
+      await expect(api(method, path, { body: {} })).rejects.toBeInstanceOf(RouteNotAllowedError);
+    }
+    expect((await api('GET', '/api/me/home/counts')).status).toBe(200);
   });
 
   it('every finance tool is marked finance', () => {

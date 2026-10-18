@@ -19,6 +19,7 @@ import {
   bulkEmailSchedules,
 } from './modules/bulk-email/jobs.js';
 import { filesJobHandlers, FILES_CLEANUP_JOB } from './modules/files/jobs.js';
+import { mcpJobHandlers, MCP_AUDIT_CLEANUP_JOB } from './modules/mcp/jobs.js';
 import {
   notificationQueues,
   notificationSchedules,
@@ -89,6 +90,7 @@ export async function createDeps(
       ...emailJobHandlers(email),
       ...authJobHandlers(db),
       ...filesJobHandlers({ db, storage }),
+      ...mcpJobHandlers(db),
       ...notificationsJobHandlers({ db, config, push, jobs: forward.queue }),
       ...tasksJobHandlers({ db, jobs: forward.queue }),
       ...remindersJobHandlers({ db, jobs: forward.queue }),
@@ -105,6 +107,7 @@ export async function createDeps(
     [
       { name: AUTH_CLEANUP_JOB, cron: '15 3 * * *' }, // daily, 03:15
       { name: FILES_CLEANUP_JOB, cron: '30 3 * * *' },
+      { name: MCP_AUDIT_CLEANUP_JOB, cron: '20 3 * * *' }, // MCP audit rows over 180 days
       ...notificationSchedules, // delivery sweep every minute, purge at 03:45
       ...taskSchedules, // deadline and urgent reminders, Bratislava time
       ...reminderSchedules, // fire due reminders every minute

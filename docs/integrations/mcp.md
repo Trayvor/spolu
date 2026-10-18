@@ -10,7 +10,7 @@ Admins only. Open **Settings → AI access (MCP)**, name the token (for example 
 - **Read and change**: it can also create and edit tasks, tickets, chat messages, knowledge items, projects and events, and finance items (a client's, and the organisation's: contracts of several clients with their shares, expenses and salaries), folders, time and rates (finance holders). **No tool deletes anything.**
 - Valid for 7, 30, 90 days or 1 year. At most 10 active tokens per person.
 
-The token (`spolu_mcp_…`) is shown **once**: copy it then. Treat it like a password; anyone with it acts as you. Revoke it on the same card when a laptop is lost or the assistant is no longer needed; deactivating an admin revokes all their tokens.
+The token (`spolu_mcp_…`) is shown **once**: copy it then. Treat it like a password; anyone with it acts as you. Revoke it on the same card when a laptop is lost or the assistant is no longer needed; deactivating an admin revokes all their tokens. Every new token also sends you an email (its name and when it was made; never the token): if you did not make it, revoke it in Settings at once.
 
 ## 2. Connect
 
@@ -24,6 +24,8 @@ claude mcp add --transport http help https://help.egrant.sk/mcp \
 ```
 
 Then `/mcp` in Claude Code lists the server as connected.
+
+The copied command contains the token, so it lands in your shell history and, once added, in `~/.claude.json`: keep both private, or clear the history line.
 
 ### Claude Desktop
 
@@ -49,7 +51,7 @@ Claude Desktop's own remote connectors need OAuth, which Help does not offer yet
 
 ### Any other client
 
-Streamable HTTP, stateless: `POST /mcp` with `Authorization: Bearer <token>` and one JSON-RPC message (or an array) in the body; answers are `application/json` (no SSE stream, no session id; `GET` and `DELETE` answer `405`). Protocol versions `2025-11-25`, `2025-06-18`, `2025-03-26`. A browser page cannot call it from another origin (`Origin` other than Help's: `403`).
+Streamable HTTP, stateless: `POST /mcp` with `Authorization: Bearer <token>` and one JSON-RPC message in the body (a batch array only in protocol `2025-03-26`, which is also assumed without an `MCP-Protocol-Version` header: at most 10 messages; `2025-06-18` and later removed batching, so with their header an array answers `400`, JSON-RPC `-32600`); answers are `application/json` (no SSE stream, no session id; `GET` and `DELETE` answer `405`). Protocol versions `2025-11-25`, `2025-06-18`, `2025-03-26`. A browser page cannot call it from another origin (`Origin` other than Help's: `403`).
 
 ## 3. What the assistant can do
 
@@ -71,9 +73,9 @@ A change made through MCP is the app's own request: everyone sees it live and is
 
 ## 4. Limits and audit
 
-- Per token: 120 requests and 30 changes a minute; the app's own limits per person apply on top. 30 failed sign-ins a minute per address answer `429`.
-- An answer longer than 100 000 characters is cut, with a note to narrow the query.
-- Every change (also a refused one) is logged: who, which tool, on what, when and how it ended, never the content. You see your last 50 on the settings card.
+- Per person (all your tokens together): 120 requests and 30 changes a minute; each message of a batch counts. The app's own limits per person apply on top. After 30 failed sign-ins a minute from one address, every request from it answers `429` for the rest of that minute.
+- A tool answer longer than 100 000 characters is cut, with a note to narrow the query. The whole answer to one POST is at most 5 MB: in a batch, the request whose answer crosses it ran but answers a JSON-RPC error (`-32603`, "Answer too large"), and the ones after it are not run.
+- Every change (also a refused one) is logged: who, which tool, on what, when and how it ended, never the content. You see your last 50 on the settings card. Entries older than 180 days are deleted daily (job `mcp.cleanup-audit`, 03:20).
 
 ## 5. Errors
 

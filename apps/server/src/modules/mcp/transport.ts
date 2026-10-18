@@ -16,7 +16,8 @@ import { ALL_TOOLS, TOOLS_BY_NAME } from './tools/index.js';
 
 /**
  * The MCP endpoint (spec §4, ADR 0033): Streamable HTTP, stateless, JSON answers only. One POST
- * carries a JSON-RPC message (or an array of them); `initialize`, `ping`, `tools/list` and
+ * carries a JSON-RPC message (in protocol 2025-03-26 also a batch of at most 10, each counted
+ * against the rate limit; the answer is at most 5 MB); `initialize`, `ping`, `tools/list` and
  * `tools/call` are answered, notifications and responses get 202. No SSE stream, no session id:
  * GET and DELETE answer 405.
  */
@@ -26,7 +27,14 @@ export const MCP_PROTOCOL_VERSIONS = ['2025-11-25', '2025-06-18', '2025-03-26'] 
 /** A tool answer longer than this is cut (spec §2 #16). */
 export const MCP_MAX_TEXT = 100_000;
 
+/** Per user (all their tokens together); failed sign-ins per address. */
 export const MCP_LIMITS_PER_MINUTE = { requests: 120, writes: 30, failedAuth: 30 } as const;
+/** A JSON-RPC batch (protocol 2025-03-26 only; later versions removed batching) holds at most this many messages. */
+export const MCP_MAX_BATCH = 10;
+/** The answer to one POST is at most this many bytes of JSON. */
+export const MCP_MAX_RESPONSE_BYTES = 5 * 1024 * 1024;
+/** The only protocol version with JSON-RPC batches; it is also assumed without the header. */
+const BATCH_VERSION = '2025-03-26';
 
 const INSTRUCTIONS = [
   'Help by eGrant (code name Spolu) is the eGrant team’s workspace with its clients: groups (one per client, plus the internal admin group), chats, task boards, support tickets, knowledge (notes, files, meetings), projects with events, bulk email, and finance documents.',
@@ -102,6 +110,62 @@ function toToolResult(outcome: ToolOutcome): { content: ToolContent[]; isError: 
 const toolError = (status: number, error: string, detail?: string) =>
   toToolResult({ status, data: detail ? { error, detail } : { error } });
 
+/** The id a message would be answered with, or undefined for one that gets no answer. */
+function answerId(message: unknown): JsonRpcId | null | undefined {
+  if (message === null || typeof message !== 'object' || Array.isArray(message)) return null;
+  const { id } = message as JsonRpcMessage;
+  if (id === undefined) return undefined; // a notification
+  return typeof id === 'string' || typeof id === 'number' ? id : null;
+}
+
+/**
+ * Handles the messages of one POST in order and collects the answers while their JSON stays
+ * under `maxBytes`. The message whose answer crosses the limit has run (a write is done), so it
+ * answers that its answer was dropped; the ones after it are not run.
+ */
+export async function collectAnswers(
+  messages: readonly unknown[],
+  handle: (message: unknown) => Promise<JsonRpcResponse | null>,
+  maxBytes: number = MCP_MAX_RESPONSE_BYTES,
+): Promise<JsonRpcResponse[]> {
+  const limit = `${Math.round(maxBytes / 1024 / 1024)} MB`;
+  const answers: JsonRpcResponse[] = [];
+  let size = 2; // the array's brackets
+  let full = false;
+  for (const message of messages) {
+    if (full) {
+      const id = answerId(message);
+      if (id !== undefined) {
+        answers.push(
+          rpcError(
+            id,
+            -32603,
+            `The request was not run: the answer reached its ${limit} limit; send fewer requests at once`,
+          ),
+        );
+      }
+      continue;
+    }
+    const answer = await handle(message);
+    if (!answer) continue;
+    const bytes = Buffer.byteLength(JSON.stringify(answer)) + 1;
+    if (size + bytes > maxBytes) {
+      full = true;
+      answers.push(
+        rpcError(
+          answer.id,
+          -32603,
+          `Answer too large (over ${limit}): the request ran, but its answer was dropped; narrow the query or send fewer requests at once`,
+        ),
+      );
+      continue;
+    }
+    size += bytes;
+    answers.push(answer);
+  }
+  return answers;
+}
+
 export const mcpTransportRoutes: FastifyPluginAsync<{
   deps: AppDeps;
   root: FastifyInstance;
@@ -168,7 +232,7 @@ export const mcpTransportRoutes: FastifyPluginAsync<{
         tool.write && auth.scope !== 'write' ? 'read-only token' : 'not allowed for this user',
       );
     }
-    if (tool.write && !allowWrite(auth.tokenId)) {
+    if (tool.write && !allowWrite(auth.user.id)) {
       await finish(429, null);
       return toolError(429, 'rate_limited');
     }
@@ -180,7 +244,11 @@ export const mcpTransportRoutes: FastifyPluginAsync<{
     let outcome: ToolOutcome;
     try {
       outcome = await tool.run(
-        { user: auth.user, scope: auth.scope, api: createApiCaller(root, auth.user, ip) },
+        {
+          user: auth.user,
+          scope: auth.scope,
+          api: createApiCaller(root, auth.user, ip, auth.scope),
+        },
         parsed.data,
         args,
       );
@@ -264,6 +332,8 @@ export const mcpTransportRoutes: FastifyPluginAsync<{
       return reply.code(400).send({ error: 'unsupported_protocol_version' });
     }
 
+    // An address over the failed sign-in limit waits out the window, before any token lookup.
+    if (allowFailure.exceeded(request.ip)) return reply.code(429).send({ error: 'rate_limited' });
     const header = request.headers.authorization ?? '';
     const raw = /^Bearer (\S+)$/i.exec(header)?.[1];
     const auth = raw ? await authenticateToken(db, raw) : null;
@@ -272,22 +342,43 @@ export const mcpTransportRoutes: FastifyPluginAsync<{
       return unauthorized(reply);
     }
     if (!canUseMcp(auth.user)) return reply.code(403).send({ error: 'forbidden' });
-    if (!allowRequest(auth.tokenId)) return reply.code(429).send({ error: 'rate_limited' });
+    // Per user: all of a user's tokens share one budget.
+    if (!allowRequest(auth.user.id)) return reply.code(429).send({ error: 'rate_limited' });
 
     const body = request.body;
     if (body === PARSE_ERROR || body === undefined) {
       return reply.code(400).send(rpcError(null, -32700, 'Parse error'));
     }
+    const handleOne = (message: unknown) => handle(message, auth, request.ip, request.log);
     if (Array.isArray(body)) {
-      if (body.length === 0) return reply.code(400).send(rpcError(null, -32600, 'Invalid Request'));
-      const answers: JsonRpcResponse[] = [];
-      for (const message of body) {
-        const answer = await handle(message, auth, request.ip, request.log);
-        if (answer) answers.push(answer);
+      // 2025-06-18 and later removed batching; 2025-03-26 (also assumed without the header) has it.
+      if (version !== undefined && String(version) !== BATCH_VERSION) {
+        return reply
+          .code(400)
+          .send(
+            rpcError(null, -32600, `Invalid Request: no JSON-RPC batch in protocol ${version}`),
+          );
       }
+      if (body.length === 0) return reply.code(400).send(rpcError(null, -32600, 'Invalid Request'));
+      if (body.length > MCP_MAX_BATCH) {
+        return reply
+          .code(400)
+          .send(
+            rpcError(
+              null,
+              -32600,
+              `Invalid Request: a batch holds at most ${MCP_MAX_BATCH} messages`,
+            ),
+          );
+      }
+      // Every message counts against the limit (the first was counted above).
+      for (let i = 1; i < body.length; i += 1) {
+        if (!allowRequest(auth.user.id)) return reply.code(429).send({ error: 'rate_limited' });
+      }
+      const answers = await collectAnswers(body, handleOne);
       return answers.length === 0 ? reply.code(202).send() : reply.send(answers);
     }
-    const answer = await handle(body, auth, request.ip, request.log);
+    const [answer] = await collectAnswers([body], handleOne);
     return answer ? reply.send(answer) : reply.code(202).send();
   });
 
