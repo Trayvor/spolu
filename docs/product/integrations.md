@@ -15,6 +15,8 @@ Spolu talks to three external systems: eGrant (incoming error reports), Elastic 
 
 ## Ticket intake API (for the eGrant team)
 
+All eGrant webhooks (tickets, projects, managers) with the base URL, key and limits: [docs/integrations/egrant.md](../integrations/egrant.md).
+
 The standalone guide for the eGrant developers (when to call, an example, retries, what happens in Spolu): [docs/integrations/egrant-ticket-intake.md](../integrations/egrant-ticket-intake.md). This section is the reference.
 
 `POST https://<host>/api/tickets/intake` (production: `https://help.egrant.sk`) with the headers `Authorization: Bearer <key>` and `Content-Type: application/json`. The key is one shared secret, set on the server as `TICKETS_API_KEY` (at least 16 characters) and given to the eGrant team.
