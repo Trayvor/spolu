@@ -145,6 +145,14 @@ describe('the phone bottom bar, admin', () => {
         name: t('nav.menuCurrent', { name: t('nav.tickets') }),
       }),
     ).toBeInTheDocument();
+    // The collapsed select shows the section's icon on a phone, not its (cut off) name.
+    const trigger = within(header).getByRole('button', {
+      name: t('nav.menuCurrent', { name: t('nav.tickets') }),
+    });
+    const icon = within(trigger).getByTestId('section-menu-icon');
+    expect(icon.querySelector('svg')).not.toBeNull();
+    expect(icon.className).toContain('min-[641px]:hidden');
+    expect(within(trigger).getByText(t('nav.tickets')).className).toContain('max-[640px]:hidden');
     expect(bar()).toBeNull();
     expect(screen.getByRole('main').className).not.toContain('68px');
   });
