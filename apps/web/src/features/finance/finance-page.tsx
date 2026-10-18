@@ -36,13 +36,12 @@ function FinancePageCards() {
   const [stored, setClients] = useFinanceClients();
   const groups = useQuery(groupsQuery).data;
   // Clients deleted since they were chosen drop out; none left means every client. The admin
-  // group (Phase 34 part E) is in only when chosen: `internal`, or alone in `clients`.
+  // group (Phase 34 part E) is in "every client" unless unticked (`internal` false).
   const choice = useMemo(() => {
     if (!groups) return stored;
     const known = new Set(groups.map((g) => g.id));
     const clients = stored.clients.filter((id) => known.has(id));
-    const internal = stored.internal && groups.some((g) => g.kind === 'admin');
-    return { clients, internal };
+    return { clients, internal: stored.internal };
   }, [groups, stored]);
   const view: FinanceView = useMemo(
     () => ({ kind: 'all', clients: choice.clients, internal: choice.internal }),

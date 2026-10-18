@@ -12,9 +12,10 @@ import {
 const LIST = 'finance.clients';
 
 /**
- * The page's client choice: `clients` (empty: every client, now and later) and `internal`, the
- * admin group "eGrant tím (internal)" chosen too (Phase 34 part E, off by default). The admin
- * group alone is `clients: [<its id>]`.
+ * The page's client choice: `clients` (empty: every client, now and later) and `internal`, whether
+ * "every client" includes the admin group "eGrant tím" (Phase 34 part E: on by default, owner
+ * decision of 2026-10-18; unticking it leaves the team's time out). Chosen clients name the admin
+ * group in `clients` when it is ticked.
  */
 export type FinanceClients = { clients: string[]; internal: boolean };
 
@@ -28,14 +29,14 @@ export function useFinanceClients(): [FinanceClients, (next: FinanceClients) => 
   const [choice, setChoice] = useState<FinanceClients>(() => {
     const saved = key ? readRemembered(key) : null;
     const clients = typeof saved?.clients === 'string' ? saved.clients : '';
-    return { clients: clients.split(',').filter(Boolean), internal: saved?.internal === '1' };
+    return { clients: clients.split(',').filter(Boolean), internal: saved?.internal !== '0' };
   });
   const choose = (next: FinanceClients) => {
     setChoice(next);
     if (!key) return;
     const value = {
       ...(next.clients.length > 0 ? { clients: next.clients.join(',') } : {}),
-      ...(next.internal ? { internal: '1' } : {}),
+      ...(next.clients.length === 0 && !next.internal ? { internal: '0' } : {}),
     };
     writeRemembered(key, Object.keys(value).length > 0 ? value : null);
   };
@@ -44,9 +45,9 @@ export function useFinanceClients(): [FinanceClients, (next: FinanceClients) => 
 
 /**
  * The knowledge list's client filter (pill, popover or sheet, chips) over every client, with the
- * admin group as the "eGrant tím" option on top, off by default (Phase 34 part E: internal money
- * is no client revenue). Choosing every client, none, or resetting stores "every client", so
- * clients added later are in too.
+ * admin group as the "eGrant tím" option on top, ticked by default (Phase 34 part E). Choosing
+ * every client (with the team), none, or resetting stores "every client", so clients added later
+ * are in too.
  */
 export function FinanceClientFilter({
   value,
@@ -59,29 +60,26 @@ export function FinanceClientFilter({
   const options = useMemo(() => toClientOptions(groups ?? [], true), [groups]);
   const adminId = options.find((o) => o.internal)?.id ?? null;
   const clientIds = options.filter((o) => !o.internal).map((o) => o.id);
-  const known = new Set(clientIds);
+  const known = new Set(options.map((o) => o.id));
   const chosen = value.clients.filter((id) => known.has(id));
-  const onlyInternal = adminId !== null && value.clients.includes(adminId) && chosen.length === 0;
-  const internal = adminId !== null && value.internal;
 
-  // The filter's value: null is the default (every client, no internal option).
+  // The filter's value: null is the default (every client and the team).
   const filterValue =
-    groups === undefined || (chosen.length === 0 && !internal && !onlyInternal)
+    groups === undefined || (chosen.length === 0 && (value.internal || adminId === null))
       ? null
-      : onlyInternal && adminId
-        ? [adminId]
-        : [...(chosen.length > 0 ? chosen : clientIds), ...(internal && adminId ? [adminId] : [])];
+      : chosen.length > 0
+        ? chosen
+        : clientIds;
 
   const change = (next: string[] | null) => {
-    if (next === null) return onChange({ clients: [], internal: false });
-    const withInternal = adminId !== null && next.includes(adminId);
-    const rest = next.filter((id) => id !== adminId);
-    if (rest.length === 0) {
-      const alone = withInternal && adminId !== null;
-      return onChange({ clients: alone ? [adminId] : [], internal: false });
-    }
-    const every = rest.length === clientIds.length;
-    onChange({ clients: every ? [] : rest, internal: withInternal });
+    if (next === null || next.length === 0) return onChange({ clients: [], internal: true });
+    const withTeam = adminId !== null && next.includes(adminId);
+    const every = clientIds.every((id) => next.includes(id));
+    onChange(
+      every
+        ? { clients: [], internal: withTeam || adminId === null }
+        : { clients: next, internal: true },
+    );
   };
 
   return (
@@ -90,7 +88,6 @@ export function FinanceClientFilter({
       managedIds={null}
       value={filterValue}
       disabled={groups === undefined}
-      internalInDefault={false}
       onChange={change}
     />
   );

@@ -159,8 +159,10 @@ describe('finance query plans on a seeded volume', () => {
     { timeout: 300_000 },
     async () => {
       await withFinanceVolume(db, async (tx, { groupIds, adminIds }) => {
-        // "Every client" leaves the admin group out (Phase 34 part E); a client stands in for it.
-        const all = { kind: 'all', except: groupIds[0]! } as const;
+        // "Every client" includes the admin group by default (Phase 34 part E, owner decision of
+        // 2026-10-18); unticked, it leaves it out: `allButTeam`, a client standing in for it.
+        const all = { kind: 'all' } as const;
+        const allButTeam = { kind: 'all', except: groupIds[0]! } as const;
         const chosen = { kind: 'groups', groupIds: groupIds.slice(100, 140) } as const;
         const thisMonth = financeToday().slice(0, 7) as Month;
         const year = Number(thisMonth.slice(0, 4));
@@ -214,6 +216,21 @@ describe('finance query plans on a seeded volume', () => {
           ]),
         );
         await wide('all clients: work log page', workLogEntriesSql(all, null, null));
+        await wide(
+          'all clients but the team: work log page',
+          workLogEntriesSql(allButTeam, null, null),
+        );
+        await wide(
+          'all clients but the team: overview money (24 months)',
+          moneySql(allButTeam, next12, financeToday()),
+          ['finance_items'],
+        );
+        await wide(
+          'all clients but the team: work log summary (all time)',
+          timeTotalsSql(countedEntriesSql(allButTeam, null), ['admin', 'total']),
+          ['finance_time_entries'],
+          WHOLE_RANGE_MS,
+        );
         await wide('40 clients: work log page', workLogEntriesSql(chosen, null, null));
         await wide(
           'all clients: work log top clients (2 months)',

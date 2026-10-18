@@ -7,8 +7,9 @@ import type { Month } from '@spolu/shared';
  * page's client filter (`groups`) or every client (`all`). Parts B, C and D take it, so one
  * function serves the tab and `/finance`. `org` (Phase 32 E): the rows of no client, the
  * organisation's own items on `/finance` (`group_id is null`). `all` with `except` (Phase 34
- * part E): every client but that group, the admin group "eGrant tím", which `/finance` leaves
- * out unless chosen (decisions 7, 13); the rows without a client stay in.
+ * part E): every client but that group, the admin group "eGrant tím", when `/finance`'s option
+ * for it is unticked (it is in by default, owner decision of 2026-10-18); the rows without a
+ * client stay in.
  */
 export type FinanceScope =
   | { kind: 'group'; groupId: string }
@@ -42,20 +43,20 @@ export function scopeSql(column: AnyPgColumn | SQL, scope: FinanceScope): SQL {
 }
 
 /**
- * The scope of `/finance`'s `clients=` filter: none named means every client. The admin group
- * (Phase 34 part E, decisions 7 and 13: internal money is no client revenue) is in only when
- * chosen: named in `clients`, or `internal` ("eGrant tím (internal)" next to every client).
+ * The scope of `/finance`'s `clients=` filter: none named means every client, the admin group
+ * "eGrant tím" included (Phase 34 part E, owner decision of 2026-10-18: the team's spending
+ * counts) unless `internal` is false (the option unticked, `internal=0`). Named clients are
+ * exactly those: the admin group only when `clients=` names it.
  */
 export function scopeOfClients(
   groupIds: readonly string[],
-  adminGroup: { id: string | null; internal: boolean } = { id: null, internal: false },
+  adminGroup: { id: string | null; internal: boolean } = { id: null, internal: true },
 ): FinanceScope {
   const { id, internal } = adminGroup;
   if (groupIds.length === 0) {
     return id && !internal ? { kind: 'all', except: id } : { kind: 'all' };
   }
-  const ids = id && internal && !groupIds.includes(id) ? [...groupIds, id] : [...groupIds];
-  return { kind: 'groups', groupIds: ids };
+  return { kind: 'groups', groupIds: [...groupIds] };
 }
 
 /**

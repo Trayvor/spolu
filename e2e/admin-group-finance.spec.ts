@@ -2,8 +2,8 @@ import { expect, test } from '@playwright/test';
 
 // Phase 34 P34-E (spec §10, scenario 7; reconciled with Phase 32 E): the superadmin (a finance
 // admin) logs time on an "eGrant tím" task; its Financie tab is the organisation's (the
-// Organizácia items card); `/finance` leaves the internal time out of every client and never
-// ranks the admin group; choosing "eGrant tím" in the client filter brings its hours in.
+// Organizácia items card); `/finance` counts the internal time in every client by default and
+// never ranks the admin group; unticking "eGrant tím" in the client filter leaves its hours out.
 test('finance in the admin group: internal time, the organisation tab, never ranked', async ({
   page,
 }) => {
@@ -43,25 +43,23 @@ test('finance in the admin group: internal time, the organisation tab, never ran
   await expect(page.getByRole('heading', { name: 'Prehľad', exact: true })).toBeVisible();
 
   // The rankings never list it, whatever the filter.
-  for (const query of ['', '&internal=1', `&clients=${team}`]) {
+  for (const query of ['', '&internal=0', `&clients=${team}`]) {
     const res = await page.request.get(`/api/finance/rankings/hours?admin=${me.id}${query}`);
     expect(res.ok()).toBe(true);
     const rows = ((await res.json()) as { rows: { groupId: string | null }[] }).rows;
     expect(rows.map((r) => r.groupId)).not.toContain(team);
   }
 
-  // `/finance`: the option is off by default and the internal task is not in the work log;
-  // ticking "eGrant tím" brings its time in.
+  // `/finance`: the team is in "every client" by default (owner decision of 2026-10-18), so the
+  // internal task is in the work log; unticking "eGrant tím" leaves its time out.
   await page.goto('/finance');
   const internalTask = page.getByRole('link', { name: `E2E interná úloha ${stamp}` });
-  await expect(page.getByRole('heading', { name: 'Výkaz práce' })).toBeVisible();
-  await expect(internalTask).toHaveCount(0);
+  await expect(internalTask).toBeVisible();
   await page.getByRole('button', { name: 'Klienti: Všetci' }).first().click();
   const option = page.getByRole('checkbox', { name: 'eGrant tím' });
-  await expect(option).not.toBeChecked();
-  await option.check();
   await expect(option).toBeChecked();
+  await option.uncheck();
+  await expect(option).not.toBeChecked();
   await page.keyboard.press('Escape');
-  await expect(page.getByRole('list', { name: 'Vybraní klienti' })).toContainText('eGrant tím');
-  await expect(internalTask).toBeVisible();
+  await expect(internalTask).toHaveCount(0);
 });

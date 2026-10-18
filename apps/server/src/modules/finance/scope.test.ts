@@ -78,16 +78,17 @@ describe('scopeSql', () => {
     expect(scopeOfClients([a.id])).toEqual({ kind: 'groups', groupIds: [a.id] });
   });
 
-  it('leaves the admin group out unless chosen; the rankings never take it (Phase 34 E)', () => {
+  it('every client includes the admin group unless unticked; the rankings never take it (Phase 34 E)', () => {
     const off = { id: 'adm', internal: false };
     const on = { id: 'adm', internal: true };
     expect(scopeOfClients([], off)).toEqual({ kind: 'all', except: 'adm' });
     expect(scopeOfClients([], on)).toEqual({ kind: 'all' });
     expect(scopeOfClients(['x'], off)).toEqual({ kind: 'groups', groupIds: ['x'] });
-    expect(scopeOfClients(['x'], on)).toEqual({ kind: 'groups', groupIds: ['x', 'adm'] });
-    // Named in `clients` is chosen too.
+    expect(scopeOfClients(['x'], on)).toEqual({ kind: 'groups', groupIds: ['x'] });
+    // Among chosen clients, only when named.
     expect(scopeOfClients(['adm'], off)).toEqual({ kind: 'groups', groupIds: ['adm'] });
     expect(scopeOfClients([], { id: null, internal: false })).toEqual({ kind: 'all' });
+    expect(scopeOfClients([])).toEqual({ kind: 'all' });
 
     expect(withoutGroup({ kind: 'all' }, 'adm')).toEqual({ kind: 'all', except: 'adm' });
     expect(withoutGroup({ kind: 'groups', groupIds: ['x', 'adm'] }, 'adm')).toEqual({

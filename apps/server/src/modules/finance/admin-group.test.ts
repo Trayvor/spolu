@@ -21,7 +21,8 @@ import { createItem } from './documents.js';
  * Finance in the admin group "eGrant tím" (Phase 34 part E, reconciled with Phase 32 E): its
  * Financie tab is the organisation's finance (the expenses and the organisation's own items),
  * not a second store; the time on its tasks is asked and logged as everywhere and stays its
- * own ("internal"); `/finance` leaves it out of "every client" unless chosen and never ranks it.
+ * own ("internal"); `/finance` counts it in "every client" by default (owner decision of
+ * 2026-10-18), leaves it out when its option is unticked (`internal=0`) and never ranks it.
  * Finance admins only: an admin without the right reads the group but none of its finance.
  */
 type TestApp = Awaited<ReturnType<typeof buildTestApp>>;
@@ -126,7 +127,8 @@ describe('finance in the admin group (Phase 34 part E)', () => {
         ['POST', `/api/groups/${adminGroup}/finance/items`, { type: 'note', title: 'x' }],
         ['POST', `/api/groups/${adminGroup}/finance/time-entries`, {}],
         ['GET', `/api/finance/org/items`],
-        ['GET', `/api/finance/overview?internal=1&${RANGE}`],
+        ['GET', `/api/finance/overview?${RANGE}`],
+        ['GET', `/api/finance/overview?internal=0&${RANGE}`],
         ['GET', `/api/finance/work-log?clients=${adminGroup}`],
       ];
       for (const [method, path, body] of routes) {
@@ -216,23 +218,27 @@ describe('finance in the admin group (Phase 34 part E)', () => {
       return res.json<FinanceOverviewDto>();
     };
 
-    it('every client leaves the internal time out; the option or the id brings it in', async () => {
-      expect(minutesOf((await overview('')).hours, fin.id)).toBe(30);
+    it('every client includes the internal time by default; unticked (`internal=0`) leaves it out', async () => {
+      expect(minutesOf((await overview('')).hours, fin.id)).toBe(120);
       expect(minutesOf((await overview('&internal=1')).hours, fin.id)).toBe(120);
+      expect(minutesOf((await overview('&internal=0')).hours, fin.id)).toBe(30);
+      // Chosen clients are exactly those: the admin group when named.
+      expect(minutesOf((await overview(`&clients=${clientGroup}`)).hours, fin.id)).toBe(30);
       expect(minutesOf((await overview(`&clients=${adminGroup}`)).hours, fin.id)).toBe(90);
-      expect(minutesOf((await overview(`&clients=${clientGroup}&internal=1`)).hours, fin.id)).toBe(
-        120,
-      );
-      // The organisation's expenses still count with every client (Phase 32 E).
+      expect(
+        minutesOf((await overview(`&clients=${clientGroup},${adminGroup}`)).hours, fin.id),
+      ).toBe(120);
+      // The organisation's expenses count with every client, with or without the team (Phase 32 E).
       expect((await overview('')).organisation).toBe(true);
+      expect((await overview('&internal=0')).organisation).toBe(true);
       const log = await call('GET', '/api/finance/work-log', fin.cookie);
-      expect(minutesOf(log.json<WorkLogPageDto>().summary!, fin.id)).toBe(30);
-      const internalLog = await call('GET', '/api/finance/work-log?internal=1', fin.cookie);
-      expect(minutesOf(internalLog.json<WorkLogPageDto>().summary!, fin.id)).toBe(120);
+      expect(minutesOf(log.json<WorkLogPageDto>().summary!, fin.id)).toBe(120);
+      const without = await call('GET', '/api/finance/work-log?internal=0', fin.cookie);
+      expect(minutesOf(without.json<WorkLogPageDto>().summary!, fin.id)).toBe(30);
     });
 
     it('the rankings never list the admin group, even when it is chosen', async () => {
-      for (const query of ['', '&internal=1', `&clients=${adminGroup},${clientGroup}`]) {
+      for (const query of ['', '&internal=0', `&clients=${adminGroup},${clientGroup}`]) {
         const res = await call(
           'GET',
           `/api/finance/rankings/hours?admin=${fin.id}${query}`,
@@ -259,18 +265,18 @@ describe('finance in the admin group (Phase 34 part E)', () => {
           fileIds: [],
         }),
       );
-      for (const query of ['', '&internal=1', `&clients=${adminGroup}`]) {
+      for (const query of ['', '&internal=0', `&clients=${adminGroup}`]) {
         const res = await call('GET', `/api/finance/rankings/paid?${query}`, fin.cookie);
         expect(res.statusCode, res.body).toBe(200);
         expect(res.json<PaidRankingPage>().rows.map((r) => r.groupId)).not.toContain(adminGroup);
       }
-      // The ledger shows it only when chosen.
+      // The ledger shows it by default, not when unticked.
       const ledger = async (query: string) =>
         (await call('GET', `/api/finance/contracts?q=Star%C3%BD${query}`, fin.cookie)).json<{
           items: { groupId: string | null }[];
         }>().items;
-      expect((await ledger('')).map((i) => i.groupId)).not.toContain(adminGroup);
-      expect((await ledger('&internal=1')).map((i) => i.groupId)).toContain(adminGroup);
+      expect((await ledger('')).map((i) => i.groupId)).toContain(adminGroup);
+      expect((await ledger('&internal=0')).map((i) => i.groupId)).not.toContain(adminGroup);
     });
   });
 });

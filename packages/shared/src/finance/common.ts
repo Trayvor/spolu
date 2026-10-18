@@ -64,10 +64,11 @@ export const FinanceClientsFilterSchema = z
   .pipe(z.array(IdSchema).max(FINANCE_MAX_CLIENTS));
 
 /**
- * `internal=1` (Phase 34 part E): every chosen client plus the admin group "eGrant tím (internal)",
- * which `/finance` leaves out unless chosen (decisions 7, 13). Missing or `0`: left out.
+ * `internal=0` (Phase 34 part E, owner decision of 2026-10-18): "every client" without the admin
+ * group "eGrant tím". Missing or `1`: every client includes it (the team's spending counts on
+ * `/finance` by default). With chosen clients it is in only when `clients=` names it.
  */
 export const FinanceInternalFilterSchema = z
   .enum(['0', '1'])
   .optional()
-  .transform((value) => value === '1');
+  .transform((value) => value !== '0');

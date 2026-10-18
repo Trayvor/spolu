@@ -9,8 +9,9 @@ import type { QueryKey } from '@tanstack/react-query';
 
 /**
  * Which clients a finance card shows: one client's tab, or `/finance` with its client filter.
- * `internal` (Phase 34 part E): the admin group "eGrant tím (internal)" is chosen too; without
- * it `/finance` leaves the admin group out.
+ * `internal` (Phase 34 part E): false when "every client" leaves the admin group "eGrant tím" out
+ * (its option unticked); missing or true, it is in (owner decision of 2026-10-18). Chosen
+ * clients name the admin group in `clients` when it is ticked.
  */
 export type FinanceView =
   | { kind: 'group'; groupId: string }
@@ -27,16 +28,18 @@ export function viewKey(view: FinanceView): string {
  */
 export function financeKey(view: FinanceView, kind: string, ...rest: unknown[]): QueryKey {
   const clients =
-    view.kind === 'all' ? [view.clients.join(','), ...(view.internal ? ['internal'] : [])] : [];
+    view.kind === 'all'
+      ? [view.clients.join(','), ...(view.internal === false ? ['no-internal'] : [])]
+      : [];
   return ['finance', viewKey(view), kind, ...rest, ...clients];
 }
 
-/** The `clients=` (and `internal=1`) query of the system-wide view (empty: every client). */
+/** The `clients=` (and `internal=0`) query of the system-wide view (empty: every client). */
 export function clientsParam(view: FinanceView): Record<string, string> {
   if (view.kind !== 'all') return {};
   return {
     ...(view.clients.length > 0 ? { clients: view.clients.join(',') } : {}),
-    ...(view.internal ? { internal: '1' } : {}),
+    ...(view.internal === false ? { internal: '0' } : {}),
   };
 }
 

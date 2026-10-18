@@ -40,8 +40,9 @@ function cursorError(reply: FastifyReply, error: unknown): FastifyReply {
  * takes the page's `clients=` filter (none: every client, which also covers the time without a
  * client, owner decision 24); a malformed filter or cursor answers `400 invalid_filter`. They
  * reuse parts B and C: `overview`, `workLogPage`, `listContracts` with a `groups` or `all` scope.
- * The admin group "eGrant tím" (Phase 34 part E) is in only when chosen (`clients=` names it, or
- * `internal=1`), and the rankings never hold it (`withoutGroup`).
+ * The admin group "eGrant tím" (Phase 34 part E) is in "every client" unless `internal=0` (owner
+ * decision of 2026-10-18), among chosen clients when `clients=` names it, and the rankings never
+ * hold it (`withoutGroup`): it is no client, and its hours stay in the overview and work log.
  *   GET /api/finance/overview?clients=&from=&to=
  *   GET /api/finance/work-log?clients=&from=&to=&before=
  *   GET /api/finance/contracts?clients=&sort=&dir=&q=&from=&to=&after=
