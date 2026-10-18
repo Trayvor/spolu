@@ -182,6 +182,29 @@ describe('locales', () => {
     }
   });
 
+  /** Every text of a language, namespaces included, as `key: text`. */
+  const textsOf = (code: string) => {
+    const json = merged[code] ?? {};
+    return flatten(json).map((key) => {
+      const text = key
+        .split('.')
+        .reduce<unknown>((o, k) => (o as Record<string, unknown>)?.[k], json);
+      return `${key}: ${String(text)}`;
+    });
+  };
+
+  it('it addresses the reader formally (Lei, ADR 0019): no tu forms', () => {
+    const informal = /\b(sei|ti|tuo|tua|tuoi|tue|puoi|vuoi|hai|riconnetti)\b/i;
+    const value = (line: string) => line.slice(line.indexOf(': ') + 2);
+    expect(textsOf('it').filter((line) => informal.test(value(line)))).toEqual([]);
+  });
+
+  it('sl asks the reader, not itself: no question opening with a first-person verb', () => {
+    const firstPerson = /^[A-ZČŠŽ][a-zčšž]+(im|em|am) [^?]*\?$/;
+    const value = (line: string) => line.slice(line.indexOf(': ') + 2);
+    expect(textsOf('sl').filter((line) => firstPerson.test(value(line)))).toEqual([]);
+  });
+
   it('the namespaces have plural keys to check (the plural test sees them)', () => {
     const plural = flatten(merged.en ?? {}).filter((key) => key.endsWith('_other'));
     expect(plural.some((key) => key.startsWith('chat.'))).toBe(true);

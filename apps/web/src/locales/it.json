@@ -19,7 +19,7 @@
     "search": "Cerca",
     "menu": "Menu",
     "menuCurrent": "Menu: {{name}}",
-    "offline": "Sei offline. Le modifiche non vengono salvate finché non ti riconnetti.",
+    "offline": "È offline. Le modifiche non vengono salvate finché non si riconnette.",
     "loading": "Caricamento"
   },
   "user": {

@@ -8,6 +8,7 @@ import {
 } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
 import { myTimeRequests } from '../finance/task-time.js';
+import { liveGroupSql } from '../groups/memberships.js';
 import { groups } from '../groups/schema.js';
 import { taskUnseenSql, unseenTaskIdsSql } from '../notifications/unseen.js';
 import { getTaskTitles } from '../tasks/task-service.js';
@@ -39,6 +40,8 @@ export function assignedSql(userId: string): SQL {
       join buckets b on b.id = t.bucket_id
       where ta.user_id = ${userId}
         and t.completed_at is null
+        -- A deactivated client leaves Home as it leaves the sidebar.
+        and g.deactivated_at is null
       order by t.urgent desc, t.due_date asc nulls last, t.created_at asc, t.id
       limit ${HOME_LIMITS.tasks}
     ) p
@@ -128,6 +131,7 @@ export function unseenTaskCountSql(userId: string): SQL {
     select count(*)::int as total
     from (${unseenTaskIdsSql(userId)}) x
     join tasks t on t.id = x.task_id
+    where ${liveGroupSql(sql`t.group_id`)}
   `;
 }
 

@@ -20,7 +20,7 @@ import {
   setPendingInvite,
 } from './memberships.js';
 import { groupMembers, pendingInvites } from './schema.js';
-import { createGroup } from './service.js';
+import { createGroup, setGroupDeactivated } from './service.js';
 
 const { db, close } = createDb(testDatabaseUrl);
 afterAll(() => close());
@@ -152,6 +152,24 @@ describe('pending invites', () => {
     await setPendingInvite(db, c.id, g.id);
     expect(await applyPendingInvite(db, c.id)).toBeNull();
     expect((await getMembership(db, c.id, g.id))?.removedAt).not.toBeNull();
+  });
+
+  it('a group deactivated after the invite was typed gets no member; the invite is gone', async () => {
+    const [g, c] = await Promise.all([newGroup(), newClient()]);
+    await addMembership(db, c.id, g.id, 'ziadatel');
+    await setPendingInvite(db, c.id, g.id);
+    await setGroupDeactivated(db, g.id, true);
+    expect(await applyPendingInvite(db, c.id)).toBeNull();
+    expect((await getMembership(db, c.id, g.id))?.role).toBe('ziadatel');
+    // Reactivating later does not make them a member either.
+    await setGroupDeactivated(db, g.id, false);
+    expect(await applyPendingInvite(db, c.id)).toBeNull();
+    expect((await getMembership(db, c.id, g.id))?.role).toBe('ziadatel');
+    const fresh = await newClient();
+    await setPendingInvite(db, fresh.id, g.id);
+    await setGroupDeactivated(db, g.id, true);
+    expect(await applyPendingInvite(db, fresh.id)).toBeNull();
+    expect(await getMembership(db, fresh.id, g.id)).toBeNull();
   });
 });
 

@@ -68,6 +68,8 @@ function run(binary: string, args: string[], signal?: AbortSignal): Promise<void
 /**
  * Demuxers ffmpeg may open an input with (review M3, ADR 0041): the containers of the media
  * extensions the upload takes (`MEDIA_EXTENSIONS` in `meeting-recording.ts`), plus Apple's CAF.
+ * The upload also takes any `audio/*` or `video/*` type, so AIFF (macOS voice memos, `aiff`) and
+ * MPEG transport streams (`.ts`, `.m2ts` recorders, `mpegts`) are here too (review V7).
  * Playlist-style formats that ffmpeg detects by content and that open other files or URLs
  * (concat/ffconcat, hls, dash, image2 sequences, tee, subfile, ...) are refused. ffmpeg matches
  * each against a demuxer's name list, so `mov` covers mp4/m4a/3gp and `matroska` covers webm.
@@ -87,6 +89,8 @@ export const INPUT_FORMATS = [
   'asf',
   'avi',
   'mpeg',
+  'aiff',
+  'mpegts',
 ] as const;
 
 /** Threads per decoder and encoder: speech audio needs little, and a bad input cannot fan out. */

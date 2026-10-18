@@ -4,6 +4,7 @@ import { sql } from 'drizzle-orm';
 import type { HomeTickets, TicketStatus } from '@spolu/shared';
 import { createDb } from '../../infra/db/client.js';
 import { testDatabaseUrl } from '../../../test/test-config.js';
+import { setGroupDeactivated } from '../groups/service.js';
 import { newAdmin, newGroup } from '../home/test-fixtures.js';
 import { recordNotifications } from '../notifications/service.js';
 import { markTicketSeen } from '../notifications/unseen.js';
@@ -235,6 +236,31 @@ describe('unseen tickets (2026-10-17)', () => {
     expect(await unseen()).toEqual({ [changed]: 'change', [quiet]: null });
     await markTicketSeen(db, me.id, changed);
     expect(await unseen()).toEqual({ [changed]: null, [quiet]: null });
+  });
+
+  it("a deactivated client's tickets leave the card and the header count, like the sidebar", async () => {
+    const g = await newGroup(db, 'Gone');
+    const me = await newAdmin(db, 'Ada', [g.id]);
+    const ticket = await newTicket({ groupId: g.id, status: 'new' });
+    await status(me.id, g.id, ticket);
+    // One snapshot (repeatable read): tickets other files create meanwhile do not move the count.
+    const [before, after, listed] = await db
+      .transaction(
+        async (tx) => {
+          const before = await countUnseenTickets(tx, me.id);
+          await setGroupDeactivated(tx, g.id, true);
+          const after = await countUnseenTickets(tx, me.id);
+          const listed = (await getDashboardTickets(tx, me.id)).items.map((t) => t.id);
+          throw new Rollback([before, after, listed] as const);
+        },
+        { isolationLevel: 'repeatable read' },
+      )
+      .catch((error: unknown) => {
+        if (error instanceof Rollback) return error.value as readonly [number, number, string[]];
+        throw error;
+      });
+    expect(before - after).toBe(1);
+    expect(listed).not.toContain(ticket);
   });
 });
 

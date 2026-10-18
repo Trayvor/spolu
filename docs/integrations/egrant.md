@@ -34,6 +34,7 @@ Content-Type: application/json
 ```
 
 - **One key for all webhooks** by default, so there is one secret to rotate. The groups call may get its own key: when the Help server sets `EGRANT_GROUPS_API_KEY`, only that key opens `PUT /api/egrant/groups` (the shared key then answers `401` there); unset, the shared key opens it like the others.
+- **A separate `EGRANT_GROUPS_API_KEY` is strongly recommended in production.** Without it, the shared ticket-intake key (`TICKETS_API_KEY`) falls back to the groups call, and whoever holds it can **create any client group and deactivate any client group** in Help, not only send tickets. The fallback stays for compatibility (review V13, 2026-10-18); set the groups key on every server where the ticket key is held by more than the one eGrant server.
 - **Who issues it:** the eGrant team (the Help admin). On the Help server it is the environment variable `TICKETS_API_KEY`, at least 16 characters (`EGRANT_GROUPS_API_KEY` likewise). You receive the value out of band; keep it in your server's secret store and call only from your server, never from a browser.
 - **Rotation:** the Help admin sets a new value and restarts Help; calls with the old key answer `401` from then on. Agree the switch time with the eGrant team and deploy the new key on your side at the same moment.
 - **No key configured** on the Help server: every webhook is off and answers `503 intake_disabled`.
@@ -121,7 +122,7 @@ Use `--data-binary` (or `-d` with the same string) so curl sends exactly the byt
 |---|---|---|
 | tickets | 28 MiB (files travel as base64 in the body) | 60 |
 | projects | 1 MiB | 120 |
-| groups | 3 MiB (a logo of up to 2 MiB travels as base64) | 60 |
+| groups | 3 MiB (a logo of up to 2 MiB, an SVG up to 512 KiB, travels as base64) | 60 |
 | managers | 16 KiB | 60 |
 
 The checks run before the body is read. `503` always comes first. After it the tickets and projects calls check the key (`401`) and then the limit (`429`); the groups and managers calls check the limit first, so a wrong key counts against it.
@@ -256,7 +257,7 @@ When the Help admin sets `EGRANT_GROUPS_SIGNING_SECRET`, every groups call must 
 | `name` | the client's name, shown in Help | required, 1 to 100 characters after trimming |
 | `logo` | the client's logo | optional. Missing: the current logo stays. `null`: the logo is removed. An object `{ "content_type", "data_base64" }`: the new logo |
 | `logo.content_type` | the image type | `image/png`, `image/jpeg`, `image/webp` or `image/svg+xml`; anything else, GIF included, is `415`. An SVG is converted to a PNG (below) |
-| `logo.data_base64` | the image bytes | strict base64 (standard alphabet, padded, no line breaks), at most 2 MiB decoded; the bytes must be a complete image of the declared type |
+| `logo.data_base64` | the image bytes | strict base64 (standard alphabet, padded, no line breaks), at most 2 MiB decoded (an SVG at most 512 KiB); the bytes must be a complete image of the declared type; a PNG, JPEG or WebP at most 4096 px on its longer side; an SVG at most 16384 units on its longer side, with no embedded images |
 | `active` | the group's state | optional boolean. `false`: deactivate; `true`: reactivate. Missing: the state does not change (so a name sync never undoes a deactivation). A new group is always active |
 
 Unknown fields are ignored. The body may be at most 3 MiB.
@@ -283,9 +284,9 @@ Answer, `201` for a new group, else `200`:
 | `400` | `{ "error": "validation_failed", "fields": [...] }` | a field is malformed: `instance_url` (also for a non-http address), `name`, `logo.content_type`, `logo.data_base64` (not strict base64) |
 | `404` | `{ "error": "unknown_instance" }` | `active: false` for an instance Help does not know; nothing is created |
 | `409` | `{ "error": "ambiguous_instance" }` | two groups in Help share this host (an admin set the same address twice); nothing changes until the eGrant team fixes it |
-| `413` | `{ "error": "file_too_large", "fields": ["logo.data_base64"] }` | the logo is over 2 MiB decoded (a body over 3 MiB answers `413` without this body) |
+| `413` | `{ "error": "file_too_large", "fields": ["logo.data_base64"] }` | the logo is over 2 MiB decoded, an SVG over 512 KiB (a body over 3 MiB answers `413` without this body) |
 | `415` | `{ "error": "unsupported_type", "fields": ["logo.content_type"] }` | the declared type is not PNG, JPEG, WebP or SVG |
-| `422` | `{ "error": "invalid_logo", "fields": ["logo.data_base64"] }` | the bytes are not a complete image of the declared type (text, an SVG declared as PNG, a JPEG declared as PNG, a cut-off file), or an SVG that does not parse or has no size |
+| `422` | `{ "error": "invalid_logo", "fields": ["logo.data_base64"] }` | the bytes are not a complete image of the declared type (text, an SVG declared as PNG, a JPEG declared as PNG, a cut-off file); a PNG, JPEG or WebP over 4096 px on a side (read from its header); an SVG that does not parse, has no size or is over 16384 units on a side; or an SVG with an image element (`<image>`, `<feImage>`), a `data:` URI anywhere, an entity declaration or an `href` other than a local `#id`; a gzipped SVG (SVGZ) |
 | `401`, `429`, `503` | | as in [Limits and common errors](#limits-and-common-errors); 60 calls a minute per IP address |
 
 Nothing is stored when the answer is `4xx`: a refused logo also leaves the name as it was.
@@ -296,7 +297,7 @@ Nothing is stored when the answer is `4xx`: a refused logo also leaves the name 
 
 - Finds the group by host, as every call does. A group an admin created in Help earlier is found and updated; its stored address stays as the admin typed it.
 - A new group gets the same defaults as one created in the app: a client group with a fresh invite link, no members and no managers.
-- The logo is checked by its bytes, not by its declared type, and its metadata (EXIF with GPS and camera data, XMP, IPTC, text chunks, comments, anything after the image's end) is removed before it is stored; the pixels and the colour profile are kept. PNG, JPEG and WebP are not resized. **An SVG is converted to a PNG** whose longer side is 512 px (the ratio is kept) and only that PNG is stored and served, never the SVG ([ADR 0039](../decisions/0039-svg-logos-rendered-to-png-with-resvg-wasm.md)). The converter runs no scripts and loads nothing outside the file: `<script>`, event handlers, external or local links and `<foreignObject>` draw nothing, and images embedded as `data:` URIs are drawn. No fonts are loaded, so convert text in an SVG logo to paths, or it will be missing.
+- The logo is checked by its bytes, not by its declared type, and its metadata (EXIF with GPS and camera data, XMP, IPTC, text chunks, comments, anything after the image's end) is removed before it is stored; the pixels and the colour profile are kept. PNG, JPEG and WebP are not resized. **An SVG is converted to a PNG** whose longer side is 512 px (the ratio is kept) and only that PNG is stored and served, never the SVG ([ADR 0039](../decisions/0039-svg-logos-rendered-to-png-with-resvg-wasm.md)). The converter runs no scripts and loads nothing outside the file: `<script>`, event handlers and `<foreignObject>` draw nothing. An SVG with any image in it (an `<image>` or `<feImage>` element, a `data:` URI, a link other than a local `#id`) is refused with `422`, so draw the logo as vector shapes (2026-10-18: an embedded bitmap was decoded at full size and could stall the server). No fonts are loaded, so convert text in an SVG logo to paths, or it will be missing.
 - It never deletes a group, and never adds, removes or changes members or managers (the [managers call](#managers) does members).
 - **Deactivation** (`active: false`, the same action as "Deactivate" in the app): the group's clients and requesters lose access to it at once (their accounts stay), it disappears from Help's lists, nothing new can be added to it, its pending notifications stop. Nothing is deleted. While it is deactivated the [ticket intake](#tickets) and the [managers call](#managers) for its instance answer `409 group_inactive`. `active: true` brings everything back as it was.
 

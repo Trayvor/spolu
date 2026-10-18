@@ -39,7 +39,9 @@ function payloadOf(subject: DescriptionSubject, groupId: string, actorName: stri
  * field) records `description.mention` for each person newly named, like a chat mention: only
  * the group's clients and managers (`isPickable`, the picker's list), never the actor, only
  * admins in an admins-only subject, and only those `readers` keeps (a ticket drops who cannot
- * read it). `@all` notifies nobody in a description. Call it in the write's transaction and
+ * read it). `@all` notifies nobody in a description. A person is notified once per subject
+ * (`dedupeKey`, review V10): naming them again after removing them sends nothing, until the
+ * first event is purged after 30 days. Call it in the write's transaction and
  * `requestDelivery` the returned ids after the commit.
  */
 export async function recordDescriptionMentions(
@@ -68,5 +70,8 @@ export async function recordDescriptionMentions(
     groupId: input.groupId,
     recipients,
     payload: payloadOf(input.subject, input.groupId, input.actor.name),
+    // Once per subject and person: removing a name and adding it back notifies nobody again
+    // while the first event is kept (events are purged after 30 days).
+    dedupeKey: `description:${input.subject.kind}:${input.subject.id}`,
   });
 }

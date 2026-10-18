@@ -38,7 +38,7 @@ const RETRY_SECONDS = 60;
 const AUDIO_MIME = 'audio/mp4';
 
 const MEDIA_EXTENSIONS =
-  /\.(mp3|m4a|mp4|m4v|mov|wav|webm|ogg|oga|opus|aac|flac|wma|wmv|mkv|avi|mpeg|mpg|3gp|amr)$/i;
+  /\.(mp3|m4a|mp4|m4v|mov|wav|webm|ogg|oga|opus|aac|flac|wma|wmv|mkv|avi|mpeg|mpg|3gp|amr|aif|aiff|aifc|m2ts|mts)$/i;
 
 /** `audio/*` or `video/*`, or an octet stream whose name has a media extension. */
 export function isRecordingUpload(declaredType: string | undefined, name: string): boolean {
