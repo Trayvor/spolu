@@ -154,7 +154,7 @@ export function TimeDialog({ ask, onDone }: { ask: TimeAsk; onDone: () => void }
             </fieldset>
           )}
 
-          <div className={cn('flex flex-col gap-3', covered && 'opacity-50')}>
+          <div className={cn('flex flex-col gap-3', covered && 'text-muted-foreground')}>
             <div className="flex flex-col gap-1.5">
               <label htmlFor={fieldId} className="text-micro font-semibold">
                 {t('tasks.time.duration')}
@@ -207,7 +207,7 @@ export function TimeDialog({ ask, onDone }: { ask: TimeAsk; onDone: () => void }
             </div>
             {!covered && minutes !== null && minutes > LONG_ENTRY_MINUTES && (
               <p className="flex items-center gap-2 text-button" role="status">
-                <span aria-hidden="true" className="size-2 shrink-0 rounded-full bg-attention" />
+                <span aria-hidden="true" className="size-2 shrink-0 rounded-full bg-foreground" />
                 {t('tasks.time.long')}
               </p>
             )}

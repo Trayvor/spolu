@@ -29,7 +29,7 @@ function Checkbox({
   children: ReactNode;
 }) {
   return (
-    <label className="flex min-h-9 cursor-pointer items-center gap-3 text-button max-[640px]:min-h-11">
+    <label className="flex min-h-9 cursor-pointer items-center gap-3 text-button touch:min-h-11">
       <input
         type="checkbox"
         className="size-4 shrink-0 accent-foreground"

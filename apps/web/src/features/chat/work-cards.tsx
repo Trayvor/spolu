@@ -18,7 +18,7 @@ type TaskCard = Extract<MessageAttachedTask, { available: true }>;
 type TicketCard = Extract<MessageAttachedTicket, { available: true }>;
 
 const cardClass =
-  'flex w-full max-w-sm min-w-0 items-center gap-3 rounded-lg border-2 px-3 py-2 text-left max-[640px]:min-h-11';
+  'flex w-full max-w-sm min-w-0 items-center gap-3 rounded-lg border-2 px-3 py-2 text-left touch:min-h-11';
 const openClass = `${cardClass} border-border bg-card hover:border-foreground focus-visible:border-foreground`;
 
 /** The done ring of a task card: empty, or a green circle with a check. A picture, not a control. */

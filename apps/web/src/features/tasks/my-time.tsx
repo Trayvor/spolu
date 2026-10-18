@@ -65,7 +65,7 @@ function TimeBlock({
           <span className="flex items-center gap-3">
             <span className="flex items-center gap-2 text-button tabular-nums">
               {!filled && (
-                <span aria-hidden="true" className="size-2 shrink-0 rounded-full bg-attention" />
+                <span aria-hidden="true" className="size-2 shrink-0 rounded-full bg-foreground" />
               )}
               {valueOf(mine)}
             </span>

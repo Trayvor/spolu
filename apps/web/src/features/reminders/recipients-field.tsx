@@ -61,7 +61,7 @@ export function RecipientsField({
           variant="ghost"
           size="sm"
           onClick={() => onChange([...value, ...missing])}
-          className="self-start max-[640px]:h-11"
+          className="self-start touch:h-11"
         >
           <span aria-hidden="true">+</span>
           {suggestion.label}

@@ -13,7 +13,7 @@ export function ChatsCheckbox({
 }) {
   const { t } = useTranslation();
   return (
-    <label className="inline-flex h-8 items-center gap-2 px-1 text-tiny font-semibold max-[640px]:h-11">
+    <label className="inline-flex h-8 items-center gap-2 px-1 text-tiny font-semibold touch:h-11">
       <input
         type="checkbox"
         className="size-4 accent-foreground"

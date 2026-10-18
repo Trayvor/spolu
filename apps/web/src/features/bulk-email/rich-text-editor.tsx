@@ -231,7 +231,7 @@ export function RichTextEditor({
       >
         <select
           aria-label={t('bulkEmail.rich.style')}
-          className="h-8 rounded-md bg-transparent px-2 text-tiny font-semibold hover:bg-surface-3 max-[640px]:h-11"
+          className="h-8 rounded-md bg-transparent px-2 text-tiny font-semibold hover:bg-surface-3 touch:h-11"
           value=""
           onFocus={keepSelection}
           onChange={(e) => {
@@ -295,7 +295,7 @@ export function RichTextEditor({
         <Rule />
         <select
           aria-label={t('bulkEmail.rich.color')}
-          className="h-8 rounded-md bg-transparent px-2 text-tiny font-semibold hover:bg-surface-3 max-[640px]:h-11"
+          className="h-8 rounded-md bg-transparent px-2 text-tiny font-semibold hover:bg-surface-3 touch:h-11"
           value=""
           onFocus={keepSelection}
           onChange={(e) => {

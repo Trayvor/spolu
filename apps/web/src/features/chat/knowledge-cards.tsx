@@ -40,7 +40,7 @@ export const KNOWLEDGE_ICONS: Record<string, () => React.JSX.Element> = {
 };
 
 const cardClass =
-  'flex w-full max-w-sm min-w-0 items-center gap-3 rounded-lg border-2 px-3 py-2 text-left max-[640px]:min-h-11';
+  'flex w-full max-w-sm min-w-0 items-center gap-3 rounded-lg border-2 px-3 py-2 text-left touch:min-h-11';
 
 function Card({ item, onOpen }: { item: MessageKnowledge; onOpen: () => void }) {
   const { t } = useTranslation();

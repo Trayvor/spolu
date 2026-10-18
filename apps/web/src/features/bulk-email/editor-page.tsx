@@ -55,7 +55,7 @@ function BackLink() {
         event.preventDefault();
         router.history.back();
       }}
-      className="inline-flex self-start text-tiny font-semibold hover:underline max-[640px]:min-h-11 max-[640px]:items-center"
+      className="inline-flex self-start text-tiny font-semibold hover:underline touch:min-h-11 touch:items-center"
     >
       {t('bulkEmail.editor.back')}
     </Link>

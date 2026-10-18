@@ -112,7 +112,7 @@ function MoveTo({
       aria-label={t('bulkEmail.columns.moveTo', { n, type })}
       // A narrow card (a container's column) puts it on its own line under the title.
       containerClassName="order-last w-full min-w-0 @min-[440px]:order-none @min-[440px]:w-auto @min-[440px]:max-w-[220px]"
-      className="h-8 min-w-0 py-0 text-tiny max-[640px]:h-11"
+      className="h-8 min-w-0 py-0 text-tiny touch:h-11"
       value=""
       onChange={(e) => {
         const target = places.find((p) => placeKey(p) === e.target.value);

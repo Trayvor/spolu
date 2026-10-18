@@ -60,7 +60,7 @@ export function TicketsTab({
             aria-pressed={noClient}
             onClick={() => setNoClient((on) => !on)}
             className={cn(
-              'inline-flex h-8 items-center rounded-full px-4 text-tiny font-semibold max-[640px]:min-h-11',
+              'inline-flex h-8 items-center rounded-full px-4 text-tiny font-semibold touch:min-h-11',
               noClient
                 ? 'bg-primary text-primary-foreground'
                 : 'bg-secondary text-secondary-foreground hover:bg-surface-3',

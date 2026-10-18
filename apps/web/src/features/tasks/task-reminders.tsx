@@ -179,7 +179,7 @@ export function TaskReminders({
         variant="ghost"
         size="sm"
         onClick={() => setAdding(true)}
-        className="self-start max-[640px]:h-11"
+        className="self-start touch:h-11"
       >
         <span aria-hidden="true">+</span>
         {t('reminders.row.add')}
@@ -247,7 +247,7 @@ export function TaskReminders({
               variant="ghost"
               size="sm"
               onClick={() => setEditing(added)}
-              className="max-[640px]:h-11"
+              className="touch:h-11"
             >
               {t('reminders.task.change')}
             </Button>
@@ -274,7 +274,7 @@ export function TaskReminders({
                 size="sm"
                 disabled={busy}
                 onClick={() => void save({ kind: 'recipients', ids: editing })}
-                className="max-[640px]:h-11"
+                className="touch:h-11"
               >
                 {t('reminders.task.done')}
               </Button>
@@ -283,7 +283,7 @@ export function TaskReminders({
                 variant="ghost"
                 size="sm"
                 onClick={() => setEditing(null)}
-                className="max-[640px]:h-11"
+                className="touch:h-11"
               >
                 {t('reminders.row.cancel')}
               </Button>
