@@ -9,16 +9,17 @@ import type { AppDeps } from '../../deps.js';
 import { sendEmailLater } from '../../infra/email/index.js';
 import { bearerKeyMatches } from '../../infra/http/bearer-key.js';
 import { createRateLimiter } from '../../infra/http/rate-limit.js';
-import { findUserByEmail, type UserRow } from '../users/service.js';
-import { managerAddedEmail } from './emails.js';
-import { emitManagers } from './events.js';
-import { addManager, NotAnAdminError, removeManager } from './managers.js';
+import { joinGroupRoom, leaveGroupRoom } from '../../infra/realtime/rooms.js';
+import { memberAddedEmail, memberInvitedEmail } from '../auth/emails.js';
+import { addEgrantClient, removeEgrantClient } from './egrant-clients.js';
 import { findGroupByEgrantUrl } from './service.js';
 
-/** The webhook's body is three short fields; 16 KiB is far more than enough. */
+/** The webhook's body is four short fields; 16 KiB is far more than enough. */
 const BODY_LIMIT = 16 * 1024;
 /** Calls a minute from one IP address. */
 const PER_MINUTE = 60;
+/** Who "invited" or "added" the person in the reused invite emails. */
+const ACTOR = 'eGrant';
 
 const send = (reply: FastifyReply, status: number, error: string) =>
   reply.code(status).send({ error });
@@ -27,20 +28,16 @@ const send = (reply: FastifyReply, status: number, error: string) =>
 const asUrl = (instance: string): string =>
   /^[a-z][a-z0-9+.-]*:\/\//i.test(instance) ? instance : `https://${instance}`;
 
-/**
- * May eGrant make this account a manager? Only an existing active admin or the superadmin: the
- * webhook never creates accounts or grants a role. Removing also takes a disabled admin (their
- * row would count again if they were re-enabled); never a client.
- */
-function canTarget(account: UserRow | null, active: boolean): account is UserRow {
-  if (!account || account.role === 'client') return false;
-  return !active || account.disabledAt === null;
-}
+const refusals = {
+  email_is_admin: ErrorCodes.emailIsAdmin,
+  user_disabled: ErrorCodes.userDisabled,
+} as const;
 
 /**
- * The eGrant managers webhook: eGrant adds or removes a manager of the client of one of its
- * instances (`docs/integrations/egrant-managers.md`). The shared key of the ticket intake is the
- * credential; there is no session.
+ * The eGrant managers webhook: eGrant adds or removes a manager of an organisation, who is the
+ * client's own person, so Help adds or removes a client member of that instance's client group
+ * (`docs/integrations/egrant-managers.md`). The shared key of the ticket intake is the
+ * credential; there is no session. It never touches admins or `group_managers`.
  */
 export const egrantManagersRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (
   app,
@@ -69,59 +66,59 @@ export const egrantManagersRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async
           fields: intakeFieldNames(body.error.issues),
         });
       }
-      const { instance_url, email, active } = body.data;
+      const { instance_url, email, active, name } = body.data;
       const group = await findGroupByEgrantUrl(db, asUrl(instance_url));
       if (!group) {
         request.log.info({ active }, 'egrant manager webhook: unknown instance');
         return send(reply, 404, ErrorCodes.unknownInstance);
       }
-      const account = await findUserByEmail(db, email);
-      if (!canTarget(account, active)) {
-        // No email in the log: whoever it is, they have no admin account here.
-        request.log.warn({ groupId: group.id, active }, 'egrant manager webhook: unknown admin');
-        return send(reply, 422, ErrorCodes.unknownAdmin);
-      }
 
-      let result: Awaited<ReturnType<typeof addManager>>;
-      try {
-        result = await (active ? addManager : removeManager)(db, group.id, account.id);
-      } catch (error) {
-        // Disabled or demoted between the lookup and the change.
-        if (error instanceof NotAnAdminError) return send(reply, 422, ErrorCodes.unknownAdmin);
-        throw error;
+      const change = active
+        ? await addEgrantClient(db, group.id, { email, name: name ?? null })
+        : await removeEgrantClient(db, group.id, email);
+      if (change.refused) {
+        // No email in the log.
+        request.log.warn(
+          { groupId: group.id, active, reason: change.refused },
+          'egrant manager webhook: refused',
+        );
+        return send(reply, 422, refusals[change.refused]);
       }
-      const { changed, managers } = result;
-      const state: EgrantManagerResponse['state'] = !changed
-        ? 'unchanged'
-        : active
-          ? 'added'
-          : 'removed';
+      const { state, account } = change;
       request.log.info(
-        { groupId: group.id, userId: account.id, state },
+        { groupId: group.id, userId: account?.id ?? null, state },
         'egrant manager webhook: done',
       );
-      if (changed) emitManagers(app.io, { groupId: group.id, managers });
-      if (state === 'removed' && managers.length === 0) {
-        request.log.warn(
-          { groupId: group.id },
-          'egrant manager webhook: the client has no manager now',
-        );
-      }
-      if (state === 'added') {
+
+      if (account && state === 'removed') leaveGroupRoom(app.io, account.id, group.id);
+      if (account && (state === 'added' || state === 'created')) {
+        joinGroupRoom(app.io, account.id, group.id);
+        // The membership is committed; a failed email must not turn this into an error.
         try {
+          const to = { to: account.email, lang: account.language, publicUrl: config.publicUrl };
           await sendEmailLater(
             jobs,
-            managerAddedEmail(
-              { to: account.email, lang: account.language, publicUrl: config.publicUrl },
-              { groupName: group.name, groupUrl: `${config.publicUrl}/groups/${group.id}` },
-            ),
+            account.emailVerified
+              ? memberAddedEmail(to, {
+                  groupName: group.name,
+                  addedBy: ACTOR,
+                  groupUrl: `${config.publicUrl}/groups/${group.id}`,
+                })
+              : memberInvitedEmail(to, {
+                  groupName: group.name,
+                  invitedBy: ACTOR,
+                  loginUrl: `${config.publicUrl}/login?email=${encodeURIComponent(account.email)}`,
+                }),
           );
         } catch (error) {
-          // The manager stays added; only the email is lost.
-          request.log.error({ err: error, groupId: group.id }, 'manager added email failed');
+          request.log.error({ err: error, groupId: group.id }, 'egrant member email failed');
         }
       }
-      const answer: EgrantManagerResponse = { state, group_id: group.id, user_id: account.id };
+      const answer: EgrantManagerResponse = {
+        state,
+        group_id: group.id,
+        user_id: account?.id ?? null,
+      };
       return reply.code(200).send(answer);
     },
   );

@@ -85,14 +85,6 @@ export const uk: ServerTexts = {
       button: 'Відкрити тікет',
     },
   },
-  groups: {
-    managerAdded: {
-      subject: (g) => `Тепер ви менеджер клієнта ${g}`,
-      body: (g) =>
-        `eGrant призначив вас менеджером клієнта ${g} у Help by eGrant. Ви отримуватимете сповіщення про всі його повідомлення, доки не зміните це дзвіночком.`,
-      button: 'Відкрити клієнта',
-    },
-  },
   notifications: {
     sentFile: (name) => `${name} надіслав(-ла) файл`,
     moved: (label) => `Переміщено до стовпця «${label}»`,

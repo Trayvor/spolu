@@ -85,14 +85,6 @@ export const et: ServerTexts = {
       button: 'Ava pöördumine',
     },
   },
-  groups: {
-    managerAdded: {
-      subject: (g) => `Olete nüüd kliendi ${g} haldur`,
-      body: (g) =>
-        `eGrant määras teid rakenduses Help by eGrant kliendi ${g} halduriks. Saate teavitusi kõigist selle sõnumitest, kuni muudate seda kellukesega.`,
-      button: 'Ava klient',
-    },
-  },
   notifications: {
     sentFile: (name) => `${name} saatis faili`,
     moved: (label) => `Teisaldatud veergu ${label}`,

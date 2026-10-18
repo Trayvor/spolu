@@ -66,7 +66,9 @@ After a bucket is deleted its tasks moved to To do without a `board:task` event;
 
 ## Group events
 
-`group:managers` (`GroupEvents.managers`, payload `GroupManagersEvent` = `{ groupId, managers: { id, name }[] }`, the group's full current active manager list by name) is pushed by `emitManagers` (`modules/groups/events.ts`) to `group:<id>` and `admins` in one `io.to([...]).emit`, so a socket in both gets it once. It is sent after `PUT` or `DELETE /api/groups/:id/managers/me` or `/managers/:userId` or eGrant's `PUT /api/egrant/managers` commits, only when the call changed something (an unchanged call pushes nothing). The client replaces the list.
+`group:managers` (`GroupEvents.managers`, payload `GroupManagersEvent` = `{ groupId, managers: { id, name }[] }`, the group's full current active manager list by name) is pushed by `emitManagers` (`modules/groups/events.ts`) to `group:<id>` and `admins` in one `io.to([...]).emit`, so a socket in both gets it once. It is sent after `PUT` or `DELETE /api/groups/:id/managers/me` or `/managers/:userId` commits, only when the call changed something (an unchanged call pushes nothing). The client replaces the list.
+
+eGrant's managers webhook (`PUT /api/egrant/managers`) adds and removes client members, not managers, so it pushes no `group:managers`. Like an admin's "+ Add member", an added member's open sockets join `group:<id>` (`joinGroupRoom`); a removed one's leave it (`leaveGroupRoom`; never disconnected, since the account stays active).
 
 ## Admin activity
 

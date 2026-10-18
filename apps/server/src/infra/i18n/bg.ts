@@ -85,14 +85,6 @@ export const bg: ServerTexts = {
       button: 'Отвори тикета',
     },
   },
-  groups: {
-    managerAdded: {
-      subject: (g) => `Вече сте мениджър на клиента ${g}`,
-      body: (g) =>
-        `eGrant ви определи за мениджър на клиента ${g} в Help by eGrant. Ще получавате известия за всичките му съобщения, докато не промените това със звънчето.`,
-      button: 'Отвори клиента',
-    },
-  },
   notifications: {
     sentFile: (name) => `${name} изпрати файл`,
     moved: (label) => `Преместена в ${label}`,

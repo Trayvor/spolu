@@ -96,14 +96,6 @@ export type ServerTexts = {
       button: string;
     };
   };
-  groups: {
-    /** eGrant's managers webhook made an admin a manager of a client; `g` is the client's name. */
-    managerAdded: {
-      subject(g: string): string;
-      body(g: string): string;
-      button: string;
-    };
-  };
   notifications: {
     sentFile(name: string): string;
     moved(label: string): string;
