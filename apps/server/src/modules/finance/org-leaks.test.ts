@@ -295,6 +295,9 @@ describe('finance leak guarantees (Phase 32 E)', () => {
       .set({ at: sql`now() - interval '1 minute'` })
       .where(eq(reminderTimes.setId, set!.id))
       .returning({ id: reminderTimes.id });
+    // Settle what earlier tests left pending (their delivery jobs run in the background), while no
+    // device is subscribed: otherwise a late job pushes it to the new device and the count is off.
+    await deliverPending(test.deps, { userIds: [fin.id, fin2.id] });
     const endpoints: Record<string, string> = {};
     for (const who of [fin, fin2]) {
       endpoints[who.id] = `https://push.example.test/${randomUUID()}`;
