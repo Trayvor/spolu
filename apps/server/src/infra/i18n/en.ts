@@ -149,6 +149,10 @@ export const en: ServerTexts = {
     mentionedInDescription: (name) => `${name} mentioned you in the description`,
     openKnowledge: 'Open item',
     openProject: 'Open project',
+    actionDone: 'Done',
+    actionLogTime: 'Log time',
+    actionReply: 'Reply',
+    replyPlaceholder: 'Write a reply…',
   },
   teams: {
     recordingNotice: 'This call will be recorded and transcribed.',

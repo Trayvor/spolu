@@ -429,6 +429,31 @@ describe('Conversation', () => {
     expect(opener).toHaveFocus();
   });
 
+  it('&reply=1 (the push button "Reply", N6a) focuses the composer and leaves the URL', async () => {
+    const { container, router } = renderAt('/groups/g1/chat?message=m2&c=c1&reply=1');
+    await screen.findByText('text of m2');
+    const field = await waitFor(() => {
+      const box = container.querySelector<HTMLElement>('[data-chat="c1"] [role="textbox"]');
+      expect(box).not.toBeNull();
+      return box!;
+    });
+    await waitFor(() => expect(field).toHaveFocus());
+    expect(router.state.location.search).not.toHaveProperty('reply');
+  });
+
+  it('&reply=1 with an open thread focuses the reply composer, not the heading', async () => {
+    const { router } = renderAt('/groups/g1/chat?thread=m2&c=c1&reply=1');
+    const thread = await panel();
+    await waitFor(() => expect(within(thread).getByRole('textbox')).toHaveFocus());
+    expect(router.state.location.search).toEqual({ thread: 'm2', c: 'c1' });
+  });
+
+  it('&reply=1 of another chat is not ours', async () => {
+    const { router } = renderAt('/groups/g1/chat?message=m1&c=c2&reply=1');
+    await screen.findByText('text of m3');
+    expect(router.state.location.search).toMatchObject({ reply: 1 });
+  });
+
   it('below 1024 px the open thread makes the list inert and the chat is not marked read', async () => {
     vi.stubGlobal('matchMedia', (query: string) => ({
       matches: false,

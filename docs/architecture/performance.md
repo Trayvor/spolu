@@ -43,6 +43,8 @@ The initial JS that the browser downloads before showing the first screen: **200
 
 Enforced CSP (measured 2026-10-18 on `sec/csp-enforce`, same method): initial JS 139.66 kB gzip, +0.05 kB over `origin/main`'s 139.61 kB: `lib/zod-jitless.ts`, which sets zod's `jitless` on `globalThis.__zod_globalConfig` without importing zod (importing `config` from `zod/v4/core` would have cost 3.7 kB). Under `jitless` zod parses objects without its `new Function` fast path, which the CSP forbids anyway; server-side zod keeps it.
 
+Push buttons (N6a, measured 2026-10-18 on `feat/push-actions`, same method): initial JS 140.91 kB gzip, unchanged by this branch: the `&reply=1` focus is in the lazy `conversation` chunk (no eager script holds it), and the buttons are the service worker's own static `push-actions.js` (4.4 kB, not in the page). Server: `POST /api/tasks/:id/done` adds one bucket list of the group (`buckets` by `group_id`) to the move's queries.
+
 UX accessibility leftovers (measured 2026-10-18 on `ux/a11y-leftovers`, same method): initial JS 139.74 kB gzip, about +0.1 kB over the 139.60 kB of batch 8 (the `useFocusOnRouteChange` hook in the shell; the `touch:` variant is CSS only).
 
 UX batch 9 rest, contrast and touch targets (2026-10-18, `ux/a11y-batch9-rest`): class names only (28 files move `max-[640px]:h-11` / `min-h-11` to `touch:`, three dots and one chip change colour), no JS added; the initial JS is unchanged by construction (139.32 kB at the last measurement).

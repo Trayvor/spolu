@@ -157,6 +157,10 @@ export const cs: ServerTexts = {
     mentionedInDescription: (name) => `${name} vás zmínil(a) v popisu`,
     openKnowledge: 'Otevřít položku',
     openProject: 'Otevřít projekt',
+    actionDone: 'Hotovo',
+    actionLogTime: 'Zapsat čas',
+    actionReply: 'Odpovědět',
+    replyPlaceholder: 'Napište odpověď…',
   },
   teams: {
     recordingNotice: 'Tento hovor bude nahráván a přepisován.',

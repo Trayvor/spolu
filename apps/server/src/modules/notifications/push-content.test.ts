@@ -154,6 +154,7 @@ describe('buildPushPayload reminder', () => {
         url: '/groups/g1/tasks/t1',
         tag: 'task:t1',
         renotify: true,
+        actions: [{ action: 'done', title: 'Done', taskId: 't1' }],
       });
       // Without the current title, the one recorded with the event.
       expect(buildPushPayload({ ...t, now: onTime }).title).toBe('Old title · Firma');
@@ -177,6 +178,16 @@ describe('buildPushPayload chat', () => {
       body: 'Jana: Ahoj',
       url: '/groups/g1/chat?message=m1',
       tag: 'chat:c1',
+      actions: [
+        {
+          action: 'reply',
+          title: 'Odpovedať',
+          placeholder: 'Napíšte odpoveď…',
+          channelId: 'c1',
+          parentId: null,
+          url: '/groups/g1/chat?message=m1&c=c1&reply=1',
+        },
+      ],
     });
   });
   it('mention reads like a message', () => {
@@ -661,6 +672,124 @@ describe('buildPushPayload description.mention (F16)', () => {
       expect(texts(lang).mentionedInDescription('Jana')).toContain('Jana');
       expect(texts(lang).openKnowledge).not.toBe('');
       expect(texts(lang).openProject).not.toBe('');
+    }
+  });
+});
+
+describe('push actions (N6a, ADR 0047)', () => {
+  const ticket = { ticketId: 'k1', number: 7, subject: 'Login fails', groupId: 'g1' };
+  const push = (
+    kind: NotificationKind,
+    payload: Record<string, unknown> = task,
+    extra: Partial<Parameters<typeof buildPushPayload>[0]> = {},
+  ) => buildPushPayload({ ...base, kind, payload, taskTitle: 'Report', lang: 'en', ...extra });
+  const done = { action: 'done', title: 'Done', taskId: 't1' };
+
+  it('"Done" on the pushes about an open task addressed to the person', () => {
+    for (const kind of [
+      'task.assigned',
+      'task.deadline',
+      'task.urgent',
+      'task.overdue',
+      'task.due_changed',
+    ] as const) {
+      expect(push(kind, { ...task, daysLeft: 1, dueDate: '2026-10-17' }).actions).toEqual([done]);
+    }
+    const reminder = { subjectKind: 'task', subjectId: 't1', taskId: 't1', groupId: 'g1', at: '' };
+    expect(push('reminder.due', reminder).actions).toEqual([done]);
+    expect(push('task.urgent', task, { lang: 'sk' }).actions).toEqual([
+      { ...done, title: 'Hotovo' },
+    ]);
+  });
+
+  it('"Log time" on the time requests: it opens the time dialog', () => {
+    expect(push('task.time_missing').actions).toEqual([
+      { action: 'time', title: 'Log time', url: '/groups/g1/tasks/t1?time=1' },
+    ]);
+    const request = { ticketId: 'k1', groupId: 'g1', number: 7, title: 'Login fails' };
+    expect(push('ticket.time_missing', request, { lang: 'sk' }).actions).toEqual([
+      { action: 'time', title: 'Zapísať čas', url: '/tickets/k1?time=1' },
+    ]);
+  });
+
+  it('"Reply" on group chat messages and mentions: the channel, top level, and the composer', () => {
+    const reply = {
+      action: 'reply',
+      title: 'Reply',
+      placeholder: 'Write a reply…',
+      channelId: 'c1',
+      parentId: null,
+      url: '/groups/g1/chat?message=m1&c=c1&reply=1',
+    };
+    expect(push('chat.message', chat).actions).toEqual([reply]);
+    expect(push('chat.mention', chat).actions).toEqual([reply]);
+  });
+
+  it('"Reply" in a thread answers in the thread; in a task chat it opens the task chat', () => {
+    expect(push('chat.thread_reply', chat, { parentId: 'r1' }).actions).toMatchObject([
+      {
+        action: 'reply',
+        channelId: 'c1',
+        parentId: 'r1',
+        url: '/groups/g1/chat?thread=r1&message=m1&c=c1&reply=1',
+      },
+    ]);
+    expect(push('chat.message', { ...chat, taskId: 't1' }).actions).toMatchObject([
+      {
+        action: 'reply',
+        channelId: 'c1',
+        parentId: null,
+        url: '/groups/g1/tasks/t1?tab=chat&message=m1&c=c1&reply=1',
+      },
+    ]);
+  });
+
+  it('"Reply" on a ticket chat message or mention opens the ticket chat', () => {
+    const message = { ...ticket, channelId: 'c9', messageId: 'm9', authorName: 'J', excerpt: 'x' };
+    for (const kind of ['ticket.message', 'chat.mention'] as const) {
+      expect(push(kind, message, { lang: 'sk' }).actions).toEqual([
+        {
+          action: 'reply',
+          title: 'Odpovedať',
+          placeholder: 'Napíšte odpoveď…',
+          channelId: 'c9',
+          parentId: null,
+          url: '/tickets/k1?message=m9&c=c9&reply=1',
+        },
+      ]);
+    }
+  });
+
+  it('no action where none fits, and never on finance or meeting pushes', () => {
+    expect(
+      push('task.moved', { ...task, toBucket: { kind: 'done', name: null } }).actions,
+    ).toBeUndefined();
+    for (const kind of [
+      'ticket.created',
+      'ticket.status',
+      'ticket.resolved',
+      'ticket.assigned',
+    ] as const) {
+      expect(push(kind, { ...ticket, status: 'in_progress' }).actions).toBeUndefined();
+    }
+    const finance = { subjectKind: 'finance', subjectId: 'f1', groupId: 'g1', title: 'C', at: '' };
+    expect(push('reminder.due', finance).actions).toBeUndefined();
+    const knowledge = { subjectKind: 'knowledge', subjectId: 'k1', groupId: 'g1', at: '' };
+    expect(push('reminder.due', knowledge).actions).toBeUndefined();
+    expect(
+      push('meeting.scheduled', { itemId: 'i1', groupId: 'g1', title: 'M' }).actions,
+    ).toBeUndefined();
+    // A chat event without its channel (an old event) gets no reply.
+    expect(push('chat.message', { ...chat, channelId: undefined }).actions).toBeUndefined();
+  });
+
+  it('every language names the actions', () => {
+    for (const lang of UserLanguages) {
+      const t = texts(lang);
+      for (const text of [t.actionDone, t.actionLogTime, t.actionReply, t.replyPlaceholder]) {
+        expect(text.trim()).not.toBe('');
+        expect(text.length).toBeLessThanOrEqual(24);
+      }
     }
   });
 });

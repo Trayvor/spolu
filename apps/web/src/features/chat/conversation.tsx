@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useSession } from '@/features/auth/use-session';
 import { useMediaQuery } from '@/lib/use-media-query';
 import { ChatScopeProvider, chatPeopleQuery, type ChatScope } from './chat-scope';
-import { Composer } from './composer';
+import { Composer, type ComposerHandle } from './composer';
 import type { MessageAction } from './message-item';
 import { MessageList } from './message-list';
 import { HIGHLIGHT_MS, ThreadPanel } from './thread-panel';
@@ -36,6 +36,8 @@ export interface ConversationProps {
 }
 
 const GROUP_SCOPE: ChatScope = {};
+/** The chat's own composer, as a focus target (a thread's is its root id). */
+const MAIN = '';
 
 /**
  * One chat: the message list, its composer and the thread panel (right side, 400 px, from 1024 px;
@@ -62,7 +64,29 @@ export function Conversation({
   const { t } = useTranslation();
   const meId = useSession()?.id ?? '';
   const search = useChatSearch(channelId);
-  const { message: linked, thread: threadId, clearMessage, setThread } = search;
+  const { message: linked, thread: threadId, reply, clearMessage, clearReply, setThread } = search;
+  const composer = useRef<ComposerHandle>(null);
+  // N6a: `&reply=1` focuses the composer of the open thread, else the chat's. The field may still
+  // be loading (its own chunk), so the chosen composer also gets `autoFocus`; a thread opened
+  // later starts at its heading again.
+  const place = threadId ?? MAIN;
+  const [focusTarget, setFocusTarget] = useState<string | null>(() => (reply ? place : null));
+  // Adjusted while rendering (not in an effect): the param's arrival picks the target, and moving
+  // to another thread (or out of it) drops it.
+  const [replySeen, setReplySeen] = useState(reply);
+  if (reply !== replySeen) {
+    setReplySeen(reply);
+    if (reply) setFocusTarget(place);
+  } else if (focusTarget !== null && focusTarget !== place) {
+    setFocusTarget(null);
+  }
+  useEffect(() => {
+    if (!reply) return;
+    if (place === MAIN) composer.current?.focus();
+    clearReply();
+    // Once per arrival of the param.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reply]);
   const peopleChannelId = scope.peopleChannelId;
   const peopleKey = useMemo(
     () => chatPeopleQuery({ peopleChannelId }, groupId).queryKey,
@@ -190,6 +214,8 @@ export function Conversation({
           <div className="shrink-0 px-4 pb-4">
             {/* The only composer that takes dropped files on the chat column. */}
             <Composer
+              ref={composer}
+              autoFocus={focusTarget === MAIN}
               mode="new"
               groupId={groupId}
               channelId={channelId}
@@ -213,6 +239,7 @@ export function Conversation({
             messageActions={messageActions}
             renderMessageFooter={renderMessageFooter}
             over={over}
+            focusComposer={focusTarget === threadId}
             onClose={closeThread}
           />
         )}

@@ -152,6 +152,10 @@ export const et: ServerTexts = {
     mentionedInDescription: (name) => `${name} mainis sind kirjelduses`,
     openKnowledge: 'Ava kirje',
     openProject: 'Ava projekt',
+    actionDone: 'Valmis',
+    actionLogTime: 'Sisesta aeg',
+    actionReply: 'Vasta',
+    replyPlaceholder: 'Kirjutage vastus…',
   },
   teams: {
     recordingNotice: 'See kõne salvestatakse ja transkribeeritakse.',

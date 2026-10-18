@@ -152,6 +152,10 @@ export const hr: ServerTexts = {
     mentionedInDescription: (name) => `${name} vas je spomenuo/la u opisu`,
     openKnowledge: 'Otvori stavku',
     openProject: 'Otvori projekt',
+    actionDone: 'Gotovo',
+    actionLogTime: 'Upiši vrijeme',
+    actionReply: 'Odgovori',
+    replyPlaceholder: 'Napišite odgovor…',
   },
   teams: {
     recordingNotice: 'Ovaj poziv bit će snimljen i transkribiran.',

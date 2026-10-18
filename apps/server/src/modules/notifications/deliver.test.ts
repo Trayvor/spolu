@@ -426,6 +426,17 @@ describe('deliverPending', () => {
       body: 'Admin: Hotovo?',
       url: `/groups/${s.group.id}/tasks/${task.id}?tab=chat&message=${m.id}&c=${taskChannel.id}`,
       tag: `chat:${taskChannel.id}`,
+      // N6a: "Reply" answers in the task chat, or opens it with the composer focused.
+      actions: [
+        {
+          action: 'reply',
+          title: 'Odpovedať',
+          placeholder: 'Napíšte odpoveď…',
+          channelId: taskChannel.id,
+          parentId: null,
+          url: `/groups/${s.group.id}/tasks/${task.id}?tab=chat&message=${m.id}&c=${taskChannel.id}&reply=1`,
+        },
+      ],
     });
   });
 

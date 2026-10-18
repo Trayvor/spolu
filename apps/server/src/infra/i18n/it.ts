@@ -155,6 +155,10 @@ export const it: ServerTexts = {
     mentionedInDescription: (name) => `${name} ha fatto riferimento a Lei nella descrizione`,
     openKnowledge: 'Apri elemento',
     openProject: 'Apri progetto',
+    actionDone: 'Fatto',
+    actionLogTime: 'Registra tempo',
+    actionReply: 'Rispondi',
+    replyPlaceholder: 'Scrivi una risposta…',
   },
   teams: {
     recordingNotice: 'Questa chiamata sarà registrata e trascritta.',

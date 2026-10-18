@@ -150,6 +150,10 @@ export const bg: ServerTexts = {
     mentionedInDescription: (name) => `${name} ви спомена в описанието`,
     openKnowledge: 'Отвори елемента',
     openProject: 'Отвори проекта',
+    actionDone: 'Готово',
+    actionLogTime: 'Запиши време',
+    actionReply: 'Отговори',
+    replyPlaceholder: 'Напишете отговор…',
   },
   teams: {
     recordingNotice: 'Този разговор ще бъде записан и транскрибиран.',

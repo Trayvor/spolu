@@ -157,6 +157,10 @@ export const sl: ServerTexts = {
     mentionedInDescription: (name) => `Oseba ${name} vas je omenila v opisu`,
     openKnowledge: 'Odpri element',
     openProject: 'Odpri projekt',
+    actionDone: 'Opravljeno',
+    actionLogTime: 'Vpiši čas',
+    actionReply: 'Odgovori',
+    replyPlaceholder: 'Napišite odgovor…',
   },
   teams: {
     recordingNotice: 'Ta klic bo posnet in prepisan.',

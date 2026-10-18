@@ -150,6 +150,10 @@ export const sk: ServerTexts = {
     mentionedInDescription: (name) => `${name} vás spomenul(a) v popise`,
     openKnowledge: 'Otvoriť položku',
     openProject: 'Otvoriť projekt',
+    actionDone: 'Hotovo',
+    actionLogTime: 'Zapísať čas',
+    actionReply: 'Odpovedať',
+    replyPlaceholder: 'Napíšte odpoveď…',
   },
   teams: {
     recordingNotice: 'Tento hovor bude nahrávaný a prepisovaný.',

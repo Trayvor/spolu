@@ -120,6 +120,8 @@ export interface ComposerProps {
    * tools, voice input), which read and replace the draft through the `ref` handle.
    */
   extraActions?: ReactNode;
+  /** Focus the field once it is there (edit mode always does; N6a's `?reply=1` asks for it). */
+  autoFocus?: boolean;
 }
 
 type Upload = {
@@ -153,6 +155,7 @@ export function Composer({
   onSubmit,
   onCancel,
   extraActions,
+  autoFocus = false,
 }: ComposerProps) {
   const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
@@ -528,7 +531,7 @@ export function Composer({
                 pickerOpen ? `${listId}-mentions` : snippetsOpen ? `${listId}-snippets` : undefined
               }
               ariaActiveDescendant={pickerOpen || snippetsOpen ? activeOption : undefined}
-              autoFocus={mode === 'edit'}
+              autoFocus={mode === 'edit' || autoFocus}
               onEnter={onEnter}
               onKeyDown={(e) => handlers.current.onKeyDown(e)}
               onPasteFiles={

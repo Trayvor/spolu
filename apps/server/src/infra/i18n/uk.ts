@@ -157,6 +157,10 @@ export const uk: ServerTexts = {
     mentionedInDescription: (name) => `${name} згадав(ла) вас в описі`,
     openKnowledge: 'Відкрити елемент',
     openProject: 'Відкрити проєкт',
+    actionDone: 'Готово',
+    actionLogTime: 'Записати час',
+    actionReply: 'Відповісти',
+    replyPlaceholder: 'Напишіть відповідь…',
   },
   teams: {
     recordingNotice: 'Цей дзвінок буде записано й транскрибовано.',

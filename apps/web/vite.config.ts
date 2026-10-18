@@ -17,8 +17,9 @@ export default defineConfig({
       includeAssets: ['brand/favicon.svg', 'brand/egrant-logo.svg', 'fonts/*.woff2'],
       manifest: pwaManifest,
       workbox: {
-        // Push and notification-click handlers live in public/push-sw.js, outside the generated worker.
-        importScripts: ['/push-sw.js'],
+        // Push and notification-click handlers live in public/push-sw.js, outside the generated
+        // worker; the notification buttons (N6a, ADR 0047) in public/push-actions.js, loaded first.
+        importScripts: ['/push-actions.js', '/push-sw.js'],
         globPatterns: ['**/*.{js,css,html}'],
         // The seven lazy languages' texts are cached on first use, not precached (see
         // pwa-precache.ts). Hashed names never change content, so the cache never goes stale.
