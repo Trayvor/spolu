@@ -64,6 +64,7 @@ One-time setup: `pnpm install`, `cp .env.example .env`, `pnpm exec playwright in
 - **Plain `git` blocked by a hook:** use `/usr/bin/git`.
 - **Migrations:** check the latest number on `origin/main` (`apps/server/src/infra/db/migrations/`) before generating. After a rebase brings in the same number, delete yours (SQL, `meta/` snapshot, journal entry) and run `db:generate` again.
 - **Locales:** after a rebase, every new key must exist in all nine languages (the locale tests fail otherwise).
+- **Leftover worktrees:** once your branch is pushed and its PR merged (or superseded by a rebased push), remove your worktree: `/usr/bin/git worktree remove <path>` (never `--force`: a refusal means uncommitted work, look first), then `git worktree prune`. Keep only the main checkout and the CI/deploy worktrees. Not while a `ci.sh` runs: mass removal slows the disk.
 - **Leftover databases** (aborted runs, old branches) slow Postgres down; drop them with `docker exec spolu-postgres-1 psql -U spolu -d postgres -c "drop database if exists <name>"` (there is no local `psql`).
 - RTK rewrites command output, Vitest's too; `rtk proxy <cmd>` gives the raw output.
 
