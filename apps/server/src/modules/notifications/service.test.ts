@@ -53,8 +53,8 @@ describe('recordNotifications', () => {
         groupId: group.id,
         payload: { messageId: 'm1' },
       });
-      // Neither can get a push or an email: recorded as delivered (see the pending-state test).
-      expect(row.deliveredAt).toBeInstanceOf(Date);
+      // N7 (2026-10-18): undecided even without a device; delivery holds it (see deliver).
+      expect(row.deliveredAt).toBeNull();
     }
   });
 
@@ -131,16 +131,16 @@ describe('recordNotifications pending state', () => {
     return rows[0]!.deliveredAt === null;
   };
 
-  it('the default push with a device waits; without a device it is delivered at once', async () => {
+  it('the default push waits, with a device or without one (N7: delivery holds it)', async () => {
     expect(await pending('chat.message', { messageId: 'm' }, {})).toBe(true);
-    expect(await pending('chat.message', { messageId: 'm' }, {}, { device: false })).toBe(false);
+    expect(await pending('chat.message', { messageId: 'm' }, {}, { device: false })).toBe(true);
   });
 
   it('follows the channel of the event group', async () => {
     expect(await pending('task.moved', {}, { chat: 'none' })).toBe(true);
     expect(await pending('task.moved', {}, { tasks: 'email' }, { device: false })).toBe(true);
     expect(await pending('task.moved', {}, { tasks: 'both' }, { device: false })).toBe(true);
-    expect(await pending('task.moved', {}, { tasks: 'push' }, { device: false })).toBe(false);
+    expect(await pending('task.moved', {}, { tasks: 'push' }, { device: false })).toBe(true);
     // A task chat message belongs to the task board.
     expect(await pending('chat.message', { taskId: 't1' }, { chat: 'none' })).toBe(true);
   });

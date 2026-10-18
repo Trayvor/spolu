@@ -1,0 +1,23 @@
+{
+  "bell": {
+    "label": "Notifiche",
+    "labelUnread": "Notifiche, non lette: {{count}}"
+  },
+  "title": "Notifiche",
+  "markAll": "Segna tutte come lette",
+  "loading": "Caricamento…",
+  "empty": "Qui non c’è ancora nulla. Quando qualcuno La menziona, Le assegna un’attività o arriva un ticket, lo vedrà qui.",
+  "more": "Carica le precedenti",
+  "today": "Oggi",
+  "yesterday": "Ieri",
+  "unread": "non letta",
+  "settings": "Impostazioni delle notifiche",
+  "snooze": {
+    "title": "Notifiche push",
+    "hour": "Silenzia per 1 ora",
+    "tomorrow": "Silenzia fino a domani (8:00)",
+    "week": "Silenzia per una settimana",
+    "until": "Le notifiche push sono silenziate fino a {{time}}. L’elenco e le email continuano.",
+    "end": "Annulla il silenzio"
+  }
+}

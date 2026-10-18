@@ -64,6 +64,32 @@
       "both": "E-pošta i push",
       "none": "Nijedno"
     },
-    "emailNote": "E-poruka je sažetak onoga što još niste pročitali, najviše jednom u 10 minuta."
+    "emailNote": "E-poruka je sažetak onoga što još niste pročitali, najviše jednom u 10 minuta.",
+    "channelsTitle": "Kako stižu obavijesti",
+    "back": "Postavke",
+    "summary": "Kanali, ovaj uređaj te za svakog klijenta način i novi tiketi, sve na jednom mjestu.",
+    "open": "Postavi obavijesti",
+    "allOff": "Sve su vam obavijesti isključene. Odaberite kanal za ono o čemu želite znati.",
+    "pushUnused": "Nijedna grupa obavijesti sada ne koristi push.",
+    "clients": {
+      "title": {
+        "admin": "Klijenti",
+        "client": "Vaše grupe"
+      },
+      "hint": "Način određuje koje vam poruke i promjene zadataka stižu. Novi tiketi: obavijest o svakom novom tiketu klijenta i njegovim novostima dok nema rješavatelja.",
+      "search": "Traži klijenta",
+      "managed": "Klijenti kojima ste menadžer",
+      "others": "Ostali klijenti",
+      "client": "Klijent",
+      "mode": "Način",
+      "tickets": "Novi tiketi",
+      "ticketsFor": "Novi tiketi klijenta {{name}}: obavještavaj me",
+      "none": "Nijedan klijent ne odgovara pretrazi.",
+      "empty": {
+        "admin": "Još nema klijenata.",
+        "client": "Još niste ni u jednoj grupi."
+      },
+      "more": "Prikaži više"
+    }
   }
 }

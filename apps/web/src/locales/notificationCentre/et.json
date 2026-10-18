@@ -1,0 +1,23 @@
+{
+  "bell": {
+    "label": "Teavitused",
+    "labelUnread": "Teavitused, lugemata: {{count}}"
+  },
+  "title": "Teavitused",
+  "markAll": "Märgi kõik loetuks",
+  "loading": "Laadimine…",
+  "empty": "Siin pole veel midagi. Kui keegi teid mainib, teile ülesande määrab või saabub pöördumine, näete seda siin.",
+  "more": "Laadi vanemad",
+  "today": "Täna",
+  "yesterday": "Eile",
+  "unread": "lugemata",
+  "settings": "Teavituste seaded",
+  "snooze": {
+    "title": "Tõuketeavitused",
+    "hour": "Vaigista 1 tunniks",
+    "tomorrow": "Vaigista homseni (8.00)",
+    "week": "Vaigista nädalaks",
+    "until": "Tõuketeavitused on vaigistatud kuni {{time}}. Loend ja e-kirjad jätkuvad.",
+    "end": "Lõpeta vaigistus"
+  }
+}

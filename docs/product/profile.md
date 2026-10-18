@@ -6,13 +6,13 @@ The user profile holds name, avatar and language, the notification channel setti
 
 - Profile fields: name, avatar, language.
 - Optional **password** as an alternative to code login (see `auth.md`).
-- Notification channels are set in the profile (see `notifications.md`).
+- Notification channels, modes per client and new tickets are set on `/settings/notifications`, linked from the profile (see `notifications.md`).
 - Message search within a group.
 - Example of done: the system is ready for the team's full move from Teams.
 
 ## Phase 6: name, email and language
 
-The profile on `/settings` (Phase 6) lets each user change only their own data. Every signed-in user reaches it from the account menu (the initials in the header): "Settings", above "Log out". The page has three sections, in this order: **Profile** (name, email and "Receive mailings"), **Notifications** (this device's push state and a channel per notification group, see `notifications.md`) and **System status**.
+The profile on `/settings` (Phase 6) lets each user change only their own data. Every signed-in user reaches it from the account menu (the initials in the header): "Settings", above "Log out". The page has three sections, in this order: **Profile** (name, email and "Receive mailings"), **Notifications** (one line on what the notifications screen holds and "Set up notifications", a link to `/settings/notifications`, see `notifications.md`; since 2026-10-18, UX review X7, the device state and the channels live there) and **System status**.
 
 - **Name**: saved with "Save" (`PATCH /api/me`); "Saved" appears under the field. An empty name is refused in the page.
 - **Email**: shows the current address with "Change", which opens the steps below inline under it ("We sent a code to …", then "Your email address is now …"). Errors appear under the field and keep the step: "The code is wrong or has expired" (`invalid_code`), "This address belongs to another account" (`email_taken`). On success the page's session is refreshed.

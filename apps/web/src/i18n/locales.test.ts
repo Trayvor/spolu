@@ -37,6 +37,7 @@ const NAMESPACES = [
   'knowledge',
   'login',
   'mcp',
+  'notificationCentre',
   'notifications',
   'openInClaude',
   'passkeys',

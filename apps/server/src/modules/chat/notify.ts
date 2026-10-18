@@ -49,3 +49,23 @@ export async function unreadForNotify(
   }
   return result;
 }
+
+/**
+ * The thread root of each of the given messages that still exist (not deleted), for the
+ * notification centre's links; a deleted or unknown message is absent. One primary-key query.
+ */
+export async function liveMessageParents(
+  db: Db,
+  messageIds: string[],
+): Promise<Map<string, string | null>> {
+  const ids = [...new Set(messageIds)];
+  if (ids.length === 0) return new Map();
+  const rows = await db.execute<{ id: string; parent_id: string | null }>(sql`
+    select m.id, m.parent_id from messages m
+    where m.id in (${sql.join(
+      ids.map((id) => sql`${id}`),
+      sql`, `,
+    )}) and m.deleted_at is null
+  `);
+  return new Map([...rows].map((r) => [r.id, r.parent_id]));
+}

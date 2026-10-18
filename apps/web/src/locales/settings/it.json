@@ -64,6 +64,32 @@
       "both": "Email e push",
       "none": "Nessuna"
     },
-    "emailNote": "L'email è un riepilogo di ciò che non ha ancora letto, al massimo ogni 10 minuti."
+    "emailNote": "L'email è un riepilogo di ciò che non ha ancora letto, al massimo ogni 10 minuti.",
+    "channelsTitle": "Come arrivano le notifiche",
+    "back": "Impostazioni",
+    "summary": "I canali, questo dispositivo e per ogni cliente la modalità e i nuovi ticket, tutto in un unico posto.",
+    "open": "Imposta le notifiche",
+    "allOff": "Tutte le Sue notifiche sono disattivate. Scelga un canale per ciò di cui vuole essere informato.",
+    "pushUnused": "Al momento nessun gruppo di notifiche usa il push.",
+    "clients": {
+      "title": {
+        "admin": "Clienti",
+        "client": "I Suoi gruppi"
+      },
+      "hint": "La modalità decide quali messaggi e modifiche alle attività Le arrivano. Nuovi ticket: una notifica per ogni nuovo ticket del cliente e per le sue novità finché non ha un assegnatario.",
+      "search": "Cerca un cliente",
+      "managed": "Clienti di cui è manager",
+      "others": "Altri clienti",
+      "client": "Cliente",
+      "mode": "Modalità",
+      "tickets": "Nuovi ticket",
+      "ticketsFor": "Notifiche dei nuovi ticket di {{name}}",
+      "none": "Nessun cliente corrisponde alla ricerca.",
+      "empty": {
+        "admin": "Non ci sono ancora clienti.",
+        "client": "Non fa ancora parte di nessun gruppo."
+      },
+      "more": "Mostra altri"
+    }
   }
 }

@@ -1,11 +1,14 @@
 import { useId, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { GroupModes, type GroupMode } from '@spolu/shared';
+import { Link } from '@tanstack/react-router';
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuItem,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
@@ -44,6 +47,7 @@ export function ModeMenu({
   onOpen,
   note,
   defaultOpen = false,
+  settingsLink = false,
 }: {
   value: GroupMode | 'mixed';
   onChange(mode: GroupMode): void;
@@ -54,6 +58,8 @@ export function ModeMenu({
   note?: string;
   /** Open on mount (the on-demand bell mounts the menu by its first click). */
   defaultOpen?: boolean;
+  /** End with a link to every notification setting (`/settings/notifications`, UX review X7). */
+  settingsLink?: boolean;
 }) {
   const { t } = useTranslation();
   const hintId = useId();
@@ -92,6 +98,14 @@ export function ModeMenu({
           ))}
         </DropdownMenuRadioGroup>
         {note && <p className="px-3 pt-2 pb-1 text-micro text-muted-foreground">{note}</p>}
+        {settingsLink && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem asChild>
+              <Link to="/settings/notifications">{t('notifications.mode.allSettings')}</Link>
+            </DropdownMenuItem>
+          </>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );
@@ -123,6 +137,7 @@ export function GroupBell({
         onOpen={clearError}
         note={managed ? t('notifications.mode.managerNote') : undefined}
         defaultOpen={defaultOpen}
+        settingsLink
       />
       {isError && <ErrorBubble>{t('errors.generic')}</ErrorBubble>}
     </div>

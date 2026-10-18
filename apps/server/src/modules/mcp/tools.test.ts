@@ -267,6 +267,11 @@ describe('MCP tools', () => {
     await ok('get_home_counts');
     await ok('list_mentions');
     await ok('list_upcoming_reminders');
+    // The notification centre (UX review F2): the route's page, as the user.
+    expect(await ok('list_notifications')).toMatchObject({ items: expect.any(Array) });
+    expect((await tool('list_notifications', { cursor: 'nonsense' })).json).toMatchObject({
+      status: 400,
+    });
     await ok('list_bulk_campaigns');
     const missing = await tool('get_bulk_campaign', { campaignId: randomUUID() });
     expect(missing.json).toMatchObject({ status: 404 });

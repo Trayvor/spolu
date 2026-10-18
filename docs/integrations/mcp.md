@@ -84,7 +84,7 @@ Start with `whoami` and `list_groups`; the other tools take the ids they return.
 | tickets | `list_tickets`, `get_ticket`, `list_ticket_assignee_candidates` | `create_ticket`, `update_ticket`, `set_ticket_assignee` |
 | knowledge and meetings | `list_knowledge`, `list_knowledge_folders`, `get_knowledge_item`, `list_meetings` | `create_knowledge_item`, `update_knowledge_item` |
 | projects | `list_projects`, `get_project`, `get_project_event` | `create_project`, `update_project`, `create_project_event`, `update_project_event` |
-| home and bulk email | `get_home_counts`, `list_mentions`, `list_upcoming_reminders`, `list_bulk_campaigns`, `get_bulk_campaign`, `list_bulk_campaign_recipients` | |
+| home and bulk email | `get_home_counts`, `list_mentions`, `list_notifications` (the notification centre, 2026-10-18), `list_upcoming_reminders`, `list_bulk_campaigns`, `get_bulk_campaign`, `list_bulk_campaign_recipients` | |
 | files | `read_file` (up to 2 MB: text, images, other files as base64) | |
 | finance (finance holders only) | `list_finance_documents`, `list_finance_document_folders`, `get_finance_document`, `list_finance_payees`, `get_finance_overview`, `get_work_log`, `list_rates`, `list_contracts`, `get_paid_ranking`, `get_hours_ranking`, `get_task_time`, `get_ticket_time` | `create_finance_document`, `update_finance_document`, `create_organisation_finance_item`, `create_finance_folder`, `update_finance_folder`, `add_time_entry`, `update_time_entry`, `add_rate`, `set_my_task_time`, `set_my_ticket_time` |
 

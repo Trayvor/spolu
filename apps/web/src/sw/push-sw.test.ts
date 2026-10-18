@@ -52,6 +52,24 @@ describe('push-sw', () => {
     });
   });
 
+  it('marks the app icon (N6b) where the browser has a badge, and still shows without one', async () => {
+    const { self, fire } = setup([]);
+    const setAppBadge = vi.fn(() => Promise.resolve());
+    Object.assign(self, { navigator: { setAppBadge } });
+    await fire('push', { data: { json: () => payload } });
+    // A dot: the open app sets the real number from the bell's count.
+    expect(setAppBadge).toHaveBeenCalledWith();
+    const bare = setup([]);
+    await bare.fire('push', { data: { json: () => payload } });
+    expect(bare.self.registration.showNotification).toHaveBeenCalled();
+    const failing = setup([]);
+    Object.assign(failing.self, {
+      navigator: { setAppBadge: () => Promise.reject(new Error('no')) },
+    });
+    await failing.fire('push', { data: { json: () => payload } });
+    expect(failing.self.registration.showNotification).toHaveBeenCalled();
+  });
+
   it('alerts again only when the payload asks for it', async () => {
     const { self, fire } = setup([]);
     await fire('push', { data: { json: () => ({ ...payload, renotify: true }) } });

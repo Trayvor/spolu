@@ -64,6 +64,32 @@
       "both": "E-post ja tõuketeavitus",
       "none": "Puudub"
     },
-    "emailNote": "E-kiri on kokkuvõte sellest, mida Te pole veel lugenud, kõige sagedamini iga 10 minuti järel."
+    "emailNote": "E-kiri on kokkuvõte sellest, mida Te pole veel lugenud, kõige sagedamini iga 10 minuti järel.",
+    "channelsTitle": "Kuidas teavitused saabuvad",
+    "back": "Seaded",
+    "summary": "Kanalid, see seade ning iga kliendi režiim ja uued pöördumised, kõik ühes kohas.",
+    "open": "Seadista teavitused",
+    "allOff": "Kõik teie teavitused on välja lülitatud. Valige kanal sellele, millest soovite teada.",
+    "pushUnused": "Ükski teavituste rühm ei kasuta praegu tõuketeavitusi.",
+    "clients": {
+      "title": {
+        "admin": "Kliendid",
+        "client": "Teie grupid"
+      },
+      "hint": "Režiim määrab, millised sõnumid ja ülesannete muudatused teieni jõuavad. Uued pöördumised: teavitus iga kliendi uue pöördumise ja selle uudiste kohta, kuni sellel pole lahendajat.",
+      "search": "Otsi klienti",
+      "managed": "Kliendid, kelle haldur te olete",
+      "others": "Teised kliendid",
+      "client": "Klient",
+      "mode": "Režiim",
+      "tickets": "Uued pöördumised",
+      "ticketsFor": "Kliendi {{name}} uued pöördumised: teavita mind",
+      "none": "Otsingule ei vasta ükski klient.",
+      "empty": {
+        "admin": "Kliente veel pole.",
+        "client": "Te pole veel üheski grupis."
+      },
+      "more": "Näita rohkem"
+    }
   }
 }

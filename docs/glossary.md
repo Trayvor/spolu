@@ -60,6 +60,7 @@ Terms used across the docs and code, in alphabetical order.
 - **module**: a self-contained feature area of the server (for example chat or tasks) that owns its routes, policies and tables.
 - **notification group**: one of chat, task board, ticket board, knowledge base: every notification event belongs to one, and the user picks its channel (Email, Push, Email and push, None) in the profile. Keys `chat`, `tasks`, `tickets`, `knowledge`. Not the same as a client group's notification mode (bell), which decides what arrives.
 - **notification event**: one stored notification for one recipient (kind, optional group, payload, delivered or not). Recorded in the same transaction as the change that caused it and deleted after 30 days.
+- **notification centre**: the list behind the bell in the header (2026-10-18): the person's notification events of the last 30 days that delivery judged worth telling them about (`in_centre`), with "Mark all as read" and the push snooze ("Stíšiť"). See `product/notifications.md`.
 - **OTP code**: the one-time code sent by email that is used to log in.
 - **owner walkthrough**: the final check of a phase, where the owner tries the "Done when" items by hand on the test server after the phase is merged; what is still to walk is noted in the phase's roadmap section.
 - **passkey**: a WebAuthn credential an admin keeps on a device or in a password manager and logs in with instead of the email code (ADR 0050); shown as "kľúč (passkey)" in Slovak. Only admins have them.

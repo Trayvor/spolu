@@ -64,6 +64,32 @@
       "both": "E-pošta in potisna",
       "none": "Brez"
     },
-    "emailNote": "E-sporočilo je povzetek tega, česar še niste prebrali, največ enkrat na 10 minut."
+    "emailNote": "E-sporočilo je povzetek tega, česar še niste prebrali, največ enkrat na 10 minut.",
+    "channelsTitle": "Kako prihajajo obvestila",
+    "back": "Nastavitve",
+    "summary": "Kanali, ta naprava ter za vsako stranko način in novi zahtevki, vse na enem mestu.",
+    "open": "Nastavi obvestila",
+    "allOff": "Vsa obvestila imate izklopljena. Izberite kanal za to, o čemer želite biti obveščeni.",
+    "pushUnused": "Potisnih obvestil zdaj ne uporablja nobena skupina obvestil.",
+    "clients": {
+      "title": {
+        "admin": "Stranke",
+        "client": "Vaše skupine"
+      },
+      "hint": "Način določa, katera sporočila in spremembe nalog prejmete. Novi zahtevki: obvestilo o vsakem novem zahtevku stranke in njegovih novostih, dokler nima reševalca.",
+      "search": "Išči stranko",
+      "managed": "Stranke, katerih upravitelj ste",
+      "others": "Druge stranke",
+      "client": "Stranka",
+      "mode": "Način",
+      "tickets": "Novi zahtevki",
+      "ticketsFor": "Obvestila o novih zahtevkih stranke {{name}}",
+      "none": "Iskanju ne ustreza nobena stranka.",
+      "empty": {
+        "admin": "Tu še ni nobene stranke.",
+        "client": "Niste še v nobeni skupini."
+      },
+      "more": "Pokaži več"
+    }
   }
 }

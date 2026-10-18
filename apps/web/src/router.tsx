@@ -476,6 +476,20 @@ const settingsRoute = createRoute({
   ),
 });
 
+// UX review X7 (2026-10-18): every notification setting on one screen, linked from /settings,
+// the group bells and the header's bell.
+const notificationSettingsRoute = createRoute({
+  getParentRoute: () => authedRoute,
+  path: '/settings/notifications',
+  component: lazyRouteComponent(
+    withNamespaces(
+      ['settings', 'notifications'],
+      () => import('@/features/notifications/settings-page'),
+    ),
+    'NotificationSettingsPage',
+  ),
+});
+
 const adminsRoute = createRoute({
   getParentRoute: () => authedRoute,
   path: '/admins',
@@ -612,6 +626,7 @@ const routeTree = rootRoute.addChildren([
     homeRoute,
     globalBoardRoute,
     settingsRoute,
+    notificationSettingsRoute,
     adminsRoute,
     bulkEmailRoute,
     bulkCampaignRoute,

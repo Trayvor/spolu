@@ -9,7 +9,8 @@
     "offHint": "Brez obvestil iz te skupine",
     "mixed": "Mešano",
     "allGroups": "Vse skupine:",
-    "managerNote": "Vsa sporočila, ker upravljate to stranko."
+    "managerNote": "Vsa sporočila, ker upravljate to stranko.",
+    "allSettings": "Vse nastavitve obvestil"
   },
   "prompt": {
     "installTitle": "Namestite aplikacijo Help",

@@ -189,7 +189,7 @@ test('an admin picks a riešiteľ, filters by it and watches the client tickets'
   await expect(row).toBeVisible();
 
   // "Watch tickets": off for an admin who does not manage the client; ticking it is kept.
-  const watch = page.getByRole('checkbox', { name: 'Sledovať tikety' });
+  const watch = page.getByRole('checkbox', { name: 'Nové tikety tohto klienta: upozorňovať' });
   await expect(watch).not.toBeChecked();
   await watch.check();
   await expect(
@@ -198,5 +198,7 @@ test('an admin picks a riešiteľ, filters by it and watches the client tickets'
     ),
   ).toBeVisible();
   await page.reload();
-  await expect(page.getByRole('checkbox', { name: 'Sledovať tikety' })).toBeChecked();
+  await expect(
+    page.getByRole('checkbox', { name: 'Nové tikety tohto klienta: upozorňovať' }),
+  ).toBeChecked();
 });
