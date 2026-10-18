@@ -634,7 +634,7 @@ export function Composer({
                 disabled={!canSend}
                 onClick={() => void submit()}
                 aria-label={t('chat.composer.send')}
-                className={cn('relative', HIT, 'max-[640px]:size-11 max-[640px]:px-0')}
+                className={cn('relative', HIT, 'touch:size-11 max-[640px]:px-0')}
               >
                 <span className="max-[640px]:hidden">{t('chat.composer.send')}</span>
                 <SendIcon className="hidden size-5 max-[640px]:block" />

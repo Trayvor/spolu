@@ -468,7 +468,7 @@ function TaskEditor({
           <DropdownMenu>
             <DropdownMenuTrigger
               aria-label={t('tasks.panel.more')}
-              className="flex size-8 shrink-0 items-center justify-center rounded-full hover:bg-accent max-[640px]:size-11"
+              className="flex size-8 shrink-0 items-center justify-center rounded-full hover:bg-accent touch:size-11"
             >
               <MoreIcon />
             </DropdownMenuTrigger>

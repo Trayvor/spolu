@@ -29,7 +29,7 @@ function Chip({
         onClick={onRemove}
         className={cn(
           'flex size-7 shrink-0 items-center justify-center rounded-md hover:bg-accent',
-          'max-[640px]:size-11',
+          'touch:size-11',
         )}
       >
         <CloseIcon />

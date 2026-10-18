@@ -72,7 +72,7 @@ export function OverviewGrid({
   const { t } = useTranslation();
   return (
     <div className="flex min-w-0 flex-col gap-4 pb-6">
-      <h1 className="sr-only">{t('projects.overview.title')}</h1>
+      <h2 className="sr-only">{t('projects.overview.title')}</h2>
       {timeline}
       {active && <div className="grid gap-4 min-[641px]:grid-cols-2">{active}</div>}
       {projects}

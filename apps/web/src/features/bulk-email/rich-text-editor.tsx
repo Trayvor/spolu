@@ -64,7 +64,7 @@ function ToolButton({
       onMouseDown={(e) => e.preventDefault()}
       onClick={onClick}
       className={cn(
-        'inline-flex size-8 items-center justify-center rounded-md text-button transition-colors duration-(--duration-fast) hover:bg-surface-3 focus-visible:outline-2 focus-visible:outline-foreground max-[640px]:size-11',
+        'inline-flex size-8 items-center justify-center rounded-md text-button transition-colors duration-(--duration-fast) hover:bg-surface-3 focus-visible:outline-2 focus-visible:outline-foreground touch:size-11',
         pressed && 'bg-card shadow-lift',
       )}
     >

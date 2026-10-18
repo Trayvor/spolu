@@ -136,6 +136,9 @@
 }
 
 /* Tailwind v4: expose the variables as utilities (bg-primary, rounded-lg, font-sans, ...). */
+/* Hit areas of 44 px: phones and any touch screen, tablets included (a width alone misses them). */
+@custom-variant touch (@media (max-width: 640px), (pointer: coarse));
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);

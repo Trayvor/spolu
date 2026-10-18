@@ -21,7 +21,7 @@ export const iconButton =
  * The same, 44 px on phones (a finger's size) with its focus ring drawn inside, as the row that
  * holds it scrolls sideways and would clip a ring outside.
  */
-export const phoneIconButton = `${iconButton} shrink-0 max-[640px]:size-11 focus-visible:outline-offset-[-2px]`;
+export const phoneIconButton = `${iconButton} shrink-0 touch:size-11 focus-visible:outline-offset-[-2px]`;
 
 const FORMATS: { kind: FormatKind; key: string; icon: ReactNode; shortcut?: string }[] = [
   { kind: 'bold', key: 'bold', icon: <BoldIcon />, shortcut: 'B' },

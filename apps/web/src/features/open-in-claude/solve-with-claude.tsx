@@ -55,7 +55,7 @@ export default function SolveWithClaude({
         variant="outline"
         size="sm"
         onClick={() => setOpen(true)}
-        className={cn(compact && 'max-[640px]:size-11 max-[640px]:border-0 max-[640px]:px-0')}
+        className={cn(compact && 'touch:size-11 max-[640px]:border-0 max-[640px]:px-0')}
       >
         <SparkIcon />
         <span className={cn(compact && 'max-[640px]:sr-only')}>{t('openInClaude.button')}</span>

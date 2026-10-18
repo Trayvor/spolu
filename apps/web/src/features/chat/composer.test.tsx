@@ -79,7 +79,7 @@ describe('Composer', () => {
     await renderComposer();
     const button = send();
     expect(button).toHaveAttribute('aria-label', 'Send');
-    expect(button).toHaveClass('max-[640px]:size-11', 'max-[640px]:px-0', 'bg-primary');
+    expect(button).toHaveClass('touch:size-11', 'max-[640px]:px-0', 'bg-primary');
     expect(within(button).getByText('Send')).toHaveClass('max-[640px]:hidden');
     const icon = button.querySelector('svg');
     expect(icon).toHaveAttribute('aria-hidden', 'true');

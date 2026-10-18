@@ -38,11 +38,9 @@ describe('SheetDialog', () => {
     const content = screen.getByTestId('sheet');
     expect(content).toBe(screen.getByRole('dialog'));
     expect(content.className).toContain(
-      'max-[640px]:[&_:is(button,a,select,input:not([type=checkbox],[type=radio])):not([data-hit])]:min-h-11',
+      'touch:[&_:is(button,a,select,input:not([type=checkbox],[type=radio])):not([data-hit])]:min-h-11',
     );
-    expect(content.className).toContain(
-      'max-[640px]:[&_:is(button,a,select):not([data-hit])]:min-w-11',
-    );
+    expect(content.className).toContain('touch:[&_:is(button,a,select):not([data-hit])]:min-w-11');
     // Full screen below 641 px, a centred 720 px dialog from 641 px.
     expect(content).toHaveClass('fixed', 'inset-0', 'min-[641px]:w-[720px]');
   });

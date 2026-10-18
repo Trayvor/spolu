@@ -175,7 +175,7 @@ export function ReminderPanel({
                   size="icon"
                   aria-label={t('reminders.row.remove')}
                   onClick={() => onRemoveTime(time.id)}
-                  className="ml-auto size-8 max-[640px]:size-11"
+                  className="ml-auto size-8 touch:size-11"
                 >
                   <CloseIcon />
                 </Button>

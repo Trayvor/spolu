@@ -69,7 +69,7 @@ function FolderRow({
       <DropdownMenu>
         <DropdownMenuTrigger
           aria-label={t('knowledge.folders.more', { name: folder.name })}
-          className="relative flex size-8 shrink-0 items-center justify-center rounded-full hover:bg-accent max-[640px]:size-11"
+          className="relative flex size-8 shrink-0 items-center justify-center rounded-full hover:bg-accent touch:size-11"
         >
           <MoreIcon />
         </DropdownMenuTrigger>
