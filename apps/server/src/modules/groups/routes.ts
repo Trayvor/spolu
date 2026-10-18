@@ -71,6 +71,8 @@ import {
 type IdParams = { Params: { id: string } };
 type MemberParams = { Params: { id: string; userId: string } };
 
+/** Invitation context lookups a minute from one IP address (no session). */
+const CONTEXT_PER_MINUTE = 30;
 const notFound = (reply: FastifyReply) => reply.code(404).send({ error: ErrorCodes.notFound });
 const forbidden = (reply: FastifyReply) => reply.code(403).send({ error: ErrorCodes.forbidden });
 /** The admin group has no members, invites or managers (Phase 34). */
@@ -330,10 +332,15 @@ export const groupsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, {
 
   // X19: the signed context of an invitation link, for `/login` and `/welcome` (no session). It
   // answers only with the invited email, while that person is still an active member of the
-  // group and the group is not deactivated; anything else is 404, as a missing group.
+  // group and the group is not deactivated; anything else is 404, as a missing group. Public, so
+  // limited per IP address like the other routes without a session (review V11).
+  const allowContext = createRateLimiter({ windowMs: 60_000, max: CONTEXT_PER_MINUTE });
   app.get<{ Querystring: { token?: unknown; email?: unknown } }>(
     '/invitations/context',
     async (request, reply) => {
+      if (!allowContext(request.ip)) {
+        return reply.code(429).send({ error: ErrorCodes.rateLimited });
+      }
       const { token, email } = request.query;
       if (typeof token !== 'string' || typeof email !== 'string' || token.length > 2000) {
         return notFound(reply);

@@ -30,12 +30,34 @@ describe('invite token', () => {
     const token = signInviteToken('secret', input);
     expect(verifyInviteToken('secret', token, 'other@example.com')).toBeNull();
     expect(verifyInviteToken('other', token, input.email)).toBeNull();
-    const [g, , sig] = token.split('.');
-    const forged = `${g}.${Buffer.from('Banka').toString('base64url')}.${sig}`;
+    const [g, , issued, sig] = token.split('.');
+    const forged = `${g}.${Buffer.from('Banka').toString('base64url')}.${issued}.${sig}`;
     expect(verifyInviteToken('secret', forged, input.email)).toBeNull();
-    for (const bad of ['', 'a.b', 'a.b.c.d', `${g}.!!.${sig}`, `${g}.x.`]) {
+    for (const bad of [
+      '',
+      'a.b',
+      'a.b.c',
+      'a.b.c.d.e',
+      `${g}.!!.${issued}.${sig}`,
+      `${g}.x.${issued}.`,
+      `${g}.x.1e9.${sig}`,
+    ]) {
       expect(verifyInviteToken('secret', bad, input.email)).toBeNull();
     }
+  });
+
+  it('carries its signed issue time and expires after 30 days (review V11)', () => {
+    const issued = new Date('2026-10-01T10:00:00Z');
+    const token = signInviteToken('secret', input, issued);
+    const at = (days: number) => new Date(issued.getTime() + days * 86_400_000);
+    expect(verifyInviteToken('secret', token, input.email, at(29.9))).not.toBeNull();
+    expect(verifyInviteToken('secret', token, input.email, at(30.1))).toBeNull();
+    // A token from the future (a skewed or forged clock) is refused too.
+    expect(verifyInviteToken('secret', token, input.email, at(-1))).toBeNull();
+    // The time is signed: moving it forward breaks the signature.
+    const parts = token.split('.');
+    parts[2] = String(Number(parts[2]) + 86_400 * 20);
+    expect(verifyInviteToken('secret', parts.join('.'), input.email, at(40))).toBeNull();
   });
 });
 
@@ -112,5 +134,19 @@ describe('invitation context API', () => {
     const { group, email, link } = await invited();
     await setGroupDeactivated(test.deps.db, group.id, true);
     expect((await context(link.searchParams.get('invite')!, email)).statusCode).toBe(404);
+  });
+
+  it('is limited to 30 calls a minute per IP address (429)', async () => {
+    const ask = (from: string) =>
+      test.app.inject({
+        method: 'GET',
+        url: '/api/invitations/context?token=x&email=y',
+        remoteAddress: from,
+      });
+    for (let i = 0; i < 30; i++) expect((await ask('10.9.1.1')).statusCode).toBe(404);
+    const limited = await ask('10.9.1.1');
+    expect(limited.statusCode).toBe(429);
+    expect(limited.json()).toEqual({ error: 'rate_limited' });
+    expect((await ask('10.9.1.2')).statusCode).toBe(404);
   });
 });

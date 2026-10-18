@@ -6,7 +6,7 @@ import {
   recordUrgentReminders,
 } from './reminders.js';
 
-/** Daily at 09:00 Bratislava time: deadlines (3 days and 1 day before) and overdue tasks. */
+/** Daily at 09:00 Bratislava time: deadlines (3, 2 and 1 days before) and overdue tasks. */
 export const TASK_DEADLINE_JOB = 'tasks.deadline-reminders';
 export const TASK_DEADLINE_CRON = '0 9 * * *';
 /** 08, 11, 14, 17 and 20 Bratislava time, every day (owner 2026-10-18: no default silence). */

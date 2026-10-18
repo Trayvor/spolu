@@ -6,7 +6,7 @@ import { createDb, type Db } from '../../infra/db/client.js';
 import { testDatabaseUrl } from '../../../test/test-config.js';
 import { groupMembers } from '../groups/schema.js';
 import { addManager, removeManager } from '../groups/managers.js';
-import { addMember, createGroup } from '../groups/service.js';
+import { addMember, createGroup, setGroupDeactivated } from '../groups/service.js';
 import { knowledgeItems } from '../knowledge/schema.js';
 import { user } from '../users/schema.js';
 import { addAdmin, deactivateUser, getUserNames } from '../users/service.js';
@@ -24,6 +24,7 @@ import { tasks } from '../tasks/schema.js';
 import { reminderRecipients, reminderTimes } from './schema.js';
 import {
   buildIcs,
+  countUpcomingForUser,
   emptyReminderSet,
   getReminderSet,
   getSetAuthorId,
@@ -597,6 +598,17 @@ describe('listUpcomingForUser', () => {
       .set({ visibility: 'admins' })
       .where(eq(knowledgeItems.id, subject.id));
     expect(await listUpcomingForUser(db, client, { limit: 10 })).toEqual([]);
+  });
+
+  it("leaves out a deactivated group's reminders, in the list and the count", async () => {
+    const { group, admin, subject } = await setup();
+    const now = new Date();
+    await replace(subject, { times: [{ at: inMs(DAY, now) }], recipientIds: [] }, admin);
+    const week = { from: now, to: new Date(now.getTime() + 7 * DAY) };
+    expect(await countUpcomingForUser(db, admin, week)).toBe(1);
+    await setGroupDeactivated(db, group.id, true);
+    expect(await listUpcomingForUser(db, admin, { limit: 10 })).toEqual([]);
+    expect(await countUpcomingForUser(db, admin, week)).toBe(0);
   });
 });
 

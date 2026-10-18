@@ -44,7 +44,9 @@ export type ToastAction = { label: string; onAction: () => void };
  * to a live region, not a region that arrives already filled. It rises in (`animate-toast-in`,
  * 200 ms; none under reduced motion). It is portalled into `document.body`: rendered inside a
  * positioned column (the ticket page's sticky details), it would sit under a later column such
- * as the ticket chat and its composer.
+ * as the ticket chat and its composer. Its distance from the bottom is `--toast-bottom` when
+ * set: the root layout sets it on `<html>` while the phone bottom bar is shown, so the toast sits
+ * above the bar instead of covering its items.
  */
 export function Toast({
   children,
@@ -96,7 +98,7 @@ export function Toast({
 
   if (!shown) return null;
   return createPortal(
-    <div className="pointer-events-none fixed inset-x-0 bottom-[max(16px,env(safe-area-inset-bottom))] z-50 flex justify-center px-4">
+    <div className="pointer-events-none fixed inset-x-0 bottom-[var(--toast-bottom,max(16px,env(safe-area-inset-bottom)))] z-50 flex justify-center px-4">
       <div
         className={`pointer-events-auto flex max-w-full animate-toast-in items-center gap-3 py-2 pr-2 pl-4 text-button font-medium ${POPOVER}`}
         // Only a mouse hovers: a tap fires an enter with no leave until a tap elsewhere.

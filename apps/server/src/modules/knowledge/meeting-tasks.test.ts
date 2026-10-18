@@ -32,6 +32,13 @@ describe('isRecordingUpload', () => {
     expect(isRecordingUpload('application/pdf', 'call.mp3')).toBe(false);
     expect(isRecordingUpload('application/octet-stream', 'notes.txt')).toBe(false);
   });
+
+  // ffmpeg's `-format_whitelist` (`INPUT_FORMATS`) must open what the upload takes (review V7).
+  it('takes AIFF and MPEG transport stream files by name too', () => {
+    for (const name of ['memo.aiff', 'memo.AIF', 'memo.aifc', 'call.m2ts', 'call.mts']) {
+      expect(isRecordingUpload('application/octet-stream', name), name).toBe(true);
+    }
+  });
 });
 
 describe('parseRange', () => {

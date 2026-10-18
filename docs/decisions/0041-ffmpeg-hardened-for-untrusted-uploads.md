@@ -10,7 +10,7 @@ Meeting recordings ([ADR 0023](0023-ffmpeg-static-build-for-meeting-audio.md)) a
 
 ## Decision
 Every ffmpeg run (`infra/media/media.ts`, the only place that spawns it; there is no ffprobe) gets:
-- **Input options before `-i`:** `-protocol_whitelist file` (only local files, no `http`, `tcp`, `pipe` or `data`), `-format_whitelist` with only the audio and video containers the upload takes (`INPUT_FORMATS`: mov, matroska, webm, ogg, wav, mp3, aac, flac, caf, amr, asf, avi, mpeg). concat/ffconcat, hls, dash, image2, tee, subfile and every other demuxer are refused, also for nested inputs a demuxer opens. ffmpeg checks the whitelist itself, after probing, so this needs no magic-byte sniffing of our own.
+- **Input options before `-i`:** `-protocol_whitelist file` (only local files, no `http`, `tcp`, `pipe` or `data`), `-format_whitelist` with only the audio and video containers the upload takes (`INPUT_FORMATS`: mov, matroska, webm, ogg, wav, mp3, aac, flac, caf, amr, asf, avi, mpeg, and since 2026-10-18 aiff and mpegts: the upload takes any `audio/*` or `video/*` type, so macOS `.aiff` memos and `.ts`/`.m2ts` recordings arrive too, review V7). concat/ffconcat, hls, dash, image2, tee, subfile and every other demuxer are refused, also for nested inputs a demuxer opens. ffmpeg checks the whitelist itself, after probing, so this needs no magic-byte sniffing of our own.
 - **Limits:** `-nostdin`, `-threads 2` for the decoder and the encoder, `-max_alloc 256 MiB` (the largest single allocation; ffmpeg's default is about 2 GB), and the existing 2-hour `SIGKILL` timer.
 - **Environment:** only `PATH` (`ffmpegEnv()`), never `process.env`.
 
@@ -19,7 +19,7 @@ Every ffmpeg run (`infra/media/media.ts`, the only place that spawns it; there i
 Not done here: a separate transcoding container with no network, a read-only root and `cap_drop: ALL` (review M3 point 3). It is the stronger isolation, but it changes the deployment and the job runner; it stays a follow-up.
 
 ## Consequences
-- An upload in a container outside the list (for example MPEG-TS or a raw `.m3u8`) fails as "failed", like any file that is not media. Adding a format means adding its demuxer to `INPUT_FORMATS` and its extension to `MEDIA_EXTENSIONS` in `meeting-recording.ts`.
+- An upload in a container outside the list (for example a raw `.m3u8`) fails as "failed", like any file that is not media. Adding a format means adding its demuxer to `INPUT_FORMATS` and its extension to `MEDIA_EXTENSIONS` in `meeting-recording.ts`.
 - A compromised ffmpeg still runs as the Node user and can read files that user can read (`/proc/<node pid>/environ` included); only the separate container closes that.
 - The image size with ffmpeg 8.1.2 was not measured again (the [performance](../architecture/performance.md) figure is for 7.1.1).
 - Tests: a stand-in binary records the arguments and the environment (no secrets, the whitelists before `-i`); where ffmpeg is installed, a crafted ffconcat upload is refused and no output is written.

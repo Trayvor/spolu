@@ -18,7 +18,7 @@ import { IMAGE_TYPES, sniffImageType, type ImageType } from '../files/sniff.js';
 import { setGroupActive } from './deactivation.js';
 import { egrantInstanceUrl, normalizeEgrantUrl } from './egrant-url.js';
 import { removeGroupLogo, replaceGroupLogo } from './logo.js';
-import { stripImageMetadata } from './logo-metadata.js';
+import { imageSize, stripImageMetadata } from './logo-metadata.js';
 import { renderSvgLogo } from './logo-svg.js';
 import {
   createGroup,
@@ -42,11 +42,18 @@ const fail = (status: number, error: string, fields?: string[]): Answer => ({
 
 const SVG = 'image/svg+xml';
 
+/** True when the image's header declares a side over `EGRANT_GROUP_LIMITS.logoPixels`. */
+const tooManyPixels = (bytes: Buffer, type: ImageType) => {
+  const size = imageSize(bytes, type);
+  return !size || Math.max(size.width, size.height) > EGRANT_GROUP_LIMITS.logoPixels;
+};
+
 /**
  * Checks and cleans the sent logo: the declared type must be PNG, JPEG, WebP or SVG (415), at
- * most 2 MiB (413), and the bytes must be that image (422). The metadata is stripped. An SVG is
- * rendered to a PNG first (`renderSvgLogo`), so only the PNG is stored. Undefined keeps the
- * logo, null removes it.
+ * most 2 MiB, an SVG at most 512 KiB (413), and the bytes must be that image (422). A PNG, JPEG
+ * or WebP over 4096 px on a side (read from its header) is 422 too. The metadata is stripped. An
+ * SVG is rendered to a PNG first (`renderSvgLogo`, which refuses images, outside references and
+ * huge sizes), so only the PNG is stored. Undefined keeps the logo, null removes it.
  */
 async function readLogo(logo: EgrantGroupBody['logo']): Promise<Logo | null | undefined | Answer> {
   if (logo === undefined || logo === null) return logo;
@@ -54,14 +61,16 @@ async function readLogo(logo: EgrantGroupBody['logo']): Promise<Logo | null | un
   if (declared !== SVG && !(IMAGE_TYPES as readonly string[]).includes(declared)) {
     return fail(415, ErrorCodes.unsupportedType, ['logo.content_type']);
   }
-  if (base64DecodedSize(logo.data_base64) > EGRANT_GROUP_LIMITS.logoBytes) {
+  const limit = declared === SVG ? EGRANT_GROUP_LIMITS.svgLogoBytes : EGRANT_GROUP_LIMITS.logoBytes;
+  if (base64DecodedSize(logo.data_base64) > limit) {
     return fail(413, ErrorCodes.fileTooLarge, [LOGO_FIELD]);
   }
   const sent = Buffer.from(logo.data_base64, 'base64');
-  const raw = declared === SVG ? await renderSvgLogo(sent) : sent;
+  const raw = declared === SVG ? await renderSvgLogo(sent, EGRANT_GROUP_LIMITS.svgLogoUnits) : sent;
   const type = raw && sniffImageType(raw);
   const expected = declared === SVG ? 'image/png' : declared;
-  const bytes = raw && type === expected ? stripImageMetadata(raw, type) : null;
+  const bytes =
+    raw && type === expected && !tooManyPixels(raw, type) ? stripImageMetadata(raw, type) : null;
   if (!type || !bytes) return fail(422, ErrorCodes.invalidLogo, [LOGO_FIELD]);
   return { bytes, type };
 }

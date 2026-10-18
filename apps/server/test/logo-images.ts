@@ -11,11 +11,15 @@ function pngChunk(type: string, data: Buffer): Buffer {
   return Buffer.concat([length, Buffer.from(type, 'latin1'), data, Buffer.alloc(4)]);
 }
 
+/** Width and height written into an image's header (the pixel data stays 1×1). */
+type Size = { width: number; height: number };
+const ONE: Size = { width: 1, height: 1 };
+
 /** A 1×1 PNG; `metadata` adds tEXt, iTXt, zTXt, eXIf and tIME chunks holding it. */
-export function pngWith(metadata?: string): Buffer {
+export function pngWith(metadata?: string, size: Size = ONE): Buffer {
   const ihdr = Buffer.alloc(13);
-  ihdr.writeUInt32BE(1, 0);
-  ihdr.writeUInt32BE(1, 4);
+  ihdr.writeUInt32BE(size.width, 0);
+  ihdr.writeUInt32BE(size.height, 4);
   ihdr.writeUInt8(8, 8);
   ihdr.writeUInt8(6, 9);
   const extra = metadata
@@ -43,7 +47,7 @@ function jpegSegment(marker: number, data: Buffer): Buffer {
 }
 
 /** A baseline JPEG; `metadata` adds APP1 EXIF and XMP, APP13 IPTC and a comment holding it. */
-export function jpegWith(metadata?: string): Buffer {
+export function jpegWith(metadata?: string, size: Size = ONE): Buffer {
   const app0 = jpegSegment(
     0xe0,
     Buffer.from([...Buffer.from('JFIF\0'), 1, 1, 0, 0, 1, 0, 1, 0, 0]),
@@ -56,7 +60,10 @@ export function jpegWith(metadata?: string): Buffer {
         jpegSegment(0xfe, Buffer.from(metadata)),
       ]
     : [];
-  const sof = jpegSegment(0xc0, Buffer.from([8, 0, 1, 0, 1, 1, 1, 0x11, 0]));
+  const sofData = Buffer.from([8, 0, 1, 0, 1, 1, 1, 0x11, 0]);
+  sofData.writeUInt16BE(size.height, 1);
+  sofData.writeUInt16BE(size.width, 3);
+  const sof = jpegSegment(0xc0, sofData);
   const sos = jpegSegment(0xda, Buffer.from([1, 1, 0, 0, 0x3f, 0]));
   return Buffer.concat([
     Buffer.from([0xff, 0xd8]),
@@ -77,9 +84,11 @@ function webpChunk(type: string, data: Buffer): Buffer {
 }
 
 /** An extended WebP (VP8X); `metadata` adds EXIF and XMP chunks holding it and sets their flags. */
-export function webpWith(metadata?: string): Buffer {
+export function webpWith(metadata?: string, size: Size = ONE): Buffer {
   const vp8x = Buffer.alloc(10);
   vp8x.writeUInt8(metadata ? 0x08 | 0x04 : 0, 0);
+  vp8x.writeUIntLE(size.width - 1, 4, 3);
+  vp8x.writeUIntLE(size.height - 1, 7, 3);
   const chunks = [
     webpChunk('VP8X', vp8x),
     webpChunk('VP8 ', Buffer.from([0x30, 0x01, 0x00, 0x9d, 0x01, 0x2a, 1, 0, 1, 0, 0])),

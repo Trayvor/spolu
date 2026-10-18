@@ -6,9 +6,10 @@ vi.mock('@tanstack/react-router', () => ({ Outlet: () => <p>Page</p> }));
 vi.mock('@/components/app-header', () => ({
   AppHeader: () => <button type="button">Header</button>,
 }));
+const nav = vi.hoisted(() => ({ plan: null as object | null }));
 vi.mock('@/components/bottom-nav', () => ({
   BottomNav: () => null,
-  useBottomNav: () => null,
+  useBottomNav: () => nav.plan,
 }));
 vi.mock('@/components/offline-strip', () => ({ OfflineStrip: () => null }));
 vi.mock('@/components/route-pending', () => ({ RoutePending: () => null }));
@@ -27,5 +28,19 @@ describe('RootLayout', () => {
     expect(link).toHaveFocus();
     await user.keyboard('{Enter}');
     expect(screen.getByRole('main')).toHaveFocus();
+  });
+
+  it('lifts toasts above the phone bottom bar while the bar is shown', () => {
+    const lift = () => document.documentElement.style.getPropertyValue('--toast-bottom');
+    nav.plan = { items: [] };
+    const { rerender, unmount } = render(<RootLayout />);
+    expect(lift()).toContain('68px');
+    nav.plan = null;
+    rerender(<RootLayout />);
+    expect(lift()).toBe('');
+    nav.plan = { items: [] };
+    rerender(<RootLayout />);
+    unmount();
+    expect(lift()).toBe('');
   });
 });

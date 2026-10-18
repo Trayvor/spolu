@@ -50,6 +50,13 @@ case "$out" in
 esac
 case "$out" in *accept-new*) echo "FAIL deploy_ssh must never accept new host keys"; fail=1 ;; esac
 
+# The server env template names every eGrant webhook key and signing secret (review V14).
+root="$(cd "$(dirname "$0")/../.." && pwd)"
+for var in $(grep -oE '^(TICKETS_API_KEY|EGRANT_[A-Z_]+)=' "$root/.env.example" | tr -d '='); do
+  grep -qE "^#? ?$var=" "$root/deploy/test.env.example" \
+    || { echo "FAIL deploy/test.env.example has no $var line"; fail=1; }
+done
+
 rm -rf "$d"
 [[ $fail -eq 0 ]] && echo "deploy-env.test.sh: all passed"
 exit $fail

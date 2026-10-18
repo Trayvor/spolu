@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Outlet } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { AppHeader } from '@/components/app-header';
@@ -13,6 +14,16 @@ export function RootLayout() {
   const { t } = useTranslation();
   // Phones: the bottom bar floats over the window's foot, so the page keeps its room above it.
   const bottomNav = useBottomNav();
+  // Toasts are portalled into the body, so the bar's room reaches them through `<html>`.
+  const barShown = bottomNav !== null;
+  useEffect(() => {
+    if (!barShown) return;
+    const root = document.documentElement.style;
+    root.setProperty('--toast-bottom', 'calc(68px + max(12px, env(safe-area-inset-bottom)))');
+    return () => {
+      root.removeProperty('--toast-bottom');
+    };
+  }, [barShown]);
   return (
     // A column at least as tall as the window: a screen that fills the window (the chat) takes
     // the room left under the header. The bottom gap is the side gutter on phones. The app runs

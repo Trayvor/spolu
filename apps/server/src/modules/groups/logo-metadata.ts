@@ -18,6 +18,77 @@ export function stripImageMetadata(bytes: Buffer, type: ImageType): Buffer | nul
   }
 }
 
+/**
+ * The pixel size an image declares in its header (PNG IHDR, JPEG SOFn, WebP VP8X, VP8 or VP8L),
+ * read without decoding anything, so a huge image can be refused before any browser decodes it.
+ * Null when the header is missing or cut.
+ */
+export function imageSize(
+  bytes: Buffer,
+  type: ImageType,
+): { width: number; height: number } | null {
+  try {
+    if (type === 'image/png') return pngSize(bytes);
+    if (type === 'image/jpeg') return jpegSize(bytes);
+    return webpSize(bytes);
+  } catch {
+    // A read past the end of the buffer.
+    return null;
+  }
+}
+
+function pngSize(bytes: Buffer) {
+  if (bytes.toString('latin1', 12, 16) !== 'IHDR') return null;
+  return { width: bytes.readUInt32BE(16), height: bytes.readUInt32BE(20) };
+}
+
+/** SOF0–SOF15 except DHT (C4), JPG (C8) and DAC (CC). */
+const isSof = (marker: number) =>
+  marker >= 0xc0 && marker <= 0xcf && marker !== 0xc4 && marker !== 0xc8 && marker !== 0xcc;
+
+function jpegSize(bytes: Buffer) {
+  if (bytes[0] !== 0xff || bytes[1] !== 0xd8) return null;
+  let at = 2;
+  while (at + 4 <= bytes.length) {
+    if (bytes[at] !== 0xff) return null;
+    let markerAt = at + 1;
+    while (bytes[markerAt] === 0xff) markerAt++;
+    const marker = bytes[markerAt];
+    if (marker === undefined || marker === 0xd9 || marker === 0xda) return null;
+    if (standalone(marker)) {
+      at = markerAt + 1;
+      continue;
+    }
+    if (isSof(marker)) {
+      return { height: bytes.readUInt16BE(markerAt + 4), width: bytes.readUInt16BE(markerAt + 6) };
+    }
+    at = markerAt + 1 + bytes.readUInt16BE(markerAt + 1);
+  }
+  return null;
+}
+
+function webpSize(bytes: Buffer) {
+  if (bytes.toString('latin1', 0, 4) !== 'RIFF' || bytes.toString('latin1', 8, 12) !== 'WEBP') {
+    return null;
+  }
+  const type = bytes.toString('latin1', 12, 16);
+  const data = 20;
+  if (type === 'VP8X') {
+    return { width: bytes.readUIntLE(data + 4, 3) + 1, height: bytes.readUIntLE(data + 7, 3) + 1 };
+  }
+  if (type === 'VP8 ') {
+    return {
+      width: bytes.readUInt16LE(data + 6) & 0x3fff,
+      height: bytes.readUInt16LE(data + 8) & 0x3fff,
+    };
+  }
+  if (type === 'VP8L') {
+    const bits = bytes.readUInt32LE(data + 1);
+    return { width: (bits & 0x3fff) + 1, height: ((bits >>> 14) & 0x3fff) + 1 };
+  }
+  return null;
+}
+
 /** PNG chunks that carry text, EXIF or a timestamp. */
 const PNG_DROP = new Set(['tEXt', 'zTXt', 'iTXt', 'eXIf', 'tIME']);
 

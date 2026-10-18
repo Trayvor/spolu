@@ -10,6 +10,7 @@ import {
   type UserLanguage,
 } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
+import { liveGroupSql } from '../groups/memberships.js';
 import { groups } from '../groups/schema.js';
 import { getGroupPeopleRoles } from '../groups/service.js';
 import { isAdmin } from '../users/policy.js';
@@ -630,6 +631,7 @@ export async function countUpcomingForUser(
         and t.fired_at is null
         and t.at >= ${range.from.toISOString()}::timestamptz
         and t.at < ${range.to.toISOString()}::timestamptz
+        and ${liveGroupSql(sql`s.group_id`)}
         ${onlyGroup}
       limit ${UPCOMING_COUNT_CAP}
     ) capped
@@ -673,6 +675,8 @@ export async function listUpcomingForUser(
       and(
         isNull(reminderTimes.firedAt),
         gte(reminderTimes.at, opts.from ?? new Date()),
+        // A deactivated group's reminders leave the list (no group: the left join gives null).
+        isNull(groups.deactivatedAt),
         isAdmin(actor) ? undefined : inArray(reminderSets.groupId, actorGroupIds),
       ),
     )

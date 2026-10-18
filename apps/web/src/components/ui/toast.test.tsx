@@ -39,6 +39,12 @@ describe('Toast', () => {
     expect(layer?.parentElement).toBe(document.body);
   });
 
+  it('sits at the --toast-bottom offset (above the phone bottom bar) when the layout sets it', () => {
+    render(<Toast onClose={() => {}}>Done</Toast>);
+    const layer = screen.getByRole('status').closest('.fixed');
+    expect(layer?.className).toContain('bottom-[var(--toast-bottom,');
+  });
+
   it('shows one toast at a time: the next waits until the first closes', () => {
     vi.useFakeTimers();
     render(

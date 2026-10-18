@@ -85,7 +85,12 @@ describe('the phone bottom bar, admin', () => {
     phone();
     api();
     renderApp('/tickets');
-    const nav = await screen.findByRole('navigation', { name: t('bottomNav.label') });
+    // The first test loads the lazy bar chunk and its namespaces cold: 1 s is not always enough.
+    const nav = await screen.findByRole(
+      'navigation',
+      { name: t('bottomNav.label') },
+      { timeout: 5000 },
+    );
     const names = [...within(nav).getAllByRole('link'), ...within(nav).getAllByRole('button')].map(
       (el) => el.textContent?.replace(/\d+\+?Nové: \d+/, ''),
     );
