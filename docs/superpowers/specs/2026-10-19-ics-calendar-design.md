@@ -1,6 +1,6 @@
 # Personal calendar subscription (ICS feed) — design
 
-Date: 2026-10-19. Status: draft, waiting for the owner's review. Plan: [2026-10-19-ics-calendar.md](../plans/2026-10-19-ics-calendar.md). ADR: ADR-XXXX (placeholder, "Personal calendar feed: a derived secret URL, expanded call occurrences, a content ETag"). Migration: `00XX_ics-calendar` (the orchestrator assigns the number).
+Date: 2026-10-19. Status: draft, owner decisions of 2026-10-19 applied (§2, §13); implementation starts after the current phases are done, and the final e2e pass comes after all seven 2026-10-19 specs are implemented. Plan: [2026-10-19-ics-calendar.md](../plans/2026-10-19-ics-calendar.md). ADR: ADR-XXXX (placeholder, "Personal calendar feed: a derived secret URL, expanded call occurrences, a content ETag"). Migration: `00XX_ics-calendar` (the orchestrator assigns the number; main's newest is `0062_night_integration` and #113 takes 0063).
 
 ## 1. Goal
 
@@ -8,7 +8,7 @@ Every person of Help subscribes once to **their own calendar feed** (iCalendar o
 
 - **project events** (`project_events`, an all-day date per event),
 - **task deadlines** (`tasks.due_date`, all-day),
-- **calls** (knowledge items of type `meeting`, with their start; recurring series from PR #165 / ADR 0049 included as their individual calls).
+- **calls** (knowledge items of type `meeting`, with their start; recurring series (ADR 0049, merged on main) included as their individual calls).
 
 Today Help has only one-off exports: the reminders' `GET /api/reminders/…/calendar.ics` (one subject, a snapshot) and the Teams public page `/m/<token>` (one call). Neither follows later changes. The feed does: the calendar app polls the URL, and every poll answers with what the person may read **at that moment**.
 
@@ -16,16 +16,16 @@ Out of scope: writing back from the calendar (the feed is read-only), CalDAV, a 
 
 ## 2. Users and roles
 
-| Who | Gets a feed | Project events | Task deadlines | Calls |
-|---|---|---|---|---|
-| Admin, superadmin | yes | groups of their scope: the clients they manage plus the admin group; every active group when they manage none (as the global lists, `managedGroupIdsOf`) | tasks they are assigned to, in any active group; optionally (switch, off by default) every open task with a deadline in the clients they manage | calls of their scope; public and admins-only |
-| Client (active `client` membership) | yes | every active group they are a client of | tasks they are assigned to there | public calls of those groups |
-| Žiadateľ only (no client membership) | no: the card is hidden, the API answers 403 | — | — | — |
+| Who                                  | Gets a feed                                 | Project events                                                                                                                              | Task deadlines                                       | Calls                                                                      |
+| ------------------------------------ | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- | -------------------------------------------------------------------------- |
+| Admin, superadmin                    | yes                                         | their own clients only: the active groups they manage (`managedGroupIdsOf`, which also adds the admin group); nothing when they manage none | only tasks they are assigned to, in any active group | calls of their own clients (same groups as events); public and admins-only |
+| Client (active `client` membership)  | yes                                         | every active group they are a client of                                                                                                     | tasks they are assigned to there                     | public calls of those groups                                               |
+| Žiadateľ only (no client membership) | no: the card is hidden, the API answers 403 | —                                                                                                                                           | —                                                    | —                                                                          |
 
-- **Decision: tasks for admins = assigned only, by default.** An admin managing 20 clients would otherwise get hundreds of deadlines. The switch "Termíny všetkých úloh klientov, ktorých spravujem" adds the managed clients' open tasks with a deadline (an admin who manages nobody gets nothing extra from it: "all clients" would be the whole office's board). Clients never see the switch; the server ignores it for them.
+- **Owner decision (2026-10-19): an admin's feed has only the tasks they are assigned to, plus the project events and calls of their own clients.** There is no switch for "all deadlines of managed clients" and no fallback to every group for an admin who manages nobody (such an admin gets only their assigned deadlines).
 - Completed tasks are left out (`completed_at is null`). A task moved out of Completed comes back on the next poll.
 - Events of **archived projects** are left out (the timeline also hides them by default).
-- **Deactivated groups** (`groups.deactivated_at is not null`, ADR 0038) give nothing, to anyone, from the next poll on. The admin group is never deactivated.
+- **Deactivated groups** (`groups.deactivated_at is not null`, ADR 0038) give nothing, to anyone, admins included, from the next poll on (the same rule as the global search, owner decision 2026-10-19). The admin group is never deactivated.
 
 ## 3. UX
 
@@ -39,7 +39,6 @@ The feed is managed in **Nastavenia** (`/settings`), a new card **Kalendár** be
 > Čo sa má zobrazovať:
 > ☑ Udalosti projektov
 > ☑ Termíny mojich úloh
-> ☐ Termíny všetkých úloh klientov, ktorých spravujem *(admins only)*
 > ☑ Hovory
 >
 > [ Vytvoriť odkaz na kalendár ]
@@ -53,7 +52,7 @@ The feed is managed in **Nastavenia** (`/settings`), a new card **Kalendár** be
 > ⚠ Kto má tento odkaz, vidí vaše termíny bez prihlásenia. Nezdieľajte ho.
 > Naposledy načítané kalendárom: 19. 10. 2026 14:05 / "Kalendár odkaz zatiaľ nenačítal."
 >
-> (the same four checkboxes; a change saves at once, "Uložené")
+> (the same three checkboxes; a change saves at once, "Uložené")
 >
 > [ Vytvoriť nový odkaz ] [ Zrušiť odber ]
 
@@ -83,32 +82,29 @@ calendar_feeds
   nonce            text not null                             -- 16 random bytes, base64url
   token_hash       text not null, unique                     -- SHA-256 hex of the derived token
   include_events   boolean not null default true
-  include_tasks    text not null default 'assigned'          -- 'none' | 'assigned' | 'managed'
+  include_tasks    boolean not null default true             -- the deadlines of tasks assigned to the person
   include_calls    boolean not null default true
   last_fetched_at  timestamptz(3)                            -- throttled, once an hour at most
   created_at       timestamptz(3) not null default now()
   updated_at       timestamptz(3) not null default now()
-  check (include_tasks in ('none', 'assigned', 'managed'))
 ```
 
 - **Revoking deletes the row**; **rotating** writes a new `nonce` and `token_hash`.
 - The unique index on `token_hash` is the fetch's only lookup; `user_id` is the PK (the FK leads an index, as `foreign-key-indexes.test.ts` asks).
-- One index for the admins' "all tasks of my managed clients" option: `tasks_group_due_open_idx on tasks (group_id, due_date) where completed_at is null and due_date is not null` (tasks module schema, same migration). The other reads use existing indexes (§8).
-
-No change to the knowledge, projects or groups tables.
+- Every read uses an existing index (§8). No change to the knowledge, projects, tasks or groups tables.
 
 ## 5. API
 
 Signed-in routes (the person's own feed only; every write is HTTP, CSRF-guarded as usual):
 
-| Route | Body | Answer |
-|---|---|---|
-| `GET /api/me/calendar-feed` | — | 200 `{ feed: CalendarFeed \| null }` |
-| `PUT /api/me/calendar-feed` | `{ include: { events: boolean, tasks: 'none' \| 'assigned' \| 'managed', calls: boolean } }` | 201 `{ feed }` when created, 200 when the settings changed |
-| `POST /api/me/calendar-feed/rotate` | — | 200 `{ feed }` with the new URL; 404 `not_found` without a feed |
-| `DELETE /api/me/calendar-feed` | — | 204; 404 `not_found` without a feed |
+| Route                               | Body                                                               | Answer                                                          |
+| ----------------------------------- | ------------------------------------------------------------------ | --------------------------------------------------------------- |
+| `GET /api/me/calendar-feed`         | —                                                                  | 200 `{ feed: CalendarFeed \| null }`                            |
+| `PUT /api/me/calendar-feed`         | `{ include: { events: boolean, tasks: boolean, calls: boolean } }` | 201 `{ feed }` when created, 200 when the settings changed      |
+| `POST /api/me/calendar-feed/rotate` | —                                                                  | 200 `{ feed }` with the new URL; 404 `not_found` without a feed |
+| `DELETE /api/me/calendar-feed`      | —                                                                  | 204; 404 `not_found` without a feed                             |
 
-`CalendarFeed` (zod in `packages/shared/src/calendar-feed.ts`): `{ url: string, webcalUrl: string, googleUrl: string, include: CalendarFeedInclude, createdAt: string, lastFetchedAt: string | null }`. A client sending `tasks: 'managed'` gets it stored as `'assigned'` (clamped by the policy, not refused, so a client's form never errors).
+`CalendarFeed` (zod in `packages/shared/src/calendar-feed.ts`): `{ url: string, webcalUrl: string, googleUrl: string, include: CalendarFeedInclude, createdAt: string, lastFetchedAt: string | null }`.
 
 Public route (no session; the token is the credential):
 
@@ -127,12 +123,11 @@ None of these routes is in the MCP allowlist (ADR 0033): an AI assistant cannot 
 `apps/server/src/modules/calendar/policy.ts`:
 
 - `canUseCalendarFeed(actor, actorGroupIds)`: `isAdmin(actor) || (actor.role === 'client' && actorGroupIds.length > 0)`. Guards the four `/me` routes (403 `forbidden` otherwise; no session 401).
-- `canIncludeManagedTasks(actor)`: `isAdmin(actor)`; a client's `'managed'` is stored as `'assigned'`.
 
 **At fetch time** the feed is built for the token's owner read fresh, exactly like a session (`toSessionUser`: role, disabled). Nothing is decided when the feed is created:
 
 1. `readable` = admin: every active group; client: `clientGroupIds(user)` minus deactivated groups (groups service `activeGroupLabels`, §9).
-2. `scope` (events, calls, managed tasks) = admin: `managedGroupIdsOf(user)` ∩ active, or every active group when that is empty; client: `readable`.
+2. `scope` (events, calls) = admin: `managedGroupIdsOf(user)` ∩ active (their own clients; empty when they manage none); client: `readable`. Assigned deadlines are read from `readable` (an admin's tasks in any active group).
 3. Each source module returns rows only from the group ids it is given, and the calendar module re-checks every row with that module's own policy function before it becomes an event: `canReadProjects` (events), `canUseBoard` (tasks), `canReadItem` (calls: an admins-only call reaches admins only). The SQL filter is the performance path; the policy call is the rule (`permissions.md`: "only through each module's policy functions").
 4. A client who loses their last client membership gets an empty calendar (200, no events), so their calendar app clears the dates instead of showing an error forever; a disabled account gets 404.
 5. `deactivateUser` (users service) deletes the person's feed, as it revokes MCP tokens: an admin added back makes a new link.
@@ -148,17 +143,16 @@ None of these routes is in the MCP allowlist (ADR 0033): an AI assistant cannot 
 
 ## 8. Performance
 
-A feed is polled by a calendar server every 15 minutes to 24 hours per subscriber; eGrant has a few hundred people. Each poll costs one token lookup and at most four indexed reads, and answers 304 when nothing changed.
+A feed is polled by a calendar server every 15 minutes to 24 hours per subscriber; eGrant has a few hundred people. Each poll costs one token lookup and at most three indexed reads, and answers 304 when nothing changed.
 
 - **Window.** Dated items (events, deadlines) from 30 days before to 365 days after today in Europe/Bratislava (`bratislavaDay`); calls from 30 days back to 365 days ahead (series calls exist only 60 days ahead, ADR 0049).
 - **Caps instead of pages.** An ICS feed cannot be paged. Each source returns at most **1 000 rows**, in date order from the window start (so a cut drops the farthest future); a cut is logged at `warn` with the user id.
 - **Reads:**
   - events: `project_events_group_occurs_idx (group_id, occurs_on, id)` with `group_id = any($ids)` and the date range, joined to `projects` by its key for the name and `status = 'active'`;
   - assigned tasks: `task_assignees_user_id_idx` → `tasks` by PK, `due_date` in range, `completed_at is null`;
-  - managed tasks: the new `tasks_group_due_open_idx`;
   - calls: `knowledge_meetings_starts_at_idx` on the window joined to `knowledge_items` by PK and filtered by group; the Teams lengths with one `in (...)` read of `teams_meeting_links` by its PK.
   - EXPLAIN checks (ADR 0040): events and tasks on the `projects` volume, calls on a new small `calendar` volume (`calendar/test-volume.ts`: 200 groups, 40 000 calls); no sequential scan of `project_events`, `tasks`, `task_assignees`, `knowledge_meetings`, `knowledge_items`.
-- **No N+1**: four statements per feed whatever its size, plus the group labels (one statement) and the Teams lengths (one).
+- **No N+1**: three statements per feed whatever its size, plus the group labels (one statement) and the Teams lengths (one).
 - **ETag.** The body is deterministic: no `METHOD`, `DTSTAMP` is each event's own `updated_at`, events sorted by (start, UID). The ETag is the first 22 base64url characters of the body's SHA-256; a poll with a matching `If-None-Match` gets 304 and no body. The database work is still done per poll (correct permissions beat a stale cache); it is bounded by the caps.
 - `last_fetched_at` is written at most once an hour per feed (a conditional update, like MCP's `last_used_at`).
 - `REFRESH-INTERVAL;VALUE=DURATION:PT1H` and `X-PUBLISHED-TTL:PT1H` ask clients to poll hourly (Apple and Outlook honour it; Google polls on its own schedule).
@@ -170,7 +164,7 @@ The new module `calendar` owns `calendar_feeds`, the routes and the feed assembl
 
 - groups: ✚ `activeGroupLabels(db, ids: string[] | 'all'): Promise<Map<string, string>>` (non-deactivated groups, id → name); `clientGroupIds`; knowledge `managedGroupIdsOf`.
 - projects: ✚ `feedEvents(db, { groupIds, from, to, limit })` in `projects/feed.ts`.
-- tasks: ✚ `feedAssignedDeadlines(db, { userId, groupIds, from, to, limit })` and ✚ `feedGroupDeadlines(db, { groupIds, from, to, limit })` in `tasks/feed.ts`.
+- tasks: ✚ `feedAssignedDeadlines(db, { userId, groupIds, from, to, limit })` in `tasks/feed.ts`.
 - knowledge: ✚ `feedCalls(db, { groupIds, adminsOnly: boolean, from, to, limit })` in `knowledge/feed.ts` (`adminsOnly` false leaves admins-only calls out in SQL).
 - teams: ✚ `meetingDurations(db, itemIds): Promise<Map<string, number>>` in `teams/service.ts`.
 - reminders: `buildIcsText` gets a sibling ✚ `buildIcsFeed({ name, events })` in `reminders/ics.ts` (shared escaping and folding; no `METHOD`, `DTSTAMP` = `updatedAt`, calendar properties, no alarms).
@@ -195,12 +189,12 @@ Only the security email of §7 (create and rotate), through the existing `sendEm
 - Server: `calendarFeed` block in `apps/server/src/infra/i18n/types.ts` and the nine `<code>.ts`: `name(userName)`, `eventSummary(project, event)`, `callSummary(title)`, `withGroup(group, summary)`, `createdEmail` (subject, lines, button). The deadline SUMMARY reuses `reminders.deadlineEvent`.
 - Wording follows `docs/design/wording.md` ("Hovor" for a call, "Termín" for a deadline, "Udalosť" for a project event).
 
-## 13. Open questions (with the recommended answer)
+## 13. Open questions (with the recommended answer; 1 is decided)
 
-1. **Admins: assigned tasks only, or all of the managed clients?** Recommended: assigned by default, the managed-clients switch off by default (§2).
+1. **Admins: assigned tasks only, or all of the managed clients?** Decided by the owner (2026-10-19): only tasks assigned to them, plus the project events and calls of their own clients; no switch (§2).
 2. **Recurring calls as RRULE?** Recommended: no, expanded occurrences (§10); revisit only if people want series beyond 60 days.
 3. **Call length without Teams?** Recommended: 60 minutes. Alternative: add a "Dĺžka" field to calls (a knowledge change, out of scope here).
 4. **Include task reminders' own times as events?** Recommended: no; they are notifications, and the one-off `.ics` export remains for them.
 5. **Email on create and rotate?** Recommended: yes (§7), as for MCP tokens.
-6. **A server-side cache of the built feed (e.g. 60 s per token)?** Recommended: not now; four indexed reads per poll and the 304 are enough for eGrant's size. Add it if the poll volume shows in the logs.
+6. **A server-side cache of the built feed (e.g. 60 s per token)?** Recommended: not now; three indexed reads per poll and the 304 are enough for eGrant's size. Add it if the poll volume shows in the logs.
 7. **One feed per person or several (one per device)?** Recommended: one; rotation covers a leaked link.
