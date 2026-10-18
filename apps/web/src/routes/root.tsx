@@ -4,10 +4,12 @@ import { AppHeader } from '@/components/app-header';
 import { BottomNav, useBottomNav } from '@/components/bottom-nav';
 import { OfflineStrip } from '@/components/offline-strip';
 import { RoutePending } from '@/components/route-pending';
+import { useFocusOnRouteChange } from '@/lib/use-focus-on-route-change';
 import { useSwNavigate } from '@/lib/use-sw-navigate';
 
 export function RootLayout() {
   useSwNavigate();
+  useFocusOnRouteChange();
   const { t } = useTranslation();
   // Phones: the bottom bar floats over the window's foot, so the page keeps its room above it.
   const bottomNav = useBottomNav();

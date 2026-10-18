@@ -4,12 +4,12 @@ import { useBackCloses } from '@/lib/use-back-closes';
 import { cn } from '@/lib/utils';
 
 /**
- * Phones: every control is at least 44 px to tap (the task panel's rule, `PanelShell` in
+ * Phones and touch screens (tablets too): every control is at least 44 px to tap (the task panel's rule, `PanelShell` in
  * `features/tasks/panel-parts.tsx`), except those that carry their own larger hit area
  * (`data-hit`), and the formatting toolbar wraps without gaps.
  */
 const PHONE_TARGETS =
-  'max-[640px]:[&_:is(button,a,select,input:not([type=checkbox],[type=radio])):not([data-hit])]:min-h-11 max-[640px]:[&_:is(button,a,select):not([data-hit])]:min-w-11 max-[640px]:[&_[role=toolbar]]:flex-wrap max-[640px]:[&_[role=toolbar]]:gap-0 max-[640px]:[&_[role=toolbar]]:px-0';
+  'touch:[&_:is(button,a,select,input:not([type=checkbox],[type=radio])):not([data-hit])]:min-h-11 touch:[&_:is(button,a,select):not([data-hit])]:min-w-11 max-[640px]:[&_[role=toolbar]]:flex-wrap max-[640px]:[&_[role=toolbar]]:gap-0 max-[640px]:[&_[role=toolbar]]:px-0';
 
 /**
  * A modal sheet: a centred 720 px dialog from 641 px (at most 880 px tall, 24 px clear of the

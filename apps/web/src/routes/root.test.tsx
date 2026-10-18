@@ -13,6 +13,7 @@ vi.mock('@/components/bottom-nav', () => ({
 vi.mock('@/components/offline-strip', () => ({ OfflineStrip: () => null }));
 vi.mock('@/components/route-pending', () => ({ RoutePending: () => null }));
 vi.mock('@/lib/use-sw-navigate', () => ({ useSwNavigate: () => undefined }));
+vi.mock('@/lib/use-focus-on-route-change', () => ({ useFocusOnRouteChange: () => undefined }));
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
 
 import { RootLayout } from './root';

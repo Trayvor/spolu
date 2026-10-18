@@ -38,7 +38,7 @@ export function PanelHeader({
         onClick={onClose}
         className={cn(
           narrow ? 'lg:hidden' : 'min-[641px]:hidden',
-          'max-[640px]:size-11 max-[640px]:px-0',
+          'touch:size-11 max-[640px]:px-0',
         )}
       >
         <BackIcon />

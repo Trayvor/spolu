@@ -93,7 +93,7 @@ export function useReactions(
 }
 
 const chip =
-  'relative inline-flex h-7 items-center gap-1 rounded-full border px-2 text-micro font-semibold tabular-nums transition-colors duration-(--duration-fast) max-[640px]:h-9 max-[640px]:px-2.5';
+  'relative inline-flex h-7 items-center gap-1 rounded-full border px-2 text-micro font-semibold tabular-nums transition-colors duration-(--duration-fast) touch:h-9 touch:px-2.5';
 
 /** Who added one emoji, loaded when the chip is hovered, focused or held. */
 function WhoReacted({ message, emoji }: { message: MessageDto; emoji: string }) {

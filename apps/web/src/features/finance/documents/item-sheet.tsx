@@ -337,7 +337,7 @@ export function ItemSheet({
             <DropdownMenu>
               <DropdownMenuTrigger
                 aria-label={k('more')}
-                className="flex size-8 shrink-0 items-center justify-center rounded-full hover:bg-accent"
+                className="flex size-8 shrink-0 items-center justify-center rounded-full hover:bg-accent touch:size-11"
               >
                 <MoreIcon />
               </DropdownMenuTrigger>
