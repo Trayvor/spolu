@@ -60,6 +60,8 @@ import { pendingEgrantChangesSql } from '../projects/egrant-match.js';
 import { noTimeEffect, type TimeEffect } from '../finance/task-time.js';
 import { onTicketAssigneesRemoved, onTicketMoved } from '../finance/ticket-time.js';
 import { ticketStatusTime } from './time.js';
+import type { AuditActor } from '../audit/actor.js';
+import { recordTicket, recordTicketCreated, recordTicketUpdate } from './audit.js';
 
 export type TicketRow = typeof tickets.$inferSelect;
 
@@ -191,6 +193,7 @@ export async function findTicketByRequestId(db: Db, requestId: string): Promise<
 export async function createTicket(
   deps: FileDeps,
   input: CreateTicketInput,
+  by?: AuditActor,
 ): Promise<{ ticket: TicketRow; notifyRequester: boolean; duplicate: boolean }> {
   const { db } = deps;
   const target = input.groupId === null ? null : await getGroup(db, input.groupId);
@@ -198,7 +201,7 @@ export async function createTicket(
   const resolved =
     input.groupId === null
       ? { userId: null, notify: false }
-      : await resolveRequester(db, input.groupId, input.requester.email, input.requester.name);
+      : await resolveRequester(db, input.groupId, input.requester.email, input.requester.name, by);
   const now = new Date();
   const ticket = await db.transaction(async (tx) => {
     const wanted = input.project ?? { projectId: null, eventId: null };
@@ -258,7 +261,11 @@ export async function createTicket(
       );
     }
     // Phase 33 part P3: the intake's `project_id` (or the programme fallback), once.
-    return input.egrantProject ? linkIntakeTicket(tx, created, input.egrantProject) : created;
+    const linked = input.egrantProject
+      ? await linkIntakeTicket(tx, created, input.egrantProject)
+      : created;
+    await recordTicketCreated(tx, by, linked);
+    return linked;
   });
   if (!ticket) {
     const existing = await findTicketByRequestId(db, input.requestId!);
@@ -588,6 +595,7 @@ export async function updateTicket(
   id: string,
   patch: TicketPatchBody,
   actor: { id: string; name: string } | null = null,
+  by?: AuditActor,
 ): Promise<
   | ({
       ticket: TicketRow;
@@ -640,6 +648,7 @@ export async function updateTicket(
       actor && fields.body !== undefined
         ? await recordTicketMentions(tx, actor, row!, before.body)
         : [];
+    await recordTicketUpdate(tx, by, before, row!);
     return { ticket: row!, statusChanged, fieldsChanged, mentionEventIds, ...effect };
   });
 }
@@ -679,6 +688,7 @@ export async function assignTicketGroup(
   db: Db,
   id: string,
   groupId: string,
+  by?: AuditActor,
 ): Promise<{ ticket: TicketRow; previousGroupId: string | null; notifyRequester: boolean } | null> {
   const before = await getTicketRow(db, id);
   if (!before) return null;
@@ -688,7 +698,13 @@ export async function assignTicketGroup(
   if (before.groupId !== null && (await countTasksFromTicket(db, id)) > 0) {
     throw new TicketHasTasksError();
   }
-  const resolved = await resolveRequester(db, groupId, before.requesterEmail, before.requesterName);
+  const resolved = await resolveRequester(
+    db,
+    groupId,
+    before.requesterEmail,
+    before.requesterName,
+    by,
+  );
   const ticket = await db.transaction(async (tx) => {
     const [row] = await tx
       .update(tickets)
@@ -710,6 +726,7 @@ export async function assignTicketGroup(
     // entries moved, so they take the new project too).
     const moved = await relinkTicket(tx, row!);
     await dropInvalidAssignees(tx, moved);
+    await recordTicketUpdate(tx, by, before, moved);
     return moved;
   });
   return {
@@ -819,7 +836,12 @@ async function assignableIds(db: Db, ticket: TicketRow, userIds: string[]): Prom
  * whether they were new. Throws `InvalidTicketAssigneeError` for someone who cannot be one or
  * when the ticket already has `MAX_TICKET_ASSIGNEES`.
  */
-export async function addAssignee(db: Db, ticket: TicketRow, userId: string): Promise<boolean> {
+export async function addAssignee(
+  db: Db,
+  ticket: TicketRow,
+  userId: string,
+  by?: AuditActor,
+): Promise<boolean> {
   if (!(await assignableIds(db, ticket, [userId])).has(userId)) {
     throw new InvalidTicketAssigneeError();
   }
@@ -837,6 +859,7 @@ export async function addAssignee(db: Db, ticket: TicketRow, userId: string): Pr
     if (current.some((r) => r.userId === userId)) return false;
     if (current.length >= MAX_TICKET_ASSIGNEES) throw new InvalidTicketAssigneeError();
     await tx.insert(ticketAssignees).values({ ticketId: ticket.id, userId });
+    await recordAssignee(tx, by, ticket, userId, 'assignee_added');
     return true;
   });
 }
@@ -845,7 +868,12 @@ export async function addAssignee(db: Db, ticket: TicketRow, userId: string): Pr
  * Removes a riešiteľ, and their unanswered time request (Phase 32; filled time stays). Answers
  * whether they were one.
  */
-export async function removeAssignee(db: Db, ticketId: string, userId: string): Promise<boolean> {
+export async function removeAssignee(
+  db: Db,
+  ticketId: string,
+  userId: string,
+  by?: AuditActor,
+): Promise<boolean> {
   return db.transaction(async (tx) => {
     const rows = await tx
       .delete(ticketAssignees)
@@ -853,6 +881,8 @@ export async function removeAssignee(db: Db, ticketId: string, userId: string): 
       .returning({ userId: ticketAssignees.userId });
     if (rows.length === 0) return false;
     await onTicketAssigneesRemoved(tx, ticketId, [userId]);
+    const ticket = await getTicketRow(tx, ticketId);
+    if (ticket) await recordAssignee(tx, by, ticket, userId, 'assignee_removed');
     return true;
   });
 }
@@ -870,4 +900,22 @@ async function dropInvalidAssignees(db: Db, ticket: TicketRow): Promise<void> {
   await db
     .delete(ticketAssignees)
     .where(and(eq(ticketAssignees.ticketId, ticket.id), inArray(ticketAssignees.userId, drop)));
+}
+
+/** A riešiteľ added or removed: the ticket's row, the person in `assignees`. */
+async function recordAssignee(
+  tx: Db,
+  by: AuditActor | undefined,
+  ticket: TicketRow,
+  userId: string,
+  action: 'assignee_added' | 'assignee_removed',
+): Promise<void> {
+  if (!by) return;
+  const person = { id: userId, label: (await getUserNames(tx, [userId])).get(userId) ?? userId };
+  await recordTicket(tx, by, ticket, action, {
+    assignees:
+      action === 'assignee_added'
+        ? { added: [person], removed: [] }
+        : { added: [], removed: [person] },
+  });
 }

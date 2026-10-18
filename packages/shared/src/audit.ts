@@ -98,10 +98,14 @@ export const AUDIT_FIELDS: {
   ticket: {
     subject: 'value',
     status: 'value',
-    priority: 'value',
+    area: 'value',
+    programme: 'value',
+    dueDate: 'value',
+    url: 'value',
+    body: 'text',
     client: 'ref',
     project: 'ref',
-    description: 'text',
+    event: 'ref',
     assignees: 'refs',
   },
   knowledge_item: {
