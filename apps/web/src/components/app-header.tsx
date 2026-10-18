@@ -1,5 +1,6 @@
 import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
+import { useBottomNavPlan } from '@/components/bottom-nav';
 import { LanguageSwitcher } from '@/components/language-switcher';
 import { NavCount } from '@/components/lazy-nav-count';
 import { navSections } from '@/components/nav-sections';
@@ -45,7 +46,9 @@ const WIDE = {
  * Where they fit (from 1280 px for an admin's seven, from 641 px for a client's one or two) the
  * sections are links, the current one on a `secondary` pill. Narrower, two or more sections fold
  * into the section menu (`SectionMenu`: a bottom sheet on phones, a panel under the pill on
- * tablets and small laptops) and a single one stays a link. Under 641 px the language menu
+ * tablets and small laptops) and a single one stays a link. On a phone the bottom bar
+ * (`BottomNav`) leads to the sections instead and the pill is hidden, except on screens without
+ * the bar (a ticket, a task panel; a requester). Under 641 px the language menu
  * moves into the account menu.
  * For admins "Tasks" and "Tickets" carry a count (my open tasks; the active tickets of my clients
  * and those without a client), hidden at 0, in the links and in the section menu.
@@ -56,6 +59,8 @@ export function AppHeader() {
   const user = useSession();
   const sections = user ? navSections(user) : [];
   const folded = sections.length > 1;
+  // Where the phone bottom bar leads to the sections, the pill would only repeat it.
+  const barOnPhone = useBottomNavPlan() !== null;
   const wide = WIDE[!isAdmin(user) ? 'other' : user?.finance ? 'finance' : 'admin'];
   return (
     <header className="mx-auto mt-[max(12px,env(safe-area-inset-top))] flex h-[54px] w-full max-w-[1600px] items-center gap-2 rounded-nav bg-background px-3 shadow-lift min-[641px]:mt-6 min-[641px]:h-16 min-[641px]:gap-3 min-[641px]:px-6">
@@ -90,7 +95,12 @@ export function AppHeader() {
               {section.count && <NavCount kind={section.count} live={section.count === 'tasks'} />}
             </Link>
           ))}
-        {folded && <SectionMenu sections={sections} className={wide.menu} />}
+        {folded && (
+          <SectionMenu
+            sections={sections}
+            className={barOnPhone ? `${wide.menu} max-[640px]:hidden` : wide.menu}
+          />
+        )}
         {user && <UserMenu user={user} />}
         <LanguageSwitcher />
       </div>

@@ -26,6 +26,11 @@ Rules that apply to the whole product: installable PWA, a nine-language interfac
   - simple, repeated patterns over clever abstractions; no framework of our own;
   - docs, ADRs and tests are kept current with every change, so the next feature starts from accurate knowledge.
 
+## Loading and offline feedback
+
+- A screen that takes longer than 150 ms to load shows a thin progress bar along the top edge; lists and the ticket page show grey skeletons instead of blank space.
+- While the browser is offline a strip says changes will not be saved until the connection is back. Nothing is queued across a reload: a failed chat message stays in the list with a retry, other writes fail with their usual error. (A persistent outbox is not built.)
+
 ## Phase
 
 Phase 1 (PWA shell, SK/EN switcher, design extraction); Phase 26 (seven more languages). Realtime applies from Phase 5 on. Nightly database backup: Phase 1. Off-site backup and file backup: Phase 16 (polish). Error monitoring: Phase 16.

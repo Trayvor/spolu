@@ -160,6 +160,8 @@ Measured on `perf/web-1` against `origin/main` at `adfbd261`, gzip -9 as in "How
 - **Debounced events.** Ticket list refetches and bulk-email refetches wait 2 s after the last event (see [realtime.md](realtime.md)).
 - **tailwind-merge stays.** It is not in the initial JS: the 8.8 kB `utils` chunk loads with the signed-in layout, in parallel with the first screen. Every screen draws `Button`, `Card` or `Input`, which merge callers' classes over their own and need it, so dropping it from the shell alone would only move the download; replacing it in the UI primitives is not worth the risk for 9 kB.
 
+- **Phone bottom bar, route pending bar and offline strip (2026-10-18, UX batches 13 and 7): initial JS 140.07 kB gzip, about +1.1 kB over the 138.93 kB above.** The eager part is `bottom-nav.tsx` and `bottom-nav-plan.ts` (the plan per role, the keyboard hook), `route-pending.tsx`, `offline-strip.tsx`, the `route-pending` keyframes and three short texts per language in the eager locale files (`nav.offline`, `nav.loading`). The bar itself is the lazy `bottom-nav-bar` chunk (3.79 kB, 1.54 kB gzip by Vite's count) with the lazy `bottomNav` and `group` namespaces; it loads only on a phone for a role that has a bar.
+
 ## Docker image
 
 The production image (root `Dockerfile`, see [overview.md](overview.md), "Production image and compose") ships the `node` binary on plain `debian:bookworm-slim`, the server's production dependencies without type definitions, source maps and docs, and the built server and web. Phase 27 (finding K1, measured 2026-10-17 on an arm64 laptop, `docker build` of one platform, `docker image ls`):

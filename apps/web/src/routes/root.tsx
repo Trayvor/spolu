@@ -1,11 +1,16 @@
 import { Outlet } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { AppHeader } from '@/components/app-header';
+import { BottomNav, useBottomNav } from '@/components/bottom-nav';
+import { OfflineStrip } from '@/components/offline-strip';
+import { RoutePending } from '@/components/route-pending';
 import { useSwNavigate } from '@/lib/use-sw-navigate';
 
 export function RootLayout() {
   useSwNavigate();
   const { t } = useTranslation();
+  // Phones: the bottom bar floats over the window's foot, so the page keeps its room above it.
+  const bottomNav = useBottomNav();
   return (
     // A column at least as tall as the window: a screen that fills the window (the chat) takes
     // the room left under the header. The bottom gap is the side gutter on phones. The app runs
@@ -24,14 +29,21 @@ export function RootLayout() {
       >
         {t('app.skipToContent')}
       </a>
+      <RoutePending />
       <AppHeader />
+      <OfflineStrip />
       <main
         id="main"
         tabIndex={-1}
-        className="mx-auto flex w-full max-w-[1600px] flex-1 flex-col pt-3 pb-[max(12px,env(safe-area-inset-bottom))] outline-none min-[641px]:pt-4 min-[641px]:pb-[max(32px,env(safe-area-inset-bottom))]"
+        className={`mx-auto flex w-full max-w-[1600px] flex-1 flex-col pt-3 outline-none min-[641px]:pt-4 min-[641px]:pb-[max(32px,env(safe-area-inset-bottom))] ${
+          bottomNav
+            ? 'pb-[calc(68px+max(12px,env(safe-area-inset-bottom)))]'
+            : 'pb-[max(12px,env(safe-area-inset-bottom))]'
+        }`}
       >
         <Outlet />
       </main>
+      <BottomNav plan={bottomNav} />
     </div>
   );
 }

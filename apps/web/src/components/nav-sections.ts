@@ -17,7 +17,11 @@ export type NavSection = {
     | '/groups'
     | '/admins'
     | '/bulk-email'
-    | '/my-groups';
+    | '/my-groups'
+    | '/groups/$groupId/overview'
+    | '/groups/$groupId/members';
+  /** Route params, for a section inside a group (a client's "More" sheet on phones). */
+  params?: { groupId: string };
   label?: string;
   name?: string;
   count?: 'tasks' | 'tickets';

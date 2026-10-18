@@ -17,7 +17,9 @@
     "myTickets": "Moji zahtevki",
     "bulkEmail": "Množična e-pošta",
     "menu": "Meni",
-    "menuCurrent": "Meni: {{name}}"
+    "menuCurrent": "Meni: {{name}}",
+    "offline": "Ste brez povezave. Spremembe se ne shranijo, dokler se ne povežete.",
+    "loading": "Nalaganje"
   },
   "user": {
     "menu": "Meni računa",

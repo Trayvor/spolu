@@ -15,6 +15,7 @@ import { ChatsCheckbox } from './chats-checkbox';
 import { Avatar } from '@/components/avatar';
 import { ClientFilter, type ClientOption, toClientOptions } from '@/components/client-filter';
 import { Card } from '@/components/ui/card';
+import { ListSkeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -375,12 +376,14 @@ export function KnowledgePage() {
           }
         />
       ) : !loaded ? (
-        <Card
+        <div
           role="status"
           aria-busy="true"
-          className="h-24 w-full animate-skeleton bg-muted"
           aria-label={t('knowledge.list.loading')}
-        />
+          className="w-full"
+        >
+          <ListSkeleton rows={4} />
+        </div>
       ) : shownClients.length === 0 ? (
         <p className="py-8 text-center text-button text-muted-foreground">
           {t('knowledge.folders.noClients')}

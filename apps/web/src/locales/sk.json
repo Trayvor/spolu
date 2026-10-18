@@ -17,7 +17,9 @@
     "myTickets": "Moje tikety",
     "bulkEmail": "Hromadné e-maily",
     "menu": "Menu",
-    "menuCurrent": "Menu: {{name}}"
+    "menuCurrent": "Menu: {{name}}",
+    "offline": "Ste offline. Zmeny sa neuložia, kým sa nepripojíte.",
+    "loading": "Načítava sa"
   },
   "user": {
     "menu": "Menu účtu",

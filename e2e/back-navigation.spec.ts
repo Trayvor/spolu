@@ -78,9 +78,9 @@ test('on a phone, Back closes the section menu and stays on the page', async ({ 
   try {
     await page.goto('/tasks');
     await page.goto('/settings');
-    const header = page.getByRole('banner');
+    const bar = page.getByRole('navigation', { name: 'Hlavná navigácia' });
     const settings = await entry();
-    await header.getByRole('button', { name: 'Menu', exact: true }).tap();
+    await bar.getByRole('button', { name: 'Viac' }).tap();
     const sheet = page.getByRole('dialog', { name: 'Menu' });
     await expect(sheet).toBeVisible();
     await expect.poll(async () => (await entry()).layer).not.toBeNull();
@@ -92,7 +92,7 @@ test('on a phone, Back closes the section menu and stays on the page', async ({ 
 
     // A row replaces the menu's own step: Back from the section returns to the page it was
     // opened on, once.
-    await header.getByRole('button', { name: 'Menu', exact: true }).tap();
+    await bar.getByRole('button', { name: 'Viac' }).tap();
     await expect.poll(async () => (await entry()).layer).not.toBeNull();
     expect((await entry()).index).toBe(settings.index! + 1);
     await sheet.getByRole('link', { name: 'Znalosti' }).tap();

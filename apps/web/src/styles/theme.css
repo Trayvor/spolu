@@ -276,6 +276,16 @@
       opacity: 0.55;
     }
   }
+  /* The route pending bar: a third-width slice sliding across the screen. */
+  --animate-route-pending: route-pending 1.1s ease-in-out infinite;
+  @keyframes route-pending {
+    from {
+      transform: translateX(-100%);
+    }
+    to {
+      transform: translateX(300%);
+    }
+  }
 }
 
 @layer base {

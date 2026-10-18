@@ -17,7 +17,9 @@
     "myTickets": "My tickets",
     "bulkEmail": "Bulk email",
     "menu": "Menu",
-    "menuCurrent": "Menu: {{name}}"
+    "menuCurrent": "Menu: {{name}}",
+    "offline": "You are offline. Changes will not be saved until you reconnect.",
+    "loading": "Loading"
   },
   "user": {
     "menu": "Account menu",
