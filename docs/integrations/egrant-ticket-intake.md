@@ -2,6 +2,8 @@
 
 For the eGrant developers who send support requests from an eGrant instance to Help by eGrant ("Help", code name Spolu, at https://help.egrant.sk). Help is the eGrant team's own app for talking to clients; every request you send becomes a **ticket** there, with its own chat between the eGrant team and the person who asked.
 
+This page is the full ticket contract. The single entry point for all eGrant webhooks (base URL, key, limits, projects, managers) is [egrant.md](egrant.md).
+
 The product rules behind this guide live in [product/tickets.md](../product/tickets.md) and [product/integrations.md](../product/integrations.md); if they ever disagree with this page, they win.
 
 ## What eGrant must send
