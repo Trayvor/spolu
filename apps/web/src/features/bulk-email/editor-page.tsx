@@ -435,7 +435,7 @@ function DraftEditor({
                 >
                   {t('bulkEmail.editor.deleteYes')}
                 </Button>
-                <Button type="button" variant="ghost" onClick={() => setConfirmDelete(false)}>
+                <Button type="button" variant="outline" onClick={() => setConfirmDelete(false)}>
                   {t('bulkEmail.editor.cancel')}
                 </Button>
               </div>

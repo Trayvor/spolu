@@ -116,16 +116,17 @@ export function EventDialog({
               <Button
                 type="button"
                 variant="ghost"
+                size="lg"
                 className="mr-auto text-error-ink"
                 onClick={() => setConfirmDelete(true)}
               >
                 {k('deleteEvent')}
               </Button>
             )}
-            <Button type="button" variant="ghost" onClick={onClose}>
+            <Button type="button" variant="outline" size="lg" onClick={onClose}>
               {k('cancel')}
             </Button>
-            <Button type="submit" disabled={busy}>
+            <Button type="submit" size="lg" disabled={busy}>
               {event ? k('save') : k('create')}
             </Button>
           </>

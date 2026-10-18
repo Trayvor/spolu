@@ -53,7 +53,7 @@ export default function EmojiPickerSheet({
                     recordEmojiUse(emoji);
                     onPick(emoji);
                   }}
-                  className="inline-flex size-11 items-center justify-center rounded-lg text-[22px] leading-none hover:bg-accent focus-visible:bg-accent"
+                  className="inline-flex size-11 items-center justify-center rounded-lg text-emoji-lg leading-none hover:bg-accent focus-visible:bg-accent"
                 >
                   {emoji}
                 </button>

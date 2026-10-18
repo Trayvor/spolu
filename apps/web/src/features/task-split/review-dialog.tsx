@@ -476,7 +476,7 @@ export function ReviewDialog({
         )}
 
         {problem && (
-          <div className="mt-4 flex flex-col items-start gap-3 rounded-lg bg-card p-4">
+          <div className="mt-4 flex flex-col items-start gap-3 rounded-xl bg-card p-4">
             <p className="text-body">{t(problemKey(problem))}</p>
             {problem === 'failed' && (
               <Button variant="outline" size="lg" onClick={retry}>

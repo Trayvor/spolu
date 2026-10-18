@@ -232,7 +232,7 @@ function TicketEditor({ ticket, onClose }: { ticket: TicketDto; onClose: () => v
         <Button type="submit" disabled={pending}>
           {t('tickets.page.save')}
         </Button>
-        <Button type="button" variant="ghost" onClick={onClose}>
+        <Button type="button" variant="outline" onClick={onClose}>
           {t('tickets.page.cancel')}
         </Button>
       </div>

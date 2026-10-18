@@ -36,7 +36,8 @@
     "find": "Otsi administraatorit",
     "allAdded": "Kõik administraatorid juba haldavad seda gruppi.",
     "noMatch": "Päringule „{{q}}“ ei vasta ükski administraator.",
-    "remove": "Eemalda {{name}}"
+    "remove": "Eemalda {{name}}",
+    "removed": "Haldurite hulgast eemaldatud: {{name}}."
   },
   "mine": {
     "title": "Minu grupid",
@@ -59,5 +60,6 @@
   },
   "adminGroup": {
     "hint": "eGranti meeskonna sisevestlus. Seda näevad ainult administraatorid."
-  }
+  },
+  "undo": "Võta tagasi"
 }

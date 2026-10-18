@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import type { GroupPerson } from '@spolu/shared';
 import { Avatar } from '@/components/avatar';
 import { cn } from '@/lib/utils';
+import { POPOVER } from '@/components/ui/popover';
 
 export type MentionChoice = { type: 'all' } | { type: 'person'; person: GroupPerson };
 
@@ -99,7 +100,8 @@ export const MentionPicker = forwardRef<MentionPickerHandle, MentionPickerProps>
         aria-label={t('chat.mention.label')}
         className={cn(
           // At most 40% of the window: with the keyboard open the card is short.
-          'absolute inset-x-0 z-10 max-h-[min(15rem,40dvh)] animate-menu-in overflow-y-auto rounded-lg border border-border bg-card py-1',
+          'absolute inset-x-0 z-10 max-h-[min(15rem,40dvh)] animate-menu-in overflow-y-auto py-1',
+          POPOVER,
           below ? 'top-full mt-1 origin-top' : 'bottom-full mb-1 origin-bottom',
         )}
       >

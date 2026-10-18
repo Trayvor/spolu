@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Toast } from '@/components/ui/toast';
 import { ApiError } from '@/lib/api';
 import { useSession } from '@/features/auth/use-session';
 import { addAdmin, adminsQuery, removeAdmin, setFinanceAccess } from './api';
@@ -176,7 +177,7 @@ function AddAdminForm({
           <Button type="submit" disabled={add.isPending}>
             {t('admins.submit')}
           </Button>
-          <Button type="button" variant="ghost" onClick={onCancel}>
+          <Button type="button" variant="outline" onClick={onCancel}>
             {t('admins.cancel')}
           </Button>
         </div>
@@ -295,20 +296,24 @@ function AdminRow({
 
 /**
  * The superadmin's "Finance" switch on an admin's row (Phase 32): grants or removes the finance
- * right at once. It shows the new state while the request runs and goes back on a failure.
+ * right at once. It shows the new state while the request runs and goes back on a failure. A
+ * change shows a toast with "Vrátiť späť" (5 s) that switches it back.
  */
 function FinanceSwitch({ admin }: { admin: Admin }) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const labelId = useId();
   const [failed, setFailed] = useState(false);
+  // The last change, offered for undo (`key` restarts the toast); null after an undo.
+  const [done, setDone] = useState<{ on: boolean; key: number } | null>(null);
   const change = useMutation({
-    mutationFn: (on: boolean) => setFinanceAccess(admin.id, on),
+    mutationFn: ({ on }: { on: boolean; undo?: boolean }) => setFinanceAccess(admin.id, on),
     onMutate: () => setFailed(false),
     onError: () => setFailed(true),
+    onSuccess: (_, { on, undo }) => setDone(undo ? null : { on, key: Date.now() }),
     onSettled: () => queryClient.invalidateQueries({ queryKey: adminsQuery.queryKey }),
   });
-  const checked = change.isPending ? change.variables : admin.finance === true;
+  const checked = change.isPending ? change.variables.on : admin.finance === true;
   return (
     <div className="flex items-center gap-3">
       <button
@@ -319,7 +324,7 @@ function FinanceSwitch({ admin }: { admin: Admin }) {
         aria-describedby={failed ? `${labelId}-error` : undefined}
         disabled={change.isPending}
         data-hit
-        onClick={() => change.mutate(!checked)}
+        onClick={() => change.mutate({ on: !checked })}
         className={cn(
           "relative h-6 w-11 shrink-0 rounded-full border-2 transition-colors duration-(--duration-fast) before:absolute before:-inset-x-0.5 before:-inset-y-2.5 before:content-[''] disabled:cursor-wait",
           checked ? 'border-foreground bg-foreground' : 'border-input bg-card',
@@ -341,6 +346,19 @@ function FinanceSwitch({ admin }: { admin: Admin }) {
         <span id={`${labelId}-error`} role="alert" className="text-micro text-error-ink">
           {t('admins.finance.failed')}
         </span>
+      )}
+      {done && (
+        <Toast
+          key={done.key}
+          duration={5000}
+          onClose={() => setDone(null)}
+          action={{
+            label: t('admins.undo'),
+            onAction: () => change.mutate({ on: !done.on, undo: true }),
+          }}
+        >
+          {t(done.on ? 'admins.finance.granted' : 'admins.finance.revoked', { name: admin.name })}
+        </Toast>
       )}
     </div>
   );

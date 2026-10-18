@@ -292,6 +292,22 @@ describe('the Finance switch (Phase 32)', () => {
     await waitFor(() => expect(calls('DELETE', '/api/admins/a2/finance-access')).toHaveLength(1));
   });
 
+  it('a change offers Undo, which switches it back', async () => {
+    const { calls } = mockSuperadmin();
+    const user = renderAdmins();
+    await screen.findByText('Peter Horváth');
+    const peter = within(rowOf('Peter Horváth')).getByRole('switch');
+    await user.click(peter);
+    expect(
+      await screen.findByText(t('admins.finance.revoked', { name: 'Peter Horváth' })),
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: t('admins.undo') }));
+    await waitFor(() => expect(calls('PUT', '/api/admins/a2/finance-access')).toHaveLength(1));
+    await waitFor(() => expect(peter).toHaveAttribute('aria-checked', 'true'));
+    // The undo itself is not offered for undo again.
+    expect(screen.queryByRole('button', { name: t('admins.undo') })).toBeNull();
+  });
+
   it('a failed change says so and the switch goes back', async () => {
     mockSuperadmin(true);
     const user = renderAdmins();

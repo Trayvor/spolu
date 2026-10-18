@@ -200,7 +200,7 @@ export function RecordingSection({
       </div>
       {confirmDelete && (
         <PanelNotice text={t('knowledge.meeting.recording.deleteConfirm')}>
-          <Button variant="ghost" onClick={() => setConfirmDelete(false)}>
+          <Button variant="outline" onClick={() => setConfirmDelete(false)}>
             {t('knowledge.detail.cancel')}
           </Button>
           <Button variant="destructive" onClick={() => void remove()}>
@@ -599,7 +599,7 @@ export function SummarySection({
       </div>
       {confirmAgain && (
         <PanelNotice text={t('knowledge.meeting.ai.againConfirm')}>
-          <Button variant="ghost" onClick={() => setConfirmAgain(false)}>
+          <Button variant="outline" onClick={() => setConfirmAgain(false)}>
             {t('knowledge.detail.cancel')}
           </Button>
           <Button onClick={() => void start()}>{t('knowledge.meeting.ai.processAgain')}</Button>

@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { peopleSearchQuery } from './api';
 import { useDebounced } from './parts';
+import { POPOVER } from '@/components/ui/popover';
 
 /**
  * Hand-picked people: chips of the chosen ones (names from `known`, the email while unknown)
@@ -77,10 +78,7 @@ export function PersonPicker({
         <p className="text-micro text-muted-foreground">{t('bulkEmail.picker.none')}</p>
       )}
       {searching && offered.length > 0 && (
-        <ul
-          role="list"
-          className="flex max-h-[240px] flex-col overflow-y-auto rounded-md border-2 border-border bg-card"
-        >
+        <ul role="list" className={`flex max-h-[240px] flex-col overflow-y-auto ${POPOVER}`}>
           {offered.map((person) => (
             <li
               key={person.id}

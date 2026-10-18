@@ -20,6 +20,9 @@
   "finance": {
     "label": "Finance",
     "labelFor": "Dostop do financ: {{name}}",
-    "failed": "Spremembe ni bilo mogoče shraniti. Poskusite znova."
-  }
+    "failed": "Spremembe ni bilo mogoče shraniti. Poskusite znova.",
+    "granted": "Dostop do financ dodeljen: {{name}}.",
+    "revoked": "Dostop do financ odvzet: {{name}}."
+  },
+  "undo": "Razveljavi"
 }

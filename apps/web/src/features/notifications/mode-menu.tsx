@@ -11,6 +11,7 @@ import {
 import { cn } from '@/lib/utils';
 import { BellAtIcon, BellIcon, BellOffIcon } from './icons';
 import { useGroupMode } from './use-modes';
+import { ErrorBubble } from '@/components/ui/error-bubble';
 
 const ICONS: Record<GroupMode | 'mixed', () => ReactNode> = {
   all: BellIcon,
@@ -123,14 +124,7 @@ export function GroupBell({
         note={managed ? t('notifications.mode.managerNote') : undefined}
         defaultOpen={defaultOpen}
       />
-      {isError && (
-        <p
-          role="alert"
-          className="absolute top-full right-0 z-10 mt-2 w-max max-w-[240px] rounded-lg bg-card p-3 text-micro text-error-ink shadow-lift"
-        >
-          {t('errors.generic')}
-        </p>
-      )}
+      {isError && <ErrorBubble>{t('errors.generic')}</ErrorBubble>}
     </div>
   );
 }

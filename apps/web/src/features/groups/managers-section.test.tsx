@@ -157,6 +157,23 @@ describe('ManagersSection', () => {
     );
   });
 
+  it('a removal shows a toast whose Undo adds the manager back', async () => {
+    const user = userEvent.setup();
+    const calls = await renderSection(PEOPLE, ADMIN);
+    await user.click(screen.getByRole('button', { name: 'Remove Mira Kováčová' }));
+    await waitFor(() =>
+      expect(screen.getByRole('status')).toHaveTextContent('Removed from managers: Mira Kováčová.'),
+    );
+    await user.click(screen.getByRole('button', { name: 'Undo' }));
+    await waitFor(() =>
+      expect(writes(calls)).toEqual([
+        { method: 'DELETE', url: '/api/groups/g1/managers/m1' },
+        { method: 'PUT', url: '/api/groups/g1/managers/m1' },
+      ]),
+    );
+    expect(screen.queryByRole('button', { name: 'Undo' })).toBeNull();
+  });
+
   it('a failed change shows the error', async () => {
     const user = userEvent.setup();
     await renderSection(PEOPLE, ADMIN, 500);

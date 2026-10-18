@@ -36,7 +36,8 @@
     "find": "Trova un amministratore",
     "allAdded": "Tutti gli amministratori gestiscono già questo gruppo.",
     "noMatch": "Nessun amministratore corrisponde a “{{q}}”.",
-    "remove": "Rimuovi {{name}}"
+    "remove": "Rimuovi {{name}}",
+    "removed": "Rimosso dai responsabili: {{name}}."
   },
   "mine": {
     "title": "I miei gruppi",
@@ -59,5 +60,6 @@
   },
   "adminGroup": {
     "hint": "La chat interna del team eGrant. La vedono solo gli amministratori."
-  }
+  },
+  "undo": "Annulla"
 }

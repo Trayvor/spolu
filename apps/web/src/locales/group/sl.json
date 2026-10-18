@@ -47,6 +47,8 @@
   "requesters": {
     "title": "Prijavitelji",
     "hint": "Osebe, ki so prijavile zahtevke za to stranko. Vidijo samo svoje zahtevke, nikoli skupine.",
-    "removedTitle": "Odstranjeni prijavitelji ({{count}})"
+    "removedTitle": "Odstranjeni prijavitelji ({{count}})",
+    "removed": "Odstranjeno med prijavitelji: {{name}}.",
+    "restored": "Obnovljeno med prijavitelji: {{name}}."
   }
 }

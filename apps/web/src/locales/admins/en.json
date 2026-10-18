@@ -20,6 +20,9 @@
   "finance": {
     "label": "Finance",
     "labelFor": "Finance access for {{name}}",
-    "failed": "Could not change it. Try again."
-  }
+    "failed": "Could not change it. Try again.",
+    "granted": "Finance access granted: {{name}}.",
+    "revoked": "Finance access removed: {{name}}."
+  },
+  "undo": "Undo"
 }

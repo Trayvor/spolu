@@ -139,7 +139,7 @@ export function ReviewCardView({
     return (
       <article
         aria-label={title}
-        className={cn('rounded-lg bg-card p-4 ring-2 ring-foreground', edge)}
+        className={cn('rounded-xl bg-card p-4 ring-2 ring-foreground', edge)}
       >
         {expanded}
         <div className="mt-5 flex flex-wrap items-center justify-between gap-2 border-t-2 border-border pt-4">
@@ -168,7 +168,7 @@ export function ReviewCardView({
   const files = card.files.filter((f) => card.draft.fileIds.includes(f.id));
 
   return (
-    <article aria-labelledby={titleId} className={cn('rounded-lg bg-card', edge)}>
+    <article aria-labelledby={titleId} className={cn('rounded-xl bg-card', edge)}>
       <button
         ref={target}
         type="button"

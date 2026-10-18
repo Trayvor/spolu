@@ -17,6 +17,7 @@ import {
 import { SUPPORTED_LANGUAGES } from '@/i18n/languages';
 import { signOut } from './api';
 import { clearSession } from './use-session';
+import { ErrorBubble } from '@/components/ui/error-bubble';
 
 /**
  * The account menu (lazy, see `UserMenu`): open on mount, as it mounts on the first click of its
@@ -73,14 +74,7 @@ export function AccountMenu({ user, trigger }: { user: Me } & DeferredMenuProps)
           <DropdownMenuItem onSelect={() => logout.mutate()}>{t('user.logout')}</DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-      {logout.isError && (
-        <p
-          role="alert"
-          className="absolute top-full right-0 z-10 mt-2 w-max max-w-[240px] animate-fade-in rounded-lg bg-card p-3 text-micro text-error-ink shadow-lift"
-        >
-          {t('errors.generic')}
-        </p>
-      )}
+      {logout.isError && <ErrorBubble>{t('errors.generic')}</ErrorBubble>}
       {language.failed && <LanguageFailedToast onClose={language.dismiss} />}
     </div>
   );

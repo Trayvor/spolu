@@ -1,8 +1,10 @@
+import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Avatar } from '@/components/avatar';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { Toast } from '@/components/ui/toast';
 import { isAdmin } from '@/features/auth/roles';
 import { useSession } from '@/features/auth/use-session';
 import { AddManagerMenu } from './add-manager-menu';
@@ -15,20 +17,28 @@ const ROW =
 
 /**
  * The group's eGrant managers, above the members on the Members tab. Admins add any active admin
- * ("+ Add manager") and remove any manager here, without a confirmation (adding back is one
- * click). Clients only read the list.
+ * ("+ Add manager") and remove any manager here, without a confirmation: a removal shows a toast
+ * "<name> už nie je manažérom" with "Vrátiť späť" (5 s), which adds the manager back (the server
+ * restores the notification mode that becoming manager wrote). Clients only read the list.
  */
 export function ManagersSection({ groupId }: { groupId: string }) {
   const { t } = useTranslation();
   const admin = isAdmin(useSession());
   const queryClient = useQueryClient();
   const { data: people } = useGroupPeople(groupId);
+  // The last removal, offered for undo; `key` restarts the toast for a second removal.
+  const [removed, setRemoved] = useState<{ userId: string; name: string; key: number } | null>(
+    null,
+  );
   const change = useMutation({
-    mutationFn: ({ userId, add }: { userId: string; add: boolean }) =>
+    mutationFn: ({ userId, add }: { userId: string; add: boolean; name: string }) =>
       add ? setManager(groupId, userId) : unsetManager(groupId, userId),
-    // The people (who is a manager) and the Groups page's avatars. The socket event refreshes
-    // other screens, and the viewer's own modes when they removed themselves.
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['groups'] }),
+    onSuccess: (_, { userId, add, name }) => {
+      setRemoved(add ? null : { userId, name, key: Date.now() });
+      // The people (who is a manager) and the Groups page's avatars. The socket event refreshes
+      // other screens, and the viewer's own modes when they removed themselves.
+      return queryClient.invalidateQueries({ queryKey: ['groups'] });
+    },
   });
   if (!people) return null;
   const managers = people.filter((p) => p.isManager);
@@ -44,7 +54,7 @@ export function ManagersSection({ groupId }: { groupId: string }) {
           <AddManagerMenu
             people={people}
             disabled={change.isPending}
-            onPick={(userId) => change.mutate({ userId, add: true })}
+            onPick={(userId) => change.mutate({ userId, add: true, name: '' })}
           />
         )}
       </div>
@@ -63,7 +73,9 @@ export function ManagersSection({ groupId }: { groupId: string }) {
                     size="sm"
                     disabled={change.isPending}
                     aria-label={t('groups.managers.remove', { name: manager.name })}
-                    onClick={() => change.mutate({ userId: manager.id, add: false })}
+                    onClick={() =>
+                      change.mutate({ userId: manager.id, add: false, name: manager.name })
+                    }
                   >
                     {t('group.members.remove')}
                   </Button>
@@ -77,6 +89,19 @@ export function ManagersSection({ groupId }: { groupId: string }) {
         <p role="alert" className="text-micro text-error-ink">
           {t('groups.managers.error')}
         </p>
+      )}
+      {removed && (
+        <Toast
+          key={removed.key}
+          duration={5000}
+          onClose={() => setRemoved(null)}
+          action={{
+            label: t('groups.undo'),
+            onAction: () => change.mutate({ userId: removed.userId, add: true, name: '' }),
+          }}
+        >
+          {t('groups.managers.removed', { name: removed.name })}
+        </Toast>
       )}
     </section>
   );

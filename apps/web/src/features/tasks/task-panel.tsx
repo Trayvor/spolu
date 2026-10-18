@@ -498,7 +498,7 @@ function TaskEditor({
             <Button size="sm" variant="destructive" disabled={busy} onClick={() => void remove()}>
               {t('tasks.panel.delete')}
             </Button>
-            <Button size="sm" variant="outline" onClick={() => setConfirmDelete(false)}>
+            <Button size="sm" variant="ghost" onClick={() => setConfirmDelete(false)}>
               {t('tasks.panel.cancel')}
             </Button>
           </PanelNotice>

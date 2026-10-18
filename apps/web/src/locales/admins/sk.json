@@ -20,6 +20,9 @@
   "finance": {
     "label": "Financie",
     "labelFor": "Prístup k financiám: {{name}}",
-    "failed": "Nepodarilo sa to zmeniť. Skúste to znova."
-  }
+    "failed": "Nepodarilo sa to zmeniť. Skúste to znova.",
+    "granted": "Prístup k financiám udelený: {{name}}.",
+    "revoked": "Prístup k financiám odobratý: {{name}}."
+  },
+  "undo": "Vrátiť späť"
 }

@@ -1,8 +1,10 @@
+import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import type { Member } from '@spolu/shared';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { Toast } from '@/components/ui/toast';
 import { removeMember, requestersQuery, restoreMember } from './api';
 
 const ROW =
@@ -22,19 +24,35 @@ function Who({ member }: { member: Member }) {
 /**
  * "Requesters" (Phase 21): the people who reported tickets for this client without being its
  * clients (`ziadatel` members); they see only their own tickets. Below the members, in the same
- * row pattern; admins remove (at once, it is undone with Restore) and restore them. Nothing
- * shows while there are none.
+ * row pattern; admins remove and restore them at once, and each change shows a toast with
+ * "Vrátiť späť" (5 s) that does the opposite. Nothing shows while there are none.
  */
 export function RequestersList({ groupId, admin }: { groupId: string; admin: boolean }) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const active = useQuery(requestersQuery(groupId)).data;
   const removed = useQuery({ ...requestersQuery(groupId, true), enabled: admin }).data;
+  // The last change, offered for undo; `key` restarts the toast for the next one.
+  const [done, setDone] = useState<{
+    userId: string;
+    name: string;
+    restore: boolean;
+    key: number;
+  } | null>(null);
   const change = useMutation({
-    mutationFn: ({ userId, restore }: { userId: string; restore: boolean }) =>
+    mutationFn: ({ userId, restore }: { userId: string; restore: boolean; name: string }) =>
       restore ? restoreMember(groupId, userId) : removeMember(groupId, userId),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['groups', groupId] }),
+    onSuccess: (_, { userId, restore, name }) => {
+      setDone({ userId, name, restore, key: Date.now() });
+      return queryClient.invalidateQueries({ queryKey: ['groups', groupId] });
+    },
   });
+  const undo = (last: NonNullable<typeof done>) =>
+    change.mutate(
+      { userId: last.userId, restore: !last.restore, name: last.name },
+      // An undone change is not offered for undo again.
+      { onSuccess: () => setDone(null) },
+    );
 
   if ((active?.length ?? 0) === 0 && (removed?.length ?? 0) === 0) return null;
   return (
@@ -56,7 +74,13 @@ export function RequestersList({ groupId, admin }: { groupId: string; admin: boo
                     variant="ghost"
                     size="sm"
                     disabled={change.isPending}
-                    onClick={() => change.mutate({ userId: member.id, restore: false })}
+                    onClick={() =>
+                      change.mutate({
+                        userId: member.id,
+                        restore: false,
+                        name: member.name || member.email,
+                      })
+                    }
                   >
                     {t('group.members.remove')}
                   </Button>
@@ -80,7 +104,13 @@ export function RequestersList({ groupId, admin }: { groupId: string; admin: boo
                     variant="ghost"
                     size="sm"
                     disabled={change.isPending}
-                    onClick={() => change.mutate({ userId: member.id, restore: true })}
+                    onClick={() =>
+                      change.mutate({
+                        userId: member.id,
+                        restore: true,
+                        name: member.name || member.email,
+                      })
+                    }
                   >
                     {t('group.members.restore')}
                   </Button>
@@ -94,6 +124,18 @@ export function RequestersList({ groupId, admin }: { groupId: string; admin: boo
         <p role="alert" className="text-micro text-error-ink">
           {t('errors.generic')}
         </p>
+      )}
+      {done && (
+        <Toast
+          key={done.key}
+          duration={5000}
+          onClose={() => setDone(null)}
+          action={{ label: t('groups.undo'), onAction: () => undo(done) }}
+        >
+          {t(done.restore ? 'group.requesters.restored' : 'group.requesters.removed', {
+            name: done.name,
+          })}
+        </Toast>
       )}
     </section>
   );
