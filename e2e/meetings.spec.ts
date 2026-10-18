@@ -102,9 +102,10 @@ test('a meeting: recording, AI summary, tasks from its action items, the dashboa
   expect((await mode('all')).status()).toBe(204);
 });
 
-test('the profile lists the Meetings notification group', async ({ page }) => {
-  await page.goto('/settings');
-  await expect(page.getByRole('combobox', { name: 'Stretnutia' })).toHaveValue(
+test('the notification settings list the Meetings notification group', async ({ page }) => {
+  await page.goto('/settings/notifications');
+  // Exact: the client table below names groups like "E2E Stretnutia …" too.
+  await expect(page.getByRole('combobox', { name: 'Stretnutia', exact: true })).toHaveValue(
     /^(push|email|both|none)$/,
   );
   await expect(

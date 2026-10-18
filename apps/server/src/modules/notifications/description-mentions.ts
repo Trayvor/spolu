@@ -3,7 +3,7 @@ import { extractMentions, isPickable, type SessionUser } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
 import { listGroupPeople } from '../groups/service.js';
 import { descriptionMentionNotifiesSql } from './follows.js';
-import { recordNotifications } from './service.js';
+import { recordManyNotifications } from './service.js';
 
 /**
  * The Mentions card's description mentions (2026-10-18), as an SQL fragment for the home's one
@@ -77,9 +77,10 @@ function payloadOf(subject: DescriptionSubject, groupId: string, actorName: stri
  * field) records `description.mention` for each person newly named, like a chat mention: only
  * the group's clients and managers (`isPickable`, the picker's list), never the actor, only
  * admins in an admins-only subject, and only those `readers` keeps (a ticket drops who cannot
- * read it). `@all` notifies nobody in a description. A person is notified once per subject
- * (`dedupeKey`, review V10): naming them again after removing them sends nothing, until the
- * first event is purged after 30 days. Call it in the write's transaction and
+ * read it). `@all` notifies nobody in a description. A person is notified at most once until they
+ * open the subject (`dedupeKey` with their last open from `task_seen`, `ticket_seen`,
+ * `project_seen` or `knowledge_seen`; review V10, 2026-10-19): naming them again after removing
+ * them sends nothing, a mention after they opened it notifies again. Call it in the write's transaction and
  * `requestDelivery` the returned ids after the commit.
  */
 export async function recordDescriptionMentions(
@@ -103,13 +104,45 @@ export async function recordDescriptionMentions(
   let recipients = named.filter((id) => allowed.has(id));
   if (input.readers && recipients.length > 0) recipients = await input.readers(recipients);
   if (recipients.length === 0) return [];
-  return recordNotifications(tx, {
-    kind: 'description.mention',
-    groupId: input.groupId,
-    recipients,
-    payload: payloadOf(input.subject, input.groupId, input.actor.name),
-    // Once per subject and person: removing a name and adding it back notifies nobody again
-    // while the first event is kept (events are purged after 30 days).
-    dedupeKey: `description:${input.subject.kind}:${input.subject.id}`,
-  });
+  // Once until they open the subject: the key carries their last open of it, so removing a name
+  // and adding it back notifies nobody again, and a mention after an open does (events are
+  // purged after 30 days). One primary key lookup per recipient, in one statement.
+  const seen = await lastSeen(tx, input.subject.kind, input.subject.id, recipients);
+  const payload = payloadOf(input.subject, input.groupId, input.actor.name);
+  return recordManyNotifications(
+    tx,
+    recipients.map((id) => ({
+      kind: 'description.mention' as const,
+      groupId: input.groupId,
+      recipients: [id],
+      payload,
+      dedupeKey: `description:${input.subject.kind}:${input.subject.id}:${seen.get(id) ?? 'never'}`,
+    })),
+  );
+}
+
+const SEEN_TABLES = {
+  task: { table: 'task_seen', column: 'task_id' },
+  ticket: { table: 'ticket_seen', column: 'ticket_id' },
+  project: { table: 'project_seen', column: 'project_id' },
+  knowledge: { table: 'knowledge_seen', column: 'item_id' },
+} as const;
+
+/** When each of `userIds` last opened the subject (`seen_at` as text), for those who did. */
+async function lastSeen(
+  tx: Db,
+  kind: DescriptionSubject['kind'],
+  subjectId: string,
+  userIds: string[],
+): Promise<Map<string, string>> {
+  const { table, column } = SEEN_TABLES[kind];
+  const rows = await tx.execute<{ user_id: string; seen_at: string }>(sql`
+    select s.user_id, s.seen_at::text as seen_at from ${sql.identifier(table)} s
+    where s.${sql.identifier(column)} = ${subjectId}
+      and s.user_id in (${sql.join(
+        userIds.map((id) => sql`${id}`),
+        sql`, `,
+      )})
+  `);
+  return new Map([...rows].map((r) => [r.user_id, r.seen_at]));
 }
