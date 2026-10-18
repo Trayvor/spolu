@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useInfiniteQuery } from '@tanstack/react-query';
+import { useSearch } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import type { ProjectListItem, ProjectStatus } from '@spolu/shared';
 import { Badge } from '@/components/ui/badge';
@@ -27,7 +28,9 @@ export function ProjectsCard({ groupId }: { groupId: string }) {
   const status = saved ?? 'active';
   const setStatus = (next: ProjectStatus) => setSaved(next === 'active' ? null : next);
   const [creating, setCreating] = useState(false);
-  const [openId, setOpenId] = useState<string | null>(null);
+  // `?sheet=<id>` opens that project's sheet (the ticket page's "Review", part P3).
+  const search: { sheet?: string } = useSearch({ strict: false });
+  const [openId, setOpenId] = useState<string | null>(search.sheet ?? null);
   const query = useInfiniteQuery(projectsPageQuery(groupId, status));
   const items = query.data?.pages.flatMap((page) => page.items) ?? [];
   const k = (key: string) => t(`projects.card.${key}`);

@@ -206,10 +206,12 @@ const groupOverviewRoute = createRoute({
   // F15: `?event=` opens one event's sheet (an event reminder's notification).
   validateSearch: (
     search: Record<string, unknown>,
-  ): { project?: string; task?: string; event?: string } => ({
+  ): { project?: string; task?: string; event?: string; sheet?: string } => ({
     project: text(search.project),
     task: text(search.task),
     event: text(search.event),
+    // Part P3: `?sheet=<id>` opens a project's sheet (a ticket's "Review" of eGrant changes).
+    sheet: text(search.sheet)?.slice(0, 100),
   }),
   component: lazyRouteComponent(
     // `chat` and `forms`: the dialogs' description field, files and sheet header.

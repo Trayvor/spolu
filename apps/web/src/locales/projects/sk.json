@@ -141,5 +141,44 @@
       "in_progress": "V riešení",
       "resolved": "Vyriešený"
     }
+  },
+  "egrant": {
+    "title": "Zmeny z eGrantu ({{count}})",
+    "hint": "Každú zmenu prijmite alebo zamietnite a potom uložte výber. Riadky, ktoré nezmeníte, zostanú čakať.",
+    "kinds": {
+      "projectName": "Názov projektu",
+      "projectDescription": "Popis projektu",
+      "eventName": "{{event}}: názov",
+      "eventDate": "{{event}}: dátum",
+      "eventDescription": "{{event}}: popis",
+      "eventAdd": "Nová udalosť",
+      "eventRemove": "Udalosť chýba v eGrante"
+    },
+    "current": "Teraz:",
+    "incoming": "Z eGrantu:",
+    "empty": "(prázdne)",
+    "maybeSame": "Možno ide o tú istú udalosť ako {{name}}, {{date}}.",
+    "accept": "Prijať",
+    "dismiss": "Zamietnuť",
+    "received": "Prijaté {{date}}",
+    "save": "Uložiť výber",
+    "cancel": "Zrušiť",
+    "confirmRemove": "Prijaté odstránenia zmažú ich udalosti. Ich úlohy a tikety zostanú v projekte, bez udalosti.",
+    "outdated": "eGrant medzitým poslal novšie zmeny. Skontrolujte riadky znova.",
+    "nameTaken": "Iný projekt tohto klienta už má nový názov.",
+    "failed": "Uloženie zlyhalo. Skúste to znova.",
+    "eventMark": "Zmena z eGrantu"
+  },
+  "merge": {
+    "action": "Zlúčiť do…",
+    "title": "Zlúčiť {{name}} do iného projektu",
+    "into": "Do projektu",
+    "choose": "Vyberte projekt",
+    "archivedOption": "{{name}} (archivovaný)",
+    "none": "Tento klient nemá iný projekt.",
+    "confirm": "Všetko z {{from}} sa presunie do {{into}}: udalosti ({{events}}), otvorené úlohy ({{tasks}}) a tikety ({{tickets}}), súbory, názvy a ID z eGrantu. Potom sa {{from}} zmaže.",
+    "submit": "Zlúčiť",
+    "cancel": "Zrušiť",
+    "failed": "Zlúčenie zlyhalo. Skúste to znova."
   }
 }

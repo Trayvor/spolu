@@ -117,6 +117,7 @@ const TICKET_ITEM = {
   project: null,
   event: null,
   unseen: null,
+  egrantChanges: false,
 };
 const TICKET = {
   ...TICKET_ITEM,
@@ -138,6 +139,9 @@ const TICKET = {
   ],
   channelId: 'c3',
   canAssign: true,
+  egrantProjectId: null,
+  waitingForProject: false,
+  projectArchived: false,
 };
 const PAGE = { messages: [MESSAGE], hasMore: false, lastSeq: 1, lastReadAt: null };
 

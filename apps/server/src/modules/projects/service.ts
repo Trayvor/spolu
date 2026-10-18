@@ -328,7 +328,7 @@ export async function getEvent(db: Db, id: string): Promise<ProjectEventDto> {
  * Gives the project the name key (under `lockGroupProjects`): kept when it is the project's own
  * already, refused with the other project's name when another project of the client holds it.
  */
-async function claimNameKey(
+export async function claimNameKey(
   tx: Db,
   groupId: string,
   projectId: string,

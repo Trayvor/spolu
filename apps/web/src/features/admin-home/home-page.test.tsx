@@ -35,6 +35,7 @@ const t = (key: string, options?: Record<string, unknown>) => i18n.t(key, option
 
 const task = (over: Partial<AssignedTask> & { id: string; title: string }): AssignedTask => ({
   unseen: null,
+  egrantChanges: false,
   groupId: 'g1',
   groupName: 'ABC s.r.o.',
   urgent: false,

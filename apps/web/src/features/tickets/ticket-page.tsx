@@ -19,6 +19,7 @@ import { NotFoundPage } from '@/routes/not-found';
 import { ticketQuery } from './api';
 import { ChevronDown, ChevronLeft } from './icons';
 import { TicketChat } from './ticket-chat';
+import { TicketEgrantNotes } from './ticket-egrant';
 import { StatusControl, TicketFields } from './ticket-fields';
 import { TicketAssignees } from './ticket-assignees';
 import { TicketTasks } from './ticket-tasks';
@@ -209,6 +210,8 @@ function TicketDetails({ ticket, me }: { ticket: TicketDto; me: Me }) {
   const { t } = useTranslation();
   return (
     <>
+      {/* Phase 33 part P3: the eGrant project's state, for admins and the group's clients. */}
+      <TicketEgrantNotes ticket={ticket} />
       <TicketFields ticket={ticket} editable={isAdmin(me)} />
       <Section>
         <TicketAssignees ticket={ticket} />

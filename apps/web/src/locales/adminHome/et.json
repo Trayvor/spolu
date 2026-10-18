@@ -40,7 +40,8 @@
       "new": "Uus",
       "noClient": "Kliendita",
       "showAll": "Näita kõiki pöördumisi",
-      "empty": "Midagi lahendada pole: pole avatud pöördumisi, mis on Teile määratud, jälgitavatel klientidel lahendajata või kliendita."
+      "empty": "Midagi lahendada pole: pole avatud pöördumisi, mis on Teile määratud, jälgitavatel klientidel lahendajata või kliendita.",
+      "egrantChange": "eGranti muudatus"
     },
     "assigned": {
       "title": "Minu ülesanded",

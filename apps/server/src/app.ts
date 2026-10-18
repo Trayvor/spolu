@@ -45,6 +45,7 @@ import { mcpTransportRoutes } from './modules/mcp/transport.js';
 import { notificationsRoutes } from './modules/notifications/routes.js';
 import { projectsRoutes } from './modules/projects/routes.js';
 import { timelineRoutes } from './modules/projects/timeline-routes.js';
+import { egrantProjectRoutes } from './modules/projects/egrant-routes.js';
 import { attachRemindersRealtime } from './modules/reminders/realtime.js';
 import { remindersRoutes } from './modules/reminders/routes.js';
 import { countUpcomingForUser, listUpcomingForUser } from './modules/reminders/service.js';
@@ -142,6 +143,7 @@ export async function buildApp(
   await app.register(projectsRoutes, { prefix: '/api', deps });
   // Phase 33 part P4: the timeline and the overview's active cards.
   await app.register(timelineRoutes, { prefix: '/api', deps });
+  await app.register(egrantProjectRoutes, { prefix: '/api', deps }); // part P3
   // Knowledge writes and reminder subscription changes share one limit: 120 a minute per user.
   const allowKnowledgeWrite = createRateLimiter({ windowMs: 60_000, max: 120 });
   await app.register(knowledgeRoutes, { prefix: '/api', deps, allowWrite: allowKnowledgeWrite });

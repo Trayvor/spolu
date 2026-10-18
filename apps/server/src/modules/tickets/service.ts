@@ -50,6 +50,13 @@ import {
 import { resolveRequester } from './requester.js';
 import { ticketAssignees, ticketAttachments, tickets } from './schema.js';
 import { forProjectReader, ticketProjectFilter } from './project-links.js';
+import {
+  linkIntakeTicket,
+  relinkTicket,
+  ticketEgrantFields,
+  type IntakeProjectLink,
+} from './egrant-link.js';
+import { pendingEgrantChangesSql } from '../projects/egrant-match.js';
 import { noTimeEffect, type TimeEffect } from '../finance/task-time.js';
 import { onTicketAssigneesRemoved, onTicketMoved } from '../finance/ticket-time.js';
 import { ticketStatusTime } from './time.js';
@@ -164,6 +171,8 @@ export type CreateTicketInput = {
   knowledgeIds?: string[];
   /** The project and event (Phase 33 part P2; the manual form only, needs `groupId`). */
   project?: { projectId: string | null; eventId: string | null };
+  /** The intake's project link (Phase 33 part P3): eGrant's `project_id`, or the fallback. */
+  egrantProject?: IntakeProjectLink;
 };
 
 /** The ticket the intake already made for `requestId`, if any. */
@@ -248,7 +257,8 @@ export async function createTicket(
         input.knowledgeIds,
       );
     }
-    return created;
+    // Phase 33 part P3: the intake's `project_id` (or the programme fallback), once.
+    return input.egrantProject ? linkIntakeTicket(tx, created, input.egrantProject) : created;
   });
   if (!ticket) {
     const existing = await findTicketByRequestId(db, input.requestId!);
@@ -334,8 +344,8 @@ async function toTicketDto(
   seesTasks: boolean,
   canAssign = false,
 ): Promise<TicketDto> {
-  const [groupName, taskList, channel, files, assignees, linkedKnowledge, refs] = await Promise.all(
-    [
+  const [groupName, taskList, channel, files, assignees, linkedKnowledge, refs, egrant] =
+    await Promise.all([
       groupNameOf(db, row.groupId),
       seesTasks ? listTasksFromTicket(db, row.id) : countTasksFromTicket(db, row.id),
       getTicketChannel(db, row.id),
@@ -343,8 +353,8 @@ async function toTicketDto(
       assigneesOf(db, [row.id]),
       linkedCardsOf(db, 'ticket', row.id, row.groupId),
       projectRefs(db, [row]),
-    ],
-  );
+      ticketEgrantFields(db, row, seesTasks),
+    ]);
   const project = forProjectReader(refs.project(row.projectId), refs.event(row.eventId), seesTasks);
   const taskCount = typeof taskList === 'number' ? taskList : taskList.length;
   return {
@@ -379,6 +389,8 @@ async function toTicketDto(
     canAssign,
     ...project,
     linkedKnowledge,
+    // Phase 33 part P3: admins and the group's clients only (those who see its tasks).
+    ...egrant,
   };
 }
 
@@ -482,6 +494,13 @@ export async function listTickets(
           ),
     );
   }
+  // Phase 33 part P3: eGrant changes are for admins and the group's clients only; the filter
+  // would tell anyone else which tickets have them (400 `invalid_filter`).
+  const seesEgrant = isAdmin(actor) || (source.kind === 'group' && source.role === 'client');
+  if (query.egrant === 'pending') {
+    if (!seesEgrant) throw new InvalidTicketCursorError();
+    where.push(pendingEgrantChangesSql(tickets.projectId));
+  }
   if (query.cursor) {
     const c = decodeCursor(query.cursor);
     where.push(
@@ -510,6 +529,7 @@ export async function listTickets(
       // 2026-10-17: a change the viewer has not seen. An expensive expression: PostgreSQL
       // evaluates it after the sort and the limit, for the page only.
       unseen: ticketUnseenSql(actor.id, sql`${tickets.id}`),
+      egrantChanges: pendingEgrantChangesSql(tickets.projectId),
     })
     .from(tickets)
     .leftJoin(groups, eq(groups.id, tickets.groupId))
@@ -528,6 +548,7 @@ export async function listTickets(
   return {
     items: page.map(({ projectId, eventId, ...r }) => ({
       ...r,
+      egrantChanges: seesEgrant && r.egrantChanges,
       createdAt: r.createdAt.toISOString(),
       assignees: assignees.get(r.id) ?? [],
       ...forProjectReader(refs.project(projectId), refs.event(eventId), seesProject(r.groupId)),
@@ -681,7 +702,8 @@ export async function assignTicketGroup(
       })
       .where(eq(tickets.id, id))
       .returning();
-    const moved = row!;
+    // Phase 33 part P3: eGrant's raw `project_id` is matched in the new client.
+    const moved = await relinkTicket(tx, row!);
     // The ticket's files (form or intake) belong to its client, like its chat's files.
     await moveFilesToGroup(tx, await attachmentIds(tx, id), groupId);
     // Its time entries (Phase 32) belong to its client too.

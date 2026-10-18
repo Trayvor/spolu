@@ -127,5 +127,44 @@
       "in_progress": "Töös",
       "resolved": "Lahendatud"
     }
+  },
+  "egrant": {
+    "title": "Muudatused eGrantist ({{count}})",
+    "hint": "Võtke iga muudatus vastu või lükake tagasi, seejärel salvestage valikud. Puutumata read jäävad ootele.",
+    "kinds": {
+      "projectName": "Projekti nimi",
+      "projectDescription": "Projekti kirjeldus",
+      "eventName": "{{event}}: nimi",
+      "eventDate": "{{event}}: kuupäev",
+      "eventDescription": "{{event}}: kirjeldus",
+      "eventAdd": "Uus sündmus",
+      "eventRemove": "Sündmus puudub eGrantis"
+    },
+    "current": "Praegu:",
+    "incoming": "eGrantist:",
+    "empty": "(tühi)",
+    "maybeSame": "Võib-olla sama sündmus kui {{name}}, {{date}}.",
+    "accept": "Võta vastu",
+    "dismiss": "Lükka tagasi",
+    "received": "Saabunud {{date}}",
+    "save": "Salvesta valikud",
+    "cancel": "Tühista",
+    "confirmRemove": "Vastu võetud eemaldamised kustutavad oma sündmused. Nende ülesanded ja piletid jäävad projekti, ilma sündmuseta.",
+    "outdated": "eGrant saatis vahepeal uuemad muudatused. Kontrollige ridu uuesti.",
+    "nameTaken": "Selle kliendi teisel projektil on juba uus nimi.",
+    "failed": "Salvestamine ebaõnnestus. Proovige uuesti.",
+    "eventMark": "eGranti muudatus"
+  },
+  "merge": {
+    "action": "Ühenda projekti…",
+    "title": "Ühenda {{name}} teise projektiga",
+    "into": "Projekti",
+    "choose": "Valige projekt",
+    "archivedOption": "{{name}} (arhiveeritud)",
+    "none": "Sellel kliendil pole teist projekti.",
+    "confirm": "Kõik projektist {{from}} liigub projekti {{into}}: sündmused ({{events}}), avatud ülesanded ({{tasks}}) ja piletid ({{tickets}}), failid, nimed ja eGranti ID-d. Seejärel {{from}} kustutatakse.",
+    "submit": "Ühenda",
+    "cancel": "Tühista",
+    "failed": "Ühendamine ebaõnnestus. Proovige uuesti."
   }
 }

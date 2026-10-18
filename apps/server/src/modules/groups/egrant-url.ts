@@ -19,3 +19,11 @@ export function normalizeEgrantUrl(input: string): string | null {
 /** A bare host (`mesto-x.egrant.sk`) from an eGrant webhook is read as `https://<host>`. */
 export const egrantInstanceUrl = (instance: string): string =>
   /^[a-z][a-z0-9+.-]*:\/\//i.test(instance) ? instance : `https://${instance}`;
+/**
+ * The host an eGrant URL names, as tickets and projects match a client by it: no scheme, no
+ * leading `www.`, lower-case. Null for anything that is not an http(s) URL.
+ */
+export function egrantHostOf(input: string): string | null {
+  const normalized = normalizeEgrantUrl(input);
+  return normalized === null ? null : new URL(normalized).host.replace(/^www\./, '');
+}

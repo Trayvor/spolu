@@ -127,5 +127,44 @@
       "in_progress": "In progress",
       "resolved": "Resolved"
     }
+  },
+  "egrant": {
+    "title": "Changes from eGrant ({{count}})",
+    "hint": "Accept or dismiss each change, then save your choices. Rows you leave alone stay pending.",
+    "kinds": {
+      "projectName": "Project name",
+      "projectDescription": "Project description",
+      "eventName": "{{event}}: name",
+      "eventDate": "{{event}}: date",
+      "eventDescription": "{{event}}: description",
+      "eventAdd": "New event",
+      "eventRemove": "Event missing in eGrant"
+    },
+    "current": "Now:",
+    "incoming": "From eGrant:",
+    "empty": "(empty)",
+    "maybeSame": "Maybe the same event as {{name}}, {{date}}.",
+    "accept": "Accept",
+    "dismiss": "Dismiss",
+    "received": "Received {{date}}",
+    "save": "Save choices",
+    "cancel": "Cancel",
+    "confirmRemove": "Accepted removals delete their events. Their tasks and tickets stay in the project, without the event.",
+    "outdated": "eGrant sent newer changes in the meantime. Check the rows again.",
+    "nameTaken": "Another project of this client already has the new name.",
+    "failed": "Saving failed. Try again.",
+    "eventMark": "eGrant change"
+  },
+  "merge": {
+    "action": "Merge into…",
+    "title": "Merge {{name}} into another project",
+    "into": "Into project",
+    "choose": "Choose a project",
+    "archivedOption": "{{name}} (archived)",
+    "none": "This client has no other project.",
+    "confirm": "Everything of {{from}} moves into {{into}}: events ({{events}}), open tasks ({{tasks}}) and tickets ({{tickets}}), files, names and eGrant IDs. Then {{from}} is deleted.",
+    "submit": "Merge",
+    "cancel": "Cancel",
+    "failed": "Merging failed. Try again."
   }
 }

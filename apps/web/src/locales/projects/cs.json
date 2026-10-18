@@ -141,5 +141,44 @@
       "in_progress": "Řeší se",
       "resolved": "Vyřešený"
     }
+  },
+  "egrant": {
+    "title": "Změny z eGrantu ({{count}})",
+    "hint": "Každou změnu přijměte nebo zamítněte a pak uložte výběr. Řádky, které nezměníte, zůstanou čekat.",
+    "kinds": {
+      "projectName": "Název projektu",
+      "projectDescription": "Popis projektu",
+      "eventName": "{{event}}: název",
+      "eventDate": "{{event}}: datum",
+      "eventDescription": "{{event}}: popis",
+      "eventAdd": "Nová událost",
+      "eventRemove": "Událost chybí v eGrantu"
+    },
+    "current": "Nyní:",
+    "incoming": "Z eGrantu:",
+    "empty": "(prázdné)",
+    "maybeSame": "Možná jde o stejnou událost jako {{name}}, {{date}}.",
+    "accept": "Přijmout",
+    "dismiss": "Zamítnout",
+    "received": "Přijato {{date}}",
+    "save": "Uložit výběr",
+    "cancel": "Zrušit",
+    "confirmRemove": "Přijatá odstranění smažou své události. Jejich úkoly a tikety zůstanou v projektu, bez události.",
+    "outdated": "eGrant mezitím poslal novější změny. Zkontrolujte řádky znovu.",
+    "nameTaken": "Jiný projekt tohoto klienta už má nový název.",
+    "failed": "Uložení se nezdařilo. Zkuste to znovu.",
+    "eventMark": "Změna z eGrantu"
+  },
+  "merge": {
+    "action": "Sloučit do…",
+    "title": "Sloučit {{name}} do jiného projektu",
+    "into": "Do projektu",
+    "choose": "Vyberte projekt",
+    "archivedOption": "{{name}} (archivovaný)",
+    "none": "Tento klient nemá jiný projekt.",
+    "confirm": "Vše z {{from}} se přesune do {{into}}: události ({{events}}), otevřené úkoly ({{tasks}}) a tikety ({{tickets}}), soubory, názvy a ID z eGrantu. Pak se {{from}} smaže.",
+    "submit": "Sloučit",
+    "cancel": "Zrušit",
+    "failed": "Sloučení se nezdařilo. Zkuste to znovu."
   }
 }

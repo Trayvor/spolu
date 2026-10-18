@@ -27,7 +27,8 @@
     "anyProject": "Ükskõik milline",
     "noProject": "Projektita",
     "noEvent": "Sündmuseta",
-    "noProjects": "Kliendil pole veel projekte"
+    "noProjects": "Kliendil pole veel projekte",
+    "egrant": "eGranti muudatused"
   },
   "list": {
     "loading": "Pöördumiste laadimine…",
@@ -41,7 +42,8 @@
     "overdue": "Tähtaeg ületatud alates",
     "noSubject": "Teemata",
     "noClient": "Kliendita",
-    "assignees": "Lahendajad: {{names}}"
+    "assignees": "Lahendajad: {{names}}",
+    "egrantChange": "eGranti muudatus"
   },
   "mine": {
     "title": "Minu pöördumised",
@@ -130,5 +132,14 @@
     "noEvent": "Sündmuseta",
     "archived": "{{name}} (arhiveeritud)",
     "invalid": "See projekt või sündmus ei kuulu pöördumise kliendile. Valige muu."
+  },
+  "egrant": {
+    "raw": "eGranti projekt: {{id}}",
+    "waiting": "eGranti projekt {{id}} pole veel saabunud.",
+    "changes": "Selle pileti projektil on muudatusi eGrantist.",
+    "review": "Vaata üle",
+    "archived": "Selle pileti projekt on arhiveeritud.",
+    "moveRematch": "Projekt ja sündmus jäävad praeguse kliendi juurde. eGranti projekti {{id}} otsitakse uuesti uue kliendi juurest.",
+    "moveClears": "Projekt ja sündmus jäävad praeguse kliendi juurde: pilet liigub ilma nendeta."
   }
 }

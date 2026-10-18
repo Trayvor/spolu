@@ -27,7 +27,8 @@
     "anyProject": "Kateri koli",
     "noProject": "Brez projekta",
     "noEvent": "Brez dogodka",
-    "noProjects": "Stranka še nima projektov"
+    "noProjects": "Stranka še nima projektov",
+    "egrant": "Spremembe iz eGranta"
   },
   "list": {
     "loading": "Nalaganje zahtevkov…",
@@ -41,7 +42,8 @@
     "overdue": "Zamuda od",
     "noSubject": "Brez zadeve",
     "noClient": "Brez stranke",
-    "assignees": "Reševalci: {{names}}"
+    "assignees": "Reševalci: {{names}}",
+    "egrantChange": "Sprememba iz eGranta"
   },
   "mine": {
     "title": "Moji zahtevki",
@@ -132,5 +134,14 @@
     "noEvent": "Brez dogodka",
     "archived": "{{name}} (arhiviran)",
     "invalid": "Ta projekt ali dogodek ne pripada stranki zahtevka. Izberite drugega."
+  },
+  "egrant": {
+    "raw": "Projekt v eGrantu: {{id}}",
+    "waiting": "Projekt {{id}} iz eGranta še ni prispel.",
+    "changes": "Projekt tega zahtevka ima spremembe iz eGranta.",
+    "review": "Preglej",
+    "archived": "Projekt tega zahtevka je arhiviran.",
+    "moveRematch": "Projekt in dogodek ostaneta pri trenutni stranki. Projekt {{id}} iz eGranta se znova poišče pri novi stranki.",
+    "moveClears": "Projekt in dogodek ostaneta pri trenutni stranki: zahtevek se premakne brez njiju."
   }
 }

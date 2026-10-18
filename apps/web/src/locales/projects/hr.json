@@ -134,5 +134,44 @@
       "in_progress": "U obradi",
       "resolved": "Riješen"
     }
+  },
+  "egrant": {
+    "title": "Promjene iz eGranta ({{count}})",
+    "hint": "Prihvatite ili odbijte svaku promjenu, zatim spremite izbor. Retci koje ne dirate ostaju na čekanju.",
+    "kinds": {
+      "projectName": "Naziv projekta",
+      "projectDescription": "Opis projekta",
+      "eventName": "{{event}}: naziv",
+      "eventDate": "{{event}}: datum",
+      "eventDescription": "{{event}}: opis",
+      "eventAdd": "Novi događaj",
+      "eventRemove": "Događaj nedostaje u eGrantu"
+    },
+    "current": "Sada:",
+    "incoming": "Iz eGranta:",
+    "empty": "(prazno)",
+    "maybeSame": "Možda isti događaj kao {{name}}, {{date}}.",
+    "accept": "Prihvati",
+    "dismiss": "Odbij",
+    "received": "Primljeno {{date}}",
+    "save": "Spremi izbor",
+    "cancel": "Odustani",
+    "confirmRemove": "Prihvaćena uklanjanja brišu svoje događaje. Njihovi zadaci i tiketi ostaju u projektu, bez događaja.",
+    "outdated": "eGrant je u međuvremenu poslao novije promjene. Ponovno provjerite retke.",
+    "nameTaken": "Drugi projekt ovog klijenta već ima novi naziv.",
+    "failed": "Spremanje nije uspjelo. Pokušajte ponovno.",
+    "eventMark": "Promjena iz eGranta"
+  },
+  "merge": {
+    "action": "Spoji u…",
+    "title": "Spoji {{name}} u drugi projekt",
+    "into": "U projekt",
+    "choose": "Odaberite projekt",
+    "archivedOption": "{{name}} (arhiviran)",
+    "none": "Ovaj klijent nema drugi projekt.",
+    "confirm": "Sve iz {{from}} prelazi u {{into}}: događaji ({{events}}), otvoreni zadaci ({{tasks}}) i tiketi ({{tickets}}), datoteke, nazivi i ID-ovi iz eGranta. Zatim se {{from}} briše.",
+    "submit": "Spoji",
+    "cancel": "Odustani",
+    "failed": "Spajanje nije uspjelo. Pokušajte ponovno."
   }
 }

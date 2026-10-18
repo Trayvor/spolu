@@ -45,7 +45,8 @@
       "new": "Novi",
       "noClient": "Bez klijenta",
       "showAll": "Prikaži sve tikete",
-      "empty": "Nema ništa za rješavanje: nemate otvorenih tiketa, kod praćenih klijenata nema tiketa bez rješavatelja i nema tiketa bez klijenta."
+      "empty": "Nema ništa za rješavanje: nemate otvorenih tiketa, kod praćenih klijenata nema tiketa bez rješavatelja i nema tiketa bez klijenta.",
+      "egrantChange": "Promjena iz eGranta"
     },
     "assigned": {
       "title": "Moji zadaci",

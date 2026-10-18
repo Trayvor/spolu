@@ -4,6 +4,7 @@ import { FileInfoSchema, isStrictBase64 } from './files.js';
 import { KnowledgeIdsSchema, LinkedKnowledgeSchema } from './knowledge-links.js';
 import { EventRefSchema, ProjectRefSchema } from './projects/common.js';
 import { projectFilterFields } from './projects/filters.js';
+import { EgrantProjectIdField } from './projects/intake.js';
 import { isHttpUrl } from './urls.js';
 import { UnseenMarkSchema } from './unseen-mark.js';
 
@@ -141,6 +142,8 @@ export const TicketIntakeBodySchema = z
       .max(TICKET_LIMITS.requestId)
       .nullish()
       .transform((v) => v ?? null),
+    /** eGrant's id of the project (Phase 33 part P3); empty or missing = no project. */
+    project_id: EgrantProjectIdField,
   })
   .refine(hasContent, { message: 'subject, body or area is required' });
 export type TicketIntakeBody = z.infer<typeof TicketIntakeBodySchema>;
@@ -260,6 +263,16 @@ export const TicketDtoSchema = z.object({
   event: EventRefSchema.nullable(),
   /** Knowledge attached to the text (Phase 33 part P5); a moved ticket's show as unavailable. */
   linkedKnowledge: LinkedKnowledgeSchema,
+  /**
+   * The eGrant link (Phase 33 part P3), for admins and the group's clients only (a žiadateľ gets
+   * null and false): the raw `project_id` eGrant sent, whether the ticket waits for that project
+   * (it has not arrived in the ticket's client yet), whether its project has pending changes
+   * from eGrant, and whether its project is archived (the "archived project" hint).
+   */
+  egrantProjectId: z.string().nullable(),
+  waitingForProject: z.boolean(),
+  egrantChanges: z.boolean(),
+  projectArchived: z.boolean(),
 });
 export type TicketDto = z.infer<typeof TicketDtoSchema>;
 
@@ -282,6 +295,8 @@ export const TicketListItemSchema = TicketDtoSchema.pick({
   excerpt: z.string().nullable(),
   /** The ticket has a change the viewer has not seen yet (2026-10-17): how it is marked (2026-10-18). */
   unseen: UnseenMarkSchema.nullable(),
+  /** Its project has pending changes from eGrant (part P3); false for a žiadateľ. */
+  egrantChanges: z.boolean(),
 });
 export type TicketListItem = z.infer<typeof TicketListItemSchema>;
 
@@ -325,6 +340,11 @@ export const TicketListQuerySchema = z.object({
    * global list takes `project` only with exactly one client in `clients`, never `event`.
    */
   ...projectFilterFields,
+  /**
+   * `pending`: only tickets whose project has pending changes from eGrant (Phase 33 part P3).
+   * For admins and the group's clients; anyone else gets 400 `invalid_filter`.
+   */
+  egrant: z.enum(['pending']).optional(),
 });
 export type TicketListQuery = z.infer<typeof TicketListQuerySchema>;
 

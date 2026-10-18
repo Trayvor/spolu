@@ -27,7 +27,8 @@
     "anyProject": "Bilo koji",
     "noProject": "Bez projekta",
     "noEvent": "Bez događaja",
-    "noProjects": "Klijent još nema projekata"
+    "noProjects": "Klijent još nema projekata",
+    "egrant": "Promjene iz eGranta"
   },
   "list": {
     "loading": "Učitavaju se tiketi…",
@@ -41,7 +42,8 @@
     "overdue": "Rok istekao",
     "noSubject": "Bez predmeta",
     "noClient": "Bez klijenta",
-    "assignees": "Rješavatelji: {{names}}"
+    "assignees": "Rješavatelji: {{names}}",
+    "egrantChange": "Promjena iz eGranta"
   },
   "mine": {
     "title": "Moji tiketi",
@@ -131,5 +133,14 @@
     "noEvent": "Bez događaja",
     "archived": "{{name}} (arhiviran)",
     "invalid": "Ovaj projekt ili događaj ne pripada klijentu tiketa. Odaberite drugi."
+  },
+  "egrant": {
+    "raw": "Projekt u eGrantu: {{id}}",
+    "waiting": "Projekt {{id}} iz eGranta još nije stigao.",
+    "changes": "Projekt ovog tiketa ima promjene iz eGranta.",
+    "review": "Pregledaj",
+    "archived": "Projekt ovog tiketa je arhiviran.",
+    "moveRematch": "Projekt i događaj ostaju kod sadašnjeg klijenta. Projekt {{id}} iz eGranta ponovno se traži kod novog klijenta.",
+    "moveClears": "Projekt i događaj ostaju kod sadašnjeg klijenta: tiket se premješta bez njih."
   }
 }

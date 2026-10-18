@@ -386,6 +386,12 @@ function TicketRow({ ticket, today }: { ticket: HomeTicket; today: string }) {
       >
         {ticket.subject ?? ticket.excerpt ?? ''}
       </span>
+      {/* Phase 33 part P3: its project has pending changes from eGrant. */}
+      {ticket.egrantChanges && (
+        <Badge variant="outline" className="hidden min-[641px]:inline-flex">
+          {t('adminHome.cards.tickets.egrantChange')}
+        </Badge>
+      )}
       <span className="hidden max-w-[40%] truncate text-micro text-muted-foreground min-[641px]:inline">
         {ticket.groupName ?? t('adminHome.cards.tickets.noClient')}
       </span>
@@ -423,6 +429,11 @@ function TicketDetail({ ticket, today }: { ticket: HomeTicket; today: string }) 
           <span key="client" className="truncate">
             {ticket.groupName ?? t('adminHome.cards.tickets.noClient')}
           </span>,
+          ticket.egrantChanges && (
+            <span key="egrant" className="font-semibold text-foreground">
+              {t('adminHome.cards.tickets.egrantChange')}
+            </span>
+          ),
           ticket.dueDate !== null && (
             <span
               key="due"

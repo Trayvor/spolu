@@ -141,5 +141,44 @@
       "in_progress": "V obdelavi",
       "resolved": "Rešen"
     }
+  },
+  "egrant": {
+    "title": "Spremembe iz eGranta ({{count}})",
+    "hint": "Vsako spremembo sprejmite ali zavrnite, nato shranite izbiro. Vrstice, ki jih pustite, ostanejo na čakanju.",
+    "kinds": {
+      "projectName": "Ime projekta",
+      "projectDescription": "Opis projekta",
+      "eventName": "{{event}}: ime",
+      "eventDate": "{{event}}: datum",
+      "eventDescription": "{{event}}: opis",
+      "eventAdd": "Nov dogodek",
+      "eventRemove": "Dogodka ni več v eGrantu"
+    },
+    "current": "Zdaj:",
+    "incoming": "Iz eGranta:",
+    "empty": "(prazno)",
+    "maybeSame": "Morda isti dogodek kot {{name}}, {{date}}.",
+    "accept": "Sprejmi",
+    "dismiss": "Zavrni",
+    "received": "Prejeto {{date}}",
+    "save": "Shrani izbiro",
+    "cancel": "Prekliči",
+    "confirmRemove": "Sprejete odstranitve izbrišejo svoje dogodke. Njihove naloge in zahtevki ostanejo v projektu, brez dogodka.",
+    "outdated": "eGrant je medtem poslal novejše spremembe. Znova preverite vrstice.",
+    "nameTaken": "Drug projekt te stranke že ima novo ime.",
+    "failed": "Shranjevanje ni uspelo. Poskusite znova.",
+    "eventMark": "Sprememba iz eGranta"
+  },
+  "merge": {
+    "action": "Združi v …",
+    "title": "Združi {{name}} v drug projekt",
+    "into": "V projekt",
+    "choose": "Izberite projekt",
+    "archivedOption": "{{name}} (arhiviran)",
+    "none": "Ta stranka nima drugega projekta.",
+    "confirm": "Vse iz {{from}} se premakne v {{into}}: dogodki ({{events}}), odprte naloge ({{tasks}}) in zahtevki ({{tickets}}), datoteke, imena in ID-ji iz eGranta. Nato se {{from}} izbriše.",
+    "submit": "Združi",
+    "cancel": "Prekliči",
+    "failed": "Združevanje ni uspelo. Poskusite znova."
   }
 }

@@ -176,6 +176,7 @@ function GlobalTickets() {
         }
         disabled={!loaded}
         projectScope={oneClient ? { groupId: oneClient, events: false } : undefined}
+        egrantFilter
       />
       {creating && (
         <NewTicketDialog admin onClose={() => setCreating(false)} onCreated={openTicket} />
@@ -212,6 +213,7 @@ export function TicketsTab() {
         onFilterChange={setFilter}
         // A requester cannot read the client's projects: no project pills for them.
         projectScope={canCreate ? { groupId, events: true } : undefined}
+        egrantFilter={canCreate}
       />
       {creating && (
         <NewTicketDialog
