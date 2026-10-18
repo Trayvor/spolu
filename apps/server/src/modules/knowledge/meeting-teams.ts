@@ -20,6 +20,9 @@ export type MeetingForTeams = {
   meetingUrl: string | null;
   /** The item's last change (the public `.ics` SEQUENCE). */
   updatedAt: Date;
+  /** Recurring calls (ADR 0049): the call's series and place in it; null for a single call. */
+  seriesId: string | null;
+  seriesIndex: number | null;
 };
 
 /** The meeting's fields the Teams side needs, or null (no such meeting). No access check. */
@@ -32,6 +35,8 @@ export async function getMeetingForTeams(db: Db, itemId: string): Promise<Meetin
       updatedAt: knowledgeItems.updatedAt,
       startsAt: knowledgeMeetings.startsAt,
       meetingUrl: knowledgeMeetings.meetingUrl,
+      seriesId: knowledgeMeetings.seriesId,
+      seriesIndex: knowledgeMeetings.seriesIndex,
     })
     .from(knowledgeMeetings)
     .innerJoin(knowledgeItems, eq(knowledgeItems.id, knowledgeMeetings.itemId))

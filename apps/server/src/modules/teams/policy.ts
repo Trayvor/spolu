@@ -26,6 +26,17 @@ export function canLinkTeamsMeeting(
   return canUseTeams(actor, context.configured) && context.canEditItem && !context.linked;
 }
 
+/**
+ * Recurring calls (ADR 0049): "also for the following calls" of a create, and "Stop for the
+ * following calls": admins who edit a call of a series, while Teams is configured.
+ */
+export function canPlanTeamsSeries(
+  actor: SessionUser,
+  context: { configured: boolean; canEditItem: boolean; inSeries: boolean },
+): boolean {
+  return canUseTeams(actor, context.configured) && context.canEditItem && context.inSeries;
+}
+
 /** "Check now", "Replace with the Teams transcript" and "Disconnect": admins who edit it. */
 export function canManageTeamsLink(
   actor: SessionUser,

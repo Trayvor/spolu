@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import type {
   SessionUser,
   TeamsCreateBody,
@@ -19,7 +19,7 @@ import {
 } from '../knowledge/meeting-teams.js';
 import { KnowledgeForbiddenError, KnowledgeNotFoundError } from '../knowledge/errors.js';
 import { getUserById, userEmails } from '../users/service.js';
-import { canLinkTeamsMeeting, canManageTeamsLink } from './policy.js';
+import { canLinkTeamsMeeting, canManageTeamsLink, canPlanTeamsSeries } from './policy.js';
 import { calendarToken, calendarTokenHash, newCalendarNonce } from './calendar-token.js';
 import {
   TeamsInvalidLinkError,
@@ -35,7 +35,7 @@ import { GraphError, type GraphOnlineMeeting, type TeamsGraph } from './graph-cl
 import { parseTeamsLink } from './links.js';
 import { knownOrganizers, organizerOf, type Organizer } from './organizers.js';
 import { nextPollAt } from './schedule.js';
-import { teamsMeetingLinks } from './schema.js';
+import { teamsMeetingLinks, teamsSeriesPlans } from './schema.js';
 
 // Teams T1: create a Teams meeting for a knowledge meeting item, connect a pasted link, show
 // and drop the connection. The item stays the user-facing object (owner answer 6).
@@ -97,9 +97,28 @@ export async function teamsState(
   actor: SessionUser,
   itemId: string,
 ): Promise<TeamsMeetingState> {
-  await meetingForTeamsAction(deps.db, actor, itemId);
+  const meeting = await meetingForTeamsAction(deps.db, actor, itemId);
   const row = await getLink(deps.db, itemId);
-  return { link: row ? toTeamsLink(deps.config, row) : null };
+  const state: TeamsMeetingState = { link: row ? toTeamsLink(deps.config, row) : null };
+  // Recurring calls (ADR 0049): only a call of a series has the series part.
+  if (meeting.seriesId !== null) {
+    const plan = await getSeriesPlan(deps.db, meeting.seriesId);
+    state.series = {
+      planned: plan !== null,
+      organizerName: plan?.organizerName ?? null,
+      lastError: plan?.lastError ?? null,
+    };
+  }
+  return state;
+}
+
+/** The Teams plan of a series, or null. */
+export async function getSeriesPlan(db: Db, seriesId: string) {
+  const [row] = await db
+    .select()
+    .from(teamsSeriesPlans)
+    .where(eq(teamsSeriesPlans.seriesId, seriesId));
+  return row ?? null;
 }
 
 /**
@@ -201,12 +220,89 @@ export async function createTeamsMeeting(
   body: TeamsCreateBody,
   now: Date = new Date(),
 ): Promise<TeamsMeetingState> {
-  const { db, config, graph } = deps;
+  const { db, config } = deps;
   const meeting = await meetingForTeamsAction(db, actor, itemId);
   await ensureCanLink(deps, actor, itemId);
+  const following = body.following && meeting.seriesId !== null && meeting.seriesIndex !== null;
+  if (
+    following &&
+    !canPlanTeamsSeries(actor, {
+      configured: config.teams !== null,
+      canEditItem: true,
+      inSeries: true,
+    })
+  ) {
+    throw new KnowledgeForbiddenError();
+  }
   const organizer = await actorOrganizer(deps, actor);
-  const language = (await getUserById(db, actor.id))?.language ?? 'sk';
   const nonce = newCalendarNonce();
+  const row = await createHelpEvent(
+    deps,
+    {
+      meeting,
+      organizer: {
+        userId: actor.id,
+        entraUserId: organizer.entraUserId,
+        name: organizer.displayName ?? actor.name,
+      },
+      settings: body,
+      nonce,
+      transactionId: `${itemId}-${nonce}`,
+      createdBy: actor.id,
+    },
+    now,
+  );
+  // Another admin connected it meanwhile; the event stays in this organizer's Outlook.
+  if (!row) await insertConflict(db, itemId);
+  if (following) {
+    // ADR 0049: the later calls of the series get theirs from the Teams series job.
+    const plan = {
+      organizerUserId: actor.id,
+      organizerEntraId: organizer.entraUserId,
+      organizerName: organizer.displayName ?? actor.name,
+      durationMinutes: body.durationMinutes,
+      recordAutomatically: body.recordAutomatically,
+      attendees: body.attendees,
+      nextIndex: meeting.seriesIndex! + 1,
+      lastError: null,
+    };
+    await db
+      .insert(teamsSeriesPlans)
+      .values({ seriesId: meeting.seriesId!, ...plan })
+      .onConflictDoUpdate({
+        target: teamsSeriesPlans.seriesId,
+        set: { ...plan, updatedAt: sql`now()` },
+      });
+  }
+  return teamsState(deps, actor, itemId);
+}
+
+/** The settings of a Help-made Teams meeting (the create dialog's, or a series plan's). */
+type EventSettings = Pick<TeamsCreateBody, 'durationMinutes' | 'attendees' | 'recordAutomatically'>;
+
+/**
+ * Creates the Outlook event with Teams for `meeting` in the organizer's calendar and stores the
+ * link; the join URL becomes the meeting's link. Null when the meeting got a Teams meeting
+ * meanwhile (nothing stored). `transactionId` makes Graph answer a retried create with the
+ * same event; the series job passes a fixed one and a fixed nonce per call, so a run that
+ * failed after Graph's answer converges on one event.
+ */
+export async function createHelpEvent(
+  deps: TeamsDeps,
+  args: {
+    meeting: MeetingForTeams;
+    organizer: { userId: string; entraUserId: string; name: string | null };
+    settings: EventSettings;
+    nonce: string;
+    transactionId: string;
+    createdBy: string;
+  },
+  now: Date = new Date(),
+): Promise<LinkRow | null> {
+  const { db, config, graph } = deps;
+  const { meeting, organizer, settings: body, nonce } = args;
+  const itemId = meeting.itemId;
+  const language = (await getUserById(db, organizer.userId))?.language ?? 'sk';
   const calendarUrl = invitationUrl(config, { itemId, calendarNonce: nonce })!;
   const attendees = [...new Map(body.attendees.map((a) => [a.email, a])).values()];
   const end = new Date(meeting.startsAt.getTime() + body.durationMinutes * 60_000);
@@ -221,7 +317,7 @@ export async function createTeamsMeeting(
       start: meeting.startsAt,
       end,
       attendees,
-      transactionId: `${itemId}-${nonce}`.slice(0, 120),
+      transactionId: args.transactionId.slice(0, 120),
     });
   } catch (error) {
     organizerFailure(error);
@@ -254,9 +350,9 @@ export async function createTeamsMeeting(
     .values({
       itemId,
       origin: 'help',
-      organizerUserId: actor.id,
+      organizerUserId: organizer.userId,
       organizerEntraId: organizer.entraUserId,
-      organizerName: organizer.displayName ?? actor.name,
+      organizerName: organizer.name,
       onlineMeetingId: online?.id ?? null,
       joinUrl: event.joinUrl,
       eventId: event.id,
@@ -269,14 +365,29 @@ export async function createTeamsMeeting(
       lastError,
       calendarNonce: nonce,
       calendarTokenHash: calendarTokenHash(calendarToken(config.appSecret, itemId, nonce)),
-      createdBy: actor.id,
+      createdBy: args.createdBy,
     })
     .onConflictDoNothing()
     .returning();
-  // Another admin connected it meanwhile; the event stays in this organizer's Outlook.
-  if (inserted.length === 0) await insertConflict(db, itemId);
+  if (inserted.length === 0) return null;
   await setMeetingUrlFromTeams(db, itemId, event.joinUrl);
-  return { link: toTeamsLink(config, inserted[0]!) };
+  return inserted[0]!;
+}
+
+/**
+ * "Stop for the following calls" (ADR 0049): the Teams series job creates no more Teams
+ * meetings for the call's series. The ones made stay (each call keeps its own).
+ */
+export async function stopTeamsSeries(
+  deps: TeamsDeps,
+  actor: SessionUser,
+  itemId: string,
+): Promise<void> {
+  const meeting = await meetingForTeamsAction(deps.db, actor, itemId);
+  if (meeting.seriesId === null) throw new KnowledgeNotFoundError();
+  const context = { configured: deps.config.teams !== null, canEditItem: true, inSeries: true };
+  if (!canPlanTeamsSeries(actor, context)) throw new KnowledgeForbiddenError();
+  await deps.db.delete(teamsSeriesPlans).where(eq(teamsSeriesPlans.seriesId, meeting.seriesId));
 }
 
 /** Graph's meeting length in minutes, when it states a sensible one. */

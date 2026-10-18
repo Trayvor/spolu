@@ -230,7 +230,7 @@ describe('KnowledgeDialog', () => {
     await user.click(
       within(bar as HTMLElement).getByRole('button', { name: t('knowledge.detail.delete') }),
     );
-    expect(deleteKnowledge).toHaveBeenCalledWith('k1');
+    expect(deleteKnowledge).toHaveBeenCalledWith('k1', 'this');
     await waitFor(() => expect(onClose).toHaveBeenCalled());
   });
 

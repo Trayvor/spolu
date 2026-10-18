@@ -265,12 +265,46 @@
     },
     "row": {
       "processing": "Obrađuje se",
-      "summary": "Sažetak"
+      "summary": "Sažetak",
+      "recurring": "Ponavlja se"
     },
     "transcriptFromTeams": "iz Teamsa",
     "transcriptAdminsOnly": "Ovaj transkript i njegov sažetak vide samo administratori dok ih ne podijelite s klijentom.",
     "shareTranscript": "Podijeli s klijentom",
-    "shareFailed": "Dijeljenje nije uspjelo. Pokušajte ponovno."
+    "shareFailed": "Dijeljenje nije uspjelo. Pokušajte ponovno.",
+    "repeat": {
+      "label": "Ponavljanje",
+      "none": "Ne ponavlja se",
+      "weekly": "Svaki tjedan: {{weekday}}",
+      "biweekly": "Svaka 2 tjedna: {{weekday}}",
+      "monthly_date": "Svaki mjesec, {{day}}. dan",
+      "monthly_weekday_1": "Svaki mjesec, 1. {{weekday}} u mjesecu",
+      "monthly_weekday_2": "Svaki mjesec, 2. {{weekday}} u mjesecu",
+      "monthly_weekday_3": "Svaki mjesec, 3. {{weekday}} u mjesecu",
+      "monthly_weekday_4": "Svaki mjesec, 4. {{weekday}} u mjesecu",
+      "monthly_weekday_last": "Svaki mjesec, {{weekday}} u zadnjem tjednu",
+      "ends": "Kraj",
+      "endNever": "Nikad",
+      "endUntil": "Na datum",
+      "endCount": "Nakon broja sastanaka",
+      "untilLabel": "Zadnji dan",
+      "countLabel": "Ukupno sastanaka",
+      "hint": "Svaki sastanak zasebna je stavka s vlastitim bilješkama, snimkom, transkriptom i podsjetnikom. Help dodaje sastanke 60 dana unaprijed.",
+      "untilInvalid": "Odaberite zadnji dan na dan prvog sastanka ili kasnije, najviše 2 godine unaprijed.",
+      "countInvalid": "Unesite od 2 do 100 sastanaka."
+    },
+    "series": {
+      "repeats": "Ponavlja se: {{rule}}.",
+      "until": "Do {{date}}.",
+      "count": "Ukupno {{count}} sastanaka.",
+      "ended": "Novi sastanci više se neće dodavati.",
+      "editScope": "Ovaj se sastanak ponavlja. Promijeniti samo ovaj ili i sljedeće sastanke?",
+      "onlyThis": "Samo ovaj sastanak",
+      "thisAndFollowing": "Ovaj i sljedeći",
+      "deleteScope": "Ovaj se sastanak ponavlja. Izbrisati samo ovaj ili i sljedeće sastanke? Izbrisani sastanci neće se ponovno dodati.",
+      "deleteThis": "Izbriši ovaj sastanak",
+      "deleteFollowing": "Izbriši ovaj i sljedeće"
+    }
   },
   "view": {
     "label": "Prikaz",

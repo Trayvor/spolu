@@ -45,7 +45,9 @@
     "invalidEmail": "Zadajte platnú e-mailovú adresu.",
     "noticeLabel": "V pozvánke bude:",
     "submit": "Vytvoriť stretnutie",
-    "creating": "Vytvára sa…"
+    "creating": "Vytvára sa…",
+    "following": "Aj pre nasledujúce stretnutia",
+    "followingHint": "Help vytvorí s týmito nastaveniami samostatné stretnutie v Teams pre každé nasledujúce stretnutie série, každé s vlastnou pozvánkou a prepisom."
   },
   "connectForm": {
     "url": "Odkaz na stretnutie v Teams",
@@ -75,5 +77,11 @@
     "timeZone": "Čas vo vašom časovom pásme ({{zone}}).",
     "invalid": "Tento odkaz na pozvánku už neplatí.",
     "rateLimited": "Príliš veľa požiadaviek. Skúste to o minútu."
+  },
+  "series": {
+    "planned": "Help vytvára stretnutie v Teams pre každé nasledujúce stretnutie tejto série, organizátor: {{name}}.",
+    "plannedNoName": "Help vytvára stretnutie v Teams pre každé nasledujúce stretnutie tejto série.",
+    "stop": "Zastaviť pre nasledujúce stretnutia",
+    "stopConfirm": "Prestať vytvárať stretnutia v Teams pre nasledujúce stretnutia? Už vytvorené stretnutia v Teams zostanú."
   }
 }

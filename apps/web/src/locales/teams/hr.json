@@ -45,7 +45,9 @@
     "invalidEmail": "Unesite valjanu adresu e-pošte.",
     "noticeLabel": "U pozivnici piše:",
     "submit": "Izradi sastanak",
-    "creating": "Izrada…"
+    "creating": "Izrada…",
+    "following": "I za sljedeće sastanke",
+    "followingHint": "Help s ovim postavkama stvara zaseban sastanak u Teamsu za svaki sljedeći sastanak serije, svaki s vlastitom pozivnicom i transkriptom."
   },
   "connectForm": {
     "url": "Poveznica sastanka u Teamsu",
@@ -75,5 +77,11 @@
     "timeZone": "Vrijeme u vašoj vremenskoj zoni ({{zone}}).",
     "invalid": "Ova poveznica pozivnice više ne vrijedi.",
     "rateLimited": "Previše zahtjeva. Pokušajte za minutu."
+  },
+  "series": {
+    "planned": "Help stvara sastanak u Teamsu za svaki sljedeći sastanak ove serije, organizator: {{name}}.",
+    "plannedNoName": "Help stvara sastanak u Teamsu za svaki sljedeći sastanak ove serije.",
+    "stop": "Zaustavi za sljedeće sastanke",
+    "stopConfirm": "Prestati stvarati sastanke u Teamsu za sljedeće sastanke? Već stvoreni sastanci u Teamsu ostaju."
   }
 }

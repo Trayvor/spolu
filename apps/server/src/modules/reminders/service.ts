@@ -336,6 +336,26 @@ async function validateRecipients(
   return kept;
 }
 
+/**
+ * Of `ids`, the people a new reminder of the group may still have as added recipients (people of
+ * the group who may be picked; admins only for an admins-only subject). For a set written
+ * without a person picking it (a recurring call's next call, ADR 0049): someone who left is
+ * dropped instead of failing the write.
+ */
+export async function pickableRecipients(
+  tx: Db,
+  groupId: string,
+  adminsOnly: boolean,
+  ids: string[],
+): Promise<string[]> {
+  if (ids.length === 0) return [];
+  const people = await getGroupPeopleRoles(tx, groupId, ids);
+  return ids.filter((id) => {
+    const person = people.get(id);
+    return !!person && (!adminsOnly || person.isAdmin) && isPickable({ id, name: '', ...person });
+  });
+}
+
 /** After a subject became admins-only: drops every non-admin recipient except the author. */
 export async function pruneRecipientsForAdminsOnly(
   tx: Db,

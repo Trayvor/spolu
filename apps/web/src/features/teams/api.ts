@@ -49,6 +49,9 @@ export const checkTeamsMeeting = (itemId: string, replace: boolean) =>
 
 export const disconnectTeamsMeeting = (itemId: string) => apiSend('DELETE', base(itemId));
 
+/** ADR 0049: "Stop for the following calls" of a series' Teams plan. */
+export const stopTeamsSeries = (itemId: string) => apiSend('DELETE', `${base(itemId)}/series`);
+
 /** The public page's meeting; 404 means the link is not valid (any more). */
 export const publicMeetingQuery = (token: string) =>
   queryOptions({

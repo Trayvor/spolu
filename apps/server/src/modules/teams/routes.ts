@@ -27,9 +27,11 @@ import {
   createTeamsMeeting,
   disconnectTeamsMeeting,
   inviteeOptions,
+  stopTeamsSeries,
   teamsState,
   type TeamsDeps,
 } from './service.js';
+import { TEAMS_SERIES_JOB } from './series.js';
 import { checkTeamsMeeting } from './transcripts.js';
 
 type IdParams = { Params: { id: string } };
@@ -119,6 +121,12 @@ export const teamsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { 
       if (!allowCreate(actor.id)) return limited(reply);
       try {
         const state = await createTeamsMeeting(teams, actor, request.params.id, body.data);
+        // ADR 0049: the later calls of the series get theirs now, not at the next tick.
+        if (state.series?.planned) {
+          await deps.jobs
+            .send(TEAMS_SERIES_JOB, {})
+            .catch((error: unknown) => request.log.warn({ err: error }, 'teams: series sync'));
+        }
         return reply.code(201).send(state);
       } catch (error) {
         return teamsError(reply, error);
@@ -159,6 +167,22 @@ export const teamsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { 
       } catch (error) {
         return teamsError(reply, error);
       }
+    },
+  );
+
+  // ADR 0049: "Stop for the following calls" of a series' Teams plan.
+  app.delete<IdParams>(
+    '/knowledge/:id/teams/series',
+    { preHandler: anyUser },
+    async (request, reply) => {
+      const teams = gate(request.user!, reply);
+      if (!teams) return reply;
+      try {
+        await stopTeamsSeries(teams, request.user!, request.params.id);
+      } catch (error) {
+        return teamsError(reply, error);
+      }
+      return reply.code(204).send();
     },
   );
 

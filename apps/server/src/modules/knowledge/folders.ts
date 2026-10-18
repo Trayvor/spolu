@@ -22,7 +22,12 @@ import {
   KnowledgeFolderNotFoundError,
 } from './errors.js';
 import { canReadFolder, canSetFolderVisibility } from './policy.js';
-import { knowledgeAttachments, knowledgeFolders, knowledgeItems } from './schema.js';
+import {
+  knowledgeAttachments,
+  knowledgeFolders,
+  knowledgeItems,
+  knowledgeMeetingSeries,
+} from './schema.js';
 
 /**
  * Folders of a group's knowledge base (Phase 24). A group's folders are few (at most 1000): every
@@ -275,6 +280,11 @@ export async function deleteFolder(
       .update(knowledgeItems)
       .set({ folderId: folder.parentId })
       .where(eq(knowledgeItems.folderId, id));
+    // The next calls of a recurring series go where its calls went (ADR 0049).
+    await tx
+      .update(knowledgeMeetingSeries)
+      .set({ folderId: folder.parentId })
+      .where(eq(knowledgeMeetingSeries.folderId, id));
     await tx.delete(knowledgeFolders).where(eq(knowledgeFolders.id, id));
     return { groupId: folder.groupId, id, visibility: folder.visibility as Visibility };
   });

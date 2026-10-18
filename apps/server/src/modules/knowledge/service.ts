@@ -17,6 +17,7 @@ import {
   type KnowledgeType,
   type MeetingListInfo,
   type MeetingPatch,
+  type MeetingSeriesScope,
   type SessionUser,
   type Visibility,
 } from '@spolu/shared';
@@ -58,6 +59,15 @@ import {
 import { folderChains, folderForItem, folderPaths, lockGroupKnowledge } from './folders.js';
 import { linkedCardsOf, setLinkedItems } from './links.js';
 import { recordMeetingScheduled } from './meeting-notify.js';
+import {
+  checkRepeat,
+  createSeries,
+  dropEmptySeries,
+  endSeriesAt,
+  seriesInfo,
+  seriesPlaceOf,
+  updateFollowing,
+} from './meeting-series.js';
 import { recordDescriptionMentions } from '../notifications/description-mentions.js';
 import { requestDelivery } from '../notifications/service.js';
 import {
@@ -154,6 +164,8 @@ type PageRow = {
   m_has_summary: boolean | null;
   /** The meeting's transcript and summary are held for admins (Teams T1). */
   m_admins_only: boolean | null;
+  /** The meeting is one call of a recurring series (ADR 0049). */
+  m_recurring: boolean | null;
   /** Only when the full body was asked for (the detail). */
   body?: string;
 };
@@ -182,7 +194,7 @@ function pageQuery(where: SQL, limit: number, withBody = false): SQL {
            tk.number as chat_ticket_number,
            ${iso(sql`m.starts_at`)} as m_starts_at, m.recording_state as m_recording_state,
            m.ai_state as m_ai_state, m.summary is not null as m_has_summary,
-           m.transcript_admins_only as m_admins_only
+           m.transcript_admins_only as m_admins_only, m.series_id is not null as m_recurring
     from knowledge_items k
     join "user" u on u.id = k.created_by
     join groups g on g.id = k.group_id
@@ -298,6 +310,7 @@ function meetingInfo(row: PageRow, viewerIsAdmin: boolean): MeetingListInfo | nu
     recording: row.m_recording_state ?? 'none',
     ai: row.m_ai_state ?? 'idle',
     hasSummary: row.m_has_summary === true && (viewerIsAdmin || row.m_admins_only !== true),
+    recurring: row.m_recurring === true,
   };
 }
 
@@ -557,6 +570,14 @@ export async function getItem(db: Db, actor: SessionUser, id: string): Promise<K
     linkedCardsOf(db, 'knowledge', id, row.group_id),
   ]);
   const fileInfos = fileRows.map(toFileInfo);
+  const series =
+    meeting?.seriesId != null && meeting.seriesIndex !== null
+      ? await seriesInfo(
+          db,
+          { seriesId: meeting.seriesId, index: meeting.seriesIndex },
+          isAdmin(actor),
+        )
+      : null;
   return {
     linkedKnowledge: linked,
     ...toSummary(row, namesIn(names, row.group_id), rowPath(row, pathOf), isAdmin(actor)),
@@ -572,6 +593,7 @@ export async function getItem(db: Db, actor: SessionUser, id: string): Promise<K
           fileInfos.find((f) => f.id === meeting.recordingFileId) ?? null,
           meetingTasks,
           isAdmin(actor),
+          series,
         )
       : null,
   };
@@ -784,7 +806,7 @@ export async function createItem(
   actor: SessionUser,
   groupId: string,
   draft: DraftArg,
-): Promise<{ item: KnowledgeItemDto; fileIds: string[] }> {
+): Promise<{ item: KnowledgeItemDto; fileIds: string[]; seriesItemIds: string[] }> {
   const { db } = deps;
   if (!canReadGroup(actor, groupId, await actorGroupOf(db, actor))) {
     throw new KnowledgeNotFoundError();
@@ -792,7 +814,10 @@ export async function createItem(
   if (!canSetVisibility(actor, null, draft.visibility)) throw new InvalidVisibilityError();
   if (draft.type === 'link' && !isHttpUrl(draft.url)) throw new InvalidUrlError();
   checkFileCount(draft.type, new Set(draft.fileIds).size);
-  const { id, fileIds, eventIds } = await db.transaction(async (tx) => {
+  // ADR 0049: a repeating call; whoever may create the call may make it repeat.
+  const repeat = draft.type === 'meeting' ? (draft.meeting.repeat ?? null) : null;
+  if (draft.type === 'meeting' && repeat) checkRepeat(repeat, new Date(draft.meeting.startsAt));
+  const { id, fileIds, eventIds, seriesItemIds } = await db.transaction(async (tx) => {
     await lockGroupKnowledge(tx, groupId);
     const folder = await folderForItem(tx, actor, groupId, draft.folderId ?? null);
     // Inside an admins-only folder everything is admins-only (only admins see such a folder).
@@ -801,6 +826,26 @@ export async function createItem(
     if (draft.knowledgeIds) {
       await setLinkedItems(tx, { kind: 'knowledge', id: inserted.id }, groupId, draft.knowledgeIds);
     }
+    const seriesItemIds =
+      draft.type === 'meeting' && repeat
+        ? await createSeries(tx, {
+            groupId,
+            firstItemId: inserted.id,
+            firstStart: new Date(draft.meeting.startsAt),
+            repeat,
+            template: {
+              title: draft.title,
+              body: draft.body,
+              visibility,
+              folderId: draft.folderId ?? null,
+              meetingUrl: draft.meeting.meetingUrl,
+              reminderTimes: draft.reminder?.times ?? [],
+              reminderRecipientIds: draft.reminder?.recipientIds ?? [],
+            },
+            authorId: actor.id,
+          })
+        : [];
+    // One notification for a new series: its first call's (the later calls are silent).
     const eventIds =
       draft.type === 'meeting'
         ? await recordMeetingScheduled(
@@ -828,10 +873,10 @@ export async function createItem(
       before: null,
       after: draft.body,
     });
-    return { ...inserted, eventIds: [...eventIds, ...mentions] };
+    return { ...inserted, seriesItemIds, eventIds: [...eventIds, ...mentions] };
   });
   if (deps.jobs) await requestDelivery(deps.jobs, eventIds);
-  return { item: await getItem(db, actor, id), fileIds };
+  return { item: await getItem(db, actor, id), fileIds, seriesItemIds };
 }
 
 type LockedRow = {
@@ -878,162 +923,203 @@ async function lockForWrite(
 }
 
 /**
- * Edits an item in one transaction: the stale check, per-type rules, files, visibility (files
- * follow it, non-admin recipients are dropped on a switch to admins), the reminder and
- * `search_text`. The caller deletes `removedFileIds` after the commit (`deleteDetachedFiles`). A
- * meeting whose start moves (to the future) records `meeting.rescheduled`, delivered like `createItem`'s.
+ * One item's edit inside `tx` (the caller holds the group's knowledge lock): the stale check
+ * (`checkStale`), per-type rules, files, visibility (files follow it, non-admin recipients are
+ * dropped on a switch to admins), the reminder and `search_text`. A meeting whose start moves
+ * (to the future) records `meeting.rescheduled`, and new mentions are recorded, only with
+ * `notify` (the later calls of an "all following" edit stay silent).
+ */
+async function applyUpdate(
+  tx: Db,
+  actor: SessionUser,
+  id: string,
+  patch: KnowledgePatch,
+  opts: { checkStale: boolean; notify: boolean },
+): Promise<{ previousVisibility: Visibility; removedFileIds: string[]; eventIds: string[] }> {
+  const row = await lockForWrite(tx, actor, id);
+  if (opts.checkStale && row.updated_at !== new Date(patch.updatedAt).toISOString()) {
+    throw new KnowledgeChangedError();
+  }
+  const folderId = patch.folderId !== undefined ? patch.folderId : row.folder_id;
+  const folder = await folderForItem(tx, actor, row.group_id, folderId);
+  // Inside an admins-only folder the item is admins-only (moved there, it becomes so).
+  const inAdmins = folder?.visibility === 'admins';
+  if (inAdmins && patch.visibility === 'public') throw new InvalidVisibilityError();
+  const visibility: Visibility = inAdmins ? 'admins' : (patch.visibility ?? row.visibility);
+  if (
+    visibility !== row.visibility &&
+    !canSetVisibility(actor, { authorIsClient: row.author_role === 'client' }, visibility)
+  ) {
+    throw new InvalidVisibilityError();
+  }
+  let url = row.url;
+  if (patch.url !== undefined) {
+    if (row.type !== 'link' || !isHttpUrl(patch.url)) throw new InvalidUrlError();
+    url = patch.url;
+  }
+  const remindable = row.type === 'reminder' || row.type === 'meeting';
+  if (patch.reminder !== undefined && !remindable) throw new InvalidReminderError();
+  // A reminder item keeps at least one time; a meeting's reminder is optional.
+  if (row.type === 'reminder' && patch.reminder?.times.length === 0) {
+    throw new InvalidReminderError();
+  }
+  if (patch.meeting !== undefined && row.type !== 'meeting') {
+    throw new ValidationError('Only a meeting has meeting fields');
+  }
+  // A meeting's only file is its recording, which only the transcoder attaches.
+  if (row.type === 'meeting' && patch.fileIds !== undefined) throw new InvalidAttachmentError();
+
+  const current = (
+    await tx
+      .select({ fileId: knowledgeAttachments.fileId })
+      .from(knowledgeAttachments)
+      .where(eq(knowledgeAttachments.itemId, id))
+  ).map((r) => r.fileId);
+  const next = patch.fileIds ? [...new Set(patch.fileIds)] : current;
+  checkFileCount(row.type, next.length);
+  const added = next.filter((fileId) => !current.includes(fileId));
+  const removed = current.filter((fileId) => !next.includes(fileId));
+  if (added.length > 0) {
+    await attachFiles(tx, row.group_id, added, actor.id);
+    await tx.insert(knowledgeAttachments).values(added.map((fileId) => ({ itemId: id, fileId })));
+  }
+  if (removed.length > 0) {
+    await tx
+      .delete(knowledgeAttachments)
+      .where(
+        and(eq(knowledgeAttachments.itemId, id), inArray(knowledgeAttachments.fileId, removed)),
+      );
+    await detachFiles(tx, removed);
+  }
+  if (visibility !== row.visibility) {
+    await setFilesAdminsOnly(tx, next, visibility === 'admins');
+  } else if (added.length > 0) {
+    await setFilesAdminsOnly(tx, added, visibility === 'admins');
+  }
+
+  if (patch.reminder !== undefined) {
+    await replaceReminderSet(
+      tx,
+      {
+        kind: SUBJECT,
+        id,
+        groupId: row.group_id,
+        adminsOnly: visibility === 'admins',
+        authorId: row.created_by,
+      },
+      patch.reminder,
+      actor,
+    );
+  }
+  if (visibility === 'admins' && row.visibility !== 'admins') {
+    await pruneRecipientsForAdminsOnly(tx, { kind: SUBJECT, id });
+  }
+
+  const title = patch.title ?? row.title;
+  let meetingExtras: string[] = [];
+  let eventIds: string[] = [];
+  if (row.type === 'meeting') {
+    const current = await getMeetingRow(tx, id, true);
+    if (!current) throw new KnowledgeNotFoundError();
+    // A transcript held for admins (Teams T1) cannot be changed by a client who cannot see it
+    // (their form would otherwise send the empty text back over it).
+    const meetingPatch =
+      patch.meeting && current.transcriptAdminsOnly && !isAdmin(actor)
+        ? withoutTranscript(patch.meeting)
+        : patch.meeting;
+    const meeting = meetingPatch ? await patchMeeting(tx, id, meetingPatch, current) : current;
+    meetingExtras = meetingSearchExtras(meeting);
+    if (opts.notify && meeting.startsAt.getTime() !== current.startsAt.getTime()) {
+      eventIds = await recordMeetingScheduled(
+        tx,
+        'meeting.rescheduled',
+        {
+          itemId: id,
+          groupId: row.group_id,
+          title,
+          startsAt: meeting.startsAt,
+          adminsOnly: visibility === 'admins',
+        },
+        actor.id,
+      );
+    }
+  }
+
+  if (patch.knowledgeIds) {
+    await setLinkedItems(tx, { kind: 'knowledge', id }, row.group_id, patch.knowledgeIds);
+  }
+  const body = patch.body ?? row.body;
+  const searchText = await computeSearchText(tx, {
+    groupId: row.group_id,
+    title,
+    body,
+    url,
+    fileIds: next,
+    extra: meetingExtras,
+  });
+  await tx
+    .update(knowledgeItems)
+    .set({ title, body, url, visibility, folderId, searchText, updatedAt: sql`now()` })
+    .where(eq(knowledgeItems.id, id));
+  // F16: the people the new text names (only admins in an admins-only item).
+  const mentions = opts.notify
+    ? await recordDescriptionMentions(tx, {
+        actor,
+        groupId: row.group_id,
+        subject: { kind: 'knowledge', id, title, adminsOnly: visibility === 'admins' },
+        before: row.body,
+        after: body,
+      })
+    : [];
+  return {
+    previousVisibility: row.visibility,
+    removedFileIds: removed,
+    eventIds: [...eventIds, ...mentions],
+  };
+}
+
+/**
+ * Edits an item in one transaction (`applyUpdate`). The caller deletes `removedFileIds` after
+ * the commit (`deleteDetachedFiles`). A call of a recurring series with `seriesScope`
+ * `following` (ADR 0049) also changes the later calls of the series, each with the same checks
+ * as its own edit; they come back in `following` for the live events.
  */
 export async function updateItem(
   deps: { db: Db; jobs?: JobQueue },
   actor: SessionUser,
   id: string,
   patch: KnowledgePatch,
-): Promise<{ item: KnowledgeItemDto; previousVisibility: Visibility; removedFileIds: string[] }> {
+): Promise<{
+  item: KnowledgeItemDto;
+  previousVisibility: Visibility;
+  removedFileIds: string[];
+  following: { id: string; previousVisibility: Visibility }[];
+}> {
   const { db } = deps;
   if ('type' in patch) throw new ValidationError('The type cannot change');
+  const scope: MeetingSeriesScope = patch.seriesScope ?? 'this';
   const ref = await getItemRef(db, id);
   if (!ref) throw new KnowledgeNotFoundError();
   const result = await db.transaction(async (tx) => {
     // The group's lock first, then the row: the order of a folder's cascade too.
     await lockGroupKnowledge(tx, ref.groupId);
-    const row = await lockForWrite(tx, actor, id);
-    if (row.updated_at !== new Date(patch.updatedAt).toISOString()) {
-      throw new KnowledgeChangedError();
-    }
-    const folderId = patch.folderId !== undefined ? patch.folderId : row.folder_id;
-    const folder = await folderForItem(tx, actor, row.group_id, folderId);
-    // Inside an admins-only folder the item is admins-only (moved there, it becomes so).
-    const inAdmins = folder?.visibility === 'admins';
-    if (inAdmins && patch.visibility === 'public') throw new InvalidVisibilityError();
-    const visibility: Visibility = inAdmins ? 'admins' : (patch.visibility ?? row.visibility);
-    if (
-      visibility !== row.visibility &&
-      !canSetVisibility(actor, { authorIsClient: row.author_role === 'client' }, visibility)
-    ) {
-      throw new InvalidVisibilityError();
-    }
-    let url = row.url;
-    if (patch.url !== undefined) {
-      if (row.type !== 'link' || !isHttpUrl(patch.url)) throw new InvalidUrlError();
-      url = patch.url;
-    }
-    const remindable = row.type === 'reminder' || row.type === 'meeting';
-    if (patch.reminder !== undefined && !remindable) throw new InvalidReminderError();
-    // A reminder item keeps at least one time; a meeting's reminder is optional.
-    if (row.type === 'reminder' && patch.reminder?.times.length === 0) {
-      throw new InvalidReminderError();
-    }
-    if (patch.meeting !== undefined && row.type !== 'meeting') {
-      throw new ValidationError('Only a meeting has meeting fields');
-    }
-    // A meeting's only file is its recording, which only the transcoder attaches.
-    if (row.type === 'meeting' && patch.fileIds !== undefined) throw new InvalidAttachmentError();
-
-    const current = (
-      await tx
-        .select({ fileId: knowledgeAttachments.fileId })
-        .from(knowledgeAttachments)
-        .where(eq(knowledgeAttachments.itemId, id))
-    ).map((r) => r.fileId);
-    const next = patch.fileIds ? [...new Set(patch.fileIds)] : current;
-    checkFileCount(row.type, next.length);
-    const added = next.filter((fileId) => !current.includes(fileId));
-    const removed = current.filter((fileId) => !next.includes(fileId));
-    if (added.length > 0) {
-      await attachFiles(tx, row.group_id, added, actor.id);
-      await tx.insert(knowledgeAttachments).values(added.map((fileId) => ({ itemId: id, fileId })));
-    }
-    if (removed.length > 0) {
-      await tx
-        .delete(knowledgeAttachments)
-        .where(
-          and(eq(knowledgeAttachments.itemId, id), inArray(knowledgeAttachments.fileId, removed)),
-        );
-      await detachFiles(tx, removed);
-    }
-    if (visibility !== row.visibility) {
-      await setFilesAdminsOnly(tx, next, visibility === 'admins');
-    } else if (added.length > 0) {
-      await setFilesAdminsOnly(tx, added, visibility === 'admins');
-    }
-
-    if (patch.reminder !== undefined) {
-      await replaceReminderSet(
-        tx,
-        {
-          kind: SUBJECT,
-          id,
-          groupId: row.group_id,
-          adminsOnly: visibility === 'admins',
-          authorId: row.created_by,
-        },
-        patch.reminder,
-        actor,
-      );
-    }
-    if (visibility === 'admins' && row.visibility !== 'admins') {
-      await pruneRecipientsForAdminsOnly(tx, { kind: SUBJECT, id });
-    }
-
-    const title = patch.title ?? row.title;
-    let meetingExtras: string[] = [];
-    let eventIds: string[] = [];
-    if (row.type === 'meeting') {
-      const current = await getMeetingRow(tx, id, true);
-      if (!current) throw new KnowledgeNotFoundError();
-      // A transcript held for admins (Teams T1) cannot be changed by a client who cannot see it
-      // (their form would otherwise send the empty text back over it).
-      const meetingPatch =
-        patch.meeting && current.transcriptAdminsOnly && !isAdmin(actor)
-          ? withoutTranscript(patch.meeting)
-          : patch.meeting;
-      const meeting = meetingPatch ? await patchMeeting(tx, id, meetingPatch, current) : current;
-      meetingExtras = meetingSearchExtras(meeting);
-      if (meeting.startsAt.getTime() !== current.startsAt.getTime()) {
-        eventIds = await recordMeetingScheduled(
-          tx,
-          'meeting.rescheduled',
-          {
+    const own = await applyUpdate(tx, actor, id, patch, { checkStale: true, notify: true });
+    const following =
+      scope === 'following'
+        ? await updateFollowing(tx, {
             itemId: id,
-            groupId: row.group_id,
-            title,
-            startsAt: meeting.startsAt,
-            adminsOnly: visibility === 'admins',
-          },
-          actor.id,
-        );
-      }
-    }
-
-    if (patch.knowledgeIds) {
-      await setLinkedItems(tx, { kind: 'knowledge', id }, row.group_id, patch.knowledgeIds);
-    }
-    const body = patch.body ?? row.body;
-    const searchText = await computeSearchText(tx, {
-      groupId: row.group_id,
-      title,
-      body,
-      url,
-      fileIds: next,
-      extra: meetingExtras,
-    });
-    await tx
-      .update(knowledgeItems)
-      .set({ title, body, url, visibility, folderId, searchText, updatedAt: sql`now()` })
-      .where(eq(knowledgeItems.id, id));
-    // F16: the people the new text names (only admins in an admins-only item).
-    const mentions = await recordDescriptionMentions(tx, {
-      actor,
-      groupId: row.group_id,
-      subject: { kind: 'knowledge', id, title, adminsOnly: visibility === 'admins' },
-      before: row.body,
-      after: body,
-    });
-    return {
-      previousVisibility: row.visibility,
-      removedFileIds: removed,
-      eventIds: [...eventIds, ...mentions],
-    };
+            patch,
+            now: new Date(),
+            apply: async (followerId, followerPatch) =>
+              (
+                await applyUpdate(tx, actor, followerId, followerPatch, {
+                  checkStale: false,
+                  notify: false,
+                })
+              ).previousVisibility,
+          })
+        : [];
+    return { ...own, following };
   });
   const { eventIds, ...rest } = result;
   if (deps.jobs) await requestDelivery(deps.jobs, eventIds);
@@ -1042,34 +1128,60 @@ export async function updateItem(
 
 /**
  * Deletes an item: its files are detached in the transaction and deleted after the commit; the
- * attachments and reminder rows cascade.
+ * attachments and reminder rows cascade. A call of a recurring series (ADR 0049) with `scope`
+ * `following` deletes the later calls too, each with the same checks, and ends the series
+ * before it; the plain delete cancels this one call (the series never creates it again).
+ * Returns every deleted item.
  */
 export async function deleteItem(
   deps: { db: Db; storage: Storage },
   actor: SessionUser,
   id: string,
-): Promise<{ groupId: string; visibility: Visibility }> {
+  scope: MeetingSeriesScope = 'this',
+): Promise<{ groupId: string; visibility: Visibility; deleted: DeletedItem[] }> {
   const { db, storage } = deps;
-  const { row, fileIds, uploadKey } = await db.transaction(async (tx) => {
+  const ref = scope === 'following' ? await getItemRef(db, id) : null;
+  const { deleted, fileIds, uploadKeys } = await db.transaction(async (tx) => {
+    // "Following" writes the series too: the group's lock first, as for every series write.
+    if (ref) await lockGroupKnowledge(tx, ref.groupId);
     const row = await lockForWrite(tx, actor, id);
+    const place = scope === 'following' ? await seriesPlaceOf(tx, id) : null;
+    if (scope === 'following' && (row.type !== 'meeting' || !place)) {
+      throw new ValidationError('Not a recurring call');
+    }
+    const rows = [row];
+    if (place) {
+      const { followerIds } = await endSeriesAt(tx, id);
+      for (const followerId of followerIds) rows.push(await lockForWrite(tx, actor, followerId));
+    }
+    const ids = rows.map((r) => r.id);
     const fileIds = (
       await tx
         .select({ fileId: knowledgeAttachments.fileId })
         .from(knowledgeAttachments)
-        .where(eq(knowledgeAttachments.itemId, id))
+        .where(inArray(knowledgeAttachments.itemId, ids))
     ).map((r) => r.fileId);
     await detachFiles(tx, fileIds);
     // A meeting's upload still waiting for the transcoder goes too (the job then finds no row).
-    const uploadKey =
-      row.type === 'meeting' ? ((await getMeetingRow(tx, id))?.uploadKey ?? null) : null;
-    await tx.delete(knowledgeItems).where(eq(knowledgeItems.id, id));
-    return { row, fileIds, uploadKey };
+    const uploadKeys: string[] = [];
+    for (const r of rows) {
+      if (r.type !== 'meeting') continue;
+      const key = (await getMeetingRow(tx, r.id))?.uploadKey ?? null;
+      if (key) uploadKeys.push(key);
+    }
+    await tx.delete(knowledgeItems).where(inArray(knowledgeItems.id, ids));
+    if (place) await dropEmptySeries(tx, place.seriesId);
+    const deleted = rows.map((r) => ({ id: r.id, groupId: r.group_id, visibility: r.visibility }));
+    return { deleted, fileIds, uploadKeys };
   });
   // A failure here leaves detached files, which the daily unattached cleanup removes.
   await deleteDetachedFiles({ db, storage }, fileIds).catch(() => undefined);
-  if (uploadKey) await storage.delete(uploadKey).catch(() => undefined);
-  return { groupId: row.group_id, visibility: row.visibility };
+  for (const key of uploadKeys) await storage.delete(key).catch(() => undefined);
+  return { groupId: deleted[0]!.groupId, visibility: deleted[0]!.visibility, deleted };
 }
+
+/** A deleted item, for the live events. */
+export type DeletedItem = { id: string; groupId: string; visibility: Visibility };
 
 // ---------------------------------------------------------------------------------------------
 // Chat files

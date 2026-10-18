@@ -31,7 +31,9 @@ import { createGroup } from '../groups/service.js';
 import { knowledgeMeetings } from '../knowledge/schema.js';
 import { user } from '../users/schema.js';
 import { addAdmin, createUnverifiedClient } from '../users/service.js';
-import { teamsMeetingLinks } from './schema.js';
+import { materialiseDueSeries } from '../knowledge/meeting-series.js';
+import { teamsMeetingLinks, teamsSeriesPlans } from './schema.js';
+import { syncTeamsSeries } from './series.js';
 import { pollDueMeetings } from './transcripts.js';
 
 type TestApp = Awaited<ReturnType<typeof buildTestApp>>;
@@ -875,5 +877,128 @@ describe('Microsoft Teams (T1)', () => {
       email: manager.email,
     });
     expect(options.find((o) => o.id === admin.id)).toBeUndefined();
+  });
+  describe('recurring calls (ADR 0049)', () => {
+    const seriesCalls = async (seriesId: string) =>
+      test.deps.db
+        .select({ id: knowledgeMeetings.itemId, index: knowledgeMeetings.seriesIndex })
+        .from(knowledgeMeetings)
+        .where(eq(knowledgeMeetings.seriesId, seriesId))
+        .orderBy(knowledgeMeetings.seriesIndex);
+    const sync = (now = new Date()) =>
+      syncTeamsSeries({ db: test.deps.db, config: test.deps.config, graph: test.deps.teams! }, now);
+
+    it('one Outlook event per call: "also for the following calls" covers the series once', async () => {
+      const group = await newGroup();
+      const admin = await newAdmin();
+      const first = await newMeeting(admin.cookie, group.id, {
+        repeat: { frequency: 'weekly', count: 3, timeZone: 'Europe/Bratislava' },
+      });
+      const seriesId = first.meetingDetail!.series!.id;
+      const before = graph.events.length;
+      const res = await createTeams(admin.cookie, first.id, {
+        durationMinutes: 30,
+        following: true,
+        recordAutomatically: false,
+      });
+      expect(res.statusCode, res.body).toBe(201);
+      const state = TeamsMeetingStateSchema.parse(res.json());
+      expect(state.series).toEqual({ planned: true, organizerName: 'Jana Admin', lastError: null });
+      // The route ran the series sync: every call has its own event and join link.
+      expect(graph.events.length - before).toBe(3);
+      const calls = await seriesCalls(seriesId);
+      const links = await Promise.all(calls.map((c) => linkRow(c.id)));
+      expect(links.every((l) => l?.origin === 'help' && l.durationMinutes === 30)).toBe(true);
+      expect(new Set(links.map((l) => l!.joinUrl)).size).toBe(3);
+      expect(new Set(links.map((l) => l!.onlineMeetingId)).size).toBe(3);
+      for (const c of calls) {
+        expect((await getItem(admin.cookie, c.id)).meetingDetail!.meetingUrl).toBe(
+          (await linkRow(c.id))!.joinUrl,
+        );
+      }
+      // Again: nothing new. A disconnected call is not given a new one.
+      await call('DELETE', `/api/knowledge/${calls[2]!.id}/teams`, admin.cookie);
+      expect(await sync()).toBe(0);
+      expect(graph.events.length - before).toBe(3);
+      expect(await linkRow(calls[2]!.id)).toBeUndefined();
+    });
+
+    it('calls created later get theirs; a cancelled call none; "Stop" ends it', async () => {
+      const group = await newGroup();
+      const admin = await newAdmin();
+      const first = await newMeeting(admin.cookie, group.id, {
+        repeat: { frequency: 'weekly', timeZone: 'Europe/Bratislava' },
+      });
+      const seriesId = first.meetingDetail!.series!.id;
+      const calls = await seriesCalls(seriesId);
+      expect(calls).toHaveLength(9);
+      // A call cancelled before the plan exists.
+      await call('DELETE', `/api/knowledge/${calls[4]!.id}`, admin.cookie);
+      const before = graph.events.length;
+      expect((await createTeams(admin.cookie, first.id, { following: true })).statusCode).toBe(201);
+      expect(graph.events.length - before).toBe(8);
+      // The series job makes later calls; the next sync gives them Teams.
+      const later = new Date(Date.now() + 14 * 86_400_000);
+      await materialiseDueSeries({ db: test.deps.db }, later);
+      expect(await sync()).toBe(2);
+      // "Stop for the following calls": the plan goes, the events made stay.
+      const stop = await call('DELETE', `/api/knowledge/${first.id}/teams/series`, admin.cookie);
+      expect(stop.statusCode).toBe(204);
+      const state = await call('GET', `/api/knowledge/${first.id}/teams`, admin.cookie);
+      expect(TeamsMeetingStateSchema.parse(state.json()).series).toEqual({
+        planned: false,
+        organizerName: null,
+        lastError: null,
+      });
+      await materialiseDueSeries({ db: test.deps.db }, new Date(Date.now() + 28 * 86_400_000));
+      expect(await sync()).toBe(0);
+    });
+
+    it('a single call ignores "following"; the plan is admins only', async () => {
+      const group = await newGroup();
+      const admin = await newAdmin();
+      const client = await member(group.id);
+      const single = await newMeeting(admin.cookie, group.id);
+      const res = await createTeams(admin.cookie, single.id, { following: true });
+      expect(res.statusCode, res.body).toBe(201);
+      expect(TeamsMeetingStateSchema.parse(res.json())).not.toHaveProperty('series');
+      expect(
+        (await call('DELETE', `/api/knowledge/${single.id}/teams/series`, admin.cookie)).statusCode,
+      ).toBe(404);
+      const own = await newMeeting(client.cookie, group.id, {
+        repeat: { frequency: 'weekly', count: 2, timeZone: 'Europe/Bratislava' },
+      });
+      expect(
+        (await call('DELETE', `/api/knowledge/${own.id}/teams/series`, client.cookie)).statusCode,
+      ).toBe(404);
+    });
+
+    it('an organizer outside the group: the error is kept, the next run tries again', async () => {
+      const group = await newGroup();
+      const admin = await newAdmin();
+      const first = await newMeeting(admin.cookie, group.id, {
+        repeat: { frequency: 'weekly', count: 2, timeZone: 'Europe/Bratislava' },
+      });
+      await test.deps.db.insert(teamsSeriesPlans).values({
+        seriesId: first.meetingDetail!.series!.id,
+        organizerUserId: admin.id,
+        organizerEntraId: admin.ms!.id,
+        organizerName: 'Jana Admin',
+        durationMinutes: 60,
+        recordAutomatically: true,
+        attendees: [],
+        nextIndex: 1,
+      });
+      graph.inGroup.delete(admin.ms!.id);
+      expect(await sync()).toBe(0);
+      const state = await call('GET', `/api/knowledge/${first.id}/teams`, admin.cookie);
+      expect(TeamsMeetingStateSchema.parse(state.json()).series).toMatchObject({
+        planned: true,
+        lastError: 'teams_not_organizer',
+      });
+      graph.inGroup.add(admin.ms!.id);
+      expect(await sync()).toBe(1);
+      expect(await linkRow(first.id)).toBeUndefined();
+    });
   });
 });
