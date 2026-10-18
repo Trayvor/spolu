@@ -24,6 +24,7 @@ const TASK: TaskDto = {
   createdBy: { id: 'u1', name: 'Ada' },
   assignees: [],
   fileCount: 0,
+  knowledgeCount: 0,
   sourceMessageId: null,
   project: null,
   event: null,
@@ -85,5 +86,22 @@ describe('TaskCard', () => {
     expect(card).toHaveAttribute('href', '/tasks?assignee=me&task=t1');
     expect(card.firstElementChild).toBe(screen.getByTestId('line'));
     expect(screen.queryByRole('button')).toBeNull();
+  });
+
+  it('shows a book icon with the linked knowledge count, spoken and as a tooltip', async () => {
+    await renderCard(() => (
+      <TaskCard task={{ ...TASK, knowledgeCount: 3 }} bucketKind="todo" today="2026-10-16" />
+    ));
+    const card = await screen.findByRole('link', { name: /Fix budget table/ });
+    const mark = screen.getByTitle('3 knowledge items');
+    expect(mark).toHaveTextContent('3');
+    expect(card).toContainElement(mark);
+    expect(card).toHaveAccessibleName(/3 knowledge items/);
+  });
+
+  it('no knowledge mark without linked items', async () => {
+    await renderCard(() => <TaskCard task={TASK} bucketKind="todo" today="2026-10-16" />);
+    await screen.findByRole('link', { name: /Fix budget table/ });
+    expect(screen.queryByTitle(/knowledge item/)).toBeNull();
   });
 });

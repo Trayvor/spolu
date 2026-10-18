@@ -127,6 +127,8 @@ export const TaskDtoSchema = z.object({
   fileCount: z.number().int(),
   /** Unfired custom reminder times (Phase 19): the board card's bell. */
   upcomingReminders: z.number().int(),
+  /** Linked knowledge items the task's readers may open: the board card's book icon. */
+  knowledgeCount: z.number().int(),
   sourceMessageId: z.string().nullable(),
   /** The task's project and event (Phase 33); null until part P2 sets them. */
   project: ProjectRefSchema.nullable(),

@@ -63,6 +63,8 @@ async function expectIndexed(tx: Db, query: SQL, tables: string[]): Promise<Plan
 
 const CHAT_TABLES = ['messages', 'message_mentions'];
 /** The unseen changes (2026-10-17) read the user's events on the partial indexes only. */
+/** The cards' linked-knowledge count reads the links by task and the items by key. */
+const KNOWLEDGE_TABLES = ['knowledge_links', 'knowledge_items'];
 const UNSEEN_TABLES = ['notification_events'];
 
 /**
@@ -115,6 +117,7 @@ describe('admin home query plans on a seeded volume', () => {
         for (const mine of [false, true]) {
           await expectIndexed(tx, globalBoardSql({ ...board, mine }), [
             'tasks',
+            ...KNOWLEDGE_TABLES,
             ...CHAT_TABLES,
             ...UNSEEN_TABLES,
           ]);
@@ -125,7 +128,7 @@ describe('admin home query plans on a seeded volume', () => {
         await expectIndexed(
           tx,
           globalBoardSql({ ...board, mine: false, column: 'custom:step 1', after }),
-          ['tasks', ...CHAT_TABLES, ...UNSEEN_TABLES],
+          ['tasks', ...KNOWLEDGE_TABLES, ...CHAT_TABLES, ...UNSEEN_TABLES],
         );
         // Phase 34, the attachment picker: a group's task search (newest, and by title with the
         // trigram index available), the cards by primary key, and a group's ticket search.

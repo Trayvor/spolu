@@ -54,3 +54,11 @@ export const LinkIcon = () => (
     <path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7" />
   </Icon>
 );
+
+/** An open book: the card's "has linked knowledge" mark (the knowledge base's own glyph family). */
+export const BookIcon = () => (
+  <Icon>
+    <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z" />
+    <path d="M4 19V5.5" />
+  </Icon>
+);

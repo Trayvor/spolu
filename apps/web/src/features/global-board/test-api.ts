@@ -37,6 +37,7 @@ export const card = (over: Partial<GlobalTaskDto> & { id: string }): GlobalTaskD
   assignees: [],
   fileCount: 0,
   upcomingReminders: 0,
+  knowledgeCount: 0,
   sourceMessageId: null,
   project: null,
   event: null,

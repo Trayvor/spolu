@@ -8,7 +8,7 @@ import { UnseenDot } from '@/components/unseen-dot';
 import { cn } from '@/lib/utils';
 import { formatDue, isOverdue } from './dates';
 import { DoneCircle } from './done-circle';
-import { BellIcon, ChatIcon, LinkIcon, PaperclipIcon } from './icons';
+import { BellIcon, BookIcon, ChatIcon, LinkIcon, PaperclipIcon } from './icons';
 
 const MAX_AVATARS = 3;
 
@@ -28,6 +28,7 @@ export function TaskCardMeta({
   chat,
   hasReminders = false,
   hasLink = false,
+  knowledgeCount = 0,
 }: {
   assignees: TaskPerson[];
   dueDate: string | null;
@@ -38,6 +39,8 @@ export function TaskCardMeta({
   hasReminders?: boolean;
   /** The task has a link (no URL on the card: it opens from the panel). */
   hasLink?: boolean;
+  /** Linked knowledge items the viewer may open: a book with the count (titles are in the panel). */
+  knowledgeCount?: number;
 }) {
   const { t, i18n } = useTranslation();
   const hasChat = chat !== undefined && chat.count > 0;
@@ -74,7 +77,7 @@ export function TaskCardMeta({
           {overdue && <span className="sr-only"> ({t('tasks.card.overdue')})</span>}
         </time>
       )}
-      {(fileCount > 0 || hasChat || hasReminders || hasLink) && (
+      {(fileCount > 0 || hasChat || hasReminders || hasLink || knowledgeCount > 0) && (
         <span className="ml-auto flex items-center gap-3">
           {hasLink && (
             <span className="flex items-center">
@@ -86,6 +89,18 @@ export function TaskCardMeta({
             <span className="flex items-center">
               <BellIcon />
               <span className="sr-only">{t('tasks.card.reminders')}</span>
+            </span>
+          )}
+          {knowledgeCount > 0 && (
+            <span
+              className="flex items-center gap-1"
+              title={t('tasks.card.knowledge', { count: knowledgeCount })}
+            >
+              <BookIcon />
+              <span aria-hidden="true">{knowledgeCount}</span>
+              <span className="sr-only">
+                {t('tasks.card.knowledge', { count: knowledgeCount })}
+              </span>
             </span>
           )}
           {fileCount > 0 && (
@@ -162,6 +177,7 @@ export function TaskCard({
     task.fileCount > 0 ||
     task.upcomingReminders > 0 ||
     task.link !== null ||
+    task.knowledgeCount > 0 ||
     (chat?.count ?? 0) > 0;
 
   // The circle is a sibling of the link (no button inside a link), laid over its left padding
@@ -210,6 +226,7 @@ export function TaskCard({
             chat={chat}
             hasReminders={task.upcomingReminders > 0}
             hasLink={task.link !== null}
+            knowledgeCount={task.knowledgeCount}
           />
         )}
       </Link>

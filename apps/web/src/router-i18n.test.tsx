@@ -77,6 +77,7 @@ const TASK = {
   assignees: [PERSON],
   fileCount: 1,
   upcomingReminders: 0,
+  knowledgeCount: 0,
   link: null,
   sourceMessageId: 'm1',
   project: null,

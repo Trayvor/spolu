@@ -1,3 +1,4 @@
+import { linkedCountSql } from '../knowledge/links.js';
 import { randomUUID } from 'node:crypto';
 import { and, asc, eq, gt, inArray, isNull, sql, type SQL } from 'drizzle-orm';
 import {
@@ -150,6 +151,8 @@ export async function selectTasks(db: Db, where: SQL, limit?: number): Promise<T
         join ${reminderTimes} on ${reminderTimes.setId} = ${reminderSets.id}
         where ${reminderSets.taskId} = ${tasks.id} and ${reminderTimes.firedAt} is null
       )`,
+      // Knowledge module's SQL fragment (one correlated count per card, no N+1).
+      knowledgeCount: linkedCountSql(sql`${tasks.id}`, sql`${tasks.groupId}`),
     })
     .from(tasks)
     .innerJoin(user, eq(user.id, tasks.createdBy))
