@@ -81,3 +81,14 @@ Built in part E (owner request of 2026-10-18; [spec](../superpowers/specs/2026-1
 - **Files and reminders** of organisation items are finance-only like the rest (`POST /api/finance/org/files`); their reminder notifications open `/finance?item=…`.
 - **Live.** A write of an organisation item sends `finance:changed` with no client: every open finance screen refetches, each client's tab too.
 - **Never elsewhere.** No expense, payee or shared contract reaches the knowledge lists or search, the chat, a client's tab (beyond its own share), a group room or anyone without the finance right (tests in `modules/finance/org-leaks.test.ts` and `org.test.ts`).
+
+## The admin group "eGrant tím"
+
+Built in Phase 34 part P34-E ([spec §8](../superpowers/specs/2026-10-17-phase-34-admin-group-design.md#8-finance-in-the-admin-group-part-p34-e-after-phase-32-d), decisions 7 and 13), reconciled with the [organisation level](#organisation-level): the team's money is the organisation's, so the admin group keeps **no finance store of its own**.
+
+- **Its Financie tab** (finance admins only, like every Financie tab; an admin without the right sees no pill, the not-found screen at the address and `403` from every route) is the organisation's: the bottom-left card is **Organizácia**, the same items and folders as `/finance`'s Organizácia view (expenses, the organisation's documents, notes and contracts of several clients, with **+ Nové**); the **Overview** is the time on the team's tasks plus the organisation's expenses as money out ("Bilancia po výdavkoch", as on `/finance`); the **Work log** is the time on its tasks (internal time). A change of no client refetches the tab's Organizácia card too.
+- **Time is asked** on its tasks like on a client's (decision 13: internal work has a cost).
+- **No items of its own.** `GET`/`POST /api/groups/<admin group>/finance/items`, `/folders` and `/files` answer `409 admin_group`; a contract of several clients cannot give it a share (`400 invalid_group`); the share pickers list client groups only.
+- **On `/finance`** the client filter has **eGrant tím** on top in its own **Interné** section, **off by default**: "every client" means every client group (the admin group's time, and any item left in it from before, out; the organisation's own items and expenses stay in). Ticking it adds its time (`internal=1` next to every client, or its id among the chosen clients); it then shows as a chip. It is remembered with the rest of the choice.
+- **Never ranked.** The paid and hours rankings leave the admin group out whatever the filter, because they compare clients.
+- Tests: `apps/server/src/modules/finance/admin-group.test.ts` (leaks first) and `scope.test.ts`; web `features/finance/system/client-filter.test.tsx` and `features/groups/group-layout.test.tsx`; e2e `e2e/admin-group-finance.spec.ts` (scenario 7).

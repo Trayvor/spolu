@@ -275,7 +275,8 @@ async function expensesOf(db: Db, range: MonthRange, today: string): Promise<Ove
  * the cost by month, hours by admin and month, totals and the minutes without a rate. Three
  * queries: money, the time totals (four grouping sets in one pass), the admins' names; with
  * `organisation` (Phase 32 E: `/finance` with every client, for a finance admin) a fourth, the
- * organisation's expenses. A client's tab never passes it (decision O3).
+ * organisation's expenses. A client's tab never passes it (decision O3); the admin group's tab
+ * does (Phase 34 part E: its Financie tab is the organisation's).
  */
 export async function overview(
   db: Db,
@@ -284,7 +285,9 @@ export async function overview(
   now: Date = new Date(),
   opts: { organisation?: boolean } = {},
 ): Promise<FinanceOverviewDto> {
-  const organisation = opts.organisation === true && scope.kind === 'all';
+  // Every client on `/finance`, or the admin group's own tab (Phase 34 part E), never a client's.
+  const organisation =
+    opts.organisation === true && (scope.kind === 'all' || scope.kind === 'group');
   const expenses = organisation ? await expensesOf(db, range, financeToday(now)) : [];
   const moneyRows = await db.execute<{
     currency: Currency;
@@ -402,7 +405,7 @@ export async function dataMonthRange(
   organisation = false,
 ): Promise<MonthRange> {
   const [row] = await db.execute<{ first: string | null; last: string | null }>(
-    dataMonthRangeSql(scope, organisation && scope.kind === 'all'),
+    dataMonthRangeSql(scope, organisation && (scope.kind === 'all' || scope.kind === 'group')),
   );
   const thisMonth = financeToday(now).slice(0, 7);
   const first = row?.first?.slice(0, 7) ?? thisMonth;

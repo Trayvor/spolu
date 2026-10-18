@@ -159,7 +159,8 @@ describe('finance query plans on a seeded volume', () => {
     { timeout: 300_000 },
     async () => {
       await withFinanceVolume(db, async (tx, { groupIds, adminIds }) => {
-        const all = { kind: 'all' } as const;
+        // "Every client" leaves the admin group out (Phase 34 part E); a client stands in for it.
+        const all = { kind: 'all', except: groupIds[0]! } as const;
         const chosen = { kind: 'groups', groupIds: groupIds.slice(100, 140) } as const;
         const thisMonth = financeToday().slice(0, 7) as Month;
         const year = Number(thisMonth.slice(0, 4));

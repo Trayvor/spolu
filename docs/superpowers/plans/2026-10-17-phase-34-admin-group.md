@@ -70,6 +70,8 @@ Docs: `product/chat.md`.
 
 ## Part P34-E — Finance in the admin group (branch `feat/admin-group-finance`; after P34-B and Phase 32 D)
 
+Status: **done** (no migration; tests in `modules/finance/admin-group.test.ts`, `scope.test.ts`, web `features/finance/system/client-filter.test.tsx` and `features/groups/group-layout.test.tsx`, e2e `e2e/admin-group-finance.spec.ts`). **Reconciled with Phase 32 E** (finance at organisation level, built after this plan was written): the admin group's Financie tab is the **organisation's**, not a second store. Its Documents card is `/finance`'s Organizácia view (expenses, organisation documents, notes, several-clients contracts); its Overview is the internal time plus the organisation's expenses; its Work log is the time on its tasks. Its own items, folders and files routes answer `409 admin_group`, and a several-clients contract cannot give it a share (`400 invalid_group`). Finance admins only (`requireFinance`; the pill and the screen need the right, leak tests first). On `/finance` "every client" is every client group (`{ kind: 'all', except }`), the "eGrant tím" option (`internal=1`) is off by default, and both rankings drop it whatever the filter. Decision 13's time requests stay on (no opt-out).
+
 Server: rankings exclude `kind = 'admin'`; `/finance` accepts the admin group in `clients` only when chosen ("All clients" = client groups); time requests on its tasks as everywhere (or skipped if the owner answers decision 13 so).
 
 Web: the "eGrant tím (internal)" option in `/finance`'s client filter, off by default.

@@ -10,7 +10,7 @@ import {
   type TimeEntryPatch,
 } from '@spolu/shared';
 import { apiGet, apiSend } from '@/lib/api';
-import { financeKey, financeViewKey, type FinanceView } from './api';
+import { clientsParam, financeKey, financeViewKey, type FinanceView } from './api';
 import type { MonthRange } from './period';
 
 /**
@@ -25,7 +25,7 @@ function base(view: FinanceView): string {
 
 function params(view: FinanceView, entries: Record<string, string | undefined>): string {
   const search = new URLSearchParams();
-  if (view.kind === 'all' && view.clients.length > 0) search.set('clients', view.clients.join(','));
+  for (const [key, value] of Object.entries(clientsParam(view))) search.set(key, value);
   for (const [key, value] of Object.entries(entries)) if (value) search.set(key, value);
   const text = search.toString();
   return text ? `?${text}` : '';

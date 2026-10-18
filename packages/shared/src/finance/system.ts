@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { IdSchema } from '../chat.js';
 import { CurrencySchema, ENABLED_CURRENCIES } from '../money.js';
-import { FinanceClientsFilterSchema, MonthSchema } from './common.js';
+import { FinanceClientsFilterSchema, FinanceInternalFilterSchema, MonthSchema } from './common.js';
 import { FinanceItemSchema } from './documents.js';
 
 /**
@@ -12,10 +12,14 @@ import { FinanceItemSchema } from './documents.js';
 export const RANKING_PAGE_SIZE = 20;
 
 /**
- * The `clients=` filter of `GET /api/finance/overview` and `/api/finance/work-log`; the rest of
- * their query is part C's `OverviewQuerySchema` / `WorkLogQuerySchema` (all time when no months).
+ * The `clients=` (and `internal=`, Phase 34 part E) filter of `GET /api/finance/overview` and
+ * `/api/finance/work-log`; the rest of their query is part C's `OverviewQuerySchema` /
+ * `WorkLogQuerySchema` (all time when no months).
  */
-export const SystemClientsQuerySchema = z.object({ clients: FinanceClientsFilterSchema });
+export const SystemClientsQuerySchema = z.object({
+  clients: FinanceClientsFilterSchema,
+  internal: FinanceInternalFilterSchema,
+});
 export type SystemClientsQuery = z.output<typeof SystemClientsQuerySchema>;
 
 /**
@@ -46,6 +50,7 @@ export type LedgerType = (typeof LedgerTypes)[number];
 export const ContractsQuerySchema = z
   .object({
     clients: FinanceClientsFilterSchema,
+    internal: FinanceInternalFilterSchema,
     from: MonthSchema.optional(),
     to: MonthSchema.optional(),
     /** Which kinds; the period filters contracts and expenses only (decision E16). */

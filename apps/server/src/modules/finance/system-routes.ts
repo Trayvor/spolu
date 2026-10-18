@@ -11,11 +11,12 @@ import {
   WorkLogQuerySchema,
 } from '@spolu/shared';
 import type { AppDeps } from '../../deps.js';
+import { adminGroupId } from '../groups/admin-group.js';
 import { dataMonthRange, overview } from './aggregates.js';
 import { InvalidCursorError, listContracts } from './documents.js';
 import { hoursRanking, paidRange, paidRanking, RankingCursorError } from './rankings.js';
 import { canSeeExpenses } from './policy.js';
-import { monthsOf, scopeOfClients } from './scope.js';
+import { monthsOf, scopeOfClients, withoutGroup } from './scope.js';
 import { WorkLogCursorError, workLogPage } from './work-log.js';
 
 const invalidFilter = (reply: FastifyReply) =>
@@ -39,6 +40,8 @@ function cursorError(reply: FastifyReply, error: unknown): FastifyReply {
  * takes the page's `clients=` filter (none: every client, which also covers the time without a
  * client, owner decision 24); a malformed filter or cursor answers `400 invalid_filter`. They
  * reuse parts B and C: `overview`, `workLogPage`, `listContracts` with a `groups` or `all` scope.
+ * The admin group "eGrant tím" (Phase 34 part E) is in only when chosen (`clients=` names it, or
+ * `internal=1`), and the rankings never hold it (`withoutGroup`).
  *   GET /api/finance/overview?clients=&from=&to=
  *   GET /api/finance/work-log?clients=&from=&to=&before=
  *   GET /api/finance/contracts?clients=&sort=&dir=&q=&from=&to=&after=
@@ -49,11 +52,15 @@ export const financeSystemRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async 
   app,
   { deps: { db } },
 ) => {
+  /** The page's scope: the chosen clients, the admin group only when chosen. */
+  const scopeOf = async (clients: readonly string[], internal: boolean) =>
+    scopeOfClients(clients, { id: await adminGroupId(db), internal });
+
   app.get('/finance/overview', async (request, reply) => {
     const clients = SystemClientsQuerySchema.safeParse(request.query);
     const query = OverviewQuerySchema.safeParse(request.query);
     if (!clients.success || !query.success) return invalidFilter(reply);
-    const scope = scopeOfClients(clients.data.clients);
+    const scope = await scopeOf(clients.data.clients, clients.data.internal);
     // Every client chosen: the organisation's expenses count too (Phase 32 E, decision O3).
     const organisation = scope.kind === 'all' && canSeeExpenses(request.user!);
     const { from, to } = query.data;
@@ -71,7 +78,7 @@ export const financeSystemRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async 
     try {
       return await workLogPage(
         db,
-        scopeOfClients(clients.data.clients),
+        await scopeOf(clients.data.clients, clients.data.internal),
         from && to ? { from, to } : null,
         before ?? null,
       );
@@ -83,13 +90,13 @@ export const financeSystemRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async 
   app.get('/finance/contracts', async (request, reply) => {
     const query = ContractsQuerySchema.safeParse(request.query);
     if (!query.success) return invalidFilter(reply);
-    const { clients, type, sort, dir, q, after, from, to } = query.data;
+    const { clients, internal, type, sort, dir, q, after, from, to } = query.data;
     // Without a search the kinds of `type` (Phase 32 E, decisions E12, E16): contracts and
     // expenses of the page period, when one is given; documents, notes and every kind with no
     // period. A search covers every finance item, whatever the period and the type.
     const dated = type === 'contract' || type === 'expense';
     try {
-      return await listContracts(db, scopeOfClients(clients), {
+      return await listContracts(db, await scopeOf(clients, internal), {
         ...(q
           ? { q }
           : {
@@ -117,7 +124,7 @@ export const financeSystemRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async 
           ? { from, to }
           : null;
     try {
-      return await paidRanking(db, scopeOfClients(clients), {
+      return await paidRanking(db, withoutGroup(scopeOfClients(clients), await adminGroupId(db)), {
         range,
         currency,
         ...(after ? { after } : {}),
@@ -134,7 +141,7 @@ export const financeSystemRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async 
     const range = from && to ? { from, to } : null;
     if (range && monthsOf(range).length > OVERVIEW_MAX_MONTHS) return invalidFilter(reply);
     try {
-      return await hoursRanking(db, scopeOfClients(clients), {
+      return await hoursRanking(db, withoutGroup(scopeOfClients(clients), await adminGroupId(db)), {
         range,
         sort,
         ...(admin ? { admin } : {}),

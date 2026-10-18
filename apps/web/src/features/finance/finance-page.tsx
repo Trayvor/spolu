@@ -35,13 +35,19 @@ function FinancePageCards() {
   const { t } = useTranslation();
   const [stored, setClients] = useFinanceClients();
   const groups = useQuery(groupsQuery).data;
-  // Clients deleted since they were chosen drop out; none left means every client.
-  const clients = useMemo(() => {
+  // Clients deleted since they were chosen drop out; none left means every client. The admin
+  // group (Phase 34 part E) is in only when chosen: `internal`, or alone in `clients`.
+  const choice = useMemo(() => {
     if (!groups) return stored;
     const known = new Set(groups.map((g) => g.id));
-    return stored.filter((id) => known.has(id));
+    const clients = stored.clients.filter((id) => known.has(id));
+    const internal = stored.internal && groups.some((g) => g.kind === 'admin');
+    return { clients, internal };
   }, [groups, stored]);
-  const view: FinanceView = useMemo(() => ({ kind: 'all', clients }), [clients]);
+  const view: FinanceView = useMemo(
+    () => ({ kind: 'all', clients: choice.clients, internal: choice.internal }),
+    [choice],
+  );
   const period = usePeriod('finance.page.period', PAGE_PERIODS);
   const [rates, setRates] = useState(false);
   useFinanceEvents(view);
@@ -56,7 +62,7 @@ function FinancePageCards() {
         </Button>
       </div>
       <div className="flex flex-wrap items-center gap-2" data-testid="finance-filters">
-        <FinanceClientFilter clients={clients} onChange={setClients} />
+        <FinanceClientFilter value={choice} onChange={setClients} />
         <PeriodSelect state={period} label={t('financeSystem.period')} />
       </div>
       <FinanceGrid

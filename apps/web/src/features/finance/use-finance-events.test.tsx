@@ -47,8 +47,10 @@ describe('useFinanceEvents', () => {
     });
     expect(invalidate).not.toHaveBeenCalled();
     act(() => vi.advanceTimersByTime(1));
-    expect(invalidate).toHaveBeenCalledTimes(1);
+    // The change of no client also refreshes the organisation's items (the admin group's tab).
+    expect(invalidate).toHaveBeenCalledTimes(2);
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ['finance', 'g1'] });
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ['finance', 'all', 'org'] });
   });
 
   it('the system-wide page refetches on every change', () => {

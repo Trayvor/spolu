@@ -7,9 +7,14 @@ import type { QueryKey } from '@tanstack/react-query';
  * their own files with keys from `financeKey`.
  */
 
-/** Which clients a finance card shows: one client's tab, or `/finance` with its client filter. */
+/**
+ * Which clients a finance card shows: one client's tab, or `/finance` with its client filter.
+ * `internal` (Phase 34 part E): the admin group "eGrant tím (internal)" is chosen too; without
+ * it `/finance` leaves the admin group out.
+ */
 export type FinanceView =
-  { kind: 'group'; groupId: string } | { kind: 'all'; clients: readonly string[] };
+  | { kind: 'group'; groupId: string }
+  | { kind: 'all'; clients: readonly string[]; internal?: boolean };
 
 /** The key segment of a view: the client's id, or `'all'` for the system-wide page. */
 export function viewKey(view: FinanceView): string {
@@ -21,13 +26,18 @@ export function viewKey(view: FinanceView): string {
  * the end, so another choice of clients is another cache entry.
  */
 export function financeKey(view: FinanceView, kind: string, ...rest: unknown[]): QueryKey {
-  const clients = view.kind === 'all' ? [view.clients.join(',')] : [];
+  const clients =
+    view.kind === 'all' ? [view.clients.join(','), ...(view.internal ? ['internal'] : [])] : [];
   return ['finance', viewKey(view), kind, ...rest, ...clients];
 }
 
-/** The `clients=` query of the system-wide view (empty: every client). */
+/** The `clients=` (and `internal=1`) query of the system-wide view (empty: every client). */
 export function clientsParam(view: FinanceView): Record<string, string> {
-  return view.kind === 'all' && view.clients.length > 0 ? { clients: view.clients.join(',') } : {};
+  if (view.kind !== 'all') return {};
+  return {
+    ...(view.clients.length > 0 ? { clients: view.clients.join(',') } : {}),
+    ...(view.internal ? { internal: '1' } : {}),
+  };
 }
 
 /** The prefix of every query of a view (what a `finance:changed` invalidates). */

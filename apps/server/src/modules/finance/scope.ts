@@ -6,12 +6,14 @@ import type { Month } from '@spolu/shared';
  * Which clients a finance query covers (Phase 32): one client's tab (`group`), the system-wide
  * page's client filter (`groups`) or every client (`all`). Parts B, C and D take it, so one
  * function serves the tab and `/finance`. `org` (Phase 32 E): the rows of no client, the
- * organisation's own items on `/finance` (`group_id is null`).
+ * organisation's own items on `/finance` (`group_id is null`). `all` with `except` (Phase 34
+ * part E): every client but that group, the admin group "eGrant tím", which `/finance` leaves
+ * out unless chosen (decisions 7, 13); the rows without a client stay in.
  */
 export type FinanceScope =
   | { kind: 'group'; groupId: string }
   | { kind: 'groups'; groupIds: string[] }
-  | { kind: 'all' }
+  | { kind: 'all'; except?: string }
   | { kind: 'org' };
 
 /** An inclusive range of Bratislava months, `YYYY-MM`. */
@@ -33,15 +35,43 @@ export function scopeSql(column: AnyPgColumn | SQL, scope: FinanceScope): SQL {
           )})`
         : sql`false`;
     case 'all':
-      return sql`true`;
+      return scope.except ? sql`(${column} is null or ${column} <> ${scope.except})` : sql`true`;
     case 'org':
       return sql`${column} is null`;
   }
 }
 
-/** The scope of `/finance`'s `clients=` filter: none named means every client. */
-export function scopeOfClients(groupIds: readonly string[]): FinanceScope {
-  return groupIds.length > 0 ? { kind: 'groups', groupIds: [...groupIds] } : { kind: 'all' };
+/**
+ * The scope of `/finance`'s `clients=` filter: none named means every client. The admin group
+ * (Phase 34 part E, decisions 7 and 13: internal money is no client revenue) is in only when
+ * chosen: named in `clients`, or `internal` ("eGrant tím (internal)" next to every client).
+ */
+export function scopeOfClients(
+  groupIds: readonly string[],
+  adminGroup: { id: string | null; internal: boolean } = { id: null, internal: false },
+): FinanceScope {
+  const { id, internal } = adminGroup;
+  if (groupIds.length === 0) {
+    return id && !internal ? { kind: 'all', except: id } : { kind: 'all' };
+  }
+  const ids = id && internal && !groupIds.includes(id) ? [...groupIds, id] : [...groupIds];
+  return { kind: 'groups', groupIds: ids };
+}
+
+/**
+ * The rankings' scope (Phase 34 part E): the admin group is never ranked, whatever the filter
+ * chose, because the rankings compare clients.
+ */
+export function withoutGroup(scope: FinanceScope, groupId: string | null): FinanceScope {
+  if (!groupId) return scope;
+  switch (scope.kind) {
+    case 'all':
+      return { kind: 'all', except: groupId };
+    case 'groups':
+      return { kind: 'groups', groupIds: scope.groupIds.filter((id) => id !== groupId) };
+    default:
+      return scope;
+  }
 }
 
 /** `2026-10` -> `2026-10-01`: the first day of a month (a `date` bound, inclusive). */

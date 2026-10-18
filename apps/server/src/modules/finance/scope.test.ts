@@ -6,7 +6,14 @@ import { testDatabaseUrl } from '../../../test/test-config.js';
 import { createGroup } from '../groups/service.js';
 import { addAdmin } from '../users/service.js';
 import { financeItems } from './schema.js';
-import { monthAfter, monthStart, monthsOf, scopeOfClients, scopeSql } from './scope.js';
+import {
+  monthAfter,
+  monthStart,
+  monthsOf,
+  scopeOfClients,
+  scopeSql,
+  withoutGroup,
+} from './scope.js';
 
 const { db, close } = createDb(testDatabaseUrl);
 afterAll(() => close());
@@ -63,7 +70,30 @@ describe('scopeSql', () => {
     expect(await groupsOf(scopeSql(financeItems.groupId, { kind: 'all' }))).toEqual(
       [a.id, b.id, c.id].sort(),
     );
+    // Every client but one (the admin group, Phase 34 part E).
+    expect(await groupsOf(scopeSql(financeItems.groupId, { kind: 'all', except: b.id }))).toEqual(
+      [a.id, c.id].sort(),
+    );
     expect(scopeOfClients([])).toEqual({ kind: 'all' });
     expect(scopeOfClients([a.id])).toEqual({ kind: 'groups', groupIds: [a.id] });
+  });
+
+  it('leaves the admin group out unless chosen; the rankings never take it (Phase 34 E)', () => {
+    const off = { id: 'adm', internal: false };
+    const on = { id: 'adm', internal: true };
+    expect(scopeOfClients([], off)).toEqual({ kind: 'all', except: 'adm' });
+    expect(scopeOfClients([], on)).toEqual({ kind: 'all' });
+    expect(scopeOfClients(['x'], off)).toEqual({ kind: 'groups', groupIds: ['x'] });
+    expect(scopeOfClients(['x'], on)).toEqual({ kind: 'groups', groupIds: ['x', 'adm'] });
+    // Named in `clients` is chosen too.
+    expect(scopeOfClients(['adm'], off)).toEqual({ kind: 'groups', groupIds: ['adm'] });
+    expect(scopeOfClients([], { id: null, internal: false })).toEqual({ kind: 'all' });
+
+    expect(withoutGroup({ kind: 'all' }, 'adm')).toEqual({ kind: 'all', except: 'adm' });
+    expect(withoutGroup({ kind: 'groups', groupIds: ['x', 'adm'] }, 'adm')).toEqual({
+      kind: 'groups',
+      groupIds: ['x'],
+    });
+    expect(withoutGroup({ kind: 'all' }, null)).toEqual({ kind: 'all' });
   });
 });

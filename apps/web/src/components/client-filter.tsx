@@ -115,6 +115,9 @@ export function ClientLogo({ client }: { client: ClientOption }) {
  * - `defaultAll` (the admin group's attachment picker, Phase 34 part D): null is every client
  *   instead, so "Only my clients" gives the managed ids (and the internal option) and "Reset"
  *   null. The managed clients' rows carry the ink dot in the panel too.
+ * - `internalInDefault` false (`/finance`, Phase 34 part E: internal money is no client revenue):
+ *   the internal option is off in the default scope and "All clients" leaves it as it is; chosen
+ *   next to every client it shows as its own chip under the "All clients" pill.
  *
  * It renders the pill, the reset and the chip row as siblings: put it in a `flex flex-wrap` bar.
  * The reset ("Predvolené", `order-1`) lands after the bar's other controls; the chip row
@@ -127,6 +130,7 @@ export function ClientFilter({
   onChange,
   disabled = false,
   defaultAll = false,
+  internalInDefault = true,
 }: {
   groups: ClientOption[];
   managedIds: string[] | null;
@@ -136,6 +140,8 @@ export function ClientFilter({
   disabled?: boolean;
   /** Null means every client, not the managed ones (the admin group's picker). */
   defaultAll?: boolean;
+  /** False: the internal option is not part of the default scope nor of "All clients". */
+  internalInDefault?: boolean;
 }) {
   const { t, i18n } = useTranslation();
   const desktop = useMediaQuery('(min-width: 641px)');
@@ -153,12 +159,15 @@ export function ClientFilter({
   const split = mine.length > 0;
   const mineScope = [...internal, ...mine];
 
-  const defaultIds =
-    split && !defaultAll ? mineScope.map((group) => group.id) : groups.map((group) => group.id);
+  // The options "All clients" covers: with `internalInDefault` false, the clients only.
+  const everyIds = groups
+    .filter((group) => internalInDefault || !group.internal)
+    .map((group) => group.id);
+  const defaultIds = split && !defaultAll ? mineScope.map((group) => group.id) : everyIds;
   // Ids of clients that no longer exist (an old link, stored choice) are ignored.
   const known = new Set(groups.map((group) => group.id));
   const selected = new Set(value === null ? defaultIds : value.filter((id) => known.has(id)));
-  const allChosen = groups.every((group) => selected.has(group.id));
+  const allChosen = everyIds.every((id) => selected.has(id));
 
   const pill =
     value === null
@@ -181,12 +190,17 @@ export function ClientFilter({
     else next.add(id);
     emit(next);
   };
-  const chooseAll = () => emit(known);
+  const chooseAll = () =>
+    emit(
+      internalInDefault
+        ? known
+        : new Set([...everyIds, ...internal.filter((g) => selected.has(g.id)).map((g) => g.id)]),
+    );
 
   // Chips: the chosen clients, managed first, unless the choice is every client.
-  const chips = allChosen
-    ? []
-    : [...internal, ...mine, ...others].filter((group) => selected.has(group.id));
+  const chips = (
+    allChosen ? (internalInDefault ? [] : internal) : [...internal, ...mine, ...others]
+  ).filter((group) => selected.has(group.id));
 
   const panel = (
     <Panel
