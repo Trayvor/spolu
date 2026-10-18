@@ -419,7 +419,7 @@ function List({ title, items }: { title: string; items: string[] }) {
   return (
     <div className="flex flex-col gap-1.5">
       <h4 className="text-button font-semibold">{title}</h4>
-      <ul className="flex list-disc flex-col gap-1 pl-5 text-button">
+      <ul role="list" className="flex list-disc flex-col gap-1 pl-5 text-button">
         {items.map((entry, index) => (
           <li key={index}>{entry}</li>
         ))}
@@ -471,7 +471,7 @@ function MeetingTasks({
           </Button>
         )}
       </div>
-      <ul aria-labelledby={`${uid}-tasks`} className="flex flex-col gap-1.5">
+      <ul role="list" aria-labelledby={`${uid}-tasks`} className="flex flex-col gap-1.5">
         {tasks.map((task) => (
           <li
             key={task.id}
@@ -658,7 +658,7 @@ export function SummarySection({
                     </Button>
                   )}
                 </div>
-                <ul className="flex flex-col gap-1.5">
+                <ul role="list" className="flex flex-col gap-1.5">
                   {summary.actionItems.map((action, index) => (
                     <li
                       key={index}

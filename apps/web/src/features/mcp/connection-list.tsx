@@ -29,7 +29,7 @@ export function ConnectionList() {
         <p className="text-tiny text-muted-foreground">{t('mcp.connections.empty')}</p>
       )}
       {connections.data && connections.data.length > 0 && (
-        <ul className="flex flex-col divide-y divide-border">
+        <ul role="list" className="flex flex-col divide-y divide-border">
           {connections.data.map((connection) => (
             <ConnectionRow key={connection.id} connection={connection} />
           ))}

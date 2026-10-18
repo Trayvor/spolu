@@ -36,7 +36,7 @@ export function SmallMultiples({
   const shown = all ? items : items.slice(0, limit);
   return (
     <div className="flex flex-col gap-4">
-      <ul className="grid gap-x-6 gap-y-4 @min-[560px]:grid-cols-2">
+      <ul role="list" className="grid gap-x-6 gap-y-4 @min-[560px]:grid-cols-2">
         {shown.map((item) => (
           <li key={item.key} className="flex min-w-0 flex-col gap-1">
             {item.title}

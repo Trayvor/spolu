@@ -52,6 +52,7 @@ export function CrossClientKnowledgeTab({
         aria-label={t('chat.knowledge.search')}
       />
       <ul
+        role="list"
         className="-mx-2 min-h-0 flex-1 overflow-y-auto"
         aria-busy={query.isPending && !noClients}
       >
@@ -72,7 +73,7 @@ export function CrossClientKnowledgeTab({
               disabled={!on && full}
               onChange={() => setChosen((list) => toggled(list, card, MESSAGE_MAX_KNOWLEDGE))}
             >
-              <span aria-hidden="true" className="shrink-0 text-brand-purple">
+              <span aria-hidden="true" className="shrink-0 text-brand-purple-ink">
                 <Glyph />
               </span>
               <span className="flex min-w-0 flex-col">

@@ -648,7 +648,7 @@ export const MessageItem = memo(function MessageItem({
             type="button"
             onClick={() => onOpenThread(message)}
             data-thread-link=""
-            className="mt-1 flex items-center gap-1.5 text-left text-micro font-semibold text-brand-purple underline-offset-2 hover:underline max-[640px]:-my-1.5 max-[640px]:min-h-11"
+            className="mt-1 flex items-center gap-1.5 text-left text-micro font-semibold text-brand-purple-ink underline-offset-2 hover:underline max-[640px]:-my-1.5 max-[640px]:min-h-11"
           >
             {unreadReplies && (
               <>

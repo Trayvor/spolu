@@ -56,7 +56,7 @@ export function TicketAssignees({ ticket }: { ticket: TicketDto }) {
           pickable={everyone}
         />
       ) : ticket.assignees.length > 0 ? (
-        <ul className="flex flex-wrap gap-x-4 gap-y-2">
+        <ul role="list" className="flex flex-wrap gap-x-4 gap-y-2">
           {ticket.assignees.map((p) => (
             <li key={p.id} className="flex min-w-0 items-center gap-2 text-tiny">
               <Avatar userId={p.id} name={p.name} size={24} />

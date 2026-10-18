@@ -121,7 +121,7 @@ export function ClientSidebarList({
   );
 
   const list = (items: SidebarClient[]) => (
-    <ul className="flex flex-col gap-0.5">
+    <ul role="list" className="flex flex-col gap-0.5">
       {items.map((client) => (
         <Row
           key={client.groupId}

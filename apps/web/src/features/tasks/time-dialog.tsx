@@ -216,7 +216,7 @@ export function TimeDialog({ ask, onDone }: { ask: TimeAsk; onDone: () => void }
           {ticket && ticket.linkedTasks.length > 0 && (
             <div className="flex flex-col gap-2 border-t-2 border-border pt-4">
               <p className="text-micro font-semibold">{t('tasks.time.linkedTasks')}</p>
-              <ul className="flex flex-col gap-1">
+              <ul role="list" className="flex flex-col gap-1">
                 {ticket.linkedTasks.map((task) => (
                   <li
                     key={task.taskId}

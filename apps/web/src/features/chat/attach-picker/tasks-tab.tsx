@@ -49,6 +49,7 @@ export function TasksTab({
         aria-label={t('chat.work.searchTasks')}
       />
       <ul
+        role="list"
         className="-mx-2 min-h-0 flex-1 overflow-y-auto"
         aria-busy={query.isPending && !noClients}
       >

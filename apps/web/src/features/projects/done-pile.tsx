@@ -102,7 +102,7 @@ function DoneList({
   const pages = query.data.pages;
   return (
     <div id={id} className="flex flex-col">
-      <ul className="flex flex-col">
+      <ul role="list" className="flex flex-col">
         {pages.flatMap((page) => [
           ...page.tasks.map((task) => (
             <li key={task.id}>

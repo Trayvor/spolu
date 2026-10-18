@@ -2,6 +2,8 @@ import { useLayoutEffect, useRef, type KeyboardEvent, type ReactNode } from 'rea
 import { useNavigate } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import type { BucketDto } from '@spolu/shared';
+import { useFocusTrap } from '@/lib/use-focus-trap';
+import { useMediaQuery } from '@/lib/use-media-query';
 import { useScrollLock } from '@/lib/use-scroll-lock';
 import { cn } from '@/lib/utils';
 import { Select } from '@/components/ui/select';
@@ -45,6 +47,9 @@ export function PanelShell({
 
   // Below 1024 px the panel covers the screen: the page behind must not scroll under a finger.
   useScrollLock(true, '(max-width: 1023px)');
+  // There it is a modal dialog: Tab stays inside (the layout effect above hands the focus back).
+  const modal = useMediaQuery('(max-width: 1023px)');
+  useFocusTrap(panel, modal, false);
 
   // Open menus, lists and dialogs handle their own Escape; so do layers in a portal (React
   // bubbles their keys through the panel), such as the chat's action sheet.
@@ -54,7 +59,8 @@ export function PanelShell({
       event.key !== 'Escape' ||
       event.defaultPrevented ||
       !panel.current?.contains(target) ||
-      target.closest('[role="menu"],[role="listbox"],[role="dialog"]') ||
+      (target.closest('[role="menu"],[role="listbox"],[role="dialog"]') ?? panel.current) !==
+        panel.current ||
       target.getAttribute('aria-expanded') === 'true'
     )
       return;
@@ -66,6 +72,8 @@ export function PanelShell({
     <aside
       ref={panel}
       onKeyDown={onKeyDown}
+      role={modal ? 'dialog' : undefined}
+      aria-modal={modal ? true : undefined}
       aria-label={t('tasks.panel.label')}
       data-testid="task-panel"
       className={cn(

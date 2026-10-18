@@ -113,7 +113,7 @@ export function ReminderTimesField({
       <legend id={legendId} className="mb-2.5 text-button font-semibold">
         {t('reminders.fields.times')}
       </legend>
-      <ul className="flex flex-col gap-2">
+      <ul role="list" className="flex flex-col gap-2">
         {value.map((row, index) => {
           const n = index + 1;
           const fired = row.firedAt !== null;

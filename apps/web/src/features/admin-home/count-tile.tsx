@@ -107,7 +107,7 @@ function SheetBody(props: CountCardProps) {
                   <span className="tabular-nums">{group.rows.length}</span>
                 </h3>
               )}
-              <ul className="flex flex-col rounded-xl bg-card px-3">
+              <ul role="list" className="flex flex-col rounded-xl bg-card px-3">
                 {group.rows.map((row) => (
                   <li key={row.key} className="relative border-b border-border last:border-b-0">
                     <RowAction

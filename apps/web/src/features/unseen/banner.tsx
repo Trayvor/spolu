@@ -59,7 +59,7 @@ export function UnseenBanner({ open }: { open: OpenSummary }) {
     >
       <div className="min-w-0 flex-1 text-micro">
         <p className="font-semibold">{t('unseen.heading')}</p>
-        <ul>
+        <ul role="list">
           {texts.map((text, index) => (
             <li key={index}>{text}</li>
           ))}

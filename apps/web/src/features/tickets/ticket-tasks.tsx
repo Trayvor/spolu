@@ -72,7 +72,7 @@ export function TicketTasks({
         )}
       </div>
       {tasks.length > 0 ? (
-        <ul className="flex flex-col gap-1.5">
+        <ul role="list" className="flex flex-col gap-1.5">
           {tasks.map((task) => (
             <li key={task.id} className="min-w-0">
               <Link

@@ -205,7 +205,7 @@ export function ReviewCardView({
             />
           )}
           {files.length > 0 && (
-            <ul className="flex flex-wrap gap-2">
+            <ul role="list" className="flex flex-wrap gap-2">
               {files.map((file) => (
                 <li key={file.id} className="min-w-0 max-w-full">
                   <FileChip file={file} />

@@ -94,7 +94,7 @@ export function TimelineEvent({
             <h4 className="text-micro font-semibold text-muted-foreground">
               {k('tasks', { count: event.openTaskCount })}
             </h4>
-            <ul className="flex flex-col">
+            <ul role="list" className="flex flex-col">
               {event.openTasks.map((task) => (
                 <li key={task.id}>
                   <TaskRow groupId={groupId} task={task} today={today} compact />
@@ -108,7 +108,7 @@ export function TimelineEvent({
             <h4 className="text-micro font-semibold text-muted-foreground">
               {k('tickets', { count: event.openTicketCount })}
             </h4>
-            <ul className="flex flex-col">
+            <ul role="list" className="flex flex-col">
               {event.openTickets.map((ticket) => (
                 <li key={ticket.id}>
                   <TicketRow ticket={ticket} compact />

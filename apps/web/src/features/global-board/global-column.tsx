@@ -85,7 +85,7 @@ export function GlobalColumn({
           <span className="sr-only">{t('adminHome.board.count', { count: total })}</span>
         </span>
       </header>
-      <ul className="flex min-h-0 flex-col gap-2 overflow-y-auto">
+      <ul role="list" className="flex min-h-0 flex-col gap-2 overflow-y-auto">
         {items.map((task) => (
           <li key={task.id} data-task-id={task.id}>
             <TaskCard

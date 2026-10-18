@@ -461,7 +461,7 @@ export function Composer({
             below={mode === 'edit'}
           />
         )}
-        <div className="rounded-lg border-2 border-input bg-card focus-within:border-foreground">
+        <div className="rounded-lg border-2 border-input bg-card focus-within:border-foreground focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ring">
           <Suspense
             fallback={
               <div
@@ -644,13 +644,13 @@ export function Composer({
         </div>
       </div>
       {knowledge.length > 0 && (
-        <ul className="flex flex-wrap gap-2" aria-label={t('chat.knowledge.attached')}>
+        <ul role="list" className="flex flex-wrap gap-2" aria-label={t('chat.knowledge.attached')}>
           {knowledge.map((k) => (
             <li
               key={k.id}
               className="flex max-w-full items-center gap-2 rounded-lg bg-secondary py-1 pl-3 pr-1 text-button text-secondary-foreground"
             >
-              <span className="shrink-0 text-brand-purple">
+              <span className="shrink-0 text-brand-purple-ink">
                 <BookIcon />
               </span>
               <span title={k.title} className="min-w-0 truncate font-semibold">
@@ -711,7 +711,7 @@ export function Composer({
         </Suspense>
       )}
       {uploads.length > 0 && (
-        <ul className="flex flex-wrap gap-2">
+        <ul role="list" className="flex flex-wrap gap-2">
           {uploads.map((u) => (
             <li
               key={u.key}

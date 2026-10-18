@@ -16,7 +16,7 @@ export function Breadcrumbs({ crumbs }: { crumbs: Crumb[] }) {
   const collapse = crumbs.length > 3;
   return (
     <nav aria-label={t('knowledge.folders.path')}>
-      <ol className="flex min-w-0 flex-wrap items-center gap-x-1 gap-y-1 text-button">
+      <ol role="list" className="flex min-w-0 flex-wrap items-center gap-x-1 gap-y-1 text-button">
         {crumbs.map((crumb, i) => {
           const last = i === crumbs.length - 1;
           const hiddenOnPhone = collapse && i > 0 && i < crumbs.length - 2;

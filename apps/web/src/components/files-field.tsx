@@ -93,7 +93,7 @@ export function FilesField({
   return (
     <div role="group" aria-labelledby={labelId} className="space-y-3">
       {fileIds.length > 0 && (
-        <ul className="space-y-2">
+        <ul role="list" className="space-y-2">
           {fileIds.map((id) => {
             const file = files.find((f) => f.id === id);
             const name = file?.name ?? t('forms.files.unknown');

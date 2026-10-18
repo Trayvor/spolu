@@ -73,7 +73,7 @@ export function ActiveCards({ groupId }: { groupId: string }) {
         }
       >
         {body(
-          <ul className="-mx-2 flex flex-col">
+          <ul role="list" className="-mx-2 flex flex-col">
             {data?.tickets.rows.map((row, index) => (
               <li key={row.id} className={phoneHidden(index)}>
                 <TicketLine row={row} />
@@ -108,7 +108,7 @@ export function ActiveCards({ groupId }: { groupId: string }) {
         }
       >
         {body(
-          <ul className="-mx-2 flex flex-col">
+          <ul role="list" className="-mx-2 flex flex-col">
             {data?.tasks.rows.map((row, index) => (
               <li key={row.id} className={phoneHidden(index)}>
                 <TaskLine groupId={groupId} row={row} today={today} />

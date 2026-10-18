@@ -52,7 +52,7 @@ export function ManagersSection({ groupId }: { groupId: string }) {
         <p className="text-body text-muted-foreground">{t('groups.managers.none')}</p>
       ) : (
         <Card className="gap-0 py-2">
-          <ul aria-labelledby={titleId}>
+          <ul role="list" aria-labelledby={titleId}>
             {managers.map((manager) => (
               <li key={manager.id} className={ROW}>
                 <Avatar userId={manager.id} name={manager.name} size={32} />

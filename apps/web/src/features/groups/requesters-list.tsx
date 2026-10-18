@@ -47,7 +47,7 @@ export function RequestersList({ groupId, admin }: { groupId: string; admin: boo
       </div>
       {active && active.length > 0 && (
         <Card className="gap-0 py-2">
-          <ul>
+          <ul role="list">
             {active.map((member) => (
               <li key={member.id} className={ROW}>
                 <Who member={member} />
@@ -72,7 +72,7 @@ export function RequestersList({ groupId, admin }: { groupId: string; admin: boo
             {t('group.requesters.removedTitle', { count: removed.length })}
           </summary>
           <Card className="mt-2 gap-0 py-2">
-            <ul>
+            <ul role="list">
               {removed.map((member) => (
                 <li key={member.id} className={ROW}>
                   <Who member={member} />

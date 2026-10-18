@@ -213,7 +213,7 @@ export function ProjectSheet({
               {events.data && events.data.length === 0 && (
                 <p className="text-button text-muted-foreground">{k('noEvents')}</p>
               )}
-              <ol className="-mx-2 flex flex-col">
+              <ol role="list" className="-mx-2 flex flex-col">
                 {events.data?.map((event) => (
                   <li key={event.id}>
                     <button

@@ -52,7 +52,7 @@ export function KnowledgeList({
     <div className="flex flex-col items-center gap-4">
       {view === 'cards' ? (
         <div className="@container w-full">
-          <ul className="grid grid-cols-1 gap-3 @xl:grid-cols-2 @4xl:grid-cols-3">
+          <ul role="list" className="grid grid-cols-1 gap-3 @xl:grid-cols-2 @4xl:grid-cols-3">
             {items.map((item) => (
               <li key={item.id} className="min-w-0">
                 <KnowledgeCard

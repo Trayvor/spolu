@@ -224,7 +224,7 @@ function TokenList() {
         <p className="text-tiny text-muted-foreground">{t('mcp.tokens.empty')}</p>
       )}
       {tokens.data && tokens.data.length > 0 && (
-        <ul className="flex flex-col divide-y divide-border">
+        <ul role="list" className="flex flex-col divide-y divide-border">
           {tokens.data.map((token) => (
             <TokenRow key={token.id} token={token} />
           ))}
@@ -320,7 +320,7 @@ function AuditList() {
         <p className="text-tiny text-muted-foreground">{t('mcp.audit.empty')}</p>
       )}
       {audit.data && audit.data.length > 0 && (
-        <ul className="flex flex-col gap-1.5">
+        <ul role="list" className="flex flex-col gap-1.5">
           {audit.data.map((entry) => (
             <li key={entry.id} className="flex flex-wrap items-baseline gap-x-2 text-tiny">
               <code className="rounded-sm bg-muted px-1 font-mono">{entry.tool}</code>

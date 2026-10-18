@@ -72,7 +72,7 @@ export function ProjectsCard({ groupId }: { groupId: string }) {
           </p>
         ) : (
           <>
-            <ul className="-mx-2 flex flex-col">
+            <ul role="list" className="-mx-2 flex flex-col">
               {items.map((project) => (
                 <li key={project.id}>
                   <ProjectRow project={project} onOpen={() => setOpenId(project.id)} />

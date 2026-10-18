@@ -58,7 +58,7 @@ function Card({ item, onOpen }: { item: MessageKnowledge; onOpen: () => void }) 
       onClick={onOpen}
       className={`${cardClass} border-border bg-card hover:border-foreground focus-visible:border-foreground`}
     >
-      <span className="text-brand-purple">
+      <span className="text-brand-purple-ink">
         <Glyph />
       </span>
       <span className="flex min-w-0 flex-col">

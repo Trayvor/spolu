@@ -251,6 +251,7 @@ function TimelineCard({ groupId, project }: { groupId: string; project: string |
             className="min-w-0 flex-1 overflow-x-auto overscroll-x-contain pb-2 [scrollbar-width:thin]"
           >
             <ol
+              role="list"
               aria-label={k('listLabel')}
               onKeyDown={onKeyDown}
               className="flex w-max items-start"

@@ -68,7 +68,7 @@ export function RankingList({
   if (items.length === 0) return <FinanceCardEmpty>{empty}</FinanceCardEmpty>;
   return (
     <div className="flex flex-col gap-3">
-      <ol className="flex flex-col">
+      <ol role="list" className="flex flex-col">
         {items.map((item) => (
           <li
             key={item.key}

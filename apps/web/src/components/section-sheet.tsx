@@ -35,7 +35,7 @@ export default function SectionSheet({
   return (
     <BottomSheet label={t('nav.menu')} onClose={onClose} className={PANEL_FROM_641}>
       <nav aria-label={t('nav.menu')}>
-        <ul className="flex flex-col gap-0.5">
+        <ul role="list" className="flex flex-col gap-0.5">
           {sections.map((section) => {
             const active = section.key === current?.key;
             return (

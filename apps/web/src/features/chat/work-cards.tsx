@@ -119,7 +119,9 @@ export function TicketSummary({ ticket, client }: { ticket: TicketCard; client?:
   const { t } = useTranslation();
   return (
     <>
-      <span className="shrink-0 text-button font-semibold text-brand-purple">#{ticket.number}</span>
+      <span className="shrink-0 text-button font-semibold text-brand-purple-ink">
+        #{ticket.number}
+      </span>
       <span className="flex min-w-0 flex-col">
         <span className="truncate text-button font-semibold">
           {ticket.subject ?? t('chat.work.noSubject')}

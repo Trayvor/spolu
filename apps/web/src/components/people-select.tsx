@@ -158,7 +158,7 @@ export function PeopleSelect({
   return (
     <div className="space-y-2">
       {value.length > 0 && (
-        <ul className="flex flex-wrap gap-2">
+        <ul role="list" className="flex flex-wrap gap-2">
           {value.map((id) => {
             const person = byId.get(id);
             const name = person?.name ?? '?';

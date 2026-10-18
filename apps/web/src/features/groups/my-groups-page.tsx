@@ -22,7 +22,7 @@ export function MyGroupsPage() {
         <p className="text-body text-muted-foreground">{t('groups.mine.empty')}</p>
       ) : (
         <Card className="gap-0 py-2">
-          <ul>
+          <ul role="list">
             {groups.map((group) => (
               <li
                 key={group.id}

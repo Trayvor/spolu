@@ -67,6 +67,7 @@ export function ReportView({ campaign, back }: { campaign: BulkCampaignDto; back
       <Card className="gap-5 px-4 py-5 min-[641px]:px-6">
         {campaign.status === 'sending' && <Progress done={done} total={total} />}
         <ul
+          role="list"
           aria-label={t('bulkEmail.report.counts')}
           className="grid grid-cols-2 gap-x-4 gap-y-5 min-[641px]:grid-cols-3 min-[961px]:grid-cols-6"
         >
@@ -266,7 +267,7 @@ function PeopleList({ campaignId }: { campaignId: string }) {
       {people.isSuccess && items.length === 0 && (
         <p className="text-button text-muted-foreground">{t('bulkEmail.report.empty')}</p>
       )}
-      <ul aria-labelledby="report-people">
+      <ul role="list" aria-labelledby="report-people">
         {items.map((item) => (
           <PersonRow key={item.userId} item={item} />
         ))}

@@ -919,6 +919,21 @@ describe('TaskPanel scroll lock', () => {
     expect(listeners).toHaveLength(0);
   });
 
+  it('is a modal dialog below 1024 px that traps Tab, and a plain panel from 1024 px', async () => {
+    const { user } = renderPanel();
+    await titleField();
+    const dialog = screen.getByRole('dialog', { name: t('tasks.panel.label') });
+    expect(dialog).toHaveAttribute('aria-modal', 'true');
+    // Tab never leaves the panel, however many times it is pressed.
+    for (let i = 0; i < 60; i += 1) {
+      await user.tab();
+      expect(dialog.contains(document.activeElement)).toBe(true);
+    }
+    change(false);
+    expect(screen.queryByRole('dialog', { name: t('tasks.panel.label') })).toBeNull();
+    expect(screen.getByRole('complementary', { name: t('tasks.panel.label') })).toBeInTheDocument();
+  });
+
   it('Save changes waits for an upload: disabled with a reason, enabled after', async () => {
     let finish!: (file: FileInfo) => void;
     vi.mocked(uploadFile).mockImplementation(() => new Promise((resolve) => (finish = resolve)));

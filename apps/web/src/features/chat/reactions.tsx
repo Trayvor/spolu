@@ -175,7 +175,7 @@ function Chip({
       className={cn(
         chip,
         mine
-          ? 'border-brand-purple bg-brand-purple/10 text-brand-purple'
+          ? 'border-brand-purple bg-brand-purple/10 text-brand-purple-ink'
           : 'border-transparent bg-secondary text-secondary-foreground hover:border-border',
       )}
     >

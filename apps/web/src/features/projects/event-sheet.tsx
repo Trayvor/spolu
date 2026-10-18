@@ -208,7 +208,7 @@ function ItemList({
       <h3 className="text-button font-semibold">
         {kind === 'tasks' ? t('projects.timeline.tasksTitle') : t('projects.timeline.ticketsTitle')}
       </h3>
-      <ul className="-mx-1 flex flex-col">
+      <ul role="list" className="-mx-1 flex flex-col">
         {tasks.map((task) => (
           <li key={task.id}>
             <TaskRow groupId={groupId} task={task} today={today} />
