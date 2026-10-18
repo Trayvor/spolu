@@ -23,8 +23,19 @@ const socket = {
   emit: vi.fn(),
   connected: false,
 };
-// Marking seen (2026-10-17) has its own test; here it would add requests and listeners.
-vi.mock('@/lib/use-mark-seen', () => ({ useMarkSeen: () => {} }));
+// Marking seen (2026-10-17) has its own test; here it would add requests and listeners. This
+// stand-in only marks once `ready` (2026-10-18), to test that the panel waits for the summary.
+vi.mock('@/lib/use-mark-seen', async () => {
+  const { useEffect } = await import('react');
+  return {
+    useMarkSeen: (target: { id: string } | null, ready = true) => {
+      const id = target?.id;
+      useEffect(() => {
+        if (id && ready) void fetch(`/api/tasks/${id}/seen`, { method: 'POST' });
+      }, [id, ready]);
+    },
+  };
+});
 vi.mock('@/lib/socket', () => ({
   getSocket: () => socket,
   connectSocket: vi.fn(),
@@ -108,6 +119,7 @@ let me: typeof ADMIN | typeof CLIENT;
 let detail: TaskDetailDto;
 let fetchMock: ReturnType<typeof vi.fn>;
 let patchReply: { status: number; body: unknown } | null;
+let summaryReply: () => Response | Promise<Response>;
 const calls = (method: string, url: string) =>
   fetchMock.mock.calls.filter(
     ([u, i]) => u === url && ((i as RequestInit | undefined)?.method ?? 'GET') === method,
@@ -119,6 +131,7 @@ beforeEach(() => {
   markAllRead.mockClear();
   me = ADMIN;
   patchReply = null;
+  summaryReply = () => new Response(JSON.stringify({ lines: [], more: 0 }));
   detail = {
     ...card('t1', 'b-todo'),
     description: 'Some details',
@@ -147,6 +160,8 @@ beforeEach(() => {
       const body = JSON.parse(init!.body as string);
       return reply(200, { ...detail, ...body, updatedAt: '2026-10-16T10:00:00.000Z' });
     }
+    if (url === '/api/tasks/t1/unseen-summary') return summaryReply();
+    if (url === '/api/tasks/t1/seen') return reply(204);
     if (url === '/api/tasks/t1/move') return reply(200, card('t1', 'b-done'));
     if (url === '/api/tasks/t1/chat')
       return reply(200, { id: 'ch1', lastSeq: 3, lastReadAt: null, unread: 3 });
@@ -187,6 +202,34 @@ const titleField = () => screen.findByLabelText(t('tasks.form.title'));
 const tab = (name: RegExp) => screen.getByRole('tab', { name });
 
 describe('TaskPanel', () => {
+it('fetches what changed before marking the task seen, and shows it in a banner (2026-10-18)', async () => {
+  let answer: (response: Response) => void = () => undefined;
+  summaryReply = () => new Promise<Response>((resolve) => (answer = resolve));
+  renderPanel();
+  await titleField();
+  await waitFor(() => expect(calls('GET', '/api/tasks/t1/unseen-summary')).toHaveLength(1));
+  // Not seen while the summary is on its way: marking first would empty it.
+  expect(calls('POST', '/api/tasks/t1/seen')).toHaveLength(0);
+  answer(new Response(JSON.stringify({ lines: [{ kind: 'assigned' }], more: 0 })));
+  await waitFor(() => expect(calls('POST', '/api/tasks/t1/seen')).toHaveLength(1));
+  const urls = fetchMock.mock.calls.map(([u]) => u);
+  expect(urls.indexOf('/api/tasks/t1/unseen-summary')).toBeLessThan(
+    urls.indexOf('/api/tasks/t1/seen'),
+  );
+  expect(await screen.findByTestId('unseen-banner')).toHaveTextContent(
+    t('unseen.lines.assigned'),
+  );
+});
+
+it('a failed summary still marks the task seen, with no banner (2026-10-18)', async () => {
+  summaryReply = () => new Response(null, { status: 500 });
+  renderPanel();
+  await titleField();
+  await waitFor(() => expect(calls('POST', '/api/tasks/t1/seen')).toHaveLength(1));
+  expect(calls('GET', '/api/tasks/t1/unseen-summary')).toHaveLength(1);
+  expect(screen.queryByTestId('unseen-banner')).toBeNull();
+});
+
   it('shows the form filled from the task and the created-by footer', async () => {
     renderPanel();
     expect(await titleField()).toHaveValue('Task t1');

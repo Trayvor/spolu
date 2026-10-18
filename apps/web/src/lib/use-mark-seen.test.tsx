@@ -51,6 +51,20 @@ describe('useMarkSeen (2026-10-17)', () => {
     expect(posts).toEqual(['/api/tasks/t1/seen', '/api/tasks/t1/seen']);
   });
 
+  it('a live change does not mark it seen while the first mark is held back (2026-10-18)', async () => {
+    vi.useFakeTimers();
+    const { rerender } = renderHook(({ ready }) => useMarkSeen({ kind: 'task', id: 't1' }, ready), {
+      initialProps: { ready: false },
+    });
+    await act(() => vi.advanceTimersByTimeAsync(0));
+    fire(BoardEvents.task, { task: { id: 't1' } });
+    await act(() => vi.advanceTimersByTimeAsync(MARK_SEEN_DELAY_MS));
+    expect(posts).toEqual([]);
+    rerender({ ready: true });
+    await act(() => vi.advanceTimersByTimeAsync(0));
+    expect(posts).toEqual(['/api/tasks/t1/seen']);
+  });
+
   it('a ticket: its own events and its chat count, nothing before it loads', async () => {
     vi.useFakeTimers();
     const { rerender } = renderHook((target: SeenTarget | null) => useMarkSeen(target), {

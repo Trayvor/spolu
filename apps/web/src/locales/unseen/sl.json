@@ -25,6 +25,7 @@
     "messagesOnly_few": "{{count}} nova sporočila",
     "messagesOnly_other": "{{count}} novih sporočil",
     "mentions": "Omenil vas je: {{authors}}",
+    "mentionsOnly": "Omenil vas je nekdo",
     "status": "Stanje: {{status}}",
     "updated": "Podatki spremenjeni",
     "tasks_one": "{{count}} nova naloga iz zahtevka",
@@ -42,6 +43,7 @@
     "todo": "Za narediti",
     "egrantReview": "Pregled eGrant",
     "clientReview": "Pregled {{group}}",
+    "clientReviewAnon": "Pregled stranke",
     "done": "Dokončano"
   },
   "status": {

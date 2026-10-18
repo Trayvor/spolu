@@ -25,6 +25,7 @@
     "messagesOnly_many": "{{count}} novej správy",
     "messagesOnly_other": "{{count}} nových správ",
     "mentions": "Zmienka od: {{authors}}",
+    "mentionsOnly": "Zmienka",
     "status": "Stav: {{status}}",
     "updated": "Upravené údaje",
     "tasks_one": "{{count}} nová úloha z tiketu",
@@ -42,6 +43,7 @@
     "todo": "Na spracovanie",
     "egrantReview": "Kontrola eGrant",
     "clientReview": "Kontrola {{group}}",
+    "clientReviewAnon": "Kontrola klienta",
     "done": "Hotové"
   },
   "status": {

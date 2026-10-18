@@ -21,6 +21,7 @@
     "messagesOnly_one": "{{count}} new message",
     "messagesOnly_other": "{{count}} new messages",
     "mentions": "Mentioned by {{authors}}",
+    "mentionsOnly": "Mentioned",
     "status": "Status: {{status}}",
     "updated": "Details changed",
     "tasks_one": "{{count}} new task from the ticket",
@@ -34,6 +35,7 @@
     "todo": "To do",
     "egrantReview": "eGrant review",
     "clientReview": "{{group}} review",
+    "clientReviewAnon": "Client review",
     "done": "Completed"
   },
   "status": {

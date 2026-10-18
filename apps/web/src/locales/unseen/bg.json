@@ -21,6 +21,7 @@
     "messagesOnly_one": "{{count}} ново съобщение",
     "messagesOnly_other": "{{count}} нови съобщения",
     "mentions": "Споменаване от: {{authors}}",
+    "mentionsOnly": "Споменаване",
     "status": "Статус: {{status}}",
     "updated": "Променени данни",
     "tasks_one": "{{count}} нова задача от тикета",
@@ -34,6 +35,7 @@
     "todo": "За изпълнение",
     "egrantReview": "Преглед от eGrant",
     "clientReview": "Преглед от {{group}}",
+    "clientReviewAnon": "Преглед от клиента",
     "done": "Завършени"
   },
   "status": {
