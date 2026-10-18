@@ -3,6 +3,7 @@
   "create": "Crea gruppo",
   "empty": "Ancora nessun gruppo. Crei il primo per un cliente.",
   "members": "{{count}} membri",
+  "showMore": "Mostra altri (ne restano {{left}})",
   "form": {
     "name": "Nome",
     "egrantUrl": "URL eGrant del cliente",
@@ -51,6 +52,10 @@
     "none": "Senza responsabile",
     "empty": "Nessun gruppo per questo filtro.",
     "clear": "Cancella filtro"
+  },
+  "find": {
+    "label": "Trova un gruppo",
+    "noMatch": "Nessun gruppo corrisponde."
   },
   "adminGroup": {
     "hint": "La chat interna del team eGrant. La vedono solo gli amministratori."

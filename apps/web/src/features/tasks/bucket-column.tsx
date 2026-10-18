@@ -1,4 +1,12 @@
-import { useRef, useState, type CSSProperties, type KeyboardEvent } from 'react';
+import {
+  useCallback,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type HTMLAttributes,
+  type KeyboardEvent,
+} from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { useQueryClient } from '@tanstack/react-query';
@@ -88,6 +96,20 @@ function SortableTask({
     transition,
     isDragging,
   } = useSortable({ id: task.id, data, disabled: { draggable: false, droppable: disabled } });
+  // Stable props, so the memoized card skips the redraws of a drag elsewhere on the board.
+  const describedBy = attributes['aria-describedby'];
+  const handleProps = useMemo<HTMLAttributes<HTMLAnchorElement>>(
+    () => ({
+      ...listeners,
+      'aria-describedby': describedBy,
+      // A long press drags on touch; Android would open the link menu instead.
+      onContextMenu: (event) => {
+        if ((event.nativeEvent as PointerEvent).pointerType === 'touch') event.preventDefault();
+      },
+    }),
+    [listeners, describedBy],
+  );
+  const toggle = useCallback(() => onToggleDone(task), [onToggleDone, task]);
   return (
     <li
       ref={setNodeRef}
@@ -108,16 +130,9 @@ function SortableTask({
         chat={chat}
         unseen={unseen}
         ref={setActivatorNodeRef}
-        onToggleDone={() => onToggleDone(task)}
+        onToggleDone={toggle}
         // Not dnd-kit's role="button": the card stays a link (Enter opens it, Space lifts it).
-        handleProps={{
-          ...listeners,
-          'aria-describedby': attributes['aria-describedby'],
-          // A long press drags on touch; Android would open the link menu instead.
-          onContextMenu: (event) => {
-            if ((event.nativeEvent as PointerEvent).pointerType === 'touch') event.preventDefault();
-          },
-        }}
+        handleProps={handleProps}
       />
     </li>
   );

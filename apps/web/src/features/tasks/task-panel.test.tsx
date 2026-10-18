@@ -53,6 +53,12 @@ vi.mock('@/features/chat/conversation', () => ({
     />
   ),
 }));
+// The chat is a lazy chunk (2026-10-18): the flag records when the panel first imports it.
+const taskChatModule = vi.hoisted(() => ({ loaded: false }));
+vi.mock('./task-chat', async (importOriginal) => {
+  taskChatModule.loaded = true;
+  return importOriginal<typeof import('./task-chat')>();
+});
 const markAllRead = vi.hoisted(() =>
   vi.fn<(channelId: string) => Promise<void>>(async () => undefined),
 );
@@ -203,6 +209,16 @@ const titleField = () => screen.findByLabelText(t('tasks.form.title'));
 const tab = (name: RegExp) => screen.getByRole('tab', { name });
 
 describe('TaskPanel', () => {
+  // Must stay the first test: once imported, the module stays loaded for the file.
+  it('loads the chat only when the Chat tab opens', async () => {
+    const { user } = renderPanel('/groups/g1/tasks/t1');
+    await titleField();
+    expect(taskChatModule.loaded).toBe(false);
+    await user.click(tab(/Chat/));
+    expect(await screen.findByTestId('conversation')).toBeInTheDocument();
+    expect(taskChatModule.loaded).toBe(true);
+  });
+
   it('fetches what changed before marking the task seen, and shows it in a banner (2026-10-18)', async () => {
     let answer: (response: Response) => void = () => undefined;
     summaryReply = () => new Promise<Response>((resolve) => (answer = resolve));

@@ -1,5 +1,6 @@
 import { ColumnSkeletons } from '@/components/ui/skeleton';
 import {
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -126,6 +127,7 @@ export function Board({ groupId }: { groupId: string }) {
     enabled: false,
   });
   const grouped = useMemo(() => (board ? tasksByBucket(board) : null), [board]);
+  const sortedBuckets = useMemo(() => (board ? [...board.buckets].sort(byPosition) : []), [board]);
   const groupName = group?.name ?? '';
   const [dragging, setDragging] = useState<Dragging | null>(null);
   // While a card hovers over another bucket: the card (or 'end') it would land before.
@@ -150,6 +152,16 @@ export function Board({ groupId }: { groupId: string }) {
       keyboardCodes: KEYBOARD_CODES,
       scrollBehavior: prefersReducedMotion() ? 'auto' : 'smooth',
     }),
+  );
+  // Stable while the board is unchanged, so the memoized cards skip the redraws of a drag.
+  const onToggleDone = useCallback(
+    (task: TaskDto) => {
+      if (!grouped) return;
+      showBoardNotice(queryClient, groupId, null);
+      const drop = computeDoneToggle(grouped, sortedBuckets, task);
+      if (drop) void handleTaskDrop(queryClient, groupId, task.id, drop);
+    },
+    [queryClient, groupId, grouped, sortedBuckets],
   );
   const accessibility = useMemo(() => {
     const title = (bucketId: string) => {
@@ -197,7 +209,7 @@ export function Board({ groupId }: { groupId: string }) {
       </>
     );
   }
-  const buckets = [...board.buckets].sort(byPosition);
+  const buckets = sortedBuckets;
   const columns = grouped;
   const today = todayInBratislava();
   const noTasks = board.tasks.length === 0;
@@ -241,12 +253,6 @@ export function Board({ groupId }: { groupId: string }) {
       const drop = computeBucketDrop(buckets, from.bucketId, to.bucketId);
       if (drop) void handleBucketDrop(queryClient, groupId, from.bucketId, drop.afterBucketId);
     }
-  }
-
-  function onToggleDone(task: TaskDto) {
-    showBoardNotice(queryClient, groupId, null);
-    const drop = computeDoneToggle(columns, buckets, task);
-    if (drop) void handleTaskDrop(queryClient, groupId, task.id, drop);
   }
 
   function onDragCancel() {

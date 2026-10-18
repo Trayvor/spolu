@@ -258,6 +258,21 @@ describe('ticket lists', () => {
     expect(listCalls()).toBe(before + 1);
   });
 
+  it('a burst of events refetches the lists once, 2 s after the last; an unlisted ticket is not fetched', async () => {
+    const { calls } = mockTicketApi(CLIENT, groupRoutes());
+    renderAt('/groups/g1/tickets');
+    await screen.findByText('Ticket k1');
+    const listCalls = () => calls.filter((c) => c.startsWith('GET /api/groups/g1/tickets')).length;
+    const before = listCalls();
+    act(() => socket.fire('ticket:created', { ticketId: 'k7', groupId: 'g1' }));
+    act(() => socket.fire('ticket:created', { ticketId: 'k8', groupId: 'g1' }));
+    act(() => socket.fire('ticket:updated', { ticketId: 'k9', groupId: 'g1' }));
+    await new Promise((r) => setTimeout(r, 50));
+    expect(listCalls()).toBe(before);
+    await waitFor(() => expect(listCalls()).toBe(before + 1), { timeout: 4000 });
+    expect(calls).not.toContain('GET /api/tickets/k9');
+  });
+
   it('the first connect keeps the lists just loaded; a reconnect refetches them', async () => {
     const { calls } = mockTicketApi(CLIENT, groupRoutes());
     socket.connected = false; // a cold load: the socket connects after the screen mounted

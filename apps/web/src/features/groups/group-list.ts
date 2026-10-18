@@ -31,3 +31,12 @@ export function filterByManager(
   if (manager === 'none') return groups.filter((g) => g.managers.length === 0);
   return groups.filter((g) => g.managers.some((m) => m.id === manager));
 }
+
+/** Lower case without diacritics, so "luky" finds "Obec Lúky". */
+const fold = (text: string) => text.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
+
+/** The groups whose name contains `query`, ignoring case and diacritics; all for a blank query. */
+export function filterByName(groups: GroupSummary[], query: string): GroupSummary[] {
+  const needle = fold(query.trim());
+  return needle ? groups.filter((g) => fold(g.name).includes(needle)) : groups;
+}

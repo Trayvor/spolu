@@ -1,4 +1,4 @@
-import type { HTMLAttributes, ReactNode, Ref } from 'react';
+import { memo, type HTMLAttributes, type ReactNode, type Ref } from 'react';
 import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import type { BucketKind, TaskChatSummary, TaskDto, TaskPerson, UnseenMark } from '@spolu/shared';
@@ -131,8 +131,10 @@ export function TaskCardMeta({
 /**
  * One card on the board: a link to the task panel. Presentational only (no hooks besides i18n):
  * the board's drag layer passes its handle props and ref in, the card itself knows no dnd-kit.
+ * Memoized: while a card is dragged the board redraws on every move, and a card whose props did
+ * not change (the board passes stable callbacks and handle props) is skipped.
  */
-export function TaskCard({
+export const TaskCard = memo(function TaskCard({
   task,
   bucketKind,
   today,
@@ -255,4 +257,4 @@ export function TaskCard({
       )}
     </div>
   );
-}
+});
