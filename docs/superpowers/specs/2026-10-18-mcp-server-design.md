@@ -81,7 +81,7 @@ Each tool names the route(s) it calls. Ids are the app's ids. Lists take the rou
 | `get_group` | `GET /api/groups/:id` |
 | `list_group_people` | `GET /api/groups/:id/people` |
 | `list_group_members` (`which`: members, requesters, invited, removed) | `GET /api/groups/:id/members`, `…/requesters`, `…/members/invited`, `…/members/removed` |
-| `list_admins` | `GET /api/admins` |
+| `list_admins` | `GET /api/admins` (the route has no paging, so the tool filters by a name or email fragment `q` and pages by `offset`, 200 a page) |
 | `get_chat_channel` (`groupId` or `taskId` or `ticketId`) | `GET /api/groups/:id/chat`, `/api/tasks/:id/chat`, `/api/tickets/:id/chat` |
 | `list_messages` | `GET /api/channels/:id/messages` (`before`/`after`, `limit` ≤ 50) |
 | `get_thread` | `GET /api/messages/:id/thread` |

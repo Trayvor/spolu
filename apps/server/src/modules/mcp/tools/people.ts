@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { defineTool, fromApi, idArg, type ToolDef } from './define.js';
 
 const GROUPS_PAGE = 200;
+const ADMINS_PAGE = 200;
 
 type GroupRow = {
   id: string;
@@ -11,6 +12,8 @@ type GroupRow = {
   managers?: Array<{ name: string }>;
   managedByMe: boolean;
 };
+
+type AdminRow = { name: string; email: string };
 
 /** Lower case without diacritics, for the name filter. */
 const fold = (value: string) => value.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
@@ -69,7 +72,7 @@ export const peopleTools: ToolDef[] = [
     name: 'list_group_people',
     title: 'List a group’s people',
     description:
-      'The people of a group who read it: its active, named clients and every active admin, each with isAdmin and isManager. Assignees and mentions must be its clients or its managers.',
+      'The people of a group who read it: its active, named clients and every active admin, each with isAdmin and isManager. Mentions must be its clients or its managers; so must task assignees, except that an admin user also assigns any active admin.',
     input: z.object({ groupId: idArg('group') }),
     run: async ({ api }, { groupId }) => fromApi(await api('GET', `/api/groups/${groupId}/people`)),
   }),
@@ -95,8 +98,26 @@ export const peopleTools: ToolDef[] = [
   defineTool({
     name: 'list_admins',
     title: 'List admins',
-    description: 'Every active administrator (the eGrant team).',
-    input: z.object({}),
-    run: async ({ api }) => fromApi(await api('GET', '/api/admins')),
+    description:
+      'The active administrators (the eGrant team), the superadmin first, then by name: id, name, email, role. Filter by a name or email fragment `q`; paged by `offset` (200 a page, `nextOffset` in the answer).',
+    input: z.object({
+      q: z.string().max(100).optional(),
+      offset: z.number().int().min(0).optional(),
+    }),
+    // Paged here: the route answers every admin at once, which could pass the text cap and be cut.
+    run: async ({ api }, { q, offset = 0 }) => {
+      const res = await api('GET', '/api/admins');
+      if (res.status !== 200 || !Array.isArray(res.body)) return fromApi(res);
+      const needle = q === undefined ? '' : fold(q);
+      const all = (res.body as AdminRow[]).filter(
+        (a) => needle === '' || fold(a.name).includes(needle) || fold(a.email).includes(needle),
+      );
+      const page = all.slice(offset, offset + ADMINS_PAGE);
+      const next = offset + ADMINS_PAGE;
+      return {
+        status: 200,
+        data: { total: all.length, admins: page, nextOffset: next < all.length ? next : null },
+      };
+    },
   }),
 ];

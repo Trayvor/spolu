@@ -21,6 +21,7 @@ describe('MCP tools', () => {
   let admin: { id: string; token: string; cookie: string };
   let other: { id: string; token: string };
   let client: { id: string; name: string };
+  let adminEmail: string;
   const admins: string[] = [];
 
   const tool = async (name: string, args: Obj = {}, token = admin.token) => {
@@ -41,6 +42,7 @@ describe('MCP tools', () => {
     test = await buildTestApp();
     const db = test.deps.db;
     const email = `${randomUUID()}@example.com`;
+    adminEmail = email;
     const a = await addAdmin(db, { email, name: 'Ada Admin' });
     const b = await addAdmin(db, { email: `${randomUUID()}@example.com`, name: 'Bob Admin' });
     admins.push(a.id, b.id);
@@ -76,8 +78,17 @@ describe('MCP tools', () => {
     const members = (await ok('list_group_members', { groupId })) as unknown as Array<Obj>;
     expect(JSON.stringify(members)).toContain(client.id);
     await ok('list_group_members', { groupId, which: 'requesters' });
-    const adminsList = (await ok('list_admins')) as unknown as Array<Obj>;
-    expect(adminsList.map((p) => p.id)).toContain(admin.id);
+    // Filtered by the admin's own (unique) email: the shared test database holds many admins.
+    const mine = (await ok('list_admins', { q: adminEmail.toUpperCase() })) as {
+      admins: Obj[];
+      total: number;
+    };
+    expect(mine).toMatchObject({ total: 1, nextOffset: null });
+    expect(mine.admins).toEqual([
+      { id: admin.id, name: 'Ada Admin', email: adminEmail, role: 'admin' },
+    ]);
+    const allAdmins = (await ok('list_admins')) as { admins: unknown[]; total: number };
+    expect(allAdmins.admins.length).toBe(Math.min(allAdmins.total, 200));
   });
 
   it('an unknown or malformed id answers like the app (404, 400)', async () => {
@@ -106,8 +117,14 @@ describe('MCP tools', () => {
       changes: { title: 'x', updatedAt: '2020-01-01T00:00:00.000Z' },
     });
     expect(stale.json).toMatchObject({ status: 409, error: 'task_changed' });
-    // The route's own rule: an admin who manages nothing is no pickable assignee here.
-    const notPickable = await tool('update_task', { taskId, changes: { assigneeIds: [other.id] } });
+    // The route's own rule: an admin assigns any active admin, even one who manages nothing here,
+    // but never someone outside the group.
+    const anyAdmin = await ok('update_task', { taskId, changes: { assigneeIds: [other.id] } });
+    expect(anyAdmin.assignees).toEqual([{ id: other.id, name: 'Bob Admin' }]);
+    const notPickable = await tool('update_task', {
+      taskId,
+      changes: { assigneeIds: [randomUUID()] },
+    });
     expect(notPickable.json).toMatchObject({ status: 400, error: 'invalid_assignee' });
 
     const board = (await ok('get_board', { groupId })) as {

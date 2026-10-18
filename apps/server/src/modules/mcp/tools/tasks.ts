@@ -99,7 +99,7 @@ export const taskTools: ToolDef[] = [
     name: 'create_task',
     title: 'Create a task',
     description:
-      'Creates a task on a group’s board as the user (in To do unless `task.bucketId` names another bucket). Assignees must be the group’s clients or managers (list_group_people). The board updates live and the assignees are notified, as in the app.',
+      'Creates a task on a group’s board as the user (in To do unless `task.bucketId` names another bucket). Assignees must be the group’s clients or managers (list_group_people); an admin user also assigns any active admin (list_admins). The board updates live and the assignees are notified, as in the app.',
     input: z.object({ groupId: idArg('group'), task: TaskCreateSchema }),
     write: true,
     target: ({ groupId }) => groupId,
