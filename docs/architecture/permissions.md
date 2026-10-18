@@ -148,6 +148,13 @@ Policy functions in `modules/projects/policy.ts` (test-first, `policy.test.ts`);
 - The database backs the services: composite FKs refuse another client's project and an event of another project on a task or ticket ([ADR 0030](../decisions/0030-projects-composite-keys-and-egrant-matching.md)).
 - The eGrant project endpoint and the intake (part P3) create and link projects with the Bearer key, never through these user routes.
 
+Tasks and tickets on projects (part P2):
+
+- A task's `projectId`/`eventId` (create, PATCH, the review cards) follow the board rule: whoever passes `canUseBoard` (the route's group check) may set them, which is what `canSetTaskProject` says; the pair is then checked by `getProjectRef` in the write's transaction (`400 invalid_project`).
+- A ticket's pair has its own route, `PUT /api/tickets/:id/project`, so the group's clients set it without editing the ticket's other fields (`PATCH /api/tickets/:id` stays admins only, `403`). The route reads the ticket (`404` when the caller does not read it), answers `409 no_client` for a ticket without a client, then checks `canSetTicketProject`; a žiadateľ fails it with `404` even on their own ticket (they never write to the group). A client creating a ticket (`POST /api/tickets`) may choose the pair too.
+- What a žiadateľ sees: on their ticket's page and in their lists `project` is `{ id, name, color: null }` and `event` is always `null` (`forProjectReader` in `tickets/project-links.ts`; decision 7).
+- Moving a ticket to another client clears its project and event in the same statement.
+
 ## Finance (Phase 32)
 
 Policy functions in `modules/finance/policy.ts` (test-first, `policy.test.ts`):

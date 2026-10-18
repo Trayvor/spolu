@@ -169,6 +169,31 @@ describe('admin home query plans on a seeded volume', () => {
           ['tickets'],
         );
         await expectIndexed(tx, sql`select id from tickets where number = 777`, ['tickets']);
+        // Phase 33 part P2: the group board and the ticket list filtered by a project and an
+        // event read `tasks_group_project_event_idx` / `tickets_group_project_event_idx`, and the
+        // global board with a Project filter for one client stays on the indexes.
+        const projectId = `${groupId}-p1`;
+        const eventId = `${groupId}-e1`;
+        for (const event of [sql`and t.event_id = ${eventId}`, sql``]) {
+          await expectIndexed(
+            tx,
+            sql`select t.id from tasks t where t.group_id = ${groupId}
+              and t.completed_at is null and t.project_id = ${projectId} ${event}`,
+            ['tasks'],
+          );
+        }
+        await expectIndexed(
+          tx,
+          sql`select id from tickets where group_id = ${groupId} and project_id = ${projectId}
+            and event_id = ${eventId} and status in ('new', 'in_progress')
+            order by created_at desc, id desc limit 51`,
+          ['tickets'],
+        );
+        await expectIndexed(
+          tx,
+          globalBoardSql({ ...board, clientIds: [groupId], mine: false, project: projectId }),
+          ['tasks', ...CHAT_TABLES, ...UNSEEN_TABLES],
+        );
       });
     },
   );

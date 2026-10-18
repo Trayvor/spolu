@@ -13,6 +13,7 @@ import {
 import type { Db } from '../../infra/db/client.js';
 import { withAdminGroup } from '../groups/admin-group.js';
 import { managedGroupIds } from '../groups/managers.js';
+import { projectRefs } from '../projects/refs.js';
 import { taskUnseenSql } from '../notifications/unseen.js';
 
 /** The `after` cursor does not parse (route: 400 `invalid_filter`). */
@@ -40,6 +41,8 @@ export type GlobalBoardQuery = {
   after?: string;
   /** Bratislava's date, `YYYY-MM-DD`: "overdue" and "next 7 days" follow it, not UTC. */
   today: string;
+  /** Phase 33 part P2: `<id>` or `none`; the route allows it only with exactly one client. */
+  project?: string;
 };
 
 /** Today's date in Bratislava, `YYYY-MM-DD`. */
@@ -107,6 +110,12 @@ function mineFilter(q: GlobalBoardQuery): SQL {
   if (!q.mine) return sql`true`;
   return sql`(s.created_by = ${q.viewerId} or exists (
     select 1 from task_assignees ta where ta.task_id = s.id and ta.user_id = ${q.viewerId}))`;
+}
+
+function projectFilter(q: GlobalBoardQuery): SQL {
+  if (q.project === undefined) return sql`true`;
+  if (q.project === 'none') return sql`s.project_id is null`;
+  return sql`s.project_id = ${q.project}`;
 }
 
 function dueFilter(q: GlobalBoardQuery): SQL {
@@ -179,6 +188,7 @@ export function globalBoardSql(q: GlobalBoardQuery): SQL {
     with base as (
       select t.id, t.group_id, t.bucket_id, t.position, t.title, t.urgent, t.due_date, t.link,
         t.completed_at, t.source_message_id, t.created_at, t.updated_at, t.created_by,
+        t.project_id, t.event_id,
         b.kind as bucket_kind, b.name as bucket_name,
         g.name as group_name, g.logo_key is not null as group_has_logo,
         g.updated_at as group_updated_at
@@ -229,6 +239,7 @@ export function globalBoardSql(q: GlobalBoardQuery): SQL {
       select s.*
       from scope s
       where ${assigneeFilter(q)} and ${mineFilter(q)} and ${urgent} and ${dueFilter(q)} and ${search} and ${onlyColumn}
+        and ${projectFilter(q)}
     ),
     ranked as (
       select r.*,
@@ -270,6 +281,8 @@ export function globalBoardSql(q: GlobalBoardQuery): SQL {
           'fileCount', (select count(*)::int from task_attachments tf where tf.task_id = p.id),
           'knowledgeCount', ${linkedCountSql(sql`p.id`, sql`p.group_id`)},
           'sourceMessageId', p.source_message_id,
+          'projectId', p.project_id,
+          'eventId', p.event_id,
           -- The board card's reminder bell, as on the group board (one correlated count, read
           -- only, on reminder_sets_task_unique and reminder_times_set_at_idx).
           'upcomingReminders', (
@@ -318,7 +331,10 @@ type CardJson = {
   col: string;
   remaining: number;
   cursor: Cursor;
-  task: GlobalTaskDto;
+  task: Omit<GlobalTaskDto, 'project' | 'event'> & {
+    projectId: string | null;
+    eventId: string | null;
+  };
 };
 
 type Row = {
@@ -370,6 +386,11 @@ const iso = (value: string) => new Date(value).toISOString();
 export async function getGlobalBoard(db: Db, q: GlobalBoardQuery): Promise<GlobalBoard> {
   const [row] = [...(await db.execute<Row>(globalBoardSql(q)))];
   const { tasks, totals, people } = row!;
+  // Phase 33 part P2: the cards' projects and events, one query for the page.
+  const refs = await projectRefs(
+    db,
+    tasks.map((t) => t.task),
+  );
   const columns = columnHeads(q, row!).map((head) => {
     const items = tasks.filter((t) => t.col === head.id);
     const last = items.at(-1);
@@ -377,15 +398,14 @@ export async function getGlobalBoard(db: Db, q: GlobalBoardQuery): Promise<Globa
       ...head,
       total: totals[head.id] ?? 0,
       // JSON timestamps come as `2026-10-01T10:00:00.123+00:00`; the DTOs use `toISOString()`.
-      items: items.map(({ task: t }) => ({
+      items: items.map(({ task: { projectId, eventId, ...t } }) => ({
         ...t,
         createdAt: iso(t.createdAt),
         updatedAt: iso(t.updatedAt),
         completedAt: t.completedAt === null ? null : iso(t.completedAt),
         groupUpdatedAt: iso(t.groupUpdatedAt),
-        // Phase 33: part P2 fills these through one `projectRefs` call per page.
-        project: null,
-        event: null,
+        project: refs.project(projectId),
+        event: refs.event(eventId),
       })),
       next: last && last.remaining > HOME_LIMITS.columnPage ? encodeCursor(last.cursor) : null,
     };

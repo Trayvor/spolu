@@ -38,6 +38,7 @@ import { clientGroupIds } from '../groups/memberships.js';
 import { emitMeetingTasks } from '../knowledge/events.js';
 import { InvalidKnowledgeLinkError } from '../knowledge/links.js';
 import { emitSeen, markTaskSeen, taskUnseenSummary } from '../notifications/unseen.js';
+import { InvalidProjectError } from '../projects/refs.js';
 import { emitTicket, emitTicketRefresh } from '../tickets/events.js';
 import { runTicketChange } from '../tickets/hooks.js';
 import { actorReadsTicket, attachmentIds, getTicketRow } from '../tickets/service.js';
@@ -87,6 +88,9 @@ const writeError = (reply: FastifyReply, error: unknown) => {
   }
   if (error instanceof InvalidKnowledgeLinkError) {
     return reply.code(400).send({ error: ErrorCodes.invalidKnowledgeItem });
+  }
+  if (error instanceof InvalidProjectError) {
+    return reply.code(400).send({ error: ErrorCodes.invalidProject });
   }
   throw error;
 };
@@ -264,9 +268,15 @@ export const taskRoutes: FastifyPluginAsync<TaskRoutesOptions> = async (
         return notFound(reply);
       }
       const source = { ticketId: ticket.id, fileIds: await attachmentIds(db, ticket.id) };
+      // Phase 33 decision 12: a card that names no project takes the ticket's project and event.
+      const cards = body.data.tasks.map((card) =>
+        card.projectId === undefined && card.eventId === undefined
+          ? { ...card, projectId: ticket.projectId, eventId: ticket.eventId }
+          : card,
+      );
       let created;
       try {
-        created = await createTasksFromSource(deps, actor, groupId, body.data, source);
+        created = await createTasksFromSource(deps, actor, groupId, { tasks: cards }, source);
       } catch (error) {
         return writeError(reply, error);
       }

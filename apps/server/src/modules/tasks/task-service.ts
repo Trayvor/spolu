@@ -33,6 +33,7 @@ import { getSourceMessage } from '../chat/messages.js';
 import { taskChatFileIds } from '../chat/service.js';
 import { getGroup, isPickablePerson } from '../groups/service.js';
 import { linkedCardsOf, setLinkedItems } from '../knowledge/links.js';
+import { getProjectRef } from '../projects/refs.js';
 import { getMeetingRef } from '../knowledge/meeting-ref.js';
 import { getTicketRef } from '../tickets/refs.js';
 import { recordNotifications, requestDelivery } from '../notifications/service.js';
@@ -50,6 +51,7 @@ import {
   type TimeEffect,
 } from '../finance/task-time.js';
 import { keyAfter, keysBefore } from './positions.js';
+import { requestedProjectPair } from './project-links.js';
 import { buckets, taskAssignees, taskAttachments, tasks } from './schema.js';
 import { ensureBoard, lockBuckets, selectTasks, type Tx } from './service.js';
 
@@ -296,6 +298,7 @@ export async function createTaskTimed(
       .orderBy(desc(tasks.position))
       .limit(1);
     await checkAssignees(tx, groupId, assigneeIds);
+    const ref = await getProjectRef(tx, groupId, input.projectId ?? null, input.eventId ?? null);
 
     const now = new Date();
     const taskId = randomUUID();
@@ -310,6 +313,8 @@ export async function createTaskTimed(
       dueDate: input.dueDate,
       urgent: input.urgent,
       link: input.link,
+      projectId: ref?.projectId ?? null,
+      eventId: ref?.eventId ?? null,
       completedAt: bucket.kind === 'done' ? now : null,
       sourceMessageId: null,
       createdAt: now,
@@ -459,6 +464,11 @@ export async function createTasksFromSource(
         .orderBy(asc(tasks.position))
         .limit(1);
       await checkAssignees(tx, groupId, [...new Set(drafts.flatMap((d) => d.assigneeIds))]);
+      // Phase 33 part P2: each card's project and event.
+      const refs: Awaited<ReturnType<typeof getProjectRef>>[] = [];
+      for (const d of drafts) {
+        refs.push(await getProjectRef(tx, groupId, d.projectId ?? null, d.eventId ?? null));
+      }
 
       const positions = keysBefore(first?.position ?? null, drafts.length);
       const now = Date.now();
@@ -473,6 +483,8 @@ export async function createTasksFromSource(
         dueDate: draft.dueDate,
         urgent: draft.urgent,
         link: draft.link,
+        projectId: refs[index]?.projectId ?? null,
+        eventId: refs[index]?.eventId ?? null,
         completedAt: null,
         sourceMessageId: source.messageId ?? null,
         sourceTicketId: source.ticketId ?? null,
@@ -521,6 +533,27 @@ export async function createTasksFromSource(
 }
 
 /**
+ * The project columns a PATCH sets (Phase 33 part P2), validated in the edit's transaction
+ * (`InvalidProjectError`); nothing when the body names neither. An unknown task sets nothing: the
+ * conditional update then answers `NotFoundError`.
+ */
+async function projectChangeOf(
+  tx: Tx,
+  id: string,
+  patch: TaskPatch,
+): Promise<{ projectId?: string | null; eventId?: string | null }> {
+  if (patch.projectId === undefined && patch.eventId === undefined) return {};
+  const [current] = await tx
+    .select({ groupId: tasks.groupId, projectId: tasks.projectId, eventId: tasks.eventId })
+    .from(tasks)
+    .where(eq(tasks.id, id));
+  if (!current) return {};
+  const pair = requestedProjectPair(current, patch);
+  const ref = await getProjectRef(tx, current.groupId, pair.projectId, pair.eventId);
+  return { projectId: ref?.projectId ?? null, eventId: ref?.eventId ?? null };
+}
+
+/**
  * Edits a task. One conditional update on `updated_at` decides: zero rows answers
  * `TaskChangedError` when the task exists, else `NotFoundError`. `assigneeIds` and `fileIds` are
  * the full new lists; only ids not already on the task are checked. Removed files are deleted
@@ -558,6 +591,7 @@ export async function updateTaskTimed(
   const removedFiles = await db.transaction(async (tx) => {
     // Always strictly later than the edited version, even within the same millisecond.
     const updatedAt = new Date(Math.max(Date.now(), expected.getTime() + 1));
+    const projectChange = await projectChangeOf(tx, id, patch);
     const [row] = await tx
       .update(tasks)
       .set({
@@ -566,6 +600,7 @@ export async function updateTaskTimed(
         ...(patch.dueDate !== undefined && { dueDate: patch.dueDate }),
         ...(patch.urgent !== undefined && { urgent: patch.urgent }),
         ...(patch.link !== undefined && { link: patch.link }),
+        ...projectChange,
         updatedAt,
       })
       .where(and(eq(tasks.id, id), eq(tasks.updatedAt, expected)))

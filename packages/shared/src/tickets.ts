@@ -3,6 +3,7 @@ import { MessageTaskLinkSchema } from './chat.js';
 import { FileInfoSchema } from './files.js';
 import { KnowledgeIdsSchema, LinkedKnowledgeSchema } from './knowledge-links.js';
 import { EventRefSchema, ProjectRefSchema } from './projects/common.js';
+import { projectFilterFields } from './projects/filters.js';
 import { isHttpUrl } from './urls.js';
 import { UnseenMarkSchema } from './unseen-mark.js';
 
@@ -331,6 +332,11 @@ export const TicketListQuerySchema = z.object({
     .refine((v) => v === '' || v.length >= 2 || /^\d$/.test(v))
     .optional(),
   cursor: z.string().max(200).optional(),
+  /**
+   * Phase 33 part P2: `project=<id>|none`, `event=<id>|none` (an event needs a project). The
+   * global list takes `project` only with exactly one client in `clients`, never `event`.
+   */
+  ...projectFilterFields,
 });
 export type TicketListQuery = z.infer<typeof TicketListQuerySchema>;
 

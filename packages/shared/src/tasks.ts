@@ -3,6 +3,7 @@ import { MessageAttachedTaskSchema } from './chat.js';
 import { FileInfoSchema } from './files.js';
 import { KnowledgeIdsSchema, LinkedKnowledgeSchema } from './knowledge-links.js';
 import { EventRefSchema, ProjectRefSchema } from './projects/common.js';
+import { projectFilterFields } from './projects/filters.js';
 import { isHttpUrl } from './urls.js';
 
 export const BucketKindSchema = z.enum([
@@ -204,10 +205,12 @@ export type BoardDto = z.infer<typeof BoardDtoSchema>;
 /** `GET /groups/:id/board?done=N`: how many completed tasks to bring (default one page). */
 export const BoardQuerySchema = z.object({
   done: z.coerce.number().int().min(1).max(BOARD_DONE_MAX).default(BOARD_DONE_PAGE),
+  /** Phase 33 part P2: `project=<id>|none`, `event=<id>|none` (an event needs a project). */
+  ...projectFilterFields,
 });
 
 /** `GET /groups/:id/board/done?after=<cursor>`: the next page of the Completed column. */
-export const BoardDoneQuerySchema = z.object({ after: doneCursor });
+export const BoardDoneQuerySchema = z.object({ after: doneCursor, ...projectFilterFields });
 
 export const BoardDonePageSchema = z.object({
   tasks: z.array(TaskDtoSchema),

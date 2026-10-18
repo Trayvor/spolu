@@ -9,13 +9,16 @@ import {
   type BucketDto,
   type BucketKind,
   type MessageTaskLink,
+  type ProjectFilter,
   type TaskDto,
   type TaskPerson,
 } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
 import { unseenTaskIdsSql } from '../notifications/unseen.js';
+import { projectRefs } from '../projects/refs.js';
 import { reminderSets, reminderTimes } from '../reminders/schema.js';
 import { user } from '../users/schema.js';
+import { taskProjectFilter } from './project-links.js';
 import { FIXED_POSITIONS, keyAfter, keysAfter } from './positions.js';
 import { buckets, taskAssignees, taskAttachments, tasks } from './schema.js';
 
@@ -117,7 +120,8 @@ export async function getBucket(db: Db, id: string): Promise<BucketDto | null> {
 // queries. Writes to users go through the users service.
 /**
  * Tasks matching `where` as DTOs (at most `limit`, by bucket and position): one query, creator
- * joined, assignees, file count and upcoming reminder count as subqueries.
+ * joined, assignees, file count and upcoming reminder count as subqueries; plus one `projectRefs`
+ * query for the page's projects and events (none when no task has one).
  */
 export async function selectTasks(db: Db, where: SQL, limit?: number): Promise<TaskDto[]> {
   const query = db
@@ -132,6 +136,8 @@ export async function selectTasks(db: Db, where: SQL, limit?: number): Promise<T
       link: tasks.link,
       completedAt: tasks.completedAt,
       sourceMessageId: tasks.sourceMessageId,
+      projectId: tasks.projectId,
+      eventId: tasks.eventId,
       createdAt: tasks.createdAt,
       updatedAt: tasks.updatedAt,
       creatorId: user.id,
@@ -160,13 +166,14 @@ export async function selectTasks(db: Db, where: SQL, limit?: number): Promise<T
     .where(where)
     .orderBy(asc(tasks.bucketId), asc(tasks.position));
   const rows = await (limit === undefined ? query : query.limit(limit));
-  return rows.map(({ creatorId, creatorName, ...row }) => ({
+  // Phase 33 part P2: the project and event names and colours, one query for the page.
+  const refs = await projectRefs(db, rows);
+  return rows.map(({ creatorId, creatorName, projectId, eventId, ...row }) => ({
     ...row,
     completedAt: row.completedAt?.toISOString() ?? null,
     createdBy: { id: creatorId, name: creatorName },
-    // Phase 33: part P2 fills these through one `projectRefs` call per page.
-    project: null,
-    event: null,
+    project: refs.project(projectId),
+    event: refs.event(eventId),
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   }));
@@ -243,10 +250,15 @@ async function donePage(
   doneBucketId: string,
   after: string | null,
   limit: number,
+  filter: ProjectFilter,
 ): Promise<BoardDonePage> {
   const rows = await selectTasks(
     db,
-    and(eq(tasks.bucketId, doneBucketId), after === null ? undefined : gt(tasks.position, after))!,
+    and(
+      eq(tasks.bucketId, doneBucketId),
+      after === null ? undefined : gt(tasks.position, after),
+      taskProjectFilter(filter),
+    )!,
     limit + 1,
   );
   const page = rows.slice(0, limit);
@@ -257,12 +269,14 @@ async function donePage(
  * The board of a group, its fixed buckets created on the first read (a read that finds them
  * writes nothing). Every open task (`tasks_open_group_idx`), and the Completed column paged
  * (Phase 27 S8): its first `done` tasks in column order, the total and the next page's cursor.
- * Four queries on a warm board, whatever the number of completed tasks.
+ * Four queries on a warm board, whatever the number of completed tasks (and one `projectRefs`
+ * for each of the two task reads). `project` and `event` (Phase 33 part P2) narrow the open
+ * tasks, the Completed page and its total alike.
  */
 export async function getBoard(
   db: Db,
   groupId: string,
-  opts: { done?: number } = {},
+  opts: { done?: number } & ProjectFilter = {},
 ): Promise<BoardDto> {
   let bucketList = await listBuckets(db, groupId);
   if (!bucketList.some((b) => b.kind === 'done')) {
@@ -270,13 +284,14 @@ export async function getBoard(
     bucketList = await listBuckets(db, groupId);
   }
   const doneId = bucketList.find((b) => b.kind === 'done')!.id;
+  const filter = taskProjectFilter(opts);
   const [open, done, [count]] = await Promise.all([
-    selectTasks(db, and(eq(tasks.groupId, groupId), isNull(tasks.completedAt))!),
-    donePage(db, doneId, null, opts.done ?? BOARD_DONE_PAGE),
+    selectTasks(db, and(eq(tasks.groupId, groupId), isNull(tasks.completedAt), filter)!),
+    donePage(db, doneId, null, opts.done ?? BOARD_DONE_PAGE, opts),
     db
       .select({ n: sql<number>`count(*)::int` })
       .from(tasks)
-      .where(eq(tasks.bucketId, doneId)),
+      .where(and(eq(tasks.bucketId, doneId), filter)),
   ]);
   return {
     buckets: bucketList,
@@ -287,10 +302,15 @@ export async function getBoard(
 }
 
 /** "Show more" in the Completed column: the next page after `after` (see `getBoard`). */
-export async function getDonePage(db: Db, groupId: string, after: string): Promise<BoardDonePage> {
+export async function getDonePage(
+  db: Db,
+  groupId: string,
+  after: string,
+  filter: ProjectFilter = {},
+): Promise<BoardDonePage> {
   const doneId = (await listBuckets(db, groupId)).find((b) => b.kind === 'done')?.id;
   if (!doneId) return { tasks: [], next: null };
-  return donePage(db, doneId, after, BOARD_DONE_PAGE);
+  return donePage(db, doneId, after, BOARD_DONE_PAGE, filter);
 }
 
 /** The first position strictly after `position` among `rows` (already sorted), or null. */

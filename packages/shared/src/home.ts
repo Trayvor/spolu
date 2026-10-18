@@ -3,6 +3,7 @@ import { BucketKindSchema, TaskDtoSchema, TaskPersonSchema } from './tasks.js';
 import { TicketStatusSchema } from './tickets.js';
 import { TimeRequestSchema } from './finance/time.js';
 import { UnseenMarkSchema } from './unseen-mark.js';
+import { ProjectFilterValueSchema } from './projects/filters.js';
 
 /**
  * Phase 20: the admin home (dashboard, client sidebar) and the global task board. Its own module,
@@ -270,6 +271,8 @@ export const GlobalBoardFilterSchema = z
     column: GlobalColumnIdSchema.optional(),
     // The cursor carries the client's name (up to 100 characters, more bytes in base64url).
     after: z.string().min(1).max(1000).optional(),
+    /** Phase 33 part P2: `<id>|none`, only with exactly one client in `clients`. */
+    project: ProjectFilterValueSchema.optional(),
   })
   .refine((v) => (v.column === undefined) === (v.after === undefined), {
     message: 'column and after go together',
