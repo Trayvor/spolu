@@ -9,6 +9,7 @@ import type { AppDeps } from '../../deps.js';
 import { egrantWebhookKey } from '../../infra/config/config.js';
 import { sendEmailLater } from '../../infra/email/index.js';
 import { bearerKeyMatches } from '../../infra/http/bearer-key.js';
+import { egrantSignature } from '../../infra/http/egrant-signature.js';
 import { createRateLimiter } from '../../infra/http/rate-limit.js';
 import { joinGroupRoom, leaveGroupRoom } from '../../infra/realtime/rooms.js';
 import { memberAddedEmail, memberInvitedEmail } from '../auth/emails.js';
@@ -57,7 +58,8 @@ export const egrantManagersRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async
 
   app.put(
     '/egrant/managers',
-    { onRequest: gate, bodyLimit: BODY_LIMIT },
+    // Optional HMAC signature (EGRANT_MANAGERS_SIGNING_SECRET, ADR 0042), after the key.
+    { onRequest: gate, bodyLimit: BODY_LIMIT, ...egrantSignature(config, 'managers') },
     async (request, reply) => {
       const body = EgrantManagerBodySchema.safeParse(request.body);
       if (!body.success) {

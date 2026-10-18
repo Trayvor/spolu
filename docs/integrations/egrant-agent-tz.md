@@ -27,12 +27,14 @@ Help never calls eGrant back: no callbacks, no status API. Every call is server 
 | `HELP_API_KEY` | the shared Bearer key (Help's `TICKETS_API_KEY`), at least 16 characters | secret store / env |
 | `HELP_GROUPS_API_KEY` | optional: the groups call's own key (Help's `EGRANT_GROUPS_API_KEY`); when empty, use `HELP_API_KEY` | secret store / env |
 | `HELP_ENABLED` | on/off switch for all calls (off: queue nothing, log once) | config |
+| `HELP_<NAME>_SIGNING_SECRET` | optional, one per call (`TICKETS`, `MANAGERS`, `GROUPS`, `PROJECTS`): the call's HMAC signing secret (Help's `EGRANT_<NAME>_SIGNING_SECRET`), at least 32 characters; when set, sign that call (section 2.7) | secret store / env |
 
 Rules:
 
 - The keys come from the Help admin (the eGrant team) out of band. Never commit them, never put them in code, logs, error messages, URLs, browser JavaScript or queue payloads that are logged. Call Help only from the eGrant server.
 - Every request carries `Authorization: Bearer <key>` and `Content-Type: application/json`, body UTF-8 JSON.
 - Use `https://help.egrant.sk`, never `https://spolu.egrant.sk`: the old domain answers `301`, and many HTTP clients turn a redirected `POST`/`PUT` into a `GET` without the body. Do not follow redirects; treat a `3xx` as a configuration error.
+- The signing secrets are secrets like the keys: same rules.
 - **Key rotation:** the Help admin sets a new value and restarts Help; the old key then answers `401`. Deploy the new key at the agreed moment. If Help sets `EGRANT_GROUPS_API_KEY`, only that key opens the groups call (the shared key answers `401` there).
 
 ## 2. The shared HTTP layer
@@ -74,6 +76,34 @@ Help allows **60 calls a minute per source IP for each of groups, managers and t
 ### 2.6 `instance_url`
 
 Every call names the client by `instance_url`: the instance's public URL, e.g. `https://mesto-x.egrant.sk`. Help matches **by host only**: scheme, a leading `www.`, path, query and case do not matter. Groups and managers also take a bare host (`mesto-x.egrant.sk`); the ticket intake needs a full URL (`https://…`). Always send the canonical `https://<host>` of the instance: the same value in every call of that instance.
+
+### 2.7 Request signing (optional step)
+
+Build it now, behind the `HELP_<NAME>_SIGNING_SECRET` settings: Help turns it on per call when its admin sets the secret (ADR 0042 in the Help repository; the full description and a curl/openssl sample are in `egrant.md`, "Request signing"). With the secret empty, send nothing extra.
+
+When a call's signing secret is set, **every attempt** (retries included) adds two headers:
+
+```
+X-Spolu-Timestamp: <unix seconds, now>
+X-Spolu-Signature: sha256=<lowercase hex of HMAC-SHA256(secret, "<timestamp>.<raw body>")>
+```
+
+```php
+$body = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+$timestamp = (string) time();
+$headers[] = 'X-Spolu-Timestamp: ' . $timestamp;
+$headers[] = 'X-Spolu-Signature: sha256=' . hash_hmac('sha256', $timestamp . '.' . $body, $secret);
+// send exactly $body (CURLOPT_POSTFIELDS => $body), never re-encode it after signing
+```
+
+Rules:
+
+- Sign the exact bytes you send. Serialise the JSON once, at send time, not when the job is queued (the stored body may be kept; the timestamp and signature are made per attempt).
+- Help accepts a timestamp within ±300 s of its clock: keep the eGrant server NTP-synced.
+- Help refuses a signature it has already taken (a replay): a retry with the old headers answers `401`. Compute new headers for every attempt.
+- A missing, stale, wrong or repeated signature answers `401 unauthorized` (do not retry unchanged, alert, section 2.3).
+- Rollout and rotation: deploy the secret on eGrant first (Help ignores the headers while its own secret is unset), then the Help admin sets it on Help and restarts. Agree the moment for a rotation.
+- Never log the secret or the signature header (section 8).
 
 ## 3. Groups: `PUT /api/egrant/groups`
 
@@ -309,7 +339,7 @@ Tickets and projects need no backfill (projects: optional, after release, the sa
 
 Log per call: method, path, instance host, HTTP status, Help's `state` or `error` code and `fields`, `group_id`/`user_id`/ticket `number` from the answer, attempt number, duration.
 
-Never log: the Authorization header or any key, request bodies, base64 data, emails, names, phone numbers, ticket text. Redact the `Authorization` header in any HTTP client debug logging. Help's error bodies contain only codes and field names, so they may be logged as they are.
+Never log: the Authorization header or any key, the signing secrets or the `X-Spolu-Signature` header, request bodies, base64 data, emails, names, phone numbers, ticket text. Redact the `Authorization` header in any HTTP client debug logging. Help's error bodies contain only codes and field names, so they may be logged as they are.
 
 ## 9. Acceptance tests
 
@@ -357,6 +387,13 @@ curl -s -X PUT $H/api/egrant/groups "${auth[@]}" -d "{\"instance_url\":\"$I\",\"
 # A10 unknown instance with active:false → 404 unknown_instance (nothing created)
 curl -s -X PUT $H/api/egrant/groups "${auth[@]}" -d '{"instance_url":"https://never-created-xyz.egrant.sk","name":"x","active":false}'
 
+# A11 (only when Help has a signing secret for the groups call; S = that secret) signed → 200; the same headers again → 401 (replay); no signature → 401
+B="{\"instance_url\":\"$I\",\"name\":\"Acceptance Test 1 renamed\"}"; TS=$(date +%s)
+SIG=$(printf '%s.%s' "$TS" "$B" | openssl dgst -sha256 -hmac "$S" | sed 's/^.*= //')
+curl -s -X PUT $H/api/egrant/groups "${auth[@]}" -H "X-Spolu-Timestamp: $TS" -H "X-Spolu-Signature: sha256=$SIG" --data-binary "$B"
+curl -s -X PUT $H/api/egrant/groups "${auth[@]}" -H "X-Spolu-Timestamp: $TS" -H "X-Spolu-Signature: sha256=$SIG" --data-binary "$B"
+curl -s -X PUT $H/api/egrant/groups "${auth[@]}" --data-binary "$B"
+
 # Cleanup: deactivate the test group (A8) and ask the Help team to delete it if needed.
 ```
 
@@ -364,6 +401,7 @@ Automated tests on the eGrant side (unit, with a mocked HTTP client):
 
 - the retry table of section 2.3 (each status → retry or not; backoff grows; jitter bounded);
 - the key never appears in logs or stored jobs (assert on captured log output);
+- signing (section 2.7): a known secret, timestamp and body give the expected `sha256=` hex; each retry gets a fresh timestamp and signature; no headers when the secret is empty;
 - ordering: a managers job for an instance waits for its group job; a `404 unknown_instance` reschedules;
 - body builders: name trimmed to 100, logo omitted vs `null` vs object, `active` sent only on explicit operator actions (and never from a contract-date job), canonical `https://<host>` in every call;
 - the backfill: `--dry-run` sends nothing; pacing ≤ 1/s per endpoint; resume from `--since-id`; a second run yields only `unchanged`.
@@ -377,4 +415,5 @@ Automated tests on the eGrant side (unit, with a mocked HTTP client):
 - [ ] Ticket intake with `request_id` and files (section 5).
 - [ ] Projects call behind `HELP_PROJECTS_ENABLED`, off until Help releases it (section 6).
 - [ ] Backfill command run once on test, then on production, with the Help team (section 7).
-- [ ] Logging rules (section 8) and acceptance tests A1–A10 passing (section 9).
+- [ ] Optional request signing behind `HELP_<NAME>_SIGNING_SECRET` (section 2.7).
+- [ ] Logging rules (section 8) and acceptance tests A1–A10 passing, A11 when signing is on (section 9).

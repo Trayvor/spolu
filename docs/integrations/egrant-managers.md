@@ -8,6 +8,7 @@ Not to be confused with Help's own "managers" ([product/client-managers.md](../p
 
 - One endpoint: `PUT https://help.egrant.sk/api/egrant/managers`, JSON body `{ "instance_url", "email", "active", "name"? }`.
 - `Authorization: Bearer <key>`. The key is the webhook's own `EGRANT_MANAGERS_API_KEY` on the Help server when the Help admin sets one (recommended: it can be rotated alone, and a leak does not open the ticket intake); otherwise the ticket intake's `TICKETS_API_KEY` ([egrant-ticket-intake.md](egrant-ticket-intake.md)). The Help admin tells you which one to use.
+- Optionally signed: when the Help admin sets `EGRANT_MANAGERS_SIGNING_SECRET`, every call also carries `X-Spolu-Timestamp` and `X-Spolu-Signature` (HMAC-SHA256 over `"<timestamp>.<body>"`, signed anew for every attempt), or answers `401`. See [egrant.md, Request signing](egrant.md#request-signing-optional).
 - Idempotent: send the state you want (`active: true` = is a member of that client, `false` = is not). A repeat answers `200 unchanged` and does nothing.
 - `active: true` with an email Help does not know **creates a client account** and emails the person an invitation with a login link. It never creates or changes an administrator: an administrator's email answers `422 email_is_admin`.
 - `active: false` removes the person from that one client only. It never deletes or disables the account.

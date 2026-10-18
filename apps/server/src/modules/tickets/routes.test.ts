@@ -4,6 +4,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { io as connect, type Socket } from 'socket.io-client';
 import type { TicketDto, TicketListResponse } from '@spolu/shared';
 import { buildTestApp } from '../../../test/test-app.js';
+import { signEgrantRequest } from '../../infra/http/egrant-signature.js';
 import { cookieHeader, loginAs } from '../../../test/login.js';
 import { countEmailsTo, latestEmail } from '../../../test/mail.js';
 import { addManager } from '../groups/managers.js';
@@ -92,6 +93,49 @@ describe('tickets API', () => {
   }
 
   describe('intake', () => {
+    it('with EGRANT_TICKETS_SIGNING_SECRET set, needs a valid signature after the key', async () => {
+      const secret = 'tickets-signing-secret-0123456789abcdef';
+      const signed = await buildTestApp({
+        config: {
+          ticketsApiKey: KEY,
+          egrantSigningSecrets: { tickets: secret, managers: null, groups: null, projects: null },
+        },
+      });
+      try {
+        const body = JSON.stringify({ subject: 'Podpísaná požiadavka', email: newEmail() });
+        const send = (headers: Record<string, string>, key = KEY) =>
+          signed.app.inject({
+            method: 'POST',
+            url: '/api/tickets/intake',
+            remoteAddress: `10.1.7.${++ip % 250}`,
+            headers: {
+              authorization: `Bearer ${key}`,
+              'content-type': 'application/json',
+              ...headers,
+            },
+            payload: body,
+          });
+        const ts = Math.floor(Date.now() / 1000);
+        const good = {
+          'x-spolu-timestamp': String(ts),
+          'x-spolu-signature': signEgrantRequest(secret, ts, body),
+        };
+        // The key is still checked first; then a missing or wrong signature is 401.
+        expect((await send(good, 'wrong-key-wrong-key-wrong')).statusCode).toBe(401);
+        expect((await send({})).statusCode).toBe(401);
+        expect(
+          (await send({ ...good, 'x-spolu-signature': signEgrantRequest(secret, ts, '{}') }))
+            .statusCode,
+        ).toBe(401);
+        expect((await send(good)).statusCode).toBe(201);
+        // A replay of the same signed request is refused.
+        expect((await send(good)).statusCode).toBe(401);
+      } finally {
+        await signed.app.close();
+        await signed.close();
+      }
+    });
+
     it('without the key is 401; with no key configured 503', async () => {
       expect((await intake({ subject: 'x' }, null)).statusCode).toBe(401);
       expect((await intake({ subject: 'x' }, 'wrong-key-wrong-key-wrong')).statusCode).toBe(401);

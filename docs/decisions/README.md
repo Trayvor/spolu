@@ -65,4 +65,5 @@ What gets easier, what gets harder.
 | [0039](0039-svg-logos-rendered-to-png-with-resvg-wasm.md) | SVG logos from eGrant are rendered to PNG with resvg compiled to WebAssembly | accepted |
 | [0040](0040-explain-volumes-from-template-databases.md) | The EXPLAIN volumes come from template databases, cloned per run | accepted |
 | [0041](0041-ffmpeg-hardened-for-untrusted-uploads.md) | ffmpeg runs hardened for untrusted uploads: input whitelists and a minimal environment | accepted |
+| [0042](0042-egrant-webhook-hmac-signing.md) | Optional HMAC signing of the eGrant webhooks, with an in-memory replay cache | accepted |
 | [0044](0044-enforced-csp-set-by-the-app.md) | An enforced Content-Security-Policy, set by the app, with a report endpoint | accepted |

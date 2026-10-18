@@ -139,3 +139,33 @@ describe('egrantWebhookKey', () => {
     ]);
   });
 });
+
+describe('eGrant signing secrets (ADR 0042)', () => {
+  it('reads one optional secret per webhook; unset is null', () => {
+    expect(loadConfig(validEnv).egrantSigningSecrets).toEqual({
+      tickets: null,
+      managers: null,
+      groups: null,
+      projects: null,
+    });
+    const signed = loadConfig({
+      ...validEnv,
+      EGRANT_TICKETS_SIGNING_SECRET: 't'.repeat(32),
+      EGRANT_MANAGERS_SIGNING_SECRET: 'm'.repeat(32),
+      EGRANT_GROUPS_SIGNING_SECRET: 'g'.repeat(32),
+      EGRANT_PROJECTS_SIGNING_SECRET: 'p'.repeat(32),
+    });
+    expect(signed.egrantSigningSecrets).toEqual({
+      tickets: 't'.repeat(32),
+      managers: 'm'.repeat(32),
+      groups: 'g'.repeat(32),
+      projects: 'p'.repeat(32),
+    });
+  });
+
+  it('refuses a secret shorter than 32 characters', () => {
+    expect(
+      errorOf({ ...validEnv, EGRANT_TICKETS_SIGNING_SECRET: 'x'.repeat(31) }).variables,
+    ).toEqual(['EGRANT_TICKETS_SIGNING_SECRET']);
+  });
+});

@@ -55,6 +55,11 @@ const base = {
   EGRANT_MANAGERS_API_KEY: z.string().min(16).optional(),
   EGRANT_PROJECTS_API_KEY: z.string().min(16).optional(),
   EGRANT_GROUPS_API_KEY: z.string().min(16).optional(),
+  // Optional HMAC signing secret per eGrant webhook (ADR 0042); unset = that webhook is unsigned.
+  EGRANT_TICKETS_SIGNING_SECRET: z.string().min(32).optional(),
+  EGRANT_MANAGERS_SIGNING_SECRET: z.string().min(32).optional(),
+  EGRANT_GROUPS_SIGNING_SECRET: z.string().min(32).optional(),
+  EGRANT_PROJECTS_SIGNING_SECRET: z.string().min(32).optional(),
   // Only to tell the placeholder password apart (compose builds DATABASE_URL from it).
   POSTGRES_PASSWORD: z.string().optional(),
   // Phase 23 — bulk email. The API key is optional here and required (below) when either
@@ -173,6 +178,11 @@ export type Config = {
   egrantManagersApiKey: string | null;
   egrantProjectsApiKey: string | null;
   egrantGroupsApiKey: string | null;
+  /**
+   * Each eGrant webhook's HMAC signing secret (ADR 0042); null = calls to it are not signed.
+   * Checked by `egrantSignature` in `infra/http/egrant-signature.ts`.
+   */
+  egrantSigningSecrets: Record<EgrantWebhook, string | null>;
   /** Calls a minute per admin to become or stop being a manager; unset = 120 (tests lower it). */
   managerRateLimitPerMinute?: number;
   /**
@@ -255,6 +265,12 @@ export function loadConfig(env: NodeJS.ProcessEnv): Config {
     egrantManagersApiKey: e.EGRANT_MANAGERS_API_KEY ?? null,
     egrantProjectsApiKey: e.EGRANT_PROJECTS_API_KEY ?? null,
     egrantGroupsApiKey: e.EGRANT_GROUPS_API_KEY ?? null,
+    egrantSigningSecrets: {
+      tickets: e.EGRANT_TICKETS_SIGNING_SECRET ?? null,
+      managers: e.EGRANT_MANAGERS_SIGNING_SECRET ?? null,
+      groups: e.EGRANT_GROUPS_SIGNING_SECRET ?? null,
+      projects: e.EGRANT_PROJECTS_SIGNING_SECRET ?? null,
+    },
     email:
       e.EMAIL_DRIVER === 'smtp'
         ? {
@@ -331,6 +347,9 @@ function teamsConfig(e: {
   };
 }
 
+/** The webhooks eGrant calls; `projects` is PR #113. */
+export type EgrantWebhook = 'tickets' | 'managers' | 'groups' | 'projects';
+
 /**
  * The Bearer key of an eGrant webhook: its own key when set, otherwise the ticket intake's
  * `TICKETS_API_KEY` (so a server with only that key keeps working). null = the webhook is off.
@@ -341,7 +360,7 @@ export function egrantWebhookKey(
     Config,
     'ticketsApiKey' | 'egrantManagersApiKey' | 'egrantProjectsApiKey' | 'egrantGroupsApiKey'
   >,
-  webhook: 'tickets' | 'managers' | 'projects' | 'groups',
+  webhook: EgrantWebhook,
 ): string | null {
   if (webhook === 'managers') return config.egrantManagersApiKey ?? config.ticketsApiKey;
   if (webhook === 'projects') return config.egrantProjectsApiKey ?? config.ticketsApiKey;

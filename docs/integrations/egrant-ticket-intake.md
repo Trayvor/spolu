@@ -11,6 +11,7 @@ The product rules behind this guide live in [product/tickets.md](../product/tick
 Live today, on `POST /api/tickets/intake`:
 
 - [ ] `Authorization: Bearer <key>` from your server, never from the browser.
+- [ ] Optional, when the Help admin turns it on: `X-Spolu-Timestamp` and `X-Spolu-Signature` on every attempt ([request signing](egrant.md#request-signing-optional)).
 - [ ] `instance_url` (which client) and `email` (who asked) on every request.
 - [ ] A new `request_id` for every request, reused for its retries.
 - [ ] At least one of `subject`, `body` or `area`; files as base64 in `files`.
@@ -80,6 +81,8 @@ Content-Type: application/json
 ```
 
 The eGrant team gives you the key; on the Help server it is the environment variable `TICKETS_API_KEY` (at least 16 characters). Keep it in your server's secret store. To rotate it, the Help admin sets a new value and restarts Help; requests with the old key then answer `401`. When Help has no key configured, the intake is switched off and answers `503`. Every request counts toward the rate limit before the key is checked, so wrong keys are limited too. The managers and project webhooks may have keys of their own (`EGRANT_MANAGERS_API_KEY`, `EGRANT_PROJECTS_API_KEY`); unset, they use this one.
+
+When the Help admin sets `EGRANT_TICKETS_SIGNING_SECRET`, every intake call must also be signed: `X-Spolu-Timestamp` and `X-Spolu-Signature` over the exact body, a fresh signature for every attempt (a retry with the same `request_id` is signed anew). Otherwise it answers `401`. The scheme, PHP and curl samples are in [egrant.md, Request signing](egrant.md#request-signing-optional).
 
 ## The JSON body
 

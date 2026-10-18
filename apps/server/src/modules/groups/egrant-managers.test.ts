@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { eq, or } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { buildTestApp } from '../../../test/test-app.js';
+import { signEgrantRequest } from '../../infra/http/egrant-signature.js';
 import { countEmailsTo, latestEmail } from '../../../test/mail.js';
 import { user } from '../users/schema.js';
 import {
@@ -130,6 +131,50 @@ describe('eGrant managers webhook (a client person of the client group)', () => 
         expect((await put(KEY)).statusCode).toBe(401);
         // Past the key: the instance is unknown.
         expect((await put(own)).statusCode).toBe(404);
+      } finally {
+        await app.app.close();
+        await app.close();
+      }
+    });
+
+    it('with EGRANT_MANAGERS_SIGNING_SECRET set, needs a valid signature after the key', async () => {
+      const secret = 'managers-signing-secret-0123456789abcdef';
+      const app = await buildTestApp({
+        config: {
+          ticketsApiKey: KEY,
+          egrantSigningSecrets: { tickets: null, managers: secret, groups: null, projects: null },
+        },
+      });
+      try {
+        const body = JSON.stringify({
+          instance_url: 'https://unknown.egrant.sk',
+          email: 'a@b.sk',
+          active: true,
+        });
+        const put = (headers: Record<string, string>, key = KEY) =>
+          app.app.inject({
+            method: 'PUT',
+            url: URL_PATH,
+            headers: {
+              authorization: `Bearer ${key}`,
+              'content-type': 'application/json',
+              ...headers,
+            },
+            payload: body,
+          });
+        const ts = Math.floor(Date.now() / 1000);
+        const good = {
+          'x-spolu-timestamp': String(ts),
+          'x-spolu-signature': signEgrantRequest(secret, ts, body),
+        };
+        expect((await put(good, 'wrong-key-wrong-key-wrong')).statusCode).toBe(401);
+        expect((await put({})).statusCode).toBe(401);
+        expect((await put({ ...good, 'x-spolu-timestamp': String(ts - 301) })).statusCode).toBe(
+          401,
+        );
+        // Past the key and the signature: the instance is unknown.
+        expect((await put(good)).statusCode).toBe(404);
+        expect((await put(good)).statusCode).toBe(401);
       } finally {
         await app.app.close();
         await app.close();
