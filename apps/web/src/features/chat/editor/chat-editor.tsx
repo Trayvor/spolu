@@ -28,6 +28,8 @@ export interface ChatEditorHandle {
   format(kind: FormatKind): void;
   setLink(href: string): void;
   insertMention(at: MentionQuery, id: string, label: string): void;
+  /** Types `text` at the cursor (over the selection), as if typed: the emoji button. */
+  insertText(text: string): void;
 }
 
 export interface EditorChange {
@@ -181,6 +183,11 @@ export default function ChatEditor({ ref, ...props }: ChatEditorProps) {
       format: (kind) => run(toggleFormat(kind)),
       setLink: (href) => run(setLink(href)),
       insertMention: (at, id, label) => run(insertMention(at, id, label)),
+      insertText: (text) =>
+        run((state, dispatch) => {
+          dispatch?.(state.tr.insertText(text).scrollIntoView());
+          return true;
+        }),
     };
   }, [options]);
 

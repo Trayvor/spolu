@@ -3,8 +3,9 @@ import { cn } from '@/lib/utils';
 
 /**
  * The frame of every finance card: a title row (with the card's own controls on the right) and a
- * body that scrolls inside the card from 1024 px, so the page itself never scrolls there. Parts
- * B, C and D render their cards in it.
+ * body that scrolls inside the card from 1024 px when its grid cell is shorter than the content
+ * (Documents, Work log; Overview's cell grows to its charts). Parts B, C and D render their cards
+ * in it.
  */
 export function FinanceCard({
   title,

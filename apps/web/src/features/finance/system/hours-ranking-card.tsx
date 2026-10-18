@@ -1,4 +1,4 @@
-import { useId, useState } from 'react';
+import { useId } from 'react';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Select } from '@/components/ui/select';
@@ -27,7 +27,7 @@ export function HoursRankingCard({ view, range }: { view: FinanceView; range: Mo
   const adminId = useId();
   const [savedSort, setSort] = useRememberedState('finance.hoursRanking.sort', SORTS);
   const sort = savedSort ?? 'hours';
-  const [chosenAdmin, setAdmin] = useState<string | null>(null);
+  const [chosenAdmin, setAdmin] = useRememberedState<string>('finance.hoursRanking.admin', null);
   const admins = useQuery(ratesQuery(view)).data?.admins ?? [];
   const admin = admins.some((a) => a.userId === chosenAdmin) ? chosenAdmin : null;
   const query = useInfiniteQuery(hoursRankingQuery(view, { range, admin, sort }));

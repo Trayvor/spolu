@@ -1,17 +1,35 @@
 import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Select } from '@/components/ui/select';
-import { useRememberedState } from '@/lib/use-remembered-filters';
+import { useSession } from '@/features/auth/use-session';
+import {
+  readRemembered,
+  rememberedFiltersKey,
+  useRememberedState,
+  writeRemembered,
+} from '@/lib/use-remembered-filters';
 import { currentMonth, rangeOf, type MonthRange, type Period } from './period';
 
 /**
- * A card's period filter: a preset select (remembered per person, the custom range is not), and
- * for "Custom range" two month fields. Returns the range to query (null: all time).
+ * A card's period filter: a preset select and, for "Custom range", two month fields; both are
+ * remembered per person (the range under `<list>.custom`). Returns the range to query (null: all
+ * time).
  */
 export function usePeriod(list: string, periods: readonly Period[]) {
   const presets = periods.filter((p) => p !== 'custom');
   const [saved, setSaved] = useRememberedState<Period>(list, presets);
-  const [custom, setCustom] = useState<{ from: string; to: string } | null>(null);
+  const userId = useSession()?.id ?? null;
+  const customKey = userId === null ? null : rememberedFiltersKey(userId, `${list}.custom`);
+  const [custom, setCustomState] = useState<{ from: string; to: string } | null>(() => {
+    const saved = customKey ? readRemembered(customKey) : null;
+    return typeof saved?.from === 'string' && typeof saved.to === 'string'
+      ? { from: saved.from, to: saved.to }
+      : null;
+  });
+  const setCustom = (next: { from: string; to: string } | null) => {
+    setCustomState(next);
+    if (customKey) writeRemembered(customKey, next);
+  };
   const period: Period = custom ? 'custom' : (saved ?? periods[0]!);
   const choose = (next: Period) => {
     if (next === 'custom') {

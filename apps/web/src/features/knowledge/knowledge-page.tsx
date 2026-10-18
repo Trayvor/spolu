@@ -28,7 +28,6 @@ import { Toast } from '@/components/ui/toast';
 import { groupsQuery } from '@/features/groups/api';
 import { useRememberedFilters } from '@/lib/use-remembered-filters';
 import { useUpdateSearch } from '@/lib/use-update-search';
-import { cn } from '@/lib/utils';
 import { globalKnowledgeQuery, knowledgeScopeQuery } from './api';
 import { KnowledgeDialog } from './knowledge-dialog';
 import { KnowledgeList } from './knowledge-list';
@@ -259,9 +258,7 @@ export function KnowledgePage() {
 
   return (
     // Cards get a wider page: up to three columns.
-    <div
-      className={cn('flex flex-col gap-6', view === 'cards' ? 'max-w-[1120px]' : 'max-w-[720px]')}
-    >
+    <div className="flex flex-col gap-6">
       <h1 className="text-medium leading-tight font-semibold">{t('knowledge.global.title')}</h1>
 
       <div

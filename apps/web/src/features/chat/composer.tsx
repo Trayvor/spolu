@@ -32,7 +32,7 @@ import { withNamespaces } from '@/i18n/namespaces';
 import { toStored, type FormatKind, type PickedPerson } from './composer-text';
 import { safeHref } from './format/parse';
 import { FormatToolbar, iconButton, phoneIconButton } from './format-toolbar';
-import { BookIcon, CloseIcon, PaperclipIcon, SendIcon } from './icons';
+import { BookIcon, CloseIcon, PaperclipIcon, SendIcon, SmileIcon } from './icons';
 import type { PickedKnowledge } from './knowledge-picker';
 import { PickedChips } from './attach-picker/chips';
 import type { PickedTask, PickedTicket } from './attach-picker/picked';
@@ -59,6 +59,8 @@ export interface ComposerHandle {
 }
 
 // Phase 28 and 34: the attachment picker (knowledge, tasks, tickets) loads when first opened.
+// The reactions' emoji set, the same lazy chunk.
+const EmojiPickerSheet = lazy(() => import('./emoji-picker-sheet'));
 const AttachPicker = lazy(withNamespaces(['forms', 'knowledge'], () => import('./attach-picker')));
 
 export interface ComposerProps {
@@ -159,6 +161,7 @@ export function Composer({
   // Phase 28: knowledge items to attach, and whether their picker is open.
   const [knowledge, setKnowledge] = useState<PickedKnowledge[]>([]);
   const [knowledgeOpen, setKnowledgeOpen] = useState(false);
+  const [emojiOpen, setEmojiOpen] = useState(false);
   // Phase 34: tasks and tickets to attach, picked in the same dialog.
   const [tasks, setTasks] = useState<PickedTask[]>([]);
   const [tickets, setTickets] = useState<PickedTicket[]>([]);
@@ -553,6 +556,15 @@ export function Composer({
                 )}
               </>
             )}
+            <button
+              type="button"
+              aria-label={t('chat.composer.emoji')}
+              title={t('chat.composer.emoji')}
+              onClick={() => setEmojiOpen(true)}
+              className={cn(iconButton, 'relative shrink-0', HIT)}
+            >
+              <SmileIcon />
+            </button>
             {extraActions}
             {mode === 'edit' && (
               <Button size="sm" variant="ghost" onClick={onCancel} className={cn('relative', HIT)}>
@@ -620,6 +632,21 @@ export function Composer({
             : setTickets((list) => list.filter((x) => x.id !== id))
         }
       />
+      {emojiOpen && (
+        <Suspense fallback={null}>
+          <EmojiPickerSheet
+            purpose="insert"
+            onPick={(emoji) => {
+              setEmojiOpen(false);
+              editor.current?.insertText(emoji);
+            }}
+            onClose={() => {
+              setEmojiOpen(false);
+              editor.current?.focus();
+            }}
+          />
+        </Suspense>
+      )}
       {knowledgeOpen && (
         <Suspense fallback={null}>
           <AttachPicker

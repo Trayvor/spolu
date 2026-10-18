@@ -34,7 +34,7 @@ export function CampaignListPage() {
   const items = list.data?.pages.flatMap((page) => page.items) ?? [];
 
   return (
-    <div className="flex max-w-[880px] flex-col gap-6">
+    <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-4 min-[641px]:flex-row min-[641px]:items-start min-[641px]:justify-between">
         <div className="flex flex-col gap-2">
           <h1 className="text-medium leading-tight font-semibold">{t('bulkEmail.list.title')}</h1>

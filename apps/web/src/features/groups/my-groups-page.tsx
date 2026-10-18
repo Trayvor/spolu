@@ -16,7 +16,7 @@ export function MyGroupsPage() {
   const groups = me ? clientGroups(me) : [];
 
   return (
-    <div className="flex max-w-[720px] flex-col gap-6">
+    <div className="flex flex-col gap-6">
       <h1 className="text-medium leading-tight font-semibold">{t('groups.mine.title')}</h1>
       {groups.length === 0 ? (
         <p className="text-body text-muted-foreground">{t('groups.mine.empty')}</p>

@@ -54,7 +54,9 @@
     "formatting": "Formatting",
     "mentionNotAllowed": "Someone you mentioned can't be mentioned here any more.",
     "linkUrl": "Link address",
-    "addLink": "Add link"
+    "addLink": "Add link",
+    "emoji": "Insert emoji",
+    "insertEmoji": "Insert {{emoji}}"
   },
   "format": {
     "bold": "Bold",

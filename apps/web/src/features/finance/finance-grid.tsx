@@ -38,9 +38,10 @@ function useRememberedSegment(screen: string): [FinanceSegment, (next: FinanceSe
  * The three-card grid of a Finance screen (Phase 32, spec §6.1 and §9). Part A1 owns it; the
  * cards are the parts' own components, passed in as slots.
  *
- * - From 1024 px: `7fr 3fr` columns and `2fr 3fr` rows filling the window under the header,
- *   Overview top left (40 %), Documents bottom left (60 %), Work log the whole right column.
- *   Each card scrolls inside itself.
+ * - From 1024 px: `7fr 3fr` columns, at least the window's height under the header. Overview top
+ *   left at the full height of its charts (never scrolled), Documents under it with the rest (at
+ *   least 360 px), Work log the whole right column. Documents and Work log scroll inside
+ *   themselves: `contain: size` keeps their content from stretching the rows.
  * - 641–1023 px: Overview across the top, Documents and Work log side by side under it.
  * - Phones: a segmented control "Overview · Documents · Work log" (remembered; `/finance` adds
  *   "Rankings") shows one card at a time at its natural height; the others are not mounted, so
@@ -93,23 +94,23 @@ export function FinanceGrid({
     <div
       data-testid="finance-grid"
       data-layout="grid"
-      className="grid grid-cols-2 gap-4 min-[1024px]:h-[calc(100dvh-15rem)] min-[1024px]:min-h-[640px] min-[1024px]:grid-cols-[7fr_3fr] min-[1024px]:grid-rows-[2fr_3fr]"
+      className="grid grid-cols-2 gap-4 min-[1024px]:min-h-[max(640px,calc(100dvh-15rem))] min-[1024px]:grid-cols-[7fr_3fr] min-[1024px]:grid-rows-[auto_minmax(360px,1fr)]"
     >
       <div
         data-slot="overview"
-        className="col-span-2 flex min-h-[280px] flex-col min-[1024px]:col-span-1 min-[1024px]:min-h-0"
+        className="col-span-2 flex min-h-[280px] flex-col min-[1024px]:col-span-1"
       >
         {overview}
       </div>
       <div
         data-slot="documents"
-        className="flex min-h-[420px] flex-col min-[1024px]:col-start-1 min-[1024px]:row-start-2 min-[1024px]:min-h-0"
+        className="flex min-h-[420px] flex-col min-[1024px]:col-start-1 min-[1024px]:row-start-2 min-[1024px]:min-h-0 min-[1024px]:contain-size"
       >
         {documents}
       </div>
       <div
         data-slot="workLog"
-        className="flex min-h-[420px] flex-col min-[1024px]:col-start-2 min-[1024px]:row-span-2 min-[1024px]:row-start-1 min-[1024px]:min-h-0"
+        className="flex min-h-[420px] flex-col min-[1024px]:col-start-2 min-[1024px]:row-span-2 min-[1024px]:row-start-1 min-[1024px]:min-h-0 min-[1024px]:contain-size"
       >
         {workLog}
       </div>

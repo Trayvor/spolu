@@ -22,7 +22,7 @@ export function AdminsPage() {
   const [added, setAdded] = useState<string | null>(null);
 
   return (
-    <div className="flex max-w-[720px] flex-col gap-6">
+    <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-4 min-[641px]:flex-row min-[641px]:items-center min-[641px]:justify-between">
         <h1 className="text-medium leading-tight font-semibold">{t('admins.title')}</h1>
         {!formOpen && (

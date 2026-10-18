@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
@@ -246,6 +246,16 @@ describe('finance part C cards', () => {
       await waitFor(() => expect(rows()).toHaveLength(3));
       expect(rows()[0]).toContain('September work');
       expect(screen.queryByRole('button', { name: 'Show earlier' })).not.toBeInTheDocument();
+    });
+
+    it('has Hourly rates on a client’s tab, not on /finance (the page has its own)', async () => {
+      serve((url) => (url.includes('/work-log') ? { body: logPage() } : undefined));
+      renderIn(<WorkLogCard view={view} />);
+      expect(await screen.findByRole('button', { name: 'Hourly rates' })).toBeInTheDocument();
+      cleanup();
+      renderIn(<WorkLogCard view={{ kind: 'all', clients: [] }} />);
+      expect(await screen.findByRole('button', { name: 'Add time' })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Hourly rates' })).not.toBeInTheDocument();
     });
 
     it('adds a manual entry for an admin from the dialog', async () => {

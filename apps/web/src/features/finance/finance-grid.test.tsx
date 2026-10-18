@@ -57,7 +57,7 @@ describe('FinanceGrid', () => {
     expect(grid).toHaveAttribute('data-layout', 'grid');
     expect(grid).toHaveClass(
       'min-[1024px]:grid-cols-[7fr_3fr]',
-      'min-[1024px]:grid-rows-[2fr_3fr]',
+      'min-[1024px]:grid-rows-[auto_minmax(360px,1fr)]',
     );
     const slot = (name: string) => grid.querySelector(`[data-slot="${name}"]`) as HTMLElement;
     expect(within(slot('overview')).getByText('overview-card')).toBeInTheDocument();
@@ -66,6 +66,10 @@ describe('FinanceGrid', () => {
     // The work log takes the whole right column; documents sit under the overview.
     expect(slot('workLog')).toHaveClass('min-[1024px]:row-span-2', 'min-[1024px]:col-start-2');
     expect(slot('documents')).toHaveClass('min-[1024px]:row-start-2');
+    // The overview's charts are never scrolled; the other two scroll inside themselves.
+    expect(slot('overview')).not.toHaveClass('min-[1024px]:min-h-0');
+    expect(slot('documents')).toHaveClass('min-[1024px]:contain-size');
+    expect(slot('workLog')).toHaveClass('min-[1024px]:contain-size');
     expect(screen.queryByRole('radiogroup')).toBeNull();
   });
 

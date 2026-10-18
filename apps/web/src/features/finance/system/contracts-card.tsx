@@ -29,6 +29,7 @@ import {
 import { NewMenu, ORG_ITEM_KINDS } from '../documents/new-menu';
 import { FinanceCard, FinanceCardEmpty } from '../finance-card';
 import { ClientMark } from './client-mark';
+import { useRememberedState } from '@/lib/use-remembered-filters';
 import { CONTRACT_ORDERS, contractsQuery, logoUrl, type ContractOrder } from './system-api';
 
 const ItemSheet = lazy(
@@ -75,8 +76,12 @@ export function ContractsCard({
   const updateSearch = useUpdateSearch();
   const search = useSearch({ strict: false }) as { item?: unknown };
   const openId = typeof search.item === 'string' && search.item ? search.item : null;
-  const [type, setType] = useState<LedgerType>('contract');
-  const [order, setOrder] = useState<ContractOrder>('start');
+  const [savedType, setSavedType] = useRememberedState('finance.contracts.type', TYPES);
+  const type = savedType ?? 'contract';
+  const setType = (next: LedgerType) => setSavedType(next === 'contract' ? null : next);
+  const [savedOrder, setSavedOrder] = useRememberedState('finance.contracts.order', ORDERS);
+  const order = savedOrder ?? 'start';
+  const setOrder = (next: ContractOrder) => setSavedOrder(next === 'start' ? null : next);
   const [text, setText] = useState('');
   const [creating, setCreating] = useState<FinanceItemType | null>(null);
   const [gone, setGone] = useState(false);

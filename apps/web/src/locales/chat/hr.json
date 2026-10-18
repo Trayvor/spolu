@@ -56,7 +56,9 @@
     "formatting": "Oblikovanje",
     "mentionNotAllowed": "Nekoga koga ste spomenuli ovdje više nije moguće spomenuti.",
     "linkUrl": "Adresa poveznice",
-    "addLink": "Dodaj poveznicu"
+    "addLink": "Dodaj poveznicu",
+    "emoji": "Umetni emoji",
+    "insertEmoji": "Umetni {{emoji}}"
   },
   "format": {
     "bold": "Podebljano",

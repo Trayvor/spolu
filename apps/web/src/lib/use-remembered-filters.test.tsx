@@ -158,6 +158,14 @@ describe('useRememberedState', () => {
     expect(localStorage.getItem(rememberedFiltersKey('u1', 'report:c1'))).toBeNull();
   });
 
+  it('with no fixed list keeps any saved string (an id the caller checks)', () => {
+    localStorage.setItem(rememberedFiltersKey('u1', 'ranking.admin'), '{"value":"u7"}');
+    const { result } = renderHook(() => useRememberedState<string>('ranking.admin', null), {
+      wrapper,
+    });
+    expect(result.current[0]).toBe('u7');
+  });
+
   it('ignores a saved value that is no longer valid', () => {
     localStorage.setItem(rememberedFiltersKey('u1', 'report:c1'), '{"value":"gone"}');
     const { result } = renderHook(() => useRememberedState('report:c1', VALID), { wrapper });

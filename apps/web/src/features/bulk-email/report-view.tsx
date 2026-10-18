@@ -39,7 +39,7 @@ export function ReportView({ campaign, back }: { campaign: BulkCampaignDto; back
   const done = counts.sent + counts.failed + counts.skipped + counts.cancelled;
 
   return (
-    <div className="flex max-w-[960px] flex-col gap-5">
+    <div className="flex flex-col gap-5">
       {back}
       <div className="flex flex-col gap-2">
         <div className="flex flex-wrap items-center gap-3">
