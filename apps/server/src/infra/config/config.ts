@@ -46,6 +46,11 @@ const base = {
   ELEVENLABS_STT_MODEL: z.string().min(1).default('scribe_v2'),
   FFMPEG_PATH: z.string().min(1).default('ffmpeg'),
   TICKETS_API_KEY: z.string().min(16).optional(),
+  // Optional keys of their own for the other eGrant webhooks; unset = TICKETS_API_KEY.
+  EGRANT_MANAGERS_API_KEY: z.string().min(16).optional(),
+  EGRANT_PROJECTS_API_KEY: z.string().min(16).optional(),
+  // Only to tell the placeholder password apart (compose builds DATABASE_URL from it).
+  POSTGRES_PASSWORD: z.string().optional(),
   // Phase 23 — bulk email. The API key is optional here and required (below) when either
   // EMAIL_DRIVER or BULK_EMAIL_DRIVER is `elastic`.
   ELASTIC_EMAIL_API_KEY: z.string().min(1).optional(),
@@ -155,6 +160,12 @@ export type Config = {
   ffmpegPath: string;
   /** The shared Bearer key of the ticket intake API (Phase 21); null = intake is off. */
   ticketsApiKey: string | null;
+  /**
+   * The eGrant managers and projects webhooks' own keys; null = they use `ticketsApiKey`.
+   * Read them through `egrantWebhookKey`, never directly.
+   */
+  egrantManagersApiKey: string | null;
+  egrantProjectsApiKey: string | null;
   /** Calls a minute per admin to become or stop being a manager; unset = 120 (tests lower it). */
   managerRateLimitPerMinute?: number;
   /**
@@ -212,6 +223,7 @@ export function loadConfig(env: NodeJS.ProcessEnv): Config {
   if (e.NODE_ENV === 'production' && e.FFMPEG_PATH === 'fake' && e.AI_ALLOW_FAKE !== '1') {
     throw new ConfigError(['FFMPEG_PATH']);
   }
+  if (e.NODE_ENV === 'production') refusePlaceholderSecrets(e);
   if (e.TRANSCRIPTION_PROVIDER === 'elevenlabs' && e.ELEVENLABS_API_KEY === undefined) {
     throw new ConfigError(['ELEVENLABS_API_KEY']);
   }
@@ -233,6 +245,8 @@ export function loadConfig(env: NodeJS.ProcessEnv): Config {
     loginCodesPerMinute: e.LOGIN_CODES_PER_MINUTE,
     joinRequestsPerMinute: e.JOIN_REQUESTS_PER_MINUTE,
     ticketsApiKey: e.TICKETS_API_KEY ?? null,
+    egrantManagersApiKey: e.EGRANT_MANAGERS_API_KEY ?? null,
+    egrantProjectsApiKey: e.EGRANT_PROJECTS_API_KEY ?? null,
     email:
       e.EMAIL_DRIVER === 'smtp'
         ? {
@@ -307,6 +321,62 @@ function teamsConfig(e: {
       ? { kind: 'secret', secret: e.TEAMS_CLIENT_SECRET! }
       : { kind: 'certificate', keyPath: e.TEAMS_CERT_PATH!, thumbprint: e.TEAMS_CERT_THUMBPRINT! },
   };
+}
+
+/**
+ * The Bearer key of an eGrant webhook: its own key when set, otherwise the ticket intake's
+ * `TICKETS_API_KEY` (so a server with only that key keeps working). null = the webhook is off.
+ * `projects` is for the project webhook (PR #113).
+ */
+export function egrantWebhookKey(
+  config: Pick<Config, 'ticketsApiKey' | 'egrantManagersApiKey' | 'egrantProjectsApiKey'>,
+  webhook: 'tickets' | 'managers' | 'projects',
+): string | null {
+  if (webhook === 'managers') return config.egrantManagersApiKey ?? config.ticketsApiKey;
+  if (webhook === 'projects') return config.egrantProjectsApiKey ?? config.ticketsApiKey;
+  return config.ticketsApiKey;
+}
+
+/** The APP_SECRET of `.env.example` and `deploy/test.env.example`, public in the repository. */
+export const PLACEHOLDER_APP_SECRET = 'change-me-to-a-random-string-of-32-chars-or-more';
+/** The database passwords of `.env.example` (`spolu`) and `deploy/test.env.example`. */
+const PLACEHOLDER_DB_PASSWORDS = new Set(['spolu', 'change-me']);
+/** Hosts of a database on this machine: the e2e run (production mode) uses the dev one. */
+const LOCAL_DB_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]']);
+
+/**
+ * Production refuses to start with the example files' placeholder secrets. Only those exact
+ * values are refused, never values that merely look weak: a real server's env must keep starting.
+ * DATABASE_URL with the placeholder password is allowed on a local host only (the e2e server
+ * runs in production mode against the dev PostgreSQL); compose's `postgres` host is not local.
+ */
+function refusePlaceholderSecrets(e: {
+  APP_SECRET: string;
+  DATABASE_URL: string;
+  POSTGRES_PASSWORD?: string | undefined;
+}): void {
+  const bad: string[] = [];
+  if (e.APP_SECRET === PLACEHOLDER_APP_SECRET) bad.push('APP_SECRET');
+  if (e.POSTGRES_PASSWORD !== undefined && PLACEHOLDER_DB_PASSWORDS.has(e.POSTGRES_PASSWORD)) {
+    bad.push('POSTGRES_PASSWORD');
+  }
+  const url = parseUrl(e.DATABASE_URL);
+  if (
+    url &&
+    !LOCAL_DB_HOSTS.has(url.hostname) &&
+    PLACEHOLDER_DB_PASSWORDS.has(decodeURIComponent(url.password))
+  ) {
+    bad.push('DATABASE_URL');
+  }
+  if (bad.length > 0) throw new ConfigError(bad);
+}
+
+function parseUrl(value: string): URL | null {
+  try {
+    return new URL(value);
+  } catch {
+    return null;
+  }
 }
 
 function transcriptionConfig(e: {

@@ -38,6 +38,18 @@ check "MAIL_FROM_NAME replaces only the display name of both senders" \
 out="$(DOMAIN=help.example.com deploy_env "$d/mail.env" | grep -E '^MAIL_FROM=')"
 check "without MAIL_FROM_NAME the sender stays" "MAIL_FROM=Spolu by eGrant <noreply@egrant.sk>" "$out"
 
+# deploy_ssh: the host key must be pinned; no trust on first use.
+if (unset DEPLOY_KNOWN_HOSTS; DEPLOY_USER=u DEPLOY_HOST=h DEPLOY_SSH_KEY=k deploy_ssh "$d") >/dev/null 2>"$d/ssh.err"; then
+  echo "FAIL deploy_ssh without DEPLOY_KNOWN_HOSTS must refuse"; fail=1
+fi
+grep -q 'DEPLOY_KNOWN_HOSTS is not set' "$d/ssh.err" || { echo "FAIL deploy_ssh refusal names DEPLOY_KNOWN_HOSTS"; fail=1; }
+out="$(DEPLOY_KNOWN_HOSTS='h ssh-ed25519 AAAA' DEPLOY_USER=u DEPLOY_HOST=h DEPLOY_SSH_KEY=k bash -c "source '$(cd "$(dirname "$0")/.." && pwd)/lib.sh'; deploy_ssh '$d'; printf '%s ' \"\${ssh_cmd[@]}\"; cat '$d/known_hosts'")"
+case "$out" in
+  *"StrictHostKeyChecking=yes"*"h ssh-ed25519 AAAA"*) ;;
+  *) echo "FAIL deploy_ssh pins the key with StrictHostKeyChecking=yes"; echo " actual: $out"; fail=1 ;;
+esac
+case "$out" in *accept-new*) echo "FAIL deploy_ssh must never accept new host keys"; fail=1 ;; esac
+
 rm -rf "$d"
 [[ $fail -eq 0 ]] && echo "deploy-env.test.sh: all passed"
 exit $fail

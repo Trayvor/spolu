@@ -18,6 +18,7 @@ All logic lives in `scripts/` ([ADR 0004](../decisions/0004-scripts-first-ci.md)
 | deploy.sh variable | required | meaning |
 |---|---|---|
 | `DEPLOY_HOST` | yes | server hostname or IP |
+| `DEPLOY_KNOWN_HOSTS` | yes | `known_hosts` line(s) of the server (`ssh-keyscan <host>`); pins its host key. Since 2026-10-18 `deploy.sh` refuses to run without it (`deploy_ssh` in `scripts/lib.sh`, `StrictHostKeyChecking=yes`, never `accept-new`): a first connection to a man in the middle would hand it the env file with every secret |
 | `DEPLOY_USER` | yes | SSH user, `deploy` (created by [server-setup.md](server-setup.md)) |
 | `DEPLOY_SSH_KEY` | yes | path to that user's private key |
 | `DEPLOY_ENV_FILE` | yes | path to the env file (template `deploy/test.env.example`) |
@@ -25,11 +26,48 @@ All logic lives in `scripts/` ([ADR 0004](../decisions/0004-scripts-first-ci.md)
 | `DOMAIN` | yes | public domain, for the health check; also `DOMAIN=` and `PUBLIC_URL=https://<domain>` of the server's `.env` |
 | `REDIRECT_DOMAINS` | no | space-separated old domains, e.g. `spolu.egrant.sk`; each gets its own certificate and a permanent (301) redirect to `https://$DOMAIN` with the same path and query. Lowercase host names only, never `DOMAIN` itself. Unset or empty: no redirect, no extra certificate |
 | `DEPLOY_PORT` | no | SSH port, default 22 |
-| `DEPLOY_KNOWN_HOSTS` | no | `known_hosts` line(s) of the server (`ssh-keyscan <host>`); pins its host key. Recommended: without it there is no host verification (a warning is printed) |
 | `REGISTRY_USER`, `REGISTRY_TOKEN` | no | registry login on the server for a private image |
 | `IMAGE_PRELOADED` | no | `1`: the image is already on the server (`docker load`); no login, no pull of the app image |
 
 Secrets are never printed. The SSH settings use a per-run `known_hosts` file, never the runner's `~/.ssh`.
+
+## Security headers
+
+`deploy/Caddyfile` sets them on every answer of `{$DOMAIN}` (security review 2026-10-18, findings M2; test: `scripts/tests/caddy-headers.test.sh`, which with Docker runs `caddy adapt` on the real file):
+
+- `Strict-Transport-Security: max-age=31536000; includeSubDomains` (no `preload`: hard to undo). A browser that saw it keeps using HTTPS for the domain and its subdomains for a year. For a prod-like run on `localhost` (below) that only means the browser insists on `https://localhost`, which Caddy serves anyway.
+- `X-Frame-Options: DENY` and an enforced `Content-Security-Policy: frame-ancestors 'none'; base-uri 'self'; object-src 'none'`: no page can be framed by another site (clickjacking).
+- `Content-Security-Policy-Report-Only` with the full policy: `default-src 'self'`, scripts only from our own files, `style-src 'self' 'unsafe-inline'` (React style attributes, ProseMirror, the email preview), images and media also from `data:` and `blob:`, `connect-src 'self' wss://{$DOMAIN}` (API and Socket.IO). It was written from the built `index.html` (hashed module scripts, `registerSW.js`, no inline script, no `eval`), the self-hosted fonts and the client code (the AI and voice features call OpenAI and ElevenLabs from the server; the browser talks only to its own origin). It is **report-only** for now: violations show in the browser console and nothing is blocked. **To enforce it**: open the main screens on test (chat with voice input, tasks, knowledge with a meeting recording, the bulk email editor and its preview, finance, the MCP consent page, the installed PWA), check the console for `Content-Security-Policy-Report-Only` messages, then rename the header to `Content-Security-Policy` (and drop the short enforced one, which it covers).
+- `Permissions-Policy: camera=(), geolocation=(), microphone=(self), payment=(), usb=()` (voice input needs the microphone).
+- `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, no `Server` header.
+
+`Cross-Origin-Opener-Policy` is not set on purpose: Claude's connector flow opens the consent page from claude.ai, and `same-origin` would cut that window from its opener.
+
+## Image digests
+
+Every image is pinned by digest ([ADR 0037](../decisions/0037-supply-chain-policy.md)): the `Dockerfile` bases (`NODE_IMAGE`, `RUNTIME_IMAGE`, `FFMPEG_IMAGE` = `mwader/static-ffmpeg`) and the `postgres` and `caddy` images of `deploy/docker-compose.yml`. A tag can be pushed again; a digest always means the same bytes, so `docker compose pull` on a deploy fetches only what the repository names. The tag in front of the digest (`postgres:17.11@sha256:…`) is only for people.
+
+To bump one (for example monthly, or for a security release), on a branch:
+
+```bash
+docker buildx imagetools inspect postgres:17       # or caddy:2, node:24-bookworm-slim, debian:bookworm-slim, mwader/static-ffmpeg:<version>
+# take the version (e.g. PG_VERSION in --format '{{json .Image}}') and the top "Digest:" line
+# (the multi-platform index, which covers arm64 and amd64), then write <image>:<version>@<digest>
+```
+
+Keep `NODE_IMAGE` and `RUNTIME_IMAGE` on the same Debian release (bookworm today: the node binary is copied from one into the other). A new PostgreSQL major needs a dump and restore, never only a new tag. ffmpeg is still 7.1.1 (pinned, not upgraded in the same change); moving to 8.x is a follow-up that needs a real-ffmpeg run of the meeting recording test. Run `bash scripts/tests/caddy-redirects.test.sh` and `caddy-headers.test.sh` after a Caddy bump (they validate the Caddyfile with the image named in compose).
+
+## Supply-chain policy (pnpm)
+
+`pnpm-workspace.yaml` holds it ([ADR 0037](../decisions/0037-supply-chain-policy.md)); it applies to every install, the frozen ones in `ci.sh` and the `Dockerfile` included, because pnpm checks the lockfile against it:
+
+- `minimumReleaseAge: 10080` — a version must be 7 days old. A lockfile entry younger than that fails the install (`ERR_PNPM_MINIMUM_RELEASE_AGE_VIOLATION`). For an urgent security patch add `name@version` to `minimumReleaseAgeExclude` with a comment and the date it can go. The list there today grandfathers the lockfile of 2026-10-18 and can be deleted on or after 2026-10-22.
+- `trustPolicy: no-downgrade` — a version published with weaker trust evidence than an earlier one (the pattern of a stolen npm token) fails the install; reviewed exceptions go into `trustPolicyExclude` as exact versions.
+- `blockExoticSubdeps: true` — transitive dependencies come only from the registry, never git or tarballs.
+- `strictDepBuilds: true` with `allowBuilds` — only esbuild may run an install script; any other one fails the install.
+- The `Dockerfile` installs pnpm with `npm install -g --ignore-scripts`, builds from the frozen lockfile, and makes the production `node_modules` with `pnpm deploy --prod --frozen-lockfile --ignore-scripts`.
+
+Review lockfile diffs in pull requests: a new transitive package is a review item.
 
 ## MCP server
 
@@ -100,7 +138,7 @@ Settings of the GitHub environment `test` (**Settings → Environments → test*
 | variable | `REDIRECT_DOMAINS` | optional, old domains redirected to `DOMAIN` (`spolu.egrant.sk` after the move); see "Moving to a new domain" |
 | variable | `MAIL_FROM_NAME` | optional, the senders' display name (`Help by eGrant`); it replaces the name in `MAIL_FROM` and `MAIL_FROM_BULK` of the env file |
 | variable | `IMAGE` | `ghcr.io/trayvor/spolu` (lowercase) |
-| variable | `DEPLOY_KNOWN_HOSTS` | recommended, output of `ssh-keyscan <host>`; without it the host key is not verified |
+| variable | `DEPLOY_KNOWN_HOSTS` | required, output of `ssh-keyscan <host>`; the deploy refuses to run without it |
 
 The image is private (private repository), so the server logs in to GHCR with the job's `GITHUB_TOKEN` for the pull and logs out right after. Moving to another CI (GitLab + Jenkins) means writing these few steps again with the same variables; the scripts stay.
 
@@ -231,7 +269,7 @@ scripts/deploy.sh test "$sha"
 
 ```bash
 docker build -t spolu:local --build-arg APP_VERSION=local .
-cp deploy/test.env.example deploy/.env   # then set IMAGE=spolu, TAG=local, DOMAIN=localhost, PUBLIC_URL=https://localhost and real-looking secrets
+cp deploy/test.env.example deploy/.env   # then set IMAGE=spolu, TAG=local, DOMAIN=localhost, PUBLIC_URL=https://localhost and new secrets (the app refuses the example's placeholders)
 cd deploy && docker compose --project-name spolutest up -d --wait
 curl -k https://localhost/api/health      # {"status":"ok","db":"ok","version":"local"}
 docker compose --project-name spolutest down -v   # separate project = separate volumes; removes them
@@ -241,7 +279,9 @@ The image has only `node`, no npm, corepack or yarn (see [overview.md](../archit
 
 To walk the phase "Done when" locally (login codes included) catch the email in Mailpit (`docker compose -f docker-compose.dev.yml up -d --wait` from the repo root; UI on http://localhost:8025). For that set `EMAIL_DRIVER=smtp`, `SMTP_HOST=host.docker.internal` and `SMTP_PORT=1025` in `deploy/.env` before `up` (and clear `SMTP_USER` and `SMTP_PASSWORD`).
 
-**Ticket intake (Phase 21).** Set `TICKETS_API_KEY` (at least 16 characters, for example `openssl rand -hex 24`) as its own secret of the `test` environment in GitHub (`gh secret set TICKETS_API_KEY --env test`); the deploy writes it into the server's `.env` (it replaces a `TICKETS_API_KEY=` line of `TEST_ENV_FILE`). Give it to the eGrant team with [integrations/egrant-ticket-intake.md](../integrations/egrant-ticket-intake.md). Without it `POST /api/tickets/intake` answers 503 `intake_disabled`. The same key guards the eGrant managers webhook (`PUT /api/egrant/managers`, [guide](../integrations/egrant-managers.md)); there is no second key to set.
+**Ticket intake (Phase 21).** Set `TICKETS_API_KEY` (at least 16 characters, for example `openssl rand -hex 24`) as its own secret of the `test` environment in GitHub (`gh secret set TICKETS_API_KEY --env test`); the deploy writes it into the server's `.env` (it replaces a `TICKETS_API_KEY=` line of `TEST_ENV_FILE`). Give it to the eGrant team with [integrations/egrant-ticket-intake.md](../integrations/egrant-ticket-intake.md). Without it `POST /api/tickets/intake` answers 503 `intake_disabled`. By default the same key also guards the eGrant managers webhook (`PUT /api/egrant/managers`, [guide](../integrations/egrant-managers.md)) and, once PR #113 is merged, the project webhook. Each can get a key of its own, so a leak of one does not open the others and each can be rotated alone: `EGRANT_MANAGERS_API_KEY` and `EGRANT_PROJECTS_API_KEY` in the server env file (at least 16 characters; `openssl rand -hex 24`). Unset, they fall back to `TICKETS_API_KEY`, so a server with only that key keeps working. Set them in the env file (`TEST_ENV_FILE` / `ENV_FILE`), then give eGrant the new key and update it on their side at the same time. Every eGrant webhook counts calls per IP before it checks the key, so wrong keys are rate limited too.
+
+**Placeholder secrets.** In production the app refuses to start (`Invalid environment configuration: …`, naming only the variable) when `APP_SECRET` is the example files' `change-me-to-a-random-string-of-32-chars-or-more`, when `POSTGRES_PASSWORD` is `spolu` or `change-me`, or when `DATABASE_URL` uses one of those passwords on a host other than `localhost`/`127.0.0.1`/`[::1]` (the e2e server runs in production mode against the dev database). Only those exact values are refused. Generate real ones with `openssl rand -base64 48` (APP_SECRET) and `openssl rand -hex 32` (POSTGRES_PASSWORD); changing `POSTGRES_PASSWORD` of an existing database also needs `ALTER USER spolu PASSWORD '…'` inside the postgres container first.
 
 **Domain.** `DOMAIN=` and `PUBLIC_URL=https://<domain>` in the server's `.env` come from the `DOMAIN` variable of the GitHub environment, not from `TEST_ENV_FILE` (`deploy_env` in `scripts/lib.sh`), so moving to another domain is: point its DNS A record at the server, change the variable, deploy. Caddy gets the new certificate on start.
 

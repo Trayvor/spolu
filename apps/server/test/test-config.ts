@@ -32,6 +32,8 @@ export function testConfig(overrides: Partial<Config> = {}): Config {
     transcription: null,
     ffmpegPath: 'ffmpeg',
     ticketsApiKey: null,
+    egrantManagersApiKey: null,
+    egrantProjectsApiKey: null,
     bulkEmail: { driver: 'smtp', from: 'eGrant <news@example.com>' },
     bulkEmailPerMinute: 120,
     teams: null,
