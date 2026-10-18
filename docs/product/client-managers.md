@@ -6,7 +6,7 @@ An administrator can be a **manager** of a client group: one of the eGrant peopl
 
 - **Becoming and stopping.** An administrator becomes a manager of a client, or stops being one, with a button in the list of all clients (the Groups page); that button acts only for themselves. On a group's Members tab, any administrator adds any active administrator as a manager of that group, or removes any manager (Phase 22a). Whoever acts, the notification rules below apply to the administrator who became or stopped being a manager.
 - **Many managers.** A group can have any number of managers; an administrator can manage any number of groups.
-- **Who can be mentioned and assigned.** In a group's chat and task chats, the mention picker lists only the group's clients and its managers. The task assignee picker lists the same people. Administrators who are not managers of that group are not listed.
+- **Who can be mentioned and assigned.** In a group's chat and task chats, the mention picker lists only the group's clients and its managers. The task assignee picker lists the same people for a client. For an administrator it also lists every other active administrator, after the clients and managers under "Other admins", each marked "not a manager" (owner request 2026-10-18; see `task-board.md`). Administrators who are not managers are not offered in mentions or reminders.
 - **@all** reaches the group's clients and its managers. Administrators who are not managers are not reached by @all.
 - **Access is unchanged.** An administrator who is not a manager still reads and writes the chat, the tasks and everything else of the group.
 - **Notifications.**
@@ -15,7 +15,7 @@ An administrator can be a **manager** of a client group: one of the eGrant peopl
   - Changing the mode with the bell afterwards is the administrator's own choice and is kept.
   - Stopping being a manager returns the administrator to their default, unless they had chosen a mode themselves.
   - Choosing a mode under "All groups" on the Groups page resets every per-group choice, including the All messages a manager got by becoming one. The administrator stays a manager; becoming a manager of a group again later sets All messages again.
-- **Existing assignments.** A task assigned to an administrator who is not (or no longer) a manager keeps the assignment. The task form shows that person with the note "not a manager"; they can be removed, but not added again.
+- **Existing assignments.** A task assigned to an administrator who is not (or no longer) a manager keeps the assignment. The task form shows that person with the note "not a manager"; they can be removed, and only an administrator can add them again.
 - **Visibility.** The Groups page shows each group's managers; the group's Members tab lists its managers.
 - **Watch tickets.** A manager watches the group's tickets by default (they hear about each new ticket) while they manage it, unless they unticked "Watch tickets"; their own choice stays when they stop or start managing. Managers no longer follow a ticket by themselves (see `tickets.md`).
 - Managers are used by later features: the default client filter of the global knowledge list and the global task board ("the clients I manage"), and the admin home's client list. The admin group "eGrant tím" (Phase 34) has no managers: every admin is effectively one, so it joins that default scope whenever the admin manages a client.

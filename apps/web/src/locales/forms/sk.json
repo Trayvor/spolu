@@ -20,6 +20,7 @@
     "adminPill": "eGrant",
     "full": "Vyberte najviac {{max}} ľudí.",
     "notManager": "nie je manažér",
-    "noPickable": "Vybrať možno len klientov a manažérov klienta."
+    "noPickable": "Vybrať možno len klientov a manažérov klienta.",
+    "otherAdmins": "Ostatní admini"
   }
 }

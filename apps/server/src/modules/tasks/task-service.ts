@@ -32,7 +32,8 @@ import {
 } from '../files/service.js';
 import { getSourceMessage } from '../chat/messages.js';
 import { taskChatFileIds } from '../chat/service.js';
-import { getGroup, isPickablePerson } from '../groups/service.js';
+import { getGroup, getGroupPeopleRoles } from '../groups/service.js';
+import { canAssignTaskTo } from './policy.js';
 import { linkedCardsOf, setLinkedItems } from '../knowledge/links.js';
 import { getProjectRef } from '../projects/refs.js';
 import { getMeetingRef } from '../knowledge/meeting-ref.js';
@@ -118,13 +119,21 @@ export function toTaskDto(detail: TaskDetailDto): TaskDto {
 }
 
 /**
- * Throws `InvalidAssigneeError` unless every id is a pickable person of the group: a client or
- * one of its managers. Callers pass only ids that are new to the task, so an existing assignee
- * who has since stopped being pickable stays on it.
+ * Throws `InvalidAssigneeError` unless the actor may assign every id (`canAssignTaskTo`): a
+ * client of the group or one of its managers, and for an admin actor any active admin. One query.
+ * Callers pass only ids that are new to the task, so an existing assignee who has since stopped
+ * being assignable stays on it.
  */
-async function checkAssignees(tx: Tx, groupId: string, ids: string[]): Promise<void> {
-  for (const id of ids) {
-    if (!(await isPickablePerson(tx, groupId, id))) throw new InvalidAssigneeError();
+async function checkAssignees(
+  tx: Tx,
+  actor: SessionUser,
+  groupId: string,
+  ids: string[],
+): Promise<void> {
+  if (ids.length === 0) return;
+  const people = await getGroupPeopleRoles(tx, groupId, ids);
+  if (!ids.every((id) => canAssignTaskTo(actor, people.get(id)))) {
+    throw new InvalidAssigneeError();
   }
 }
 
@@ -298,7 +307,7 @@ export async function createTaskTimed(
       .where(eq(tasks.bucketId, bucket.id))
       .orderBy(desc(tasks.position))
       .limit(1);
-    await checkAssignees(tx, groupId, assigneeIds);
+    await checkAssignees(tx, actor, groupId, assigneeIds);
     const ref = await getProjectRef(tx, groupId, input.projectId ?? null, input.eventId ?? null);
 
     const now = new Date();
@@ -471,7 +480,7 @@ export async function createTasksFromSource(
         .where(eq(tasks.bucketId, todo.id))
         .orderBy(asc(tasks.position))
         .limit(1);
-      await checkAssignees(tx, groupId, [...new Set(drafts.flatMap((d) => d.assigneeIds))]);
+      await checkAssignees(tx, actor, groupId, [...new Set(drafts.flatMap((d) => d.assigneeIds))]);
       // Phase 33 part P2: each card's project and event.
       const refs: Awaited<ReturnType<typeof getProjectRef>>[] = [];
       for (const d of drafts) {
@@ -636,7 +645,7 @@ export async function updateTaskTimed(
       ).map((r) => r.userId);
       const added = wanted.filter((userId) => !current.includes(userId));
       const removed = current.filter((userId) => !wanted.includes(userId));
-      await checkAssignees(tx, row.groupId, added);
+      await checkAssignees(tx, actor, row.groupId, added);
       if (removed.length > 0) {
         await tx
           .delete(taskAssignees)

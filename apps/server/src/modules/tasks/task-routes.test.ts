@@ -25,7 +25,8 @@ import { addMember, createGroup } from '../groups/service.js';
 import { notificationEvents } from '../notifications/schema.js';
 import { user } from '../users/schema.js';
 import { addManager } from '../groups/managers.js';
-import { addAdmin } from '../users/service.js';
+import { addMembership } from '../groups/memberships.js';
+import { addAdmin, deactivateUser } from '../users/service.js';
 import { tasks } from './schema.js';
 
 // `deleteDetachedFiles` can be made to fail, to prove the post-commit cleanup never fails a write.
@@ -225,6 +226,81 @@ describe('tasks API: tasks', () => {
       { id: admin.id, name: 'Abe' },
       { id: client.id, name: 'Bea' },
     ]);
+  });
+
+  describe('assigning admins who do not manage the client (2026-10-18)', () => {
+    it('an admin assigns an admin who is not a manager → 201, and they read the task', async () => {
+      const admin = await adminSession('Abe');
+      const other = await adminSession('Ola');
+      const g = await newGroup();
+      const res = await create(g.id, admin.cookie, { title: 'X', assigneeIds: [other.id] });
+      expect(res.statusCode).toBe(201);
+      const task = res.json<TaskDetailDto>();
+      expect(task.assignees).toEqual([{ id: other.id, name: 'Ola' }]);
+      expect((await call('GET', `/api/tasks/${task.id}`, other.cookie)).statusCode).toBe(200);
+    });
+
+    it('an admin adds a non-manager admin by PATCH → 200', async () => {
+      const admin = await adminSession();
+      const other = await adminSession('Ola');
+      const g = await newGroup();
+      const task = (await create(g.id, admin.cookie, { title: 'X' })).json<TaskDetailDto>();
+      const res = await call('PATCH', `/api/tasks/${task.id}`, admin.cookie, {
+        assigneeIds: [other.id],
+        updatedAt: task.updatedAt,
+      });
+      expect(res.statusCode).toBe(200);
+      expect(res.json<TaskDetailDto>().assignees.map((a) => a.id)).toEqual([other.id]);
+    });
+
+    it('a client still cannot add a non-manager admin by PATCH → 400 invalid_assignee', async () => {
+      const other = await adminSession('Ola');
+      const g = await newGroup();
+      const client = await clientIn(g.id);
+      const task = (await create(g.id, client.cookie, { title: 'X' })).json<TaskDetailDto>();
+      const res = await call('PATCH', `/api/tasks/${task.id}`, client.cookie, {
+        assigneeIds: [other.id],
+        updatedAt: task.updatedAt,
+      });
+      expect(res.statusCode).toBe(400);
+      expect(res.json()).toEqual({ error: 'invalid_assignee' });
+    });
+
+    it('a disabled admin cannot be assigned, even by an admin → 400 invalid_assignee', async () => {
+      const admin = await adminSession();
+      const gone = await adminSession('Gone');
+      await deactivateUser(test.deps.db, gone.id);
+      const g = await newGroup();
+      const res = await create(g.id, admin.cookie, { title: 'X', assigneeIds: [gone.id] });
+      expect(res.statusCode).toBe(400);
+      expect(res.json()).toEqual({ error: 'invalid_assignee' });
+    });
+
+    it('an admin cannot assign a client of another group → 400 invalid_assignee', async () => {
+      const admin = await adminSession();
+      const g = await newGroup();
+      const stranger = await clientIn((await newGroup()).id);
+      const res = await create(g.id, admin.cookie, { title: 'X', assigneeIds: [stranger.id] });
+      expect(res.statusCode).toBe(400);
+      expect(res.json()).toEqual({ error: 'invalid_assignee' });
+    });
+
+    it('a ziadatel of the group is no assignee, and cannot create tasks (404)', async () => {
+      const admin = await adminSession();
+      const g = await newGroup();
+      const email = newEmail();
+      const id = randomUUID();
+      await test.deps.db
+        .insert(user)
+        .values({ id, email, name: 'Zia', role: 'client', emailVerified: true });
+      await addMembership(test.deps.db, id, g.id, 'ziadatel');
+      const cookie = await loginAs(test.app, email);
+      const own = await create(g.id, cookie, { title: 'X', assigneeIds: [admin.id] });
+      expect(own.statusCode).toBe(404);
+      const assigned = await create(g.id, admin.cookie, { title: 'X', assigneeIds: [id] });
+      expect(assigned.statusCode).toBe(400);
+      expect(assigned.json()).toEqual({ error: 'invalid_assignee' });
+    });
   });
 
   it('create with a file uploaded by someone else → 400 invalid_attachment', async () => {

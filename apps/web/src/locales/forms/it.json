@@ -20,6 +20,7 @@
     "adminPill": "eGrant",
     "full": "Scegliere al massimo {{max}} persone.",
     "notManager": "non è responsabile",
-    "noPickable": "Si possono scegliere solo i clienti e i responsabili del cliente."
+    "noPickable": "Si possono scegliere solo i clienti e i responsabili del cliente.",
+    "otherAdmins": "Altri amministratori"
   }
 }

@@ -234,6 +234,24 @@ describe('createTask', () => {
     ).rejects.toBeInstanceOf(InvalidAssigneeError);
   });
 
+  it('an admin assigns admins who are not managers, the superadmin too; they are notified', async () => {
+    const group = await newGroup();
+    const admin = await newAdmin('Abe');
+    const other = await newAdmin('Ola');
+    const superadminId = randomUUID();
+    await db.insert(user).values({
+      id: superadminId,
+      email: `${superadminId}@example.com`,
+      name: 'Sue',
+      role: 'superadmin',
+      emailVerified: true,
+    });
+    const ids = [other.id, superadminId];
+    const task = await createTask(deps, admin, group.id, { title: 'Any admin', assigneeIds: ids });
+    expect(task.assignees.map((a) => a.id).sort()).toEqual([...ids].sort());
+    expect(await assignedRecipients(task.id)).toEqual([...ids].sort());
+  });
+
   it('assigning a manager works', async () => {
     const group = await newGroup();
     const client = await newClient(group.id);

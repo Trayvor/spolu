@@ -20,6 +20,7 @@
     "adminPill": "eGrant",
     "full": "Izberete lahko največ toliko oseb: {{max}}.",
     "notManager": "ni upravitelj",
-    "noPickable": "Izbrati je mogoče samo stranke in upravitelje stranke."
+    "noPickable": "Izbrati je mogoče samo stranke in upravitelje stranke.",
+    "otherAdmins": "Drugi skrbniki"
   }
 }

@@ -19,6 +19,8 @@ type Candidate = {
   removed: boolean;
   /** Still a reader of the group, but no longer someone who can be picked. */
   notPickable: boolean;
+  /** An eGrant admin who does not manage the group (shown with "not a manager"). */
+  nonManager: boolean;
 };
 
 /**
@@ -26,8 +28,10 @@ type Candidate = {
  * Only pickable people are offered: the group's clients and its managers (`isPickable`).
  * Chosen people are removable chips, except those in `fixedIds`, which stay; people no longer in
  * the list (`knownPeople`) stay as "Name (removed)", and an eGrant admin who no longer manages
- * the group stays with a muted "not a manager", until the user removes them. `label` names the
- * list of suggestions. Needs the `forms` locale namespace.
+ * the group stays with a muted "not a manager", until the user removes them. With `otherAdmins`
+ * the admins who do not manage the group can be picked too: they follow the clients and managers
+ * under an "Other admins" heading, each marked "not a manager". `label` names the list of
+ * suggestions. Needs the `forms` locale namespace.
  */
 export function PeopleSelect({
   people,
@@ -41,6 +45,7 @@ export function PeopleSelect({
   max,
   label,
   pickable,
+  otherAdmins = false,
 }: {
   people: GroupPerson[] | undefined;
   value: string[];
@@ -61,6 +66,11 @@ export function PeopleSelect({
    * riešiteľ picker offers every admin.
    */
   pickable?: (person: GroupPerson) => boolean;
+  /**
+   * Also offer every admin who does not manage the group, after the others (an admin assigning a
+   * task, 2026-10-18). The server allows it only for an admin actor.
+   */
+  otherAdmins?: boolean;
 }) {
   const { t } = useTranslation();
   const me = useSession();
@@ -70,29 +80,50 @@ export function PeopleSelect({
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
 
+  const canPick = useMemo(
+    () => (otherAdmins ? (p: GroupPerson) => p.isAdmin || isPickable(p) : (pickable ?? isPickable)),
+    [otherAdmins, pickable],
+  );
   const byId = useMemo(() => {
     const map = new Map<string, Candidate>();
     for (const p of knownPeople)
-      map.set(p.id, { ...p, isAdmin: false, removed: true, notPickable: false });
-    for (const p of people ?? [])
-      map.set(p.id, { ...p, removed: false, notPickable: !(pickable ?? isPickable)(p) });
+      map.set(p.id, {
+        ...p,
+        isAdmin: false,
+        removed: true,
+        notPickable: false,
+        nonManager: false,
+      });
+    for (const p of people ?? []) {
+      const notPickable = !canPick(p);
+      const nonManager = notPickable || (otherAdmins && p.isAdmin && !p.isManager);
+      map.set(p.id, { ...p, removed: false, notPickable, nonManager });
+    }
     return map;
-  }, [people, knownPeople, pickable]);
+  }, [people, knownPeople, canPick, otherAdmins]);
 
   const full = value.length >= max;
-  const options = useMemo(() => {
+  // The clients and managers first, then (with `otherAdmins`) the other admins from `othersFrom`.
+  const [options, othersFrom] = useMemo(() => {
     const needle = query.trim().toLocaleLowerCase();
-    return (people ?? []).filter(
+    const found = (people ?? []).filter(
       (p) =>
-        (pickable ?? isPickable)(p) &&
+        canPick(p) &&
         !value.includes(p.id) &&
         !fixedIds.includes(p.id) &&
         p.name.toLocaleLowerCase().includes(needle),
     );
-  }, [people, value, fixedIds, query, pickable]);
+    if (!otherAdmins) return [found, found.length] as const;
+    const first = found.filter(isPickable);
+    return [[...first, ...found.filter((p) => !isPickable(p))], first.length] as const;
+  }, [people, value, fixedIds, query, canPick, otherAdmins]);
   // An admin who does not manage the group cannot pick themselves: say who can be picked.
   const nonManagerAdmin =
-    !pickable && !!people && isAdmin(me) && !people.some((p) => p.id === me?.id && p.isManager);
+    !pickable &&
+    !otherAdmins &&
+    !!people &&
+    isAdmin(me) &&
+    !people.some((p) => p.id === me?.id && p.isManager);
   const emptyLine =
     nonManagerAdmin && query.trim() === '' ? 'forms.people.noPickable' : 'forms.people.empty';
   const showList = open && !full;
@@ -140,7 +171,7 @@ export function PeopleSelect({
                 <Avatar userId={id} name={name} size={20} />
                 <span className="min-w-0 truncate">{chip}</span>
                 {person?.isAdmin && <Badge variant="outline">{t('forms.people.adminPill')}</Badge>}
-                {person?.notPickable && !fixedIds.includes(id) && (
+                {person?.nonManager && !fixedIds.includes(id) && (
                   <span className="shrink-0 font-normal text-neutral">
                     {t('forms.people.notManager')}
                   </span>
@@ -204,7 +235,19 @@ export function PeopleSelect({
           {options.length === 0 && (
             <li className="px-4 py-2 text-tiny text-muted-foreground">{t(emptyLine)}</li>
           )}
-          {options.map((p, index) => (
+          {options.map((p, index) => [
+            index === othersFrom && (
+              <li
+                key="others"
+                role="presentation"
+                className={cn(
+                  'px-4 pb-1 pt-2 text-tiny font-semibold text-muted-foreground',
+                  index > 0 && 'mt-1 border-t border-border',
+                )}
+              >
+                {t('forms.people.otherAdmins')}
+              </li>
+            ),
             <li
               key={p.id}
               id={`${listId}-${p.id}`}
@@ -223,8 +266,13 @@ export function PeopleSelect({
               <Avatar userId={p.id} name={p.name} size={24} />
               <span className="min-w-0 truncate">{p.name}</span>
               {p.isAdmin && <Badge variant="outline">{t('forms.people.adminPill')}</Badge>}
-            </li>
-          ))}
+              {index >= othersFrom && (
+                <span className="ml-auto shrink-0 text-tiny font-normal text-neutral">
+                  {t('forms.people.notManager')}
+                </span>
+              )}
+            </li>,
+          ])}
         </ul>
       </div>
     </div>

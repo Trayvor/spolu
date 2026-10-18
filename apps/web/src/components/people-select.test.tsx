@@ -32,11 +32,13 @@ function Harness({
   initial = [],
   fixedIds,
   onChange,
+  otherAdmins,
 }: {
   people?: GroupPerson[];
   initial?: string[];
   fixedIds?: string[];
   onChange?: (ids: string[]) => void;
+  otherAdmins?: boolean;
 }) {
   const [value, setValue] = useState(initial);
   return (
@@ -53,6 +55,7 @@ function Harness({
         inputId="people"
         max={10}
         label="Recipients"
+        otherAdmins={otherAdmins}
       />
     </>
   );
@@ -157,5 +160,55 @@ describe('PeopleSelect', () => {
     });
     await user.click(screen.getByRole('combobox'));
     expect(screen.getByText('No one found.')).toBeInTheDocument();
+  });
+
+  describe('with otherAdmins (an admin assigning a task)', () => {
+    const OTHER: GroupPerson = { id: 'a3', name: 'Adam Admin', isAdmin: true, isManager: false };
+
+    it('lists clients and managers first, then the other admins under a heading, marked', async () => {
+      const user = renderSelect({
+        people: [OTHER, CLIENT, OTHER_ADMIN, MANAGER],
+        otherAdmins: true,
+      });
+      await user.click(screen.getByRole('combobox'));
+      expect(optionNames()).toEqual([
+        expect.stringContaining('Anna Nováková'),
+        expect.stringContaining('Mira Kováčová'),
+        expect.stringContaining('Adam Admin'),
+        expect.stringContaining('Boris Kováč'),
+      ]);
+      const list = screen.getByRole('listbox', { name: 'Recipients' });
+      expect(within(list).getByText('Other admins')).toBeInTheDocument();
+      // The mark is part of the option's accessible name.
+      expect(
+        within(list).getByRole('option', { name: /Boris Kováč.*not a manager/ }),
+      ).toBeVisible();
+      expect(within(list).getByRole('option', { name: /Mira Kováčová/ })).not.toHaveTextContent(
+        'not a manager',
+      );
+    });
+
+    it('a chosen other admin keeps "not a manager" on the chip', async () => {
+      const user = renderSelect({ people: [CLIENT, OTHER_ADMIN], otherAdmins: true });
+      await user.click(screen.getByRole('combobox'));
+      await user.click(screen.getByRole('option', { name: /Boris Kováč/ }));
+      const chip = screen.getByRole('button', { name: 'Remove Boris Kováč' }).closest('li')!;
+      expect(within(chip).getByText('not a manager')).toBeInTheDocument();
+    });
+
+    it('no heading when there are no other admins, and no "who can be chosen" line', async () => {
+      const user = renderSelect({ people: [CLIENT, MANAGER], otherAdmins: true });
+      await user.click(screen.getByRole('combobox'));
+      expect(screen.queryByText('Other admins')).toBeNull();
+      await user.keyboard('zzz');
+      expect(screen.getByText('No one found.')).toBeInTheDocument();
+    });
+
+    it('only other admins: the heading comes first, with no separator line', async () => {
+      const user = renderSelect({ people: [OTHER_ADMIN], otherAdmins: true });
+      await user.click(screen.getByRole('combobox'));
+      expect(optionNames()).toEqual([expect.stringContaining('Boris Kováč')]);
+      expect(screen.getByText('Other admins')).not.toHaveClass('border-t');
+    });
   });
 });

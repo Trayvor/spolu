@@ -133,6 +133,24 @@ test('admin A manages a client; pickers, @all and live updates follow', async ({
     // 5. The task assigned to B still shows B on the board.
     await a.goto(`/groups/${group.id}/tasks`);
     await expect(a.getByRole('link', { name: /Zostane na B/ })).toContainText(bName);
+
+    // 6. (2026-10-18) An admin assigns an admin who does not manage the client: A offers B
+    // under "Ostatní admini", marked; the client still cannot assign B.
+    await a.goto(`/groups/${group.id}/tasks/new`);
+    await a.getByRole('combobox', { name: 'Riešitelia' }).fill(bName);
+    const assignees = a.getByRole('listbox', { name: 'Riešitelia' });
+    await expect(assignees.getByText('Ostatní admini')).toBeVisible();
+    await expect(
+      assignees.getByRole('option', { name: new RegExp(`${bName}.*nie je manažér`) }),
+    ).toBeVisible();
+    const byAdmin = await a.request.post(`/api/groups/${group.id}/tasks`, {
+      data: { title: 'Pre B od admina', assigneeIds: [bId] },
+    });
+    expect(byAdmin.status()).toBe(201);
+    const byClient = await cContext.request.post(`/api/groups/${group.id}/tasks`, {
+      data: { title: 'Pre B od klienta', assigneeIds: [bId] },
+    });
+    expect(byClient.status()).toBe(400);
   } finally {
     await sql.end();
     await bContext.close();
