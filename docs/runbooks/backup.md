@@ -9,7 +9,7 @@ The `backup` service (`deploy/backup/backup.sh`) runs every night at `BACKUP_HOU
 - `spolu-<timestamp>.dump` — `pg_dump -Fc` of the database.
 - `files-<timestamp>.tar.gz` — the `files` volume (`/data/files`: group logos and other uploads, with their `.meta.json` sidecars). The backup container mounts it read-only.
 
-Each file is written as `.partial` and renamed when complete. The dump and the files archive run independently: if one fails the other is still taken, and the run exits non-zero (logged as `FAILED ...`). The files archive skips the app's atomic-write temp files (`*.tmp`), and `tar` exit code 1 ("file changed as we read it") counts as success with a log line. The newest `BACKUP_KEEP` (default 14) of each kind are kept. Take an extra run with `BACKUP_ONCE=1`.
+Each file is written as `.partial` and renamed when complete. The dump and the files archive run independently: if one fails the other is still taken, and the run exits non-zero (logged as `FAILED ...`). The files archive skips the app's atomic-write temp files (`*.tmp`), and `tar` exit code 1 ("file changed as we read it") counts as success with a log line. The newest `BACKUP_KEEP` (default 14) of each kind are kept. Take an extra run with `BACKUP_ONCE=1`. A dump also holds the audit log (`audit_log`): rows the daily job deletes after 730 days, and labels replaced on an erasure request ([audit-log-erasure.md](audit-log-erasure.md)), live on in the kept dumps until they rotate out.
 
 ## Restore the files
 
