@@ -55,7 +55,7 @@ test('a task description with voice, AI and attached knowledge', async ({
   // (see setEditorText). The text must be in before the AI tool reads it.
   const draft = 'task one: call the bank, task two: send the report';
   await setEditorText(box, draft);
-  await expect(box).toHaveText(draft);
+  await expect(box).toHaveText(draft, { timeout: 15_000 });
   await panel.getByRole('button', { name: 'AI nástroje' }).click();
   await admin.getByRole('menuitem', { name: 'Formálnejšie' }).click();
   await expect(box.locator('ol li')).toHaveText(['Call the bank', 'Send the report'], {

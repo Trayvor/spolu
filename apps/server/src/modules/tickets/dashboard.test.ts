@@ -210,12 +210,14 @@ describe('unseen tickets (2026-10-17)', () => {
     const resolved = await newTicket({ groupId: g.id, status: 'resolved' });
     const none = await newTicket({ groupId: null, status: 'new' });
     await newTicket({ groupId: g.id, status: 'new' });
-    expect(await countUnseenTickets(db, me.id)).toBe(0);
+    // The count is global to the admin: parallel files create client-less tickets whose
+    // notifications reach every active admin, this one included. So compare with a baseline.
+    const base = await countUnseenTickets(db, me.id);
     for (const id of [fresh, resolved]) await status(me.id, g.id, id);
     await status(me.id, null, none);
-    expect(await countUnseenTickets(db, me.id)).toBe(3);
+    expect(await countUnseenTickets(db, me.id)).toBe(base + 3);
     await markTicketSeen(db, me.id, resolved);
-    expect(await countUnseenTickets(db, me.id)).toBe(2);
+    expect(await countUnseenTickets(db, me.id)).toBe(base + 2);
   });
 
   it('a card is marked while its ticket has a change I have not seen', async () => {
