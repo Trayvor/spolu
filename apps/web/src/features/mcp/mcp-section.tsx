@@ -15,6 +15,7 @@ import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { ApiError } from '@/lib/api';
 import { createMcpToken, mcpAuditQuery, mcpTokensQuery, revokeMcpToken } from './api';
+import { ConnectionList } from './connection-list';
 
 /**
  * "AI access (MCP)" on /settings, admins only (MCP spec §3.3): the admin's personal tokens for an
@@ -39,6 +40,7 @@ export function McpSection() {
         ) : (
           <CreateForm onCreated={setCreated} />
         )}
+        <ConnectionList />
         <TokenList />
         <AuditList />
       </CardContent>

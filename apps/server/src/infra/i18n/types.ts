@@ -73,6 +73,14 @@ export type ServerTexts = {
       warning: string;
       button: string;
     };
+    /** An OAuth client (a Claude custom connector) was approved (ADR 0034). */
+    connectionApproved: {
+      subject: string;
+      /** `host`: where the client returns (claude.ai); `date` as for tokenCreated. */
+      body(p: { name: string; host: string; date: string }): string;
+      warning: string;
+      button: string;
+    };
   };
   tickets: {
     /** "Ticket created" to the ticket's initiator. */

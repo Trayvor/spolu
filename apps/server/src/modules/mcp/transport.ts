@@ -313,10 +313,16 @@ export const mcpTransportRoutes: FastifyPluginAsync<{
     }
   }
 
-  const unauthorized = (reply: FastifyReply) =>
+  // RFC 9728 §5.1: the 401 names the protected resource metadata, where an OAuth client
+  // (Claude's custom connector) finds the authorization server (ADR 0034).
+  const resourceMetadata = `${new URL(deps.config.publicUrl).origin}/.well-known/oauth-protected-resource/mcp`;
+  const unauthorized = (reply: FastifyReply, invalidToken: boolean) =>
     reply
       .code(401)
-      .header('www-authenticate', 'Bearer realm="spolu"')
+      .header(
+        'www-authenticate',
+        `Bearer realm="spolu", resource_metadata="${resourceMetadata}"${invalidToken ? ', error="invalid_token"' : ''}`,
+      )
       .send({ error: 'unauthorized' });
 
   app.post('/mcp', async (request, reply) => {
@@ -339,7 +345,7 @@ export const mcpTransportRoutes: FastifyPluginAsync<{
     const auth = raw ? await authenticateToken(db, raw) : null;
     if (!auth) {
       if (!allowFailure(request.ip)) return reply.code(429).send({ error: 'rate_limited' });
-      return unauthorized(reply);
+      return unauthorized(reply, raw !== undefined);
     }
     if (!canUseMcp(auth.user)) return reply.code(403).send({ error: 'forbidden' });
     // Per user: all of a user's tokens share one budget.

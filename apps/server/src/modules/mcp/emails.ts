@@ -25,3 +25,26 @@ export function tokenCreatedEmail(
     button: { label: t.button, url: `${r.publicUrl}/settings` },
   });
 }
+
+/**
+ * Tells a user that an OAuth client (a Claude custom connector) was connected to their account
+ * (ADR 0034), so a connection approved with a stolen session is noticed. Never a code or token.
+ */
+export function connectionApprovedEmail(
+  r: { to: string; lang: UserLanguage; publicUrl: string },
+  p: { name: string; host: string; approvedAt: Date },
+): EmailMessage {
+  const texts = serverTexts(r.lang);
+  const t = texts.mcp.connectionApproved;
+  const date = new Intl.DateTimeFormat(texts.intl, {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+    timeZone: 'Europe/Bratislava',
+  }).format(p.approvedAt);
+  return buildEmail({
+    ...r,
+    subject: t.subject,
+    paragraphs: [t.body({ name: p.name, host: p.host, date }), t.warning],
+    button: { label: t.button, url: `${r.publicUrl}/settings` },
+  });
+}

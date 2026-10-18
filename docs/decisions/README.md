@@ -57,3 +57,4 @@ What gets easier, what gets harder.
 | [0032](0032-finance-items-without-a-client.md) | Finance items without a client, and client shares | accepted |
 | [0031](0031-local-deploy-without-registry.md) | Local deploy from the orchestrator's Mac, without a registry | accepted |
 | [0033](0033-mcp-server-over-the-http-api.md) | An MCP server over our own HTTP API, with personal tokens and no SDK | accepted |
+| [0034](0034-mcp-oauth-authorization-server.md) | OAuth for the MCP server: Help as its own authorization server, tokens in `mcp_tokens` | accepted |

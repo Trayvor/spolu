@@ -140,5 +140,6 @@ export const ErrorCodes = {
   changeOutdated: 'change_outdated',
   // MCP server (2026-10-18)
   mcpTokenLimit: 'mcp_token_limit',
+  mcpConnectionLimit: 'mcp_connection_limit',
 } as const;
 export type ErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes];

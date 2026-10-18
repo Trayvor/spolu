@@ -27,6 +27,7 @@ import { attachMeetingsRealtime } from './modules/knowledge/meeting-realtime.js'
 import { meetingRoutes } from './modules/knowledge/meeting-routes.js';
 import { knowledgeLinkRoutes } from './modules/knowledge/link-routes.js';
 import { registerMcpRouteGuard } from './modules/mcp/guard.js';
+import { mcpConsentRoutes, mcpOAuthRoutes } from './modules/mcp/oauth-routes.js';
 import { mcpTokenRoutes } from './modules/mcp/routes.js';
 import { mcpTransportRoutes } from './modules/mcp/transport.js';
 import { notificationsRoutes } from './modules/notifications/routes.js';
@@ -88,6 +89,7 @@ export async function buildApp(
   registerCsrfGuard(app, config);
   // An in-process MCP call reaches only an exact allowlist route (ADR 0033).
   registerMcpRouteGuard(app);
+  registerNoFraming(app);
 
   await app.register(systemRoutes, { prefix: '/api', deps });
   await app.register(authRoutes, { prefix: '/api', deps });
@@ -147,6 +149,9 @@ export async function buildApp(
   // call the routes above in process as the token's user.
   await app.register(mcpTokenRoutes, { prefix: '/api', deps });
   await app.register(mcpTransportRoutes, { deps, root: app });
+  // OAuth for it (ADR 0034): the metadata and endpoints at the root, the consent API under /api.
+  await app.register(mcpOAuthRoutes, { deps });
+  await app.register(mcpConsentRoutes, { prefix: '/api', deps });
 
   registerNotFound(app);
   return app;
@@ -178,6 +183,18 @@ function registerCsrfGuard(app: FastifyInstance, config: AppDeps['config']): voi
     const crossSite = site !== undefined && site !== 'same-origin' && site !== 'none';
     const foreignOrigin = origin !== undefined && !allowedOrigins.has(origin);
     if (crossSite || foreignOrigin) return reply.code(403).send({ error: 'forbidden' });
+  });
+}
+
+/**
+ * The consent screen (`/oauth/authorize`, a page of the web app) may not be framed: a page on
+ * another site could otherwise lay it under its own and trick the click on "Allow".
+ */
+function registerNoFraming(app: FastifyInstance): void {
+  app.addHook('onSend', async (request, reply) => {
+    if (!request.url.startsWith('/oauth/')) return;
+    reply.header('x-frame-options', 'DENY');
+    reply.header('content-security-policy', "frame-ancestors 'none'");
   });
 }
 

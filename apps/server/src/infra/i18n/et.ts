@@ -64,6 +64,14 @@ export const et: ServerTexts = {
         'Kui see polnud teie, tühistage tõend kohe menüüs Seaded (AI juurdepääs (MCP)) ja võtke ühendust oma administraatoriga.',
       button: 'Ava Seaded',
     },
+    connectionApproved: {
+      subject: 'Helpiga ühendati AI assistent',
+      body: ({ name, host, date }) =>
+        `Helpiga (Help by eGrant) ühendati ${date} assistent „${name}“ (naaseb aadressile ${host}). Nüüd saab see kasutada Helpi teie nimel teie valitud juurdepääsuga.`,
+      warning:
+        'Kui see polnud teie, ühendage see kohe seadetes (AI juurdepääs (MCP)) lahti ja võtke ühendust oma administraatoriga.',
+      button: 'Ava seaded',
+    },
   },
   tickets: {
     created: {

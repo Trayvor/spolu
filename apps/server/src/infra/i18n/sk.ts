@@ -64,6 +64,14 @@ export const sk: ServerTexts = {
         'Ak ste to neboli vy, token ihneď zrušte v Nastaveniach (Prístup pre AI (MCP)) a kontaktujte svojho administrátora.',
       button: 'Otvoriť Nastavenia',
     },
+    connectionApproved: {
+      subject: 'K aplikácii Help bol pripojený AI asistent',
+      body: ({ name, host, date }) =>
+        `K aplikácii Help bol ${date} pripojený asistent „${name}“ (návrat na ${host}). Odteraz môže používať Help vo vašom mene s prístupom, ktorý ste zvolili.`,
+      warning:
+        'Ak ste to neboli vy, asistenta ihneď odpojte v Nastaveniach (Prístup pre AI (MCP)) a kontaktujte svojho administrátora.',
+      button: 'Otvoriť Nastavenia',
+    },
   },
   tickets: {
     created: {

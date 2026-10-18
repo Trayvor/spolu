@@ -2,7 +2,7 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import type { McpToken } from '@spolu/shared';
+import type { McpConnection, McpToken } from '@spolu/shared';
 import { i18n } from '@/i18n';
 import { loadAllNamespaces } from '@/i18n/namespaces';
 import { McpSection } from './mcp-section';
@@ -22,8 +22,21 @@ const token = (over: Partial<McpToken> = {}): McpToken => ({
   ...over,
 });
 
-function setup(options: { tokens?: McpToken[]; createStatus?: number } = {}) {
+const connection = (over: Partial<McpConnection> = {}): McpConnection => ({
+  id: 'g1',
+  clientName: 'Claude',
+  redirectHost: 'claude.ai',
+  scope: 'write',
+  createdAt: '2026-10-18T08:00:00.000Z',
+  lastUsedAt: '2026-10-18T09:00:00.000Z',
+  ...over,
+});
+
+function setup(
+  options: { tokens?: McpToken[]; connections?: McpConnection[]; createStatus?: number } = {},
+) {
   let tokens = options.tokens ?? [];
+  let connections = options.connections ?? [];
   const posts: unknown[] = [];
   const deletes: string[] = [];
   vi.stubGlobal(
@@ -31,6 +44,13 @@ function setup(options: { tokens?: McpToken[]; createStatus?: number } = {}) {
     vi.fn(async (url: string, init?: RequestInit) => {
       const method = init?.method ?? 'GET';
       if (url === '/api/me/mcp/tokens' && method === 'GET') return json(tokens);
+      if (url === '/api/me/mcp/connections' && method === 'GET') return json(connections);
+      if (url.startsWith('/api/me/mcp/connections/') && method === 'DELETE') {
+        const id = url.split('/').pop()!;
+        deletes.push(id);
+        connections = connections.filter((c) => c.id !== id);
+        return new Response(null, { status: 204 });
+      }
       if (url === '/api/me/mcp/audit') {
         return json([
           {
@@ -106,6 +126,17 @@ describe('McpSection', () => {
     await user.type(screen.getByLabelText('Name'), 'X');
     await user.click(screen.getByRole('button', { name: 'Create token' }));
     await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/10 active tokens/));
+  });
+
+  it('shows how to connect Claude with the address, and disconnects a connection', async () => {
+    const { deletes, user } = setup({ connections: [connection()] });
+    expect(await screen.findByText('Claude', { selector: 'span' })).toBeInTheDocument();
+    expect(screen.getByText('Read and change, claude.ai')).toBeInTheDocument();
+    expect(screen.getByText(`${window.location.origin}/mcp`)).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Disconnect' }));
+    await user.click(screen.getByRole('button', { name: 'Disconnect assistant' }));
+    expect(deletes).toEqual(['g1']);
+    expect(await screen.findByText('No assistant connected yet.')).toBeInTheDocument();
   });
 
   it('revokes a token after a confirm', async () => {

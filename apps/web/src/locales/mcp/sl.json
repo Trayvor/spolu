@@ -51,5 +51,27 @@
     "title": "Nedavne spremembe prek AI",
     "empty": "Noben pomočnik še ni ničesar spremenil.",
     "refused": "zavrnjeno"
+  },
+  "consent": {
+    "title": "Poveži pomočnika",
+    "heading": "{{name}} želi uporabljati Help v vašem imenu",
+    "returnsTo": "Po vašem odgovoru se vrnete na {{host}}.",
+    "asYou": "Pomočnik vidi in spreminja le to, kar lahko vi, in vsaka njegova sprememba se zabeleži.",
+    "revokeLater": "Kadar koli ga lahko odklopite v Nastavitvah.",
+    "allow": "Dovoli dostop",
+    "deny": "Zavrni",
+    "leaving": "Vračate se k pomočniku …",
+    "adminsOnly": "AI pomočnika lahko s Help povežejo le skrbniki.",
+    "invalid": "Ta povezava za priklop ni veljavna. Povezovanje začnite znova v pomočniku.",
+    "limit": "Povezanih imate 10 pomočnikov. Preden dodate novega, enega odklopite v Nastavitvah."
+  },
+  "connections": {
+    "title": "Povezani pomočniki",
+    "howTo": "V Claude dodajte lasten konektor s tem naslovom:",
+    "empty": "Noben pomočnik še ni povezan.",
+    "since": "Povezan {{date}}",
+    "disconnect": "Odklopi",
+    "confirm": "Pomočnik takoj izgubi dostop.",
+    "disconnectConfirm": "Odklopi pomočnika"
   }
 }

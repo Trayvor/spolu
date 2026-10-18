@@ -12,6 +12,7 @@ import {
 import type { Db } from '../../infra/db/client.js';
 import { toSessionUser } from '../auth/session.js';
 import { user } from '../users/schema.js';
+import { revokeAllConnections } from './oauth.js';
 import { mcpTokens } from './schema.js';
 
 /**
@@ -63,6 +64,7 @@ export async function createToken(
       .where(
         and(
           eq(mcpTokens.userId, userId),
+          isNull(mcpTokens.oauthGrantId),
           isNull(mcpTokens.revokedAt),
           gt(mcpTokens.expiresAt, now),
         ),
@@ -85,12 +87,21 @@ export async function createToken(
   });
 }
 
-/** The user's tokens that are not revoked (expired ones too, marked), newest first. */
+/**
+ * The user's personal tokens that are not revoked (expired ones too, marked), newest first. The
+ * access tokens of OAuth connections are listed as connections (`oauth.ts`), not here.
+ */
 export async function listTokens(db: Db, userId: string): Promise<McpToken[]> {
   const rows = await db
     .select()
     .from(mcpTokens)
-    .where(and(eq(mcpTokens.userId, userId), isNull(mcpTokens.revokedAt)))
+    .where(
+      and(
+        eq(mcpTokens.userId, userId),
+        isNull(mcpTokens.oauthGrantId),
+        isNull(mcpTokens.revokedAt),
+      ),
+    )
     .orderBy(desc(mcpTokens.createdAt), desc(mcpTokens.id));
   const now = new Date();
   return rows.map((row) => toDto(row, now));
@@ -102,14 +113,23 @@ export async function revokeToken(db: Db, userId: string, tokenId: string): Prom
     .update(mcpTokens)
     .set({ revokedAt: new Date() })
     .where(
-      and(eq(mcpTokens.id, tokenId), eq(mcpTokens.userId, userId), isNull(mcpTokens.revokedAt)),
+      and(
+        eq(mcpTokens.id, tokenId),
+        eq(mcpTokens.userId, userId),
+        isNull(mcpTokens.oauthGrantId),
+        isNull(mcpTokens.revokedAt),
+      ),
     )
     .returning({ id: mcpTokens.id });
   return rows.length > 0;
 }
 
-/** Revokes every token of the user (deactivation: an admin added back needs new tokens). */
+/**
+ * Revokes every token and every OAuth connection of the user (deactivation: an admin added back
+ * needs new tokens and connects again).
+ */
 export async function revokeAllTokens(db: Db, userId: string): Promise<void> {
+  await revokeAllConnections(db, userId);
   await db
     .update(mcpTokens)
     .set({ revokedAt: new Date() })
