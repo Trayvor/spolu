@@ -103,7 +103,10 @@
       "endRequired": "Valige viimane päev.",
       "endBeforeStart": "Periood ei saa lõppeda enne algust.",
       "bodyTooLong": "Kasutage kuni 10 000 märki."
-    }
+    },
+    "project": "Projekt",
+    "noProject": "Projektita",
+    "archivedProject": "{{name}} (arhiveeritud)"
   },
   "view": {
     "amount": "Summa",

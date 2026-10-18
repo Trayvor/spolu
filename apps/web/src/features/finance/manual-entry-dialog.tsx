@@ -8,6 +8,8 @@ import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { SheetDialog, SheetDialogTitle } from '@/components/ui/sheet-dialog';
 import { groupsQuery } from '@/features/groups/api';
+import { EventSelect } from '@/features/projects/event-select';
+import { ProjectSelect } from '@/features/projects/project-select';
 import type { FinanceView } from './api';
 import { DialogFrame } from './dialog-frame';
 import { ratesQuery, useAddManualEntry, useAddSystemEntry, useUpdateEntry } from './log-api';
@@ -19,7 +21,8 @@ import { today } from './period';
  * entry its duration only (filling a request answers it). 0 is a valid duration; the day is
  * never in the future. The admins come from the rates list (every active admin, and every
  * deactivated one with a rate). Without a `groupId` (the work log of `/finance`) the dialog
- * starts with a client picker: every client, or "Without client" (decision 24).
+ * starts with a client picker: every client, or "Without client" (decision 24). A manual entry
+ * of a client may name one of its projects and that project's event (Phase 33 P6).
  */
 
 /** The picker's value for "Without client". */
@@ -51,6 +54,16 @@ export function EntryDialog({
     entry?.minutes != null ? formatDuration(entry.minutes, { hours: 'h', minutes: 'm' }) : '',
   );
   const [note, setNote] = useState(entry?.note ?? '');
+  const [projectId, setProjectId] = useState<string | null>(entry?.projectId ?? null);
+  const [eventId, setEventId] = useState<string | null>(entry?.eventId ?? null);
+  // The client whose projects a manual entry may name (none: "Without client" or not chosen yet).
+  const projectGroup = !manual
+    ? null
+    : pickClient
+      ? client && client !== NO_CLIENT
+        ? client
+        : null
+      : (groupId ?? entry?.groupId ?? null);
   const [errors, setErrors] = useState<{
     client?: string;
     user?: string;
@@ -72,7 +85,15 @@ export function EntryDialog({
     if (minutes === null) found.duration = 'financeLog.entry.errors.duration';
     setErrors(found);
     if (Object.keys(found).length > 0 || minutes === null) return;
-    const body = { userId, workedOn: day, minutes, note: note.trim() };
+    const pair = projectGroup ? { projectId, eventId: projectId ? eventId : null } : null;
+    const body = {
+      userId,
+      workedOn: day,
+      minutes,
+      note: note.trim(),
+      projectId: pair?.projectId ?? null,
+      eventId: pair?.eventId ?? null,
+    };
     if (pickClient) {
       addSystem.mutate(
         { ...body, groupId: client === NO_CLIENT ? null : client },
@@ -84,7 +105,9 @@ export function EntryDialog({
       update.mutate(
         {
           id: entry.id,
-          patch: manual ? { minutes, workedOn: day, note: note.trim() } : { minutes },
+          patch: manual
+            ? { minutes, workedOn: day, note: note.trim(), ...(pair ?? {}) }
+            : { minutes },
         },
         { onSuccess: onClose },
       );
@@ -138,7 +161,11 @@ export function EntryDialog({
               id={id('client')}
               value={client}
               disabled={!clients}
-              onChange={(e) => setClient(e.target.value)}
+              onChange={(e) => {
+                setClient(e.target.value);
+                setProjectId(null);
+                setEventId(null);
+              }}
               {...described('client')}
             >
               <option value="">{t('financeSystem.entry.chooseClient')}</option>
@@ -202,6 +229,43 @@ export function EntryDialog({
             {error('duration')}
           </div>
         </div>
+        {projectGroup && (
+          <div className="grid gap-4 min-[641px]:grid-cols-2">
+            <div className="flex flex-col gap-2.5">
+              <Label htmlFor={id('project')}>{t('financeLog.projects.label')}</Label>
+              <ProjectSelect
+                id={id('project')}
+                groupId={projectGroup}
+                value={projectId}
+                onChange={(next) => {
+                  setProjectId(next);
+                  setEventId(null);
+                }}
+                labels={{
+                  label: t('financeLog.projects.label'),
+                  none: t('financeLog.projects.noProject'),
+                  archived: (name) => t('financeLog.projects.archived', { name }),
+                }}
+              />
+            </div>
+            {projectId && (
+              <div className="flex flex-col gap-2.5">
+                <Label htmlFor={id('event')}>{t('financeLog.projects.eventLabel')}</Label>
+                <EventSelect
+                  id={id('event')}
+                  groupId={projectGroup}
+                  projectId={projectId}
+                  value={eventId}
+                  onChange={setEventId}
+                  labels={{
+                    label: t('financeLog.projects.eventLabel'),
+                    none: t('financeLog.projects.noEvent'),
+                  }}
+                />
+              </div>
+            )}
+          </div>
+        )}
         {manual && (
           <div className="flex flex-col gap-2.5">
             <Label htmlFor={id('note')}>{t('financeLog.entry.note')}</Label>

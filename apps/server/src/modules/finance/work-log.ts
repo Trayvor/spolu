@@ -6,6 +6,7 @@ import {
   type WorkLogEntry,
   type WorkLogMonth,
   type WorkLogPageDto,
+  type ProjectFilter,
 } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
 import { getGroupLabels } from '../groups/service.js';
@@ -18,6 +19,8 @@ import {
   costSql,
   countedEntriesSql,
   dayBounds,
+  entryProjectSql,
+  NO_PROJECT_FILTER,
   timeTotals,
   type TotalsRow,
 } from './aggregates.js';
@@ -87,20 +90,25 @@ type EntryRow = {
   worked_on: string;
   note: string;
   cost: string | number | null;
+  project_id: string | null;
+  event_id: string | null;
 };
 
 /**
  * The entries of one page: the counted ones (`finance_time_entries_group_day_idx`, or the
  * day-first index for many clients) and the requested ones (`…_open_requests_idx`, a few
  * thousand rows over every client), merged newest first. One more row than the page tells
- * whether an older page exists.
+ * whether an older page exists. `filter` (Phase 33 P6): the Project and Event filters on the
+ * entries' own copies, so a ticket unit splits by each entry's project.
  */
 export function workLogEntriesSql(
   scope: FinanceScope,
   range: MonthRange | null,
   before: Cursor | null,
   limit: number = WORK_LOG_PAGE_SIZE + 1,
+  filter: ProjectFilter = NO_PROJECT_FILTER,
 ): SQL {
+  const project = entryProjectSql(filter);
   const bounds = range
     ? sql` and ${e.workedOn} >= ${monthStart(range.from)} and ${e.workedOn} < ${monthAfter(range.to)}`
     : sql``;
@@ -114,19 +122,19 @@ export function workLogEntriesSql(
     ${e.linkedTicketId} as linked_ticket_id, ${e.title} as title,
     ${e.coveredByTasks} as covered_by_tasks, ${e.minutes} as minutes,
     ${e.workedOn}::text as worked_on, ${e.note} as note,
-    ${cost} as cost`;
+    ${cost} as cost, ${e.projectId} as project_id, ${e.eventId} as event_id`;
   return sql`
     select * from (
       (select ${columns(sql`round(${e.minutes}::bigint * rate.rate_minor / 60.0)::bigint`)}
         from ${e} ${costSql('finance_time_entries')}
         where ${e.minutes} is not null and ${e.workedOn} is not null
-          and ${scopeSql(e.groupId, scope)}${bounds}${keyset}
+          and ${scopeSql(e.groupId, scope)}${bounds}${keyset}${project}
         order by ${e.workedOn} desc, ${e.id} desc
         limit ${limit})
       union all
       (select ${columns(sql`null::bigint`)} from ${e}
         where ${e.minutes} is null and ${e.workedOn} is not null
-          and ${scopeSql(e.groupId, scope)}${bounds}${keyset}
+          and ${scopeSql(e.groupId, scope)}${bounds}${keyset}${project}
         order by ${e.workedOn} desc, ${e.id} desc
         limit ${limit})
     ) page
@@ -143,7 +151,11 @@ export const TOP_CLIENTS = 3;
  * minutes (the time without a client, `group_id` null, is one of them on the `all` scope). One
  * grouped read of the same index range as the month totals.
  */
-export function topClientsSql(scope: FinanceScope, range: MonthRange): SQL {
+export function topClientsSql(
+  scope: FinanceScope,
+  range: MonthRange,
+  filter: ProjectFilter = NO_PROJECT_FILTER,
+): SQL {
   const month = sql`to_char(${e.workedOn}, 'YYYY-MM')`;
   return sql`
     select month, group_id, minutes from (
@@ -151,7 +163,7 @@ export function topClientsSql(scope: FinanceScope, range: MonthRange): SQL {
         row_number() over (partition by ${month}
           order by sum(${e.minutes}) desc, ${e.groupId} nulls last) as n
       from ${e}
-      where ${countedEntriesSql(scope, dayBounds(range))}
+      where ${countedEntriesSql(scope, dayBounds(range), filter)}
       group by 1, 2
     ) ranked
     where n <= ${TOP_CLIENTS} and minutes > 0
@@ -176,16 +188,22 @@ function monthOf(row: TotalsRow, rows: TotalsRow[], names: Map<string, string>):
 /**
  * `GET /api/groups/:id/finance/work-log`: `range` null is all time; `before` the cursor of the
  * older page (null: the newest page, which also carries the summary). D calls it with a `groups`
- * or `all` scope.
+ * or `all` scope. `filter`: the Project and Event filters (Phase 33 P6), on the entries, the
+ * month totals and the summary alike.
  */
 export async function workLogPage(
   db: Db,
   scope: FinanceScope,
   range: MonthRange | null,
   before: string | null,
+  filter: ProjectFilter = NO_PROJECT_FILTER,
 ): Promise<WorkLogPageDto> {
   const cursor = before === null ? null : decodeCursor(before);
-  const fetched = [...(await db.execute<EntryRow>(workLogEntriesSql(scope, range, cursor)))];
+  const fetched = [
+    ...(await db.execute<EntryRow>(
+      workLogEntriesSql(scope, range, cursor, WORK_LOG_PAGE_SIZE + 1, filter),
+    )),
+  ];
   const rows = fetched.slice(0, WORK_LOG_PAGE_SIZE);
   const last = rows.at(-1);
   const next =
@@ -202,21 +220,21 @@ export async function workLogPage(
     const newest = rows[0]!.worked_on.slice(0, 7) as Month;
     const oldest = rows.at(-1)!.worked_on.slice(0, 7) as Month;
     const pageMonths = { from: oldest, to: newest };
-    monthRows = await timeTotals(db, countedEntriesSql(scope, dayBounds(pageMonths)), [
+    monthRows = await timeTotals(db, countedEntriesSql(scope, dayBounds(pageMonths), filter), [
       'adminMonth',
       'month',
     ]);
     if (manyClients) {
       topRows = [
         ...(await db.execute<{ month: Month; group_id: string | null; minutes: number }>(
-          topClientsSql(scope, pageMonths),
+          topClientsSql(scope, pageMonths, filter),
         )),
       ];
     }
   }
   const summaryRows =
     cursor === null
-      ? await timeTotals(db, countedEntriesSql(scope, range ? dayBounds(range) : null), [
+      ? await timeTotals(db, countedEntriesSql(scope, range ? dayBounds(range) : null, filter), [
           'admin',
           'total',
         ])
@@ -273,6 +291,8 @@ export async function workLogPage(
       workedOn: r.worked_on,
       note: r.note,
       cost: r.cost === null ? null : Number(r.cost),
+      projectId: r.project_id,
+      eventId: r.event_id,
     };
   });
 

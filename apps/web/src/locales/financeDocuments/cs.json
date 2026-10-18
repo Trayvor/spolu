@@ -105,7 +105,10 @@
       "endRequired": "Vyberte poslední den.",
       "endBeforeStart": "Období nemůže skončit dřív, než začne.",
       "bodyTooLong": "Použijte nejvýše 10 000 znaků."
-    }
+    },
+    "project": "Projekt",
+    "noProject": "Bez projektu",
+    "archivedProject": "{{name}} (archivovaný)"
   },
   "view": {
     "amount": "Částka",

@@ -349,4 +349,91 @@ describe('finance part C cards', () => {
       });
     });
   });
+
+  describe('the Project and Event filters (Phase 33 P6)', () => {
+    const picker = (url: string) => {
+      if (url.includes('/groups/g1/projects/picker')) {
+        return { body: [{ id: 'p1', name: 'Kultúra 2026', color: 'blue', status: 'active' }] };
+      }
+      if (url.includes('/projects/p1/events/picker')) {
+        return {
+          body: [{ id: 'e1', name: 'Hodnotenie', occursOn: '2026-11-04', source: 'manual' }],
+        };
+      }
+      return undefined;
+    };
+
+    it('sends the remembered project and event, names them, and explains the missing money', async () => {
+      localStorage.setItem(
+        'spolu.filters.a1.finance.overview.project.g1',
+        JSON.stringify({ project: 'p1', event: 'e1' }),
+      );
+      const calls = serve((url) =>
+        url.includes('/overview') ? { body: overviewDto({ money: [] }) } : picker(url),
+      );
+      renderIn(<OverviewCard view={view} />);
+      expect(await screen.findByText('Project: Kultúra 2026')).toBeInTheDocument();
+      expect(await screen.findByText('Event: Hodnotenie')).toBeInTheDocument();
+      expect(calls.find((c) => c.url.includes('/finance/overview'))!.url).toMatch(
+        /&project=p1&event=e1$/,
+      );
+      expect(await screen.findByTestId('finance-no-event-money')).toBeInTheDocument();
+    });
+
+    it('filters the work log by project, and /finance only with one client and no event', async () => {
+      localStorage.setItem(
+        'spolu.filters.a1.finance.workLog.project.g1',
+        JSON.stringify({ project: 'p1', event: 'e1' }),
+      );
+      const calls = serve((url) => (url.includes('/work-log') ? { body: logPage() } : picker(url)));
+      renderIn(<WorkLogCard view={{ kind: 'all', clients: ['g1'] }} />);
+      expect(await screen.findByText('Project: Kultúra 2026')).toBeInTheDocument();
+      expect(screen.queryByText(/^Event:/)).not.toBeInTheDocument();
+      await waitFor(() =>
+        expect(calls.find((c) => c.url.includes('/finance/work-log'))!.url).toMatch(
+          /clients=g1.*&project=p1$/,
+        ),
+      );
+      cleanup();
+      const many = serve((url) => (url.includes('/work-log') ? { body: logPage() } : undefined));
+      renderIn(<WorkLogCard view={{ kind: 'all', clients: ['g1', 'g2'] }} />);
+      await waitFor(() => expect(many.some((c) => c.url.includes('/finance/work-log'))).toBe(true));
+      expect(screen.queryByTestId('finance-project-filter')).not.toBeInTheDocument();
+      expect(many.find((c) => c.url.includes('/finance/work-log'))!.url).not.toContain('project=');
+    });
+
+    it('does not count eGrant tím as a client on /finance: one client with it keeps the pill', async () => {
+      localStorage.setItem(
+        'spolu.filters.a1.finance.workLog.project.g1',
+        JSON.stringify({ project: 'p1' }),
+      );
+      const group = (id: string, kind: 'client' | 'admin') => ({
+        id,
+        name: id,
+        kind,
+        hasLogo: false,
+        memberCount: 0,
+        updatedAt: '2026-01-01T00:00:00.000Z',
+        managers: [],
+        managedByMe: false,
+      });
+      const calls = serve((url) => {
+        if (url.endsWith('/api/groups'))
+          return { body: [group('team', 'admin'), group('g1', 'client')] };
+        return url.includes('/work-log') ? { body: logPage() } : picker(url);
+      });
+      renderIn(<WorkLogCard view={{ kind: 'all', clients: ['g1', 'team'] }} />);
+      expect(await screen.findByText('Project: Kultúra 2026')).toBeInTheDocument();
+      await waitFor(() =>
+        expect(
+          calls.some(
+            (c) =>
+              c.url.includes('/finance/work-log') &&
+              /clients=g1(%2C|,)team/.test(c.url) &&
+              c.url.endsWith('&project=p1'),
+          ),
+        ).toBe(true),
+      );
+    });
+  });
 });

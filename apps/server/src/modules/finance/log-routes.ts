@@ -2,6 +2,7 @@ import type { FastifyPluginAsync, FastifyReply } from 'fastify';
 import {
   AddRateBodySchema,
   ErrorCodes,
+  FinanceProjectQuerySchema,
   IdSchema,
   ManualEntryBodySchema,
   SystemManualEntryBodySchema,
@@ -32,6 +33,7 @@ import {
   RateUserError,
 } from './rates.js';
 import { canSeeExpenses } from './policy.js';
+import { InvalidProjectError } from './project-links.js';
 import { monthsOf } from './scope.js';
 import { WorkLogCursorError, workLogPage } from './work-log.js';
 
@@ -51,6 +53,7 @@ function logError(reply: FastifyReply, error: unknown): FastifyReply {
     return send(reply, 400, ErrorCodes.invalidAssignee);
   }
   if (error instanceof TimeEntryInvalidError) return send(reply, 400, ErrorCodes.validationFailed);
+  if (error instanceof InvalidProjectError) return send(reply, 400, ErrorCodes.invalidProject);
   if (error instanceof WorkLogCursorError) return send(reply, 400, ErrorCodes.invalidFilter);
   throw error;
 }
@@ -59,8 +62,9 @@ function logError(reply: FastifyReply, error: unknown): FastifyReply {
  * Overview, work log, rates and manual entries (Phase 32 part C, spec §7). Registered by
  * `routes.ts` inside `requireFinance`, so every handler runs for a finance admin only (401 / 403
  * before). A client id that is unknown answers 404.
- *   GET  /api/groups/:id/finance/overview?from=&to=
- *   GET  /api/groups/:id/finance/work-log?from=&to=&before=
+ *   GET  /api/groups/:id/finance/overview?from=&to=&project=&event=
+ *   GET  /api/groups/:id/finance/work-log?from=&to=&before=&project=&event=
+ * (`project` / `event`: `<id>` or `none`, an event only under a chosen project; Phase 33 P6)
  *   POST /api/groups/:id/finance/time-entries · PATCH/DELETE /api/finance/time-entries/:id
  *   POST /api/finance/time-entries { groupId | null, … } ("Add time" on `/finance`)
  *   GET/POST /api/finance/rates · DELETE /api/finance/rates/:id
@@ -80,25 +84,29 @@ export const financeLogRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (
 
   app.get<IdParams>('/groups/:id/finance/overview', async (request, reply) => {
     const query = OverviewQuerySchema.safeParse(request.query);
-    if (!query.success) return send(reply, 400, ErrorCodes.invalidFilter);
+    const project = FinanceProjectQuerySchema.safeParse(request.query);
+    if (!query.success || !project.success) return send(reply, 400, ErrorCodes.invalidFilter);
     const group = await groupOf(request.params.id, reply);
     if (!group) return reply;
     const scope = { kind: 'group', groupId: group.id } as const;
     // The admin group's tab is the organisation's (Phase 34 part E): its internal time and the
-    // organisation's expenses; a client's tab never has expenses (decision O3).
-    const organisation = isAdminGroup(group) && canSeeExpenses(request.user!);
+    // organisation's expenses; a client's tab never has expenses (decision O3). A Project or
+    // Event filter leaves the expenses out (Phase 33 P6: they belong to no project).
+    const organisation =
+      isAdminGroup(group) && canSeeExpenses(request.user!) && project.data.project === undefined;
     const { from, to } = query.data;
     const range =
       from && to ? { from, to } : await dataMonthRange(db, scope, new Date(), organisation);
     if (monthsOf(range).length > OVERVIEW_MAX_MONTHS) {
       return send(reply, 400, ErrorCodes.invalidFilter);
     }
-    return overview(db, scope, range, new Date(), { organisation });
+    return overview(db, scope, range, new Date(), { organisation, project: project.data });
   });
 
   app.get<IdParams>('/groups/:id/finance/work-log', async (request, reply) => {
     const query = WorkLogQuerySchema.safeParse(request.query);
-    if (!query.success) return send(reply, 400, ErrorCodes.invalidFilter);
+    const project = FinanceProjectQuerySchema.safeParse(request.query);
+    if (!query.success || !project.success) return send(reply, 400, ErrorCodes.invalidFilter);
     const group = await groupOf(request.params.id, reply);
     if (!group) return reply;
     const { from, to, before } = query.data;
@@ -108,6 +116,7 @@ export const financeLogRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (
         { kind: 'group', groupId: group.id },
         from && to ? { from, to } : null,
         before ?? null,
+        project.data,
       );
     } catch (error) {
       return logError(reply, error);

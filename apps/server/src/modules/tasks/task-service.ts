@@ -52,6 +52,7 @@ import {
   type TimeChange,
   type TimeEffect,
 } from '../finance/task-time.js';
+import { onSubjectProjectChanged } from '../finance/project-links.js';
 import { keyAfter, keysBefore } from './positions.js';
 import { requestedProjectPair } from './project-links.js';
 import { buckets, taskAssignees, taskAttachments, tasks } from './schema.js';
@@ -192,6 +193,8 @@ export async function getTaskTimeSubject(
         title: tasks.title,
         completedAt: tasks.completedAt,
         sourceTicketId: tasks.sourceTicketId,
+        projectId: tasks.projectId,
+        eventId: tasks.eventId,
       })
       .from(tasks)
       .where(eq(tasks.id, id)),
@@ -356,6 +359,8 @@ export async function createTaskTimed(
       actorName: actor.name,
       assigneeIds,
       sourceTicketId: null,
+      projectId: ref?.projectId ?? null,
+      eventId: ref?.eventId ?? null,
     });
     return {
       id: taskId,
@@ -613,6 +618,8 @@ export async function updateTaskTimed(
 
   let notified: string[] = [];
   let time = noTimeChange();
+  // Phase 33 P6: the task's time entries followed a new project or event.
+  let entriesMoved: string | null = null;
   const removedFiles = await db.transaction(async (tx) => {
     // Always strictly later than the edited version, even within the same millisecond.
     const updatedAt = new Date(Math.max(Date.now(), expected.getTime() + 1));
@@ -629,10 +636,22 @@ export async function updateTaskTimed(
         updatedAt,
       })
       .where(and(eq(tasks.id, id), eq(tasks.updatedAt, expected)))
-      .returning({ id: tasks.id, groupId: tasks.groupId, title: tasks.title });
+      .returning({
+        id: tasks.id,
+        groupId: tasks.groupId,
+        title: tasks.title,
+        projectId: tasks.projectId,
+        eventId: tasks.eventId,
+      });
     if (!row) {
       const [exists] = await tx.select({ id: tasks.id }).from(tasks).where(eq(tasks.id, id));
       throw exists ? new TaskChangedError() : new NotFoundError();
+    }
+    if ('projectId' in projectChange) {
+      const pair = { projectId: row.projectId, eventId: row.eventId };
+      if ((await onSubjectProjectChanged(tx, { kind: 'task', id, ...pair })) > 0) {
+        entriesMoved = row.groupId;
+      }
     }
 
     if (patch.assigneeIds) {
@@ -687,6 +706,7 @@ export async function updateTaskTimed(
 
   await requestDelivery(deps.jobs, notified);
   await cleanUpFiles(deps, removedFiles, options);
+  if (entriesMoved !== null) time = { ...time, groupId: entriesMoved, changed: true };
   const task = await getTask(db, id, actor);
   if (!task) throw new NotFoundError(); // deleted right after this edit committed
   return { task, askTime: false, time };
@@ -800,6 +820,8 @@ export async function moveTask(
         title: tasks.title,
         createdBy: tasks.createdBy,
         sourceTicketId: tasks.sourceTicketId,
+        projectId: tasks.projectId,
+        eventId: tasks.eventId,
       })
       .from(tasks)
       .where(eq(tasks.id, id))
@@ -881,6 +903,8 @@ export async function moveTask(
           actorName: actor.name,
           assigneeIds: assignees.map((a) => a.userId),
           sourceTicketId: task.sourceTicketId,
+          projectId: task.projectId,
+          eventId: task.eventId,
         });
         notified = [...notified, ...asked.eventIds];
         effect = { askTime: asked.askActor, time: asked };

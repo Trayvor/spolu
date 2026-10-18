@@ -89,5 +89,17 @@
     "history_other": "Povijest ({{count}})",
     "inactive": "uklonjen",
     "deleteConfirm": "Izbrisati ovu satnicu? Trošak rada na koji se odnosila će se promijeniti."
+  },
+  "projects": {
+    "project": "Projekt: {{name}}",
+    "event": "Događaj: {{name}}",
+    "any": "Bilo koji",
+    "noProject": "Bez projekta",
+    "noEvent": "Bez događaja",
+    "noProjects": "Ovaj klijent još nema projekata.",
+    "label": "Projekt",
+    "eventLabel": "Događaj",
+    "archived": "{{name}} (arhiviran)",
+    "contractsNoEvent": "Ugovori nisu vezani uz događaje: prikazuje se samo trošak rada na ovom događaju."
   }
 }

@@ -2,6 +2,7 @@ import { ConfigError, loadConfig } from './infra/config/config.js';
 import { createDeps } from './deps.js';
 import { runMigrations } from './infra/db/migrate.js';
 import { buildApp } from './app.js';
+import { backfillEntryProjects } from './modules/finance/backfill-projects.js';
 import { ensureGroupChannel } from './modules/chat/service.js';
 import { ensureAdminGroup } from './modules/groups/admin-group.js';
 import { ensureBoard } from './modules/tasks/service.js';
@@ -38,6 +39,10 @@ async function main(): Promise<void> {
   const app = await buildApp(deps);
   if (config.webDistDir) await registerStatic(app, config.webDistDir);
   await app.listen({ host: '0.0.0.0', port: config.port });
+  // Phase 33 P6: entries made before migration 0045 get their projects, once, in the background.
+  void backfillEntryProjects(deps.db, { log: (line) => app.log.info(line) }).catch((error) =>
+    app.log.error(error, 'finance.backfill-projects failed; it runs again on the next start'),
+  );
 
   let shuttingDown = false;
   const shutdown = async (signal: string): Promise<void> => {

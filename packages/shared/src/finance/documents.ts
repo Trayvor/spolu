@@ -2,7 +2,9 @@ import { z } from 'zod';
 import { IdSchema } from '../chat.js';
 import { FileInfoSchema } from '../files.js';
 import { MoneyInputSchema, MoneySchema } from '../money.js';
+import { ProjectRefSchema } from '../projects/common.js';
 import { DaySchema } from './common.js';
+import { FinanceProjectIdSchema } from './projects.js';
 
 /**
  * Documents and contracts (Phase 32 part B, spec §3.2 and §6.1): the Documents card of a
@@ -101,6 +103,13 @@ export const ContractFieldsSchema = z.object({
   endsOn: DaySchema,
   /** Set for a contract of several clients only. */
   shared: SharedContractSchema.nullable(),
+  /**
+   * The client's project the contract is for (Phase 33 P6, decision 23; a contract of one client
+   * only, never an event). Null when none, or when that project was deleted since.
+   */
+  project: ProjectRefSchema.nullable().optional(),
+  /** The stored project id (kept after the project is deleted, decision 25). */
+  projectId: z.string().nullable().optional(),
 });
 export type ContractFields = z.infer<typeof ContractFieldsSchema>;
 
@@ -198,6 +207,8 @@ const contractBody = z
     amount: MoneyInputSchema,
     startsOn: DaySchema,
     endsOn: DaySchema,
+    /** Phase 33 P6: one of the client's projects (optional). */
+    projectId: FinanceProjectIdSchema.nullable().default(null),
   })
   .strict()
   .refine((v) => v.endsOn >= v.startsOn, { message: 'ends before it starts', path: ['endsOn'] });
@@ -328,6 +339,8 @@ export const FinanceItemPatchSchema = z
     shares: SharesSchema.optional(),
     /** An expense: a salary's admin, and the date. The kind never changes. */
     payeeId: IdSchema.optional(),
+    /** A contract of one client (Phase 33 P6): its project, or null for none. */
+    projectId: FinanceProjectIdSchema.nullable().optional(),
     spentOn: DaySchema.optional(),
   })
   .strict();

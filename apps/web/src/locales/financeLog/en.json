@@ -85,5 +85,17 @@
     "history_other": "History ({{count}})",
     "inactive": "removed",
     "deleteConfirm": "Delete this rate? The cost of the work it covered changes."
+  },
+  "projects": {
+    "project": "Project: {{name}}",
+    "event": "Event: {{name}}",
+    "any": "Any",
+    "noProject": "No project",
+    "noEvent": "No event",
+    "noProjects": "This client has no projects yet.",
+    "label": "Project",
+    "eventLabel": "Event",
+    "archived": "{{name}} (archived)",
+    "contractsNoEvent": "Contracts are not tied to events: only the cost of this event's work shows."
   }
 }

@@ -146,6 +146,7 @@ describe('the finance item sheet', () => {
       amount: { amountMinor: 1_200_000, currency: 'EUR' },
       startsOn: '2030-01-01',
       endsOn: '2030-12-31',
+      projectId: null,
     });
     const put = fetchMock.mock.calls.find(
       ([u, init]) => u === '/api/finance-items/c9/reminders' && init?.method === 'PUT',

@@ -39,6 +39,7 @@ import {
   FinanceNotFoundError,
   FinanceValidationError,
 } from './errors.js';
+import { InvalidProjectError } from './project-links.js';
 import { emitFinanceChanged } from './events.js';
 import { uploadFinanceFile } from './files.js';
 import { createFolder, deleteFolder, listFolders, updateFolder } from './folders.js';
@@ -69,6 +70,7 @@ function documentsError(reply: FastifyReply, error: unknown): FastifyReply {
   if (error instanceof FinanceValidationError || error instanceof InvalidCursorError) {
     return invalid(reply);
   }
+  if (error instanceof InvalidProjectError) return send(reply, 400, ErrorCodes.invalidProject);
   throw error;
 }
 

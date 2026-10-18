@@ -84,6 +84,8 @@ export const taskTimeRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app,
       resolvedAt: row.status === 'resolved' ? row.resolvedAt : null,
       assigneeIds,
       linkedTasks: linked.map((t) => ({ taskId: t.id, title: t.title, done: t.completed })),
+      projectId: row.projectId,
+      eventId: row.eventId,
     };
   };
 

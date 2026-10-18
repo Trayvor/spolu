@@ -49,6 +49,9 @@ export type TicketResolvedEvent = {
   assigneeIds: string[];
   /** The tasks made from the ticket (`tasks.source_ticket_id`). */
   linkedTaskIds: string[];
+  /** The ticket's project and event (Phase 33 P6), copied onto its entries. */
+  projectId?: string | null;
+  eventId?: string | null;
 };
 
 /** Some of these tasks has filled time above 0 that counts (its task was completed). */
@@ -81,7 +84,7 @@ export async function onTicketResolved(
   const title = ticketEntryTitle(e.number, e.title);
   await tx
     .update(entries)
-    .set({ workedOn: day })
+    .set({ workedOn: day, projectId: e.projectId ?? null, eventId: e.eventId ?? null })
     .where(
       and(
         eq(entries.ticketId, e.ticketId),
@@ -99,6 +102,8 @@ export async function onTicketResolved(
         userId,
         source: 'ticket' as const,
         ticketId: e.ticketId,
+        projectId: e.projectId ?? null,
+        eventId: e.eventId ?? null,
         title,
         workedOn: day,
         createdBy: e.actorId,
@@ -177,10 +182,14 @@ export function onTicketAssigneesRemoved(
 /**
  * The ticket moved to another client (or got its first one): its entries move with it so the
  * time stays with the ticket's client. (A ticket with tasks cannot move, so its tasks' entries
- * never need to.)
+ * never need to.) Projects are per client: the move clears the ticket's project and event, and
+ * the entries' copies with it (Phase 33 P6).
  */
 export async function onTicketMoved(tx: Db, ticketId: string, groupId: string): Promise<void> {
-  await tx.update(entries).set({ groupId }).where(eq(entries.ticketId, ticketId));
+  await tx
+    .update(entries)
+    .set({ groupId, projectId: null, eventId: null })
+    .where(eq(entries.ticketId, ticketId));
 }
 
 /** Before a ticket is deleted: deletes its requests (filled entries keep `title`); whose went. */
@@ -200,6 +209,9 @@ export type TicketTimeSubject = {
   resolvedAt: Date | null;
   assigneeIds: string[];
   linkedTasks: { taskId: string; title: string; done: boolean }[];
+  /** Phase 33 P6: copied onto the entry. */
+  projectId?: string | null;
+  eventId?: string | null;
 };
 
 /**
@@ -225,6 +237,8 @@ export async function writeTicketTime(
       userId,
       source: 'ticket',
       ticketId: ticket.ticketId,
+      projectId: ticket.projectId ?? null,
+      eventId: ticket.eventId ?? null,
       title,
       minutes,
       coveredByTasks: covered,
@@ -241,6 +255,8 @@ export async function writeTicketTime(
         coveredByTasks: covered,
         title,
         groupId: ticket.groupId,
+        projectId: ticket.projectId ?? null,
+        eventId: ticket.eventId ?? null,
         workedOn: sql`coalesce(${entries.workedOn}, excluded.worked_on)`,
         updatedBy: userId,
         updatedAt: now,

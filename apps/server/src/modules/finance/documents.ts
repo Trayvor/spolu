@@ -24,6 +24,7 @@ import { files } from '../files/schema.js';
 import { attachFiles, deleteDetachedFiles, detachFiles, toFileInfo } from '../files/service.js';
 import { adminGroupId } from '../groups/admin-group.js';
 import { getGroupLabels } from '../groups/service.js';
+import { projectRefs, type ProjectRefLookup } from '../projects/refs.js';
 import { getUserById, getUserNames } from '../users/service.js';
 import {
   FinanceAdminGroupShareError,
@@ -33,6 +34,7 @@ import {
 } from './errors.js';
 import { folderOfGroup, folderPaths, lockGroupFinance } from './folders.js';
 import { canBePayee, sharesVisibleIn, type ShareView } from './policy.js';
+import { checkFinanceProject } from './project-links.js';
 import { financeAttachments, financeContractShares, financeItems } from './schema.js';
 import { monthAfter, monthStart, scopeSql, type FinanceScope, type MonthRange } from './scope.js';
 
@@ -84,6 +86,8 @@ type PageRow = {
   payer_name: string | null;
   expense_kind: ExpenseKind | null;
   payee_id: string | null;
+  /** A client's contract's project (Phase 33 P6). */
+  project_id: string | null;
   /** The viewing client's share of a contract of several clients (scope `group` only). */
   share_minor: string | null;
   created_by: string;
@@ -246,7 +250,7 @@ function pageQuery(where: SQL, orderBy: SQL, limit: number, shareGroup: string |
     select i.id, i.group_id, i.type, i.folder_id, i.title, i.contract_number,
            i.amount_minor::text as amount_minor, i.currency,
            i.starts_on::text as starts_on, i.ends_on::text as ends_on, i.created_by,
-           i.payer_name, i.expense_kind, i.payee_id, ${share} as share_minor,
+           i.payer_name, i.expense_kind, i.payee_id, i.project_id, ${share} as share_minor,
            ${iso(sql`i.created_at`)} as created_at, ${iso(sql`i.updated_at`)} as updated_at,
            i.created_at::text as created_text,
            (select count(*)::int from finance_attachments a where a.item_id = i.id) as file_count,
@@ -262,7 +266,12 @@ function pageQuery(where: SQL, orderBy: SQL, limit: number, shareGroup: string |
 }
 
 /** What `toItem` needs besides the row: the shares a view shows and the payees' names. */
-type ItemContext = { shares: Map<string, ContractShare[]>; payees: Map<string, string> };
+type ItemContext = {
+  shares: Map<string, ContractShare[]>;
+  payees: Map<string, string>;
+  /** The contracts' projects (Phase 33 P6), through the projects module's `projectRefs`. */
+  projects: ProjectRefLookup;
+};
 
 /**
  * The shares of these contracts of several clients, by client name, with the clients' names.
@@ -314,11 +323,15 @@ async function itemContext(db: Db, rows: PageRow[], view: ShareView): Promise<It
     .filter((r) => r.type === 'contract' && r.group_id === null)
     .map((r) => r.id);
   const payeeIds = rows.flatMap((r) => (r.payee_id ? [r.payee_id] : []));
-  const [shares, payees] = await Promise.all([
+  const [shares, payees, projects] = await Promise.all([
     loadShares(db, sharedIds, view),
     getUserNames(db, payeeIds),
+    projectRefs(
+      db,
+      rows.flatMap((r) => (r.project_id ? [{ projectId: r.project_id, eventId: null }] : [])),
+    ),
   ]);
-  return { shares, payees };
+  return { shares, payees, projects };
 }
 
 function toItem(row: PageRow, context: ItemContext): FinanceItem {
@@ -353,6 +366,8 @@ function toItem(row: PageRow, context: ItemContext): FinanceItem {
             startsOn: row.starts_on!,
             endsOn: row.ends_on!,
             shared,
+            project: context.projects.project(row.project_id),
+            projectId: row.project_id,
           }
         : null,
     expense:
@@ -591,6 +606,8 @@ export async function createItem(
             currency: body.amount.currency,
             startsOn: body.startsOn,
             endsOn: body.endsOn,
+            // Phase 33 P6: one of this client's projects (`InvalidProjectError`, 400).
+            projectId: (await checkFinanceProject(tx, groupId, body.projectId, null)).projectId,
           }
         : {}),
       searchText: await searchTextOf(tx, {
@@ -715,6 +732,14 @@ export async function updateItem(
     if (!contract && !expense && patch.amount !== undefined) {
       throw new FinanceValidationError('Only a contract or an expense has an amount');
     }
+    // A project only on a contract of one client (Phase 33 P6, decision 23).
+    if ((!contract || shared) && patch.projectId !== undefined) {
+      throw new FinanceValidationError('Only a contract of one client has a project');
+    }
+    const projectId =
+      patch.projectId !== undefined
+        ? (await checkFinanceProject(tx, groupId, patch.projectId, null)).projectId
+        : row.projectId;
     if (!shared && has(SHARED_KEYS)) {
       throw new FinanceValidationError('Only a contract of several clients has shares');
     }
@@ -809,6 +834,7 @@ export async function updateItem(
               startsOn,
               endsOn,
               payerName,
+              projectId,
             }
           : {}),
         ...(expense

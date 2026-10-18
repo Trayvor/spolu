@@ -93,5 +93,17 @@
     "history_other": "Zgodovina ({{count}})",
     "inactive": "odstranjen",
     "deleteConfirm": "Izbrišem to postavko? Strošek dela, za katerega je veljala, se spremeni."
+  },
+  "projects": {
+    "project": "Projekt: {{name}}",
+    "event": "Dogodek: {{name}}",
+    "any": "Kateri koli",
+    "noProject": "Brez projekta",
+    "noEvent": "Brez dogodka",
+    "noProjects": "Ta stranka še nima projektov.",
+    "label": "Projekt",
+    "eventLabel": "Dogodek",
+    "archived": "{{name}} (arhiviran)",
+    "contractsNoEvent": "Pogodbe niso vezane na dogodke: prikazani so le stroški dela za ta dogodek."
   }
 }

@@ -149,6 +149,53 @@ describe('finance query plans on a seeded volume', () => {
           timeTotalsSql(countedEntriesSql(scope, null), ['admin', 'total']),
         );
         expect(encodeCursor(before)).toBeTruthy();
+
+        // Phase 33 P6: the Project and Event filters (the volume's ids: `-p<n>-<k>`, `-v<n>-<k>`).
+        const groupId = groupIds[1234]!;
+        const projectId = `${groupId.replace(/-g(\d+)$/, '-p$1')}-1`;
+        const eventId = `${groupId.replace(/-g(\d+)$/, '-v$1')}-1`;
+        const byProject = { project: projectId };
+        const byEvent = { project: projectId, event: eventId };
+        await expectIndexed(
+          tx,
+          'overview money by project (24 months)',
+          moneySql(scope, next12, financeToday(), byProject),
+        );
+        await expectIndexed(
+          tx,
+          'overview hours and cost by project (24 months)',
+          timeTotalsSql(countedEntriesSql(scope, dayBounds(next12), byProject), [
+            'adminMonth',
+            'month',
+            'admin',
+            'total',
+          ]),
+        );
+        await expectIndexed(
+          tx,
+          'overview hours and cost by event (24 months)',
+          timeTotalsSql(countedEntriesSql(scope, dayBounds(next12), byEvent), ['total']),
+        );
+        await expectIndexed(
+          tx,
+          'work log page by project (all time)',
+          workLogEntriesSql(scope, null, null, undefined, byProject),
+        );
+        await expectIndexed(
+          tx,
+          'work log page by event (all time)',
+          workLogEntriesSql(scope, null, null, undefined, byEvent),
+        );
+        await expectIndexed(
+          tx,
+          'work log page without a project (all time)',
+          workLogEntriesSql(scope, null, null, undefined, { project: 'none' }),
+        );
+        await expectIndexed(
+          tx,
+          'work log summary by project (all time)',
+          timeTotalsSql(countedEntriesSql(scope, null, byProject), ['admin', 'total']),
+        );
         console.log('finance EXPLAIN (ms):', JSON.stringify(timings.splice(0)));
       });
     },

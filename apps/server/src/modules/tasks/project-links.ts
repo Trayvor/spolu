@@ -1,4 +1,4 @@
-import { and, eq, isNull, type SQL } from 'drizzle-orm';
+import { and, eq, inArray, isNull, type SQL } from 'drizzle-orm';
 import type { ProjectFilter } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
 import { tasks } from './schema.js';
@@ -60,4 +60,21 @@ export function requestedProjectPair(
         ? current.eventId
         : null;
   return { projectId, eventId };
+}
+
+/**
+ * The project and event of each of these tasks (Phase 33 part P6): what the finance module's
+ * startup backfill copies onto time entries made before its migration, so finance never reads
+ * `tasks`. One query on the primary key; unknown ids are absent.
+ */
+export async function projectOfTasks(
+  db: Db,
+  ids: readonly string[],
+): Promise<Map<string, { projectId: string | null; eventId: string | null }>> {
+  if (ids.length === 0) return new Map();
+  const rows = await db
+    .select({ id: tasks.id, projectId: tasks.projectId, eventId: tasks.eventId })
+    .from(tasks)
+    .where(inArray(tasks.id, [...new Set(ids)]));
+  return new Map(rows.map((r) => [r.id, { projectId: r.projectId, eventId: r.eventId }]));
 }

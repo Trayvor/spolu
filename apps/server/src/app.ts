@@ -12,6 +12,7 @@ import { bulkEmailRoutes } from './modules/bulk-email/routes.js';
 import { bulkEmailUnsubscribeRoutes } from './modules/bulk-email/unsubscribe-routes.js';
 import { chatRoutes } from './modules/chat/routes.js';
 import { filesRoutes } from './modules/files/routes.js';
+import { registerFinanceProjectHooks } from './modules/finance/project-links.js';
 import { financeRoutes } from './modules/finance/routes.js';
 import { joinRoutes } from './modules/groups/join-routes.js';
 import { registerReminderSource } from './modules/home/reminder-source.js';
@@ -122,6 +123,8 @@ export async function buildApp(
   // Files attached in any chat become "From chat" knowledge items.
   registerKnowledgeChatFiles();
   registerTicketNotifications();
+  // Finance's copies of project ids follow a merge (Phase 33 P6; P3's merge runs the hooks).
+  registerFinanceProjectHooks();
   await app.register(remindersRoutes, {
     prefix: '/api',
     deps,

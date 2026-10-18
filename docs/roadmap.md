@@ -493,6 +493,8 @@ The API is planned in [the integration guide](integrations/egrant-ticket-intake.
 
 **Part P5 (description editor) done** on `feat/description-editor` (after P1): the group AI routes, `knowledge/links.ts` with the žiadateľ read-through, and the description editor in every field of spec §10.1; see [projects.md](product/projects.md#description-editor-part-p5). Owner to check: open a task, press the microphone, dictate, then **AI nástroje → Formálnejšie**, attach a note with the book button and save; a client of the group sees the note card under the description.
 
+**Part P6 (finance by project and event) done** on `feat/finance-projects` (after P2 and Phase 32 C, D, E; migration 0045): Project and Event filters on a client's Overview and Work log, a Project filter on `/finance` with one client, a contract's project, a manual entry's project and event; time entries keep their own copy of the pair (completion hooks, `onSubjectProjectChanged`, the merge hook that part P3's merge must call, the startup job `finance.backfill-projects`); see [finance.md](product/finance.md#finance-by-project-and-event). Owner to check: on a client's Financie tab pick a project in the Overview's Project pill, then an event, and compare the hours with the Work log under the same filters.
+
 Done when: eGrant's project call creates a client's project with its events and later changes wait for review, a ticket with its `project_id` lands in that project by itself, an admin puts it and a task on an event, the client and the admin browse the project's life on the timeline with Today marked, both tabs filter by the project, every description field offers AI, voice and knowledge, and a finance admin sees the project's cost.
 
 ## Phase 34 — Internal admin group

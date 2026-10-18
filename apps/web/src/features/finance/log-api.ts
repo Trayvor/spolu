@@ -6,6 +6,7 @@ import {
   WorkLogPageDtoSchema,
   type AddRateBody,
   type ManualEntryBody,
+  type ProjectFilter,
   type SystemManualEntryBody,
   type TimeEntryPatch,
 } from '@spolu/shared';
@@ -31,31 +32,49 @@ function params(view: FinanceView, entries: Record<string, string | undefined>):
   return text ? `?${text}` : '';
 }
 
+/** The Project and Event filters (Phase 33 P6) as a key segment: another choice is another entry. */
+const projectKey = (project: ProjectFilter) => `${project.project ?? ''}/${project.event ?? ''}`;
+
 /** `range` null: all time (the server answers the months its data spans). */
-export const overviewQuery = (view: FinanceView, range: MonthRange | null) =>
+export const overviewQuery = (
+  view: FinanceView,
+  range: MonthRange | null,
+  project: ProjectFilter = {},
+) =>
   queryOptions({
-    queryKey: financeKey(view, 'overview', range?.from ?? null, range?.to ?? null),
+    queryKey: financeKey(
+      view,
+      'overview',
+      range?.from ?? null,
+      range?.to ?? null,
+      projectKey(project),
+    ),
     queryFn: () =>
       apiGet(
-        `${base(view)}/overview${params(view, { from: range?.from, to: range?.to })}`,
+        `${base(view)}/overview${params(view, { from: range?.from, to: range?.to, ...project })}`,
         FinanceOverviewDtoSchema,
       ),
   });
 
 /** One page of the work log; `before` the older page's cursor. */
-export const workLogKey = (view: FinanceView, range: MonthRange | null) =>
-  financeKey(view, 'workLog', range?.from ?? null, range?.to ?? null);
+export const workLogKey = (
+  view: FinanceView,
+  range: MonthRange | null,
+  project: ProjectFilter = {},
+) => financeKey(view, 'workLog', range?.from ?? null, range?.to ?? null, projectKey(project));
 
 export const fetchWorkLogPage = (
   view: FinanceView,
   range: MonthRange | null,
   before: string | null,
+  project: ProjectFilter = {},
 ) =>
   apiGet(
     `${base(view)}/work-log${params(view, {
       from: range?.from,
       to: range?.to,
       before: before ?? undefined,
+      ...project,
     })}`,
     WorkLogPageDtoSchema,
   );

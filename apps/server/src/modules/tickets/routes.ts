@@ -73,6 +73,7 @@ import {
 import { setTicketWatch, watchesTickets } from './watch.js';
 import { setTicketProject } from './project-links.js';
 import { announceTimeChange, type TimeChange } from '../finance/task-time.js';
+import { emitFinanceChanged } from '../finance/events.js';
 import { requestDelivery } from '../notifications/service.js';
 import { emitSeen, markTicketSeen, ticketUnseenSummary } from '../notifications/unseen.js';
 
@@ -512,6 +513,7 @@ export const ticketsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, 
     if (!result) return notFound(reply); // moved to another client meanwhile
     // No hook: a project change notifies nobody (decision 26); open views refetch.
     if (result.changed) emitTicket(app.io, 'updated', result.ticket);
+    if (result.entriesMoved) emitFinanceChanged(app.io, row.groupId, 'time');
     return getTicketForActor(db, actor, row.id);
   });
 

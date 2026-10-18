@@ -3,10 +3,13 @@ import {
   CONTRACTS_PAGE_SIZE,
   ContractsQuerySchema,
   ErrorCodes,
+  FinanceProjectQuerySchema,
   HoursRankingQuerySchema,
+  isValidSystemProjectFilter,
   OVERVIEW_MAX_MONTHS,
   OverviewQuerySchema,
   PaidRankingQuerySchema,
+  type ProjectFilter,
   SystemClientsQuerySchema,
   WorkLogQuerySchema,
 } from '@spolu/shared';
@@ -16,7 +19,7 @@ import { dataMonthRange, overview } from './aggregates.js';
 import { InvalidCursorError, listContracts } from './documents.js';
 import { hoursRanking, paidRange, paidRanking, RankingCursorError } from './rankings.js';
 import { canSeeExpenses } from './policy.js';
-import { monthsOf, scopeOfClients, withoutGroup } from './scope.js';
+import { type FinanceScope, monthsOf, scopeOfClients, withoutGroup } from './scope.js';
 import { WorkLogCursorError, workLogPage } from './work-log.js';
 
 const invalidFilter = (reply: FastifyReply) =>
@@ -43,8 +46,12 @@ function cursorError(reply: FastifyReply, error: unknown): FastifyReply {
  * The admin group "eGrant tím" (Phase 34 part E) is in "every client" unless `internal=0` (owner
  * decision of 2026-10-18), among chosen clients when `clients=` names it, and the rankings never
  * hold it (`withoutGroup`): it is no client, and its hours stay in the overview and work log.
- *   GET /api/finance/overview?clients=&from=&to=
- *   GET /api/finance/work-log?clients=&from=&to=&before=
+ *   GET /api/finance/overview?clients=&internal=&from=&to=&project=
+ *   GET /api/finance/work-log?clients=&internal=&from=&to=&before=&project=
+ * (`project` only with exactly one client, never `event`: Phase 33 P6, decision 24; the admin
+ * group does not count as a client there, and a project narrows the scope to that one client,
+ * so the team's time drops out (decision of the P6 / P34-E rebase, 2026-10-18). The rankings
+ * and the contracts list take no project.)
  *   GET /api/finance/contracts?clients=&sort=&dir=&q=&from=&to=&after=
  *   GET /api/finance/rankings/paid?from=&to=&currency=&clients=&after= (or year=&month=)
  *   GET /api/finance/rankings/hours?from=&to=&admin=&sort=&clients=&after=
@@ -53,35 +60,68 @@ export const financeSystemRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async 
   app,
   { deps: { db } },
 ) => {
-  /** The page's scope: the chosen clients, the admin group only when chosen. */
-  const scopeOf = async (clients: readonly string[], internal: boolean) =>
-    scopeOfClients(clients, { id: await adminGroupId(db), internal });
+  /**
+   * The page's scope and Project filter (Phase 33 P6, decision 24, with Phase 34 part E): the
+   * chosen clients, the admin group only when chosen (or in "every client" unless `internal=0`).
+   * A `project` needs exactly one client group chosen, the admin group not counted (it is ticked
+   * by default and holds no client's projects), and never an event; with one, the scope is that
+   * client alone (as if `clients=` named it alone), because the filter is that client's projects.
+   * Null when the query is not valid (400 `invalid_filter`).
+   */
+  const scopeAndProjectOf = async (
+    query: unknown,
+    clients: readonly string[],
+    internal: boolean,
+  ): Promise<{ scope: FinanceScope; project: ProjectFilter } | null> => {
+    const project = FinanceProjectQuerySchema.safeParse(query);
+    if (!project.success) return null;
+    const adminId = await adminGroupId(db);
+    const clientGroups = clients.filter((id) => id !== adminId);
+    if (!isValidSystemProjectFilter(project.data, clientGroups)) return null;
+    if (project.data.project !== undefined) {
+      return { scope: scopeOfClients(clientGroups), project: project.data };
+    }
+    return { scope: scopeOfClients(clients, { id: adminId, internal }), project: project.data };
+  };
 
   app.get('/finance/overview', async (request, reply) => {
     const clients = SystemClientsQuerySchema.safeParse(request.query);
     const query = OverviewQuerySchema.safeParse(request.query);
     if (!clients.success || !query.success) return invalidFilter(reply);
-    const scope = await scopeOf(clients.data.clients, clients.data.internal);
+    const filtered = await scopeAndProjectOf(
+      request.query,
+      clients.data.clients,
+      clients.data.internal,
+    );
+    if (!filtered) return invalidFilter(reply);
+    const { scope, project } = filtered;
     // Every client chosen: the organisation's expenses count too (Phase 32 E, decision O3).
     const organisation = scope.kind === 'all' && canSeeExpenses(request.user!);
     const { from, to } = query.data;
     const range =
       from && to ? { from, to } : await dataMonthRange(db, scope, new Date(), organisation);
     if (monthsOf(range).length > OVERVIEW_MAX_MONTHS) return invalidFilter(reply);
-    return overview(db, scope, range, new Date(), { organisation });
+    return overview(db, scope, range, new Date(), { organisation, project });
   });
 
   app.get('/finance/work-log', async (request, reply) => {
     const clients = SystemClientsQuerySchema.safeParse(request.query);
     const query = WorkLogQuerySchema.safeParse(request.query);
     if (!clients.success || !query.success) return invalidFilter(reply);
+    const filtered = await scopeAndProjectOf(
+      request.query,
+      clients.data.clients,
+      clients.data.internal,
+    );
+    if (!filtered) return invalidFilter(reply);
     const { from, to, before } = query.data;
     try {
       return await workLogPage(
         db,
-        await scopeOf(clients.data.clients, clients.data.internal),
+        filtered.scope,
         from && to ? { from, to } : null,
         before ?? null,
+        filtered.project,
       );
     } catch (error) {
       return cursorError(reply, error);
@@ -97,18 +137,22 @@ export const financeSystemRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async 
     // period. A search covers every finance item, whatever the period and the type.
     const dated = type === 'contract' || type === 'expense';
     try {
-      return await listContracts(db, await scopeOf(clients, internal), {
-        ...(q
-          ? { q }
-          : {
-              ...(type === 'all' ? {} : { type }),
-              ...(dated && from && to ? { period: { from, to } } : {}),
-            }),
-        sort,
-        dir,
-        ...(after ? { after } : {}),
-        limit: CONTRACTS_PAGE_SIZE,
-      });
+      return await listContracts(
+        db,
+        scopeOfClients(clients, { id: await adminGroupId(db), internal }),
+        {
+          ...(q
+            ? { q }
+            : {
+                ...(type === 'all' ? {} : { type }),
+                ...(dated && from && to ? { period: { from, to } } : {}),
+              }),
+          sort,
+          dir,
+          ...(after ? { after } : {}),
+          limit: CONTRACTS_PAGE_SIZE,
+        },
+      );
     } catch (error) {
       return cursorError(reply, error);
     }

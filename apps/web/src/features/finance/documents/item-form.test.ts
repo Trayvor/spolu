@@ -101,6 +101,7 @@ describe('finance documents: the item form', () => {
       amount: { amountMinor: 120_050, currency: 'EUR' },
       startsOn: '2026-01-01',
       endsOn: '2026-12-31',
+      projectId: null,
     });
     expect(toBody('note', value(), null)).toEqual({
       type: 'note',
