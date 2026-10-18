@@ -19,6 +19,9 @@ services:
       DATABASE_URL: postgres://spolu:${POSTGRES_PASSWORD}@postgres:5432/spolu
     volumes:
       - files:/data/files
+      # Teams with a certificate (docs/integrations/teams.md): the private key in ./secrets
+      # (mode 600), read as TEAMS_CERT_PATH=/run/secrets/spolu/teams.pem.
+      # - ./secrets:/run/secrets/spolu:ro
     depends_on:
       postgres:
         condition: service_healthy

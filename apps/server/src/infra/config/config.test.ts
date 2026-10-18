@@ -402,4 +402,75 @@ describe('loadConfig: bulk email', () => {
       'BULK_EMAIL_DRIVER',
     ]);
   });
+
+  describe('Microsoft Teams', () => {
+    const tenant = '11111111-2222-4333-8444-555555555555';
+    const client = '66666666-7777-4888-9999-000000000000';
+    const thumbprint = 'ab:cd:ef:01:23:45:67:89:ab:cd:ef:01:23:45:67:89:ab:cd:ef:01';
+
+    it('is off (null) when no TEAMS_ variable is set', () => {
+      expect(loadConfig(validEnv).teams).toBeNull();
+    });
+
+    it('takes a client secret', () => {
+      const env = {
+        ...validEnv,
+        TEAMS_TENANT_ID: tenant.toUpperCase(),
+        TEAMS_CLIENT_ID: client,
+        TEAMS_CLIENT_SECRET: 's3cret',
+      };
+      expect(loadConfig(env).teams).toEqual({
+        tenantId: tenant,
+        clientId: client,
+        credential: { kind: 'secret', secret: 's3cret' },
+      });
+    });
+
+    it('takes a certificate path and thumbprint (normalised to 40 hex digits)', () => {
+      const env = {
+        ...validEnv,
+        TEAMS_TENANT_ID: tenant,
+        TEAMS_CLIENT_ID: client,
+        TEAMS_CERT_PATH: '/run/secrets/teams.pem',
+        TEAMS_CERT_THUMBPRINT: thumbprint,
+      };
+      expect(loadConfig(env).teams?.credential).toEqual({
+        kind: 'certificate',
+        keyPath: '/run/secrets/teams.pem',
+        thumbprint: 'ABCDEF0123456789ABCDEF0123456789ABCDEF01',
+      });
+    });
+
+    it('names what is missing or conflicting, never echoing values', () => {
+      expect(errorOf({ ...validEnv, TEAMS_TENANT_ID: tenant }).variables).toEqual([
+        'TEAMS_CLIENT_ID',
+        'TEAMS_CLIENT_SECRET',
+      ]);
+      const both = {
+        ...validEnv,
+        TEAMS_TENANT_ID: tenant,
+        TEAMS_CLIENT_ID: client,
+        TEAMS_CLIENT_SECRET: 'top-secret-value',
+        TEAMS_CERT_PATH: '/k.pem',
+        TEAMS_CERT_THUMBPRINT: thumbprint,
+      };
+      const error = errorOf(both);
+      expect(error.variables).toEqual(['TEAMS_CLIENT_SECRET']);
+      expect(error.message).not.toContain('top-secret-value');
+      expect(
+        errorOf({
+          ...validEnv,
+          TEAMS_TENANT_ID: tenant,
+          TEAMS_CLIENT_ID: client,
+          TEAMS_CERT_PATH: '/k.pem',
+        }).variables,
+      ).toEqual(['TEAMS_CERT_THUMBPRINT']);
+      expect(errorOf({ ...validEnv, TEAMS_CERT_THUMBPRINT: 'nope' }).variables).toEqual([
+        'TEAMS_CERT_THUMBPRINT',
+      ]);
+      expect(errorOf({ ...validEnv, TEAMS_TENANT_ID: 'eGrant' }).variables).toEqual([
+        'TEAMS_TENANT_ID',
+      ]);
+    });
+  });
 });

@@ -44,6 +44,7 @@ const NAMESPACES = [
   'system',
   'taskSplit',
   'tasks',
+  'teams',
   'tickets',
   'unseen',
   'unsubscribe',

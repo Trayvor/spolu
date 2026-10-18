@@ -122,3 +122,11 @@ export function isShareableInto(
 export function canProcessMeeting(actor: SessionUser): boolean {
   return isAdmin(actor);
 }
+
+/**
+ * Teams T1: who lets the client see a transcript imported from Teams ("Share transcript with
+ * the client"): admins only, like running the AI on it.
+ */
+export function canShareMeetingTranscript(actor: SessionUser): boolean {
+  return isAdmin(actor);
+}

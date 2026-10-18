@@ -108,6 +108,16 @@ export async function getUserById(db: Db, id: string): Promise<UserRow | null> {
   return row ?? null;
 }
 
+/** The email of each of `ids` that exists (Teams T1: the invitee picker), in one query. */
+export async function userEmails(db: Db, ids: string[]): Promise<Map<string, string>> {
+  if (ids.length === 0) return new Map();
+  const rows = await db
+    .select({ id: user.id, email: user.email })
+    .from(user)
+    .where(inArray(user.id, ids));
+  return new Map(rows.map((r) => [r.id, r.email]));
+}
+
 /**
  * Active admins and superadmins: superadmin first, then by name. `withFinance` adds each one's
  * finance right (Phase 32; the superadmin's answer only, who grants it).

@@ -29,6 +29,13 @@ import { registerKnowledgeReminderSubject } from './modules/knowledge/reminder-s
 import { registerTaskReminderSubject } from './modules/tasks/reminder-subject.js';
 import { reminderSchedules, remindersJobHandlers } from './modules/reminders/jobs.js';
 import { tasksJobHandlers, taskSchedules } from './modules/tasks/jobs.js';
+import type { TeamsGraph } from './modules/teams/graph-client.js';
+import {
+  createTeams,
+  teamsJobHandlers,
+  teamsSchedules,
+  TRANSCRIPT_POLL_JOB,
+} from './modules/teams/jobs.js';
 import { createDb, type Db } from './infra/db/client.js';
 import {
   createBulkSender,
@@ -63,6 +70,8 @@ export type AppDeps = {
   meetingSummary: MeetingSummaryProvider | null;
   /** The chat composer's AI text tools (Phase 28); null when AI is off. */
   textTools: TextToolsProvider | null;
+  /** Microsoft Graph for Teams (T1); null when Teams is not configured (the feature is inert). */
+  teams: TeamsGraph | null;
 };
 
 /** Creates the real dependencies. `close` stops the jobs, then the database. */
@@ -81,6 +90,7 @@ export async function createDeps(
   const media = config.ffmpegPath === 'fake' ? createFakeMedia() : createFfmpeg(config.ffmpegPath);
   const transcription = createTranscriptionProvider(config.transcription);
   const meetingSummary = createMeetingSummaryProvider(config.ai);
+  const teams = createTeams(config);
   // The fire job loads subjects through the registry.
   registerKnowledgeReminderSubject();
   registerTaskReminderSubject();
@@ -103,6 +113,7 @@ export async function createDeps(
         jobs: forward.queue,
         ai: { transcription, summary: meetingSummary },
       }),
+      ...teamsJobHandlers({ db, teams }),
     },
     [
       { name: AUTH_CLEANUP_JOB, cron: '15 3 * * *' }, // daily, 03:15
@@ -112,6 +123,7 @@ export async function createDeps(
       ...taskSchedules, // deadline and urgent reminders, Bratislava time
       ...reminderSchedules, // fire due reminders every minute
       ...bulkEmailSchedules(config), // stuck-send sweep 04:15; Elastic sync 04:30 (elastic driver)
+      ...teamsSchedules(config), // Teams transcript poll every 5 minutes (only when configured)
     ],
     {
       ...emailQueues,
@@ -120,6 +132,8 @@ export async function createDeps(
       // One ffmpeg at a time (CPU); two AI runs at once. A delayed retry waits for the 30 s poll.
       [RECORDING_JOB]: { localConcurrency: 1 },
       [MEETING_AI_JOB]: { localConcurrency: 2 },
+      // One poll at a time; a run that is still going absorbs the next tick.
+      ...(teams ? { [TRANSCRIPT_POLL_JOB]: { policy: 'stately' as const } } : {}),
     }, // concurrency and policies; the rest: defaults
   );
   forward.resolve(jobs.queue);
@@ -137,6 +151,7 @@ export async function createDeps(
       transcription,
       meetingSummary,
       textTools: createTextToolsProvider(config.textAi),
+      teams,
     },
     async close() {
       await jobs.stop();

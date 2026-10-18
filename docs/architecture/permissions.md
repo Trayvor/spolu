@@ -130,6 +130,22 @@ One rule decides every attach check and every display re-check, in chats (`check
 
 A meeting is a knowledge item: `canReadItem`, `canEditItem` as for the other types (its recording upload and delete, its summary edits). `canProcessMeeting` (admins) guards "Spracovať s AI", the task proposals and creating its tasks; a client gets 403. The compact audio is a file attached to the item, so `adminsOnly` follows the item's visibility as for a note's files. `POST /api/knowledge/transcript-text` reads a file for any signed-in user and stores nothing. The tasks made from a meeting are listed in its detail for whoever reads it there (`canUseBoard`: admins and the group's clients; the chat-message read of a žiadateľ gets none). A task's `sourceMeeting` line is built by `getMeetingRef` (`modules/knowledge/meeting-ref.ts`): a meeting of the task's group that the viewer may read (`canReadItem`), so an admins-only meeting is never named to a client; `getTask` without a viewer leaves it out.
 
+## Teams meetings (Teams T1)
+
+Policy functions in `modules/teams/policy.ts` (test-first, `policy.test.ts`); the item rules stay the knowledge module's: every Teams route reaches a meeting only through `meetingForTeamsAction` (`canReadItem` else 404, `canEditItem` else 403).
+
+| function | rule |
+|---|---|
+| `canUseTeams(actor, configured)` | an admin (superadmin included) and Teams is configured. Everyone else, and everyone while it is not configured, gets **404** from every `/api/knowledge/:id/teams*` route: the feature is invisible to clients and žiadatelia |
+| `canLinkTeamsMeeting(actor, { configured, canEditItem, linked })` | create a Teams meeting or connect a pasted link: `canUseTeams`, the actor edits the item, and it has no Teams meeting yet (409 `teams_linked`); the Teams meeting must not follow another item already (409 `teams_meeting_linked`). Connecting is only this explicit admin action, never saving the link field: the transcript is fetched with the app's power, so a client (an editor of their own call) must not pull another call's transcript |
+| `canManageTeamsLink(…)` | Check now, Replace with the Teams transcript, Disconnect: the same on a connected item |
+| `canShareMeetingTranscript(actor)` (`modules/knowledge/policy.ts`) | "Share with the client" (`POST /api/knowledge/:id/meeting/share-transcript`): admins, on a meeting they read (a client 403, a žiadateľ 404) |
+
+- **Transcript held for admins.** While `transcript_admins_only` is set, `toMeetingDetail` gives a non-admin an empty transcript, no summary, `transcriptSource` null and `transcriptAdminsOnly` false (`getSharedItem` always as a non-admin); a client's edit of the call drops `transcript` and `summary` from the patch; the held summary is left out of `search_text`.
+- **Microsoft's side.** Graph acts only for members of the organizers group (application access policy, Exchange RBAC scope); the organizer of a Help-made meeting is the acting admin, and Graph's 403/404 becomes `teams_not_organizer`. A pasted link is refused when its `Tid` or Graph's organizer tenant is not ours or personal Teams (`teams_outside_tenant`), when its `Oid` or Graph's organizer is no Help admin's account (`teams_unknown_organizer`), or when no known organizer sees it (`teams_meeting_not_found`). The organizer Graph returns is stored, never the link's hint.
+- **Public page.** `GET /api/public/meetings/:token` and `…/invite.ics` check only the token (format, the row by its SHA-256, then a constant-time compare with the token derived from the row's nonce), 60 calls a minute per IP, `no-store`, `noindex`, and give only the title, the times, the join link and the recording flag. 404 while Teams is not configured or after Disconnect.
+- Not on the MCP allowlist (spec decision 12).
+
 ## Projects (Phase 33)
 
 Policy functions in `modules/projects/policy.ts` (test-first, `policy.test.ts`); `actorGroupIds` comes from `clientGroupIds`, so a žiadateľ membership never counts:

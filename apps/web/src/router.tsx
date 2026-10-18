@@ -452,6 +452,16 @@ const unsubscribeRoute = createRoute({
   ),
 });
 
+// Public (Teams T1): the add-to-calendar page of a Teams meeting Help created. No session.
+const publicMeetingRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/m/$token',
+  component: lazyRouteComponent(
+    withNamespaces(['teams'], () => import('@/features/teams/public-meeting-page')),
+    'PublicMeetingRoute',
+  ),
+});
+
 const settingsRoute = createRoute({
   getParentRoute: () => authedRoute,
   path: '/settings',
@@ -621,6 +631,7 @@ const routeTree = rootRoute.addChildren([
   ticketLinkRoute,
   joinRoute,
   unsubscribeRoute,
+  publicMeetingRoute,
 ]);
 
 export function createAppRouter(queryClient: QueryClient, history?: RouterHistory) {

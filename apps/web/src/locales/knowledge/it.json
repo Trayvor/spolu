@@ -266,7 +266,11 @@
     "row": {
       "processing": "In elaborazione",
       "summary": "Riepilogo"
-    }
+    },
+    "transcriptFromTeams": "da Teams",
+    "transcriptAdminsOnly": "Solo gli amministratori vedono questa trascrizione e il suo riassunto finché non li condividi con il cliente.",
+    "shareTranscript": "Condividi con il cliente",
+    "shareFailed": "Condivisione non riuscita. Riprova."
   },
   "view": {
     "label": "Vista",

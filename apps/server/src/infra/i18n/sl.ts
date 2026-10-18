@@ -146,4 +146,10 @@ export const sl: ServerTexts = {
     timeMissingLine: (title) => `${title}: vpišite svoj čas`,
     openTask: 'Odpri nalogo',
   },
+  teams: {
+    recordingNotice: 'Ta klic bo posnet in prepisan.',
+    recordingMayNotice: 'Ta klic je lahko posnet in prepisan.',
+    addToCalendar: 'Dodaj v koledar:',
+    join: 'Pridruži se v Teams:',
+  },
 };

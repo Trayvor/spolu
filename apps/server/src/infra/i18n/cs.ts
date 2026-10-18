@@ -146,4 +146,10 @@ export const cs: ServerTexts = {
     timeMissingLine: (title) => `${title}: vyplňte svůj čas`,
     openTask: 'Otevřít úkol',
   },
+  teams: {
+    recordingNotice: 'Tento hovor bude nahráván a přepisován.',
+    recordingMayNotice: 'Tento hovor může být nahráván a přepisován.',
+    addToCalendar: 'Přidat do kalendáře:',
+    join: 'Připojit se v Teams:',
+  },
 };

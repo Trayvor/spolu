@@ -270,7 +270,11 @@
     "row": {
       "processing": "V obdelavi",
       "summary": "Povzetek"
-    }
+    },
+    "transcriptFromTeams": "iz Teams",
+    "transcriptAdminsOnly": "Ta prepis in njegov povzetek vidijo samo skrbniki, dokler ju ne delite s stranko.",
+    "shareTranscript": "Deli s stranko",
+    "shareFailed": "Deljenje ni uspelo. Poskusite znova."
   },
   "view": {
     "label": "Pogled",

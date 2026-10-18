@@ -125,8 +125,17 @@ export const MeetingDetailSchema = z.object({
   recordingUrl: z.string().nullable(),
   transcriptUrl: z.string().nullable(),
   transcript: z.string(),
-  /** `ai` when the AI made the transcript; `manual` when someone typed, pasted or uploaded it. */
-  transcriptSource: z.enum(['manual', 'ai']).nullable(),
+  /**
+   * `ai` when the AI made the transcript; `manual` when someone typed, pasted or uploaded it;
+   * `teams` when Help imported it from Microsoft Teams (Teams T1).
+   */
+  transcriptSource: z.enum(['manual', 'ai', 'teams']).nullable(),
+  /**
+   * Teams T1: an imported transcript (and the summary made from it) is held for admins until an
+   * admin shares it with the client. True only in an admin's answer; a client gets an empty
+   * transcript, no summary and false.
+   */
+  transcriptAdminsOnly: z.boolean(),
   recording: z.object({
     state: z.enum(MeetingRecordingStates),
     /** The stored compact audio (`GET /api/files/:id` plays it). */

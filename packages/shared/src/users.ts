@@ -143,5 +143,14 @@ export const ErrorCodes = {
   // MCP server (2026-10-18)
   mcpTokenLimit: 'mcp_token_limit',
   mcpConnectionLimit: 'mcp_connection_limit',
+  // Microsoft Teams (T1)
+  teamsNotOrganizer: 'teams_not_organizer',
+  teamsInvalidLink: 'teams_invalid_link',
+  teamsOutsideTenant: 'teams_outside_tenant',
+  teamsUnknownOrganizer: 'teams_unknown_organizer',
+  teamsMeetingNotFound: 'teams_meeting_not_found',
+  teamsLinked: 'teams_linked',
+  teamsMeetingLinked: 'teams_meeting_linked',
+  teamsUnavailable: 'teams_unavailable',
 } as const;
 export type ErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes];

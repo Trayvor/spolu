@@ -68,6 +68,11 @@ export function processMeeting(itemId: string): Promise<undefined> {
   return apiSend('POST', `/knowledge/${enc(itemId)}/meeting/process`);
 }
 
+/** Teams T1: "Share with the client" of a transcript imported from Teams (admins). */
+export function shareMeetingTranscript(itemId: string): Promise<undefined> {
+  return apiSend('POST', `/knowledge/${enc(itemId)}/meeting/share-transcript`);
+}
+
 /** The text of a .txt, .vtt, .srt or .docx file (the server reads it and keeps nothing). */
 export async function transcriptFromFile(file: File): Promise<string> {
   if (file.size > MEETING_LIMITS.transcriptFileBytes) {

@@ -153,4 +153,15 @@ export type ServerTexts = {
     /** The digest button of a time request on a task. */
     openTask: string;
   };
+  /** Microsoft Teams (T1): the invitation's and the public calendar page's notices. */
+  teams: {
+    /** Help switched on automatic recording and transcription (owner answer 3). */
+    recordingNotice: string;
+    /** Automatic recording is off, but someone may start it in the call. */
+    recordingMayNotice: string;
+    /** Before the public add-to-calendar link in the invitation. */
+    addToCalendar: string;
+    /** Before the join link in the .ics description. */
+    join: string;
+  };
 };

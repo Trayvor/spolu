@@ -141,4 +141,10 @@ export const hr: ServerTexts = {
     timeMissingLine: (title) => `${title}: upišite svoje vrijeme`,
     openTask: 'Otvori zadatak',
   },
+  teams: {
+    recordingNotice: 'Ovaj poziv bit će snimljen i transkribiran.',
+    recordingMayNotice: 'Ovaj poziv može biti snimljen i transkribiran.',
+    addToCalendar: 'Dodaj u kalendar:',
+    join: 'Pridruži se u Teamsu:',
+  },
 };

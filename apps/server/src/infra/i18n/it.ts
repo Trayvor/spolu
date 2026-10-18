@@ -144,4 +144,10 @@ export const it: ServerTexts = {
     timeMissingLine: (title) => `${title}: indica il tuo tempo`,
     openTask: 'Apri attività',
   },
+  teams: {
+    recordingNotice: 'Questa chiamata sarà registrata e trascritta.',
+    recordingMayNotice: 'Questa chiamata potrebbe essere registrata e trascritta.',
+    addToCalendar: 'Aggiungi al calendario:',
+    join: 'Partecipa in Teams:',
+  },
 };

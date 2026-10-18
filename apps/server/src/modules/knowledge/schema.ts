@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm';
 import {
+  boolean,
   check,
   foreignKey,
   index,
@@ -194,8 +195,13 @@ export const knowledgeMeetings = pgTable(
     recordingUrl: text('recording_url'),
     transcriptUrl: text('transcript_url'),
     transcript: text('transcript').notNull().default(''),
-    /** `manual` or `ai`; null while there is no transcript. */
+    /** `manual`, `ai` or `teams` (Teams T1); null while there is no transcript. */
     transcriptSource: text('transcript_source'),
+    /**
+     * Teams T1: the transcript (and the summary made from it) is shown to admins only until an
+     * admin shares it with the client. Set by a Teams import; cleared by "Share with the client".
+     */
+    transcriptAdminsOnly: boolean('transcript_admins_only').notNull().default(false),
     /** `none`, `processing`, `ready` or `failed`. */
     recordingState: text('recording_state').notNull().default('none'),
     recordingFileId: text('recording_file_id').references(() => files.id, {
@@ -221,7 +227,7 @@ export const knowledgeMeetings = pgTable(
     ),
     check(
       'knowledge_meetings_transcript_source_check',
-      sql`${t.transcriptSource} is null or ${t.transcriptSource} in ('manual', 'ai')`,
+      sql`${t.transcriptSource} is null or ${t.transcriptSource} in ('manual', 'ai', 'teams')`,
     ),
     index('knowledge_meetings_starts_at_idx').on(t.startsAt),
     index('knowledge_meetings_recording_file_idx').on(t.recordingFileId),

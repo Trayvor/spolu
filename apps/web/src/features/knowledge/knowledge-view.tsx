@@ -1,4 +1,4 @@
-import { forwardRef } from 'react';
+import { forwardRef, lazy, Suspense } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from '@tanstack/react-router';
 import type { FileInfo, KnowledgeItemDto } from '@spolu/shared';
@@ -8,7 +8,9 @@ import { MessageBody } from '@/features/chat/format/render';
 import { DescriptionView } from '@/features/editor/description-field';
 import { FileChip } from '@/features/files/file-chip';
 import { ImagePreview } from '@/features/files/image-preview';
+import { useSession } from '@/features/auth/use-session';
 import { ReminderPanel } from '@/features/reminders/reminder-panel';
+import { withNamespaces } from '@/i18n/namespaces';
 import { Button } from '@/components/ui/button';
 import { ChatSourceLabel, chatSourceLocation } from './chat-source';
 import { AdminGroupBadge } from './admin-group-badge';
@@ -16,6 +18,13 @@ import { ArrowOutIcon, LockIcon, SmallFolderIcon } from './icons';
 import { MeetingWhen, RecordingSection, SummarySection, TranscriptSection } from './meeting-view';
 
 type NameOf = (id: string) => string | undefined;
+
+// Teams T1: the admins' Teams block, in its own chunk with its texts.
+const TeamsSection = lazy(
+  withNamespaces(['teams'], () =>
+    import('@/features/teams/teams-section').then((m) => ({ default: m.TeamsSection })),
+  ),
+);
 
 function Attachments({ files }: { files: FileInfo[] }) {
   if (files.length === 0) return null;
@@ -56,6 +65,8 @@ export const KnowledgeView = forwardRef<
   HTMLHeadingElement,
   { item: KnowledgeItemDto; nameOf: NameOf; onChanged: () => void }
 >(function KnowledgeView({ item, nameOf, onChanged }, titleRef) {
+  const role = useSession()?.role;
+  const isAdmin = role === 'admin' || role === 'superadmin';
   const { t, i18n } = useTranslation();
   const date = new Date(item.createdAt).toLocaleDateString(
     /^en\b/.test(i18n.language) ? 'en-GB' : i18n.language,
@@ -166,9 +177,14 @@ export const KnowledgeView = forwardRef<
         <>
           <MeetingWhen meeting={item.meetingDetail} />
           <Body body={item.body} nameOf={nameOf} />
+          {isAdmin && (
+            <Suspense fallback={null}>
+              <TeamsSection item={item} onChanged={onChanged} />
+            </Suspense>
+          )}
           <RecordingSection item={item} onChanged={onChanged} />
           <SummarySection item={item} onChanged={onChanged} />
-          <TranscriptSection meeting={item.meetingDetail} />
+          <TranscriptSection item={item} onChanged={onChanged} />
           {item.reminder && item.reminder.times.length > 0 && (
             <div className="border-t-2 border-border pt-4">
               <ReminderPanel

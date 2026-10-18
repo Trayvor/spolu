@@ -33,7 +33,12 @@ import { cn } from '@/lib/utils';
 import { knowledgeItemQuery, updateKnowledge } from './api';
 import { CalendarLeaf } from './calendar-leaf';
 import { ArrowOutIcon } from './icons';
-import { deleteRecording, processMeeting, uploadRecording } from './meeting-api';
+import {
+  deleteRecording,
+  processMeeting,
+  shareMeetingTranscript,
+  uploadRecording,
+} from './meeting-api';
 
 // The review dialog and its task form load only when "Create tasks" is pressed.
 const ReviewDialog = lazy(
@@ -720,19 +725,59 @@ export function SummarySection({
 }
 
 /** The transcript, folded: it can be long. */
-export function TranscriptSection({ meeting }: { meeting: MeetingDetail }) {
+export function TranscriptSection({
+  item,
+  onChanged,
+}: {
+  item: KnowledgeItemDto;
+  onChanged: () => void;
+}) {
   const { t } = useTranslation();
+  const meeting = item.meetingDetail!;
+  const [sharing, setSharing] = useState(false);
+  const [shareFailed, setShareFailed] = useState(false);
   if (meeting.transcript.trim() === '') return null;
+
+  // Teams T1: an imported transcript stays with the admins until one shares it.
+  async function share() {
+    setSharing(true);
+    setShareFailed(false);
+    try {
+      await shareMeetingTranscript(item.id);
+      onChanged();
+    } catch {
+      setShareFailed(true);
+    } finally {
+      setSharing(false);
+    }
+  }
+
   return (
-    <details className={`${SECTION} group`}>
+    <details className={`${SECTION} group`} open={meeting.transcriptAdminsOnly || undefined}>
       <summary className="cursor-pointer text-body font-semibold">
         {t('knowledge.meeting.transcript')}
-        {meeting.transcriptSource === 'ai' && (
+        {(meeting.transcriptSource === 'ai' || meeting.transcriptSource === 'teams') && (
           <span className="ml-2 text-micro font-normal text-muted-foreground">
-            {t('knowledge.meeting.transcriptByAi')}
+            {t(
+              meeting.transcriptSource === 'ai'
+                ? 'knowledge.meeting.transcriptByAi'
+                : 'knowledge.meeting.transcriptFromTeams',
+            )}
           </span>
         )}
       </summary>
+      {meeting.transcriptAdminsOnly && (
+        <PanelNotice text={t('knowledge.meeting.transcriptAdminsOnly')}>
+          <Button size="sm" disabled={sharing} onClick={() => void share()}>
+            {t('knowledge.meeting.shareTranscript')}
+          </Button>
+        </PanelNotice>
+      )}
+      {shareFailed && (
+        <p role="alert" className="text-tiny font-semibold text-error-ink">
+          {t('knowledge.meeting.shareFailed')}
+        </p>
+      )}
       <div className="max-h-96 overflow-y-auto rounded-lg bg-muted px-4 py-3 text-button whitespace-pre-wrap break-words">
         {meeting.transcript}
       </div>

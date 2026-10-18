@@ -60,6 +60,7 @@ function detail(over: Partial<MeetingDetail> = {}): MeetingDetail {
     transcriptUrl: null,
     transcript: '',
     transcriptSource: null,
+    transcriptAdminsOnly: false,
     recording: { state: 'none', file: null },
     ai: { state: 'idle', error: null, updatedAt: null },
     summary: null,

@@ -139,4 +139,10 @@ export const bg: ServerTexts = {
     timeMissingLine: (title) => `${title}: попълнете времето си`,
     openTask: 'Отвори задачата',
   },
+  teams: {
+    recordingNotice: 'Този разговор ще бъде записан и транскрибиран.',
+    recordingMayNotice: 'Този разговор може да бъде записан и транскрибиран.',
+    addToCalendar: 'Добавете в календара:',
+    join: 'Присъединете се в Teams:',
+  },
 };
