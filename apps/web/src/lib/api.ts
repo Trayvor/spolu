@@ -1,4 +1,10 @@
-import type { ZodType } from 'zod';
+/**
+ * What parses a response body: a zod schema, or a small hand-written guard for eager code that
+ * must not pull zod into the initial JS (see `features/auth/me-guard.ts`).
+ */
+export interface ResponseParser<T> {
+  safeParse(data: unknown): { success: true; data: T } | { success: false };
+}
 import { i18n } from '@/i18n';
 
 export class ApiError extends Error {
@@ -37,7 +43,7 @@ export async function apiSend<T>(
   method: 'POST' | 'PUT' | 'PATCH' | 'DELETE',
   path: string,
   body: unknown,
-  schema: ZodType<T>,
+  schema: ResponseParser<T>,
 ): Promise<T>;
 export async function apiSend(
   method: 'POST' | 'PUT' | 'PATCH' | 'DELETE',
@@ -48,7 +54,7 @@ export async function apiSend<T>(
   method: 'POST' | 'PUT' | 'PATCH' | 'DELETE',
   path: string,
   body?: unknown,
-  schema?: ZodType<T>,
+  schema?: ResponseParser<T>,
 ): Promise<T | undefined> {
   const res = await fetch(`/api${path}`, {
     method,
@@ -107,7 +113,7 @@ export async function apiSendRaw(
  * The body is parsed whatever the status, so a 503 health response yields the degraded object.
  * A body that is not JSON, or does not match the schema, rejects with ApiError.
  */
-export async function apiGet<T>(path: string, schema: ZodType<T>): Promise<T> {
+export async function apiGet<T>(path: string, schema: ResponseParser<T>): Promise<T> {
   const res = await fetch(`/api${path}`, {
     credentials: 'include',
     headers: { Accept: 'application/json', 'Accept-Language': i18n.language },

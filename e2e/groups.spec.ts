@@ -25,6 +25,8 @@ test('admin creates a group, a client joins by invite and is removed', async ({
 
   await createGroup(page, name, `https://e2e-${stamp}.egrant.sk`, 'e2e/fixtures/logo.png');
   await page.goto('/groups');
+  // The Groups page draws 50 rows at a time: find the group by name first.
+  await page.getByRole('searchbox', { name: 'Nájsť skupinu' }).fill(name);
   // The groups list's row, not the admin sidebar's link (it may list the new group too).
   const row = page.locator('a[href^="/groups/"]:not([href$="/chat"])', { hasText: name });
   await expect(row).toBeVisible();
@@ -57,6 +59,7 @@ test('admin creates a group, a client joins by invite and is removed', async ({
   // A second group, so the client can try to open a group that is not theirs.
   await createGroup(page, `${name} other`, `https://e2e-other-${stamp}.egrant.sk`);
   await page.goto('/groups');
+  await page.getByRole('searchbox', { name: 'Nájsť skupinu' }).fill(`${name} other`);
   await page
     .locator('a[href^="/groups/"]:not([href$="/chat"])', { hasText: `${name} other` })
     .click();
@@ -140,16 +143,18 @@ test('the Groups page filters by manager and shows the count', async ({ page }) 
   const count = page.locator('[data-group-count]');
 
   await page.goto('/groups');
+  // The Groups page draws 50 rows at a time: find this test's two groups by their stamp.
+  await page.getByRole('searchbox', { name: 'Nájsť skupinu' }).fill(String(stamp));
   await expect(groupRow(mine)).toBeVisible();
   await expect(groupRow(other)).toBeVisible();
-  await expect(count).toHaveText(/^\d+$/);
+  await expect(count).toHaveText(/^2 z \d+$/);
 
   await page.getByRole('button', { name: 'Správca: Všetci' }).click();
   await page.getByRole('menuitemradio', { name: 'Ja' }).click();
   await expect(page).toHaveURL(/\?manager=me$/);
   await expect(groupRow(mine)).toBeVisible();
   await expect(groupRow(other)).toHaveCount(0);
-  await expect(count).toHaveText(/^\d+ z \d+$/);
+  await expect(count).toHaveText(/^1 z \d+$/);
 
   // "Členovia: N" opens the group's Members tab.
   await page

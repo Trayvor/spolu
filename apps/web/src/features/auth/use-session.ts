@@ -1,13 +1,14 @@
 import { queryOptions, useQuery, type QueryClient } from '@tanstack/react-query';
-import { MeSchema, type Me } from '@spolu/shared';
+import type { Me } from '@spolu/shared';
 import { ApiError, apiGet } from '@/lib/api';
+import { meGuard } from './me-guard';
 
 /** The signed-in user, or null for an anonymous visitor (a 401 is an answer, not an error). */
 export const sessionQuery = queryOptions({
   queryKey: ['session'],
   queryFn: async (): Promise<Me | null> => {
     try {
-      return await apiGet('/me', MeSchema);
+      return await apiGet('/me', meGuard);
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) return null;
       throw error;

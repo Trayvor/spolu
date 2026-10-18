@@ -3,6 +3,7 @@
   "create": "Vytvořit skupinu",
   "empty": "Zatím žádné skupiny. Vytvořte první pro klienta.",
   "members": "Členové: {{count}}",
+  "showMore": "Zobrazit více (zbývá {{left}})",
   "form": {
     "name": "Název",
     "egrantUrl": "eGrant URL klienta",
@@ -51,6 +52,10 @@
     "none": "Bez správce",
     "empty": "Pro tento filtr nejsou žádné skupiny.",
     "clear": "Zrušit filtr"
+  },
+  "find": {
+    "label": "Najít skupinu",
+    "noMatch": "Žádná skupina neodpovídá."
   },
   "adminGroup": {
     "hint": "Interní chat týmu eGrant. Vidí ho jen administrátoři."

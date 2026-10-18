@@ -1,6 +1,7 @@
-import { useId, useMemo, useState } from 'react';
+import { memo, useId, useMemo, useState } from 'react';
 import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import type { SidebarClient } from '@spolu/shared';
 import { UnreadPill } from '@/features/chat/unread';
 import { GroupLogo } from '@/features/groups/group-logo';
@@ -9,18 +10,24 @@ import { cn } from '@/lib/utils';
 /** Lower case without diacritics, so "luky" finds "Obec Lúky". */
 const fold = (text: string) => text.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
 
-function Row({
+/**
+ * One client. Memoized: react-query keeps unchanged clients the same objects across refetches,
+ * so a route change or a sidebar refetch redraws only the rows that changed. `t` comes from the
+ * list (one i18n subscription, not one per row).
+ */
+const Row = memo(function Row({
   client,
   current,
   rowHeight,
   collapsed,
+  t,
 }: {
   client: SidebarClient;
   current: boolean;
   rowHeight: 40 | 48;
   collapsed: boolean;
+  t: TFunction;
 }) {
-  const { t } = useTranslation();
   // 2026-10-17: one black badge for what is new here, its parts in the screen-reader label.
   const badge = client.unread + client.unseenTasks + client.unseenTickets;
   const badgeLabel = [
@@ -73,7 +80,7 @@ function Row({
       </Link>
     </li>
   );
-}
+});
 
 /**
  * The admin's client list: a find field, then "Internal" (the admin group "eGrant tím", Phase 34),
@@ -100,10 +107,18 @@ export function ClientSidebarList({
     const needle = fold(query.trim());
     return needle ? clients.filter((c) => fold(c.name).includes(needle)) : clients;
   }, [clients, query]);
-  const internal = shown.filter((c) => c.section === 'internal');
-  const managed = shown.filter((c) => c.section !== 'internal' && c.managed);
-  const others = shown.filter((c) => c.section !== 'internal' && !c.managed);
-  const anyManaged = clients.some((c) => c.section !== 'internal' && c.managed);
+  const { internal, managed, others } = useMemo(
+    () => ({
+      internal: shown.filter((c) => c.section === 'internal'),
+      managed: shown.filter((c) => c.section !== 'internal' && c.managed),
+      others: shown.filter((c) => c.section !== 'internal' && !c.managed),
+    }),
+    [shown],
+  );
+  const anyManaged = useMemo(
+    () => clients.some((c) => c.section !== 'internal' && c.managed),
+    [clients],
+  );
 
   const list = (items: SidebarClient[]) => (
     <ul className="flex flex-col gap-0.5">
@@ -114,6 +129,7 @@ export function ClientSidebarList({
           current={client.groupId === currentGroupId}
           rowHeight={rowHeight}
           collapsed={collapsed}
+          t={t}
         />
       ))}
     </ul>

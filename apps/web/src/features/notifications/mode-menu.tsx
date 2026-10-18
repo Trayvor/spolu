@@ -1,4 +1,4 @@
-import { useId, type ReactNode } from 'react';
+import { useId, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { GroupModes, type GroupMode } from '@spolu/shared';
 import {
@@ -19,6 +19,12 @@ const ICONS: Record<GroupMode | 'mixed', () => ReactNode> = {
   mixed: BellIcon,
 };
 
+const triggerClass = (withText: boolean) =>
+  cn(
+    "relative inline-flex h-[38px] min-w-[38px] shrink-0 items-center justify-center gap-2 rounded-full after:absolute after:-inset-[3px] after:rounded-full after:content-[''] text-button font-medium text-muted-foreground transition-colors duration-(--duration-fast) hover:bg-surface-3 hover:text-foreground data-[state=open]:bg-surface-3 data-[state=open]:text-foreground",
+    withText && 'px-3',
+  );
+
 /** The title of a mode ("All messages"), or "Mixed". */
 export function useModeTitle() {
   const { t } = useTranslation();
@@ -36,6 +42,7 @@ export function ModeMenu({
   showText = false,
   onOpen,
   note,
+  defaultOpen = false,
 }: {
   value: GroupMode | 'mixed';
   onChange(mode: GroupMode): void;
@@ -44,6 +51,8 @@ export function ModeMenu({
   onOpen?(): void;
   /** One muted line under the options (why the mode is what it is). */
   note?: string;
+  /** Open on mount (the on-demand bell mounts the menu by its first click). */
+  defaultOpen?: boolean;
 }) {
   const { t } = useTranslation();
   const hintId = useId();
@@ -51,14 +60,8 @@ export function ModeMenu({
   const Icon = ICONS[value];
   const withText = showText || value === 'mixed';
   return (
-    <DropdownMenu onOpenChange={(open) => open && onOpen?.()}>
-      <DropdownMenuTrigger
-        aria-label={triggerLabel}
-        className={cn(
-          "relative inline-flex h-[38px] min-w-[38px] shrink-0 items-center justify-center gap-2 rounded-full after:absolute after:-inset-[3px] after:rounded-full after:content-[''] text-button font-medium text-muted-foreground transition-colors duration-(--duration-fast) hover:bg-surface-3 hover:text-foreground data-[state=open]:bg-surface-3 data-[state=open]:text-foreground",
-          withText && 'px-3',
-        )}
-      >
+    <DropdownMenu defaultOpen={defaultOpen} onOpenChange={(open) => open && onOpen?.()}>
+      <DropdownMenuTrigger aria-label={triggerLabel} className={triggerClass(withText)}>
         <Icon />
         {withText && <span>{title(value)}</span>}
       </DropdownMenuTrigger>
@@ -97,7 +100,15 @@ export function ModeMenu({
  * The bell of one group: your mode there, and a menu to change it. Renders once modes load.
  * When the mode comes from managing the group, the menu says so under the options.
  */
-export function GroupBell({ groupId, className }: { groupId: string; className?: string }) {
+export function GroupBell({
+  groupId,
+  className,
+  defaultOpen,
+}: {
+  groupId: string;
+  className?: string;
+  defaultOpen?: boolean;
+}) {
   const { t } = useTranslation();
   const title = useModeTitle();
   const { mode, managed, setMode, isError, clearError } = useGroupMode(groupId);
@@ -110,6 +121,7 @@ export function GroupBell({ groupId, className }: { groupId: string; className?:
         triggerLabel={t('notifications.mode.bellLabel', { mode: title(mode) })}
         onOpen={clearError}
         note={managed ? t('notifications.mode.managerNote') : undefined}
+        defaultOpen={defaultOpen}
       />
       {isError && (
         <p
@@ -119,6 +131,43 @@ export function GroupBell({ groupId, className }: { groupId: string; className?:
           {t('errors.generic')}
         </p>
       )}
+    </div>
+  );
+}
+
+/**
+ * A long list's bell (the groups page): until the first click a plain button that looks like the
+ * bell, drawn from the mode the list computed once (`groupModeOf`); the click mounts the real
+ * `GroupBell` (its queries, mutation and Radix menu), open at once, and it stays mounted. So a
+ * list of thousands of groups does not mount a menu, a query and a mutation per row.
+ */
+export function GroupBellOnDemand({
+  groupId,
+  mode,
+  className,
+}: {
+  groupId: string;
+  mode: GroupMode | undefined;
+  className?: string;
+}) {
+  const { t } = useTranslation();
+  const title = useModeTitle();
+  const [armed, setArmed] = useState(false);
+  if (armed) return <GroupBell groupId={groupId} className={className} defaultOpen />;
+  if (!mode) return null;
+  const Icon = ICONS[mode];
+  return (
+    <div className={cn('relative flex shrink-0', className)}>
+      <button
+        type="button"
+        aria-label={t('notifications.mode.bellLabel', { mode: title(mode) })}
+        aria-haspopup="menu"
+        aria-expanded={false}
+        className={triggerClass(false)}
+        onClick={() => setArmed(true)}
+      >
+        <Icon />
+      </button>
     </div>
   );
 }

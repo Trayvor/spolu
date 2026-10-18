@@ -3,6 +3,7 @@
   "create": "Loo grupp",
   "empty": "Gruppe veel ei ole. Looge esimene grupp kliendile.",
   "members": "Liikmeid: {{count}}",
+  "showMore": "Näita rohkem (veel {{left}})",
   "form": {
     "name": "Nimi",
     "egrantUrl": "Kliendi eGranti URL",
@@ -51,6 +52,10 @@
     "none": "Haldurita",
     "empty": "Selle filtriga gruppe ei ole.",
     "clear": "Tühjenda filter"
+  },
+  "find": {
+    "label": "Leia grupp",
+    "noMatch": "Ühtegi gruppi ei leitud."
   },
   "adminGroup": {
     "hint": "eGranti meeskonna sisevestlus. Seda näevad ainult administraatorid."

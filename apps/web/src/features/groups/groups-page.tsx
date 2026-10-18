@@ -1,6 +1,6 @@
 import { ListSkeleton } from '@/components/ui/skeleton';
-import { useEffect, useMemo, useState } from 'react';
-import { isClientGroup, type GroupSummary } from '@spolu/shared';
+import { memo, useEffect, useId, useMemo, useState } from 'react';
+import { isClientGroup, type GroupMode, type GroupSummary } from '@spolu/shared';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate, useSearch } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
@@ -8,12 +8,15 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { adminsQuery } from '@/features/admins/api';
 import { useSession } from '@/features/auth/use-session';
-import { GroupUnreadCount } from '@/features/chat/unread';
+import { chatUnreadQuery } from '@/features/chat/api';
+import { GroupUnreadCount, UnreadPill } from '@/features/chat/unread';
+import { notificationModesQuery } from '@/features/notifications/api';
 import { AllGroupsMode } from '@/features/notifications/all-groups-mode';
-import { GroupBell } from '@/features/notifications/mode-menu';
+import { GroupBell, GroupBellOnDemand } from '@/features/notifications/mode-menu';
+import { groupModeOf } from '@/features/notifications/use-modes';
 import { groupsQuery } from './api';
 import { GroupForm } from './group-form';
-import { filterByManager, isKnownManager, sortMineFirst } from './group-list';
+import { filterByManager, filterByName, isKnownManager, sortMineFirst } from './group-list';
 import { GroupLogo } from './group-logo';
 import { ManagerAvatars } from './manager-avatars';
 import { ManagerFilter } from './manager-filter';
@@ -22,6 +25,9 @@ import { useRememberedFilters } from '@/lib/use-remembered-filters';
 
 const MANAGER_KEYS = ['manager'] as const;
 
+/** Rows drawn at first and added by each "Show more": the list holds thousands of clients. */
+export const GROUPS_PAGE_SIZE = 50;
+
 /**
  * Every client group with its unread chat count, its managers (names in a tooltip), the "Manage"
  * toggle, the bell and the member count (a link to the Members tab), and an inline "Create group"
@@ -29,6 +35,11 @@ const MANAGER_KEYS = ['manager'] as const;
  * of "All groups: …"; the title shows the count, "shown of total" while filtered. Under 641px a
  * row wraps: logo, name and unread on the first line; avatars, toggle, bell and members on the
  * second, and the filter goes on its own line above "All groups".
+ *
+ * "Find a group" filters by name. The list draws the first 50 rows and "Show more" adds 50 (a
+ * filter or search change starts again at 50); the count, the filter and the search cover every
+ * group. The unread counts and the modes are read once
+ * here, rows are memoized, and each bell mounts its menu on the first click.
  */
 export function GroupsPage() {
   const { t } = useTranslation();
@@ -56,11 +67,27 @@ export function GroupsPage() {
     if (unknown) void navigate({ to: '/groups', search: {}, replace: true });
   }, [unknown, navigate]);
 
+  // "Find a group": by name, ignoring case and diacritics; not remembered.
+  const [query, setQuery] = useState('');
+  const findId = useId();
   const shown = useMemo(
-    () => (groups ? sortMineFirst(filterByManager(groups, manager, adminIds)) : []),
-    [groups, manager, adminIds],
+    () =>
+      groups ? sortMineFirst(filterByName(filterByManager(groups, manager, adminIds), query)) : [],
+    [groups, manager, adminIds, query],
   );
   const filtered = groups !== undefined && shown.length !== groups.length;
+  const groupIds = useMemo(() => groups?.map((g) => g.id) ?? [], [groups]);
+
+  // How many rows are drawn; back to one page when the filter or the search changes.
+  const listKey = `${manager ?? ''}\n${query}`;
+  const [limit, setLimit] = useState({ listKey, rows: GROUPS_PAGE_SIZE });
+  const rows = limit.listKey === listKey ? limit.rows : GROUPS_PAGE_SIZE;
+  const visible = shown.length > rows ? shown.slice(0, rows) : shown;
+  const left = shown.length - visible.length;
+
+  const { data: unread } = useQuery(chatUnreadQuery);
+  const { data: modes } = useQuery(notificationModesQuery);
+  const role = me?.role;
 
   return (
     <div className="flex flex-col gap-6">
@@ -101,16 +128,32 @@ export function GroupsPage() {
       )}
       {groups && groups.length > 0 && (
         <div className="flex flex-col items-start gap-2 min-[641px]:flex-row min-[641px]:items-center min-[641px]:justify-between">
-          <ManagerFilter
-            value={unknown ? undefined : manager}
-            admins={admins ?? null}
-            meId={me?.id ?? ''}
-            onChange={(next) => setManager(next)}
-          />
-          <AllGroupsMode groupIds={groups.map((g) => g.id)} />
+          <div className="flex w-full flex-col items-start gap-2 min-[641px]:w-auto min-[641px]:flex-row min-[641px]:items-center">
+            <label htmlFor={findId} className="sr-only">
+              {t('groups.find.label')}
+            </label>
+            <input
+              id={findId}
+              type="search"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder={t('groups.find.label')}
+              className="h-9 w-full rounded-md border-2 border-input bg-card px-3 text-tiny font-medium max-[640px]:h-11 placeholder:text-muted-foreground focus:border-foreground min-[641px]:w-56"
+            />
+            <ManagerFilter
+              value={unknown ? undefined : manager}
+              admins={admins ?? null}
+              meId={me?.id ?? ''}
+              onChange={(next) => setManager(next)}
+            />
+          </div>
+          <AllGroupsMode groupIds={groupIds} />
         </div>
       )}
-      {groups && groups.length > 0 && shown.length === 0 && (
+      {groups && groups.length > 0 && shown.length === 0 && query.trim() !== '' && (
+        <p className="text-body text-muted-foreground">{t('groups.find.noMatch')}</p>
+      )}
+      {groups && groups.length > 0 && shown.length === 0 && query.trim() === '' && (
         <div className="flex flex-col items-start gap-3">
           <p className="text-body text-muted-foreground">{t('groups.filter.empty')}</p>
           <Button variant="outline" size="sm" onClick={() => setManager(undefined)}>
@@ -122,41 +165,25 @@ export function GroupsPage() {
         <div className="flex flex-col gap-2">
           <Card className="gap-0 py-2">
             <ul>
-              {shown.map((group) => (
-                <li
+              {visible.map((group) => (
+                <GroupRow
                   key={group.id}
-                  className="flex flex-wrap items-center gap-x-3 pr-3 pb-3 min-[641px]:flex-nowrap min-[641px]:pb-0 [&:not(:last-child)]:border-b [&:not(:last-child)]:border-border"
-                >
-                  <Link
-                    to="/groups/$groupId"
-                    params={{ groupId: group.id }}
-                    className="flex min-w-0 basis-full items-center gap-3 py-3 pl-5 hover:text-ink-hover min-[641px]:flex-1 min-[641px]:basis-auto"
-                  >
-                    <GroupLogo
-                      groupId={group.id}
-                      name={group.name}
-                      hasLogo={group.hasLogo}
-                      version={group.updatedAt}
-                    />
-                    <span className="min-w-0 flex-1 truncate font-semibold">{group.name}</span>
-                    <GroupUnreadCount groupId={group.id} />
-                  </Link>
-                  <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2 gap-y-1 pl-5 min-[641px]:flex-none min-[641px]:pl-0">
-                    <ManagerAvatars managers={group.managers} groupName={group.name} />
-                    <ManagerToggle group={group} />
-                    <GroupBell groupId={group.id} />
-                    <Link
-                      to="/groups/$groupId/members"
-                      params={{ groupId: group.id }}
-                      className="ml-auto inline-flex shrink-0 text-button text-muted-foreground underline-offset-2 hover:text-foreground hover:underline max-[640px]:min-h-11 max-[640px]:items-center max-[640px]:px-2 min-[641px]:ml-1"
-                    >
-                      {t('groups.members', { count: group.memberCount })}
-                    </Link>
-                  </div>
-                </li>
+                  group={group}
+                  unread={unread?.[group.id] ?? 0}
+                  mode={groupModeOf(modes, role, group.id).mode}
+                />
               ))}
             </ul>
           </Card>
+          {left > 0 && (
+            <Button
+              variant="outline"
+              className="self-center"
+              onClick={() => setLimit({ listKey, rows: rows + GROUPS_PAGE_SIZE })}
+            >
+              {t('groups.showMore', { left })}
+            </Button>
+          )}
           <p className="px-1 text-micro text-muted-foreground">
             {t('groups.managers.noManagerHint')}
           </p>
@@ -165,6 +192,52 @@ export function GroupsPage() {
     </div>
   );
 }
+
+/**
+ * One client row. Memoized: the groups query keeps unchanged rows the same objects, so a change
+ * to one group, one unread count or one mode redraws only that row.
+ */
+const GroupRow = memo(function GroupRow({
+  group,
+  unread,
+  mode,
+}: {
+  group: GroupSummary;
+  unread: number;
+  mode: GroupMode | undefined;
+}) {
+  const { t } = useTranslation();
+  return (
+    <li className="flex flex-wrap items-center gap-x-3 pr-3 pb-3 min-[641px]:flex-nowrap min-[641px]:pb-0 [&:not(:last-child)]:border-b [&:not(:last-child)]:border-border">
+      <Link
+        to="/groups/$groupId"
+        params={{ groupId: group.id }}
+        className="flex min-w-0 basis-full items-center gap-3 py-3 pl-5 hover:text-ink-hover min-[641px]:flex-1 min-[641px]:basis-auto"
+      >
+        <GroupLogo
+          groupId={group.id}
+          name={group.name}
+          hasLogo={group.hasLogo}
+          version={group.updatedAt}
+        />
+        <span className="min-w-0 flex-1 truncate font-semibold">{group.name}</span>
+        <UnreadPill count={unread} />
+      </Link>
+      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2 gap-y-1 pl-5 min-[641px]:flex-none min-[641px]:pl-0">
+        <ManagerAvatars managers={group.managers} groupName={group.name} />
+        <ManagerToggle group={group} />
+        <GroupBellOnDemand groupId={group.id} mode={mode} />
+        <Link
+          to="/groups/$groupId/members"
+          params={{ groupId: group.id }}
+          className="ml-auto inline-flex shrink-0 text-button text-muted-foreground underline-offset-2 hover:text-foreground hover:underline max-[640px]:min-h-11 max-[640px]:items-center max-[640px]:px-2 min-[641px]:ml-1"
+        >
+          {t('groups.members', { count: group.memberCount })}
+        </Link>
+      </div>
+    </li>
+  );
+});
 
 /**
  * The admin group "eGrant tím", pinned above the clients: its logo (the egrant mark by default),

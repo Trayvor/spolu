@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { GroupSummary } from '@spolu/shared';
-import { filterByManager, sortMineFirst } from './group-list';
+import { filterByManager, filterByName, sortMineFirst } from './group-list';
 
 const group = (id: string, managers: string[], managedByMe = false): GroupSummary => ({
   id,
@@ -55,5 +55,19 @@ describe('filterByManager', () => {
   it('an unknown id, or any id before the admins load, gives every group', () => {
     expect(ids(filterByManager(ALL, 'gone', admins))).toEqual(['a', 'b', 'c', 'd']);
     expect(ids(filterByManager(ALL, 'peter', null))).toEqual(['a', 'b', 'c', 'd']);
+  });
+});
+
+describe('filterByName', () => {
+  const named = (name: string) => ({ ...A, id: name, name });
+  const list = [named('Obec Lúky'), named('Mesto Senec'), named('LUKOIL')];
+
+  it('matches part of the name, ignoring case and diacritics', () => {
+    expect(ids(filterByName(list, ' luk '))).toEqual(['Obec Lúky', 'LUKOIL']);
+    expect(ids(filterByName(list, 'SENEC'))).toEqual(['Mesto Senec']);
+  });
+
+  it('a blank query keeps every group', () => {
+    expect(filterByName(list, '  ')).toBe(list);
   });
 });

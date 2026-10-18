@@ -25,6 +25,8 @@ import {
 
 /** After a change: its notification events are recorded by the time the list asks again. */
 export const TICKET_UNSEEN_DEBOUNCE_MS = 2000;
+/** A burst of events (a bulk change, a busy global list) refetches the lists once, 2 s after the last. */
+export const TICKET_LIST_DEBOUNCE_MS = 2000;
 
 /**
  * Keeps the ticket lists and an open ticket live (Phase 21). Events carry only
@@ -45,6 +47,10 @@ export const TICKET_UNSEEN_DEBOUNCE_MS = 2000;
  * on another device, `seen:changed`, 2026-10-17) clears its rows' unseen mark; a patched row keeps
  * its mark, and a ticket that changed while nobody has its page open makes the lists that show it
  * refetch once, 2 s after the last such change (the server decides who is notified).
+ * Cost (2026-10-18): list refetches caused by events wait 2 s after the last event and go out
+ * once; a ticket that is neither open nor listed is not fetched (outside My tickets its lists
+ * just refetch); events for one ticket while its GET is out cause one more GET after it, not
+ * one each.
  */
 export function useTicketEvents(source: TicketSource | null): void {
   const queryClient = useQueryClient();
@@ -66,6 +72,12 @@ export function useTicketEvents(source: TicketSource | null): void {
       parsed !== null && (parsed.kind !== 'group' || payload.groupId === parsed.groupId);
     const refetchLists = (predicate?: (query: Query) => boolean) => {
       if (prefix) void queryClient.invalidateQueries({ queryKey: prefix, predicate });
+    };
+    let listTimer: ReturnType<typeof setTimeout> | undefined;
+    const refetchListsSoon = () => {
+      if (!prefix) return;
+      clearTimeout(listTimer);
+      listTimer = setTimeout(() => refetchLists(), TICKET_LIST_DEBOUNCE_MS);
     };
     const isOpen = (ticketId: string) =>
       queryClient.getQueryData(ticketQuery(ticketId).queryKey) !== undefined;
@@ -129,33 +141,52 @@ export function useTicketEvents(source: TicketSource | null): void {
         !patchTicketInLists(queryClient, ticket, meId) &&
         (!mine || ownedByMe(ticket))
       ) {
-        refetchLists();
+        refetchListsSoon();
       } else if (ticket && !viewed) {
         scheduleUnseen(ticketId);
       }
     }
 
+    // One GET per ticket at a time: an event while it is out asks for one more after it.
+    let disposed = false;
+    const inFlight = new Map<string, boolean>();
+    const refreshOnce = (ticketId: string) => {
+      if (inFlight.has(ticketId)) {
+        inFlight.set(ticketId, true);
+        return;
+      }
+      inFlight.set(ticketId, false);
+      void refresh(ticketId).finally(() => {
+        const again = inFlight.get(ticketId);
+        inFlight.delete(ticketId);
+        if (again && !disposed) refreshOnce(ticketId);
+      });
+    };
+
     const onCreated = (payload: TicketEventPayload) => {
       if (!concerns(payload)) return;
       if (!mine) {
-        refetchLists();
+        refetchListsSoon();
         return;
       }
       void load(payload.ticketId).then((ticket) => {
-        if (ticket && ownedByMe(ticket)) refetchLists();
+        if (ticket && ownedByMe(ticket)) refetchListsSoon();
       });
     };
     const onUpdated = (payload: TicketEventPayload) => {
-      if (isOpen(payload.ticketId) || concerns(payload)) void refresh(payload.ticketId);
+      const id = payload.ticketId;
+      if (isOpen(id) || isListed(id) || (mine && concerns(payload))) refreshOnce(id);
+      // Not shown anywhere: no GET of the ticket, the lists may now include it.
+      else if (concerns(payload)) refetchListsSoon();
     };
     const onMoved = (payload: TicketEventPayload) => {
       if (parsed?.kind === 'group' && payload.groupId === parsed.groupId) {
         removeTicketFromLists(queryClient, payload.ticketId, prefix ?? ticketListPrefix);
         if (isOpen(payload.ticketId)) void load(payload.ticketId);
       } else if (isOpen(payload.ticketId) || (mine && isListed(payload.ticketId))) {
-        void refresh(payload.ticketId);
+        refreshOnce(payload.ticketId);
       } else if (parsed !== null && !mine) {
-        refetchLists();
+        refetchListsSoon();
       }
     };
     const onSeen = (event: SeenChangedEvent) => {
@@ -174,7 +205,9 @@ export function useTicketEvents(source: TicketSource | null): void {
     socket.on(SeenEvents.changed, onSeen);
     socket.on('connect', onConnect);
     return () => {
+      disposed = true;
       clearTimeout(unseenTimer);
+      clearTimeout(listTimer);
       socket.off(TicketEvents.created, onCreated);
       socket.off(TicketEvents.updated, onUpdated);
       socket.off(TicketEvents.moved, onMoved);

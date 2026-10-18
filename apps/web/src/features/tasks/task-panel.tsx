@@ -1,7 +1,7 @@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useMarkSeen } from '@/lib/use-mark-seen';
 import { UnseenBanner, useOpenSummary } from '@/features/unseen/banner';
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useBlocker, useLocation, useNavigate, useParams, useRouter } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
@@ -49,11 +49,14 @@ import {
   type PanelTab,
 } from './panel-parts';
 import { SourceMeetingLine, SourceMessage, SourceTicketLine } from './source-message';
-import { TaskChat } from './task-chat';
 import { TaskForm, validateTaskDraft, type TaskFormErrors } from './task-form';
 import { TaskReminders } from './task-reminders';
 import { seesTime, TaskMyTime } from './my-time';
 import { askForTime } from './time-queue';
+
+// The chat (the conversation and, through the composer, ProseMirror) loads only when the Chat tab
+// opens: the Details tab never downloads it.
+const TaskChat = lazy(() => import('./task-chat').then((m) => ({ default: m.TaskChat })));
 
 const toDraft = (task: TaskDetailDto): TaskDraft => ({
   title: task.title,
@@ -643,7 +646,9 @@ function TaskEditor({
           data-own-touch
           className="min-h-0 flex-1 p-2 pb-[max(8px,env(safe-area-inset-bottom))] min-[641px]:p-4 min-[641px]:pb-[max(16px,env(safe-area-inset-bottom))]"
         >
-          <TaskChat groupId={groupId} taskId={base.id} />
+          <Suspense fallback={<Skeleton className="h-full w-full" />}>
+            <TaskChat groupId={groupId} taskId={base.id} />
+          </Suspense>
         </div>
       )}
     </>

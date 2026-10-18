@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RouterProvider, createMemoryHistory } from '@tanstack/react-router';
 import { i18n, setLanguage } from '@/i18n';
 import { createAppRouter } from '@/router';
+import { GROUPS_PAGE_SIZE } from './groups-page';
 
 vi.mock('@/lib/socket', () => ({
   getSocket: () => ({ on: vi.fn(), off: vi.fn(), connected: false }),
@@ -385,5 +386,89 @@ describe('groups page', () => {
     await waitFor(() => expect(router.state.location.search).toEqual({}));
     expect(await screen.findByRole('link', { name: /beta/ })).toBeInTheDocument();
     expect(document.querySelector('[data-group-count]')).toHaveTextContent(/^2$/);
+  });
+
+  describe('a long list (2026-10-18)', () => {
+    // 120 groups nobody manages, named so that they sort by number.
+    const many = Array.from({ length: 120 }, (_, i) => ({
+      ...BETA,
+      id: `m${i}`,
+      name: `Client ${String(i).padStart(3, '0')}`,
+    }));
+    const rows = () => screen.queryAllByRole('link', { name: /Acme|Client \d{3}/ }).length;
+
+    it('draws 50 rows; Show more adds 50 until every group is shown', async () => {
+      mockApi([ACME, ...many]);
+      const { user } = renderGroups();
+      expect(await screen.findByRole('link', { name: /Acme/ })).toBeInTheDocument();
+      expect(document.querySelector('[data-group-count]')).toHaveTextContent(/^121$/);
+      expect(rows()).toBe(GROUPS_PAGE_SIZE);
+      expect(screen.queryByRole('link', { name: /Client 049/ })).toBeNull();
+      await user.click(screen.getByRole('button', { name: t('groups.showMore', { left: 71 }) }));
+      expect(rows()).toBe(100);
+      expect(screen.getByRole('link', { name: /Client 098/ })).toBeInTheDocument();
+      await user.click(screen.getByRole('button', { name: t('groups.showMore', { left: 21 }) }));
+      expect(rows()).toBe(121);
+      expect(screen.getByRole('link', { name: /Client 119/ })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /Show more/ })).toBeNull();
+    });
+
+    it('the filter covers every group and starts again at one page', async () => {
+      mockApi([ACME, ...many]);
+      const { user, router } = renderGroups();
+      await user.click(
+        await screen.findByRole('button', { name: t('groups.showMore', { left: 71 }) }),
+      );
+      expect(rows()).toBe(100);
+      await user.click(
+        screen.getByRole('button', {
+          name: t('groups.filter.label', { name: t('groups.filter.all') }),
+        }),
+      );
+      await user.click(await screen.findByRole('menuitemradio', { name: t('groups.filter.none') }));
+      await waitFor(() => expect(router.state.location.search).toEqual({ manager: 'none' }));
+      expect(document.querySelector('[data-group-count]')).toHaveTextContent(
+        t('groups.count.filtered', { shown: 120, total: 121 }),
+      );
+      expect(rows()).toBe(GROUPS_PAGE_SIZE);
+      expect(screen.queryByRole('link', { name: /Acme/ })).toBeNull();
+      expect(
+        screen.getByRole('button', { name: t('groups.showMore', { left: 70 }) }),
+      ).toBeVisible();
+    });
+
+    it('Find a group searches every group, not only the rows drawn', async () => {
+      mockApi([ACME, ...many]);
+      const { user } = renderGroups();
+      const find = await screen.findByRole('searchbox', { name: t('groups.find.label') });
+      await user.type(find, 'client 11');
+      // Client 110–119, far below the first page.
+      expect(rows()).toBe(10);
+      expect(screen.getByRole('link', { name: /Client 119/ })).toBeInTheDocument();
+      expect(document.querySelector('[data-group-count]')).toHaveTextContent(
+        t('groups.count.filtered', { shown: 10, total: 121 }),
+      );
+      expect(screen.queryByRole('button', { name: /Show more/ })).toBeNull();
+      await user.clear(find);
+      await user.type(find, 'nothing like it');
+      expect(screen.getByText(t('groups.find.noMatch'))).toBeInTheDocument();
+      expect(rows()).toBe(0);
+    });
+
+    it('a row mounts its bell menu only on the first click', async () => {
+      mockApi([ACME, BETA]);
+      const { user } = renderGroups();
+      const label = t('notifications.mode.bellLabel', { mode: t('notifications.mode.mentions') });
+      const bells = await screen.findAllByRole('button', { name: label });
+      expect(bells).toHaveLength(2);
+      // Not yet a Radix trigger: no menu state on the buttons.
+      for (const bell of bells) expect(bell).not.toHaveAttribute('data-state');
+      await user.click(bells[1] as HTMLElement);
+      // The click opened the real menu at once; only that row's bell became a Radix trigger.
+      expect(await screen.findByRole('menu')).toBeInTheDocument();
+      const after = screen.getAllByRole('button', { name: label, hidden: true });
+      expect(after[0]).not.toHaveAttribute('data-state');
+      expect(after[1]).toHaveAttribute('data-state', 'open');
+    });
   });
 });

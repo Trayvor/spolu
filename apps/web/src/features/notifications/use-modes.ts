@@ -1,5 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { effectiveGroupMode, type GroupMode, type NotificationModes } from '@spolu/shared';
+import {
+  effectiveGroupMode,
+  type GroupMode,
+  type NotificationModes,
+  type Role,
+} from '@spolu/shared';
 import { useSession } from '@/features/auth/use-session';
 import { notificationModesQuery, setDefaultMode, setGroupMode } from './api';
 
@@ -30,6 +35,28 @@ function useOptimisticModes<V>(
   });
 }
 
+/**
+ * The user's mode in one group from the loaded modes (the role default until they load), and
+ * whether it was set by becoming the group's manager. Pure, so a list reads the modes once and
+ * computes every row (the groups page).
+ */
+export function groupModeOf(
+  data: NotificationModes | undefined,
+  role: Role | undefined,
+  groupId: string,
+): { mode: GroupMode | undefined; managed: boolean } {
+  const mode =
+    role &&
+    effectiveGroupMode({
+      override: data?.overrides[groupId] ?? null,
+      defaultMode: data?.defaultMode ?? null,
+      role,
+      // The admin group's default is All messages (Phase 34).
+      adminGroup: !!data?.adminGroupId && data.adminGroupId === groupId,
+    });
+  return { mode: mode || undefined, managed: data?.managerSet.includes(groupId) ?? false };
+}
+
 /** The signed-in user's mode in one group (the role default until the modes load); `setMode` is optimistic and rolls back on error. */
 export function useGroupMode(groupId: string) {
   const role = useSession()?.role;
@@ -43,19 +70,8 @@ export function useGroupMode(groupId: string) {
       managerSet: old.managerSet.filter((id) => id !== groupId),
     }),
   );
-  const mode =
-    role &&
-    effectiveGroupMode({
-      override: data?.overrides[groupId] ?? null,
-      defaultMode: data?.defaultMode ?? null,
-      role,
-      // The admin group's default is All messages (Phase 34).
-      adminGroup: !!data?.adminGroupId && data.adminGroupId === groupId,
-    });
   return {
-    mode: mode || undefined,
-    /** The mode there was set by becoming the group's manager. */
-    managed: data?.managerSet.includes(groupId) ?? false,
+    ...groupModeOf(data, role, groupId),
     setMode: mutation.mutate,
     isError: mutation.isError,
     clearError: mutation.reset,

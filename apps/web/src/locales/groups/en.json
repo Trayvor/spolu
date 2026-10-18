@@ -3,6 +3,7 @@
   "create": "Create group",
   "empty": "No groups yet. Create the first one for a client.",
   "members": "{{count}} members",
+  "showMore": "Show more ({{left}} left)",
   "form": {
     "name": "Name",
     "egrantUrl": "Client's eGrant URL",
@@ -51,6 +52,10 @@
     "none": "No manager",
     "empty": "No groups for this filter.",
     "clear": "Clear filter"
+  },
+  "find": {
+    "label": "Find a group",
+    "noMatch": "No group matches."
   },
   "adminGroup": {
     "hint": "The eGrant team's internal chat. Only admins see it."

@@ -42,6 +42,8 @@ A group is one client (organization). It has a name, a logo and the client's eGr
   - copy the invite link of any group;
   - the Groups page (`/groups`, Phase 22a): the groups I manage come first, then the rest, by name inside each part. The title shows the count ("Groups 12"), or "Groups 3 of 12" while a filter is set. Each row's "Members: N" links to the group's Members tab. Hovering or focusing the manager avatars shows every manager's name in a small tooltip, including those behind "+N"; on touch a tap toggles it.
   - the manager filter, left of "All groups: …" on the same row (its own line above it on phones): Everyone, Me, No manager, then every other active admin by name. It lives in the URL as `?manager=me|none|<adminId>`; an id that is not an active admin (an old link) falls back to Everyone. With no match the page says "No groups for this filter." with "Clear filter".
+  - "Find a group" (2026-10-18), beside the filter: narrows the list by name, ignoring case and diacritics ("luky" finds "Obec Lúky"); it is not remembered, and with no match the page says "No group matches.". The count shows "3 of 12" while it is set.
+  - the list draws 50 rows at a time (eGrant has about 3 000 clients); "Show more (N left)" adds 50, and changing the filter or the search starts again at 50. The count, the filter and the search always cover every group. A row's bell is a plain button until its first click, which mounts the real menu, open.
 
 ## The admin group "eGrant tím" (Phase 34, P34-B)
 
