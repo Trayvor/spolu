@@ -75,5 +75,57 @@
     "deleteEvents_one": "Kustutatakse ka selle {{count}} sündmus.",
     "deleteEvents_other": "Kustutatakse ka selle {{count}} sündmust.",
     "deleteKeeps": "Selle avatud ülesanded ({{tasks}}) ja piletid ({{tickets}}) jäävad alles, ilma projektita."
+  },
+  "timeline": {
+    "title": "Ajajoon",
+    "projectSelect": "Projekt ajajoonel",
+    "allProjects": "Kõik projektid",
+    "todayButton": "Täna",
+    "today": "Täna",
+    "todayAt": "Täna, {{date}}",
+    "addEvent": "Lisa sündmus",
+    "addEventTo": "Projekti {{name}}",
+    "earlier": "Varasemad",
+    "later": "Hilisemad",
+    "listLabel": "Sündmused kuupäeva järgi",
+    "noProjects": "Projekte veel pole. Projektid koondavad selle kliendi ülesanded ja piletid ajajoonele.",
+    "noEvents": "Sündmusi veel pole.",
+    "loadError": "Ajajoont ei õnnestunud laadida.",
+    "tasks": "Ülesanded ({{count}})",
+    "tickets": "Piletid ({{count}})",
+    "tasksTitle": "Avatud ülesanded",
+    "ticketsTitle": "Aktiivsed piletid",
+    "showAll": "Näita kõiki ({{count}})",
+    "done": "Tehtud ({{count}})",
+    "more": "Näita rohkem",
+    "eventActions": "Sündmuse toimingud",
+    "eventUnavailable": "See sündmus pole enam saadaval.",
+    "showOnTimeline": "Näita ajajoonel",
+    "gap": {
+      "months_one": "{{count}} kuu",
+      "months_other": "{{count}} kuud",
+      "years_one": "{{count}} aasta",
+      "years_other": "{{count}} aastat"
+    }
+  },
+  "cards": {
+    "tickets": "Piletid",
+    "tasks": "Ülesanded",
+    "ticketsActive": "aktiivseid: {{count}}",
+    "tasksOpen": "avatud: {{count}}",
+    "mine": "minu: {{count}}",
+    "urgentCount": "kiireloomulisi: {{count}}",
+    "openAll": "Ava kõik",
+    "loadError": "Laadimine ebaõnnestus.",
+    "noTickets": "Aktiivseid pileteid pole.",
+    "noTasks": "Avatud ülesandeid pole.",
+    "mineMark": "(minu)",
+    "urgent": "Kiire",
+    "noSubject": "Teemata",
+    "status": {
+      "new": "Uus",
+      "in_progress": "Töös",
+      "resolved": "Lahendatud"
+    }
   }
 }

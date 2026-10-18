@@ -80,5 +80,59 @@
     "deleteEvents_other": "Vengono eliminati anche i suoi {{count}} eventi.",
     "deleteEvents_many": "Vengono eliminati anche i suoi {{count}} eventi.",
     "deleteKeeps": "Le sue attività aperte ({{tasks}}) e i ticket ({{tickets}}) restano, senza il progetto."
+  },
+  "timeline": {
+    "title": "Cronologia",
+    "projectSelect": "Progetto nella cronologia",
+    "allProjects": "Tutti i progetti",
+    "todayButton": "Oggi",
+    "today": "Oggi",
+    "todayAt": "Oggi, {{date}}",
+    "addEvent": "Aggiungi evento",
+    "addEventTo": "In {{name}}",
+    "earlier": "Precedenti",
+    "later": "Successivi",
+    "listLabel": "Eventi per data",
+    "noProjects": "Ancora nessun progetto. I progetti raccolgono le attività e i ticket di questo cliente lungo una cronologia.",
+    "noEvents": "Ancora nessun evento.",
+    "loadError": "Non è stato possibile caricare la cronologia.",
+    "tasks": "Attività ({{count}})",
+    "tickets": "Ticket ({{count}})",
+    "tasksTitle": "Attività aperte",
+    "ticketsTitle": "Ticket attivi",
+    "showAll": "Mostra tutto ({{count}})",
+    "done": "Completati ({{count}})",
+    "more": "Mostra altri",
+    "eventActions": "Azioni dell'evento",
+    "eventUnavailable": "Questo evento non è più disponibile.",
+    "showOnTimeline": "Mostra nella cronologia",
+    "gap": {
+      "months_one": "{{count}} mese",
+      "months_many": "{{count}} mesi",
+      "months_other": "{{count}} mesi",
+      "years_one": "{{count}} anno",
+      "years_many": "{{count}} anni",
+      "years_other": "{{count}} anni"
+    }
+  },
+  "cards": {
+    "tickets": "Ticket",
+    "tasks": "Attività",
+    "ticketsActive": "attivi: {{count}}",
+    "tasksOpen": "aperte: {{count}}",
+    "mine": "miei: {{count}}",
+    "urgentCount": "urgenti: {{count}}",
+    "openAll": "Apri tutto",
+    "loadError": "Caricamento non riuscito.",
+    "noTickets": "Nessun ticket attivo.",
+    "noTasks": "Nessuna attività aperta.",
+    "mineMark": "(mio)",
+    "urgent": "Urgente",
+    "noSubject": "Senza oggetto",
+    "status": {
+      "new": "Nuovo",
+      "in_progress": "In corso",
+      "resolved": "Risolto"
+    }
   }
 }

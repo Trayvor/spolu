@@ -142,6 +142,7 @@ Policy functions in `modules/projects/policy.ts` (test-first, `policy.test.ts`);
 | `canSetTaskProject(…)` | `canUseBoard` (part P2) |
 | `canSetTicketProject(actor, ticket, role)` | an admin or a `client` of the ticket's group; never a žiadateľ, never a ticket without a client (part P2) |
 
+- The timeline, an event's lists and the active cards (`timeline-routes.ts`, part P4) are reads under `canReadProjects` on the client (an event's client for `/project-events/:id/items`); a žiadateľ, another client and an unknown id get `404`. The cards' "mine" is the caller's own assignment, never another person's view.
 - Every route of `modules/projects/routes.ts` resolves the project's (or event's) client first and checks `canReadProjects` plus the route's own rule; failing either answers `404 not_found`, the same as an unknown id. Writes share 120 a minute per user.
 - Project and event files are ordinary group files (`canReadFile` by the group rule); they attach through `attachFiles` (the caller's own unattached files of the client; a finance-only file is refused).
 - The database backs the services: composite FKs refuse another client's project and an event of another project on a task or ticket ([ADR 0030](../decisions/0030-projects-composite-keys-and-egrant-matching.md)).

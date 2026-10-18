@@ -21,7 +21,7 @@ Terms used across the docs and code, in alphabetical order.
 - **event** (sk "Udalosť", Phase 33): a dated step of a project (one day, no time); a task or ticket on a project may also sit on one of its events.
 - **alias** (projects): an earlier name of a project, kept as a name key so eGrant and new projects with that name still match it; removable in the project dialog ("Also matches").
 - **name key**: a name trimmed, spaces collapsed, lower-cased and without diacritics (`normalizeSearch`); one project per name key and client.
-- **Prehľad** (EN "Overview", Phase 33): the first tab of a group: projects, and from part P4 the timeline and the active tickets and tasks.
+- **Prehľad** (EN "Overview", Phase 33): the first tab of a group: the timeline, the active tickets and tasks cards, and the projects.
 - **timeline** (Phase 33 part P4): the Prehľad card that shows a client's events in date order on one line with a Today marker.
 - **bucket**: a column on a task board. Each group has four fixed buckets (To do, eGrant review, client review, Completed) and admins can add custom buckets and reorder every bucket, fixed ones included. Cards can be dragged between and inside buckets.
 - **bulk email** ("Hromadné e-maily"): an email an admin writes from blocks and sends to many people in Spolu at once (Phase 23); one email is a **campaign** (`bulk_campaigns`: draft, sending, sent or cancelled). Only bulk email can be unsubscribed from; login codes and notifications always arrive.

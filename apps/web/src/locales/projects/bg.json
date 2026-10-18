@@ -75,5 +75,57 @@
     "deleteEvents_one": "Изтрива се и неговото {{count}} събитие.",
     "deleteEvents_other": "Изтриват се и неговите {{count}} събития.",
     "deleteKeeps": "Отворените му задачи ({{tasks}}) и тикети ({{tickets}}) остават, без проекта."
+  },
+  "timeline": {
+    "title": "Времева линия",
+    "projectSelect": "Проект на времевата линия",
+    "allProjects": "Всички проекти",
+    "todayButton": "Днес",
+    "today": "Днес",
+    "todayAt": "Днес, {{date}}",
+    "addEvent": "Добави събитие",
+    "addEventTo": "В {{name}}",
+    "earlier": "По-ранни",
+    "later": "По-късни",
+    "listLabel": "Събития по дата",
+    "noProjects": "Все още няма проекти. Проектите подреждат задачите и тикетите на този клиент по времева линия.",
+    "noEvents": "Все още няма събития.",
+    "loadError": "Времевата линия не можа да се зареди.",
+    "tasks": "Задачи ({{count}})",
+    "tickets": "Тикети ({{count}})",
+    "tasksTitle": "Отворени задачи",
+    "ticketsTitle": "Активни тикети",
+    "showAll": "Покажи всички ({{count}})",
+    "done": "Готови ({{count}})",
+    "more": "Покажи още",
+    "eventActions": "Действия със събитието",
+    "eventUnavailable": "Това събитие вече не е налично.",
+    "showOnTimeline": "Покажи на времевата линия",
+    "gap": {
+      "months_one": "{{count}} месец",
+      "months_other": "{{count}} месеца",
+      "years_one": "{{count}} година",
+      "years_other": "{{count}} години"
+    }
+  },
+  "cards": {
+    "tickets": "Тикети",
+    "tasks": "Задачи",
+    "ticketsActive": "активни: {{count}}",
+    "tasksOpen": "отворени: {{count}}",
+    "mine": "мои: {{count}}",
+    "urgentCount": "спешни: {{count}}",
+    "openAll": "Отвори всички",
+    "loadError": "Не можа да се зареди.",
+    "noTickets": "Няма активни тикети.",
+    "noTasks": "Няма отворени задачи.",
+    "mineMark": "(мое)",
+    "urgent": "Спешно",
+    "noSubject": "Без тема",
+    "status": {
+      "new": "Нов",
+      "in_progress": "В процес",
+      "resolved": "Решен"
+    }
   }
 }

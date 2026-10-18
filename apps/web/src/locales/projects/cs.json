@@ -85,5 +85,61 @@
     "deleteEvents_many": "Smaže se i jeho {{count}} události.",
     "deleteEvents_other": "Smaže se i jeho {{count}} událostí.",
     "deleteKeeps": "Jeho otevřené úkoly ({{tasks}}) a tikety ({{tickets}}) zůstanou, bez projektu."
+  },
+  "timeline": {
+    "title": "Časová osa",
+    "projectSelect": "Projekt na časové ose",
+    "allProjects": "Všechny projekty",
+    "todayButton": "Dnes",
+    "today": "Dnes",
+    "todayAt": "Dnes, {{date}}",
+    "addEvent": "Přidat událost",
+    "addEventTo": "Do projektu {{name}}",
+    "earlier": "Dřívější",
+    "later": "Pozdější",
+    "listLabel": "Události podle data",
+    "noProjects": "Zatím žádné projekty. Projekty řadí úkoly a tikety tohoto klienta na časové ose.",
+    "noEvents": "Zatím žádné události.",
+    "loadError": "Časovou osu se nepodařilo načíst.",
+    "tasks": "Úkoly ({{count}})",
+    "tickets": "Tikety ({{count}})",
+    "tasksTitle": "Otevřené úkoly",
+    "ticketsTitle": "Aktivní tikety",
+    "showAll": "Zobrazit vše ({{count}})",
+    "done": "Hotové ({{count}})",
+    "more": "Zobrazit další",
+    "eventActions": "Akce události",
+    "eventUnavailable": "Tato událost už není k dispozici.",
+    "showOnTimeline": "Zobrazit na časové ose",
+    "gap": {
+      "months_one": "{{count}} měsíc",
+      "months_few": "{{count}} měsíce",
+      "months_many": "{{count}} měsíce",
+      "months_other": "{{count}} měsíců",
+      "years_one": "{{count}} rok",
+      "years_few": "{{count}} roky",
+      "years_many": "{{count}} roku",
+      "years_other": "{{count}} let"
+    }
+  },
+  "cards": {
+    "tickets": "Tikety",
+    "tasks": "Úkoly",
+    "ticketsActive": "aktivní: {{count}}",
+    "tasksOpen": "otevřené: {{count}}",
+    "mine": "moje: {{count}}",
+    "urgentCount": "urgentní: {{count}}",
+    "openAll": "Otevřít vše",
+    "loadError": "Nepodařilo se načíst.",
+    "noTickets": "Žádné aktivní tikety.",
+    "noTasks": "Žádné otevřené úkoly.",
+    "mineMark": "(moje)",
+    "urgent": "Urgentní",
+    "noSubject": "Bez předmětu",
+    "status": {
+      "new": "Nový",
+      "in_progress": "Řeší se",
+      "resolved": "Vyřešený"
+    }
   }
 }

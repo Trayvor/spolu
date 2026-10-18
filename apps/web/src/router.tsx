@@ -196,6 +196,11 @@ const groupIndexRoute = createRoute({
 const groupOverviewRoute = createRoute({
   getParentRoute: () => groupRoute,
   path: 'overview',
+  // Part P4: the timeline's chosen project and the task panel over the tab (as on `/tasks`).
+  validateSearch: (search: Record<string, unknown>): { project?: string; task?: string } => ({
+    project: text(search.project),
+    task: text(search.task),
+  }),
   component: lazyRouteComponent(
     // `chat` and `forms`: the dialogs' description field, files and sheet header.
     withNamespaces(['projects', 'chat', 'forms'], () => import('@/features/projects/overview-tab')),

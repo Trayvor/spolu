@@ -23,7 +23,7 @@ Admins and the group's clients (everyone who reads the group) see projects and e
 - **Event dialog**: the project (fixed), name, date, description, files; an existing event can be deleted there after a confirmation (its tasks and tickets keep the project).
 - **Archive** is the normal way to end a project: it leaves the active list and the pickers' active section, stays in the Archived list and stays selectable for tasks and tickets. **Delete** removes the project, its events, files, aliases and links; its tasks and tickets keep existing without it. Deleting an event clears only the event on its tasks and tickets.
 - **Live**: every write tells the group's room `project:changed`; an open Prehľad refetches 2 s after the last change.
-- Merge ("Merge into…") is part P3's; "Show on the timeline" is part P4's.
+- Merge ("Merge into…") is part P3's. "Show on the timeline" (part P4, in the sheet's menu) selects the project in the timeline.
 - **The admin group** "eGrant tím" (Phase 34, `kind = 'admin'`) has the Prehľad tab and its own projects too: the project routes check `canReadGroup`, which only admins pass there. Its card counts no tickets (the admin group has none); the eGrant webhook and ticket links (part P3) concern client groups only.
 
 ## Links and filters (part P2)
@@ -36,7 +36,21 @@ Planned: the project webhook, pending changes from eGrant, the intake's `project
 
 ## Timeline and cards (part P4)
 
-Planned: the timeline card, the event sheet, the active tickets and tasks cards.
+Built (part P4, `feat/projects-timeline`). The Prehľad tab shows, from the top: the **timeline**, the **Tickets** and **Tasks** cards (side by side from 641 px, stacked on phones), then the projects card.
+
+- **Timeline card** (decisions 14–17): the client's events on one straight line, each event a column of the same width (200 px, 160 px on phones), in date order and events of one day by creation. Past events have a filled dot, today's a filled dot with a ring, coming ones a hollow dot; every dot has a ring in its project's colour. Under the dot: the date, the event's name (two lines at most) and, while all projects are shown, the project's name with its dot.
+- **Today** is a vertical black rule labelled "Dnes" between the last past and the first coming event (an event of today comes right after it; with no past events it comes first, with no coming ones last). The strip opens scrolled so Today sits about a third from the left; the **Dnes** button scrolls back to it.
+- **Gaps:** neighbours more than 60 days apart get a small mark on the line halfway between them ("4 mesiace"; two years and more in years).
+- **Which events:** all active projects by default; the **project select** (all projects, each active project, then the archived ones) shows one project's whole life, archived projects too. The choice is in the URL (`?project=<id>`), so "Show on the timeline" in the project sheet and Back work. 15 events before today and 15 from today load first; **Skoršie** and **Neskoršie** at the strip's ends load 15 more that way and keep what is on screen in place.
+- **Under each event** (from 641 px): "Úlohy (n)" with up to 5 open tasks (urgent first, then by deadline; the deadline in red when overdue; assignees' avatars), "Tikety (n)" with up to 5 open tickets (newest first, `#number`, subject, status), each list only when it has rows; "Zobraziť všetko (n)" when there are more, which opens the event sheet (the filtered Tasks and Tickets tabs come with part P2's filters); then the **done pile**, one muted line "Hotové (7)" that expands in place to the completed tasks (struck through) and resolved tickets, newest first, 20 at a time. A task row opens the task panel over the overview (`?task=<id>`, as on the admin home's board); a ticket row opens the ticket page.
+- **Event sheet:** the event's name opens it (on phones the whole top of the column is its tap area): name, date, project, "From eGrant", description, files, attached knowledge, every open task and open ticket (20 a page) and the done pile expanded. Its menu has Edit (the event dialog) and Delete (asks first; tasks and tickets keep the project). Everyone who reads the group may use them (decision 8a).
+- **Header:** the project select, **Dnes**, and **Pridať udalosť**: with one project chosen it opens the event dialog for it, with all projects a menu asks which project first.
+- **Empty states:** a client without projects: "Zatiaľ žiadne projekty. Projekty zoraďujú úlohy a tikety tohto klienta na časovej osi." with **Nový projekt**; no events: "Zatiaľ žiadne udalosti." (with **Pridať udalosť** when one project is chosen).
+- **Phones** (≤ 640 px): the line, dots, dates, names and projects only; a tap opens the event sheet with the lists.
+- **Keyboard:** the strip is a list of events in date order (each a heading with the name as a button, the date as `<time>`); the arrow keys, Home and End move between events and the strip follows the focus. Today is announced as "Dnes, <date>".
+- **Tickets card** (decision 18): the client's New and In progress tickets, those I am a riešiteľ of first, then newest first, 8 rows (5 on phones): `#number`, subject, the project (and event) chip, status. The header counts them ("aktívne: 9, moje: 3"); **Otvoriť všetko** opens the Tickets tab (its default: open, anyone).
+- **Tasks card:** the client's tasks not in Completed, mine (I am an assignee) first, then urgent, then by deadline (none last), then oldest; 8 rows (5 on phones): title, the project chip, deadline (red when overdue), avatars; the header counts open, mine and urgent ones; **Otvoriť všetko** opens the Tasks tab. Clients see the same cards with their own rows first.
+- **Live:** task and ticket events of the group refetch the timeline, the open lists and the cards 2 s after the last one; `project:changed` refetches everything of the tab as before.
 
 ## Description editor (part P5)
 
