@@ -71,3 +71,70 @@ export const McpAuditEntrySchema = z.object({
 });
 export type McpAuditEntry = z.infer<typeof McpAuditEntrySchema>;
 export const McpAuditListSchema = z.array(McpAuditEntrySchema);
+
+/**
+ * OAuth for the MCP server (2026-10-18, docs/superpowers/specs/2026-10-18-mcp-oauth-design.md,
+ * ADR 0034): an AI client such as Claude registers itself, an admin approves it on the consent
+ * screen, and the client gets short-lived access tokens that work like personal tokens.
+ */
+export const MCP_OAUTH_LIMITS = {
+  /** Active connections (approved, not revoked, not expired) per user. */
+  activeConnections: 10,
+  clientName: 100,
+} as const;
+
+/** The query of `/oauth/authorize`, as the consent page passes it on to the API. */
+export const McpAuthorizeParamsSchema = z.object({
+  response_type: z.string().max(50).optional(),
+  client_id: z.string().max(200).optional(),
+  redirect_uri: z.string().max(2000).optional(),
+  state: z.string().max(1000).optional(),
+  scope: z.string().max(200).optional(),
+  code_challenge: z.string().max(200).optional(),
+  code_challenge_method: z.string().max(20).optional(),
+  resource: z.string().max(2000).optional(),
+});
+export type McpAuthorizeParams = z.infer<typeof McpAuthorizeParamsSchema>;
+
+/** `GET /api/oauth/authorize`: what the consent screen shows, or where to send the browser. */
+export const McpConsentInfoSchema = z.discriminatedUnion('kind', [
+  z.object({
+    kind: z.literal('consent'),
+    clientName: z.string(),
+    /** The host the browser returns to (claude.ai, or localhost for a desktop client). */
+    redirectHost: z.string(),
+    /** The most the client asked for; `read` offers read only. */
+    requestedScope: McpScopeSchema,
+    /** Binds the approval to this login session and these parameters (CSRF). */
+    consentToken: z.string(),
+    /** The user already has the most connections: approving answers 409. */
+    limitReached: z.boolean(),
+  }),
+  /** A bad request of a known client: the error goes back to its registered address. */
+  z.object({ kind: z.literal('redirect'), redirectTo: z.string() }),
+]);
+export type McpConsentInfo = z.infer<typeof McpConsentInfoSchema>;
+
+/** `POST /api/oauth/authorize`. */
+export const McpConsentDecisionSchema = z
+  .object({
+    params: McpAuthorizeParamsSchema,
+    consentToken: z.string().max(500),
+    approve: z.boolean(),
+    scope: McpScopeSchema,
+  })
+  .strict();
+export type McpConsentDecision = z.infer<typeof McpConsentDecisionSchema>;
+export const McpConsentResultSchema = z.object({ redirectTo: z.string() });
+
+/** A connected OAuth client on the settings card. */
+export const McpConnectionSchema = z.object({
+  id: z.string(),
+  clientName: z.string(),
+  redirectHost: z.string(),
+  scope: McpScopeSchema,
+  createdAt: z.string(),
+  lastUsedAt: z.string().nullable(),
+});
+export type McpConnection = z.infer<typeof McpConnectionSchema>;
+export const McpConnectionListSchema = z.array(McpConnectionSchema);
