@@ -26,6 +26,11 @@ import { registerKnowledgeChatFiles } from './modules/knowledge/chat-files.js';
 import { registerKnowledgeReminderSubject } from './modules/knowledge/reminder-subject.js';
 import { registerErrorHandler } from './infra/http/error-handler.js';
 import { createRateLimiter } from './infra/http/rate-limit.js';
+import {
+  CSP_REPORT_PATH,
+  cspReportRoutes,
+  registerSecurityHeaders,
+} from './infra/http/security-headers.js';
 import { knowledgeRoutes } from './modules/knowledge/routes.js';
 import { attachMeetingsRealtime } from './modules/knowledge/meeting-realtime.js';
 import { meetingRoutes } from './modules/knowledge/meeting-routes.js';
@@ -100,9 +105,11 @@ export async function buildApp(
   registerCsrfGuard(app, config);
   // An in-process MCP call reaches only an exact allowlist route (ADR 0033).
   registerMcpRouteGuard(app);
-  registerNoFraming(app);
+  // The enforced CSP, Reporting-Endpoints and X-Frame-Options on every answer (ADR 0044).
+  registerSecurityHeaders(app, config.publicUrl);
 
   await app.register(systemRoutes, { prefix: '/api', deps });
+  await app.register(cspReportRoutes, { prefix: '/api' });
   await app.register(authRoutes, { prefix: '/api', deps });
   await app.register(usersRoutes, { prefix: '/api', deps });
   await app.register(groupsRoutes, { prefix: '/api', deps });
@@ -180,7 +187,8 @@ export async function buildApp(
  * either says the request came from elsewhere. Requests with neither header (curl, tests)
  * pass. /api/auth/* is skipped: better-auth checks Origin itself. The bulk email unsubscribe
  * and subscribe POSTs are skipped too: their signed token is the credential, they use no
- * session, and mail providers send the RFC 8058 one-click from their own servers.
+ * session, and mail providers send the RFC 8058 one-click from their own servers. So is
+ * /api/csp-report: a violation report changes nothing (rate-limited, size-capped).
  */
 const TOKEN_POSTS = ['/api/bulk-email/unsubscribe/', '/api/bulk-email/subscribe/'];
 
@@ -195,23 +203,12 @@ function registerCsrfGuard(app: FastifyInstance, config: AppDeps['config']): voi
     const path = request.url.split('?')[0] ?? '/';
     if (!isUnder(path, '/api') || isUnder(path, '/api/auth')) return;
     if (TOKEN_POSTS.some((prefix) => path.startsWith(prefix))) return;
+    if (path === CSP_REPORT_PATH) return; // a browser's violation report changes nothing
     const site = request.headers['sec-fetch-site'];
     const origin = request.headers.origin;
     const crossSite = site !== undefined && site !== 'same-origin' && site !== 'none';
     const foreignOrigin = origin !== undefined && !allowedOrigins.has(origin);
     if (crossSite || foreignOrigin) return reply.code(403).send({ error: 'forbidden' });
-  });
-}
-
-/**
- * The consent screen (`/oauth/authorize`, a page of the web app) may not be framed: a page on
- * another site could otherwise lay it under its own and trick the click on "Allow".
- */
-function registerNoFraming(app: FastifyInstance): void {
-  app.addHook('onSend', async (request, reply) => {
-    if (!request.url.startsWith('/oauth/')) return;
-    reply.header('x-frame-options', 'DENY');
-    reply.header('content-security-policy', "frame-ancestors 'none'");
   });
 }
 

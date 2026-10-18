@@ -6,22 +6,13 @@
 		Strict-Transport-Security "max-age=31536000; includeSubDomains"
 		X-Content-Type-Options nosniff
 		Referrer-Policy strict-origin-when-cross-origin
-		# No page of the app may be framed by another site (clickjacking). The app sets the same
-		# two headers on /oauth/* itself (app.ts registerNoFraming), for runs without Caddy.
+		# No page of the app may be framed by another site (clickjacking).
 		X-Frame-Options DENY
-		# Enforced now: only the directives that cannot break the app.
-		Content-Security-Policy "frame-ancestors 'none'; base-uri 'self'; object-src 'none'"
-		# The full policy, report-only until it has been watched in browsers (docs/runbooks/deploy.md,
-		# "Security headers"): violations show in the browser console, nothing is blocked.
-		# - script: the Vite build is hashed files of our own (no inline script, no eval);
-		#   the service worker and push-sw.js are same-origin.
-		# - style 'unsafe-inline': React style attributes, ProseMirror and the email preview.
-		# - img/media blob: and data:: logo and image previews, recorded voice and meeting audio.
-		# - connect: the API and Socket.IO on this origin (wss: spelled out for older Safari).
-		#   The AI and voice features call OpenAI and ElevenLabs from the server, not the browser.
-		# - fonts are self-hosted (/fonts); no Google Fonts.
-		# - the bulk email preview is an <iframe srcdoc> (about:srcdoc), which needs no frame-src.
-		Content-Security-Policy-Report-Only "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; font-src 'self'; connect-src 'self' wss://{$DOMAIN}; worker-src 'self'; manifest-src 'self'; frame-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
+		# The enforced Content-Security-Policy (and Reporting-Endpoints) comes from the app itself
+		# (apps/server/src/infra/http/security-headers.ts, ADR 0044), so the e2e run against the
+		# built server gets the same policy. Caddy must not overwrite it: "?" sets this short one
+		# only on an answer that has none (Caddy's own errors, for example a 502 while the app restarts).
+		?Content-Security-Policy "frame-ancestors 'none'; base-uri 'self'; object-src 'none'"
 		# Voice input needs the microphone on this origin; nothing needs the camera or location.
 		Permissions-Policy "camera=(), geolocation=(), microphone=(self), payment=(), usb=()"
 		-Server

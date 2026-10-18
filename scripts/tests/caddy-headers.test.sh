@@ -14,8 +14,6 @@ expect() { # name, needle, haystack file
 
 caddyfile="$root/deploy/Caddyfile"
 checked="$caddyfile"
-# shellcheck disable=SC2016 # a Caddy placeholder, not a shell one
-domain='{$DOMAIN}'
 if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
   caddy_image="$(sed -n 's/^ *image: \(caddy:.*\)$/\1/p' "$root/deploy/docker-compose.yml")"
   cp "$caddyfile" "$d/Caddyfile"
@@ -23,7 +21,6 @@ if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
   if docker run --rm -v "$d:/etc/caddy:ro" -e DOMAIN=help.example.com "$caddy_image" \
     caddy adapt --config /etc/caddy/Caddyfile > "$d/adapted.json" 2> "$d/adapt.log"; then
     checked="$d/adapted.json"
-    domain='help.example.com'
   else
     echo "FAIL caddy adapt"; cat "$d/adapt.log"; fail=1
   fi
@@ -35,14 +32,21 @@ expect "HSTS" 'max-age=31536000; includeSubDomains' "$checked"
 expect "nosniff" 'nosniff' "$checked"
 expect "Referrer-Policy" 'strict-origin-when-cross-origin' "$checked"
 expect "X-Frame-Options" 'DENY' "$checked"
-expect "enforced framing CSP" "frame-ancestors 'none'; base-uri 'self'; object-src 'none'" "$checked"
-expect "report-only CSP" 'Content-Security-Policy-Report-Only' "$checked"
-expect "CSP script-src" "script-src 'self';" "$checked"
-expect "CSP Socket.IO" "connect-src 'self' wss://$domain;" "$checked"
+expect "fallback CSP" "frame-ancestors 'none'; base-uri 'self'; object-src 'none'" "$checked"
 expect "Permissions-Policy microphone" 'microphone=(self)' "$checked"
 expect "Server header removed" 'Server' "$checked"
 
-# The CSP must not allow inline or eval'd scripts.
+# The enforced CSP comes from the app (apps/server/src/infra/http/security-headers.ts, ADR 0044):
+# Caddy sets its short one only as a default ("?"), never over the app's, and no report-only one.
+if ! grep -qE '^[[:space:]]*\?Content-Security-Policy ' "$caddyfile"; then
+  echo "FAIL Caddy's Content-Security-Policy must be a default (?), not overwrite the app's"; fail=1
+fi
+if grep -qE '^[[:space:]]*Content-Security-Policy' "$caddyfile"; then
+  echo "FAIL Caddy overwrites the app's Content-Security-Policy"; fail=1
+fi
+if grep -qF 'Content-Security-Policy-Report-Only' "$checked"; then
+  echo "FAIL a Content-Security-Policy-Report-Only header is still set"; fail=1
+fi
 if grep -E "script-src[^;]*'unsafe-(inline|eval)'" "$caddyfile" >/dev/null; then
   echo "FAIL script-src allows unsafe-inline or unsafe-eval"; fail=1
 fi
