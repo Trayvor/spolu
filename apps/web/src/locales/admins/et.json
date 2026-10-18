@@ -20,6 +20,6 @@
   "finance": {
     "label": "Rahandus",
     "labelFor": "Ligipääs rahandusele: {{name}}",
-    "failed": "Muutmine ebaõnnestus. Proovi uuesti."
+    "failed": "Muutmine ebaõnnestus. Proovige uuesti."
   }
 }

@@ -33,9 +33,9 @@
     "listLabel": "Managers of {{name}}",
     "noManagerHint": "Clients with no manager: only their own people can be mentioned or assigned.",
     "add": "Add manager",
-    "find": "Find an administrator",
-    "allAdded": "Every administrator already manages this group.",
-    "noMatch": "No administrator matches “{{q}}”.",
+    "find": "Find an admin",
+    "allAdded": "Every admin already manages this group.",
+    "noMatch": "No admin matches “{{q}}”.",
     "remove": "Remove {{name}}"
   },
   "mine": {

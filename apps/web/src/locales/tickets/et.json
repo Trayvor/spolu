@@ -19,7 +19,7 @@
     "assignees": {
       "anyone": "Igaüks",
       "me": "Mina",
-      "none": "Keegi"
+      "none": "Lahendajata"
     },
     "clear": "Tühjenda filtrid",
     "project": "Projekt: {{name}}",
@@ -34,7 +34,7 @@
     "error": "Pöördumisi ei õnnestunud laadida.",
     "empty": "Avatud pöördumisi ei ole.",
     "noMatch": "Nendele filtritele ei vasta ükski pöördumine.",
-    "loadMore": "Laadi rohkem"
+    "loadMore": "Näita rohkem"
   },
   "row": {
     "due": "Tähtaeg",
@@ -45,7 +45,7 @@
   },
   "mine": {
     "title": "Minu pöördumised",
-    "empty": "Teil ei ole siin pöördumisi. Kui eGranti tugi avab Teile pöördumise, ilmub see siia."
+    "empty": "Teil ei ole veel pöördumisi. Pöördumine tekib, kui saadate eGrantis tugipäringu; siis ilmub see siia."
   },
   "global": {
     "title": "Pöördumised"
@@ -72,7 +72,7 @@
     "url": "Link",
     "instance": "eGranti keskkond",
     "files": "Failid",
-    "initiator": "Algataja",
+    "initiator": "Taotleja",
     "unknown": "Teadmata",
     "client": "Klient",
     "created": "Loodud",
@@ -88,17 +88,17 @@
   },
   "noClient": {
     "title": "Klient puudub",
-    "adminHint": "eGrant ei saatnud ühelegi kliendile vastavat keskkonna linki. Valige klient jaotises Muuda: pöördumine saab oma vestluse ja algataja saab e-kirja.",
+    "adminHint": "eGrant ei saatnud ühelegi kliendile vastavat keskkonna linki. Valige klient jaotises „Muuda“: pöördumine saab oma vestluse ja taotleja saab e-kirja.",
     "hint": "Administraator määrab esmalt kliendi."
   },
   "form": {
     "title": "Uus pöördumine",
     "back": "Tagasi",
-    "initiator": "Algataja",
+    "initiator": "Taotleja",
     "initiatorHint": "Ta saab e-kirja ja saab pöördumist Help-rakenduses jälgida.",
-    "email": "Algataja e-posti aadress",
-    "name": "Algataja nimi",
-    "phone": "Algataja telefon",
+    "email": "Taotleja e-posti aadress",
+    "name": "Taotleja nimi",
+    "phone": "Taotleja telefon",
     "filesAfterClient": "Valige esmalt klient: failid kuuluvad talle.",
     "create": "Loo pöördumine",
     "errors": {

@@ -76,7 +76,9 @@ describe('My time', () => {
     };
     show();
     expect(
-      await screen.findByText(t('tasks.time.everyone', { list: 'Eva 1 h 30 min, Ján Not filled' })),
+      await screen.findByText(
+        t('tasks.time.everyone', { list: 'Eva 1 h 30 min, Ján Not recorded' }),
+      ),
     ).toBeInTheDocument();
     expect(screen.queryByRole('button')).toBeNull();
   });

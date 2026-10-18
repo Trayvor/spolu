@@ -92,14 +92,14 @@ test('bulk email builder: split container, phone version and the send warning', 
   await expect(page.getByRole('region', { name: 'Ľavý stĺpec bloku 2' })).toBeVisible();
 
   // 4. Return to the computer version: the phone follows desktop again.
-  await page.getByRole('button', { name: 'Vrátiť verziu pre počítač' }).click();
+  await page.getByRole('button', { name: 'Vrátiť sa k verzii pre počítač' }).click();
   await page.getByRole('button', { name: 'Zahodiť verziu pre telefón' }).click();
   await expect(state).toHaveText('Verzia pre telefón: rovnaká ako pre počítač');
   await expect(page.getByText('Všetky zmeny sú uložené')).toBeVisible();
   await expect.poll(async () => (await campaign()).phoneBlocks).toBeNull();
 
   // 5. Recipients: the admins (the email is never sent in this test).
-  await page.getByRole('checkbox', { name: 'Admini' }).check();
+  await page.getByRole('checkbox', { name: 'Administrátori' }).check();
   await expect(page.getByText('Všetky zmeny sú uložené')).toBeVisible();
 
   // 6. Send…: the one-time warning, "Show phone preview" switches to Phone.

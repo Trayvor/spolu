@@ -62,7 +62,7 @@ test('a task description with voice, AI and attached knowledge', async ({
     timeout: 15_000,
   });
 
-  await panel.getByRole('button', { name: 'Priložiť z databázy znalostí' }).click();
+  await panel.getByRole('button', { name: 'Priložiť zo Znalostí' }).click();
   await admin.getByRole('checkbox', { name: /Postup podania/ }).check();
   await admin.getByRole('button', { name: 'Priložiť (1)' }).click();
   await expect(

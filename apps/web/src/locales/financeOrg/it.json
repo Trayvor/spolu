@@ -3,12 +3,12 @@
     "expense": "Spesa"
   },
   "kindsHelp": {
-    "expense": "Lo stipendio di un admin o un altro pagamento"
+    "expense": "Lo stipendio di un amministratore o un altro pagamento"
   },
   "card": {
     "title": "Voci",
     "views": "Mostra",
-    "ledger": "Panoramica",
+    "ledger": "Elenco",
     "organisation": "Organizzazione",
     "expenses": "Spese"
   },
@@ -26,18 +26,18 @@
     "chooseClient": "Scegli un cliente",
     "kind": "Tipo di spesa",
     "kinds": {
-      "salary": "Stipendio di un admin",
+      "salary": "Stipendio di un amministratore",
       "other": "Altra spesa"
     },
-    "payee": "Admin",
-    "choosePayee": "Scegli un admin",
+    "payee": "Amministratore",
+    "choosePayee": "Scegli un amministratore",
     "salaryNote": "Nota",
     "what": "Per cosa",
     "whatHint": "Per esempio il server, una licenza o una multa",
     "date": "Data",
     "payer": "Organizzazione capofila",
     "payerHint": "Chi paga per tutti i clienti in una volta.",
-    "reminderHint": "Proposto: il giorno prima della data alle 9:00. Lo ricevi tu; aggiungi altri admin finanziari dopo il salvataggio."
+    "reminderHint": "Proposto: il giorno prima della data alle 9:00. Lo riceve Lei; aggiunga altri amministratori finanziari dopo il salvataggio."
   },
   "shares": {
     "title": "Quote dei clienti",
@@ -63,7 +63,7 @@
     "sharesSum": "Le quote devono dare esattamente l'importo del contratto.",
     "whatRequired": "Scrivi a cosa serve la spesa.",
     "dateRequired": "Scegli la data.",
-    "payeeRequired": "Scegli l'admin."
+    "payeeRequired": "Scegli l'amministratore."
   },
   "view": {
     "readOnly": "Un contratto di più clienti si modifica in Finanze, dove ci sono tutte le sue quote.",
@@ -73,7 +73,7 @@
     "payer": "Organizzazione capofila",
     "shares": "Quote",
     "kind": "Tipo",
-    "payee": "Admin",
+    "payee": "Amministratore",
     "date": "Data",
     "planned": "prevista"
   },
@@ -107,7 +107,7 @@
   "overview": {
     "out": "Spese",
     "paidOut": "Spese ({{currency}})",
-    "salaries": "di cui stipendi degli admin {{amount}}",
+    "salaries": "di cui stipendi degli amministratori {{amount}}",
     "planned": "Spese previste ({{currency}})",
     "balance": "Saldo dopo le spese",
     "balanceNote": "Pagato meno le spese pagate. Il costo del lavoro non si sottrae: lo pagano gli stipendi."

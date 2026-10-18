@@ -1,11 +1,11 @@
 {
   "done": {
     "title": "Jste odhlášeni",
-    "body": "Hromadné e-maily od eGrant už dostávat nebudete. Přihlašovací kódy a oznámení z aplikace Help přicházejí dál."
+    "body": "Hromadné e-maily od eGrantu už dostávat nebudete. Přihlašovací kódy a oznámení z aplikace Help přicházejí dál."
   },
   "subscribed": {
     "title": "Jste znovu přihlášeni k odběru",
-    "body": "Hromadné e-maily od eGrant budete znovu dostávat. Kdykoli to můžete změnit v Nastavení aplikace Help."
+    "body": "Hromadné e-maily od eGrantu budete znovu dostávat. Kdykoli to můžete změnit v Nastavení aplikace Help."
   },
   "subscribeAgain": "Znovu přihlásit k odběru",
   "unsubscribeButton": "Odhlásit odběr",

@@ -5,17 +5,17 @@
   "newMessages": "Nové správy",
   "jumpToLatest": "Nové správy ↓",
   "edited": "(upravené)",
-  "deleted": "Správa bola odstránená",
+  "deleted": "Správa bola vymazaná",
   "egrant": "eGrant",
   "notSent": "Neodoslané.",
   "retry": "Skúsiť znova",
   "cancel": "Zrušiť",
-  "confirmDelete": "Odstrániť túto správu?",
+  "confirmDelete": "Vymazať túto správu?",
   "actions": {
     "replyInThread": "Odpovedať vo vlákne",
     "more": "Viac",
     "edit": "Upraviť",
-    "delete": "Odstrániť",
+    "delete": "Vymazať",
     "quote": "Citovať",
     "label": "Akcie správy",
     "open": "Akcie správy",
@@ -52,14 +52,14 @@
     "add": "Pridať",
     "addTicket": "Tiket",
     "addUpload": "Nahrať súbor zo zariadenia",
-    "removeFile": "Odstrániť súbor",
+    "removeFile": "Odobrať súbor",
     "replyingTo": "Odpoveď pre {{name}}: {{excerpt}}",
     "cancelReply": "Zrušiť odpoveď",
     "tooLong": "{{count}} / 10 000 znakov",
     "tooManyFiles": "Najviac 10 súborov v jednej správe.",
     "fileTooLarge": "Príliš veľký (max 25 MB)",
     "formatting": "Formátovanie",
-    "mentionNotAllowed": "Niekoho, koho ste spomenuli, tu už nemožno spomenúť.",
+    "mentionNotAllowed": "Niekto zo spomenutých ľudí už v tejto skupine nie je.",
     "linkUrl": "Adresa odkazu",
     "addLink": "Pridať odkaz",
     "emoji": "Vložiť emoji",
@@ -84,11 +84,11 @@
   "copied": "Text skopírovaný",
   "ai": {
     "button": "AI nástroje",
-    "working": "Upravujem…",
+    "working": "Upravuje sa…",
     "fix": "Opraviť chyby",
     "formal": "Formálnejšie",
     "translateTo": "Preložiť: {{language}}",
-    "undo": "Späť",
+    "undo": "Vrátiť",
     "failed": "AI nedokázala text upraviť. Skúste to znova.",
     "limited": "Priveľa požiadaviek. Skúste to o minútu."
   },
@@ -97,7 +97,7 @@
     "stop": "Zastaviť a prepísať",
     "cancel": "Zrušiť nahrávanie",
     "recording": "Čas nahrávania",
-    "transcribing": "Prepisujem…",
+    "transcribing": "Prepisuje sa…",
     "denied": "Na diktovanie povoľte mikrofón v prehliadači.",
     "unsupported": "Tento prehliadač nevie nahrávať zvuk.",
     "failed": "Nahrávku sa nepodarilo prepísať. Skúste to znova.",
@@ -127,16 +127,16 @@
     }
   },
   "knowledge": {
-    "attach": "Priložiť z databázy znalostí",
+    "attach": "Priložiť zo Znalostí",
     "attached": "Priložené položky znalostí",
     "remove": "Odobrať {{title}}",
-    "pickerTitle": "Priložiť z databázy znalostí",
+    "pickerTitle": "Priložiť zo Znalostí",
     "pickerHint": "Zobrazujú sa len položky, ktoré vidia všetci v tejto skupine.",
-    "search": "Hľadať v databáze znalostí",
+    "search": "Hľadať v Znalostiach",
     "attachCount": "Priložiť ({{count}})",
     "noResults": "Hľadaniu nič nezodpovedá.",
     "empty": "Táto skupina zatiaľ nemá žiadne zdieľané položky znalostí.",
-    "loadMore": "Zobraziť viac",
+    "loadMore": "Zobraziť ďalšie",
     "limit": "Najviac {{count}} položiek v jednej správe.",
     "limitDescription": "Najviac {{count}} položiek v jednom popise.",
     "unavailable": "Položka nie je dostupná",
@@ -150,9 +150,9 @@
       "chat_file": "Z chatu"
     },
     "adminGroup": "eGrant tím",
-    "source": "Zobraziť z",
+    "source": "Zdroj",
     "sourceGroup": "Tento klient",
-    "adminGroupHint": "Zobrazujú sa len položky označené Zdieľateľné s klientmi."
+    "adminGroupHint": "Zobrazujú sa len položky označené „Zdieľateľné s klientmi“."
   },
   "work": {
     "pickerTitle": "Priložiť k správe",
@@ -178,8 +178,8 @@
     "urgent": "Urgentné",
     "bucket": {
       "todo": "Na spracovanie",
-      "egrant_review": "Kontrola eGrant",
-      "client_review": "Kontrola klienta",
+      "egrant_review": "Kontroluje eGrant",
+      "client_review": "Kontroluje klient",
       "done": "Hotové"
     },
     "status": {
@@ -189,14 +189,14 @@
     }
   },
   "editor": {
-    "knowledgeUnavailable": "Priložená položka znalostí sa tu už nedá zdieľať. Odstráňte ju a uložte znova."
+    "knowledgeUnavailable": "Priložená položka znalostí sa tu už nedá zdieľať. Odoberte ju a uložte znova."
   },
   "attach": {
     "clients": {
       "withoutClient": "Bez klienta",
       "mine": "Váš klient",
       "onlyEgrant": "Len eGrant",
-      "knowledgeHint": "Poznatky všetkých klientov aj položky len pre eGrant: tento chat čítajú len administrátori."
+      "knowledgeHint": "Znalosti všetkých klientov aj položky len pre eGrant: tento chat čítajú len administrátori."
     }
   }
 }

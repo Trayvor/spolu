@@ -1,16 +1,16 @@
 {
   "tab": "Finanze",
-  "pageTitle": "Amministrazione finanziaria",
+  "pageTitle": "Finanze",
   "segments": {
     "label": "Mostra scheda",
-    "overview": "Panoramica",
+    "overview": "Sintesi",
     "documents": "Documenti",
     "workLog": "Registro ore",
     "contracts": "Contratti",
     "rankings": "Classifiche"
   },
   "cards": {
-    "overview": "Panoramica",
+    "overview": "Sintesi",
     "overviewSoon": "Qui si vedrà quanto il cliente ha pagato e pagherà secondo i contratti, quanto è costato il lavoro e le ore di ogni amministratore.",
     "documents": "Documenti",
     "documentsSoon": "Qui saranno conservati contratti, documenti, note e cartelle di questo cliente.",

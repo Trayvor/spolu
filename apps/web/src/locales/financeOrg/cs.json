@@ -3,12 +3,12 @@
     "expense": "Výdaj"
   },
   "kindsHelp": {
-    "expense": "Mzda admina nebo jiná platba"
+    "expense": "Mzda administrátora nebo jiná platba"
   },
   "card": {
     "title": "Položky",
     "views": "Zobrazit",
-    "ledger": "Přehled",
+    "ledger": "Seznam",
     "organisation": "Organizace",
     "expenses": "Výdaje"
   },
@@ -26,18 +26,18 @@
     "chooseClient": "Vyberte klienta",
     "kind": "Druh výdaje",
     "kinds": {
-      "salary": "Mzda admina",
+      "salary": "Mzda administrátora",
       "other": "Jiný výdaj"
     },
-    "payee": "Admin",
-    "choosePayee": "Vyberte admina",
+    "payee": "Administrátor",
+    "choosePayee": "Vyberte administrátora",
     "salaryNote": "Poznámka",
     "what": "Za co",
     "whatHint": "Například server, licence nebo pokuta",
     "date": "Datum",
     "payer": "Nadřazená organizace",
     "payerHint": "Kdo platí za všechny klienty najednou.",
-    "reminderHint": "Navrhujeme den před datem v 9:00. Dostanete ji vy; další finanční adminy přidáte po uložení."
+    "reminderHint": "Navrženo: den před datem v 9:00. Dostanete ji vy; další finanční administrátory přidáte po uložení."
   },
   "shares": {
     "title": "Podíly klientů",
@@ -63,7 +63,7 @@
     "sharesSum": "Podíly musí dát dohromady přesně částku smlouvy.",
     "whatRequired": "Napište, za co je výdaj.",
     "dateRequired": "Vyberte datum.",
-    "payeeRequired": "Vyberte admina."
+    "payeeRequired": "Vyberte administrátora."
   },
   "view": {
     "readOnly": "Smlouva více klientů se upravuje ve Financích, kde jsou všechny její podíly.",
@@ -73,7 +73,7 @@
     "payer": "Nadřazená organizace",
     "shares": "Podíly",
     "kind": "Druh",
-    "payee": "Admin",
+    "payee": "Administrátor",
     "date": "Datum",
     "planned": "plánovaný"
   },
@@ -108,7 +108,7 @@
   "overview": {
     "out": "Výdaje",
     "paidOut": "Výdaje ({{currency}})",
-    "salaries": "z toho mzdy adminů {{amount}}",
+    "salaries": "z toho mzdy administrátorů {{amount}}",
     "planned": "Plánované výdaje ({{currency}})",
     "balance": "Bilance po výdajích",
     "balanceNote": "Zaplaceno minus vyplacené výdaje. Náklady na práci se neodečítají: práci platí mzdy."

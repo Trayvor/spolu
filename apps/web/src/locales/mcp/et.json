@@ -16,8 +16,8 @@
     "write": "Lugemine ja muutmine"
   },
   "scopeHint": {
-    "read": "Assistent loeb gruppe, vestlusi, ülesandeid, pileteid ja teadmisi.",
-    "write": "Assistent saab ka luua ja muuta ülesandeid, pileteid, sõnumeid, teadmisi ja projekte. Ta ei kustuta kunagi midagi."
+    "read": "Assistent loeb gruppe, vestlusi, ülesandeid, pöördumisi ja teadmisi.",
+    "write": "Assistent saab ka luua ja muuta ülesandeid, pöördumisi, sõnumeid, teadmisi ja projekte. Ta ei kustuta kunagi midagi."
   },
   "days": {
     "7": "7 päeva",

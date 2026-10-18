@@ -55,7 +55,7 @@
     "tooManyFiles": "At most 10 files per message.",
     "fileTooLarge": "Too large (max 25 MB)",
     "formatting": "Formatting",
-    "mentionNotAllowed": "Someone you mentioned can't be mentioned here any more.",
+    "mentionNotAllowed": "Someone you mentioned is no longer in this group.",
     "linkUrl": "Link address",
     "addLink": "Add link",
     "emoji": "Insert emoji",
@@ -121,12 +121,12 @@
     }
   },
   "knowledge": {
-    "attach": "Attach from the knowledge base",
+    "attach": "Attach from Knowledge",
     "attached": "Attached knowledge items",
     "remove": "Remove {{title}}",
-    "pickerTitle": "Attach from the knowledge base",
+    "pickerTitle": "Attach from Knowledge",
     "pickerHint": "Only items everyone in this group can see are listed.",
-    "search": "Search the knowledge base",
+    "search": "Search Knowledge",
     "attachCount": "Attach ({{count}})",
     "noResults": "Nothing matches your search.",
     "empty": "This group has no shared knowledge items yet.",
@@ -144,9 +144,9 @@
       "chat_file": "From chat"
     },
     "adminGroup": "eGrant team",
-    "source": "List from",
+    "source": "Source",
     "sourceGroup": "This client",
-    "adminGroupHint": "Only items marked Shareable with clients are listed."
+    "adminGroupHint": "Only items marked “Shareable with clients” are listed."
   },
   "work": {
     "pickerTitle": "Attach to the message",
@@ -167,14 +167,14 @@
     "taskUnavailable": "Task unavailable",
     "ticketUnavailable": "Ticket unavailable",
     "noSubject": "No subject",
-    "completed": "Completed",
+    "completed": "Done",
     "overdue": "Overdue",
     "urgent": "Urgent",
     "bucket": {
       "todo": "To do",
       "egrant_review": "eGrant review",
       "client_review": "Client review",
-      "done": "Completed"
+      "done": "Done"
     },
     "status": {
       "new": "New",

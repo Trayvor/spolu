@@ -222,20 +222,25 @@ describe('buildPushPayload tasks', () => {
         ...en,
         payload: { ...task, toBucket: { kind: 'egrant_review', name: null } },
       }),
-    ).toEqual({ title: 'Report · Firma', body: 'Moved to eGrant review', url, tag: 'task:t1' });
+    ).toEqual({
+      title: 'Report · Firma',
+      body: 'Moved to the “eGrant review” column',
+      url,
+      tag: 'task:t1',
+    });
     expect(
       buildPushPayload({
         ...en,
         payload: { ...task, toBucket: { kind: 'client_review', name: 'Firma' } },
       }).body,
-    ).toBe('Moved to Firma review');
+    ).toBe('Moved to the “Firma review” column');
     expect(
       buildPushPayload({
         ...t,
         kind: 'task.moved',
         payload: { ...task, toBucket: { kind: 'egrant_review', name: null } },
       }).body,
-    ).toBe('Presunuté do Kontrola eGrant');
+    ).toBe('Presunuté do stĺpca „Kontroluje eGrant“');
   });
   it('moved without a usable toBucket falls back to a generic body', () => {
     const m = { ...t, kind: 'task.moved' } as const;
@@ -278,19 +283,19 @@ describe('buildPushPayload tasks', () => {
 describe('texts', () => {
   it('bucket names reuse the board names', () => {
     expect(texts('en').bucket({ kind: 'todo', name: null })).toBe('To do');
-    expect(texts('en').bucket({ kind: 'done', name: null })).toBe('Completed');
-    expect(texts('sk').bucket({ kind: 'client_review', name: 'Firma' })).toBe('Kontrola Firma');
+    expect(texts('en').bucket({ kind: 'done', name: null })).toBe('Done');
+    expect(texts('sk').bucket({ kind: 'client_review', name: 'Firma' })).toBe('Kontroluje Firma');
     expect(texts('sk').bucket({ kind: 'done', name: null })).toBe('Hotové');
     expect(texts('en').bucket({ kind: 'custom', name: 'QA' })).toBe('QA');
   });
   it('digest subjects', () => {
-    expect(texts('en').digestSubject(1, 'Firma')).toBe('1 new message in Firma');
-    expect(texts('en').digestSubject(3, 'Firma')).toBe('3 new messages in Firma');
-    expect(texts('sk').digestSubject(1, 'Firma')).toBe('1 nová správa v Firma');
-    expect(texts('sk').digestSubject(3, 'Firma')).toBe('3 nové správy v Firma');
-    expect(texts('sk').digestSubject(5, 'Firma')).toBe('5 nových správ v Firma');
-    expect(texts('sk').digestButton('Firma')).toBe('Otvoriť Firma');
-    expect(texts('en').digestButton('Firma')).toBe('Open Firma');
+    expect(texts('en').digestSubject(1, 'Firma')).toBe('1 new message – Firma');
+    expect(texts('en').digestSubject(3, 'Firma')).toBe('3 new messages – Firma');
+    expect(texts('sk').digestSubject(1, 'Firma')).toBe('1 nová správa – Firma');
+    expect(texts('sk').digestSubject(3, 'Firma')).toBe('3 nové správy – Firma');
+    expect(texts('sk').digestSubject(5, 'Firma')).toBe('5 nových správ – Firma');
+    expect(texts('sk').digestButton('Firma')).toBe('Otvoriť skupinu');
+    expect(texts('en').digestButton('Firma')).toBe('Open group');
   });
 });
 
@@ -323,15 +328,27 @@ describe('buildPushPayload tickets (Phase 21.6)', () => {
       '#123 Login fails',
       'Jana: text',
     ],
-    ['ticket.status', { status: 'in_progress' }, 'en', '#123 is now In progress', 'Login fails'],
-    ['ticket.status', { status: 'in_progress' }, 'sk', '#123 je teraz V riešení', 'Login fails'],
-    ['ticket.status', { status: 'resolved' }, 'sk', '#123 je teraz Vyriešený', 'Login fails'],
-    ['ticket.updated', {}, 'en', '#123 was changed', 'Login fails'],
-    ['ticket.updated', {}, 'sk', '#123 bol zmenený', 'Login fails'],
-    ['ticket.tasks', { count: 2 }, 'en', '#123 turned into 2 tasks', 'Login fails'],
-    ['ticket.tasks', { count: 1 }, 'en', '#123 turned into 1 task', 'Login fails'],
-    ['ticket.tasks', { count: 2 }, 'sk', '#123 rozdelený na 2 úlohy', 'Login fails'],
-    ['ticket.tasks', { count: 5 }, 'sk', '#123 rozdelený na 5 úloh', 'Login fails'],
+    [
+      'ticket.status',
+      { status: 'in_progress' },
+      'en',
+      'Ticket #123: status “In progress”',
+      'Login fails',
+    ],
+    [
+      'ticket.status',
+      { status: 'in_progress' },
+      'sk',
+      'Tiket #123: stav „V riešení“',
+      'Login fails',
+    ],
+    ['ticket.status', { status: 'resolved' }, 'sk', 'Tiket #123: stav „Vyriešený“', 'Login fails'],
+    ['ticket.updated', {}, 'en', 'Ticket #123: details updated', 'Login fails'],
+    ['ticket.updated', {}, 'sk', 'Tiket #123: upravené údaje', 'Login fails'],
+    ['ticket.tasks', { count: 2 }, 'en', 'Ticket #123: 2 tasks created', 'Login fails'],
+    ['ticket.tasks', { count: 1 }, 'en', 'Ticket #123: 1 task created', 'Login fails'],
+    ['ticket.tasks', { count: 2 }, 'sk', 'Tiket #123: vytvorené 2 úlohy', 'Login fails'],
+    ['ticket.tasks', { count: 5 }, 'sk', 'Tiket #123: vytvorených 5 úloh', 'Login fails'],
     [
       'chat.mention',
       { authorName: 'Jana', excerpt: 'pozri' },
@@ -380,7 +397,7 @@ describe('buildPushPayload meetings (2026-10-17)', () => {
   it('the bodies, with the Bratislava time', () => {
     expect(m('meeting.scheduled').body).toBe('New meeting: Thu 22 Oct, 10:00');
     expect(m('meeting.rescheduled').body).toBe('Meeting moved to Thu 22 Oct, 10:00');
-    expect(m('meeting.summary_ready').body).toBe('AI summary is ready');
+    expect(m('meeting.summary_ready').body).toBe('The summary from AI is ready');
     expect(m('meeting.summary_failed').body).toBe('AI processing failed');
     expect(m('meeting.scheduled', 'sk').body).toMatch(/^Nové stretnutie: .*10:00/);
   });
@@ -413,7 +430,7 @@ describe('buildPushPayload meetings (2026-10-17)', () => {
 });
 
 describe('buildPushPayload time requests (Phase 32)', () => {
-  it('a task time request: "<title> · <client>", "Fill in…", the task with the dialog', () => {
+  it('a task time request: "<title> · <client>", "Record your time", the task with the dialog', () => {
     const push = buildPushPayload({
       ...base,
       kind: 'task.time_missing',
@@ -422,7 +439,7 @@ describe('buildPushPayload time requests (Phase 32)', () => {
     });
     expect(push).toEqual({
       title: 'Report · Firma',
-      body: 'Fill in how much time you spent',
+      body: 'Record your time',
       url: '/groups/g1/tasks/t1?time=1',
       tag: 'task:t1',
     });
@@ -436,7 +453,7 @@ describe('buildPushPayload time requests (Phase 32)', () => {
     });
     expect(push).toEqual({
       title: '#12 Login fails · Firma',
-      body: 'Fill in how much time you spent',
+      body: 'Record your time',
       url: '/tickets/k1?time=1',
       tag: 'ticket:k1',
     });

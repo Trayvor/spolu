@@ -19,22 +19,22 @@
     "assignees": {
       "anyone": "Ktokoľvek",
       "me": "Ja",
-      "none": "Nikto"
+      "none": "Bez riešiteľa"
     },
     "clear": "Zrušiť filtre",
     "project": "Projekt: {{name}}",
     "event": "Udalosť: {{name}}",
-    "anyProject": "Hocijaký",
+    "anyProject": "Akýkoľvek",
     "noProject": "Bez projektu",
     "noEvent": "Bez udalosti",
     "noProjects": "Klient zatiaľ nemá projekty"
   },
   "list": {
-    "loading": "Načítavam tikety…",
+    "loading": "Načítavajú sa tikety…",
     "error": "Tikety sa nepodarilo načítať.",
     "empty": "Žiadne otvorené tikety.",
     "noMatch": "Týmto filtrom nezodpovedá žiadny tiket.",
-    "loadMore": "Načítať ďalšie"
+    "loadMore": "Zobraziť ďalšie"
   },
   "row": {
     "due": "Termín",
@@ -45,7 +45,7 @@
   },
   "mine": {
     "title": "Moje tikety",
-    "empty": "Zatiaľ tu nemáte žiadne tikety. Keď vám ho podpora eGrantu založí, uvidíte ho tu."
+    "empty": "Zatiaľ nemáte žiadne tikety. Tiket vznikne, keď pošlete požiadavku na podporu v eGrante, a potom sa zobrazí tu."
   },
   "global": {
     "title": "Tikety"
@@ -74,7 +74,7 @@
     "url": "Odkaz",
     "instance": "Inštancia eGrantu",
     "files": "Súbory",
-    "initiator": "Iniciátor",
+    "initiator": "Žiadateľ",
     "unknown": "Neznámy",
     "client": "Klient",
     "created": "Vytvorený",
@@ -90,18 +90,18 @@
   },
   "noClient": {
     "title": "Zatiaľ bez klienta",
-    "adminHint": "eGrant neposlal odkaz na inštanciu, ktorý by patril klientovi. Klienta vyberte v „Upraviť“: tiket dostane chat a iniciátor e-mail.",
+    "adminHint": "Z eGrantu neprišiel odkaz na inštanciu žiadneho klienta. Klienta vyberte cez „Upraviť“: tiket potom dostane chat a žiadateľ e-mail.",
     "hint": "Klienta najprv priradí administrátor."
   },
   "form": {
     "title": "Nový tiket",
     "back": "Späť",
-    "initiator": "Iniciátor",
+    "initiator": "Žiadateľ",
     "initiatorHint": "Dostane e-mail a môže tiket sledovať v aplikácii Help.",
-    "email": "E-mail iniciátora",
-    "name": "Meno iniciátora",
-    "phone": "Telefón iniciátora",
-    "filesAfterClient": "Najprv vyberte klienta: súbory patria jemu.",
+    "email": "E-mail žiadateľa",
+    "name": "Meno žiadateľa",
+    "phone": "Telefón žiadateľa",
+    "filesAfterClient": "Najprv vyberte klienta: súbory sa ukladajú k nemu.",
     "create": "Vytvoriť tiket",
     "errors": {
       "content": "Napíšte predmet, text alebo oblasť otázky.",
@@ -125,7 +125,7 @@
   "watch": {
     "label": "Sledovať tikety",
     "on": "Dostanete upozornenie na každý nový tiket tohto klienta a na jeho novinky, kým nemá riešiteľa.",
-    "off": "Dostávate upozornenia len na tikety, ktorých ste riešiteľ alebo kde vás niekto spomenie."
+    "off": "Dostávate upozornenia len na tikety, ktorých ste riešiteľom alebo kde vás niekto spomenie."
   },
   "project": {
     "none": "Bez projektu",

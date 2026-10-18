@@ -19,7 +19,7 @@
     "assignees": {
       "anyone": "Anyone",
       "me": "Me",
-      "none": "Nobody"
+      "none": "No assignee"
     },
     "clear": "Clear filters",
     "project": "Project: {{name}}",
@@ -34,7 +34,7 @@
     "error": "The tickets could not be loaded.",
     "empty": "No open tickets.",
     "noMatch": "No tickets match these filters.",
-    "loadMore": "Load more"
+    "loadMore": "Show more"
   },
   "row": {
     "due": "Due",
@@ -45,7 +45,7 @@
   },
   "mine": {
     "title": "My tickets",
-    "empty": "You have no tickets here. When eGrant support opens one for you, it shows up here."
+    "empty": "You have no tickets yet. A ticket appears here once you send a support request in eGrant."
   },
   "global": {
     "title": "Tickets"
@@ -72,7 +72,7 @@
     "url": "Link",
     "instance": "eGrant instance",
     "files": "Files",
-    "initiator": "Initiator",
+    "initiator": "Requester",
     "unknown": "Not known",
     "client": "Client",
     "created": "Created",
@@ -88,18 +88,18 @@
   },
   "noClient": {
     "title": "No client yet",
-    "adminHint": "eGrant sent no instance link that matches a client. Choose the client in Edit: the ticket gets its chat and the initiator gets their email.",
+    "adminHint": "eGrant sent no instance link that matches a client. Choose the client with “Edit”: the ticket then gets its chat and the requester gets their email.",
     "hint": "An admin assigns the client first."
   },
   "form": {
     "title": "New ticket",
     "back": "Back",
-    "initiator": "Initiator",
+    "initiator": "Requester",
     "initiatorHint": "They get an email and can follow the ticket in the Help app.",
-    "email": "Initiator's email",
-    "name": "Initiator's name",
-    "phone": "Initiator's phone",
-    "filesAfterClient": "Choose the client first: files belong to it.",
+    "email": "Requester's email",
+    "name": "Requester's name",
+    "phone": "Requester's phone",
+    "filesAfterClient": "Choose the client first: files are stored with it.",
     "create": "Create ticket",
     "errors": {
       "content": "Write a subject, a text or a question area.",
@@ -112,7 +112,7 @@
   "tasks": {
     "title": "Tasks",
     "none": "No tasks yet. Turn the ticket into tasks to put the work on the board.",
-    "completed": "Completed"
+    "completed": "Done"
   },
   "assignees": {
     "title": "Assignees ({{count}})",

@@ -125,9 +125,7 @@ describe('ManagersSection', () => {
       ADMIN,
     );
     await user.click(screen.getByRole('button', { name: 'Add manager' }));
-    expect(
-      await screen.findByText('Every administrator already manages this group.'),
-    ).toBeInTheDocument();
+    expect(await screen.findByText('Every admin already manages this group.')).toBeInTheDocument();
   });
 
   it('with more than 8 candidates the menu has a search field', async () => {
@@ -140,7 +138,7 @@ describe('ManagersSection', () => {
     }));
     await renderSection(many, ADMIN);
     await user.click(screen.getByRole('button', { name: 'Add manager' }));
-    const find = await screen.findByRole('searchbox', { name: 'Find an administrator' });
+    const find = await screen.findByRole('searchbox', { name: 'Find an admin' });
     await user.type(find, 'luc');
     const menu = screen.getByRole('menu');
     expect(

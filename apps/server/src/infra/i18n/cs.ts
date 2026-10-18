@@ -61,7 +61,7 @@ export const cs: ServerTexts = {
       body: ({ name, date }) =>
         `V aplikaci Help byl ${date} vytvořen nový přístupový token pro AI „${name}“. S ním může AI asistent číst a měnit data vaším jménem.`,
       warning:
-        'Pokud jste to nebyli vy, token ihned zrušte v Nastavení (Přístup pro AI (MCP)) a kontaktujte svého administrátora.',
+        'Pokud jste to nebyli vy, token ihned zrušte v Nastavení → Přístup pro AI (MCP) a kontaktujte svého administrátora.',
       button: 'Otevřít Nastavení',
     },
     connectionApproved: {
@@ -69,7 +69,7 @@ export const cs: ServerTexts = {
       body: ({ name, host, date }) =>
         `K aplikaci Help byl ${date} připojen asistent „${name}“ (návrat na ${host}). Od teď může používat Help vaším jménem s přístupem, který jste zvolili.`,
       warning:
-        'Pokud jste to nebyli vy, asistenta ihned odpojte v Nastavení (Přístup pro AI (MCP)) a kontaktujte svého administrátora.',
+        'Pokud jste to nebyli vy, asistenta ihned odpojte v Nastavení → Přístup pro AI (MCP) a kontaktujte svého administrátora.',
       button: 'Otevřít Nastavení',
     },
   },
@@ -77,7 +77,7 @@ export const cs: ServerTexts = {
     created: {
       subject: (n, title) => `Tiket #${n} byl vytvořen: ${title}`,
       untitled: 'váš požadavek',
-      received: (n, title) => `Přijali jsme váš tiket technické podpory #${n}: ${title}.`,
+      received: (n, title) => `Přijali jsme váš tiket #${n}: ${title}.`,
       followUp:
         'V aplikaci Help ho můžete sledovat a psát eGrantu. Přihlaste se touto e-mailovou adresou, pošleme vám kód.',
       followUpLink:
@@ -87,7 +87,7 @@ export const cs: ServerTexts = {
   },
   notifications: {
     sentFile: (name) => `${name} poslal(a) soubor`,
-    moved: (label) => `Přesunuto do: ${label}`,
+    moved: (label) => `Přesunuto do sloupce „${label}“`,
     movedGeneric: 'Úkol přesunut',
     assigned: (name) => `${name} vám přidělil(a) úkol`,
     deadline: (d) =>
@@ -100,9 +100,9 @@ export const cs: ServerTexts = {
         case 'todo':
           return 'K vyřízení';
         case 'egrant_review':
-          return 'Kontrola eGrant';
+          return 'Kontroluje eGrant';
         case 'client_review':
-          return `Kontrola ${l.name ?? ''}`.trim();
+          return `Kontroluje ${l.name ?? 'klient'}`;
         case 'done':
           return 'Dokončené';
         case 'custom':
@@ -115,23 +115,23 @@ export const cs: ServerTexts = {
         few: 'nové zprávy',
         many: 'nové zprávy',
         other: 'nových zpráv',
-      })} ve skupině ${g}`,
-    digestButton: (g) => `Otevřít ${g}`,
+      })} – ${g}`,
+    digestButton: () => 'Otevřít skupinu',
     reminderDue: (time) => `Připomínka na ${time}`,
     reminderLine: (title, time) => `Připomínka: ${title}, ${time}`,
     deadlineEvent: (title) => `Termín: ${title}`,
     ticketNew: (n, client) => `Nový tiket #${n} · ${client}`,
     ticketUnassigned: (n) => `Nový tiket #${n} bez klienta`,
-    ticketStatus: (n, status) => `#${n} je nyní ve stavu ${STATUS[status] ?? status}`,
+    ticketStatus: (n, status) => `Tiket #${n}: stav „${STATUS[status] ?? status}“`,
     ticketAssigned: (n) => `Jste řešitelem tiketu #${n}`,
-    ticketUpdated: (n) => `#${n} byl změněn`,
+    ticketUpdated: (n) => `Tiket #${n}: upravené údaje`,
     ticketTasks: (n, c) =>
-      `#${n} převeden na ${c} ${plural('cs', c, { one: 'úkol', few: 'úkoly', many: 'úkolu', other: 'úkolů' })}`,
+      `Tiket #${n}: ${plural('cs', c, { one: 'vytvořen', few: 'vytvořeny', other: 'vytvořeno' })} ${c} ${plural('cs', c, { one: 'úkol', few: 'úkoly', many: 'úkolu', other: 'úkolů' })}`,
     ticketTopic: (n) => `Tiket #${n}`,
     openTicket: 'Otevřít tiket',
     meetingScheduled: (when) => `Nová schůzka: ${when}`,
     meetingRescheduled: (when) => `Schůzka přesunuta na ${when}`,
-    meetingSummaryReady: 'AI shrnutí je hotové',
+    meetingSummaryReady: 'Shrnutí od AI je hotové',
     meetingSummaryFailed: 'Zpracování s AI selhalo',
     openMeeting: 'Otevřít schůzku',
     contractEnds: (date) => `Smlouva končí ${date}`,
@@ -142,8 +142,8 @@ export const cs: ServerTexts = {
     salaryTitle: (name) => `Mzda: ${name}`,
     openExpense: 'Otevřít výdaj',
     financeTopic: 'Finance',
-    timeMissing: 'Vyplňte, kolik času jste strávili',
-    timeMissingLine: (title) => `${title}: vyplňte svůj čas`,
+    timeMissing: 'Zapište strávený čas',
+    timeMissingLine: (title) => `${title}: zapište strávený čas`,
     openTask: 'Otevřít úkol',
   },
   teams: {

@@ -61,7 +61,7 @@ export const et: ServerTexts = {
       body: ({ name, date }) =>
         `Helpis (Help by eGrant) loodi ${date} uus AI juurdepääsu tõend „${name}“. Sellega saab AI-assistent teie nimel andmeid lugeda ja muuta.`,
       warning:
-        'Kui see polnud teie, tühistage tõend kohe menüüs Seaded (AI juurdepääs (MCP)) ja võtke ühendust oma administraatoriga.',
+        'Kui see polnud teie, tühistage tõend kohe: Seaded → AI juurdepääs (MCP) ja võtke ühendust oma administraatoriga.',
       button: 'Ava Seaded',
     },
     connectionApproved: {
@@ -69,7 +69,7 @@ export const et: ServerTexts = {
       body: ({ name, host, date }) =>
         `Helpiga (Help by eGrant) ühendati ${date} assistent „${name}“ (naaseb aadressile ${host}). Nüüd saab see kasutada Helpi teie nimel teie valitud juurdepääsuga.`,
       warning:
-        'Kui see polnud teie, ühendage see kohe seadetes (AI juurdepääs (MCP)) lahti ja võtke ühendust oma administraatoriga.',
+        'Kui see polnud teie, ühendage see kohe lahti: Seaded → AI juurdepääs (MCP) ja võtke ühendust oma administraatoriga.',
       button: 'Ava seaded',
     },
   },
@@ -77,7 +77,7 @@ export const et: ServerTexts = {
     created: {
       subject: (n, title) => `Pöördumine #${n} on loodud: ${title}`,
       untitled: 'Teie päring',
-      received: (n, title) => `Saime kätte Teie tugipöördumise #${n}: ${title}.`,
+      received: (n, title) => `Saime kätte Teie pöördumise #${n}: ${title}.`,
       followUp:
         'Help-rakenduses saate seda jälgida ja eGrantile kirjutada. Logige sisse selle e-posti aadressiga, saadame Teile koodi.',
       followUpLink:
@@ -87,7 +87,7 @@ export const et: ServerTexts = {
   },
   notifications: {
     sentFile: (name) => `${name} saatis faili`,
-    moved: (label) => `Teisaldatud veergu ${label}`,
+    moved: (label) => `Teisaldatud veergu „${label}“`,
     movedGeneric: 'Ülesanne teisaldatud',
     assigned: (name) => `${name} määras Teid selle ülesande täitjaks`,
     deadline: (d) =>
@@ -110,18 +110,18 @@ export const et: ServerTexts = {
       }
     },
     digestSubject: (n, g) =>
-      `${n} ${plural('et', n, { one: 'uus sõnum', other: 'uut sõnumit' })} grupis ${g}`,
-    digestButton: (g) => `Ava: ${g}`,
+      `${n} ${plural('et', n, { one: 'uus sõnum', other: 'uut sõnumit' })} – ${g}`,
+    digestButton: () => 'Ava grupp',
     reminderDue: (time) => `Meeldetuletus: ${time}`,
     reminderLine: (title, time) => `Meeldetuletus: ${title}, ${time}`,
     deadlineEvent: (title) => `Tähtaeg: ${title}`,
     ticketNew: (n, client) => `Uus pöördumine #${n} · ${client}`,
     ticketUnassigned: (n) => `Uus pöördumine #${n} kliendita`,
-    ticketStatus: (n, status) => `#${n} olek: ${STATUS[status] ?? status}`,
-    ticketAssigned: (n) => `Olete pileti #${n} lahendaja`,
-    ticketUpdated: (n) => `#${n} on muudetud`,
+    ticketStatus: (n, status) => `Pöördumine #${n}: olek „${STATUS[status] ?? status}“`,
+    ticketAssigned: (n) => `Olete pöördumise #${n} lahendaja`,
+    ticketUpdated: (n) => `Pöördumine #${n}: andmed muudetud`,
     ticketTasks: (n, c) =>
-      `#${n} muudeti ${c} ${plural('et', c, { one: 'ülesandeks', other: 'ülesandeks' })}`,
+      `Pöördumine #${n}: loodud ${c} ${plural('et', c, { one: 'ülesanne', other: 'ülesannet' })}`,
     ticketTopic: (n) => `Pöördumine #${n}`,
     openTicket: 'Ava pöördumine',
     meetingScheduled: (when) => `Uus kohtumine: ${when}`,
@@ -137,8 +137,8 @@ export const et: ServerTexts = {
     salaryTitle: (name) => `Palk: ${name}`,
     openExpense: 'Ava kulu',
     financeTopic: 'Rahandus',
-    timeMissing: 'Sisestage, kui palju aega kulus',
-    timeMissingLine: (title) => `${title}: sisestage oma aeg`,
+    timeMissing: 'Sisestage kulunud aeg',
+    timeMissingLine: (title) => `${title}: sisestage kulunud aeg`,
     openTask: 'Ava ülesanne',
   },
   teams: {

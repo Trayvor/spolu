@@ -50,7 +50,7 @@
       "new": "Nový",
       "noClient": "Bez klienta",
       "showAll": "Zobraziť všetky tikety",
-      "empty": "Nič na riešenie: žiadny otvorený tiket nie je váš, bez riešiteľa u sledovaných klientov ani bez klienta."
+      "empty": "Nič na riešenie: nemáte žiadny otvorený tiket, u sledovaných klientov nie je tiket bez riešiteľa a žiadny tiket nie je bez klienta."
     },
     "assigned": {
       "title": "Moje úlohy",
@@ -62,9 +62,9 @@
       "noDate": "bez termínu",
       "showAll": "Zobraziť všetky ({{count}})",
       "empty": "Nemáte priradenú žiadnu úlohu.",
-      "fillTime": "Vyplňte svoj čas",
-      "fillTimeFor": "Vyplňte svoj čas: {{title}}",
-      "withoutTime": "Bez času: {{n}}"
+      "fillTime": "Zapíšte strávený čas",
+      "fillTimeFor": "Zapíšte strávený čas: {{title}}",
+      "withoutTime": "Bez zapísaného času: {{n}}"
     },
     "reminders": {
       "title": "Najbližšie pripomienky",
@@ -100,7 +100,7 @@
       "none": "Bez riešiteľa"
     },
     "urgent": "Urgentné",
-    "mine": "Len kde sa podieľam",
+    "mine": "Len moje úlohy",
     "due": {
       "label": "Termín: {{name}}",
       "any": "Akýkoľvek",
@@ -109,7 +109,7 @@
       "none": "Bez termínu"
     },
     "search": "Hľadať úlohy",
-    "completed": "Zobraziť dokončené",
+    "completed": "Zobraziť hotové",
     "clear": "Zrušiť filtre",
     "more": "Zobraziť ďalších 50",
     "moreFailed": "Ďalšie sa nepodarilo načítať. Skúste to znova.",
@@ -118,8 +118,8 @@
     "columns": {
       "todo": "Na spracovanie",
       "other": "Ďalšie kroky",
-      "egrant_review": "Kontrola eGrant",
-      "client_review": "Kontrola klienta",
+      "egrant_review": "Kontroluje eGrant",
+      "client_review": "Kontroluje klient",
       "done": "Hotové"
     },
     "count_one": "{{count}} úloha",
@@ -145,7 +145,7 @@
   },
   "sheet": {
     "tickets": {
-      "description": "Otvorené tikety, ktoré čakajú na vás: tie, ktoré riešite, nepridelené tikety klientov, ktorých sledujete, a tikety bez klienta.",
+      "description": "Otvorené tikety, ktoré čakajú na vás: tie, ktoré riešite, tikety bez riešiteľa u klientov, ktorých sledujete, a tikety bez klienta.",
       "openAll": "Otvoriť všetky tikety",
       "noAssignee": "Bez riešiteľa"
     },
@@ -157,7 +157,7 @@
       "description": "Pripomienky k úlohám a položkám znalostí na najbližších 7 dní."
     },
     "mentions": {
-      "description": "Neprečítané správy, ktoré vás spomínajú, v chatoch, z ktorých dostávate upozornenia."
+      "description": "Neprečítané správy, v ktorých vás niekto spomenul, z chatov, na ktoré máte zapnuté upozornenia."
     },
     "groups": {
       "overdue": "Po termíne",
@@ -166,7 +166,7 @@
       "later": "Neskôr",
       "noDate": "Bez termínu",
       "new": "Nové",
-      "inProgress": "Rieši sa",
+      "inProgress": "V riešení",
       "yesterday": "Včera",
       "earlier": "Skôr",
       "tomorrow": "Zajtra",

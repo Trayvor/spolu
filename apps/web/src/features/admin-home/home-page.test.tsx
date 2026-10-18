@@ -323,7 +323,7 @@ describe('HomePage', () => {
     expect(within(progress).getByText('1 Oct')).toHaveClass('text-error-ink');
     expect(within(card).getByText('25')).toBeInTheDocument();
     expect(within(card).getByText('2 new')).toBeInTheDocument();
-    expect(within(card).getByText('1 without assignee')).toBeInTheDocument();
+    expect(within(card).getByText('1 with no assignee')).toBeInTheDocument();
     expect(within(card).getByRole('link', { name: 'Show all tickets' })).toHaveAttribute(
       'href',
       '/tickets',

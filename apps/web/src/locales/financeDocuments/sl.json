@@ -65,7 +65,7 @@
     "create": "Ustvari",
     "saveFailed": "Shranjevanje ni uspelo. Poskusite znova.",
     "changed": "Medtem je nekdo spremenil ta element.",
-    "reload": "Naloži njegovo različico",
+    "reload": "Naloži trenutno različico",
     "loading": "Nalaganje …",
     "loadFailed": "Elementa ni bilo mogoče naložiti.",
     "retry": "Poskusi znova",
@@ -95,7 +95,7 @@
     "editText": "Uredi besedilo",
     "files": "Datoteke",
     "reminders": "Opomniki",
-    "reminderHint": "Predlog: 30 dni pred koncem ob 09:00. Prejmete ga vi; druge finančne skrbnike dodate po shranjevanju.",
+    "reminderHint": "Predlog: 30 dni pred koncem ob 9:00. Prejmete ga vi; druge finančne skrbnike dodate po shranjevanju.",
     "errors": {
       "titleRequired": "Vnesite naslov.",
       "titleTooLong": "Uporabite največ 200 znakov.",

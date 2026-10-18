@@ -3,12 +3,12 @@
     "expense": "Trošak"
   },
   "kindsHelp": {
-    "expense": "Plaća admina ili drugo plaćanje"
+    "expense": "Plaća administratora ili drugo plaćanje"
   },
   "card": {
     "title": "Stavke",
     "views": "Prikaži",
-    "ledger": "Pregled",
+    "ledger": "Popis",
     "organisation": "Organizacija",
     "expenses": "Troškovi"
   },
@@ -26,18 +26,18 @@
     "chooseClient": "Odaberite klijenta",
     "kind": "Vrsta troška",
     "kinds": {
-      "salary": "Plaća admina",
+      "salary": "Plaća administratora",
       "other": "Drugi trošak"
     },
-    "payee": "Admin",
-    "choosePayee": "Odaberite admina",
+    "payee": "Administrator",
+    "choosePayee": "Odaberite administratora",
     "salaryNote": "Napomena",
     "what": "Za što",
     "whatHint": "Na primjer poslužitelj, licenca ili kazna",
     "date": "Datum",
     "payer": "Nadređena organizacija",
     "payerHint": "Tko plaća za sve klijente odjednom.",
-    "reminderHint": "Predlažemo dan prije datuma u 9:00. Dobit ćete ga vi; druge financijske admine dodajte nakon spremanja."
+    "reminderHint": "Predloženo: dan prije datuma u 9:00. Dobivate ga Vi; ostale financijske administratore dodajete nakon spremanja."
   },
   "shares": {
     "title": "Udjeli klijenata",
@@ -63,7 +63,7 @@
     "sharesSum": "Udjeli zajedno moraju dati točno iznos ugovora.",
     "whatRequired": "Upišite za što je trošak.",
     "dateRequired": "Odaberite datum.",
-    "payeeRequired": "Odaberite admina."
+    "payeeRequired": "Odaberite administratora."
   },
   "view": {
     "readOnly": "Ugovor više klijenata uređuje se u Financijama, gdje su svi njegovi udjeli.",
@@ -73,7 +73,7 @@
     "payer": "Nadređena organizacija",
     "shares": "Udjeli",
     "kind": "Vrsta",
-    "payee": "Admin",
+    "payee": "Administrator",
     "date": "Datum",
     "planned": "planiran"
   },
@@ -107,7 +107,7 @@
   "overview": {
     "out": "Troškovi",
     "paidOut": "Troškovi ({{currency}})",
-    "salaries": "od toga plaće admina {{amount}}",
+    "salaries": "od toga plaće administratora {{amount}}",
     "planned": "Planirani troškovi ({{currency}})",
     "balance": "Saldo nakon troškova",
     "balanceNote": "Plaćeno minus isplaćeni troškovi. Trošak rada se ne oduzima: rad plaćaju plaće."

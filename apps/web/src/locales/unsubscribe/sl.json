@@ -1,11 +1,11 @@
 {
   "done": {
     "title": "Odjavljeni ste",
-    "body": "Množičnih e-sporočil od eGrant ne boste več prejemali. Kode za prijavo in obvestila iz aplikacije Help boste še naprej prejemali."
+    "body": "Množičnih e-sporočil od eGranta ne boste več prejemali. Kode za prijavo in obvestila iz aplikacije Help boste še naprej prejemali."
   },
   "subscribed": {
     "title": "Znova ste prijavljeni",
-    "body": "Množična e-sporočila od eGrant boste znova prejemali. To lahko kadarkoli spremenite v nastavitvah aplikacije Help."
+    "body": "Množična e-sporočila od eGranta boste znova prejemali. To lahko kadarkoli spremenite v nastavitvah aplikacije Help."
   },
   "subscribeAgain": "Znova se prijavi",
   "unsubscribeButton": "Odjavi se",

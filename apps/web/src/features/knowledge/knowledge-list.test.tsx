@@ -37,7 +37,7 @@ describe('KnowledgeList', () => {
     const q = query([{ items: [row('a'), row('b')], nextCursor: 'c1' }]);
     render(<KnowledgeList query={q} onOpen={vi.fn()} empty={<p>none</p>} />);
     expect(screen.getByText('Item a')).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', { name: 'Load more' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Show more' }));
     expect((q as { fetchNextPage: () => void }).fetchNextPage).toHaveBeenCalled();
   });
 
@@ -50,7 +50,7 @@ describe('KnowledgeList', () => {
       />,
     );
     expect(screen.getByText('Nothing here yet')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Load more' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Show more' })).not.toBeInTheDocument();
   });
 
   it('shows a busy placeholder while pending and an error on failure, never the empty node', () => {
@@ -79,7 +79,7 @@ describe('KnowledgeList', () => {
     render(<KnowledgeList query={q} onOpen={vi.fn()} empty={<p>none</p>} view="cards" />);
     expect(screen.getAllByRole('listitem')).toHaveLength(3);
     expect(screen.getByRole('button', { name: 'Open Item b' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Load more' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Show more' })).toBeInTheDocument();
   });
 
   it('list view has no list of cards', () => {

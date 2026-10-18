@@ -19,7 +19,7 @@
     "admins": "Jen eGrant"
   },
   "list": {
-    "loadMore": "Načíst další",
+    "loadMore": "Zobrazit další",
     "loading": "Načítá se…",
     "error": "Seznam se nepodařilo načíst. Zkuste to znovu."
   },
@@ -55,7 +55,7 @@
     }
   },
   "detail": {
-    "back": "Zpět na znalosti",
+    "back": "Zpět na Znalosti",
     "edit": "Upravit",
     "more": "Další",
     "delete": "Smazat",
@@ -140,7 +140,7 @@
   },
   "folders": {
     "label": "Složka",
-    "help": "Místo, kde držet položky pohromadě",
+    "help": "Seskupuje související položky",
     "path": "Cesta ke složce",
     "top": "Znalosti",
     "topLevel": "Nejvyšší úroveň",
@@ -159,7 +159,7 @@
     "moveTo": "Přesunout do…",
     "moveTitle": "Přesunout „{{name}}“",
     "moveHere": "Přesunout sem",
-    "current": "Nyní zde",
+    "current": "Aktuální umístění",
     "delete": "Smazat",
     "deleteConfirm": "Smazat složku „{{name}}“? Vše v ní se přesune o úroveň výš; nic se nesmaže.",
     "inAdmins": "Vše v této složce vidí jen eGrant.",
@@ -168,7 +168,7 @@
     "saveFailed": "Nepodařilo se uložit. Zkuste to znovu.",
     "moveFailed": "Nepodařilo se přesunout. Zkuste to znovu.",
     "deleteFailed": "Nepodařilo se smazat. Zkuste to znovu.",
-    "limit": "Tato skupina má nejvyšší povolený počet složek (1000).",
+    "limit": "Skupina dosáhla limitu 1000 složek.",
     "gone": "Tato složka už není dostupná.",
     "emptyFolder": "Tato složka je prázdná. Přidejte položku přes „Nové“.",
     "emptyFolderBrowse": "Tato složka je prázdná.",
@@ -185,7 +185,7 @@
     "alsoTasksTickets": "Také z úkolů a tiketů",
     "toFile": "Uložit jako soubor",
     "toFileTitle": "Uložit jako soubor",
-    "toFileHelp": "Stane se z něj běžný soubor ve znalostní bázi s vlastní kopií souboru. Zpráva v chatu si přílohu ponechá. Změnu nelze vrátit."
+    "toFileHelp": "Stane se z něj běžný soubor ve Znalostech s vlastní kopií souboru. Zpráva v chatu si přílohu ponechá. Změnu nelze vrátit."
   },
   "meeting": {
     "when": "Datum a čas",
@@ -199,7 +199,7 @@
     "transcript": "Přepis",
     "transcriptHint": "Vložte text nebo načtěte soubor .txt, .vtt, .srt či .docx.",
     "loadTranscript": "Načíst ze souboru",
-    "readingTranscript": "Načítám soubor…",
+    "readingTranscript": "Načítá se soubor…",
     "transcriptFileFailed": "Tento soubor nelze přečíst. Použijte soubor .txt, .vtt, .srt nebo .docx.",
     "transcriptTooLong": "Použijte nejvýše 400 000 znaků.",
     "transcriptByAi": "přepsala AI",
@@ -216,16 +216,16 @@
       "replace": "Nahradit",
       "delete": "Smazat nahrávku",
       "deleteConfirm": "Smazat uloženou nahrávku?",
-      "uploading": "Nahrávám… {{percent}} %",
-      "processing": "Převádím na zvuk. Trvá to několik minut.",
+      "uploading": "Nahrává se… {{percent}} %",
+      "processing": "Převádí se na zvuk. Trvá to několik minut.",
       "failed": "Nahrávku se nepodařilo zpracovat. Nahrajte ji znovu.",
       "none": "Nahrávka není uložena. Nahrajte zvuk nebo video: uloží se jen úsporná zvuková kopie.",
       "tooLarge": "Soubor je větší než 2 GB.",
       "notMedia": "Vyberte zvukový nebo video soubor.",
       "busy": "Nahrávka se ještě převádí.",
-      "rateLimited": "Příliš mnoho nahrávání. Zkuste to za hodinu.",
-      "uploadFailed": "Nahrání se nepodařilo. Zkuste znovu.",
-      "deleteFailed": "Smazání se nepodařilo. Zkuste znovu."
+      "rateLimited": "Příliš mnoho pokusů. Zkuste to za hodinu.",
+      "uploadFailed": "Nahrání se nepodařilo. Zkuste to znovu.",
+      "deleteFailed": "Smazání se nepodařilo. Zkuste to znovu."
     },
     "ai": {
       "title": "Shrnutí",
@@ -233,17 +233,17 @@
       "processAgain": "Zpracovat znovu",
       "againConfirm": "Zpracovat znovu? Nové shrnutí nahradí toto i s vašimi úpravami.",
       "queued": "Čeká na spuštění…",
-      "transcribing": "Přepisuji nahrávku…",
-      "summarizing": "Píšu shrnutí…",
-      "failed_transcription_failed": "Nahrávku se nepodařilo přepsat. Zkuste znovu.",
-      "failed_summary_failed": "Shrnutí se nepodařilo napsat. Zkuste znovu.",
+      "transcribing": "Přepisuje se nahrávka…",
+      "summarizing": "Píše se shrnutí…",
+      "failed_transcription_failed": "Nahrávku se nepodařilo přepsat. Zkuste to znovu.",
+      "failed_summary_failed": "Shrnutí se nepodařilo napsat. Zkuste to znovu.",
       "nothing": "Nejdřív přidejte přepis nebo nahrajte nahrávku.",
       "busy": "Tato schůzka se už zpracovává.",
       "unavailable": "Zpracování s AI teď není dostupné.",
-      "rateLimited": "Příliš mnoho zpracování. Zkuste to za hodinu.",
-      "startFailed": "Spuštění se nepodařilo. Zkuste znovu.",
+      "rateLimited": "Příliš mnoho pokusů. Zkuste to za hodinu.",
+      "startFailed": "Spuštění se nepodařilo. Zkuste to znovu.",
       "none": "Zatím bez shrnutí.",
-      "noneAdmin": "Zatím bez shrnutí. Zpracovat s AI ho napíše z přepisu nebo z nahrávky.",
+      "noneAdmin": "Zatím bez shrnutí. „Zpracovat s AI“ ho napíše z přepisu nebo z nahrávky.",
       "edit": "Upravit shrnutí",
       "save": "Uložit shrnutí",
       "summary": "Stručně",
@@ -282,7 +282,7 @@
     "cards": "Karty"
   },
   "adminGroup": {
-    "badge": "eGrant tým",
+    "badge": "Tým eGrant",
     "shareable": "Sdílitelné s klienty",
     "consequence": "Klienti skupin, kde ji přiložíte, ji budou moci otevřít."
   }

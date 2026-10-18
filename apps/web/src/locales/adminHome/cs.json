@@ -50,7 +50,7 @@
       "new": "Nový",
       "noClient": "Bez klienta",
       "showAll": "Zobrazit všechny tikety",
-      "empty": "Nic k řešení: žádný otevřený tiket není váš, bez řešitele u sledovaných klientů ani bez klienta."
+      "empty": "Nic k řešení: nemáte žádný otevřený tiket, u sledovaných klientů není tiket bez řešitele a žádný tiket není bez klienta."
     },
     "assigned": {
       "title": "Moje úkoly",
@@ -62,9 +62,9 @@
       "noDate": "bez data",
       "showAll": "Zobrazit všechny ({{count}})",
       "empty": "Nemáte přidělené nic.",
-      "fillTime": "Vyplňte svůj čas",
-      "fillTimeFor": "Vyplňte svůj čas: {{title}}",
-      "withoutTime": "Bez času: {{n}}"
+      "fillTime": "Zapište strávený čas",
+      "fillTimeFor": "Zapište strávený čas: {{title}}",
+      "withoutTime": "Bez zapsaného času: {{n}}"
     },
     "reminders": {
       "title": "Nadcházející připomínky",
@@ -97,10 +97,10 @@
       "label": "Řešitel: {{name}}",
       "me": "Já",
       "anyone": "Kdokoli",
-      "none": "Nepřidělené"
+      "none": "Bez řešitele"
     },
     "urgent": "Naléhavé",
-    "mine": "Jen kde se účastním",
+    "mine": "Jen moje úkoly",
     "due": {
       "label": "Termín: {{name}}",
       "any": "Jakýkoli",
@@ -118,8 +118,8 @@
     "columns": {
       "todo": "K vyřízení",
       "other": "Další kroky",
-      "egrant_review": "Kontrola eGrant",
-      "client_review": "Kontrola klienta",
+      "egrant_review": "Kontroluje eGrant",
+      "client_review": "Kontroluje klient",
       "done": "Dokončené"
     },
     "count_one": "{{count}} úkol",
@@ -145,19 +145,19 @@
   },
   "sheet": {
     "tickets": {
-      "description": "Otevřené tikety, které čekají na vás: ty, které řešíte, nepřidělené tikety klientů, které sledujete, a tikety bez klienta.",
+      "description": "Otevřené tikety, které čekají na vás: ty, které řešíte, tikety bez řešitele u klientů, které sledujete, a tikety bez klienta.",
       "openAll": "Otevřít všechny tikety",
       "noAssignee": "Bez řešitele"
     },
     "tasks": {
-      "description": "Vaše otevřené úkoly u všech klientů podle termínu. Urgentní jsou v každé skupině první.",
+      "description": "Vaše otevřené úkoly u všech klientů podle termínu. Naléhavé jsou v každé skupině první.",
       "openAll": "Otevřít všechny moje úkoly"
     },
     "reminders": {
       "description": "Připomínky k úkolům a položkám znalostí na příštích 7 dní."
     },
     "mentions": {
-      "description": "Nepřečtené zprávy, které vás zmiňují, v chatech, ze kterých dostáváte upozornění."
+      "description": "Nepřečtené zprávy, ve kterých vás někdo zmínil, z chatů, u kterých máte zapnutá upozornění."
     },
     "groups": {
       "overdue": "Po termínu",

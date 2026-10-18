@@ -29,7 +29,7 @@
     "tasks_one": "{{count}} nuova attività dal ticket",
     "tasks_many": "{{count}} nuove attività dal ticket",
     "tasks_other": "{{count}} nuove attività dal ticket",
-    "timeMissing": "Inserisci il tuo tempo"
+    "timeMissing": "Registra il tempo impiegato"
   },
   "more_one": "e {{count}} altra modifica",
   "more_many": "e altre {{count}} modifiche",

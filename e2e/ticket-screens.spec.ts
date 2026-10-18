@@ -7,7 +7,7 @@ async function createGroup(page: Page, name: string, egrantUrl: string): Promise
   await page.goto('/groups');
   await page.getByRole('button', { name: 'Vytvoriť skupinu' }).first().click();
   await page.getByLabel('Názov').fill(name);
-  await page.getByLabel('Adresa klienta v eGrant').fill(egrantUrl);
+  await page.getByLabel('Adresa klienta v eGrante').fill(egrantUrl);
   await page.getByRole('button', { name: 'Uložiť' }).click();
   await expect(page.getByRole('button', { name: 'Uložiť' })).toHaveCount(0);
   // The Groups page draws 50 rows at a time: find the group by name first.
@@ -91,8 +91,8 @@ test('an admin creates a ticket for a client from the group tab', async ({ page 
   );
   await page.goto(`${groupPath}/tickets`);
   await page.getByRole('button', { name: 'Nový tiket' }).click();
-  await page.getByLabel('E-mail iniciátora').fill(`e2e-initiator-${stamp}@example.com`);
-  await page.getByLabel('Meno iniciátora').fill('E2E Iniciátor');
+  await page.getByLabel('E-mail žiadateľa').fill(`e2e-initiator-${stamp}@example.com`);
+  await page.getByLabel('Meno žiadateľa').fill('E2E Iniciátor');
   await page.getByLabel('Predmet').fill(`Ručný tiket ${stamp}`);
   await page.getByRole('button', { name: 'Vytvoriť tiket' }).click();
   await expect(page).toHaveURL(/\/tickets\/[^/]+$/);
@@ -181,10 +181,10 @@ test('an admin picks a riešiteľ, filters by it and watches the client tickets'
   const row = page.locator(`a[href="/tickets/${id}"]`);
   await expect(row).toContainText(`Riešitelia: ${me.name}`);
   await page.getByRole('button', { name: 'Riešiteľ: Ktokoľvek' }).click();
-  await page.getByRole('menuitemradio', { name: 'Nikto' }).click();
+  await page.getByRole('menuitemradio', { name: 'Bez riešiteľa' }).click();
   await expect(page).toHaveURL(/assignee=none/);
   await expect(row).toHaveCount(0);
-  await page.getByRole('button', { name: 'Riešiteľ: Nikto' }).click();
+  await page.getByRole('button', { name: 'Riešiteľ: Bez riešiteľa' }).click();
   await page.getByRole('menuitemradio', { name: 'Ja' }).click();
   await expect(row).toBeVisible();
 

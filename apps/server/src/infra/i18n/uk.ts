@@ -57,19 +57,19 @@ export const uk: ServerTexts = {
   },
   mcp: {
     tokenCreated: {
-      subject: 'У Help створено новий токен доступу для AI',
+      subject: 'У Help створено новий токен доступу для ШІ',
       body: ({ name, date }) =>
-        `У Help by eGrant ${date} створено новий токен доступу для AI «${name}». З ним AI-асистент може читати й змінювати дані від вашого імені.`,
+        `У Help by eGrant ${date} створено новий токен доступу для ШІ «${name}». З ним ШІ-асистент може читати й змінювати дані від вашого імені.`,
       warning:
-        'Якщо це були не ви, негайно відкличте його в Налаштуваннях (Доступ для AI (MCP)) і зверніться до свого адміністратора.',
+        'Якщо це були не ви, негайно відкличте його в Налаштуваннях → Доступ для ШІ (MCP) і зверніться до свого адміністратора.',
       button: 'Відкрити Налаштування',
     },
     connectionApproved: {
-      subject: 'До Help підключено AI-асистента',
+      subject: 'До Help підключено ШІ-асистента',
       body: ({ name, host, date }) =>
         `${date} до Help by eGrant підключено асистента «${name}» (повернення на ${host}). Тепер він може користуватися Help від вашого імені з доступом, який ви обрали.`,
       warning:
-        'Якщо це були не ви, негайно відключіть його в Налаштуваннях (Доступ для AI (MCP)) і зверніться до свого адміністратора.',
+        'Якщо це були не ви, негайно відключіть його в Налаштуваннях → Доступ для ШІ (MCP) і зверніться до свого адміністратора.',
       button: 'Відкрити Налаштування',
     },
   },
@@ -77,7 +77,7 @@ export const uk: ServerTexts = {
     created: {
       subject: (n, title) => `Тікет #${n} створено: ${title}`,
       untitled: 'Ваш запит',
-      received: (n, title) => `Ми отримали Ваш тікет технічної підтримки #${n}: ${title}.`,
+      received: (n, title) => `Ми отримали Ваш тікет #${n}: ${title}.`,
       followUp:
         'У застосунку Help Ви можете стежити за ним і писати eGrant. Увійдіть із цією адресою електронної пошти, і ми надішлемо Вам код.',
       followUpLink:
@@ -100,9 +100,9 @@ export const uk: ServerTexts = {
         case 'todo':
           return 'До виконання';
         case 'egrant_review':
-          return 'Перевірка eGrant';
+          return 'Перевіряє eGrant';
         case 'client_review':
-          return `Перевірка ${l.name ?? ''}`.trim();
+          return `Перевіряє ${l.name ?? 'клієнт'}`;
         case 'done':
           return 'Виконано';
         case 'custom':
@@ -115,24 +115,24 @@ export const uk: ServerTexts = {
         few: 'нові повідомлення',
         many: 'нових повідомлень',
         other: 'нового повідомлення',
-      })} у ${g}`,
-    digestButton: (g) => `Відкрити ${g}`,
+      })} – ${g}`,
+    digestButton: () => 'Відкрити групу',
     reminderDue: (time) => `Нагадування на ${time}`,
     reminderLine: (title, time) => `Нагадування: ${title}, ${time}`,
     deadlineEvent: (title) => `Термін: ${title}`,
     ticketNew: (n, client) => `Новий тікет #${n} · ${client}`,
     ticketUnassigned: (n) => `Новий тікет #${n} без клієнта`,
-    ticketStatus: (n, status) => `#${n}: статус «${STATUS[status] ?? status}»`,
+    ticketStatus: (n, status) => `Тікет #${n}: статус «${STATUS[status] ?? status}»`,
     ticketAssigned: (n) => `Ви — виконавець тікета #${n}`,
-    ticketUpdated: (n) => `#${n} змінено`,
+    ticketUpdated: (n) => `Тікет #${n}: дані змінено`,
     ticketTasks: (n, c) =>
-      `#${n} перетворено на ${c} ${plural('uk', c, { one: 'завдання', few: 'завдання', many: 'завдань', other: 'завдання' })}`,
+      `Тікет #${n}: створено ${c} ${plural('uk', c, { one: 'завдання', few: 'завдання', many: 'завдань', other: 'завдання' })}`,
     ticketTopic: (n) => `Тікет #${n}`,
     openTicket: 'Відкрити тікет',
     meetingScheduled: (when) => `Нова зустріч: ${when}`,
     meetingRescheduled: (when) => `Зустріч перенесено на ${when}`,
-    meetingSummaryReady: 'AI-підсумок готовий',
-    meetingSummaryFailed: 'Не вдалося обробити за допомогою AI',
+    meetingSummaryReady: 'Підсумок від ШІ готовий',
+    meetingSummaryFailed: 'Не вдалося обробити за допомогою ШІ',
     openMeeting: 'Відкрити зустріч',
     contractEnds: (date) => `Договір закінчується ${date}`,
     contractLine: (title, client, date) => `Договір ${title} · ${client}: закінчується ${date}`,
@@ -142,8 +142,8 @@ export const uk: ServerTexts = {
     salaryTitle: (name) => `Зарплата: ${name}`,
     openExpense: 'Відкрити витрату',
     financeTopic: 'Фінанси',
-    timeMissing: 'Вкажіть, скільки часу ви витратили',
-    timeMissingLine: (title) => `${title}: вкажіть свій час`,
+    timeMissing: 'Запишіть витрачений час',
+    timeMissingLine: (title) => `${title}: запишіть витрачений час`,
     openTask: 'Відкрити завдання',
   },
   teams: {

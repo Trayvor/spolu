@@ -96,7 +96,7 @@ describe('WorkCards', () => {
     const done = screen.getByRole('link', { name: /Bank/ });
     expect(done).toHaveTextContent('Waiting');
     expect(screen.getByText('Bank')).toHaveClass('line-through');
-    expect(done).toHaveTextContent('Completed');
+    expect(done).toHaveTextContent('Done');
     expect(screen.getByText('Task unavailable')).toBeInTheDocument();
   });
 

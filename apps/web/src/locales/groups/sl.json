@@ -6,7 +6,7 @@
   "showMore": "Prikaži več (še {{left}})",
   "form": {
     "name": "Ime",
-    "egrantUrl": "URL stranke na eGrant",
+    "egrantUrl": "URL stranke v eGrantu",
     "logo": "Logotip",
     "save": "Shrani",
     "cancel": "Prekliči",
@@ -15,12 +15,12 @@
   "errors": {
     "nameRequired": "Vnesite ime.",
     "invalidUrl": "Vnesite veljaven URL.",
-    "urlTaken": "Ta URL eGrant že uporablja druga skupina.",
+    "urlTaken": "Ta URL v eGrantu že uporablja druga skupina.",
     "invalidLogo": "Logotip mora biti slika PNG, JPEG ali WebP velikosti do 512 KB."
   },
   "managers": {
-    "title": "Upravitelji iz eGrant",
-    "none": "Upravitelja iz eGrant še ni.",
+    "title": "Upravitelji iz eGranta",
+    "none": "Upravitelja iz eGranta še ni.",
     "manage": "Upravljaj",
     "managing": "Upravljate",
     "toggleLabel": "Upravljaj {{name}}",

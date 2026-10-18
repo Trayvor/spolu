@@ -19,7 +19,7 @@
     "assignees": {
       "anyone": "Kdorkoli",
       "me": "Jaz",
-      "none": "Nihče"
+      "none": "Brez reševalca"
     },
     "clear": "Počisti filtre",
     "project": "Projekt: {{name}}",
@@ -34,7 +34,7 @@
     "error": "Zahtevkov ni bilo mogoče naložiti.",
     "empty": "Ni odprtih zahtevkov.",
     "noMatch": "Noben zahtevek ne ustreza tem filtrom.",
-    "loadMore": "Naloži več"
+    "loadMore": "Prikaži več"
   },
   "row": {
     "due": "Rok",
@@ -45,7 +45,7 @@
   },
   "mine": {
     "title": "Moji zahtevki",
-    "empty": "Tukaj nimate zahtevkov. Ko vam ga odpre podpora eGrant, se bo prikazal tukaj."
+    "empty": "Zahtevkov še nimate. Zahtevek nastane, ko v eGrantu pošljete zahtevo za podporo, nato se prikaže tukaj."
   },
   "global": {
     "title": "Zahtevki"
@@ -74,7 +74,7 @@
     "url": "Povezava",
     "instance": "Instanca eGrant",
     "files": "Datoteke",
-    "initiator": "Pobudnik",
+    "initiator": "Prijavitelj",
     "unknown": "Ni znano",
     "client": "Stranka",
     "created": "Ustvarjeno",
@@ -90,18 +90,18 @@
   },
   "noClient": {
     "title": "Stranka še ni določena",
-    "adminHint": "eGrant ni poslal povezave do instance, ki bi ustrezala kateri od strank. Stranko izberite v urejanju: zahtevek dobi svoj klepet, pobudnik pa svoje e-sporočilo.",
+    "adminHint": "Iz eGranta ni prišla povezava do instance nobene stranke. Stranko izberite prek »Uredi«: zahtevek nato dobi klepet, prijavitelj pa e-sporočilo.",
     "hint": "Stranko mora najprej dodeliti skrbnik."
   },
   "form": {
     "title": "Nov zahtevek",
     "back": "Nazaj",
-    "initiator": "Pobudnik",
+    "initiator": "Prijavitelj",
     "initiatorHint": "Prejme e-sporočilo in lahko zahtevek spremlja v aplikaciji Help.",
-    "email": "E-pošta pobudnika",
-    "name": "Ime pobudnika",
-    "phone": "Telefon pobudnika",
-    "filesAfterClient": "Najprej izberite stranko: datoteke pripadajo njej.",
+    "email": "E-pošta prijavitelja",
+    "name": "Ime prijavitelja",
+    "phone": "Telefon prijavitelja",
+    "filesAfterClient": "Najprej izberite stranko: datoteke se shranijo k njej.",
     "create": "Ustvari zahtevek",
     "errors": {
       "content": "Napišite zadevo, besedilo ali izberite področje vprašanja.",

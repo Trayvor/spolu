@@ -10,9 +10,9 @@
     "search": "Hľadať zmluvy, dokumenty a poznámky",
     "sortLabel": "Zoradiť zmluvy",
     "sort": {
-      "start": "Najnovší začiatok",
+      "start": "Od najnovšieho začiatku",
       "end": "Najskôr končiace",
-      "amount": "Najvyššia suma"
+      "amount": "Od najvyššej sumy"
     },
     "columns": {
       "client": "Klient",
@@ -39,8 +39,8 @@
     "rankBy": "Poradie podľa",
     "hours": "Hodiny",
     "cost": "Peniaze",
-    "admin": "Admin",
-    "allAdmins": "Všetci admini",
+    "admin": "Administrátor",
+    "allAdmins": "Všetci administrátori",
     "empty": "V tomto období nebol zapísaný žiadny čas.",
     "missingRate": "{{hours}} bez sadzby"
   },
@@ -52,7 +52,7 @@
     "client": "Klient",
     "chooseClient": "Vyberte klienta",
     "errors": {
-      "client": "Vyberte klienta alebo Bez klienta."
+      "client": "Vyberte klienta alebo „Bez klienta“."
     }
   }
 }

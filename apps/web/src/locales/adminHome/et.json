@@ -50,9 +50,9 @@
       "noDate": "tähtajata",
       "showAll": "Näita kõiki ({{count}})",
       "empty": "Teile ei ole midagi määratud.",
-      "fillTime": "Sisestage oma aeg",
-      "fillTimeFor": "Sisestage oma aeg: {{title}}",
-      "withoutTime": "Ilma ajata: {{n}}"
+      "fillTime": "Sisestage kulunud aeg",
+      "fillTimeFor": "Sisestage kulunud aeg: {{title}}",
+      "withoutTime": "Sisestamata ajaga: {{n}}"
     },
     "reminders": {
       "title": "Eelseisvad meeldetuletused",
@@ -83,10 +83,10 @@
       "label": "Täitja: {{name}}",
       "me": "Mina",
       "anyone": "Kõik",
-      "none": "Määramata"
+      "none": "Lahendajata"
     },
     "urgent": "Kiire",
-    "mine": "Ainult need, milles osalen",
+    "mine": "Ainult minu ülesanded",
     "due": {
       "label": "Tähtaeg: {{name}}",
       "any": "Kõik",
@@ -125,7 +125,7 @@
   },
   "sheet": {
     "tickets": {
-      "description": "Avatud pöördumised, mis ootavad sind: need, mille lahendaja oled, jälgitavate klientide määramata pöördumised ja kliendita pöördumised.",
+      "description": "Avatud pöördumised, mis ootavad Teid: need, mille lahendaja olete, jälgitavate klientide lahendajata pöördumised ja kliendita pöördumised.",
       "openAll": "Ava kõik pöördumised",
       "noAssignee": "Lahendajata"
     },
@@ -134,7 +134,7 @@
       "openAll": "Ava kõik minu ülesanded"
     },
     "reminders": {
-      "description": "Ülesannete ja teadmusbaasi kirjete meeldetuletused järgmise 7 päeva jooksul."
+      "description": "Ülesannete ja teadmiste kirjete meeldetuletused järgmise 7 päeva jooksul."
     },
     "mentions": {
       "description": "Lugemata sõnumid, mis teid mainivad, vestlustes, millest saate teavitusi."

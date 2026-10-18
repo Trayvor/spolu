@@ -19,7 +19,7 @@
     "admins": "Samo eGrant"
   },
   "list": {
-    "loadMore": "Učitaj još",
+    "loadMore": "Prikaži još",
     "loading": "Učitavanje…",
     "error": "Popis nije moguće učitati. Pokušajte ponovno."
   },
@@ -40,7 +40,7 @@
     "description": "Opis",
     "editDescription": "Uredi opis",
     "files": "Datoteke",
-    "visibleTo": "Vidljivo",
+    "visibleTo": "Vidljivo za",
     "visibilityLocked": "Stavka klijenta ostaje vidljiva svima u grupi.",
     "errors": {
       "titleRequired": "Unesite naziv.",
@@ -54,7 +54,7 @@
     }
   },
   "detail": {
-    "back": "Natrag na znanje",
+    "back": "Natrag na Znanje",
     "edit": "Uredi",
     "more": "Više",
     "delete": "Izbriši",
@@ -89,7 +89,7 @@
     "title": "Znanje",
     "new": "Novo",
     "filters": "Vrsta",
-    "search": "Pretraži znanje",
+    "search": "Pretraži Znanje",
     "empty": "Ovdje još nema ničega. Dodajte bilješke, datoteke, poveznice i podsjetnike koje će cijela grupa moći pronaći.",
     "noMatch": "Ništa u znanju ne odgovara pojmu „{{q}}“.",
     "noMatchType_one": "Ovdje još nema znanja ove vrste.",
@@ -132,12 +132,12 @@
     "done": "Gotovo",
     "chosen": "Odabrani klijenti",
     "remove": "Ukloni {{name}}",
-    "reset": "Zadano",
+    "reset": "Vrati zadano",
     "internal": "Interno"
   },
   "folders": {
     "label": "Mapa",
-    "help": "Mjesto za držanje stavki na okupu",
+    "help": "Grupira povezane stavke",
     "path": "Putanja mape",
     "top": "Znanje",
     "topLevel": "Najviša razina",
@@ -156,7 +156,7 @@
     "moveTo": "Premjesti u…",
     "moveTitle": "Premjesti „{{name}}“",
     "moveHere": "Premjesti ovamo",
-    "current": "Trenutačno ovdje",
+    "current": "Trenutačna lokacija",
     "delete": "Izbriši",
     "deleteConfirm": "Izbrisati mapu „{{name}}“? Sve u njoj premjestit će se jednu razinu više; ništa se neće izbrisati.",
     "inAdmins": "Sve u ovoj mapi vidi samo eGrant.",
@@ -165,12 +165,12 @@
     "saveFailed": "Spremanje nije uspjelo. Pokušajte ponovno.",
     "moveFailed": "Premještanje nije uspjelo. Pokušajte ponovno.",
     "deleteFailed": "Brisanje nije uspjelo. Pokušajte ponovno.",
-    "limit": "Ova grupa ima najveći dopušteni broj mapa (1000).",
+    "limit": "Grupa je dosegnula ograničenje od 1000 mapa.",
     "gone": "Ova mapa više nije dostupna.",
     "emptyFolder": "Ova je mapa prazna. Dodajte stavku putem „Novo“.",
     "emptyFolderBrowse": "Ova je mapa prazna.",
     "noItemsHere": "U ovoj mapi nema stavki ove vrste.",
-    "loading": "Učitavam mape…",
+    "loading": "Učitavaju se mape…",
     "noClients": "Nema klijenata za prikaz. Promijenite filtar klijenata."
   },
   "chat": {
@@ -182,7 +182,7 @@
     "alsoTasksTickets": "I iz zadataka i tiketa",
     "toFile": "Spremi kao datoteku",
     "toFileTitle": "Spremi kao datoteku",
-    "toFileHelp": "Postaje obična datoteka u bazi znanja, s vlastitom kopijom datoteke. Poruka u chatu zadržava svoj privitak. Ovo se ne može poništiti."
+    "toFileHelp": "Postaje obična datoteka u Znanju, s vlastitom kopijom datoteke. Poruka u chatu zadržava svoj privitak. Ovo se ne može poništiti."
   },
   "meeting": {
     "when": "Datum i vrijeme",
@@ -196,10 +196,10 @@
     "transcript": "Prijepis",
     "transcriptHint": "Zalijepite tekst ili učitajte datoteku .txt, .vtt, .srt ili .docx.",
     "loadTranscript": "Učitaj iz datoteke",
-    "readingTranscript": "Čitam datoteku…",
+    "readingTranscript": "Čita se datoteka…",
     "transcriptFileFailed": "Ova se datoteka ne može pročitati. Upotrijebite datoteku .txt, .vtt, .srt ili .docx.",
     "transcriptTooLong": "Upotrijebite najviše 400.000 znakova.",
-    "transcriptByAi": "prepisala UI",
+    "transcriptByAi": "prepisala AI",
     "notes": "Bilješke",
     "editNotes": "Uredi bilješke",
     "remind": "Podsjetnik",
@@ -213,41 +213,41 @@
       "replace": "Zamijeni",
       "delete": "Izbriši snimku",
       "deleteConfirm": "Izbrisati spremljenu snimku?",
-      "uploading": "Učitavam… {{percent}} %",
-      "processing": "Pretvaram u zvuk. To traje nekoliko minuta.",
+      "uploading": "Prenosi se… {{percent}} %",
+      "processing": "Pretvara se u zvuk. To traje nekoliko minuta.",
       "failed": "Snimku nije bilo moguće obraditi. Učitajte je ponovno.",
       "none": "Snimka nije spremljena. Učitajte zvuk ili video: sprema se samo štedljiva zvučna kopija.",
       "tooLarge": "Datoteka je veća od 2 GB.",
       "notMedia": "Odaberite zvučnu ili video datoteku.",
       "busy": "Snimka se još pretvara.",
-      "rateLimited": "Previše učitavanja. Pokušajte za sat vremena.",
+      "rateLimited": "Previše pokušaja. Pokušajte za sat vremena.",
       "uploadFailed": "Učitavanje nije uspjelo. Pokušajte ponovno.",
       "deleteFailed": "Brisanje nije uspjelo. Pokušajte ponovno."
     },
     "ai": {
       "title": "Sažetak",
-      "process": "Obradi s UI",
+      "process": "Obradi pomoću AI-ja",
       "processAgain": "Obradi ponovno",
       "againConfirm": "Obraditi ponovno? Novi sažetak zamjenjuje ovaj, zajedno s vašim izmjenama.",
       "queued": "Čeka na početak…",
-      "transcribing": "Prepisujem snimku…",
-      "summarizing": "Pišem sažetak…",
+      "transcribing": "Prepisuje se snimka…",
+      "summarizing": "Piše se sažetak…",
       "failed_transcription_failed": "Snimku nije bilo moguće prepisati. Pokušajte ponovno.",
       "failed_summary_failed": "Sažetak nije bilo moguće napisati. Pokušajte ponovno.",
       "nothing": "Najprije dodajte prijepis ili učitajte snimku.",
       "busy": "Ovaj se sastanak već obrađuje.",
-      "unavailable": "Obrada s UI trenutno nije dostupna.",
-      "rateLimited": "Previše obrada. Pokušajte za sat vremena.",
+      "unavailable": "Obrada pomoću AI-ja trenutačno nije dostupna.",
+      "rateLimited": "Previše pokušaja. Pokušajte za sat vremena.",
       "startFailed": "Pokretanje nije uspjelo. Pokušajte ponovno.",
       "none": "Još nema sažetka.",
-      "noneAdmin": "Još nema sažetka. Obradi s UI napisat će ga iz prijepisa ili snimke.",
+      "noneAdmin": "Još nema sažetka. „Obradi pomoću AI-ja“ napisat će ga iz prijepisa ili snimke.",
       "edit": "Uredi sažetak",
       "save": "Spremi sažetak",
       "summary": "Ukratko",
       "decisions": "Odluke",
       "actionItems": "Zadaci",
       "openQuestions": "Otvorena pitanja",
-      "aiMade": "Napisala UI iz prijepisa. Provjerite ga prije nego što se na njega oslonite.",
+      "aiMade": "Napisala AI iz prijepisa. Provjerite ga prije nego što se na njega oslonite.",
       "createTasks": "Izradi zadatke",
       "tasksTitle": "Zadaci sa sastanka",
       "createMoreTasks": "Izradi još zadataka",
@@ -264,7 +264,7 @@
       "oneLine": "Odluke i pitanja: svako u svoj redak."
     },
     "row": {
-      "processing": "U obradi",
+      "processing": "Obrađuje se",
       "summary": "Sažetak"
     },
     "transcriptFromTeams": "iz Teamsa",
@@ -278,7 +278,7 @@
     "cards": "Kartice"
   },
   "adminGroup": {
-    "badge": "eGrant tim",
+    "badge": "Tim eGranta",
     "shareable": "Dijeljivo s klijentima",
     "consequence": "Klijenti grupa u koje je priložite moći će je otvoriti."
   }

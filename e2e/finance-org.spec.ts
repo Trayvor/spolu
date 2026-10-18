@@ -38,8 +38,8 @@ test.describe.serial('finance at organisation level (E)', () => {
     await page.getByRole('menuitem', { name: /Výdavok/ }).click();
 
     const sheet = page.getByTestId('finance-item-sheet');
-    await expect(sheet.getByRole('radio', { name: 'Mzda admina' })).toBeChecked();
-    await sheet.getByLabel('Admin', { exact: true }).selectOption({ index: 1 });
+    await expect(sheet.getByRole('radio', { name: 'Mzda administrátora' })).toBeChecked();
+    await sheet.getByLabel('Administrátor', { exact: true }).selectOption({ index: 1 });
     await sheet.getByLabel('Suma', { exact: true }).fill('2 500');
     const year = new Date().getFullYear() + 1;
     await sheet.getByLabel('Dátum', { exact: true }).fill(`${year}-03-31`);

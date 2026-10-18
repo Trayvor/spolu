@@ -144,8 +144,8 @@ describe('AppPrompt', () => {
     expect(dialog).toHaveTextContent(
       'On iPhone, notifications only work from the Home Screen app.',
     );
-    expect(dialog).toHaveTextContent('Tap Share');
-    expect(dialog).toHaveTextContent('Add to Home Screen');
+    expect(dialog).toHaveTextContent('Tap “Share”');
+    expect(dialog).toHaveTextContent('Choose “Add to Home Screen”');
     expect(dialog).toHaveTextContent('Open the Help app from the icon');
     expect(screen.getByTestId('share-icon')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Install' })).not.toBeInTheDocument();

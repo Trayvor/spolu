@@ -41,7 +41,7 @@
     "unknown": "@neznámý",
     "everyone": "Všichni v této skupině",
     "label": "Lidé",
-    "everyoneHint": "Klienti skupiny a její správci z eGrant"
+    "everyoneHint": "Klienti skupiny a její manažeři z eGrantu"
   },
   "composer": {
     "placeholder": "Napište zprávu…",
@@ -59,7 +59,7 @@
     "tooManyFiles": "Nejvýše 10 souborů na zprávu.",
     "fileTooLarge": "Příliš velký (max. 25 MB)",
     "formatting": "Formátování",
-    "mentionNotAllowed": "Někoho, koho jste zmínili, tu už nelze zmínit.",
+    "mentionNotAllowed": "Někdo ze zmíněných lidí už v této skupině není.",
     "linkUrl": "Adresa odkazu",
     "addLink": "Přidat odkaz",
     "emoji": "Vložit emoji",
@@ -84,11 +84,11 @@
   "copied": "Text zkopírován",
   "ai": {
     "button": "AI nástroje",
-    "working": "Upravuji…",
+    "working": "Upravuje se…",
     "fix": "Opravit chyby",
     "formal": "Formálněji",
     "translateTo": "Přeložit: {{language}}",
-    "undo": "Zpět",
+    "undo": "Vrátit",
     "failed": "AI nedokázala text upravit. Zkuste to znovu.",
     "limited": "Příliš mnoho požadavků. Zkuste to za minutu."
   },
@@ -97,7 +97,7 @@
     "stop": "Zastavit a přepsat",
     "cancel": "Zrušit nahrávání",
     "recording": "Čas nahrávání",
-    "transcribing": "Přepisuji…",
+    "transcribing": "Přepisuje se…",
     "denied": "K diktování povolte mikrofon v prohlížeči.",
     "unsupported": "Tento prohlížeč neumí nahrávat zvuk.",
     "failed": "Nahrávku se nepodařilo přepsat. Zkuste to znovu.",
@@ -127,16 +127,16 @@
     }
   },
   "knowledge": {
-    "attach": "Přiložit z databáze znalostí",
+    "attach": "Přiložit ze Znalostí",
     "attached": "Přiložené položky znalostí",
     "remove": "Odebrat {{title}}",
-    "pickerTitle": "Přiložit z databáze znalostí",
+    "pickerTitle": "Přiložit ze Znalostí",
     "pickerHint": "Zobrazují se jen položky, které vidí všichni v této skupině.",
-    "search": "Hledat v databázi znalostí",
+    "search": "Hledat ve Znalostech",
     "attachCount": "Přiložit ({{count}})",
     "noResults": "Hledání nic neodpovídá.",
     "empty": "Tato skupina zatím nemá žádné sdílené položky znalostí.",
-    "loadMore": "Zobrazit více",
+    "loadMore": "Zobrazit další",
     "limit": "Nejvýše {{count}} položek v jedné zprávě.",
     "limitDescription": "Nejvýše {{count}} položek v jednom popisu.",
     "unavailable": "Položka není dostupná",
@@ -149,10 +149,10 @@
       "meeting": "Schůzka",
       "chat_file": "Z chatu"
     },
-    "adminGroup": "eGrant tým",
-    "source": "Zobrazit z",
+    "adminGroup": "Tým eGrant",
+    "source": "Zdroj",
     "sourceGroup": "Tento klient",
-    "adminGroupHint": "Zobrazují se jen položky označené Sdílitelné s klienty."
+    "adminGroupHint": "Zobrazují se jen položky označené „Sdílitelné s klienty“."
   },
   "work": {
     "pickerTitle": "Přiložit ke zprávě",
@@ -178,8 +178,8 @@
     "urgent": "Naléhavé",
     "bucket": {
       "todo": "K vyřízení",
-      "egrant_review": "Kontrola eGrant",
-      "client_review": "Kontrola klienta",
+      "egrant_review": "Kontroluje eGrant",
+      "client_review": "Kontroluje klient",
       "done": "Dokončené"
     },
     "status": {

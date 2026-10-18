@@ -22,7 +22,7 @@
     "tooMany": "Příliš mnoho pokusů. Zkuste to znovu za několik minut.",
     "bulkEmail": {
       "label": "Dostávat hromadné e-maily",
-      "hint": "Novinky od eGrant posílané mnoha lidem najednou. Přihlašovací kódy a oznámení přicházejí vždy."
+      "hint": "Novinky od eGrantu posílané mnoha lidem najednou. Přihlašovací kódy a oznámení přicházejí vždy."
     }
   },
   "notifications": {
@@ -35,12 +35,12 @@
     "deviceUnsupported": "Tento prohlížeč nemůže přijímat oznámení",
     "turnOnDevice": "Zapnout pro toto zařízení",
     "unblock": "Povolte oznámení pro tento web v nastavení webu v prohlížeči a pak stránku načtěte znovu.",
-    "iosHint": "Na iPhonu fungují oznámení jen z aplikace na ploše. Klepněte na Sdílet, pak na Přidat na plochu a otevřete aplikaci Help z ikony.",
+    "iosHint": "Na iPhonu fungují oznámení jen z aplikace na ploše. Klepněte na „Sdílet“, pak na „Přidat na plochu“ a otevřete aplikaci Help z ikony.",
     "groups": {
       "chat": "Chat",
       "tasks": "Nástěnka úkolů",
-      "tickets": "Nástěnka tiketů",
-      "knowledge": "Znalostní báze",
+      "tickets": "Tikety",
+      "knowledge": "Znalosti",
       "meetings": "Schůzky",
       "finance": "Finance"
     },
@@ -48,8 +48,8 @@
       "chat": "Zprávy, zmínky a odpovědi v chatech skupin",
       "tasks": "Přesuny úkolů, přidělení, termíny, připomínky a chaty úkolů",
       "tickets": "Tikety podpory a jejich konverzace",
-      "knowledge": "Připomínky ze znalostní báze kromě schůzek",
-      "meetings": "Nové a přesunuté schůzky, jejich připomínky a AI shrnutí",
+      "knowledge": "Připomínky ze Znalostí kromě schůzek",
+      "meetings": "Nové a přesunuté schůzky, jejich připomínky a shrnutí od AI",
       "finance": "Připomínky smluv a dalších finančních položek"
     },
     "channels": {

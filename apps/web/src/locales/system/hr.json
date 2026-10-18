@@ -3,7 +3,7 @@
   "version": "Verzija poslužitelja",
   "lastPing": "Posljednji ping",
   "never": "Još ne",
-  "checking": "Provjeravam…",
+  "checking": "Provjerava se…",
   "unreachable": "Poslužitelj nije dostupan",
   "database": {
     "ok": "Baza podataka: OK",

@@ -19,7 +19,7 @@
     "assignees": {
       "anyone": "Chiunque",
       "me": "Io",
-      "none": "Nessuno"
+      "none": "Senza assegnatario"
     },
     "clear": "Cancella filtri",
     "project": "Progetto: {{name}}",
@@ -34,7 +34,7 @@
     "error": "Impossibile caricare i ticket.",
     "empty": "Nessun ticket aperto.",
     "noMatch": "Nessun ticket corrisponde a questi filtri.",
-    "loadMore": "Carica altri"
+    "loadMore": "Mostra altri"
   },
   "row": {
     "due": "Scadenza",
@@ -45,7 +45,7 @@
   },
   "mine": {
     "title": "I miei ticket",
-    "empty": "Qui non ha ticket. Quando il supporto eGrant ne aprirà uno per Lei, comparirà qui."
+    "empty": "Non ha ancora ticket. Un ticket nasce quando invia una richiesta di assistenza in eGrant; poi compare qui."
   },
   "global": {
     "title": "Ticket"
@@ -89,7 +89,7 @@
   },
   "noClient": {
     "title": "Ancora nessun cliente",
-    "adminHint": "eGrant non ha inviato un link di istanza corrispondente a un cliente. Scegliere il cliente in Modifica: il ticket avrà la sua chat e il richiedente riceverà la sua email.",
+    "adminHint": "eGrant non ha inviato un link di istanza corrispondente a un cliente. Scegliere il cliente in “Modifica”: il ticket avrà la sua chat e il richiedente riceverà la sua email.",
     "hint": "Prima un amministratore deve assegnare il cliente."
   },
   "form": {

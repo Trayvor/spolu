@@ -11,7 +11,7 @@
   "changeEmail": "Změnit e-mail",
   "errors": {
     "invalidEmail": "Zadejte platný e-mail.",
-    "wrongCode": "Kód nesouhlasí. Zbývající pokusy: {{count}}.",
+    "wrongCode": "Kód není správný. Zbývající pokusy: {{count}}.",
     "expired": "Platnost kódu vypršela. Pošlete si nový.",
     "tooMany": "Příliš mnoho pokusů. Zkuste to znovu za několik minut.",
     "disabled": "Tento účet už nemá přístup."

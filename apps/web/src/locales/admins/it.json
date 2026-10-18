@@ -20,6 +20,6 @@
   "finance": {
     "label": "Finanze",
     "labelFor": "Accesso alle finanze: {{name}}",
-    "failed": "Impossibile modificarlo. Riprova."
+    "failed": "Impossibile modificarlo. Riprovare."
   }
 }

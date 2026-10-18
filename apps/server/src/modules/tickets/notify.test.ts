@@ -175,7 +175,9 @@ describe('ticket notifications (Phase 21.6)', () => {
       expect(await kindsFor(t.id, everyone, 'ticket.status')).toEqual([z.id, c.id, m.id].sort());
       const [event] = (await eventsOf(t.id, [z.id])).filter((e) => e.kind === 'ticket.status');
       expect(event!.payload).toMatchObject({ status: 'in_progress', number: t.number });
-      expect(pushesTo(z.endpoint).map((p) => p.title)).toContain(`#${t.number} je teraz V riešení`);
+      expect(pushesTo(z.endpoint).map((p) => p.title)).toContain(
+        `Tiket #${t.number}: stav „V riešení“`,
+      );
 
       await call('PATCH', `/api/tickets/${t.id}`, actor.cookie, { subject: 'Nové' });
       expect(await kindsFor(t.id, everyone, 'ticket.updated')).toEqual([z.id, c.id, m.id].sort());
@@ -269,7 +271,9 @@ describe('ticket notifications (Phase 21.6)', () => {
     await notifyTicketChange(test.deps, { kind: 'tasks', ticket: row, actorId: a.id, count: 2 });
     const [event] = (await eventsOf(t.id, [z.id])).filter((e) => e.kind === 'ticket.tasks');
     expect(event?.payload).toMatchObject({ count: 2 });
-    expect(pushesTo(z.endpoint).map((p) => p.title)).toContain(`#${t.number} rozdelený na 2 úlohy`);
+    expect(pushesTo(z.endpoint).map((p) => p.title)).toContain(
+      `Tiket #${t.number}: vytvorené 2 úlohy`,
+    );
   });
 
   it('a ziadatel initiator gets ticket.message even with the group mode Off', async () => {

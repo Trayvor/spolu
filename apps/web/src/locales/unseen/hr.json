@@ -29,7 +29,7 @@
     "tasks_one": "{{count}} novi zadatak iz tiketa",
     "tasks_few": "{{count}} nova zadatka iz tiketa",
     "tasks_other": "{{count}} novih zadataka iz tiketa",
-    "timeMissing": "Upišite svoje vrijeme"
+    "timeMissing": "Upišite utrošeno vrijeme"
   },
   "more_one": "i još {{count}} promjena",
   "more_few": "i još {{count}} promjene",
@@ -37,9 +37,9 @@
   "dismiss": "Sakrij",
   "buckets": {
     "todo": "Za obradu",
-    "egrantReview": "Pregled eGranta",
-    "clientReview": "Pregled: {{group}}",
-    "clientReviewAnon": "Pregled klijenta",
+    "egrantReview": "Provjera eGranta",
+    "clientReview": "Provjera: {{group}}",
+    "clientReviewAnon": "Provjera klijenta",
     "done": "Dovršeno"
   },
   "status": {

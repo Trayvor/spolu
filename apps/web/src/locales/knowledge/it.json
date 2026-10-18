@@ -19,7 +19,7 @@
     "admins": "Solo eGrant"
   },
   "list": {
-    "loadMore": "Carica altri",
+    "loadMore": "Mostra altri",
     "loading": "Caricamento…",
     "error": "Impossibile caricare l'elenco. Riprovare."
   },
@@ -54,7 +54,7 @@
     }
   },
   "detail": {
-    "back": "Torna alle conoscenze",
+    "back": "Torna a Conoscenze",
     "edit": "Modifica",
     "more": "Altro",
     "delete": "Elimina",
@@ -132,12 +132,12 @@
     "done": "Fatto",
     "chosen": "Clienti scelti",
     "remove": "Rimuovi {{name}}",
-    "reset": "Reimposta",
+    "reset": "Ripristina predefiniti",
     "internal": "Interno"
   },
   "folders": {
     "label": "Cartella",
-    "help": "Un posto per tenere insieme gli elementi",
+    "help": "Raggruppa elementi correlati",
     "path": "Percorso della cartella",
     "top": "Conoscenze",
     "topLevel": "Livello principale",
@@ -156,7 +156,7 @@
     "moveTo": "Sposta in…",
     "moveTitle": "Sposta “{{name}}”",
     "moveHere": "Sposta qui",
-    "current": "Qui ora",
+    "current": "Posizione attuale",
     "delete": "Elimina",
     "deleteConfirm": "Eliminare la cartella “{{name}}”? Tutto il suo contenuto sale di un livello; nulla viene eliminato.",
     "inAdmins": "Tutto il contenuto di questa cartella è visibile solo a eGrant.",
@@ -182,7 +182,7 @@
     "alsoTasksTickets": "Anche da attività e ticket",
     "toFile": "Salva come file",
     "toFileTitle": "Salva come file",
-    "toFileHelp": "Diventa un normale file nella base di conoscenza, con una propria copia del file. Il messaggio nella chat mantiene il suo allegato. Non si può annullare."
+    "toFileHelp": "Diventa un normale file in Conoscenze, con una propria copia del file. Il messaggio nella chat mantiene il suo allegato. Non si può annullare."
   },
   "meeting": {
     "when": "Data e ora",
@@ -220,9 +220,9 @@
       "tooLarge": "Il file supera i 2 GB.",
       "notMedia": "Scegli un file audio o video.",
       "busy": "La registrazione è ancora in conversione.",
-      "rateLimited": "Troppi caricamenti. Riprova tra un'ora.",
-      "uploadFailed": "Caricamento non riuscito. Riprova.",
-      "deleteFailed": "Eliminazione non riuscita. Riprova."
+      "rateLimited": "Troppi caricamenti. Riprovare tra un'ora.",
+      "uploadFailed": "Caricamento non riuscito. Riprovare.",
+      "deleteFailed": "Eliminazione non riuscita. Riprovare."
     },
     "ai": {
       "title": "Riepilogo",
@@ -232,15 +232,15 @@
       "queued": "In attesa di avvio…",
       "transcribing": "Trascrizione della registrazione…",
       "summarizing": "Scrittura del riepilogo…",
-      "failed_transcription_failed": "Non è stato possibile trascrivere la registrazione. Riprova.",
-      "failed_summary_failed": "Non è stato possibile scrivere il riepilogo. Riprova.",
+      "failed_transcription_failed": "Non è stato possibile trascrivere la registrazione. Riprovare.",
+      "failed_summary_failed": "Non è stato possibile scrivere il riepilogo. Riprovare.",
       "nothing": "Aggiungi prima una trascrizione o carica una registrazione.",
       "busy": "Questa riunione è già in elaborazione.",
       "unavailable": "L'elaborazione con l'IA non è disponibile ora.",
-      "rateLimited": "Troppe elaborazioni. Riprova tra un'ora.",
-      "startFailed": "Avvio non riuscito. Riprova.",
+      "rateLimited": "Troppe elaborazioni. Riprovare tra un'ora.",
+      "startFailed": "Avvio non riuscito. Riprovare.",
       "none": "Ancora nessun riepilogo.",
-      "noneAdmin": "Ancora nessun riepilogo. Elabora con l'IA lo scrive dalla trascrizione o dalla registrazione.",
+      "noneAdmin": "Ancora nessun riepilogo. “Elabora con l'IA” lo scrive dalla trascrizione o dalla registrazione.",
       "edit": "Modifica il riepilogo",
       "save": "Salva il riepilogo",
       "summary": "In breve",

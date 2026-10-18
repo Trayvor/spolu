@@ -20,6 +20,6 @@
   "finance": {
     "label": "Financie",
     "labelFor": "Prístup k financiám: {{name}}",
-    "failed": "Nepodarilo sa to zmeniť. Skúste znova."
+    "failed": "Nepodarilo sa to zmeniť. Skúste to znova."
   }
 }

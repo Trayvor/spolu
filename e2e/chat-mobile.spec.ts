@@ -76,7 +76,7 @@ test('on a phone, a long press opens the action sheet and Reply in thread opens 
       'Kopírovať text',
       'Vytvoriť úlohy',
       'Upraviť',
-      'Odstrániť',
+      'Vymazať',
     ]);
     const row = (await actions.first().boundingBox())!;
     expect(row.height).toBe(48);

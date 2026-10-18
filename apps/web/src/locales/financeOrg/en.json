@@ -8,7 +8,7 @@
   "card": {
     "title": "Items",
     "views": "Show",
-    "ledger": "Overview",
+    "ledger": "List",
     "organisation": "Organisation",
     "expenses": "Expenses"
   },
@@ -37,7 +37,7 @@
     "date": "Date",
     "payer": "Parent organisation",
     "payerHint": "Who pays for all the clients at once.",
-    "reminderHint": "Proposed: the day before the date, at 09:00. You get it; add other finance admins after saving."
+    "reminderHint": "Proposed: the day before the date, at 9:00. You get it; add other finance admins after saving."
   },
   "shares": {
     "title": "Clients' shares",

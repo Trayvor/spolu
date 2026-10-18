@@ -11,7 +11,7 @@
   "changeEmail": "Cambia email",
   "errors": {
     "invalidEmail": "Inserire un'email valida.",
-    "wrongCode": "Il codice non corrisponde. Tentativi rimasti: {{count}}.",
+    "wrongCode": "Il codice non è corretto. Tentativi rimasti: {{count}}.",
     "expired": "Il codice è scaduto. Richiederne uno nuovo.",
     "tooMany": "Troppi tentativi. Riprovare tra qualche minuto.",
     "disabled": "Questo account non ha più accesso."

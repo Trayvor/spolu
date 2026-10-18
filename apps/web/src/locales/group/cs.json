@@ -38,7 +38,7 @@
     "toastAdded": "{{email}} je nyní členem skupiny. Poslali jsme mu e-mail.",
     "toastResent": "Pozvánku jsme na {{email}} poslali znovu.",
     "alreadyMember": "Tato osoba už je členem.",
-    "emailTakenAdmin": "Tento e-mail patří administrátorovi. Přidejte ho jako správce.",
+    "emailTakenAdmin": "Tento e-mail patří administrátorovi. Přidejte ho jako manažera.",
     "removedMember": "Tato osoba byla ze skupiny odebrána.",
     "invited": "Pozván(a)",
     "resend": "Poslat znovu",

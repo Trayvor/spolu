@@ -39,8 +39,8 @@
     "rankBy": "Classifica per",
     "hours": "Ore",
     "cost": "Denaro",
-    "admin": "Admin",
-    "allAdmins": "Tutti gli admin",
+    "admin": "Amministratore",
+    "allAdmins": "Tutti gli amministratori",
     "empty": "In questo periodo non è stato registrato tempo.",
     "missingRate": "{{hours}} senza tariffa"
   },
@@ -52,7 +52,7 @@
     "client": "Cliente",
     "chooseClient": "Scegli un cliente",
     "errors": {
-      "client": "Scegli il cliente, oppure Senza cliente."
+      "client": "Scegli il cliente, oppure “Senza cliente”."
     }
   }
 }

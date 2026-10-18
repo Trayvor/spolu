@@ -10,7 +10,7 @@
     "intro": "Napišite jednu e-poruku mnogim osobama u aplikaciji Help: složite je od blokova, odaberite tko će je primiti i najprije pošaljite probnu poruku sebi.",
     "new": "Nova e-poruka",
     "defaultName": "E-poruka od {{date}}",
-    "empty": "Još nema e-poruka. Započnite s Nova e-poruka.",
+    "empty": "Još nema e-poruka. Započnite gumbom „Nova e-poruka“.",
     "noSubject": "Još bez predmeta",
     "counts": "poslano: {{sent}}, neuspjelo: {{failed}}",
     "changed": "Promijenjeno {{date}}",
@@ -108,7 +108,7 @@
     "failed": "Pretpregled nije moguće učitati.",
     "note": "Prikazano s Vašim imenom, onako kako biste je primili. Blokovi s problemima izostavljeni su dok se ne isprave.",
     "titlePhone": "Pretpregled na telefonu",
-    "tooBig": "Ova e-poruka ima oko {{kb}} kB. Gmail skraćuje e-poruke veće od otprilike 102 kB: skratite je ili uklonite verziju za telefon.",
+    "tooBig": "Ova e-poruka ima oko {{kb}} kB. Gmail skraćuje e-poruke veće od otprilike 102 kB: skratite je ili izbrišite verziju za telefon.",
     "scaled": "Prikazano na {{percent}} %",
     "clickHint": "Kliknite dio e-pošte da biste ga uredili."
   },
@@ -121,8 +121,8 @@
       "ziadatel": "Podnositelji zahtjeva",
       "admin": "Administratori"
     },
-    "managers": "Grupe kojima upravlja",
-    "managersHint": "Dodaje svaku grupu kojom označeni administrator upravlja.",
+    "managers": "Grupe po voditelju",
+    "managersHint": "Dodaje svaku grupu čiji je voditelj označeni administrator.",
     "groups": "Grupe klijenata",
     "groupsHint": "Ako nije označena nijedna grupa ni voditelj, računaju se sve grupe.",
     "groupSearch": "Pronađi grupu",
@@ -136,7 +136,7 @@
     "count_few": "{{count}} osobe primaju ovu e-poruku",
     "count_other": "{{count}} osoba prima ovu e-poruku",
     "leftOut": "Izostavljeni: odjavljeni {{unsubscribed}}, s onemogućenim računom {{disabled}}.",
-    "counting": "Brojim…",
+    "counting": "Broji se…",
     "show": "Prikaži primatelje"
   },
   "picker": {
@@ -157,7 +157,7 @@
   "test": {
     "title": "Proba",
     "intro": "Pošaljite e-poruku, onakvu kakva je sada spremljena, na svoju adresu {{email}}.",
-    "send": "Pošalji probu meni",
+    "send": "Pošalji mi probu",
     "sending": "Slanje…",
     "sent": "Proba je poslana na {{email}}.",
     "unsaved": "Pričekajte da se Vaše promjene spreme.",
@@ -167,7 +167,7 @@
   },
   "send": {
     "title": "Slanje",
-    "intro": "Pošaljite spremljenu e-poruku svima u odjeljku Primatelji. Slanje možete zaustaviti dok traje, ali već poslane e-poruke ne mogu se povući.",
+    "intro": "Pošaljite spremljenu e-poruku svima u odjeljku „Primatelji“. Slanje možete zaustaviti dok traje, ali već poslane e-poruke ne mogu se povući.",
     "open": "Pošalji…",
     "preparing": "Spremanje…",
     "unsaved": "Najprije ispravite označena polja: poslati se može samo spremljena e-poruka.",
@@ -178,7 +178,7 @@
     "subject": "Predmet",
     "sender": "Pošiljatelj",
     "recipients": "Primatelji",
-    "counting": "Brojim…",
+    "counting": "Broji se…",
     "people_one": "{{count}} osoba",
     "people_few": "{{count}} osobe",
     "people_other": "{{count}} osoba",
@@ -190,14 +190,14 @@
     "notReady": "E-poruka još nije spremna. Najprije ispravite označene probleme.",
     "emptyAudience": "Ovu e-poruku nitko ne bi primio. Najprije odaberite primatelje.",
     "notDraft": "Slanje ove e-poruke već je započelo.",
-    "reload": "Prikaži izvješće"
+    "reload": "Prikaži rezultat slanja"
   },
   "report": {
     "started": "Slanje je pokrenuo/la {{name}} {{date}}, s adrese {{sender}}.",
     "finished": "Završeno {{date}}.",
     "progress": "Obrađeno {{done}} od {{total}}",
     "progressLabel": "Napredak slanja",
-    "counts": "Brojke",
+    "counts": "Rezultat slanja",
     "recipients": "Primatelji",
     "sent": "Poslano",
     "failed": "Neuspjelo",
@@ -209,7 +209,7 @@
     "note": "Aplikacija Help još ne mjeri otvaranja i klikove. „Poslano“ znači da je Elastic Email prihvatio e-poruku, a ne da je stigla u pretinac.",
     "readOnly": "Ova se e-poruka više ne može mijenjati. Duplicirajte je da biste poslali novu verziju.",
     "duplicate": "Dupliciraj",
-    "cancelSending": "Otkaži slanje",
+    "cancelSending": "Zaustavi slanje",
     "cancelConfirm": "Zaustaviti slanje? Osobe koje još nisu primile e-poruku neće je primiti.",
     "cancelYes": "Zaustavi slanje",
     "cancelNo": "Nastavi slanje",
@@ -325,7 +325,7 @@
     "label": "Verzija za uređivanje",
     "follows": "Verzija za telefon: prati verziju za računalo",
     "separate": "Verzija za telefon: uređuje se zasebno",
-    "followsHint": "Vašom prvom promjenom ovdje nastaje zasebna verzija za telefon. Promjene u načinu Računalo nakon toga se neće prenositi u nju.",
+    "followsHint": "Vašom prvom promjenom ovdje nastaje zasebna verzija za telefon. Promjene u načinu „Računalo“ nakon toga se neće prenositi u nju.",
     "return": "Vrati se na verziju za računalo",
     "returnConfirm": "Odbaciti verziju za telefon? Telefoni će ponovno prikazivati verziju za računalo.",
     "returnYes": "Odbaci verziju za telefon"
@@ -337,8 +337,8 @@
     "sendAnyway": "Ipak pošalji"
   },
   "workspace": {
-    "label": "Blokovi i pregled",
+    "label": "Blokovi i pretpregled",
     "blocks": "Blokovi",
-    "preview": "Pregled"
+    "preview": "Pretpregled"
   }
 }

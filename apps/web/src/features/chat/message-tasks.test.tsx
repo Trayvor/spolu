@@ -36,7 +36,7 @@ describe('MessageTasks', () => {
     );
     expect(screen.getByText('Bank')).toHaveClass('line-through');
     expect(screen.getByText('Report')).not.toHaveClass('line-through');
-    expect(screen.getByRole('link', { name: /Bank/ })).toHaveTextContent('Completed');
+    expect(screen.getByRole('link', { name: /Bank/ })).toHaveTextContent('Done');
   });
 
   it('renders nothing without tasks', async () => {

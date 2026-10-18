@@ -81,7 +81,7 @@ test.describe.serial('time on done', () => {
     const a = await aContext.newPage();
     await a.goto(`/groups/${groupId}/tasks/${task.id}`);
     const panel = a.getByRole('complementary', { name: 'Úloha' });
-    await panel.getByRole('button', { name: 'Označiť ako hotové' }).click();
+    await panel.getByRole('button', { name: 'Označiť ako hotovú' }).click();
     const dialog = a.getByTestId('time-dialog');
     await expect(
       dialog.getByRole('heading', { name: 'Koľko času ste na tom strávili?' }),
@@ -92,10 +92,10 @@ test.describe.serial('time on done', () => {
     await expect(dialog).toHaveCount(0);
     await expect(panel.getByTestId('my-time')).toContainText('1 h 30 min');
 
-    // B: the "Fill in your time" row on My tasks; a click opens the dialog in place.
+    // B: the "Record your time" row on My tasks; a click opens the dialog in place.
     const b = await bContext.newPage();
     await b.goto('/');
-    const row = b.getByRole('button', { name: `Vyplňte svoj čas: ${title}` });
+    const row = b.getByRole('button', { name: `Zapíšte strávený čas: ${title}` });
     await expect(row).toBeVisible();
     await row.click();
     const bDialog = b.getByTestId('time-dialog');
@@ -111,11 +111,11 @@ test.describe.serial('time on done', () => {
     await c.goto(`/groups/${groupId}/tasks/${other.id}`);
     await c
       .getByRole('complementary', { name: 'Úloha' })
-      .getByRole('button', { name: 'Označiť ako hotové' })
+      .getByRole('button', { name: 'Označiť ako hotovú' })
       .click();
     await expect(
       c.getByRole('complementary', { name: 'Úloha' }).getByRole('button', {
-        name: 'Označiť ako nehotové',
+        name: 'Označiť ako nehotovú',
       }),
     ).toBeVisible();
     await expect(c.getByTestId('time-dialog')).toHaveCount(0);
@@ -137,7 +137,7 @@ test.describe.serial('time on done', () => {
     });
     const b = await bContext.newPage();
     await b.goto('/');
-    const row = b.getByRole('button', { name: `Vyplňte svoj čas: ${title}` });
+    const row = b.getByRole('button', { name: `Zapíšte strávený čas: ${title}` });
     await expect(row).toBeVisible();
 
     expect((await move('todo')).ok()).toBe(true);

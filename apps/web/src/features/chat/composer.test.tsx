@@ -456,7 +456,7 @@ describe('Composer', () => {
     const invalidate = vi.spyOn(client, 'invalidateQueries');
     await user.keyboard(' ok{Enter}');
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      "Someone you mentioned can't be mentioned here any more.",
+      'Someone you mentioned is no longer in this group.',
     );
     expect(box()).toHaveTextContent('hi @Peter Horváth ok');
     expect(invalidate).toHaveBeenCalledWith({ queryKey: groupPeopleQuery('g1').queryKey });

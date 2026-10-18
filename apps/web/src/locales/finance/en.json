@@ -3,14 +3,14 @@
   "pageTitle": "Financial administration",
   "segments": {
     "label": "Show card",
-    "overview": "Overview",
+    "overview": "Summary",
     "documents": "Documents",
     "workLog": "Work log",
     "contracts": "Contracts",
     "rankings": "Rankings"
   },
   "cards": {
-    "overview": "Overview",
+    "overview": "Summary",
     "overviewSoon": "What the client paid and will pay by contract, what the work cost and each admin’s hours will show here.",
     "documents": "Documents",
     "documentsSoon": "This client’s contracts, documents, notes and folders will be kept here.",

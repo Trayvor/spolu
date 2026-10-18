@@ -35,12 +35,12 @@
     "deviceUnsupported": "Tento prehliadač nevie prijímať upozornenia",
     "turnOnDevice": "Zapnúť na tomto zariadení",
     "unblock": "Povoľte upozornenia pre túto stránku v nastaveniach stránky v prehliadači a potom stránku obnovte.",
-    "iosHint": "Na iPhone fungujú upozornenia len z aplikácie na ploche. Ťuknite na Zdieľať, potom na Pridať na plochu a otvorte aplikáciu Help z ikony.",
+    "iosHint": "Na iPhone fungujú upozornenia len z aplikácie na ploche. Ťuknite na „Zdieľať“, potom na „Pridať na plochu“ a otvorte aplikáciu Help z ikony.",
     "groups": {
       "chat": "Chat",
       "tasks": "Nástenka úloh",
-      "tickets": "Nástenka tiketov",
-      "knowledge": "Znalostná báza",
+      "tickets": "Tikety",
+      "knowledge": "Znalosti",
       "meetings": "Stretnutia",
       "finance": "Financie"
     },
@@ -48,15 +48,15 @@
       "chat": "Správy, zmienky a odpovede v skupinových chatoch",
       "tasks": "Presuny, priradenia, termíny, pripomienky a chaty úloh",
       "tickets": "Tikety podpory a ich komunikácia",
-      "knowledge": "Pripomienky zo znalostnej bázy okrem stretnutí",
-      "meetings": "Nové a presunuté stretnutia, ich pripomienky a AI zhrnutia",
+      "knowledge": "Pripomienky zo Znalostí okrem stretnutí",
+      "meetings": "Nové a presunuté stretnutia, ich pripomienky a zhrnutia od AI",
       "finance": "Pripomienky zmlúv a ďalších finančných položiek"
     },
     "channels": {
       "email": "E-mail",
       "push": "Push",
       "both": "E-mail a push",
-      "none": "Nič"
+      "none": "Žiadne"
     },
     "emailNote": "E-mail je súhrn toho, čo ste ešte neprečítali, najviac raz za 10 minút."
   }

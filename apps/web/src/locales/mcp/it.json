@@ -1,6 +1,6 @@
 {
-  "title": "Accesso per l'AI (MCP)",
-  "intro": "Collega Claude o un altro assistente AI a Help con un token personale. L'assistente lavora come te: vede e modifica solo ciò che puoi tu.",
+  "title": "Accesso per l'IA (MCP)",
+  "intro": "Collega Claude o un altro assistente IA a Help con un token personale. L'assistente lavora come te: vede e modifica solo ciò che puoi tu.",
   "create": {
     "title": "Nuovo token",
     "name": "Nome",
@@ -48,7 +48,7 @@
     "keep": "Mantieni"
   },
   "audit": {
-    "title": "Modifiche recenti tramite AI",
+    "title": "Modifiche recenti tramite IA",
     "empty": "Nessun assistente ha ancora modificato nulla.",
     "refused": "rifiutata"
   },
@@ -61,7 +61,7 @@
     "allow": "Consenti l'accesso",
     "deny": "Rifiuta",
     "leaving": "Ritorno all'assistente…",
-    "adminsOnly": "Solo gli amministratori possono collegare un assistente AI a Help.",
+    "adminsOnly": "Solo gli amministratori possono collegare un assistente IA a Help.",
     "invalid": "Questo link di collegamento non è valido. Ricomincia il collegamento dall'assistente.",
     "limit": "Hai 10 assistenti collegati. Scollegane uno in Impostazioni prima di aggiungerne un altro."
   },

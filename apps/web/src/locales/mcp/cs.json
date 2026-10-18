@@ -17,7 +17,7 @@
   },
   "scopeHint": {
     "read": "Asistent čte skupiny, chaty, úkoly, tikety a znalosti.",
-    "write": "Asistent může také vytvářet a upravovat úkoly, tikety, zprávy, znalosti a projekty. Nikdy nic nemaže."
+    "write": "Asistent může také vytvářet a upravovat úkoly, tikety, zprávy, znalosti a projekty. Nikdy nic nesmaže."
   },
   "days": {
     "7": "7 dní",

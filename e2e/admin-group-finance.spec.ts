@@ -40,7 +40,7 @@ test('finance in the admin group: internal time, the organisation tab, never ran
   // The tab: the organisation's items card, the internal time in the work log.
   await page.goto(`/groups/${team}/finance`);
   await expect(page.getByRole('heading', { name: 'Organizácia' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Prehľad', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Súhrn', exact: true })).toBeVisible();
 
   // The rankings never list it, whatever the filter.
   for (const query of ['', '&internal=0', `&clients=${team}`]) {

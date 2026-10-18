@@ -3,7 +3,7 @@
   "create": "Stvori grupu",
   "empty": "Još nema grupa. Stvorite prvu za klijenta.",
   "members": "Članovi: {{count}}",
-  "showMore": "Prikaži više (preostalo {{left}})",
+  "showMore": "Prikaži još (preostalo {{left}})",
   "form": {
     "name": "Naziv",
     "egrantUrl": "Adresa klijenta u eGrantu",
@@ -15,7 +15,7 @@
   "errors": {
     "nameRequired": "Unesite naziv.",
     "invalidUrl": "Unesite valjanu adresu.",
-    "urlTaken": "Ovu adresu eGranta već koristi druga grupa.",
+    "urlTaken": "Ovu adresu u eGrantu već koristi druga grupa.",
     "invalidLogo": "Logotip mora biti slika u formatu PNG, JPEG ili WebP do 512 KB."
   },
   "managers": {

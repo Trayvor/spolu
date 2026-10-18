@@ -5,8 +5,8 @@
   "unseenTasks_other": "{{count}} nalog z novo spremembo",
   "buckets": {
     "todo": "Za narediti",
-    "egrantReview": "Pregled eGrant",
-    "clientReview": "Pregled {{group}}",
+    "egrantReview": "Preverja eGrant",
+    "clientReview": "Preverja {{group}}",
     "done": "Dokončano"
   },
   "board": {
@@ -23,7 +23,7 @@
     "more": "Več",
     "rename": "Preimenuj",
     "delete": "Izbriši",
-    "deleteBucketConfirm": "Želite izbrisati ta stolpec? Njegove naloge se premaknejo v Za narediti.",
+    "deleteBucketConfirm": "Želite izbrisati ta stolpec? Njegove naloge se premaknejo v stolpec »Za narediti«.",
     "cancel": "Prekliči",
     "error": "Shranjevanje ni uspelo. Poskusite znova.",
     "loading": "Nalaganje table.",
@@ -82,12 +82,12 @@
     "link": "Povezava",
     "linkPlaceholder": "https://…",
     "openLink": "Odpri povezavo",
-    "linkEmptyWarning": "Povezava je prazna. Če jo dodate, bo podpora nalogo rešila hitreje. Za shranjevanje brez nje znova kliknite Ustvari.",
+    "linkEmptyWarning": "Povezava je prazna. Če jo dodate, bo podpora nalogo rešila hitreje. Za shranjevanje brez nje znova kliknite »Ustvari«.",
     "errors": {
       "titleRequired": "Vnesite naslov.",
       "titleTooLong": "Uporabite največ 200 znakov.",
       "descriptionTooLong": "Uporabite največ 10.000 znakov.",
-      "assigneeNotAllowed": "Nekoga, ki ste ga izbrali, tukaj ni več mogoče dodeliti.",
+      "assigneeNotAllowed": "Nekdo izmed izbranih oseb tukaj ne more več biti izvajalec.",
       "tooManyFiles": "Priložite največ 20 datotek.",
       "invalidDate": "Vnesite veljaven rok.",
       "invalidLink": "Vnesite celoten spletni naslov, ki se začne s http:// ali https://.",
@@ -148,7 +148,7 @@
     "options": "Kaj zapisati",
     "optionTicket": "Čas za zahtevek",
     "optionTicketHint": "Prišteje se uram na povezanih nalogah.",
-    "optionCovered": "Ure na povezanih nalogah to pokrijejo",
+    "optionCovered": "Je že zajet v urah na povezanih nalogah",
     "optionCoveredHint": "Nič več se ne prišteje.",
     "linkedTasks": "Vaš čas na povezanih nalogah",
     "notFilled": "Ni vpisano",

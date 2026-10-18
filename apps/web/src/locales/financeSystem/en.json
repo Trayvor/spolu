@@ -52,7 +52,7 @@
     "client": "Client",
     "chooseClient": "Choose a client",
     "errors": {
-      "client": "Choose the client, or Without client."
+      "client": "Choose the client, or “Without client”."
     }
   }
 }

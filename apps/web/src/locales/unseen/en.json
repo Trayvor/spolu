@@ -26,7 +26,7 @@
     "updated": "Details changed",
     "tasks_one": "{{count}} new task from the ticket",
     "tasks_other": "{{count}} new tasks from the ticket",
-    "timeMissing": "Fill in your time"
+    "timeMissing": "Record your time"
   },
   "more_one": "and {{count}} more change",
   "more_other": "and {{count}} more changes",
@@ -36,7 +36,7 @@
     "egrantReview": "eGrant review",
     "clientReview": "{{group}} review",
     "clientReviewAnon": "Client review",
-    "done": "Completed"
+    "done": "Done"
   },
   "status": {
     "new": "New",

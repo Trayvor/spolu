@@ -61,7 +61,7 @@ export const hr: ServerTexts = {
       body: ({ name, date }) =>
         `U aplikaciji Help by eGrant ${date} stvoren je novi token za pristup AI-ja „${name}”. S njim AI asistent može čitati i mijenjati podatke u vaše ime.`,
       warning:
-        'Ako to niste bili vi, odmah ga opozovite u Postavkama (Pristup za AI (MCP)) i javite se svom administratoru.',
+        'Ako to niste bili vi, odmah ga opozovite u Postavkama → Pristup za AI (MCP) i javite se svom administratoru.',
       button: 'Otvori Postavke',
     },
     connectionApproved: {
@@ -69,7 +69,7 @@ export const hr: ServerTexts = {
       body: ({ name, host, date }) =>
         `S Help by eGrant ${date} povezan je asistent „${name}” (povratak na ${host}). Sada može koristiti Help u vaše ime s pristupom koji ste odabrali.`,
       warning:
-        'Ako to niste bili vi, odmah ga odspojite u Postavkama (Pristup za AI (MCP)) i obratite se svom administratoru.',
+        'Ako to niste bili vi, odmah ga odspojite u Postavkama → Pristup za AI (MCP) i obratite se svom administratoru.',
       button: 'Otvori Postavke',
     },
   },
@@ -77,7 +77,7 @@ export const hr: ServerTexts = {
     created: {
       subject: (n, title) => `Tiket #${n} je stvoren: ${title}`,
       untitled: 'Vaš zahtjev',
-      received: (n, title) => `Primili smo Vaš tiket tehničke podrške #${n}: ${title}.`,
+      received: (n, title) => `Primili smo Vaš tiket #${n}: ${title}.`,
       followUp:
         'U aplikaciji Help možete ga pratiti i pisati eGrantu. Prijavite se ovom adresom e-pošte; poslat ćemo Vam kôd.',
       followUpLink:
@@ -87,7 +87,7 @@ export const hr: ServerTexts = {
   },
   notifications: {
     sentFile: (name) => `${name} poslao/la je datoteku`,
-    moved: (label) => `Premješteno u ${label}`,
+    moved: (label) => `Premješteno u stupac „${label}“`,
     movedGeneric: 'Zadatak je premješten',
     assigned: (name) => `${name} dodijelio/la Vam je zadatak`,
     deadline: (d) =>
@@ -100,9 +100,9 @@ export const hr: ServerTexts = {
         case 'todo':
           return 'Za obradu';
         case 'egrant_review':
-          return 'Pregled eGranta';
+          return 'Provjera eGranta';
         case 'client_review':
-          return l.name ? `Pregled: ${l.name}` : 'Pregled klijenta';
+          return l.name ? `Provjera: ${l.name}` : 'Provjera klijenta';
         case 'done':
           return 'Dovršeno';
         case 'custom':
@@ -111,23 +111,23 @@ export const hr: ServerTexts = {
     },
     digestSubject: (n, g) =>
       `${n} ${plural('hr', n, { one: 'nova poruka', few: 'nove poruke', other: 'novih poruka' })} u grupi ${g}`,
-    digestButton: (g) => `Otvori ${g}`,
+    digestButton: () => 'Otvori grupu',
     reminderDue: (time) => `Podsjetnik za ${time}`,
     reminderLine: (title, time) => `Podsjetnik: ${title}, ${time}`,
     deadlineEvent: (title) => `Rok: ${title}`,
     ticketNew: (n, client) => `Novi tiket #${n} · ${client}`,
     ticketUnassigned: (n) => `Novi tiket #${n} bez klijenta`,
-    ticketStatus: (n, status) => `#${n} sada ima status: ${STATUS[status] ?? status}`,
+    ticketStatus: (n, status) => `Tiket #${n}: status „${STATUS[status] ?? status}“`,
     ticketAssigned: (n) => `Vi ste rješavatelj tiketa #${n}`,
-    ticketUpdated: (n) => `#${n} je promijenjen`,
+    ticketUpdated: (n) => `Tiket #${n}: ažurirani podaci`,
     ticketTasks: (n, c) =>
-      `#${n} pretvoren u ${c} ${plural('hr', c, { one: 'zadatak', few: 'zadatka', other: 'zadataka' })}`,
+      `Tiket #${n}: ${plural('hr', c, { one: 'stvoren', few: 'stvorena', other: 'stvoreno' })} ${c} ${plural('hr', c, { one: 'zadatak', few: 'zadatka', other: 'zadataka' })}`,
     ticketTopic: (n) => `Tiket #${n}`,
     openTicket: 'Otvori tiket',
     meetingScheduled: (when) => `Novi sastanak: ${when}`,
     meetingRescheduled: (when) => `Sastanak premješten na ${when}`,
-    meetingSummaryReady: 'AI sažetak je spreman',
-    meetingSummaryFailed: 'Obrada s AI-jem nije uspjela',
+    meetingSummaryReady: 'Sažetak od AI-ja je spreman',
+    meetingSummaryFailed: 'Obrada pomoću AI-ja nije uspjela',
     openMeeting: 'Otvori sastanak',
     contractEnds: (date) => `Ugovor istječe ${date}`,
     contractLine: (title, client, date) => `Ugovor ${title} · ${client}: istječe ${date}`,
@@ -137,8 +137,8 @@ export const hr: ServerTexts = {
     salaryTitle: (name) => `Plaća: ${name}`,
     openExpense: 'Otvori trošak',
     financeTopic: 'Financije',
-    timeMissing: 'Upišite koliko ste vremena utrošili',
-    timeMissingLine: (title) => `${title}: upišite svoje vrijeme`,
+    timeMissing: 'Upišite utrošeno vrijeme',
+    timeMissingLine: (title) => `${title}: upišite utrošeno vrijeme`,
     openTask: 'Otvori zadatak',
   },
   teams: {

@@ -4,7 +4,7 @@
   "invalid": "Tento odkaz už neplatí. Požádejte eGrant o nový.",
   "errors": {
     "rateLimited": "Příliš mnoho pokusů. Zkuste to znovu za minutu.",
-    "removed": "Administrátor eGrant vás z této skupiny odebral. Požádejte ho, aby vás znovu přidal."
+    "removed": "Administrátor eGrantu vás z této skupiny odebral. Požádejte ho, aby vás znovu přidal."
   },
   "signedInAs": "Jste přihlášeni jako {{email}}.",
   "accept": "Připojit se ke skupině"

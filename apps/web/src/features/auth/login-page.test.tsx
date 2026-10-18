@@ -171,7 +171,7 @@ describe('login page', () => {
     await user.type(code, '222222');
     expect(await screen.findByText(t('login.errors.wrongCode', { count: 1 }))).toBeInTheDocument();
     expect(t('login.errors.wrongCode', { count: 1 })).toBe(
-      'The code does not match. Attempts left: 1.',
+      'The code is not correct. Attempts left: 1.',
     );
 
     await user.type(code, '333333');

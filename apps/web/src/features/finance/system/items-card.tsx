@@ -12,7 +12,7 @@ type View = (typeof VIEWS)[number];
 
 /**
  * `/finance`'s bottom-left card (Phase 32 E, decision E12), **Položky**: two views under one
- * title, the choice remembered per person. **Prehľad** is the ledger of every item of the chosen
+ * title, the choice remembered per person. **Zoznam** is the ledger of every item of the chosen
  * clients (and, with every client, of the organisation) with its type filter; **Organizácia**
  * is the organisation's own items in its folders, like a client's Documents card. Both offer
  * "+ New" with expenses.

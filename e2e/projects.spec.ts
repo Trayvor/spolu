@@ -260,7 +260,7 @@ test.describe.serial('projects: the timeline and the active cards (P4)', () => {
     await page.goto(`/groups/${groupId}/overview`);
     const tickets = page.getByRole('region', { name: 'Tikety' });
     await expect(tickets.getByRole('link').nth(1)).toContainText(`Môj tiket ${stamp}`);
-    await expect(tickets).toContainText('aktívne: 2');
+    await expect(tickets).toContainText('otvorené: 2');
     const tasks = page.getByRole('region', { name: 'Úlohy' });
     await expect(tasks.getByRole('link').nth(1)).toContainText(`Rozpočet ${stamp}`);
     await expect(tasks).toContainText('moje: 1');

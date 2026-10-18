@@ -39,7 +39,7 @@
     "description": "Descrizione",
     "editDescription": "Modifica descrizione",
     "files": "File",
-    "aliases": "Corrisponde anche a",
+    "aliases": "Altri nomi",
     "aliasesHint": "Nomi precedenti del progetto. I ticket di eGrant e i nuovi progetti con questi nomi vengono collegati a esso.",
     "removeAlias": "Rimuovi {{alias}}",
     "egrantId": "ID del progetto in eGrant",
@@ -56,8 +56,8 @@
       "descriptionTooLong": "La descrizione può avere al massimo 10.000 caratteri.",
       "nameTaken": "Questo cliente ha già un progetto con questo nome: {{name}}.",
       "changed": "Qualcuno l'ha modificato nel frattempo. Chiudi la finestra e riaprila.",
-      "files": "Impossibile allegare un file. Rimuovilo e caricalo di nuovo.",
-      "failed": "Salvataggio non riuscito. Riprova.",
+      "files": "Impossibile allegare un file. Lo rimuova e lo carichi di nuovo.",
+      "failed": "Impossibile salvare. Riprovare.",
       "dateRequired": "Scegli una data."
     }
   },
@@ -69,7 +69,7 @@
     "restore": "Ripristina",
     "delete": "Elimina",
     "cancel": "Annulla",
-    "failed": "Non è riuscito. Riprova.",
+    "failed": "Impossibile eseguire l'azione. Riprovare.",
     "unavailable": "Questo progetto non è più disponibile.",
     "archived": "Archiviato",
     "events": "Eventi",
@@ -99,7 +99,7 @@
     "tasks": "Attività ({{count}})",
     "tickets": "Ticket ({{count}})",
     "tasksTitle": "Attività aperte",
-    "ticketsTitle": "Ticket attivi",
+    "ticketsTitle": "Ticket aperti",
     "showAll": "Mostra tutto ({{count}})",
     "done": "Completati ({{count}})",
     "more": "Mostra altri",
@@ -118,20 +118,20 @@
   "cards": {
     "tickets": "Ticket",
     "tasks": "Attività",
-    "ticketsActive": "attivi: {{count}}",
+    "ticketsActive": "aperti: {{count}}",
     "tasksOpen": "aperte: {{count}}",
     "mine": "miei: {{count}}",
     "urgentCount": "urgenti: {{count}}",
     "openAll": "Apri tutto",
     "loadError": "Caricamento non riuscito.",
-    "noTickets": "Nessun ticket attivo.",
+    "noTickets": "Nessun ticket aperto.",
     "noTasks": "Nessuna attività aperta.",
     "mineMark": "(mio)",
     "urgent": "Urgente",
     "noSubject": "Senza oggetto",
     "status": {
       "new": "Nuovo",
-      "in_progress": "In corso",
+      "in_progress": "In lavorazione",
       "resolved": "Risolto"
     }
   }

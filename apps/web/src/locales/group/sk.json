@@ -21,7 +21,7 @@
   },
   "members": {
     "title": "Členovia",
-    "empty": "Zatiaľ žiadni členovia. Pridajte ich e-mailom alebo im pošlite odkaz s pozvánkou.",
+    "empty": "Zatiaľ žiadni členovia. Pridajte ich e-mailom alebo im pošlite odkaz na pozvánku.",
     "remove": "Odobrať",
     "confirmRemove": "Odobrať {{name}}? Okamžite stratí prístup.",
     "removedTitle": "Odobraní členovia ({{count}})",

@@ -158,7 +158,7 @@ describe('Board', () => {
       'My bucket',
       'eGrant review',
       'Acme review',
-      'Completed',
+      'Done',
     ]);
     expect(within(columns[0]!).getByText('2 tasks')).toBeInTheDocument();
     expect(within(columns[4]!).getByText('1 task')).toBeInTheDocument();
@@ -346,7 +346,7 @@ describe('Board', () => {
     renderBoard();
     const columns = await screen.findAllByRole('region');
     const add = screen.getByRole('button', { name: 'Add column' });
-    expect(columns.at(-1)!.getAttribute('aria-label')).toBe('Completed');
+    expect(columns.at(-1)!.getAttribute('aria-label')).toBe('Done');
     expect(
       columns.at(-1)!.compareDocumentPosition(add) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
@@ -358,7 +358,7 @@ describe('Board', () => {
   it('gives admins a drag handle on every bucket, fixed ones included', async () => {
     renderBoard();
     await screen.findAllByRole('region');
-    for (const title of ['To do', 'My bucket', 'eGrant review', 'Acme review', 'Completed']) {
+    for (const title of ['To do', 'My bucket', 'eGrant review', 'Acme review', 'Done']) {
       expect(screen.getByRole('button', { name: `Move ${title}` })).toBeInTheDocument();
     }
   });
@@ -431,7 +431,9 @@ describe('Board', () => {
     await screen.findAllByRole('region');
     await user.click(screen.getByRole('button', { name: /^More/ }));
     await user.click(await screen.findByRole('menuitem', { name: 'Delete' }));
-    expect(screen.getByText('Delete this bucket? Its tasks move to To do.')).toBeInTheDocument();
+    expect(
+      screen.getByText('Delete this bucket? Its tasks move to the “To do” bucket.'),
+    ).toBeInTheDocument();
     expect(writes()).toHaveLength(0);
     await user.click(screen.getByRole('button', { name: 'Delete' }));
     await waitFor(() =>
@@ -629,13 +631,7 @@ describe('Board', () => {
       await handleBucketDrop(queryClient, 'g1', 'b-custom', 'b-egrant', update);
       expect(update).toHaveBeenCalledWith('b-custom', { afterBucketId: 'b-egrant' });
       await waitFor(() =>
-        expect(order()).toEqual([
-          'To do',
-          'eGrant review',
-          'My bucket',
-          'Acme review',
-          'Completed',
-        ]),
+        expect(order()).toEqual(['To do', 'eGrant review', 'My bucket', 'Acme review', 'Done']),
       );
       expect(
         queryClient.getQueryData<BoardDto>(KEY)!.buckets.find((b) => b.id === 'b-custom')!.position,
@@ -648,7 +644,7 @@ describe('Board', () => {
       const update = vi.fn(async () => ({ ...BUCKETS[0]!, position: 'Zz' }));
       await handleBucketDrop(queryClient, 'g1', 'b-done', null, update);
       expect(update).toHaveBeenCalledWith('b-done', { afterBucketId: null });
-      await waitFor(() => expect(order()[0]).toBe('Completed'));
+      await waitFor(() => expect(order()[0]).toBe('Done'));
     });
 
     it('a failure puts it back and says so', async () => {

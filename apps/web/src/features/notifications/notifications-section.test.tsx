@@ -109,19 +109,19 @@ describe('NotificationsSection', () => {
     setup();
     expect(await select('Chat')).toHaveValue('push');
     expect(await select('Task board')).toHaveValue('push');
-    expect(await select('Ticket board')).toHaveValue('both');
-    expect(await select('Knowledge base')).toHaveValue('push');
+    expect(await select('Tickets')).toHaveValue('both');
+    expect(await select('Knowledge')).toHaveValue('push');
     expect(await select('Meetings')).toHaveValue('push');
     expect(screen.getByText('Support tickets and their conversations')).toBeInTheDocument();
     expect(
-      screen.getByText('New and moved meetings, their reminders and AI summaries'),
+      screen.getByText('New and moved meetings, their reminders and summaries from AI'),
     ).toBeInTheDocument();
     const options = within(await select('Chat')).getAllByRole('option');
     expect(options.map((o) => o.textContent)).toEqual(['Email', 'Push', 'Email and push', 'None']);
     cleanup();
 
     setup({ ...PREFS, visibleCategories: ['tickets'] });
-    expect(await select('Ticket board')).toBeInTheDocument();
+    expect(await select('Tickets')).toBeInTheDocument();
     expect(screen.queryByRole('combobox', { name: 'Chat' })).toBeNull();
   });
 
@@ -184,10 +184,10 @@ describe('NotificationsSection', () => {
     } as const;
     const { patches, user } = setup(none);
     // No group wants push, so there is no device line yet.
-    expect(await select('Knowledge base')).toHaveValue('none');
+    expect(await select('Knowledge')).toHaveValue('none');
     expect(screen.queryByText(/^This device:/)).toBeNull();
     await waitFor(() => expect(getDeviceState).toHaveBeenCalled());
-    await user.selectOptions(await select('Knowledge base'), 'push');
+    await user.selectOptions(await select('Knowledge'), 'push');
     expect(subscribeThisDevice).toHaveBeenCalledWith('KEY');
     await waitFor(() => expect(patches()).toEqual([{ category: 'knowledge', channel: 'push' }]));
     expect(await screen.findByText('This device: on')).toBeInTheDocument();
