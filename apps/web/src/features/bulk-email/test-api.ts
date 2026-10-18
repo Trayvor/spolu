@@ -9,7 +9,7 @@ import { createAppRouter } from '@/router';
 
 /** Tests only: fake data, a fake API and a render helper for the bulk email screens. */
 
-export const NOW = '2026-10-16T10:00:00.000Z';
+const NOW = '2026-10-16T10:00:00.000Z';
 export const ADMIN = {
   id: 'a1',
   name: 'Ada',
@@ -26,7 +26,7 @@ export const CLIENT = {
   finance: false,
   groups: [],
 };
-export const GROUPS = [
+const GROUPS = [
   { id: 'g1', name: 'ABC s.r.o.' },
   { id: 'g2', name: 'Obec Lúčky' },
 ].map((g) => ({
@@ -37,7 +37,7 @@ export const GROUPS = [
   managers: [],
   managedByMe: false,
 }));
-export const ADMINS = [
+const ADMINS = [
   { id: 'a1', name: 'Ada', email: 'ada@egrant.sk', role: 'admin' },
   { id: 'a2', name: 'Boris', email: 'boris@egrant.sk', role: 'admin' },
 ];
@@ -104,7 +104,7 @@ export type Route = (url: URL, init: RequestInit) => Response | undefined;
 export const reply = (status: number, body?: unknown) =>
   new Response(body === undefined ? null : JSON.stringify(body), { status });
 
-export type Call = { method: string; path: string; body: unknown; init: RequestInit };
+type Call = { method: string; path: string; body: unknown; init: RequestInit };
 
 /** Stubs `fetch`: `routes` first, then the defaults, then 404 `not_found`. */
 export function mockBulkApi(me: unknown, routes: Route[] = []) {

@@ -127,7 +127,7 @@ type RowAction = {
 
 const timeFormats = new Map<string, Intl.DateTimeFormat>();
 /** `HH:mm` in the viewer's local time and language; one formatter per language. */
-export function formatTime(iso: string, language: string): string {
+function formatTime(iso: string, language: string): string {
   let format = timeFormats.get(language);
   if (!format) {
     format = new Intl.DateTimeFormat(language, { hour: '2-digit', minute: '2-digit' });

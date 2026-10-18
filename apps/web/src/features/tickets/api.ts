@@ -113,7 +113,7 @@ export const ticketQuery = (id: string) =>
   });
 
 /** The list row of a ticket, as the server builds it, from the full ticket. */
-export function toListItem(ticket: TicketDto): TicketListItem {
+function toListItem(ticket: TicketDto): TicketListItem {
   return {
     id: ticket.id,
     number: ticket.number,
@@ -138,11 +138,7 @@ export function toListItem(ticket: TicketDto): TicketListItem {
  * Whether a row still belongs in a list with this filter (the parts the web can tell). `meId`
  * decides the riešiteľ filter "Me"; without it the row stays.
  */
-export function matchesFilter(
-  item: TicketListItem,
-  filter: TicketFilter,
-  meId?: string | null,
-): boolean {
+function matchesFilter(item: TicketListItem, filter: TicketFilter, meId?: string | null): boolean {
   if (filter.assignee === 'none' && item.assignees.length > 0) return false;
   if (filter.assignee === 'me' && meId && !item.assignees.some((p) => p.id === meId)) return false;
   if (filter.status === 'open' && item.status === 'resolved') return false;

@@ -31,7 +31,7 @@ export type FinanceOwner = { kind: 'group'; groupId: string } | { kind: 'org' };
 export const ORG_OWNER: FinanceOwner = { kind: 'org' };
 
 /** The owner's key prefix: the client's view, or the organisation's under `'all'`. */
-export function ownerKey(owner: FinanceOwner, kind: string, ...rest: unknown[]): QueryKey {
+function ownerKey(owner: FinanceOwner, kind: string, ...rest: unknown[]): QueryKey {
   return owner.kind === 'group'
     ? financeKey({ kind: 'group', groupId: owner.groupId }, kind, ...rest)
     : ['finance', 'all', 'org', kind, ...rest];

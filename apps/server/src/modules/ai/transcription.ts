@@ -4,7 +4,7 @@ import { AiFailedError } from './provider.js';
 // Phase 30: speech to text for meeting recordings. The job splits the audio and sends each part.
 
 /** One part of a recording, already small enough for one request (≤ 25 MB, ≤ 20 minutes). */
-export type TranscriptionRequest = { audio: Buffer; fileName: string; mime: string };
+type TranscriptionRequest = { audio: Buffer; fileName: string; mime: string };
 
 /** Turns one audio part into text. Implementations: OpenAI, ElevenLabs Scribe, a fake. */
 export interface TranscriptionProvider {

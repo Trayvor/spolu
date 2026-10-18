@@ -1,5 +1,4 @@
 {
-  "tab": "Rahandus",
   "pageTitle": "Rahandus",
   "segments": {
     "label": "Näita kaarti",
@@ -11,11 +10,8 @@
   },
   "cards": {
     "overview": "Kokkuvõte",
-    "overviewSoon": "Siin on näha, kui palju klient lepingute järgi maksis ja maksab, kui palju töö maksis ja iga administraatori tunnid.",
     "documents": "Dokumendid",
-    "documentsSoon": "Siin hoitakse selle kliendi lepinguid, dokumente, märkmeid ja kaustu.",
     "workLog": "Tööaruanne",
-    "workLogSoon": "Siin on tunnid, mille administraatorid selle kliendi heaks töötasid, kuude ja päevade kaupa.",
     "contracts": "Lepingud",
     "paidRanking": "Kliendid makstud summa järgi",
     "hoursRanking": "Kliendid tundide järgi"

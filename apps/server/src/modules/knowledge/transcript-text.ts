@@ -48,7 +48,7 @@ export function subtitlesToText(source: string): string {
 }
 
 /** The bytes of one entry of a zip archive, or null when it is not there. Deflate or stored. */
-export function readZipEntry(zip: Buffer, name: string): Buffer | null {
+function readZipEntry(zip: Buffer, name: string): Buffer | null {
   // The end of central directory record: within the last 64 KiB + 22 bytes.
   const min = Math.max(0, zip.length - 65_557);
   let eocd = -1;
@@ -84,7 +84,7 @@ export function readZipEntry(zip: Buffer, name: string): Buffer | null {
 }
 
 /** A .docx's text: one line per paragraph, tabs and breaks kept. */
-export function docxToText(bytes: Buffer): string {
+function docxToText(bytes: Buffer): string {
   const xml = readZipEntry(bytes, 'word/document.xml');
   if (!xml) throw new InvalidTranscriptFileError();
   const body = xml.toString('utf8');

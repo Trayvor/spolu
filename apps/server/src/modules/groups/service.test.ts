@@ -27,7 +27,6 @@ import {
   EgrantUrlTakenError,
   getGroup,
   getGroupByInviteToken,
-  isPickablePerson,
   listGroupPeople,
   listPickablePeople,
   listGroups,
@@ -290,7 +289,7 @@ describe('ziadatel members', () => {
     await db.update(user).set({ name: 'Žiadateľ' }).where(eq(user.id, z.id));
     await addMembership(db, z.id, g.id, 'ziadatel');
     expect((await listGroupPeople(db, g.id)).some((p) => p.id === z.id)).toBe(false);
-    expect(await isPickablePerson(db, g.id, z.id)).toBe(false);
+    expect((await listPickablePeople(db, g.id)).some((p) => p.id === z.id)).toBe(false);
     expect((await listMembers(db, g.id, { removed: false })).map((m) => m.id)).toEqual([]);
     expect(
       (await listMembers(db, g.id, { removed: false, role: 'ziadatel' })).map((m) => m.id),
@@ -390,20 +389,8 @@ describe('readers versus pickable people', () => {
     expect(await ids()).toEqual([s.client.id]);
   });
 
-  it('isPickablePerson', async () => {
-    const s = await scenario();
-    expect(await isPickablePerson(db, s.g.id, s.client.id)).toBe(true);
-    expect(await isPickablePerson(db, s.g.id, s.m.id)).toBe(true);
-    expect(await isPickablePerson(db, s.g.id, s.n.id)).toBe(false);
-    expect(await isPickablePerson(db, s.g.id, s.otherClient.id)).toBe(false);
-    expect(await isPickablePerson(db, s.g.id, randomUUID())).toBe(false);
-    await deactivateUser(db, s.m.id);
-    expect(await isPickablePerson(db, s.g.id, s.m.id)).toBe(false);
-  });
-
   it('a manager of another group is not pickable here', async () => {
     const s = await scenario();
-    expect(await isPickablePerson(db, s.g.id, s.otherManager.id)).toBe(false);
     expect((await listPickablePeople(db, s.g.id)).some((p) => p.id === s.otherManager.id)).toBe(
       false,
     );
@@ -414,7 +401,6 @@ describe('readers versus pickable people', () => {
     const removed = await named(`Removed ${tag()}`, s.g.id);
     await deactivateUser(db, removed.id);
     expect((await listPickablePeople(db, s.g.id)).some((p) => p.id === removed.id)).toBe(false);
-    expect(await isPickablePerson(db, s.g.id, removed.id)).toBe(false);
     const reader = (await listGroupPeople(db, s.g.id)).find((p) => p.id === removed.id);
     expect(reader?.isManager ?? false).toBe(false);
   });

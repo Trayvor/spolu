@@ -9,7 +9,7 @@ import { ApiError } from '@/lib/api';
 import { verifyCode } from './api';
 import { sessionQuery } from './use-session';
 
-export const RESEND_SECONDS = 30;
+const RESEND_SECONDS = 30;
 const MAX_ATTEMPTS = 3;
 const CODE_LENGTH = 6;
 

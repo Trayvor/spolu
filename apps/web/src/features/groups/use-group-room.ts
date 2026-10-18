@@ -46,7 +46,7 @@ export function useGroupRoom(groupId: string | null): number {
   return groupId !== null && state.groupId === groupId ? state.joins : 0;
 }
 
-export const GroupRoomContext = createContext(0);
+const GroupRoomContext = createContext(0);
 
 /** Provides the join counter of the group layout's room to the tabs below it. */
 export function GroupRoomProvider({ joins, children }: { joins: number; children: ReactNode }) {

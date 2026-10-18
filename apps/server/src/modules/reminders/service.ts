@@ -35,7 +35,7 @@ import {
 } from './subjects.js';
 import { clientGroupIds } from '../groups/memberships.js';
 
-export const REMINDER_LIMITS = {
+const REMINDER_LIMITS = {
   /** Unfired times per set. */
   times: 20,
   /** `added` recipients per set. */
@@ -597,7 +597,7 @@ export async function buildIcs(
 }
 
 /** Counts stop here (the dashboard shows "99+"). */
-export const UPCOMING_COUNT_CAP = 100;
+const UPCOMING_COUNT_CAP = 100;
 
 /**
  * How many unfired reminder times the actor has in `[from, to)` across groups (a client: only in

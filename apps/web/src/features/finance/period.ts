@@ -42,7 +42,7 @@ export function today(now: Date = new Date()): string {
 }
 
 /** `2026-10` moved by `count` months (negative: back). */
-export function addMonths(month: Month, count: number): Month {
+function addMonths(month: Month, count: number): Month {
   const [y, m] = month.split('-').map(Number) as [number, number];
   const index = y * 12 + (m - 1) + count;
   return `${Math.floor(index / 12)}-${String((index % 12) + 1).padStart(2, '0')}`;

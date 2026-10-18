@@ -268,7 +268,7 @@ async function byDistinct<T>(keys: string[], load: (key: string) => Promise<T>) 
  * the linked knowledge once, each distinct source once), so a batch of new cards is not about
  * eight queries per card.
  */
-export async function getTasks(
+async function getTasks(
   db: Db,
   ids: string[],
   viewer: SessionUser | null = null,

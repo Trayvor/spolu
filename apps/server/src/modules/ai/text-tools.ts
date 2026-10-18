@@ -10,7 +10,7 @@ export type TextToolRequest =
   | { action: 'fix' | 'formal'; text: string }
   | { action: 'translate'; text: string; language: string };
 
-export type TextToolResult = {
+type TextToolResult = {
   text: string;
   usage: { promptTokens: number; completionTokens: number } | null;
 };

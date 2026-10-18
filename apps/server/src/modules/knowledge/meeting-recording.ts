@@ -33,7 +33,7 @@ import { refreshSearchText } from './service.js';
 
 export const RECORDING_JOB = 'knowledge.meeting-transcode';
 /** Attempts of one transcode before the recording is `failed`. */
-export const RECORDING_ATTEMPTS = 3;
+const RECORDING_ATTEMPTS = 3;
 const RETRY_SECONDS = 60;
 const AUDIO_MIME = 'audio/mp4';
 
@@ -163,7 +163,7 @@ export async function deleteRecording(
  * A stored object as a local file for ffmpeg: the disk storage's own path, or a copy in `dir`
  * for a storage without one.
  */
-export async function localCopy(storage: Storage, key: string, dir: string): Promise<string> {
+async function localCopy(storage: Storage, key: string, dir: string): Promise<string> {
   const path = storage.localPath(key);
   if (path) return path;
   const target = join(dir, 'input');

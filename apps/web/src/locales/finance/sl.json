@@ -1,5 +1,4 @@
 {
-  "tab": "Finance",
   "pageTitle": "Finance",
   "segments": {
     "label": "Prikaži kartico",
@@ -11,11 +10,8 @@
   },
   "cards": {
     "overview": "Povzetek",
-    "overviewSoon": "Tukaj bo prikazano, koliko je stranka plačala in bo plačala po pogodbah, koliko je stalo delo in ure posameznih skrbnikov.",
     "documents": "Dokumenti",
-    "documentsSoon": "Tukaj bodo pogodbe, dokumenti, zapiski in mape te stranke.",
     "workLog": "Evidenca dela",
-    "workLogSoon": "Tukaj bodo ure, ki so jih skrbniki opravili za to stranko, po mesecih in dneh.",
     "contracts": "Pogodbe",
     "paidRanking": "Stranke po plačanih zneskih",
     "hoursRanking": "Stranke po urah"

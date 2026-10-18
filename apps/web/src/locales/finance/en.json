@@ -1,5 +1,4 @@
 {
-  "tab": "Finance",
   "pageTitle": "Financial administration",
   "segments": {
     "label": "Show card",
@@ -11,11 +10,8 @@
   },
   "cards": {
     "overview": "Summary",
-    "overviewSoon": "What the client paid and will pay by contract, what the work cost and each admin’s hours will show here.",
     "documents": "Documents",
-    "documentsSoon": "This client’s contracts, documents, notes and folders will be kept here.",
     "workLog": "Work log",
-    "workLogSoon": "The hours admins spent for this client, by month and day, will show here.",
     "contracts": "Contracts",
     "paidRanking": "Clients by money paid",
     "hoursRanking": "Clients by hours"

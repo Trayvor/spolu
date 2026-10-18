@@ -17,7 +17,7 @@ import { monthAxis, monthName, niceScale } from './scale';
 /** `out` (Phase 32 E): the organisation's money out, on `/finance` with every client. */
 export type BarTone = 'solid' | 'light' | 'cost' | 'out';
 
-export type BarSeries = {
+type BarSeries = {
   key: string;
   label: string;
   tone: BarTone;

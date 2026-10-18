@@ -10,7 +10,7 @@ import { apiGet, apiSend } from '@/lib/api';
 const enc = encodeURIComponent;
 
 /** The API route segment of each subject kind: `/api/<prefix>/:id/reminders`. */
-export const REMINDER_PREFIX: Record<ReminderSubjectKind, string> = {
+const REMINDER_PREFIX: Record<ReminderSubjectKind, string> = {
   knowledge: 'knowledge',
   task: 'tasks',
   // Phase 32: a finance item's reminders (routes registered by the finance adapter, part B).

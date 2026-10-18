@@ -23,7 +23,7 @@ function nextDay(day: string): string {
 }
 
 /** One summary line as text ("Presunuté: Na spracovanie → Hotové", "Priradené vám"…). */
-export function unseenLineText(
+function unseenLineText(
   t: TFunction,
   line: UnseenSummaryLine,
   language: string,

@@ -4,7 +4,7 @@ import { resolve } from 'node:path';
 import type { PushPayload } from '@spolu/shared';
 
 /** The file the e2e server's fake push sender appends to; playwright.config.ts sets PUSH_FAKE_FILE. */
-export const PUSH_FAKE_FILE = resolve('data/e2e-push.jsonl');
+const PUSH_FAKE_FILE = resolve('data/e2e-push.jsonl');
 
 /**
  * A subscription the server accepts. The endpoint host must be on the server's push-service

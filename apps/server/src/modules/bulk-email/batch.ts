@@ -19,7 +19,7 @@ import { unsubscribedSql } from './subscriptions.js';
 export const BULK_BATCH_JOB = 'bulk-email.batch';
 export const BATCH_SIZE = 20;
 /** Attempts per person before a retryable error becomes `failed`. */
-export const MAX_ATTEMPTS = 3;
+const MAX_ATTEMPTS = 3;
 /** A row in `sending` older than this failed in an unknown way (the idempotency key lasts 24 h). */
 const STUCK_SENDING_MS = 20 * 3_600_000;
 /** A sending campaign whose rows did not change for this long lost its job (at least 10 min). */

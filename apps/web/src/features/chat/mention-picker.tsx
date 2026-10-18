@@ -30,7 +30,7 @@ interface MentionPickerProps {
 const fold = (s: string) => s.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
 
 /** People whose name contains `query` (case- and diacritics-insensitive), sorted by name. */
-export function filterPeople(people: GroupPerson[], query: string): GroupPerson[] {
+function filterPeople(people: GroupPerson[], query: string): GroupPerson[] {
   const needle = fold(query);
   return people
     .filter((p) => fold(p.name).includes(needle))

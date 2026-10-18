@@ -28,8 +28,8 @@ type IdParams = { Params: { id: string } };
 type Outcome = 'ok' | 'failed' | 'timeout';
 
 /** Per user: a burst limit and a daily cap (owner decision, Phase 28 design). */
-export const TEXT_TOOL_LIMITS = { perMinute: 20, perDay: 300 } as const;
-export const VOICE_RATE_LIMITS = { perMinute: 10, perHour: 60 } as const;
+const TEXT_TOOL_LIMITS = { perMinute: 20, perDay: 300 } as const;
+const VOICE_RATE_LIMITS = { perMinute: 10, perHour: 60 } as const;
 const VOICE_TIMEOUT_MS = 60_000;
 
 const EXTENSIONS: Record<(typeof VOICE_LIMITS.types)[number], string> = {

@@ -16,7 +16,7 @@ import { chatFileSummaries } from './service.js';
  * public item. The admin group's chats (Phase 34) are read by admins only: their files are
  * "Only eGrant" items, so they never become shareable with clients by accident.
  */
-export function chatFileVisibility(inAdminGroup: boolean): Visibility {
+function chatFileVisibility(inAdminGroup: boolean): Visibility {
   return inAdminGroup ? 'admins' : 'public';
 }
 

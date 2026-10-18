@@ -12,7 +12,7 @@ const BITS_PER_SECOND = 32_000;
 const pickType = () =>
   TYPES.find((type) => MediaRecorder.isTypeSupported?.(type) ?? false) ?? undefined;
 
-export const recordingSupported = () =>
+const recordingSupported = () =>
   typeof window !== 'undefined' &&
   typeof window.MediaRecorder === 'function' &&
   typeof navigator.mediaDevices?.getUserMedia === 'function';

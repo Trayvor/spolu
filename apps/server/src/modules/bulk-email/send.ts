@@ -37,7 +37,7 @@ export const BULK_TEST_JOB = 'bulk-email.test';
 export type BulkTestJobData = { campaignId: string; userId: string; key: string };
 
 /** The prefix of a test email's subject. */
-export const TEST_SUBJECT_PREFIX = '[Test] ';
+const TEST_SUBJECT_PREFIX = '[Test] ';
 
 /**
  * What a campaign misses to be sent: a subject, a block, existing images, valid links. Limits

@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
  * `features/tasks/panel-parts.tsx`), except those that carry their own larger hit area
  * (`data-hit`), and the formatting toolbar wraps without gaps.
  */
-export const PHONE_TARGETS =
+const PHONE_TARGETS =
   'max-[640px]:[&_:is(button,a,select,input:not([type=checkbox],[type=radio])):not([data-hit])]:min-h-11 max-[640px]:[&_:is(button,a,select):not([data-hit])]:min-w-11 max-[640px]:[&_[role=toolbar]]:flex-wrap max-[640px]:[&_[role=toolbar]]:gap-0 max-[640px]:[&_[role=toolbar]]:px-0';
 
 /**

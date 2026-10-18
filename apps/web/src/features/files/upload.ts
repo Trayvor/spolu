@@ -4,7 +4,7 @@ import { i18n } from '@/i18n';
 import { resizeImageWithSize } from '@/lib/resize-image';
 
 /** Same limit as the server (`MAX_FILE_BYTES`): checked first so a big file is never sent. */
-export const MAX_FILE_BYTES = 25 * 1024 * 1024;
+const MAX_FILE_BYTES = 25 * 1024 * 1024;
 const PREVIEW_SIDE = 640;
 const PREVIEW_MIMES = new Set(['image/png', 'image/jpeg', 'image/webp']);
 

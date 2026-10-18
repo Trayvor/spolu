@@ -3,7 +3,7 @@ import type { TimelineEventDto } from '@spolu/shared';
 /** The pure parts of the timeline (spec §7.2): merging pages, Today's place, the gaps. */
 
 /** Neighbours further apart than this get a gap mark on the line. */
-export const GAP_DAYS = 60;
+const GAP_DAYS = 60;
 
 /** The pages' events in order, each once (a page refetched after a change may overlap another). */
 export function mergeEvents(

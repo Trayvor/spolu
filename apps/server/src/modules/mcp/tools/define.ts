@@ -7,7 +7,7 @@ import type { ApiCaller, ApiResult } from '../call.js';
  * shared body schemas for writes), then calls one or two `/api` routes through `api`, as the
  * token's user. It never reads a table.
  */
-export type ToolContext = { user: SessionUser; scope: McpScope; api: ApiCaller };
+type ToolContext = { user: SessionUser; scope: McpScope; api: ApiCaller };
 
 export type ToolContent =
   | { type: 'text'; text: string }

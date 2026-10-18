@@ -1,5 +1,4 @@
 {
-  "tab": "Financie",
   "pageTitle": "Financie",
   "segments": {
     "label": "Zobraziť kartu",
@@ -11,11 +10,8 @@
   },
   "cards": {
     "overview": "Súhrn",
-    "overviewSoon": "Tu bude, koľko klient zaplatil a zaplatí podľa zmlúv, koľko stála práca a hodiny jednotlivých administrátorov.",
     "documents": "Dokumenty",
-    "documentsSoon": "Tu budú zmluvy, dokumenty, poznámky a priečinky tohto klienta.",
     "workLog": "Výkaz práce",
-    "workLogSoon": "Tu budú hodiny, ktoré administrátori pre tohto klienta odpracovali, po mesiacoch a dňoch.",
     "contracts": "Zmluvy",
     "paidRanking": "Klienti podľa zaplatených súm",
     "hoursRanking": "Klienti podľa hodín"

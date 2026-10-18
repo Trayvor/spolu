@@ -12,7 +12,6 @@ export const MESSAGE_MAX_EMOJI = 20;
 /** The quick row of reactions, in this order (Phase 28). */
 export const QUICK_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🙏', '✅'] as const;
 export const MESSAGE_PAGE_SIZE = 50;
-export const CHANGES_MAX = 500;
 export const MENTION_ALL_TOKEN = '<@all>';
 export const mentionToken = (userId: string): string => `<@${userId}>`;
 

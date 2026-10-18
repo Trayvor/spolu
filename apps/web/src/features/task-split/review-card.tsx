@@ -30,7 +30,7 @@ const CheckIcon = () => (
 );
 
 /** The title as shown and as the card's accessible name. */
-export function useCardTitle(card: ReviewCard): string {
+function useCardTitle(card: ReviewCard): string {
   const { t } = useTranslation();
   return card.draft.title.trim() || t('taskSplit.untitled');
 }

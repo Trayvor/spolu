@@ -46,7 +46,7 @@ export async function newBulkPerson(
   return { id, email, name };
 }
 
-export const readyBlocks: BulkBlock[] = [
+const readyBlocks: BulkBlock[] = [
   { id: 'b1', type: 'heading', text: 'Hello {{name}}', align: 'left' },
   { id: 'b2', type: 'button', label: 'Open', url: 'https://egrant.sk', align: 'center' },
 ];

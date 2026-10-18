@@ -37,7 +37,7 @@ export const LOGO_PATH = '/brand/egrant-logo-email.png';
 const LOGO = { width: 180, height: 34 };
 
 /** The small print under the card: lines of text, then an optional link (the unsubscribe). */
-export type EmailFooter = { lines: string[]; link?: { label: string; href: string } };
+type EmailFooter = { lines: string[]; link?: { label: string; href: string } };
 
 export type EmailRenderInput = {
   subject: string;
@@ -543,7 +543,7 @@ function trimSlash(url: string): string {
   return url.replace(/\/+$/, '');
 }
 
-export function esc(value: string): string {
+function esc(value: string): string {
   return value
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
