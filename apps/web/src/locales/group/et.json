@@ -50,5 +50,12 @@
     "removedTitle": "Eemaldatud taotlejad ({{count}})",
     "removed": "Taotlejate hulgast eemaldatud: {{name}}.",
     "restored": "Taotlejaks taastatud: {{name}}."
+  },
+  "status": {
+    "deactivated": "Deaktiveeritud",
+    "deactivate": "Deaktiveeri",
+    "reactivate": "Aktiveeri uuesti",
+    "confirm": "Kas deaktiveerida {{name}}? Kliendid ja taotlejad kaotavad ligipääsu ning midagi uut lisada ei saa. Midagi ei kustutata; grupi saab igal ajal uuesti aktiveerida.",
+    "notice": "See grupp on deaktiveeritud. Kliendid ja taotlejad seda ei näe ning midagi uut lisada ei saa. Aktiveeri see uuesti ja kõik tuleb tagasi."
   }
 }

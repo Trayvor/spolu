@@ -62,7 +62,8 @@ export function sidebarSql(userId: string, groupIds?: readonly string[]): SQL {
         where k.group_id is not null and ${only(sql`k.group_id`)}
         group by k.group_id
       ) uk on uk.group_id = g.id
-      where ${only(sql`g.id`)}
+      -- A deactivated group leaves the sidebar (it stays under the Groups page's filter).
+      where ${only(sql`g.id`)} and g.deactivated_at is null
     ) s
     order by internal desc, managed desc, (unread + unseen_tasks + unseen_tickets > 0) desc, name, group_id
   `;

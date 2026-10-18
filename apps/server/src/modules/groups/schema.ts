@@ -26,6 +26,11 @@ export const groups = pgTable(
     egrantUrl: text('egrant_url').unique('groups_egrant_url_unique'),
     /** The admin group's token is never shown and never opens anything. */
     inviteToken: text('invite_token').notNull().unique('groups_invite_token_unique'),
+    /**
+     * Set while a client group is deactivated (by an admin or the eGrant groups webhook): only
+     * admins read it, read-only; nothing is deleted, reactivating clears it.
+     */
+    deactivatedAt: timestamp('deactivated_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },

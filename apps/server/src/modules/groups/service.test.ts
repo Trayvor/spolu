@@ -164,6 +164,7 @@ describe('members', () => {
       updatedAt: g.updatedAt.toISOString(),
       managers: [],
       managedByMe: false,
+      deactivatedAt: null,
     });
   });
 
@@ -188,6 +189,7 @@ describe('members', () => {
       updatedAt: g.updatedAt.toISOString(),
       managers: [],
       managedByMe: false,
+      deactivatedAt: null,
     });
   });
 

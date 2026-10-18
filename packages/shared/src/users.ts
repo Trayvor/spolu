@@ -115,6 +115,9 @@ export const ErrorCodes = {
   userDisabled: 'user_disabled',
   // The eGrant groups webhook: more than one client group has the instance's host
   ambiguousInstance: 'ambiguous_instance',
+  // A deactivated client group: nothing new is written in it (the intake and the managers
+  // webhook answer it too)
+  groupInactive: 'group_inactive',
   hasTasks: 'has_tasks',
   noClient: 'no_client',
   // Phase 23 — bulk email

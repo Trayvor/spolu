@@ -50,5 +50,12 @@
     "removedTitle": "Odstranjeni prijavitelji ({{count}})",
     "removed": "Odstranjeno med prijavitelji: {{name}}.",
     "restored": "Obnovljeno med prijavitelji: {{name}}."
+  },
+  "status": {
+    "deactivated": "Deaktivirana",
+    "deactivate": "Deaktiviraj",
+    "reactivate": "Znova aktiviraj",
+    "confirm": "Deaktiviram {{name}}? Stranke in prosilci izgubijo dostop, nič novega ni mogoče dodati. Nič se ne izbriše; skupino lahko kadar koli znova aktivirate.",
+    "notice": "Ta skupina je deaktivirana. Stranke in prosilci je ne vidijo in vanjo ni mogoče dodati nič novega. Znova jo aktivirajte, da se vse vrne."
   }
 }

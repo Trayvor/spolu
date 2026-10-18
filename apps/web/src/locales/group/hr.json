@@ -50,5 +50,12 @@
     "removedTitle": "Uklonjeni podnositelji zahtjeva ({{count}})",
     "removed": "Uklonjeno iz podnositelja zahtjeva: {{name}}.",
     "restored": "Vraćeno među podnositelje zahtjeva: {{name}}."
+  },
+  "status": {
+    "deactivated": "Deaktivirana",
+    "deactivate": "Deaktiviraj",
+    "reactivate": "Ponovno aktiviraj",
+    "confirm": "Deaktivirati {{name}}? Klijenti i podnositelji gube pristup i ništa novo se ne može dodati. Ništa se ne briše; grupu možete ponovno aktivirati u bilo kojem trenutku.",
+    "notice": "Ova grupa je deaktivirana. Klijenti i podnositelji je ne vide i ništa novo se ne može dodati. Ponovno je aktivirajte da se sve vrati."
   }
 }

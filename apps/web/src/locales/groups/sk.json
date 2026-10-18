@@ -61,5 +61,10 @@
   "adminGroup": {
     "hint": "Interný chat tímu eGrant. Vidia ho iba administrátori."
   },
-  "undo": "Vrátiť späť"
+  "undo": "Vrátiť späť",
+  "deactivated": {
+    "show": "Deaktivované skupiny",
+    "hide": "Skryť deaktivované skupiny",
+    "empty": "Žiadne deaktivované skupiny."
+  }
 }

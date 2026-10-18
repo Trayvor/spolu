@@ -72,7 +72,8 @@ function stripJpeg(bytes: Buffer): Buffer | null {
       kept.push(Buffer.from([0xff, marker]), bytes.subarray(markerAt + 1, eoi + 2));
       return Buffer.concat(kept);
     }
-    if (!isDropped(marker)) kept.push(Buffer.from([0xff, marker]), bytes.subarray(markerAt + 1, end));
+    if (!isDropped(marker))
+      kept.push(Buffer.from([0xff, marker]), bytes.subarray(markerAt + 1, end));
     at = end;
   }
   return null;

@@ -50,6 +50,7 @@ Unknown fields are ignored. The body may be at most 16 KiB.
 | `401` | `{ "error": "unauthorized" }` | missing or wrong key; check the configuration, do not retry |
 | `404` | `{ "error": "unknown_instance" }` | no client in Help has this instance. Help does not store the call: send it again after the eGrant team has created the client (or fixed its eGrant address) |
 | `413` | (no fixed body) | the body is over 16 KiB |
+| `409` | `{ "error": "group_inactive" }` | the client's group is deactivated in Help ([egrant.md, Groups](egrant.md#groups)); nothing changed. Do not retry; send the state again after it is reactivated |
 | `422` | `{ "error": "email_is_admin" }` | the email belongs to an eGrant team administrator of Help. Nothing changed: an administrator is never made a client. Use another email for the person |
 | `422` | `{ "error": "user_disabled" }` | (`active: true` only) the account exists but is blocked in Help. Nothing changed: the webhook does not unblock anyone. Ask the eGrant team to restore the person in Help |
 | `429` | `{ "error": "rate_limited" }` | more than 60 calls a minute from one IP address (every call counts, a wrong key too); retry later |

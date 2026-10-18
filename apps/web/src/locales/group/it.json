@@ -50,5 +50,12 @@
     "removedTitle": "Richiedenti rimossi ({{count}})",
     "removed": "Rimosso dai richiedenti: {{name}}.",
     "restored": "Ripristinato come richiedente: {{name}}."
+  },
+  "status": {
+    "deactivated": "Disattivato",
+    "deactivate": "Disattiva",
+    "reactivate": "Riattiva",
+    "confirm": "Disattivare {{name}}? Clienti e richiedenti perdono l'accesso e non si può aggiungere nulla di nuovo. Non si elimina nulla; puoi riattivarlo in qualsiasi momento.",
+    "notice": "Questo gruppo è disattivato. Clienti e richiedenti non lo vedono e non si può aggiungere nulla di nuovo. Riattivalo per ripristinare tutto."
   }
 }

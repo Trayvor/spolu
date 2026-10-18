@@ -61,5 +61,10 @@
   "adminGroup": {
     "hint": "Interni chat tima eGrant. Vide ga samo administratori."
   },
-  "undo": "Poništi"
+  "undo": "Poništi",
+  "deactivated": {
+    "show": "Deaktivirane grupe",
+    "hide": "Sakrij deaktivirane grupe",
+    "empty": "Nema deaktiviranih grupa."
+  }
 }

@@ -14,6 +14,7 @@ import { bearerKeyMatches } from '../../infra/http/bearer-key.js';
 import { createRateLimiter } from '../../infra/http/rate-limit.js';
 import { StorageNotFoundError } from '../../infra/storage/storage.js';
 import { IMAGE_TYPES, sniffImageType, type ImageType } from '../files/sniff.js';
+import { setGroupActive } from './deactivation.js';
 import { egrantInstanceUrl, normalizeEgrantUrl } from './egrant-url.js';
 import { removeGroupLogo, replaceGroupLogo } from './logo.js';
 import { stripImageMetadata } from './logo-metadata.js';
@@ -63,8 +64,9 @@ const isAnswer = (value: unknown): value is Answer =>
 
 /**
  * The eGrant groups webhook (`docs/integrations/egrant.md`, "Groups"): eGrant creates or
- * updates the client group of one of its instances, with the name and the logo. Idempotent,
- * keyed by the instance's host. It never deletes a group and never touches members or managers
+ * updates the client group of one of its instances, with the name and the logo, and deactivates
+ * or reactivates it (`active`). Idempotent, keyed by the instance's host. It never deletes a
+ * group and never touches members or managers
  * (the managers webhook adds members). The credential is `EGRANT_GROUPS_API_KEY`, else the
  * ticket intake's key (`egrantWebhookKey`); there is no session.
  */
@@ -126,6 +128,8 @@ export const egrantGroupsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (
     const found = await findGroupsByEgrantUrl(db, url, 2);
     if (found.length > 1) return fail(409, ErrorCodes.ambiguousInstance);
     let group = found[0];
+    // Deactivating an instance Help does not know: nothing to do, and nothing is created.
+    if (!group && body.active === false) return fail(404, ErrorCodes.unknownInstance);
     if (!group) {
       try {
         // The in-app create: the same defaults (a client group with a fresh invite link).
@@ -141,10 +145,19 @@ export const egrantGroupsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (
       }
     }
     const changed = await update(group, body.name, logo);
-    const answer: EgrantGroupResponse = {
-      state: changed ? 'updated' : 'unchanged',
-      group_id: group.id,
-    };
+    // The same `setGroupActive` as the app's Deactivate / Reactivate; omitted keeps the state.
+    const status =
+      body.active === undefined
+        ? null
+        : await setGroupActive({ db, io: app.io }, group.id, body.active);
+    const state: EgrantGroupResponse['state'] = status?.changed
+      ? body.active
+        ? 'reactivated'
+        : 'deactivated'
+      : changed
+        ? 'updated'
+        : 'unchanged';
+    const answer: EgrantGroupResponse = { state, group_id: group.id };
     return { status: 200, body: answer };
   };
 

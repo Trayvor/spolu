@@ -61,5 +61,10 @@
   "adminGroup": {
     "hint": "La chat interna del team eGrant. La vedono solo gli amministratori."
   },
-  "undo": "Annulla"
+  "undo": "Annulla",
+  "deactivated": {
+    "show": "Gruppi disattivati",
+    "hide": "Nascondi i gruppi disattivati",
+    "empty": "Nessun gruppo disattivato."
+  }
 }

@@ -44,7 +44,10 @@ function jpegSegment(marker: number, data: Buffer): Buffer {
 
 /** A baseline JPEG; `metadata` adds APP1 EXIF and XMP, APP13 IPTC and a comment holding it. */
 export function jpegWith(metadata?: string): Buffer {
-  const app0 = jpegSegment(0xe0, Buffer.from([...Buffer.from('JFIF\0'), 1, 1, 0, 0, 1, 0, 1, 0, 0]));
+  const app0 = jpegSegment(
+    0xe0,
+    Buffer.from([...Buffer.from('JFIF\0'), 1, 1, 0, 0, 1, 0, 1, 0, 0]),
+  );
   const extra = metadata
     ? [
         jpegSegment(0xe1, Buffer.from(`Exif\0\0MM\0*${metadata}`, 'latin1')),

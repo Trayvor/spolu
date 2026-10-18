@@ -61,5 +61,10 @@
   "adminGroup": {
     "hint": "Notranji klepet ekipe eGrant. Vidijo ga samo skrbniki."
   },
-  "undo": "Razveljavi"
+  "undo": "Razveljavi",
+  "deactivated": {
+    "show": "Deaktivirane skupine",
+    "hide": "Skrij deaktivirane skupine",
+    "empty": "Ni deaktiviranih skupin."
+  }
 }

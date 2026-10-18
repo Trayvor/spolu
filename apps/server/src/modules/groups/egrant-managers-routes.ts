@@ -72,6 +72,11 @@ export const egrantManagersRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async
         request.log.info({ active }, 'egrant manager webhook: unknown instance');
         return send(reply, 404, ErrorCodes.unknownInstance);
       }
+      // A deactivated client's people stay as they are until it is reactivated.
+      if (group.deactivatedAt) {
+        request.log.info({ groupId: group.id, active }, 'egrant manager webhook: deactivated');
+        return send(reply, 409, ErrorCodes.groupInactive);
+      }
 
       const change = active
         ? await addEgrantClient(db, group.id, { email, name: name ?? null })

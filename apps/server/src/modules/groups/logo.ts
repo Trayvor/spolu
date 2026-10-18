@@ -46,7 +46,10 @@ export async function replaceGroupLogo(
 }
 
 /** Removes the group's logo and its file; false when it had none. */
-export async function removeGroupLogo({ db, storage }: LogoDeps, groupId: string): Promise<boolean> {
+export async function removeGroupLogo(
+  { db, storage }: LogoDeps,
+  groupId: string,
+): Promise<boolean> {
   const previous = await setLogoKey(db, groupId, null);
   await dropFile(storage, previous);
   return previous !== null;

@@ -10,6 +10,7 @@ eGrant calls Help; Help never calls eGrant back (no callbacks, no status API). A
 |---|---|---|---|
 | [Tickets](#tickets) | `POST /api/tickets/intake` | live | a support request from an eGrant user becomes a ticket with its own chat |
 | [Projects](#projects) | `PUT /api/egrant/projects/<project id>` and `project_id` on tickets | available after release (Phase 33: built, live with the next release) | creates and updates a client's projects and their events |
+| [Groups](#groups) | `PUT /api/egrant/groups` | live with the next release | creates a client's group, updates its name and logo, deactivates or reactivates it |
 | [Managers](#managers) | `PUT /api/egrant/managers` | live | adds or deactivates a client user in a client's group |
 
 Every call identifies the client by `instance_url`: Help compares it with the eGrant address stored on each client (group) **by host only**. The scheme, a leading `www.`, the path and the case do not matter, so `https://WWW.Mesto-X.egrant.sk/app/login` matches `https://mesto-x.egrant.sk`.
@@ -32,8 +33,8 @@ Authorization: Bearer <key>
 Content-Type: application/json
 ```
 
-- **One key for all webhooks.** There is no second key, so there is one secret to rotate.
-- **Who issues it:** the eGrant team (the Help admin). On the Help server it is the environment variable `TICKETS_API_KEY`, at least 16 characters. You receive the value out of band; keep it in your server's secret store and call only from your server, never from a browser.
+- **One key for all webhooks** by default, so there is one secret to rotate. The groups call may get its own key: when the Help server sets `EGRANT_GROUPS_API_KEY`, only that key opens `PUT /api/egrant/groups` (the shared key then answers `401` there); unset, the shared key opens it like the others.
+- **Who issues it:** the eGrant team (the Help admin). On the Help server it is the environment variable `TICKETS_API_KEY`, at least 16 characters (`EGRANT_GROUPS_API_KEY` likewise). You receive the value out of band; keep it in your server's secret store and call only from your server, never from a browser.
 - **Rotation:** the Help admin sets a new value and restarts Help; calls with the old key answer `401` from then on. Agree the switch time with the eGrant team and deploy the new key on your side at the same moment.
 - **No key configured** on the Help server: every webhook is off and answers `503 intake_disabled`.
 
@@ -43,6 +44,7 @@ Content-Type: application/json
 |---|---|---|---|
 | `400` | `{ "error": "validation_failed", "fields": ["email"] }` | a field is malformed (or the JSON is); the names are listed; nothing was stored | fix the data; do not retry unchanged |
 | `401` | `{ "error": "unauthorized" }` | missing or wrong key | check the configuration; do not retry |
+| `409` | `{ "error": "group_inactive" }` | the client's group is deactivated in Help (tickets, managers) | do not retry; resend after it is reactivated |
 | `413` | `file_too_large` or no fixed body | the body or a file is over the limit | send less; do not retry unchanged |
 | `429` | `{ "error": "rate_limited" }` | too many calls from one IP address in a minute | retry later |
 | `503` | `{ "error": "intake_disabled" }` | no key configured on this Help server | retry later; tell the eGrant team if it lasts |
@@ -52,11 +54,12 @@ Content-Type: application/json
 |---|---|---|
 | tickets | 28 MiB (files travel as base64 in the body) | 60 |
 | projects | 1 MiB | 120 |
+| groups | 3 MiB (a logo of up to 2 MiB travels as base64) | 60 |
 | managers | 16 KiB | 60 |
 
-The checks run before the body is read. `503` always comes first. After it the tickets and projects calls check the key (`401`) and then the limit (`429`); the managers call checks the limit first, so a wrong key counts against it.
+The checks run before the body is read. `503` always comes first. After it the tickets and projects calls check the key (`401`) and then the limit (`429`); the groups and managers calls check the limit first, so a wrong key counts against it.
 
-Retry on a timeout, a network error, `429` and any `5xx`; back off between attempts (for example 1 s, 5 s, 30 s, 2 min, 10 min, then give up and log it). Do not retry `400`, `401` or `413` unchanged. Every webhook is built so that a repeat is harmless; the details are in each section.
+Retry on a timeout, a network error, `429` and any `5xx`; back off between attempts (for example 1 s, 5 s, 30 s, 2 min, 10 min, then give up and log it). Do not retry `400`, `401`, `409` or `413` unchanged (nor `404`, `415`, `422`). Every webhook is built so that a repeat is harmless; the details are in each section.
 
 ## Tickets
 
@@ -94,7 +97,7 @@ Answer, `201` (created) or `200` (a ticket with this `request_id` exists already
 
 **What Help does:**
 
-1. Finds the client by `instance_url`. No match, or no `instance_url`: the ticket is saved without a client and only the eGrant team sees it until an admin assigns one.
+1. Finds the client by `instance_url`. No match, or no `instance_url`: the ticket is saved without a client and only the eGrant team sees it until an admin assigns one. A **deactivated** client (see [Groups](#groups)) answers `409 { "error": "group_inactive" }` and nothing is stored: tell the user that support for this organisation is closed; do not retry.
 2. For a ticket with a client, finds the requester by `email`; someone new gets a Help account with a narrow requester role (only their own tickets).
 3. Sends the requester one "Ticket created" email with an **Open the ticket** button (login by a 6-digit code; no password). It goes once per ticket, and only when a client matched.
 4. Tells the eGrant team (the people who watch the client's tickets). They answer in the ticket's chat and change its status; the requester follows it in Help.
@@ -169,6 +172,65 @@ One new optional field on the ticket intake: `project_id` (1 to 100 characters, 
 
 The answer is the usual `201 { "id", "number" }` (or `200` for a repeated `request_id`). Every request stays a new ticket; many tickets can share a project. If the project is known for that client, the ticket is placed in it; if the project call has not arrived yet, Help keeps the id and places the ticket when it does; for a ticket without a client, when the eGrant team assigns one. Help never sets a ticket's event from eGrant, and nothing you send later moves the ticket.
 
+## Groups
+
+`PUT /api/egrant/groups` creates the **client group** of an eGrant instance (one client organisation), keeps its name and logo in step with eGrant, and deactivates or reactivates it. Until now admins created every group by hand in Help; with this call eGrant does it. Call it:
+
+- when an instance (client organisation) is created in eGrant;
+- when its name or logo changes;
+- with `active: false` only when an eGrant operator **explicitly** deactivates or closes the client's instance, and `active: true` when an operator restores it. Never derive `active` from contract dates or any other automatic rule: a contract that ends (in eGrant or in Help's finance) does not deactivate a group;
+- before the managers call for that instance (a member needs the group: the managers call answers `404 unknown_instance` until it exists).
+
+| field | meaning | rules |
+|---|---|---|
+| `instance_url` | the eGrant instance | required; a URL or a bare host (`mesto-x.egrant.sk`), up to 2048 characters; matched by host like every call |
+| `name` | the client's name, shown in Help | required, 1 to 100 characters after trimming |
+| `logo` | the client's logo | optional. Missing: the current logo stays. `null`: the logo is removed. An object `{ "content_type", "data_base64" }`: the new logo |
+| `logo.content_type` | the image type | `image/png`, `image/jpeg` or `image/webp`; anything else, SVG and GIF included, is `415` |
+| `logo.data_base64` | the image bytes | strict base64 (standard alphabet, padded, no line breaks), at most 2 MiB decoded; the bytes must be a complete image of the declared type |
+| `active` | the group's state | optional boolean. `false`: deactivate; `true`: reactivate. Missing: the state does not change (so a name sync never undoes a deactivation). A new group is always active |
+
+Unknown fields are ignored. The body may be at most 3 MiB.
+
+```bash
+LOGO=$(base64 < logo.png | tr -d '\n')
+curl -sS -X PUT https://help.egrant.sk/api/egrant/groups \
+  -H "Authorization: Bearer $SPOLU_GROUPS_KEY" \
+  -H "Content-Type: application/json" \
+  -d "{ \"instance_url\": \"https://mesto-x.egrant.sk\", \"name\": \"Mesto X\",
+        \"logo\": { \"content_type\": \"image/png\", \"data_base64\": \"$LOGO\" } }"
+```
+
+Answer, `201` for a new group, else `200`:
+
+```json
+{ "state": "created", "group_id": "0b7c9f2e-…" }
+```
+
+| status | body | meaning |
+|---|---|---|
+| `201` | `{ "state": "created", "group_id" }` | no group had this instance; Help created it (a client group with its own invite link, no members yet) |
+| `200` | `{ "state": "updated" / "unchanged" / "deactivated" / "reactivated", "group_id" }` | `updated`: the name or the logo changed; `unchanged`: nothing to change; `deactivated` / `reactivated`: the state changed (a new name or logo sent with it is applied too) |
+| `400` | `{ "error": "validation_failed", "fields": [...] }` | a field is malformed: `instance_url` (also for a non-http address), `name`, `logo.content_type`, `logo.data_base64` (not strict base64) |
+| `404` | `{ "error": "unknown_instance" }` | `active: false` for an instance Help does not know; nothing is created |
+| `409` | `{ "error": "ambiguous_instance" }` | two groups in Help share this host (an admin set the same address twice); nothing changes until the eGrant team fixes it |
+| `413` | `{ "error": "file_too_large", "fields": ["logo.data_base64"] }` | the logo is over 2 MiB decoded (a body over 3 MiB answers `413` without this body) |
+| `415` | `{ "error": "unsupported_type", "fields": ["logo.content_type"] }` | the declared type is not PNG, JPEG or WebP |
+| `422` | `{ "error": "invalid_logo", "fields": ["logo.data_base64"] }` | the bytes are not a complete image of the declared type (text, SVG, a JPEG declared as PNG, a cut-off file) |
+| `401`, `429`, `503` | | as in [Limits and common errors](#limits-and-common-errors); 60 calls a minute per IP address |
+
+Nothing is stored when the answer is `4xx`: a refused logo also leaves the name as it was.
+
+**Idempotency.** The call sends the state you want and is keyed by the instance's host: the same body again answers `200 unchanged`, also with the same logo (Help compares the image after cleaning it, below). Two first calls at the same moment make one group (one answers `201`, the other `200`). Retry with the same body.
+
+**What Help does:**
+
+- Finds the group by host, as every call does. A group an admin created in Help earlier is found and updated; its stored address stays as the admin typed it.
+- A new group gets the same defaults as one created in the app: a client group with a fresh invite link, no members and no managers.
+- The logo is checked by its bytes, not by its declared type, and its metadata (EXIF with GPS and camera data, XMP, IPTC, text chunks, comments, anything after the image's end) is removed before it is stored; the pixels and the colour profile are kept. It is not resized. SVG is never taken (it can carry scripts).
+- It never deletes a group, and never adds, removes or changes members or managers (the [managers call](#managers) does members).
+- **Deactivation** (`active: false`, the same action as "Deactivate" in the app): the group's clients and requesters lose access to it at once (their accounts stay), it disappears from Help's lists, nothing new can be added to it, its pending notifications stop. Nothing is deleted. While it is deactivated the [ticket intake](#tickets) and the [managers call](#managers) for its instance answer `409 group_inactive`. `active: true` brings everything back as it was.
+
 ## Managers
 
 `PUT /api/egrant/managers` makes a person a **client user** of one client's group, or removes them from it. It is for the people of the client, not for the eGrant team's administrators.
@@ -198,6 +260,7 @@ Answer, `200`:
 | `200` | `{ "state": "added" / "created" / "removed" / "unchanged", "group_id", "user_id" }` | `created`: a new account was made and added; `added`: an existing account was added to the group; `removed`: taken out of the group; `unchanged`: it was so already; `user_id` is `null` for `active: false` with an email Help does not know |
 | `404` | `{ "error": "unknown_instance" }` | no client in Help has this instance; nothing is stored. Send it again after the client exists |
 | `422` | `{ "error": "email_is_admin" }` | the email belongs to an eGrant administrator; nothing changed |
+| `409` | `{ "error": "group_inactive" }` | the client's group is deactivated (see [Groups](#groups)); nothing changed. Send the state again after it is reactivated |
 | `422` | `{ "error": "user_disabled" }` | (`active: true` only) the account is disabled; nothing changed |
 | `400`, `401`, `413`, `429`, `503` | | as in [Limits and common errors](#limits-and-common-errors); body at most 16 KiB; 60 calls a minute per IP address |
 
@@ -213,4 +276,5 @@ Answer, `200`:
 
 - [egrant-ticket-intake.md](egrant-ticket-intake.md): the full ticket contract (every field, files, every answer).
 - [egrant-managers.md](egrant-managers.md): the full managers webhook contract (client members, every answer).
+- [egrant-agent-tz.md](egrant-agent-tz.md): the implementation spec for the eGrant side (every call, when to send it, retries, backfill, acceptance tests).
 - [product/integrations.md](../product/integrations.md): the product reference for all external systems.

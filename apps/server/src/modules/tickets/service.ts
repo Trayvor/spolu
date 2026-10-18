@@ -21,12 +21,7 @@ import {
   moveFilesToGroup,
   type FileDeps,
 } from '../files/service.js';
-import {
-  activeMemberOfSql,
-  activeRolesIn,
-  getMembership,
-  listMemberships,
-} from '../groups/memberships.js';
+import { activeMemberOfSql, activeRolesIn, listMemberships } from '../groups/memberships.js';
 import { managedGroupIds } from '../groups/managers.js';
 import {
   InvalidKnowledgeLinkError,
@@ -92,8 +87,8 @@ export async function roleIn(
   groupId: string | null,
 ): Promise<MemberRole | null> {
   if (isAdmin(actor) || groupId === null) return null;
-  const membership = await getMembership(db, actor.id, groupId);
-  return membership && !membership.removedAt ? membership.role : null;
+  // Through `activeRolesIn`, so a deactivated group's membership counts for nothing.
+  return (await activeRolesIn(db, groupId, [actor.id])).get(actor.id) ?? null;
 }
 
 /** Whether the actor may read the ticket (one membership lookup). */

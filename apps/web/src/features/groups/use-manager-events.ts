@@ -14,6 +14,9 @@ import { busyGroups } from './manager-busy';
  * session id), and refetches the notification modes when the signed-in user was added or
  * removed (becoming a manager can change their mode there). The admin sidebar refetches. While the user's own toggle for
  * that group is busy (`busyGroups`), only the people are refreshed.
+ *
+ * Also `group:status` (a group deactivated or reactivated): every group query, the admin sidebar
+ * and the session (a client's own groups) refetch.
  */
 export function useManagerEvents(): void {
   const queryClient = useQueryClient();
@@ -42,9 +45,16 @@ export function useManagerEvents(): void {
       if (meChanged)
         void queryClient.invalidateQueries({ queryKey: notificationModesQuery.queryKey });
     }
+    function onStatus() {
+      void queryClient.invalidateQueries({ queryKey: ['groups'] });
+      void queryClient.invalidateQueries({ queryKey: ['home', 'sidebar'] });
+      void queryClient.invalidateQueries({ queryKey: sessionQuery.queryKey });
+    }
     socket.on(GroupEvents.managers, onManagers);
+    socket.on(GroupEvents.status, onStatus);
     return () => {
       socket.off(GroupEvents.managers, onManagers);
+      socket.off(GroupEvents.status, onStatus);
     };
   }, [queryClient]);
 }

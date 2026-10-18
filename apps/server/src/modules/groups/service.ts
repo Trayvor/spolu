@@ -88,9 +88,13 @@ function normalizedOrThrow(url: string): string {
 export async function listGroups(
   db: Db,
   viewerId: string,
-  options: { q?: string; limit?: number; after?: GroupCursor } = {},
+  options: { q?: string; limit?: number; after?: GroupCursor; deactivated?: boolean } = {},
 ): Promise<GroupSummary[]> {
-  const where: SQL[] = [];
+  // Deactivated groups only on request (the Groups page's "Deactivated" filter): every
+  // picker, filter and the MCP list read the default.
+  const where: SQL[] = [
+    options.deactivated ? isNotNull(groups.deactivatedAt) : isNull(groups.deactivatedAt),
+  ];
   if (options.q) {
     where.push(sql`${groups.name} ilike ${`%${escapeLike(options.q)}%`} escape '\\'`);
   }
@@ -132,6 +136,7 @@ export async function listGroups(
       hasLogo: sql<boolean>`${groups.logoKey} is not null`,
       memberCount: sql<number>`count(${user.id})::int`,
       updatedAt: groups.updatedAt,
+      deactivatedAt: groups.deactivatedAt,
       managers: sql<GroupManager[]>`coalesce(${managerAgg.managers}, '[]'::jsonb)`,
       managedByMe: sql<boolean>`coalesce(${managerAgg.managedByMe}, false)`,
     })
@@ -149,7 +154,11 @@ export async function listGroups(
     .where(page ?? and(...where))
     .groupBy(groups.id, managerAgg.managers, managerAgg.managedByMe)
     .orderBy(asc(groups.name), asc(groups.id));
-  return rows.map((row) => ({ ...row, updatedAt: row.updatedAt.toISOString() }));
+  return rows.map((row) => ({
+    ...row,
+    updatedAt: row.updatedAt.toISOString(),
+    deactivatedAt: row.deactivatedAt?.toISOString() ?? null,
+  }));
 }
 
 /** Where a page of `listGroupsPage` continues: after this name and id. */
@@ -190,10 +199,15 @@ function decodeGroupCursor(cursor: string): GroupCursor {
 export async function listGroupsPage(
   db: Db,
   viewerId: string,
-  query: { q?: string; limit: number; cursor?: string },
+  query: { q?: string; limit: number; cursor?: string; deactivated?: boolean },
 ): Promise<GroupPage> {
   const after = query.cursor === undefined ? undefined : decodeGroupCursor(query.cursor);
-  const rows = await listGroups(db, viewerId, { q: query.q, limit: query.limit + 1, after });
+  const rows = await listGroups(db, viewerId, {
+    q: query.q,
+    limit: query.limit + 1,
+    after,
+    deactivated: query.deactivated,
+  });
   const items = rows.slice(0, query.limit);
   const last = items.at(-1);
   return {
@@ -320,8 +334,51 @@ export async function getGroupByInviteToken(db: Db, token: string): Promise<Grou
   const [row] = await db
     .select()
     .from(groups)
-    .where(and(eq(groups.inviteToken, token), eq(groups.kind, 'client')));
+    .where(
+      and(eq(groups.inviteToken, token), eq(groups.kind, 'client'), isNull(groups.deactivatedAt)),
+    );
   return row ?? null;
+}
+
+/**
+ * Deactivates (`true`) or reactivates (`false`) a client group: only `deactivated_at` changes,
+ * nothing is deleted. `changed` is false when it was so already; null for an unknown id or the
+ * admin group. Call through `setGroupActive` (`deactivation.ts`), which does the side effects.
+ */
+export async function setGroupDeactivated(
+  db: Db,
+  id: string,
+  deactivated: boolean,
+): Promise<{ group: GroupRow; changed: boolean } | null> {
+  const [row] = await db
+    .update(groups)
+    .set({ deactivatedAt: deactivated ? new Date() : null, updatedAt: new Date() })
+    .where(
+      and(
+        eq(groups.id, id),
+        eq(groups.kind, 'client'),
+        deactivated ? isNull(groups.deactivatedAt) : isNotNull(groups.deactivatedAt),
+      ),
+    )
+    .returning();
+  if (row) return { group: row, changed: true };
+  const group = await getGroup(db, id);
+  return group && group.kind === 'client' ? { group, changed: false } : null;
+}
+
+/** The group's active client members (the ones in its socket room), deactivated or not. */
+export async function activeClientIds(db: Db, groupId: string): Promise<string[]> {
+  const rows = await db
+    .select({ userId: groupMembers.userId })
+    .from(groupMembers)
+    .where(
+      and(
+        eq(groupMembers.groupId, groupId),
+        eq(groupMembers.role, 'client'),
+        isNull(groupMembers.removedAt),
+      ),
+    );
+  return rows.map((r) => r.userId);
 }
 
 /**

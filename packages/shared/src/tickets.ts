@@ -86,10 +86,7 @@ const intakeFile = z.object({
     .string()
     .transform((v) => (v.split(/[\\/]/).pop() ?? '').trim())
     .pipe(z.string().min(1).max(TICKET_LIMITS.intakeFileName)),
-  content_base64: z
-    .string()
-    .min(1)
-    .refine(isStrictBase64, { message: 'not strict base64' }),
+  content_base64: z.string().min(1).refine(isStrictBase64, { message: 'not strict base64' }),
   /** Informational only. */
   content_type: z
     .string()

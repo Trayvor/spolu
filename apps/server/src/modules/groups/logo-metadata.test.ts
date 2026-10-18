@@ -49,7 +49,9 @@ describe('stripImageMetadata', () => {
   it('refuses a broken file: null', () => {
     const png = pngWith();
     expect(stripImageMetadata(png.subarray(0, 30), 'image/png')).toBeNull();
-    expect(stripImageMetadata(Buffer.concat([png.subarray(0, 8), Buffer.from('x')]), 'image/png')).toBeNull();
+    expect(
+      stripImageMetadata(Buffer.concat([png.subarray(0, 8), Buffer.from('x')]), 'image/png'),
+    ).toBeNull();
     const jpeg = jpegWith();
     expect(stripImageMetadata(jpeg.subarray(0, 10), 'image/jpeg')).toBeNull();
     expect(stripImageMetadata(Buffer.from([0xff, 0xd8, 0xff, 0xd9]), 'image/jpeg')).toBeNull();

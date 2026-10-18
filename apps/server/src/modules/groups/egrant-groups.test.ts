@@ -113,7 +113,12 @@ describe('eGrant groups webhook (create or update a client group)', () => {
         // Only the groups key is set: still on.
         const only = await buildTestApp({ config: { egrantGroupsApiKey: OWN_KEY } });
         try {
-          const res = await hook({ instance_url: host(), name: 'Y' }, OWN_KEY, '10.3.1.3', only.app);
+          const res = await hook(
+            { instance_url: host(), name: 'Y' },
+            OWN_KEY,
+            '10.3.1.3',
+            only.app,
+          );
           expect(res.statusCode).toBe(201);
         } finally {
           await only.app.close();
@@ -382,6 +387,60 @@ describe('eGrant groups webhook (create or update a client group)', () => {
       expect(res.statusCode).toBe(422);
       expect((await getGroup(db(), group_id))!.name).toBe('F');
       expect((await storedLogo(group_id))!.key).toBe(key);
+    });
+  });
+
+  describe('active', () => {
+    it('false deactivates, a repeat is unchanged, true reactivates; omitted keeps the state', async () => {
+      const h = host();
+      const { group_id } = (await hook({ instance_url: h, name: 'Act' })).json() as {
+        group_id: string;
+      };
+      const off = await hook({ instance_url: h, name: 'Act', active: false });
+      expect(off.json()).toEqual({ state: 'deactivated', group_id });
+      expect((await getGroup(db(), group_id))!.deactivatedAt).not.toBeNull();
+      expect((await hook({ instance_url: h, name: 'Act', active: false })).json()).toEqual({
+        state: 'unchanged',
+        group_id,
+      });
+      // A name sync without `active` never undoes the deactivation.
+      expect((await hook({ instance_url: h, name: 'Act 2' })).json()).toEqual({
+        state: 'updated',
+        group_id,
+      });
+      expect((await getGroup(db(), group_id))!.deactivatedAt).not.toBeNull();
+      const on = await hook({ instance_url: h, name: 'Act 2', active: true });
+      expect(on.json()).toEqual({ state: 'reactivated', group_id });
+      expect((await getGroup(db(), group_id))!.deactivatedAt).toBeNull();
+      expect((await hook({ instance_url: h, name: 'Act 2', active: true })).json()).toEqual({
+        state: 'unchanged',
+        group_id,
+      });
+    });
+
+    it('false for an unknown instance is 404 unknown_instance and creates nothing', async () => {
+      const h = host();
+      const res = await hook({ instance_url: h, name: 'Nobody', active: false });
+      expect(res.statusCode).toBe(404);
+      expect(res.json()).toEqual({ error: 'unknown_instance' });
+      expect(await groupsOfHost(h)).toEqual([]);
+    });
+
+    it('true for an unknown instance creates it active', async () => {
+      const res = await hook({ instance_url: host(), name: 'New', active: true });
+      expect(res.statusCode).toBe(201);
+      const { group_id } = res.json() as { group_id: string };
+      expect((await getGroup(db(), group_id))!.deactivatedAt).toBeNull();
+    });
+
+    it('deactivating with a new name applies both', async () => {
+      const h = host();
+      const { group_id } = (await hook({ instance_url: h, name: 'Before' })).json() as {
+        group_id: string;
+      };
+      const res = await hook({ instance_url: h, name: 'After', active: false });
+      expect(res.json()).toEqual({ state: 'deactivated', group_id });
+      expect((await getGroup(db(), group_id))!.name).toBe('After');
     });
   });
 

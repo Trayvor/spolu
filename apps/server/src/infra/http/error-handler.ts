@@ -13,9 +13,16 @@ import type { FastifyError, FastifyInstance } from 'fastify';
  *
  * Routes keep answering their own codes (`{ error: 'validation_failed' }` and so on) through
  * `reply.code().send()`, which never reaches this handler.
+ *
+ * `known` turns an error every route may throw into its answer first (for example a write into a
+ * deactivated group, refused by a database trigger, is `409 group_inactive`); null passes it on.
  */
-export function registerErrorHandler(app: FastifyInstance): void {
+export type KnownError = (error: unknown) => { status: number; body: object } | null;
+
+export function registerErrorHandler(app: FastifyInstance, known?: KnownError): void {
   app.setErrorHandler((error: FastifyError, request, reply) => {
+    const answer = known?.(error);
+    if (answer) return reply.code(answer.status).send(answer.body);
     const status = error.statusCode ?? 500;
     if (status >= 400 && status < 500) {
       request.log.info({ err: error }, 'client error');
