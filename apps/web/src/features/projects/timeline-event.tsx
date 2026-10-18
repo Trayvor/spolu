@@ -97,7 +97,7 @@ export function TimelineEvent({
             <ul className="flex flex-col">
               {event.openTasks.map((task) => (
                 <li key={task.id}>
-                  <TaskRow groupId={groupId} task={task} today={today} />
+                  <TaskRow groupId={groupId} task={task} today={today} compact />
                 </li>
               ))}
             </ul>
@@ -111,7 +111,7 @@ export function TimelineEvent({
             <ul className="flex flex-col">
               {event.openTickets.map((ticket) => (
                 <li key={ticket.id}>
-                  <TicketRow ticket={ticket} />
+                  <TicketRow ticket={ticket} compact />
                 </li>
               ))}
             </ul>
@@ -133,7 +133,13 @@ export function TimelineEvent({
           </Link>
         )}
         {event.doneCount > 0 && (
-          <DonePile groupId={groupId} eventId={event.id} count={event.doneCount} today={today} />
+          <DonePile
+            groupId={groupId}
+            eventId={event.id}
+            count={event.doneCount}
+            today={today}
+            compact
+          />
         )}
       </div>
     </li>

@@ -5,7 +5,7 @@ import type { TicketStatus, TimelineTaskRow, TimelineTicketRow } from '@spolu/sh
 import { Avatar } from '@/components/avatar';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { formatEventDate } from './project-dot';
+import { formatEventDate, formatShortDate } from './project-dot';
 
 /** The rows of tasks and tickets under an event: on the strip, in the pile and in its sheet. */
 
@@ -47,20 +47,89 @@ function DoneCircle({ done }: { done: boolean }) {
   );
 }
 
-/** A task: opens the task panel over the overview (`?task=<id>`). */
+/** A small red dot before an urgent task's title; screen readers hear "Urgent". */
+function UrgentDot() {
+  const { t } = useTranslation();
+  return (
+    <>
+      <span
+        aria-hidden="true"
+        className="mr-1.5 inline-block size-2 rounded-full bg-error-ink align-[0.05em]"
+      />
+      <span className="sr-only">{`${t('projects.cards.urgent')}: `}</span>
+    </>
+  );
+}
+
+/**
+ * A task: opens the task panel over the overview (`?task=<id>`). `compact` (the timeline strip's
+ * narrow column): at most three lines, the title (clipped) over a line with the short deadline
+ * and the avatars, no circle, a red dot for urgent.
+ */
 export function TaskRow({
   groupId,
   task,
   today,
+  compact = false,
 }: {
   groupId: string;
   task: TimelineTaskRow;
   today: string;
+  compact?: boolean;
 }) {
   const { t, i18n } = useTranslation();
   const done = task.completedAt !== null;
   const overdue = !done && task.dueDate !== null && task.dueDate < today;
   const closeLayer = useContext(RowsInLayer);
+  if (compact) {
+    const due = done ? null : task.dueDate;
+    const meta = due !== null || task.assignees.length > 0;
+    return (
+      <Link
+        to="/groups/$groupId/overview"
+        params={{ groupId }}
+        replace={closeLayer !== null}
+        onClick={() => closeLayer?.()}
+        search={(prev: Record<string, unknown>) => ({ ...prev, task: task.id })}
+        title={task.title}
+        className="flex flex-col gap-0.5 rounded-md px-1 py-1 text-tiny hover:bg-muted focus-visible:bg-muted"
+      >
+        <span
+          className={cn(
+            'break-words',
+            meta ? 'line-clamp-2' : 'line-clamp-3',
+            done && 'text-muted-foreground line-through',
+          )}
+        >
+          {task.urgent && !done && <UrgentDot />}
+          {task.title}
+        </span>
+        {meta && (
+          <span className="flex items-center gap-2">
+            {due && (
+              <time
+                dateTime={due}
+                className={cn(
+                  'tabular-nums whitespace-nowrap',
+                  overdue ? 'text-error-ink' : 'text-muted-foreground',
+                )}
+              >
+                {formatShortDate(due, i18n.language, today)}
+              </time>
+            )}
+            {task.assignees.length > 0 && (
+              <span className="ml-auto flex shrink-0 -space-x-1">
+                {task.assignees.slice(0, 3).map((person) => (
+                  <Avatar key={person.id} userId={person.id} name={person.name} size={18} />
+                ))}
+                <span className="sr-only">{task.assignees.map((p) => p.name).join(', ')}</span>
+              </span>
+            )}
+          </span>
+        )}
+      </Link>
+    );
+  }
   return (
     <Link
       to="/groups/$groupId/overview"
@@ -102,8 +171,14 @@ export function TaskRow({
   );
 }
 
-/** A ticket: opens its page. */
-export function TicketRow({ ticket }: { ticket: TimelineTicketRow }) {
+/** A ticket: opens its page. `compact` (the timeline strip): the subject clipped to three lines. */
+export function TicketRow({
+  ticket,
+  compact = false,
+}: {
+  ticket: TimelineTicketRow;
+  compact?: boolean;
+}) {
   const { t } = useTranslation();
   const done = ticket.status === 'resolved';
   const closeLayer = useContext(RowsInLayer);
@@ -116,7 +191,11 @@ export function TicketRow({ ticket }: { ticket: TimelineTicketRow }) {
     >
       <span className="shrink-0 font-semibold tabular-nums">#{ticket.number}</span>
       <span
-        className={cn('min-w-0 flex-1 break-words', done && 'text-muted-foreground line-through')}
+        className={cn(
+          'min-w-0 flex-1 break-words',
+          compact && 'line-clamp-3',
+          done && 'text-muted-foreground line-through',
+        )}
       >
         {ticket.subject ?? t('projects.cards.noSubject')}
       </span>

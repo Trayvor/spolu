@@ -12,7 +12,7 @@ import type {
 } from '@spolu/shared';
 import { i18n } from '@/i18n';
 import { createAppRouter } from '@/router';
-import { formatEventDate } from './project-dot';
+import { formatEventDate, formatShortDate } from './project-dot';
 import { daysBetween, gapOf, mergeEvents, todayIndex, whenOf } from './timeline-model';
 
 const socket = { on: vi.fn(), off: vi.fn(), emit: vi.fn(), connected: false };
@@ -157,6 +157,11 @@ describe('the timeline model', () => {
     expect(gapOf(61)).toEqual({ unit: 'months', count: 2 });
     expect(gapOf(daysBetween('2026-01-01', '2026-05-01'))).toEqual({ unit: 'months', count: 4 });
     expect(gapOf(800)).toEqual({ unit: 'years', count: 2 });
+  });
+
+  it('shortens a deadline to day and month, with the year only when it is not this one', () => {
+    expect(formatShortDate('2026-09-10', 'en', TODAY)).toBe('Sep 10');
+    expect(formatShortDate('2027-09-10', 'en', TODAY)).toBe('Sep 10, 2027');
   });
 
   it('merges pages, each event once', () => {
@@ -368,6 +373,36 @@ describe('the timeline card', () => {
     await stripItems();
     await user.click(screen.getByRole('link', { name: /Rozpočet/ }));
     await waitFor(() => expect(router.state.location.search).toMatchObject({ task: 't1' }));
+  });
+
+  it('a task on the strip: a red dot for urgent, the title clipped, the short deadline', async () => {
+    const busy = event('1', TODAY, {
+      openTasks: [
+        {
+          id: 't1',
+          title: 'Pripraviť formulár výzvy 2',
+          dueDate: '2026-10-27',
+          urgent: true,
+          completedAt: null,
+          assignees: [],
+        },
+      ],
+      openTaskCount: 1,
+    });
+    mockApi({ '': { events: [busy], before: null, after: null, today: TODAY } });
+    renderOverview();
+    await stripItems();
+    const row = screen.getByRole('link', { name: /Pripraviť formulár výzvy 2/ });
+    // "Urgent" is for screen readers only; the eye sees the dot.
+    expect(row).toHaveAccessibleName(
+      new RegExp(`^${t('projects.cards.urgent')}:\\s*Pripraviť formulár výzvy 2`),
+    );
+    expect(within(row).getByText('Pripraviť formulár výzvy 2', { exact: false })).toHaveClass(
+      'line-clamp-2',
+    );
+    expect(
+      within(row).getByText(formatShortDate('2026-10-27', i18n.language, TODAY)),
+    ).toBeVisible();
   });
 
   it('shows the empty state of a client without projects', async () => {

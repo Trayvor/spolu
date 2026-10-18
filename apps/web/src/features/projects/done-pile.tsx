@@ -28,7 +28,8 @@ function StackIcon() {
 /**
  * The done pile under an event (decision 16): one muted line "7 done" that expands in place to
  * the completed tasks (struck through) and resolved tickets, newest first, a page at a time.
- * `open`: the list only, always expanded (the event sheet, under its own heading).
+ * `open`: the list only, always expanded (the event sheet, under its own heading). `compact`: the
+ * rows' narrow form (the timeline strip).
  */
 export function DonePile({
   groupId,
@@ -36,12 +37,14 @@ export function DonePile({
   count,
   today,
   open: initiallyOpen = false,
+  compact = false,
 }: {
   groupId: string;
   eventId: string;
   count: number;
   today: string;
   open?: boolean;
+  compact?: boolean;
 }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(initiallyOpen);
@@ -60,7 +63,9 @@ export function DonePile({
         <StackIcon />
         {t('projects.timeline.done', { count })}
       </button>
-      {open && <DoneList id={listId} groupId={groupId} eventId={eventId} today={today} />}
+      {open && (
+        <DoneList id={listId} groupId={groupId} eventId={eventId} today={today} compact={compact} />
+      )}
     </div>
   );
 }
@@ -70,11 +75,13 @@ function DoneList({
   groupId,
   eventId,
   today,
+  compact = false,
 }: {
   id: string;
   groupId: string;
   eventId: string;
   today: string;
+  compact?: boolean;
 }) {
   const { t } = useTranslation();
   const query = useInfiniteQuery(eventItemsQuery(groupId, eventId, 'done'));
@@ -99,12 +106,12 @@ function DoneList({
         {pages.flatMap((page) => [
           ...page.tasks.map((task) => (
             <li key={task.id}>
-              <TaskRow groupId={groupId} task={task} today={today} />
+              <TaskRow groupId={groupId} task={task} today={today} compact={compact} />
             </li>
           )),
           ...page.tickets.map((ticket) => (
             <li key={ticket.id}>
-              <TicketRow ticket={ticket} />
+              <TicketRow ticket={ticket} compact={compact} />
             </li>
           )),
         ])}

@@ -29,3 +29,13 @@ export function formatEventDate(day: string, language: string): string {
     timeZone: 'UTC',
   }).format(new Date(`${day}T00:00:00Z`));
 }
+
+/** A `YYYY-MM-DD` day short, for tight rows: `10. sep` in Slovak, `Sep 10` in English; the year only when it is not `today`'s. */
+export function formatShortDate(day: string, language: string, today: string): string {
+  return new Intl.DateTimeFormat(language, {
+    day: 'numeric',
+    month: 'short',
+    year: day.slice(0, 4) === today.slice(0, 4) ? undefined : 'numeric',
+    timeZone: 'UTC',
+  }).format(new Date(`${day}T00:00:00Z`));
+}
