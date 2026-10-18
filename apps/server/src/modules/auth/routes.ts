@@ -6,6 +6,7 @@ import {
   ErrorCodes,
   LanguageBodySchema,
   NameBodySchema,
+  PhoneNavBodySchema,
   type Me,
   type MeGroup,
   type SessionUser,
@@ -23,7 +24,13 @@ import {
 import { getSessionFromHeaders, requireUser, toSessionUser } from './session.js';
 import { TICKET_LINK_PATH, ticketTokenLogId } from './ticket-link.js';
 import { listMemberships } from '../groups/memberships.js';
-import { EmailTakenError, setUserLanguage, updateUserName } from '../users/service.js';
+import {
+  EmailTakenError,
+  getPhoneNav,
+  setPhoneNav,
+  setUserLanguage,
+  updateUserName,
+} from '../users/service.js';
 import { sessionRoom } from '../../infra/realtime/rooms.js';
 
 export const authRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { deps }) => {
@@ -67,7 +74,11 @@ export const authRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { d
     });
     const base = toSessionUser(response?.user);
     if (!base) return null;
-    const user: Me = { ...base, groups: await meGroups(base) };
+    const user: Me = {
+      ...base,
+      groups: await meGroups(base),
+      phoneNav: await getPhoneNav(db, base.id),
+    };
     return { user, headers };
   };
 
@@ -130,7 +141,12 @@ export const authRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { d
       }
       throw error;
     }
-    const me: Me = { ...user, email: body.data.newEmail, groups: await meGroups(user) };
+    const me: Me = {
+      ...user,
+      email: body.data.newEmail,
+      groups: await meGroups(user),
+      phoneNav: await getPhoneNav(db, user.id),
+    };
     return me;
   });
 
@@ -138,6 +154,14 @@ export const authRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { d
     const body = LanguageBodySchema.safeParse(request.body);
     if (!body.success) return reply.code(400).send({ error: ErrorCodes.validationFailed });
     await setUserLanguage(db, request.user!.id, body.data.language);
+    return reply.code(204).send();
+  });
+
+  // The navigation on phones, per person (own row only).
+  app.put('/me/phone-nav', { preHandler }, async (request, reply) => {
+    const body = PhoneNavBodySchema.safeParse(request.body);
+    if (!body.success) return reply.code(400).send({ error: ErrorCodes.validationFailed });
+    await setPhoneNav(db, request.user!.id, body.data.phoneNav);
     return reply.code(204).send();
   });
 };

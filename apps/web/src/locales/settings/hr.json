@@ -23,6 +23,12 @@
     "bulkEmail": {
       "label": "Primaj skupne e-poruke",
       "hint": "Novosti od eGranta koje se šalju većem broju ljudi odjednom. Kodovi za prijavu i obavijesti uvijek stižu."
+    },
+    "phoneNav": {
+      "label": "Navigacija na telefonu",
+      "hint": "Vrijedi samo na telefonu. Na širim zaslonima odjeljci su uvijek u zaglavlju.",
+      "classic": "Klasična: izbornik odjeljaka u zaglavlju",
+      "bottom": "Donja traka: odjeljci na dnu zaslona"
     }
   },
   "notifications": {

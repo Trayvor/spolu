@@ -23,6 +23,12 @@
     "bulkEmail": {
       "label": "Ricezione delle comunicazioni",
       "hint": "Novità da eGrant inviate a molte persone contemporaneamente. I codici di accesso e le notifiche arrivano sempre."
+    },
+    "phoneNav": {
+      "label": "Navigazione sul telefono",
+      "hint": "Vale solo sul telefono. Sugli schermi più larghi le sezioni sono sempre nell'intestazione.",
+      "classic": "Classica: il menu delle sezioni nell'intestazione",
+      "bottom": "Barra inferiore: le sezioni in fondo allo schermo"
     }
   },
   "notifications": {

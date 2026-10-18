@@ -84,6 +84,7 @@ describe('email change', () => {
       role: 'admin',
       finance: false,
       groups: [],
+      phoneNav: 'classic',
     });
 
     const me = await getMe(a.cookie);

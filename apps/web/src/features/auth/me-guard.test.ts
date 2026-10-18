@@ -32,6 +32,12 @@ const invalid: unknown[] = [
 ];
 
 describe('meGuard', () => {
+  it('keeps the phone navigation like MeSchema and ignores an unknown value', () => {
+    const bottom = { ...me, phoneNav: 'bottom' };
+    expect(parseMe(bottom)).toEqual(MeSchema.parse(bottom));
+    expect(parseMe({ ...me, phoneNav: 'tabs' })?.phoneNav).toBeUndefined();
+  });
+
   it('accepts what MeSchema accepts and drops unknown keys the same way', () => {
     const body = { ...me, extra: 1, groups: [{ ...group, extra: 2 }] };
     expect(parseMe(body)).toEqual(MeSchema.parse(body));

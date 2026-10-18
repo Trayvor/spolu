@@ -31,7 +31,7 @@ function parseGroup(value: unknown): MeGroup | null {
 
 export function parseMe(value: unknown): Me | null {
   if (!isObject(value)) return null;
-  const { id, email, name, role, finance, groups } = value;
+  const { id, email, name, role, finance, groups, phoneNav } = value;
   if (!isString(id) || !isString(email) || !isString(name)) return null;
   if (!isString(role) || !ROLES.includes(role) || typeof finance !== 'boolean') return null;
   if (!Array.isArray(groups)) return null;
@@ -41,7 +41,10 @@ export function parseMe(value: unknown): Me | null {
     if (!parsed) return null;
     parsedGroups.push(parsed);
   }
-  return { id, email, name, role: role as Me['role'], finance, groups: parsedGroups };
+  const me: Me = { id, email, name, role: role as Me['role'], finance, groups: parsedGroups };
+  // Optional, like `MeSchema`: anything but 'bottom' is the default Classic navigation.
+  if (phoneNav === 'classic' || phoneNav === 'bottom') me.phoneNav = phoneNav;
+  return me;
 }
 
 export const meGuard: ResponseParser<Me> = {

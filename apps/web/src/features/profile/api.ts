@@ -1,5 +1,5 @@
 import { queryOptions } from '@tanstack/react-query';
-import { BulkSubscriptionSchema, MeSchema, type Me } from '@spolu/shared';
+import { BulkSubscriptionSchema, MeSchema, type Me, type PhoneNav } from '@spolu/shared';
 import { apiGet, apiSend } from '@/lib/api';
 
 /** Send a 6-digit code to the new address; the email changes only after `confirmEmailChange`. */
@@ -20,4 +20,9 @@ export const bulkEmailSettingQuery = queryOptions({
 
 export async function saveBulkEmailSetting(subscribed: boolean): Promise<void> {
   await apiSend('PUT', '/me/bulk-email', { subscribed });
+}
+
+/** The navigation on phones (profile setting); the caller updates the cached session. */
+export async function savePhoneNav(phoneNav: PhoneNav): Promise<void> {
+  await apiSend('PUT', '/me/phone-nav', { phoneNav });
 }

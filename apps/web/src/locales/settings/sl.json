@@ -23,6 +23,12 @@
     "bulkEmail": {
       "label": "Prejemanje množičnih e-sporočil",
       "hint": "Novice od eGranta, poslane več osebam hkrati. Kode za prijavo in obvestila prejmete vedno."
+    },
+    "phoneNav": {
+      "label": "Navigacija na telefonu",
+      "hint": "Velja samo na telefonu. Na širših zaslonih so razdelki vedno v glavi.",
+      "classic": "Klasična: meni razdelkov v glavi",
+      "bottom": "Spodnja vrstica: razdelki na dnu zaslona"
     }
   },
   "notifications": {
