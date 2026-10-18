@@ -42,6 +42,7 @@ const NAMESPACES = [
   'projects',
   'reminders',
   'savedViews',
+  'search',
   'settings',
   'snippets',
   'system',

@@ -68,6 +68,7 @@ Terms used across the docs and code, in alphabetical order.
 - **policy function**: a server function that decides whether a user may see or change a resource; written test-first.
 - **push subscription**: one browser's permission to receive Web Push for one user, stored per device in `push_subscriptions` (endpoint and keys). Created after the browser grants permission, removed at logout or when the push service answers 404/410.
 - **PWA**: progressive web app. The web app can be installed on a phone or desktop and receive push notifications.
+- **quick switcher** (command palette, "Hľadať"): the global search opened with Cmd/Ctrl+K or the header's magnifier button: groups, tickets, tasks, knowledge, projects and (admins) people the person may read, plus quick actions ([product/search.md](product/search.md)).
 - **read state**: what a user has already read in a channel, and in each thread they started or replied in; used for the unread indicator.
 - **recipient (of a reminder)**: someone a reminder notifies: its author (always), people the author added, and people who subscribed themselves. Recipients get it in every group mode, Off included.
 - **reminder**: a scheduled notification. A knowledge reminder (Phase 17) and a task's custom reminders (Phase 19) notify their recipients at the chosen times; a task's automatic reminders (Phase 6) remind its assignees of the deadline and urgency; a contract reminder (Phase 15) tells admins that a contract is about to need attention.

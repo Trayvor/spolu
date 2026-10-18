@@ -379,6 +379,13 @@
       "when": 1792357652980,
       "tag": "0054_saved_views_snippets",
       "breakpoints": true
+    },
+    {
+      "idx": 55,
+      "version": "7",
+      "when": 1792358522211,
+      "tag": "0055_global_search",
+      "breakpoints": true
     }
   ]
 }

@@ -4,6 +4,7 @@ import { useBottomNavPlan } from '@/components/bottom-nav';
 import { LanguageSwitcher } from '@/components/language-switcher';
 import { NavCount } from '@/components/lazy-nav-count';
 import { navSections } from '@/components/nav-sections';
+import { SearchTrigger } from '@/components/search-trigger';
 import { SectionMenu } from '@/components/section-menu';
 import { isAdmin } from '@/features/auth/roles';
 import { UserMenu } from '@/features/auth/user-menu';
@@ -42,7 +43,8 @@ const WIDE = {
  * "Help by eGrant": the product name as the wordmark, a small "by" and the egrant logo,
  * one link to `/` named by `app.fullName`. On the right, for a signed-in user, the sections
  * (`navSections`: admins' Home, Tasks, Tickets, Knowledge, Groups, Admins and Bulk email; a
- * client's My groups and tickets), the account menu and the language menu.
+ * client's My groups and tickets), the search button (Cmd/Ctrl+K, `SearchTrigger`), the account
+ * menu and the language menu.
  * Where they fit (from 1280 px for an admin's seven, from 641 px for a client's one or two) the
  * sections are links, the current one on a `secondary` pill. Narrower, two or more sections fold
  * into the section menu (`SectionMenu`: a bottom sheet on phones, a panel under the pill on
@@ -101,6 +103,7 @@ export function AppHeader() {
             className={barOnPhone ? `${wide.menu} max-[640px]:hidden` : wide.menu}
           />
         )}
+        {user && <SearchTrigger />}
         {user && <UserMenu user={user} />}
         <LanguageSwitcher />
       </div>

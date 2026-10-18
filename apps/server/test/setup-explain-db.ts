@@ -4,6 +4,7 @@ import type { TestProject } from 'vitest/node';
 import { FINANCE_VOLUME_TABLES, seedFinanceVolume } from '../src/modules/finance/test-volume.js';
 import { HOME_VOLUME_TABLES, seedHomeVolume } from '../src/modules/home/test-volume.js';
 import { PROJECT_VOLUME_TABLES, seedProjectVolume } from '../src/modules/projects/test-volume.js';
+import { SEARCH_VOLUME_TABLES, seedSearchVolume } from '../src/modules/search/test-volume.js';
 import { databaseUrl, ensureTemplate, type Volume } from './explain-templates.js';
 
 const adminUrl = process.env.ADMIN_DATABASE_URL ?? 'postgres://spolu:spolu@localhost:5432/spolu';
@@ -30,6 +31,12 @@ const VOLUMES = [
     files: [file('../src/modules/finance/test-volume.ts')],
     seed: seedFinanceVolume,
     tables: FINANCE_VOLUME_TABLES,
+  },
+  {
+    name: 'search',
+    files: [file('../src/modules/search/test-volume.ts')],
+    seed: seedSearchVolume,
+    tables: SEARCH_VOLUME_TABLES,
   },
 ] as const satisfies readonly Volume[];
 

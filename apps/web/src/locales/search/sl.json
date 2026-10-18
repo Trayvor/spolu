@@ -1,0 +1,30 @@
+{
+  "title": "Iskanje",
+  "placeholder": "Poiščite skupino, zahtevek, nalogo…",
+  "cancel": "Prekliči",
+  "loading": "Iskanje…",
+  "tooShort": "Vpišite vsaj 2 znaka.",
+  "empty": "Za »{{q}}« ni zadetkov.",
+  "error": "Iskanje ni uspelo. Poskusite znova.",
+  "rateLimited": "Preveč iskanj naenkrat. Počakajte trenutek.",
+  "done": "opravljena",
+  "resolved": "rešen",
+  "sections": {
+    "recent": "Nedavno odprto",
+    "actions": "Pojdi na",
+    "groups": "Skupine",
+    "tickets": "Zahtevki",
+    "tasks": "Naloge",
+    "knowledge": "Znanje",
+    "projects": "Projekti in dogodki",
+    "people": "Osebe"
+  },
+  "actions": {
+    "newTask": "Nova naloga v tej skupini"
+  },
+  "keys": {
+    "move": "izberi",
+    "open": "odpri",
+    "close": "zapri"
+  }
+}

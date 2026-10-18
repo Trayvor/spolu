@@ -1,0 +1,30 @@
+{
+  "title": "Hľadať",
+  "placeholder": "Hľadať skupinu, tiket, úlohu…",
+  "cancel": "Zrušiť",
+  "loading": "Hľadá sa…",
+  "tooShort": "Napíšte aspoň 2 znaky.",
+  "empty": "Pre „{{q}}“ sa nič nenašlo.",
+  "error": "Hľadanie sa nepodarilo. Skúste to znova.",
+  "rateLimited": "Príliš veľa hľadaní naraz. Počkajte chvíľu.",
+  "done": "hotová",
+  "resolved": "vyriešený",
+  "sections": {
+    "recent": "Naposledy otvorené",
+    "actions": "Prejsť na",
+    "groups": "Skupiny",
+    "tickets": "Tikety",
+    "tasks": "Úlohy",
+    "knowledge": "Znalosti",
+    "projects": "Projekty a udalosti",
+    "people": "Ľudia"
+  },
+  "actions": {
+    "newTask": "Nová úloha v tejto skupine"
+  },
+  "keys": {
+    "move": "vybrať",
+    "open": "otvoriť",
+    "close": "zavrieť"
+  }
+}

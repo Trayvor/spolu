@@ -49,6 +49,7 @@ import { remindersRoutes } from './modules/reminders/routes.js';
 import { countUpcomingForUser, listUpcomingForUser } from './modules/reminders/service.js';
 import { registerEventReminderSubject } from './modules/projects/reminder-subject.js';
 import { registerTaskReminderSubject } from './modules/tasks/reminder-subject.js';
+import { searchRoutes } from './modules/search/routes.js';
 import { systemRoutes } from './modules/system/routes.js';
 import { tasksRoutes } from './modules/tasks/routes.js';
 import { teamsPublicRoutes } from './modules/teams/public-routes.js';
@@ -123,6 +124,7 @@ export async function buildApp(
   await app.register(filesRoutes, { prefix: '/api', deps });
   await app.register(joinRoutes, { prefix: '/api', deps });
   await app.register(tasksRoutes, { prefix: '/api', deps });
+  await app.register(searchRoutes, { prefix: '/api', deps });
   await app.register(chatRoutes, { prefix: '/api', deps });
   await app.register(notificationsRoutes, { prefix: '/api', deps });
   await app.register(aiRoutes, { prefix: '/api', deps });

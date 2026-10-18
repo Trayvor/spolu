@@ -13,6 +13,7 @@ import {
   timestamp,
   uniqueIndex,
 } from 'drizzle-orm/pg-core';
+import { foldSql } from '../../infra/db/fold.js';
 import { messages } from '../chat/schema.js';
 import { files } from '../files/schema.js';
 import { groups } from '../groups/schema.js';
@@ -160,6 +161,8 @@ export const tasks = pgTable(
       .where(sql`${t.sourceMeetingId} is not null`),
     // The picker's title search (Phase 34); trigram as in ADR 0015.
     index('tasks_title_trgm_idx').using('gin', t.title.op('gin_trgm_ops')),
+    // The global search (2026-10-18): the folded title, trigram.
+    index('tasks_title_fold_trgm_idx').using('gin', sql`${foldSql(t.title)} gin_trgm_ops`),
     // The admin group's picker across every group (Phase 34 part D): open first, newest first.
     index('tasks_search_order_idx').on(
       sql`(${t.completedAt} is not null)`,

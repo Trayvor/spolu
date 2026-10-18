@@ -89,6 +89,42 @@ export async function clientGroupIds(db: Db, userId: string): Promise<string[]> 
 }
 
 /**
+ * The user's active role in each group, from one query (global search, 2026-10-18): what the
+ * modules' policies need to decide what a non-admin reads. Admins have no rows. A deactivated
+ * group's memberships do not count (`inLiveGroup`).
+ */
+export type GroupAccess = { roles: ReadonlyMap<string, MemberRole> };
+
+export async function groupAccessOf(db: Db, userId: string): Promise<GroupAccess> {
+  const rows = await db
+    .select({ groupId: groupMembers.groupId, role: groupMembers.role })
+    .from(groupMembers)
+    .where(and(eq(groupMembers.userId, userId), isActive, inLiveGroup));
+  return { roles: new Map(rows.map((r) => [r.groupId, r.role])) };
+}
+
+/** The groups of `access` with an active `client` membership (`clientGroupIds`, no query). */
+export function clientIdsOf(access: GroupAccess): string[] {
+  return [...access.roles].filter(([, role]) => role === 'client').map(([id]) => id);
+}
+
+/**
+ * The first group (by name) of the user's active memberships as `{ id, name }` JSON, or null, as
+ * SQL for other modules' one-statement queries (the people of the global search).
+ */
+export function firstActiveGroupSql(
+  userId: SQL | AnyColumn,
+): SQL<{ id: string; name: string } | null> {
+  return sql<{
+    id: string;
+    name: string;
+  } | null>`(select jsonb_build_object('id', g.id, 'name', g.name)
+    from group_members gm inner join groups g on g.id = gm.group_id
+    where gm.user_id = ${userId} and gm.removed_at is null and g.deactivated_at is null
+    order by g.name, g.id limit 1)`;
+}
+
+/**
  * Adds the user to the group. An existing ziadatel membership becomes `client` when `role` is
  * client; a client is never turned into a ziadatel; a membership an admin removed stays removed.
  */

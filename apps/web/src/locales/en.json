@@ -16,6 +16,7 @@
     "myGroups": "My groups",
     "myTickets": "My tickets",
     "bulkEmail": "Bulk email",
+    "search": "Search",
     "menu": "Menu",
     "menuCurrent": "Menu: {{name}}",
     "offline": "You are offline. Changes will not be saved until you reconnect.",

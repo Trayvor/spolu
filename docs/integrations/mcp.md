@@ -77,6 +77,7 @@ Start with `whoami` and `list_groups`; the other tools take the ids they return.
 
 | area | read | change |
 |---|---|---|
+| search | `search` (`GET /api/search`: groups, tickets by `#number` or subject, tasks, knowledge, projects and events, and for admins people; what the user may read, diacritics ignored; never finance, see [product/search.md](../product/search.md)) | |
 | groups and people | `list_groups`, `get_group`, `list_group_people`, `list_group_members`, `list_admins` | |
 | chat | `get_chat_channel`, `list_messages`, `get_thread`, `list_unread_chats` | `send_message`, `reply_to_ticket` |
 | tasks | `get_board`, `list_completed_tasks`, `search_tasks`, `get_task`, `list_all_tasks`, `list_my_tasks`, `list_unseen_tasks` | `create_task`, `update_task`, `move_task` (into Completed completes it) |

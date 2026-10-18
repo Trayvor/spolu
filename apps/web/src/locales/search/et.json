@@ -1,0 +1,30 @@
+{
+  "title": "Otsi",
+  "placeholder": "Otsi gruppi, pöördumist, ülesannet…",
+  "cancel": "Loobu",
+  "loading": "Otsin…",
+  "tooShort": "Sisestage vähemalt 2 märki.",
+  "empty": "Päringule „{{q}}” ei leitud midagi.",
+  "error": "Otsing ebaõnnestus. Proovige uuesti.",
+  "rateLimited": "Liiga palju otsinguid korraga. Oodake hetk.",
+  "done": "tehtud",
+  "resolved": "lahendatud",
+  "sections": {
+    "recent": "Hiljuti avatud",
+    "actions": "Mine",
+    "groups": "Grupid",
+    "tickets": "Pöördumised",
+    "tasks": "Ülesanded",
+    "knowledge": "Teadmised",
+    "projects": "Projektid ja sündmused",
+    "people": "Inimesed"
+  },
+  "actions": {
+    "newTask": "Uus ülesanne selles grupis"
+  },
+  "keys": {
+    "move": "vali",
+    "open": "ava",
+    "close": "sulge"
+  }
+}

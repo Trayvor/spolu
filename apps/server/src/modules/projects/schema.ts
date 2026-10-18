@@ -13,6 +13,7 @@ import {
   uniqueIndex,
 } from 'drizzle-orm/pg-core';
 import type { EgrantChangeKind, ProjectSource, ProjectStatus } from '@spolu/shared';
+import { foldSql } from '../../infra/db/fold.js';
 import { files } from '../files/schema.js';
 import { groups } from '../groups/schema.js';
 import { user } from '../users/schema.js';
@@ -58,6 +59,9 @@ export const projects = pgTable(
     // The pickers and the projects card (by name key), and the group's cascade.
     index('projects_group_status_name_idx').on(t.groupId, t.status, t.nameKey, t.id),
     index('projects_created_by_idx').on(t.createdBy),
+    // The global search (2026-10-18): the folded name, trigram (`spolu_fold`, whose cost keeps
+    // the planner on the index; a plain `like` on `name_key` read the whole table).
+    index('projects_name_fold_trgm_idx').using('gin', sql`${foldSql(t.name)} gin_trgm_ops`),
   ],
 );
 
@@ -125,6 +129,8 @@ export const projectEvents = pgTable(
       .on(t.projectId, t.egrantNameKey, t.egrantDate)
       .where(sql`${t.source} = 'egrant'`),
     index('project_events_created_by_idx').on(t.createdBy),
+    // The global search (2026-10-18): the folded name, trigram.
+    index('project_events_name_fold_trgm_idx').using('gin', sql`${foldSql(t.name)} gin_trgm_ops`),
   ],
 );
 
