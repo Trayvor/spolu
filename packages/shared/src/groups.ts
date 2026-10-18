@@ -123,21 +123,28 @@ export const GroupEvents = { managers: 'group:managers' } as const;
 export type GroupManagersEvent = { groupId: string; managers: GroupManager[] };
 
 /**
- * `PUT /api/egrant/managers` (the eGrant managers webhook): make `email` a manager of the client
- * of `instance_url` (`active: true`) or stop it being one (`false`). `instance_url` is a URL or a
- * bare host of the eGrant instance, matched by host like the ticket intake.
+ * `PUT /api/egrant/managers` (the eGrant managers webhook). In eGrant a manager of an
+ * organisation is the client's own person: `active: true` makes `email` a client member of the
+ * client group of `instance_url` (creating a client account named `name` when none exists),
+ * `false` removes that membership. `instance_url` is a URL or a bare host of the eGrant
+ * instance, matched by host like the ticket intake.
  */
 export const EgrantManagerBodySchema = z.object({
   instance_url: z.string().trim().min(1).max(2048),
   email: z.string().trim().toLowerCase().pipe(z.email().max(254)),
   active: z.boolean(),
+  name: z.string().trim().max(100).nullish(),
 });
 export type EgrantManagerBody = z.infer<typeof EgrantManagerBodySchema>;
 
-/** `added` / `removed`: the webhook changed the managers; `unchanged`: it was so already. */
+/**
+ * `created`: a new client account was made and added; `added`: an existing account became a
+ * client member; `removed`: the client membership was removed; `unchanged`: it was so already.
+ * `user_id` is null only for `active: false` with an email Help does not know.
+ */
 export const EgrantManagerResponseSchema = z.object({
-  state: z.enum(['added', 'removed', 'unchanged']),
+  state: z.enum(['created', 'added', 'removed', 'unchanged']),
   group_id: z.string(),
-  user_id: z.string(),
+  user_id: z.string().nullable(),
 });
 export type EgrantManagerResponse = z.infer<typeof EgrantManagerResponseSchema>;
