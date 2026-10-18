@@ -9,6 +9,7 @@ import {
 import { useRouterState } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { ChevronDownIcon } from '@/components/language-switcher';
+import { Glyph, GLYPHS } from '@/components/section-glyphs';
 import { currentSection, type NavSection } from '@/components/nav-sections';
 // `clsx`, not `cn`: these classes never conflict, and `cn` would bring tailwind-merge into the
 // initial JS.
@@ -64,7 +65,11 @@ export function SectionMenu({
           className,
         )}
       >
-        <span className="min-w-0 truncate">{name}</span>
+        {/* A phone has no room for the name: the section's icon (the aria-label names it). */}
+        <span data-testid="section-menu-icon" className="shrink-0 min-[641px]:hidden">
+          <Glyph>{GLYPHS[current?.key ?? 'more']}</Glyph>
+        </span>
+        <span className="min-w-0 truncate max-[640px]:hidden">{name}</span>
         <span className="shrink-0">
           <ChevronDownIcon />
         </span>
