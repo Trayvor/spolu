@@ -1,10 +1,11 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { PanelHeader } from '@/components/ui/panel-header';
 import { SheetDialog, SheetDialogTitle } from '@/components/ui/sheet-dialog';
 import { cn } from '@/lib/utils';
 import { useClientDirectory } from '../client-tag';
+import { BookIcon, TaskIcon, TicketIcon } from '../icons';
 import { KnowledgePickList } from '../knowledge-picker';
 import { PickedChips } from './chips';
 import type { CrossClient } from './client-bar';
@@ -15,6 +16,11 @@ import { TicketsTab } from './tickets-tab';
 
 export type Tab = 'knowledge' | 'tasks' | 'tickets';
 const TABS: readonly Tab[] = ['knowledge', 'tasks', 'tickets'];
+const TAB_ICONS: Record<Tab, () => ReactNode> = {
+  knowledge: BookIcon,
+  tasks: TaskIcon,
+  tickets: TicketIcon,
+};
 const TAB_KEY = 'spolu.attachTab';
 
 /** The last tab used, kept per browser; storage may be unavailable, then the first tab opens. */
@@ -90,26 +96,30 @@ export default function AttachPicker({
           {t('chat.work.pickerTitle')}
         </SheetDialogTitle>
         <div role="tablist" aria-label={t('chat.work.pickerTitle')} className="flex gap-1">
-          {TABS.map((id) => (
-            <button
-              key={id}
-              type="button"
-              role="tab"
-              id={`attach-tab-${id}`}
-              aria-selected={tab === id}
-              aria-controls="attach-panel"
-              onClick={() => choose(id)}
-              className={cn(
-                'rounded-full px-3 py-1.5 text-button font-semibold max-[640px]:min-h-11',
-                tab === id
-                  ? 'bg-foreground text-background'
-                  : 'text-muted-foreground hover:bg-accent hover:text-foreground',
-              )}
-            >
-              {t(`chat.work.tabs.${id}`)}
-              {chosen[id].length > 0 && <span className="ml-1.5">{chosen[id].length}</span>}
-            </button>
-          ))}
+          {TABS.map((id) => {
+            const Glyph = TAB_ICONS[id];
+            return (
+              <button
+                key={id}
+                type="button"
+                role="tab"
+                id={`attach-tab-${id}`}
+                aria-selected={tab === id}
+                aria-controls="attach-panel"
+                onClick={() => choose(id)}
+                className={cn(
+                  'inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-button font-semibold max-[640px]:min-h-11',
+                  tab === id
+                    ? 'bg-foreground text-background'
+                    : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+                )}
+              >
+                <Glyph />
+                {t(`chat.work.tabs.${id}`)}
+                {chosen[id].length > 0 && <span className="ml-1.5">{chosen[id].length}</span>}
+              </button>
+            );
+          })}
         </div>
         <div
           role="tabpanel"

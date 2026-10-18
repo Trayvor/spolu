@@ -32,7 +32,16 @@ import { withNamespaces } from '@/i18n/namespaces';
 import { toStored, type FormatKind, type PickedPerson } from './composer-text';
 import { safeHref } from './format/parse';
 import { FormatToolbar, iconButton, phoneIconButton } from './format-toolbar';
-import { BookIcon, CloseIcon, PlusIcon, SendIcon, SmileIcon } from './icons';
+import {
+  BookIcon,
+  ClipIcon,
+  CloseIcon,
+  PlusIcon,
+  SendIcon,
+  SmileIcon,
+  TaskIcon,
+  TicketIcon,
+} from './icons';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -555,15 +564,19 @@ export function Composer({
                       onCloseAutoFocus={(e) => e.preventDefault()}
                     >
                       <DropdownMenuItem onSelect={() => setPickerTab('knowledge')}>
+                        <BookIcon />
                         {t('chat.work.tabs.knowledge')}
                       </DropdownMenuItem>
                       <DropdownMenuItem onSelect={() => setPickerTab('tasks')}>
+                        <TaskIcon />
                         {t('chat.work.tabs.tasks')}
                       </DropdownMenuItem>
                       <DropdownMenuItem onSelect={() => setPickerTab('tickets')}>
+                        <TicketIcon />
                         {t('chat.composer.addTicket')}
                       </DropdownMenuItem>
                       <DropdownMenuItem onSelect={() => fileInput.current?.click()}>
+                        <ClipIcon />
                         {t('chat.composer.addUpload')}
                       </DropdownMenuItem>
                     </DropdownMenuContent>

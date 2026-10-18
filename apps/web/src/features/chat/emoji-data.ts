@@ -22,7 +22,7 @@ export const EMOJI_GROUPS: { key: string; emoji: string[] }[] = [
     emoji: split('👍👎👌✌️🤞🤟🤘🤙👈👉👆👇☝️✋🤚🖐️🖖👋👏🙌👐🤲🤝🙏💪✍️'),
   },
   { key: 'hearts', emoji: split('❤️🧡💛💚💙💜🖤🤍🤎💔❣️💕💖💯') },
-  { key: 'flowers', emoji: split('💐🌸💮🏵️🌹🥀🌺🌻🌼🌷🪷🪻🌱🪴🌿☘️🍁🍂🍃🌵🌴🌳🌲') },
+  { key: 'flowers', emoji: split('💐🌸💮🏵️🌹🥀🌺🌻🌼🌷🪷🪻🌱🪴🌿☘️🌾🍁🍂🍃🌵🌴🌳🌲') },
   {
     key: 'work',
     emoji: split('📄📑📊📈📉📅📆📌📎✏️📝📁📂📋📧📨📞💻🖨️🔍🔒🔑💡⏰⌛💰💶🧾🏦🏛️'),

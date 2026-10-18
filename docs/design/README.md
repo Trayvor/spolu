@@ -22,6 +22,7 @@ Performance comes before decoration (see `docs/product/non-functional.md`). Repl
 - no heavy animations, parallax, blur/glass, large background images or video, or decorative motion;
 - transitions only where they help the user follow what happened (a menu or sheet opens, a toast arrives, a screen appears), short (90 to 240 ms), CSS only, transform and opacity only, and off under `prefers-reduced-motion`; the motion tokens are in [tokens.md](tokens.md), "Motion";
 - system or self-hosted fonts, few weights; images and icons small (SVG where possible).
+- Menus of types (the chat "+" menu, the attachment picker tabs, the knowledge and finance "+ New" menus) put a 16 px outline icon (24-unit grid, 2 px stroke, `currentColor`, `aria-hidden`) before each label, reusing the type's own glyph; plain action menus (rename, move, delete) stay text-only.
 
 When invoking `frontend-design`, pass this constraint with the request.
 
