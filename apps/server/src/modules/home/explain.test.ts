@@ -306,7 +306,11 @@ describe('admin home query plans on a seeded volume', () => {
               .where(passWhere(true, pass))
               .orderBy(asc(notificationEvents.createdAt), asc(notificationEvents.id))
               .limit(200);
-            const plan = await expectIndexed(held as unknown as Db, pending.getSQL(), UNSEEN_TABLES);
+            const plan = await expectIndexed(
+              held as unknown as Db,
+              pending.getSQL(),
+              UNSEEN_TABLES,
+            );
             expect(used(plan)).toContain(
               pass === 'fresh'
                 ? 'notification_events_undelivered_idx'
