@@ -207,6 +207,14 @@ describe('finance query plans on a seeded volume', () => {
         'work log summary by project (all time)',
         timeTotalsSql(countedEntriesSql(scope, null, byProject), ['admin', 'total']),
       );
+      // 2026-10-18 (migration 0049): every entry of a project, open requests too, as the
+      // project foreign key's cascade and a project merge read them.
+      await expectIndexed(
+        tx,
+        'every entry of a project',
+        sql`select id from finance_time_entries
+          where group_id = ${groupId} and project_id = ${projectId}`,
+      );
       console.log('finance EXPLAIN (ms):', JSON.stringify(timings.splice(0)));
     },
   );

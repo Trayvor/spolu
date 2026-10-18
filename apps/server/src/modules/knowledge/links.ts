@@ -83,6 +83,38 @@ export async function setLinkedItems(
 }
 
 /**
+ * `setLinkedItems` for subjects that have no links yet, all of one group (2026-10-18, a batch of
+ * new cards): the same checks, every item checked shareable in one `shareableItemCards`, then one
+ * insert, instead of three queries per subject.
+ */
+export async function linkNewSubjects(
+  tx: Db,
+  groupId: string,
+  entries: { subject: LinkSubject; itemIds: string[] }[],
+): Promise<void> {
+  const list = entries
+    .map((e) => ({ subject: e.subject, ids: [...new Set(e.itemIds)] }))
+    .filter((e) => e.ids.length > 0);
+  if (list.length === 0) return;
+  for (const { subject, ids } of list) {
+    if (ids.length > KNOWLEDGE_LINKS_MAX) throw new InvalidKnowledgeLinkError();
+    if (subject.kind === 'knowledge' && ids.includes(subject.id)) {
+      throw new InvalidKnowledgeLinkError();
+    }
+  }
+  const all = [...new Set(list.flatMap((e) => e.ids))];
+  const cards = await shareableItemCards(tx, groupId, all);
+  if (all.some((id) => !cards.has(id))) throw new InvalidKnowledgeLinkError();
+  await tx
+    .insert(knowledgeLinks)
+    .values(
+      list.flatMap(({ subject, ids }) =>
+        ids.map((itemId, position) => ({ itemId, position, ...subjectColumns(subject) })),
+      ),
+    );
+}
+
+/**
  * The cards of the items linked to each subject, in order, re-checked as shareable in the
  * subject's group now (one query for the rows, then `shareableItemCards` once per group); an
  * unavailable item (deleted, admins-only, moved away, or a subject without a group) is its id

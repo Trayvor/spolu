@@ -36,6 +36,8 @@ export const groups = pgTable(
     uniqueIndex('groups_one_admin')
       .on(sql`(true)`)
       .where(sql`${t.kind} = 'admin'`),
+    // `GET /groups?limit=` pages by name and id (2026-10-18).
+    index('groups_name_id_idx').on(t.name, t.id),
   ],
 );
 
@@ -67,6 +69,11 @@ export const groupMembers = pgTable(
     index('group_members_user_active_idx')
       .on(t.userId)
       .where(sql`${t.removedAt} is null`),
+    // The removed members and requesters of a group (2026-10-18): the primary key leads with the
+    // user, and the active index skips removed rows.
+    index('group_members_group_removed_idx')
+      .on(t.groupId, t.role)
+      .where(sql`${t.removedAt} is not null`),
   ],
 );
 

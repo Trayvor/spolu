@@ -3,6 +3,7 @@ import {
   AdminGroupInputSchema,
   ErrorCodes,
   GroupInputSchema,
+  GroupListQuerySchema,
   InviteMemberBodySchema,
   type Group,
   type GroupManager,
@@ -39,7 +40,9 @@ import {
   InvalidEgrantUrlError,
   inviteMember,
   listGroupPeople,
+  InvalidGroupCursorError,
   listGroups,
+  listGroupsPage,
   listInvitedMembers,
   listMembers,
   MemberRemovedError,
@@ -118,7 +121,19 @@ export const groupsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, {
 
   app.get('/groups', { preHandler: anyUser }, async (request, reply) => {
     if (!canManageGroups(request.user!)) return forbidden(reply);
-    return listGroups(db, request.user!.id);
+    const query = GroupListQuerySchema.safeParse(request.query);
+    if (!query.success) return reply.code(400).send({ error: ErrorCodes.validationFailed });
+    const { limit, cursor, q } = query.data;
+    // No limit: every group, as the filter lists expect. A limit: one page (2026-10-18).
+    if (limit === undefined) return listGroups(db, request.user!.id, { q });
+    try {
+      return await listGroupsPage(db, request.user!.id, { q, limit, cursor });
+    } catch (error) {
+      if (error instanceof InvalidGroupCursorError) {
+        return reply.code(400).send({ error: ErrorCodes.validationFailed });
+      }
+      throw error;
+    }
   });
 
   app.post('/groups', { preHandler: anyUser }, async (request, reply) => {

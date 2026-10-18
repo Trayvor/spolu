@@ -369,6 +369,9 @@ export const financeTimeEntries = pgTable(
     index('finance_time_entries_group_project_day_idx')
       .on(t.groupId, t.projectId, t.workedOn)
       .where(sql`${t.minutes} is not null and ${t.workedOn} is not null`),
+    // Every entry of a project, open requests too (2026-10-18): the project foreign key's cascade
+    // and a project merge; the partial index above skips the requests.
+    index('finance_time_entries_group_project_idx').on(t.groupId, t.projectId),
     index('finance_time_entries_group_event_day_idx')
       .on(t.groupId, t.eventId, t.workedOn)
       .where(sql`${t.minutes} is not null and ${t.workedOn} is not null`),

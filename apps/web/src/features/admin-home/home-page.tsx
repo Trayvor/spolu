@@ -16,6 +16,7 @@ import { CountCard } from './count-card';
 import { CountTile } from './count-tile';
 import { firstName, greetingKey } from './greeting';
 import { useAdminActivityRefetch } from './use-admin-activity';
+import { useSidebarLive } from './use-sidebar-live';
 
 const CARD_KEYS = [
   homeKeys.tasks,
@@ -23,13 +24,14 @@ const CARD_KEYS = [
   homeKeys.reminders,
   homeKeys.meetings,
 ] as const;
-const PHONE_KEYS = [...CARD_KEYS, homeKeys.sidebar] as const;
 const TICKET_KEYS = [homeKeys.tickets] as const;
 
 /** Under 1024 px the client list is part of the home screen (there is no sidebar). */
 function PhoneClientList() {
   const { t } = useTranslation();
   const sidebar = useQuery(sidebarQuery);
+  // Kept live by patching the rows the events name (2026-10-18), like the wide sidebar.
+  useSidebarLive();
   return (
     <section className="flex flex-col gap-2">
       <h2 className="text-body font-semibold">{t('adminHome.home.clients')}</h2>
@@ -61,7 +63,7 @@ export function HomePage() {
   const { t } = useTranslation();
   const name = firstName(useSession()?.name ?? '');
   const wide = useMediaQuery('(min-width: 1024px)');
-  useAdminActivityRefetch(wide ? CARD_KEYS : PHONE_KEYS);
+  useAdminActivityRefetch(CARD_KEYS);
   useAdminActivityRefetch(TICKET_KEYS, { kinds: [], chatRead: false, tickets: true });
   const tickets = useTicketsCard();
   const assigned = useAssignedCard();

@@ -33,6 +33,32 @@ export const GroupSummarySchema = z.object({
 export type GroupSummary = z.infer<typeof GroupSummarySchema>;
 export const GroupSummaryListSchema = z.array(GroupSummarySchema);
 
+/** The largest page of `GET /groups?limit=` (2026-10-18). */
+export const GROUP_PAGE_MAX = 200;
+
+/**
+ * `GET /groups` query (2026-10-18). Without `limit` the answer is every group as before
+ * (`GroupSummaryListSchema`); with `limit` it is one page (`GroupPageSchema`), by name and id,
+ * continued with the page's `nextCursor`. `q` keeps the groups whose name contains it (either way).
+ */
+export const GroupListQuerySchema = z
+  .object({
+    limit: z.coerce.number().int().min(1).max(GROUP_PAGE_MAX).optional(),
+    cursor: z.string().min(1).max(1000).optional(),
+    q: z.string().trim().max(100).optional(),
+  })
+  .refine((v) => v.cursor === undefined || v.limit !== undefined, {
+    message: 'cursor needs limit',
+  });
+export type GroupListQuery = z.infer<typeof GroupListQuerySchema>;
+
+/** One page of `GET /groups?limit=`: `nextCursor` is null on the last page. */
+export const GroupPageSchema = z.object({
+  items: z.array(GroupSummarySchema),
+  nextCursor: z.string().nullable(),
+});
+export type GroupPage = z.infer<typeof GroupPageSchema>;
+
 export const GroupSchema = z.object({
   id: z.string(),
   name: z.string(),

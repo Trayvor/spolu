@@ -4,6 +4,7 @@ import {
   GlobalBoardFilterSchema,
   HOME_LIMITS,
   isValidGlobalProjectFilter,
+  SidebarQuerySchema,
   type HomeReminders,
   type NavCounts,
 } from '@spolu/shared';
@@ -39,9 +40,11 @@ export const homeRoutes: FastifyPluginAsync<HomeRoutesOptions> = async (app, opt
   const now = options.now ?? (() => new Date());
   const adminOnly = requireAdmin(app.auth);
 
-  app.get('/me/home/sidebar', { preHandler: adminOnly }, async (request) =>
-    getSidebar(db, request.user!.id),
-  );
+  app.get('/me/home/sidebar', { preHandler: adminOnly }, async (request, reply) => {
+    const query = SidebarQuerySchema.safeParse(request.query);
+    if (!query.success) return reply.code(400).send({ error: ErrorCodes.invalidFilter });
+    return getSidebar(db, request.user!.id, query.data.groups);
+  });
 
   app.get('/me/home/tasks', { preHandler: adminOnly }, async (request) =>
     getAssignedTasks(db, request.user!.id),

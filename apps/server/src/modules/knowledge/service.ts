@@ -471,17 +471,23 @@ export async function listAllItems(
 // Reads
 // ---------------------------------------------------------------------------------------------
 
-/** What the routes need to check access and route events, or null. */
-export async function getItemRef(
-  db: Db,
-  id: string,
-): Promise<{
+/** What the routes need of an item to check access and route events. */
+export type ItemRef = {
   id: string;
   groupId: string;
   visibility: Visibility;
   createdBy: string;
   authorIsClient: boolean;
-} | null> {
+};
+
+/** What the routes need to check access and route events, or null. */
+export async function getItemRef(db: Db, id: string): Promise<ItemRef | null> {
+  return (await getItemRefs(db, [id])).get(id) ?? null;
+}
+
+/** `getItemRef` of each of these items that exists, by id, in one query (2026-10-18). */
+export async function getItemRefs(db: Db, ids: string[]): Promise<Map<string, ItemRef>> {
+  if (ids.length === 0) return new Map();
   const rows = await db.execute<{
     id: string;
     group_id: string;
@@ -489,16 +495,23 @@ export async function getItemRef(
     created_by: string;
     author_role: string;
   }>(sql`select k.id, k.group_id, k.visibility, k.created_by, u.role as author_role
-         from knowledge_items k join "user" u on u.id = k.created_by where k.id = ${id}`);
-  const row = rows[0];
-  if (!row) return null;
-  return {
-    id: row.id,
-    groupId: row.group_id,
-    visibility: row.visibility,
-    createdBy: row.created_by,
-    authorIsClient: row.author_role === 'client',
-  };
+         from knowledge_items k join "user" u on u.id = k.created_by
+         where k.id in (${sql.join(
+           [...new Set(ids)].map((id) => sql`${id}`),
+           sql`, `,
+         )})`);
+  return new Map(
+    [...rows].map((row) => [
+      row.id,
+      {
+        id: row.id,
+        groupId: row.group_id,
+        visibility: row.visibility,
+        createdBy: row.created_by,
+        authorIsClient: row.author_role === 'client',
+      },
+    ]),
+  );
 }
 
 async function itemFiles(db: Db, id: string, chatFileId: string | null): Promise<FileRow[]> {

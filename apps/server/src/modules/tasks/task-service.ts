@@ -34,11 +34,16 @@ import { getSourceMessage } from '../chat/messages.js';
 import { taskChatFileIds } from '../chat/service.js';
 import { getGroup, getGroupPeopleRoles } from '../groups/service.js';
 import { canAssignTaskTo } from './policy.js';
-import { linkedCardsOf, setLinkedItems } from '../knowledge/links.js';
+import { linkedItemCards, linkNewSubjects, setLinkedItems } from '../knowledge/links.js';
 import { getProjectRef } from '../projects/refs.js';
 import { getMeetingRef } from '../knowledge/meeting-ref.js';
 import { getTicketRef } from '../tickets/refs.js';
-import { recordNotifications, requestDelivery } from '../notifications/service.js';
+import {
+  recordManyNotifications,
+  recordNotifications,
+  requestDelivery,
+  type NotificationInput,
+} from '../notifications/service.js';
 import { user } from '../users/schema.js';
 import {
   droppedRequests,
@@ -142,21 +147,39 @@ async function checkAssignees(
  * `task.assigned` to the new assignees, never to the actor. In the write's transaction; returns
  * the recorded event ids, for `requestDelivery` after the commit.
  */
+function assignedNotice(
+  actor: SessionUser,
+  task: { id: string; groupId: string; title: string },
+  added: string[],
+): NotificationInput {
+  return {
+    kind: 'task.assigned',
+    groupId: task.groupId,
+    recipients: added.filter((id) => id !== actor.id),
+    payload: { taskId: task.id, groupId: task.groupId, title: task.title, actorName: actor.name },
+  };
+}
+
 async function notifyAssigned(
   tx: Tx,
   actor: SessionUser,
   task: { id: string; groupId: string; title: string },
   added: string[],
 ): Promise<string[]> {
-  return recordNotifications(tx, {
-    kind: 'task.assigned',
-    groupId: task.groupId,
-    recipients: added.filter((id) => id !== actor.id),
-    payload: { taskId: task.id, groupId: task.groupId, title: task.title, actorName: actor.name },
-  });
+  return recordNotifications(tx, assignedNotice(actor, task, added));
 }
 
 /** Group and creator of a task, for permission checks; null when it does not exist. */
+/** The group of each of these tasks that exists, by id, in one query (2026-10-18). */
+export async function getTaskGroupIds(db: Db, ids: string[]): Promise<Map<string, string>> {
+  if (ids.length === 0) return new Map();
+  const rows = await db
+    .select({ id: tasks.id, groupId: tasks.groupId })
+    .from(tasks)
+    .where(inArray(tasks.id, [...new Set(ids)]));
+  return new Map(rows.map((r) => [r.id, r.groupId]));
+}
+
 export async function getTaskRef(
   db: Db,
   id: string,
@@ -229,11 +252,35 @@ export async function getTask(
   id: string,
   viewer: SessionUser | null = null,
 ): Promise<TaskDetailDto | null> {
+  return (await getTasks(db, [id], viewer))[0] ?? null;
+}
+
+/** One lookup per distinct key, in parallel: the sources many cards share. */
+async function byDistinct<T>(keys: string[], load: (key: string) => Promise<T>) {
+  const unique = [...new Set(keys)];
+  const values = await Promise.all(unique.map(load));
+  return new Map(unique.map((key, i) => [key, values[i]!]));
+}
+
+/**
+ * `getTask` of each id that exists, in the order of `ids` (2026-10-18): a fixed number of
+ * queries for any number of tasks (the board rows, the detail columns, the files once per group,
+ * the linked knowledge once, each distinct source once), so a batch of new cards is not about
+ * eight queries per card.
+ */
+export async function getTasks(
+  db: Db,
+  ids: string[],
+  viewer: SessionUser | null = null,
+): Promise<TaskDetailDto[]> {
+  if (ids.length === 0) return [];
+  const unique = [...new Set(ids)];
   // The board shape and the detail-only columns (description, attached file ids) in parallel.
-  const [[task], [extra]] = await Promise.all([
-    selectTasks(db, eq(tasks.id, id)),
+  const [rows, extras] = await Promise.all([
+    selectTasks(db, inArray(tasks.id, unique)),
     db
       .select({
+        id: tasks.id,
         description: tasks.description,
         sourceTicketId: tasks.sourceTicketId,
         sourceMeetingId: tasks.sourceMeetingId,
@@ -243,27 +290,78 @@ export async function getTask(
         ), '{}')`,
       })
       .from(tasks)
-      .where(eq(tasks.id, id)),
+      .where(inArray(tasks.id, unique)),
   ]);
-  if (!task || !extra) return null;
-  const [files, sourceMessage, sourceTicket, sourceMeeting, linkedKnowledge] = await Promise.all([
-    getFilesForGroup(db, task.groupId, extra.fileIds),
-    task.sourceMessageId === null ? null : getSourceMessage(db, task.sourceMessageId),
-    extra.sourceTicketId === null ? null : getTicketRef(db, extra.sourceTicketId, task.groupId),
-    extra.sourceMeetingId === null || viewer === null
-      ? null
-      : getMeetingRef(db, extra.sourceMeetingId, task.groupId, viewer),
-    linkedCardsOf(db, 'task', id, task.groupId),
+  const extraOf = new Map(extras.map((e) => [e.id, e]));
+  const found = rows.filter((task) => extraOf.has(task.id));
+  const fileIdsByGroup = new Map<string, string[]>();
+  for (const task of found) {
+    const list = fileIdsByGroup.get(task.groupId) ?? [];
+    list.push(...extraOf.get(task.id)!.fileIds);
+    fileIdsByGroup.set(task.groupId, list);
+  }
+  const pair = (id: string, groupId: string) => `${id}|${groupId}`;
+  const split = (key: string) => key.split('|') as [string, string];
+  const [filesByGroup, messages, tickets, meetings, linked] = await Promise.all([
+    byDistinct([...fileIdsByGroup.keys()], (groupId) =>
+      getFilesForGroup(db, groupId, fileIdsByGroup.get(groupId)!),
+    ),
+    byDistinct(
+      found.flatMap((t) => (t.sourceMessageId === null ? [] : [t.sourceMessageId])),
+      (id) => getSourceMessage(db, id),
+    ),
+    byDistinct(
+      found.flatMap((t) => {
+        const ticketId = extraOf.get(t.id)!.sourceTicketId;
+        return ticketId === null ? [] : [pair(ticketId, t.groupId)];
+      }),
+      (key) => getTicketRef(db, ...split(key)),
+    ),
+    viewer === null
+      ? new Map<string, Awaited<ReturnType<typeof getMeetingRef>>>()
+      : byDistinct(
+          found.flatMap((t) => {
+            const meetingId = extraOf.get(t.id)!.sourceMeetingId;
+            return meetingId === null ? [] : [pair(meetingId, t.groupId)];
+          }),
+          (key) => getMeetingRef(db, ...split(key), viewer),
+        ),
+    linkedItemCards(
+      db,
+      'task',
+      found.map((t) => ({ id: t.id, groupId: t.groupId })),
+    ),
   ]);
-  return {
-    ...task,
-    description: extra.description,
-    files,
-    sourceMessage,
-    sourceTicket,
-    sourceMeeting,
-    linkedKnowledge,
-  };
+  const byId = new Map(
+    found.map((task) => {
+      const extra = extraOf.get(task.id)!;
+      const files = new Map((filesByGroup.get(task.groupId) ?? []).map((f) => [f.id, f]));
+      const detail: TaskDetailDto = {
+        ...task,
+        description: extra.description,
+        files: extra.fileIds.flatMap((id) => {
+          const file = files.get(id);
+          return file ? [file] : [];
+        }),
+        sourceMessage:
+          task.sourceMessageId === null ? null : (messages.get(task.sourceMessageId) ?? null),
+        sourceTicket:
+          extra.sourceTicketId === null
+            ? null
+            : (tickets.get(pair(extra.sourceTicketId, task.groupId)) ?? null),
+        sourceMeeting:
+          extra.sourceMeetingId === null
+            ? null
+            : (meetings.get(pair(extra.sourceMeetingId, task.groupId)) ?? null),
+        linkedKnowledge: linked.get(task.id) ?? [],
+      };
+      return [task.id, detail];
+    }),
+  );
+  return ids.flatMap((id) => {
+    const task = byId.get(id);
+    return task ? [task] : [];
+  });
 }
 
 /**
@@ -486,10 +584,16 @@ export async function createTasksFromSource(
         .orderBy(asc(tasks.position))
         .limit(1);
       await checkAssignees(tx, actor, groupId, [...new Set(drafts.flatMap((d) => d.assigneeIds))]);
-      // Phase 33 part P2: each card's project and event.
+      // Phase 33 part P2: each card's project and event, checked once per distinct pair
+      // (2026-10-18: the cards of one source mostly share theirs).
+      const refOf = new Map<string, Promise<Awaited<ReturnType<typeof getProjectRef>>>>();
       const refs: Awaited<ReturnType<typeof getProjectRef>>[] = [];
       for (const d of drafts) {
-        refs.push(await getProjectRef(tx, groupId, d.projectId ?? null, d.eventId ?? null));
+        const key = JSON.stringify([d.projectId ?? null, d.eventId ?? null]);
+        if (!refOf.has(key)) {
+          refOf.set(key, getProjectRef(tx, groupId, d.projectId ?? null, d.eventId ?? null));
+        }
+        refs.push(await refOf.get(key)!);
       }
 
       const positions = keysBefore(first?.position ?? null, drafts.length);
@@ -536,30 +640,30 @@ export async function createTasksFromSource(
         );
         await tx.insert(taskAttachments).values(attachments);
       }
-      for (const [index, row] of rows.entries()) {
-        const knowledgeIds = [
-          ...new Set([...(drafts[index]!.knowledgeIds ?? []), ...(source.knowledgeIds ?? [])]),
-        ].slice(0, KNOWLEDGE_LINKS_MAX);
-        if (knowledgeIds.length > 0) {
-          await setLinkedItems(tx, { kind: 'task', id: row.id }, groupId, knowledgeIds);
-        }
-      }
-      const recipients = new Set<string>();
-      for (const [index, row] of rows.entries()) {
-        for (const id of await notifyAssigned(tx, actor, row, drafts[index]!.assigneeIds)) {
-          recipients.add(id);
-        }
-      }
-      return { ids: rows.map((row) => row.id), notified: [...recipients] };
+      // 2026-10-18: the links of every card in one check and one insert, the notifications in
+      // one call.
+      await linkNewSubjects(
+        tx,
+        groupId,
+        rows.map((row, index) => ({
+          subject: { kind: 'task', id: row.id },
+          itemIds: [
+            ...new Set([...(drafts[index]!.knowledgeIds ?? []), ...(source.knowledgeIds ?? [])]),
+          ].slice(0, KNOWLEDGE_LINKS_MAX),
+        })),
+      );
+      const recipients = await recordManyNotifications(
+        tx,
+        rows.map((row, index) => assignedNotice(actor, row, drafts[index]!.assigneeIds)),
+      );
+      return { ids: rows.map((row) => row.id), notified: [...new Set(recipients)] };
     }));
   } catch (error) {
     await deleteFiles(deps, copyIds).catch(() => undefined);
     throw error;
   }
   await requestDelivery(deps.jobs, notified);
-  return (await Promise.all(ids.map((id) => getTask(db, id, actor)))).flatMap((task) =>
-    task ? [task] : [],
-  );
+  return getTasks(db, ids, actor);
 }
 
 /**

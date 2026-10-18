@@ -17,7 +17,7 @@ import { loadMessageKnowledge } from '../chat/knowledge-links.js';
 import { findReadableMessage, getMessageFiles, messageTasksEvent } from '../chat/messages.js';
 import { requireUser } from '../auth/session.js';
 import { InvalidAttachmentError } from '../files/service.js';
-import { emitTask, emitTaskDeleted } from './events.js';
+import { emitTask, emitTaskDeleted, emitTasks } from './events.js';
 import { canDeleteTask, canUseBoard } from './policy.js';
 import type { WriteGuard } from './routes.js';
 import { announceTimeChange, type TimeChange } from '../finance/task-time.js';
@@ -251,7 +251,7 @@ export const taskRoutes: FastifyPluginAsync<TaskRoutesOptions> = async (
         return writeError(reply, error);
       }
       // After the commit, outside the try: nothing here may be mapped as a failed write.
-      for (const task of created) emitTask(app.io, toTaskDto(task), person(actor));
+      emitTasks(app.io, created.map(toTaskDto), person(actor));
       await pushMessageTasks(request, messageId);
       await afterTicketTasks(request, ticketId, created.length);
       const result: TasksFromMessageResult = { tasks: created };
@@ -298,7 +298,7 @@ export const taskRoutes: FastifyPluginAsync<TaskRoutesOptions> = async (
       } catch (error) {
         return writeError(reply, error);
       }
-      for (const task of created) emitTask(app.io, toTaskDto(task), person(actor));
+      emitTasks(app.io, created.map(toTaskDto), person(actor));
       await afterTicketTasks(request, ticket.id, created.length);
       const result: TasksFromMessageResult = { tasks: created };
       return reply.code(201).send(result);
@@ -314,9 +314,10 @@ export const taskRoutes: FastifyPluginAsync<TaskRoutesOptions> = async (
   // 2026-10-17: the viewer opened the task's panel (either tab): its changes so far are seen.
   app.post<IdParams>('/tasks/:id/seen', { preHandler: anyUser }, async (request, reply) => {
     const actor = request.user!;
-    if (!(await readableTask(actor, request.params.id))) return notFound(reply);
+    const ref = await readableTask(actor, request.params.id);
+    if (!ref) return notFound(reply);
     await markTaskSeen(db, actor.id, request.params.id);
-    emitSeen(app.io, actor.id, { kind: 'task', id: request.params.id });
+    emitSeen(app.io, actor.id, { kind: 'task', id: request.params.id, groupId: ref.groupId });
     return reply.code(204).send();
   });
 

@@ -3,14 +3,12 @@ import { useParams } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { homeKeys, sidebarQuery } from './api';
+import { sidebarQuery } from './api';
 import { ClientSidebarList, SidebarRowsPlaceholder } from './client-sidebar';
 import { useCollapsed, writeCollapsed } from './sidebar-collapse';
-import { useAdminActivityRefetch } from './use-admin-activity';
+import { useSidebarLive } from './use-sidebar-live';
 
 // The lazy `admin-shell` chunk: loaded by the signed-in layout only for admins from 1024 px.
-
-const SIDEBAR_KEYS = [homeKeys.sidebar] as const;
 
 function Chevron({ left }: { left: boolean }) {
   return (
@@ -47,15 +45,16 @@ export function SidebarFrame({
 /**
  * The admin's client sidebar beside every signed-in screen from 1024 px: the clients in the
  * server's order with one black badge each (unread messages and the tasks and tickets with an unseen change), live through
- * `admin:activity` and `chat:read`. It collapses to a 56 px rail of logos, remembered per device.
+ * `admin:activity` and `chat:read`, one patched row at a time (`useSidebarLive`). It collapses to a 56 px rail of logos, remembered per device.
  */
 export function AdminSidebar() {
   const { t } = useTranslation();
   const collapsed = useCollapsed();
   const { groupId } = useParams({ strict: false });
   const sidebar = useQuery(sidebarQuery);
-  // Ticket events too: the badge counts the tickets with an unseen change (2026-10-17).
-  useAdminActivityRefetch(SIDEBAR_KEYS, { tickets: true });
+  // Ticket events too: the badge counts the tickets with an unseen change (2026-10-17). Only the
+  // rows of the groups named by the events are refetched and patched in (2026-10-18).
+  useSidebarLive();
 
   const toggle = () => {
     writeCollapsed(!collapsed);

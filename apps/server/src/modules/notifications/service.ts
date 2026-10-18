@@ -1,11 +1,10 @@
 import { randomUUID } from 'node:crypto';
-import { lt, sql, type SQL } from 'drizzle-orm';
+import { sql, type SQL } from 'drizzle-orm';
 import type { NotificationCategory, NotificationKind } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
 import type { JobQueue } from '../../infra/jobs/jobs.js';
 import { channelSql } from '../users/service.js';
 import { notificationGroupOf } from './categories.js';
-import { notificationEvents } from './schema.js';
 
 /** Delivers everyone's pending events; a stately queue, so requests coalesce (see `notificationQueues`). */
 export const DELIVER_JOB = 'notifications.deliver';
@@ -120,11 +119,28 @@ export async function requestDelivery(jobs: JobQueue, eventIds: string[]): Promi
   }
 }
 
-/** Deletes events created before `olderThan`; returns how many. */
-export async function deleteOldNotificationEvents(db: Db, olderThan: Date): Promise<number> {
-  const removed = await db
-    .delete(notificationEvents)
-    .where(lt(notificationEvents.createdAt, olderThan))
-    .returning({ id: notificationEvents.id });
-  return removed.length;
+/**
+ * Deletes events created before `olderThan`, oldest first in batches of `batchSize` (2026-10-18:
+ * one statement for a whole day of the largest table held its locks and WAL at once); returns
+ * how many.
+ */
+export async function deleteOldNotificationEvents(
+  db: Db,
+  olderThan: Date,
+  batchSize = 5000,
+): Promise<number> {
+  let total = 0;
+  for (;;) {
+    const result = await db.execute(sql`
+      with d as (
+        select id from notification_events
+        where created_at < ${olderThan.toISOString()}::timestamptz
+        order by created_at
+        limit ${batchSize}
+      )
+      delete from notification_events e using d where e.id = d.id
+    `);
+    total += result.count;
+    if (result.count < batchSize) return total;
+  }
 }

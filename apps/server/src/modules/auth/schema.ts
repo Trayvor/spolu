@@ -17,7 +17,11 @@ export const session = pgTable(
       .notNull()
       .references(() => user.id, { onDelete: 'cascade' }),
   },
-  (t) => [index('session_user_id_idx').on(t.userId)],
+  (t) => [
+    index('session_user_id_idx').on(t.userId),
+    // The daily cleanup of expired sessions (`auth/jobs.ts`, 2026-10-18).
+    index('session_expires_at_idx').on(t.expiresAt),
+  ],
 );
 
 export const account = pgTable(

@@ -186,6 +186,20 @@ describe('unseen changes of a task', () => {
     expect(await taskUnseen(me.id, task)).toBe(false);
   });
 
+  it('Mentions and replies: a plain message adds no ring to a move, a mention does', async () => {
+    const { group, me, task } = await setup();
+    await setGroupMode(db, me.id, group.id, 'mentions');
+    await taskEvent('task.moved', me.id, group.id, task);
+    await taskEvent('chat.message', me.id, group.id, task);
+    expect(await taskMark(me.id, task)).toBe('change');
+    await taskEvent('chat.mention', me.id, group.id, task);
+    expect(await taskMark(me.id, task)).toBe('message');
+    await setGroupMode(db, me.id, group.id, 'all');
+    await markTaskSeen(db, me.id, task);
+    await taskEvent('chat.message', me.id, group.id, task);
+    expect(await taskMark(me.id, task)).toBe('message');
+  });
+
   it('a default of Off hides it unless the group has its own mode', async () => {
     const { group, me, task } = await setup();
     await taskEvent('task.moved', me.id, group.id, task);

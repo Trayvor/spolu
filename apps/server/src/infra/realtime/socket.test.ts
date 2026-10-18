@@ -482,6 +482,58 @@ describe('socket.io', () => {
       expect(f).toEqual([]);
     });
 
+    it('a reply sends one admin:activity, not one more for the parent', async () => {
+      const g = await mkGroup();
+      const admin = await loggedIn(test);
+      const own = await clientIn(g.id);
+      const socket = await connected(admin.cookie);
+      const channel = await ensureGroupChannel(test.deps.db, g.id);
+      const send = (payload: Record<string, unknown>) =>
+        test.app.inject({
+          method: 'POST',
+          url: `/api/channels/${channel.id}/messages`,
+          headers: { cookie: own.cookie, origin: 'http://localhost:3000' },
+          payload: { clientId: randomUUID(), ...payload },
+        });
+      const parent = await send({ body: 'root' });
+      expect(parent.statusCode).toBe(201);
+      await settle();
+      const got = collect(socket);
+      const reply = await send({ body: 'reply', parentId: parent.json<{ id: string }>().id });
+      expect(reply.statusCode).toBe(201);
+      await settle();
+      expect(got).toEqual([{ groupId: g.id, kind: 'chat' }]);
+    });
+
+    it('three cards from a message send one admin:activity (2026-10-18)', async () => {
+      const g = await mkGroup();
+      const admin = await loggedIn(test);
+      const own = await clientIn(g.id);
+      const socket = await connected(admin.cookie);
+      const channel = await ensureGroupChannel(test.deps.db, g.id);
+      const sent = await test.app.inject({
+        method: 'POST',
+        url: `/api/channels/${channel.id}/messages`,
+        headers: { cookie: own.cookie, origin: 'http://localhost:3000' },
+        payload: { body: 'A, B and C', clientId: randomUUID() },
+      });
+      expect(sent.statusCode).toBe(201);
+      await settle();
+      const got = collect(socket);
+      const res = await test.app.inject({
+        method: 'POST',
+        url: `/api/groups/${g.id}/tasks/from-message`,
+        headers: { cookie: admin.cookie, origin: 'http://localhost:3000' },
+        payload: {
+          messageId: sent.json<{ id: string }>().id,
+          tasks: [{ title: 'A' }, { title: 'B' }, { title: 'C' }],
+        },
+      });
+      expect(res.statusCode).toBe(201);
+      await settle();
+      expect(got).toEqual([{ groupId: g.id, kind: 'task' }]);
+    });
+
     it('a task move sends kind task', async () => {
       const g = await mkGroup();
       const admin = await loggedIn(test);

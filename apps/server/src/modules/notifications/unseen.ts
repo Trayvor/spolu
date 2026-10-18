@@ -158,24 +158,45 @@ export async function ticketUnseenSummary(
   return summarizeUnseen(await summaryRows(db, ticketSummarySql(userId, ticketId)));
 }
 
+/** The task message kinds other than a plain chat message, whose mode rule differs. */
+const TASK_MESSAGE_KINDS_BUT_CHAT = TASK_MESSAGE_KINDS.filter((k) => k !== 'chat.message');
+
 /**
  * The ids of the tasks with an unseen change for the user, one row each (`task_id`), and
  * whether those changes include a chat message (`message`). May name a deleted task: join `tasks`.
+ *
+ * 2026-10-18: the events are first reduced to one row per task and group (the newest plain chat
+ * message, the newest other event, the newest other message), and the user's mode is looked up
+ * once per such row, not once per event (an admin collects thousands of `chat.message` events a
+ * month). The mode then picks the dates, as `taskEventPassesSql` does per event: All counts both,
+ * Off nothing, Mentions and replies all but the plain chat messages.
  */
 export function unseenTaskIdsSql(userId: string): SQL {
+  const passing = (chat: SQL, other: SQL) =>
+    sql`(case y.mode when 'off' then null when 'all' then greatest(${chat}, ${other}) else ${other} end)`;
   return sql`
     select x.task_id,
       (x.message_at is not null and (s.seen_at is null or x.message_at > s.seen_at)) as message
     from (
-      select (e.payload ->> 'taskId') as task_id, max(e.created_at) as last_at,
-        max(e.created_at) filter (where e.kind in (${list(TASK_MESSAGE_KINDS)})) as message_at
-      from notification_events e
-      where e.user_id = ${userId} and ${taskEvents} and ${channelOnSql(userId, 'tasks')}
-        and ${taskEventPassesSql(userId)}
+      select y.task_id, max(${passing(sql`y.chat_at`, sql`y.other_at`)}) as last_at,
+        max(${passing(sql`y.chat_at`, sql`y.message_at`)}) as message_at
+      from (
+        select z.*, ${groupModeSql(userId, sql`z.group_id`)} as mode
+        from (
+          select (e.payload ->> 'taskId') as task_id, e.group_id,
+            max(e.created_at) filter (where e.kind = 'chat.message') as chat_at,
+            max(e.created_at) filter (where e.kind <> 'chat.message') as other_at,
+            max(e.created_at) filter (
+              where e.kind in (${list(TASK_MESSAGE_KINDS_BUT_CHAT)})) as message_at
+          from notification_events e
+          where e.user_id = ${userId} and ${taskEvents} and ${channelOnSql(userId, 'tasks')}
+          group by 1, 2
+        ) z
+      ) y
       group by 1
     ) x
     left join task_seen s on s.user_id = ${userId} and s.task_id = x.task_id
-    where s.seen_at is null or x.last_at > s.seen_at
+    where x.last_at is not null and (s.seen_at is null or x.last_at > s.seen_at)
   `;
 }
 

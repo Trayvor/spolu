@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { afterAll, describe, expect, it } from 'vitest';
 import { inArray } from 'drizzle-orm';
 import { createDb } from '../../infra/db/client.js';
+import { EMAIL_JOB } from '../../infra/email/index.js';
 import type { JobQueue } from '../../infra/jobs/jobs.js';
 import { createFakePushSender } from '../../infra/push/index.js';
 import { createCountingDb } from '../../../test/query-counter.js';
@@ -131,5 +132,21 @@ describe('sendDueDigests batching', () => {
     const small = await warm(() => digestCounting(2));
     const large = await warm(() => digestCounting(12));
     expect(large).toBe(small);
+  });
+
+  it('queues the digests in one call and takes at most maxPairs per run (2026-10-18)', async () => {
+    const c = await clientInGroups(5, { email: true });
+    const now = new Date(Date.now() + 60 * 60_000);
+    await db
+      .update(notificationEvents)
+      .set({ deliveredAt: new Date(), emailDueAt: new Date() })
+      .where(inArray(notificationEvents.id, c.eventIds));
+    const { queue, calls } = recordingQueue();
+    const deps = { db, config: testConfig(), push: null, jobs: queue };
+    expect(await sendDueDigests(deps, { now, userIds: [c.id], maxPairs: 3 })).toBe(3);
+    expect(calls).toEqual([{ name: EMAIL_JOB, items: expect.any(Array) }]);
+    expect(calls[0]!.items).toHaveLength(3);
+    expect(await sendDueDigests(deps, { now, userIds: [c.id], maxPairs: 3 })).toBe(2);
+    expect(await sendDueDigests(deps, { now, userIds: [c.id], maxPairs: 3 })).toBe(0);
   });
 });

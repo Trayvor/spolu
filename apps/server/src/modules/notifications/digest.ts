@@ -1,7 +1,7 @@
 import { and, inArray, isNotNull, isNull, lte, sql } from 'drizzle-orm';
 import { wantsEmail, type UserLanguage } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
-import { sendEmailLater, type EmailMessage } from '../../infra/email/index.js';
+import { EMAIL_JOB, sendEmailLater, type EmailMessage } from '../../infra/email/index.js';
 import { buildEmail } from '../../infra/email/layout.js';
 import { unreadForNotify } from '../chat/notify.js';
 import { groups } from '../groups/schema.js';
@@ -76,15 +76,44 @@ export function splitByUrl(entries: { entry: DigestEntry; rowId: string }[]): Di
  * locked with `FOR UPDATE SKIP LOCKED` and stamped `emailed_at`, so concurrent workers never email
  * the same rows twice; the rows still unread (task events always count) whose notification group
  * still wants email make the email, one per entry url (`digestEntry`). Emails are queued after
- * the commit; returns how many.
+ * the commit, in one call when the queue has `sendMany`; returns how many.
+ *
+ * 2026-10-18: one run takes at most `maxPairs` (200) user and group pairs, so a backlog after an
+ * outage is one bounded transaction per sweep, not every pending row at once; the next sweep
+ * takes the rest.
  */
 export async function sendDueDigests(
   deps: NotificationJobDeps,
-  opts: { now?: Date; userIds?: string[] } = {},
+  opts: { now?: Date; userIds?: string[]; maxPairs?: number } = {},
 ): Promise<number> {
   if (opts.userIds && opts.userIds.length === 0) return 0;
   const now = opts.now ?? new Date();
-  const digests = await deps.db.transaction((tx) => collectDigests(tx, deps, now, opts.userIds));
+  const maxPairs = opts.maxPairs ?? DIGEST_PAIRS_PER_RUN;
+  const digests = await deps.db.transaction((tx) =>
+    collectDigests(tx, deps, now, opts.userIds, maxPairs),
+  );
+  if (digests.length === 0) return 0;
+  if (deps.jobs.sendMany) {
+    try {
+      await deps.jobs.sendMany(
+        EMAIL_JOB,
+        digests.map((d) => d.email),
+      );
+      return digests.length;
+    } catch (error) {
+      console.error('notifications: digest emails could not be queued (the sweep retries)', error);
+      await deps.db
+        .update(notificationEvents)
+        .set({ emailedAt: null })
+        .where(
+          inArray(
+            notificationEvents.id,
+            digests.flatMap((d) => d.rowIds),
+          ),
+        );
+      return 0;
+    }
+  }
   let queued = 0;
   for (const { email, rowIds } of digests) {
     try {
@@ -103,11 +132,15 @@ export async function sendDueDigests(
   return queued;
 }
 
+/** The most user and group pairs one digest run emails (2026-10-18). */
+const DIGEST_PAIRS_PER_RUN = 200;
+
 async function collectDigests(
   tx: Db,
   deps: NotificationJobDeps,
   now: Date,
   userIds: string[] | undefined,
+  maxPairs: number,
 ): Promise<{ email: EmailMessage; rowIds: string[] }[]> {
   const due = await tx
     .selectDistinct({ userId: notificationEvents.userId, groupId: notificationEvents.groupId })
@@ -118,7 +151,8 @@ async function collectDigests(
         lte(notificationEvents.emailDueAt, now),
         userIds ? inArray(notificationEvents.userId, [...new Set(userIds)]) : undefined,
       ),
-    );
+    )
+    .limit(maxPairs);
   if (due.length === 0) return [];
   // One lock per pair, in a fixed order: a parallel run waits here, then finds the rows emailed
   // and sends nothing (no early second email for events that arrived in between).

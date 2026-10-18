@@ -10,6 +10,7 @@ import type { AppDeps } from '../../deps.js';
 import { createDb } from '../../infra/db/client.js';
 import { createDiskStorage } from '../../infra/storage/disk-storage.js';
 import type { Storage } from '../../infra/storage/index.js';
+import { createCountingDb } from '../../../test/query-counter.js';
 import { testDatabaseUrl } from '../../../test/test-config.js';
 import { deleteMessage, getMessage, sendMessage } from '../chat/messages.js';
 import { ensureGroupChannel, ensureTaskChannel, getChannel } from '../chat/service.js';
@@ -947,6 +948,36 @@ describe('createTasksFromMessage', () => {
     await deleteTask(deps, a!.id);
     expect(await getFile(db, copy.id)).toBeNull();
     expect(await getFile(db, file.id)).not.toBeNull(); // the message keeps its file
+  });
+
+  it('ten cards take as many queries as two, and return what getTask returns (2026-10-18)', async () => {
+    const { group, admin, ana, m } = await setup();
+    const counting = createCountingDb();
+    try {
+      const countingDeps = { ...deps, db: counting.db };
+      const run = async (n: number) => {
+        counting.reset();
+        const created = await createTasksFromMessage(
+          countingDeps,
+          admin,
+          group.id,
+          input(
+            m.id,
+            Array.from({ length: n }, (_, i) => ({ title: `Card ${i}`, assigneeIds: [ana.id] })),
+          ),
+          { id: m.id, fileIds: [] },
+        );
+        return { created, queries: counting.count() };
+      };
+      await run(1); // warm what the process caches once
+      const two = await run(2);
+      const ten = await run(10);
+      expect(ten.created).toHaveLength(10);
+      expect(ten.queries).toBe(two.queries);
+      for (const task of ten.created) expect(task).toEqual(await getTask(db, task.id, admin));
+    } finally {
+      await counting.close();
+    }
   });
 
   it('createTasksFromMessage refuses a non-pickable assignee', async () => {
