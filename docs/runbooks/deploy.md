@@ -33,7 +33,7 @@ Secrets are never printed. The SSH settings use a per-run `known_hosts` file, ne
 
 ## MCP server
 
-`/mcp` (the AI assistants' endpoint, [integrations/mcp.md](../integrations/mcp.md)) is served by the app like every path: the Caddyfile's single `reverse_proxy app:3000` covers it, so no Caddy change and no new environment variable is needed. Its rate limits live in memory, like the others ([ADR 0005](../decisions/0005-single-process-deployment.md)). Migration 0045 adds its two tables.
+`/mcp` (the AI assistants' endpoint, [integrations/mcp.md](../integrations/mcp.md)) is served by the app like every path: the Caddyfile's single `reverse_proxy app:3000` covers it, so no Caddy change and no new environment variable is needed. Its rate limits live in memory, like the others ([ADR 0005](../decisions/0005-single-process-deployment.md)). Migration 0046 adds its two tables.
 
 ## Superadmin settings
 

@@ -35,7 +35,7 @@ An AI client (Claude Code, Claude Desktop, any MCP client) connects to `https://
 
 ## 3. Tokens and the settings screen
 
-### 3.1 Tables (migration 0045)
+### 3.1 Tables (migration 0046)
 
 - `mcp_tokens`: `id`, `user_id` (FK `user`, cascade), `name` (1–60), `token_hash` (hex SHA-256, unique), `prefix` (the first 14 characters, for display), `scope` (`read` | `write`, CHECK), `created_at`, `expires_at`, `last_used_at` (updated at most once a minute), `revoked_at`. Index `(user_id)`.
 - `mcp_audit_log`: `id`, `user_id` (FK, cascade), `token_id` (FK `mcp_tokens`, set null), `tool`, `target_id` (nullable), `status` (int), `ok` (bool), `created_at`. Index `(user_id, created_at desc)`.

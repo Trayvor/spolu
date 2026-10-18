@@ -5,7 +5,7 @@ Spec: [2026-10-18-mcp-server-design.md](../specs/2026-10-18-mcp-server-design.md
 1. **Docs first.** Spec, plan, ADR, roadmap entry. Commit.
 2. **Shared types** (`packages/shared/src/mcp.ts`): `McpScope`, `McpTokenCreateBodySchema` (`name` 1–60, `scope`, `expiresInDays` ∈ 7/30/90/365), `McpTokenSchema`, `McpTokenCreatedSchema`, `McpAuditEntrySchema`, `MCP_LIMITS`; error codes `mcp_token_limit`.
 3. **Policy** `modules/mcp/policy.ts`: `canUseMcp(actor)` (admins), `canUseTool(scope, tool)`; tests per role.
-4. **Tables and migration 0045** (`mcp_tokens`, `mcp_audit_log`; `db:generate`, renamed to 0045 since 0043/0044 are held by open PRs).
+4. **Tables and migration 0046** (`mcp_tokens`, `mcp_audit_log`; `db:generate`, renamed to 0046 since 0043-0045 are taken by merged PRs).
 5. **Tokens** `modules/mcp/tokens.ts`: `createToken`, `listTokens`, `revokeToken`, `revokeAllTokens`, `authenticateToken` (hash lookup, expiry, revoked, user active, `toSessionUser`, throttled `last_used_at`). `deactivateUser` calls `revokeAllTokens`.
 6. **Token routes** `modules/mcp/routes.ts` (`/api/me/mcp/tokens`, `/api/me/mcp/audit`), rate limits; route tests per role.
 7. **Internal calls** `modules/auth/internal-calls.ts` and the `getSessionUser` hook; test that an unknown or expired id is no session.
