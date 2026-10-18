@@ -33,7 +33,7 @@ export type ToolDef<S extends z.ZodType = z.ZodType> = {
   input: S;
   /** A write tool: `write` tokens only, audited. */
   write?: boolean;
-  /** A finance documents tool: finance holders only. */
+  /** A finance tool: finance holders only. */
   finance?: boolean;
   /** The id a write acts on, from the arguments (for the audit). */
   target?: (args: z.output<S>) => string | null;

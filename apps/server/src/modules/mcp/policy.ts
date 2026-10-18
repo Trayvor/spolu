@@ -12,7 +12,7 @@ export function canUseMcp(actor: SessionUser): boolean {
 
 /**
  * Whether a token of `scope` may call a tool: a write tool needs a `write` token, a finance
- * documents tool the finance right (the routes check it again).
+ * tool (every finance entity, owner decision 2026-10-18) the finance right (the routes check it again).
  */
 export function canCallTool(
   actor: SessionUser,

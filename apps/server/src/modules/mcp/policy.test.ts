@@ -37,7 +37,7 @@ describe('canCallTool', () => {
     expect(canCallTool(user('admin'), 'write', write)).toBe(true);
   });
 
-  it('a finance documents tool needs the finance right', () => {
+  it('a finance tool needs the finance right', () => {
     expect(canCallTool(user('admin'), 'write', finance)).toBe(false);
     expect(canCallTool(user('admin', true), 'read', finance)).toBe(true);
     expect(canCallTool(user('superadmin', true), 'read', finance)).toBe(true);
