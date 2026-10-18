@@ -63,3 +63,4 @@ What gets easier, what gets harder.
 | [0037](0037-supply-chain-policy.md) | Supply-chain policy: pnpm release age and trust, images by digest | accepted |
 | [0040](0040-explain-volumes-from-template-databases.md) | The EXPLAIN volumes come from template databases, cloned per run | accepted |
 | [0041](0041-ffmpeg-hardened-for-untrusted-uploads.md) | ffmpeg runs hardened for untrusted uploads: input whitelists and a minimal environment | accepted |
+| [0044](0044-enforced-csp-set-by-the-app.md) | An enforced Content-Security-Policy, set by the app, with a report endpoint | accepted |
