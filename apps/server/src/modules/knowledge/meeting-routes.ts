@@ -187,6 +187,7 @@ export const meetingRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, 
       try {
         const body: TaskProposals = {
           tasks: await meetingTaskProposals(db, request.user!, request.params.id),
+          files: [],
         };
         return body;
       } catch (error) {

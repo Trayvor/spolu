@@ -81,6 +81,7 @@ describe('sanitizeProposals', () => {
       dueDate: null,
       urgent: true,
       messageFileIds: [],
+      link: null,
     });
   });
 
@@ -196,6 +197,7 @@ describe('split service', () => {
         dueDate: null,
         urgent: false,
         messageFileIds: [file.id],
+        link: null,
       },
     ]);
     expect(result.usage).toEqual({ promptTokens: 10, completionTokens: 5 });
@@ -259,6 +261,64 @@ describe('split service', () => {
     await deleteMessage(deps, await found(s.ana, first.id));
     const again = await buildSplitRequest(deps.db, await found(s.admin, reply.id));
     expect(again.quoted).toBeNull();
+  });
+
+  describe('links and mentions survive into the cards', () => {
+    const URL_A = 'https://x.egrant.sk/app/form?id=3';
+    const URL_B = 'https://docs.example.com/guide';
+
+    it('a URL of the text the AI dropped is added to every card that lacks it', async () => {
+      const s = await setup();
+      const { message } = await send(s.channel, s.admin, {
+        body: `Fix the form at ${URL_A}.\nSee [the guide](${URL_B})`,
+      });
+      const { provider } = capturing([
+        raw({ title: 'Fix the form', description: 'Fix the form.' }),
+        raw({ title: 'Read the guide', description: `Read ${URL_B} first.` }),
+      ]);
+      const result = await proposeTasks(
+        { ...deps, ai: provider },
+        await found(s.admin, message.id),
+      );
+      expect(result.tasks.map((t) => t.description)).toEqual([
+        `Fix the form.\n\n${URL_A}`,
+        `Read ${URL_B} first.\n\n${URL_A}`,
+      ]);
+    });
+
+    it('a URL the AI kept is not repeated, and a card link must come from the text', async () => {
+      const s = await setup();
+      const { message } = await send(s.channel, s.admin, { body: `Fix ${URL_A}` });
+      const { provider } = capturing([
+        raw({ title: 'One', description: `Fix ${URL_A}`, link: URL_A }),
+        raw({ title: 'Two', description: `Fix ${URL_A}`, link: 'https://evil.example.com' }),
+      ]);
+      const result = await proposeTasks(
+        { ...deps, ai: provider },
+        await found(s.admin, message.id),
+      );
+      expect(result.tasks.map((t) => [t.description, t.link])).toEqual([
+        [`Fix ${URL_A}`, URL_A],
+        [`Fix ${URL_A}`, null],
+      ]);
+    });
+
+    it('a mentioned person named in a description is a mention again', async () => {
+      const s = await setup();
+      const { message } = await send(s.channel, s.admin, {
+        body: `Ask ${mentionToken(s.ana.id)} to sign it`,
+      });
+      const { provider } = capturing([
+        raw({ title: 'Ask Ana', description: 'Ask @Ana to sign it; @Anabela is someone else.' }),
+      ]);
+      const result = await proposeTasks(
+        { ...deps, ai: provider },
+        await found(s.admin, message.id),
+      );
+      expect(result.tasks[0]!.description).toBe(
+        `Ask ${mentionToken(s.ana.id)} to sign it; @Anabela is someone else.`,
+      );
+    });
   });
 
   it('throws AiUnavailableError without a provider', async () => {

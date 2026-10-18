@@ -337,6 +337,20 @@ export async function getMessageFiles(
 }
 
 /**
+ * The files attached to the live (not deleted) messages of a channel, oldest message first, each
+ * in its order: a ticket chat's files, which its cards may copy (owner bug report 2026-10-18).
+ */
+export async function channelFileIds(db: Db, channelId: string): Promise<string[]> {
+  const rows = await db
+    .select({ fileId: messageAttachments.fileId })
+    .from(messageAttachments)
+    .innerJoin(messages, eq(messages.id, messageAttachments.messageId))
+    .where(and(eq(messages.channelId, channelId), isNull(messages.deletedAt)))
+    .orderBy(asc(messages.createdAt), asc(messages.id), asc(messageAttachments.position));
+  return rows.map((r) => r.fileId);
+}
+
+/**
  * The newest `limit` messages of a channel that are not deleted, thread replies included, oldest
  * first, with the author's name (for the AI's view of a ticket chat and the "Open in Claude"
  * prompt). Same read-only exception as `selectMessages` for the name.

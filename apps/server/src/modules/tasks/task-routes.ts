@@ -13,6 +13,7 @@ import {
 } from '@spolu/shared';
 import type { AppDeps } from '../../deps.js';
 import { emitMessageTasks } from '../chat/events.js';
+import { loadMessageKnowledge } from '../chat/knowledge-links.js';
 import { findReadableMessage, getMessageFiles, messageTasksEvent } from '../chat/messages.js';
 import { requireUser } from '../auth/session.js';
 import { InvalidAttachmentError } from '../files/service.js';
@@ -36,14 +37,18 @@ import {
 } from './task-service.js';
 import { clientGroupIds } from '../groups/memberships.js';
 import { emitMeetingTasks } from '../knowledge/events.js';
-import { InvalidKnowledgeLinkError } from '../knowledge/links.js';
+import { InvalidKnowledgeLinkError, linkedCardsOf } from '../knowledge/links.js';
 import { emitSeen, markTaskSeen, taskUnseenSummary } from '../notifications/unseen.js';
 import { InvalidProjectError } from '../projects/refs.js';
 import { emitTicket, emitTicketRefresh } from '../tickets/events.js';
 import { runTicketChange } from '../tickets/hooks.js';
-import { actorReadsTicket, attachmentIds, getTicketRow } from '../tickets/service.js';
+import { actorReadsTicket, getTicketRow, ticketTaskFiles } from '../tickets/service.js';
 
 type IdParams = { Params: { id: string } };
+
+/** The ids of the cards still shareable in the group (an unavailable one is never passed on). */
+const shareableIds = (cards: { id: string; available: boolean }[]) =>
+  cards.filter((c) => c.available).map((c) => c.id);
 
 export type TaskRoutesOptions = {
   deps: AppDeps;
@@ -229,10 +234,15 @@ export const taskRoutes: FastifyPluginAsync<TaskRoutesOptions> = async (
       const messageId = found.message.id;
       // A message of a ticket's chat links its cards to the ticket too (part 21.5).
       const ticketId = found.channel.ticketId;
+      const [files, knowledge] = await Promise.all([
+        getMessageFiles(db, groupId, messageId),
+        loadMessageKnowledge(db, groupId, [messageId]),
+      ]);
       const source = {
         messageId,
         ticketId: ticketId ?? undefined,
-        fileIds: (await getMessageFiles(db, groupId, messageId)).map((f) => f.id),
+        fileIds: files.map((f) => f.id),
+        knowledgeIds: shareableIds(knowledge.get(messageId) ?? []),
       };
       let created;
       try {
@@ -267,7 +277,15 @@ export const taskRoutes: FastifyPluginAsync<TaskRoutesOptions> = async (
       if (!ticket || ticket.groupId !== groupId || !(await actorReadsTicket(db, actor, ticket))) {
         return notFound(reply);
       }
-      const source = { ticketId: ticket.id, fileIds: await attachmentIds(db, ticket.id) };
+      const [files, knowledge] = await Promise.all([
+        ticketTaskFiles(db, ticket),
+        linkedCardsOf(db, 'ticket', ticket.id, groupId),
+      ]);
+      const source = {
+        ticketId: ticket.id,
+        fileIds: files.map((f) => f.id),
+        knowledgeIds: shareableIds(knowledge),
+      };
       // Phase 33 decision 12: a card that names no project takes the ticket's project and event.
       const cards = body.data.tasks.map((card) =>
         card.projectId === undefined && card.eventId === undefined

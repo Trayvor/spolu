@@ -33,6 +33,7 @@ describe('fake provider', () => {
           fileIds: ['f1'],
           deadline: '2026-11-01',
           urgent: false,
+          link: null,
         },
         {
           title: 'Call bank urgent',
@@ -41,6 +42,7 @@ describe('fake provider', () => {
           fileIds: [],
           deadline: null,
           urgent: true,
+          link: null,
         },
       ],
       usage: null,

@@ -20,6 +20,7 @@ const task = {
   fileIds: ['f1'],
   deadline: '2026-10-23',
   urgent: false,
+  link: null,
 };
 
 const completion = (message: object, usage: object | undefined = undefined) => ({
@@ -79,9 +80,17 @@ describe('OpenAI provider', () => {
     const item = schema.properties.tasks.items;
     expect(item.additionalProperties).toBe(false);
     expect(item.required.sort()).toEqual(
-      ['assigneeIds', 'deadline', 'description', 'fileIds', 'title', 'urgent'].sort(),
+      ['assigneeIds', 'deadline', 'description', 'fileIds', 'link', 'title', 'urgent'].sort(),
     );
     expect(item.properties.deadline.type).toEqual(['string', 'null']);
+    expect(item.properties.link.type).toEqual(['string', 'null']);
+  });
+
+  it('asks for the web addresses to be kept, copied exactly (owner bug report 2026-10-18)', () => {
+    for (const prompt of Object.values(SYSTEM_PROMPTS)) {
+      expect(prompt).toContain('Keep every web address (URL)');
+      expect(prompt).toContain('copied exactly');
+    }
   });
 
   it('leaves out the quoted section when there is none and marks empty lists', async () => {

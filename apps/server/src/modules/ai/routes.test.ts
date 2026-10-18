@@ -138,8 +138,10 @@ describe('AI API', () => {
           dueDate: '2026-11-01',
           urgent: true,
           messageFileIds: [],
+          link: null,
         },
       ],
+      files: [],
     });
   });
 

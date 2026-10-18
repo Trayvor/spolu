@@ -4,11 +4,13 @@ import type { RawTask, TaskSplitProvider } from './provider.js';
 const LIST_LINE = /^\s*(?:[-*•]|\d+[.)])\s+(.*)$/u;
 const DATE = /\d{4}-\d{2}-\d{2}/;
 const URGENT = /urgent|súrne/iu;
+const URL_IN_LINE = /https?:\/\/\S+/u;
 
 /**
  * A deterministic stand-in for local development and e2e (`AI_PROVIDER=fake`), never for a
  * server: one task per list line; names and file names found in the line become assignees and
- * files, the first YYYY-MM-DD the deadline, "urgent"/"súrne" the urgent flag.
+ * files, the first YYYY-MM-DD the deadline, "urgent"/"súrne" the urgent flag, the first web
+ * address the link.
  */
 export function createFakeProvider(): TaskSplitProvider {
   return {
@@ -26,6 +28,7 @@ export function createFakeProvider(): TaskSplitProvider {
           fileIds: request.files.filter((f) => has(f.name)).map((f) => f.id),
           deadline: DATE.exec(line)?.[0] ?? null,
           urgent: URGENT.test(line),
+          link: URL_IN_LINE.exec(line)?.[0] ?? null,
         });
       }
       return { tasks, usage: null };
