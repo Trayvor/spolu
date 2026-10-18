@@ -21,6 +21,7 @@ import {
   SameEmailError,
 } from './email-change.js';
 import { getSessionFromHeaders, requireUser, toSessionUser } from './session.js';
+import { PASSKEY_OPTIONS_PATH, PASSKEY_SIGN_IN_PATH } from './passkey-login.js';
 import { TICKET_LINK_PATH, ticketTokenLogId } from './ticket-link.js';
 import { listMemberships } from '../groups/memberships.js';
 import { EmailTakenError, setUserLanguage, updateUserName } from '../users/service.js';
@@ -45,8 +46,24 @@ export const authRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { d
     max: deps.config.loginCodesPerMinute,
   });
 
+  // The passkey login (ADR 0050), per address: the sign-in at the login code's limit, the
+  // options six times that (the login page asks for them on every visit, for autofill).
+  const allowPasskeySignIn = createRateLimiter({
+    windowMs: 60_000,
+    max: deps.config.loginCodesPerMinute,
+  });
+  const allowPasskeyOptions = createRateLimiter({
+    windowMs: 60_000,
+    max: deps.config.loginCodesPerMinute * 6,
+  });
+  const limits: Record<string, (ip: string) => boolean> = {
+    [`/api/auth${TICKET_LINK_PATH}`]: allowTicketLink,
+    [`/api/auth${PASSKEY_SIGN_IN_PATH}`]: allowPasskeySignIn,
+    [`/api/auth${PASSKEY_OPTIONS_PATH}`]: allowPasskeyOptions,
+  };
+
   // better-auth's own endpoints, in a child plugin so its raw-body parser stays local.
-  await app.register(async (child) => registerAuthHandler(child, auth, allowTicketLink));
+  await app.register(async (child) => registerAuthHandler(child, auth, limits));
 
   const meGroups = async (u: SessionUser): Promise<MeGroup[]> =>
     u.role === 'client'
@@ -152,13 +169,18 @@ const AUTH_ENDPOINTS = [
   { method: 'POST', path: '/sign-in/email-otp' },
   { method: 'POST', path: '/sign-out' },
   { method: 'POST', path: TICKET_LINK_PATH }, // ours, ticket-link.ts
+  { method: 'POST', path: PASSKEY_OPTIONS_PATH }, // ours, passkey-login.ts
+  { method: 'POST', path: PASSKEY_SIGN_IN_PATH },
 ] as const;
 
-/** Forwards the allowed `/api/auth/...` endpoints to better-auth as a Web Request. */
+/**
+ * Forwards the allowed `/api/auth/...` endpoints to better-auth as a Web Request. `limits`: a
+ * per-address rate limit of some routes (the full `/api/auth/...` path).
+ */
 function registerAuthHandler(
   app: FastifyInstance,
   auth: Auth,
-  allowTicketLink: (ip: string) => boolean,
+  limits: Record<string, (ip: string) => boolean>,
 ): void {
   // Keep the body as the raw string better-auth will parse itself. Any content type is
   // accepted, so an empty JSON body (e.g. a bare sign-out) is not rejected by Fastify.
@@ -168,13 +190,16 @@ function registerAuthHandler(
   const handler = async (request: FastifyRequest, reply: FastifyReply) => {
     const route = request.routeOptions.url;
     const ticketLink = route === `/api/auth${TICKET_LINK_PATH}`;
-    if (ticketLink && !allowTicketLink(request.ip)) {
+    const allow = route ? limits[route] : undefined;
+    if (allow && !allow(request.ip)) {
       return reply.code(429).send({ error: ErrorCodes.rateLimited });
     }
-    // Sign-out, and a ticket link that may end another user's session: remember the session
-    // before better-auth deletes it.
+    // A ticket link or a passkey may end another user's session.
+    const replaces = ticketLink || route === `/api/auth${PASSKEY_SIGN_IN_PATH}`;
+    // Sign-out, and a sign-in that may end another session: remember the session before
+    // better-auth deletes it.
     const before =
-      route === '/api/auth/sign-out' || ticketLink
+      route === '/api/auth/sign-out' || replaces
         ? await getSessionFromHeaders(auth, request.headers)
         : null;
     const response = await auth.handler(toWebRequest(request));
@@ -185,11 +210,11 @@ function registerAuthHandler(
         'ticket link sign-in',
       );
     }
-    // The old session is gone after a sign-out, or after a link that replaced another user's.
+    // The old session is gone after a sign-out, or after a sign-in that replaced another user's.
     const gone =
       before !== null &&
       response.status === 200 &&
-      (!ticketLink || (await getSessionFromHeaders(auth, request.headers)) === null);
+      (!replaces || (await getSessionFromHeaders(auth, request.headers)) === null);
     if (gone) app.io.in(sessionRoom(before.sessionId)).disconnectSockets(true);
     reply.status(response.status);
     response.headers.forEach((value, key) => {

@@ -1,14 +1,11 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
-import { useRouter } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ApiError } from '@/lib/api';
-import { resetInstallNever } from '@/features/notifications/prompt-rules';
 import { verifyCode } from './api';
-import { sessionQuery } from './use-session';
+import { useCompleteLogin } from './complete-login';
 
 const RESEND_SECONDS = 30;
 const MAX_ATTEMPTS = 3;
@@ -27,8 +24,7 @@ interface CodeStepProps {
 /** The second step of login and of joining: ask for the 6-digit code that was emailed. */
 export function CodeStep({ email, redirectTo, onResend, onChangeEmail }: CodeStepProps) {
   const { t } = useTranslation();
-  const queryClient = useQueryClient();
-  const router = useRouter();
+  const completeLogin = useCompleteLogin(redirectTo);
 
   const [code, setCode] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
@@ -76,12 +72,7 @@ export function CodeStep({ email, redirectTo, onResend, onChangeEmail }: CodeSte
     setCodeError(false);
     try {
       await verifyCode(email, value);
-      // X20: a new login shows the install card again, even after "never on this device".
-      resetInstallNever();
-      // refetchType 'all': the session query has no observer on this page.
-      await queryClient.invalidateQueries({ queryKey: sessionQuery.queryKey, refetchType: 'all' });
-      // In place of the login page: Back from there must not show it again.
-      router.history.replace(redirectTo);
+      await completeLogin();
     } catch (error) {
       setCode('');
       setCodeError(true);

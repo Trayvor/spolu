@@ -54,6 +54,19 @@ export const sl: ServerTexts = {
         `E-poštni naslov vašega računa v aplikaciji Help je bil spremenjen v ${newEmail}. Odslej se prijavljajte z novim naslovom.`,
       warning: 'Če tega niste storili vi, se takoj obrnite na svojega skrbnika.',
     },
+    passkeyCode: {
+      subject: (code) => `Koda za dodajanje ključa (passkey) v aplikaciji Help: ${code}`,
+      heading: 'Koda za dodajanje ključa (passkey)',
+      body: 'Vnesite jo v aplikaciji Help in vašemu računu bo dodan ključ (passkey). Velja 5 minut. Če je niste zahtevali, to e-sporočilo prezrite.',
+    },
+    passkeyAdded: {
+      subject: 'Vašemu računu v aplikaciji Help je bil dodan nov ključ (passkey)',
+      body: ({ name, date }) =>
+        `Vašemu računu v aplikaciji Help je bil ${date} dodan nov ključ (passkey) »${name}«. Z njim se lahko prijavite brez kode iz e-pošte.`,
+      warning:
+        'Če tega niste storili vi, ključ takoj izbrišite v Nastavitvah → Ključi (passkeys) in se obrnite na svojega skrbnika.',
+      button: 'Odpri Nastavitve',
+    },
   },
   mcp: {
     tokenCreated: {

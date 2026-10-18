@@ -379,6 +379,13 @@
       "when": 1792357652980,
       "tag": "0054_saved_views_snippets",
       "breakpoints": true
+    },
+    {
+      "idx": 59,
+      "version": "7",
+      "when": 1792358668318,
+      "tag": "0059_admin_passkeys",
+      "breakpoints": true
     }
   ]
 }

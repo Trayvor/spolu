@@ -80,3 +80,38 @@ export function emailChangedNoticeEmail(r: Recipient, newEmail: string): EmailMe
   const t = auth(r.lang).emailChanged;
   return buildEmail({ ...r, subject: t.subject, paragraphs: [t.body(newEmail), t.warning] });
 }
+
+/** The code that re-checks a stale session before a passkey is added (ADR 0050). */
+export function passkeyCodeEmail(r: Recipient, code: string): EmailMessage {
+  const t = auth(r.lang).passkeyCode;
+  return buildEmail({
+    ...r,
+    subject: t.subject(code),
+    heading: t.heading,
+    code,
+    paragraphs: [t.body],
+  });
+}
+
+/**
+ * Tells an admin that a passkey was added to their account (ADR 0050), so one added with a
+ * stolen session is noticed, as the MCP token notice does. Never anything of the key itself.
+ */
+export function passkeyAddedEmail(
+  r: Recipient,
+  p: { name: string; createdAt: Date },
+): EmailMessage {
+  const texts = serverTexts(r.lang);
+  const t = texts.auth.passkeyAdded;
+  const date = new Intl.DateTimeFormat(texts.intl, {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+    timeZone: 'Europe/Bratislava',
+  }).format(p.createdAt);
+  return buildEmail({
+    ...r,
+    subject: t.subject,
+    paragraphs: [t.body({ name: p.name, date }), t.warning],
+    button: { label: t.button, url: `${r.publicUrl}/settings` },
+  });
+}

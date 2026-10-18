@@ -50,7 +50,7 @@ Secrets are never printed. The SSH settings use a per-run `known_hosts` file, ne
   - `report-uri /api/csp-report; report-to csp` with `Reporting-Endpoints: csp="<PUBLIC_URL>/api/csp-report"`. The endpoint writes one `csp violation` warning per report to the app log (URLs without query and with tokens hidden; 20 a minute per address, 8 kB at most). Watch it after a deploy: `docker compose logs app | grep 'csp violation'`.
   
   **Adding a source** (a CDN, an embed, a browser-side API): change `contentSecurityPolicy` and its test, and check `e2e/csp.spec.ts`, which opens the main screens and the email preview on the built server and fails on any CSP console message. **A stricter policy** can be tried as an extra `Content-Security-Policy-Report-Only` header next to the enforced one; its reports reach the same log.
-- `Permissions-Policy: camera=(), geolocation=(), microphone=(self), payment=(), usb=()` (Caddy; voice input needs the microphone).
+- `Permissions-Policy: camera=(), geolocation=(), microphone=(self), payment=(), usb=()` (Caddy; voice input needs the microphone). It leaves `publickey-credentials-get` and `publickey-credentials-create` at their default (`self`), which the admins' passkeys need ([ADR 0050](../decisions/0050-admin-passkeys-with-simplewebauthn.md)); WebAuthn needs no CSP source either.
 - `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, no `Server` header (Caddy).
 
 `Cross-Origin-Opener-Policy` is not set on purpose: Claude's connector flow opens the consent page from claude.ai, and `same-origin` would cut that window from its opener.
@@ -173,6 +173,7 @@ The product became **Help by eGrant** on 2026-10-16 and moved from `spolu.egrant
 **What users notice.**
 
 - Everyone signs in again on the new domain: the session cookie belongs to the old domain and is not sent to the new one.
+- Admins' passkeys ([ADR 0050](../decisions/0050-admin-passkeys-with-simplewebauthn.md)) stop working: a passkey is bound to the domain of `PUBLIC_URL` (its RP ID). Admins log in with the email code on the new domain and add new passkeys in Settings; the old rows can stay (they never match) or be deleted by each admin.
 - Push notifications must be turned on again on every device: a push subscription belongs to the site's origin. The app's "Turn on notifications" card asks again on the new domain; email notifications are not affected.
 - An installed app (PWA) still opens the old address and is redirected to the browser. Remove it and install again from `https://help.egrant.sk`.
 - Old links (in earlier emails, bookmarks, unsubscribe links) keep working through the redirect for as long as `REDIRECT_DOMAINS` keeps the old domain.

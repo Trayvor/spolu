@@ -31,6 +31,10 @@ Since 2026-10-18 admins also see **Saved replies** on `/settings` (after Notific
 - **New reply**: Name (up to 80 characters), Text (up to 4000, plain text or the chat's Markdown) and **Share with all admins** ("Other admins can insert it; only you can change it."). "Fill in the name and the text." when one is empty; at most 200 replies per admin ("You have the most saved replies there can be (200)…", `409 snippet_limit`).
 - **The list**, by name: the admin's own replies and every shared one, each with its text (three lines) and a "Shared" tag ("Shared by <name>" on another admin's). Only the author has **Edit** (the same form in place, "Save changes") and **Delete** (the inline confirmation "Delete the reply “<name>”?"). Deleting an admin's account deletes their replies.
 
+## Passkeys
+
+Since 2026-10-18 admins also see **Kľúče (passkeys)** on `/settings` (after Notifications, before Saved replies; a lazy chunk with the lazy `passkeys` namespace; clients never see it). The intro says a passkey logs them in with a fingerprint, face or device PIN instead of an email code, and that the code keeps working. **Add a passkey**: a name (required, up to 60 characters, placeholder "Work laptop") and **Add passkey**, which opens the browser's own dialog; a session older than 10 minutes first shows a code field ("we sent a 6-digit code to <email>", **Confirm and add**, **Send a new code**, **Cancel**). A browser without WebAuthn shows "This browser cannot create passkeys." instead of the form. **Your passkeys** lists each with "Added <date>" and "Last used <date>" or "Not used yet", and **Delete** with an inline confirmation. Rules and limits: `auth.md`, "Passkeys for admins".
+
 ## AI access (MCP)
 
 Since 2026-10-18 admins see a fourth card on `/settings`, **AI access (MCP)** (after Notifications, before System status; a lazy chunk with the lazy `mcp` namespace; clients never see it). It connects an AI assistant to Help through the MCP server ([guide](../integrations/mcp.md), [spec](../superpowers/specs/2026-10-18-mcp-server-design.md)):

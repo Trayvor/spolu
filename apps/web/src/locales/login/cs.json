@@ -20,5 +20,11 @@
   "invite": {
     "by": "{{name}} vás zve do skupiny {{group}}.",
     "about": "V Help spolupracujete s týmem eGrant: chat, úkoly, tikety podpory a sdílené dokumenty na jednom místě."
+  },
+  "passkey": {
+    "button": "Přihlásit se klíčem (passkey)",
+    "hint": "Pro administrátory, kteří si klíč přidali v Nastavení.",
+    "invalid": "Tento klíč nelze použít. Přihlaste se kódem z e-mailu.",
+    "failed": "Přihlášení klíčem se nezdařilo. Zkuste to znovu nebo se přihlaste kódem z e-mailu."
   }
 }

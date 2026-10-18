@@ -58,6 +58,7 @@ Also agreed on 2026-10-16: the global task board shows the chosen clients' custo
 ## In flight (2026-10-18)
 
 Work outside the numbered phases that is not merged yet:
+- **Admin passkeys** (owner decision 2026-10-18, branch `feat/admin-passkeys`, [ADR 0050](decisions/0050-admin-passkeys-with-simplewebauthn.md), [product/auth.md](product/auth.md)): admins may add passkeys in Settings and log in with them next to the email code, which stays the default; clients keep the code only.
 - **eGrant managers webhook** (`PUT /api/egrant/managers`, merged in PR #123, [guide](integrations/egrant-managers.md)): being reworked (owner correction, PR #126): an eGrant "manager" is the client's own person, so the call will add or remove a client member of the instance's group, not a Help admin manager.
 - **eGrant guide**: PR #127.
 - **Security hardening**: PR #132.

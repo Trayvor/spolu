@@ -54,6 +54,19 @@ export const cs: ServerTexts = {
         `E-mail vašeho účtu v aplikaci Help byl změněn na ${newEmail}. Od teď se přihlašujte novou adresou.`,
       warning: 'Pokud jste to nebyli vy, okamžitě kontaktujte svého administrátora.',
     },
+    passkeyCode: {
+      subject: (code) => `Kód pro přidání klíče (passkey) v aplikaci Help: ${code}`,
+      heading: 'Kód pro přidání klíče (passkey)',
+      body: 'Zadejte ho v aplikaci Help a k vašemu účtu se přidá klíč (passkey). Platí 5 minut. Pokud jste o něj nežádali, tento e-mail ignorujte.',
+    },
+    passkeyAdded: {
+      subject: 'K vašemu účtu v aplikaci Help byl přidán nový klíč (passkey)',
+      body: ({ name, date }) =>
+        `K vašemu účtu v aplikaci Help byl ${date} přidán nový klíč (passkey) „${name}“. Můžete se jím přihlásit bez kódu z e-mailu.`,
+      warning:
+        'Pokud jste to nebyli vy, klíč ihned smažte v Nastavení → Klíče (passkeys) a kontaktujte svého administrátora.',
+      button: 'Otevřít Nastavení',
+    },
   },
   mcp: {
     tokenCreated: {

@@ -1,0 +1,34 @@
+{
+  "title": "Klíče (passkeys)",
+  "intro": "Přihlašujte se otiskem prstu, obličejem nebo PINem zařízení místo kódu z e-mailu. Kód z e-mailu funguje dál.",
+  "add": {
+    "title": "Přidat klíč",
+    "name": "Název",
+    "namePlaceholder": "Pracovní notebook",
+    "nameRequired": "Zadejte název klíče.",
+    "submit": "Přidat klíč",
+    "limit": "Máte {{count}} klíčů. Před přidáním dalšího jeden smažte.",
+    "failed": "Klíč se nepřidal. Zkuste to znovu.",
+    "unsupported": "Tento prohlížeč neumí vytvořit klíč (passkey).",
+    "added": "Klíč byl přidán."
+  },
+  "reauth": {
+    "intro": "Před přidáním klíče potvrďte, že jste to vy: na {{email}} jsme poslali 6místný kód.",
+    "code": "Kód",
+    "submit": "Potvrdit a přidat",
+    "wrong": "Kód není správný nebo vypršel. Pošlete si nový.",
+    "sendAgain": "Poslat nový kód",
+    "cancel": "Zrušit"
+  },
+  "list": {
+    "title": "Vaše klíče",
+    "empty": "Zatím nemáte žádný klíč.",
+    "created": "Přidán {{date}}",
+    "lastUsed": "Naposledy použit {{date}}",
+    "neverUsed": "Zatím nepoužit",
+    "delete": "Smazat",
+    "confirm": "Smazat tento klíč? Přihlásit se můžete i nadále kódem z e-mailu.",
+    "deleteConfirm": "Smazat klíč",
+    "keep": "Ponechat"
+  }
+}

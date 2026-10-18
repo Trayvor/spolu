@@ -1,0 +1,34 @@
+{
+  "title": "Ključi (passkeys)",
+  "intro": "Prijavljajte se s prstnim odtisom, obrazom ali kodo PIN naprave namesto s kodo iz e-pošte. Koda iz e-pošte še naprej deluje.",
+  "add": {
+    "title": "Dodajte ključ",
+    "name": "Ime",
+    "namePlaceholder": "Službeni prenosnik",
+    "nameRequired": "Vnesite ime ključa.",
+    "submit": "Dodaj ključ",
+    "limit": "Imate {{count}} ključev. Preden dodate novega, enega izbrišite.",
+    "failed": "Ključ ni bil dodan. Poskusite znova.",
+    "unsupported": "Ta brskalnik ne more ustvariti ključa (passkey).",
+    "added": "Ključ je dodan."
+  },
+  "reauth": {
+    "intro": "Preden dodate ključ, potrdite, da ste to vi: na {{email}} smo poslali 6-mestno kodo.",
+    "code": "Koda",
+    "submit": "Potrdi in dodaj",
+    "wrong": "Koda ni pravilna ali je potekla. Pošljite si novo.",
+    "sendAgain": "Pošlji novo kodo",
+    "cancel": "Prekliči"
+  },
+  "list": {
+    "title": "Vaši ključi",
+    "empty": "Še nimate nobenega ključa.",
+    "created": "Dodan {{date}}",
+    "lastUsed": "Nazadnje uporabljen {{date}}",
+    "neverUsed": "Še ni bil uporabljen",
+    "delete": "Izbriši",
+    "confirm": "Želite izbrisati ta ključ? Še naprej se lahko prijavite s kodo iz e-pošte.",
+    "deleteConfirm": "Izbriši ključ",
+    "keep": "Obdrži"
+  }
+}
