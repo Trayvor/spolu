@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
@@ -6,6 +6,7 @@ import { navCountsQuery } from '@/features/admin-home/api';
 import { groupChatQuery } from '@/features/chat/api';
 import { boardUnseenQuery } from '@/features/tasks/unseen';
 import type { BarItem, BottomNavPlan } from './bottom-nav-plan';
+import { Glyph, GLYPHS } from './section-glyphs';
 import SectionSheet from './section-sheet';
 
 // The lazy `bottom-nav-bar` chunk: the phone bottom bar (see `bottom-nav.tsx`). Admins' counts
@@ -14,52 +15,6 @@ import SectionSheet from './section-sheet';
 
 const tab =
   'relative flex h-14 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-full px-1 text-nano font-semibold text-muted-foreground transition-colors duration-(--duration-fast) hover:text-foreground aria-[current=page]:bg-secondary aria-[current=page]:text-foreground aria-expanded:bg-secondary aria-expanded:text-foreground';
-
-/** A 24 px outline glyph on the 24-unit grid. */
-function Glyph({ children }: { children: ReactNode }) {
-  return (
-    <svg
-      aria-hidden="true"
-      viewBox="0 0 24 24"
-      width="24"
-      height="24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      {children}
-    </svg>
-  );
-}
-
-const GLYPHS: Record<BarItem['key'] | 'more', ReactNode> = {
-  home: <path d="M3 11 12 4l9 7M5 10v10h14V10" />,
-  groups: (
-    <>
-      <circle cx="9" cy="8" r="3.2" />
-      <path d="M3 20c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5M16 5.2a3.2 3.2 0 0 1 0 5.6M18 14.8c1.8.7 3 2.4 3 5.2" />
-    </>
-  ),
-  tasks: <path d="M4 12.5 9 17.5 20 6.5" />,
-  groupTasks: <path d="M4 12.5 9 17.5 20 6.5" />,
-  tickets: (
-    <path d="M4 8a2 2 0 0 0 0 4v0a2 2 0 0 0 0 4v2h16v-2a2 2 0 0 1 0-4 2 2 0 0 1 0-4V6H4zM14 6v12" />
-  ),
-  groupTickets: (
-    <path d="M4 8a2 2 0 0 0 0 4v0a2 2 0 0 0 0 4v2h16v-2a2 2 0 0 1 0-4 2 2 0 0 1 0-4V6H4zM14 6v12" />
-  ),
-  chat: <path d="M4 5h16v11H9l-5 4z" />,
-  knowledge: <path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3zM5 17a3 3 0 0 1 3-3h11" />,
-  more: (
-    <>
-      <circle cx="5" cy="12" r="1.2" />
-      <circle cx="12" cy="12" r="1.2" />
-      <circle cx="19" cy="12" r="1.2" />
-    </>
-  ),
-};
 
 function Badge({ count }: { count: number }) {
   const { t } = useTranslation();
