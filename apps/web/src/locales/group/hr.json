@@ -47,6 +47,8 @@
   "requesters": {
     "title": "Podnositelji zahtjeva",
     "hint": "Osobe koje su prijavile tikete za ovog klijenta. Vide samo svoje tikete, nikada grupu.",
-    "removedTitle": "Uklonjeni podnositelji zahtjeva ({{count}})"
+    "removedTitle": "Uklonjeni podnositelji zahtjeva ({{count}})",
+    "removed": "Uklonjeno iz podnositelja zahtjeva: {{name}}.",
+    "restored": "Vraćeno među podnositelje zahtjeva: {{name}}."
   }
 }

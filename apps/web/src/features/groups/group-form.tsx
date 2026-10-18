@@ -227,7 +227,7 @@ export function GroupForm({
           <Button type="submit" disabled={save.isPending}>
             {t('groups.form.save')}
           </Button>
-          <Button type="button" variant="ghost" onClick={onCancel}>
+          <Button type="button" variant="outline" onClick={onCancel}>
             {t('groups.form.cancel')}
           </Button>
         </div>

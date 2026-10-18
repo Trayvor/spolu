@@ -14,7 +14,7 @@ const MARK: Record<TicketStatus, string> = {
 };
 
 export function StatusMark({ status }: { status: TicketStatus }) {
-  return <span aria-hidden="true" className={cn('size-2 shrink-0 rounded-[2px]', MARK[status])} />;
+  return <span aria-hidden="true" className={cn('size-2 shrink-0 rounded-xs', MARK[status])} />;
 }
 
 /** A `secondary` pill with the status mark and its name. */

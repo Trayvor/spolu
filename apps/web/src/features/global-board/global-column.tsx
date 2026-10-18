@@ -76,7 +76,7 @@ export function GlobalColumn({
       className="flex max-h-[calc(100dvh-16rem)] min-h-40 w-[calc(100vw-56px)] shrink-0 snap-start flex-col gap-2 rounded-xl bg-muted p-3 min-[641px]:w-72"
     >
       <header className="flex min-h-8 items-center gap-2">
-        {mark && <span aria-hidden="true" className={`size-2 shrink-0 rounded-[2px] ${mark}`} />}
+        {mark && <span aria-hidden="true" className={`size-2 shrink-0 rounded-xs ${mark}`} />}
         <h2 id={headingId} className="min-w-0 truncate text-button font-semibold">
           {kind === 'custom' ? name : t(`adminHome.board.columns.${kind}`)}
         </h2>

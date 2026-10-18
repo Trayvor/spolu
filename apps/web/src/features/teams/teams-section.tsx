@@ -448,7 +448,7 @@ function ConnectedTeams({
       )}
       {confirmDisconnect ? (
         <PanelNotice text={t('teams.block.disconnectConfirm')}>
-          <Button variant="ghost" onClick={() => setConfirmDisconnect(false)}>
+          <Button variant="outline" onClick={() => setConfirmDisconnect(false)}>
             {t('teams.block.cancel')}
           </Button>
           <Button

@@ -38,4 +38,94 @@ describe('Toast', () => {
     expect(container.contains(layer)).toBe(false);
     expect(layer?.parentElement).toBe(document.body);
   });
+
+  it('shows one toast at a time: the next waits until the first closes', () => {
+    vi.useFakeTimers();
+    render(
+      <>
+        <Toast onClose={() => {}}>First</Toast>
+        <Toast onClose={() => {}}>Second</Toast>
+      </>,
+    );
+    act(() => vi.advanceTimersByTime(0));
+    expect(screen.getAllByRole('status')).toHaveLength(1);
+    expect(screen.getByRole('status')).toHaveTextContent('First');
+  });
+
+  it('shows the queued toast, with its full time, once the first unmounts', () => {
+    vi.useFakeTimers();
+    const second = vi.fn();
+    const { rerender } = render(
+      <>
+        <Toast key="a" onClose={() => {}}>
+          First
+        </Toast>
+        <Toast key="b" onClose={second}>
+          Second
+        </Toast>
+      </>,
+    );
+    act(() => vi.advanceTimersByTime(5000));
+    rerender(
+      <>
+        <Toast key="b" onClose={second}>
+          Second
+        </Toast>
+      </>,
+    );
+    act(() => vi.advanceTimersByTime(0));
+    expect(screen.getByRole('status')).toHaveTextContent('Second');
+    act(() => vi.advanceTimersByTime(5999));
+    expect(second).not.toHaveBeenCalled();
+    act(() => vi.advanceTimersByTime(1));
+    expect(second).toHaveBeenCalledTimes(1);
+  });
+
+  it('pauses while hovered or focused and resumes with the time left', () => {
+    vi.useFakeTimers();
+    const onClose = vi.fn();
+    render(<Toast onClose={onClose}>Done</Toast>);
+    const bar = screen.getByRole('status').parentElement!;
+    act(() => vi.advanceTimersByTime(4000));
+    fireEvent.mouseEnter(bar);
+    act(() => vi.advanceTimersByTime(10_000));
+    expect(onClose).not.toHaveBeenCalled();
+    fireEvent.mouseLeave(bar);
+    act(() => vi.advanceTimersByTime(1999));
+    expect(onClose).not.toHaveBeenCalled();
+    act(() => vi.advanceTimersByTime(1));
+    expect(onClose).toHaveBeenCalledTimes(1);
+
+    onClose.mockClear();
+    fireEvent.focus(screen.getByRole('button', { name: i18n.t('toast.close') }));
+    act(() => vi.advanceTimersByTime(10_000));
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it('runs its action, then closes', () => {
+    const onClose = vi.fn();
+    const onAction = vi.fn();
+    render(
+      <Toast onClose={onClose} action={{ label: 'Undo', onAction }}>
+        Removed
+      </Toast>,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
+    expect(onAction).toHaveBeenCalledTimes(1);
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('closes after a custom duration', () => {
+    vi.useFakeTimers();
+    const onClose = vi.fn();
+    render(
+      <Toast onClose={onClose} duration={5000}>
+        Removed
+      </Toast>,
+    );
+    act(() => vi.advanceTimersByTime(4999));
+    expect(onClose).not.toHaveBeenCalled();
+    act(() => vi.advanceTimersByTime(1));
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
 });

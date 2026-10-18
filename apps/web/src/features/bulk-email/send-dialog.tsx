@@ -248,12 +248,19 @@ function SendDialog({
         </p>
       </div>
       <div className="flex flex-col-reverse gap-2 border-t border-border px-5 pt-4 pb-[max(16px,env(safe-area-inset-bottom))] min-[641px]:flex-row min-[641px]:justify-end min-[641px]:px-6">
-        <Button type="button" variant="ghost" disabled={send.isPending} onClick={onClose}>
+        <Button
+          type="button"
+          variant="outline"
+          size="lg"
+          disabled={send.isPending}
+          onClick={onClose}
+        >
           {t('bulkEmail.send.cancel')}
         </Button>
         {code === ErrorCodes.notDraft ? (
           <Button
             type="button"
+            size="lg"
             onClick={() =>
               void queryClient.invalidateQueries({ queryKey: campaignQuery(campaignId).queryKey })
             }
@@ -263,6 +270,7 @@ function SendDialog({
         ) : (
           <Button
             type="button"
+            size="lg"
             disabled={!people || send.isPending || code === ErrorCodes.emptyAudience}
             onClick={() => send.mutate()}
           >

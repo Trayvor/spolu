@@ -336,9 +336,7 @@ export function BucketColumn({
                 <GripIcon />
               </button>
             )}
-            {mark && (
-              <span aria-hidden="true" className={cn('size-2 shrink-0 rounded-[2px]', mark)} />
-            )}
+            {mark && <span aria-hidden="true" className={cn('size-2 shrink-0 rounded-xs', mark)} />}
             <h2 className="min-w-0 flex-1 truncate text-button font-semibold">{title}</h2>
             <span className="text-micro text-muted-foreground">
               <span aria-hidden="true">{count}</span>
@@ -373,7 +371,7 @@ export function BucketColumn({
             <Button variant="destructive" size="sm" onClick={() => void remove()}>
               {t('tasks.board.delete')}
             </Button>
-            <Button variant="secondary" size="sm" onClick={() => setMode('view')}>
+            <Button variant="ghost" size="sm" onClick={() => setMode('view')}>
               {t('tasks.board.cancel')}
             </Button>
           </div>

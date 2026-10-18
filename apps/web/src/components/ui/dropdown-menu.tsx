@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { DropdownMenu as DropdownMenuPrimitive } from 'radix-ui';
 import { cn } from '@/lib/utils';
+import { POPOVER } from './popover';
 
 /*
  * shadcn/ui dropdown menu (Radix), trimmed to the egrant language dropdown
@@ -28,7 +29,8 @@ function DropdownMenuContent({
         data-slot="dropdown-menu-content"
         sideOffset={sideOffset}
         className={cn(
-          'z-50 flex max-h-(--radix-dropdown-menu-content-available-height) min-w-[190px] origin-(--radix-dropdown-menu-content-transform-origin) flex-col gap-0.5 overflow-y-auto rounded-xl bg-popover p-2 text-popover-foreground shadow-lift data-[state=closed]:animate-menu-out data-[state=open]:animate-menu-in',
+          'z-50 flex max-h-(--radix-dropdown-menu-content-available-height) min-w-[190px] origin-(--radix-dropdown-menu-content-transform-origin) flex-col gap-0.5 overflow-y-auto p-2 data-[state=closed]:animate-menu-out data-[state=open]:animate-menu-in',
+          POPOVER,
           className,
         )}
         {...props}

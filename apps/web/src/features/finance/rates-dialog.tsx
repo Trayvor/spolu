@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { COST_CURRENCY, parseMoney, type RatesDto } from '@spolu/shared';
 import { Button } from '@/components/ui/button';
+import { InlineConfirm } from '@/components/ui/inline-confirm';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ListSkeleton } from '@/components/ui/skeleton';
@@ -70,6 +71,8 @@ function AdminRates({ admin, view }: { admin: RatesDto['admins'][number]; view: 
   const [invalid, setInvalid] = useState(false);
   const add = useAddRate(view);
   const remove = useDeleteRate(view);
+  // The history row whose Delete waits for the inline confirmation.
+  const [confirming, setConfirming] = useState<string | null>(null);
   const perHour = (minor: number) =>
     t('financeLog.ratesDialog.perHour', { amount: f.money(minor, COST_CURRENCY, false) });
 
@@ -196,18 +199,28 @@ function AdminRates({ admin, view }: { admin: RatesDto['admins'][number]; view: 
                 </span>
                 <span className="tabular-nums">{perHour(rate.rateMinor)}</span>
                 <span className="flex-1 text-muted-foreground">{rate.createdByName}</span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-error-ink"
-                  disabled={remove.isPending}
-                  onClick={() => {
-                    if (window.confirm(t('financeLog.ratesDialog.deleteConfirm')))
-                      remove.mutate(rate.id);
-                  }}
-                >
-                  {t('financeLog.workLog.delete')}
-                </Button>
+                {confirming === rate.id ? (
+                  <InlineConfirm
+                    question={t('financeLog.ratesDialog.deleteConfirm')}
+                    confirmLabel={t('financeLog.workLog.delete')}
+                    cancelLabel={t('financeLog.cancel')}
+                    busy={remove.isPending}
+                    onConfirm={() =>
+                      remove.mutate(rate.id, { onSuccess: () => setConfirming(null) })
+                    }
+                    onCancel={() => setConfirming(null)}
+                  />
+                ) : (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-error-ink"
+                    disabled={remove.isPending}
+                    onClick={() => setConfirming(rate.id)}
+                  >
+                    {t('financeLog.workLog.delete')}
+                  </Button>
+                )}
               </li>
             ))}
           </ul>

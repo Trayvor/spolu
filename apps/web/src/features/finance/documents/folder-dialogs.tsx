@@ -127,7 +127,7 @@ function DeleteFolder({
           {t('financeDocuments.card.deleteFolder')}
         </SheetDialogTitle>
         <PanelNotice text={t('financeDocuments.card.deleteFolderConfirm', { name: folder.name })}>
-          <Button variant="ghost" onClick={onClose}>
+          <Button variant="outline" onClick={onClose}>
             {t('financeDocuments.card.cancel')}
           </Button>
           <Button variant="destructive" aria-disabled={busy} onClick={() => void remove()}>

@@ -179,7 +179,7 @@ function Chip({
           : 'border-transparent bg-secondary text-secondary-foreground hover:border-border',
       )}
     >
-      <span aria-hidden="true" className="text-[15px] leading-none">
+      <span aria-hidden="true" className="text-emoji-sm leading-none">
         {reaction.emoji}
       </span>
       <span aria-hidden="true">{count}</span>
@@ -236,7 +236,7 @@ export function QuickReactions({
           aria-label={t('chat.reactions.react', { emoji })}
           onClick={() => onPick(emoji)}
           className={cn(
-            'inline-flex size-11 items-center justify-center rounded-full text-[22px] leading-none hover:bg-accent focus-visible:bg-accent',
+            'inline-flex size-11 items-center justify-center rounded-full text-emoji-lg leading-none hover:bg-accent focus-visible:bg-accent',
             mine(emoji) && 'bg-brand-purple/10',
           )}
         >
@@ -321,7 +321,7 @@ export function ReactionMenu({
               aria-checked={mine(emoji)}
               onSelect={() => onPick(emoji)}
               className={cn(
-                'size-10 justify-center rounded-full p-0 text-[20px] leading-none',
+                'size-10 justify-center rounded-full p-0 text-emoji leading-none',
                 mine(emoji) && 'bg-brand-purple/10',
               )}
             >

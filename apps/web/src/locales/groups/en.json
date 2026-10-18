@@ -36,7 +36,8 @@
     "find": "Find an admin",
     "allAdded": "Every admin already manages this group.",
     "noMatch": "No admin matches “{{q}}”.",
-    "remove": "Remove {{name}}"
+    "remove": "Remove {{name}}",
+    "removed": "Removed from managers: {{name}}."
   },
   "mine": {
     "title": "My groups",
@@ -59,5 +60,6 @@
   },
   "adminGroup": {
     "hint": "The eGrant team's internal chat. Only admins see it."
-  }
+  },
+  "undo": "Undo"
 }

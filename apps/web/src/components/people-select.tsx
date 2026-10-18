@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import { CloseIcon } from '@/components/icons';
 import { isAdmin } from '@/features/auth/roles';
 import { useSession } from '@/features/auth/use-session';
+import { POPOVER } from '@/components/ui/popover';
 
 /** Stable defaults, so the memoized lists keep their identity across renders. */
 const NONE: never[] = [];
@@ -230,7 +231,7 @@ export function PeopleSelect({
           role="listbox"
           aria-label={label}
           hidden={!showList}
-          className="absolute inset-x-0 top-full z-10 mt-1 max-h-56 overflow-auto rounded-md border-2 border-border bg-popover py-1 shadow-lift"
+          className={`absolute inset-x-0 top-full z-10 mt-1 max-h-56 overflow-auto py-1 ${POPOVER}`}
         >
           {options.length === 0 && (
             <li className="px-4 py-2 text-tiny text-muted-foreground">{t(emptyLine)}</li>

@@ -20,6 +20,9 @@
   "finance": {
     "label": "Financije",
     "labelFor": "Pristup financijama: {{name}}",
-    "failed": "Promjena nije uspjela. Pokušajte ponovno."
-  }
+    "failed": "Promjena nije uspjela. Pokušajte ponovno.",
+    "granted": "Pristup financijama dodijeljen: {{name}}.",
+    "revoked": "Pristup financijama uklonjen: {{name}}."
+  },
+  "undo": "Poništi"
 }

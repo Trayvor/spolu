@@ -354,7 +354,7 @@ export function KnowledgeDialog({
         {ask?.kind === 'delete' && (
           <div className="mb-4">
             <PanelNotice text={t('knowledge.detail.deleteConfirm')}>
-              <Button variant="ghost" onClick={() => setAsk(null)}>
+              <Button variant="outline" onClick={() => setAsk(null)}>
                 {t('knowledge.detail.cancel')}
               </Button>
               <Button variant="destructive" onClick={() => void remove()}>
