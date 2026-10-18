@@ -21,7 +21,7 @@ An AI client (Claude Code, Claude Desktop, any MCP client) connects to `https://
 | 7 | Transport | **Streamable HTTP** (MCP spec 2025-06-18 and 2025-11-25, 2025-03-26 accepted) at `POST /mcp`, **stateless**: no `Mcp-Session-Id`, every answer is `application/json`, no SSE stream (`GET` and `DELETE /mcp` answer `405`). JSON-RPC methods: `initialize`, `ping`, `tools/list`, `tools/call`; notifications answer `202`. | The tools are short request/response calls; a stateless server needs no session store and fits one Node process (ADR 0005). |
 | 8 | SDK or own code? | **Own code, no new dependency.** `@modelcontextprotocol/sdk` 1.32 (MIT, maintained) pulls 17 runtime dependencies, among them `express`, `hono`, `cors`, `ajv`, `jose` and `eventsource`, for an HTTP stack we already have. The part we need (JSON-RPC over one POST, four methods) is about 200 lines; tool input schemas come from zod 4's built-in `z.toJSONSchema`. | Supply-chain care (see ADR 0033). |
 | 9 | Auth | **Personal access tokens** (`Authorization: Bearer spolu_mcp_…`), made and revoked by the user on `/settings`. 32 random bytes, base64url, shown once; only the SHA-256 hash is stored. Each has a name, a **scope** (`read` or `write`, chosen at creation) and an **expiry** (7, 30, 90 or 365 days; 90 by default; never unlimited). | OAuth 2.1 (the spec's recommendation for remote servers) needs an authorization server, dynamic client registration, consent screens and token refresh: far more than this request. Future work in ADR 0033. |
-| 10 | Token limits | 10 active tokens per user (`409 mcp_token_limit`), 10 creations an hour per user (`429`). Deactivating a user revokes all their tokens (`revokeAllTokens`, called from `deactivateUser`). | A re-enabled admin must make new tokens. |
+| 10 | Token limits | 10 active tokens per user (`409 mcp_token_limit`), 20 creations an hour per user (`429`). Deactivating a user revokes all their tokens (`revokeAllTokens`, called from `deactivateUser`). | A re-enabled admin must make new tokens. |
 | 11 | Rate limits | Per token: 120 MCP requests a minute and 30 write tool calls a minute. Per IP: 30 failed authentications a minute (`429`). The routes' own limits apply on top, per user, exactly as in the app. | |
 | 12 | Audit log | Every **write** tool call (also a refused one) writes `mcp_audit_log`: user, token, tool, target id, HTTP status, ok, time. Never the arguments or the content. The user sees their own last 50 on `/settings`. | The brief. Reads are not logged: they change nothing and would be most of the rows. |
 | 13 | Read-only token and writes | `tools/list` lists only the tools the token may call (write tools only for `write`, finance tools only for finance holders). Calling a write tool with a `read` token is a tool error `forbidden: read-only token`, audited, and changes nothing. | |
@@ -74,7 +74,7 @@ Each tool names the route(s) it calls. Ids are the app's ids. Lists take the rou
 
 | tool | route |
 |---|---|
-| `whoami` | `GET /api/me` |
+| `whoami` | none: the user the token resolved to, and its scope |
 | `list_groups` | `GET /api/groups` (every client group and the admin group) |
 | `get_group` | `GET /api/groups/:id` |
 | `list_group_people` | `GET /api/groups/:id/people` |

@@ -4,6 +4,7 @@ import { fromNodeHeaders } from 'better-auth/node';
 import { SessionUserSchema, type SessionUser } from '@spolu/shared';
 import { isAdmin } from '../users/policy.js';
 import type { Auth } from './auth.js';
+import { internalCallUser } from './internal-calls.js';
 
 declare module 'fastify' {
   interface FastifyRequest {
@@ -33,11 +34,16 @@ export function toSessionUser(authUser: AuthUser | undefined): SessionUser | nul
   return SessionUserSchema.parse({ id, email, name, role, finance }); // throws on an unknown role
 }
 
-/** The logged-in user from the request's session cookie, or null. */
+/**
+ * The logged-in user from the request's session cookie, or null. An in-process call made on a
+ * user's behalf (`runAsUser`, the MCP server) is that user's, without a cookie.
+ */
 export async function getSessionUser(
   auth: Auth,
   request: FastifyRequest,
 ): Promise<SessionUser | null> {
+  const internal = internalCallUser(request.headers);
+  if (internal) return internal;
   return getSessionUserFromHeaders(auth, request.headers);
 }
 
