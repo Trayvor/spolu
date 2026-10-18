@@ -41,11 +41,15 @@ compose=(docker compose -f docker-compose.dev.yml)
 limit_local_parallelism
 isolate_local_run
 
-# drop_run_databases: drops this run's databases (a no-op under CI, where they are the defaults).
+# drop_run_databases: drops this run's databases (a no-op under CI, where they are the defaults):
+# the test database, its EXPLAIN clones (and the single _explain database of older runs) and the
+# e2e database. Never the spolu_tpl_* templates the clones come from: the next run reuses them.
 drop_run_databases() {
   [[ -n "${CI_RUN_ID:-}" ]] || return 0
   local url name
-  for url in "$TEST_DATABASE_URL" "${TEST_DATABASE_URL}_explain" "$E2E_DATABASE_URL"; do
+  for url in "$TEST_DATABASE_URL" "${TEST_DATABASE_URL}_explain" \
+    "${TEST_DATABASE_URL}_explain_home" "${TEST_DATABASE_URL}_explain_projects" \
+    "${TEST_DATABASE_URL}_explain_finance" "$E2E_DATABASE_URL"; do
     name="${url##*/}"
     "${compose[@]}" exec -T postgres psql -U spolu -d postgres -q \
       -c "drop database if exists \"$name\" with (force)" >/dev/null 2>&1 || true

@@ -1,16 +1,15 @@
-import { afterAll, describe, expect, it } from 'vitest';
+import { afterAll, describe, expect, inject, it } from 'vitest';
 import { sql, type SQL } from 'drizzle-orm';
 import { createDb, type Db } from '../../infra/db/client.js';
-import { testDatabaseUrl } from '../../../test/test-config.js';
 import { tasksByEventsSql } from '../tasks/by-event.js';
 import { openTasksOfSql } from '../tasks/open-of-group.js';
 import { ticketsByEventsSql } from '../tickets/by-event.js';
 import { activeTicketsOfSql } from '../tickets/active-of-group.js';
-import { withProjectVolume } from './test-volume.js';
+import { projectVolumeIds } from './test-volume.js';
 import { bratislavaDay, timelineEventsSql } from './timeline.js';
 
-// A fresh database of its own (vitest.explain.config.ts); the shared one when run directly.
-const { db, close } = createDb(process.env.EXPLAIN_DATABASE_URL ?? testDatabaseUrl);
+// This run's clone of the projects volume's template (test/setup-explain-db.ts, ADR 0040).
+const { db, close } = createDb(inject('explainDatabaseUrls').projects);
 afterAll(() => close());
 
 type PlanNode = {
@@ -56,41 +55,36 @@ const ASSIGNEES = ['task_assignees', 'ticket_assignees'];
  */
 describe('Prehľad query plans on a seeded volume (Phase 33 part P4)', () => {
   it('the timeline and the active cards use indexes', { timeout: 300_000 }, async () => {
-    await withProjectVolume(db, async (tx, { adminId, groupId, projectId, eventIds }) => {
-      const today = bratislavaDay(new Date());
-      const page = { around: 'today' as const, limit: 15 };
-      // all active projects, one project, and the next page both ways
-      await expectIndexed(tx, timelineEventsSql(groupId, page, today), TABLES, 50);
+    const { adminId, groupId, projectId, eventIds } = await projectVolumeIds(db);
+    const tx = db;
+    const today = bratislavaDay(new Date());
+    const page = { around: 'today' as const, limit: 15 };
+    // all active projects, one project, and the next page both ways
+    await expectIndexed(tx, timelineEventsSql(groupId, page, today), TABLES, 50);
+    await expectIndexed(
+      tx,
+      timelineEventsSql(groupId, { ...page, project: projectId }, today),
+      TABLES,
+      50,
+    );
+    const cursor = Buffer.from(
+      JSON.stringify([today, '2026-01-01T00:00:00.000000Z', 'x']),
+    ).toString('base64url');
+    for (const dir of ['before', 'after'] as const) {
       await expectIndexed(
         tx,
-        timelineEventsSql(groupId, { ...page, project: projectId }, today),
+        timelineEventsSql(groupId, { ...page, [dir]: cursor }, today),
         TABLES,
         50,
       );
-      const cursor = Buffer.from(
-        JSON.stringify([today, '2026-01-01T00:00:00.000000Z', 'x']),
-      ).toString('base64url');
-      for (const dir of ['before', 'after'] as const) {
-        await expectIndexed(
-          tx,
-          timelineEventsSql(groupId, { ...page, [dir]: cursor }, today),
-          TABLES,
-          50,
-        );
-      }
-      // the rows under a page of events
-      await expectIndexed(
-        tx,
-        tasksByEventsSql(groupId, eventIds, 5),
-        [...TABLES, ...ASSIGNEES],
-        50,
-      );
-      await expectIndexed(tx, ticketsByEventsSql(groupId, eventIds, 5), TABLES, 50);
-      // the active cards read the client's open tasks and active tickets by index; "mine" may
-      // hash the admin's assignments (a third of the seeded tasks are theirs), which the planner
-      // rightly prefers to one lookup per task, as on the admin home
-      await expectIndexed(tx, openTasksOfSql(groupId, adminId, 8), ['tasks'], 30);
-      await expectIndexed(tx, activeTicketsOfSql(groupId, adminId, 8), ['tickets'], 30);
-    });
+    }
+    // the rows under a page of events
+    await expectIndexed(tx, tasksByEventsSql(groupId, eventIds, 5), [...TABLES, ...ASSIGNEES], 50);
+    await expectIndexed(tx, ticketsByEventsSql(groupId, eventIds, 5), TABLES, 50);
+    // the active cards read the client's open tasks and active tickets by index; "mine" may
+    // hash the admin's assignments (a third of the seeded tasks are theirs), which the planner
+    // rightly prefers to one lookup per task, as on the admin home
+    await expectIndexed(tx, openTasksOfSql(groupId, adminId, 8), ['tasks'], 30);
+    await expectIndexed(tx, activeTicketsOfSql(groupId, adminId, 8), ['tickets'], 30);
   });
 });
