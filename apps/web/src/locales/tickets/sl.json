@@ -35,8 +35,7 @@
     "overdue": "Zamuda od",
     "noSubject": "Brez zadeve",
     "noClient": "Brez stranke",
-    "assignees": "Reševalci: {{names}}",
-    "unseen": "Nova sprememba"
+    "assignees": "Reševalci: {{names}}"
   },
   "mine": {
     "title": "Moji zahtevki",

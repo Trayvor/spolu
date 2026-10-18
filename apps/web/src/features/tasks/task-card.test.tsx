@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
   RouterProvider,
   createMemoryHistory,
@@ -9,6 +10,7 @@ import {
 } from '@tanstack/react-router';
 import type { ReactNode } from 'react';
 import type { TaskDto } from '@spolu/shared';
+import { i18n } from '@/i18n';
 import { TaskCard } from './task-card';
 
 const TASK: TaskDto = {
@@ -41,23 +43,41 @@ async function renderCard(ui: () => ReactNode) {
     routeTree: root.addChildren(routes),
     history: createMemoryHistory({ initialEntries: ['/'] }),
   });
-  render(<RouterProvider router={router} />);
+  const queryClient = new QueryClient();
+  render(
+    <QueryClientProvider client={queryClient}>
+      <RouterProvider router={router} />
+    </QueryClientProvider>,
+  );
   await router.load();
 }
 
 describe('TaskCard', () => {
-  it('an unseen change: an ink dot, a bold title and a spoken "New change" (2026-10-17)', async () => {
-    await renderCard(() => <TaskCard task={TASK} bucketKind="todo" today="2026-10-16" unseen />);
-    await screen.findByRole('link', { name: /Fix budget table/ });
-    const dot = screen.getByTestId('unseen-dot');
-    expect(dot.nextElementSibling).toHaveClass('sr-only');
-    expect(dot.parentElement).toHaveClass('font-bold');
+  it('an unseen change: a bold title and a yellow dot marker beside the link (2026-10-18)', async () => {
+    await renderCard(() => (
+      <TaskCard task={TASK} bucketKind="todo" today="2026-10-16" unseen="change" />
+    ));
+    const link = await screen.findByRole('link', { name: /Fix budget table/ });
+    expect(screen.getByText('Fix budget table')).toHaveClass('font-bold');
+    const marker = screen.getByRole('button', { name: i18n.t('unseen.mark.change') });
+    expect(link).not.toContainElement(marker);
+    expect(within(marker).getByTestId('unseen-dot')).toBeInTheDocument();
+    expect(within(marker).queryByTestId('unseen-ring')).toBeNull();
+  });
+
+  it('an unseen chat message: a yellow ring marker, "New message"', async () => {
+    await renderCard(() => (
+      <TaskCard task={TASK} bucketKind="todo" today="2026-10-16" unseen="message" />
+    ));
+    const marker = await screen.findByRole('button', { name: i18n.t('unseen.mark.message') });
+    expect(within(marker).getByTestId('unseen-ring')).toBeInTheDocument();
   });
 
   it('no mark without an unseen change', async () => {
     await renderCard(() => <TaskCard task={TASK} bucketKind="todo" today="2026-10-16" />);
     await screen.findByRole('link', { name: /Fix budget table/ });
     expect(screen.queryByTestId('unseen-dot')).toBeNull();
+    expect(screen.queryByRole('button', { name: i18n.t('unseen.mark.change') })).toBeNull();
     expect(screen.getByText('Fix budget table')).toHaveClass('font-medium');
   });
 

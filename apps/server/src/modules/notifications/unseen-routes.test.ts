@@ -8,12 +8,15 @@ import {
   SeenEvents,
   SidebarSchema,
   TicketListResponseSchema,
+  UnseenSummarySchema,
 } from '@spolu/shared';
+import { eq, sql } from 'drizzle-orm';
 import { buildTestApp } from '../../../test/test-app.js';
 import { loginAs } from '../../../test/login.js';
 import { userRoom } from '../../infra/realtime/rooms.js';
 import { newAdmin, newClient, newGroup } from '../home/test-fixtures.js';
 import { tickets } from '../tickets/schema.js';
+import { setGroupMode } from './modes.js';
 import { recordNotifications } from './service.js';
 
 type TestApp = Awaited<ReturnType<typeof buildTestApp>>;
@@ -26,8 +29,12 @@ describe('unseen changes API', () => {
   });
   afterAll(() => test.close());
 
-  const call = (method: 'GET' | 'POST' | 'PUT', url: string, cookie: string, payload?: object) =>
-    test.app.inject({ method, url: `/api${url}`, headers: { cookie }, payload });
+  const call = (
+    method: 'GET' | 'POST' | 'PUT' | 'PATCH',
+    url: string,
+    cookie: string,
+    payload?: object,
+  ) => test.app.inject({ method, url: `/api${url}`, headers: { cookie }, payload });
 
   /** The events emitted to the user's own room while `run` runs. */
   const userRoomEvents = async (userId: string, run: () => Promise<unknown>) => {
@@ -92,8 +99,8 @@ describe('unseen changes API', () => {
     expect(await marks()).toEqual({
       header: 1,
       sidebar: 1,
-      card: true,
-      global: true,
+      card: 'change',
+      global: 'change',
       board: [taskId],
     });
     // The actor heard nothing about their own change.
@@ -107,7 +114,7 @@ describe('unseen changes API', () => {
     });
     expect(seen!.statusCode).toBe(204);
     expect(events).toEqual([[SeenEvents.changed, { kind: 'task', id: taskId }]]);
-    expect(await marks()).toEqual({ header: 0, sidebar: 0, card: false, global: false, board: [] });
+    expect(await marks()).toEqual({ header: 0, sidebar: 0, card: null, global: null, board: [] });
   });
 
   it('only who reads the task or ticket marks it seen (404 otherwise)', async () => {
@@ -176,17 +183,158 @@ describe('unseen changes API', () => {
     const count = async (cookie: string) =>
       NavCountsSchema.parse((await call('GET', '/me/home/counts', cookie)).json()).tickets;
 
-    expect(await unseen(cookies.nina)).toBe(true);
+    expect(await unseen(cookies.nina)).toBe('change');
     const before = await count(cookies.ada);
     expect((await call('POST', `/tickets/${ticketId}/seen`, cookies.ada)).statusCode).toBe(204);
-    expect(await unseen(cookies.ada)).toBe(false);
+    expect(await unseen(cookies.ada)).toBe(null);
     expect(await count(cookies.ada)).toBe(before - 1);
 
     // Bob makes Nina its riešiteľ: nobody else needs to look; Nina has her ticket.assigned.
     const assigned = await call('PUT', `/tickets/${ticketId}/assignees/${nina.id}`, cookies.bob);
     expect(assigned.statusCode).toBe(200);
-    expect(await unseen(cookies.bob)).toBe(false);
-    expect(await unseen(cookies.ada)).toBe(false);
-    expect(await unseen(cookies.nina)).toBe(true);
+    expect(await unseen(cookies.bob)).toBe(null);
+    expect(await unseen(cookies.ada)).toBe(null);
+    expect(await unseen(cookies.nina)).toBe('change');
+  });
+
+  it('assigned, then a chat message: a ring and what changed, from my own events', async () => {
+    const db = test.deps.db;
+    const group = await newGroup(db, 'Unseen summary');
+    const nina = await newAdmin(db, 'Nina', [group.id]);
+    const bob = await newAdmin(db, 'Bob', [group.id]);
+    const ninaCookie = await loginAs(test.app, nina.email);
+    const bobCookie = await loginAs(test.app, bob.email);
+    await setGroupMode(db, nina.id, group.id, 'all');
+    const created = await call('POST', `/groups/${group.id}/tasks`, bobCookie, {
+      title: 'Ring me',
+      assigneeIds: [nina.id, bob.id],
+    });
+    const taskId = created.json<{ id: string }>().id;
+    const channelId = (await call('GET', `/tasks/${taskId}/chat`, bobCookie)).json<{ id: string }>()
+      .id;
+    const sent = await call('POST', `/channels/${channelId}/messages`, bobCookie, {
+      body: 'Hi',
+      fileIds: [],
+      clientId: randomUUID(),
+    });
+    expect(sent.statusCode).toBe(201);
+
+    const card = async () =>
+      AssignedTasksSchema.parse(
+        (await call('GET', '/me/home/tasks', ninaCookie)).json(),
+      ).items.find((t) => t.id === taskId)?.unseen;
+    const board = async () =>
+      BoardUnseenSchema.parse(
+        (await call('GET', `/groups/${group.id}/board/unseen`, ninaCookie)).json(),
+      );
+    expect(await card()).toBe('message');
+    expect(await board()).toEqual({ taskIds: [taskId], messageTaskIds: [taskId] });
+    const summary = await call('GET', `/tasks/${taskId}/unseen-summary`, ninaCookie);
+    expect(summary.statusCode).toBe(200);
+    expect(UnseenSummarySchema.parse(summary.json())).toEqual({
+      lines: [{ kind: 'messages', count: 1, authors: ['Bob'] }, { kind: 'assigned' }],
+      more: 0,
+    });
+    // Bob wrote the message and assigned the task: he heard of nothing.
+    expect(
+      UnseenSummarySchema.parse(
+        (await call('GET', `/tasks/${taskId}/unseen-summary`, bobCookie)).json(),
+      ),
+    ).toEqual({ lines: [], more: 0 });
+
+    await call('POST', `/tasks/${taskId}/seen`, ninaCookie);
+    expect(await card()).toBe(null);
+    expect(await board()).toEqual({ taskIds: [], messageTaskIds: [] });
+  });
+
+  it('a ticket whose status changed: a dot and its status', async () => {
+    const db = test.deps.db;
+    const group = await newGroup(db, 'Unseen ticket summary');
+    const nina = await newAdmin(db, 'Nina', [group.id]);
+    const bob = await newAdmin(db, 'Bob');
+    const ninaCookie = await loginAs(test.app, nina.email);
+    const bobCookie = await loginAs(test.app, bob.email);
+    const ticketId = randomUUID();
+    const now = new Date();
+    await db.insert(tickets).values({
+      id: ticketId,
+      groupId: group.id,
+      status: 'new',
+      source: 'manual',
+      subject: 'Status',
+      createdAt: now,
+      updatedAt: now,
+    });
+    await call('POST', `/tickets/${ticketId}/seen`, ninaCookie);
+    const patched = await call('PATCH', `/tickets/${ticketId}`, bobCookie, { status: 'resolved' });
+    expect(patched.statusCode).toBe(200);
+    const row = TicketListResponseSchema.parse(
+      (await call('GET', `/tickets/global?scope=all&status=all`, ninaCookie)).json(),
+    ).items.find((t) => t.id === ticketId);
+    expect(row?.unseen).toBe('change');
+    const summary = await call('GET', `/tickets/${ticketId}/unseen-summary`, ninaCookie);
+    expect(summary.statusCode).toBe(200);
+    expect(UnseenSummarySchema.parse(summary.json()).lines).toEqual([
+      { kind: 'status', status: 'resolved' },
+    ]);
+  });
+
+  it('the summaries: 404 for whoever cannot read the item now', async () => {
+    const db = test.deps.db;
+    const group = await newGroup(db, 'Summary 404');
+    const other = await newGroup(db, 'Summary other');
+    const admin = await newAdmin(db, 'Ada');
+    const client = await newClient(db, group.id, 'Cyril');
+    const foreign = await newClient(db, other.id, 'Olga');
+    const ziadatel = await newClient(db, other.id, 'Zora');
+    await db.execute(
+      sql`insert into group_members (user_id, group_id, role) values (${ziadatel.id}, ${group.id}, 'ziadatel')`,
+    );
+    const cookies = {
+      admin: await loginAs(test.app, admin.email),
+      client: await loginAs(test.app, client.email),
+      foreign: await loginAs(test.app, foreign.email),
+      ziadatel: await loginAs(test.app, ziadatel.email),
+    };
+    const task = await call('POST', `/groups/${group.id}/tasks`, cookies.admin, { title: 'T' });
+    const taskId = task.json<{ id: string }>().id;
+    const ticketId = randomUUID();
+    const ownId = randomUUID();
+    const now = new Date();
+    for (const [id, requesterUserId] of [
+      [ticketId, null],
+      [ownId, ziadatel.id],
+    ] as const) {
+      await db.insert(tickets).values({
+        id,
+        groupId: group.id,
+        status: 'new',
+        source: 'manual',
+        subject: 'S',
+        requesterUserId,
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
+    const status = async (url: string, cookie: string) =>
+      (await call('GET', url, cookie)).statusCode;
+    const taskUrl = `/tasks/${taskId}/unseen-summary`;
+    const ticketUrl = `/tickets/${ticketId}/unseen-summary`;
+    expect(await status(taskUrl, cookies.admin)).toBe(200);
+    expect(await status(taskUrl, cookies.client)).toBe(200);
+    expect(await status(taskUrl, cookies.foreign)).toBe(404);
+    expect(await status(taskUrl, cookies.ziadatel)).toBe(404);
+    expect(await status('/tasks/nope/unseen-summary', cookies.admin)).toBe(404);
+    expect(await status(ticketUrl, cookies.admin)).toBe(200);
+    expect(await status(ticketUrl, cookies.client)).toBe(200);
+    expect(await status(ticketUrl, cookies.foreign)).toBe(404);
+    expect(await status(ticketUrl, cookies.ziadatel)).toBe(404);
+    expect(await status(`/tickets/${ownId}/unseen-summary`, cookies.ziadatel)).toBe(200);
+    expect(await status(`/tickets/${randomUUID()}/unseen-summary`, cookies.admin)).toBe(404);
+
+    // The ticket moves to another client: its old client loses it, and its summary with it.
+    await db.update(tickets).set({ groupId: other.id }).where(eq(tickets.id, ticketId));
+    expect(await status(ticketUrl, cookies.client)).toBe(404);
+    expect(await status(ticketUrl, cookies.foreign)).toBe(200);
   });
 });

@@ -1,0 +1,48 @@
+{
+  "mark": {
+    "change": "Nova promjena",
+    "message": "Nova poruka"
+  },
+  "heading": "Otkad ste ga zadnji put otvorili",
+  "loading": "Učitavanje…",
+  "error": "Promjene se nisu mogle učitati.",
+  "empty": "Ništa novo.",
+  "lines": {
+    "created": "Novi tiket",
+    "moved": "Premješteno: {{from}} → {{to}}",
+    "movedTo": "Premješteno u: {{to}}",
+    "movedGeneric": "Premješteno",
+    "assigned": "Dodijeljeno vama",
+    "deadlineToday": "Rok danas",
+    "deadlineTomorrow": "Rok sutra",
+    "deadline": "Rok {{date}}",
+    "messages_one": "{{count}} nova poruka ({{authors}})",
+    "messages_few": "{{count}} nove poruke ({{authors}})",
+    "messages_other": "{{count}} novih poruka ({{authors}})",
+    "messagesOnly_one": "{{count}} nova poruka",
+    "messagesOnly_few": "{{count}} nove poruke",
+    "messagesOnly_other": "{{count}} novih poruka",
+    "mentions": "Spominjanje: {{authors}}",
+    "status": "Status: {{status}}",
+    "updated": "Podaci promijenjeni",
+    "tasks_one": "{{count}} novi zadatak iz tiketa",
+    "tasks_few": "{{count}} nova zadatka iz tiketa",
+    "tasks_other": "{{count}} novih zadataka iz tiketa",
+    "timeMissing": "Upišite svoje vrijeme"
+  },
+  "more_one": "i još {{count}} promjena",
+  "more_few": "i još {{count}} promjene",
+  "more_other": "i još {{count}} promjena",
+  "dismiss": "Sakrij",
+  "buckets": {
+    "todo": "Za obradu",
+    "egrantReview": "Pregled eGranta",
+    "clientReview": "Pregled: {{group}}",
+    "done": "Dovršeno"
+  },
+  "status": {
+    "new": "Novi",
+    "in_progress": "U obradi",
+    "resolved": "Riješen"
+  }
+}

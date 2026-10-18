@@ -1,10 +1,22 @@
 import { sql, type SQL } from 'drizzle-orm';
 import type { Server as SocketIOServer } from 'socket.io';
-import { SeenEvents, type SeenChangedEvent } from '@spolu/shared';
+import {
+  SeenEvents,
+  type SeenChangedEvent,
+  type UnseenMark,
+  type UnseenSummary,
+} from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
 import { userRoom } from '../../infra/realtime/rooms.js';
 import { channelOnSql, groupModeSql } from './follows.js';
-import { taskUnseenPredicate, ticketUnseenPredicate } from './unseen-kinds.js';
+import {
+  list,
+  TASK_MESSAGE_KINDS,
+  TICKET_MESSAGE_KINDS,
+  taskUnseenPredicate,
+  ticketUnseenPredicate,
+} from './unseen-kinds.js';
+import { summarizeUnseen, type UnseenEventRow } from './unseen-summary.js';
 
 /**
  * Unseen changes (2026-10-17, see docs/superpowers/specs/2026-10-17-unseen-changes-design.md): a
@@ -19,6 +31,10 @@ import { taskUnseenPredicate, ticketUnseenPredicate } from './unseen-kinds.js';
  * Every fragment reads `notification_events_unseen_task_idx` (or `_ticket_idx`): the user's
  * counted events of one task, newest last. Events older than 30 days are purged, so a change
  * older than that no longer counts.
+ *
+ * 2026-10-18: an item is marked `message` (a yellow ring) when its unseen changes include a
+ * message in its chat (`TASK_MESSAGE_KINDS`, `TICKET_MESSAGE_KINDS`), else `change` (a dot); the
+ * summaries list what those changes were.
  */
 
 const taskEvents = taskUnseenPredicate(sql`e.kind`, sql`e.payload`);
@@ -30,38 +46,129 @@ function taskEventPassesSql(userId: string): SQL<boolean> {
   return sql<boolean>`(case when e.kind = 'chat.message' then ${mode} = 'all' else ${mode} <> 'off' end)`;
 }
 
-/** True when the task `taskId` (an SQL expression, e.g. `t.id`) has an unseen change for the user. */
-export function taskUnseenSql(userId: string, taskId: SQL): SQL<boolean> {
-  return sql<boolean>`(${channelOnSql(userId, 'tasks')} and exists (
-    select 1 from notification_events e
-    where e.user_id = ${userId} and ${taskEvents} and (e.payload ->> 'taskId') = ${taskId}
+/**
+ * The user's unseen events of the task `taskId` (an SQL expression, e.g. `t.id`): after their
+ * last open, passing the mode. The caller adds the channel check.
+ */
+function taskUnseenEventsWhere(userId: string, taskId: SQL): SQL {
+  return sql`e.user_id = ${userId} and ${taskEvents} and (e.payload ->> 'taskId') = ${taskId}
       and e.created_at > coalesce(
         (select s.seen_at from task_seen s where s.user_id = ${userId} and s.task_id = ${taskId}),
         '-infinity'::timestamptz)
-      and ${taskEventPassesSql(userId)}
-  ))`;
+      and ${taskEventPassesSql(userId)}`;
 }
 
-/** True when the ticket `ticketId` has an unseen change for the user. */
-export function ticketUnseenSql(userId: string, ticketId: SQL): SQL<boolean> {
-  return sql<boolean>`(${channelOnSql(userId, 'tickets')} and exists (
-    select 1 from notification_events e
-    where e.user_id = ${userId} and ${ticketEvents} and (e.payload ->> 'ticketId') = ${ticketId}
+function ticketUnseenEventsWhere(userId: string, ticketId: SQL): SQL {
+  return sql`e.user_id = ${userId} and ${ticketEvents} and (e.payload ->> 'ticketId') = ${ticketId}
       and e.created_at > coalesce(
         (select s.seen_at from ticket_seen s where s.user_id = ${userId} and s.ticket_id = ${ticketId}),
-        '-infinity'::timestamptz)
-  ))`;
+        '-infinity'::timestamptz)`;
+}
+
+/** `message` when one of the events in scope (`e`) is of `messageKinds`, else `change`. */
+const markOf = (messageKinds: readonly string[]) =>
+  sql`case when bool_or(e.kind in (${list(messageKinds)})) then 'message' else 'change' end`;
+
+/**
+ * How the task `taskId` (an SQL expression, e.g. `t.id`) is marked for the user: `message`,
+ * `change`, or null when it has no unseen change.
+ */
+export function taskUnseenSql(userId: string, taskId: SQL): SQL<UnseenMark | null> {
+  return sql<UnseenMark | null>`(case when ${channelOnSql(userId, 'tasks')} then (
+    select ${markOf(TASK_MESSAGE_KINDS)}
+    from notification_events e
+    where ${taskUnseenEventsWhere(userId, taskId)}
+    having count(*) > 0
+  ) end)`;
+}
+
+/** How the ticket `ticketId` is marked for the user, or null. */
+export function ticketUnseenSql(userId: string, ticketId: SQL): SQL<UnseenMark | null> {
+  return sql<UnseenMark | null>`(case when ${channelOnSql(userId, 'tickets')} then (
+    select ${markOf(TICKET_MESSAGE_KINDS)}
+    from notification_events e
+    where ${ticketUnseenEventsWhere(userId, ticketId)}
+    having count(*) > 0
+  ) end)`;
+}
+
+/** The newest unseen events a summary reads; more only adds to a count nobody reads exactly. */
+const SUMMARY_EVENTS = 500;
+
+function summarySql(channelOn: SQL, where: SQL): SQL {
+  return sql`
+    select e.kind, e.payload, e.created_at,
+      to_char(e.created_at at time zone 'Europe/Bratislava', 'YYYY-MM-DD') as day
+    from notification_events e
+    where ${channelOn} and ${where}
+    order by e.created_at desc
+    limit ${SUMMARY_EVENTS}
+  `;
+}
+
+/** The user's unseen events of the task, newest first, for its summary. */
+export function taskSummarySql(userId: string, taskId: string): SQL {
+  return summarySql(
+    channelOnSql(userId, 'tasks'),
+    taskUnseenEventsWhere(userId, sql`${taskId}::text`),
+  );
+}
+
+/** The user's unseen events of the ticket, newest first, for its summary. */
+export function ticketSummarySql(userId: string, ticketId: string): SQL {
+  return summarySql(
+    channelOnSql(userId, 'tickets'),
+    ticketUnseenEventsWhere(userId, sql`${ticketId}::text`),
+  );
+}
+
+async function summaryRows(db: Db, query: SQL): Promise<UnseenEventRow[]> {
+  const rows = await db.execute<{
+    kind: string;
+    payload: Record<string, unknown>;
+    created_at: string | Date;
+    day: string;
+  }>(query);
+  return [...rows].map((r) => ({
+    kind: r.kind,
+    payload: r.payload ?? {},
+    createdAt: new Date(r.created_at),
+    day: r.day,
+  }));
 }
 
 /**
- * The ids of the tasks with an unseen change for the user, one row each (`task_id`). May name a
- * deleted task: join `tasks`.
+ * What changed in the task since the user last opened it (2026-10-18): their own unseen events,
+ * as summary lines. The caller checked they may read the task now.
+ */
+export async function taskUnseenSummary(
+  db: Db,
+  userId: string,
+  taskId: string,
+): Promise<UnseenSummary> {
+  return summarizeUnseen(await summaryRows(db, taskSummarySql(userId, taskId)));
+}
+
+/** What changed in the ticket since the user last opened it. The caller checked they read it. */
+export async function ticketUnseenSummary(
+  db: Db,
+  userId: string,
+  ticketId: string,
+): Promise<UnseenSummary> {
+  return summarizeUnseen(await summaryRows(db, ticketSummarySql(userId, ticketId)));
+}
+
+/**
+ * The ids of the tasks with an unseen change for the user, one row each (`task_id`), and
+ * whether those changes include a chat message (`message`). May name a deleted task: join `tasks`.
  */
 export function unseenTaskIdsSql(userId: string): SQL {
   return sql`
-    select x.task_id
+    select x.task_id,
+      (x.message_at is not null and (s.seen_at is null or x.message_at > s.seen_at)) as message
     from (
-      select (e.payload ->> 'taskId') as task_id, max(e.created_at) as last_at
+      select (e.payload ->> 'taskId') as task_id, max(e.created_at) as last_at,
+        max(e.created_at) filter (where e.kind in (${list(TASK_MESSAGE_KINDS)})) as message_at
       from notification_events e
       where e.user_id = ${userId} and ${taskEvents} and ${channelOnSql(userId, 'tasks')}
         and ${taskEventPassesSql(userId)}
@@ -72,12 +179,17 @@ export function unseenTaskIdsSql(userId: string): SQL {
   `;
 }
 
-/** The ids of the tickets with an unseen change for the user (`ticket_id`). Join `tickets`. */
+/**
+ * The ids of the tickets with an unseen change for the user (`ticket_id`), and whether those
+ * include a message (`message`). Join `tickets`.
+ */
 export function unseenTicketIdsSql(userId: string): SQL {
   return sql`
-    select x.ticket_id
+    select x.ticket_id,
+      (x.message_at is not null and (s.seen_at is null or x.message_at > s.seen_at)) as message
     from (
-      select (e.payload ->> 'ticketId') as ticket_id, max(e.created_at) as last_at
+      select (e.payload ->> 'ticketId') as ticket_id, max(e.created_at) as last_at,
+        max(e.created_at) filter (where e.kind in (${list(TICKET_MESSAGE_KINDS)})) as message_at
       from notification_events e
       where e.user_id = ${userId} and ${ticketEvents} and ${channelOnSql(userId, 'tickets')}
       group by 1

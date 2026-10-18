@@ -2,6 +2,7 @@ import { afterAll, describe, expect, it } from 'vitest';
 import { sql, type SQL } from 'drizzle-orm';
 import { createDb, type Db } from '../../infra/db/client.js';
 import { testDatabaseUrl } from '../../../test/test-config.js';
+import { taskSummarySql, ticketSummarySql } from '../notifications/unseen.js';
 import { boardUnseenSql } from '../tasks/service.js';
 import { dashboardTicketsSql, unseenTicketCountSql } from '../tickets/dashboard.js';
 import { assignedSql, unseenTaskCountSql } from './assigned.js';
@@ -89,6 +90,21 @@ describe('admin home query plans on a seeded volume', () => {
         await expectIndexed(tx, unseenTaskCountSql(adminId), UNSEEN_TABLES);
         await expectIndexed(tx, unseenTicketCountSql(adminId), UNSEEN_TABLES);
         await expectIndexed(tx, boardUnseenSql(adminId, managedIds[0]!), UNSEEN_TABLES);
+        // 2026-10-18: a marker's "what changed" reads one item's events of the admin, on the
+        // same partial indexes
+        const [item] = [
+          ...(await tx.execute<{ task_id: string; ticket_id: string }>(sql`
+            select
+              (select payload ->> 'taskId' from notification_events
+                where user_id = ${adminId} and kind = 'task.moved' limit 1) as task_id,
+              (select payload ->> 'ticketId' from notification_events
+                where user_id = ${adminId} and kind = 'ticket.status' limit 1) as ticket_id
+          `)),
+        ];
+        expect(item?.task_id).toBeTruthy();
+        expect(item?.ticket_id).toBeTruthy();
+        await expectIndexed(tx, taskSummarySql(adminId, item!.task_id), UNSEEN_TABLES);
+        await expectIndexed(tx, ticketSummarySql(adminId, item!.ticket_id), UNSEEN_TABLES);
         // the Tickets card and the header's Tickets count read the tickets indexes; the "no
         // riešiteľ yet" anti-join may hash the small `ticket_assignees` (a few rows per active
         // ticket), which the planner rightly prefers to one index lookup per ticket

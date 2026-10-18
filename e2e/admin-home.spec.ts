@@ -180,18 +180,25 @@ test('admin home: dashboard, header counts, sidebar, Úlohy and global board', a
     await picker.getByRole('button', { name: 'Hotovo' }).click();
     await expect(n.getByRole('link', { name: new RegExp(`Iná úloha ${stamp}`) })).toBeVisible();
 
-    // The unseen task is marked on its card; opening it clears the mark and the header count.
+    // The unseen task has a yellow dot marker beside its card (2026-10-18); hovering it shows
+    // what changed. Opening it shows the same in a banner, then clears the mark and the count.
     const secondCard = n.getByRole('link', { name: new RegExp(`Druhá úloha ${stamp}`) });
-    await expect(secondCard).toContainText('Nová zmena');
+    const secondItem = n.locator(`[data-task-id="${secondId}"]`);
+    const marker = secondItem.getByRole('button', { name: 'Nová zmena' });
+    await expect(marker).toBeVisible();
+    await marker.hover();
+    await expect(n.getByRole('tooltip')).toContainText('Priradené vám');
+    await n.mouse.move(0, 0);
     const seen = n.waitForResponse(
       (r) => r.request().method() === 'POST' && r.url().endsWith(`/api/tasks/${secondId}/seen`),
     );
     await secondCard.click();
+    await expect(n.getByTestId('unseen-banner')).toContainText('Priradené vám');
     expect((await seen).status()).toBe(204);
     await expect.poll(myUnseenTasks).toBe(0);
     await expect(header.getByTestId('nav-count-tasks')).toHaveCount(0, { timeout: 15_000 });
     await n.keyboard.press('Escape');
-    await expect(secondCard).not.toContainText('Nová zmena', { timeout: 15_000 });
+    await expect(marker).toHaveCount(0, { timeout: 15_000 });
 
     // 7. On a phone the home shows the count tiles and the client list.
     await n.setViewportSize({ width: 390, height: 844 });

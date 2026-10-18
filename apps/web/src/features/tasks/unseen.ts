@@ -7,6 +7,7 @@ import {
   SeenEvents,
   type BoardTaskEvent,
   type ChatMessageEvent,
+  type UnseenMark,
 } from '@spolu/shared';
 import { apiGet } from '@/lib/api';
 import { getSocket } from '@/lib/socket';
@@ -14,12 +15,18 @@ import { getSocket } from '@/lib/socket';
 /** After a change: its notification events are recorded by the time the board asks again. */
 export const BOARD_UNSEEN_DEBOUNCE_MS = 2000;
 
-/** The group's cards with a change the viewer has not seen yet (2026-10-17), as a set of ids. */
+/**
+ * The group's cards with a change the viewer has not seen yet (2026-10-17), as a map from id to
+ * how each is marked (2026-10-18: `message` when the changes include a chat message).
+ */
 export const boardUnseenQuery = (groupId: string) =>
   queryOptions({
     queryKey: ['tasks', groupId, 'unseen'],
     queryFn: () => apiGet(`/groups/${encodeURIComponent(groupId)}/board/unseen`, BoardUnseenSchema),
-    select: (data) => new Set(data.taskIds),
+    select: (data): ReadonlyMap<string, UnseenMark> => {
+      const messages = new Set(data.messageTaskIds);
+      return new Map(data.taskIds.map((id) => [id, messages.has(id) ? 'message' : 'change']));
+    },
     refetchOnWindowFocus: true,
   });
 

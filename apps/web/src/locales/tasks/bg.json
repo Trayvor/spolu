@@ -56,8 +56,7 @@
     "messages_one": "{{count}} съобщение",
     "messages_other": "{{count}} съобщения",
     "messagesUnread_one": "{{count}} съобщение, непрочетено",
-    "messagesUnread_other": "{{count}} съобщения, непрочетени",
-    "unseen": "Нова промяна"
+    "messagesUnread_other": "{{count}} съобщения, непрочетени"
   },
   "form": {
     "title": "Заглавие",

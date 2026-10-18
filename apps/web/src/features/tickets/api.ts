@@ -110,7 +110,7 @@ export function toListItem(ticket: TicketDto): TicketListItem {
     project: ticket.project,
     event: ticket.event,
     // Per viewer, from the list's own answer: a patched row keeps its mark (`patchTicketInLists`).
-    unseen: false,
+    unseen: null,
   };
 }
 
@@ -170,7 +170,7 @@ export function markTicketSeenInLists(queryClient: QueryClient, ticketId: string
       ...data,
       pages: data.pages.map((page) => ({
         ...page,
-        items: page.items.map((i) => (i.id === ticketId ? { ...i, unseen: false } : i)),
+        items: page.items.map((i) => (i.id === ticketId ? { ...i, unseen: null } : i)),
       })),
     });
   }

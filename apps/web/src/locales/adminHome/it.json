@@ -78,8 +78,7 @@
       "unsummarized_one": "{{count}} senza riepilogo",
       "unsummarized_many": "{{count}} senza riepilogo",
       "unsummarized_other": "{{count}} senza riepilogo"
-    },
-    "unseen": "Nuova modifica"
+    }
   },
   "board": {
     "title": "Attività",

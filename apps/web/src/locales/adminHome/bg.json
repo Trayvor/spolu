@@ -71,8 +71,7 @@
       "empty": "Няма срещи през следващите 7 дни и никоя не чака резюме.",
       "unsummarized_one": "{{count}} без резюме",
       "unsummarized_other": "{{count}} без резюме"
-    },
-    "unseen": "Нова промяна"
+    }
   },
   "board": {
     "title": "Задачи",

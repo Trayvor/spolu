@@ -9,6 +9,7 @@ import {
   TasksFromTicketSchema,
   type SessionUser,
   type TasksFromMessageResult,
+  type UnseenSummary,
 } from '@spolu/shared';
 import type { AppDeps } from '../../deps.js';
 import { emitMessageTasks } from '../chat/events.js';
@@ -36,7 +37,7 @@ import {
 import { clientGroupIds } from '../groups/memberships.js';
 import { emitMeetingTasks } from '../knowledge/events.js';
 import { InvalidKnowledgeLinkError } from '../knowledge/links.js';
-import { emitSeen, markTaskSeen } from '../notifications/unseen.js';
+import { emitSeen, markTaskSeen, taskUnseenSummary } from '../notifications/unseen.js';
 import { emitTicket, emitTicketRefresh } from '../tickets/events.js';
 import { runTicketChange } from '../tickets/hooks.js';
 import { actorReadsTicket, attachmentIds, getTicketRow } from '../tickets/service.js';
@@ -290,6 +291,18 @@ export const taskRoutes: FastifyPluginAsync<TaskRoutesOptions> = async (
     emitSeen(app.io, actor.id, { kind: 'task', id: request.params.id });
     return reply.code(204).send();
   });
+
+  // 2026-10-18: what changed since the viewer last opened the task (the marker's tooltip, the
+  // panel's banner): only their own events, only while they may read the task.
+  app.get<IdParams>(
+    '/tasks/:id/unseen-summary',
+    { preHandler: anyUser },
+    async (request, reply): Promise<UnseenSummary> => {
+      const actor = request.user!;
+      if (!(await readableTask(actor, request.params.id))) return notFound(reply);
+      return taskUnseenSummary(db, actor.id, request.params.id);
+    },
+  );
 
   app.patch<IdParams>('/tasks/:id', { preHandler: writeGuard }, async (request, reply) => {
     const actor = request.user!;

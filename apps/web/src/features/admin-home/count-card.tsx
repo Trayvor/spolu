@@ -27,6 +27,11 @@ export type CardRow = {
   group?: string;
   /** The phone sheet's richer row (two lines with the key details); `content` otherwise. */
   detail?: ReactNode;
+  /**
+   * The unseen-change marker (2026-10-18), set only when the item has one: a focusable button,
+   * so a sibling laid over the link's left padding, never inside it (`RowMarker`).
+   */
+  marker?: ReactNode;
 };
 
 /** Which card: also the `?card=` value that opens its phone sheet. */
@@ -104,6 +109,11 @@ export function RowAction({
   );
 }
 
+/** A row's marker over the start of its link, which makes room for it (`pl-9`; `pl-10` in a tile's sheet). */
+export function RowMarker({ children }: { children: ReactNode }) {
+  return <span className="absolute top-1/2 left-0 z-10 -translate-y-1/2">{children}</span>;
+}
+
 /** Three static grey rows (no shimmer). */
 function Placeholder() {
   return (
@@ -142,16 +152,18 @@ export function CardList({
     <div className="flex flex-col">
       <ul className="flex flex-col">
         {rows.map((row) => (
-          <li key={row.key} className="border-b border-border last:border-b-0">
+          <li key={row.key} className="relative border-b border-border last:border-b-0">
             <RowAction
               row={row}
               className={cn(
                 '-mx-2 flex items-center gap-3 rounded-lg px-2 hover:bg-accent hover:text-foreground',
                 row.tall ? 'min-h-14 py-2' : 'h-11',
+                row.marker && 'pl-9',
               )}
             >
               {row.content}
             </RowAction>
+            {row.marker && <RowMarker>{row.marker}</RowMarker>}
           </li>
         ))}
       </ul>

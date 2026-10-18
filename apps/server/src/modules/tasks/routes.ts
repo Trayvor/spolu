@@ -94,7 +94,7 @@ export const tasksRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { 
     async (request, reply): Promise<BoardUnseen> => {
       const actor = request.user!;
       if (!(await canOpenGroup(actor, request.params.id))) return notFound(reply);
-      return { taskIds: await listUnseenTaskIds(db, actor.id, request.params.id) };
+      return listUnseenTaskIds(db, actor.id, request.params.id);
     },
   );
 

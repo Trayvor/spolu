@@ -1,5 +1,5 @@
 import { useMemo, useState, type ReactNode } from 'react';
-import { UnseenDot } from '@/components/unseen-dot';
+import { UnseenMarker } from '@/features/unseen/marker';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
@@ -139,11 +139,13 @@ function TicketRow({ item, showClient }: { item: TicketListItem; showClient: boo
     </span>
   );
   return (
-    <li>
+    <li className="relative">
       <Link
         to="/tickets/$ticketId"
         params={{ ticketId: item.id }}
-        className="flex items-start gap-3 px-4 py-3 hover:text-ink-hover min-[641px]:items-center min-[641px]:px-5"
+        // A gutter on the left for the unseen marker (2026-10-18), a sibling of the link, so
+        // the numbers stay aligned whether a row has one or not.
+        className="flex items-start gap-3 py-3 pr-4 pl-10 hover:text-ink-hover min-[641px]:items-center min-[641px]:pr-5 min-[641px]:pl-11"
       >
         <span className="w-12 shrink-0 pt-px text-button font-semibold text-muted-foreground tabular-nums min-[641px]:pt-0">
           #{item.number}
@@ -156,7 +158,6 @@ function TicketRow({ item, showClient }: { item: TicketListItem; showClient: boo
               item.unseen && 'font-bold',
             )}
           >
-            <UnseenDot unseen={item.unseen} label={t('tickets.row.unseen')} />
             {title || t('tickets.row.noSubject')}
           </span>
           <span className="flex flex-wrap gap-x-3 gap-y-0.5 text-micro text-muted-foreground">
@@ -178,6 +179,11 @@ function TicketRow({ item, showClient }: { item: TicketListItem; showClient: boo
           <StatusBadge status={item.status} />
         </span>
       </Link>
+      <UnseenMarker
+        mark={item.unseen}
+        target={{ kind: 'ticket', id: item.id }}
+        className="absolute top-2.5 left-2 min-[641px]:top-1/2 min-[641px]:left-3 min-[641px]:-translate-y-1/2"
+      />
     </li>
   );
 }

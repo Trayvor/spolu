@@ -1,0 +1,52 @@
+{
+  "mark": {
+    "change": "Nová změna",
+    "message": "Nová zpráva"
+  },
+  "heading": "Od vašeho posledního otevření",
+  "loading": "Načítá se…",
+  "error": "Změny se nepodařilo načíst.",
+  "empty": "Nic nového.",
+  "lines": {
+    "created": "Nový tiket",
+    "moved": "Přesunuto: {{from}} → {{to}}",
+    "movedTo": "Přesunuto do: {{to}}",
+    "movedGeneric": "Přesunuto",
+    "assigned": "Přiřazeno vám",
+    "deadlineToday": "Termín dnes",
+    "deadlineTomorrow": "Termín zítra",
+    "deadline": "Termín {{date}}",
+    "messages_one": "{{count}} nová zpráva ({{authors}})",
+    "messages_few": "{{count}} nové zprávy ({{authors}})",
+    "messages_many": "{{count}} nové zprávy ({{authors}})",
+    "messages_other": "{{count}} nových zpráv ({{authors}})",
+    "messagesOnly_one": "{{count}} nová zpráva",
+    "messagesOnly_few": "{{count}} nové zprávy",
+    "messagesOnly_many": "{{count}} nové zprávy",
+    "messagesOnly_other": "{{count}} nových zpráv",
+    "mentions": "Zmínka od: {{authors}}",
+    "status": "Stav: {{status}}",
+    "updated": "Upravené údaje",
+    "tasks_one": "{{count}} nový úkol z tiketu",
+    "tasks_few": "{{count}} nové úkoly z tiketu",
+    "tasks_many": "{{count}} nového úkolu z tiketu",
+    "tasks_other": "{{count}} nových úkolů z tiketu",
+    "timeMissing": "Doplňte svůj čas"
+  },
+  "more_one": "a {{count}} další změna",
+  "more_few": "a {{count}} další změny",
+  "more_many": "a {{count}} další změny",
+  "more_other": "a {{count}} dalších změn",
+  "dismiss": "Skrýt",
+  "buckets": {
+    "todo": "K vyřízení",
+    "egrantReview": "Kontrola eGrant",
+    "clientReview": "Kontrola {{group}}",
+    "done": "Dokončené"
+  },
+  "status": {
+    "new": "Nový",
+    "in_progress": "Řeší se",
+    "resolved": "Vyřešený"
+  }
+}

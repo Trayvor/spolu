@@ -71,8 +71,7 @@
       "empty": "No meetings in the next 7 days and none waiting for a summary.",
       "unsummarized_one": "{{count}} without a summary",
       "unsummarized_other": "{{count}} without a summary"
-    },
-    "unseen": "New change"
+    }
   },
   "board": {
     "title": "Tasks",

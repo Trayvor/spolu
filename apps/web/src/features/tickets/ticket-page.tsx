@@ -1,5 +1,6 @@
 import { Suspense, useEffect, type MouseEvent, type ReactNode } from 'react';
 import { useMarkSeen } from '@/lib/use-mark-seen';
+import { UnseenBanner, useOpenSummary } from '@/features/unseen/banner';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useLocation, useParams, useRouter } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
@@ -45,8 +46,13 @@ export function TicketPage({ ticketId }: { ticketId: string }) {
   const wide = useMediaQuery('(min-width: 1024px)');
   useTicketEvents(null);
   useTimeParam(cached, me);
-  // 2026-10-17: open and visible, its changes are seen.
-  useMarkSeen(cached ? { kind: 'ticket', id: ticketId, channelId: cached.channelId } : null);
+  // 2026-10-17: open and visible, its changes are seen; 2026-10-18: after what changed was
+  // fetched for the banner.
+  const opened = useOpenSummary(cached ? { kind: 'ticket', id: ticketId } : null);
+  useMarkSeen(
+    cached ? { kind: 'ticket', id: ticketId, channelId: cached.channelId } : null,
+    opened.ready,
+  );
   // Moved out of the viewer's reach while open: never keep showing the old ticket.
   if (error instanceof ApiError && error.status === 404) return <NotFoundPage />;
   const ticket = cached;
@@ -60,6 +66,7 @@ export function TicketPage({ ticketId }: { ticketId: string }) {
   return (
     <div className="flex flex-1 flex-col gap-3">
       <TicketHeader ticket={ticket} admin={admin} readsGroup={readsGroup} me={me} />
+      <UnseenBanner open={opened} />
       <div className="flex min-h-0 flex-1 flex-col gap-3 lg:flex-row lg:gap-4">
         {wide ? (
           <aside

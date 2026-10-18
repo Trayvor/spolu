@@ -35,8 +35,7 @@
     "overdue": "Прострочено з",
     "noSubject": "Без теми",
     "noClient": "Без клієнта",
-    "assignees": "Виконавці: {{names}}",
-    "unseen": "Нова зміна"
+    "assignees": "Виконавці: {{names}}"
   },
   "mine": {
     "title": "Мої тікети",

@@ -30,8 +30,23 @@ export const TICKET_UNSEEN_KINDS = [
   'chat.mention',
 ] as const satisfies readonly NotificationKind[];
 
+/**
+ * Of those, the messages in the item's chat (2026-10-18): an unseen one marks the item with a
+ * ring, not a plain dot.
+ */
+export const TASK_MESSAGE_KINDS = [
+  'chat.message',
+  'chat.mention',
+  'chat.thread_reply',
+] as const satisfies readonly (typeof TASK_UNSEEN_KINDS)[number][];
+
+export const TICKET_MESSAGE_KINDS = [
+  'ticket.message',
+  'chat.mention',
+] as const satisfies readonly (typeof TICKET_UNSEEN_KINDS)[number][];
+
 // Literals, not bind parameters: the planner must see the same constants as the partial index.
-const list = (kinds: readonly string[]) => sql.raw(kinds.map((k) => `'${k}'`).join(', '));
+export const list = (kinds: readonly string[]) => sql.raw(kinds.map((k) => `'${k}'`).join(', '));
 
 /** Rows of `notification_events` that may be a task's unseen change (the partial index's). */
 export function taskUnseenPredicate(kind: SQL, payload: SQL): SQL {

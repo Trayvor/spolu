@@ -85,8 +85,7 @@
       "unsummarized_few": "{{count}} bez zhrnutia",
       "unsummarized_many": "{{count}} bez zhrnutia",
       "unsummarized_other": "{{count}} bez zhrnutia"
-    },
-    "unseen": "Nová zmena"
+    }
   },
   "board": {
     "title": "Úlohy",

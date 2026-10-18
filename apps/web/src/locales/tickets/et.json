@@ -35,8 +35,7 @@
     "overdue": "Tähtaeg ületatud alates",
     "noSubject": "Teemata",
     "noClient": "Kliendita",
-    "assignees": "Lahendajad: {{names}}",
-    "unseen": "Uus muudatus"
+    "assignees": "Lahendajad: {{names}}"
   },
   "mine": {
     "title": "Minu pöördumised",

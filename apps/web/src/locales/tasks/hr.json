@@ -61,8 +61,7 @@
     "messages_other": "{{count}} poruka",
     "messagesUnread_one": "{{count}} poruka, nepročitana",
     "messagesUnread_few": "{{count}} poruke, nepročitane",
-    "messagesUnread_other": "{{count}} poruka, nepročitanih",
-    "unseen": "Nova promjena"
+    "messagesUnread_other": "{{count}} poruka, nepročitanih"
   },
   "form": {
     "title": "Naziv",

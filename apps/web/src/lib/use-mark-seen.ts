@@ -29,7 +29,14 @@ export type SeenTarget = {
  * The server tells the viewer's other devices (`seen:changed`). A failed request is ignored: the
  * next open marks it.
  */
-export function useMarkSeen(target: SeenTarget | null): void {
+export function useMarkSeen(
+  target: SeenTarget | null,
+  /**
+   * False holds the first mark back (2026-10-18): the panel fetches what changed first, so
+   * marking it seen cannot empty its banner.
+   */
+  ready = true,
+): void {
   const visible = useDocumentVisible();
   const visibleRef = useRef(visible);
   const kind = target?.kind;
@@ -38,9 +45,9 @@ export function useMarkSeen(target: SeenTarget | null): void {
 
   useEffect(() => {
     visibleRef.current = visible;
-    if (!kind || !id || !visible) return;
+    if (!kind || !id || !visible || !ready) return;
     void markSeen(kind, id);
-  }, [kind, id, visible]);
+  }, [kind, id, visible, ready]);
 
   useEffect(() => {
     if (!kind || !id) return;

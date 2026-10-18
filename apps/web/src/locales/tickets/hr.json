@@ -35,8 +35,7 @@
     "overdue": "Rok istekao",
     "noSubject": "Bez predmeta",
     "noClient": "Bez klijenta",
-    "assignees": "Rješavatelji: {{names}}",
-    "unseen": "Nova promjena"
+    "assignees": "Rješavatelji: {{names}}"
   },
   "mine": {
     "title": "Moji tiketi",

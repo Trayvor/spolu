@@ -50,6 +50,45 @@ afterEach(() => {
 });
 
 describe('ticket page', () => {
+  it('fetches what changed before marking it seen, and shows it in a yellow banner (2026-10-18)', async () => {
+    let answer: (response: Response) => void = () => undefined;
+    const summary = new Promise<Response>((resolve) => (answer = resolve));
+    const { calls } = renderTicket(ADMIN, ticket(), [
+      (url) => (url.pathname === '/api/tickets/k1/unseen-summary' ? summary : undefined),
+      (url, init) =>
+        url.pathname === '/api/tickets/k1/seen' && init?.method === 'POST'
+          ? new Response(null, { status: 204 })
+          : undefined,
+    ]);
+    await screen.findByRole('heading', { name: 'Cannot submit the application' });
+    await waitFor(() => expect(calls).toContain('GET /api/tickets/k1/unseen-summary'));
+    // Not seen while the summary is on its way: marking first would empty it.
+    expect(calls).not.toContain('POST /api/tickets/k1/seen');
+    answer(reply(200, { lines: [{ kind: 'status', status: 'resolved' }], more: 0 }));
+    await waitFor(() => expect(calls).toContain('POST /api/tickets/k1/seen'));
+    expect(calls.indexOf('GET /api/tickets/k1/unseen-summary')).toBeLessThan(
+      calls.indexOf('POST /api/tickets/k1/seen'),
+    );
+    const banner = await screen.findByTestId('unseen-banner');
+    expect(banner).toHaveTextContent(
+      t('unseen.lines.status', { status: t('unseen.status.resolved') }),
+    );
+    // Seen now: a later refetch never empties it; Dismiss does.
+    await userEvent.click(within(banner).getByRole('button', { name: t('unseen.dismiss') }));
+    expect(screen.queryByTestId('unseen-banner')).toBeNull();
+  });
+
+  it('nothing changed: no banner, and it is still marked seen', async () => {
+    const { calls } = renderTicket(ADMIN, ticket(), [
+      (url) =>
+        url.pathname === '/api/tickets/k1/unseen-summary'
+          ? reply(200, { lines: [], more: 0 })
+          : undefined,
+    ]);
+    await waitFor(() => expect(calls).toContain('POST /api/tickets/k1/seen'));
+    expect(screen.queryByTestId('unseen-banner')).toBeNull();
+  });
+
   it('admin edits status in place', async () => {
     const { calls, fetchMock } = renderTicket(ADMIN, ticket(), [
       (url, init) =>

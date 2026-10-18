@@ -66,8 +66,7 @@
     "messagesUnread_one": "{{count}} zpráva, nepřečtená",
     "messagesUnread_few": "{{count}} zprávy, nepřečtené",
     "messagesUnread_many": "{{count}} zprávy, nepřečtené",
-    "messagesUnread_other": "{{count}} zpráv, nepřečtené",
-    "unseen": "Nová změna"
+    "messagesUnread_other": "{{count}} zpráv, nepřečtené"
   },
   "form": {
     "title": "Název",

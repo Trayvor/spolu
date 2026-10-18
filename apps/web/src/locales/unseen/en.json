@@ -1,0 +1,44 @@
+{
+  "mark": {
+    "change": "New change",
+    "message": "New message"
+  },
+  "heading": "Since you last opened it",
+  "loading": "Loading…",
+  "error": "Could not load the changes.",
+  "empty": "Nothing new.",
+  "lines": {
+    "created": "New ticket",
+    "moved": "Moved: {{from}} → {{to}}",
+    "movedTo": "Moved to: {{to}}",
+    "movedGeneric": "Moved",
+    "assigned": "Assigned to you",
+    "deadlineToday": "Due today",
+    "deadlineTomorrow": "Due tomorrow",
+    "deadline": "Due {{date}}",
+    "messages_one": "{{count}} new message ({{authors}})",
+    "messages_other": "{{count}} new messages ({{authors}})",
+    "messagesOnly_one": "{{count}} new message",
+    "messagesOnly_other": "{{count}} new messages",
+    "mentions": "Mentioned by {{authors}}",
+    "status": "Status: {{status}}",
+    "updated": "Details changed",
+    "tasks_one": "{{count}} new task from the ticket",
+    "tasks_other": "{{count}} new tasks from the ticket",
+    "timeMissing": "Fill in your time"
+  },
+  "more_one": "and {{count}} more change",
+  "more_other": "and {{count}} more changes",
+  "dismiss": "Dismiss",
+  "buckets": {
+    "todo": "To do",
+    "egrantReview": "eGrant review",
+    "clientReview": "{{group}} review",
+    "done": "Completed"
+  },
+  "status": {
+    "new": "New",
+    "in_progress": "In progress",
+    "resolved": "Resolved"
+  }
+}

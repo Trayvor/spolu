@@ -14,6 +14,7 @@ import {
   type SessionUser,
   type TicketIntakeBody,
   type TicketIntakeResponse,
+  type UnseenSummary,
 } from '@spolu/shared';
 import type { AppDeps } from '../../deps.js';
 import { sendEmailLater } from '../../infra/email/index.js';
@@ -67,7 +68,7 @@ import {
 import { setTicketWatch, watchesTickets } from './watch.js';
 import { announceTimeChange, type TimeChange } from '../finance/task-time.js';
 import { requestDelivery } from '../notifications/service.js';
-import { emitSeen, markTicketSeen } from '../notifications/unseen.js';
+import { emitSeen, markTicketSeen, ticketUnseenSummary } from '../notifications/unseen.js';
 
 type IdParams = { Params: { id: string } };
 
@@ -373,6 +374,19 @@ export const ticketsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, 
     emitSeen(app.io, actor.id, { kind: 'ticket', id: row.id });
     return reply.code(204).send();
   });
+
+  // 2026-10-18: what changed since the viewer last opened the ticket: their own events only, and
+  // only while they read it now (a ticket moved to another client is gone for its old one).
+  app.get<IdParams>(
+    '/tickets/:id/unseen-summary',
+    { preHandler: anyUser },
+    async (request, reply): Promise<UnseenSummary | FastifyReply> => {
+      const actor = request.user!;
+      const row = await readable(actor, request.params.id, reply);
+      if (!row) return reply;
+      return ticketUnseenSummary(db, actor.id, row.id);
+    },
+  );
 
   app.patch<IdParams>('/tickets/:id', { preHandler: anyUser }, async (request, reply) => {
     const actor = request.user!;

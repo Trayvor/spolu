@@ -34,7 +34,7 @@ export const GROUPS = [
 ].map((g) => ({ ...g, hasLogo: false, memberCount: 1, updatedAt: NOW, managers: [] }));
 
 export const item = (over: Partial<TicketListItem> & { id: string }): TicketListItem => ({
-  unseen: false,
+  unseen: null,
   number: 100,
   groupId: 'g1',
   groupName: 'ABC s.r.o.',
@@ -82,7 +82,7 @@ export const ticket = (over: Partial<TicketDto> = {}): TicketDto => ({
   ...over,
 });
 
-export type Route = (url: URL, init?: RequestInit) => Response | undefined;
+export type Route = (url: URL, init?: RequestInit) => Response | Promise<Response> | undefined;
 
 export const reply = (status: number, body?: unknown) =>
   new Response(body === undefined ? null : JSON.stringify(body), { status });

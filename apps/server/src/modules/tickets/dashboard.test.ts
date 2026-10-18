@@ -230,9 +230,9 @@ describe('unseen tickets (2026-10-17)', () => {
           .filter((t) => t.groupId === g.id)
           .map((t) => [t.id, t.unseen]),
       );
-    expect(await unseen()).toEqual({ [changed]: true, [quiet]: false });
+    expect(await unseen()).toEqual({ [changed]: 'change', [quiet]: null });
     await markTicketSeen(db, me.id, changed);
-    expect(await unseen()).toEqual({ [changed]: false, [quiet]: false });
+    expect(await unseen()).toEqual({ [changed]: null, [quiet]: null });
   });
 });
 

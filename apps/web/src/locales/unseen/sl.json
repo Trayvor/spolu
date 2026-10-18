@@ -1,0 +1,52 @@
+{
+  "mark": {
+    "change": "Nova sprememba",
+    "message": "Novo sporočilo"
+  },
+  "heading": "Odkar ste ga nazadnje odprli",
+  "loading": "Nalaganje…",
+  "error": "Sprememb ni bilo mogoče naložiti.",
+  "empty": "Nič novega.",
+  "lines": {
+    "created": "Nov zahtevek",
+    "moved": "Premaknjeno: {{from}} → {{to}}",
+    "movedTo": "Premaknjeno v: {{to}}",
+    "movedGeneric": "Premaknjeno",
+    "assigned": "Dodeljeno vam",
+    "deadlineToday": "Rok danes",
+    "deadlineTomorrow": "Rok jutri",
+    "deadline": "Rok {{date}}",
+    "messages_one": "{{count}} novo sporočilo ({{authors}})",
+    "messages_two": "{{count}} novi sporočili ({{authors}})",
+    "messages_few": "{{count}} nova sporočila ({{authors}})",
+    "messages_other": "{{count}} novih sporočil ({{authors}})",
+    "messagesOnly_one": "{{count}} novo sporočilo",
+    "messagesOnly_two": "{{count}} novi sporočili",
+    "messagesOnly_few": "{{count}} nova sporočila",
+    "messagesOnly_other": "{{count}} novih sporočil",
+    "mentions": "Omenil vas je: {{authors}}",
+    "status": "Stanje: {{status}}",
+    "updated": "Podatki spremenjeni",
+    "tasks_one": "{{count}} nova naloga iz zahtevka",
+    "tasks_two": "{{count}} novi nalogi iz zahtevka",
+    "tasks_few": "{{count}} nove naloge iz zahtevka",
+    "tasks_other": "{{count}} novih nalog iz zahtevka",
+    "timeMissing": "Vpišite svoj čas"
+  },
+  "more_one": "in še {{count}} sprememba",
+  "more_two": "in še {{count}} spremembi",
+  "more_few": "in še {{count}} spremembe",
+  "more_other": "in še {{count}} sprememb",
+  "dismiss": "Skrij",
+  "buckets": {
+    "todo": "Za narediti",
+    "egrantReview": "Pregled eGrant",
+    "clientReview": "Pregled {{group}}",
+    "done": "Dokončano"
+  },
+  "status": {
+    "new": "Nov",
+    "in_progress": "V obdelavi",
+    "resolved": "Rešen"
+  }
+}
