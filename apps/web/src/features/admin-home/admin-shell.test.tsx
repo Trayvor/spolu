@@ -23,6 +23,7 @@ const SIDEBAR = [
     unread: 2,
     unseenTasks: 1,
     unseenTickets: 0,
+    nameRank: 1,
   },
 ];
 

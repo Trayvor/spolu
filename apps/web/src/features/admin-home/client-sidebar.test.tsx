@@ -16,6 +16,7 @@ const client = (over: Partial<SidebarClient> & { groupId: string; name: string }
     unread: 0,
     unseenTasks: 0,
     unseenTickets: 0,
+    nameRank: 1,
     ...over,
   }) as SidebarClient;
 

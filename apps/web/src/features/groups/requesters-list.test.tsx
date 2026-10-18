@@ -9,12 +9,14 @@ import { RequestersList } from './requesters-list';
 type Call = { method: string; url: string };
 
 /** A fake server: the requesters of g1, moved between active and removed by the writes. */
-function renderList(active: Member[], removed: Member[] = []) {
+function renderList(active: Member[], removed: Member[] = [], holdAfterWrites = Infinity) {
   const calls: Call[] = [];
   vi.stubGlobal(
     'fetch',
     vi.fn(async (url: string, init?: RequestInit) => {
       const method = init?.method ?? 'GET';
+      // Reads after `holdAfterWrites` writes never answer: the refetch stays in flight.
+      if (method === 'GET' && writes(calls).length >= holdAfterWrites) return new Promise(() => {});
       calls.push({ method, url });
       const json = (body: unknown) => new Response(JSON.stringify(body));
       if (url === '/api/groups/g1/requesters') return json(active);
@@ -85,5 +87,18 @@ describe('RequestersList', () => {
         { method: 'DELETE', url: '/api/groups/g1/members/z1' },
       ]),
     );
+  });
+
+  it('an Undo shows no new toast offering to undo the undo, even while the list reloads', async () => {
+    const user = userEvent.setup();
+    const calls = renderList([{ id: 'z1', name: 'Zora', email: 'zora@example.com' }], [], 2);
+    await user.click(await screen.findByRole('button', { name: 'Remove' }));
+    await screen.findByRole('button', { name: 'Undo' });
+    await user.click(screen.getByRole('button', { name: 'Undo' }));
+    await waitFor(() => expect(writes(calls)).toHaveLength(2));
+    // Let the mutation's success handlers run; the reload never ends.
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(screen.queryByRole('button', { name: 'Undo' })).toBeNull();
+    expect(screen.queryByText(/Restored as a requester/)).toBeNull();
   });
 });

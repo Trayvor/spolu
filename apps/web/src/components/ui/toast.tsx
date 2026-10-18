@@ -36,8 +36,9 @@ export type ToastAction = { label: string; onAction: () => void };
  *
  * Every `<Toast>` joins one app-wide queue while it is mounted, and only the oldest is shown, so
  * a second toast waits for the first. The shown one closes after `duration` (6 s by default) or
- * on its close button; hovering it or moving the focus into it pauses the countdown, and leaving
- * resumes it with the time that was left. The action button runs `onAction`, then closes.
+ * on its close button; hovering it with a mouse or moving the focus into it pauses the countdown,
+ * and leaving resumes it with the time that was left. Touch and pen "hover" is ignored, so a tap
+ * on the text does not pause it until the next tap elsewhere. The action button runs `onAction`, then closes.
  *
  * The region mounts empty and gets its content on the next tick: screen readers announce changes
  * to a live region, not a region that arrives already filled. It rises in (`animate-toast-in`,
@@ -98,8 +99,11 @@ export function Toast({
     <div className="pointer-events-none fixed inset-x-0 bottom-[max(16px,env(safe-area-inset-bottom))] z-50 flex justify-center px-4">
       <div
         className={`pointer-events-auto flex max-w-full animate-toast-in items-center gap-3 py-2 pr-2 pl-4 text-button font-medium ${POPOVER}`}
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
+        // Only a mouse hovers: a tap fires an enter with no leave until a tap elsewhere.
+        onPointerEnter={(event) => {
+          if (event.pointerType === 'mouse') setHovered(true);
+        }}
+        onPointerLeave={() => setHovered(false)}
         onFocus={() => setFocused(true)}
         onBlur={(event) => {
           if (!event.currentTarget.contains(event.relatedTarget)) setFocused(false);

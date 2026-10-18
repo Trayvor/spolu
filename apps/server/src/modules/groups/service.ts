@@ -165,6 +165,9 @@ export class InvalidGroupCursorError extends Error {
 const encodeGroupCursor = (c: GroupCursor) =>
   Buffer.from(JSON.stringify([c.name, c.id])).toString('base64url');
 
+/** The longest name or id a `GET /groups` cursor may hold (names are at most 100). */
+const GROUP_CURSOR_PART_MAX = 200;
+
 function decodeGroupCursor(cursor: string): GroupCursor {
   let parsed: unknown;
   try {
@@ -172,12 +175,10 @@ function decodeGroupCursor(cursor: string): GroupCursor {
   } catch {
     throw new InvalidGroupCursorError();
   }
-  if (
-    !Array.isArray(parsed) ||
-    parsed.length !== 2 ||
-    typeof parsed[0] !== 'string' ||
-    typeof parsed[1] !== 'string'
-  ) {
+  // Postgres rejects a NUL byte in text (a 500); a real name or id is never that long.
+  const part = (v: unknown): v is string =>
+    typeof v === 'string' && v.length <= GROUP_CURSOR_PART_MAX && !v.includes('\u0000');
+  if (!Array.isArray(parsed) || parsed.length !== 2 || !part(parsed[0]) || !part(parsed[1])) {
     throw new InvalidGroupCursorError();
   }
   return { name: parsed[0], id: parsed[1] };

@@ -42,6 +42,12 @@ export const SidebarClientSchema = z.object({
   unseenTasks: z.number().int(),
   /** Tickets of this client with an unseen change for the viewer. */
   unseenTickets: z.number().int(),
+  /**
+   * The row's place among all groups by name in the database's order (2026-10-18, 1 = first).
+   * A client patching a row puts it back by this rank, never by comparing names in the browser's
+   * locale, which orders "Č" or ties differently.
+   */
+  nameRank: z.number().int(),
 });
 export type SidebarClient = z.infer<typeof SidebarClientSchema>;
 export const SidebarSchema = z.array(SidebarClientSchema);

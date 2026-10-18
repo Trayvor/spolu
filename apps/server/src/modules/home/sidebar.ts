@@ -20,7 +20,9 @@ import { unseenTaskIdsSql, unseenTicketIdsSql } from '../notifications/unseen.js
  * replies keeps the full count. The order uses the shown numbers.
  *
  * With `groupIds` (2026-10-18), only those groups' rows: a client patches the rows an
- * `admin:activity` named instead of reloading about 3 000 of them.
+ * `admin:activity` named instead of reloading about 3 000 of them. Each row carries `name_rank`,
+ * its place among all groups by `name, id` in the database collation, so the client puts a
+ * patched row back without comparing names itself.
  *
  * Reads the chat, tasks, tickets and groups tables directly: the documented read-only exception
  * of `modules/home` (see docs/architecture/overview.md).
@@ -41,12 +43,16 @@ export function sidebarSql(userId: string, groupIds?: readonly string[]): SQL {
         g.kind = 'admin' as internal,
         g.logo_key is not null as has_logo,
         g.updated_at,
+        r.name_rank,
         g.id in ${managedGroupsSql(userId)} as managed,
         (case when ${groupChatNotifiesSql(userId, sql`g.id`)} then coalesce(u.n, 0) else 0 end)::int
           as unread,
         coalesce(ut.n, 0)::int as unseen_tasks,
         coalesce(uk.n, 0)::int as unseen_tickets
       from groups g
+      join (
+        select id, row_number() over (order by name, id)::int as name_rank from groups
+      ) r on r.id = g.id
       left join (${unreadByGroupSql(userId, only(sql`c.group_id`))}) u on u.group_id = g.id
       left join (
         select t.group_id, count(*) as n
@@ -64,7 +70,7 @@ export function sidebarSql(userId: string, groupIds?: readonly string[]): SQL {
       ) uk on uk.group_id = g.id
       where ${only(sql`g.id`)}
     ) s
-    order by internal desc, managed desc, (unread + unseen_tasks + unseen_tickets > 0) desc, name, group_id
+    order by internal desc, managed desc, (unread + unseen_tasks + unseen_tickets > 0) desc, name_rank
   `;
 }
 
@@ -74,6 +80,7 @@ type Row = {
   internal: boolean;
   has_logo: boolean;
   updated_at: string | Date;
+  name_rank: number;
   managed: boolean;
   unread: number;
   unseen_tasks: number;
@@ -98,5 +105,6 @@ export async function getSidebar(
     unread: r.unread,
     unseenTasks: r.unseen_tasks,
     unseenTickets: r.unseen_tickets,
+    nameRank: r.name_rank,
   }));
 }

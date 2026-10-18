@@ -10,6 +10,8 @@ import { removeMember, requestersQuery, restoreMember } from './api';
 const ROW =
   'flex flex-col items-start gap-3 px-5 py-3 min-[641px]:flex-row min-[641px]:items-center min-[641px]:justify-between [&:not(:last-child)]:border-b [&:not(:last-child)]:border-border';
 
+type Change = { userId: string; restore: boolean; name: string; undo?: boolean };
+
 function Who({ member }: { member: Member }) {
   return (
     <div className="min-w-0">
@@ -40,19 +42,16 @@ export function RequestersList({ groupId, admin }: { groupId: string; admin: boo
     key: number;
   } | null>(null);
   const change = useMutation({
-    mutationFn: ({ userId, restore }: { userId: string; restore: boolean; name: string }) =>
+    mutationFn: ({ userId, restore }: Change) =>
       restore ? restoreMember(groupId, userId) : removeMember(groupId, userId),
-    onSuccess: (_, { userId, restore, name }) => {
-      setDone({ userId, name, restore, key: Date.now() });
+    // An undone change is not offered for undo again (no toast, even while the list reloads).
+    onSuccess: (_, { userId, restore, name, undo }) => {
+      setDone(undo ? null : { userId, name, restore, key: Date.now() });
       return queryClient.invalidateQueries({ queryKey: ['groups', groupId] });
     },
   });
   const undo = (last: NonNullable<typeof done>) =>
-    change.mutate(
-      { userId: last.userId, restore: !last.restore, name: last.name },
-      // An undone change is not offered for undo again.
-      { onSuccess: () => setDone(null) },
-    );
+    change.mutate({ userId: last.userId, restore: !last.restore, name: last.name, undo: true });
 
   if ((active?.length ?? 0) === 0 && (removed?.length ?? 0) === 0) return null;
   return (

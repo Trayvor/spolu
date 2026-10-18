@@ -87,10 +87,10 @@ describe('Toast', () => {
     render(<Toast onClose={onClose}>Done</Toast>);
     const bar = screen.getByRole('status').parentElement!;
     act(() => vi.advanceTimersByTime(4000));
-    fireEvent.mouseEnter(bar);
+    fireEvent.pointerEnter(bar, { pointerType: 'mouse' });
     act(() => vi.advanceTimersByTime(10_000));
     expect(onClose).not.toHaveBeenCalled();
-    fireEvent.mouseLeave(bar);
+    fireEvent.pointerLeave(bar, { pointerType: 'mouse' });
     act(() => vi.advanceTimersByTime(1999));
     expect(onClose).not.toHaveBeenCalled();
     act(() => vi.advanceTimersByTime(1));
@@ -100,6 +100,19 @@ describe('Toast', () => {
     fireEvent.focus(screen.getByRole('button', { name: i18n.t('toast.close') }));
     act(() => vi.advanceTimersByTime(10_000));
     expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it('a tap does not pause it: hover from touch or pen is ignored', () => {
+    vi.useFakeTimers();
+    const onClose = vi.fn();
+    render(<Toast onClose={onClose}>Done</Toast>);
+    const bar = screen.getByRole('status').parentElement!;
+    // A tap fires pointerenter (touch) and an emulated mouseenter, but no leave until a tap elsewhere.
+    fireEvent.pointerEnter(bar, { pointerType: 'touch' });
+    fireEvent.mouseEnter(bar);
+    fireEvent.pointerEnter(bar, { pointerType: 'pen' });
+    act(() => vi.advanceTimersByTime(6000));
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 
   it('runs its action, then closes', () => {

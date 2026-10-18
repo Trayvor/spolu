@@ -61,6 +61,35 @@ describe('loadConfig: placeholder secrets in production', () => {
     }
   });
 
+  it('allows POSTGRES_PASSWORD=spolu when DATABASE_URL is local (a dev shell running e2e)', () => {
+    for (const host of ['localhost', '127.0.0.1', '[::1]']) {
+      expect(() =>
+        loadConfig({
+          ...prod,
+          POSTGRES_PASSWORD: 'spolu',
+          DATABASE_URL: `postgres://spolu:spolu@${host}:5432/spolu_e2e`,
+        }),
+      ).not.toThrow();
+    }
+    // A server's DATABASE_URL points at compose's `postgres` host: still refused there.
+    expect(errorOf({ ...prod, POSTGRES_PASSWORD: 'spolu' }).variables).toEqual([
+      'POSTGRES_PASSWORD',
+    ]);
+  });
+
+  it('a malformed % in the DATABASE_URL password fails with an error naming DATABASE_URL', () => {
+    for (const env of [prod, { ...validEnv, NODE_ENV: 'development' }]) {
+      const error = errorOf({ ...env, DATABASE_URL: 'postgres://spolu:p%zz@postgres:5432/spolu' });
+      expect(error.variables).toEqual(['DATABASE_URL']);
+      expect(error.message).toContain('DATABASE_URL');
+      expect(error.message).not.toContain('p%zz');
+    }
+    // Well-formed percent-encoding still works.
+    expect(() =>
+      loadConfig({ ...prod, DATABASE_URL: 'postgres://spolu:p%25zz@postgres:5432/spolu' }),
+    ).not.toThrow();
+  });
+
   it('refuses only the exact placeholders, never weak-looking values', () => {
     expect(() =>
       loadConfig({
