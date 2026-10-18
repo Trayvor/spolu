@@ -61,3 +61,4 @@ What gets easier, what gets harder.
 | [0035](0035-in-memory-mail-capture-for-server-tests.md) | Server tests capture email in memory; Mailpit for e2e and one SMTP check | accepted |
 | [0036](0036-teams-graph-app-only-plain-fetch.md) | Microsoft Teams through Graph app-only over plain fetch, calendar events and polling | accepted |
 | [0037](0037-supply-chain-policy.md) | Supply-chain policy: pnpm release age and trust, images by digest | accepted |
+| [0041](0041-ffmpeg-hardened-for-untrusted-uploads.md) | ffmpeg runs hardened for untrusted uploads: input whitelists and a minimal environment | accepted |

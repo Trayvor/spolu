@@ -12,7 +12,7 @@ ARG RUNTIME_IMAGE=debian:bookworm-slim@sha256:7c7b2c966bc9ee8cedfeef67e0e2791089
 # A static ffmpeg build for meeting recordings (Phase 30, ADR 0023): one binary, no shared libs,
 # instead of Debian's ffmpeg package through RUNTIME_PACKAGES (+406 MB). A third-party image
 # (github.com/wader/static-ffmpeg), so it is pinned by digest like the others (ADR 0037).
-ARG FFMPEG_IMAGE=mwader/static-ffmpeg:7.1.1@sha256:11a44711684c0b9f754c047dcd64235b8b52deab251bd0e0a86f22faa160749c
+ARG FFMPEG_IMAGE=mwader/static-ffmpeg:8.1.2@sha256:33f770f812cbfc3de96c547157fc9faf8bd95a36481753439ffa761045167585
 
 FROM ${FFMPEG_IMAGE} AS ffmpeg
 

@@ -4,7 +4,9 @@ import { join } from 'node:path';
 
 /**
  * Audio work for meeting recordings (Phase 30, ADR 0023): ffmpeg as a child process, never
- * through a shell. A fake for tests and machines without ffmpeg.
+ * through a shell, hardened for untrusted uploads (ADR 0041): only local files and audio/video
+ * demuxers as input, capped threads and allocations, a 2-hour kill timer and an environment
+ * with nothing but PATH. A fake for tests and machines without ffmpeg.
  */
 export interface MediaTools {
   /**
@@ -26,9 +28,17 @@ export class MediaFailedError extends Error {
 /** A transcode may take this long (a 2 GB video of several hours) before it is killed. */
 const MAX_RUN_MS = 2 * 60 * 60 * 1000;
 
+/**
+ * The child's whole environment (review M3): only PATH, so a compromised ffmpeg (a crafted
+ * upload hitting a demuxer bug) finds no APP_SECRET, DATABASE_URL or API keys in its own env.
+ */
+export function ffmpegEnv(): NodeJS.ProcessEnv {
+  return { PATH: process.env.PATH ?? '/usr/local/bin:/usr/bin:/bin' };
+}
+
 function run(binary: string, args: string[]): Promise<void> {
   return new Promise((resolve, reject) => {
-    const child = spawn(binary, args, { stdio: ['ignore', 'ignore', 'pipe'] });
+    const child = spawn(binary, args, { stdio: ['ignore', 'ignore', 'pipe'], env: ffmpegEnv() });
     // Only the end of stderr is kept, for the exit message (it holds paths and codec names).
     let tail = '';
     child.stderr.on('data', (chunk: Buffer) => {
@@ -47,15 +57,64 @@ function run(binary: string, args: string[]): Promise<void> {
   });
 }
 
+/**
+ * Demuxers ffmpeg may open an input with (review M3, ADR 0041): the containers of the media
+ * extensions the upload takes (`MEDIA_EXTENSIONS` in `meeting-recording.ts`), plus Apple's CAF.
+ * Playlist-style formats that ffmpeg detects by content and that open other files or URLs
+ * (concat/ffconcat, hls, dash, image2 sequences, tee, subfile, ...) are refused. ffmpeg matches
+ * each against a demuxer's name list, so `mov` covers mp4/m4a/3gp and `matroska` covers webm.
+ * Keep it in step with `MEDIA_EXTENSIONS`.
+ */
+export const INPUT_FORMATS = [
+  'mov',
+  'matroska',
+  'webm',
+  'ogg',
+  'wav',
+  'mp3',
+  'aac',
+  'flac',
+  'caf',
+  'amr',
+  'asf',
+  'avi',
+  'mpeg',
+] as const;
+
+/** Threads per decoder and encoder: speech audio needs little, and a bad input cannot fan out. */
+const THREADS = '2';
+/** The largest single allocation ffmpeg may make (its default is about 2 GB). */
+const MAX_ALLOC_BYTES = String(256 * 1024 * 1024);
+
 /** ffmpeg at `binary` (`FFMPEG_PATH`, default `ffmpeg` on the PATH). */
 export function createFfmpeg(binary: string): MediaTools {
-  const base = ['-nostdin', '-hide_banner', '-loglevel', 'error', '-y'];
+  const base = [
+    '-nostdin',
+    '-hide_banner',
+    '-loglevel',
+    'error',
+    '-y',
+    '-max_alloc',
+    MAX_ALLOC_BYTES,
+  ];
+  // Input options, before `-i`: only local files, only the formats above.
+  const inputOf = (path: string) => [
+    '-protocol_whitelist',
+    'file',
+    '-format_whitelist',
+    INPUT_FORMATS.join(','),
+    '-threads',
+    THREADS,
+    '-i',
+    path,
+  ];
   return {
     toSpeechAudio: (input, output) =>
       run(binary, [
         ...base,
-        '-i',
-        input,
+        ...inputOf(input),
+        '-threads',
+        THREADS,
         '-vn',
         '-sn',
         '-dn',
@@ -76,8 +135,7 @@ export function createFfmpeg(binary: string): MediaTools {
     async split(input, dir, seconds) {
       await run(binary, [
         ...base,
-        '-i',
-        input,
+        ...inputOf(input),
         '-vn',
         '-c',
         'copy',
