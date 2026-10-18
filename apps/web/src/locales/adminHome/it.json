@@ -45,7 +45,8 @@
       "new": "Nuovo",
       "noClient": "Senza cliente",
       "showAll": "Mostra tutti i ticket",
-      "empty": "Niente da gestire: nessun ticket aperto assegnato a Lei, senza assegnatario presso i clienti che segue o senza cliente."
+      "empty": "Niente da gestire: nessun ticket aperto assegnato a Lei, senza assegnatario presso i clienti che segue o senza cliente.",
+      "egrantChange": "Modifica da eGrant"
     },
     "assigned": {
       "title": "Le mie attività",

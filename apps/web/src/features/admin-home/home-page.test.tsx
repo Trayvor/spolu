@@ -59,6 +59,7 @@ const mention = (over: Partial<ChatMentionItem> & { messageId: string }): Mentio
 
 const ticket = (over: Partial<HomeTicket> & { id: string; number: number }): HomeTicket => ({
   unseen: null,
+  egrantChanges: false,
   subject: 'Budget question',
   excerpt: null,
   status: 'in_progress',

@@ -3,6 +3,7 @@ import { HOME_LIMITS, type HomeTickets, type TicketStatus, type UnseenMark } fro
 import type { Db } from '../../infra/db/client.js';
 import { liveGroupSql } from '../groups/memberships.js';
 import { ticketUnseenSql, unseenTicketIdsSql } from '../notifications/unseen.js';
+import { pendingEgrantChangesSql } from '../projects/egrant-match.js';
 import { watchedGroupsSql } from './watch.js';
 
 // The admin dashboard's Tickets card: the active
@@ -16,7 +17,7 @@ import { watchedGroupsSql } from './watch.js';
 
 const ACTIVE = sql`('new', 'in_progress')`;
 const EXCERPT = 80;
-const COLUMNS = sql`t.id, t.number, t.subject, t.body, t.status, t.group_id, t.due_date, t.created_at`;
+const COLUMNS = sql`t.id, t.number, t.subject, t.body, t.status, t.group_id, t.due_date, t.created_at, t.project_id`;
 
 function activeTicketsSql(userId: string): SQL {
   return sql`
@@ -43,7 +44,8 @@ function activeTicketsSql(userId: string): SQL {
  */
 export function dashboardTicketsSql(userId: string): SQL {
   return sql`
-    select p.*, ${ticketUnseenSql(userId, sql`p.id`)} as unseen
+    select p.*, ${ticketUnseenSql(userId, sql`p.id`)} as unseen,
+      ${pendingEgrantChangesSql(sql`p.project_id`)} as egrant_changes
     from (
       select
         t.id,
@@ -56,6 +58,7 @@ export function dashboardTicketsSql(userId: string): SQL {
         t.due_date,
         t.created_at,
         t.has_assignee,
+        t.project_id,
         (count(*) over ())::int as total,
         (count(*) filter (where t.status = 'new') over ())::int as fresh_total,
         (count(*) filter (where not t.has_assignee) over ())::int as no_assignee_total
@@ -82,6 +85,7 @@ type Row = {
   created_at: Date | string;
   has_assignee: boolean;
   unseen: UnseenMark | null;
+  egrant_changes: boolean;
   total: number;
   fresh_total: number;
   no_assignee_total: number;
@@ -106,6 +110,7 @@ export async function getDashboardTickets(db: Db, userId: string): Promise<HomeT
       createdAt: new Date(r.created_at).toISOString(),
       hasAssignee: r.has_assignee,
       unseen: r.unseen,
+      egrantChanges: r.egrant_changes,
     })),
   };
 }

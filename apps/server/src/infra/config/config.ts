@@ -64,6 +64,8 @@ const base = {
   EGRANT_PROJECTS_SIGNING_SECRET: z.string().min(32).optional(),
   // Only to tell the placeholder password apart (compose builds DATABASE_URL from it).
   POSTGRES_PASSWORD: z.string().optional(),
+  // Phase 33 part P3: the fallback only if eGrant never sends projects (decision 1).
+  TICKETS_PROJECT_FIELD: z.enum(['programme']).optional(),
   // Phase 23 — bulk email. The API key is optional here and required (below) when either
   // EMAIL_DRIVER or BULK_EMAIL_DRIVER is `elastic`.
   ELASTIC_EMAIL_API_KEY: z.string().min(1).optional(),
@@ -187,6 +189,12 @@ export type Config = {
    * Checked by `egrantSignature` in `infra/http/egrant-signature.ts`.
    */
   egrantSigningSecrets: Record<EgrantWebhook, string | null>;
+  /**
+   * The fallback switch of Phase 33 (decision 1): `programme` links an intake ticket without a
+   * `project_id` to the client's project of that name. Unset = off (eGrant sends `project_id`).
+   * Read only through `intakeProjectField`.
+   */
+  ticketsProjectField?: 'programme' | null;
   /** Calls a minute per admin to become or stop being a manager; unset = 120 (tests lower it). */
   managerRateLimitPerMinute?: number;
   /**
@@ -275,6 +283,7 @@ export function loadConfig(env: NodeJS.ProcessEnv): Config {
       groups: e.EGRANT_GROUPS_SIGNING_SECRET ?? null,
       projects: e.EGRANT_PROJECTS_SIGNING_SECRET ?? null,
     },
+    ticketsProjectField: e.TICKETS_PROJECT_FIELD ?? null,
     email:
       e.EMAIL_DRIVER === 'smtp'
         ? {
@@ -352,13 +361,13 @@ function teamsConfig(e: {
   };
 }
 
-/** The webhooks eGrant calls; `projects` is PR #113. */
+/** The webhooks eGrant calls. */
 export type EgrantWebhook = 'tickets' | 'managers' | 'groups' | 'projects';
 
 /**
  * The Bearer key of an eGrant webhook: its own key when set, otherwise the ticket intake's
  * `TICKETS_API_KEY` (so a server with only that key keeps working). null = the webhook is off.
- * `projects` is for the project webhook (PR #113), `groups` for `PUT /api/egrant/groups`.
+ * `projects` is for `PUT /api/egrant/projects/:project_id`, `groups` for `PUT /api/egrant/groups`.
  */
 export function egrantWebhookKey(
   config: Pick<

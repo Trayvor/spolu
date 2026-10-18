@@ -25,4 +25,4 @@ eGrant calls Help's webhooks (ticket intake, managers, groups, and the projects 
 - eGrant must sign every attempt anew, retries included, with a fresh timestamp: a retry with the old signature is a replay and answers `401`. eGrant's clock must be NTP-synced.
 - Turning it on is two steps: eGrant sends the headers (ignored while unset), then the Help admin sets the secret and restarts. Rotation is the same as for the keys: a new value and a restart; the old signatures answer `401` from then on.
 - A leaked request is useless after five minutes, and a leaked Bearer key alone no longer opens a signed webhook.
-- The intake, managers and groups webhooks use it from the start; PR #113 (projects) adds the one-line spread to its route, and until it does, that webhook is not signed even with a secret set.
+- The intake, managers and groups webhooks use it from the start; the projects webhook got the one-line spread with PR #113 (Phase 33 P3).

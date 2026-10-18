@@ -1,5 +1,6 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { UnseenMarker } from '@/features/unseen/marker';
+import { Badge } from '@/components/ui/badge';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
@@ -33,6 +34,7 @@ export function TicketList({
   disabled = false,
   empty,
   projectScope,
+  egrantFilter = false,
 }: {
   source: TicketSource;
   filter: TicketFilter;
@@ -43,6 +45,8 @@ export function TicketList({
   empty?: ReactNode;
   /** Where the Project (and Event) filter pills apply; absent: none (see `TicketFilters`). */
   projectScope?: ProjectScope;
+  /** The "eGrant changes" pill: for admins and the group's clients (Phase 33 part P3). */
+  egrantFilter?: boolean;
 }) {
   const { t } = useTranslation();
   const query = useInfiniteQuery({ ...ticketsQuery(source, filter), enabled: !disabled });
@@ -105,6 +109,7 @@ export function TicketList({
         onChange={onFilterChange}
         areas={areas}
         projectScope={projectScope}
+        showEgrant={egrantFilter}
       >
         {filterExtras}
       </TicketFilters>
@@ -178,6 +183,11 @@ function TicketRow({ item, showClient }: { item: TicketListItem; showClient: boo
             )}
             {item.area && <span className="max-w-full truncate">{item.area}</span>}
             {item.project && <ProjectChip project={item.project} event={item.event} />}
+            {item.egrantChanges && (
+              <Badge variant="outline" className="py-0">
+                {t('tickets.row.egrantChange')}
+              </Badge>
+            )}
             {showClient && (
               <span className="max-w-full truncate font-semibold">
                 {item.groupName ?? t('tickets.row.noClient')}

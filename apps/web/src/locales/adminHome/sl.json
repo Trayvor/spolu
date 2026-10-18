@@ -50,7 +50,8 @@
       "new": "Nov",
       "noClient": "Brez stranke",
       "showAll": "Prikaži vse zahtevke",
-      "empty": "Nič za reševanje: nimate nobenega odprtega zahtevka, pri spremljanih strankah ni zahtevka brez reševalca in noben zahtevek ni brez stranke."
+      "empty": "Nič za reševanje: nimate nobenega odprtega zahtevka, pri spremljanih strankah ni zahtevka brez reševalca in noben zahtevek ni brez stranke.",
+      "egrantChange": "Sprememba iz eGranta"
     },
     "assigned": {
       "title": "Moje naloge",

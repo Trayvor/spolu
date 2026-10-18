@@ -128,6 +128,8 @@ Done when: a task and a ticket sit on an event, and both tabs filter by the proj
 
 ## Part P3 — eGrant project webhook, ticket links, merge (branch `feat/projects-intake`; after P1, parallel with P2)
 
+Status: **built** on `feat/projects-intake` (no migration). Deviations: `reviewEgrantChanges(deps, projectId, review)` and `mergeProjects(deps, fromId, intoId)` take no actor (the routes check the policy); `receiveProjectDelivery` also returns `linkedTicketIds` and `processInboxFor` the projects and tickets it touched; the `sent_at` guard applies to the project's own eGrant id only (a merged-in id's deliveries only propose); the timeline's and the project select's eGrant marks are left to P4 and P2 (they own those components). The eGrant developers' confirmation is still open.
+
 **Goal:** spec §5 and decisions 1–6c. This part covers:
 
 - the project endpoint (a webhook) that creates and updates projects;

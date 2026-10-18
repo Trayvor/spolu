@@ -37,6 +37,7 @@ Body (JSON, at most 28 MiB; every other API route keeps 1 MiB); every field is o
 | `url` | a URL link | http(s) |
 | `instance_url` | the client's eGrant instance | any URL; matched to a client by host (scheme, `www.` and path ignored) |
 | `request_id` | eGrant's own id of this request, for safe retries | 1 to 100 characters; one ticket per id, kept forever |
+| `project_id` | eGrant's id of the project the request is about (Phase 33 part P3) | 1 to 100 characters; empty or missing = no project. Known in the ticket's client: the ticket is placed in that project (never an event). Not known yet, or no client: the raw id is kept and the ticket is linked when the project call delivers it, the client is assigned or the ticket moves. A ticket is linked once; a project set by hand is never changed by eGrant. See [projects](projects.md#egrant-projects-part-p3) |
 
 Answers:
 
@@ -61,6 +62,12 @@ The guide with the full contract: [docs/integrations/egrant-managers.md](../inte
 ## Groups webhook (for the eGrant team)
 
 `PUT /api/egrant/groups` with `{ "instance_url", "name", "logo"?, "active"? }` and the Bearer key `EGRANT_GROUPS_API_KEY` (unset: `TICKETS_API_KEY`). It creates the client group of an instance (`201 created`) or updates its name and logo (`200 updated` / `unchanged`), keyed by host; `active: false` / `true` deactivates or reactivates it (`deactivated` / `reactivated`), only on an eGrant operator's explicit action, never from contract dates. The logo is base64 JSON (PNG, JPEG or WebP, at most 2 MiB; `415` other types, `422` bytes that are not that image, `413` too large), cleaned of metadata. It never deletes a group or touches members. Optionally the calls are also HMAC-signed (`EGRANT_GROUPS_SIGNING_SECRET`, [request signing](../integrations/egrant.md#request-signing-optional)). Full contract: [integrations/egrant.md](../integrations/egrant.md#groups); rules: [groups.md](groups.md).
+
+## eGrant project endpoint (Phase 33 part P3)
+
+`PUT https://<host>/api/egrant/projects/:project_id` with a Bearer key: its own `EGRANT_PROJECTS_API_KEY` when the server sets one, otherwise the intake's `TICKETS_API_KEY`. eGrant sends a project's full state (name, description, every event with a `dd.mm.yyyy` date). The first call creates the project "From eGrant" (`201`), later ones become pending changes people review field by field (`200 unchanged | pending | stale`), an instance without a client is stored for 180 days (`202 stored`). A deactivated client answers `409 group_inactive` and nothing is stored (as for tickets and managers). Body at most 1 MiB. Order of checks, before the body is read: `503` no key configured, `429` over 120 calls a minute from one IP (wrong keys count too), `401` wrong key. Optionally the calls are also HMAC-signed (`EGRANT_PROJECTS_SIGNING_SECRET`, [request signing](../integrations/egrant.md#request-signing-optional)); eGrant does not sign today, so the secret stays unset. The full contract is in [the integration guide](../integrations/egrant.md#projects), the behaviour in [projects](projects.md#egrant-projects-part-p3).
+
+`TICKETS_PROJECT_FIELD=programme` is a fallback switch only for the case that eGrant never sends projects (decision 1): an intake ticket without `project_id` is then placed in the client's project whose name (or alias) has the same name key as its `programme`; it never creates a project. Unset by default.
 
 ## MCP server (AI assistants)
 

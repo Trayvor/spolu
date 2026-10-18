@@ -534,4 +534,42 @@ describe('ticket page', () => {
       expect(calls.some((c) => c.includes('assignee-candidates'))).toBe(false);
     });
   });
+
+  describe('the eGrant project (Phase 33 part P3)', () => {
+    it('a waiting ticket says its project has not arrived yet', async () => {
+      renderTicket(CLIENT, ticket({ egrantProjectId: 'prj-208', waitingForProject: true }));
+      expect(
+        await screen.findByText(t('tickets.egrant.waiting', { id: 'prj-208' })),
+      ).toBeInTheDocument();
+    });
+
+    it('pending changes link to the project sheet in Prehľad; an archived project is named', async () => {
+      renderTicket(
+        ADMIN,
+        ticket({
+          egrantChanges: true,
+          projectArchived: true,
+          project: { id: 'p1', name: 'Kultúra 2026', color: 'blue' },
+        }),
+      );
+      const review = await screen.findByRole('link', { name: t('tickets.egrant.review') });
+      expect(review).toHaveAttribute('href', '/groups/g1/overview?sheet=p1');
+      expect(screen.getByText(t('tickets.egrant.archived'))).toBeInTheDocument();
+    });
+
+    it('a ticket without a client shows the raw eGrant project id', async () => {
+      renderTicket(ADMIN, ticket({ groupId: null, groupName: null, egrantProjectId: 'prj-300' }));
+      expect(
+        await screen.findByText(t('tickets.egrant.raw', { id: 'prj-300' })),
+      ).toBeInTheDocument();
+    });
+
+    it('nothing shows without an eGrant project', async () => {
+      renderTicket(CLIENT, ticket());
+      expect(
+        await screen.findByRole('heading', { name: 'Cannot submit the application' }),
+      ).toBeInTheDocument();
+      expect(screen.queryByTestId('ticket-egrant')).toBeNull();
+    });
+  });
 });

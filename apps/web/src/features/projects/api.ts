@@ -1,10 +1,12 @@
 import { infiniteQueryOptions, queryOptions } from '@tanstack/react-query';
 import {
+  EgrantChangeListSchema,
   EventPickerSchema,
   ProjectDtoSchema,
   ProjectEventDtoSchema,
   ProjectPageSchema,
   ProjectPickerSchema,
+  type EgrantReviewBody,
   type EventCreateBody,
   type EventPatchBody,
   type ProjectCreateBody,
@@ -95,4 +97,24 @@ export function updateEvent(id: string, patch: EventPatchBody): Promise<ProjectE
 
 export async function deleteEvent(id: string): Promise<void> {
   await apiSend('DELETE', `/project-events/${enc(id)}`);
+}
+
+/** "Changes from eGrant" of one project (part P3): the pending rows with the current values. */
+export const egrantChangesQuery = (groupId: string, projectId: string) =>
+  queryOptions({
+    queryKey: projectsKey(groupId, 'egrant', projectId),
+    queryFn: () => apiGet(`/projects/${enc(projectId)}/egrant-changes`, EgrantChangeListSchema),
+  });
+
+/** "Save choices": applies the accepted rows and dismisses the others named, in one save. */
+export function reviewEgrantChanges(
+  projectId: string,
+  body: EgrantReviewBody,
+): Promise<ProjectDto> {
+  return apiSend('POST', `/projects/${enc(projectId)}/egrant-changes`, body, ProjectDtoSchema);
+}
+
+/** Merges the project into `into` of the same client; answers the survivor. */
+export function mergeProject(projectId: string, into: string): Promise<ProjectDto> {
+  return apiSend('POST', `/projects/${enc(projectId)}/merge`, { into }, ProjectDtoSchema);
 }

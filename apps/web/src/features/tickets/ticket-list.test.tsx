@@ -5,7 +5,16 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RouterProvider, createMemoryHistory } from '@tanstack/react-router';
 import { i18n } from '@/i18n';
 import { createAppRouter } from '@/router';
-import { ADMIN, CLIENT, fakeSocket, item, mockTicketApi, reply, ticket } from './test-api';
+import {
+  ADMIN,
+  CLIENT,
+  REQUESTER,
+  fakeSocket,
+  item,
+  mockTicketApi,
+  reply,
+  ticket,
+} from './test-api';
 
 const socket = fakeSocket();
 vi.mock('@/lib/socket', () => ({
@@ -332,5 +341,28 @@ describe('ticket lists', () => {
     );
     await new Promise((r) => setTimeout(r, 50));
     expect(listCalls()).toBe(before);
+  });
+
+  it('eGrant changes (Phase 33 part P3): a row badge, and a pill for clients that sends egrant=pending', async () => {
+    const { calls } = mockTicketApi(
+      CLIENT,
+      groupRoutes([item({ id: 'k1', egrantChanges: true }), item({ id: 'k2' })]),
+    );
+    renderAt('/groups/g1/tickets');
+    const row = (await screen.findByText('Ticket k1')).closest('li')!;
+    expect(within(row).getByText(t('tickets.row.egrantChange'))).toBeVisible();
+    const other = screen.getByText('Ticket k2').closest('li')!;
+    expect(within(other).queryByText(t('tickets.row.egrantChange'))).toBeNull();
+    const pill = screen.getByRole('button', { name: t('tickets.filters.egrant') });
+    await userEvent.click(pill);
+    await waitFor(() => expect(calls).toContain('GET /api/groups/g1/tickets?egrant=pending'));
+    expect(pill).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('a requester gets no eGrant changes pill', async () => {
+    mockTicketApi(REQUESTER, groupRoutes());
+    renderAt('/groups/g1/tickets');
+    expect(await screen.findByText('Ticket k1')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: t('tickets.filters.egrant') })).toBeNull();
   });
 });

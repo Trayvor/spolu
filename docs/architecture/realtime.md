@@ -169,7 +169,7 @@ The catch-up read is an ordinary HTTP read, so it uses the same permission check
 
 | event | payload | room | when |
 |---|---|---|---|
-| `project:changed` | `{ groupId, projectId, kind: 'project' \| 'event' \| 'egrant' }` | `group:<id>` | after a project or event write commits (`emitProjectChanged`, `modules/projects/events.ts`): create, edit, archive, restore, delete, alias removal (kind `project`); an event's create, edit, delete (kind `event`); part P3 adds kind `egrant` after a delivery or a review changed pending changes |
+| `project:changed` | `{ groupId, projectId, kind: 'project' \| 'event' \| 'egrant' }` | `group:<id>` | after a project or event write commits (`emitProjectChanged`, `modules/projects/events.ts`): create, edit, archive, restore, delete, alias removal (kind `project`); an event's create, edit, delete (kind `event`); part P3: kind `project` after a delivery created a project and after a merge (for both projects), kind `egrant` after a delivery recorded changes and after a review; a delivery that linked waiting tickets also sends `ticket:updated` for each. A merge sends no `ticket:updated` for the tickets it moves, and an inbox processed on a client's save sends nothing |
 
 The web's `useProjectEvents(groupId)` (the Prehľad tab) invalidates every `['projects', groupId, …]` query 2 s after the last event of a burst; the writer's own screen refetches at once. Task and ticket events are unchanged: their DTOs carry `project` and `event`. Part P4: the tab's `useWorkEvents(groupId)` also listens to the group room's `board:task`, `board:task_deleted` and `ticket:*` events and refetches the timeline, the event lists and the active cards (`['projects', groupId, 'timeline' | 'items' | 'active']`) 2 s after the last one.
 

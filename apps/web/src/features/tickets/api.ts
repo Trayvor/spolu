@@ -49,6 +49,8 @@ export type TicketFilter = {
    */
   project?: string;
   event?: string;
+  /** Only tickets whose project has pending changes from eGrant (Phase 33 part P3). */
+  egrant?: boolean;
 };
 
 const sourceKey = (source: TicketSource) =>
@@ -78,6 +80,7 @@ function listSearch(source: TicketSource, filter: TicketFilter, cursor?: string)
   if (source.kind === 'group' && filter.event && filter.project && filter.project !== 'none') {
     qs.set('event', filter.event);
   }
+  if (filter.egrant) qs.set('egrant', 'pending');
   if (source.kind === 'global') {
     if (filter.noClient) qs.set('scope', 'none');
     else if (filter.clients === 'all') qs.set('scope', 'all');
@@ -131,6 +134,7 @@ function toListItem(ticket: TicketDto): TicketListItem {
     event: ticket.event,
     // Per viewer, from the list's own answer: a patched row keeps its mark (`patchTicketInLists`).
     unseen: null,
+    egrantChanges: ticket.egrantChanges,
   };
 }
 
@@ -151,6 +155,7 @@ function matchesFilter(item: TicketListItem, filter: TicketFilter, meId?: string
   }
   if (filter.event === 'none' && item.event !== null) return false;
   if (filter.event && filter.event !== 'none' && item.event?.id !== filter.event) return false;
+  if (filter.egrant && !item.egrantChanges) return false;
   return true;
 }
 

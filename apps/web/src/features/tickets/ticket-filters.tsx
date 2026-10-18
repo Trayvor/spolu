@@ -33,7 +33,8 @@ export type ProjectScope = { groupId: string; events: boolean };
  * The filters of every ticket list: the status (Open = New and In progress, the default;
  * Resolved; All) as three pills, the question area as a menu of the areas seen in the list, the
  * riešiteľ (anyone, me, nobody) as a menu. `children` go first in the bar (the global view's
- * client filter).
+ * client filter). `showEgrant` adds the "eGrant changes" pill (admins and the group's clients,
+ * Phase 33 part P3).
  * "Clear filters" shows while any filter is off its default (filters are remembered per list).
  */
 export function TicketFilters({
@@ -42,12 +43,14 @@ export function TicketFilters({
   areas,
   projectScope,
   children,
+  showEgrant = false,
 }: {
   filter: TicketFilter;
   onChange: (next: TicketFilter) => void;
   areas: string[];
   projectScope?: ProjectScope;
   children?: ReactNode;
+  showEgrant?: boolean;
 }) {
   const { t } = useTranslation();
   const set = (patch: Partial<TicketFilter>) => onChange({ ...filter, ...patch });
@@ -59,7 +62,8 @@ export function TicketFilters({
     (filter.clients !== null && filter.clients !== undefined) ||
     !!filter.noClient ||
     !!filter.project ||
-    !!filter.event;
+    !!filter.event ||
+    !!filter.egrant;
 
   return (
     <div
@@ -150,6 +154,16 @@ export function TicketFilters({
             empty: t('tickets.filters.noProjects'),
           }}
         />
+      )}
+      {showEgrant && (
+        <button
+          type="button"
+          aria-pressed={!!filter.egrant}
+          className={cn(pill, filter.egrant ? pillOn : pillOff)}
+          onClick={() => set({ egrant: !filter.egrant || undefined })}
+        >
+          {t('tickets.filters.egrant')}
+        </button>
       )}
       {changed && (
         // Back to the defaults; the remembered filters go with them.

@@ -14,6 +14,7 @@ import { meetingAiJobHandlers } from '../src/modules/knowledge/meeting-ai.js';
 import { recordingJobHandlers } from '../src/modules/knowledge/meeting-recording.js';
 import { bulkEmailJobHandlers } from '../src/modules/bulk-email/jobs.js';
 import { filesJobHandlers } from '../src/modules/files/jobs.js';
+import { projectsJobHandlers } from '../src/modules/projects/jobs.js';
 import { registerKnowledgeReminderSubject } from '../src/modules/knowledge/reminder-subject.js';
 import { remindersJobHandlers } from '../src/modules/reminders/jobs.js';
 import { registerEventReminderSubject } from '../src/modules/projects/reminder-subject.js';
@@ -92,6 +93,7 @@ export async function buildTestApp(
   const jobs = createInlineJobs({
     ...emailJobHandlers(email),
     ...filesJobHandlers({ db, storage }),
+    ...projectsJobHandlers({ db }),
     ...notificationsJobHandlers(
       { db, config, push: pushSender, jobs: forward.queue },
       { scopedDelivery: true }, // test files run at once: deliver only the job's users

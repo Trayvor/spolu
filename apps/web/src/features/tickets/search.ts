@@ -4,7 +4,7 @@ import type { TicketFilter } from './api';
  * The ticket lists' filters in the URL. Spelled out without the shared schemas: the router (the
  * entry chunk) imports this file. `status` is absent for Open; `clients` is `all` or a comma list
  * of client ids (global view); `none=1` is "Without client"; `assignee` is the riešiteľ filter
- * (`me` or `none`, absent for anyone).
+ * (`me` or `none`, absent for anyone); `egrant=1` is "eGrant changes" (Phase 33 part P3).
  */
 export type TicketsSearch = {
   status?: 'resolved' | 'all';
@@ -15,6 +15,7 @@ export type TicketsSearch = {
   /** Phase 33 part P2: `<id>` or `none`; `event` only under a chosen project. */
   project?: string;
   event?: string;
+  egrant?: 1;
 };
 
 const text = (v: unknown) =>
@@ -31,6 +32,7 @@ export function validateTicketsSearch(search: Record<string, unknown>): TicketsS
     none: flag(search.none),
     project: text(search.project)?.slice(0, 100),
     event: text(search.project) ? text(search.event)?.slice(0, 100) : undefined,
+    egrant: flag(search.egrant),
   };
 }
 
@@ -48,6 +50,7 @@ export function filterFromSearch(search: TicketsSearch): TicketFilter {
     noClient: search.none === 1 || undefined,
     project: search.project,
     event: search.project && search.project !== 'none' ? search.event : undefined,
+    egrant: search.egrant === 1 || undefined,
   };
 }
 
@@ -67,4 +70,5 @@ export function writeFilter(next: Record<string, unknown>, filter: TicketFilter)
   set('none', filter.noClient ? 1 : undefined);
   set('project', filter.project || undefined);
   set('event', (filter.project && filter.project !== 'none' && filter.event) || undefined);
+  set('egrant', filter.egrant ? 1 : undefined);
 }

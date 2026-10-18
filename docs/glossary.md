@@ -24,6 +24,9 @@ Terms used across the docs and code, in alphabetical order.
 - **project** (sk "Projekt", Phase 33): a client's piece of work with a name, description, files and dated events; tasks and tickets can sit on one. Shown on the group's Prehľad tab. See `product/projects.md`.
 - **event** (sk "Udalosť", Phase 33): a dated step of a project (one day, no time); a task or ticket on a project may also sit on one of its events.
 - **alias** (projects): an earlier name of a project, kept as a name key so eGrant and new projects with that name still match it; removable in the project dialog ("Also matches").
+- **change from eGrant** (sk "Zmena z eGrantu", Phase 33 part P3): one field of an eGrant project delivery that differs from the project in Help (a name, a description, an event's name, date or description, a new event, an event missing in eGrant). It waits in the project sheet until an admin or the client accepts or dismisses it; never applied silently.
+- **waiting ticket** (Phase 33 part P3): a ticket whose intake named an eGrant `project_id` that its client does not have yet; it joins the project when the project call delivers it.
+- **merge** (projects): moving everything of one project (events, tasks, tickets, files, names, eGrant ids) into another project of the same client and deleting the first.
 - **name key**: a name trimmed, spaces collapsed, lower-cased and without diacritics (`normalizeSearch`); one project per name key and client.
 - **Prehľad** (EN "Overview", Phase 33): the first tab of a group: the timeline, the open tickets and tasks cards, and the projects. The only screen called Prehľad (see `design/wording.md`).
 - **timeline** (Phase 33 part P4): the Prehľad card that shows a client's events in date order on one line with a Today marker.

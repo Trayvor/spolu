@@ -22,6 +22,7 @@ import { ContentFields, contentErrors, type ContentDraft } from './content-field
 import { LinkOutIcon } from './icons';
 import { isTicketOverdue, StatusBadge } from './status-badge';
 import { TicketProject } from './ticket-project';
+import { MoveProjectWarning } from './ticket-egrant';
 
 type Draft = ContentDraft & { groupId: string };
 
@@ -216,6 +217,7 @@ function TicketEditor({ ticket, onClose }: { ticket: TicketDto; onClose: () => v
         }}
         error={clientError}
       />
+      <MoveProjectWarning ticket={ticket} groupId={draft.groupId} />
       <ContentFields
         // The editor and its knowledge follow the ticket's saved client; a move saves first.
         groupId={ticket.groupId}

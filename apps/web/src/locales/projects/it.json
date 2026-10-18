@@ -134,5 +134,44 @@
       "in_progress": "In lavorazione",
       "resolved": "Risolto"
     }
+  },
+  "egrant": {
+    "title": "Modifiche da eGrant ({{count}})",
+    "hint": "Accetti o rifiuti ogni modifica, poi salvi le scelte. Le righe che lascia restano in attesa.",
+    "kinds": {
+      "projectName": "Nome del progetto",
+      "projectDescription": "Descrizione del progetto",
+      "eventName": "{{event}}: nome",
+      "eventDate": "{{event}}: data",
+      "eventDescription": "{{event}}: descrizione",
+      "eventAdd": "Nuovo evento",
+      "eventRemove": "Evento assente in eGrant"
+    },
+    "current": "Ora:",
+    "incoming": "Da eGrant:",
+    "empty": "(vuoto)",
+    "maybeSame": "Forse lo stesso evento di {{name}}, {{date}}.",
+    "accept": "Accetta",
+    "dismiss": "Rifiuta",
+    "received": "Ricevuto {{date}}",
+    "save": "Salva le scelte",
+    "cancel": "Annulla",
+    "confirmRemove": "Le rimozioni accettate eliminano i loro eventi. Le loro attività e i ticket restano nel progetto, senza l'evento.",
+    "outdated": "Nel frattempo eGrant ha inviato modifiche più recenti. Controlli di nuovo le righe.",
+    "nameTaken": "Un altro progetto di questo cliente ha già il nuovo nome.",
+    "failed": "Salvataggio non riuscito. Riprovare.",
+    "eventMark": "Modifica da eGrant"
+  },
+  "merge": {
+    "action": "Unisci a…",
+    "title": "Unisci {{name}} a un altro progetto",
+    "into": "Nel progetto",
+    "choose": "Scelga un progetto",
+    "archivedOption": "{{name}} (archiviato)",
+    "none": "Questo cliente non ha altri progetti.",
+    "confirm": "Tutto di {{from}} passa a {{into}}: eventi ({{events}}), attività aperte ({{tasks}}) e ticket ({{tickets}}), file, nomi e ID eGrant. Poi {{from}} viene eliminato.",
+    "submit": "Unisci",
+    "cancel": "Annulla",
+    "failed": "Unione non riuscita. Riprovare."
   }
 }

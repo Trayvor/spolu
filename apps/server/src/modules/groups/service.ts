@@ -26,7 +26,8 @@ import {
   type UserRow,
 } from '../users/service.js';
 import { isAdminGroupSql } from './admin-group.js';
-import { normalizeEgrantUrl } from './egrant-url.js';
+import { egrantHostOf, normalizeEgrantUrl } from './egrant-url.js';
+import { processInboxFor } from '../projects/egrant-delivery.js';
 import { addMembership, getMembership, setPendingInvite } from './memberships.js';
 import { groupManagers, groupMembers, groups } from './schema.js';
 
@@ -248,14 +249,28 @@ export async function getGroupLabels(db: Db, ids: string[]): Promise<Map<string,
   );
 }
 
+/**
+ * Phase 33 part P3: eGrant project deliveries stored for this client's eGrant host before the
+ * client had it become its projects now (spec §5.1), in the save's transaction.
+ */
+async function processEgrantInbox(tx: Db, group: GroupRow): Promise<void> {
+  // A deactivated client takes no projects: the deliveries wait for a later URL change.
+  if (group.deactivatedAt) return;
+  const host = group.egrantUrl === null ? null : egrantHostOf(group.egrantUrl);
+  if (host !== null) await processInboxFor(tx, group.id, host);
+}
+
 export async function createGroup(db: Db, input: GroupInput): Promise<GroupRow> {
   const egrantUrl = normalizedOrThrow(input.egrantUrl);
   try {
-    const [row] = await db
-      .insert(groups)
-      .values({ id: randomUUID(), name: input.name, egrantUrl, inviteToken: newInviteToken() })
-      .returning();
-    return row as GroupRow;
+    return await db.transaction(async (tx) => {
+      const [row] = await tx
+        .insert(groups)
+        .values({ id: randomUUID(), name: input.name, egrantUrl, inviteToken: newInviteToken() })
+        .returning();
+      await processEgrantInbox(tx, row as GroupRow);
+      return row as GroupRow;
+    });
   } catch (error) {
     if (isEgrantUrlViolation(error)) throw new EgrantUrlTakenError();
     throw error;
@@ -276,12 +291,15 @@ export async function renameAdminGroup(db: Db, id: string, name: string): Promis
 export async function updateGroup(db: Db, id: string, input: GroupInput): Promise<GroupRow | null> {
   const egrantUrl = normalizedOrThrow(input.egrantUrl);
   try {
-    const [row] = await db
-      .update(groups)
-      .set({ name: input.name, egrantUrl, updatedAt: new Date() })
-      .where(and(eq(groups.id, id), eq(groups.kind, 'client')))
-      .returning();
-    return row ?? null;
+    return await db.transaction(async (tx) => {
+      const [row] = await tx
+        .update(groups)
+        .set({ name: input.name, egrantUrl, updatedAt: new Date() })
+        .where(and(eq(groups.id, id), eq(groups.kind, 'client')))
+        .returning();
+      if (row) await processEgrantInbox(tx, row);
+      return row ?? null;
+    });
   } catch (error) {
     if (isEgrantUrlViolation(error)) throw new EgrantUrlTakenError();
     throw error;
@@ -319,9 +337,8 @@ export async function findGroupsByEgrantUrl(
   url: string | null,
   limit: number,
 ): Promise<GroupRow[]> {
-  const normalized = url === null ? null : normalizeEgrantUrl(url);
-  if (!normalized) return [];
-  const host = new URL(normalized).host.replace(/^www\./, '');
+  const host = url === null ? null : egrantHostOf(url);
+  if (!host) return [];
   return db
     .select()
     .from(groups)

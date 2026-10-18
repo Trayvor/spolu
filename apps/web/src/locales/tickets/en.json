@@ -27,7 +27,8 @@
     "anyProject": "Any",
     "noProject": "No project",
     "noEvent": "No event",
-    "noProjects": "The client has no projects yet"
+    "noProjects": "The client has no projects yet",
+    "egrant": "eGrant changes"
   },
   "list": {
     "loading": "Loading tickets…",
@@ -41,7 +42,8 @@
     "overdue": "Overdue since",
     "noSubject": "No subject",
     "noClient": "Without client",
-    "assignees": "Assignees: {{names}}"
+    "assignees": "Assignees: {{names}}",
+    "egrantChange": "eGrant change"
   },
   "mine": {
     "title": "My tickets",
@@ -130,5 +132,14 @@
     "noEvent": "No event",
     "archived": "{{name}} (archived)",
     "invalid": "This project or event does not belong to the ticket’s client. Choose another one."
+  },
+  "egrant": {
+    "raw": "eGrant project: {{id}}",
+    "waiting": "eGrant project {{id}} has not arrived yet.",
+    "changes": "This ticket's project has changes from eGrant.",
+    "review": "Review",
+    "archived": "This ticket's project is archived.",
+    "moveRematch": "The project and event stay with the current client. eGrant project {{id}} is matched again in the new client.",
+    "moveClears": "The project and event stay with the current client: the ticket moves without them."
   }
 }

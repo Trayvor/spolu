@@ -35,6 +35,7 @@ const GROUPS = [
 
 export const item = (over: Partial<TicketListItem> & { id: string }): TicketListItem => ({
   unseen: null,
+  egrantChanges: false,
   number: 100,
   groupId: 'g1',
   groupName: 'ABC s.r.o.',
@@ -78,6 +79,10 @@ export const ticket = (over: Partial<TicketDto> = {}): TicketDto => ({
   canAssign: false,
   project: null,
   event: null,
+  egrantProjectId: null,
+  waitingForProject: false,
+  egrantChanges: false,
+  projectArchived: false,
   linkedKnowledge: [],
   ...over,
 });

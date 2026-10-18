@@ -29,7 +29,9 @@ import {
   projectsKey,
   setProjectArchived,
 } from './api';
+import { EgrantChanges, useEventsWithChanges } from './egrant-changes';
 import { EventDialog } from './event-dialog';
+import { MergePanel } from './merge-panel';
 import { ProjectDialog } from './project-dialog';
 import { formatEventDate, ProjectDot } from './project-dot';
 
@@ -38,6 +40,7 @@ type Layer =
   | { kind: 'newEvent' }
   | { kind: 'event'; id: string }
   | { kind: 'delete' }
+  | { kind: 'merge' }
   | null;
 
 /** A project's or an event's files: images as previews, the rest as chips. */
@@ -106,11 +109,12 @@ export function ProjectSheet({
     void navigate({
       to: '/groups/$groupId/overview',
       params: { groupId },
-      search: (prev: Record<string, unknown>) => ({ ...prev, project: id }),
+      search: (prev: Record<string, unknown>) => ({ ...prev, project: id, sheet: undefined }),
       replace: true,
     });
     onClose();
   };
+  const changedEvents = useEventsWithChanges(groupId, projectId, (project?.egrantChanges ?? 0) > 0);
 
   return (
     <SheetDialog onEscape={() => (layer ? setLayer(null) : onClose())} testId="project-sheet">
@@ -135,6 +139,9 @@ export function ProjectSheet({
                 }
               >
                 {project.status === 'active' ? k('archive') : k('restore')}
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => setLayer({ kind: 'merge' })}>
+                {t('projects.merge.action')}
               </DropdownMenuItem>
               <DropdownMenuItem
                 className="text-error-ink"
@@ -173,6 +180,17 @@ export function ProjectSheet({
                 </Button>
               </PanelNotice>
             )}
+            {layer?.kind === 'merge' && (
+              <MergePanel
+                groupId={groupId}
+                project={project}
+                onCancel={() => setLayer(null)}
+                onMerged={() => {
+                  void refresh();
+                  onClose();
+                }}
+              />
+            )}
             {error && (
               <p role="alert" className="text-button text-error-ink">
                 {error}
@@ -192,6 +210,13 @@ export function ProjectSheet({
                 {project.source === 'egrant' && (
                   <Badge variant="secondary">{t('projects.fromEgrant')}</Badge>
                 )}
+                {project.egrantChanges > 0 && (
+                  <Badge asChild variant="outline">
+                    <a href="#egrant-changes">
+                      {t('projects.egrantChanges', { count: project.egrantChanges })}
+                    </a>
+                  </Badge>
+                )}
               </div>
             </div>
             <DescriptionView
@@ -203,6 +228,9 @@ export function ProjectSheet({
               className="text-button"
             />
             {project.files.length > 0 && <Files files={project.files} />}
+            {project.egrantChanges > 0 && (
+              <EgrantChanges groupId={groupId} projectId={project.id} events={events.data ?? []} />
+            )}
 
             <section aria-labelledby="project-events-title" className="flex flex-col gap-2">
               <div className="flex items-center gap-3">
@@ -233,6 +261,9 @@ export function ProjectSheet({
                       <span className="min-w-0 flex-1 text-button font-semibold">{event.name}</span>
                       {event.source === 'egrant' && (
                         <Badge variant="secondary">{t('projects.fromEgrant')}</Badge>
+                      )}
+                      {changedEvents.has(event.id) && (
+                        <Badge variant="outline">{t('projects.egrant.eventMark')}</Badge>
                       )}
                     </button>
                   </li>

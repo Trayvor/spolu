@@ -42,6 +42,7 @@ import { InvalidProjectError } from '../projects/refs.js';
 import { getUserById } from '../users/service.js';
 import { isAdmin } from '../users/policy.js';
 import { bodyExcerpt, ticketCreatedEmail } from './emails.js';
+import { intakeProjectLink } from './egrant-link.js';
 import { emitTicket } from './events.js';
 import { runTicketChange } from './hooks.js';
 import {
@@ -247,6 +248,8 @@ export const ticketsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, 
           instanceUrl: b.instance_url,
           requestId: b.request_id,
           receivedFileIds: fileIds,
+          // Phase 33 part P3: eGrant's `project_id` links the ticket to its client's project.
+          egrantProject: intakeProjectLink(config, b.project_id),
         });
       } catch (error) {
         await deleteFiles(deps, fileIds).catch(() => undefined);

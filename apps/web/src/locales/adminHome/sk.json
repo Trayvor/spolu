@@ -50,7 +50,8 @@
       "new": "Nový",
       "noClient": "Bez klienta",
       "showAll": "Zobraziť všetky tikety",
-      "empty": "Nič na riešenie: nemáte žiadny otvorený tiket, u sledovaných klientov nie je tiket bez riešiteľa a žiadny tiket nie je bez klienta."
+      "empty": "Nič na riešenie: nemáte žiadny otvorený tiket, u sledovaných klientov nie je tiket bez riešiteľa a žiadny tiket nie je bez klienta.",
+      "egrantChange": "Zmena z eGrantu"
     },
     "assigned": {
       "title": "Moje úlohy",

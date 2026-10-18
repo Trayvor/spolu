@@ -16,7 +16,7 @@ Live today, on `POST /api/tickets/intake`:
 - [ ] A new `request_id` for every request, reused for its retries.
 - [ ] At least one of `subject`, `body` or `area`; files as base64 in `files`.
 
-Planned with Help's Phase 33 (projects; **not live yet**, details in [Projects (planned)](#projects-planned)):
+With Help's Phase 33 (projects; details in [Projects](#projects)). Built in Help; the eGrant team says when it is deployed:
 
 - [ ] **Projects, by their own call** `PUT /api/egrant/projects/<project id>`, whenever you decide (a project is created or changes, or simply again): `instance_url`, `sent_at`, `name`, `description` and the **full** `events` list, each event with `name`, `date` as `dd.mm.yyyy` and `description`. No event ids.
 - [ ] **On a ticket about a project:** `project_id`, the same id as in the project call. Nothing else is new on tickets: no project name, no event and no updates. Every request stays a new ticket.
@@ -69,7 +69,7 @@ Answer: `201 { "id": "…", "number": 123 }`.
 
 Call the endpoint once when a user of an eGrant instance submits a support request (the help or contact form, an error report). Call it from your server, never from the user's browser: the key must not reach the browser.
 
-Do not call it for updates of the same request. Everything after the first message happens in Help: the eGrant team and the requester talk in the ticket's chat. (Planned with Phase 33: send projects by their own call, and the project's id on each ticket; see [Projects (planned)](#projects-planned).)
+Do not call it for updates of the same request. Everything after the first message happens in Help: the eGrant team and the requester talk in the ticket's chat. (Phase 33: send projects by their own call, and the project's id on each ticket; see [Projects](#projects).)
 
 ## Authentication
 
@@ -102,6 +102,7 @@ Every field is optional, but a ticket needs at least one of `subject`, `body` or
 | `url` | the page the request is about | an `http` or `https` URL |
 | `files` | files the requester attached (screenshots, documents) | an array of up to 10 file objects, see "Files" below |
 | `instance_url` | the eGrant instance the request came from | any URL, up to 2048; see "Client matching" |
+| `project_id` | your id of the project the request is about (Phase 33) | 1 to 100 characters, the id of the project call; empty or missing = no project; see [Projects](#projects) |
 
 Always send `instance_url` and `email`: without them the ticket has no client and no requester account (see below).
 
@@ -199,11 +200,12 @@ A request can reach Help even when your side sees a timeout. To make retries saf
 1. **Client matching.** Help compares `instance_url` with the eGrant address stored on each client (group) by host only: the scheme, a leading `www.`, the path and the case do not matter, so `https://WWW.Mesto-X.egrant.sk/app/login` matches `https://mesto-x.egrant.sk`. No match, or no `instance_url`: the ticket is saved **without a client**; only the eGrant team sees it until an admin assigns a client by hand.
 2. **The requester.** For a ticket with a client, Help finds the person by `email`. Someone new gets a Help account (named after `requester_name`) with a narrow requester role: they see only their own tickets, never the client's other chats, tasks or files. Without `email` nobody is linked.
 3. **"Ticket created" email.** The requester gets one email (Slovak by default) with the number, the subject, the first lines of the text and an **Open the ticket** button. The button leads to Help's login: they enter their email, get a 6-digit code by email and land on the ticket. There is no password. The email goes once per ticket, and only when a client matched (for a ticket without a client, it goes when an admin assigns one).
-4. **The eGrant team** hears about the new ticket (the people who watch the client's tickets, by default its managers and its clients, or every admin for a ticket without a client), answers in the ticket's chat, changes its status (New, In progress, Resolved) and may turn it into tasks. The requester follows all of it in Help and gets their own notifications by email.
+4. **Projects.** With `project_id`, the ticket is placed in that client's project of the same id, or waits for the project call to deliver it; see [Tickets: the project id](#tickets-the-project-id). Help never sets the ticket's event.
+5. **The eGrant team** hears about the new ticket (the people who watch the client's tickets, by default its managers and its clients, or every admin for a ticket without a client), answers in the ticket's chat, changes its status (New, In progress, Resolved) and may turn it into tasks. The requester follows all of it in Help and gets their own notifications by email.
 
-## Projects (planned)
+## Projects
 
-**Not live yet.** This section describes Help's Phase 33 ([design](../superpowers/specs/2026-10-17-phase-33-projects-design.md), §5). Until it is deployed, `PUT /api/egrant/projects/…` answers `404` and Help ignores `project_id` on tickets like any unknown field. The eGrant team will say when it is live.
+Help's Phase 33 ([design](../superpowers/specs/2026-10-17-phase-33-projects-design.md), §5), built in part P3. On a Help server without it, `PUT /api/egrant/projects/…` answers `404` and `project_id` on tickets is ignored like any unknown field.
 
 Help groups each client's tickets into **projects**, and shows each project's **events** on a timeline. Projects reach Help by their own call, which creates and updates them; a ticket only names its project by id.
 
@@ -228,10 +230,12 @@ Help groups each client's tickets into **projects**, and shows each project's **
 | `200` | `{ "project_id", "state", "pending", "skipped" }` | Help knew it. `state`: `unchanged` (nothing differs), `pending` (differences wait for the eGrant team's review, `pending` = how many), `stale` (your `sent_at` is older than a version Help already has) |
 | `202` | `{ "project_id", "state": "stored" }` | no client in Help has this instance yet; Help keeps the latest version for 180 days and uses it when the client is created |
 | `400` | `{ "error": "validation_failed", "fields": [...] }` | a malformed field; nothing was stored |
-| `401`, `413`, `429`, `503` | | as for the intake; at most 120 project calls a minute from one IP address |
+| `409` | `{ "error": "group_inactive" }` | the client's group is deactivated in Help; nothing was stored; send it again after the group is reactivated |
+| `401`, `413`, `429`, `503` | | as for the intake: the limit and the key are checked before the body is read; the body may be at most 1 MiB; at most 120 project calls a minute from one IP address |
 
 - **Idempotent.** The body is the project's full state. Sending the same body again answers `200 unchanged`; retry on timeouts, `429` and `5xx` with the same body. `sent_at` makes a late retry harmless.
-- **Dates.** An event whose `date` is not a real `dd.mm.yyyy` date (`31.02.2026`, `4.11.2026`, `2026-11-04`), or whose `name` is empty, is **skipped**: Help logs it, names it in `skipped` (for example `["events[2].date"]`) and processes the rest. Send it again corrected.
+- **Dates.** An event whose `date` is not a real `dd.mm.yyyy` date (`31.02.2026`, `4.11.2026`, `2026-11-04`), or whose `name` is empty, is **skipped**: Help logs where it was and why (never its text), names it in `skipped` (for example `["events[2].date"]`, `["events[3].name"]`) and processes the rest. An event with the same name and date as an earlier one of the same list is skipped too (`["events[4]"]`). Send it again corrected.
+- **Merged projects.** When people in Help merge two projects, the merged project's id keeps working: its later calls and tickets go to the project it was merged into, and its calls only ever propose changes there (its `sent_at` is not compared with the other id's).
 - **Changes are reviewed, not applied.** The first version creates the project. After that, Help never changes what it shows silently: a different name, description, event name, date or description, a new event, or an event missing from the list becomes a "change from eGrant" that the eGrant team or the client accepts or dismisses field by field. An event is never deleted because it is missing. A value they dismissed stays dismissed until you send a different one.
 - **Events have no ids, so Help recognises them by name and date.** Keep an event's name stable when its date moves, and its date stable when it is renamed:
   - same name and date: the same event;

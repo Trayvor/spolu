@@ -27,7 +27,8 @@
     "anyProject": "Qualsiasi",
     "noProject": "Nessun progetto",
     "noEvent": "Nessun evento",
-    "noProjects": "Il cliente non ha ancora progetti"
+    "noProjects": "Il cliente non ha ancora progetti",
+    "egrant": "Modifiche da eGrant"
   },
   "list": {
     "loading": "Caricamento dei ticket…",
@@ -41,7 +42,8 @@
     "overdue": "Scaduto dal",
     "noSubject": "Senza oggetto",
     "noClient": "Senza cliente",
-    "assignees": "Assegnatari: {{names}}"
+    "assignees": "Assegnatari: {{names}}",
+    "egrantChange": "Modifica da eGrant"
   },
   "mine": {
     "title": "I miei ticket",
@@ -131,5 +133,14 @@
     "noEvent": "Nessun evento",
     "archived": "{{name}} (archiviato)",
     "invalid": "Questo progetto o evento non appartiene al cliente del ticket. Ne scelga un altro."
+  },
+  "egrant": {
+    "raw": "Progetto eGrant: {{id}}",
+    "waiting": "Il progetto eGrant {{id}} non è ancora arrivato.",
+    "changes": "Il progetto di questo ticket ha modifiche da eGrant.",
+    "review": "Controlla",
+    "archived": "Il progetto di questo ticket è archiviato.",
+    "moveRematch": "Progetto ed evento restano al cliente attuale. Il progetto eGrant {{id}} viene cercato di nuovo nel nuovo cliente.",
+    "moveClears": "Progetto ed evento restano al cliente attuale: il ticket si sposta senza di essi."
   }
 }

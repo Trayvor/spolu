@@ -40,7 +40,8 @@
       "new": "New",
       "noClient": "Without client",
       "showAll": "Show all tickets",
-      "empty": "Nothing to handle: you have no open tickets, the clients you watch have no tickets without an assignee, and no ticket is without a client."
+      "empty": "Nothing to handle: you have no open tickets, the clients you watch have no tickets without an assignee, and no ticket is without a client.",
+      "egrantChange": "eGrant change"
     },
     "assigned": {
       "title": "My tasks",

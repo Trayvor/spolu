@@ -27,7 +27,8 @@
     "anyProject": "Jakýkoli",
     "noProject": "Bez projektu",
     "noEvent": "Bez události",
-    "noProjects": "Klient zatím nemá projekty"
+    "noProjects": "Klient zatím nemá projekty",
+    "egrant": "Změny z eGrantu"
   },
   "list": {
     "loading": "Načítají se tikety…",
@@ -41,7 +42,8 @@
     "overdue": "Po termínu od",
     "noSubject": "Bez předmětu",
     "noClient": "Bez klienta",
-    "assignees": "Řešitelé: {{names}}"
+    "assignees": "Řešitelé: {{names}}",
+    "egrantChange": "Změna z eGrantu"
   },
   "mine": {
     "title": "Moje tikety",
@@ -132,5 +134,14 @@
     "noEvent": "Bez události",
     "archived": "{{name}} (archivovaný)",
     "invalid": "Tento projekt nebo událost nepatří klientovi tiketu. Vyberte jiný."
+  },
+  "egrant": {
+    "raw": "Projekt v eGrantu: {{id}}",
+    "waiting": "Projekt {{id}} z eGrantu ještě nedorazil.",
+    "changes": "Projekt tohoto tiketu má změny z eGrantu.",
+    "review": "Zkontrolovat",
+    "archived": "Projekt tohoto tiketu je archivovaný.",
+    "moveRematch": "Projekt a událost zůstanou u současného klienta. Projekt {{id}} z eGrantu se znovu vyhledá v novém klientovi.",
+    "moveClears": "Projekt a událost zůstanou u současného klienta: tiket se přesune bez nich."
   }
 }

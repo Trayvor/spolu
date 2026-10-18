@@ -118,6 +118,8 @@ export const HomeTicketSchema = z.object({
   hasAssignee: z.boolean(),
   /** The ticket has a change the viewer has not seen yet (2026-10-17): how it is marked (2026-10-18). */
   unseen: UnseenMarkSchema.nullable(),
+  /** Its project has pending changes from eGrant (Phase 33 part P3). */
+  egrantChanges: z.boolean(),
 });
 export type HomeTicket = z.infer<typeof HomeTicketSchema>;
 export const HomeTicketsSchema = z.object({
