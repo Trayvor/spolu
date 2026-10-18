@@ -113,9 +113,11 @@
     "failed": "Odziv ni bil shranjen. Poskusite znova.",
     "pickerTitle": "Izberite odziv",
     "groups": {
+      "frequent": "Pogosto uporabljeni",
       "smileys": "Smeški",
       "gestures": "Kretnje",
       "hearts": "Srca",
+      "flowers": "Rože",
       "work": "Delo",
       "celebration": "Praznovanje",
       "symbols": "Simboli"

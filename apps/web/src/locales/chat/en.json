@@ -107,9 +107,11 @@
     "failed": "The reaction was not saved. Try again.",
     "pickerTitle": "Choose a reaction",
     "groups": {
+      "frequent": "Frequently used",
       "smileys": "Smileys",
       "gestures": "Gestures",
       "hearts": "Hearts",
+      "flowers": "Flowers",
       "work": "Work",
       "celebration": "Celebration",
       "symbols": "Symbols"

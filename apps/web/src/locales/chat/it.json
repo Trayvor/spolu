@@ -110,9 +110,11 @@
     "failed": "La reazione non è stata salvata. Riprova.",
     "pickerTitle": "Scegli una reazione",
     "groups": {
+      "frequent": "Usati di frequente",
       "smileys": "Faccine",
       "gestures": "Gesti",
       "hearts": "Cuori",
+      "flowers": "Fiori",
       "work": "Lavoro",
       "celebration": "Festa",
       "symbols": "Simboli"

@@ -110,9 +110,11 @@
     "failed": "Reakcija nije spremljena. Pokušajte ponovno.",
     "pickerTitle": "Odaberite reakciju",
     "groups": {
+      "frequent": "Često korišteni",
       "smileys": "Smajlići",
       "gestures": "Geste",
       "hearts": "Srca",
+      "flowers": "Cvijeće",
       "work": "Posao",
       "celebration": "Slavlje",
       "symbols": "Simboli"
