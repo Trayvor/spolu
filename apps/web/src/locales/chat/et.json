@@ -110,9 +110,11 @@
     "failed": "Reaktsiooni ei salvestatud. Proovi uuesti.",
     "pickerTitle": "Vali reaktsioon",
     "groups": {
+      "frequent": "Sageli kasutatud",
       "smileys": "Näod",
       "gestures": "Žestid",
       "hearts": "Südamed",
+      "flowers": "Lilled",
       "work": "Töö",
       "celebration": "Pidu",
       "symbols": "Sümbolid"

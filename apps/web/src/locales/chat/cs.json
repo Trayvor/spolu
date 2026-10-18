@@ -116,9 +116,11 @@
     "failed": "Reakce se neuložila. Zkuste to znovu.",
     "pickerTitle": "Vyberte reakci",
     "groups": {
+      "frequent": "Často používané",
       "smileys": "Smajlíci",
       "gestures": "Gesta",
       "hearts": "Srdce",
+      "flowers": "Květiny",
       "work": "Práce",
       "celebration": "Oslava",
       "symbols": "Symboly"

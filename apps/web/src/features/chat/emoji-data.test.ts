@@ -12,7 +12,20 @@ describe('the reaction picker emoji', () => {
     expect(new Set(all).size).toBe(all.length);
   });
 
+  it('has a flowers group', () => {
+    expect(EMOJI_GROUPS.find((g) => g.key === 'flowers')?.emoji).toEqual(
+      expect.arrayContaining(['🌹', '🌷', '🌻', '💐']),
+    );
+  });
+
   it('holds the quick row too', () => {
     for (const emoji of QUICK_REACTIONS) expect(all).toContain(emoji);
+  });
+
+  it('has a flowers group with the flowers and plants people look for', () => {
+    const flowers = EMOJI_GROUPS.find((g) => g.key === 'flowers')?.emoji ?? [];
+    for (const emoji of ['💐', '🌸', '🌹', '🌻', '🌷', '🪷', '🌱', '🌾']) {
+      expect(flowers).toContain(emoji);
+    }
   });
 });

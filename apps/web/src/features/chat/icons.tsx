@@ -149,3 +149,26 @@ export const SendIcon = ({ className }: { className?: string }) => (
     <path d="m21.9 2.1-11 11" />
   </Icon>
 );
+
+/** A circle with a tick: a task (the attach menu and picker). */
+export const TaskIcon = () => (
+  <Icon>
+    <circle cx="12" cy="12" r="9" />
+    <path d="m8 12.5 3 3 5-6" />
+  </Icon>
+);
+
+/** A ticket stub with a notch on each side: a support ticket. */
+export const TicketIcon = () => (
+  <Icon>
+    <path d="M3 9V6a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v3a3 3 0 0 0 0 6v3a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-3a3 3 0 0 0 0-6z" />
+    <path d="M14 5v14" strokeDasharray="2 3" />
+  </Icon>
+);
+
+/** A paperclip: a file from the device (same glyph as the tasks' attachments). */
+export const ClipIcon = () => (
+  <Icon>
+    <path d="m21 11.5-8.6 8.6a5.5 5.5 0 0 1-7.8-7.8l8.6-8.6a3.7 3.7 0 0 1 5.2 5.2l-8.6 8.6a1.8 1.8 0 0 1-2.6-2.6l7.9-7.9" />
+  </Icon>
+);

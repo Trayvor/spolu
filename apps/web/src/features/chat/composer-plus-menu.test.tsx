@@ -54,6 +54,18 @@ describe('the composer plus menu', () => {
     ]);
   });
 
+  it('puts a decorative icon before each label', async () => {
+    const user = userEvent.setup();
+    await renderComposer();
+    await user.click(screen.getByRole('button', { name: t('chat.composer.add') }));
+    for (const item of screen.getAllByRole('menuitem')) {
+      const svg = item.querySelector('svg');
+      expect(svg).not.toBeNull();
+      expect(svg).toHaveAttribute('aria-hidden', 'true');
+      expect(item.firstElementChild).toBe(svg);
+    }
+  });
+
   it.each([
     ['chat.work.tabs.knowledge', 'knowledge'],
     ['chat.work.tabs.tasks', 'tasks'],
