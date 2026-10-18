@@ -297,6 +297,16 @@ describe('loadConfig: meeting transcription (Phase 30)', () => {
     expect(loadConfig(validEnv).ffmpegPath).toBe('ffmpeg');
   });
 
+  it('MEDIA_SANDBOX_SOCKET is optional and must be an absolute path', () => {
+    expect(loadConfig(validEnv).mediaSandboxSocket).toBeNull();
+    expect(
+      loadConfig({ ...validEnv, MEDIA_SANDBOX_SOCKET: '/run/media/media.sock' }).mediaSandboxSocket,
+    ).toBe('/run/media/media.sock');
+    expect(errorOf({ ...validEnv, MEDIA_SANDBOX_SOCKET: 'media.sock' }).variables).toEqual([
+      'MEDIA_SANDBOX_SOCKET',
+    ]);
+  });
+
   it('elevenlabs needs ELEVENLABS_API_KEY; one line switches', () => {
     expect(errorOf({ ...validEnv, TRANSCRIPTION_PROVIDER: 'elevenlabs' }).variables).toEqual([
       'ELEVENLABS_API_KEY',

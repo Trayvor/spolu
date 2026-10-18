@@ -68,3 +68,4 @@ What gets easier, what gets harder.
 | [0042](0042-egrant-webhook-hmac-signing.md) | Optional HMAC signing of the eGrant webhooks, with an in-memory replay cache | accepted |
 | [0043](0043-signed-invitation-context-in-the-login-link.md) | Signed invitation context in the invitation email's login link | accepted |
 | [0044](0044-enforced-csp-set-by-the-app.md) | An enforced Content-Security-Policy, set by the app, with a report endpoint | accepted |
+| [0048](0048-ffmpeg-in-a-media-sandbox-container.md) | ffmpeg runs in a media sandbox container with no network, reached over a Unix socket | accepted |

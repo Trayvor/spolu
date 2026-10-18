@@ -23,8 +23,11 @@ services:
     environment:
       # Built from POSTGRES_PASSWORD, so .env needs no DATABASE_URL.
       DATABASE_URL: postgres://spolu:${POSTGRES_PASSWORD}@postgres:5432/spolu
+      # ffmpeg runs in the media sandbox below (ADR 0048), reached over this socket.
+      MEDIA_SANDBOX_SOCKET: /run/media/media.sock
     volumes:
       - files:/data/files
+      - media_socket:/run/media
       # Teams with a certificate (docs/integrations/teams.md): the private key in ./secrets
       # (mode 600), read as TEAMS_CERT_PATH=/run/secrets/spolu/teams.pem.
       # - ./secrets:/run/secrets/spolu:ro
@@ -35,6 +38,45 @@ services:
     stop_grace_period: 30s # pg-boss waits for running jobs on shutdown
     logging: *logging
     # Node needs no Linux capabilities: it runs as the image's non-root user on port 3000.
+    security_opt: ['no-new-privileges:true']
+    cap_drop: [ALL]
+
+  # The media sandbox (ADR 0048): ffmpeg parses untrusted meeting uploads here, not in the app.
+  # Same image, its own entry point. No env_file (no secrets), no network at all, no database,
+  # no stored files: the app streams each input over the socket in media_socket and gets the
+  # output back. A crafted file that takes over ffmpeg finds nothing to read and nowhere to send.
+  media:
+    image: ${IMAGE}:${TAG}
+    command: ['node', 'server/media-sandbox.js']
+    environment:
+      MEDIA_SOCKET: /run/media/media.sock
+      MEDIA_WORK_DIR: /work
+    network_mode: none
+    user: '1000:1000' # the image's node user, never root
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    volumes:
+      - media_socket:/run/media
+      - media_work:/work # inputs and outputs while a run lasts (on disk, not in memory)
+    init: true # reaps ffmpeg children and forwards stop signals
+    mem_limit: 1536m # three runs at once (each ffmpeg allocation is capped at 256 MiB)
+    memswap_limit: 1536m
+    pids_limit: 64
+    cpus: 2
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "require('node:http').get({socketPath:'/run/media/media.sock',path:'/health'},r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    stop_grace_period: 5s # a run cut short is retried by the app's job a minute later
+    logging: *logging
     security_opt: ['no-new-privileges:true']
     cap_drop: [ALL]
 
@@ -108,6 +150,8 @@ services:
 
 volumes:
   files:
+  media_socket:
+  media_work:
   pgdata:
   caddy_data:
   caddy_config:

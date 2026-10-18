@@ -28,6 +28,18 @@ describe('media', () => {
     );
   });
 
+  it('an aborted signal kills the run (the sandbox when the app gives up, ADR 0048)', async () => {
+    const slow = join(dir, 'slow-ffmpeg.sh');
+    await writeFile(slow, '#!/bin/sh\nexec sleep 30\n');
+    await chmod(slow, 0o755);
+    const controller = new AbortController();
+    const run = createFfmpeg(slow).toSpeechAudio('a', 'b', controller.signal);
+    setTimeout(() => controller.abort(), 50);
+    await expect(run).rejects.toThrow(/SIGKILL/);
+    const already = AbortSignal.abort();
+    await expect(createFfmpeg(slow).split('a', dir, 60, already)).rejects.toThrow(/aborted/);
+  });
+
   it('a missing ffmpeg fails with MediaFailedError', async () => {
     const media = createFfmpeg(join(dir, 'no-such-ffmpeg'));
     await expect(media.toSpeechAudio('a', 'b')).rejects.toThrow(MediaFailedError);

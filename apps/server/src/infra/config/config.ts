@@ -50,6 +50,8 @@ const base = {
   ELEVENLABS_API_KEY: z.string().min(1).optional(),
   ELEVENLABS_STT_MODEL: z.string().min(1).default('scribe_v2'),
   FFMPEG_PATH: z.string().min(1).default('ffmpeg'),
+  // ADR 0048: the media sandbox's Unix socket (set by deploy/docker-compose.yml); unset = local ffmpeg.
+  MEDIA_SANDBOX_SOCKET: z.string().regex(/^\//, 'an absolute path').optional(),
   TICKETS_API_KEY: z.string().min(16).optional(),
   // Optional keys of their own for the other eGrant webhooks; unset = TICKETS_API_KEY.
   EGRANT_MANAGERS_API_KEY: z.string().min(16).optional(),
@@ -169,6 +171,8 @@ export type Config = {
     | null;
   /** The ffmpeg binary for meeting recordings (Phase 30); `fake` (e2e) copies bytes instead. */
   ffmpegPath: string;
+  /** The media sandbox's socket (ADR 0048); null = ffmpeg runs in the app's own container. */
+  mediaSandboxSocket: string | null;
   /** The shared Bearer key of the ticket intake API (Phase 21); null = intake is off. */
   ticketsApiKey: string | null;
   /**
@@ -289,6 +293,7 @@ export function loadConfig(env: NodeJS.ProcessEnv): Config {
     teams,
     transcription: transcriptionConfig(e),
     ffmpegPath: e.FFMPEG_PATH,
+    mediaSandboxSocket: e.MEDIA_SANDBOX_SOCKET ?? null,
     ai:
       e.AI_PROVIDER === 'fake'
         ? { provider: 'fake' }

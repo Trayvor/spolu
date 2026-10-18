@@ -52,6 +52,9 @@ RUN --mount=type=cache,target=/root/.local/share/pnpm/store pnpm install --froze
 RUN pnpm -r build
 
 # Stage 4: runtime. A plain Debian slim with only the node binary copied in.
+# The same image also runs the media sandbox (ADR 0048): `node server/media-sandbox.js` in its own
+# container. /run/media (its socket) and /work (its runs) belong to node, so the named volumes
+# compose mounts there start out writable by that user.
 FROM ${RUNTIME_IMAGE} AS runtime
 # System packages the app needs at runtime go into this list. Empty today (ffmpeg comes as a
 # static binary from the ffmpeg stage, see ADR 0023).
@@ -63,7 +66,7 @@ RUN if [ -n "$RUNTIME_PACKAGES" ]; then \
     fi \
     && groupadd --gid 1000 node \
     && useradd --uid 1000 --gid node --shell /bin/bash --create-home node \
-    && mkdir -p /data/files && chown -R node:node /data
+    && mkdir -p /data/files /run/media /work && chown -R node:node /data /run/media /work
 COPY --from=deps /usr/local/bin/node /usr/local/bin/node
 ARG APP_VERSION=dev
 ENV NODE_ENV=production \

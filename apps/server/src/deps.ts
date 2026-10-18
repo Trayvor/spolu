@@ -12,6 +12,7 @@ import type { TranscriptionProvider } from './modules/ai/transcription.js';
 import { meetingAiJobHandlers, MEETING_AI_JOB } from './modules/knowledge/meeting-ai.js';
 import { recordingJobHandlers, RECORDING_JOB } from './modules/knowledge/meeting-recording.js';
 import { createFakeMedia, createFfmpeg, type MediaTools } from './infra/media/media.js';
+import { createSandboxMedia } from './infra/media/sandbox-client.js';
 import { authJobHandlers, AUTH_CLEANUP_JOB } from './modules/auth/jobs.js';
 import {
   bulkEmailJobHandlers,
@@ -87,8 +88,21 @@ export async function createDeps(
   // The notification and reminder handlers send jobs to the queue built from them; a job that
   // runs before startJobs returns waits for it.
   const forward = createDeferredQueue();
-  // `fake` (e2e only) copies bytes instead of transcoding.
-  const media = config.ffmpegPath === 'fake' ? createFakeMedia() : createFfmpeg(config.ffmpegPath);
+  // `fake` (e2e only) copies bytes instead of transcoding. Production runs ffmpeg in the media
+  // sandbox container (ADR 0048); without its socket (dev, tests) the local hardened ffmpeg.
+  const media =
+    config.ffmpegPath === 'fake'
+      ? createFakeMedia()
+      : config.mediaSandboxSocket
+        ? createSandboxMedia({ socketPath: config.mediaSandboxSocket })
+        : createFfmpeg(config.ffmpegPath);
+  if (
+    config.nodeEnv === 'production' &&
+    !config.mediaSandboxSocket &&
+    config.ffmpegPath !== 'fake'
+  ) {
+    console.warn('media: MEDIA_SANDBOX_SOCKET is not set, ffmpeg runs in the app container');
+  }
   const transcription = createTranscriptionProvider(config.transcription);
   const meetingSummary = createMeetingSummaryProvider(config.ai);
   const teams = createTeams(config);
