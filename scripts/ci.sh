@@ -99,8 +99,14 @@ run_parallel \
   "Format check" "pnpm exec prettier --check ." \
   "Typecheck" "pnpm typecheck"
 
-log "Unit and integration tests"
-pnpm test
+# The EXPLAIN suite runs next to the main server suite, not after it (ADR 0040, review finding T2).
+# They share no database: the main suite uses the test database, the EXPLAIN suite its clones
+# <test database>_explain_<volume> of the spolu_tpl_* templates. EXPLAIN gets one worker, so the
+# main suite keeps the cores (VITEST_MAX_WORKERS); each step's output is printed under its name.
+log "Unit and integration tests (shared and web, then the server suite, next to the EXPLAIN suite)"
+run_parallel \
+  "Tests" "pnpm --filter '!@spolu/server' test && pnpm --filter @spolu/server test:main" \
+  "EXPLAIN tests" "VITEST_MAX_WORKERS=1 pnpm --filter @spolu/server test:explain"
 
 log "End-to-end tests"
 pnpm exec playwright install --with-deps chromium
