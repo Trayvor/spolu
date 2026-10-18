@@ -100,7 +100,12 @@ describe('knowledge of the admin group in client places', () => {
   async function item(
     groupId: string,
     cookie: string,
-    draft: { title: string; visibility?: 'public' | 'admins'; folderId?: string; fileIds?: string[] },
+    draft: {
+      title: string;
+      visibility?: 'public' | 'admins';
+      folderId?: string;
+      fileIds?: string[];
+    },
   ) {
     const res = await call('POST', `/api/groups/${groupId}/knowledge`, cookie, {
       type: 'note',
@@ -221,13 +226,12 @@ describe('knowledge of the admin group in client places', () => {
     expect((await call('GET', `/api/files/${attachment.id}`, cx.cookie)).statusCode).toBe(200);
     // Never the admin group itself: no browsing, no direct read.
     expect((await call('GET', `/api/knowledge/${note.id}`, cx.cookie)).statusCode).toBe(404);
-    expect(
-      (await call('GET', `/api/groups/${adminGroup}/knowledge`, cx.cookie)).statusCode,
-    ).toBe(404);
+    expect((await call('GET', `/api/groups/${adminGroup}/knowledge`, cx.cookie)).statusCode).toBe(
+      404,
+    );
     // Another client reads neither the message nor the file.
     expect(
-      (await call('GET', `/api/messages/${messageId}/knowledge/${note.id}`, cy.cookie))
-        .statusCode,
+      (await call('GET', `/api/messages/${messageId}/knowledge/${note.id}`, cy.cookie)).statusCode,
     ).toBe(404);
     expect((await call('GET', `/api/files/${attachment.id}`, cy.cookie)).statusCode).toBe(404);
 
@@ -235,8 +239,7 @@ describe('knowledge of the admin group in client places', () => {
     await setVisibility(note.id, a.cookie, 'admins');
     expect(await knowledgeOf(channelId, cx.cookie)).toEqual([[{ id: note.id, available: false }]]);
     expect(
-      (await call('GET', `/api/messages/${messageId}/knowledge/${note.id}`, cx.cookie))
-        .statusCode,
+      (await call('GET', `/api/messages/${messageId}/knowledge/${note.id}`, cx.cookie)).statusCode,
     ).toBe(404);
     expect((await call('GET', `/api/files/${attachment.id}`, cx.cookie)).statusCode).toBe(404);
   }, 60_000);
@@ -249,7 +252,9 @@ describe('knowledge of the admin group in client places', () => {
     const channelId = await groupChat(x.id, a.cookie);
     expect((await send(channelId, a.cookie, { knowledgeIds: [note.id] })).statusCode).toBe(201);
     const hidden = await folder(adminGroup, a.cookie, 'admins');
-    const latest = (await call('GET', `/api/knowledge/${note.id}`, a.cookie)).json<KnowledgeItemDto>();
+    const latest = (
+      await call('GET', `/api/knowledge/${note.id}`, a.cookie)
+    ).json<KnowledgeItemDto>();
     const moved = await call('PATCH', `/api/knowledge/${note.id}`, a.cookie, {
       folderId: hidden,
       updatedAt: latest.updatedAt,
@@ -410,7 +415,10 @@ describe('knowledge of the admin group in client places', () => {
     const x = await group();
     const cx = await member(x.id, 'client');
     const tag = randomUUID().slice(0, 8);
-    const open = await item(adminGroup, a.cookie, { title: `Zdieľané ${tag}`, visibility: 'public' });
+    const open = await item(adminGroup, a.cookie, {
+      title: `Zdieľané ${tag}`,
+      visibility: 'public',
+    });
     await item(adminGroup, a.cookie, { title: `Interné ${tag}` });
     await item(adminGroup, a.cookie, {
       title: `Skryté ${tag}`,

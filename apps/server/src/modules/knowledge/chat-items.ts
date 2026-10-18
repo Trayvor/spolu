@@ -43,8 +43,7 @@ export async function shareableItemCards(
   const candidates = intoAdminGroup
     ? rows
     : rows.filter(
-        (r) =>
-          r.visibility === 'public' && (r.groupId === groupId || r.groupId === adminGroupId),
+        (r) => r.visibility === 'public' && (r.groupId === groupId || r.groupId === adminGroupId),
       );
   const chainOf = await folderChains(
     db,

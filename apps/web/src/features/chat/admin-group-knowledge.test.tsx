@@ -139,15 +139,16 @@ describe('an admin-group card', () => {
     expect(screen.getByText(i18n.t('chat.knowledge.adminGroup'))).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: /Návod/ }));
     await waitFor(() =>
-      expect(fetch.mock.calls.map(([u]) => String(u))).toContain(
-        '/api/knowledge-links/task/t1/a1',
-      ),
+      expect(fetch.mock.calls.map(([u]) => String(u))).toContain('/api/knowledge-links/task/t1/a1'),
     );
     expect(fetch.mock.calls.some(([u]) => String(u).endsWith('/api/knowledge/a1'))).toBe(false);
   });
 
   it('without a saved description a client gets "Item unavailable"', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => json([])));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => json([])),
+    );
     render(
       <QueryClientProvider client={client('client')}>
         <KnowledgeCardList items={[card]} groupId="g1" via={null} />

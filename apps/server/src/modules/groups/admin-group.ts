@@ -34,7 +34,9 @@ export function isAdminGroupSql(groupId: string | SQL): SQL<boolean> {
 
 /** The admin group's id (or null), as an SQL value for other modules' statements. */
 export function adminGroupIdSql(): SQL<string | null> {
-  return sql<string | null>`(select ${groups.id} from ${groups} where ${groups.kind} = 'admin' limit 1)`;
+  return sql<
+    string | null
+  >`(select ${groups.id} from ${groups} where ${groups.kind} = 'admin' limit 1)`;
 }
 
 /**

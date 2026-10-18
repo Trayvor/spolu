@@ -54,10 +54,7 @@ async function readableSubjectGroup(
   }
 }
 
-export const knowledgeLinkRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (
-  app,
-  { deps },
-) => {
+export const knowledgeLinkRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { deps }) => {
   const { db } = deps;
   const anyUser = requireUser(app.auth);
   const notFound = (reply: FastifyReply) => reply.code(404).send({ error: ErrorCodes.notFound });
