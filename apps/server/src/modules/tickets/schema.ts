@@ -106,10 +106,14 @@ export const tickets = pgTable(
       .on(t.createdAt.desc())
       .where(sql`${t.groupId} is null`),
     // The picker's subject search (Phase 34); trigram as in ADR 0015.
-    index('tickets_subject_trgm_idx').using('gin', t.subject.op('gin_trgm_ops')),
+    index('tickets_subject_trgm_idx')
+      .using('gin', t.subject.op('gin_trgm_ops'))
+      .with({ fastupdate: false }),
     // ... and the start of the body (2026-10-18): `left(body, 200) ilike 'q%'`, so the OR with
     // the subject is two index reads, not a scan of every ticket.
-    index('tickets_body_head_trgm_idx').using('gin', sql`left(${t.body}, 200) gin_trgm_ops`),
+    index('tickets_body_head_trgm_idx')
+      .using('gin', sql`left(${t.body}, 200) gin_trgm_ops`)
+      .with({ fastupdate: false }),
     // The dashboard's open tickets without a client (2026-10-18): resolved ones pile up.
     index('tickets_unassigned_open_created_idx')
       .on(t.createdAt.desc())
