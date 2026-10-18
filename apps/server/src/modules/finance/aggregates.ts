@@ -6,6 +6,7 @@ import {
   OVERVIEW_MAX_MONTHS,
   type FinanceOverviewDto,
   type Month,
+  type OverviewExpenses,
   type OverviewMoney,
 } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
@@ -175,36 +176,116 @@ export function byMinutes(a: AdminTime, b: AdminTime): number {
 }
 
 /**
+ * The contracts' money of a scope as rows of one client each (`group_id, currency, starts_on,
+ * amount_minor`): a client's own contracts at their amount, and each client's share of a
+ * contract of several clients (Phase 32 E, decisions E11, O7) at the share. With every client
+ * the shares add up to the contracts' totals, so nothing is counted twice or lost. `where` holds
+ * extra conditions on the contract (`c`, an alias of `finance_items`: period, currency).
+ * The own contracts read `finance_items_contract_starts_idx`; the shares
+ * `finance_contract_shares_group_idx` (or the whole small table for every client) and the
+ * contract by its primary key.
+ */
+export function contractMoneyRowsSql(scope: FinanceScope, where: (c: SQL) => SQL): SQL {
+  const own = sql`
+    select c.group_id, c.currency, c.starts_on, c.amount_minor
+    from finance_items c
+    where c.type = 'contract' and c.group_id is not null and ${where(sql`c`)}
+      and ${scopeSql(sql`c.group_id`, scope)}`;
+  const shared = sql`
+    select s.group_id, c.currency, c.starts_on, s.amount_minor
+    from finance_contract_shares s
+    join finance_items c on c.id = s.item_id
+    where c.type = 'contract' and c.group_id is null and ${where(sql`c`)}
+      and ${scopeSql(sql`s.group_id`, scope)}`;
+  return sql`(${own} union all ${shared})`;
+}
+
+/**
  * The contracts' money of a scope by currency and start month: paid when the start date is today
- * (Bratislava) or earlier, to be paid when later (owner decision 12). Reads
- * `finance_items_contract_starts_idx`.
+ * (Bratislava) or earlier, to be paid when later (owner decision 12). A client counts its shares
+ * of contracts of several clients (`contractMoneyRowsSql`).
  */
 export function moneySql(scope: FinanceScope, range: MonthRange, today: string): SQL {
-  const i = financeItems;
   const { from, until } = dayBounds(range);
+  const rows = contractMoneyRowsSql(
+    scope,
+    (c) => sql`${c}.starts_on >= ${from} and ${c}.starts_on < ${until}`,
+  );
   return sql`
-    select ${i.currency} as currency, to_char(${i.startsOn}, 'YYYY-MM') as month,
-      coalesce(sum(${i.amountMinor}) filter (where ${i.startsOn} <= ${today}), 0)::bigint as paid,
-      coalesce(sum(${i.amountMinor}) filter (where ${i.startsOn} > ${today}), 0)::bigint as to_be_paid
-    from ${i}
-    where ${i.type} = 'contract' and ${i.startsOn} >= ${from} and ${i.startsOn} < ${until}
-      and ${scopeSql(i.groupId, scope)}
+    select m.currency, to_char(m.starts_on, 'YYYY-MM') as month,
+      coalesce(sum(m.amount_minor) filter (where m.starts_on <= ${today}), 0)::bigint as paid,
+      coalesce(sum(m.amount_minor) filter (where m.starts_on > ${today}), 0)::bigint as to_be_paid
+    from ${rows} m
     group by 1, 2
     order by 2
   `;
 }
 
 /**
+ * The organisation's money out by currency and month (Phase 32 E, decisions O3, E6): expenses
+ * dated today or earlier are paid out (the salaries apart), later ones planned. Only `/finance`
+ * with every client reads it. Reads `finance_items_expense_day_idx`.
+ */
+export function expensesSql(range: MonthRange, today: string): SQL {
+  const { from, until } = dayBounds(range);
+  return sql`
+    select e.currency, to_char(e.starts_on, 'YYYY-MM') as month,
+      coalesce(sum(e.amount_minor) filter (where e.starts_on <= ${today}), 0)::bigint as paid_out,
+      coalesce(sum(e.amount_minor) filter (
+        where e.starts_on <= ${today} and e.expense_kind = 'salary'), 0)::bigint as salary_paid_out,
+      coalesce(sum(e.amount_minor) filter (where e.starts_on > ${today}), 0)::bigint as planned
+    from finance_items e
+    where e.type = 'expense' and e.starts_on >= ${from} and e.starts_on < ${until}
+    group by 1, 2
+    order by 2
+  `;
+}
+
+/** The organisation's expenses of a range, per currency (EUR first). */
+async function expensesOf(db: Db, range: MonthRange, today: string): Promise<OverviewExpenses[]> {
+  const rows = await db.execute<{
+    currency: Currency;
+    month: Month;
+    paid_out: string | number;
+    salary_paid_out: string | number;
+    planned: string | number;
+  }>(expensesSql(range, today));
+  const byCurrency = new Map<Currency, OverviewExpenses>();
+  for (const row of rows) {
+    const entry = byCurrency.get(row.currency) ?? {
+      currency: row.currency,
+      paidOut: 0,
+      salaryPaidOut: 0,
+      planned: 0,
+      byMonth: [],
+    };
+    const paidOut = Number(row.paid_out);
+    const planned = Number(row.planned);
+    entry.paidOut += paidOut;
+    entry.salaryPaidOut += Number(row.salary_paid_out);
+    entry.planned += planned;
+    entry.byMonth.push({ month: row.month, paidOut, planned });
+    byCurrency.set(row.currency, entry);
+  }
+  return Currencies.flatMap((c) => byCurrency.get(c) ?? []);
+}
+
+/**
  * `GET /api/groups/:id/finance/overview` (and D's system-wide one): money by currency and month,
  * the cost by month, hours by admin and month, totals and the minutes without a rate. Three
- * queries: money, the time totals (four grouping sets in one pass), the admins' names.
+ * queries: money, the time totals (four grouping sets in one pass), the admins' names; with
+ * `organisation` (Phase 32 E: `/finance` with every client, for a finance admin) a fourth, the
+ * organisation's expenses. A client's tab never passes it (decision O3).
  */
 export async function overview(
   db: Db,
   scope: FinanceScope,
   range: MonthRange,
   now: Date = new Date(),
+  opts: { organisation?: boolean } = {},
 ): Promise<FinanceOverviewDto> {
+  const organisation = opts.organisation === true && scope.kind === 'all';
+  const expenses = organisation ? await expensesOf(db, range, financeToday(now)) : [];
   const moneyRows = await db.execute<{
     currency: Currency;
     month: Month;
@@ -257,6 +338,8 @@ export async function overview(
     from: range.from,
     to: range.to,
     months: monthsOf(range),
+    organisation,
+    expenses,
     money,
     cost: {
       total: total?.cost ?? 0,
@@ -274,34 +357,52 @@ export async function overview(
   };
 }
 
-/** The first and last day with a contract start or counted time of a scope. */
-export function dataMonthRangeSql(scope: FinanceScope): SQL {
+/**
+ * The first and last day with a contract start (a client's shares of contracts of several
+ * clients too, Phase 32 E), counted time or, with `organisation`, an expense of a scope.
+ */
+export function dataMonthRangeSql(scope: FinanceScope, organisation = false): SQL {
   const i = financeItems;
   const contracts = sql`${i.type} = 'contract' and ${scopeSql(i.groupId, scope)}`;
+  // Every client's contracts include those of several clients already (no client filter).
+  const shares = (fn: SQL) =>
+    scope.kind === 'all'
+      ? sql`null::date`
+      : sql`(select ${fn}(c.starts_on) from finance_contract_shares s
+          join finance_items c on c.id = s.item_id where ${scopeSql(sql`s.group_id`, scope)})`;
+  const expenses = (fn: SQL) =>
+    organisation
+      ? sql`, (select ${fn}(x.starts_on) from finance_items x where x.type = 'expense')`
+      : sql``;
   return sql`
     select least(
         (select min(${i.startsOn}) from ${i} where ${contracts}),
+        ${shares(sql`min`)},
         (select min(${e.workedOn}) from ${e} where ${countedEntriesSql(scope, null)})
+        ${expenses(sql`min`)}
       )::text as first,
       greatest(
         (select max(${i.startsOn}) from ${i} where ${contracts}),
+        ${shares(sql`max`)},
         (select max(${e.workedOn}) from ${e} where ${countedEntriesSql(scope, null)})
+        ${expenses(sql`max`)}
       )::text as last
   `;
 }
 
 /**
  * "All time" of the overview: from the first month with a contract start or counted time of the
- * scope to the last (at least the current month), capped at `OVERVIEW_MAX_MONTHS` back from the
- * end. Two index reads (min and max of each indexed column).
+ * scope (or an expense, with `organisation`) to the last (at least the current month), capped at
+ * `OVERVIEW_MAX_MONTHS` back from the end. Index reads (min and max of each indexed column).
  */
 export async function dataMonthRange(
   db: Db,
   scope: FinanceScope,
   now: Date = new Date(),
+  organisation = false,
 ): Promise<MonthRange> {
   const [row] = await db.execute<{ first: string | null; last: string | null }>(
-    dataMonthRangeSql(scope),
+    dataMonthRangeSql(scope, organisation && scope.kind === 'all'),
   );
   const thisMonth = financeToday(now).slice(0, 7);
   const first = row?.first?.slice(0, 7) ?? thisMonth;

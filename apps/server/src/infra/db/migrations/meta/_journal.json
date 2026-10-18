@@ -309,6 +309,13 @@
       "when": 1792311478760,
       "tag": "0043_tasks_search_order",
       "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "7",
+      "when": 1792314056404,
+      "tag": "0044_finance_org",
+      "breakpoints": true
     }
   ]
 }

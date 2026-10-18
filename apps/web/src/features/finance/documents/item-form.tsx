@@ -5,27 +5,39 @@ import {
   FINANCE_LIMITS,
   MINOR_DIGITS,
   parseMoney,
+  shareProblem,
   type Currency,
+  type ExpenseKind,
   type FileInfo,
   type FinanceItemBody,
   type FinanceItemDetail,
   type FinanceItemPatch,
   type FinanceItemType,
+  type FinanceOrgItemBody,
+  type GroupPerson,
 } from '@spolu/shared';
 import { FilesField } from '@/components/files-field';
 import { DescriptionField } from '@/features/editor/description-field';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select } from '@/components/ui/select';
 import {
   ReminderTimesField,
   localToIso,
   newRowKey,
   type ReminderTimeValue,
 } from '@/features/reminders/reminder-times-field';
-import { financeUploadPath } from './api';
-import { proposedReminder } from './format';
+import { financeUploadPath, type FinanceOwner } from './api';
+import { proposedExpenseReminder, proposedReminder } from './format';
+import { newShareRow, SharesField, type ShareRow } from './shares-field';
 
-/** The form's values; the amount is the text as typed (`parseMoney` reads it on save). */
+/**
+ * Who a new item made on `/finance` belongs to (Phase 32 E, decision E13): the organisation,
+ * one client (made as in its tab) or, for a contract, several clients with shares.
+ */
+export type OwnerChoice = 'org' | 'client' | 'shared';
+
+/** The form's values; amounts are the text as typed (`parseMoney` reads them on save). */
 export type ItemFormValue = {
   title: string;
   body: string;
@@ -35,14 +47,38 @@ export type ItemFormValue = {
   currency: Currency;
   startsOn: string;
   endsOn: string;
-  /** A new contract's reminder times (an existing item edits them in its view). */
+  /** A new item's reminder times (an existing item edits them in its view). */
   times: ReminderTimeValue[];
-  /** The times still follow the end date (the proposal), until someone edits them. */
+  /** The times still follow the end date (or the expense's date), until someone edits them. */
   timesProposed: boolean;
+  /** Phase 32 E: a new item on `/finance`: whose it is, and the client when it is one. */
+  owner: OwnerChoice;
+  clientId: string;
+  /** A contract of several clients: the payer and the shares. */
+  payerName: string;
+  shares: ShareRow[];
+  /** An expense: its kind, a salary's admin and the date. */
+  expenseKind: ExpenseKind;
+  payeeId: string;
+  spentOn: string;
 };
 
 export type ItemFormErrors = Partial<
-  Record<'title' | 'contractNumber' | 'amount' | 'startsOn' | 'endsOn' | 'body' | 'form', string>
+  Record<
+    | 'title'
+    | 'contractNumber'
+    | 'amount'
+    | 'startsOn'
+    | 'endsOn'
+    | 'body'
+    | 'form'
+    | 'client'
+    | 'payerName'
+    | 'shares'
+    | 'payeeId'
+    | 'spentOn',
+    string
+  >
 >;
 
 const FIELD = 'flex flex-col gap-2.5';
@@ -59,6 +95,13 @@ export function emptyItemValue(): ItemFormValue {
     endsOn: '',
     times: [],
     timesProposed: true,
+    owner: 'org',
+    clientId: '',
+    payerName: '',
+    shares: [newShareRow(), newShareRow()],
+    expenseKind: 'salary',
+    payeeId: '',
+    spentOn: '',
   };
 }
 
@@ -74,32 +117,64 @@ export function amountText(amountMinor: number, currency: Currency, language: st
 
 export function fromItem(item: FinanceItemDetail, language: string): ItemFormValue {
   const c = item.contract;
+  const e = item.expense;
+  // A contract of several clients is edited with its whole amount (`/finance` reads it whole).
+  const money = c?.shared?.total ?? c?.amount ?? e?.amount ?? null;
+  const currency = money?.currency ?? ENABLED_CURRENCIES[0]!;
   return {
     ...emptyItemValue(),
     title: item.title,
     body: item.body,
     fileIds: item.files.map((f) => f.id),
     contractNumber: c?.contractNumber ?? '',
-    amount: c ? amountText(c.amount.amountMinor, c.amount.currency, language) : '',
-    currency: c?.amount.currency ?? ENABLED_CURRENCIES[0]!,
+    amount: money ? amountText(money.amountMinor, money.currency, language) : '',
+    currency,
     startsOn: c?.startsOn ?? '',
     endsOn: c?.endsOn ?? '',
     timesProposed: false,
+    owner: item.groupId !== null ? 'client' : c?.shared ? 'shared' : 'org',
+    clientId: item.groupId ?? '',
+    payerName: c?.shared?.payerName ?? '',
+    shares:
+      c?.shared?.shares.map((s) => ({
+        ...newShareRow(s.groupId),
+        amount: amountText(s.amountMinor, currency, language),
+      })) ?? [],
+    expenseKind: e?.kind ?? 'salary',
+    payeeId: e?.payeeId ?? '',
+    spentOn: e?.spentOn ?? '',
   };
 }
 
-/** Field errors (the keys are the `financeDocuments.form.errors.*` texts' messages). */
+/** The shares as minor units, or null when one is not an amount or has no client. */
+function shareInputs(value: ItemFormValue) {
+  const shares = [];
+  for (const row of value.shares) {
+    const money = parseMoney(row.amount, value.currency);
+    if (!money || !row.groupId) return null;
+    shares.push({ groupId: row.groupId, amountMinor: money.amountMinor });
+  }
+  return shares;
+}
+
+/** Field errors (the keys are the `financeDocuments.form.errors.*` / `financeOrg.errors.*` texts). */
 export function validateItem(
   type: FinanceItemType,
   value: ItemFormValue,
   t: (key: string) => string,
+  opts: { shared?: boolean; isNew?: boolean } = {},
 ): ItemFormErrors {
   const errors: ItemFormErrors = {};
   const e = (key: string) => t(`financeDocuments.form.errors.${key}`);
+  const o = (key: string) => t(`financeOrg.errors.${key}`);
   const title = value.title.trim();
-  if (!title) errors.title = e('titleRequired');
+  const salary = type === 'expense' && value.expenseKind === 'salary';
+  if (!title && !salary) errors.title = type === 'expense' ? o('whatRequired') : e('titleRequired');
   else if (title.length > FINANCE_LIMITS.title) errors.title = e('titleTooLong');
   if (value.body.length > FINANCE_LIMITS.body) errors.body = e('bodyTooLong');
+  if (opts.isNew && value.owner === 'client' && type !== 'expense' && !value.clientId) {
+    errors.client = o('chooseClient');
+  }
   if (type === 'contract') {
     if (value.contractNumber.trim().length > FINANCE_LIMITS.contractNumber) {
       errors.contractNumber = e('numberTooLong');
@@ -108,11 +183,42 @@ export function validateItem(
     if (!value.startsOn) errors.startsOn = e('startRequired');
     if (!value.endsOn) errors.endsOn = e('endRequired');
     else if (value.startsOn && value.endsOn < value.startsOn) errors.endsOn = e('endBeforeStart');
+    if (opts.shared) {
+      if (!value.payerName.trim()) errors.payerName = o('payerRequired');
+      else if (value.payerName.trim().length > FINANCE_LIMITS.payerName) {
+        errors.payerName = e('titleTooLong');
+      }
+      const total = parseMoney(value.amount, value.currency);
+      const shares = shareInputs(value);
+      if (!shares) {
+        errors.shares = value.shares.some((r) => !r.groupId) ? o('shareClient') : o('shareInvalid');
+      } else if (total) {
+        const problem = shareProblem(total.amountMinor, shares);
+        if (problem) {
+          errors.shares = o(
+            problem === 'tooFew'
+              ? 'sharesTooFew'
+              : problem === 'duplicate'
+                ? 'sharesDuplicate'
+                : problem === 'sum'
+                  ? 'sharesSum'
+                  : problem === 'tooMany'
+                    ? 'sharesTooMany'
+                    : 'shareInvalid',
+          );
+        }
+      }
+    }
+  }
+  if (type === 'expense') {
+    if (!parseMoney(value.amount, value.currency)) errors.amount = e('amountInvalid');
+    if (!value.spentOn) errors.spentOn = o('dateRequired');
+    if (salary && !value.payeeId) errors.payeeId = o('payeeRequired');
   }
   return errors;
 }
 
-/** The create body (`validateItem` passed). */
+/** The create body of a client's item (`validateItem` passed). */
 export function toBody(
   type: FinanceItemType,
   value: ItemFormValue,
@@ -124,15 +230,52 @@ export function toBody(
     folderId,
     fileIds: value.fileIds,
   };
-  if (type !== 'contract') return { type, ...common };
+  if (type === 'document' || type === 'note') return { type, ...common };
   return {
-    type,
+    type: 'contract',
     ...common,
     contractNumber: value.contractNumber.trim() || null,
     amount: parseMoney(value.amount, value.currency)!,
     startsOn: value.startsOn,
     endsOn: value.endsOn,
   };
+}
+
+/**
+ * The create body of an item of the organisation (Phase 32 E; `validateItem` passed): a contract
+ * of several clients, an expense, a document or a note.
+ */
+export function toOrgBody(
+  type: FinanceItemType,
+  value: ItemFormValue,
+  folderId: string | null,
+): FinanceOrgItemBody {
+  const common = { title: value.title.trim(), body: value.body, folderId, fileIds: value.fileIds };
+  const amount = () => parseMoney(value.amount, value.currency)!;
+  if (type === 'expense') {
+    const salary = value.expenseKind === 'salary';
+    return {
+      type,
+      ...common,
+      expenseKind: value.expenseKind,
+      payeeId: salary ? value.payeeId : null,
+      amount: amount(),
+      spentOn: value.spentOn,
+    };
+  }
+  if (type === 'contract') {
+    return {
+      type,
+      ...common,
+      contractNumber: value.contractNumber.trim() || null,
+      amount: amount(),
+      startsOn: value.startsOn,
+      endsOn: value.endsOn,
+      payerName: value.payerName.trim(),
+      shares: shareInputs(value) ?? [],
+    };
+  }
+  return { type, ...common };
 }
 
 /** The changed fields of an edit, with the `updatedAt` it started from. */
@@ -144,25 +287,55 @@ export function toPatch(item: FinanceItemDetail, value: ItemFormValue): FinanceI
   const files = item.files.map((f) => f.id);
   if (JSON.stringify(value.fileIds) !== JSON.stringify(files)) patch.fileIds = value.fileIds;
   const c = item.contract;
+  const amount = parseMoney(value.amount, value.currency);
   if (c) {
     const number = value.contractNumber.trim();
     if (number !== (c.contractNumber ?? '')) patch.contractNumber = number || null;
-    const amount = parseMoney(value.amount, value.currency);
-    if (
-      amount &&
-      (amount.amountMinor !== c.amount.amountMinor || amount.currency !== c.amount.currency)
-    ) {
+    const was = c.shared?.total ?? c.amount;
+    if (amount && (amount.amountMinor !== was.amountMinor || amount.currency !== was.currency)) {
       patch.amount = amount;
     }
     if (value.startsOn !== c.startsOn) patch.startsOn = value.startsOn;
     if (value.endsOn !== c.endsOn) patch.endsOn = value.endsOn;
+    if (c.shared) {
+      const payer = value.payerName.trim();
+      if (payer !== c.shared.payerName) patch.payerName = payer;
+      const shares = shareInputs(value);
+      const before = c.shared.shares.map((s) => ({
+        groupId: s.groupId,
+        amountMinor: s.amountMinor,
+      }));
+      // The shares go whole: also when only the amount changed, so they add up to it again.
+      if (shares && (JSON.stringify(shares) !== JSON.stringify(before) || patch.amount)) {
+        patch.shares = shares;
+      }
+    }
+  }
+  const e = item.expense;
+  if (e) {
+    if (
+      amount &&
+      (amount.amountMinor !== e.amount.amountMinor || amount.currency !== e.amount.currency)
+    ) {
+      patch.amount = amount;
+    }
+    if (value.spentOn !== e.spentOn) patch.spentOn = value.spentOn;
+    if (e.kind === 'salary' && value.payeeId && value.payeeId !== e.payeeId) {
+      patch.payeeId = value.payeeId;
+    }
   }
   return patch;
 }
 
-/** The new contract's proposed reminder rows for its end date (none when it has passed). */
+/** A new contract's proposed reminder rows for its end date (none when it has passed). */
 export function proposedTimes(endsOn: string, now = new Date()): ReminderTimeValue[] {
   const proposal = proposedReminder(endsOn, now);
+  return proposal ? [{ key: newRowKey(), ...proposal, firedAt: null }] : [];
+}
+
+/** A new expense's proposed reminder rows: the day before its date (Phase 32 E). */
+export function proposedExpenseTimes(spentOn: string, now = new Date()): ReminderTimeValue[] {
+  const proposal = proposedExpenseReminder(spentOn, now);
   return proposal ? [{ key: newRowKey(), ...proposal, firedAt: null }] : [];
 }
 
@@ -183,15 +356,28 @@ function FieldError({ id, message }: { id: string; message?: string }) {
   );
 }
 
+/** What the form needs besides the value (Phase 32 E): clients, payees, mention people. */
+export type ItemFormContext = {
+  owner: FinanceOwner;
+  /** `/finance`'s create: the "for whom" choice and the clients to pick. */
+  clients?: readonly { id: string; name: string }[];
+  /** A salary's admins. */
+  payees?: readonly { id: string; name: string }[];
+  /** The people a description's mentions are named from (the organisation has no group). */
+  people?: GroupPerson[];
+};
+
 /**
- * The fields of a finance item, controlled by the sheet: title, a contract's number, amount and
- * period, the description (Markdown, the chat toolbar), the finance-only files, and for a new
- * contract its reminder times (proposed 30 days before the end at 09:00, following the end date
- * until edited). Needs the `financeDocuments`, `reminders`, `forms` and `chat` namespaces.
+ * The fields of a finance item, controlled by the sheet: on `/finance` first whose it is
+ * (organisation, a client, several clients), then the title, a contract's number, amount and
+ * period (with the payer and the shares for several clients), an expense's kind, admin, amount
+ * and date, the description (Markdown, the chat toolbar), the finance-only files, and for a new
+ * contract or expense its reminder times (proposed, following the date until edited). Needs the
+ * `financeDocuments`, `financeOrg`, `reminders`, `forms` and `chat` namespaces.
  */
 export function ItemForm({
   type,
-  groupId,
+  context,
   value,
   onChange,
   errors,
@@ -201,7 +387,7 @@ export function ItemForm({
   onUploadingChange,
 }: {
   type: FinanceItemType;
-  groupId: string;
+  context: ItemFormContext;
   value: ItemFormValue;
   onChange: Dispatch<SetStateAction<ItemFormValue>>;
   errors: ItemFormErrors;
@@ -211,31 +397,197 @@ export function ItemForm({
   /** True while a file uploads; the sheet keeps Create/Save disabled until it is false. */
   onUploadingChange?: (uploading: boolean) => void;
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const uid = useId();
   const set = <K extends keyof ItemFormValue>(key: K, next: ItemFormValue[K]) =>
     onChange((prev) => ({ ...prev, [key]: next }));
   const k = (key: string) => t(`financeDocuments.form.${key}`);
+  const o = (key: string) => t(`financeOrg.form.${key}`);
   const contract = type === 'contract';
+  const expense = type === 'expense';
+  const salary = expense && value.expenseKind === 'salary';
+  const org = context.owner.kind === 'org';
+  const shared = contract && org && value.owner === 'shared';
+  // A new item on `/finance` chooses whose it is; an expense always is the organisation's.
+  const choosesOwner = isNew && org && !expense && context.clients !== undefined;
+  // Files of a new item made for one client from `/finance` go to that client.
+  const uploadOwner: FinanceOwner =
+    choosesOwner && value.owner === 'client' && value.clientId
+      ? { kind: 'group', groupId: value.clientId }
+      : context.owner;
+  const groupId = context.owner.kind === 'group' ? context.owner.groupId : '';
   const err = (key: keyof ItemFormErrors) => ({
     'aria-invalid': errors[key] ? true : undefined,
     'aria-describedby': errors[key] ? `${uid}-${key}-error` : undefined,
   });
 
+  const amountField = (
+    <div className={FIELD}>
+      <Label htmlFor={`${uid}-amount`}>{k('amount')}</Label>
+      <div className="flex items-center gap-2">
+        <Input
+          id={`${uid}-amount`}
+          inputMode="decimal"
+          autoComplete="off"
+          value={value.amount}
+          onChange={(event) => set('amount', event.target.value)}
+          className="min-w-0 flex-1 text-right tabular-nums"
+          {...err('amount')}
+        />
+        {ENABLED_CURRENCIES.length > 1 ? (
+          <select
+            aria-label={k('currency')}
+            value={value.currency}
+            onChange={(event) => set('currency', event.target.value as Currency)}
+            className="h-[38px] rounded-full border-2 border-input bg-background px-3 text-button"
+          >
+            {ENABLED_CURRENCIES.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <span className="text-button font-semibold" aria-label={k('currency')}>
+            {value.currency}
+          </span>
+        )}
+      </div>
+      <FieldError id={`${uid}-amount-error`} message={errors.amount} />
+    </div>
+  );
+
   return (
     <div className="flex flex-col gap-5">
+      {choosesOwner && (
+        <fieldset className={FIELD}>
+          <legend className="mb-2.5 text-button font-semibold">{o('owner')}</legend>
+          <div className="flex flex-wrap gap-x-5 gap-y-2" role="radiogroup">
+            {/* A contract has one client or several; a document or a note may have none. */}
+            {(contract ? ['client', 'shared'] : ['org', 'client']).map((choice) => (
+              <label key={choice} className="flex items-center gap-2 text-button">
+                <input
+                  type="radio"
+                  name={`${uid}-owner`}
+                  value={choice}
+                  checked={value.owner === choice}
+                  onChange={() => set('owner', choice as OwnerChoice)}
+                  className="size-4 accent-foreground"
+                />
+                {o(`owners.${choice}`)}
+              </label>
+            ))}
+          </div>
+          {value.owner === 'client' && (
+            <>
+              <Select
+                aria-label={o('client')}
+                value={value.clientId}
+                onChange={(event) => set('clientId', event.target.value)}
+                containerClassName="w-full"
+                {...err('client')}
+              >
+                <option value="">{o('chooseClient')}</option>
+                {context.clients!.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </Select>
+              <FieldError id={`${uid}-client-error`} message={errors.client} />
+            </>
+          )}
+        </fieldset>
+      )}
+
+      {expense && (
+        <fieldset className={FIELD}>
+          <legend className="mb-2.5 text-button font-semibold">{o('kind')}</legend>
+          <div className="flex flex-wrap gap-x-5 gap-y-2" role="radiogroup">
+            {(['salary', 'other'] as const).map((kind) => (
+              <label key={kind} className="flex items-center gap-2 text-button">
+                <input
+                  type="radio"
+                  name={`${uid}-kind`}
+                  value={kind}
+                  checked={value.expenseKind === kind}
+                  disabled={!isNew}
+                  onChange={() => set('expenseKind', kind)}
+                  className="size-4 accent-foreground"
+                />
+                {o(`kinds.${kind}`)}
+              </label>
+            ))}
+          </div>
+        </fieldset>
+      )}
+
+      {salary && (
+        <div className={FIELD}>
+          <Label htmlFor={`${uid}-payee`}>{o('payee')}</Label>
+          <Select
+            id={`${uid}-payee`}
+            value={value.payeeId}
+            onChange={(event) => set('payeeId', event.target.value)}
+            containerClassName="w-full"
+            {...err('payeeId')}
+          >
+            <option value="">{o('choosePayee')}</option>
+            {(context.payees ?? []).map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </Select>
+          <FieldError id={`${uid}-payeeId-error`} message={errors.payeeId} />
+        </div>
+      )}
+
       <div className={FIELD}>
-        <Label htmlFor={`${uid}-title`}>{k('title')}</Label>
+        <Label htmlFor={`${uid}-title`}>
+          {expense ? (salary ? o('salaryNote') : o('what')) : k('title')}
+          {salary && (
+            <>
+              {' '}
+              <span className="font-medium text-muted-foreground">({k('optional')})</span>
+            </>
+          )}
+        </Label>
         <Input
           id={`${uid}-title`}
           value={value.title}
-          autoFocus={isNew}
+          autoFocus={isNew && !choosesOwner && !expense}
           maxLength={FINANCE_LIMITS.title + 20}
+          placeholder={expense && !salary ? o('whatHint') : undefined}
           onChange={(event) => set('title', event.target.value)}
           {...err('title')}
         />
         <FieldError id={`${uid}-title-error`} message={errors.title} />
       </div>
+
+      {expense && (
+        <div className="grid gap-5 min-[641px]:grid-cols-2">
+          {amountField}
+          <div className={FIELD}>
+            <Label htmlFor={`${uid}-spent`}>{o('date')}</Label>
+            <Input
+              id={`${uid}-spent`}
+              type="date"
+              value={value.spentOn}
+              onChange={(event) => {
+                const spentOn = event.target.value;
+                onChange((prev) => ({
+                  ...prev,
+                  spentOn,
+                  ...(isNew && prev.timesProposed ? { times: proposedExpenseTimes(spentOn) } : {}),
+                }));
+              }}
+              {...err('spentOn')}
+            />
+            <FieldError id={`${uid}-spentOn-error`} message={errors.spentOn} />
+          </div>
+        </div>
+      )}
 
       {contract && (
         <>
@@ -254,39 +606,7 @@ export function ItemForm({
               />
               <FieldError id={`${uid}-contractNumber-error`} message={errors.contractNumber} />
             </div>
-            <div className={FIELD}>
-              <Label htmlFor={`${uid}-amount`}>{k('amount')}</Label>
-              <div className="flex items-center gap-2">
-                <Input
-                  id={`${uid}-amount`}
-                  inputMode="decimal"
-                  autoComplete="off"
-                  value={value.amount}
-                  onChange={(event) => set('amount', event.target.value)}
-                  className="min-w-0 flex-1 text-right tabular-nums"
-                  {...err('amount')}
-                />
-                {ENABLED_CURRENCIES.length > 1 ? (
-                  <select
-                    aria-label={k('currency')}
-                    value={value.currency}
-                    onChange={(event) => set('currency', event.target.value as Currency)}
-                    className="h-[38px] rounded-full border-2 border-input bg-background px-3 text-button"
-                  >
-                    {ENABLED_CURRENCIES.map((c) => (
-                      <option key={c} value={c}>
-                        {c}
-                      </option>
-                    ))}
-                  </select>
-                ) : (
-                  <span className="text-button font-semibold" aria-label={k('currency')}>
-                    {value.currency}
-                  </span>
-                )}
-              </div>
-              <FieldError id={`${uid}-amount-error`} message={errors.amount} />
-            </div>
+            {amountField}
           </div>
           <fieldset className={FIELD}>
             <legend className="mb-2.5 text-button font-semibold">{k('period')}</legend>
@@ -327,6 +647,34 @@ export function ItemForm({
               </div>
             </div>
           </fieldset>
+          {shared && (
+            <>
+              <div className={FIELD}>
+                <Label htmlFor={`${uid}-payer`}>{o('payer')}</Label>
+                <p id={`${uid}-payer-hint`} className="-mt-1 text-tiny text-muted-foreground">
+                  {o('payerHint')}
+                </p>
+                <Input
+                  id={`${uid}-payer`}
+                  value={value.payerName}
+                  maxLength={FINANCE_LIMITS.payerName + 20}
+                  onChange={(event) => set('payerName', event.target.value)}
+                  {...err('payerName')}
+                />
+                <FieldError id={`${uid}-payerName-error`} message={errors.payerName} />
+              </div>
+              <SharesField
+                rows={value.shares}
+                onChange={(shares) => set('shares', shares)}
+                clients={context.clients ?? []}
+                totalText={value.amount}
+                currency={value.currency}
+                language={i18n.language}
+                error={errors.shares}
+                toText={(minor) => amountText(minor, value.currency, i18n.language)}
+              />
+            </>
+          )}
         </>
       )}
 
@@ -339,6 +687,9 @@ export function ItemForm({
         editLabel={type === 'note' ? k('editText') : k('editDescription')}
         error={errors.body}
         errorId={`${uid}-body-error`}
+        {...(context.people ? { people: context.people } : {})}
+        // The AI tools work on a client's group; the organisation has none.
+        aiTools={context.owner.kind === 'group'}
       />
 
       <div className={FIELD}>
@@ -347,7 +698,7 @@ export function ItemForm({
         </span>
         <FilesField
           groupId={groupId}
-          uploadPath={financeUploadPath(groupId)}
+          uploadPath={financeUploadPath(uploadOwner)}
           fileIds={value.fileIds}
           files={files}
           // Updaters: several uploads may finish after this render.
@@ -366,10 +717,12 @@ export function ItemForm({
         />
       </div>
 
-      {contract && isNew && (
+      {(contract || expense) && isNew && (
         <div className={FIELD}>
           <span className="text-button font-semibold">{k('reminders')}</span>
-          <p className="text-tiny text-muted-foreground">{k('reminderHint')}</p>
+          <p className="text-tiny text-muted-foreground">
+            {expense ? o('reminderHint') : k('reminderHint')}
+          </p>
           <ReminderTimesField
             value={value.times}
             onChange={(times) => onChange((prev) => ({ ...prev, times, timesProposed: false }))}

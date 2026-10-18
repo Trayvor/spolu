@@ -64,6 +64,52 @@ describe('digestEntry', () => {
     });
   });
 
+  it("an expense's reminder (Phase 32 E): its own email opening /finance, no client", () => {
+    const entry = digestEntry(
+      {
+        kind: 'reminder.due',
+        payload: {
+          subjectKind: 'finance',
+          subjectId: 'e1',
+          groupId: null,
+          title: 'Eva Nováková',
+          at: '2026-10-30T08:00:00Z',
+          dueOn: '2026-10-31',
+          salary: true,
+        },
+      },
+      { ...ctx, groupId: null, groupName: null },
+    );
+    expect(entry).toEqual({
+      line: expect.stringMatching(/^Expense Salary: Eva Nováková: due on .*2026$/),
+      url: 'https://spolu.test/finance?item=e1',
+      button: 'Open expense',
+      topic: 'Finance',
+    });
+  });
+
+  it('a reminder of a contract of several clients (Phase 32 E) opens /finance', () => {
+    const entry = digestEntry(
+      {
+        kind: 'reminder.due',
+        payload: {
+          subjectKind: 'finance',
+          subjectId: 'c1',
+          groupId: null,
+          title: 'Grant',
+          at: '2026-12-01T08:00:00Z',
+          endsOn: '2026-12-31',
+        },
+      },
+      { ...ctx, groupId: null, groupName: null },
+    );
+    expect(entry).toMatchObject({
+      line: expect.stringMatching(/^Contract Grant · Finance: ends on/),
+      url: 'https://spolu.test/finance?item=c1',
+      button: 'Open contract',
+    });
+  });
+
   it('an event of a non-ticket group without a client group gives null', () => {
     expect(
       digestEntry(

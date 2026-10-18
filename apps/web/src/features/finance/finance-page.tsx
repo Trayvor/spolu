@@ -11,7 +11,7 @@ import { OverviewCard } from './overview-card';
 import { PAGE_PERIODS } from './period';
 import { PeriodSelect, usePeriod } from './period-select';
 import { FinanceClientFilter, useFinanceClients } from './system/client-filter';
-import { ContractsCard } from './system/contracts-card';
+import { ItemsCard } from './system/items-card';
 import { RankingsRow } from './system/rankings-row';
 import { useFinanceEvents } from './use-finance-events';
 import { WorkLogCard } from './work-log-card';
@@ -22,7 +22,8 @@ const RatesDialog = lazy(() => import('./rates-dialog').then((m) => ({ default: 
  * The system-wide page `/finance` (Phase 32, spec §6.2): the client filter (every client by
  * default, remembered), one page period (this year by default, remembered) that drives every
  * card, and the Hourly rates button; then the same grid across the chosen clients (Overview,
- * Contracts, Work log with "Add time" and its client picker) and the rankings under it.
+ * Items — the ledger and the organisation's own items, Phase 32 E —, Work log with "Add time"
+ * and its client picker) and the rankings under it.
  */
 export function FinancePage() {
   const finance = useSession()?.finance === true;
@@ -61,10 +62,10 @@ function FinancePageCards() {
       <FinanceGrid
         screen="page"
         overview={<OverviewCard view={view} period={period} />}
-        documents={<ContractsCard view={view} range={period.range} />}
+        documents={<ItemsCard view={view} range={period.range} />}
         workLog={<WorkLogCard view={view} period={period} />}
         rankings={<RankingsRow view={view} range={period.range} />}
-        labels={{ documents: t('finance.segments.contracts') }}
+        labels={{ documents: t('financeOrg.card.title') }}
       />
       <Suspense fallback={null}>
         {rates && <RatesDialog view={view} onClose={() => setRates(false)} />}

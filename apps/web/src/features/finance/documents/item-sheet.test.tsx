@@ -40,8 +40,10 @@ const SAVED: FinanceItemDetail = {
     amount: { amountMinor: 1_200_000, currency: 'EUR' },
     startsOn: '2030-01-01',
     endsOn: '2030-12-31',
+    shared: null,
   },
   fileCount: 0,
+  expense: null,
   hasUpcomingReminder: false,
   createdBy: 'a1',
   createdAt: '2026-10-17T10:00:00.000Z',
@@ -62,7 +64,8 @@ function mockApi() {
     if (url === '/api/groups/g1/finance/items' && init?.method === 'POST') return reply(201, SAVED);
     if (url.startsWith('/api/groups/g1/finance/items'))
       return reply(200, { items: [], nextCursor: null });
-    if (url === '/api/finance/items/c9') return reply(200, SAVED);
+    // The tab reads an item as its client sees it (Phase 32 E, `?group=`).
+    if (url === '/api/finance/items/c9?group=g1') return reply(200, SAVED);
     if (url === '/api/finance-items/c9/reminders') {
       return reply(200, { times: [], recipients: [], subscribed: true, canEdit: true });
     }

@@ -37,6 +37,22 @@ export const OverviewMoneySchema = z.object({
 export type OverviewMoney = z.infer<typeof OverviewMoneySchema>;
 
 /**
+ * The organisation's money out of one currency (Phase 32 E, decisions O3, E6, E17): expenses
+ * dated today or earlier are paid out (salaries and the rest apart), later ones planned.
+ */
+export const OverviewExpensesSchema = z.object({
+  currency: CurrencySchema,
+  paidOut: z.number().int(),
+  /** The part of `paidOut` that is admins' salaries; the rest is other expenses. */
+  salaryPaidOut: z.number().int(),
+  planned: z.number().int(),
+  byMonth: z.array(
+    z.object({ month: MonthSchema, paidOut: z.number().int(), planned: z.number().int() }),
+  ),
+});
+export type OverviewExpenses = z.infer<typeof OverviewExpensesSchema>;
+
+/**
  * `GET /api/groups/:id/finance/overview?from=&to=` (and D's `/api/finance/overview`). `months`
  * lists every month of the range in order; series leave out months with nothing.
  */
@@ -44,6 +60,13 @@ export const FinanceOverviewDtoSchema = z.object({
   from: MonthSchema,
   to: MonthSchema,
   months: z.array(MonthSchema),
+  /**
+   * True on `/finance` with every client chosen (Phase 32 E): the organisation's expenses count,
+   * and the balance is paid − expenses paid out. False in a client's tab and for chosen clients.
+   */
+  organisation: z.boolean(),
+  /** One entry per currency with expenses in the range; empty unless `organisation`. */
+  expenses: z.array(OverviewExpensesSchema),
   /** One entry per currency that has contracts in the range, EUR first. */
   money: z.array(OverviewMoneySchema),
   /** The cost of the work (hours × rates), EUR. */

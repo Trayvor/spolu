@@ -1,12 +1,13 @@
-import { useEffect, useRef, useState, type RefObject } from 'react';
+import { useEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useBlocker } from '@tanstack/react-router';
+import { Link, useBlocker } from '@tanstack/react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   formatMoney,
   type FileInfo,
   type FinanceItemDetail,
   type FinanceItemType,
+  type GroupPerson,
 } from '@spolu/shared';
 import { MoreIcon } from '@/components/icons';
 import { Button } from '@/components/ui/button';
@@ -23,34 +24,52 @@ import { ApiError } from '@/lib/api';
 import { MessageBody } from '@/features/chat/format/render';
 import { FileChip } from '@/features/files/file-chip';
 import { ImagePreview } from '@/features/files/image-preview';
-import { useGroupPeople } from '@/features/groups/use-group-people';
+import { groupPeopleQuery, groupsQuery, onlyClientGroups } from '@/features/groups/api';
 import { putReminderSet } from '@/features/reminders/api';
 import { MoveDialog } from '@/features/knowledge/move-dialog';
 import { formatCreated } from '@/features/tasks/dates';
-import { financeViewKey } from '../api';
 import {
   createFinanceItem,
+  createOrgItem,
   deleteFinanceItem,
   financeFoldersQuery,
   financeItemQuery,
+  financePayeesQuery,
+  financePeopleQuery,
+  ownerViewKey,
   updateFinanceItem,
+  type FinanceOwner,
 } from './api';
 import { FinanceReminders } from './finance-reminders';
-import { formatPeriod, hasEnded, isEndingSoon, today } from './format';
+import {
+  formatDay,
+  formatPeriod,
+  hasEnded,
+  isEndingSoon,
+  itemTitle,
+  proposedExpenseReminder,
+  proposedReminder,
+  today,
+} from './format';
 import {
   ItemForm,
   emptyItemValue,
   fromItem,
   timesToSave,
   toBody,
+  toOrgBody,
   toPatch,
   validateItem,
+  type ItemFormContext,
   type ItemFormErrors,
   type ItemFormValue,
 } from './item-form';
 
 export type ItemSheetTarget =
   { mode: 'view'; id: string } | { mode: 'create'; type: FinanceItemType };
+
+/** Where a created item went: its id, and its client (null: the organisation's). */
+export type CreatedItem = { id: string; groupId: string | null };
 
 type Ask =
   { kind: 'discard'; then: 'close' | 'view' } | { kind: 'delete' } | { kind: 'move' } | null;
@@ -78,36 +97,76 @@ function Attachments({ files }: { files: FileInfo[] }) {
 }
 
 /**
+ * The people a description's mentions are named from: the client's, or on `/finance` (the
+ * organisation has no group, Phase 32 E) the finance admins.
+ */
+function useMentionPeople(owner: FinanceOwner): GroupPerson[] | undefined {
+  const group = useQuery({
+    ...groupPeopleQuery(owner.kind === 'group' ? owner.groupId : ''),
+    enabled: owner.kind === 'group',
+  }).data;
+  const finance = useQuery({ ...financePeopleQuery, enabled: owner.kind === 'org' }).data;
+  return useMemo(
+    () =>
+      owner.kind === 'group'
+        ? group
+        : finance?.map((p) => ({ ...p, isAdmin: true, isManager: true })),
+    [owner.kind, group, finance],
+  );
+}
+
+/**
  * One finance item in a `SheetDialog` (lazy chunk): read it, edit it in place, move it, delete
  * it, or create one. A contract shows its number, amount and period, and its reminders (edited
- * on their own); a new contract saves its proposed reminder right after the item. A missing item
- * (404) calls `onUnavailable`; after a create `onClose` gets the new id.
+ * on their own); a new contract saves its proposed reminder right after the item. Since Phase 32
+ * E the owner is a client or the organisation (`/finance`): there an expense (an admin's salary
+ * or another payment) and a contract of several clients (a payer and the shares) are made and
+ * edited, and a new item may go to one client. In a client's tab a contract of several clients
+ * is read-only, with that client's share, the whole amount and the payer, and a link to
+ * `/finance` (decisions O2, E10). A missing item (404) calls `onUnavailable`; after a create
+ * `onClose` gets where the item went.
  */
 export function ItemSheet({
-  groupId,
+  owner,
   target,
   folderId,
   onClose,
   onUnavailable,
 }: {
-  groupId: string;
+  owner: FinanceOwner;
   target: ItemSheetTarget;
   /** Where a new item goes (null: the top level). */
   folderId: string | null;
-  onClose: (createdId?: string) => void;
+  onClose: (created?: CreatedItem) => void;
   onUnavailable: () => void;
 }) {
   const { t, i18n } = useTranslation();
   const client = useQueryClient();
   const viewId = target.mode === 'view' ? target.id : '';
-  const query = useQuery({ ...financeItemQuery(groupId, viewId), enabled: target.mode === 'view' });
+  const query = useQuery({ ...financeItemQuery(owner, viewId), enabled: target.mode === 'view' });
   const item = query.data;
-  const people = useGroupPeople(groupId).data;
-  const folders = useQuery(financeFoldersQuery(groupId)).data;
+  const people = useMentionPeople(owner);
+  const folders = useQuery(financeFoldersQuery(owner)).data;
+  const org = owner.kind === 'org';
+  const groups = useQuery({ ...groupsQuery, enabled: org, select: onlyClientGroups }).data;
+  const payees = useQuery({ ...financePayeesQuery, enabled: org }).data;
   const type: FinanceItemType | undefined = target.mode === 'create' ? target.type : item?.type;
+  // A contract of several clients is edited on `/finance` only (decision O2).
+  const readOnly = !org && item?.contract?.shared != null;
+  const context: ItemFormContext = {
+    owner,
+    ...(org ? { clients: groups ?? [], payees: payees ?? [] } : {}),
+    ...(people ? { people } : {}),
+  };
 
   const [editing, setEditing] = useState(target.mode === 'create');
-  const [initial, setInitial] = useState<ItemFormValue>(emptyItemValue);
+  // A contract made on `/finance` belongs to one client or several (decision E13).
+  const [initial, setInitial] = useState<ItemFormValue>(() => ({
+    ...emptyItemValue(),
+    ...(org && target.mode === 'create' && target.type === 'contract'
+      ? { owner: 'client' as const }
+      : {}),
+  }));
   const [value, setValue] = useState<ItemFormValue>(initial);
   const [files, setFiles] = useState<FileInfo[]>([]);
   const [errors, setErrors] = useState<ItemFormErrors>({});
@@ -152,8 +211,7 @@ export function ItemSheet({
     withResolver: true,
   });
 
-  const refreshLists = () =>
-    void client.invalidateQueries({ queryKey: financeViewKey({ kind: 'group', groupId }) });
+  const refreshLists = () => void client.invalidateQueries({ queryKey: ownerViewKey(owner) });
 
   function startEdit(source: FinanceItemDetail) {
     const next = fromItem(source, i18n.language);
@@ -186,32 +244,54 @@ export function ItemSheet({
     request(editing && target.mode === 'view' ? 'view' : 'close');
   }
 
+  const isNew = target.mode === 'create';
+  const shared =
+    type === 'contract' &&
+    (isNew ? org && value.owner === 'shared' : item?.contract?.shared != null);
+
+  async function create(createType: FinanceItemType): Promise<FinanceItemDetail> {
+    if (owner.kind === 'group') {
+      return createFinanceItem(owner.groupId, toBody(createType, value, folderId));
+    }
+    // On `/finance` a contract, document or note may go to one client (decision E13), into its
+    // top level; anything else is the organisation's.
+    if (value.owner === 'client' && createType !== 'expense') {
+      return createFinanceItem(value.clientId, toBody(createType, value, null));
+    }
+    return createOrgItem(toOrgBody(createType, value, folderId));
+  }
+
   async function save() {
     if (busy || uploading || !type) return;
-    const found = validateItem(type, value, t);
+    const found = validateItem(type, value, t, { shared, isNew });
     setErrors(found);
     if (Object.keys(found).length > 0) return;
     setBusy(true);
     try {
-      if (target.mode === 'create') {
-        const saved = await createFinanceItem(groupId, toBody(type, value, folderId));
-        const times = type === 'contract' ? timesToSave(value.times) : [];
+      if (isNew) {
+        const saved = await create(type);
+        const times = type === 'contract' || type === 'expense' ? timesToSave(value.times) : [];
         // The proposed reminder; a failure leaves the item without it (its view offers "Add").
         if (times.length > 0) {
           await putReminderSet('finance', saved.id, { times, baseTimeIds: [] }).catch(
             () => undefined,
           );
         }
-        client.setQueryData(financeItemQuery(groupId, saved.id).queryKey, saved);
+        if (saved.groupId === null || owner.kind === 'group') {
+          client.setQueryData(financeItemQuery(owner, saved.id).queryKey, saved);
+        }
         refreshLists();
+        if (saved.groupId !== null) {
+          void client.invalidateQueries({ queryKey: ['finance', saved.groupId] });
+        }
         leaving.current = true;
-        return onClose(saved.id);
+        return onClose({ id: saved.id, groupId: saved.groupId });
       }
       if (!item) return;
       const patch = toPatch(item, value);
       if (Object.keys(patch).length === 1) return leave('view');
       const saved = await updateFinanceItem(item.id, patch);
-      client.setQueryData(financeItemQuery(groupId, saved.id).queryKey, saved);
+      client.setQueryData(financeItemQuery(owner, saved.id).queryKey, saved);
       refreshLists();
       leave('view');
     } catch (error) {
@@ -233,7 +313,7 @@ export function ItemSheet({
     setActionError(null);
     try {
       await deleteFinanceItem(item.id);
-      client.removeQueries({ queryKey: financeItemQuery(groupId, item.id).queryKey });
+      client.removeQueries({ queryKey: financeItemQuery(owner, item.id).queryKey });
       refreshLists();
       onClose();
     } catch {
@@ -243,11 +323,13 @@ export function ItemSheet({
   }
 
   const nameOf = (id: string) => people?.find((p) => p.id === id)?.name;
+  const newTitle =
+    type === 'expense' ? t('financeOrg.sheet.newExpense') : type ? k(`new.${type}`) : '';
 
   return (
     <SheetDialog onEscape={onEscape} initialFocus={titleRef} testId="finance-item-sheet" urlOwned>
       <PanelHeader onClose={() => request('close')} compactBelow={641} backLabel={k('back')}>
-        {!editing && item && (
+        {!editing && item && !readOnly && (
           <>
             <Button variant="secondary" size="sm" onClick={() => startEdit(item)}>
               {k('edit')}
@@ -306,17 +388,17 @@ export function ItemSheet({
               tabIndex={-1}
               className="break-words text-medium font-semibold outline-none"
             >
-              {target.mode === 'create' ? k(`new.${type}`) : item?.title}
+              {isNew ? newTitle : item ? itemTitle(item, t) : ''}
             </SheetDialogTitle>
             <ItemForm
               type={type}
-              groupId={groupId}
+              context={context}
               value={value}
               onChange={setValue}
               errors={errors}
               files={files}
               onFilesChange={setFiles}
-              isNew={target.mode === 'create'}
+              isNew={isNew}
               onUploadingChange={setUploading}
             />
             {errors.form && (
@@ -328,6 +410,8 @@ export function ItemSheet({
         ) : item ? (
           <ItemView
             item={item}
+            owner={owner}
+            readOnly={readOnly}
             titleRef={titleRef}
             nameOf={nameOf}
             onGone={onUnavailable}
@@ -359,7 +443,7 @@ export function ItemSheet({
           {ask?.kind === 'discard' || blocker.status === 'blocked' ? (
             <div role="alert" className="flex flex-wrap items-center gap-2">
               <p className="mr-auto text-button font-semibold">
-                {target.mode === 'create' ? k('discardDraft') : k('discardChanges')}
+                {isNew ? k('discardDraft') : k('discardChanges')}
               </p>
               <Button
                 variant="outline"
@@ -387,7 +471,7 @@ export function ItemSheet({
                 variant="outline"
                 size="lg"
                 className="px-5"
-                onClick={() => request(target.mode === 'create' ? 'close' : 'view')}
+                onClick={() => request(isNew ? 'close' : 'view')}
               >
                 {k('cancel')}
               </Button>
@@ -407,7 +491,7 @@ export function ItemSheet({
                 className="px-5 aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
                 onClick={() => void save()}
               >
-                {target.mode === 'create' ? k('create') : k('save')}
+                {isNew ? k('create') : k('save')}
               </Button>
             </div>
           )}
@@ -416,7 +500,7 @@ export function ItemSheet({
       {ask?.kind === 'move' && item && (
         <MoveDialog
           folders={folders}
-          name={item.title}
+          name={itemTitle(item, t)}
           currentFolderId={item.folderId}
           clientItemMessage={t('knowledge.folders.moveFailed')}
           onMove={async (next) => {
@@ -424,7 +508,7 @@ export function ItemSheet({
               folderId: next,
               updatedAt: item.updatedAt,
             });
-            client.setQueryData(financeItemQuery(groupId, saved.id).queryKey, saved);
+            client.setQueryData(financeItemQuery(owner, saved.id).queryKey, saved);
             refreshLists();
             setAsk(null);
           }}
@@ -437,12 +521,16 @@ export function ItemSheet({
 
 function ItemView({
   item,
+  owner,
+  readOnly,
   titleRef,
   nameOf,
   onGone,
   language,
 }: {
   item: FinanceItemDetail;
+  owner: FinanceOwner;
+  readOnly: boolean;
   titleRef: RefObject<HTMLHeadingElement | null>;
   nameOf: (id: string) => string | undefined;
   onGone: () => void;
@@ -450,8 +538,14 @@ function ItemView({
 }) {
   const { t } = useTranslation();
   const v = (key: string) => t(`financeDocuments.view.${key}`);
+  const o = (key: string, options?: Record<string, unknown>) =>
+    t(`financeOrg.view.${key}`, options);
   const c = item.contract;
+  const e = item.expense;
+  const shared = c?.shared ?? null;
   const day = today();
+  const money = (amountMinor: number, currency = c?.amount.currency ?? 'EUR') =>
+    formatMoney({ amountMinor, currency }, language);
   return (
     <div className="flex flex-col gap-5">
       <div className="flex flex-col gap-1">
@@ -460,7 +554,7 @@ function ItemView({
           tabIndex={-1}
           className="break-words text-medium font-semibold outline-none"
         >
-          {item.title}
+          {itemTitle(item, t)}
         </SheetDialogTitle>
         <p className="text-tiny text-muted-foreground">
           {t('financeDocuments.sheet.added', {
@@ -469,12 +563,41 @@ function ItemView({
           })}
         </p>
       </div>
+      {readOnly && (
+        <div className="flex flex-col items-start gap-2 rounded-lg bg-secondary p-4">
+          <p className="text-button">{o('readOnly')}</p>
+          <Button asChild variant="secondary" size="sm">
+            <Link to="/finance" search={{ item: item.id }} data-testid="edit-on-finance">
+              {o('editOnFinance')}
+            </Link>
+          </Button>
+        </div>
+      )}
       {c && (
         <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 rounded-lg bg-muted p-4 text-button">
-          <dt className="text-muted-foreground">{v('amount')}</dt>
-          <dd className="text-medium font-semibold tabular-nums">
-            {formatMoney(c.amount, language)}
-          </dd>
+          {shared && owner.kind === 'group' ? (
+            <>
+              <dt className="text-muted-foreground">{o('share')}</dt>
+              <dd className="text-medium font-semibold tabular-nums" data-testid="share-amount">
+                {formatMoney(c.amount, language)}
+              </dd>
+              <dt className="text-muted-foreground">{o('total')}</dt>
+              <dd className="tabular-nums">{formatMoney(shared.total, language)}</dd>
+            </>
+          ) : (
+            <>
+              <dt className="text-muted-foreground">{v('amount')}</dt>
+              <dd className="text-medium font-semibold tabular-nums">
+                {formatMoney(shared?.total ?? c.amount, language)}
+              </dd>
+            </>
+          )}
+          {shared && (
+            <>
+              <dt className="text-muted-foreground">{o('payer')}</dt>
+              <dd className="break-words">{shared.payerName}</dd>
+            </>
+          )}
           <dt className="text-muted-foreground">{v('period')}</dt>
           <dd className="flex flex-wrap items-center gap-2 tabular-nums">
             {formatPeriod(c.startsOn, c.endsOn, language)}
@@ -497,6 +620,52 @@ function ItemView({
           )}
         </dl>
       )}
+      {shared && owner.kind === 'org' && (
+        <section className="flex flex-col gap-2">
+          <h3 className="text-button font-semibold">{o('shares')}</h3>
+          <table className="w-full text-button">
+            <tbody>
+              {shared.shares.map((s) => (
+                <tr key={s.groupId} className="border-b border-border last:border-b-0">
+                  <th scope="row" className="py-2 pr-3 text-left font-medium">
+                    <Link
+                      to="/groups/$groupId/finance"
+                      params={{ groupId: s.groupId }}
+                      className="hover:underline"
+                    >
+                      {s.groupName}
+                    </Link>
+                  </th>
+                  <td className="py-2 text-right tabular-nums">{money(s.amountMinor)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
+      )}
+      {e && (
+        <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 rounded-lg bg-muted p-4 text-button">
+          <dt className="text-muted-foreground">{v('amount')}</dt>
+          <dd className="text-medium font-semibold tabular-nums">
+            {formatMoney(e.amount, language)}
+          </dd>
+          <dt className="text-muted-foreground">{o('kind')}</dt>
+          <dd>{t(`financeOrg.form.kinds.${e.kind}`)}</dd>
+          {e.kind === 'salary' && (
+            <>
+              <dt className="text-muted-foreground">{o('payee')}</dt>
+              <dd>{e.payeeName}</dd>
+            </>
+          )}
+          <dt className="text-muted-foreground">{o('date')}</dt>
+          <dd className="flex flex-wrap items-center gap-2 tabular-nums">
+            {formatDay(e.spentOn, language)}
+            {e.spentOn > day && (
+              <span className="text-tiny text-muted-foreground">{o('planned')}</span>
+            )}
+          </dd>
+        </dl>
+      )}
       {item.body.trim() !== '' && (
         <section className="flex flex-col gap-2">
           <h3 className="text-button font-semibold">{v('description')}</h3>
@@ -513,7 +682,16 @@ function ItemView({
           <p className="text-tiny text-muted-foreground">{v('noFiles')}</p>
         )}
       </section>
-      {c && <FinanceReminders itemId={item.id} endsOn={c.endsOn} onGone={onGone} />}
+      {!readOnly && c && (
+        <FinanceReminders itemId={item.id} proposal={proposedReminder(c.endsOn)} onGone={onGone} />
+      )}
+      {e && (
+        <FinanceReminders
+          itemId={item.id}
+          proposal={proposedExpenseReminder(e.spentOn)}
+          onGone={onGone}
+        />
+      )}
     </div>
   );
 }

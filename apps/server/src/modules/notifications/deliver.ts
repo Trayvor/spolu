@@ -7,7 +7,7 @@ import type { PushSender } from '../../infra/push/index.js';
 import { unreadForNotify } from '../chat/notify.js';
 import { groups } from '../groups/schema.js';
 import { getTaskTitles } from '../tasks/task-service.js';
-import { getNotificationProfiles } from '../users/service.js';
+import { financeHoldersAmong, getNotificationProfiles } from '../users/service.js';
 import { audienceAmong, notificationGroupOf } from './categories.js';
 import { decideEvent, isOutranked, KIND_RANK } from './decide.js';
 import { getEffectiveModes } from './modes.js';
@@ -169,9 +169,10 @@ async function decideBatch(
   const groupOf = new Map(batch.map((r) => [r.id, notificationGroupOf(r.kind, payloadOf(r))]));
   const rows = batch.filter((r) => {
     const group = groupOf.get(r.id) ?? null;
-    // Only a ticket event may lack a client group (item B: `ticket.unassigned` goes to admins);
-    // for any other group that is a bug upstream, not a user setting.
-    if (group === null || (r.groupId === null && group !== 'tickets')) {
+    // Only a ticket event (item B: `ticket.unassigned` goes to admins) or a finance event of the
+    // organisation (Phase 32 E: an expense's reminder) may lack a client group; for any other
+    // group that is a bug upstream, not a user setting.
+    if (group === null || (r.groupId === null && group !== 'tickets' && group !== 'finance')) {
       console.warn(`notifications: event ${r.id} (${r.kind}) has no group or an unknown kind`);
       return false;
     }
@@ -201,6 +202,16 @@ async function decideBatch(
     tx,
     grouped.map((r) => ({ userId: r.userId, groupId: r.groupId!, group: groupOf.get(r.id)! })),
   );
+  // A finance event of no client (Phase 32 E) re-checks the right at send time, as
+  // `audienceAmong` does for a client's: someone who lost it meanwhile gets nothing.
+  const orgFinanceHolders = await financeHoldersAmong(
+    tx,
+    unique(
+      rows
+        .filter((r) => r.groupId === null && groupOf.get(r.id) === 'finance')
+        .map((r) => r.userId),
+    ),
+  );
   const groupNames = new Map(
     (
       await tx
@@ -227,8 +238,12 @@ async function decideBatch(
     const decision = decideEvent({
       kind,
       mode: modes.get(`${row.userId}:${groupId}`) ?? 'off',
-      // A ticket event without a client group: its recorder chose the recipients.
-      isGroupPerson: groupId === null || inAudience(row.userId, groupId, groupOf.get(row.id)!),
+      // A ticket event without a client group: its recorder chose the recipients; a finance event
+      // of the organisation: the finance admins among them.
+      isGroupPerson:
+        groupId === null
+          ? groupOf.get(row.id) !== 'finance' || orgFinanceHolders.has(row.userId)
+          : inAudience(row.userId, groupId, groupOf.get(row.id)!),
       // Task events have no message to read; chat events need theirs still unread.
       unread: messageId === null || message !== undefined,
       outranked: messageId !== null && isOutranked({ id: row.id, kind }, siblings.get(key) ?? []),

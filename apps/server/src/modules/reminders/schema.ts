@@ -18,14 +18,14 @@ import { user } from '../users/schema.js';
  * The reminders of one subject. One foreign key column per subject kind (not a generic
  * `subject_id`), so deleting the subject deletes its reminders in the database: a knowledge
  * reminder item (Phase 17), a task (Phase 19) or a finance item (Phase 32). Exactly one is set.
+ * `group_id` null only for a finance item of the organisation (Phase 32 E: an expense, a
+ * contract of several clients), which has no client.
  */
 export const reminderSets = pgTable(
   'reminder_sets',
   {
     id: text('id').primaryKey(),
-    groupId: text('group_id')
-      .notNull()
-      .references(() => groups.id, { onDelete: 'cascade' }),
+    groupId: text('group_id').references(() => groups.id, { onDelete: 'cascade' }),
     knowledgeItemId: text('knowledge_item_id').references(() => knowledgeItems.id, {
       onDelete: 'cascade',
     }),
@@ -42,6 +42,11 @@ export const reminderSets = pgTable(
     check(
       'reminder_sets_subject_check',
       sql`num_nonnulls(${t.knowledgeItemId}, ${t.taskId}, ${t.financeItemId}) = 1`,
+    ),
+    // Only a finance item may lack a client (Phase 32 E: the organisation's).
+    check(
+      'reminder_sets_group_check',
+      sql`${t.groupId} is not null or ${t.financeItemId} is not null`,
     ),
     // The group cascade, and the group-scoped reminder lists of later phases.
     index('reminder_sets_group_id_idx').on(t.groupId),

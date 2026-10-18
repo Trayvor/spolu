@@ -12,7 +12,8 @@ import { createFile, setFilesFinanceOnly } from '../files/service.js';
 export async function uploadFinanceFile(
   deps: { db: Db; storage: Storage },
   input: {
-    groupId: string;
+    /** Null: a file of the organisation (Phase 32 E). */
+    groupId: string | null;
     uploadedBy: string;
     name: string;
     declaredType: string | undefined;

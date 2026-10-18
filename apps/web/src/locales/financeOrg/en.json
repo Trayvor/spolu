@@ -1,0 +1,114 @@
+{
+  "kinds": {
+    "expense": "Expense"
+  },
+  "kindsHelp": {
+    "expense": "An admin's salary or another payment"
+  },
+  "card": {
+    "title": "Items",
+    "views": "Show",
+    "ledger": "Overview",
+    "organisation": "Organisation",
+    "expenses": "Expenses"
+  },
+  "sheet": {
+    "newExpense": "New expense"
+  },
+  "form": {
+    "owner": "For whom",
+    "owners": {
+      "org": "The organisation",
+      "client": "One client",
+      "shared": "Several clients"
+    },
+    "client": "Client",
+    "chooseClient": "Choose a client",
+    "kind": "Kind of expense",
+    "kinds": {
+      "salary": "Admin's salary",
+      "other": "Other expense"
+    },
+    "payee": "Admin",
+    "choosePayee": "Choose an admin",
+    "salaryNote": "Note",
+    "what": "What it is for",
+    "whatHint": "For example the server, a licence or a fine",
+    "date": "Date",
+    "payer": "Parent organisation",
+    "payerHint": "Who pays for all the clients at once.",
+    "reminderHint": "Proposed: the day before the date, at 09:00. You get it; add other finance admins after saving."
+  },
+  "shares": {
+    "title": "Clients' shares",
+    "client": "Client of share {{n}}",
+    "chooseClient": "Choose a client",
+    "amount": "Share of {{name}}",
+    "remove": "Remove {{name}}",
+    "add": "Add a client",
+    "split": "Split evenly",
+    "unknown": "Enter the amount and the shares to see how they add up.",
+    "balanced": "The shares add up to {{total}}.",
+    "left": "{{amount}} of {{total}} still to split.",
+    "over": "The shares are {{amount}} more than the amount."
+  },
+  "errors": {
+    "chooseClient": "Choose the client.",
+    "payerRequired": "Enter who pays.",
+    "shareClient": "Choose a client for every share.",
+    "shareInvalid": "Enter each share, such as 1 200,50.",
+    "sharesTooFew": "Add at least two clients.",
+    "sharesTooMany": "At most 50 clients.",
+    "sharesDuplicate": "Each client can have one share only.",
+    "sharesSum": "The shares must add up exactly to the amount.",
+    "whatRequired": "Say what the expense is for.",
+    "dateRequired": "Choose the date.",
+    "payeeRequired": "Choose the admin."
+  },
+  "view": {
+    "readOnly": "A contract of several clients is edited in Finance, where all its shares are.",
+    "editOnFinance": "Edit in Finance",
+    "share": "This client's share",
+    "total": "Whole amount",
+    "payer": "Parent organisation",
+    "shares": "Shares",
+    "kind": "Kind",
+    "payee": "Admin",
+    "date": "Date",
+    "planned": "planned"
+  },
+  "row": {
+    "salary": "Salary: {{name}}",
+    "planned": "planned",
+    "payer": "Parent organisation: {{name}}",
+    "organisation": "Organisation",
+    "clients_one": "{{count}} client",
+    "clients_other": "{{count}} clients"
+  },
+  "ledger": {
+    "types": "Show",
+    "item": "Item",
+    "date": "Date",
+    "type": {
+      "contract": "Contracts",
+      "expense": "Expenses",
+      "document": "Documents",
+      "note": "Notes",
+      "all": "All"
+    },
+    "empty": {
+      "expense": "No expenses in this period.",
+      "document": "The chosen clients have no documents yet.",
+      "note": "The chosen clients have no notes yet.",
+      "all": "Nothing here yet."
+    }
+  },
+  "overview": {
+    "out": "Expenses",
+    "paidOut": "Expenses ({{currency}})",
+    "salaries": "of which admins' salaries {{amount}}",
+    "planned": "Planned expenses ({{currency}})",
+    "balance": "Balance after expenses",
+    "balanceNote": "Paid minus expenses paid out. The cost of work is not subtracted: the salaries pay for it."
+  }
+}

@@ -1,4 +1,9 @@
-import type { FastifyPluginAsync, FastifyReply, preHandlerAsyncHookHandler } from 'fastify';
+import type {
+  FastifyPluginAsync,
+  FastifyReply,
+  FastifyRequest,
+  preHandlerAsyncHookHandler,
+} from 'fastify';
 import {
   ErrorCodes,
   FinanceFolderBodySchema,
@@ -6,6 +11,8 @@ import {
   FinanceItemBodySchema,
   FinanceItemPatchSchema,
   FinanceItemsQuerySchema,
+  FinanceItemViewQuerySchema,
+  FinanceOrgItemBodySchema,
   type FinancePerson,
 } from '@spolu/shared';
 import type { AppDeps } from '../../deps.js';
@@ -13,9 +20,10 @@ import { createRateLimiter } from '../../infra/http/rate-limit.js';
 import { decodeFileNameHeader } from '../files/file-name.js';
 import { FileTooLargeError, InvalidAttachmentError, MAX_FILE_BYTES } from '../files/service.js';
 import { getGroup } from '../groups/service.js';
-import { listFinanceHolders } from '../users/service.js';
+import { listAdmins, listFinanceHolders } from '../users/service.js';
 import {
   createItem,
+  createOrgItem,
   deleteItem,
   getItem,
   InvalidCursorError,
@@ -32,6 +40,7 @@ import {
 import { emitFinanceChanged } from './events.js';
 import { uploadFinanceFile } from './files.js';
 import { createFolder, deleteFolder, listFolders, updateFolder } from './folders.js';
+import { canBePayee, canManageOrgFinance } from './policy.js';
 import { registerFinanceReminderSubject } from './reminder-subject.js';
 
 // The fire job and the reminder routes find the `finance` kind through the registry.
@@ -59,10 +68,23 @@ function documentsError(reply: FastifyReply, error: unknown): FastifyReply {
 }
 
 /**
- * Documents and contracts (Phase 32 part B, spec §7), registered by `routes.ts` inside
- * `requireFinance`: every route here already knows its caller is a finance admin. An item or
- * folder of an unknown id answers 404. Each write tells the finance room (`finance:changed`,
- * kind `items`) after it commits.
+ * The organisation's routes (Phase 32 E) are inside `requireFinance` like every route here; the
+ * check names their own rule as well (decision O6), so a change of `requireFinance` cannot open
+ * them by accident.
+ */
+const requireOrg: preHandlerAsyncHookHandler = async (request, reply) => {
+  if (!request.user || !canManageOrgFinance(request.user)) {
+    return send(reply, 403, ErrorCodes.forbidden);
+  }
+};
+
+/**
+ * Documents and contracts (Phase 32 part B, spec §7), and the organisation's items, folders and
+ * files (part E, spec 2026-10-18), registered by `routes.ts` inside `requireFinance`: every route
+ * here already knows its caller is a finance admin. An item or folder of an unknown id answers
+ * 404. Each write tells the finance room (`finance:changed`, kind `items`) after it commits: with
+ * the client's id, or null for an item of the organisation, which every open finance screen (each
+ * client's tab too, for the shares) refetches on.
  */
 export const financeDocumentsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (
   app,
@@ -74,26 +96,32 @@ export const financeDocumentsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = asy
   const limitWrites: preHandlerAsyncHookHandler = async (request, reply) => {
     if (!allowWrite(request.user!.id)) return send(reply, 429, ErrorCodes.rateLimited);
   };
-  const changed = (groupId: string) => emitFinanceChanged(app.io, groupId, 'items');
+  const changed = (groupId: string | null) => emitFinanceChanged(app.io, groupId, 'items');
   /** The path's client exists (finance belongs to every client group). */
   const knownGroup = async (groupId: string) => (await getGroup(db, groupId)) !== null;
 
-  app.get<IdParams>('/groups/:id/finance/items', async (request, reply) => {
+  /** A folder's page, or a flat list with a type filter or a search, of one owner. */
+  const listOf = async (request: FastifyRequest, reply: FastifyReply, groupId: string | null) => {
     const query = FinanceItemsQuerySchema.safeParse(request.query);
     if (!query.success) return invalid(reply);
-    if (!(await knownGroup(request.params.id))) return notFound(reply);
     const { folder, type, q, after } = query.data;
     // A search or a type filter lists every folder flat; otherwise the open folder (the root).
     const flat = q !== undefined || type !== undefined;
     try {
-      return await listItems(
-        db,
-        { kind: 'group', groupId: request.params.id },
-        { folderId: flat ? undefined : (folder ?? null), type, q, after },
-      );
+      return await listItems(db, groupId === null ? { kind: 'org' } : { kind: 'group', groupId }, {
+        folderId: flat ? undefined : (folder ?? null),
+        type,
+        q,
+        after,
+      });
     } catch (error) {
       return documentsError(reply, error);
     }
+  };
+
+  app.get<IdParams>('/groups/:id/finance/items', async (request, reply) => {
+    if (!(await knownGroup(request.params.id))) return notFound(reply);
+    return listOf(request, reply, request.params.id);
   });
 
   app.get<IdParams>('/groups/:id/finance/folders', async (request, reply) => {
@@ -119,9 +147,17 @@ export const financeDocumentsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = asy
     },
   );
 
+  // `?group=`: a client's tab reads the item as that client sees it (its own share only).
   app.get<IdParams>('/finance/items/:id', async (request, reply) => {
+    const query = FinanceItemViewQuerySchema.safeParse(request.query);
+    if (!query.success) return invalid(reply);
+    const { group } = query.data;
     try {
-      return await getItem(db, request.params.id);
+      return await getItem(
+        db,
+        request.params.id,
+        group ? { kind: 'client', groupId: group } : { kind: 'finance' },
+      );
     } catch (error) {
       return documentsError(reply, error);
     }
@@ -204,14 +240,56 @@ export const financeDocumentsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = asy
   // Who a finance reminder may notify: the finance admins (the reminders' recipient picker).
   app.get('/finance/recipients', async (): Promise<FinancePerson[]> => listFinanceHolders(db));
 
+  // The organisation (Phase 32 E): its items and folders, on `/finance` only.
+  await app.register(async (org) => {
+    org.addHook('preHandler', requireOrg);
+
+    org.get('/finance/org/items', async (request, reply) => listOf(request, reply, null));
+
+    org.get('/finance/org/folders', async () => listFolders(db, null));
+
+    org.post('/finance/org/items', { preHandler: limitWrites }, async (request, reply) => {
+      const body = FinanceOrgItemBodySchema.safeParse(request.body);
+      if (!body.success) return invalid(reply);
+      try {
+        const item = await createOrgItem(db, request.user!.id, body.data);
+        changed(null);
+        return reply.code(201).send(item);
+      } catch (error) {
+        return documentsError(reply, error);
+      }
+    });
+
+    org.post('/finance/org/folders', { preHandler: limitWrites }, async (request, reply) => {
+      const body = FinanceFolderBodySchema.safeParse(request.body);
+      if (!body.success) return invalid(reply);
+      try {
+        const folder = await createFolder(db, request.user!.id, null, body.data);
+        changed(null);
+        return reply.code(201).send(folder);
+      } catch (error) {
+        return documentsError(reply, error);
+      }
+    });
+
+    // Who a salary may pay (decision E4): the active admins and the superadmin.
+    org.get('/finance/payees', async (): Promise<FinancePerson[]> =>
+      (await listAdmins(db))
+        .filter((admin) => canBePayee({ role: admin.role, disabledAt: null }))
+        .map((admin) => ({ id: admin.id, name: admin.name })),
+    );
+  });
+
   // The upload body is never buffered: the catch-all parser hands the raw stream to the handler.
   await app.register(async (upload) => {
     upload.removeAllContentTypeParsers();
     upload.addContentTypeParser('*', (_req, payload, done) => done(null, payload));
-    upload.post<IdParams>('/groups/:id/finance/files', async (request, reply) => {
+    const receive = async (
+      request: FastifyRequest,
+      reply: FastifyReply,
+      groupId: string | null,
+    ) => {
       const actor = request.user!;
-      const groupId = request.params.id;
-      if (!(await knownGroup(groupId))) return notFound(reply);
       if (!allowUpload(actor.id)) return send(reply, 429, ErrorCodes.rateLimited);
       const tooLarge = () =>
         reply.code(413).header('connection', 'close').send({ error: ErrorCodes.fileTooLarge });
@@ -229,6 +307,13 @@ export const financeDocumentsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = asy
         if (error instanceof FileTooLargeError) return tooLarge();
         throw error;
       }
+    };
+    upload.post<IdParams>('/groups/:id/finance/files', async (request, reply) => {
+      if (!(await knownGroup(request.params.id))) return notFound(reply);
+      return receive(request, reply, request.params.id);
     });
+    upload.post('/finance/org/files', { preHandler: requireOrg }, async (request, reply) =>
+      receive(request, reply, null),
+    );
   });
 };

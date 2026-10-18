@@ -75,6 +75,8 @@ function overviewDto(over: Partial<FinanceOverviewDto> = {}): FinanceOverviewDto
     from: '2026-09',
     to: '2026-11',
     months: ['2026-09', '2026-10', '2026-11'],
+    organisation: false,
+    expenses: [],
     money: [
       {
         currency: 'EUR',

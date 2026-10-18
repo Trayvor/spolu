@@ -7,7 +7,7 @@ import { createGroup } from '../groups/service.js';
 import { reminderSets } from '../reminders/schema.js';
 import { user } from '../users/schema.js';
 import { addAdmin } from '../users/service.js';
-import { financeItems, financeRates, financeTimeEntries } from './schema.js';
+import { financeContractShares, financeItems, financeRates, financeTimeEntries } from './schema.js';
 
 const { db, close } = createDb(testDatabaseUrl);
 afterAll(() => close());
@@ -271,5 +271,176 @@ describe('finance migration CHECKs', () => {
     expect(
       await db.select().from(reminderSets).where(eq(reminderSets.financeItemId, itemId)),
     ).toEqual([]);
+  });
+});
+
+describe('finance at organisation level (Phase 32 E, migration 0044)', () => {
+  const expense = (createdBy: string, extra: object = {}) => ({
+    id: randomUUID(),
+    groupId: null,
+    type: 'expense' as const,
+    title: 'Server',
+    createdBy,
+    amountMinor: 4_900,
+    currency: 'EUR' as const,
+    startsOn: '2026-10-31',
+    endsOn: '2026-10-31',
+    expenseKind: 'other' as const,
+    ...extra,
+  });
+
+  it('an expense has its amount, a one-day period, a kind and no client', async () => {
+    const admin = await addAdmin(db, { email: email(), name: 'A' });
+    const g = await newGroup();
+    await db.insert(financeItems).values(expense(admin.id));
+    for (const [extra, constraint] of [
+      [{ endsOn: null }, 'finance_items_contract_check'],
+      [{ endsOn: '2026-11-01' }, 'finance_items_contract_check'],
+      [{ amountMinor: null }, 'finance_items_contract_check'],
+      [{ expenseKind: null }, 'finance_items_contract_check'],
+      [{ groupId: g.id }, 'finance_items_contract_check'],
+      [{ contractNumber: 'Z-1' }, 'finance_items_contract_check'],
+      [{ payerName: 'Obec' }, 'finance_items_contract_check'],
+      [{ expenseKind: 'bonus' }, 'finance_items_expense_kind_check'],
+      // Another expense says what it is; only a salary may go without a title.
+      [{ title: '' }, 'finance_items_title_check'],
+    ] as const) {
+      expect(
+        await violated(db.insert(financeItems).values(expense(admin.id, extra))),
+        constraint,
+      ).toBe(constraint);
+    }
+  });
+
+  it('a salary names its admin (and may lack a title); another expense names nobody', async () => {
+    const admin = await addAdmin(db, { email: email(), name: 'A' });
+    await db
+      .insert(financeItems)
+      .values(expense(admin.id, { expenseKind: 'salary', payeeId: admin.id, title: '' }));
+    expect(
+      await violated(db.insert(financeItems).values(expense(admin.id, { expenseKind: 'salary' }))),
+    ).toBe('finance_items_contract_check');
+    expect(
+      await violated(db.insert(financeItems).values(expense(admin.id, { payeeId: admin.id }))),
+    ).toBe('finance_items_contract_check');
+  });
+
+  it('a contract has a client or a payer, never both nor neither; a note has neither', async () => {
+    const admin = await addAdmin(db, { email: email(), name: 'A' });
+    const g = await newGroup();
+    const contract = {
+      type: 'contract' as const,
+      title: 'Zmluva',
+      createdBy: admin.id,
+      amountMinor: 300_000,
+      currency: 'EUR' as const,
+      startsOn: '2026-01-01',
+      endsOn: '2026-12-31',
+    };
+    await db
+      .insert(financeItems)
+      .values({ ...contract, id: randomUUID(), groupId: null, payerName: 'Mikroregión' });
+    expect(
+      await violated(
+        db.insert(financeItems).values({ ...contract, id: randomUUID(), groupId: null }),
+      ),
+    ).toBe('finance_items_contract_check');
+    expect(
+      await violated(
+        db
+          .insert(financeItems)
+          .values({ ...contract, id: randomUUID(), groupId: g.id, payerName: 'Obec' }),
+      ),
+    ).toBe('finance_items_contract_check');
+    expect(
+      await violated(
+        db.insert(financeItems).values({
+          ...contract,
+          id: randomUUID(),
+          groupId: null,
+          payerName: 'Obec',
+          payeeId: admin.id,
+        }),
+      ),
+    ).toBe('finance_items_contract_check');
+    expect(
+      await violated(
+        db.insert(financeItems).values({
+          id: randomUUID(),
+          groupId: null,
+          type: 'note',
+          title: 'N',
+          createdBy: admin.id,
+          payerName: 'Obec',
+        }),
+      ),
+    ).toBe('finance_items_contract_check');
+  });
+
+  it('a share is above zero, once per client, and goes with its contract or its client', async () => {
+    const admin = await addAdmin(db, { email: email(), name: 'A' });
+    const [g1, g2] = [await newGroup(), await newGroup()];
+    const itemId = randomUUID();
+    await db.insert(financeItems).values({
+      id: itemId,
+      groupId: null,
+      type: 'contract',
+      title: 'Spoločná zmluva',
+      createdBy: admin.id,
+      amountMinor: 300,
+      currency: 'EUR',
+      startsOn: '2026-01-01',
+      endsOn: '2026-12-31',
+      payerName: 'Mikroregión',
+    });
+    await db.insert(financeContractShares).values([
+      { itemId, groupId: g1.id, amountMinor: 100 },
+      { itemId, groupId: g2.id, amountMinor: 200 },
+    ]);
+    expect(
+      await violated(
+        db.insert(financeContractShares).values({ itemId, groupId: g1.id, amountMinor: 5 }),
+      ),
+    ).toBe('finance_contract_shares_item_id_group_id_pk');
+    const g3 = await newGroup();
+    expect(
+      await violated(
+        db.insert(financeContractShares).values({ itemId, groupId: g3.id, amountMinor: 0 }),
+      ),
+    ).toBe('finance_contract_shares_amount_check');
+    // A client's delete takes its share only (decision E21); the contract's delete takes all.
+    await db.execute(sql`delete from groups where id = ${g1.id}`);
+    expect(
+      (
+        await db
+          .select()
+          .from(financeContractShares)
+          .where(eq(financeContractShares.itemId, itemId))
+      ).map((s) => s.groupId),
+    ).toEqual([g2.id]);
+    await db.delete(financeItems).where(eq(financeItems.id, itemId));
+    expect(
+      await db.select().from(financeContractShares).where(eq(financeContractShares.itemId, itemId)),
+    ).toEqual([]);
+  });
+
+  it('a reminder set lacks a client only for a finance item', async () => {
+    const admin = await addAdmin(db, { email: email(), name: 'A' });
+    const item = expense(admin.id);
+    await db.insert(financeItems).values(item);
+    await db
+      .insert(reminderSets)
+      .values({ id: randomUUID(), groupId: null, financeItemId: item.id, createdBy: admin.id });
+    // The CHECK runs before the (missing) knowledge item's foreign key.
+    expect(
+      await violated(
+        db.insert(reminderSets).values({
+          id: randomUUID(),
+          groupId: null,
+          knowledgeItemId: randomUUID(),
+          createdBy: admin.id,
+        }),
+      ),
+    ).toBe('reminder_sets_group_check');
   });
 });

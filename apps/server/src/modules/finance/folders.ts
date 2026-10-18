@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { eq, sql } from 'drizzle-orm';
+import { eq, isNull, sql } from 'drizzle-orm';
 import type { FinanceFolder, FinanceFolderBody, FinanceFolderPatch } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
 import { byName, chainTo, descendantIds } from '../../infra/tree.js';
@@ -15,6 +15,9 @@ import { financeFolders, financeItems } from './schema.js';
  * their visibility: every finance admin sees every folder. A client's folders are few (at most
  * 1000): each check loads them in one query and walks the tree in memory (`infra/tree.ts`). The
  * caller (the finance plugin) has checked `canSeeFinance`.
+ *
+ * Every function takes the owner as `groupId`: a client's id, or null for the organisation's
+ * own folders (Phase 32 E, `/finance` only), which follow the same rules.
  */
 
 export const FINANCE_FOLDERS_PER_GROUP = 1000;
@@ -22,15 +25,20 @@ export const FINANCE_FOLDERS_PER_GROUP = 1000;
 type FolderRow = typeof financeFolders.$inferSelect;
 
 /**
- * Serializes the finance writes of one client until the transaction ends, so two moves cannot
- * make a cycle and no item lands in a folder being deleted. Taken before any row lock.
+ * Serializes the finance writes of one client (or of the organisation, null) until the
+ * transaction ends, so two moves cannot make a cycle and no item lands in a folder being
+ * deleted. Taken before any row lock.
  */
-export async function lockGroupFinance(tx: Db, groupId: string): Promise<void> {
-  await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${`finance:${groupId}`}, 0))`);
+export async function lockGroupFinance(tx: Db, groupId: string | null): Promise<void> {
+  const key = `finance:${groupId ?? 'organisation'}`;
+  await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${key}, 0))`);
 }
 
-function groupFolders(db: Db, groupId: string): Promise<FolderRow[]> {
-  return db.select().from(financeFolders).where(eq(financeFolders.groupId, groupId));
+function groupFolders(db: Db, groupId: string | null): Promise<FolderRow[]> {
+  return db
+    .select()
+    .from(financeFolders)
+    .where(groupId === null ? isNull(financeFolders.groupId) : eq(financeFolders.groupId, groupId));
 }
 
 function toDto(row: FolderRow): FinanceFolder {
@@ -44,15 +52,18 @@ function toDto(row: FolderRow): FinanceFolder {
   };
 }
 
-/** Every folder of the client, by name. */
-export async function listFolders(db: Db, groupId: string): Promise<FinanceFolder[]> {
+/** Every folder of the client (null: of the organisation), by name. */
+export async function listFolders(db: Db, groupId: string | null): Promise<FinanceFolder[]> {
   return (await groupFolders(db, groupId)).sort(byName).map(toDto);
 }
 
-/** A folder of the client (call under `lockGroupFinance`); null is the top level. */
+/**
+ * A folder of the client, or of the organisation for null (call under `lockGroupFinance`); a
+ * folder of another owner is not found. `folderId` null is the top level.
+ */
 export async function folderOfGroup(
   tx: Db,
-  groupId: string,
+  groupId: string | null,
   folderId: string | null,
 ): Promise<string | null> {
   if (folderId === null) return null;
@@ -73,7 +84,7 @@ function findIn(folders: FolderRow[], id: string): FolderRow {
 export async function createFolder(
   db: Db,
   actorId: string,
-  groupId: string,
+  groupId: string | null,
   body: FinanceFolderBody,
 ): Promise<FinanceFolder> {
   return db.transaction(async (tx) => {
@@ -95,13 +106,22 @@ export async function createFolder(
   });
 }
 
-/** The client a folder belongs to, or null for an unknown id. */
-export async function folderGroupId(db: Db, id: string): Promise<string | null> {
+/**
+ * The owner a folder belongs to (`groupId` null: the organisation), or null for an unknown id.
+ */
+export async function folderOwner(db: Db, id: string): Promise<{ groupId: string | null } | null> {
   const [row] = await db
     .select({ groupId: financeFolders.groupId })
     .from(financeFolders)
     .where(eq(financeFolders.id, id));
-  return row?.groupId ?? null;
+  return row ?? null;
+}
+
+/** The owner of a folder that must exist (`FinanceNotFoundError` otherwise). */
+async function ownerOf(db: Db, id: string): Promise<string | null> {
+  const owner = await folderOwner(db, id);
+  if (owner === null) throw new FinanceNotFoundError('Finance folder');
+  return owner.groupId;
 }
 
 /** Renames and/or moves a folder; never into itself or below itself. */
@@ -110,8 +130,7 @@ export async function updateFolder(
   id: string,
   patch: FinanceFolderPatch,
 ): Promise<FinanceFolder> {
-  const groupId = await folderGroupId(db, id);
-  if (groupId === null) throw new FinanceNotFoundError('Finance folder');
+  const groupId = await ownerOf(db, id);
   return db.transaction(async (tx) => {
     await lockGroupFinance(tx, groupId);
     const folders = await groupFolders(tx, groupId);
@@ -133,9 +152,8 @@ export async function updateFolder(
 }
 
 /** Deletes a folder, never an item: its folders and items move one level up. */
-export async function deleteFolder(db: Db, id: string): Promise<{ groupId: string }> {
-  const groupId = await folderGroupId(db, id);
-  if (groupId === null) throw new FinanceNotFoundError('Finance folder');
+export async function deleteFolder(db: Db, id: string): Promise<{ groupId: string | null }> {
+  const groupId = await ownerOf(db, id);
   return db.transaction(async (tx) => {
     await lockGroupFinance(tx, groupId);
     const folder = findIn(await groupFolders(tx, groupId), id);

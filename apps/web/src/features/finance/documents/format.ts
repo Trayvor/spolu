@@ -1,4 +1,8 @@
-import { CONTRACT_REMINDER_DAYS_BEFORE, FINANCE_LIMITS } from '@spolu/shared';
+import {
+  CONTRACT_REMINDER_DAYS_BEFORE,
+  EXPENSE_REMINDER_DAYS_BEFORE,
+  FINANCE_LIMITS,
+} from '@spolu/shared';
 import { localDate, localToIso } from '@/features/reminders/reminder-times-field';
 
 /** Pure helpers of the Documents card (Phase 32 part B). Days are `YYYY-MM-DD`. */
@@ -51,9 +55,34 @@ export function proposedReminder(
   endsOn: string,
   now = new Date(),
 ): { date: string; time: string } | null {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(endsOn)) return null;
-  const date = addDays(endsOn, -CONTRACT_REMINDER_DAYS_BEFORE);
+  return proposalBefore(endsOn, CONTRACT_REMINDER_DAYS_BEFORE, now);
+}
+
+/**
+ * The reminder a new expense's form proposes (Phase 32 E, decision E5): the day before its date
+ * at 09:00 local time; null when that moment has passed.
+ */
+export function proposedExpenseReminder(
+  spentOn: string,
+  now = new Date(),
+): { date: string; time: string } | null {
+  return proposalBefore(spentOn, EXPENSE_REMINDER_DAYS_BEFORE, now);
+}
+
+function proposalBefore(day: string, days: number, now: Date) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) return null;
+  const date = addDays(day, -days);
   const iso = localToIso(date, '09:00');
   if (!iso || Date.parse(iso) <= now.getTime() + 60_000) return null;
   return { date, time: '09:00' };
+}
+
+/** What a list or a sheet calls an item: a salary without a title is "Salary: <admin>". */
+export function itemTitle(
+  item: { title: string; expense: { kind: string; payeeName: string | null } | null },
+  t: (key: string, options?: Record<string, unknown>) => string,
+): string {
+  if (item.expense?.kind !== 'salary') return item.title;
+  const salary = t('financeOrg.row.salary', { name: item.expense.payeeName ?? '' });
+  return item.title ? `${salary}: ${item.title}` : salary;
 }

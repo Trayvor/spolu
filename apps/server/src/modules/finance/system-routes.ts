@@ -14,6 +14,7 @@ import type { AppDeps } from '../../deps.js';
 import { dataMonthRange, overview } from './aggregates.js';
 import { InvalidCursorError, listContracts } from './documents.js';
 import { hoursRanking, paidRange, paidRanking, RankingCursorError } from './rankings.js';
+import { canSeeExpenses } from './policy.js';
 import { monthsOf, scopeOfClients } from './scope.js';
 import { WorkLogCursorError, workLogPage } from './work-log.js';
 
@@ -53,10 +54,13 @@ export const financeSystemRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async 
     const query = OverviewQuerySchema.safeParse(request.query);
     if (!clients.success || !query.success) return invalidFilter(reply);
     const scope = scopeOfClients(clients.data.clients);
+    // Every client chosen: the organisation's expenses count too (Phase 32 E, decision O3).
+    const organisation = scope.kind === 'all' && canSeeExpenses(request.user!);
     const { from, to } = query.data;
-    const range = from && to ? { from, to } : await dataMonthRange(db, scope);
+    const range =
+      from && to ? { from, to } : await dataMonthRange(db, scope, new Date(), organisation);
     if (monthsOf(range).length > OVERVIEW_MAX_MONTHS) return invalidFilter(reply);
-    return overview(db, scope, range);
+    return overview(db, scope, range, new Date(), { organisation });
   });
 
   app.get('/finance/work-log', async (request, reply) => {
@@ -79,12 +83,19 @@ export const financeSystemRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async 
   app.get('/finance/contracts', async (request, reply) => {
     const query = ContractsQuerySchema.safeParse(request.query);
     if (!query.success) return invalidFilter(reply);
-    const { clients, sort, dir, q, after, from, to } = query.data;
+    const { clients, type, sort, dir, q, after, from, to } = query.data;
+    // Without a search the kinds of `type` (Phase 32 E, decisions E12, E16): contracts and
+    // expenses of the page period, when one is given; documents, notes and every kind with no
+    // period. A search covers every finance item, whatever the period and the type.
+    const dated = type === 'contract' || type === 'expense';
     try {
-      // Without a search only contracts (of the page period, when one is given); a search
-      // covers every finance document and note too, whatever the period.
       return await listContracts(db, scopeOfClients(clients), {
-        ...(q ? { q } : { type: 'contract', ...(from && to ? { period: { from, to } } : {}) }),
+        ...(q
+          ? { q }
+          : {
+              ...(type === 'all' ? {} : { type }),
+              ...(dated && from && to ? { period: { from, to } } : {}),
+            }),
         sort,
         dir,
         ...(after ? { after } : {}),

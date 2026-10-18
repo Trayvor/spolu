@@ -335,10 +335,17 @@ const groupTicketsRoute = createRoute({
 });
 
 /**
- * The Finance namespaces (Phase 32): `finance` (shared words) and one per part. A route
- * loads all four, so a part's card never renders raw keys.
+ * The Finance namespaces (Phase 32): `finance` (shared words) and one per part (`financeOrg`:
+ * part E, the organisation level). A route loads them all, so a part's card never renders raw
+ * keys.
  */
-const FINANCE_NAMESPACES = ['finance', 'financeDocuments', 'financeLog', 'financeSystem'];
+const FINANCE_NAMESPACES = [
+  'finance',
+  'financeDocuments',
+  'financeLog',
+  'financeSystem',
+  'financeOrg',
+];
 
 /** Cosmetic guard: only finance admins see a Finance screen; the server answers 403 anyway. */
 const financeGuard = async ({ context }: { context: RouterContext }) => {

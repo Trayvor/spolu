@@ -14,7 +14,8 @@ import { monthAxis, monthName, niceScale } from './scale';
  * pointed at.
  */
 
-export type BarTone = 'solid' | 'light' | 'cost';
+/** `out` (Phase 32 E): the organisation's money out, on `/finance` with every client. */
+export type BarTone = 'solid' | 'light' | 'cost' | 'out';
 
 export type BarSeries = {
   key: string;
@@ -30,6 +31,7 @@ const TONE_FILL: Record<BarTone, string> = {
   solid: 'var(--chart-1)',
   light: 'var(--chart-2)',
   cost: 'var(--chart-3)',
+  out: 'var(--chart-4)',
 };
 
 /** The element's width, kept up to date (the chart draws in pixels, so text never stretches). */

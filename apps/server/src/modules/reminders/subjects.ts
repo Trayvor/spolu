@@ -6,7 +6,8 @@ import { reminderSets } from './schema.js';
 
 /** What the reminders module needs to know about one subject (a knowledge item, a task). */
 export type SubjectInfo = {
-  groupId: string;
+  /** Null only for a finance item of the organisation (Phase 32 E), which has no client. */
+  groupId: string | null;
   title: string;
   /** Plain text, for the calendar export. */
   body: string;
@@ -21,6 +22,10 @@ export type SubjectInfo = {
   meeting?: boolean;
   /** A finance contract's last day (Phase 32), for the "ends on …" texts. */
   endsOn?: string | null;
+  /** A finance expense's date (Phase 32 E), for the "expense due on …" texts. */
+  dueOn?: string | null;
+  /** A finance expense paying an admin's salary (Phase 32 E): "Salary: <title>" in the texts. */
+  salary?: boolean;
   /** App-relative URL of the subject, e.g. `/groups/g/knowledge?k=id`. */
   link: string;
   canRead(actor: SessionUser, actorGroupIds: readonly string[]): boolean;

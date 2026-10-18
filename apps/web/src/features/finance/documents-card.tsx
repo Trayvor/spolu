@@ -1,8 +1,8 @@
-import { lazy, Suspense, useEffect, useId, useState } from 'react';
+import { lazy, Suspense, useEffect, useId, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
-import { useSearch } from '@tanstack/react-router';
-import type { FinanceFolder, FinanceItemType } from '@spolu/shared';
+import { useNavigate, useSearch } from '@tanstack/react-router';
+import { CLIENT_ITEM_TYPES, type FinanceFolder, type FinanceItemType } from '@spolu/shared';
 import { MoreIcon } from '@/components/icons';
 import { Button } from '@/components/ui/button';
 import {
@@ -18,10 +18,15 @@ import { cn } from '@/lib/utils';
 import { Breadcrumbs } from '@/features/knowledge/breadcrumbs';
 import { childFolders, folderPath } from '@/features/knowledge/folder-tree';
 import { ChevronIcon, FolderIcon } from '@/features/knowledge/icons';
-import { financeFoldersQuery, financeItemsQuery, type ItemsFilter } from './documents/api';
+import {
+  financeFoldersQuery,
+  financeItemsQuery,
+  type FinanceOwner,
+  type ItemsFilter,
+} from './documents/api';
 import { today as todayOf } from './documents/format';
 import { ItemRow } from './documents/item-row';
-import { NewMenu } from './documents/new-menu';
+import { NewMenu, ORG_ITEM_KINDS } from './documents/new-menu';
 import { FinanceCard, FinanceCardEmpty } from './finance-card';
 
 // The sheet and the folder dialogs load on first use, with the namespaces of the shared form
@@ -48,6 +53,12 @@ const FILTERS: { type: FinanceItemType | undefined; key: string }[] = [
   { type: 'document', key: 'documents' },
   { type: 'note', key: 'notes' },
 ];
+/** The organisation's card (Phase 32 E) has expenses too. */
+const ORG_FILTERS = [
+  ...FILTERS.slice(0, 2),
+  { type: 'expense' as const, key: 'expenses' },
+  ...FILTERS.slice(2),
+];
 
 const pill =
   "relative inline-flex h-8 items-center rounded-full px-3.5 text-tiny font-semibold before:absolute before:inset-x-0 before:-inset-y-1.5 before:content-['']";
@@ -64,11 +75,26 @@ type SheetTarget = { mode: 'view'; id: string } | { mode: 'create'; type: Financ
  * tab's way in a smaller frame. Breadcrumbs and the open folder's folders first, then its items
  * newest first, 30 a page with "Show more"; a type filter or a search (from 2 characters) lists
  * every folder flat with each item's folder path. An item opens in a sheet from `?item=`.
+ *
+ * Phase 32 E: the same card shows the organisation's own items on `/finance` (owner `org`):
+ * expenses too, its own folders; an item created there for a client opens in that client's tab.
  */
-export function DocumentsCard({ groupId }: { groupId: string }) {
+export function DocumentsCard({
+  owner,
+  title,
+  headerStart,
+}: {
+  owner: FinanceOwner;
+  /** The card's title (default: Documents). */
+  title?: string;
+  /** Controls before "+ New" in the title row (`/finance`'s view switch). */
+  headerStart?: ReactNode;
+}) {
   const { t, i18n } = useTranslation();
   const titleId = useId();
   const updateSearch = useUpdateSearch();
+  const navigate = useNavigate();
+  const org = owner.kind === 'org';
   const search = useSearch({ strict: false }) as { item?: unknown };
   const openId = typeof search.item === 'string' && search.item ? search.item : null;
 
@@ -87,22 +113,29 @@ export function DocumentsCard({ groupId }: { groupId: string }) {
     return () => clearTimeout(timer);
   }, [text]);
 
-  const folders = useQuery(financeFoldersQuery(groupId)).data;
+  const folders = useQuery(financeFoldersQuery(owner)).data;
   // The open folder was deleted (here or by someone else): the top level, with a notice.
   const folderGone =
     openFolder !== null && folders !== undefined && !folders.some((f) => f.id === openFolder);
   const folder = folderGone ? null : openFolder;
   const flat = q !== undefined || type !== undefined;
   const filter: ItemsFilter = flat ? { folder: null, type, q } : { folder };
-  const items = useInfiniteQuery(financeItemsQuery(groupId, filter));
+  const items = useInfiniteQuery(financeItemsQuery(owner, filter));
 
   const openItem = (id: string) => {
     setNotice(null);
     updateSearch((s) => void (s.item = id), { replace: false });
   };
-  const closeSheet = (createdId?: string) => {
+  const closeSheet = (created?: { id: string; groupId: string | null }) => {
     setCreating(null);
-    if (createdId) updateSearch((s) => void (s.item = createdId), { replace: false });
+    // Made on `/finance` for one client: it opens in that client's tab (decision E13).
+    if (created && org && created.groupId !== null) {
+      void navigate({
+        to: '/groups/$groupId/finance',
+        params: { groupId: created.groupId },
+        search: { item: created.id },
+      });
+    } else if (created) updateSearch((s) => void (s.item = created.id), { replace: false });
     else if (openId) updateSearch((s) => void delete s.item, { replace: false });
   };
   const sheet: SheetTarget | null = creating
@@ -181,17 +214,21 @@ export function DocumentsCard({ groupId }: { groupId: string }) {
 
   return (
     <FinanceCard
-      title={t('finance.cards.documents')}
+      title={title ?? t('finance.cards.documents')}
       titleId={titleId}
       className="flex-1"
       actions={
-        <NewMenu
-          onPick={(pick) => {
-            setNotice(null);
-            setCreating(pick);
-          }}
-          onPickFolder={() => setFolderAction({ kind: 'new', parentId: flat ? null : folder })}
-        />
+        <>
+          {headerStart}
+          <NewMenu
+            kinds={org ? ORG_ITEM_KINDS : CLIENT_ITEM_TYPES}
+            onPick={(pick) => {
+              setNotice(null);
+              setCreating(pick);
+            }}
+            onPickFolder={() => setFolderAction({ kind: 'new', parentId: flat ? null : folder })}
+          />
+        </>
       }
     >
       <div className="flex flex-col gap-3 pb-2">
@@ -201,7 +238,7 @@ export function DocumentsCard({ groupId }: { groupId: string }) {
             aria-label={t('financeDocuments.card.filters')}
             className="flex flex-wrap gap-1.5"
           >
-            {FILTERS.map((option) => (
+            {(org ? ORG_FILTERS : FILTERS).map((option) => (
               <button
                 key={option.key}
                 type="button"
@@ -214,7 +251,9 @@ export function DocumentsCard({ groupId }: { groupId: string }) {
                     : 'bg-secondary text-secondary-foreground hover:bg-surface-3',
                 )}
               >
-                {t(`financeDocuments.card.${option.key}`)}
+                {option.key === 'expenses'
+                  ? t('financeOrg.card.expenses')
+                  : t(`financeDocuments.card.${option.key}`)}
               </button>
             ))}
           </div>
@@ -253,7 +292,7 @@ export function DocumentsCard({ groupId }: { groupId: string }) {
         {sheet && (
           <ItemSheet
             key={sheet.mode === 'view' ? sheet.id : `new-${sheet.type}`}
-            groupId={groupId}
+            owner={owner}
             target={sheet}
             folderId={flat ? null : folder}
             onClose={closeSheet}
@@ -265,7 +304,7 @@ export function DocumentsCard({ groupId }: { groupId: string }) {
         )}
         {folderAction && (
           <FolderDialogs
-            groupId={groupId}
+            owner={owner}
             action={folderAction}
             folders={folders}
             onClose={() => setFolderAction(null)}

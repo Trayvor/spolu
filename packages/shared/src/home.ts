@@ -148,7 +148,8 @@ export const HomeReminderSchema = z.object({
   id: z.string(),
   at: z.string(),
   title: z.string(),
-  groupId: z.string(),
+  /** Null only for a finance item of the organisation (Phase 32 E); `groupName` is then ''. */
+  groupId: z.string().nullable(),
   groupName: z.string(),
   target: z.discriminatedUnion('kind', [
     z.object({ kind: z.literal('knowledge'), itemId: z.string() }),

@@ -1,0 +1,115 @@
+{
+  "kinds": {
+    "expense": "Trošak"
+  },
+  "kindsHelp": {
+    "expense": "Plaća admina ili drugo plaćanje"
+  },
+  "card": {
+    "title": "Stavke",
+    "views": "Prikaži",
+    "ledger": "Pregled",
+    "organisation": "Organizacija",
+    "expenses": "Troškovi"
+  },
+  "sheet": {
+    "newExpense": "Novi trošak"
+  },
+  "form": {
+    "owner": "Za koga",
+    "owners": {
+      "org": "Organizacija",
+      "client": "Jedan klijent",
+      "shared": "Više klijenata"
+    },
+    "client": "Klijent",
+    "chooseClient": "Odaberite klijenta",
+    "kind": "Vrsta troška",
+    "kinds": {
+      "salary": "Plaća admina",
+      "other": "Drugi trošak"
+    },
+    "payee": "Admin",
+    "choosePayee": "Odaberite admina",
+    "salaryNote": "Napomena",
+    "what": "Za što",
+    "whatHint": "Na primjer poslužitelj, licenca ili kazna",
+    "date": "Datum",
+    "payer": "Nadređena organizacija",
+    "payerHint": "Tko plaća za sve klijente odjednom.",
+    "reminderHint": "Predlažemo dan prije datuma u 9:00. Dobit ćete ga vi; druge financijske admine dodajte nakon spremanja."
+  },
+  "shares": {
+    "title": "Udjeli klijenata",
+    "client": "Klijent udjela {{n}}",
+    "chooseClient": "Odaberite klijenta",
+    "amount": "Udio klijenta {{name}}",
+    "remove": "Ukloni {{name}}",
+    "add": "Dodaj klijenta",
+    "split": "Podijeli jednako",
+    "unknown": "Unesite iznos i udjele da vidite slažu li se.",
+    "balanced": "Udjeli zajedno daju točno {{total}}.",
+    "left": "Preostalo za podjelu {{amount}} od {{total}}.",
+    "over": "Udjeli su za {{amount}} veći od iznosa."
+  },
+  "errors": {
+    "chooseClient": "Odaberite klijenta.",
+    "payerRequired": "Upišite tko plaća.",
+    "shareClient": "Za svaki udio odaberite klijenta.",
+    "shareInvalid": "Unesite svaki udio, na primjer 1 200,50.",
+    "sharesTooFew": "Dodajte barem dva klijenta.",
+    "sharesTooMany": "Najviše 50 klijenata.",
+    "sharesDuplicate": "Svaki klijent može imati samo jedan udio.",
+    "sharesSum": "Udjeli zajedno moraju dati točno iznos ugovora.",
+    "whatRequired": "Upišite za što je trošak.",
+    "dateRequired": "Odaberite datum.",
+    "payeeRequired": "Odaberite admina."
+  },
+  "view": {
+    "readOnly": "Ugovor više klijenata uređuje se u Financijama, gdje su svi njegovi udjeli.",
+    "editOnFinance": "Uredi u Financijama",
+    "share": "Udio ovog klijenta",
+    "total": "Ukupan iznos",
+    "payer": "Nadređena organizacija",
+    "shares": "Udjeli",
+    "kind": "Vrsta",
+    "payee": "Admin",
+    "date": "Datum",
+    "planned": "planiran"
+  },
+  "row": {
+    "salary": "Plaća: {{name}}",
+    "planned": "planiran",
+    "payer": "Nadređena organizacija: {{name}}",
+    "organisation": "Organizacija",
+    "clients_one": "{{count}} klijent",
+    "clients_few": "{{count}} klijenta",
+    "clients_other": "{{count}} klijenata"
+  },
+  "ledger": {
+    "types": "Prikaži",
+    "item": "Stavka",
+    "date": "Datum",
+    "type": {
+      "contract": "Ugovori",
+      "expense": "Troškovi",
+      "document": "Dokumenti",
+      "note": "Bilješke",
+      "all": "Sve"
+    },
+    "empty": {
+      "expense": "U ovom razdoblju nema troškova.",
+      "document": "Odabrani klijenti još nemaju dokumente.",
+      "note": "Odabrani klijenti još nemaju bilješke.",
+      "all": "Ovdje još nema ničega."
+    }
+  },
+  "overview": {
+    "out": "Troškovi",
+    "paidOut": "Troškovi ({{currency}})",
+    "salaries": "od toga plaće admina {{amount}}",
+    "planned": "Planirani troškovi ({{currency}})",
+    "balance": "Saldo nakon troškova",
+    "balanceNote": "Plaćeno minus isplaćeni troškovi. Trošak rada se ne oduzima: rad plaćaju plaće."
+  }
+}

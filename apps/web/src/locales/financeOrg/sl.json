@@ -1,0 +1,116 @@
+{
+  "kinds": {
+    "expense": "Strošek"
+  },
+  "kindsHelp": {
+    "expense": "Plača admina ali drugo plačilo"
+  },
+  "card": {
+    "title": "Postavke",
+    "views": "Prikaži",
+    "ledger": "Pregled",
+    "organisation": "Organizacija",
+    "expenses": "Stroški"
+  },
+  "sheet": {
+    "newExpense": "Nov strošek"
+  },
+  "form": {
+    "owner": "Za koga",
+    "owners": {
+      "org": "Organizacija",
+      "client": "Ena stranka",
+      "shared": "Več strank"
+    },
+    "client": "Stranka",
+    "chooseClient": "Izberite stranko",
+    "kind": "Vrsta stroška",
+    "kinds": {
+      "salary": "Plača admina",
+      "other": "Drug strošek"
+    },
+    "payee": "Admin",
+    "choosePayee": "Izberite admina",
+    "salaryNote": "Opomba",
+    "what": "Za kaj",
+    "whatHint": "Na primer strežnik, licenca ali kazen",
+    "date": "Datum",
+    "payer": "Nadrejena organizacija",
+    "payerHint": "Kdo plača za vse stranke hkrati.",
+    "reminderHint": "Predlagamo dan pred datumom ob 9:00. Dobite ga vi; druge finančne admine dodate po shranjevanju."
+  },
+  "shares": {
+    "title": "Deleži strank",
+    "client": "Stranka deleža {{n}}",
+    "chooseClient": "Izberite stranko",
+    "amount": "Delež stranke {{name}}",
+    "remove": "Odstrani {{name}}",
+    "add": "Dodaj stranko",
+    "split": "Razdeli enakomerno",
+    "unknown": "Vnesite znesek in deleže, da vidite, ali se ujemajo.",
+    "balanced": "Deleži dajo skupaj natanko {{total}}.",
+    "left": "Razdeliti je treba še {{amount}} od {{total}}.",
+    "over": "Deleži so za {{amount}} višji od zneska."
+  },
+  "errors": {
+    "chooseClient": "Izberite stranko.",
+    "payerRequired": "Vpišite, kdo plača.",
+    "shareClient": "Za vsak delež izberite stranko.",
+    "shareInvalid": "Vnesite vsak delež, na primer 1 200,50.",
+    "sharesTooFew": "Dodajte vsaj dve stranki.",
+    "sharesTooMany": "Največ 50 strank.",
+    "sharesDuplicate": "Vsaka stranka ima lahko le en delež.",
+    "sharesSum": "Deleži morajo skupaj dati natanko znesek pogodbe.",
+    "whatRequired": "Vpišite, za kaj je strošek.",
+    "dateRequired": "Izberite datum.",
+    "payeeRequired": "Izberite admina."
+  },
+  "view": {
+    "readOnly": "Pogodba več strank se ureja v Financah, kjer so vsi njeni deleži.",
+    "editOnFinance": "Uredi v Financah",
+    "share": "Delež te stranke",
+    "total": "Celoten znesek",
+    "payer": "Nadrejena organizacija",
+    "shares": "Deleži",
+    "kind": "Vrsta",
+    "payee": "Admin",
+    "date": "Datum",
+    "planned": "načrtovan"
+  },
+  "row": {
+    "salary": "Plača: {{name}}",
+    "planned": "načrtovan",
+    "payer": "Nadrejena organizacija: {{name}}",
+    "organisation": "Organizacija",
+    "clients_one": "{{count}} stranka",
+    "clients_two": "{{count}} stranki",
+    "clients_few": "{{count}} stranke",
+    "clients_other": "{{count}} strank"
+  },
+  "ledger": {
+    "types": "Prikaži",
+    "item": "Postavka",
+    "date": "Datum",
+    "type": {
+      "contract": "Pogodbe",
+      "expense": "Stroški",
+      "document": "Dokumenti",
+      "note": "Zapiski",
+      "all": "Vse"
+    },
+    "empty": {
+      "expense": "V tem obdobju ni stroškov.",
+      "document": "Izbrane stranke še nimajo dokumentov.",
+      "note": "Izbrane stranke še nimajo zapiskov.",
+      "all": "Tu še ni ničesar."
+    }
+  },
+  "overview": {
+    "out": "Stroški",
+    "paidOut": "Stroški ({{currency}})",
+    "salaries": "od tega plače adminov {{amount}}",
+    "planned": "Načrtovani stroški ({{currency}})",
+    "balance": "Bilanca po stroških",
+    "balanceNote": "Plačano minus izplačani stroški. Stroški dela se ne odštevajo: delo plačajo plače."
+  }
+}

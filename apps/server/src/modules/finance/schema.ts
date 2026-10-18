@@ -13,7 +13,7 @@ import {
   type AnyPgColumn,
   uniqueIndex,
 } from 'drizzle-orm/pg-core';
-import type { Currency, FinanceItemType, TimeEntrySource } from '@spolu/shared';
+import type { Currency, ExpenseKind, FinanceItemType, TimeEntrySource } from '@spolu/shared';
 import { files } from '../files/schema.js';
 import { groups } from '../groups/schema.js';
 import { tasks } from '../tasks/schema.js';
@@ -26,14 +26,15 @@ import { user } from '../users/schema.js';
  * knowledge list, search, chat picker or digest can show a finance row.
  */
 
-/** A folder of one client's finance documents; `parent_id` null is the top level. */
+/**
+ * A folder of one client's finance documents; `parent_id` null is the top level. `group_id`
+ * null: a folder of the organisation (Phase 32 E, `/finance` only).
+ */
 export const financeFolders = pgTable(
   'finance_folders',
   {
     id: text('id').primaryKey(),
-    groupId: text('group_id')
-      .notNull()
-      .references(() => groups.id, { onDelete: 'cascade' }),
+    groupId: text('group_id').references(() => groups.id, { onDelete: 'cascade' }),
     // No action on delete: a folder's contents move up before it goes (the group's delete
     // cascades to every folder in one statement).
     parentId: text('parent_id').references((): AnyPgColumn => financeFolders.id),
@@ -52,16 +53,18 @@ export const financeFolders = pgTable(
 );
 
 /**
- * A contract, document or note of one client. The five contract columns are set exactly for a
- * contract (one CHECK); money is integer minor units plus a currency, never converted.
+ * A contract, document or note of one client, or (Phase 32 E) an item of the organisation:
+ * `group_id` null for an expense, a document, a note or a contract of several clients (its
+ * payer in `payer_name`, its client shares in `finance_contract_shares`). The money and period
+ * columns are set exactly for a contract and an expense (one CHECK per type); money is integer
+ * minor units plus a currency, never converted. An expense's date is a one-day period
+ * (`starts_on` = `ends_on`), so the period filter, the sorts and the cursors serve it as they are.
  */
 export const financeItems = pgTable(
   'finance_items',
   {
     id: text('id').primaryKey(),
-    groupId: text('group_id')
-      .notNull()
-      .references(() => groups.id, { onDelete: 'cascade' }),
+    groupId: text('group_id').references(() => groups.id, { onDelete: 'cascade' }),
     type: text('type').$type<FinanceItemType>().notNull(),
     folderId: text('folder_id').references(() => financeFolders.id),
     title: text('title').notNull(),
@@ -72,6 +75,12 @@ export const financeItems = pgTable(
     currency: text('currency').$type<Currency>(),
     startsOn: date('starts_on', { mode: 'string' }),
     endsOn: date('ends_on', { mode: 'string' }),
+    /** A contract of several clients: who pays ("Nadradená organizácia"). */
+    payerName: text('payer_name'),
+    /** An expense: an admin's salary or another payment. */
+    expenseKind: text('expense_kind').$type<ExpenseKind>(),
+    /** A salary: the admin it pays. */
+    payeeId: text('payee_id').references(() => user.id),
     /** Title, number, body and file names, lower-cased without diacritics (trigram search). */
     searchText: text('search_text').notNull().default(''),
     createdBy: text('created_by')
@@ -83,17 +92,44 @@ export const financeItems = pgTable(
     updatedAt: timestamp('updated_at', { withTimezone: true, precision: 3 }).notNull().defaultNow(),
   },
   (t) => [
-    check('finance_items_type_check', sql`${t.type} in ('contract', 'document', 'note')`),
-    check('finance_items_title_check', sql`char_length(${t.title}) between 1 and 200`),
+    check(
+      'finance_items_type_check',
+      sql`${t.type} in ('contract', 'document', 'note', 'expense')`,
+    ),
+    // A salary may have no title (Phase 32 E): the screens name its admin.
+    check(
+      'finance_items_title_check',
+      sql`char_length(${t.title}) <= 200 and (char_length(${t.title}) >= 1
+        or (${t.type} = 'expense' and coalesce(${t.expenseKind}, '') = 'salary'))`,
+    ),
     check('finance_items_body_check', sql`char_length(${t.body}) <= 10000`),
+    // Each type's columns, exactly (Phase 32 E: expenses, contracts of several clients). Every
+    // comparison is guarded by `is not null`, so no branch can be null (a null CHECK passes).
     check(
       'finance_items_contract_check',
-      sql`case when ${t.type} = 'contract'
-        then ${t.amountMinor} is not null and ${t.currency} is not null
+      sql`case ${t.type}
+        when 'contract' then ${t.amountMinor} is not null and ${t.currency} is not null
           and ${t.startsOn} is not null and ${t.endsOn} is not null
+          and ${t.expenseKind} is null and ${t.payeeId} is null
+          and (${t.groupId} is null) = (${t.payerName} is not null)
+        when 'expense' then ${t.amountMinor} is not null and ${t.currency} is not null
+          and ${t.startsOn} is not null and ${t.endsOn} is not null
+          and ${t.endsOn} = ${t.startsOn}
+          and ${t.groupId} is null and ${t.contractNumber} is null and ${t.payerName} is null
+          and ${t.expenseKind} is not null
+          and (${t.expenseKind} = 'salary') = (${t.payeeId} is not null)
         else ${t.amountMinor} is null and ${t.currency} is null and ${t.startsOn} is null
-          and ${t.endsOn} is null and ${t.contractNumber} is null
+          and ${t.endsOn} is null and ${t.contractNumber} is null and ${t.payerName} is null
+          and ${t.expenseKind} is null and ${t.payeeId} is null
         end`,
+    ),
+    check(
+      'finance_items_expense_kind_check',
+      sql`${t.expenseKind} is null or ${t.expenseKind} in ('salary', 'other')`,
+    ),
+    check(
+      'finance_items_payer_check',
+      sql`${t.payerName} is null or char_length(${t.payerName}) between 1 and 200`,
     ),
     check('finance_items_amount_check', sql`${t.amountMinor} is null or ${t.amountMinor} >= 0`),
     check(
@@ -126,8 +162,46 @@ export const financeItems = pgTable(
     index('finance_items_contract_ends_idx')
       .on(t.endsOn)
       .where(sql`${t.type} = 'contract'`),
+    // The organisation's card (Phase 32 E), newest first: `group_id is null` is no equality, so
+    // the client index above cannot order it.
+    index('finance_items_org_created_idx')
+      .on(t.createdAt.desc().nullsFirst(), t.id.desc().nullsFirst())
+      .where(sql`${t.groupId} is null`),
+    // Money out (Phase 32 E) and the ledger's expense sorts.
+    index('finance_items_expense_day_idx')
+      .on(t.startsOn)
+      .where(sql`${t.type} = 'expense'`),
     index('finance_items_search_idx').using('gin', t.searchText.op('gin_trgm_ops')),
     index('finance_items_created_by_idx').on(t.createdBy),
+    // The `payee_id` foreign key's lookup.
+    index('finance_items_payee_idx')
+      .on(t.payeeId)
+      .where(sql`${t.payeeId} is not null`),
+  ],
+);
+
+/**
+ * One client's share of a contract of several clients (Phase 32 E, decisions O1, E7): the part
+ * of the contract's amount that is this client's, in the contract's currency. The shares of a
+ * contract add up exactly to its amount (checked on every write); the client's tab, its money
+ * and the paid ranking count the share.
+ */
+export const financeContractShares = pgTable(
+  'finance_contract_shares',
+  {
+    itemId: text('item_id')
+      .notNull()
+      .references(() => financeItems.id, { onDelete: 'cascade' }),
+    groupId: text('group_id')
+      .notNull()
+      .references(() => groups.id, { onDelete: 'cascade' }),
+    amountMinor: bigint('amount_minor', { mode: 'number' }).notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.itemId, t.groupId] }),
+    check('finance_contract_shares_amount_check', sql`${t.amountMinor} > 0`),
+    // A client's shared contracts (its tab, its money, the paid ranking).
+    index('finance_contract_shares_group_idx').on(t.groupId, t.itemId),
   ],
 );
 
