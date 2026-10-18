@@ -11,6 +11,7 @@ import { registerGroupsAuditResolvers } from './modules/groups/audit.js';
 import { registerTasksAuditResolvers } from './modules/tasks/audit.js';
 import { registerTicketsAuditResolvers } from './modules/tickets/audit.js';
 import { registerKnowledgeAuditResolvers } from './modules/knowledge/audit.js';
+import { registerProjectsAuditResolvers } from './modules/projects/audit.js';
 import { textToolRoutes } from './modules/ai/text-routes.js';
 import { bulkEmailRenderRoutes } from './modules/bulk-email/render-routes.js';
 import { passkeyRoutes } from './modules/auth/passkey-routes.js';
@@ -195,6 +196,7 @@ export async function buildApp(
   registerTasksAuditResolvers();
   registerTicketsAuditResolvers();
   registerKnowledgeAuditResolvers();
+  registerProjectsAuditResolvers();
   await app.register(auditRoutes, { prefix: '/api', deps });
   await app.register(mcpTransportRoutes, { deps, root: app });
   // OAuth for it (ADR 0034): the metadata and endpoints at the root, the consent API under /api.

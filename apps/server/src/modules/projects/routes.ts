@@ -47,6 +47,7 @@ import {
   updateEvent,
   updateProject,
 } from './service.js';
+import { auditActorOf } from '../audit/request-actor.js';
 
 type IdParams = { Params: { id: string } };
 type AliasParams = { Params: { id: string; key: string } };
@@ -143,10 +144,14 @@ export const projectsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app,
     const body = ProjectCreateBodySchema.safeParse(request.body);
     if (!body.success) return invalid(reply);
     try {
-      const project = await createProject(db, actor.id, groupId, body.data, {
-        actor,
-        jobs: deps.jobs,
-      });
+      const project = await createProject(
+        db,
+        actor.id,
+        groupId,
+        body.data,
+        { actor, jobs: deps.jobs },
+        auditActorOf(request),
+      );
       changed(groupId, project.id, 'project');
       return reply.code(201).send(project);
     } catch (error) {
@@ -179,10 +184,14 @@ export const projectsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app,
     const patch = ProjectPatchBodySchema.safeParse(request.body);
     if (!patch.success) return invalid(reply);
     try {
-      const project = await updateProject(deps, actor.id, request.params.id, patch.data, {
-        actor,
-        jobs: deps.jobs,
-      });
+      const project = await updateProject(
+        deps,
+        actor.id,
+        request.params.id,
+        patch.data,
+        { actor, jobs: deps.jobs },
+        auditActorOf(request),
+      );
       changed(groupId, project.id, 'project');
       return project;
     } catch (error) {
@@ -194,7 +203,7 @@ export const projectsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app,
     const groupId = await projectFor(request.user!, request.params.id, canMergeOrDeleteProject);
     if (groupId === null) return notFound(reply);
     try {
-      await deleteProject(deps, request.params.id);
+      await deleteProject(deps, request.params.id, auditActorOf(request));
       changed(groupId, request.params.id, 'project');
       return reply.code(204).send();
     } catch (error) {
@@ -213,7 +222,12 @@ export const projectsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app,
         const groupId = await projectFor(request.user!, request.params.id, canArchiveProject);
         if (groupId === null) return notFound(reply);
         try {
-          const project = await setProjectStatus(db, request.params.id, status);
+          const project = await setProjectStatus(
+            db,
+            request.params.id,
+            status,
+            auditActorOf(request),
+          );
           changed(groupId, project.id, 'project');
           return project;
         } catch (error) {
@@ -231,7 +245,7 @@ export const projectsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app,
       const groupId = await projectFor(request.user!, id, canMergeOrDeleteProject);
       if (groupId === null) return notFound(reply);
       try {
-        await removeAlias(db, id, key);
+        await removeAlias(db, id, key, auditActorOf(request));
         changed(groupId, id, 'project');
         return await getProject(db, id);
       } catch (error) {
@@ -256,7 +270,13 @@ export const projectsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app,
     const body = EventCreateBodySchema.safeParse(request.body);
     if (!body.success) return invalid(reply);
     try {
-      const event = await createEvent(db, actor.id, request.params.id, body.data);
+      const event = await createEvent(
+        db,
+        actor.id,
+        request.params.id,
+        body.data,
+        auditActorOf(request),
+      );
       changed(groupId, event.projectId, 'event');
       return reply.code(201).send(event);
     } catch (error) {
@@ -280,7 +300,13 @@ export const projectsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app,
     const patch = EventPatchBodySchema.safeParse(request.body);
     if (!patch.success) return invalid(reply);
     try {
-      const event = await updateEvent(deps, actor.id, request.params.id, patch.data);
+      const event = await updateEvent(
+        deps,
+        actor.id,
+        request.params.id,
+        patch.data,
+        auditActorOf(request),
+      );
       changed(owner.groupId, owner.projectId, 'event');
       return event;
     } catch (error) {
@@ -295,7 +321,7 @@ export const projectsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app,
       const owner = await eventFor(request.user!, request.params.id, canMergeOrDeleteProject);
       if (owner === null) return notFound(reply);
       try {
-        await deleteEvent(deps, request.params.id);
+        await deleteEvent(deps, request.params.id, auditActorOf(request));
         changed(owner.groupId, owner.projectId, 'event');
         return reply.code(204).send();
       } catch (error) {

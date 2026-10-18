@@ -10,6 +10,9 @@ import { runProjectMergeHooks } from './merge-hooks.js';
 import { lockGroupProjects } from './refs.js';
 import { projectAttachments, projectEvents, projectNameKeys, projects } from './schema.js';
 import { getProject } from './service.js';
+import type { AuditActor } from '../audit/actor.js';
+import { recordAudit } from '../audit/service.js';
+import { projectEntry } from './audit.js';
 
 /**
  * Merges project `fromId` into `intoId` of the same client (Phase 33 part P3, spec §5.6), in one
@@ -26,6 +29,7 @@ export async function mergeProjects(
   deps: { db: Db; storage: Storage },
   fromId: string,
   intoId: string,
+  by?: AuditActor,
 ): Promise<ProjectDto> {
   const { db } = deps;
   if (fromId === intoId) throw new ProjectValidationError('A project cannot merge into itself');
@@ -77,6 +81,13 @@ export async function mergeProjects(
       .where(eq(projects.id, intoId));
     // Other modules' copies of the project id (finance's time entries and contracts, P6).
     await runProjectMergeHooks(tx, { groupId, fromProjectId: fromId, intoProjectId: intoId });
+    if (by) {
+      // The kept project's `merged`; the absorbed one's deletion is its consequence.
+      const [causeId] = await recordAudit(tx, by, [
+        projectEntry(b, 'merged', { merged: { from: { id: a.id, label: a.name }, to: null } }),
+      ]);
+      await recordAudit(tx, by, [{ ...projectEntry(a, 'deleted'), causeId: causeId ?? null }]);
+    }
     await tx.delete(projects).where(eq(projects.id, fromId));
   });
   return getProject(db, intoId);

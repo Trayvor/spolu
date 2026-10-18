@@ -27,6 +27,10 @@ import {
   projects,
 } from './schema.js';
 import { claimNameKey, getProject, projectGroupId } from './service.js';
+import { egrantActor, type AuditActor } from '../audit/actor.js';
+import { diffFields, hasChanges } from '../audit/diff.js';
+import { recordAudit, type AuditEntry } from '../audit/service.js';
+import { eventEntry, eventValues, projectEntry, projectValues } from './audit.js';
 
 /**
  * eGrant project deliveries and their review (Phase 33 part P3, spec §5.1–§5.4). The endpoint
@@ -162,6 +166,7 @@ async function createFromDelivery(
   body: EgrantProjectBody,
   events: DeliveredEvent[],
   sentAt: Date,
+  by: AuditActor | undefined,
 ): Promise<string> {
   const id = randomUUID();
   const nameKey = normalizeSearch(body.name);
@@ -187,10 +192,28 @@ async function createFromDelivery(
       .values({ projectId: id, groupId, kind: 'name', key: nameKey })
       .onConflictDoNothing();
   }
+  const eventRows = events.map((e) => ({ ...e, id: randomUUID() }));
+  if (by) {
+    // A first delivery creates the project and its events at once: eGrant is the author.
+    await recordAudit(tx, by, [
+      projectEntry(
+        { id, groupId, name: body.name },
+        'created',
+        diffFields('project', null, { ...projectValues(body), status: 'active' }),
+      ),
+      ...eventRows.map((e) =>
+        eventEntry(
+          { id: e.id, groupId, name: e.name },
+          'created',
+          diffFields('project_event', null, eventValues({ ...e, occursOn: e.date })),
+        ),
+      ),
+    ]);
+  }
   if (events.length > 0) {
     await tx.insert(projectEvents).values(
-      events.map((e) => ({
-        id: randomUUID(),
+      eventRows.map((e) => ({
+        id: e.id,
         projectId: id,
         groupId,
         name: e.name,
@@ -373,6 +396,7 @@ export async function receiveProjectDelivery(
   groupId: string,
   egrantProjectId: string,
   body: EgrantProjectBody,
+  by?: AuditActor,
 ): Promise<DeliveryResult> {
   await lockGroupProjects(tx, groupId);
   const { events, skipped } = parseDeliveredEvents(body.events);
@@ -381,7 +405,7 @@ export async function receiveProjectDelivery(
   if (projectId === null) {
     const byName = await personProjectByName(tx, groupId, normalizeSearch(body.name));
     if (byName === null) {
-      const id = await createFromDelivery(tx, groupId, egrantProjectId, body, events, sentAt);
+      const id = await createFromDelivery(tx, groupId, egrantProjectId, body, events, sentAt, by);
       const linkedTicketIds = await linkWaitingTickets(tx, groupId, egrantProjectId, id);
       return { projectId: id, state: 'created', pending: 0, skipped, linkedTicketIds };
     }
@@ -470,7 +494,13 @@ export async function processInboxFor(
     try {
       if (body.success) {
         const result = await tx.transaction((sp) =>
-          receiveProjectDelivery(sp, groupId, row.projectId, body.data),
+          receiveProjectDelivery(
+            sp,
+            groupId,
+            row.projectId,
+            body.data,
+            egrantActor('projects', `https://${host}`),
+          ),
         );
         projectIds.push(result.projectId);
         ticketIds.push(...result.linkedTicketIds);
@@ -610,6 +640,7 @@ async function applyChange(
   project: ProjectRow,
   change: ChangeRow,
   current: { name: string; description: string },
+  audit: AuditEntry[],
 ): Promise<string[]> {
   const now = sql`now()`;
   switch (change.kind) {
@@ -623,31 +654,44 @@ async function applyChange(
     case 'project_description':
       current.description = change.value as string;
       return [];
-    case 'event_name': {
-      const name = change.value as string;
-      await tx
-        .update(projectEvents)
-        .set({ name, nameKey: normalizeSearch(name), updatedAt: now })
+    case 'event_name':
+    case 'event_date':
+    case 'event_description': {
+      const value = change.value as string;
+      const set =
+        change.kind === 'event_name'
+          ? { name: value, nameKey: normalizeSearch(value) }
+          : change.kind === 'event_date'
+            ? { occursOn: value }
+            : { description: value };
+      const [before] = await tx
+        .select()
+        .from(projectEvents)
         .where(eq(projectEvents.id, change.eventId!));
+      const [after] = await tx
+        .update(projectEvents)
+        .set({ ...set, updatedAt: now })
+        .where(eq(projectEvents.id, change.eventId!))
+        .returning();
+      if (before && after) {
+        const changes = diffFields('project_event', eventValues(before), eventValues(after));
+        if (hasChanges(changes)) audit.push(eventEntry(after, 'updated', changes));
+      }
       return [];
     }
-    case 'event_date':
-      await tx
-        .update(projectEvents)
-        .set({ occursOn: change.value as string, updatedAt: now })
-        .where(eq(projectEvents.id, change.eventId!));
-      return [];
-    case 'event_description':
-      await tx
-        .update(projectEvents)
-        .set({ description: change.value as string, updatedAt: now })
-        .where(eq(projectEvents.id, change.eventId!));
-      return [];
     case 'event_add': {
       const event = change.value as IncomingEvent;
       const nameKey = normalizeSearch(event.name);
+      const eventId = randomUUID();
+      audit.push(
+        eventEntry(
+          { id: eventId, groupId: project.groupId, name: event.name },
+          'created',
+          diffFields('project_event', null, eventValues(event)),
+        ),
+      );
       await tx.insert(projectEvents).values({
-        id: randomUUID(),
+        id: eventId,
         projectId: project.id,
         groupId: project.groupId,
         name: event.name,
@@ -668,7 +712,13 @@ async function applyChange(
           .from(projectAttachments)
           .where(eq(projectAttachments.eventId, change.eventId!))
       ).map((r) => r.fileId);
-      await tx.delete(projectEvents).where(eq(projectEvents.id, change.eventId!));
+      const gone = await tx
+        .delete(projectEvents)
+        .where(eq(projectEvents.id, change.eventId!))
+        .returning();
+      for (const e of gone) {
+        audit.push(eventEntry(e, 'deleted', diffFields('project_event', eventValues(e), null)));
+      }
       await detachFiles(tx, fileIds);
       return fileIds;
     }
@@ -684,6 +734,7 @@ export async function reviewEgrantChanges(
   deps: { db: Db; storage: Storage },
   projectId: string,
   review: EgrantReviewBody,
+  by?: AuditActor,
 ): Promise<ProjectDto> {
   const { db } = deps;
   const groupId = await projectGroupId(db, projectId);
@@ -713,8 +764,10 @@ export async function reviewEgrantChanges(
       .sort((a, b) => KIND_ORDER.indexOf(a.kind) - KIND_ORDER.indexOf(b.kind));
     const current = { name: project.name, description: project.description };
     const dropped: string[] = [];
+    // The admin who accepts eGrant's changes is their author (spec §3.1).
+    const audit: AuditEntry[] = [];
     for (const change of accepted)
-      dropped.push(...(await applyChange(tx, project, change, current)));
+      dropped.push(...(await applyChange(tx, project, change, current, audit)));
     if (accepted.length > 0) {
       // A removal's own rows went with its event already.
       await tx.delete(egrantChanges).where(
@@ -739,6 +792,11 @@ export async function reviewEgrantChanges(
         updatedAt: sql`now()`,
       })
       .where(eq(projects.id, projectId));
+    const projectChanges = diffFields('project', projectValues(project), projectValues(current));
+    if (hasChanges(projectChanges)) {
+      audit.unshift(projectEntry({ ...project, name: current.name }, 'updated', projectChanges));
+    }
+    if (by) await recordAudit(tx, by, audit);
     return dropped;
   });
   await deleteDetachedFiles(deps, fileIds).catch(() => undefined);
