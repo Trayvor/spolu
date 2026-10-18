@@ -240,6 +240,36 @@ describe('group layout', () => {
     expect(screen.getByRole('heading', { name: t('finance.cards.documents') })).toBeInTheDocument();
   });
 
+  it('the admin group without the finance right: no Financie tab, its screen not found, no finance request (Phase 34 E)', async () => {
+    mockApi({ admin: true });
+    renderGroup('/groups/g1/chat');
+    const nav = await screen.findByRole('navigation', { name: t('group.tabs.label') });
+    expect(within(nav).queryByRole('link', { name: t('group.tabs.finance') })).toBeNull();
+    cleanup();
+
+    mockApi({ admin: true });
+    renderGroup('/groups/g1/finance');
+    expect(await screen.findByText(t('notFound.title'))).toBeInTheDocument();
+    const urls = vi.mocked(fetch).mock.calls.map(([url]) => String(url));
+    expect(urls.filter((url) => url.includes('finance'))).toEqual([]);
+  });
+
+  it("the admin group's Financie tab is the organisation's: its items, never a store of its own (Phase 34 E)", async () => {
+    mockApi({ admin: true, me: { ...ADMIN, finance: true } });
+    renderGroup('/groups/g1/finance');
+    expect(
+      await screen.findByRole('heading', { name: t('financeOrg.card.organisation') }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: t('finance.cards.overview') })).toBeInTheDocument();
+    await waitFor(() => {
+      const urls = vi.mocked(fetch).mock.calls.map(([url]) => String(url));
+      expect(urls.some((url) => url.startsWith('/api/finance/org/items'))).toBe(true);
+    });
+    const urls = vi.mocked(fetch).mock.calls.map(([url]) => String(url));
+    expect(urls.some((url) => url.startsWith('/api/groups/g1/finance/items'))).toBe(false);
+    expect(urls.some((url) => url.startsWith('/api/groups/g1/finance/overview'))).toBe(true);
+  });
+
   it('/ sends a client to /groups/<groupId>/chat', async () => {
     mockApi({ me: CLIENT });
     const { router } = renderGroup('/');

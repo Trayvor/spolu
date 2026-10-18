@@ -39,3 +39,11 @@ export class FinanceFolderLimitError extends Error {
     this.name = 'FinanceFolderLimitError';
   }
 }
+
+/** A contract of several clients names the admin group as a client (Phase 34 part E, `400 invalid_group`). */
+export class FinanceAdminGroupShareError extends Error {
+  constructor() {
+    super('The admin group has no share of a contract');
+    this.name = 'FinanceAdminGroupShareError';
+  }
+}

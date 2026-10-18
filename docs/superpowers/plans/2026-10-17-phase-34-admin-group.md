@@ -70,9 +70,11 @@ Docs: `product/chat.md`.
 
 ## Part P34-E — Finance in the admin group (branch `feat/admin-group-finance`; after P34-B and Phase 32 D)
 
+Status: **done** (no migration; tests in `modules/finance/admin-group.test.ts`, `scope.test.ts`, web `features/finance/system/client-filter.test.tsx` and `features/groups/group-layout.test.tsx`, e2e `e2e/admin-group-finance.spec.ts`). **Reconciled with Phase 32 E** (finance at organisation level, built after this plan was written): the admin group's Financie tab is the **organisation's**, not a second store. Its Documents card is `/finance`'s Organizácia view (expenses, organisation documents, notes, several-clients contracts); its Overview is the internal time plus the organisation's expenses; its Work log is the time on its tasks. Its own items, folders and files routes answer `409 admin_group`, and a several-clients contract cannot give it a share (`400 invalid_group`). Finance admins only (`requireFinance`; the pill and the screen need the right, leak tests first). On `/finance` (changed after review, owner decision of 2026-10-18: "the team's spending must also be included in /finance, with the possibility to filter it out") "every client" includes the admin group: the "eGrant tím" option is **ticked by default** and unticking it sends `internal=0` (`{ kind: 'all', except }`); both rankings drop it whatever the filter, and its hours get no row in the hours ranking (they count in the Overview totals and the Work log only). Decision 13's time requests stay on (no opt-out).
+
 Server: rankings exclude `kind = 'admin'`; `/finance` accepts the admin group in `clients` only when chosen ("All clients" = client groups); time requests on its tasks as everywhere (or skipped if the owner answers decision 13 so).
 
-Web: the "eGrant tím (internal)" option in `/finance`'s client filter, off by default.
+Web: the "eGrant tím (internal)" option in `/finance`'s client filter, off by default (as built: on by default, owner decision of 2026-10-18).
 
 Tests (first): rankings never list it; the overview with and without it; time on its task; e2e scenario 7.
 

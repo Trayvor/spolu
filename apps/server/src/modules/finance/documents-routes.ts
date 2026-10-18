@@ -19,6 +19,7 @@ import type { AppDeps } from '../../deps.js';
 import { createRateLimiter } from '../../infra/http/rate-limit.js';
 import { decodeFileNameHeader } from '../files/file-name.js';
 import { FileTooLargeError, InvalidAttachmentError, MAX_FILE_BYTES } from '../files/service.js';
+import { isAdminGroup } from '../groups/admin-group.js';
 import { getGroup } from '../groups/service.js';
 import { listAdmins, listFinanceHolders } from '../users/service.js';
 import {
@@ -31,6 +32,7 @@ import {
   updateItem,
 } from './documents.js';
 import {
+  FinanceAdminGroupShareError,
   FinanceChangedError,
   FinanceFolderCycleError,
   FinanceFolderLimitError,
@@ -55,6 +57,9 @@ const invalid = (reply: FastifyReply) => send(reply, 400, ErrorCodes.validationF
 /** Maps the expected errors of the documents; anything else is rethrown (500). */
 function documentsError(reply: FastifyReply, error: unknown): FastifyReply {
   if (error instanceof FinanceNotFoundError) return notFound(reply);
+  if (error instanceof FinanceAdminGroupShareError) {
+    return send(reply, 400, ErrorCodes.invalidGroup);
+  }
   if (error instanceof FinanceChangedError) return send(reply, 409, ErrorCodes.financeChanged);
   if (error instanceof FinanceFolderCycleError) return send(reply, 400, ErrorCodes.invalidFolder);
   if (error instanceof FinanceFolderLimitError) return send(reply, 400, ErrorCodes.folderLimit);
@@ -97,8 +102,23 @@ export const financeDocumentsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = asy
     if (!allowWrite(request.user!.id)) return send(reply, 429, ErrorCodes.rateLimited);
   };
   const changed = (groupId: string | null) => emitFinanceChanged(app.io, groupId, 'items');
-  /** The path's client exists (finance belongs to every client group). */
-  const knownGroup = async (groupId: string) => (await getGroup(db, groupId)) !== null;
+  /**
+   * The path's client exists, or a 404 is sent (false). The admin group keeps no items, folders
+   * or files of its own (Phase 34 part E): its Financie tab shows the organisation's, so its
+   * routes answer `409 admin_group` and there is one store, not two.
+   */
+  const clientOf = async (groupId: string, reply: FastifyReply): Promise<boolean> => {
+    const group = await getGroup(db, groupId);
+    if (!group) {
+      void notFound(reply);
+      return false;
+    }
+    if (isAdminGroup(group)) {
+      void send(reply, 409, ErrorCodes.adminGroup);
+      return false;
+    }
+    return true;
+  };
 
   /** A folder's page, or a flat list with a type filter or a search, of one owner. */
   const listOf = async (request: FastifyRequest, reply: FastifyReply, groupId: string | null) => {
@@ -120,12 +140,12 @@ export const financeDocumentsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = asy
   };
 
   app.get<IdParams>('/groups/:id/finance/items', async (request, reply) => {
-    if (!(await knownGroup(request.params.id))) return notFound(reply);
+    if (!(await clientOf(request.params.id, reply))) return reply;
     return listOf(request, reply, request.params.id);
   });
 
   app.get<IdParams>('/groups/:id/finance/folders', async (request, reply) => {
-    if (!(await knownGroup(request.params.id))) return notFound(reply);
+    if (!(await clientOf(request.params.id, reply))) return reply;
     return listFolders(db, request.params.id);
   });
 
@@ -136,7 +156,7 @@ export const financeDocumentsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = asy
       const body = FinanceItemBodySchema.safeParse(request.body);
       if (!body.success) return invalid(reply);
       const groupId = request.params.id;
-      if (!(await knownGroup(groupId))) return notFound(reply);
+      if (!(await clientOf(groupId, reply))) return reply;
       try {
         const item = await createItem(db, request.user!.id, groupId, body.data);
         changed(groupId);
@@ -196,7 +216,7 @@ export const financeDocumentsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = asy
       const body = FinanceFolderBodySchema.safeParse(request.body);
       if (!body.success) return invalid(reply);
       const groupId = request.params.id;
-      if (!(await knownGroup(groupId))) return notFound(reply);
+      if (!(await clientOf(groupId, reply))) return reply;
       try {
         const folder = await createFolder(db, request.user!.id, groupId, body.data);
         changed(groupId);
@@ -309,7 +329,7 @@ export const financeDocumentsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = asy
       }
     };
     upload.post<IdParams>('/groups/:id/finance/files', async (request, reply) => {
-      if (!(await knownGroup(request.params.id))) return notFound(reply);
+      if (!(await clientOf(request.params.id, reply))) return reply;
       return receive(request, reply, request.params.id);
     });
     upload.post('/finance/org/files', { preHandler: requireOrg }, async (request, reply) =>

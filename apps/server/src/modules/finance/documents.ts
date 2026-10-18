@@ -22,13 +22,19 @@ import type { Storage } from '../../infra/storage/storage.js';
 import { buildSearchText, escapeLike, searchTerms } from '../../infra/text/search.js';
 import { files } from '../files/schema.js';
 import { attachFiles, deleteDetachedFiles, detachFiles, toFileInfo } from '../files/service.js';
+import { adminGroupId } from '../groups/admin-group.js';
 import { getGroupLabels } from '../groups/service.js';
 import { getUserById, getUserNames } from '../users/service.js';
-import { FinanceChangedError, FinanceNotFoundError, FinanceValidationError } from './errors.js';
+import {
+  FinanceAdminGroupShareError,
+  FinanceChangedError,
+  FinanceNotFoundError,
+  FinanceValidationError,
+} from './errors.js';
 import { folderOfGroup, folderPaths, lockGroupFinance } from './folders.js';
 import { canBePayee, sharesVisibleIn, type ShareView } from './policy.js';
 import { financeAttachments, financeContractShares, financeItems } from './schema.js';
-import { monthAfter, monthStart, type FinanceScope, type MonthRange } from './scope.js';
+import { monthAfter, monthStart, scopeSql, type FinanceScope, type MonthRange } from './scope.js';
 
 /**
  * Finance items (Phase 32 part B, spec §3.2, §6.1): one client's contracts, documents and notes,
@@ -199,8 +205,11 @@ function ownerWhere(scope: FinanceScope, folderId: string | null | undefined): S
       const where = sql`(i.group_id in (${list}) or ${sharedWith(sql`s.group_id in (${list})`)})`;
       return folder ? sql`${where} and ${folder}` : where;
     }
-    case 'all':
-      return folder ?? sql`true`;
+    case 'all': {
+      // Every client but the admin group unless chosen (Phase 34 part E); the organisation's in.
+      const where = scopeSql(sql`i.group_id`, scope);
+      return folder ? sql`${where} and ${folder}` : where;
+    }
     case 'org':
       return folder ? sql`i.group_id is null and ${folder}` : sql`i.group_id is null`;
   }
@@ -530,7 +539,8 @@ function checkBody(body: string): void {
 
 /**
  * The shares of a contract of several clients (decisions O1, E8): valid (`shareProblem`) and of
- * existing clients. The schema checked them already; this guards every write.
+ * existing clients, never the admin group (Phase 34 part E: internal money is no client's
+ * share). The schema checked them already; this guards every write.
  */
 async function checkShares(tx: Db, totalMinor: number, shares: readonly ShareInput[]) {
   const problem = shareProblem(totalMinor, shares);
@@ -540,6 +550,8 @@ async function checkShares(tx: Db, totalMinor: number, shares: readonly ShareInp
     shares.map((s) => s.groupId),
   );
   if (labels.size !== shares.length) throw new FinanceValidationError('Shares: unknown client');
+  const admin = await adminGroupId(tx);
+  if (admin && shares.some((s) => s.groupId === admin)) throw new FinanceAdminGroupShareError();
 }
 
 /** A salary's admin (decision E4): an active admin or the superadmin. Returns the name. */

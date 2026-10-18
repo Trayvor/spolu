@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { ClientFilter, type ClientOption } from '@/components/client-filter';
+import { ClientFilter, toClientOptions } from '@/components/client-filter';
 import { useSession } from '@/features/auth/use-session';
 import { groupsQuery } from '@/features/groups/api';
 import {
@@ -12,56 +12,83 @@ import {
 const LIST = 'finance.clients';
 
 /**
- * The page's client choice (spec §6.2, decision 17): every client by default, remembered per
- * person (`spolu.filters.<userId>.finance.clients`). An empty list means every client, now and
- * later.
+ * The page's client choice: `clients` (empty: every client, now and later) and `internal`, whether
+ * "every client" includes the admin group "eGrant tím" (Phase 34 part E: on by default, owner
+ * decision of 2026-10-18; unticking it leaves the team's time out). Chosen clients name the admin
+ * group in `clients` when it is ticked.
  */
-export function useFinanceClients(): [string[], (next: string[]) => void] {
+export type FinanceClients = { clients: string[]; internal: boolean };
+
+/**
+ * The page's client choice (spec §6.2, decision 17): every client by default, remembered per
+ * person (`spolu.filters.<userId>.finance.clients`).
+ */
+export function useFinanceClients(): [FinanceClients, (next: FinanceClients) => void] {
   const userId = useSession()?.id ?? null;
   const key = userId === null ? null : rememberedFiltersKey(userId, LIST);
-  const [clients, setClients] = useState<string[]>(() => {
-    const saved = key ? readRemembered(key)?.clients : undefined;
-    return typeof saved === 'string' ? saved.split(',').filter(Boolean) : [];
+  const [choice, setChoice] = useState<FinanceClients>(() => {
+    const saved = key ? readRemembered(key) : null;
+    const clients = typeof saved?.clients === 'string' ? saved.clients : '';
+    return { clients: clients.split(',').filter(Boolean), internal: saved?.internal !== '0' };
   });
-  const choose = (next: string[]) => {
-    setClients(next);
-    if (key) writeRemembered(key, next.length > 0 ? { clients: next.join(',') } : null);
+  const choose = (next: FinanceClients) => {
+    setChoice(next);
+    if (!key) return;
+    const value = {
+      ...(next.clients.length > 0 ? { clients: next.clients.join(',') } : {}),
+      ...(next.clients.length === 0 && !next.internal ? { internal: '0' } : {}),
+    };
+    writeRemembered(key, Object.keys(value).length > 0 ? value : null);
   };
-  return [clients, choose];
+  return [choice, choose];
 }
 
 /**
- * The knowledge list's client filter (pill, popover or sheet, chips) over every client. Choosing
- * all of them, none, or resetting stores "every client", so clients added later are in too.
+ * The knowledge list's client filter (pill, popover or sheet, chips) over every client, with the
+ * admin group as the "eGrant tím" option on top, ticked by default (Phase 34 part E). Choosing
+ * every client (with the team), none, or resetting stores "every client", so clients added later
+ * are in too.
  */
 export function FinanceClientFilter({
-  clients,
+  value,
   onChange,
 }: {
-  clients: string[];
-  onChange: (next: string[]) => void;
+  value: FinanceClients;
+  onChange: (next: FinanceClients) => void;
 }) {
   const groups = useQuery(groupsQuery).data;
-  const options = useMemo<ClientOption[]>(
-    () =>
-      (groups ?? []).map((group) => ({
-        id: group.id,
-        name: group.name,
-        logoUrl: group.hasLogo
-          ? `/api/groups/${encodeURIComponent(group.id)}/logo?v=${encodeURIComponent(group.updatedAt)}`
-          : null,
-      })),
-    [groups],
-  );
+  const options = useMemo(() => toClientOptions(groups ?? [], true), [groups]);
+  const adminId = options.find((o) => o.internal)?.id ?? null;
+  const clientIds = options.filter((o) => !o.internal).map((o) => o.id);
   const known = new Set(options.map((o) => o.id));
-  const chosen = clients.filter((id) => known.has(id));
+  const chosen = value.clients.filter((id) => known.has(id));
+
+  // The filter's value: null is the default (every client and the team).
+  const filterValue =
+    groups === undefined || (chosen.length === 0 && (value.internal || adminId === null))
+      ? null
+      : chosen.length > 0
+        ? chosen
+        : clientIds;
+
+  const change = (next: string[] | null) => {
+    if (next === null || next.length === 0) return onChange({ clients: [], internal: true });
+    const withTeam = adminId !== null && next.includes(adminId);
+    const every = clientIds.every((id) => next.includes(id));
+    onChange(
+      every
+        ? { clients: [], internal: withTeam || adminId === null }
+        : { clients: next, internal: true },
+    );
+  };
+
   return (
     <ClientFilter
       groups={options}
       managedIds={null}
-      value={groups === undefined || chosen.length === 0 ? null : chosen}
+      value={filterValue}
       disabled={groups === undefined}
-      onChange={(next) => onChange(next === null || next.length === options.length ? [] : next)}
+      onChange={change}
     />
   );
 }

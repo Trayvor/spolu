@@ -11,6 +11,7 @@ import {
   WorkLogQuerySchema,
 } from '@spolu/shared';
 import type { AppDeps } from '../../deps.js';
+import { isAdminGroup } from '../groups/admin-group.js';
 import { getGroup } from '../groups/service.js';
 import { dataMonthRange, overview } from './aggregates.js';
 import {
@@ -30,6 +31,7 @@ import {
   RatesForbiddenError,
   RateUserError,
 } from './rates.js';
+import { canSeeExpenses } from './policy.js';
 import { monthsOf } from './scope.js';
 import { WorkLogCursorError, workLogPage } from './work-log.js';
 
@@ -71,37 +73,39 @@ export const financeLogRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (
 
   /** The client of the path, or a 404 sent (null). */
   const groupOf = async (id: string, reply: FastifyReply) => {
-    if (!IdSchema.safeParse(id).success || !(await getGroup(db, id))) {
-      void send(reply, 404, ErrorCodes.notFound);
-      return null;
-    }
-    return id;
+    const group = IdSchema.safeParse(id).success ? await getGroup(db, id) : null;
+    if (!group) void send(reply, 404, ErrorCodes.notFound);
+    return group;
   };
 
   app.get<IdParams>('/groups/:id/finance/overview', async (request, reply) => {
     const query = OverviewQuerySchema.safeParse(request.query);
     if (!query.success) return send(reply, 400, ErrorCodes.invalidFilter);
-    const groupId = await groupOf(request.params.id, reply);
-    if (!groupId) return reply;
-    const scope = { kind: 'group', groupId } as const;
+    const group = await groupOf(request.params.id, reply);
+    if (!group) return reply;
+    const scope = { kind: 'group', groupId: group.id } as const;
+    // The admin group's tab is the organisation's (Phase 34 part E): its internal time and the
+    // organisation's expenses; a client's tab never has expenses (decision O3).
+    const organisation = isAdminGroup(group) && canSeeExpenses(request.user!);
     const { from, to } = query.data;
-    const range = from && to ? { from, to } : await dataMonthRange(db, scope);
+    const range =
+      from && to ? { from, to } : await dataMonthRange(db, scope, new Date(), organisation);
     if (monthsOf(range).length > OVERVIEW_MAX_MONTHS) {
       return send(reply, 400, ErrorCodes.invalidFilter);
     }
-    return overview(db, scope, range);
+    return overview(db, scope, range, new Date(), { organisation });
   });
 
   app.get<IdParams>('/groups/:id/finance/work-log', async (request, reply) => {
     const query = WorkLogQuerySchema.safeParse(request.query);
     if (!query.success) return send(reply, 400, ErrorCodes.invalidFilter);
-    const groupId = await groupOf(request.params.id, reply);
-    if (!groupId) return reply;
+    const group = await groupOf(request.params.id, reply);
+    if (!group) return reply;
     const { from, to, before } = query.data;
     try {
       return await workLogPage(
         db,
-        { kind: 'group', groupId },
+        { kind: 'group', groupId: group.id },
         from && to ? { from, to } : null,
         before ?? null,
       );
