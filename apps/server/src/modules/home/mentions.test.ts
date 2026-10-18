@@ -375,6 +375,18 @@ describe('getMentions: mentions in descriptions (F16 follow-up, 2026-10-18)', ()
     expect(await s.kinds()).toEqual(['project']);
   });
 
+  it('a mention removed and added again without opening notifies once; after opening again', async () => {
+    const s = await subjects();
+    expect(await s.name(s.subject.task)).toHaveLength(1);
+    // Removed and named again: A has not opened the task meanwhile.
+    expect(await s.name(s.subject.task)).toEqual([]);
+    expect(await s.kinds()).toEqual(['task']);
+    await markTaskSeen(deps.db, s.A.id, s.subject.task.id);
+    expect(await s.name(s.subject.task)).toHaveLength(1);
+    expect(await s.name(s.subject.task)).toEqual([]);
+    expect(await s.kinds()).toEqual(['task']);
+  });
+
   it('a deleted subject drops its mention', async () => {
     const s = await subjects();
     await s.name(s.subject.task);

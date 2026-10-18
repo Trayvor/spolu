@@ -95,7 +95,7 @@ describe('recordDescriptionMentions', () => {
     expect(ids).toEqual([]);
   });
 
-  it('removing a person and naming them again notifies them once per subject', async () => {
+  it('removing a person and naming them again without them opening it notifies them once', async () => {
     const group = await newGroup();
     const actor = await newAdmin();
     const client = await newClient(group.id);
