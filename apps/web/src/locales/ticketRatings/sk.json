@@ -1,0 +1,35 @@
+{
+  "title": "Hodnotenia tiketov",
+  "back": "Späť",
+  "period": {
+    "label": "Obdobie",
+    "30": "30 dní",
+    "90": "90 dní",
+    "365": "12 mesiacov"
+  },
+  "client": {
+    "label": "Klient",
+    "all": "Všetci klienti"
+  },
+  "value": {
+    "label": "Hodnotenie",
+    "all": "Všetky",
+    "up": "Pomohlo",
+    "down": "Nepomohlo"
+  },
+  "summary": {
+    "up": "Pomohlo",
+    "down": "Nepomohlo",
+    "satisfaction": "Spokojnosť",
+    "response": "Odozva",
+    "responseHint": "Podiel vyriešených tiketov, ktoré žiadateľ ohodnotil."
+  },
+  "empty": "Za toto obdobie nie sú žiadne hodnotenia.",
+  "more": "Zobraziť ďalšie",
+  "error": "Hodnotenia sa nepodarilo načítať. Skúste to znova.",
+  "retry": "Skúsiť znova",
+  "comment": {
+    "expand": "Zobraziť celý komentár",
+    "collapse": "Skryť"
+  }
+}

@@ -11,7 +11,7 @@ import {
   text,
   timestamp,
 } from 'drizzle-orm/pg-core';
-import type { TicketSource, TicketStatus } from '@spolu/shared';
+import type { TicketRatingValue, TicketSource, TicketStatus } from '@spolu/shared';
 import { foldSql } from '../../infra/db/fold.js';
 import { files } from '../files/schema.js';
 import { groups } from '../groups/schema.js';
@@ -128,6 +128,10 @@ export const tickets = pgTable(
     index('tickets_due_open_idx')
       .on(t.dueDate)
       .where(sql`${t.status} <> 'resolved'`),
+    // Ticket rating (2026-10-19): the response rate, tickets resolved in a period.
+    index('tickets_resolved_at_idx')
+      .on(t.resolvedAt.desc())
+      .where(sql`${t.status} = 'resolved'`),
   ],
 );
 
@@ -189,5 +193,44 @@ export const ticketAttachments = pgTable(
   (t) => [
     primaryKey({ columns: [t.ticketId, t.fileId] }),
     index('ticket_attachments_file_idx').on(t.fileId),
+  ],
+);
+
+/**
+ * A rating of a resolved ticket (2026-10-19): 👍 or 👎 and an optional plain-text comment, one per
+ * ticket and person (its initiator), changeable for 14 days after resolving (`ratingOpen`). Only
+ * the tickets module reads it; every admin and the rater see it, nobody else.
+ */
+export const ticketRatings = pgTable(
+  'ticket_ratings',
+  {
+    ticketId: text('ticket_id')
+      .notNull()
+      .references(() => tickets.id, { onDelete: 'cascade' }),
+    userId: text('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    value: text('value').$type<TicketRatingValue>().notNull(),
+    comment: text('comment'),
+    /** When the 👎 notification went; at most once per rating (anti-spam). */
+    downNotifiedAt: timestamp('down_notified_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    /** Last change of value or comment: the stats period and the list order. */
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.ticketId, t.userId] }),
+    check('ticket_ratings_value_check', sql`${t.value} in ('up', 'down')`),
+    check(
+      'ticket_ratings_comment_check',
+      sql`${t.comment} is null or char_length(${t.comment}) between 1 and 1000`,
+    ),
+    // The stats list: a period of ratings, newest first (keyset).
+    index('ticket_ratings_updated_idx').on(t.updatedAt.desc(), t.ticketId.desc(), t.userId.desc()),
+    // The summary's counts (2026-10-19, found by the EXPLAIN check): a year is half the table,
+    // where a narrow index-only scan still beats the heap and the list's wide index does not.
+    index('ticket_ratings_updated_value_idx').on(t.updatedAt, t.value),
+    // The user FK's cascade.
+    index('ticket_ratings_user_idx').on(t.userId),
   ],
 );

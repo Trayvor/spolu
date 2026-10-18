@@ -142,6 +142,8 @@ const TICKET = {
   egrantProjectId: null,
   waitingForProject: false,
   projectArchived: false,
+  rating: { mine: null, canRate: false, editableUntil: null },
+  ratings: null,
 };
 const PAGE = { messages: [MESSAGE], hasMore: false, lastSeq: 1, lastReadAt: null };
 

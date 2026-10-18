@@ -160,6 +160,7 @@ export const sk: ServerTexts = {
     dueRemoved: 'Termín zrušený',
     overdue: (date) => `Po termíne, termín bol ${date}`,
     ticketResolved: (n) => `Tiket #${n} je vyriešený`,
+    ticketRated: (n) => `Tiket #${n}: negatívne hodnotenie`,
     mentionedInDescription: (name) => `${name} vás spomenul(a) v popise`,
     openKnowledge: 'Otvoriť položku',
     openProject: 'Otvoriť projekt',

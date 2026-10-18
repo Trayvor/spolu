@@ -21,6 +21,8 @@ const EVENTS = 200_000;
 const OLD_MENTIONS = 5_000;
 /** Mentions in descriptions (2026-10-18), within the 30 days events are kept. */
 const DESCRIPTION_MENTIONS = 20_000;
+/** Ticket ratings (2026-10-19), spread over two years. */
+const RATINGS = 6_000;
 
 /** The ids of the seeded volume. */
 export function homeVolumeIds(): VolumeIds {
@@ -52,6 +54,7 @@ export const HOME_VOLUME_TABLES = [
   'task_assignees',
   'tickets',
   'ticket_assignees',
+  'ticket_ratings',
   'messages',
   'message_mentions',
   'read_states',
@@ -67,7 +70,10 @@ export const HOME_VOLUME_TABLES = [
  * the admin managing 10 groups, and 200 000 notification events (a seventh the admin's; of tasks,
  * hourly urgent reminders among them, and of tickets) with the admin's seen marks for a sixth of
  * the tasks and a fifth of the tickets (2026-10-17, unseen changes), and one project per group
- * with 20 000 mentions in descriptions (2026-10-18, the Mentions card).
+ * with 20 000 mentions in descriptions (2026-10-18, the Mentions card). Every second ticket
+ * with a client has its group's client as initiator, the resolved ones a `resolved_at` a day
+ * after creation, and 6 000 of the resolved ones with an initiator a rating (2026-10-19: a third
+ * 👎, a quarter with a comment, `updated_at` spread over 730 days).
  */
 export async function seedHomeVolume(tx: Db): Promise<void> {
   const { adminId } = homeVolumeIds();
@@ -135,6 +141,29 @@ export async function seedHomeVolume(tx: Db): Promise<void> {
       'api', 'Ticket ' || i, 'Text of ticket ' || i,
       now() - i * interval '5 minutes', now()
     from generate_series(1, ${TICKETS}) i
+  `);
+  // 2026-10-19 (ticket rating): initiators and resolve times, then the ratings.
+  await tx.execute(sql`
+    update tickets set
+      requester_user_id = case when group_id is not null and number % 2 = 0
+        then ${p} || '-c' || substr(group_id, length(${p}) + 3) end,
+      resolved_at = case when status = 'resolved'
+        then least(created_at + interval '1 day', now()) end
+    where id like ${`${p}-k%`}
+  `);
+  await tx.execute(sql`
+    insert into ticket_ratings (ticket_id, user_id, value, comment, created_at, updated_at)
+    select id, requester_user_id,
+      case when n % 3 = 0 then 'down' else 'up' end,
+      case when n % 4 = 0 then 'Comment ' || n end,
+      now() - (n % 730) * interval '1 day' - n * interval '1 second',
+      now() - (n % 730) * interval '1 day' - n * interval '1 second'
+    from (
+      select id, requester_user_id, row_number() over (order by number) n
+      from tickets
+      where id like ${`${p}-k%`} and status = 'resolved' and requester_user_id is not null
+    ) s
+    where n <= ${RATINGS}
   `);
   // Every seventh ticket has a riešiteľ: one in ten of those the admin, else the group's client.
   await tx.execute(sql`

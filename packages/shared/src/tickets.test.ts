@@ -4,6 +4,8 @@ import {
   TicketIntakeBodySchema,
   TicketListQuerySchema,
   TicketPatchBodySchema,
+  TicketRatingBodySchema,
+  TicketRatingQuerySchema,
   intakeFieldNames,
 } from './tickets.js';
 import { base64DecodedSize } from './files.js';
@@ -139,5 +141,35 @@ describe('TicketListQuerySchema', () => {
     expect(TicketListQuerySchema.parse({ clients: 'a,b,a' })).toMatchObject({
       clients: ['a', 'b'],
     });
+  });
+});
+
+describe('TicketRatingBodySchema', () => {
+  it('takes up or down with no comment', () => {
+    expect(TicketRatingBodySchema.parse({ value: 'up' })).toEqual({ value: 'up' });
+  });
+
+  it('trims the comment and turns a blank one into null', () => {
+    expect(TicketRatingBodySchema.parse({ value: 'down', comment: '  zle  ' }).comment).toBe('zle');
+    expect(TicketRatingBodySchema.parse({ value: 'down', comment: '   ' }).comment).toBeNull();
+    expect(TicketRatingBodySchema.parse({ value: 'down', comment: null }).comment).toBeNull();
+  });
+
+  it('refuses another value and a comment over 1000 characters', () => {
+    expect(TicketRatingBodySchema.safeParse({ value: 'meh' }).success).toBe(false);
+    expect(
+      TicketRatingBodySchema.safeParse({ value: 'up', comment: 'x'.repeat(1001) }).success,
+    ).toBe(false);
+    expect(
+      TicketRatingBodySchema.safeParse({ value: 'up', comment: ` ${'x'.repeat(1000)} ` }).success,
+    ).toBe(true);
+  });
+});
+
+describe('TicketRatingQuerySchema', () => {
+  it('defaults to 30 days and takes only 30, 90 or 365', () => {
+    expect(TicketRatingQuerySchema.parse({}).days).toBe(30);
+    expect(TicketRatingQuerySchema.parse({ days: '365' }).days).toBe(365);
+    expect(TicketRatingQuerySchema.safeParse({ days: '7' }).success).toBe(false);
   });
 });

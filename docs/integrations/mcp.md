@@ -88,6 +88,8 @@ Start with `whoami` and `list_groups`; the other tools take the ids they return.
 | files | `read_file` (up to 2 MB: text, images, other files as base64) | |
 | finance (finance holders only) | `list_finance_documents`, `list_finance_document_folders`, `get_finance_document`, `list_finance_payees`, `get_finance_overview`, `get_work_log`, `list_rates`, `list_contracts`, `get_paid_ranking`, `get_hours_ranking`, `get_task_time`, `get_ticket_time` | `create_finance_document`, `update_finance_document`, `create_organisation_finance_item`, `create_finance_folder`, `update_finance_folder`, `add_time_entry`, `update_time_entry`, `add_rate`, `set_my_task_time`, `set_my_ticket_time` |
 
+`get_ticket` (2026-10-19) also returns `rating` (the token user's own rating, whether they may rate now and until when) and, to an admin's token, `ratings` (every rating with the rater and comment; `null` for anyone else). Rating is not a tool: `PUT /api/tickets/:id/rating` and the ratings stats routes are not on the allow-list, so an AI assistant never rates on someone's behalf.
+
 A change made through MCP is the app's own request: everyone sees it live and is notified as if you had done it in the app. An edit tool takes an optional `updatedAt`; without it the current version is changed.
 
 ## 4. Limits and audit

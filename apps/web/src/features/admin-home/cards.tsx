@@ -14,6 +14,7 @@ import type {
 import { Badge } from '@/components/ui/badge';
 import { formatDue, isOverdue, todayInBratislava } from '@/features/tasks/dates';
 import { askForTime } from '@/features/tasks/time-queue';
+import { ratingSummaryQuery } from '@/features/tickets/ratings-api';
 import { cn } from '@/lib/utils';
 import { assignedQuery, meetingsQuery, mentionsQuery, remindersQuery, ticketsQuery } from './api';
 import type { CardTarget, CountCardProps } from './count-card';
@@ -458,6 +459,28 @@ function TicketDetail({ ticket, today }: { ticket: HomeTicket; today: string }) 
  * riešiteľ of the clients whose tickets I watch, and those without a client; New first, each
  * marked "New". "Show all" opens the global ticket list.
  */
+/**
+ * The 30-day satisfaction line of the Tickets card (2026-10-19): every client, the same for every
+ * admin; its own query, so it never slows the card. Plain text (the card has its own links);
+ * nothing while it loads or when it failed.
+ */
+function SatisfactionLine() {
+  const { t } = useTranslation();
+  const { data } = useQuery(ratingSummaryQuery({ days: 30 }));
+  if (!data) return null;
+  const count = data.up + data.down;
+  return (
+    <span>
+      {count === 0
+        ? t('adminHome.cards.tickets.satisfactionNone')
+        : t('adminHome.cards.tickets.satisfaction', {
+            count,
+            percent: Math.round((100 * data.up) / count),
+          })}
+    </span>
+  );
+}
+
 export function useTicketsCard(): CountCardProps {
   const { t } = useTranslation();
   const query = useQuery(ticketsQuery);
@@ -479,6 +502,7 @@ export function useTicketsCard(): CountCardProps {
           {t('adminHome.cards.tickets.fresh', { count: data?.fresh ?? 0 })}
         </span>
         <span>{t('adminHome.cards.tickets.noAssignee', { count: data?.noAssignee ?? 0 })}</span>
+        <SatisfactionLine />
       </span>
     ),
     rows: (data?.items ?? []).map((ticket) => ({

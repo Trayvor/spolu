@@ -183,6 +183,8 @@ export type ServerTexts = {
     overdue(date: string): string;
     /** The push title of a resolved ticket. */
     ticketResolved(number: number): string;
+    /** 2026-10-19: a 👎 rating of a ticket. */
+    ticketRated(number: number): string;
     /** F16: the push body of a mention in a description ("Jana mentioned you in the description"). */
     mentionedInDescription(name: string): string;
     /** The digest email's button for a knowledge item and for a project (F16). */

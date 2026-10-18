@@ -577,12 +577,35 @@ describe('ticket resolved (2026-10-18)', () => {
     expect(buildPushPayload({ ...base, kind: 'ticket.resolved', payload, lang: 'en' })).toEqual({
       title: 'Ticket #123 resolved',
       body: 'Login fails',
-      url: '/tickets/k1',
+      // 2026-10-19: it opens the rating card (the page decides whether the viewer rates).
+      url: '/tickets/k1?rate=1',
       tag: 'ticket:k1',
       renotify: true,
     });
     expect(buildPushPayload({ ...base, kind: 'ticket.resolved', payload }).title).toBe(
       'Tiket #123 je vyriešený',
+    );
+  });
+});
+
+describe('ticket rated (2026-10-19)', () => {
+  it('"Tiket #123: negatívne hodnotenie" with the subject, opening the ticket', () => {
+    const payload = {
+      ticketId: 'k1',
+      number: 123,
+      subject: 'Login fails',
+      groupId: 'g1',
+      value: 'down',
+    };
+    expect(buildPushPayload({ ...base, kind: 'ticket.rated', payload })).toEqual({
+      title: 'Tiket #123: negatívne hodnotenie',
+      body: 'Login fails',
+      url: '/tickets/k1',
+      tag: 'ticket:k1',
+      renotify: true,
+    });
+    expect(buildPushPayload({ ...base, kind: 'ticket.rated', payload, lang: 'en' }).title).toBe(
+      'Ticket #123: negative rating',
     );
   });
 });
@@ -623,6 +646,7 @@ describe('renotify (2026-10-18)', () => {
       'ticket.created',
       'ticket.unassigned',
       'ticket.resolved',
+      'ticket.rated',
       'ticket.time_missing',
     ] as const) {
       expect(push(kind, ticket).renotify).toBe(true);

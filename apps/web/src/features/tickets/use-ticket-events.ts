@@ -22,6 +22,7 @@ import {
   ticketQuery,
   type TicketSource,
 } from './api';
+import { ticketRatingsPrefix } from './ratings-api';
 
 /** After a change: its notification events are recorded by the time the list asks again. */
 const TICKET_UNSEEN_DEBOUNCE_MS = 2000;
@@ -189,6 +190,12 @@ export function useTicketEvents(source: TicketSource | null): void {
         refetchListsSoon();
       }
     };
+    // 2026-10-19: a rating was set or changed (only admins and the rater hear it): the open
+    // ticket refetches, and the ratings totals and list.
+    const onRated = (payload: TicketEventPayload) => {
+      if (isOpen(payload.ticketId)) refreshOnce(payload.ticketId);
+      void queryClient.invalidateQueries({ queryKey: ticketRatingsPrefix });
+    };
     const onSeen = (event: SeenChangedEvent) => {
       if (event.kind === 'ticket') markTicketSeenInLists(queryClient, event.id);
     };
@@ -202,6 +209,7 @@ export function useTicketEvents(source: TicketSource | null): void {
     socket.on(TicketEvents.created, onCreated);
     socket.on(TicketEvents.updated, onUpdated);
     socket.on(TicketEvents.moved, onMoved);
+    socket.on(TicketEvents.rated, onRated);
     socket.on(SeenEvents.changed, onSeen);
     socket.on('connect', onConnect);
     return () => {
@@ -211,6 +219,7 @@ export function useTicketEvents(source: TicketSource | null): void {
       socket.off(TicketEvents.created, onCreated);
       socket.off(TicketEvents.updated, onUpdated);
       socket.off(TicketEvents.moved, onMoved);
+      socket.off(TicketEvents.rated, onRated);
       socket.off(SeenEvents.changed, onSeen);
       socket.off('connect', onConnect);
     };

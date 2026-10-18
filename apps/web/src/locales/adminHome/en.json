@@ -41,7 +41,10 @@
       "noClient": "Without client",
       "showAll": "Show all tickets",
       "empty": "Nothing to handle: you have no open tickets, the clients you watch have no tickets without an assignee, and no ticket is without a client.",
-      "egrantChange": "eGrant change"
+      "egrantChange": "eGrant change",
+      "satisfaction_one": "Satisfaction, last 30 days: {{percent}}% · {{count}} rating",
+      "satisfaction_other": "Satisfaction, last 30 days: {{percent}}% · {{count}} ratings",
+      "satisfactionNone": "Satisfaction, last 30 days: no ratings yet"
     },
     "assigned": {
       "title": "My tasks",

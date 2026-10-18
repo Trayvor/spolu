@@ -51,7 +51,12 @@
       "noClient": "Без клієнта",
       "showAll": "Показати всі тікети",
       "empty": "Нічого опрацьовувати: немає відкритих тікетів, призначених Вам, без виконавця у клієнтів, за якими Ви стежите, або без клієнта.",
-      "egrantChange": "Зміна з eGrant"
+      "egrantChange": "Зміна з eGrant",
+      "satisfaction_one": "Задоволеність за 30 днів: {{percent}} % · {{count}} оцінка",
+      "satisfaction_few": "Задоволеність за 30 днів: {{percent}} % · {{count}} оцінки",
+      "satisfaction_many": "Задоволеність за 30 днів: {{percent}} % · {{count}} оцінок",
+      "satisfaction_other": "Задоволеність за 30 днів: {{percent}} % · {{count}} оцінки",
+      "satisfactionNone": "Задоволеність за 30 днів: ще немає оцінок"
     },
     "assigned": {
       "title": "Мої завдання",

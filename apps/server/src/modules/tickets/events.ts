@@ -35,3 +35,17 @@ export async function emitTicketRefresh(
   const ticket = await getTicketRow(db, ticketId);
   if (ticket) emitTicket(io, 'updated', ticket);
 }
+
+/**
+ * A rating was set or changed (2026-10-19): only to every admin and the rater's own sockets, never
+ * to the group room, so other clients of the group are not even told a rating exists. The payload
+ * names the ticket only (no value, no comment). Call it after the write committed.
+ */
+export function emitTicketRated(
+  io: SocketIOServer,
+  ticket: { id: string; groupId: string | null },
+  raterId: string,
+): void {
+  const payload: TicketEventPayload = { ticketId: ticket.id, groupId: ticket.groupId };
+  io.to([ADMINS_ROOM, userRoom(raterId)]).emit(TicketEvents.rated, payload);
+}

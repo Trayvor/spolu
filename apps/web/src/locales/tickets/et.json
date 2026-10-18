@@ -50,7 +50,8 @@
     "empty": "Teil ei ole veel pöördumisi. Pöördumine tekib, kui saadate eGrantis tugipäringu; siis ilmub see siia."
   },
   "global": {
-    "title": "Pöördumised"
+    "title": "Pöördumised",
+    "ratingsLink": "Hinnangud"
   },
   "page": {
     "number": "#{{number}}",
@@ -141,5 +142,23 @@
     "archived": "Selle pileti projekt on arhiveeritud.",
     "moveRematch": "Projekt ja sündmus jäävad praeguse kliendi juurde. eGranti projekti {{id}} otsitakse uuesti uue kliendi juurest.",
     "moveClears": "Projekt ja sündmus jäävad praeguse kliendi juurde: pilet liigub ilma nendeta."
+  },
+  "rating": {
+    "title": "Kuidas me teid aitasime?",
+    "intro": "Pöördumine on lahendatud. Andke meile teada, kas lahendus aitas teid.",
+    "up": "Aitas",
+    "down": "Ei aidanud",
+    "commentLabel": "Kas soovite meile midagi öelda? (valikuline)",
+    "commentHint": "Kommentaari näeb ainult eGranti meeskond.",
+    "send": "Saada",
+    "cancel": "Tühista",
+    "thanks": "Täname hinnangu eest.",
+    "editableUntil": "Hinnangut saate muuta kuni {{date}}.",
+    "edit": "Muuda",
+    "yours": "Teie hinnang: {{value}}",
+    "closed": "Hinnangut ei saa enam muuta.",
+    "row": "Hinnang",
+    "none": "Veel hindamata",
+    "saveFailed": "Salvestamine ebaõnnestus. Proovige uuesti."
   }
 }

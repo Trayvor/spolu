@@ -9,8 +9,10 @@ import {
   ticketOwnerIds,
   ticketResolvedAudienceIds,
 } from './audience.js';
+import { getActiveRoles } from '../users/service.js';
 import { onTicketChange, type TicketChange } from './hooks.js';
-import type { TicketRow } from './service.js';
+import { readingIds, type TicketRow } from './service.js';
+import { ticketWatcherIds } from './watch.js';
 
 /** What every ticket event carries: enough for its push, its digest line and its link. */
 export function ticketPayload(ticket: TicketRow): Record<string, unknown> {
@@ -118,4 +120,36 @@ export async function notifyTicketChange(deps: AppDeps, change: TicketChange): P
 /** Tells watchers, riešitelia, initiators and admins about ticket changes. Call once at start-up. */
 export function registerTicketNotifications(): void {
   onTicketChange(notifyTicketChange);
+}
+
+/** The active admins among these users (one query). */
+async function adminsAmong(deps: AppDeps, ids: string[]): Promise<string[]> {
+  const roles = await getActiveRoles(deps.db, ids);
+  return ids.filter((id) => roles.get(id) === 'admin' || roles.get(id) === 'superadmin');
+}
+
+/**
+ * A 👎 rating (2026-10-19), once per rating (the caller checks `turnedDown`): to the admins among
+ * the ticket's owners (`ticketOwnerIds`), else to the admins who watch its client's tickets; only
+ * people who still read it, never the rater. A ticket without a client notifies nobody. The
+ * payload is the ticket's fields and the value, never the comment.
+ */
+export async function notifyTicketRated(
+  deps: AppDeps,
+  ticket: TicketRow,
+  raterId: string,
+): Promise<void> {
+  if (ticket.groupId === null) return;
+  let recipients = await adminsAmong(deps, await ticketOwnerIds(deps.db, ticket));
+  if (recipients.length === 0) {
+    const watchers = await ticketWatcherIds(deps.db, ticket.groupId);
+    recipients = await readingIds(deps.db, ticket, await adminsAmong(deps, watchers));
+  }
+  const recorded = await recordNotifications(deps.db, {
+    kind: 'ticket.rated',
+    groupId: ticket.groupId,
+    recipients: recipients.filter((id) => id !== raterId),
+    payload: { ...ticketPayload(ticket), value: 'down' },
+  });
+  await requestDelivery(deps.jobs, recorded);
 }

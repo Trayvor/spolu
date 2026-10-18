@@ -34,6 +34,7 @@ export const NOTIFICATION_GROUP_OF: Record<NotificationKind, NotificationCategor
   'ticket.tasks': 'tickets',
   'ticket.assigned': 'tickets',
   'ticket.resolved': 'tickets',
+  'ticket.rated': 'tickets',
   'ticket.time_missing': 'tickets',
   'meeting.scheduled': 'meetings',
   'meeting.rescheduled': 'meetings',

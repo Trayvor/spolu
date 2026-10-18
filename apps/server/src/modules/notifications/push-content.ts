@@ -83,12 +83,16 @@ function ticketPush(i: PushContentInput): PushPayload {
   else if (i.kind === 'ticket.updated') title = t.ticketUpdated(n);
   else if (i.kind === 'ticket.assigned') title = t.ticketAssigned(n);
   else if (i.kind === 'ticket.resolved') title = t.ticketResolved(n);
+  // 2026-10-19: a 👎 rating; the payload carries the value only, never the comment.
+  else if (i.kind === 'ticket.rated') title = t.ticketRated(n);
   else if (i.kind === 'ticket.tasks') title = t.ticketTasks(n, Number(p.count));
   else {
     title = named;
     body = chatBody(p, i.lang);
   }
-  return { title, body, url: `/tickets/${enc(id)}`, tag: `ticket:${id}` };
+  // 2026-10-19: the resolved notice opens the rating card (`?rate=1` writes nothing).
+  const rate = i.kind === 'ticket.resolved' ? '?rate=1' : '';
+  return { title, body, url: `/tickets/${enc(id)}${rate}`, tag: `ticket:${id}` };
 }
 
 /** What a meeting event says (2026-10-17): the start in Bratislava time, or the AI result. */
@@ -186,6 +190,7 @@ const RENOTIFY = new Set<NotificationKind>([
   'ticket.unassigned',
   'ticket.assigned',
   'ticket.resolved',
+  'ticket.rated',
   'ticket.time_missing',
   'meeting.summary_ready',
   'meeting.summary_failed',

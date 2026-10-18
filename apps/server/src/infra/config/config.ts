@@ -155,6 +155,11 @@ export type Config = {
    * leave it unset and use `TEXT_TOOL_LIMITS` and `VOICE_RATE_LIMITS`).
    */
   aiBurstLimits?: { textPerMinute: number; voicePerMinute: number };
+  /**
+   * Tests only, never read from the environment: the rating writes per minute and user (2026-10-19;
+   * unset: `TICKET_RATING_WRITES_PER_MINUTE`, 20).
+   */
+  ticketRatingsPerMinute?: number;
   /** The task split provider; null when OpenAI is chosen but no key is set (AI is off). */
   ai: { provider: 'openai'; apiKey: string; model: string } | { provider: 'fake' } | null;
   /** The chat composer's AI text tools (Phase 28); null like `ai`, with their own model. */

@@ -50,7 +50,8 @@
     "empty": "Zatím nemáte žádné tikety. Tiket vznikne, když v eGrantu pošlete požadavek na podporu, a pak se zobrazí zde."
   },
   "global": {
-    "title": "Tikety"
+    "title": "Tikety",
+    "ratingsLink": "Hodnocení"
   },
   "page": {
     "number": "#{{number}}",
@@ -143,5 +144,23 @@
     "archived": "Projekt tohoto tiketu je archivovaný.",
     "moveRematch": "Projekt a událost zůstanou u současného klienta. Projekt {{id}} z eGrantu se znovu vyhledá v novém klientovi.",
     "moveClears": "Projekt a událost zůstanou u současného klienta: tiket se přesune bez nich."
+  },
+  "rating": {
+    "title": "Jak jsme vám pomohli?",
+    "intro": "Tiket je vyřešený. Dejte nám vědět, zda vám řešení pomohlo.",
+    "up": "Pomohlo",
+    "down": "Nepomohlo",
+    "commentLabel": "Chcete nám něco vzkázat? (nepovinné)",
+    "commentHint": "Komentář uvidí jen tým eGrant.",
+    "send": "Odeslat",
+    "cancel": "Zrušit",
+    "thanks": "Děkujeme za hodnocení.",
+    "editableUntil": "Hodnocení můžete změnit do {{date}}.",
+    "edit": "Upravit",
+    "yours": "Vaše hodnocení: {{value}}",
+    "closed": "Hodnocení už nelze změnit.",
+    "row": "Hodnocení",
+    "none": "Zatím bez hodnocení",
+    "saveFailed": "Nepodařilo se uložit. Zkuste to znovu."
   }
 }

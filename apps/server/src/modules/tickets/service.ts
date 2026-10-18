@@ -9,6 +9,8 @@ import type {
   TicketCandidate,
   TicketPatchBody,
   TicketPerson,
+  TicketRatingView,
+  TicketRatingWithRater,
   TicketSource,
 } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
@@ -44,9 +46,14 @@ import {
   canAssignTicket,
   canBeTicketAssignee,
   canHoldTickets,
+  canRateTicket,
   canReadTicket,
+  canSeeTicketRatings,
   canSplitTicket,
+  ratingEditableUntil,
+  ratingOpen,
 } from './policy.js';
+import { ratingsOfTicket } from './ratings.js';
 import { resolveRequester } from './requester.js';
 import { ticketAssignees, ticketAttachments, tickets } from './schema.js';
 import { forProjectReader, ticketProjectFilter } from './project-links.js';
@@ -333,6 +340,32 @@ export const fileOfReadableTicket: FileReadRule = async (db, actor, file) => {
   return [...readable.values()].some((groupId) => groupId === file.groupId);
 };
 
+/** Who looks at a ticket, for the parts that depend on them (the rating, 2026-10-19). */
+type TicketViewer = { actor: SessionUser; role: MemberRole | null; now: Date };
+
+/**
+ * The viewer's part of the ratings (2026-10-19): their own rating and whether they may rate now
+ * for everyone; every rating only for admins (`canSeeTicketRatings`). A non-admin's copy never
+ * holds anyone else's row.
+ */
+function ratingParts(
+  row: TicketRow,
+  all: TicketRatingWithRater[],
+  viewer: TicketViewer,
+): { rating: TicketRatingView; ratings: TicketRatingWithRater[] | null } {
+  const { actor, role, now } = viewer;
+  const own = all.find((r) => r.userId === actor.id);
+  const canRate = canRateTicket(actor, row, role) && ratingOpen(row, now);
+  return {
+    rating: {
+      mine: own ? { value: own.value, comment: own.comment, ratedAt: own.ratedAt } : null,
+      canRate,
+      editableUntil: canRate ? ratingEditableUntil(row.resolvedAt!).toISOString() : null,
+    },
+    ratings: canSeeTicketRatings(actor) ? all : null,
+  };
+}
+
 /**
  * The ticket as the viewer sees it. `seesTasks`: the viewer uses the group's board (admins and
  * the group's clients) and gets the linked tasks and the full project and event; anyone else
@@ -342,9 +375,10 @@ async function toTicketDto(
   db: Db,
   row: TicketRow,
   seesTasks: boolean,
-  canAssign = false,
+  canAssign: boolean,
+  viewer: TicketViewer,
 ): Promise<TicketDto> {
-  const [groupName, taskList, channel, files, assignees, linkedKnowledge, refs, egrant] =
+  const [groupName, taskList, channel, files, assignees, linkedKnowledge, refs, egrant, ratings] =
     await Promise.all([
       groupNameOf(db, row.groupId),
       seesTasks ? listTasksFromTicket(db, row.id) : countTasksFromTicket(db, row.id),
@@ -354,6 +388,7 @@ async function toTicketDto(
       linkedCardsOf(db, 'ticket', row.id, row.groupId),
       projectRefs(db, [row]),
       ticketEgrantFields(db, row, seesTasks),
+      ratingsOfTicket(db, row.id, canSeeTicketRatings(viewer.actor)),
     ]);
   const project = forProjectReader(refs.project(row.projectId), refs.event(row.eventId), seesTasks);
   const taskCount = typeof taskList === 'number' ? taskList : taskList.length;
@@ -391,6 +426,7 @@ async function toTicketDto(
     linkedKnowledge,
     // Phase 33 part P3: admins and the group's clients only (those who see its tasks).
     ...egrant,
+    ...ratingParts(row, ratings, viewer),
   };
 }
 
@@ -406,7 +442,11 @@ export async function getTicketForActor(
   if (!canReadTicket(actor, row, role)) return null;
   // A ticket without a client has no board: admins see its (empty) task list all the same.
   const seesTasks = row.groupId === null || canSplitTicket(actor, row, role);
-  return toTicketDto(db, row, seesTasks, canAssignTicket(actor, row, role));
+  return toTicketDto(db, row, seesTasks, canAssignTicket(actor, row, role), {
+    actor,
+    role,
+    now: new Date(),
+  });
 }
 
 // ---------------------------------------------------------------------------------------------

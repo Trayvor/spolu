@@ -167,6 +167,7 @@ export const uk: ServerTexts = {
     dueRemoved: 'Термін прибрано',
     overdue: (date) => `Прострочено, термін був ${date}`,
     ticketResolved: (n) => `Тікет #${n} вирішено`,
+    ticketRated: (n) => `Тікет #${n}: негативна оцінка`,
     mentionedInDescription: (name) => `${name} згадав(ла) вас в описі`,
     openKnowledge: 'Відкрити елемент',
     openProject: 'Відкрити проєкт',

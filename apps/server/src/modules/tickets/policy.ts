@@ -1,4 +1,11 @@
-import type { GroupKind, MemberRole, Role, SessionUser } from '@spolu/shared';
+import {
+  TICKET_RATING_LIMITS,
+  type GroupKind,
+  type MemberRole,
+  type Role,
+  type SessionUser,
+  type TicketStatus,
+} from '@spolu/shared';
 import { isAdmin } from '../users/policy.js';
 
 /** What the policy needs of a ticket. */
@@ -80,4 +87,47 @@ export function canBeTicketAssignee(
  */
 export function canWatchTickets(actor: SessionUser, role: MemberRole | null): boolean {
   return isAdmin(actor) || role === 'client';
+}
+
+// ---- Ticket rating (2026-10-19) ---------------------------------------------------------------
+
+/**
+ * The ticket's initiator, not an admin, who reads it. Admins solve tickets, so an admin initiator
+ * never rates. The time window is checked apart (`ratingOpen`).
+ */
+export function canRateTicket(
+  actor: SessionUser,
+  ticket: TicketRef,
+  role: MemberRole | null,
+): boolean {
+  return (
+    !isAdmin(actor) && ticket.requesterUserId === actor.id && canReadTicket(actor, ticket, role)
+  );
+}
+
+const DAY_MS = 86_400_000;
+
+/** Until when a rating of a ticket resolved at `resolvedAt` can be set or changed. */
+export function ratingEditableUntil(resolvedAt: Date): Date {
+  return new Date(resolvedAt.getTime() + TICKET_RATING_LIMITS.editDays * DAY_MS);
+}
+
+/** Whether the rating can be written now: the ticket is resolved and inside the window. */
+export function ratingOpen(
+  ticket: { status: TicketStatus; resolvedAt: Date | null },
+  now: Date,
+): boolean {
+  return (
+    ticket.status === 'resolved' &&
+    ticket.resolvedAt !== null &&
+    now.getTime() <= ratingEditableUntil(ticket.resolvedAt).getTime()
+  );
+}
+
+/**
+ * Every rating with its comment, and the totals: every admin (owner decision 2026-10-19, never
+ * narrowed to the ticket's owners or the client's managers), nobody else.
+ */
+export function canSeeTicketRatings(actor: SessionUser): boolean {
+  return isAdmin(actor);
 }

@@ -41,7 +41,10 @@
       "noClient": "Kliendita",
       "showAll": "Näita kõiki pöördumisi",
       "empty": "Midagi lahendada pole: pole avatud pöördumisi, mis on Teile määratud, jälgitavatel klientidel lahendajata või kliendita.",
-      "egrantChange": "eGranti muudatus"
+      "egrantChange": "eGranti muudatus",
+      "satisfaction_one": "Rahulolu 30 päeva jooksul: {{percent}} % · {{count}} hinnang",
+      "satisfaction_other": "Rahulolu 30 päeva jooksul: {{percent}} % · {{count}} hinnangut",
+      "satisfactionNone": "Rahulolu 30 päeva jooksul: hinnanguid veel pole"
     },
     "assigned": {
       "title": "Minu ülesanded",
