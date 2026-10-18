@@ -12,9 +12,11 @@ self.addEventListener('push', (event) => {
   event.waitUntil(
     self.registration.showNotification(payload.title || 'Help', {
       body: payload.body,
-      // `renotify` needs a tag: without one the browser rejects and shows nothing.
+      // `renotify` needs a tag: without one the browser rejects and shows nothing. A newer event of
+      // the same tag replaces the card; it sounds again only when the server asks (2026-10-18:
+      // mentions, assignments, reminders, new tickets), so a stream of messages alerts once.
       tag: payload.tag || 'spolu',
-      renotify: true,
+      renotify: payload.renotify === true,
       icon: '/icons/icon-192.png',
       data: { url: payload.url },
     }),
@@ -38,7 +40,10 @@ self.addEventListener('notificationclick', (event) => {
   const url = safePath(event.notification.data && event.notification.data.url);
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
-      const client = clients.find((c) => c.url.startsWith(self.location.origin));
+      // The tab the person is looking at, else a visible one, else any (N9, 2026-10-18).
+      const ours = clients.filter((c) => c.url.startsWith(self.location.origin));
+      const client =
+        ours.find((c) => c.focused) || ours.find((c) => c.visibilityState === 'visible') || ours[0];
       if (!client) return self.clients.openWindow(url);
       client.postMessage({ type: 'spolu:navigate', url });
       return client.focus();

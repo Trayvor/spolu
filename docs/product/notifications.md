@@ -12,7 +12,7 @@ Each user chooses a notification mode per client group (what arrives) and, in th
   | **Mentions and replies** | when the user is mentioned (@ or @all), when someone replies in a thread they took part in or quotes their message, and task notifications about them |
   | **Off** | nothing from this group |
 
-  - **The admin group** "eGrant tím" (Phase 34) starts on **All messages** for every admin, before their own all-groups default; the bell changes it as anywhere.
+  - **The admin group** "eGrant tím" (Phase 34) starts on **Mentions and replies** for every admin (owner decision 2026-10-18; it was All messages), before their own all-groups default: the team chat is busy, so it reaches an admin when they are named or answered, and an all-groups default (Off or All, meant for the clients) does not change it. The bell changes it as anywhere. Admins who never chose a mode for it moved to Mentions and replies with the release; a mode chosen with the bell stays.
 - **Role defaults**: clients start on All messages, admins on Mentions and replies.
   - **The bell**: a bell button next to the group's logo and name in the group header shows the current mode (bell, bell with @, crossed-out bell) and opens a menu with the three modes, each with one line of explanation. It works for everyone, clients included.
   - **Admins** also have the bell on every row of the groups page, and above the list an "All groups:" control with the same three modes (it shows "Mixed" when the groups differ). Choosing there sets the user's default for every group, current and future, and clears their per-group choices, including the All messages mode a group manager gets automatically (see below); a later per-group choice overrides it again. A group without the user's own choice follows that default, else the role default.
@@ -35,7 +35,8 @@ Each user chooses a notification mode per client group (what arrives) and, in th
   - A change saves at once. Choosing Push or Email and push while this device is not set up also sets it up (the browser asks for permission).
   - Above the groups the page shows this device while some group uses push: "on", "not set up" (with "Turn on for this device") or "blocked in the browser settings" (with how to unblock it); on an iPhone outside the Home Screen app it shows the install hint instead. Without VAPID keys on the server the page says push is not available, and Push and Email and push cannot be chosen (a group already on Email and push still gets its email).
   - Under the groups one line says what the email is: a summary of unread items, at most every 10 minutes.
-  - **Email is batched**: one email per user and client group, sent 10 minutes after the first event that qualifies for email, and only if those events are still unread then. It lists up to 5 lines ("Jana: text") with an "Open group" button to the group chat, under the subject "N new messages – <group>", in the user's language. Ticket events make one email per ticket ("N new messages – Ticket #123", lines such as "#123 Subject: Jana: text", button "Open ticket"). Events that arrive within the 10 minutes join the same email. Reading the messages, switching that group away from email or deactivating the user before it is due means no email for them.
+  - **No quiet hours, no weekend silence** (owner decision 2026-10-18): notifications and the reminder jobs run every day, at the times below. A per-user snooze is a possible later addition (off by default), not built.
+  - **Email is batched** (2026-10-18: one email per person, it was one per client group and one per ticket): one email per user, sent 10 minutes after the first event that qualifies for email, and only for the events still unread then. Every pending event of the person joins it, of every group and ticket. Each place (a group's chat, a ticket, a meeting, a finance item) is one section: a heading with its name (left out when the email has one place), up to 5 newest lines ("Jana: text", "#123 Subject: Jana: text") and its own button ("Open <group>", "Open ticket", "Open meeting"…), at most 10 sections, then "And N more in Help.", in the user's language. The subject says what it holds: the messages of one place "3 new messages – Firma", one change by its own line ("Reminder: Call the bank, Sun 25 Oct, 10:00"), several changes of one place "Ticket #12: 2 updates", several places "5 updates: Ticket #12, Firma and 3 more". Events that arrive within the 10 minutes join the same email. Reading the messages, switching that group away from email or deactivating the user before it is due means no email for them.
   - **Ticket board** events (Phase 21) pass every mode, Off included: a new ticket goes to the people who watch its client's tickets ("Watch tickets", see `tickets.md`); a ticket's own events go to its riešitelia, or to those watchers while it has none (every admin for a ticket without a client), and to its initiator (owner decision 2026-10-17); a new riešiteľ hears `ticket.assigned`; each is an explicit choice, so only the ticket board channel decides. All messages and Mentions and replies change nothing for them, and Off does not silence them (kept as before, on purpose). A ticket without a client notifies every admin, without a client group. A requester-only person (Phase 21: not an admin, no client membership, only `ziadatel` memberships) sees only the Ticket board group on `/settings`, and is in the audience of their groups for ticket events only, never for chat, task or knowledge events.
 - Which events arrive, by mode:
 
@@ -44,13 +45,14 @@ Each user chooses a notification mode per client group (what arrives) and, in th
   | plain message | yes | no | no |
   | mention, @all | yes | yes | no |
   | reply in my thread, quote of my message | yes | yes | no |
-  | task moved, assigned, deadline, urgent | yes | yes | no |
+  | task moved, assigned, deadline, urgent, overdue, due date changed (2026-10-18) | yes | yes | no |
   | reminder due (Knowledge base, meeting, task) | yes | yes | **yes** |
   | fill in your time (a completed task or resolved ticket, Phase 32) | yes | yes | **yes** |
   | meeting scheduled or moved | yes | no | no |
   | AI summary ready or failed (to the admin who started it) | yes | yes | **yes** |
 
-  A user gets at most one notification per message; the strongest kind wins. The person who caused an event never gets it, and a message already read gets none. Task chat messages follow the task's group mode and link to the task's chat tab.
+  A user gets at most one notification per message; the strongest kind wins. The person who caused an event never gets it, and a message already read gets none. Task chat messages follow the task's group mode and link to the task's chat tab; a plain one goes only to the task's people (creator, assignees, people who wrote in that chat or were named in it; owner decision 2026-10-18), everyone else hears it only by a mention.
+- **Push on a device** (2026-10-18, UX review N1): a newer notification with the same device tag (a chat, a thread, a task, a ticket) replaces the older card. The replacement makes a sound and vibrates again only for what is addressed to the person or due now: a mention, an assignment, a new ticket, a resolved ticket, a time request, a reminder, a deadline, urgent or overdue reminder, an AI meeting result. Further messages, thread replies, moves and other updates replace the card silently, so five messages in a row alert once. Clicking a notification uses the tab the person is looking at (focused, else visible, else any).
 - **Ticket notifications** (Phase 21, part 21.6; who gets which is in `tickets.md`). Every push opens the ticket (`/tickets/<id>`) and shares the device tag `ticket:<id>`, so a newer one replaces the older on the device.
 
   | Event | Push title | Push text |
@@ -60,6 +62,7 @@ Each user chooses a notification mode per client group (what arrives) and, in th
   | riešiteľ added | You were assigned #123 (SK "Ste riešiteľom tiketu #123") | subject |
   | chat message, mention in the ticket chat | #123 <subject> | Jana: text |
   | status change | Ticket #123: status “In progress” (SK "Tiket #123: stav „V riešení“") | subject |
+  | resolved (2026-10-18, also to the watchers) | Ticket #123 resolved | subject |
   | other change | Ticket #123: details updated | subject |
   | turned into tasks | Ticket #123: 2 tasks created | subject |
 
@@ -82,8 +85,10 @@ Each user chooses a notification mode per client group (what arrives) and, in th
 - **Task notifications** (they are about the user, so they arrive in All messages and in Mentions and replies):
   - **moved**: a task moved to another bucket notifies its creator and assignees, not the person who moved it ("Moved to the “eGrant review” column");
   - **assigned**: a newly assigned person is notified (also an admin who does not manage the client, assigned by another admin since 2026-10-18: their mode for that client, by default Mentions and replies, lets it through like any assignment);
-  - **deadline**: the assignees are reminded 3, 2 and 1 days before the deadline at 09:00 (Europe/Bratislava) while the task is not in Completed ("Deadline in 2 days");
-  - **urgent**: an urgent task reminds its assignees at 08:00, 11:00, 14:00, 17:00 and 20:00 (Europe/Bratislava) until it is in Completed or no longer urgent ("Urgent: still open").
+  - **deadline**: the assignees are reminded 3 days and 1 day before the deadline at 09:00 (Europe/Bratislava) while the task is not in Completed ("Due in 3 days", "Due tomorrow"; 2026-10-18, it was 3, 2 and 1 days);
+  - **overdue** (2026-10-18): once, at 09:00 the day after the due date, to the assignees of an open task ("Overdue, was due 17 Oct 2026"); again only if a new due date passes; not for a due date more than 3 days ago;
+  - **due date changed** (2026-10-18): to the assignees when someone else changes or removes the due date of an open task ("Due date changed to 31 Oct 2026", "Due date removed");
+  - **urgent**: an urgent task reminds its assignees at 09:00 and 15:00 (Europe/Bratislava; 2026-10-18, it was five times a day from 08:00 to 20:00), weekends included, until it is in Completed or no longer urgent ("Urgent: still open").
 - This applies to all notifications, including contract reminders for administrators.
 - Web Push (PWA) works on phone and desktop.
 - Notifications about replies in threads the user took part in.

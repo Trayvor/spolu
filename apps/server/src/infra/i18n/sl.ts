@@ -116,7 +116,7 @@ export const sl: ServerTexts = {
         few: 'nova sporočila',
         other: 'novih sporočil',
       })} – ${g}`,
-    digestButton: () => 'Odpri skupino',
+    digestButton: (g) => `Odpri ${g}`,
     reminderDue: (time) => `Opomnik za ${time}`,
     reminderLine: (title, time) => `Opomnik: ${title}, ${time}`,
     deadlineEvent: (title) => `Rok: ${title}`,
@@ -145,6 +145,15 @@ export const sl: ServerTexts = {
     timeMissing: 'Vpišite porabljeni čas',
     timeMissingLine: (title) => `${title}: vpišite porabljeni čas`,
     openTask: 'Odpri nalogo',
+    digestUpdates: (n, topic) =>
+      `${topic}: ${n} ${plural('sl', n, { one: 'sprememba', two: 'spremembi', few: 'spremembe', other: 'sprememb' })}`,
+    digestMany: (n, topics, more) =>
+      `${n} ${plural('sl', n, { one: 'sprememba', two: 'spremembi', few: 'spremembe', other: 'sprememb' })}: ${topics.join(', ')}${more > 0 ? ` in še ${more}` : ''}`,
+    digestMore: (n) => `In še ${n} v aplikaciji Help.`,
+    dueChanged: (date) => `Rok spremenjen na ${date}`,
+    dueRemoved: 'Rok odstranjen',
+    overdue: (date) => `Rok je potekel ${date}`,
+    ticketResolved: (n) => `Zahtevek #${n} je rešen`,
   },
   teams: {
     recordingNotice: 'Ta klic bo posnet in prepisan.',

@@ -4,6 +4,7 @@ import { and, eq, inArray, sql } from 'drizzle-orm';
 import type { GroupChannel } from '@spolu/shared';
 import { buildTestApp } from '../../../test/test-app.js';
 import { loginAs } from '../../../test/login.js';
+import { latestEmail } from '../../../test/mail.js';
 import { addManager } from '../groups/managers.js';
 import { addMembership, removeMembership } from '../groups/memberships.js';
 import { createGroup } from '../groups/service.js';
@@ -124,6 +125,7 @@ describe('ticket notifications (Phase 21.6)', () => {
         body: 'Login fails',
         url: `/tickets/${t.id}`,
         tag: `ticket:${t.id}`,
+        renotify: true,
       },
     ]);
   });
@@ -203,11 +205,35 @@ describe('ticket notifications (Phase 21.6)', () => {
 
       expect((await unassign(t.id, r.id, actor.cookie)).statusCode).toBe(200);
       await call('PATCH', `/api/tickets/${t.id}`, actor.cookie, { status: 'resolved' });
-      const resolved = (await eventsOf(t.id, everyone)).filter(
-        (e) =>
-          e.kind === 'ticket.status' && (e.payload as { status: string }).status === 'resolved',
+      expect(await kindsFor(t.id, everyone, 'ticket.resolved')).toEqual([z.id, c.id, m.id].sort());
+    });
+
+    it('resolving tells the riešitelia, the watchers and the initiator once, as ticket.resolved (2026-10-18)', async () => {
+      const g = await group();
+      const z = await member(g.id, 'ziadatel');
+      const c = await member(g.id, 'client', 'Klient');
+      const quiet = await member(g.id, 'client', 'Tichý');
+      const [m, r, actor, other] = [
+        await admin(),
+        await signedInAdmin(),
+        await signedInAdmin(),
+        await admin(),
+      ];
+      await addManager(db(), g.id, m.id);
+      await setWatch(g.id, quiet.cookie, false);
+      const t = await ticket(g, z.email);
+      expect((await assign(t.id, r.id, actor.cookie)).statusCode).toBe(200);
+      const everyone = [z, c, quiet, m, r, actor, other].map((p) => p.id);
+      await call('PATCH', `/api/tickets/${t.id}`, actor.cookie, { status: 'resolved' });
+      // The watchers (c, m) hear the outcome too, though r answers the ticket; never the actor.
+      expect(await kindsFor(t.id, everyone, 'ticket.resolved')).toEqual(
+        [z.id, c.id, m.id, r.id].sort(),
       );
-      expect(resolved.map((e) => e.userId).sort()).toEqual([z.id, c.id, m.id].sort());
+      expect(await kindsFor(t.id, everyone, 'ticket.status')).toEqual([]);
+      expect(pushesTo(z.endpoint).map((p) => p.title)).toContain(`Tiket #${t.number} je vyriešený`);
+      // Reopening is an ordinary status change again, for the people who answer it.
+      await call('PATCH', `/api/tickets/${t.id}`, actor.cookie, { status: 'in_progress' });
+      expect(await kindsFor(t.id, everyone, 'ticket.status')).toEqual([z.id, r.id].sort());
     });
 
     it('a ticket without a client: every admin while it has no riešiteľ, then its riešitelia', async () => {
@@ -362,6 +388,7 @@ describe('ticket notifications (Phase 21.6)', () => {
         body: 'Ad Min: @Klient @Jana pozrite',
         url: `/tickets/${t.id}`,
         tag: `ticket:${t.id}`,
+        renotify: true,
       },
     ]);
     // The initiator who is also named gets one push for the message.
@@ -380,7 +407,7 @@ describe('ticket notifications (Phase 21.6)', () => {
     expect(await kindsFor(t.id, [z.id, c.id, r.id], 'chat.mention')).toEqual([z.id, r.id].sort());
   });
 
-  it('two tickets give two digest emails', async () => {
+  it('two tickets give one digest email with a section each (2026-10-18)', async () => {
     const g = await group();
     const z = await member(g.id, 'ziadatel');
     await setNotificationChannel(db(), z.id, 'tickets', 'email');
@@ -388,6 +415,12 @@ describe('ticket notifications (Phase 21.6)', () => {
     const [t1, t2] = [await ticket(g, z.email, 'Prvý'), await ticket(g, z.email, 'Druhý')];
     for (const t of [t1, t2]) await send((await chatOf(t.id, a.cookie)).id, a.cookie, 'Odpoveď');
     const later = new Date(Date.now() + test.deps.config.emailBatchDelayMs + 1000);
-    expect(await sendDueDigests(test.deps, { now: later, userIds: [z.id] })).toBe(2);
+    expect(await sendDueDigests(test.deps, { now: later, userIds: [z.id] })).toBe(1);
+    const mail = await latestEmail(z.email);
+    expect(mail.subject).toBe(`2 zmeny: Tiket #${t1.number}, Tiket #${t2.number}`);
+    const text = mail.text.replaceAll('\r\n', '\n');
+    expect(text).toContain(`/tickets/${t1.id}`);
+    expect(text).toContain(`/tickets/${t2.id}`);
+    expect(text.indexOf(`/tickets/${t1.id}`)).toBeLessThan(text.indexOf(`/tickets/${t2.id}`));
   });
 });

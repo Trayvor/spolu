@@ -14,8 +14,8 @@ A task or ticket has an **unseen change** for me when a `notification_events` ro
 
 | counted kinds | rule |
 |---|---|
-| `task.assigned`, `task.moved`, `task.deadline`, task chat `chat.message` / `chat.mention` / `chat.thread_reply` | Task board channel not None; group mode not Off; a plain `chat.message` only under All messages |
-| every `ticket.*` kind (`created`, `unassigned`, `message`, `status`, `updated`, `tasks`, `assigned`, `time_missing`) and a ticket chat `chat.mention` | Ticket board channel not None (every mode passes) |
+| `task.assigned`, `task.moved`, `task.deadline`, `task.due_changed`, `task.overdue` (2026-10-18, migration 0049), task chat `chat.message` / `chat.mention` / `chat.thread_reply` | Task board channel not None; group mode not Off; a plain `chat.message` only under All messages |
+| every `ticket.*` kind (`created`, `unassigned`, `message`, `status`, `updated`, `tasks`, `assigned`, `time_missing`, `resolved` since 2026-10-18) and a ticket chat `chat.mention` | Ticket board channel not None (every mode passes) |
 
 Not counted: `task.urgent` (hourly), `reminder.due`, `task.time_missing`, group chat messages (`taskId` null). A recipient whose channel was None at the time got no row at all (Phase 27 S5), so it never counts.
 

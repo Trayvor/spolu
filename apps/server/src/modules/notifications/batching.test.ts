@@ -124,7 +124,8 @@ describe('sendDueDigests batching', () => {
     const { queue } = recordingQueue();
     const deps = { db: counting.db, config: testConfig(), push: null, jobs: queue };
     counting.reset();
-    expect(await sendDueDigests(deps, { now, userIds: [c.id] })).toBe(groups);
+    // 2026-10-18: one email for the person, a section per group.
+    expect(await sendDueDigests(deps, { now, userIds: [c.id] })).toBe(1);
     return counting.count();
   };
 

@@ -81,6 +81,7 @@ function ticketPush(i: PushContentInput): PushPayload {
   else if (i.kind === 'ticket.status') title = t.ticketStatus(n, p.status as TicketStatus);
   else if (i.kind === 'ticket.updated') title = t.ticketUpdated(n);
   else if (i.kind === 'ticket.assigned') title = t.ticketAssigned(n);
+  else if (i.kind === 'ticket.resolved') title = t.ticketResolved(n);
   else if (i.kind === 'ticket.tasks') title = t.ticketTasks(n, Number(p.count));
   else {
     title = named;
@@ -118,7 +119,37 @@ function meetingPush(i: PushContentInput): PushPayload {
   };
 }
 
+/**
+ * The kinds that alert again when they replace a shown notification of the same tag (N1 of the
+ * 2026-10-18 UX review): what is addressed to the person (a mention, an assignment, a new ticket
+ * they watch, its outcome, a time request) or due now (reminders, deadline, urgent, overdue). Every
+ * other kind (messages, thread replies, moves and other updates) replaces its card silently, so
+ * five messages in a row make one sound, not five.
+ */
+const RENOTIFY = new Set<NotificationKind>([
+  'chat.mention',
+  'task.assigned',
+  'task.deadline',
+  'task.urgent',
+  'task.overdue',
+  'task.time_missing',
+  'reminder.due',
+  'ticket.created',
+  'ticket.unassigned',
+  'ticket.assigned',
+  'ticket.resolved',
+  'ticket.time_missing',
+  'meeting.summary_ready',
+  'meeting.summary_failed',
+]);
+
+/** What the service worker shows for one event (`push-sw.js`). */
 export function buildPushPayload(i: PushContentInput): PushPayload {
+  const content = pushContent(i);
+  return RENOTIFY.has(i.kind) ? { ...content, renotify: true } : content;
+}
+
+function pushContent(i: PushContentInput): PushPayload {
   const t = texts(i.lang);
   const p = i.payload;
   if (isTicketEvent(i.kind, p)) return ticketPush(i);
@@ -184,6 +215,10 @@ export function buildPushPayload(i: PushContentInput): PushPayload {
     if (i.kind === 'task.moved') body = movedBody(p.toBucket, i.lang);
     else if (i.kind === 'task.assigned') body = t.assigned(str(p.actorName) ?? '');
     else if (i.kind === 'task.deadline') body = t.deadline(Number(p.daysLeft));
+    else if (i.kind === 'task.due_changed') {
+      const due = formatDay(str(p.dueDate), i.lang);
+      body = due ? t.dueChanged(due) : t.dueRemoved;
+    } else if (i.kind === 'task.overdue') body = t.overdue(formatDay(str(p.dueDate), i.lang));
     else if (i.kind === 'task.time_missing') {
       // Phase 32: opens the task panel with the time dialog.
       return { title, body: t.timeMissing, url: `${url}?time=1`, tag };

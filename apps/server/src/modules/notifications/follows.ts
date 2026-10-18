@@ -6,7 +6,7 @@ import { channelSql } from '../users/service.js';
  * What a user follows, as SQL fragments for other modules' single statements: the dashboard shows
  * only what the person was, or would be, notified about (2026-10-17, see
  * docs/superpowers/specs/2026-10-17-dashboard-follows-notifications-design.md). Each fragment
- * mirrors a delivery rule: `effectiveGroupMode` (per-group choice, else `all` in the admin group,
+ * mirrors a delivery rule: `effectiveGroupMode` (per-group choice, else `mentions` in the admin group,
  * else the user's default, else the role's), `passesMode`, `notificationGroupOf` and `recordNotifications` skipping a `none`
  * channel. The notification tables stay this module's own.
  */
@@ -20,7 +20,7 @@ export function groupModeSql(userId: string, groupId: SQL): SQL<GroupMode> {
   return sql<GroupMode>`coalesce(
     (select s.mode from group_notification_settings s
       where s.user_id = ${userId} and s.group_id = ${groupId}),
-    (select 'all' from groups ag where ag.id = ${groupId} and ag.kind = 'admin'),
+    (select 'mentions' from groups ag where ag.id = ${groupId} and ag.kind = 'admin'),
     (select coalesce(u.default_group_mode, case when u.role = 'client' then 'all' else 'mentions' end)
       from "user" u where u.id = ${userId})
   )`;

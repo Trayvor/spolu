@@ -11,6 +11,9 @@ const table: [NotificationKind, Record<GroupMode, boolean>][] = [
   ['task.assigned', { all: true, mentions: true, off: false }],
   ['task.deadline', { all: true, mentions: true, off: false }],
   ['task.urgent', { all: true, mentions: true, off: false }],
+  // 2026-10-18: about the person's own task, like a move or an assignment.
+  ['task.due_changed', { all: true, mentions: true, off: false }],
+  ['task.overdue', { all: true, mentions: true, off: false }],
   ['reminder.due', { all: true, mentions: true, off: true }],
   ['ticket.created', { all: true, mentions: true, off: true }],
   ['ticket.unassigned', { all: true, mentions: true, off: true }],
@@ -19,6 +22,7 @@ const table: [NotificationKind, Record<GroupMode, boolean>][] = [
   ['ticket.updated', { all: true, mentions: true, off: true }],
   ['ticket.tasks', { all: true, mentions: true, off: true }],
   ['ticket.assigned', { all: true, mentions: true, off: true }],
+  ['ticket.resolved', { all: true, mentions: true, off: true }],
   // Phase 32: a time request is a direct request to one person, like a reminder.
   ['task.time_missing', { all: true, mentions: true, off: true }],
   ['ticket.time_missing', { all: true, mentions: true, off: true }],

@@ -116,7 +116,7 @@ export const uk: ServerTexts = {
         many: 'нових повідомлень',
         other: 'нового повідомлення',
       })} – ${g}`,
-    digestButton: () => 'Відкрити групу',
+    digestButton: (g) => `Відкрити ${g}`,
     reminderDue: (time) => `Нагадування на ${time}`,
     reminderLine: (title, time) => `Нагадування: ${title}, ${time}`,
     deadlineEvent: (title) => `Термін: ${title}`,
@@ -145,6 +145,15 @@ export const uk: ServerTexts = {
     timeMissing: 'Запишіть витрачений час',
     timeMissingLine: (title) => `${title}: запишіть витрачений час`,
     openTask: 'Відкрити завдання',
+    digestUpdates: (n, topic) =>
+      `${topic}: ${n} ${plural('uk', n, { one: 'зміна', few: 'зміни', many: 'змін', other: 'зміни' })}`,
+    digestMany: (n, topics, more) =>
+      `${n} ${plural('uk', n, { one: 'зміна', few: 'зміни', many: 'змін', other: 'зміни' })}: ${topics.join(', ')}${more > 0 ? ` і ще ${more}` : ''}`,
+    digestMore: (n) => `І ще ${n} у Help.`,
+    dueChanged: (date) => `Термін змінено на ${date}`,
+    dueRemoved: 'Термін прибрано',
+    overdue: (date) => `Прострочено, термін був ${date}`,
+    ticketResolved: (n) => `Тікет #${n} вирішено`,
   },
   teams: {
     recordingNotice: 'Цей дзвінок буде записано й транскрибовано.',

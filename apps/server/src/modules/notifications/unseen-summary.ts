@@ -41,6 +41,10 @@ function lineKind(kind: string): UnseenSummaryLine['kind'] | null {
       return 'assigned';
     case 'task.deadline':
       return 'deadline';
+    case 'task.due_changed':
+      return 'dueChanged';
+    case 'task.overdue':
+      return 'overdue';
     case 'chat.message':
     case 'chat.thread_reply':
     case 'ticket.message':
@@ -48,6 +52,7 @@ function lineKind(kind: string): UnseenSummaryLine['kind'] | null {
     case 'chat.mention':
       return 'mentions';
     case 'ticket.status':
+    case 'ticket.resolved':
       return 'status';
     case 'ticket.updated':
       return 'updated';
@@ -85,7 +90,14 @@ function buildLine(
       ];
       return { kind, count: events.length, authors: authors.slice(0, MAX_AUTHORS) };
     }
+    case 'dueChanged':
+      return { kind, dueDate: str(newest.payload.dueDate) };
+    case 'overdue': {
+      const dueDate = str(newest.payload.dueDate);
+      return dueDate ? { kind, dueDate } : null;
+    }
     case 'status': {
+      if (newest.kind === 'ticket.resolved') return { kind, status: 'resolved' };
       const status = TicketStatusSchema.safeParse(newest.payload.status);
       return status.success ? { kind, status: status.data } : null;
     }

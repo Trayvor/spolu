@@ -136,7 +136,8 @@ describe('ticket events (item B contract)', () => {
     const later = new Date(Date.now() + deps.config.emailBatchDelayMs + 1000);
     expect(await sendDueDigests(deps, { now: later, userIds: [a.id] })).toBe(1);
     const mail = await latestEmail(a.email);
-    expect(mail.subject).toBe('1 new message – Ticket #1');
+    // 2026-10-18: one change is its own subject.
+    expect(mail.subject).toBe('#1 Login: Jana: help');
     expect(mail.text).toContain('#1 Login: Jana: help');
     expect(mail.text).toContain(`${deps.config.publicUrl}/tickets/1`);
   });

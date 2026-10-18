@@ -25,13 +25,13 @@ describe('group modes', () => {
     expect(effectiveGroupMode({ override: 'all', defaultMode: 'off', role: 'admin' })).toBe('all');
   });
 
-  it('the admin group falls back to all before the user default; an override still wins', () => {
+  it('the admin group falls back to mentions before the user default; an override still wins', () => {
+    // 2026-10-18 (owner): eGrant tím starts on Mentions and replies, whatever the all-groups default.
     const admin = { role: 'admin' as const, adminGroup: true };
-    expect(effectiveGroupMode({ ...admin, override: null, defaultMode: null })).toBe('all');
-    expect(effectiveGroupMode({ ...admin, override: null, defaultMode: 'off' })).toBe('all');
-    expect(effectiveGroupMode({ ...admin, override: 'mentions', defaultMode: null })).toBe(
-      'mentions',
-    );
+    expect(effectiveGroupMode({ ...admin, override: null, defaultMode: null })).toBe('mentions');
+    expect(effectiveGroupMode({ ...admin, override: null, defaultMode: 'off' })).toBe('mentions');
+    expect(effectiveGroupMode({ ...admin, override: null, defaultMode: 'all' })).toBe('mentions');
+    expect(effectiveGroupMode({ ...admin, override: 'all', defaultMode: null })).toBe('all');
   });
 });
 

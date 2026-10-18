@@ -377,25 +377,25 @@ describe('the admin group', () => {
   });
 
   describe('notifications', () => {
-    it('the default mode there is All messages, before the user default; an override wins', async () => {
+    it('the default mode there is Mentions and replies (2026-10-18), before the user default; an override wins', async () => {
       const a = await adminSession();
       const g = await newGroup();
-      expect(await getEffectiveGroupMode(test.deps.db, a.actor, adminGroup)).toBe('all');
+      expect(await getEffectiveGroupMode(test.deps.db, a.actor, adminGroup)).toBe('mentions');
       expect(await getEffectiveGroupMode(test.deps.db, a.actor, g.id)).toBe('mentions');
       await test.deps.db.update(user).set({ defaultGroupMode: 'off' }).where(eq(user.id, a.id));
-      expect(await getEffectiveGroupMode(test.deps.db, a.actor, adminGroup)).toBe('all');
+      expect(await getEffectiveGroupMode(test.deps.db, a.actor, adminGroup)).toBe('mentions');
       const profiles = await getNotificationProfiles(test.deps.db, [a.id]);
       const pairs = [
         { userId: a.id, groupId: adminGroup },
         { userId: a.id, groupId: g.id },
       ];
       let modes = await getEffectiveModes(test.deps.db, pairs, profiles);
-      expect(modes.get(`${a.id}:${adminGroup}`)).toBe('all');
-      expect(modes.get(`${a.id}:${g.id}`)).toBe('off');
-      await setGroupMode(test.deps.db, a.id, adminGroup, 'mentions');
-      expect(await getEffectiveGroupMode(test.deps.db, a.actor, adminGroup)).toBe('mentions');
-      modes = await getEffectiveModes(test.deps.db, pairs, profiles);
       expect(modes.get(`${a.id}:${adminGroup}`)).toBe('mentions');
+      expect(modes.get(`${a.id}:${g.id}`)).toBe('off');
+      await setGroupMode(test.deps.db, a.id, adminGroup, 'all');
+      expect(await getEffectiveGroupMode(test.deps.db, a.actor, adminGroup)).toBe('all');
+      modes = await getEffectiveModes(test.deps.db, pairs, profiles);
+      expect(modes.get(`${a.id}:${adminGroup}`)).toBe('all');
     });
 
     it('the modes answer names the admin group for an admin, not for a client', async () => {

@@ -35,6 +35,8 @@ describe('notificationGroupOf', () => {
     ['task.assigned', {}, 'tasks'],
     ['task.deadline', {}, 'tasks'],
     ['task.urgent', {}, 'tasks'],
+    ['task.due_changed', {}, 'tasks'],
+    ['task.overdue', {}, 'tasks'],
     ['reminder.due', { subjectKind: 'task', taskId: 't1' }, 'tasks'],
     ['reminder.due', { subjectKind: 'knowledge' }, 'knowledge'],
     ['ticket.created', { ticketId: 'k1' }, 'tickets'],
@@ -43,6 +45,7 @@ describe('notificationGroupOf', () => {
     ['ticket.status', { ticketId: 'k1' }, 'tickets'],
     ['ticket.updated', { ticketId: 'k1' }, 'tickets'],
     ['ticket.tasks', { ticketId: 'k1' }, 'tickets'],
+    ['ticket.resolved', { ticketId: 'k1' }, 'tickets'],
     // A mention in a ticket chat (Phase 21.6) belongs to the ticket board.
     ['chat.mention', { ticketId: 'k1' }, 'tickets'],
     ['chat.mention', { ticketId: '' }, 'chat'],

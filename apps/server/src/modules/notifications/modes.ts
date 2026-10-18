@@ -15,7 +15,7 @@ import { groupNotificationSettings } from './schema.js';
 
 /**
  * The user's default mode, their role default and their per-group overrides; for an admin also
- * the admin group's id (its default is `all`, Phase 34).
+ * the admin group's id (its default is `mentions` since 2026-10-18; Phase 34 had `all`).
  */
 export async function getModeSettings(db: Db, actor: SessionUser): Promise<NotificationModes> {
   const [[row], overrides, adminGroup] = await Promise.all([
@@ -40,7 +40,7 @@ export async function getModeSettings(db: Db, actor: SessionUser): Promise<Notif
 }
 
 /**
- * The actor's effective mode for one group: their override, else (the admin group) `all`, else
+ * The actor's effective mode for one group: their override, else (the admin group) `mentions`, else
  * their default, else the role's.
  */
 export async function getEffectiveGroupMode(
@@ -121,7 +121,7 @@ export async function setDefaultMode(db: Db, userId: string, mode: GroupMode): P
 }
 
 /**
- * The effective mode for each (user, group) pair (the admin group's default `all` included), keyed `${userId}:${groupId}`, from one query.
+ * The effective mode for each (user, group) pair (the admin group's default `mentions` included), keyed `${userId}:${groupId}`, from one query.
  * Pairs whose user has no profile are left out.
  */
 export async function getEffectiveModes(

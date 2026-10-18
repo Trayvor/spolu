@@ -114,7 +114,7 @@ export const it: ServerTexts = {
     },
     digestSubject: (n, g) =>
       `${n} ${plural('it', n, { one: 'nuovo messaggio', many: 'nuovi messaggi', other: 'nuovi messaggi' })} – ${g}`,
-    digestButton: () => 'Apri il gruppo',
+    digestButton: (g) => `Apri ${g}`,
     reminderDue: (time) => `Promemoria per ${time}`,
     reminderLine: (title, time) => `Promemoria: ${title}, ${time}`,
     deadlineEvent: (title) => `Scadenza: ${title}`,
@@ -143,6 +143,15 @@ export const it: ServerTexts = {
     timeMissing: 'Tempo impiegato da registrare',
     timeMissingLine: (title) => `${title}: tempo impiegato da registrare`,
     openTask: 'Apri attività',
+    digestUpdates: (n, topic) =>
+      `${topic}: ${n} ${plural('it', n, { one: 'modifica', many: 'modifiche', other: 'modifiche' })}`,
+    digestMany: (n, topics, more) =>
+      `${n} ${plural('it', n, { one: 'modifica', many: 'modifiche', other: 'modifiche' })}: ${topics.join(', ')}${more > 0 ? ` e altri ${more}` : ''}`,
+    digestMore: (n) => `E altri ${n} in Help.`,
+    dueChanged: (date) => `Scadenza cambiata al ${date}`,
+    dueRemoved: 'Scadenza rimossa',
+    overdue: (date) => `In ritardo, scadeva il ${date}`,
+    ticketResolved: (n) => `Ticket #${n} risolto`,
   },
   teams: {
     recordingNotice: 'Questa chiamata sarà registrata e trascritta.',

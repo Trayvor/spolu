@@ -109,7 +109,7 @@ export const bg: ServerTexts = {
     },
     digestSubject: (n, g) =>
       `${n} ${plural('bg', n, { one: 'ново съобщение', other: 'нови съобщения' })} – ${g}`,
-    digestButton: () => 'Отвори групата',
+    digestButton: (g) => `Отвори ${g}`,
     reminderDue: (time) => `Напомняне за ${time}`,
     reminderLine: (title, time) => `Напомняне: ${title}, ${time}`,
     deadlineEvent: (title) => `Срок: ${title}`,
@@ -138,6 +138,15 @@ export const bg: ServerTexts = {
     timeMissing: 'Запишете отделеното време',
     timeMissingLine: (title) => `${title}: запишете отделеното време`,
     openTask: 'Отвори задачата',
+    digestUpdates: (n, topic) =>
+      `${topic}: ${n} ${plural('bg', n, { one: 'промяна', other: 'промени' })}`,
+    digestMany: (n, topics, more) =>
+      `${n} ${plural('bg', n, { one: 'промяна', other: 'промени' })}: ${topics.join(', ')}${more > 0 ? ` и още ${more}` : ''}`,
+    digestMore: (n) => `И още ${n} в Help.`,
+    dueChanged: (date) => `Срокът е променен на ${date}`,
+    dueRemoved: 'Срокът е премахнат',
+    overdue: (date) => `Просрочена, срокът беше ${date}`,
+    ticketResolved: (n) => `Тикет #${n} е решен`,
   },
   teams: {
     recordingNotice: 'Този разговор ще бъде записан и транскрибиран.',

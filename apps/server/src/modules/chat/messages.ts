@@ -24,7 +24,7 @@ import {
 } from '../files/service.js';
 import { listGroupPeople } from '../groups/service.js';
 import { recordNotifications, requestDelivery } from '../notifications/service.js';
-import { listTasksForMessages } from '../tasks/service.js';
+import { listTasksForMessages, taskPeopleIds } from '../tasks/service.js';
 import { user } from '../users/schema.js';
 import { selectMessages, toMessageDtos, type MessageRow } from './dto.js';
 import { actorReadsChannel, channelKindAccess } from './access.js';
@@ -101,6 +101,29 @@ async function findByClientId(
   return dto ?? null;
 }
 
+/**
+ * Who hears a plain message in a task's chat (owner 2026-10-18, UX review X21): the task's creator
+ * and assignees, the people who wrote in that chat and the people named in it before. Two
+ * queries; the caller keeps those still in the group and drops the author.
+ */
+async function taskChatPeople(db: Db, channelId: string, taskId: string): Promise<string[]> {
+  const [own, talked] = await Promise.all([
+    taskPeopleIds(db, taskId),
+    db
+      .select({ id: messages.authorId })
+      .from(messages)
+      .where(eq(messages.channelId, channelId))
+      .union(
+        db
+          .select({ id: messageMentions.userId })
+          .from(messageMentions)
+          .innerJoin(messages, eq(messages.id, messageMentions.messageId))
+          .where(eq(messages.channelId, channelId)),
+      ),
+  ]);
+  return [...new Set([...own, ...talked.map((r) => r.id)])];
+}
+
 /** Throws InvalidThreadError unless the parent is a root of the channel and replyTo is in its thread. */
 async function checkThread(db: Db, channelId: string, data: SendMessageInput): Promise<void> {
   const { parentId, replyToId } = data;
@@ -172,6 +195,12 @@ export async function sendMessage(
     : access
       ? await access.allRecipients(db, channel)
       : [...pickable];
+  // A task chat's plain messages reach the task's people only (owner 2026-10-18), read before
+  // the transaction like the people above; null for every other chat.
+  const taskAudience =
+    access === null && channel.taskId !== null && data.parentId === undefined
+      ? await taskChatPeople(db, channel.id, channel.taskId)
+      : null;
 
   const messageId = randomUUID();
   const parentId = data.parentId ?? null;
@@ -278,9 +307,13 @@ export async function sendMessage(
         });
         for (const id of recorded) notified.add(id);
       };
-      const everyone = people.map((p) => p.id);
+      // Only people who still belong to the group: a task person who left hears nothing.
+      const everyone = taskAudience
+        ? taskAudience.filter((id) => nameById.has(id))
+        : people.map((p) => p.id);
       if (access === null) {
-        // Replies only notify the thread; the channel hears about top-level messages.
+        // Replies only notify the thread; the channel hears about top-level messages (a task
+        // chat: the task's people, everyone else only by a mention).
         if (parentId === null) await notify('chat.message', everyone);
       } else if (notice) {
         // A ticket chat: every message, reply or not, goes to the ticket's audience as the

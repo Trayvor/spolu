@@ -22,6 +22,10 @@ export const UnseenSummaryLineSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('assigned') }),
   /** The deadline is near: the due date the reminder was about. */
   z.object({ kind: z.literal('deadline'), dueDate: z.string() }),
+  /** The due date changed (its newest value), or was removed (null) (2026-10-18). */
+  z.object({ kind: z.literal('dueChanged'), dueDate: z.string().nullable() }),
+  /** The task is past its due date (2026-10-18). */
+  z.object({ kind: z.literal('overdue'), dueDate: z.string() }),
   /** New messages in its chat (and thread replies), with their authors, newest first. */
   z.object({
     kind: z.literal('messages'),

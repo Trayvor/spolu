@@ -1,5 +1,5 @@
-import { and, eq, inArray, isNull } from 'drizzle-orm';
-import type { TaskDeadlinePayload, TaskUrgentPayload } from '@spolu/shared';
+import { and, between, eq, inArray, isNull } from 'drizzle-orm';
+import type { TaskDeadlinePayload, TaskOverduePayload, TaskUrgentPayload } from '@spolu/shared';
 import type { AppDeps } from '../../deps.js';
 import {
   recordManyNotifications,
@@ -9,7 +9,10 @@ import {
 import { taskAssignees, tasks } from './schema.js';
 
 const TIME_ZONE = 'Europe/Bratislava';
-const DEADLINE_DAYS = [1, 2, 3] as const;
+/** Days before the due date that remind (2026-10-18: 3 and 1; it was 3, 2 and 1). */
+const DEADLINE_DAYS = [1, 3] as const;
+/** An overdue task reminds once, if its due date passed at most this many days ago. */
+const OVERDUE_WINDOW_DAYS = 3;
 
 const partsFormat = new Intl.DateTimeFormat('en-CA', {
   timeZone: TIME_ZONE,
@@ -72,7 +75,7 @@ async function assigneesOf(
 }
 
 /**
- * Records a `task.deadline` event for each assignee of every open task due in 1, 2 or 3 days
+ * Records a `task.deadline` event for each assignee of every open task due in 3 days or tomorrow
  * (counted in Bratislava days), once per task, user and day. Returns how many events were
  * recorded; a rerun on the same day records none.
  */
@@ -104,6 +107,46 @@ export async function recordDeadlineReminders(
     };
   });
   // Every task in one statement (Phase 27 S7), not one per task.
+  const recorded = await recordManyNotifications(db, inputs);
+  await requestDelivery(jobs, recorded);
+  return recorded.length;
+}
+
+/**
+ * Records a `task.overdue` event (2026-10-18) for each assignee of every open task whose due date
+ * passed 1 to `OVERDUE_WINDOW_DAYS` Bratislava days ago, once per task, user and due date: a task
+ * reminds once, and again only after a new due date passes too. The window keeps a missed run
+ * from losing the reminder, and an old overdue task (before this rule) from being reminded at all.
+ * Runs with the deadline job. Returns how many events were recorded.
+ */
+export async function recordOverdueReminders(
+  deps: Pick<AppDeps, 'db' | 'jobs'>,
+  now: Date,
+): Promise<number> {
+  const { db, jobs } = deps;
+  const today = bratislavaDay(now);
+  const found = await assigneesOf(
+    db,
+    and(
+      isNull(tasks.completedAt),
+      between(tasks.dueDate, addDays(today, -OVERDUE_WINDOW_DAYS), addDays(today, -1)),
+    ),
+  );
+  const inputs: NotificationInput[] = [...found.values()].map(({ task, userIds }) => {
+    const payload: TaskOverduePayload = {
+      taskId: task.id,
+      groupId: task.groupId,
+      title: task.title,
+      dueDate: task.dueDate!,
+    };
+    return {
+      kind: 'task.overdue',
+      groupId: task.groupId,
+      recipients: userIds,
+      payload,
+      dedupeKey: `overdue:${task.id}:${task.dueDate}`,
+    };
+  });
   const recorded = await recordManyNotifications(db, inputs);
   await requestDelivery(jobs, recorded);
   return recorded.length;

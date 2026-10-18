@@ -138,6 +138,7 @@ describe('buildPushPayload reminder', () => {
         body: 'Reminder for 14:00',
         url: '/groups/g1/tasks/t1',
         tag: 'task:t1',
+        renotify: true,
       });
       // Without the current title, the one recorded with the event.
       expect(buildPushPayload({ ...t, now: onTime }).title).toBe('Old title · Firma');
@@ -289,13 +290,40 @@ describe('texts', () => {
     expect(texts('en').bucket({ kind: 'custom', name: 'QA' })).toBe('QA');
   });
   it('digest subjects', () => {
+    // 2026-10-18: no case ending on the group's name ("v Firma" was wrong in Slovak).
     expect(texts('en').digestSubject(1, 'Firma')).toBe('1 new message – Firma');
     expect(texts('en').digestSubject(3, 'Firma')).toBe('3 new messages – Firma');
     expect(texts('sk').digestSubject(1, 'Firma')).toBe('1 nová správa – Firma');
     expect(texts('sk').digestSubject(3, 'Firma')).toBe('3 nové správy – Firma');
     expect(texts('sk').digestSubject(5, 'Firma')).toBe('5 nových správ – Firma');
-    expect(texts('sk').digestButton('Firma')).toBe('Otvoriť skupinu');
-    expect(texts('en').digestButton('Firma')).toBe('Open group');
+    expect(texts('en').digestUpdates(2, 'Ticket #12')).toBe('Ticket #12: 2 updates');
+    expect(texts('sk').digestUpdates(2, 'Tiket #12')).toBe('Tiket #12: 2 zmeny');
+    expect(texts('sk').digestUpdates(5, 'Tiket #12')).toBe('Tiket #12: 5 zmien');
+    expect(texts('en').digestMany(4, ['Ticket #12', 'Firma'], 0)).toBe(
+      '4 updates: Ticket #12, Firma',
+    );
+    expect(texts('en').digestMany(9, ['Ticket #12', 'Firma'], 3)).toBe(
+      '9 updates: Ticket #12, Firma and 3 more',
+    );
+    expect(texts('sk').digestMany(9, ['Tiket #12', 'Firma'], 3)).toBe(
+      '9 zmien: Tiket #12, Firma a ďalšie 3',
+    );
+    expect(texts('en').digestMore(2)).toBe('And 2 more in Help.');
+    expect(texts('sk').digestButton('Firma')).toBe('Otvoriť Firma');
+    expect(texts('en').digestButton('Firma')).toBe('Open Firma');
+  });
+  it('every language has the digest and the 2026-10-18 texts', () => {
+    for (const lang of UserLanguages) {
+      const t = texts(lang);
+      expect(t.digestSubject(3, 'Firma')).toContain('Firma');
+      expect(t.digestUpdates(3, 'Firma')).toContain('Firma');
+      expect(t.digestMany(7, ['A1', 'B2'], 2)).toMatch(/7.*A1.*B2.*2/);
+      expect(t.digestMore(2)).toContain('2');
+      expect(t.dueChanged('31 Oct 2026')).toContain('31 Oct 2026');
+      expect(t.dueRemoved).not.toBe('');
+      expect(t.overdue('31 Oct 2026')).toContain('31 Oct 2026');
+      expect(t.ticketResolved(12)).toContain('#12');
+    }
   });
 });
 
@@ -357,7 +385,12 @@ describe('buildPushPayload tickets (Phase 21.6)', () => {
       'Jana: pozri',
     ],
   ] as const)('%s %j (%s): "%s" / "%s"', (kind, payload, lang, title, body) => {
-    expect(t(kind, payload, lang)).toEqual({ title, body, url: '/tickets/k1', tag: 'ticket:k1' });
+    expect(t(kind, payload, lang)).toMatchObject({
+      title,
+      body,
+      url: '/tickets/k1',
+      tag: 'ticket:k1',
+    });
   });
 
   it('a ticket without a subject is named by its number only', () => {
@@ -437,7 +470,7 @@ describe('buildPushPayload time requests (Phase 32)', () => {
       payload: task,
       lang: 'en',
     });
-    expect(push).toEqual({
+    expect(push).toMatchObject({
       title: 'Report · Firma',
       body: 'Record your time',
       url: '/groups/g1/tasks/t1?time=1',
@@ -451,7 +484,7 @@ describe('buildPushPayload time requests (Phase 32)', () => {
       payload: { ticketId: 'k1', groupId: 'g1', number: 12, title: 'Login fails', actorName: 'J' },
       lang: 'en',
     });
-    expect(push).toEqual({
+    expect(push).toMatchObject({
       title: '#12 Login fails · Firma',
       body: 'Record your time',
       url: '/tickets/k1?time=1',
@@ -464,5 +497,112 @@ describe('buildPushPayload time requests (Phase 32)', () => {
       expect(texts(lang).timeMissingLine('X')).toContain('X');
       expect(texts(lang).openTask).not.toBe('');
     }
+  });
+});
+
+describe('2026-10-18 task signals', () => {
+  const t = { ...base, taskTitle: 'Report', lang: 'en' } as const;
+  it('due date changed: "Due date changed to <day>", or removed', () => {
+    const push = buildPushPayload({
+      ...t,
+      kind: 'task.due_changed',
+      payload: { ...task, dueDate: '2026-10-31', previousDueDate: '2026-10-20' },
+    });
+    expect(push).toMatchObject({
+      title: 'Report · Firma',
+      body: 'Due date changed to 31 Oct 2026',
+      url: '/groups/g1/tasks/t1',
+      tag: 'task:t1',
+    });
+    expect(
+      buildPushPayload({
+        ...t,
+        kind: 'task.due_changed',
+        payload: { ...task, dueDate: null, previousDueDate: '2026-10-20' },
+      }).body,
+    ).toBe('Due date removed');
+    expect(
+      buildPushPayload({
+        ...t,
+        lang: 'sk',
+        kind: 'task.due_changed',
+        payload: { ...task, dueDate: '2026-10-31' },
+      }).body,
+    ).toMatch(/^Termín zmenený na 31\./);
+  });
+  it('overdue: "Overdue, was due <day>"', () => {
+    const push = buildPushPayload({
+      ...t,
+      kind: 'task.overdue',
+      payload: { ...task, dueDate: '2026-10-17' },
+    });
+    expect(push).toMatchObject({
+      title: 'Report · Firma',
+      body: 'Overdue, was due 17 Oct 2026',
+      url: '/groups/g1/tasks/t1',
+      tag: 'task:t1',
+    });
+  });
+});
+
+describe('ticket resolved (2026-10-18)', () => {
+  it('"Ticket #123 resolved" with the subject, opening the ticket', () => {
+    const payload = { ticketId: 'k1', number: 123, subject: 'Login fails', groupId: 'g1' };
+    expect(buildPushPayload({ ...base, kind: 'ticket.resolved', payload, lang: 'en' })).toEqual({
+      title: 'Ticket #123 resolved',
+      body: 'Login fails',
+      url: '/tickets/k1',
+      tag: 'ticket:k1',
+      renotify: true,
+    });
+    expect(buildPushPayload({ ...base, kind: 'ticket.resolved', payload }).title).toBe(
+      'Tiket #123 je vyriešený',
+    );
+  });
+});
+
+describe('renotify (2026-10-18)', () => {
+  const ticket = { ticketId: 'k1', number: 1, subject: 'S', groupId: 'g1' };
+  const push = (kind: NotificationKind, payload: Record<string, unknown> = task) =>
+    buildPushPayload({ ...base, kind, payload, taskTitle: 'Report' });
+
+  it('a stream of messages and updates replaces its card silently', () => {
+    expect(push('chat.message', chat).renotify).toBeUndefined();
+    expect(push('chat.thread_reply', chat).renotify).toBeUndefined();
+    expect(push('chat.message', { ...chat, taskId: 't1' }).renotify).toBeUndefined();
+    expect(
+      push('ticket.message', { ...ticket, authorName: 'J', excerpt: 'x' }).renotify,
+    ).toBeUndefined();
+    for (const kind of ['task.moved', 'task.due_changed'] as const) {
+      expect(push(kind).renotify).toBeUndefined();
+    }
+    for (const kind of ['ticket.status', 'ticket.updated', 'ticket.tasks'] as const) {
+      expect(push(kind, { ...ticket, status: 'in_progress', count: 1 }).renotify).toBeUndefined();
+    }
+  });
+
+  it('what is addressed to the person or due now alerts again', () => {
+    expect(push('chat.mention', chat).renotify).toBe(true);
+    for (const kind of [
+      'task.assigned',
+      'task.deadline',
+      'task.urgent',
+      'task.overdue',
+      'task.time_missing',
+    ] as const) {
+      expect(push(kind, { ...task, daysLeft: 1, dueDate: '2026-10-17' }).renotify).toBe(true);
+    }
+    for (const kind of [
+      'ticket.assigned',
+      'ticket.created',
+      'ticket.unassigned',
+      'ticket.resolved',
+      'ticket.time_missing',
+    ] as const) {
+      expect(push(kind, ticket).renotify).toBe(true);
+    }
+    expect(
+      push('reminder.due', { subjectKind: 'task', taskId: 't1', groupId: 'g1', at: '' }).renotify,
+    ).toBe(true);
   });
 });

@@ -12,6 +12,7 @@ import {
   type TaskDetailDto,
   type TaskDto,
   type TaskMove,
+  type TaskDueChangedPayload,
   type TaskMovedPayload,
   type TaskPatch,
   type TaskPerson,
@@ -167,6 +168,40 @@ async function notifyAssigned(
   added: string[],
 ): Promise<string[]> {
   return recordNotifications(tx, assignedNotice(actor, task, added));
+}
+
+/**
+ * `task.due_changed` (2026-10-18) to the task's assignees after an edit changed or removed its
+ * due date, never to the actor nor to `justAdded` (who get `task.assigned` for the same edit).
+ * In the write's transaction; returns the recorded event ids.
+ */
+async function notifyDueChanged(
+  tx: Tx,
+  actor: SessionUser,
+  task: { id: string; groupId: string; title: string; dueDate: string | null },
+  previousDueDate: string | null,
+  justAdded: string[],
+): Promise<string[]> {
+  const assignees = await tx
+    .select({ userId: taskAssignees.userId })
+    .from(taskAssignees)
+    .where(eq(taskAssignees.taskId, task.id));
+  const payload: TaskDueChangedPayload = {
+    taskId: task.id,
+    groupId: task.groupId,
+    title: task.title,
+    dueDate: task.dueDate,
+    previousDueDate,
+    actorName: actor.name,
+  };
+  return recordNotifications(tx, {
+    kind: 'task.due_changed',
+    groupId: task.groupId,
+    recipients: assignees
+      .map((a) => a.userId)
+      .filter((id) => id !== actor.id && !justAdded.includes(id)),
+    payload,
+  });
 }
 
 /** Group and creator of a task, for permission checks; null when it does not exist. */
@@ -728,6 +763,16 @@ export async function updateTaskTimed(
     // Always strictly later than the edited version, even within the same millisecond.
     const updatedAt = new Date(Math.max(Date.now(), expected.getTime() + 1));
     const projectChange = await projectChangeOf(tx, id, patch);
+    // The due date before the edit (2026-10-18: a change tells the assignees). Locked, so a
+    // concurrent edit cannot change it between this read and the update.
+    const [before] =
+      patch.dueDate !== undefined
+        ? await tx
+            .select({ dueDate: tasks.dueDate })
+            .from(tasks)
+            .where(and(eq(tasks.id, id), eq(tasks.updatedAt, expected)))
+            .for('update')
+        : [];
     const [row] = await tx
       .update(tasks)
       .set({
@@ -744,6 +789,8 @@ export async function updateTaskTimed(
         id: tasks.id,
         groupId: tasks.groupId,
         title: tasks.title,
+        dueDate: tasks.dueDate,
+        completedAt: tasks.completedAt,
         projectId: tasks.projectId,
         eventId: tasks.eventId,
       });
@@ -758,6 +805,7 @@ export async function updateTaskTimed(
       }
     }
 
+    let addedAssignees: string[] = [];
     if (patch.assigneeIds) {
       const wanted = [...new Set(patch.assigneeIds)];
       const current = (
@@ -767,6 +815,7 @@ export async function updateTaskTimed(
           .where(eq(taskAssignees.taskId, id))
       ).map((r) => r.userId);
       const added = wanted.filter((userId) => !current.includes(userId));
+      addedAssignees = added;
       const removed = current.filter((userId) => !wanted.includes(userId));
       await checkAssignees(tx, actor, row.groupId, added);
       if (removed.length > 0) {
@@ -779,6 +828,13 @@ export async function updateTaskTimed(
         await tx.insert(taskAssignees).values(added.map((userId) => ({ taskId: id, userId })));
       }
       notified = await notifyAssigned(tx, actor, row, added);
+    }
+
+    if (before && before.dueDate !== row.dueDate && row.completedAt === null) {
+      notified = [
+        ...notified,
+        ...(await notifyDueChanged(tx, actor, row, before.dueDate, addedAssignees)),
+      ];
     }
 
     if (patch.knowledgeIds) {

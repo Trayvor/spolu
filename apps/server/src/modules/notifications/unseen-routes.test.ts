@@ -220,6 +220,47 @@ describe('unseen changes API', () => {
     expect(await unseen(cookies.nina)).toBe('change');
   });
 
+  it('a ticket without a client that gets one is seen for every admin (X35, 2026-10-18)', async () => {
+    const db = test.deps.db;
+    const group = await newGroup(db, 'Gets a client');
+    const ada = await newAdmin(db, 'Ada');
+    const bob = await newAdmin(db, 'Bob');
+    const cookies = {
+      ada: await loginAs(test.app, ada.email),
+      bob: await loginAs(test.app, bob.email),
+    };
+    const ticketId = randomUUID();
+    const now = new Date();
+    await db.insert(tickets).values({
+      id: ticketId,
+      groupId: null,
+      status: 'new',
+      source: 'api',
+      subject: 'Stale mark',
+      createdAt: now,
+      updatedAt: now,
+    });
+    await recordNotifications(db, {
+      kind: 'ticket.unassigned',
+      groupId: null,
+      recipients: [ada.id, bob.id],
+      payload: { ticketId, groupId: null },
+    });
+    const unseen = async (cookie: string) => {
+      const list = TicketListResponseSchema.parse(
+        (await call('GET', '/tickets/global?scope=all', cookie)).json(),
+      );
+      return list.items.find((t) => t.id === ticketId)?.unseen;
+    };
+    expect(await unseen(cookies.ada)).toBe('change');
+    const moved = await call('PUT', `/tickets/${ticketId}/group`, cookies.bob, {
+      groupId: group.id,
+    });
+    expect(moved.statusCode).toBe(200);
+    // Ada does not watch the new client: the old "new ticket without a client" no longer marks it.
+    expect(await unseen(cookies.ada)).toBe(null);
+  });
+
   it('assigned, then a chat message: a ring and what changed, from my own events', async () => {
     const db = test.deps.db;
     const group = await newGroup(db, 'Unseen summary');

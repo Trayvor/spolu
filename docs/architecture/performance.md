@@ -233,7 +233,7 @@ Job batching (Phase 27 S7, measured 2026-10-17 on the local test database with a
 What changed:
 - **Delivery audience.** One `groupPeopleAmong` query for the whole batch, instead of `listGroupPeople` and, for tickets, `activeMemberIds` per (group, notification group).
 - **Push jobs.** All of a batch's push jobs in one pg-boss `insert` (`JobQueue.sendMany`), instead of a `send` per device.
-- **Digest locks.** The advisory locks of a digest run are one statement over the sorted keys (`unnest … with ordinality`, still taken in order).
+- **Digest locks.** The advisory locks of a digest run are one statement over the sorted keys (`unnest … with ordinality`, still taken in order); since 2026-10-18 a key is a user (one email per person), and the person's pending rows are read by `user_id`.
 - **Reminders.** The deadline and urgent reminders (`tasks/reminders.ts`) and the reminder fire batch (`reminders/jobs.ts`) record every event with one `recordManyNotifications`: one `INSERT … SELECT` per notification group, in chunks of 1000 rows. The fire batch falls back to a savepoint per time only if the batch insert fails.
 
 The tests compare a large batch's query count with a small one's: `notifications/batching.test.ts`, `tasks/reminders.test.ts`, `reminders/jobs.test.ts` and `notifications/categories.test.ts` (which also checks that the batched audience matches `listGroupPeople`). The first run of a statement shape costs one more round trip (postgres.js describes it first), so each size runs twice and the second count is compared.

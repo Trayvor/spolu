@@ -111,7 +111,7 @@ export const et: ServerTexts = {
     },
     digestSubject: (n, g) =>
       `${n} ${plural('et', n, { one: 'uus sõnum', other: 'uut sõnumit' })} – ${g}`,
-    digestButton: () => 'Ava grupp',
+    digestButton: (g) => `Ava: ${g}`,
     reminderDue: (time) => `Meeldetuletus: ${time}`,
     reminderLine: (title, time) => `Meeldetuletus: ${title}, ${time}`,
     deadlineEvent: (title) => `Tähtaeg: ${title}`,
@@ -140,6 +140,15 @@ export const et: ServerTexts = {
     timeMissing: 'Sisestage kulunud aeg',
     timeMissingLine: (title) => `${title}: sisestage kulunud aeg`,
     openTask: 'Ava ülesanne',
+    digestUpdates: (n, topic) =>
+      `${topic}: ${n} ${plural('et', n, { one: 'muudatus', other: 'muudatust' })}`,
+    digestMany: (n, topics, more) =>
+      `${n} ${plural('et', n, { one: 'muudatus', other: 'muudatust' })}: ${topics.join(', ')}${more > 0 ? ` ja veel ${more}` : ''}`,
+    digestMore: (n) => `Ja veel ${n} rakenduses Help.`,
+    dueChanged: (date) => `Tähtaeg muudetud: ${date}`,
+    dueRemoved: 'Tähtaeg eemaldatud',
+    overdue: (date) => `Tähtaeg möödas, see oli ${date}`,
+    ticketResolved: (n) => `Pöördumine #${n} on lahendatud`,
   },
   teams: {
     recordingNotice: 'See kõne salvestatakse ja transkribeeritakse.',

@@ -11,6 +11,9 @@ export const TASK_UNSEEN_KINDS = [
   'task.assigned',
   'task.moved',
   'task.deadline',
+  // 2026-10-18: the due date changed, the task is overdue.
+  'task.due_changed',
+  'task.overdue',
   // In a task chat (the payload's `taskId` is set; a group chat's is null).
   'chat.message',
   'chat.mention',
@@ -26,6 +29,8 @@ export const TICKET_UNSEEN_KINDS = [
   'ticket.tasks',
   'ticket.assigned',
   'ticket.time_missing',
+  // 2026-10-18.
+  'ticket.resolved',
   // A mention in a ticket chat carries the ticket.
   'chat.mention',
 ] as const satisfies readonly NotificationKind[];

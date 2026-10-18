@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { i18n, setLanguage } from '@/i18n';
+import { formatDue } from '@/features/tasks/dates';
 import { unseenSummaryTexts } from './lines';
 
 const t = i18n.t.bind(i18n);
@@ -84,6 +85,21 @@ describe('unseen summary lines (2026-10-18)', () => {
       '2 nové úlohy z tiketu',
       'Zapíšte strávený čas',
       'a 2 ďalšie zmeny',
+    ]);
+  });
+
+  it('a changed or removed due date and an overdue task', () => {
+    const day = formatDue('2026-10-25', 'sk');
+    expect(
+      texts([
+        { kind: 'dueChanged', dueDate: '2026-10-25' },
+        { kind: 'dueChanged', dueDate: null },
+        { kind: 'overdue', dueDate: '2026-10-17' },
+      ]),
+    ).toEqual([
+      `Nový termín: ${day}`,
+      'Termín zrušený',
+      `Po termíne (${formatDue('2026-10-17', 'sk')})`,
     ]);
   });
 

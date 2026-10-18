@@ -13,7 +13,7 @@ import { createFile, getFile, getFilesForGroup, InvalidAttachmentError } from '.
 import { addManager, removeManager } from '../groups/managers.js';
 import { addMember, createGroup, listGroupPeople } from '../groups/service.js';
 import { notificationEvents } from '../notifications/schema.js';
-import { tasks } from '../tasks/schema.js';
+import { taskAssignees, tasks } from '../tasks/schema.js';
 import { ensureBoard, listBuckets } from '../tasks/service.js';
 import { user } from '../users/schema.js';
 import { addAdmin, createUnverifiedClient } from '../users/service.js';
@@ -718,6 +718,8 @@ describe('task chat', () => {
   it('task chat notifications carry the taskId', async () => {
     const s = await setup();
     const { task, channel } = await newTaskChannel(s.group.id, s.a.id);
+    // The admin is assigned, so the plain message has a recipient (the task's people, 2026-10-18).
+    await deps.db.insert(taskAssignees).values({ taskId: task.id, userId: s.admin.id });
     const { message: root } = await send(channel, s.a, { body: `hi ${mentionToken(s.b.id)}` });
     const { message: reply } = await send(channel, s.b, { parentId: root.id, body: 'ok' });
     const payloads = await deps.db
@@ -734,6 +736,42 @@ describe('task chat', () => {
         groupId: s.group.id,
       });
     }
+  });
+
+  it("a plain message notifies only the task's people (owner 2026-10-18)", async () => {
+    const s = await setup();
+    const writer = await newClient(s.group.id, 'Cyril');
+    const named = await newClient(s.group.id, 'Dana');
+    const bystander = await newClient(s.group.id, 'Eva');
+    // Creator Anna, assignee Boris; Cyril wrote before, Dana was mentioned before.
+    const { task, channel } = await newTaskChannel(s.group.id, s.a.id);
+    await deps.db.insert(taskAssignees).values({ taskId: task.id, userId: s.b.id });
+    await send(channel, writer, { body: 'earlier' });
+    await send(channel, writer, { body: `see ${mentionToken(named.id)}` });
+    const { message } = await send(channel, s.b, { body: 'plain' });
+    const events = await eventsFor(message.id);
+    expect(recipientsOf(events, 'chat.message')).toEqual(new Set([s.a.id, writer.id, named.id]));
+    // Neither the other client nor an admin who is not in the task hears it.
+    expect(events.some((e) => e.userId === bystander.id || e.userId === s.admin.id)).toBe(false);
+  });
+
+  it('a mention in a task chat still reaches someone outside the task', async () => {
+    const s = await setup();
+    await addManager(deps.db, s.group.id, s.admin.id);
+    const { channel } = await newTaskChannel(s.group.id, s.a.id);
+    const { message } = await send(channel, s.a, { body: `hi ${mentionToken(s.admin.id)}` });
+    const events = await eventsFor(message.id);
+    expect(recipientsOf(events, 'chat.mention')).toEqual(new Set([s.admin.id]));
+    expect(recipientsOf(events, 'chat.message')).toEqual(new Set());
+  });
+
+  it('someone who left the group is no longer a task person', async () => {
+    const s = await setup();
+    const { task, channel } = await newTaskChannel(s.group.id, s.a.id);
+    await deps.db.insert(taskAssignees).values({ taskId: task.id, userId: s.b.id });
+    await deps.db.update(user).set({ disabledAt: new Date() }).where(eq(user.id, s.b.id));
+    const { message } = await send(channel, s.a, { body: 'plain' });
+    expect(recipientsOf(await eventsFor(message.id), 'chat.message')).toEqual(new Set());
   });
 
   it('findReadableMessage returns the message and its channel only to readers of the group', async () => {

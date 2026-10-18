@@ -108,7 +108,7 @@ export const en: ServerTexts = {
     },
     digestSubject: (n, g) =>
       `${n} ${plural('en', n, { one: 'new message', other: 'new messages' })} – ${g}`,
-    digestButton: () => 'Open group',
+    digestButton: (g) => `Open ${g}`,
     reminderDue: (time) => `Reminder for ${time}`,
     reminderLine: (title, time) => `Reminder: ${title}, ${time}`,
     deadlineEvent: (title) => `Deadline: ${title}`,
@@ -137,6 +137,15 @@ export const en: ServerTexts = {
     timeMissing: 'Record your time',
     timeMissingLine: (title) => `${title}: record your time`,
     openTask: 'Open task',
+    digestUpdates: (n, topic) =>
+      `${topic}: ${n} ${plural('en', n, { one: 'update', other: 'updates' })}`,
+    digestMany: (n, topics, more) =>
+      `${n} ${plural('en', n, { one: 'update', other: 'updates' })}: ${topics.join(', ')}${more > 0 ? ` and ${more} more` : ''}`,
+    digestMore: (n) => `And ${n} more in Help.`,
+    dueChanged: (date) => `Due date changed to ${date}`,
+    dueRemoved: 'Due date removed',
+    overdue: (date) => `Overdue, was due ${date}`,
+    ticketResolved: (n) => `Ticket #${n} resolved`,
   },
   teams: {
     recordingNotice: 'This call will be recorded and transcribed.',

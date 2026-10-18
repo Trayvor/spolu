@@ -5,7 +5,7 @@ import { formatDay, formatReminderTime, texts } from './texts.js';
 
 /**
  * One event in a digest email: its line, the page the email's button opens, the button's label
- * and what the subject names ("3 new messages in <topic>").
+ * and what the subject names ("3 new messages – <topic>", the section heading).
  */
 export type DigestEntry = { line: string; url: string; button: string; topic: string };
 
@@ -22,8 +22,8 @@ export type DigestContext = {
 const str = (v: unknown): string | null => (typeof v === 'string' && v !== '' ? v : null);
 
 /**
- * The digest entry of one event; emails are split by the entries' `url`. A ticket event (Phase 21)
- * opens the ticket's page, so each ticket gets its own email: "#123 Subject: Jana: text" for a
+ * The digest entry of one event; an email has one section per entry `url`. A ticket event (Phase 21)
+ * opens the ticket's page, so each ticket gets its own section: "#123 Subject: Jana: text" for a
  * message or a mention, "<what happened>: <subject>" otherwise, and "Open ticket". Every other
  * kind opens the group chat. A kind it does not know gives null and is left out of the email.
  */
@@ -75,7 +75,7 @@ export function digestEntry(
   }
   if (row.kind === 'reminder.due' && p.subjectKind === 'finance' && ctx.groupId === null) {
     // Phase 32 E: an item of the organisation (an expense, a contract of several clients) opens
-    // on `/finance`; one email per item, never with the amount.
+    // on `/finance`; one section per item, never with the amount.
     const itemId = encodeURIComponent(str(p.subjectId) ?? '');
     const title = p.salary === true ? t.salaryTitle(str(p.title) ?? '') : (str(p.title) ?? '');
     const due = formatDay(str(p.dueOn), ctx.lang);
@@ -94,7 +94,7 @@ export function digestEntry(
   // Only a ticket event (and a finance item of the organisation, above) may lack a client group.
   if (ctx.groupId === null || ctx.groupName === null) return null;
   if (row.kind.startsWith('meeting.')) {
-    // 2026-10-17: one email per meeting, opening the item.
+    // 2026-10-17: one section per meeting, opening the item.
     const itemId = encodeURIComponent(str(p.itemId) ?? '');
     return {
       line: `${str(p.title) ?? ''}: ${meetingBody(row.kind as NotificationKind, p, ctx.lang)}`,
@@ -104,7 +104,7 @@ export function digestEntry(
     };
   }
   if (row.kind === 'reminder.due' && p.subjectKind === 'finance') {
-    // Phase 32: one email per contract, opening the item in the client's Finance tab.
+    // Phase 32: one section per contract, opening the item in the client's Finance tab.
     const itemId = encodeURIComponent(str(p.subjectId) ?? '');
     const ends = formatDay(str(p.endsOn), ctx.lang);
     return {
