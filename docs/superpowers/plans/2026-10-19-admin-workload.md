@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: use `superpowers:subagent-driven-development` (or `superpowers:executing-plans` inline) to carry out this plan task by task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-Spec: [2026-10-19-admin-workload-design.md](../specs/2026-10-19-admin-workload-design.md). Status: **draft**; start only after the owner answered or accepted the spec's open questions, and (owner, 2026-10-19) only after the phases now in flight are finished, testing aside; the final e2e run comes after all of them.
+Spec: [2026-10-19-admin-workload-design.md](../specs/2026-10-19-admin-workload-design.md). Status: **draft**; start only after the owner answered or accepted the spec's open questions, and (owner, 2026-10-19) only after the current phases are done, testing aside. The final e2e pass comes after all seven 2026-10-19 designs (#169 ticket AI draft, #170 ICS calendar, #171 this card, #172 ticket rating, #173 weekly client summary, #174 audit log, #175 chat message search) are implemented.
 
 **Goal:** the lowest card of the admin dashboard, "Vyťaženie tímu": per active admin the open assigned tasks, the overdue ones, the active tickets as riešiteľ, the unseen items and (finance holders only) the time logged this week, with a per-client breakdown on expand; one indexed statement, no N+1, an EXPLAIN check.
 
@@ -472,7 +472,7 @@ export const workloadQuery = queryOptions({
 **Files:** modify `e2e/admin-home.spec.ts`.
 
 - [ ] **Step 1: Write** `test('the team workload card shows each admin\'s open work by client')`: the spec's existing admin N and a second admin M (created as the file's other admins are); M gets an open task with yesterday's due date in client A (through the API as the file does); N opens `/` at 1280 px, scrolls to "Vyťaženie tímu", sees M's row with Úlohy 1 and Po termíne 1, expands it, sees client A, clicks the Úlohy number and lands on `/tasks` with `assignee=<M's id>` and `clients=<A's id>` in the URL, the task card visible.
-- [ ] **Step 2:** do **not** run it in parallel with other agents; leave it for the merger's `pnpm test:e2e` / `bash scripts/ci.sh`, which (owner, 2026-10-19) runs once after all the phases now in flight are built. Note in `product/admin-home.md` that it is written, not yet run.
+- [ ] **Step 2:** do **not** run it in parallel with other agents; leave it for the merger's `pnpm test:e2e` / `bash scripts/ci.sh`, which (owner, 2026-10-19) runs once, in the final e2e pass after all seven 2026-10-19 designs (#169 to #175) are implemented. Note in `product/admin-home.md` that it is written, not yet run.
 - [ ] **Step 3: Commit** `test(e2e): team workload card`.
 
 ### Task 13: Finish

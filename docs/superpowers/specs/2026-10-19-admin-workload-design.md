@@ -1,6 +1,6 @@
 # Admin workload card (design)
 
-Date: 2026-10-19 · Status: **draft, waiting for the owner** (the open questions at the end have a recommended answer each; building starts once they are answered or accepted). Plan: [2026-10-19-admin-workload.md](../plans/2026-10-19-admin-workload.md).
+Date: 2026-10-19 · Status: **draft, waiting for the owner** (the open questions at the end have a recommended answer each; building starts once they are answered or accepted, and (owner, 2026-10-19) only after the current phases are done; the final e2e pass runs once all seven 2026-10-19 designs, #169 to #175, are implemented). Plan: [2026-10-19-admin-workload.md](../plans/2026-10-19-admin-workload.md).
 
 Builds on the [admin home](2026-10-16-phase-20-admin-home-design.md) (Phase 20), [unseen changes](2026-10-17-unseen-changes-design.md), [ticket riešitelia](../../decisions/0021-ticket-riesitelia-and-watching.md), the [sealed finance module](../../decisions/0027-sealed-finance-module.md) (Phase 32) and [group deactivation](../../decisions/0038-egrant-groups-webhook-and-group-deactivation.md). Requirements today: [product/admin-home.md](../../product/admin-home.md).
 
@@ -201,7 +201,7 @@ Web: the card is a lazy chunk (`features/admin-home/workload-card.tsx`, `React.l
 
 ## 10. Tests (summary)
 
-Server (Vitest, test-first): the counts and every rule of §3 (`workload.test.ts`), the week helper, the widened unseen helpers giving the same ids for a string and an SQL user, the finance minutes, the route (403, finance key presence and absence, schema), the statement count, the EXPLAIN check. Web (Vitest + Testing Library): the table, the order as sent, expand and collapse with ARIA, the cap row, links per row, the time column only with `week`, the lazy load not imported before the wide layout. e2e: one scenario in `e2e/admin-home.spec.ts` (written, run by whoever merges, after the other phases as the owner asked).
+Server (Vitest, test-first): the counts and every rule of §3 (`workload.test.ts`), the week helper, the widened unseen helpers giving the same ids for a string and an SQL user, the finance minutes, the route (403, finance key presence and absence, schema), the statement count, the EXPLAIN check. Web (Vitest + Testing Library): the table, the order as sent, expand and collapse with ARIA, the cap row, links per row, the time column only with `week`, the lazy load not imported before the wide layout. e2e: one scenario in `e2e/admin-home.spec.ts` (written, run by whoever merges in the final e2e pass, after all seven 2026-10-19 designs, #169 to #175, are implemented, as the owner asked).
 
 ## 11. Open questions (with the recommended answer)
 
