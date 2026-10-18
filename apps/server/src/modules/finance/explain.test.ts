@@ -1,8 +1,7 @@
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, describe, expect, inject, it } from 'vitest';
 import { sql, type SQL } from 'drizzle-orm';
 import type { Month } from '@spolu/shared';
 import { createDb, type Db } from '../../infra/db/client.js';
-import { testDatabaseUrl } from '../../../test/test-config.js';
 import {
   countedEntriesSql,
   dataMonthRangeSql,
@@ -15,11 +14,11 @@ import {
 import { contractsPageSql } from './documents.js';
 import { hoursRankingSql, paidRankingSql } from './rankings.js';
 import { financeToday } from './rates.js';
-import { holdFinanceVolume, type FinanceVolumeIds } from './test-volume.js';
+import { financeVolumeIds } from './test-volume.js';
 import { encodeCursor, topClientsSql, workLogEntriesSql } from './work-log.js';
 
-// A fresh database of its own (vitest.explain.config.ts); the shared one when run directly.
-const { db, close } = createDb(process.env.EXPLAIN_DATABASE_URL ?? testDatabaseUrl);
+// This run's clone of the finance volume's template (test/setup-explain-db.ts, ADR 0040).
+const { db, close } = createDb(inject('explainDatabaseUrls').finance);
 afterAll(() => close());
 
 type PlanNode = { 'Node Type': string; 'Relation Name'?: string; Plans?: PlanNode[] };
@@ -95,21 +94,13 @@ async function expectIndexed(
 
 /**
  * One seeding (spec §10: 3 100 clients, 40 admins, 300 000 filled and 5 000 requested entries
- * over five years, 20 000 contracts, 200 rates) serves every check. The plan checks do not depend
- * on timing, so there is no retry (a retry reseeds on top of dead tuples and can hide a scan, see
- * `architecture/performance.md`); the 50 ms bounds run only with `RUN_BENCH=1`.
+ * over five years, 20 000 contracts, 200 rates), in the template this run cloned, serves every
+ * check: the three tests read the same clone, which has no dead tuples (ADR 0040). The plan checks
+ * do not depend on timing, so there is no retry; the 50 ms bounds run only with `RUN_BENCH=1`.
  */
 describe('finance query plans on a seeded volume', () => {
-  // Seeded once for the three tests (it used to seed three times; seedings 2 and 3 saw the dead
-  // tuples of the earlier rollbacks). The transaction stays open until afterAll rolls it back.
-  let volume: ReturnType<typeof holdFinanceVolume> | undefined;
-  let tx: Db;
-  let ids: FinanceVolumeIds;
-  beforeAll(async () => {
-    volume = holdFinanceVolume(db);
-    ({ tx, ids } = await volume.ready);
-  }, 300_000);
-  afterAll(() => volume?.release());
+  const tx: Db = db;
+  const ids = financeVolumeIds();
 
   it(
     'a client’s overview and work log use indexes (under 50 ms with RUN_BENCH=1)',

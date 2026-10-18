@@ -43,7 +43,7 @@ One-time setup: `pnpm install`, `cp .env.example .env`, `pnpm exec playwright in
 
 - `docker compose -f docker-compose.dev.yml up -d --wait` — local PostgreSQL 17 (5432, container `spolu-postgres-1`) and Mailpit (SMTP 1025). Server tests and e2e need it running.
 - `pnpm dev` — server (:3000, reload, reads the root `.env`) and web (Vite on :5173, proxies `/api` and `/socket.io`) in parallel. Open http://localhost:5173.
-- `pnpm test` — unit and integration tests (Vitest) in every package. Server tests use `TEST_DATABASE_URL` (default `postgres://spolu:spolu@localhost:5432/spolu_test`, created and migrated by `apps/server/test/setup-db.ts`) plus `<that name>_explain` for the EXPLAIN checks.
+- `pnpm test` — unit and integration tests (Vitest) in every package. Server tests use `TEST_DATABASE_URL` (default `postgres://spolu:spolu@localhost:5432/spolu_test`, created and migrated by `apps/server/test/setup-db.ts`) plus `<that name>_explain_<volume>` clones of the `spolu_tpl_*` template databases for the EXPLAIN checks ([ADR 0040](docs/decisions/0040-explain-volumes-from-template-databases.md)).
 - `pnpm test:e2e [e2e/<name>.spec.ts]` — Playwright e2e tests (Chromium) against a production-like run: builds all, starts `apps/server/dist/main.js` serving `apps/web/dist` on `E2E_PORT` (default 3000), with its own database from `DATABASE_URL` (default `spolu_e2e`, created automatically; the name must contain "e2e").
 - `pnpm lint`, `pnpm typecheck`, `pnpm build` — checks and production build for every package.
 - Mailpit UI (catches all dev email): http://localhost:8025.
@@ -57,7 +57,7 @@ One-time setup: `pnpm install`, `cp .env.example .env`, `pnpm exec playwright in
 
 ## Tips for agents
 
-- **Own test database per agent:** `TEST_DATABASE_URL=postgres://spolu:spolu@localhost:5432/spolu_test_<branch> pnpm test` (its `_explain` twin is created too).
+- **Own test database per agent:** `TEST_DATABASE_URL=postgres://spolu:spolu@localhost:5432/spolu_test_<branch> pnpm test` (its `_explain_<volume>` clones are created and dropped by the explain run).
 - **Shared machine:** cap Vitest, e.g. `pnpm --filter @spolu/server exec vitest run --maxWorkers 2 [file]`.
 - **One e2e spec in isolation:** `E2E_PORT=<free port> DATABASE_URL=postgres://spolu:spolu@localhost:5432/spolu_e2e_<branch> E2E_SUPERADMIN_EMAIL=admin-<branch>@example.com pnpm test:e2e e2e/<name>.spec.ts`. A bare `pnpm test:e2e` uses :3000 and `spolu_e2e`, and reuses any server already listening there.
 - **`bash scripts/ci.sh` is parallel-safe:** each worktree gets its own databases, e2e port and superadmin, dropped at the end. Run it (or a full e2e run) only when told to.
@@ -66,7 +66,7 @@ One-time setup: `pnpm install`, `cp .env.example .env`, `pnpm exec playwright in
 - **Migrations:** check the latest number on `origin/main` (`apps/server/src/infra/db/migrations/`) before generating. After a rebase brings in the same number, delete yours (SQL, `meta/` snapshot, journal entry) and run `db:generate` again.
 - **Locales:** after a rebase, every new key must exist in all nine languages (the locale tests fail otherwise).
 - **Leftover worktrees:** once your branch is pushed and its PR merged (or superseded by a rebased push), remove your worktree: `/usr/bin/git worktree remove <path>` (never `--force`: a refusal means uncommitted work, look first), then `git worktree prune`. Keep only the main checkout and the CI/deploy worktrees. Not while a `ci.sh` runs: mass removal slows the disk.
-- **Leftover databases** (aborted runs, old branches) slow Postgres down; drop them with `docker exec spolu-postgres-1 psql -U spolu -d postgres -c "drop database if exists <name>"` (there is no local `psql`).
+- **Leftover databases** (aborted runs, old branches) slow Postgres down; drop them with `docker exec spolu-postgres-1 psql -U spolu -d postgres -c "drop database if exists <name>"` (there is no local `psql`). The `spolu_tpl_*` EXPLAIN templates are reused by every run and prune themselves; to drop one by hand, `alter database <name> is_template false` first.
 - RTK rewrites command output, Vitest's too; `rtk proxy <cmd>` gives the raw output.
 
 ## Where things live
