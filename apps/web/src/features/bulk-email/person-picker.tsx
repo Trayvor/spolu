@@ -39,7 +39,7 @@ export function PersonPicker({
     <div className="flex flex-col gap-2">
       <Label htmlFor={inputId}>{label}</Label>
       {ids.length > 0 && (
-        <ul className="flex flex-wrap gap-2" aria-label={label}>
+        <ul role="list" className="flex flex-wrap gap-2" aria-label={label}>
           {ids.map((id) => {
             const person = known.get(id);
             const name = person?.name || person?.email || t('bulkEmail.picker.unknown');
@@ -77,7 +77,10 @@ export function PersonPicker({
         <p className="text-micro text-muted-foreground">{t('bulkEmail.picker.none')}</p>
       )}
       {searching && offered.length > 0 && (
-        <ul className="flex max-h-[240px] flex-col overflow-y-auto rounded-md border-2 border-border bg-card">
+        <ul
+          role="list"
+          className="flex max-h-[240px] flex-col overflow-y-auto rounded-md border-2 border-border bg-card"
+        >
           {offered.map((person) => (
             <li
               key={person.id}

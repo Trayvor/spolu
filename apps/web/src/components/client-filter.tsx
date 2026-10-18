@@ -251,6 +251,7 @@ export function ClientFilter({
       )}
       {chips.length > 0 && (
         <ul
+          role="list"
           aria-label={t('knowledge.clientFilter.chosen')}
           className="order-last flex basis-full flex-wrap gap-2"
         >

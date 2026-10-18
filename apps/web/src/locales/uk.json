@@ -1,7 +1,8 @@
 {
   "app": {
     "name": "Help",
-    "fullName": "Help by eGrant"
+    "fullName": "Help by eGrant",
+    "skipToContent": "Перейти до вмісту"
   },
   "nav": {
     "home": "Головна",

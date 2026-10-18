@@ -156,7 +156,7 @@ export function ReminderPanel({
       </h3>
       {intro}
 
-      <ul className="flex flex-col gap-2">
+      <ul role="list" className="flex flex-col gap-2">
         {upcoming.map((time) => {
           const tag = timeTag?.(time.at) ?? null;
           return (

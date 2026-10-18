@@ -78,7 +78,7 @@ export function TicketList({
     body = (
       <div className="flex flex-col items-center gap-4">
         <Card className="w-full gap-0 overflow-hidden py-0">
-          <ul className="divide-y divide-border">
+          <ul role="list" className="divide-y divide-border">
             {items.map((item) => (
               <TicketRow key={item.id} item={item} showClient={showClient} />
             ))}

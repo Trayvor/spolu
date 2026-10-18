@@ -92,7 +92,7 @@ export function SharesField({
   return (
     <fieldset className="flex flex-col gap-3" aria-describedby={`${uid}-status`}>
       <legend className="mb-1 text-button font-semibold">{k('title')}</legend>
-      <ul className="flex flex-col gap-2">
+      <ul role="list" className="flex flex-col gap-2">
         {rows.map((row, index) => {
           const taken = new Set(rows.filter((r) => r.key !== row.key).map((r) => r.groupId));
           return (

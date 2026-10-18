@@ -142,7 +142,7 @@ function BlockItems({
   const { root, problems, serverProblems, dispatch } = props;
   const full = countBlocks(root) >= BULK_LIMITS.blocks;
   return (
-    <ol className="flex flex-col gap-3" aria-label={label}>
+    <ol role="list" className="flex flex-col gap-3" aria-label={label}>
       {list.map((block, index) => {
         const n = index + 1;
         const type = t(`bulkEmail.blocks.types.${block.type}`);

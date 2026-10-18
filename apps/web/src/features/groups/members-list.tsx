@@ -74,7 +74,7 @@ export function MembersList({ groupId, admin }: { groupId: string; admin: boolea
       )}
       {members && members.length + invited.length > 0 && (
         <Card className="gap-0 py-2">
-          <ul aria-labelledby={titleId}>
+          <ul role="list" aria-labelledby={titleId}>
             {invited.map((person) => (
               <InvitedRow
                 key={person.id}
@@ -210,7 +210,7 @@ function RemovedMembers({ groupId }: { groupId: string }) {
         {t('group.members.removedTitle', { count: removed.length })}
       </summary>
       <Card className="mt-2 gap-0 py-2">
-        <ul>
+        <ul role="list">
           {removed.map((member) => (
             <li key={member.id} className={ROW}>
               <Who member={member} />

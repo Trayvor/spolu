@@ -318,7 +318,7 @@ export function TicketFields({ ticket, editable }: { ticket: TicketDto; editable
         )}
         {ticket.files.length > 0 && (
           <Row label={t('tickets.fields.files')}>
-            <ul className="flex flex-col gap-2">
+            <ul role="list" className="flex flex-col gap-2">
               {ticket.files.map((file) => (
                 <li key={file.id}>
                   <ImagePreview file={file} maxWidth={240} />

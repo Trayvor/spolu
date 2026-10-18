@@ -52,6 +52,9 @@
 }
 
 :root {
+  /* No dark theme: tell native controls (select, dialog, date inputs) to stay light too. */
+  color-scheme: light;
+
   /* shadcn/ui semantic colors */
   --background: #f5f3f1; /* egrant "base" — page background */
   --foreground: #141414; /* egrant "ink" — text */
@@ -82,6 +85,7 @@
   --success: #007a37; /* egrant "green" */
   --success-light: #52c083;
   --brand-purple: #7654ff;
+  --brand-purple-ink: #6542f0; /* purple as TEXT: 5.3:1 on base, 5.1:1 on purple/10 (brand-purple is 4.2:1) */
   --brand-pink: #eb5ed4;
   --brand-blue: #3242dc;
   --brand-coral: #ff8a4c;
@@ -101,7 +105,7 @@
   --font-family-base:
     'Saans', 'Help Cyrillic', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-sans: var(--font-family-base); /* shadcn name; same stack */
-  --type-nano: 0.7rem; /* 11.2px */
+  --type-nano: 0.75rem; /* 12px — the floor for any text, counts included */
   --type-micro: 0.8rem; /* 12.8px — field labels, captions */
   --type-tiny: 0.875rem; /* 14px — header buttons, pills */
   --type-button: 0.9rem; /* 14.4px — buttons, input text */
@@ -159,6 +163,7 @@
   --color-success: var(--success);
   --color-success-light: var(--success-light);
   --color-brand-purple: var(--brand-purple);
+  --color-brand-purple-ink: var(--brand-purple-ink);
   --color-brand-pink: var(--brand-pink);
   --color-brand-blue: var(--brand-blue);
   --color-brand-coral: var(--brand-coral);

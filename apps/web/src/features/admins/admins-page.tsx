@@ -63,7 +63,7 @@ export function AdminsPage() {
       )}
       {admins && (
         <Card className="gap-0 py-2">
-          <ul>
+          <ul role="list">
             {admins.map((admin) => (
               <AdminRow
                 key={admin.id}

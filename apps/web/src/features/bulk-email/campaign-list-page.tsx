@@ -67,7 +67,7 @@ export function CampaignListPage() {
       )}
       {items.length > 0 && (
         <Card className="gap-0 py-0">
-          <ul>
+          <ul role="list">
             {items.map((item) => (
               <CampaignRow key={item.id} item={item} />
             ))}

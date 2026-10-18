@@ -227,7 +227,7 @@ function AdminLines({ admins }: { admins: readonly AdminTime[] }) {
   const { t } = useTranslation();
   const f = useFinanceFormat();
   return (
-    <ul className="flex flex-col gap-1 text-tiny">
+    <ul role="list" className="flex flex-col gap-1 text-tiny">
       {admins.map((a) => (
         <li key={a.userId} className="flex items-baseline justify-between gap-3 tabular-nums">
           <span className="truncate font-semibold">{a.name}</span>
@@ -337,7 +337,7 @@ function DayBlock({
   return (
     <div className="flex flex-col gap-1">
       <h4 className="text-micro font-semibold text-muted-foreground">{f.day(day)}</h4>
-      <ul className="flex flex-col">
+      <ul role="list" className="flex flex-col">
         {items.map((item) =>
           item.kind === 'entry' ? (
             <EntryRow key={item.entry.id} entry={item.entry} onEdit={onEdit} view={view} />
@@ -352,7 +352,7 @@ function DayBlock({
                   #{item.ticket.number} {item.ticket.title}
                 </Link>
               </p>
-              <ul className="flex flex-col border-l-2 border-border pl-3">
+              <ul role="list" className="flex flex-col border-l-2 border-border pl-3">
                 {[...item.own, ...item.tasks].map((entry) => (
                   <EntryRow
                     key={entry.id}

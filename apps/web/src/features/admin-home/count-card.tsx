@@ -150,7 +150,7 @@ export function CardList({
   if (rows.length === 0) return <p className="py-2 text-button text-muted-foreground">{empty}</p>;
   return (
     <div className="flex flex-col">
-      <ul className="flex flex-col">
+      <ul role="list" className="flex flex-col">
         {rows.map((row) => (
           <li key={row.key} className="relative border-b border-border last:border-b-0">
             <RowAction

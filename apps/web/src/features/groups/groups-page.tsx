@@ -164,7 +164,7 @@ export function GroupsPage() {
       {shown.length > 0 && (
         <div className="flex flex-col gap-2">
           <Card className="gap-0 py-2">
-            <ul>
+            <ul role="list">
               {visible.map((group) => (
                 <GroupRow
                   key={group.id}

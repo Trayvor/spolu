@@ -85,7 +85,7 @@ function NewMessagesLine() {
   return (
     <div
       data-new-messages=""
-      className="flex items-center gap-3 px-4 pt-3 text-micro font-semibold text-brand-purple"
+      className="flex items-center gap-3 px-4 pt-3 text-micro font-semibold text-brand-purple-ink"
     >
       <span className="h-px flex-1 bg-brand-purple" />
       <span>{t('chat.newMessages')}</span>

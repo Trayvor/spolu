@@ -62,7 +62,7 @@ export function Avatar({
         avatarTextColor(userId),
         className,
       )}
-      style={{ width: size, height: size, fontSize: size * 0.4 }}
+      style={{ width: size, height: size, fontSize: Math.max(10, size * 0.4) }}
     >
       {initialsOf(name)}
     </span>

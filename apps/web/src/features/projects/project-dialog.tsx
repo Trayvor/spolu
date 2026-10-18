@@ -243,7 +243,7 @@ export function ProjectDialog({
           <div className={FIELD}>
             <span className="text-button font-semibold">{k('aliases')}</span>
             <p className="text-tiny text-muted-foreground">{k('aliasesHint')}</p>
-            <ul className="flex flex-wrap gap-2">
+            <ul role="list" className="flex flex-wrap gap-2">
               {aliases.map((alias) => (
                 <li
                   key={alias}

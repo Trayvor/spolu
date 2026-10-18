@@ -18,7 +18,7 @@ function Chip({
 }) {
   return (
     <li className="flex max-w-full items-center gap-2 rounded-lg bg-secondary py-1 pl-3 pr-1 text-button text-secondary-foreground">
-      <span className="shrink-0 font-semibold text-brand-purple">{mark}</span>
+      <span className="shrink-0 font-semibold text-brand-purple-ink">{mark}</span>
       <span title={label} className="min-w-0 truncate font-semibold">
         {label}
       </span>
@@ -86,7 +86,7 @@ export function PickedChips({
   ];
   if (chips.length === 0) return null;
   return (
-    <ul className="flex flex-wrap gap-2" aria-label={t('chat.work.attached')}>
+    <ul role="list" className="flex flex-wrap gap-2" aria-label={t('chat.work.attached')}>
       {chips}
     </ul>
   );

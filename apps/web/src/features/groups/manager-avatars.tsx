@@ -112,7 +112,7 @@ export function ManagerAvatars({
               aria-label={managers.map((m) => m.name).join(', ')}
               className="z-50 max-w-[240px] origin-(--radix-tooltip-content-transform-origin) animate-fade-in rounded-lg bg-primary px-3 py-2 text-micro text-primary-foreground shadow-lift"
             >
-              <ul data-manager-tooltip="" aria-hidden="true">
+              <ul role="list" data-manager-tooltip="" aria-hidden="true">
                 {managers.map((manager) => (
                   <li key={manager.id} className="truncate">
                     {manager.name}
@@ -123,7 +123,7 @@ export function ManagerAvatars({
           </Tooltip.Portal>
         </Tooltip.Root>
       </Tooltip.Provider>
-      <ul aria-label={label} className="sr-only">
+      <ul role="list" aria-label={label} className="sr-only">
         {managers.map((manager) => (
           <li key={manager.id}>{manager.name}</li>
         ))}

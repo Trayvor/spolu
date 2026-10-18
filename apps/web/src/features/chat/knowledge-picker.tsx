@@ -156,7 +156,7 @@ export function KnowledgePickList({
         placeholder={t('chat.knowledge.search')}
         aria-label={t('chat.knowledge.search')}
       />
-      <ul className="-mx-2 min-h-0 flex-1 overflow-y-auto" aria-busy={query.isPending}>
+      <ul role="list" className="-mx-2 min-h-0 flex-1 overflow-y-auto" aria-busy={query.isPending}>
         {items.map((item) => {
           const on = isChosen(item.id);
           const Glyph = KNOWLEDGE_ICONS[item.type] ?? NoteIcon;
@@ -175,7 +175,7 @@ export function KnowledgePickList({
                   onChange={() => toggle(item)}
                   className="size-4 shrink-0 accent-brand-purple"
                 />
-                <span aria-hidden="true" className="shrink-0 text-brand-purple">
+                <span aria-hidden="true" className="shrink-0 text-brand-purple-ink">
                   <Glyph />
                 </span>
                 <span className="flex min-w-0 flex-col">

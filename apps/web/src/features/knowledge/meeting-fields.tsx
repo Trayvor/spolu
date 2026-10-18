@@ -177,7 +177,7 @@ export function MeetingTranscriptField({
         aria-invalid={!!message || undefined}
         aria-describedby={message ? `${uid}-error` : `${uid}-hint`}
         onChange={(event) => onChange(event.target.value)}
-        className="min-h-32 w-full rounded-md border-2 border-input bg-card px-[18px] py-[13px] text-button text-foreground focus:border-foreground focus:outline-none"
+        className="min-h-32 w-full rounded-md border-2 border-input bg-card px-[18px] py-[13px] text-button text-foreground focus:border-foreground"
       />
       {message ? (
         <p id={`${uid}-error`} role="alert" className="text-tiny text-error-ink">

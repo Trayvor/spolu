@@ -192,7 +192,7 @@ function SolveDialog({ source, onClose }: { source: ClaudeSource; onClose: () =>
             {result.files.length > 0 && (
               <div className="flex flex-col gap-2 rounded-lg bg-muted p-4">
                 <p className="text-button font-semibold">{t('openInClaude.filesReminder')}</p>
-                <ul className="flex flex-col gap-1">
+                <ul role="list" className="flex flex-col gap-1">
                   {result.files.map((f) => (
                     <li key={f.id} className="min-w-0">
                       <a

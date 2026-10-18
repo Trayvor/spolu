@@ -74,11 +74,11 @@ function renderBlocks(blocks: Block[], labels: Labels): ReactNode[] {
           </li>
         ));
         return block.ordered ? (
-          <ol key={key} start={block.start} className={orderedListClass}>
+          <ol role="list" key={key} start={block.start} className={orderedListClass}>
             {items}
           </ol>
         ) : (
-          <ul key={key} className={bulletListClass}>
+          <ul role="list" key={key} className={bulletListClass}>
             {items}
           </ul>
         );

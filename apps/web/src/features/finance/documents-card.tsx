@@ -203,7 +203,7 @@ export function DocumentsCard({
     );
   } else {
     body = (
-      <ul className="flex flex-col" aria-label={t('finance.cards.documents')}>
+      <ul role="list" className="flex flex-col" aria-label={t('finance.cards.documents')}>
         {shownFolders.map((f) => (
           <FolderRow
             key={f.id}

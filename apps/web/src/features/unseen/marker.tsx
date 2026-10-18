@@ -160,7 +160,7 @@ function Marker({
             ) : texts.length === 0 ? (
               <p>{t('unseen.empty')}</p>
             ) : (
-              <ul>
+              <ul role="list">
                 {texts.map((text, index) => (
                   <li key={index}>{text}</li>
                 ))}

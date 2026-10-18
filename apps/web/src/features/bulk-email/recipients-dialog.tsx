@@ -36,7 +36,7 @@ export function RecipientsDialog({
         {people.isSuccess && items.length === 0 && (
           <p className="text-button text-muted-foreground">{t('bulkEmail.recipients.empty')}</p>
         )}
-        <ul>
+        <ul role="list">
           {items.map((person) => (
             <li
               key={person.id}

@@ -119,7 +119,7 @@ export default function DescriptionEditor({
     <div className="flex flex-col gap-2">
       <div
         className={cn(
-          'rounded-md border-2 border-input bg-card focus-within:border-foreground',
+          'rounded-md border-2 border-input bg-card focus-within:border-foreground focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ring',
           error && 'border-destructive',
         )}
         data-testid={`${id}-editor`}
@@ -182,7 +182,7 @@ export default function DescriptionEditor({
         />
       </div>
       {items.length > 0 && (
-        <ul className="flex flex-wrap gap-2" aria-label={t('chat.knowledge.attached')}>
+        <ul role="list" className="flex flex-wrap gap-2" aria-label={t('chat.knowledge.attached')}>
           {items.map((k) => {
             const title = k.available ? k.title : t('chat.knowledge.unavailable');
             return (
@@ -195,7 +195,7 @@ export default function DescriptionEditor({
                     : 'border-2 border-dashed border-border text-muted-foreground',
                 )}
               >
-                <span className="shrink-0 text-brand-purple">
+                <span className="shrink-0 text-brand-purple-ink">
                   <BookIcon />
                 </span>
                 <span title={title} className="min-w-0 truncate font-semibold">

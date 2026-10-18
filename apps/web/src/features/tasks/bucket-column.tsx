@@ -386,6 +386,7 @@ export function BucketColumn({
       )}
 
       <ul
+        role="list"
         ref={setListRef}
         // py-1.5 leaves room for the drop line above the first and below the last card.
         className="-my-1.5 flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto py-1.5"

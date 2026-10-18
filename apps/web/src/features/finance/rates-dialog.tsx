@@ -47,7 +47,7 @@ export function RatesDialog({ view, onClose }: { view: FinanceView; onClose: () 
             </Button>
           </div>
         ) : (
-          <ul className="flex flex-col divide-y-2 divide-border">
+          <ul role="list" className="flex flex-col divide-y-2 divide-border">
             {query.data.admins.map((admin) => (
               <AdminRates key={admin.userId} admin={admin} view={view} />
             ))}
@@ -184,7 +184,7 @@ function AdminRates({ admin, view }: { admin: RatesDto['admins'][number]; view: 
           <summary className="cursor-pointer text-tiny text-muted-foreground">
             {t('financeLog.ratesDialog.history', { count: admin.history.length })}
           </summary>
-          <ul className="flex flex-col gap-1 pt-2 text-tiny">
+          <ul role="list" className="flex flex-col gap-1 pt-2 text-tiny">
             {admin.history.map((rate) => (
               <li key={rate.id} className="flex flex-wrap items-center gap-x-3">
                 <span className="w-28 shrink-0">

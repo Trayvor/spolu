@@ -219,7 +219,7 @@ export function RichTextEditor({
   return (
     <div
       className={cn(
-        'flex flex-col overflow-hidden rounded-md border-2 border-input bg-card transition-colors duration-(--duration-fast) focus-within:border-foreground',
+        'flex flex-col overflow-hidden rounded-md border-2 border-input bg-card transition-colors duration-(--duration-fast) focus-within:border-foreground focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ring',
         invalid && 'border-destructive',
       )}
     >
