@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Link, useLocation, useParams, useRouter } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import type { Me, TicketDto } from '@spolu/shared';
+import { MessageSkeletons, Skeleton } from '@/components/ui/skeleton';
 import { clientGroups, isAdmin } from '@/features/auth/roles';
 import { useSession } from '@/features/auth/use-session';
 import { ApiError } from '@/lib/api';
@@ -56,7 +57,7 @@ export function TicketPage({ ticketId }: { ticketId: string }) {
   // Moved out of the viewer's reach while open: never keep showing the old ticket.
   if (error instanceof ApiError && error.status === 404) return <NotFoundPage />;
   const ticket = cached;
-  if (!ticket || !me) return null;
+  if (!ticket || !me) return <TicketPageSkeleton label={t('tickets.list.loading')} />;
 
   const admin = isAdmin(me);
   const readsGroup =
@@ -97,6 +98,19 @@ export function TicketPage({ ticketId }: { ticketId: string }) {
         ) : (
           ticket.groupId === null && <NoClient admin={admin} />
         )}
+      </div>
+    </div>
+  );
+}
+
+/** The ticket page's shape in grey (title, summary, chat rows) while the ticket loads. */
+function TicketPageSkeleton({ label }: { label: string }) {
+  return (
+    <div role="status" aria-busy="true" aria-label={label} className="flex flex-1 flex-col gap-3">
+      <Skeleton className="h-6 w-2/3 bg-secondary" />
+      <Skeleton className="h-12 w-full rounded-xl bg-card" />
+      <div className="rounded-xl bg-card py-3">
+        <MessageSkeletons rows={3} />
       </div>
     </div>
   );

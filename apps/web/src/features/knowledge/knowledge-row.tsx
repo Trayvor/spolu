@@ -24,10 +24,9 @@ import {
 } from './icons';
 
 /** The URL without its protocol and a leading `www.`. */
-export const displayUrl = (url: string): string =>
-  url.replace(/^https?:\/\//i, '').replace(/^www\./i, '');
+const displayUrl = (url: string): string => url.replace(/^https?:\/\//i, '').replace(/^www\./i, '');
 
-export const linkClass = 'pointer-events-auto font-semibold underline hover:text-neutral';
+const linkClass = 'pointer-events-auto font-semibold underline hover:text-neutral';
 
 const TILE_ICONS = {
   note: NoteIcon,
@@ -37,7 +36,7 @@ const TILE_ICONS = {
   chat_file: ChatFileIcon,
 } as const;
 
-export const overlayClass =
+const overlayClass =
   'absolute inset-0 cursor-pointer focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring';
 
 /** The leading tile of a row or card: a dated reminder's or meeting's leaf, else the type icon. */
@@ -74,7 +73,7 @@ export function Tile({ item, done }: { item: KnowledgeSummary; done: boolean }) 
 }
 
 /** Whether a meeting's recording or AI run is still in progress. */
-export const isMeetingBusy = (item: KnowledgeSummary): boolean =>
+const isMeetingBusy = (item: KnowledgeSummary): boolean =>
   item.meeting?.recording === 'processing' ||
   (item.meeting !== null &&
     item.meeting !== undefined &&

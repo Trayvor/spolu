@@ -36,7 +36,7 @@ import { newShareRow, SharesField, type ShareRow } from './shares-field';
  * Who a new item made on `/finance` belongs to (Phase 32 E, decision E13): the organisation,
  * one client (made as in its tab) or, for a contract, several clients with shares.
  */
-export type OwnerChoice = 'org' | 'client' | 'shared';
+type OwnerChoice = 'org' | 'client' | 'shared';
 
 /** The form's values; amounts are the text as typed (`parseMoney` reads them on save). */
 export type ItemFormValue = {
@@ -336,13 +336,13 @@ export function toPatch(item: FinanceItemDetail, value: ItemFormValue): FinanceI
 }
 
 /** A new contract's proposed reminder rows for its end date (none when it has passed). */
-export function proposedTimes(endsOn: string, now = new Date()): ReminderTimeValue[] {
+function proposedTimes(endsOn: string, now = new Date()): ReminderTimeValue[] {
   const proposal = proposedReminder(endsOn, now);
   return proposal ? [{ key: newRowKey(), ...proposal, firedAt: null }] : [];
 }
 
 /** A new expense's proposed reminder rows: the day before its date (Phase 32 E). */
-export function proposedExpenseTimes(spentOn: string, now = new Date()): ReminderTimeValue[] {
+function proposedExpenseTimes(spentOn: string, now = new Date()): ReminderTimeValue[] {
   const proposal = proposedExpenseReminder(spentOn, now);
   return proposal ? [{ key: newRowKey(), ...proposal, firedAt: null }] : [];
 }

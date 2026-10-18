@@ -88,7 +88,7 @@ export async function loadNamespace(name: string): Promise<void> {
   await Promise.all([...languages].map((lang) => loadFor(name, lang)));
 }
 
-export async function loadNamespaces(names: readonly string[]): Promise<void> {
+async function loadNamespaces(names: readonly string[]): Promise<void> {
   await Promise.all(names.map(loadNamespace));
 }
 

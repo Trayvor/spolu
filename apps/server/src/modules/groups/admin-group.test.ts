@@ -30,7 +30,6 @@ import {
   findGroupByEgrantUrl,
   getGroup,
   getGroupPeopleRoles,
-  isPickablePerson,
   listPickablePeople,
 } from './service.js';
 
@@ -334,7 +333,6 @@ describe('the admin group', () => {
       const ids = people.map((p: GroupPerson) => p.id);
       expect(ids).toEqual(expect.arrayContaining([a.id, b.id]));
       expect(people.every((p) => p.isAdmin)).toBe(true);
-      expect(await isPickablePerson(test.deps.db, adminGroup, a.id)).toBe(true);
       const roles = await getGroupPeopleRoles(test.deps.db, adminGroup, [a.id, b.id]);
       expect(roles.get(a.id)).toEqual({ isAdmin: true, isManager: true });
       // People: everyone pickable, in the API too.
@@ -348,10 +346,12 @@ describe('the admin group', () => {
       const g = await newGroup();
       const client = await memberIn(g.id);
       await addManager(test.deps.db, g.id, a.id);
-      expect(await isPickablePerson(test.deps.db, g.id, a.id)).toBe(true);
-      expect(await isPickablePerson(test.deps.db, g.id, b.id)).toBe(false);
-      expect(await isPickablePerson(test.deps.db, g.id, client.id)).toBe(true);
-      expect(await isPickablePerson(test.deps.db, adminGroup, client.id)).toBe(false);
+      const pickableIn = async (groupId: string) =>
+        (await listPickablePeople(test.deps.db, groupId)).map((p) => p.id);
+      const inClientGroup = await pickableIn(g.id);
+      expect(inClientGroup).toEqual(expect.arrayContaining([a.id, client.id]));
+      expect(inClientGroup).not.toContain(b.id);
+      expect(await pickableIn(adminGroup)).not.toContain(client.id);
       const roles = await getGroupPeopleRoles(test.deps.db, g.id, [b.id]);
       expect(roles.get(b.id)).toEqual({ isAdmin: true, isManager: false });
     });

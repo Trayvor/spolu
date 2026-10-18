@@ -10,12 +10,12 @@ import { buckets, taskAssignees, tasks } from './schema.js';
 export type AttachableTaskCard = Extract<MessageAttachedTask, { available: true }>;
 
 /** Assignees on a card; the task panel shows the rest. */
-export const CARD_ASSIGNEES = 3;
+const CARD_ASSIGNEES = 3;
 
 // Deliberate read-only exception to "no other module's tables" (like `selectTasks`): the
 // assignees' names come from a join on `user` inside the one query.
 /** The select shared by the cards and the picker's search: one row per task, assignees inline. */
-export const taskCardColumns = {
+const taskCardColumns = {
   id: tasks.id,
   groupId: tasks.groupId,
   title: tasks.title,
@@ -36,7 +36,7 @@ export const taskCardColumns = {
   ), '[]'::json)`,
 };
 
-export type TaskCardRow = {
+type TaskCardRow = {
   id: string;
   groupId: string;
   title: string;
@@ -48,7 +48,7 @@ export type TaskCardRow = {
   assignees: { id: string; name: string }[];
 };
 
-export const toTaskCard = (row: TaskCardRow): AttachableTaskCard => ({
+const toTaskCard = (row: TaskCardRow): AttachableTaskCard => ({
   id: row.id,
   available: true,
   groupId: row.groupId,

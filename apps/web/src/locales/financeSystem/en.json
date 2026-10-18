@@ -1,6 +1,4 @@
 {
-  "clients": "Clients",
-  "allClients": "All clients",
   "noClient": "Without client",
   "rates": "Hourly rates",
   "loadFailed": "This list did not load.",

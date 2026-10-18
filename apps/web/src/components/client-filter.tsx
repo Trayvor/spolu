@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { SheetDialog, SheetDialogTitle } from '@/components/ui/sheet-dialog';
 import { useMediaQuery } from '@/lib/use-media-query';
+import { POPOVER } from '@/components/ui/popover';
 
 /** `internal`: the admin group "eGrant tím" (Phase 34), the option at the top. */
 export type ClientOption = { id: string; name: string; logoUrl: string | null; internal?: boolean };
@@ -228,7 +229,7 @@ export function ClientFilter({
               align="start"
               sideOffset={8}
               aria-label={t('knowledge.clientFilter.title')}
-              className="z-50 flex max-h-[min(520px,var(--radix-popover-content-available-height))] w-[360px] max-w-[calc(100vw-24px)] origin-(--radix-popover-content-transform-origin) flex-col rounded-xl bg-popover p-2 text-popover-foreground shadow-lift outline-none data-[state=closed]:animate-menu-out data-[state=open]:animate-menu-in"
+              className={`z-50 flex max-h-[min(520px,var(--radix-popover-content-available-height))] w-[360px] max-w-[calc(100vw-24px)] origin-(--radix-popover-content-transform-origin) flex-col p-2 outline-none data-[state=closed]:animate-menu-out data-[state=open]:animate-menu-in ${POPOVER}`}
             >
               {panel}
             </Popover.Content>

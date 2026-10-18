@@ -2,7 +2,7 @@ import type { KnowledgeType } from '@spolu/shared';
 
 // Spelled out instead of importing `KnowledgeTypes`: this module is eager (the router), and the
 // shared knowledge module would bring its zod schemas into the entry chunk. Same order as there.
-export const KNOWLEDGE_TYPES = [
+const KNOWLEDGE_TYPES = [
   'note',
   'file',
   'link',

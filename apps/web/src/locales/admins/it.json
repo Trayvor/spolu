@@ -20,6 +20,9 @@
   "finance": {
     "label": "Finanze",
     "labelFor": "Accesso alle finanze: {{name}}",
-    "failed": "Impossibile modificarlo. Riprovare."
-  }
+    "failed": "Impossibile modificarlo. Riprovare.",
+    "granted": "Accesso alle finanze concesso: {{name}}.",
+    "revoked": "Accesso alle finanze rimosso: {{name}}."
+  },
+  "undo": "Annulla"
 }

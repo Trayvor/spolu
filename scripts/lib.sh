@@ -237,7 +237,7 @@ free_port() {
 
 # isolate_local_run: on a laptop (CI unset) give this ci.sh run its own database names, e2e port and
 # e2e superadmin address, so two runs from two worktrees can go at the same time. Sets:
-#   CI_RUN_ID, TEST_DATABASE_URL (spolu_test_ci_<id>, and <that>_explain next to it),
+#   CI_RUN_ID, TEST_DATABASE_URL (spolu_test_ci_<id>, and its <that>_explain_<volume> clones),
 #   E2E_DATABASE_URL (spolu_e2e_<id>), E2E_PORT, E2E_SUPERADMIN_EMAIL (Mailpit is shared; the
 #   address is what keeps one run from reading another's login code).
 # A value already set by the caller wins. Under CI (a fresh runner) nothing is changed.

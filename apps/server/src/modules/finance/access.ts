@@ -24,7 +24,7 @@ export function requireFinance(auth: Auth): preHandlerAsyncHookHandler {
 }
 
 /** The actor may not grant at all (403). */
-export class FinanceGrantForbiddenError extends Error {
+class FinanceGrantForbiddenError extends Error {
   constructor() {
     super('Only the superadmin grants the finance right');
     this.name = 'FinanceGrantForbiddenError';
@@ -32,7 +32,7 @@ export class FinanceGrantForbiddenError extends Error {
 }
 
 /** The target is no active admin: a client, an unknown id, a disabled admin, the superadmin (404). */
-export class FinanceTargetNotFoundError extends Error {
+class FinanceTargetNotFoundError extends Error {
   constructor() {
     super('No active admin with that id');
     this.name = 'FinanceTargetNotFoundError';
@@ -57,12 +57,12 @@ async function changeFinance(
 }
 
 /** Grants the right (idempotent). Throws `FinanceGrantForbiddenError` / `FinanceTargetNotFoundError`. */
-export function grantFinance(deps: AccessDeps, actor: SessionUser, targetId: string) {
+function grantFinance(deps: AccessDeps, actor: SessionUser, targetId: string) {
   return changeFinance(deps, actor, targetId, true);
 }
 
 /** Removes the right (idempotent). Same errors as `grantFinance`. */
-export function revokeFinance(deps: AccessDeps, actor: SessionUser, targetId: string) {
+function revokeFinance(deps: AccessDeps, actor: SessionUser, targetId: string) {
   return changeFinance(deps, actor, targetId, false);
 }
 

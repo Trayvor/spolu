@@ -85,7 +85,7 @@ function NameForm({ initial }: { initial: string }) {
           aria-describedby={status === 'idle' || status === 'busy' ? undefined : messageId}
           className="min-w-0 flex-1"
         />
-        <Button type="submit" variant="secondary" size="lg" disabled={status === 'busy'}>
+        <Button type="submit" size="lg" disabled={status === 'busy'}>
           {t('settings.profile.save')}
         </Button>
       </div>

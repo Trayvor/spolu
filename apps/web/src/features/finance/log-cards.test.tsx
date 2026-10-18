@@ -248,6 +248,38 @@ describe('finance part C cards', () => {
       expect(screen.queryByRole('button', { name: 'Show earlier' })).not.toBeInTheDocument();
     });
 
+    it('Delete asks inline under the row, never with window.confirm', async () => {
+      const confirm = vi.spyOn(window, 'confirm');
+      const page = logPage({
+        entries: [logEntry({ id: 'm1', note: 'Call with the client' })],
+        months: [logMonth('2026-10', 60)],
+      });
+      const calls = serve((url, init) => {
+        if (url === '/api/finance/time-entries/m1' && init?.method === 'DELETE') {
+          return { status: 204, body: null };
+        }
+        return url.includes('/work-log') ? { body: page } : undefined;
+      });
+      const { user } = renderIn(<WorkLogCard view={view} />);
+      const row = await screen.findByTestId('work-log-entry');
+      await user.click(within(row).getByRole('button', { name: 'Entry actions' }));
+      await user.click(await screen.findByRole('menuitem', { name: 'Delete' }));
+      const ask = within(row).getByRole('group', { name: 'Delete this entry?' });
+      // Cancel holds the focus, so Enter does not delete by accident.
+      expect(within(ask).getByRole('button', { name: 'Cancel' })).toHaveFocus();
+      await user.click(within(ask).getByRole('button', { name: 'Cancel' }));
+      expect(within(row).queryByRole('group')).toBeNull();
+
+      await user.click(within(row).getByRole('button', { name: 'Entry actions' }));
+      await user.click(await screen.findByRole('menuitem', { name: 'Delete' }));
+      await user.click(within(row).getByRole('button', { name: 'Delete' }));
+      await waitFor(() =>
+        expect(calls.some((c) => c.method === 'DELETE' && c.url.endsWith('/m1'))).toBe(true),
+      );
+      expect(confirm).not.toHaveBeenCalled();
+      confirm.mockRestore();
+    });
+
     it('has Hourly rates on a client’s tab, not on /finance (the page has its own)', async () => {
       serve((url) => (url.includes('/work-log') ? { body: logPage() } : undefined));
       renderIn(<WorkLogCard view={view} />);
@@ -347,6 +379,42 @@ describe('finance part C cards', () => {
         rateMinor: 5050,
         effectiveFrom: null,
       });
+    });
+
+    it('deletes a history rate after an inline confirmation', async () => {
+      const rate = {
+        id: 'r1',
+        userId: 'u1',
+        rateMinor: 4000,
+        currency: 'EUR',
+        effectiveFrom: null,
+        createdBy: 'a1',
+        createdByName: 'Fin',
+        createdAt: '2026-01-01T00:00:00Z',
+      } as const;
+      const rates: RatesDto = {
+        admins: [{ userId: 'u1', name: 'Eva', active: true, current: rate, history: [rate] }],
+      };
+      const calls = serve((url, init) => {
+        if (url === '/api/finance/rates/r1' && init?.method === 'DELETE') {
+          return { status: 204, body: null };
+        }
+        if (url === '/api/finance/rates') return { body: rates };
+        return undefined;
+      });
+      const { user } = renderIn(<RatesDialog view={view} onClose={() => undefined} />);
+      const [eva] = await screen.findAllByTestId('rate-row');
+      await user.click(within(eva!).getByText(/history/i));
+      await user.click(within(eva!).getByRole('button', { name: 'Delete' }));
+      const ask = within(eva!).getByRole('group', {
+        name: 'Delete this rate? The cost of the work it covered changes.',
+      });
+      await user.click(within(ask).getByRole('button', { name: 'Delete' }));
+      await waitFor(() =>
+        expect(calls.some((c) => c.method === 'DELETE' && c.url === '/api/finance/rates/r1')).toBe(
+          true,
+        ),
+      );
     });
   });
 

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter, type AnyRouter } from '@tanstack/react-router';
 
 /** The history state key of an open layer (sheet, dialog, menu). */
-export const LAYER = 'layer';
+const LAYER = 'layer';
 
 /** The longest wait for a step back to land before the next layer pushes anyway. */
 const SETTLE_MS = 1000;

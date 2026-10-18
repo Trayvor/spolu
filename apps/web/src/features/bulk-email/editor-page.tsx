@@ -66,7 +66,7 @@ function BackLink() {
  * `/bulk-email/$campaignId`: the editor for a draft; for a campaign that is sending, sent or
  * cancelled the report.
  */
-export function CampaignPage({ campaignId }: { campaignId: string }) {
+function CampaignPage({ campaignId }: { campaignId: string }) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const campaign = useQuery(campaignQuery(campaignId));
@@ -435,7 +435,7 @@ function DraftEditor({
                 >
                   {t('bulkEmail.editor.deleteYes')}
                 </Button>
-                <Button type="button" variant="ghost" onClick={() => setConfirmDelete(false)}>
+                <Button type="button" variant="outline" onClick={() => setConfirmDelete(false)}>
                   {t('bulkEmail.editor.cancel')}
                 </Button>
               </div>

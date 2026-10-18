@@ -100,13 +100,17 @@ describe('jobs', () => {
     let running = 0;
     let peak = 0;
     let done = 0;
+    // A barrier instead of a sleep: the jobs overlap whenever the sends reach the workers apart.
+    let openBarrier!: () => void;
+    const barrier = new Promise<void>((resolve) => (openBarrier = resolve));
     const jobs = await startJobs(
       testDatabaseUrl,
       {
         [name]: async () => {
           running++;
           peak = Math.max(peak, running);
-          await new Promise((r) => setTimeout(r, 300));
+          if (running > 1) openBarrier();
+          await Promise.race([barrier, new Promise((r) => setTimeout(r, 10_000))]);
           running--;
           done++;
         },

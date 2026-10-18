@@ -10,8 +10,13 @@
 
 export type Highlight = { hover: string | null; active: string | null };
 
-/** The brand purple of the email palette: the one colour that ties a card to its block. */
-const OUTLINE = '#7654FF';
+/**
+ * The brand purple (`--brand-purple` in theme.css): the one colour that ties a card to its
+ * block. Read from the app's root, since the preview iframe does not load the app's CSS; the
+ * fallback is the same value, for a document without the theme (tests).
+ */
+const outlineColor = () =>
+  getComputedStyle(document.documentElement).getPropertyValue('--brand-purple').trim() || '#7654FF';
 
 const stateOf = (id: string | null, h: Highlight): 'active' | 'hover' | null =>
   id === null ? null : id === h.active ? 'active' : id === h.hover ? 'hover' : null;
@@ -31,10 +36,11 @@ export function markBuilder(root: ParentNode, h: Highlight): void {
  * own stylesheet, so its media rules stay exactly as sent.
  */
 export function markPreview(doc: Document, h: Highlight): void {
+  const color = outlineColor();
   for (const el of doc.querySelectorAll<HTMLElement>('[data-sp-block]')) {
     const state = stateOf(el.getAttribute('data-sp-block'), h);
     if (state) {
-      el.style.outline = `2px ${state === 'active' ? 'solid' : 'dashed'} ${OUTLINE}`;
+      el.style.outline = `2px ${state === 'active' ? 'solid' : 'dashed'} ${color}`;
       el.style.outlineOffset = '4px';
       el.style.borderRadius = '4px';
     } else if (el.style.outline) {
@@ -46,7 +52,7 @@ export function markPreview(doc: Document, h: Highlight): void {
 }
 
 /** Scrolls the preview (its own window, never the page) so the shown copy of `id` is in view. */
-export function revealInPreview(doc: Document, id: string): void {
+function revealInPreview(doc: Document, id: string): void {
   const win = doc.defaultView;
   if (!win) return;
   const el = [...doc.querySelectorAll<HTMLElement>('[data-sp-block]')].find(

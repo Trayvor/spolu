@@ -35,11 +35,11 @@ export type PromptInput = {
 };
 
 /** Each message is cut to this many characters. */
-export const PROMPT_MESSAGE_MAX = 1500;
+const PROMPT_MESSAGE_MAX = 1500;
 /** The ticket's text or the task's description is cut to this many characters. */
-export const PROMPT_TEXT_MAX = 6000;
+const PROMPT_TEXT_MAX = 6000;
 /** At most this many file names are listed. */
-export const PROMPT_FILES_MAX = 50;
+const PROMPT_FILES_MAX = 50;
 /** The admin's notes (the request allows `CLAUDE_NOTES_MAX`; this guards direct callers). */
 const PROMPT_NOTES_MAX = CLAUDE_NOTES_MAX;
 

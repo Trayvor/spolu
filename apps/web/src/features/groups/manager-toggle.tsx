@@ -17,6 +17,7 @@ import { notificationModesQuery } from '@/features/notifications/api';
 import { cn } from '@/lib/utils';
 import { becomeManager, groupsQuery, stopManaging } from './api';
 import { busyGroups } from './manager-busy';
+import { ErrorBubble } from '@/components/ui/error-bubble';
 
 const GROUPS = groupsQuery.queryKey;
 const MODES = notificationModesQuery.queryKey;
@@ -223,14 +224,7 @@ export function ManagerToggle({ group }: { group: GroupSummary }) {
         )}
         {managing ? t('groups.managers.managing') : t('groups.managers.manage')}
       </Button>
-      {error && (
-        <p
-          role="alert"
-          className="absolute top-full right-0 z-10 mt-2 w-max max-w-[240px] rounded-lg bg-card p-3 text-micro text-error-ink shadow-lift"
-        >
-          {t('groups.managers.error')}
-        </p>
-      )}
+      {error && <ErrorBubble>{t('groups.managers.error')}</ErrorBubble>}
       {toast && (
         <Toast key={toast.key} onClose={() => setToast(null)}>
           {toast.text.join(' ')}

@@ -1,0 +1,20 @@
+# 0040 The EXPLAIN volumes come from template databases, cloned per run
+
+Date: 2026-10-18
+Status: accepted
+
+## Context
+The three EXPLAIN files (`modules/home`, `projects`, `finance`) each seeded a large volume (up to 400 000 rows a table) with `generate_series` in a transaction that rolled back, on one fresh `<test database>_explain` database per run. The seeds were already set-based, so the SQL had nothing left to gain, yet the explain run took 46 to 105 s locally after the main suite, and 228 s on a loaded laptop on 2026-10-18 (review of 2026-10-18, finding T2). Every run paid the whole seeding again. A rolled-back seeding also leaves dead tuples and full GIN pending lists, which the planner prices in; that is why the files had to run one at a time and why a second seeding in the same database could hide a sequential scan (`architecture/performance.md`, "Test suite speed").
+
+## Decision
+- **One template database per volume**, named `spolu_tpl_<volume>_<hash>` (`apps/server/test/explain-templates.ts`). The hash is sha256 (10 hex) of every migration file, the volume's `test-volume.ts`, `explain-templates.ts` itself, the server's `server_version_num` and the day (UTC): the seeds place rows relative to `now()` and `current_date` (mentions of the last 90 days, contracts a year ahead), so a template is rebuilt once a day instead of drifting away from the checks' "today". Home and projects seed the same tables at different scales, so the volumes stay separate instead of one combined database.
+- **Built once, under an advisory lock on its name**: create `<name>_building`, migrate, seed in one committed transaction, `vacuum (analyze)` the tables the seed used to analyze (autovacuum is off on every table while it builds, so tables outside that list keep a fresh database's statistics and the plans stay what they were), then rename it to `<name>` and set `is_template true allow_connections false`. A parallel run waits on the lock and reuses the result; an aborted build is dropped and redone.
+- **Cloned per run** in the explain run's globalSetup (`test/setup-explain-db.ts`): `create database "<test database>_explain_<volume>" template ... strategy file_copy`, URLs passed to the tests with Vitest's `provide` / `inject` (`explainDatabaseUrls`). The tests no longer seed; their ids come from fixed prefixes (`homeVolumeIds`, `financeVolumeIds`) or one read of the clone (`projectVolumeIds`). The globalSetup's teardown drops the clones.
+- **Pruning**: each use stamps the template's comment (`used <ms>`); templates of the same volume with another hash, unused for a day, and leftover `_building` databases are dropped, each only when its lock is free. A day, not at once, because parallel worktrees with different migrations each need their own template.
+- **`scripts/ci.sh` drops the clones, never the templates**: they are what the next run reuses.
+
+## Consequences
+- The first run of a day or on a new hash builds the three templates in parallel: 38 to 74 s for the whole explain run on a loaded laptop (load average 15 to 25), where the old run took 228 s. GitHub's fresh runner always builds. Every later run clones them: 10 to 26 s on the same laptop, most of it the checks themselves.
+- A clone is a vacuumed, committed copy: no dead tuples, empty GIN pending lists and a set visibility map, as autovacuum leaves a production table. The explain files read separate databases, so they run in parallel again (`fileParallelism: false` is gone).
+- The templates stay on disk, about 690 MB for the three volumes per hash. Drop them by hand with `alter database ... is_template false` and then `drop database`; the old `spolu_test_*` cleanup in CLAUDE.md does not match them.
+- A seed change now only lands in a template through the hash. A seed that depends on another file (for example a helper it imports) must list that file in `VOLUMES` (`setup-explain-db.ts`), or a stale template will hide the change.

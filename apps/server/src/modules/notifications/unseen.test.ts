@@ -97,11 +97,6 @@ async function ticketMark(userId: string, ticketId: string): Promise<UnseenMark 
   return row!.mark;
 }
 
-const taskUnseen = async (userId: string, taskId: string) =>
-  (await taskMark(userId, taskId)) !== null;
-const ticketUnseen = async (userId: string, ticketId: string) =>
-  (await ticketMark(userId, ticketId)) !== null;
-
 async function setup() {
   const group = await newGroup(db, 'Unseen');
   const me = await newAdmin(db, 'Ada', [group.id]);
@@ -112,15 +107,15 @@ async function setup() {
 describe('unseen changes of a task', () => {
   it('a counted event makes it unseen until the user opens it; a later one again', async () => {
     const { group, me, task } = await setup();
-    expect(await taskUnseen(me.id, task)).toBe(false);
+    expect(await taskMark(me.id, task)).toBeNull();
     await taskEvent('task.moved', me.id, group.id, task);
-    expect(await taskUnseen(me.id, task)).toBe(true);
+    expect(await taskMark(me.id, task)).not.toBeNull();
     await markTaskSeen(db, me.id, task);
-    expect(await taskUnseen(me.id, task)).toBe(false);
+    expect(await taskMark(me.id, task)).toBeNull();
     await taskEvent('task.assigned', me.id, group.id, task);
-    expect(await taskUnseen(me.id, task)).toBe(true);
+    expect(await taskMark(me.id, task)).not.toBeNull();
     await markTaskSeen(db, me.id, task);
-    expect(await taskUnseen(me.id, task)).toBe(false);
+    expect(await taskMark(me.id, task)).toBeNull();
   });
 
   it('counts task.assigned, task.moved, task.deadline and the task chat kinds', async () => {
@@ -135,7 +130,7 @@ describe('unseen changes of a task', () => {
       const { group, me, task } = await setup();
       await setGroupMode(db, me.id, group.id, 'all');
       await taskEvent(kind, me.id, group.id, task);
-      expect({ kind, unseen: await taskUnseen(me.id, task) }).toEqual({ kind, unseen: true });
+      expect(await taskMark(me.id, task), kind).not.toBeNull();
     }
   });
 
@@ -146,7 +141,7 @@ describe('unseen changes of a task', () => {
     await taskEvent('reminder.due', me.id, group.id, task);
     await taskEvent('task.time_missing', me.id, group.id, task);
     await taskEvent('chat.message', me.id, group.id, null);
-    expect(await taskUnseen(me.id, task)).toBe(false);
+    expect(await taskMark(me.id, task)).toBeNull();
   });
 
   it("another user's events and another task's do not count", async () => {
@@ -155,9 +150,9 @@ describe('unseen changes of a task', () => {
     const second = await newTask(db, { groupId: group.id, createdBy: me.id });
     await taskEvent('task.moved', other.id, group.id, task);
     await taskEvent('task.moved', me.id, group.id, second);
-    expect(await taskUnseen(me.id, task)).toBe(false);
-    expect(await taskUnseen(me.id, second)).toBe(true);
-    expect(await taskUnseen(other.id, task)).toBe(true);
+    expect(await taskMark(me.id, task)).toBeNull();
+    expect(await taskMark(me.id, second)).not.toBeNull();
+    expect(await taskMark(other.id, task)).not.toBeNull();
   });
 
   it('a completed task still counts until opened', async () => {
@@ -169,21 +164,21 @@ describe('unseen changes of a task', () => {
       completedAt: new Date(),
     });
     await taskEvent('task.moved', me.id, group.id, done);
-    expect(await taskUnseen(me.id, done)).toBe(true);
+    expect(await taskMark(me.id, done)).not.toBeNull();
   });
 
   it('follows the mode: Off hides everything, Mentions and replies hides a plain message', async () => {
     const { group, me, task } = await setup();
     await setGroupMode(db, me.id, group.id, 'mentions');
     await taskEvent('chat.message', me.id, group.id, task);
-    expect(await taskUnseen(me.id, task)).toBe(false);
+    expect(await taskMark(me.id, task)).toBeNull();
     await setGroupMode(db, me.id, group.id, 'all');
-    expect(await taskUnseen(me.id, task)).toBe(true);
+    expect(await taskMark(me.id, task)).not.toBeNull();
     await setGroupMode(db, me.id, group.id, 'mentions');
     await taskEvent('task.moved', me.id, group.id, task);
-    expect(await taskUnseen(me.id, task)).toBe(true);
+    expect(await taskMark(me.id, task)).not.toBeNull();
     await setGroupMode(db, me.id, group.id, 'off');
-    expect(await taskUnseen(me.id, task)).toBe(false);
+    expect(await taskMark(me.id, task)).toBeNull();
   });
 
   it('Mentions and replies: a plain message adds no ring to a move, a mention does', async () => {
@@ -204,23 +199,23 @@ describe('unseen changes of a task', () => {
     const { group, me, task } = await setup();
     await taskEvent('task.moved', me.id, group.id, task);
     await setDefaultMode(db, me.id, 'off');
-    expect(await taskUnseen(me.id, task)).toBe(false);
+    expect(await taskMark(me.id, task)).toBeNull();
     await setGroupMode(db, me.id, group.id, 'mentions');
-    expect(await taskUnseen(me.id, task)).toBe(true);
+    expect(await taskMark(me.id, task)).not.toBeNull();
   });
 
   it('a tasks channel of None records nothing and hides what was recorded', async () => {
     const { group, me, task } = await setup();
     await taskEvent('task.moved', me.id, group.id, task);
     await setNotificationChannel(db, me.id, 'tasks', 'none');
-    expect(await taskUnseen(me.id, task)).toBe(false);
+    expect(await taskMark(me.id, task)).toBeNull();
     await setNotificationChannel(db, me.id, 'tasks', 'email');
-    expect(await taskUnseen(me.id, task)).toBe(true);
+    expect(await taskMark(me.id, task)).not.toBeNull();
     await markTaskSeen(db, me.id, task);
     await setNotificationChannel(db, me.id, 'tasks', 'none');
     await taskEvent('task.moved', me.id, group.id, task);
     await setNotificationChannel(db, me.id, 'tasks', 'email');
-    expect(await taskUnseen(me.id, task)).toBe(false);
+    expect(await taskMark(me.id, task)).toBeNull();
   });
 
   it('a message in the task chat marks it with a ring until seen; a later move a dot', async () => {
@@ -263,9 +258,9 @@ describe('unseen changes of a ticket', () => {
     ] as const) {
       const ticket = await newTicket(null);
       await ticketEvent(kind, me.id, null, ticket);
-      expect({ kind, unseen: await ticketUnseen(me.id, ticket) }).toEqual({ kind, unseen: true });
+      expect(await ticketMark(me.id, ticket), kind).not.toBeNull();
       await markTicketSeen(db, me.id, ticket);
-      expect({ kind, unseen: await ticketUnseen(me.id, ticket) }).toEqual({ kind, unseen: false });
+      expect(await ticketMark(me.id, ticket), kind).toBeNull();
     }
   });
 
@@ -288,9 +283,9 @@ describe('unseen changes of a ticket', () => {
     const ticket = await newTicket(group.id);
     await ticketEvent('ticket.status', me.id, group.id, ticket);
     await setGroupMode(db, me.id, group.id, 'off');
-    expect(await ticketUnseen(me.id, ticket)).toBe(true);
+    expect(await ticketMark(me.id, ticket)).not.toBeNull();
     await setNotificationChannel(db, me.id, 'tickets', 'none');
-    expect(await ticketUnseen(me.id, ticket)).toBe(false);
+    expect(await ticketMark(me.id, ticket)).toBeNull();
   });
 
   it('clearTicketUnseenForAdmins sees it for every active admin, later events count again', async () => {
@@ -300,11 +295,11 @@ describe('unseen changes of a ticket', () => {
     await ticketEvent('ticket.unassigned', a.id, null, ticket);
     await ticketEvent('ticket.unassigned', b.id, null, ticket);
     await clearTicketUnseenForAdmins(db, ticket);
-    expect(await ticketUnseen(a.id, ticket)).toBe(false);
-    expect(await ticketUnseen(b.id, ticket)).toBe(false);
+    expect(await ticketMark(a.id, ticket)).toBeNull();
+    expect(await ticketMark(b.id, ticket)).toBeNull();
     await ticketEvent('ticket.assigned', b.id, null, ticket);
-    expect(await ticketUnseen(b.id, ticket)).toBe(true);
-    expect(await ticketUnseen(a.id, ticket)).toBe(false);
+    expect(await ticketMark(b.id, ticket)).not.toBeNull();
+    expect(await ticketMark(a.id, ticket)).toBeNull();
   });
 });
 

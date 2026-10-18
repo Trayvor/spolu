@@ -54,7 +54,7 @@ export async function onSubjectProjectChanged(
  * runs it through `runProjectMergeHooks`): the client's entries and contracts of the merged
  * project name the survivor; event ids stay (the events move with their rows).
  */
-export async function onProjectMerged(tx: Db, merge: ProjectMerge): Promise<void> {
+async function onProjectMerged(tx: Db, merge: ProjectMerge): Promise<void> {
   await tx
     .update(entries)
     .set({ projectId: merge.intoProjectId })

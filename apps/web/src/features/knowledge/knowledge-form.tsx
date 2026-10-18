@@ -144,7 +144,7 @@ function meetingFormValue(item: KnowledgeItemDto): MeetingFormValue {
 const urlOrNull = (value: string) => (value.trim() === '' ? null : value.trim());
 
 /** The meeting's fields as the API takes them. */
-export function meetingInput(value: MeetingFormValue) {
+function meetingInput(value: MeetingFormValue) {
   return {
     startsAt: localToIso(value.date, value.time),
     meetingUrl: urlOrNull(value.meetingUrl),
@@ -287,10 +287,7 @@ const MIN_LEAD_MS = 60_000;
 const MAX_YEARS = 5;
 
 /** Errors per unfired time row, by index (fired times are never checked). */
-export function validateTimes(
-  times: ReminderTimeValue[],
-  now: Date = new Date(),
-): Record<number, string> {
+function validateTimes(times: ReminderTimeValue[], now: Date = new Date()): Record<number, string> {
   const errors: Record<number, string> = {};
   const latest = new Date(now);
   latest.setFullYear(latest.getFullYear() + MAX_YEARS);

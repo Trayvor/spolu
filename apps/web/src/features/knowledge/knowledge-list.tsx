@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { ListSkeleton } from '@/components/ui/skeleton';
 import { KnowledgeCard } from './knowledge-card';
 import { KnowledgeRow } from './knowledge-row';
 import type { KnowledgeView } from './view-toggle';
@@ -32,12 +33,14 @@ export function KnowledgeList({
   const items = query.data?.pages.flatMap((page) => page.items) ?? [];
   if (query.isPending) {
     return (
-      <Card
+      <div
         role="status"
         aria-busy="true"
-        className="h-24 w-full animate-skeleton bg-muted"
         aria-label={t('knowledge.list.loading')}
-      />
+        className="w-full"
+      >
+        <ListSkeleton rows={4} />
+      </div>
     );
   }
   if (query.isError) {

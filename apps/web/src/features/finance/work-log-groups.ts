@@ -8,13 +8,13 @@ import type { Month, WorkLogEntry, WorkLogMonth, WorkLogPageDto } from '@spolu/s
  * the order and the units are unit-tested.
  */
 
-export type LogTicket = WorkLogPageDto['tickets'][number];
+type LogTicket = WorkLogPageDto['tickets'][number];
 
 export type LogItem =
   | { kind: 'entry'; entry: WorkLogEntry }
   | { kind: 'unit'; ticket: LogTicket; own: WorkLogEntry[]; tasks: WorkLogEntry[] };
 
-export type LogDay = { day: string; items: LogItem[] };
+type LogDay = { day: string; items: LogItem[] };
 export type LogMonth = { month: Month; totals: WorkLogMonth | null; days: LogDay[] };
 
 export function chronology(pages: readonly WorkLogPageDto[]): LogMonth[] {

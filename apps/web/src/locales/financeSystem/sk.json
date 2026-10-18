@@ -1,6 +1,4 @@
 {
-  "clients": "Klienti",
-  "allClients": "Všetci klienti",
   "noClient": "Bez klienta",
   "rates": "Hodinové sadzby",
   "loadFailed": "Zoznam sa nepodarilo načítať.",

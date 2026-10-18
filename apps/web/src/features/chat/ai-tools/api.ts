@@ -29,7 +29,7 @@ export const aiPath = (target: AiTarget) =>
  * configuration, the group's eGrant link or its clients, so it is read once per target and
  * session. The AI button and the microphone share this one query.
  */
-export const aiToolsQuery = (target: AiTarget) =>
+const aiToolsQuery = (target: AiTarget) =>
   queryOptions({
     queryKey: ['chat', 'ai-tools', target.kind, target.id ?? null],
     queryFn: () => apiGet(`${aiPath(target)}/ai-tools`, AiToolsInfoSchema),

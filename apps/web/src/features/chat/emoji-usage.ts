@@ -7,7 +7,7 @@ import { EmojiSchema } from '@spolu/shared';
  */
 const KEY = 'spolu.emojiUsage';
 const KEPT = 40;
-export const FREQUENT_SHOWN = 16;
+const FREQUENT_SHOWN = 16;
 
 type Usage = [emoji: string, count: number][];
 

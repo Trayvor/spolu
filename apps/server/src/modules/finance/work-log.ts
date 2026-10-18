@@ -56,7 +56,7 @@ export function encodeCursor(cursor: Cursor): string {
   return Buffer.from(JSON.stringify([cursor.day, cursor.id])).toString('base64url');
 }
 
-export function decodeCursor(text: string): Cursor {
+function decodeCursor(text: string): Cursor {
   try {
     const value: unknown = JSON.parse(Buffer.from(text, 'base64url').toString('utf8'));
     if (
@@ -144,7 +144,7 @@ export function workLogEntriesSql(
 }
 
 /** How many clients a month header of the system-wide work log names. */
-export const TOP_CLIENTS = 3;
+const TOP_CLIENTS = 3;
 
 /**
  * The system-wide work log's month headers (D): per month of the page, the clients with the most

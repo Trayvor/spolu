@@ -47,6 +47,8 @@
   "requesters": {
     "title": "Taotlejad",
     "hint": "Inimesed, kes on selle kliendi kohta pöördumisi esitanud. Nad näevad ainult oma pöördumisi, mitte kunagi gruppi.",
-    "removedTitle": "Eemaldatud taotlejad ({{count}})"
+    "removedTitle": "Eemaldatud taotlejad ({{count}})",
+    "removed": "Taotlejate hulgast eemaldatud: {{name}}.",
+    "restored": "Taotlejaks taastatud: {{name}}."
   }
 }

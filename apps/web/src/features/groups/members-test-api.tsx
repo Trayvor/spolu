@@ -6,7 +6,7 @@ import type { Me, Member } from '@spolu/shared';
 import { sessionQuery } from '@/features/auth/use-session';
 import { MembersList } from './members-list';
 
-export const ADMIN = {
+const ADMIN = {
   id: 'a1',
   name: 'Jana',
   email: 'jana@example.com',
@@ -15,7 +15,7 @@ export const ADMIN = {
   groups: [],
 } as Me;
 
-export type Call = { method: string; url: string; body: unknown };
+type Call = { method: string; url: string; body: unknown };
 type Reply = { status: number; body?: unknown };
 
 /**

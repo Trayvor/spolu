@@ -98,14 +98,19 @@ describe('knowledge folders API', () => {
     return events;
   }
 
-  const until = async (check: () => boolean, ms = 2000) => {
+  const until = async (check: () => boolean, ms = 25_000) => {
     const start = Date.now();
     while (!check()) {
       if (Date.now() - start > ms) throw new Error('timed out');
       await new Promise((r) => setTimeout(r, 10));
     }
   };
-  const settle = () => new Promise((r) => setTimeout(r, 300));
+  // Sentinel, not a sleep: a ping ack on every open socket means everything the server pushed
+  // before it has already arrived (one connection delivers in order).
+  const settle = () =>
+    Promise.all(
+      sockets.filter((s) => s.connected).map((s) => s.timeout(25_000).emitWithAck('system:ping')),
+    );
 
   beforeAll(async () => {
     test = await buildTestApp();

@@ -28,6 +28,9 @@ async function send(page: Page, placeholder: string, text: string) {
 
 /** Open the "more" menu of a row (the toolbar shows on hover) and pick an entry. */
 async function rowAction(message: Locator, entry: 'Upraviť' | 'Vymazať') {
+  // The toolbar floats above the row. At the very top of the list it sits under the day divider
+  // (or outside the scroller), so bring the row to the middle of the list first.
+  await message.evaluate((el) => el.scrollIntoView({ block: 'center' }));
   await message.hover();
   await message.getByRole('button', { name: 'Viac' }).click();
   await message.page().getByRole('menuitem', { name: entry }).click();

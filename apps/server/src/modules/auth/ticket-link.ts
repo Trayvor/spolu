@@ -25,7 +25,7 @@ export const TICKET_LINK_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 export const TICKET_LINK_PATH = '/ticket-link/sign-in';
 
 /** The error code of every refused link: unknown, expired, or its user no longer a ziadatel only. */
-export const TICKET_LINK_INVALID = 'TICKET_LINK_INVALID';
+const TICKET_LINK_INVALID = 'TICKET_LINK_INVALID';
 
 /**
  * The email's job keeps the plaintext link in its payload: delete the finished job within a
@@ -33,8 +33,7 @@ export const TICKET_LINK_INVALID = 'TICKET_LINK_INVALID';
  */
 export const TICKET_LINK_EMAIL_JOB_OPTIONS: JobOptions = { deleteAfterSeconds: 60 };
 
-export const hashTicketToken = (token: string): string =>
-  createHash('sha256').update(token).digest('hex');
+const hashTicketToken = (token: string): string => createHash('sha256').update(token).digest('hex');
 
 /** What a log line may carry about a token: the first 12 hex characters of its hash. */
 export const ticketTokenLogId = (token: string): string => hashTicketToken(token).slice(0, 12);

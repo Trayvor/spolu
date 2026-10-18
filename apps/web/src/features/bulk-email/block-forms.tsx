@@ -399,7 +399,7 @@ function SpacerForm({ block, onChange }: FormProps<Extract<BulkBlock, { type: 's
 }
 
 /** The split container's own settings; its two sides are block lists (`block-list.tsx`). */
-export function ColumnsSettings({
+function ColumnsSettings({
   block,
   onChange,
 }: {

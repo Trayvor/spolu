@@ -26,7 +26,7 @@ import {
 } from './provider.js';
 
 /** One call to the AI may take this long; there is no retry. */
-export const AI_TIMEOUT_MS = 30_000;
+const AI_TIMEOUT_MS = 30_000;
 const ASSIGNEES_MAX = 10;
 
 /** No provider is configured (route: 503 ai_unavailable). */
@@ -113,7 +113,7 @@ export async function buildSplitRequest(
 }
 
 /** The newest ticket chat messages the AI gets, and the length each is cut to. */
-export const CONVERSATION_MAX = 30;
+const CONVERSATION_MAX = 30;
 const CONVERSATION_MESSAGE_MAX = 2000;
 
 /**
@@ -171,7 +171,7 @@ const allowedIds = (ids: string[], allowed: Set<string>) =>
 const URL_RE = /https?:\/\/[^\s<>()[\]"'`]+/gu;
 
 /** The web addresses of `texts`, in order, without repeats and without trailing punctuation. */
-export function urlsIn(...texts: string[]): string[] {
+function urlsIn(...texts: string[]): string[] {
   const found = texts.flatMap((t) =>
     [...t.matchAll(URL_RE)].map((m) => m[0].replace(/[.,;:!?]+$/u, '')),
   );
@@ -210,7 +210,7 @@ export function sanitizeProposals(
  * added at the end of every card's description, on its own line: the AI must not lose a link
  * (owner bug report 2026-10-18), and which card it belongs to is the reviewer's call.
  */
-export function keepUrls(tasks: TaskProposal[], urls: string[]): TaskProposal[] {
+function keepUrls(tasks: TaskProposal[], urls: string[]): TaskProposal[] {
   const carried = (url: string) => tasks.some((t) => t.link === url || t.description.includes(url));
   const missing = urls.filter((url) => !carried(url));
   if (missing.length === 0) return tasks;
@@ -230,7 +230,7 @@ const escapeRegExp = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&
  * (the AI sees names, never mention tokens). A name two of them share stays text; a longer name
  * goes first, and "@Ana" never matches the start of "@Anabela".
  */
-export function restoreMentions(
+function restoreMentions(
   tasks: TaskProposal[],
   mentions: { id: string; name: string }[],
 ): TaskProposal[] {

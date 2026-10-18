@@ -12,6 +12,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { InlineConfirm } from '@/components/ui/inline-confirm';
 import { ListSkeleton } from '@/components/ui/skeleton';
 import { useMediaQuery } from '@/lib/use-media-query';
 import { cn } from '@/lib/utils';
@@ -386,6 +387,10 @@ function EntryRow({
   const f = useFinanceFormat();
   const update = useUpdateEntry(view);
   const remove = useDeleteEntry(view);
+  // Delete asks inline under the row; the menu then leaves the focus to its Cancel.
+  const [confirming, setConfirming] = useState(false);
+  const asking = useRef(false);
+  const row = useRef<HTMLLIElement>(null);
   const requested = entry.minutes === null;
   const deletable = entry.source === 'manual' || requested;
 
@@ -414,7 +419,11 @@ function EntryRow({
   }
 
   return (
-    <li className="group flex items-center gap-2.5 py-1.5" data-testid="work-log-entry">
+    <li
+      ref={row}
+      className="group flex flex-wrap items-center gap-2.5 py-1.5"
+      data-testid="work-log-entry"
+    >
       <Avatar userId={entry.userId} name={entry.userName} size={24} />
       <div className="flex min-w-0 flex-1 flex-col">
         <p className="truncate text-tiny">
@@ -457,7 +466,15 @@ function EntryRow({
             <MoreIcon />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
+        <DropdownMenuContent
+          align="end"
+          onCloseAutoFocus={(event) => {
+            if (!asking.current) return;
+            asking.current = false;
+            event.preventDefault();
+            row.current?.querySelector<HTMLElement>('[data-cancel]')?.focus();
+          }}
+        >
           <DropdownMenuItem onSelect={() => onEdit(entry)}>
             {requested ? t('financeLog.workLog.fill') : t('financeLog.workLog.edit')}
           </DropdownMenuItem>
@@ -472,7 +489,8 @@ function EntryRow({
             <DropdownMenuItem
               variant="destructive"
               onSelect={() => {
-                if (window.confirm(t('financeLog.workLog.deleteConfirm'))) remove.mutate(entry.id);
+                asking.current = true;
+                setConfirming(true);
               }}
             >
               {t('financeLog.workLog.delete')}
@@ -480,6 +498,18 @@ function EntryRow({
           )}
         </DropdownMenuContent>
       </DropdownMenu>
+      {confirming && (
+        <div className="basis-full pl-[34px]">
+          <InlineConfirm
+            question={t('financeLog.workLog.deleteConfirm')}
+            confirmLabel={t('financeLog.workLog.delete')}
+            cancelLabel={t('financeLog.cancel')}
+            busy={remove.isPending}
+            onConfirm={() => remove.mutate(entry.id, { onSuccess: () => setConfirming(false) })}
+            onCancel={() => setConfirming(false)}
+          />
+        </div>
+      )}
     </li>
   );
 }

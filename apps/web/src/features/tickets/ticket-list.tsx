@@ -7,6 +7,7 @@ import type { TicketListItem } from '@spolu/shared';
 import { Avatar } from '@/components/avatar';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { ListSkeleton } from '@/components/ui/skeleton';
 import { formatDue, todayInBratislava } from '@/features/tasks/dates';
 import { ProjectChip } from '@/features/projects/project-chip';
 import { cn } from '@/lib/utils';
@@ -52,12 +53,9 @@ export function TicketList({
   let body: ReactNode;
   if (disabled || query.isPending) {
     body = (
-      <Card
-        role="status"
-        aria-busy="true"
-        aria-label={t('tickets.list.loading')}
-        className="h-24 w-full animate-pulse bg-muted"
-      />
+      <div role="status" aria-busy="true" aria-label={t('tickets.list.loading')}>
+        <ListSkeleton rows={4} />
+      </div>
     );
   } else if (query.isError) {
     body = (

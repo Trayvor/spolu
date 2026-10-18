@@ -103,7 +103,7 @@ export function EventSheet({
             <>
               {layer === 'delete' && (
                 <PanelNotice text={t('projects.dialogs.deleteEventConfirm')}>
-                  <Button variant="ghost" onClick={() => setLayer(null)}>
+                  <Button variant="outline" onClick={() => setLayer(null)}>
                     {t('projects.sheet.cancel')}
                   </Button>
                   <Button variant="destructive" onClick={() => void remove()}>

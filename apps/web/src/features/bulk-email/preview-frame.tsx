@@ -14,7 +14,7 @@ import { blockIdAt, stripMarkers } from './preview-highlight';
  * of outer padding) so no phone rule applies; Phone is a 375 px phone. The frame is scaled down
  * to fit its pane, never up, so the email's media rules see the real width.
  */
-export const FRAME_WIDTHS = { computer: 720, phone: 375 } as const;
+const FRAME_WIDTHS = { computer: 720, phone: 375 } as const;
 
 /** The size of the HTML in bytes, as Gmail counts it before clipping (~102 kB). */
 const htmlBytes = (html: string) => new TextEncoder().encode(stripMarkers(html)).length;

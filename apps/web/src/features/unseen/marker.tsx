@@ -9,14 +9,14 @@ import { unseenSummaryQuery, type UnseenTarget } from './api';
 import { unseenSummaryTexts } from './lines';
 
 /** A finger held this long on the marker opens its tooltip (touch has no hover). */
-export const LONG_PRESS_MS = 450;
+const LONG_PRESS_MS = 450;
 
 /**
  * The picture of a mark (2026-10-18): a plain yellow dot for a change, a yellow ring with a dot
  * inside for a message in the item's chat. Both carry a faint ink edge, so the yellow stays
  * visible on white.
  */
-export function UnseenGlyph({ mark, className }: { mark: UnseenMark; className?: string }) {
+function UnseenGlyph({ mark, className }: { mark: UnseenMark; className?: string }) {
   if (mark === 'message') {
     return (
       <span

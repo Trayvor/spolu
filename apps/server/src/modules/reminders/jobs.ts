@@ -12,7 +12,7 @@ import { reminderRecipients, reminderSets, reminderTimes } from './schema.js';
 import { notifyTimesChanged } from './realtime.js';
 import { listReminderSubjects, type ReminderSubjectRef, type SubjectInfo } from './subjects.js';
 
-export const REMINDERS_FIRE_JOB = 'reminders.fire';
+const REMINDERS_FIRE_JOB = 'reminders.fire';
 
 /** Every minute, so a reminder is at most a minute late. */
 export const reminderSchedules: JobSchedule[] = [{ name: REMINDERS_FIRE_JOB, cron: '* * * * *' }];

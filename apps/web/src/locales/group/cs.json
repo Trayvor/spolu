@@ -47,6 +47,8 @@
   "requesters": {
     "title": "Žadatelé",
     "hint": "Lidé, kteří pro tohoto klienta nahlásili tikety. Vidí jen své vlastní tikety, nikdy skupinu.",
-    "removedTitle": "Odebraní žadatelé ({{count}})"
+    "removedTitle": "Odebraní žadatelé ({{count}})",
+    "removed": "Odebráno z žadatelů: {{name}}.",
+    "restored": "Obnoveno mezi žadateli: {{name}}."
   }
 }

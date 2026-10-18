@@ -47,6 +47,8 @@
   "requesters": {
     "title": "Richiedenti",
     "hint": "Persone che hanno segnalato ticket per questo cliente. Vedono solo i propri ticket, mai il gruppo.",
-    "removedTitle": "Richiedenti rimossi ({{count}})"
+    "removedTitle": "Richiedenti rimossi ({{count}})",
+    "removed": "Rimosso dai richiedenti: {{name}}.",
+    "restored": "Ripristinato come richiedente: {{name}}."
   }
 }

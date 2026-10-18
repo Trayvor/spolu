@@ -1,4 +1,4 @@
-import type { KeyboardEvent, ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import type { FormatKind } from './composer-text';
@@ -34,22 +34,7 @@ const FORMATS: { kind: FormatKind; key: string; icon: ReactNode; shortcut?: stri
   { kind: 'code', key: 'code', icon: <CodeIcon /> },
 ];
 
-export const isMac = () =>
-  typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform);
-
-/**
- * The format a key press asks for: Cmd (macOS, where Ctrl+B / Ctrl+I move the cursor) or Ctrl
- * (elsewhere) with B, I or Shift+X. Null for any other key.
- */
-export function formatShortcut(e: KeyboardEvent): FormatKind | null {
-  const mod = isMac() ? e.metaKey : e.ctrlKey;
-  if (!mod || e.altKey) return null;
-  const key = e.key.toLowerCase();
-  if (key === 'b' && !e.shiftKey) return 'bold';
-  if (key === 'i' && !e.shiftKey) return 'italic';
-  if (key === 'x' && e.shiftKey) return 'strike';
-  return null;
-}
+const isMac = () => typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform);
 
 /**
  * The formatting toolbar of the chat composer: one button per Markdown mark, each named and

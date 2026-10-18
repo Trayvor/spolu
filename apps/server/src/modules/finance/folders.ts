@@ -20,7 +20,7 @@ import { financeFolders, financeItems } from './schema.js';
  * own folders (Phase 32 E, `/finance` only), which follow the same rules.
  */
 
-export const FINANCE_FOLDERS_PER_GROUP = 1000;
+const FINANCE_FOLDERS_PER_GROUP = 1000;
 
 type FolderRow = typeof financeFolders.$inferSelect;
 
@@ -109,7 +109,7 @@ export async function createFolder(
 /**
  * The owner a folder belongs to (`groupId` null: the organisation), or null for an unknown id.
  */
-export async function folderOwner(db: Db, id: string): Promise<{ groupId: string | null } | null> {
+async function folderOwner(db: Db, id: string): Promise<{ groupId: string | null } | null> {
   const [row] = await db
     .select({ groupId: financeFolders.groupId })
     .from(financeFolders)

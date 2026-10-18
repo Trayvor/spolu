@@ -1,5 +1,4 @@
 {
-  "tab": "Finanze",
   "pageTitle": "Finanze",
   "segments": {
     "label": "Mostra scheda",
@@ -11,11 +10,8 @@
   },
   "cards": {
     "overview": "Sintesi",
-    "overviewSoon": "Qui si vedrà quanto il cliente ha pagato e pagherà secondo i contratti, quanto è costato il lavoro e le ore di ogni amministratore.",
     "documents": "Documenti",
-    "documentsSoon": "Qui saranno conservati contratti, documenti, note e cartelle di questo cliente.",
     "workLog": "Registro ore",
-    "workLogSoon": "Qui si vedranno le ore che gli amministratori hanno dedicato a questo cliente, per mese e giorno.",
     "contracts": "Contratti",
     "paidRanking": "Clienti per importo pagato",
     "hoursRanking": "Clienti per ore"

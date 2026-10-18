@@ -15,7 +15,7 @@ export const teamsConfig = (): TeamsConfig => ({
 });
 
 export type FakeUser = { id: string; email: string; displayName: string };
-export type FakeMeeting = {
+type FakeMeeting = {
   id: string;
   joinWebUrl: string;
   joinMeetingId: string;
@@ -27,8 +27,8 @@ export type FakeMeeting = {
   /** Graph leaves the organizer out of the meeting's participants. */
   omitOrganizer?: boolean;
 };
-export type FakeTranscript = { id: string; createdDateTime: string; content: string };
-export type GraphCall = { method: string; url: string; body: unknown; accept: string | null };
+type FakeTranscript = { id: string; createdDateTime: string; content: string };
+type GraphCall = { method: string; url: string; body: unknown; accept: string | null };
 
 export type FakeGraph = {
   fetch: typeof fetch;

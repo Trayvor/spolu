@@ -4,7 +4,7 @@ import { useSession } from '@/features/auth/use-session';
 import { useMediaQuery } from '@/lib/use-media-query';
 import { SegmentedControl } from './segmented-control';
 
-export const FINANCE_SEGMENTS = ['overview', 'documents', 'workLog', 'rankings'] as const;
+const FINANCE_SEGMENTS = ['overview', 'documents', 'workLog', 'rankings'] as const;
 export type FinanceSegment = (typeof FINANCE_SEGMENTS)[number];
 
 const storageKey = (userId: string, screen: string) => `spolu.finance.${userId}.${screen}.segment`;

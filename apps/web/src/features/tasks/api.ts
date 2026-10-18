@@ -30,7 +30,7 @@ const enc = encodeURIComponent;
  * How many completed tasks a refetch asks for: the ones the cached board already shows
  * ("Show more" pages), so a reload never folds the Completed column back to one page.
  */
-export function doneToKeep(cached: BoardDto | undefined): number {
+function doneToKeep(cached: BoardDto | undefined): number {
   const doneId = cached?.buckets.find((b) => b.kind === 'done')?.id;
   const loaded = cached?.tasks.filter((t) => t.bucketId === doneId).length ?? 0;
   const pages = Math.ceil(loaded / BOARD_DONE_PAGE);

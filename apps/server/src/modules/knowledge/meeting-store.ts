@@ -39,7 +39,7 @@ export function parseSummary(value: unknown): MeetingSummary | null {
 }
 
 /** The summary as plain text, for the search column. */
-export function summaryText(summary: MeetingSummary | null): string[] {
+function summaryText(summary: MeetingSummary | null): string[] {
   if (!summary) return [];
   return [
     summary.summary,
@@ -132,7 +132,7 @@ export function actionItemsLeft(
  * Whether `viewerIsAdmin` may see the transcript and the summary (Teams T1): always, unless a
  * Teams transcript is still held for admins.
  */
-export const canSeeTranscript = (row: MeetingRow, viewerIsAdmin: boolean): boolean =>
+const canSeeTranscript = (row: MeetingRow, viewerIsAdmin: boolean): boolean =>
   viewerIsAdmin || !row.transcriptAdminsOnly;
 
 /**

@@ -36,7 +36,8 @@
     "find": "Poišči skrbnika",
     "allAdded": "To skupino že upravljajo vsi skrbniki.",
     "noMatch": "Noben skrbnik se ne ujema z „{{q}}“.",
-    "remove": "Odstrani {{name}}"
+    "remove": "Odstrani {{name}}",
+    "removed": "Odstranjeno med upravitelji: {{name}}."
   },
   "mine": {
     "title": "Moje skupine",
@@ -59,5 +60,6 @@
   },
   "adminGroup": {
     "hint": "Notranji klepet ekipe eGrant. Vidijo ga samo skrbniki."
-  }
+  },
+  "undo": "Razveljavi"
 }

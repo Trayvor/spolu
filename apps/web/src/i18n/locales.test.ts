@@ -22,6 +22,7 @@ const locales = Object.fromEntries(files.map(([path, json]) => [codeOf(path), js
 const NAMESPACES = [
   'adminHome',
   'admins',
+  'bottomNav',
   'bulkEmail',
   'chat',
   'finance',

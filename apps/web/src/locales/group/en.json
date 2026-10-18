@@ -47,6 +47,8 @@
   "requesters": {
     "title": "Requesters",
     "hint": "People who reported tickets for this client. They see only their own tickets, never the group.",
-    "removedTitle": "Removed requesters ({{count}})"
+    "removedTitle": "Removed requesters ({{count}})",
+    "removed": "Removed from requesters: {{name}}.",
+    "restored": "Restored as a requester: {{name}}."
   }
 }

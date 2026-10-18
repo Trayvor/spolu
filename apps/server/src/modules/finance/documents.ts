@@ -513,7 +513,7 @@ export async function getItem(
 }
 
 /** The item's owner (`groupId` null: the organisation's), or null for an unknown id. */
-export async function itemOwner(db: Db, id: string): Promise<{ groupId: string | null } | null> {
+async function itemOwner(db: Db, id: string): Promise<{ groupId: string | null } | null> {
   const [row] = await db
     .select({ groupId: financeItems.groupId })
     .from(financeItems)
@@ -522,7 +522,7 @@ export async function itemOwner(db: Db, id: string): Promise<{ groupId: string |
 }
 
 /** The clients with a share of the item (none unless it is a contract of several clients). */
-export async function itemShareGroups(db: Db, id: string): Promise<string[]> {
+async function itemShareGroups(db: Db, id: string): Promise<string[]> {
   const rows = await db
     .select({ groupId: financeContractShares.groupId })
     .from(financeContractShares)

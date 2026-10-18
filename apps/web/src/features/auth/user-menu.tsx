@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { deferredMenu } from '@/components/deferred-menu';
 
 /** First letters of the first two words of the name, upper-case ("Jana Nováková" gives "JN"). */
-export function initials(name: string, email: string): string {
+function initials(name: string, email: string): string {
   const letters = name
     .split(/\s+/)
     .filter(Boolean)

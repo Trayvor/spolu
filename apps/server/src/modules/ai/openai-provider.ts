@@ -29,7 +29,7 @@ const ids = (description: string) => ({ type: 'array', items: { type: 'string' }
  * it cannot express lengths or counts, so those are in the descriptions and enforced by
  * `sanitizeProposals`.
  */
-export const TASK_SPLIT_SCHEMA = {
+const TASK_SPLIT_SCHEMA = {
   type: 'object',
   additionalProperties: false,
   required: ['tasks'],

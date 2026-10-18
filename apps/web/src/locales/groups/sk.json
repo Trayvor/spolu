@@ -36,7 +36,8 @@
     "find": "Nájsť administrátora",
     "allAdded": "Všetci administrátori už spravujú túto skupinu.",
     "noMatch": "Výrazu „{{q}}“ nezodpovedá žiadny administrátor.",
-    "remove": "Odobrať {{name}}"
+    "remove": "Odobrať {{name}}",
+    "removed": "Odobrané z manažérov: {{name}}."
   },
   "mine": {
     "title": "Moje skupiny",
@@ -59,5 +60,6 @@
   },
   "adminGroup": {
     "hint": "Interný chat tímu eGrant. Vidia ho iba administrátori."
-  }
+  },
+  "undo": "Vrátiť späť"
 }

@@ -33,7 +33,7 @@ export function avatarTextColor(userId: string): string {
 }
 
 /** First letter of the first and the last word, upper-cased; `?` for an empty name. */
-export function initialsOf(name: string): string {
+function initialsOf(name: string): string {
   const words = name.trim().split(/\s+/).filter(Boolean);
   if (words.length === 0) return '?';
   const first = Array.from(words[0]!)[0]!;

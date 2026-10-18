@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 /** The text tools' `reasoning_effort`; `off` sends none. */
-export const REASONING_EFFORTS = ['off', 'none', 'minimal', 'low', 'medium'] as const;
+const REASONING_EFFORTS = ['off', 'none', 'minimal', 'low', 'medium'] as const;
 export type ReasoningEffort = (typeof REASONING_EFFORTS)[number];
 
 const base = {

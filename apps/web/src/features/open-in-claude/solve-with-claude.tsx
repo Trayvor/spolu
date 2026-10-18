@@ -146,7 +146,7 @@ function SolveDialog({ source, onClose }: { source: ClaudeSource; onClose: () =>
               {t(result ? 'openInClaude.regenerate' : 'openInClaude.generate')}
             </Button>
             {!result && (
-              <Button type="button" variant="ghost" onClick={onClose}>
+              <Button type="button" variant="outline" onClick={onClose}>
                 {t('openInClaude.cancel')}
               </Button>
             )}

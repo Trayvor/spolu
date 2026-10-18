@@ -183,7 +183,7 @@ export function FolderBrowser({
       {action?.kind === 'delete' && (
         <div>
           <PanelNotice text={t('knowledge.folders.deleteConfirm', { name: action.folder.name })}>
-            <Button variant="ghost" onClick={() => setAction(null)}>
+            <Button variant="outline" onClick={() => setAction(null)}>
               {t('knowledge.folders.cancel')}
             </Button>
             <Button variant="destructive" onClick={() => void remove(action.folder)}>

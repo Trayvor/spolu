@@ -1,6 +1,6 @@
 import { Icon } from '@/components/icons';
 
-export { CloseIcon, PaperclipIcon } from '@/components/icons';
+export { PaperclipIcon } from '@/components/icons';
 
 /** A speech bubble; `unread` adds a filled dot at its top right corner. */
 export const ChatIcon = ({ unread }: { unread?: boolean }) => (

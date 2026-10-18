@@ -18,7 +18,7 @@ export type FinanceView =
   | { kind: 'all'; clients: readonly string[]; internal?: boolean };
 
 /** The key segment of a view: the client's id, or `'all'` for the system-wide page. */
-export function viewKey(view: FinanceView): string {
+function viewKey(view: FinanceView): string {
   return view.kind === 'group' ? view.groupId : 'all';
 }
 

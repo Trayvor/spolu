@@ -20,6 +20,9 @@
   "finance": {
     "label": "Rahandus",
     "labelFor": "Ligipääs rahandusele: {{name}}",
-    "failed": "Muutmine ebaõnnestus. Proovige uuesti."
-  }
+    "failed": "Muutmine ebaõnnestus. Proovige uuesti.",
+    "granted": "Juurdepääs rahandusele antud: {{name}}.",
+    "revoked": "Juurdepääs rahandusele eemaldatud: {{name}}."
+  },
+  "undo": "Võta tagasi"
 }
