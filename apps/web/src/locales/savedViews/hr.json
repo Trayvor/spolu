@@ -9,6 +9,7 @@
   "starter": {
     "myOverdue": "Moji nakon roka",
     "thisWeek": "Ovaj tjedan",
-    "unassigned": "Tiketi bez rješavatelja"
+    "unassigned": "Tiketi bez rješavatelja",
+    "thisMonth": "Ovaj mjesec"
   }
 }

@@ -17,7 +17,8 @@ const send = (reply: FastifyReply, code: number, error: string) => reply.code(co
 
 /**
  * Saved views (F5): the caller's own views of one page. `GET /me/saved-views?page=`,
- * `POST /me/saved-views`, `DELETE /me/saved-views/:id`; admins only (`canUseSavedViews`).
+ * `POST /me/saved-views`, `DELETE /me/saved-views/:id`; admins only, the finance page finance
+ * admins only (`canUseSavedViews`).
  */
 export const savedViewsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { deps }) => {
   const { db } = deps;
@@ -26,14 +27,14 @@ export const savedViewsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (ap
   app.get<PageQuery>('/me/saved-views', { preHandler: user }, async (request, reply) => {
     const page = SavedViewPageSchema.safeParse(request.query.page);
     if (!page.success) return send(reply, 400, ErrorCodes.validationFailed);
-    if (!canUseSavedViews(request.user!)) return send(reply, 403, ErrorCodes.forbidden);
+    if (!canUseSavedViews(request.user!, page.data)) return send(reply, 403, ErrorCodes.forbidden);
     return listSavedViews(db, request.user!.id, page.data);
   });
 
   app.post('/me/saved-views', { preHandler: user }, async (request, reply) => {
     const body = SavedViewBodySchema.safeParse(request.body);
     if (!body.success) return send(reply, 400, ErrorCodes.validationFailed);
-    if (!canUseSavedViews(request.user!)) {
+    if (!canUseSavedViews(request.user!, body.data.page)) {
       return send(reply, 403, ErrorCodes.forbidden);
     }
     try {

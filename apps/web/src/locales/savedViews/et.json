@@ -9,6 +9,7 @@
   "starter": {
     "myOverdue": "Minu tähtaja ületanud",
     "thisWeek": "See nädal",
-    "unassigned": "Piletid ilma lahendajata"
+    "unassigned": "Piletid ilma lahendajata",
+    "thisMonth": "See kuu"
   }
 }

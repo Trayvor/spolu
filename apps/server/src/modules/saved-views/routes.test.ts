@@ -3,7 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { SAVED_VIEW_LIMITS, type SavedView } from '@spolu/shared';
 import { buildTestApp } from '../../../test/test-app.js';
 import { loginAs } from '../../../test/login.js';
-import { addAdmin, createUnverifiedClient } from '../users/service.js';
+import { addAdmin, createUnverifiedClient, setFinanceAccess } from '../users/service.js';
 import { savedViews } from './schema.js';
 
 type TestApp = Awaited<ReturnType<typeof buildTestApp>>;
@@ -81,9 +81,33 @@ describe('saved views API (F5)', () => {
     const view = { page: 'tickets', name: 'X', url: '/tickets?assignee=none' };
     expect((await save(cookie, view)).statusCode).toBe(403);
     expect((await call('GET', '/api/me/saved-views?page=nope', ada.cookie)).statusCode).toBe(400);
-    // Finance keeps its filters in the browser, not the URL: it has no views (yet).
-    const finance = { page: 'finance', name: 'X', url: '/finance?status=open' };
-    expect((await save(ada.cookie, finance)).statusCode).toBe(400);
+  });
+
+  it('finance views are for finance admins only, and only of /finance', async () => {
+    const ada = await admin();
+    const fin = await admin();
+    expect(await setFinanceAccess(test.deps.db, fin.id, ada.id)).toBe(true);
+    const view = {
+      page: 'finance',
+      name: 'Tretí kvartál',
+      url: '/finance?from=2026-07&period=custom&to=2026-09',
+    };
+    // An admin without the finance right: neither list nor save.
+    expect((await call('GET', '/api/me/saved-views?page=finance', ada.cookie)).statusCode).toBe(
+      403,
+    );
+    expect((await save(ada.cookie, view)).statusCode).toBe(403);
+    // A finance admin saves and lists them.
+    const finCookie = await loginAs(test.app, fin.email);
+    expect((await save(finCookie, view)).statusCode).toBe(201);
+    const listed = (await call('GET', '/api/me/saved-views?page=finance', finCookie)).json<
+      SavedView[]
+    >();
+    expect(listed.map((v) => v.url)).toEqual([view.url]);
+    // Never another path, and never without filters.
+    for (const url of ['/finance/x?period=thisMonth', '/tasks?due=week', '/finance']) {
+      expect((await save(finCookie, { ...view, url })).statusCode).toBe(400);
+    }
   });
 
   it('caps the views per page', async () => {

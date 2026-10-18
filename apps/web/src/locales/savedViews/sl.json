@@ -9,6 +9,7 @@
   "starter": {
     "myOverdue": "Moje zamujene",
     "thisWeek": "Ta teden",
-    "unassigned": "Zahtevki brez reševalca"
+    "unassigned": "Zahtevki brez reševalca",
+    "thisMonth": "Ta mesec"
   }
 }

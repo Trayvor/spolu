@@ -9,6 +9,7 @@
   "starter": {
     "myOverdue": "Мої прострочені",
     "thisWeek": "Цей тиждень",
-    "unassigned": "Тікети без виконавця"
+    "unassigned": "Тікети без виконавця",
+    "thisMonth": "Цей місяць"
   }
 }

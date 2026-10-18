@@ -21,6 +21,7 @@ import {
   validateKnowledgeSearch,
 } from '@/features/knowledge/search';
 import { linkEmail, safeRedirect } from '@/features/auth/redirect';
+import { validateFinanceSearch } from '@/features/finance/search';
 import { validateTicketsSearch } from '@/features/tickets/search';
 import { BOARD_FILTER_KEYS, validateBoardSearch } from '@/features/tasks/board-search';
 import { clientGroups, isAdmin } from '@/features/auth/roles';
@@ -520,6 +521,8 @@ const bulkCampaignRoute = createRoute({
 const financeRoute = createRoute({
   getParentRoute: () => authedRoute,
   path: '/finance',
+  // The page filters and the open item (`?item=`, the old links too).
+  validateSearch: validateFinanceSearch,
   beforeLoad: financeGuard,
   component: lazyRouteComponent(
     // `knowledge`: the client filter's texts.

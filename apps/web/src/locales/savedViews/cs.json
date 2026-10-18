@@ -9,6 +9,7 @@
   "starter": {
     "myOverdue": "Moje po termínu",
     "thisWeek": "Tento týden",
-    "unassigned": "Tikety bez řešitele"
+    "unassigned": "Tikety bez řešitele",
+    "thisMonth": "Tento měsíc"
   }
 }

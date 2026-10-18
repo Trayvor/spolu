@@ -214,7 +214,7 @@ Policy functions in `modules/snippets/policy.ts` and `modules/saved-views/policy
 | `canUseSnippets(actor)` | admins and the superadmin; every `/api/snippets` route is `requireAdmin` then this (a client `403`) |
 | `canReadSnippet(actor, snippet)` | an admin reads their own snippets and every shared one; another admin's private one answers `404`, like a missing id |
 | `canChangeSnippet(actor, snippet)` | only the author edits, shares, unshares or deletes it (the superadmin too: another's shared snippet `403`) |
-| `canUseSavedViews(actor)` | admins and the superadmin, on every page (`/api/me/saved-views*`, a client `403`). A view is always the caller's own: the queries filter by `user_id`, so another person's view answers `404` |
+| `canUseSavedViews(actor, page?)` | admins and the superadmin (`/api/me/saved-views*`, a client `403`); the `finance` page's views (list and save) also need the finance right, `canSeeFinance` (an admin without it `403`). Deleting one's own view needs only the admin role. A view is always the caller's own: the queries filter by `user_id`, so another person's view answers `404` |
 
 - A saved view's URL must be its page's path followed by a query string (`isSavedViewUrl`: no other path, host, fragment or space; `400` otherwise), so the web can navigate to it as is. Neither module is in the MCP allowlist.
 
