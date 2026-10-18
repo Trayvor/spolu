@@ -310,8 +310,8 @@ export async function toTicketDto(
   seesTasks: boolean,
   canAssign = false,
 ): Promise<TicketDto> {
-  const [groupName, taskList, channel, files, assignees, linkedKnowledge, refs] =
-    await Promise.all([
+  const [groupName, taskList, channel, files, assignees, linkedKnowledge, refs] = await Promise.all(
+    [
       groupNameOf(db, row.groupId),
       seesTasks ? listTasksFromTicket(db, row.id) : countTasksFromTicket(db, row.id),
       getTicketChannel(db, row.id),
@@ -319,7 +319,8 @@ export async function toTicketDto(
       assigneesOf(db, [row.id]),
       linkedCardsOf(db, 'ticket', row.id, row.groupId),
       projectRefs(db, [row]),
-    ]);
+    ],
+  );
   const project = forProjectReader(refs.project(row.projectId), refs.event(row.eventId), seesTasks);
   const taskCount = typeof taskList === 'number' ? taskList : taskList.length;
   return {
@@ -504,11 +505,7 @@ export async function listTickets(
       ...r,
       createdAt: r.createdAt.toISOString(),
       assignees: assignees.get(r.id) ?? [],
-      ...forProjectReader(
-        refs.project(projectId),
-        refs.event(eventId),
-        seesProject(r.groupId),
-      ),
+      ...forProjectReader(refs.project(projectId), refs.event(eventId), seesProject(r.groupId)),
     })),
     nextCursor: rows.length > limit ? encodeCursor(page[page.length - 1]!) : null,
   };

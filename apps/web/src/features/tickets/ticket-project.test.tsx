@@ -7,7 +7,16 @@ import type { TicketDto } from '@spolu/shared';
 import { i18n } from '@/i18n';
 import { createAppRouter } from '@/router';
 import { filterFromSearch, validateTicketsSearch, writeFilter } from './search';
-import { ADMIN, CLIENT, REQUESTER, fakeSocket, item, mockTicketApi, reply, ticket } from './test-api';
+import {
+  ADMIN,
+  CLIENT,
+  REQUESTER,
+  fakeSocket,
+  item,
+  mockTicketApi,
+  reply,
+  ticket,
+} from './test-api';
 
 const socket = fakeSocket();
 vi.mock('@/lib/socket', () => ({
@@ -101,9 +110,7 @@ describe('a ticket’s project and event (Phase 33 part P2)', () => {
 
   it('a žiadateľ sees the project’s name only, no select', async () => {
     mockTicketApi(REQUESTER, [
-      ticketRoute(() =>
-        ticket({ tasks: null, project: { ...PROJECT, color: null }, event: null }),
-      ),
+      ticketRoute(() => ticket({ tasks: null, project: { ...PROJECT, color: null }, event: null })),
     ]);
     renderAt('/tickets/k1');
     expect(await screen.findByText('Kultúra 2026')).toBeInTheDocument();
@@ -160,7 +167,9 @@ describe('the project filters of the ticket lists', () => {
     const { calls } = mockTicketApi(ADMIN, [
       ...pickerRoutes,
       (url) =>
-        url.pathname === '/api/tickets/global' ? reply(200, { items: [], nextCursor: null }) : undefined,
+        url.pathname === '/api/tickets/global'
+          ? reply(200, { items: [], nextCursor: null })
+          : undefined,
     ]);
     renderAt('/tickets?clients=g1&project=p1');
     await screen.findByRole('heading', { name: t('tickets.global.title') });
@@ -171,15 +180,17 @@ describe('the project filters of the ticket lists', () => {
       }),
     ).toBeInTheDocument();
     const eventPrefix = t('tickets.filters.event', { name: '' });
-    expect(screen.queryAllByRole('button').some((b) => b.textContent?.startsWith(eventPrefix))).toBe(
-      false,
-    );
+    expect(
+      screen.queryAllByRole('button').some((b) => b.textContent?.startsWith(eventPrefix)),
+    ).toBe(false);
   });
 
   it('the global view never sends a project without exactly one client', async () => {
     const { calls } = mockTicketApi(ADMIN, [
       (url) =>
-        url.pathname === '/api/tickets/global' ? reply(200, { items: [], nextCursor: null }) : undefined,
+        url.pathname === '/api/tickets/global'
+          ? reply(200, { items: [], nextCursor: null })
+          : undefined,
     ]);
     renderAt('/tickets?clients=g1,g2&project=p1');
     await screen.findByRole('heading', { name: t('tickets.global.title') });

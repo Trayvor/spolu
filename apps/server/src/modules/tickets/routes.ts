@@ -314,7 +314,10 @@ export const ticketsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, 
    * own list neither.
    */
   type ListKind = 'group' | 'global' | 'mine';
-  const projectFilterFits = (kind: ListKind, query: ReturnType<typeof TicketListQuerySchema.parse>) =>
+  const projectFilterFits = (
+    kind: ListKind,
+    query: ReturnType<typeof TicketListQuerySchema.parse>,
+  ) =>
     kind === 'group'
       ? isValidProjectFilter(query)
       : kind === 'global'
