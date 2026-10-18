@@ -104,7 +104,10 @@
       "endRequired": "Scegli l’ultimo giorno.",
       "endBeforeStart": "Il periodo non può finire prima di iniziare.",
       "bodyTooLong": "Usa al massimo 10 000 caratteri."
-    }
+    },
+    "project": "Progetto",
+    "noProject": "Nessun progetto",
+    "archivedProject": "{{name}} (archiviato)"
   },
   "view": {
     "amount": "Importo",

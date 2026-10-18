@@ -22,6 +22,7 @@ import { useFinanceFormat } from './format';
 import { fetchWorkLogPage, useDeleteEntry, useUpdateEntry, workLogKey } from './log-api';
 import { WORK_LOG_PERIODS } from './period';
 import { PeriodSelect, usePeriod, type PeriodState } from './period-select';
+import { FinanceProjectPills, useFinanceProjectFilter } from './project-filter';
 import { chronology, type LogItem } from './work-log-groups';
 
 const EntryDialog = lazy(() =>
@@ -49,9 +50,10 @@ export function WorkLogCard({
   const ownPeriod = usePeriod('finance.workLog.period', WORK_LOG_PERIODS);
   const period = pagePeriod ?? ownPeriod;
   const range = period.range;
+  const project = useFinanceProjectFilter('workLog', view);
   const query = useInfiniteQuery({
-    queryKey: workLogKey(view, range),
-    queryFn: ({ pageParam }) => fetchWorkLogPage(view, range, pageParam),
+    queryKey: workLogKey(view, range, project.value),
+    queryFn: ({ pageParam }) => fetchWorkLogPage(view, range, pageParam, project.value),
     initialPageParam: null as string | null,
     getNextPageParam: (page) => page.before,
   });
@@ -66,7 +68,7 @@ export function WorkLogCard({
   const scroller = useRef<HTMLDivElement>(null);
   const kept = useRef<{ height: number; top: number; page: number } | null>(null);
   const opened = useRef<string | null>(null);
-  const rangeKey = JSON.stringify(range);
+  const rangeKey = JSON.stringify([range, project.value]);
   useLayoutEffect(() => {
     const el = scroller.current;
     if (!el || !pages) return;
@@ -175,6 +177,7 @@ export function WorkLogCard({
     >
       <div className="flex flex-col gap-3 border-b-2 border-border pb-3">
         {!pagePeriod && <PeriodSelect state={period} />}
+        <FinanceProjectPills state={project} />
         {summary && <Summary summary={summary} />}
       </div>
       <div

@@ -93,5 +93,17 @@
     "history_other": "Historie ({{count}})",
     "inactive": "odebrán",
     "deleteConfirm": "Smazat tuto sazbu? Náklady na práci, na kterou platila, se změní."
+  },
+  "projects": {
+    "project": "Projekt: {{name}}",
+    "event": "Událost: {{name}}",
+    "any": "Jakýkoli",
+    "noProject": "Bez projektu",
+    "noEvent": "Bez události",
+    "noProjects": "Tento klient zatím nemá projekty.",
+    "label": "Projekt",
+    "eventLabel": "Událost",
+    "archived": "{{name}} (archivovaný)",
+    "contractsNoEvent": "Smlouvy nejsou vázané na události: zobrazují se jen náklady na práci této události."
   }
 }

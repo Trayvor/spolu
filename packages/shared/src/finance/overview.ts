@@ -2,6 +2,11 @@ import { z } from 'zod';
 import { IdSchema } from '../chat.js';
 import { CurrencySchema } from '../money.js';
 import { DaySchema, MinutesSchema, MonthSchema } from './common.js';
+import {
+  eventWithoutProject,
+  FinanceProjectIdSchema,
+  manualEntryProjectFields,
+} from './projects.js';
 
 /**
  * Overview, work log, rates and manual entries (Phase 32 part C, spec §6.1–6.3). Money is in
@@ -124,6 +129,9 @@ export const WorkLogEntrySchema = z.object({
   workedOn: DaySchema,
   note: z.string(),
   cost: z.number().int().nullable(),
+  /** The entry's project and event (Phase 33 P6): its task's or ticket's copy, or a manual one's. */
+  projectId: z.string().nullable().optional(),
+  eventId: z.string().nullable().optional(),
 });
 export type WorkLogEntry = z.infer<typeof WorkLogEntrySchema>;
 
@@ -213,18 +221,30 @@ const NoteSchema = z
   .default('');
 
 /** `POST /api/groups/:id/finance/time-entries`: a manual entry ("admin X spent N on day D"). */
+const manualEntryFields = {
+  userId: IdSchema,
+  workedOn: DaySchema,
+  minutes: MinutesSchema,
+  note: NoteSchema,
+  // Phase 33 P6: the client's project and event the time was for (optional).
+  ...manualEntryProjectFields,
+};
+const eventNeedsProject = { message: 'an event needs its project' };
+
 export const ManualEntryBodySchema = z
-  .object({ userId: IdSchema, workedOn: DaySchema, minutes: MinutesSchema, note: NoteSchema })
-  .strict();
+  .object(manualEntryFields)
+  .strict()
+  .refine((v) => !eventWithoutProject(v), eventNeedsProject);
 export type ManualEntryBody = z.output<typeof ManualEntryBodySchema>;
 
 /**
  * `POST /api/finance/time-entries` ("Add time" on `/finance`): a manual entry for the chosen
  * client, or without one (`groupId` null, "Bez klienta", decision 24, migration 0041).
  */
-export const SystemManualEntryBodySchema = ManualEntryBodySchema.extend({
-  groupId: IdSchema.nullable(),
-}).strict();
+export const SystemManualEntryBodySchema = z
+  .object({ ...manualEntryFields, groupId: IdSchema.nullable() })
+  .strict()
+  .refine((v) => !eventWithoutProject(v), eventNeedsProject);
 export type SystemManualEntryBody = z.output<typeof SystemManualEntryBodySchema>;
 
 /**
@@ -236,6 +256,9 @@ export const TimeEntryPatchSchema = z
     minutes: MinutesSchema.optional(),
     workedOn: DaySchema.optional(),
     note: z.string().trim().max(500).optional(),
+    /** A manual entry's project and event (Phase 33 P6); `projectId: null` clears both. */
+    projectId: FinanceProjectIdSchema.nullable().optional(),
+    eventId: FinanceProjectIdSchema.nullable().optional(),
   })
   .strict();
 export type TimeEntryPatch = z.infer<typeof TimeEntryPatchSchema>;

@@ -105,7 +105,10 @@
       "endRequired": "Izberite zadnji dan.",
       "endBeforeStart": "Obdobje se ne more končati, preden se začne.",
       "bodyTooLong": "Uporabite največ 10 000 znakov."
-    }
+    },
+    "project": "Projekt",
+    "noProject": "Brez projekta",
+    "archivedProject": "{{name}} (arhiviran)"
   },
   "view": {
     "amount": "Znesek",

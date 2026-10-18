@@ -102,6 +102,9 @@ export type TaskCompletedEvent = {
   assigneeIds: string[];
   /** The task's `source_ticket_id`: its entries join that ticket's unit (`linked_ticket_id`). */
   sourceTicketId: string | null;
+  /** The task's project and event (Phase 33 P6), copied onto its entries. */
+  projectId?: string | null;
+  eventId?: string | null;
 };
 
 /**
@@ -120,7 +123,12 @@ export async function onTaskCompleted(
   // Entries filled before the first completion start counting now.
   await tx
     .update(entries)
-    .set({ workedOn: day, linkedTicketId: e.sourceTicketId })
+    .set({
+      workedOn: day,
+      linkedTicketId: e.sourceTicketId,
+      projectId: e.projectId ?? null,
+      eventId: e.eventId ?? null,
+    })
     .where(
       and(
         eq(entries.taskId, e.taskId),
@@ -140,6 +148,8 @@ export async function onTaskCompleted(
         source: 'task' as const,
         taskId: e.taskId,
         linkedTicketId: e.sourceTicketId,
+        projectId: e.projectId ?? null,
+        eventId: e.eventId ?? null,
         title: e.title,
         workedOn: day,
         createdBy: e.actorId,
@@ -278,6 +288,9 @@ export type TaskTimeSubject = {
   title: string;
   completedAt: Date | null;
   sourceTicketId: string | null;
+  /** Phase 33 P6: copied onto the entry. */
+  projectId?: string | null;
+  eventId?: string | null;
   assigneeIds?: string[];
 };
 
@@ -302,6 +315,8 @@ export async function writeTaskTime(
       source: 'task',
       taskId: task.taskId,
       linkedTicketId: task.sourceTicketId,
+      projectId: task.projectId ?? null,
+      eventId: task.eventId ?? null,
       title: task.title,
       minutes,
       workedOn: task.completedAt ? bratislavaDay(task.completedAt) : null,
@@ -317,6 +332,8 @@ export async function writeTaskTime(
         title: task.title,
         groupId: task.groupId,
         linkedTicketId: task.sourceTicketId,
+        projectId: task.projectId ?? null,
+        eventId: task.eventId ?? null,
         workedOn: sql`coalesce(${entries.workedOn}, excluded.worked_on)`,
         updatedBy: userId,
         updatedAt: now,

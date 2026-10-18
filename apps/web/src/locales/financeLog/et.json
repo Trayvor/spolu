@@ -85,5 +85,17 @@
     "history_other": "Ajalugu ({{count}})",
     "inactive": "eemaldatud",
     "deleteConfirm": "Kas kustutada see tasu? Selle alla jäänud töö kulu muutub."
+  },
+  "projects": {
+    "project": "Projekt: {{name}}",
+    "event": "Sündmus: {{name}}",
+    "any": "Ükskõik milline",
+    "noProject": "Projektita",
+    "noEvent": "Sündmuseta",
+    "noProjects": "Sellel kliendil pole veel projekte.",
+    "label": "Projekt",
+    "eventLabel": "Sündmus",
+    "archived": "{{name}} (arhiveeritud)",
+    "contractsNoEvent": "Lepingud ei ole sündmustega seotud: näidatakse ainult selle sündmuse töö kulu."
   }
 }

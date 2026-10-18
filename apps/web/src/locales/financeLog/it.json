@@ -89,5 +89,17 @@
     "history_other": "Storico ({{count}})",
     "inactive": "rimosso",
     "deleteConfirm": "Eliminare questa tariffa? Il costo del lavoro che copriva cambia."
+  },
+  "projects": {
+    "project": "Progetto: {{name}}",
+    "event": "Evento: {{name}}",
+    "any": "Qualsiasi",
+    "noProject": "Nessun progetto",
+    "noEvent": "Nessun evento",
+    "noProjects": "Questo cliente non ha ancora progetti.",
+    "label": "Progetto",
+    "eventLabel": "Evento",
+    "archived": "{{name}} (archiviato)",
+    "contractsNoEvent": "I contratti non sono legati agli eventi: si vede solo il costo del lavoro di questo evento."
   }
 }

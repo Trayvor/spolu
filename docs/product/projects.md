@@ -81,4 +81,4 @@ Fields left as they are: one-line names, titles, subjects, codes, emails, URLs a
 
 ## Finance (part P6)
 
-Planned: Finance costs by project and event.
+Built on `feat/finance-projects` (spec §11, decisions 23–25; details in [Finance by project and event](finance.md#finance-by-project-and-event)). A client's Financie tab filters its **Overview** (money and hours) and **Work log** by **Project** and **Event**; a contract may name one of the client's projects, a manual time entry a project and an event; `/finance` filters by project only while exactly one client is chosen. Finance keeps its own copy of each entry's project and event (copied by the time hooks, kept in step on every change of the task's or ticket's project, moved by a merge, kept after a delete), so the projects module never reads finance and finance never reads tasks or tickets.

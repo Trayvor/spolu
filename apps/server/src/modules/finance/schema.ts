@@ -81,6 +81,12 @@ export const financeItems = pgTable(
     expenseKind: text('expense_kind').$type<ExpenseKind>(),
     /** A salary: the admin it pays. */
     payeeId: text('payee_id').references(() => user.id),
+    /**
+     * A contract of one client may name one of its projects (Phase 33 P6, decision 23); never
+     * an event. No foreign key: finance keeps its own copy (decision 25), so a deleted project
+     * leaves the id, which the filters no longer offer.
+     */
+    projectId: text('project_id'),
     /** Title, number, body and file names, lower-cased without diacritics (trigram search). */
     searchText: text('search_text').notNull().default(''),
     createdBy: text('created_by')
@@ -177,6 +183,15 @@ export const financeItems = pgTable(
     index('finance_items_payee_idx')
       .on(t.payeeId)
       .where(sql`${t.payeeId} is not null`),
+    // A client's money filtered by a project (Phase 33 P6).
+    index('finance_items_contract_project_idx')
+      .on(t.groupId, t.projectId, t.startsOn)
+      .where(sql`${t.type} = 'contract'`),
+    // A project only on a client's contract.
+    check(
+      'finance_items_project_check',
+      sql`${t.projectId} is null or (${t.type} = 'contract' and ${t.groupId} is not null)`,
+    ),
   ],
 );
 
@@ -261,6 +276,13 @@ export const financeTimeEntries = pgTable(
     title: text('title'),
     minutes: integer('minutes'),
     workedOn: date('worked_on', { mode: 'string' }),
+    /**
+     * The project and event of the entry's task or ticket (Phase 33 P6, decision 25), copied by
+     * the hooks and kept in step by `onSubjectProjectChanged`, so finance never reads `tasks` or
+     * `tickets`; a manual entry's are chosen. No foreign key: a deleted project leaves the ids.
+     */
+    projectId: text('project_id'),
+    eventId: text('event_id'),
     /** A ticket entry answered "the linked tasks' hours cover it" (option b): minutes are 0. */
     coveredByTasks: boolean('covered_by_tasks').notNull().default(false),
     note: text('note').notNull().default(''),
@@ -343,6 +365,17 @@ export const financeTimeEntries = pgTable(
     index('finance_time_entries_linked_ticket_idx')
       .on(t.linkedTicketId)
       .where(sql`${t.linkedTicketId} is not null`),
+    // The Project and Event filters of the overview and the work log (Phase 33 P6).
+    index('finance_time_entries_group_project_day_idx')
+      .on(t.groupId, t.projectId, t.workedOn)
+      .where(sql`${t.minutes} is not null and ${t.workedOn} is not null`),
+    index('finance_time_entries_group_event_day_idx')
+      .on(t.groupId, t.eventId, t.workedOn)
+      .where(sql`${t.minutes} is not null and ${t.workedOn} is not null`),
+    check(
+      'finance_time_entries_event_check',
+      sql`${t.eventId} is null or ${t.projectId} is not null`,
+    ),
   ],
 );
 
@@ -376,3 +409,13 @@ export const financeRates = pgTable(
     index('finance_rates_user_from_idx').on(t.userId, t.effectiveFrom.desc().nullsLast()),
   ],
 );
+
+/**
+ * One-off data jobs of the finance module that are done (Phase 33 P6): a startup job looks its
+ * name up and runs only when it is missing, so `finance.backfill-projects` copies the projects
+ * of the entries made before migration 0045 once, not on every start.
+ */
+export const financeBackfills = pgTable('finance_backfills', {
+  name: text('name').primaryKey(),
+  doneAt: timestamp('done_at', { withTimezone: true, precision: 3 }).notNull().defaultNow(),
+});

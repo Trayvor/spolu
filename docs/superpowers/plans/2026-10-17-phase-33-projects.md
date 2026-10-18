@@ -259,6 +259,8 @@ Done when: every field of spec §10.1 marked "editor" has the AI button, the mic
 
 **Goal:** spec §11, decisions 23–25.
 
+Status: **built** on `feat/finance-projects` (migration 0045). Deviations: a merge reaches finance through a hook registry in `modules/projects/merge-hooks.ts` (`runProjectMergeHooks`, which finance registers at start-up), since the projects module may not import finance; part P3's `mergeProjects` must call it once, after the events moved and before the merged project is deleted (P3 was not merged yet). A deleted project keeps its ids on the entries (decision 25), so no hook runs on delete. The backfill's done mark is the new table `finance_backfills`; `/finance` takes `project` with one client only (decision 24) and its rankings take none.
+
 Server:
 - Migration (finance): `finance_time_entries.project_id`, `event_id`; `finance_items.project_id`; the partial indexes of spec §11. A one-off backfill in the migration is not possible without reading `tasks` (forbidden to finance): instead a startup job `finance.backfill-projects` asks the tasks and tickets modules for `projectOfTasks(ids)` / `projectOfTickets(ids)` in batches and writes the copies (idempotent, logs counts).
 - Hooks: `onTaskCompleted` / `onTicketResolved` events gain `projectId`, `eventId`; new `onSubjectProjectChanged(tx, …)` called by P2's write paths and by P3's merge (each one line in the tasks and tickets services, inside their transactions).

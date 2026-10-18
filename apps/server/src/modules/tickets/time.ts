@@ -32,6 +32,8 @@ export async function ticketStatusTime(
       actorName: actor.name,
       assigneeIds,
       linkedTaskIds: linked.map((t) => t.id),
+      projectId: after.projectId,
+      eventId: after.eventId,
     });
     return { askTime: asked.askActor, time: asked };
   }

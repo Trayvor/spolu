@@ -7,6 +7,7 @@ import { getGroup } from '../groups/service.js';
 import { user } from '../users/schema.js';
 import { emitFinanceChanged, emitTimeRequests } from './events.js';
 import { canAddManualEntry, canEditTimeEntry } from './policy.js';
+import { checkFinanceProject } from './project-links.js';
 import { financeToday } from './rates.js';
 import { financeTimeEntries } from './schema.js';
 
@@ -67,7 +68,8 @@ async function openRequestCount(db: Db, userId: string): Promise<number> {
 /**
  * `POST /api/groups/:id/finance/time-entries` (a client's tab) and `POST /api/finance/time-entries`
  * ("Add time" on `/finance`, any client or `groupId` null: "Bez klienta", shown system-wide
- * only). Any admin (active or deactivated) may be named.
+ * only). Any admin (active or deactivated) may be named. An optional project and event of the
+ * client (Phase 33 P6) are checked by the projects module (`InvalidProjectError`, 400).
  */
 export async function createManualEntry(
   { db, io }: EntryDeps,
@@ -81,12 +83,14 @@ export async function createManualEntry(
   const [target] = await db.select({ role: user.role }).from(user).where(eq(user.id, body.userId));
   if (!target || target.role === 'client') throw new TimeEntryUserError();
   checkDay(body.workedOn, now);
+  const pair = await checkFinanceProject(db, groupId, body.projectId ?? null, body.eventId ?? null);
   const id = randomUUID();
   await db.insert(e).values({
     id,
     groupId,
     userId: body.userId,
     source: 'manual',
+    ...pair,
     minutes: body.minutes,
     workedOn: body.workedOn,
     note: body.note,
@@ -101,7 +105,9 @@ export async function createManualEntry(
 /**
  * `PATCH /api/finance/time-entries/:id`: a finance admin corrects an entry. A task or ticket
  * entry takes `minutes` only (a ticket entry then stops being "covered by the tasks"); filling a
- * requested one answers the request, so its admin's dashboard count follows.
+ * requested one answers the request, so its admin's dashboard count follows. A manual entry's
+ * project and event (Phase 33 P6): a new project without an event drops the old event,
+ * `projectId: null` clears both; a task or ticket entry follows its subject and takes neither.
  */
 export async function updateTimeEntry(
   { db, io }: EntryDeps,
@@ -113,10 +119,28 @@ export async function updateTimeEntry(
   const [entry] = await db.select().from(e).where(eq(e.id, id));
   if (!entry) throw new TimeEntryNotFoundError();
   if (!canEditTimeEntry(actor, entry)) throw new TimeEntryForbiddenError();
-  if (entry.source !== 'manual' && (patch.workedOn !== undefined || patch.note !== undefined)) {
+  const projectPatched = patch.projectId !== undefined || patch.eventId !== undefined;
+  if (
+    entry.source !== 'manual' &&
+    (patch.workedOn !== undefined || patch.note !== undefined || projectPatched)
+  ) {
     throw new TimeEntryInvalidError('A task or ticket entry takes minutes only');
   }
   if (patch.workedOn !== undefined) checkDay(patch.workedOn, now);
+  let pair: { projectId: string | null; eventId: string | null } | null = null;
+  if (projectPatched) {
+    const projectId = patch.projectId !== undefined ? patch.projectId : entry.projectId;
+    const eventId =
+      patch.eventId !== undefined
+        ? patch.eventId
+        : projectId === entry.projectId
+          ? entry.eventId
+          : null;
+    if (eventId !== null && projectId === null) {
+      throw new TimeEntryInvalidError('An event needs its project');
+    }
+    pair = await checkFinanceProject(db, entry.groupId, projectId, eventId);
+  }
   const answers = entry.minutes === null && patch.minutes !== undefined;
   await db
     .update(e)
@@ -124,6 +148,7 @@ export async function updateTimeEntry(
       ...(patch.minutes !== undefined ? { minutes: patch.minutes, coveredByTasks: false } : {}),
       ...(patch.workedOn !== undefined ? { workedOn: patch.workedOn } : {}),
       ...(patch.note !== undefined ? { note: patch.note } : {}),
+      ...(pair ?? {}),
       ...(answers ? { filledAt: now } : {}),
       updatedBy: actor.id,
       updatedAt: now,

@@ -21,6 +21,7 @@ import { DescriptionField } from '@/features/editor/description-field';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
+import { ProjectSelect } from '@/features/projects/project-select';
 import {
   ReminderTimesField,
   localToIso,
@@ -61,6 +62,8 @@ export type ItemFormValue = {
   expenseKind: ExpenseKind;
   payeeId: string;
   spentOn: string;
+  /** A contract of one client: one of its projects (Phase 33 P6, decision 23), or none. */
+  projectId: string | null;
 };
 
 export type ItemFormErrors = Partial<
@@ -102,6 +105,7 @@ export function emptyItemValue(): ItemFormValue {
     expenseKind: 'salary',
     payeeId: '',
     spentOn: '',
+    projectId: null,
   };
 }
 
@@ -143,6 +147,8 @@ export function fromItem(item: FinanceItemDetail, language: string): ItemFormVal
     expenseKind: e?.kind ?? 'salary',
     payeeId: e?.payeeId ?? '',
     spentOn: e?.spentOn ?? '',
+    // A deleted project is no choice any more: the form shows none, and keeps it unless edited.
+    projectId: c?.project?.id ?? null,
   };
 }
 
@@ -238,6 +244,7 @@ export function toBody(
     amount: parseMoney(value.amount, value.currency)!,
     startsOn: value.startsOn,
     endsOn: value.endsOn,
+    projectId: value.projectId,
   };
 }
 
@@ -297,6 +304,7 @@ export function toPatch(item: FinanceItemDetail, value: ItemFormValue): FinanceI
     }
     if (value.startsOn !== c.startsOn) patch.startsOn = value.startsOn;
     if (value.endsOn !== c.endsOn) patch.endsOn = value.endsOn;
+    if (!c.shared && value.projectId !== (c.project?.id ?? null)) patch.projectId = value.projectId;
     if (c.shared) {
       const payer = value.payerName.trim();
       if (payer !== c.shared.payerName) patch.payerName = payer;
@@ -416,6 +424,15 @@ export function ItemForm({
       ? { kind: 'group', groupId: value.clientId }
       : context.owner;
   const groupId = context.owner.kind === 'group' ? context.owner.groupId : '';
+  // The client whose projects a contract may name (one client only, never several).
+  const projectGroup =
+    contract && !shared
+      ? context.owner.kind === 'group'
+        ? context.owner.groupId
+        : value.owner === 'client' && value.clientId
+          ? value.clientId
+          : null
+      : null;
   const err = (key: keyof ItemFormErrors) => ({
     'aria-invalid': errors[key] ? true : undefined,
     'aria-describedby': errors[key] ? `${uid}-${key}-error` : undefined,
@@ -483,7 +500,11 @@ export function ItemForm({
               <Select
                 aria-label={o('client')}
                 value={value.clientId}
-                onChange={(event) => set('clientId', event.target.value)}
+                onChange={(event) => {
+                  const clientId = event.target.value;
+                  // Projects are per client: another client drops the project.
+                  onChange((prev) => ({ ...prev, clientId, projectId: null }));
+                }}
                 containerClassName="w-full"
                 {...err('client')}
               >
@@ -647,6 +668,22 @@ export function ItemForm({
               </div>
             </div>
           </fieldset>
+          {projectGroup && (
+            <div className={FIELD}>
+              <Label htmlFor={`${uid}-project`}>{k('project')}</Label>
+              <ProjectSelect
+                id={`${uid}-project`}
+                groupId={projectGroup}
+                value={value.projectId}
+                onChange={(projectId) => set('projectId', projectId)}
+                labels={{
+                  label: k('project'),
+                  none: k('noProject'),
+                  archived: (name) => t('financeDocuments.form.archivedProject', { name }),
+                }}
+              />
+            </div>
+          )}
           {shared && (
             <>
               <div className={FIELD}>

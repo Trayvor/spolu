@@ -15,6 +15,7 @@ import { useFinanceFormat } from './format';
 import { overviewQuery } from './log-api';
 import { OVERVIEW_PERIODS } from './period';
 import { PeriodSelect, usePeriod, type PeriodState } from './period-select';
+import { FinanceProjectPills, useFinanceProjectFilter } from './project-filter';
 import { SegmentedControl } from './segmented-control';
 
 const RatesDialog = lazy(() => import('./rates-dialog').then((m) => ({ default: m.RatesDialog })));
@@ -48,7 +49,8 @@ export function OverviewCard({
   const mode = savedView ?? 'money';
   const ownPeriod = usePeriod('finance.overview.period', OVERVIEW_PERIODS);
   const period = pagePeriod ?? ownPeriod;
-  const query = useQuery(overviewQuery(view, period.range));
+  const project = useFinanceProjectFilter('overview', view);
+  const query = useQuery(overviewQuery(view, period.range, project.value));
   const [rates, setRates] = useState(false);
 
   let body;
@@ -70,7 +72,13 @@ export function OverviewCard({
       </div>
     );
   } else if (mode === 'money') {
-    body = <MoneyView data={query.data} onRates={() => setRates(true)} />;
+    body = (
+      <MoneyView
+        data={query.data}
+        onRates={() => setRates(true)}
+        byEvent={project.value.event !== undefined}
+      />
+    );
   } else {
     body = <HoursView data={query.data} onRates={() => setRates(true)} />;
   }
@@ -93,6 +101,11 @@ export function OverviewCard({
         </>
       }
     >
+      {project.groupId !== null && (
+        <div className="pb-3">
+          <FinanceProjectPills state={project} />
+        </div>
+      )}
       <div className="@container flex min-h-0 flex-1 flex-col">{body}</div>
       {rates && (
         <Suspense fallback={null}>
@@ -137,7 +150,16 @@ function MissingRate({ minutes, onRates }: { minutes: number; onRates: () => voi
   );
 }
 
-function MoneyView({ data, onRates }: { data: FinanceOverviewDto; onRates: () => void }) {
+function MoneyView({
+  data,
+  onRates,
+  byEvent,
+}: {
+  data: FinanceOverviewDto;
+  onRates: () => void;
+  /** An Event filter is on (Phase 33 P6): contracts have no event, only the cost shows. */
+  byEvent: boolean;
+}) {
   const { t } = useTranslation();
   const f = useFinanceFormat();
   const [table, toggle] = useTableToggle();
@@ -206,6 +228,11 @@ function MoneyView({ data, onRates }: { data: FinanceOverviewDto; onRates: () =>
     data.cost.total === 0 &&
     data.hours.minutes === 0;
   if (empty) return <FinanceCardEmpty>{t('financeLog.overview.empty')}</FinanceCardEmpty>;
+  const eventNote = byEvent && (
+    <p className="text-tiny text-muted-foreground" data-testid="finance-no-event-money">
+      {t('financeLog.projects.contractsNoEvent')}
+    </p>
+  );
 
   const eur = data.money.find((m) => m.currency === COST_CURRENCY);
   // Every client on `/finance`: paid − expenses paid out (O3); otherwise paid − cost of work.
@@ -216,6 +243,7 @@ function MoneyView({ data, onRates }: { data: FinanceOverviewDto; onRates: () =>
   return (
     <div className="flex flex-col gap-5 @min-[640px]:flex-row">
       <div className="flex min-w-0 flex-col gap-2 @min-[640px]:basis-[65%]">
+        {eventNote}
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-tiny text-muted-foreground">
           {groups
             .flatMap((g) => g.series)

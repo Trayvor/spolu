@@ -8,6 +8,7 @@ import {
   type Month,
   type OverviewExpenses,
   type OverviewMoney,
+  type ProjectFilter,
 } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
 import { getUserNames } from '../users/service.js';
@@ -51,6 +52,24 @@ export function costSql(entries: string): SQL {
 }
 
 /**
+ * The Project and Event filters (Phase 33 P6, spec §11) on the entries' own copies
+ * (`project_id`, `event_id`): `<id>` or `none`; an empty filter adds nothing. With one client
+ * they read `finance_time_entries_group_project_day_idx` / `…_group_event_day_idx`.
+ */
+export function entryProjectSql(filter: ProjectFilter): SQL {
+  const part = (column: SQL, value: string | undefined) =>
+    value === undefined
+      ? sql``
+      : value === 'none'
+        ? sql` and ${column} is null`
+        : sql` and ${column} = ${value}`;
+  return sql`${part(sql`${e.projectId}`, filter.project)}${part(sql`${e.eventId}`, filter.event)}`;
+}
+
+/** No Project or Event filter. */
+export const NO_PROJECT_FILTER: ProjectFilter = {};
+
+/**
  * Filled entries (the only ones that count) of a scope, from a day (inclusive) to one (exclusive).
  * A client scope (`group`, `groups`) is `group_id = …` / `group_id in (…)`, so entries without a
  * client (owner decision 24: time on a ticket with no client, part A2) never reach a client's
@@ -59,11 +78,12 @@ export function costSql(entries: string): SQL {
 export function countedEntriesSql(
   scope: FinanceScope,
   range: { from: string; until: string } | null,
+  filter: ProjectFilter = NO_PROJECT_FILTER,
 ): SQL {
   const bounds = range
     ? sql` and ${e.workedOn} >= ${range.from} and ${e.workedOn} < ${range.until}`
     : sql``;
-  return sql`${e.minutes} is not null and ${e.workedOn} is not null and ${scopeSql(e.groupId, scope)}${bounds}`;
+  return sql`${e.minutes} is not null and ${e.workedOn} is not null and ${scopeSql(e.groupId, scope)}${bounds}${entryProjectSql(filter)}`;
 }
 
 /** The day bounds of a month range: `from` inclusive, `until` exclusive. */
@@ -205,11 +225,24 @@ export function contractMoneyRowsSql(scope: FinanceScope, where: (c: SQL) => SQL
  * (Bratislava) or earlier, to be paid when later (owner decision 12). A client counts its shares
  * of contracts of several clients (`contractMoneyRowsSql`).
  */
-export function moneySql(scope: FinanceScope, range: MonthRange, today: string): SQL {
+export function moneySql(
+  scope: FinanceScope,
+  range: MonthRange,
+  today: string,
+  filter: ProjectFilter = NO_PROJECT_FILTER,
+): SQL {
   const { from, until } = dayBounds(range);
+  // A contract names a project or none (Phase 33 P6, decision 23); a contract of several
+  // clients names none. The event filter never reaches here (contracts have no event).
+  const project =
+    filter.project === undefined
+      ? () => sql``
+      : filter.project === 'none'
+        ? (c: SQL) => sql` and ${c}.project_id is null`
+        : (c: SQL) => sql` and ${c}.project_id = ${filter.project}`;
   const rows = contractMoneyRowsSql(
     scope,
-    (c) => sql`${c}.starts_on >= ${from} and ${c}.starts_on < ${until}`,
+    (c) => sql`${c}.starts_on >= ${from} and ${c}.starts_on < ${until}${project(c)}`,
   );
   return sql`
     select m.currency, to_char(m.starts_on, 'YYYY-MM') as month,
@@ -277,24 +310,35 @@ async function expensesOf(db: Db, range: MonthRange, today: string): Promise<Ove
  * `organisation` (Phase 32 E: `/finance` with every client, for a finance admin) a fourth, the
  * organisation's expenses. A client's tab never passes it (decision O3); the admin group's tab
  * does (Phase 34 part E: its Financie tab is the organisation's).
+ *
+ * `project` (Phase 33 P6): the Project and Event filters. Hours and cost filter the entries'
+ * copies; money filters contracts by their project, and an event filter leaves no money
+ * (contracts are not tied to events), so the money query is skipped. No organisation's
+ * expenses under a filter: they belong to no project.
  */
 export async function overview(
   db: Db,
   scope: FinanceScope,
   range: MonthRange,
   now: Date = new Date(),
-  opts: { organisation?: boolean } = {},
+  opts: { organisation?: boolean; project?: ProjectFilter } = {},
 ): Promise<FinanceOverviewDto> {
-  // Every client on `/finance`, or the admin group's own tab (Phase 34 part E), never a client's.
+  const filter = opts.project ?? NO_PROJECT_FILTER;
+  const filtered = filter.project !== undefined;
+  // Every client on `/finance`, or the admin group's own tab (Phase 34 part E), never a client's;
+  // never under a Project or Event filter (Phase 33 P6).
   const organisation =
-    opts.organisation === true && (scope.kind === 'all' || scope.kind === 'group');
+    opts.organisation === true && (scope.kind === 'all' || scope.kind === 'group') && !filtered;
   const expenses = organisation ? await expensesOf(db, range, financeToday(now)) : [];
-  const moneyRows = await db.execute<{
-    currency: Currency;
-    month: Month;
-    paid: string | number;
-    to_be_paid: string | number;
-  }>(moneySql(scope, range, financeToday(now)));
+  const moneyRows =
+    filter.event !== undefined
+      ? []
+      : await db.execute<{
+          currency: Currency;
+          month: Month;
+          paid: string | number;
+          to_be_paid: string | number;
+        }>(moneySql(scope, range, financeToday(now), filter));
   const byCurrency = new Map<Currency, OverviewMoney>();
   for (const row of moneyRows) {
     const money = byCurrency.get(row.currency) ?? {
@@ -312,7 +356,7 @@ export async function overview(
   }
   const money = Currencies.flatMap((c) => byCurrency.get(c) ?? []);
 
-  const rows = await timeTotals(db, countedEntriesSql(scope, dayBounds(range)), [
+  const rows = await timeTotals(db, countedEntriesSql(scope, dayBounds(range), filter), [
     'adminMonth',
     'month',
     'admin',

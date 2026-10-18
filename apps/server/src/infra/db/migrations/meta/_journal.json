@@ -316,6 +316,13 @@
       "when": 1792314056404,
       "tag": "0044_finance_org",
       "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "7",
+      "when": 1792315415071,
+      "tag": "0045_finance_projects",
+      "breakpoints": true
     }
   ]
 }
