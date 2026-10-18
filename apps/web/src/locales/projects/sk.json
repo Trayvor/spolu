@@ -85,5 +85,61 @@
     "deleteEvents_many": "Vymaže sa aj jeho {{count}} udalosti.",
     "deleteEvents_other": "Vymaže sa aj jeho {{count}} udalostí.",
     "deleteKeeps": "Jeho otvorené úlohy ({{tasks}}) a tikety ({{tickets}}) zostanú, bez projektu."
+  },
+  "timeline": {
+    "title": "Časová os",
+    "projectSelect": "Projekt na časovej osi",
+    "allProjects": "Všetky projekty",
+    "todayButton": "Dnes",
+    "today": "Dnes",
+    "todayAt": "Dnes, {{date}}",
+    "addEvent": "Pridať udalosť",
+    "addEventTo": "Do projektu {{name}}",
+    "earlier": "Skoršie",
+    "later": "Neskoršie",
+    "listLabel": "Udalosti podľa dátumu",
+    "noProjects": "Zatiaľ žiadne projekty. Projekty zoraďujú úlohy a tikety tohto klienta na časovej osi.",
+    "noEvents": "Zatiaľ žiadne udalosti.",
+    "loadError": "Časovú os sa nepodarilo načítať.",
+    "tasks": "Úlohy ({{count}})",
+    "tickets": "Tikety ({{count}})",
+    "tasksTitle": "Otvorené úlohy",
+    "ticketsTitle": "Aktívne tikety",
+    "showAll": "Zobraziť všetko ({{count}})",
+    "done": "Hotové ({{count}})",
+    "more": "Zobraziť ďalšie",
+    "eventActions": "Akcie udalosti",
+    "eventUnavailable": "Táto udalosť už nie je k dispozícii.",
+    "showOnTimeline": "Zobraziť na časovej osi",
+    "gap": {
+      "months_one": "{{count}} mesiac",
+      "months_few": "{{count}} mesiace",
+      "months_many": "{{count}} mesiaca",
+      "months_other": "{{count}} mesiacov",
+      "years_one": "{{count}} rok",
+      "years_few": "{{count}} roky",
+      "years_many": "{{count}} roka",
+      "years_other": "{{count}} rokov"
+    }
+  },
+  "cards": {
+    "tickets": "Tikety",
+    "tasks": "Úlohy",
+    "ticketsActive": "aktívne: {{count}}",
+    "tasksOpen": "otvorené: {{count}}",
+    "mine": "moje: {{count}}",
+    "urgentCount": "urgentné: {{count}}",
+    "openAll": "Otvoriť všetko",
+    "loadError": "Nepodarilo sa načítať.",
+    "noTickets": "Žiadne aktívne tikety.",
+    "noTasks": "Žiadne otvorené úlohy.",
+    "mineMark": "(moje)",
+    "urgent": "Urgentné",
+    "noSubject": "Bez predmetu",
+    "status": {
+      "new": "Nový",
+      "in_progress": "Rieši sa",
+      "resolved": "Vyriešený"
+    }
   }
 }

@@ -1,4 +1,5 @@
 import { expect, test, type Browser, type BrowserContext } from '@playwright/test';
+import { withDb } from './db';
 import { clearMailFor, latestLoginCode } from './mailpit';
 
 // Phase 33 end-to-end scenarios (spec §14). Part P1 writes the projects' life below (the plan's
@@ -135,5 +136,151 @@ test.describe.serial('projects: the Prehľad tab (P1)', () => {
     } finally {
       await context.close();
     }
+  });
+});
+
+// Part P4: the timeline and the active cards (spec §14, scenarios 1, 6 and 7). The tasks' and
+// tickets' events are set in SQL until part P2's fields land (the columns exist since P1).
+test.describe.serial('projects: the timeline and the active cards (P4)', () => {
+  const stamp = Date.now();
+  let groupId = '';
+  let admin: BrowserContext;
+  const day = (offset: number) => {
+    const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Bratislava' }).format(
+      new Date(),
+    );
+    const date = new Date(`${today}T00:00:00Z`);
+    date.setUTCDate(date.getUTCDate() + offset);
+    return date.toISOString().slice(0, 10);
+  };
+
+  test.beforeAll(async ({ browser }) => {
+    admin = await browser.newContext({ storageState: 'e2e/.auth/superadmin.json' });
+    const request = admin.request;
+    const me = (await (await request.get('/api/me')).json()) as { id: string };
+    const created = await request.post('/api/groups', {
+      data: { name: `E2E Os ${stamp}`, egrantUrl: `https://e2e-tl-${stamp}.egrant.sk` },
+    });
+    groupId = ((await created.json()) as { id: string }).id;
+    // Admins are assignees and riešitelia of the clients they manage.
+    expect((await request.put(`/api/groups/${groupId}/managers/me`)).ok()).toBe(true);
+    const project = (await (
+      await request.post(`/api/groups/${groupId}/projects`, { data: { name: `Os ${stamp}` } })
+    ).json()) as { id: string };
+    const events: Record<string, string> = {};
+    for (const [name, offset] of [
+      ['Kickoff', -30],
+      ['Dnešná porada', 0],
+      ['Hodnotenie', 10],
+      ['Správa', 200],
+    ] as const) {
+      const res = await request.post(`/api/projects/${project.id}/events`, {
+        data: { name, occursOn: day(offset) },
+      });
+      expect(res.status()).toBe(201);
+      events[name] = ((await res.json()) as { id: string }).id;
+    }
+    const task = async (title: string, assigneeIds: string[] = []) => {
+      const res = await request.post(`/api/groups/${groupId}/tasks`, {
+        data: { title, assigneeIds },
+      });
+      expect(res.status()).toBe(201);
+      return ((await res.json()) as { id: string }).id;
+    };
+    const ticket = async (subject: string) => {
+      const res = await request.post('/api/tickets', {
+        data: { groupId, subject, requesterEmail: `e2e-tl-${stamp}@example.com` },
+      });
+      expect(res.status()).toBe(201);
+      return ((await res.json()) as { id: string }).id;
+    };
+    await task(`Iná úloha ${stamp}`);
+    const mine = await task(`Rozpočet ${stamp}`, [me.id]);
+    await ticket(`Iný tiket ${stamp}`);
+    const myTicket = await ticket(`Môj tiket ${stamp}`);
+    expect((await request.put(`/api/tickets/${myTicket}/assignees/${me.id}`)).ok()).toBe(true);
+    const done = await ticket(`Vyriešený ${stamp}`);
+    const eventId = events['Dnešná porada']!;
+    await withDb(async (sql) => {
+      await sql`update tasks set project_id = ${project.id}, event_id = ${eventId} where id = ${mine}`;
+      await sql`update tickets set project_id = ${project.id}, event_id = ${eventId}
+        where id in (${myTicket}, ${done})`;
+      await sql`update tickets set status = 'resolved', resolved_at = now() where id = ${done}`;
+    });
+  });
+  test.afterAll(async () => {
+    await admin.close();
+  });
+
+  const stripItems = (page: import('@playwright/test').Page) =>
+    page
+      .getByRole('list', { name: 'Udalosti podľa dátumu' })
+      .evaluate((list) =>
+        [...list.children].map((li) =>
+          li.hasAttribute('data-today') ? 'TODAY' : (li.querySelector('h3')?.textContent ?? ''),
+        ),
+      );
+
+  test('the timeline shows the events in order with Today between, and their rows', async () => {
+    const page = await admin.newPage();
+    await page.goto(`/groups/${groupId}/overview`);
+    const timeline = page.getByRole('region', { name: 'Časová os' });
+    await expect(timeline.getByRole('button', { name: 'Hodnotenie' })).toBeVisible();
+    expect(await stripItems(page)).toEqual([
+      'Kickoff',
+      'TODAY',
+      'Dnešná porada',
+      'Hodnotenie',
+      'Správa',
+    ]);
+    await expect(timeline.getByText('6 mesiacov')).toBeVisible();
+    await expect(
+      timeline.getByRole('link', { name: new RegExp(`Rozpočet ${stamp}`) }),
+    ).toBeVisible();
+    await expect(
+      timeline.getByRole('link', { name: new RegExp(`Môj tiket ${stamp}`) }),
+    ).toBeVisible();
+    await timeline.getByRole('button', { name: 'Hotové (1)' }).click();
+    await expect(
+      timeline.getByRole('link', { name: new RegExp(`Vyriešený ${stamp}`) }),
+    ).toBeVisible();
+
+    // A task row opens the task panel over the overview.
+    await timeline.getByRole('link', { name: new RegExp(`Rozpočet ${stamp}`) }).click();
+    await expect(page).toHaveURL(/\/overview\?.*task=/);
+    const panel = page.getByRole('complementary', { name: 'Úloha' });
+    await expect(panel).toContainText(`Rozpočet ${stamp}`);
+    await panel.getByRole('button', { name: 'Zavrieť' }).click();
+    await expect(page).toHaveURL(/\/overview$/);
+    await page.close();
+  });
+
+  test('the active cards list my ticket and task first', async () => {
+    const page = await admin.newPage();
+    await page.goto(`/groups/${groupId}/overview`);
+    const tickets = page.getByRole('region', { name: 'Tikety' });
+    await expect(tickets.getByRole('link').nth(1)).toContainText(`Môj tiket ${stamp}`);
+    await expect(tickets).toContainText('aktívne: 2');
+    const tasks = page.getByRole('region', { name: 'Úlohy' });
+    await expect(tasks.getByRole('link').nth(1)).toContainText(`Rozpočet ${stamp}`);
+    await expect(tasks).toContainText('moje: 1');
+    await page.close();
+  });
+
+  test('on a phone the strip shows dots only and a tap opens the event sheet', async () => {
+    const page = await admin.newPage();
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(`/groups/${groupId}/overview`);
+    const timeline = page.getByRole('region', { name: 'Časová os' });
+    await expect(timeline.getByRole('button', { name: 'Dnešná porada' })).toBeVisible();
+    await expect(
+      timeline.getByRole('link', { name: new RegExp(`Rozpočet ${stamp}`) }),
+    ).toBeHidden();
+    await timeline.getByRole('button', { name: 'Dnešná porada' }).click();
+    const sheet = page.getByTestId('event-sheet');
+    await expect(sheet.getByRole('link', { name: new RegExp(`Rozpočet ${stamp}`) })).toBeVisible();
+    await expect(sheet.getByRole('link', { name: new RegExp(`Môj tiket ${stamp}`) })).toBeVisible();
+    await expect(sheet.getByRole('link', { name: new RegExp(`Vyriešený ${stamp}`) })).toBeVisible();
+    await page.close();
   });
 });

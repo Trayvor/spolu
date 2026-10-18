@@ -75,5 +75,57 @@
     "deleteEvents_one": "Its {{count}} event goes too.",
     "deleteEvents_other": "Its {{count}} events go too.",
     "deleteKeeps": "Its open tasks ({{tasks}}) and tickets ({{tickets}}) stay, without the project."
+  },
+  "timeline": {
+    "title": "Timeline",
+    "projectSelect": "Project on the timeline",
+    "allProjects": "All projects",
+    "todayButton": "Today",
+    "today": "Today",
+    "todayAt": "Today, {{date}}",
+    "addEvent": "Add event",
+    "addEventTo": "In {{name}}",
+    "earlier": "Earlier",
+    "later": "Later",
+    "listLabel": "Events by date",
+    "noProjects": "No projects yet. Projects group this client's tasks and tickets along a timeline.",
+    "noEvents": "No events yet.",
+    "loadError": "The timeline could not be loaded.",
+    "tasks": "Tasks ({{count}})",
+    "tickets": "Tickets ({{count}})",
+    "tasksTitle": "Open tasks",
+    "ticketsTitle": "Active tickets",
+    "showAll": "Show all ({{count}})",
+    "done": "{{count}} done",
+    "more": "Show more",
+    "eventActions": "Event actions",
+    "eventUnavailable": "This event is no longer available.",
+    "showOnTimeline": "Show on the timeline",
+    "gap": {
+      "months_one": "{{count}} month",
+      "months_other": "{{count}} months",
+      "years_one": "{{count}} year",
+      "years_other": "{{count}} years"
+    }
+  },
+  "cards": {
+    "tickets": "Tickets",
+    "tasks": "Tasks",
+    "ticketsActive": "{{count}} active",
+    "tasksOpen": "{{count}} open",
+    "mine": "{{count}} mine",
+    "urgentCount": "{{count}} urgent",
+    "openAll": "Open all",
+    "loadError": "This could not be loaded.",
+    "noTickets": "No active tickets.",
+    "noTasks": "No open tasks.",
+    "mineMark": "(mine)",
+    "urgent": "Urgent",
+    "noSubject": "No subject",
+    "status": {
+      "new": "New",
+      "in_progress": "In progress",
+      "resolved": "Resolved"
+    }
   }
 }

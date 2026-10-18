@@ -209,6 +209,8 @@ Done when:
 
 ## Part P4 — Timeline and the overview cards (branch `feat/projects-timeline`; after P1, parallel with P2, P3, P5)
 
+Status: **built** on `feat/projects-timeline`. Deviations: the routes are in `modules/projects/timeline-routes.ts`; a page is four queries (the events query carries the project's name and file count, so `projectRefs` is not needed there); "Show all (n)" opens the event sheet until P2's filters exist; the done pile pages 20 at a time (the sheet's page size) instead of 10; the web reads are in `timeline-api.ts`, the pure helpers in `timeline-model.ts`, the shared rows in `event-rows.tsx`, the task panel over the tab in `overview-task-panel.tsx`, the task and ticket socket refetch in `use-work-events.ts`. No migration.
+
 **Goal:** spec §7.2–§7.4, decisions 14–18.
 
 Server:

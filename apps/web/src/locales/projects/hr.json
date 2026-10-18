@@ -80,5 +80,59 @@
     "deleteEvents_few": "Brišu se i njegova {{count}} događaja.",
     "deleteEvents_other": "Briše se i njegovih {{count}} događaja.",
     "deleteKeeps": "Njegovi otvoreni zadaci ({{tasks}}) i tiketi ({{tickets}}) ostaju, bez projekta."
+  },
+  "timeline": {
+    "title": "Vremenska crta",
+    "projectSelect": "Projekt na vremenskoj crti",
+    "allProjects": "Svi projekti",
+    "todayButton": "Danas",
+    "today": "Danas",
+    "todayAt": "Danas, {{date}}",
+    "addEvent": "Dodaj događaj",
+    "addEventTo": "U projekt {{name}}",
+    "earlier": "Raniji",
+    "later": "Kasniji",
+    "listLabel": "Događaji po datumu",
+    "noProjects": "Još nema projekata. Projekti slažu zadatke i zahtjeve ovog klijenta na vremensku crtu.",
+    "noEvents": "Još nema događaja.",
+    "loadError": "Vremensku crtu nije bilo moguće učitati.",
+    "tasks": "Zadaci ({{count}})",
+    "tickets": "Zahtjevi ({{count}})",
+    "tasksTitle": "Otvoreni zadaci",
+    "ticketsTitle": "Aktivni zahtjevi",
+    "showAll": "Prikaži sve ({{count}})",
+    "done": "Gotovo ({{count}})",
+    "more": "Prikaži više",
+    "eventActions": "Radnje događaja",
+    "eventUnavailable": "Ovaj događaj više nije dostupan.",
+    "showOnTimeline": "Prikaži na vremenskoj crti",
+    "gap": {
+      "months_one": "{{count}} mjesec",
+      "months_few": "{{count}} mjeseca",
+      "months_other": "{{count}} mjeseci",
+      "years_one": "{{count}} godina",
+      "years_few": "{{count}} godine",
+      "years_other": "{{count}} godina"
+    }
+  },
+  "cards": {
+    "tickets": "Zahtjevi",
+    "tasks": "Zadaci",
+    "ticketsActive": "aktivni: {{count}}",
+    "tasksOpen": "otvoreni: {{count}}",
+    "mine": "moji: {{count}}",
+    "urgentCount": "hitni: {{count}}",
+    "openAll": "Otvori sve",
+    "loadError": "Nije bilo moguće učitati.",
+    "noTickets": "Nema aktivnih zahtjeva.",
+    "noTasks": "Nema otvorenih zadataka.",
+    "mineMark": "(moje)",
+    "urgent": "Hitno",
+    "noSubject": "Bez predmeta",
+    "status": {
+      "new": "Novi",
+      "in_progress": "U tijeku",
+      "resolved": "Riješen"
+    }
   }
 }

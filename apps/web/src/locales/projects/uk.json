@@ -85,5 +85,61 @@
     "deleteEvents_many": "Видаляються також його {{count}} подій.",
     "deleteEvents_other": "Видаляються також його {{count}} події.",
     "deleteKeeps": "Його відкриті завдання ({{tasks}}) і тікети ({{tickets}}) залишаться, без проєкту."
+  },
+  "timeline": {
+    "title": "Часова шкала",
+    "projectSelect": "Проєкт на часовій шкалі",
+    "allProjects": "Усі проєкти",
+    "todayButton": "Сьогодні",
+    "today": "Сьогодні",
+    "todayAt": "Сьогодні, {{date}}",
+    "addEvent": "Додати подію",
+    "addEventTo": "До проєкту {{name}}",
+    "earlier": "Раніші",
+    "later": "Пізніші",
+    "listLabel": "Події за датою",
+    "noProjects": "Проєктів ще немає. Проєкти впорядковують завдання й тікети цього клієнта на часовій шкалі.",
+    "noEvents": "Подій ще немає.",
+    "loadError": "Не вдалося завантажити часову шкалу.",
+    "tasks": "Завдання ({{count}})",
+    "tickets": "Тікети ({{count}})",
+    "tasksTitle": "Відкриті завдання",
+    "ticketsTitle": "Активні тікети",
+    "showAll": "Показати все ({{count}})",
+    "done": "Виконані ({{count}})",
+    "more": "Показати більше",
+    "eventActions": "Дії з подією",
+    "eventUnavailable": "Ця подія більше недоступна.",
+    "showOnTimeline": "Показати на часовій шкалі",
+    "gap": {
+      "months_one": "{{count}} місяць",
+      "months_few": "{{count}} місяці",
+      "months_many": "{{count}} місяців",
+      "months_other": "{{count}} місяця",
+      "years_one": "{{count}} рік",
+      "years_few": "{{count}} роки",
+      "years_many": "{{count}} років",
+      "years_other": "{{count}} року"
+    }
+  },
+  "cards": {
+    "tickets": "Тікети",
+    "tasks": "Завдання",
+    "ticketsActive": "активні: {{count}}",
+    "tasksOpen": "відкриті: {{count}}",
+    "mine": "мої: {{count}}",
+    "urgentCount": "термінові: {{count}}",
+    "openAll": "Відкрити все",
+    "loadError": "Не вдалося завантажити.",
+    "noTickets": "Активних тікетів немає.",
+    "noTasks": "Відкритих завдань немає.",
+    "mineMark": "(моє)",
+    "urgent": "Терміново",
+    "noSubject": "Без теми",
+    "status": {
+      "new": "Новий",
+      "in_progress": "У роботі",
+      "resolved": "Вирішений"
+    }
   }
 }

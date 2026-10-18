@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import type { FileInfo, ProjectDto } from '@spolu/shared';
 import { MoreIcon } from '@/components/icons';
@@ -38,7 +39,8 @@ type Layer =
   | { kind: 'delete' }
   | null;
 
-function Files({ files }: { files: FileInfo[] }) {
+/** A project's or an event's files: images as previews, the rest as chips. */
+export function Files({ files }: { files: FileInfo[] }) {
   return (
     <div className="flex flex-wrap items-start gap-2">
       {files.map((file) =>
@@ -61,8 +63,8 @@ function Files({ files }: { files: FileInfo[] }) {
 /**
  * One project in a `SheetDialog` (spec §7.5): its description, files and events by date, with
  * "+ Event". Edit, Archive or Restore and Delete in its menu, for everyone who reads the group
- * (decisions 8 and 8a). Part P3 adds "Merge into…" and the eGrant changes; part P4 "Show on the
- * timeline".
+ * (decisions 8 and 8a). Part P3 adds "Merge into…" and the eGrant changes; "Show on the
+ * timeline" (part P4) selects it in the timeline.
  */
 export function ProjectSheet({
   groupId,
@@ -95,6 +97,17 @@ export function ProjectSheet({
     }
   };
   const nameOf = (id: string) => people?.find((p) => p.id === id)?.name;
+  // Part P4: selects the project in the timeline (`?project=`); a link in a layer replaces.
+  const navigate = useNavigate();
+  const showOnTimeline = (id: string) => {
+    void navigate({
+      to: '/groups/$groupId/overview',
+      params: { groupId },
+      search: (prev: Record<string, unknown>) => ({ ...prev, project: id }),
+      replace: true,
+    });
+    onClose();
+  };
 
   return (
     <SheetDialog onEscape={() => (layer ? setLayer(null) : onClose())} testId="project-sheet">
@@ -109,6 +122,9 @@ export function ProjectSheet({
             <DropdownMenuContent align="end">
               <DropdownMenuItem onSelect={() => setLayer({ kind: 'edit' })}>
                 {k('edit')}
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => showOnTimeline(project.id)}>
+                {t('projects.timeline.showOnTimeline')}
               </DropdownMenuItem>
               <DropdownMenuItem
                 onSelect={() =>
