@@ -59,7 +59,7 @@ export interface ComposerHandle {
 }
 
 // Phase 28 and 34: the attachment picker (knowledge, tasks, tickets) loads when first opened.
-const AttachPicker = lazy(withNamespaces(['forms'], () => import('./attach-picker')));
+const AttachPicker = lazy(withNamespaces(['forms', 'knowledge'], () => import('./attach-picker')));
 
 export interface ComposerProps {
   ref?: Ref<ComposerHandle>;

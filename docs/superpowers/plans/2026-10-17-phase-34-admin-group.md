@@ -13,7 +13,7 @@ P34-B admin group foundation ──┬───────────┴──
 
 ## Conflict rules
 
-- **Migrations:** P34-A (`message_task_links`, `message_ticket_links`, trigram indexes on `tasks.title` and `tickets.subject`) and P34-B (`groups.kind`, nullable `egrant_url`, the one-admin index) each write one; the second to merge renumbers. P34-C, P34-D and P34-E need none.
+- **Migrations:** P34-A (`message_task_links`, `message_ticket_links`, trigram indexes on `tasks.title` and `tickets.subject`) and P34-B (`groups.kind`, nullable `egrant_url`, the one-admin index) each write one; the second to merge renumbers. P34-C and P34-E need none; P34-D turned out to need one index (0042).
 - **Server:** P34-A owns `modules/chat/work-links.ts`, `tasks/attachable.ts`, `tickets/attachable.ts`, the search routes; P34-B owns `groups/admin-group.ts` (`isAdminGroup`, `ensureAdminGroup`) and one guard line in each refusing route; P34-C owns `knowledge/policy.ts`'s `isShareableInto` and the read-through extension; P34-D only widens P34-A's checks for the admin group (one branch each); P34-E owns the finance changes.
 - **Web:** P34-A owns `features/chat/attach-picker/` (the dialog and the Tasks and Tickets tabs; the existing `knowledge-picker.tsx` is mounted as the Knowledge tab, props unchanged) and `work-cards.tsx`; P34-B owns the tabs' kind switch, the sidebar section, the `/groups` row, the header; P34-C the knowledge visibility words, the badge and the picker's source switch; P34-D the client filter inside the picker tabs.
 - **Locales:** A `chat`; B `groups`, `group`, `adminHome`, `notifications`; C `knowledge`; D `chat` (its own `attach.clients.*` keys); E the finance namespaces.
@@ -57,6 +57,8 @@ Tests (first): an "Only eGrant" item is refused everywhere outside; a shareable 
 Docs: `product/knowledge-base.md`, `product/chat.md`, `architecture/permissions.md`.
 
 ## Part P34-D — The picker in the admin group (branch `feat/admin-group-picker`; after P34-A and P34-B)
+
+Status: **done** (tests in `modules/chat/admin-group-work.test.ts`, `attach-picker.test.tsx`, `work-cards.test.tsx`; EXPLAIN cases in `home/explain.test.ts`). Decisions taken while building: `q` on `GET /api/tickets/global` already existed (P34-A's `listTickets`), so tickets needed no server change; "Without client" is a switch next to the filter (as on `/tickets`), not a filter row, because the list's `scope=none` excludes `clients`; the knowledge branch lives in the chat (`itemCardsIn`) with a new `knowledge/admin-group-items.ts`, leaving `knowledge/policy.ts` and `chat-items.ts` to P34-C; the description editor's picker in the admin group is unchanged (P34-C owns description links); a migration (0042, one index `tasks_search_order_idx`) was needed after all, because the default "all clients" page without a title scanned `tasks`; e2e scenario 4 is `e2e/admin-group-picker.spec.ts` (the second admin opening both is in the server tests).
 
 Server: the admin-group branch in `attachableTaskCards`, `attachableTicketCards` and the knowledge check (any group, any visibility; tickets without a client); `GET /api/tasks/search?clients=` (admins); `q` on `GET /api/tickets/global`.
 

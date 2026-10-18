@@ -1,0 +1,1 @@
+CREATE INDEX "tasks_search_order_idx" ON "tasks" USING btree (("completed_at" is not null),"created_at" DESC NULLS FIRST,"id" DESC NULLS FIRST);

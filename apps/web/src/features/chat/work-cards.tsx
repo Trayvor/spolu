@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import type {
@@ -11,6 +12,7 @@ import { Avatar } from '@/components/avatar';
 import { formatDue, isOverdue, todayInBratislava } from '@/features/tasks/dates';
 import { StatusMark } from '@/features/tickets/status-badge';
 import { cn } from '@/lib/utils';
+import { ClientTag, useClientDirectory } from './client-tag';
 
 type TaskCard = Extract<MessageAttachedTask, { available: true }>;
 type TicketCard = Extract<MessageAttachedTicket, { available: true }>;
@@ -73,9 +75,10 @@ function useBucketName() {
 
 /**
  * A task's look in a card or a picker row: the done mark, the title (struck through when done),
- * and under it the bucket, the assignees, the deadline (error ink when overdue) and an urgent mark.
+ * and under it the bucket, the assignees, the deadline (error ink when overdue) and an urgent mark;
+ * `client` (the admin group, Phase 34 part D) is a last line naming the task's client.
  */
-export function TaskSummary({ task }: { task: TaskCard }) {
+export function TaskSummary({ task, client }: { task: TaskCard; client?: ReactNode }) {
   const { t, i18n } = useTranslation();
   const bucketName = useBucketName();
   const overdue = isOverdue(task.dueDate, task.bucketKind as BucketKind, todayInBratislava());
@@ -102,13 +105,17 @@ export function TaskSummary({ task }: { task: TaskCard }) {
             <span className="font-semibold text-error-ink">{t('chat.work.urgent')}</span>
           )}
         </span>
+        {client}
       </span>
     </>
   );
 }
 
-/** A ticket's look: `#number`, the subject, and under it the status and the riešitelia. */
-export function TicketSummary({ ticket }: { ticket: TicketCard }) {
+/**
+ * A ticket's look: `#number`, the subject, and under it the status and the riešitelia; `client`
+ * (the admin group) is a last line naming its client or "Without client".
+ */
+export function TicketSummary({ ticket, client }: { ticket: TicketCard; client?: ReactNode }) {
   const { t } = useTranslation();
   return (
     <>
@@ -124,6 +131,7 @@ export function TicketSummary({ ticket }: { ticket: TicketCard }) {
           </span>
           <People people={ticket.assignees} />
         </span>
+        {client}
       </span>
     </>
   );
@@ -141,9 +149,14 @@ function Unavailable({ label }: { label: string }) {
  * The tasks and tickets attached to a message (Phase 34), in the order they were picked: a card
  * each, or "unavailable" for one that is gone or no longer in this group. A task card opens the
  * task panel of its group, a ticket card the ticket page; both do their own permission checks.
+ * In the admin group (Phase 34 part D) a card of another group also names its client.
  */
 export function WorkCards({ message, groupId }: { message: MessageDto; groupId: string }) {
   const { t } = useTranslation();
+  const foreign = (card: { available: boolean; groupId?: string | null }) =>
+    card.available && card.groupId !== groupId;
+  const crossClient = message.attachedTasks.some(foreign) || message.attachedTickets.some(foreign);
+  const directory = useClientDirectory(crossClient);
   if (message.attachedTasks.length === 0 && message.attachedTickets.length === 0) return null;
   return (
     <div className="mt-1.5 flex flex-col items-start gap-1.5">
@@ -152,10 +165,17 @@ export function WorkCards({ message, groupId }: { message: MessageDto; groupId: 
           <Link
             key={task.id}
             to="/groups/$groupId/tasks/$taskId"
-            params={{ groupId, taskId: task.id }}
+            params={{ groupId: task.groupId, taskId: task.id }}
             className={openClass}
           >
-            <TaskSummary task={task} />
+            <TaskSummary
+              task={task}
+              client={
+                task.groupId !== groupId ? (
+                  <ClientTag groupId={task.groupId} directory={directory} />
+                ) : undefined
+              }
+            />
           </Link>
         ) : (
           <Unavailable key={task.id} label={t('chat.work.taskUnavailable')} />
@@ -169,7 +189,14 @@ export function WorkCards({ message, groupId }: { message: MessageDto; groupId: 
             params={{ ticketId: ticket.id }}
             className={openClass}
           >
-            <TicketSummary ticket={ticket} />
+            <TicketSummary
+              ticket={ticket}
+              client={
+                ticket.groupId !== groupId ? (
+                  <ClientTag groupId={ticket.groupId} directory={directory} />
+                ) : undefined
+              }
+            />
           </Link>
         ) : (
           <Unavailable key={ticket.id} label={t('chat.work.ticketUnavailable')} />

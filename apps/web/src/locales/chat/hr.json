@@ -181,5 +181,13 @@
   },
   "editor": {
     "knowledgeUnavailable": "Priloženu stavku znanja ovdje više nije moguće dijeliti. Uklonite je i spremite ponovno."
+  },
+  "attach": {
+    "clients": {
+      "withoutClient": "Bez klijenta",
+      "mine": "Vaš klijent",
+      "onlyEgrant": "Samo eGrant",
+      "knowledgeHint": "Znanje svih klijenata, i stavke samo za eGrant: ovaj chat čitaju samo administratori."
+    }
   }
 }

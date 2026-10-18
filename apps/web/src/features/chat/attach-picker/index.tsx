@@ -4,8 +4,11 @@ import { Button } from '@/components/ui/button';
 import { PanelHeader } from '@/components/ui/panel-header';
 import { SheetDialog, SheetDialogTitle } from '@/components/ui/sheet-dialog';
 import { cn } from '@/lib/utils';
+import { useClientDirectory } from '../client-tag';
 import { KnowledgePickList } from '../knowledge-picker';
 import { PickedChips } from './chips';
+import type { CrossClient } from './client-bar';
+import { CrossClientKnowledgeTab } from './knowledge-tab';
 import { pickedCount, type Picked } from './picked';
 import { TasksTab } from './tasks-tab';
 import { TicketsTab } from './tickets-tab';
@@ -36,6 +39,7 @@ function remember(tab: Tab): void {
  * Phase 34: the composer's attachment picker (a lazy chunk): a dialog (a sheet on phones) with
  * three tabs, Knowledge, Tasks and Tickets of the group, a search in each, and at the bottom what
  * is picked across all three as chips and "Attach (n)". Each kind holds at most its own limit.
+ * In the admin group (part D) every tab lists every client's items under one client filter.
  */
 export default function AttachPicker({
   groupId,
@@ -52,6 +56,12 @@ export default function AttachPicker({
   const titleRef = useRef<HTMLHeadingElement>(null);
   const [tab, setTab] = useState<Tab>(rememberedTab);
   const [chosen, setChosen] = useState<Picked>(picked);
+  const directory = useClientDirectory(true);
+  const [clients, setClients] = useState<string[] | null>(null);
+  const cross: CrossClient | undefined =
+    directory && directory.byId.get(groupId)?.internal
+      ? { directory, clients, setClients }
+      : undefined;
   const choose = (next: Tab) => {
     setTab(next);
     remember(next);
@@ -104,7 +114,14 @@ export default function AttachPicker({
           aria-labelledby={`attach-tab-${tab}`}
           className="flex min-h-0 flex-1 flex-col gap-3"
         >
-          {tab === 'knowledge' && (
+          {tab === 'knowledge' && cross && (
+            <CrossClientKnowledgeTab
+              cross={cross}
+              chosen={chosen.knowledge}
+              setChosen={setKind('knowledge')}
+            />
+          )}
+          {tab === 'knowledge' && !cross && (
             <KnowledgePickList
               groupId={groupId}
               chosen={chosen.knowledge}
@@ -112,10 +129,20 @@ export default function AttachPicker({
             />
           )}
           {tab === 'tasks' && (
-            <TasksTab groupId={groupId} chosen={chosen.tasks} setChosen={setKind('tasks')} />
+            <TasksTab
+              groupId={groupId}
+              chosen={chosen.tasks}
+              setChosen={setKind('tasks')}
+              cross={cross}
+            />
           )}
           {tab === 'tickets' && (
-            <TicketsTab groupId={groupId} chosen={chosen.tickets} setChosen={setKind('tickets')} />
+            <TicketsTab
+              groupId={groupId}
+              chosen={chosen.tickets}
+              setChosen={setKind('tickets')}
+              cross={cross}
+            />
           )}
         </div>
         <PickedChips

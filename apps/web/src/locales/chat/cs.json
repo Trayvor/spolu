@@ -184,5 +184,13 @@
   },
   "editor": {
     "knowledgeUnavailable": "Přiloženou položku znalostí zde již nelze sdílet. Odeberte ji a uložte znovu."
+  },
+  "attach": {
+    "clients": {
+      "withoutClient": "Bez klienta",
+      "mine": "Váš klient",
+      "onlyEgrant": "Jen eGrant",
+      "knowledgeHint": "Znalosti všech klientů i položky jen pro eGrant: tento chat čtou jen administrátoři."
+    }
   }
 }

@@ -5,36 +5,71 @@ import { MESSAGE_MAX_WORK } from '@spolu/shared';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ticketsQuery } from '@/features/tickets/api';
+import { cn } from '@/lib/utils';
+import { ClientTag } from '../client-tag';
 import { TicketSummary } from '../work-cards';
+import { ClientBar, type CrossClient } from './client-bar';
 import { PickRow } from './pick-row';
 import { toggled, useSearchText, type PickedTicket } from './picked';
 
 /**
  * The Tickets tab: this group's tickets, newest first, open ones unless "Include resolved" is
  * on; the search finds a number (`123` or `#123`), a subject fragment or the start of a text.
+ * With `cross` (the admin group, Phase 34 part D) every client's tickets through the global list,
+ * under the client filter and a "Without client" switch, each row naming its client.
  */
 export function TicketsTab({
   groupId,
   chosen,
   setChosen,
+  cross,
 }: {
   groupId: string;
   chosen: PickedTicket[];
   setChosen: (update: (list: PickedTicket[]) => PickedTicket[]) => void;
+  cross?: CrossClient | undefined;
 }) {
   const { t } = useTranslation();
   const { text, setText, q } = useSearchText();
   const [resolved, setResolved] = useState(false);
-  const query = useInfiniteQuery(
-    ticketsQuery(
-      { kind: 'group', groupId },
-      { status: resolved ? 'all' : 'open', ...(q ? { q } : {}) },
-    ),
-  );
+  const [noClient, setNoClient] = useState(false);
+  const status = resolved ? 'all' : 'open';
+  // No client chosen lists nothing (an empty filter would mean the default scope).
+  const noClients = !noClient && cross?.clients?.length === 0;
+  const query = useInfiniteQuery({
+    ...(cross
+      ? ticketsQuery(
+          { kind: 'global' },
+          {
+            status,
+            ...(q ? { q } : {}),
+            ...(noClient ? { noClient: true } : { clients: cross.clients ?? 'all' }),
+          },
+        )
+      : ticketsQuery({ kind: 'group', groupId }, { status, ...(q ? { q } : {}) })),
+    enabled: !noClients,
+  });
   const items = query.data?.pages.flatMap((p) => p.items) ?? [];
   const full = chosen.length >= MESSAGE_MAX_WORK;
   return (
     <>
+      {cross && (
+        <ClientBar cross={cross} withoutAdminGroup disabled={noClient}>
+          <button
+            type="button"
+            aria-pressed={noClient}
+            onClick={() => setNoClient((on) => !on)}
+            className={cn(
+              'inline-flex h-8 items-center rounded-full px-4 text-tiny font-semibold max-[640px]:min-h-11',
+              noClient
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-secondary text-secondary-foreground hover:bg-surface-3',
+            )}
+          >
+            {t('chat.attach.clients.withoutClient')}
+          </button>
+        </ClientBar>
+      )}
       <Input
         type="search"
         value={text}
@@ -51,7 +86,10 @@ export function TicketsTab({
         />
         {t('chat.work.includeResolved')}
       </label>
-      <ul className="-mx-2 min-h-0 flex-1 overflow-y-auto" aria-busy={query.isPending}>
+      <ul
+        className="-mx-2 min-h-0 flex-1 overflow-y-auto"
+        aria-busy={query.isPending && !noClients}
+      >
         {items.map((item) => {
           const on = chosen.some((c) => c.id === item.id);
           return (
@@ -87,11 +125,16 @@ export function TicketsTab({
                   status: item.status,
                   assignees: item.assignees.slice(0, 3),
                 }}
+                client={
+                  cross ? (
+                    <ClientTag groupId={item.groupId} directory={cross.directory} />
+                  ) : undefined
+                }
               />
             </PickRow>
           );
         })}
-        {query.isSuccess && items.length === 0 && (
+        {(query.isSuccess || noClients) && items.length === 0 && (
           <li className="px-2 py-4 text-body text-muted-foreground">
             {q ? t('chat.work.noResults') : t('chat.work.noTickets')}
           </li>

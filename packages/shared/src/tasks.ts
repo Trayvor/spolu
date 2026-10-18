@@ -232,6 +232,24 @@ export const TaskSearchQuerySchema = z.object({
 });
 export type TaskSearchQuery = z.infer<typeof TaskSearchQuerySchema>;
 
+/** Group ids in the cross-client search's `clients` filter. */
+export const TASK_SEARCH_MAX_CLIENTS = 200;
+
+/**
+ * `GET /tasks/search?clients=&q=&after=` (Phase 34 part D, admins only): the admin group's picker
+ * searches every group's tasks; `clients` (comma list of group ids, the admin group among them
+ * when chosen) narrows it, absent or empty means every group.
+ */
+export const AllTaskSearchQuerySchema = TaskSearchQuerySchema.extend({
+  clients: z
+    .string()
+    .max(10_000)
+    .transform((v) => [...new Set(v.split(',').filter(Boolean))])
+    .pipe(z.array(z.string().max(100)).max(TASK_SEARCH_MAX_CLIENTS))
+    .optional(),
+});
+export type AllTaskSearchQuery = z.infer<typeof AllTaskSearchQuerySchema>;
+
 /**
  * `GET /groups/:id/board/unseen`: the group's tasks with a change the viewer has not seen, and
  * of those the ones whose unseen changes include a chat message (2026-10-18: a ring, not a dot).
