@@ -1,6 +1,15 @@
-import { lazy, Suspense, useMemo, useRef, useState, type KeyboardEvent } from 'react';
+import {
+  lazy,
+  Suspense,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent,
+} from 'react';
 import { useTranslation } from 'react-i18next';
-import { KNOWLEDGE_LINKS_MAX, type LinkedKnowledge } from '@spolu/shared';
+import { isPickable, KNOWLEDGE_LINKS_MAX, type LinkedKnowledge } from '@spolu/shared';
 import { Button } from '@/components/ui/button';
 import { AiTextButton } from '@/features/chat/ai-tools/ai-text-button';
 import type { AiTarget } from '@/features/chat/ai-tools/api';
@@ -13,6 +22,12 @@ import { safeHref } from '@/features/chat/format/parse';
 import { FormatToolbar, iconButton, phoneIconButton } from '@/features/chat/format-toolbar';
 import { BookIcon, CloseIcon } from '@/features/chat/icons';
 import type { PickedKnowledge } from '@/features/chat/knowledge-picker';
+import {
+  MentionPicker,
+  type MentionChoice,
+  type MentionPickerHandle,
+} from '@/features/chat/mention-picker';
+import type { MentionQuery } from '@/features/chat/editor/setup';
 import { VoiceButton } from '@/features/chat/voice-input/voice-button';
 import { withNamespaces } from '@/i18n/namespaces';
 import { cn } from '@/lib/utils';
@@ -25,6 +40,8 @@ const KnowledgePicker = lazy(
 type Props = DescriptionFieldProps & {
   nameOf(id: string): string | undefined;
   autoFocus: boolean;
+  /** The group's people, resolved by the field (the mention list's source). */
+  groupPeople?: DescriptionFieldProps['people'];
 };
 
 /**
@@ -42,6 +59,8 @@ export default function DescriptionEditor({
   error,
   knowledge,
   aiTools = true,
+  mentions = false,
+  groupPeople,
   nameOf,
   autoFocus,
 }: Props) {
@@ -52,6 +71,15 @@ export default function DescriptionEditor({
   const [linkInvalid, setLinkInvalid] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const linkInput = useRef<HTMLInputElement>(null);
+  // F16: `@` names a client or a manager of the group, as in chat (no "Everyone" here).
+  const [mention, setMention] = useState<MentionQuery | null>(null);
+  const [closedAt, setClosedAt] = useState<number | null>(null);
+  const [activeOption, setActiveOption] = useState<string | undefined>();
+  const picker = useRef<MentionPickerHandle>(null);
+  const listId = useId();
+  const pickable = useMemo(() => groupPeople?.filter(isPickable), [groupPeople]);
+  const mentionOpen =
+    mentions && mention !== null && mention.from !== closedAt && pickable !== undefined;
   const target = useMemo<AiTarget>(() => ({ kind: 'group', id: groupId }), [groupId]);
   const allLabel = t('chat.mention.all');
   const unknownLabel = t('chat.mention.unknown');
@@ -68,8 +96,23 @@ export default function DescriptionEditor({
 
   function onEditorChange(change: EditorChange) {
     setActive(change.active);
-    if (change.docChanged) onChange(change.markdown);
+    setMention(change.mention);
+    if (change.docChanged) {
+      setClosedAt(null);
+      onChange(change.markdown);
+    }
   }
+
+  function pickMention(choice: MentionChoice) {
+    if (!mention || choice.type !== 'person') return;
+    editor.current?.insertMention(mention, choice.person.id, `@${choice.person.name}`);
+  }
+
+  // Read by the editor between renders: always the latest picker state.
+  const keys = useRef<(e: globalThis.KeyboardEvent) => boolean>(() => false);
+  useEffect(() => {
+    keys.current = (e) => (mentionOpen ? (picker.current?.handleKey(e) ?? false) : false);
+  });
 
   function format(kind: FormatKind) {
     if (kind === 'link' && !active.has('link')) {
@@ -168,18 +211,37 @@ export default function DescriptionEditor({
             </Button>
           </div>
         )}
-        <ChatEditor
-          ref={editor}
-          document
-          initialMarkdown={value}
-          nameOf={nameOf}
-          labels={labels}
-          placeholder=""
-          ariaLabel={label}
-          autoFocus={autoFocus}
-          onEnter={() => false}
-          onChange={onEditorChange}
-        />
+        <div className="relative">
+          <ChatEditor
+            ref={editor}
+            document
+            initialMarkdown={value}
+            nameOf={nameOf}
+            labels={labels}
+            placeholder=""
+            ariaLabel={label}
+            ariaControls={mentionOpen ? `${listId}-mentions` : undefined}
+            ariaActiveDescendant={mentionOpen ? activeOption : undefined}
+            autoFocus={autoFocus}
+            onEnter={() => false}
+            onKeyDown={(e) => keys.current(e)}
+            onChange={onEditorChange}
+          />
+          {mentionOpen && mention && pickable && (
+            <MentionPicker
+              ref={picker}
+              key={mention.query}
+              id={`${listId}-mentions`}
+              query={mention.query}
+              people={pickable}
+              everyone={false}
+              below
+              onPick={pickMention}
+              onClose={() => setClosedAt(mention.from)}
+              onActiveChange={setActiveOption}
+            />
+          )}
+        </div>
       </div>
       {items.length > 0 && (
         <ul role="list" className="flex flex-wrap gap-2" aria-label={t('chat.knowledge.attached')}>

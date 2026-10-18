@@ -149,6 +149,9 @@ export const et: ServerTexts = {
     dueRemoved: 'Tähtaeg eemaldatud',
     overdue: (date) => `Tähtaeg möödas, see oli ${date}`,
     ticketResolved: (n) => `Pöördumine #${n} on lahendatud`,
+    mentionedInDescription: (name) => `${name} mainis sind kirjelduses`,
+    openKnowledge: 'Ava kirje',
+    openProject: 'Ava projekt',
   },
   teams: {
     recordingNotice: 'See kõne salvestatakse ja transkribeeritakse.',

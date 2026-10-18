@@ -32,6 +32,11 @@ const summary = (id: string, title: string) => ({
 });
 
 /** Stubs the group's routes; records every call as "METHOD /path". */
+const PEOPLE = [
+  { id: 'u2', name: 'Eva Nováková', isAdmin: false, isManager: false },
+  { id: 'u3', name: 'Ema Admin', isAdmin: true, isManager: false },
+];
+
 function stub(tools: AiToolsInfo = { text: true, translate: null, voice: true }) {
   const calls: { method: string; path: string; body?: unknown }[] = [];
   vi.stubGlobal(
@@ -46,7 +51,7 @@ function stub(tools: AiToolsInfo = { text: true, translate: null, voice: true })
       });
       if (url.pathname === '/api/groups/g1/ai-tools') return json(tools);
       if (url.pathname === '/api/groups/g1/ai-text') return json({ text: 'Formal text.' });
-      if (url.pathname === '/api/groups/g1/people') return json([]);
+      if (url.pathname === '/api/groups/g1/people') return json(PEOPLE);
       if (url.pathname === '/api/groups/g1/knowledge') {
         return json({
           items: [summary('k1', 'Postup'), summary('k2', 'Kontakty')],
@@ -62,10 +67,12 @@ function stub(tools: AiToolsInfo = { text: true, translate: null, voice: true })
 function Harness({
   initial = '',
   linked,
+  mentions,
   onValue,
 }: {
   initial?: string;
   linked?: LinkedKnowledge;
+  mentions?: boolean;
   onValue?: (v: { text: string; linked?: LinkedKnowledge }) => void;
 }) {
   const [text, setText] = useState(initial);
@@ -81,6 +88,7 @@ function Harness({
       }}
       label="Description"
       editLabel="Edit description"
+      mentions={mentions}
       knowledge={
         items && {
           items,
@@ -182,6 +190,31 @@ describe('DescriptionField', () => {
     });
     await user.click(screen.getByRole('button', { name: 'Remove Postup' }));
     expect(onValue).toHaveBeenLastCalledWith({ text: '', linked: [] });
+  });
+
+  it('F16: @ lists the clients and managers (not Everyone) and names the picked one', async () => {
+    stub();
+    const onValue = vi.fn();
+    const user = renderField({ mentions: true, onValue });
+    const box = await editor();
+    await user.click(box);
+    await user.type(box, 'Ask @e');
+    const list = await screen.findByRole('listbox', { name: 'People' });
+    // The avatar's initials, then the name; Ema is an admin who does not manage the group.
+    const options = within(list).getAllByRole('option');
+    expect(options.map((o) => o.textContent)).toEqual(['ENEva Nováková']);
+    await user.keyboard('{Enter}');
+    expect(screen.queryByRole('listbox')).toBeNull();
+    expect(onValue).toHaveBeenLastCalledWith({ text: 'Ask <@u2> ', linked: undefined });
+  });
+
+  it('without `mentions`, @ is plain text', async () => {
+    stub();
+    const user = renderField();
+    const box = await editor();
+    await user.click(box);
+    await user.type(box, 'Ask @e');
+    expect(screen.queryByRole('listbox')).toBeNull();
   });
 
   it('keeps an unavailable item listed until it is removed', async () => {

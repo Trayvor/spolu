@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { useRouter, useSearch } from '@tanstack/react-router';
 import { backOr, samePath } from '@/lib/back';
@@ -28,6 +28,7 @@ import { Input } from '@/components/ui/input';
 import { Toast } from '@/components/ui/toast';
 import { groupsQuery } from '@/features/groups/api';
 import { useRememberedFilters } from '@/lib/use-remembered-filters';
+import { withNamespaces } from '@/i18n/namespaces';
 import { useUpdateSearch } from '@/lib/use-update-search';
 import { globalKnowledgeQuery, knowledgeScopeQuery } from './api';
 import { KnowledgeDialog } from './knowledge-dialog';
@@ -38,6 +39,13 @@ import { useKnowledgeView, ViewToggle } from './view-toggle';
 
 /** The filters remembered for the next visit (`useRememberedFilters`): not the search. */
 const REMEMBERED_KEYS = ['clients', 'type', 'chats'] as const;
+/** A saved view (F5) keeps the filters and the search text. */
+const VIEW_KEYS = [...REMEMBERED_KEYS, 'q'] as const;
+
+// F5: the admin's saved views, a lazy chunk with its texts.
+const SavedViewsBar = lazy(
+  withNamespaces(['savedViews'], () => import('@/features/saved-views/saved-views-bar')),
+);
 
 /** The `clients` value meaning every client. */
 const ALL = 'all';
@@ -336,6 +344,9 @@ export function KnowledgePage() {
           <ViewToggle view={view} onChange={setView} />
         </div>
       </div>
+      <Suspense fallback={null}>
+        <SavedViewsBar page="knowledge" keys={VIEW_KEYS} />
+      </Suspense>
 
       {searching ? (
         noClients ? (

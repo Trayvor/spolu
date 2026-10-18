@@ -1199,3 +1199,45 @@ describe('createTasksFromMessage', () => {
     expect(await countFiles(group.id)).toBe(before);
   });
 });
+
+describe('mentions in the description (F16)', () => {
+  const mentioned = async (taskId: string) =>
+    (
+      await db
+        .select({ userId: notificationEvents.userId })
+        .from(notificationEvents)
+        .where(
+          and(
+            eq(notificationEvents.kind, 'description.mention'),
+            sql`${notificationEvents.payload}->>'taskId' = ${taskId}`,
+          ),
+        )
+    ).map((r) => r.userId);
+
+  it('a new task notifies the people its description names', async () => {
+    const group = await newGroup();
+    const admin = await newAdmin();
+    const client = await newClient(group.id);
+    const task = await createTask(deps, admin, group.id, {
+      title: 'A',
+      description: `Pozri <@${client.id}>`,
+    });
+    expect(await mentioned(task.id)).toEqual([client.id]);
+  });
+
+  it('an edit notifies only the people newly named', async () => {
+    const group = await newGroup();
+    const admin = await newAdmin();
+    const ana = await newClient(group.id, 'Ana');
+    const bea = await newClient(group.id, 'Bea');
+    const task = await createTask(deps, admin, group.id, {
+      title: 'A',
+      description: `<@${ana.id}>`,
+    });
+    await updateTask(deps, admin, task.id, {
+      description: `<@${ana.id}> <@${bea.id}>`,
+      updatedAt: task.updatedAt,
+    });
+    expect((await mentioned(task.id)).sort()).toEqual([ana.id, bea.id].sort());
+  });
+});

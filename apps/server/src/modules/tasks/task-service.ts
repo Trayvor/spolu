@@ -45,6 +45,7 @@ import {
   requestDelivery,
   type NotificationInput,
 } from '../notifications/service.js';
+import { recordDescriptionMentions } from '../notifications/description-mentions.js';
 import { user } from '../users/schema.js';
 import {
   droppedRequests,
@@ -476,12 +477,21 @@ export async function createTaskTimed(
     if (input.knowledgeIds) {
       await setLinkedItems(tx, { kind: 'task', id: taskId }, groupId, input.knowledgeIds);
     }
-    const notified = await notifyAssigned(
-      tx,
-      actor,
-      { id: taskId, groupId, title: input.title },
-      assigneeIds,
-    );
+    const notified = [
+      ...(await notifyAssigned(
+        tx,
+        actor,
+        { id: taskId, groupId, title: input.title },
+        assigneeIds,
+      )),
+      ...(await recordDescriptionMentions(tx, {
+        actor,
+        groupId,
+        subject: { kind: 'task', id: taskId, title: input.title },
+        before: null,
+        after: input.description,
+      })),
+    ];
     if (bucket.kind !== 'done') return { id: taskId, notified, effect: noTimeEffect(groupId) };
     const asked = await onTaskCompleted(tx, {
       taskId,
@@ -763,12 +773,14 @@ export async function updateTaskTimed(
     // Always strictly later than the edited version, even within the same millisecond.
     const updatedAt = new Date(Math.max(Date.now(), expected.getTime() + 1));
     const projectChange = await projectChangeOf(tx, id, patch);
-    // The due date before the edit (2026-10-18: a change tells the assignees). Locked, so a
-    // concurrent edit cannot change it between this read and the update.
+    // The due date before the edit (2026-10-18: a change tells the assignees) and, for F16, the
+    // old description (only the people a new text names are notified). Locked, so a concurrent
+    // edit cannot change them between this read and the update.
+    const named = patch.description?.includes('<@') ?? false;
     const [before] =
-      patch.dueDate !== undefined
+      patch.dueDate !== undefined || named
         ? await tx
-            .select({ dueDate: tasks.dueDate })
+            .select({ dueDate: tasks.dueDate, description: tasks.description })
             .from(tasks)
             .where(and(eq(tasks.id, id), eq(tasks.updatedAt, expected)))
             .for('update')
@@ -828,6 +840,16 @@ export async function updateTaskTimed(
         await tx.insert(taskAssignees).values(added.map((userId) => ({ taskId: id, userId })));
       }
       notified = await notifyAssigned(tx, actor, row, added);
+    }
+    if (named && patch.description !== undefined) {
+      const mentions = await recordDescriptionMentions(tx, {
+        actor,
+        groupId: row.groupId,
+        subject: { kind: 'task', id, title: row.title },
+        before: before?.description ?? '',
+        after: patch.description,
+      });
+      notified = [...notified, ...mentions];
     }
 
     if (before && before.dueDate !== row.dueDate && row.completedAt === null) {

@@ -152,6 +152,9 @@ export const it: ServerTexts = {
     dueRemoved: 'Scadenza rimossa',
     overdue: (date) => `In ritardo, scadeva il ${date}`,
     ticketResolved: (n) => `Ticket #${n} risolto`,
+    mentionedInDescription: (name) => `${name} ha fatto riferimento a Lei nella descrizione`,
+    openKnowledge: 'Apri elemento',
+    openProject: 'Apri progetto',
   },
   teams: {
     recordingNotice: 'Questa chiamata sarà registrata e trascritta.',

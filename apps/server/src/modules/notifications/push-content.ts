@@ -120,6 +120,52 @@ function meetingPush(i: PushContentInput): PushPayload {
 }
 
 /**
+ * F16: a mention in a description says "Jana mentioned you in the description" under the
+ * subject's title and opens the subject: the task panel, the ticket, the project on the Prehľad
+ * tab or the knowledge item. It shares the subject's device tag.
+ */
+function descriptionPush(i: PushContentInput): PushPayload {
+  const p = i.payload;
+  const body = texts(i.lang).mentionedInDescription(str(p.actorName) ?? '');
+  const id = str(p.subjectId) ?? '';
+  const groupId = enc(str(p.groupId) ?? '');
+  const withGroup = (title: string) => (i.groupName ? `${title} · ${i.groupName}` : title);
+  switch (p.subjectKind) {
+    case 'ticket': {
+      const subject = str(p.subject);
+      const n = Number(p.number);
+      return {
+        title: subject ? `#${n} ${subject}` : `#${n}`,
+        body,
+        url: `/tickets/${enc(id)}`,
+        tag: `ticket:${id}`,
+      };
+    }
+    case 'knowledge':
+      return {
+        title: withGroup(str(p.title) ?? ''),
+        body,
+        url: `/groups/${groupId}/knowledge?k=${enc(id)}`,
+        tag: `knowledge:${id}`,
+      };
+    case 'project':
+      return {
+        title: withGroup(str(p.title) ?? ''),
+        body,
+        url: `/groups/${groupId}/overview?project=${enc(id)}`,
+        tag: `project:${id}`,
+      };
+    default:
+      return {
+        title: withGroup(i.taskTitle ?? str(p.title) ?? ''),
+        body,
+        url: `/groups/${groupId}/tasks/${enc(id)}`,
+        tag: `task:${id}`,
+      };
+  }
+}
+
+/**
  * The kinds that alert again when they replace a shown notification of the same tag (N1 of the
  * 2026-10-18 UX review): what is addressed to the person (a mention, an assignment, a new ticket
  * they watch, its outcome, a time request) or due now (reminders, deadline, urgent, overdue). Every
@@ -128,6 +174,7 @@ function meetingPush(i: PushContentInput): PushPayload {
  */
 const RENOTIFY = new Set<NotificationKind>([
   'chat.mention',
+  'description.mention',
   'task.assigned',
   'task.deadline',
   'task.urgent',
@@ -152,6 +199,7 @@ export function buildPushPayload(i: PushContentInput): PushPayload {
 function pushContent(i: PushContentInput): PushPayload {
   const t = texts(i.lang);
   const p = i.payload;
+  if (i.kind === 'description.mention') return descriptionPush(i);
   if (isTicketEvent(i.kind, p)) return ticketPush(i);
   const groupId = enc(str(p.groupId) ?? '');
   const taskId = str(p.taskId);

@@ -36,6 +36,9 @@ export const NotificationKinds = [
   'meeting.rescheduled',
   'meeting.summary_ready',
   'meeting.summary_failed',
+  // F16 (2026-10-18): someone was named with `@` in a task, ticket, project or knowledge
+  // description. Its group follows the subject (`notificationGroupOf`).
+  'description.mention',
 ] as const;
 export type NotificationKind = (typeof NotificationKinds)[number];
 

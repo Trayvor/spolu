@@ -26,6 +26,8 @@ interface MentionPickerProps {
    * room above (the list scroller clips it); below, the list simply scrolls.
    */
   below?: boolean;
+  /** Offer "Everyone in this group" (default). A description (F16) names people only. */
+  everyone?: boolean;
 }
 
 const fold = (s: string) => s.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
@@ -47,7 +49,7 @@ const optionClass =
  */
 export const MentionPicker = forwardRef<MentionPickerHandle, MentionPickerProps>(
   function MentionPicker(
-    { query, people, onPick, onClose, id, onActiveChange, below = false },
+    { query, people, onPick, onClose, id, onActiveChange, below = false, everyone: withAll = true },
     ref,
   ) {
     const { t } = useTranslation();
@@ -61,11 +63,12 @@ export const MentionPicker = forwardRef<MentionPickerHandle, MentionPickerProps>
       // names, so a quick Enter after "@ja" or "@e" (aimed at Eva) never pings the whole group.
       const needle = fold(query);
       const everyoneMatches =
-        needle.length === 0 ||
-        (needle.length >= 2 &&
-          ['all', 'everyone', everyone].some((label) => fold(label).startsWith(needle)));
+        withAll &&
+        (needle.length === 0 ||
+          (needle.length >= 2 &&
+            ['all', 'everyone', everyone].some((label) => fold(label).startsWith(needle))));
       return everyoneMatches ? [{ type: 'all' as const }, ...list] : list;
-    }, [people, query, everyone]);
+    }, [people, query, everyone, withAll]);
     const [raw, setRaw] = useState(0);
     const active = Math.min(raw, choices.length - 1);
     const optionId = (i: number) => `${id}-${i}`;

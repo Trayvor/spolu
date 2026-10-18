@@ -1,0 +1,14 @@
+{
+  "label": "Salvestatud vaated",
+  "save": "Salvesta vaade",
+  "name": "Vaate nimi",
+  "confirm": "Salvesta",
+  "cancel": "Tühista",
+  "remove": "Eemalda vaade {{name}}",
+  "limit": "Sul on siin vaateid suurim lubatud arv ({{max}}). Enne uue salvestamist eemalda üks.",
+  "starter": {
+    "myOverdue": "Minu tähtaja ületanud",
+    "thisWeek": "See nädal",
+    "unassigned": "Piletid ilma lahendajata"
+  }
+}

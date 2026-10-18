@@ -26,7 +26,7 @@ import {
   type Transaction,
 } from 'prosemirror-state';
 import { Decoration, DecorationSet } from 'prosemirror-view';
-import { mentionQueryAt, type FormatKind } from '../composer-text';
+import { mentionQueryAt, slashQueryAt, type FormatKind } from '../composer-text';
 import { safeHref } from '../format/parse';
 import { toDoc, toMarkdown, type MentionLabels } from './markdown';
 import { schema } from './schema';
@@ -304,6 +304,31 @@ export function mentionAt(state: EditorState): MentionQuery | null {
   const text = $from.parent.textBetween(0, $from.parentOffset, undefined, '￼');
   const found = mentionQueryAt(text, text.length);
   return found ? { query: found.query, from: $from.start() + found.start, to: $from.pos } : null;
+}
+
+/** F7: the `/query` being typed at the caret (never in code), for the canned replies. */
+export function slashAt(state: EditorState): MentionQuery | null {
+  const { $from, empty } = state.selection;
+  if (!empty || $from.parent.type.spec.code || marks.code.isInSet($from.marks())) return null;
+  const text = $from.parent.textBetween(0, $from.parentOffset, undefined, '\ufffc');
+  const found = slashQueryAt(text, text.length);
+  return found ? { query: found.query, from: $from.start() + found.start, to: $from.pos } : null;
+}
+
+/** Replaces `at` (a `/query`) with a Markdown text, as one undo step (F7, a canned reply). */
+export function insertMarkdown(
+  at: MentionQuery,
+  markdown: string,
+  options: EditorOptions,
+): Command {
+  return (state, dispatch) => {
+    if (dispatch) {
+      const doc = toDoc(markdown, options.nameOf, options.labels);
+      const tr = closeHistory(state.tr).replaceRange(at.from, at.to, new Slice(doc.content, 1, 1));
+      dispatch(tr.scrollIntoView());
+    }
+    return true;
+  };
 }
 
 export function insertMention(at: MentionQuery, id: string, label: string): Command {

@@ -2,8 +2,11 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vite
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import type { FileInfo, GroupPerson, MessageDto } from '@spolu/shared';
+import type { FileInfo, GroupPerson, MessageDto, Snippet } from '@spolu/shared';
 import { setLanguage } from '@/i18n';
+import { loadNamespace } from '@/i18n/namespaces';
+import { sessionQuery } from '@/features/auth/use-session';
+import { snippetsQuery } from '@/features/snippets/api';
 import { ApiError } from '@/lib/api';
 import { groupPeopleQuery } from '@/features/groups/api';
 import { createRef } from 'react';
@@ -576,5 +579,103 @@ describe('Composer AI and voice tools (Phase 28)', () => {
     await renderComposer({ mode: 'edit', channelId: 'c1', initialBody: 'x' });
     expect(screen.queryByRole('button', { name: 'AI tools' })).not.toBeInTheDocument();
     expect(fetchMock.mock.calls.some(([url]) => String(url).endsWith('/ai-tools'))).toBe(false);
+  });
+});
+
+describe('Composer canned replies (F7)', () => {
+  const snippets: Snippet[] = [
+    {
+      id: 's1',
+      title: 'Ďakujeme',
+      body: 'Ďakujeme, {{name}}, pozrieme sa na to.',
+      shared: false,
+      mine: true,
+      authorName: 'Ada',
+      updatedAt: '2026-10-18T10:00:00.000Z',
+    },
+    {
+      id: 's2',
+      title: 'Prístup',
+      body: 'Potrebujeme **prístup** do eGrantu.',
+      shared: true,
+      mine: false,
+      authorName: 'Ben',
+      updatedAt: '2026-10-18T10:00:00.000Z',
+    },
+  ];
+  const me = (role: 'admin' | 'client') => ({
+    id: 'me',
+    email: 'me@example.com',
+    name: 'Me',
+    role,
+    finance: false,
+    groups: [],
+  });
+
+  async function renderWith(role: 'admin' | 'client', props: Partial<ComposerProps> = {}) {
+    await loadNamespace('snippets');
+    const onSubmit = vi.fn();
+    const client = new QueryClient();
+    client.setQueryData(groupPeopleQuery('g1').queryKey, people);
+    client.setQueryData(sessionQuery.queryKey, me(role) as never);
+    client.setQueryData(snippetsQuery.queryKey, snippets);
+    render(
+      <QueryClientProvider client={client}>
+        <Composer mode="new" groupId="g1" {...props} onSubmit={onSubmit} />
+      </QueryClientProvider>,
+    );
+    await field();
+    return onSubmit;
+  }
+
+  it('an admin types / and a title, Enter inserts the reply with {{name}} of the quoted author', async () => {
+    const user = userEvent.setup();
+    const message = {
+      id: 'm1',
+      author: { id: 'jana', name: 'Jana', isAdmin: false },
+      body: 'pomoc',
+    } as MessageDto;
+    const onSubmit = await renderWith('admin', {
+      mode: 'thread',
+      replyTo: { message, onCancel: vi.fn() },
+    });
+    await user.type(box(), '/dak');
+    const list = await screen.findByRole('listbox', { name: 'Saved replies' });
+    expect(within(list).getAllByRole('option')).toHaveLength(1);
+    await user.keyboard('{Enter}');
+    expect(screen.queryByRole('listbox', { name: 'Saved replies' })).toBeNull();
+    await user.keyboard('{Enter}');
+    expect(onSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({ body: 'Ďakujeme, Jana, pozrieme sa na to.' }),
+    );
+  });
+
+  it('a bare / lists every reply; one keeps its formatting', async () => {
+    const user = userEvent.setup();
+    const onSubmit = await renderWith('admin');
+    await user.type(box(), 'Ahoj /');
+    const list = await screen.findByRole('listbox', { name: 'Saved replies' });
+    expect(within(list).getAllByRole('option')).toHaveLength(2);
+    await user.keyboard('{ArrowDown}{Enter}{Enter}');
+    expect(onSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({ body: 'Ahoj Potrebujeme **prístup** do eGrantu.' }),
+    );
+  });
+
+  it('a client gets no list', async () => {
+    const user = userEvent.setup();
+    await renderWith('client');
+    await user.type(box(), '/dak');
+    expect(screen.queryByRole('listbox')).toBeNull();
+  });
+
+  it('Escape closes the list and keeps the typed text', async () => {
+    const user = userEvent.setup();
+    await renderWith('admin');
+    await user.type(box(), 'see a/b /pr');
+    await screen.findByRole('listbox', { name: 'Saved replies' });
+    await user.keyboard('{Escape}');
+    expect(screen.queryByRole('listbox', { name: 'Saved replies' })).toBeNull();
+    expect(box()).toHaveTextContent('see a/b /pr');
   });
 });

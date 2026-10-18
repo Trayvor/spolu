@@ -7,10 +7,12 @@ import { toMarkdown } from './markdown';
 import {
   activeFormats,
   createState,
+  insertMarkdown,
   insertMention,
   mentionAt,
   replaceDraft,
   setLink,
+  slashAt,
   toggleFormat,
   type EditorOptions,
   type MentionQuery,
@@ -28,6 +30,8 @@ export interface ChatEditorHandle {
   format(kind: FormatKind): void;
   setLink(href: string): void;
   insertMention(at: MentionQuery, id: string, label: string): void;
+  /** Replaces a `/query` with a Markdown text (F7, a canned reply); one undo step. */
+  insertMarkdown(at: MentionQuery, markdown: string): void;
   /** Types `text` at the cursor (over the selection), as if typed: the emoji button. */
   insertText(text: string): void;
 }
@@ -36,6 +40,8 @@ export interface EditorChange {
   markdown: string;
   docChanged: boolean;
   mention: MentionQuery | null;
+  /** The `/query` at the caret (F7); the composer offers canned replies for it. */
+  slash: MentionQuery | null;
   active: Set<FormatKind>;
 }
 
@@ -128,6 +134,7 @@ export default function ChatEditor({ ref, ...props }: ChatEditorProps) {
           markdown: markdown.current,
           docChanged: tr.docChanged,
           mention: mentionAt(next),
+          slash: slashAt(next),
           active: activeFormats(next),
         });
       },
@@ -177,12 +184,14 @@ export default function ChatEditor({ ref, ...props }: ChatEditorProps) {
           markdown: '',
           docChanged: true,
           mention: null,
+          slash: null,
           active: new Set(),
         });
       },
       format: (kind) => run(toggleFormat(kind)),
       setLink: (href) => run(setLink(href)),
       insertMention: (at, id, label) => run(insertMention(at, id, label)),
+      insertMarkdown: (at, md) => run(insertMarkdown(at, md, options)),
       insertText: (text) =>
         run((state, dispatch) => {
           dispatch?.(state.tr.insertText(text).scrollIntoView());

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { lazy, Suspense, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate, useParams, useRouter, useSearch } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
@@ -13,13 +13,19 @@ import { knowledgeScopeQuery } from '@/features/knowledge/api';
 import { useRememberedFilters } from '@/lib/use-remembered-filters';
 import { useUpdateSearch } from '@/lib/use-update-search';
 import { cn } from '@/lib/utils';
+import { withNamespaces } from '@/i18n/namespaces';
 import { ticketWatchQuery, useSetTicketWatch, type TicketFilter } from './api';
 import { CheckIcon } from './icons';
 import { NewTicketDialog } from './new-ticket-dialog';
 import { filterFromSearch, writeFilter, type TicketsSearch } from './search';
 import { TicketList } from './ticket-list';
 
-/** The ticket filters remembered for the next visit (`useRememberedFilters`). */
+// F5: the admins' saved views, a lazy chunk with its texts.
+const SavedViewsBar = lazy(
+  withNamespaces(['savedViews'], () => import('@/features/saved-views/saved-views-bar')),
+);
+
+/** The ticket filters remembered for the next visit (`useRememberedFilters`), and a view's. */
 const REMEMBERED_KEYS = [
   'status',
   'area',
@@ -163,6 +169,11 @@ function GlobalTickets() {
         filter={filter}
         onFilterChange={setFilter}
         filterExtras={extras}
+        belowFilters={
+          <Suspense fallback={null}>
+            <SavedViewsBar page="tickets" keys={REMEMBERED_KEYS} />
+          </Suspense>
+        }
         disabled={!loaded}
         projectScope={oneClient ? { groupId: oneClient, events: false } : undefined}
       />

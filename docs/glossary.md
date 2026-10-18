@@ -76,6 +76,8 @@ Terms used across the docs and code, in alphabetical order.
 - **REDIRECT_DOMAINS**: the optional deploy variable listing old domains (space-separated, e.g. `spolu.egrant.sk`) that answer a permanent redirect to the current `DOMAIN`; see [runbooks/deploy.md](runbooks/deploy.md), "Moving to a new domain".
 - **request_id**: eGrant's own id of one intake request (1 to 100 characters). Spolu keeps one ticket per id, so a retry with the same id answers the first ticket (`200`) and creates nothing; see [integrations/egrant-ticket-intake.md](integrations/egrant-ticket-intake.md).
 - **room**: a Socket.IO room; users join rooms to receive live events for a group, DM or task channel.
+- **saved reply** (code: snippet, `reply_snippets`; F7): an admin's canned reply, private or shared with every admin, inserted with `/` in a composer; `{{name}}` in it becomes the name of the person answered. SK "uložená odpoveď".
+- **saved view** (`saved_views`; F5): a person's named filter set of the global board, the tickets or the knowledge page, stored as the page's URL and shown as a pill under its filter row. SK "uložené zobrazenie".
 - **seq**: a per-channel increasing number on each message. Clients use it to find and load messages missed during a disconnect.
 - **shareable with clients**: the admin group's word for a `public` knowledge item (Phase 34 P34-C); only such an item can be attached in a client's chat or description, where that client opens it read-only. Its opposite there is "Only eGrant" (`admins`), the default.
 - **session**: a long-lived login on one device, kept after the code is entered. A `session` row plus the httpOnly cookie `better-auth.session_token`; removing a user deletes their sessions.

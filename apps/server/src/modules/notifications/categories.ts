@@ -39,6 +39,9 @@ export const NOTIFICATION_GROUP_OF: Record<NotificationKind, NotificationCategor
   'meeting.rescheduled': 'meetings',
   'meeting.summary_ready': 'meetings',
   'meeting.summary_failed': 'meetings',
+  // Refined by the subject below: a ticket's is the ticket board's, a knowledge item's the
+  // knowledge base's; a task's and a project's stay the task board's.
+  'description.mention': 'tasks',
 };
 
 /**
@@ -56,6 +59,11 @@ export function notificationGroupOf(
     return 'tickets';
   }
   if (group === 'chat' && typeof payload.taskId === 'string' && payload.taskId !== '') {
+    return 'tasks';
+  }
+  if (kind === 'description.mention') {
+    if (payload.subjectKind === 'ticket') return 'tickets';
+    if (payload.subjectKind === 'knowledge') return 'knowledge';
     return 'tasks';
   }
   // Phase 32: a finance item's reminder goes to finance admins only (the audience re-checks it).

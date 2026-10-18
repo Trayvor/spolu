@@ -13,7 +13,17 @@ const McpSection = lazy(
   ),
 );
 
-/** /settings: the Profile, Notifications, AI access (admins) and System status cards, in that order. */
+// "Saved replies" (F7) likewise: admins only.
+const SnippetsSection = lazy(
+  withNamespaces(['snippets'], () =>
+    import('@/features/snippets/snippets-section').then((m) => ({ default: m.SnippetsSection })),
+  ),
+);
+
+/**
+ * /settings: the Profile, Notifications, Saved replies and AI access (admins) and System status
+ * cards, in that order.
+ */
 export function SettingsPage() {
   const { t } = useTranslation();
   const user = useSession();
@@ -25,6 +35,7 @@ export function SettingsPage() {
       <NotificationsSection />
       {admin && (
         <Suspense fallback={null}>
+          <SnippetsSection />
           <McpSection />
         </Suspense>
       )}

@@ -21,6 +21,11 @@ export interface ChatScope {
    * knowledge picker, and attached items open read-only through their message.
    */
   knowledgeViaMessage?: boolean;
+  /**
+   * F7: the name a canned reply's `{{name}}` takes when the message quotes no one (a ticket
+   * chat: its initiator).
+   */
+  replyName?: string;
 }
 
 const ChatScopeContext = createContext<ChatScope>({});

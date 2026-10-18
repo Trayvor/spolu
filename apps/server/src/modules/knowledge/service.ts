@@ -58,6 +58,7 @@ import {
 import { folderChains, folderForItem, folderPaths, lockGroupKnowledge } from './folders.js';
 import { linkedCardsOf, setLinkedItems } from './links.js';
 import { recordMeetingScheduled } from './meeting-notify.js';
+import { recordDescriptionMentions } from '../notifications/description-mentions.js';
 import { requestDelivery } from '../notifications/service.js';
 import {
   canConvertChatFile,
@@ -815,7 +816,19 @@ export async function createItem(
             actor.id,
           )
         : [];
-    return { ...inserted, eventIds };
+    const mentions = await recordDescriptionMentions(tx, {
+      actor,
+      groupId,
+      subject: {
+        kind: 'knowledge',
+        id: inserted.id,
+        title: draft.title,
+        adminsOnly: visibility === 'admins',
+      },
+      before: null,
+      after: draft.body,
+    });
+    return { ...inserted, eventIds: [...eventIds, ...mentions] };
   });
   if (deps.jobs) await requestDelivery(deps.jobs, eventIds);
   return { item: await getItem(db, actor, id), fileIds };
@@ -1008,7 +1021,19 @@ export async function updateItem(
       .update(knowledgeItems)
       .set({ title, body, url, visibility, folderId, searchText, updatedAt: sql`now()` })
       .where(eq(knowledgeItems.id, id));
-    return { previousVisibility: row.visibility, removedFileIds: removed, eventIds };
+    // F16: the people the new text names (only admins in an admins-only item).
+    const mentions = await recordDescriptionMentions(tx, {
+      actor,
+      groupId: row.group_id,
+      subject: { kind: 'knowledge', id, title, adminsOnly: visibility === 'admins' },
+      before: row.body,
+      after: body,
+    });
+    return {
+      previousVisibility: row.visibility,
+      removedFileIds: removed,
+      eventIds: [...eventIds, ...mentions],
+    };
   });
   const { eventIds, ...rest } = result;
   if (deps.jobs) await requestDelivery(deps.jobs, eventIds);

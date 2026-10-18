@@ -147,6 +147,9 @@ export const sk: ServerTexts = {
     dueRemoved: 'Termín zrušený',
     overdue: (date) => `Po termíne, termín bol ${date}`,
     ticketResolved: (n) => `Tiket #${n} je vyriešený`,
+    mentionedInDescription: (name) => `${name} vás spomenul(a) v popise`,
+    openKnowledge: 'Otvoriť položku',
+    openProject: 'Otvoriť projekt',
   },
   teams: {
     recordingNotice: 'Tento hovor bude nahrávaný a prepisovaný.',

@@ -1,0 +1,14 @@
+{
+  "label": "Uložené zobrazenia",
+  "save": "Uložiť zobrazenie",
+  "name": "Názov zobrazenia",
+  "confirm": "Uložiť",
+  "cancel": "Zrušiť",
+  "remove": "Odstrániť zobrazenie {{name}}",
+  "limit": "Tu máte najviac {{max}} zobrazení. Pred uložením ďalšieho jedno odstráňte.",
+  "starter": {
+    "myOverdue": "Moje po termíne",
+    "thisWeek": "Tento týždeň",
+    "unassigned": "Nové tikety bez riešiteľa"
+  }
+}

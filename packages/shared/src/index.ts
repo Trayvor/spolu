@@ -16,6 +16,8 @@ export * from './notifications.js';
 export * from './open-in-claude.js';
 export * from './projects/index.js';
 export * from './reminders.js';
+export * from './saved-views.js';
+export * from './snippets.js';
 export * from './socket.js';
 export * from './task-split.js';
 export * from './tasks.js';

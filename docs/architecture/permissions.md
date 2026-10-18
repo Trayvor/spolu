@@ -205,6 +205,23 @@ Policy functions in `modules/finance/policy.ts` (test-first, `policy.test.ts`):
 - **Finance by project and event (Phase 33 P6):** no new rule. `?project=&event=` on `GET /api/groups/:id/finance/overview` and `…/work-log`, and `?project=` on `/api/finance/overview` and `/work-log` (exactly one client, never an event: `400 invalid_filter`), sit behind `requireFinance` like the rest (`403` for an admin without the right and for a client, `modules/finance/projects.test.ts`). On `/finance` the admin group does not count as the one client (it is ticked by default, Phase 34 part E), and a `project` narrows the scope to that one client, so the admin group's time and the organisation's expenses drop out; a `project` with only the admin group chosen is `400 invalid_filter`. A project or event filter on the admin group's own tab leaves its organisation expenses out. A contract's `projectId` and a manual entry's `projectId` / `eventId` are checked against the item's or entry's client by the projects module's exported `getProjectRef` (`400 invalid_project`); a task or ticket entry takes neither (`400`). The seal (`modules/finance/seal.test.ts`): the projects module imports nothing of finance (a merge reaches finance through `projects/merge-hooks.ts`, which finance registers at start-up), and finance reads no table of tasks, tickets or projects (it asks `projectOfTasks`, `projectOfTickets`, `getProjectRef`, `projectRefs`, `listPickerProjects`). Leak tests: `modules/finance/projects-leaks.test.ts` (a project change that moves entries reaches the finance room only; project, event, list and timeline answers hold no money, hours or contract).
 - **System-wide page (part D):** every route of `system-routes.ts` (`/api/finance/overview`, `/work-log`, `/contracts`, `/rankings/paid`, `/rankings/hours`) and `POST /api/finance/time-entries` ("Add time" with the client picker, `canAddManualEntry`; any existing client or none) sit behind `requireFinance`; `modules/finance/system.test.ts` checks `401` / `403` for no session, a client and an admin without the right. The time without a client (decision 24) is reachable only through these routes with every client chosen; a client's tab never shows it. The web route `/finance` answers "Page not found" without `me.finance` (cosmetic; the server refuses anyway).
 
+## Saved replies and saved views (F7, F5, 2026-10-18)
+
+Policy functions in `modules/snippets/policy.ts` and `modules/saved-views/policy.ts` (test-first):
+
+| function | rule |
+|---|---|
+| `canUseSnippets(actor)` | admins and the superadmin; every `/api/snippets` route is `requireAdmin` then this (a client `403`) |
+| `canReadSnippet(actor, snippet)` | an admin reads their own snippets and every shared one; another admin's private one answers `404`, like a missing id |
+| `canChangeSnippet(actor, snippet)` | only the author edits, shares, unshares or deletes it (the superadmin too: another's shared snippet `403`) |
+| `canUseSavedViews(actor)` | admins and the superadmin, on every page (`/api/me/saved-views*`, a client `403`). A view is always the caller's own: the queries filter by `user_id`, so another person's view answers `404` |
+
+- A saved view's URL must be its page's path followed by a query string (`isSavedViewUrl`: no other path, host, fragment or space; `400` otherwise), so the web can navigate to it as is. Neither module is in the MCP allowlist.
+
+## Mentions in descriptions (F16, 2026-10-18)
+
+`recordDescriptionMentions` (`modules/notifications/description-mentions.ts`) records `description.mention` only for the people newly named in a saved text who are the group's clients or managers (`isPickable`, the `@` list's rule), never the author; an admins-only knowledge item keeps admins only, and a ticket keeps only those who can read it (`readingIds`, `canReadTicket`). An id in the text that is no such person is kept in the text (it renders as "@unknown" or their name) but notifies nobody; the save is never refused for it. Delivery then applies the usual audience check.
+
 ## MCP server (2026-10-18)
 
 [ADR 0033](../decisions/0033-mcp-server-over-the-http-api.md), [spec](../superpowers/specs/2026-10-18-mcp-server-design.md). Policy functions in `modules/mcp/policy.ts` (test-first):

@@ -67,6 +67,7 @@ export const KIND_RANK: Record<NotificationKind, number> = {
   'meeting.rescheduled': 2,
   'meeting.summary_ready': 2,
   'meeting.summary_failed': 2,
+  'description.mention': 2,
 };
 
 type Ranked = { id: string; kind: NotificationKind };

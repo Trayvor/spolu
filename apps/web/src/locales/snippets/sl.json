@@ -1,0 +1,28 @@
+{
+  "title": "Shranjeni odgovori",
+  "intro": "V klepet ali zahtevek ga vstavite tako, da vpišete / in ga izberete. {{placeholder}} se zamenja z imenom osebe, ki ji odgovarjate.",
+  "empty": "Shranjenih odgovorov še nimate.",
+  "shared": "V skupni rabi",
+  "sharedBy": "Deli {{name}}",
+  "edit": "Uredi",
+  "delete": "Izbriši",
+  "deleteQuestion": "Izbrišem odgovor »{{title}}«?",
+  "cancel": "Prekliči",
+  "picker": {
+    "label": "Shranjeni odgovori",
+    "empty": "Shranjenih odgovorov še nimate. Dodate jih v Nastavitvah, pod Shranjeni odgovori."
+  },
+  "form": {
+    "newTitle": "Nov odgovor",
+    "title": "Ime",
+    "titlePlaceholder": "Hvala, pogledali bomo",
+    "body": "Besedilo",
+    "bodyHint": "{{placeholder}} se ob vstavljanju zamenja z imenom osebe, ki ji odgovarjate.",
+    "shared": "Deli z vsemi skrbniki",
+    "sharedHint": "Drugi skrbniki ga lahko vstavljajo, spreminjate ga lahko le vi.",
+    "save": "Shrani odgovor",
+    "saveChanges": "Shrani spremembe",
+    "required": "Izpolnite ime in besedilo.",
+    "limit": "Imate največ {{max}} shranjenih odgovorov. Pred dodajanjem novega enega izbrišite."
+  }
+}

@@ -149,6 +149,9 @@ export const hr: ServerTexts = {
     dueRemoved: 'Rok uklonjen',
     overdue: (date) => `Rok je istekao ${date}`,
     ticketResolved: (n) => `Tiket #${n} je riješen`,
+    mentionedInDescription: (name) => `${name} vas je spomenuo/la u opisu`,
+    openKnowledge: 'Otvori stavku',
+    openProject: 'Otvori projekt',
   },
   teams: {
     recordingNotice: 'Ovaj poziv bit će snimljen i transkribiran.',

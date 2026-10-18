@@ -239,3 +239,37 @@ describe('digestEntry time requests (Phase 32)', () => {
     });
   });
 });
+
+describe('digestEntry description.mention (F16)', () => {
+  const common = { groupId: 'g1', actorName: 'Jana' };
+  it('a task: "<current title>: <body>", opening the task', () => {
+    const payload = { ...common, subjectKind: 'task', subjectId: 't1', taskId: 't1', title: 'Old' };
+    expect(digestEntry({ kind: 'description.mention', payload }, ctx)).toEqual({
+      line: 'Current title: Jana mentioned you in the description',
+      url: 'https://spolu.test/groups/g1/tasks/t1',
+      button: 'Open task',
+      topic: 'Firma',
+    });
+  });
+  it('a ticket joins the ticket email', () => {
+    const payload = { ...common, subjectKind: 'ticket', subjectId: 'k1', ticketId: 'k1' };
+    expect(
+      digestEntry(
+        { kind: 'description.mention', payload: { ...payload, number: 7, subject: 'Login' } },
+        ctx,
+      ),
+    ).toMatchObject({
+      url: 'https://spolu.test/tickets/k1',
+      button: 'Open ticket',
+      topic: 'Ticket #7',
+    });
+  });
+  it('a knowledge item opens the item', () => {
+    const payload = { ...common, subjectKind: 'knowledge', subjectId: 'i1', title: 'Notes' };
+    expect(digestEntry({ kind: 'description.mention', payload }, ctx)).toMatchObject({
+      line: 'Notes: Jana mentioned you in the description',
+      url: 'https://spolu.test/groups/g1/knowledge?k=i1',
+      button: 'Open item',
+    });
+  });
+});

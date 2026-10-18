@@ -41,6 +41,11 @@ export interface DescriptionFieldProps {
   knowledge?: DescriptionKnowledge;
   /** The AI button and the microphone (default on; the server still decides what shows). */
   aiTools?: boolean;
+  /**
+   * F16: `@` opens the group's people (clients and managers) and names one; the server notifies
+   * them on save. On for the texts whose save notifies (task, ticket, project, knowledge).
+   */
+  mentions?: boolean;
 }
 
 /** The empty editor's height while its chunk loads: the toolbar plus six lines. */
@@ -92,6 +97,7 @@ export function DescriptionField(props: DescriptionFieldProps) {
             key={generation}
             {...props}
             nameOf={nameOf}
+            groupPeople={people}
             autoFocus={autoFocus}
             onChange={(next) => {
               setEmitted(next);

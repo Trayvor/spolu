@@ -223,6 +223,7 @@ export function TaskForm({
       <div className={FIELD}>
         <DescriptionField
           id={id('description')}
+          mentions
           groupId={groupId}
           value={value.description}
           onChange={(description) => set({ description })}

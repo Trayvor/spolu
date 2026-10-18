@@ -618,4 +618,27 @@ describe('projects API', () => {
       ).toBe(0);
     });
   });
+
+  it('F16: a description naming a client notifies them once, on create and on a later edit', async () => {
+    const g = await group();
+    const a = await admin();
+    const ana = await member(g.id);
+    const bea = await member(g.id);
+    const mentioned = async (projectId: string) =>
+      (
+        await db().execute<{ user_id: string }>(sql`
+          select user_id from notification_events
+          where kind = 'description.mention' and payload->>'subjectId' = ${projectId}`)
+      )
+        .map((r) => r.user_id)
+        .sort();
+    const project = await createProject(g.id, a.cookie, { description: `Hi <@${ana.id}>` });
+    expect(await mentioned(project.id)).toEqual([ana.id]);
+    const res = await call('PATCH', `/api/projects/${project.id}`, a.cookie, {
+      description: `Hi <@${ana.id}> and <@${bea.id}>`,
+      updatedAt: project.updatedAt,
+    });
+    expect(res.statusCode).toBe(200);
+    expect(await mentioned(project.id)).toEqual([ana.id, bea.id].sort());
+  });
 });

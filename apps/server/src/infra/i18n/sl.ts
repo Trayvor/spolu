@@ -154,6 +154,9 @@ export const sl: ServerTexts = {
     dueRemoved: 'Rok odstranjen',
     overdue: (date) => `Rok je potekel ${date}`,
     ticketResolved: (n) => `Zahtevek #${n} je rešen`,
+    mentionedInDescription: (name) => `Oseba ${name} vas je omenila v opisu`,
+    openKnowledge: 'Odpri element',
+    openProject: 'Odpri projekt',
   },
   teams: {
     recordingNotice: 'Ta klic bo posnet in prepisan.',

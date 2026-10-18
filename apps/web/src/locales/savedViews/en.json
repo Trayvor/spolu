@@ -1,0 +1,14 @@
+{
+  "label": "Saved views",
+  "save": "Save view",
+  "name": "View name",
+  "confirm": "Save",
+  "cancel": "Cancel",
+  "remove": "Remove view {{name}}",
+  "limit": "You have the most views there can be here ({{max}}). Remove one before saving another.",
+  "starter": {
+    "myOverdue": "My overdue",
+    "thisWeek": "This week",
+    "unassigned": "Tickets without an assignee"
+  }
+}

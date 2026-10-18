@@ -594,7 +594,7 @@ describe('knowledge service', () => {
     );
   });
 
-  it('a mention in a note body shows the name in the excerpt and notifies nobody', async () => {
+  it('a mention in a note body shows the name in the excerpt and notifies only that person', async () => {
     const group = await newGroup();
     const admin = await newAdmin();
     const client = await newClient(group.id, 'Mária');
@@ -608,9 +608,12 @@ describe('knowledge service', () => {
     const [row] = (await listGroupItems(db, client, group.id, {})).items;
     expect(row!.excerpt).toBe('Ask @Mária about it');
     expect(await searchTextOf(item.id)).toContain('@maria');
-    expect(
-      await db.select().from(notificationEvents).where(eq(notificationEvents.userId, client.id)),
-    ).toEqual([]);
+    // F16 (2026-10-18): a mention in a body notifies the person named, as a description mention.
+    const events = await db
+      .select({ kind: notificationEvents.kind })
+      .from(notificationEvents)
+      .where(eq(notificationEvents.userId, client.id));
+    expect(events).toEqual([{ kind: 'description.mention' }]);
   });
 
   it('the knowledge reminder subject loads items in one call with a plain-text body', async () => {
@@ -805,5 +808,45 @@ describe('knowledge service', () => {
         updateItem({ db }, other, item.id, { folderId: null, updatedAt: moved.item.updatedAt }),
       ).rejects.toBeInstanceOf(KnowledgeForbiddenError);
     });
+  });
+});
+
+describe('mentions in the body (F16)', () => {
+  const mentioned = async (itemId: string) =>
+    (
+      await db
+        .select()
+        .from(notificationEvents)
+        .where(eq(notificationEvents.kind, 'description.mention'))
+    )
+      .filter((r) => (r.payload as { subjectId?: string }).subjectId === itemId)
+      .map((r) => r.userId)
+      .sort();
+
+  it('notifies the people a new or edited body names, only the new ones', async () => {
+    const group = await newGroup();
+    const admin = await newAdmin();
+    const ana = await newClient(group.id, 'Ana');
+    const bea = await newClient(group.id, 'Bea');
+    const { item } = await createItem({ db }, admin, group.id, note({ body: `<@${ana.id}>` }));
+    expect(await mentioned(item.id)).toEqual([ana.id]);
+    await updateItem({ db }, admin, item.id, {
+      body: `<@${ana.id}> <@${bea.id}>`,
+      updatedAt: item.updatedAt,
+    });
+    expect(await mentioned(item.id)).toEqual([ana.id, bea.id].sort());
+  });
+
+  it('an admins-only item names no client', async () => {
+    const group = await newGroup();
+    const admin = await newAdmin();
+    const ana = await newClient(group.id, 'Ana');
+    const { item } = await createItem(
+      { db },
+      admin,
+      group.id,
+      note({ body: `<@${ana.id}>`, visibility: 'admins' }),
+    );
+    expect(await mentioned(item.id)).toEqual([]);
   });
 });

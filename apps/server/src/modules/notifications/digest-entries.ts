@@ -57,6 +57,35 @@ export function digestEntry(
       topic: ticket ? t.ticketTopic(Number(p.number)) : (ctx.groupName ?? ''),
     };
   }
+  if (row.kind === 'description.mention') {
+    // F16: "<title>: Jana mentioned you in the description", opening the subject; one
+    // section per subject. A ticket's joins the ticket's own section.
+    const taskId = str(p.taskId);
+    const push = buildPushPayload({
+      kind: row.kind,
+      payload: p,
+      groupName: ctx.groupName ?? '',
+      taskTitle: taskId ? (ctx.taskTitles.get(taskId) ?? null) : null,
+      parentId: null,
+      lang: ctx.lang,
+    });
+    const ticket = p.subjectKind === 'ticket';
+    const subjectTitle = ticket
+      ? push.title
+      : ((taskId ? ctx.taskTitles.get(taskId) : undefined) ?? str(p.title) ?? '');
+    return {
+      line: `${subjectTitle}: ${push.body}`,
+      url: `${ctx.publicUrl}${push.url}`,
+      button: ticket
+        ? t.openTicket
+        : p.subjectKind === 'knowledge'
+          ? t.openKnowledge
+          : p.subjectKind === 'project'
+            ? t.openProject
+            : t.openTask,
+      topic: ticket ? t.ticketTopic(Number(p.number)) : (ctx.groupName ?? ''),
+    };
+  }
   if (group === 'tickets' && isTicketEvent(row.kind, p)) {
     const push = buildPushPayload({
       kind: row.kind as NotificationKind,

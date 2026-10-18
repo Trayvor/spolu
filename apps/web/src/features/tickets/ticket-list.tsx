@@ -20,7 +20,8 @@ import { useTicketEvents } from './use-ticket-events';
  * One ticket list for the group's Tickets tab, My tickets and the admins' global view: the
  * filters, then the rows in one card (newest first, 50 per page, "Load more"). Rows are links to
  * the ticket page. My tickets and the global view name each row's client. Live through
- * `useTicketEvents`. `filterExtras` go first in the filter bar; `disabled` holds the list (the
+ * `useTicketEvents`. `filterExtras` go first in the filter bar and `belowFilters` under it (the
+ * saved views, F5); `disabled` holds the list (the
  * global view while its client choice loads); `empty` replaces the default empty line.
  */
 export function TicketList({
@@ -28,6 +29,7 @@ export function TicketList({
   filter,
   onFilterChange,
   filterExtras,
+  belowFilters,
   disabled = false,
   empty,
   projectScope,
@@ -36,6 +38,7 @@ export function TicketList({
   filter: TicketFilter;
   onFilterChange: (next: TicketFilter) => void;
   filterExtras?: ReactNode;
+  belowFilters?: ReactNode;
   disabled?: boolean;
   empty?: ReactNode;
   /** Where the Project (and Event) filter pills apply; absent: none (see `TicketFilters`). */
@@ -105,6 +108,7 @@ export function TicketList({
       >
         {filterExtras}
       </TicketFilters>
+      {belowFilters}
       {body}
     </div>
   );
