@@ -269,12 +269,46 @@
     },
     "row": {
       "processing": "V obdelavi",
-      "summary": "Povzetek"
+      "summary": "Povzetek",
+      "recurring": "Se ponavlja"
     },
     "transcriptFromTeams": "iz Teams",
     "transcriptAdminsOnly": "Ta prepis in njegov povzetek vidijo samo skrbniki, dokler ju ne delite s stranko.",
     "shareTranscript": "Deli s stranko",
-    "shareFailed": "Deljenje ni uspelo. Poskusite znova."
+    "shareFailed": "Deljenje ni uspelo. Poskusite znova.",
+    "repeat": {
+      "label": "Ponavljanje",
+      "none": "Se ne ponavlja",
+      "weekly": "Vsak teden: {{weekday}}",
+      "biweekly": "Vsaka 2 tedna: {{weekday}}",
+      "monthly_date": "Vsak mesec, {{day}}. dan",
+      "monthly_weekday_1": "Vsak mesec, 1. {{weekday}} v mesecu",
+      "monthly_weekday_2": "Vsak mesec, 2. {{weekday}} v mesecu",
+      "monthly_weekday_3": "Vsak mesec, 3. {{weekday}} v mesecu",
+      "monthly_weekday_4": "Vsak mesec, 4. {{weekday}} v mesecu",
+      "monthly_weekday_last": "Vsak mesec, {{weekday}} v zadnjem tednu",
+      "ends": "Konec",
+      "endNever": "Nikoli",
+      "endUntil": "Na datum",
+      "endCount": "Po številu sestankov",
+      "untilLabel": "Zadnji dan",
+      "countLabel": "Število sestankov",
+      "hint": "Vsak sestanek je samostojen element z lastnimi zapiski, posnetkom, prepisom in opomnikom. Help doda sestanke 60 dni vnaprej.",
+      "untilInvalid": "Izberite zadnji dan na dan prvega sestanka ali pozneje, največ 2 leti vnaprej.",
+      "countInvalid": "Vnesite od 2 do 100 sestankov."
+    },
+    "series": {
+      "repeats": "Ponavlja se: {{rule}}.",
+      "until": "Do {{date}}.",
+      "count": "Skupaj {{count}} sestankov.",
+      "ended": "Novi sestanki ne bodo več dodani.",
+      "editScope": "Ta sestanek se ponavlja. Želite spremeniti samo tega ali tudi naslednje sestanke?",
+      "onlyThis": "Samo ta sestanek",
+      "thisAndFollowing": "Ta in naslednji",
+      "deleteScope": "Ta sestanek se ponavlja. Želite izbrisati samo tega ali tudi naslednje sestanke? Izbrisani sestanki ne bodo znova dodani.",
+      "deleteThis": "Izbriši ta sestanek",
+      "deleteFollowing": "Izbriši tega in naslednje"
+    }
   },
   "view": {
     "label": "Pogled",

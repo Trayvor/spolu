@@ -1,5 +1,5 @@
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { KnowledgeItemDto, TeamsLink, TeamsMeetingState } from '@spolu/shared';
@@ -203,5 +203,52 @@ describe('Teams block (T1)', () => {
 
     await user.click(screen.getByRole('button', { name: t('teams.block.disconnect') }));
     expect(screen.getByText(t('teams.block.disconnectConfirm'))).toBeInTheDocument();
+  });
+
+  it('a call of a series: "also for the following meetings" (on) and the plan with Stop', async () => {
+    const planned: TeamsMeetingState = {
+      link: { ...LINK, transcriptState: 'waiting' },
+      series: { planned: true, organizerName: 'Jana Admin', lastError: null },
+    };
+    const calls = mockApi(
+      { link: null, series: { planned: false, organizerName: null, lastError: null } },
+      {
+        'POST /api/knowledge/k1/teams/meeting': { status: 201, body: planned },
+        'DELETE /api/knowledge/k1/teams/series': { status: 204, body: null },
+      },
+    );
+    const { user } = renderSection();
+    await user.click(await screen.findByRole('button', { name: t('teams.block.create') }));
+    const following = await screen.findByRole('checkbox', {
+      name: new RegExp(t('teams.create.following')),
+    });
+    expect(following).toBeChecked();
+    await user.click(screen.getByRole('button', { name: t('teams.create.submit') }));
+    await waitFor(() => expect(calls.some((c) => c.method === 'POST')).toBe(true));
+    expect(calls.find((c) => c.method === 'POST')!.body).toMatchObject({ following: true });
+    expect(
+      await screen.findByText(t('teams.series.planned', { name: 'Jana Admin' })),
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: t('teams.series.stop') }));
+    await user.click(
+      within(screen.getByTestId('teams-series')).getAllByRole('button', {
+        name: t('teams.series.stop'),
+      })[0]!,
+    );
+    await waitFor(() =>
+      expect(calls.some((c) => c.method === 'DELETE' && c.url.endsWith('/teams/series'))).toBe(
+        true,
+      ),
+    );
+  });
+
+  it('a single call shows no "following" choice', async () => {
+    mockApi({ link: null });
+    const { user } = renderSection();
+    await user.click(await screen.findByRole('button', { name: t('teams.block.create') }));
+    await screen.findByRole('button', { name: t('teams.create.submit') });
+    expect(
+      screen.queryByRole('checkbox', { name: new RegExp(t('teams.create.following')) }),
+    ).toBeNull();
   });
 });

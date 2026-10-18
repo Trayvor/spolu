@@ -45,7 +45,9 @@
     "invalidEmail": "Vnesite veljaven e-poštni naslov.",
     "noticeLabel": "V povabilu piše:",
     "submit": "Ustvari sestanek",
-    "creating": "Ustvarjanje …"
+    "creating": "Ustvarjanje …",
+    "following": "Tudi za naslednje sestanke",
+    "followingHint": "Help bo s temi nastavitvami ustvaril ločen sestanek v Teams za vsak naslednji sestanek serije, vsakega z lastnim povabilom in prepisom."
   },
   "connectForm": {
     "url": "Povezava do sestanka Teams",
@@ -75,5 +77,11 @@
     "timeZone": "Čas v vašem časovnem pasu ({{zone}}).",
     "invalid": "Ta povezava do povabila ni več veljavna.",
     "rateLimited": "Preveč zahtev. Poskusite čez minuto."
+  },
+  "series": {
+    "planned": "Help ustvarja sestanek v Teams za vsak naslednji sestanek te serije, organizator: {{name}}.",
+    "plannedNoName": "Help ustvarja sestanek v Teams za vsak naslednji sestanek te serije.",
+    "stop": "Ustavi za naslednje sestanke",
+    "stopConfirm": "Želite prenehati ustvarjati sestanke v Teams za naslednje sestanke? Že ustvarjeni sestanki v Teams ostanejo."
   }
 }

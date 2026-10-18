@@ -2,6 +2,7 @@ import { sql } from 'drizzle-orm';
 import {
   boolean,
   check,
+  date,
   foreignKey,
   index,
   integer,
@@ -179,6 +180,77 @@ export const knowledgeAttachments = pgTable(
 );
 
 /**
+ * Recurring calls (ADR 0049): the rule of a series and the template of its next calls. Every
+ * call of a series is a `meeting` item of its own (`knowledge_meetings.series_id`), created
+ * ahead of time: at the series' creation and by the series job, up to 60 days ahead.
+ *
+ * - The rule: occurrence `anchor_index` starts at `anchor_starts_at`, the others follow it by
+ *   `frequency` in `time_zone` (the local time of day stays). An "all following" edit that
+ *   moves the time re-anchors it at the edited call.
+ * - The end: `until` (a local day, inclusive) or `count` (calls in all), or none.
+ * - `next_index` is the next occurrence to create, never reused: a cancelled (deleted) call is
+ *   not created again. `next_starts_at` is its start, null once the series has ended (the job's
+ *   due rows, partial index).
+ * - The template (title, body, visibility, folder, meeting link, reminder offsets and added
+ *   recipients) is what the next calls get; "all following" edits change it.
+ */
+export const knowledgeMeetingSeries = pgTable(
+  'knowledge_meeting_series',
+  {
+    id: text('id').primaryKey(),
+    groupId: text('group_id')
+      .notNull()
+      .references(() => groups.id, { onDelete: 'cascade' }),
+    /** `weekly`, `biweekly`, `monthly_date` or `monthly_weekday`. */
+    frequency: text('frequency').notNull(),
+    timeZone: text('time_zone').notNull(),
+    anchorStartsAt: timestamp('anchor_starts_at', { withTimezone: true, precision: 3 }).notNull(),
+    anchorIndex: integer('anchor_index').notNull().default(0),
+    until: date('until', { mode: 'string' }),
+    count: integer('count'),
+    nextIndex: integer('next_index').notNull().default(1),
+    nextStartsAt: timestamp('next_starts_at', { withTimezone: true, precision: 3 }),
+    title: text('title').notNull(),
+    body: text('body').notNull().default(''),
+    visibility: text('visibility').notNull().default('public'),
+    folderId: text('folder_id').references(() => knowledgeFolders.id, { onDelete: 'set null' }),
+    meetingUrl: text('meeting_url'),
+    /** Minutes before each call's start at which its reminder fires (negative: after). */
+    reminderOffsets: integer('reminder_offsets')
+      .array()
+      .notNull()
+      .default(sql`'{}'::integer[]`),
+    reminderRecipientIds: text('reminder_recipient_ids')
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
+    createdBy: text('created_by')
+      .notNull()
+      .references(() => user.id),
+    createdAt: timestamp('created_at', { withTimezone: true, precision: 3 }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true, precision: 3 }).notNull().defaultNow(),
+  },
+  (t) => [
+    check(
+      'knowledge_meeting_series_frequency_check',
+      sql`${t.frequency} in ('weekly', 'biweekly', 'monthly_date', 'monthly_weekday')`,
+    ),
+    check(
+      'knowledge_meeting_series_visibility_check',
+      sql`${t.visibility} in ('public', 'admins')`,
+    ),
+    check('knowledge_meeting_series_end_check', sql`${t.until} is null or ${t.count} is null`),
+    // The series job's due rows.
+    index('knowledge_meeting_series_next_idx')
+      .on(t.nextStartsAt)
+      .where(sql`${t.nextStartsAt} is not null`),
+    index('knowledge_meeting_series_group_idx').on(t.groupId),
+    index('knowledge_meeting_series_folder_idx').on(t.folderId),
+    index('knowledge_meeting_series_created_by_idx').on(t.createdBy),
+  ],
+);
+
+/**
  * A meeting item's own fields (Phase 30), one row per `meeting` item. The compact audio is a
  * `files` row attached through `knowledge_attachments` (so it follows the item's visibility);
  * `recording_file_id` names it. `upload_key` is the original upload while it waits for the
@@ -215,6 +287,11 @@ export const knowledgeMeetings = pgTable(
     aiRun: integer('ai_run').notNull().default(0),
     aiUpdatedAt: timestamp('ai_updated_at', { withTimezone: true, precision: 3 }),
     summary: jsonb('summary'),
+    /** Recurring calls (ADR 0049): the call's series and its place in it (0 the first). */
+    seriesId: text('series_id').references(() => knowledgeMeetingSeries.id, {
+      onDelete: 'set null',
+    }),
+    seriesIndex: integer('series_index'),
   },
   (t) => [
     check(
@@ -231,6 +308,10 @@ export const knowledgeMeetings = pgTable(
     ),
     index('knowledge_meetings_starts_at_idx').on(t.startsAt),
     index('knowledge_meetings_recording_file_idx').on(t.recordingFileId),
+    // One call per place of a series; also the series' calls in order ("all following").
+    uniqueIndex('knowledge_meetings_series_unique')
+      .on(t.seriesId, t.seriesIndex)
+      .where(sql`${t.seriesId} is not null`),
   ],
 );
 

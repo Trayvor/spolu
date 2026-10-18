@@ -45,7 +45,9 @@
     "invalidEmail": "Inserire un indirizzo e-mail valido.",
     "noticeLabel": "L'invito dice:",
     "submit": "Crea riunione",
-    "creating": "Creazione…"
+    "creating": "Creazione…",
+    "following": "Anche per le riunioni successive",
+    "followingHint": "Help crea con queste impostazioni una riunione Teams separata per ogni riunione successiva della serie, ciascuna con il proprio invito e la propria trascrizione."
   },
   "connectForm": {
     "url": "Link della riunione Teams",
@@ -75,5 +77,11 @@
     "timeZone": "Orari nel Suo fuso orario ({{zone}}).",
     "invalid": "Questo link dell'invito non è più valido.",
     "rateLimited": "Troppe richieste. Riprovare tra un minuto."
+  },
+  "series": {
+    "planned": "Help crea una riunione Teams per ogni riunione successiva di questa serie, organizzatore: {{name}}.",
+    "plannedNoName": "Help crea una riunione Teams per ogni riunione successiva di questa serie.",
+    "stop": "Interrompi per le riunioni successive",
+    "stopConfirm": "Vuole smettere di creare riunioni Teams per le riunioni successive? Le riunioni Teams già create restano."
   }
 }

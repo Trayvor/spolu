@@ -45,7 +45,9 @@
     "invalidEmail": "Zadejte platnou e-mailovou adresu.",
     "noticeLabel": "V pozvánce bude:",
     "submit": "Vytvořit schůzku",
-    "creating": "Vytváří se…"
+    "creating": "Vytváří se…",
+    "following": "I pro následující schůzky",
+    "followingHint": "Help vytvoří s tímto nastavením samostatnou schůzku v Teams pro každou následující schůzku série, každou s vlastní pozvánkou a přepisem."
   },
   "connectForm": {
     "url": "Odkaz na schůzku v Teams",
@@ -75,5 +77,11 @@
     "timeZone": "Čas ve vašem časovém pásmu ({{zone}}).",
     "invalid": "Tento odkaz na pozvánku už neplatí.",
     "rateLimited": "Příliš mnoho požadavků. Zkuste to za minutu."
+  },
+  "series": {
+    "planned": "Help vytváří schůzku v Teams pro každou následující schůzku této série, organizátor: {{name}}.",
+    "plannedNoName": "Help vytváří schůzku v Teams pro každou následující schůzku této série.",
+    "stop": "Zastavit pro následující schůzky",
+    "stopConfirm": "Přestat vytvářet schůzky v Teams pro následující schůzky? Již vytvořené schůzky v Teams zůstanou."
   }
 }

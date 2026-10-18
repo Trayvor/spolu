@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { FileInfoSchema } from './files.js';
+import { MeetingRepeatSchema, MeetingSeriesInfoSchema } from './meeting-series.js';
 import { BucketLabelSchema, TaskPersonSchema } from './tasks.js';
 import { isHttpUrl } from './urls.js';
 
@@ -80,6 +81,8 @@ export const MeetingInputSchema = z.object({
   recordingUrl: optionalUrl.default(null),
   transcriptUrl: optionalUrl.default(null),
   transcript: transcriptField.default(''),
+  /** Recurring calls (ADR 0049): how the call repeats; null is a single call. */
+  repeat: MeetingRepeatSchema.nullable().default(null),
 });
 export type MeetingInput = z.output<typeof MeetingInputSchema>;
 
@@ -102,6 +105,8 @@ export const MeetingListInfoSchema = z.object({
   recording: z.enum(MeetingRecordingStates),
   ai: z.enum(MeetingAiStates),
   hasSummary: z.boolean(),
+  /** The call is one of a recurring series (ADR 0049); absent on older answers: false. */
+  recurring: z.boolean().optional(),
 });
 export type MeetingListInfo = z.infer<typeof MeetingListInfoSchema>;
 
@@ -155,6 +160,8 @@ export const MeetingDetailSchema = z.object({
    * Action items no task of `tasks` has the title of: what "Create more tasks" would propose.
    */
   actionItemsLeft: z.number().int(),
+  /** The call's series (ADR 0049); null (or absent) for a single call. */
+  series: MeetingSeriesInfoSchema.nullable().optional(),
 });
 export type MeetingDetail = z.infer<typeof MeetingDetailSchema>;
 

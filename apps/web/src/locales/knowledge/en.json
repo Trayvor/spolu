@@ -261,12 +261,46 @@
     },
     "row": {
       "processing": "Processing",
-      "summary": "Summary"
+      "summary": "Summary",
+      "recurring": "Repeats"
     },
     "transcriptFromTeams": "from Teams",
     "transcriptAdminsOnly": "Only admins see this transcript and its summary until you share them with the client.",
     "shareTranscript": "Share with the client",
-    "shareFailed": "Could not share. Try again."
+    "shareFailed": "Could not share. Try again.",
+    "repeat": {
+      "label": "Repeat",
+      "none": "Does not repeat",
+      "weekly": "Every week on {{weekday}}",
+      "biweekly": "Every 2 weeks on {{weekday}}",
+      "monthly_date": "Every month on day {{day}}",
+      "monthly_weekday_1": "Every month on the first {{weekday}}",
+      "monthly_weekday_2": "Every month on the second {{weekday}}",
+      "monthly_weekday_3": "Every month on the third {{weekday}}",
+      "monthly_weekday_4": "Every month on the fourth {{weekday}}",
+      "monthly_weekday_last": "Every month on the last {{weekday}}",
+      "ends": "Ends",
+      "endNever": "Never",
+      "endUntil": "On a date",
+      "endCount": "After a number of meetings",
+      "untilLabel": "Last day",
+      "countLabel": "Meetings in all",
+      "hint": "Each meeting is an item of its own, with its own notes, recording, transcript and reminder. Help adds the meetings 60 days ahead.",
+      "untilInvalid": "Pick a last day on or after the first meeting, at most 2 years ahead.",
+      "countInvalid": "Enter 2 to 100 meetings."
+    },
+    "series": {
+      "repeats": "Repeats: {{rule}}.",
+      "until": "Until {{date}}.",
+      "count": "{{count}} meetings in all.",
+      "ended": "No more meetings will be added.",
+      "editScope": "This meeting repeats. Change only this one, or this and the following meetings?",
+      "onlyThis": "Only this meeting",
+      "thisAndFollowing": "This and following",
+      "deleteScope": "This meeting repeats. Delete only this one, or this and the following meetings? Deleted meetings are not added again.",
+      "deleteThis": "Delete this meeting",
+      "deleteFollowing": "Delete this and following"
+    }
   },
   "view": {
     "label": "View",

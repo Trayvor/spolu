@@ -4,12 +4,13 @@ import {
   check,
   index,
   integer,
+  jsonb,
   pgTable,
   text,
   timestamp,
   uniqueIndex,
 } from 'drizzle-orm/pg-core';
-import { knowledgeMeetings } from '../knowledge/schema.js';
+import { knowledgeMeetingSeries, knowledgeMeetings } from '../knowledge/schema.js';
 import { user } from '../users/schema.js';
 
 /**
@@ -110,4 +111,34 @@ export const teamsMeetingLinks = pgTable(
     index('teams_meeting_links_organizer_user_idx').on(t.organizerUserId),
     index('teams_meeting_links_created_by_idx').on(t.createdBy),
   ],
+);
+
+/**
+ * Recurring calls (ADR 0049): "Create Teams meeting" with "also for the following calls" on a
+ * call of a series. The series job creates one Outlook event with Teams per later call, with
+ * these settings, as this organizer: from occurrence `next_index` on, each once (a call whose
+ * Teams meeting was disconnected is not given a new one). Deleted with the series.
+ */
+export const teamsSeriesPlans = pgTable(
+  'teams_series_plans',
+  {
+    seriesId: text('series_id')
+      .primaryKey()
+      .references(() => knowledgeMeetingSeries.id, { onDelete: 'cascade' }),
+    organizerUserId: text('organizer_user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    organizerEntraId: text('organizer_entra_id').notNull(),
+    organizerName: text('organizer_name'),
+    durationMinutes: integer('duration_minutes').notNull(),
+    recordAutomatically: boolean('record_automatically').notNull(),
+    /** `{ email, name? }[]`, as the create dialog sent them. */
+    attendees: jsonb('attendees').notNull(),
+    /** The next occurrence of the series to give a Teams meeting. */
+    nextIndex: integer('next_index').notNull(),
+    lastError: text('last_error'),
+    createdAt: timestamp('created_at', { withTimezone: true, precision: 3 }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true, precision: 3 }).notNull().defaultNow(),
+  },
+  (t) => [index('teams_series_plans_organizer_user_idx').on(t.organizerUserId)],
 );

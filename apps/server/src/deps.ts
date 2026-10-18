@@ -11,6 +11,11 @@ import type { TaskSplitProvider } from './modules/ai/provider.js';
 import type { TranscriptionProvider } from './modules/ai/transcription.js';
 import { meetingAiJobHandlers, MEETING_AI_JOB } from './modules/knowledge/meeting-ai.js';
 import { recordingJobHandlers, RECORDING_JOB } from './modules/knowledge/meeting-recording.js';
+import {
+  MEETING_SERIES_JOB,
+  meetingSeriesJobHandlers,
+  meetingSeriesSchedules,
+} from './modules/knowledge/meeting-series.js';
 import { createFakeMedia, createFfmpeg, type MediaTools } from './infra/media/media.js';
 import { createSandboxMedia } from './infra/media/sandbox-client.js';
 import { authJobHandlers, AUTH_CLEANUP_JOB } from './modules/auth/jobs.js';
@@ -36,6 +41,7 @@ import {
   createTeams,
   teamsJobHandlers,
   teamsSchedules,
+  TEAMS_SERIES_JOB,
   TRANSCRIPT_POLL_JOB,
 } from './modules/teams/jobs.js';
 import { createDb, type Db } from './infra/db/client.js';
@@ -129,7 +135,8 @@ export async function createDeps(
         jobs: forward.queue,
         ai: { transcription, summary: meetingSummary },
       }),
-      ...teamsJobHandlers({ db, teams }),
+      ...meetingSeriesJobHandlers({ db }),
+      ...teamsJobHandlers({ db, config, teams }),
     },
     [
       { name: AUTH_CLEANUP_JOB, cron: '15 3 * * *' }, // daily, 03:15
@@ -139,7 +146,8 @@ export async function createDeps(
       ...taskSchedules, // deadline and urgent reminders, Bratislava time
       ...reminderSchedules, // fire due reminders every minute
       ...bulkEmailSchedules(config), // stuck-send sweep 04:15; Elastic sync 04:30 (elastic driver)
-      ...teamsSchedules(config), // Teams transcript poll every 5 minutes (only when configured)
+      ...meetingSeriesSchedules, // recurring calls: the next calls, hourly (ADR 0049)
+      ...teamsSchedules(config), // Teams transcript poll and series sync every 5 minutes (only when configured)
     ],
     {
       ...emailQueues,
@@ -148,8 +156,15 @@ export async function createDeps(
       // One ffmpeg at a time (CPU); two AI runs at once. A delayed retry waits for the 30 s poll.
       [RECORDING_JOB]: { localConcurrency: 1 },
       [MEETING_AI_JOB]: { localConcurrency: 2 },
+      // One series run at a time; a run still going absorbs the next tick.
+      [MEETING_SERIES_JOB]: { policy: 'stately' as const },
       // One poll at a time; a run that is still going absorbs the next tick.
-      ...(teams ? { [TRANSCRIPT_POLL_JOB]: { policy: 'stately' as const } } : {}),
+      ...(teams
+        ? {
+            [TRANSCRIPT_POLL_JOB]: { policy: 'stately' as const },
+            [TEAMS_SERIES_JOB]: { policy: 'stately' as const },
+          }
+        : {}),
     }, // concurrency and policies; the rest: defaults
   );
   forward.resolve(jobs.queue);

@@ -84,6 +84,8 @@ Pushed after the write commits by `modules/knowledge/events.ts` (names in `Knowl
 
 Phase 30: the meeting jobs (transcode, AI run) bump the item's `updated_at` after every step and push `knowledge:item` through a slot (`attachMeetingsRealtime`, like the reminders' fire job), routed by visibility as any item. The open dialog refetches on it, and also polls every 5 s while a conversion or a run is in progress (the global list has no live events).
 
+Recurring calls (ADR 0049): a new series pushes `knowledge:item` for its first call and then for each later call it created (after the commit); the hourly series job pushes the calls it creates through the same slot; a "this and following" edit pushes every later call it changed (with its visibility before, so a switch to admins-only removes it for clients), and a "this and following" delete pushes `knowledge:item_deleted` for each call.
+
 | event | payload | room |
 |---|---|---|
 | `knowledge:item` | `{ item }` | created or edited: `group:<id>` for a public item, `group:<id>:admins` for an admins-only one; also a chat file (Phase 25), pushed by the chat route after the message with files commits (`chat/file-hooks.ts` `sent`); and a chat file saved as a file (`to-file`), now with `type: file`, so lists drop it from "From chat" and add it to its folder |

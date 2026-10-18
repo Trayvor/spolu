@@ -32,6 +32,7 @@ import { getSocket } from '@/lib/socket';
 import { cn } from '@/lib/utils';
 import { knowledgeItemQuery, updateKnowledge } from './api';
 import { CalendarLeaf } from './calendar-leaf';
+import { MeetingSeriesLine } from './meeting-repeat';
 import { ArrowOutIcon } from './icons';
 import {
   deleteRecording,
@@ -89,6 +90,7 @@ export function MeetingWhen({ meeting }: { meeting: MeetingDetail }) {
         <CalendarLeaf iso={meeting.startsAt} size={40} />
         <span className="text-body font-semibold first-letter:uppercase">{when}</span>
       </p>
+      {meeting.series && <MeetingSeriesLine series={meeting.series} startsAt={meeting.startsAt} />}
       {links.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {links.map((link) => (

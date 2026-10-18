@@ -10,6 +10,7 @@ import {
   type MeetingInput,
   type MeetingPatch,
   type MeetingRecordingState,
+  type MeetingSeriesInfo,
   type MeetingSummary,
   type MeetingTaskLink,
 } from '@spolu/shared';
@@ -145,6 +146,7 @@ export function toMeetingDetail(
   file: FileInfo | null,
   tasks: MeetingTaskLink[],
   viewerIsAdmin: boolean,
+  series: MeetingSeriesInfo | null = null,
 ): MeetingDetail {
   const visible = canSeeTranscript(row, viewerIsAdmin);
   const summary = visible ? parseSummary(row.summary) : null;
@@ -174,6 +176,7 @@ export function toMeetingDetail(
       summary,
       tasks.map((t) => t.title),
     ).length,
+    series,
   };
 }
 
