@@ -4,6 +4,7 @@ import type { BoardDto, KnowledgeFolderDto, KnowledgeItemDto, TaskDetailDto } fr
 import { buildTestApp } from '../../../test/test-app.js';
 import { loginAs } from '../../../test/login.js';
 import { createCountingDb } from '../../../test/query-counter.js';
+import { ensureAdminGroup } from '../groups/admin-group.js';
 import { createGroup } from '../groups/service.js';
 import { addAdmin, deactivateUser } from '../users/service.js';
 import { getGlobalBoard } from '../home/global-board.js';
@@ -114,6 +115,32 @@ describe('knowledge count on task cards', () => {
     });
     expect(moved.statusCode, moved.body).toBe(200);
     expect((await countsOnBoard(group.id, cookie)).get(t.id)).toBe(1);
+  });
+
+  it('follows the sharing rule of the admin group (isShareableInto)', async () => {
+    const { group, cookie } = await setup();
+    const adminGroup = await ensureAdminGroup(db());
+    const shared = await item(adminGroup, cookie, { title: 'Pre klientov', visibility: 'public' });
+    const internal = await item(adminGroup, cookie, { title: 'Interné', visibility: 'admins' });
+    const own = await item(group.id, cookie);
+    const clientTask = await task(group.id, cookie, [shared.id, own.id]);
+    expect(clientTask.knowledgeCount).toBe(2);
+    expect((await countsOnBoard(group.id, cookie)).get(clientTask.id)).toBe(2);
+
+    // An item linked earlier and made "Only eGrant" since stays out of the count.
+    const latest = (
+      await call('GET', `/api/knowledge/${shared.id}`, cookie)
+    ).json<KnowledgeItemDto>();
+    const patched = await call('PATCH', `/api/knowledge/${shared.id}`, cookie, {
+      visibility: 'admins',
+      updatedAt: latest.updatedAt,
+    });
+    expect(patched.statusCode, patched.body).toBe(200);
+    expect((await countsOnBoard(group.id, cookie)).get(clientTask.id)).toBe(1);
+
+    // Into the admin group any item counts, a client's and an "Only eGrant" one alike.
+    const teamTask = await task(adminGroup, cookie, [internal.id, own.id]);
+    expect((await countsOnBoard(adminGroup, cookie)).get(teamTask.id)).toBe(2);
   });
 
   it('adds no queries per task to the group board', async () => {

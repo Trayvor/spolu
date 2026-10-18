@@ -141,7 +141,11 @@
       "reminder": "Pripomienka",
       "meeting": "Stretnutie",
       "chat_file": "Z chatu"
-    }
+    },
+    "adminGroup": "eGrant tím",
+    "source": "Zobraziť z",
+    "sourceGroup": "Tento klient",
+    "adminGroupHint": "Zobrazujú sa len položky označené Zdieľateľné s klientmi."
   },
   "work": {
     "attach": "Priložiť znalosť, úlohu alebo tiket",

@@ -272,5 +272,10 @@
     "label": "Vista",
     "list": "Elenco",
     "cards": "Schede"
+  },
+  "adminGroup": {
+    "badge": "Team eGrant",
+    "shareable": "Condivisibile con i clienti",
+    "consequence": "I clienti dei gruppi in cui lo alleghi potranno aprirlo."
   }
 }

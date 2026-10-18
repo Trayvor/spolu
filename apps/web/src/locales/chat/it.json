@@ -138,7 +138,11 @@
       "reminder": "Promemoria",
       "meeting": "Riunione",
       "chat_file": "Dalla chat"
-    }
+    },
+    "adminGroup": "Team eGrant",
+    "source": "Mostra da",
+    "sourceGroup": "Questo cliente",
+    "adminGroupHint": "Sono elencati solo gli elementi segnati come Condivisibile con i clienti."
   },
   "work": {
     "attach": "Allega una conoscenza, un compito o un ticket",

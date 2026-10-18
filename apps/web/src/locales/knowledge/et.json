@@ -268,5 +268,10 @@
     "label": "Vaade",
     "list": "Loend",
     "cards": "Kaardid"
+  },
+  "adminGroup": {
+    "badge": "eGranti meeskond",
+    "shareable": "Klientidega jagatav",
+    "consequence": "Rühmade kliendid, kuhu selle lisate, saavad seda avada."
   }
 }

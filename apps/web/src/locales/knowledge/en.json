@@ -268,5 +268,10 @@
     "label": "View",
     "list": "List",
     "cards": "Cards"
+  },
+  "adminGroup": {
+    "badge": "eGrant team",
+    "shareable": "Shareable with clients",
+    "consequence": "Clients of the groups where you attach it will be able to open it."
   }
 }

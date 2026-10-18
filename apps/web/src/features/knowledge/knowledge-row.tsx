@@ -4,6 +4,7 @@ import { Link } from '@tanstack/react-router';
 import { Avatar } from '@/components/avatar';
 import { PaperclipIcon } from '@/components/icons';
 import { Badge } from '@/components/ui/badge';
+import { AdminGroupBadge } from './admin-group-badge';
 import { formatFileSize } from '@/features/files/format-size';
 import { fileUrl } from '@/features/files/urls';
 import { formatReminderTime } from '@/features/reminders/format';
@@ -226,6 +227,9 @@ export function KnowledgeRow({
               </span>
             )}
             {item.type === 'chat_file' && <span className="flex-1" />}
+            {showGroup && item.source === 'admin_group' && (
+              <AdminGroupBadge label={t('knowledge.adminGroup.badge')} />
+            )}
             {item.visibility === 'admins' && (
               <Badge variant="outline">
                 <LockIcon />

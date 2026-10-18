@@ -3,6 +3,7 @@ import { eq, sql } from 'drizzle-orm';
 import { KNOWLEDGE_LIMITS, type Visibility } from '@spolu/shared';
 import { onChatFiles, type ChatFileListener } from '../chat/file-hooks.js';
 import { getFilesForGroup } from '../files/service.js';
+import { adminGroupId } from '../groups/admin-group.js';
 import { emitKnowledgeDeleted, emitKnowledgeItem } from './events.js';
 import { knowledgeItems } from './schema.js';
 import { normalizeSearch } from '../../infra/text/search.js';
@@ -12,10 +13,11 @@ import { chatFileSummaries } from './service.js';
  * Who reads a chat's files in the knowledge base. Every chat of a group (its group chat, task
  * chats and ticket chats) is read by all admins and the group's clients, the same people who
  * read the group's public knowledge; a ziadatel never reads knowledge. So every chat file is a
- * public item. An admins-only chat, should one ever exist, must answer `admins` here.
+ * public item. The admin group's chats (Phase 34) are read by admins only: their files are
+ * "Only eGrant" items, so they never become shareable with clients by accident.
  */
-export function chatFileVisibility(): Visibility {
-  return 'public';
+export function chatFileVisibility(inAdminGroup: boolean): Visibility {
+  return inAdminGroup ? 'admins' : 'public';
 }
 
 const listener: ChatFileListener = {
@@ -23,6 +25,7 @@ const listener: ChatFileListener = {
   async attached(tx, change) {
     const fileRows = await getFilesForGroup(tx, change.channel.groupId, change.fileIds);
     if (fileRows.length === 0) return;
+    const visibility = chatFileVisibility((await adminGroupId(tx)) === change.channel.groupId);
     await tx
       .insert(knowledgeItems)
       .values(
@@ -30,7 +33,7 @@ const listener: ChatFileListener = {
           id: randomUUID(),
           groupId: change.channel.groupId,
           type: 'chat_file',
-          visibility: chatFileVisibility(),
+          visibility,
           title: file.name.slice(0, KNOWLEDGE_LIMITS.title),
           body: '',
           url: null,

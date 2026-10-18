@@ -33,6 +33,7 @@ import {
   toFileInfo,
   type FileRow,
 } from '../files/service.js';
+import { adminGroupId } from '../groups/admin-group.js';
 import { canReadGroup } from '../groups/policy.js';
 import { InvalidReminderError } from '../reminders/errors.js';
 import { canUseBoard } from '../tasks/policy.js';
@@ -62,7 +63,7 @@ import {
   canEditItem,
   canReadItem,
   canSetVisibility,
-  isShareable,
+  isShareableInto,
 } from './policy.js';
 import { registerKnowledgeReminderSubject } from './reminder-subject.js';
 import { knowledgeAttachments, knowledgeItems } from './schema.js';
@@ -125,6 +126,8 @@ export type PageRow = {
   author_name: string;
   author_role: string;
   group_name: string;
+  /** `admin` for the admin group (Phase 34). */
+  group_kind?: string;
   group_updated: string;
   has_logo: boolean;
   file_count: number;
@@ -166,6 +169,7 @@ function pageQuery(where: SQL, limit: number, withBody = false): SQL {
            k.created_at::text as created_text, left(k.body, 2000) as body_head,
            ${withBody ? sql`k.body,` : sql``}
            u.name as author_name, u.role as author_role, g.name as group_name,
+           g.kind as group_kind,
            ${iso(sql`g.updated_at`)} as group_updated, g.logo_key is not null as has_logo,
            f.file_count, f.first_file, r.next_at, r.upcoming, r.last_at,
            k.chat_message_id, k.chat_file_id, k.chat_channel_id, k.chat_kind,
@@ -273,6 +277,7 @@ export function toSummary(
     folderPath,
     chat: chatSource(row),
     meeting: meetingInfo(row),
+    ...(row.group_kind === 'admin' ? { source: 'admin_group' as const } : {}),
   };
 }
 
@@ -546,26 +551,33 @@ export async function getItem(db: Db, actor: SessionUser, id: string): Promise<K
 }
 
 /**
- * Phase 28: the read-only detail of an item for a reader who reaches it through a chat message
- * of `groupId` (a ziadatel in a ticket chat). The chat checked the message; here the item must
- * still be shareable there (`isShareable`), else null. No reminders, no link to a chat the reader
- * may not open, never editable.
+ * Phase 28: the read-only detail of an item for a reader who reaches it through a place of
+ * `groupId` (a message, or a description in Phase 33): a ziadatel in a ticket chat, or (Phase
+ * 34) a client opening an admin-group item shared with their group. The caller checked the
+ * place; here the item must still be shareable there (`isShareableInto`), else null. No
+ * reminders, no link to a chat the reader may not open, never editable; an item of another
+ * group (the admin group's) shows no folders.
  */
 export async function getSharedItem(
   db: Db,
   id: string,
   groupId: string,
 ): Promise<KnowledgeItemDto | null> {
-  const [row] = await db.execute<PageRow>(pageQuery(sql`k.id = ${id}`, 1, true));
+  const [[row], adminId] = await Promise.all([
+    db.execute<PageRow>(pageQuery(sql`k.id = ${id}`, 1, true)),
+    adminGroupId(db),
+  ]);
   if (!row) return null;
   const chainOf = await folderChains(db, row.folder_id === null ? [] : [row.folder_id]);
+  const fromElsewhere = row.group_id !== groupId;
   const chain = row.folder_id === null ? [] : chainOf(row.folder_id);
-  const item = { groupId: row.group_id, visibility: row.visibility };
+  const item = { groupId: row.group_id, visibility: row.visibility, type: row.type };
   if (
-    !isShareable(
+    !isShareableInto(
       item,
       chain.map((f) => f.visibility),
       groupId,
+      adminId,
     )
   )
     return null;
@@ -576,9 +588,10 @@ export async function getSharedItem(
     row.type === 'meeting' ? getMeetingRow(db, id) : null,
   ]);
   const fileInfos = fileRows.map(toFileInfo);
-  const folderPath = chain.map((f) => ({ id: f.id, name: f.name }));
+  const folderPath = fromElsewhere ? [] : chain.map((f) => ({ id: f.id, name: f.name }));
   return {
     ...toSummary(row, namesIn(names, row.group_id), folderPath),
+    ...(fromElsewhere ? { folderId: null } : {}),
     chat: null,
     body,
     files: fileInfos,

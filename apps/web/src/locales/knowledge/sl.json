@@ -276,5 +276,10 @@
     "label": "Pogled",
     "list": "Seznam",
     "cards": "Kartice"
+  },
+  "adminGroup": {
+    "badge": "Ekipa eGrant",
+    "shareable": "Deljivo s strankami",
+    "consequence": "Stranke skupin, kjer jo priložite, jo bodo lahko odprle."
   }
 }

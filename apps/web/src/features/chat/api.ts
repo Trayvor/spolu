@@ -149,18 +149,27 @@ export const reactionPeopleQuery = (messageId: string, changeSeq: number) =>
   });
 
 /**
- * What a shared item is read through: a message (a ziadatel in a ticket chat) or, Phase 33 part
- * P5, a ticket whose text links it (`GET /api/tickets/:id/knowledge/:itemId`).
+ * What a shared item is read through: a message (a ziadatel in a ticket chat), Phase 33 part
+ * P5, a ticket whose text links it (`GET /api/tickets/:id/knowledge/:itemId`), or, Phase 34, the
+ * description of a task, project, event or knowledge item that links an admin-group item
+ * (`GET /api/knowledge-links/:kind/:id/:itemId`).
  */
-export type KnowledgeVia = { kind: 'message' | 'ticket'; id: string };
+export type KnowledgeVia = {
+  kind: 'message' | 'ticket' | 'task' | 'project' | 'event' | 'knowledge';
+  id: string;
+};
 
-/** An item attached to a message or a ticket's text, read through it. */
+function sharedKnowledgePath(via: KnowledgeVia, itemId: string): string {
+  if (via.kind === 'message' || via.kind === 'ticket') {
+    return `/${via.kind}s/${enc(via.id)}/knowledge/${enc(itemId)}`;
+  }
+  return `/knowledge-links/${via.kind}/${enc(via.id)}/${enc(itemId)}`;
+}
+
+/** An item attached to a message or a description, read through it. */
 export const sharedKnowledgeQuery = (via: KnowledgeVia, itemId: string) =>
   queryOptions({
     queryKey: ['chat', 'knowledge', via.kind, via.id, itemId],
     queryFn: (): Promise<KnowledgeItemDto> =>
-      apiGet(
-        `/${via.kind === 'message' ? 'messages' : 'tickets'}/${enc(via.id)}/knowledge/${enc(itemId)}`,
-        KnowledgeItemDtoSchema,
-      ),
+      apiGet(sharedKnowledgePath(via, itemId), KnowledgeItemDtoSchema),
   });

@@ -32,6 +32,13 @@ export function isAdminGroupSql(groupId: string | SQL): SQL<boolean> {
   return sql<boolean>`exists (select 1 from ${groups} where ${groups.id} = ${groupId} and ${groups.kind} = 'admin')`;
 }
 
+/** The admin group's id (or null), as an SQL value for other modules' statements. */
+export function adminGroupIdSql(): SQL<string | null> {
+  return sql<
+    string | null
+  >`(select ${groups.id} from ${groups} where ${groups.kind} = 'admin' limit 1)`;
+}
+
 /**
  * Makes sure the admin group exists (the migration inserts it; this keeps a database that lost
  * it working) and returns its id. Idempotent and safe in parallel: the partial unique index

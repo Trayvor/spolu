@@ -141,7 +141,11 @@
       "reminder": "Opomnik",
       "meeting": "Sestanek",
       "chat_file": "Iz klepeta"
-    }
+    },
+    "adminGroup": "Ekipa eGrant",
+    "source": "Prikaži iz",
+    "sourceGroup": "Ta stranka",
+    "adminGroupHint": "Prikazani so le elementi, označeni kot Deljivo s strankami."
   },
   "work": {
     "attach": "Priloži znanje, nalogo ali tiket",

@@ -193,7 +193,11 @@ export function EventDialog({
           editLabel={k('editDescription')}
           error={errors.description}
           errorId={`${uid}-description-error`}
-          knowledge={{ items: linked, onChange: setLinked }}
+          knowledge={{
+            items: linked,
+            onChange: setLinked,
+            subject: event ? { kind: 'event', id: event.id } : null,
+          }}
         />
         <div className={FIELD}>
           <span id={`${uid}-files`} className="text-button font-semibold">

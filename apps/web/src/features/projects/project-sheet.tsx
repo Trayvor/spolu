@@ -179,6 +179,7 @@ export function ProjectSheet({
               body={project.description}
               groupId={project.groupId}
               linked={project.linkedKnowledge}
+              subject={{ kind: 'project', id: project.id }}
               nameOf={nameOf}
               className="text-button"
             />

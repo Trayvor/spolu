@@ -1,11 +1,15 @@
-import { useEffect, useRef, useState } from 'react';
-import { useInfiniteQuery } from '@tanstack/react-query';
+import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { MESSAGE_MAX_KNOWLEDGE, type MessageKnowledge } from '@spolu/shared';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { PanelHeader } from '@/components/ui/panel-header';
 import { SheetDialog, SheetDialogTitle } from '@/components/ui/sheet-dialog';
+import { isAdmin } from '@/features/auth/roles';
+import { useSession } from '@/features/auth/use-session';
+import { groupQuery } from '@/features/groups/api';
+import { AdminGroupBadge } from '@/features/knowledge/admin-group-badge';
 import { groupKnowledgeQuery } from '@/features/knowledge/api';
 import { NoteIcon, SmallFolderIcon } from '@/features/knowledge/icons';
 import { cn } from '@/lib/utils';
@@ -92,8 +96,18 @@ export function KnowledgePickList({
     const timer = setTimeout(() => setQ(text.trim()), SEARCH_DELAY_MS);
     return () => clearTimeout(timer);
   }, [text]);
+  // Phase 34: an admin in a client group also picks from "eGrant tím" (its shareable items).
+  const admin = isAdmin(useSession());
+  const group = useQuery({ ...groupQuery(groupId), enabled: admin }).data;
+  const canSwitch = admin && group !== undefined && group.kind !== 'admin';
+  const [source, setSource] = useState<'group' | 'admin_group'>('group');
+  const fromAdminGroup = canSwitch && source === 'admin_group';
   const query = useInfiniteQuery(
-    groupKnowledgeQuery(groupId, { q: q || undefined, shareable: true }),
+    groupKnowledgeQuery(groupId, {
+      q: q || undefined,
+      shareable: true,
+      ...(fromAdminGroup ? { source: 'admin_group' as const } : {}),
+    }),
   );
   const items = query.data?.pages.flatMap((p) => p.items) ?? [];
   const full = chosen.length >= max;
@@ -111,14 +125,30 @@ export function KnowledgePickList({
                 available: true,
                 type: item.type,
                 title: item.title,
-                folderPath: item.folderPath.map((f) => f.name),
+                // As the server's card: an admin-group item shows its badge and no folders.
+                ...(item.source === 'admin_group' && item.groupId !== groupId
+                  ? { folderPath: [], source: 'admin_group' as const }
+                  : { folderPath: item.folderPath.map((f) => f.name) }),
               },
             ],
     );
 
   return (
     <>
-      <p className="text-micro text-muted-foreground">{t('chat.knowledge.pickerHint')}</p>
+      {canSwitch && (
+        <SourceSwitch
+          value={source}
+          onChange={setSource}
+          labels={{
+            group: t('chat.knowledge.sourceGroup'),
+            admin_group: t('chat.knowledge.adminGroup'),
+          }}
+          label={t('chat.knowledge.source')}
+        />
+      )}
+      <p className="text-micro text-muted-foreground">
+        {fromAdminGroup ? t('chat.knowledge.adminGroupHint') : t('chat.knowledge.pickerHint')}
+      </p>
       <Input
         type="search"
         value={text}
@@ -150,6 +180,12 @@ export function KnowledgePickList({
                 </span>
                 <span className="flex min-w-0 flex-col">
                   <span className="truncate text-button font-semibold">{item.title}</span>
+                  {fromAdminGroup && (
+                    <AdminGroupBadge
+                      label={t('chat.knowledge.adminGroup')}
+                      className="my-0.5 self-start"
+                    />
+                  )}
                   <span className="flex min-w-0 items-center gap-1 text-micro text-muted-foreground">
                     {t(`chat.knowledge.types.${item.type}`)}
                     {item.folderPath.length > 0 && (
@@ -191,5 +227,65 @@ export function KnowledgePickList({
       </ul>
       {full && <p className="text-micro text-muted-foreground">{t(limitKey, { count: max })}</p>}
     </>
+  );
+}
+
+type Source = 'group' | 'admin_group';
+const SOURCES: readonly Source[] = ['group', 'admin_group'];
+
+/**
+ * Phase 34: where the picker lists from, for an admin in a client group: "This client" or
+ * "eGrant tím". Two pills in a track like "Visible to"; arrows move the choice.
+ */
+function SourceSwitch({
+  value,
+  onChange,
+  labels,
+  label,
+}: {
+  value: Source;
+  onChange: (next: Source) => void;
+  labels: Record<Source, string>;
+  label: string;
+}) {
+  const refs = useRef<(HTMLButtonElement | null)[]>([]);
+  const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[event.key];
+    if (!step) return;
+    event.preventDefault();
+    const next = (SOURCES.indexOf(value) + step + SOURCES.length) % SOURCES.length;
+    onChange(SOURCES[next]!);
+    refs.current[next]?.focus();
+  };
+  return (
+    <div
+      role="radiogroup"
+      aria-label={label}
+      onKeyDown={onKeyDown}
+      className="inline-flex max-w-full shrink-0 self-start rounded-full bg-secondary p-1"
+    >
+      {SOURCES.map((option, i) => {
+        const checked = option === value;
+        return (
+          <button
+            key={option}
+            ref={(el) => {
+              refs.current[i] = el;
+            }}
+            type="button"
+            role="radio"
+            aria-checked={checked}
+            tabIndex={checked ? 0 : -1}
+            onClick={() => onChange(option)}
+            className={cn(
+              'h-8 min-w-0 truncate rounded-full px-4 text-tiny font-semibold transition-colors duration-(--duration-fast)',
+              checked ? 'bg-primary text-primary-foreground' : 'text-foreground hover:bg-surface-3',
+            )}
+          >
+            {labels[option]}
+          </button>
+        );
+      })}
+    </div>
   );
 }

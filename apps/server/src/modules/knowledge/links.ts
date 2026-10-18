@@ -1,6 +1,7 @@
 import { and, asc, eq, inArray, isNotNull, sql, type SQL } from 'drizzle-orm';
 import { KNOWLEDGE_LINKS_MAX, type LinkedKnowledge } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
+import { adminGroupIdSql, isAdminGroupSql } from '../groups/admin-group.js';
 import { knowledgeItemIdsOfFile, shareableItemCards, type ItemCard } from './chat-items.js';
 import { knowledgeLinks } from './schema.js';
 
@@ -8,8 +9,9 @@ import { knowledgeLinks } from './schema.js';
  * Knowledge attached to descriptions (Phase 33 part P5, spec §10.3), on the `knowledge_links`
  * table of migration 0038. The owners of the descriptions (tasks, tickets, projects, events,
  * knowledge items) call these inside their writes and DTO builds and never read the table.
- * Only items everyone who reads the description may see are attached: a client group's public,
- * shareable items (`isShareable`, the chat's rule), checked on save and again on display.
+ * Only items everyone who reads the description may see are attached (`isShareableInto`, the
+ * chat's rule: the group's public items, Phase 34's admin-group items marked "Shareable with
+ * clients", anything in the admin group), checked on save and again on display.
  */
 
 export type LinkSubjectKind = 'task' | 'ticket' | 'project' | 'event' | 'knowledge';
@@ -179,10 +181,12 @@ export async function ticketLinksOfFile(
 
 /**
  * The number of items linked to a task that its readers may open, as a correlated subquery for
- * the board cards (one count per card of the page, no extra round trip): the `isShareable` rule
- * in SQL, so the number matches the cards `linkedItemCards` shows in the panel minus the
- * "unavailable" ones. Reads `knowledge_links_task_idx`, then the item by its key and its folder
- * chain by `knowledge_folders` keys. `taskId` and `groupId` are SQL expressions of the task row.
+ * the board cards (one count per card of the page, no extra round trip): the `isShareableInto`
+ * rule in SQL, so the number matches the cards `linkedItemCards` shows in the panel minus the
+ * "unavailable" ones. Into the admin group every linked item counts; elsewhere the item must be
+ * public with every folder public, and of the task's group or (not a chat file) of the admin
+ * group. Reads `knowledge_links_task_idx`, then the item by its key and its folder chain by
+ * `knowledge_folders` keys. `taskId` and `groupId` are SQL expressions of the task row.
  */
 export function linkedCountSql(taskId: SQL, groupId: SQL): SQL<number> {
   return sql<number>`(
@@ -190,16 +194,59 @@ export function linkedCountSql(taskId: SQL, groupId: SQL): SQL<number> {
     from knowledge_links kl
     join knowledge_items ki on ki.id = kl.item_id
     where kl.task_id = ${taskId}
-      and ki.group_id = ${groupId}
-      and ki.visibility = 'public'
-      and not exists (
-        with recursive chain(id, parent_id, visibility) as (
-          select f.id, f.parent_id, f.visibility from knowledge_folders f where f.id = ki.folder_id
-          union all
-          select f.id, f.parent_id, f.visibility
-          from knowledge_folders f join chain c on f.id = c.parent_id
+      and (
+        ${isAdminGroupSql(groupId)}
+        or (
+          ki.visibility = 'public'
+          and (
+            ki.group_id = ${groupId}
+            or (ki.group_id = ${adminGroupIdSql()} and ki.type <> 'chat_file')
+          )
+          and not exists (
+            with recursive chain(id, parent_id, visibility) as (
+              select f.id, f.parent_id, f.visibility from knowledge_folders f where f.id = ki.folder_id
+              union all
+              select f.id, f.parent_id, f.visibility
+              from knowledge_folders f join chain c on f.id = c.parent_id
+            )
+            select 1 from chain where visibility <> 'public'
+          )
         )
-        select 1 from chain where visibility <> 'public'
       )
   )`;
+}
+
+/**
+ * Phase 34: the tasks, projects, events and knowledge items whose description links an item
+ * this file belongs to, with that item: the file read rule `fileOfLinkedKnowledge` checks each
+ * subject's group and the item (tickets have their own rule, for the žiadateľ).
+ */
+export async function subjectLinksOfFile(
+  db: Db,
+  fileId: string,
+): Promise<{ subject: LinkSubject; itemId: string }[]> {
+  const itemIds = await knowledgeItemIdsOfFile(db, fileId);
+  if (itemIds.length === 0) return [];
+  const rows = await db
+    .select({
+      itemId: knowledgeLinks.itemId,
+      taskId: knowledgeLinks.taskId,
+      projectId: knowledgeLinks.projectId,
+      eventId: knowledgeLinks.eventId,
+      knowledgeItemId: knowledgeLinks.knowledgeItemId,
+    })
+    .from(knowledgeLinks)
+    .where(inArray(knowledgeLinks.itemId, itemIds));
+  return rows.flatMap((r) => {
+    const subject: LinkSubject | null = r.taskId
+      ? { kind: 'task', id: r.taskId }
+      : r.projectId
+        ? { kind: 'project', id: r.projectId }
+        : r.eventId
+          ? { kind: 'event', id: r.eventId }
+          : r.knowledgeItemId
+            ? { kind: 'knowledge', id: r.knowledgeItemId }
+            : null;
+    return subject ? [{ subject, itemId: r.itemId }] : [];
+  });
 }

@@ -112,6 +112,14 @@ Phase 17 (the tab, the four types, visibility, the global list; reminders from `
 - The meeting's AI summary paragraph is edited in the same editor (AI and voice, no knowledge) and shown as Markdown; decisions and open questions stay one per line.
 - Making an item admins-only (or deleting it) turns its cards in every description into "Item unavailable". See [projects.md](projects.md#description-editor-part-p5).
 
+## Knowledge of the admin group (Phase 34, part P34-C)
+
+- In "eGrant tím" the visibility control reads **Only eGrant** (the default for a new item there, and for files sent in its chat) and **Shareable with clients**; choosing the second says "Clients of the groups where you attach it will be able to open it." The stored values stay `admins` / `public`, so folders, files and reminders follow the usual rules. Items written there before this part all start as Only eGrant.
+- Only a Shareable with clients item (in folders that are not Only eGrant) can be attached in a client's chat or description. Admins find it in the picker of a client group under the source switch **eGrant tím** ("Only items marked Shareable with clients are listed."); clients get no switch. Making an item shareable is done in the item's own dialog, never from the picker.
+- In the client's place the card carries the **eGrant tím** badge (the egrant mark) and no folder names; the client opens it read-only through that message or description (no browsing the admin group, no edits, comments or reminders) and downloads its files. Switching it back to Only eGrant, moving it into an Only eGrant folder or deleting it turns every card into "Item unavailable".
+- Admins attach any item of any client in the admin group, also an Only eGrant one.
+- The global list (`/knowledge`) shows the admin group's items under its "eGrant tím" filter option, each with the badge; the read-only view shows the badge too.
+
 ## Items attached to chat messages (Phase 28)
 
 A group's items can travel in its chats (group chat, task and ticket chats): the chat's book button opens a search over the items everyone in the group can see (`GET /api/groups/:id/knowledge?shareable=1`: public items; an item inside an admins-only folder is admins-only itself) and attaches up to 5 to a message. The card in the chat opens the item with the reader's own rights. Only items visible to everyone in the group can be attached, and the check runs again on every display: an item made admins-only, moved into an admins-only folder or to another client, or deleted is shown as unavailable. A žiadateľ, who never sees the knowledge base, opens an item attached in their ticket chat read-only through that message (no reminders, no folder browsing, no edits) and can download its files. See [chat.md](chat.md) and the [design](../superpowers/specs/2026-10-17-phase-28-reactions-and-attachments-design.md).

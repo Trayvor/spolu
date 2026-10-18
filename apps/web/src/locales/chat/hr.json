@@ -138,7 +138,11 @@
       "reminder": "Podsjetnik",
       "meeting": "Sastanak",
       "chat_file": "Iz chata"
-    }
+    },
+    "adminGroup": "eGrant tim",
+    "source": "Prikaži iz",
+    "sourceGroup": "Ovaj klijent",
+    "adminGroupHint": "Prikazane su samo stavke označene kao Dijeljivo s klijentima."
   },
   "work": {
     "attach": "Priloži znanje, zadatak ili tiket",

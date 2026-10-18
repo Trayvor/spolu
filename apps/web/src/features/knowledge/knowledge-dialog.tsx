@@ -16,6 +16,7 @@ import { PanelNotice } from '@/components/ui/panel-notice';
 import { SheetDialog, SheetDialogTitle } from '@/components/ui/sheet-dialog';
 import { ApiError } from '@/lib/api';
 import { useSession } from '@/features/auth/use-session';
+import { groupQuery } from '@/features/groups/api';
 import { useGroupPeople } from '@/features/groups/use-group-people';
 import {
   convertKnowledgeToFile,
@@ -124,6 +125,21 @@ export function KnowledgeDialog({
     emptyKnowledgeValue(target.mode === 'create' ? target.type : undefined),
   );
   const [value, setValue] = useState<KnowledgeFormValue>(initial);
+  // Phase 34: the admin group's items read "Only eGrant" / "Shareable with clients"; a new one
+  // starts "Only eGrant" (the group comes from the cache the group screen already filled).
+  const creatingAsAdmin = target.mode === 'create' && me !== null && me.role !== 'client';
+  const createdGroup = useQuery({
+    ...groupQuery(groupId),
+    enabled: creatingAsAdmin && groupId !== '',
+  }).data;
+  const adminGroup =
+    target.mode === 'create' ? createdGroup?.kind === 'admin' : item?.source === 'admin_group';
+  const [adminDefault, setAdminDefault] = useState(false);
+  if (target.mode === 'create' && adminGroup && !adminDefault) {
+    setAdminDefault(true);
+    setInitial((v) => ({ ...v, visibility: 'admins' }));
+    setValue((v) => ({ ...v, visibility: 'admins' }));
+  }
   const [files, setFiles] = useState<FileInfo[]>([]);
   const [errors, setErrors] = useState<KnowledgeFormErrors>({});
   const [uploading, setUploading] = useState(false);
@@ -183,13 +199,17 @@ export function KnowledgeDialog({
     setEditing(true);
   }
 
-  /** A chat file in the file form: its file fixed, the title its name, the top level, public. */
+  /**
+   * A chat file in the file form: its file fixed, the title its name, the top level, public
+   * (in the admin group "Only eGrant", Phase 34).
+   */
   function startConvert(source: KnowledgeItemDto) {
     startEdit(source);
     const next = {
       ...emptyKnowledgeValue('file'),
       title: source.title,
       fileIds: source.files.map((f) => f.id),
+      ...(source.source === 'admin_group' ? { visibility: 'admins' as const } : {}),
     };
     setInitial(next);
     setValue(next);
@@ -383,6 +403,7 @@ export function KnowledgeDialog({
               canChooseVisibility={canChooseVisibility}
               visibilityLocked={item?.visibilityLocked ?? false}
               inAdminsFolder={inAdminsFolder}
+              adminGroup={adminGroup}
               authorId={item?.createdBy.id ?? me?.id ?? ''}
               autoFocusTitle={target.mode === 'create'}
               onUploadingChange={setUploading}

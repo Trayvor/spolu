@@ -23,6 +23,7 @@ import { createRateLimiter } from './infra/http/rate-limit.js';
 import { knowledgeRoutes } from './modules/knowledge/routes.js';
 import { attachMeetingsRealtime } from './modules/knowledge/meeting-realtime.js';
 import { meetingRoutes } from './modules/knowledge/meeting-routes.js';
+import { knowledgeLinkRoutes } from './modules/knowledge/link-routes.js';
 import { notificationsRoutes } from './modules/notifications/routes.js';
 import { projectsRoutes } from './modules/projects/routes.js';
 import { attachRemindersRealtime } from './modules/reminders/realtime.js';
@@ -104,6 +105,8 @@ export async function buildApp(
   const allowKnowledgeWrite = createRateLimiter({ windowMs: 60_000, max: 120 });
   await app.register(knowledgeRoutes, { prefix: '/api', deps, allowWrite: allowKnowledgeWrite });
   await app.register(meetingRoutes, { prefix: '/api', deps });
+  // Phase 34: shared admin-group items read through the description that links them.
+  await app.register(knowledgeLinkRoutes, { prefix: '/api', deps });
   // The reminder endpoints are registered per subject: register the subjects first.
   registerKnowledgeReminderSubject();
   registerTaskReminderSubject();
