@@ -20,3 +20,4 @@ Measured on the base image (uncompressed layer size):
 - The image grows by the ffmpeg binary (a 104 MB layer). Measured 2026-10-17 on the slim runtime image (PR #57) with ffmpeg: 535 MB on disk and 133 MB compressed content, against 380 MB and 82.8 MB without it (see [performance](../architecture/performance.md), "Docker image"). Security updates of ffmpeg come by bumping the pinned tag, not by `apt`; the tag is reviewed with the Node base image.
 - A transcode uses one CPU for a few minutes per hour of recording; the job queue runs one at a time.
 - Without ffmpeg (a dev machine without it), uploads end as "failed"; the rest of the app is unaffected. Tests use a fake `MediaTools`; the real ffmpeg test runs only where ffmpeg is installed.
+- 2026-10-18: the image is now pinned by digest as well ([ADR 0037](0037-supply-chain-policy.md)).

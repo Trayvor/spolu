@@ -6,6 +6,7 @@ import {
   type EgrantManagerResponse,
 } from '@spolu/shared';
 import type { AppDeps } from '../../deps.js';
+import { egrantWebhookKey } from '../../infra/config/config.js';
 import { sendEmailLater } from '../../infra/email/index.js';
 import { bearerKeyMatches } from '../../infra/http/bearer-key.js';
 import { createRateLimiter } from '../../infra/http/rate-limit.js';
@@ -36,8 +37,8 @@ const refusals = {
 /**
  * The eGrant managers webhook: eGrant adds or removes a manager of an organisation, who is the
  * client's own person, so Help adds or removes a client member of that instance's client group
- * (`docs/integrations/egrant-managers.md`). The shared key of the ticket intake is the
- * credential; there is no session. It never touches admins or `group_managers`.
+ * (`docs/integrations/egrant-managers.md`). EGRANT_MANAGERS_API_KEY (or, unset, the
+ * ticket intake's shared key) is the credential; there is no session. It never touches admins or `group_managers`.
  */
 export const egrantManagersRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (
   app,
@@ -47,10 +48,12 @@ export const egrantManagersRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async
   const allow = createRateLimiter({ windowMs: 60_000, max: PER_MINUTE });
 
   // Checked before the body is read. The limit counts every call, so a wrong key is limited too.
+  // EGRANT_MANAGERS_API_KEY, or the ticket intake's TICKETS_API_KEY when it is unset.
+  const key = egrantWebhookKey(config, 'managers');
   const gate = async (request: FastifyRequest, reply: FastifyReply) => {
-    if (!config.ticketsApiKey) return send(reply, 503, ErrorCodes.intakeDisabled);
+    if (!key) return send(reply, 503, ErrorCodes.intakeDisabled);
     if (!allow(request.ip)) return send(reply, 429, ErrorCodes.rateLimited);
-    if (!bearerKeyMatches(request.headers.authorization, config.ticketsApiKey)) {
+    if (!bearerKeyMatches(request.headers.authorization, key)) {
       return send(reply, 401, ErrorCodes.unauthorized);
     }
   };

@@ -7,7 +7,8 @@
 # Logic lives in scripts/ci.sh, scripts/build-image.sh and scripts/deploy.sh; this file only
 # prepares the runner and passes settings in. Settings live in the "test" GitHub environment:
 #   secrets TEST_SSH_KEY, TEST_ENV_FILE, optional TICKETS_API_KEY; variables DEPLOY_HOST, DEPLOY_USER, DOMAIN, IMAGE,
-#   optional DEPLOY_KNOWN_HOSTS and REDIRECT_DOMAINS (old domains redirected to DOMAIN). See docs/runbooks/deploy.md.
+#   DEPLOY_KNOWN_HOSTS (required: deploy.sh refuses without it),
+#   optional REDIRECT_DOMAINS (old domains redirected to DOMAIN). See docs/runbooks/deploy.md.
 name: Deploy test
 
 on:

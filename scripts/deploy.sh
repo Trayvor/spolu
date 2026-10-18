@@ -8,6 +8,8 @@
 #   DEPLOY_USER      SSH user on the server (the "deploy" user from server-setup.sh)
 #   DEPLOY_SSH_KEY   path to the private SSH key of that user
 #   DEPLOY_ENV_FILE  path to the env file for the server (see deploy/test.env.example)
+#   DEPLOY_KNOWN_HOSTS  known_hosts line(s) for the server (ssh-keyscan <host>); pins its host
+#                    key. The deploy refuses to start without it (no trust on first use).
 #   IMAGE            image repository, e.g. ghcr.io/trayvor/spolu
 #   DOMAIN           public domain of the environment: the health check, and DOMAIN= and
 #                    PUBLIC_URL=https://<domain> in the server's .env (they override the file)
@@ -17,8 +19,6 @@
 #                    redirects.caddy). Written to the server's .env as REDIRECT_DOMAINS=.
 # Env (optional):
 #   DEPLOY_PORT         SSH port (default 22)
-#   DEPLOY_KNOWN_HOSTS  known_hosts line(s) for the server; pins its host key. Without it the
-#                       server's host key is NOT verified (a warning is printed). Set it.
 #   REGISTRY_USER, REGISTRY_TOKEN  registry login on the server before pulling (private images);
 #                       the server logs out again right after the pull.
 #   IMAGE_PRELOADED     "1": $IMAGE:<tag> is already on the server (scripts/deploy-local.sh streams
@@ -37,7 +37,7 @@ env_name="$1"
 tag="$2"
 [[ "$env_name" =~ ^[a-z0-9-]+$ ]] || die "env must be lowercase letters, digits or dashes: $env_name"
 [[ "$tag" =~ ^[A-Za-z0-9._-]+$ ]] || die "tag must be letters, digits, dots, dashes or underscores: $tag"
-require_env DEPLOY_HOST DEPLOY_USER DEPLOY_SSH_KEY DEPLOY_ENV_FILE IMAGE DOMAIN
+require_env DEPLOY_HOST DEPLOY_USER DEPLOY_SSH_KEY DEPLOY_ENV_FILE DEPLOY_KNOWN_HOSTS IMAGE DOMAIN
 require_cmd ssh scp curl
 [[ -f "$DEPLOY_SSH_KEY" ]] || die "DEPLOY_SSH_KEY file not found: $DEPLOY_SSH_KEY"
 [[ -f "$DEPLOY_ENV_FILE" ]] || die "DEPLOY_ENV_FILE file not found: $DEPLOY_ENV_FILE"

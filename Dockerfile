@@ -1,12 +1,18 @@
 # syntax=docker/dockerfile:1
 # Production image: build the server and web, then ship only the node binary, the server's
 # production dependencies (without type definitions, source maps and docs) and the built code.
-ARG NODE_IMAGE=node:24-bookworm-slim
+#
+# Every base image is pinned by digest (ADR 0037): a tag can be pushed again, a digest cannot.
+# The tag in front of the digest is only for people; Docker uses the digest. To bump one, run
+# `docker buildx imagetools inspect <image>:<tag>` and copy the "Digest:" line (the index digest,
+# which covers both arm64 and amd64); see docs/runbooks/deploy.md, "Image digests".
+ARG NODE_IMAGE=node:24.22.0-bookworm-slim@sha256:a5f4366e834695d5f363b920c104953a535d3a9864d1bdf74566a0ebe01daee5
 # The runtime base: the Debian release NODE_IMAGE is built on, without npm, corepack and yarn.
-ARG RUNTIME_IMAGE=debian:bookworm-slim
+ARG RUNTIME_IMAGE=debian:bookworm-slim@sha256:7c7b2c966bc9ee8cedfeef67e0e279108992c77681fa595db4a9d65c06ccc587
 # A static ffmpeg build for meeting recordings (Phase 30, ADR 0023): one binary, no shared libs,
-# instead of Debian's ffmpeg package through RUNTIME_PACKAGES (+406 MB).
-ARG FFMPEG_IMAGE=mwader/static-ffmpeg:7.1.1
+# instead of Debian's ffmpeg package through RUNTIME_PACKAGES (+406 MB). A third-party image
+# (github.com/wader/static-ffmpeg), so it is pinned by digest like the others (ADR 0037).
+ARG FFMPEG_IMAGE=mwader/static-ffmpeg:7.1.1@sha256:11a44711684c0b9f754c047dcd64235b8b52deab251bd0e0a86f22faa160749c
 
 FROM ${FFMPEG_IMAGE} AS ffmpeg
 
@@ -15,8 +21,9 @@ FROM ${FFMPEG_IMAGE} AS ffmpeg
 FROM ${NODE_IMAGE} AS deps
 WORKDIR /repo
 COPY package.json ./
-# pnpm version comes from "packageManager" in the root package.json.
-RUN npm install -g "pnpm@$(node -p "require('./package.json').packageManager.split('@')[1]")"
+# pnpm version comes from "packageManager" in the root package.json. No install scripts: the pnpm
+# package needs none.
+RUN npm install -g --ignore-scripts "pnpm@$(node -p "require('./package.json').packageManager.split('@')[1]")"
 COPY pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store pnpm fetch
 
@@ -26,11 +33,13 @@ FROM deps AS prod-deps
 COPY apps/server/package.json apps/server/
 COPY apps/web/package.json apps/web/
 COPY packages/shared/package.json packages/shared/
-# Not offline: the deploy checks the lockfile's packages against pnpm's supply-chain policy,
-# which reads registry metadata (kept in the second cache).
+# Not offline: the deploy checks the lockfile's packages against pnpm's supply-chain policy
+# (pnpm-workspace.yaml, ADR 0037), which reads registry metadata (kept in the second cache).
+# Exactly the lockfile, and no install scripts: the server's production dependencies need none
+# (esbuild, the only allowed build, is a build-time tool).
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
     --mount=type=cache,target=/root/.cache/pnpm \
-    pnpm --filter @spolu/server deploy --prod /out
+    pnpm --filter @spolu/server deploy --prod --frozen-lockfile --ignore-scripts /out
 # Files node never loads at runtime (about 40 MB): type definitions, source maps, docs.
 RUN find /out/node_modules -type f \( -name '*.d.ts' -o -name '*.d.mts' -o -name '*.d.cts' \
       -o -name '*.map' -o -iname '*.md' -o -iname '*.markdown' \) -delete
@@ -38,6 +47,7 @@ RUN find /out/node_modules -type f \( -name '*.d.ts' -o -name '*.d.mts' -o -name
 # Stage 3: install everything and build the server and web.
 FROM deps AS build
 COPY . .
+# Install scripts run only for allowBuilds (esbuild); strictDepBuilds fails on any other one.
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store pnpm install --frozen-lockfile --offline
 RUN pnpm -r build
 

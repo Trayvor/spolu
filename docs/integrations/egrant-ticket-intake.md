@@ -79,7 +79,7 @@ Authorization: Bearer <key>
 Content-Type: application/json
 ```
 
-The eGrant team gives you the key; on the Help server it is the environment variable `TICKETS_API_KEY` (at least 16 characters). Keep it in your server's secret store. To rotate it, the Help admin sets a new value and restarts Help; requests with the old key then answer `401`. When Help has no key configured, the intake is switched off and answers `503`.
+The eGrant team gives you the key; on the Help server it is the environment variable `TICKETS_API_KEY` (at least 16 characters). Keep it in your server's secret store. To rotate it, the Help admin sets a new value and restarts Help; requests with the old key then answer `401`. When Help has no key configured, the intake is switched off and answers `503`. Every request counts toward the rate limit before the key is checked, so wrong keys are limited too. The managers and project webhooks may have keys of their own (`EGRANT_MANAGERS_API_KEY`, `EGRANT_PROJECTS_API_KEY`); unset, they use this one.
 
 ## The JSON body
 
@@ -176,7 +176,7 @@ The file in the example is a real 1×1 pixel PNG; send real files the same way. 
 | `401` | `{ "error": "unauthorized" }` | missing or wrong key. Do not retry; check the configuration. |
 | `413` | `{ "error": "file_too_large", "fields": ["files[1].content_base64"] }` | a file is over 10 MiB decoded (that file is named), or the files are over 20 MiB together (`["files"]`). Nothing was stored. Send smaller files; do not retry unchanged. |
 | `413` | (no fixed body) | the whole body is over 28 MiB. Do not retry unchanged. |
-| `429` | `{ "error": "rate_limited" }` | more than 60 requests a minute from one IP address. Retry later. |
+| `429` | `{ "error": "rate_limited" }` | more than 60 requests a minute from one IP address (every request counts, also one with a wrong key). Retry later. |
 | `503` | `{ "error": "intake_disabled" }` | the intake is switched off on this Help server. Retry later; tell the eGrant team if it lasts. |
 | other `5xx`, timeout, network error | | retry |
 
@@ -205,7 +205,7 @@ Help groups each client's tickets into **projects**, and shows each project's **
 
 ### The project call
 
-`PUT https://help.egrant.sk/api/egrant/projects/<project id>`, JSON body, the same `Authorization: Bearer <key>` as the intake. Call it whenever you decide: when a project is created, when it or its events change, or periodically with the whole project. `<project id>` is your stable id of the project (1 to 100 characters, URL-encoded).
+`PUT https://help.egrant.sk/api/egrant/projects/<project id>`, JSON body, `Authorization: Bearer <key>`: the intake's key, or `EGRANT_PROJECTS_API_KEY` when the Help admin sets one for this webhook. Call it whenever you decide: when a project is created, when it or its events change, or periodically with the whole project. `<project id>` is your stable id of the project (1 to 100 characters, URL-encoded).
 
 | field | meaning | rules |
 |---|---|---|

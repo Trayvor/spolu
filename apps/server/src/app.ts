@@ -21,6 +21,7 @@ import { groupsRoutes } from './modules/groups/routes.js';
 import { egrantManagersRoutes } from './modules/groups/egrant-managers-routes.js';
 import { registerKnowledgeChatFiles } from './modules/knowledge/chat-files.js';
 import { registerKnowledgeReminderSubject } from './modules/knowledge/reminder-subject.js';
+import { registerErrorHandler } from './infra/http/error-handler.js';
 import { createRateLimiter } from './infra/http/rate-limit.js';
 import { knowledgeRoutes } from './modules/knowledge/routes.js';
 import { attachMeetingsRealtime } from './modules/knowledge/meeting-realtime.js';
@@ -88,6 +89,8 @@ export async function buildApp(
   });
 
   app.decorateRequest('user', null);
+  // 5xx answers carry no internals (error messages can hold SQL); the log keeps them.
+  registerErrorHandler(app);
   registerCsrfGuard(app, config);
   // An in-process MCP call reaches only an exact allowlist route (ADR 0033).
   registerMcpRouteGuard(app);

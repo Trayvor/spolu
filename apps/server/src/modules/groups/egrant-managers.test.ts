@@ -114,6 +114,28 @@ describe('eGrant managers webhook (a client person of the client group)', () => 
       }
     });
 
+    it('EGRANT_MANAGERS_API_KEY, when set, replaces the shared ticket key', async () => {
+      const own = 'own-egrant-managers-key-0123';
+      const app = await buildTestApp({
+        config: { ticketsApiKey: KEY, egrantManagersApiKey: own },
+      });
+      try {
+        const put = (key: string) =>
+          app.app.inject({
+            method: 'PUT',
+            url: URL_PATH,
+            headers: { authorization: `Bearer ${key}` },
+            payload: { instance_url: 'https://unknown.egrant.sk', email: 'a@b.sk', active: true },
+          });
+        expect((await put(KEY)).statusCode).toBe(401);
+        // Past the key: the instance is unknown.
+        expect((await put(own)).statusCode).toBe(404);
+      } finally {
+        await app.app.close();
+        await app.close();
+      }
+    });
+
     it('checks the key before the body: a broken or oversized body without the key is 401', async () => {
       expect((await hook('{not json', null)).statusCode).toBe(401);
       expect((await hook({ junk: 'x'.repeat(64 * 1024) }, null)).statusCode).toBe(401);

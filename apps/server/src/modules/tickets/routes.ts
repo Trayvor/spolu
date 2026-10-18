@@ -1,4 +1,3 @@
-import { timingSafeEqual } from 'node:crypto';
 import type { FastifyBaseLogger, FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify';
 import {
   base64DecodedSize,
@@ -21,6 +20,7 @@ import {
 } from '@spolu/shared';
 import type { AppDeps } from '../../deps.js';
 import { sendEmailLater } from '../../infra/email/index.js';
+import { bearerKeyMatches } from '../../infra/http/bearer-key.js';
 import { createRateLimiter } from '../../infra/http/rate-limit.js';
 import { requireAdmin, requireUser } from '../auth/session.js';
 import { TICKET_LINK_EMAIL_JOB_OPTIONS, ticketEmailUrl } from '../auth/ticket-link.js';
@@ -123,13 +123,6 @@ function decodeFiles(
   return fields.length > 0 ? { ok: false, fields } : { ok: true, files: decoded };
 }
 
-/** Constant-time comparison of the Bearer key. */
-function keyMatches(header: string | undefined, key: string): boolean {
-  const given = Buffer.from(header?.startsWith('Bearer ') ? header.slice(7) : '');
-  const wanted = Buffer.from(key);
-  return given.length === wanted.length && timingSafeEqual(given, wanted);
-}
-
 /** Tickets (Phase 21): the intake API for eGrant, manual creation, lists, edits, riešitelia and watching. */
 export const ticketsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { deps }) => {
   const { db, config, jobs } = deps;
@@ -180,13 +173,14 @@ export const ticketsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, 
   }
 
   // ---- eGrant intake: the shared key is the credential, no session -------------------------
-  // The key and the rate limit are checked before the body (up to 28 MiB) is read.
+  // The rate limit and the key are checked before the body (up to 28 MiB) is read. The limit
+  // comes first and counts every call, so wrong keys are limited too (as on the managers webhook).
   const intakeGate = async (request: FastifyRequest, reply: FastifyReply) => {
     if (!config.ticketsApiKey) return send(reply, 503, ErrorCodes.intakeDisabled);
-    if (!keyMatches(request.headers.authorization, config.ticketsApiKey)) {
+    if (!allowIntake(request.ip)) return send(reply, 429, ErrorCodes.rateLimited);
+    if (!bearerKeyMatches(request.headers.authorization, config.ticketsApiKey)) {
       return send(reply, 401, ErrorCodes.unauthorized);
     }
-    if (!allowIntake(request.ip)) return send(reply, 429, ErrorCodes.rateLimited);
   };
 
   app.post(

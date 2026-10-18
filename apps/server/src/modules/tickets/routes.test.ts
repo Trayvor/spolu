@@ -128,6 +128,16 @@ describe('tickets API', () => {
       expect((await intake(body, KEY, from)).statusCode).toBe(429);
     });
 
+    it('wrong keys count toward the limit too: the limit is checked before the key', async () => {
+      const from = '10.9.9.2';
+      const wrong = 'not-the-key-0123456789';
+      for (let i = 0; i < 60; i++) {
+        expect((await intake({ subject: 'x' }, wrong, from)).statusCode).toBe(401);
+      }
+      expect((await intake({ subject: 'x' }, wrong, from)).statusCode).toBe(429);
+      expect((await intake({ subject: 'x' }, KEY, from)).statusCode).toBe(429);
+    });
+
     it('matches the instance link, makes the requester a ziadatel and emails them a login link', async () => {
       const g = await group();
       const manager = await admin();
