@@ -148,9 +148,9 @@ test.describe.serial('push and email delivery', () => {
     });
     expect(reset.status()).toBe(204);
 
-    // The settings page, not the chat: an open chat would mark the messages read.
+    // The notification settings, not the chat: an open chat would mark the messages read.
     const client = await clientContext.newPage();
-    await client.goto('/settings');
+    await client.goto('/settings/notifications');
     // Chat on "E-mail" in the notification groups (the e2e server has no VAPID key, so the push
     // choices are disabled in the page; the fake sender still records the API's subscriptions).
     const chat = client.getByRole('combobox', { name: 'Chat' });
