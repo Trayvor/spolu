@@ -19,6 +19,8 @@ export type AllowedRoute = {
 };
 
 export const ALLOWED_ROUTES: readonly AllowedRoute[] = [
+  // The global search (2026-10-18): finance is never in it.
+  { method: 'GET', path: '/api/search' },
   // People and groups
   { method: 'GET', path: '/api/groups' },
   { method: 'GET', path: '/api/groups/:id' },

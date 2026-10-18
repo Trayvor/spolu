@@ -16,6 +16,7 @@
     "myGroups": "I miei gruppi",
     "myTickets": "I miei ticket",
     "bulkEmail": "Email massive",
+    "search": "Cerca",
     "menu": "Menu",
     "menuCurrent": "Menu: {{name}}",
     "offline": "Sei offline. Le modifiche non vengono salvate finché non ti riconnetti.",

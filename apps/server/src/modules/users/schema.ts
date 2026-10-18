@@ -10,6 +10,7 @@ import {
   timestamp,
 } from 'drizzle-orm/pg-core';
 import type { ChannelMap, GroupMode, Role, UserLanguage } from '@spolu/shared';
+import { foldSql } from '../../infra/db/fold.js';
 import { languageIn } from '../../infra/db/language-check.js';
 
 // Shape required by better-auth (field names are its camelCase names), plus `role`, `disabledAt`
@@ -44,6 +45,11 @@ export const user = pgTable(
   },
   (t) => [
     index('user_role_idx').on(t.role),
+    // The global search's people (2026-10-18): the folded name and the email, trigram.
+    index('user_search_fold_trgm_idx').using(
+      'gin',
+      sql`${foldSql(sql`${t.name} || ' ' || ${t.email}`)} gin_trgm_ops`,
+    ),
     check('user_role_check', sql`${t.role} in ('superadmin', 'admin', 'client')`),
     check('user_email_lower_check', sql`${t.email} = lower(${t.email})`),
     check(

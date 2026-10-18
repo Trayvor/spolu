@@ -1,4 +1,5 @@
 /** Search text helpers (Phase 17), shared by the knowledge base and the finance documents (Phase 32). */
+import { sql, type AnyColumn, type SQL } from 'drizzle-orm';
 import { plainExcerpt } from '@spolu/shared';
 
 const MAX_TERMS = 5;
@@ -39,4 +40,45 @@ export function buildSearchText(input: {
   return normalizeSearch(
     [input.title, body, input.url ?? '', ...input.fileNames, ...(input.extra ?? [])].join(' '),
   );
+}
+
+export { foldSql } from '../db/fold.js';
+
+/** A global search query, prepared once: its terms, its whole normalized text, a ticket number. */
+export type SearchText = {
+  /** The normalized terms (2+ characters, the first 5); every one must match. */
+  terms: string[];
+  /** The whole query normalized, for the rank. */
+  key: string;
+  /** `123` or `#123`: a ticket number. */
+  number: number | null;
+};
+
+export function prepareSearch(q: string): SearchText {
+  const number = /^#?(\d{1,9})$/.exec(q.trim());
+  return {
+    terms: searchTerms(q),
+    key: normalizeSearch(q),
+    number: number ? Number(number[1]) : null,
+  };
+}
+
+/** Every term is a fragment of `folded` (an already folded, trigram-indexed expression). */
+export function matchesAllSql(folded: SQL | AnyColumn, terms: string[]): SQL {
+  if (terms.length === 0) return sql`false`;
+  return sql.join(
+    terms.map((term) => sql`${folded} like ${`%${escapeLike(term)}%`} escape '\\'`),
+    sql` and `,
+  );
+}
+
+/**
+ * The rank of a hit by its folded name: 0 the whole query, 1 it starts with the query, 2 a word
+ * starts with it, 3 anything else. Lower is better.
+ */
+export function rankSql(folded: SQL | AnyColumn, key: string): SQL<number> {
+  const like = escapeLike(key);
+  return sql<number>`(case when ${folded} = ${key} then 0
+    when ${folded} like ${`${like}%`} escape '\\' then 1
+    when ${folded} like ${`% ${like}%`} escape '\\' then 2 else 3 end)`;
 }

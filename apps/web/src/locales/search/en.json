@@ -1,0 +1,30 @@
+{
+  "title": "Search",
+  "placeholder": "Search for a group, ticket, task…",
+  "cancel": "Cancel",
+  "loading": "Searching…",
+  "tooShort": "Type at least 2 characters.",
+  "empty": "Nothing found for “{{q}}”.",
+  "error": "The search failed. Try again.",
+  "rateLimited": "Too many searches at once. Wait a moment.",
+  "done": "done",
+  "resolved": "resolved",
+  "sections": {
+    "recent": "Recently opened",
+    "actions": "Go to",
+    "groups": "Groups",
+    "tickets": "Tickets",
+    "tasks": "Tasks",
+    "knowledge": "Knowledge",
+    "projects": "Projects and events",
+    "people": "People"
+  },
+  "actions": {
+    "newTask": "New task in this group"
+  },
+  "keys": {
+    "move": "select",
+    "open": "open",
+    "close": "close"
+  }
+}
