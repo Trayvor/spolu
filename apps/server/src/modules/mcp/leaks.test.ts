@@ -1,32 +1,45 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import type { FileInfo } from '@spolu/shared';
+import type { FileInfo, SessionUser } from '@spolu/shared';
 import { buildTestApp } from '../../../test/test-app.js';
 import { loginAs } from '../../../test/login.js';
 import { callTool, mcpRequest, mcpToken } from '../../../test/mcp.js';
 import { insertTask } from '../../../test/tasks.js';
 import { INTERNAL_CALL_HEADER } from '../auth/internal-calls.js';
+import { addMembership } from '../groups/memberships.js';
 import { createGroup } from '../groups/service.js';
-import { addAdmin, deactivateUser, setFinanceAccess } from '../users/service.js';
+import {
+  addAdmin,
+  createUnverifiedClient,
+  deactivateUser,
+  setFinanceAccess,
+} from '../users/service.js';
 import { ALLOWED_ROUTES, isAllowedRoute } from './allowlist.js';
 import { createApiCaller, RouteNotAllowedError } from './call.js';
 import { ALL_TOOLS } from './tools/index.js';
 
 /**
- * The finance rule of MCP (spec §2 #5–6): documents only, read only, without money, and never
- * any other finance data, for any role; plus the allowlist and the internal-call header.
+ * The finance rule of MCP (owner decision 2026-10-18, spec §2 #5–6): every finance entity, read
+ * and write, for finance holders only; a non-finance admin, a client and a žiadateľ never get
+ * finance data; a client's finance answers hold no other client's data. Plus the allowlist and
+ * the internal-call header.
  */
 type TestApp = Awaited<ReturnType<typeof buildTestApp>>;
 
-/** Keys that carry money or time; none may appear in any MCP answer. */
+/** Keys that carry money or time; none may appear in an answer to someone without the right. */
 const FINANCE_KEYS =
   /"(amount|amountMinor|currency|rateMinor|rate|rates|cost|costMinor|minutes|askTime|timeRequests|timeRequestCount|coveredByTasks|paid|toBePaid|balance)"\s*:/;
 
-const FINANCE_ALLOWED = [
-  'GET /api/groups/:id/finance/items',
-  'GET /api/groups/:id/finance/folders',
-  'GET /api/finance/items/:id',
-];
+/** A path of finance or time data: every allowlist entry matching it must be marked `finance`. */
+const FINANCE_PATH = /\/finance(\/|$)|\/time(\/|$)/;
+
+const userOf = (role: SessionUser['role'], finance: boolean): SessionUser => ({
+  id: 'x',
+  email: 'x@example.com',
+  name: 'X',
+  role,
+  finance,
+});
 
 describe('MCP allowlist', () => {
   let test: TestApp;
@@ -43,25 +56,20 @@ describe('MCP allowlist', () => {
       expect({
         route,
         exists: test.app.hasRoute({ method: route.method, url: route.path }),
-      }).toEqual({
-        route,
-        exists: true,
-      });
+      }).toEqual({ route, exists: true });
     }
   });
 
-  it('its finance entries are exactly the three document reads', () => {
-    const finance = ALLOWED_ROUTES.filter((r) => r.path.includes('finance')).map(
-      (r) => `${r.method} ${r.path}`,
-    );
-    expect(finance.sort()).toEqual([...FINANCE_ALLOWED].sort());
+  it('every finance and time route is marked finance', () => {
+    for (const route of ALLOWED_ROUTES) {
+      if (FINANCE_PATH.test(route.path))
+        expect({ route, finance: route.finance }).toEqual({ route, finance: true });
+    }
   });
 
-  it('holds no time, token, auth or delete route', () => {
+  it('holds no token, auth, grant, upload or delete route', () => {
     for (const route of ALLOWED_ROUTES) {
-      expect(route.path).not.toMatch(
-        /\/time(\/|$)|\/me\/mcp|\/auth|\/rates|\/work-log|\/overview|\/contracts|\/rankings|\/expenses/,
-      );
+      expect(route.path).not.toMatch(/\/me\/mcp|\/auth|finance-access|\/files$/);
       if (route.method === 'DELETE') {
         // Unassigning a riešiteľ is the only DELETE: it removes no entity.
         expect(route.path).toBe('/api/tickets/:id/assignees/:userId');
@@ -71,38 +79,53 @@ describe('MCP allowlist', () => {
 
   it.each([
     ['GET', '/api/finance/overview'],
-    ['GET', '/api/finance/work-log'],
-    ['GET', '/api/finance/contracts'],
-    ['GET', '/api/finance/rates'],
-    ['GET', '/api/finance/rankings/paid'],
     ['GET', '/api/groups/g1/finance/work-log'],
-    ['GET', '/api/groups/g1/finance/overview'],
-    ['POST', '/api/groups/g1/finance/items'],
-    ['PATCH', '/api/finance/items/i1'],
-    ['DELETE', '/api/finance/items/i1'],
+    ['POST', '/api/finance/rates'],
     ['GET', '/api/tasks/t1/time'],
-    ['GET', '/api/tickets/t1/time'],
+    ['PUT', '/api/tickets/t1/time/me'],
+  ])('a finance route %s %s is refused to everyone without the right', async (method, path) => {
+    expect(isAllowedRoute(method, path, userOf('superadmin', true))).toBe(true);
+    expect(isAllowedRoute(method, path, userOf('admin', true))).toBe(true);
+    for (const user of [userOf('admin', false), userOf('client', false), userOf('client', true)]) {
+      expect(isAllowedRoute(method, path, user)).toBe(false);
+      const api = createApiCaller(test.app, user, '127.0.0.1');
+      await expect(api(method as 'GET', path)).rejects.toBeInstanceOf(RouteNotAllowedError);
+    }
+  });
+
+  it.each([
+    ['DELETE', '/api/finance/items/i1'],
+    ['DELETE', '/api/finance/rates/r1'],
+    ['DELETE', '/api/finance/time-entries/e1'],
+    ['PUT', '/api/admins/a1/finance-access'],
+    ['POST', '/api/groups/g1/finance/files'],
     ['GET', '/api/me/mcp/tokens'],
     ['POST', '/api/me/mcp/tokens'],
     ['DELETE', '/api/tasks/t1'],
     ['GET', '/api/tasks/../finance/overview'],
     ['GET', '/api/tasks/t1%2F..%2Ffinance'],
-  ])('refuses %s %s', async (method, path) => {
-    expect(isAllowedRoute(method, path)).toBe(false);
-    const api = createApiCaller(
-      test.app,
-      { id: 'x', email: 'x@example.com', name: 'X', role: 'superadmin', finance: true },
-      '127.0.0.1',
-    );
+  ])('refuses %s %s to anyone', async (method, path) => {
+    const superadmin = userOf('superadmin', true);
+    expect(isAllowedRoute(method, path, superadmin)).toBe(false);
+    const api = createApiCaller(test.app, superadmin, '127.0.0.1');
     await expect(api(method as 'GET', path)).rejects.toBeInstanceOf(RouteNotAllowedError);
   });
 
-  it('every finance tool is marked finance and read only', () => {
-    for (const tool of ALL_TOOLS.filter((t) => t.name.includes('finance'))) {
-      expect({ name: tool.name, finance: tool.finance, write: tool.write ?? false }).toEqual({
+  it('every finance tool is marked finance', () => {
+    const names = [
+      'finance',
+      'work_log',
+      'time_entry',
+      'rate',
+      'contracts',
+      'ranking',
+      'task_time',
+      'ticket_time',
+    ];
+    for (const tool of ALL_TOOLS.filter((t) => names.some((n) => t.name.includes(n)))) {
+      expect({ name: tool.name, finance: tool.finance }).toEqual({
         name: tool.name,
         finance: true,
-        write: false,
       });
     }
   });
@@ -110,24 +133,40 @@ describe('MCP allowlist', () => {
   it('the internal-call header from outside is no session', async () => {
     const res = await test.app.inject({
       method: 'GET',
-      url: '/api/me',
+      url: '/api/me/home/counts',
       headers: { [INTERNAL_CALL_HEADER]: randomUUID() },
     });
     expect(res.statusCode).toBe(401);
   });
 });
 
-describe('MCP finance leaks', () => {
+describe('MCP finance access and leaks', () => {
   let test: TestApp;
   let groupId: string;
+  let otherGroupId: string;
   let contractId: string;
   let financeFileId: string;
   let taskId: string;
-  let fin: { id: string; token: string };
+  let fin: { id: string; token: string; readToken: string };
   let plain: { id: string; token: string };
-  let finCookie: string;
   const admins: string[] = [];
   const word = `Zmluva${randomUUID().slice(0, 8)}`;
+  const otherWord = `Iny${randomUUID().slice(0, 8)}`;
+
+  const financeCalls = (): Array<[string, Record<string, unknown>]> => [
+    ['list_finance_documents', { groupId }],
+    ['list_finance_document_folders', { groupId }],
+    ['get_finance_document', { itemId: contractId }],
+    ['get_finance_overview', { groupId }],
+    ['get_finance_overview', {}],
+    ['get_work_log', { groupId }],
+    ['get_work_log', {}],
+    ['list_rates', {}],
+    ['list_contracts', {}],
+    ['get_paid_ranking', {}],
+    ['get_hours_ranking', {}],
+    ['get_task_time', { taskId }],
+  ];
 
   beforeAll(async () => {
     test = await buildTestApp();
@@ -137,15 +176,16 @@ describe('MCP finance leaks', () => {
     const plainRow = await addAdmin(db, { email: `${randomUUID()}@example.com`, name: 'Pavol' });
     admins.push(finRow.id, plainRow.id);
     await setFinanceAccess(db, finRow.id, finRow.id);
-    fin = { id: finRow.id, token: await mcpToken(db, finRow.id, 'write') };
+    fin = {
+      id: finRow.id,
+      token: await mcpToken(db, finRow.id, 'write'),
+      readToken: await mcpToken(db, finRow.id, 'read'),
+    };
     plain = { id: plainRow.id, token: await mcpToken(db, plainRow.id, 'write') };
     const cookie = await loginAs(test.app, finEmail);
-    finCookie = cookie;
-    const g = await createGroup(db, {
-      name: 'Firma',
-      egrantUrl: `https://g${randomUUID().replaceAll('-', '')}.egrant.sk`,
-    });
-    groupId = g.id;
+    const egrant = () => `https://g${randomUUID().replaceAll('-', '')}.egrant.sk`;
+    groupId = (await createGroup(db, { name: 'Firma', egrantUrl: egrant() })).id;
+    otherGroupId = (await createGroup(db, { name: 'Iná firma', egrantUrl: egrant() })).id;
     const inject = (method: 'POST' | 'PUT', url: string, payload: object) =>
       test.app.inject({ method, url, headers: { cookie }, payload });
 
@@ -169,7 +209,28 @@ describe('MCP finance leaks', () => {
     });
     expect(contract.statusCode, contract.body).toBe(201);
     contractId = contract.json<{ id: string }>().id;
-    // A rate, a manual entry and the admin's own task time: none may reach MCP.
+    // Another client's contract and time: never in the first client's answers.
+    expect(
+      (
+        await inject('POST', `/api/groups/${otherGroupId}/finance/items`, {
+          type: 'contract',
+          title: `${otherWord} grant`,
+          amount: { amountMinor: 7_654_321, currency: 'EUR' },
+          startsOn: '2026-01-01',
+          endsOn: '2026-12-31',
+        })
+      ).statusCode,
+    ).toBe(201);
+    expect(
+      (
+        await inject('POST', `/api/groups/${otherGroupId}/finance/time-entries`, {
+          userId: finRow.id,
+          workedOn: '2026-01-06',
+          minutes: 45,
+          note: `${otherWord} manual`,
+        })
+      ).statusCode,
+    ).toBe(201);
     expect(
       (
         await inject('POST', '/api/finance/rates', {
@@ -196,94 +257,104 @@ describe('MCP finance leaks', () => {
     await test.close();
   });
 
-  it('the check would see the amount: the app’s own answer has it', async () => {
-    const res = await test.app.inject({
-      method: 'GET',
-      url: `/api/finance/items/${contractId}`,
-      headers: { cookie: finCookie },
-    });
-    expect(res.body).toMatch(FINANCE_KEYS);
-  });
-
-  it('a finance admin reads the documents, without the amount', async () => {
-    const list = await callTool(test.app, fin.token, 'list_finance_documents', { groupId });
-    expect(list.isError).toBe(false);
-    const page = list.json as { items: Array<Record<string, unknown>> };
-    expect(page.items.map((i) => i.id)).toContain(contractId);
-    expect(page.items.find((i) => i.id === contractId)?.contract).toEqual({
-      contractNumber: `${word}-1`,
-      startsOn: '2026-01-01',
-      endsOn: '2026-12-31',
-    });
-    const one = await callTool(test.app, fin.token, 'get_finance_document', { itemId: contractId });
-    expect(one.json).toMatchObject({ title: `${word} grant`, body: 'Signed copy attached.' });
-    const search = await callTool(test.app, fin.token, 'list_finance_documents', {
-      groupId,
-      type: 'contract',
-      q: word,
-    });
-    const folders = await callTool(test.app, fin.token, 'list_finance_folders', { groupId });
-    for (const res of [list, one, search, folders]) {
-      expect(res.raw).not.toMatch(FINANCE_KEYS);
-      expect(res.raw).not.toContain('1234567');
-      expect(res.raw).not.toContain('12345.67');
-    }
-  });
-
-  it('a finance admin reads a finance document’s file', async () => {
-    const res = await callTool(test.app, fin.token, 'read_file', { fileId: financeFileId });
-    expect(res.isError).toBe(false);
-    expect(res.content.map((c) => c.text).join('\n')).toContain(`${word} scan`);
-  });
-
-  it('no other answer of any tool carries money or time, for the finance admin', async () => {
-    const reads: Array<[string, Record<string, unknown>]> = [
-      ['whoami', {}],
-      ['list_groups', {}],
-      ['get_group', { groupId }],
-      ['get_board', { groupId, done: 50 }],
-      ['get_task', { taskId }],
-      ['list_all_tasks', { clients: 'all', completed: true }],
-      ['list_my_tasks', {}],
-      ['list_tickets', { scope: 'all', status: 'all' }],
-      ['list_knowledge', { scope: 'all', q: word }],
-      ['list_knowledge', { groupId }],
-      ['list_upcoming_reminders', {}],
-      ['get_home_counts', {}],
-      ['list_projects', { groupId }],
-    ];
-    for (const [name, args] of reads) {
+  it('a finance admin reads every finance entity, as over HTTP', async () => {
+    for (const [name, args] of financeCalls()) {
       const res = await callTool(test.app, fin.token, name, args);
-      expect({ name, error: res.isError, json: res.isError ? res.json : null }).toEqual({
+      expect({ name, isError: res.isError, json: res.isError ? res.json : null }).toEqual({
         name,
-        error: false,
+        isError: false,
         json: null,
       });
-      expect({ name, leak: FINANCE_KEYS.exec(res.raw)?.[0] ?? null }).toEqual({ name, leak: null });
-      expect({ name, word: res.raw.includes(`${word} manual`) }).toEqual({ name, word: false });
     }
-    // Moving the task out of Completed and back: the answer drops `askTime`.
-    const board = (await callTool(test.app, fin.token, 'get_board', { groupId })).json as {
-      buckets: Array<{ id: string; kind: string }>;
-    };
-    const todo = board.buckets.find((b) => b.kind === 'todo')!;
-    const moved = await callTool(test.app, fin.token, 'move_task', {
-      taskId,
-      bucketId: todo.id,
-      afterTaskId: null,
+    const one = await callTool(test.app, fin.token, 'get_finance_document', { itemId: contractId });
+    expect(one.json).toMatchObject({
+      title: `${word} grant`,
+      contract: { amount: { amountMinor: 1_234_567, currency: 'EUR' } },
     });
-    expect(moved.isError).toBe(false);
-    expect(moved.raw).not.toMatch(FINANCE_KEYS);
+    const log = await callTool(test.app, fin.token, 'get_work_log', { groupId });
+    expect(log.raw).toContain(`${word} manual`);
+    const file = await callTool(test.app, fin.token, 'read_file', { fileId: financeFileId });
+    expect(file.content.map((c) => c.text).join('\n')).toContain(`${word} scan`);
   });
 
-  it('an admin without the right sees no finance tool and gets 403 by name', async () => {
-    const list = await mcpRequest(test.app, plain.token, 'tools/list');
-    expect(list.body).not.toContain('finance_');
+  it('a client’s finance answers hold no other client’s data', async () => {
     for (const [name, args] of [
       ['list_finance_documents', { groupId }],
-      ['list_finance_folders', { groupId }],
-      ['get_finance_document', { itemId: contractId }],
+      ['list_finance_documents', { groupId, type: 'contract' }],
+      ['get_finance_overview', { groupId }],
+      ['get_work_log', { groupId }],
     ] as const) {
+      const res = await callTool(test.app, fin.token, name, args);
+      expect({ name, other: res.raw.includes(otherWord) }).toEqual({ name, other: false });
+      expect({ name, amount: res.raw.includes('7654321') }).toEqual({ name, amount: false });
+    }
+  });
+
+  it('a finance admin writes finance entities through the routes, audited', async () => {
+    const created = await callTool(test.app, fin.token, 'create_finance_document', {
+      groupId,
+      item: { type: 'note', title: `${word} poznámka`, body: 'Text' },
+    });
+    expect(created.isError).toBe(false);
+    const itemId = (created.json as { id: string }).id;
+    const edited = await callTool(test.app, fin.token, 'update_finance_document', {
+      itemId,
+      changes: { title: `${word} poznámka 2` },
+    });
+    expect(edited.json).toMatchObject({ title: `${word} poznámka 2` });
+    const folder = await callTool(test.app, fin.token, 'create_finance_folder', {
+      groupId,
+      folder: { name: 'Zmluvy' },
+    });
+    const folderId = (folder.json as { id: string }).id;
+    expect(
+      (
+        await callTool(test.app, fin.token, 'update_finance_folder', {
+          folderId,
+          changes: { name: 'Zmluvy 2026' },
+        })
+      ).json,
+    ).toMatchObject({ name: 'Zmluvy 2026' });
+    const entry = await callTool(test.app, fin.token, 'add_time_entry', {
+      entry: { groupId, userId: fin.id, workedOn: '2026-02-02', minutes: 30, note: 'MCP' },
+    });
+    expect(entry.isError, entry.raw).toBe(false);
+    const entryId = (entry.json as { id: string }).id;
+    const patched = await callTool(test.app, fin.token, 'update_time_entry', {
+      entryId,
+      changes: { minutes: 40 },
+    });
+    expect(patched.isError, patched.raw).toBe(false);
+    const rate = await callTool(test.app, fin.token, 'add_rate', {
+      rate: { userId: fin.id, rateMinor: 5_000, effectiveFrom: '2026-02-01' },
+    });
+    expect(rate.isError, rate.raw).toBe(false);
+    const mine = await callTool(test.app, fin.token, 'set_my_task_time', {
+      taskId,
+      time: { minutes: 80 },
+    });
+    expect(mine.isError, mine.raw).toBe(false);
+  });
+
+  it('a read-only token of a finance admin reads but cannot write finance', async () => {
+    const list = await mcpRequest(test.app, fin.readToken, 'tools/list');
+    expect(list.body).toContain('list_rates');
+    expect(list.body).not.toContain('add_rate');
+    const res = await callTool(test.app, fin.readToken, 'add_rate', {
+      rate: { userId: fin.id, rateMinor: 1, effectiveFrom: null },
+    });
+    expect(res.json).toMatchObject({ status: 403, detail: 'read-only token' });
+  });
+
+  it('an admin without the right sees no finance tool and gets 403 from each', async () => {
+    const list = await mcpRequest(test.app, plain.token, 'tools/list');
+    for (const [name] of financeCalls()) expect(list.body).not.toContain(`"${name}"`);
+    for (const [name, args] of [
+      ...financeCalls(),
+      ['create_finance_document', { groupId, item: { type: 'note', title: 'x' } }],
+      ['add_rate', { rate: { userId: plain.id, rateMinor: 1, effectiveFrom: null } }],
+      ['set_my_task_time', { taskId, time: { minutes: 1 } }],
+    ] as Array<[string, Record<string, unknown>]>) {
       const res = await callTool(test.app, plain.token, name, args);
       expect({ name, isError: res.isError, json: res.json }).toMatchObject({
         name,
@@ -297,18 +368,61 @@ describe('MCP finance leaks', () => {
     expect(file.raw).not.toContain(word);
   });
 
+  it('no other tool gives money or time to an admin without the right', async () => {
+    for (const [name, args] of [
+      ['whoami', {}],
+      ['get_board', { groupId, done: 50 }],
+      ['get_task', { taskId }],
+      ['list_all_tasks', { clients: 'all', completed: true }],
+      ['list_my_tasks', {}],
+      ['list_tickets', { scope: 'all', status: 'all' }],
+      ['list_knowledge', { scope: 'all', q: word }],
+      ['list_knowledge', { groupId }],
+      ['list_upcoming_reminders', {}],
+      ['list_projects', { groupId }],
+    ] as Array<[string, Record<string, unknown>]>) {
+      const res = await callTool(test.app, plain.token, name, args);
+      expect({ name, error: res.isError, json: res.isError ? res.json : null }).toEqual({
+        name,
+        error: false,
+        json: null,
+      });
+      expect({ name, leak: FINANCE_KEYS.exec(res.raw)?.[0] ?? null }).toEqual({ name, leak: null });
+      expect({ name, word: res.raw.includes(word) }).toEqual({ name, word: false });
+    }
+  });
+
+  it('the check would see money: the finance admin’s own answer has it', async () => {
+    const res = await callTool(test.app, fin.token, 'get_finance_document', { itemId: contractId });
+    expect(res.raw).toMatch(FINANCE_KEYS);
+  });
+
+  it.each(['client', 'ziadatel'] as const)(
+    'a %s gets nothing: their token is refused at /mcp',
+    async (role) => {
+      const person = await createUnverifiedClient(test.deps.db, `${randomUUID()}@example.com`);
+      await addMembership(test.deps.db, person.id, groupId, role);
+      const token = await mcpToken(test.deps.db, person.id);
+      const res = await mcpRequest(test.app, token, 'tools/call', {
+        name: 'list_finance_documents',
+        arguments: { groupId },
+      });
+      expect(res.statusCode).toBe(403);
+      expect(res.body).not.toContain(word);
+    },
+  );
+
   it('losing the right acts on the next call', async () => {
     const db = test.deps.db;
-    const email = `${randomUUID()}@example.com`;
-    const row = await addAdmin(db, { email, name: 'Lost' });
+    const row = await addAdmin(db, { email: `${randomUUID()}@example.com`, name: 'Lost' });
     admins.push(row.id);
     await setFinanceAccess(db, row.id, row.id);
     const token = await mcpToken(db, row.id, 'read');
-    expect((await callTool(test.app, token, 'list_finance_folders', { groupId })).isError).toBe(
+    expect((await callTool(test.app, token, 'list_finance_document_folders', { groupId })).isError).toBe(
       false,
     );
     await setFinanceAccess(db, row.id, null);
-    const res = await callTool(test.app, token, 'list_finance_folders', { groupId });
+    const res = await callTool(test.app, token, 'list_finance_document_folders', { groupId });
     expect(res.json).toMatchObject({ status: 403 });
   });
 });

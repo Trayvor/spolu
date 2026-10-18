@@ -6,6 +6,8 @@ Date: 2026-10-18. Status: decided by the implementing agent (the owner could not
 
 The owner (translated): "add an MCP server so the AI can see EVERYTHING, but from the finance information only documents. Also give the ability to change and create entities. In short, cover the system fully with MCP."
 
+**Change of 2026-10-18 (the owner, relayed by the orchestrator):** the MCP server gets **full finance access**, not only documents: every finance entity, read and write, mirroring the HTTP API, strictly through the finance policy functions; only users with the finance right see or change anything; read-only tokens still cannot write. Decisions #5 and #6 below are the revised ones.
+
 An AI client (Claude Code, Claude Desktop, any MCP client) connects to `https://help.egrant.sk/mcp` with a personal token and reads and changes Spolu **as the person who made the token**, with exactly that person's permissions.
 
 ## 2. Decisions
@@ -16,8 +18,8 @@ An AI client (Claude Code, Claude Desktop, any MCP client) connects to `https://
 | 2 | How do tools reach the data? | **Through the HTTP API, in process.** Each tool calls one or two existing `/api` routes with Fastify's `inject`, as the token's user. The route runs its own guards, zod validation, policy functions, service, socket events, notifications and rate limits. | One definition of every rule. Calling the services directly would mean copying the policy checks that live in the route handlers (`canReadGroup`, `canEditTicket`, …) into a second place, and the copies would drift. The project rule "writes go through the HTTP API" holds literally. |
 | 3 | How does an injected request carry the user? | `modules/auth/internal-calls.ts`: `runAsUser(user, fn)` registers a random 256-bit call id for the duration of one `inject`; `getSessionUser` (used by `requireUser`, `requireAdmin`, `requireFinance`) resolves the header `x-spolu-internal-call` through that registry before it looks at the session cookie. An unknown id answers as no session. | The id lives only in memory and only while the call runs, so a header sent from outside never matches. No route changes. |
 | 4 | Who may use MCP in v1? | **Admins only** (`canUseMcp`: `isAdmin`; the superadmin included). Clients and žiadatelia cannot create tokens (`403`), and a token whose user is no longer an active admin answers `401` (a disabled user) or `403`. | The owner's goal is the eGrant team's own AI. Tools act through the user's permissions anyway, so opening MCP to clients later is a policy change, not a security change; recorded as future work. |
-| 5 | Finance | Only finance **documents**, read only, only for users who may read them (`canSeeFinance`): the items (contracts, documents, notes) and folders of a client's Documents card, and their files. The **contract amount is removed**; number, title, description, period, files stay. No tool reaches the work log, time entries, rates, the overviews, the system page, the rankings, expenses or anything later added under finance. | The owner: "from the finance information only documents". A contract's amount is money, its number and period are document data. |
-| 6 | How is finance enforced? | Deny by default, twice: (a) `ALLOWED_ROUTES` in `modules/mcp/allowlist.ts` is the only list of method + path patterns the MCP layer may inject; finance paths in it are exactly `GET /groups/:id/finance/items`, `GET /groups/:id/finance/folders` and `GET /finance/items/:id`, and no `/time` route; (b) the finance tools return a **projection** that copies named fields only (never `amount`). Leak tests cover both. | A new finance route or a new DTO field is invisible to MCP until someone adds it on purpose. |
+| 5 | Finance | **Changed by the owner on 2026-10-18** (see §1): **full finance access**, read and write, mirroring the HTTP API: documents, contracts, notes and folders, the overviews and work logs (per client and across clients), time entries, hourly rates, the contracts table and both rankings, and the task and ticket time. Only for finance holders (`canSeeFinance`); everyone else gets the same `403`/`404` as over HTTP and sees no finance tool. Not exposed: deletes (§2 #14), finance uploads and granting the finance right. Every finance tool is finance-only, also the task and ticket time tools that a non-finance admin assignee may use over HTTP for their own time (stricter than the app, never looser). | The owner's revised decision; the first version (documents only, amounts removed) was replaced the same day. |
+| 6 | How is finance enforced? | Twice, deny by default: (a) `ALLOWED_ROUTES` (`modules/mcp/allowlist.ts`) is the only list of method + path patterns the MCP layer may inject, and every finance and `/time` entry in it is marked `finance`: `isAllowedRoute` refuses it before the route for a user without the finance right, whatever tool asks; (b) every finance tool is marked `finance` (`canCallTool`), and the route checks `requireFinance` and its own policy once more. Leak tests: a non-finance admin, a client and a žiadateľ get no finance data, and a client's finance answers hold no other client's data. | One policy (`canSeeFinance`), as in the app. A new finance route is invisible to MCP until someone adds it on purpose: open PR #115's expenses and shared contracts need a tool and an allowlist entry once merged. |
 | 7 | Transport | **Streamable HTTP** (MCP spec 2025-06-18 and 2025-11-25, 2025-03-26 accepted) at `POST /mcp`, **stateless**: no `Mcp-Session-Id`, every answer is `application/json`, no SSE stream (`GET` and `DELETE /mcp` answer `405`). JSON-RPC methods: `initialize`, `ping`, `tools/list`, `tools/call`; notifications answer `202`. | The tools are short request/response calls; a stateless server needs no session store and fits one Node process (ADR 0005). |
 | 8 | SDK or own code? | **Own code, no new dependency.** `@modelcontextprotocol/sdk` 1.32 (MIT, maintained) pulls 17 runtime dependencies, among them `express`, `hono`, `cors`, `ajv`, `jose` and `eventsource`, for an HTTP stack we already have. The part we need (JSON-RPC over one POST, four methods) is about 200 lines; tool input schemas come from zod 4's built-in `z.toJSONSchema`. | Supply-chain care (see ADR 0033). |
 | 9 | Auth | **Personal access tokens** (`Authorization: Bearer spolu_mcp_…`), made and revoked by the user on `/settings`. 32 random bytes, base64url, shown once; only the SHA-256 hash is stored. Each has a name, a **scope** (`read` or `write`, chosen at creation) and an **expiry** (7, 30, 90 or 365 days; 90 by default; never unlimited). | OAuth 2.1 (the spec's recommendation for remote servers) needs an authorization server, dynamic client registration, consent screens and token refresh: far more than this request. Future work in ADR 0033. |
@@ -106,9 +108,17 @@ Each tool names the route(s) it calls. Ids are the app's ids. Lists take the rou
 | `list_mentions` | `GET /api/me/home/mentions` |
 | `list_upcoming_reminders` | `GET /api/me/home/reminders` |
 | `read_file` | `GET /api/files/:id` |
-| `list_finance_documents` (finance holders) | `GET /api/groups/:id/finance/items`, projected |
-| `list_finance_folders` (finance holders) | `GET /api/groups/:id/finance/folders` |
-| `get_finance_document` (finance holders) | `GET /api/finance/items/:id`, projected |
+| `list_finance_documents` | `GET /api/groups/:id/finance/items` |
+| `list_finance_document_folders` | `GET /api/groups/:id/finance/folders` |
+| `get_finance_document` | `GET /api/finance/items/:id` |
+| `get_finance_overview` (`groupId` optional) | `GET /api/groups/:id/finance/overview` or `GET /api/finance/overview` |
+| `get_work_log` (`groupId` optional) | `GET /api/groups/:id/finance/work-log` or `GET /api/finance/work-log` |
+| `list_rates` | `GET /api/finance/rates` |
+| `list_contracts` | `GET /api/finance/contracts` |
+| `get_paid_ranking`, `get_hours_ranking` | `GET /api/finance/rankings/paid`, `…/hours` |
+| `get_task_time`, `get_ticket_time` | `GET /api/tasks/:id/time`, `GET /api/tickets/:id/time` |
+
+Every tool from `list_finance_documents` down is for finance holders only.
 
 ### 5.2 Write (`write` tokens only, audited)
 
@@ -126,8 +136,13 @@ Each tool names the route(s) it calls. Ids are the app's ids. Lists take the rou
 | `update_knowledge_item` | `PATCH /api/knowledge/:id` | `itemId`, `changes`: `KnowledgePatchSchema` |
 | `create_project`, `update_project` | `POST /api/groups/:id/projects`, `PATCH /api/projects/:id` | the shared project schemas |
 | `create_project_event`, `update_project_event` | `POST /api/projects/:id/events`, `PATCH /api/project-events/:id` | the shared event schemas |
+| `create_finance_document`, `update_finance_document` (finance) | `POST /api/groups/:id/finance/items`, `PATCH /api/finance/items/:id` | `FinanceItemBodySchema`, `FinanceItemPatchSchema` |
+| `create_finance_folder`, `update_finance_folder` (finance) | `POST /api/groups/:id/finance/folders`, `PATCH /api/finance/folders/:id` | the shared folder schemas |
+| `add_time_entry`, `update_time_entry` (finance) | `POST /api/finance/time-entries`, `PATCH /api/finance/time-entries/:id` | `SystemManualEntryBodySchema` (`groupId` null: without a client), `TimeEntryPatchSchema` |
+| `add_rate` (finance) | `POST /api/finance/rates` | `AddRateBodySchema` |
+| `set_my_task_time`, `set_my_ticket_time` (finance) | `PUT /api/tasks/:id/time/me`, `PUT /api/tickets/:id/time/me` | the shared time bodies |
 
-The tool checks the arguments against the same shared zod schema first (a friendly error), then sends the arguments as given to the route, which validates them again. `askTime` is dropped from the task and ticket answers (finance, §2 #5).
+The tool checks the arguments against the same shared zod schema first (a friendly error), then sends the arguments as given to the route, which validates them again. `askTime` is dropped from the task and ticket answers and the "Fill in your time" requests from `list_my_tasks`: time has its own finance tools, so the general tools carry none for anyone.
 
 ### 5.3 Same events
 
@@ -139,7 +154,7 @@ Because a write is the route itself, it emits the same socket events (`task:crea
 - `tokens.test.ts`: create, hash only, prefix, expiry, revoke, limit, `revokeAllTokens`, `last_used_at` throttle.
 - `routes.test.ts`: the token routes per role (admin, finance admin, client, žiadateľ, none), one's own tokens only.
 - `transport.test.ts`: the JSON-RPC handshake, `405`, `202`, Origin, protocol header, `401` for none, wrong, revoked, expired and disabled-user tokens, `403` for a client's token, rate limit.
-- `leaks.test.ts`: the allowlist is a subset of the registered routes; its finance patterns are exactly the three; no `/time`, `/me/mcp` or other finance route; for a finance admin with contracts, time entries and rates, every finance tool's output holds no amount, rate or minutes; a plain admin sees no finance tools and gets `403` from them by name; the internal call header from outside is ignored.
+- `leaks.test.ts`: the allowlist is a subset of the registered routes; every finance and `/time` entry is marked `finance` and refused by `callApi` to a non-finance admin and a client; no token, auth, grant, upload or delete route; a finance admin reads and writes every finance entity; a read-only finance token cannot write; a non-finance admin sees no finance tool, gets `403` from each and no money or time from any other tool; a client's and a žiadateľ's token is refused; a client's finance answers hold no other client's contract, amount or time; losing the right acts on the next call; the internal call header from outside is ignored.
 - `tools.test.ts`: reads per entity; a client group's admins-only knowledge stays as the routes decide; writes create and change through the routes, a `read` token is refused and audited, the audit row has no content.
 - `events.test.ts`: `create_task` and `send_message` through MCP reach a socket in the group room with the same event as the HTTP route.
 

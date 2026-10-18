@@ -33,7 +33,7 @@ const INSTRUCTIONS = [
   'You act as the user who made the token, with exactly their permissions: what they may not see answers 404, what they may not change 403.',
   'Start with whoami and list_groups; every other tool takes the ids they return. Lists are paged: pass the answer’s nextCursor (or the named cursor) back.',
   'Writes appear in the app at once and notify people as if the user did them. There are no delete tools.',
-  'Finance is documents only (titles, texts, files, contract numbers and periods); no amounts, time or rates.',
+  'Finance tools (documents, contracts, work log, time, rates, overviews, rankings) are there only when the user holds the finance right; amounts are integer cents (amountMinor, rateMinor).',
 ].join(' ');
 
 type JsonRpcId = string | number;

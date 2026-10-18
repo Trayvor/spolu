@@ -52,7 +52,7 @@ Also done outside the numbered phases: the visible name **Help by eGrant** and t
 
 Also agreed on 2026-10-16: the global task board shows the chosen clients' custom buckets as their own columns (owner decision, a small change with no spec; see [product/admin-home.md](product/admin-home.md#custom-bucket-columns-owner-decision-2026-10-16)).
 
-**MCP server** (owner request 2026-10-18, outside the numbered phases): an AI client connects to `/mcp` with a personal token and reads and changes everything its user may, finance documents only (no money). Status: in review on `feat/mcp-server`. [Spec](superpowers/specs/2026-10-18-mcp-server-design.md), [plan](superpowers/plans/2026-10-18-mcp-server.md), [ADR 0033](decisions/0033-mcp-server-over-the-http-api.md), guide [integrations/mcp.md](integrations/mcp.md).
+**MCP server** (owner request 2026-10-18, outside the numbered phases): an AI client connects to `/mcp` with a personal token and reads and changes everything its user may; finance in full for finance holders (owner decision 2026-10-18). Status: in review on `feat/mcp-server`. [Spec](superpowers/specs/2026-10-18-mcp-server-design.md), [plan](superpowers/plans/2026-10-18-mcp-server.md), [ADR 0033](decisions/0033-mcp-server-over-the-http-api.md), guide [integrations/mcp.md](integrations/mcp.md).
 
 ## Server deployment
 

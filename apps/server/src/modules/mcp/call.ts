@@ -45,7 +45,7 @@ export function createApiCaller(
   remoteAddress: string,
 ): ApiCaller {
   return async (method, path, options = {}) => {
-    if (!isAllowedRoute(method, path)) throw new RouteNotAllowedError(method, path);
+    if (!isAllowedRoute(method, path, user)) throw new RouteNotAllowedError(method, path);
     const search = new URLSearchParams(options.query ?? {}).toString();
     const url = search ? `${path}?${search}` : path;
     const hasBody = options.body !== undefined;
