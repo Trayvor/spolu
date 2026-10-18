@@ -138,5 +138,7 @@ export const ErrorCodes = {
   projectNameTaken: 'project_name_taken',
   invalidProject: 'invalid_project',
   changeOutdated: 'change_outdated',
+  // MCP server (2026-10-18)
+  mcpTokenLimit: 'mcp_token_limit',
 } as const;
 export type ErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes];

@@ -1,0 +1,361 @@
+import { z } from 'zod';
+import {
+  AddRateBodySchema,
+  FinanceFolderBodySchema,
+  FinanceFolderPatchSchema,
+  FinanceItemBodySchema,
+  FinanceItemPatchSchema,
+  FinanceItemTypes,
+  FinanceOrgItemBodySchema,
+  PutMyTaskTimeBodySchema,
+  PutMyTicketTimeBodySchema,
+  SystemManualEntryBodySchema,
+  TimeEntryPatchSchema,
+} from '@spolu/shared';
+import {
+  cursorArg,
+  defineTool,
+  fromApi,
+  idArg,
+  idOf,
+  patchVersioned,
+  query,
+  type ToolDef,
+} from './define.js';
+
+/**
+ * Finance through MCP (owner decision of 2026-10-18, replacing "documents only"): every finance
+ * entity of the HTTP API, read and write, mirroring its routes: a client's items and the
+ * organisation's (contracts of several clients with their shares, expenses), the overviews,
+ * work logs, time entries, rates, the contracts table and the rankings. Every tool here is `finance`, so
+ * only finance holders (`canSeeFinance`) see or call it; the routes check `requireFinance` and
+ * their own policies again. Not exposed: deletes (no MCP tool deletes anything), uploads and
+ * granting the finance right.
+ */
+
+const month = z.string().max(7).optional().describe('A month "YYYY-MM"');
+const period = {
+  from: month.describe('First month "YYYY-MM" (with `to`; both absent: all time)'),
+  to: month.describe('Last month "YYYY-MM"'),
+};
+const clients = z
+  .string()
+  .max(20_000)
+  .optional()
+  .describe('Comma-separated client group ids; absent: every client');
+
+const finance = { finance: true } as const;
+
+export const financeTools: ToolDef[] = [
+  // Documents, contracts and notes of a client, in folders
+  defineTool({
+    ...finance,
+    name: 'list_finance_documents',
+    title: 'List finance documents',
+    description:
+      'Finance items of a client (`groupId`: its contracts with its own share of a contract of several clients, documents and notes) or, without `groupId`, of the organisation (contracts of several clients with every share, expenses including salaries, documents and notes without a client). Newest first, 30 a page. Without `type` and `q` the open `folder` (a folder id, default the top level); a `type` ("contract", "document", "note", "expense") or a search `q` lists every folder. Paged with `after` from `nextCursor`.',
+    input: z.object({
+      groupId: idArg('group').optional(),
+      folder: z.string().max(64).optional(),
+      type: z.enum(FinanceItemTypes).optional(),
+      q: z.string().max(100).optional(),
+      after: cursorArg,
+    }),
+    run: async ({ api }, { groupId, ...rest }) =>
+      fromApi(
+        await api(
+          'GET',
+          groupId ? `/api/groups/${groupId}/finance/items` : '/api/finance/org/items',
+          { query: query(rest) },
+        ),
+      ),
+  }),
+  defineTool({
+    ...finance,
+    name: 'list_finance_document_folders',
+    title: 'List finance folders',
+    description:
+      'The folders of a client’s finance items (`groupId`) or, without it, of the organisation’s (a tree by parentId).',
+    input: z.object({ groupId: idArg('group').optional() }),
+    run: async ({ api }, { groupId }) =>
+      fromApi(
+        await api(
+          'GET',
+          groupId ? `/api/groups/${groupId}/finance/folders` : '/api/finance/org/folders',
+        ),
+      ),
+  }),
+  defineTool({
+    ...finance,
+    name: 'get_finance_document',
+    title: 'Get a finance document',
+    description:
+      'One finance item (contract, document, note or expense) with its text and files (read_file gives a file’s content): a contract’s number, amount, period and, for a contract of several clients, its payer and every share; an expense’s kind, payee and amount. With `groupId` the item as that client’s tab shows it (only its own share).',
+    input: z.object({ itemId: idArg('finance item'), groupId: idArg('group').optional() }),
+    run: async ({ api }, { itemId, groupId }) =>
+      fromApi(
+        await api('GET', `/api/finance/items/${itemId}`, { query: query({ group: groupId }) }),
+      ),
+  }),
+  defineTool({
+    ...finance,
+    write: true,
+    name: 'create_finance_document',
+    title: 'Create a finance document',
+    description:
+      'Creates a contract (`type` "contract" with `amount` { amountMinor (cents), currency "EUR" }, `startsOn`, `endsOn`, optional `contractNumber`), a "document" or a "note" of a client, optionally in `folderId`.',
+    input: z.object({ groupId: idArg('group'), item: FinanceItemBodySchema }),
+    target: ({ groupId }) => groupId,
+    run: async ({ api }, { groupId }, raw) => {
+      const res = await api('POST', `/api/groups/${groupId}/finance/items`, { body: raw.item });
+      return { ...fromApi(res), targetId: idOf(res.body, groupId) };
+    },
+  }),
+  defineTool({
+    ...finance,
+    write: true,
+    name: 'create_organisation_finance_item',
+    title: 'Create an organisation finance item',
+    description:
+      'Creates an item of the organisation (on /finance, no single client): a contract of several clients (a payer, the whole `amount` and 2–50 `shares` { groupId, amountMinor } that add up to it), an expense (a salary of an admin from list_finance_payees, or another payment), or a document or note without a client.',
+    input: z.object({ item: FinanceOrgItemBodySchema }),
+    run: async ({ api }, _args, raw) => {
+      const res = await api('POST', '/api/finance/org/items', { body: raw.item });
+      return { ...fromApi(res), targetId: idOf(res.body, null) };
+    },
+  }),
+  defineTool({
+    ...finance,
+    name: 'list_finance_payees',
+    title: 'List salary payees',
+    description: 'Who a salary expense may pay: the active admins and the superadmin.',
+    input: z.object({}),
+    run: async ({ api }) => fromApi(await api('GET', '/api/finance/payees')),
+  }),
+  defineTool({
+    ...finance,
+    write: true,
+    name: 'update_finance_document',
+    title: 'Update a finance document',
+    description:
+      'Changes the fields named in `changes` (title, body, folderId; on a contract contractNumber, amount, startsOn, endsOn). Pass the `updatedAt` you read to refuse a stale edit (409 finance_changed); without it the current version is used.',
+    input: z.object({
+      itemId: idArg('finance item'),
+      changes: FinanceItemPatchSchema.partial({ updatedAt: true }),
+    }),
+    target: ({ itemId }) => itemId,
+    run: async ({ api }, { itemId }, raw) =>
+      patchVersioned(api, `/api/finance/items/${itemId}`, raw.changes as Record<string, unknown>),
+  }),
+  defineTool({
+    ...finance,
+    write: true,
+    name: 'create_finance_folder',
+    title: 'Create a finance folder',
+    description:
+      'Creates a folder of a client’s finance items (`groupId`) or, without it, of the organisation’s (`parentId` null: top level).',
+    input: z.object({ groupId: idArg('group').optional(), folder: FinanceFolderBodySchema }),
+    target: ({ groupId }) => groupId ?? null,
+    run: async ({ api }, { groupId }, raw) => {
+      const res = await api(
+        'POST',
+        groupId ? `/api/groups/${groupId}/finance/folders` : '/api/finance/org/folders',
+        { body: raw.folder },
+      );
+      return { ...fromApi(res), targetId: idOf(res.body, groupId ?? null) };
+    },
+  }),
+  defineTool({
+    ...finance,
+    write: true,
+    name: 'update_finance_folder',
+    title: 'Rename or move a finance folder',
+    description: 'Renames (`name`) and/or moves (`parentId`) a finance folder.',
+    input: z.object({ folderId: idArg('folder'), changes: FinanceFolderPatchSchema }),
+    target: ({ folderId }) => folderId,
+    run: async ({ api }, { folderId }, raw) =>
+      fromApi(await api('PATCH', `/api/finance/folders/${folderId}`, { body: raw.changes })),
+  }),
+
+  // Overview and work log
+  defineTool({
+    ...finance,
+    name: 'get_finance_overview',
+    title: 'Get a finance overview',
+    description:
+      'Money and hours by month: of one client (`groupId`) or across clients (`clients`, default all, which then includes time without a client). Contracts paid and to be paid, the cost of the work (hours × rates), per admin hours.',
+    input: z.object({ groupId: idArg('group').optional(), clients, ...period }),
+    run: async ({ api }, { groupId, clients: list, ...rest }) =>
+      fromApi(
+        groupId
+          ? await api('GET', `/api/groups/${groupId}/finance/overview`, { query: query(rest) })
+          : await api('GET', '/api/finance/overview', {
+              query: query({ ...rest, clients: list }),
+            }),
+      ),
+  }),
+  defineTool({
+    ...finance,
+    name: 'get_work_log',
+    title: 'Get the work log',
+    description:
+      'The time entries (task, ticket and manual time, waiting requests) with their totals, oldest first: of one client (`groupId`) or across clients (`clients`). The latest 200 entries; earlier ones with `before` from the answer.',
+    input: z.object({
+      groupId: idArg('group').optional(),
+      clients,
+      ...period,
+      before: z.string().min(1).max(200).optional(),
+    }),
+    run: async ({ api }, { groupId, clients: list, ...rest }) =>
+      fromApi(
+        groupId
+          ? await api('GET', `/api/groups/${groupId}/finance/work-log`, { query: query(rest) })
+          : await api('GET', '/api/finance/work-log', {
+              query: query({ ...rest, clients: list }),
+            }),
+      ),
+  }),
+  defineTool({
+    ...finance,
+    write: true,
+    name: 'add_time_entry',
+    title: 'Add a manual time entry',
+    description:
+      'Adds time an admin (`userId`) spent on a day (`workedOn` "YYYY-MM-DD", not in the future), `minutes` (0–6000) and a `note`, for a client (`groupId`) or without one (`groupId` null).',
+    input: z.object({ entry: SystemManualEntryBodySchema }),
+    run: async ({ api }, _args, raw) => {
+      const res = await api('POST', '/api/finance/time-entries', { body: raw.entry });
+      return { ...fromApi(res), targetId: idOf(res.body, null) };
+    },
+  }),
+  defineTool({
+    ...finance,
+    write: true,
+    name: 'update_time_entry',
+    title: 'Update a time entry',
+    description:
+      'Changes a time entry: a manual one its `minutes`, `workedOn` and `note`; a task or ticket entry its `minutes` only (0 resets it).',
+    input: z.object({ entryId: idArg('time entry'), changes: TimeEntryPatchSchema }),
+    target: ({ entryId }) => entryId,
+    run: async ({ api }, { entryId }, raw) =>
+      fromApi(await api('PATCH', `/api/finance/time-entries/${entryId}`, { body: raw.changes })),
+  }),
+
+  // Rates
+  defineTool({
+    ...finance,
+    name: 'list_rates',
+    title: 'List hourly rates',
+    description: 'Every admin with the hourly rate that applies today and its history (EUR cents).',
+    input: z.object({}),
+    run: async ({ api }) => fromApi(await api('GET', '/api/finance/rates')),
+  }),
+  defineTool({
+    ...finance,
+    write: true,
+    name: 'add_rate',
+    title: 'Set an hourly rate',
+    description:
+      'Sets an admin’s hourly rate (`rateMinor`, EUR cents) from a day (`effectiveFrom` "YYYY-MM-DD", or null: from the start); a rate for a day that already has one corrects it.',
+    input: z.object({ rate: AddRateBodySchema }),
+    run: async ({ api }, _args, raw) => {
+      const res = await api('POST', '/api/finance/rates', { body: raw.rate });
+      return { ...fromApi(res), targetId: idOf(res.body, null) };
+    },
+  }),
+
+  // System-wide: contracts table and rankings
+  defineTool({
+    ...finance,
+    name: 'list_contracts',
+    title: 'List contracts across clients',
+    description:
+      'The chosen clients’ contracts running in the period (a search `q` covers every contract, document and note), sorted by `sort` "start", "end" or "amount" and `dir`, 30 a page with `after`.',
+    input: z.object({
+      clients,
+      ...period,
+      sort: z.enum(['start', 'end', 'amount']).optional(),
+      dir: z.enum(['asc', 'desc']).optional(),
+      q: z.string().max(100).optional(),
+      after: z.string().min(1).max(500).optional(),
+    }),
+    run: async ({ api }, args) =>
+      fromApi(await api('GET', '/api/finance/contracts', { query: query(args) })),
+  }),
+  defineTool({
+    ...finance,
+    name: 'get_paid_ranking',
+    title: 'Rank clients by money paid',
+    description:
+      'Clients ranked by the amounts of contracts that started in the period (`from`/`to`, or `year` and optional `month`), one `currency`, 20 a page with `after`.',
+    input: z.object({
+      clients,
+      ...period,
+      year: z.number().int().min(2000).max(2100).optional(),
+      month: z.number().int().min(1).max(12).optional(),
+      currency: z.string().max(3).optional(),
+      after: z.string().min(1).max(200).optional(),
+    }),
+    run: async ({ api }, args) =>
+      fromApi(await api('GET', '/api/finance/rankings/paid', { query: query(args) })),
+  }),
+  defineTool({
+    ...finance,
+    name: 'get_hours_ranking',
+    title: 'Rank clients by hours',
+    description:
+      'Clients ranked by counted hours (`sort` "hours") or their cost ("cost"), for all admins or one (`admin`), 20 a page with `after`.',
+    input: z.object({
+      clients,
+      ...period,
+      admin: z.string().max(64).optional(),
+      sort: z.enum(['hours', 'cost']).optional(),
+      after: z.string().min(1).max(200).optional(),
+    }),
+    run: async ({ api }, args) =>
+      fromApi(await api('GET', '/api/finance/rankings/hours', { query: query(args) })),
+  }),
+
+  // Task and ticket time
+  defineTool({
+    ...finance,
+    name: 'get_task_time',
+    title: 'Get a task’s time',
+    description: 'The time logged on a task: the user’s own entry and every assignee’s.',
+    input: z.object({ taskId: idArg('task') }),
+    run: async ({ api }, { taskId }) => fromApi(await api('GET', `/api/tasks/${taskId}/time`)),
+  }),
+  defineTool({
+    ...finance,
+    write: true,
+    name: 'set_my_task_time',
+    title: 'Log my time on a task',
+    description: 'Sets the user’s own minutes on a task they are an assignee of.',
+    input: z.object({ taskId: idArg('task'), time: PutMyTaskTimeBodySchema }),
+    target: ({ taskId }) => taskId,
+    run: async ({ api }, { taskId }, raw) =>
+      fromApi(await api('PUT', `/api/tasks/${taskId}/time/me`, { body: raw.time })),
+  }),
+  defineTool({
+    ...finance,
+    name: 'get_ticket_time',
+    title: 'Get a ticket’s time',
+    description:
+      'The time logged on a ticket: the user’s own entry, their minutes on its linked tasks, and every riešiteľ’s.',
+    input: z.object({ ticketId: idArg('ticket') }),
+    run: async ({ api }, { ticketId }) =>
+      fromApi(await api('GET', `/api/tickets/${ticketId}/time`)),
+  }),
+  defineTool({
+    ...finance,
+    write: true,
+    name: 'set_my_ticket_time',
+    title: 'Log my time on a ticket',
+    description:
+      'Sets the user’s own time on a ticket they are a riešiteľ of: `{ minutes }`, or `{ coveredByTasks: true }` when the linked tasks’ hours cover it.',
+    input: z.object({ ticketId: idArg('ticket'), time: PutMyTicketTimeBodySchema }),
+    target: ({ ticketId }) => ticketId,
+    run: async ({ api }, { ticketId }, raw) =>
+      fromApi(await api('PUT', `/api/tickets/${ticketId}/time/me`, { body: raw.time })),
+  }),
+];

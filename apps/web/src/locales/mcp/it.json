@@ -1,0 +1,55 @@
+{
+  "title": "Accesso per l'AI (MCP)",
+  "intro": "Collega Claude o un altro assistente AI a Help con un token personale. L'assistente lavora come te: vede e modifica solo ciò che puoi tu.",
+  "create": {
+    "title": "Nuovo token",
+    "name": "Nome",
+    "namePlaceholder": "Claude sul mio portatile",
+    "nameRequired": "Inserisci un nome per il token.",
+    "access": "Accesso",
+    "validity": "Validità",
+    "submit": "Crea token",
+    "limit": "Hai {{count}} token attivi. Revocane uno prima di crearne un altro."
+  },
+  "scope": {
+    "read": "Solo lettura",
+    "write": "Lettura e modifica"
+  },
+  "scopeHint": {
+    "read": "L'assistente legge gruppi, chat, attività, ticket e conoscenze.",
+    "write": "L'assistente può anche creare e modificare attività, ticket, messaggi, conoscenze e progetti. Non elimina mai nulla."
+  },
+  "days": {
+    "7": "7 giorni",
+    "30": "30 giorni",
+    "90": "90 giorni",
+    "365": "1 anno"
+  },
+  "created": {
+    "title": "Il tuo nuovo token",
+    "once": "Copialo ora. Non verrà più mostrato.",
+    "tokenLabel": "Token",
+    "copy": "Copia",
+    "copyCommand": "Copia il comando",
+    "copied": "Copiato",
+    "claudeCode": "Per aggiungerlo a Claude Code, esegui:",
+    "done": "Fatto"
+  },
+  "tokens": {
+    "title": "I tuoi token",
+    "empty": "Nessun token. Creane uno per collegare un assistente.",
+    "expires": "Scade il {{date}}",
+    "expired": "Scaduto il {{date}}",
+    "lastUsed": "Usato l'ultima volta il {{date}}",
+    "neverUsed": "Non ancora usato",
+    "revoke": "Revoca",
+    "confirm": "L'assistente che usa questo token perde subito l'accesso.",
+    "revokeConfirm": "Revoca token",
+    "keep": "Mantieni"
+  },
+  "audit": {
+    "title": "Modifiche recenti tramite AI",
+    "empty": "Nessun assistente ha ancora modificato nulla.",
+    "refused": "rifiutata"
+  }
+}

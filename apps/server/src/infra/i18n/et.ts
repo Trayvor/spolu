@@ -55,6 +55,16 @@ export const et: ServerTexts = {
       warning: 'Kui Te seda ei teinud, võtke kohe ühendust oma administraatoriga.',
     },
   },
+  mcp: {
+    tokenCreated: {
+      subject: 'Helpis loodi uus AI juurdepääsu tõend',
+      body: ({ name, date }) =>
+        `Helpis (Help by eGrant) loodi ${date} uus AI juurdepääsu tõend „${name}“. Sellega saab AI-assistent teie nimel andmeid lugeda ja muuta.`,
+      warning:
+        'Kui see polnud teie, tühistage tõend kohe menüüs Seaded (AI juurdepääs (MCP)) ja võtke ühendust oma administraatoriga.',
+      button: 'Ava Seaded',
+    },
+  },
   tickets: {
     created: {
       subject: (n, title) => `Pöördumine #${n} on loodud: ${title}`,

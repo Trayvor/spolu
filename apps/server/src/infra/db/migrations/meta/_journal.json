@@ -323,6 +323,13 @@
       "when": 1792315415071,
       "tag": "0045_finance_projects",
       "breakpoints": true
+    },
+    {
+      "idx": 46,
+      "version": "7",
+      "when": 1792327166857,
+      "tag": "0046_mcp_tokens",
+      "breakpoints": true
     }
   ]
 }

@@ -1,0 +1,55 @@
+{
+  "title": "Prístup pre AI (MCP)",
+  "intro": "Pripojte Claude alebo iného AI asistenta k aplikácii Help osobným tokenom. Asistent pracuje ako vy: vidí a mení len to, čo môžete vy.",
+  "create": {
+    "title": "Nový token",
+    "name": "Názov",
+    "namePlaceholder": "Claude na mojom notebooku",
+    "nameRequired": "Zadajte názov tokenu.",
+    "access": "Prístup",
+    "validity": "Platnosť",
+    "submit": "Vytvoriť token",
+    "limit": "Máte {{count}} aktívnych tokenov. Pred vytvorením ďalšieho jeden zrušte."
+  },
+  "scope": {
+    "read": "Len čítanie",
+    "write": "Čítanie a zmeny"
+  },
+  "scopeHint": {
+    "read": "Asistent číta skupiny, chaty, úlohy, tikety a znalosti.",
+    "write": "Asistent môže aj vytvárať a upravovať úlohy, tikety, správy, znalosti a projekty. Nikdy nič nemaže."
+  },
+  "days": {
+    "7": "7 dní",
+    "30": "30 dní",
+    "90": "90 dní",
+    "365": "1 rok"
+  },
+  "created": {
+    "title": "Váš nový token",
+    "once": "Skopírujte si ho teraz. Znova sa nezobrazí.",
+    "tokenLabel": "Token",
+    "copy": "Kopírovať",
+    "copyCommand": "Kopírovať príkaz",
+    "copied": "Skopírované",
+    "claudeCode": "Do Claude Code ho pridáte príkazom:",
+    "done": "Hotovo"
+  },
+  "tokens": {
+    "title": "Vaše tokeny",
+    "empty": "Zatiaľ žiadne tokeny. Vytvorte si jeden a pripojte asistenta.",
+    "expires": "Platí do {{date}}",
+    "expired": "Platnosť skončila {{date}}",
+    "lastUsed": "Naposledy použitý {{date}}",
+    "neverUsed": "Zatiaľ nepoužitý",
+    "revoke": "Zrušiť",
+    "confirm": "Asistent s týmto tokenom okamžite stratí prístup.",
+    "revokeConfirm": "Zrušiť token",
+    "keep": "Ponechať"
+  },
+  "audit": {
+    "title": "Posledné zmeny cez AI",
+    "empty": "Žiadny asistent zatiaľ nič nezmenil.",
+    "refused": "odmietnuté"
+  }
+}

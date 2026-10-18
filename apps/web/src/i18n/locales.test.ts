@@ -35,6 +35,7 @@ const NAMESPACES = [
   'join',
   'knowledge',
   'login',
+  'mcp',
   'notifications',
   'openInClaude',
   'projects',

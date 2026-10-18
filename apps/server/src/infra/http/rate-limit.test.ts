@@ -25,6 +25,19 @@ describe('createRateLimiter', () => {
     vi.advanceTimersByTime(1001);
     expect(allow('b')).toBe(true);
   });
+
+  it('exceeded() tells whether the next call is refused, without counting', () => {
+    const allow = createRateLimiter({ windowMs: 1000, max: 2 });
+    expect(allow.exceeded('a')).toBe(false);
+    allow('a');
+    expect(allow.exceeded('a')).toBe(false);
+    allow('a');
+    expect(allow.exceeded('a')).toBe(true);
+    expect(allow.exceeded('a')).toBe(true);
+    vi.advanceTimersByTime(1001);
+    expect(allow.exceeded('a')).toBe(false);
+    expect(allow('a')).toBe(true);
+  });
 });
 
 describe('createSlidingRateLimiter', () => {

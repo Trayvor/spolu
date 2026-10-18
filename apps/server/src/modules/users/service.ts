@@ -14,6 +14,7 @@ import {
 } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
 import { isUniqueViolation } from '../../infra/db/errors.js';
+import { revokeAllTokens } from '../mcp/tokens.js';
 import { user } from './schema.js';
 
 export type UserRow = typeof user.$inferSelect;
@@ -162,6 +163,8 @@ export async function addAdmin(db: Db, input: { email: string; name: string }): 
  * back needs a new grant). Their sessions are revoked by the auth module.
  */
 export async function deactivateUser(db: Db, id: string): Promise<void> {
+  // Their MCP tokens go too: an admin added back makes new ones (MCP spec §2 #10).
+  await revokeAllTokens(db, id);
   await db
     .update(user)
     .set({

@@ -55,6 +55,16 @@ export const hr: ServerTexts = {
       warning: 'Ako to niste bili Vi, odmah se obratite svojem administratoru.',
     },
   },
+  mcp: {
+    tokenCreated: {
+      subject: 'U aplikaciji Help stvoren je novi token za pristup AI-ja',
+      body: ({ name, date }) =>
+        `U aplikaciji Help by eGrant ${date} stvoren je novi token za pristup AI-ja „${name}”. S njim AI asistent može čitati i mijenjati podatke u vaše ime.`,
+      warning:
+        'Ako to niste bili vi, odmah ga opozovite u Postavkama (Pristup za AI (MCP)) i javite se svom administratoru.',
+      button: 'Otvori Postavke',
+    },
+  },
   tickets: {
     created: {
       subject: (n, title) => `Tiket #${n} je stvoren: ${title}`,

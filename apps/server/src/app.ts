@@ -26,6 +26,9 @@ import { knowledgeRoutes } from './modules/knowledge/routes.js';
 import { attachMeetingsRealtime } from './modules/knowledge/meeting-realtime.js';
 import { meetingRoutes } from './modules/knowledge/meeting-routes.js';
 import { knowledgeLinkRoutes } from './modules/knowledge/link-routes.js';
+import { registerMcpRouteGuard } from './modules/mcp/guard.js';
+import { mcpTokenRoutes } from './modules/mcp/routes.js';
+import { mcpTransportRoutes } from './modules/mcp/transport.js';
 import { notificationsRoutes } from './modules/notifications/routes.js';
 import { projectsRoutes } from './modules/projects/routes.js';
 import { timelineRoutes } from './modules/projects/timeline-routes.js';
@@ -83,6 +86,8 @@ export async function buildApp(
 
   app.decorateRequest('user', null);
   registerCsrfGuard(app, config);
+  // An in-process MCP call reaches only an exact allowlist route (ADR 0033).
+  registerMcpRouteGuard(app);
 
   await app.register(systemRoutes, { prefix: '/api', deps });
   await app.register(authRoutes, { prefix: '/api', deps });
@@ -138,6 +143,10 @@ export async function buildApp(
       countUpcomingForUser(db, actor, { from, to: new Date(from.getTime() + WEEK_MS) }),
   });
   await app.register(homeRoutes, { prefix: '/api', deps });
+  // The MCP server (ADR 0033): the user's tokens under /api, the endpoint at /mcp, whose tools
+  // call the routes above in process as the token's user.
+  await app.register(mcpTokenRoutes, { prefix: '/api', deps });
+  await app.register(mcpTransportRoutes, { deps, root: app });
 
   registerNotFound(app);
   return app;

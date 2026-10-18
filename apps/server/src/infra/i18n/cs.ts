@@ -55,6 +55,16 @@ export const cs: ServerTexts = {
       warning: 'Pokud jste to nebyli vy, okamžitě kontaktujte svého administrátora.',
     },
   },
+  mcp: {
+    tokenCreated: {
+      subject: 'Nový přístupový token pro AI v aplikaci Help',
+      body: ({ name, date }) =>
+        `V aplikaci Help byl ${date} vytvořen nový přístupový token pro AI „${name}“. S ním může AI asistent číst a měnit data vaším jménem.`,
+      warning:
+        'Pokud jste to nebyli vy, token ihned zrušte v Nastavení (Přístup pro AI (MCP)) a kontaktujte svého administrátora.',
+      button: 'Otevřít Nastavení',
+    },
+  },
   tickets: {
     created: {
       subject: (n, title) => `Tiket #${n} byl vytvořen: ${title}`,

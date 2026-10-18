@@ -24,6 +24,14 @@ The profile on `/settings` (Phase 6) lets each user change only their own data. 
 - **Receive mailings** (Phase 23.4): a checkbox "Dostávať hromadné e-maily" / "Receive mailings" in the Profile card, under the email, for every signed-in person, ticked by default. Unticking unsubscribes from bulk email, ticking subscribes again (`GET`/`PUT /api/me/bulk-email`); it saves at once with "Saved", and a failed save unticks back with an error line. A hint says login codes and notifications always arrive. See `bulk-email.md`.
 - **Language**: `sk` or `en`, stored on the user (`PUT /api/me/language`); emails and pushes to the user, such as the email-change code, the notice and the email digest, use it. The language stays in the header menu, not on the settings page: choosing a language there while signed in stores it, and every sign-in (once per user and page load) stores the language the app is shown in. Both saves are best effort and never block the switch.
 
+## AI access (MCP)
+
+Since 2026-10-18 admins see a fourth card on `/settings`, **AI access (MCP)** (after Notifications, before System status; a lazy chunk with the lazy `mcp` namespace; clients never see it). It connects an AI assistant to Help through the MCP server ([guide](../integrations/mcp.md), [spec](../superpowers/specs/2026-10-18-mcp-server-design.md)):
+
+- **New token**: a name (required, up to 60 characters), the access (**Read only**, the default, or **Read and change**, which never deletes anything) and how long it is valid (7, 30, 90 days or 1 year; 90 by default). **Create token** shows the token once in a framed block with **Copy**, the Claude Code command with the token filled in and **Copy command**, and "It will not be shown again"; **Done** closes it. With 10 active tokens the server answers `409 mcp_token_limit` and the card says to revoke one first.
+- **Your tokens**: each with its name, access and first characters, "Expires …" (or "Expired …" in red), "Last used …" or "Not used yet", and **Revoke**, which asks once more ("The assistant using this token loses access at once") before it revokes.
+- **Recent changes by AI**: the last 50 write calls of the person's tokens: the tool's name, "refused" when the call was refused or failed, the time and the token's name. Never what was written.
+
 ## Phase
 
 Phase 16 (avatar, search, password). Name, email change, language and the notification channel settings ship in Phase 6; brief item C replaced its push and email switches with notification groups.
