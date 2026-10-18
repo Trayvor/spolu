@@ -1,5 +1,5 @@
 {
-  "id": "8650f5ce-a488-4029-a96d-2db214343e16",
+  "id": "241f389a-eea3-4620-8d4b-d4cdc2b06048",
   "prevId": "3e536174-2f3c-4f1e-bb64-0755b1072eda",
   "version": "7",
   "dialect": "postgresql",
@@ -148,6 +148,133 @@
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.passkeys": {
+      "name": "passkeys",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "credential_id": {
+          "name": "credential_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "public_key": {
+          "name": "public_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "webauthn_user_id": {
+          "name": "webauthn_user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "counter": {
+          "name": "counter",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "transports": {
+          "name": "transports",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "''"
+        },
+        "device_type": {
+          "name": "device_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "backed_up": {
+          "name": "backed_up",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "last_used_at": {
+          "name": "last_used_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "passkeys_user_id_idx": {
+          "name": "passkeys_user_id_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "passkeys_user_id_user_id_fk": {
+          "name": "passkeys_user_id_user_id_fk",
+          "tableFrom": "passkeys",
+          "tableTo": "user",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "passkeys_credential_id_unique": {
+          "name": "passkeys_credential_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "credential_id"
+          ]
+        }
+      },
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -4114,6 +4241,21 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
+        },
+        "groups_name_fold_trgm_idx": {
+          "name": "groups_name_fold_trgm_idx",
+          "columns": [
+            {
+              "expression": "spolu_fold(\"name\") gin_trgm_ops",
+              "asc": true,
+              "isExpression": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "gin",
+          "with": {}
         }
       },
       "foreignKeys": {},
@@ -5087,6 +5229,262 @@
       },
       "isRLSEnabled": false
     },
+    "public.knowledge_meeting_series": {
+      "name": "knowledge_meeting_series",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "group_id": {
+          "name": "group_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "frequency": {
+          "name": "frequency",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "time_zone": {
+          "name": "time_zone",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "anchor_starts_at": {
+          "name": "anchor_starts_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "anchor_index": {
+          "name": "anchor_index",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "until": {
+          "name": "until",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "count": {
+          "name": "count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "next_index": {
+          "name": "next_index",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
+        "next_starts_at": {
+          "name": "next_starts_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "body": {
+          "name": "body",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "''"
+        },
+        "visibility": {
+          "name": "visibility",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'public'"
+        },
+        "folder_id": {
+          "name": "folder_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "meeting_url": {
+          "name": "meeting_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "reminder_offsets": {
+          "name": "reminder_offsets",
+          "type": "integer[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::integer[]"
+        },
+        "reminder_recipient_ids": {
+          "name": "reminder_recipient_ids",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::text[]"
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "knowledge_meeting_series_next_idx": {
+          "name": "knowledge_meeting_series_next_idx",
+          "columns": [
+            {
+              "expression": "next_starts_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "where": "\"knowledge_meeting_series\".\"next_starts_at\" is not null",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "knowledge_meeting_series_group_idx": {
+          "name": "knowledge_meeting_series_group_idx",
+          "columns": [
+            {
+              "expression": "group_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "knowledge_meeting_series_folder_idx": {
+          "name": "knowledge_meeting_series_folder_idx",
+          "columns": [
+            {
+              "expression": "folder_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "knowledge_meeting_series_created_by_idx": {
+          "name": "knowledge_meeting_series_created_by_idx",
+          "columns": [
+            {
+              "expression": "created_by",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "knowledge_meeting_series_group_id_groups_id_fk": {
+          "name": "knowledge_meeting_series_group_id_groups_id_fk",
+          "tableFrom": "knowledge_meeting_series",
+          "tableTo": "groups",
+          "columnsFrom": [
+            "group_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "knowledge_meeting_series_folder_id_knowledge_folders_id_fk": {
+          "name": "knowledge_meeting_series_folder_id_knowledge_folders_id_fk",
+          "tableFrom": "knowledge_meeting_series",
+          "tableTo": "knowledge_folders",
+          "columnsFrom": [
+            "folder_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "knowledge_meeting_series_created_by_user_id_fk": {
+          "name": "knowledge_meeting_series_created_by_user_id_fk",
+          "tableFrom": "knowledge_meeting_series",
+          "tableTo": "user",
+          "columnsFrom": [
+            "created_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "knowledge_meeting_series_frequency_check": {
+          "name": "knowledge_meeting_series_frequency_check",
+          "value": "\"knowledge_meeting_series\".\"frequency\" in ('weekly', 'biweekly', 'monthly_date', 'monthly_weekday')"
+        },
+        "knowledge_meeting_series_visibility_check": {
+          "name": "knowledge_meeting_series_visibility_check",
+          "value": "\"knowledge_meeting_series\".\"visibility\" in ('public', 'admins')"
+        },
+        "knowledge_meeting_series_end_check": {
+          "name": "knowledge_meeting_series_end_check",
+          "value": "\"knowledge_meeting_series\".\"until\" is null or \"knowledge_meeting_series\".\"count\" is null"
+        }
+      },
+      "isRLSEnabled": false
+    },
     "public.knowledge_meetings": {
       "name": "knowledge_meetings",
       "schema": "",
@@ -5191,6 +5589,18 @@
           "type": "jsonb",
           "primaryKey": false,
           "notNull": false
+        },
+        "series_id": {
+          "name": "series_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "series_index": {
+          "name": "series_index",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {
@@ -5223,6 +5633,28 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
+        },
+        "knowledge_meetings_series_unique": {
+          "name": "knowledge_meetings_series_unique",
+          "columns": [
+            {
+              "expression": "series_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "series_index",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"knowledge_meetings\".\"series_id\" is not null",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         }
       },
       "foreignKeys": {
@@ -5245,6 +5677,19 @@
           "tableTo": "files",
           "columnsFrom": [
             "recording_file_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "knowledge_meetings_series_id_knowledge_meeting_series_id_fk": {
+          "name": "knowledge_meetings_series_id_knowledge_meeting_series_id_fk",
+          "tableFrom": "knowledge_meetings",
+          "tableTo": "knowledge_meeting_series",
+          "columnsFrom": [
+            "series_id"
           ],
           "columnsTo": [
             "id"
@@ -6088,6 +6533,134 @@
       },
       "isRLSEnabled": false
     },
+    "public.knowledge_seen": {
+      "name": "knowledge_seen",
+      "schema": "",
+      "columns": {
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "item_id": {
+          "name": "item_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "seen_at": {
+          "name": "seen_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "knowledge_seen_item_id_idx": {
+          "name": "knowledge_seen_item_id_idx",
+          "columns": [
+            {
+              "expression": "item_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "knowledge_seen_user_id_user_id_fk": {
+          "name": "knowledge_seen_user_id_user_id_fk",
+          "tableFrom": "knowledge_seen",
+          "tableTo": "user",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "knowledge_seen_item_id_knowledge_items_id_fk": {
+          "name": "knowledge_seen_item_id_knowledge_items_id_fk",
+          "tableFrom": "knowledge_seen",
+          "tableTo": "knowledge_items",
+          "columnsFrom": [
+            "item_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "knowledge_seen_user_id_item_id_pk": {
+          "name": "knowledge_seen_user_id_item_id_pk",
+          "columns": [
+            "user_id",
+            "item_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.notification_centre_state": {
+      "name": "notification_centre_state",
+      "schema": "",
+      "columns": {
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "read_at": {
+          "name": "read_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "snoozed_until": {
+          "name": "snoozed_until",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "notification_centre_state_user_id_user_id_fk": {
+          "name": "notification_centre_state_user_id_user_id_fk",
+          "tableFrom": "notification_centre_state",
+          "tableTo": "user",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.notification_events": {
       "name": "notification_events",
       "schema": "",
@@ -6150,6 +6723,12 @@
         "dedupe_key": {
           "name": "dedupe_key",
           "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "in_centre": {
+          "name": "in_centre",
+          "type": "boolean",
           "primaryKey": false,
           "notNull": false
         }
@@ -6240,7 +6819,51 @@
             }
           ],
           "isUnique": false,
-          "where": "\"notification_events\".\"delivered_at\" is null",
+          "where": "\"notification_events\".\"delivered_at\" is null and \"notification_events\".\"in_centre\" is null",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "notification_events_held_idx": {
+          "name": "notification_events_held_idx",
+          "columns": [
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "where": "\"notification_events\".\"delivered_at\" is null and \"notification_events\".\"in_centre\"",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "notification_events_centre_idx": {
+          "name": "notification_events_centre_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "where": "\"notification_events\".\"in_centre\"",
           "concurrently": false,
           "method": "btree",
           "with": {}
@@ -6284,7 +6907,7 @@
             }
           ],
           "isUnique": false,
-          "where": "(\"notification_events\".\"kind\" in ('task.assigned', 'task.moved', 'task.deadline', 'task.due_changed', 'task.overdue', 'chat.message', 'chat.mention', 'chat.thread_reply') and (\"notification_events\".\"payload\" ->> 'taskId') is not null)",
+          "where": "(\"notification_events\".\"kind\" in ('task.assigned', 'task.moved', 'task.deadline', 'task.due_changed', 'task.overdue', 'chat.message', 'chat.mention', 'chat.thread_reply', 'description.mention') and (\"notification_events\".\"payload\" ->> 'taskId') is not null)",
           "concurrently": false,
           "method": "btree",
           "with": {}
@@ -6312,7 +6935,29 @@
             }
           ],
           "isUnique": false,
-          "where": "(\"notification_events\".\"kind\" in ('ticket.created', 'ticket.unassigned', 'ticket.message', 'ticket.status', 'ticket.updated', 'ticket.tasks', 'ticket.assigned', 'ticket.time_missing', 'ticket.resolved', 'chat.mention') and (\"notification_events\".\"payload\" ->> 'ticketId') is not null)",
+          "where": "(\"notification_events\".\"kind\" in ('ticket.created', 'ticket.unassigned', 'ticket.message', 'ticket.status', 'ticket.updated', 'ticket.tasks', 'ticket.assigned', 'ticket.time_missing', 'ticket.resolved', 'chat.mention', 'description.mention') and (\"notification_events\".\"payload\" ->> 'ticketId') is not null)",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "notification_events_description_mention_idx": {
+          "name": "notification_events_description_mention_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "where": "\"notification_events\".\"kind\" = 'description.mention'",
           "concurrently": false,
           "method": "btree",
           "with": {}
@@ -6347,6 +6992,89 @@
         }
       },
       "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.project_seen": {
+      "name": "project_seen",
+      "schema": "",
+      "columns": {
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "project_id": {
+          "name": "project_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "seen_at": {
+          "name": "seen_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "project_seen_project_id_idx": {
+          "name": "project_seen_project_id_idx",
+          "columns": [
+            {
+              "expression": "project_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "project_seen_user_id_user_id_fk": {
+          "name": "project_seen_user_id_user_id_fk",
+          "tableFrom": "project_seen",
+          "tableTo": "user",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "project_seen_project_id_projects_id_fk": {
+          "name": "project_seen_project_id_projects_id_fk",
+          "tableFrom": "project_seen",
+          "tableTo": "projects",
+          "columnsFrom": [
+            "project_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "project_seen_user_id_project_id_pk": {
+          "name": "project_seen_user_id_project_id_pk",
+          "columns": [
+            "user_id",
+            "project_id"
+          ]
+        }
+      },
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
@@ -7199,6 +7927,21 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
+        },
+        "project_events_name_fold_trgm_idx": {
+          "name": "project_events_name_fold_trgm_idx",
+          "columns": [
+            {
+              "expression": "spolu_fold(\"name\") gin_trgm_ops",
+              "asc": true,
+              "isExpression": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "gin",
+          "with": {}
         }
       },
       "foreignKeys": {
@@ -7493,6 +8236,21 @@
           "isUnique": false,
           "concurrently": false,
           "method": "btree",
+          "with": {}
+        },
+        "projects_name_fold_trgm_idx": {
+          "name": "projects_name_fold_trgm_idx",
+          "columns": [
+            {
+              "expression": "spolu_fold(\"name\") gin_trgm_ops",
+              "asc": true,
+              "isExpression": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "gin",
           "with": {}
         }
       },
@@ -8778,6 +9536,21 @@
           "method": "gin",
           "with": {}
         },
+        "tasks_title_fold_trgm_idx": {
+          "name": "tasks_title_fold_trgm_idx",
+          "columns": [
+            {
+              "expression": "spolu_fold(\"title\") gin_trgm_ops",
+              "asc": true,
+              "isExpression": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "gin",
+          "with": {}
+        },
         "tasks_search_order_idx": {
           "name": "tasks_search_order_idx",
           "columns": [
@@ -9291,6 +10064,130 @@
           "tableTo": "user",
           "columnsFrom": [
             "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.teams_series_plans": {
+      "name": "teams_series_plans",
+      "schema": "",
+      "columns": {
+        "series_id": {
+          "name": "series_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "organizer_user_id": {
+          "name": "organizer_user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "organizer_entra_id": {
+          "name": "organizer_entra_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "organizer_name": {
+          "name": "organizer_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "duration_minutes": {
+          "name": "duration_minutes",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "record_automatically": {
+          "name": "record_automatically",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "attendees": {
+          "name": "attendees",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "next_index": {
+          "name": "next_index",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "last_error": {
+          "name": "last_error",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "teams_series_plans_organizer_user_idx": {
+          "name": "teams_series_plans_organizer_user_idx",
+          "columns": [
+            {
+              "expression": "organizer_user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "teams_series_plans_series_id_knowledge_meeting_series_id_fk": {
+          "name": "teams_series_plans_series_id_knowledge_meeting_series_id_fk",
+          "tableFrom": "teams_series_plans",
+          "tableTo": "knowledge_meeting_series",
+          "columnsFrom": [
+            "series_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "teams_series_plans_organizer_user_id_user_id_fk": {
+          "name": "teams_series_plans_organizer_user_id_user_id_fk",
+          "tableFrom": "teams_series_plans",
+          "tableTo": "user",
+          "columnsFrom": [
+            "organizer_user_id"
           ],
           "columnsTo": [
             "id"
@@ -9928,6 +10825,23 @@
           "method": "btree",
           "with": {}
         },
+        "tickets_subject_fold_trgm_idx": {
+          "name": "tickets_subject_fold_trgm_idx",
+          "columns": [
+            {
+              "expression": "spolu_fold(\"subject\") gin_trgm_ops",
+              "asc": true,
+              "isExpression": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "gin",
+          "with": {
+            "fastupdate": false
+          }
+        },
         "tickets_due_open_idx": {
           "name": "tickets_due_open_idx",
           "columns": [
@@ -10180,6 +11094,21 @@
           "isUnique": false,
           "concurrently": false,
           "method": "btree",
+          "with": {}
+        },
+        "user_search_fold_trgm_idx": {
+          "name": "user_search_fold_trgm_idx",
+          "columns": [
+            {
+              "expression": "spolu_fold(\"name\" || ' ' || \"email\") gin_trgm_ops",
+              "asc": true,
+              "isExpression": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "gin",
           "with": {}
         }
       },

@@ -264,7 +264,7 @@ describe('admin home query plans on a seeded volume', () => {
       // The Tickets card's open tickets without a client skip the resolved ones.
       const tickets = await expectIndexed(tx, dashboardTicketsSql(adminId), ['tickets']);
       expect(used(tickets)).toContain('tickets_unassigned_open_created_idx');
-      // 2026-10-18, the notification centre (migration 0054): a page of the bell, the next
+      // 2026-10-18, the notification centre (migration 0062): a page of the bell, the next
       // page after a cursor, and the unread count, for the admin (a seventh of all events: the
       // planner may as well walk `created_at` backwards, as fast) and for a client (on the
       // partial index); the two delivery passes read their own partial indexes, also with a
