@@ -7,7 +7,14 @@ import { loginAs } from '../../../test/login.js';
 import { mcpRequest } from '../../../test/mcp.js';
 import { createGroup } from '../groups/service.js';
 import { addMembership } from '../groups/memberships.js';
-import { addAdmin, createUnverifiedClient, deactivateUser } from '../users/service.js';
+import { latestEmail } from '../../../test/mailpit.js';
+import { serverTexts } from '../../infra/i18n/index.js';
+import {
+  addAdmin,
+  createUnverifiedClient,
+  deactivateUser,
+  setUserLanguage,
+} from '../users/service.js';
 import { mcpOAuthClients, mcpOAuthCodes, mcpTokens } from './schema.js';
 
 /**
@@ -287,7 +294,8 @@ describe('MCP OAuth', () => {
     it('limits registrations per address', async () => {
       const ip = '10.9.9.9';
       let status = 0;
-      for (let i = 0; i < 31 && status !== 429; i += 1) status = (await register({}, ip)).statusCode;
+      for (let i = 0; i < 31 && status !== 429; i += 1)
+        status = (await register({}, ip)).statusCode;
       expect(status).toBe(429);
       expect((await register({}, '10.9.9.10')).statusCode).toBe(201);
     });
@@ -333,7 +341,10 @@ describe('MCP OAuth', () => {
 
       const { client_id } = await newClient();
       for (const uri of ['https://evil.example/cb', 'https://claude.ai/other', `${CALLBACK}?x=1`]) {
-        const res = await consentInfo(admin.cookie, params(client_id, challenge, { redirect_uri: uri }));
+        const res = await consentInfo(
+          admin.cookie,
+          params(client_id, challenge, { redirect_uri: uri }),
+        );
         expect(res.statusCode, uri).toBe(400);
         expect(res.json()).toEqual({ error: 'invalid_redirect_uri' });
         expect(res.body).not.toContain('evil');
@@ -355,7 +366,8 @@ describe('MCP OAuth', () => {
       ];
       for (const [extra, error] of cases) {
         const query = params(client_id, challenge, extra);
-        for (const [key, value] of Object.entries(extra)) if (value === '') delete query[key as keyof typeof query];
+        for (const [key, value] of Object.entries(extra))
+          if (value === '') delete query[key as keyof typeof query];
         const res = await consentInfo(admin.cookie, query);
         expect(res.statusCode, JSON.stringify(extra)).toBe(200);
         const body = res.json<McpConsentInfo>();
@@ -401,14 +413,40 @@ describe('MCP OAuth', () => {
       const swapped = { ...query, code_challenge: pkce().challenge };
       expect((await decide(admin.cookie, swapped, info.consentToken, true)).statusCode).toBe(403);
       // A login session of the same admin is another session too.
-      const second = await loginAs(test.app, (await test.app.inject({
-        method: 'GET',
-        url: '/api/me',
-        headers: { cookie: admin.cookie },
-      })).json().email);
+      const second = await loginAs(
+        test.app,
+        (
+          await test.app.inject({
+            method: 'GET',
+            url: '/api/me',
+            headers: { cookie: admin.cookie },
+          })
+        ).json().email,
+      );
       expect((await decide(second, query, info.consentToken, true)).statusCode).toBe(403);
       // And the real one still works.
       expect((await decide(admin.cookie, query, info.consentToken, true)).statusCode).toBe(200);
+    });
+
+    it('emails the owner when a connection is approved, with the client and its host', async () => {
+      const email = `${randomUUID()}@example.com`;
+      const row = await addAdmin(test.deps.db, { email, name: 'Mailed' });
+      admins.push(row.id);
+      await setUserLanguage(test.deps.db, row.id, 'en');
+      const cookie = await loginAs(test.app, email);
+      const { client_id } = await newClient({ client_name: 'Claude for Ada' });
+      const code = await approvedCode(cookie, client_id, pkce().challenge);
+      const t = serverTexts('en').mcp.connectionApproved;
+      let caught = await latestEmail(email);
+      for (let i = 0; i < 50 && caught.subject !== t.subject; i += 1) {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        caught = await latestEmail(email);
+      }
+      expect(caught.subject).toBe(t.subject);
+      expect(caught.text).toContain('Claude for Ada');
+      expect(caught.text).toContain('claude.ai');
+      expect(caught.text).toContain(`${test.deps.config.publicUrl}/settings`);
+      expect(caught.text).not.toContain(code);
     });
 
     it('cannot grant more than the client asked for', async () => {
@@ -442,7 +480,10 @@ describe('MCP OAuth', () => {
       expect(who.statusCode).toBe(200);
       expect(who.body).toContain(admin.id);
       // Stored hashed only.
-      const rows = await test.deps.db.select().from(mcpTokens).where(eq(mcpTokens.userId, admin.id));
+      const rows = await test.deps.db
+        .select()
+        .from(mcpTokens)
+        .where(eq(mcpTokens.userId, admin.id));
       expect(JSON.stringify(rows)).not.toContain(body.access_token);
     });
 
@@ -468,7 +509,11 @@ describe('MCP OAuth', () => {
     it('requires and verifies PKCE', async () => {
       const { client_id } = await newClient();
       const { verifier, challenge } = pkce();
-      const missing = await exchange(client_id, await approvedCode(admin.cookie, client_id, challenge), '');
+      const missing = await exchange(
+        client_id,
+        await approvedCode(admin.cookie, client_id, challenge),
+        '',
+      );
       expect(missing.statusCode).toBe(400);
       const wrong = await exchange(
         client_id,
@@ -485,8 +530,13 @@ describe('MCP OAuth', () => {
       );
       expect(challengeAsVerifier.json().error).toBe('invalid_grant');
       expect(
-        (await exchange(client_id, await approvedCode(admin.cookie, client_id, challenge), verifier))
-          .statusCode,
+        (
+          await exchange(
+            client_id,
+            await approvedCode(admin.cookie, client_id, challenge),
+            verifier,
+          )
+        ).statusCode,
       ).toBe(200);
     });
 
@@ -514,22 +564,43 @@ describe('MCP OAuth', () => {
     });
 
     it('refuses another redirect address, another client and another resource', async () => {
-      const { client_id } = await newClient({ redirect_uris: [CALLBACK, 'http://localhost:9999/cb'] });
+      const { client_id } = await newClient({
+        redirect_uris: [CALLBACK, 'http://localhost:9999/cb'],
+      });
       const { client_id: otherClient } = await newClient();
       const { verifier, challenge } = pkce();
-      const res1 = await exchange(client_id, await approvedCode(admin.cookie, client_id, challenge), verifier, {
-        redirect_uri: 'http://localhost:9999/cb',
-      });
+      const res1 = await exchange(
+        client_id,
+        await approvedCode(admin.cookie, client_id, challenge),
+        verifier,
+        {
+          redirect_uri: 'http://localhost:9999/cb',
+        },
+      );
       expect(res1.json().error).toBe('invalid_grant');
-      const res2 = await exchange(otherClient, await approvedCode(admin.cookie, client_id, challenge), verifier);
+      const res2 = await exchange(
+        otherClient,
+        await approvedCode(admin.cookie, client_id, challenge),
+        verifier,
+      );
       expect(res2.json().error).toBe('invalid_grant');
-      const res3 = await exchange(client_id, await approvedCode(admin.cookie, client_id, challenge), verifier, {
-        resource: 'https://evil.example/mcp',
-      });
+      const res3 = await exchange(
+        client_id,
+        await approvedCode(admin.cookie, client_id, challenge),
+        verifier,
+        {
+          resource: 'https://evil.example/mcp',
+        },
+      );
       expect(res3.json().error).toBe('invalid_target');
-      const res4 = await exchange(client_id, await approvedCode(admin.cookie, client_id, challenge), verifier, {
-        redirect_uri: '',
-      });
+      const res4 = await exchange(
+        client_id,
+        await approvedCode(admin.cookie, client_id, challenge),
+        verifier,
+        {
+          redirect_uri: '',
+        },
+      );
       expect(res4.statusCode).toBe(400);
     });
 
@@ -549,16 +620,30 @@ describe('MCP OAuth', () => {
         token_endpoint_auth_method: 'client_secret_post',
       });
       const { verifier, challenge } = pkce();
-      const bad = await exchange(client_id, await approvedCode(admin.cookie, client_id, challenge), verifier, {
-        client_secret: 'wrong',
-      });
+      const bad = await exchange(
+        client_id,
+        await approvedCode(admin.cookie, client_id, challenge),
+        verifier,
+        {
+          client_secret: 'wrong',
+        },
+      );
       expect(bad.statusCode).toBe(401);
       expect(bad.json().error).toBe('invalid_client');
-      const none = await exchange(client_id, await approvedCode(admin.cookie, client_id, challenge), verifier);
+      const none = await exchange(
+        client_id,
+        await approvedCode(admin.cookie, client_id, challenge),
+        verifier,
+      );
       expect(none.statusCode).toBe(401);
-      const good = await exchange(client_id, await approvedCode(admin.cookie, client_id, challenge), verifier, {
-        client_secret: client_secret!,
-      });
+      const good = await exchange(
+        client_id,
+        await approvedCode(admin.cookie, client_id, challenge),
+        verifier,
+        {
+          client_secret: client_secret!,
+        },
+      );
       expect(good.statusCode, good.body).toBe(200);
       const basic = await exchange(
         client_id,
@@ -738,7 +823,10 @@ describe('MCP OAuth', () => {
           method: 'POST',
           url: '/oauth/revoke',
           headers: { 'content-type': 'application/x-www-form-urlencoded' },
-          payload: new URLSearchParams({ token: tokens[which], client_id: tokens.clientId }).toString(),
+          payload: new URLSearchParams({
+            token: tokens[which],
+            client_id: tokens.clientId,
+          }).toString(),
         });
         expect(res.statusCode).toBe(200);
         expect(await mcpStatus(tokens.access_token)).toBe(401);

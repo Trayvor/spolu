@@ -64,6 +64,14 @@ export const hr: ServerTexts = {
         'Ako to niste bili vi, odmah ga opozovite u Postavkama (Pristup za AI (MCP)) i javite se svom administratoru.',
       button: 'Otvori Postavke',
     },
+    connectionApproved: {
+      subject: 'S Helpom je povezan AI asistent',
+      body: ({ name, host, date }) =>
+        `S Help by eGrant ${date} povezan je asistent „${name}” (povratak na ${host}). Sada može koristiti Help u vaše ime s pristupom koji ste odabrali.`,
+      warning:
+        'Ako to niste bili vi, odmah ga odspojite u Postavkama (Pristup za AI (MCP)) i obratite se svom administratoru.',
+      button: 'Otvori Postavke',
+    },
   },
   tickets: {
     created: {

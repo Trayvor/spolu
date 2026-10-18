@@ -64,6 +64,14 @@ export const sl: ServerTexts = {
         'Če to niste bili vi, žeton takoj prekličite v Nastavitvah (Dostop za AI (MCP)) in se obrnite na svojega skrbnika.',
       button: 'Odpri Nastavitve',
     },
+    connectionApproved: {
+      subject: 'S Help je bil povezan AI pomočnik',
+      body: ({ name, host, date }) =>
+        `S Help by eGrant je bil ${date} povezan pomočnik »${name}« (vrnitev na ${host}). Zdaj lahko uporablja Help v vašem imenu z dostopom, ki ste ga izbrali.`,
+      warning:
+        'Če to niste bili vi, ga takoj odklopite v Nastavitvah (Dostop za AI (MCP)) in se obrnite na svojega skrbnika.',
+      button: 'Odpri Nastavitve',
+    },
   },
   tickets: {
     created: {

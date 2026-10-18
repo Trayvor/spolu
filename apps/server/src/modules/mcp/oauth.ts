@@ -158,28 +158,26 @@ export type RegisteredClient = {
 async function deleteStaleClients(db: Db, now: Date): Promise<void> {
   const neverUsedBefore = new Date(now.getTime() - OAUTH_TTL.unusedClientMs);
   const idleBefore = new Date(now.getTime() - OAUTH_TTL.idleClientMs);
-  await db
-    .delete(mcpOAuthClients)
-    .where(
-      and(
-        or(
-          and(isNull(mcpOAuthClients.lastUsedAt), lt(mcpOAuthClients.createdAt, neverUsedBefore)),
-          lt(mcpOAuthClients.lastUsedAt, idleBefore),
-        ),
-        notExists(
-          db
-            .select({ one: sql`1` })
-            .from(mcpOAuthGrants)
-            .where(
-              and(
-                eq(mcpOAuthGrants.clientId, mcpOAuthClients.id),
-                isNull(mcpOAuthGrants.revokedAt),
-                gt(mcpOAuthGrants.expiresAt, now),
-              ),
-            ),
-        ),
+  await db.delete(mcpOAuthClients).where(
+    and(
+      or(
+        and(isNull(mcpOAuthClients.lastUsedAt), lt(mcpOAuthClients.createdAt, neverUsedBefore)),
+        lt(mcpOAuthClients.lastUsedAt, idleBefore),
       ),
-    );
+      notExists(
+        db
+          .select({ one: sql`1` })
+          .from(mcpOAuthGrants)
+          .where(
+            and(
+              eq(mcpOAuthGrants.clientId, mcpOAuthClients.id),
+              isNull(mcpOAuthGrants.revokedAt),
+              gt(mcpOAuthGrants.expiresAt, now),
+            ),
+          ),
+      ),
+    ),
+  );
 }
 
 export async function registerClient(db: Db, body: unknown): Promise<RegisteredClient> {
@@ -517,7 +515,11 @@ export async function exchangeCode(
   const verifier = str(body, 'code_verifier');
   const redirectUri = str(body, 'redirect_uri');
   if (!code || !verifier || !redirectUri) {
-    throw new OAuthError(400, 'invalid_request', 'code, code_verifier and redirect_uri are required');
+    throw new OAuthError(
+      400,
+      'invalid_request',
+      'code, code_verifier and redirect_uri are required',
+    );
   }
   const now = new Date();
   const codeHash = hash(code);
@@ -580,7 +582,10 @@ export async function exchangeCode(
       expiresAt: new Date(now.getTime() + OAUTH_TTL.refreshMs),
     });
     await tx.update(mcpOAuthCodes).set({ grantId }).where(eq(mcpOAuthCodes.id, row.id));
-    await tx.update(mcpOAuthClients).set({ lastUsedAt: now }).where(eq(mcpOAuthClients.id, client.id));
+    await tx
+      .update(mcpOAuthClients)
+      .set({ lastUsedAt: now })
+      .where(eq(mcpOAuthClients.id, client.id));
   });
   return {
     access_token: access.token,
@@ -680,7 +685,10 @@ export async function refreshTokens(
           lt(mcpOAuthRefreshTokens.expiresAt, now),
         ),
       );
-    await tx.update(mcpOAuthClients).set({ lastUsedAt: now }).where(eq(mcpOAuthClients.id, client.id));
+    await tx
+      .update(mcpOAuthClients)
+      .set({ lastUsedAt: now })
+      .where(eq(mcpOAuthClients.id, client.id));
   });
   return {
     access_token: access.token,

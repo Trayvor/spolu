@@ -67,6 +67,14 @@ export const it: ServerTexts = {
         "Se non sei stato tu, revocalo subito in Impostazioni (Accesso per l'AI (MCP)) e contatta il tuo amministratore.",
       button: 'Apri Impostazioni',
     },
+    connectionApproved: {
+      subject: 'Un assistente AI è stato collegato a Help',
+      body: ({ name, host, date }) =>
+        `Il ${date} l'assistente «${name}» (ritorno su ${host}) è stato collegato a Help by eGrant. Ora può usare Help a tuo nome con l'accesso che hai scelto.`,
+      warning:
+        "Se non sei stato tu, scollegalo subito in Impostazioni (Accesso per l'AI (MCP)) e contatta il tuo amministratore.",
+      button: 'Apri Impostazioni',
+    },
   },
   tickets: {
     created: {

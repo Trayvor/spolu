@@ -174,7 +174,9 @@ export function ConsentPage({
           <p
             role={status === 'leaving' ? 'status' : 'alert'}
             className={
-              status === 'leaving' ? 'text-micro text-muted-foreground' : 'text-micro text-error-ink'
+              status === 'leaving'
+                ? 'text-micro text-muted-foreground'
+                : 'text-micro text-error-ink'
             }
           >
             {message}

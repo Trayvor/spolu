@@ -64,6 +64,14 @@ export const en: ServerTexts = {
         "If this wasn't you, revoke it in Settings (AI access (MCP)) at once and contact your administrator.",
       button: 'Open Settings',
     },
+    connectionApproved: {
+      subject: 'An AI assistant was connected to Help',
+      body: ({ name, host, date }) =>
+        `“${name}” (returning to ${host}) was connected to Help by eGrant on ${date}. It can now use Help as you, with the access you chose.`,
+      warning:
+        "If this wasn't you, disconnect it in Settings (AI access (MCP)) at once and contact your administrator.",
+      button: 'Open Settings',
+    },
   },
   tickets: {
     created: {

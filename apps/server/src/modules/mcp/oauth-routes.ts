@@ -7,8 +7,11 @@ import {
   type McpConsentInfo,
 } from '@spolu/shared';
 import type { AppDeps } from '../../deps.js';
+import { sendEmailLater } from '../../infra/email/index.js';
 import { createRateLimiter } from '../../infra/http/rate-limit.js';
 import { getSessionFromHeaders, requireAdmin } from '../auth/session.js';
+import { getUserById } from '../users/service.js';
+import { connectionApprovedEmail } from './emails.js';
 import {
   approve,
   authenticateClient,
@@ -201,6 +204,25 @@ export const mcpConsentRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (ap
         { userId: request.user!.id, oauthClient: check.client.id, scope },
         'mcp oauth approved',
       );
+      // Tell the owner, as for a new token: a connection made with a stolen session is noticed.
+      try {
+        const owner = await getUserById(db, request.user!.id);
+        if (owner) {
+          await sendEmailLater(
+            deps.jobs,
+            connectionApprovedEmail(
+              { to: owner.email, lang: owner.language, publicUrl: config.publicUrl },
+              {
+                name: check.client.name,
+                host: new URL(check.redirectUri).hostname,
+                approvedAt: new Date(),
+              },
+            ),
+          );
+        }
+      } catch (error) {
+        request.log.error({ err: error }, 'could not queue the MCP connection notice');
+      }
       return { redirectTo: target };
     } catch (error) {
       if (error instanceof ConnectionLimitError) {
