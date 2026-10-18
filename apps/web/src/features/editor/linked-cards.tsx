@@ -11,15 +11,18 @@ export default function LinkedCards({
   items,
   groupId,
   via,
+  subject = null,
 }: {
   items: LinkedKnowledge;
   groupId: string;
   via: KnowledgeVia | null;
+  /** The saved description's owner: a client opens an admin-group item through it (Phase 34). */
+  subject?: KnowledgeVia | null;
 }) {
   const { t } = useTranslation();
   return (
     <section aria-label={t('chat.knowledge.attached')}>
-      <KnowledgeCardList items={items} groupId={groupId} via={via} />
+      <KnowledgeCardList items={items} groupId={groupId} via={via} subject={subject} />
     </section>
   );
 }

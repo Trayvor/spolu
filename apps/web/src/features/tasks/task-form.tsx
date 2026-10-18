@@ -214,7 +214,7 @@ export function TaskForm({
           onChange={(description) => set({ description })}
           knowledge={
             knowledge && {
-              items: knowledge.items,
+              ...knowledge,
               onChange: (next) => {
                 knowledge.onChange(next);
                 set({ knowledgeIds: next.map((k) => k.id) });

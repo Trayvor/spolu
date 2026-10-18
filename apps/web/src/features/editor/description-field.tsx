@@ -18,6 +18,11 @@ const LinkedCards = lazy(withNamespaces(['chat'], () => import('./linked-cards')
 export interface DescriptionKnowledge {
   items: LinkedKnowledge;
   onChange(next: LinkedKnowledge): void;
+  /**
+   * The saved description's owner (absent while creating): a client opens an admin-group item
+   * read-only through it (Phase 34).
+   */
+  subject?: KnowledgeVia | null;
 }
 
 export interface DescriptionFieldProps {
@@ -105,7 +110,12 @@ export function DescriptionField(props: DescriptionFieldProps) {
           </div>
           {knowledge && knowledge.items.length > 0 && (
             <Suspense fallback={null}>
-              <LinkedCards items={knowledge.items} groupId={groupId} via={null} />
+              <LinkedCards
+                items={knowledge.items}
+                groupId={groupId}
+                via={null}
+                subject={knowledge.subject ?? null}
+              />
             </Suspense>
           )}
         </>
@@ -124,6 +134,7 @@ export function DescriptionView({
   linked,
   nameOf,
   via = null,
+  subject = null,
   className,
 }: {
   body: string;
@@ -131,6 +142,8 @@ export function DescriptionView({
   linked: LinkedKnowledge;
   nameOf: (id: string) => string | undefined;
   via?: KnowledgeVia | null;
+  /** The description's owner: a client opens an admin-group item through it (Phase 34). */
+  subject?: KnowledgeVia | null;
   className?: string;
 }) {
   return (
@@ -138,7 +151,7 @@ export function DescriptionView({
       {body.trim() !== '' && <MessageBody body={body} nameOf={nameOf} />}
       {groupId !== null && linked.length > 0 && (
         <Suspense fallback={null}>
-          <LinkedCards items={linked} groupId={groupId} via={via} />
+          <LinkedCards items={linked} groupId={groupId} via={via} subject={subject} />
         </Suspense>
       )}
     </div>

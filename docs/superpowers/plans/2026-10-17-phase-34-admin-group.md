@@ -46,6 +46,8 @@ Done when: every admin chats, plans tasks and keeps knowledge in "eGrant tím", 
 
 ## Part P34-C — Knowledge from the admin group (branch `feat/admin-group-knowledge`; after P34-B and Phase 33 P5)
 
+Status: **done** (migration 0042, data only; tests in `modules/knowledge/admin-group-sharing.test.ts` and `policy.test.ts`, web `features/chat/admin-group-knowledge.test.tsx`, e2e `e2e/admin-group-knowledge.spec.ts`). Decisions taken while building: the picker's "eGrant tím" source is for **admins only** (a client never browses the team's knowledge; they open only what an admin attached in their place); the description read-through is one route `GET /api/knowledge-links/:kind/:subjectId/:itemId` (tickets keep theirs); files sent in the team's chat are "Only eGrant" items and never shareable; earlier public admin-group items were reset to "Only eGrant" by the migration; an item of the admin group shows no folders in client places. P34-C also adds the admin-group target branch of `isShareableInto` (any item into the admin group), which P34-D's knowledge check then only uses.
+
 Server: `isShareableInto` replacing `isShareable` in chat and description links (spec §2); `KnowledgeCardDto.source`; the read-through routes and file rules accepting a shareable admin-group item; the picker's `source=admin_group`; the global list option.
 
 Web: the visibility words in the admin group ("Only eGrant" default, "Shareable with clients" with its consequence line), the "eGrant tím" badge on cards, pickers, the global list and the read-only view; the picker's source switch.

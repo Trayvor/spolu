@@ -403,6 +403,7 @@ export function KnowledgeForm({
   onUploadingChange,
   fileLocked = false,
   beforeVisibility,
+  adminGroup = false,
 }: {
   value: KnowledgeFormValue;
   onChange: (next: KnowledgeFormValue) => void;
@@ -426,6 +427,8 @@ export function KnowledgeForm({
   fileLocked?: boolean;
   /** Extra fields before "Visible to" (the folder of a chat file being saved as a file). */
   beforeVisibility?: ReactNode;
+  /** An item of the admin group (Phase 34): "Only eGrant" / "Shareable with clients". */
+  adminGroup?: boolean;
 }) {
   const { t } = useTranslation();
   const people = useGroupPeople(groupId).data;
@@ -639,6 +642,7 @@ export function KnowledgeForm({
           value={inAdminsFolder ? 'admins' : value.visibility}
           onChange={setVisibility}
           disabled={visibilityLocked || inAdminsFolder}
+          adminGroup={adminGroup}
           hint={
             inAdminsFolder
               ? t('knowledge.folders.inAdmins')

@@ -276,5 +276,10 @@
     "label": "Zobrazení",
     "list": "Seznam",
     "cards": "Karty"
+  },
+  "adminGroup": {
+    "badge": "eGrant tým",
+    "shareable": "Sdílitelné s klienty",
+    "consequence": "Klienti skupin, kde ji přiložíte, ji budou moci otevřít."
   }
 }

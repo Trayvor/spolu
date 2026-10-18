@@ -269,6 +269,8 @@ export const KnowledgeSummarySchema = z.object({
   chat: KnowledgeChatSourceSchema.nullable().optional(),
   /** A meeting's date and states (Phase 30); null (or absent) for the other types. */
   meeting: MeetingListInfoSchema.nullable().optional(),
+  /** Phase 34: `admin_group` for an item of the admin group "eGrant tím" (its badge). */
+  source: z.literal('admin_group').optional(),
 });
 export type KnowledgeSummary = z.infer<typeof KnowledgeSummarySchema>;
 

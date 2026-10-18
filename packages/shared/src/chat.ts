@@ -50,6 +50,12 @@ export const MessageKnowledgeSchema = z.discriminatedUnion('available', [
     type: z.string(),
     title: z.string(),
     folderPath: z.array(z.string()),
+    /**
+     * Phase 34: `admin_group` for an item of the admin group "eGrant tím" shown in a client's
+     * place (the badge; a non-admin opens it read-only through the place, and its folders stay
+     * hidden: `folderPath` is empty). Absent for the place's own items.
+     */
+    source: z.literal('admin_group').optional(),
   }),
   z.object({ id: z.string(), available: z.literal(false) }),
 ]);

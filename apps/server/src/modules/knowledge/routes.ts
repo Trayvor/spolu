@@ -18,7 +18,9 @@ import {
 import type { AppDeps } from '../../deps.js';
 import { requireAdmin, requireUser } from '../auth/session.js';
 import { deleteDetachedFiles, InvalidAttachmentError } from '../files/service.js';
+import { adminGroupId } from '../groups/admin-group.js';
 import { canReadGroup } from '../groups/policy.js';
+import { isAdmin } from '../users/policy.js';
 import { getGroup } from '../groups/service.js';
 import {
   AuthorRecipientError,
@@ -84,6 +86,11 @@ const GroupListQuerySchema = z.object({
   ...filters,
   folder: z.union([z.literal('root'), IdSchema]).optional(),
   shareable: z.literal('1').optional(),
+  /**
+   * `admin_group` (Phase 34, admins only): the picker's "eGrant tím" source in this group: the
+   * admin group's items marked "Shareable with clients" instead of the group's own.
+   */
+  source: z.literal('admin_group').optional(),
 });
 /** `clients`: comma-separated group ids, at most 200. */
 const GlobalListQuerySchema = z.object({
@@ -167,7 +174,18 @@ export const knowledgeRoutes: FastifyPluginAsync<{
     if (!query.success) return invalid(reply);
     const actor = request.user!;
     if (!(await canOpenGroup(actor, request.params.id))) return notFound(reply);
-    const { type: types, folder, shareable, ...opts } = query.data;
+    const { type: types, folder, shareable, source, ...opts } = query.data;
+    if (source === 'admin_group') {
+      // Only an admin attaches the team's knowledge; a client never browses the admin group.
+      if (!isAdmin(actor)) return notFound(reply);
+      const adminId = await adminGroupId(db);
+      if (adminId === null) return { items: [], nextCursor: null };
+      try {
+        return await listGroupItems(db, actor, adminId, { ...opts, types, shareable: true });
+      } catch (error) {
+        return knowledgeError(reply, error);
+      }
+    }
     try {
       return await listGroupItems(db, actor, request.params.id, {
         ...opts,
@@ -217,9 +235,15 @@ export const knowledgeRoutes: FastifyPluginAsync<{
       if (!(await canOpenGroup(actor, request.params.id))) return notFound(reply);
       const body = KnowledgeDraftSchema.safeParse(request.body);
       if (!body.success) return send(reply, 400, bodyErrorCode(body.error));
+      const draft = body.data;
+      // Phase 34: an item of the admin group is "Only eGrant" unless the body says otherwise.
+      const given = (request.body as { visibility?: unknown } | null)?.visibility;
+      if (given === undefined && (await adminGroupId(db)) === request.params.id) {
+        draft.visibility = 'admins';
+      }
       let item;
       try {
-        ({ item } = await createItem(deps, actor, request.params.id, body.data));
+        ({ item } = await createItem(deps, actor, request.params.id, draft));
       } catch (error) {
         return knowledgeError(reply, error);
       }

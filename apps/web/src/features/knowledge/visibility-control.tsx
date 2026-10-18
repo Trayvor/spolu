@@ -5,31 +5,41 @@ import { cn } from '@/lib/utils';
 
 const FIELD = 'flex flex-col gap-2.5';
 
+/** "Only eGrant" first in the admin group: it is the default there. */
+const ADMIN_GROUP_ORDER: readonly Visibility[] = ['admins', 'public'];
+
 /**
  * "Visible to": two pills in a track, the chosen one ink. A radio group: arrows move the choice.
+ * In the admin group (Phase 34, `adminGroup`) the pills read "Only eGrant" and "Shareable with
+ * clients", and choosing the second says what it means.
  */
 export function VisibilityControl({
   value,
   onChange,
   disabled,
   hint,
+  adminGroup = false,
 }: {
   value: Visibility;
   onChange: (next: Visibility) => void;
   disabled: boolean;
   hint?: string;
+  adminGroup?: boolean;
 }) {
   const { t } = useTranslation();
   const uid = useId();
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
+  const order = adminGroup ? ADMIN_GROUP_ORDER : Visibilities;
+  const shown =
+    hint ?? (adminGroup && value === 'public' ? t('knowledge.adminGroup.consequence') : undefined);
 
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[event.key];
     if (!step) return;
     event.preventDefault();
-    const index = Visibilities.indexOf(value);
-    const next = (index + step + Visibilities.length) % Visibilities.length;
-    onChange(Visibilities[next]!);
+    const index = order.indexOf(value);
+    const next = (index + step + order.length) % order.length;
+    onChange(order[next]!);
     refs.current[next]?.focus();
   };
 
@@ -41,11 +51,11 @@ export function VisibilityControl({
       <div
         role="radiogroup"
         aria-labelledby={`${uid}-label`}
-        aria-describedby={hint ? `${uid}-hint` : undefined}
+        aria-describedby={shown ? `${uid}-hint` : undefined}
         onKeyDown={onKeyDown}
         className="inline-flex max-w-full self-start rounded-full bg-secondary p-1"
       >
-        {Visibilities.map((option, i) => {
+        {order.map((option, i) => {
           const checked = option === value;
           return (
             <button
@@ -67,14 +77,16 @@ export function VisibilityControl({
                 disabled && !checked && 'text-muted-foreground',
               )}
             >
-              {t(`knowledge.visibility.${option}`)}
+              {adminGroup && option === 'public'
+                ? t('knowledge.adminGroup.shareable')
+                : t(`knowledge.visibility.${option}`)}
             </button>
           );
         })}
       </div>
-      {hint && (
+      {shown && (
         <p id={`${uid}-hint`} className="text-tiny text-muted-foreground">
-          {hint}
+          {shown}
         </p>
       )}
     </div>

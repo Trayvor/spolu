@@ -92,20 +92,27 @@ export function canShareKnowledge(
 }
 
 /**
- * Phase 28: an item may be attached to (and is shown in) a chat of `groupId` only while everyone
- * there may read it: an item of that group, public, and every folder up its tree public
- * (`folderVisibilities`, the item's folder first or last, any order).
+ * Whether an item may be attached to (and is shown in) a place of `targetGroupId`: its chats
+ * and the descriptions of its tasks, tickets, projects, events and knowledge items. The same
+ * function answers on save and again on every display. `folderVisibilities`: every folder up
+ * the item's tree, any order. `adminGroupId`: the admin group's id (null if unknown).
+ *
+ * - Phase 28: an item of the target group, public, every folder public (everyone there reads it).
+ * - Phase 34 decision 10: an item of the admin group marked "Shareable with clients" (public)
+ *   with every folder public; never a file of the team's own chat.
+ * - Phase 34 decision 12: into the admin group, any item of any group (its readers are admins).
  */
-export function isShareable(
-  item: { groupId: string; visibility: Visibility | string },
+export function isShareableInto(
+  item: { groupId: string; visibility: Visibility | string; type?: string },
   folderVisibilities: readonly string[],
-  groupId: string,
+  targetGroupId: string,
+  adminGroupId: string | null,
 ): boolean {
-  return (
-    item.groupId === groupId &&
-    item.visibility === 'public' &&
-    folderVisibilities.every((v) => v === 'public')
-  );
+  if (adminGroupId !== null && targetGroupId === adminGroupId) return true;
+  const open = item.visibility === 'public' && folderVisibilities.every((v) => v === 'public');
+  if (!open) return false;
+  if (item.groupId === targetGroupId) return true;
+  return adminGroupId !== null && item.groupId === adminGroupId && item.type !== 'chat_file';
 }
 
 /**

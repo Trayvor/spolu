@@ -135,7 +135,11 @@
       "reminder": "Meeldetuletus",
       "meeting": "Koosolek",
       "chat_file": "Vestlusest"
-    }
+    },
+    "adminGroup": "eGranti meeskond",
+    "source": "Näita allikast",
+    "sourceGroup": "See klient",
+    "adminGroupHint": "Näidatakse ainult kirjeid, mis on märgitud „Klientidega jagatav“."
   },
   "work": {
     "attach": "Lisa teadmine, ülesanne või pilet",

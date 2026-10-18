@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Avatar } from '@/components/avatar';
 import { PaperclipIcon } from '@/components/icons';
 import { Badge } from '@/components/ui/badge';
+import { AdminGroupBadge } from './admin-group-badge';
 import { fileUrl } from '@/features/files/urls';
 import { formatCreated } from '@/features/tasks/dates';
 import { LockIcon, SmallFolderIcon } from './icons';
@@ -48,6 +49,9 @@ export function KnowledgeCard({
             )}
             <TypeLine item={item} />
           </div>
+          {showGroup && item.source === 'admin_group' && (
+            <AdminGroupBadge label={t('knowledge.adminGroup.badge')} />
+          )}
           {item.visibility === 'admins' && (
             <Badge variant="outline" className="shrink-0">
               <LockIcon />

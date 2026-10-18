@@ -1,17 +1,21 @@
 import { eq, inArray } from 'drizzle-orm';
 import type { MessageKnowledge } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
+import { adminGroupIdSql } from '../groups/admin-group.js';
 import { folderChains } from './folders.js';
-import { isShareable } from './policy.js';
+import { isShareableInto } from './policy.js';
 import { knowledgeAttachments, knowledgeItems } from './schema.js';
 
 /** An item's card in a chat message, while everyone in the chat may read it. */
 export type ItemCard = Extract<MessageKnowledge, { available: true }>;
 
 /**
- * Phase 28: the cards of these items that are shareable in `groupId`'s chats now (`isShareable`:
- * the group's, public, every folder public), by id; the others are left out (unavailable). Two
- * queries for any number of ids: the items, then all their folder chains.
+ * The cards of these items that may be shown in a place of `groupId` now (`isShareableInto`:
+ * Phase 28's own public items, Phase 34's admin-group items marked "Shareable with clients", or
+ * anything in the admin group), by id; the others are left out (unavailable). An admin-group
+ * item in a client's place carries `source: 'admin_group'` and no folder path (its folders are
+ * internal). Two queries for any number of ids: the items (with the admin group's id), then all
+ * their folder chains.
  */
 export async function shareableItemCards(
   db: Db,
@@ -29,11 +33,19 @@ export async function shareableItemCards(
       visibility: knowledgeItems.visibility,
       title: knowledgeItems.title,
       folderId: knowledgeItems.folderId,
+      adminGroupId: adminGroupIdSql(),
     })
     .from(knowledgeItems)
     .where(inArray(knowledgeItems.id, unique));
+  const adminGroupId = rows[0]?.adminGroupId ?? null;
+  const intoAdminGroup = adminGroupId !== null && groupId === adminGroupId;
   // Only the rows that can pass need their folders.
-  const candidates = rows.filter((r) => r.groupId === groupId && r.visibility === 'public');
+  const candidates = intoAdminGroup
+    ? rows
+    : rows.filter(
+        (r) =>
+          r.visibility === 'public' && (r.groupId === groupId || r.groupId === adminGroupId),
+      );
   const chainOf = await folderChains(
     db,
     candidates.flatMap((r) => (r.folderId === null ? [] : [r.folderId])),
@@ -41,13 +53,15 @@ export async function shareableItemCards(
   for (const row of candidates) {
     const chain = row.folderId === null ? [] : chainOf(row.folderId);
     const folderVisibilities = chain.map((f) => f.visibility);
-    if (!isShareable(row, folderVisibilities, groupId)) continue;
+    if (!isShareableInto(row, folderVisibilities, groupId, adminGroupId)) continue;
+    const fromAdminGroup = row.groupId === adminGroupId && row.groupId !== groupId;
     cards.set(row.id, {
       id: row.id,
       available: true,
       type: row.type,
       title: row.title,
-      folderPath: chain.map((f) => f.name),
+      folderPath: fromAdminGroup ? [] : chain.map((f) => f.name),
+      ...(fromAdminGroup ? { source: 'admin_group' as const } : {}),
     });
   }
   return cards;

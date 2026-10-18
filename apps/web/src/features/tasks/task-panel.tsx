@@ -553,7 +553,11 @@ function TaskEditor({
             errors={errors}
             files={files}
             onFilesChange={setFiles}
-            knowledge={{ items: linked, onChange: setLinked }}
+            knowledge={{
+              items: linked,
+              onChange: setLinked,
+              subject: { kind: 'task', id: base.id },
+            }}
             knownPeople={base.assignees}
             onUploadingChange={setUploading}
             timeSlot={

@@ -272,5 +272,10 @@
     "label": "Prikaz",
     "list": "Popis",
     "cards": "Kartice"
+  },
+  "adminGroup": {
+    "badge": "eGrant tim",
+    "shareable": "Dijeljivo s klijentima",
+    "consequence": "Klijenti grupa u koje je priložite moći će je otvoriti."
   }
 }

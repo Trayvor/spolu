@@ -265,6 +265,7 @@ export function TicketFields({ ticket, editable }: { ticket: TicketDto; editable
           linked={ticket.linkedKnowledge}
           nameOf={() => undefined}
           via={ticket.tasks === null ? { kind: 'ticket', id: ticket.id } : null}
+          subject={{ kind: 'ticket', id: ticket.id }}
           className="text-button font-medium break-words"
         />
       )}

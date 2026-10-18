@@ -94,10 +94,11 @@ export async function isAttached(db: Db, messageId: string, itemId: string): Pro
 }
 
 /**
- * A file of a knowledge item attached to a live message of a ticket chat the actor reads, while
- * the item is still shareable there: a ziadatel downloads what the item shows them. The group and
- * task chats need no rule (their readers read the group's public files). Registered with the
- * files module by the ticket chat; `readableByRule` never opens an admins-only file.
+ * A file of a knowledge item attached to a live message of a chat the actor reads, while the
+ * item is still shareable there: a ziadatel downloads what the item shows them in a ticket chat,
+ * and (Phase 34) a client downloads the files of an admin-group item shared into their group's
+ * chats (they do not read the admin group's files otherwise). Registered with the files module
+ * by the ticket chat; `readableByRule` never opens an admins-only file.
  */
 export const fileOfAttachedKnowledge: FileReadRule = async (db, actor, file) => {
   const itemIds = await knowledgeItemIdsOfFile(db, file.id);
@@ -115,7 +116,6 @@ export const fileOfAttachedKnowledge: FileReadRule = async (db, actor, file) => 
     .innerJoin(channels, eq(channels.id, messages.channelId))
     .where(and(inArray(messageKnowledgeItems.itemId, itemIds), isNull(messages.deletedAt)));
   for (const row of rows) {
-    if (row.kind === 'group' || row.kind === 'task') continue;
     if (!(await actorReadsChannel(db, actor, row))) continue;
     if ((await shareableItemCards(db, row.groupId, [row.itemId])).has(row.itemId)) return true;
   }

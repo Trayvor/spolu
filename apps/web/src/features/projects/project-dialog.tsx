@@ -218,7 +218,11 @@ export function ProjectDialog({
           editLabel={k('editDescription')}
           error={errors.description}
           errorId={`${uid}-description-error`}
-          knowledge={{ items: linked, onChange: setLinked }}
+          knowledge={{
+            items: linked,
+            onChange: setLinked,
+            subject: project ? { kind: 'project', id: project.id } : null,
+          }}
         />
         <div className={FIELD}>
           <span id={`${uid}-files`} className="text-button font-semibold">

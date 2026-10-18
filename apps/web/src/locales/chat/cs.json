@@ -141,7 +141,11 @@
       "reminder": "Připomínka",
       "meeting": "Schůzka",
       "chat_file": "Z chatu"
-    }
+    },
+    "adminGroup": "eGrant tým",
+    "source": "Zobrazit z",
+    "sourceGroup": "Tento klient",
+    "adminGroupHint": "Zobrazují se jen položky označené Sdílitelné s klienty."
   },
   "work": {
     "attach": "Přiložit znalost, úkol nebo tiket",

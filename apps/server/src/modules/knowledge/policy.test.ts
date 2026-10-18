@@ -9,7 +9,7 @@ import {
   canSetFolderVisibility,
   canSetVisibility,
   canShareKnowledge,
-  isShareable,
+  isShareableInto,
 } from './policy.js';
 
 describe('sharing knowledge in a chat (Phase 28)', () => {
@@ -32,11 +32,33 @@ describe('sharing knowledge in a chat (Phase 28)', () => {
 
   it('only a public item of the group with every folder public is shareable', () => {
     const item = { groupId: 'g1', visibility: 'public' };
-    expect(isShareable(item, ['public', 'public'], 'g1')).toBe(true);
-    expect(isShareable(item, [], 'g1')).toBe(true);
-    expect(isShareable({ ...item, visibility: 'admins' }, [], 'g1')).toBe(false);
-    expect(isShareable(item, ['public', 'admins'], 'g1')).toBe(false);
-    expect(isShareable(item, [], 'g2')).toBe(false);
+    expect(isShareableInto(item, ['public', 'public'], 'g1', 'adm')).toBe(true);
+    expect(isShareableInto(item, [], 'g1', 'adm')).toBe(true);
+    expect(isShareableInto(item, [], 'g1', null)).toBe(true);
+    expect(isShareableInto({ ...item, visibility: 'admins' }, [], 'g1', 'adm')).toBe(false);
+    expect(isShareableInto(item, ['public', 'admins'], 'g1', 'adm')).toBe(false);
+    // Another client's item never goes into this client's places, public or not.
+    expect(isShareableInto(item, [], 'g2', 'adm')).toBe(false);
+    expect(isShareableInto(item, [], 'g2', null)).toBe(false);
+  });
+
+  it('Phase 34: an admin-group item goes into a client only while Shareable with clients', () => {
+    const shared = { groupId: 'adm', visibility: 'public', type: 'note' };
+    expect(isShareableInto(shared, [], 'g1', 'adm')).toBe(true);
+    expect(isShareableInto(shared, ['public'], 'g2', 'adm')).toBe(true);
+    // "Only eGrant", inside an "Only eGrant" folder, or a file of the team's chat: never.
+    expect(isShareableInto({ ...shared, visibility: 'admins' }, [], 'g1', 'adm')).toBe(false);
+    expect(isShareableInto(shared, ['public', 'admins'], 'g1', 'adm')).toBe(false);
+    expect(isShareableInto({ ...shared, type: 'chat_file' }, [], 'g1', 'adm')).toBe(false);
+    // Without a known admin group the item is just another group's.
+    expect(isShareableInto(shared, [], 'g1', null)).toBe(false);
+  });
+
+  it('Phase 34: into the admin group goes any item of any group (its readers are admins)', () => {
+    const hiddenItem = { groupId: 'g1', visibility: 'admins' };
+    expect(isShareableInto(hiddenItem, ['admins'], 'adm', 'adm')).toBe(true);
+    expect(isShareableInto({ groupId: 'g2', visibility: 'public' }, [], 'adm', 'adm')).toBe(true);
+    expect(isShareableInto({ groupId: 'adm', visibility: 'admins' }, [], 'adm', 'adm')).toBe(true);
   });
 });
 

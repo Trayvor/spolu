@@ -135,7 +135,11 @@
       "reminder": "Reminder",
       "meeting": "Meeting",
       "chat_file": "From chat"
-    }
+    },
+    "adminGroup": "eGrant team",
+    "source": "List from",
+    "sourceGroup": "This client",
+    "adminGroupHint": "Only items marked Shareable with clients are listed."
   },
   "work": {
     "attach": "Attach knowledge, a task or a ticket",

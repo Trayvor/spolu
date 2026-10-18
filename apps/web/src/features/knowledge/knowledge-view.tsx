@@ -11,6 +11,7 @@ import { ImagePreview } from '@/features/files/image-preview';
 import { ReminderPanel } from '@/features/reminders/reminder-panel';
 import { Button } from '@/components/ui/button';
 import { ChatSourceLabel, chatSourceLocation } from './chat-source';
+import { AdminGroupBadge } from './admin-group-badge';
 import { ArrowOutIcon, LockIcon, SmallFolderIcon } from './icons';
 import { MeetingWhen, RecordingSection, SummarySection, TranscriptSection } from './meeting-view';
 
@@ -84,9 +85,14 @@ export const KnowledgeView = forwardRef<
             <Avatar userId={item.createdBy.id} name={item.createdBy.name} size={24} />
             {t('knowledge.detail.byline', { name: item.createdBy.name, date })}
           </span>
+          {item.source === 'admin_group' && (
+            <AdminGroupBadge label={t('knowledge.adminGroup.badge')} />
+          )}
           <span className="flex items-center gap-1">
             {item.visibility === 'admins' && <LockIcon />}
-            {t(`knowledge.visibility.${item.visibility}`)}
+            {item.source === 'admin_group' && item.visibility === 'public'
+              ? t('knowledge.adminGroup.shareable')
+              : t(`knowledge.visibility.${item.visibility}`)}
           </span>
         </div>
       </div>
@@ -113,6 +119,7 @@ export const KnowledgeView = forwardRef<
           body=""
           groupId={item.groupId}
           linked={item.linkedKnowledge!}
+          subject={{ kind: 'knowledge', id: item.id }}
           nameOf={nameOf}
         />
       )}
