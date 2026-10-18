@@ -186,7 +186,7 @@ The answer is the usual `201 { "id", "number" }` (or `200` for a repeated `reque
 | `instance_url` | the eGrant instance | required; a URL or a bare host (`mesto-x.egrant.sk`), up to 2048 characters; matched by host like every call |
 | `name` | the client's name, shown in Help | required, 1 to 100 characters after trimming |
 | `logo` | the client's logo | optional. Missing: the current logo stays. `null`: the logo is removed. An object `{ "content_type", "data_base64" }`: the new logo |
-| `logo.content_type` | the image type | `image/png`, `image/jpeg` or `image/webp`; anything else, SVG and GIF included, is `415` |
+| `logo.content_type` | the image type | `image/png`, `image/jpeg`, `image/webp` or `image/svg+xml`; anything else, GIF included, is `415`. An SVG is converted to a PNG (below) |
 | `logo.data_base64` | the image bytes | strict base64 (standard alphabet, padded, no line breaks), at most 2 MiB decoded; the bytes must be a complete image of the declared type |
 | `active` | the group's state | optional boolean. `false`: deactivate; `true`: reactivate. Missing: the state does not change (so a name sync never undoes a deactivation). A new group is always active |
 
@@ -215,8 +215,8 @@ Answer, `201` for a new group, else `200`:
 | `404` | `{ "error": "unknown_instance" }` | `active: false` for an instance Help does not know; nothing is created |
 | `409` | `{ "error": "ambiguous_instance" }` | two groups in Help share this host (an admin set the same address twice); nothing changes until the eGrant team fixes it |
 | `413` | `{ "error": "file_too_large", "fields": ["logo.data_base64"] }` | the logo is over 2 MiB decoded (a body over 3 MiB answers `413` without this body) |
-| `415` | `{ "error": "unsupported_type", "fields": ["logo.content_type"] }` | the declared type is not PNG, JPEG or WebP |
-| `422` | `{ "error": "invalid_logo", "fields": ["logo.data_base64"] }` | the bytes are not a complete image of the declared type (text, SVG, a JPEG declared as PNG, a cut-off file) |
+| `415` | `{ "error": "unsupported_type", "fields": ["logo.content_type"] }` | the declared type is not PNG, JPEG, WebP or SVG |
+| `422` | `{ "error": "invalid_logo", "fields": ["logo.data_base64"] }` | the bytes are not a complete image of the declared type (text, an SVG declared as PNG, a JPEG declared as PNG, a cut-off file), or an SVG that does not parse or has no size |
 | `401`, `429`, `503` | | as in [Limits and common errors](#limits-and-common-errors); 60 calls a minute per IP address |
 
 Nothing is stored when the answer is `4xx`: a refused logo also leaves the name as it was.
@@ -227,7 +227,7 @@ Nothing is stored when the answer is `4xx`: a refused logo also leaves the name 
 
 - Finds the group by host, as every call does. A group an admin created in Help earlier is found and updated; its stored address stays as the admin typed it.
 - A new group gets the same defaults as one created in the app: a client group with a fresh invite link, no members and no managers.
-- The logo is checked by its bytes, not by its declared type, and its metadata (EXIF with GPS and camera data, XMP, IPTC, text chunks, comments, anything after the image's end) is removed before it is stored; the pixels and the colour profile are kept. It is not resized. SVG is never taken (it can carry scripts).
+- The logo is checked by its bytes, not by its declared type, and its metadata (EXIF with GPS and camera data, XMP, IPTC, text chunks, comments, anything after the image's end) is removed before it is stored; the pixels and the colour profile are kept. PNG, JPEG and WebP are not resized. **An SVG is converted to a PNG** whose longer side is 512 px (the ratio is kept) and only that PNG is stored and served, never the SVG ([ADR 0039](../decisions/0039-svg-logos-rendered-to-png-with-resvg-wasm.md)). The converter runs no scripts and loads nothing outside the file: `<script>`, event handlers, external or local links and `<foreignObject>` draw nothing, and images embedded as `data:` URIs are drawn. No fonts are loaded, so convert text in an SVG logo to paths, or it will be missing.
 - It never deletes a group, and never adds, removes or changes members or managers (the [managers call](#managers) does members).
 - **Deactivation** (`active: false`, the same action as "Deactivate" in the app): the group's clients and requesters lose access to it at once (their accounts stay), it disappears from Help's lists, nothing new can be added to it, its pending notifications stop. Nothing is deleted. While it is deactivated the [ticket intake](#tickets) and the [managers call](#managers) for its instance answer `409 group_inactive`. `active: true` brings everything back as it was.
 

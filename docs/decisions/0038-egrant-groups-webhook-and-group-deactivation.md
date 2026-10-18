@@ -1,4 +1,4 @@
-# 0037 eGrant groups webhook (JSON logo, no image library) and group deactivation by a database guard
+# 0038 eGrant groups webhook (JSON logo, no image library) and group deactivation by a database guard
 
 Date: 2026-10-18
 Status: accepted
@@ -10,7 +10,7 @@ Admins created every client group in the app. eGrant knows its instances (client
 2. How "nothing new is created in a deactivated group" is enforced. Writes into a group go through dozens of routes in ten modules, many keyed by an item id (`/tasks/:id`, `/messages/:id`), plus jobs and integrations.
 
 ## Decision
-- **The logo is base64 in the JSON body** (`{ content_type, data_base64 }`, at most 2 MiB decoded, body limit 3 MiB for this route only), so eGrant needs no multipart. The declared type must be PNG, JPEG or WebP (`415`; SVG never, it can carry scripts) and the bytes must sniff as that type (`422`).
+- **The logo is base64 in the JSON body** (`{ content_type, data_base64 }`, at most 2 MiB decoded, body limit 3 MiB for this route only), so eGrant needs no multipart. The declared type must be PNG, JPEG or WebP (`415`) and the bytes must sniff as that type (`422`). SVG was refused here at first (it can carry scripts); [ADR 0039](0039-svg-logos-rendered-to-png-with-resvg-wasm.md) now accepts it by rendering it to a PNG.
 - **Metadata is stripped by walking the file structure, without decoding** (`modules/groups/logo-metadata.ts`): PNG text, EXIF and time chunks, JPEG APP1 (EXIF, XMP), APP13 (IPTC), other APPn but JFIF, ICC and Adobe, and comments, WebP EXIF and XMP chunks (with their VP8X flags), and every byte after the image's end. A broken structure is refused. No image library (sharp and similar are native and large); the logo is not resized, which the 2 MiB limit makes acceptable. The in-app upload is unchanged.
 - **Its own optional key**: `EGRANT_GROUPS_API_KEY`, falling back to `TICKETS_API_KEY` (`egrantGroupsKey` in the config), checked 503, 429, 401 before the body like the managers webhook. Creating groups is a stronger power than sending tickets, so it may be split off later without a code change.
 - **Deactivation is a nullable `groups.deactivated_at`** (migration 0049). Nothing is deleted. One service, `setGroupActive` (`modules/groups/deactivation.ts`), serves the app's buttons and the webhook: it sets the column, drops the group's pending notifications, moves its clients' sockets out of (or back into) its room and emits `group:status`.

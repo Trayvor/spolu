@@ -103,13 +103,13 @@ Content-Type: application/json
 | `instance_url` | string | required; URL or bare host, 1–2048 characters after trimming; must be http(s) (`ftp://…` is `400`) |
 | `name` | string | required; 1–100 characters after trimming |
 | `logo` | object or `null` | optional. **Omitted:** the current logo stays. **`null`:** the logo is removed. **Object:** replaces it |
-| `logo.content_type` | string | `image/png`, `image/jpeg` or `image/webp` (case-insensitive; parameters after `;` ignored). Anything else, including `image/svg+xml` and `image/gif`, is `415`. Convert SVG/GIF logos to PNG in eGrant before sending |
+| `logo.content_type` | string | `image/png`, `image/jpeg`, `image/webp` or `image/svg+xml` (case-insensitive; parameters after `;` ignored). Anything else, including `image/gif`, is `415`. Send an SVG logo as it is: Help converts it to PNG (below). Convert GIF to PNG in eGrant before sending |
 | `logo.data_base64` | string | the file bytes, **strict base64**: standard alphabet `A–Z a–z 0–9 + /`, `=` padding, no line breaks, no spaces, no `data:` prefix (PHP `base64_encode($bytes)`). At most **2 MiB decoded** (2 097 152 bytes). The bytes must be a complete image of `content_type` |
 | `active` | boolean | optional. `false`: deactivate; `true`: reactivate. **Omitted: the state does not change** (send it only on the explicit operator action). A new group is always created active |
 
 Unknown fields are ignored. The whole body may be at most 3 MiB.
 
-Help removes the image's metadata (EXIF/GPS, XMP, IPTC, comments, text chunks, trailing bytes) and does not resize it; sending a reasonably small logo (for example up to 512×512 px) is kind to every client's browser.
+Help removes the image's metadata (EXIF/GPS, XMP, IPTC, comments, text chunks, trailing bytes) and does not resize a PNG, JPEG or WebP; sending a reasonably small logo (for example up to 512×512 px) is kind to every client's browser. An **SVG** (`image/svg+xml`) is converted on Help's side to a PNG whose longer side is 512 px (the ratio is kept); only the PNG is stored, never the SVG. Scripts, event handlers, links to other files or URLs and `<foreignObject>` are ignored (they draw nothing); images embedded as `data:` URIs are drawn. Help loads no fonts, so text in the SVG must be converted to paths (outlines) or it will be missing. The SVG must parse and have a size (`width`/`height` or a `viewBox`), else `422`.
 
 ### 3.3 Responses
 
@@ -126,8 +126,8 @@ Help removes the image's metadata (EXIF/GPS, XMP, IPTC, comments, text chunks, t
 | `409` | `{ "error": "ambiguous_instance" }` | two Help groups share the host (a Help admin's double entry) | alert the Help team; no retry |
 | `409` | `{ "error": "egrant_url_taken" }` | very unlikely race on the stored address | retry once later, then alert |
 | `413` | `{ "error": "file_too_large", "fields": ["logo.data_base64"] }` | logo over 2 MiB decoded (a body over 3 MiB: `413` without this body) | shrink the logo; no retry unchanged |
-| `415` | `{ "error": "unsupported_type", "fields": ["logo.content_type"] }` | not PNG/JPEG/WebP | convert; no retry unchanged |
-| `422` | `{ "error": "invalid_logo", "fields": ["logo.data_base64"] }` | bytes are not a complete image of that type (text, SVG, a JPEG declared as PNG, a truncated file) | fix the type or the file; no retry |
+| `415` | `{ "error": "unsupported_type", "fields": ["logo.content_type"] }` | not PNG/JPEG/WebP/SVG | convert; no retry unchanged |
+| `422` | `{ "error": "invalid_logo", "fields": ["logo.data_base64"] }` | bytes are not a complete image of that type (text, an SVG declared as PNG, a JPEG declared as PNG, a truncated file), or an SVG that does not parse or has no size | fix the type or the file; no retry |
 | `429` | `{ "error": "rate_limited" }` | over 60 calls a minute from this IP | retry with backoff |
 | `503` | `{ "error": "intake_disabled" }` | no key configured in Help | retry with backoff; alert if it lasts |
 
@@ -334,7 +334,9 @@ curl -s -X PUT $H/api/egrant/groups "${auth[@]}" -d '{"instance_url":"acceptance
 LOGO=$(base64 < logo.png | tr -d '\n')
 curl -s -X PUT $H/api/egrant/groups "${auth[@]}" -d "{\"instance_url\":\"$I\",\"name\":\"Acceptance Test 1 renamed\",\"logo\":{\"content_type\":\"image/png\",\"data_base64\":\"$LOGO\"}}"
 
-# A5 refused logos: SVG → 415 unsupported_type; text as PNG → 422 invalid_logo; > 2 MiB → 413 file_too_large
+# A5 SVG logo → 200 updated (Help stores it as a PNG); refused logos: an SVG without a size or text as PNG → 422 invalid_logo; > 2 MiB → 413 file_too_large
+SVG=$(base64 < logo.svg | tr -d '\n')
+curl -s -X PUT $H/api/egrant/groups "${auth[@]}" -d "{\"instance_url\":\"$I\",\"name\":\"Acceptance Test 1 renamed\",\"logo\":{\"content_type\":\"image/svg+xml\",\"data_base64\":\"$SVG\"}}"
 curl -s -X PUT $H/api/egrant/groups "${auth[@]}" -d "{\"instance_url\":\"$I\",\"name\":\"x\",\"logo\":{\"content_type\":\"image/svg+xml\",\"data_base64\":\"PHN2Zz48L3N2Zz4=\"}}"
 curl -s -X PUT $H/api/egrant/groups "${auth[@]}" -d "{\"instance_url\":\"$I\",\"name\":\"x\",\"logo\":{\"content_type\":\"image/png\",\"data_base64\":\"aGVsbG8=\"}}"
 

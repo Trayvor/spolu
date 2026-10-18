@@ -200,7 +200,7 @@ export const EGRANT_GROUP_LIMITS = {
  * `PUT /api/egrant/groups` (the eGrant groups webhook): creates the client group of
  * `instance_url` or updates its name and logo. `instance_url` is a URL or a bare host, matched by
  * host like the other webhooks. `logo` omitted keeps the current logo, `null` removes it. The
- * route checks `content_type` against PNG, JPEG and WebP (415) and the bytes (422), not here.
+ * route checks `content_type` against PNG, JPEG, WebP and SVG (415) and the bytes (422), not here.
  */
 export const EgrantGroupBodySchema = z.object({
   instance_url: z.string().trim().min(1).max(2048),

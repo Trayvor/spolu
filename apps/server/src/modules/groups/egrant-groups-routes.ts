@@ -18,6 +18,7 @@ import { setGroupActive } from './deactivation.js';
 import { egrantInstanceUrl, normalizeEgrantUrl } from './egrant-url.js';
 import { removeGroupLogo, replaceGroupLogo } from './logo.js';
 import { stripImageMetadata } from './logo-metadata.js';
+import { renderSvgLogo } from './logo-svg.js';
 import {
   createGroup,
   EgrantUrlTakenError,
@@ -38,23 +39,28 @@ const fail = (status: number, error: string, fields?: string[]): Answer => ({
   body: fields ? { error, fields } : { error },
 });
 
+const SVG = 'image/svg+xml';
+
 /**
- * Checks and cleans the sent logo: the declared type must be PNG, JPEG or WebP (415; SVG never,
- * it can carry scripts), at most 2 MiB (413), and the bytes must be that image (422). The
- * metadata is stripped. Undefined keeps the logo, null removes it.
+ * Checks and cleans the sent logo: the declared type must be PNG, JPEG, WebP or SVG (415), at
+ * most 2 MiB (413), and the bytes must be that image (422). The metadata is stripped. An SVG is
+ * rendered to a PNG first (`renderSvgLogo`), so only the PNG is stored. Undefined keeps the
+ * logo, null removes it.
  */
-function readLogo(logo: EgrantGroupBody['logo']): Logo | null | undefined | Answer {
+async function readLogo(logo: EgrantGroupBody['logo']): Promise<Logo | null | undefined | Answer> {
   if (logo === undefined || logo === null) return logo;
   const declared = logo.content_type.split(';')[0]!.trim();
-  if (!(IMAGE_TYPES as readonly string[]).includes(declared)) {
+  if (declared !== SVG && !(IMAGE_TYPES as readonly string[]).includes(declared)) {
     return fail(415, ErrorCodes.unsupportedType, ['logo.content_type']);
   }
   if (base64DecodedSize(logo.data_base64) > EGRANT_GROUP_LIMITS.logoBytes) {
     return fail(413, ErrorCodes.fileTooLarge, [LOGO_FIELD]);
   }
-  const raw = Buffer.from(logo.data_base64, 'base64');
-  const type = sniffImageType(raw);
-  const bytes = type === declared ? stripImageMetadata(raw, type) : null;
+  const sent = Buffer.from(logo.data_base64, 'base64');
+  const raw = declared === SVG ? await renderSvgLogo(sent) : sent;
+  const type = raw && sniffImageType(raw);
+  const expected = declared === SVG ? 'image/png' : declared;
+  const bytes = raw && type === expected ? stripImageMetadata(raw, type) : null;
   if (!type || !bytes) return fail(422, ErrorCodes.invalidLogo, [LOGO_FIELD]);
   return { bytes, type };
 }
@@ -122,7 +128,7 @@ export const egrantGroupsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (
   const handle = async (body: EgrantGroupBody): Promise<Answer> => {
     const url = normalizeEgrantUrl(egrantInstanceUrl(body.instance_url));
     if (!url) return fail(400, ErrorCodes.validationFailed, ['instance_url']);
-    const logo = readLogo(body.logo);
+    const logo = await readLogo(body.logo);
     if (isAnswer(logo)) return logo;
 
     const found = await findGroupsByEgrantUrl(db, url, 2);

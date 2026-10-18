@@ -1,4 +1,7 @@
 import { randomUUID } from 'node:crypto';
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import type { Readable } from 'node:stream';
 import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -350,15 +353,129 @@ describe('eGrant groups webhook (create or update a client group)', () => {
       expect(await groupsOfHost(h)).toEqual([]);
     });
 
-    it('SVG or another declared type is 415 unsupported_type and creates nothing', async () => {
+    it('another declared type (GIF, PDF) is 415 unsupported_type and creates nothing', async () => {
       const h = host();
-      const svg = Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"><script>x()</script></svg>');
-      for (const type of ['image/svg+xml', 'image/gif', 'application/pdf']) {
-        const res = await hook({ instance_url: h, name: 'S', logo: logo(svg, type) });
+      for (const type of ['image/gif', 'application/pdf', 'text/xml']) {
+        const res = await hook({ instance_url: h, name: 'S', logo: logo(pngWith(), type) });
         expect(res.statusCode).toBe(415);
         expect(res.json()).toEqual({ error: 'unsupported_type', fields: ['logo.content_type'] });
       }
       expect(await groupsOfHost(h)).toEqual([]);
+    });
+
+    describe('SVG', () => {
+      const svg = (inner: string, size = 'width="40" height="20"') =>
+        Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" ${size}>${inner}</svg>`);
+      const RECT = '<rect width="40" height="20" fill="#e30613"/>';
+      const PNG_MAGIC = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+      /** Width and height from the PNG's IHDR. */
+      const pngSize = (bytes: Buffer) => [bytes.readUInt32BE(16), bytes.readUInt32BE(20)];
+      const sendSvg = async (bytes: Buffer, type = 'image/svg+xml') => {
+        const res = await hook({ instance_url: host(), name: 'Svg', logo: logo(bytes, type) });
+        return { res, group_id: (res.json() as { group_id?: string }).group_id };
+      };
+      /** The PNG stored for this SVG in a fresh group. */
+      const renderedBytes = async (bytes: Buffer) =>
+        (await storedLogo((await sendSvg(bytes)).group_id!))!.bytes;
+
+      it('is converted to a PNG fitted into 512 px; the SVG itself is never stored', async () => {
+        const { res, group_id } = await sendSvg(svg(`${RECT}<!-- ${SECRET} -->`));
+        expect(res.statusCode).toBe(201);
+        const stored = (await storedLogo(group_id!))!;
+        expect(stored.key).toMatch(new RegExp(`^groups/${group_id}/logo-[a-z0-9]+\\.png$`));
+        expect(stored.type).toBe('image/png');
+        expect(stored.bytes.subarray(0, 8).equals(PNG_MAGIC)).toBe(true);
+        // The longer side is 512, the aspect ratio stays.
+        expect(pngSize(stored.bytes)).toEqual([512, 256]);
+        expect(stored.bytes.toString('latin1')).not.toContain('svg');
+        expect(stored.bytes.toString('latin1')).not.toContain('GPS');
+
+        // A tall SVG fits by its height; a declared type with parameters is accepted.
+        const tall = await sendSvg(
+          svg(RECT, 'viewBox="0 0 10 1000"'),
+          'Image/SVG+XML; charset=utf-8',
+        );
+        expect(tall.res.statusCode).toBe(201);
+        expect(pngSize((await storedLogo(tall.group_id!))!.bytes)).toEqual([5, 512]);
+      });
+
+      it('the same SVG again is unchanged', async () => {
+        const h = host();
+        const first = await hook({
+          instance_url: h,
+          name: 'Same',
+          logo: logo(svg(RECT), 'image/svg+xml'),
+        });
+        const { group_id } = first.json() as { group_id: string };
+        const key = (await storedLogo(group_id))!.key;
+        const again = await hook({
+          instance_url: h,
+          name: 'Same',
+          logo: logo(svg(RECT), 'image/svg+xml'),
+        });
+        expect(again.json()).toEqual({ state: 'unchanged', group_id });
+        expect((await storedLogo(group_id))!.key).toBe(key);
+      });
+
+      it('scripts, event handlers and external or local references are rendered harmlessly', async () => {
+        // A real PNG on the server's disk: the renderer must not read it into the logo.
+        const red = await renderedBytes(svg(RECT));
+        const dir = await mkdtemp(join(tmpdir(), 'spolu-svg-'));
+        const local = join(dir, 'secret.png');
+        await writeFile(local, red);
+        try {
+          const plain = await renderedBytes(svg(''));
+          const hostile = svg(
+            '<script>alert(document.cookie)</script>' +
+              '<image href="http://127.0.0.1:9/x.png" width="40" height="20"/>' +
+              `<image href="${local}" width="40" height="20"/>` +
+              `<image href="file://${local}" width="40" height="20"/>` +
+              '<foreignObject width="40" height="20"><div xmlns="http://www.w3.org/1999/xhtml">x</div></foreignObject>',
+            'width="40" height="20" onload="alert(1)"',
+          );
+          const { res, group_id } = await sendSvg(hostile);
+          expect(res.statusCode).toBe(201);
+          const stored = (await storedLogo(group_id!))!;
+          expect(stored.type).toBe('image/png');
+          expect(stored.bytes.subarray(0, 8).equals(PNG_MAGIC)).toBe(true);
+          for (const text of ['script', 'alert', 'onload', 'http', 'secret']) {
+            expect(stored.bytes.toString('latin1')).not.toContain(text);
+          }
+          // Nothing was drawn: the same pixels as an empty SVG of that size.
+          expect(stored.bytes.equals(plain)).toBe(true);
+        } finally {
+          await rm(dir, { recursive: true, force: true });
+        }
+      });
+
+      it('malformed SVG or other bytes declared as SVG are 422 invalid_logo', async () => {
+        const h = host();
+        for (const bytes of [
+          Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"><rect'),
+          Buffer.from('<html><body>not an svg</body></html>'),
+          Buffer.from('just some text'),
+          svg(RECT, 'width="0" height="0"'),
+          pngWith(),
+        ]) {
+          const res = await hook({
+            instance_url: h,
+            name: 'Bad',
+            logo: logo(bytes, 'image/svg+xml'),
+          });
+          expect(res.statusCode).toBe(422);
+          expect(res.json()).toEqual({ error: 'invalid_logo', fields: ['logo.data_base64'] });
+        }
+        expect(await groupsOfHost(h)).toEqual([]);
+      });
+
+      it('an SVG over 2 MiB is 413 file_too_large and creates nothing', async () => {
+        const h = host();
+        const big = svg(`<!-- ${'x'.repeat(2 * 1024 * 1024)} -->${RECT}`);
+        const res = await hook({ instance_url: h, name: 'Big', logo: logo(big, 'image/svg+xml') });
+        expect(res.statusCode).toBe(413);
+        expect(res.json()).toEqual({ error: 'file_too_large', fields: ['logo.data_base64'] });
+        expect(await groupsOfHost(h)).toEqual([]);
+      });
     });
 
     it('bytes that are not the declared image are 422 invalid_logo, the old logo stays', async () => {
