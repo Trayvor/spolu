@@ -424,7 +424,7 @@ export const groupsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, {
         auditActorOf(request),
       );
       if (lastActive) {
-        await deactivateUser(db, target.id);
+        await deactivateUser(db, target.id, auditActorOf(request));
         await revokeAllSessions(db, target.id);
         disconnectUser(app.io, target.id);
       } else {

@@ -15,6 +15,7 @@ import { serverTexts } from '../../infra/i18n/index.js';
 import { user } from '../users/schema.js';
 import { deactivateUser } from '../users/service.js';
 import { passkeys, session, verification } from './schema.js';
+import { auditRowsOf } from '../audit/test-helpers.js';
 
 let test: Awaited<ReturnType<typeof buildTestApp>>;
 let app: FastifyInstance;
@@ -133,6 +134,30 @@ describe('passkey registration (admins, in settings)', () => {
       headers: { cookie: admin.cookie },
     });
     expect(after.json()).toEqual([]);
+  });
+
+  it('adding and deleting a passkey records passkey.added and passkey.deleted with its name', async () => {
+    const admin = await signedInAdmin();
+    await registerPasskey(admin.cookie, 'Audit laptop');
+    const [item] = PasskeyListSchema.parse(
+      (
+        await app.inject({
+          method: 'GET',
+          url: '/api/me/passkeys',
+          headers: { cookie: admin.cookie },
+        })
+      ).json(),
+    );
+    await app.inject({
+      method: 'DELETE',
+      url: `/api/me/passkeys/${item!.id}`,
+      headers: { cookie: admin.cookie },
+    });
+    const rows = await auditRowsOf(test.deps.db, item!.id);
+    expect(rows.map((r) => [r.entityType, r.action, r.entityLabel, r.actorUserId])).toEqual([
+      ['passkey', 'added', 'Audit laptop', admin.id],
+      ['passkey', 'deleted', 'Audit laptop', admin.id],
+    ]);
   });
 
   it('excludes the passkeys the admin already has', async () => {

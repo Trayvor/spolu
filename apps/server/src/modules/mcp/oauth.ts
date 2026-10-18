@@ -1,5 +1,18 @@
 import { createHash, createHmac, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
-import { and, count, desc, eq, gt, isNotNull, isNull, lt, notExists, or, sql } from 'drizzle-orm';
+import {
+  and,
+  count,
+  desc,
+  eq,
+  gt,
+  inArray,
+  isNotNull,
+  isNull,
+  lt,
+  notExists,
+  or,
+  sql,
+} from 'drizzle-orm';
 import { z } from 'zod';
 import {
   MCP_OAUTH_LIMITS,
@@ -20,6 +33,9 @@ import {
   mcpOAuthRefreshTokens,
   mcpTokens,
 } from './schema.js';
+import { systemActor, userActor, type AuditActor } from '../audit/actor.js';
+import { diffFields } from '../audit/diff.js';
+import { recordAudit, type AuditEntry } from '../audit/service.js';
 
 /**
  * OAuth 2.1 for the MCP server (ADR 0034, spec 2026-10-18-mcp-oauth-design.md): Help is its own
@@ -484,14 +500,19 @@ async function activeMcpUser(db: Db, userId: string): Promise<SessionUser | null
   return sessionUser && canUseMcp(sessionUser) ? sessionUser : null;
 }
 
-/** Ends a connection: no more refresh, and its access token stops at once. */
-async function revokeGrantById(db: Db, grantId: string): Promise<void> {
+/**
+ * Ends a connection: no more refresh, and its access token stops at once. `by`: the author of
+ * the audit row (the person, or the system for a detected reuse).
+ */
+async function revokeGrantById(db: Db, grantId: string, by?: AuditActor): Promise<void> {
   const now = new Date();
   await db.transaction(async (tx) => {
-    await tx
+    const revoked = await tx
       .update(mcpOAuthGrants)
       .set({ revokedAt: now })
-      .where(and(eq(mcpOAuthGrants.id, grantId), isNull(mcpOAuthGrants.revokedAt)));
+      .where(and(eq(mcpOAuthGrants.id, grantId), isNull(mcpOAuthGrants.revokedAt)))
+      .returning({ id: mcpOAuthGrants.id, clientId: mcpOAuthGrants.clientId });
+    if (by) await recordAudit(tx, by, await connectionRows(tx, revoked, 'revoked'));
     await tx
       .update(mcpTokens)
       .set({ revokedAt: now })
@@ -535,7 +556,7 @@ export async function exchangeCode(
       .select({ grantId: mcpOAuthCodes.grantId })
       .from(mcpOAuthCodes)
       .where(eq(mcpOAuthCodes.codeHash, codeHash));
-    if (used?.grantId) await revokeGrantById(db, used.grantId);
+    if (used?.grantId) await revokeGrantById(db, used.grantId, REUSE);
     throw new OAuthError(400, 'invalid_grant');
   }
   if (row.clientId !== client.id || row.expiresAt <= now || row.redirectUri !== redirectUri) {
@@ -548,7 +569,8 @@ export async function exchangeCode(
   if (!VERIFIER.test(verifier)) throw new OAuthError(400, 'invalid_grant');
   const challenge = createHash('sha256').update(verifier).digest('base64url');
   if (!safeEqual(challenge, row.codeChallenge)) throw new OAuthError(400, 'invalid_grant');
-  if (!(await activeMcpUser(db, row.userId))) throw new OAuthError(400, 'invalid_grant');
+  const owner = await activeMcpUser(db, row.userId);
+  if (!owner) throw new OAuthError(400, 'invalid_grant');
 
   const access = newAccessToken();
   const refreshToken = REFRESH_TOKEN_PREFIX + secret();
@@ -563,6 +585,18 @@ export async function exchangeCode(
       createdAt: now,
       expiresAt: new Date(now.getTime() + OAUTH_TTL.refreshMs),
     });
+    // The connection exists from the first exchange of the code the person approved: they are
+    // its author.
+    await recordAudit(tx, userActor(owner), [
+      {
+        entityType: 'oauth_connection',
+        entityId: grantId,
+        entityLabel: client.name,
+        groupId: null,
+        action: 'approved',
+        changes: diffFields('oauth_connection', null, { client: client.name, scope: row.scope }),
+      },
+    ]);
     await tx.insert(mcpTokens).values({
       id: randomUUID(),
       userId: row.userId,
@@ -630,7 +664,7 @@ export async function refreshTokens(
   // Another client's token is not this client's to use, nor to burn.
   if (!found || found.clientId !== client.id) throw new OAuthError(400, 'invalid_grant');
   if (found.usedAt) {
-    await revokeGrantById(db, found.grantId);
+    await revokeGrantById(db, found.grantId, REUSE);
     throw new OAuthError(400, 'invalid_grant');
   }
   if (found.revokedAt || found.expiresAt <= now) throw new OAuthError(400, 'invalid_grant');
@@ -648,7 +682,7 @@ export async function refreshTokens(
     .returning({ id: mcpOAuthRefreshTokens.id });
   if (!claimed) {
     // Two refreshes with one token at the same moment: one of them is a copy.
-    await revokeGrantById(db, found.grantId);
+    await revokeGrantById(db, found.grantId, REUSE);
     throw new OAuthError(400, 'invalid_grant');
   }
   if (!(await activeMcpUser(db, found.userId))) throw new OAuthError(400, 'invalid_grant');
@@ -718,7 +752,9 @@ export async function revokeByToken(db: Db, client: ClientRow, raw: string): Pro
         .from(mcpTokens)
         .innerJoin(mcpOAuthGrants, eq(mcpOAuthGrants.id, mcpTokens.oauthGrantId))
         .where(and(eq(mcpTokens.tokenHash, tokenHash), isNotNull(mcpTokens.oauthGrantId)));
-  if (viaAccess && viaAccess.clientId === client.id) await revokeGrantById(db, viaAccess.grantId);
+  if (viaAccess && viaAccess.clientId === client.id) {
+    await revokeGrantById(db, viaAccess.grantId, systemActor('mcp.oauth-client-revoke'));
+  }
 }
 
 // ---------------------------------------------------------------- the settings card
@@ -758,7 +794,12 @@ export async function listConnections(db: Db, userId: string): Promise<McpConnec
 }
 
 /** Revokes one of the user's own connections; false for another user's or an unknown one. */
-export async function revokeConnection(db: Db, userId: string, grantId: string): Promise<boolean> {
+export async function revokeConnection(
+  db: Db,
+  userId: string,
+  grantId: string,
+  by?: AuditActor,
+): Promise<boolean> {
   const [row] = await db
     .select({ id: mcpOAuthGrants.id })
     .from(mcpOAuthGrants)
@@ -770,14 +811,51 @@ export async function revokeConnection(db: Db, userId: string, grantId: string):
       ),
     );
   if (!row) return false;
-  await revokeGrantById(db, row.id);
+  await revokeGrantById(db, row.id, by);
   return true;
 }
 
-/** Every connection of the user (deactivation). */
-export async function revokeAllConnections(db: Db, userId: string): Promise<void> {
-  await db
+/** Every connection of the user (deactivation; its audit rows are the deactivation's consequences). */
+export async function revokeAllConnections(
+  db: Db,
+  userId: string,
+  consequence?: { by: AuditActor; causeId: string },
+): Promise<void> {
+  const revoked = await db
     .update(mcpOAuthGrants)
     .set({ revokedAt: new Date() })
-    .where(and(eq(mcpOAuthGrants.userId, userId), isNull(mcpOAuthGrants.revokedAt)));
+    .where(and(eq(mcpOAuthGrants.userId, userId), isNull(mcpOAuthGrants.revokedAt)))
+    .returning({ id: mcpOAuthGrants.id, clientId: mcpOAuthGrants.clientId });
+  if (consequence) {
+    const rows = await connectionRows(db, revoked, 'revoked');
+    await recordAudit(
+      db,
+      consequence.by,
+      rows.map((r) => ({ ...r, causeId: consequence.causeId })),
+    );
+  }
+}
+
+/** A detected reuse of a code or refresh token revokes the connection with no person behind it. */
+const REUSE = systemActor('mcp.oauth-reuse');
+
+/** The audit rows of connections, labelled with their client's name (one query). */
+async function connectionRows(
+  db: Db,
+  grants: { id: string; clientId: string }[],
+  action: 'revoked',
+): Promise<AuditEntry[]> {
+  if (grants.length === 0) return [];
+  const clients = await db
+    .select({ id: mcpOAuthClients.id, name: mcpOAuthClients.name })
+    .from(mcpOAuthClients)
+    .where(inArray(mcpOAuthClients.id, [...new Set(grants.map((g) => g.clientId))]));
+  const names = new Map(clients.map((c) => [c.id, c.name]));
+  return grants.map((g) => ({
+    entityType: 'oauth_connection',
+    entityId: g.id,
+    entityLabel: names.get(g.clientId) ?? g.clientId,
+    groupId: null,
+    action,
+  }));
 }

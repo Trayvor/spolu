@@ -31,6 +31,7 @@ import {
   verifyConsentToken,
 } from './oauth.js';
 import { canUseMcp } from './policy.js';
+import { auditActorOf } from '../audit/request-actor.js';
 
 /**
  * The OAuth endpoints of the MCP server (ADR 0034): the metadata at `/.well-known/*`, dynamic
@@ -241,7 +242,12 @@ export const mcpConsentRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (ap
     '/me/mcp/connections/:id',
     { preHandler: mcpUser },
     async (request, reply) => {
-      const revoked = await revokeConnection(db, request.user!.id, request.params.id);
+      const revoked = await revokeConnection(
+        db,
+        request.user!.id,
+        request.params.id,
+        auditActorOf(request),
+      );
       if (!revoked) return reply.code(404).send({ error: ErrorCodes.notFound });
       return reply.code(204).send();
     },
