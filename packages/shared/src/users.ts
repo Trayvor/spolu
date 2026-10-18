@@ -151,6 +151,11 @@ export const ErrorCodes = {
   snippetLimit: 'snippet_limit',
   savedViewLimit: 'saved_view_limit',
   mcpConnectionLimit: 'mcp_connection_limit',
+  // Admin passkeys (ADR 0050): a stale session needs the emailed re-check code first; at most
+  // PASSKEY_LIMITS.perUser passkeys; a registration the server could not verify.
+  reauthRequired: 'reauth_required',
+  passkeyLimit: 'passkey_limit',
+  passkeyInvalid: 'passkey_invalid',
   // Microsoft Teams (T1)
   teamsNotOrganizer: 'teams_not_organizer',
   teamsInvalidLink: 'teams_invalid_link',

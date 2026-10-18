@@ -1,4 +1,4 @@
-import { index, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
+import { bigint, boolean, index, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
 import { tickets } from '../tickets/schema.js';
 import { user } from '../users/schema.js';
 
@@ -85,4 +85,37 @@ export const ticketSignInLinks = pgTable(
     index('ticket_sign_in_links_ticket_id_idx').on(t.ticketId),
     index('ticket_sign_in_links_expires_at_idx').on(t.expiresAt),
   ],
+);
+
+/**
+ * Admins' passkeys (WebAuthn, ADR 0050): one row per registered credential. Only the public key
+ * is stored. A passkey signs its user in only while they are an admin and not deactivated
+ * (checked at every use). Owned by us, not by better-auth. The pending challenges live in
+ * better-auth's `verification` table (single use, 5 minutes).
+ */
+export const passkeys = pgTable(
+  'passkeys',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    /** The credential id, base64url; what the browser answers with at sign-in. */
+    credentialId: text('credential_id').notNull().unique(),
+    /** The COSE public key, base64url. */
+    publicKey: text('public_key').notNull(),
+    /** The WebAuthn user handle the passkey was made with, base64url (not our user id). */
+    webauthnUserId: text('webauthn_user_id').notNull(),
+    /** The authenticator's signature counter; 0 for passkeys that do not count. */
+    counter: bigint('counter', { mode: 'number' }).notNull().default(0),
+    /** The transports the browser reported (`internal`, `hybrid`, `usb`, ...), comma-separated. */
+    transports: text('transports').notNull().default(''),
+    /** `singleDevice` or `multiDevice` (a synced passkey). */
+    deviceType: text('device_type').notNull(),
+    backedUp: boolean('backed_up').notNull().default(false),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    lastUsedAt: timestamp('last_used_at', { withTimezone: true }),
+  },
+  (t) => [index('passkeys_user_id_idx').on(t.userId)],
 );

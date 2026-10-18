@@ -20,5 +20,11 @@
   "invite": {
     "by": "{{name}} kutsub teid gruppi {{group}}.",
     "about": "Helpis teete koostööd eGranti meeskonnaga: vestlus, ülesanded, tugipöördumised ja jagatud dokumendid ühes kohas."
+  },
+  "passkey": {
+    "button": "Logige sisse pääsuvõtmega (passkey)",
+    "hint": "Administraatoritele, kes on pääsuvõtme Seadetes lisanud.",
+    "invalid": "Seda pääsuvõtit ei saa kasutada. Logige sisse e-posti koodiga.",
+    "failed": "Pääsuvõtmega sisselogimine ebaõnnestus. Proovige uuesti või logige sisse e-posti koodiga."
   }
 }

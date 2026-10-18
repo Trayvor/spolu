@@ -8,6 +8,7 @@ import { createAuth, type Auth } from './modules/auth/auth.js';
 import { aiRoutes } from './modules/ai/routes.js';
 import { textToolRoutes } from './modules/ai/text-routes.js';
 import { bulkEmailRenderRoutes } from './modules/bulk-email/render-routes.js';
+import { passkeyRoutes } from './modules/auth/passkey-routes.js';
 import { authRoutes } from './modules/auth/routes.js';
 import { attachBulkRealtime } from './modules/bulk-email/events.js';
 import { bulkEmailRoutes } from './modules/bulk-email/routes.js';
@@ -115,6 +116,7 @@ export async function buildApp(
   await app.register(systemRoutes, { prefix: '/api', deps });
   await app.register(cspReportRoutes, { prefix: '/api' });
   await app.register(authRoutes, { prefix: '/api', deps });
+  await app.register(passkeyRoutes, { prefix: '/api', deps });
   await app.register(usersRoutes, { prefix: '/api', deps });
   await app.register(groupsRoutes, { prefix: '/api', deps });
   // The eGrant managers webhook: the ticket intake's shared key, no session.

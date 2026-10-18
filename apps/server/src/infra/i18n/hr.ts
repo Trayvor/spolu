@@ -54,6 +54,19 @@ export const hr: ServerTexts = {
         `Adresa e-pošte Vašeg računa u aplikaciji Help promijenjena je u ${newEmail}. Od sada se prijavljujte novom adresom.`,
       warning: 'Ako to niste bili Vi, odmah se obratite svojem administratoru.',
     },
+    passkeyCode: {
+      subject: (code) => `Kôd za dodavanje pristupnog ključa (passkey) u aplikaciji Help: ${code}`,
+      heading: 'Kôd za dodavanje pristupnog ključa (passkey)',
+      body: 'Unesite ga u aplikaciji Help kako biste svojem računu dodali pristupni ključ (passkey). Vrijedi 5 minuta. Ako ga niste zatražili, zanemarite ovu poruku.',
+    },
+    passkeyAdded: {
+      subject: 'Vašem računu u aplikaciji Help dodan je novi pristupni ključ (passkey)',
+      body: ({ name, date }) =>
+        `Vašem računu u aplikaciji Help by eGrant ${date} dodan je novi pristupni ključ (passkey) „${name}”. Njime se možete prijaviti bez kôda iz e-pošte.`,
+      warning:
+        'Ako to niste bili Vi, odmah ga izbrišite u Postavkama → Pristupni ključevi (passkeys) i javite se svom administratoru.',
+      button: 'Otvori Postavke',
+    },
   },
   mcp: {
     tokenCreated: {

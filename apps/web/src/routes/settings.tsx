@@ -20,9 +20,16 @@ const SnippetsSection = lazy(
   ),
 );
 
+// "Passkeys" (ADR 0050) likewise: admins only; the WebAuthn library loads only when one is added.
+const PasskeysSection = lazy(
+  withNamespaces(['passkeys'], () =>
+    import('@/features/passkeys/passkeys-section').then((m) => ({ default: m.PasskeysSection })),
+  ),
+);
+
 /**
- * /settings: the Profile, Notifications, Saved replies and AI access (admins) and System status
- * cards, in that order.
+ * /settings: the Profile, Notifications, Passkeys, Saved replies and AI access (admins) and
+ * System status cards, in that order.
  */
 export function SettingsPage() {
   const { t } = useTranslation();
@@ -35,6 +42,7 @@ export function SettingsPage() {
       <NotificationsSection />
       {admin && (
         <Suspense fallback={null}>
+          <PasskeysSection />
           <SnippetsSection />
           <McpSection />
         </Suspense>

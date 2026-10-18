@@ -20,5 +20,11 @@
   "invite": {
     "by": "{{name}} vas vabi v skupino {{group}}.",
     "about": "V Help sodelujete z ekipo eGrant: klepet, naloge, zahtevki za podporo in skupni dokumenti na enem mestu."
+  },
+  "passkey": {
+    "button": "Prijavite se s ključem (passkey)",
+    "hint": "Za skrbnike, ki so ključ dodali v Nastavitvah.",
+    "invalid": "Tega ključa ni mogoče uporabiti. Prijavite se s kodo iz e-pošte.",
+    "failed": "Prijava s ključem ni uspela. Poskusite znova ali se prijavite s kodo iz e-pošte."
   }
 }

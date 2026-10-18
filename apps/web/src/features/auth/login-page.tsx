@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useEffectEvent, useState, type FormEvent } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useSearch } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
@@ -10,6 +10,14 @@ import { ApiError } from '@/lib/api';
 import { getInviteContext, rememberInvite, sendCode } from './api';
 import { InviteNote } from './invite-note';
 import { CodeStep } from './code-step';
+import { useCompleteLogin } from './complete-login';
+import {
+  cancelPasskey,
+  isPasskeyCancel,
+  passkeyAutofillSupported,
+  passkeysSupported,
+  signInWithPasskey,
+} from './passkey';
 import { linkEmail, safeRedirect } from './redirect';
 
 /**
@@ -70,6 +78,47 @@ export function LoginPage({
   const [formError, setFormError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
+  // Admins' passkeys (ADR 0050), next to the email code, which stays the default.
+  const [canPasskey] = useState(passkeysSupported);
+  const [passkeyError, setPasskeyError] = useState<string | null>(null);
+  const completeLogin = useCompleteLogin(redirectTo);
+
+  async function runPasskey(autofill: boolean) {
+    setPasskeyError(null);
+    try {
+      await signInWithPasskey({ autofill });
+      await completeLogin();
+    } catch (error) {
+      if (isPasskeyCancel(error)) return;
+      setPasskeyError(
+        error instanceof ApiError && error.status === 429
+          ? t('login.errors.tooMany')
+          : error instanceof ApiError && error.code === 'PASSKEY_INVALID'
+            ? t('login.passkey.invalid')
+            : t('login.passkey.failed'),
+      );
+    }
+  }
+  const startAutofill = useEffectEvent(() => void runPasskey(true));
+
+  // Conditional mediation: saved passkeys show in the email field's suggestions while the
+  // email step is open; leaving it ends the pending request. Only where the browser supports
+  // it, and one challenge per visit of the email step.
+  useEffect(() => {
+    if (!canPasskey || step !== 'email') return;
+    let active = true;
+    let started = false;
+    void passkeyAutofillSupported().then((ok) => {
+      if (!ok || !active) return;
+      started = true;
+      startAutofill();
+    });
+    return () => {
+      active = false;
+      if (started) void cancelPasskey();
+    };
+  }, [canPasskey, step]);
+
   async function onEmailSubmit(event: FormEvent) {
     event.preventDefault();
     if (busy) return;
@@ -115,7 +164,7 @@ export function LoginPage({
             <Input
               id="login-email"
               type="email"
-              autoComplete="email"
+              autoComplete={canPasskey ? 'username webauthn' : 'email'}
               autoFocus
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -136,6 +185,24 @@ export function LoginPage({
           <Button type="submit" className="w-full" disabled={busy}>
             {t('login.sendCode')}
           </Button>
+          {canPasskey && (
+            <div className="flex flex-col gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                onClick={() => void runPasskey(false)}
+              >
+                {t('login.passkey.button')}
+              </Button>
+              <p className="text-tiny text-muted-foreground">{t('login.passkey.hint')}</p>
+              {passkeyError && (
+                <p role="alert" className="text-micro text-error-ink">
+                  {passkeyError}
+                </p>
+              )}
+            </div>
+          )}
         </form>
       ) : (
         <CodeStep

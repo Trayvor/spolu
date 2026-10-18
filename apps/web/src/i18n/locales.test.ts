@@ -39,6 +39,7 @@ const NAMESPACES = [
   'mcp',
   'notifications',
   'openInClaude',
+  'passkeys',
   'projects',
   'reminders',
   'savedViews',

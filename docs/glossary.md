@@ -62,6 +62,7 @@ Terms used across the docs and code, in alphabetical order.
 - **notification event**: one stored notification for one recipient (kind, optional group, payload, delivered or not). Recorded in the same transaction as the change that caused it and deleted after 30 days.
 - **OTP code**: the one-time code sent by email that is used to log in.
 - **owner walkthrough**: the final check of a phase, where the owner tries the "Done when" items by hand on the test server after the phase is merged; what is still to walk is noted in the phase's roadmap section.
+- **passkey**: a WebAuthn credential an admin keeps on a device or in a password manager and logs in with instead of the email code (ADR 0050); shown as "kľúč (passkey)" in Slovak. Only admins have them.
 - **pending client**: a client who entered an email on an invite link but never signed in (`email_verified` false, empty name). A later invite link replaces their pending invite; once they sign in they are a normal client of that group.
 - **pending invite**: the invite a person typed their email on, kept until they sign in with a code (`pending_invites`, Phase 21); the latest one wins.
 - **pickable people**: who can be picked as an assignee in a group: its named, verified, active clients and its active managers. Every other admin is a reader of the group (can be mentioned and read it) but is not pickable. See `listPickablePeople`.

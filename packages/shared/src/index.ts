@@ -14,6 +14,7 @@ export * from './meetings.js';
 export * from './money.js';
 export * from './notifications.js';
 export * from './open-in-claude.js';
+export * from './passkeys.js';
 export * from './projects/index.js';
 export * from './reminders.js';
 export * from './saved-views.js';

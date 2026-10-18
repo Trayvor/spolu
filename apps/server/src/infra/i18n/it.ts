@@ -57,6 +57,19 @@ export const it: ServerTexts = {
         `L'email del Suo account Help by eGrant è stata cambiata in ${newEmail}. D'ora in poi acceda con il nuovo indirizzo.`,
       warning: 'Se non ha effettuato Lei questa modifica, contatti subito il Suo amministratore.',
     },
+    passkeyCode: {
+      subject: (code) => `Il Suo codice per aggiungere una passkey in Help by eGrant: ${code}`,
+      heading: 'Il Suo codice per aggiungere una passkey',
+      body: "Lo inserisca nell'app Help per aggiungere una passkey al Suo account. È valido per 5 minuti. Se non lo ha richiesto, ignori questa email.",
+    },
+    passkeyAdded: {
+      subject: 'Al Suo account Help è stata aggiunta una nuova passkey',
+      body: ({ name, date }) =>
+        `Il ${date} è stata aggiunta al Suo account Help by eGrant una nuova passkey «${name}». Con essa può accedere senza il codice via email.`,
+      warning:
+        'Se non è stato Lei, la elimini subito in Impostazioni → Passkey e contatti il Suo amministratore.',
+      button: 'Apri Impostazioni',
+    },
   },
   mcp: {
     tokenCreated: {

@@ -11,6 +11,7 @@ import { findUserByEmail, getUserById } from '../users/service.js';
 import { loginCodeEmail } from './emails.js';
 import { pickLanguage } from './language.js';
 import { account, session, verification } from './schema.js';
+import { passkeyLoginPlugin } from './passkey-login.js';
 import { ticketLinkPlugin } from './ticket-link.js';
 
 /** How long a login code (and an email-change code) stays valid. */
@@ -26,8 +27,8 @@ export const LOGIN_CODE_JOB_OPTIONS = {
 };
 
 /**
- * The better-auth instance: email-code login (and the ticket email's one-click link, ADR 0022),
- * sessions in the database.
+ * The better-auth instance: email-code login (and the ticket email's one-click link, ADR 0022,
+ * and the admins' passkeys, ADR 0050), sessions in the database.
  * Users are created by us (superadmin on start, admins by admins), never by sign-up.
  */
 export function createAuth({ config, db, jobs }: AppDeps) {
@@ -109,6 +110,7 @@ export function createAuth({ config, db, jobs }: AppDeps) {
         },
       }),
       ticketLinkPlugin(db),
+      passkeyLoginPlugin({ config, db }),
     ],
   });
 }
